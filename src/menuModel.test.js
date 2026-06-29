@@ -6,32 +6,33 @@ test("lists the navigation items in menu order", () => {
   const menu = createMenuModel();
 
   assert.deepStrictEqual(menu.listNavigationItems(), [
-    { id: "dashboard", label: "Dashboard", iconKey: "home" },
-    { id: "planung", label: "Planung", iconKey: "calendar" },
-    { id: "analyse", label: "Analyse", iconKey: "chart" },
+    { id: "uebersicht", label: "Uebersicht", iconKey: "home" },
+    { id: "neue-karten", label: "Neue Karten", iconKey: "plus" },
+    { id: "lernen", label: "Lernen", iconKey: "learn" },
+    { id: "analyse", label: "Decks", iconKey: "chart" },
   ]);
 });
 
-test("uses dashboard as the default view", () => {
+test("uses overview as the default view", () => {
   const menu = createMenuModel();
 
-  assert.equal(menu.defaultViewId, "dashboard");
+  assert.equal(menu.defaultViewId, "uebersicht");
 });
 
-test("returns planning content by id", () => {
+test("returns new-card content by id", () => {
   const menu = createMenuModel();
 
-  assert.deepStrictEqual(menu.getView("planung"), {
-    id: "planung",
-    label: "Planung",
-    iconKey: "calendar",
-    title: "Planung",
-    eyebrow: "Naechste Schritte",
-    body: "Diese Ansicht ist fuer Termine, Ideen und To-dos gedacht. Du kannst sie spaeter mit echten Daten verbinden.",
+  assert.deepStrictEqual(menu.getView("neue-karten"), {
+    id: "neue-karten",
+    label: "Neue Karten",
+    iconKey: "plus",
+    title: "Neue Karten",
+    eyebrow: "Erstellen",
+    body: "Waehle zuerst zwischen Anki-Import, manueller Erstellung oder KI-assistierter Vorbereitung.",
     stats: [
-      { label: "Meetings", value: "3" },
-      { label: "Offen", value: "7" },
-      { label: "Prioritaet", value: "Hoch" },
+      { label: "Anki", value: "APKG" },
+      { label: "Manuell", value: "6 Typen" },
+      { label: "KI", value: "Review-first" },
     ],
   });
 });
@@ -45,9 +46,9 @@ test("falls back to the default view for unknown ids", () => {
 test("keeps stats as label and value pairs", () => {
   const menu = createMenuModel();
 
-  assert.deepStrictEqual(menu.getView("dashboard").stats, [
-    { label: "Aufgaben", value: "12" },
-    { label: "Fokuszeit", value: "4h" },
-    { label: "Status", value: "Aktiv" },
+  assert.deepStrictEqual(menu.getView("uebersicht").stats, [
+    { label: "Importierte Decks", value: "0" },
+    { label: "Originalkarten", value: "0" },
+    { label: "CoRe-ready", value: "0" },
   ]);
 });
