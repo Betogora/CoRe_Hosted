@@ -1,5 +1,5 @@
 import { applyReviewRating } from "./scheduler.js";
-import { chooseReviewCard } from "./coreVariantService.js";
+import { chooseReviewCard, deactivateVariant, flagVariant } from "./coreVariantService.js";
 import { createVersionEntry, makeId } from "./coreModel.js";
 
 function isDue(reviewState, now) {
@@ -165,3 +165,44 @@ export function recordReviewRating(deck, reviewable, rating, options = {}) {
   };
 }
 
+export function recordVariantFeedback(deck, reviewable, options = {}) {
+  const now = options.now ?? new Date().toISOString();
+  if (!reviewable?.isVariant || !reviewable.sourceCardId) {
+    return { deck, updatedCard: null };
+  }
+
+  let updatedCard = null;
+  const cards = (deck.cards ?? []).map((card) => {
+    if (card.id !== reviewable.sourceCardId) return card;
+    if (!(card.variants ?? []).some((variant) => variant.id === reviewable.id)) return card;
+
+    updatedCard =
+      options.action === "disable"
+        ? deactivateVariant(card, reviewable.id, options.reason ?? "Nutzer hat die Variante deaktiviert.")
+        : flagVariant(card, reviewable.id, options.feedbackType ?? "fachlich_falsch", options.note ?? "");
+    return updatedCard;
+  });
+
+  if (!updatedCard) {
+    return { deck, updatedCard: null };
+  }
+
+  return {
+    deck: {
+      ...deck,
+      cards,
+      versionLog: [
+        ...(deck.versionLog ?? []),
+        createVersionEntry({
+          objectType: "deck",
+          objectId: deck.id,
+          changeType: options.action === "disable" ? "variant_disabled" : "variant_flagged",
+          after: { cardId: reviewable.sourceCardId, variantId: reviewable.id },
+          createdAt: now,
+        }),
+      ],
+      updatedAt: now,
+    },
+    updatedCard,
+  };
+}

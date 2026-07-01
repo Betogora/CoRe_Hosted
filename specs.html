@@ -4045,9 +4045,10 @@ Worker
 <tbody>
 <tr><td><code>src/coreModel.js</code></td><td><code>createCoreDeck</code>, <code>createCoreCard</code>, <code>createCardVariant</code>, <code>updateCardContent</code>, <code>restoreCardVersion</code></td><td>Domaenenobjekte, Review-State, Quellenanker, Versionen, Deck-Settings</td></tr>
 <tr><td><code>src/coreRepository.js</code></td><td><code>createCoreRepository()</code></td><td>Persistenter lokaler App-State, Migration alter Decks, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene</td></tr>
-<tr><td><code>src/coreWorkspace.js</code></td><td><code>createCoreWorkspace</code>, <code>createDemoAnatomyDeck</code></td><td>Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing und Massen-Deck-Updates</td></tr>
-<tr><td><code>src/scheduler.js</code></td><td><code>applyReviewRating</code>, <code>summarizeDeckReview</code></td><td>Vier-Button-Scheduler, Maturity-XP, Faelligkeit und Deck-Zusammenfassung</td></tr>
-<tr><td><code>src/reviewService.js</code></td><td><code>createReviewSession</code>, <code>recordReviewRating</code></td><td>Review-Auswahl, Events, Familien-/Variantenstatus</td></tr>
+<tr><td><code>src/coreWorkspace.js</code></td><td><code>createCoreWorkspace</code>, <code>createDemoAnatomyDeck</code>, <code>setDeckCoreMode</code>, <code>saveDeckCardContent</code>, <code>deleteDeckCard</code></td><td>Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates</td></tr>
+<tr><td><code>src/scheduler.js</code></td><td><code>applyReviewRating</code>, <code>listReviewableCards</code>, <code>summarizeDeckReview</code></td><td>Vier-Button-Scheduler, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung</td></tr>
+<tr><td><code>src/libraryModel.js</code></td><td><code>createDeckLibraryModel</code>, <code>createAiJobLedger</code></td><td>UI-nahe Bibliotheksprojektion fuer Dashboard, Deckliste, aktive Kartenzeilen und KI-Job-Ledger</td></tr>
+<tr><td><code>src/reviewService.js</code></td><td><code>createReviewSession</code>, <code>recordReviewRating</code>, <code>recordVariantFeedback</code></td><td>Review-Auswahl, Events, Familien-/Variantenstatus und Variantenfeedback</td></tr>
 <tr><td><code>src/coreVariantService.js</code></td><td><code>classifyCardEligibility</code>, <code>ensureVariantsForCard</code>, <code>chooseReviewCard</code>, <code>deactivateVariant</code>, <code>flagVariant</code></td><td>CoRe-Eligibility, Rephrase-Varianten, Variantentransparenz, Feedback</td></tr>
 <tr><td><code>src/reviewShortcuts.js</code></td><td><code>resolveReviewShortcut</code></td><td>Tastaturvertrag fuer Reveal, Bewertung und Exit im Review</td></tr>
 <tr><td><code>src/aiOrchestrator.js</code></td><td><code>generateCardsFromDocument</code>, <code>selectModel</code>, <code>validateCardGenerationOutput</code></td><td>Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts</td></tr>
@@ -4078,9 +4079,9 @@ Worker
 </ul>
 <h3 id="273-testoberflaeche">27.3 Testoberflaeche</h3>
 <ul>
-<li><code>src/coreFeatures.test.js</code>: Scheduler, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.</li>
-<li><code>src/coreWorkspace.test.js</code>: lokale App-Kommandos fuer Demo-Deck, Graph, Community-Share und Massen-Deck-Update.</li>
-<li><code>src/coreModel.test.js</code>: manuelle Karten und KI-Draft-Akzeptanz.</li>
+<li><code>src/coreFeatures.test.js</code>: Scheduler, Bibliotheksmodell, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.</li>
+<li><code>src/coreWorkspace.test.js</code>: lokale App-Kommandos fuer Demo-Deck, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.</li>
+<li><code>src/coreModel.test.js</code>: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.</li>
 <li><code>src/apkgImport.test.js</code>: APKG-Mapping und HTML-Sicherheit.</li>
 <li><code>src/menuModel.test.js</code>: Navigationsvertrag.</li>
 </ul>

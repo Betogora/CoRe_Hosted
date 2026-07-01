@@ -243,6 +243,41 @@ function normalizeCardSource(source) {
   return CORE_DECK_SOURCES.includes(source) ? source : "manual";
 }
 
+function normalizeVersionLog(versionLog, fallbackEntry) {
+  return Array.isArray(versionLog) && versionLog.length > 0 ? versionLog : [fallbackEntry];
+}
+
+function normalizeImmutableOriginal(immutableOriginal, fallback) {
+  const front = sanitizeCardHtml(immutableOriginal?.front ?? fallback.front);
+  const back = sanitizeCardHtml(immutableOriginal?.back ?? fallback.back);
+  const fields = Array.isArray(immutableOriginal?.fields)
+    ? immutableOriginal.fields.map((field) => ({
+        name: field.name,
+        value: sanitizeCardHtml(field.value),
+      }))
+    : fallback.fields;
+  const html = sanitizeCardHtml(immutableOriginal?.html ?? fallback.html);
+
+  return {
+    front,
+    back,
+    fields,
+    html,
+    capturedAt: immutableOriginal?.capturedAt ?? fallback.capturedAt,
+    source: normalizeCardSource(immutableOriginal?.source ?? fallback.source),
+    contentHash:
+      immutableOriginal?.contentHash ??
+      stableContentHash(
+        {
+          front: stripHtml(front).trim().toLowerCase(),
+          back: stripHtml(back).trim().toLowerCase(),
+          fields,
+        },
+        "card",
+      ),
+  };
+}
+
 export function createCoreCard({
   id = makeId("card"),
   noteId = null,
@@ -264,6 +299,8 @@ export function createCoreCard({
   reviewState = null,
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
+  immutableOriginal = null,
+  versionLog = [],
   meta = {},
 }) {
   if (!CORE_CARD_TYPES.includes(cardType)) {
@@ -292,6 +329,22 @@ export function createCoreCard({
     ? createReviewState({ ...reviewState, reviewableType: "card", reviewableId: id })
     : createReviewState({ reviewableType: "card", reviewableId: id });
   const normalizedVariants = variants.map((variant) => normalizeCardVariant({ ...variant, sourceCardId: id }));
+  const fallbackImmutableOriginal = {
+    front: sanitizedFront,
+    back: sanitizedBack,
+    fields,
+    html,
+    capturedAt: createdAt,
+    source: cardSource,
+    contentHash,
+  };
+  const createdEntry = createVersionEntry({
+    objectType: "card",
+    objectId: id,
+    changeType: "created",
+    after: { front: sanitizedFront, back: sanitizedBack, cardType },
+    createdAt,
+  });
 
   return {
     id,
@@ -305,15 +358,7 @@ export function createCoreCard({
     originalFields: fields,
     originalTags: normalizedTags,
     originalHtml: html,
-    immutableOriginal: {
-      front: sanitizedFront,
-      back: sanitizedBack,
-      fields,
-      html,
-      capturedAt: createdAt,
-      source: cardSource,
-      contentHash,
-    },
+    immutableOriginal: normalizeImmutableOriginal(immutableOriginal, fallbackImmutableOriginal),
     mediaRefs: unique(mediaRefs),
     sourceAnchors,
     kind: cardType,
@@ -322,15 +367,7 @@ export function createCoreCard({
     contentHash,
     reviewState: normalizedReviewState,
     variants: normalizedVariants,
-    versionLog: [
-      createVersionEntry({
-        objectType: "card",
-        objectId: id,
-        changeType: "created",
-        after: { front: sanitizedFront, back: sanitizedBack, cardType },
-        createdAt,
-      }),
-    ],
+    versionLog: normalizeVersionLog(versionLog, createdEntry),
     coreState: {
       isCoreReady: normalizedReviewState.maturityBand === "variant_ready" || normalizedReviewState.maturityBand === "mastered",
       variantCount: normalizedVariants.filter((variant) => variant.qualityStatus === "active").length,
@@ -373,6 +410,7 @@ export function createCardVariant({
   feedback = [],
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
+  versionLog = [],
   meta = {},
 }) {
   if (!sourceCardId) {
@@ -400,6 +438,13 @@ export function createCardVariant({
   const normalizedReviewState = reviewState
     ? createReviewState({ ...reviewState, reviewableType: "variant", reviewableId: id })
     : createReviewState({ reviewableType: "variant", reviewableId: id });
+  const createdEntry = createVersionEntry({
+    objectType: "variant",
+    objectId: id,
+    changeType: "created",
+    after: { front: sanitizedFront, back: sanitizedBack, transformType },
+    createdAt,
+  });
 
   return {
     id,
@@ -417,15 +462,7 @@ export function createCardVariant({
     sourceAnchors,
     reviewState: normalizedReviewState,
     feedback,
-    versionLog: [
-      createVersionEntry({
-        objectType: "variant",
-        objectId: id,
-        changeType: "created",
-        after: { front: sanitizedFront, back: sanitizedBack, transformType },
-        createdAt,
-      }),
-    ],
+    versionLog: normalizeVersionLog(versionLog, createdEntry),
     createdAt,
     updatedAt,
     meta,
@@ -453,6 +490,7 @@ export function createCoreDeck({
   communityRefs = [],
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
+  versionLog = [],
 }) {
   if (!CORE_DECK_SOURCES.includes(source)) {
     throw new Error(`Unbekannte Kartenstapel-Quelle: ${source}`);
@@ -471,6 +509,13 @@ export function createCoreDeck({
     }),
   );
   const deckTags = unique([...normalizeTags(tags), ...normalizedCards.flatMap((card) => card.originalTags ?? [])]);
+  const createdEntry = createVersionEntry({
+    objectType: "deck",
+    objectId: id,
+    changeType: "created",
+    after: { name: deckName, source },
+    createdAt,
+  });
 
   return {
     id,
@@ -494,15 +539,7 @@ export function createCoreDeck({
     aiJobs,
     graph,
     communityRefs,
-    versionLog: [
-      createVersionEntry({
-        objectType: "deck",
-        objectId: id,
-        changeType: "created",
-        after: { name: deckName, source },
-        createdAt,
-      }),
-    ],
+    versionLog: normalizeVersionLog(versionLog, createdEntry),
   };
 }
 

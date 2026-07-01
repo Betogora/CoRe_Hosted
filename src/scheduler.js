@@ -65,8 +65,12 @@ export function applyReviewRating(reviewState, rating, context = {}) {
   });
 }
 
+export function listReviewableCards(deck) {
+  return (deck.cards ?? []).filter((card) => card.status !== "deleted" && card.draftStatus !== "draft");
+}
+
 export function summarizeDeckReview(deck, now = new Date()) {
-  const cards = deck.cards ?? [];
+  const cards = listReviewableCards(deck);
   const nowTime = new Date(now).getTime();
   const dueCards = cards.filter((card) => new Date(card.reviewState?.dueAt ?? 0).getTime() <= nowTime);
   const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.reviewState?.maturityBand));

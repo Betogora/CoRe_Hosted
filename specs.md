@@ -2702,9 +2702,10 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 |---|---|---|
 | `src/coreModel.js` | `createCoreDeck`, `createCoreCard`, `createCardVariant`, `updateCardContent`, `restoreCardVersion` | Domaenenobjekte, Review-State, Quellenanker, Versionen, Deck-Settings |
 | `src/coreRepository.js` | `createCoreRepository()` | Persistenter lokaler App-State, Migration alter Decks, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene |
-| `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck` | Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing und Massen-Deck-Updates |
-| `src/scheduler.js` | `applyReviewRating`, `summarizeDeckReview` | Vier-Button-Scheduler, Maturity-XP, Faelligkeit und Deck-Zusammenfassung |
-| `src/reviewService.js` | `createReviewSession`, `recordReviewRating` | Review-Auswahl, Events, Familien-/Variantenstatus |
+| `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard` | Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates |
+| `src/scheduler.js` | `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | Vier-Button-Scheduler, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
+| `src/libraryModel.js` | `createDeckLibraryModel`, `createAiJobLedger` | UI-nahe Bibliotheksprojektion fuer Dashboard, Deckliste, aktive Kartenzeilen und KI-Job-Ledger |
+| `src/reviewService.js` | `createReviewSession`, `recordReviewRating`, `recordVariantFeedback` | Review-Auswahl, Events, Familien-/Variantenstatus und Variantenfeedback |
 | `src/coreVariantService.js` | `classifyCardEligibility`, `ensureVariantsForCard`, `chooseReviewCard`, `deactivateVariant`, `flagVariant` | CoRe-Eligibility, Rephrase-Varianten, Variantentransparenz, Feedback |
 | `src/reviewShortcuts.js` | `resolveReviewShortcut` | Tastaturvertrag fuer Reveal, Bewertung und Exit im Review |
 | `src/aiOrchestrator.js` | `generateCardsFromDocument`, `selectModel`, `validateCardGenerationOutput` | Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts |
@@ -2735,9 +2736,9 @@ Alle Screens liegen derzeit in `src/App.jsx`, verwenden aber die Module oben als
 
 ### 27.3 Testoberflaeche
 
-- `src/coreFeatures.test.js`: Scheduler, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.
-- `src/coreWorkspace.test.js`: lokale App-Kommandos fuer Demo-Deck, Graph, Community-Share und Massen-Deck-Update.
-- `src/coreModel.test.js`: manuelle Karten und KI-Draft-Akzeptanz.
+- `src/coreFeatures.test.js`: Scheduler, Bibliotheksmodell, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.
+- `src/coreWorkspace.test.js`: lokale App-Kommandos fuer Demo-Deck, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.
+- `src/coreModel.test.js`: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.
 - `src/apkgImport.test.js`: APKG-Mapping und HTML-Sicherheit.
 - `src/menuModel.test.js`: Navigationsvertrag.
 

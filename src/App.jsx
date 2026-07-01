@@ -56,9 +56,7 @@ import {
   acceptAiDraftDeck,
   createManualCoreDeck,
   createSourceDocument,
-  updateCardContent,
 } from "./coreModel.js";
-import { deactivateVariant, flagVariant } from "./coreVariantService.js";
 import { createCoreWorkspace } from "./coreWorkspace.js";
 import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport, validatePortableExport } from "./dataPortability.js";
 import { answerDeckQuestion } from "./deckAssistant.js";
@@ -66,10 +64,10 @@ import { buildDeckGraph, shouldRefreshDeckGraph } from "./deckGraph.js";
 import { createDocumentFromFile } from "./documentModel.js";
 import { createCsvImportDeck, createTableImportDeck, createTextImportDeck } from "./importService.js";
 import { createLearningPlan } from "./learningPlan.js";
+import { createAiJobLedger, createDeckLibraryModel } from "./libraryModel.js";
 import { createMenuModel } from "./menuModel.js";
 import { resolveReviewShortcut } from "./reviewShortcuts.js";
-import { createReviewSession, recordReviewRating } from "./reviewService.js";
-import { summarizeDeckReview } from "./scheduler.js";
+import { createReviewSession, recordReviewRating, recordVariantFeedback } from "./reviewService.js";
 
 const menu = createMenuModel();
 
@@ -119,21 +117,6 @@ function formatBytes(size) {
   const unitIndex = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
   const value = size / 1024 ** unitIndex;
   return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-}
-
-function getDeckCards(deck) {
-  return Array.isArray(deck.cards) ? deck.cards : [];
-}
-
-function getTotalCards(decks) {
-  return decks.reduce((sum, deck) => sum + (deck.cardCount ?? getDeckCards(deck).length), 0);
-}
-
-function getTotalVariants(decks) {
-  return decks.reduce(
-    (sum, deck) => sum + getDeckCards(deck).flatMap((card) => card.variants ?? []).filter((variant) => variant.qualityStatus === "active").length,
-    0,
-  );
 }
 
 function CardHtml({ html }) {
@@ -305,13 +288,20 @@ function OnboardingPanel({ profile, onSave, onCreate }) {
 }
 
 function DashboardScreen({ state, onSaveProfile, onNavigate, onStartDeck }) {
-  const decks = state.decks;
-  const summaries = decks.map((deck) => summarizeDeckReview(deck));
-  const dueCards = summaries.reduce((sum, summary) => sum + summary.dueCards, 0);
-  const matureCards = summaries.reduce((sum, summary) => sum + summary.matureCards, 0);
-  const variants = getTotalVariants(decks);
-  const totalCards = getTotalCards(decks);
-  const completion = totalCards ? Math.round((matureCards / totalCards) * 100) : 0;
+  const library = createDeckLibraryModel(state.decks);
+  const { totals } = library;
+  const dashboardRows = library.dashboardRows.length
+    ? library.dashboardRows
+    : [
+        {
+          id: "empty",
+          name: "Noch kein Kartenstapel",
+          deck: { id: "empty", name: "Noch kein Kartenstapel" },
+          summary: { totalCards: 0, dueCards: 0 },
+          progress: 0,
+          isEmpty: true,
+        },
+      ];
 
   return (
     <div className="grid gap-7">
@@ -325,10 +315,10 @@ function DashboardScreen({ state, onSaveProfile, onNavigate, onStartDeck }) {
       {!state.profile.onboardingComplete ? <OnboardingPanel profile={state.profile} onSave={onSaveProfile} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-4">
-        <StatTile icon={CalendarDays} label="Heute faellig" value={dueCards} hint="Review-Objekte" />
-        <StatTile icon={Layers} label="Originalkarten" value={totalCards} hint={`${decks.length} Stapel`} accent="text-teal-700" />
-        <StatTile icon={Sparkles} label="CoRe-ready" value={matureCards} hint={`${variants} aktive Varianten`} accent="text-amber-700" />
-        <StatTile icon={Target} label="Maturity" value={`${completion} %`} hint="Karten ab Reifegrad" accent="text-emerald-700" />
+        <StatTile icon={CalendarDays} label="Heute faellig" value={totals.dueCards} hint="Review-Objekte" />
+        <StatTile icon={Layers} label="Originalkarten" value={totals.totalCards} hint={`${totals.deckCount} Stapel`} accent="text-teal-700" />
+        <StatTile icon={Sparkles} label="CoRe-ready" value={totals.matureCards} hint={`${totals.activeVariants} aktive Varianten`} accent="text-amber-700" />
+        <StatTile icon={Target} label="Maturity" value={`${totals.completionPercent} %`} hint="Karten ab Reifegrad" accent="text-emerald-700" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -340,18 +330,18 @@ function DashboardScreen({ state, onSaveProfile, onNavigate, onStartDeck }) {
             </button>
           </div>
           <div className="grid gap-3">
-            {(decks.length ? decks.slice(0, 4) : [{ id: "empty", name: "Noch kein Kartenstapel", cardCount: 0, cards: [] }]).map((deck) => {
-              const summary = summarizeDeckReview(deck);
+            {dashboardRows.map((row) => {
+              const summary = row.summary;
               return (
-                <div key={deck.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#e3e7f5] bg-white/72 px-5 py-4">
+                <div key={row.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#e3e7f5] bg-white/72 px-5 py-4">
                   <OrbIcon icon={Layers} className="size-10 bg-[#eef1fb] text-[#6672bf]" />
                   <div className="min-w-[12rem] flex-1">
-                    <p className="truncate text-base font-semibold text-[#17214f]">{deck.name}</p>
+                    <p className="truncate text-base font-semibold text-[#17214f]">{row.name}</p>
                     <p className="text-sm text-[#66709a]">{summary.totalCards} Karten · {summary.dueCards} faellig</p>
                   </div>
-                  <DonutValue value={summary.totalCards ? Math.round((summary.matureCards / summary.totalCards) * 100) : 0} />
-                  {deck.id !== "empty" ? (
-                    <button type="button" onClick={() => onStartDeck(deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1]">
+                  <DonutValue value={row.progress} />
+                  {!row.isEmpty ? (
+                    <button type="button" onClick={() => onStartDeck(row.deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1]">
                       Lernen <ChevronRight size={15} aria-hidden="true" />
                     </button>
                   ) : null}
@@ -389,8 +379,8 @@ function DashboardScreen({ state, onSaveProfile, onNavigate, onStartDeck }) {
   );
 }
 
-function DeckCardEditor({ deck, selectedCardId, onSaveCard, onDeleteCard }) {
-  const card = getDeckCards(deck).find((item) => item.id === selectedCardId) ?? getDeckCards(deck)[0];
+function DeckCardEditor({ cards = [], selectedCardId, onSaveCard, onDeleteCard }) {
+  const card = cards.find((item) => item.id === selectedCardId) ?? cards[0];
   const [form, setForm] = React.useState(null);
 
   React.useEffect(() => {
@@ -482,51 +472,37 @@ function DeckCardEditor({ deck, selectedCardId, onSaveCard, onDeleteCard }) {
   );
 }
 
-function DecksScreen({ decks, onUpdateDeck, onStartDeck, onCreateDeck, onOpenGraph, onShareDeck }) {
+function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onStartDeck, onCreateDeck, onOpenGraph, onShareDeck }) {
   const [query, setQuery] = React.useState("");
   const [modeFilter, setModeFilter] = React.useState("all");
   const [selectedDeckId, setSelectedDeckId] = React.useState(decks[0]?.id ?? null);
   const [selectedCardId, setSelectedCardId] = React.useState(null);
-  const filteredDecks = decks.filter((deck) => {
-    const haystack = `${deck.name} ${(deck.tags ?? []).join(" ")} ${(deck.hierarchyPath ?? []).join(" ")}`.toLowerCase();
-    const matchesQuery = !query || haystack.includes(query.toLowerCase());
-    const matchesMode = modeFilter === "all" || deck.deckSettings.coreMode === modeFilter;
-    return matchesQuery && matchesMode;
-  });
-  const selectedDeck = decks.find((deck) => deck.id === selectedDeckId) ?? filteredDecks[0] ?? null;
+  const library = createDeckLibraryModel(decks, { query, coreMode: modeFilter, selectedDeckId });
+  const filteredRows = library.filteredRows;
+  const selectedRow = library.selectedRow;
+  const selectedDeck = selectedRow?.deck ?? null;
 
   React.useEffect(() => {
-    if (!selectedDeckId && decks[0]) setSelectedDeckId(decks[0].id);
+    if (!selectedDeckId && library.rows[0]) setSelectedDeckId(library.rows[0].id);
   }, [decks, selectedDeckId]);
 
   function updateCoreMode(deck, coreMode) {
-    onUpdateDeck(deck.id, (current) => ({
-      ...current,
-      deckSettings: { ...current.deckSettings, coreMode },
-    }));
+    onSetDeckCoreMode(deck.id, coreMode);
   }
 
   function saveCard(cardId, form) {
-    onUpdateDeck(selectedDeck.id, (current) => ({
-      ...current,
-      cards: current.cards.map((card) =>
-        card.id === cardId
-          ? updateCardContent(card, {
-              originalFront: form.front,
-              originalBack: form.back,
-              originalTags: form.tags,
-              kind: form.kind,
-            })
-          : card,
-      ),
-    }));
+    if (!selectedDeck) return;
+    onSaveCard(selectedDeck.id, cardId, {
+      originalFront: form.front,
+      originalBack: form.back,
+      originalTags: form.tags,
+      kind: form.kind,
+    });
   }
 
   function deleteCard(cardId) {
-    onUpdateDeck(selectedDeck.id, (current) => ({
-      ...current,
-      cards: current.cards.map((card) => (card.id === cardId ? { ...card, status: "deleted", updatedAt: new Date().toISOString() } : card)),
-    }));
+    if (!selectedDeck) return;
+    onDeleteCard(selectedDeck.id, cardId);
   }
 
   return (
@@ -558,7 +534,7 @@ function DecksScreen({ decks, onUpdateDeck, onStartDeck, onCreateDeck, onOpenGra
         </div>
       </SoftPanel>
 
-      {filteredDecks.length === 0 ? (
+      {filteredRows.length === 0 ? (
         <EmptyState
           icon={Layers}
           title="Noch keine passenden Stapel"
@@ -571,18 +547,18 @@ function DecksScreen({ decks, onUpdateDeck, onStartDeck, onCreateDeck, onOpenGra
         />
       ) : (
         <div className="grid gap-4">
-          {filteredDecks.map((deck) => {
-            const summary = summarizeDeckReview(deck);
-            const path = (deck.hierarchyPath ?? [deck.name]).join(" / ");
-            const isSelected = selectedDeck?.id === deck.id;
+          {filteredRows.map((row) => {
+            const deck = row.deck;
+            const summary = row.summary;
+            const isSelected = selectedRow?.id === row.id;
             return (
-              <SoftPanel key={deck.id} className={`p-5 ${isSelected ? "ring-2 ring-[#8c96dc]" : ""}`}>
+              <SoftPanel key={row.id} className={`p-5 ${isSelected ? "ring-2 ring-[#8c96dc]" : ""}`}>
                 <div className="flex flex-wrap items-center gap-4">
                   <button type="button" onClick={() => setSelectedDeckId(deck.id)} className="flex min-w-[16rem] flex-1 items-center gap-4 text-left">
                     <OrbIcon icon={Layers} className="bg-[#eef1fb] text-[#6672bf]" />
                     <span className="min-w-0">
                       <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
-                      <span className="block truncate text-sm text-[#66709a]">{path}</span>
+                      <span className="block truncate text-sm text-[#66709a]">{row.path}</span>
                     </span>
                   </button>
                   <CoreModeControl value={deck.deckSettings.coreMode} onChange={(mode) => updateCoreMode(deck, mode)} />
@@ -624,25 +600,25 @@ function DecksScreen({ decks, onUpdateDeck, onStartDeck, onCreateDeck, onOpenGra
           <SoftPanel className="p-6">
             <h3 className="text-xl font-semibold text-[#17214f]">Karten in {selectedDeck.name}</h3>
             <div className="mt-5 grid max-h-[28rem] gap-3 overflow-auto pr-1">
-              {getDeckCards(selectedDeck)
-                .filter((card) => card.status !== "deleted")
-                .slice(0, 80)
-                .map((card) => (
+              {(selectedRow?.cardRows ?? []).map((cardRow) => {
+                const card = cardRow.card;
+                return (
                   <button
-                    key={card.id}
+                    key={cardRow.id}
                     type="button"
-                    onClick={() => setSelectedCardId(card.id)}
+                    onClick={() => setSelectedCardId(cardRow.id)}
                     className={`rounded-xl border px-4 py-3 text-left ${
-                      (selectedCardId ?? getDeckCards(selectedDeck)[0]?.id) === card.id ? "border-[#8c96dc] bg-[#f3f5fd]" : "border-[#e3e7f5] bg-white/70"
+                      (selectedCardId ?? selectedRow?.cardRows[0]?.id) === cardRow.id ? "border-[#8c96dc] bg-[#f3f5fd]" : "border-[#e3e7f5] bg-white/70"
                     }`}
                   >
-                    <span className="block truncate text-sm font-semibold text-[#17214f]">{card.originalFront.replace(/<[^>]*>/g, " ")}</span>
+                    <span className="block truncate text-sm font-semibold text-[#17214f]">{cardRow.frontPreview}</span>
                     <span className="mt-1 block text-xs uppercase tracking-wide text-[#66709a]">{card.kind} · {card.reviewState.maturityBand}</span>
                   </button>
-                ))}
+                );
+              })}
             </div>
           </SoftPanel>
-          <DeckCardEditor deck={selectedDeck} selectedCardId={selectedCardId} onSaveCard={saveCard} onDeleteCard={deleteCard} />
+          <DeckCardEditor cards={selectedRow?.activeCards ?? []} selectedCardId={selectedCardId} onSaveCard={saveCard} onDeleteCard={deleteCard} />
         </div>
       ) : null}
     </div>
@@ -1253,6 +1229,8 @@ function CreationScreen({ onCreated, onJob }) {
 }
 
 function LearnScreen({ decks, onStartDeck, onCreateDeck }) {
+  const library = createDeckLibraryModel(decks);
+
   return (
     <div className="grid gap-7">
       <PageHeader
@@ -1279,9 +1257,9 @@ function LearnScreen({ decks, onStartDeck, onCreateDeck }) {
           }
         />
       ) : (
-        decks.map((deck) => {
-          const summary = summarizeDeckReview(deck);
-          const progress = summary.totalCards ? Math.round((summary.matureCards / summary.totalCards) * 100) : 0;
+        library.rows.map((row) => {
+          const deck = row.deck;
+          const summary = row.summary;
           return (
             <SoftPanel key={deck.id} className="p-6">
               <div className="flex flex-wrap items-center gap-5">
@@ -1294,7 +1272,7 @@ function LearnScreen({ decks, onStartDeck, onCreateDeck }) {
                   <span className="text-xs font-semibold text-[#66709a]">Maturity</span>
                   <span className="text-2xl font-semibold text-[#17214f]">{summary.averageMaturityXp}</span>
                 </div>
-                <DonutValue value={progress} />
+                <DonutValue value={row.progress} />
                 <button type="button" onClick={() => onStartDeck(deck, false)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#f2f4fd] px-5 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
                   Lernen <ChevronRight size={16} aria-hidden="true" />
                 </button>
@@ -1346,14 +1324,10 @@ function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
   }
 
   function updateVariant(action) {
-    if (!current?.isVariant || !sourceCard) return;
-    const updatedCard = action === "disable" ? deactivateVariant(sourceCard, current.id) : flagVariant(sourceCard, current.id, "fachlich_falsch");
-    const nextDeck = {
-      ...sessionDeck,
-      cards: sessionDeck.cards.map((card) => (card.id === updatedCard.id ? updatedCard : card)),
-    };
-    onDeckUpdated(nextDeck);
-    setSessionDeck(nextDeck);
+    if (!current?.isVariant) return;
+    const result = recordVariantFeedback(sessionDeck, current, { action });
+    onDeckUpdated(result.deck);
+    setSessionDeck(result.deck);
   }
 
   React.useEffect(() => {
@@ -1833,23 +1807,22 @@ function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePlan }) {
 }
 
 function AiJobsScreen({ decks, jobs }) {
-  const deckJobs = decks.flatMap((deck) => (deck.aiJobs ?? []).map((job) => ({ ...job, deckName: deck.name })));
-  const allJobs = [...jobs, ...deckJobs].sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)));
+  const ledger = createAiJobLedger({ decks, jobs });
 
   return (
     <div className="grid gap-7">
       <PageHeader eyebrow="Orchestrierung" title="KI-Jobs" body="Trigger, Status und strukturierte Ergebnisse." />
       <div className="grid gap-6 lg:grid-cols-3">
-        <StatTile icon={Bot} label="Jobs" value={allJobs.length} />
-        <StatTile icon={CheckCircle2} label="Succeeded" value={allJobs.filter((job) => job.status === "succeeded").length} accent="text-emerald-700" />
-        <StatTile icon={AlertCircle} label="Failed" value={allJobs.filter((job) => job.status === "failed").length} accent="text-red-700" />
+        <StatTile icon={Bot} label="Jobs" value={ledger.total} />
+        <StatTile icon={CheckCircle2} label="Succeeded" value={ledger.succeeded} accent="text-emerald-700" />
+        <StatTile icon={AlertCircle} label="Failed" value={ledger.failed} accent="text-red-700" />
       </div>
       <SoftPanel className="p-6">
         <div className="grid gap-3">
-          {allJobs.length === 0 ? (
+          {ledger.jobs.length === 0 ? (
             <p className="text-sm text-[#66709a]">Keine Jobs.</p>
           ) : (
-            allJobs.map((job) => (
+            ledger.jobs.map((job) => (
               <div key={job.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] px-4 py-3">
                 <OrbIcon icon={Bot} className="size-10 bg-indigo-50 text-indigo-700" />
                 <div className="min-w-[14rem] flex-1">
@@ -1859,7 +1832,7 @@ function AiJobsScreen({ decks, jobs }) {
                 <span className={`rounded-xl px-3 py-1 text-xs font-semibold ${job.status === "succeeded" ? "bg-emerald-50 text-emerald-700" : job.status === "failed" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>
                   {job.status}
                 </span>
-                <span className="text-xs text-[#66709a]">{job.resultRef?.cardCount ? `${job.resultRef.cardCount} Karten` : job.resultRef?.generatedVariantIds ? `${job.resultRef.generatedVariantIds.length} Varianten` : ""}</span>
+                <span className="text-xs text-[#66709a]">{job.resultLabel}</span>
               </div>
             ))
           )}
@@ -2099,6 +2072,24 @@ export function App() {
     return updated;
   }
 
+  function setDeckCoreMode(deckId, coreMode) {
+    const updated = workspace.setDeckCoreMode(deckId, coreMode);
+    refresh();
+    return updated;
+  }
+
+  function saveDeckCard(deckId, cardId, patch) {
+    const updated = workspace.saveDeckCardContent(deckId, cardId, patch);
+    refresh();
+    return updated;
+  }
+
+  function deleteDeckCard(deckId, cardId) {
+    const updated = workspace.deleteDeckCard(deckId, cardId);
+    refresh();
+    return updated;
+  }
+
   function saveProfile(profile) {
     const saved = workspace.saveProfile(profile);
     refresh();
@@ -2163,7 +2154,9 @@ export function App() {
       return (
         <DecksScreen
           decks={state.decks}
-          onUpdateDeck={updateDeck}
+          onSetDeckCoreMode={setDeckCoreMode}
+          onSaveCard={saveDeckCard}
+          onDeleteCard={deleteDeckCard}
           onStartDeck={startDeck}
           onCreateDeck={() => setActiveView("neue-karten")}
           onOpenGraph={openGraph}

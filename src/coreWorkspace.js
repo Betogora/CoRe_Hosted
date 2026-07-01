@@ -1,5 +1,5 @@
 import { createCommunity, shareDeckToCommunity } from "./communityModel.js";
-import { createCoreDeck } from "./coreModel.js";
+import { createCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.js";
 import { createCoreRepository } from "./coreRepository.js";
 import { buildDeckGraph } from "./deckGraph.js";
 
@@ -28,6 +28,28 @@ export function createDemoAnatomyDeck() {
   });
 }
 
+function softDeleteCard(card, deletedAt) {
+  if (card.status === "deleted") return card;
+
+  return {
+    ...card,
+    status: "deleted",
+    updatedAt: deletedAt,
+    versionLog: [
+      ...(card.versionLog ?? []),
+      createVersionEntry({
+        objectType: "card",
+        objectId: card.id,
+        changeType: "deleted",
+        before: { status: card.status ?? "active" },
+        after: { status: "deleted" },
+        reason: "Karte geloescht",
+        createdAt: deletedAt,
+      }),
+    ],
+  };
+}
+
 export function createCoreWorkspace(repository = createCoreRepository()) {
   return {
     getState() {
@@ -41,6 +63,27 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
     },
     updateDeck(deckId, updater) {
       return repository.updateDeck(deckId, updater);
+    },
+    setDeckCoreMode(deckId, coreMode) {
+      return repository.updateDeckSettings(deckId, { coreMode });
+    },
+    saveDeckCardContent(deckId, cardId, patch, reason = "Manuelle Bearbeitung") {
+      const updatedAt = new Date().toISOString();
+
+      return repository.updateDeck(deckId, (deck) => ({
+        ...deck,
+        updatedAt,
+        cards: (deck.cards ?? []).map((card) => (card.id === cardId ? updateCardContent(card, patch, reason) : card)),
+      }));
+    },
+    deleteDeckCard(deckId, cardId) {
+      const deletedAt = new Date().toISOString();
+
+      return repository.updateDeck(deckId, (deck) => ({
+        ...deck,
+        updatedAt: deletedAt,
+        cards: (deck.cards ?? []).map((card) => (card.id === cardId ? softDeleteCard(card, deletedAt) : card)),
+      }));
     },
     saveProfile(profile) {
       return repository.saveProfile(profile);

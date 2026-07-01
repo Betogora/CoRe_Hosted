@@ -10,8 +10,9 @@ import { answerDeckQuestion } from "./deckAssistant.js";
 import { buildDeckGraph, shouldRefreshDeckGraph } from "./deckGraph.js";
 import { createCsvImportDeck, createTableImportDeck, createTextImportDeck } from "./importService.js";
 import { createLearningPlan } from "./learningPlan.js";
+import { createAiJobLedger, createDeckLibraryModel } from "./libraryModel.js";
 import { resolveReviewShortcut } from "./reviewShortcuts.js";
-import { createReviewSession, recordReviewRating } from "./reviewService.js";
+import { createReviewSession, recordReviewRating, recordVariantFeedback } from "./reviewService.js";
 import { applyReviewRating } from "./scheduler.js";
 
 function matureCard() {
@@ -81,6 +82,10 @@ test("review session can choose a variant and records family plus variant state"
   assert.equal(reviewed.deck.reviewEvents.length, 1);
   assert.equal(reviewed.deck.cards[0].reviewState.repetitions, 5);
   assert.equal(reviewed.deck.cards[0].variants[0].reviewState.repetitions, 1);
+
+  const feedback = recordVariantFeedback(reviewed.deck, item, { action: "disable", now: "2026-07-01T08:02:00.000Z" });
+  assert.equal(feedback.deck.cards[0].variants[0].qualityStatus, "disabled");
+  assert.equal(feedback.deck.versionLog.some((entry) => entry.changeType === "variant_disabled"), true);
 });
 
 test("AI document generation returns validated draft cards with source anchors", () => {
@@ -152,6 +157,65 @@ test("text, CSV and spreadsheet import create Core decks", () => {
   assert.equal(spreadsheetDeck.cardCount, 1);
   assert.equal(csvDeck.cards[0].originalTags[0], "biochemie");
   assert.equal(spreadsheetDeck.cards[0].meta.importFormat, "spreadsheet");
+});
+
+test("deck library model centralizes totals, filtering and AI job ledger shaping", () => {
+  const deck = createCoreDeck({
+    name: "Neuro Deck",
+    source: "manual",
+    cards: [
+      matureCard(),
+      createCoreCard({
+        source: "manual",
+        originalFront: "Deleted",
+        originalBack: "Hidden",
+        status: "deleted",
+      }),
+      createCoreCard({
+        source: "manual",
+        originalFront: "Draft",
+        originalBack: "Hidden",
+        draftStatus: "draft",
+      }),
+    ],
+    aiJobs: [
+      {
+        id: "job_variant",
+        jobType: "variant_generation",
+        status: "succeeded",
+        createdAt: "2026-07-01T08:00:00.000Z",
+        resultRef: { generatedVariantIds: ["variant_1", "variant_2"] },
+      },
+    ],
+  });
+  const library = createDeckLibraryModel([deck], {
+    query: "neuro",
+    coreMode: "auto",
+    selectedDeckId: deck.id,
+    now: "2026-07-01T08:00:00.000Z",
+  });
+  const ledger = createAiJobLedger({
+    decks: [deck],
+    jobs: [
+      {
+        id: "job_global",
+        jobType: "card_generation",
+        status: "failed",
+        createdAt: "2026-07-01T09:00:00.000Z",
+        resultRef: { cardCount: 3 },
+      },
+    ],
+  });
+
+  assert.equal(library.filteredRows.length, 1);
+  assert.equal(library.totals.totalCards, 1);
+  assert.equal(library.selectedRow.cardRows.length, 1);
+  assert.match(library.selectedRow.cardRows[0].frontPreview, /Myelinscheide/);
+  assert.equal(ledger.total, 2);
+  assert.equal(ledger.succeeded, 1);
+  assert.equal(ledger.failed, 1);
+  assert.equal(ledger.jobs[0].scopeLabel, "global");
+  assert.equal(ledger.jobs[1].resultLabel, "2 Varianten");
 });
 
 test("review shortcut resolver reveals, grades and ignores editing targets", () => {
