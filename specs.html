@@ -1,0 +1,4109 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CoRe — Content Repetition Specs</title>
+  <style>
+    :root {
+      --bg: #f7f7f5;
+      --paper: #ffffff;
+      --text: #1f2933;
+      --muted: #667085;
+      --border: #e5e7eb;
+      --accent: #111827;
+      --code-bg: #f3f4f6;
+      --link: #2454d6;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.62;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 310px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    aside {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      overflow: auto;
+      border-right: 1px solid var(--border);
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(10px);
+      padding: 24px 18px;
+    }
+    aside .brand {
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+    aside .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    aside nav { display: flex; flex-direction: column; gap: 2px; }
+    aside nav a {
+      color: #344054;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 13px;
+      line-height: 1.25;
+    }
+    aside nav a:hover { background: #f2f4f7; color: var(--accent); }
+    .toc-level-3 { padding-left: 22px; color: #667085; font-size: 12px; }
+    main {
+      width: 100%;
+      max-width: 1120px;
+      padding: 42px 48px 80px;
+    }
+    article {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 46px;
+      box-shadow: 0 20px 60px rgba(16,24,40,.06);
+    }
+    h1, h2, h3 {
+      color: #111827;
+      line-height: 1.15;
+      letter-spacing: -0.035em;
+      scroll-margin-top: 24px;
+    }
+    h1 { font-size: clamp(36px, 5vw, 58px); margin-top: 0; }
+    h2 { font-size: 30px; margin-top: 56px; padding-top: 10px; border-top: 1px solid var(--border); }
+    h3 { font-size: 22px; margin-top: 34px; }
+    p, li { font-size: 16px; }
+    a { color: var(--link); }
+    strong { color: #111827; }
+    blockquote {
+      margin: 24px 0;
+      padding: 16px 20px;
+      border-left: 4px solid #111827;
+      background: #f9fafb;
+      border-radius: 0 12px 12px 0;
+      color: #344054;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0 28px;
+      font-size: 14px;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    th, td { border: 1px solid var(--border); padding: 10px 12px; vertical-align: top; }
+    th { background: #f9fafb; text-align: left; color: #111827; }
+    code {
+      background: var(--code-bg);
+      padding: 2px 5px;
+      border-radius: 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+    pre {
+      background: #111827;
+      color: #f9fafb;
+      padding: 18px;
+      border-radius: 14px;
+      overflow: auto;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    pre code { background: transparent; color: inherit; padding: 0; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+    @media (max-width: 980px) {
+      .layout { display: block; }
+      aside { position: relative; height: auto; max-height: 360px; border-right: none; border-bottom: 1px solid var(--border); }
+      main { padding: 18px; }
+      article { padding: 24px; border-radius: 18px; }
+      h2 { font-size: 25px; }
+      table { display: block; overflow-x: auto; white-space: nowrap; }
+    }
+    @media print {
+      aside { display: none; }
+      .layout { display: block; }
+      body { background: white; }
+      main { max-width: none; padding: 0; }
+      article { border: none; box-shadow: none; }
+      a { color: inherit; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <div class="brand">CoRe Specs</div>
+      <div class="subtitle">Content Repetition · Produkt & Engineering · v0.1</div>
+      <nav><a class="toc-level-2" href="#implementierungsstand-2026-07-01">Implementierungsstand 2026-07-01</a>
+<a class="toc-level-3" href="#was-lokal-bereits-funktioniert">Was lokal bereits funktioniert</a>
+<a class="toc-level-3" href="#was-erwartungsgemaess-noch-nicht-funktioniert">Was erwartungsgemaess noch nicht funktioniert</a>
+<a class="toc-level-3" href="#aktuelle-ausbauhaltung">Aktuelle Ausbauhaltung</a>
+<a class="toc-level-2" href="#0-zweck-dieses-dokuments">0. Zweck dieses Dokuments</a>
+<a class="toc-level-3" href="#01-sprachkonvention">0.1 Sprachkonvention</a>
+<a class="toc-level-3" href="#02-wichtige-annahmen">0.2 Wichtige Annahmen</a>
+<a class="toc-level-2" href="#1-executive-summary">1. Executive Summary</a>
+<a class="toc-level-2" href="#2-produktvision">2. Produktvision</a>
+<a class="toc-level-3" href="#21-leitbild">2.1 Leitbild</a>
+<a class="toc-level-3" href="#22-positionierung">2.2 Positionierung</a>
+<a class="toc-level-3" href="#23-primaere-zielgruppen">2.3 Primäre Zielgruppen</a>
+<a class="toc-level-3" href="#24-kernnutzenversprechen">2.4 Kernnutzenversprechen</a>
+<a class="toc-level-2" href="#3-problemdefinition-kartenblindheit">3. Problemdefinition: Kartenblindheit</a>
+<a class="toc-level-3" href="#31-ausgangsproblem">3.1 Ausgangsproblem</a>
+<a class="toc-level-3" href="#32-core-gegenstrategie">3.2 CoRe-Gegenstrategie</a>
+<a class="toc-level-3" href="#33-produktziel">3.3 Produktziel</a>
+<a class="toc-level-2" href="#4-produktprinzipien">4. Produktprinzipien</a>
+<a class="toc-level-3" href="#p1-anki-kompatibel-starten-core-spezifisch-weiterdenken">P1 — Anki-kompatibel starten, CoRe-spezifisch weiterdenken</a>
+<a class="toc-level-3" href="#p2-originale-bleiben-vertrauenswuerdige-anker">P2 — Originale bleiben vertrauenswürdige Anker</a>
+<a class="toc-level-3" href="#p3-ki-darf-nicht-unsichtbar-falsche-lerninhalte-erzeugen">P3 — KI darf nicht unsichtbar falsche Lerninhalte erzeugen</a>
+<a class="toc-level-3" href="#p4-lernen-bleibt-ruhig-fokussiert-und-nicht-sozial-toxisch">P4 — Lernen bleibt ruhig, fokussiert und nicht sozial toxisch</a>
+<a class="toc-level-3" href="#p5-core-ist-stapelweise-steuerbar">P5 — CoRe ist stapelweise steuerbar</a>
+<a class="toc-level-3" href="#p6-ki-wird-sparsam-orchestriert">P6 — KI wird sparsam orchestriert</a>
+<a class="toc-level-3" href="#p7-mobile-first-trotz-web-mvp">P7 — Mobile-first trotz Web-MVP</a>
+<a class="toc-level-2" href="#5-glossar-und-domaenenmodell">5. Glossar und Domänenmodell</a>
+<a class="toc-level-2" href="#6-informationsarchitektur-der-app">6. Informationsarchitektur der App</a>
+<a class="toc-level-3" href="#61-hauptbereiche">6.1 Hauptbereiche</a>
+<a class="toc-level-3" href="#62-navigationsvorschlag">6.2 Navigationsvorschlag</a>
+<a class="toc-level-3" href="#63-mobile-first-leitlinien">6.3 Mobile-first Leitlinien</a>
+<a class="toc-level-2" href="#7-mvp-scope">7. MVP-Scope</a>
+<a class="toc-level-3" href="#71-mvp-ziel">7.1 MVP-Ziel</a>
+<a class="toc-level-3" href="#72-mvp-mussumfang">7.2 MVP-Mussumfang</a>
+<a class="toc-level-3" href="#73-mvp-sollumfang">7.3 MVP-Sollumfang</a>
+<a class="toc-level-3" href="#74-mvp-nichtziele">7.4 MVP-Nichtziele</a>
+<a class="toc-level-2" href="#8-funktionale-anforderungen">8. Funktionale Anforderungen</a>
+<a class="toc-level-2" href="#81-account-profil-und-onboarding">8.1 Account, Profil und Onboarding</a>
+<a class="toc-level-3" href="#fr-auth-001-account-erstellen">FR-AUTH-001 — Account erstellen</a>
+<a class="toc-level-3" href="#fr-auth-002-hochschule-erfassen">FR-AUTH-002 — Hochschule erfassen</a>
+<a class="toc-level-3" href="#fr-auth-003-datenschutzgrundsatz">FR-AUTH-003 — Datenschutzgrundsatz</a>
+<a class="toc-level-2" href="#82-kartenstapel-und-deck-hierarchie">8.2 Kartenstapel und Deck-Hierarchie</a>
+<a class="toc-level-3" href="#fr-deck-001-deck-hierarchie">FR-DECK-001 — Deck-Hierarchie</a>
+<a class="toc-level-3" href="#fr-deck-002-stapeluebersicht">FR-DECK-002 — Stapelübersicht</a>
+<a class="toc-level-3" href="#fr-deck-003-core-modus-pro-stapel">FR-DECK-003 — CoRe-Modus pro Stapel</a>
+<a class="toc-level-3" href="#fr-deck-004-stapelaktionen">FR-DECK-004 — Stapelaktionen</a>
+<a class="toc-level-2" href="#83-import">8.3 Import</a>
+<a class="toc-level-3" href="#fr-import-001-importwege">FR-IMPORT-001 — Importwege</a>
+<a class="toc-level-3" href="#fr-import-002-apkg-import-mvp">FR-IMPORT-002 — APKG-Import MVP</a>
+<a class="toc-level-3" href="#fr-import-003-apkg-ausbau">FR-IMPORT-003 — APKG-Ausbau</a>
+<a class="toc-level-3" href="#fr-import-004-unknown-note-type-handling">FR-IMPORT-004 — Unknown Note Type Handling</a>
+<a class="toc-level-3" href="#fr-import-005-lernfortschritt-importieren">FR-IMPORT-005 — Lernfortschritt importieren</a>
+<a class="toc-level-3" href="#fr-import-006-exportpolitik">FR-IMPORT-006 — Exportpolitik</a>
+<a class="toc-level-3" href="#fr-import-007-serverseitige-variantenhaltung">FR-IMPORT-007 — Serverseitige Variantenhaltung</a>
+<a class="toc-level-2" href="#84-manuelle-kartenerstellung">8.4 Manuelle Kartenerstellung</a>
+<a class="toc-level-3" href="#fr-create-001-basic-karten">FR-CREATE-001 — Basic-Karten</a>
+<a class="toc-level-3" href="#fr-create-002-typische-kartentypen">FR-CREATE-002 — Typische Kartentypen</a>
+<a class="toc-level-3" href="#fr-create-003-dokumentviewer-in-der-kartenerstellung">FR-CREATE-003 — Dokumentviewer in der Kartenerstellung</a>
+<a class="toc-level-3" href="#fr-create-004-auswahl-zu-karte-funktion">FR-CREATE-004 — Auswahl-zu-Karte-Funktion</a>
+<a class="toc-level-3" href="#fr-create-005-quellenanker-bei-manueller-erstellung">FR-CREATE-005 — Quellenanker bei manueller Erstellung</a>
+<a class="toc-level-2" href="#85-ki-gestuetzte-kartenerstellung">8.5 KI-gestützte Kartenerstellung</a>
+<a class="toc-level-3" href="#fr-aicreate-001-datei-zu-karten">FR-AICREATE-001 — Datei zu Karten</a>
+<a class="toc-level-3" href="#fr-aicreate-002-parametrisierbare-generierung">FR-AICREATE-002 — Parametrisierbare Generierung</a>
+<a class="toc-level-3" href="#fr-aicreate-003-kartenentwurf-statt-stiller-import">FR-AICREATE-003 — Kartenentwurf statt stiller Import</a>
+<a class="toc-level-3" href="#fr-aicreate-004-quellenanker-und-halluzinationsschutz">FR-AICREATE-004 — Quellenanker und Halluzinationsschutz</a>
+<a class="toc-level-3" href="#fr-aicreate-005-strukturierte-ki-ausgabe">FR-AICREATE-005 — Strukturierte KI-Ausgabe</a>
+<a class="toc-level-2" href="#86-review-flow-und-lernmodus">8.6 Review-Flow und Lernmodus</a>
+<a class="toc-level-3" href="#fr-review-001-clean-fullscreen">FR-REVIEW-001 — Clean Fullscreen</a>
+<a class="toc-level-3" href="#fr-review-002-karte-nicht-klassisch-wegdrehen">FR-REVIEW-002 — Karte nicht klassisch „wegdrehen“</a>
+<a class="toc-level-3" href="#fr-review-003-vier-review-buttons">FR-REVIEW-003 — Vier Review-Buttons</a>
+<a class="toc-level-3" href="#fr-review-004-varianten-nicht-vorab-kennzeichnen">FR-REVIEW-004 — Varianten nicht vorab kennzeichnen</a>
+<a class="toc-level-3" href="#fr-review-005-original-anker-nach-dem-aufdecken">FR-REVIEW-005 — Original-Anker nach dem Aufdecken</a>
+<a class="toc-level-3" href="#fr-review-006-varianten-bewerten">FR-REVIEW-006 — Varianten bewerten</a>
+<a class="toc-level-2" href="#87-content-repetition-engine">8.7 Content-Repetition-Engine</a>
+<a class="toc-level-3" href="#fr-core-001-varianten-erst-ab-reifegrad">FR-CORE-001 — Varianten erst ab Reifegrad</a>
+<a class="toc-level-3" href="#fr-core-002-reifegrad-als-berechneter-wert">FR-CORE-002 — Reifegrad als berechneter Wert</a>
+<a class="toc-level-3" href="#fr-core-003-backfall-recovery-logik">FR-CORE-003 — Backfall-/Recovery-Logik</a>
+<a class="toc-level-3" href="#fr-core-004-eligibility-nicht-jede-karte-variieren">FR-CORE-004 — Eligibility: nicht jede Karte variieren</a>
+<a class="toc-level-3" href="#fr-core-005-blacklist-do-not-transform">FR-CORE-005 — Blacklist / Do-not-transform</a>
+<a class="toc-level-3" href="#fr-core-006-erste-transformationsart-umformulierung">FR-CORE-006 — Erste Transformationsart: Umformulierung</a>
+<a class="toc-level-3" href="#fr-core-007-weitere-transformationsarten">FR-CORE-007 — Weitere Transformationsarten</a>
+<a class="toc-level-3" href="#fr-core-008-variantenanzahl-begrenzen">FR-CORE-008 — Variantenanzahl begrenzen</a>
+<a class="toc-level-3" href="#fr-core-009-automatischer-modus">FR-CORE-009 — Automatischer Modus</a>
+<a class="toc-level-3" href="#fr-core-010-manuell-modus">FR-CORE-010 — Manuell-Modus</a>
+<a class="toc-level-3" href="#fr-core-011-variantentransparenz-ohne-lernstoerung">FR-CORE-011 — Variantentransparenz ohne Lernstörung</a>
+<a class="toc-level-2" href="#88-anker-vertrauen-undo-und-versionierung">8.8 Anker, Vertrauen, Undo und Versionierung</a>
+<a class="toc-level-3" href="#fr-trust-001-originalanker">FR-TRUST-001 — Originalanker</a>
+<a class="toc-level-3" href="#fr-trust-002-quellenanker">FR-TRUST-002 — Quellenanker</a>
+<a class="toc-level-3" href="#fr-trust-003-versionierung">FR-TRUST-003 — Versionierung</a>
+<a class="toc-level-3" href="#fr-trust-004-undo-restore">FR-TRUST-004 — Undo / Restore</a>
+<a class="toc-level-3" href="#fr-trust-005-ki-fehler-melden">FR-TRUST-005 — KI-Fehler melden</a>
+<a class="toc-level-2" href="#89-community-und-teilen">8.9 Community und Teilen</a>
+<a class="toc-level-3" href="#fr-comm-001-kleine-gruppen-statt-social-network">FR-COMM-001 — Kleine Gruppen statt Social Network</a>
+<a class="toc-level-3" href="#fr-comm-002-keine-toxischen-lernmetriken">FR-COMM-002 — Keine toxischen Lernmetriken</a>
+<a class="toc-level-3" href="#fr-comm-003-ordnerstruktur">FR-COMM-003 — Ordnerstruktur</a>
+<a class="toc-level-3" href="#fr-comm-004-karten-uebernehmen">FR-COMM-004 — Karten übernehmen</a>
+<a class="toc-level-3" href="#fr-comm-005-serverseitige-wiederverwendung-von-varianten">FR-COMM-005 — Serverseitige Wiederverwendung von Varianten</a>
+<a class="toc-level-3" href="#fr-comm-006-community-freigabe">FR-COMM-006 — Community-Freigabe</a>
+<a class="toc-level-2" href="#810-deck-graph-mindmap">8.10 Deck Graph / Mindmap</a>
+<a class="toc-level-3" href="#fr-graph-001-graph-pro-stapel">FR-GRAPH-001 — Graph pro Stapel</a>
+<a class="toc-level-3" href="#fr-graph-002-graph-knoten">FR-GRAPH-002 — Graph-Knoten</a>
+<a class="toc-level-3" href="#fr-graph-003-graph-kanten">FR-GRAPH-003 — Graph-Kanten</a>
+<a class="toc-level-3" href="#fr-graph-004-triggerlogik">FR-GRAPH-004 — Triggerlogik</a>
+<a class="toc-level-2" href="#811-chat-your-deck-und-lernplan-spaetere-module">8.11 Chat-your-Deck und Lernplan — spätere Module</a>
+<a class="toc-level-3" href="#fr-chat-001-chat-mit-stapel">FR-CHAT-001 — Chat mit Stapel</a>
+<a class="toc-level-3" href="#fr-chat-002-quellengebundene-antworten">FR-CHAT-002 — Quellengebundene Antworten</a>
+<a class="toc-level-3" href="#fr-plan-001-lernplan">FR-PLAN-001 — Lernplan</a>
+<a class="toc-level-2" href="#9-ux-spezifikation">9. UX-Spezifikation</a>
+<a class="toc-level-2" href="#91-onboarding-flow">9.1 Onboarding Flow</a>
+<a class="toc-level-3" href="#akzeptanzkriterien">Akzeptanzkriterien</a>
+<a class="toc-level-2" href="#92-deck-overview">9.2 Deck Overview</a>
+<a class="toc-level-3" href="#layout">Layout</a>
+<a class="toc-level-3" href="#core-modus-steuerung">CoRe-Modus-Steuerung</a>
+<a class="toc-level-2" href="#93-import-wizard">9.3 Import Wizard</a>
+<a class="toc-level-3" href="#schritte">Schritte</a>
+<a class="toc-level-3" href="#importbericht">Importbericht</a>
+<a class="toc-level-2" href="#94-manuelle-kartenerstellung-mit-dokumentviewer">9.4 Manuelle Kartenerstellung mit Dokumentviewer</a>
+<a class="toc-level-3" href="#desktop-layout">Desktop Layout</a>
+<a class="toc-level-3" href="#mobile-layout">Mobile Layout</a>
+<a class="toc-level-3" href="#edge-cases">Edge Cases</a>
+<a class="toc-level-2" href="#95-ki-kartenerstellung-wizard">9.5 KI-Kartenerstellung Wizard</a>
+<a class="toc-level-3" href="#schritte-2">Schritte</a>
+<a class="toc-level-3" href="#entwurfs-ui">Entwurfs-UI</a>
+<a class="toc-level-2" href="#96-review-session">9.6 Review Session</a>
+<a class="toc-level-3" href="#vor-antwort">Vor Antwort</a>
+<a class="toc-level-3" href="#nach-antwort">Nach Antwort</a>
+<a class="toc-level-3" href="#original-anker-panel">Original-Anker Panel</a>
+<a class="toc-level-2" href="#10-datenmodell">10. Datenmodell</a>
+<a class="toc-level-3" href="#101-entity-uebersicht">10.1 Entity-Übersicht</a>
+<a class="toc-level-3" href="#102-tabellen-collections">10.2 Tabellen / Collections</a>
+<a class="toc-level-3" href="#103-typescript-domaenentypen">10.3 TypeScript-Domänentypen</a>
+<a class="toc-level-2" href="#11-api-spezifikation">11. API-Spezifikation</a>
+<a class="toc-level-3" href="#111-decks">11.1 Decks</a>
+<a class="toc-level-3" href="#112-cards">11.2 Cards</a>
+<a class="toc-level-3" href="#113-import">11.3 Import</a>
+<a class="toc-level-3" href="#114-review">11.4 Review</a>
+<a class="toc-level-3" href="#115-core-variants">11.5 CoRe Variants</a>
+<a class="toc-level-3" href="#116-ki-kartenerstellung">11.6 KI-Kartenerstellung</a>
+<a class="toc-level-3" href="#117-dokumente">11.7 Dokumente</a>
+<a class="toc-level-3" href="#118-communitys">11.8 Communitys</a>
+<a class="toc-level-3" href="#119-graph">11.9 Graph</a>
+<a class="toc-level-2" href="#12-ki-orchestrierung">12. KI-Orchestrierung</a>
+<a class="toc-level-2" href="#121-grundsatz">12.1 Grundsatz</a>
+<a class="toc-level-3" href="#ziele">Ziele</a>
+<a class="toc-level-2" href="#122-ki-faehigkeiten-als-module">12.2 KI-Fähigkeiten als Module</a>
+<a class="toc-level-3" href="#123-modellrouter">12.3 Modellrouter</a>
+<a class="toc-level-3" href="#124-trigger-und-batchlogik">12.4 Trigger- und Batchlogik</a>
+<a class="toc-level-3" href="#125-kontextmanagement">12.5 Kontextmanagement</a>
+<a class="toc-level-3" href="#126-strukturierte-outputs-und-validierung">12.6 Strukturierte Outputs und Validierung</a>
+<a class="toc-level-3" href="#127-prompt-contract-variant-rephrase">12.7 Prompt Contract: Variant Rephrase</a>
+<a class="toc-level-3" href="#128-prompt-contract-eligibility-classifier">12.8 Prompt Contract: Eligibility Classifier</a>
+<a class="toc-level-3" href="#129-prompt-contract-card-generation-from-document">12.9 Prompt Contract: Card Generation from Document</a>
+<a class="toc-level-2" href="#13-scheduling-und-reifegrad">13. Scheduling und Reifegrad</a>
+<a class="toc-level-2" href="#131-scheduler-schnittstelle">13.1 Scheduler-Schnittstelle</a>
+<a class="toc-level-3" href="#132-vier-buttons">13.2 Vier Buttons</a>
+<a class="toc-level-3" href="#133-reifegrad-xp">13.3 Reifegrad-XP</a>
+<a class="toc-level-3" href="#134-varianten-scheduling">13.4 Varianten-Scheduling</a>
+<a class="toc-level-3" href="#135-tagesintervall-diskussion">13.5 Tagesintervall-Diskussion</a>
+<a class="toc-level-2" href="#14-technische-architektur">14. Technische Architektur</a>
+<a class="toc-level-2" href="#141-frontend">14.1 Frontend</a>
+<a class="toc-level-3" href="#frontend-ordnerstruktur">Frontend-Ordnerstruktur</a>
+<a class="toc-level-3" href="#ui-komponenten">UI-Komponenten</a>
+<a class="toc-level-2" href="#142-backend">14.2 Backend</a>
+<a class="toc-level-3" href="#empfohlene-services">Empfohlene Services</a>
+<a class="toc-level-2" href="#143-dateiablage">14.3 Dateiablage</a>
+<a class="toc-level-2" href="#144-background-jobs">14.4 Background Jobs</a>
+<a class="toc-level-3" href="#job-anforderungen">Job-Anforderungen</a>
+<a class="toc-level-2" href="#15-sicherheit-datenschutz-und-rechte">15. Sicherheit, Datenschutz und Rechte</a>
+<a class="toc-level-3" href="#151-datenschutz">15.1 Datenschutz</a>
+<a class="toc-level-3" href="#152-berechtigungen">15.2 Berechtigungen</a>
+<a class="toc-level-3" href="#153-ki-sicherheit">15.3 KI-Sicherheit</a>
+<a class="toc-level-3" href="#154-audit-log">15.4 Audit Log</a>
+<a class="toc-level-2" href="#16-nichtfunktionale-anforderungen">16. Nichtfunktionale Anforderungen</a>
+<a class="toc-level-3" href="#161-performance">16.1 Performance</a>
+<a class="toc-level-3" href="#162-offline-sync">16.2 Offline / Sync</a>
+<a class="toc-level-3" href="#163-accessibility">16.3 Accessibility</a>
+<a class="toc-level-3" href="#164-internationalisierung">16.4 Internationalisierung</a>
+<a class="toc-level-3" href="#165-observability">16.5 Observability</a>
+<a class="toc-level-2" href="#17-akzeptanzkriterien-nach-modul">17. Akzeptanzkriterien nach Modul</a>
+<a class="toc-level-2" href="#171-import">17.1 Import</a>
+<a class="toc-level-2" href="#172-review">17.2 Review</a>
+<a class="toc-level-2" href="#173-variante-mit-anker">17.3 Variante mit Anker</a>
+<a class="toc-level-2" href="#174-manuelle-erstellung-mit-dokumentviewer">17.4 Manuelle Erstellung mit Dokumentviewer</a>
+<a class="toc-level-2" href="#175-ki-kartengenerierung">17.5 KI-Kartengenerierung</a>
+<a class="toc-level-2" href="#176-community">17.6 Community</a>
+<a class="toc-level-2" href="#18-entwicklungs-backlog-und-aufgabenmodule">18. Entwicklungs-Backlog und Aufgabenmodule</a>
+<a class="toc-level-3" href="#181-priorisierte-module">18.1 Priorisierte Module</a>
+<a class="toc-level-3" href="#182-erste-engineering-epics">18.2 Erste Engineering-Epics</a>
+<a class="toc-level-2" href="#19-offene-entscheidungen">19. Offene Entscheidungen</a>
+<a class="toc-level-2" href="#20-risiken-und-gegenmassnahmen">20. Risiken und Gegenmaßnahmen</a>
+<a class="toc-level-2" href="#21-definition-of-done-fuer-mvp">21. Definition of Done für MVP</a>
+<a class="toc-level-2" href="#22-beispielhafte-user-stories">22. Beispielhafte User Stories</a>
+<a class="toc-level-3" href="#us-001-anki-nutzer-importiert-deck">US-001 — Anki-Nutzer importiert Deck</a>
+<a class="toc-level-3" href="#us-002-nutzer-erstellt-karte-aus-pdf">US-002 — Nutzer erstellt Karte aus PDF</a>
+<a class="toc-level-3" href="#us-003-nutzer-lernt-ohne-ablenkung">US-003 — Nutzer lernt ohne Ablenkung</a>
+<a class="toc-level-3" href="#us-004-nutzer-bekommt-variante">US-004 — Nutzer bekommt Variante</a>
+<a class="toc-level-3" href="#us-005-nutzer-prueft-originalanker">US-005 — Nutzer prüft Originalanker</a>
+<a class="toc-level-3" href="#us-006-nutzer-schaltet-core-fuer-vokabeln-aus">US-006 — Nutzer schaltet CoRe für Vokabeln aus</a>
+<a class="toc-level-3" href="#us-007-gruppe-teilt-karten">US-007 — Gruppe teilt Karten</a>
+<a class="toc-level-3" href="#us-008-nutzer-erstellt-ki-karten-aus-skript">US-008 — Nutzer erstellt KI-Karten aus Skript</a>
+<a class="toc-level-2" href="#23-ki-unterstuetzte-programmierung-implementierungsnotizen">23. KI-unterstützte Programmierung: Implementierungsnotizen</a>
+<a class="toc-level-3" href="#231-empfohlene-issue-struktur">23.1 Empfohlene Issue-Struktur</a>
+<a class="toc-level-3" href="#232-coding-agent-regeln">23.2 Coding-Agent-Regeln</a>
+<a class="toc-level-2" href="#24-beispiel-end-to-end-ablauf">24. Beispiel: End-to-End Ablauf</a>
+<a class="toc-level-3" href="#241-import-und-lernen">24.1 Import und Lernen</a>
+<a class="toc-level-3" href="#242-variante-nach-reifegrad">24.2 Variante nach Reifegrad</a>
+<a class="toc-level-2" href="#25-zusammenfassung-der-wichtigsten-produktentscheidungen">25. Zusammenfassung der wichtigsten Produktentscheidungen</a>
+<a class="toc-level-2" href="#26-naechste-empfohlene-schritte">26. Naechste empfohlene Schritte</a>
+<a class="toc-level-2" href="#27-technischer-implementierungsanhang">27. Technischer Implementierungsanhang</a>
+<a class="toc-level-3" href="#271-aktuelle-hauptmodule">27.1 Aktuelle Hauptmodule</a>
+<a class="toc-level-3" href="#272-ui-screens">27.2 UI-Screens</a>
+<a class="toc-level-3" href="#273-testoberflaeche">27.3 Testoberflaeche</a>
+<a class="toc-level-3" href="#274-gemeinsames-kartenmodell">27.4 Gemeinsames Kartenmodell</a>
+<a class="toc-level-3" href="#277-apkg-import">27.7 APKG-Import</a>
+<a class="toc-level-3" href="#278-chat-your-deck-lernplan-und-portabilitaet">27.8 Chat-your-Deck, Lernplan und Portabilitaet</a></nav>
+    </aside>
+    <main>
+      <article>
+        <h1 id="core-content-repetition">CoRe — Content Repetition</h1>
+<p><strong>Produkt- und Engineering-Spezifikation</strong><br />
+<strong>Dateien:</strong> <code>specs.md</code> und <code>specs.html</code><br />
+<strong>Status:</strong> Arbeitsfassung v0.1<br />
+<strong>Datum:</strong> 2026-06-30<br />
+<strong>Quellenbasis:</strong> Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gründergespräch „Diskussion der Gründer.txt“</p>
+<hr />
+<h2 id="implementierungsstand-2026-07-01">Implementierungsstand 2026-07-01</h2>
+<p>Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft. Der aktuelle Stand ist ein breiter lokaler Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt, aber noch nicht als gehostetes Mehrnutzerprodukt betreibbar. Der App-State liegt in <code>localStorage</code>, Authentifizierung ist lokal modelliert, KI-Funktionen laufen deterministisch/lokal, und Hintergrundjobs sind im Frontend sichtbar statt serverseitig ausgefuehrt.</p>
+<p>Die aktuelle Architektur macht bewusst noch keine umfangreiche Bauvorleistung fuer Hosting, Datenbank, externe Auth-Provider oder externe LLM-Provider. Diese Adapter sollen erst eingefuehrt werden, wenn der reale Zielpfad entschieden ist. Bis dahin sind die bestehenden Modul-Interfaces die relevante Vorbereitung: React-Caller sollen keine Datenbank-, Auth- oder Modellanbieter-Details kennen muessen.</p>
+<table>
+<thead><tr><th>Bereich</th><th>Implementierte lokale Module / Screens</th></tr></thead>
+<tbody>
+<tr><td>Account, Profil, Datenschutz</td><td><code>DashboardScreen</code>, <code>SettingsScreen</code>, <code>createCoreRepository().saveProfile()</code></td></tr>
+<tr><td>Decks, Hierarchie, CoRe-Modus</td><td><code>menuModel</code>, <code>DecksScreen</code>, <code>coreModel.createCoreDeck</code>, <code>deckSettings.coreMode</code></td></tr>
+<tr><td>Import</td><td><code>apkgImport</code>, <code>importService</code> fuer Text/CSV/Excel-Paste, Importberichte und Raw-Fallbacks</td></tr>
+<tr><td>Manuelle Erstellung</td><td><code>ManualCreationPanel</code>, <code>documentModel</code>, <code>sourceAnchors</code></td></tr>
+<tr><td>KI-Kartenerstellung</td><td><code>aiOrchestrator.generateCardsFromDocument</code>, Draft-Review, Schema-Validation</td></tr>
+<tr><td>Review/Scheduler</td><td><code>reviewService</code>, <code>scheduler</code>, <code>reviewShortcuts</code>, vier Buttons, Tastatur, Front+Back nach Aufdeckung</td></tr>
+<tr><td>Content Repetition</td><td><code>coreVariantService</code>, Eligibility, Rephrase, Variantenstatus, Dedupe-Hash</td></tr>
+<tr><td>Trust/Versionierung</td><td><code>sourceAnchors</code>, <code>versionLog</code>, Variant-Feedback, Deaktivieren, Restore-Basis</td></tr>
+<tr><td>Community</td><td><code>communityModel</code>, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten</td></tr>
+<tr><td>Deck Graph</td><td><code>deckGraph</code>, Triggerlogik und SVG-Mindmap-Screen</td></tr>
+<tr><td>KI-Orchestrierung</td><td>lokale Jobs, Modellrouter-Slots, strukturierte Outputs, Job-Screen</td></tr>
+<tr><td>Chat-your-Deck</td><td><code>deckAssistant.answerDeckQuestion</code>, Assistent-Screen, belegte Karten-Zitate, Halluzinationsbremse</td></tr>
+<tr><td>Lernplan</td><td><code>learningPlan.createLearningPlan</code>, Zieltermin, Tagesminuten, neue Karten, Varianten-Tage</td></tr>
+<tr><td>Lokale Auth</td><td><code>authModel</code>, lokaler Account, Anmelden/Abmelden, OAuth-Platzhalter</td></tr>
+<tr><td>Datenportabilitaet</td><td><code>dataPortability</code>, JSON-Export/-Import ohne Passwort-Verifier</td></tr>
+</tbody>
+</table>
+<h3 id="was-lokal-bereits-funktioniert">Was lokal bereits funktioniert</h3>
+<ul>
+<li>Navigation, Dashboard, Profil-Onboarding, Datenschutzeinstellungen und globale CoRe-Voreinstellungen.</li>
+<li>Deck-Verwaltung mit Suche/Filter, Hierarchie-Metadaten, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen.</li>
+<li>APKG-Basic-Import inklusive Importbericht, Deck-Mapping, HTML-Sanitization und Raw-/Fallback-Feldern.</li>
+<li>Text-, CSV- und Excel-/Tabellen-Paste-Import als schnelle Front/Back-Erstellung.</li>
+<li>Manuelle Kartenerstellung mit Dokumentkontext und Quellenankern fuer markierten Text.</li>
+<li>Deterministische KI-Drafts aus Quellentext mit Schema-Validation, Draft-Review und Annahme in die Bibliothek.</li>
+<li>Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, Review-Events und Maturity-XP.</li>
+<li>Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker, Deaktivieren und Fehler-Feedback.</li>
+<li>Kleine lokale Community-Logik mit Ordnern und Deck-Kopien ohne fremde Reviewdaten.</li>
+<li>Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten, Lernplan-Generator, AI-Job-Uebersicht und JSON-Datenportabilitaet.</li>
+</ul>
+<h3 id="was-erwartungsgemaess-noch-nicht-funktioniert">Was erwartungsgemaess noch nicht funktioniert</h3>
+<ul>
+<li>Es gibt noch kein Hosting, keine Deployment-Pipeline, keine Domains und keine produktive Umgebung.</li>
+<li>Es gibt noch keine Datenbank, keine serverseitige Persistenz, keinen Sync und keine Konfliktloesung zwischen Geraeten.</li>
+<li>Accounts sind lokal modelliert; es gibt keine echte Registrierung, E-Mail-Verifikation, OAuth-Anbindung oder Session-Infrastruktur.</li>
+<li>KI ist lokal/deterministisch simuliert; es gibt noch keine Provider-Adapter, kein echtes Token-/Kostenlogging und keine produktive Prompt-/Eval-Pipeline.</li>
+<li>Jobs laufen nicht in einer Queue oder Worker-Infrastruktur; die Job-Sicht ist ein lokaler Produkt- und Datenmodell-Prototyp.</li>
+<li>Datei- und Dokumentverarbeitung ist bewusst begrenzt: robuste PDF-/DOCX-Extraktion, OCR, Bildregionen und Medienhosting fehlen noch.</li>
+<li>Community ist lokal und privacy-sicher modelliert, aber ohne echte Mitgliederverwaltung, Berechtigungen, Einladungen oder Moderation.</li>
+<li>Export/Import ist als lokaler JSON-Portabilitaetspfad vorhanden, aber noch kein interoperabler Anki-/Cloud-/Backup-Standard.</li>
+<li>Mobile, PWA-Offline, Push-Benachrichtigungen, Zahlungen, Admin-/Support-Werkzeuge und produktive Observability sind nicht umgesetzt.</li>
+</ul>
+<h3 id="aktuelle-ausbauhaltung">Aktuelle Ausbauhaltung</h3>
+<p>Naechste Arbeit sollte nicht zuerst neue Adapter-Schichten bauen, sondern die bestehenden tiefen Module stabilisieren und dann gezielt reale Adapter an den Stellen einfuehren, an denen die Produktentscheidung gefallen ist: Hosting/Deployment, Persistenz/Auth, LLM/Job-Queue, Dokumentverarbeitung und spaeter Sync/Community-Rechte. Weitere KI-Coding-Arbeit sollte zuerst <code>specs.md</code> und <code>todo.md</code> lesen; dort sind Produktkontext, Modul-Interfaces, Testdateien und Soll/Ist-Luecken als Navigationskarte gepflegt.</p>
+<hr />
+<h2 id="0-zweck-dieses-dokuments">0. Zweck dieses Dokuments</h2>
+<p>Diese Spezifikation übersetzt die Gründerdiskussion und den Projektkontext in eine menschenlesbare, zugleich KI- und entwicklungsfreundliche Grundlage für die Softwareentwicklung von <strong>CoRe — Content Repetition</strong>.</p>
+<p>Das Dokument soll drei Rollen gleichzeitig bedienen:</p>
+<ol>
+<li><strong>Founder/Product:</strong> gemeinsame Begriffe, klare Produktgrenzen, MVP-Scope, offene Entscheidungen.</li>
+<li><strong>Design/UX:</strong> konkrete Screens, Interaktionen, Review-Modus, Karten-Erstellung, Community-Flows.</li>
+<li><strong>Engineering/KI:</strong> Datenmodelle, API-Skizzen, KI-Orchestrierung, Triggerlogik, Validierung, Aufgabenmodule.</li>
+</ol>
+<h3 id="01-sprachkonvention">0.1 Sprachkonvention</h3>
+<ul>
+<li><strong>MUSS</strong> = verbindliche Anforderung für den jeweiligen Scope.</li>
+<li><strong>SOLL</strong> = stark empfohlen, aber im MVP ggf. verschiebbar.</li>
+<li><strong>KANN</strong> = optional, späterer Ausbau oder Experiment.</li>
+<li><strong>MVP</strong> = erster testbarer Produktkern, nicht zwingend marktreif.</li>
+<li><strong>Später</strong> = Roadmap nach MVP, aber architektonisch früh berücksichtigen.</li>
+</ul>
+<h3 id="02-wichtige-annahmen">0.2 Wichtige Annahmen</h3>
+<ul>
+<li>Aktuell wird CoRe als <strong>Web-App</strong> umgesetzt.</li>
+<li>Das Frontend nutzt mindestens <strong>React + Tailwind CSS</strong>; das Build-/App-Framework bleibt in dieser Spezifikation offen. Wenn mit „Beat React Stack“ <code>Vite + React</code> gemeint war, passt diese Spezifikation dazu.</li>
+<li>Die App wird <strong>mobile-first</strong> gedacht, auch wenn der erste Build als Web-App entsteht.</li>
+<li>KI-Funktionen werden nicht als monolithisches „ein LLM macht alles“ gedacht, sondern als orchestrierte Funktionen mit Triggern, Kostenkontrolle, Kontextmanagement und Validierung.</li>
+<li>CoRe soll Anki nicht kopieren, sondern Anki-kompatible Lernlogik als Ausgangspunkt nutzen und um inhaltliche Wiederholung, Varianten und Kontext erweitern.</li>
+</ul>
+<hr />
+<h2 id="1-executive-summary">1. Executive Summary</h2>
+<p><strong>CoRe</strong> steht für <strong>Content Repetition</strong> und ist eine moderne Lernplattform, die ein zentrales Problem klassischer Karteikartensysteme adressiert: Lernende erkennen nach vielen Wiederholungen häufig die Karte selbst — Layout, Wortlaut, Lückenposition, optische Muster — statt den Inhalt wirklich aktiv abrufen zu können.</p>
+<p>CoRe erweitert klassisches <strong>Spaced Repetition</strong> um <strong>inhaltliche Wiederholung</strong>. Karten werden nicht nur zeitlich geplant, sondern ab einem geeigneten Lernfortschritt inhaltlich variiert. Die Plattform kann Fragen umformulieren, Lückentexte umbauen, verwandte Karten bündeln, einzelne Aspekte herausgreifen oder aus Dokumenten neue Karten erzeugen. Gleichzeitig bleibt die ursprüngliche Karte als <strong>Anker</strong> erhalten, damit Nutzende jederzeit nachvollziehen können, worauf eine KI-Variation basiert.</p>
+<p>Die erste Version fokussiert auf:</p>
+<ul>
+<li>Import und Nutzung bestehender Anki-Stapel.</li>
+<li>Manuelle Kartenerstellung mit typischen Karteitypen.</li>
+<li>KI-gestützte Kartenerstellung aus Dateien.</li>
+<li>Review-Flow mit vier Antwortoptionen wie <code>Again / Hard / Good / Easy</code>.</li>
+<li>Erste Content-Repetition-Varianten mit Kontroll- und Undo-Mechanismen.</li>
+<li>Stapelweise Steuerung, ob CoRe aus, automatisch oder manuell läuft.</li>
+<li>Eine kleine Community-/Gruppenlogik zum Teilen von Kartenstapeln ohne toxische Social-Metriken.</li>
+<li>Sparsame, triggerbasierte KI-Orchestrierung mit günstigen/kleinen Modellen für leichte Aufgaben und stärkeren Modellen nur bei Bedarf.</li>
+</ul>
+<hr />
+<h2 id="2-produktvision">2. Produktvision</h2>
+<h3 id="21-leitbild">2.1 Leitbild</h3>
+<p>CoRe soll eine Lernplattform für große Wissensbestände werden, die Lernende nicht nur an die nächste Karte erinnert, sondern aktiv prüft, ob der Inhalt unabhängig von der ursprünglichen Darstellung verstanden und abrufbar ist.</p>
+<blockquote>
+<p><strong>Kurzform:</strong> CoRe ist nicht „Anki mit schöner UI“, sondern eine Plattform, die bestehende Anki-Logik übernimmt, durch KI, Kontext, Variantenbildung und Wissensstrukturierung erweitert und dadurch Kartenblindheit reduziert.</p>
+</blockquote>
+<h3 id="22-positionierung">2.2 Positionierung</h3>
+<table>
+<thead>
+<tr>
+  <th>Dimension</th>
+  <th>Klassische Karteikarten-App</th>
+  <th>CoRe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Wiederholung</td>
+  <td>Zeitlich geplant</td>
+  <td>Zeitlich + inhaltlich variiert</td>
+</tr>
+<tr>
+  <td>Kartenstabilität</td>
+  <td>Karte bleibt meist identisch</td>
+  <td>Karte kann ab Reifegrad variiert werden</td>
+</tr>
+<tr>
+  <td>Lernproblem</td>
+  <td>Gefahr von Wiedererkennung</td>
+  <td>Fokus auf echten Abruf</td>
+</tr>
+<tr>
+  <td>KI-Rolle</td>
+  <td>Karten generieren oder Chat</td>
+  <td>Karten erzeugen, variieren, validieren, vernetzen</td>
+</tr>
+<tr>
+  <td>Vertrauen</td>
+  <td>Nutzer prüft Karte manuell</td>
+  <td>Originalanker, Quellenanker, Versionierung, Undo</td>
+</tr>
+<tr>
+  <td>Anki</td>
+  <td>Konkurrenz oder Importoption</td>
+  <td>Kompatible Grundlage und Migrationspfad</td>
+</tr>
+<tr>
+  <td>Community</td>
+  <td>Öffentliches Teilen oder Export</td>
+  <td>Kleine Gruppen, strukturierte Ordner, keine toxischen Metriken</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-primaere-zielgruppen">2.3 Primäre Zielgruppen</h3>
+<ol>
+<li><p><strong>Medizinstudierende</strong><br />
+Große Wissensmengen, hohe Prüfungsfrequenz, viele bestehende Anki-Stapel, hoher Nutzen durch Fall-/Kontextvarianten.</p>
+</li>
+<li><p><strong>Jurastudierende</strong><br />
+Hoher Bedarf an Definitionen, Prüfungsschemata, Abgrenzungen, Fallkonstellationen und präziser sprachlicher Variation.</p>
+</li>
+<li><p><strong>Power-User bestehender Karteikartensysteme</strong><br />
+Menschen mit großen Decks, bestehender Anki-Gewohnheit und Bedarf an Import, Review-Effizienz und Automatisierung.</p>
+</li>
+<li><p><strong>Spätere Erweiterung:</strong> alle Lernenden mit großen Wissensbeständen, berufliche Weiterbildung, Zertifizierungen, Sprachen, Fortbildungen.</p>
+</li>
+</ol>
+<h3 id="24-kernnutzenversprechen">2.4 Kernnutzenversprechen</h3>
+<p>CoRe soll Lernenden ermöglichen:</p>
+<ul>
+<li>Bestehende Anki-Stapel weiterzuverwenden.</li>
+<li>Karten schneller aus PDFs, Word-Dokumenten, Bildern oder Textquellen zu erstellen.</li>
+<li>Karten in einer cleanen, ablenkungsarmen Umgebung zu lernen.</li>
+<li>Automatisch neue Varianten zu erhalten, sobald eine Karte reif genug ist.</li>
+<li>Zu jeder KI-veränderten Karte das Original und ggf. die Quelle zu sehen.</li>
+<li>Karten mit kleinen Gruppen zu teilen, ohne Leistungsdruck durch öffentliche Lernstände.</li>
+<li>Stapel als Wissensnetz/Mindmap zu betrachten und später mit dem Deck zu chatten.</li>
+</ul>
+<hr />
+<h2 id="3-problemdefinition-kartenblindheit">3. Problemdefinition: Kartenblindheit</h2>
+<h3 id="31-ausgangsproblem">3.1 Ausgangsproblem</h3>
+<p>Klassische Karteikarten funktionieren gut für Spaced Repetition, können aber bei sehr häufigem Lernen einen Nebeneffekt erzeugen: Lernende erkennen nach einer Weile nicht mehr primär den Inhalt, sondern die wiederkehrende äußere Form der Karte.</p>
+<p>Typische Wiedererkennungsanker:</p>
+<ul>
+<li>exakter Wortlaut der Frage,</li>
+<li>Anfang und Ende der Formulierung,</li>
+<li>Position einer Lücke,</li>
+<li>optische Länge der Antwort,</li>
+<li>Groß-/Kleinschreibung einzelner Signalwörter,</li>
+<li>Layout oder Formatierung,</li>
+<li>Reihenfolge in einem Stapel,</li>
+<li>bestimmte Bilder oder Bildausschnitte.</li>
+</ul>
+<h3 id="32-core-gegenstrategie">3.2 CoRe-Gegenstrategie</h3>
+<p>CoRe führt <strong>Content Repetition</strong> ein:</p>
+<ul>
+<li>Zunächst wird die Originalkarte gelernt, damit ein stabiler Einstieg entsteht.</li>
+<li>Nach mehreren erfolgreichen Wiederholungen kann CoRe denselben Inhalt anders abfragen.</li>
+<li>Die Variante soll nicht als Variante angekündigt werden, weil sonst neue Meta-Wiedererkennung entsteht.</li>
+<li>Nach dem Aufdecken kann der Ursprung als Anker sichtbar werden.</li>
+<li>Nicht jede Karte ist sinnvoll variierbar; das System muss Karten erkennen, die nicht oder nur eingeschränkt variiert werden sollen.</li>
+</ul>
+<h3 id="33-produktziel">3.3 Produktziel</h3>
+<p>CoRe ist erfolgreich, wenn Nutzende nach einiger Zeit Inhalte auch dann abrufen können, wenn:</p>
+<ul>
+<li>Frageanfang und Frageende anders formuliert sind,</li>
+<li>dieselbe Information in einem anderen Kartentyp erscheint,</li>
+<li>mehrere zusammenhängende Karten kombiniert werden,</li>
+<li>eine Frage stärker kontextualisiert wird,</li>
+<li>irrelevante optische Hinweise entfernt wurden.</li>
+</ul>
+<hr />
+<h2 id="4-produktprinzipien">4. Produktprinzipien</h2>
+<h3 id="p1-anki-kompatibel-starten-core-spezifisch-weiterdenken">P1 — Anki-kompatibel starten, CoRe-spezifisch weiterdenken</h3>
+<p>CoRe MUSS bestehende Anki-Stapel importieren können, damit Nutzende nicht bei null anfangen. Die interne Datenstruktur SOLL aber nicht nur eine Kopie des Anki-Formats sein, sondern Varianten, Quellenanker, KI-Jobs, Reifegrad und Community-Sharing sauber abbilden.</p>
+<h3 id="p2-originale-bleiben-vertrauenswuerdige-anker">P2 — Originale bleiben vertrauenswürdige Anker</h3>
+<p>Jede automatisch erzeugte oder veränderte Karte MUSS auf eine Originalkarte, ein Dokument oder eine manuell bestätigte Quelle zurückführbar sein.</p>
+<h3 id="p3-ki-darf-nicht-unsichtbar-falsche-lerninhalte-erzeugen">P3 — KI darf nicht unsichtbar falsche Lerninhalte erzeugen</h3>
+<p>KI-Ausgaben MÜSSEN validierbar, versionierbar und rückgängig machbar sein. Wo fachliche Genauigkeit kritisch ist, SOLL CoRe klare Review-/Freigabeschritte anbieten.</p>
+<h3 id="p4-lernen-bleibt-ruhig-fokussiert-und-nicht-sozial-toxisch">P4 — Lernen bleibt ruhig, fokussiert und nicht sozial toxisch</h3>
+<p>Der Review-Modus MUSS clean und ablenkungsarm sein. Community-Funktionen DÜRFEN keine fremden Lernstände, Online-Status, Streaks oder ähnliche Vergleichsdaten anzeigen.</p>
+<h3 id="p5-core-ist-stapelweise-steuerbar">P5 — CoRe ist stapelweise steuerbar</h3>
+<p>Nicht jeder Stapel eignet sich für Varianten. Nutzende MÜSSEN pro Stapel bzw. sinnvoller Stapelebene entscheiden können, ob Content Repetition aus, automatisch oder manuell genutzt wird.</p>
+<h3 id="p6-ki-wird-sparsam-orchestriert">P6 — KI wird sparsam orchestriert</h3>
+<p>CoRe SOLL leichte Aufgaben günstigen oder lokalen Modellen geben und schwere Aufgaben nur bei Bedarf an stärkere Modelle auslagern. KI-Jobs SOLLEN gebündelt, entprellt und durch Trigger gesteuert werden.</p>
+<h3 id="p7-mobile-first-trotz-web-mvp">P7 — Mobile-first trotz Web-MVP</h3>
+<p>Alle Kerninteraktionen SOLLEN auf Desktop, Tablet und Smartphone funktionieren. Der manuelle Dokumentviewer ist auf Desktop besonders wertvoll, darf aber mobile Nutzung nicht blockieren.</p>
+<hr />
+<h2 id="5-glossar-und-domaenenmodell">5. Glossar und Domänenmodell</h2>
+<table>
+<thead>
+<tr>
+  <th>Begriff</th>
+  <th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>CoRe</strong></td>
+  <td>Produktname; steht für Content Repetition.</td>
+</tr>
+<tr>
+  <td><strong>Content Repetition</strong></td>
+  <td>Erweiterung von Spaced Repetition durch inhaltliche Varianten derselben Lerninhalte.</td>
+</tr>
+<tr>
+  <td><strong>Stapel / Deck</strong></td>
+  <td>Sammlung von Karten, ggf. mit Unterstapeln.</td>
+</tr>
+<tr>
+  <td><strong>Unterstapel</strong></td>
+  <td>Hierarchische Deck-Ebene, insbesondere aus Anki-Importen wichtig.</td>
+</tr>
+<tr>
+  <td><strong>Note</strong></td>
+  <td>Logische Wissenseinheit mit Feldern, aus der eine oder mehrere Karten entstehen können.</td>
+</tr>
+<tr>
+  <td><strong>Karte / Card</strong></td>
+  <td>Konkretes Review-Objekt mit Vorderseite, Rückseite oder anderem Kartentyp.</td>
+</tr>
+<tr>
+  <td><strong>Kartentyp / Template</strong></td>
+  <td>Basic, Reverse, Cloze, Image Occlusion, zukünftige Spezialtypen.</td>
+</tr>
+<tr>
+  <td><strong>Originalkarte</strong></td>
+  <td>Ausgangskarte, die importiert oder manuell erstellt wurde.</td>
+</tr>
+<tr>
+  <td><strong>Variante</strong></td>
+  <td>KI- oder regelbasiert erzeugte alternative Abfrage desselben Inhalts.</td>
+</tr>
+<tr>
+  <td><strong>Anker</strong></td>
+  <td>Referenz zwischen Variante und Originalkarte bzw. Quelle.</td>
+</tr>
+<tr>
+  <td><strong>Quellenanker</strong></td>
+  <td>Referenz auf PDF-Seite, Textbereich, Bildausschnitt oder importiertes Feld.</td>
+</tr>
+<tr>
+  <td><strong>Review Event</strong></td>
+  <td>Einzelne Bewertung einer Karte mit <code>Again</code>, <code>Hard</code>, <code>Good</code> oder <code>Easy</code>.</td>
+</tr>
+<tr>
+  <td><strong>Review State</strong></td>
+  <td>Aktueller Lernzustand einer Karte oder Kartenfamilie.</td>
+</tr>
+<tr>
+  <td><strong>Reifegrad / Maturity</strong></td>
+  <td>Zusammenfassender Fortschrittswert, ab dem Varianten erlaubt werden können.</td>
+</tr>
+<tr>
+  <td><strong>CoRe-Modus</strong></td>
+  <td>Stapelbezogene Einstellung: <code>off</code>, <code>auto</code>, <code>manual</code>.</td>
+</tr>
+<tr>
+  <td><strong>Eligibility</strong></td>
+  <td>Entscheidung, ob eine Karte überhaupt sinnvoll variiert werden kann.</td>
+</tr>
+<tr>
+  <td><strong>Community</strong></td>
+  <td>Kleine, bewusst begrenzte Gruppe zum Teilen von Stapeln.</td>
+</tr>
+<tr>
+  <td><strong>Deck Graph / Mindmap</strong></td>
+  <td>KI-generierte Übersicht über Themen, Begriffe und Zusammenhänge eines Stapels.</td>
+</tr>
+<tr>
+  <td><strong>AI Job</strong></td>
+  <td>Hintergrundverarbeitung für Importanalyse, Varianten, Kartengenerierung, Graphen etc.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-informationsarchitektur-der-app">6. Informationsarchitektur der App</h2>
+<h3 id="61-hauptbereiche">6.1 Hauptbereiche</h3>
+<p>Die App SOLL folgende Hauptbereiche enthalten:</p>
+<ol>
+<li><p><strong>Dashboard / Heute lernen</strong></p>
+<ul>
+<li>Tagesübersicht: fällige Karten, neue Karten, optionale Lernzeit.</li>
+<li>Startpunkt für Review-Sessions.</li>
+</ul>
+</li>
+<li><p><strong>Kartenstapel</strong></p>
+<ul>
+<li>Deck- und Unterdeck-Übersicht.</li>
+<li>Pro Stapel: Lernfortschritt, fällige Karten, CoRe-Modus.</li>
+<li>Aktionen: Import, manuell erstellen, KI-erstellen, Graph, Teilen.</li>
+</ul>
+</li>
+<li><p><strong>Review / Lernen</strong></p>
+<ul>
+<li>Fullscreen oder nahezu Fullscreen.</li>
+<li>Ablenkungsarm, klare Typografie.</li>
+<li>Antwort aufdecken, vier Review-Buttons.</li>
+</ul>
+</li>
+<li><p><strong>Erstellen</strong></p>
+<ul>
+<li>Manuelle Karte.</li>
+<li>Dokumentviewer + Auswahl-zu-Feld.</li>
+<li>KI-Kartengenerierung.</li>
+</ul>
+</li>
+<li><p><strong>Communitys</strong></p>
+<ul>
+<li>Kleine Gruppen.</li>
+<li>Ordnerstruktur.</li>
+<li>Stapel ansehen, übernehmen, kopieren oder verlinken.</li>
+</ul>
+</li>
+<li><p><strong>Graph / Mindmap</strong></p>
+<ul>
+<li>Überblick pro Stapel.</li>
+<li>Themenknoten mit Kartenverlinkung.</li>
+<li>Regenerierung durch Trigger oder manuellen Button.</li>
+</ul>
+</li>
+<li><p><strong>KI / Assistent</strong></p>
+<ul>
+<li>Später: Chat-your-Deck, Lernplan, Erklärungen.</li>
+<li>Zunächst: KI-Jobs sichtbar machen und kontrollieren.</li>
+</ul>
+</li>
+<li><p><strong>Einstellungen</strong></p>
+<ul>
+<li>Profil, Hochschule, Sprache.</li>
+<li>Scheduler-Parameter.</li>
+<li>KI-Kosten-/Modellpräferenzen.</li>
+<li>Datenschutz und Exportoptionen.</li>
+</ul>
+</li>
+</ol>
+<h3 id="62-navigationsvorschlag">6.2 Navigationsvorschlag</h3>
+<pre><code class="language-text">/                         Dashboard
+/decks                    Kartenstapel-Übersicht
+/decks/:deckId            Stapel-Detailansicht
+/decks/:deckId/review     Review-Session
+/decks/:deckId/create     Manuelle Kartenerstellung
+/decks/:deckId/import     Import-Wizard
+/decks/:deckId/ai-create  KI-Kartenerstellung
+/decks/:deckId/graph      Mindmap / Deck Graph
+/cards/:cardId            Karten-Detail / Versionen / Anker
+/communities              Community-Übersicht
+/communities/:id          Community-Workspace
+/settings                 Einstellungen
+</code></pre>
+<h3 id="63-mobile-first-leitlinien">6.3 Mobile-first Leitlinien</h3>
+<ul>
+<li>Unterwegs zählt primär <strong>Review</strong>: große Buttons, Tastatur-Shortcuts optional, Touch-optimiert.</li>
+<li>Deck-Verwaltung und Dokumentviewer dürfen auf Desktop stärker ausgebaut sein, müssen mobil aber lesbar bleiben.</li>
+<li>Manuelle Kartenerstellung mit Dokumentviewer SOLL auf kleinen Screens als Tabs oder Bottom Sheet funktionieren.</li>
+<li>Später native Mobile-Apps oder PWA-Funktionen früh architektonisch berücksichtigen: Offline-Queue, lokale Review-Events, Sync-Konfliktlösung.</li>
+</ul>
+<hr />
+<h2 id="7-mvp-scope">7. MVP-Scope</h2>
+<h3 id="71-mvp-ziel">7.1 MVP-Ziel</h3>
+<p>Der MVP soll beweisen, dass CoRe mehr ist als ein weiteres Karteikarten-Frontend:</p>
+<ul>
+<li>Anki-/APKG-nahe Decks können importiert werden.</li>
+<li>Nutzer können Karten lernen.</li>
+<li>Die App kann geeignete Karten ab einem Reifegrad variieren.</li>
+<li>Varianten bleiben kontrollierbar und rückführbar.</li>
+<li>Eine erste Form von KI-Kartenerstellung aus Dokumenten funktioniert.</li>
+<li>Die UX ist cleaner und zugänglicher als klassische Power-User-Tools.</li>
+</ul>
+<h3 id="72-mvp-mussumfang">7.2 MVP-Mussumfang</h3>
+<table>
+<thead>
+<tr>
+  <th>Bereich</th>
+  <th>MVP-Anforderung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Account</td>
+  <td>Registrierung/Login, Profil, optional Hochschule.</td>
+</tr>
+<tr>
+  <td>Decks</td>
+  <td>Deck-/Unterdeck-Hierarchie, Stapelübersicht, Such-/Filterfunktion.</td>
+</tr>
+<tr>
+  <td>Import</td>
+  <td>APKG-Import mindestens für Basic Front/Back; Importarchitektur für weitere Formate vorbereiten.</td>
+</tr>
+<tr>
+  <td>Card CRUD</td>
+  <td>Basic-Karten erstellen, bearbeiten, löschen; später weitere Typen.</td>
+</tr>
+<tr>
+  <td>Review</td>
+  <td>Fullscreen-Lernmodus, Antwort aufdecken, vier Buttons.</td>
+</tr>
+<tr>
+  <td>Scheduler</td>
+  <td>Anki-inspirierte Scheduling-Schnittstelle; genaue Parameter austauschbar.</td>
+</tr>
+<tr>
+  <td>CoRe-Modus</td>
+  <td>Pro Stapel <code>off/auto/manual</code>. Default: <code>auto</code>, aber leicht änderbar.</td>
+</tr>
+<tr>
+  <td>Varianten</td>
+  <td>Erste KI-Umformulierungen für geeignete Textkarten; Originalanker anzeigen.</td>
+</tr>
+<tr>
+  <td>Trust</td>
+  <td>Varianten-Status, Original anzeigen, Undo/Discard, Versionierung mindestens rudimentär.</td>
+</tr>
+<tr>
+  <td>KI-Erstellung</td>
+  <td>Datei hochladen, Parameter setzen, Kartenentwürfe generieren, Nutzer bestätigt Import.</td>
+</tr>
+<tr>
+  <td>KI-Orchestrierung</td>
+  <td>Hintergrundjobs, Trigger, Kosten-/Modellkapselung, strukturierte Outputs.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73-mvp-sollumfang">7.3 MVP-Sollumfang</h3>
+<ul>
+<li>Cloze-/Lückentext-Basisunterstützung.</li>
+<li>Text-/CSV-/Excel-Import als einfachere Alternative zu APKG.</li>
+<li>Manuelle Kartenerstellung mit Dokumentviewer für PDF/Text.</li>
+<li>Auswahl-zu-Feld für markierten Text.</li>
+<li>Erste Community-Gruppe mit Ordnerstruktur.</li>
+<li>Erste Graph-/Mindmap-Generierung pro Stapel.</li>
+<li>Review-Keyboard-Shortcuts.</li>
+</ul>
+<h3 id="74-mvp-nichtziele">7.4 MVP-Nichtziele</h3>
+<ul>
+<li>Hosting, produktive Deployment-Pipeline, Domains und Monitoring.</li>
+<li>Datenbank, serverseitige Persistenz, Multi-Device-Sync und Konfliktloesung.</li>
+<li>Echte externe Authentifizierung, E-Mail-Verifikation, OAuth-Provider und Account-Recovery.</li>
+<li>Externe LLM-Provider, produktive Prompt-/Eval-Pipeline und echtes Token-/Kostenlogging.</li>
+<li>Serverseitige Job-Queue, Worker, Medienstorage und OCR-/Dokumentenpipeline.</li>
+<li>Vollständige Anki-Kompatibilität für alle exotischen Note Types.</li>
+<li>Perfekter Import jeder historischen Anki-Variation.</li>
+<li>Vollständiger mobiler Offline-Betrieb.</li>
+<li>Öffentliche Social-Plattform.</li>
+<li>Fremde Lernstände, Rankings, Streaks anderer Nutzer.</li>
+<li>Automatische Bildvarianten durch KI. Bildkarten können existieren; KI-Bildvariation ist ausdrücklich nicht priorisiert.</li>
+<li>Fachlich garantierte KI-Korrektheit ohne menschliche Freigabe.</li>
+</ul>
+<hr />
+<h2 id="8-funktionale-anforderungen">8. Funktionale Anforderungen</h2>
+<h2 id="81-account-profil-und-onboarding">8.1 Account, Profil und Onboarding</h2>
+<h3 id="fr-auth-001-account-erstellen">FR-AUTH-001 — Account erstellen</h3>
+<p>Nutzende MÜSSEN einen Account erstellen und sich anmelden können.</p>
+<p><strong>Felder:</strong></p>
+<ul>
+<li>Name oder Anzeigename.</li>
+<li>E-Mail.</li>
+<li>Passwort oder OAuth-Provider.</li>
+<li>Optionale Hochschule/Universität.</li>
+<li>Optionale Studienrichtung/Fachbereich.</li>
+<li>Bevorzugte Sprache.</li>
+</ul>
+<h3 id="fr-auth-002-hochschule-erfassen">FR-AUTH-002 — Hochschule erfassen</h3>
+<p>Die App SOLL beim Onboarding optional fragen, an welcher Hochschule der Nutzer studiert. Diese Information KANN später für Community-Findung, Deck-Empfehlungen oder Kursstruktur genutzt werden.</p>
+<p><strong>Nicht erlaubt im MVP:</strong> öffentliche Anzeige als Leistungsranking oder Vergleichsmerkmal.</p>
+<h3 id="fr-auth-003-datenschutzgrundsatz">FR-AUTH-003 — Datenschutzgrundsatz</h3>
+<p>Lernstände sind privat. Standardmäßig DÜRFEN weder Lernfortschritt, fällige Karten, Online-Status noch Streaks mit anderen Nutzenden geteilt werden.</p>
+<hr />
+<h2 id="82-kartenstapel-und-deck-hierarchie">8.2 Kartenstapel und Deck-Hierarchie</h2>
+<h3 id="fr-deck-001-deck-hierarchie">FR-DECK-001 — Deck-Hierarchie</h3>
+<p>CoRe MUSS Stapel und Unterstapel abbilden können. Importierte Anki-Hierarchien können tief verschachtelt sein und SOLLEN so weit wie möglich erhalten bleiben.</p>
+<p><strong>Beispiel:</strong></p>
+<pre><code class="language-text">Medizin
+  └── Vorklinik
+      └── Anatomie
+          ├── Bewegungsapparat
+          └── Neuroanatomie
+</code></pre>
+<h3 id="fr-deck-002-stapeluebersicht">FR-DECK-002 — Stapelübersicht</h3>
+<p>Die Stapelübersicht MUSS pro Stapel mindestens anzeigen:</p>
+<ul>
+<li>Stapelname.</li>
+<li>Anzahl Karten.</li>
+<li>Fällige Karten heute.</li>
+<li>Neue Karten.</li>
+<li>CoRe-Modus (<code>off</code>, <code>auto</code>, <code>manual</code>).</li>
+<li>Importstatus oder Syncstatus, falls relevant.</li>
+<li>Optional: letzte KI-Aktualisierung / Graphstatus.</li>
+</ul>
+<h3 id="fr-deck-003-core-modus-pro-stapel">FR-DECK-003 — CoRe-Modus pro Stapel</h3>
+<p>Nutzende MÜSSEN pro Stapel oder pro definierter Stapelebene einstellen können:</p>
+<table>
+<thead>
+<tr>
+  <th>Modus</th>
+  <th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>off</code></td>
+  <td>Nur Originalkarten, keine Varianten. Sinnvoll z. B. für Vokabelstapel.</td>
+</tr>
+<tr>
+  <td><code>auto</code></td>
+  <td>System entscheidet ab Reifegrad und Eligibility, wann Varianten erscheinen. Default.</td>
+</tr>
+<tr>
+  <td><code>manual</code></td>
+  <td>Nutzer triggert bewusst Variantenlernen oder Variantenerstellung.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>UX-Anforderung:</strong> Der Modus muss direkt in der Stapelübersicht sichtbar und schnell änderbar sein. Eine dreistufige Steuerung, Segment-Control oder Ampel-Metapher ist geeignet. Ein klassischer binärer Toggle reicht nicht, weil drei Zustände benötigt werden.</p>
+<h3 id="fr-deck-004-stapelaktionen">FR-DECK-004 — Stapelaktionen</h3>
+<p>Auf jedem Deck SOLLEN folgende Aktionen verfügbar sein:</p>
+<ul>
+<li>Lernen starten.</li>
+<li>Karten anzeigen.</li>
+<li>Karte erstellen.</li>
+<li>Importieren.</li>
+<li>KI-Karten generieren.</li>
+<li>CoRe-Modus ändern.</li>
+<li>Graph/Mindmap öffnen.</li>
+<li>Teilen oder in Community veröffentlichen.</li>
+<li>Einstellungen.</li>
+</ul>
+<hr />
+<h2 id="83-import">8.3 Import</h2>
+<h3 id="fr-import-001-importwege">FR-IMPORT-001 — Importwege</h3>
+<p>Im Menübereich <strong>Kartenstapel</strong> MUSS es drei Wege geben, neue Karten hinzuzufügen:</p>
+<p>A. <strong>Import</strong> — primär APKG/Anki, später Text/CSV/Excel.<br />
+B. <strong>Manuelle/analoge Kartenerstellung</strong> — inklusive Dokumentviewer.<br />
+C. <strong>KI-gestützte Kartenerstellung</strong> — aus Datei oder Textquelle.</p>
+<h3 id="fr-import-002-apkg-import-mvp">FR-IMPORT-002 — APKG-Import MVP</h3>
+<p>Der MVP MUSS APKG-Dateien importieren können, mindestens für:</p>
+<ul>
+<li>Basic Card: Front/Back.</li>
+<li>Medienanhänge, sofern einfach referenzierbar.</li>
+<li>Deck- und Unterdecknamen.</li>
+<li>Tags, sofern vorhanden.</li>
+</ul>
+<h3 id="fr-import-003-apkg-ausbau">FR-IMPORT-003 — APKG-Ausbau</h3>
+<p>Die Importarchitektur MUSS so gebaut werden, dass weitere Anki-Formate und Note Types ergänzt werden können:</p>
+<ul>
+<li>Basic + Reverse.</li>
+<li>Cloze / Lückentext.</li>
+<li>Image Occlusion.</li>
+<li>Custom Note Types mit Mapping-UI.</li>
+<li>Karten mit HTML/Markdown/MathJax.</li>
+<li>Medien: Bilder, Audio, ggf. Video.</li>
+</ul>
+<h3 id="fr-import-004-unknown-note-type-handling">FR-IMPORT-004 — Unknown Note Type Handling</h3>
+<p>Wenn CoRe einen Anki-Kartentyp nicht sicher versteht, darf der Import nicht komplett scheitern. Stattdessen SOLL ein Fallback greifen:</p>
+<ol>
+<li>Rohdaten speichern.</li>
+<li>Mapping-Vorschlag erzeugen.</li>
+<li>Nutzer kann Felder auf Front/Back/Cloze/etc. mappen.</li>
+<li>Nicht unterstützte Features werden sichtbar markiert.</li>
+<li>Originaldaten bleiben für spätere Reimporte erhalten.</li>
+</ol>
+<h3 id="fr-import-005-lernfortschritt-importieren">FR-IMPORT-005 — Lernfortschritt importieren</h3>
+<p>CoRe SOLL perspektivisch Lernfortschritt aus Anki übernehmen können, damit bereits gelernte Decks in CoRe weitergelernt werden können.</p>
+<p><strong>MVP-Variante:</strong> Importierte Karten starten mit neutralem Review-State, aber die Datenstruktur enthält bereits Felder für:</p>
+<ul>
+<li>letztes Review-Datum,</li>
+<li>Intervall,</li>
+<li>Ease / Difficulty,</li>
+<li>Wiederholungsanzahl,</li>
+<li>Lapse-/Fehlerhistorie,</li>
+<li>fälliges Datum,</li>
+<li>ursprüngliche Scheduler-Daten.</li>
+</ul>
+<p><strong>Wichtig:</strong> Diese Funktion erfordert eine genaue Analyse des APKG-/Anki-Speicherformats und sollte als eigenes Engineering-Modul geplant werden.</p>
+<h3 id="fr-import-006-exportpolitik">FR-IMPORT-006 — Exportpolitik</h3>
+<p>Im MVP KANN CoRe keinen vollwertigen Export anbieten, weil die Plattform-Sharing-Logik zunächst wichtiger ist. Es SOLL aber architektonisch möglich bleiben, später Export oder Datenportabilität einzuführen, um Nutzervertrauen zu sichern und Kritik zu vermeiden.</p>
+<h3 id="fr-import-007-serverseitige-variantenhaltung">FR-IMPORT-007 — Serverseitige Variantenhaltung</h3>
+<p>Varianten SOLLEN serverseitig gespeichert und über Content Hashes dedupliziert werden. Wenn mehrere Nutzer denselben geteilten Stapel verwenden, müssen identische Varianten nicht erneut erzeugt werden.</p>
+<p><strong>Dedupe-Schlüssel-Vorschlag:</strong></p>
+<pre><code class="language-text">variant_hash = hash(
+  source_card_id_or_content_hash,
+  transform_type,
+  transform_profile,
+  model_version,
+  normalized_output_content
+)
+</code></pre>
+<hr />
+<h2 id="84-manuelle-kartenerstellung">8.4 Manuelle Kartenerstellung</h2>
+<h3 id="fr-create-001-basic-karten">FR-CREATE-001 — Basic-Karten</h3>
+<p>Nutzende MÜSSEN Karten mit Vorderseite und Rückseite erstellen können.</p>
+<p><strong>Felder:</strong></p>
+<ul>
+<li>Deck/Unterdeck.</li>
+<li>Vorderseite.</li>
+<li>Rückseite.</li>
+<li>Tags.</li>
+<li>Medienanhänge.</li>
+<li>Notizen/Quelle optional.</li>
+</ul>
+<h3 id="fr-create-002-typische-kartentypen">FR-CREATE-002 — Typische Kartentypen</h3>
+<p>CoRe SOLL typische Karteitypen anbieten:</p>
+<table>
+<thead>
+<tr>
+  <th>Typ</th>
+  <th style="text-align:right">MVP</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Basic Front/Back</td>
+  <td style="text-align:right">Ja</td>
+  <td>Klassische Frage/Antwort.</td>
+</tr>
+<tr>
+  <td>Basic + Reverse</td>
+  <td style="text-align:right">Soll</td>
+  <td>Optional automatisch Gegenrichtung erzeugen.</td>
+</tr>
+<tr>
+  <td>Cloze</td>
+  <td style="text-align:right">Soll</td>
+  <td>Lückentext mit einer oder mehreren Lücken.</td>
+</tr>
+<tr>
+  <td>Image Occlusion</td>
+  <td style="text-align:right">Später/Soll</td>
+  <td>Bildbereiche verdecken, besonders relevant für Medizin.</td>
+</tr>
+<tr>
+  <td>Multi-Field Note</td>
+  <td style="text-align:right">Später</td>
+  <td>Flexible Notizen mit mehreren generierten Karten.</td>
+</tr>
+<tr>
+  <td>Case/Vignette</td>
+  <td style="text-align:right">Später</td>
+  <td>Fallbasierte Varianten, z. B. Medizin/Jura.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="fr-create-003-dokumentviewer-in-der-kartenerstellung">FR-CREATE-003 — Dokumentviewer in der Kartenerstellung</h3>
+<p>Die manuelle Kartenerstellung SOLL einen integrierten Dokumentviewer anbieten. Ziel ist, dass Nutzende nicht zwischen PDF/Word/Bild und CoRe split-screen-artig hin- und herwechseln müssen.</p>
+<p><strong>Unterstützte Quellen:</strong></p>
+<ul>
+<li>PDF.</li>
+<li>Textdateien.</li>
+<li>Word-Dokumente, sofern technisch verfügbar.</li>
+<li>Bilder, mindestens als Anzeige; OCR später optional.</li>
+</ul>
+<h3 id="fr-create-004-auswahl-zu-karte-funktion">FR-CREATE-004 — Auswahl-zu-Karte-Funktion</h3>
+<p>Wenn ein Nutzer in einem Dokument Text markiert, SOLL der markierte Text automatisch in das aktuell aktive Kartenfeld eingefügt werden.</p>
+<p><strong>Beispiel:</strong></p>
+<ol>
+<li>Nutzer öffnet <code>Anatomie.pdf</code> im Erstellmodus.</li>
+<li>Nutzer klickt in das Feld <code>Vorderseite</code>.</li>
+<li>Nutzer markiert Text im PDF.</li>
+<li>CoRe fügt den markierten Text in <code>Vorderseite</code> ein.</li>
+<li>Nutzer klickt in <code>Rückseite</code>.</li>
+<li>Nutzer markiert weiteren Text.</li>
+<li>CoRe fügt ihn in <code>Rückseite</code> ein.</li>
+</ol>
+<p><strong>MVP-Einschränkung:</strong> Zunächst nur textbasierte PDFs/Dokumente. OCR und Bildregionen später.</p>
+<h3 id="fr-create-005-quellenanker-bei-manueller-erstellung">FR-CREATE-005 — Quellenanker bei manueller Erstellung</h3>
+<p>Wenn eine Karte aus einem Dokument markierten Text übernimmt, SOLL CoRe einen Quellenanker speichern:</p>
+<ul>
+<li>Dokument-ID.</li>
+<li>Seitenzahl.</li>
+<li>Textauswahl.</li>
+<li>Optional Bounding Box.</li>
+<li>Zeitpunkt der Erstellung.</li>
+<li>Zielkartenfeld.</li>
+</ul>
+<p>So kann später nachvollzogen werden, woher eine Karte stammt.</p>
+<hr />
+<h2 id="85-ki-gestuetzte-kartenerstellung">8.5 KI-gestützte Kartenerstellung</h2>
+<h3 id="fr-aicreate-001-datei-zu-karten">FR-AICREATE-001 — Datei zu Karten</h3>
+<p>Nutzende MÜSSEN perspektivisch Dateien hochladen und daraus automatisch Kartenentwürfe generieren lassen können.</p>
+<p><strong>MVP-Dateitypen:</strong></p>
+<ul>
+<li>PDF mit extrahierbarem Text.</li>
+<li>Reiner Text / Markdown.</li>
+<li>Optional Word.</li>
+</ul>
+<h3 id="fr-aicreate-002-parametrisierbare-generierung">FR-AICREATE-002 — Parametrisierbare Generierung</h3>
+<p>Vor der Generierung MUSS der Nutzer zentrale Parameter steuern können:</p>
+<table>
+<thead>
+<tr>
+  <th>Parameter</th>
+  <th>Werte / Beispiel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Sprache</td>
+  <td>Deutsch, Englisch, Quellsprache beibehalten.</td>
+</tr>
+<tr>
+  <td>Umfang</td>
+  <td>wenige Karten, ausgewogen, viele Karten.</td>
+</tr>
+<tr>
+  <td>Detaillierungsgrad</td>
+  <td>grob, normal, fein granular.</td>
+</tr>
+<tr>
+  <td>Kartentypen</td>
+  <td>Basic, Cloze, gemischt.</td>
+</tr>
+<tr>
+  <td>Fokus</td>
+  <td>Prüfungswissen, Definitionen, Zusammenhänge, Fakten, Fallbezug.</td>
+</tr>
+<tr>
+  <td>Quelle</td>
+  <td>gesamtes Dokument, Seitenbereich, markierter Abschnitt.</td>
+</tr>
+<tr>
+  <td>Freigabe</td>
+  <td>Entwürfe prüfen vor Import oder direkt importieren.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="fr-aicreate-003-kartenentwurf-statt-stiller-import">FR-AICREATE-003 — Kartenentwurf statt stiller Import</h3>
+<p>KI-generierte Karten SOLLEN zunächst als Entwürfe erscheinen. Nutzende können:</p>
+<ul>
+<li>Karte übernehmen.</li>
+<li>Karte bearbeiten.</li>
+<li>Karte verwerfen.</li>
+<li>Mehr/weniger Details anfordern.</li>
+<li>In anderen Kartentyp umwandeln.</li>
+<li>Quelle anzeigen.</li>
+</ul>
+<h3 id="fr-aicreate-004-quellenanker-und-halluzinationsschutz">FR-AICREATE-004 — Quellenanker und Halluzinationsschutz</h3>
+<p>Jede KI-generierte Karte MUSS einen Quellenanker oder zumindest eine nachvollziehbare Textstelle besitzen. Falls die KI keine Quelle angeben kann, MUSS die Karte als unsicher markiert werden.</p>
+<h3 id="fr-aicreate-005-strukturierte-ki-ausgabe">FR-AICREATE-005 — Strukturierte KI-Ausgabe</h3>
+<p>KI darf keine frei unstrukturierte Textwand zurückgeben. Sie MUSS in einem validierbaren JSON-Schema antworten.</p>
+<p><strong>Beispiel-Schema:</strong></p>
+<pre><code class="language-json">{
+  &quot;cards&quot;: [
+    {
+      &quot;type&quot;: &quot;basic&quot;,
+      &quot;front&quot;: &quot;Welche Struktur trennt ...?&quot;,
+      &quot;back&quot;: &quot;...&quot;,
+      &quot;tags&quot;: [&quot;Anatomie&quot;, &quot;Beispiel&quot;],
+      &quot;sourceAnchors&quot;: [
+        {
+          &quot;documentId&quot;: &quot;doc_123&quot;,
+          &quot;page&quot;: 12,
+          &quot;quote&quot;: &quot;kurzer Belegauszug&quot;,
+          &quot;confidence&quot;: 0.86
+        }
+      ],
+      &quot;confidence&quot;: 0.82,
+      &quot;warnings&quot;: []
+    }
+  ]
+}
+</code></pre>
+<hr />
+<h2 id="86-review-flow-und-lernmodus">8.6 Review-Flow und Lernmodus</h2>
+<h3 id="fr-review-001-clean-fullscreen">FR-REVIEW-001 — Clean Fullscreen</h3>
+<p>Der Lernmodus MUSS ablenkungsarm sein. Die Karte steht im Zentrum, Navigation und Seitenleisten sind ausgeblendet oder stark reduziert.</p>
+<p><strong>Designrichtung:</strong></p>
+<ul>
+<li>Weiß oder sehr ruhiger Hintergrund.</li>
+<li>Wenig visuelle Elemente.</li>
+<li>Gute Lesbarkeit.</li>
+<li>Große Touch-Ziele.</li>
+<li>Optional dezente Shade/Surface.</li>
+</ul>
+<h3 id="fr-review-002-karte-nicht-klassisch-wegdrehen">FR-REVIEW-002 — Karte nicht klassisch „wegdrehen“</h3>
+<p>Beim Aufdecken der Antwort darf die Vorderseite nicht verschwinden. Stattdessen SOLL die Ansicht nach dem Aufdecken so aussehen:</p>
+<pre><code class="language-text">[Vorderseite / Frage]
+────────────────────
+[Rückseite / Antwort]
+</code></pre>
+<p>Der Nutzer soll Frage und Antwort gleichzeitig sehen können.</p>
+<h3 id="fr-review-003-vier-review-buttons">FR-REVIEW-003 — Vier Review-Buttons</h3>
+<p>CoRe MUSS vier Bewertungsstufen anbieten:</p>
+<ul>
+<li><code>Again</code> / Nicht gewusst.</li>
+<li><code>Hard</code> / Schwer.</li>
+<li><code>Good</code> / Gut.</li>
+<li><code>Easy</code> / Leicht.</li>
+</ul>
+<p>Diese Logik orientiert sich an Anki-Gewohnheiten und verhindert eine zu grobe dreistufige Bewertung.</p>
+<h3 id="fr-review-004-varianten-nicht-vorab-kennzeichnen">FR-REVIEW-004 — Varianten nicht vorab kennzeichnen</h3>
+<p>Wenn eine Variante gelernt wird, SOLL sie vor dem Aufdecken optisch wie eine normale Karte aussehen. Eine Kennzeichnung wie „KI-Variante“ oder „Variante von Karte X“ vor der Antwort ist zu vermeiden, weil sie neue Meta-Wiedererkennung erzeugen könnte.</p>
+<h3 id="fr-review-005-original-anker-nach-dem-aufdecken">FR-REVIEW-005 — Original-Anker nach dem Aufdecken</h3>
+<p>Nach dem Aufdecken MUSS der Nutzer Zugriff auf den Anker erhalten:</p>
+<ul>
+<li>Originalkarte mit Vorder- und Rückseite.</li>
+<li>Änderungs-/Variationshinweis.</li>
+<li>Optional Diff: was wurde geändert?</li>
+<li>Quelle, falls vorhanden.</li>
+</ul>
+<p><strong>UI-Vorschlag:</strong></p>
+<ul>
+<li>Kleines ausklappbares Panel „Original anzeigen“.</li>
+<li>Oder Split-/Bottom-Panel nach Antwortanzeige.</li>
+<li>Auf Mobile als Bottom Sheet.</li>
+</ul>
+<h3 id="fr-review-006-varianten-bewerten">FR-REVIEW-006 — Varianten bewerten</h3>
+<p>Review-Events auf Varianten SOLLEN sowohl die Variante als auch die Originalkartenfamilie beeinflussen. Eine Variante ist kein völlig unabhängiges Wissensobjekt, aber die App muss unterscheiden können:</p>
+<ul>
+<li>Nutzer kann Originalinhalt nicht.</li>
+<li>Nutzer kann nur diese Variante nicht.</li>
+<li>Variante ist schlecht formuliert.</li>
+<li>KI-Variante ist fachlich falsch.</li>
+</ul>
+<p>Daher SOLLEN Zusatzaktionen existieren:</p>
+<ul>
+<li>„Variante schlecht“.</li>
+<li>„Inhaltlich falsch melden“.</li>
+<li>„Nicht mehr zeigen“.</li>
+<li>„Original lernen“.</li>
+</ul>
+<hr />
+<h2 id="87-content-repetition-engine">8.7 Content-Repetition-Engine</h2>
+<h3 id="fr-core-001-varianten-erst-ab-reifegrad">FR-CORE-001 — Varianten erst ab Reifegrad</h3>
+<p>CoRe SOLL Karten nicht sofort variieren. Erst die ersten Wiederholungen dürfen ruhig mit der Originalkarte stattfinden, damit die Lernenden einen stabilen Bezug zum Inhalt aufbauen.</p>
+<p><strong>Startheuristik:</strong></p>
+<ul>
+<li>Keine Variante bei neuen Karten.</li>
+<li>Keine Variante nach dem ersten <code>Good</code>.</li>
+<li>Varianten frühestens nach ca. 3–4 guten Wiederholungen oder äquivalentem Reifegrad.</li>
+<li>Parameter pro Deck oder Nutzer einstellbar, aber zugänglich gehalten.</li>
+</ul>
+<h3 id="fr-core-002-reifegrad-als-berechneter-wert">FR-CORE-002 — Reifegrad als berechneter Wert</h3>
+<p>Jede Karte oder Kartenfamilie SOLL einen Reifegrad besitzen. Dieser KANN aus mehreren Faktoren entstehen:</p>
+<ul>
+<li>Anzahl erfolgreicher Reviews.</li>
+<li>Verteilung von <code>Again/Hard/Good/Easy</code>.</li>
+<li>Zeit seit letzter Wiederholung.</li>
+<li>Lapses / Rückfälle.</li>
+<li>Stabilität des Intervalls.</li>
+<li>Nutzerinteraktionen mit Varianten.</li>
+<li>Manuelle Vertrauensentscheidung.</li>
+</ul>
+<p><strong>Beispiel:</strong></p>
+<pre><code class="language-ts">type MaturityBand = &quot;new&quot; | &quot;learning&quot; | &quot;young&quot; | &quot;mature&quot; | &quot;variant_ready&quot; | &quot;mastered&quot;;
+</code></pre>
+<h3 id="fr-core-003-backfall-recovery-logik">FR-CORE-003 — Backfall-/Recovery-Logik</h3>
+<p>Wenn eine bereits gut gelernte Karte einmal vergessen wird, SOLL sie nicht vollständig auf null fallen. CoRe soll abbilden, dass ein bekannter Inhalt nach einem Rückfall schneller wieder auf Reife kommen kann.</p>
+<h3 id="fr-core-004-eligibility-nicht-jede-karte-variieren">FR-CORE-004 — Eligibility: nicht jede Karte variieren</h3>
+<p>CoRe MUSS entscheiden, ob eine Karte sinnvoll variierbar ist.</p>
+<p><strong>Nicht oder nur eingeschränkt geeignet:</strong></p>
+<ul>
+<li>Reine Vokabelkarten.</li>
+<li>Sehr kurze Front/Back-Paare ohne Kontext.</li>
+<li>Karten, bei denen exakte Formulierung selbst Prüfungsgegenstand ist.</li>
+<li>Bildkarten, solange Bildvariation nicht zuverlässig ist.</li>
+<li>Mathematische Formeln, bei denen kleine Änderungen Sinn zerstören.</li>
+<li>Karten mit hoher fachlicher Präzisionsanforderung ohne Quelle.</li>
+</ul>
+<p><strong>Eligibility-Ausgabe:</strong></p>
+<pre><code class="language-json">{
+  &quot;eligible&quot;: true,
+  &quot;score&quot;: 0.78,
+  &quot;allowedTransforms&quot;: [&quot;rephrase&quot;, &quot;cloze_conversion&quot;, &quot;aspect_focus&quot;],
+  &quot;blockedTransforms&quot;: [&quot;image_variation&quot;],
+  &quot;reason&quot;: &quot;Ausreichend textlicher Kontext und klarer Antwortkern.&quot;
+}
+</code></pre>
+<h3 id="fr-core-005-blacklist-do-not-transform">FR-CORE-005 — Blacklist / Do-not-transform</h3>
+<p>Nutzende und System MÜSSEN Karten, Tags oder ganze Stapel von Varianten ausschließen können.</p>
+<p>Blacklist-Ebenen:</p>
+<ul>
+<li>globaler Kartentyp,</li>
+<li>Deck,</li>
+<li>Unterdeck,</li>
+<li>Tag,</li>
+<li>einzelne Karte,</li>
+<li>einzelne Transformation,</li>
+<li>einzelne Variante.</li>
+</ul>
+<h3 id="fr-core-006-erste-transformationsart-umformulierung">FR-CORE-006 — Erste Transformationsart: Umformulierung</h3>
+<p>Die erste Version der Content-Repetition SOLL mit vorsichtiger Umformulierung starten.</p>
+<p><strong>Ziel:</strong></p>
+<ul>
+<li>Inhalt bleibt gleich.</li>
+<li>Antwort bleibt fachlich gleichwertig.</li>
+<li>Frageanfang und Frageende werden verändert.</li>
+<li>Auffällige optische Marker werden reduziert.</li>
+<li>Großgeschriebene Signalwörter werden nicht identisch wiederholt, sofern fachlich möglich.</li>
+<li>Lückenpositionen können verändert werden, falls Cloze unterstützt wird.</li>
+</ul>
+<h3 id="fr-core-007-weitere-transformationsarten">FR-CORE-007 — Weitere Transformationsarten</h3>
+<table>
+<thead>
+<tr>
+  <th>Transform</th>
+  <th>Beschreibung</th>
+  <th style="text-align:right">MVP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>rephrase</code></td>
+  <td>Frage anders formulieren, Antwort gleichwertig.</td>
+  <td style="text-align:right">Ja</td>
+</tr>
+<tr>
+  <td><code>front_back_style_shift</code></td>
+  <td>Aus Aussage eine Frage machen oder umgekehrt.</td>
+  <td style="text-align:right">Soll</td>
+</tr>
+<tr>
+  <td><code>cloze_conversion</code></td>
+  <td>Basic-Karte in Lückentext überführen.</td>
+  <td style="text-align:right">Soll</td>
+</tr>
+<tr>
+  <td><code>cloze_shift</code></td>
+  <td>Lücke an anderer inhaltlich sinnvoller Stelle.</td>
+  <td style="text-align:right">Später</td>
+</tr>
+<tr>
+  <td><code>aspect_focus</code></td>
+  <td>Einen Teilaspekt einer Karte separat abfragen.</td>
+  <td style="text-align:right">Später</td>
+</tr>
+<tr>
+  <td><code>combine_related</code></td>
+  <td>Zwei verwandte Karten bündeln.</td>
+  <td style="text-align:right">Später</td>
+</tr>
+<tr>
+  <td><code>split_dense_card</code></td>
+  <td>Dichte Karte in mehrere kleine Karten zerlegen.</td>
+  <td style="text-align:right">Später</td>
+</tr>
+<tr>
+  <td><code>case_vignette</code></td>
+  <td>Kontext-/Fallfrage erstellen.</td>
+  <td style="text-align:right">Später</td>
+</tr>
+<tr>
+  <td><code>compare_contrast</code></td>
+  <td>Zwei Begriffe/Mechanismen abgrenzen.</td>
+  <td style="text-align:right">Später</td>
+</tr>
+<tr>
+  <td><code>reverse_reasoning</code></td>
+  <td>Von Antwort/Phänomen zur Ursache fragen.</td>
+  <td style="text-align:right">Später</td>
+</tr>
+</tbody>
+</table>
+<h3 id="fr-core-008-variantenanzahl-begrenzen">FR-CORE-008 — Variantenanzahl begrenzen</h3>
+<p>CoRe darf nicht endlos Varianten erzeugen. Zu viele Varianten verursachen Kosten, Unübersichtlichkeit und möglicherweise schlechtere Qualität.</p>
+<p><strong>Regeln:</strong></p>
+<ul>
+<li>Pro Karte initial max. 1–3 aktive Varianten.</li>
+<li>Weitere Varianten nur bei Bedarf, Nutzerwunsch oder nach Qualitätsfeedback.</li>
+<li>Schlechte Varianten werden deaktiviert, nicht nur versteckt.</li>
+<li>Varianten sollen wiederverwendet werden, wenn Decks geteilt werden.</li>
+</ul>
+<h3 id="fr-core-009-automatischer-modus">FR-CORE-009 — Automatischer Modus</h3>
+<p>Im <code>auto</code>-Modus entscheidet CoRe:</p>
+<ol>
+<li>Ist der Deck-Modus <code>auto</code>?</li>
+<li>Ist die Karte reif genug?</li>
+<li>Ist die Karte variierbar?</li>
+<li>Gibt es eine gute bestehende Variante?</li>
+<li>Falls nein: ist Variantengenerierung nach Trigger-/Kostenlogik erlaubt?</li>
+<li>Zeige Original oder Variante.</li>
+</ol>
+<p><strong>Pseudocode:</strong></p>
+<pre><code class="language-ts">function chooseReviewCard(cardFamily, deckSettings, userSettings) {
+  if (deckSettings.coreMode === &quot;off&quot;) return originalDueCard(cardFamily);
+
+  const state = getReviewState(cardFamily);
+  const eligible = getEligibility(cardFamily.originalCard);
+
+  if (!eligible.eligible) return originalDueCard(cardFamily);
+  if (state.maturityXp &lt; deckSettings.variantThresholdXp) return originalDueCard(cardFamily);
+
+  if (deckSettings.coreMode === &quot;manual&quot; &amp;&amp; !userRequestedVariantSession()) {
+    return originalDueCard(cardFamily);
+  }
+
+  const variant = findBestActiveVariant(cardFamily);
+  if (variant) return variant;
+
+  enqueueVariantJobIfAllowed(cardFamily);
+  return originalDueCard(cardFamily);
+}
+</code></pre>
+<h3 id="fr-core-010-manuell-modus">FR-CORE-010 — Manuell-Modus</h3>
+<p>Im <code>manual</code>-Modus entscheidet der Nutzer bewusst, wann Varianten gelernt oder erzeugt werden. Beispiele:</p>
+<ul>
+<li>„Heute nur Varianten lernen“.</li>
+<li>„Für diesen Stapel Varianten generieren“.</li>
+<li>„Diese Karte einmal anders abfragen“.</li>
+<li>„Zurück zu Originalen“.</li>
+</ul>
+<h3 id="fr-core-011-variantentransparenz-ohne-lernstoerung">FR-CORE-011 — Variantentransparenz ohne Lernstörung</h3>
+<p>Vor dem Aufdecken soll die Karte nicht als Variante auffallen. Nach dem Aufdecken muss Transparenz möglich sein. Das löst den Konflikt zwischen Lernwirkung und Vertrauen.</p>
+<hr />
+<h2 id="88-anker-vertrauen-undo-und-versionierung">8.8 Anker, Vertrauen, Undo und Versionierung</h2>
+<h3 id="fr-trust-001-originalanker">FR-TRUST-001 — Originalanker</h3>
+<p>Jede Variante MUSS auf mindestens eine Originalkarte verweisen.</p>
+<p><strong>Zu speichern:</strong></p>
+<ul>
+<li><code>sourceCardId</code>.</li>
+<li>Transformationsart.</li>
+<li>Erzeugungszeitpunkt.</li>
+<li>Modell/Version.</li>
+<li>Prompt-/Parameterprofil.</li>
+<li>Confidence.</li>
+<li>Validierungsstatus.</li>
+</ul>
+<h3 id="fr-trust-002-quellenanker">FR-TRUST-002 — Quellenanker</h3>
+<p>Falls die Originalkarte oder KI-Karte aus einem Dokument stammt, SOLL die Quelle sichtbar sein:</p>
+<ul>
+<li>Dokumentname.</li>
+<li>Seite.</li>
+<li>Textauszug.</li>
+<li>Markierter Bereich.</li>
+<li>Import-/Erstellzeitpunkt.</li>
+</ul>
+<h3 id="fr-trust-003-versionierung">FR-TRUST-003 — Versionierung</h3>
+<p>Karten und Varianten SOLLEN versioniert werden. Jede Änderung erzeugt eine neue Version oder mindestens einen Änderungslogeintrag.</p>
+<p><strong>Versionierte Objekte:</strong></p>
+<ul>
+<li>Karteninhalt.</li>
+<li>Felder.</li>
+<li>Kartentyp.</li>
+<li>KI-Varianten.</li>
+<li>Quellenanker.</li>
+<li>Tags.</li>
+<li>Deck-Zuordnung.</li>
+</ul>
+<h3 id="fr-trust-004-undo-restore">FR-TRUST-004 — Undo / Restore</h3>
+<p>Nutzende MÜSSEN KI-Änderungen rückgängig machen können:</p>
+<ul>
+<li>Variante verwerfen.</li>
+<li>Variante deaktivieren.</li>
+<li>Original wiederherstellen.</li>
+<li>Vorherige Version anzeigen.</li>
+<li>Vorherige Version wiederherstellen.</li>
+</ul>
+<h3 id="fr-trust-005-ki-fehler-melden">FR-TRUST-005 — KI-Fehler melden</h3>
+<p>Jede Variante und KI-generierte Karte SOLL Feedbackoptionen haben:</p>
+<ul>
+<li>Fachlich falsch.</li>
+<li>Unklar formuliert.</li>
+<li>Zu leicht.</li>
+<li>Zu schwer.</li>
+<li>Doppelt.</li>
+<li>Nicht zum Original passend.</li>
+</ul>
+<p>Dieses Feedback speist Qualitätsmetriken und kann zukünftige KI-Jobs beeinflussen.</p>
+<hr />
+<h2 id="89-community-und-teilen">8.9 Community und Teilen</h2>
+<h3 id="fr-comm-001-kleine-gruppen-statt-social-network">FR-COMM-001 — Kleine Gruppen statt Social Network</h3>
+<p>CoRe SOLL kleine Communities ermöglichen. Ziel ist der Austausch von Karten, nicht sozialer Leistungsdruck.</p>
+<p><strong>Default-Konzept:</strong></p>
+<ul>
+<li>Nutzer erstellt Community.</li>
+<li>Community hat Name.</li>
+<li>Zugang über Passwort, Einladungscode oder Link.</li>
+<li>Bewusste Größenbegrenzung, z. B. max. 20 Personen.</li>
+<li>Rollen: Owner, Admin, Member, Viewer.</li>
+</ul>
+<h3 id="fr-comm-002-keine-toxischen-lernmetriken">FR-COMM-002 — Keine toxischen Lernmetriken</h3>
+<p>Nicht anzeigen:</p>
+<ul>
+<li>Lernstand anderer.</li>
+<li>Streaks anderer.</li>
+<li>Wer gerade online ist.</li>
+<li>Anzahl heute gelernter Karten anderer.</li>
+<li>Rankings.</li>
+<li>Vergleichsstatistiken.</li>
+</ul>
+<h3 id="fr-comm-003-ordnerstruktur">FR-COMM-003 — Ordnerstruktur</h3>
+<p>Communitys SOLLEN eine Ordnerlogik haben, in der Kartenstapel abgelegt werden können.</p>
+<p><strong>Beispiel:</strong></p>
+<pre><code class="language-text">Community: Medizin Erstes Studienjahr
+  └── Vorklinik
+      ├── Anatomie
+      │   ├── Deck von Anna
+      │   ├── Deck von Ben
+      │   └── Gemeinsamer Bewegungsapparat
+      └── Biochemie
+</code></pre>
+<h3 id="fr-comm-004-karten-uebernehmen">FR-COMM-004 — Karten übernehmen</h3>
+<p>Nutzende SOLLEN aus einer Community:</p>
+<ul>
+<li>ganzen Stapel kopieren,</li>
+<li>Unterstapel kopieren,</li>
+<li>einzelne Karten übernehmen,</li>
+<li>Stapel in eigene Bibliothek ziehen,</li>
+<li>optional Updates eines geteilten Stapels verfolgen.</li>
+</ul>
+<h3 id="fr-comm-005-serverseitige-wiederverwendung-von-varianten">FR-COMM-005 — Serverseitige Wiederverwendung von Varianten</h3>
+<p>Wenn Community-Mitglieder denselben Stapel nutzen, SOLLEN bereits erzeugte Varianten wiederverwendet werden können, sofern:</p>
+<ul>
+<li>Quelle und Originalkarte identisch sind,</li>
+<li>Transformationsprofil identisch oder kompatibel ist,</li>
+<li>Variante qualitätsgeprüft oder nicht negativ markiert ist,</li>
+<li>Berechtigungen dies erlauben.</li>
+</ul>
+<h3 id="fr-comm-006-community-freigabe">FR-COMM-006 — Community-Freigabe</h3>
+<p>Ein Deck kann privat, community-geteilt oder später öffentlich sein.</p>
+<table>
+<thead>
+<tr>
+  <th>Sichtbarkeit</th>
+  <th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>private</code></td>
+  <td>Nur Besitzer.</td>
+</tr>
+<tr>
+  <td><code>community</code></td>
+  <td>Mitglieder bestimmter Communitys.</td>
+</tr>
+<tr>
+  <td><code>unlisted</code></td>
+  <td>Zugriff per Link, später optional.</td>
+</tr>
+<tr>
+  <td><code>public</code></td>
+  <td>Später, ggf. moderiert.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="810-deck-graph-mindmap">8.10 Deck Graph / Mindmap</h2>
+<h3 id="fr-graph-001-graph-pro-stapel">FR-GRAPH-001 — Graph pro Stapel</h3>
+<p>CoRe SOLL pro Stapel eine KI-generierte Übersicht der Themen anbieten. Diese kann als Mindmap oder Netzwerk dargestellt werden.</p>
+<p><strong>Ziele:</strong></p>
+<ul>
+<li>Gesamtüberblick über ein großes Deck.</li>
+<li>Themencluster erkennen.</li>
+<li>Karten mit Begriffen verlinken.</li>
+<li>Lücken oder Dopplungen sichtbar machen.</li>
+<li>Später Einstiegspunkt für Chat-your-Deck.</li>
+</ul>
+<h3 id="fr-graph-002-graph-knoten">FR-GRAPH-002 — Graph-Knoten</h3>
+<p>Knoten können sein:</p>
+<ul>
+<li>Thema.</li>
+<li>Begriff.</li>
+<li>Unterthema.</li>
+<li>Karte.</li>
+<li>Dokumentquelle.</li>
+<li>Lernziel.</li>
+</ul>
+<h3 id="fr-graph-003-graph-kanten">FR-GRAPH-003 — Graph-Kanten</h3>
+<p>Kanten können repräsentieren:</p>
+<ul>
+<li>gehört zu,</li>
+<li>erklärt,</li>
+<li>verursacht,</li>
+<li>ist Beispiel für,</li>
+<li>grenzt ab,</li>
+<li>prüft denselben Inhalt wie,</li>
+<li>stammt aus Quelle.</li>
+</ul>
+<h3 id="fr-graph-004-triggerlogik">FR-GRAPH-004 — Triggerlogik</h3>
+<p>Der Graph SOLL nicht bei jeder neuen Karte neu berechnet werden. Geeignete Trigger:</p>
+<ul>
+<li>Nutzer klickt „Graph generieren“.</li>
+<li>Es wurden seit letzter Generierung mindestens 10 neue Karten hinzugefügt.</li>
+<li>Deck ist für eine Weile inaktiv / Ruhephase.</li>
+<li>Importjob wurde abgeschlossen.</li>
+<li>Nutzer öffnet Graph und Daten sind veraltet.</li>
+</ul>
+<hr />
+<h2 id="811-chat-your-deck-und-lernplan-spaetere-module">8.11 Chat-your-Deck und Lernplan — spätere Module</h2>
+<h3 id="fr-chat-001-chat-mit-stapel">FR-CHAT-001 — Chat mit Stapel</h3>
+<p>Später SOLL der Nutzer mit einem Deck chatten können:</p>
+<ul>
+<li>„Erkläre mir Thema X anhand meiner Karten.“</li>
+<li>„Welche Karten hängen mit Y zusammen?“</li>
+<li>„Welche Karten sollte ich vor der Prüfung wiederholen?“</li>
+<li>„Finde Widersprüche oder Dopplungen.“</li>
+</ul>
+<h3 id="fr-chat-002-quellengebundene-antworten">FR-CHAT-002 — Quellengebundene Antworten</h3>
+<p>Chat-Antworten MÜSSEN auf Karten, Dokumente oder Graphknoten referenzieren. Freie Halluzination ohne Bezug zur Wissensbasis ist zu vermeiden.</p>
+<h3 id="fr-plan-001-lernplan">FR-PLAN-001 — Lernplan</h3>
+<p>Später KANN CoRe Lernpläne erzeugen:</p>
+<ul>
+<li>Zieltermin / Prüfung.</li>
+<li>tägliche verfügbare Zeit.</li>
+<li>fällige Karten.</li>
+<li>neue Karten.</li>
+<li>schwache Themencluster.</li>
+<li>Variationstage.</li>
+</ul>
+<hr />
+<h2 id="9-ux-spezifikation">9. UX-Spezifikation</h2>
+<h2 id="91-onboarding-flow">9.1 Onboarding Flow</h2>
+<ol>
+<li>Account erstellen.</li>
+<li>Profil: Name, Sprache, Hochschule optional.</li>
+<li>Auswahl: „Ich importiere Anki“, „Ich erstelle Karten“, „Ich lasse KI Karten erstellen“.</li>
+<li>Kurze Erklärung von CoRe:<ul>
+<li>Originalkarten lernen.</li>
+<li>Ab Reifegrad Varianten.</li>
+<li>Original bleibt als Anker sichtbar.</li>
+</ul>
+</li>
+<li>Ersten Stapel anlegen oder importieren.</li>
+</ol>
+<h3 id="akzeptanzkriterien">Akzeptanzkriterien</h3>
+<ul>
+<li>Nutzer versteht innerhalb von 60 Sekunden, dass CoRe nicht nur ein Kartengenerator ist.</li>
+<li>Import und Kartenerstellung sind direkt erreichbar.</li>
+<li>KI-Funktionen wirken kontrollierbar, nicht magisch oder riskant.</li>
+</ul>
+<hr />
+<h2 id="92-deck-overview">9.2 Deck Overview</h2>
+<h3 id="layout">Layout</h3>
+<pre><code class="language-text">[Header: Kartenstapel]        [Import] [Neue Karte] [KI erstellen]
+
+[Suche / Filter]
+
+Deck-Zeile:
+[CoRe-Modus]  Deckname                 Fällig  Neu  Gesamt  Aktionen
+(auto)        Medizin / Anatomie       42      12   1240    Lernen · Graph · ...
+(off)         Spanisch Vokabeln        18      0    800     Lernen · ...
+(manual)      Jura AT                  30      5    600     Varianten · ...
+</code></pre>
+<h3 id="core-modus-steuerung">CoRe-Modus-Steuerung</h3>
+<p>Eine Deck-Zeile MUSS den aktuellen Modus sichtbar machen. Varianten:</p>
+<ul>
+<li>Segment-Control: <code>Aus | Auto | Manuell</code>.</li>
+<li>Ampel-/Status-Chip mit Dropdown.</li>
+<li>Dreistufiger Slider nur, wenn eindeutig bedienbar.</li>
+</ul>
+<p><strong>Nicht ideal:</strong> einfacher Toggle, weil <code>manual</code> sonst schwer erklärbar ist.</p>
+<hr />
+<h2 id="93-import-wizard">9.3 Import Wizard</h2>
+<h3 id="schritte">Schritte</h3>
+<ol>
+<li>Datei wählen.</li>
+<li>Datei analysieren.</li>
+<li>Preview: Decks, Unterdecks, Kartentypen, Medien, Warnungen.</li>
+<li>Mapping prüfen, falls nötig.</li>
+<li>Ziel auswählen: neuer Stapel oder bestehender Stapel.</li>
+<li>Import starten.</li>
+<li>Importbericht anzeigen.</li>
+</ol>
+<h3 id="importbericht">Importbericht</h3>
+<ul>
+<li>Anzahl importierter Karten.</li>
+<li>Anzahl übersprungener Karten.</li>
+<li>erkannte Kartentypen.</li>
+<li>nicht unterstützte Features.</li>
+<li>Medienstatus.</li>
+<li>Lernfortschrittstatus.</li>
+<li>nächste empfohlene Aktion: Lernen, Karten prüfen, Graph generieren.</li>
+</ul>
+<hr />
+<h2 id="94-manuelle-kartenerstellung-mit-dokumentviewer">9.4 Manuelle Kartenerstellung mit Dokumentviewer</h2>
+<h3 id="desktop-layout">Desktop Layout</h3>
+<pre><code class="language-text">┌─────────────────────────────┬──────────────────────────────┐
+│ Dokumentviewer              │ Karteneditor                  │
+│ PDF / Text / Bild           │ Deck: Anatomie                │
+│                             │ Typ: Basic                    │
+│ Markierung im Dokument      │ [Vorderseite aktiv]           │
+│ fügt Text in aktives Feld   │ [Rückseite]                   │
+│ ein                         │ Tags, Quelle, Speichern       │
+└─────────────────────────────┴──────────────────────────────┘
+</code></pre>
+<h3 id="mobile-layout">Mobile Layout</h3>
+<ul>
+<li>Tab 1: Dokument.</li>
+<li>Tab 2: Karte.</li>
+<li>Aktives Feld wird in einer Sticky-Leiste angezeigt.</li>
+<li>Markieren fügt in aktives Feld ein.</li>
+<li>Bei kleinen Screens ggf. „Auswahl übernehmen“-Button statt automatischem Einfügen, falls Browserauswahl unzuverlässig ist.</li>
+</ul>
+<h3 id="edge-cases">Edge Cases</h3>
+<ul>
+<li>PDF ohne Textlayer: Hinweis „Text kann nicht direkt übernommen werden; OCR später“.</li>
+<li>Mehrspaltiges PDF: Textauswahl kann unsauber sein; Nutzer kann vor Einfügen bearbeiten.</li>
+<li>Markierung zu lang: Hinweis und Vorschlag, Karte aufzuteilen.</li>
+</ul>
+<hr />
+<h2 id="95-ki-kartenerstellung-wizard">9.5 KI-Kartenerstellung Wizard</h2>
+<h3 id="schritte-2">Schritte</h3>
+<ol>
+<li>Quelle wählen: Datei, Text, Dokumentabschnitt.</li>
+<li>Parameter wählen: Anzahl, Dichte, Sprache, Typen.</li>
+<li>Vorschau der extrahierten Inhalte.</li>
+<li>KI generiert Entwürfe.</li>
+<li>Nutzer prüft Entwürfe.</li>
+<li>Übernahme in Deck.</li>
+<li>Optional: Graph aktualisieren, Varianten noch nicht direkt erzeugen.</li>
+</ol>
+<h3 id="entwurfs-ui">Entwurfs-UI</h3>
+<p>Jede generierte Karte zeigt:</p>
+<ul>
+<li>Vorderseite.</li>
+<li>Rückseite.</li>
+<li>Typ.</li>
+<li>Tags.</li>
+<li>Quelle.</li>
+<li>Confidence.</li>
+<li>Warnungen.</li>
+<li>Aktionen: übernehmen, bearbeiten, verwerfen.</li>
+</ul>
+<hr />
+<h2 id="96-review-session">9.6 Review Session</h2>
+<h3 id="vor-antwort">Vor Antwort</h3>
+<pre><code class="language-text">┌──────────────────────────────────────┐
+│                                      │
+│   Welche Struktur ...?               │
+│                                      │
+│             [Antwort anzeigen]       │
+│                                      │
+└──────────────────────────────────────┘
+</code></pre>
+<p>Keine sichtbare Information, ob Original oder Variante.</p>
+<h3 id="nach-antwort">Nach Antwort</h3>
+<pre><code class="language-text">┌──────────────────────────────────────┐
+│ Welche Struktur ...?                 │
+│ ──────────────────────────────────── │
+│ Antwort: ...                         │
+│                                      │
+│ [Original anzeigen] [Quelle] [Flag]  │
+│                                      │
+│ [Again] [Hard] [Good] [Easy]         │
+└──────────────────────────────────────┘
+</code></pre>
+<h3 id="original-anker-panel">Original-Anker Panel</h3>
+<pre><code class="language-text">Originalkarte
+Vorderseite: ...
+Rückseite: ...
+
+Variation: rephrase
+Quelle: Anatomie.pdf, S. 12
+Aktionen: Variante deaktivieren · Fehler melden · Original lernen
+</code></pre>
+<hr />
+<h2 id="10-datenmodell">10. Datenmodell</h2>
+<p>Die Datenstruktur muss drei Welten verbinden:</p>
+<ol>
+<li>Klassische Karten-/Decklogik.</li>
+<li>Scheduling und Review-Historie.</li>
+<li>KI/Varianten/Quellen/Community.</li>
+</ol>
+<h3 id="101-entity-uebersicht">10.1 Entity-Übersicht</h3>
+<pre><code class="language-mermaid">erDiagram
+  User ||--o{ Deck : owns
+  User ||--o{ ReviewEvent : creates
+  Deck ||--o{ Deck : has_subdeck
+  Deck ||--o{ Note : contains
+  Note ||--o{ Card : generates
+  Card ||--o{ CardVariant : has
+  Card ||--o{ ReviewState : has
+  Card ||--o{ ReviewEvent : receives
+  CardVariant ||--o{ ReviewState : has
+  SourceDocument ||--o{ SourceAnchor : provides
+  Card ||--o{ SourceAnchor : references
+  CardVariant ||--o{ SourceAnchor : references
+  ImportJob ||--o{ Card : creates
+  AIJob ||--o{ CardVariant : creates
+  Community ||--o{ CommunityMember : has
+  Community ||--o{ CommunityFolder : contains
+  CommunityFolder ||--o{ SharedDeckReference : contains
+  Deck ||--o{ DeckGraph : has
+</code></pre>
+<h3 id="102-tabellen-collections">10.2 Tabellen / Collections</h3>
+<h4><code>users</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Primärschlüssel.</td>
+</tr>
+<tr>
+  <td><code>email</code></td>
+  <td>string</td>
+  <td>Login.</td>
+</tr>
+<tr>
+  <td><code>display_name</code></td>
+  <td>string</td>
+  <td>Anzeigename.</td>
+</tr>
+<tr>
+  <td><code>created_at</code></td>
+  <td>timestamp</td>
+  <td>Erstellung.</td>
+</tr>
+<tr>
+  <td><code>updated_at</code></td>
+  <td>timestamp</td>
+  <td>Änderung.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>profiles</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>user_id</code></td>
+  <td>uuid</td>
+  <td>FK zu users.</td>
+</tr>
+<tr>
+  <td><code>university</code></td>
+  <td>string nullable</td>
+  <td>Hochschule.</td>
+</tr>
+<tr>
+  <td><code>field_of_study</code></td>
+  <td>string nullable</td>
+  <td>Fach.</td>
+</tr>
+<tr>
+  <td><code>preferred_language</code></td>
+  <td>string</td>
+  <td>z. B. <code>de</code>.</td>
+</tr>
+<tr>
+  <td><code>timezone</code></td>
+  <td>string</td>
+  <td>Für Scheduling.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>decks</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Deck-ID.</td>
+</tr>
+<tr>
+  <td><code>owner_id</code></td>
+  <td>uuid</td>
+  <td>Besitzer.</td>
+</tr>
+<tr>
+  <td><code>parent_deck_id</code></td>
+  <td>uuid nullable</td>
+  <td>Unterdeck-Hierarchie.</td>
+</tr>
+<tr>
+  <td><code>name</code></td>
+  <td>string</td>
+  <td>Name.</td>
+</tr>
+<tr>
+  <td><code>description</code></td>
+  <td>text nullable</td>
+  <td>Beschreibung.</td>
+</tr>
+<tr>
+  <td><code>visibility</code></td>
+  <td>enum</td>
+  <td><code>private/community/unlisted/public</code>.</td>
+</tr>
+<tr>
+  <td><code>source_type</code></td>
+  <td>enum</td>
+  <td><code>manual/import/community/ai</code>.</td>
+</tr>
+<tr>
+  <td><code>source_import_id</code></td>
+  <td>uuid nullable</td>
+  <td>Importreferenz.</td>
+</tr>
+<tr>
+  <td><code>created_at</code></td>
+  <td>timestamp</td>
+  <td>Erstellung.</td>
+</tr>
+<tr>
+  <td><code>updated_at</code></td>
+  <td>timestamp</td>
+  <td>Änderung.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>deck_settings</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>deck_id</code></td>
+  <td>uuid</td>
+  <td>FK.</td>
+</tr>
+<tr>
+  <td><code>core_mode</code></td>
+  <td>enum</td>
+  <td><code>off/auto/manual</code>.</td>
+</tr>
+<tr>
+  <td><code>variant_threshold_xp</code></td>
+  <td>number</td>
+  <td>Mindest-Reifegrad.</td>
+</tr>
+<tr>
+  <td><code>max_active_variants_per_card</code></td>
+  <td>int</td>
+  <td>Standard 1–3.</td>
+</tr>
+<tr>
+  <td><code>scheduler_profile</code></td>
+  <td>json</td>
+  <td>Scheduling-Parameter.</td>
+</tr>
+<tr>
+  <td><code>ai_policy</code></td>
+  <td>json</td>
+  <td>Modell-/Kosten-/Triggerpräferenzen.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>notes</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Note-ID.</td>
+</tr>
+<tr>
+  <td><code>deck_id</code></td>
+  <td>uuid</td>
+  <td>Zieldeck.</td>
+</tr>
+<tr>
+  <td><code>note_type</code></td>
+  <td>string</td>
+  <td>Basic, Cloze, Custom etc.</td>
+</tr>
+<tr>
+  <td><code>fields</code></td>
+  <td>json</td>
+  <td>Flexible Felder.</td>
+</tr>
+<tr>
+  <td><code>tags</code></td>
+  <td>string[]</td>
+  <td>Tags.</td>
+</tr>
+<tr>
+  <td><code>source</code></td>
+  <td>json</td>
+  <td>Import/manuell/KI.</td>
+</tr>
+<tr>
+  <td><code>anki_note_guid</code></td>
+  <td>string nullable</td>
+  <td>Für Anki-Import.</td>
+</tr>
+<tr>
+  <td><code>created_at</code></td>
+  <td>timestamp</td>
+  <td>Erstellung.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>cards</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Card-ID.</td>
+</tr>
+<tr>
+  <td><code>note_id</code></td>
+  <td>uuid</td>
+  <td>Note.</td>
+</tr>
+<tr>
+  <td><code>deck_id</code></td>
+  <td>uuid</td>
+  <td>Deck.</td>
+</tr>
+<tr>
+  <td><code>card_type</code></td>
+  <td>enum</td>
+  <td><code>basic/cloze/image_occlusion/...</code>.</td>
+</tr>
+<tr>
+  <td><code>front</code></td>
+  <td>rich_text</td>
+  <td>Vorderseite.</td>
+</tr>
+<tr>
+  <td><code>back</code></td>
+  <td>rich_text</td>
+  <td>Rückseite.</td>
+</tr>
+<tr>
+  <td><code>template</code></td>
+  <td>json</td>
+  <td>Layout/Template.</td>
+</tr>
+<tr>
+  <td><code>media_refs</code></td>
+  <td>json</td>
+  <td>Bilder/Audio.</td>
+</tr>
+<tr>
+  <td><code>is_original</code></td>
+  <td>boolean</td>
+  <td>True für importierte/manuelle Originalkarte.</td>
+</tr>
+<tr>
+  <td><code>original_card_id</code></td>
+  <td>uuid nullable</td>
+  <td>Für abgeleitete Karten.</td>
+</tr>
+<tr>
+  <td><code>content_hash</code></td>
+  <td>string</td>
+  <td>Dedupe.</td>
+</tr>
+<tr>
+  <td><code>status</code></td>
+  <td>enum</td>
+  <td><code>active/suspended/deleted</code>.</td>
+</tr>
+<tr>
+  <td><code>created_at</code></td>
+  <td>timestamp</td>
+  <td>Erstellung.</td>
+</tr>
+<tr>
+  <td><code>updated_at</code></td>
+  <td>timestamp</td>
+  <td>Änderung.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>card_variants</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Variant-ID.</td>
+</tr>
+<tr>
+  <td><code>source_card_id</code></td>
+  <td>uuid</td>
+  <td>Originalkarte.</td>
+</tr>
+<tr>
+  <td><code>front</code></td>
+  <td>rich_text</td>
+  <td>Variantenfrage.</td>
+</tr>
+<tr>
+  <td><code>back</code></td>
+  <td>rich_text</td>
+  <td>Variantenantwort.</td>
+</tr>
+<tr>
+  <td><code>transform_type</code></td>
+  <td>enum</td>
+  <td>z. B. <code>rephrase</code>.</td>
+</tr>
+<tr>
+  <td><code>transform_profile</code></td>
+  <td>json</td>
+  <td>Parameter.</td>
+</tr>
+<tr>
+  <td><code>model_run_id</code></td>
+  <td>uuid nullable</td>
+  <td>KI-Lauf.</td>
+</tr>
+<tr>
+  <td><code>confidence</code></td>
+  <td>number</td>
+  <td>0–1.</td>
+</tr>
+<tr>
+  <td><code>quality_status</code></td>
+  <td>enum</td>
+  <td><code>draft/active/rejected/flagged/disabled</code>.</td>
+</tr>
+<tr>
+  <td><code>content_hash</code></td>
+  <td>string</td>
+  <td>Dedupe.</td>
+</tr>
+<tr>
+  <td><code>created_at</code></td>
+  <td>timestamp</td>
+  <td>Erstellung.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>review_states</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>State-ID.</td>
+</tr>
+<tr>
+  <td><code>reviewable_type</code></td>
+  <td>enum</td>
+  <td><code>card/variant/card_family</code>.</td>
+</tr>
+<tr>
+  <td><code>reviewable_id</code></td>
+  <td>uuid</td>
+  <td>Card/Variant/Family.</td>
+</tr>
+<tr>
+  <td><code>user_id</code></td>
+  <td>uuid</td>
+  <td>Nutzer.</td>
+</tr>
+<tr>
+  <td><code>due_at</code></td>
+  <td>timestamp</td>
+  <td>Nächste Fälligkeit.</td>
+</tr>
+<tr>
+  <td><code>interval_days</code></td>
+  <td>number</td>
+  <td>Intervall.</td>
+</tr>
+<tr>
+  <td><code>ease</code></td>
+  <td>number</td>
+  <td>Ease-Faktor oder kompatibles Feld.</td>
+</tr>
+<tr>
+  <td><code>difficulty</code></td>
+  <td>number nullable</td>
+  <td>Für alternative Scheduler.</td>
+</tr>
+<tr>
+  <td><code>stability</code></td>
+  <td>number nullable</td>
+  <td>Für alternative Scheduler.</td>
+</tr>
+<tr>
+  <td><code>repetitions</code></td>
+  <td>int</td>
+  <td>Reviews.</td>
+</tr>
+<tr>
+  <td><code>lapses</code></td>
+  <td>int</td>
+  <td>Rückfälle.</td>
+</tr>
+<tr>
+  <td><code>maturity_xp</code></td>
+  <td>number</td>
+  <td>CoRe-Reife.</td>
+</tr>
+<tr>
+  <td><code>maturity_band</code></td>
+  <td>enum</td>
+  <td><code>new/learning/young/mature/variant_ready/mastered</code>.</td>
+</tr>
+<tr>
+  <td><code>last_reviewed_at</code></td>
+  <td>timestamp</td>
+  <td>Letzte Wiederholung.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>review_events</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Event-ID.</td>
+</tr>
+<tr>
+  <td><code>user_id</code></td>
+  <td>uuid</td>
+  <td>Nutzer.</td>
+</tr>
+<tr>
+  <td><code>reviewable_type</code></td>
+  <td>enum</td>
+  <td><code>card/variant</code>.</td>
+</tr>
+<tr>
+  <td><code>reviewable_id</code></td>
+  <td>uuid</td>
+  <td>Objekt.</td>
+</tr>
+<tr>
+  <td><code>source_card_id</code></td>
+  <td>uuid nullable</td>
+  <td>Bei Variante.</td>
+</tr>
+<tr>
+  <td><code>rating</code></td>
+  <td>enum</td>
+  <td><code>again/hard/good/easy</code>.</td>
+</tr>
+<tr>
+  <td><code>answered_at</code></td>
+  <td>timestamp</td>
+  <td>Zeitpunkt.</td>
+</tr>
+<tr>
+  <td><code>response_time_ms</code></td>
+  <td>int nullable</td>
+  <td>Optional.</td>
+</tr>
+<tr>
+  <td><code>scheduler_before</code></td>
+  <td>json</td>
+  <td>Debug/History.</td>
+</tr>
+<tr>
+  <td><code>scheduler_after</code></td>
+  <td>json</td>
+  <td>Debug/History.</td>
+</tr>
+<tr>
+  <td><code>flags</code></td>
+  <td>json</td>
+  <td>z. B. Variante schlecht.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>source_documents</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Dokument-ID.</td>
+</tr>
+<tr>
+  <td><code>owner_id</code></td>
+  <td>uuid</td>
+  <td>Besitzer.</td>
+</tr>
+<tr>
+  <td><code>filename</code></td>
+  <td>string</td>
+  <td>Dateiname.</td>
+</tr>
+<tr>
+  <td><code>mime_type</code></td>
+  <td>string</td>
+  <td>Typ.</td>
+</tr>
+<tr>
+  <td><code>storage_url</code></td>
+  <td>string</td>
+  <td>Dateiablage.</td>
+</tr>
+<tr>
+  <td><code>text_extraction_status</code></td>
+  <td>enum</td>
+  <td><code>pending/success/failed</code>.</td>
+</tr>
+<tr>
+  <td><code>metadata</code></td>
+  <td>json</td>
+  <td>Seiten, Größe etc.</td>
+</tr>
+<tr>
+  <td><code>created_at</code></td>
+  <td>timestamp</td>
+  <td>Upload.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>source_anchors</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Anchor-ID.</td>
+</tr>
+<tr>
+  <td><code>document_id</code></td>
+  <td>uuid nullable</td>
+  <td>Quelle.</td>
+</tr>
+<tr>
+  <td><code>card_id</code></td>
+  <td>uuid nullable</td>
+  <td>Karte.</td>
+</tr>
+<tr>
+  <td><code>variant_id</code></td>
+  <td>uuid nullable</td>
+  <td>Variante.</td>
+</tr>
+<tr>
+  <td><code>page_number</code></td>
+  <td>int nullable</td>
+  <td>Seite.</td>
+</tr>
+<tr>
+  <td><code>text_quote</code></td>
+  <td>text nullable</td>
+  <td>kurzer Beleg.</td>
+</tr>
+<tr>
+  <td><code>char_start</code></td>
+  <td>int nullable</td>
+  <td>Textposition.</td>
+</tr>
+<tr>
+  <td><code>char_end</code></td>
+  <td>int nullable</td>
+  <td>Textposition.</td>
+</tr>
+<tr>
+  <td><code>bbox</code></td>
+  <td>json nullable</td>
+  <td>PDF/Bildkoordinaten.</td>
+</tr>
+<tr>
+  <td><code>confidence</code></td>
+  <td>number nullable</td>
+  <td>KI-Vertrauen.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>ai_jobs</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Job-ID.</td>
+</tr>
+<tr>
+  <td><code>job_type</code></td>
+  <td>enum</td>
+  <td><code>card_generation/variant_generation/eligibility/graph/chat</code>.</td>
+</tr>
+<tr>
+  <td><code>status</code></td>
+  <td>enum</td>
+  <td><code>queued/running/succeeded/failed/cancelled</code>.</td>
+</tr>
+<tr>
+  <td><code>user_id</code></td>
+  <td>uuid</td>
+  <td>Auftraggeber.</td>
+</tr>
+<tr>
+  <td><code>deck_id</code></td>
+  <td>uuid nullable</td>
+  <td>Kontext.</td>
+</tr>
+<tr>
+  <td><code>input_ref</code></td>
+  <td>json</td>
+  <td>Karten, Dokumente, Trigger.</td>
+</tr>
+<tr>
+  <td><code>policy</code></td>
+  <td>json</td>
+  <td>Modell-/Kostenpolitik.</td>
+</tr>
+<tr>
+  <td><code>result_ref</code></td>
+  <td>json nullable</td>
+  <td>Ergebnis.</td>
+</tr>
+<tr>
+  <td><code>error</code></td>
+  <td>json nullable</td>
+  <td>Fehler.</td>
+</tr>
+<tr>
+  <td><code>created_at</code></td>
+  <td>timestamp</td>
+  <td>Erstellt.</td>
+</tr>
+<tr>
+  <td><code>started_at</code></td>
+  <td>timestamp nullable</td>
+  <td>Start.</td>
+</tr>
+<tr>
+  <td><code>finished_at</code></td>
+  <td>timestamp nullable</td>
+  <td>Ende.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>model_runs</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Run-ID.</td>
+</tr>
+<tr>
+  <td><code>provider</code></td>
+  <td>string</td>
+  <td>Anbieter oder lokal.</td>
+</tr>
+<tr>
+  <td><code>model</code></td>
+  <td>string</td>
+  <td>Modellname.</td>
+</tr>
+<tr>
+  <td><code>prompt_version</code></td>
+  <td>string</td>
+  <td>Prompt.</td>
+</tr>
+<tr>
+  <td><code>input_tokens</code></td>
+  <td>int nullable</td>
+  <td>Kosten.</td>
+</tr>
+<tr>
+  <td><code>output_tokens</code></td>
+  <td>int nullable</td>
+  <td>Kosten.</td>
+</tr>
+<tr>
+  <td><code>cost_estimate</code></td>
+  <td>number nullable</td>
+  <td>Kosten.</td>
+</tr>
+<tr>
+  <td><code>latency_ms</code></td>
+  <td>int nullable</td>
+  <td>Laufzeit.</td>
+</tr>
+<tr>
+  <td><code>structured_output</code></td>
+  <td>json</td>
+  <td>Ergebnis.</td>
+</tr>
+<tr>
+  <td><code>validation_status</code></td>
+  <td>enum</td>
+  <td><code>valid/invalid/repaired/rejected</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>communities</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Community-ID.</td>
+</tr>
+<tr>
+  <td><code>name</code></td>
+  <td>string</td>
+  <td>Name.</td>
+</tr>
+<tr>
+  <td><code>owner_id</code></td>
+  <td>uuid</td>
+  <td>Owner.</td>
+</tr>
+<tr>
+  <td><code>join_mode</code></td>
+  <td>enum</td>
+  <td><code>password/invite_link/approval</code>.</td>
+</tr>
+<tr>
+  <td><code>max_members</code></td>
+  <td>int</td>
+  <td>Default 20.</td>
+</tr>
+<tr>
+  <td><code>created_at</code></td>
+  <td>timestamp</td>
+  <td>Erstellung.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>community_folders</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Ordner-ID.</td>
+</tr>
+<tr>
+  <td><code>community_id</code></td>
+  <td>uuid</td>
+  <td>Community.</td>
+</tr>
+<tr>
+  <td><code>parent_folder_id</code></td>
+  <td>uuid nullable</td>
+  <td>Hierarchie.</td>
+</tr>
+<tr>
+  <td><code>name</code></td>
+  <td>string</td>
+  <td>Ordnername.</td>
+</tr>
+<tr>
+  <td><code>created_by</code></td>
+  <td>uuid</td>
+  <td>Nutzer.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>shared_deck_references</code></h4>
+<table>
+<thead>
+<tr>
+  <th>Feld</th>
+  <th>Typ</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>id</code></td>
+  <td>uuid</td>
+  <td>Referenz-ID.</td>
+</tr>
+<tr>
+  <td><code>community_id</code></td>
+  <td>uuid</td>
+  <td>Community.</td>
+</tr>
+<tr>
+  <td><code>folder_id</code></td>
+  <td>uuid</td>
+  <td>Ordner.</td>
+</tr>
+<tr>
+  <td><code>deck_id</code></td>
+  <td>uuid</td>
+  <td>Geteiltes Deck.</td>
+</tr>
+<tr>
+  <td><code>shared_by</code></td>
+  <td>uuid</td>
+  <td>Nutzer.</td>
+</tr>
+<tr>
+  <td><code>permission</code></td>
+  <td>enum</td>
+  <td><code>view/copy/contribute/admin</code>.</td>
+</tr>
+<tr>
+  <td><code>created_at</code></td>
+  <td>timestamp</td>
+  <td>Zeitpunkt.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="103-typescript-domaenentypen">10.3 TypeScript-Domänentypen</h3>
+<pre><code class="language-ts">export type CoreMode = &quot;off&quot; | &quot;auto&quot; | &quot;manual&quot;;
+export type ReviewRating = &quot;again&quot; | &quot;hard&quot; | &quot;good&quot; | &quot;easy&quot;;
+export type CardType = &quot;basic&quot; | &quot;reverse&quot; | &quot;cloze&quot; | &quot;image_occlusion&quot; | &quot;custom&quot;;
+export type ReviewableType = &quot;card&quot; | &quot;variant&quot;;
+
+export interface Deck {
+  id: string;
+  ownerId: string;
+  parentDeckId?: string | null;
+  name: string;
+  description?: string | null;
+  visibility: &quot;private&quot; | &quot;community&quot; | &quot;unlisted&quot; | &quot;public&quot;;
+  settings: DeckSettings;
+  counts?: DeckCounts;
+}
+
+export interface DeckSettings {
+  coreMode: CoreMode;
+  variantThresholdXp: number;
+  maxActiveVariantsPerCard: number;
+  schedulerProfile: SchedulerProfile;
+  aiPolicy: AIPolicy;
+}
+
+export interface Card {
+  id: string;
+  noteId: string;
+  deckId: string;
+  type: CardType;
+  front: RichTextContent;
+  back: RichTextContent;
+  tags: string[];
+  mediaRefs: MediaRef[];
+  originalCardId?: string | null;
+  sourceAnchors: SourceAnchor[];
+  status: &quot;active&quot; | &quot;suspended&quot; | &quot;deleted&quot;;
+}
+
+export interface CardVariant {
+  id: string;
+  sourceCardId: string;
+  transformType: TransformType;
+  front: RichTextContent;
+  back: RichTextContent;
+  confidence: number;
+  qualityStatus: &quot;draft&quot; | &quot;active&quot; | &quot;rejected&quot; | &quot;flagged&quot; | &quot;disabled&quot;;
+  sourceAnchors: SourceAnchor[];
+  modelRunId?: string | null;
+}
+
+export type TransformType =
+  | &quot;rephrase&quot;
+  | &quot;front_back_style_shift&quot;
+  | &quot;cloze_conversion&quot;
+  | &quot;cloze_shift&quot;
+  | &quot;aspect_focus&quot;
+  | &quot;combine_related&quot;
+  | &quot;split_dense_card&quot;
+  | &quot;case_vignette&quot;
+  | &quot;compare_contrast&quot;
+  | &quot;reverse_reasoning&quot;;
+
+export interface ReviewState {
+  reviewableType: ReviewableType | &quot;card_family&quot;;
+  reviewableId: string;
+  dueAt: string;
+  intervalDays: number;
+  ease?: number;
+  difficulty?: number;
+  stability?: number;
+  repetitions: number;
+  lapses: number;
+  maturityXp: number;
+  maturityBand: &quot;new&quot; | &quot;learning&quot; | &quot;young&quot; | &quot;mature&quot; | &quot;variant_ready&quot; | &quot;mastered&quot;;
+}
+</code></pre>
+<hr />
+<h2 id="11-api-spezifikation">11. API-Spezifikation</h2>
+<p>Die API kann REST, RPC oder GraphQL sein. Für den MVP ist eine klare REST/RPC-Hybridstruktur gut geeignet.</p>
+<h3 id="111-decks">11.1 Decks</h3>
+<pre><code class="language-http">GET    /api/decks
+POST   /api/decks
+GET    /api/decks/:deckId
+PATCH  /api/decks/:deckId
+DELETE /api/decks/:deckId
+PATCH  /api/decks/:deckId/settings
+GET    /api/decks/:deckId/tree
+GET    /api/decks/:deckId/cards
+</code></pre>
+<h3 id="112-cards">11.2 Cards</h3>
+<pre><code class="language-http">POST   /api/cards
+GET    /api/cards/:cardId
+PATCH  /api/cards/:cardId
+DELETE /api/cards/:cardId
+GET    /api/cards/:cardId/versions
+POST   /api/cards/:cardId/restore-version
+GET    /api/cards/:cardId/anchors
+</code></pre>
+<h3 id="113-import">11.3 Import</h3>
+<pre><code class="language-http">POST   /api/imports
+GET    /api/imports/:importId
+POST   /api/imports/:importId/confirm
+POST   /api/imports/:importId/cancel
+GET    /api/imports/:importId/report
+</code></pre>
+<p><strong>Import Request:</strong></p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;apkg&quot;,
+  &quot;fileId&quot;: &quot;file_123&quot;,
+  &quot;targetDeckId&quot;: null,
+  &quot;options&quot;: {
+    &quot;preserveHierarchy&quot;: true,
+    &quot;importMedia&quot;: true,
+    &quot;importReviewProgress&quot;: false,
+    &quot;unknownNoteTypeStrategy&quot;: &quot;mapping_required&quot;
+  }
+}
+</code></pre>
+<h3 id="114-review">11.4 Review</h3>
+<pre><code class="language-http">POST   /api/review/session
+GET    /api/review/session/:sessionId/next
+POST   /api/review/session/:sessionId/answer
+POST   /api/review/session/:sessionId/flag
+POST   /api/review/session/:sessionId/end
+</code></pre>
+<p><strong>Answer Request:</strong></p>
+<pre><code class="language-json">{
+  &quot;reviewableType&quot;: &quot;variant&quot;,
+  &quot;reviewableId&quot;: &quot;var_123&quot;,
+  &quot;sourceCardId&quot;: &quot;card_123&quot;,
+  &quot;rating&quot;: &quot;good&quot;,
+  &quot;responseTimeMs&quot;: 8200,
+  &quot;flags&quot;: []
+}
+</code></pre>
+<h3 id="115-core-variants">11.5 CoRe Variants</h3>
+<pre><code class="language-http">GET    /api/cards/:cardId/variants
+POST   /api/cards/:cardId/variants/generate
+PATCH  /api/variants/:variantId
+POST   /api/variants/:variantId/activate
+POST   /api/variants/:variantId/disable
+POST   /api/variants/:variantId/flag
+GET    /api/variants/:variantId/original
+</code></pre>
+<h3 id="116-ki-kartenerstellung">11.6 KI-Kartenerstellung</h3>
+<pre><code class="language-http">POST   /api/ai/card-generation/jobs
+GET    /api/ai/jobs/:jobId
+POST   /api/ai/jobs/:jobId/cancel
+POST   /api/ai/card-generation/jobs/:jobId/accept-card
+POST   /api/ai/card-generation/jobs/:jobId/reject-card
+POST   /api/ai/card-generation/jobs/:jobId/accept-all
+</code></pre>
+<h3 id="117-dokumente">11.7 Dokumente</h3>
+<pre><code class="language-http">POST   /api/documents
+GET    /api/documents/:documentId
+GET    /api/documents/:documentId/text
+GET    /api/documents/:documentId/page/:pageNumber
+POST   /api/documents/:documentId/anchors
+</code></pre>
+<h3 id="118-communitys">11.8 Communitys</h3>
+<pre><code class="language-http">GET    /api/communities
+POST   /api/communities
+GET    /api/communities/:communityId
+POST   /api/communities/:communityId/join
+GET    /api/communities/:communityId/folders
+POST   /api/communities/:communityId/folders
+POST   /api/communities/:communityId/share-deck
+POST   /api/shared-decks/:sharedDeckId/copy-to-my-decks
+</code></pre>
+<h3 id="119-graph">11.9 Graph</h3>
+<pre><code class="language-http">GET    /api/decks/:deckId/graph
+POST   /api/decks/:deckId/graph/generate
+GET    /api/decks/:deckId/graph/status
+</code></pre>
+<hr />
+<h2 id="12-ki-orchestrierung">12. KI-Orchestrierung</h2>
+<h2 id="121-grundsatz">12.1 Grundsatz</h2>
+<p>KI-Funktionen dürfen nicht bei jeder kleinen Änderung automatisch feuern. CoRe braucht eine <strong>effiziente, kontextbewusste Orchestrierung</strong>.</p>
+<h3 id="ziele">Ziele</h3>
+<ul>
+<li>Kosten niedrig halten.</li>
+<li>Latenz niedrig halten.</li>
+<li>Nutzerkontrolle bewahren.</li>
+<li>Doppelte Jobs vermeiden.</li>
+<li>Kleine Modelle für leichte Aufgaben nutzen.</li>
+<li>Große Modelle nur bei hohem Nutzen oder Unsicherheit nutzen.</li>
+</ul>
+<hr />
+<h2 id="122-ki-faehigkeiten-als-module">12.2 KI-Fähigkeiten als Module</h2>
+<table>
+<thead>
+<tr>
+  <th>Capability</th>
+  <th>Aufgabe</th>
+  <th>Modellklasse</th>
+  <th>Trigger</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>eligibility_classifier</code></td>
+  <td>Prüft, ob Karte variierbar ist.</td>
+  <td>klein/günstig/lokal</td>
+  <td>nach Import, bei Review-Reife</td>
+</tr>
+<tr>
+  <td><code>variant_rephrase</code></td>
+  <td>Erzeugt vorsichtige Umformulierung.</td>
+  <td>mittel</td>
+  <td>ab Reifegrad oder manuell</td>
+</tr>
+<tr>
+  <td><code>card_generator</code></td>
+  <td>Erzeugt Karten aus Dokument.</td>
+  <td>mittel/groß</td>
+  <td>Nutzerauftrag</td>
+</tr>
+<tr>
+  <td><code>source_anchor_validator</code></td>
+  <td>Prüft Quellenbezug.</td>
+  <td>klein/mittel</td>
+  <td>nach KI-Ausgabe</td>
+</tr>
+<tr>
+  <td><code>graph_builder</code></td>
+  <td>Erstellt Themen-Mindmap.</td>
+  <td>mittel</td>
+  <td>manuell, batch, 10 Karten</td>
+</tr>
+<tr>
+  <td><code>deck_summarizer</code></td>
+  <td>Fasst Deck zusammen.</td>
+  <td>klein/mittel</td>
+  <td>für Graph/Chat</td>
+</tr>
+<tr>
+  <td><code>chat_retriever</code></td>
+  <td>Sucht relevante Karten.</td>
+  <td>Embeddings/Search</td>
+  <td>Chat-Anfrage</td>
+</tr>
+<tr>
+  <td><code>quality_checker</code></td>
+  <td>Findet unsichere/falsche Varianten.</td>
+  <td>mittel/groß</td>
+  <td>nach Generation, Flag</td>
+</tr>
+</tbody>
+</table>
+<h3 id="123-modellrouter">12.3 Modellrouter</h3>
+<p>Ein interner Model Router SOLL entscheiden:</p>
+<pre><code class="language-ts">interface AIModelRouter {
+  selectModel(task: AITask, policy: AIPolicy, context: AIContext): ModelChoice;
+}
+
+interface AIPolicy {
+  costTier: &quot;low&quot; | &quot;balanced&quot; | &quot;quality&quot;;
+  allowLocalModels: boolean;
+  allowExternalModels: boolean;
+  maxCostPerJob?: number;
+  requireSourceAnchors: boolean;
+  requireHumanApprovalForNewCards: boolean;
+}
+</code></pre>
+<h3 id="124-trigger-und-batchlogik">12.4 Trigger- und Batchlogik</h3>
+<p>KI-Jobs SOLLEN nur unter definierten Bedingungen entstehen.</p>
+<p><strong>Beispiele:</strong></p>
+<ul>
+<li>Variante erst generieren, wenn Karte <code>variant_ready</code> ist.</li>
+<li>Graph erst neu generieren, wenn 10 neue Karten seit letzter Graph-Version hinzugekommen sind.</li>
+<li>Importanalyse als Batch nach Importabschluss.</li>
+<li>Deck-Summary erst nach Ruhephase.</li>
+<li>Nutzertrigger überschreibt Batch-Verzögerung.</li>
+</ul>
+<pre><code class="language-ts">interface AITriggerPolicy {
+  debounceMs: number;
+  minNewCardsForGraphRefresh: number;
+  allowIdleProcessing: boolean;
+  idleAfterMs: number;
+  maxConcurrentJobsPerUser: number;
+  maxConcurrentJobsPerDeck: number;
+}
+</code></pre>
+<h3 id="125-kontextmanagement">12.5 Kontextmanagement</h3>
+<p>CoRe SOLL nicht blind den gesamten Stapel in jeden Prompt geben. Stattdessen:</p>
+<ul>
+<li>Relevante Karte(n) auswählen.</li>
+<li>Deck-Metadaten geben.</li>
+<li>Tags und Nachbarschaft aus Graph geben.</li>
+<li>Quellenanker geben.</li>
+<li>Bei Varianten nur nötiges Original + ggf. verwandte Karten.</li>
+<li>Bei Graph Batch-Summaries statt alle Rohkarten, wenn Deck groß ist.</li>
+</ul>
+<h3 id="126-strukturierte-outputs-und-validierung">12.6 Strukturierte Outputs und Validierung</h3>
+<p>Jeder KI-Job MUSS ein erwartetes Output-Schema haben. Die App validiert:</p>
+<ul>
+<li>JSON ist syntaktisch korrekt.</li>
+<li>Pflichtfelder existieren.</li>
+<li>Quellenanker vorhanden, wenn erforderlich.</li>
+<li>Antwort ist nicht leer.</li>
+<li>Variante verweist auf Original.</li>
+<li>Transformationsart passt zur Eligibility.</li>
+<li>Keine unzulässigen Felder oder HTML-Skripte.</li>
+</ul>
+<p>Bei Fehler:</p>
+<ol>
+<li>einmal automatische Reparatur versuchen,</li>
+<li>sonst Job als <code>failed</code> oder <code>needs_review</code> markieren,</li>
+<li>Nutzer transparent informieren.</li>
+</ol>
+<h3 id="127-prompt-contract-variant-rephrase">12.7 Prompt Contract: Variant Rephrase</h3>
+<p><strong>Input:</strong></p>
+<pre><code class="language-json">{
+  &quot;sourceCard&quot;: {
+    &quot;front&quot;: &quot;...&quot;,
+    &quot;back&quot;: &quot;...&quot;,
+    &quot;type&quot;: &quot;basic&quot;,
+    &quot;tags&quot;: [&quot;...&quot;],
+    &quot;sourceAnchors&quot;: []
+  },
+  &quot;constraints&quot;: {
+    &quot;preserveMeaning&quot;: true,
+    &quot;changeOpeningAndEnding&quot;: true,
+    &quot;reduceVisualRecognition&quot;: true,
+    &quot;doNotAddNewFacts&quot;: true,
+    &quot;language&quot;: &quot;de&quot;,
+    &quot;maxVariants&quot;: 2
+  }
+}
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code class="language-json">{
+  &quot;variants&quot;: [
+    {
+      &quot;front&quot;: &quot;...&quot;,
+      &quot;back&quot;: &quot;...&quot;,
+      &quot;transformType&quot;: &quot;rephrase&quot;,
+      &quot;semanticDelta&quot;: &quot;none&quot;,
+      &quot;confidence&quot;: 0.91,
+      &quot;warnings&quot;: [],
+      &quot;changedRecognitionCues&quot;: [&quot;opening&quot;, &quot;ending&quot;, &quot;case_pattern&quot;]
+    }
+  ]
+}
+</code></pre>
+<h3 id="128-prompt-contract-eligibility-classifier">12.8 Prompt Contract: Eligibility Classifier</h3>
+<pre><code class="language-json">{
+  &quot;eligible&quot;: false,
+  &quot;score&quot;: 0.22,
+  &quot;reason&quot;: &quot;Reine Vokabelkarte mit exakter Übersetzung; Umformulierung würde Prüfziel verändern.&quot;,
+  &quot;allowedTransforms&quot;: [],
+  &quot;recommendedCoreMode&quot;: &quot;off_or_original_only&quot;
+}
+</code></pre>
+<h3 id="129-prompt-contract-card-generation-from-document">12.9 Prompt Contract: Card Generation from Document</h3>
+<pre><code class="language-json">{
+  &quot;cards&quot;: [
+    {
+      &quot;type&quot;: &quot;basic&quot;,
+      &quot;front&quot;: &quot;...&quot;,
+      &quot;back&quot;: &quot;...&quot;,
+      &quot;granularity&quot;: &quot;medium&quot;,
+      &quot;sourceAnchors&quot;: [
+        {&quot;page&quot;: 4, &quot;quote&quot;: &quot;...&quot;, &quot;confidence&quot;: 0.84}
+      ],
+      &quot;confidence&quot;: 0.86,
+      &quot;warnings&quot;: []
+    }
+  ],
+  &quot;coverage&quot;: {
+    &quot;sourcePages&quot;: [1, 2, 3, 4],
+    &quot;estimatedCoverage&quot;: 0.72,
+    &quot;omittedSections&quot;: [&quot;Literaturverzeichnis&quot;]
+  }
+}
+</code></pre>
+<hr />
+<h2 id="13-scheduling-und-reifegrad">13. Scheduling und Reifegrad</h2>
+<h2 id="131-scheduler-schnittstelle">13.1 Scheduler-Schnittstelle</h2>
+<p>CoRe soll sich an Anki-Gewohnheiten orientieren, aber die genaue Scheduling-Formel austauschbar halten.</p>
+<pre><code class="language-ts">interface Scheduler {
+  getNextDue(state: ReviewState, rating: ReviewRating, context: ReviewContext): ReviewState;
+}
+
+interface ReviewContext {
+  now: Date;
+  deckSettings: DeckSettings;
+  isVariant: boolean;
+  sourceCardState?: ReviewState;
+}
+</code></pre>
+<h3 id="132-vier-buttons">13.2 Vier Buttons</h3>
+<table>
+<thead>
+<tr>
+  <th>Button</th>
+  <th>Bedeutung</th>
+  <th>Scheduling-Tendenz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Again</td>
+  <td>Nicht gewusst</td>
+  <td>kurz zurücksetzen, Lapse erhöhen</td>
+</tr>
+<tr>
+  <td>Hard</td>
+  <td>Schwer</td>
+  <td>kleines Intervall, leichte Reifezunahme oder Stagnation</td>
+</tr>
+<tr>
+  <td>Good</td>
+  <td>Gewusst</td>
+  <td>normales Intervall, Reife steigt</td>
+</tr>
+<tr>
+  <td>Easy</td>
+  <td>Sehr leicht</td>
+  <td>größeres Intervall, Reife steigt stärker</td>
+</tr>
+</tbody>
+</table>
+<h3 id="133-reifegrad-xp">13.3 Reifegrad-XP</h3>
+<p>Maturity XP ist eine CoRe-eigene Abstraktion, um die Frage zu beantworten: „Darf diese Kartenfamilie inhaltlich variiert werden?“</p>
+<p><strong>Beispiel-Update:</strong></p>
+<pre><code class="language-ts">function updateMaturityXp(oldXp: number, rating: ReviewRating, wasVariant: boolean) {
+  const delta = {
+    again: -18,
+    hard: 2,
+    good: 12,
+    easy: 18,
+  }[rating];
+
+  const variantBonus = wasVariant &amp;&amp; (rating === &quot;good&quot; || rating === &quot;easy&quot;) ? 4 : 0;
+  return Math.max(0, oldXp + delta + variantBonus);
+}
+</code></pre>
+<p><strong>Beispiel-Bänder:</strong></p>
+<table>
+<thead>
+<tr>
+  <th style="text-align:right">XP</th>
+  <th>Band</th>
+  <th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:right">0–20</td>
+  <td><code>new</code></td>
+  <td>neu / instabil</td>
+</tr>
+<tr>
+  <td style="text-align:right">21–50</td>
+  <td><code>learning</code></td>
+  <td>im Aufbau</td>
+</tr>
+<tr>
+  <td style="text-align:right">51–80</td>
+  <td><code>young</code></td>
+  <td>bekannt, aber nicht stabil</td>
+</tr>
+<tr>
+  <td style="text-align:right">81–120</td>
+  <td><code>mature</code></td>
+  <td>stabiler Abruf</td>
+</tr>
+<tr>
+  <td style="text-align:right">121–180</td>
+  <td><code>variant_ready</code></td>
+  <td>Content Repetition erlaubt</td>
+</tr>
+<tr>
+  <td style="text-align:right">181+</td>
+  <td><code>mastered</code></td>
+  <td>robuste Beherrschung</td>
+</tr>
+</tbody>
+</table>
+<p>Diese Werte sind Platzhalter und müssen empirisch getestet werden.</p>
+<h3 id="134-varianten-scheduling">13.4 Varianten-Scheduling</h3>
+<p>Es gibt zwei mögliche Modelle:</p>
+<h4>Modell A — Varianten teilen den Review-State der Originalkarte</h4>
+<p>Vorteil: Einfacher.<br />
+Nachteil: Schlechte Variante kann Original fälschlich abwerten.</p>
+<h4>Modell B — Varianten haben eigenen State + Familien-State</h4>
+<p>Vorteil: Präziser.<br />
+Nachteil: Komplexer.</p>
+<p><strong>Empfehlung:</strong> Modell B.</p>
+<pre><code class="language-text">CardFamilyState  ← aggregiert Wissensstand
+OriginalState    ← Originalkarte
+VariantState     ← einzelne Variante
+</code></pre>
+<h3 id="135-tagesintervall-diskussion">13.5 Tagesintervall-Diskussion</h3>
+<p>Die Gründerdiskussion weist darauf hin, dass sehr kurze Wiederholintervalle möglicherweise zu stark Recognition fördern können. CoRe SOLL daher Scheduling-Parameter zugänglich machen, ohne Nutzer mit Expertensettings zu überfordern.</p>
+<p><strong>MVP:</strong> sinnvolle Defaults.<br />
+<strong>Später:</strong> einfache Profile:</p>
+<ul>
+<li>Standard.</li>
+<li>Intensiv vor Prüfung.</li>
+<li>Weniger Kurzintervall.</li>
+<li>Mehr Variantenfokus.</li>
+</ul>
+<hr />
+<h2 id="14-technische-architektur">14. Technische Architektur</h2>
+<h2 id="141-frontend">14.1 Frontend</h2>
+<p><strong>Empfohlener Aufbau:</strong></p>
+<ul>
+<li>React.</li>
+<li>Tailwind CSS.</li>
+<li>TypeScript.</li>
+<li>Komponentenbibliothek optional, aber Designsystem früh definieren.</li>
+<li>Routing nach App-Framework.</li>
+<li>Server-State via Query-Layer.</li>
+<li>Form-State robust für Karteneditor.</li>
+<li>Rich-Text-Editor für Karteninhalte.</li>
+<li>PDF Viewer für Dokumentmodus.</li>
+</ul>
+<h3 id="frontend-ordnerstruktur">Frontend-Ordnerstruktur</h3>
+<pre><code class="language-text">src/
+  app/ or routes/
+  components/
+    cards/
+    decks/
+    review/
+    editor/
+    document-viewer/
+    community/
+    graph/
+    ai/
+  features/
+    auth/
+    decks/
+    cards/
+    import/
+    review/
+    core-variants/
+    ai-jobs/
+    communities/
+  lib/
+    api/
+    scheduler/
+    validation/
+    rich-text/
+    permissions/
+  types/
+  styles/
+</code></pre>
+<h3 id="ui-komponenten">UI-Komponenten</h3>
+<table>
+<thead>
+<tr>
+  <th>Komponente</th>
+  <th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>DeckTree</code></td>
+  <td>Hierarchische Stapelansicht.</td>
+</tr>
+<tr>
+  <td><code>CoreModeControl</code></td>
+  <td>Drei-Stufen-Auswahl pro Stapel.</td>
+</tr>
+<tr>
+  <td><code>CardEditor</code></td>
+  <td>Editor für Basic/Cloze/etc.</td>
+</tr>
+<tr>
+  <td><code>DocumentSidePanel</code></td>
+  <td>PDF/Textanzeige im Erstellmodus.</td>
+</tr>
+<tr>
+  <td><code>SelectionToFieldBridge</code></td>
+  <td>Übernimmt markierten Text in aktives Feld.</td>
+</tr>
+<tr>
+  <td><code>ReviewCard</code></td>
+  <td>Karte vor/nach Antwort.</td>
+</tr>
+<tr>
+  <td><code>ReviewRatingBar</code></td>
+  <td>Again/Hard/Good/Easy.</td>
+</tr>
+<tr>
+  <td><code>OriginalAnchorPanel</code></td>
+  <td>Zeigt Originalkarte/Quelle.</td>
+</tr>
+<tr>
+  <td><code>VariantFeedbackMenu</code></td>
+  <td>Fehler/Qualität melden.</td>
+</tr>
+<tr>
+  <td><code>ImportWizard</code></td>
+  <td>Dateiimport.</td>
+</tr>
+<tr>
+  <td><code>AICardDraftList</code></td>
+  <td>KI-Kartenentwürfe prüfen.</td>
+</tr>
+<tr>
+  <td><code>CommunityFolderTree</code></td>
+  <td>Community-Ordner.</td>
+</tr>
+<tr>
+  <td><code>DeckGraphCanvas</code></td>
+  <td>Mindmap/Graph.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="142-backend">14.2 Backend</h2>
+<p>Backend-Funktionen:</p>
+<ul>
+<li>Auth und Userverwaltung.</li>
+<li>Deck-/Card-CRUD.</li>
+<li>Import-Verarbeitung.</li>
+<li>Dateiablage und Text-Extraktion.</li>
+<li>Review-Scheduling.</li>
+<li>KI-Job-Queue.</li>
+<li>Modellrouter.</li>
+<li>Graphgenerierung.</li>
+<li>Community-Rechte.</li>
+<li>Audit-/Versionierung.</li>
+</ul>
+<h3 id="empfohlene-services">Empfohlene Services</h3>
+<pre><code class="language-text">API Server
+  ├── DeckService
+  ├── CardService
+  ├── ImportService
+  ├── ReviewService
+  ├── CoreVariantService
+  ├── AIOrchestrator
+  ├── DocumentService
+  ├── CommunityService
+  └── GraphService
+
+Worker
+  ├── APKGParserWorker
+  ├── TextExtractionWorker
+  ├── AICardGenerationWorker
+  ├── VariantGenerationWorker
+  ├── EligibilityWorker
+  └── GraphBuilderWorker
+</code></pre>
+<h2 id="143-dateiablage">14.3 Dateiablage</h2>
+<p>Dokumente, Medien und APKG-Dateien sollen in Object Storage liegen. Die Datenbank speichert Metadaten und sichere Referenzen.</p>
+<p><strong>Wichtig:</strong> Importierte Mediendateien müssen stabil referenzierbar sein, auch wenn Karten später geteilt werden.</p>
+<h2 id="144-background-jobs">14.4 Background Jobs</h2>
+<p>Viele Operationen dürfen nicht synchron im Request laufen:</p>
+<ul>
+<li>APKG entpacken und parsen.</li>
+<li>Medien extrahieren.</li>
+<li>PDF-Text extrahieren.</li>
+<li>KI-Karten generieren.</li>
+<li>Varianten erzeugen.</li>
+<li>Graph bauen.</li>
+<li>Dedupe berechnen.</li>
+</ul>
+<h3 id="job-anforderungen">Job-Anforderungen</h3>
+<ul>
+<li>idempotent,</li>
+<li>abbrechbar,</li>
+<li>retryfähig,</li>
+<li>statusabfragbar,</li>
+<li>nutzerfreundlicher Fortschritt,</li>
+<li>Kosten-/Tokenlogging bei KI.</li>
+</ul>
+<hr />
+<h2 id="15-sicherheit-datenschutz-und-rechte">15. Sicherheit, Datenschutz und Rechte</h2>
+<h3 id="151-datenschutz">15.1 Datenschutz</h3>
+<ul>
+<li>Lernstände sind privat.</li>
+<li>Community-Teilen betrifft Inhalte, nicht persönliche Review-Historie.</li>
+<li>KI-Jobs sollen nur notwendige Inhalte an externe Modelle geben.</li>
+<li>Nutzer sollen verstehen, welche Daten KI verarbeitet.</li>
+</ul>
+<h3 id="152-berechtigungen">15.2 Berechtigungen</h3>
+<table>
+<thead>
+<tr>
+  <th>Aktion</th>
+  <th style="text-align:right">Owner</th>
+  <th style="text-align:right">Admin</th>
+  <th style="text-align:right">Member</th>
+  <th style="text-align:right">Viewer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Community löschen</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Nein</td>
+  <td style="text-align:right">Nein</td>
+  <td style="text-align:right">Nein</td>
+</tr>
+<tr>
+  <td>Ordner erstellen</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Optional</td>
+  <td style="text-align:right">Nein</td>
+</tr>
+<tr>
+  <td>Deck teilen</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Nein</td>
+</tr>
+<tr>
+  <td>Deck kopieren</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Ja</td>
+</tr>
+<tr>
+  <td>Rechte ändern</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Ja</td>
+  <td style="text-align:right">Nein</td>
+  <td style="text-align:right">Nein</td>
+</tr>
+<tr>
+  <td>Lernstand sehen</td>
+  <td style="text-align:right">eigener</td>
+  <td style="text-align:right">eigener</td>
+  <td style="text-align:right">eigener</td>
+  <td style="text-align:right">eigener</td>
+</tr>
+</tbody>
+</table>
+<h3 id="153-ki-sicherheit">15.3 KI-Sicherheit</h3>
+<ul>
+<li>Keine unsichtbare Änderung bestehender Karten ohne Versionierung.</li>
+<li>Keine automatische Aktivierung unsicherer KI-Karten, wenn Quelle fehlt.</li>
+<li>Sanitization von HTML aus Anki und KI.</li>
+<li>Prompt-Injection-Schutz bei importierten Dokumenten: Dokumentinhalt darf nicht Systemregeln überschreiben.</li>
+</ul>
+<h3 id="154-audit-log">15.4 Audit Log</h3>
+<p>Wichtige Änderungen SOLLEN geloggt werden:</p>
+<ul>
+<li>Import.</li>
+<li>Kartenerstellung.</li>
+<li>KI-Generierung.</li>
+<li>Variante aktiviert/deaktiviert.</li>
+<li>Community-Share.</li>
+<li>Rechteänderung.</li>
+<li>Restore/Undo.</li>
+</ul>
+<hr />
+<h2 id="16-nichtfunktionale-anforderungen">16. Nichtfunktionale Anforderungen</h2>
+<h3 id="161-performance">16.1 Performance</h3>
+<table>
+<thead>
+<tr>
+  <th>Bereich</th>
+  <th>Ziel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Review-Karte laden</td>
+  <td>&lt; 300 ms nach Sessionstart, ideal mit Prefetch.</td>
+</tr>
+<tr>
+  <td>Antwort aufdecken</td>
+  <td>instant / lokal.</td>
+</tr>
+<tr>
+  <td>Rating speichern</td>
+  <td>optimistisch lokal, serverseitig zuverlässig.</td>
+</tr>
+<tr>
+  <td>Deckübersicht</td>
+  <td>auch bei tausenden Karten performant.</td>
+</tr>
+<tr>
+  <td>Import großer APKG</td>
+  <td>Hintergrundjob, Fortschritt sichtbar.</td>
+</tr>
+<tr>
+  <td>KI-Jobs</td>
+  <td>asynchron, nicht blockierend.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="162-offline-sync">16.2 Offline / Sync</h3>
+<p>MVP KANN online-only sein. Architektur SOLL aber erlauben:</p>
+<ul>
+<li>Review-Queue lokal speichern.</li>
+<li>Review-Events später syncen.</li>
+<li>Konflikte anhand Eventlog lösen.</li>
+<li>Karten für Session prefetching.</li>
+</ul>
+<h3 id="163-accessibility">16.3 Accessibility</h3>
+<ul>
+<li>Tastaturbedienung.</li>
+<li>Screenreader-Beschriftungen.</li>
+<li>Kontrastreiche Review-Buttons.</li>
+<li>Keine rein farbliche Bedeutung beim CoRe-Modus.</li>
+<li>Große Touch-Ziele.</li>
+</ul>
+<h3 id="164-internationalisierung">16.4 Internationalisierung</h3>
+<p>MVP primär Deutsch, aber:</p>
+<ul>
+<li>Datenmodell sprachneutral.</li>
+<li>KI-Parameter <code>language</code>.</li>
+<li>UI-Texte externalisierbar.</li>
+<li>Karten können mehrere Sprachen haben.</li>
+</ul>
+<h3 id="165-observability">16.5 Observability</h3>
+<p>Zu messen:</p>
+<ul>
+<li>Importfehler nach Dateityp.</li>
+<li>KI-Job-Erfolgsrate.</li>
+<li>Varianten-Akzeptanzquote.</li>
+<li>Varianten-Flagquote.</li>
+<li>Review-Latenz.</li>
+<li>Scheduler-Verhalten.</li>
+<li>Kosten pro KI-Capability.</li>
+</ul>
+<hr />
+<h2 id="17-akzeptanzkriterien-nach-modul">17. Akzeptanzkriterien nach Modul</h2>
+<h2 id="171-import">17.1 Import</h2>
+<pre><code class="language-gherkin">Feature: APKG Import
+  Scenario: Nutzer importiert Basic APKG
+    Given der Nutzer ist angemeldet
+    When er eine APKG-Datei mit Basic Front/Back Karten hochlädt
+    Then erstellt CoRe einen neuen Stapel mit Unterstapeln
+    And importiert Vorder- und Rückseiten
+    And zeigt einen Importbericht
+    And nicht unterstützte Kartentypen werden als Warnung angezeigt
+</code></pre>
+<h2 id="172-review">17.2 Review</h2>
+<pre><code class="language-gherkin">Feature: Review Mode
+  Scenario: Nutzer deckt Antwort auf
+    Given eine Karte ist fällig
+    When der Nutzer die Antwort aufdeckt
+    Then bleibt die Vorderseite sichtbar
+    And die Rückseite erscheint darunter
+    And die Buttons Again, Hard, Good und Easy werden angezeigt
+</code></pre>
+<h2 id="173-variante-mit-anker">17.3 Variante mit Anker</h2>
+<pre><code class="language-gherkin">Feature: Content Repetition Variant
+  Scenario: Nutzer lernt eine Variante
+    Given eine Karte ist variant_ready
+    And der Stapel ist im Modus auto
+    When CoRe eine Variante zeigt
+    Then wird sie vor dem Aufdecken nicht als Variante markiert
+    When der Nutzer die Antwort aufdeckt
+    Then kann er die Originalkarte anzeigen
+    And er kann die Variante deaktivieren oder melden
+</code></pre>
+<h2 id="174-manuelle-erstellung-mit-dokumentviewer">17.4 Manuelle Erstellung mit Dokumentviewer</h2>
+<pre><code class="language-gherkin">Feature: Selection to Card Field
+  Scenario: Nutzer übernimmt Text aus PDF
+    Given der Nutzer hat den Karteneditor geöffnet
+    And ein PDF mit Textlayer ist im Dokumentviewer geöffnet
+    And das Feld Vorderseite ist aktiv
+    When der Nutzer Text im PDF markiert
+    Then fügt CoRe den Text in die Vorderseite ein
+    And speichert einen Quellenanker zur PDF-Seite
+</code></pre>
+<h2 id="175-ki-kartengenerierung">17.5 KI-Kartengenerierung</h2>
+<pre><code class="language-gherkin">Feature: AI Card Generation
+  Scenario: Nutzer generiert Karten aus PDF
+    Given der Nutzer lädt ein PDF hoch
+    And wählt Sprache Deutsch, Detaillierung normal und Umfang ausgewogen
+    When er die Generierung startet
+    Then erstellt CoRe Kartenentwürfe
+    And jede Karte zeigt eine Quelle oder Warnung
+    And der Nutzer kann jede Karte bearbeiten, übernehmen oder verwerfen
+</code></pre>
+<h2 id="176-community">17.6 Community</h2>
+<pre><code class="language-gherkin">Feature: Community Sharing
+  Scenario: Nutzer teilt Deck in kleiner Gruppe
+    Given der Nutzer ist Mitglied einer Community
+    When er einen Stapel in einen Community-Ordner legt
+    Then können berechtigte Mitglieder den Stapel ansehen und kopieren
+    And niemand sieht seinen persönlichen Lernstand
+</code></pre>
+<hr />
+<h2 id="18-entwicklungs-backlog-und-aufgabenmodule">18. Entwicklungs-Backlog und Aufgabenmodule</h2>
+<h3 id="181-priorisierte-module">18.1 Priorisierte Module</h3>
+<table>
+<thead>
+<tr>
+  <th style="text-align:right">Priorität</th>
+  <th>Modul</th>
+  <th>Ziel</th>
+  <th>Abhängigkeiten</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:right">P0</td>
+  <td>Auth/Profile</td>
+  <td>Nutzerkonten und private Datenbasis.</td>
+  <td>Datenbank/Auth.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P0</td>
+  <td>Deck/Card Core</td>
+  <td>Stapel, Karten, CRUD.</td>
+  <td>Auth.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P0</td>
+  <td>Review Engine</td>
+  <td>Fällige Karten lernen und bewerten.</td>
+  <td>Cards, Scheduler.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P0</td>
+  <td>APKG Basic Import</td>
+  <td>Bestehende Nutzer abholen.</td>
+  <td>Import Worker, Storage.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P0</td>
+  <td>CoRe Mode per Deck</td>
+  <td>Off/Auto/Manual sichtbar einstellen.</td>
+  <td>Deck Settings.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P0</td>
+  <td>Variant Data Model</td>
+  <td>Varianten, Originalanker, Status.</td>
+  <td>Cards, AI Jobs.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P0</td>
+  <td>AI Orchestrator Skeleton</td>
+  <td>Jobs, Model Router, strukturierte Outputs.</td>
+  <td>Worker Queue.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P1</td>
+  <td>Rephrase Variant</td>
+  <td>Erste Content-Repetition.</td>
+  <td>Eligibility, AI Orchestrator.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P1</td>
+  <td>KI-Kartenerstellung</td>
+  <td>Datei zu Kartenentwürfen.</td>
+  <td>Documents, AI.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P1</td>
+  <td>Trust UI</td>
+  <td>Original anzeigen, Undo, Flag.</td>
+  <td>Variants.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P1</td>
+  <td>Document Viewer</td>
+  <td>PDF/Text im Editor.</td>
+  <td>Storage, text extraction.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P1</td>
+  <td>Selection-to-Field</td>
+  <td>Markieren übernimmt Text.</td>
+  <td>Document Viewer, Editor.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P2</td>
+  <td>Community Basic</td>
+  <td>Kleine Gruppen + Ordner.</td>
+  <td>Permissions, Deck Sharing.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P2</td>
+  <td>Graph MVP</td>
+  <td>Mindmap pro Deck.</td>
+  <td>AI, Deck Summaries.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P2</td>
+  <td>Expanded Import</td>
+  <td>Cloze, Image Occlusion, custom mapping.</td>
+  <td>APKG Parser.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P3</td>
+  <td>Chat-your-Deck</td>
+  <td>Fragen an Stapel.</td>
+  <td>Graph/RAG.</td>
+</tr>
+<tr>
+  <td style="text-align:right">P3</td>
+  <td>Lernplan</td>
+  <td>Prüfungsplanung.</td>
+  <td>Scheduler, analytics.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="182-erste-engineering-epics">18.2 Erste Engineering-Epics</h3>
+<h4>Epic 1 — Datenmodell &amp; Grundapp</h4>
+<ul>
+<li>Datenbankschema für User, Decks, Notes, Cards.</li>
+<li>DeckTree-Komponente.</li>
+<li>Basic Card Editor.</li>
+<li>Deck Settings mit <code>core_mode</code>.</li>
+<li>Seed-Daten für lokale Entwicklung.</li>
+</ul>
+<h4>Epic 2 — Review MVP</h4>
+<ul>
+<li>Review Session API.</li>
+<li>Scheduler Interface.</li>
+<li>Review UI.</li>
+<li>Antwortaufdeckung mit Front+Back.</li>
+<li>Vier Buttons.</li>
+<li>Review Event Log.</li>
+</ul>
+<h4>Epic 3 — APKG Import Basic</h4>
+<ul>
+<li>APKG Upload.</li>
+<li>Entpacken und Metadaten extrahieren.</li>
+<li>Basic Front/Back Mapping.</li>
+<li>Deck-Hierarchie importieren.</li>
+<li>Importbericht.</li>
+<li>Unsupported Note Type Warning.</li>
+</ul>
+<h4>Epic 4 — CoRe Varianten MVP</h4>
+<ul>
+<li>Variant Entity.</li>
+<li>Originalanker.</li>
+<li>Eligibility-Job für Textkarten.</li>
+<li>Rephrase-Job.</li>
+<li>Variantenanzeige im Review.</li>
+<li>Variante deaktivieren/flaggen.</li>
+</ul>
+<h4>Epic 5 — KI-Kartengenerierung</h4>
+<ul>
+<li>Dokumentupload.</li>
+<li>Text-Extraktion.</li>
+<li>Generierungsparameter.</li>
+<li>AI Card Drafts.</li>
+<li>Entwurf prüfen/übernehmen.</li>
+<li>Quellenanker anzeigen.</li>
+</ul>
+<h4>Epic 6 — Trust &amp; Versioning</h4>
+<ul>
+<li>Kartenversionslog.</li>
+<li>Restore/Undo.</li>
+<li>AI Job Log sichtbar.</li>
+<li>SourceAnchor UI.</li>
+<li>Feedback auf Varianten.</li>
+</ul>
+<h4>Epic 7 — Community Basic</h4>
+<ul>
+<li>Community erstellen.</li>
+<li>Beitritt per Passwort/Link.</li>
+<li>Ordnerstruktur.</li>
+<li>Deck teilen/kopieren.</li>
+<li>Privacy-Grenzen testen.</li>
+</ul>
+<h4>Epic 8 — Graph/Mindmap MVP</h4>
+<ul>
+<li>Deck Summary Job.</li>
+<li>Graph Builder Job.</li>
+<li>Graph Data Model.</li>
+<li>Graph Canvas.</li>
+<li>Kartenlinks aus Knoten.</li>
+<li>Triggerlogik: manuell und 10-neue-Karten-Regel.</li>
+</ul>
+<hr />
+<h2 id="19-offene-entscheidungen">19. Offene Entscheidungen</h2>
+<table>
+<thead>
+<tr>
+  <th>ID</th>
+  <th>Entscheidung</th>
+  <th>Optionen</th>
+  <th>Empfehlung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>D-001</td>
+  <td>Build-/App-Framework</td>
+  <td>Vite, Next.js, Remix etc.</td>
+  <td>Nach aktuellem Repo wählen; Specs bleiben frameworkneutral.</td>
+</tr>
+<tr>
+  <td>D-002</td>
+  <td>Scheduler-Algorithmus</td>
+  <td>Anki-like SM-2, FSRS-like, eigener MVP</td>
+  <td>Interface abstrahieren, einfache Defaults starten.</td>
+</tr>
+<tr>
+  <td>D-003</td>
+  <td>Review-State von Varianten</td>
+  <td>geteilt vs. getrennt + Familie</td>
+  <td>getrennt + aggregierter Family State.</td>
+</tr>
+<tr>
+  <td>D-004</td>
+  <td>APKG-Lernfortschritt MVP</td>
+  <td>sofort importieren vs. später</td>
+  <td>Datenmodell vorbereiten, Import später vertiefen.</td>
+</tr>
+<tr>
+  <td>D-005</td>
+  <td>Export</td>
+  <td>kein Export vs. lokal vs. interoperabel</td>
+  <td>Lokaler JSON-Export/-Import ist umgesetzt; spaeter interoperable Export-/Backup-Standards planen.</td>
+</tr>
+<tr>
+  <td>D-006</td>
+  <td>KI-Freigabe</td>
+  <td>automatisch aktiv vs. Draft</td>
+  <td>Neue Karten als Draft; Varianten ab Qualitätscheck aktivierbar.</td>
+</tr>
+<tr>
+  <td>D-007</td>
+  <td>Community-Größe</td>
+  <td>fix 20 vs. konfigurierbar</td>
+  <td>Default/Limit 20 für MVP.</td>
+</tr>
+<tr>
+  <td>D-008</td>
+  <td>Bildvariation</td>
+  <td>ja/nein</td>
+  <td>Nein für MVP; Image Occlusion als Kartentyp, nicht als KI-Variation.</td>
+</tr>
+<tr>
+  <td>D-009</td>
+  <td>Dokumentviewer mobile</td>
+  <td>voll vs. reduziert</td>
+  <td>Desktop voll, mobile tabbed/reduziert.</td>
+</tr>
+<tr>
+  <td>D-010</td>
+  <td>Modellanbieter</td>
+  <td>fest vs. Router</td>
+  <td>Router mit austauschbaren Providern.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="20-risiken-und-gegenmassnahmen">20. Risiken und Gegenmaßnahmen</h2>
+<table>
+<thead>
+<tr>
+  <th>Risiko</th>
+  <th>Auswirkung</th>
+  <th>Gegenmaßnahme</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>APKG-Formate sind heterogen</td>
+  <td>Import unzuverlässig</td>
+  <td>Fallback-Mapping, Rohdaten speichern, Importbericht.</td>
+</tr>
+<tr>
+  <td>KI halluziniert Lerninhalt</td>
+  <td>Vertrauensverlust</td>
+  <td>Quellenanker, Drafts, Validierung, Flagging, Undo.</td>
+</tr>
+<tr>
+  <td>Varianten verschlechtern Lernen</td>
+  <td>Nutzer lehnt CoRe ab</td>
+  <td>Reifegrad-Gates, Deck-Modus off/manual/auto, Feedback.</td>
+</tr>
+<tr>
+  <td>Zu viele KI-Kosten</td>
+  <td>Produkt unwirtschaftlich</td>
+  <td>Trigger, Batch, Dedupe, kleine Modelle.</td>
+</tr>
+<tr>
+  <td>Community wird toxisch</td>
+  <td>Verlust des Lernfokus</td>
+  <td>Keine Lernstände/Streaks/Online-Status anderer.</td>
+</tr>
+<tr>
+  <td>Nutzer wollen belastbare Portabilitaet</td>
+  <td>Kritik/Lock-in-Vorwurf</td>
+  <td>Lokaler JSON-Export ist vorhanden; spaeter Restore-Tests, Versionierung und interoperable Exportpfade ausbauen.</td>
+</tr>
+<tr>
+  <td>Tiefe Deck-Hierarchien werden unübersichtlich</td>
+  <td>UX-Probleme</td>
+  <td>Such-/Filterfunktion, Collapsible Tree, Breadcrumbs.</td>
+</tr>
+<tr>
+  <td>PDF-Auswahl unzuverlässig</td>
+  <td>Frust im Editor</td>
+  <td>editierbare Vorschau, OCR später, manuelle Korrektur.</td>
+</tr>
+<tr>
+  <td>Varianten werden erkannt</td>
+  <td>CoRe-Effekt verpufft</td>
+  <td>Keine Vorabmarkierung, optische Cues aktiv verändern.</td>
+</tr>
+<tr>
+  <td>Scheduler zu komplex</td>
+  <td>Nutzer überfordert</td>
+  <td>Einfache Profile statt Expertenmenü.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="21-definition-of-done-fuer-mvp">21. Definition of Done für MVP</h2>
+<p>Der MVP gilt als erfüllt, wenn:</p>
+<ol>
+<li>Ein Nutzer sich registrieren und ein Profil anlegen kann.</li>
+<li>Ein Nutzer einen APKG-Basic-Stapel importieren kann.</li>
+<li>Die Deck-Hierarchie sichtbar ist.</li>
+<li>Ein Nutzer Basic-Karten erstellen und bearbeiten kann.</li>
+<li>Ein Nutzer Karten in cleanem Review-Modus lernen kann.</li>
+<li>Review-Events mit vier Buttons gespeichert werden.</li>
+<li>Pro Deck ein CoRe-Modus sichtbar und änderbar ist.</li>
+<li>Das System für geeignete Karten Varianten erzeugen kann.</li>
+<li>Varianten im Review erscheinen können, ohne vorab markiert zu sein.</li>
+<li>Nach dem Aufdecken die Originalkarte als Anker sichtbar ist.</li>
+<li>Varianten deaktiviert oder gemeldet werden können.</li>
+<li>KI-Kartenerstellung aus mindestens einem Text-/PDF-Dokument Entwürfe erzeugt.</li>
+<li>KI-Entwürfe vor Übernahme geprüft werden können.</li>
+<li>KI-Jobs asynchron laufen und Status anzeigen.</li>
+<li>Es gibt keine Anzeige fremder Lernstände oder Social-Rankings.</li>
+</ol>
+<p><strong>Stand 2026-07-01:</strong> Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Nicht Teil dieser lokalen DoD-Erfuellung sind Hosting, produktive Datenbank, echte Authentifizierung, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte und Observability. Diese Luecke ist bewusst und wird in <code>todo.md</code> als Ausbaupfad gefuehrt.</p>
+<hr />
+<h2 id="22-beispielhafte-user-stories">22. Beispielhafte User Stories</h2>
+<h3 id="us-001-anki-nutzer-importiert-deck">US-001 — Anki-Nutzer importiert Deck</h3>
+<p>Als Medizinstudent möchte ich mein bestehendes Anatomie-APKG importieren, damit ich in CoRe weiterlernen kann, ohne meine Karten neu zu erstellen.</p>
+<p><strong>Akzeptanz:</strong> Deckstruktur und Basic-Karten erscheinen nach Import; nicht unterstützte Karten werden transparent gemeldet.</p>
+<h3 id="us-002-nutzer-erstellt-karte-aus-pdf">US-002 — Nutzer erstellt Karte aus PDF</h3>
+<p>Als Lernender möchte ich im Karteneditor ein PDF öffnen und markierten Text direkt in Vorder- oder Rückseite übernehmen, damit ich schneller Karten aus Skripten erstelle.</p>
+<h3 id="us-003-nutzer-lernt-ohne-ablenkung">US-003 — Nutzer lernt ohne Ablenkung</h3>
+<p>Als Nutzer möchte ich beim Lernen nur die Karte, Antwort und vier Bewertungsbuttons sehen, damit ich fokussiert bleibe.</p>
+<h3 id="us-004-nutzer-bekommt-variante">US-004 — Nutzer bekommt Variante</h3>
+<p>Als fortgeschrittener Nutzer möchte ich eine Karte nach mehreren erfolgreichen Wiederholungen anders gefragt bekommen, damit ich den Inhalt wirklich abrufe und nicht nur die Karte erkenne.</p>
+<h3 id="us-005-nutzer-prueft-originalanker">US-005 — Nutzer prüft Originalanker</h3>
+<p>Als Nutzer möchte ich bei einer KI-Variante das Original sehen können, damit ich Vertrauen habe und Fehler erkenne.</p>
+<h3 id="us-006-nutzer-schaltet-core-fuer-vokabeln-aus">US-006 — Nutzer schaltet CoRe für Vokabeln aus</h3>
+<p>Als Nutzer möchte ich für meinen Spanisch-Vokabelstapel Content Repetition deaktivieren, weil exakte Übersetzungen nicht sinnvoll umformuliert werden sollen.</p>
+<h3 id="us-007-gruppe-teilt-karten">US-007 — Gruppe teilt Karten</h3>
+<p>Als Lerngruppe möchte ich in einer kleinen Community Decks in Ordnern ablegen, damit wir Karten austauschen können, ohne unsere Lernstände offenzulegen.</p>
+<h3 id="us-008-nutzer-erstellt-ki-karten-aus-skript">US-008 — Nutzer erstellt KI-Karten aus Skript</h3>
+<p>Als Nutzer möchte ich ein PDF hochladen und einstellen, ob viele kleinteilige oder wenige verdichtete Karten entstehen, damit die KI zu meinem Lernstil passt.</p>
+<hr />
+<h2 id="23-ki-unterstuetzte-programmierung-implementierungsnotizen">23. KI-unterstützte Programmierung: Implementierungsnotizen</h2>
+<p>Damit KI-Coding-Agenten zuverlässig arbeiten können, sollten Issues und Prompts auf diese Modulgrenzen referenzieren:</p>
+<ul>
+<li><code>DeckService</code> nie mit Review-Logik vermischen.</li>
+<li><code>ReviewService</code> darf Karten wählen, aber nicht selbst KI generieren; Variantenjobs werden nur enqueued.</li>
+<li><code>CoreVariantService</code> verwaltet Eligibility, Variantenstatus und Anker.</li>
+<li><code>AIOrchestrator</code> kennt Modelle, Kosten, Trigger und Schemas.</li>
+<li><code>ImportService</code> speichert Rohdaten und ruft Parser-Worker.</li>
+<li><code>DocumentService</code> kapselt Dateien, Textlayer, Quellenanker.</li>
+<li><code>CommunityService</code> teilt Inhalte, niemals persönliche Lernstände.</li>
+</ul>
+<h3 id="231-empfohlene-issue-struktur">23.1 Empfohlene Issue-Struktur</h3>
+<pre><code class="language-text">[EPIC] Review MVP
+  [FE] ReviewCard component with front/back reveal
+  [FE] ReviewRatingBar with keyboard shortcuts
+  [BE] Review session endpoints
+  [BE] Scheduler interface and default implementation
+  [DB] review_states and review_events migration
+  [TEST] Gherkin scenarios for answer flow
+</code></pre>
+<h3 id="232-coding-agent-regeln">23.2 Coding-Agent-Regeln</h3>
+<p>Wenn ein KI-Agent Code schreibt, sollte er folgende Regeln erhalten:</p>
+<ol>
+<li>Keine KI-Ausgabe ohne Schema-Validation persistieren.</li>
+<li>Keine Variante ohne <code>sourceCardId</code> speichern.</li>
+<li>Keine Community-Funktion darf fremde <code>review_events</code> oder <code>review_states</code> anzeigen.</li>
+<li>Review-UI darf Variante erst nach Antwortaufdeckung als Variante erklären.</li>
+<li>Scheduler muss austauschbar bleiben.</li>
+<li>Import muss nicht unterstützte Daten erhalten, nicht wegwerfen.</li>
+<li>Alle KI-Jobs müssen idempotent sein.</li>
+<li>Model Provider dürfen nicht hart im UI verdrahtet werden.</li>
+</ol>
+<hr />
+<h2 id="24-beispiel-end-to-end-ablauf">24. Beispiel: End-to-End Ablauf</h2>
+<h3 id="241-import-und-lernen">24.1 Import und Lernen</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant U as User
+  participant FE as Frontend
+  participant API as API
+  participant W as Import Worker
+  participant DB as Database
+
+  U-&gt;&gt;FE: APKG hochladen
+  FE-&gt;&gt;API: POST /api/imports
+  API-&gt;&gt;DB: ImportJob queued
+  API-&gt;&gt;W: Job enqueued
+  W-&gt;&gt;DB: Decks/Cards erstellen
+  W-&gt;&gt;DB: ImportReport speichern
+  FE-&gt;&gt;API: Importstatus abfragen
+  API-&gt;&gt;FE: succeeded + report
+  U-&gt;&gt;FE: Lernen starten
+  FE-&gt;&gt;API: POST /api/review/session
+  API-&gt;&gt;FE: nächste Karte
+  U-&gt;&gt;FE: Antwort anzeigen + Good
+  FE-&gt;&gt;API: POST answer
+  API-&gt;&gt;DB: ReviewEvent + ReviewState
+</code></pre>
+<h3 id="242-variante-nach-reifegrad">24.2 Variante nach Reifegrad</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant R as ReviewService
+  participant C as CoreVariantService
+  participant AI as AIOrchestrator
+  participant DB as Database
+
+  R-&gt;&gt;DB: fällige Karten laden
+  R-&gt;&gt;C: chooseReviewCard(cardFamily)
+  C-&gt;&gt;DB: Reifegrad + Eligibility prüfen
+  alt Variante vorhanden
+    C-&gt;&gt;R: Variante zurückgeben
+  else Variante fehlt und Job erlaubt
+    C-&gt;&gt;AI: VariantJob enqueue
+    C-&gt;&gt;R: Originalkarte zurückgeben
+  end
+  AI-&gt;&gt;DB: Variante speichern mit sourceCardId
+</code></pre>
+<hr />
+<h2 id="25-zusammenfassung-der-wichtigsten-produktentscheidungen">25. Zusammenfassung der wichtigsten Produktentscheidungen</h2>
+<ol>
+<li><strong>CoRe erweitert Spaced Repetition um inhaltliche Varianten.</strong></li>
+<li><strong>Anki-Kompatibilität ist Einstiegshürde Nr. 1.</strong></li>
+<li><strong>Der erste Import kann Basic sein, muss aber auf komplexe Formate vorbereitet werden.</strong></li>
+<li><strong>Manuelle Erstellung soll durch Dokumentviewer und Markieren-zu-Feld schneller werden.</strong></li>
+<li><strong>KI-Kartenerstellung braucht Parameter für Anzahl, Dichte, Sprache und Detailgrad.</strong></li>
+<li><strong>Review bleibt clean, fullscreen und mit vier Buttons.</strong></li>
+<li><strong>Vorderseite bleibt nach Antwortaufdeckung sichtbar.</strong></li>
+<li><strong>Varianten werden vorab nicht als solche gekennzeichnet.</strong></li>
+<li><strong>Original- und Quellenanker sind Pflicht für Vertrauen.</strong></li>
+<li><strong>Content Repetition wird pro Stapel gesteuert: aus, automatisch, manuell.</strong></li>
+<li><strong>Nicht jede Karte wird variiert; Vokabeln und sehr kurze Karten brauchen Blacklist/Eligibility.</strong></li>
+<li><strong>KI wird triggerbasiert und sparsam orchestriert.</strong></li>
+<li><strong>Communitys sind klein, ordnerbasiert und ohne Lernstandsvergleich.</strong></li>
+<li><strong>Graph/Mindmap pro Stapel ist ein starkes späteres Kontext-Feature.</strong></li>
+<li><strong>Die Architektur muss mobile Nutzung, Servervarianten, Dedupe und spätere Datenportabilität berücksichtigen.</strong></li>
+</ol>
+<hr />
+<h2 id="26-naechste-empfohlene-schritte">26. Naechste empfohlene Schritte</h2>
+<p>Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisierter Soll/Ist-Backlog in <code>todo.md</code>.</p>
+<p><strong>Kurzfassung:</strong></p>
+<ol>
+<li>Lokalen MVP stabilisieren: Smoke-Skript, Accessibility, robuste Fehlerzustaende, Datenportabilitaet-Roundtrips.</li>
+<li>Hosting- und Produktivpfad entscheiden, ohne vorher generische Adapter-Schichten zu bauen.</li>
+<li>Persistenz/Auth-Stack auswaehlen und erst dann das lokale Repository-Interface mit einem echten Adapter verbinden.</li>
+<li>Dokument-, Medien- und APKG-Verarbeitung fuer grosse Dateien serverseitig planen.</li>
+<li>KI-Provider, Datenschutz, Job-Queue, Prompt-Versionierung und Evals als eigenes Ausbaupaket behandeln.</li>
+<li>Scheduler, Variantenqualitaet und Lernwirksamkeit mit echten Decks validieren.</li>
+<li>Community-Rechte, Sync, Mobile/PWA und Wachstumsschicht erst nach den Produktivgrundlagen ausbauen.</li>
+</ol>
+<hr />
+<h2 id="27-technischer-implementierungsanhang">27. Technischer Implementierungsanhang</h2>
+<p>Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die zentrale technische Navigationskarte fuer Menschen und KI-Agenten. Neben <code>AGENTS.md</code> sollen nur <code>specs.md</code>, <code>specs.html</code> und <code>todo.md</code> als Projekt-Dokumentation gepflegt werden.</p>
+<h3 id="271-aktuelle-hauptmodule">27.1 Aktuelle Hauptmodule</h3>
+<table>
+<thead><tr><th>Modul</th><th>Interface</th><th>Verantwortung</th></tr></thead>
+<tbody>
+<tr><td><code>src/coreModel.js</code></td><td><code>createCoreDeck</code>, <code>createCoreCard</code>, <code>createCardVariant</code>, <code>updateCardContent</code>, <code>restoreCardVersion</code></td><td>Domaenenobjekte, Review-State, Quellenanker, Versionen, Deck-Settings</td></tr>
+<tr><td><code>src/coreRepository.js</code></td><td><code>createCoreRepository()</code></td><td>Persistenter lokaler App-State, Migration alter Decks, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene</td></tr>
+<tr><td><code>src/coreWorkspace.js</code></td><td><code>createCoreWorkspace</code>, <code>createDemoAnatomyDeck</code></td><td>Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing und Massen-Deck-Updates</td></tr>
+<tr><td><code>src/scheduler.js</code></td><td><code>applyReviewRating</code>, <code>summarizeDeckReview</code></td><td>Vier-Button-Scheduler, Maturity-XP, Faelligkeit und Deck-Zusammenfassung</td></tr>
+<tr><td><code>src/reviewService.js</code></td><td><code>createReviewSession</code>, <code>recordReviewRating</code></td><td>Review-Auswahl, Events, Familien-/Variantenstatus</td></tr>
+<tr><td><code>src/coreVariantService.js</code></td><td><code>classifyCardEligibility</code>, <code>ensureVariantsForCard</code>, <code>chooseReviewCard</code>, <code>deactivateVariant</code>, <code>flagVariant</code></td><td>CoRe-Eligibility, Rephrase-Varianten, Variantentransparenz, Feedback</td></tr>
+<tr><td><code>src/reviewShortcuts.js</code></td><td><code>resolveReviewShortcut</code></td><td>Tastaturvertrag fuer Reveal, Bewertung und Exit im Review</td></tr>
+<tr><td><code>src/aiOrchestrator.js</code></td><td><code>generateCardsFromDocument</code>, <code>selectModel</code>, <code>validateCardGenerationOutput</code></td><td>Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts</td></tr>
+<tr><td><code>src/documentModel.js</code></td><td><code>createDocumentFromFile</code>, <code>createAnchorFromSelection</code>, <code>splitDocumentIntoPassages</code></td><td>Dokumente, Textlayer, Auswahl-zu-Quelle</td></tr>
+<tr><td><code>src/importService.js</code></td><td><code>createTextImportDeck</code>, <code>createCsvImportDeck</code>, <code>createTableImportDeck</code></td><td>Text-/CSV-/Excel-Paste-Import neben APKG</td></tr>
+<tr><td><code>src/apkgImport.js</code></td><td><code>createApkgImportPreview</code>, <code>mapAnkiToCoreDeck</code>, <code>commitImport</code></td><td>APKG-Import, Hierarchie, Raw-Fallback, Scheduler-Rohdaten</td></tr>
+<tr><td><code>src/communityModel.js</code></td><td><code>createCommunity</code>, <code>shareDeckToCommunity</code>, <code>copySharedDeckToLibrary</code></td><td>Kleine Gruppen, Ordner, Deck-Kopien ohne Lernmetriken</td></tr>
+<tr><td><code>src/deckGraph.js</code></td><td><code>buildDeckGraph</code>, <code>shouldRefreshDeckGraph</code></td><td>Themen-/Karten-Mindmap und Triggerlogik</td></tr>
+<tr><td><code>src/deckAssistant.js</code></td><td><code>answerDeckQuestion</code>, <code>retrieveDeckEvidence</code></td><td>Quellengebundene Antworten aus Karten, keine freien Halluzinationen</td></tr>
+<tr><td><code>src/learningPlan.js</code></td><td><code>createLearningPlan</code></td><td>Pruefungsplan aus Due-Karten, neuen Karten, Varianten und schwachen Themen</td></tr>
+<tr><td><code>src/authModel.js</code></td><td><code>createLocalAccount</code>, <code>signInLocalAccount</code>, <code>signOutLocalAccount</code>, <code>connectOAuthPlaceholder</code></td><td>Lokale Account-/Sitzungslogik fuer den Web-MVP</td></tr>
+<tr><td><code>src/dataPortability.js</code></td><td><code>createPortableExport</code>, <code>stringifyPortableExport</code>, <code>validatePortableExport</code>, <code>mergePortableExportIntoState</code></td><td>JSON-Export/-Import ohne Passwort-Verifier</td></tr>
+<tr><td><code>src/menuModel.js</code></td><td><code>createMenuModel</code></td><td>Informationsarchitektur und Navigation</td></tr>
+</tbody>
+</table>
+<h3 id="272-ui-screens">27.2 UI-Screens</h3>
+<p>Alle Screens liegen derzeit in <code>src/App.jsx</code>, verwenden aber die Module oben als Test- und Implementierungsoberflaeche.</p>
+<ul>
+<li><code>DashboardScreen</code>: Profil-Onboarding, Tagesmetriken, Schnellzugriff.</li>
+<li><code>DecksScreen</code>: Deck-Hierarchie, Suche/Filter, CoRe-Modus, Karten-CRUD, Aktionen.</li>
+<li><code>CreationScreen</code>: APKG, Text/CSV/Excel-Paste, manuell mit Dokumentanker, KI-Drafts.</li>
+<li><code>StudyMode</code>: Clean Fullscreen Review, Front+Back nach Aufdeckung, vier Buttons, Tastatursteuerung, Originalanker, Variantenfeedback.</li>
+<li><code>GraphScreen</code>: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.</li>
+<li><code>CommunityScreen</code>: Community erstellen, Deck teilen, Deck kopieren.</li>
+<li><code>AiJobsScreen</code>: lokale Job-Historie und Status.</li>
+<li><code>AssistantScreen</code>: Chat-your-Deck und Lernplan.</li>
+<li><code>SettingsScreen</code>: Profil, lokale Account-Sitzung, Hochschule, Sprache, Datenschutz, globaler CoRe-Modus, Datenportabilitaet.</li>
+</ul>
+<h3 id="273-testoberflaeche">27.3 Testoberflaeche</h3>
+<ul>
+<li><code>src/coreFeatures.test.js</code>: Scheduler, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.</li>
+<li><code>src/coreWorkspace.test.js</code>: lokale App-Kommandos fuer Demo-Deck, Graph, Community-Share und Massen-Deck-Update.</li>
+<li><code>src/coreModel.test.js</code>: manuelle Karten und KI-Draft-Akzeptanz.</li>
+<li><code>src/apkgImport.test.js</code>: APKG-Mapping und HTML-Sicherheit.</li>
+<li><code>src/menuModel.test.js</code>: Navigationsvertrag.</li>
+</ul>
+<h3 id="274-gemeinsames-kartenmodell">27.4 Gemeinsames Kartenmodell</h3>
+<p>Alle Lerninhalte gehoeren zu einem <code>CoreDeck</code>. Die aktuelle Quelle einer Karte ist einer der folgenden lokalen Werte: <code>anki-apkg</code>, <code>manual</code>, <code>ai-assisted</code>, <code>text-import</code>, <code>csv-import</code>, <code>spreadsheet-import</code>, <code>community</code>.</p>
+<p>Alle Quellen erzeugen <code>CoreCard</code>-Objekte ueber dieselbe Modellschicht. Jede Karte besitzt eine unveraenderliche Originalrepraesentation in <code>immutableOriginal</code>. Varianten duerfen spaeter nur separat entstehen und nie Originalfelder ueberschreiben.</p>
+<h3 id="275-manuelle-erstellung-und-quellenanker">27.5 Manuelle Erstellung und Quellenanker</h3>
+<p>Der Screen <code>Erstellen</code> unterstuetzt aktuell Basic front/back, Basic reversed, Cloze deletion, Image occlusion, Multiple choice und Free text als lokale Kartentypauswahl. Textdokumente koennen direkt im Browser gelesen werden. PDF, DOCX und Bilder werden als Dokumentkontext erfasst; robuste Textextraktion, OCR und Bildregionen gehoeren in die spaetere Server-/Worker-Ausbaustufe.</p>
+<p>Markierter Text wird in das aktive Kartenfeld uebernommen und als <code>SourceAnchor</code> mit <code>documentId</code>, <code>documentName</code>, <code>textQuote</code>, <code>targetField</code> sowie optionalen Positionsdaten gespeichert.</p>
+<h3 id="276-ki-erstellung">27.6 KI-Erstellung</h3>
+<p>KI-assistierte Erstellung ist review-first. Der lokale MVP kennt Parameter fuer Sprache, Kartenanzahl, Detailgrad, Quellennaehe, Kartentypen, Schwierigkeit, Fach/Kontext und Stil. Aktuell wird keine externe KI-API aufgerufen. <code>src/aiOrchestrator.js</code> erzeugt deterministische, strukturierte Entwuerfe aus Quellentext, validiert das erwartete JSON-Schema und speichert Quellenanker. Generierte Karten behalten <code>draftStatus: "draft"</code>, bis der Nutzer sie akzeptiert.</p>
+<h3 id="277-apkg-import">27.7 APKG-Import</h3>
+<p>Unterstuetzt sind Upload und Validierung von <code>.apkg</code>-Dateien, lokales ZIP-Lesen, Erkennung von <code>collection.anki2</code>, <code>collection.anki21</code> und <code>collection.anki21b</code>, ein minimaler SQLite-Reader fuer <code>col</code>, <code>notes</code> und <code>cards</code>, Deck-/Unterdeck-Hierarchien, Raw-Fallbacks, Anki-Scheduler-Rohdaten, Mapping in <code>CoreDeck</code>/<code>CoreCard</code>, lokale Speicherung und sichere HTML-Vorschau.</p>
+<p>Bewusst noch nicht unterstuetzt sind vollstaendige Anki-Template-Auswertung, vollstaendige Cloze-Review-Logik, Mediendatei-Persistenz, vollstaendige Revlog-Migration, passwortgeschuetzte Spezialarchive und sehr grosse Browser-Imports ueber 250 MB.</p>
+<h3 id="278-chat-your-deck-lernplan-und-portabilitaet">27.8 Chat-your-Deck, Lernplan und Portabilitaet</h3>
+<p>Der lokale Assistent beantwortet Fragen nur aus vorhandenen Karten. Karten werden ueber einfache Token-Ueberschneidung und Tags gerankt; Reifegrad priorisiert nur vorhandene Treffer. Jede Antwort enthaelt <code>citations</code>; ohne Quelle verweigert der Assistent eine freie Antwort.</p>
+<p><code>createLearningPlan</code> erzeugt Tageszeilen aus Zieltermin, verfuegbaren Minuten, neuen Karten, faelligen Reviews, aktiven Varianten und schwachen Tags. Der Plan ist kein Kalender-Adapter; ein spaeterer Kalender- oder Benachrichtigungsadapter soll die erzeugten Planobjekte konsumieren.</p>
+<p><code>src/dataPortability.js</code> erzeugt einen lokalen JSON-Export mit Decks, Communities, Jobs und Dokumenten. Der lokale Passwort-Verifier wird entfernt. Import validiert Schema und Version, bevor Daten in den lokalen App-State gemergt werden.</p>
+<h3 id="279-adapter-entscheidung">27.9 Adapter-Entscheidung</h3>
+<p>Noch keine Adapter-Schicht fuer Backend/Auth/LLM einfuehren, solange es nur einen lokalen Pfad gibt. Spaetere Adapter sollen hinter den bestehenden Modul-Interfaces landen, nicht in React-Callern. Diese Haltung folgt dem Projektprinzip: eine echte Naht entsteht erst, wenn mindestens zwei reale Adapterpfade existieren.</p>
+
+      </article>
+    </main>
+  </div>
+</body>
+</html>

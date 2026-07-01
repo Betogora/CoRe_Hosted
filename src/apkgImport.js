@@ -1,5 +1,5 @@
 import { createCoreRepository } from "./coreRepository.js";
-import { createCoreCard, createCoreDeck } from "./coreModel.js";
+import { createCoreCard, createCoreDeck, createReviewState } from "./coreModel.js";
 import { stripHtml } from "./htmlSafety.js";
 import { readSqliteDatabase } from "./sqliteReader.js";
 import { readZipArchive } from "./zipReader.js";
@@ -50,6 +50,33 @@ function getDecksFromCollection(colRows) {
 function getModelsFromCollection(colRows) {
   const first = colRows[0] ?? {};
   return parseJson(first.models, {});
+}
+
+function buildDeckHierarchy(decks) {
+  const nodeByPath = new Map();
+
+  for (const deck of decks) {
+    const parts = String(deck.name ?? "Anki Deck")
+      .split("::")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    parts.forEach((part, index) => {
+      const path = parts.slice(0, index + 1).join("::");
+      const parentPath = parts.slice(0, index).join("::") || null;
+      if (!nodeByPath.has(path)) {
+        nodeByPath.set(path, {
+          id: index === parts.length - 1 ? String(deck.id) : `virtual_${path}`,
+          name: part,
+          path,
+          parentPath,
+          depth: index,
+        });
+      }
+    });
+  }
+
+  return [...nodeByPath.values()];
 }
 
 function extractMediaRefs(html) {
@@ -109,7 +136,7 @@ function chooseFrontBack(note, models) {
   };
 }
 
-function buildWarnings({ cards, notes, mediaMap, hasCloze }) {
+function buildWarnings({ cards, notes, mediaMap, hasCloze, unsupportedNoteTypes }) {
   const warnings = [
     "Scheduling-Daten und Review-Historie werden im MVP bewusst noch nicht vollstaendig uebernommen.",
   ];
@@ -124,6 +151,10 @@ function buildWarnings({ cards, notes, mediaMap, hasCloze }) {
 
   if (Object.keys(mediaMap).length > 0) {
     warnings.push("Medien werden im MVP referenziert, aber noch nicht als Dateien in CoRe gespeichert.");
+  }
+
+  if (unsupportedNoteTypes.length > 0) {
+    warnings.push(`Nicht vollstaendig verstandene Note Types wurden roh gesichert: ${unsupportedNoteTypes.join(", ")}.`);
   }
 
   if (notes.length === 0 || cards.length === 0) {
@@ -201,6 +232,7 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
   const deckById = new Map(decks.map((deck) => [deck.id, deck]));
   const noteById = new Map(notes.map((note) => [String(note.id), note]));
   const primaryDeck = decks[0] ?? { id: "unknown", name: file.name.replace(/\.apkg$/i, "") };
+  const unsupportedNoteTypes = [];
   const createdAt = new Date().toISOString();
   let hasCloze = false;
 
@@ -212,6 +244,12 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
       const deck = deckById.get(String(card.did)) ?? primaryDeck;
       const frontBack = chooseFrontBack(note, models);
       hasCloze = hasCloze || frontBack.isCloze;
+      const model = models[String(note.mid)] ?? {};
+      const modelName = model.name ?? "Unknown Note Type";
+      const isKnownType = frontBack.isCloze || frontBack.fields.length <= 2 || /basic|cloze/i.test(modelName);
+      if (!isKnownType && !unsupportedNoteTypes.includes(modelName)) {
+        unsupportedNoteTypes.push(modelName);
+      }
       const originalHtml = [frontBack.front, frontBack.back].filter(Boolean).join("<hr>");
       const mediaRefs = unique([
         ...extractMediaRefs(originalHtml),
@@ -229,13 +267,36 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
         originalTags: normalizeTags(note.tags),
         originalHtml,
         mediaRefs,
-        cardType: frontBack.isCloze ? "cloze" : "basic",
+        cardType: frontBack.isCloze ? "cloze" : Number(card.ord ?? 0) > 0 ? "basic-reversed" : "basic",
         draftStatus: "accepted",
+        reviewState: createReviewState({
+          reviewableType: "card",
+          intervalDays: 0,
+          ease: Number(card.factor ?? 2500) / 1000 || 2.5,
+          repetitions: 0,
+          lapses: 0,
+          maturityXp: 0,
+          sourceSchedulerData: {
+            due: card.due ?? null,
+            interval: card.ivl ?? null,
+            factor: card.factor ?? null,
+            reps: card.reps ?? null,
+            lapses: card.lapses ?? null,
+            type: card.type ?? null,
+            queue: card.queue ?? null,
+          },
+        }),
         createdAt,
         meta: {
           sourceDeckId: String(deck.id),
           sourceDeckName: deck.name,
           ankiOrd: card.ord,
+          ankiModelName: modelName,
+          unsupportedNoteType: !isKnownType,
+          rawAnki: {
+            note,
+            card,
+          },
         },
       });
     })
@@ -258,6 +319,9 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
       mediaCount: Object.keys(mediaMap).length,
       hasMedia: Object.keys(mediaMap).length > 0,
       hasCloze,
+      deckHierarchy: buildDeckHierarchy(decks),
+      unsupportedNoteTypes,
+      learningProgressStatus: "raw-data-preserved-neutral-state",
     },
     cards: coreCards,
   });
@@ -314,6 +378,7 @@ export async function createApkgImportPreview(file, onStep = () => {}) {
     notes,
     mediaMap,
     hasCloze: coreDeck.importMeta.hasCloze,
+    unsupportedNoteTypes: coreDeck.importMeta.unsupportedNoteTypes,
   });
   onStep("preview");
 
