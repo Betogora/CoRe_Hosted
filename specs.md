@@ -2,27 +2,29 @@
 
 **Produkt- und Engineering-Spezifikation**  
 **Dateien:** `specs.md` und `specs.html`  
-**Status:** Arbeitsfassung v0.1  
-**Datum:** 2026-06-30  
-**Quellenbasis:** Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gründergespräch „Diskussion der Gründer.txt“
+**Status:** Arbeitsfassung v0.2
+**Datum:** 2026-07-06
+**Quellenbasis:** Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + aktueller Codebase-Stand
 
 ---
 
-## Implementierungsstand 2026-07-01
+## Implementierungsstand 2026-07-06
 
-Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft. Der aktuelle Stand ist ein breiter lokaler Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt, aber noch nicht als gehostetes Mehrnutzerprodukt betreibbar. Der App-State liegt in `localStorage`, Authentifizierung ist lokal modelliert, KI-Funktionen laufen deterministisch/lokal, und Hintergrundjobs sind im Frontend sichtbar statt serverseitig ausgefuehrt.
+Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-06 an die aktuellen Codebase-Aenderungen angepasst. Der aktuelle Stand ist ein breiter lokaler Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt, aber noch nicht als gehostetes Mehrnutzerprodukt betreibbar. Der App-State liegt in `localStorage`, Authentifizierung ist lokal modelliert, KI-Funktionen laufen deterministisch/lokal, und Hintergrundjobs sind im Frontend sichtbar statt serverseitig ausgefuehrt.
+
+Wichtige Aenderung seit der ersten lokalen Spezifikationsfassung: Die bisherige Deck-`cards`-Collection bleibt im lokalen State aus Kompatibilitaetsgruenden bestehen, enthaelt fachlich aber Learning Items. `src/coreModel.js` normalisiert neue und alte Karten ueber eine gemeinsame Creation Pipeline. Jedes Learning Item besitzt genau eine Original-Variante; Reverse-, Cloze-, importierte und KI-/Rephrase-Varianten sind daran verankert und koennen eigene Review-States, Performance- und Feedbackdaten tragen.
 
 Die aktuelle Architektur macht bewusst noch keine umfangreiche Bauvorleistung fuer Hosting, Datenbank, externe Auth-Provider oder externe LLM-Provider. Diese Adapter sollen erst eingefuehrt werden, wenn der reale Zielpfad entschieden ist. Bis dahin sind die bestehenden Modul-Interfaces die relevante Vorbereitung: React-Caller sollen keine Datenbank-, Auth- oder Modellanbieter-Details kennen muessen.
 
 | Bereich | Implementierte lokale Module / Screens |
 |---|---|
 | Account, Profil, Datenschutz | `DashboardScreen`, `SettingsScreen`, `createCoreRepository().saveProfile()` |
-| Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `coreModel.createCoreDeck`, `deckSettings.coreMode` |
-| Import | `apkgImport`, `importService` fuer Text/CSV/Excel-Paste, Importberichte und Raw-Fallbacks |
-| Manuelle Erstellung | `ManualCreationPanel`, `documentModel`, `sourceAnchors` |
-| KI-Kartenerstellung | `aiOrchestrator.generateCardsFromDocument`, Draft-Review, Schema-Validation |
-| Review/Scheduler | `reviewService`, `scheduler`, `reviewShortcuts`, vier Buttons, Tastatur, Front+Back nach Aufdeckung |
-| Content Repetition | `coreVariantService`, Eligibility, Rephrase, Variantenstatus, Dedupe-Hash |
+| Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `coreModel.createCoreDeck`, `deckSettings.coreMode`, Learning-Item-Normalisierung |
+| Import | `apkgImport`, `importService` fuer APKG/Text/CSV/Excel-Paste, Importberichte, Raw-Fallbacks, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge |
+| Manuelle Erstellung | `ManualCreationPanel`, `documentModel`, `sourceAnchors`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem` |
+| KI-Kartenerstellung | `aiOrchestrator.generateCardsFromDocument`, Draft-Review, Schema-Validation, normalisierte Draft-Items |
+| Review/Scheduler | `reviewService`, `scheduler`, `reviewShortcuts`, vier Buttons, Tastatur, Front+Back nach Aufdeckung, Learning-Item-/Varianten-Events |
+| Content Repetition | `coreVariantService`, Eligibility, Rephrase, Original-Variantenanker, Variantenstatus, Dedupe-Hash |
 | Trust/Versionierung | `sourceAnchors`, `versionLog`, Variant-Feedback, Deaktivieren, Restore-Basis |
 | Community | `communityModel`, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten |
 | Deck Graph | `deckGraph`, Triggerlogik und SVG-Mindmap-Screen |
@@ -36,12 +38,13 @@ Die aktuelle Architektur macht bewusst noch keine umfangreiche Bauvorleistung fu
 
 - Navigation, Dashboard, Profil-Onboarding, Datenschutzeinstellungen und globale CoRe-Voreinstellungen.
 - Deck-Verwaltung mit Suche/Filter, Hierarchie-Metadaten, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen.
-- APKG-Basic-Import inklusive Importbericht, Deck-Mapping, HTML-Sanitization und Raw-/Fallback-Feldern.
-- Text-, CSV- und Excel-/Tabellen-Paste-Import als schnelle Front/Back-Erstellung.
-- Manuelle Kartenerstellung mit Dokumentkontext und Quellenankern fuer markierten Text.
+- Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, importierte Varianten und KI-Drafts; Legacy-Karten werden beim Lesen normalisiert.
+- APKG-Basic-Import inklusive Importbericht, Deck-Mapping, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten, lokalem Browser-Medienspeicher und Reimport-Merge ohne Verlust lokaler Content-Edits.
+- Text-, CSV- und Excel-/Tabellen-Paste-Import als schnelle Front/Back-Erstellung ueber dieselbe Normalisierungsschicht.
+- Manuelle Kartenerstellung mit Dokumentkontext, Quellenankern fuer markierten Text und stabiler Original-Variante.
 - Deterministische KI-Drafts aus Quellentext mit Schema-Validation, Draft-Review und Annahme in die Bibliothek.
-- Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, Review-Events und Maturity-XP.
-- Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker, Deaktivieren und Fehler-Feedback.
+- Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern und Maturity-XP.
+- Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker-Minikarte, Deaktivieren und Fehler-Feedback.
 - Kleine lokale Community-Logik mit Ordnern und Deck-Kopien ohne fremde Reviewdaten.
 - Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten, Lernplan-Generator, AI-Job-Uebersicht und JSON-Datenportabilitaet.
 
@@ -52,7 +55,7 @@ Die aktuelle Architektur macht bewusst noch keine umfangreiche Bauvorleistung fu
 - Accounts sind lokal modelliert; es gibt keine echte Registrierung, E-Mail-Verifikation, OAuth-Anbindung oder Session-Infrastruktur.
 - KI ist lokal/deterministisch simuliert; es gibt noch keine Provider-Adapter, kein echtes Token-/Kostenlogging und keine produktive Prompt-/Eval-Pipeline.
 - Jobs laufen nicht in einer Queue oder Worker-Infrastruktur; die Job-Sicht ist ein lokaler Produkt- und Datenmodell-Prototyp.
-- Datei- und Dokumentverarbeitung ist bewusst begrenzt: robuste PDF-/DOCX-Extraktion, OCR, Bildregionen und Medienhosting fehlen noch.
+- Datei- und Dokumentverarbeitung ist bewusst begrenzt: robuste PDF-/DOCX-Extraktion, OCR, Bildregionen, serverseitige APKG-Medienpersistenz und Medienhosting fehlen noch.
 - Community ist lokal und privacy-sicher modelliert, aber ohne echte Mitgliederverwaltung, Berechtigungen, Einladungen oder Moderation.
 - Export/Import ist als lokaler JSON-Portabilitaetspfad vorhanden, aber noch kein interoperabler Anki-/Cloud-/Backup-Standard.
 - Mobile, PWA-Offline, Push-Benachrichtigungen, Zahlungen, Admin-/Support-Werkzeuge und produktive Observability sind nicht umgesetzt.
@@ -486,6 +489,8 @@ Der MVP MUSS APKG-Dateien importieren können, mindestens für:
 - Deck- und Unterdecknamen.
 - Tags, sofern vorhanden.
 
+**Lokaler Stand 2026-07-06:** `src/apkgImport.js` liest APKG-Dateien als ZIP, sucht `collection.anki21b`, `collection.anki21` und `collection.anki2`, akzeptiert direkte SQLite-Collections und versucht bei Zstd-Signatur eine lokale Dekompression ueber `fzstd`. Wenn `collection.anki21b` nicht lesbar ist, kann ein lesbares `collection.anki2`-Fallback genutzt werden. Legacy-`media`-JSON und moderne MediaEntries werden als Manifest mit Dateiname, ZIP-Entry, SHA-1, Groesse und MIME-Typ ausgewertet; die Importvorschau kann Media-Dateien mit Bytes tragen. `src/mediaStore.js` speichert APKG-Medien lokal in IndexedDB und nutzt einen Session-Fallback, wenn IndexedDB nicht verfuegbar ist. Serverseitige Medienpersistenz und Hosting bleiben Ausbaupunkte.
+
 ### FR-IMPORT-003 — APKG-Ausbau
 
 Die Importarchitektur MUSS so gebaut werden, dass weitere Anki-Formate und Note Types ergänzt werden können:
@@ -572,6 +577,8 @@ CoRe SOLL typische Karteitypen anbieten:
 | Image Occlusion | Später/Soll | Bildbereiche verdecken, besonders relevant für Medizin. |
 | Multi-Field Note | Später | Flexible Notizen mit mehreren generierten Karten. |
 | Case/Vignette | Später | Fallbasierte Varianten, z. B. Medizin/Jura. |
+
+**Lokaler Stand 2026-07-06:** `createBasicLearningItem`, `createBasicReverseLearningItem` und `createClozeLearningItem` bilden den gemeinsamen Erstellungspfad. Basic erzeugt genau eine Original-Variante; Reverse und Cloze erzeugen zusaetzliche aktive Varianten, die an diese Original-Variante gebunden sind.
 
 ### FR-CREATE-003 — Dokumentviewer in der Kartenerstellung
 
@@ -928,11 +935,13 @@ Vor dem Aufdecken soll die Karte nicht als Variante auffallen. Nach dem Aufdecke
 
 ### FR-TRUST-001 — Originalanker
 
-Jede Variante MUSS auf mindestens eine Originalkarte verweisen.
+Jede Variante MUSS auf mindestens ein Learning Item und dessen Original-Variante verweisen. `sourceCardId` bleibt als Compatibility-Feld erlaubt, darf aber nicht der einzige fachliche Anker sein.
 
 **Zu speichern:**
 
-- `sourceCardId`.
+- `learningItemId`.
+- `sourceCardId` / `cardId` als lokale Compatibility-Aliasse.
+- `anchorVariantId` oder `parentVariantId`.
 - Transformationsart.
 - Erzeugungszeitpunkt.
 - Modell/Version.
@@ -1322,6 +1331,8 @@ Die Datenstruktur muss drei Welten verbinden:
 2. Scheduling und Review-Historie.
 3. KI/Varianten/Quellen/Community.
 
+**Aktueller lokaler Modellstand 2026-07-06:** Im Browser-State heisst die Deck-Collection weiterhin `cards`, damit bestehende lokale Daten kompatibel bleiben. Semantisch sind diese Eintraege aber Learning Items: Sie tragen `canonicalQuestion`, `canonicalAnswer`, `learningItemState`/`reviewState`, Quellenanker, Versionen und eine Variantenliste. Die Variantenliste enthaelt immer genau eine `isOriginal: true`-Variante als unveraenderlichen Lernanker; weitere Varianten referenzieren sie ueber `anchorVariantId`/`parentVariantId`.
+
 ### 10.1 Entity-Übersicht
 
 ```mermaid
@@ -1330,15 +1341,16 @@ erDiagram
   User ||--o{ ReviewEvent : creates
   Deck ||--o{ Deck : has_subdeck
   Deck ||--o{ Note : contains
-  Note ||--o{ Card : generates
-  Card ||--o{ CardVariant : has
-  Card ||--o{ ReviewState : has
-  Card ||--o{ ReviewEvent : receives
+  Deck ||--o{ LearningItem : contains
+  Note ||--o{ LearningItem : imports_or_generates
+  LearningItem ||--o{ CardVariant : has
+  LearningItem ||--o{ ReviewState : has_family_state
+  LearningItem ||--o{ ReviewEvent : receives
   CardVariant ||--o{ ReviewState : has
   SourceDocument ||--o{ SourceAnchor : provides
-  Card ||--o{ SourceAnchor : references
+  LearningItem ||--o{ SourceAnchor : references
   CardVariant ||--o{ SourceAnchor : references
-  ImportJob ||--o{ Card : creates
+  ImportJob ||--o{ LearningItem : creates
   AIJob ||--o{ CardVariant : creates
   Community ||--o{ CommunityMember : has
   Community ||--o{ CommunityFolder : contains
@@ -1407,7 +1419,33 @@ erDiagram
 | `anki_note_guid` | string nullable | Für Anki-Import. |
 | `created_at` | timestamp | Erstellung. |
 
+#### `learning_items`
+
+Serverseitig SOLL diese Tabelle die fachliche Einheit tragen, die lokal aus Kompatibilitaetsgruenden noch in `deck.cards[]` liegt.
+
+| Feld | Typ | Beschreibung |
+|---|---|---|
+| `id` | uuid | Learning-Item-ID; lokal weiterhin kompatibel als Card-ID nutzbar. |
+| `note_id` | uuid nullable | Optionale Note-/Import-Quelle. |
+| `deck_id` | uuid | Zieldeck. |
+| `card_type` | enum | `basic/basic-reversed/cloze/image-occlusion/multiple-choice/free-text/multi-field/case-vignette`. |
+| `source_type` | enum | `manual/anki_import/ai_generated/mixed`. |
+| `source_ref_id` | string nullable | Externe Import-/Quellenreferenz. |
+| `canonical_question` | rich_text | Semantische Kernfrage. |
+| `canonical_answer` | rich_text | Semantische Kernantwort. |
+| `immutable_original` | json | Originalfront, Originalback, Felder, HTML und Content-Hash. |
+| `tags` | string[] | Normalisierte Tags. |
+| `concepts` | string[] | Optionale Konzepte fuer Graph/Plan. |
+| `draft_status` | enum | `draft/accepted` fuer KI- und Review-first-Erstellung. |
+| `status` | enum | `active/suspended/deleted`. |
+| `content_hash` | string | Dedupe ueber semantischen Inhalt. |
+| `version_log` | json | Append-only Aenderungshistorie. |
+| `created_at` | timestamp | Erstellung. |
+| `updated_at` | timestamp | Aenderung. |
+
 #### `cards`
+
+`cards` kann in einer spaeteren Serverarchitektur eine konkrete Review-/Template-Projektion aus `learning_items` bleiben. Im aktuellen lokalen Code ist `cards[]` jedoch die Compatibility Collection fuer Learning Items.
 
 | Feld | Typ | Beschreibung |
 |---|---|---|
@@ -1431,15 +1469,27 @@ erDiagram
 | Feld | Typ | Beschreibung |
 |---|---|---|
 | `id` | uuid | Variant-ID. |
-| `source_card_id` | uuid | Originalkarte. |
+| `learning_item_id` | uuid | Fachlicher Parent. |
+| `card_id` | uuid | Compatibility-Alias fuer lokale Card-ID. |
+| `source_card_id` | uuid | Compatibility-Alias fuer lokale Card-/Learning-Item-ID. |
+| `variant_type` | enum | `basic/reverse/cloze/mcq/transfer/case/image_occlusion/custom`. |
+| `variant_level` | int | 1 fuer Original, hoeher fuer abgeleitete Varianten. |
 | `front` | rich_text | Variantenfrage. |
 | `back` | rich_text | Variantenantwort. |
-| `transform_type` | enum | z. B. `rephrase`. |
+| `generation_source` | enum | `original/ai_generated/user_edited/imported`. |
+| `parent_variant_id` | uuid nullable | Direkter Ableitungsanker. |
+| `anchor_variant_id` | uuid nullable | Antwortseitig sichtbarer Original-/Ursprungsanker. |
+| `is_original` | boolean | Genau eine Original-Variante pro Learning Item. |
+| `is_active` | boolean | Schneller aktiver/inaktiver Status. |
+| `transform_type` | enum | `original/rephrase/front_back_style_shift/cloze_conversion`. |
 | `transform_profile` | json | Parameter. |
 | `model_run_id` | uuid nullable | KI-Lauf. |
 | `confidence` | number | 0–1. |
 | `quality_status` | enum | `draft/active/rejected/flagged/disabled`. |
 | `content_hash` | string | Dedupe. |
+| `review_state` | json nullable | Eigener Varianten-Review-State, falls die Variante separat gelernt wurde. |
+| `performance` | json | Variantenqualitaet und Review-Metriken. |
+| `feedback` | json[] | Nutzermeldungen wie fachlich falsch oder deaktiviert. |
 | `created_at` | timestamp | Erstellung. |
 
 #### `review_states`
@@ -1447,8 +1497,9 @@ erDiagram
 | Feld | Typ | Beschreibung |
 |---|---|---|
 | `id` | uuid | State-ID. |
-| `reviewable_type` | enum | `card/variant/card_family`. |
-| `reviewable_id` | uuid | Card/Variant/Family. |
+| `learning_item_id` | uuid nullable | Zugehoeriges Learning Item. |
+| `reviewable_type` | enum | `learning_item/card/variant/card_family`. |
+| `reviewable_id` | uuid | LearningItem/Card/Variant/Family. |
 | `user_id` | uuid | Nutzer. |
 | `due_at` | timestamp | Nächste Fälligkeit. |
 | `interval_days` | number | Intervall. |
@@ -1467,6 +1518,9 @@ erDiagram
 |---|---|---|
 | `id` | uuid | Event-ID. |
 | `user_id` | uuid | Nutzer. |
+| `deck_id` | uuid | Deck-Kontext. |
+| `learning_item_id` | uuid | Learning Item / lokale Card-ID. |
+| `variant_id` | uuid nullable | Variante, falls Variante reviewt wurde. |
 | `reviewable_type` | enum | `card/variant`. |
 | `reviewable_id` | uuid | Objekt. |
 | `source_card_id` | uuid nullable | Bei Variante. |
@@ -1575,8 +1629,19 @@ erDiagram
 ```ts
 export type CoreMode = "off" | "auto" | "manual";
 export type ReviewRating = "again" | "hard" | "good" | "easy";
-export type CardType = "basic" | "reverse" | "cloze" | "image_occlusion" | "custom";
-export type ReviewableType = "card" | "variant";
+export type CardType =
+  | "basic"
+  | "basic-reversed"
+  | "cloze"
+  | "image-occlusion"
+  | "multiple-choice"
+  | "free-text"
+  | "multi-field"
+  | "case-vignette";
+export type LearningItemSourceType = "manual" | "anki_import" | "ai_generated" | "mixed";
+export type CardVariantType = "basic" | "reverse" | "cloze" | "mcq" | "transfer" | "case" | "image_occlusion" | "custom";
+export type VariantGenerationSource = "original" | "ai_generated" | "user_edited" | "imported";
+export type ReviewableType = "learning_item" | "card" | "variant";
 
 export interface Deck {
   id: string;
@@ -1586,6 +1651,7 @@ export interface Deck {
   description?: string | null;
   visibility: "private" | "community" | "unlisted" | "public";
   settings: DeckSettings;
+  cards: LearningItem[]; // local compatibility collection name
   counts?: DeckCounts;
 }
 
@@ -1597,45 +1663,60 @@ export interface DeckSettings {
   aiPolicy: AIPolicy;
 }
 
-export interface Card {
+export interface LearningItem {
   id: string;
-  noteId: string;
+  noteId?: string | null;
   deckId: string;
-  type: CardType;
-  front: RichTextContent;
-  back: RichTextContent;
+  cardType: CardType;
+  kind: CardType;
+  sourceType: LearningItemSourceType;
+  canonicalQuestion: RichTextContent;
+  canonicalAnswer: RichTextContent;
+  originalFront: RichTextContent;
+  originalBack: RichTextContent;
+  immutableOriginal: ImmutableOriginal;
   tags: string[];
-  mediaRefs: MediaRef[];
-  originalCardId?: string | null;
+  concepts: string[];
+  variants: CardVariant[];
+  learningItemState: ReviewState;
+  reviewState: ReviewState; // compatibility alias
   sourceAnchors: SourceAnchor[];
+  mediaRefs: MediaRef[];
+  draftStatus: "draft" | "accepted";
   status: "active" | "suspended" | "deleted";
+  versionLog: VersionEntry[];
 }
 
 export interface CardVariant {
   id: string;
+  learningItemId: string;
+  cardId: string;
   sourceCardId: string;
-  transformType: TransformType;
+  variantType: CardVariantType;
+  variantLevel: number;
   front: RichTextContent;
   back: RichTextContent;
+  generationSource: VariantGenerationSource;
+  parentVariantId?: string | null;
+  anchorVariantId?: string | null;
+  isOriginal: boolean;
+  isActive: boolean;
+  transformType: TransformType;
   confidence: number;
   qualityStatus: "draft" | "active" | "rejected" | "flagged" | "disabled";
   sourceAnchors: SourceAnchor[];
+  reviewState?: ReviewState | null;
   modelRunId?: string | null;
 }
 
 export type TransformType =
+  | "original"
   | "rephrase"
   | "front_back_style_shift"
-  | "cloze_conversion"
-  | "cloze_shift"
-  | "aspect_focus"
-  | "combine_related"
-  | "split_dense_card"
-  | "case_vignette"
-  | "compare_contrast"
-  | "reverse_reasoning";
+  | "cloze_conversion";
 
 export interface ReviewState {
+  learningItemId?: string | null;
   reviewableType: ReviewableType | "card_family";
   reviewableId: string;
   dueAt: string;
@@ -1669,7 +1750,9 @@ GET    /api/decks/:deckId/tree
 GET    /api/decks/:deckId/cards
 ```
 
-### 11.2 Cards
+### 11.2 Cards / Learning Items
+
+Im lokalen MVP heissen Learning Items in vielen APIs und State-Pfaden noch `cards`. Eine produktive API SOLL entweder `learning-items` als kanonischen Namen einfuehren oder `cards` explizit als Compatibility-Alias dokumentieren.
 
 ```http
 POST   /api/cards
@@ -1723,6 +1806,8 @@ POST   /api/review/session/:sessionId/end
 {
   "reviewableType": "variant",
   "reviewableId": "var_123",
+  "learningItemId": "card_123",
+  "variantId": "var_123",
   "sourceCardId": "card_123",
   "rating": "good",
   "responseTimeMs": 8200,
@@ -2050,6 +2135,8 @@ CardFamilyState  ← aggregiert Wissensstand
 OriginalState    ← Originalkarte
 VariantState     ← einzelne Variante
 ```
+
+**Lokaler Stand 2026-07-06:** `reviewService.recordReviewRating` schreibt append-only Review-Events mit `learningItemId`, `variantId`, `reviewableType` und `reviewableId`. Bei Variantenreviews wird ein eigener Variantenstate aktualisiert und zusaetzlich der Learning-Item-/Family-State fortgeschrieben. Damit bleibt der lokale MVP kompatibel mit dem alten Card-basierten Modell, waehrend Modell B vorbereitet ist.
 
 ### 13.5 Tagesintervall-Diskussion
 
@@ -2524,7 +2611,7 @@ Der MVP gilt als erfüllt, wenn:
 14. KI-Jobs asynchron laufen und Status anzeigen.
 15. Es gibt keine Anzeige fremder Lernstände oder Social-Rankings.
 
-**Stand 2026-07-01:** Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Nicht Teil dieser lokalen DoD-Erfuellung sind Hosting, produktive Datenbank, echte Authentifizierung, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte und Observability. Diese Luecke ist bewusst und wird in `todo.md` als Ausbaupfad gefuehrt.
+**Stand 2026-07-06:** Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher und Reimport-Merge mit Erhalt lokaler Content-Edits. Nicht Teil dieser lokalen DoD-Erfuellung sind Hosting, produktive Datenbank, echte Authentifizierung, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz und Observability. Diese Luecke ist bewusst und wird in `todo.md` als Ausbaupfad gefuehrt.
 
 ---
 
@@ -2595,7 +2682,7 @@ Damit KI-Coding-Agenten zuverlässig arbeiten können, sollten Issues und Prompt
 Wenn ein KI-Agent Code schreibt, sollte er folgende Regeln erhalten:
 
 1. Keine KI-Ausgabe ohne Schema-Validation persistieren.
-2. Keine Variante ohne `sourceCardId` speichern.
+2. Keine Variante ohne `learningItemId`/`sourceCardId` und Originalanker speichern.
 3. Keine Community-Funktion darf fremde `review_events` oder `review_states` anzeigen.
 4. Review-UI darf Variante erst nach Antwortaufdeckung als Variante erklären.
 5. Scheduler muss austauschbar bleiben.
@@ -2621,7 +2708,7 @@ sequenceDiagram
   FE->>API: POST /api/imports
   API->>DB: ImportJob queued
   API->>W: Job enqueued
-  W->>DB: Decks/Cards erstellen
+  W->>DB: Decks/Learning Items erstellen
   W->>DB: ImportReport speichern
   FE->>API: Importstatus abfragen
   API->>FE: succeeded + report
@@ -2651,7 +2738,7 @@ sequenceDiagram
     C->>AI: VariantJob enqueue
     C->>R: Originalkarte zurückgeben
   end
-  AI->>DB: Variante speichern mit sourceCardId
+  AI->>DB: Variante speichern mit learningItemId, sourceCardId und anchorVariantId
 ```
 
 ---
@@ -2700,7 +2787,7 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 
 | Modul | Interface | Verantwortung |
 |---|---|---|
-| `src/coreModel.js` | `createCoreDeck`, `createCoreCard`, `createCardVariant`, `updateCardContent`, `restoreCardVersion` | Domaenenobjekte, Review-State, Quellenanker, Versionen, Deck-Settings |
+| `src/coreModel.js` | `createCoreDeck`, `createCoreLearningItem`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem`, `createLearningItemsFromNormalizedInput`, `createCardVariant`, `getOriginalVariant`, `getAnswerSideAnchorMiniCard`, `updateCardContent`, `restoreCardVersion` | Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen, Deck-Settings |
 | `src/coreRepository.js` | `createCoreRepository()` | Persistenter lokaler App-State, Migration alter Decks, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene |
 | `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard` | Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates |
 | `src/scheduler.js` | `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | Vier-Button-Scheduler, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
@@ -2710,8 +2797,10 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/reviewShortcuts.js` | `resolveReviewShortcut` | Tastaturvertrag fuer Reveal, Bewertung und Exit im Review |
 | `src/aiOrchestrator.js` | `generateCardsFromDocument`, `selectModel`, `validateCardGenerationOutput` | Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts |
 | `src/documentModel.js` | `createDocumentFromFile`, `createAnchorFromSelection`, `splitDocumentIntoPassages` | Dokumente, Textlayer, Auswahl-zu-Quelle |
-| `src/importService.js` | `createTextImportDeck`, `createCsvImportDeck`, `createTableImportDeck` | Text-/CSV-/Excel-Paste-Import neben APKG |
-| `src/apkgImport.js` | `createApkgImportPreview`, `mapAnkiToCoreDeck`, `commitImport` | APKG-Import, Hierarchie, Raw-Fallback, Scheduler-Rohdaten |
+| `src/importService.js` | `createTextImportDeck`, `createCsvImportDeck`, `createTableImportDeck` | Text-/CSV-/Excel-Paste-Import ueber die Learning-Item-Creation-Pipeline |
+| `src/apkgImport.js` | `createApkgImportPreview`, `findReadableCollectionDatabase`, `parseAnkiMedia`, `mapAnkiToCoreDeck`, `mergeImportedDeck`, `commitImport` | APKG-Import, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten |
+| `src/sqliteReader.js` / `src/zipReader.js` | `readSqliteDatabase`, `readZipArchive` | Lokales Lesen der APKG-Container und minimaler SQLite-Tabellen |
+| `src/mediaStore.js` | `storeDeckMedia`, `createDeckMediaUrlMap`, `resolveCardHtmlMedia` | Lokaler APKG-Medienspeicher ueber IndexedDB/Session-Fallback und sichere HTML-Medien-URL-Aufloesung |
 | `src/communityModel.js` | `createCommunity`, `shareDeckToCommunity`, `copySharedDeckToLibrary` | Kleine Gruppen, Ordner, Deck-Kopien ohne Lernmetriken |
 | `src/deckGraph.js` | `buildDeckGraph`, `shouldRefreshDeckGraph` | Themen-/Karten-Mindmap und Triggerlogik |
 | `src/deckAssistant.js` | `answerDeckQuestion`, `retrieveDeckEvidence` | Quellengebundene Antworten aus Karten, keine freien Halluzinationen |
@@ -2739,7 +2828,10 @@ Alle Screens liegen derzeit in `src/App.jsx`, verwenden aber die Module oben als
 - `src/coreFeatures.test.js`: Scheduler, Bibliotheksmodell, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.
 - `src/coreWorkspace.test.js`: lokale App-Kommandos fuer Demo-Deck, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.
 - `src/coreModel.test.js`: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.
-- `src/apkgImport.test.js`: APKG-Mapping und HTML-Sicherheit.
+- `src/creationPipeline.test.js`: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.
+- `src/learningModel.test.js`: Legacy-Card-Normalisierung, Learning-Item-Invarianten und Review-Event-Kompatibilitaetsfelder.
+- `src/apkgImport.test.js`: APKG-Mapping, HTML-Sicherheit, lesbare Collection-Auswahl fuer `collection.anki21b`/Zstd-Fallbacks und Reimport-Merge.
+- `src/mediaStore.test.js`: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.
 - `src/menuModel.test.js`: Navigationsvertrag.
 
 ### 27.4 Gemeinsames Kartenmodell
@@ -2754,11 +2846,19 @@ Alle Lerninhalte gehoeren zu einem `CoreDeck`. Die aktuelle Quelle einer Karte i
 - `spreadsheet-import`
 - `community`
 
-Alle Quellen erzeugen `CoreCard`-Objekte ueber dieselbe Modellschicht. Jede Karte besitzt eine unveraenderliche Originalrepraesentation in `immutableOriginal`. Varianten duerfen spaeter nur separat entstehen und nie `originalFront`, `originalBack`, `originalFields`, `originalHtml` oder `immutableOriginal` ueberschreiben.
+Alle Quellen erzeugen Learning Items ueber dieselbe Modellschicht. Aus Kompatibilitaetsgruenden heissen diese Objekte und Deck-Listen im lokalen Code stellenweise noch `CoreCard` beziehungsweise `cards`. Neue Pfade sollen trotzdem die Learning-Item-Helfer verwenden:
+
+- `createBasicLearningItem`
+- `createBasicReverseLearningItem`
+- `createClozeLearningItem`
+- `createLearningItemsFromNormalizedInput`
+- `createCoreLearningItem` / `normalizeLearningItem`
+
+Jedes Learning Item besitzt eine unveraenderliche Originalrepraesentation in `immutableOriginal` und genau eine `isOriginal: true`-Variante. Abgeleitete Varianten duerfen spaeter nur separat entstehen und nie `originalFront`, `originalBack`, `originalFields`, `originalHtml`, `immutableOriginal` oder die Original-Variante ueberschreiben. Antwortseitige Original-Minikarten werden ueber `getAnswerSideAnchorMiniCard` aus `anchorVariantId`/`parentVariantId` abgeleitet.
 
 ### 27.5 Manuelle Erstellung und Quellenanker
 
-Der Screen `Erstellen` unterstuetzt aktuell Basic front/back, Basic reversed, Cloze deletion, Image occlusion, Multiple choice und Free text als lokale Kartentypauswahl. Textdokumente koennen direkt im Browser gelesen werden. PDF, DOCX und Bilder werden als Dokumentkontext erfasst; robuste Textextraktion, OCR und Bildregionen gehoeren in die spaetere Server-/Worker-Ausbaustufe.
+Der Screen `Erstellen` unterstuetzt aktuell Basic front/back, Basic reversed, Cloze deletion, Image occlusion, Multiple choice und Free text als lokale Kartentypauswahl. Basic, Reverse und Cloze laufen ueber die gemeinsame Learning-Item-Creation-Pipeline; Image occlusion, Multiple choice und Free text sind UI-seitig angelegt, aber fachlich noch nicht so tief umgesetzt wie Basic/Reverse/Cloze. Textdokumente koennen direkt im Browser gelesen werden. PDF, DOCX und Bilder werden als Dokumentkontext erfasst; robuste Textextraktion, OCR und Bildregionen gehoeren in die spaetere Server-/Worker-Ausbaustufe.
 
 Markierter Text wird in das aktive Kartenfeld uebernommen und als `SourceAnchor` gespeichert:
 
@@ -2770,7 +2870,7 @@ Markierter Text wird in das aktive Kartenfeld uebernommen und als `SourceAnchor`
 
 ### 27.6 KI-Erstellung
 
-KI-assistierte Erstellung ist review-first. Der lokale MVP kennt Parameter fuer Sprache, Kartenanzahl, Detailgrad, Quellennaehe, Kartentypen, Schwierigkeit, Fach/Kontext und Stil. Aktuell wird keine externe KI-API aufgerufen. `src/aiOrchestrator.js` erzeugt deterministische, strukturierte Entwuerfe aus Quellentext, validiert das erwartete JSON-Schema und speichert Quellenanker. Generierte Karten behalten `draftStatus: "draft"`, bis der Nutzer sie akzeptiert.
+KI-assistierte Erstellung ist review-first. Der lokale MVP kennt Parameter fuer Sprache, Kartenanzahl, Detailgrad, Quellennaehe, Kartentypen, Schwierigkeit, Fach/Kontext und Stil. Aktuell wird keine externe KI-API aufgerufen. `src/aiOrchestrator.js` erzeugt deterministische, strukturierte Entwuerfe aus Quellentext, validiert das erwartete JSON-Schema und speichert Quellenanker. `createAiDraftDeck` fuehrt die Entwuerfe durch dieselbe Learning-Item-Creation-Pipeline wie manuelle und importierte Inhalte. Generierte Karten behalten `draftStatus: "draft"`, bis der Nutzer sie akzeptiert.
 
 ### 27.7 APKG-Import
 
@@ -2779,12 +2879,18 @@ Unterstuetzt:
 - Upload und Validierung von `.apkg`-Dateien im Import-Screen.
 - Lokales Lesen der APKG-Datei als ZIP-Archiv.
 - Erkennung von `collection.anki2`, `collection.anki21` und `collection.anki21b`.
+- Zstd-Dekompression lesbarer `collection.anki21b`-Collections ueber `fzstd`, mit Fallback auf lesbare aeltere Collection-Dateien im selben Archiv.
 - Minimaler SQLite-Reader fuer die Anki-Tabellen `col`, `notes` und `cards`.
 - Auslesen von Deck-Namen, Notes, Cards, Fields, Tags und Media-Mapping.
+- Auslesen von APKG-Paketmetadaten, Legacy-`media`-JSON und modernen MediaEntries.
+- Media-Manifeste mit Assets, fehlenden Assets, SHA-1, Groesse und MIME-Typ; die Importvorschau kann extrahierte Media-Dateien mit Bytes halten.
+- Lokaler Browser-Medienspeicher ueber `src/mediaStore.js`: IndexedDB als persistenter Pfad, Session-Map als Fallback, Objekt-URLs fuer Review/Preview/Deck-Editor.
+- Sichere HTML-Medienauflösung ueber `resolveCardHtmlMedia` nach vorheriger Sanitization.
 - Erhalt von Deck-/Unterdeck-Hierarchien ueber `importMeta.deckHierarchy`.
 - Raw-Fallback fuer unbekannte oder nicht voll verstandene Note Types.
 - Uebernahme von Anki-Scheduler-Rohdaten in `reviewState.sourceSchedulerData`, ohne die Karte direkt als gelernt zu markieren.
-- Mapping in `CoreDeck` und `CoreCard`.
+- Mapping in `CoreDeck` und Learning Items (`deck.cards[]` als lokale Compatibility Collection).
+- Reimport-Merge ueber `mergeImportedDeck`: vorhandene importierte Decks werden wiedererkannt, lokale Content-Edits bleiben erhalten, Medienreferenzen und Import-Metadaten werden aktualisiert.
 - Lokale Speicherung in `localStorage`, gekapselt hinter `createCoreRepository`.
 - Sichere HTML-Vorschau mit Entfernung von Scripts, Event-Attributen und `javascript:`-URLs.
 
@@ -2792,9 +2898,10 @@ Bewusst noch nicht unterstuetzt:
 
 - Vollstaendige Anki-Template-Auswertung.
 - Vollstaendige Cloze-Review-Logik.
-- Import und Persistenz der eigentlichen Mediendateien.
+- Export, Sync und serverseitige Persistenz der eigentlichen Mediendateien.
+- Produktive/serverseitige Medienablage, CDN/Storage-Referenzen, Sync und Garbage Collection fuer nicht mehr referenzierte Assets.
 - Vollstaendige Scheduling-, Review-Historie- und Revlog-Migration; Rohdaten werden aber erhalten.
-- Passwortgeschuetzte oder ungewoehnlich komprimierte ZIP-Varianten.
+- Passwortgeschuetzte ZIPs, defekte Collections oder neue Collection-Formate ohne lesbares SQLite-Ergebnis.
 - Sehr grosse Decks ueber 250 MB direkt im Browser.
 
 ### 27.8 Chat-your-Deck, Lernplan und Portabilitaet

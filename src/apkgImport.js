@@ -1,4 +1,3 @@
-import { createCoreRepository } from "./coreRepository.js";
 import { createCoreCard, createCoreDeck, createReviewState } from "./coreModel.js";
 import { stripHtml } from "./htmlSafety.js";
 import { readSqliteDatabase } from "./sqliteReader.js";
@@ -39,6 +38,163 @@ function normalizeTags(rawTags) {
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function bytesToHex(bytes) {
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function normalizeMediaFileName(value) {
+  return String(value ?? "")
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter(Boolean)
+    .at(-1);
+}
+
+function readVarint(bytes, startOffset = 0) {
+  let result = 0;
+  let shift = 0;
+  let offset = startOffset;
+
+  while (offset < bytes.length) {
+    const byte = bytes[offset];
+    result += (byte & 0x7f) * 2 ** shift;
+    offset += 1;
+
+    if ((byte & 0x80) === 0) {
+      return { value: result, offset };
+    }
+
+    shift += 7;
+  }
+
+  throw new Error("Ungueltiges MediaEntries-Varint.");
+}
+
+function readLengthDelimited(bytes, offset) {
+  const length = readVarint(bytes, offset);
+  return {
+    bytes: bytes.slice(length.offset, length.offset + length.value),
+    offset: length.offset + length.value,
+  };
+}
+
+function skipProtoField(bytes, wireType, offset) {
+  if (wireType === 0) return readVarint(bytes, offset).offset;
+  if (wireType === 1) return offset + 8;
+  if (wireType === 2) return readLengthDelimited(bytes, offset).offset;
+  if (wireType === 5) return offset + 4;
+  throw new Error(`Nicht unterstuetzter MediaEntries-Wire-Type: ${wireType}`);
+}
+
+function maybeDecompressZstdBytes(bytes) {
+  if (!hasZstdSignature(bytes)) return bytes;
+
+  try {
+    return decompressZstd(bytes);
+  } catch {
+    return bytes;
+  }
+}
+
+function rotateLeft(value, bits) {
+  return (value << bits) | (value >>> (32 - bits));
+}
+
+function sha1HexSync(bytes) {
+  const paddedLength = Math.ceil((bytes.length + 9) / 64) * 64;
+  const padded = new Uint8Array(paddedLength);
+  padded.set(bytes);
+  padded[bytes.length] = 0x80;
+
+  const view = new DataView(padded.buffer);
+  const bitLength = bytes.length * 8;
+  view.setUint32(paddedLength - 8, Math.floor(bitLength / 2 ** 32), false);
+  view.setUint32(paddedLength - 4, bitLength >>> 0, false);
+
+  let h0 = 0x67452301;
+  let h1 = 0xefcdab89;
+  let h2 = 0x98badcfe;
+  let h3 = 0x10325476;
+  let h4 = 0xc3d2e1f0;
+  const words = new Uint32Array(80);
+
+  for (let chunkOffset = 0; chunkOffset < paddedLength; chunkOffset += 64) {
+    for (let index = 0; index < 16; index += 1) {
+      words[index] = view.getUint32(chunkOffset + index * 4, false);
+    }
+    for (let index = 16; index < 80; index += 1) {
+      words[index] = rotateLeft(words[index - 3] ^ words[index - 8] ^ words[index - 14] ^ words[index - 16], 1) >>> 0;
+    }
+
+    let a = h0;
+    let b = h1;
+    let c = h2;
+    let d = h3;
+    let e = h4;
+
+    for (let index = 0; index < 80; index += 1) {
+      let f;
+      let k;
+
+      if (index < 20) {
+        f = (b & c) | (~b & d);
+        k = 0x5a827999;
+      } else if (index < 40) {
+        f = b ^ c ^ d;
+        k = 0x6ed9eba1;
+      } else if (index < 60) {
+        f = (b & c) | (b & d) | (c & d);
+        k = 0x8f1bbcdc;
+      } else {
+        f = b ^ c ^ d;
+        k = 0xca62c1d6;
+      }
+
+      const temp = (rotateLeft(a, 5) + f + e + k + words[index]) >>> 0;
+      e = d;
+      d = c;
+      c = rotateLeft(b, 30) >>> 0;
+      b = a;
+      a = temp;
+    }
+
+    h0 = (h0 + a) >>> 0;
+    h1 = (h1 + b) >>> 0;
+    h2 = (h2 + c) >>> 0;
+    h3 = (h3 + d) >>> 0;
+    h4 = (h4 + e) >>> 0;
+  }
+
+  return [h0, h1, h2, h3, h4].map((word) => word.toString(16).padStart(8, "0")).join("");
+}
+
+async function sha1Hex(bytes) {
+  if (globalThis.crypto?.subtle) {
+    const digest = await globalThis.crypto.subtle.digest("SHA-1", bytes);
+    return bytesToHex(new Uint8Array(digest));
+  }
+
+  return sha1HexSync(bytes);
+}
+
+function inferMimeType(name, bytes = new Uint8Array()) {
+  const normalized = String(name ?? "").toLowerCase();
+
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "image/gif";
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return "image/webp";
+  if (normalized.endsWith(".svg")) return "image/svg+xml";
+  if (normalized.endsWith(".png")) return "image/png";
+  if (normalized.endsWith(".jpg") || normalized.endsWith(".jpeg")) return "image/jpeg";
+  if (normalized.endsWith(".gif")) return "image/gif";
+  if (normalized.endsWith(".webp")) return "image/webp";
+  if (normalized.endsWith(".mp3")) return "audio/mpeg";
+  if (normalized.endsWith(".ogg")) return "audio/ogg";
+  if (normalized.endsWith(".wav")) return "audio/wav";
+  return "application/octet-stream";
 }
 
 function getDecksFromCollection(colRows) {
@@ -140,7 +296,11 @@ function chooseFrontBack(note, models) {
   };
 }
 
-function buildWarnings({ cards, notes, mediaMap, hasCloze, unsupportedNoteTypes }) {
+function getMediaAssetCount(mediaMap = {}, mediaManifest = null) {
+  return mediaManifest?.assets?.length ?? Object.keys(mediaMap).length;
+}
+
+function buildWarnings({ cards, notes, mediaMap, mediaManifest, hasCloze, unsupportedNoteTypes }) {
   const warnings = [
     "Scheduling-Daten und Review-Historie werden im MVP bewusst noch nicht vollstaendig uebernommen.",
   ];
@@ -153,8 +313,12 @@ function buildWarnings({ cards, notes, mediaMap, hasCloze, unsupportedNoteTypes 
     warnings.push("Cloze-Karten wurden erkannt und als solche markiert; eine spezialisierte Cloze-Review-Logik folgt spaeter.");
   }
 
-  if (Object.keys(mediaMap).length > 0) {
-    warnings.push("Medien werden im MVP referenziert, aber noch nicht als Dateien in CoRe gespeichert.");
+  if (getMediaAssetCount(mediaMap, mediaManifest) > 0) {
+    warnings.push("Medien wurden erkannt und fuer den lokalen Browser-Medienspeicher vorbereitet.");
+  }
+
+  if ((mediaManifest?.missingAssets?.length ?? 0) > 0) {
+    warnings.push(`${mediaManifest.missingAssets.length} Medienreferenzen konnten nicht aus dem APKG gelesen werden.`);
   }
 
   if (unsupportedNoteTypes.length > 0) {
@@ -250,7 +414,7 @@ export async function findReadableCollectionDatabase(archive) {
 }
 
 export async function readAnkiDatabase(collectionEntry) {
-  const bytes = await collectionEntry.readBytes();
+  const bytes = maybeDecompressZstdBytes(await collectionEntry.readBytes());
   return readSqliteDatabase(bytes);
 }
 
@@ -281,18 +445,260 @@ export function parseAnkiCards(database) {
   return database.readTable("cards");
 }
 
-export async function parseAnkiMedia(archive) {
-  const mediaEntry = archive.getEntry("media");
+export function parsePackageMetadataBytes(bytes) {
+  const metadata = {
+    version: "unknown",
+  };
 
-  if (!mediaEntry) {
-    return {};
+  let offset = 0;
+  while (offset < bytes.length) {
+    const tag = readVarint(bytes, offset);
+    offset = tag.offset;
+    const fieldNumber = tag.value >> 3;
+    const wireType = tag.value & 0x07;
+
+    if (fieldNumber === 1 && wireType === 0) {
+      const version = readVarint(bytes, offset);
+      metadata.version = version.value === 3 ? "latest" : `legacy-${version.value}`;
+      metadata.rawVersion = version.value;
+      offset = version.offset;
+    } else {
+      offset = skipProtoField(bytes, wireType, offset);
+    }
   }
 
-  const mediaJson = new TextDecoder("utf-8").decode(await mediaEntry.readBytes());
-  return parseJson(mediaJson, {});
+  return metadata;
 }
 
-export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap }) {
+export function parseMediaEntriesBytes(bytes) {
+  const entries = [];
+  let offset = 0;
+
+  while (offset < bytes.length) {
+    const tag = readVarint(bytes, offset);
+    offset = tag.offset;
+    const fieldNumber = tag.value >> 3;
+    const wireType = tag.value & 0x07;
+
+    if (fieldNumber !== 1 || wireType !== 2) {
+      offset = skipProtoField(bytes, wireType, offset);
+      continue;
+    }
+
+    const message = readLengthDelimited(bytes, offset);
+    offset = message.offset;
+    let entryOffset = 0;
+    const entry = {
+      name: "",
+      size: 0,
+      sha1: "",
+      legacyZipFileName: null,
+    };
+
+    while (entryOffset < message.bytes.length) {
+      const entryTag = readVarint(message.bytes, entryOffset);
+      entryOffset = entryTag.offset;
+      const entryFieldNumber = entryTag.value >> 3;
+      const entryWireType = entryTag.value & 0x07;
+
+      if (entryFieldNumber === 1 && entryWireType === 2) {
+        const value = readLengthDelimited(message.bytes, entryOffset);
+        entry.name = textDecoder.decode(value.bytes);
+        entryOffset = value.offset;
+      } else if (entryFieldNumber === 2 && entryWireType === 0) {
+        const value = readVarint(message.bytes, entryOffset);
+        entry.size = value.value;
+        entryOffset = value.offset;
+      } else if (entryFieldNumber === 3 && entryWireType === 2) {
+        const value = readLengthDelimited(message.bytes, entryOffset);
+        entry.sha1 = bytesToHex(value.bytes);
+        entryOffset = value.offset;
+      } else if (entryFieldNumber === 255 && entryWireType === 0) {
+        const value = readVarint(message.bytes, entryOffset);
+        entry.legacyZipFileName = String(value.value);
+        entryOffset = value.offset;
+      } else {
+        entryOffset = skipProtoField(message.bytes, entryWireType, entryOffset);
+      }
+    }
+
+    if (entry.name && entry.sha1) {
+      entries.push(entry);
+    }
+  }
+
+  return entries;
+}
+
+export async function parseAnkiPackageMetadata(archive) {
+  const metaEntry = archive.getEntry("meta");
+
+  if (!metaEntry) {
+    return { version: archive.getEntry("collection.anki21") ? "legacy-2" : "legacy-1" };
+  }
+
+  const bytes = maybeDecompressZstdBytes(await metaEntry.readBytes());
+  return parsePackageMetadataBytes(bytes);
+}
+
+function createEmptyMediaBundle(format = "none", metadata = {}) {
+  return {
+    format,
+    mediaMap: {},
+    mediaFiles: [],
+    manifest: {
+      format,
+      assets: [],
+      missingAssets: [],
+      ...metadata,
+    },
+  };
+}
+
+async function readArchiveMediaBytes(archive, entryName) {
+  const entry = archive.getEntry(String(entryName));
+  if (!entry) return null;
+  return maybeDecompressZstdBytes(await entry.readBytes());
+}
+
+async function collectLegacyMediaBundle(archive, mediaMap, metadata) {
+  const mediaFiles = [];
+
+  for (const [zipEntryName, name] of Object.entries(mediaMap)) {
+    const bytes = await readArchiveMediaBytes(archive, zipEntryName);
+    if (!bytes) continue;
+
+    const normalizedName = normalizeMediaFileName(name);
+    const sha1 = await sha1Hex(bytes);
+    mediaFiles.push({
+      name: normalizedName,
+      zipEntryName: String(zipEntryName),
+      sha1,
+      size: bytes.length,
+      mimeType: inferMimeType(normalizedName, bytes),
+      bytes,
+    });
+  }
+
+  return {
+    format: "legacy-json",
+    mediaMap,
+    mediaFiles,
+    manifest: {
+      format: "legacy-json",
+      packageVersion: metadata.version,
+      assets: mediaFiles.map(({ bytes, ...asset }) => asset),
+      missingAssets: Object.entries(mediaMap)
+        .filter(([zipEntryName]) => !mediaFiles.some((file) => file.zipEntryName === String(zipEntryName)))
+        .map(([zipEntryName, name]) => ({ name: normalizeMediaFileName(name), zipEntryName: String(zipEntryName) })),
+    },
+  };
+}
+
+function listNumericMediaEntries(archive) {
+  if (typeof archive.listEntries !== "function") return [];
+
+  return archive
+    .listEntries()
+    .filter((entry) => /^\d+$/.test(entry.name))
+    .sort((left, right) => Number(left.name) - Number(right.name));
+}
+
+async function collectModernMediaBundle(archive, mediaEntries, metadata) {
+  const mediaMap = {};
+  const mediaFiles = [];
+  const availableFiles = [];
+
+  for (const entry of listNumericMediaEntries(archive)) {
+    const bytes = await readArchiveMediaBytes(archive, entry.name);
+    if (!bytes) continue;
+
+    const sha1 = await sha1Hex(bytes);
+    availableFiles.push({
+      zipEntryName: entry.name,
+      sha1,
+      size: bytes.length,
+      bytes,
+    });
+  }
+
+  for (const manifestEntry of mediaEntries) {
+    const matched =
+      (manifestEntry.legacyZipFileName
+        ? availableFiles.find((file) => file.zipEntryName === manifestEntry.legacyZipFileName)
+        : null) ??
+      availableFiles.find((file) => file.sha1 === manifestEntry.sha1 && file.size === manifestEntry.size);
+
+    if (!matched) continue;
+
+    const normalizedName = normalizeMediaFileName(manifestEntry.name);
+    mediaMap[matched.zipEntryName] = normalizedName;
+    mediaFiles.push({
+      name: normalizedName,
+      zipEntryName: matched.zipEntryName,
+      sha1: manifestEntry.sha1,
+      size: manifestEntry.size,
+      mimeType: inferMimeType(normalizedName, matched.bytes),
+      bytes: matched.bytes,
+    });
+  }
+
+  const matchedNames = new Set(mediaFiles.map((file) => file.name));
+
+  return {
+    format: "media-entries",
+    mediaMap,
+    mediaFiles,
+    manifest: {
+      format: "media-entries",
+      packageVersion: metadata.version,
+      assets: mediaEntries.map((entry) => {
+        const normalizedName = normalizeMediaFileName(entry.name);
+        const matched = mediaFiles.find((file) => file.name === normalizedName);
+        return {
+          name: normalizedName,
+          zipEntryName: matched?.zipEntryName ?? entry.legacyZipFileName ?? null,
+          sha1: entry.sha1,
+          size: entry.size,
+          mimeType: matched?.mimeType ?? inferMimeType(normalizedName),
+        };
+      }),
+      missingAssets: mediaEntries
+        .filter((entry) => !matchedNames.has(normalizeMediaFileName(entry.name)))
+        .map((entry) => ({
+          name: normalizeMediaFileName(entry.name),
+          sha1: entry.sha1,
+          size: entry.size,
+        })),
+    },
+  };
+}
+
+export async function parseAnkiMedia(archive) {
+  const mediaEntry = archive.getEntry("media");
+  const metadata = await parseAnkiPackageMetadata(archive);
+
+  if (!mediaEntry) {
+    return createEmptyMediaBundle("none", { packageVersion: metadata.version });
+  }
+
+  const mediaBytes = maybeDecompressZstdBytes(await mediaEntry.readBytes());
+  const mediaJson = textDecoder.decode(mediaBytes);
+  const legacyMap = parseJson(mediaJson, null);
+
+  if (legacyMap && typeof legacyMap === "object" && !Array.isArray(legacyMap)) {
+    return collectLegacyMediaBundle(archive, legacyMap, metadata);
+  }
+
+  const mediaEntries = parseMediaEntriesBytes(mediaBytes);
+  if (mediaEntries.length > 0) {
+    return collectModernMediaBundle(archive, mediaEntries, metadata);
+  }
+
+  return createEmptyMediaBundle("unknown", { packageVersion: metadata.version });
+}
+
+export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap = {}, mediaManifest = null }) {
   const models = getModelsFromCollection(colRows);
   const deckById = new Map(decks.map((deck) => [deck.id, deck]));
   const noteById = new Map(notes.map((note) => [String(note.id), note]));
@@ -319,6 +725,7 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
       const mediaRefs = unique([
         ...extractMediaRefs(originalHtml),
         ...Object.values(mediaMap).filter((name) => originalHtml.includes(String(name))),
+        ...(mediaManifest?.assets ?? []).map((asset) => asset.name).filter((name) => originalHtml.includes(String(name))),
       ]);
 
       return createCoreCard({
@@ -381,8 +788,13 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
       detectedDecks: decks,
       detectedNotes: notes.length,
       detectedCards: cards.length,
-      mediaCount: Object.keys(mediaMap).length,
-      hasMedia: Object.keys(mediaMap).length > 0,
+      mediaCount: getMediaAssetCount(mediaMap, mediaManifest),
+      hasMedia: getMediaAssetCount(mediaMap, mediaManifest) > 0,
+      mediaManifest: mediaManifest ?? {
+        format: "none",
+        assets: [],
+        missingAssets: [],
+      },
       hasCloze,
       deckHierarchy: buildDeckHierarchy(decks),
       unsupportedNoteTypes,
@@ -392,9 +804,10 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
   });
 }
 
-export function createImportPreview(coreDeck, warnings) {
+export function createImportPreview(coreDeck, warnings, mediaFiles = []) {
   return {
     deck: coreDeck,
+    mediaFiles,
     sampleCards: coreDeck.cards.slice(0, 5).map((card) => ({
       ...card,
       plainFront: stripHtml(card.originalFront).slice(0, 240),
@@ -436,12 +849,21 @@ export async function createApkgImportPreview(file, onStep = () => {}) {
   const decks = parseAnkiDecks(database);
   const notes = parseAnkiNotes(database);
   const cards = parseAnkiCards(database);
-  const mediaMap = await parseAnkiMedia(archive);
-  const coreDeck = mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap });
+  const mediaBundle = await parseAnkiMedia(archive);
+  const coreDeck = mapAnkiToCoreDeck({
+    file,
+    decks,
+    notes,
+    cards,
+    colRows,
+    mediaMap: mediaBundle.mediaMap,
+    mediaManifest: mediaBundle.manifest,
+  });
   const warnings = buildWarnings({
     cards,
     notes,
-    mediaMap,
+    mediaMap: mediaBundle.mediaMap,
+    mediaManifest: mediaBundle.manifest,
     hasCloze: coreDeck.importMeta.hasCloze,
     unsupportedNoteTypes: coreDeck.importMeta.unsupportedNoteTypes,
   });
@@ -460,14 +882,105 @@ export async function createApkgImportPreview(file, onStep = () => {}) {
       errors: [],
       createdAt: startedAt,
     },
-    preview: createImportPreview(coreDeck, warnings),
+    preview: createImportPreview(coreDeck, warnings, mediaBundle.mediaFiles),
   };
 }
 
-export function commitImport(preview, repository = createCoreRepository()) {
+function findExistingImportedDeck(importedDeck, existingDecks = []) {
+  return (
+    existingDecks.find((deck) => deck.source === "anki-apkg" && deck.originalDeckId === importedDeck.originalDeckId) ??
+    existingDecks.find(
+      (deck) =>
+        deck.source === "anki-apkg" &&
+        deck.importMeta?.fileName === importedDeck.importMeta?.fileName &&
+        deck.importMeta?.detectedNotes === importedDeck.importMeta?.detectedNotes &&
+        deck.importMeta?.detectedCards === importedDeck.importMeta?.detectedCards,
+    ) ??
+    null
+  );
+}
+
+function hasLocalContentEdit(card) {
+  return (card.versionLog ?? []).some((entry) => entry.changeType === "content_updated");
+}
+
+function mergeImportedCard(incomingCard, existingCard) {
+  if (!existingCard) return incomingCard;
+
+  const preserveContent = hasLocalContentEdit(existingCard);
+  const preservedContent = preserveContent
+    ? {
+        title: existingCard.title,
+        canonicalQuestion: existingCard.canonicalQuestion,
+        canonicalAnswer: existingCard.canonicalAnswer,
+        originalFront: existingCard.originalFront,
+        originalBack: existingCard.originalBack,
+        originalFields: existingCard.originalFields,
+        originalTags: existingCard.originalTags,
+        originalHtml: existingCard.originalHtml,
+        immutableOriginal: existingCard.immutableOriginal,
+      }
+    : {};
+
+  return {
+    ...incomingCard,
+    ...preservedContent,
+    id: existingCard.id,
+    noteId: existingCard.noteId ?? incomingCard.noteId,
+    createdAt: existingCard.createdAt ?? incomingCard.createdAt,
+    updatedAt: new Date().toISOString(),
+    reviewState: existingCard.reviewState ?? incomingCard.reviewState,
+    learningItemState: existingCard.learningItemState ?? incomingCard.learningItemState,
+    variants: existingCard.variants?.length ? existingCard.variants : incomingCard.variants,
+    versionLog: existingCard.versionLog?.length ? existingCard.versionLog : incomingCard.versionLog,
+    sourceAnchors: existingCard.sourceAnchors?.length ? existingCard.sourceAnchors : incomingCard.sourceAnchors,
+    mediaRefs: incomingCard.mediaRefs,
+    meta: {
+      ...(incomingCard.meta ?? {}),
+      preservedLocalContent: preserveContent,
+    },
+  };
+}
+
+export function mergeImportedDeck(importedDeck, existingDecks = []) {
+  const existingDeck = findExistingImportedDeck(importedDeck, existingDecks);
+  if (!existingDeck) return importedDeck;
+
+  const existingCardsBySourceId = new Map(
+    existingDeck.cards.map((card) => [String(card.sourceCardId ?? card.sourceRefId ?? card.id), card]),
+  );
+  const now = new Date().toISOString();
+
+  return createCoreDeck({
+    ...importedDeck,
+    id: existingDeck.id,
+    name: existingDeck.name || importedDeck.name,
+    description: existingDeck.description ?? importedDeck.description,
+    ownerId: existingDeck.ownerId ?? importedDeck.ownerId,
+    visibility: existingDeck.visibility ?? importedDeck.visibility,
+    hierarchyPath: existingDeck.hierarchyPath ?? importedDeck.hierarchyPath,
+    createdAt: existingDeck.createdAt ?? importedDeck.createdAt,
+    updatedAt: now,
+    deckSettings: existingDeck.deckSettings,
+    reviewEvents: existingDeck.reviewEvents ?? [],
+    aiJobs: existingDeck.aiJobs ?? importedDeck.aiJobs,
+    graph: existingDeck.graph ?? importedDeck.graph,
+    communityRefs: existingDeck.communityRefs ?? [],
+    versionLog: existingDeck.versionLog ?? importedDeck.versionLog,
+    importMeta: {
+      ...(existingDeck.importMeta ?? {}),
+      ...importedDeck.importMeta,
+      reimportedAt: now,
+      replacedDeckId: existingDeck.id,
+    },
+    cards: importedDeck.cards.map((card) => mergeImportedCard(card, existingCardsBySourceId.get(String(card.sourceCardId ?? card.sourceRefId ?? card.id)))),
+  });
+}
+
+export async function commitImport(preview, options = {}) {
   if (!preview?.deck) {
     throw new Error("Es gibt keine Importvorschau, die gespeichert werden kann.");
   }
 
-  return repository.saveDeck(preview.deck);
+  return mergeImportedDeck(preview.deck, options.existingDecks ?? []);
 }

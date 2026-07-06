@@ -65,6 +65,7 @@ import { createDocumentFromFile } from "./documentModel.js";
 import { createCsvImportDeck, createTableImportDeck, createTextImportDeck } from "./importService.js";
 import { createLearningPlan } from "./learningPlan.js";
 import { createAiJobLedger, createDeckLibraryModel } from "./libraryModel.js";
+import { createDeckMediaUrlMap, resolveCardHtmlMedia, storeDeckMedia } from "./mediaStore.js";
 import { createMenuModel } from "./menuModel.js";
 import { resolveReviewShortcut } from "./reviewShortcuts.js";
 import { createReviewSession, recordReviewRating, recordVariantFeedback } from "./reviewService.js";
@@ -119,11 +120,47 @@ function formatBytes(size) {
   return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
-function CardHtml({ html }) {
+function createMediaSignature(deck) {
+  return (deck?.importMeta?.mediaManifest?.assets ?? []).map((asset) => asset.sha1).join("|");
+}
+
+function useDeckMediaUrls(deck) {
+  const [mediaState, setMediaState] = React.useState({ urls: {}, missing: [] });
+  const signature = createMediaSignature(deck);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    let revokeUrls = () => {};
+
+    setMediaState({ urls: {}, missing: [] });
+    if (!deck?.importMeta?.mediaManifest?.assets?.length) return () => {};
+
+    void createDeckMediaUrlMap(deck).then((result) => {
+      if (cancelled) {
+        result.revoke();
+        return;
+      }
+
+      revokeUrls = result.revoke;
+      setMediaState({ urls: result.urls, missing: result.missing });
+    });
+
+    return () => {
+      cancelled = true;
+      revokeUrls();
+    };
+  }, [deck?.id, signature]);
+
+  return mediaState;
+}
+
+function CardHtml({ html, mediaUrls = {} }) {
+  const renderedHtml = React.useMemo(() => resolveCardHtmlMedia(html || "<span></span>", mediaUrls), [html, mediaUrls]);
+
   return (
     <div
       className="max-w-none text-sm leading-6 text-inherit [&_img]:max-h-36 [&_img]:rounded"
-      dangerouslySetInnerHTML={{ __html: html || "<span></span>" }}
+      dangerouslySetInnerHTML={{ __html: renderedHtml }}
     />
   );
 }
@@ -379,7 +416,7 @@ function DashboardScreen({ state, onSaveProfile, onNavigate, onStartDeck }) {
   );
 }
 
-function DeckCardEditor({ cards = [], selectedCardId, onSaveCard, onDeleteCard }) {
+function DeckCardEditor({ cards = [], selectedCardId, mediaUrls = {}, onSaveCard, onDeleteCard }) {
   const card = cards.find((item) => item.id === selectedCardId) ?? cards[0];
   const [form, setForm] = React.useState(null);
 
@@ -455,7 +492,7 @@ function DeckCardEditor({ cards = [], selectedCardId, onSaveCard, onDeleteCard }
       <div className="mt-5 grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Initialer Anker</p>
-          <CardHtml html={card.immutableOriginal?.front} />
+          <CardHtml html={card.immutableOriginal?.front} mediaUrls={mediaUrls} />
         </div>
         <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Quellenanker</p>
@@ -481,6 +518,7 @@ function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onSta
   const filteredRows = library.filteredRows;
   const selectedRow = library.selectedRow;
   const selectedDeck = selectedRow?.deck ?? null;
+  const { urls: selectedDeckMediaUrls } = useDeckMediaUrls(selectedDeck);
 
   React.useEffect(() => {
     if (!selectedDeckId && library.rows[0]) setSelectedDeckId(library.rows[0].id);
@@ -618,30 +656,38 @@ function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onSta
               })}
             </div>
           </SoftPanel>
-          <DeckCardEditor cards={selectedRow?.activeCards ?? []} selectedCardId={selectedCardId} onSaveCard={saveCard} onDeleteCard={deleteCard} />
+          <DeckCardEditor cards={selectedRow?.activeCards ?? []} selectedCardId={selectedCardId} mediaUrls={selectedDeckMediaUrls} onSaveCard={saveCard} onDeleteCard={deleteCard} />
         </div>
       ) : null}
     </div>
   );
 }
 
-function ApkgImportPanel({ onImported }) {
+function ApkgImportPanel({ existingDecks = [], onImported }) {
   const [selectedFile, setSelectedFile] = React.useState(null);
   const [job, setJob] = React.useState(null);
   const [preview, setPreview] = React.useState(null);
+  const [mediaStatus, setMediaStatus] = React.useState(null);
   const [activeStep, setActiveStep] = React.useState(null);
   const [isDragging, setIsDragging] = React.useState(false);
   const [isParsing, setIsParsing] = React.useState(false);
+  const { urls: previewMediaUrls, missing: previewMissingMedia } = useDeckMediaUrls(preview?.deck);
 
   async function parseFile(file) {
     setSelectedFile(file);
     setPreview(null);
+    setMediaStatus(null);
     setJob({ fileName: file.name, fileSize: file.size, status: "parsing", warnings: [], errors: [] });
     setIsParsing(true);
 
     try {
       const result = await createApkgImportPreview(file, setActiveStep);
-      setJob(result.job);
+      const storedMedia = result.preview ? await storeDeckMedia(result.preview.deck, result.preview.mediaFiles) : null;
+      setMediaStatus(storedMedia);
+      setJob({
+        ...result.job,
+        warnings: [...(result.job.warnings ?? []), ...(storedMedia?.errors ?? [])],
+      });
       setPreview(result.preview);
     } catch (error) {
       setJob({
@@ -669,9 +715,9 @@ function ApkgImportPanel({ onImported }) {
     if (file) void parseFile(file);
   }
 
-  function handleCommit() {
+  async function handleCommit() {
     if (!preview) return;
-    const deck = commitImport(preview);
+    const deck = await commitImport(preview, { existingDecks });
     setJob((currentJob) => ({ ...currentJob, status: "done" }));
     onImported(deck);
   }
@@ -745,7 +791,7 @@ function ApkgImportPanel({ onImported }) {
                   <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">Importvorschau</p>
                   <h3 className="mt-1 text-2xl font-semibold text-[#17214f]">{preview.deck.name}</h3>
                 </div>
-                <button type="button" onClick={handleCommit} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white">
+                <button type="button" onClick={() => void handleCommit()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white">
                   <Database size={17} aria-hidden="true" />
                   Deck importieren
                 </button>
@@ -757,7 +803,9 @@ function ApkgImportPanel({ onImported }) {
                 <StatTile label="Tags" value={preview.deck.tags.length} />
               </div>
               <div className="mt-4 grid gap-2 text-sm text-[#66709a]">
-                <p>Medien: {preview.deck.importMeta.hasMedia ? "erkannt" : "keine"} · Hierarchie-Knoten: {preview.deck.importMeta.deckHierarchy?.length ?? 0}</p>
+                <p>Medien: {preview.deck.importMeta.hasMedia ? `${preview.deck.importMeta.mediaCount} erkannt` : "keine"} · Hierarchie-Knoten: {preview.deck.importMeta.deckHierarchy?.length ?? 0}</p>
+                {mediaStatus ? <p>Medienspeicher: {mediaStatus.persisted ? `${mediaStatus.count} Dateien persistent` : `${mediaStatus.count} Dateien nur temporaer`}</p> : null}
+                {previewMissingMedia.length > 0 ? <p>{previewMissingMedia.length} Mediendateien fehlen im lokalen Speicher.</p> : null}
                 <p>Lernfortschritt: {preview.deck.importMeta.learningProgressStatus}</p>
               </div>
               {preview.warnings.length > 0 ? (
@@ -782,11 +830,11 @@ function ApkgImportPanel({ onImported }) {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#66709a]">Front</p>
-                      <CardHtml html={card.originalFront} />
+                      <CardHtml html={card.originalFront} mediaUrls={previewMediaUrls} />
                     </div>
                     <div>
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#66709a]">Back</p>
-                      <CardHtml html={card.originalBack} />
+                      <CardHtml html={card.originalBack} mediaUrls={previewMediaUrls} />
                     </div>
                   </div>
                 </article>
@@ -1205,11 +1253,11 @@ function CreationMethodButton({ method, isSelected, onSelect }) {
   );
 }
 
-function CreationScreen({ onCreated, onJob }) {
+function CreationScreen({ decks = [], onCreated, onJob }) {
   const [selectedMethod, setSelectedMethod] = React.useState("anki");
 
   function renderSelectedMethod() {
-    if (selectedMethod === "anki") return <ApkgImportPanel onImported={onCreated} />;
+    if (selectedMethod === "anki") return <ApkgImportPanel existingDecks={decks} onImported={onCreated} />;
     if (selectedMethod === "text") return <TextCsvImportPanel onImported={onCreated} />;
     if (selectedMethod === "manual") return <ManualCreationPanel onCreated={onCreated} />;
     return <AiCreationPanel onCreated={onCreated} onJob={onJob} />;
@@ -1298,6 +1346,7 @@ function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
   const current = session.items[index] ?? null;
   const progress = session.items.length ? ((index + 1) / session.items.length) * 100 : 0;
   const sourceCard = current ? sessionDeck.cards.find((card) => card.id === current.sourceCardId) : null;
+  const { urls: studyMediaUrls } = useDeckMediaUrls(sessionDeck);
 
   React.useEffect(() => {
     if (initial.session.generatedVariantCount > 0) {
@@ -1375,14 +1424,14 @@ function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
                 <div className="mx-auto w-full max-w-2xl">
                   <p className="mb-5 text-sm font-semibold uppercase tracking-[0.18em] text-[#7a84c7]">Frage</p>
                   <div className="text-2xl font-semibold leading-relaxed text-[#17214f] sm:text-4xl">
-                    <CardHtml html={current.front} />
+                    <CardHtml html={current.front} mediaUrls={studyMediaUrls} />
                   </div>
                   {showAnswer ? (
                     <>
                       <div className="my-8 h-px bg-[#dfe4f5]" />
                       <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#7a84c7]">Antwort</p>
                       <div className="text-xl font-semibold leading-relaxed text-[#17214f] sm:text-3xl">
-                        <CardHtml html={current.back} />
+                        <CardHtml html={current.back} mediaUrls={studyMediaUrls} />
                       </div>
                       <div className="mt-8 flex flex-wrap gap-2">
                         <button type="button" onClick={() => setShowAnchor((value) => !value)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1]">
@@ -1408,11 +1457,11 @@ function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
                           <div className="mt-3 grid gap-4 md:grid-cols-2">
                             <div>
                               <p className="mb-1 text-xs font-semibold text-[#66709a]">Front</p>
-                              <CardHtml html={sourceCard.immutableOriginal?.front ?? sourceCard.originalFront} />
+                              <CardHtml html={sourceCard.immutableOriginal?.front ?? sourceCard.originalFront} mediaUrls={studyMediaUrls} />
                             </div>
                             <div>
                               <p className="mb-1 text-xs font-semibold text-[#66709a]">Back</p>
-                              <CardHtml html={sourceCard.immutableOriginal?.back ?? sourceCard.originalBack} />
+                              <CardHtml html={sourceCard.immutableOriginal?.back ?? sourceCard.originalBack} mediaUrls={studyMediaUrls} />
                             </div>
                           </div>
                           <p className="mt-3 text-sm text-[#66709a]">Quelle: {current.sourceAnchors?.[0]?.documentName || "Originalkarte"} {current.transformType ? `· Variation: ${current.transformType}` : ""}</p>
@@ -2165,7 +2214,7 @@ export function App() {
       );
     }
     if (activeView === "neue-karten") {
-      return <CreationScreen onCreated={saveDeck} onJob={saveJob} />;
+      return <CreationScreen decks={state.decks} onCreated={saveDeck} onJob={saveJob} />;
     }
     if (activeView === "lernen") {
       return <LearnScreen decks={state.decks} onStartDeck={startDeck} onCreateDeck={() => setActiveView("neue-karten")} />;
@@ -2205,15 +2254,15 @@ export function App() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-[96rem] overflow-hidden rounded-[22px] border border-[#dce2f4] bg-white/52 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl lg:grid-cols-[18rem_1fr]">
-        <aside className="border-b border-[#dce2f4] bg-white/42 lg:border-b-0 lg:border-r">
-          <div className="flex h-full flex-col px-5 py-7 sm:px-8 lg:py-10">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-[96rem] overflow-hidden rounded-[22px] border border-[#dce2f4] bg-white/52 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl md:grid-cols-[13rem_minmax(0,1fr)]">
+        <aside className="border-b border-[#dce2f4] bg-white/42 md:border-b-0 md:border-r">
+          <div className="flex h-full flex-col px-5 py-7 sm:px-8 md:px-4 md:py-8 lg:px-5 lg:py-10">
             <div>
               <h1 className="text-5xl font-semibold tracking-normal text-[#17214f]">CoRe</h1>
               <p className="mt-2 text-base text-[#66709a]">Content Repetition</p>
             </div>
 
-            <nav aria-label="Hauptmenue" className="mt-12 grid gap-3">
+            <nav aria-label="Hauptmenue" className="mt-12 grid max-w-[14rem] gap-2 md:mt-10 md:max-w-none">
               {navigationItems.map((view) => {
                 const NavIcon = getIcon(view.iconKey);
                 const isActive = view.id === activeView;
@@ -2223,13 +2272,13 @@ export function App() {
                     key={view.id}
                     type="button"
                     onClick={() => setActiveView(view.id)}
-                    className={`flex min-h-12 items-center gap-3 rounded-xl px-4 text-left text-base font-medium transition ${
+                    className={`flex min-h-12 w-full max-w-[14rem] items-center gap-2.5 rounded-xl px-3 text-left text-base font-medium transition md:max-w-none ${
                       isActive ? "bg-[#e9ecfb] text-[#24327a] shadow-sm" : "text-[#4f5a86] hover:bg-white/70 hover:text-[#17214f]"
                     }`}
                     aria-current={isActive ? "page" : undefined}
                   >
-                    <NavIcon size={21} aria-hidden="true" />
-                    <span>{view.label}</span>
+                    <NavIcon className="shrink-0" size={21} aria-hidden="true" />
+                    <span className="min-w-0 truncate">{view.label}</span>
                   </button>
                 );
               })}

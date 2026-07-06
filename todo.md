@@ -1,20 +1,22 @@
 # CoRe ToDo
 
-Stand: 2026-07-01
+Stand: 2026-07-06
 
-Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `specs.html`) und aktuellem Codebase-Ist. Der aktuelle Stand ist ein lokaler Vite/React-Web-MVP mit `localStorage`, lokalen Deep Modules und testbaren Produktpfaden. Er ist noch kein gehostetes Mehrnutzerprodukt.
+Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `specs.html`) und aktuellem Codebase-Ist. Der aktuelle Stand ist ein lokaler Vite/React-Web-MVP mit `localStorage`, lokalen Deep Modules und testbaren Produktpfaden. Seit dem 2026-07-06 ist das lokale Kartenmodell Learning-Item-kompatibel: Deck-`cards` bleiben als lokale Compatibility Collection erhalten, werden aber ueber die gemeinsame Creation Pipeline normalisiert. Der MVP ist weiterhin kein gehostetes Mehrnutzerprodukt.
 
 ## Aktuell erledigt
 
 - [x] Lokale Navigation fuer Dashboard, Decks, Erstellen, Lernen, Graph, Community, KI-Jobs, Assistent und Einstellungen.
 - [x] Persistenter lokaler App-State ueber `src/coreRepository.js`.
-- [x] Deck-/Kartenmodell mit Review-State, Quellenankern, Versionen, Varianten und CoRe-Modus.
-- [x] APKG-Basic-Import mit Mapping, Importbericht, HTML-Sanitization und Raw-/Fallback-Feldern.
-- [x] Text-, CSV- und Excel-/Tabellen-Paste-Import.
-- [x] Manuelle Kartenanlage mit Dokumentkontext und Auswahl-zu-Feld.
-- [x] Lokale KI-Drafts aus Quellentext mit Schema-Validation und Draft-Annahme.
-- [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung und Review-Events.
-- [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker, Deaktivieren und Fehler-Feedback.
+- [x] Deck-/Learning-Item-Modell mit Review-State, Quellenankern, Versionen, Varianten und CoRe-Modus.
+- [x] Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, Import-Varianten und KI-Drafts.
+- [x] Legacy-Card-Normalisierung ohne Verlust bestehender Review-Events.
+- [x] APKG-Basic-Import mit Mapping, Importbericht, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten, lokalem Browser-Medienspeicher und Reimport-Merge.
+- [x] Text-, CSV- und Excel-/Tabellen-Paste-Import ueber die gemeinsame Learning-Item-Pipeline mit Warnungen fuer uebersprungene Eingaben.
+- [x] Manuelle Kartenanlage mit Dokumentkontext, Auswahl-zu-Feld und Original-Variantenanker.
+- [x] Lokale KI-Drafts aus Quellentext mit Schema-Validation, Draft-Annahme und normalisierter Learning-Item-Erstellung.
+- [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, append-only Review-Events und Learning-Item-/Varianten-Kompatibilitaetsfeldern.
+- [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker-Minikarte, Deaktivieren und Fehler-Feedback.
 - [x] Lokale Community-Gruppen, Ordner und Deck-Kopie ohne fremde Reviewdaten.
 - [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan und AI-Job-Uebersicht.
 - [x] Lokaler JSON-Export/-Import ohne Passwort-Verifier.
@@ -34,7 +36,7 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `
 - [ ] Accessibility-Pass fuer Review, Import und Settings durchfuehren: Fokusreihenfolge, Labels, Kontrast, Tastatur.
 - [ ] Leere, fehlerhafte und grosse Eingaben fuer Text/CSV/Excel/APKG mit UI-Fehlermeldungen absichern.
 - [ ] Version-Restore in der UI voll klickbar machen, nicht nur im Modell vorbereiten.
-- [ ] Datenportabilitaet mit Roundtrip-Fixtures testen: Export alter Version, Import in frischen State, Konfliktfall.
+- [ ] Datenportabilitaet mit Roundtrip-Fixtures testen: Export alter Version, Import in frischen State, Konfliktfall, Learning-Item/Legacy-Card-Normalisierung.
 - [ ] Bestehende lokale Demo-Daten als reproduzierbare Fixtures statt impliziter UI-Erzeugung pflegen.
 
 ## P1: Hosting und Produktivbetrieb vorbereiten
@@ -56,11 +58,12 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `
 
 ## P1: Dokumente, Medien und Import
 
-- [ ] APKG-Fixtures erweitern: Basic reversed, Cloze, Medienreferenzen, ungewohnte Note Types.
+- [ ] APKG-Fixtures erweitern: Basic reversed, Cloze, Medienreferenzen, moderne MediaEntries, ungewohnte Note Types und echte `collection.anki21b`/Zstd-Beispiele.
 - [ ] Importbericht in der UI detailreicher machen: erkannte Decks, Warnungen, nicht gemappte Felder.
 - [ ] Server-/Worker-Pfad fuer grosse APKGs und Medien entwerfen.
 - [ ] PDF-/DOCX-Textextraktion als echtes Modul planen, inklusive Fehlerfaellen.
 - [ ] OCR und Bildregionen erst nach textbasiertem Dokumentpfad priorisieren.
+- [ ] Produktive Medienpersistenz fuer APKG-Assets bauen: Server-Ablage, stabile Referenzen, Sync, Export und Loeschregeln.
 - [ ] Medienreferenzen fuer geteilte Decks stabil und datenschutzbewusst modellieren.
 
 ## P2: KI und Jobs produktionsfaehig machen
@@ -76,7 +79,7 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `
 ## P2: Scheduler, Varianten und Lernqualitaet
 
 - [ ] Scheduler-Strategie entscheiden: einfacher MVP, SM-2-nahe Logik oder FSRS-Integration.
-- [ ] Varianten-State mit Family-State gegen reale Lernsessions validieren.
+- [ ] Learning-Item-State, Varianten-State und Family-State gegen reale Lernsessions validieren.
 - [ ] Regeln fuer welche Kartentypen Varianten bekommen duerfen aus echten Decks nachschaerfen.
 - [ ] Variantenqualitaet aus Feedback ableiten: deaktiviert, fachlich falsch, schlecht formuliert.
 - [ ] Review-Queue fuer faellige Karten, neue Karten und Varianten nachvollziehbar anzeigen.
@@ -109,3 +112,4 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `
 - `specs.md`: Produkt-, Engineering-, Modul- und Implementierungs-Soll.
 - `specs.html`: navigierbare HTML-Version der Spezifikation.
 - `src/coreFeatures.test.js`: groesster Modul-Test fuer die implementierten MVP-Pfade.
+- `src/creationPipeline.test.js` und `src/learningModel.test.js`: aktuelle Tests fuer Learning-Item-Erstellung, Variantenanker und Legacy-Kompatibilitaet.
