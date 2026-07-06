@@ -118,25 +118,36 @@ export function createLearningItemState({
   reviewableType = "learning_item",
   reviewableId = learningItemId,
   userId = "local-user",
-  schedulerVersion = "simple_v1",
-  state = "new",
+  schedulerVersion = "fsrs_v1",
+  state = null,
   dueAt = new Date().toISOString(),
   intervalDays = 0,
   ease = 2.5,
-  difficulty = null,
-  stability = null,
-  repetitions = 0,
+  difficulty = 5,
+  stability = 0,
+  desiredRetention = 0.9,
+  reps = null,
+  repetitions = null,
   lapses = 0,
   maturityXp = 0,
   lastReviewedAt = null,
   lastRating = null,
   preferredVariantLevel = 1,
+  forcedVariantId = null,
+  fallbackUntilCorrect = false,
+  lastFailedVariantId = null,
+  previousSuccessfulVariantId = null,
   schedulerParamsJson = null,
   sourceSchedulerData = null,
 } = {}) {
   const normalizedLearningItemId = learningItemId || reviewableId || "";
   const normalizedReviewableId = reviewableId || normalizedLearningItemId;
   const normalizedMaturityXp = Math.max(0, Math.round(Number(maturityXp ?? 0)));
+  const normalizedReps = Math.max(0, Math.round(Number(reps ?? repetitions ?? 0) || 0));
+  const normalizedState = state ?? (normalizedReps > 0 ? "review" : "new");
+  const normalizedDifficulty = Math.min(10, Math.max(1, Number(difficulty ?? 5) || 5));
+  const normalizedStability = Math.max(0, Number(stability ?? 0) || 0);
+  const normalizedDesiredRetention = Math.min(0.99, Math.max(0.5, Number(desiredRetention ?? 0.9) || 0.9));
 
   return {
     id,
@@ -145,19 +156,25 @@ export function createLearningItemState({
     reviewableId: normalizedReviewableId,
     userId,
     schedulerVersion,
-    state,
+    state: normalizedState,
     dueAt,
     intervalDays,
     ease,
-    difficulty,
-    stability,
-    repetitions,
+    difficulty: normalizedDifficulty,
+    stability: normalizedStability,
+    desiredRetention: normalizedDesiredRetention,
+    reps: normalizedReps,
+    repetitions: normalizedReps,
     lapses,
     maturityXp: normalizedMaturityXp,
     maturityBand: getMaturityBand(normalizedMaturityXp),
     lastReviewedAt,
     lastRating,
-    preferredVariantLevel: Math.min(5, Math.max(1, Math.round(Number(preferredVariantLevel) || 1))),
+    preferredVariantLevel: Math.min(3, Math.max(1, Math.round(Number(preferredVariantLevel) || 1))),
+    forcedVariantId,
+    fallbackUntilCorrect: Boolean(fallbackUntilCorrect),
+    lastFailedVariantId,
+    previousSuccessfulVariantId,
     schedulerParamsJson,
     sourceSchedulerData,
   };

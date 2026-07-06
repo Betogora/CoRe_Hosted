@@ -52,7 +52,7 @@ test("answerVariant updates central learning item state and writes a variant rev
   assert.equal(event.rating, "good");
   assert.equal(event.previousLearningItemStateJson.repetitions, 2);
   assert.equal(event.nextLearningItemStateJson.repetitions, 3);
-  assert.equal(event.schedulerVersion, "simple_v1");
+  assert.equal(event.schedulerVersion, "fsrs_v1");
   assert.equal(event.anchorSnapshotJson.shouldShow, false);
 });
 

@@ -1,6 +1,7 @@
 import { createCommunity, shareDeckToCommunity } from "./communityModel.js";
-import { createBasicLearningItem, createCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.js";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.js";
 import { createCoreRepository } from "./coreRepository.js";
+import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.js";
 import { buildDeckGraph } from "./deckGraph.js";
 
 export function createDemoAnatomyDeck() {
@@ -76,6 +77,48 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         updatedAt: deletedAt,
         cards: (deck.cards ?? []).map((card) => (card.id === cardId ? softDeleteCard(card, deletedAt) : card)),
       }));
+    },
+    addDeckCardVariant(deckId, cardId, variant, reason = "Manuelle Umformulierung") {
+      const updatedAt = new Date().toISOString();
+
+      return repository.updateDeck(deckId, (deck) => ({
+        ...deck,
+        updatedAt,
+        cards: (deck.cards ?? []).map((card) =>
+          card.id === cardId
+            ? addRephrasedVariant(card, variant.front, variant.back, {
+                variantLevel: variant.variantLevel ?? 2,
+                generationSource: variant.generationSource ?? "user_edited",
+                qualityStatus: variant.qualityStatus ?? "active",
+                isActive: variant.isActive ?? true,
+                updatedAt,
+                meta: {
+                  source: "deck-card-editor",
+                  reason,
+                  ...(variant.meta ?? {}),
+                },
+              })
+            : card,
+        ),
+      }));
+    },
+    applyVariantGenerationResponse(deckId, cardId, response, options = {}) {
+      let generationResult = null;
+      const updatedAt = new Date().toISOString();
+      const deck = repository.updateDeck(deckId, (currentDeck) => ({
+        ...currentDeck,
+        updatedAt,
+        cards: (currentDeck.cards ?? []).map((card) => {
+          if (card.id !== cardId) return card;
+          generationResult = generateRephrasedVariantsForLearningItem(card, {
+            ...options,
+            mockResponse: response,
+          });
+          return generationResult.learningItem;
+        }),
+      }));
+
+      return { deck, result: generationResult };
     },
     saveProfile(profile) {
       return repository.saveProfile(profile);

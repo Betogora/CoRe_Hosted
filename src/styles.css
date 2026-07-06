@@ -14,3 +14,42 @@ body {
 button {
   font: inherit;
 }
+
+.card-html {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.card-html img,
+.card-html video,
+.card-html canvas,
+.card-html svg,
+.card-html iframe {
+  max-width: 100%;
+}
+
+.card-html img,
+.card-html video,
+.card-html canvas,
+.card-html svg {
+  height: auto;
+}
+
+.card-html img {
+  max-height: 9rem;
+  border-radius: 0.75rem;
+}
+
+.card-html table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.card-html pre,
+.card-html code {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

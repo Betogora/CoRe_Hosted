@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.js";
 import { createCoreRepository } from "./coreRepository.js";
 import { createCoreWorkspace, createDemoAnatomyDeck } from "./coreWorkspace.js";
 
@@ -80,4 +81,48 @@ test("workspace card maintenance hides editing and delete invariants", () => {
   assert.equal(modeChanged.deckSettings.coreMode, "off");
   assert.equal(deletedCard.status, "deleted");
   assert.equal(deletedCard.versionLog.some((entry) => entry.changeType === "deleted"), true);
+});
+
+test("workspace variant commands support the UI editor without changing originals", () => {
+  const workspace = createTestWorkspace();
+  const deck = workspace.createDemoDeck();
+  const card = deck.cards[0];
+  const original = getOriginalVariant(card);
+
+  const withManualVariant = workspace.addDeckCardVariant(deck.id, card.id, {
+    front: "Was bewirkt Myelin an Axonen?",
+    back: "Es isoliert Axone elektrisch und erhoeht die Leitungsgeschwindigkeit.",
+    variantLevel: 2,
+  });
+  const manualCard = withManualVariant.cards.find((item) => item.id === card.id);
+  const manualVariant = getActiveVariants(manualCard)[0];
+
+  assert.equal(manualVariant.generationSource, "user_edited");
+  assert.equal(manualVariant.anchorVariantId, original.id);
+  assert.equal(getAnswerSideAnchorMiniCard(manualCard, manualVariant).shouldShow, true);
+  assert.equal(getOriginalVariant(manualCard).front, original.front);
+
+  const response = JSON.stringify({
+    variants: [
+      {
+        front: "Welche Funktion hat die Myelinscheide?",
+        back: "Sie isoliert Axone elektrisch und erhoeht die Leitungsgeschwindigkeit.",
+        variantType: "basic",
+        variantLevel: 2,
+        relationToOriginal: "same_card_rephrasing",
+        containsNewFacts: false,
+        abstractionLevel: 1,
+      },
+    ],
+  });
+  const generated = workspace.applyVariantGenerationResponse(deck.id, card.id, response, {
+    maxVariantLevel: 3,
+  });
+  const generatedCard = generated.deck.cards.find((item) => item.id === card.id);
+  const aiVariant = getActiveVariants(generatedCard).find((variant) => variant.generationSource === "ai_generated");
+
+  assert.equal(generated.result.createdVariants.length, 1);
+  assert.equal(aiVariant.anchorVariantId, original.id);
+  assert.equal(getOriginalVariant(generatedCard).front, original.front);
+  assert.equal(generatedCard.reviewState.schedulerVersion, "fsrs_v1");
 });

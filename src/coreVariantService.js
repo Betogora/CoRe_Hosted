@@ -4,10 +4,12 @@ import {
   createDefaultDeckSettings,
   createVersionEntry,
   getActiveVariants,
+  getOriginalVariant,
   stableContentHash,
 } from "./coreModel.js";
 import { stripHtml } from "./htmlSafety.js";
-import { selectAutomaticReviewVariant } from "./variantSelection.js";
+import { calculateRetrievability, getSchedulerStateForItem } from "./scheduler.js";
+import { isAutomaticRephraseVariant, selectAutomaticReviewVariant } from "./variantSelection.js";
 
 export {
   CARD_VARIATION_PROMPT_TEMPLATE,
@@ -20,6 +22,7 @@ export {
 export { isAutomaticRephraseVariant, selectAutomaticReviewVariant } from "./variantSelection.js";
 export { getActiveVariants } from "./coreModel.js";
 
+const DEFAULT_VARIANT_TYPES = ["basic", "cloze", "reverse"];
 const VOCAB_TAGS = ["vocab", "vocabulary", "vokabel", "wortschatz", "translation"];
 const EXACT_WORDING_TAGS = ["exact", "wortlaut", "definition", "quote", "gesetz"];
 
@@ -155,6 +158,390 @@ export function createRephraseVariant(card, options = {}) {
       sourceContentHash: card.contentHash,
     },
   });
+}
+
+function reviewTimestamp(event) {
+  return new Date(event?.reviewedAt ?? event?.answeredAt ?? event?.createdAt ?? 0).getTime();
+}
+
+function getItemReviewEvents(item, reviewEvents = []) {
+  return (reviewEvents ?? [])
+    .filter((event) => [event.learningItemId, event.cardId, event.sourceCardId].includes(item?.id))
+    .sort((left, right) => reviewTimestamp(right) - reviewTimestamp(left));
+}
+
+function isPositiveRating(rating) {
+  return ["hard", "good", "easy"].includes(rating);
+}
+
+function isStrongPositiveRating(rating) {
+  return ["good", "easy"].includes(rating);
+}
+
+function successfulReviewCountFromState(state) {
+  return Math.max(0, Number(state.reps ?? state.repetitions ?? 0) - Number(state.lapses ?? 0));
+}
+
+export function getReviewSuccessProfile(item, reviewEvents = []) {
+  const events = getItemReviewEvents(item, reviewEvents);
+  const state = getSchedulerStateForItem(item);
+  const totalReviews = events.length > 0 ? events.length : Number(state.reps ?? state.repetitions ?? 0);
+  const successfulReviews = events.length > 0
+    ? events.filter((event) => isPositiveRating(event.rating)).length
+    : successfulReviewCountFromState(state);
+  let consecutivePositiveReviews = 0;
+  let consecutiveGoodOrEasy = 0;
+
+  for (const event of events) {
+    if (isPositiveRating(event.rating)) consecutivePositiveReviews += 1;
+    else break;
+  }
+
+  for (const event of events) {
+    if (isStrongPositiveRating(event.rating)) consecutiveGoodOrEasy += 1;
+    else break;
+  }
+
+  if (events.length === 0 && isPositiveRating(state.lastRating)) {
+    consecutivePositiveReviews = successfulReviews;
+    consecutiveGoodOrEasy = isStrongPositiveRating(state.lastRating) ? successfulReviews : 0;
+  }
+
+  const lastFailure = events.find((event) => event.rating === "again") ?? null;
+  const lastSuccess = events.find((event) => isPositiveRating(event.rating)) ?? null;
+  const recentEvents = events.slice(0, 5);
+  const inferredRecentFailure = state.lastRating === "again" ? 1 : 0;
+
+  return {
+    totalReviews,
+    successfulReviews,
+    consecutivePositiveReviews,
+    consecutiveGoodOrEasy,
+    lastRating: events[0]?.rating ?? state.lastRating ?? null,
+    recentFailureCount: events.length > 0 ? recentEvents.filter((event) => event.rating === "again").length : inferredRecentFailure,
+    lastReviewedVariantId: events[0]?.variantId ?? events[0]?.cardVariantId ?? null,
+    lastSuccessfulVariantId: lastSuccess?.variantId ?? lastSuccess?.cardVariantId ?? state.previousSuccessfulVariantId ?? null,
+    lastFailedVariantId: lastFailure?.variantId ?? lastFailure?.cardVariantId ?? state.lastFailedVariantId ?? null,
+  };
+}
+
+export function getLearningItemMaturity(item, now = new Date(), reviewEvents = []) {
+  if (Array.isArray(now)) {
+    reviewEvents = now;
+    now = new Date();
+  }
+
+  const state = getSchedulerStateForItem(item);
+  const rawState = item?.learningItemState ?? item?.reviewState ?? {};
+  const hasExplicitStability = rawState.stability != null;
+  const hasFsrsReviewSignal = Boolean(state.lastReviewedAt);
+  const profile = getReviewSuccessProfile(item, reviewEvents);
+  const reps = Number(state.reps ?? state.repetitions ?? 0);
+  const stability = Number(state.stability ?? 0);
+  const difficulty = Number(state.difficulty ?? 5);
+  const intervalDays = Number(state.intervalDays ?? 0);
+  const retrievability = calculateRetrievability(state, now);
+  const successfulReviewCount = Math.max(profile.successfulReviews, successfulReviewCountFromState(state));
+  const recentFailureCount = profile.recentFailureCount;
+  const reasons = [];
+  let stage = "new";
+
+  const isFragile =
+    state.state === "relearning" ||
+    state.lastRating === "again" ||
+    recentFailureCount > 0 ||
+    (reps > 0 && hasExplicitStability && hasFsrsReviewSignal && stability < 0.75) ||
+    (reps > 0 && hasExplicitStability && hasFsrsReviewSignal && retrievability < 0.55) ||
+    difficulty >= 8.5;
+  const isStable = state.state === "review" && !isFragile && stability >= 4 && retrievability >= 0.7;
+
+  if (state.state === "relearning" || state.lastRating === "again") {
+    stage = "relearning";
+    reasons.push("Zuletzt falsch beantwortet oder im Relearning.");
+  } else if (reps === 0 || state.state === "new") {
+    stage = "new";
+    reasons.push("Noch keine Wiederholung.");
+  } else if (state.state === "learning") {
+    stage = "learning";
+    reasons.push("Noch im Lernzustand.");
+  } else if (state.state === "review") {
+    if (stability >= 30 || (intervalDays >= 21 && successfulReviewCount >= 5 && recentFailureCount === 0)) {
+      stage = "mastered";
+      reasons.push("Hohe Stabilitaet oder langes Intervall ohne aktuelle Fehler.");
+    } else if ((successfulReviewCount >= 4 || stability >= 10 || intervalDays >= 7) && recentFailureCount === 0) {
+      stage = "mature";
+      reasons.push("Mehrere erfolgreiche Reviews oder stabile FSRS-Werte.");
+    } else if ((profile.consecutiveGoodOrEasy >= 3 || successfulReviewCount >= 3 || stability >= 4) && !isFragile) {
+      stage = "variant_ready";
+      reasons.push("Mindestens drei gute Abrufe oder vergleichbare Stabilitaet.");
+    } else {
+      stage = "early_review";
+      reasons.push("Review begonnen, aber noch nicht robust genug fuer automatische Varianten.");
+    }
+  } else {
+    stage = reps > 0 ? "early_review" : "new";
+    reasons.push("Legacy-State wurde konservativ eingeordnet.");
+  }
+
+  const score = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(successfulReviewCount * 14 + Math.min(36, stability * 3) + Math.min(20, intervalDays) + retrievability * 20 - recentFailureCount * 18),
+    ),
+  );
+  const labels = {
+    new: "Neu",
+    learning: "Lernen",
+    early_review: "Fruehes Review",
+    variant_ready: "Bereit fuer Varianten",
+    mature: "Reif",
+    mastered: "Sicher",
+    relearning: "Wiederlernen",
+  };
+
+  return {
+    stage,
+    score,
+    label: labels[stage],
+    description: reasons[0],
+    isStable,
+    isFragile,
+    successfulReviewCount,
+    consecutivePositiveReviews: profile.consecutivePositiveReviews,
+    consecutiveGoodOrEasy: profile.consecutiveGoodOrEasy,
+    recentFailureCount,
+    retrievability,
+    stability,
+    difficulty,
+    intervalDays,
+    reps,
+    reasons,
+  };
+}
+
+export function getVariantReadiness(item, reviewEvents = [], options = {}) {
+  const maturity = options.maturity ?? getLearningItemMaturity(item, options.now ?? new Date(), reviewEvents);
+  const state = getSchedulerStateForItem(item);
+  const base = {
+    allowedLevels: [1],
+    preferredLevel: 1,
+    maxAllowedLevel: 1,
+    allowAiRephrasing: false,
+    allowAdvancedVariants: false,
+    shouldPreferOriginal: true,
+    shouldFallbackToOriginal: false,
+    reason: "Erst die Originalkarte stabil lernen.",
+    maturity,
+  };
+
+  if (maturity.stage === "early_review") {
+    return {
+      ...base,
+      allowedLevels: [1, 2],
+      maxAllowedLevel: 2,
+      reason: "Fruehes Review: nur Original oder sehr nahe Umformulierung.",
+    };
+  }
+
+  if (maturity.stage === "variant_ready") {
+    return {
+      ...base,
+      allowedLevels: [1, 2],
+      preferredLevel: Math.min(2, Number(state.preferredVariantLevel ?? 2) || 2),
+      maxAllowedLevel: 2,
+      allowAiRephrasing: true,
+      shouldPreferOriginal: false,
+      reason: "Die Grundkarte ist stabil genug fuer eine nahe KI-Umformulierung.",
+    };
+  }
+
+  if (maturity.stage === "mature") {
+    return {
+      ...base,
+      allowedLevels: [1, 2, 3],
+      preferredLevel: Math.min(3, Math.max(2, Number(state.preferredVariantLevel ?? 2) || 2)),
+      maxAllowedLevel: 3,
+      allowAiRephrasing: true,
+      shouldPreferOriginal: false,
+      reason: "Reife Grundkarte: nahe Level-2/3-Varianten duerfen rotieren.",
+    };
+  }
+
+  if (maturity.stage === "mastered") {
+    return {
+      ...base,
+      allowedLevels: [1, 2, 3],
+      preferredLevel: 3,
+      maxAllowedLevel: 3,
+      allowAiRephrasing: true,
+      shouldPreferOriginal: false,
+      reason: "Sehr stabile Grundkarte: nahe Varianten sind sicher moeglich.",
+    };
+  }
+
+  if (maturity.stage === "relearning") {
+    return {
+      ...base,
+      shouldFallbackToOriginal: true,
+      reason: "Nach Fehlern faellt CoRe auf Original oder Level 1 zurueck.",
+    };
+  }
+
+  return base;
+}
+
+export function getVariantCoverage(item) {
+  const variants = item?.variants ?? [];
+  const originals = variants.filter((variant) => variant.isOriginal);
+  const activeNearVariants = getActiveVariants(item).filter((variant) => isAutomaticRephraseVariant(variant));
+  const levelCounts = { 1: 0, 2: 0, 3: 0 };
+  const warnings = [];
+
+  for (const variant of activeNearVariants) {
+    const level = Math.min(3, Math.max(1, Number(variant.variantLevel ?? 1) || 1));
+    levelCounts[level] += 1;
+  }
+
+  if (originals.length === 0) warnings.push("Keine Originalvariante gefunden.");
+  if (activeNearVariants.length > 3) warnings.push("Variantenflut vermeiden: mehr als drei aktive nahe Varianten.");
+
+  return {
+    originalCount: originals.length,
+    activeRephraseCount: activeNearVariants.length,
+    aiGeneratedCount: activeNearVariants.filter((variant) => variant.generationSource === "ai_generated").length,
+    userEditedCount: activeNearVariants.filter((variant) => variant.generationSource === "user_edited").length,
+    levelCounts,
+    hasOriginal: originals.length > 0,
+    hasNearRephrases: activeNearVariants.length > 0,
+    hasEnoughVariants: activeNearVariants.length >= 2,
+    missingRecommendedLevels: [1, 2, 3].filter((level) => levelCounts[level] === 0),
+    warnings,
+  };
+}
+
+function recommendedCoverageTarget(stage) {
+  if (stage === "variant_ready") return 1;
+  if (stage === "mature" || stage === "mastered") return 2;
+  return 0;
+}
+
+function recommendedLevelsFor(readiness, coverage, count) {
+  const levels = readiness.allowedLevels.filter((level) => level > 1 && coverage.levelCounts[level] === 0);
+  const fallback = readiness.allowedLevels.filter((level) => level > 1);
+  return (levels.length > 0 ? levels : fallback).slice(0, Math.max(0, count));
+}
+
+export function getVariantGenerationRecommendation(item, reviewEvents = [], options = {}) {
+  const maturity = getLearningItemMaturity(item, options.now ?? new Date(), reviewEvents);
+  const readiness = getVariantReadiness(item, reviewEvents, { ...options, maturity });
+  const coverage = getVariantCoverage(item);
+  const warnings = [...coverage.warnings];
+  const coverageTarget = recommendedCoverageTarget(maturity.stage);
+  const enoughForStage = coverage.activeRephraseCount >= coverageTarget;
+  const recentFailure = maturity.recentFailureCount > 0 || maturity.stage === "relearning";
+  let shouldSuggest = false;
+  let mode = "none";
+  let reason = readiness.reason;
+
+  if (coverage.activeRephraseCount > 3) {
+    warnings.push("Keine weitere automatische Empfehlung: Variantenflut vermeiden.");
+  } else if (readiness.allowAiRephrasing && !enoughForStage && !recentFailure) {
+    shouldSuggest = true;
+    mode = "generate_near_rephrases";
+    reason = "Reifegrad passt und nahe Varianten fehlen.";
+  } else if (options.force && recentFailure) {
+    shouldSuggest = true;
+    mode = "generate_simpler_rephrase";
+    reason = "Erzwungene einfache Variante nach Fehlern.";
+  } else if (options.force && !enoughForStage) {
+    shouldSuggest = true;
+    mode = "suggest_prompt";
+    reason = "Erzwungene Vorschau trotz konservativer Standardlogik.";
+  } else if (enoughForStage && coverageTarget > 0) {
+    reason = "Genug nahe Varianten vorhanden.";
+  }
+
+  const missingCount = Math.max(0, coverageTarget - coverage.activeRephraseCount);
+  const recommendedVariantCount = shouldSuggest ? Math.min(2, Math.max(1, missingCount || 1)) : 0;
+  const recommendedLevels = recommendedLevelsFor(readiness, coverage, recommendedVariantCount);
+  const providerConfigured = Boolean(options.providerConfigured || options.variantProvider || options.provider);
+  const shouldAutoGenerate = Boolean(shouldSuggest && options.autoGenerateAllowed && providerConfigured);
+
+  return {
+    shouldSuggest,
+    shouldAutoGenerate,
+    shouldShowInUi: shouldSuggest,
+    mode,
+    recommendedVariantCount,
+    recommendedLevels,
+    allowedVariantTypes: DEFAULT_VARIANT_TYPES,
+    reason,
+    warnings,
+    maturity,
+    readiness,
+    coverage,
+  };
+}
+
+export function getVariantGenerationPlan(item, reviewEvents = [], options = {}) {
+  const recommendation = getVariantGenerationRecommendation(item, reviewEvents, options);
+  const canGenerate = Boolean(recommendation.shouldSuggest || options.force);
+  const maxVariantLevel = Math.min(3, recommendation.readiness.maxAllowedLevel || 1);
+
+  return {
+    canGenerate,
+    reason: canGenerate ? recommendation.reason : `Keine Varianten-Erzeugung: ${recommendation.reason}`,
+    promptOptions: {
+      numberOfVariants: canGenerate ? Math.max(1, recommendation.recommendedVariantCount || 1) : 0,
+      language: options.language ?? "de",
+      maxVariantLevel,
+      allowedVariantTypes: DEFAULT_VARIANT_TYPES,
+      keepCloseToOriginal: true,
+      allowNewFacts: false,
+      allowTransfer: false,
+      allowCaseVignette: false,
+      recommendedLevels: recommendation.recommendedLevels,
+    },
+    recommendation,
+    maturity: recommendation.maturity,
+    readiness: recommendation.readiness,
+    coverage: recommendation.coverage,
+  };
+}
+
+export function getVariantFallbackTarget(item, failedVariant, reviewEvents = []) {
+  const original = getOriginalVariant(item);
+  const profile = getReviewSuccessProfile(item, reviewEvents);
+  const failed = failedVariant ?? original;
+  const failedLevel = Number(failed?.variantLevel ?? 1) || 1;
+  const activeNearVariants = getActiveVariants(item)
+    .filter((variant) => isAutomaticRephraseVariant(variant))
+    .sort((left, right) => Number(right.variantLevel ?? 1) - Number(left.variantLevel ?? 1));
+
+  if (!failed || failed.isOriginal) {
+    return {
+      fallbackVariantId: original?.id ?? null,
+      fallbackReason: "Originalvariante falsch beantwortet: beim Original bleiben.",
+      shouldUseOriginal: true,
+      previousVariantId: profile.lastSuccessfulVariantId,
+    };
+  }
+
+  const targetLevel = failedLevel >= 3 ? 2 : failedLevel >= 2 ? 1 : 0;
+  const fallback = targetLevel > 0
+    ? activeNearVariants.find((variant) => Number(variant.variantLevel ?? 1) <= targetLevel)
+    : null;
+  const target = fallback ?? original ?? failed;
+
+  return {
+    fallbackVariantId: target?.id ?? null,
+    fallbackReason: fallback
+      ? `Level-${failedLevel}-Variante falsch beantwortet: Rueckfall auf Level ${fallback.variantLevel}.`
+      : `Level-${failedLevel}-Variante falsch beantwortet: Rueckfall auf Originalkarte.`,
+    shouldUseOriginal: !fallback,
+    previousVariantId: profile.lastSuccessfulVariantId,
+  };
 }
 
 export function ensureVariantsForCard(card, deckSettings = {}, options = {}) {

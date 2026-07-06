@@ -3,7 +3,7 @@ import { getActiveVariants, getOriginalVariant } from "./coreModel.js";
 const AUTOMATIC_REPHRASE_TYPES = new Set(["basic", "cloze", "reverse"]);
 
 function inferLearningPhase(state = {}) {
-  const repetitions = Number(state.repetitions ?? 0);
+  const repetitions = Number(state.reps ?? state.repetitions ?? 0);
   if (!state.state || (state.state === "new" && repetitions > 0)) return repetitions > 0 ? "review" : "new";
   return state.state;
 }
@@ -48,6 +48,12 @@ export function selectAutomaticReviewVariant(card, options = {}) {
       allowCaseVignette: Boolean(options.allowCaseVignette),
     }),
   );
+
+  if (state.fallbackUntilCorrect || state.forcedVariantId) {
+    const forced = (card?.variants ?? []).find((variant) => variant.id === state.forcedVariantId) ?? null;
+    if (!forced || forced.isOriginal) return original;
+    return isAutomaticRephraseVariant(forced) ? forced : original;
+  }
 
   if (phase === "new") return original;
 

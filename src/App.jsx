@@ -56,8 +56,20 @@ import {
   acceptAiDraftDeck,
   createManualCoreDeck,
   createSourceDocument,
+  getLearningItemAnswer,
+  getLearningItemQuestion,
+  getOriginalVariant,
+  getVariantAnchor,
 } from "./coreModel.js";
 import { createCoreWorkspace } from "./coreWorkspace.js";
+import {
+  buildCardVariationPrompt,
+  getLearningItemMaturity,
+  getVariantCoverage,
+  getVariantGenerationPlan,
+  getVariantGenerationRecommendation,
+  getVariantReadiness,
+} from "./coreVariantService.js";
 import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport, validatePortableExport } from "./dataPortability.js";
 import { answerDeckQuestion } from "./deckAssistant.js";
 import { buildDeckGraph, shouldRefreshDeckGraph } from "./deckGraph.js";
@@ -68,7 +80,7 @@ import { createAiJobLedger, createDeckLibraryModel } from "./libraryModel.js";
 import { createDeckMediaUrlMap, resolveCardHtmlMedia, storeDeckMedia } from "./mediaStore.js";
 import { createMenuModel } from "./menuModel.js";
 import { resolveReviewShortcut } from "./reviewShortcuts.js";
-import { createReviewSession, recordReviewRating, recordVariantFeedback } from "./reviewService.js";
+import { answerVariant, getNextReviewItem, recordVariantFeedback } from "./reviewService.js";
 
 const menu = createMenuModel();
 
@@ -107,6 +119,27 @@ const ratingButtons = [
   { key: "good", number: "3", label: "Good", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
   { key: "easy", number: "4", label: "Easy", className: "border-indigo-200 bg-indigo-50 text-indigo-700" },
 ];
+
+const maturityStageLabels = {
+  new: "Neu",
+  learning: "Lernen",
+  early_review: "Fruehe Wiederholung",
+  variant_ready: "Bereit fuer Varianten",
+  mature: "Stabil",
+  mastered: "Sehr stabil",
+  relearning: "Wiederholen nach Fehler",
+};
+
+function formatLevelList(levels = []) {
+  return levels.length ? `Level ${levels.join(", ")}` : "Level 1";
+}
+
+function getStateValue(state, key, fallback = "-") {
+  const value = state?.[key];
+  if (value === null || value === undefined || value === "") return fallback;
+  if (typeof value === "number") return Number.isInteger(value) ? value : Math.round(value * 100) / 100;
+  return value;
+}
 
 function getIcon(iconKey) {
   return iconByKey[iconKey] ?? Home;
@@ -159,7 +192,7 @@ function CardHtml({ html, mediaUrls = {} }) {
 
   return (
     <div
-      className="max-w-none text-sm leading-6 text-inherit [&_img]:max-h-36 [&_img]:rounded"
+      className="card-html min-w-0 max-w-full overflow-x-auto text-sm leading-6 text-inherit"
       dangerouslySetInnerHTML={{ __html: renderedHtml }}
     />
   );
@@ -167,7 +200,7 @@ function CardHtml({ html, mediaUrls = {} }) {
 
 function SoftPanel({ children, className = "" }) {
   return (
-    <section className={`rounded-[18px] border border-[#dde3f4] bg-white/72 shadow-[0_18px_55px_rgba(91,105,154,0.12)] backdrop-blur ${className}`}>
+    <section className={`min-w-0 rounded-[18px] border border-[#dde3f4] bg-white/72 shadow-[0_18px_55px_rgba(91,105,154,0.12)] backdrop-blur ${className}`}>
       {children}
     </section>
   );
@@ -341,7 +374,7 @@ function DashboardScreen({ state, onSaveProfile, onNavigate, onStartDeck }) {
       ];
 
   return (
-    <div className="grid gap-7">
+    <div className="grid min-w-0 gap-7">
       <PageHeader
         eyebrow="Heute"
         title={`Guten Morgen, ${state.profile.displayName || "Noemi"}`}
@@ -416,9 +449,13 @@ function DashboardScreen({ state, onSaveProfile, onNavigate, onStartDeck }) {
   );
 }
 
-function DeckCardEditor({ cards = [], selectedCardId, mediaUrls = {}, onSaveCard, onDeleteCard }) {
+function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson }) {
   const card = cards.find((item) => item.id === selectedCardId) ?? cards[0];
   const [form, setForm] = React.useState(null);
+  const [variantForm, setVariantForm] = React.useState({ front: "", back: "", variantLevel: 2 });
+  const [showPrompt, setShowPrompt] = React.useState(false);
+  const [jsonResponse, setJsonResponse] = React.useState("");
+  const [variantStatus, setVariantStatus] = React.useState("");
 
   React.useEffect(() => {
     setForm(
@@ -431,20 +468,78 @@ function DeckCardEditor({ cards = [], selectedCardId, mediaUrls = {}, onSaveCard
           }
         : null,
     );
+    setVariantForm({ front: "", back: "", variantLevel: 2 });
+    setShowPrompt(false);
+    setJsonResponse("");
+    setVariantStatus("");
   }, [card?.id]);
 
   if (!card || !form) return null;
+
+  const reviewEvents = deck?.reviewEvents ?? [];
+  const maturity = getLearningItemMaturity(card, new Date(), reviewEvents);
+  const readiness = getVariantReadiness(card, reviewEvents, { maturity });
+  const coverage = getVariantCoverage(card);
+  const recommendation = getVariantGenerationRecommendation(card, reviewEvents);
+  const generationPlan = getVariantGenerationPlan(card, reviewEvents);
+  const promptOptions = generationPlan.canGenerate
+    ? generationPlan.promptOptions
+    : { ...generationPlan.promptOptions, numberOfVariants: 1, maxVariantLevel: Math.max(1, generationPlan.promptOptions.maxVariantLevel || 1) };
+  const promptPreview = buildCardVariationPrompt(card, promptOptions);
+  const originalVariant = getOriginalVariant(card);
+  const variants = card.variants ?? [];
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function updateVariantForm(key, value) {
+    setVariantForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function addManualVariant() {
+    if (!variantForm.front.trim() || !variantForm.back.trim()) {
+      setVariantStatus("Bitte Frage und Antwort fuer die Umformulierung ausfuellen.");
+      return;
+    }
+    onAddVariant(card.id, {
+      ...variantForm,
+      variantLevel: Number(variantForm.variantLevel) || 2,
+      generationSource: "user_edited",
+    });
+    setVariantForm({ front: "", back: "", variantLevel: 2 });
+    setVariantStatus("Umformulierung gespeichert.");
+  }
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard?.writeText(promptPreview);
+      setVariantStatus("Prompt kopiert.");
+    } catch {
+      setVariantStatus("Prompt ist sichtbar und kann manuell kopiert werden.");
+    }
+  }
+
+  function applyJsonResponse() {
+    if (!jsonResponse.trim()) {
+      setVariantStatus("Fuege zuerst eine JSON-Antwort ein.");
+      return;
+    }
+    const result = onApplyVariantJson(card.id, jsonResponse, promptOptions);
+    const created = result?.result?.createdVariants?.length ?? 0;
+    const skipped = result?.result?.skippedVariants?.length ?? 0;
+    const errors = result?.result?.errors ?? [];
+    const warnings = [...(result?.result?.warnings ?? []), ...(errors ?? [])];
+    setVariantStatus(`${created} Varianten uebernommen. ${skipped} uebersprungen.${warnings.length ? ` ${warnings.join(" ")}` : ""}`);
+    if (created > 0) setJsonResponse("");
+  }
+
   return (
-    <SoftPanel className="p-6">
+    <SoftPanel className="p-5 sm:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">Karten-Detail</p>
-          <h3 className="mt-1 text-xl font-semibold text-[#17214f]">Original, Versionen und Anker</h3>
+          <h3 className="mt-1 break-words text-xl font-semibold text-[#17214f]">Original, Versionen und Anker</h3>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -465,18 +560,18 @@ function DeckCardEditor({ cards = [], selectedCardId, mediaUrls = {}, onSaveCard
           </button>
         </div>
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
           Vorderseite
-          <textarea className="min-h-28 rounded-xl border border-[#dfe4f5] p-3" value={form.front} onChange={(event) => update("front", event.target.value)} />
+          <textarea className="min-h-28 min-w-0 rounded-xl border border-[#dfe4f5] p-3" value={form.front} onChange={(event) => update("front", event.target.value)} />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
           Rueckseite
-          <textarea className="min-h-28 rounded-xl border border-[#dfe4f5] p-3" value={form.back} onChange={(event) => update("back", event.target.value)} />
+          <textarea className="min-h-28 min-w-0 rounded-xl border border-[#dfe4f5] p-3" value={form.back} onChange={(event) => update("back", event.target.value)} />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
           Kartentyp
-          <select className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={form.kind} onChange={(event) => update("kind", event.target.value)}>
+          <select className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3" value={form.kind} onChange={(event) => update("kind", event.target.value)}>
             {cardTypeOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -486,30 +581,123 @@ function DeckCardEditor({ cards = [], selectedCardId, mediaUrls = {}, onSaveCard
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
           Tags
-          <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={form.tags} onChange={(event) => update("tags", event.target.value)} />
+          <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3" value={form.tags} onChange={(event) => update("tags", event.target.value)} />
         </label>
       </div>
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
+      <div className="mt-5 grid min-w-0 gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))]">
+        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Initialer Anker</p>
           <CardHtml html={card.immutableOriginal?.front} mediaUrls={mediaUrls} />
         </div>
-        <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
+        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Quellenanker</p>
-          <p className="mt-2 text-sm text-[#17214f]">{card.sourceAnchors?.[0]?.documentName || "Kein Dokumentanker"}</p>
-          <p className="mt-1 text-sm text-[#66709a]">{card.sourceAnchors?.[0]?.textQuote || "Import- oder manuelle Originalkarte"}</p>
+          <p className="mt-2 break-words text-sm text-[#17214f]">{card.sourceAnchors?.[0]?.documentName || "Kein Dokumentanker"}</p>
+          <p className="mt-1 break-words text-sm text-[#66709a]">{card.sourceAnchors?.[0]?.textQuote || "Import- oder manuelle Originalkarte"}</p>
         </div>
-        <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
+        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Versionen</p>
           <p className="mt-2 text-2xl font-semibold text-[#17214f]">{card.versionLog?.length ?? 0}</p>
           <p className="mt-1 text-sm text-[#66709a]">Aenderungslogeintraege</p>
+        </div>
+      </div>
+      <div className="mt-5 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
+        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Reifegrad</p>
+          <p className="mt-2 break-words text-lg font-semibold text-[#17214f]">{maturityStageLabels[maturity.stage] ?? maturity.label}</p>
+          <p className="mt-1 text-sm text-[#66709a]">Score {maturity.score} · {maturity.description}</p>
+          <p className="mt-2 text-xs text-[#66709a]">Stability {getStateValue(card.reviewState, "stability")} · Difficulty {getStateValue(card.reviewState, "difficulty")} · Reps {getStateValue(card.reviewState, "reps", getStateValue(card.reviewState, "repetitions"))}</p>
+        </div>
+        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Variantenbereitschaft</p>
+          <p className="mt-2 break-words text-lg font-semibold text-[#17214f]">{formatLevelList(readiness.allowedLevels)}</p>
+          <p className="mt-1 break-words text-sm text-[#66709a]">Bevorzugt Level {readiness.preferredLevel}. {readiness.reason}</p>
+        </div>
+        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Variantenabdeckung</p>
+          <p className="mt-2 break-words text-lg font-semibold text-[#17214f]">{coverage.activeRephraseCount} nahe Varianten</p>
+          <p className="mt-1 break-words text-sm text-[#66709a]">{coverage.hasEnoughVariants ? "Genug Varianten vorhanden." : "Weitere nahe Umformulierungen moeglich."}</p>
+        </div>
+      </div>
+      <div className="mt-5 min-w-0 rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">KI-Variantenempfehlung</p>
+            <p className="mt-1 break-words text-sm text-[#17214f]">{recommendation.shouldSuggest ? `${recommendation.recommendedVariantCount} nahe Umformulierung empfohlen.` : recommendation.reason}</p>
+          </div>
+          <button type="button" onClick={() => setShowPrompt((value) => !value)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#4f5eb1]">
+            <WandSparkles size={16} aria-hidden="true" />
+            KI-Prompt fuer Varianten
+          </button>
+        </div>
+        {showPrompt ? (
+          <div className="mt-4 grid min-w-0 gap-3">
+            {!generationPlan.canGenerate ? <p className="text-sm text-[#66709a]">Diese Karte ist noch nicht reif fuer automatische Varianten. Der Prompt kann trotzdem als Vorschau angezeigt werden.</p> : null}
+            <textarea className="min-h-56 min-w-0 rounded-xl border border-[#dfe4f5] bg-white p-3 font-mono text-xs leading-5" value={promptPreview} readOnly />
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={copyPrompt} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#4f5eb1]">
+                <Copy size={16} aria-hidden="true" />
+                Prompt kopieren
+              </button>
+            </div>
+            <textarea className="min-h-32 min-w-0 rounded-xl border border-[#dfe4f5] bg-white p-3 font-mono text-xs leading-5" value={jsonResponse} onChange={(event) => setJsonResponse(event.target.value)} placeholder='{"variants":[{"front":"...","back":"...","variantType":"basic","variantLevel":2,"relationToOriginal":"same_card_rephrasing","containsNewFacts":false,"abstractionLevel":1}]}' />
+            <button type="button" onClick={applyJsonResponse} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl bg-indigo-700 px-3 text-sm font-semibold text-white">
+              <Sparkles size={16} aria-hidden="true" />
+              Varianten aus JSON uebernehmen
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <div className="mt-5 min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Varianten dieser Grundkarte</p>
+            <p className="mt-1 break-words text-sm text-[#66709a]">Varianten sind Umformulierungen derselben Wissenseinheit; der Hauptfortschritt bleibt auf der Grundkarte.</p>
+          </div>
+          <span className="rounded-xl bg-[#eef1fb] px-3 py-1 text-xs font-semibold text-[#4f5eb1]">{variants.length} Formen</span>
+        </div>
+        <div className="mt-4 grid gap-3">
+          {variants.map((variant) => {
+            const anchor = getVariantAnchor(card, variant);
+            return (
+              <article key={variant.id} className={`min-w-0 rounded-xl border p-3 ${variant.isOriginal ? "border-[#8c96dc] bg-[#f3f5fd]" : variant.isActive === false || variant.qualityStatus !== "active" ? "border-slate-200 bg-slate-50" : "border-[#e3e7f5] bg-[#f8f9fe]"}`}>
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-[#66709a]">
+                  <span className="rounded-lg bg-white px-2 py-1">{variant.isOriginal ? "Original" : "Variante"}</span>
+                  <span>{variant.variantType}</span>
+                  <span>Level {variant.variantLevel}</span>
+                  <span>{variant.generationSource}</span>
+                  <span>{variant.isActive === false || variant.qualityStatus !== "active" ? "inaktiv" : "aktiv"}</span>
+                </div>
+                <p className="break-words text-sm font-semibold text-[#17214f]">{variant.front}</p>
+                <p className="mt-1 break-words text-sm text-[#66709a]">{variant.back}</p>
+                <p className="mt-2 text-xs text-[#66709a]">{variant.isOriginal ? "Originalanker dieser Grundkarte." : `Verankert an ${anchor?.id === originalVariant?.id ? "Originalkarte" : anchor?.id ?? "Originalkarte"}.`} Attempts {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
+              </article>
+            );
+          })}
+        </div>
+        <div className="mt-4 grid gap-3 border-t border-[#e3e7f5] pt-4">
+          <p className="text-sm font-semibold text-[#17214f]">Nahe Umformulierung hinzufuegen</p>
+          <p className="text-sm text-[#66709a]">Pruefe dieselbe Wissenseinheit. Keine neuen Fakten, keine neuen Konzepte.</p>
+          <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.front} onChange={(event) => updateVariantForm("front", event.target.value)} placeholder="Frage / Front" />
+            <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.back} onChange={(event) => updateVariantForm("back", event.target.value)} placeholder="Antwort / Back" />
+            <select className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.variantLevel} onChange={(event) => updateVariantForm("variantLevel", Number(event.target.value))}>
+              {[1, 2, 3].map((level) => (
+                <option key={level} value={level}>Level {level}</option>
+              ))}
+            </select>
+          </div>
+          <button type="button" onClick={addManualVariant} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl bg-[#4f5eb1] px-3 text-sm font-semibold text-white">
+            <PlusSquare size={16} aria-hidden="true" />
+            Umformulierung hinzufuegen
+          </button>
+          {variantStatus ? <p className="text-sm text-[#66709a]">{variantStatus}</p> : null}
         </div>
       </div>
     </SoftPanel>
   );
 }
 
-function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onStartDeck, onCreateDeck, onOpenGraph, onShareDeck }) {
+function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, onStartDeck, onCreateDeck, onOpenGraph, onShareDeck }) {
   const [query, setQuery] = React.useState("");
   const [modeFilter, setModeFilter] = React.useState("all");
   const [selectedDeckId, setSelectedDeckId] = React.useState(decks[0]?.id ?? null);
@@ -544,7 +732,7 @@ function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onSta
   }
 
   return (
-    <div className="grid gap-7">
+    <div className="grid min-w-0 gap-7">
       <PageHeader
         eyebrow="Bibliothek"
         title="Kartenstapel"
@@ -558,8 +746,8 @@ function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onSta
       />
 
       <SoftPanel className="p-5">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex min-h-11 flex-1 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm text-[#66709a]">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm text-[#66709a]">
             <Search size={17} aria-hidden="true" />
             <input className="min-w-0 flex-1 bg-transparent outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Suchen" />
           </label>
@@ -590,9 +778,9 @@ function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onSta
             const summary = row.summary;
             const isSelected = selectedRow?.id === row.id;
             return (
-              <SoftPanel key={row.id} className={`p-5 ${isSelected ? "ring-2 ring-[#8c96dc]" : ""}`}>
-                <div className="flex flex-wrap items-center gap-4">
-                  <button type="button" onClick={() => setSelectedDeckId(deck.id)} className="flex min-w-[16rem] flex-1 items-center gap-4 text-left">
+              <SoftPanel key={row.id} className={`p-4 sm:p-5 ${isSelected ? "ring-2 ring-[#8c96dc]" : ""}`}>
+                <div className="flex min-w-0 flex-wrap items-center gap-4">
+                  <button type="button" onClick={() => setSelectedDeckId(deck.id)} className="flex min-w-0 flex-[1_1_14rem] items-center gap-4 text-left">
                     <OrbIcon icon={Layers} className="bg-[#eef1fb] text-[#6672bf]" />
                     <span className="min-w-0">
                       <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
@@ -600,17 +788,19 @@ function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onSta
                     </span>
                   </button>
                   <CoreModeControl value={deck.deckSettings.coreMode} onChange={(mode) => updateCoreMode(deck, mode)} />
-                  <div className="grid min-w-16 gap-1">
-                    <span className="text-xs font-semibold text-[#66709a]">Faellig</span>
-                    <span className="text-xl font-semibold text-[#17214f]">{summary.dueCards}</span>
-                  </div>
-                  <div className="grid min-w-16 gap-1">
-                    <span className="text-xs font-semibold text-[#66709a]">Neu</span>
-                    <span className="text-xl font-semibold text-[#17214f]">{summary.newCards}</span>
-                  </div>
-                  <div className="grid min-w-16 gap-1">
-                    <span className="text-xs font-semibold text-[#66709a]">Gesamt</span>
-                    <span className="text-xl font-semibold text-[#17214f]">{summary.totalCards}</span>
+                  <div className="flex flex-[1_1_14rem] flex-wrap items-center gap-4 sm:flex-none">
+                    <div className="grid min-w-14 gap-1">
+                      <span className="text-xs font-semibold text-[#66709a]">Faellig</span>
+                      <span className="text-xl font-semibold text-[#17214f]">{summary.dueCards}</span>
+                    </div>
+                    <div className="grid min-w-14 gap-1">
+                      <span className="text-xs font-semibold text-[#66709a]">Neu</span>
+                      <span className="text-xl font-semibold text-[#17214f]">{summary.newCards}</span>
+                    </div>
+                    <div className="grid min-w-14 gap-1">
+                      <span className="text-xs font-semibold text-[#66709a]">Gesamt</span>
+                      <span className="text-xl font-semibold text-[#17214f]">{summary.totalCards}</span>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={() => onStartDeck(deck, false)} className="grid size-10 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]" aria-label="Lernen">
@@ -634,10 +824,10 @@ function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onSta
       )}
 
       {selectedDeck ? (
-        <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-          <SoftPanel className="p-6">
-            <h3 className="text-xl font-semibold text-[#17214f]">Karten in {selectedDeck.name}</h3>
-            <div className="mt-5 grid max-h-[28rem] gap-3 overflow-auto pr-1">
+        <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,0.85fr)_minmax(22rem,1.15fr)]">
+          <SoftPanel className="p-5 sm:p-6">
+            <h3 className="break-words text-xl font-semibold text-[#17214f]">Karten in {selectedDeck.name}</h3>
+            <div className="mt-5 grid max-h-[28rem] min-w-0 gap-3 overflow-y-auto overflow-x-hidden pr-1">
               {(selectedRow?.cardRows ?? []).map((cardRow) => {
                 const card = cardRow.card;
                 return (
@@ -645,7 +835,7 @@ function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onSta
                     key={cardRow.id}
                     type="button"
                     onClick={() => setSelectedCardId(cardRow.id)}
-                    className={`rounded-xl border px-4 py-3 text-left ${
+                    className={`min-w-0 rounded-xl border px-4 py-3 text-left ${
                       (selectedCardId ?? selectedRow?.cardRows[0]?.id) === cardRow.id ? "border-[#8c96dc] bg-[#f3f5fd]" : "border-[#e3e7f5] bg-white/70"
                     }`}
                   >
@@ -656,7 +846,16 @@ function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onSta
               })}
             </div>
           </SoftPanel>
-          <DeckCardEditor cards={selectedRow?.activeCards ?? []} selectedCardId={selectedCardId} mediaUrls={selectedDeckMediaUrls} onSaveCard={saveCard} onDeleteCard={deleteCard} />
+          <DeckCardEditor
+            deck={selectedDeck}
+            cards={selectedRow?.activeCards ?? []}
+            selectedCardId={selectedCardId}
+            mediaUrls={selectedDeckMediaUrls}
+            onSaveCard={saveCard}
+            onDeleteCard={deleteCard}
+            onAddVariant={(cardId, variant) => onAddVariant(selectedDeck.id, cardId, variant)}
+            onApplyVariantJson={(cardId, response, options) => onApplyVariantJson(selectedDeck.id, cardId, response, options)}
+          />
         </div>
       ) : null}
     </div>
@@ -1337,28 +1536,34 @@ function LearnScreen({ decks, onStartDeck, onCreateDeck }) {
 }
 
 function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
-  const initial = React.useMemo(() => createReviewSession(deck, { variantSession }), [deck.id, variantSession]);
-  const [sessionDeck, setSessionDeck] = React.useState(initial.deck);
-  const [session] = React.useState(initial.session);
-  const [index, setIndex] = React.useState(0);
+  const [sessionDeck, setSessionDeck] = React.useState(deck);
+  const [reviewedCount, setReviewedCount] = React.useState(0);
   const [showAnswer, setShowAnswer] = React.useState(false);
   const [showAnchor, setShowAnchor] = React.useState(false);
-  const current = session.items[index] ?? null;
-  const progress = session.items.length ? ((index + 1) / session.items.length) * 100 : 0;
-  const sourceCard = current ? sessionDeck.cards.find((card) => card.id === current.sourceCardId) : null;
+  const maxReviews = React.useMemo(() => {
+    const activeCards = (deck.cards ?? []).filter((card) => card.status !== "deleted" && card.draftStatus !== "draft");
+    return Math.max(1, Math.min(12, activeCards.length));
+  }, [deck.id, deck.cards?.length]);
+  const current = React.useMemo(() => getNextReviewItem(sessionDeck, { language: "de" }), [sessionDeck, reviewedCount, variantSession]);
+  const progress = maxReviews ? (Math.min(reviewedCount + (current ? 1 : 0), maxReviews) / maxReviews) * 100 : 0;
+  const sourceCard = current?.learningItem ?? null;
+  const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
+  const anchorMiniCard = current?.answerSideAnchorMiniCard;
   const { urls: studyMediaUrls } = useDeckMediaUrls(sessionDeck);
 
   React.useEffect(() => {
-    if (initial.session.generatedVariantCount > 0) {
-      onDeckUpdated(initial.deck);
-    }
-  }, []);
+    setSessionDeck(deck);
+    setReviewedCount(0);
+    setShowAnswer(false);
+    setShowAnchor(false);
+  }, [deck.id, variantSession]);
 
-  function finishOrNext(nextDeck) {
+  function finishOrNext(nextDeck, nextCount) {
     onDeckUpdated(nextDeck);
     setSessionDeck(nextDeck);
-    if (index < session.items.length - 1) {
-      setIndex((value) => value + 1);
+    const nextItem = getNextReviewItem(nextDeck, { language: "de" });
+    if (nextItem && nextCount < maxReviews) {
+      setReviewedCount(nextCount);
       setShowAnswer(false);
       setShowAnchor(false);
     } else {
@@ -1368,13 +1573,19 @@ function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
 
   function grade(rating) {
     if (!current) return;
-    const result = recordReviewRating(sessionDeck, current, rating);
-    finishOrNext(result.deck);
+    const result = answerVariant(sessionDeck, current.learningItemId, current.cardVariantId, rating, {
+      now: new Date().toISOString(),
+    });
+    finishOrNext(result.deck, reviewedCount + 1);
   }
 
   function updateVariant(action) {
-    if (!current?.isVariant) return;
-    const result = recordVariantFeedback(sessionDeck, current, { action });
+    if (!isCurrentVariant) return;
+    const result = recordVariantFeedback(sessionDeck, {
+      id: current.variantId,
+      sourceCardId: current.learningItemId,
+      isVariant: true,
+    }, { action });
     onDeckUpdated(result.deck);
     setSessionDeck(result.deck);
   }
@@ -1396,7 +1607,7 @@ function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [current, showAnswer, sessionDeck, index]);
+  }, [current, showAnswer, sessionDeck, reviewedCount]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#eef2fb_100%)] p-4 text-[#17214f] sm:p-8">
@@ -1408,7 +1619,7 @@ function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
             </button>
             <div className="text-center">
               <p className="text-sm font-semibold text-[#66709a]">{deck.name}</p>
-              <p className="mt-1 text-sm text-[#66709a]">{session.items.length ? `${index + 1} / ${session.items.length}` : "0 / 0"}</p>
+              <p className="mt-1 text-sm text-[#66709a]">{current ? `${Math.min(reviewedCount + 1, maxReviews)} / ${maxReviews}` : "0 / 0"}</p>
             </div>
             <button type="button" className="grid size-11 place-items-center rounded-full bg-white/75 text-[#4f5eb1] shadow-[0_14px_40px_rgba(91,105,154,0.12)]" aria-label="Lerneinstellungen">
               <SlidersHorizontal size={20} aria-hidden="true" />
@@ -1423,8 +1634,18 @@ function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
               <>
                 <div className="mx-auto w-full max-w-2xl">
                   <p className="mb-5 text-sm font-semibold uppercase tracking-[0.18em] text-[#7a84c7]">Frage</p>
+                  {current.fallbackInfo?.active ? (
+                    <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+                      {current.fallbackInfo.fallbackReason || "CoRe zeigt jetzt wieder eine einfachere Variante, bis diese sitzt."}
+                    </div>
+                  ) : null}
                   <div className="text-2xl font-semibold leading-relaxed text-[#17214f] sm:text-4xl">
                     <CardHtml html={current.front} mediaUrls={studyMediaUrls} />
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-[#66709a]">
+                    <span className="rounded-lg bg-[#eef1fb] px-2 py-1">{isCurrentVariant ? `Variante Level ${current.variant.variantLevel ?? 1}` : "Originalkarte"}</span>
+                    <span className="rounded-lg bg-[#f8f9fe] px-2 py-1">{current.maturity?.label ?? maturityStageLabels[current.maturity?.stage] ?? "Reifegrad"}</span>
+                    <span className="rounded-lg bg-[#f8f9fe] px-2 py-1">{current.reviewState?.schedulerVersion ?? "fsrs_v1"}</span>
                   </div>
                   {showAnswer ? (
                     <>
@@ -1433,12 +1654,28 @@ function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
                       <div className="text-xl font-semibold leading-relaxed text-[#17214f] sm:text-3xl">
                         <CardHtml html={current.back} mediaUrls={studyMediaUrls} />
                       </div>
+                      {anchorMiniCard?.shouldShow ? (
+                        <div className="mt-6 rounded-2xl border border-[#dfe4f5] bg-[#f8f9fe] p-5">
+                          <p className="text-sm font-semibold uppercase tracking-wide text-[#66709a]">Ursprungskarte</p>
+                          <p className="mt-2 text-sm text-[#66709a]">Diese Variante gehoert zu dieser Grundkarte und loest keinen eigenen Review aus.</p>
+                          <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <div>
+                              <p className="mb-1 text-xs font-semibold text-[#66709a]">Originalfrage</p>
+                              <CardHtml html={anchorMiniCard.front} mediaUrls={studyMediaUrls} />
+                            </div>
+                            <div>
+                              <p className="mb-1 text-xs font-semibold text-[#66709a]">Originalantwort</p>
+                              <CardHtml html={anchorMiniCard.back} mediaUrls={studyMediaUrls} />
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                       <div className="mt-8 flex flex-wrap gap-2">
                         <button type="button" onClick={() => setShowAnchor((value) => !value)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1]">
                           <Eye size={16} aria-hidden="true" />
                           Original anzeigen
                         </button>
-                        {current.isVariant ? (
+                        {isCurrentVariant ? (
                           <>
                             <button type="button" onClick={() => updateVariant("disable")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 text-sm font-semibold text-amber-700">
                               <Ban size={16} aria-hidden="true" />
@@ -1457,14 +1694,14 @@ function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
                           <div className="mt-3 grid gap-4 md:grid-cols-2">
                             <div>
                               <p className="mb-1 text-xs font-semibold text-[#66709a]">Front</p>
-                              <CardHtml html={sourceCard.immutableOriginal?.front ?? sourceCard.originalFront} mediaUrls={studyMediaUrls} />
+                              <CardHtml html={getLearningItemQuestion(sourceCard)} mediaUrls={studyMediaUrls} />
                             </div>
                             <div>
                               <p className="mb-1 text-xs font-semibold text-[#66709a]">Back</p>
-                              <CardHtml html={sourceCard.immutableOriginal?.back ?? sourceCard.originalBack} mediaUrls={studyMediaUrls} />
+                              <CardHtml html={getLearningItemAnswer(sourceCard)} mediaUrls={studyMediaUrls} />
                             </div>
                           </div>
-                          <p className="mt-3 text-sm text-[#66709a]">Quelle: {current.sourceAnchors?.[0]?.documentName || "Originalkarte"} {current.transformType ? `· Variation: ${current.transformType}` : ""}</p>
+                          <p className="mt-3 text-sm text-[#66709a]">Quelle: {sourceCard?.sourceAnchors?.[0]?.documentName || "Originalkarte"} {current.variant?.transformType ? `· Variation: ${current.variant.transformType}` : ""}</p>
                         </div>
                       ) : null}
                     </>
@@ -2139,6 +2376,18 @@ export function App() {
     return updated;
   }
 
+  function addDeckCardVariant(deckId, cardId, variant) {
+    const updated = workspace.addDeckCardVariant(deckId, cardId, variant);
+    refresh();
+    return updated;
+  }
+
+  function applyVariantJson(deckId, cardId, response, options) {
+    const result = workspace.applyVariantGenerationResponse(deckId, cardId, response, options);
+    refresh();
+    return result;
+  }
+
   function saveProfile(profile) {
     const saved = workspace.saveProfile(profile);
     refresh();
@@ -2206,6 +2455,8 @@ export function App() {
           onSetDeckCoreMode={setDeckCoreMode}
           onSaveCard={saveDeckCard}
           onDeleteCard={deleteDeckCard}
+          onAddVariant={addDeckCardVariant}
+          onApplyVariantJson={applyVariantJson}
           onStartDeck={startDeck}
           onCreateDeck={() => setActiveView("neue-karten")}
           onOpenGraph={openGraph}
@@ -2253,7 +2504,7 @@ export function App() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
+    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-[96rem] overflow-hidden rounded-[22px] border border-[#dce2f4] bg-white/52 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl md:grid-cols-[13rem_minmax(0,1fr)]">
         <aside className="border-b border-[#dce2f4] bg-white/42 md:border-b-0 md:border-r">
           <div className="flex h-full flex-col px-5 py-7 sm:px-8 md:px-4 md:py-8 lg:px-5 lg:py-10">
@@ -2303,7 +2554,7 @@ export function App() {
           </div>
         </aside>
 
-        <section className="min-w-0 px-5 py-8 sm:px-8 lg:px-12 lg:py-12">{renderActiveView()}</section>
+        <section className="min-w-0 overflow-x-hidden px-5 py-8 sm:px-8 lg:px-12 lg:py-12">{renderActiveView()}</section>
       </div>
     </main>
   );
