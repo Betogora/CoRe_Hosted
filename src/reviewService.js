@@ -1,14 +1,26 @@
-import { applyReviewRating } from "./scheduler.js";
-import { chooseReviewCard, deactivateVariant, flagVariant } from "./coreVariantService.js";
-import { createVersionEntry, makeId } from "./coreModel.js";
+import { SCHEDULER_VERSION, applyReviewRating } from "./scheduler.js";
+import { chooseReviewCard, deactivateVariant, flagVariant, selectAutomaticReviewVariant } from "./coreVariantService.js";
+import {
+  createReviewState,
+  createVersionEntry,
+  getActiveVariants,
+  getAnswerSideAnchorMiniCard,
+  getLearningItemAnswer,
+  getLearningItemQuestion,
+  getOriginalVariant,
+  makeId,
+  normalizeLearningItem,
+  updateVariantPerformance,
+} from "./coreModel.js";
 
 function isDue(reviewState, now) {
   return new Date(reviewState?.dueAt ?? 0).getTime() <= new Date(now).getTime();
 }
 
-function updateCoreStateFromReview(card, reviewState) {
+function updateCoreStateFromReview(card, reviewState, updatedAt = new Date().toISOString()) {
   return {
     ...card,
+    learningItemState: reviewState,
     reviewState,
     coreState: {
       ...card.coreState,
@@ -17,9 +29,181 @@ function updateCoreStateFromReview(card, reviewState) {
       repetitionLevel: reviewState.repetitions,
       maturityXp: reviewState.maturityXp,
       maturityBand: reviewState.maturityBand,
-      variantCount: (card.variants ?? []).filter((variant) => variant.qualityStatus === "active").length,
+      variantCount: getActiveVariants(card).length,
     },
-    updatedAt: new Date().toISOString(),
+    updatedAt,
+  };
+}
+
+function isReviewBlocked(item) {
+  return item.status === "suspended" || item.status === "buried" || item.meta?.suspended || item.meta?.buried;
+}
+
+function assertReviewable(item) {
+  if (isReviewBlocked(item)) {
+    throw new Error("Diese Grundkarte ist suspended oder buried und kann nicht reviewed werden.");
+  }
+  if (item.status === "deleted" || item.draftStatus === "draft") {
+    throw new Error("Diese Grundkarte ist aktuell nicht reviewbar.");
+  }
+}
+
+function findVariant(item, variantId) {
+  const original = getOriginalVariant(item);
+  if (!variantId || variantId === item.id) return original;
+  return (item.variants ?? []).find((variant) => variant.id === variantId) ?? null;
+}
+
+function belongsToLearningItem(item, variant) {
+  if (!item || !variant) return false;
+  return [variant.learningItemId, variant.cardId, variant.sourceCardId].filter(Boolean).every((id) => id === item.id);
+}
+
+function createVariantCompatibilityState(variant, rating, now, learningItemId) {
+  const previous = variant.reviewState ?? {};
+  return {
+    ...previous,
+    id: previous.id ?? makeId("state"),
+    learningItemId,
+    reviewableType: "variant",
+    reviewableId: variant.id,
+    repetitions: Number(previous.repetitions ?? 0) + 1,
+    lastReviewedAt: now,
+    lastRating: rating,
+    schedulerCompatibilityOnly: true,
+  };
+}
+
+function resolveResponseArgs(responseTimeMsOrOptions, maybeOptions) {
+  if (typeof responseTimeMsOrOptions === "object" && responseTimeMsOrOptions !== null) {
+    return { responseTimeMs: responseTimeMsOrOptions.responseTimeMs ?? null, options: responseTimeMsOrOptions };
+  }
+
+  return { responseTimeMs: responseTimeMsOrOptions ?? maybeOptions?.responseTimeMs ?? null, options: maybeOptions ?? {} };
+}
+
+function createReviewEvent({ deck, item, variant, rating, responseTimeMs, now, previousState, nextState, previousVariantState, nextVariantState, anchorMiniCard, flags }) {
+  return {
+    id: makeId("review"),
+    userId: "local-user",
+    deckId: deck.id,
+    learningItemId: item.id,
+    cardId: item.id,
+    cardVariantId: variant.id,
+    variantId: variant.id,
+    reviewableType: variant.isOriginal ? "card" : "variant",
+    reviewableId: variant.id,
+    sourceCardId: item.id,
+    rating,
+    reviewedAt: now,
+    answeredAt: now,
+    responseTimeMs,
+    variantLevel: variant.variantLevel ?? 1,
+    variantType: variant.variantType ?? "basic",
+    previousLearningItemStateJson: previousState,
+    nextLearningItemStateJson: nextState,
+    schedulerVersion: SCHEDULER_VERSION,
+    schedulerParamsJson: nextState.schedulerParamsJson ?? null,
+    anchorVariantId: variant.anchorVariantId ?? null,
+    anchorSnapshotJson: anchorMiniCard?.shouldShow ? anchorMiniCard : anchorMiniCard ?? null,
+    schedulerBefore: { card: previousState, variant: previousVariantState ?? null },
+    schedulerAfter: { card: nextState, variant: nextVariantState ?? null },
+    flags: flags ?? {},
+    createdAt: now,
+  };
+}
+
+export function answerVariant(deck, learningItemId, cardVariantId, rating, responseTimeMsOrOptions = null, maybeOptions = {}) {
+  const { responseTimeMs, options } = resolveResponseArgs(responseTimeMsOrOptions, maybeOptions);
+  const now = options.now ?? new Date().toISOString();
+  const targetItemId = learningItemId;
+  let event = null;
+  let updatedCard = null;
+
+  const cards = (deck.cards ?? []).map((card) => {
+    if (card.id !== targetItemId) return card;
+
+    const item = normalizeLearningItem(card);
+    assertReviewable(item);
+    const variant = findVariant(item, cardVariantId);
+    if (!variant) {
+      throw new Error(`Variante nicht gefunden: ${String(cardVariantId ?? "")}`);
+    }
+    if (!belongsToLearningItem(item, variant)) {
+      throw new Error("Diese Variante gehoert nicht zur angegebenen Grundkarte.");
+    }
+
+    const previousState = createReviewState(item.learningItemState ?? item.reviewState);
+    const nextState = applyReviewRating(previousState, rating, {
+      now,
+      deckSettings: deck.deckSettings,
+      isVariant: !variant.isOriginal,
+      variantLevel: variant.variantLevel ?? 1,
+      variantType: variant.variantType ?? "basic",
+      variantPerformance: variant.performance ?? null,
+    });
+    const anchorMiniCard = getAnswerSideAnchorMiniCard(item, variant);
+    const previousVariantState = variant.reviewState ?? null;
+    const nextVariantState = createVariantCompatibilityState(variant, rating, now, item.id);
+    const nextPerformance = updateVariantPerformance(variant.performance, rating, {
+      responseTimeMs,
+      reviewedAt: now,
+      learningItemId: item.id,
+      variantId: variant.id,
+    });
+    const variants = (item.variants ?? []).map((candidate) =>
+      candidate.id === variant.id
+        ? {
+            ...candidate,
+            reviewState: nextVariantState,
+            performance: nextPerformance,
+            updatedAt: now,
+          }
+        : candidate,
+    );
+    updatedCard = updateCoreStateFromReview({ ...item, variants }, nextState, now);
+    event = createReviewEvent({
+      deck,
+      item,
+      variant,
+      rating,
+      responseTimeMs,
+      now,
+      previousState,
+      nextState,
+      previousVariantState,
+      nextVariantState,
+      anchorMiniCard,
+      flags: options.flags,
+    });
+    return updatedCard;
+  });
+
+  if (!updatedCard || !event) {
+    throw new Error(`Grundkarte nicht gefunden: ${String(targetItemId ?? "")}`);
+  }
+
+  return {
+    deck: {
+      ...deck,
+      cards,
+      reviewEvents: [event, ...(deck.reviewEvents ?? [])],
+      versionLog: [
+        ...(deck.versionLog ?? []),
+        createVersionEntry({
+          objectType: "deck",
+          objectId: deck.id,
+          changeType: "review_event_recorded",
+          after: { eventId: event.id, rating, learningItemId: updatedCard.id, variantId: event.variantId },
+          createdAt: now,
+        }),
+      ],
+      updatedAt: now,
+    },
+    event,
+    updatedCard,
+    learningItem: updatedCard,
+    variant: updatedCard.variants.find((variant) => variant.id === event.variantId) ?? null,
   };
 }
 
@@ -78,96 +262,52 @@ export function createReviewSession(deck, options = {}) {
 }
 
 export function recordReviewRating(deck, reviewable, rating, options = {}) {
+  const sourceCardId = reviewable.sourceCardId ?? reviewable.card?.id ?? reviewable.id;
+  const card = (deck.cards ?? []).find((candidate) => candidate.id === sourceCardId);
+  const item = card ? normalizeLearningItem(card) : null;
+  const variantId =
+    reviewable.reviewableType === "variant"
+      ? reviewable.id
+      : getOriginalVariant(item)?.id ?? reviewable.id;
+
+  return answerVariant(deck, sourceCardId, variantId, rating, options.responseTimeMs ?? null, options);
+}
+
+function selectVariantForLearningItem(item) {
+  return selectAutomaticReviewVariant(item, { allowLearningVariant: true }) ?? getOriginalVariant(item);
+}
+
+export function getNextReviewItem(deck, options = {}) {
   const now = options.now ?? new Date().toISOString();
-  let event = null;
-  const cards = (deck.cards ?? []).map((card) => {
-    if (card.id !== reviewable.sourceCardId) return card;
+  const activeItems = (deck.cards ?? [])
+    .map((card) => normalizeLearningItem(card))
+    .filter((item) => item.status !== "deleted" && item.draftStatus !== "draft" && !isReviewBlocked(item));
+  const dueItems = activeItems.filter((item) => isDue(item.learningItemState ?? item.reviewState, now));
+  const selectedItem = dueItems[0] ?? activeItems[0] ?? null;
 
-    if (reviewable.reviewableType === "variant") {
-      let updatedVariantState = null;
-      const variants = (card.variants ?? []).map((variant) => {
-        if (variant.id !== reviewable.id) return variant;
-        updatedVariantState = applyReviewRating(variant.reviewState, rating, {
-          now,
-          deckSettings: deck.deckSettings,
-          isVariant: true,
-        });
-        return {
-          ...variant,
-          reviewState: updatedVariantState,
-          updatedAt: now,
-        };
-      });
-      const familyState = applyReviewRating(card.reviewState, rating, {
-        now,
-        deckSettings: deck.deckSettings,
-        isVariant: true,
-      });
-      const updatedCard = updateCoreStateFromReview({ ...card, variants }, familyState);
-      event = {
-        id: makeId("review"),
-        userId: "local-user",
-        deckId: deck.id,
-        learningItemId: card.id,
-        variantId: reviewable.id,
-        reviewableType: "variant",
-        reviewableId: reviewable.id,
-        sourceCardId: card.id,
-        rating,
-        answeredAt: now,
-        responseTimeMs: options.responseTimeMs ?? null,
-        schedulerBefore: { card: card.reviewState, variant: reviewable.variant?.reviewState ?? null },
-        schedulerAfter: { card: familyState, variant: updatedVariantState },
-        flags: options.flags ?? {},
-      };
-      return updatedCard;
-    }
+  if (!selectedItem) return null;
 
-    const reviewState = applyReviewRating(card.reviewState, rating, {
-      now,
-      deckSettings: deck.deckSettings,
-      isVariant: false,
-    });
-    const updatedCard = updateCoreStateFromReview(card, reviewState);
-    event = {
-      id: makeId("review"),
-      userId: "local-user",
-      deckId: deck.id,
-      learningItemId: card.id,
-      variantId: null,
-      reviewableType: "card",
-      reviewableId: card.id,
-      sourceCardId: null,
-      rating,
-      answeredAt: now,
-      responseTimeMs: options.responseTimeMs ?? null,
-      schedulerBefore: card.reviewState,
-      schedulerAfter: reviewState,
-      flags: options.flags ?? {},
-    };
-    return updatedCard;
-  });
+  const variant = selectVariantForLearningItem(selectedItem);
+  if (!variant) return null;
 
   return {
-    deck: {
-      ...deck,
-      cards,
-      reviewEvents: event ? [event, ...(deck.reviewEvents ?? [])] : deck.reviewEvents ?? [],
-      versionLog: event
-        ? [
-            ...(deck.versionLog ?? []),
-            createVersionEntry({
-              objectType: "deck",
-              objectId: deck.id,
-              changeType: "review_event_recorded",
-              after: { eventId: event.id, rating },
-              createdAt: now,
-            }),
-          ]
-        : deck.versionLog ?? [],
-      updatedAt: now,
+    deckId: deck.id,
+    learningItem: selectedItem,
+    card: selectedItem,
+    learningItemId: selectedItem.id,
+    cardId: selectedItem.id,
+    variant,
+    cardVariantId: variant.id,
+    variantId: variant.id,
+    front: variant.front || getLearningItemQuestion(selectedItem),
+    back: variant.back || getLearningItemAnswer(selectedItem),
+    state: selectedItem.learningItemState ?? selectedItem.reviewState,
+    reviewState: selectedItem.learningItemState ?? selectedItem.reviewState,
+    answerSideAnchorMiniCard: getAnswerSideAnchorMiniCard(selectedItem, variant),
+    schedulerInfo: {
+      schedulerVersion: (selectedItem.learningItemState ?? selectedItem.reviewState)?.schedulerVersion ?? SCHEDULER_VERSION,
+      selectedBy: dueItems.length > 0 ? "due_learning_item" : "fallback_learning_item",
     },
-    event,
   };
 }
 

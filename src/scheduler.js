@@ -1,5 +1,7 @@
 import { REVIEW_RATINGS, createReviewState, getMaturityBand } from "./coreModel.js";
 
+export const SCHEDULER_VERSION = "simple_v1";
+
 const RATING_EFFECT = {
   again: { xp: -18, intervalMultiplier: 0.15, ease: -0.2, lapse: 1 },
   hard: { xp: 2, intervalMultiplier: 0.55, ease: -0.08, lapse: 0 },
@@ -31,6 +33,21 @@ function nextIntervalDays(state, rating, deckSettings) {
   return Math.max(0.5, Math.round(current * effect.intervalMultiplier * ease * 10) / 10);
 }
 
+function nextLearningState(oldState, rating) {
+  const previousState = oldState.state ?? (Number(oldState.repetitions ?? 0) > 0 ? "review" : "new");
+  if (rating === "again") return previousState === "review" ? "relearning" : "learning";
+  if (rating === "hard") return previousState === "new" ? "learning" : "review";
+  return "review";
+}
+
+function nextPreferredVariantLevel(oldState, rating, context = {}) {
+  const currentLevel = Math.min(3, Math.max(1, Number(oldState.preferredVariantLevel ?? context.variantLevel ?? 1) || 1));
+  if (rating === "again") return Math.max(1, currentLevel - 1);
+  if (rating === "hard") return Math.max(1, currentLevel - 1);
+  if (rating === "easy") return Math.min(3, currentLevel + 1);
+  return Math.min(3, currentLevel + 1);
+}
+
 export function updateMaturityXp(oldXp, rating, wasVariant = false) {
   if (!REVIEW_RATINGS.includes(rating)) {
     throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
@@ -51,17 +68,29 @@ export function applyReviewRating(reviewState, rating, context = {}) {
   const intervalDays = nextIntervalDays(state, rating, context.deckSettings);
   const maturityXp = updateMaturityXp(state.maturityXp, rating, Boolean(context.isVariant));
   const ease = Math.max(1.3, Math.min(3.3, Number(state.ease ?? 2.5) + effect.ease));
+  const nextState = nextLearningState(state, rating);
+  const preferredVariantLevel = nextPreferredVariantLevel(state, rating, context);
 
   return createReviewState({
     ...state,
+    schedulerVersion: SCHEDULER_VERSION,
+    state: nextState,
     dueAt: addDays(now, intervalDays).toISOString(),
     intervalDays,
     ease,
     repetitions: Number(state.repetitions ?? 0) + 1,
-    lapses: Number(state.lapses ?? 0) + effect.lapse,
+    lapses: Number(state.lapses ?? 0) + (rating === "again" && (state.state === "review" || Number(state.repetitions ?? 0) > 0) ? effect.lapse : 0),
     maturityXp,
     maturityBand: getMaturityBand(maturityXp),
     lastReviewedAt: now.toISOString(),
+    lastRating: rating,
+    preferredVariantLevel,
+    schedulerParamsJson: {
+      schedulerVersion: SCHEDULER_VERSION,
+      rating,
+      variantLevel: context.variantLevel ?? null,
+      variantType: context.variantType ?? null,
+    },
   });
 }
 

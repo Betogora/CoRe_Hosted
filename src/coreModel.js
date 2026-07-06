@@ -118,6 +118,8 @@ export function createLearningItemState({
   reviewableType = "learning_item",
   reviewableId = learningItemId,
   userId = "local-user",
+  schedulerVersion = "simple_v1",
+  state = "new",
   dueAt = new Date().toISOString(),
   intervalDays = 0,
   ease = 2.5,
@@ -127,6 +129,9 @@ export function createLearningItemState({
   lapses = 0,
   maturityXp = 0,
   lastReviewedAt = null,
+  lastRating = null,
+  preferredVariantLevel = 1,
+  schedulerParamsJson = null,
   sourceSchedulerData = null,
 } = {}) {
   const normalizedLearningItemId = learningItemId || reviewableId || "";
@@ -139,6 +144,8 @@ export function createLearningItemState({
     reviewableType,
     reviewableId: normalizedReviewableId,
     userId,
+    schedulerVersion,
+    state,
     dueAt,
     intervalDays,
     ease,
@@ -149,6 +156,9 @@ export function createLearningItemState({
     maturityXp: normalizedMaturityXp,
     maturityBand: getMaturityBand(normalizedMaturityXp),
     lastReviewedAt,
+    lastRating,
+    preferredVariantLevel: Math.min(5, Math.max(1, Math.round(Number(preferredVariantLevel) || 1))),
+    schedulerParamsJson,
     sourceSchedulerData,
   };
 }
@@ -257,38 +267,91 @@ export function createVariantPerformance({
   learningItemId = "",
   variantId = "",
   userId = "local-user",
+  attempts = null,
   reviewCount = 0,
   correctCount = 0,
+  wrongCount = 0,
   ratingCounts = {},
   againCount = 0,
   hardCount = 0,
   goodCount = 0,
   easyCount = 0,
+  avgResponseTimeMs = null,
   averageResponseTimeMs = null,
   lastReviewedAt = null,
+  lastRating = null,
+  localDifficultyEstimate = null,
+  masterySignal = null,
   maturityXp = 0,
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
 } = {}) {
+  const normalizedAttempts = Math.max(0, Number(attempts ?? reviewCount) || 0);
+  const normalizedAverageResponseTimeMs = averageResponseTimeMs ?? avgResponseTimeMs;
+
   return {
     id: id ?? stableContentHash({ learningItemId, variantId, userId }, "variant_perf"),
     learningItemId,
     variantId,
     userId,
-    reviewCount: Math.max(0, Number(reviewCount) || 0),
+    attempts: normalizedAttempts,
+    reviewCount: normalizedAttempts,
     correctCount: Math.max(0, Number(correctCount) || 0),
+    wrongCount: Math.max(0, Number(wrongCount) || 0),
     ratingCounts: {
       again: Math.max(0, Number(ratingCounts.again ?? againCount) || 0),
       hard: Math.max(0, Number(ratingCounts.hard ?? hardCount) || 0),
       good: Math.max(0, Number(ratingCounts.good ?? goodCount) || 0),
       easy: Math.max(0, Number(ratingCounts.easy ?? easyCount) || 0),
     },
-    averageResponseTimeMs,
+    avgResponseTimeMs: normalizedAverageResponseTimeMs,
+    averageResponseTimeMs: normalizedAverageResponseTimeMs,
     lastReviewedAt,
+    lastRating,
+    localDifficultyEstimate,
+    masterySignal,
     maturityXp: Math.max(0, Math.round(Number(maturityXp) || 0)),
     createdAt,
     updatedAt,
   };
+}
+
+export function updateVariantPerformance(performance = {}, rating, { responseTimeMs = null, reviewedAt = new Date().toISOString(), learningItemId = "", variantId = "" } = {}) {
+  if (!REVIEW_RATINGS.includes(rating)) {
+    throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
+  }
+
+  const previous = createVariantPerformance({ ...(performance ?? {}), learningItemId, variantId });
+  const attempts = previous.attempts + 1;
+  const isCorrect = rating !== "again";
+  const previousAverage = Number(previous.avgResponseTimeMs ?? previous.averageResponseTimeMs ?? 0);
+  const avgResponseTimeMs =
+    responseTimeMs == null
+      ? previous.avgResponseTimeMs
+      : Math.round(((previousAverage * previous.attempts) + Number(responseTimeMs)) / attempts);
+  const localDifficultyEstimate =
+    rating === "again" ? "hard" : rating === "hard" ? "medium" : rating === "easy" ? "easy" : previous.localDifficultyEstimate ?? "medium";
+  const masterySignal =
+    rating === "easy" ? "strong" : rating === "good" ? "steady" : rating === "hard" ? "weak" : "failed";
+
+  return createVariantPerformance({
+    ...previous,
+    attempts,
+    reviewCount: attempts,
+    correctCount: previous.correctCount + (isCorrect ? 1 : 0),
+    wrongCount: previous.wrongCount + (isCorrect ? 0 : 1),
+    ratingCounts: {
+      ...previous.ratingCounts,
+      [rating]: (previous.ratingCounts?.[rating] ?? 0) + 1,
+    },
+    avgResponseTimeMs,
+    averageResponseTimeMs: avgResponseTimeMs,
+    lastReviewedAt: reviewedAt,
+    lastRating: rating,
+    localDifficultyEstimate,
+    masterySignal,
+    updatedAt: reviewedAt,
+  });
 }
 
 export function createVariantReviewEvent({
