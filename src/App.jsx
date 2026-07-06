@@ -64,11 +64,7 @@ import {
 import { createCoreWorkspace } from "./coreWorkspace.js";
 import {
   buildCardVariationPrompt,
-  getLearningItemMaturity,
-  getVariantCoverage,
-  getVariantGenerationPlan,
-  getVariantGenerationRecommendation,
-  getVariantReadiness,
+  createVariantReviewModel,
 } from "./coreVariantService.js";
 import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport, validatePortableExport } from "./dataPortability.js";
 import { answerDeckQuestion } from "./deckAssistant.js";
@@ -477,11 +473,8 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   if (!card || !form) return null;
 
   const reviewEvents = deck?.reviewEvents ?? [];
-  const maturity = getLearningItemMaturity(card, new Date(), reviewEvents);
-  const readiness = getVariantReadiness(card, reviewEvents, { maturity });
-  const coverage = getVariantCoverage(card);
-  const recommendation = getVariantGenerationRecommendation(card, reviewEvents);
-  const generationPlan = getVariantGenerationPlan(card, reviewEvents);
+  const variantReviewModel = createVariantReviewModel(card, reviewEvents);
+  const { maturity, readiness, coverage, generationRecommendation: recommendation, generationPlan } = variantReviewModel;
   const promptOptions = generationPlan.canGenerate
     ? generationPlan.promptOptions
     : { ...generationPlan.promptOptions, numberOfVariants: 1, maxVariantLevel: Math.max(1, generationPlan.promptOptions.maxVariantLevel || 1) };

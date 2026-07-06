@@ -433,9 +433,9 @@ function recommendedLevelsFor(readiness, coverage, count) {
 }
 
 export function getVariantGenerationRecommendation(item, reviewEvents = [], options = {}) {
-  const maturity = getLearningItemMaturity(item, options.now ?? new Date(), reviewEvents);
-  const readiness = getVariantReadiness(item, reviewEvents, { ...options, maturity });
-  const coverage = getVariantCoverage(item);
+  const maturity = options.maturity ?? getLearningItemMaturity(item, options.now ?? new Date(), reviewEvents);
+  const readiness = options.readiness ?? getVariantReadiness(item, reviewEvents, { ...options, maturity });
+  const coverage = options.coverage ?? getVariantCoverage(item);
   const warnings = [...coverage.warnings];
   const coverageTarget = recommendedCoverageTarget(maturity.stage);
   const enoughForStage = coverage.activeRephraseCount >= coverageTarget;
@@ -485,7 +485,7 @@ export function getVariantGenerationRecommendation(item, reviewEvents = [], opti
 }
 
 export function getVariantGenerationPlan(item, reviewEvents = [], options = {}) {
-  const recommendation = getVariantGenerationRecommendation(item, reviewEvents, options);
+  const recommendation = options.recommendation ?? getVariantGenerationRecommendation(item, reviewEvents, options);
   const canGenerate = Boolean(recommendation.shouldSuggest || options.force);
   const maxVariantLevel = Math.min(3, recommendation.readiness.maxAllowedLevel || 1);
 
@@ -507,6 +507,39 @@ export function getVariantGenerationPlan(item, reviewEvents = [], options = {}) 
     maturity: recommendation.maturity,
     readiness: recommendation.readiness,
     coverage: recommendation.coverage,
+  };
+}
+
+export function createVariantReviewModel(item, reviewEvents = [], options = {}) {
+  const now = options.now ?? new Date();
+  const maturity = options.maturity ?? getLearningItemMaturity(item, now, reviewEvents);
+  const readiness = options.readiness ?? getVariantReadiness(item, reviewEvents, { ...options, now, maturity });
+  const coverage = options.coverage ?? getVariantCoverage(item);
+  const variantGenerationRecommendation =
+    options.recommendation ??
+    getVariantGenerationRecommendation(item, reviewEvents, {
+      ...options,
+      now,
+      maturity,
+      readiness,
+      coverage,
+    });
+  const variantGenerationPlan =
+    options.plan ??
+    getVariantGenerationPlan(item, reviewEvents, {
+      ...options,
+      now,
+      recommendation: variantGenerationRecommendation,
+    });
+
+  return {
+    maturity,
+    readiness,
+    coverage,
+    variantGenerationRecommendation,
+    variantGenerationPlan,
+    generationRecommendation: variantGenerationRecommendation,
+    generationPlan: variantGenerationPlan,
   };
 }
 

@@ -11,15 +11,15 @@
     body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--text); background: var(--bg); line-height: 1.62; }
     .layout { display: grid; grid-template-columns: 310px minmax(0, 1fr); min-height: 100vh; }
     aside { position: sticky; top: 0; align-self: start; height: 100vh; overflow: auto; border-right: 1px solid var(--border); background: rgba(255,255,255,0.88); backdrop-filter: blur(10px); padding: 24px 18px; }
-    aside .brand { font-weight: 800; letter-spacing: -0.03em; font-size: 22px; margin-bottom: 4px; }
+    aside .brand { font-weight: 800; letter-spacing: -0.02em; font-size: 22px; margin-bottom: 4px; }
     aside .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
     aside nav { display: flex; flex-direction: column; gap: 2px; }
     aside nav a { color: #344054; text-decoration: none; border-radius: 8px; padding: 6px 8px; font-size: 13px; line-height: 1.25; }
     aside nav a:hover { background: #f2f4f7; color: var(--accent); }
     .toc-level-3 { padding-left: 22px; color: #667085; font-size: 12px; }
     main { width: 100%; max-width: 1120px; padding: 42px 48px 80px; }
-    article { background: var(--paper); border: 1px solid var(--border); border-radius: 24px; padding: 46px; box-shadow: 0 20px 60px rgba(16,24,40,.06); }
-    h1, h2, h3, h4 { color: #111827; line-height: 1.15; letter-spacing: -0.02em; }
+    article { background: var(--paper); border: 1px solid var(--border); border-radius: 18px; padding: 46px; box-shadow: 0 20px 60px rgba(16,24,40,.06); }
+    h1, h2, h3, h4 { color: #111827; line-height: 1.15; letter-spacing: 0; }
     h1 { font-size: clamp(34px, 5vw, 56px); margin: 0 0 24px; }
     h2 { font-size: 30px; margin: 56px 0 18px; padding-top: 10px; border-top: 1px solid var(--border); }
     h3 { font-size: 22px; margin: 36px 0 12px; }
@@ -27,29 +27,31 @@
     p { margin: 12px 0; }
     a { color: var(--link); }
     code { background: var(--code-bg); padding: 0.12em 0.32em; border-radius: 6px; font-size: 0.92em; }
-    pre { overflow: auto; background: #0f172a; color: #e5e7eb; padding: 18px; border-radius: 14px; border: 1px solid #1e293b; }
+    pre { overflow: auto; background: #0f172a; color: #e5e7eb; padding: 18px; border-radius: 10px; border: 1px solid #1e293b; }
     pre code { background: transparent; color: inherit; padding: 0; border-radius: 0; }
     table { width: 100%; border-collapse: collapse; margin: 18px 0 26px; font-size: 14px; }
     th, td { border: 1px solid var(--border); padding: 9px 11px; vertical-align: top; }
     th { background: #f9fafb; text-align: left; color: #111827; }
     ul, ol { padding-left: 22px; }
     li { margin: 6px 0; }
+    blockquote { border-left: 4px solid var(--border); color: #475467; margin: 18px 0; padding: 8px 18px; background: #fafafa; }
     hr { border: 0; border-top: 1px solid var(--border); margin: 34px 0; }
-    @media (max-width: 900px) { .layout { display: block; } aside { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--border); } main { padding: 20px; } article { padding: 28px 22px; border-radius: 16px; } }
+    @media (max-width: 900px) { .layout { display: block; } aside { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--border); } main { padding: 20px; } article { padding: 28px 22px; border-radius: 12px; } }
   </style>
 </head>
 <body>
   <div class="layout">
     <aside>
       <div class="brand">CoRe Specs</div>
-      <div class="subtitle">Generated from specs.md</div>
-      <nav><a class="toc-level-2" href="#implementierungsstand-2026-07-06">Implementierungsstand 2026-07-06</a>
+      <div class="subtitle">Generated from Docs/specs.md</div>
+      <nav><a class="toc-level-2" href="#implementierungsstand-2026-07-07">Implementierungsstand 2026-07-07</a>
 <a class="toc-level-3" href="#was-lokal-bereits-funktioniert">Was lokal bereits funktioniert</a>
 <a class="toc-level-3" href="#was-erwartungsgemaess-noch-nicht-funktioniert">Was erwartungsgemaess noch nicht funktioniert</a>
 <a class="toc-level-3" href="#aktuelle-ausbauhaltung">Aktuelle Ausbauhaltung</a>
 <a class="toc-level-2" href="#0-zweck-dieses-dokuments">0. Zweck dieses Dokuments</a>
 <a class="toc-level-3" href="#0-1-sprachkonvention">0.1 Sprachkonvention</a>
 <a class="toc-level-3" href="#0-2-wichtige-annahmen">0.2 Wichtige Annahmen</a>
+<a class="toc-level-3" href="#0-3-dokumentationsstruktur">0.3 Dokumentationsstruktur</a>
 <a class="toc-level-2" href="#1-executive-summary">1. Executive Summary</a>
 <a class="toc-level-2" href="#2-produktvision">2. Produktvision</a>
 <a class="toc-level-3" href="#2-1-leitbild">2.1 Leitbild</a>
@@ -173,6 +175,7 @@
 <a class="toc-level-3" href="#10-1-entity-ubersicht">10.1 Entity-Übersicht</a>
 <a class="toc-level-3" href="#10-2-tabellen-collections">10.2 Tabellen / Collections</a>
 <a class="toc-level-3" href="#10-3-typescript-domanentypen">10.3 TypeScript-Domänentypen</a>
+<a class="toc-level-3" href="#10-4-supabase-postgres-zielmodell">10.4 Supabase/Postgres-Zielmodell</a>
 <a class="toc-level-2" href="#11-api-spezifikation">11. API-Spezifikation</a>
 <a class="toc-level-3" href="#11-1-decks">11.1 Decks</a>
 <a class="toc-level-3" href="#11-2-cards-learning-items">11.2 Cards / Learning Items</a>
@@ -183,6 +186,7 @@
 <a class="toc-level-3" href="#11-7-dokumente">11.7 Dokumente</a>
 <a class="toc-level-3" href="#11-8-communitys">11.8 Communitys</a>
 <a class="toc-level-3" href="#11-9-graph">11.9 Graph</a>
+<a class="toc-level-3" href="#11-10-produktive-api-und-secret-grenzen">11.10 Produktive API- und Secret-Grenzen</a>
 <a class="toc-level-2" href="#12-ki-orchestrierung">12. KI-Orchestrierung</a>
 <a class="toc-level-2" href="#12-1-grundsatz">12.1 Grundsatz</a>
 <a class="toc-level-3" href="#ziele">Ziele</a>
@@ -194,10 +198,11 @@
 <a class="toc-level-3" href="#12-7-prompt-contract-variant-rephrase">12.7 Prompt Contract: Variant Rephrase</a>
 <a class="toc-level-3" href="#12-8-prompt-contract-eligibility-classifier">12.8 Prompt Contract: Eligibility Classifier</a>
 <a class="toc-level-3" href="#12-9-prompt-contract-card-generation-from-document">12.9 Prompt Contract: Card Generation from Document</a>
+<a class="toc-level-3" href="#12-10-ki-proxy-kosten-und-abuse-schutz">12.10 KI-Proxy, Kosten- und Abuse-Schutz</a>
 <a class="toc-level-2" href="#13-scheduling-und-reifegrad">13. Scheduling und Reifegrad</a>
 <a class="toc-level-2" href="#13-1-scheduler-schnittstelle">13.1 Scheduler-Schnittstelle</a>
 <a class="toc-level-3" href="#13-2-vier-buttons">13.2 Vier Buttons</a>
-<a class="toc-level-3" href="#13-3-reifegrad-xp">13.3 Reifegrad-XP</a>
+<a class="toc-level-3" href="#13-3-reifegrad-fsrs-state-und-variant-readiness">13.3 Reifegrad, FSRS-State und Variant-Readiness</a>
 <a class="toc-level-3" href="#13-4-varianten-scheduling">13.4 Varianten-Scheduling</a>
 <a class="toc-level-3" href="#13-5-tagesintervall-diskussion">13.5 Tagesintervall-Diskussion</a>
 <a class="toc-level-2" href="#14-technische-architektur">14. Technische Architektur</a>
@@ -205,15 +210,18 @@
 <a class="toc-level-3" href="#frontend-ordnerstruktur">Frontend-Ordnerstruktur</a>
 <a class="toc-level-3" href="#ui-komponenten">UI-Komponenten</a>
 <a class="toc-level-2" href="#14-2-backend">14.2 Backend</a>
+<a class="toc-level-3" href="#14-2-1-hosting-domain-und-runtime-pfad">14.2.1 Hosting-, Domain- und Runtime-Pfad</a>
 <a class="toc-level-3" href="#empfohlene-services">Empfohlene Services</a>
 <a class="toc-level-2" href="#14-3-dateiablage">14.3 Dateiablage</a>
 <a class="toc-level-2" href="#14-4-background-jobs">14.4 Background Jobs</a>
 <a class="toc-level-3" href="#job-anforderungen">Job-Anforderungen</a>
+<a class="toc-level-2" href="#14-5-environment-variables-und-secrets">14.5 Environment Variables und Secrets</a>
 <a class="toc-level-2" href="#15-sicherheit-datenschutz-und-rechte">15. Sicherheit, Datenschutz und Rechte</a>
 <a class="toc-level-3" href="#15-1-datenschutz">15.1 Datenschutz</a>
 <a class="toc-level-3" href="#15-2-berechtigungen">15.2 Berechtigungen</a>
 <a class="toc-level-3" href="#15-3-ki-sicherheit">15.3 KI-Sicherheit</a>
-<a class="toc-level-3" href="#15-4-audit-log">15.4 Audit Log</a>
+<a class="toc-level-3" href="#15-4-supabase-auth-und-secret-sicherheit">15.4 Supabase/Auth- und Secret-Sicherheit</a>
+<a class="toc-level-3" href="#15-5-audit-log">15.5 Audit Log</a>
 <a class="toc-level-2" href="#16-nichtfunktionale-anforderungen">16. Nichtfunktionale Anforderungen</a>
 <a class="toc-level-3" href="#16-1-performance">16.1 Performance</a>
 <a class="toc-level-3" href="#16-2-offline-sync">16.2 Offline / Sync</a>
@@ -231,7 +239,7 @@
 <a class="toc-level-3" href="#18-1-priorisierte-module">18.1 Priorisierte Module</a>
 <a class="toc-level-3" href="#18-2-erste-engineering-epics">18.2 Erste Engineering-Epics</a>
 <a class="toc-level-2" href="#19-offene-entscheidungen">19. Offene Entscheidungen</a>
-<a class="toc-level-2" href="#20-risiken-und-gegenma-nahmen">20. Risiken und Gegenmaßnahmen</a>
+<a class="toc-level-2" href="#20-risiken-und-gegenmaßnahmen">20. Risiken und Gegenmaßnahmen</a>
 <a class="toc-level-2" href="#21-definition-of-done-fur-mvp">21. Definition of Done für MVP</a>
 <a class="toc-level-2" href="#22-beispielhafte-user-stories">22. Beispielhafte User Stories</a>
 <a class="toc-level-3" href="#us-001-anki-nutzer-importiert-deck">US-001 — Anki-Nutzer importiert Deck</a>
@@ -259,16 +267,18 @@
 <a class="toc-level-3" href="#27-6-ki-erstellung">27.6 KI-Erstellung</a>
 <a class="toc-level-3" href="#27-7-apkg-import">27.7 APKG-Import</a>
 <a class="toc-level-3" href="#27-8-chat-your-deck-lernplan-und-portabilitaet">27.8 Chat-your-Deck, Lernplan und Portabilitaet</a>
-<a class="toc-level-3" href="#27-9-adapter-entscheidung">27.9 Adapter-Entscheidung</a></nav>
+<a class="toc-level-3" href="#27-9-adapter-entscheidung">27.9 Adapter-Entscheidung</a>
+<a class="toc-level-3" href="#27-10-dokumentations-und-sql-inventar">27.10 Dokumentations- und SQL-Inventar</a></nav>
     </aside>
     <main><article>
 <h1 id="core-content-repetition">CoRe — Content Repetition</h1>
-<p><strong>Produkt- und Engineering-Spezifikation</strong> <strong>Dateien:</strong> <code>specs.md</code> und <code>specs.html</code> <strong>Status:</strong> Arbeitsfassung v0.2 <strong>Datum:</strong> 2026-07-06 <strong>Quellenbasis:</strong> Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + aktueller Codebase-Stand</p>
+<p><strong>Produkt- und Engineering-Spezifikation</strong> <strong>Dateien:</strong> <code>Docs/specs.md</code> und <code>Docs/specs.html</code> <strong>Status:</strong> Arbeitsfassung v0.3 <strong>Datum:</strong> 2026-07-07 <strong>Quellenbasis:</strong> Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App</p>
 <hr>
-<h2 id="implementierungsstand-2026-07-06">Implementierungsstand 2026-07-06</h2>
-<p>Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-06 an die aktuellen Codebase-Aenderungen angepasst. Der aktuelle Stand ist ein breiter lokaler Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt, aber noch nicht als gehostetes Mehrnutzerprodukt betreibbar. Der App-State liegt in <code>localStorage</code>, Authentifizierung ist lokal modelliert, KI-Funktionen laufen deterministisch/lokal, und Hintergrundjobs sind im Frontend sichtbar statt serverseitig ausgefuehrt.</p>
+<h2 id="implementierungsstand-2026-07-07">Implementierungsstand 2026-07-07</h2>
+<p>Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter lokaler Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt, aber noch nicht als gehostetes Mehrnutzerprodukt betreibbar. Der App-State liegt in <code>localStorage</code>, Authentifizierung ist lokal modelliert, KI-Funktionen laufen deterministisch/lokal, und Hintergrundjobs sind im Frontend sichtbar statt serverseitig ausgefuehrt.</p>
 <p>Wichtige Aenderung seit der ersten lokalen Spezifikationsfassung: Die bisherige Deck-<code>cards</code>-Collection bleibt im lokalen State aus Kompatibilitaetsgruenden bestehen, enthaelt fachlich aber Learning Items. <code>src/coreModel.js</code> normalisiert neue und alte Karten ueber eine gemeinsame Creation Pipeline. Jedes Learning Item besitzt genau eine Original-Variante; Reverse-, Cloze-, importierte und KI-/Rephrase-Varianten sind daran verankert und koennen eigene Review-States, Performance- und Feedbackdaten tragen.</p>
 <p>Die aktuelle Architektur macht bewusst noch keine umfangreiche Bauvorleistung fuer Hosting, Datenbank, externe Auth-Provider oder externe LLM-Provider. Diese Adapter sollen erst eingefuehrt werden, wenn der reale Zielpfad entschieden ist. Bis dahin sind die bestehenden Modul-Interfaces die relevante Vorbereitung: React-Caller sollen keine Datenbank-, Auth- oder Modellanbieter-Details kennen muessen.</p>
+<p>Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese zentrale Spezifikation uebernommen. Der relevante Zielpfad ist jetzt hier dokumentiert: Vercel als naheliegender Hosting-/Preview-/Domain-Pfad, Supabase Auth/Postgres/RLS als naheliegender Persistenzpfad, echte Tabellen statt grossem Store-Blob, Supabase Storage/Object Storage fuer grosse Medien und Dokumente, eigene <code>/api/ai/*</code>-Routen fuer geheime KI-Keys, sowie klare Env-Var- und Secret-Grenzen.</p>
 <table>
 <thead><tr><th>Bereich</th><th>Implementierte lokale Module / Screens</th></tr></thead>
 <tbody>
@@ -277,8 +287,8 @@
 <tr><td>Import</td><td><code>apkgImport</code>, <code>importService</code> fuer APKG/Text/CSV/Excel-Paste, Importberichte, Raw-Fallbacks, <code>collection.anki21b</code>/Zstd, Media-Manifeste, Reimport-Merge</td></tr>
 <tr><td>Manuelle Erstellung</td><td><code>ManualCreationPanel</code>, <code>documentModel</code>, <code>sourceAnchors</code>, <code>createBasicLearningItem</code>, <code>createBasicReverseLearningItem</code>, <code>createClozeLearningItem</code></td></tr>
 <tr><td>KI-Kartenerstellung</td><td><code>aiOrchestrator.generateCardsFromDocument</code>, Draft-Review, Schema-Validation, normalisierte Draft-Items</td></tr>
-<tr><td>Review/Scheduler</td><td><code>reviewFlow</code>, <code>reviewService</code>, <code>scheduler</code>, <code>reviewShortcuts</code>, vier Buttons, Tastatur, Front+Back nach Aufdeckung, Learning-Item-/Varianten-Events</td></tr>
-<tr><td>Content Repetition</td><td><code>coreVariantService</code>, <code>variantGeneration</code>, <code>variantSelection</code>, Eligibility, Rephrase, Original-Variantenanker, Variantenstatus, Dedupe-Hash</td></tr>
+<tr><td>Review/Scheduler</td><td><code>reviewService</code>, <code>reviewFlow</code> als Legacy-Fassade, <code>scheduler</code>, <code>reviewShortcuts</code>, vier Buttons, Tastatur, Front+Back nach Aufdeckung, FSRS-like State, Learning-Item-/Varianten-Events</td></tr>
+<tr><td>Content Repetition</td><td><code>coreVariantService</code>, <code>variantGeneration</code>, <code>variantSelection</code>, Eligibility, Rephrase, Variant-Level, Readiness/Coverage/Generation-Plan, Fallback nach Fehlern, Original-Variantenanker, Variantenstatus, Dedupe-Hash</td></tr>
 <tr><td>Trust/Versionierung</td><td><code>sourceAnchors</code>, <code>versionLog</code>, Variant-Feedback, Deaktivieren, Restore-Basis</td></tr>
 <tr><td>Community</td><td><code>communityModel</code>, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten</td></tr>
 <tr><td>Deck Graph</td><td><code>deckGraph</code>, Triggerlogik und SVG-Mindmap-Screen</td></tr>
@@ -297,15 +307,15 @@
 <li>Text-, CSV- und Excel-/Tabellen-Paste-Import als schnelle Front/Back-Erstellung ueber dieselbe Normalisierungsschicht.</li>
 <li>Manuelle Kartenerstellung mit Dokumentkontext, Quellenankern fuer markierten Text und stabiler Original-Variante.</li>
 <li>Deterministische KI-Drafts aus Quellentext mit Schema-Validation, Draft-Review und Annahme in die Bibliothek.</li>
-<li>Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern und Maturity-XP.</li>
-<li>Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker-Minikarte, Deaktivieren und Fehler-Feedback.</li>
+<li>Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP.</li>
+<li>Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker-Minikarte, konservativen Variant-Levels, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.</li>
 <li>Kleine lokale Community-Logik mit Ordnern und Deck-Kopien ohne fremde Reviewdaten.</li>
 <li>Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten, Lernplan-Generator, AI-Job-Uebersicht und JSON-Datenportabilitaet.</li>
 </ul>
 <h3 id="was-erwartungsgemaess-noch-nicht-funktioniert">Was erwartungsgemaess noch nicht funktioniert</h3>
 <ul>
 <li>Es gibt noch kein Hosting, keine Deployment-Pipeline, keine Domains und keine produktive Umgebung.</li>
-<li>Es gibt noch keine Datenbank, keine serverseitige Persistenz, keinen Sync und keine Konfliktloesung zwischen Geraeten.</li>
+<li>Es gibt noch keine angebundene Produktivdatenbank, keine serverseitige Persistenz, keinen Sync und keine Konfliktloesung zwischen Geraeten; <code>supabase/core_schema_v1.sql</code> ist ein Schemaanker, aber noch keine produktive Integration.</li>
 <li>Accounts sind lokal modelliert; es gibt keine echte Registrierung, E-Mail-Verifikation, OAuth-Anbindung oder Session-Infrastruktur.</li>
 <li>KI ist lokal/deterministisch simuliert; es gibt noch keine Provider-Adapter, kein echtes Token-/Kostenlogging und keine produktive Prompt-/Eval-Pipeline.</li>
 <li>Jobs laufen nicht in einer Queue oder Worker-Infrastruktur; die Job-Sicht ist ein lokaler Produkt- und Datenmodell-Prototyp.</li>
@@ -315,7 +325,7 @@
 <li>Mobile, PWA-Offline, Push-Benachrichtigungen, Zahlungen, Admin-/Support-Werkzeuge und produktive Observability sind nicht umgesetzt.</li>
 </ul>
 <h3 id="aktuelle-ausbauhaltung">Aktuelle Ausbauhaltung</h3>
-<p>Naechste Arbeit sollte nicht zuerst neue Adapter-Schichten bauen, sondern die bestehenden tiefen Module stabilisieren und dann gezielt reale Adapter an den Stellen einfuehren, an denen die Produktentscheidung gefallen ist: Hosting/Deployment, Persistenz/Auth, LLM/Job-Queue, Dokumentverarbeitung und spaeter Sync/Community-Rechte. Weitere KI-Coding-Arbeit sollte zuerst <code>specs.md</code> und <code>todo.md</code> lesen; dort sind Produktkontext, Modul-Interfaces, Testdateien und Soll/Ist-Luecken als Navigationskarte gepflegt.</p>
+<p>Naechste Arbeit sollte nicht zuerst neue Adapter-Schichten bauen, sondern die bestehenden tiefen Module stabilisieren und dann gezielt reale Adapter an den Stellen einfuehren, an denen die Produktentscheidung gefallen ist: Hosting/Deployment, Persistenz/Auth, LLM/Job-Queue, Dokumentverarbeitung und spaeter Sync/Community-Rechte. Weitere KI-Coding-Arbeit sollte zuerst <code>Docs/specs.md</code> und <code>Docs/todo.md</code> lesen; dort sind Produktkontext, Modul-Interfaces, Testdateien, Hosting-/Datenbankleitplanken und Soll/Ist-Luecken als Navigationskarte gepflegt.</p>
 <hr>
 <h2 id="0-zweck-dieses-dokuments">0. Zweck dieses Dokuments</h2>
 <p>Diese Spezifikation übersetzt die Gründerdiskussion und den Projektkontext in eine menschenlesbare, zugleich KI- und entwicklungsfreundliche Grundlage für die Softwareentwicklung von <strong>CoRe — Content Repetition</strong>.</p>
@@ -341,6 +351,16 @@
 <li>KI-Funktionen werden nicht als monolithisches „ein LLM macht alles“ gedacht, sondern als orchestrierte Funktionen mit Triggern, Kostenkontrolle, Kontextmanagement und Validierung.</li>
 <li>CoRe soll Anki nicht kopieren, sondern Anki-kompatible Lernlogik als Ausgangspunkt nutzen und um inhaltliche Wiederholung, Varianten und Kontext erweitern.</li>
 </ul>
+<h3 id="0-3-dokumentationsstruktur">0.3 Dokumentationsstruktur</h3>
+<p>Die gepflegte Projektdokumentation liegt im Ordner <code>Docs/</code>:</p>
+<ul>
+<li><code>Docs/index.md</code>: Dokumentationskarte fuer Menschen und KI-Agenten.</li>
+<li><code>Docs/specs.md</code>: diese kanonische Produkt- und Engineering-Spezifikation.</li>
+<li><code>Docs/specs.html</code>: generierte, visuelle HTML-Fassung derselben Spezifikation.</li>
+<li><code>Docs/todo.md</code>: priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.</li>
+<li><code>Docs/README.md</code>: Projektueberblick, lokaler Start, Scripts und Dokumentlinks.</li>
+</ul>
+<p><code>AGENTS.md</code> bleibt bewusst auf Root-Ebene, weil Coding-Agenten dort die Arbeitsregeln automatisch finden. Supabase-Schema- und Verify-SQL bleiben im Ordner <code>supabase/</code>, weil sie lauffaehige technische Artefakte und keine Prosadokumente sind.</p>
 <hr>
 <h2 id="1-executive-summary">1. Executive Summary</h2>
 <p><strong>CoRe</strong> steht für <strong>Content Repetition</strong> und ist eine moderne Lernplattform, die ein zentrales Problem klassischer Karteikartensysteme adressiert: Lernende erkennen nach vielen Wiederholungen häufig die Karte selbst — Layout, Wortlaut, Lückenposition, optische Muster — statt den Inhalt wirklich aktiv abrufen zu können.</p>
@@ -360,7 +380,7 @@
 <h2 id="2-produktvision">2. Produktvision</h2>
 <h3 id="2-1-leitbild">2.1 Leitbild</h3>
 <p>CoRe soll eine Lernplattform für große Wissensbestände werden, die Lernende nicht nur an die nächste Karte erinnert, sondern aktiv prüft, ob der Inhalt unabhängig von der ursprünglichen Darstellung verstanden und abrufbar ist.</p>
-<p>&gt; <strong>Kurzform:</strong> CoRe ist nicht „Anki mit schöner UI“, sondern eine Plattform, die bestehende Anki-Logik übernimmt, durch KI, Kontext, Variantenbildung und Wissensstrukturierung erweitert und dadurch Kartenblindheit reduziert.</p>
+<blockquote><strong>Kurzform:</strong> CoRe ist nicht „Anki mit schöner UI“, sondern eine Plattform, die bestehende Anki-Logik übernimmt, durch KI, Kontext, Variantenbildung und Wissensstrukturierung erweitert und dadurch Kartenblindheit reduziert.</blockquote>
 <h3 id="2-2-positionierung">2.2 Positionierung</h3>
 <table>
 <thead><tr><th>Dimension</th><th>Klassische Karteikarten-App</th><th>CoRe</th></tr></thead>
@@ -376,16 +396,16 @@
 <h3 id="2-3-primare-zielgruppen">2.3 Primäre Zielgruppen</h3>
 <ol>
 <li><strong>Medizinstudierende</strong>  </li>
-<p>Große Wissensmengen, hohe Prüfungsfrequenz, viele bestehende Anki-Stapel, hoher Nutzen durch Fall-/Kontextvarianten.</p>
 </ol>
+<p>Große Wissensmengen, hohe Prüfungsfrequenz, viele bestehende Anki-Stapel, hoher Nutzen durch Fall-/Kontextvarianten.</p>
 <ol>
 <li><strong>Jurastudierende</strong>  </li>
-<p>Hoher Bedarf an Definitionen, Prüfungsschemata, Abgrenzungen, Fallkonstellationen und präziser sprachlicher Variation.</p>
 </ol>
+<p>Hoher Bedarf an Definitionen, Prüfungsschemata, Abgrenzungen, Fallkonstellationen und präziser sprachlicher Variation.</p>
 <ol>
 <li><strong>Power-User bestehender Karteikartensysteme</strong>  </li>
-<p>Menschen mit großen Decks, bestehender Anki-Gewohnheit und Bedarf an Import, Review-Effizienz und Automatisierung.</p>
 </ol>
+<p>Menschen mit großen Decks, bestehender Anki-Gewohnheit und Bedarf an Import, Review-Effizienz und Automatisierung.</p>
 <ol>
 <li><strong>Spätere Erweiterung:</strong> alle Lernenden mit großen Wissensbeständen, berufliche Weiterbildung, Zertifizierungen, Sprachen, Fortbildungen.</li>
 </ol>
@@ -1376,6 +1396,7 @@ Aktionen: Variante deaktivieren · Fehler melden · Original lernen</code></pre>
 <li>KI/Varianten/Quellen/Community.</li>
 </ol>
 <p><strong>Aktueller lokaler Modellstand 2026-07-06:</strong> Im Browser-State heisst die Deck-Collection weiterhin <code>cards</code>, damit bestehende lokale Daten kompatibel bleiben. Semantisch sind diese Eintraege aber Learning Items: Sie tragen <code>canonicalQuestion</code>, <code>canonicalAnswer</code>, <code>learningItemState</code>/<code>reviewState</code>, Quellenanker, Versionen und eine Variantenliste. Die Variantenliste enthaelt immer genau eine <code>isOriginal: true</code>-Variante als unveraenderlichen Lernanker; weitere Varianten referenzieren sie ueber <code>anchorVariantId</code>/<code>parentVariantId</code>.</p>
+<p><strong>Produktiver Datenbankpfad 2026-07-07:</strong> Fuer CoRe ist Supabase/Postgres ein naheliegender Zielpfad, aber noch nicht angebunden. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. <code>supabase/core_schema_v1.sql</code> ist ein erster Schemaanker mit CoRe-spezifischen Tabellen und RLS-Policies; vor produktiver Nutzung muss er gegen <code>src/coreModel.js</code>, <code>src/coreRepository.js</code>, Import-Medienpfade und die geplante Auth-/Storage-Strategie validiert werden.</p>
 <h3 id="10-1-entity-ubersicht">10.1 Entity-Übersicht</h3>
 <pre><code class="language-mermaid">erDiagram
   User ||--o{ Deck : owns
@@ -1763,6 +1784,36 @@ export interface ReviewState {
   maturityXp: number;
   maturityBand: &quot;new&quot; | &quot;learning&quot; | &quot;young&quot; | &quot;mature&quot; | &quot;variant_ready&quot; | &quot;mastered&quot;;
 }</code></pre>
+<h3 id="10-4-supabase-postgres-zielmodell">10.4 Supabase/Postgres-Zielmodell</h3>
+<p>Der produktive Persistenzpfad soll an den bestehenden tiefen Modulen ansetzen, nicht an React-Callern:</p>
+<ul>
+<li><code>src/coreRepository.js</code> bleibt die lokale Persistenzgrenze und wird spaeter durch einen echten Server-/Supabase-Pfad ergaenzt.</li>
+<li><code>src/coreWorkspace.js</code> bleibt die Kommandoflaeche fuer App-Aktionen, damit UI-Screens keine Tabellen- oder RLS-Details kennen.</li>
+<li><code>src/coreModel.js</code> bleibt die Quelle der Dateninvarianten: genau eine Original-Variante pro Learning Item, abgeleitete Varianten mit Anker, append-only Review Events, unveraenderliches <code>immutableOriginal</code>.</li>
+<li><code>src/apkgImport.js</code> und <code>src/mediaStore.js</code> bleiben die Grenzen fuer APKG-/Medienlogik; produktive Storage-Referenzen duerfen diese Details nicht in <code>src/App.jsx</code> ziehen.</li>
+</ul>
+<p>Der aktuelle SQL-Anker unter <code>supabase/core_schema_v1.sql</code> enthaelt bereits diese produktionsnahen Tabellen:</p>
+<ul>
+<li><code>profiles</code></li>
+<li><code>core_portable_exports</code></li>
+<li><code>decks</code></li>
+<li><code>cards</code></li>
+<li><code>card_variants</code></li>
+<li><code>review_events</code></li>
+<li><code>source_documents</code></li>
+<li><code>ai_jobs</code></li>
+</ul>
+<p>Vor einer echten Supabase-Anbindung muss entschieden werden, ob <code>cards</code> produktiv weiterhin als Learning-Item-Tabelle dient oder ob eine explizite <code>learning_items</code>-Tabelle eingefuehrt wird. Solange die lokale Compatibility Collection <code>deck.cards[]</code> besteht, darf diese Entscheidung nicht zu zwei unkoordinierten Wahrheiten fuehren.</p>
+<p>Supabase-spezifische Leitplanken:</p>
+<ul>
+<li>Tabellen in einem exposed Schema brauchen explizite Grants fuer die Rollen, die ueber die Data API zugreifen sollen.</li>
+<li>RLS muss auf allen nutzerdatenhaltenden Tabellen aktiv sein.</li>
+<li><code>to authenticated</code> allein ist keine Autorisierung; Policies muessen Ownership oder Membership pruefen.</li>
+<li>UPDATE-Policies brauchen <code>using</code> und <code>with check</code>, damit Nutzer keine Zeilen auf andere <code>user_id</code>s umhaengen.</li>
+<li>Autorisierung darf nicht aus nutzerveraenderbaren <code>user_metadata</code> abgeleitet werden.</li>
+<li>Views, Security-Definer-Funktionen und Storage-Policies muessen separat gegen RLS-/Bypass-Risiken geprueft werden.</li>
+<li><code>supabase/verify_schema_v1.sql</code> ist die minimale Verify-Query fuer RLS-/Policy-Praesenz; zusaetzlich sind Nutzer-A/Nutzer-B-Zugriffstests notwendig.</li>
+</ul>
 <hr>
 <h2 id="11-api-spezifikation">11. API-Spezifikation</h2>
 <p>Die API kann REST, RPC oder GraphQL sein. Für den MVP ist eine klare REST/RPC-Hybridstruktur gut geeignet.</p>
@@ -1853,6 +1904,19 @@ POST   /api/shared-decks/:sharedDeckId/copy-to-my-decks</code></pre>
 <pre><code class="language-http">GET    /api/decks/:deckId/graph
 POST   /api/decks/:deckId/graph/generate
 GET    /api/decks/:deckId/graph/status</code></pre>
+<h3 id="11-10-produktive-api-und-secret-grenzen">11.10 Produktive API- und Secret-Grenzen</h3>
+<p>Fuer den Vite/Vercel/Supabase-Pfad gilt:</p>
+<pre><code class="language-text">Browser
+  -&gt; Supabase Client mit Publishable Key
+      -&gt; Supabase Auth + Postgres RLS schuetzen Nutzerdaten
+
+Browser
+  -&gt; /api/ai/*
+      -&gt; Serverless Function liest OPENAI_API_KEY / GOOGLE_API_KEY / ANTHROPIC_API_KEY aus process.env
+      -&gt; externer KI-Anbieter
+      -&gt; validierte Draft-Antwort zurueck an Browser</code></pre>
+<p>Browser-sichtbar sind nur nicht-geheime Werte wie <code>VITE_SUPABASE_URL</code>, <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> und Featureflags. Nicht in den Browser gehoeren <code>OPENAI_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>GEMINI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>SUPABASE_SECRET_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code> oder andere Admin-/Provider-Secrets.</p>
+<p>KI-Routen sollen zunaechst Drafts zurueckgeben. Der Nutzer prueft, bearbeitet und akzeptiert sie; erst danach speichert die App ueber die normalen Modellpfade. Sobald serverseitige Kostenlimits pro Nutzer benoetigt werden, muss die API-Route eine belastbare Supabase-Session/JWT-Pruefung erhalten.</p>
 <hr>
 <h2 id="12-ki-orchestrierung">12. KI-Orchestrierung</h2>
 <h2 id="12-1-grundsatz">12.1 Grundsatz</h2>
@@ -2001,10 +2065,25 @@ interface AIPolicy {
     &quot;omittedSections&quot;: [&quot;Literaturverzeichnis&quot;]
   }
 }</code></pre>
+<h3 id="12-10-ki-proxy-kosten-und-abuse-schutz">12.10 KI-Proxy, Kosten- und Abuse-Schutz</h3>
+<p>Produktive KI-Aufrufe laufen nicht direkt aus dem Browser zum Anbieter. CoRe braucht eigene Serverrouten wie <code>/api/ai/generate-cards</code>, <code>/api/ai/rephrase-variant</code> oder <code>/api/ai/build-graph</code>, die Provider-Keys nur aus serverseitigen Env Vars lesen.</p>
+<p>Mindestanforderungen an diese Routen:</p>
+<ul>
+<li>nur erlaubte HTTP-Methoden akzeptieren,</li>
+<li>Same-Origin- oder Auth-Pruefung durchfuehren,</li>
+<li>Request-Groessen begrenzen,</li>
+<li>Modell-Allowlist serverseitig erzwingen,</li>
+<li>Output-/Tokenlimit setzen,</li>
+<li>IP- und spaeter User-Rate-Limits nutzen,</li>
+<li>keine Roh-Secrets oder kompletten Promptinhalte unkontrolliert loggen,</li>
+<li>strukturierte KI-Ausgabe validieren,</li>
+<li>KI-Ergebnisse als Drafts behandeln und nicht ungeprueft persistieren.</li>
+</ul>
+<p>Fuer den ersten Online-MVP ist ein einfacher Weg erlaubt: Die Serverroute generiert Drafts und gibt sie zurueck; der Browser speichert akzeptierte Karten ueber Supabase RLS. Sobald Kostenbudgets, Abuse-Schutz pro Nutzer oder serverseitige Job-Queues wichtig werden, muss die Route die Supabase-Session belastbar pruefen und Nutzungszaehler serverseitig fuehren.</p>
 <hr>
 <h2 id="13-scheduling-und-reifegrad">13. Scheduling und Reifegrad</h2>
 <h2 id="13-1-scheduler-schnittstelle">13.1 Scheduler-Schnittstelle</h2>
-<p>CoRe soll sich an Anki-Gewohnheiten orientieren, aber die genaue Scheduling-Formel austauschbar halten.</p>
+<p>CoRe soll sich an Anki-Gewohnheiten orientieren, nutzt lokal aber inzwischen einen FSRS-like Scheduler-State. Die genaue Formel bleibt intern austauschbar, aber der aktuelle Interface-Vertrag ist nicht mehr nur SM-2-nahe: Review-State traegt <code>schedulerVersion: &quot;fsrs_v1&quot;</code>, <code>stability</code>, <code>difficulty</code>, <code>desiredRetention</code>, <code>retrievability</code>, <code>preferredVariantLevel</code>, optionalen Fallback-State und weiterhin Compatibility-Felder wie <code>repetitions</code>, <code>lapses</code>, <code>maturityXp</code> und <code>maturityBand</code>.</p>
 <pre><code class="language-ts">interface Scheduler {
   getNextDue(state: ReviewState, rating: ReviewRating, context: ReviewContext): ReviewState;
 }
@@ -2024,8 +2103,16 @@ interface ReviewContext {
 <tr><td>Good</td><td>Gewusst</td><td>normales Intervall, Reife steigt</td></tr>
 <tr><td>Easy</td><td>Sehr leicht</td><td>größeres Intervall, Reife steigt stärker</td></tr>
 </tbody></table>
-<h3 id="13-3-reifegrad-xp">13.3 Reifegrad-XP</h3>
-<p>Maturity XP ist eine CoRe-eigene Abstraktion, um die Frage zu beantworten: „Darf diese Kartenfamilie inhaltlich variiert werden?“</p>
+<h3 id="13-3-reifegrad-fsrs-state-und-variant-readiness">13.3 Reifegrad, FSRS-State und Variant-Readiness</h3>
+<p>Maturity XP bleibt eine CoRe-eigene Compatibility-Abstraktion, um die Frage zu beantworten: Darf diese Kartenfamilie inhaltlich variiert werden? Der lokale Scheduler nutzt zusaetzlich FSRS-nahe Felder:</p>
+<ul>
+<li><code>stability</code>: wie lange eine Karte voraussichtlich abrufbar bleibt.</li>
+<li><code>difficulty</code>: wie schwer die Karte fuer den Nutzer ist.</li>
+<li><code>desiredRetention</code>: Ziel-Retention fuer Intervallberechnung.</li>
+<li><code>retrievability</code>: berechnete aktuelle Abrufwahrscheinlichkeit.</li>
+<li><code>preferredVariantLevel</code>: konservative Stufe fuer nahe Varianten.</li>
+<li><code>forcedVariantId</code> / <code>fallbackUntilCorrect</code>: Rueckfall auf einfachere Variante oder Original nach Fehlern.</li>
+</ul>
 <p><strong>Beispiel-Update:</strong></p>
 <pre><code class="language-ts">function updateMaturityXp(oldXp: number, rating: ReviewRating, wasVariant: boolean) {
   const delta = {
@@ -2050,6 +2137,7 @@ interface ReviewContext {
 <tr><td>181+</td><td><code>mastered</code></td><td>robuste Beherrschung</td></tr>
 </tbody></table>
 <p>Diese Werte sind Platzhalter und müssen empirisch getestet werden.</p>
+<p><strong>Lokaler Stand 2026-07-07:</strong> <code>src/scheduler.js</code> stellt <code>scheduleWithFsrsLikeModel</code>, <code>calculateRetrievability</code>, <code>getSchedulerStateForItem</code> und <code>applyReviewRating</code> bereit. <code>src/coreVariantService.js</code> leitet daraus Maturity-Stages wie <code>new</code>, <code>learning</code>, <code>early_review</code>, <code>variant_ready</code>, <code>mature</code>, <code>mastered</code> und <code>relearning</code> ab und erzeugt Readiness, Coverage, Generation-Recommendation und Generation-Plan fuer die UI.</p>
 <h3 id="13-4-varianten-scheduling">13.4 Varianten-Scheduling</h3>
 <p>Es gibt zwei mögliche Modelle:</p>
 <h4 id="modell-a-varianten-teilen-den-review-state-der-originalkarte">Modell A — Varianten teilen den Review-State der Originalkarte</h4>
@@ -2060,7 +2148,7 @@ interface ReviewContext {
 <pre><code class="language-text">CardFamilyState  ← aggregiert Wissensstand
 OriginalState    ← Originalkarte
 VariantState     ← einzelne Variante</code></pre>
-<p><strong>Lokaler Stand 2026-07-06:</strong> <code>reviewService.recordReviewRating</code> schreibt append-only Review-Events mit <code>learningItemId</code>, <code>variantId</code>, <code>reviewableType</code> und <code>reviewableId</code>. Bei Variantenreviews wird ein eigener Variantenstate aktualisiert und zusaetzlich der Learning-Item-/Family-State fortgeschrieben. Damit bleibt der lokale MVP kompatibel mit dem alten Card-basierten Modell, waehrend Modell B vorbereitet ist.</p>
+<p><strong>Lokaler Stand 2026-07-07:</strong> <code>reviewService.answerVariant</code> und <code>reviewService.recordReviewRating</code> schreiben append-only Review-Events mit <code>learningItemId</code>, <code>variantId</code>, <code>reviewableType</code>, <code>reviewableId</code>, <code>schedulerVersion</code>, <code>schedulerBefore</code>, <code>schedulerAfter</code>, <code>variantLevel</code>, <code>variantType</code> und optionaler <code>fallbackInfo</code>. Bei Variantenreviews wird ein eigener Variantenstate aktualisiert und zusaetzlich der Learning-Item-/Family-State fortgeschrieben. Nach <code>again</code> auf einer hoeheren Variante kann CoRe per <code>getVariantFallbackTarget</code> eine einfachere Variante oder das Original erzwingen, bis wieder korrekt geantwortet wurde. Damit bleibt der lokale MVP kompatibel mit dem alten Card-basierten Modell und setzt Modell B praktisch um.</p>
 <h3 id="13-5-tagesintervall-diskussion">13.5 Tagesintervall-Diskussion</h3>
 <p>Die Gründerdiskussion weist darauf hin, dass sehr kurze Wiederholintervalle möglicherweise zu stark Recognition fördern können. CoRe SOLL daher Scheduling-Parameter zugänglich machen, ohne Nutzer mit Expertensettings zu überfordern.</p>
 <p><strong>MVP:</strong> sinnvolle Defaults. <strong>Später:</strong> einfache Profile:</p>
@@ -2146,6 +2234,17 @@ VariantState     ← einzelne Variante</code></pre>
 <li>Community-Rechte.</li>
 <li>Audit-/Versionierung.</li>
 </ul>
+<h3 id="14-2-1-hosting-domain-und-runtime-pfad">14.2.1 Hosting-, Domain- und Runtime-Pfad</h3>
+<p>Naheliegender Startpfad fuer CoRe:</p>
+<ul>
+<li>Vercel hostet die Vite/React-App.</li>
+<li><code>npm run build</code> erzeugt das statische Frontend in <code>dist</code>.</li>
+<li>Preview- und Production-Deployments bleiben getrennt.</li>
+<li>Eine eigene Domain kann in Vercel verbunden und auf Production gemappt werden.</li>
+<li>Browser-Routen der SPA fallen auf <code>index.html</code> zurueck; <code>/api/*</code> bleibt fuer Serverless Functions reserviert.</li>
+<li>Environment Variables werden pro Umgebung gepflegt; Production-/Preview-Secrets werden nicht lokal in Git abgelegt.</li>
+</ul>
+<p>Vite/Vercel-Konfiguration darf erst eingefuehrt werden, wenn der Hosting-Schritt wirklich umgesetzt wird. Ein spaeteres <code>vercel.json</code> soll mindestens Build Command, Output Directory und SPA-Rewrites so festlegen, dass <code>/api/*</code> nicht von der Frontend-Fallback-Regel verschluckt wird.</p>
 <h3 id="empfohlene-services">Empfohlene Services</h3>
 <pre><code class="language-text">API Server
   ├── DeckService
@@ -2168,6 +2267,15 @@ Worker
 <h2 id="14-3-dateiablage">14.3 Dateiablage</h2>
 <p>Dokumente, Medien und APKG-Dateien sollen in Object Storage liegen. Die Datenbank speichert Metadaten und sichere Referenzen.</p>
 <p><strong>Wichtig:</strong> Importierte Mediendateien müssen stabil referenzierbar sein, auch wenn Karten später geteilt werden.</p>
+<p>Fuer CoRe ist dieser Punkt groesser als bei kleinen Rezept-/Fitness-Datensaetzen: Kartenstapel koennen hunderte MB an Bildern, Audios, HTML-Medienreferenzen, PDF-Quellen und APKG-Originalen tragen. Der lokale Browser-Medienspeicher in <code>src/mediaStore.js</code> ist eine MVP-Loesung, aber kein Produktivspeicher.</p>
+<p>Produktivregeln:</p>
+<ul>
+<li>APKG-Originaldatei, extrahierte Medien, hochgeladene PDFs/DOCX/Bilder und OCR-/Textlayer brauchen stabile Storage-Referenzen.</li>
+<li>Die Datenbank speichert Metadaten, Hashes, Ownership, Deck-/Kartenreferenzen und Loeschstatus; grosse Bytes liegen in Object Storage.</li>
+<li>Medienreferenzen muessen auch fuer geteilte Decks funktionieren, ohne fremde private Reviewdaten offenzulegen.</li>
+<li>Garbage Collection fuer nicht mehr referenzierte Assets muss geplant werden, bevor grosse Imports produktiv erlaubt werden.</li>
+<li>Grosse APKGs und medienreiche Dokumente gehoeren perspektivisch in Server-/Worker-Verarbeitung mit Fortschritt, Retry und Abbruch.</li>
+</ul>
 <h2 id="14-4-background-jobs">14.4 Background Jobs</h2>
 <p>Viele Operationen dürfen nicht synchron im Request laufen:</p>
 <ul>
@@ -2188,6 +2296,24 @@ Worker
 <li>nutzerfreundlicher Fortschritt,</li>
 <li>Kosten-/Tokenlogging bei KI.</li>
 </ul>
+<h2 id="14-5-environment-variables-und-secrets">14.5 Environment Variables und Secrets</h2>
+<p>Vite-Regel: Alles mit <code>VITE_</code> ist oeffentlich und kann im Browser-Bundle sichtbar sein.</p>
+<p>Browser-sichtbar erlaubt:</p>
+<pre><code class="language-text">VITE_SUPABASE_URL=...
+VITE_SUPABASE_PUBLISHABLE_KEY=...
+VITE_AI_USE_SERVER_PROXY=true</code></pre>
+<p>Nur serverseitig erlaubt:</p>
+<pre><code class="language-text">OPENAI_API_KEY=...
+GOOGLE_API_KEY=...
+GEMINI_API_KEY=...
+ANTHROPIC_API_KEY=...
+SUPABASE_SECRET_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
+<p>Niemals verwenden:</p>
+<pre><code class="language-text">VITE_OPENAI_API_KEY=...
+VITE_GOOGLE_API_KEY=...
+VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
+<p>Secrets duerfen nicht in <code>localStorage</code>, Exportdateien, Supabase-Userdaten, Client-Logs oder Browser-Code landen. <code>.env</code>, <code>.env.*</code> und <code>.vercel/</code> gehoeren in <code>.gitignore</code>; falls ein dokumentiertes Beispiel gebraucht wird, dann nur als <code>.env.example</code> ohne echte Werte.</p>
 <hr>
 <h2 id="15-sicherheit-datenschutz-und-rechte">15. Sicherheit, Datenschutz und Rechte</h2>
 <h3 id="15-1-datenschutz">15.1 Datenschutz</h3>
@@ -2215,7 +2341,21 @@ Worker
 <li>Sanitization von HTML aus Anki und KI.</li>
 <li>Prompt-Injection-Schutz bei importierten Dokumenten: Dokumentinhalt darf nicht Systemregeln überschreiben.</li>
 </ul>
-<h3 id="15-4-audit-log">15.4 Audit Log</h3>
+<h3 id="15-4-supabase-auth-und-secret-sicherheit">15.4 Supabase/Auth- und Secret-Sicherheit</h3>
+<p>Supabase trennt Projekt-API-Key und Nutzeridentitaet: Der Publishable Key identifiziert die App-Komponente, Auth/JWT identifiziert den Nutzer, und RLS entscheidet ueber Zeilenzugriff. Daraus folgen fuer CoRe:</p>
+<ul>
+<li>Frontend nutzt nur Supabase URL plus Publishable Key.</li>
+<li>Secret Keys, Service Role Keys und KI-Provider-Keys bleiben serverseitig.</li>
+<li><code>service_role</code>/Secret darf nie in <code>VITE_*</code>, Browser-Code, <code>localStorage</code>, Exportdaten oder Nutzerprofilen landen.</li>
+<li>Alle nutzerdatenhaltenden Tabellen in <code>public</code> brauchen explizite Grants, aktiviertes RLS und echte Ownership-/Membership-Policies.</li>
+<li><code>to authenticated</code> ohne <code>auth.uid() = user_id</code> oder Membership-Pruefung ist keine ausreichende Autorisierung.</li>
+<li>UPDATE-Policies brauchen <code>using</code> und <code>with check</code>.</li>
+<li>Berechtigungen duerfen nicht aus <code>user_metadata</code> abgeleitet werden, weil Nutzer diese Daten veraendern koennen.</li>
+<li>Views muessen als Security Invoker oder ausserhalb exposed Schemas geplant werden, damit sie RLS nicht umgehen.</li>
+<li>Security-Definer-Funktionen sind nur mit bewusstem Design, nicht als schneller Fix fuer Permission-Probleme erlaubt.</li>
+<li>Nach Schemaaenderungen muessen Supabase Security Advisor, Performance Advisor und projektspezifische Nutzer-A/Nutzer-B-Tests laufen.</li>
+</ul>
+<h3 id="15-5-audit-log">15.5 Audit Log</h3>
 <p>Wichtige Änderungen SOLLEN geloggt werden:</p>
 <ul>
 <li>Import.</li>
@@ -2428,7 +2568,7 @@ Worker
 <thead><tr><th>ID</th><th>Entscheidung</th><th>Optionen</th><th>Empfehlung</th></tr></thead>
 <tbody>
 <tr><td>D-001</td><td>Build-/App-Framework</td><td>Vite, Next.js, Remix etc.</td><td>Nach aktuellem Repo wählen; Specs bleiben frameworkneutral.</td></tr>
-<tr><td>D-002</td><td>Scheduler-Algorithmus</td><td>Anki-like SM-2, FSRS-like, eigener MVP</td><td>Interface abstrahieren, einfache Defaults starten.</td></tr>
+<tr><td>D-002</td><td>Scheduler-Algorithmus</td><td>Anki-like SM-2, FSRS-like, eigener MVP</td><td>Lokaler FSRS-like Pfad ist umgesetzt; Parameter mit echten Decks validieren.</td></tr>
 <tr><td>D-003</td><td>Review-State von Varianten</td><td>geteilt vs. getrennt + Familie</td><td>getrennt + aggregierter Family State.</td></tr>
 <tr><td>D-004</td><td>APKG-Lernfortschritt MVP</td><td>sofort importieren vs. später</td><td>Datenmodell vorbereiten, Import später vertiefen.</td></tr>
 <tr><td>D-005</td><td>Export</td><td>kein Export vs. lokal vs. interoperabel</td><td>Lokaler JSON-Export/-Import ist umgesetzt; spaeter interoperable Export-/Backup-Standards planen.</td></tr>
@@ -2439,7 +2579,7 @@ Worker
 <tr><td>D-010</td><td>Modellanbieter</td><td>fest vs. Router</td><td>Router mit austauschbaren Providern.</td></tr>
 </tbody></table>
 <hr>
-<h2 id="20-risiken-und-gegenma-nahmen">20. Risiken und Gegenmaßnahmen</h2>
+<h2 id="20-risiken-und-gegenmaßnahmen">20. Risiken und Gegenmaßnahmen</h2>
 <table>
 <thead><tr><th>Risiko</th><th>Auswirkung</th><th>Gegenmaßnahme</th></tr></thead>
 <tbody>
@@ -2474,7 +2614,7 @@ Worker
 <li>KI-Jobs asynchron laufen und Status anzeigen.</li>
 <li>Es gibt keine Anzeige fremder Lernstände oder Social-Rankings.</li>
 </ol>
-<p><strong>Stand 2026-07-06:</strong> Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher und Reimport-Merge mit Erhalt lokaler Content-Edits. Nicht Teil dieser lokalen DoD-Erfuellung sind Hosting, produktive Datenbank, echte Authentifizierung, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz und Observability. Diese Luecke ist bewusst und wird in <code>todo.md</code> als Ausbaupfad gefuehrt.</p>
+<p><strong>Stand 2026-07-07:</strong> Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher und Reimport-Merge mit Erhalt lokaler Content-Edits. Nicht Teil dieser lokalen DoD-Erfuellung sind Hosting, produktive Datenbankanbindung, echte Authentifizierung, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind jetzt in dieser Spec dokumentiert; die Umsetzungsluecke wird in <code>Docs/todo.md</code> als Ausbaupfad gefuehrt.</p>
 <hr>
 <h2 id="22-beispielhafte-user-stories">22. Beispielhafte User Stories</h2>
 <h3 id="us-001-anki-nutzer-importiert-deck">US-001 — Anki-Nutzer importiert Deck</h3>
@@ -2525,6 +2665,9 @@ Worker
 <li>Import muss nicht unterstützte Daten erhalten, nicht wegwerfen.</li>
 <li>Alle KI-Jobs müssen idempotent sein.</li>
 <li>Model Provider dürfen nicht hart im UI verdrahtet werden.</li>
+<li>Keine KI-, Supabase-Secret- oder Service-Role-Keys in Browser-Code, <code>VITE_*</code>, <code>localStorage</code>, Exportdaten oder Logs schreiben.</li>
+<li>Supabase-Tabellen in exposed Schemas nur mit expliziten Grants, aktivem RLS und Ownership-/Membership-Policies anbinden.</li>
+<li>Sichtbare Features, Screens, Controls und Flows bei Ueberarbeitungen erhalten; Entfernung nur bei explizitem Prompt.</li>
 </ol>
 <hr>
 <h2 id="24-beispiel-end-to-end-ablauf">24. Beispiel: End-to-End Ablauf</h2>
@@ -2588,20 +2731,20 @@ Worker
 </ol>
 <hr>
 <h2 id="26-naechste-empfohlene-schritte">26. Naechste empfohlene Schritte</h2>
-<p>Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisierter Soll/Ist-Backlog in <code>todo.md</code>.</p>
+<p>Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisierter Soll/Ist-Backlog in <code>Docs/todo.md</code>.</p>
 <p>Kurzfassung:</p>
 <ol>
 <li>Lokalen MVP stabilisieren: Smoke-Skript, Accessibility, robuste Fehlerzustaende, Datenportabilitaet-Roundtrips.</li>
-<li>Hosting- und Produktivpfad entscheiden, ohne vorher generische Adapter-Schichten zu bauen.</li>
-<li>Persistenz/Auth-Stack auswaehlen und erst dann das lokale Repository-Interface mit einem echten Adapter verbinden.</li>
-<li>Dokument-, Medien- und APKG-Verarbeitung fuer grosse Dateien serverseitig planen.</li>
-<li>KI-Provider, Datenschutz, Job-Queue, Prompt-Versionierung und Evals als eigenes Ausbaupaket behandeln.</li>
+<li>Hosting- und Produktivpfad konkretisieren: Vercel/Domain/Preview/Production, SPA-Rewrites, Env Vars und Deployment-Checkliste.</li>
+<li>Supabase/Postgres/Auth-Stack validieren und erst dann das lokale Repository-Interface mit einem echten Adapter verbinden.</li>
+<li>Dokument-, Medien- und APKG-Verarbeitung fuer grosse Dateien serverseitig planen, inklusive Object Storage und Garbage Collection.</li>
+<li>KI-Provider, Secret-Grenzen, Server-Proxy, Datenschutz, Job-Queue, Prompt-Versionierung und Evals als eigenes Ausbaupaket behandeln.</li>
 <li>Scheduler, Variantenqualitaet und Lernwirksamkeit mit echten Decks validieren.</li>
 <li>Community-Rechte, Sync, Mobile/PWA und Wachstumsschicht erst nach den Produktivgrundlagen ausbauen.</li>
 </ol>
 <hr>
 <h2 id="27-technischer-implementierungsanhang">27. Technischer Implementierungsanhang</h2>
-<p>Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die zentrale technische Navigationskarte fuer Menschen und KI-Agenten. Neben <code>AGENTS.md</code> sollen nur <code>specs.md</code>, <code>specs.html</code> und <code>todo.md</code> als Projekt-Dokumentation gepflegt werden.</p>
+<p>Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die zentrale technische Navigationskarte fuer Menschen und KI-Agenten. Die gepflegte Dokumentation liegt unter <code>Docs/</code>; <code>AGENTS.md</code> bleibt auf Root-Ebene, weil Agenten es automatisch finden.</p>
 <h3 id="27-1-aktuelle-hauptmodule">27.1 Aktuelle Hauptmodule</h3>
 <table>
 <thead><tr><th>Modul</th><th>Interface</th><th>Verantwortung</th></tr></thead>
@@ -2609,11 +2752,11 @@ Worker
 <tr><td><code>src/coreModel.js</code></td><td><code>createCoreDeck</code>, <code>createCoreLearningItem</code>, <code>createBasicLearningItem</code>, <code>createBasicReverseLearningItem</code>, <code>createClozeLearningItem</code>, <code>createLearningItemsFromNormalizedInput</code>, <code>createCardVariant</code>, <code>getOriginalVariant</code>, <code>getAnswerSideAnchorMiniCard</code>, <code>updateCardContent</code>, <code>restoreCardVersion</code></td><td>Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen, Deck-Settings</td></tr>
 <tr><td><code>src/coreRepository.js</code></td><td><code>createCoreRepository()</code></td><td>Persistenter lokaler App-State, Migration alter Decks, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene</td></tr>
 <tr><td><code>src/coreWorkspace.js</code></td><td><code>createCoreWorkspace</code>, <code>createDemoAnatomyDeck</code>, <code>setDeckCoreMode</code>, <code>saveDeckCardContent</code>, <code>deleteDeckCard</code></td><td>Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates</td></tr>
-<tr><td><code>src/scheduler.js</code></td><td><code>applyReviewRating</code>, <code>listReviewableCards</code>, <code>summarizeDeckReview</code></td><td>Vier-Button-Scheduler, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung</td></tr>
+<tr><td><code>src/scheduler.js</code></td><td><code>scheduleWithFsrsLikeModel</code>, <code>calculateRetrievability</code>, <code>getSchedulerStateForItem</code>, <code>applyReviewRating</code>, <code>listReviewableCards</code>, <code>summarizeDeckReview</code></td><td>FSRS-like Vier-Button-Scheduler, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung</td></tr>
 <tr><td><code>src/libraryModel.js</code></td><td><code>createDeckLibraryModel</code>, <code>createAiJobLedger</code></td><td>UI-nahe Bibliotheksprojektion fuer Dashboard, Deckliste, aktive Kartenzeilen und KI-Job-Ledger</td></tr>
-<tr><td><code>src/reviewFlow.js</code></td><td><code>answerVariant</code>, <code>getNextReviewItem</code></td><td>Tiefer Review-Flow fuer Antwortverarbeitung, Eventbau, Familien-/Variantenstatus und naechstes Review-Item</td></tr>
-<tr><td><code>src/reviewService.js</code></td><td><code>createReviewSession</code>, <code>recordReviewRating</code>, <code>recordVariantFeedback</code></td><td>Schmale Compatibility-/Orchestrierungsflaeche fuer bestehende UI-Aufrufer und Feedback-Kommandos</td></tr>
-<tr><td><code>src/coreVariantService.js</code></td><td><code>classifyCardEligibility</code>, <code>ensureVariantsForCard</code>, <code>chooseReviewCard</code>, <code>deactivateVariant</code>, <code>flagVariant</code></td><td>CoRe-Eligibility, lokaler Fallback-Rephrase, Facade fuer bestehende Varianten-Aufrufer</td></tr>
+<tr><td><code>src/reviewService.js</code></td><td><code>answerVariant</code>, <code>getNextReviewItem</code>, <code>createReviewSession</code>, <code>recordReviewRating</code>, <code>recordVariantFeedback</code></td><td>Tiefer Review-Flow fuer Antwortverarbeitung, FSRS-State, Fallback nach Fehlern, Eventbau, Familien-/Variantenstatus, Session-Projektion und Feedback-Kommandos</td></tr>
+<tr><td><code>src/reviewFlow.js</code></td><td><code>answerVariant</code>, <code>getNextReviewItem</code></td><td>Legacy-Fassade fuer bestehende Imports; Implementierung lebt in <code>src/reviewService.js</code></td></tr>
+<tr><td><code>src/coreVariantService.js</code></td><td><code>classifyCardEligibility</code>, <code>createVariantReviewModel</code>, <code>getLearningItemMaturity</code>, <code>getVariantReadiness</code>, <code>getVariantCoverage</code>, <code>getVariantGenerationRecommendation</code>, <code>getVariantGenerationPlan</code>, <code>getVariantFallbackTarget</code>, <code>ensureVariantsForCard</code>, <code>chooseReviewCard</code>, <code>deactivateVariant</code>, <code>flagVariant</code></td><td>CoRe-Eligibility, Reifegrad-/Readiness-Projektion, Coverage, Generation-Plan, Fallback-Ziele, lokaler Fallback-Rephrase und Varianten-Feedback</td></tr>
 <tr><td><code>src/variantGeneration.js</code></td><td><code>buildCardVariationPrompt</code>, <code>parseVariantGenerationResponse</code>, <code>validateVariantSuggestion</code>, <code>generateRephrasedVariantsForLearningItem</code></td><td>Promptbau, JSON-Parsing, Vorschlagsvalidierung und verankerte KI-Varianten-Erstellung</td></tr>
 <tr><td><code>src/variantSelection.js</code></td><td><code>selectAutomaticReviewVariant</code>, <code>isAutomaticRephraseVariant</code></td><td>Automatische Auswahl nahe am Original bleibender Review-Varianten nach Lernphase und Variant-Level</td></tr>
 <tr><td><code>src/reviewShortcuts.js</code></td><td><code>resolveReviewShortcut</code></td><td>Tastaturvertrag fuer Reveal, Bewertung und Exit im Review</td></tr>
@@ -2652,6 +2795,7 @@ Worker
 <li><code>src/creationPipeline.test.js</code>: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.</li>
 <li><code>src/learningModel.test.js</code>: Legacy-Card-Normalisierung, Learning-Item-Invarianten und Review-Event-Kompatibilitaetsfelder.</li>
 <li><code>src/reviewFlow.test.js</code>: Antwortverarbeitung, Scheduler-Events, Variantenperformance, Anchor-Snapshots und Next-Review-Auswahl.</li>
+<li><code>src/fsrsVariantFlow.test.js</code>: FSRS-like Scheduler-State, Reifegradstufen, Variant-Readiness, Coverage, Generation-Plan, Fallback nach Fehlern und Next-Review-Projektion.</li>
 <li><code>src/variantGeneration.test.js</code>: Prompt-Vertrag, KI-JSON-Parsing, Vorschlagsvalidierung, Anchoring und automatische Varianten-Auswahl.</li>
 <li><code>src/apkgImport.test.js</code>: APKG-Mapping, HTML-Sicherheit, lesbare Collection-Auswahl fuer <code>collection.anki21b</code>/Zstd-Fallbacks und Reimport-Merge.</li>
 <li><code>src/mediaStore.test.js</code>: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.</li>
@@ -2726,6 +2870,22 @@ Worker
 <p><code>src/dataPortability.js</code> erzeugt einen lokalen JSON-Export mit Decks, Communities, Jobs und Dokumenten. Der lokale Passwort-Verifier wird bewusst entfernt. Import validiert Schema und Version, bevor Daten in den lokalen App-State gemergt werden.</p>
 <h3 id="27-9-adapter-entscheidung">27.9 Adapter-Entscheidung</h3>
 <p>Noch keine Adapter-Schicht fuer Backend/Auth/LLM einfuehren, solange es nur einen lokalen Pfad gibt. Spaetere Adapter sollen hinter den bestehenden Modul-Interfaces landen, nicht in React-Callern. Diese Haltung folgt dem Projektprinzip: eine echte Naht entsteht erst, wenn mindestens zwei reale Adapterpfade existieren.</p>
+<h3 id="27-10-dokumentations-und-sql-inventar">27.10 Dokumentations- und SQL-Inventar</h3>
+<p>Projekt-Dokumente:</p>
+<ul>
+<li><code>Docs/index.md</code>: Dokumentationskarte und Einstiegspunkt.</li>
+<li><code>Docs/specs.md</code>: kanonische Produkt-/Engineering-Spezifikation.</li>
+<li><code>Docs/specs.html</code>: generierte HTML-Version von <code>Docs/specs.md</code>.</li>
+<li><code>Docs/todo.md</code>: priorisierter Gap-Backlog.</li>
+<li><code>Docs/README.md</code>: Projektueberblick, Start und Scripts.</li>
+<li><code>AGENTS.md</code>: Root-Regeln fuer Coding-Agenten.</li>
+</ul>
+<p>Technische SQL-Artefakte:</p>
+<ul>
+<li><code>supabase/core_schema_v1.sql</code>: aktueller Supabase/Postgres-Schemaanker fuer Profile, portable Exports, Decks, Cards/Learning Items, Varianten, Review Events, Dokumente und AI Jobs.</li>
+<li><code>supabase/verify_schema_v1.sql</code>: Verify-Queries fuer RLS-/Policy-Praesenz.</li>
+</ul>
+<p>Die entfernte Arbeitsnotiz war ein externer Transfer-Guide. Relevante Inhalte wurden in die Abschnitte zu Datenmodell, API, KI-Proxy, Architektur, Sicherheit und Todo uebernommen; die Datei soll nicht als zweite Wahrheit erhalten bleiben.</p>
     </article></main>
   </div>
 </body>

@@ -11,6 +11,7 @@ import {
   getLearningItemMaturity,
   getReviewSuccessProfile,
   getVariantCoverage,
+  createVariantReviewModel,
   getVariantFallbackTarget,
   getVariantGenerationPlan,
   getVariantGenerationRecommendation,
@@ -189,6 +190,25 @@ test("variant readiness coverage recommendation and plan stay near and conservat
   assert.equal(plan.promptOptions.allowTransfer, false);
   assert.equal(plan.promptOptions.allowCaseVignette, false);
   assert.equal(plan.promptOptions.maxVariantLevel <= 3, true);
+});
+
+test("variant review model bundles maturity readiness coverage and generation plan behind one interface", () => {
+  const now = "2026-07-06T10:00:00.000Z";
+  const item = itemWithState({ state: "review", reps: 3, stability: 5, lastReviewedAt: now });
+  const original = getOriginalVariant(item);
+  const events = [
+    reviewEvent(item, original, "good", "2026-07-06T09:00:00.000Z"),
+    reviewEvent(item, original, "good", "2026-07-05T09:00:00.000Z"),
+    reviewEvent(item, original, "easy", "2026-07-04T09:00:00.000Z"),
+  ];
+  const model = createVariantReviewModel(item, events, { now, language: "de" });
+
+  assert.equal(model.maturity.stage, "variant_ready");
+  assert.equal(model.readiness.allowAiRephrasing, true);
+  assert.equal(model.coverage.hasOriginal, true);
+  assert.equal(model.variantGenerationRecommendation.shouldSuggest, true);
+  assert.equal(model.variantGenerationPlan.promptOptions.keepCloseToOriginal, true);
+  assert.equal(model.generationPlan, model.variantGenerationPlan);
 });
 
 test("fallback chooses simpler variants and getNextReviewItem honors it until corrected", () => {

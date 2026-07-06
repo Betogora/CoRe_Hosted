@@ -1,8 +1,8 @@
 # CoRe ToDo
 
-Stand: 2026-07-06
+Stand: 2026-07-07
 
-Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `specs.html`) und aktuellem Codebase-Ist. Der aktuelle Stand ist ein lokaler Vite/React-Web-MVP mit `localStorage`, lokalen Deep Modules und testbaren Produktpfaden. Seit dem 2026-07-06 ist das lokale Kartenmodell Learning-Item-kompatibel: Deck-`cards` bleiben als lokale Compatibility Collection erhalten, werden aber ueber die gemeinsame Creation Pipeline normalisiert. Der MVP ist weiterhin kein gehostetes Mehrnutzerprodukt.
+Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`Docs/specs.md` / `Docs/specs.html`) und aktuellem Codebase-Ist. Der aktuelle Stand ist ein lokaler Vite/React-Web-MVP mit `localStorage`, lokalen Deep Modules und testbaren Produktpfaden. Seit dem 2026-07-06 ist das lokale Kartenmodell Learning-Item-kompatibel: Deck-`cards` bleiben als lokale Compatibility Collection erhalten, werden aber ueber die gemeinsame Creation Pipeline normalisiert. Am 2026-07-07 wurden die relevanten Hosting-, Supabase-, Datenbank-, Secret- und KI-Proxy-Hinweise aus dem externen Hosting-Guide in die Specs uebernommen und die Projektdokumentation unter `Docs/` gebuendelt. Der MVP ist weiterhin kein gehostetes Mehrnutzerprodukt.
 
 ## Aktuell erledigt
 
@@ -16,16 +16,19 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `
 - [x] Manuelle Kartenanlage mit Dokumentkontext, Auswahl-zu-Feld und Original-Variantenanker.
 - [x] Lokale KI-Drafts aus Quellentext mit Schema-Validation, Draft-Annahme und normalisierter Learning-Item-Erstellung.
 - [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, append-only Review-Events und Learning-Item-/Varianten-Kompatibilitaetsfeldern.
-- [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker-Minikarte, Deaktivieren und Fehler-Feedback.
+- [x] FSRS-like Scheduler-State mit Stability, Difficulty, Desired Retention, Retrievability und konservativen Intervallen.
+- [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker-Minikarte, Variant-Level, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
 - [x] Lokale Community-Gruppen, Ordner und Deck-Kopie ohne fremde Reviewdaten.
 - [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan und AI-Job-Uebersicht.
 - [x] Lokaler JSON-Export/-Import ohne Passwort-Verifier.
 - [x] Modul-/Browser-Verifikation fuer die zentralen lokalen Pfade.
+- [x] Supabase/Postgres-Schemaanker in `supabase/core_schema_v1.sql` mit RLS-Policies und Verify-Query dokumentiert.
+- [x] Hosting-/Database-/KI-Guide in die zentrale Spezifikation ueberfuehrt und redundante Guide-Datei entfernt.
 
 ## Bewusst noch nicht bauen
 
 - [ ] Keine generische Adapter-Schicht einfuehren, solange es nur einen lokalen Pfad und keinen entschiedenen Anbieter gibt.
-- [ ] Keine Datenbankmigrationen schreiben, bevor Datenbank/Hosting-Stack entschieden sind.
+- [ ] Keine weiteren produktiven Datenbankmigrationen schreiben, bevor Datenbank/Hosting-Stack, Auth-Flow und Medienstrategie entschieden sind.
 - [ ] Keine externe LLM-Provider-Abstraktion bauen, bevor Provider, Datenschutzrahmen und Kostenmodell klar sind.
 - [ ] Keine vollstaendige Sync-Engine bauen, bevor Auth, Server-Persistenz und Konfliktmodell feststehen.
 - [ ] Keine Community-Rechteverwaltung vortaeuschen, solange es keine echten Nutzer, Rollen und Serverregeln gibt.
@@ -41,18 +44,26 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `
 
 ## P1: Hosting und Produktivbetrieb vorbereiten
 
-- [ ] Zielplattform entscheiden: Vercel/Netlify/anderes Hosting, plus Umgebungsstrategie.
-- [ ] Build-/Preview-/Production-Pipeline dokumentieren.
+- [ ] Zielplattform entscheiden; aktuell naheliegender Startpfad: Vercel fuer Vite-Hosting, Preview/Production und eigene `/api/*` Functions.
+- [ ] Domain-/DNS-Pfad dokumentieren: eigene Domain in Vercel verbinden, Preview-URLs getrennt halten, Production-Domain bewusst mappen.
+- [ ] Build-/Preview-/Production-Pipeline dokumentieren: `npm test`, `npm run build`, Preview Smoke, Production Rollback.
+- [ ] SPA-Routing fuer Vite/Vercel festlegen: statische App aus `dist`, Browser-Routen auf `index.html`, `/api/*` nicht umschreiben.
 - [ ] Basale Runtime-Konfiguration einziehen: Umgebungsvariablen, App-Version, Fehlerseite.
+- [ ] Env-Var-Konzept festlegen: Browser nur `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, Featureflags; geheime KI-/Supabase-Keys nur serverseitig.
+- [ ] Secret-Hygiene pruefen: keine KI-Keys in Browser-Code, `localStorage`, Export-State, Logs oder Supabase-Userdaten; Vercel Sensitive Env Vars nutzen.
 - [ ] Produktives Logging/Monitoring-Konzept definieren, aber erst nach Hosting-Auswahl anbinden.
-- [ ] Deployment-Checkliste erstellen: Build, Tests, Smoke, Rollback, Datenschutzhinweise.
+- [ ] Deployment-Checkliste erstellen: Build, Tests, Smoke, Rollback, Datenschutzhinweise, Netzwerk-Tab ohne Secrets, KI-Route mit/ohne Key.
 
 ## P1: Persistenz und Auth
 
-- [ ] Datenbank-Stack entscheiden und Datenmodell aus `src/coreModel.js` ableiten.
+- [ ] Datenbank-Stack entscheiden; aktuell naheliegender Startpfad: Supabase Auth + Postgres + RLS, perspektivisch Supabase Storage fuer Medien/Dokumente.
+- [ ] `supabase/core_schema_v1.sql` gegen das aktuelle `src/coreModel.js` abgleichen: Learning Items, Original-Variantenanker, Review Events, Medienreferenzen, AI Jobs.
+- [ ] Echte Tabellen statt grossen Store-Blob als Produktivquelle verwenden; JSONB nur fuer flexible Metadaten, Policies, Importrohdetails und Versionseintraege.
+- [ ] Supabase Grants + RLS als Einheit behandeln: Tabellen im exposed Schema explizit fuer `authenticated` freigeben, RLS aktivieren, Ownership-Policies pruefen.
+- [ ] RLS-Tests definieren: Nutzer A sieht eigene Decks/Karten/Events, Nutzer B sieht sie nicht; Updates brauchen `using` und `with check`.
 - [ ] Repository-Interface aus `createCoreRepository()` und lokale App-Kommandos aus `createCoreWorkspace()` als echte Persistenz-/Produktionsnaht schaerfen.
 - [ ] Lokale IDs, Versionen und Review-Events auf serverfaehige Tabellen/Dokumente mappen.
-- [ ] Echte Auth-Entscheidung treffen: E-Mail/Passwort, OAuth, Magic Link oder externer Anbieter.
+- [ ] Echte Auth-Entscheidung treffen: E-Mail/Passwort, OAuth, Magic Link oder externer Anbieter; MVP darf cloud-first mit Login-Gate sein.
 - [ ] Account-Recovery, Session-Gueltigkeit und Datenschutz-/Exportrechte spezifizieren.
 - [ ] Migration von lokalem `localStorage` in Serverkonto definieren.
 
@@ -61,6 +72,8 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `
 - [ ] APKG-Fixtures erweitern: Basic reversed, Cloze, Medienreferenzen, moderne MediaEntries, ungewohnte Note Types und echte `collection.anki21b`/Zstd-Beispiele.
 - [ ] Importbericht in der UI detailreicher machen: erkannte Decks, Warnungen, nicht gemappte Felder.
 - [ ] Server-/Worker-Pfad fuer grosse APKGs und Medien entwerfen.
+- [ ] Supabase Storage/Object-Storage-Strategie fuer APKG-Originale, extrahierte Medien, Dokumente und spaetere CDN-URLs festlegen.
+- [ ] Browser-Importgrenzen definieren: grosse Decks und medienreiche APKGs serverseitig/workerbasiert verarbeiten, Fortschritt und Abbruch anbieten.
 - [ ] PDF-/DOCX-Textextraktion als echtes Modul planen, inklusive Fehlerfaellen.
 - [ ] OCR und Bildregionen erst nach textbasiertem Dokumentpfad priorisieren.
 - [ ] Produktive Medienpersistenz fuer APKG-Assets bauen: Server-Ablage, stabile Referenzen, Sync, Export und Loeschregeln.
@@ -70,16 +83,19 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `
 
 - [ ] Entscheiden, welche KI-Faehigkeiten echte LLMs brauchen: Kartenerstellung, Varianten, Graph, Chat.
 - [ ] Provider- und Datenschutzentscheidung treffen, bevor externe Inhalte gesendet werden.
+- [ ] Server-KI-Proxy entwerfen: Browser ruft nur eigene `/api/ai/*` Route auf; Provider-Key bleibt in Vercel/Supabase-Serverumgebung.
+- [ ] Supabase-Session-Strategie fuer KI-Routen festlegen: erst Drafts zurueckgeben und Client speichert via RLS, spaeter User-Identitaet fuer Kostenlimits serverseitig pruefen.
 - [ ] Job-Queue-Interface aus dem lokalen `aiJobs`-Modell ableiten.
 - [ ] Idempotenz, Retry, Rate-Limits und Fehlerklassifikation fuer KI-Jobs spezifizieren.
 - [ ] Prompt-/Schema-Versionierung fuer `aiOrchestrator` einfuehren.
 - [ ] Eval-Datensatz fuer Halluzinationen, Quellenanker und Kartenqualitaet erstellen.
 - [ ] Token-/Kostenlogging und Budgetgrenzen pro Nutzer/Deck planen.
+- [ ] Abuse-Schutz fuer KI planen: Same-Origin, Request-Groessenlimit, Modell-Allowlist, Outputlimit, IP-/User-Rate-Limit, keine Secrets in Logs.
 
 ## P2: Scheduler, Varianten und Lernqualitaet
 
-- [ ] Scheduler-Strategie entscheiden: einfacher MVP, SM-2-nahe Logik oder FSRS-Integration.
-- [ ] Learning-Item-State, Varianten-State und Family-State gegen reale Lernsessions validieren.
+- [ ] FSRS-like Scheduler-Parameter gegen reale Lernsessions validieren: Stability, Difficulty, Desired Retention, Retrievability und Kurzintervall-Bias.
+- [ ] Learning-Item-State, Varianten-State, Fallback-State und Family-State gegen reale Lernsessions validieren.
 - [ ] Regeln fuer welche Kartentypen Varianten bekommen duerfen aus echten Decks nachschaerfen.
 - [ ] Variantenqualitaet aus Feedback ableiten: deaktiviert, fachlich falsch, schlecht formuliert.
 - [ ] Review-Queue fuer faellige Karten, neue Karten und Varianten nachvollziehbar anzeigen.
@@ -109,7 +125,11 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`specs.md` / `
 
 ## Referenzen
 
-- `specs.md`: Produkt-, Engineering-, Modul- und Implementierungs-Soll.
-- `specs.html`: navigierbare HTML-Version der Spezifikation.
+- `Docs/index.md`: Dokumentationskarte.
+- `Docs/specs.md`: Produkt-, Engineering-, Modul- und Implementierungs-Soll.
+- `Docs/specs.html`: navigierbare HTML-Version der Spezifikation.
+- `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
+- `supabase/verify_schema_v1.sql`: RLS-/Policy-Verifikation.
 - `src/coreFeatures.test.js`: groesster Modul-Test fuer die implementierten MVP-Pfade.
 - `src/creationPipeline.test.js` und `src/learningModel.test.js`: aktuelle Tests fuer Learning-Item-Erstellung, Variantenanker und Legacy-Kompatibilitaet.
+- `src/fsrsVariantFlow.test.js`: FSRS-like Scheduler, Variant-Readiness, Coverage, Fallback und Next-Review-Projektion.

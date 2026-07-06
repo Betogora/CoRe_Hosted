@@ -1,14 +1,10 @@
 import { SCHEDULER_VERSION, applyReviewRating } from "./scheduler.js";
 import {
   chooseReviewCard,
+  createVariantReviewModel,
   deactivateVariant,
   flagVariant,
-  getLearningItemMaturity,
-  getVariantCoverage,
   getVariantFallbackTarget,
-  getVariantGenerationPlan,
-  getVariantGenerationRecommendation,
-  getVariantReadiness,
   selectAutomaticReviewVariant,
 } from "./coreVariantService.js";
 import {
@@ -320,17 +316,10 @@ export function getNextReviewItem(deck, options = {}) {
   if (!selectedItem) return null;
 
   const reviewEvents = deck.reviewEvents ?? [];
-  const maturity = getLearningItemMaturity(selectedItem, now, reviewEvents);
-  const variantReadiness = getVariantReadiness(selectedItem, reviewEvents, { now, maturity });
-  const variantCoverage = getVariantCoverage(selectedItem);
-  const variantGenerationRecommendation = getVariantGenerationRecommendation(selectedItem, reviewEvents, {
+  const variantReviewModel = createVariantReviewModel(selectedItem, reviewEvents, {
     now,
     autoGenerateAllowed: options.autoGenerateAllowed,
-  });
-  const variantGenerationPlan = getVariantGenerationPlan(selectedItem, reviewEvents, {
-    now,
     language: options.language ?? "de",
-    autoGenerateAllowed: options.autoGenerateAllowed,
   });
   const fallbackInfo = createFallbackViewModel(selectedItem);
   const variant = selectVariantForLearningItem(selectedItem, { now, reviewEvents });
@@ -349,11 +338,11 @@ export function getNextReviewItem(deck, options = {}) {
     back: variant.back || getLearningItemAnswer(selectedItem),
     state: selectedItem.learningItemState ?? selectedItem.reviewState,
     reviewState: selectedItem.learningItemState ?? selectedItem.reviewState,
-    maturity,
-    variantReadiness,
-    variantCoverage,
-    variantGenerationRecommendation,
-    variantGenerationPlan,
+    maturity: variantReviewModel.maturity,
+    variantReadiness: variantReviewModel.readiness,
+    variantCoverage: variantReviewModel.coverage,
+    variantGenerationRecommendation: variantReviewModel.variantGenerationRecommendation,
+    variantGenerationPlan: variantReviewModel.variantGenerationPlan,
     fallbackInfo,
     answerSideAnchorMiniCard: getAnswerSideAnchorMiniCard(selectedItem, variant),
     schedulerInfo: {
