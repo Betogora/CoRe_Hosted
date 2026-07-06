@@ -107,6 +107,9 @@ export function recordReviewRating(deck, reviewable, rating, options = {}) {
       event = {
         id: makeId("review"),
         userId: "local-user",
+        deckId: deck.id,
+        learningItemId: card.id,
+        variantId: reviewable.id,
         reviewableType: "variant",
         reviewableId: reviewable.id,
         sourceCardId: card.id,
@@ -129,6 +132,9 @@ export function recordReviewRating(deck, reviewable, rating, options = {}) {
     event = {
       id: makeId("review"),
       userId: "local-user",
+      deckId: deck.id,
+      learningItemId: card.id,
+      variantId: null,
       reviewableType: "card",
       reviewableId: card.id,
       sourceCardId: null,

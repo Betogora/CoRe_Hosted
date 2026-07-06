@@ -122,10 +122,16 @@ export function createRephraseVariant(card, options = {}) {
 
   return createCardVariant({
     sourceCardId: card.id,
+    learningItemId: card.id,
+    cardId: card.id,
+    variantType: "basic",
+    variantLevel: 2,
     front: variantFront,
     back: variantBack,
     transformType: "rephrase",
     transformProfile: profile,
+    generationSource: "ai_generated",
+    isOriginal: false,
     modelRunId: options.modelRunId ?? null,
     confidence: options.confidence ?? 0.82,
     semanticDelta: "none",
@@ -139,7 +145,7 @@ export function createRephraseVariant(card, options = {}) {
 }
 
 export function getActiveVariants(card) {
-  return (card.variants ?? []).filter((variant) => variant.qualityStatus === "active");
+  return (card.variants ?? []).filter((variant) => variant.qualityStatus === "active" && variant.isActive !== false && !variant.isOriginal);
 }
 
 export function ensureVariantsForCard(card, deckSettings = {}, options = {}) {
@@ -162,7 +168,9 @@ export function ensureVariantsForCard(card, deckSettings = {}, options = {}) {
   const nextVariant = createRephraseVariant(card, options);
   const existingHashes = new Set((card.variants ?? []).map((variant) => variant.contentHash));
   const generated = existingHashes.has(nextVariant.contentHash) ? [] : [nextVariant];
-  const variants = [...(card.variants ?? []), ...generated];
+  const existingGeneratedVariants = (card.variants ?? []).filter((variant) => !variant.isOriginal);
+  const originalVariants = (card.variants ?? []).filter((variant) => variant.isOriginal);
+  const variants = [...existingGeneratedVariants, ...generated, ...originalVariants];
 
   return {
     card: {
@@ -172,7 +180,7 @@ export function ensureVariantsForCard(card, deckSettings = {}, options = {}) {
       coreState: {
         ...card.coreState,
         eligibility,
-        variantCount: variants.filter((variant) => variant.qualityStatus === "active").length,
+        variantCount: variants.filter((variant) => variant.qualityStatus === "active" && variant.isActive !== false && !variant.isOriginal).length,
       },
       updatedAt: new Date().toISOString(),
     },

@@ -74,7 +74,9 @@ export function summarizeDeckReview(deck, now = new Date()) {
   const nowTime = new Date(now).getTime();
   const dueCards = cards.filter((card) => new Date(card.reviewState?.dueAt ?? 0).getTime() <= nowTime);
   const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.reviewState?.maturityBand));
-  const activeVariants = cards.flatMap((card) => card.variants ?? []).filter((variant) => variant.qualityStatus === "active");
+  const activeVariants = cards
+    .flatMap((card) => card.variants ?? [])
+    .filter((variant) => variant.qualityStatus === "active" && variant.isActive !== false && !variant.isOriginal);
   const newCards = cards.filter((card) => Number(card.reviewState?.repetitions ?? 0) === 0);
 
   return {

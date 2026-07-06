@@ -1,4 +1,4 @@
-import { createCoreCard, createCoreDeck } from "./coreModel.js";
+import { createCoreDeck, createLearningItemsFromNormalizedInput } from "./coreModel.js";
 
 function splitCsvLine(line) {
   const result = [];
@@ -31,20 +31,24 @@ export function createTextImportDeck({ deckName = "Text-Import", text = "", tags
     .split(/\n{2,}/)
     .map((passage) => passage.trim())
     .filter((passage) => passage.length > 0);
-  const cards = passages.map((passage, index) => {
+  const normalizedItems = passages.map((passage, index) => {
     const [front, ...backParts] = passage.split(/\n-+\n|\nAntwort:\s*/i);
     const back = backParts.join("\n").trim() || passage;
-    return createCoreCard({
-      source: "text-import",
-      cardType: "basic",
-      originalFront: front.trim() || `Textkarte ${index + 1}`,
-      originalBack: back,
-      originalTags: tags,
+    return {
+      canonicalQuestion: front.trim() || `Textkarte ${index + 1}`,
+      canonicalAnswer: back,
+      tags,
       meta: {
         importFormat: "text",
       },
-    });
+    };
   });
+  const result = createLearningItemsFromNormalizedInput("", normalizedItems, {
+    source: "text-import",
+    sourceType: "mixed",
+    tags,
+  });
+  const cards = result.createdItems;
 
   return createCoreDeck({
     name: deckName,
@@ -54,7 +58,7 @@ export function createTextImportDeck({ deckName = "Text-Import", text = "", tags
     importMeta: {
       creationMethod: "text-import",
       detectedCards: cards.length,
-      warnings: cards.length === 0 ? ["Keine importierbaren Textabschnitte erkannt."] : [],
+      warnings: cards.length === 0 ? ["Keine importierbaren Textabschnitte erkannt.", ...result.warnings] : result.warnings,
     },
   });
 }
@@ -76,22 +80,23 @@ export function createTableImportDeck({ deckName = "Tabellen-Import", table = ""
   const backIndex = hasHeader ? Math.max(1, header.indexOf("back")) : 1;
   const tagsIndex = hasHeader ? header.indexOf("tags") : 2;
   const dataLines = hasHeader ? lines.slice(1) : lines;
-  const cards = dataLines
+  const normalizedItems = dataLines
     .map(splitCsvLine)
     .filter((columns) => columns[frontIndex] || columns[backIndex])
-    .map((columns) =>
-      createCoreCard({
-        source,
-        cardType: "basic",
-        originalFront: columns[frontIndex] ?? "",
-        originalBack: columns[backIndex] ?? "",
-        originalTags: tagsIndex >= 0 ? columns[tagsIndex] ?? "" : "",
+    .map((columns) => ({
+        canonicalQuestion: columns[frontIndex] ?? "",
+        canonicalAnswer: columns[backIndex] ?? "",
+        tags: tagsIndex >= 0 ? columns[tagsIndex] ?? "" : "",
         meta: {
           importFormat: normalizedFormat,
           rawColumns: columns,
         },
-      }),
-    );
+      }));
+  const result = createLearningItemsFromNormalizedInput("", normalizedItems, {
+    source,
+    sourceType: "mixed",
+  });
+  const cards = result.createdItems;
 
   return createCoreDeck({
     name: deckName,
@@ -100,7 +105,7 @@ export function createTableImportDeck({ deckName = "Tabellen-Import", table = ""
     importMeta: {
       creationMethod: `${normalizedFormat}-import`,
       detectedCards: cards.length,
-      warnings: cards.length === 0 ? ["Keine Front/Back-Spalten erkannt."] : [],
+      warnings: cards.length === 0 ? ["Keine Front/Back-Spalten erkannt.", ...result.warnings] : result.warnings,
     },
   });
 }

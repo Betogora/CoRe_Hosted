@@ -70,9 +70,13 @@ function parseJson(value, fallback) {
   }
 }
 
+function normalizeStoredDecks(decks) {
+  return Array.isArray(decks) ? decks.map((deck) => normalizeCoreDeck(deck)) : [];
+}
+
 function normalizeState(rawState) {
   const fallback = createDefaultState();
-  const decks = Array.isArray(rawState?.decks) ? rawState.decks.map((deck) => normalizeCoreDeck(deck)) : [];
+  const decks = normalizeStoredDecks(rawState?.decks);
 
   return {
     ...fallback,
