@@ -4,7 +4,7 @@ CoRe ist ein lokaler Web-MVP fuer eine Lernplattform, die klassische Spaced-Repe
 
 Der aktuelle Stand ist bewusst ein breiter lokaler Prototyp. Viele Produktpfade sind klickbar und testbar, aber CoRe ist noch kein gehostetes Mehrnutzerprodukt. App-State, Profile, Decks, Jobs, Community-Daten und Lernplaene liegen lokal im Browser-Storage.
 
-Die gepflegte Projektdokumentation liegt im Ordner `Docs/`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
+Die gepflegte Projektdokumentation liegt im Ordner `docs/`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
 
 ## Funktionsumfang
 
@@ -67,10 +67,10 @@ src/
 
 ## Wichtige Dokumente
 
-- `Docs/index.md`: Dokumentationskarte fuer Menschen und Agenten.
-- `Docs/specs.md`: Produktvision, Anforderungen, Datenmodell, API-Skizzen, Architektur, Hosting-/Datenbank-/KI-Leitplanken und Implementierungsstand.
-- `Docs/specs.html`: navigierbare HTML-Fassung der Spezifikation.
-- `Docs/todo.md`: Differenz zwischen aktuellem lokalen MVP und produktionsreifem Zielbild.
+- `docs/index.md`: Dokumentationskarte fuer Menschen und Agenten.
+- `docs/specs.md`: Produktvision, Anforderungen, Datenmodell, API-Skizzen, Architektur, Hosting-/Datenbank-/KI-Leitplanken und Implementierungsstand.
+- `docs/specs.html`: navigierbare HTML-Fassung der Spezifikation.
+- `docs/todo.md`: Differenz zwischen aktuellem lokalen MVP und produktionsreifem Zielbild.
 - `AGENTS.md`: lokale Entwicklungsregeln, empfohlene Kommandos und Architekturleitplanken.
 - `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker fuer den spaeteren Produktivpfad.
 - `supabase/verify_schema_v1.sql`: RLS-/Policy-Verifikation fuer das Supabase-Schema.

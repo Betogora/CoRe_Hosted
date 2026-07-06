@@ -1,7 +1,7 @@
 # CoRe — Content Repetition
 
 **Produkt- und Engineering-Spezifikation**  
-**Dateien:** `Docs/specs.md` und `Docs/specs.html`  
+**Dateien:** `docs/specs.md` und `docs/specs.html`  
 **Status:** Arbeitsfassung v0.3
 **Datum:** 2026-07-07
 **Quellenbasis:** Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App
@@ -64,7 +64,7 @@ Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese ze
 
 ### Aktuelle Ausbauhaltung
 
-Naechste Arbeit sollte nicht zuerst neue Adapter-Schichten bauen, sondern die bestehenden tiefen Module stabilisieren und dann gezielt reale Adapter an den Stellen einfuehren, an denen die Produktentscheidung gefallen ist: Hosting/Deployment, Persistenz/Auth, LLM/Job-Queue, Dokumentverarbeitung und spaeter Sync/Community-Rechte. Weitere KI-Coding-Arbeit sollte zuerst `Docs/specs.md` und `Docs/todo.md` lesen; dort sind Produktkontext, Modul-Interfaces, Testdateien, Hosting-/Datenbankleitplanken und Soll/Ist-Luecken als Navigationskarte gepflegt.
+Naechste Arbeit sollte nicht zuerst neue Adapter-Schichten bauen, sondern die bestehenden tiefen Module stabilisieren und dann gezielt reale Adapter an den Stellen einfuehren, an denen die Produktentscheidung gefallen ist: Hosting/Deployment, Persistenz/Auth, LLM/Job-Queue, Dokumentverarbeitung und spaeter Sync/Community-Rechte. Weitere KI-Coding-Arbeit sollte zuerst `docs/specs.md` und `docs/todo.md` lesen; dort sind Produktkontext, Modul-Interfaces, Testdateien, Hosting-/Datenbankleitplanken und Soll/Ist-Luecken als Navigationskarte gepflegt.
 
 ---
 
@@ -96,13 +96,13 @@ Das Dokument soll drei Rollen gleichzeitig bedienen:
 
 ### 0.3 Dokumentationsstruktur
 
-Die gepflegte Projektdokumentation liegt im Ordner `Docs/`:
+Die gepflegte Projektdokumentation liegt im Ordner `docs/`:
 
-- `Docs/index.md`: Dokumentationskarte fuer Menschen und KI-Agenten.
-- `Docs/specs.md`: diese kanonische Produkt- und Engineering-Spezifikation.
-- `Docs/specs.html`: generierte, visuelle HTML-Fassung derselben Spezifikation.
-- `Docs/todo.md`: priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.
-- `Docs/README.md`: Projektueberblick, lokaler Start, Scripts und Dokumentlinks.
+- `docs/index.md`: Dokumentationskarte fuer Menschen und KI-Agenten.
+- `docs/specs.md`: diese kanonische Produkt- und Engineering-Spezifikation.
+- `docs/specs.html`: generierte, visuelle HTML-Fassung derselben Spezifikation.
+- `docs/todo.md`: priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.
+- `docs/README.md`: Projektueberblick, lokaler Start, Scripts und Dokumentlinks.
 
 `AGENTS.md` bleibt bewusst auf Root-Ebene, weil Coding-Agenten dort die Arbeitsregeln automatisch finden. Supabase-Schema- und Verify-SQL bleiben im Ordner `supabase/`, weil sie lauffaehige technische Artefakte und keine Prosadokumente sind.
 
@@ -2777,7 +2777,7 @@ Der MVP gilt als erfüllt, wenn:
 14. KI-Jobs asynchron laufen und Status anzeigen.
 15. Es gibt keine Anzeige fremder Lernstände oder Social-Rankings.
 
-**Stand 2026-07-07:** Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher und Reimport-Merge mit Erhalt lokaler Content-Edits. Nicht Teil dieser lokalen DoD-Erfuellung sind Hosting, produktive Datenbankanbindung, echte Authentifizierung, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind jetzt in dieser Spec dokumentiert; die Umsetzungsluecke wird in `Docs/todo.md` als Ausbaupfad gefuehrt.
+**Stand 2026-07-07:** Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher und Reimport-Merge mit Erhalt lokaler Content-Edits. Nicht Teil dieser lokalen DoD-Erfuellung sind Hosting, produktive Datenbankanbindung, echte Authentifizierung, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind jetzt in dieser Spec dokumentiert; die Umsetzungsluecke wird in `docs/todo.md` als Ausbaupfad gefuehrt.
 
 ---
 
@@ -2934,7 +2934,7 @@ sequenceDiagram
 
 ## 26. Naechste empfohlene Schritte
 
-Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisierter Soll/Ist-Backlog in `Docs/todo.md`.
+Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisierter Soll/Ist-Backlog in `docs/todo.md`.
 
 Kurzfassung:
 
@@ -2950,7 +2950,7 @@ Kurzfassung:
 
 ## 27. Technischer Implementierungsanhang
 
-Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die zentrale technische Navigationskarte fuer Menschen und KI-Agenten. Die gepflegte Dokumentation liegt unter `Docs/`; `AGENTS.md` bleibt auf Root-Ebene, weil Agenten es automatisch finden.
+Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die zentrale technische Navigationskarte fuer Menschen und KI-Agenten. Die gepflegte Dokumentation liegt unter `docs/`; `AGENTS.md` bleibt auf Root-Ebene, weil Agenten es automatisch finden.
 
 ### 27.1 Aktuelle Hauptmodule
 
@@ -3095,11 +3095,11 @@ Noch keine Adapter-Schicht fuer Backend/Auth/LLM einfuehren, solange es nur eine
 
 Projekt-Dokumente:
 
-- `Docs/index.md`: Dokumentationskarte und Einstiegspunkt.
-- `Docs/specs.md`: kanonische Produkt-/Engineering-Spezifikation.
-- `Docs/specs.html`: generierte HTML-Version von `Docs/specs.md`.
-- `Docs/todo.md`: priorisierter Gap-Backlog.
-- `Docs/README.md`: Projektueberblick, Start und Scripts.
+- `docs/index.md`: Dokumentationskarte und Einstiegspunkt.
+- `docs/specs.md`: kanonische Produkt-/Engineering-Spezifikation.
+- `docs/specs.html`: generierte HTML-Version von `docs/specs.md`.
+- `docs/todo.md`: priorisierter Gap-Backlog.
+- `docs/README.md`: Projektueberblick, Start und Scripts.
 - `AGENTS.md`: Root-Regeln fuer Coding-Agenten.
 
 Technische SQL-Artefakte:

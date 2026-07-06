@@ -19,20 +19,20 @@
 
 ## Project Navigation
 
-- Start with `Docs/specs.md` before changing features; it contains product scope, acceptance criteria, architecture notes, module map, import rules, assistant/planning context, hosting/database guidance, and current implementation status.
-- Use `Docs/todo.md` to understand the current gap between local MVP and production-ready product scope.
-- `Docs/specs.html` is the human-readable visual version of `Docs/specs.md` and should carry the same content.
-- `Docs/index.md` is the documentation map for the maintained project docs.
-- Current UI screens are in `src/App.jsx`; domain behavior belongs in the smaller modules listed in `Docs/specs.md`.
+- Start with `docs/specs.md` before changing features; it contains product scope, acceptance criteria, architecture notes, module map, import rules, assistant/planning context, hosting/database guidance, and current implementation status.
+- Use `docs/todo.md` to understand the current gap between local MVP and production-ready product scope.
+- `docs/specs.html` is the human-readable visual version of `docs/specs.md` and should carry the same content.
+- `docs/index.md` is the documentation map for the maintained project docs.
+- Current UI screens are in `src/App.jsx`; domain behavior belongs in the smaller modules listed in `docs/specs.md`.
 - Add or update module tests in `src/*.test.js` when changing scheduler, variants, import, AI jobs, graph, community, repository behavior, or the Learning Item creation pipeline.
-- When current behavior changes, update `Docs/specs.md`, regenerate/update `Docs/specs.html`, and adjust `Docs/todo.md` in the same change.
+- When current behavior changes, update `docs/specs.md`, regenerate/update `docs/specs.html`, and adjust `docs/todo.md` in the same change.
 
 ## Documentation Inventory
 
-- `Docs/specs.md`: canonical product and engineering specification, including the production path for hosting, Supabase/Postgres, Auth, storage, KI proxying, and jobs.
-- `Docs/specs.html`: generated, human-readable HTML version of the same spec.
-- `Docs/todo.md`: prioritized gap list from local MVP to production readiness.
-- `Docs/README.md`: project overview, local start, scripts, and document links.
+- `docs/specs.md`: canonical product and engineering specification, including the production path for hosting, Supabase/Postgres, Auth, storage, KI proxying, and jobs.
+- `docs/specs.html`: generated, human-readable HTML version of the same spec.
+- `docs/todo.md`: prioritized gap list from local MVP to production readiness.
+- `docs/README.md`: project overview, local start, scripts, and document links.
 - `supabase/core_schema_v1.sql`: current Supabase schema anchor for the eventual production persistence layer.
 - `supabase/verify_schema_v1.sql`: verification queries for RLS/policy presence.
 

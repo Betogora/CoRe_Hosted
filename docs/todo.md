@@ -2,7 +2,7 @@
 
 Stand: 2026-07-07
 
-Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`Docs/specs.md` / `Docs/specs.html`) und aktuellem Codebase-Ist. Der aktuelle Stand ist ein lokaler Vite/React-Web-MVP mit `localStorage`, lokalen Deep Modules und testbaren Produktpfaden. Seit dem 2026-07-06 ist das lokale Kartenmodell Learning-Item-kompatibel: Deck-`cards` bleiben als lokale Compatibility Collection erhalten, werden aber ueber die gemeinsame Creation Pipeline normalisiert. Am 2026-07-07 wurden die relevanten Hosting-, Supabase-, Datenbank-, Secret- und KI-Proxy-Hinweise aus dem externen Hosting-Guide in die Specs uebernommen und die Projektdokumentation unter `Docs/` gebuendelt. Der MVP ist weiterhin kein gehostetes Mehrnutzerprodukt.
+Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md` / `docs/specs.html`) und aktuellem Codebase-Ist. Der aktuelle Stand ist ein lokaler Vite/React-Web-MVP mit `localStorage`, lokalen Deep Modules und testbaren Produktpfaden. Seit dem 2026-07-06 ist das lokale Kartenmodell Learning-Item-kompatibel: Deck-`cards` bleiben als lokale Compatibility Collection erhalten, werden aber ueber die gemeinsame Creation Pipeline normalisiert. Am 2026-07-07 wurden die relevanten Hosting-, Supabase-, Datenbank-, Secret- und KI-Proxy-Hinweise aus dem externen Hosting-Guide in die Specs uebernommen und die Projektdokumentation unter `docs/` gebuendelt. Der MVP ist weiterhin kein gehostetes Mehrnutzerprodukt.
 
 ## Aktuell erledigt
 
@@ -125,9 +125,9 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`Docs/specs.md
 
 ## Referenzen
 
-- `Docs/index.md`: Dokumentationskarte.
-- `Docs/specs.md`: Produkt-, Engineering-, Modul- und Implementierungs-Soll.
-- `Docs/specs.html`: navigierbare HTML-Version der Spezifikation.
+- `docs/index.md`: Dokumentationskarte.
+- `docs/specs.md`: Produkt-, Engineering-, Modul- und Implementierungs-Soll.
+- `docs/specs.html`: navigierbare HTML-Version der Spezifikation.
 - `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
 - `supabase/verify_schema_v1.sql`: RLS-/Policy-Verifikation.
 - `src/coreFeatures.test.js`: groesster Modul-Test fuer die implementierten MVP-Pfade.

@@ -43,7 +43,7 @@
   <div class="layout">
     <aside>
       <div class="brand">CoRe Specs</div>
-      <div class="subtitle">Generated from Docs/specs.md</div>
+      <div class="subtitle">Generated from docs/specs.md</div>
       <nav><a class="toc-level-2" href="#implementierungsstand-2026-07-07">Implementierungsstand 2026-07-07</a>
 <a class="toc-level-3" href="#was-lokal-bereits-funktioniert">Was lokal bereits funktioniert</a>
 <a class="toc-level-3" href="#was-erwartungsgemaess-noch-nicht-funktioniert">Was erwartungsgemaess noch nicht funktioniert</a>
@@ -272,7 +272,7 @@
     </aside>
     <main><article>
 <h1 id="core-content-repetition">CoRe — Content Repetition</h1>
-<p><strong>Produkt- und Engineering-Spezifikation</strong> <strong>Dateien:</strong> <code>Docs/specs.md</code> und <code>Docs/specs.html</code> <strong>Status:</strong> Arbeitsfassung v0.3 <strong>Datum:</strong> 2026-07-07 <strong>Quellenbasis:</strong> Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App</p>
+<p><strong>Produkt- und Engineering-Spezifikation</strong> <strong>Dateien:</strong> <code>docs/specs.md</code> und <code>docs/specs.html</code> <strong>Status:</strong> Arbeitsfassung v0.3 <strong>Datum:</strong> 2026-07-07 <strong>Quellenbasis:</strong> Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App</p>
 <hr>
 <h2 id="implementierungsstand-2026-07-07">Implementierungsstand 2026-07-07</h2>
 <p>Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter lokaler Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt, aber noch nicht als gehostetes Mehrnutzerprodukt betreibbar. Der App-State liegt in <code>localStorage</code>, Authentifizierung ist lokal modelliert, KI-Funktionen laufen deterministisch/lokal, und Hintergrundjobs sind im Frontend sichtbar statt serverseitig ausgefuehrt.</p>
@@ -325,7 +325,7 @@
 <li>Mobile, PWA-Offline, Push-Benachrichtigungen, Zahlungen, Admin-/Support-Werkzeuge und produktive Observability sind nicht umgesetzt.</li>
 </ul>
 <h3 id="aktuelle-ausbauhaltung">Aktuelle Ausbauhaltung</h3>
-<p>Naechste Arbeit sollte nicht zuerst neue Adapter-Schichten bauen, sondern die bestehenden tiefen Module stabilisieren und dann gezielt reale Adapter an den Stellen einfuehren, an denen die Produktentscheidung gefallen ist: Hosting/Deployment, Persistenz/Auth, LLM/Job-Queue, Dokumentverarbeitung und spaeter Sync/Community-Rechte. Weitere KI-Coding-Arbeit sollte zuerst <code>Docs/specs.md</code> und <code>Docs/todo.md</code> lesen; dort sind Produktkontext, Modul-Interfaces, Testdateien, Hosting-/Datenbankleitplanken und Soll/Ist-Luecken als Navigationskarte gepflegt.</p>
+<p>Naechste Arbeit sollte nicht zuerst neue Adapter-Schichten bauen, sondern die bestehenden tiefen Module stabilisieren und dann gezielt reale Adapter an den Stellen einfuehren, an denen die Produktentscheidung gefallen ist: Hosting/Deployment, Persistenz/Auth, LLM/Job-Queue, Dokumentverarbeitung und spaeter Sync/Community-Rechte. Weitere KI-Coding-Arbeit sollte zuerst <code>docs/specs.md</code> und <code>docs/todo.md</code> lesen; dort sind Produktkontext, Modul-Interfaces, Testdateien, Hosting-/Datenbankleitplanken und Soll/Ist-Luecken als Navigationskarte gepflegt.</p>
 <hr>
 <h2 id="0-zweck-dieses-dokuments">0. Zweck dieses Dokuments</h2>
 <p>Diese Spezifikation übersetzt die Gründerdiskussion und den Projektkontext in eine menschenlesbare, zugleich KI- und entwicklungsfreundliche Grundlage für die Softwareentwicklung von <strong>CoRe — Content Repetition</strong>.</p>
@@ -352,13 +352,13 @@
 <li>CoRe soll Anki nicht kopieren, sondern Anki-kompatible Lernlogik als Ausgangspunkt nutzen und um inhaltliche Wiederholung, Varianten und Kontext erweitern.</li>
 </ul>
 <h3 id="0-3-dokumentationsstruktur">0.3 Dokumentationsstruktur</h3>
-<p>Die gepflegte Projektdokumentation liegt im Ordner <code>Docs/</code>:</p>
+<p>Die gepflegte Projektdokumentation liegt im Ordner <code>docs/</code>:</p>
 <ul>
-<li><code>Docs/index.md</code>: Dokumentationskarte fuer Menschen und KI-Agenten.</li>
-<li><code>Docs/specs.md</code>: diese kanonische Produkt- und Engineering-Spezifikation.</li>
-<li><code>Docs/specs.html</code>: generierte, visuelle HTML-Fassung derselben Spezifikation.</li>
-<li><code>Docs/todo.md</code>: priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.</li>
-<li><code>Docs/README.md</code>: Projektueberblick, lokaler Start, Scripts und Dokumentlinks.</li>
+<li><code>docs/index.md</code>: Dokumentationskarte fuer Menschen und KI-Agenten.</li>
+<li><code>docs/specs.md</code>: diese kanonische Produkt- und Engineering-Spezifikation.</li>
+<li><code>docs/specs.html</code>: generierte, visuelle HTML-Fassung derselben Spezifikation.</li>
+<li><code>docs/todo.md</code>: priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.</li>
+<li><code>docs/README.md</code>: Projektueberblick, lokaler Start, Scripts und Dokumentlinks.</li>
 </ul>
 <p><code>AGENTS.md</code> bleibt bewusst auf Root-Ebene, weil Coding-Agenten dort die Arbeitsregeln automatisch finden. Supabase-Schema- und Verify-SQL bleiben im Ordner <code>supabase/</code>, weil sie lauffaehige technische Artefakte und keine Prosadokumente sind.</p>
 <hr>
@@ -2614,7 +2614,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <li>KI-Jobs asynchron laufen und Status anzeigen.</li>
 <li>Es gibt keine Anzeige fremder Lernstände oder Social-Rankings.</li>
 </ol>
-<p><strong>Stand 2026-07-07:</strong> Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher und Reimport-Merge mit Erhalt lokaler Content-Edits. Nicht Teil dieser lokalen DoD-Erfuellung sind Hosting, produktive Datenbankanbindung, echte Authentifizierung, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind jetzt in dieser Spec dokumentiert; die Umsetzungsluecke wird in <code>Docs/todo.md</code> als Ausbaupfad gefuehrt.</p>
+<p><strong>Stand 2026-07-07:</strong> Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher und Reimport-Merge mit Erhalt lokaler Content-Edits. Nicht Teil dieser lokalen DoD-Erfuellung sind Hosting, produktive Datenbankanbindung, echte Authentifizierung, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind jetzt in dieser Spec dokumentiert; die Umsetzungsluecke wird in <code>docs/todo.md</code> als Ausbaupfad gefuehrt.</p>
 <hr>
 <h2 id="22-beispielhafte-user-stories">22. Beispielhafte User Stories</h2>
 <h3 id="us-001-anki-nutzer-importiert-deck">US-001 — Anki-Nutzer importiert Deck</h3>
@@ -2731,7 +2731,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 </ol>
 <hr>
 <h2 id="26-naechste-empfohlene-schritte">26. Naechste empfohlene Schritte</h2>
-<p>Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisierter Soll/Ist-Backlog in <code>Docs/todo.md</code>.</p>
+<p>Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisierter Soll/Ist-Backlog in <code>docs/todo.md</code>.</p>
 <p>Kurzfassung:</p>
 <ol>
 <li>Lokalen MVP stabilisieren: Smoke-Skript, Accessibility, robuste Fehlerzustaende, Datenportabilitaet-Roundtrips.</li>
@@ -2744,7 +2744,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 </ol>
 <hr>
 <h2 id="27-technischer-implementierungsanhang">27. Technischer Implementierungsanhang</h2>
-<p>Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die zentrale technische Navigationskarte fuer Menschen und KI-Agenten. Die gepflegte Dokumentation liegt unter <code>Docs/</code>; <code>AGENTS.md</code> bleibt auf Root-Ebene, weil Agenten es automatisch finden.</p>
+<p>Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die zentrale technische Navigationskarte fuer Menschen und KI-Agenten. Die gepflegte Dokumentation liegt unter <code>docs/</code>; <code>AGENTS.md</code> bleibt auf Root-Ebene, weil Agenten es automatisch finden.</p>
 <h3 id="27-1-aktuelle-hauptmodule">27.1 Aktuelle Hauptmodule</h3>
 <table>
 <thead><tr><th>Modul</th><th>Interface</th><th>Verantwortung</th></tr></thead>
@@ -2873,11 +2873,11 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <h3 id="27-10-dokumentations-und-sql-inventar">27.10 Dokumentations- und SQL-Inventar</h3>
 <p>Projekt-Dokumente:</p>
 <ul>
-<li><code>Docs/index.md</code>: Dokumentationskarte und Einstiegspunkt.</li>
-<li><code>Docs/specs.md</code>: kanonische Produkt-/Engineering-Spezifikation.</li>
-<li><code>Docs/specs.html</code>: generierte HTML-Version von <code>Docs/specs.md</code>.</li>
-<li><code>Docs/todo.md</code>: priorisierter Gap-Backlog.</li>
-<li><code>Docs/README.md</code>: Projektueberblick, Start und Scripts.</li>
+<li><code>docs/index.md</code>: Dokumentationskarte und Einstiegspunkt.</li>
+<li><code>docs/specs.md</code>: kanonische Produkt-/Engineering-Spezifikation.</li>
+<li><code>docs/specs.html</code>: generierte HTML-Version von <code>docs/specs.md</code>.</li>
+<li><code>docs/todo.md</code>: priorisierter Gap-Backlog.</li>
+<li><code>docs/README.md</code>: Projektueberblick, Start und Scripts.</li>
 <li><code>AGENTS.md</code>: Root-Regeln fuer Coding-Agenten.</li>
 </ul>
 <p>Technische SQL-Artefakte:</p>

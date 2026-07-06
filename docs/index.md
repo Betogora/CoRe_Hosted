@@ -1,15 +1,15 @@
-# CoRe Docs
+# CoRe Documentation
 
 Diese Datei ist die Dokumentationskarte fuer CoRe. Die Root-Ebene bleibt bewusst schlank; `AGENTS.md` bleibt dort, damit Coding-Agenten die Projektregeln automatisch finden.
 
-## Maintained Docs
+## Maintained Documentation
 
 - `README.md`: Projektueberblick, lokaler Start, Scripts und Struktur.
 - `specs.md`: kanonische Produkt- und Engineering-Spezifikation.
 - `specs.html`: generierte HTML-Fassung von `specs.md`.
 - `todo.md`: priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.
 
-## Technical Anchors Outside Docs
+## Technical Anchors Outside Documentation
 
 - `../AGENTS.md`: lokale Entwicklungsregeln, Architekturleitplanken und Verifikationskommandos.
 - `../supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
