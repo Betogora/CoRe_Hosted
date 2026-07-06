@@ -3,10 +3,14 @@ import { createCoreCard, createCoreDeck, createReviewState } from "./coreModel.j
 import { stripHtml } from "./htmlSafety.js";
 import { readSqliteDatabase } from "./sqliteReader.js";
 import { readZipArchive } from "./zipReader.js";
+import { decompress as decompressZstd } from "fzstd";
 
 const MAX_APKG_SIZE = 250 * 1024 * 1024;
 const COLLECTION_NAMES = ["collection.anki21b", "collection.anki21", "collection.anki2"];
 const FIELD_SEPARATOR = "\u001f";
+const SQLITE_SIGNATURE = "SQLite format 3\0";
+const ZSTD_MAGIC = [0x28, 0xb5, 0x2f, 0xfd];
+const textDecoder = new TextDecoder("utf-8");
 
 function makeId(prefix) {
   const cryptoPart =
@@ -199,12 +203,73 @@ export function findCollectionDatabase(archive) {
   return archive.getEntry(collectionName);
 }
 
+function hasSqliteSignature(bytes) {
+  return textDecoder.decode(bytes.slice(0, SQLITE_SIGNATURE.length)) === SQLITE_SIGNATURE;
+}
+
+function hasZstdSignature(bytes) {
+  return ZSTD_MAGIC.every((byte, index) => bytes[index] === byte);
+}
+
+export async function findReadableCollectionDatabase(archive) {
+  const entries = COLLECTION_NAMES.map((name) => archive.getEntry(name)).filter(Boolean);
+
+  if (entries.length === 0) {
+    throw new Error("Keine Anki-Collection gefunden. Erwartet wurde collection.anki2, collection.anki21 oder collection.anki21b.");
+  }
+
+  for (const entry of entries) {
+    const bytes = await entry.readBytes();
+
+    if (hasSqliteSignature(bytes)) {
+      return {
+        entry,
+        bytes,
+      };
+    }
+
+    if (hasZstdSignature(bytes)) {
+      let decompressedBytes = null;
+
+      try {
+        decompressedBytes = decompressZstd(bytes);
+      } catch {
+        decompressedBytes = null;
+      }
+
+      if (decompressedBytes && hasSqliteSignature(decompressedBytes)) {
+        return {
+          entry,
+          bytes: decompressedBytes,
+        };
+      }
+    }
+  }
+
+  throw new Error("Keine lesbare SQLite-Collection gefunden. Dieses APKG nutzt vermutlich ein neueres Collection-Format, das der lokale MVP noch nicht entpacken kann.");
+}
+
 export async function readAnkiDatabase(collectionEntry) {
   const bytes = await collectionEntry.readBytes();
   return readSqliteDatabase(bytes);
 }
 
 export function parseAnkiDecks(database) {
+  const deckRows = database.readTable("decks");
+
+  if (deckRows.length > 0) {
+    return deckRows
+      .map((deck) => ({
+        id: String(deck.id ?? deck.rowid ?? ""),
+        name: deck.name ?? "Anki Deck",
+      }))
+      .sort((left, right) => {
+        const leftDefault = left.name === "Default" ? 1 : 0;
+        const rightDefault = right.name === "Default" ? 1 : 0;
+        return leftDefault - rightDefault;
+      });
+  }
+
   return getDecksFromCollection(database.readTable("col"));
 }
 
@@ -364,8 +429,8 @@ export async function createApkgImportPreview(file, onStep = () => {}) {
   onStep("validate");
   const archive = await extractApkgArchive(file);
   onStep("collection");
-  const collectionEntry = findCollectionDatabase(archive);
-  const database = await readAnkiDatabase(collectionEntry);
+  const { bytes } = await findReadableCollectionDatabase(archive);
+  const database = readSqliteDatabase(bytes);
   const colRows = database.readTable("col");
   onStep("cards");
   const decks = parseAnkiDecks(database);

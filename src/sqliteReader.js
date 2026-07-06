@@ -222,6 +222,10 @@ function rowsToObjects(rows, columnNames) {
       row[columnName] = values[index];
     });
 
+    if (row.id == null && columnNames[0]?.toLowerCase() === "id") {
+      row.id = rowid;
+    }
+
     return row;
   });
 }
