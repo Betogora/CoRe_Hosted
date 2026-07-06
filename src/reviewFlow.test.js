@@ -7,7 +7,7 @@ import {
   getActiveVariants,
   getOriginalVariant,
 } from "./coreModel.js";
-import { answerVariant, getNextReviewItem } from "./reviewService.js";
+import { answerVariant, getNextReviewItem } from "./reviewFlow.js";
 
 function createDeckWithItem(item) {
   return createCoreDeck({

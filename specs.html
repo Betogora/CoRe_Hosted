@@ -277,8 +277,8 @@
 <tr><td>Import</td><td><code>apkgImport</code>, <code>importService</code> fuer APKG/Text/CSV/Excel-Paste, Importberichte, Raw-Fallbacks, <code>collection.anki21b</code>/Zstd, Media-Manifeste, Reimport-Merge</td></tr>
 <tr><td>Manuelle Erstellung</td><td><code>ManualCreationPanel</code>, <code>documentModel</code>, <code>sourceAnchors</code>, <code>createBasicLearningItem</code>, <code>createBasicReverseLearningItem</code>, <code>createClozeLearningItem</code></td></tr>
 <tr><td>KI-Kartenerstellung</td><td><code>aiOrchestrator.generateCardsFromDocument</code>, Draft-Review, Schema-Validation, normalisierte Draft-Items</td></tr>
-<tr><td>Review/Scheduler</td><td><code>reviewService</code>, <code>scheduler</code>, <code>reviewShortcuts</code>, vier Buttons, Tastatur, Front+Back nach Aufdeckung, Learning-Item-/Varianten-Events</td></tr>
-<tr><td>Content Repetition</td><td><code>coreVariantService</code>, Eligibility, Rephrase, Original-Variantenanker, Variantenstatus, Dedupe-Hash</td></tr>
+<tr><td>Review/Scheduler</td><td><code>reviewFlow</code>, <code>reviewService</code>, <code>scheduler</code>, <code>reviewShortcuts</code>, vier Buttons, Tastatur, Front+Back nach Aufdeckung, Learning-Item-/Varianten-Events</td></tr>
+<tr><td>Content Repetition</td><td><code>coreVariantService</code>, <code>variantGeneration</code>, <code>variantSelection</code>, Eligibility, Rephrase, Original-Variantenanker, Variantenstatus, Dedupe-Hash</td></tr>
 <tr><td>Trust/Versionierung</td><td><code>sourceAnchors</code>, <code>versionLog</code>, Variant-Feedback, Deaktivieren, Restore-Basis</td></tr>
 <tr><td>Community</td><td><code>communityModel</code>, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten</td></tr>
 <tr><td>Deck Graph</td><td><code>deckGraph</code>, Triggerlogik und SVG-Mindmap-Screen</td></tr>
@@ -2611,8 +2611,11 @@ Worker
 <tr><td><code>src/coreWorkspace.js</code></td><td><code>createCoreWorkspace</code>, <code>createDemoAnatomyDeck</code>, <code>setDeckCoreMode</code>, <code>saveDeckCardContent</code>, <code>deleteDeckCard</code></td><td>Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates</td></tr>
 <tr><td><code>src/scheduler.js</code></td><td><code>applyReviewRating</code>, <code>listReviewableCards</code>, <code>summarizeDeckReview</code></td><td>Vier-Button-Scheduler, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung</td></tr>
 <tr><td><code>src/libraryModel.js</code></td><td><code>createDeckLibraryModel</code>, <code>createAiJobLedger</code></td><td>UI-nahe Bibliotheksprojektion fuer Dashboard, Deckliste, aktive Kartenzeilen und KI-Job-Ledger</td></tr>
-<tr><td><code>src/reviewService.js</code></td><td><code>createReviewSession</code>, <code>recordReviewRating</code>, <code>recordVariantFeedback</code></td><td>Review-Auswahl, Events, Familien-/Variantenstatus und Variantenfeedback</td></tr>
-<tr><td><code>src/coreVariantService.js</code></td><td><code>classifyCardEligibility</code>, <code>ensureVariantsForCard</code>, <code>chooseReviewCard</code>, <code>deactivateVariant</code>, <code>flagVariant</code></td><td>CoRe-Eligibility, Rephrase-Varianten, Variantentransparenz, Feedback</td></tr>
+<tr><td><code>src/reviewFlow.js</code></td><td><code>answerVariant</code>, <code>getNextReviewItem</code></td><td>Tiefer Review-Flow fuer Antwortverarbeitung, Eventbau, Familien-/Variantenstatus und naechstes Review-Item</td></tr>
+<tr><td><code>src/reviewService.js</code></td><td><code>createReviewSession</code>, <code>recordReviewRating</code>, <code>recordVariantFeedback</code></td><td>Schmale Compatibility-/Orchestrierungsflaeche fuer bestehende UI-Aufrufer und Feedback-Kommandos</td></tr>
+<tr><td><code>src/coreVariantService.js</code></td><td><code>classifyCardEligibility</code>, <code>ensureVariantsForCard</code>, <code>chooseReviewCard</code>, <code>deactivateVariant</code>, <code>flagVariant</code></td><td>CoRe-Eligibility, lokaler Fallback-Rephrase, Facade fuer bestehende Varianten-Aufrufer</td></tr>
+<tr><td><code>src/variantGeneration.js</code></td><td><code>buildCardVariationPrompt</code>, <code>parseVariantGenerationResponse</code>, <code>validateVariantSuggestion</code>, <code>generateRephrasedVariantsForLearningItem</code></td><td>Promptbau, JSON-Parsing, Vorschlagsvalidierung und verankerte KI-Varianten-Erstellung</td></tr>
+<tr><td><code>src/variantSelection.js</code></td><td><code>selectAutomaticReviewVariant</code>, <code>isAutomaticRephraseVariant</code></td><td>Automatische Auswahl nahe am Original bleibender Review-Varianten nach Lernphase und Variant-Level</td></tr>
 <tr><td><code>src/reviewShortcuts.js</code></td><td><code>resolveReviewShortcut</code></td><td>Tastaturvertrag fuer Reveal, Bewertung und Exit im Review</td></tr>
 <tr><td><code>src/aiOrchestrator.js</code></td><td><code>generateCardsFromDocument</code>, <code>selectModel</code>, <code>validateCardGenerationOutput</code></td><td>Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts</td></tr>
 <tr><td><code>src/documentModel.js</code></td><td><code>createDocumentFromFile</code>, <code>createAnchorFromSelection</code>, <code>splitDocumentIntoPassages</code></td><td>Dokumente, Textlayer, Auswahl-zu-Quelle</td></tr>
@@ -2648,6 +2651,8 @@ Worker
 <li><code>src/coreModel.test.js</code>: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.</li>
 <li><code>src/creationPipeline.test.js</code>: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.</li>
 <li><code>src/learningModel.test.js</code>: Legacy-Card-Normalisierung, Learning-Item-Invarianten und Review-Event-Kompatibilitaetsfelder.</li>
+<li><code>src/reviewFlow.test.js</code>: Antwortverarbeitung, Scheduler-Events, Variantenperformance, Anchor-Snapshots und Next-Review-Auswahl.</li>
+<li><code>src/variantGeneration.test.js</code>: Prompt-Vertrag, KI-JSON-Parsing, Vorschlagsvalidierung, Anchoring und automatische Varianten-Auswahl.</li>
 <li><code>src/apkgImport.test.js</code>: APKG-Mapping, HTML-Sicherheit, lesbare Collection-Auswahl fuer <code>collection.anki21b</code>/Zstd-Fallbacks und Reimport-Merge.</li>
 <li><code>src/mediaStore.test.js</code>: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.</li>
 <li><code>src/menuModel.test.js</code>: Navigationsvertrag.</li>

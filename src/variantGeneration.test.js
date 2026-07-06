@@ -12,7 +12,7 @@ import {
   generateRephrasedVariantsForLearningItem,
   parseVariantGenerationResponse,
   validateVariantSuggestion,
-} from "./coreVariantService.js";
+} from "./variantGeneration.js";
 import { getNextReviewItem } from "./reviewService.js";
 
 function createDeckWithItem(item) {

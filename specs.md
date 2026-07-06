@@ -23,8 +23,8 @@ Die aktuelle Architektur macht bewusst noch keine umfangreiche Bauvorleistung fu
 | Import | `apkgImport`, `importService` fuer APKG/Text/CSV/Excel-Paste, Importberichte, Raw-Fallbacks, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge |
 | Manuelle Erstellung | `ManualCreationPanel`, `documentModel`, `sourceAnchors`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem` |
 | KI-Kartenerstellung | `aiOrchestrator.generateCardsFromDocument`, Draft-Review, Schema-Validation, normalisierte Draft-Items |
-| Review/Scheduler | `reviewService`, `scheduler`, `reviewShortcuts`, vier Buttons, Tastatur, Front+Back nach Aufdeckung, Learning-Item-/Varianten-Events |
-| Content Repetition | `coreVariantService`, Eligibility, Rephrase, Original-Variantenanker, Variantenstatus, Dedupe-Hash |
+| Review/Scheduler | `reviewFlow`, `reviewService`, `scheduler`, `reviewShortcuts`, vier Buttons, Tastatur, Front+Back nach Aufdeckung, Learning-Item-/Varianten-Events |
+| Content Repetition | `coreVariantService`, `variantGeneration`, `variantSelection`, Eligibility, Rephrase, Original-Variantenanker, Variantenstatus, Dedupe-Hash |
 | Trust/Versionierung | `sourceAnchors`, `versionLog`, Variant-Feedback, Deaktivieren, Restore-Basis |
 | Community | `communityModel`, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten |
 | Deck Graph | `deckGraph`, Triggerlogik und SVG-Mindmap-Screen |
@@ -2792,8 +2792,11 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard` | Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates |
 | `src/scheduler.js` | `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | Vier-Button-Scheduler, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
 | `src/libraryModel.js` | `createDeckLibraryModel`, `createAiJobLedger` | UI-nahe Bibliotheksprojektion fuer Dashboard, Deckliste, aktive Kartenzeilen und KI-Job-Ledger |
-| `src/reviewService.js` | `createReviewSession`, `recordReviewRating`, `recordVariantFeedback` | Review-Auswahl, Events, Familien-/Variantenstatus und Variantenfeedback |
-| `src/coreVariantService.js` | `classifyCardEligibility`, `ensureVariantsForCard`, `chooseReviewCard`, `deactivateVariant`, `flagVariant` | CoRe-Eligibility, Rephrase-Varianten, Variantentransparenz, Feedback |
+| `src/reviewFlow.js` | `answerVariant`, `getNextReviewItem` | Tiefer Review-Flow fuer Antwortverarbeitung, Eventbau, Familien-/Variantenstatus und naechstes Review-Item |
+| `src/reviewService.js` | `createReviewSession`, `recordReviewRating`, `recordVariantFeedback` | Schmale Compatibility-/Orchestrierungsflaeche fuer bestehende UI-Aufrufer und Feedback-Kommandos |
+| `src/coreVariantService.js` | `classifyCardEligibility`, `ensureVariantsForCard`, `chooseReviewCard`, `deactivateVariant`, `flagVariant` | CoRe-Eligibility, lokaler Fallback-Rephrase, Facade fuer bestehende Varianten-Aufrufer |
+| `src/variantGeneration.js` | `buildCardVariationPrompt`, `parseVariantGenerationResponse`, `validateVariantSuggestion`, `generateRephrasedVariantsForLearningItem` | Promptbau, JSON-Parsing, Vorschlagsvalidierung und verankerte KI-Varianten-Erstellung |
+| `src/variantSelection.js` | `selectAutomaticReviewVariant`, `isAutomaticRephraseVariant` | Automatische Auswahl nahe am Original bleibender Review-Varianten nach Lernphase und Variant-Level |
 | `src/reviewShortcuts.js` | `resolveReviewShortcut` | Tastaturvertrag fuer Reveal, Bewertung und Exit im Review |
 | `src/aiOrchestrator.js` | `generateCardsFromDocument`, `selectModel`, `validateCardGenerationOutput` | Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts |
 | `src/documentModel.js` | `createDocumentFromFile`, `createAnchorFromSelection`, `splitDocumentIntoPassages` | Dokumente, Textlayer, Auswahl-zu-Quelle |
@@ -2830,6 +2833,8 @@ Alle Screens liegen derzeit in `src/App.jsx`, verwenden aber die Module oben als
 - `src/coreModel.test.js`: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.
 - `src/creationPipeline.test.js`: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.
 - `src/learningModel.test.js`: Legacy-Card-Normalisierung, Learning-Item-Invarianten und Review-Event-Kompatibilitaetsfelder.
+- `src/reviewFlow.test.js`: Antwortverarbeitung, Scheduler-Events, Variantenperformance, Anchor-Snapshots und Next-Review-Auswahl.
+- `src/variantGeneration.test.js`: Prompt-Vertrag, KI-JSON-Parsing, Vorschlagsvalidierung, Anchoring und automatische Varianten-Auswahl.
 - `src/apkgImport.test.js`: APKG-Mapping, HTML-Sicherheit, lesbare Collection-Auswahl fuer `collection.anki21b`/Zstd-Fallbacks und Reimport-Merge.
 - `src/mediaStore.test.js`: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.
 - `src/menuModel.test.js`: Navigationsvertrag.
