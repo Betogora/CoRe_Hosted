@@ -58,6 +58,19 @@ test("workspace creates the demo deck behind one interface", () => {
   assert.equal(workspace.getState().decks[0].cards[0].coreState.isCoreReady, true);
 });
 
+test("workspace can seed the world capitals deck for an empty local tester account", () => {
+  const workspace = createCoreWorkspace(createCoreRepository(createMemoryStorage(), { seedDefaultDecks: true }));
+  const state = workspace.getState();
+  const root = state.decks.find((deck) => deck.id === "deck_world_capitals");
+  const europe = state.decks.find((deck) => deck.id === "deck_world_capitals_europa");
+
+  assert.equal(state.decks.length, 8);
+  assert.equal(root.name, "Welt-Hauptstädte");
+  assert.equal(root.cards.length, 0);
+  assert.equal(europe.parentDeckId, root.id);
+  assert.equal(state.decks.reduce((sum, deck) => sum + deck.cards.length, 0), 245);
+});
+
 test("workspace APKG commands dry-run and commit through normalized import", async () => {
   const workspace = createTestWorkspace();
   const dryRun = await workspace.dryRunApkgImport(parsedApkgFixture());
@@ -126,6 +139,64 @@ test("workspace creates manual deck trees and deletes a selected subtree", () =>
   assert.equal(remainingIds.includes(physio.id), true);
   assert.equal(remainingIds.includes(anatomy.id), false);
   assert.equal(remainingIds.includes(head.id), false);
+});
+
+test("workspace renames a deck tree without replacing imported metadata or child contents", () => {
+  const workspace = createTestWorkspace();
+  const root = workspace.createDeck({ name: "Medizin" });
+  const anatomy = workspace.createDeck({ name: "Anatomie", parentDeckId: root.id });
+  const head = workspace.createDeck({ name: "Kopf", parentDeckId: anatomy.id });
+  workspace.saveDeck({ ...anatomy, source: "anki-apkg", importMeta: { ankiDeckPath: "Medizin::Anatomie" } });
+
+  const renamed = workspace.renameDeck(anatomy.id, "Neuroanatomie");
+  const state = workspace.getState();
+  const renamedDeck = state.decks.find((deck) => deck.id === anatomy.id);
+  const child = state.decks.find((deck) => deck.id === head.id);
+
+  assert.equal(renamed.ok, true);
+  assert.equal(renamedDeck.name, "Neuroanatomie");
+  assert.deepEqual(renamedDeck.hierarchyPath, ["Medizin", "Neuroanatomie"]);
+  assert.deepEqual(child.hierarchyPath, ["Medizin", "Neuroanatomie", "Kopf"]);
+  assert.deepEqual(renamedDeck.importMeta, { ankiDeckPath: "Medizin::Anatomie" });
+  assert.equal(renamedDeck.versionLog.some((entry) => entry.changeType === "deck_renamed"), true);
+});
+
+test("workspace moves deck trees, supports top-level drops and rejects descendant drops", () => {
+  const workspace = createTestWorkspace();
+  const root = workspace.createDeck({ name: "Medizin" });
+  const anatomy = workspace.createDeck({ name: "Anatomie", parentDeckId: root.id });
+  const head = workspace.createDeck({ name: "Kopf", parentDeckId: anatomy.id });
+  const physio = workspace.createDeck({ name: "Physio", parentDeckId: root.id });
+
+  const moved = workspace.moveDeck(anatomy.id, physio.id);
+  const movedState = workspace.getState();
+  const movedAnatomy = movedState.decks.find((deck) => deck.id === anatomy.id);
+  const movedHead = movedState.decks.find((deck) => deck.id === head.id);
+  const rejected = workspace.moveDeck(physio.id, movedHead.id);
+  const topLevel = workspace.moveDeck(anatomy.id, null);
+  const finalAnatomy = workspace.getState().decks.find((deck) => deck.id === anatomy.id);
+
+  assert.equal(moved.ok, true);
+  assert.equal(movedAnatomy.parentDeckId, physio.id);
+  assert.deepEqual(movedAnatomy.hierarchyPath, ["Medizin", "Physio", "Anatomie"]);
+  assert.deepEqual(movedHead.hierarchyPath, ["Medizin", "Physio", "Anatomie", "Kopf"]);
+  assert.equal(rejected.ok, false);
+  assert.equal(rejected.error, "Ein Stapel kann nicht in sich selbst oder einen eigenen Unterstapel verschoben werden.");
+  assert.equal(topLevel.ok, true);
+  assert.equal(finalAnatomy.parentDeckId, null);
+  assert.deepEqual(finalAnatomy.hierarchyPath, ["Anatomie"]);
+});
+
+test("workspace keeps sibling deck names unique on create and rename", () => {
+  const workspace = createTestWorkspace();
+  const root = workspace.createDeck({ name: "Medizin" });
+  const first = workspace.createDeck({ name: "Anatomie", parentDeckId: root.id });
+  const second = workspace.createDeck({ name: "Anatomie", parentDeckId: root.id });
+  const renamed = workspace.renameDeck(second.id, first.name);
+
+  assert.equal(first.name, "Anatomie");
+  assert.equal(second.name, "Anatomie+");
+  assert.equal(renamed.deck.name, "Anatomie+");
 });
 
 test("workspace appends a manual card to an existing deck with source document", () => {

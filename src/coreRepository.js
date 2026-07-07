@@ -1,4 +1,5 @@
 import { createDefaultDeckSettings, normalizeCoreDeck } from "./coreModel.js";
+import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.js";
 
 const LEGACY_DECKS_KEY = "core.importedDecks.v1";
 const APP_STATE_KEY = "core.appState.v2";
@@ -26,11 +27,11 @@ function createDefaultProfile() {
   };
 }
 
-function createDefaultState() {
+function createDefaultState({ seedDefaultDecks = false } = {}) {
   return {
     version: 2,
     profile: createDefaultProfile(),
-    decks: [],
+    decks: seedDefaultDecks ? createWorldCapitalsSeedDecks() : [],
     communities: [],
     aiJobs: [],
     documents: [],
@@ -75,7 +76,7 @@ function normalizeStoredDecks(decks) {
 }
 
 function normalizeState(rawState) {
-  const fallback = createDefaultState();
+  const fallback = createDefaultState({ seedDefaultDecks: false });
   const decks = normalizeStoredDecks(rawState?.decks);
 
   return {
@@ -92,7 +93,7 @@ function normalizeState(rawState) {
   };
 }
 
-function readState(storage) {
+function readState(storage, options = {}) {
   const current = parseJson(storage.getItem(APP_STATE_KEY), null);
   if (current) {
     return normalizeState(current);
@@ -100,10 +101,10 @@ function readState(storage) {
 
   const legacyDecks = parseJson(storage.getItem(LEGACY_DECKS_KEY), []);
   if (Array.isArray(legacyDecks) && legacyDecks.length > 0) {
-    return normalizeState({ ...createDefaultState(), decks: legacyDecks });
+    return normalizeState({ ...createDefaultState({ seedDefaultDecks: false }), decks: legacyDecks });
   }
 
-  return createDefaultState();
+  return createDefaultState(options);
 }
 
 function writeState(storage, state) {
@@ -114,26 +115,29 @@ function replaceDeck(decks, deck) {
   return [deck, ...decks.filter((storedDeck) => storedDeck.id !== deck.id)];
 }
 
-export function createCoreRepository(storage = getStorage()) {
+export function createCoreRepository(storage = null, options = {}) {
+  const resolvedStorage = storage ?? getStorage();
+  const seedDefaultDecks = options.seedDefaultDecks ?? storage == null;
+
   return {
     getState() {
-      return readState(storage);
+      return readState(resolvedStorage, { seedDefaultDecks });
     },
     saveState(nextState) {
       const normalized = normalizeState(nextState);
-      writeState(storage, normalized);
+      writeState(resolvedStorage, normalized);
       return normalized;
     },
     listDecks() {
-      return readState(storage).decks;
+      return readState(resolvedStorage, { seedDefaultDecks }).decks;
     },
     getDeck(deckId) {
-      return readState(storage).decks.find((deck) => deck.id === deckId) ?? null;
+      return readState(resolvedStorage, { seedDefaultDecks }).decks.find((deck) => deck.id === deckId) ?? null;
     },
     saveDeck(deck) {
-      const state = readState(storage);
+      const state = readState(resolvedStorage, { seedDefaultDecks });
       const normalizedDeck = normalizeCoreDeck(deck);
-      writeState(storage, {
+      writeState(resolvedStorage, {
         ...state,
         decks: replaceDeck(state.decks, normalizedDeck),
         documents: [
@@ -144,20 +148,20 @@ export function createCoreRepository(storage = getStorage()) {
       return normalizedDeck;
     },
     updateDeck(deckId, updater) {
-      const state = readState(storage);
+      const state = readState(resolvedStorage, { seedDefaultDecks });
       const existing = state.decks.find((deck) => deck.id === deckId);
       if (!existing) return null;
 
       const normalizedDeck = normalizeCoreDeck(updater(existing));
-      writeState(storage, {
+      writeState(resolvedStorage, {
         ...state,
         decks: replaceDeck(state.decks, normalizedDeck),
       });
       return normalizedDeck;
     },
     deleteDeck(deckId) {
-      const state = readState(storage);
-      writeState(storage, {
+      const state = readState(resolvedStorage, { seedDefaultDecks });
+      writeState(resolvedStorage, {
         ...state,
         decks: state.decks.filter((deck) => deck.id !== deckId),
       });
@@ -169,55 +173,55 @@ export function createCoreRepository(storage = getStorage()) {
       }));
     },
     getProfile() {
-      return readState(storage).profile;
+      return readState(resolvedStorage, { seedDefaultDecks }).profile;
     },
     saveProfile(profile) {
-      const state = readState(storage);
+      const state = readState(resolvedStorage, { seedDefaultDecks });
       const nextProfile = { ...state.profile, ...profile };
-      writeState(storage, { ...state, profile: nextProfile });
+      writeState(resolvedStorage, { ...state, profile: nextProfile });
       return nextProfile;
     },
     listCommunities() {
-      return readState(storage).communities;
+      return readState(resolvedStorage, { seedDefaultDecks }).communities;
     },
     saveCommunity(community) {
-      const state = readState(storage);
-      writeState(storage, {
+      const state = readState(resolvedStorage, { seedDefaultDecks });
+      writeState(resolvedStorage, {
         ...state,
         communities: [community, ...state.communities.filter((item) => item.id !== community.id)],
       });
       return community;
     },
     saveAiJob(job) {
-      const state = readState(storage);
-      writeState(storage, {
+      const state = readState(resolvedStorage, { seedDefaultDecks });
+      writeState(resolvedStorage, {
         ...state,
         aiJobs: [job, ...state.aiJobs.filter((item) => item.id !== job.id)],
       });
       return job;
     },
     listAiJobs() {
-      return readState(storage).aiJobs;
+      return readState(resolvedStorage, { seedDefaultDecks }).aiJobs;
     },
     saveChatExchange(exchange) {
-      const state = readState(storage);
-      writeState(storage, {
+      const state = readState(resolvedStorage, { seedDefaultDecks });
+      writeState(resolvedStorage, {
         ...state,
         chatTranscript: [exchange, ...state.chatTranscript].slice(0, 30),
       });
       return exchange;
     },
     saveLearningPlan(plan) {
-      const state = readState(storage);
-      writeState(storage, {
+      const state = readState(resolvedStorage, { seedDefaultDecks });
+      writeState(resolvedStorage, {
         ...state,
         learningPlans: [plan, ...state.learningPlans.filter((item) => item.id !== plan.id)].slice(0, 10),
       });
       return plan;
     },
     clear() {
-      writeState(storage, createDefaultState());
-      storage.removeItem(LEGACY_DECKS_KEY);
+      writeState(resolvedStorage, createDefaultState({ seedDefaultDecks }));
+      resolvedStorage.removeItem(LEGACY_DECKS_KEY);
     },
   };
 }

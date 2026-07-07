@@ -104,6 +104,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks }) {
               return (
                 <div
                   key={deck.id}
+                  data-testid={`learn-deck-row-${deck.id}`}
                   className="relative grid min-w-0 gap-3 px-1 py-4 md:grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_8rem_8rem_3rem] md:items-center md:gap-3 md:px-3"
                 >
                   <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${Math.min(row.depth, 6) * 1.25}rem` }}>

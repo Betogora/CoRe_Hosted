@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronRight, Copy, FolderPlus, Layers, Network, Play, PlusSquare, Save, Search, Share2, Sparkles, Trash2, WandSparkles } from "lucide-react";
+import { Check, ChevronRight, Copy, FolderPlus, GripVertical, Layers, Network, Pencil, Play, PlusSquare, Save, Search, Share2, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
 import { getOriginalVariant, getVariantAnchor } from "../coreModel.js";
 import { buildCardVariationPrompt, createVariantReviewModel } from "../coreVariantService.js";
 import { createDeckLibraryModel } from "../libraryModel.js";
@@ -252,13 +252,19 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   );
 }
 
-export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, onStartDeck, onCreateDeck, onDeleteDeck, onOpenCardCreation, onOpenGraph, onShareDeck }) {
+export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, onStartDeck, onCreateDeck, onDeleteDeck, onRenameDeck, onMoveDeck, onOpenCardCreation, onOpenGraph, onShareDeck }) {
   const [query, setQuery] = React.useState("");
   const [modeFilter, setModeFilter] = React.useState("all");
   const [selectedDeckId, setSelectedDeckId] = React.useState(initialSelectedDeckId ?? decks[0]?.id ?? null);
   const [selectedCardId, setSelectedCardId] = React.useState(null);
   const [deckDraft, setDeckDraft] = React.useState({ name: "", parentDeckId: "" });
   const [deckStatus, setDeckStatus] = React.useState("");
+  const [editingDeckId, setEditingDeckId] = React.useState(null);
+  const [renameDraft, setRenameDraft] = React.useState("");
+  const [draggedDeckId, setDraggedDeckId] = React.useState(null);
+  const [dragTargetDeckId, setDragTargetDeckId] = React.useState(null);
+  const [isTopDropTarget, setIsTopDropTarget] = React.useState(false);
+  const draggedDeckIdRef = React.useRef(null);
   const library = createDeckLibraryModel(decks, { query, coreMode: modeFilter, selectedDeckId });
   const filteredRows = library.filteredRows;
   const selectedRow = library.selectedRow;
@@ -325,6 +331,79 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
   function prepareSubdeck(deck) {
     setDeckDraft({ name: "", parentDeckId: deck.id });
     setDeckStatus(`Unterstapel unter "${deck.name}" anlegen.`);
+  }
+
+  function beginRename(deck) {
+    setEditingDeckId(deck.id);
+    setRenameDraft(deck.name);
+    setDeckStatus(`"${deck.name}" umbenennen.`);
+  }
+
+  function cancelRename() {
+    setEditingDeckId(null);
+    setRenameDraft("");
+  }
+
+  function submitRename(event, deck) {
+    event.preventDefault();
+    const name = renameDraft.trim();
+    if (!name) {
+      setDeckStatus("Bitte gib einen Stapelnamen ein.");
+      return;
+    }
+
+    const result = onRenameDeck?.(deck.id, name);
+    if (result?.error) {
+      setDeckStatus(result.error);
+      return;
+    }
+    const renamedDeck = result?.deck ?? deck;
+    setSelectedDeckId(renamedDeck.id);
+    setEditingDeckId(null);
+    setRenameDraft("");
+    setDeckStatus(`Stapel "${renamedDeck.name}" umbenannt.`);
+  }
+
+  function startDrag(event, deck) {
+    draggedDeckIdRef.current = deck.id;
+    setDraggedDeckId(deck.id);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", deck.id);
+  }
+
+  function clearDragState() {
+    draggedDeckIdRef.current = null;
+    setDraggedDeckId(null);
+    setDragTargetDeckId(null);
+    setIsTopDropTarget(false);
+  }
+
+  function allowDeckDrop(event, targetDeckId = null) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDragTargetDeckId(targetDeckId);
+    setIsTopDropTarget(targetDeckId === null);
+  }
+
+  function dropDeck(event, parentDeckId = null) {
+    event.preventDefault();
+    const sourceDeckId = event.dataTransfer.getData("text/plain") || draggedDeckIdRef.current || draggedDeckId;
+    clearDragState();
+    if (!sourceDeckId) return;
+
+    const result = onMoveDeck?.(sourceDeckId, parentDeckId);
+    if (result?.error) {
+      setDeckStatus(result.error);
+      return;
+    }
+    if (result?.changedDeckIds?.length === 0) {
+      setDeckStatus("Stapel bleibt an dieser Stelle.");
+      return;
+    }
+    const movedDeck = result?.deck;
+    if (movedDeck) setSelectedDeckId(movedDeck.id);
+    const targetLabel = parentDeckId ? decks.find((deck) => deck.id === parentDeckId)?.name ?? "Zielstapel" : "Hauptebene";
+    setDeckStatus(parentDeckId ? `Stapel nach "${targetLabel}" verschoben.` : "Stapel auf die Hauptebene verschoben.");
   }
 
   function deleteDeckTree(deck, row) {
@@ -412,21 +491,76 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
         />
       ) : (
         <div className="grid gap-4">
+          <div
+            data-testid="deck-top-drop-zone"
+            aria-label="Drop-Zone für die Hauptebene"
+            onDragOver={(event) => allowDeckDrop(event, null)}
+            onDragLeave={() => setIsTopDropTarget(false)}
+            onDrop={(event) => dropDeck(event, null)}
+            className={`grid min-h-12 place-items-center rounded-2xl border border-dashed px-4 text-sm font-semibold transition ${
+              isTopDropTarget ? "border-[#4f5eb1] bg-[#eef1fb] text-[#24327a]" : "border-[#dfe4f5] bg-white/45 text-[#66709a]"
+            }`}
+          >
+            Auf die Hauptebene ziehen
+          </div>
           {filteredRows.map((row) => {
             const deck = row.deck;
             const summary = row.summary;
             const isSelected = selectedRow?.id === row.id;
+            const isRenaming = editingDeckId === deck.id;
+            const isDropTarget = dragTargetDeckId === deck.id;
             return (
-              <SoftPanel key={row.id} className={`p-4 sm:p-5 ${isSelected ? "ring-2 ring-[#8c96dc]" : ""}`}>
+              <SoftPanel
+                key={row.id}
+                data-testid={`deck-row-${deck.id}`}
+                onDragOver={(event) => allowDeckDrop(event, deck.id)}
+                onDragLeave={() => setDragTargetDeckId(null)}
+                onDrop={(event) => dropDeck(event, deck.id)}
+                className={`p-4 transition sm:p-5 ${isSelected ? "ring-2 ring-[#8c96dc]" : ""} ${isDropTarget ? "border-[#8c96dc] bg-[#f3f5fd]" : ""}`}
+              >
                 <div className="flex min-w-0 flex-wrap items-center gap-4" style={{ paddingLeft: `${Math.min(row.depth, 4) * 1.1}rem` }}>
-                  <button type="button" onClick={() => setSelectedDeckId(deck.id)} className="flex min-w-0 flex-[1_1_14rem] items-center gap-4 text-left">
+                  <div className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
+                    <button
+                      type="button"
+                      draggable
+                      onDragStart={(event) => startDrag(event, deck)}
+                      onDragEnd={clearDragState}
+                      className="grid size-10 shrink-0 cursor-grab place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1] active:cursor-grabbing"
+                      aria-label={`Stapel "${deck.name}" verschieben`}
+                      title="Stapel verschieben"
+                      data-testid={`deck-drag-handle-${deck.id}`}
+                    >
+                      <GripVertical size={18} aria-hidden="true" />
+                    </button>
                     <OrbIcon icon={Layers} className="bg-[#eef1fb] text-[#6672bf]" />
-                    <span className="min-w-0">
-                      <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
-                      <span className="block truncate text-sm text-[#66709a]">{row.path}</span>
-                      {row.hasChildren ? <span className="mt-1 block text-xs font-semibold text-[#66709a]">{row.childrenCount} Unterstapel</span> : null}
-                    </span>
-                  </button>
+                    <div className="min-w-0 flex-1">
+                      {isRenaming ? (
+                        <form onSubmit={(event) => submitRename(event, deck)} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(10rem,1fr)_auto_auto]">
+                          <label className="sr-only" htmlFor={`deck-rename-${deck.id}`}>Stapelname</label>
+                          <input
+                            id={`deck-rename-${deck.id}`}
+                            className="min-h-10 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#17214f] outline-none"
+                            value={renameDraft}
+                            onChange={(event) => setRenameDraft(event.target.value)}
+                            autoFocus
+                            data-testid={`deck-rename-input-${deck.id}`}
+                          />
+                          <button type="submit" className="grid size-10 place-items-center rounded-xl bg-[#4f5eb1] text-white" aria-label="Stapelname speichern" data-testid={`deck-rename-save-${deck.id}`}>
+                            <Check size={17} aria-hidden="true" />
+                          </button>
+                          <button type="button" onClick={cancelRename} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label="Umbenennen abbrechen">
+                            <X size={17} aria-hidden="true" />
+                          </button>
+                        </form>
+                      ) : (
+                        <button type="button" onClick={() => setSelectedDeckId(deck.id)} className="block min-w-0 text-left" data-testid={`deck-select-${deck.id}`}>
+                          <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
+                          <span className="block truncate text-sm text-[#66709a]">{row.path}</span>
+                          {row.hasChildren ? <span className="mt-1 block text-xs font-semibold text-[#66709a]">{row.childrenCount} Unterstapel</span> : null}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <CoreModeControl value={deck.deckSettings.coreMode} onChange={(mode) => updateCoreMode(deck, mode)} />
                   <div className="flex flex-[1_1_14rem] flex-wrap items-center gap-4 sm:flex-none">
                     <div className="grid min-w-14 gap-1">
@@ -443,6 +577,9 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => beginRename(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label="Stapel umbenennen" data-testid={`deck-rename-button-${deck.id}`}>
+                      <Pencil size={17} aria-hidden="true" />
+                    </button>
                     <button type="button" onClick={() => onStartDeck(deck, false)} className="grid size-10 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]" aria-label="Lernen">
                       <Play size={17} aria-hidden="true" />
                     </button>

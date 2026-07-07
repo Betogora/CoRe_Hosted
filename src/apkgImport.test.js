@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   commitApkgImport,
@@ -110,6 +111,15 @@ function parsedApkgFixture({
         missingAssets: [],
       },
     },
+  };
+}
+
+async function worldCapitalsApkgFile() {
+  const bytes = await readFile(new URL("../fixtures/apkg/world-capitals.apkg", import.meta.url));
+  return {
+    name: "world-capitals.apkg",
+    size: bytes.length,
+    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
   };
 }
 
@@ -349,6 +359,35 @@ test("committed APKG import creates visible parent and child decks from Anki hie
   assert.equal(committed.rootDeckIds[0], root.id);
   assert.equal(committed.importGroupId.startsWith("apkg_import_"), true);
   assert.equal(committed.decks.every((deck) => deck.importMeta.mediaManifest.assets.length === 1), true);
+});
+
+test("committed APKG fixture imports the world capitals hierarchy", async () => {
+  const committed = await commitApkgImport(await worldCapitalsApkgFile(), { existingDecks: [] });
+  const root = committed.decks.find((deck) => deck.name === "Welt-Hauptstädte");
+  const byName = new Map(committed.decks.map((deck) => [deck.name, deck]));
+  const expectedCounts = {
+    Afrika: 59,
+    Antarktis: 2,
+    Asien: 49,
+    Europa: 53,
+    Nordamerika: 41,
+    Ozeanien: 27,
+    Südamerika: 14,
+  };
+
+  assert.equal(committed.decks.length, 8);
+  assert.equal(committed.report.apkg.detectedCards, 245);
+  assert.equal(committed.decks.reduce((sum, deck) => sum + deck.cards.length, 0), 245);
+  assert.ok(root);
+  assert.equal(root.parentDeckId, null);
+  assert.equal(root.cards.length, 0);
+  for (const [name, count] of Object.entries(expectedCounts)) {
+    const deck = byName.get(name);
+    assert.ok(deck, name);
+    assert.equal(deck.parentDeckId, root.id);
+    assert.deepEqual(deck.hierarchyPath, ["Welt-Hauptstädte", name]);
+    assert.equal(deck.cards.length, count);
+  }
 });
 
 test("imports Cloze parser output as cloze content with a warning instead of crashing", async () => {

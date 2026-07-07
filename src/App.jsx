@@ -73,6 +73,20 @@ export function App() {
     return result;
   }
 
+  function renameDeck(deckId, name) {
+    const result = workspace.renameDeck(deckId, name);
+    if (result.deck) setFocusedDeckId(result.deck.id);
+    refresh();
+    return result;
+  }
+
+  function moveDeck(deckId, parentDeckId = null) {
+    const result = workspace.moveDeck(deckId, parentDeckId);
+    if (result.deck) setFocusedDeckId(result.deck.id);
+    refresh();
+    return result;
+  }
+
   function setDeckCoreMode(deckId, coreMode) {
     const updated = workspace.setDeckCoreMode(deckId, coreMode);
     refresh();
@@ -177,6 +191,8 @@ export function App() {
           initialSelectedDeckId={focusedDeckId}
           onCreateDeck={createDeck}
           onDeleteDeck={deleteDeck}
+          onRenameDeck={renameDeck}
+          onMoveDeck={moveDeck}
           onOpenCardCreation={() => setActiveView("neue-karten")}
           onOpenGraph={openGraph}
           onShareDeck={shareDeck}

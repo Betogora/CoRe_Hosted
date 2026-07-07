@@ -9,7 +9,8 @@ Die gepflegte Projektdokumentation liegt im Ordner `docs/`. `AGENTS.md` bleibt a
 ## Funktionsumfang
 
 - Dashboard, Profil-Onboarding, Datenschutzoptionen und globale CoRe-Einstellungen.
-- Deck-Verwaltung mit Hierarchie-Metadaten, Suche, Filtern, Kartenbearbeitung und Versionseintraegen.
+- Deck-Verwaltung mit Hierarchie-Metadaten, Suche, Filtern, direktem Umbenennen, Drag-and-drop-Unterstapeln, Kartenbearbeitung und Versionseintraegen.
+- Reproduzierbarer lokaler Teststapel `Welt-Hauptstädte` mit echter APKG-Fixture und sieben Kontinent-Unterstapeln.
 - Importpfade fuer Anki-APKG, Text, CSV und Tabellen-/Excel-Paste.
 - Manuelle Kartenerstellung mit Dokumentkontext und Quellenankern.
 - Deterministische lokale KI-Drafts aus Quellentext mit Schema-Validierung und Draft-Review.
@@ -40,6 +41,7 @@ Die Entwicklungs- und Preview-Server sind auf `http://127.0.0.1:5190/` konfiguri
 ```bash
 npm run dev      # Vite-Dev-Server
 npm test         # Node-Testlauf fuer src/*.test.js
+npm run test:e2e # Playwright-Smoke fuer lokale Browser-Flows
 npm run build    # Produktionsbuild
 npm run preview  # Lokale Preview auf Port 5190
 ```
@@ -55,6 +57,7 @@ src/
   coreModel.js            Zentrales Deck-, Karten-, Varianten- und Review-Datenmodell
   coreRepository.js       Lokale Persistenz und State-Normalisierung
   coreWorkspace.js        App-Kommandos und Demo-Daten
+  fixtures/               Lokale Seed-/Fixture-Daten
   creationWorkflow.js     Creation-/Import-Orchestrierung fuer APKG, Paste, manuell und KI-Drafts
   apkgImport.js           Anki-APKG-Importpipeline
   importService.js        Text-, CSV- und Tabellen-Import
@@ -76,6 +79,9 @@ src/
 - `docs/specs.html`: navigierbare HTML-Fassung der Spezifikation.
 - `docs/todo.md`: Differenz zwischen aktuellem lokalen MVP und produktionsreifem Zielbild.
 - `docs/anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
+- `fixtures/apkg/world-capitals.apkg`: reproduzierbare APKG-Fixture fuer Unterstapel-Tests.
+- `scripts/create_world_capitals_apkg.py`: Generator fuer APKG-Fixture, Quell-Snapshot und lokalen Seed.
+- `tests/e2e/world-capitals-hierarchy.spec.js`: Playwright-Smoke fuer Seed, Unterstapel, Umbenennen und Drag-and-drop.
 - `AGENTS.md`: lokale Entwicklungsregeln, empfohlene Kommandos und Architekturleitplanken.
 - `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker fuer den spaeteren Produktivpfad.
 - `supabase/verify_schema_v1.sql`: RLS-/Policy-Verifikation fuer das Supabase-Schema.

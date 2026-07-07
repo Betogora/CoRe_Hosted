@@ -284,7 +284,7 @@
 <tbody>
 <tr><td>Dashboard und Lernaktivitaet</td><td><code>DashboardScreen</code>, <code>libraryModel.createStudyHeatmapModel</code>, <code>libraryModel.createStudyHeatmapWindow</code>, Tagesmetriken, aktive Stapel, responsive und pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap</td></tr>
 <tr><td>Account, Profil, Datenschutz</td><td><code>SettingsScreen</code>, <code>createCoreRepository().saveProfile()</code></td></tr>
-<tr><td>Decks, Hierarchie, CoRe-Modus</td><td><code>menuModel</code>, <code>DecksScreen</code>, <code>LearnScreen</code>, <code>libraryModel</code>, <code>coreModel.createCoreDeck</code>, <code>deckSettings.coreMode</code>, echte Parent-/Child-Stapel aus APKG-Hierarchien, aufklappbare Lernuebersicht, Learning-Item-Normalisierung</td></tr>
+<tr><td>Decks, Hierarchie, CoRe-Modus</td><td><code>menuModel</code>, <code>DecksScreen</code>, <code>LearnScreen</code>, <code>libraryModel</code>, <code>coreWorkspace.renameDeck</code>, <code>coreWorkspace.moveDeck</code>, <code>coreModel.createCoreDeck</code>, <code>deckSettings.coreMode</code>, echte Parent-/Child-Stapel aus APKG-Hierarchien, Drag-and-drop-Unterstapel, direkte Umbenennung, aufklappbare Lernuebersicht, Learning-Item-Normalisierung</td></tr>
 <tr><td>Import</td><td><code>creationWorkflow</code>, <code>apkgImport</code>, <code>importService</code> fuer APKG/Text/CSV/Excel-Paste, Importberichte, echte Unterstapel, Raw-Fallbacks, <code>collection.anki21b</code>/Zstd, Media-Manifeste, Reimport-Merge</td></tr>
 <tr><td>Manuelle Erstellung</td><td><code>creationWorkflow</code>, <code>ManualCreationPanel</code>, <code>RichTextEditor</code>, <code>richText</code>, <code>documentModel</code>, <code>sourceAnchors</code>, <code>createBasicLearningItem</code>, <code>createBasicReverseLearningItem</code>, <code>createClozeLearningItem</code></td></tr>
 <tr><td>KI-Kartenerstellung</td><td><code>creationWorkflow</code>, <code>aiOrchestrator.generateCardsFromDocument</code>, Draft-Review, Schema-Validation, normalisierte Draft-Items</td></tr>
@@ -304,7 +304,8 @@
 <li>Cleanere Navigation fuer Heute, Erstellen, Lernen, Graph und Community; Kartenstapel ist ueber den Lernen-Kopf erreichbar, Einstellungen ueber den Account-Button.</li>
 <li>App-Shell und Lernmodus nutzen die verfuegbare Browserbreite ohne feste Desktop-Maximalbreite; beim Herauszoomen waechst die Oberflaeche mit der Seitenbreite.</li>
 <li>Dashboard mit Tagesmetriken, aktiven Stapeln und GitHub-/Anki-artiger Jahres-Heatmap aus lokalen Review-Events; die Heatmap zeigt abhängig von der verfügbaren Breite ganze Wochen ohne horizontalen Slider und ist per Pfeil-Buttons bzw. Tastaturpfeilen navigierbar.</li>
-<li>Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare Stapelliste mit Neu-, Faellig- und Gesamtzahlen, CoRe-Status und Stapeloptionen ohne kartenbezogene Maturity-Anzeige.</li>
+<li>Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, direktem Umbenennen, Drag-and-drop-Verschieben nach Anki-Semantik, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare Stapelliste mit Neu-, Faellig- und Gesamtzahlen, CoRe-Status und Stapeloptionen ohne kartenbezogene Maturity-Anzeige.</li>
+<li>Frische lokale Browser-States werden mit einem reproduzierbaren Teststapel <code>Welt-Hauptstädte</code> geseedet: 245 Hauptstadtkarten aus dem ODbL-lizenzierten <code>mledoze/countries</code>-Snapshot, gruppiert in sieben Kontinent-Unterstapel; die zugehoerige echte APKG-Fixture liegt im Repository.</li>
 <li>Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, importierte Varianten und KI-Drafts; Legacy-Karten werden beim Lesen normalisiert.</li>
 <li>APKG-Basic-Import inklusive Importbericht, echtem Unterstapel-Mapping aus Anki-Hierarchien, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer <code>collection.anki21b</code>/Zstd-Unterstuetzung, Media-Manifesten pro Unterstapel, lokalem Browser-Medienspeicher und Reimport-Merge ohne Verlust lokaler Content-Edits.</li>
 <li>Text-, CSV- und Excel-/Tabellen-Paste-Import als schnelle Front/Back-Erstellung ueber dieselbe Normalisierungsschicht.</li>
@@ -648,6 +649,7 @@
 <hr>
 <h2 id="8-2-kartenstapel-und-deck-hierarchie">8.2 Kartenstapel und Deck-Hierarchie</h2>
 <h3 id="fr-deck-001-deck-hierarchie">FR-DECK-001 — Deck-Hierarchie</h3>
+<p>In der Stapelverwaltung MUESSEN Stapel direkt umbenannt und per Drag-and-drop verschoben werden koennen: Drop auf einen Stapel macht ihn zum Unterstapel, Drop auf die Hauptebene macht ihn zum Hauptstapel, Drop auf sich selbst oder eigene Nachfahren wird abgelehnt.</p>
 <p>CoRe MUSS Stapel und Unterstapel abbilden können. Importierte Anki-Hierarchien können tief verschachtelt sein und SOLLEN so weit wie möglich erhalten bleiben. Lern- und Verwaltungsuebersichten MUESSEN Unterstapel als echte Hierarchie anzeigen; Elternstapel bleiben als aggregierter Lernstart fuer ihren Unterbaum funktionsfaehig. Nutzende MUESSEN manuell Hauptstapel und beliebig tief verschachtelte Unterstapel anlegen koennen.</p>
 <p><strong>Beispiel:</strong></p>
 <pre><code class="language-text">Medizin
@@ -684,6 +686,8 @@
 <li>Karten anzeigen.</li>
 <li>Karte erstellen.</li>
 <li>Unterstapel erstellen.</li>
+<li>Stapel umbenennen.</li>
+<li>Stapel per Drag-and-drop als Unterstapel oder Hauptstapel verschieben.</li>
 <li>Importieren.</li>
 <li>KI-Karten generieren.</li>
 <li>CoRe-Modus ändern.</li>
@@ -2754,8 +2758,8 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <thead><tr><th>Modul</th><th>Interface</th><th>Verantwortung</th></tr></thead>
 <tbody>
 <tr><td><code>src/coreModel.js</code></td><td><code>createCoreDeck</code>, <code>createCoreLearningItem</code>, <code>createBasicLearningItem</code>, <code>createBasicReverseLearningItem</code>, <code>createClozeLearningItem</code>, <code>createLearningItemsFromNormalizedInput</code>, <code>createCardVariant</code>, <code>getOriginalVariant</code>, <code>getAnswerSideAnchorMiniCard</code>, <code>updateCardContent</code>, <code>restoreCardVersion</code></td><td>Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen, Deck-Settings</td></tr>
-<tr><td><code>src/coreRepository.js</code></td><td><code>createCoreRepository()</code></td><td>Persistenter lokaler App-State, Migration alter Decks, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene</td></tr>
-<tr><td><code>src/coreWorkspace.js</code></td><td><code>createCoreWorkspace</code>, <code>createDemoAnatomyDeck</code>, <code>createDeck</code>, <code>deleteDeckTree</code>, <code>setDeckCoreMode</code>, <code>saveDeckCardContent</code>, <code>deleteDeckCard</code></td><td>Lokale App-Kommandos fuer Demo-Daten, manuelle Stapel-/Unterstapel-Baeume, Stapelbaum-Loeschen, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates</td></tr>
+<tr><td><code>src/coreRepository.js</code></td><td><code>createCoreRepository()</code></td><td>Persistenter lokaler App-State, Migration alter Decks, Default-Seed <code>Welt-Hauptstädte</code> fuer frische lokale Browser-States, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene</td></tr>
+<tr><td><code>src/coreWorkspace.js</code></td><td><code>createCoreWorkspace</code>, <code>createDemoAnatomyDeck</code>, <code>createDeck</code>, <code>renameDeck</code>, <code>moveDeck</code>, <code>deleteDeckTree</code>, <code>setDeckCoreMode</code>, <code>saveDeckCardContent</code>, <code>deleteDeckCard</code></td><td>Lokale App-Kommandos fuer Demo-Daten, manuelle Stapel-/Unterstapel-Baeume, Umbenennen, Drag-and-drop-Reparenting, Stapelbaum-Loeschen, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates</td></tr>
 <tr><td><code>src/creationWorkflow.js</code></td><td><code>createCreationWorkflow</code></td><td>In-process Creation-Kommandos fuer APKG-Preview/Commit, Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme; haelt Import-/Medien-/KI-Orchestrierung aus React heraus</td></tr>
 <tr><td><code>src/scheduler.js</code></td><td><code>scheduleWithFsrsLikeModel</code>, <code>calculateRetrievability</code>, <code>getSchedulerStateForItem</code>, <code>applyReviewRating</code>, <code>listReviewableCards</code>, <code>summarizeDeckReview</code></td><td>FSRS-like Vier-Button-Scheduler, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung</td></tr>
 <tr><td><code>src/libraryModel.js</code></td><td><code>createDeckLibraryModel</code>, <code>createVisibleDeckRows</code>, <code>createAiJobLedger</code></td><td>UI-nahe Bibliotheksprojektion fuer Dashboard, baumartige Deckliste, aufklappbare Unterstapel-Sicht, Unterstapel-Aggregate, aktive Kartenzeilen und KI-Job-Ledger</td></tr>
@@ -2768,7 +2772,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <tr><td><code>src/aiOrchestrator.js</code></td><td><code>generateCardsFromDocument</code>, <code>selectModel</code>, <code>validateCardGenerationOutput</code></td><td>Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts</td></tr>
 <tr><td><code>src/documentModel.js</code></td><td><code>createDocumentFromFile</code>, <code>createAnchorFromSelection</code>, <code>splitDocumentIntoPassages</code></td><td>Dokumente, Textlayer, Auswahl-zu-Quelle</td></tr>
 <tr><td><code>src/importService.js</code></td><td><code>createTextImportDeck</code>, <code>createCsvImportDeck</code>, <code>createTableImportDeck</code>, <code>importNormalizedDeck</code></td><td>Text-/CSV-/Excel-Paste-Import und normalisierte Deck-Erstellung mit Parent-/Hierarchy-Feldern ueber die Learning-Item-Creation-Pipeline</td></tr>
-<tr><td><code>src/apkgImport.js</code></td><td><code>createApkgImportPreview</code>, <code>findReadableCollectionDatabase</code>, <code>parseAnkiMedia</code>, <code>mapAnkiToCoreDeck</code>, <code>commitApkgImport</code>, <code>mergeImportedDeck</code>, <code>commitImport</code></td><td>APKG-Import, <code>collection.anki21b</code>/Zstd, Media-Manifeste, echte Anki-Unterstapel, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten</td></tr>
+<tr><td><code>src/apkgImport.js</code></td><td><code>createApkgImportPreview</code>, <code>findReadableCollectionDatabase</code>, <code>parseAnkiMedia</code>, <code>mapAnkiToCoreDeck</code>, <code>commitApkgImport</code>, <code>mergeImportedDeck</code>, <code>commitImport</code></td><td>APKG-Import, <code>collection.anki21b</code>/Zstd, Media-Manifeste, echte Anki-Unterstapel, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten, Welt-Hauptstadt-Fixture-Verifikation</td></tr>
 <tr><td><code>src/sqliteReader.js</code> / <code>src/zipReader.js</code></td><td><code>readSqliteDatabase</code>, <code>readZipArchive</code></td><td>Lokales Lesen der APKG-Container und minimaler SQLite-Tabellen</td></tr>
 <tr><td><code>src/mediaStore.js</code></td><td><code>storeDeckMedia</code>, <code>createDeckMediaUrlMap</code>, <code>resolveCardHtmlMedia</code></td><td>Lokaler APKG-Medienspeicher ueber IndexedDB/Session-Fallback und sichere HTML-Medien-URL-Aufloesung</td></tr>
 <tr><td><code>src/communityModel.js</code></td><td><code>createCommunity</code>, <code>shareDeckToCommunity</code>, <code>copySharedDeckToLibrary</code></td><td>Kleine Gruppen, Ordner, Deck-Kopien ohne Lernmetriken</td></tr>
@@ -2784,7 +2788,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <p>Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen, Lernen, Graph und Community. <code>DecksScreen</code> bleibt als View erhalten, wird aber ueber den Kartenstapel-Button im Lernen-Kopf geoeffnet. <code>SettingsScreen</code> bleibt ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad erreichbar. KI-Jobs und Assistent sind aktuell keine eigenen Hauptnavigationspunkte.</p>
 <ul>
 <li><code>src/screens/DashboardScreen.jsx</code>: Tagesmetriken, aktive Stapel und responsive, pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap.</li>
-<li><code>src/screens/DecksScreen.jsx</code>: Deck-Hierarchie, Suche/Filter, manuelle Stapel-/Unterstapel-Anlage, Stapelbaum-Loeschen, CoRe-Modus, Karten-CRUD, Aktionen.</li>
+<li><code>src/screens/DecksScreen.jsx</code>: Deck-Hierarchie, Suche/Filter, manuelle Stapel-/Unterstapel-Anlage, direkte Stapel-Umbenennung, Drag-and-drop-Reparenting, Stapelbaum-Loeschen, CoRe-Modus, Karten-CRUD, Aktionen.</li>
 <li><code>src/screens/CreationScreen.jsx</code>: APKG, Text/CSV/Excel-Paste, manuell, PDF-/Text-Dokumenterstellung mit Quellenanker, KI-Drafts.</li>
 <li><code>src/screens/LearnScreen.jsx</code>: Aufklappbare Lernuebersicht fuer Stapel und Unterstapel mit Neu-/Faellig-/Gesamtzahlen, CoRe-Status, Lernen-Start und Stapeloptionen.</li>
 <li><code>src/screens/StudyMode.jsx</code>: Clean Fullscreen Review, Tages-Queue fuer jetzt faellige Karten plus neue Karten, Neue-Karten-Tageslimit, Front+Back nach Aufdeckung, vier Buttons mit Intervallvorschau, Tastatursteuerung, Originalanker, Variantenfeedback.</li>
@@ -2797,7 +2801,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <h3 id="27-3-testoberflaeche">27.3 Testoberflaeche</h3>
 <ul>
 <li><code>src/coreFeatures.test.js</code>: Scheduler, Bibliotheksmodell, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.</li>
-<li><code>src/coreWorkspace.test.js</code>: lokale App-Kommandos fuer Demo-Deck, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.</li>
+<li><code>src/coreWorkspace.test.js</code>: lokale App-Kommandos fuer Demo-Deck, Welt-Hauptstadt-Seed, Stapel-Rename, Stapel-Move, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.</li>
 <li><code>src/creationWorkflow.test.js</code>: Creation-Workflow-Interface fuer APKG-Fehlerform, Paste-Import, manuelle Dokumentanker, KI-Draft-Erzeugung und Draft-Annahme.</li>
 <li><code>src/coreModel.test.js</code>: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.</li>
 <li><code>src/creationPipeline.test.js</code>: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.</li>
@@ -2805,9 +2809,10 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <li><code>src/reviewFlow.test.js</code>: Antwortverarbeitung, Scheduler-Events, Variantenperformance, Anchor-Snapshots und Next-Review-Auswahl.</li>
 <li><code>src/fsrsVariantFlow.test.js</code>: FSRS-like Scheduler-State, Reifegradstufen, Variant-Readiness, Coverage, Generation-Plan, Fallback nach Fehlern und Next-Review-Projektion.</li>
 <li><code>src/variantGeneration.test.js</code>: Prompt-Vertrag, KI-JSON-Parsing, Vorschlagsvalidierung, Anchoring und automatische Varianten-Auswahl.</li>
-<li><code>src/apkgImport.test.js</code>: APKG-Mapping, HTML-Sicherheit, lesbare Collection-Auswahl fuer <code>collection.anki21b</code>/Zstd-Fallbacks und Reimport-Merge.</li>
+<li><code>src/apkgImport.test.js</code>: APKG-Mapping, HTML-Sicherheit, lesbare Collection-Auswahl fuer <code>collection.anki21b</code>/Zstd-Fallbacks, Welt-Hauptstadt-APKG-Fixture und Reimport-Merge.</li>
 <li><code>src/mediaStore.test.js</code>: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.</li>
 <li><code>src/menuModel.test.js</code>: Navigationsvertrag.</li>
+<li><code>tests/e2e/world-capitals-hierarchy.spec.js</code>: Browser-Smoke fuer frischen lokalen Seed, sichtbare Unterstapel, Stapel-Umbenennung und Drag-and-drop-Reparenting.</li>
 </ul>
 <h3 id="27-4-gemeinsames-kartenmodell">27.4 Gemeinsames Kartenmodell</h3>
 <p>Alle Lerninhalte gehoeren zu einem <code>CoreDeck</code>. Die aktuelle Quelle einer Karte ist einer der folgenden lokalen Werte:</p>
@@ -2846,6 +2851,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <p>Unterstuetzt:</p>
 <ul>
 <li>Upload und Validierung von <code>.apkg</code>-Dateien im Import-Screen.</li>
+<li>Reproduzierbare APKG-Fixture <code>fixtures/apkg/world-capitals.apkg</code> mit 245 Hauptstadtkarten und sieben Kontinent-Unterstapeln; <code>scripts/create_world_capitals_apkg.py</code> erzeugt APKG, Quell-Snapshot und lokalen Seed aus <code>mledoze/countries</code>.</li>
 <li>Lokales Lesen der APKG-Datei als ZIP-Archiv.</li>
 <li>Erkennung von <code>collection.anki2</code>, <code>collection.anki21</code> und <code>collection.anki21b</code>.</li>
 <li>Zstd-Dekompression lesbarer <code>collection.anki21b</code>-Collections ueber <code>fzstd</code>, mit Fallback auf lesbare aeltere Collection-Dateien im selben Archiv.</li>

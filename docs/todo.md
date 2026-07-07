@@ -20,7 +20,8 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, append-only Review-Events und Learning-Item-/Varianten-Kompatibilitaetsfeldern.
 - [x] Tages-Queue im Lernmodus fuer jetzt faellige/ueberfaellige Karten plus pro Stapel einstellbare neue Karten; Elternstapel lernen ihren Unterbaum.
 - [x] Lernuebersicht mit aufklappbaren Unterstapeln, aggregierten Neu-/Faellig-/Gesamtzahlen, CoRe-Status und Stapeloptionen ohne kartenbezogene Maturity-Anzeige.
-- [x] Manuelle Stapelverwaltung mit Hauptstapeln, beliebig tiefen Unterstapeln und Loeschen ganzer Stapelbaeume; APKG-Unterstapel sind im Workspace-Importpfad abgesichert.
+- [x] Manuelle Stapelverwaltung mit Hauptstapeln, beliebig tiefen Unterstapeln, direktem Umbenennen, Drag-and-drop-Reparenting und Loeschen ganzer Stapelbaeume; APKG-Unterstapel sind im Workspace-Importpfad abgesichert.
+- [x] Reproduzierbarer Welt-Hauptstädte-Teststapel als Default-Seed fuer frische lokale Browser-States und echte APKG-Fixture mit sieben Kontinent-Unterstapeln.
 - [x] Intervallvorschau direkt auf den Buttons Again, Hard, Good und Easy.
 - [x] FSRS-like Scheduler-State mit Stability, Difficulty, Desired Retention, Retrievability und konservativen Intervallen.
 - [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker-Minikarte, Variant-Level, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
@@ -44,7 +45,7 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 
 ## P0: Lokalen MVP stabilisieren
 
-- [ ] Smoke-Test-Skript fuer die wichtigsten Browser-Flows automatisieren: Demo/Import, Review, Variante, KI-Draft, Assistent, Export.
+- [ ] Smoke-Test-Skript fuer weitere wichtige Browser-Flows automatisieren: Review, Variante, KI-Draft, Assistent, Export.
 - [ ] Accessibility-Pass fuer Review, Import und Settings durchfuehren: Fokusreihenfolge, Labels, Kontrast, Tastatur.
 - [ ] Leere, fehlerhafte und grosse Eingaben fuer Text/CSV/Excel/APKG mit UI-Fehlermeldungen absichern.
 - [ ] Version-Restore in der UI voll klickbar machen, nicht nur im Modell vorbereiten.
@@ -78,9 +79,10 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 
 ## P1: Dokumente, Medien und Import
 
-- [ ] APKG-Fixtures erweitern: Basic reversed, Cloze, Medienreferenzen, moderne MediaEntries, ungewohnte Note Types und echte `collection.anki21b`/Zstd-Beispiele.
+- [ ] APKG-Fixtures weiter erweitern: Basic reversed, optional reversed, Cloze, Medienreferenzen, moderne MediaEntries, ungewohnte Note Types und echte `collection.anki21b`/Zstd-Beispiele.
+- [ ] Notetype-/Template-Snapshots und Importidentitaeten gemaess `docs/anki-format-analysis.md` pruefen: Anki-GUID, Note-ID, Card-ID, Notetype-ID, Template-Ordinal, Deck-Pfad und Medienchecksums.
 - [ ] Importbericht in der UI detailreicher machen: erkannte Decks, Warnungen, nicht gemappte Felder.
-- [ ] Server-/Worker-Pfad fuer grosse APKGs und Medien entwerfen.
+- [ ] Server-/Worker-Pfad fuer grosse APKGs und Medien entwerfen; Rust/WASM erst nach Benchmark echter Import-Hotpaths pruefen.
 - [ ] Supabase Storage/Object-Storage-Strategie fuer APKG-Originale, extrahierte Medien, Dokumente und spaetere CDN-URLs festlegen.
 - [ ] Browser-Importgrenzen definieren: grosse Decks und medienreiche APKGs serverseitig/workerbasiert verarbeiten, Fortschritt und Abbruch anbieten.
 - [x] Erste browserseitige PDF-/Text-Textextraktion als Modul mit Fehlerstatus und formatierter Textanzeige umsetzen.
@@ -107,7 +109,7 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 
 - [ ] FSRS-like Scheduler-Parameter gegen reale Lernsessions validieren: Stability, Difficulty, Desired Retention, Retrievability und Kurzintervall-Bias.
 - [ ] Learning-Item-State, Varianten-State, Fallback-State und Family-State gegen reale Lernsessions validieren.
-- [ ] Regeln fuer welche Kartentypen Varianten bekommen duerfen aus echten Decks nachschaerfen.
+- [ ] Regeln fuer welche Kartentypen Varianten bekommen duerfen aus echten Decks nachschaerfen; Cloze-Familien, Reverse-Varianten und importierte Template-Ordnungen gesondert validieren.
 - [ ] Variantenqualitaet aus Feedback ableiten: deaktiviert, fachlich falsch, schlecht formuliert.
 - [x] Review-Queue fuer jetzt faellige Karten und neue Karten im lokalen Lernmodus nachvollziehbar anzeigen; bewertete Karten erscheinen erst wieder ab ihrem gespeicherten `dueAt`.
 - [ ] Tastatur- und Mobile-Review weiter polieren.
@@ -139,6 +141,7 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - `docs/index.md`: Dokumentationskarte.
 - `docs/specs.md`: Produkt-, Engineering-, Modul- und Implementierungs-Soll.
 - `docs/specs.html`: navigierbare HTML-Version der Spezifikation.
+- `docs/anki-format-analysis.md`: Differential- und Differenzanalyse des offiziellen Anki-Modells mit CoRe-Prioritaeten, Formatentscheidungen und Sprach-/Backend-Empfehlungen.
 - `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
 - `supabase/verify_schema_v1.sql`: RLS-/Policy-Verifikation.
 - `src/coreFeatures.test.js`: groesster Modul-Test fuer die implementierten MVP-Pfade.

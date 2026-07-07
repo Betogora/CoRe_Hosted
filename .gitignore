@@ -7,4 +7,6 @@ dist/
 .vercel
 npm-debug.log*
 vite-*.log
+test-results/
+playwright-report/
 !.env.example

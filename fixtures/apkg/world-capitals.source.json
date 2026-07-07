@@ -1,0 +1,3701 @@
+{
+  "metadata": {
+    "title": "Welt-Hauptstädte",
+    "snapshotDate": "2026-07-07",
+    "source": "mledoze/countries",
+    "sourceUrl": "https://github.com/mledoze/countries",
+    "sourceLicense": "ODbL-1.0",
+    "generatedAt": "2026-07-07T00:00:00.000Z",
+    "totalCards": 245,
+    "countsByContinent": {
+      "Afrika": 59,
+      "Antarktis": 2,
+      "Asien": 49,
+      "Europa": 53,
+      "Nordamerika": 41,
+      "Ozeanien": 27,
+      "Südamerika": 14
+    }
+  },
+  "items": [
+    {
+      "id": "card_world_capitals_dza",
+      "variantId": "variant_world_capitals_dza_original",
+      "ankiNoteId": 1720400000064,
+      "ankiCardId": 1720500000064,
+      "cca2": "DZ",
+      "cca3": "DZA",
+      "country": "Algerien",
+      "countryEnglish": "Algeria",
+      "capitals": [
+        "Algiers"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_ago",
+      "variantId": "variant_world_capitals_ago_original",
+      "ankiNoteId": 1720400000003,
+      "ankiCardId": 1720500000003,
+      "cca2": "AO",
+      "cca3": "AGO",
+      "country": "Angola",
+      "countryEnglish": "Angola",
+      "capitals": [
+        "Luanda"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_ben",
+      "variantId": "variant_world_capitals_ben_original",
+      "ankiNoteId": 1720400000019,
+      "ankiCardId": 1720500000019,
+      "cca2": "BJ",
+      "cca3": "BEN",
+      "country": "Benin",
+      "countryEnglish": "Benin",
+      "capitals": [
+        "Porto-Novo"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_bwa",
+      "variantId": "variant_world_capitals_bwa_original",
+      "ankiNoteId": 1720400000037,
+      "ankiCardId": 1720500000037,
+      "cca2": "BW",
+      "cca3": "BWA",
+      "country": "Botswana",
+      "countryEnglish": "Botswana",
+      "capitals": [
+        "Gaborone"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_iot",
+      "variantId": "variant_world_capitals_iot_original",
+      "ankiNoteId": 1720400000104,
+      "ankiCardId": 1720500000104,
+      "cca2": "IO",
+      "cca3": "IOT",
+      "country": "Britisches Territorium im Indischen Ozean",
+      "countryEnglish": "British Indian Ocean Territory",
+      "capitals": [
+        "Diego Garcia"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_bfa",
+      "variantId": "variant_world_capitals_bfa_original",
+      "ankiNoteId": 1720400000020,
+      "ankiCardId": 1720500000020,
+      "cca2": "BF",
+      "cca3": "BFA",
+      "country": "Burkina Faso",
+      "countryEnglish": "Burkina Faso",
+      "capitals": [
+        "Ouagadougou"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_bdi",
+      "variantId": "variant_world_capitals_bdi_original",
+      "ankiNoteId": 1720400000017,
+      "ankiCardId": 1720500000017,
+      "cca2": "BI",
+      "cca3": "BDI",
+      "country": "Burundi",
+      "countryEnglish": "Burundi",
+      "capitals": [
+        "Gitega"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_civ",
+      "variantId": "variant_world_capitals_civ_original",
+      "ankiNoteId": 1720400000044,
+      "ankiCardId": 1720500000044,
+      "cca2": "CI",
+      "cca3": "CIV",
+      "country": "Côte d'Ivoire",
+      "countryEnglish": "Ivory Coast",
+      "capitals": [
+        "Yamoussoukro"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_dji",
+      "variantId": "variant_world_capitals_dji_original",
+      "ankiNoteId": 1720400000060,
+      "ankiCardId": 1720500000060,
+      "cca2": "DJ",
+      "cca3": "DJI",
+      "country": "Dschibuti",
+      "countryEnglish": "Djibouti",
+      "capitals": [
+        "Djibouti"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_eri",
+      "variantId": "variant_world_capitals_eri_original",
+      "ankiNoteId": 1720400000067,
+      "ankiCardId": 1720500000067,
+      "cca2": "ER",
+      "cca3": "ERI",
+      "country": "Eritrea",
+      "countryEnglish": "Eritrea",
+      "capitals": [
+        "Asmara"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_swz",
+      "variantId": "variant_world_capitals_swz_original",
+      "ankiNoteId": 1720400000209,
+      "ankiCardId": 1720500000209,
+      "cca2": "SZ",
+      "cca3": "SWZ",
+      "country": "Eswatini",
+      "countryEnglish": "Eswatini",
+      "capitals": [
+        "Lobamba"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_gab",
+      "variantId": "variant_world_capitals_gab_original",
+      "ankiNoteId": 1720400000078,
+      "ankiCardId": 1720500000078,
+      "cca2": "GA",
+      "cca3": "GAB",
+      "country": "Gabun",
+      "countryEnglish": "Gabon",
+      "capitals": [
+        "Libreville"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_gmb",
+      "variantId": "variant_world_capitals_gmb_original",
+      "ankiNoteId": 1720400000086,
+      "ankiCardId": 1720500000086,
+      "cca2": "GM",
+      "cca3": "GMB",
+      "country": "Gambia",
+      "countryEnglish": "Gambia",
+      "capitals": [
+        "Banjul"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_gha",
+      "variantId": "variant_world_capitals_gha_original",
+      "ankiNoteId": 1720400000082,
+      "ankiCardId": 1720500000082,
+      "cca2": "GH",
+      "cca3": "GHA",
+      "country": "Ghana",
+      "countryEnglish": "Ghana",
+      "capitals": [
+        "Accra"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_gin",
+      "variantId": "variant_world_capitals_gin_original",
+      "ankiNoteId": 1720400000084,
+      "ankiCardId": 1720500000084,
+      "cca2": "GN",
+      "cca3": "GIN",
+      "country": "Guinea",
+      "countryEnglish": "Guinea",
+      "capitals": [
+        "Conakry"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_gnb",
+      "variantId": "variant_world_capitals_gnb_original",
+      "ankiNoteId": 1720400000087,
+      "ankiCardId": 1720500000087,
+      "cca2": "GW",
+      "cca3": "GNB",
+      "country": "Guinea-Bissau",
+      "countryEnglish": "Guinea-Bissau",
+      "capitals": [
+        "Bissau"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_cmr",
+      "variantId": "variant_world_capitals_cmr_original",
+      "ankiNoteId": 1720400000045,
+      "ankiCardId": 1720500000045,
+      "cca2": "CM",
+      "cca3": "CMR",
+      "country": "Kamerun",
+      "countryEnglish": "Cameroon",
+      "capitals": [
+        "Yaoundé"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_cpv",
+      "variantId": "variant_world_capitals_cpv_original",
+      "ankiNoteId": 1720400000051,
+      "ankiCardId": 1720500000051,
+      "cca2": "CV",
+      "cca3": "CPV",
+      "country": "Kap Verde",
+      "countryEnglish": "Cape Verde",
+      "capitals": [
+        "Praia"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_ken",
+      "variantId": "variant_world_capitals_ken_original",
+      "ankiNoteId": 1720400000116,
+      "ankiCardId": 1720500000116,
+      "cca2": "KE",
+      "cca3": "KEN",
+      "country": "Kenia",
+      "countryEnglish": "Kenya",
+      "capitals": [
+        "Nairobi"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_com",
+      "variantId": "variant_world_capitals_com_original",
+      "ankiNoteId": 1720400000050,
+      "ankiCardId": 1720500000050,
+      "cca2": "KM",
+      "cca3": "COM",
+      "country": "Komoren",
+      "countryEnglish": "Comoros",
+      "capitals": [
+        "Moroni"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_cog",
+      "variantId": "variant_world_capitals_cog_original",
+      "ankiNoteId": 1720400000047,
+      "ankiCardId": 1720500000047,
+      "cca2": "CG",
+      "cca3": "COG",
+      "country": "Kongo",
+      "countryEnglish": "Congo",
+      "capitals": [
+        "Brazzaville"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_cod",
+      "variantId": "variant_world_capitals_cod_original",
+      "ankiNoteId": 1720400000046,
+      "ankiCardId": 1720500000046,
+      "cca2": "CD",
+      "cca3": "COD",
+      "country": "Kongo (Dem. Rep.)",
+      "countryEnglish": "DR Congo",
+      "capitals": [
+        "Kinshasa"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_lso",
+      "variantId": "variant_world_capitals_lso_original",
+      "ankiNoteId": 1720400000131,
+      "ankiCardId": 1720500000131,
+      "cca2": "LS",
+      "cca3": "LSO",
+      "country": "Lesotho",
+      "countryEnglish": "Lesotho",
+      "capitals": [
+        "Maseru"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_lbr",
+      "variantId": "variant_world_capitals_lbr_original",
+      "ankiNoteId": 1720400000126,
+      "ankiCardId": 1720500000126,
+      "cca2": "LR",
+      "cca3": "LBR",
+      "country": "Liberia",
+      "countryEnglish": "Liberia",
+      "capitals": [
+        "Monrovia"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_lby",
+      "variantId": "variant_world_capitals_lby_original",
+      "ankiNoteId": 1720400000127,
+      "ankiCardId": 1720500000127,
+      "cca2": "LY",
+      "cca3": "LBY",
+      "country": "Libyen",
+      "countryEnglish": "Libya",
+      "capitals": [
+        "Tripoli"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_mdg",
+      "variantId": "variant_world_capitals_mdg_original",
+      "ankiNoteId": 1720400000139,
+      "ankiCardId": 1720500000139,
+      "cca2": "MG",
+      "cca3": "MDG",
+      "country": "Madagaskar",
+      "countryEnglish": "Madagascar",
+      "capitals": [
+        "Antananarivo"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_mwi",
+      "variantId": "variant_world_capitals_mwi_original",
+      "ankiNoteId": 1720400000155,
+      "ankiCardId": 1720500000155,
+      "cca2": "MW",
+      "cca3": "MWI",
+      "country": "Malawi",
+      "countryEnglish": "Malawi",
+      "capitals": [
+        "Lilongwe"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_mli",
+      "variantId": "variant_world_capitals_mli_original",
+      "ankiNoteId": 1720400000144,
+      "ankiCardId": 1720500000144,
+      "cca2": "ML",
+      "cca3": "MLI",
+      "country": "Mali",
+      "countryEnglish": "Mali",
+      "capitals": [
+        "Bamako"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_mar",
+      "variantId": "variant_world_capitals_mar_original",
+      "ankiNoteId": 1720400000136,
+      "ankiCardId": 1720500000136,
+      "cca2": "MA",
+      "cca3": "MAR",
+      "country": "Marokko",
+      "countryEnglish": "Morocco",
+      "capitals": [
+        "Rabat"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_mrt",
+      "variantId": "variant_world_capitals_mrt_original",
+      "ankiNoteId": 1720400000151,
+      "ankiCardId": 1720500000151,
+      "cca2": "MR",
+      "cca3": "MRT",
+      "country": "Mauretanien",
+      "countryEnglish": "Mauritania",
+      "capitals": [
+        "Nouakchott"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_mus",
+      "variantId": "variant_world_capitals_mus_original",
+      "ankiNoteId": 1720400000154,
+      "ankiCardId": 1720500000154,
+      "cca2": "MU",
+      "cca3": "MUS",
+      "country": "Mauritius",
+      "countryEnglish": "Mauritius",
+      "capitals": [
+        "Port Louis"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_myt",
+      "variantId": "variant_world_capitals_myt_original",
+      "ankiNoteId": 1720400000157,
+      "ankiCardId": 1720500000157,
+      "cca2": "YT",
+      "cca3": "MYT",
+      "country": "Mayotte",
+      "countryEnglish": "Mayotte",
+      "capitals": [
+        "Mamoudzou"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_moz",
+      "variantId": "variant_world_capitals_moz_original",
+      "ankiNoteId": 1720400000150,
+      "ankiCardId": 1720500000150,
+      "cca2": "MZ",
+      "cca3": "MOZ",
+      "country": "Mosambik",
+      "countryEnglish": "Mozambique",
+      "capitals": [
+        "Maputo"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_nam",
+      "variantId": "variant_world_capitals_nam_original",
+      "ankiNoteId": 1720400000158,
+      "ankiCardId": 1720500000158,
+      "cca2": "NA",
+      "cca3": "NAM",
+      "country": "Namibia",
+      "countryEnglish": "Namibia",
+      "capitals": [
+        "Windhoek"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_ner",
+      "variantId": "variant_world_capitals_ner_original",
+      "ankiNoteId": 1720400000160,
+      "ankiCardId": 1720500000160,
+      "cca2": "NE",
+      "cca3": "NER",
+      "country": "Niger",
+      "countryEnglish": "Niger",
+      "capitals": [
+        "Niamey"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_nga",
+      "variantId": "variant_world_capitals_nga_original",
+      "ankiNoteId": 1720400000162,
+      "ankiCardId": 1720500000162,
+      "cca2": "NG",
+      "cca3": "NGA",
+      "country": "Nigeria",
+      "countryEnglish": "Nigeria",
+      "capitals": [
+        "Abuja"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_rwa",
+      "variantId": "variant_world_capitals_rwa_original",
+      "ankiNoteId": 1720400000189,
+      "ankiCardId": 1720500000189,
+      "cca2": "RW",
+      "cca3": "RWA",
+      "country": "Ruanda",
+      "countryEnglish": "Rwanda",
+      "capitals": [
+        "Kigali"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_reu",
+      "variantId": "variant_world_capitals_reu_original",
+      "ankiNoteId": 1720400000186,
+      "ankiCardId": 1720500000186,
+      "cca2": "RE",
+      "cca3": "REU",
+      "country": "Réunion",
+      "countryEnglish": "Réunion",
+      "capitals": [
+        "Saint-Denis"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_zmb",
+      "variantId": "variant_world_capitals_zmb_original",
+      "ankiNoteId": 1720400000244,
+      "ankiCardId": 1720500000244,
+      "cca2": "ZM",
+      "cca3": "ZMB",
+      "country": "Sambia",
+      "countryEnglish": "Zambia",
+      "capitals": [
+        "Lusaka"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_sen",
+      "variantId": "variant_world_capitals_sen_original",
+      "ankiNoteId": 1720400000192,
+      "ankiCardId": 1720500000192,
+      "cca2": "SN",
+      "cca3": "SEN",
+      "country": "Senegal",
+      "countryEnglish": "Senegal",
+      "capitals": [
+        "Dakar"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_syc",
+      "variantId": "variant_world_capitals_syc_original",
+      "ankiNoteId": 1720400000211,
+      "ankiCardId": 1720500000211,
+      "cca2": "SC",
+      "cca3": "SYC",
+      "country": "Seychellen",
+      "countryEnglish": "Seychelles",
+      "capitals": [
+        "Victoria"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_sle",
+      "variantId": "variant_world_capitals_sle_original",
+      "ankiNoteId": 1720400000197,
+      "ankiCardId": 1720500000197,
+      "cca2": "SL",
+      "cca3": "SLE",
+      "country": "Sierra Leone",
+      "countryEnglish": "Sierra Leone",
+      "capitals": [
+        "Freetown"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_zwe",
+      "variantId": "variant_world_capitals_zwe_original",
+      "ankiNoteId": 1720400000245,
+      "ankiCardId": 1720500000245,
+      "cca2": "ZW",
+      "cca3": "ZWE",
+      "country": "Simbabwe",
+      "countryEnglish": "Zimbabwe",
+      "capitals": [
+        "Harare"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_som",
+      "variantId": "variant_world_capitals_som_original",
+      "ankiNoteId": 1720400000200,
+      "ankiCardId": 1720500000200,
+      "cca2": "SO",
+      "cca3": "SOM",
+      "country": "Somalia",
+      "countryEnglish": "Somalia",
+      "capitals": [
+        "Mogadishu"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_shn",
+      "variantId": "variant_world_capitals_shn_original",
+      "ankiNoteId": 1720400000027,
+      "ankiCardId": 1720500000027,
+      "cca2": "SH",
+      "cca3": "SHN",
+      "country": "St. Helena, Ascension und Tristan da Cunha",
+      "countryEnglish": "Saint Helena, Ascension and Tristan da Cunha",
+      "capitals": [
+        "Jamestown"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_sdn",
+      "variantId": "variant_world_capitals_sdn_original",
+      "ankiNoteId": 1720400000191,
+      "ankiCardId": 1720500000191,
+      "cca2": "SD",
+      "cca3": "SDN",
+      "country": "Sudan",
+      "countryEnglish": "Sudan",
+      "capitals": [
+        "Khartoum"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_stp",
+      "variantId": "variant_world_capitals_stp_original",
+      "ankiNoteId": 1720400000204,
+      "ankiCardId": 1720500000204,
+      "cca2": "ST",
+      "cca3": "STP",
+      "country": "São Tomé und Príncipe",
+      "countryEnglish": "São Tomé and Príncipe",
+      "capitals": [
+        "São Tomé"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_zaf",
+      "variantId": "variant_world_capitals_zaf_original",
+      "ankiNoteId": 1720400000243,
+      "ankiCardId": 1720500000243,
+      "cca2": "ZA",
+      "cca3": "ZAF",
+      "country": "Südafrika",
+      "countryEnglish": "South Africa",
+      "capitals": [
+        "Pretoria",
+        "Bloemfontein",
+        "Cape Town"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_ssd",
+      "variantId": "variant_world_capitals_ssd_original",
+      "ankiNoteId": 1720400000203,
+      "ankiCardId": 1720500000203,
+      "cca2": "SS",
+      "cca3": "SSD",
+      "country": "Südsudan",
+      "countryEnglish": "South Sudan",
+      "capitals": [
+        "Juba"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_tza",
+      "variantId": "variant_world_capitals_tza_original",
+      "ankiNoteId": 1720400000227,
+      "ankiCardId": 1720500000227,
+      "cca2": "TZ",
+      "cca3": "TZA",
+      "country": "Tansania",
+      "countryEnglish": "Tanzania",
+      "capitals": [
+        "Dodoma"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_tgo",
+      "variantId": "variant_world_capitals_tgo_original",
+      "ankiNoteId": 1720400000215,
+      "ankiCardId": 1720500000215,
+      "cca2": "TG",
+      "cca3": "TGO",
+      "country": "Togo",
+      "countryEnglish": "Togo",
+      "capitals": [
+        "Lomé"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_tcd",
+      "variantId": "variant_world_capitals_tcd_original",
+      "ankiNoteId": 1720400000214,
+      "ankiCardId": 1720500000214,
+      "cca2": "TD",
+      "cca3": "TCD",
+      "country": "Tschad",
+      "countryEnglish": "Chad",
+      "capitals": [
+        "N'Djamena"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_tun",
+      "variantId": "variant_world_capitals_tun_original",
+      "ankiNoteId": 1720400000223,
+      "ankiCardId": 1720500000223,
+      "cca2": "TN",
+      "cca3": "TUN",
+      "country": "Tunesien",
+      "countryEnglish": "Tunisia",
+      "capitals": [
+        "Tunis"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_uga",
+      "variantId": "variant_world_capitals_uga_original",
+      "ankiNoteId": 1720400000228,
+      "ankiCardId": 1720500000228,
+      "cca2": "UG",
+      "cca3": "UGA",
+      "country": "Uganda",
+      "countryEnglish": "Uganda",
+      "capitals": [
+        "Kampala"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_esh",
+      "variantId": "variant_world_capitals_esh_original",
+      "ankiNoteId": 1720400000068,
+      "ankiCardId": 1720500000068,
+      "cca2": "EH",
+      "cca3": "ESH",
+      "country": "Westsahara",
+      "countryEnglish": "Western Sahara",
+      "capitals": [
+        "El Aaiún"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_caf",
+      "variantId": "variant_world_capitals_caf_original",
+      "ankiNoteId": 1720400000038,
+      "ankiCardId": 1720500000038,
+      "cca2": "CF",
+      "cca3": "CAF",
+      "country": "Zentralafrikanische Republik",
+      "countryEnglish": "Central African Republic",
+      "capitals": [
+        "Bangui"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_egy",
+      "variantId": "variant_world_capitals_egy_original",
+      "ankiNoteId": 1720400000066,
+      "ankiCardId": 1720500000066,
+      "cca2": "EG",
+      "cca3": "EGY",
+      "country": "Ägypten",
+      "countryEnglish": "Egypt",
+      "capitals": [
+        "Cairo"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_gnq",
+      "variantId": "variant_world_capitals_gnq_original",
+      "ankiNoteId": 1720400000088,
+      "ankiCardId": 1720500000088,
+      "cca2": "GQ",
+      "cca3": "GNQ",
+      "country": "Äquatorialguinea",
+      "countryEnglish": "Equatorial Guinea",
+      "capitals": [
+        "Malabo"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_eth",
+      "variantId": "variant_world_capitals_eth_original",
+      "ankiNoteId": 1720400000071,
+      "ankiCardId": 1720500000071,
+      "cca2": "ET",
+      "cca3": "ETH",
+      "country": "Äthiopien",
+      "countryEnglish": "Ethiopia",
+      "capitals": [
+        "Addis Ababa"
+      ],
+      "continentId": "afrika",
+      "continent": "Afrika"
+    },
+    {
+      "id": "card_world_capitals_atf",
+      "variantId": "variant_world_capitals_atf_original",
+      "ankiNoteId": 1720400000012,
+      "ankiCardId": 1720500000012,
+      "cca2": "TF",
+      "cca3": "ATF",
+      "country": "Französische Süd- und Antarktisgebiete",
+      "countryEnglish": "French Southern and Antarctic Lands",
+      "capitals": [
+        "Port-aux-Français"
+      ],
+      "continentId": "antarktis",
+      "continent": "Antarktis"
+    },
+    {
+      "id": "card_world_capitals_sgs",
+      "variantId": "variant_world_capitals_sgs_original",
+      "ankiNoteId": 1720400000194,
+      "ankiCardId": 1720500000194,
+      "cca2": "GS",
+      "cca3": "SGS",
+      "country": "Südgeorgien und die Südlichen Sandwichinseln",
+      "countryEnglish": "South Georgia",
+      "capitals": [
+        "King Edward Point"
+      ],
+      "continentId": "antarktis",
+      "continent": "Antarktis"
+    },
+    {
+      "id": "card_world_capitals_afg",
+      "variantId": "variant_world_capitals_afg_original",
+      "ankiNoteId": 1720400000002,
+      "ankiCardId": 1720500000002,
+      "cca2": "AF",
+      "cca3": "AFG",
+      "country": "Afghanistan",
+      "countryEnglish": "Afghanistan",
+      "capitals": [
+        "Kabul"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_arm",
+      "variantId": "variant_world_capitals_arm_original",
+      "ankiNoteId": 1720400000010,
+      "ankiCardId": 1720500000010,
+      "cca2": "AM",
+      "cca3": "ARM",
+      "country": "Armenien",
+      "countryEnglish": "Armenia",
+      "capitals": [
+        "Yerevan"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_aze",
+      "variantId": "variant_world_capitals_aze_original",
+      "ankiNoteId": 1720400000016,
+      "ankiCardId": 1720500000016,
+      "cca2": "AZ",
+      "cca3": "AZE",
+      "country": "Aserbaidschan",
+      "countryEnglish": "Azerbaijan",
+      "capitals": [
+        "Baku"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_bhr",
+      "variantId": "variant_world_capitals_bhr_original",
+      "ankiNoteId": 1720400000023,
+      "ankiCardId": 1720500000023,
+      "cca2": "BH",
+      "cca3": "BHR",
+      "country": "Bahrain",
+      "countryEnglish": "Bahrain",
+      "capitals": [
+        "Manama"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_bgd",
+      "variantId": "variant_world_capitals_bgd_original",
+      "ankiNoteId": 1720400000021,
+      "ankiCardId": 1720500000021,
+      "cca2": "BD",
+      "cca3": "BGD",
+      "country": "Bangladesch",
+      "countryEnglish": "Bangladesh",
+      "capitals": [
+        "Dhaka"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_btn",
+      "variantId": "variant_world_capitals_btn_original",
+      "ankiNoteId": 1720400000036,
+      "ankiCardId": 1720500000036,
+      "cca2": "BT",
+      "cca3": "BTN",
+      "country": "Bhutan",
+      "countryEnglish": "Bhutan",
+      "capitals": [
+        "Thimphu"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_brn",
+      "variantId": "variant_world_capitals_brn_original",
+      "ankiNoteId": 1720400000035,
+      "ankiCardId": 1720500000035,
+      "cca2": "BN",
+      "cca3": "BRN",
+      "country": "Brunei",
+      "countryEnglish": "Brunei",
+      "capitals": [
+        "Bandar Seri Begawan"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_chn",
+      "variantId": "variant_world_capitals_chn_original",
+      "ankiNoteId": 1720400000043,
+      "ankiCardId": 1720500000043,
+      "cca2": "CN",
+      "cca3": "CHN",
+      "country": "China",
+      "countryEnglish": "China",
+      "capitals": [
+        "Beijing"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_geo",
+      "variantId": "variant_world_capitals_geo_original",
+      "ankiNoteId": 1720400000080,
+      "ankiCardId": 1720500000080,
+      "cca2": "GE",
+      "cca3": "GEO",
+      "country": "Georgien",
+      "countryEnglish": "Georgia",
+      "capitals": [
+        "Tbilisi"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_hkg",
+      "variantId": "variant_world_capitals_hkg_original",
+      "ankiNoteId": 1720400000096,
+      "ankiCardId": 1720500000096,
+      "cca2": "HK",
+      "cca3": "HKG",
+      "country": "Hongkong",
+      "countryEnglish": "Hong Kong",
+      "capitals": [
+        "City of Victoria"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_ind",
+      "variantId": "variant_world_capitals_ind_original",
+      "ankiNoteId": 1720400000103,
+      "ankiCardId": 1720500000103,
+      "cca2": "IN",
+      "cca3": "IND",
+      "country": "Indien",
+      "countryEnglish": "India",
+      "capitals": [
+        "New Delhi"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_idn",
+      "variantId": "variant_world_capitals_idn_original",
+      "ankiNoteId": 1720400000101,
+      "ankiCardId": 1720500000101,
+      "cca2": "ID",
+      "cca3": "IDN",
+      "country": "Indonesien",
+      "countryEnglish": "Indonesia",
+      "capitals": [
+        "Jakarta"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_irq",
+      "variantId": "variant_world_capitals_irq_original",
+      "ankiNoteId": 1720400000107,
+      "ankiCardId": 1720500000107,
+      "cca2": "IQ",
+      "cca3": "IRQ",
+      "country": "Irak",
+      "countryEnglish": "Iraq",
+      "capitals": [
+        "Baghdad"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_irn",
+      "variantId": "variant_world_capitals_irn_original",
+      "ankiNoteId": 1720400000106,
+      "ankiCardId": 1720500000106,
+      "cca2": "IR",
+      "cca3": "IRN",
+      "country": "Iran",
+      "countryEnglish": "Iran",
+      "capitals": [
+        "Tehran"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_isr",
+      "variantId": "variant_world_capitals_isr_original",
+      "ankiNoteId": 1720400000109,
+      "ankiCardId": 1720500000109,
+      "cca2": "IL",
+      "cca3": "ISR",
+      "country": "Israel",
+      "countryEnglish": "Israel",
+      "capitals": [
+        "Jerusalem"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_jpn",
+      "variantId": "variant_world_capitals_jpn_original",
+      "ankiNoteId": 1720400000114,
+      "ankiCardId": 1720500000114,
+      "cca2": "JP",
+      "cca3": "JPN",
+      "country": "Japan",
+      "countryEnglish": "Japan",
+      "capitals": [
+        "Tokyo"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_yem",
+      "variantId": "variant_world_capitals_yem_original",
+      "ankiNoteId": 1720400000242,
+      "ankiCardId": 1720500000242,
+      "cca2": "YE",
+      "cca3": "YEM",
+      "country": "Jemen",
+      "countryEnglish": "Yemen",
+      "capitals": [
+        "Sana'a"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_jor",
+      "variantId": "variant_world_capitals_jor_original",
+      "ankiNoteId": 1720400000113,
+      "ankiCardId": 1720500000113,
+      "cca2": "JO",
+      "cca3": "JOR",
+      "country": "Jordanien",
+      "countryEnglish": "Jordan",
+      "capitals": [
+        "Amman"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_khm",
+      "variantId": "variant_world_capitals_khm_original",
+      "ankiNoteId": 1720400000118,
+      "ankiCardId": 1720500000118,
+      "cca2": "KH",
+      "cca3": "KHM",
+      "country": "Kambodscha",
+      "countryEnglish": "Cambodia",
+      "capitals": [
+        "Phnom Penh"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_kaz",
+      "variantId": "variant_world_capitals_kaz_original",
+      "ankiNoteId": 1720400000115,
+      "ankiCardId": 1720500000115,
+      "cca2": "KZ",
+      "cca3": "KAZ",
+      "country": "Kasachstan",
+      "countryEnglish": "Kazakhstan",
+      "capitals": [
+        "Astana"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_qat",
+      "variantId": "variant_world_capitals_qat_original",
+      "ankiNoteId": 1720400000185,
+      "ankiCardId": 1720500000185,
+      "cca2": "QA",
+      "cca3": "QAT",
+      "country": "Katar",
+      "countryEnglish": "Qatar",
+      "capitals": [
+        "Doha"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_kgz",
+      "variantId": "variant_world_capitals_kgz_original",
+      "ankiNoteId": 1720400000117,
+      "ankiCardId": 1720500000117,
+      "cca2": "KG",
+      "cca3": "KGZ",
+      "country": "Kirgisistan",
+      "countryEnglish": "Kyrgyzstan",
+      "capitals": [
+        "Bishkek"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_kwt",
+      "variantId": "variant_world_capitals_kwt_original",
+      "ankiNoteId": 1720400000123,
+      "ankiCardId": 1720500000123,
+      "cca2": "KW",
+      "cca3": "KWT",
+      "country": "Kuwait",
+      "countryEnglish": "Kuwait",
+      "capitals": [
+        "Kuwait City"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_lao",
+      "variantId": "variant_world_capitals_lao_original",
+      "ankiNoteId": 1720400000124,
+      "ankiCardId": 1720500000124,
+      "cca2": "LA",
+      "cca3": "LAO",
+      "country": "Laos",
+      "countryEnglish": "Laos",
+      "capitals": [
+        "Vientiane"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_lbn",
+      "variantId": "variant_world_capitals_lbn_original",
+      "ankiNoteId": 1720400000125,
+      "ankiCardId": 1720500000125,
+      "cca2": "LB",
+      "cca3": "LBN",
+      "country": "Libanon",
+      "countryEnglish": "Lebanon",
+      "capitals": [
+        "Beirut"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_mys",
+      "variantId": "variant_world_capitals_mys_original",
+      "ankiNoteId": 1720400000156,
+      "ankiCardId": 1720500000156,
+      "cca2": "MY",
+      "cca3": "MYS",
+      "country": "Malaysia",
+      "countryEnglish": "Malaysia",
+      "capitals": [
+        "Kuala Lumpur"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_mdv",
+      "variantId": "variant_world_capitals_mdv_original",
+      "ankiNoteId": 1720400000140,
+      "ankiCardId": 1720500000140,
+      "cca2": "MV",
+      "cca3": "MDV",
+      "country": "Malediven",
+      "countryEnglish": "Maldives",
+      "capitals": [
+        "Malé"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_mng",
+      "variantId": "variant_world_capitals_mng_original",
+      "ankiNoteId": 1720400000148,
+      "ankiCardId": 1720500000148,
+      "cca2": "MN",
+      "cca3": "MNG",
+      "country": "Mongolei",
+      "countryEnglish": "Mongolia",
+      "capitals": [
+        "Ulan Bator"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_mmr",
+      "variantId": "variant_world_capitals_mmr_original",
+      "ankiNoteId": 1720400000146,
+      "ankiCardId": 1720500000146,
+      "cca2": "MM",
+      "cca3": "MMR",
+      "country": "Myanmar",
+      "countryEnglish": "Myanmar",
+      "capitals": [
+        "Naypyidaw"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_npl",
+      "variantId": "variant_world_capitals_npl_original",
+      "ankiNoteId": 1720400000167,
+      "ankiCardId": 1720500000167,
+      "cca2": "NP",
+      "cca3": "NPL",
+      "country": "Nepal",
+      "countryEnglish": "Nepal",
+      "capitals": [
+        "Kathmandu"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_prk",
+      "variantId": "variant_world_capitals_prk_original",
+      "ankiNoteId": 1720400000180,
+      "ankiCardId": 1720500000180,
+      "cca2": "KP",
+      "cca3": "PRK",
+      "country": "Nordkorea",
+      "countryEnglish": "North Korea",
+      "capitals": [
+        "Pyongyang"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_omn",
+      "variantId": "variant_world_capitals_omn_original",
+      "ankiNoteId": 1720400000170,
+      "ankiCardId": 1720500000170,
+      "cca2": "OM",
+      "cca3": "OMN",
+      "country": "Oman",
+      "countryEnglish": "Oman",
+      "capitals": [
+        "Muscat"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_tls",
+      "variantId": "variant_world_capitals_tls_original",
+      "ankiNoteId": 1720400000220,
+      "ankiCardId": 1720500000220,
+      "cca2": "TL",
+      "cca3": "TLS",
+      "country": "Osttimor",
+      "countryEnglish": "Timor-Leste",
+      "capitals": [
+        "Dili"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_pak",
+      "variantId": "variant_world_capitals_pak_original",
+      "ankiNoteId": 1720400000171,
+      "ankiCardId": 1720500000171,
+      "cca2": "PK",
+      "cca3": "PAK",
+      "country": "Pakistan",
+      "countryEnglish": "Pakistan",
+      "capitals": [
+        "Islamabad"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_pse",
+      "variantId": "variant_world_capitals_pse_original",
+      "ankiNoteId": 1720400000183,
+      "ankiCardId": 1720500000183,
+      "cca2": "PS",
+      "cca3": "PSE",
+      "country": "Palästina",
+      "countryEnglish": "Palestine",
+      "capitals": [
+        "Ramallah"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_phl",
+      "variantId": "variant_world_capitals_phl_original",
+      "ankiNoteId": 1720400000175,
+      "ankiCardId": 1720500000175,
+      "cca2": "PH",
+      "cca3": "PHL",
+      "country": "Philippinen",
+      "countryEnglish": "Philippines",
+      "capitals": [
+        "Manila"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_sau",
+      "variantId": "variant_world_capitals_sau_original",
+      "ankiNoteId": 1720400000190,
+      "ankiCardId": 1720500000190,
+      "cca2": "SA",
+      "cca3": "SAU",
+      "country": "Saudi-Arabien",
+      "countryEnglish": "Saudi Arabia",
+      "capitals": [
+        "Riyadh"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_sgp",
+      "variantId": "variant_world_capitals_sgp_original",
+      "ankiNoteId": 1720400000193,
+      "ankiCardId": 1720500000193,
+      "cca2": "SG",
+      "cca3": "SGP",
+      "country": "Singapur",
+      "countryEnglish": "Singapore",
+      "capitals": [
+        "Singapore"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_lka",
+      "variantId": "variant_world_capitals_lka_original",
+      "ankiNoteId": 1720400000130,
+      "ankiCardId": 1720500000130,
+      "cca2": "LK",
+      "cca3": "LKA",
+      "country": "Sri Lanka",
+      "countryEnglish": "Sri Lanka",
+      "capitals": [
+        "Colombo"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_syr",
+      "variantId": "variant_world_capitals_syr_original",
+      "ankiNoteId": 1720400000212,
+      "ankiCardId": 1720500000212,
+      "cca2": "SY",
+      "cca3": "SYR",
+      "country": "Syrien",
+      "countryEnglish": "Syria",
+      "capitals": [
+        "Damascus"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_kor",
+      "variantId": "variant_world_capitals_kor_original",
+      "ankiNoteId": 1720400000121,
+      "ankiCardId": 1720500000121,
+      "cca2": "KR",
+      "cca3": "KOR",
+      "country": "Südkorea",
+      "countryEnglish": "South Korea",
+      "capitals": [
+        "Seoul"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_tjk",
+      "variantId": "variant_world_capitals_tjk_original",
+      "ankiNoteId": 1720400000217,
+      "ankiCardId": 1720500000217,
+      "cca2": "TJ",
+      "cca3": "TJK",
+      "country": "Tadschikistan",
+      "countryEnglish": "Tajikistan",
+      "capitals": [
+        "Dushanbe"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_twn",
+      "variantId": "variant_world_capitals_twn_original",
+      "ankiNoteId": 1720400000226,
+      "ankiCardId": 1720500000226,
+      "cca2": "TW",
+      "cca3": "TWN",
+      "country": "Taiwan",
+      "countryEnglish": "Taiwan",
+      "capitals": [
+        "Taipei"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_tha",
+      "variantId": "variant_world_capitals_tha_original",
+      "ankiNoteId": 1720400000216,
+      "ankiCardId": 1720500000216,
+      "cca2": "TH",
+      "cca3": "THA",
+      "country": "Thailand",
+      "countryEnglish": "Thailand",
+      "capitals": [
+        "Bangkok"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_tkm",
+      "variantId": "variant_world_capitals_tkm_original",
+      "ankiNoteId": 1720400000219,
+      "ankiCardId": 1720500000219,
+      "cca2": "TM",
+      "cca3": "TKM",
+      "country": "Turkmenistan",
+      "countryEnglish": "Turkmenistan",
+      "capitals": [
+        "Ashgabat"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_tur",
+      "variantId": "variant_world_capitals_tur_original",
+      "ankiNoteId": 1720400000224,
+      "ankiCardId": 1720500000224,
+      "cca2": "TR",
+      "cca3": "TUR",
+      "country": "Türkei",
+      "countryEnglish": "Türkiye",
+      "capitals": [
+        "Ankara"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_uzb",
+      "variantId": "variant_world_capitals_uzb_original",
+      "ankiNoteId": 1720400000232,
+      "ankiCardId": 1720500000232,
+      "cca2": "UZ",
+      "cca3": "UZB",
+      "country": "Usbekistan",
+      "countryEnglish": "Uzbekistan",
+      "capitals": [
+        "Tashkent"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_are",
+      "variantId": "variant_world_capitals_are_original",
+      "ankiNoteId": 1720400000008,
+      "ankiCardId": 1720500000008,
+      "cca2": "AE",
+      "cca3": "ARE",
+      "country": "Vereinigte Arabische Emirate",
+      "countryEnglish": "United Arab Emirates",
+      "capitals": [
+        "Abu Dhabi"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_vnm",
+      "variantId": "variant_world_capitals_vnm_original",
+      "ankiNoteId": 1720400000238,
+      "ankiCardId": 1720500000238,
+      "cca2": "VN",
+      "cca3": "VNM",
+      "country": "Vietnam",
+      "countryEnglish": "Vietnam",
+      "capitals": [
+        "Hanoi"
+      ],
+      "continentId": "asien",
+      "continent": "Asien"
+    },
+    {
+      "id": "card_world_capitals_alb",
+      "variantId": "variant_world_capitals_alb_original",
+      "ankiNoteId": 1720400000006,
+      "ankiCardId": 1720500000006,
+      "cca2": "AL",
+      "cca3": "ALB",
+      "country": "Albanien",
+      "countryEnglish": "Albania",
+      "capitals": [
+        "Tirana"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_and",
+      "variantId": "variant_world_capitals_and_original",
+      "ankiNoteId": 1720400000007,
+      "ankiCardId": 1720500000007,
+      "cca2": "AD",
+      "cca3": "AND",
+      "country": "Andorra",
+      "countryEnglish": "Andorra",
+      "capitals": [
+        "Andorra la Vella"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_blr",
+      "variantId": "variant_world_capitals_blr_original",
+      "ankiNoteId": 1720400000028,
+      "ankiCardId": 1720500000028,
+      "cca2": "BY",
+      "cca3": "BLR",
+      "country": "Belarus",
+      "countryEnglish": "Belarus",
+      "capitals": [
+        "Minsk"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_bel",
+      "variantId": "variant_world_capitals_bel_original",
+      "ankiNoteId": 1720400000018,
+      "ankiCardId": 1720500000018,
+      "cca2": "BE",
+      "cca3": "BEL",
+      "country": "Belgien",
+      "countryEnglish": "Belgium",
+      "capitals": [
+        "Brussels"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_bih",
+      "variantId": "variant_world_capitals_bih_original",
+      "ankiNoteId": 1720400000025,
+      "ankiCardId": 1720500000025,
+      "cca2": "BA",
+      "cca3": "BIH",
+      "country": "Bosnien und Herzegowina",
+      "countryEnglish": "Bosnia and Herzegovina",
+      "capitals": [
+        "Sarajevo"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_bgr",
+      "variantId": "variant_world_capitals_bgr_original",
+      "ankiNoteId": 1720400000022,
+      "ankiCardId": 1720500000022,
+      "cca2": "BG",
+      "cca3": "BGR",
+      "country": "Bulgarien",
+      "countryEnglish": "Bulgaria",
+      "capitals": [
+        "Sofia"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_deu",
+      "variantId": "variant_world_capitals_deu_original",
+      "ankiNoteId": 1720400000059,
+      "ankiCardId": 1720500000059,
+      "cca2": "DE",
+      "cca3": "DEU",
+      "country": "Deutschland",
+      "countryEnglish": "Germany",
+      "capitals": [
+        "Berlin"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_dnk",
+      "variantId": "variant_world_capitals_dnk_original",
+      "ankiNoteId": 1720400000062,
+      "ankiCardId": 1720500000062,
+      "cca2": "DK",
+      "cca3": "DNK",
+      "country": "Dänemark",
+      "countryEnglish": "Denmark",
+      "capitals": [
+        "Copenhagen"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_est",
+      "variantId": "variant_world_capitals_est_original",
+      "ankiNoteId": 1720400000070,
+      "ankiCardId": 1720500000070,
+      "cca2": "EE",
+      "cca3": "EST",
+      "country": "Estland",
+      "countryEnglish": "Estonia",
+      "capitals": [
+        "Tallinn"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_fin",
+      "variantId": "variant_world_capitals_fin_original",
+      "ankiNoteId": 1720400000072,
+      "ankiCardId": 1720500000072,
+      "cca2": "FI",
+      "cca3": "FIN",
+      "country": "Finnland",
+      "countryEnglish": "Finland",
+      "capitals": [
+        "Helsinki"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_fra",
+      "variantId": "variant_world_capitals_fra_original",
+      "ankiNoteId": 1720400000075,
+      "ankiCardId": 1720500000075,
+      "cca2": "FR",
+      "cca3": "FRA",
+      "country": "Frankreich",
+      "countryEnglish": "France",
+      "capitals": [
+        "Paris"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_fro",
+      "variantId": "variant_world_capitals_fro_original",
+      "ankiNoteId": 1720400000076,
+      "ankiCardId": 1720500000076,
+      "cca2": "FO",
+      "cca3": "FRO",
+      "country": "Färöer-Inseln",
+      "countryEnglish": "Faroe Islands",
+      "capitals": [
+        "Tórshavn"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_gib",
+      "variantId": "variant_world_capitals_gib_original",
+      "ankiNoteId": 1720400000083,
+      "ankiCardId": 1720500000083,
+      "cca2": "GI",
+      "cca3": "GIB",
+      "country": "Gibraltar",
+      "countryEnglish": "Gibraltar",
+      "capitals": [
+        "Gibraltar"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_grc",
+      "variantId": "variant_world_capitals_grc_original",
+      "ankiNoteId": 1720400000089,
+      "ankiCardId": 1720500000089,
+      "cca2": "GR",
+      "cca3": "GRC",
+      "country": "Griechenland",
+      "countryEnglish": "Greece",
+      "capitals": [
+        "Athens"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_ggy",
+      "variantId": "variant_world_capitals_ggy_original",
+      "ankiNoteId": 1720400000081,
+      "ankiCardId": 1720500000081,
+      "cca2": "GG",
+      "cca3": "GGY",
+      "country": "Guernsey",
+      "countryEnglish": "Guernsey",
+      "capitals": [
+        "St. Peter Port"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_imn",
+      "variantId": "variant_world_capitals_imn_original",
+      "ankiNoteId": 1720400000102,
+      "ankiCardId": 1720500000102,
+      "cca2": "IM",
+      "cca3": "IMN",
+      "country": "Insel Man",
+      "countryEnglish": "Isle of Man",
+      "capitals": [
+        "Douglas"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_irl",
+      "variantId": "variant_world_capitals_irl_original",
+      "ankiNoteId": 1720400000105,
+      "ankiCardId": 1720500000105,
+      "cca2": "IE",
+      "cca3": "IRL",
+      "country": "Irland",
+      "countryEnglish": "Ireland",
+      "capitals": [
+        "Dublin"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_isl",
+      "variantId": "variant_world_capitals_isl_original",
+      "ankiNoteId": 1720400000108,
+      "ankiCardId": 1720500000108,
+      "cca2": "IS",
+      "cca3": "ISL",
+      "country": "Island",
+      "countryEnglish": "Iceland",
+      "capitals": [
+        "Reykjavik"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_ita",
+      "variantId": "variant_world_capitals_ita_original",
+      "ankiNoteId": 1720400000110,
+      "ankiCardId": 1720500000110,
+      "cca2": "IT",
+      "cca3": "ITA",
+      "country": "Italien",
+      "countryEnglish": "Italy",
+      "capitals": [
+        "Rome"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_jey",
+      "variantId": "variant_world_capitals_jey_original",
+      "ankiNoteId": 1720400000112,
+      "ankiCardId": 1720500000112,
+      "cca2": "JE",
+      "cca3": "JEY",
+      "country": "Jersey",
+      "countryEnglish": "Jersey",
+      "capitals": [
+        "Saint Helier"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_unk",
+      "variantId": "variant_world_capitals_unk_original",
+      "ankiNoteId": 1720400000122,
+      "ankiCardId": 1720500000122,
+      "cca2": "XK",
+      "cca3": "UNK",
+      "country": "Kosovo",
+      "countryEnglish": "Kosovo",
+      "capitals": [
+        "Pristina"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_hrv",
+      "variantId": "variant_world_capitals_hrv_original",
+      "ankiNoteId": 1720400000098,
+      "ankiCardId": 1720500000098,
+      "cca2": "HR",
+      "cca3": "HRV",
+      "country": "Kroatien",
+      "countryEnglish": "Croatia",
+      "capitals": [
+        "Zagreb"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_lva",
+      "variantId": "variant_world_capitals_lva_original",
+      "ankiNoteId": 1720400000134,
+      "ankiCardId": 1720500000134,
+      "cca2": "LV",
+      "cca3": "LVA",
+      "country": "Lettland",
+      "countryEnglish": "Latvia",
+      "capitals": [
+        "Riga"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_lie",
+      "variantId": "variant_world_capitals_lie_original",
+      "ankiNoteId": 1720400000129,
+      "ankiCardId": 1720500000129,
+      "cca2": "LI",
+      "cca3": "LIE",
+      "country": "Liechtenstein",
+      "countryEnglish": "Liechtenstein",
+      "capitals": [
+        "Vaduz"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_ltu",
+      "variantId": "variant_world_capitals_ltu_original",
+      "ankiNoteId": 1720400000132,
+      "ankiCardId": 1720500000132,
+      "cca2": "LT",
+      "cca3": "LTU",
+      "country": "Litauen",
+      "countryEnglish": "Lithuania",
+      "capitals": [
+        "Vilnius"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_lux",
+      "variantId": "variant_world_capitals_lux_original",
+      "ankiNoteId": 1720400000133,
+      "ankiCardId": 1720500000133,
+      "cca2": "LU",
+      "cca3": "LUX",
+      "country": "Luxemburg",
+      "countryEnglish": "Luxembourg",
+      "capitals": [
+        "Luxembourg"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_mlt",
+      "variantId": "variant_world_capitals_mlt_original",
+      "ankiNoteId": 1720400000145,
+      "ankiCardId": 1720500000145,
+      "cca2": "MT",
+      "cca3": "MLT",
+      "country": "Malta",
+      "countryEnglish": "Malta",
+      "capitals": [
+        "Valletta"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_mda",
+      "variantId": "variant_world_capitals_mda_original",
+      "ankiNoteId": 1720400000138,
+      "ankiCardId": 1720500000138,
+      "cca2": "MD",
+      "cca3": "MDA",
+      "country": "Moldawien",
+      "countryEnglish": "Moldova",
+      "capitals": [
+        "Chișinău"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_mco",
+      "variantId": "variant_world_capitals_mco_original",
+      "ankiNoteId": 1720400000137,
+      "ankiCardId": 1720500000137,
+      "cca2": "MC",
+      "cca3": "MCO",
+      "country": "Monaco",
+      "countryEnglish": "Monaco",
+      "capitals": [
+        "Monaco"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_mne",
+      "variantId": "variant_world_capitals_mne_original",
+      "ankiNoteId": 1720400000147,
+      "ankiCardId": 1720500000147,
+      "cca2": "ME",
+      "cca3": "MNE",
+      "country": "Montenegro",
+      "countryEnglish": "Montenegro",
+      "capitals": [
+        "Podgorica"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_nld",
+      "variantId": "variant_world_capitals_nld_original",
+      "ankiNoteId": 1720400000165,
+      "ankiCardId": 1720500000165,
+      "cca2": "NL",
+      "cca3": "NLD",
+      "country": "Niederlande",
+      "countryEnglish": "Netherlands",
+      "capitals": [
+        "Amsterdam"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_mkd",
+      "variantId": "variant_world_capitals_mkd_original",
+      "ankiNoteId": 1720400000143,
+      "ankiCardId": 1720500000143,
+      "cca2": "MK",
+      "cca3": "MKD",
+      "country": "Nordmazedonien",
+      "countryEnglish": "North Macedonia",
+      "capitals": [
+        "Skopje"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_nor",
+      "variantId": "variant_world_capitals_nor_original",
+      "ankiNoteId": 1720400000166,
+      "ankiCardId": 1720500000166,
+      "cca2": "NO",
+      "cca3": "NOR",
+      "country": "Norwegen",
+      "countryEnglish": "Norway",
+      "capitals": [
+        "Oslo"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_pol",
+      "variantId": "variant_world_capitals_pol_original",
+      "ankiNoteId": 1720400000178,
+      "ankiCardId": 1720500000178,
+      "cca2": "PL",
+      "cca3": "POL",
+      "country": "Polen",
+      "countryEnglish": "Poland",
+      "capitals": [
+        "Warsaw"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_prt",
+      "variantId": "variant_world_capitals_prt_original",
+      "ankiNoteId": 1720400000181,
+      "ankiCardId": 1720500000181,
+      "cca2": "PT",
+      "cca3": "PRT",
+      "country": "Portugal",
+      "countryEnglish": "Portugal",
+      "capitals": [
+        "Lisbon"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_rou",
+      "variantId": "variant_world_capitals_rou_original",
+      "ankiNoteId": 1720400000187,
+      "ankiCardId": 1720500000187,
+      "cca2": "RO",
+      "cca3": "ROU",
+      "country": "Rumänien",
+      "countryEnglish": "Romania",
+      "capitals": [
+        "Bucharest"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_rus",
+      "variantId": "variant_world_capitals_rus_original",
+      "ankiNoteId": 1720400000188,
+      "ankiCardId": 1720500000188,
+      "cca2": "RU",
+      "cca3": "RUS",
+      "country": "Russland",
+      "countryEnglish": "Russia",
+      "capitals": [
+        "Moscow"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_smr",
+      "variantId": "variant_world_capitals_smr_original",
+      "ankiNoteId": 1720400000199,
+      "ankiCardId": 1720500000199,
+      "cca2": "SM",
+      "cca3": "SMR",
+      "country": "San Marino",
+      "countryEnglish": "San Marino",
+      "capitals": [
+        "City of San Marino"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_swe",
+      "variantId": "variant_world_capitals_swe_original",
+      "ankiNoteId": 1720400000208,
+      "ankiCardId": 1720500000208,
+      "cca2": "SE",
+      "cca3": "SWE",
+      "country": "Schweden",
+      "countryEnglish": "Sweden",
+      "capitals": [
+        "Stockholm"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_che",
+      "variantId": "variant_world_capitals_che_original",
+      "ankiNoteId": 1720400000041,
+      "ankiCardId": 1720500000041,
+      "cca2": "CH",
+      "cca3": "CHE",
+      "country": "Schweiz",
+      "countryEnglish": "Switzerland",
+      "capitals": [
+        "Bern"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_srb",
+      "variantId": "variant_world_capitals_srb_original",
+      "ankiNoteId": 1720400000202,
+      "ankiCardId": 1720500000202,
+      "cca2": "RS",
+      "cca3": "SRB",
+      "country": "Serbien",
+      "countryEnglish": "Serbia",
+      "capitals": [
+        "Belgrade"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_svk",
+      "variantId": "variant_world_capitals_svk_original",
+      "ankiNoteId": 1720400000206,
+      "ankiCardId": 1720500000206,
+      "cca2": "SK",
+      "cca3": "SVK",
+      "country": "Slowakei",
+      "countryEnglish": "Slovakia",
+      "capitals": [
+        "Bratislava"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_svn",
+      "variantId": "variant_world_capitals_svn_original",
+      "ankiNoteId": 1720400000207,
+      "ankiCardId": 1720500000207,
+      "cca2": "SI",
+      "cca3": "SVN",
+      "country": "Slowenien",
+      "countryEnglish": "Slovenia",
+      "capitals": [
+        "Ljubljana"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_esp",
+      "variantId": "variant_world_capitals_esp_original",
+      "ankiNoteId": 1720400000069,
+      "ankiCardId": 1720500000069,
+      "cca2": "ES",
+      "cca3": "ESP",
+      "country": "Spanien",
+      "countryEnglish": "Spain",
+      "capitals": [
+        "Madrid"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_sjm",
+      "variantId": "variant_world_capitals_sjm_original",
+      "ankiNoteId": 1720400000195,
+      "ankiCardId": 1720500000195,
+      "cca2": "SJ",
+      "cca3": "SJM",
+      "country": "Spitzbergen und Jan Mayen",
+      "countryEnglish": "Svalbard and Jan Mayen",
+      "capitals": [
+        "Longyearbyen"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_cze",
+      "variantId": "variant_world_capitals_cze_original",
+      "ankiNoteId": 1720400000058,
+      "ankiCardId": 1720500000058,
+      "cca2": "CZ",
+      "cca3": "CZE",
+      "country": "Tschechien",
+      "countryEnglish": "Czechia",
+      "capitals": [
+        "Prague"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_ukr",
+      "variantId": "variant_world_capitals_ukr_original",
+      "ankiNoteId": 1720400000229,
+      "ankiCardId": 1720500000229,
+      "cca2": "UA",
+      "cca3": "UKR",
+      "country": "Ukraine",
+      "countryEnglish": "Ukraine",
+      "capitals": [
+        "Kyiv"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_hun",
+      "variantId": "variant_world_capitals_hun_original",
+      "ankiNoteId": 1720400000100,
+      "ankiCardId": 1720500000100,
+      "cca2": "HU",
+      "cca3": "HUN",
+      "country": "Ungarn",
+      "countryEnglish": "Hungary",
+      "capitals": [
+        "Budapest"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_vat",
+      "variantId": "variant_world_capitals_vat_original",
+      "ankiNoteId": 1720400000233,
+      "ankiCardId": 1720500000233,
+      "cca2": "VA",
+      "cca3": "VAT",
+      "country": "Vatikanstadt",
+      "countryEnglish": "Vatican City",
+      "capitals": [
+        "Vatican City"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_gbr",
+      "variantId": "variant_world_capitals_gbr_original",
+      "ankiNoteId": 1720400000079,
+      "ankiCardId": 1720500000079,
+      "cca2": "GB",
+      "cca3": "GBR",
+      "country": "Vereinigtes Königreich",
+      "countryEnglish": "United Kingdom",
+      "capitals": [
+        "London"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_cyp",
+      "variantId": "variant_world_capitals_cyp_original",
+      "ankiNoteId": 1720400000057,
+      "ankiCardId": 1720500000057,
+      "cca2": "CY",
+      "cca3": "CYP",
+      "country": "Zypern",
+      "countryEnglish": "Cyprus",
+      "capitals": [
+        "Nicosia"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_ala",
+      "variantId": "variant_world_capitals_ala_original",
+      "ankiNoteId": 1720400000005,
+      "ankiCardId": 1720500000005,
+      "cca2": "AX",
+      "cca3": "ALA",
+      "country": "Åland",
+      "countryEnglish": "Åland Islands",
+      "capitals": [
+        "Mariehamn"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_aut",
+      "variantId": "variant_world_capitals_aut_original",
+      "ankiNoteId": 1720400000015,
+      "ankiCardId": 1720500000015,
+      "cca2": "AT",
+      "cca3": "AUT",
+      "country": "Österreich",
+      "countryEnglish": "Austria",
+      "capitals": [
+        "Vienna"
+      ],
+      "continentId": "europa",
+      "continent": "Europa"
+    },
+    {
+      "id": "card_world_capitals_vir",
+      "variantId": "variant_world_capitals_vir_original",
+      "ankiNoteId": 1720400000237,
+      "ankiCardId": 1720500000237,
+      "cca2": "VI",
+      "cca3": "VIR",
+      "country": "Amerikanische Jungferninseln",
+      "countryEnglish": "United States Virgin Islands",
+      "capitals": [
+        "Charlotte Amalie"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_aia",
+      "variantId": "variant_world_capitals_aia_original",
+      "ankiNoteId": 1720400000004,
+      "ankiCardId": 1720500000004,
+      "cca2": "AI",
+      "cca3": "AIA",
+      "country": "Anguilla",
+      "countryEnglish": "Anguilla",
+      "capitals": [
+        "The Valley"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_atg",
+      "variantId": "variant_world_capitals_atg_original",
+      "ankiNoteId": 1720400000013,
+      "ankiCardId": 1720500000013,
+      "cca2": "AG",
+      "cca3": "ATG",
+      "country": "Antigua und Barbuda",
+      "countryEnglish": "Antigua and Barbuda",
+      "capitals": [
+        "Saint John's"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_abw",
+      "variantId": "variant_world_capitals_abw_original",
+      "ankiNoteId": 1720400000001,
+      "ankiCardId": 1720500000001,
+      "cca2": "AW",
+      "cca3": "ABW",
+      "country": "Aruba",
+      "countryEnglish": "Aruba",
+      "capitals": [
+        "Oranjestad"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_bhs",
+      "variantId": "variant_world_capitals_bhs_original",
+      "ankiNoteId": 1720400000024,
+      "ankiCardId": 1720500000024,
+      "cca2": "BS",
+      "cca3": "BHS",
+      "country": "Bahamas",
+      "countryEnglish": "Bahamas",
+      "capitals": [
+        "Nassau"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_brb",
+      "variantId": "variant_world_capitals_brb_original",
+      "ankiNoteId": 1720400000034,
+      "ankiCardId": 1720500000034,
+      "cca2": "BB",
+      "cca3": "BRB",
+      "country": "Barbados",
+      "countryEnglish": "Barbados",
+      "capitals": [
+        "Bridgetown"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_blz",
+      "variantId": "variant_world_capitals_blz_original",
+      "ankiNoteId": 1720400000029,
+      "ankiCardId": 1720500000029,
+      "cca2": "BZ",
+      "cca3": "BLZ",
+      "country": "Belize",
+      "countryEnglish": "Belize",
+      "capitals": [
+        "Belmopan"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_bmu",
+      "variantId": "variant_world_capitals_bmu_original",
+      "ankiNoteId": 1720400000030,
+      "ankiCardId": 1720500000030,
+      "cca2": "BM",
+      "cca3": "BMU",
+      "country": "Bermuda",
+      "countryEnglish": "Bermuda",
+      "capitals": [
+        "Hamilton"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_vgb",
+      "variantId": "variant_world_capitals_vgb_original",
+      "ankiNoteId": 1720400000236,
+      "ankiCardId": 1720500000236,
+      "cca2": "VG",
+      "cca3": "VGB",
+      "country": "Britische Jungferninseln",
+      "countryEnglish": "British Virgin Islands",
+      "capitals": [
+        "Road Town"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_cri",
+      "variantId": "variant_world_capitals_cri_original",
+      "ankiNoteId": 1720400000052,
+      "ankiCardId": 1720500000052,
+      "cca2": "CR",
+      "cca3": "CRI",
+      "country": "Costa Rica",
+      "countryEnglish": "Costa Rica",
+      "capitals": [
+        "San José"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_cuw",
+      "variantId": "variant_world_capitals_cuw_original",
+      "ankiNoteId": 1720400000054,
+      "ankiCardId": 1720500000054,
+      "cca2": "CW",
+      "cca3": "CUW",
+      "country": "Curaçao",
+      "countryEnglish": "Curaçao",
+      "capitals": [
+        "Willemstad"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_dma",
+      "variantId": "variant_world_capitals_dma_original",
+      "ankiNoteId": 1720400000061,
+      "ankiCardId": 1720500000061,
+      "cca2": "DM",
+      "cca3": "DMA",
+      "country": "Dominica",
+      "countryEnglish": "Dominica",
+      "capitals": [
+        "Roseau"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_dom",
+      "variantId": "variant_world_capitals_dom_original",
+      "ankiNoteId": 1720400000063,
+      "ankiCardId": 1720500000063,
+      "cca2": "DO",
+      "cca3": "DOM",
+      "country": "Dominikanische Republik",
+      "countryEnglish": "Dominican Republic",
+      "capitals": [
+        "Santo Domingo"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_slv",
+      "variantId": "variant_world_capitals_slv_original",
+      "ankiNoteId": 1720400000198,
+      "ankiCardId": 1720500000198,
+      "cca2": "SV",
+      "cca3": "SLV",
+      "country": "El Salvador",
+      "countryEnglish": "El Salvador",
+      "capitals": [
+        "San Salvador"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_grd",
+      "variantId": "variant_world_capitals_grd_original",
+      "ankiNoteId": 1720400000090,
+      "ankiCardId": 1720500000090,
+      "cca2": "GD",
+      "cca3": "GRD",
+      "country": "Grenada",
+      "countryEnglish": "Grenada",
+      "capitals": [
+        "St. George's"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_grl",
+      "variantId": "variant_world_capitals_grl_original",
+      "ankiNoteId": 1720400000091,
+      "ankiCardId": 1720500000091,
+      "cca2": "GL",
+      "cca3": "GRL",
+      "country": "Grönland",
+      "countryEnglish": "Greenland",
+      "capitals": [
+        "Nuuk"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_glp",
+      "variantId": "variant_world_capitals_glp_original",
+      "ankiNoteId": 1720400000085,
+      "ankiCardId": 1720500000085,
+      "cca2": "GP",
+      "cca3": "GLP",
+      "country": "Guadeloupe",
+      "countryEnglish": "Guadeloupe",
+      "capitals": [
+        "Basse-Terre"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_gtm",
+      "variantId": "variant_world_capitals_gtm_original",
+      "ankiNoteId": 1720400000092,
+      "ankiCardId": 1720500000092,
+      "cca2": "GT",
+      "cca3": "GTM",
+      "country": "Guatemala",
+      "countryEnglish": "Guatemala",
+      "capitals": [
+        "Guatemala City"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_hti",
+      "variantId": "variant_world_capitals_hti_original",
+      "ankiNoteId": 1720400000099,
+      "ankiCardId": 1720500000099,
+      "cca2": "HT",
+      "cca3": "HTI",
+      "country": "Haiti",
+      "countryEnglish": "Haiti",
+      "capitals": [
+        "Port-au-Prince"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_hnd",
+      "variantId": "variant_world_capitals_hnd_original",
+      "ankiNoteId": 1720400000097,
+      "ankiCardId": 1720500000097,
+      "cca2": "HN",
+      "cca3": "HND",
+      "country": "Honduras",
+      "countryEnglish": "Honduras",
+      "capitals": [
+        "Tegucigalpa"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_jam",
+      "variantId": "variant_world_capitals_jam_original",
+      "ankiNoteId": 1720400000111,
+      "ankiCardId": 1720500000111,
+      "cca2": "JM",
+      "cca3": "JAM",
+      "country": "Jamaika",
+      "countryEnglish": "Jamaica",
+      "capitals": [
+        "Kingston"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_cym",
+      "variantId": "variant_world_capitals_cym_original",
+      "ankiNoteId": 1720400000056,
+      "ankiCardId": 1720500000056,
+      "cca2": "KY",
+      "cca3": "CYM",
+      "country": "Kaimaninseln",
+      "countryEnglish": "Cayman Islands",
+      "capitals": [
+        "George Town"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_can",
+      "variantId": "variant_world_capitals_can_original",
+      "ankiNoteId": 1720400000039,
+      "ankiCardId": 1720500000039,
+      "cca2": "CA",
+      "cca3": "CAN",
+      "country": "Kanada",
+      "countryEnglish": "Canada",
+      "capitals": [
+        "Ottawa"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_bes",
+      "variantId": "variant_world_capitals_bes_original",
+      "ankiNoteId": 1720400000032,
+      "ankiCardId": 1720500000032,
+      "cca2": "BQ",
+      "cca3": "BES",
+      "country": "Karibische Niederlande",
+      "countryEnglish": "Caribbean Netherlands",
+      "capitals": [
+        "Kralendijk",
+        "Oranjestad",
+        "The Bottom"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_cub",
+      "variantId": "variant_world_capitals_cub_original",
+      "ankiNoteId": 1720400000053,
+      "ankiCardId": 1720500000053,
+      "cca2": "CU",
+      "cca3": "CUB",
+      "country": "Kuba",
+      "countryEnglish": "Cuba",
+      "capitals": [
+        "Havana"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_mtq",
+      "variantId": "variant_world_capitals_mtq_original",
+      "ankiNoteId": 1720400000153,
+      "ankiCardId": 1720500000153,
+      "cca2": "MQ",
+      "cca3": "MTQ",
+      "country": "Martinique",
+      "countryEnglish": "Martinique",
+      "capitals": [
+        "Fort-de-France"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_mex",
+      "variantId": "variant_world_capitals_mex_original",
+      "ankiNoteId": 1720400000141,
+      "ankiCardId": 1720500000141,
+      "cca2": "MX",
+      "cca3": "MEX",
+      "country": "Mexiko",
+      "countryEnglish": "Mexico",
+      "capitals": [
+        "Mexico City"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_msr",
+      "variantId": "variant_world_capitals_msr_original",
+      "ankiNoteId": 1720400000152,
+      "ankiCardId": 1720500000152,
+      "cca2": "MS",
+      "cca3": "MSR",
+      "country": "Montserrat",
+      "countryEnglish": "Montserrat",
+      "capitals": [
+        "Plymouth"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_nic",
+      "variantId": "variant_world_capitals_nic_original",
+      "ankiNoteId": 1720400000163,
+      "ankiCardId": 1720500000163,
+      "cca2": "NI",
+      "cca3": "NIC",
+      "country": "Nicaragua",
+      "countryEnglish": "Nicaragua",
+      "capitals": [
+        "Managua"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_pan",
+      "variantId": "variant_world_capitals_pan_original",
+      "ankiNoteId": 1720400000172,
+      "ankiCardId": 1720500000172,
+      "cca2": "PA",
+      "cca3": "PAN",
+      "country": "Panama",
+      "countryEnglish": "Panama",
+      "capitals": [
+        "Panama City"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_pri",
+      "variantId": "variant_world_capitals_pri_original",
+      "ankiNoteId": 1720400000179,
+      "ankiCardId": 1720500000179,
+      "cca2": "PR",
+      "cca3": "PRI",
+      "country": "Puerto Rico",
+      "countryEnglish": "Puerto Rico",
+      "capitals": [
+        "San Juan"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_blm",
+      "variantId": "variant_world_capitals_blm_original",
+      "ankiNoteId": 1720400000026,
+      "ankiCardId": 1720500000026,
+      "cca2": "BL",
+      "cca3": "BLM",
+      "country": "Saint-Barthélemy",
+      "countryEnglish": "Saint Barthélemy",
+      "capitals": [
+        "Gustavia"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_maf",
+      "variantId": "variant_world_capitals_maf_original",
+      "ankiNoteId": 1720400000135,
+      "ankiCardId": 1720500000135,
+      "cca2": "MF",
+      "cca3": "MAF",
+      "country": "Saint-Martin",
+      "countryEnglish": "Saint Martin",
+      "capitals": [
+        "Marigot"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_sxm",
+      "variantId": "variant_world_capitals_sxm_original",
+      "ankiNoteId": 1720400000210,
+      "ankiCardId": 1720500000210,
+      "cca2": "SX",
+      "cca3": "SXM",
+      "country": "Sint Maarten",
+      "countryEnglish": "Sint Maarten",
+      "capitals": [
+        "Philipsburg"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_kna",
+      "variantId": "variant_world_capitals_kna_original",
+      "ankiNoteId": 1720400000120,
+      "ankiCardId": 1720500000120,
+      "cca2": "KN",
+      "cca3": "KNA",
+      "country": "St. Kitts und Nevis",
+      "countryEnglish": "Saint Kitts and Nevis",
+      "capitals": [
+        "Basseterre"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_lca",
+      "variantId": "variant_world_capitals_lca_original",
+      "ankiNoteId": 1720400000128,
+      "ankiCardId": 1720500000128,
+      "cca2": "LC",
+      "cca3": "LCA",
+      "country": "St. Lucia",
+      "countryEnglish": "Saint Lucia",
+      "capitals": [
+        "Castries"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_spm",
+      "variantId": "variant_world_capitals_spm_original",
+      "ankiNoteId": 1720400000201,
+      "ankiCardId": 1720500000201,
+      "cca2": "PM",
+      "cca3": "SPM",
+      "country": "St. Pierre und Miquelon",
+      "countryEnglish": "Saint Pierre and Miquelon",
+      "capitals": [
+        "Saint-Pierre"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_vct",
+      "variantId": "variant_world_capitals_vct_original",
+      "ankiNoteId": 1720400000234,
+      "ankiCardId": 1720500000234,
+      "cca2": "VC",
+      "cca3": "VCT",
+      "country": "St. Vincent und die Grenadinen",
+      "countryEnglish": "Saint Vincent and the Grenadines",
+      "capitals": [
+        "Kingstown"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_tto",
+      "variantId": "variant_world_capitals_tto_original",
+      "ankiNoteId": 1720400000222,
+      "ankiCardId": 1720500000222,
+      "cca2": "TT",
+      "cca3": "TTO",
+      "country": "Trinidad und Tobago",
+      "countryEnglish": "Trinidad and Tobago",
+      "capitals": [
+        "Port of Spain"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_tca",
+      "variantId": "variant_world_capitals_tca_original",
+      "ankiNoteId": 1720400000213,
+      "ankiCardId": 1720500000213,
+      "cca2": "TC",
+      "cca3": "TCA",
+      "country": "Turks-und Caicosinseln",
+      "countryEnglish": "Turks and Caicos Islands",
+      "capitals": [
+        "Cockburn Town"
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_usa",
+      "variantId": "variant_world_capitals_usa_original",
+      "ankiNoteId": 1720400000231,
+      "ankiCardId": 1720500000231,
+      "cca2": "US",
+      "cca3": "USA",
+      "country": "Vereinigte Staaten",
+      "countryEnglish": "United States",
+      "capitals": [
+        "Washington D.C."
+      ],
+      "continentId": "nordamerika",
+      "continent": "Nordamerika"
+    },
+    {
+      "id": "card_world_capitals_asm",
+      "variantId": "variant_world_capitals_asm_original",
+      "ankiNoteId": 1720400000011,
+      "ankiCardId": 1720500000011,
+      "cca2": "AS",
+      "cca3": "ASM",
+      "country": "Amerikanisch-Samoa",
+      "countryEnglish": "American Samoa",
+      "capitals": [
+        "Pago Pago"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_aus",
+      "variantId": "variant_world_capitals_aus_original",
+      "ankiNoteId": 1720400000014,
+      "ankiCardId": 1720500000014,
+      "cca2": "AU",
+      "cca3": "AUS",
+      "country": "Australien",
+      "countryEnglish": "Australia",
+      "capitals": [
+        "Canberra"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_cok",
+      "variantId": "variant_world_capitals_cok_original",
+      "ankiNoteId": 1720400000048,
+      "ankiCardId": 1720500000048,
+      "cca2": "CK",
+      "cca3": "COK",
+      "country": "Cookinseln",
+      "countryEnglish": "Cook Islands",
+      "capitals": [
+        "Avarua"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_fji",
+      "variantId": "variant_world_capitals_fji_original",
+      "ankiNoteId": 1720400000073,
+      "ankiCardId": 1720500000073,
+      "cca2": "FJ",
+      "cca3": "FJI",
+      "country": "Fidschi",
+      "countryEnglish": "Fiji",
+      "capitals": [
+        "Suva"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_pyf",
+      "variantId": "variant_world_capitals_pyf_original",
+      "ankiNoteId": 1720400000184,
+      "ankiCardId": 1720500000184,
+      "cca2": "PF",
+      "cca3": "PYF",
+      "country": "Französisch-Polynesien",
+      "countryEnglish": "French Polynesia",
+      "capitals": [
+        "Papeetē"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_gum",
+      "variantId": "variant_world_capitals_gum_original",
+      "ankiNoteId": 1720400000094,
+      "ankiCardId": 1720500000094,
+      "cca2": "GU",
+      "cca3": "GUM",
+      "country": "Guam",
+      "countryEnglish": "Guam",
+      "capitals": [
+        "Hagåtña"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_kir",
+      "variantId": "variant_world_capitals_kir_original",
+      "ankiNoteId": 1720400000119,
+      "ankiCardId": 1720500000119,
+      "cca2": "KI",
+      "cca3": "KIR",
+      "country": "Kiribati",
+      "countryEnglish": "Kiribati",
+      "capitals": [
+        "South Tarawa"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_cck",
+      "variantId": "variant_world_capitals_cck_original",
+      "ankiNoteId": 1720400000040,
+      "ankiCardId": 1720500000040,
+      "cca2": "CC",
+      "cca3": "CCK",
+      "country": "Kokosinseln",
+      "countryEnglish": "Cocos (Keeling) Islands",
+      "capitals": [
+        "West Island"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_mhl",
+      "variantId": "variant_world_capitals_mhl_original",
+      "ankiNoteId": 1720400000142,
+      "ankiCardId": 1720500000142,
+      "cca2": "MH",
+      "cca3": "MHL",
+      "country": "Marshallinseln",
+      "countryEnglish": "Marshall Islands",
+      "capitals": [
+        "Majuro"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_fsm",
+      "variantId": "variant_world_capitals_fsm_original",
+      "ankiNoteId": 1720400000077,
+      "ankiCardId": 1720500000077,
+      "cca2": "FM",
+      "cca3": "FSM",
+      "country": "Mikronesien",
+      "countryEnglish": "Micronesia",
+      "capitals": [
+        "Palikir"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_nru",
+      "variantId": "variant_world_capitals_nru_original",
+      "ankiNoteId": 1720400000168,
+      "ankiCardId": 1720500000168,
+      "cca2": "NR",
+      "cca3": "NRU",
+      "country": "Nauru",
+      "countryEnglish": "Nauru",
+      "capitals": [
+        "Yaren"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_ncl",
+      "variantId": "variant_world_capitals_ncl_original",
+      "ankiNoteId": 1720400000159,
+      "ankiCardId": 1720500000159,
+      "cca2": "NC",
+      "cca3": "NCL",
+      "country": "Neukaledonien",
+      "countryEnglish": "New Caledonia",
+      "capitals": [
+        "Nouméa"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_nzl",
+      "variantId": "variant_world_capitals_nzl_original",
+      "ankiNoteId": 1720400000169,
+      "ankiCardId": 1720500000169,
+      "cca2": "NZ",
+      "cca3": "NZL",
+      "country": "Neuseeland",
+      "countryEnglish": "New Zealand",
+      "capitals": [
+        "Wellington"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_niu",
+      "variantId": "variant_world_capitals_niu_original",
+      "ankiNoteId": 1720400000164,
+      "ankiCardId": 1720500000164,
+      "cca2": "NU",
+      "cca3": "NIU",
+      "country": "Niue",
+      "countryEnglish": "Niue",
+      "capitals": [
+        "Alofi"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_nfk",
+      "variantId": "variant_world_capitals_nfk_original",
+      "ankiNoteId": 1720400000161,
+      "ankiCardId": 1720500000161,
+      "cca2": "NF",
+      "cca3": "NFK",
+      "country": "Norfolkinsel",
+      "countryEnglish": "Norfolk Island",
+      "capitals": [
+        "Kingston"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_mnp",
+      "variantId": "variant_world_capitals_mnp_original",
+      "ankiNoteId": 1720400000149,
+      "ankiCardId": 1720500000149,
+      "cca2": "MP",
+      "cca3": "MNP",
+      "country": "Nördliche Marianen",
+      "countryEnglish": "Northern Mariana Islands",
+      "capitals": [
+        "Saipan"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_plw",
+      "variantId": "variant_world_capitals_plw_original",
+      "ankiNoteId": 1720400000176,
+      "ankiCardId": 1720500000176,
+      "cca2": "PW",
+      "cca3": "PLW",
+      "country": "Palau",
+      "countryEnglish": "Palau",
+      "capitals": [
+        "Ngerulmud"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_png",
+      "variantId": "variant_world_capitals_png_original",
+      "ankiNoteId": 1720400000177,
+      "ankiCardId": 1720500000177,
+      "cca2": "PG",
+      "cca3": "PNG",
+      "country": "Papua-Neuguinea",
+      "countryEnglish": "Papua New Guinea",
+      "capitals": [
+        "Port Moresby"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_pcn",
+      "variantId": "variant_world_capitals_pcn_original",
+      "ankiNoteId": 1720400000173,
+      "ankiCardId": 1720500000173,
+      "cca2": "PN",
+      "cca3": "PCN",
+      "country": "Pitcairninseln",
+      "countryEnglish": "Pitcairn Islands",
+      "capitals": [
+        "Adamstown"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_slb",
+      "variantId": "variant_world_capitals_slb_original",
+      "ankiNoteId": 1720400000196,
+      "ankiCardId": 1720500000196,
+      "cca2": "SB",
+      "cca3": "SLB",
+      "country": "Salomonen",
+      "countryEnglish": "Solomon Islands",
+      "capitals": [
+        "Honiara"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_wsm",
+      "variantId": "variant_world_capitals_wsm_original",
+      "ankiNoteId": 1720400000241,
+      "ankiCardId": 1720500000241,
+      "cca2": "WS",
+      "cca3": "WSM",
+      "country": "Samoa",
+      "countryEnglish": "Samoa",
+      "capitals": [
+        "Apia"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_tkl",
+      "variantId": "variant_world_capitals_tkl_original",
+      "ankiNoteId": 1720400000218,
+      "ankiCardId": 1720500000218,
+      "cca2": "TK",
+      "cca3": "TKL",
+      "country": "Tokelau",
+      "countryEnglish": "Tokelau",
+      "capitals": [
+        "Fakaofo"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_ton",
+      "variantId": "variant_world_capitals_ton_original",
+      "ankiNoteId": 1720400000221,
+      "ankiCardId": 1720500000221,
+      "cca2": "TO",
+      "cca3": "TON",
+      "country": "Tonga",
+      "countryEnglish": "Tonga",
+      "capitals": [
+        "Nuku'alofa"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_tuv",
+      "variantId": "variant_world_capitals_tuv_original",
+      "ankiNoteId": 1720400000225,
+      "ankiCardId": 1720500000225,
+      "cca2": "TV",
+      "cca3": "TUV",
+      "country": "Tuvalu",
+      "countryEnglish": "Tuvalu",
+      "capitals": [
+        "Funafuti"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_vut",
+      "variantId": "variant_world_capitals_vut_original",
+      "ankiNoteId": 1720400000239,
+      "ankiCardId": 1720500000239,
+      "cca2": "VU",
+      "cca3": "VUT",
+      "country": "Vanuatu",
+      "countryEnglish": "Vanuatu",
+      "capitals": [
+        "Port Vila"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_wlf",
+      "variantId": "variant_world_capitals_wlf_original",
+      "ankiNoteId": 1720400000240,
+      "ankiCardId": 1720500000240,
+      "cca2": "WF",
+      "cca3": "WLF",
+      "country": "Wallis und Futuna",
+      "countryEnglish": "Wallis and Futuna",
+      "capitals": [
+        "Mata-Utu"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_cxr",
+      "variantId": "variant_world_capitals_cxr_original",
+      "ankiNoteId": 1720400000055,
+      "ankiCardId": 1720500000055,
+      "cca2": "CX",
+      "cca3": "CXR",
+      "country": "Weihnachtsinsel",
+      "countryEnglish": "Christmas Island",
+      "capitals": [
+        "Flying Fish Cove"
+      ],
+      "continentId": "ozeanien",
+      "continent": "Ozeanien"
+    },
+    {
+      "id": "card_world_capitals_arg",
+      "variantId": "variant_world_capitals_arg_original",
+      "ankiNoteId": 1720400000009,
+      "ankiCardId": 1720500000009,
+      "cca2": "AR",
+      "cca3": "ARG",
+      "country": "Argentinien",
+      "countryEnglish": "Argentina",
+      "capitals": [
+        "Buenos Aires"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_bol",
+      "variantId": "variant_world_capitals_bol_original",
+      "ankiNoteId": 1720400000031,
+      "ankiCardId": 1720500000031,
+      "cca2": "BO",
+      "cca3": "BOL",
+      "country": "Bolivien",
+      "countryEnglish": "Bolivia",
+      "capitals": [
+        "Sucre"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_bra",
+      "variantId": "variant_world_capitals_bra_original",
+      "ankiNoteId": 1720400000033,
+      "ankiCardId": 1720500000033,
+      "cca2": "BR",
+      "cca3": "BRA",
+      "country": "Brasilien",
+      "countryEnglish": "Brazil",
+      "capitals": [
+        "Brasília"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_chl",
+      "variantId": "variant_world_capitals_chl_original",
+      "ankiNoteId": 1720400000042,
+      "ankiCardId": 1720500000042,
+      "cca2": "CL",
+      "cca3": "CHL",
+      "country": "Chile",
+      "countryEnglish": "Chile",
+      "capitals": [
+        "Santiago"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_ecu",
+      "variantId": "variant_world_capitals_ecu_original",
+      "ankiNoteId": 1720400000065,
+      "ankiCardId": 1720500000065,
+      "cca2": "EC",
+      "cca3": "ECU",
+      "country": "Ecuador",
+      "countryEnglish": "Ecuador",
+      "capitals": [
+        "Quito"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_flk",
+      "variantId": "variant_world_capitals_flk_original",
+      "ankiNoteId": 1720400000074,
+      "ankiCardId": 1720500000074,
+      "cca2": "FK",
+      "cca3": "FLK",
+      "country": "Falklandinseln",
+      "countryEnglish": "Falkland Islands",
+      "capitals": [
+        "Stanley"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_guf",
+      "variantId": "variant_world_capitals_guf_original",
+      "ankiNoteId": 1720400000093,
+      "ankiCardId": 1720500000093,
+      "cca2": "GF",
+      "cca3": "GUF",
+      "country": "Französisch-Guayana",
+      "countryEnglish": "French Guiana",
+      "capitals": [
+        "Cayenne"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_guy",
+      "variantId": "variant_world_capitals_guy_original",
+      "ankiNoteId": 1720400000095,
+      "ankiCardId": 1720500000095,
+      "cca2": "GY",
+      "cca3": "GUY",
+      "country": "Guyana",
+      "countryEnglish": "Guyana",
+      "capitals": [
+        "Georgetown"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_col",
+      "variantId": "variant_world_capitals_col_original",
+      "ankiNoteId": 1720400000049,
+      "ankiCardId": 1720500000049,
+      "cca2": "CO",
+      "cca3": "COL",
+      "country": "Kolumbien",
+      "countryEnglish": "Colombia",
+      "capitals": [
+        "Bogotá"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_pry",
+      "variantId": "variant_world_capitals_pry_original",
+      "ankiNoteId": 1720400000182,
+      "ankiCardId": 1720500000182,
+      "cca2": "PY",
+      "cca3": "PRY",
+      "country": "Paraguay",
+      "countryEnglish": "Paraguay",
+      "capitals": [
+        "Asunción"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_per",
+      "variantId": "variant_world_capitals_per_original",
+      "ankiNoteId": 1720400000174,
+      "ankiCardId": 1720500000174,
+      "cca2": "PE",
+      "cca3": "PER",
+      "country": "Peru",
+      "countryEnglish": "Peru",
+      "capitals": [
+        "Lima"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_sur",
+      "variantId": "variant_world_capitals_sur_original",
+      "ankiNoteId": 1720400000205,
+      "ankiCardId": 1720500000205,
+      "cca2": "SR",
+      "cca3": "SUR",
+      "country": "Suriname",
+      "countryEnglish": "Suriname",
+      "capitals": [
+        "Paramaribo"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_ury",
+      "variantId": "variant_world_capitals_ury_original",
+      "ankiNoteId": 1720400000230,
+      "ankiCardId": 1720500000230,
+      "cca2": "UY",
+      "cca3": "URY",
+      "country": "Uruguay",
+      "countryEnglish": "Uruguay",
+      "capitals": [
+        "Montevideo"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    },
+    {
+      "id": "card_world_capitals_ven",
+      "variantId": "variant_world_capitals_ven_original",
+      "ankiNoteId": 1720400000235,
+      "ankiCardId": 1720500000235,
+      "cca2": "VE",
+      "cca3": "VEN",
+      "country": "Venezuela",
+      "countryEnglish": "Venezuela",
+      "capitals": [
+        "Caracas"
+      ],
+      "continentId": "suedamerika",
+      "continent": "Südamerika"
+    }
+  ]
+}

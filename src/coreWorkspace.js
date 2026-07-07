@@ -76,12 +76,147 @@ function collectDeckTreeIds(decks = [], rootDeckId) {
   return ids;
 }
 
+function hierarchyPathOf(deck) {
+  return Array.isArray(deck?.hierarchyPath) && deck.hierarchyPath.length > 0
+    ? deck.hierarchyPath.map((part) => String(part).trim()).filter(Boolean)
+    : [String(deck?.name ?? "Neuer Stapel").trim() || "Neuer Stapel"];
+}
+
+function normalizeDeckName(value) {
+  return String(value ?? "").trim().replace(/\s+/g, " ");
+}
+
+function makeUniqueSiblingDeckName(decks = [], { name, parentDeckId = null, excludeDeckId = null } = {}) {
+  const baseName = normalizeDeckName(name) || "Neuer Stapel";
+  const siblingNames = new Set(
+    decks
+      .filter((deck) => deck.id !== excludeDeckId && (deck.parentDeckId ?? null) === (parentDeckId ?? null))
+      .map((deck) => normalizeDeckName(deck.name).toLowerCase())
+      .filter(Boolean),
+  );
+  let candidate = baseName;
+
+  while (siblingNames.has(candidate.toLowerCase())) {
+    candidate = `${candidate}+`;
+  }
+
+  return candidate;
+}
+
 function createHierarchyPathForDeck(decks = [], { name, parentDeckId = null } = {}) {
-  const deckName = String(name ?? "").trim() || "Neuer Stapel";
+  const deckName = makeUniqueSiblingDeckName(decks, { name, parentDeckId });
   const parent = parentDeckId ? decks.find((deck) => deck.id === parentDeckId) ?? null : null;
-  const parentPath = parent?.hierarchyPath?.length ? parent.hierarchyPath : parent ? [parent.name] : [];
+  const parentPath = parent ? hierarchyPathOf(parent) : [];
 
   return [...parentPath, deckName];
+}
+
+function createDeckMutationError(error) {
+  return {
+    ok: false,
+    error,
+    deck: null,
+    updatedDecks: [],
+    changedDeckIds: [],
+  };
+}
+
+function updateDeckTreePlacement(state, { deckId, name = null, parentDeckId = undefined, changeType, reason }) {
+  const decks = state.decks ?? [];
+  const deck = decks.find((item) => item.id === deckId);
+  if (!deck) return createDeckMutationError("Stapel nicht gefunden.");
+
+  const movedTreeIds = collectDeckTreeIds(decks, deckId);
+  const wantsParentChange = parentDeckId !== undefined;
+  const requestedParentId = wantsParentChange ? parentDeckId || null : deck.parentDeckId ?? null;
+  const parent = requestedParentId ? decks.find((item) => item.id === requestedParentId) ?? null : null;
+
+  if (requestedParentId && !parent) return createDeckMutationError("Zielstapel nicht gefunden.");
+  if (requestedParentId && movedTreeIds.has(requestedParentId)) {
+    return createDeckMutationError("Ein Stapel kann nicht in sich selbst oder einen eigenen Unterstapel verschoben werden.");
+  }
+
+  const nextName = makeUniqueSiblingDeckName(decks, {
+    name: name == null ? deck.name : name,
+    parentDeckId: requestedParentId,
+    excludeDeckId: deck.id,
+  });
+  if (!nextName) return createDeckMutationError("Bitte gib einen Stapelnamen ein.");
+
+  const oldRootPath = hierarchyPathOf(deck);
+  const parentPath = parent ? hierarchyPathOf(parent) : [];
+  const nextRootPath = [...parentPath, nextName];
+  const unchanged =
+    normalizeDeckName(deck.name) === nextName &&
+    (deck.parentDeckId ?? null) === requestedParentId &&
+    oldRootPath.join("\u001f") === nextRootPath.join("\u001f");
+
+  if (unchanged) {
+    return {
+      ok: true,
+      error: null,
+      deck,
+      updatedDecks: [deck],
+      changedDeckIds: [],
+      renamedTo: nextName,
+      movedToParentDeckId: requestedParentId,
+    };
+  }
+
+  const updatedAt = new Date().toISOString();
+  const changedDeckIds = [...movedTreeIds];
+  const nextDecks = decks.map((currentDeck) => {
+    if (!movedTreeIds.has(currentDeck.id)) return currentDeck;
+
+    const currentPath = hierarchyPathOf(currentDeck);
+    const suffix = currentDeck.id === deck.id ? [] : currentPath.slice(oldRootPath.length);
+    const nextPath = currentDeck.id === deck.id ? nextRootPath : [...nextRootPath, ...suffix];
+    const isRoot = currentDeck.id === deck.id;
+
+    return createCoreDeck({
+      ...currentDeck,
+      name: isRoot ? nextName : currentDeck.name,
+      parentDeckId: isRoot ? requestedParentId : currentDeck.parentDeckId ?? null,
+      hierarchyPath: nextPath,
+      updatedAt,
+      versionLog: isRoot
+        ? [
+            ...(currentDeck.versionLog ?? []),
+            createVersionEntry({
+              objectType: "deck",
+              objectId: currentDeck.id,
+              changeType,
+              before: {
+                name: currentDeck.name,
+                parentDeckId: currentDeck.parentDeckId ?? null,
+                hierarchyPath: hierarchyPathOf(currentDeck),
+              },
+              after: {
+                name: nextName,
+                parentDeckId: requestedParentId,
+                hierarchyPath: nextPath,
+              },
+              reason,
+              createdAt: updatedAt,
+            }),
+          ]
+        : currentDeck.versionLog,
+    });
+  });
+  const savedState = state.decks === nextDecks ? state : null;
+  const saved = savedState ?? null;
+
+  return {
+    ok: true,
+    error: null,
+    nextDecks,
+    deck: nextDecks.find((item) => item.id === deck.id) ?? null,
+    updatedDecks: nextDecks.filter((item) => changedDeckIds.includes(item.id)),
+    changedDeckIds,
+    renamedTo: nextName,
+    movedToParentDeckId: requestedParentId,
+    saved,
+  };
 }
 
 export function createCoreWorkspace(repository = createCoreRepository()) {
@@ -100,7 +235,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
       const validParentId = parentDeckId && state.decks.some((deck) => deck.id === parentDeckId) ? parentDeckId : null;
       const hierarchyPath = createHierarchyPathForDeck(state.decks, { name, parentDeckId: validParentId });
       const deck = createCoreDeck({
-        name: String(name ?? "").trim() || hierarchyPath.at(-1) || "Neuer Stapel",
+        name: hierarchyPath.at(-1) || "Neuer Stapel",
         description,
         source: "manual",
         parentDeckId: validParentId,
@@ -110,6 +245,51 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
       });
 
       return repository.saveDeck(deck);
+    },
+    renameDeck(deckId, name) {
+      const trimmedName = normalizeDeckName(name);
+      if (!trimmedName) return createDeckMutationError("Bitte gib einen Stapelnamen ein.");
+
+      const state = repository.getState();
+      const result = updateDeckTreePlacement(state, {
+        deckId,
+        name: trimmedName,
+        changeType: "deck_renamed",
+        reason: "Stapel umbenannt",
+      });
+      if (!result.ok || !result.nextDecks) return result;
+
+      const saved = repository.saveState({
+        ...state,
+        decks: result.nextDecks,
+      });
+      const changedIds = new Set(result.changedDeckIds);
+      return {
+        ...result,
+        deck: saved.decks.find((deck) => deck.id === deckId) ?? null,
+        updatedDecks: saved.decks.filter((deck) => changedIds.has(deck.id)),
+      };
+    },
+    moveDeck(deckId, parentDeckId = null) {
+      const state = repository.getState();
+      const result = updateDeckTreePlacement(state, {
+        deckId,
+        parentDeckId,
+        changeType: "deck_moved",
+        reason: parentDeckId ? "Stapel als Unterstapel verschoben" : "Stapel auf Hauptebene verschoben",
+      });
+      if (!result.ok || !result.nextDecks) return result;
+
+      const saved = repository.saveState({
+        ...state,
+        decks: result.nextDecks,
+      });
+      const changedIds = new Set(result.changedDeckIds);
+      return {
+        ...result,
+        deck: saved.decks.find((deck) => deck.id === deckId) ?? null,
+        updatedDecks: saved.decks.filter((deck) => changedIds.has(deck.id)),
+      };
     },
     updateDeck(deckId, updater) {
       return repository.updateDeck(deckId, updater);
