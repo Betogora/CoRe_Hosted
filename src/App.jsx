@@ -35,6 +35,7 @@ export function App() {
   const [state, setState] = React.useState(() => workspace.getState());
   const [activeView, setActiveView] = React.useState(menu.defaultViewId);
   const [studyRequest, setStudyRequest] = React.useState(null);
+  const [focusedDeckId, setFocusedDeckId] = React.useState(null);
   const navigationItems = menu.listNavigationItems();
 
   function refresh() {
@@ -52,10 +53,24 @@ export function App() {
     return saved;
   }
 
+  function createDeck(input) {
+    const saved = workspace.createDeck(input);
+    setFocusedDeckId(saved.id);
+    refresh();
+    return saved;
+  }
+
   function updateDeck(deckId, updater) {
     const updated = workspace.updateDeck(deckId, updater);
     refresh();
     return updated;
+  }
+
+  function deleteDeck(deckId) {
+    const result = workspace.deleteDeckTree(deckId);
+    setFocusedDeckId(result.nextSelectedDeckId);
+    refresh();
+    return result;
   }
 
   function setDeckCoreMode(deckId, coreMode) {
@@ -78,6 +93,12 @@ export function App() {
 
   function addDeckCardVariant(deckId, cardId, variant) {
     const updated = workspace.addDeckCardVariant(deckId, cardId, variant);
+    refresh();
+    return updated;
+  }
+
+  function addManualCardToDeck(deckId, manualDeckInput) {
+    const updated = workspace.addManualCardToDeck(deckId, manualDeckInput);
     refresh();
     return updated;
   }
@@ -115,6 +136,11 @@ export function App() {
     setStudyRequest({ deckId: deck.id, variantSession });
   }
 
+  function openDecks(deckId = null) {
+    setFocusedDeckId(deckId);
+    setActiveView("kartenstapel");
+  }
+
   function updateAllDecks(updater) {
     workspace.updateAllDecks(updater);
     refresh();
@@ -148,17 +174,20 @@ export function App() {
           onAddVariant={addDeckCardVariant}
           onApplyVariantJson={applyVariantJson}
           onStartDeck={startDeck}
-          onCreateDeck={() => setActiveView("neue-karten")}
+          initialSelectedDeckId={focusedDeckId}
+          onCreateDeck={createDeck}
+          onDeleteDeck={deleteDeck}
+          onOpenCardCreation={() => setActiveView("neue-karten")}
           onOpenGraph={openGraph}
           onShareDeck={shareDeck}
         />
       );
     }
     if (activeView === "neue-karten") {
-      return <CreationScreen decks={state.decks} onCreated={saveDeck} onJob={saveJob} />;
+      return <CreationScreen decks={state.decks} onCreated={saveDeck} onAppendManualCard={addManualCardToDeck} onJob={saveJob} />;
     }
     if (activeView === "lernen") {
-      return <LearnScreen decks={state.decks} onStartDeck={startDeck} onCreateDeck={() => setActiveView("neue-karten")} onOpenDecks={() => setActiveView("kartenstapel")} />;
+      return <LearnScreen decks={state.decks} onStartDeck={startDeck} onCreateDeck={() => setActiveView("neue-karten")} onOpenDecks={openDecks} />;
     }
     if (activeView === "graph") {
       return <GraphScreen decks={state.decks} onUpdateDeck={updateDeck} />;

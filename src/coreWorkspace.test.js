@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.js";
+import { createSourceDocument, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.js";
 import { createCoreRepository } from "./coreRepository.js";
 import { createCoreWorkspace, createDemoAnatomyDeck } from "./coreWorkspace.js";
 
@@ -23,13 +23,17 @@ function createTestWorkspace() {
   return createCoreWorkspace(createCoreRepository(createMemoryStorage()));
 }
 
-function parsedApkgFixture() {
+function parsedApkgFixture(overrides = {}) {
+  const decks = overrides.decks ?? [{ id: "1", name: "Workspace APKG" }];
+  const notes = overrides.notes ?? [{ id: 10, mid: 99, tags: "apkg", flds: "Workspace front?\u001fWorkspace back." }];
+  const cards = overrides.cards ?? [{ id: 20, nid: 10, did: 1, ord: 0 }];
+
   return {
     file: { name: "workspace.apkg", size: 1024 },
-    decks: [{ id: "1", name: "Workspace APKG" }],
+    decks,
     colRows: [
       {
-        decks: JSON.stringify({ 1: { id: 1, name: "Workspace APKG" } }),
+        decks: JSON.stringify(Object.fromEntries(decks.map((deck) => [deck.id, { id: deck.id, name: deck.name }]))),
         models: JSON.stringify({
           99: {
             name: "Basic",
@@ -39,8 +43,8 @@ function parsedApkgFixture() {
         }),
       },
     ],
-    notes: [{ id: 10, mid: 99, tags: "apkg", flds: "Workspace front?\u001fWorkspace back." }],
-    cards: [{ id: 20, nid: 10, did: 1, ord: 0 }],
+    notes,
+    cards,
   };
 }
 
@@ -69,6 +73,93 @@ test("workspace APKG commands dry-run and commit through normalized import", asy
   assert.equal(committed.deck.cards[0].sourceType, "anki_import");
   assert.equal(committed.deck.cards[0].reviewState.schedulerVersion, "fsrs_v1");
   assert.equal(workspace.getState().decks.length, 1);
+});
+
+test("workspace APKG commit preserves nested Anki subdecks", async () => {
+  const workspace = createTestWorkspace();
+  const committed = await workspace.commitApkgImport(
+    parsedApkgFixture({
+      decks: [
+        { id: "1", name: "Medizin" },
+        { id: "2", name: "Medizin::Anatomie" },
+        { id: "3", name: "Medizin::Anatomie::Kopf" },
+      ],
+      notes: [{ id: 10, mid: 99, tags: "ana", flds: "Was ist der Nervus vagus?\u001fHirnnerv X." }],
+      cards: [{ id: 20, nid: 10, did: 3, ord: 0 }],
+    }),
+  );
+  const state = workspace.getState();
+  const root = state.decks.find((deck) => deck.name === "Medizin");
+  const child = state.decks.find((deck) => deck.name === "Anatomie");
+  const grandchild = state.decks.find((deck) => deck.name === "Kopf");
+
+  assert.equal(committed.decks.length, 3);
+  assert.ok(root);
+  assert.ok(child);
+  assert.ok(grandchild);
+  assert.equal(root.parentDeckId, null);
+  assert.equal(child.parentDeckId, root.id);
+  assert.equal(grandchild.parentDeckId, child.id);
+  assert.deepEqual(grandchild.hierarchyPath, ["Medizin", "Anatomie", "Kopf"]);
+  assert.equal(root.cards.length, 0);
+  assert.equal(child.cards.length, 0);
+  assert.equal(grandchild.cards.length, 1);
+});
+
+test("workspace creates manual deck trees and deletes a selected subtree", () => {
+  const workspace = createTestWorkspace();
+  const root = workspace.createDeck({ name: "Medizin" });
+  const anatomy = workspace.createDeck({ name: "Anatomie", parentDeckId: root.id });
+  const head = workspace.createDeck({ name: "Kopf", parentDeckId: anatomy.id });
+  const physio = workspace.createDeck({ name: "Physio", parentDeckId: root.id });
+
+  assert.equal(anatomy.parentDeckId, root.id);
+  assert.equal(head.parentDeckId, anatomy.id);
+  assert.deepEqual(head.hierarchyPath, ["Medizin", "Anatomie", "Kopf"]);
+  assert.deepEqual(physio.hierarchyPath, ["Medizin", "Physio"]);
+
+  const deleted = workspace.deleteDeckTree(anatomy.id);
+  const remainingIds = workspace.getState().decks.map((deck) => deck.id);
+
+  assert.deepEqual(new Set(deleted.deletedDeckIds), new Set([anatomy.id, head.id]));
+  assert.equal(remainingIds.includes(root.id), true);
+  assert.equal(remainingIds.includes(physio.id), true);
+  assert.equal(remainingIds.includes(anatomy.id), false);
+  assert.equal(remainingIds.includes(head.id), false);
+});
+
+test("workspace appends a manual card to an existing deck with source document", () => {
+  const workspace = createTestWorkspace();
+  const deck = workspace.createDemoDeck();
+  const document = createSourceDocument({
+    fileName: "quelle.txt",
+    text: "Osmose ist die gerichtete Diffusion von Wasser.",
+    textExtractionStatus: "success",
+  });
+
+  const updated = workspace.addManualCardToDeck(deck.id, {
+    deckName: deck.name,
+    card: {
+      cardType: "free-text",
+      front: "Definiere Osmose.",
+      back: "Osmose ist die gerichtete Diffusion von Wasser.",
+      tags: "physiologie",
+    },
+    documentContext: {
+      document,
+      documentId: document.id,
+      fileName: document.fileName,
+      documentText: document.text,
+      selection: "gerichtete Diffusion von Wasser",
+      targetField: "back",
+    },
+  });
+  const appended = updated.cards.at(-1);
+
+  assert.equal(updated.cards.length, deck.cards.length + 1);
+  assert.equal(appended.kind, "free-text");
+  assert.equal(appended.sourceAnchors[0].targetField, "back");
+  assert.equal(updated.sourceDocuments[0].fileName, "quelle.txt");
 });
 
 test("workspace graph and community commands hide app orchestration", () => {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { getOriginalVariant } from "./coreModel.js";
 import { createCreationWorkflow } from "./creationWorkflow.js";
+import { formatPdfTextContentItems } from "./documentModel.js";
 
 test("creation workflow hides pasted text and spreadsheet import details", () => {
   const workflow = createCreationWorkflow();
@@ -59,6 +60,37 @@ test("creation workflow captures manual document anchors behind one interface", 
   assert.equal(deck.sourceDocuments[0].fileName, "quelle.txt");
   assert.equal(card.sourceAnchors[0].targetField, "back");
   assert.equal(getOriginalVariant(card).front, "Was ist ATP?");
+});
+
+test("creation workflow prepares multiple-choice manual cards", () => {
+  const workflow = createCreationWorkflow();
+  const input = workflow.createManualDeckInput({
+    deckName: "MC",
+    cardType: "multiple-choice",
+    front: "Welche Aussage stimmt?",
+    answerOptions: "A falsch\nB richtig\nC falsch",
+    correctAnswer: "B richtig",
+    back: "B ist richtig, weil die Definition passt.",
+  });
+
+  assert.equal(input.card.cardType, "multiple-choice");
+  assert.deepEqual(input.card.answerOptions, ["A falsch", "B richtig", "C falsch"]);
+  assert.equal(input.card.correctAnswer, "B richtig");
+  assert.equal(workflow.canCreateManualCard({ cardType: "multiple-choice", front: input.card.front, answerOptions: input.card.answerOptions, correctAnswer: input.card.correctAnswer }), true);
+});
+
+test("formats synthetic PDF text items into readable page lines", () => {
+  const text = formatPdfTextContentItems(
+    [
+      { str: "zweite", transform: [1, 0, 0, 1, 10, 80] },
+      { str: "Zeile", transform: [1, 0, 0, 1, 58, 80] },
+      { str: "Erste", transform: [1, 0, 0, 1, 10, 110] },
+      { str: "Zeile", transform: [1, 0, 0, 1, 55, 110] },
+    ],
+    { pageNumber: 2 },
+  );
+
+  assert.equal(text, "Seite 2\nErste Zeile\nzweite Zeile");
 });
 
 test("creation workflow owns AI draft generation and acceptance", () => {

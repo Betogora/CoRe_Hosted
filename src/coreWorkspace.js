@@ -4,7 +4,7 @@ import {
   dryRunApkgImport as dryRunApkgImportService,
   importApkgDeck as importApkgDeckService,
 } from "./apkgImport.js";
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.js";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.js";
 import { createCoreRepository } from "./coreRepository.js";
 import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.js";
 import { buildDeckGraph } from "./deckGraph.js";
@@ -54,6 +54,36 @@ function softDeleteCard(card, deletedAt) {
   };
 }
 
+function mergeSourceDocuments(existingDocuments = [], nextDocuments = []) {
+  const nextIds = new Set(nextDocuments.map((document) => document.id));
+  return [...nextDocuments, ...existingDocuments.filter((document) => !nextIds.has(document.id))];
+}
+
+function collectDeckTreeIds(decks = [], rootDeckId) {
+  const ids = new Set([rootDeckId]);
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const deck of decks) {
+      if (deck.parentDeckId && ids.has(deck.parentDeckId) && !ids.has(deck.id)) {
+        ids.add(deck.id);
+        changed = true;
+      }
+    }
+  }
+
+  return ids;
+}
+
+function createHierarchyPathForDeck(decks = [], { name, parentDeckId = null } = {}) {
+  const deckName = String(name ?? "").trim() || "Neuer Stapel";
+  const parent = parentDeckId ? decks.find((deck) => deck.id === parentDeckId) ?? null : null;
+  const parentPath = parent?.hierarchyPath?.length ? parent.hierarchyPath : parent ? [parent.name] : [];
+
+  return [...parentPath, deckName];
+}
+
 export function createCoreWorkspace(repository = createCoreRepository()) {
   return {
     getState() {
@@ -65,8 +95,49 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
     saveDeck(deck) {
       return repository.saveDeck(deck);
     },
+    createDeck({ name = "Neuer Stapel", parentDeckId = null, description = "", deckSettings = {} } = {}) {
+      const state = repository.getState();
+      const validParentId = parentDeckId && state.decks.some((deck) => deck.id === parentDeckId) ? parentDeckId : null;
+      const hierarchyPath = createHierarchyPathForDeck(state.decks, { name, parentDeckId: validParentId });
+      const deck = createCoreDeck({
+        name: String(name ?? "").trim() || hierarchyPath.at(-1) || "Neuer Stapel",
+        description,
+        source: "manual",
+        parentDeckId: validParentId,
+        hierarchyPath,
+        deckSettings,
+        cards: [],
+      });
+
+      return repository.saveDeck(deck);
+    },
     updateDeck(deckId, updater) {
       return repository.updateDeck(deckId, updater);
+    },
+    deleteDeckTree(deckId) {
+      const state = repository.getState();
+      const deck = state.decks.find((item) => item.id === deckId);
+      if (!deck) {
+        return {
+          deletedDeckIds: [],
+          deletedDecks: [],
+          nextSelectedDeckId: state.decks[0]?.id ?? null,
+        };
+      }
+
+      const deletedIds = collectDeckTreeIds(state.decks, deckId);
+      const deletedDecks = state.decks.filter((item) => deletedIds.has(item.id));
+      const remainingDecks = state.decks.filter((item) => !deletedIds.has(item.id));
+      repository.saveState({
+        ...state,
+        decks: remainingDecks,
+      });
+
+      return {
+        deletedDeckIds: [...deletedIds],
+        deletedDecks,
+        nextSelectedDeckId: remainingDecks[0]?.id ?? null,
+      };
     },
     setDeckCoreMode(deckId, coreMode) {
       return repository.updateDeckSettings(deckId, { coreMode });
@@ -112,6 +183,35 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
             : card,
         ),
       }));
+    },
+    addManualCardToDeck(deckId, manualDeckInput) {
+      const createdAt = new Date().toISOString();
+      const manualDeck = createManualCoreDeck({
+        ...manualDeckInput,
+        deckName: manualDeckInput?.deckName ?? "Manuelle Karte",
+      });
+      const manualCard = manualDeck.cards[0];
+      if (!manualCard) return null;
+
+      return repository.updateDeck(deckId, (deck) =>
+        createCoreDeck({
+          ...deck,
+          cards: [...(deck.cards ?? []), manualCard],
+          sourceDocuments: mergeSourceDocuments(deck.sourceDocuments ?? [], manualDeck.sourceDocuments ?? []),
+          updatedAt: createdAt,
+          versionLog: [
+            ...(deck.versionLog ?? []),
+            createVersionEntry({
+              objectType: "deck",
+              objectId: deck.id,
+              changeType: "manual_card_added",
+              after: { cardId: manualCard.id },
+              reason: "Manuelle Karte hinzugefügt",
+              createdAt,
+            }),
+          ],
+        }),
+      );
     },
     applyVariantGenerationResponse(deckId, cardId, response, options = {}) {
       let generationResult = null;

@@ -58,6 +58,27 @@ function heatmapLevel(count, maxCount) {
   return 1;
 }
 
+function formatShortDate(value) {
+  const date = new Date(value);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+}
+
+function monthShortLabel(value) {
+  return ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"][new Date(value).getMonth()];
+}
+
+function createHeatmapMonthLabels(weeks) {
+  return weeks.map((week, weekIndex) => {
+    const monthStart = week.find((day) => new Date(day.date).getDate() === 1);
+    if (monthStart) return monthShortLabel(monthStart.date);
+    if (weekIndex === 0) return monthShortLabel(week[0].date);
+    return "";
+  });
+}
+
 function currentStreakLength(days) {
   let streak = 0;
   for (const day of [...days].reverse()) {
@@ -95,6 +116,7 @@ function createDeckRow(deck, { now, cardLimit, scopeDecks = [deck], depth = 0, c
     deck,
     name: deck.name,
     path: deckPath(deck),
+    parentDeckId: deck.parentDeckId ?? null,
     depth,
     childrenCount,
     hasChildren: childrenCount > 0,
@@ -194,8 +216,22 @@ function flattenDeckTree(decks, options = {}) {
   return rows;
 }
 
+export function createVisibleDeckRows(rows = [], collapsedDeckIds = new Set()) {
+  const collapsedIds = collapsedDeckIds instanceof Set ? collapsedDeckIds : new Set(collapsedDeckIds);
+  const rowById = new Map(rows.map((row) => [row.id, row]));
+
+  return rows.filter((row) => {
+    let parentId = row.parentDeckId;
+    while (parentId) {
+      if (collapsedIds.has(parentId)) return false;
+      parentId = rowById.get(parentId)?.parentDeckId ?? null;
+    }
+    return true;
+  });
+}
+
 export function createStudyHeatmapModel(decks = [], options = {}) {
-  const weekCount = Math.max(4, Math.round(Number(options.weeks ?? 12) || 12));
+  const weekCount = Math.max(4, Math.round(Number(options.weeks ?? 53) || 53));
   const today = startOfLocalDay(options.now ?? new Date());
   const firstWeekStart = addLocalDays(startOfWeek(today), -(weekCount - 1) * 7);
   const lastDay = addLocalDays(firstWeekStart, weekCount * 7 - 1);
@@ -227,15 +263,25 @@ export function createStudyHeatmapModel(decks = [], options = {}) {
   const maxCount = visibleDays.reduce((max, day) => Math.max(max, day.count), 0);
   const daysWithLevels = days.map((day) => ({ ...day, level: heatmapLevel(day.count, maxCount) }));
   const weeks = Array.from({ length: weekCount }, (_, index) => daysWithLevels.slice(index * 7, index * 7 + 7));
+  const totalCount = visibleDays.reduce((sum, day) => sum + day.count, 0);
+  const activeDays = visibleDays.filter((day) => day.count > 0).length;
+  const bestDay = visibleDays.reduce((best, day) => (day.count > (best?.count ?? 0) ? day : best), null);
 
   return {
     days: daysWithLevels,
     weeks,
+    weekCount,
     maxCount,
-    totalCount: visibleDays.reduce((sum, day) => sum + day.count, 0),
-    activeDays: visibleDays.filter((day) => day.count > 0).length,
+    totalCount,
+    activeDays,
+    averagePerActiveDay: activeDays ? Math.round((totalCount / activeDays) * 10) / 10 : 0,
+    bestDay: bestDay?.count > 0 ? bestDay : null,
+    rangeStartKey: localDateKey(firstWeekStart),
+    rangeEndKey: localDateKey(today),
+    rangeLabel: `${formatShortDate(firstWeekStart)} - ${formatShortDate(today)}`,
     currentStreak: currentStreakLength(daysWithLevels),
     longestStreak: longestStreakLength(daysWithLevels),
+    monthLabels: createHeatmapMonthLabels(weeks),
     weekdayLabels: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
   };
 }

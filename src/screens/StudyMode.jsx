@@ -14,6 +14,8 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   const [showAnswer, setShowAnswer] = React.useState(false);
   const [showAnchor, setShowAnchor] = React.useState(false);
   const [showSettings, setShowSettings] = React.useState(false);
+  const [selectedChoice, setSelectedChoice] = React.useState("");
+  const [typedAnswer, setTypedAnswer] = React.useState("");
   const rootDeck = sessionDecks.find((candidate) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
   const queue = React.useMemo(
     () =>
@@ -33,6 +35,11 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
   const anchorMiniCard = current?.answerSideAnchorMiniCard;
   const { urls: studyMediaUrls } = useDeckMediaUrls(currentDeck);
+  const cardType = sourceCard?.kind ?? sourceCard?.cardType ?? current?.variant?.meta?.cardType ?? "basic";
+  const answerOptions = current?.variant?.answerOptionsJson ?? sourceCard?.meta?.answerOptions ?? [];
+  const expectedAnswer = current?.variant?.expectedAnswerJson ?? sourceCard?.meta?.correctAnswer ?? sourceCard?.meta?.expectedAnswer ?? current?.back ?? "";
+  const isMultipleChoice = cardType === "multiple-choice" && Array.isArray(answerOptions) && answerOptions.length > 0;
+  const isFreeText = cardType === "free-text";
 
   React.useEffect(() => {
     setSessionDecks(decks);
@@ -41,7 +48,14 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
     setShowAnswer(false);
     setShowAnchor(false);
     setShowSettings(false);
+    setSelectedChoice("");
+    setTypedAnswer("");
   }, [deckId, variantSession, decks.length]);
+
+  React.useEffect(() => {
+    setSelectedChoice("");
+    setTypedAnswer("");
+  }, [current?.learningItemId, current?.variantId]);
 
   function reviewItemKey(item = current) {
     return item ? `${item.deckId}:${item.learningItemId}` : "";
@@ -67,6 +81,8 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
     setReviewedCount(nextCount);
     setShowAnswer(false);
     setShowAnchor(false);
+    setSelectedChoice("");
+    setTypedAnswer("");
 
     if (nextQueue.total === 0) {
       onExit();
@@ -186,6 +202,28 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                   <div className="text-2xl font-semibold leading-relaxed text-[#17214f] sm:text-4xl">
                     <CardHtml html={current.front} mediaUrls={studyMediaUrls} />
                   </div>
+                  {isMultipleChoice ? (
+                    <div className="mt-6 grid gap-2">
+                      {answerOptions.map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setSelectedChoice(option)}
+                          className={`min-h-11 rounded-xl border px-4 text-left text-sm font-semibold ${
+                            selectedChoice === option ? "border-[#4f5eb1] bg-[#eef1fb] text-[#24327a]" : "border-[#dfe4f5] bg-white/80 text-[#4e5b8c]"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  {isFreeText && !showAnswer ? (
+                    <label className="mt-6 grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                      Deine Antwort
+                      <textarea className="min-h-28 rounded-xl border border-[#dfe4f5] bg-white/80 p-3 text-base leading-7 text-[#17214f]" value={typedAnswer} onChange={(event) => setTypedAnswer(event.target.value)} />
+                    </label>
+                  ) : null}
                   <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-[#66709a]">
                     <span className="rounded-lg bg-[#eef1fb] px-2 py-1">{isCurrentVariant ? `Variante Level ${current.variant.variantLevel ?? 1}` : "Originalkarte"}</span>
                     <span className="rounded-lg bg-[#f8f9fe] px-2 py-1">{current.maturity?.label ?? maturityStageLabels[current.maturity?.stage] ?? "Reifegrad"}</span>
@@ -198,6 +236,18 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                       <div className="text-xl font-semibold leading-relaxed text-[#17214f] sm:text-3xl">
                         <CardHtml html={current.back} mediaUrls={studyMediaUrls} />
                       </div>
+                      {isMultipleChoice ? (
+                        <div className="mt-5 rounded-2xl border border-[#dfe4f5] bg-[#f8f9fe] p-4 text-sm text-[#4e5b8c]">
+                          <p className="font-semibold text-[#17214f]">Richtige Antwort: {expectedAnswer}</p>
+                          {selectedChoice ? <p className="mt-2">Deine Auswahl: {selectedChoice}</p> : null}
+                        </div>
+                      ) : null}
+                      {isFreeText && typedAnswer.trim() ? (
+                        <div className="mt-5 rounded-2xl border border-[#dfe4f5] bg-[#f8f9fe] p-4 text-sm text-[#4e5b8c]">
+                          <p className="font-semibold text-[#17214f]">Deine Antwort</p>
+                          <p className="mt-2 whitespace-pre-wrap">{typedAnswer}</p>
+                        </div>
+                      ) : null}
                       {anchorMiniCard?.shouldShow ? (
                         <div className="mt-6 rounded-2xl border border-[#dfe4f5] bg-[#f8f9fe] p-5">
                           <p className="text-sm font-semibold uppercase tracking-wide text-[#66709a]">Ursprungskarte</p>

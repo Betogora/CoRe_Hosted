@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createCoreCard, createCoreDeck } from "./coreModel.js";
-import { createAiJobLedger, createDeckLibraryModel, createStudyHeatmapModel } from "./libraryModel.js";
+import { createAiJobLedger, createDeckLibraryModel, createStudyHeatmapModel, createVisibleDeckRows } from "./libraryModel.js";
 
 function createDeckWithInactiveCards() {
   const active = createCoreCard({
@@ -130,12 +130,49 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
   assert.equal(library.rows[0].id, parent.id);
   assert.equal(parentRow.depth, 0);
   assert.equal(childRow.depth, 1);
+  assert.equal(childRow.parentDeckId, parent.id);
   assert.deepEqual(parentRow.scopeDeckIds, [parent.id, child.id]);
   assert.equal(parentRow.directSummary.totalCards, 0);
   assert.equal(parentRow.summary.totalCards, 1);
   assert.equal(parentRow.summary.newCards, 1);
   assert.equal(childRow.summary.totalCards, 1);
   assert.equal(library.totals.totalCards, 1);
+});
+
+test("visible deck rows hide descendants of collapsed parent decks", () => {
+  const parent = createCoreDeck({
+    id: "deck_parent",
+    name: "Medizin",
+    source: "manual",
+    hierarchyPath: ["Medizin"],
+    cards: [],
+  });
+  const child = createCoreDeck({
+    id: "deck_child",
+    name: "Anatomie",
+    source: "manual",
+    parentDeckId: parent.id,
+    hierarchyPath: ["Medizin", "Anatomie"],
+    cards: [],
+  });
+  const grandchild = createCoreDeck({
+    id: "deck_grandchild",
+    name: "Kopf",
+    source: "manual",
+    parentDeckId: child.id,
+    hierarchyPath: ["Medizin", "Anatomie", "Kopf"],
+    cards: [],
+  });
+  const library = createDeckLibraryModel([parent, child, grandchild], { now: "2026-07-01T08:00:00.000Z" });
+
+  assert.deepEqual(
+    createVisibleDeckRows(library.rows, new Set([parent.id])).map((row) => row.id),
+    [parent.id],
+  );
+  assert.deepEqual(
+    createVisibleDeckRows(library.rows, new Set([child.id])).map((row) => row.id),
+    [parent.id, child.id],
+  );
 });
 
 test("study heatmap counts learned cards by local day", () => {
@@ -158,10 +195,16 @@ test("study heatmap counts learned cards by local day", () => {
   });
 
   assert.equal(heatmap.weeks.length, 4);
+  assert.equal(heatmap.weekCount, 4);
   assert.equal(heatmap.totalCount, 4);
   assert.equal(heatmap.activeDays, 3);
+  assert.equal(heatmap.averagePerActiveDay, 1.3);
   assert.equal(heatmap.currentStreak, 2);
   assert.equal(heatmap.longestStreak, 2);
+  assert.equal(heatmap.bestDay.key, "2026-07-07");
+  assert.equal(heatmap.bestDay.count, 2);
+  assert.equal(heatmap.rangeLabel, "15.06.2026 - 07.07.2026");
+  assert.ok(heatmap.monthLabels.includes("Jul"));
   assert.equal(heatmap.days.find((day) => day.key === "2026-07-07").count, 2);
   assert.equal(heatmap.days.find((day) => day.key === "2026-07-07").level, 4);
 });

@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronRight, Copy, Layers, Network, Play, PlusSquare, Save, Search, Share2, Sparkles, Trash2, WandSparkles } from "lucide-react";
+import { ChevronRight, Copy, FolderPlus, Layers, Network, Play, PlusSquare, Save, Search, Share2, Sparkles, Trash2, WandSparkles } from "lucide-react";
 import { getOriginalVariant, getVariantAnchor } from "../coreModel.js";
 import { buildCardVariationPrompt, createVariantReviewModel } from "../coreVariantService.js";
 import { createDeckLibraryModel } from "../libraryModel.js";
@@ -252,11 +252,13 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   );
 }
 
-export function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, onStartDeck, onCreateDeck, onOpenGraph, onShareDeck }) {
+export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, onStartDeck, onCreateDeck, onDeleteDeck, onOpenCardCreation, onOpenGraph, onShareDeck }) {
   const [query, setQuery] = React.useState("");
   const [modeFilter, setModeFilter] = React.useState("all");
-  const [selectedDeckId, setSelectedDeckId] = React.useState(decks[0]?.id ?? null);
+  const [selectedDeckId, setSelectedDeckId] = React.useState(initialSelectedDeckId ?? decks[0]?.id ?? null);
   const [selectedCardId, setSelectedCardId] = React.useState(null);
+  const [deckDraft, setDeckDraft] = React.useState({ name: "", parentDeckId: "" });
+  const [deckStatus, setDeckStatus] = React.useState("");
   const library = createDeckLibraryModel(decks, { query, coreMode: modeFilter, selectedDeckId });
   const filteredRows = library.filteredRows;
   const selectedRow = library.selectedRow;
@@ -266,6 +268,18 @@ export function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard
   React.useEffect(() => {
     if (!selectedDeckId && library.rows[0]) setSelectedDeckId(library.rows[0].id);
   }, [decks, selectedDeckId]);
+
+  React.useEffect(() => {
+    if (selectedDeckId && !decks.some((deck) => deck.id === selectedDeckId)) {
+      setSelectedDeckId(library.rows[0]?.id ?? null);
+    }
+  }, [decks, selectedDeckId, library.rows]);
+
+  React.useEffect(() => {
+    if (initialSelectedDeckId && decks.some((deck) => deck.id === initialSelectedDeckId)) {
+      setSelectedDeckId(initialSelectedDeckId);
+    }
+  }, [decks, initialSelectedDeckId]);
 
   function updateCoreMode(deck, coreMode) {
     onSetDeckCoreMode(deck.id, coreMode);
@@ -286,6 +300,45 @@ export function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard
     onDeleteCard(selectedDeck.id, cardId);
   }
 
+  function updateDeckDraft(key, value) {
+    setDeckDraft((current) => ({ ...current, [key]: value }));
+  }
+
+  function createDeckFromDraft(event) {
+    event.preventDefault();
+    const name = deckDraft.name.trim();
+    if (!name) {
+      setDeckStatus("Bitte gib einen Stapelnamen ein.");
+      return;
+    }
+
+    const created = onCreateDeck({
+      name,
+      parentDeckId: deckDraft.parentDeckId || null,
+    });
+    setSelectedDeckId(created.id);
+    setSelectedCardId(null);
+    setDeckDraft({ name: "", parentDeckId: created.parentDeckId ?? "" });
+    setDeckStatus(created.parentDeckId ? `Unterstapel "${created.name}" angelegt.` : `Stapel "${created.name}" angelegt.`);
+  }
+
+  function prepareSubdeck(deck) {
+    setDeckDraft({ name: "", parentDeckId: deck.id });
+    setDeckStatus(`Unterstapel unter "${deck.name}" anlegen.`);
+  }
+
+  function deleteDeckTree(deck, row) {
+    const affectedDeckCount = row.scopeDeckIds?.length ?? 1;
+    const childLabel = affectedDeckCount > 1 ? ` und ${affectedDeckCount - 1} Unterstapel` : "";
+    const confirmed = window.confirm(`"${deck.name}"${childLabel} löschen? Karten und lokale Lernstände in diesem Stapelbaum werden entfernt.`);
+    if (!confirmed) return;
+
+    const result = onDeleteDeck(deck.id);
+    setSelectedDeckId(result.nextSelectedDeckId);
+    setSelectedCardId(null);
+    setDeckStatus(`${result.deletedDeckIds.length} Stapel gelöscht.`);
+  }
+
   return (
     <div className="grid min-w-0 gap-7">
       <PageHeader
@@ -293,7 +346,7 @@ export function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard
         title="Kartenstapel"
         body="Deck-Hierarchie, CoRe-Modus und Kartenpflege."
         action={
-          <button type="button" onClick={onCreateDeck} className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#4f5eb1] px-5 text-sm font-semibold text-white">
+          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#4f5eb1] px-5 text-sm font-semibold text-white">
             <PlusSquare size={17} aria-hidden="true" />
             Neue Karten
           </button>
@@ -313,6 +366,37 @@ export function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard
             <option value="manual">Manuell</option>
           </select>
         </div>
+        <form onSubmit={createDeckFromDraft} className="mt-4 grid min-w-0 gap-3 border-t border-[#e3e7f5] pt-4 lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_auto]">
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+            Stapelname
+            <input
+              className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-medium text-[#17214f] outline-none"
+              value={deckDraft.name}
+              onChange={(event) => updateDeckDraft("name", event.target.value)}
+              placeholder="z. B. Anatomie"
+            />
+          </label>
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+            Ebene
+            <select
+              className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-medium text-[#17214f]"
+              value={deckDraft.parentDeckId}
+              onChange={(event) => updateDeckDraft("parentDeckId", event.target.value)}
+            >
+              <option value="">Als Hauptstapel</option>
+              {library.rows.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {"— ".repeat(row.depth)}{row.path}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
+            <FolderPlus size={17} aria-hidden="true" />
+            Stapel anlegen
+          </button>
+        </form>
+        {deckStatus ? <p className="mt-3 text-sm font-semibold text-[#66709a]">{deckStatus}</p> : null}
       </SoftPanel>
 
       {filteredRows.length === 0 ? (
@@ -321,8 +405,8 @@ export function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard
           title="Noch keine passenden Stapel"
           body="Importiere oder erstelle Karten, damit die Bibliothek gefüllt wird."
           action={
-            <button type="button" onClick={onCreateDeck} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
-              Erstellen <ChevronRight size={16} aria-hidden="true" />
+            <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+              Karten erstellen <ChevronRight size={16} aria-hidden="true" />
             </button>
           }
         />
@@ -370,6 +454,12 @@ export function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard
                     </button>
                     <button type="button" onClick={() => onShareDeck(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label="Teilen">
                       <Share2 size={17} aria-hidden="true" />
+                    </button>
+                    <button type="button" onClick={() => prepareSubdeck(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label="Unterstapel anlegen">
+                      <FolderPlus size={17} aria-hidden="true" />
+                    </button>
+                    <button type="button" onClick={() => deleteDeckTree(deck, row)} className="grid size-10 place-items-center rounded-xl bg-red-50 text-red-700" aria-label="Stapel löschen">
+                      <Trash2 size={17} aria-hidden="true" />
                     </button>
                   </div>
                 </div>

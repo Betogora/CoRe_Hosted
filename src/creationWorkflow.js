@@ -1,7 +1,7 @@
 import { commitApkgImport, createApkgImportPreview, dryRunApkgImport } from "./apkgImport.js";
 import { generateCardsFromDocument } from "./aiOrchestrator.js";
 import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument } from "./coreModel.js";
-import { createDocumentFromFile } from "./documentModel.js";
+import { createAnchorFromSelection, createDocumentFromFile } from "./documentModel.js";
 import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.js";
 import { storeDeckMedia } from "./mediaStore.js";
 
@@ -21,7 +21,7 @@ function createApkgJob(file, status, overrides = {}) {
 }
 
 function appendWithNewline(current, addition) {
-  return current ? `${current}\n${addition}` : addition;
+  return current ? `${current}\n\n${addition}` : addition;
 }
 
 function normalizePasteMode(mode) {
@@ -40,18 +40,33 @@ function createPasteImportInput({ mode, deckName, content }) {
   };
 }
 
+function normalizeAnswerOptions(value) {
+  if (Array.isArray(value)) return value.map((option) => String(option).trim()).filter(Boolean);
+  return String(value ?? "")
+    .split(/\n+/)
+    .map((option) => option.trim())
+    .filter(Boolean);
+}
+
 function createManualDeckInput(input = {}) {
   const cardType = input.cardType ?? "basic";
   const document = input.document ?? null;
+  const answerOptions = normalizeAnswerOptions(input.answerOptions);
+  const correctAnswer = String(input.correctAnswer ?? answerOptions[0] ?? input.back ?? "").trim();
+  const rawExpectedAnswer = String(input.expectedAnswer ?? input.back ?? "").trim();
+  const expectedAnswer = rawExpectedAnswer || correctAnswer;
+  const back = cardType === "multiple-choice" ? String(input.back || correctAnswer).trim() : input.back;
 
   return {
     deckName: input.deckName,
     card: {
       cardType,
       front: input.front,
-      back: input.back,
+      back,
       tags: input.tags,
-      answerOptions: cardType === "multiple-choice" ? String(input.back ?? "").split("\n").filter(Boolean) : [],
+      answerOptions: cardType === "multiple-choice" ? answerOptions : [],
+      correctAnswer,
+      expectedAnswer,
       mediaRefs: document?.fileName && cardType === "image-occlusion" ? [document.fileName] : [],
     },
     documentContext: {
@@ -61,6 +76,7 @@ function createManualDeckInput(input = {}) {
       mimeType: document?.mimeType,
       documentText: input.documentText,
       selection: input.selection,
+      sourceAnchor: input.sourceAnchor,
       targetField: input.activeField ?? "front",
     },
   };
@@ -124,20 +140,32 @@ export function createCreationWorkflow() {
       return createDocumentFromFile(file);
     },
 
-    captureManualSelection({ activeField = "front", front = "", back = "", documentText = "", selectedText = "" } = {}) {
+    captureManualSelection({ activeField = "front", front = "", back = "", document = null, documentText = "", selectedText = "" } = {}) {
       const selection = String(selectedText || documentText.slice(0, 400)).trim();
       if (!selection) return { changed: false, front, back, selection: "" };
+      const sourceAnchor = document ? createAnchorFromSelection({ ...document, text: documentText || document.text }, selection, activeField) : null;
 
       return {
         changed: true,
         selection,
+        sourceAnchor,
         front: activeField === "back" ? front : appendWithNewline(front, selection),
         back: activeField === "back" ? appendWithNewline(back, selection) : back,
       };
     },
 
-    canCreateManualCard({ cardType = "basic", front = "", back = "" } = {}) {
-      return Boolean(String(front).trim() && (String(back).trim() || cardType === "image-occlusion"));
+    canCreateManualCard({ cardType = "basic", front = "", back = "", answerOptions = [], correctAnswer = "" } = {}) {
+      const hasFront = Boolean(String(front).trim());
+      if (cardType === "cloze") return hasFront;
+      if (cardType === "image-occlusion") return hasFront;
+      if (cardType === "multiple-choice") {
+        return hasFront && normalizeAnswerOptions(answerOptions).length >= 2 && Boolean(String(correctAnswer || back).trim());
+      }
+      return hasFront && Boolean(String(back).trim());
+    },
+
+    createManualDeckInput(input = {}) {
+      return createManualDeckInput(input);
     },
 
     createManualDeck(input = {}) {

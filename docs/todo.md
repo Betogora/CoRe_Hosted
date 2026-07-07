@@ -13,15 +13,17 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [x] Legacy-Card-Normalisierung ohne Verlust bestehender Review-Events.
 - [x] APKG-Basic-Import mit Mapping, echten Unterstapeln, Importbericht, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten, lokalem Browser-Medienspeicher und Reimport-Merge.
 - [x] Text-, CSV- und Excel-/Tabellen-Paste-Import ueber die gemeinsame Learning-Item-Pipeline mit Warnungen fuer uebersprungene Eingaben.
-- [x] Manuelle Kartenanlage mit Dokumentkontext, Auswahl-zu-Feld und Original-Variantenanker.
+- [x] Manuelle Kartenanlage mit grossem Editor, bestehendem/neuem Stapelziel, Dokumentmodus, Auswahl-zu-Feld, PDF-/Text-Auslesung, Multiple-Choice/Free-Text-Selbstcheck und Original-Variantenanker.
 - [x] Lokale KI-Drafts aus Quellentext mit Schema-Validation, Draft-Annahme und normalisierter Learning-Item-Erstellung.
 - [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, append-only Review-Events und Learning-Item-/Varianten-Kompatibilitaetsfeldern.
 - [x] Tages-Queue im Lernmodus fuer jetzt faellige/ueberfaellige Karten plus pro Stapel einstellbare neue Karten; Elternstapel lernen ihren Unterbaum.
+- [x] Lernuebersicht mit aufklappbaren Unterstapeln, aggregierten Neu-/Faellig-/Gesamtzahlen, CoRe-Status und Stapeloptionen ohne kartenbezogene Maturity-Anzeige.
+- [x] Manuelle Stapelverwaltung mit Hauptstapeln, beliebig tiefen Unterstapeln und Loeschen ganzer Stapelbaeume; APKG-Unterstapel sind im Workspace-Importpfad abgesichert.
 - [x] Intervallvorschau direkt auf den Buttons Again, Hard, Good und Easy.
 - [x] FSRS-like Scheduler-State mit Stability, Difficulty, Desired Retention, Retrievability und konservativen Intervallen.
 - [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker-Minikarte, Variant-Level, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
 - [x] Lokale Community-Gruppen, Ordner und Deck-Kopie ohne fremde Reviewdaten.
-- [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan, AI-Job-Datenmodell und Heute-Heatmap.
+- [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan, AI-Job-Datenmodell und Heute-Jahres-Heatmap.
 - [x] Lokaler JSON-Export/-Import ohne Passwort-Verifier.
 - [x] Modul-/Browser-Verifikation fuer die zentralen lokalen Pfade.
 - [x] Supabase/Postgres-Schemaanker in `supabase/core_schema_v1.sql` mit RLS-Policies und Verify-Query dokumentiert.
@@ -79,8 +81,9 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [ ] Server-/Worker-Pfad fuer grosse APKGs und Medien entwerfen.
 - [ ] Supabase Storage/Object-Storage-Strategie fuer APKG-Originale, extrahierte Medien, Dokumente und spaetere CDN-URLs festlegen.
 - [ ] Browser-Importgrenzen definieren: grosse Decks und medienreiche APKGs serverseitig/workerbasiert verarbeiten, Fortschritt und Abbruch anbieten.
-- [ ] PDF-/DOCX-Textextraktion als echtes Modul planen, inklusive Fehlerfaellen.
-- [ ] OCR und Bildregionen erst nach textbasiertem Dokumentpfad priorisieren.
+- [x] Erste browserseitige PDF-/Text-Textextraktion als Modul mit Fehlerstatus und formatierter Textanzeige umsetzen.
+- [ ] DOCX-Textextraktion als echtes Modul planen, inklusive Fehlerfaellen.
+- [ ] OCR, Bildregionen und echter PDF-Bildviewer erst nach textbasiertem Dokumentpfad priorisieren.
 - [ ] Produktive Medienpersistenz fuer APKG-Assets bauen: Server-Ablage, stabile Referenzen, Sync, Export und Loeschregeln.
 - [ ] Medienreferenzen fuer geteilte Decks stabil und datenschutzbewusst modellieren.
 

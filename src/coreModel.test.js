@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { acceptAiDraftDeck, createAiDraftDeck, createManualCoreDeck, normalizeCoreDeck, updateCardContent } from "./coreModel.js";
+import { acceptAiDraftDeck, createAiDraftDeck, createManualCoreDeck, getOriginalVariant, normalizeCoreDeck, updateCardContent } from "./coreModel.js";
 
 test("creates manual cards as immutable accepted originals", () => {
   const deck = createManualCoreDeck({
@@ -23,6 +23,37 @@ test("creates manual cards as immutable accepted originals", () => {
   assert.equal(deck.cards[0].draftStatus, "accepted");
   assert.equal(deck.cards[0].immutableOriginal.front, "ATP");
   assert.equal(deck.cards[0].coreState.variantCount, 0);
+});
+
+test("manual multiple-choice and free-text cards keep structured self-check metadata", () => {
+  const mcDeck = createManualCoreDeck({
+    deckName: "Manual MC",
+    card: {
+      cardType: "multiple-choice",
+      front: "Welche Antwort ist korrekt?",
+      back: "Antwort B ist korrekt.",
+      answerOptions: ["Antwort A", "Antwort B", "Antwort C"],
+      correctAnswer: "Antwort B",
+    },
+  });
+  const freeTextDeck = createManualCoreDeck({
+    deckName: "Manual Free Text",
+    card: {
+      cardType: "free-text",
+      front: "Definiere Osmose.",
+      back: "Osmose ist die gerichtete Diffusion von Wasser durch eine semipermeable Membran.",
+    },
+  });
+
+  const mcCard = mcDeck.cards[0];
+  const freeTextCard = freeTextDeck.cards[0];
+  assert.equal(mcCard.kind, "multiple-choice");
+  assert.deepEqual(mcCard.meta.answerOptions, ["Antwort A", "Antwort B", "Antwort C"]);
+  assert.equal(mcCard.meta.correctAnswer, "Antwort B");
+  assert.deepEqual(getOriginalVariant(mcCard).answerOptionsJson, ["Antwort A", "Antwort B", "Antwort C"]);
+  assert.equal(freeTextCard.kind, "free-text");
+  assert.equal(freeTextCard.meta.selfCheck, true);
+  assert.equal(getOriginalVariant(freeTextCard).expectedAnswerJson, freeTextCard.originalBack);
 });
 
 test("keeps AI generated cards as drafts until accepted", () => {

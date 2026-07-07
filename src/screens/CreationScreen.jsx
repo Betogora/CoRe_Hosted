@@ -2,10 +2,43 @@ import React from "react";
 import { AlertCircle, Bot, CheckCircle2, ClipboardCheck, Database, FileArchive, FileSpreadsheet, FileText, Image, Loader2, PenLine, Trash2, Upload, WandSparkles } from "lucide-react";
 import { createCreationWorkflow } from "../creationWorkflow.js";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
-import { CoreModeControl, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
+import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
 import { cardTypeOptions, formatBytes, importSteps } from "./screenConstants.js";
 
 const creationWorkflow = createCreationWorkflow();
+const manualCardTypeOptions = cardTypeOptions.filter((option) => option.value !== "image-occlusion");
+
+function documentStatusMessage(document) {
+  if (!document) return "";
+  if (document.textExtractionStatus === "success") return "Text ist bereit.";
+  if (document.textExtractionStatus === "empty") return "Kein Textlayer gefunden.";
+  if (document.textExtractionStatus === "unsupported" && document.metadata?.userMessage) return document.metadata.userMessage;
+  if (document.textExtractionStatus === "unsupported") return "Dieses Dateiformat kann in diesem Schritt noch nicht ausgelesen werden.";
+  if (document.textExtractionStatus === "error") return document.metadata?.extractionError || "Dokument konnte nicht ausgelesen werden.";
+  return "Dokument als Quelle gespeichert; Textextraktion steht aus.";
+}
+
+function splitAnswerOptions(value) {
+  return String(value ?? "")
+    .split(/\n+/)
+    .map((option) => option.trim())
+    .filter(Boolean);
+}
+
+function TabButton({ icon: Icon, label, isActive, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
+        isActive ? "bg-[#4f5eb1] text-white shadow-sm" : "border border-[#dfe4f5] bg-white/76 text-[#4f5eb1] hover:bg-white"
+      }`}
+    >
+      <Icon size={17} aria-hidden="true" />
+      {label}
+    </button>
+  );
+}
 
 function ApkgImportPanel({ existingDecks = [], onImported }) {
   const [selectedFile, setSelectedFile] = React.useState(null);
@@ -229,11 +262,16 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
   );
 }
 
-function TextCsvImportPanel({ onImported }) {
-  const [mode, setMode] = React.useState("text");
+function TextCsvImportPanel({ initialMode = "text", onImported }) {
+  const [mode, setMode] = React.useState(initialMode);
   const [deckName, setDeckName] = React.useState("Importierter Stapel");
   const [content, setContent] = React.useState("");
   const [report, setReport] = React.useState(null);
+
+  React.useEffect(() => {
+    setMode(initialMode);
+    setReport(null);
+  }, [initialMode]);
 
   function runImport(dryRun = false) {
     const result = creationWorkflow.importPastedDeck({ mode, deckName, content, dryRun });
@@ -256,8 +294,7 @@ function TextCsvImportPanel({ onImported }) {
             Stapelname
             <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
           </label>
-          <CoreModeControl value={mode === "text" ? "auto" : "manual"} onChange={(value) => setMode(value === "manual" ? "csv" : "text")} />
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2" aria-label="Importformat">
             <button type="button" onClick={() => setMode("text")} className={`min-h-10 rounded-xl text-sm font-semibold ${mode === "text" ? "bg-[#4f5eb1] text-white" : "border border-[#dfe4f5] text-[#4f5eb1]"}`}>
               Text
             </button>
@@ -437,6 +474,279 @@ function ManualCreationPanel({ onCreated }) {
   );
 }
 
+function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
+  const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
+  const [selectedDeckId, setSelectedDeckId] = React.useState(decks[0]?.id ?? "");
+  const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
+  const [cardType, setCardType] = React.useState("basic");
+  const [front, setFront] = React.useState("");
+  const [back, setBack] = React.useState("");
+  const [answerOptions, setAnswerOptions] = React.useState("");
+  const [correctAnswer, setCorrectAnswer] = React.useState("");
+  const [tags, setTags] = React.useState("");
+  const [activeField, setActiveField] = React.useState("front");
+  const [showDocumentMode, setShowDocumentMode] = React.useState(false);
+  const [document, setDocument] = React.useState(null);
+  const [documentText, setDocumentText] = React.useState("");
+  const [selection, setSelection] = React.useState("");
+  const [sourceAnchor, setSourceAnchor] = React.useState(null);
+  const [status, setStatus] = React.useState("");
+  const parsedOptions = splitAnswerOptions(answerOptions);
+
+  React.useEffect(() => {
+    if (!selectedDeckId && decks[0]?.id) setSelectedDeckId(decks[0].id);
+    if (selectedDeckId && !decks.some((deck) => deck.id === selectedDeckId)) setSelectedDeckId(decks[0]?.id ?? "");
+    if (decks.length === 0) setUseNewDeck(true);
+  }, [decks, selectedDeckId]);
+
+  React.useEffect(() => {
+    if (cardType === "multiple-choice" && !correctAnswer && parsedOptions[0]) {
+      setCorrectAnswer(parsedOptions[0]);
+    }
+  }, [cardType, correctAnswer, parsedOptions]);
+
+  async function handleDocument(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const nextDocument = await creationWorkflow.readSourceDocument(file);
+    setDocument(nextDocument);
+    setDocumentText(nextDocument.text);
+    setShowDocumentMode(true);
+    setStatus(documentStatusMessage(nextDocument));
+  }
+
+  function applySelection(selectedText) {
+    const next = creationWorkflow.captureManualSelection({
+      activeField,
+      front,
+      back,
+      document,
+      documentText,
+      selectedText,
+    });
+    if (!next.changed) return;
+    setSelection(next.selection);
+    setSourceAnchor(next.sourceAnchor);
+    setFront(next.front);
+    setBack(next.back);
+    setStatus(`${activeField === "front" ? "Vorderseite" : "Rückseite"} ergänzt.`);
+  }
+
+  function captureSelection() {
+    const selectedText = window.getSelection?.().toString().trim() || "";
+    applySelection(selectedText);
+  }
+
+  function manualInput() {
+    const selectedDeck = decks.find((deck) => deck.id === selectedDeckId);
+    return {
+      deckName: useNewDeck ? deckName : selectedDeck?.name ?? deckName,
+      cardType,
+      front,
+      back,
+      answerOptions,
+      correctAnswer,
+      expectedAnswer: back,
+      tags,
+      document,
+      documentText,
+      selection,
+      sourceAnchor,
+      activeField,
+    };
+  }
+
+  function resetCardFields() {
+    setFront("");
+    setBack("");
+    setAnswerOptions("");
+    setCorrectAnswer("");
+    setSelection("");
+    setSourceAnchor(null);
+  }
+
+  function saveManualCard() {
+    const input = manualInput();
+    if (!useNewDeck && selectedDeckId && onAppendManualCard) {
+      const updatedDeck = onAppendManualCard(selectedDeckId, creationWorkflow.createManualDeckInput(input));
+      if (updatedDeck) {
+        setStatus("Karte im ausgewählten Stapel gespeichert.");
+        resetCardFields();
+      }
+      return;
+    }
+
+    const deck = creationWorkflow.createManualDeck(input);
+    onCreated(deck);
+    setUseNewDeck(false);
+    setSelectedDeckId(deck.id);
+    setStatus("Neuer Stapel mit Originalkarte gespeichert.");
+    resetCardFields();
+  }
+
+  const canCreate = creationWorkflow.canCreateManualCard({ front, back, cardType, answerOptions, correctAnswer });
+  const answerLabel = cardType === "cloze" ? "Zusatzinfo" : cardType === "multiple-choice" ? "Erklärung / Musterantwort" : "Rückseite";
+
+  const editor = (
+    <div className="grid gap-4">
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-3">
+          <div className="flex flex-wrap items-end gap-3">
+            {!useNewDeck && decks.length > 0 ? (
+              <label className="grid min-w-[16rem] flex-1 gap-2 text-sm font-semibold text-[#4e5b8c]">
+                Kartenstapel
+                <select className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={selectedDeckId} onChange={(event) => setSelectedDeckId(event.target.value)}>
+                  {decks.map((deck) => (
+                    <option key={deck.id} value={deck.id}>
+                      {deck.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <label className="grid min-w-[16rem] flex-1 gap-2 text-sm font-semibold text-[#4e5b8c]">
+                Neuer Kartenstapel
+                <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
+              </label>
+            )}
+            <button type="button" onClick={() => setUseNewDeck((value) => !value)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1]">
+              <Database size={16} aria-hidden="true" />
+              {useNewDeck && decks.length > 0 ? "Stapel auswählen" : "Neuen Stapel erstellen"}
+            </button>
+          </div>
+        </div>
+
+        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+          Kartentyp
+          <select className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={cardType} onChange={(event) => setCardType(event.target.value)}>
+            {manualCardTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={() => setActiveField("front")} className={`min-h-10 rounded-xl text-sm font-semibold ${activeField === "front" ? "bg-[#4f5eb1] text-white" : "border border-[#dfe4f5] text-[#4f5eb1]"}`}>
+          Vorderseite aktiv
+        </button>
+        <button type="button" onClick={() => setActiveField("back")} className={`min-h-10 rounded-xl text-sm font-semibold ${activeField === "back" ? "bg-[#4f5eb1] text-white" : "border border-[#dfe4f5] text-[#4f5eb1]"}`}>
+          Rückseite aktiv
+        </button>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+          {cardType === "cloze" ? "Cloze-Text" : "Vorderseite"}
+          <textarea className="min-h-56 rounded-xl border border-[#dfe4f5] p-4 text-base leading-7" value={front} onFocus={() => setActiveField("front")} onChange={(event) => setFront(event.target.value)} />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+          {answerLabel}
+          <textarea className="min-h-56 rounded-xl border border-[#dfe4f5] p-4 text-base leading-7" value={back} onFocus={() => setActiveField("back")} onChange={(event) => setBack(event.target.value)} />
+        </label>
+      </div>
+
+      {cardType === "multiple-choice" ? (
+        <div className="grid gap-4 lg:grid-cols-[1fr_0.8fr]">
+          <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+            Antwortoptionen
+            <textarea className="min-h-32 rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={answerOptions} onChange={(event) => setAnswerOptions(event.target.value)} placeholder={"Option A\nOption B\nOption C"} />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+            Richtige Antwort
+            {parsedOptions.length > 0 ? (
+              <select className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={correctAnswer} onChange={(event) => setCorrectAnswer(event.target.value)}>
+                {parsedOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={correctAnswer} onChange={(event) => setCorrectAnswer(event.target.value)} />
+            )}
+          </label>
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+          Tags
+          <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="biologie zelle prüfung" />
+        </label>
+        <div className="flex flex-wrap items-end gap-2">
+          <button type="button" onClick={() => setShowDocumentMode((value) => !value)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1]">
+            <FileText size={17} aria-hidden="true" />
+            PDF/Text auslesen
+          </button>
+          <button type="button" disabled={!canCreate} onClick={saveManualCard} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+            <Database size={17} aria-hidden="true" />
+            Originalkarte speichern
+          </button>
+        </div>
+      </div>
+      {status ? <p className="text-sm text-[#66709a]">{status}</p> : null}
+    </div>
+  );
+
+  return (
+    <SoftPanel className="p-6">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <OrbIcon icon={PenLine} className="bg-sky-50 text-sky-700" />
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">Manuelle Erstellung</p>
+            <h2 className="text-2xl font-semibold text-[#17214f]">Karte erstellen</h2>
+          </div>
+        </div>
+        <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-800">
+          <FileText size={17} aria-hidden="true" />
+          PDF/Text auslesen
+          <input className="sr-only" type="file" accept=".txt,.md,.markdown,.pdf,.docx" onChange={handleDocument} />
+        </label>
+      </div>
+
+      {showDocumentMode ? (
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+          <div className="grid content-start gap-4">
+            <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+              Dokument
+              <span className="flex min-h-11 items-center gap-2 rounded-xl border border-dashed border-[#cfd6ed] px-3 text-[#66709a]">
+                <FileText size={17} aria-hidden="true" />
+                <input type="file" accept=".txt,.md,.markdown,.pdf,.docx" onChange={handleDocument} />
+              </span>
+            </label>
+            {document ? (
+              <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-3 text-sm text-[#66709a]">
+                <p className="font-semibold text-[#17214f]">{document.fileName}</p>
+                <p>{documentStatusMessage(document)}</p>
+              </div>
+            ) : null}
+            <div
+              className="max-h-[34rem] min-h-96 overflow-auto rounded-xl border border-[#dfe4f5] bg-white p-4 text-sm leading-6 text-[#17214f]"
+              onMouseUp={captureSelection}
+              onKeyUp={captureSelection}
+              tabIndex={0}
+            >
+              {documentText ? <pre className="whitespace-pre-wrap break-words font-sans">{documentText}</pre> : <p className="text-[#66709a]">Keine Textquelle geöffnet.</p>}
+            </div>
+            <button type="button" onClick={captureSelection} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
+              <ClipboardCheck size={16} aria-hidden="true" />
+              Auswahl übernehmen
+            </button>
+          </div>
+          {editor}
+        </div>
+      ) : (
+        editor
+      )}
+    </SoftPanel>
+  );
+}
+
 function AiCreationPanel({ onCreated, onJob }) {
   const [config, setConfig] = React.useState({
     language: "Deutsch",
@@ -601,6 +911,28 @@ function AiCreationPanel({ onCreated, onJob }) {
   );
 }
 
+const importMethods = [
+  { id: "anki", label: "APKG", icon: FileArchive },
+  { id: "text", label: "Text", icon: FileText },
+  { id: "csv", label: "CSV", icon: FileSpreadsheet },
+  { id: "spreadsheet", label: "Excel/Tabelle", icon: FileSpreadsheet },
+];
+
+function ImportCreationPanel({ decks = [], onCreated }) {
+  const [selectedImport, setSelectedImport] = React.useState("anki");
+
+  return (
+    <div className="grid gap-5">
+      <div className="flex flex-wrap gap-2" aria-label="Importformat">
+        {importMethods.map((method) => (
+          <TabButton key={method.id} icon={method.icon} label={method.label} isActive={selectedImport === method.id} onClick={() => setSelectedImport(method.id)} />
+        ))}
+      </div>
+      {selectedImport === "anki" ? <ApkgImportPanel existingDecks={decks} onImported={onCreated} /> : <TextCsvImportPanel initialMode={selectedImport} onImported={onCreated} />}
+    </div>
+  );
+}
+
 const creationMethods = [
   { id: "anki", title: "Anki APKG", eyebrow: "Import", body: "Decks, Notes, Karten und Raw-Fallbacks.", icon: FileArchive, color: "teal" },
   { id: "text", title: "Text / CSV / Excel", eyebrow: "Import", body: "Front/Back-Daten schnell übernehmen.", icon: FileSpreadsheet, color: "emerald" },
@@ -626,23 +958,22 @@ function CreationMethodButton({ method, isSelected, onSelect }) {
   );
 }
 
-export function CreationScreen({ decks = [], onCreated, onJob }) {
-  const [selectedMethod, setSelectedMethod] = React.useState("anki");
+export function CreationScreen({ decks = [], onCreated, onAppendManualCard, onJob }) {
+  const [selectedMethod, setSelectedMethod] = React.useState("import");
 
   function renderSelectedMethod() {
-    if (selectedMethod === "anki") return <ApkgImportPanel existingDecks={decks} onImported={onCreated} />;
-    if (selectedMethod === "text") return <TextCsvImportPanel onImported={onCreated} />;
-    if (selectedMethod === "manual") return <ManualCreationPanel onCreated={onCreated} />;
+    if (selectedMethod === "import") return <ImportCreationPanel decks={decks} onCreated={onCreated} />;
+    if (selectedMethod === "manual") return <ManualCreationPanelV2 decks={decks} onCreated={onCreated} onAppendManualCard={onAppendManualCard} />;
     return <AiCreationPanel onCreated={onCreated} onJob={onJob} />;
   }
 
   return (
     <div className="grid gap-7">
       <PageHeader eyebrow="Erstellen" title="Neue Karten" body="Import, manuelle Erstellung und KI-Drafts." />
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {creationMethods.map((method) => (
-          <CreationMethodButton key={method.id} method={method} isSelected={selectedMethod === method.id} onSelect={() => setSelectedMethod(method.id)} />
-        ))}
+      <section className="flex flex-wrap gap-2" aria-label="Erstellungsart">
+        <TabButton icon={FileArchive} label="Import" isActive={selectedMethod === "import"} onClick={() => setSelectedMethod("import")} />
+        <TabButton icon={PenLine} label="Karten manuell erstellen" isActive={selectedMethod === "manual"} onClick={() => setSelectedMethod("manual")} />
+        <TabButton icon={WandSparkles} label="KI-gestützte Kartenerstellung" isActive={selectedMethod === "ai"} onClick={() => setSelectedMethod("ai")} />
       </section>
       {renderSelectedMethod()}
     </div>

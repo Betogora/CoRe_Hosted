@@ -1120,15 +1120,20 @@ export function createBasicLearningItem(deckId, front, back, options = {}) {
   const source = resolveLegacySource(sourceType, options.source);
   const normalizedFront = sanitizeCardHtml(front);
   const normalizedBack = sanitizeCardHtml(back);
+  const meta = options.meta ?? {};
+  const answerOptions = options.answerOptions ?? meta.answerOptions ?? null;
+  const expectedAnswer = options.expectedAnswer ?? meta.correctAnswer ?? meta.expectedAnswer ?? null;
   const originalVariant = createCardVariant({
     id: options.originalVariantId ?? stableContentHash({ learningItemId: id, front: normalizedFront, back: normalizedBack, isOriginal: true }, "variant"),
     learningItemId: id,
     cardId: id,
     sourceCardId: id,
-    variantType: "basic",
+    variantType: ["multiple-choice", "free-text"].includes(options.cardType) ? normalizeVariantType(null, options.cardType) : "basic",
     variantLevel: 1,
     front: normalizedFront,
     back: normalizedBack,
+    answerOptionsJson: answerOptions,
+    expectedAnswerJson: expectedAnswer,
     generationSource: "original",
     transformType: "original",
     qualityStatus: "active",
@@ -1170,7 +1175,7 @@ export function createBasicLearningItem(deckId, front, back, options = {}) {
     learningItemState: options.learningItemState ?? options.reviewState ?? createLearningItemState({ learningItemId: id, reviewableType: "card", reviewableId: id }),
     createdAt,
     updatedAt,
-    meta: options.meta ?? {},
+    meta,
   });
 }
 
@@ -1451,22 +1456,23 @@ export function createLearningItemsFromNormalizedInput(deckId, normalizedItems =
   return { createdItems, warnings, skipped };
 }
 
-export function createManualCoreDeck({ deckName, card, documentContext }) {
-  const createdAt = new Date().toISOString();
+function createManualCardArtifacts({ card = {}, documentContext = {}, createdAt = new Date().toISOString() } = {}) {
   const sourceAnchor =
-    documentContext?.selection || documentContext?.textQuote
-      ? createSourceAnchor({
-          documentId: documentContext.documentId ?? null,
-          documentName: documentContext.fileName ?? "",
-          textQuote: documentContext.selection ?? documentContext.textQuote,
-          targetField: documentContext.targetField ?? "front",
-          pageNumber: documentContext.pageNumber ?? null,
-          charStart: documentContext.charStart ?? null,
-          charEnd: documentContext.charEnd ?? null,
-          confidence: 1,
-          createdAt,
-        })
-      : null;
+    documentContext?.sourceAnchor
+      ? createSourceAnchor({ ...documentContext.sourceAnchor, createdAt: documentContext.sourceAnchor.createdAt ?? createdAt })
+      : documentContext?.selection || documentContext?.textQuote
+        ? createSourceAnchor({
+            documentId: documentContext.documentId ?? null,
+            documentName: documentContext.fileName ?? "",
+            textQuote: documentContext.selection ?? documentContext.textQuote,
+            targetField: documentContext.targetField ?? "front",
+            pageNumber: documentContext.pageNumber ?? null,
+            charStart: documentContext.charStart ?? null,
+            charEnd: documentContext.charEnd ?? null,
+            confidence: 1,
+            createdAt,
+          })
+        : null;
   const sourceDocument = documentContext?.document
     ? documentContext.document
     : documentContext?.fileName
@@ -1479,6 +1485,11 @@ export function createManualCoreDeck({ deckName, card, documentContext }) {
           createdAt,
         })
       : null;
+  const answerOptions = Array.isArray(card.answerOptions)
+    ? card.answerOptions.map((option) => String(option).trim()).filter(Boolean)
+    : [];
+  const correctAnswer = String(card.correctAnswer ?? card.back ?? "").trim();
+  const expectedAnswer = card.cardType === "multiple-choice" ? correctAnswer : String(card.expectedAnswer ?? card.back ?? "").trim();
   const itemOptions = {
     sourceType: "manual",
     source: "manual",
@@ -1486,11 +1497,14 @@ export function createManualCoreDeck({ deckName, card, documentContext }) {
     tags: card.tags,
     mediaRefs: card.mediaRefs,
     sourceAnchors: sourceAnchor ? [sourceAnchor] : [],
+    answerOptions,
+    expectedAnswer,
     createdAt,
     updatedAt: createdAt,
     originalFields: [
       { name: "Front", value: card.front },
       { name: "Back", value: card.back },
+      { name: "Antwortoptionen", value: answerOptions.join("\n") },
       { name: "Source selection", value: documentContext?.selection ?? "" },
     ].filter((field) => field.value),
     meta: {
@@ -1501,7 +1515,10 @@ export function createManualCoreDeck({ deckName, card, documentContext }) {
             selection: documentContext.selection ?? "",
           }
         : null,
-      answerOptions: card.answerOptions ?? [],
+      answerOptions,
+      correctAnswer,
+      expectedAnswer,
+      selfCheck: card.cardType === "free-text",
       exactWordingRequired: Boolean(card.exactWordingRequired),
     },
   };
@@ -1511,6 +1528,17 @@ export function createManualCoreDeck({ deckName, card, documentContext }) {
       : card.cardType === "cloze"
         ? createClozeLearningItem("", card.front, card.back, itemOptions)
         : createBasicLearningItem("", card.front, card.back, itemOptions);
+
+  return { coreCard, sourceDocument, sourceAnchor };
+}
+
+export function createManualLearningItem({ card, documentContext } = {}) {
+  return createManualCardArtifacts({ card, documentContext }).coreCard;
+}
+
+export function createManualCoreDeck({ deckName, card, documentContext }) {
+  const createdAt = new Date().toISOString();
+  const { coreCard, sourceDocument, sourceAnchor } = createManualCardArtifacts({ card, documentContext, createdAt });
 
   return createCoreDeck({
     name: deckName,
