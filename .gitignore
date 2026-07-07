@@ -2,8 +2,9 @@ node_modules/
 dist/
 .env
 .env.*
-!.env.example
+.env*
 .vercel/
-.env.local
+.vercel
 npm-debug.log*
 vite-*.log
+!.env.example

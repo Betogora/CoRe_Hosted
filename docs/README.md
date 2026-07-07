@@ -2,7 +2,7 @@
 
 CoRe ist ein lokaler Web-MVP fuer eine Lernplattform, die klassische Spaced-Repetition-Karten um inhaltliche Wiederholung erweitert. Das Ziel ist, Kartenblindheit zu reduzieren: Lernende sollen nicht nur Layout, Wortlaut oder Lueckenposition wiedererkennen, sondern den Inhalt auch bei veraenderter Fragestellung abrufen koennen.
 
-Der aktuelle Stand ist bewusst ein breiter lokaler Prototyp. Viele Produktpfade sind klickbar und testbar, aber CoRe ist noch kein gehostetes Mehrnutzerprodukt. App-State, Profile, Decks, Jobs, Community-Daten und Lernplaene liegen lokal im Browser-Storage.
+Der aktuelle Stand ist bewusst ein breiter lokaler Prototyp. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind initial angebunden, aber CoRe ist noch kein fertiges gehostetes Mehrnutzerprodukt. App-State, Profile, Decks, Jobs, Community-Daten und Lernplaene liegen weiterhin lokal im Browser-Storage.
 
 Die gepflegte Projektdokumentation liegt im Ordner `docs/`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
 
@@ -81,13 +81,13 @@ src/
 
 ## Aktueller Status
 
-CoRe laeuft lokal als Vite/React-App. Es gibt noch kein Hosting, keine Deployment-Pipeline, keine produktive Datenbank, keine echte Registrierung, keinen Sync zwischen Geraeten und keine externen LLM-Provider. Die vorhandenen Module sind darauf ausgelegt, diese Adapter spaeter gezielt zu ergaenzen, sobald Hosting, Persistenz, Auth, KI-Provider und Job-Infrastruktur entschieden sind.
+CoRe laeuft lokal als Vite/React-App und hat einen initialen Vercel-/Supabase-Infrastrukturpfad. Es gibt noch keine ausgereifte Deployment-Pipeline, keine eigene Domain, keine App-Persistenz ueber Supabase, keine echte Registrierung, keinen Sync zwischen Geraeten und keine externen LLM-Provider. Die vorhandenen Module sind darauf ausgelegt, diese Adapter spaeter gezielt zu ergaenzen, sobald Persistenz, Auth, KI-Provider und Job-Infrastruktur ausgebaut werden.
 
 ## Naechste sinnvolle Schritte
 
 - Smoke-Tests fuer die wichtigsten Browser-Flows automatisieren.
 - Accessibility-Pass fuer Review, Import und Settings durchfuehren.
 - Fehlerfaelle fuer grosse oder ungueltige Importdaten in der UI haerten.
-- Produktionspfad fuer Vercel/Domain, Supabase Auth/Postgres/Storage und serverseitige KI-Jobs konkretisieren.
+- App-Persistenz, Auth, Domain/Deployment-Pipeline, Supabase Storage und serverseitige KI-Jobs konkretisieren.
 - FSRS-like Scheduler und Variant-Fallback mit echten Decks validieren.
 - Datenportabilitaet mit Roundtrip-Fixtures absichern.

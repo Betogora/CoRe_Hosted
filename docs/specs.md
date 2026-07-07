@@ -10,7 +10,7 @@
 
 ## Implementierungsstand 2026-07-07
 
-Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter lokaler Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt, aber noch nicht als gehostetes Mehrnutzerprodukt betreibbar. Der App-State liegt in `localStorage`, Authentifizierung ist lokal modelliert, KI-Funktionen laufen deterministisch/lokal, und Hintergrundjobs sind im Frontend sichtbar statt serverseitig ausgefuehrt.
+Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter lokaler Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt. Ein erstes Supabase-Projekt (`CoRe-Database`) und ein erstes Vercel-Projekt (`core-hosted`) sind angebunden, aber CoRe ist noch kein fertiges gehostetes Mehrnutzerprodukt. Der App-State liegt weiterhin in `localStorage`, Authentifizierung ist lokal modelliert, KI-Funktionen laufen deterministisch/lokal, und Hintergrundjobs sind im Frontend sichtbar statt serverseitig ausgefuehrt.
 
 Wichtige Aenderung seit der ersten lokalen Spezifikationsfassung: Die bisherige Deck-`cards`-Collection bleibt im lokalen State aus Kompatibilitaetsgruenden bestehen, enthaelt fachlich aber Learning Items. `src/coreModel.js` normalisiert neue und alte Karten ueber eine gemeinsame Creation Pipeline. Jedes Learning Item besitzt genau eine Original-Variante; Reverse-, Cloze-, importierte und KI-/Rephrase-Varianten sind daran verankert und koennen eigene Review-States, Performance- und Feedbackdaten tragen.
 
@@ -52,8 +52,8 @@ Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese ze
 
 ### Was erwartungsgemaess noch nicht funktioniert
 
-- Es gibt noch kein Hosting, keine Deployment-Pipeline, keine Domains und keine produktive Umgebung.
-- Es gibt noch keine angebundene Produktivdatenbank, keine serverseitige Persistenz, keinen Sync und keine Konfliktloesung zwischen Geraeten; `supabase/core_schema_v1.sql` ist ein Schemaanker, aber noch keine produktive Integration.
+- Es gibt ein erstes Vercel-Projekt mit Deployment, aber noch keine ausgereifte Deployment-Pipeline, eigene Domain, Rollback-Checkliste oder produktive Betriebsumgebung.
+- Es gibt eine angewendete Supabase/Postgres-Erstmigration mit RLS-Policies, aber noch keine serverseitige App-Persistenz, keinen Sync und keine Konfliktloesung zwischen Geraeten.
 - Accounts sind lokal modelliert; es gibt keine echte Registrierung, E-Mail-Verifikation, OAuth-Anbindung oder Session-Infrastruktur.
 - KI ist lokal/deterministisch simuliert; es gibt noch keine Provider-Adapter, kein echtes Token-/Kostenlogging und keine produktive Prompt-/Eval-Pipeline.
 - Jobs laufen nicht in einer Queue oder Worker-Infrastruktur; die Job-Sicht ist ein lokaler Produkt- und Datenmodell-Prototyp.
@@ -1347,7 +1347,7 @@ Die Datenstruktur muss drei Welten verbinden:
 
 **Aktueller lokaler Modellstand 2026-07-06:** Im Browser-State heisst die Deck-Collection weiterhin `cards`, damit bestehende lokale Daten kompatibel bleiben. Semantisch sind diese Eintraege aber Learning Items: Sie tragen `canonicalQuestion`, `canonicalAnswer`, `learningItemState`/`reviewState`, Quellenanker, Versionen und eine Variantenliste. Die Variantenliste enthaelt immer genau eine `isOriginal: true`-Variante als unveraenderlichen Lernanker; weitere Varianten referenzieren sie ueber `anchorVariantId`/`parentVariantId`.
 
-**Produktiver Datenbankpfad 2026-07-07:** Fuer CoRe ist Supabase/Postgres ein naheliegender Zielpfad, aber noch nicht angebunden. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. `supabase/core_schema_v1.sql` ist ein erster Schemaanker mit CoRe-spezifischen Tabellen und RLS-Policies; vor produktiver Nutzung muss er gegen `src/coreModel.js`, `src/coreRepository.js`, Import-Medienpfade und die geplante Auth-/Storage-Strategie validiert werden.
+**Produktiver Datenbankpfad 2026-07-07:** Fuer CoRe ist Supabase/Postgres der initial angebundene Zielpfad. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. `supabase/core_schema_v1.sql` ist als erste Supabase-Migration nach `CoRe-Database` uebernommen und mit RLS-/Policy-Verify-Queries sowie Supabase Advisors geprueft. Vor echter App-Nutzung muss das Schema weiter gegen `src/coreModel.js`, `src/coreRepository.js`, Import-Medienpfade und die geplante Auth-/Storage-Strategie validiert werden.
 
 ### 10.1 Entity-Übersicht
 
@@ -2340,7 +2340,7 @@ Naheliegender Startpfad fuer CoRe:
 - Browser-Routen der SPA fallen auf `index.html` zurueck; `/api/*` bleibt fuer Serverless Functions reserviert.
 - Environment Variables werden pro Umgebung gepflegt; Production-/Preview-Secrets werden nicht lokal in Git abgelegt.
 
-Vite/Vercel-Konfiguration darf erst eingefuehrt werden, wenn der Hosting-Schritt wirklich umgesetzt wird. Ein spaeteres `vercel.json` soll mindestens Build Command, Output Directory und SPA-Rewrites so festlegen, dass `/api/*` nicht von der Frontend-Fallback-Regel verschluckt wird.
+Die initiale Vite/Vercel-Konfiguration ist umgesetzt: `vercel.json` setzt Build Command, Output Directory und einen SPA-Rewrite, der `/api/*` nicht von der Frontend-Fallback-Regel verschluckt. Das Vercel-Projekt `core-hosted` ist angelegt und mit den oeffentlichen `VITE_SUPABASE_*`-Variablen vorbereitet; echte Serverrouten, Domain-Mapping, Rollback-Prozess und Observability bleiben Ausbaupunkte.
 
 ### Empfohlene Services
 
@@ -2777,7 +2777,7 @@ Der MVP gilt als erfüllt, wenn:
 14. KI-Jobs asynchron laufen und Status anzeigen.
 15. Es gibt keine Anzeige fremder Lernstände oder Social-Rankings.
 
-**Stand 2026-07-07:** Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher und Reimport-Merge mit Erhalt lokaler Content-Edits. Nicht Teil dieser lokalen DoD-Erfuellung sind Hosting, produktive Datenbankanbindung, echte Authentifizierung, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind jetzt in dieser Spec dokumentiert; die Umsetzungsluecke wird in `docs/todo.md` als Ausbaupfad gefuehrt.
+**Stand 2026-07-07:** Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher und Reimport-Merge mit Erhalt lokaler Content-Edits. Ebenfalls initial umgesetzt sind Supabase-CLI-Link, erste Remote-Migration, RLS-/Policy-Verify, Vercel-Projekt, Vercel-Env-Grenzen und Deployment. Nicht Teil dieser lokalen DoD-Erfuellung sind echte Authentifizierung, App-Persistenz ueber Supabase, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind jetzt in dieser Spec dokumentiert; die Umsetzungsluecke wird in `docs/todo.md` als Ausbaupfad gefuehrt.
 
 ---
 

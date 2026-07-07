@@ -2,7 +2,7 @@
 
 Stand: 2026-07-07
 
-Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md` / `docs/specs.html`) und aktuellem Codebase-Ist. Der aktuelle Stand ist ein lokaler Vite/React-Web-MVP mit `localStorage`, lokalen Deep Modules und testbaren Produktpfaden. Seit dem 2026-07-06 ist das lokale Kartenmodell Learning-Item-kompatibel: Deck-`cards` bleiben als lokale Compatibility Collection erhalten, werden aber ueber die gemeinsame Creation Pipeline normalisiert. Am 2026-07-07 wurden die relevanten Hosting-, Supabase-, Datenbank-, Secret- und KI-Proxy-Hinweise aus dem externen Hosting-Guide in die Specs uebernommen und die Projektdokumentation unter `docs/` gebuendelt. Der MVP ist weiterhin kein gehostetes Mehrnutzerprodukt.
+Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md` / `docs/specs.html`) und aktuellem Codebase-Ist. Der aktuelle Stand ist ein lokaler Vite/React-Web-MVP mit `localStorage`, lokalen Deep Modules und testbaren Produktpfaden. Seit dem 2026-07-06 ist das lokale Kartenmodell Learning-Item-kompatibel: Deck-`cards` bleiben als lokale Compatibility Collection erhalten, werden aber ueber die gemeinsame Creation Pipeline normalisiert. Am 2026-07-07 wurden die relevanten Hosting-, Supabase-, Datenbank-, Secret- und KI-Proxy-Hinweise aus dem externen Hosting-Guide in die Specs uebernommen und die Projektdokumentation unter `docs/` gebuendelt. Ebenfalls am 2026-07-07 wurden Supabase-CLI, erste Remote-Migration, Vercel-Projekt, Vercel-Env-Grenzen und Deployment initial eingerichtet. Der MVP ist weiterhin kein fertiges gehostetes Mehrnutzerprodukt, weil App-Persistenz, echte Auth, Sync, Serverjobs und produktive Betriebsablaeufe noch fehlen.
 
 ## Aktuell erledigt
 
@@ -24,6 +24,9 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [x] Modul-/Browser-Verifikation fuer die zentralen lokalen Pfade.
 - [x] Supabase/Postgres-Schemaanker in `supabase/core_schema_v1.sql` mit RLS-Policies und Verify-Query dokumentiert.
 - [x] Hosting-/Database-/KI-Guide in die zentrale Spezifikation ueberfuehrt und redundante Guide-Datei entfernt.
+- [x] Supabase CLI lokal initialisiert und mit `CoRe-Database` verlinkt.
+- [x] `supabase/core_schema_v1.sql` als erste Migration angewendet und RLS-/Policy-Verify gegen Remote ausgefuehrt.
+- [x] Vercel-Projekt `core-hosted` angelegt, Env-Grenzen fuer oeffentliche `VITE_*`-Variablen gesetzt und Deployment verifiziert.
 
 ## Bewusst noch nicht bauen
 
@@ -44,22 +47,22 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 
 ## P1: Hosting und Produktivbetrieb vorbereiten
 
-- [ ] Zielplattform entscheiden; aktuell naheliegender Startpfad: Vercel fuer Vite-Hosting, Preview/Production und eigene `/api/*` Functions.
+- [x] Zielplattform entscheiden; aktueller Startpfad: Vercel fuer Vite-Hosting, Preview/Production und eigene `/api/*` Functions.
 - [ ] Domain-/DNS-Pfad dokumentieren: eigene Domain in Vercel verbinden, Preview-URLs getrennt halten, Production-Domain bewusst mappen.
-- [ ] Build-/Preview-/Production-Pipeline dokumentieren: `npm test`, `npm run build`, Preview Smoke, Production Rollback.
-- [ ] SPA-Routing fuer Vite/Vercel festlegen: statische App aus `dist`, Browser-Routen auf `index.html`, `/api/*` nicht umschreiben.
+- [ ] Build-/Preview-/Production-Pipeline ausbauen: `npm test`, `npm run build`, Preview Smoke, Production Rollback.
+- [x] SPA-Routing fuer Vite/Vercel festlegen: statische App aus `dist`, Browser-Routen auf `index.html`, `/api/*` nicht umschreiben.
 - [ ] Basale Runtime-Konfiguration einziehen: Umgebungsvariablen, App-Version, Fehlerseite.
-- [ ] Env-Var-Konzept festlegen: Browser nur `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, Featureflags; geheime KI-/Supabase-Keys nur serverseitig.
+- [x] Env-Var-Konzept festlegen: Browser nur `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, Featureflags; geheime KI-/Supabase-Keys nur serverseitig.
 - [ ] Secret-Hygiene pruefen: keine KI-Keys in Browser-Code, `localStorage`, Export-State, Logs oder Supabase-Userdaten; Vercel Sensitive Env Vars nutzen.
 - [ ] Produktives Logging/Monitoring-Konzept definieren, aber erst nach Hosting-Auswahl anbinden.
 - [ ] Deployment-Checkliste erstellen: Build, Tests, Smoke, Rollback, Datenschutzhinweise, Netzwerk-Tab ohne Secrets, KI-Route mit/ohne Key.
 
 ## P1: Persistenz und Auth
 
-- [ ] Datenbank-Stack entscheiden; aktuell naheliegender Startpfad: Supabase Auth + Postgres + RLS, perspektivisch Supabase Storage fuer Medien/Dokumente.
+- [x] Datenbank-Stack entscheiden; aktueller Startpfad: Supabase Auth + Postgres + RLS, perspektivisch Supabase Storage fuer Medien/Dokumente.
 - [ ] `supabase/core_schema_v1.sql` gegen das aktuelle `src/coreModel.js` abgleichen: Learning Items, Original-Variantenanker, Review Events, Medienreferenzen, AI Jobs.
 - [ ] Echte Tabellen statt grossen Store-Blob als Produktivquelle verwenden; JSONB nur fuer flexible Metadaten, Policies, Importrohdetails und Versionseintraege.
-- [ ] Supabase Grants + RLS als Einheit behandeln: Tabellen im exposed Schema explizit fuer `authenticated` freigeben, RLS aktivieren, Ownership-Policies pruefen.
+- [x] Supabase Grants + RLS als Einheit behandeln: Tabellen im exposed Schema explizit fuer `authenticated` freigeben, RLS aktivieren, Ownership-Policies pruefen.
 - [ ] RLS-Tests definieren: Nutzer A sieht eigene Decks/Karten/Events, Nutzer B sieht sie nicht; Updates brauchen `using` und `with check`.
 - [ ] Repository-Interface aus `createCoreRepository()` und lokale App-Kommandos aus `createCoreWorkspace()` als echte Persistenz-/Produktionsnaht schaerfen.
 - [ ] Lokale IDs, Versionen und Review-Events auf serverfaehige Tabellen/Dokumente mappen.
