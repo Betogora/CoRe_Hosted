@@ -4,15 +4,16 @@ CoRe ist ein lokaler Web-MVP fuer eine Lernplattform, die klassische Spaced-Repe
 
 Der aktuelle Stand ist bewusst ein breiter lokaler Prototyp. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind initial angebunden, aber CoRe ist noch kein fertiges gehostetes Mehrnutzerprodukt. App-State, Profile, Decks, Jobs, Community-Daten und Lernplaene liegen weiterhin lokal im Browser-Storage.
 
-Die gepflegte Projektdokumentation liegt im Ordner `docs/`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
+Die gepflegte Projektdokumentation liegt im Ordner `docs/`. Es gibt genau eine TODO-Markdown-Datei: `docs/todo.md`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
 
 ## Funktionsumfang
 
 - Dashboard, Profil-Onboarding, Datenschutzoptionen und globale CoRe-Einstellungen.
-- Deck-Verwaltung mit Hierarchie-Metadaten, Suche, Filtern, direktem Umbenennen, Drag-and-drop-Unterstapeln, Kartenbearbeitung und Versionseintraegen.
+- Deck-Verwaltung und Lernuebersicht mit Hierarchie-Metadaten, Suche/Filtern, direktem Umbenennen, Anki-artigem Drag-and-drop fuer Unterstapel, Kartenbearbeitung und Versionseintraegen.
 - Reproduzierbarer lokaler Teststapel `Welt-Hauptstädte` mit echter APKG-Fixture und sieben Kontinent-Unterstapeln.
-- Importpfade fuer Anki-APKG, Text, CSV und Tabellen-/Excel-Paste.
+- Importpfade fuer Anki-APKG, Text, CSV, normalisierte JSON-Payloads und Tabellen-/Excel-Paste.
 - Manuelle Kartenerstellung mit Dokumentkontext und Quellenankern.
+- Rich-Text-Editor, Rich-Text-Helfer und HTML-Safety-Module fuer Karteninhalt und Importvorschau.
 - Deterministische lokale KI-Drafts aus Quellentext mit Schema-Validierung und Draft-Review.
 - Fullscreen-Review mit Antwortaufdeckung, vier Ratings (`Again`, `Hard`, `Good`, `Easy`), Tastatursteuerung und FSRS-like Scheduler-State.
 - Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker, konservativer Variant-Level, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
@@ -60,10 +61,13 @@ src/
   fixtures/               Lokale Seed-/Fixture-Daten
   creationWorkflow.js     Creation-/Import-Orchestrierung fuer APKG, Paste, manuell und KI-Drafts
   apkgImport.js           Anki-APKG-Importpipeline
-  importService.js        Text-, CSV- und Tabellen-Import
+  importService.js        Text-, CSV-, JSON- und Tabellen-Import mit Fingerprints/Dedupe
   reviewService.js        Tiefer Review-Flow, Sessions, Fallback und Rating-Erfassung
   reviewFlow.js           Legacy-Fassade fuer bestehende Review-Imports
   scheduler.js            FSRS-like Review-State, Intervalle, Retrievability und Maturity-XP
+  libraryModel.js         Dashboard-, Decklisten-, Heatmap- und Job-Projektionen
+  richText.js             Rich-Text-Normalisierung und Text-zu-Karten-HTML
+  htmlSafety.js           HTML-Sanitization und HTML-zu-Text-Helfer
   coreVariantService.js   Eligibility, Reifegrad, Variant-Plan, Fallback und Varianten-Feedback
   aiOrchestrator.js       Lokale KI-Job- und Draft-Erzeugung
   deckGraph.js            Mindmap-/Graph-Modell
@@ -77,13 +81,16 @@ src/
 - `docs/index.md`: Dokumentationskarte fuer Menschen und Agenten.
 - `docs/specs.md`: Produktvision, Anforderungen, Datenmodell, API-Skizzen, Architektur, Hosting-/Datenbank-/KI-Leitplanken und Implementierungsstand.
 - `docs/specs.html`: navigierbare HTML-Fassung der Spezifikation.
-- `docs/todo.md`: Differenz zwischen aktuellem lokalen MVP und produktionsreifem Zielbild.
+- `docs/todo.md`: einzige TODO-Markdown-Datei; Differenz zwischen aktuellem lokalen MVP und produktionsreifem Zielbild mit Code-Sicht.
 - `docs/anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
 - `fixtures/apkg/world-capitals.apkg`: reproduzierbare APKG-Fixture fuer Unterstapel-Tests.
 - `scripts/create_world_capitals_apkg.py`: Generator fuer APKG-Fixture, Quell-Snapshot und lokalen Seed.
-- `tests/e2e/world-capitals-hierarchy.spec.js`: Playwright-Smoke fuer Seed, Unterstapel, Umbenennen und Drag-and-drop.
+- `tests/e2e/world-capitals-hierarchy.spec.js`: Playwright-Smoke fuer Seed, Unterstapel und direkte Lernlisten-Drag-and-drop-Gesten.
 - `AGENTS.md`: lokale Entwicklungsregeln, empfohlene Kommandos und Architekturleitplanken.
+- `vercel.json`: aktueller Vercel-Build-/Rewrite-Anker fuer die Vite-App.
+- `.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag.
 - `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker fuer den spaeteren Produktivpfad.
+- `supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
 - `supabase/verify_schema_v1.sql`: RLS-/Policy-Verifikation fuer das Supabase-Schema.
 
 ## Aktueller Status
@@ -92,9 +99,9 @@ CoRe laeuft lokal als Vite/React-App und hat einen initialen Vercel-/Supabase-In
 
 ## Naechste sinnvolle Schritte
 
-- Smoke-Tests fuer die wichtigsten Browser-Flows automatisieren.
-- Accessibility-Pass fuer Review, Import und Settings durchfuehren.
-- Fehlerfaelle fuer grosse oder ungueltige Importdaten in der UI haerten.
-- App-Persistenz, Auth, Domain/Deployment-Pipeline, Supabase Storage und serverseitige KI-Jobs konkretisieren.
-- FSRS-like Scheduler und Variant-Fallback mit echten Decks validieren.
-- Datenportabilitaet mit Roundtrip-Fixtures absichern.
+- Browser-Smokes fuer Review, Variante, KI-Draft, Assistent und Export in `tests/e2e/` ergaenzen.
+- Accessibility und Fehlerzustaende in `StudyMode`, `CreationScreen`, `DecksScreen`, `LearnScreen` und `SettingsScreen` haerten.
+- Datenportabilitaet, normalisierte Importpayloads und Legacy-Card-Normalisierung mit Roundtrip-Fixtures absichern.
+- `supabase/core_schema_v1.sql` gegen `coreModel`, `importService`, `mediaStore`, `reviewService`, `aiOrchestrator` und `dataPortability` abgleichen.
+- APKG-/Medienfixtures und Importidentitaeten gemaess `docs/anki-format-analysis.md` ausbauen.
+- Server-KI-Proxy, Job-Queue, Prompt-Versionierung, Kostenlogging und Rate-Limits planen, bevor echte Provider angebunden werden.

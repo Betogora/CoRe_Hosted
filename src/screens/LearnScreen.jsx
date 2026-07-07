@@ -3,6 +3,10 @@ import { BookOpen, ChevronDown, ChevronRight, Ellipsis, Layers, Play, PlusSquare
 import { createDeckLibraryModel, createVisibleDeckRows } from "../libraryModel.js";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
 
+const INTERACTIVE_DRAG_SELECTOR = "button, a, input, textarea, select, [role='menu'], [role='menuitem']";
+const LEARN_TOP_LEVEL_GUTTER_PX = 28;
+const LEARN_DEPTH_INDENT_PX = 20;
+
 function coreModeLabel(mode) {
   if (mode === "off") return "CoRe aus";
   if (mode === "manual") return "CoRe manuell";
@@ -27,11 +31,24 @@ function CountCell({ label, value }) {
   );
 }
 
-export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks }) {
+function isInteractiveDragTarget(target) {
+  return target instanceof Element && Boolean(target.closest(INTERACTIVE_DRAG_SELECTOR));
+}
+
+function isRowElement(target) {
+  return target instanceof Element && Boolean(target.closest("[data-learn-deck-row='true']"));
+}
+
+export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onMoveDeck }) {
   const library = createDeckLibraryModel(decks);
   const [collapsedDeckIds, setCollapsedDeckIds] = React.useState(() => new Set());
   const [openOptionsDeckId, setOpenOptionsDeckId] = React.useState(null);
+  const [draggedDeckId, setDraggedDeckId] = React.useState(null);
+  const [dropIntent, setDropIntent] = React.useState(null);
+  const [dragStatus, setDragStatus] = React.useState("");
+  const draggedDeckIdRef = React.useRef(null);
   const visibleRows = createVisibleDeckRows(library.rows, collapsedDeckIds);
+  const rowById = React.useMemo(() => new Map(library.rows.map((row) => [row.id, row])), [library.rows]);
 
   function toggleCollapsed(deckId) {
     setCollapsedDeckIds((current) => {
@@ -49,6 +66,97 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks }) {
   function openDeckManagement(deckId) {
     setOpenOptionsDeckId(null);
     onOpenDecks(deckId);
+  }
+
+  function readDraggedDeckId(event) {
+    return event.dataTransfer?.getData("text/plain") || draggedDeckIdRef.current || draggedDeckId;
+  }
+
+  function clearDragState() {
+    draggedDeckIdRef.current = null;
+    setDraggedDeckId(null);
+    setDropIntent(null);
+  }
+
+  function startDeckDrag(event, row) {
+    if (!onMoveDeck || isInteractiveDragTarget(event.target)) {
+      event.preventDefault();
+      return;
+    }
+
+    draggedDeckIdRef.current = row.id;
+    setDraggedDeckId(row.id);
+    setDropIntent(null);
+    setDragStatus("");
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", row.id);
+  }
+
+  function isInvalidDropTarget(row, sourceDeckId) {
+    const sourceRow = rowById.get(sourceDeckId);
+    return !sourceDeckId || row.id === sourceDeckId || Boolean(sourceRow?.scopeDeckIds?.includes(row.id));
+  }
+
+  function createRowDropIntent(event, row) {
+    const sourceDeckId = readDraggedDeckId(event);
+    const invalid = isInvalidDropTarget(row, sourceDeckId);
+    const rowRect = event.currentTarget.getBoundingClientRect();
+    const outdentLimit = rowRect.left + Math.min(row.depth, 6) * LEARN_DEPTH_INDENT_PX + LEARN_TOP_LEVEL_GUTTER_PX;
+    const shouldMoveToTopLevel = row.depth > 0 && event.clientX <= outdentLimit;
+
+    return {
+      targetDeckId: row.id,
+      parentDeckId: shouldMoveToTopLevel ? row.parentDeckId ?? null : row.id,
+      invalid,
+      kind: shouldMoveToTopLevel ? "top" : "deck",
+    };
+  }
+
+  function allowRowDrop(event, row) {
+    event.preventDefault();
+    event.stopPropagation();
+    const intent = createRowDropIntent(event, row);
+    event.dataTransfer.dropEffect = intent.invalid ? "none" : "move";
+    setDropIntent(intent);
+  }
+
+  function allowPanelTopLevelDrop(event) {
+    if (isRowElement(event.target) || !readDraggedDeckId(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDropIntent({ targetDeckId: null, parentDeckId: null, invalid: false, kind: "top" });
+  }
+
+  function leaveDropTarget(event) {
+    const nextTarget = event.relatedTarget;
+    if (nextTarget && event.currentTarget.contains(nextTarget)) return;
+    setDropIntent(null);
+  }
+
+  function dropDeck(event, intent = dropIntent) {
+    event.preventDefault();
+    event.stopPropagation();
+    const sourceDeckId = readDraggedDeckId(event);
+
+    if (!sourceDeckId) {
+      clearDragState();
+      return;
+    }
+    if (intent?.invalid) {
+      setDragStatus("Stapel bleibt an dieser Stelle.");
+      clearDragState();
+      return;
+    }
+
+    const result = onMoveDeck?.(sourceDeckId, intent?.parentDeckId ?? null);
+    if (result?.error) {
+      setDragStatus(result.error);
+    } else if (result?.changedDeckIds?.length === 0) {
+      setDragStatus("Stapel bleibt an dieser Stelle.");
+    } else {
+      setDragStatus(intent?.parentDeckId ? "Stapel als Unterstapel verschoben." : "Stapel auf die Hauptebene verschoben.");
+    }
+    clearDragState();
   }
 
   return (
@@ -83,7 +191,16 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks }) {
           }
         />
       ) : (
-        <SoftPanel className="overflow-visible p-4 sm:p-5">
+        <SoftPanel
+          className={`overflow-visible p-4 transition sm:p-5 ${dropIntent?.kind === "top" && !dropIntent.targetDeckId && !dropIntent.invalid ? "ring-2 ring-[#8c96dc] bg-[#f7f8ff]" : ""}`}
+          data-testid="learn-deck-list"
+          onDragOver={allowPanelTopLevelDrop}
+          onDragLeave={leaveDropTarget}
+          onDrop={(event) => dropDeck(event, { targetDeckId: null, parentDeckId: null, invalid: false, kind: "top" })}
+        >
+          <span className="sr-only" aria-live="polite">
+            {dragStatus}
+          </span>
           <div className="hidden grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_8rem_8rem_3rem] items-center gap-3 border-b border-[#e3e7f5] px-3 pb-3 text-xs font-semibold uppercase tracking-wide text-[#66709a] md:grid">
             <span>Stapel</span>
             <span className="text-right">Neu</span>
@@ -100,12 +217,29 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks }) {
               const isCollapsed = collapsedDeckIds.has(deck.id);
               const isOptionsOpen = openOptionsDeckId === deck.id;
               const menuId = `learn-deck-options-${deck.id}`;
+              const isDragged = draggedDeckId === deck.id;
+              const isDeckDropTarget = dropIntent?.targetDeckId === deck.id && !dropIntent.invalid && dropIntent.parentDeckId === deck.id;
+              const isOutdentDropTarget = dropIntent?.targetDeckId === deck.id && !dropIntent.invalid && dropIntent.kind === "top";
+              const isInvalidDropTarget = dropIntent?.targetDeckId === deck.id && dropIntent.invalid;
 
               return (
                 <div
                   key={deck.id}
+                  draggable={Boolean(onMoveDeck)}
+                  onDragStart={(event) => startDeckDrag(event, row)}
+                  onDragEnd={clearDragState}
+                  onDragOver={(event) => allowRowDrop(event, row)}
+                  onDragLeave={leaveDropTarget}
+                  onDrop={(event) => dropDeck(event, createRowDropIntent(event, row))}
                   data-testid={`learn-deck-row-${deck.id}`}
-                  className="relative grid min-w-0 gap-3 px-1 py-4 md:grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_8rem_8rem_3rem] md:items-center md:gap-3 md:px-3"
+                  data-learn-deck-row="true"
+                  className={`relative grid min-w-0 gap-3 rounded-xl px-1 py-4 transition duration-150 md:grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_8rem_8rem_3rem] md:items-center md:gap-3 md:px-3 ${
+                    onMoveDeck ? "cursor-grab active:cursor-grabbing" : ""
+                  } ${isDragged ? "scale-[0.995] opacity-60 ring-1 ring-[#c7cee8]" : ""} ${
+                    isDeckDropTarget ? "bg-[#eef1fb] ring-2 ring-[#8c96dc]" : ""
+                  } ${isOutdentDropTarget ? "bg-white/85 shadow-[inset_5px_0_0_#8c96dc]" : ""} ${
+                    isInvalidDropTarget ? "bg-red-50 ring-2 ring-red-200" : ""
+                  }`}
                 >
                   <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${Math.min(row.depth, 6) * 1.25}rem` }}>
                     {row.hasChildren ? (
@@ -161,7 +295,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks }) {
                       <Ellipsis size={18} aria-hidden="true" />
                     </button>
                     {isOptionsOpen ? (
-                      <div id={menuId} role="menu" className="absolute right-3 top-[calc(100%-0.75rem)] z-10 min-w-48 rounded-xl border border-[#dfe4f5] bg-white p-2 text-sm font-semibold text-[#17214f] shadow-[0_18px_45px_rgba(91,105,154,0.18)]">
+                      <div id={menuId} role="menu" className="core-overlay absolute right-3 top-[calc(100%-0.75rem)] z-10 min-w-48 rounded-xl p-2 text-sm font-semibold text-[#17214f]">
                         <button type="button" role="menuitem" onClick={() => openDeckManagement(deck.id)} className="block min-h-10 w-full rounded-lg px-3 text-left hover:bg-[#f2f4fd]">
                           Stapel verwalten
                         </button>

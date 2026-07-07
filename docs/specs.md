@@ -2,9 +2,9 @@
 
 **Produkt- und Engineering-Spezifikation**  
 **Dateien:** `docs/specs.md` und `docs/specs.html`  
-**Status:** Arbeitsfassung v0.3
+**Status:** Arbeitsfassung v0.4
 **Datum:** 2026-07-07
-**Quellenbasis:** Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App
+**Quellenbasis:** Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App + `docs/anki-format-analysis.md` + aktueller Test-/Infrastrukturstand
 
 ---
 
@@ -18,15 +18,17 @@ Die aktuelle Architektur macht bewusst noch keine umfangreiche Bauvorleistung fu
 
 Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese zentrale Spezifikation uebernommen. Der relevante Zielpfad ist jetzt hier dokumentiert: Vercel als naheliegender Hosting-/Preview-/Domain-Pfad, Supabase Auth/Postgres/RLS als naheliegender Persistenzpfad, echte Tabellen statt grossem Store-Blob, Supabase Storage/Object Storage fuer grosse Medien und Dokumente, eigene `/api/ai/*`-Routen fuer geheime KI-Keys, sowie klare Env-Var- und Secret-Grenzen.
 
+Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdown-Datei, `docs/todo.md`. Sie ist die einzige Roadmap-Quelle fuer offene Arbeit; neue TODO-Markdowns sollen nicht entstehen. `docs/specs.md` bleibt kanonisch, `docs/specs.html` ist die visuelle HTML-Fassung derselben Spezifikation, und `docs/anki-format-analysis.md` dokumentiert die Anki-Differenzentscheidungen hinter Import-, Medien- und Learning-Item-Ausbau.
+
 | Bereich | Implementierte lokale Module / Screens |
 |---|---|
-| Dashboard und Lernaktivitaet | `DashboardScreen`, `libraryModel.createStudyHeatmapModel`, `libraryModel.createStudyHeatmapWindow`, Tagesmetriken, aktive Stapel, responsive und pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap |
+| Dashboard und Lernaktivitaet | `DashboardScreen`, `libraryModel.createStudyHeatmapModel`, `libraryModel.createStudyHeatmapWindow`, `libraryModel.getStudyHeatmapVisibleWeekCount`, Tagesmetriken, aktive Stapel, responsive und pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap |
 | Account, Profil, Datenschutz | `SettingsScreen`, `createCoreRepository().saveProfile()` |
-| Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `LearnScreen`, `libraryModel`, `coreWorkspace.renameDeck`, `coreWorkspace.moveDeck`, `coreModel.createCoreDeck`, `deckSettings.coreMode`, echte Parent-/Child-Stapel aus APKG-Hierarchien, Drag-and-drop-Unterstapel, direkte Umbenennung, aufklappbare Lernuebersicht, Learning-Item-Normalisierung |
-| Import | `creationWorkflow`, `apkgImport`, `importService` fuer APKG/Text/CSV/Excel-Paste, Importberichte, echte Unterstapel, Raw-Fallbacks, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge |
-| Manuelle Erstellung | `creationWorkflow`, `ManualCreationPanel`, `RichTextEditor`, `richText`, `documentModel`, `sourceAnchors`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem` |
+| Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `LearnScreen`, `libraryModel`, `coreWorkspace.renameDeck`, `coreWorkspace.moveDeck`, `coreModel.createCoreDeck`, `deckSettings.coreMode`, echte Parent-/Child-Stapel aus APKG-Hierarchien, Drag-and-drop-Unterstapel, direkte Umbenennung, aufklappbare und direkt ziehbare Lernuebersicht, Learning-Item-Normalisierung |
+| Import | `creationWorkflow`, `apkgImport`, `importService` fuer APKG/Text/CSV/Excel-Paste und normalisierte JSON-Payloads, Importberichte, Fingerprints/Dedupe, echte Unterstapel, Raw-Fallbacks, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge |
+| Manuelle Erstellung | `creationWorkflow`, `ManualCreationPanel`, `RichTextEditor`, `richText`, `htmlSafety`, `documentModel`, `sourceAnchors`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem` |
 | KI-Kartenerstellung | `creationWorkflow`, `aiOrchestrator.generateCardsFromDocument`, Draft-Review, Schema-Validation, normalisierte Draft-Items |
-| Review/Scheduler | `reviewService`, `reviewFlow` als Legacy-Fassade, `scheduler`, `reviewShortcuts`, Tages-Queue aus jetzt fälligen oder überfälligen Karten plus einstellbaren neuen Karten, vier Buttons mit Intervallvorschau, Tastatur, Front+Back nach Aufdeckung, FSRS-like State, Learning-Item-/Varianten-Events |
+| Review/Scheduler | `reviewService`, `reviewFlow` als Legacy-Fassade, `scheduler`, `reviewShortcuts`, `scheduler.formatIntervalLabel`, `scheduler.getReviewButtonOptions`, Tages-Queue aus jetzt fälligen oder überfälligen Karten plus einstellbaren neuen Karten, vier Buttons mit Intervallvorschau, Tastatur, Front+Back nach Aufdeckung, FSRS-like State, Learning-Item-/Varianten-Events |
 | Content Repetition | `coreVariantService`, `variantGeneration`, `variantSelection`, Eligibility, Rephrase, Variant-Level, Readiness/Coverage/Generation-Plan, Fallback nach Fehlern, Original-Variantenanker, Variantenstatus, Dedupe-Hash |
 | Trust/Versionierung | `sourceAnchors`, `versionLog`, Variant-Feedback, Deaktivieren, Restore-Basis |
 | Community | `communityModel`, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten |
@@ -42,12 +44,13 @@ Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese ze
 - Cleanere Navigation fuer Heute, Erstellen, Lernen, Graph und Community; Kartenstapel ist ueber den Lernen-Kopf erreichbar, Einstellungen ueber den Account-Button.
 - App-Shell und Lernmodus nutzen die verfuegbare Browserbreite ohne feste Desktop-Maximalbreite; beim Herauszoomen waechst die Oberflaeche mit der Seitenbreite.
 - Dashboard mit Tagesmetriken, aktiven Stapeln und GitHub-/Anki-artiger Jahres-Heatmap aus lokalen Review-Events; die Heatmap zeigt abhängig von der verfügbaren Breite ganze Wochen ohne horizontalen Slider und ist per Pfeil-Buttons bzw. Tastaturpfeilen navigierbar.
-- Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, direktem Umbenennen, Drag-and-drop-Verschieben nach Anki-Semantik, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare Stapelliste mit Neu-, Faellig- und Gesamtzahlen, CoRe-Status und Stapeloptionen ohne kartenbezogene Maturity-Anzeige.
+- Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, direktem Umbenennen, Drag-and-drop-Verschieben nach Anki-Semantik, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare Stapelliste mit Neu-, Faellig- und Gesamtzahlen, CoRe-Status und Stapeloptionen ohne kartenbezogene Maturity-Anzeige und unterstützt direktes Anki-artiges Ziehen auf Stapelzeilen.
 - Frische lokale Browser-States werden mit einem reproduzierbaren Teststapel `Welt-Hauptstädte` geseedet: 245 Hauptstadtkarten aus dem ODbL-lizenzierten `mledoze/countries`-Snapshot, gruppiert in sieben Kontinent-Unterstapel; die zugehoerige echte APKG-Fixture liegt im Repository.
 - Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, importierte Varianten und KI-Drafts; Legacy-Karten werden beim Lesen normalisiert.
 - APKG-Basic-Import inklusive Importbericht, echtem Unterstapel-Mapping aus Anki-Hierarchien, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten pro Unterstapel, lokalem Browser-Medienspeicher und Reimport-Merge ohne Verlust lokaler Content-Edits.
-- Text-, CSV- und Excel-/Tabellen-Paste-Import als schnelle Front/Back-Erstellung ueber dieselbe Normalisierungsschicht.
+- Text-, CSV-, normalisierte JSON- und Excel-/Tabellen-Paste-Importe laufen ueber dieselbe Normalisierungsschicht; Fingerprints, Duplicate-Erkennung, Parent-/Hierarchy-Felder und Import-Warnungen sind im Modul abgesichert.
 - Manuelle Kartenerstellung mit Rich-Text-Editor fuer Vorder- und Rueckseite, bestehendem/neuem Stapelziel, Basic/Reverse/Cloze/Multiple-Choice/Free-Text, Dokumentmodus, CoRe-integriertem minimalem visuellem PDF-Viewer, PDF-/Text-Auslesung, Quellenankern fuer markierten Text und stabiler Original-Variante.
+- Rich-Text-Normalisierung und HTML-Safety sind in `src/richText.js` und `src/htmlSafety.js` gekapselt; React-Screens sollen keine eigene Sanitization- oder Text-zu-HTML-Logik duplizieren.
 - Deterministische KI-Drafts aus Quellentext mit Schema-Validation, Draft-Review und Annahme in die Bibliothek.
 - Fullscreen-Review mit Antwortaufdeckung, Tages-Queue fuer ganze Stapel/Unterbaeume, einstellbarem Neue-Karten-Kontingent, vier Ratings mit naechster Intervallanzeige, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP. Bereits bewertete Karten erscheinen erst wieder, wenn ihr gespeichertes `dueAt` erreicht ist.
 - Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker-Minikarte, konservativen Variant-Levels, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
@@ -64,6 +67,7 @@ Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese ze
 - Datei- und Dokumentverarbeitung ist bewusst begrenzt: eine erste browserseitige PDF-/Text-Auslesung und ein minimaler visueller PDF-Viewer sind vorhanden; robuste DOCX-Extraktion, OCR, Bildregionen, erweiterte PDF-Werkzeuge, serverseitige APKG-Medienpersistenz und Medienhosting fehlen noch.
 - Community ist lokal und privacy-sicher modelliert, aber ohne echte Mitgliederverwaltung, Berechtigungen, Einladungen oder Moderation.
 - Export/Import ist als lokaler JSON-Portabilitaetspfad vorhanden, aber noch kein interoperabler Anki-/Cloud-/Backup-Standard.
+- Normalisierte JSON-Importe sind modulnah vorbereitet, aber noch kein eigener sichtbarer Importkanal in der UI und noch kein stabiler externer Austauschstandard.
 - Mobile, PWA-Offline, Push-Benachrichtigungen, Zahlungen, Admin-/Support-Werkzeuge und produktive Observability sind nicht umgesetzt.
 
 ### Aktuelle Ausbauhaltung
@@ -92,9 +96,10 @@ Das Dokument soll drei Rollen gleichzeitig bedienen:
 
 ### 0.2 Wichtige Annahmen
 
-- Aktuell wird CoRe als **Web-App** umgesetzt.
+- Aktuell wird CoRe zunächst als **Desktop-Website** umgesetzt. Primärer Design- und QA-Zielviewport ist **1440 × 900 px**; als Desktop-Mindestbreite gilt **1280 px**. Unterhalb von **1024 px** genügt vorerst eine lesbare responsive Fallback-Nutzung, kein eigener Mobile-Produktfokus.
 - Das Frontend nutzt mindestens **React + Tailwind CSS**; das Build-/App-Framework bleibt in dieser Spezifikation offen. Wenn mit „Beat React Stack“ `Vite + React` gemeint war, passt diese Spezifikation dazu.
-- Die App wird **mobile-first** gedacht, auch wenn der erste Build als Web-App entsteht.
+- Layoutentscheidungen nutzen konkrete Pixel-Breiten statt kontinuierlich wachsender Maximalbreiten: App-Canvas **1280–1440 px**, normale Content-Spalten **720–960 px**, breite Arbeitsflächen **1180–1280 px**, Review-Karten bis **1040 px**, Dokument-/Editor-Splits je mindestens **560 px**.
+- Typografie nutzt wenige feste Stufen statt eines Kontinuums: Schriftgrößen **12 / 14 / 16 / 18 / 24 / 32 / 40 px** und Font-Weights **400 / 600 / 700**. `clamp()`, viewport-skalierte Schrift und beliebige Zwischenwerte wie `17px`, `22px` oder `font-weight: 500` sind nur begründete Ausnahmen.
 - KI-Funktionen werden nicht als monolithisches „ein LLM macht alles“ gedacht, sondern als orchestrierte Funktionen mit Triggern, Kostenkontrolle, Kontextmanagement und Validierung.
 - CoRe soll Anki nicht kopieren, sondern Anki-kompatible Lernlogik als Ausgangspunkt nutzen und um inhaltliche Wiederholung, Varianten und Kontext erweitern.
 
@@ -107,6 +112,9 @@ Die gepflegte Projektdokumentation liegt im Ordner `docs/`:
 - `docs/specs.html`: generierte, visuelle HTML-Fassung derselben Spezifikation.
 - `docs/todo.md`: priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.
 - `docs/README.md`: Projektueberblick, lokaler Start, Scripts und Dokumentlinks.
+- `docs/anki-format-analysis.md`: Anki-Differenzanalyse fuer Import-, Medien-, Template- und Learning-Item-Entscheidungen.
+
+TODO-Markdown-Inventar: Aktuell existiert genau `docs/todo.md`. Offene Aufgaben, Roadmap-Priorisierung und Code-Sicht auf naechste Schritte werden dort gebuendelt; weitere TODO-Markdowns sollen nur angelegt werden, wenn diese Spezifikation explizit geaendert wird.
 
 `AGENTS.md` bleibt bewusst auf Root-Ebene, weil Coding-Agenten dort die Arbeitsregeln automatisch finden. Supabase-Schema- und Verify-SQL bleiben im Ordner `supabase/`, weil sie lauffaehige technische Artefakte und keine Prosadokumente sind.
 
@@ -243,9 +251,11 @@ Nicht jeder Stapel eignet sich für Varianten. Nutzende MÜSSEN pro Stapel bzw. 
 
 CoRe SOLL leichte Aufgaben günstigen oder lokalen Modellen geben und schwere Aufgaben nur bei Bedarf an stärkere Modelle auslagern. KI-Jobs SOLLEN gebündelt, entprellt und durch Trigger gesteuert werden.
 
-### P7 — Mobile-first trotz Web-MVP
+### P7 — Zunächst Desktop-Website mit klaren UI-Tokens
 
-Alle Kerninteraktionen SOLLEN auf Desktop, Tablet und Smartphone funktionieren. Der manuelle Dokumentviewer ist auf Desktop besonders wertvoll, darf aber mobile Nutzung nicht blockieren.
+CoRe SOLL im ersten Umsetzungspfad desktop-first als Website gebaut werden. Kernflows MÜSSEN bei **1440 × 900 px** effizient nutzbar sein und bei **1280 px** Breite ohne horizontales Hauptscrolling funktionieren. Tablet und Smartphone bleiben responsive lesbar, sind aber bis zur PWA-/Mobile-Phase nicht der primäre Abnahmemaßstab.
+
+Breiten, Schriftgrößen und Schriftgewichte SOLLEN aus festen Tokens kommen, nicht aus einem freien Kontinuum. Die verbindlichen UI-Tokens für den ersten Desktop-Build sind: App-Canvas **1280–1440 px**, Content-Spalten **720–960 px**, breite Arbeitsflächen **1180–1280 px**, Review-Karten bis **1040 px**, Dokument-/Editor-Spalten mindestens **560 px**, Schriftgrößen **12 / 14 / 16 / 18 / 24 / 32 / 40 px** und Gewichte **400 / 600 / 700**.
 
 ---
 
@@ -330,12 +340,14 @@ Die App SOLL folgende Hauptbereiche enthalten:
 /settings                 Einstellungen
 ```
 
-### 6.3 Mobile-first Leitlinien
+### 6.3 Desktop-first Leitlinien
 
-- Unterwegs zählt primär **Review**: große Buttons, Tastatur-Shortcuts optional, Touch-optimiert.
-- Deck-Verwaltung und Dokumentviewer dürfen auf Desktop stärker ausgebaut sein, müssen mobil aber lesbar bleiben.
-- Manuelle Kartenerstellung mit Dokumentviewer SOLL auf kleinen Screens als Tabs oder Bottom Sheet funktionieren.
-- Später native Mobile-Apps oder PWA-Funktionen früh architektonisch berücksichtigen: Offline-Queue, lokale Review-Events, Sync-Konfliktlösung.
+- CoRe wird zunächst als Desktop-Website optimiert: primärer Zielviewport **1440 × 900 px**, Desktop-Mindestbreite **1280 × 720 px**, responsive Fallback-Grenze **1024 px**.
+- Die App-Shell SOLL mit einer linken Navigation von **208 px**, Desktop-Gutters von **32–48 px** und einem App-Canvas von **1280–1440 px** arbeiten. Inhaltsflächen wachsen nicht endlos mit sehr breiten Viewports.
+- Dashboard, Stapelverwaltung und Community SOLLEN normale Arbeitsflächen von **1180–1280 px** nutzen; lesende Text-/Formspalten bleiben bei **720–960 px**.
+- Review SOLL eine ruhige Kartenfläche bis **1040 px** nutzen; die eigentliche Frage-/Antworttypografie kommt aus den festen Stufen **24 / 32 / 40 px**, je nach Inhalt und Bildschirmhöhe.
+- Manuelle Kartenerstellung mit Dokumentviewer SOLL auf Desktop als Zwei-Spalten-Fläche funktionieren: Dokument und Editor je mindestens **560 px**, bei **1440 px** Zielbreite bevorzugt ungefähr **50 / 50** geteilt.
+- Unter **1024 px** dürfen Deck-Verwaltung und Dokumentviewer in Tabs oder eine Einspalten-Ansicht wechseln. Mobile/PWA, Offline-Queue, Push und native Touch-Optimierung bleiben spätere Ausbaupunkte.
 
 ---
 
@@ -430,6 +442,8 @@ Lernstände sind privat. Standardmäßig DÜRFEN weder Lernfortschritt, fällige
 ### FR-DECK-001 — Deck-Hierarchie
 
 In der Stapelverwaltung MUESSEN Stapel direkt umbenannt und per Drag-and-drop verschoben werden koennen: Drop auf einen Stapel macht ihn zum Unterstapel, Drop auf die Hauptebene macht ihn zum Hauptstapel, Drop auf sich selbst oder eigene Nachfahren wird abgelehnt.
+
+Die Lernuebersicht MUSS dieselbe Reparenting-Semantik direkt auf der Stapelzeile anbieten: Stapel koennen ohne sichtbaren Drag-Handle gezogen werden, interaktive Buttons bleiben Klickziele, und die linke Outdent-/freie Panel-Flaeche zieht Unterstapel wieder aus ihrem aktuellen Oberstapel heraus.
 
 CoRe MUSS Stapel und Unterstapel abbilden können. Importierte Anki-Hierarchien können tief verschachtelt sein und SOLLEN so weit wie möglich erhalten bleiben. Lern- und Verwaltungsuebersichten MUESSEN Unterstapel als echte Hierarchie anzeigen; Elternstapel bleiben als aggregierter Lernstart fuer ihren Unterbaum funktionsfaehig. Nutzende MUESSEN manuell Hauptstapel und beliebig tief verschachtelte Unterstapel anlegen koennen.
 
@@ -2273,6 +2287,20 @@ Die Gründerdiskussion weist darauf hin, dass sehr kurze Wiederholintervalle mö
 - Rich-Text-Editor für Karteninhalte.
 - PDF Viewer für Dokumentmodus.
 
+### Layout- und Typografie-Tokens
+
+Für den ersten Desktop-Website-Build SOLLEN React/Tailwind-Komponenten auf ein kleines, explizites Token-Set begrenzt werden:
+
+- **Viewport-Ziele:** primär **1440 × 900 px**, Desktop-Mindestabnahme **1280 × 720 px**, responsive Fallback ab **1024 px**.
+- **Breiten:** linke Navigation **208 px**, Desktop-Gutters **32 / 48 px**, App-Canvas **1280 / 1440 px**, Standard-Arbeitsfläche **1180 / 1280 px**, Lesespalte **720 / 960 px**, Review-Karte maximal **1040 px**, Dokument-/Editor-Spalte mindestens **560 px**.
+- **Schriftgrößen:** **12 / 14 / 16 / 18 / 24 / 32 / 40 px**. Neue Komponenten sollen keine beliebigen Zwischenwerte oder viewport-skalierte Größen verwenden.
+- **Schriftgewichte:** **400 / 600 / 700**. `500`, `800`, `900` und ähnliche Zwischen- oder Extremgewichte sind nur für bewusst begründete Sonderfälle erlaubt, nicht als Alltagsstil.
+- **Tailwind-Nutzung:** Utility-Klassen sollen auf diese Tokens gemappt werden; freie Werte wie `text-[17px]`, `max-w-[1376px]` oder typografisches `clamp()` gelten als Ausnahme und brauchen einen klaren Grund im Codekontext.
+
+### Surface- und Elevation-Regel
+
+Dauerhafte glasige Panels und Karten MUESSEN ihre optische Abhebung ueber gemeinsame Surface-Tokens, Border, Hintergrundtransparenz und kompakte bzw. inset Elevation erzeugen. Sie duerfen benachbarte Elemente nicht sichtbar abdunkeln oder mit grossen diffusen Schatten unterlaufen. Grosse auslaufende Schatten sind nur fuer echte Overlays wie Menues, Popovers, Dialoge oder aktive Drag-/Floating-Zustaende erlaubt; solche Ausnahmen sollen eine eigene Overlay-Klasse nutzen.
+
 ### Frontend-Ordnerstruktur
 
 ```text
@@ -2874,6 +2902,7 @@ Wenn ein KI-Agent Code schreibt, sollte er folgende Regeln erhalten:
 9. Keine KI-, Supabase-Secret- oder Service-Role-Keys in Browser-Code, `VITE_*`, `localStorage`, Exportdaten oder Logs schreiben.
 10. Supabase-Tabellen in exposed Schemas nur mit expliziten Grants, aktivem RLS und Ownership-/Membership-Policies anbinden.
 11. Sichtbare Features, Screens, Controls und Flows bei Ueberarbeitungen erhalten; Entfernung nur bei explizitem Prompt.
+12. Dauerhafte UI-Panels und Karten duerfen benachbarte Elemente nicht mit auslaufenden Schatten abdunkeln; grosse Schatten sind echten Overlays vorbehalten.
 
 ---
 
@@ -2952,15 +2981,17 @@ sequenceDiagram
 
 Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisierter Soll/Ist-Backlog in `docs/todo.md`.
 
-Kurzfassung:
+Kurzfassung mit Code-Sicht:
 
-1. Lokalen MVP stabilisieren: Smoke-Skript, Accessibility, robuste Fehlerzustaende, Datenportabilitaet-Roundtrips.
-2. Hosting- und Produktivpfad konkretisieren: Vercel/Domain/Preview/Production, SPA-Rewrites, Env Vars und Deployment-Checkliste.
-3. Supabase/Postgres/Auth-Stack validieren und erst dann das lokale Repository-Interface mit einem echten Adapter verbinden.
-4. Dokument-, Medien- und APKG-Verarbeitung fuer grosse Dateien serverseitig planen, inklusive Object Storage und Garbage Collection.
-5. KI-Provider, Secret-Grenzen, Server-Proxy, Datenschutz, Job-Queue, Prompt-Versionierung und Evals als eigenes Ausbaupaket behandeln.
-6. Scheduler, Variantenqualitaet und Lernwirksamkeit mit echten Decks validieren.
-7. Community-Rechte, Sync, Mobile/PWA und Wachstumsschicht erst nach den Produktivgrundlagen ausbauen.
+1. Lokalen MVP stabilisieren: Browser-Smokes fuer Review, Import, KI-Draft, Assistent und Export ergaenzen; Einstiegspunkte sind `tests/e2e/`, `src/App.jsx`, `src/screens/StudyMode.jsx`, `src/screens/CreationScreen.jsx`, `src/screens/AssistantScreen.jsx` und `src/screens/SettingsScreen.jsx`.
+2. Accessibility und Fehlerzustaende haerten: Fokus, Labels, Tastatur und Fehlertexte in `StudyMode`, `CreationScreen`, `DecksScreen` und `SettingsScreen` pruefen; Validierungslogik in `creationWorkflow`, `importService`, `apkgImport`, `documentModel` und `dataPortability` halten.
+3. Datenportabilitaet und Import-Roundtrips absichern: Fixtures fuer `createPortableExport`, `mergePortableExportIntoState`, normalisierte Importpayloads, Legacy-Card-Normalisierung und Learning-Item-Invarianten pflegen.
+4. Hosting- und Produktivpfad konkretisieren: `vercel.json`, `.env.example`, `npm test`, `npm run build`, Preview-Smoke, Production-Rollback, Domain/DNS und Secret-Grenzen als Deployment-Checkliste festhalten.
+5. Supabase/Postgres/Auth validieren: `supabase/core_schema_v1.sql` gegen `src/coreModel.js`, `src/coreRepository.js`, `src/coreWorkspace.js`, `src/importService.js`, `src/mediaStore.js` und `src/dataPortability.js` abgleichen, bevor ein echter Repository-/Auth-Adapter entsteht.
+6. Dokument-, Medien- und APKG-Verarbeitung ausbauen: APKG-Fixtures, Notetype-/Template-Snapshots, Importidentitaeten, Medienchecksums und Storage-Referenzen hinter `apkgImport`, `mediaStore`, `htmlSafety` und spaeteren Worker-/Servermodulen halten.
+7. KI und Jobs produktionsfaehig machen: Provider-Auswahl, `/api/ai/*`-Proxy, Supabase-Session-Grenzen, Prompt-/Schema-Versionen, Kostenlogging, Rate-Limits und Eval-Datensatz aus `aiOrchestrator`, `variantGeneration` und dem lokalen `aiJobs`-Modell ableiten.
+8. Scheduler, Varianten und Lernwirksamkeit validieren: `scheduler`, `reviewService`, `coreVariantService`, `variantSelection` und `variantGeneration` mit echten Decks, Review-Events, Intervallvorschauen und Variant-Fallbacks pruefen.
+9. Community-Rechte, Sync, Mobile/PWA und Wachstumsschicht erst nach Persistenz/Auth/Storage/Jobs ausbauen; relevante lokale Vorlaeufer sind `communityModel`, `learningPlan`, `deckAssistant`, `deckGraph` und `dataPortability`.
 
 ---
 
@@ -2974,10 +3005,10 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 |---|---|---|
 | `src/coreModel.js` | `createCoreDeck`, `createCoreLearningItem`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem`, `createLearningItemsFromNormalizedInput`, `createCardVariant`, `getOriginalVariant`, `getAnswerSideAnchorMiniCard`, `updateCardContent`, `restoreCardVersion` | Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen, Deck-Settings |
 | `src/coreRepository.js` | `createCoreRepository()` | Persistenter lokaler App-State, Migration alter Decks, Default-Seed `Welt-Hauptstädte` fuer frische lokale Browser-States, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene |
-| `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `createDeck`, `renameDeck`, `moveDeck`, `deleteDeckTree`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard` | Lokale App-Kommandos fuer Demo-Daten, manuelle Stapel-/Unterstapel-Baeume, Umbenennen, Drag-and-drop-Reparenting, Stapelbaum-Loeschen, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates |
+| `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `createDeck`, `renameDeck`, `moveDeck`, `deleteDeckTree`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard`, `addManualCardToDeck`, `applyVariantGenerationResponse` | Lokale App-Kommandos fuer Demo-Daten, manuelle Stapel-/Unterstapel-Baeume, Umbenennen, Drag-and-drop-Reparenting, Stapelbaum-Loeschen, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege, manuelles Anhängen an bestehende Stapel und KI-Variantenannahme |
 | `src/creationWorkflow.js` | `createCreationWorkflow` | In-process Creation-Kommandos fuer APKG-Preview/Commit, Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme; haelt Import-/Medien-/KI-Orchestrierung aus React heraus |
-| `src/scheduler.js` | `scheduleWithFsrsLikeModel`, `calculateRetrievability`, `getSchedulerStateForItem`, `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | FSRS-like Vier-Button-Scheduler, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
-| `src/libraryModel.js` | `createDeckLibraryModel`, `createVisibleDeckRows`, `createAiJobLedger` | UI-nahe Bibliotheksprojektion fuer Dashboard, baumartige Deckliste, aufklappbare Unterstapel-Sicht, Unterstapel-Aggregate, aktive Kartenzeilen und KI-Job-Ledger |
+| `src/scheduler.js` | `formatIntervalLabel`, `simulateRatingOutcome`, `getReviewButtonOptions`, `scheduleWithFsrsLikeModel`, `calculateRetrievability`, `getSchedulerStateForItem`, `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | FSRS-like Vier-Button-Scheduler, Button-Intervallvorschau, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
+| `src/libraryModel.js` | `createDeckLibraryModel`, `createVisibleDeckRows`, `createStudyHeatmapModel`, `createStudyHeatmapWindow`, `getStudyHeatmapVisibleWeekCount`, `createAiJobLedger` | UI-nahe Bibliotheksprojektion fuer Dashboard, baumartige Deckliste, aufklappbare Unterstapel-Sicht, Unterstapel-Aggregate, aktive Kartenzeilen, responsive Heatmap und KI-Job-Ledger |
 | `src/reviewService.js` | `answerVariant`, `getNextReviewItem`, `createDailyReviewQueue`, `getEffectiveNewCardsPerDay`, `countNewCardsIntroducedToday`, `createReviewSession`, `recordReviewRating`, `recordVariantFeedback` | Tiefer Review-Flow fuer Antwortverarbeitung, Tages-Queue aus `dueAt <= now` plus Neue-Karten-Kontingent, FSRS-State, Fallback nach Fehlern, Eventbau, Familien-/Variantenstatus, Session-Projektion und Feedback-Kommandos |
 | `src/reviewFlow.js` | `answerVariant`, `getNextReviewItem` | Legacy-Fassade fuer bestehende Imports; Implementierung lebt in `src/reviewService.js` |
 | `src/coreVariantService.js` | `classifyCardEligibility`, `createVariantReviewModel`, `getLearningItemMaturity`, `getVariantReadiness`, `getVariantCoverage`, `getVariantGenerationRecommendation`, `getVariantGenerationPlan`, `getVariantFallbackTarget`, `ensureVariantsForCard`, `chooseReviewCard`, `deactivateVariant`, `flagVariant` | CoRe-Eligibility, Reifegrad-/Readiness-Projektion, Coverage, Generation-Plan, Fallback-Ziele, lokaler Fallback-Rephrase und Varianten-Feedback |
@@ -2985,11 +3016,13 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/variantSelection.js` | `selectAutomaticReviewVariant`, `isAutomaticRephraseVariant` | Automatische Auswahl nahe am Original bleibender Review-Varianten nach Lernphase und Variant-Level |
 | `src/reviewShortcuts.js` | `resolveReviewShortcut` | Tastaturvertrag fuer Reveal, Bewertung und Exit im Review |
 | `src/aiOrchestrator.js` | `generateCardsFromDocument`, `selectModel`, `validateCardGenerationOutput` | Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts |
-| `src/documentModel.js` | `createDocumentFromFile`, `createAnchorFromSelection`, `splitDocumentIntoPassages` | Dokumente, Textlayer, Auswahl-zu-Quelle |
-| `src/importService.js` | `createTextImportDeck`, `createCsvImportDeck`, `createTableImportDeck`, `importNormalizedDeck` | Text-/CSV-/Excel-Paste-Import und normalisierte Deck-Erstellung mit Parent-/Hierarchy-Feldern ueber die Learning-Item-Creation-Pipeline |
+| `src/documentModel.js` | `isTextReadableFile`, `isPdfFile`, `isDocxFile`, `formatPdfTextContentItems`, `createDocumentFromFile`, `createAnchorFromSelection`, `splitDocumentIntoPassages` | Dokumente, Dateityp-Gates, PDF-Textformatierung, Textlayer, Auswahl-zu-Quelle |
+| `src/importService.js` | `normalizeImportDeck`, `normalizeNormalizedImportPayload`, `importNormalizedDeck`, `parseTextToNormalizedImport`, `parseCsvToNormalizedImport`, `parseJsonToNormalizedImport`, `createImportFingerprint`, `findDuplicateLearningItem`, `createTextImportDeck`, `createCsvImportDeck`, `createTableImportDeck` | Text-/CSV-/JSON-/Excel-Paste-Import, Fingerprints/Dedupe und normalisierte Deck-Erstellung mit Parent-/Hierarchy-Feldern ueber die Learning-Item-Creation-Pipeline |
 | `src/apkgImport.js` | `createApkgImportPreview`, `findReadableCollectionDatabase`, `parseAnkiMedia`, `mapAnkiToCoreDeck`, `commitApkgImport`, `mergeImportedDeck`, `commitImport` | APKG-Import, `collection.anki21b`/Zstd, Media-Manifeste, echte Anki-Unterstapel, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten, Welt-Hauptstadt-Fixture-Verifikation |
 | `src/sqliteReader.js` / `src/zipReader.js` | `readSqliteDatabase`, `readZipArchive` | Lokales Lesen der APKG-Container und minimaler SQLite-Tabellen |
 | `src/mediaStore.js` | `storeDeckMedia`, `createDeckMediaUrlMap`, `resolveCardHtmlMedia` | Lokaler APKG-Medienspeicher ueber IndexedDB/Session-Fallback und sichere HTML-Medien-URL-Aufloesung |
+| `src/richText.js` / `src/htmlSafety.js` | `normalizeRichTextForEditor`, `appendPlainTextToCardHtml`, `hasCardRichTextContent`, `sanitizeCardHtml`, `stripHtml` | Rich-Text-Normalisierung, Quellen-Text-Anhaengen und HTML-Sanitization als Modulgrenze fuer Screens, Import und Review |
+| `src/ui/cardMedia.jsx` / `src/ui/RichTextEditor.jsx` / `src/ui/coreUi.jsx` | `useDeckMediaUrls`, `CardHtml`, `RichTextEditor`, gemeinsame UI-Bausteine | Medien-URL-Aufloesung fuer React, sicheres Karten-HTML, Rich-Text-Eingabe und geteilte Praesentationskomponenten |
 | `src/communityModel.js` | `createCommunity`, `shareDeckToCommunity`, `copySharedDeckToLibrary` | Kleine Gruppen, Ordner, Deck-Kopien ohne Lernmetriken |
 | `src/deckGraph.js` | `buildDeckGraph`, `shouldRefreshDeckGraph` | Themen-/Karten-Mindmap und Triggerlogik |
 | `src/deckAssistant.js` | `answerDeckQuestion`, `retrieveDeckEvidence` | Quellengebundene Antworten aus Karten, keine freien Halluzinationen |
@@ -3007,7 +3040,7 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 - `src/screens/DashboardScreen.jsx`: Tagesmetriken, aktive Stapel und responsive, pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap.
 - `src/screens/DecksScreen.jsx`: Deck-Hierarchie, Suche/Filter, manuelle Stapel-/Unterstapel-Anlage, direkte Stapel-Umbenennung, Drag-and-drop-Reparenting, Stapelbaum-Loeschen, CoRe-Modus, Karten-CRUD, Aktionen.
 - `src/screens/CreationScreen.jsx`: APKG, Text/CSV/Excel-Paste, manuell, PDF-/Text-Dokumenterstellung mit Quellenanker, KI-Drafts.
-- `src/screens/LearnScreen.jsx`: Aufklappbare Lernuebersicht fuer Stapel und Unterstapel mit Neu-/Faellig-/Gesamtzahlen, CoRe-Status, Lernen-Start und Stapeloptionen.
+- `src/screens/LearnScreen.jsx`: Aufklappbare Lernuebersicht fuer Stapel und Unterstapel mit Neu-/Faellig-/Gesamtzahlen, CoRe-Status, Lernen-Start, Stapeloptionen und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
 - `src/screens/StudyMode.jsx`: Clean Fullscreen Review, Tages-Queue fuer jetzt faellige Karten plus neue Karten, Neue-Karten-Tageslimit, Front+Back nach Aufdeckung, vier Buttons mit Intervallvorschau, Tastatursteuerung, Originalanker, Variantenfeedback.
 - `src/screens/GraphScreen.jsx`: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.
 - `src/screens/CommunityScreen.jsx`: Community erstellen, Deck teilen, Deck kopieren.
@@ -3021,15 +3054,19 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 - `src/coreWorkspace.test.js`: lokale App-Kommandos fuer Demo-Deck, Welt-Hauptstadt-Seed, Stapel-Rename, Stapel-Move, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.
 - `src/creationWorkflow.test.js`: Creation-Workflow-Interface fuer APKG-Fehlerform, Paste-Import, manuelle Dokumentanker, KI-Draft-Erzeugung und Draft-Annahme.
 - `src/coreModel.test.js`: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.
+- `src/libraryModel.test.js`: Dashboard-/Bibliotheksprojektionen, sichtbare Deckzeilen und Heatmap-Fenster.
 - `src/creationPipeline.test.js`: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.
 - `src/learningModel.test.js`: Legacy-Card-Normalisierung, Learning-Item-Invarianten und Review-Event-Kompatibilitaetsfelder.
+- `src/normalizedImport.test.js`: normalisierte Importpayloads, JSON-Import, Fingerprints, Dedupe und Parent-/Hierarchy-Felder.
 - `src/reviewFlow.test.js`: Antwortverarbeitung, Scheduler-Events, Variantenperformance, Anchor-Snapshots und Next-Review-Auswahl.
 - `src/fsrsVariantFlow.test.js`: FSRS-like Scheduler-State, Reifegradstufen, Variant-Readiness, Coverage, Generation-Plan, Fallback nach Fehlern und Next-Review-Projektion.
+- `src/schedulerIntervals.test.js`: Intervall-Labels, Rating-Simulation und Button-Intervallvorschau.
 - `src/variantGeneration.test.js`: Prompt-Vertrag, KI-JSON-Parsing, Vorschlagsvalidierung, Anchoring und automatische Varianten-Auswahl.
 - `src/apkgImport.test.js`: APKG-Mapping, HTML-Sicherheit, lesbare Collection-Auswahl fuer `collection.anki21b`/Zstd-Fallbacks, Welt-Hauptstadt-APKG-Fixture und Reimport-Merge.
 - `src/mediaStore.test.js`: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.
+- `src/richText.test.js`: Rich-Text-Normalisierung, Plain-Text-Anhaengen und leere Karteninhalte.
 - `src/menuModel.test.js`: Navigationsvertrag.
-- `tests/e2e/world-capitals-hierarchy.spec.js`: Browser-Smoke fuer frischen lokalen Seed, sichtbare Unterstapel, Stapel-Umbenennung und Drag-and-drop-Reparenting.
+- `tests/e2e/world-capitals-hierarchy.spec.js`: Browser-Smoke fuer frischen lokalen Seed, sichtbare Unterstapel, direkte Lernlisten-Drag-Geste, Outdent-Reparenting und interaktive Controls ohne Drag-Start.
 
 ### 27.4 Gemeinsames Kartenmodell
 
@@ -3123,13 +3160,24 @@ Projekt-Dokumente:
 - `docs/index.md`: Dokumentationskarte und Einstiegspunkt.
 - `docs/specs.md`: kanonische Produkt-/Engineering-Spezifikation.
 - `docs/specs.html`: generierte HTML-Version von `docs/specs.md`.
-- `docs/todo.md`: priorisierter Gap-Backlog.
+- `docs/todo.md`: einzige TODO-Markdown-Datei und priorisierter Gap-Backlog.
 - `docs/README.md`: Projektueberblick, Start und Scripts.
+- `docs/anki-format-analysis.md`: Anki-Modell-, APKG-, Template-, Medien- und Backend-Differenzanalyse.
 - `AGENTS.md`: Root-Regeln fuer Coding-Agenten.
+
+TODO-Markdown-Inventar:
+
+- `docs/todo.md` ist die einzige aktuell vorhandene TODO-Markdown-Datei. Es gibt keine weitere `TODO.md`, `todo.md` oder `*-todo.md`-Datei im Repository.
 
 Technische SQL-Artefakte:
 
 - `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker fuer Profile, portable Exports, Decks, Cards/Learning Items, Varianten, Review Events, Dokumente und AI Jobs.
+- `supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
 - `supabase/verify_schema_v1.sql`: Verify-Queries fuer RLS-/Policy-Praesenz.
+
+Hosting-/Runtime-Artefakte:
+
+- `vercel.json`: Vercel-Build, `dist`-Output und SPA-Rewrite ausserhalb von `/api/*`.
+- `.env.example`: oeffentliche Browser-Env-Grenzen fuer `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und das KI-Proxy-Featureflag.
 
 Die entfernte Arbeitsnotiz war ein externer Transfer-Guide. Relevante Inhalte wurden in die Abschnitte zu Datenmodell, API, KI-Proxy, Architektur, Sicherheit und Todo uebernommen; die Datei soll nicht als zweite Wahrheit erhalten bleiben.

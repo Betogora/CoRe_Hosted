@@ -28,6 +28,8 @@
 - Use `docs/todo.md` to understand the current gap between local MVP and production-ready product scope.
 - `docs/specs.html` is the human-readable visual version of `docs/specs.md` and should carry the same content.
 - `docs/index.md` is the documentation map for the maintained project docs.
+- `docs/todo.md` is the only maintained TODO markdown; add new roadmap work there instead of creating additional TODO files.
+- `docs/anki-format-analysis.md` documents Anki/APKG/model differences and should be consulted before changing import, template, media, or Learning Item behavior.
 - Current UI screens are in `src/App.jsx`; domain behavior belongs in the smaller modules listed in `docs/specs.md`.
 - Add or update module tests in `src/*.test.js` when changing scheduler, variants, import, AI jobs, graph, community, repository behavior, or the Learning Item creation pipeline.
 - When current behavior changes, update `docs/specs.md`, regenerate/update `docs/specs.html`, and adjust `docs/todo.md` in the same change.
@@ -38,6 +40,7 @@
 - `docs/specs.html`: generated, human-readable HTML version of the same spec.
 - `docs/todo.md`: prioritized gap list from local MVP to production readiness.
 - `docs/README.md`: project overview, local start, scripts, and document links.
+- `docs/anki-format-analysis.md`: Anki format and model differential analysis for import, templates, media, and Learning Item decisions.
 - `supabase/core_schema_v1.sql`: current Supabase schema anchor for the eventual production persistence layer.
 - `supabase/verify_schema_v1.sql`: verification queries for RLS/policy presence.
 

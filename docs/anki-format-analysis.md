@@ -57,9 +57,13 @@ Lokale CoRe-Quellen:
 - `src/apkgImport.js`
 - `src/importService.js`
 - `src/mediaStore.js`
+- `src/htmlSafety.js`
+- `src/richText.js`
 - `src/reviewService.js`
 - `src/scheduler.js`
 - `supabase/core_schema_v1.sql`
+
+TODO-Markdown-Inventar: Aktuell existiert genau `docs/todo.md`. Die Anki-bezogenen naechsten Arbeitspakete in dieser Analyse sollen dort priorisiert werden, statt eine zweite TODO-Datei aufzubauen.
 
 ## Anki-Istmodell
 
@@ -131,11 +135,12 @@ Rigorose CoRe-Folgerung: APKG ist Austauschformat, nicht Persistenzformat. ZIP, 
 CoRe hat die entscheidende Richtung bereits eingeschlagen:
 
 - `src/coreModel.js` erzeugt Learning Items, Original-Varianten, Reverse-Varianten, Cloze-Varianten und Review-State.
-- `src/importService.js` normalisiert Importdaten in Learning Items mit Varianten und stabilen Fingerprints.
+- `src/importService.js` normalisiert Text-, CSV-, JSON- und Tabellen-Importdaten in Learning Items mit Varianten, Parent-/Hierarchy-Feldern, stabilen Fingerprints und Duplicate-Erkennung.
 - `src/apkgImport.js` liest APKG-Container, erkennt `collection.anki2`, `collection.anki21`, `collection.anki21b`, extrahiert Notes/Cards/Decks/Media, erzeugt echte Unterstapel und speichert Raw-Fallbacks.
 - `src/mediaStore.js` kapselt lokale Medienauflösung; React konsumiert aufgelöste Medien-URLs.
+- `src/htmlSafety.js` und `src/richText.js` kapseln HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung fuer Karteninhalt, Importvorschau und Review.
 - `src/reviewService.js` schreibt Review-Events und aktualisiert Learning-Item- und Varianten-State.
-- `src/scheduler.js` hält FSRS-like State mit Stability, Difficulty, Desired Retention, Retrievability und Variant-Kontext.
+- `src/scheduler.js` hält FSRS-like State mit Stability, Difficulty, Desired Retention, Retrievability, Variant-Kontext und Intervallvorschau fuer die vier Review-Buttons.
 - `supabase/core_schema_v1.sql` trennt bereits `decks`, `cards`, `card_variants`, `review_events`, `source_documents` und `ai_jobs`.
 
 Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzepte werden importiert und roh konserviert, aber noch nicht vollständig als explizite CoRe-Strukturen modelliert. Das ist für den MVP richtig, sollte aber in den nächsten Ausbaustufen gezielt geschlossen werden.
@@ -312,12 +317,12 @@ Für den aktuellen Vercel/Supabase-Pfad ist Elixir kein P0 und kein P1. Es ist e
 
 ## Nächste Arbeitspakete
 
-1. **APKG-Fixtures erweitern:** Basic reversed, optional reversed, Cloze, Medien, ungewöhnliche Notetypes und echte `collection.anki21b`/Zstd-Beispiele.
-2. **Importidentitäten prüfen:** GUID, ursprüngliche Note-/Card-ID, Template-Ordinal, Notetype-Snapshot, Deck-Pfad und Medienprüfsummen im CoRe-Modell konsolidieren.
-3. **Cloze-Familien modellieren:** Cloze-Gruppen, Card-Ords, Review-State und UI-Verhalten explizit machen.
-4. **Template-Snapshots speichern:** Nicht beliebig ausführen, aber genug für Reimport, Debugging und späteren Export bewahren.
-5. **Medienmodell produktionsfähig machen:** Storage-Referenzen, Checksums, MIME-Typen, Export, Sharing und Löschregeln definieren.
-6. **Revlog-Import als Analytics-Spike:** Anki-Reviewverlauf lesbar machen, aber nicht ungeprüft als CoRe-Lernzustand übernehmen.
+1. **APKG-Fixtures erweitern:** Basic reversed, optional reversed, Cloze, Medien, ungewöhnliche Notetypes und echte `collection.anki21b`/Zstd-Beispiele; Tests in `src/apkgImport.test.js` ergaenzen.
+2. **Importidentitäten prüfen:** GUID, ursprüngliche Note-/Card-ID, Template-Ordinal, Notetype-Snapshot, Deck-Pfad und Medienprüfsummen in `apkgImport`, `importService` und `coreModel` konsolidieren.
+3. **Cloze-Familien modellieren:** Cloze-Gruppen, Card-Ords, Review-State und UI-Verhalten explizit machen; relevante Stellen sind `coreModel`, `reviewService`, `scheduler`, `StudyMode` und `creationPipeline.test.js`.
+4. **Template-Snapshots speichern:** Nicht beliebig ausführen, aber genug für Reimport, Debugging und späteren Export in Import-Metadaten bewahren.
+5. **Medienmodell produktionsfähig machen:** Storage-Referenzen, Checksums, MIME-Typen, Export, Sharing und Löschregeln hinter `mediaStore` beziehungsweise einem späteren Storage-Pfad definieren.
+6. **Revlog-Import als Analytics-Spike:** Anki-Reviewverlauf lesbar machen, aber nicht ungeprüft als CoRe-Lernzustand übernehmen; Heatmap/Retention-Projektionen in `libraryModel` koennen spaeter davon profitieren.
 7. **Benchmark-Dokument anlegen:** Deckgröße, Medienanzahl, Importdauer, Speicherverbrauch, UI-Hänger und Abbruchverhalten messen.
 8. **Rust/WASM-Spike nur nach Messung:** Erst reale Engpässe nachweisen, dann ein enges Import-Hotpath-Modul bauen.
 

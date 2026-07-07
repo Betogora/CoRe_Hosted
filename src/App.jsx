@@ -203,7 +203,7 @@ export function App() {
       return <CreationScreen decks={state.decks} onCreated={saveDeck} onAppendManualCard={addManualCardToDeck} onJob={saveJob} />;
     }
     if (activeView === "lernen") {
-      return <LearnScreen decks={state.decks} onStartDeck={startDeck} onCreateDeck={() => setActiveView("neue-karten")} onOpenDecks={openDecks} />;
+      return <LearnScreen decks={state.decks} onStartDeck={startDeck} onCreateDeck={() => setActiveView("neue-karten")} onOpenDecks={openDecks} onMoveDeck={moveDeck} />;
     }
     if (activeView === "graph") {
       return <GraphScreen decks={state.decks} onUpdateDeck={updateDeck} />;

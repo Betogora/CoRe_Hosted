@@ -449,7 +449,7 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
 
             <div className="grid gap-4">
               {preview.sampleCards.map((card) => (
-                <article key={card.id} className="rounded-[18px] border border-[#dde3f4] bg-white/72 p-5 shadow-[0_18px_55px_rgba(91,105,154,0.10)]">
+                <article key={card.id} className="core-surface-raised rounded-[18px] p-5">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <span className="rounded-xl bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800">Originalkarte</span>
                     <span className="text-xs font-medium uppercase tracking-wide text-[#66709a]">{card.kind}</span>
@@ -1184,7 +1184,7 @@ function CreationMethodButton({ method, isSelected, onSelect }) {
     <button
       type="button"
       onClick={onSelect}
-      className={`rounded-[18px] border border-[#dde3f4] bg-white/72 p-6 text-left shadow-[0_18px_55px_rgba(91,105,154,0.12)] transition hover:-translate-y-1 ${isSelected ? "ring-2 ring-[#8790d8]" : ""}`}
+      className={`core-surface-raised rounded-[18px] p-6 text-left transition hover:-translate-y-1 ${isSelected ? "ring-2 ring-[#8790d8]" : ""}`}
     >
       <OrbIcon icon={Icon} className={colorClass} />
       <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-[#66709a]">{method.eyebrow}</p>

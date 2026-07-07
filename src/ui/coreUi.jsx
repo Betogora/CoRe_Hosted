@@ -2,7 +2,7 @@ import React from "react";
 
 export function SoftPanel({ children, className = "", ...props }) {
   return (
-    <section {...props} className={`min-w-0 rounded-[18px] border border-[#dde3f4] bg-white/72 shadow-[0_18px_55px_rgba(91,105,154,0.12)] backdrop-blur ${className}`}>
+    <section {...props} className={`core-surface-raised min-w-0 rounded-[18px] ${className}`}>
       {children}
     </section>
   );

@@ -7,13 +7,24 @@ Diese Datei ist die Dokumentationskarte fuer CoRe. Die Root-Ebene bleibt bewusst
 - `README.md`: Projektueberblick, lokaler Start, Scripts und Struktur.
 - `specs.md`: kanonische Produkt- und Engineering-Spezifikation.
 - `specs.html`: generierte HTML-Fassung von `specs.md`.
-- `todo.md`: priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.
+- `todo.md`: einzige TODO-Markdown-Datei und priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.
 - `anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
+
+## TODO Inventory
+
+Aktuell gibt es genau eine TODO-Markdown-Datei:
+
+- `todo.md`
+
+Es gibt keine weitere `TODO.md`, `todo.md` oder `*-todo.md`-Datei im Repository. Neue offene Arbeit soll in `todo.md` einsortiert werden.
 
 ## Technical Anchors Outside Documentation
 
 - `../AGENTS.md`: lokale Entwicklungsregeln, Architekturleitplanken und Verifikationskommandos.
+- `../vercel.json`: Vercel-Build, `dist`-Output und SPA-Rewrite ausserhalb von `/api/*`.
+- `../.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag.
 - `../supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
+- `../supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
 - `../supabase/verify_schema_v1.sql`: Verify-Queries fuer RLS- und Policy-Praesenz.
 
 ## Production Path Notes
@@ -33,6 +44,9 @@ Relevante Zielrichtungen:
 - `src/reviewService.js` ist der tiefe Review-Flow fuer FSRS-like Scheduling, Variant-Fallback und Next-Review-Projektionen.
 - `src/reviewFlow.js` bleibt nur als Legacy-Fassade fuer bestehende Imports bestehen.
 - `src/coreVariantService.js` buendelt Eligibility, Reifegrad, Readiness, Coverage, Variant-Generation-Plan und Fallback-Projektion hinter kleinen Interfaces.
+- `src/importService.js` buendelt Text-, CSV-, JSON- und Tabellen-Importe, Fingerprints, Dedupe und Parent-/Hierarchy-Felder hinter der Learning-Item-Creation-Pipeline.
+- `src/richText.js` und `src/htmlSafety.js` halten Rich-Text-Normalisierung und HTML-Sanitization aus Screens und Importpfaden heraus.
+- `src/libraryModel.js` erzeugt Dashboard-, Decklisten-, Heatmap- und KI-Job-Projektionen fuer die Screens.
 - `src/App.jsx` ist nur noch App-Shell fuer Workspace-State, Navigation und Routing; produktnahe UI liegt in `src/screens/`.
 - `src/screens/README.md` ist die Einstiegskarte fuer KI-Programmierung an Screens; geteilte UI-Bausteine liegen in `src/ui/`.
 - Sichtbare Features sollen bei Ueberarbeitungen erhalten bleiben und nur durch explizite Prompts entfernt werden.

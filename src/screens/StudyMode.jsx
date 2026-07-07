@@ -150,20 +150,20 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
       <div className="flex min-h-[calc(100vh-2rem)] w-full flex-col sm:min-h-[calc(100vh-4rem)]">
         <header className="grid gap-4">
           <div className="flex items-center justify-between gap-4">
-            <button type="button" onClick={onExit} className="grid size-11 place-items-center rounded-full bg-white/75 text-[#4f5eb1] shadow-[0_14px_40px_rgba(91,105,154,0.12)]" aria-label="Lernmodus verlassen">
+            <button type="button" onClick={onExit} className="core-surface grid size-11 place-items-center rounded-full text-[#4f5eb1]" aria-label="Lernmodus verlassen">
               <X size={22} aria-hidden="true" />
             </button>
             <div className="text-center">
               <p className="text-sm font-semibold text-[#66709a]">{rootDeck?.name ?? deck?.name}</p>
               <p className="mt-1 text-sm text-[#66709a]">{current ? `${Math.min(reviewedCount + 1, sessionTotal)} / ${sessionTotal}` : "0 / 0"}</p>
             </div>
-            <button type="button" onClick={() => setShowSettings((value) => !value)} className="grid size-11 place-items-center rounded-full bg-white/75 text-[#4f5eb1] shadow-[0_14px_40px_rgba(91,105,154,0.12)]" aria-label="Lerneinstellungen">
+            <button type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-11 place-items-center rounded-full text-[#4f5eb1]" aria-label="Lerneinstellungen">
               <SlidersHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
           <MiniProgress value={progress} />
           {showSettings ? (
-            <div className="rounded-2xl border border-[#dfe4f5] bg-white/80 p-4 shadow-[0_14px_40px_rgba(91,105,154,0.10)]">
+            <div className="core-surface rounded-2xl p-4">
               <div className="flex flex-wrap items-center gap-4">
                 <label className="grid gap-1 text-sm font-semibold text-[#4e5b8c]">
                   Neue Karten heute
@@ -189,7 +189,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
         </header>
 
         <section className="grid flex-1 place-items-center py-8">
-          <div className="flex min-h-[56vh] w-full flex-col justify-center rounded-[28px] border border-[#dfe4f5] bg-white/86 p-8 shadow-[0_30px_90px_rgba(91,105,154,0.18)] sm:p-14">
+          <div className="core-surface-raised flex min-h-[56vh] w-full flex-col justify-center rounded-[28px] p-8 sm:p-14">
             {current ? (
               <>
                 <div className="w-full">
