@@ -1,4 +1,4 @@
-import { SCHEDULER_VERSION, applyReviewRating } from "./scheduler.js";
+import { SCHEDULER_VERSION, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.js";
 import {
   chooseReviewCard,
   createVariantReviewModel,
@@ -143,7 +143,11 @@ export function answerVariant(deck, learningItemId, cardVariantId, rating, respo
 
     const previousState = createReviewState(item.learningItemState ?? item.reviewState);
     const fallbackInfo = rating === "again" ? getVariantFallbackTarget(item, variant, deck.reviewEvents ?? []) : null;
-    const nextState = applyReviewRating(previousState, rating, {
+    const outcome = simulateRatingOutcome({
+      learningItem: item,
+      previousState,
+      variant,
+      rating,
       now,
       deckSettings: deck.deckSettings,
       isVariant: !variant.isOriginal,
@@ -154,6 +158,7 @@ export function answerVariant(deck, learningItemId, cardVariantId, rating, respo
       variantPerformance: variant.performance ?? null,
       fallbackVariantId: fallbackInfo?.fallbackVariantId ?? null,
     });
+    const nextState = outcome.nextReviewState;
     const anchorMiniCard = getAnswerSideAnchorMiniCard(item, variant);
     const previousVariantState = variant.reviewState ?? null;
     const nextVariantState = createVariantCompatibilityState(variant, rating, now, item.id);
@@ -324,6 +329,13 @@ export function getNextReviewItem(deck, options = {}) {
   const fallbackInfo = createFallbackViewModel(selectedItem);
   const variant = selectVariantForLearningItem(selectedItem, { now, reviewEvents });
   if (!variant) return null;
+  const fallbackTarget = getVariantFallbackTarget(selectedItem, variant, reviewEvents);
+  const ratingButtonOptions = getReviewButtonOptions(selectedItem, variant, {
+    now,
+    reviewEvents,
+    deckSettings: deck.deckSettings,
+    fallbackVariantId: fallbackTarget?.fallbackVariantId ?? null,
+  });
 
   return {
     deckId: deck.id,
@@ -343,6 +355,7 @@ export function getNextReviewItem(deck, options = {}) {
     variantCoverage: variantReviewModel.coverage,
     variantGenerationRecommendation: variantReviewModel.variantGenerationRecommendation,
     variantGenerationPlan: variantReviewModel.variantGenerationPlan,
+    ratingButtonOptions,
     fallbackInfo,
     answerSideAnchorMiniCard: getAnswerSideAnchorMiniCard(selectedItem, variant),
     schedulerInfo: {

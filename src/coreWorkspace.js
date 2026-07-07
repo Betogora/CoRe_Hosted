@@ -1,4 +1,9 @@
 import { createCommunity, shareDeckToCommunity } from "./communityModel.js";
+import {
+  commitApkgImport as commitApkgImportService,
+  dryRunApkgImport as dryRunApkgImportService,
+  importApkgDeck as importApkgDeckService,
+} from "./apkgImport.js";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.js";
 import { createCoreRepository } from "./coreRepository.js";
 import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.js";
@@ -187,6 +192,29 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         existingDecks: state.decks,
       });
       return result.deck && !options.dryRun ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+    },
+    async dryRunApkgImport(input, options = {}) {
+      const state = repository.getState();
+      return dryRunApkgImportService(input, {
+        ...options,
+        existingDecks: state.decks,
+      });
+    },
+    async commitApkgImport(input, options = {}) {
+      const state = repository.getState();
+      const result = await commitApkgImportService(input, {
+        ...options,
+        existingDecks: state.decks,
+      });
+      return result.deck ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+    },
+    async importApkgDeck(input, options = {}) {
+      const state = repository.getState();
+      const result = await importApkgDeckService(input, {
+        ...options,
+        existingDecks: state.decks,
+      });
+      return result.deck ? { ...result, deck: repository.saveDeck(result.deck) } : result;
     },
     ensureDeckGraph(deckId) {
       const deck = repository.getDeck(deckId);

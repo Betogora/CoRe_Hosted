@@ -25,10 +25,19 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
     setIsParsing(true);
 
     try {
-      const result = await creationWorkflow.parseApkgFile(file, { onStep: setActiveStep });
+      const result = await creationWorkflow.parseApkgFile(file, { onStep: setActiveStep, existingDecks });
       setMediaStatus(result.mediaStatus);
       setJob(result.job);
       setPreview(result.preview);
+    } catch (error) {
+      setJob({
+        fileName: file.name,
+        fileSize: file.size,
+        status: "error",
+        warnings: [],
+        errors: [error instanceof Error ? error.message : "Der Import ist fehlgeschlagen."],
+      });
+      setPreview(null);
     } finally {
       setIsParsing(false);
     }
@@ -48,10 +57,26 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
 
   async function handleCommit() {
     if (!preview) return;
-    const deck = await creationWorkflow.commitApkgPreview(preview, { existingDecks });
-    setJob((currentJob) => ({ ...currentJob, status: "done" }));
-    onImported(deck);
+    const result = await creationWorkflow.commitApkgPreview(preview, { existingDecks });
+    if (result.report.errors.length > 0 || !result.deck) {
+      setJob((currentJob) => ({
+        ...currentJob,
+        status: "error",
+        warnings: [...new Set([...(currentJob?.warnings ?? []), ...(result.report.warnings ?? [])])],
+        errors: [...new Set([...(currentJob?.errors ?? []), ...(result.report.errors ?? [])])],
+      }));
+      setPreview((currentPreview) => (currentPreview ? { ...currentPreview, importReport: result.report } : currentPreview));
+      return;
+    }
+    setJob((currentJob) => ({ ...currentJob, status: "done", warnings: [...new Set([...(currentJob?.warnings ?? []), ...(result.report.warnings ?? [])])] }));
+    setPreview((currentPreview) => (currentPreview ? { ...currentPreview, importReport: result.report } : currentPreview));
+    onImported(result.deck);
   }
+
+  const report = preview?.importReport ?? null;
+  const apkgReport = report?.apkg ?? {};
+  const previewWarnings = [...new Set([...(preview?.warnings ?? []), ...(report?.warnings ?? [])])];
+  const previewErrors = [...new Set([...(job?.errors ?? []), ...(report?.errors ?? [])])];
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
@@ -82,9 +107,20 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
         </label>
 
         {selectedFile ? (
-          <div className="mt-4 rounded-xl border border-[#e3e7f5] bg-white p-4">
-            <p className="text-sm font-semibold text-[#17214f]">{selectedFile.name}</p>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e3e7f5] bg-white p-4">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[#17214f]">{selectedFile.name}</p>
+            </div>
             <p className="mt-1 text-sm text-[#66709a]">{formatBytes(selectedFile.size)} · Status: {job?.status ?? "idle"}</p>
+          </div>
+        ) : null}
+
+        {selectedFile ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" disabled={isParsing} onClick={() => void parseFile(selectedFile)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-teal-700 disabled:text-slate-400">
+              <Database size={16} aria-hidden="true" />
+              Import pruefen
+            </button>
           </div>
         ) : null}
 
@@ -122,26 +158,36 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
                   <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">Importvorschau</p>
                   <h3 className="mt-1 text-2xl font-semibold text-[#17214f]">{preview.deck.name}</h3>
                 </div>
-                <button type="button" onClick={() => void handleCommit()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white">
+                <button type="button" disabled={previewErrors.length > 0 || isParsing} onClick={() => void handleCommit()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
                   <Database size={17} aria-hidden="true" />
-                  Deck importieren
+                  Import uebernehmen
                 </button>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <StatTile label="Decks" value={preview.deck.importMeta.detectedDecks.length} />
-                <StatTile label="Notes" value={preview.deck.importMeta.detectedNotes} />
-                <StatTile label="Cards" value={preview.deck.importMeta.detectedCards} />
-                <StatTile label="Tags" value={preview.deck.tags.length} />
+                <StatTile label="Decks" value={apkgReport.detectedDecks?.length ?? preview.deck.importMeta.detectedDecks.length} />
+                <StatTile label="Notes" value={apkgReport.detectedNotes ?? preview.deck.importMeta.detectedNotes} />
+                <StatTile label="Varianten" value={apkgReport.detectedVariants ?? preview.deck.importMeta.detectedCards} />
+                <StatTile label="Dubletten" value={report?.duplicates?.length ?? 0} />
               </div>
               <div className="mt-4 grid gap-2 text-sm text-[#66709a]">
                 <p>Medien: {preview.deck.importMeta.hasMedia ? `${preview.deck.importMeta.mediaCount} erkannt` : "keine"} · Hierarchie-Knoten: {preview.deck.importMeta.deckHierarchy?.length ?? 0}</p>
                 {mediaStatus ? <p>Medienspeicher: {mediaStatus.persisted ? `${mediaStatus.count} Dateien persistent` : `${mediaStatus.count} Dateien nur temporär`}</p> : null}
                 {previewMissingMedia.length > 0 ? <p>{previewMissingMedia.length} Mediendateien fehlen im lokalen Speicher.</p> : null}
-                <p>Lernfortschritt: {preview.deck.importMeta.learningProgressStatus}</p>
+                <p>Lernfortschritt: {report?.hasAnkiScheduling ? "Anki-Daten erkannt, nicht uebernommen" : "neuer CoRe-FSRS-State"}</p>
               </div>
-              {preview.warnings.length > 0 ? (
+              {previewErrors.length > 0 ? (
                 <div className="mt-5 grid gap-2">
-                  {preview.warnings.map((warning) => (
+                  {previewErrors.map((error) => (
+                    <div key={error} className="flex gap-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">
+                      <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
+                      <span>{error}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {previewWarnings.length > 0 ? (
+                <div className="mt-5 grid gap-2">
+                  {previewWarnings.map((warning) => (
                     <div key={warning} className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
                       <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
                       <span>{warning}</span>

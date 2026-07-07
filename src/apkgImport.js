@@ -1,5 +1,6 @@
 import { createCoreCard, createCoreDeck, createReviewState } from "./coreModel.js";
 import { stripHtml } from "./htmlSafety.js";
+import { importNormalizedDeck } from "./importService.js";
 import { readSqliteDatabase } from "./sqliteReader.js";
 import { readZipArchive } from "./zipReader.js";
 import { decompress as decompressZstd } from "fzstd";
@@ -300,21 +301,146 @@ function getMediaAssetCount(mediaMap = {}, mediaManifest = null) {
   return mediaManifest?.assets?.length ?? Object.keys(mediaMap).length;
 }
 
-function buildWarnings({ cards, notes, mediaMap, mediaManifest, hasCloze, unsupportedNoteTypes }) {
-  const warnings = [
-    "Scheduling-Daten und Review-Historie werden im MVP bewusst noch nicht vollständig übernommen.",
-  ];
+function cardHasAnkiSchedulingData(card = {}) {
+  return ["reps", "lapses", "ivl", "type", "queue", "odue", "odid"].some((key) => Number(card[key] ?? 0) > 0);
+}
+
+function createAnkiSchedulingSnapshot(card = {}) {
+  return {
+    due: card.due ?? null,
+    interval: card.ivl ?? null,
+    factor: card.factor ?? null,
+    reps: card.reps ?? null,
+    lapses: card.lapses ?? null,
+    type: card.type ?? null,
+    queue: card.queue ?? null,
+    odue: card.odue ?? null,
+    odid: card.odid ?? null,
+  };
+}
+
+function getModelForNote(note, models) {
+  return models[String(note?.mid)] ?? {};
+}
+
+function getTemplateForCard(card, model = {}) {
+  const templates = Array.isArray(model.tmpls) ? model.tmpls : [];
+  const ord = Number(card?.ord ?? 0);
+  return templates.find((template) => Number(template.ord ?? -1) === ord) ?? templates[ord] ?? null;
+}
+
+function getTemplateName(card, model = {}) {
+  return getTemplateForCard(card, model)?.name ?? (Number(card?.ord ?? 0) > 0 ? `Card ${Number(card.ord) + 1}` : "Card 1");
+}
+
+function extractClozeGroupsFromText(text) {
+  const groups = new Set();
+  const pattern = /\{\{c(\d+)::/g;
+  let match = pattern.exec(String(text ?? ""));
+
+  while (match) {
+    groups.add(Number(match[1]));
+    match = pattern.exec(String(text ?? ""));
+  }
+
+  return [...groups].sort((left, right) => left - right);
+}
+
+function renderAnkiClozeFront(text, groupId) {
+  return String(text ?? "").replace(/\{\{c(\d+)::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, (_match, candidateGroup, value) => {
+    if (Number(candidateGroup) !== groupId) return value;
+    return "[...]";
+  });
+}
+
+function resolveAnkiCardFace({ card, note, models, warnings }) {
+  const fields = parseFields(note, models);
+  const frontBack = chooseFrontBack(note, models);
+  const model = getModelForNote(note, models);
+  const modelName = model.name ?? "Unknown Note Type";
+  const templateName = getTemplateName(card, model);
+  const ord = Number(card.ord ?? 0);
+
+  if (frontBack.isCloze) {
+    const groups = extractClozeGroupsFromText(frontBack.front);
+    const groupId = groups[ord] ?? groups[0] ?? 1;
+    return {
+      front: frontBack.front,
+      back: frontBack.back,
+      variantType: "cloze",
+      variantLevel: ord === 0 ? 1 : 2,
+      modelName,
+      templateName,
+      fields,
+      isCloze: true,
+    };
+  }
+
+  const first = fields[0]?.value ?? frontBack.front;
+  const second = fields[1]?.value ?? frontBack.back;
+  const canReverse = Boolean(first && second) && (ord > 0 || /reverse|card\s*2/i.test(`${modelName} ${templateName}`));
+
+  if (canReverse && ord > 0) {
+    return {
+      front: second,
+      back: first,
+      variantType: "reverse",
+      variantLevel: 2,
+      modelName,
+      templateName,
+      fields,
+      isCloze: false,
+    };
+  }
+
+  if (ord > 0 && !canReverse) {
+    warnings.push(`Anki-Karte ${String(card.id ?? "")}: Template ${templateName} wurde als einfache importierte Variante gemappt.`);
+  }
+
+  return {
+    front: frontBack.front,
+    back: frontBack.back,
+    variantType: "basic",
+    variantLevel: 1,
+    modelName,
+    templateName,
+    fields,
+    isCloze: false,
+  };
+}
+
+function createNormalizedMediaAssets(mediaManifest = null) {
+  return (mediaManifest?.assets ?? []).map((asset) => ({
+    filename: asset.name,
+    mimeType: asset.mimeType,
+    sourceExternalId: asset.zipEntryName ?? asset.sha1 ?? asset.name,
+    originalPath: asset.zipEntryName ?? asset.name,
+    metadataJson: {
+      sha1: asset.sha1,
+      size: asset.size,
+      ankiMediaId: asset.zipEntryName ?? null,
+      source: "apkg-media-manifest",
+    },
+  }));
+}
+
+function buildWarnings({ cards, notes, mediaMap, mediaManifest, hasCloze, unsupportedNoteTypes, hasAnkiScheduling = false }) {
+  const warnings = [];
+
+  if (hasAnkiScheduling) {
+    warnings.push("Anki-Lernfortschritt erkannt, aber in diesem Schritt nicht uebernommen.");
+  }
 
   if (cards.some((card) => Number(card.ord ?? 0) > 0)) {
     warnings.push("Komplexere Card Templates wurden erkannt; CoRe bewahrt die Originaldaten und nutzt eine einfache Front/Back-Vorschau.");
   }
 
   if (hasCloze) {
-    warnings.push("Cloze-Karten wurden erkannt und als solche markiert; eine spezialisierte Cloze-Review-Logik folgt später.");
+    warnings.push("Cloze-Karten wurden erkannt und als solche markiert; eine spezialisierte Cloze-Review-Logik folgt spaeter.");
   }
 
   if (getMediaAssetCount(mediaMap, mediaManifest) > 0) {
-    warnings.push("Medien wurden erkannt und für den lokalen Browser-Medienspeicher vorbereitet.");
+    warnings.push("Medien wurden erkannt und fuer den lokalen Browser-Medienspeicher vorbereitet.");
   }
 
   if ((mediaManifest?.missingAssets?.length ?? 0) > 0) {
@@ -322,11 +448,11 @@ function buildWarnings({ cards, notes, mediaMap, mediaManifest, hasCloze, unsupp
   }
 
   if (unsupportedNoteTypes.length > 0) {
-    warnings.push(`Nicht vollständig verstandene Note Types wurden roh gesichert: ${unsupportedNoteTypes.join(", ")}.`);
+    warnings.push(`Nicht vollstaendig verstandene Note Types wurden roh gesichert: ${unsupportedNoteTypes.join(", ")}.`);
   }
 
   if (notes.length === 0 || cards.length === 0) {
-    warnings.push("Die Collection enthält keine auslesbaren Notes oder Cards.");
+    warnings.push("Die Collection enthaelt keine auslesbaren Notes oder Cards.");
   }
 
   return warnings;
@@ -336,7 +462,7 @@ export function validateApkgFile(file) {
   const errors = [];
 
   if (!file) {
-    errors.push("Bitte wähle eine .apkg-Datei aus.");
+    errors.push("Bitte waehle eine .apkg-Datei aus.");
   }
 
   if (file && !file.name.toLowerCase().endsWith(".apkg")) {
@@ -344,7 +470,7 @@ export function validateApkgFile(file) {
   }
 
   if (file && file.size > MAX_APKG_SIZE) {
-    errors.push("Die Datei ist größer als 250 MB und wird im MVP nicht direkt im Browser importiert.");
+    errors.push("Die Datei ist groesser als 250 MB und wird im MVP nicht direkt im Browser importiert.");
   }
 
   return {
@@ -804,6 +930,200 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
   });
 }
 
+export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [], cards = [], colRows = [], mediaMap = {}, mediaManifest = null } = {}) {
+  const models = getModelsFromCollection(colRows);
+  const deckById = new Map(decks.map((deck) => [String(deck.id), deck]));
+  const noteById = new Map(notes.map((note) => [String(note.id), note]));
+  const cardsByNoteId = new Map();
+  const warnings = [];
+  const errors = [];
+  const unsupportedNoteTypes = [];
+  const primaryDeck = decks[0] ?? { id: "unknown", name: String(file.name ?? "Anki Deck").replace(/\.apkg$/i, "") };
+  let hasCloze = false;
+  let hasAnkiScheduling = false;
+
+  for (const card of cards) {
+    const noteId = String(card.nid ?? "");
+    if (!noteId) {
+      warnings.push(`Anki-Karte ${String(card.id ?? "")}: keine Note-ID erkannt.`);
+      continue;
+    }
+    cardsByNoteId.set(noteId, [...(cardsByNoteId.get(noteId) ?? []), card]);
+  }
+
+  const items = [];
+
+  for (const note of notes) {
+    const noteCards = (cardsByNoteId.get(String(note.id)) ?? []).sort((left, right) => {
+      const byOrd = Number(left.ord ?? 0) - Number(right.ord ?? 0);
+      return byOrd || String(left.id ?? "").localeCompare(String(right.id ?? ""));
+    });
+
+    if (noteCards.length === 0) continue;
+
+    const itemWarnings = [];
+    const model = getModelForNote(note, models);
+    const modelName = model.name ?? "Unknown Note Type";
+    const fields = parseFields(note, models);
+    const tags = normalizeTags(note.tags);
+    const sourceDeckIds = unique(noteCards.map((card) => String(card.did ?? "")));
+    const sourceDeckNames = unique(sourceDeckIds.map((deckId) => deckById.get(deckId)?.name ?? primaryDeck.name));
+    const noteHasScheduling = noteCards.some(cardHasAnkiSchedulingData);
+    const variants = [];
+
+    if (!modelName || (!/basic|cloze/i.test(modelName) && fields.length > 2)) {
+      unsupportedNoteTypes.push(modelName);
+    }
+
+    hasAnkiScheduling = hasAnkiScheduling || noteHasScheduling;
+
+    noteCards.forEach((card, index) => {
+      const face = resolveAnkiCardFace({ card, note, models, warnings: itemWarnings });
+      hasCloze = hasCloze || face.isCloze;
+      const original = index === 0;
+      const sourceDeck = deckById.get(String(card.did ?? "")) ?? primaryDeck;
+
+      variants.push({
+        front: face.front,
+        back: face.back,
+        variantType: face.variantType,
+        variantLevel: original ? 1 : face.variantLevel,
+        generationSource: original ? "original" : "imported",
+        sourceExternalId: card.id == null ? null : `anki-card-${String(card.id)}`,
+        isOriginal: original,
+        anchorToOriginal: !original,
+        metadataJson: {
+          ankiCardId: card.id == null ? null : String(card.id),
+          ankiTemplateOrd: card.ord ?? null,
+          ankiTemplateName: face.templateName,
+          ankiModelName: face.modelName,
+          ankiDeckId: sourceDeck.id == null ? null : String(sourceDeck.id),
+          ankiDeckName: sourceDeck.name ?? null,
+          schedulingImported: false,
+          hasAnkiScheduling: cardHasAnkiSchedulingData(card),
+        },
+      });
+    });
+
+    const originalVariant = variants.find((variant) => variant.isOriginal) ?? variants[0] ?? null;
+    const mediaRefs = unique([
+      ...variants.flatMap((variant) => [...extractMediaRefs(variant.front), ...extractMediaRefs(variant.back)]),
+      ...Object.values(mediaMap).filter((name) => variants.some((variant) => `${variant.front}${variant.back}`.includes(String(name)))),
+      ...(mediaManifest?.assets ?? [])
+        .map((asset) => asset.name)
+        .filter((name) => variants.some((variant) => `${variant.front}${variant.back}`.includes(String(name)))),
+    ]);
+
+    warnings.push(...itemWarnings);
+
+    items.push({
+      title: stripHtml(originalVariant?.front ?? fields[0]?.value ?? `Anki Note ${String(note.id)}`).slice(0, 120),
+      canonicalQuestion: originalVariant?.front ?? fields[0]?.value ?? "",
+      canonicalAnswer: originalVariant?.back ?? fields[1]?.value ?? "",
+      tags,
+      sourceType: "anki_import",
+      sourceExternalId: note.id == null ? null : `anki-note-${String(note.id)}`,
+      cardType: originalVariant?.variantType === "cloze" ? "cloze" : "basic",
+      mediaRefs,
+      originalFields: fields,
+      variants,
+      metadataJson: {
+        importFormat: "apkg",
+        ankiNoteId: note.id == null ? null : String(note.id),
+        ankiCardIds: noteCards.map((card) => String(card.id ?? "")),
+        ankiDeckId: sourceDeckIds[0] ?? null,
+        ankiDeckIds: sourceDeckIds,
+        ankiDeckNames: sourceDeckNames,
+        ankiModelName: modelName,
+        ankiTemplateName: variants[0]?.metadataJson?.ankiTemplateName ?? null,
+        ankiTags: tags,
+        originalFields: fields,
+        mediaRefs,
+        scheduling: noteHasScheduling
+          ? {
+              hasAnkiScheduling: true,
+              schedulingImported: false,
+              sourceSchedulerData: noteCards.map(createAnkiSchedulingSnapshot),
+            }
+          : null,
+      },
+    });
+  }
+
+  const missingNoteIds = unique(cards.map((card) => String(card.nid ?? "")).filter((noteId) => noteId && !noteById.has(noteId)));
+  if (missingNoteIds.length > 0) {
+    warnings.push(`${missingNoteIds.length} Anki-Cards referenzieren Notes, die nicht gelesen werden konnten.`);
+  }
+
+  if (decks.length > 1) {
+    warnings.push("Mehrere Anki-Decks wurden erkannt; dieser lokale Import erzeugt einen CoRe-Stapel und bewahrt Deck-Zuordnungen in metadataJson.");
+  }
+
+  if (hasCloze) {
+    warnings.push("Cloze-Karten wurden erkannt und als cloze-Varianten importiert; spezialisierte Cloze-Review-UI bleibt ein Ausbaupunkt.");
+  }
+
+  if (getMediaAssetCount(mediaMap, mediaManifest) > 0) {
+    warnings.push("APKG-Medien wurden erkannt; Referenzen und Manifest bleiben erhalten, produktive Medienablage bleibt ein spaeterer Ausbaupunkt.");
+  }
+
+  if ((mediaManifest?.missingAssets?.length ?? 0) > 0) {
+    warnings.push(`${mediaManifest.missingAssets.length} APKG-Medien fehlen im Archiv und wurden nur im Report vermerkt.`);
+  }
+
+  if (hasAnkiScheduling) {
+    warnings.push("Anki-Lernfortschritt erkannt, aber in diesem Schritt nicht uebernommen.");
+  }
+
+  if (unsupportedNoteTypes.length > 0) {
+    warnings.push(`Nicht vollstaendig verstandene Note Types wurden roh in metadataJson gesichert: ${unique(unsupportedNoteTypes).join(", ")}.`);
+  }
+
+  if (items.length === 0) {
+    errors.push("Keine importierbaren Anki-Notes mit Cards erkannt.");
+  }
+
+  const mediaAssets = createNormalizedMediaAssets(mediaManifest);
+  const detectedDeckIds = unique(cards.map((card) => String(card.did ?? "")).filter(Boolean));
+
+  return {
+    normalizedDeck: {
+      title: primaryDeck.name ?? String(file.name ?? "Anki Deck").replace(/\.apkg$/i, ""),
+      description: `Import aus ${file.name ?? "Anki APKG"}`,
+      sourceType: "anki_import",
+      sourceExternalId: primaryDeck.id == null ? null : `anki-deck-${String(primaryDeck.id)}`,
+      tags: unique(items.flatMap((item) => item.tags)),
+      items,
+      mediaAssets,
+      metadataJson: {
+        importFormat: "apkg",
+        parser: "mapAnkiApkgToNormalizedDeck",
+        fileName: file.name ?? null,
+        fileSize: file.size ?? null,
+        detectedDecks: decks,
+        detectedDeckIds,
+        detectedNotes: notes.length,
+        detectedCards: cards.length,
+        detectedVariants: cards.length,
+        importedScheduling: false,
+        hasAnkiScheduling,
+        hasCloze,
+        hasMedia: getMediaAssetCount(mediaMap, mediaManifest) > 0,
+        mediaCount: getMediaAssetCount(mediaMap, mediaManifest),
+        mediaManifest: mediaManifest ?? {
+          format: "none",
+          assets: [],
+          missingAssets: [],
+        },
+        deckHierarchy: buildDeckHierarchy(decks),
+        unsupportedNoteTypes: unique(unsupportedNoteTypes),
+      },
+    },
+    warnings: unique(warnings),
+    errors,
+  };
+}
+
 export function createImportPreview(coreDeck, warnings, mediaFiles = []) {
   return {
     deck: coreDeck,
@@ -815,6 +1135,252 @@ export function createImportPreview(coreDeck, warnings, mediaFiles = []) {
     })),
     warnings,
   };
+}
+
+async function readApkgPackage(file, onStep = () => {}) {
+  onStep("validate");
+  const archive = await extractApkgArchive(file);
+  onStep("collection");
+  const { bytes } = await findReadableCollectionDatabase(archive);
+  const database = readSqliteDatabase(bytes);
+  const colRows = database.readTable("col");
+  onStep("cards");
+
+  const decks = parseAnkiDecks(database);
+  const notes = parseAnkiNotes(database);
+  const cards = parseAnkiCards(database);
+  const mediaBundle = await parseAnkiMedia(archive);
+
+  return {
+    file,
+    archive,
+    database,
+    colRows,
+    decks,
+    notes,
+    cards,
+    mediaBundle,
+  };
+}
+
+function isParsedAnkiPackage(input) {
+  return Boolean(input && Array.isArray(input.decks) && Array.isArray(input.notes) && Array.isArray(input.cards));
+}
+
+function isApkgPreview(input) {
+  return Boolean(input?.normalizedDeck || input?.preview?.normalizedDeck);
+}
+
+function emptyNormalizedApkgDeck(file = {}) {
+  return {
+    title: String(file.name ?? "Anki Import").replace(/\.apkg$/i, ""),
+    sourceType: "anki_import",
+    sourceExternalId: null,
+    tags: [],
+    items: [],
+    mediaAssets: [],
+    metadataJson: {
+      importFormat: "apkg",
+      fileName: file.name ?? null,
+      fileSize: file.size ?? null,
+      detectedDecks: [],
+      detectedNotes: 0,
+      detectedCards: 0,
+      detectedVariants: 0,
+      hasAnkiScheduling: false,
+      schedulingImported: false,
+      mediaManifest: {
+        format: "none",
+        assets: [],
+        missingAssets: [],
+      },
+    },
+  };
+}
+
+function createApkgReportDetails(parsed, normalizedDeck) {
+  const metadata = normalizedDeck?.metadataJson ?? {};
+  const detectedDecks = metadata.detectedDecks ?? parsed?.decks ?? [];
+  const detectedNotes = metadata.detectedNotes ?? parsed?.notes?.length ?? normalizedDeck?.items?.length ?? 0;
+  const detectedCards = metadata.detectedCards ?? parsed?.cards?.length ?? 0;
+  const detectedVariants = metadata.detectedVariants ?? normalizedDeck?.items?.reduce((sum, item) => sum + (item.variants?.length ?? 0), 0) ?? 0;
+  const hasAnkiScheduling = Boolean(metadata.hasAnkiScheduling ?? parsed?.cards?.some(cardHasAnkiSchedulingData));
+  const mediaManifest = metadata.mediaManifest ?? parsed?.mediaBundle?.manifest ?? { format: "none", assets: [], missingAssets: [] };
+
+  return {
+    detectedDecks,
+    detectedNotes,
+    detectedCards,
+    detectedVariants,
+    createdCoreItems: normalizedDeck?.items?.length ?? 0,
+    variantCount: detectedVariants,
+    duplicateCount: 0,
+    hasAnkiScheduling,
+    schedulingImported: false,
+    mediaCount: metadata.mediaCount ?? getMediaAssetCount(parsed?.mediaBundle?.mediaMap, mediaManifest),
+    hasMedia: Boolean(metadata.hasMedia ?? getMediaAssetCount(parsed?.mediaBundle?.mediaMap, mediaManifest) > 0),
+    missingMediaCount: mediaManifest?.missingAssets?.length ?? 0,
+    mediaManifest,
+  };
+}
+
+function attachApkgReportDetails(result, parsed, parsedWarnings = [], parsedErrors = []) {
+  const report = result.report;
+  const details = createApkgReportDetails(parsed, result.normalizedDeck);
+  const warnings = unique([...(parsedWarnings ?? []), ...(report.warnings ?? [])]);
+  const errors = unique([...(parsedErrors ?? []), ...(report.errors ?? [])]);
+
+  report.warnings = warnings;
+  report.errors = errors;
+  report.apkg = {
+    ...details,
+    duplicateCount: report.duplicates.length,
+  };
+  report.detectedNotes = details.detectedNotes;
+  report.detectedCards = details.detectedCards;
+  report.detectedVariants = details.detectedVariants;
+  report.hasAnkiScheduling = details.hasAnkiScheduling;
+  report.schedulingImported = false;
+  report.mediaCount = details.mediaCount;
+  report.missingMediaCount = details.missingMediaCount;
+  report.summary = {
+    ...report.summary,
+    warnings: report.warnings.length,
+    errors: report.errors.length,
+    duplicates: report.duplicates.length,
+  };
+  return result;
+}
+
+export async function parseApkgToNormalizedImport(fileOrParsed, options = {}) {
+  if (isApkgPreview(fileOrParsed)) {
+    const preview = fileOrParsed.preview ?? fileOrParsed;
+    return {
+      normalizedDeck: preview.normalizedDeck,
+      warnings: preview.warnings ?? [],
+      errors: [],
+      mediaFiles: preview.mediaFiles ?? [],
+      parsedPackage: null,
+    };
+  }
+
+  if (isParsedAnkiPackage(fileOrParsed)) {
+    const parsedPackage = {
+      ...fileOrParsed,
+      file: fileOrParsed.file ?? { name: "anki.apkg", size: 0 },
+      colRows: fileOrParsed.colRows ?? [],
+      mediaBundle: fileOrParsed.mediaBundle ?? {
+        mediaMap: fileOrParsed.mediaMap ?? {},
+        mediaFiles: fileOrParsed.mediaFiles ?? [],
+        manifest: fileOrParsed.mediaManifest ?? {
+          format: "none",
+          assets: [],
+          missingAssets: [],
+        },
+      },
+    };
+    const mapped = mapAnkiApkgToNormalizedDeck({
+      file: parsedPackage.file,
+      decks: parsedPackage.decks,
+      notes: parsedPackage.notes,
+      cards: parsedPackage.cards,
+      colRows: parsedPackage.colRows,
+      mediaMap: parsedPackage.mediaBundle.mediaMap,
+      mediaManifest: parsedPackage.mediaBundle.manifest,
+    });
+
+    return {
+      ...mapped,
+      mediaFiles: parsedPackage.mediaBundle.mediaFiles ?? [],
+      parsedPackage,
+    };
+  }
+
+  const file = fileOrParsed;
+  const validation = validateApkgFile(file);
+  if (!validation.valid) {
+    return {
+      normalizedDeck: emptyNormalizedApkgDeck(file),
+      warnings: [],
+      errors: validation.errors,
+      mediaFiles: [],
+      parsedPackage: null,
+    };
+  }
+
+  try {
+    const parsedPackage = await readApkgPackage(file, options.onStep ?? (() => {}));
+    const mapped = mapAnkiApkgToNormalizedDeck({
+      file,
+      decks: parsedPackage.decks,
+      notes: parsedPackage.notes,
+      cards: parsedPackage.cards,
+      colRows: parsedPackage.colRows,
+      mediaMap: parsedPackage.mediaBundle.mediaMap,
+      mediaManifest: parsedPackage.mediaBundle.manifest,
+    });
+    options.onStep?.("preview");
+
+    return {
+      ...mapped,
+      mediaFiles: parsedPackage.mediaBundle.mediaFiles,
+      parsedPackage,
+    };
+  } catch (error) {
+    return {
+      normalizedDeck: emptyNormalizedApkgDeck(file),
+      warnings: [],
+      errors: [error instanceof Error ? error.message : "APKG konnte nicht gelesen werden."],
+      mediaFiles: [],
+      parsedPackage: null,
+    };
+  }
+}
+
+export async function dryRunApkgImport(fileOrParsed, options = {}) {
+  const parsed = await parseApkgToNormalizedImport(fileOrParsed, options);
+  if (parsed.errors.length > 0) {
+    const result = importNormalizedDeck(parsed.normalizedDeck, {
+      ...options,
+      dryRun: true,
+      importScheduling: false,
+    });
+    return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
+  }
+
+  const result = importNormalizedDeck(parsed.normalizedDeck, {
+    ...options,
+    dryRun: true,
+    importScheduling: false,
+  });
+  result.mediaFiles = parsed.mediaFiles;
+  return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
+}
+
+export async function commitApkgImport(fileOrParsed, options = {}) {
+  const parsed = await parseApkgToNormalizedImport(fileOrParsed, options);
+  if (parsed.errors.length > 0) {
+    const result = importNormalizedDeck(parsed.normalizedDeck, {
+      ...options,
+      dryRun: true,
+      importScheduling: false,
+    });
+    result.deck = null;
+    result.mediaFiles = parsed.mediaFiles;
+    return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
+  }
+
+  const result = importNormalizedDeck(parsed.normalizedDeck, {
+    ...options,
+    dryRun: false,
+    importScheduling: false,
+  });
+  result.mediaFiles = parsed.mediaFiles;
+  return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
+}
+
+export async function importApkgDeck(fileOrParsed, options = {}) {
+  return commitApkgImport(fileOrParsed, options);
 }
 
 export async function createApkgImportPreview(file, onStep = () => {}) {
@@ -839,17 +1405,8 @@ export async function createApkgImportPreview(file, onStep = () => {}) {
     };
   }
 
-  onStep("validate");
-  const archive = await extractApkgArchive(file);
-  onStep("collection");
-  const { bytes } = await findReadableCollectionDatabase(archive);
-  const database = readSqliteDatabase(bytes);
-  const colRows = database.readTable("col");
-  onStep("cards");
-  const decks = parseAnkiDecks(database);
-  const notes = parseAnkiNotes(database);
-  const cards = parseAnkiCards(database);
-  const mediaBundle = await parseAnkiMedia(archive);
+  const parsedPackage = await readApkgPackage(file, onStep);
+  const { colRows, decks, notes, cards, mediaBundle } = parsedPackage;
   const coreDeck = mapAnkiToCoreDeck({
     file,
     decks,
@@ -866,7 +1423,22 @@ export async function createApkgImportPreview(file, onStep = () => {}) {
     mediaManifest: mediaBundle.manifest,
     hasCloze: coreDeck.importMeta.hasCloze,
     unsupportedNoteTypes: coreDeck.importMeta.unsupportedNoteTypes,
+    hasAnkiScheduling: cards.some(cardHasAnkiSchedulingData),
   });
+  const normalized = mapAnkiApkgToNormalizedDeck({
+    file,
+    decks,
+    notes,
+    cards,
+    colRows,
+    mediaMap: mediaBundle.mediaMap,
+    mediaManifest: mediaBundle.manifest,
+  });
+  const normalizedPreview = importNormalizedDeck(normalized.normalizedDeck, {
+    dryRun: true,
+    importScheduling: false,
+  });
+  attachApkgReportDetails(normalizedPreview, parsedPackage, normalized.warnings, normalized.errors);
   onStep("preview");
 
   return {
@@ -882,7 +1454,11 @@ export async function createApkgImportPreview(file, onStep = () => {}) {
       errors: [],
       createdAt: startedAt,
     },
-    preview: createImportPreview(coreDeck, warnings, mediaBundle.mediaFiles),
+    preview: {
+      ...createImportPreview(coreDeck, unique([...warnings, ...normalized.warnings]), mediaBundle.mediaFiles),
+      normalizedDeck: normalized.normalizedDeck,
+      importReport: normalizedPreview.report,
+    },
   };
 }
 

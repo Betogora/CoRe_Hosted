@@ -3,6 +3,33 @@ import { REVIEW_RATINGS, createReviewState, getMaturityBand } from "./coreModel.
 export const SCHEDULER_VERSION = "fsrs_v1";
 export const SIMPLE_SCHEDULER_VERSION = "simple_v1";
 export const FSRS_SCHEDULER_VERSION = "fsrs_v1";
+export const MINUTE_MS = 60 * 1000;
+export const DAY_MS = 24 * 60 * 60 * 1000;
+
+export const LEARNING_STEPS = {
+  againMinutes: 5,
+  hardMinutes: 10,
+  goodFirstSuccessMinutes: 15,
+  easyFirstSuccessMinutes: 30,
+  goodGraduatingDays: 1,
+  easyGraduatingDays: 2,
+  relearningGoodDays: 1,
+  relearningEasyDays: 2,
+};
+
+const RATING_LABELS = {
+  again: "Again",
+  hard: "Hard",
+  good: "Good",
+  easy: "Easy",
+};
+
+const RATING_EFFECT_LABELS = {
+  again: "Wiederholen",
+  hard: "Schwer",
+  good: "Normal",
+  easy: "Leicht",
+};
 
 const RATING_EFFECT = {
   again: { xp: -18, intervalMultiplier: 0.15, ease: -0.2, lapse: 1 },
@@ -13,7 +40,13 @@ const RATING_EFFECT = {
 
 function addDays(date, days) {
   const next = new Date(date);
-  next.setTime(next.getTime() + days * 24 * 60 * 60 * 1000);
+  next.setTime(next.getTime() + days * DAY_MS);
+  return next;
+}
+
+function addMinutes(date, minutes) {
+  const next = new Date(date);
+  next.setTime(next.getTime() + minutes * MINUTE_MS);
   return next;
 }
 
@@ -24,6 +57,75 @@ function clamp(value, min, max) {
 function round(value, digits = 2) {
   const factor = 10 ** digits;
   return Math.round(Number(value) * factor) / factor;
+}
+
+function dayKey(date) {
+  return new Date(date).toISOString().slice(0, 10);
+}
+
+function intervalParts({ intervalMinutes = null, intervalDays = null, intervalMs = null } = {}) {
+  if (intervalMs !== null && intervalMs !== undefined && Number.isFinite(Number(intervalMs))) {
+    const ms = Math.max(0, Number(intervalMs));
+    return {
+      intervalMs: ms,
+      intervalMinutes: Math.round(ms / MINUTE_MS),
+      intervalDays: ms >= DAY_MS ? round(ms / DAY_MS, 2) : 0,
+    };
+  }
+
+  if (intervalMinutes !== null && intervalMinutes !== undefined && Number.isFinite(Number(intervalMinutes))) {
+    const minutes = Math.max(0, Math.round(Number(intervalMinutes)));
+    return {
+      intervalMs: minutes * MINUTE_MS,
+      intervalMinutes: minutes,
+      intervalDays: minutes >= 24 * 60 ? round(minutes / (24 * 60), 2) : 0,
+    };
+  }
+
+  const days = Math.max(0, Number(intervalDays ?? 0) || 0);
+  return {
+    intervalMs: days * DAY_MS,
+    intervalMinutes: Math.round(days * 24 * 60),
+    intervalDays: days,
+  };
+}
+
+export function formatIntervalLabel(input = {}) {
+  const parts = typeof input === "number" ? intervalParts({ intervalDays: input }) : intervalParts(input);
+  const minutes = Math.max(0, Math.round(parts.intervalMs / MINUTE_MS));
+
+  if (minutes < 60) {
+    return `${Math.max(1, minutes)} Min.`;
+  }
+
+  if (minutes < 24 * 60) {
+    const hours = Math.round(minutes / 60);
+    return hours === 1 ? "1 Std." : `${hours} Std.`;
+  }
+
+  const days = Math.round(minutes / (24 * 60));
+  if (days < 30) {
+    return days === 1 ? "1 Tag" : `${days} Tage`;
+  }
+
+  const months = Math.max(1, Math.round(days / 30));
+  return months === 1 ? "1 Monat" : `${months} Monate`;
+}
+
+function withInterval(state, now, interval, extra = {}) {
+  const parts = intervalParts(interval);
+  const dueAt =
+    Number.isFinite(Number(interval.intervalMinutes)) || (Number.isFinite(Number(interval.intervalMs)) && parts.intervalMs < DAY_MS)
+      ? addMinutes(now, parts.intervalMinutes).toISOString()
+      : addDays(now, parts.intervalDays).toISOString();
+
+  return {
+    ...state,
+    ...extra,
+    dueAt,
+    intervalDays: parts.intervalDays,
+    intervalMinutes: parts.intervalMinutes < 24 * 60 ? parts.intervalMinutes : null,
+  };
 }
 
 function nextIntervalDays(state, rating, deckSettings) {
@@ -156,22 +258,34 @@ export function updateMaturityXp(oldXp, rating, wasVariant = false) {
   return Math.max(0, Math.round(Number(oldXp ?? 0) + RATING_EFFECT[rating].xp + variantBonus));
 }
 
-export function scheduleWithFsrsLikeModel(previousState, rating, context = {}) {
-  if (!REVIEW_RATINGS.includes(rating)) {
-    throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
+function successCountForLearningDay(state, now) {
+  const today = dayKey(now);
+  if (state.state === "new") return 0;
+  if (state.learningDayKey && state.learningDayKey !== today) return 0;
+  return Math.max(0, Math.round(Number(state.learningSuccessCount ?? state.sameDaySuccessCount ?? 0) || 0));
+}
+
+function deriveOutcomeMaturity(state) {
+  const reps = getStateReps(state);
+  const successfulReviews = Math.max(0, reps - Number(state.lapses ?? 0));
+  const stability = Number(state.stability ?? 0) || 0;
+  const intervalDays = Number(state.intervalDays ?? 0) || 0;
+  const recentFailure = state.lastRating === "again" || state.fallbackUntilCorrect;
+
+  if (state.state === "relearning" || state.lastRating === "again") return { stage: "relearning", label: "Wiederlernen" };
+  if (state.state === "new" || reps === 0) return { stage: "new", label: "Neu" };
+  if (state.state === "learning") return { stage: "learning", label: "Lernen" };
+  if (state.state === "review") {
+    if ((stability >= 30 || intervalDays >= 21) && !recentFailure) return { stage: "mastered", label: "Sicher" };
+    if ((stability >= 10 || intervalDays >= 7 || successfulReviews >= 4) && !recentFailure) return { stage: "mature", label: "Reif" };
+    if ((stability >= 4 || successfulReviews >= 3) && !recentFailure) return { stage: "variant_ready", label: "Bereit fuer Varianten" };
+    return { stage: "early_review", label: "Fruehes Review" };
   }
 
-  const now = context.now ? new Date(context.now) : new Date();
-  const state = createReviewState(previousState);
-  const previousReps = getStateReps(state);
-  const nextState = nextFsrsState(state, rating);
-  const stability = nextStability(state, rating);
-  const difficulty = nextDifficulty(state.difficulty, rating);
-  const intervalDays = nextFsrsIntervalDays(state, rating, stability, context.deckSettings);
-  const maturityXp = updateMaturityXp(state.maturityXp, rating, Boolean(context.isVariant));
-  const ease = Math.max(1.3, Math.min(3.3, Number(state.ease ?? 2.5) + RATING_EFFECT[rating].ease));
-  const preferredVariantLevel = nextPreferredVariantLevel(state, rating, context);
-  const previousWasReview = state.state === "review" || (previousReps > 0 && state.state !== "learning");
+  return { stage: "new", label: "Neu" };
+}
+
+function fallbackStateForRating(state, rating, context = {}) {
   const shouldClearFallback =
     rating !== "again" &&
     Boolean(state.fallbackUntilCorrect) &&
@@ -183,40 +297,280 @@ export function scheduleWithFsrsLikeModel(previousState, rating, context = {}) {
         ? null
         : state.forcedVariantId ?? null;
 
-  return createReviewState({
-    ...state,
-    schedulerVersion: FSRS_SCHEDULER_VERSION,
-    state: nextState,
-    dueAt: addDays(now, intervalDays).toISOString(),
-    intervalDays,
-    ease,
-    stability,
-    difficulty,
-    desiredRetention: state.desiredRetention ?? context.deckSettings?.schedulerProfile?.desiredRetention ?? 0.9,
-    reps: previousReps + 1,
-    repetitions: previousReps + 1,
-    lapses: Number(state.lapses ?? 0) + (rating === "again" && previousWasReview ? RATING_EFFECT[rating].lapse : 0),
-    maturityXp,
-    maturityBand: getMaturityBand(maturityXp),
-    lastReviewedAt: now.toISOString(),
-    lastRating: rating,
-    preferredVariantLevel,
+  return {
     forcedVariantId: nextForcedVariantId,
     fallbackUntilCorrect: rating === "again" ? Boolean(context.fallbackVariantId) : shouldClearFallback ? false : Boolean(state.fallbackUntilCorrect),
     lastFailedVariantId: rating === "again" ? context.variantId ?? state.lastFailedVariantId ?? null : state.lastFailedVariantId ?? null,
     previousSuccessfulVariantId: rating === "again" ? state.previousSuccessfulVariantId ?? null : context.variantId ?? state.previousSuccessfulVariantId ?? null,
+  };
+}
+
+function baseNextState(state, rating, now, context = {}) {
+  const previousReps = getStateReps(state);
+  const maturityXp = updateMaturityXp(state.maturityXp, rating, Boolean(context.isVariant));
+  const stability = nextStability(state, rating);
+  const difficulty = nextDifficulty(state.difficulty, rating);
+  const retrievabilityBefore = calculateRetrievability(state, now);
+  const desiredRetention = state.desiredRetention ?? context.deckSettings?.schedulerProfile?.desiredRetention ?? 0.9;
+  const fallback = fallbackStateForRating(state, rating, context);
+
+  return createReviewState({
+    ...state,
+    ...fallback,
+    schedulerVersion: FSRS_SCHEDULER_VERSION,
+    ease: Math.max(1.3, Math.min(3.3, Number(state.ease ?? 2.5) + RATING_EFFECT[rating].ease)),
+    stability,
+    difficulty,
+    desiredRetention,
+    reps: previousReps + 1,
+    repetitions: previousReps + 1,
+    maturityXp,
+    maturityBand: getMaturityBand(maturityXp),
+    lastReviewedAt: now.toISOString(),
+    lastRating: rating,
+    retrievability: 1,
     schedulerParamsJson: {
       schedulerVersion: FSRS_SCHEDULER_VERSION,
+      schedulerKind: "fsrs_like_default",
       rating,
       variantLevel: context.variantLevel ?? null,
       variantType: context.variantType ?? null,
-      retrievabilityBefore: calculateRetrievability(state, now),
+      retrievabilityBefore,
       stability,
       difficulty,
-      desiredRetention: state.desiredRetention ?? context.deckSettings?.schedulerProfile?.desiredRetention ?? 0.9,
-      fallbackVariantId: nextForcedVariantId,
+      desiredRetention,
+      fallbackVariantId: fallback.forcedVariantId,
     },
   });
+}
+
+function simulateLearningOutcome(state, rating, now, context = {}) {
+  const today = dayKey(now);
+  const priorSuccessCount = successCountForLearningDay(state, now);
+  const nextBase = baseNextState(state, rating, now, context);
+  const resetSuccess = rating === "again" || rating === "hard";
+  const successCount = resetSuccess ? 0 : priorSuccessCount + 1;
+  const common = {
+    firstLearningAt: state.firstLearningAt ?? now.toISOString(),
+    lastLearningStepAt: now.toISOString(),
+    learningDayKey: today,
+    learningSuccessCount: successCount,
+    sameDaySuccessCount: successCount,
+    learningStepIndex: successCount,
+    preferredVariantLevel: rating === "easy" ? Math.min(2, nextPreferredVariantLevel(state, rating, context)) : 1,
+  };
+
+  if (rating === "again") {
+    return withInterval(nextBase, now, { intervalMinutes: LEARNING_STEPS.againMinutes }, {
+      ...common,
+      state: "learning",
+      stability: Math.max(0.05, Math.min(nextBase.stability, 0.2)),
+      learningSuccessCount: 0,
+      sameDaySuccessCount: 0,
+      learningStepIndex: 0,
+    });
+  }
+
+  if (rating === "hard") {
+    return withInterval(nextBase, now, { intervalMinutes: LEARNING_STEPS.hardMinutes }, {
+      ...common,
+      state: "learning",
+      stability: Math.max(0.1, Math.min(nextBase.stability, 0.5)),
+      learningSuccessCount: priorSuccessCount,
+      sameDaySuccessCount: priorSuccessCount,
+      learningStepIndex: priorSuccessCount,
+      preferredVariantLevel: 1,
+    });
+  }
+
+  if (successCount >= 2) {
+    const intervalDays = rating === "easy" ? LEARNING_STEPS.easyGraduatingDays : LEARNING_STEPS.goodGraduatingDays;
+    return withInterval(nextBase, now, { intervalDays }, {
+      ...common,
+      state: "review",
+      isGraduated: true,
+      graduatedAt: now.toISOString(),
+      stability: rating === "easy" ? Math.max(2, nextBase.stability) : Math.max(1, nextBase.stability),
+      preferredVariantLevel: rating === "easy" ? 2 : 1,
+    });
+  }
+
+  return withInterval(nextBase, now, {
+    intervalMinutes: rating === "easy" ? LEARNING_STEPS.easyFirstSuccessMinutes : LEARNING_STEPS.goodFirstSuccessMinutes,
+  }, {
+    ...common,
+    state: "learning",
+    stability: rating === "easy" ? Math.max(0.5, nextBase.stability) : Math.max(0.3, nextBase.stability),
+  });
+}
+
+function simulateRelearningOutcome(state, rating, now, context = {}) {
+  const nextBase = baseNextState(state, rating, now, context);
+
+  if (rating === "again") {
+    return withInterval(nextBase, now, { intervalMinutes: LEARNING_STEPS.againMinutes }, {
+      state: "relearning",
+      preferredVariantLevel: 1,
+      stability: Math.max(0.05, nextBase.stability),
+    });
+  }
+
+  if (rating === "hard") {
+    return withInterval(nextBase, now, { intervalMinutes: LEARNING_STEPS.hardMinutes }, {
+      state: "relearning",
+      preferredVariantLevel: 1,
+      stability: Math.max(0.1, nextBase.stability),
+    });
+  }
+
+  const intervalDays = rating === "easy" ? LEARNING_STEPS.relearningEasyDays : LEARNING_STEPS.relearningGoodDays;
+  return withInterval(nextBase, now, { intervalDays }, {
+    state: "review",
+    isGraduated: true,
+    graduatedAt: state.graduatedAt ?? now.toISOString(),
+    preferredVariantLevel: rating === "easy" ? 2 : 1,
+    stability: rating === "easy" ? Math.max(1.5, nextBase.stability) : Math.max(1, nextBase.stability),
+  });
+}
+
+function simulateReviewOutcome(state, rating, now, context = {}) {
+  const nextBase = baseNextState(state, rating, now, context);
+  const previousWasReview = state.state === "review" || (getStateReps(state) > 0 && state.state !== "learning" && state.state !== "new");
+
+  if (rating === "again") {
+    return withInterval(nextBase, now, { intervalMinutes: LEARNING_STEPS.againMinutes }, {
+      state: "relearning",
+      lapses: Number(state.lapses ?? 0) + (previousWasReview ? RATING_EFFECT.again.lapse : 0),
+      preferredVariantLevel: 1,
+      stability: Math.max(0.05, nextBase.stability),
+    });
+  }
+
+  const stability = nextBase.stability;
+  const intervalDays = nextFsrsIntervalDays(state, rating, stability, context.deckSettings);
+  return withInterval(nextBase, now, { intervalDays }, {
+    state: "review",
+    lapses: Number(state.lapses ?? 0),
+    preferredVariantLevel: nextPreferredVariantLevel(state, rating, context),
+  });
+}
+
+export function simulateRatingOutcome({
+  learningItem = null,
+  previousState = null,
+  variant = null,
+  rating,
+  now = new Date().toISOString(),
+  reviewEvents = [],
+  deckSettings = null,
+  commit = false,
+  ...context
+} = {}) {
+  if (!REVIEW_RATINGS.includes(rating)) {
+    throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
+  }
+
+  const nowDate = new Date(now);
+  const variantContext = {
+    ...context,
+    deckSettings,
+    reviewEvents,
+    isVariant: context.isVariant ?? Boolean(variant && !variant.isOriginal),
+    variantId: context.variantId ?? variant?.id ?? null,
+    variantIsOriginal: context.variantIsOriginal ?? Boolean(variant?.isOriginal),
+    variantLevel: context.variantLevel ?? variant?.variantLevel ?? 1,
+    variantType: context.variantType ?? variant?.variantType ?? "basic",
+  };
+  const state = previousState
+    ? createReviewState(previousState)
+    : learningItem
+      ? getSchedulerStateForItem(learningItem)
+      : createReviewState({});
+  const phase = state.state ?? (getStateReps(state) > 0 ? "review" : "new");
+  const nextReviewState =
+    phase === "new" || phase === "learning"
+      ? simulateLearningOutcome(state, rating, nowDate, variantContext)
+      : phase === "relearning"
+        ? simulateRelearningOutcome(state, rating, nowDate, variantContext)
+        : simulateReviewOutcome(state, rating, nowDate, variantContext);
+  const interval = intervalParts({
+    intervalMinutes: nextReviewState.intervalMinutes,
+    intervalDays: nextReviewState.intervalMinutes == null ? nextReviewState.intervalDays : null,
+  });
+  const intervalLabel = formatIntervalLabel(interval);
+  const nextMaturity = deriveOutcomeMaturity(nextReviewState);
+
+  return {
+    rating,
+    label: RATING_LABELS[rating],
+    effect: RATING_EFFECT_LABELS[rating],
+    schedulerVersion: FSRS_SCHEDULER_VERSION,
+    previousReviewState: state,
+    nextReviewState,
+    nextLearningItemState: nextReviewState,
+    nextState: nextReviewState.state,
+    dueAt: nextReviewState.dueAt,
+    intervalDays: nextReviewState.intervalDays,
+    intervalMinutes: nextReviewState.intervalMinutes,
+    intervalMs: interval.intervalMs,
+    intervalLabel,
+    nextMaturity,
+    fallbackEffect: {
+      fallbackUntilCorrect: nextReviewState.fallbackUntilCorrect,
+      forcedVariantId: nextReviewState.forcedVariantId,
+      lastFailedVariantId: nextReviewState.lastFailedVariantId,
+    },
+    commit: Boolean(commit),
+  };
+}
+
+export function getReviewButtonOptions(learningItem, variant = null, nowOrOptions = new Date().toISOString(), reviewEvents = []) {
+  const options = typeof nowOrOptions === "object" && nowOrOptions !== null && !(nowOrOptions instanceof Date)
+    ? nowOrOptions
+    : { now: nowOrOptions, reviewEvents };
+  const now = options.now ?? new Date().toISOString();
+  const events = options.reviewEvents ?? reviewEvents ?? [];
+  const ratings = ["again", "hard", "good", "easy"];
+
+  return ratings.reduce((result, rating) => {
+    const fallbackVariantId =
+      rating === "again"
+        ? options.fallbackVariantIdByRating?.[rating] ?? options.fallbackVariantId ?? null
+        : null;
+    const outcome = simulateRatingOutcome({
+      learningItem,
+      variant,
+      rating,
+      now,
+      reviewEvents: events,
+      deckSettings: options.deckSettings,
+      fallbackVariantId,
+    });
+
+    result[rating] = {
+      rating,
+      label: outcome.label,
+      intervalLabel: outcome.intervalLabel,
+      dueAt: outcome.dueAt,
+      nextState: outcome.nextState,
+      nextMaturity: outcome.nextMaturity,
+      schedulerVersion: outcome.schedulerVersion,
+      effect: outcome.effect,
+      intervalDays: outcome.intervalDays,
+      intervalMinutes: outcome.intervalMinutes,
+    };
+    return result;
+  }, {});
+}
+
+export function scheduleWithFsrsLikeModel(previousState, rating, context = {}) {
+  return simulateRatingOutcome({
+    previousState,
+    rating,
+    now: context.now ?? new Date().toISOString(),
+    deckSettings: context.deckSettings,
+    ...context,
+  }).nextReviewState;
 }
 
 export function applyReviewRating(reviewState, rating, context = {}) {

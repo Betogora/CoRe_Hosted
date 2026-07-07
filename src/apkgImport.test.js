@@ -2,15 +2,20 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import {
+  commitApkgImport,
   commitImport,
+  dryRunApkgImport,
   findReadableCollectionDatabase,
+  mapAnkiApkgToNormalizedDeck,
   mapAnkiToCoreDeck,
   parseAnkiMedia,
   parseMediaEntriesBytes,
   parsePackageMetadataBytes,
   validateApkgFile,
 } from "./apkgImport.js";
-import { createBasicLearningItem, createCoreDeck } from "./coreModel.js";
+import { createBasicLearningItem, createCoreDeck, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.js";
+import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.js";
+import { answerVariant, getNextReviewItem } from "./reviewService.js";
 
 function archiveFromEntries(entries) {
   return {
@@ -59,6 +64,51 @@ function mediaEntriesBytes(entries) {
       return fieldBytes(1, message);
     }),
   );
+}
+
+function parsedApkgFixture({
+  modelName = "Basic",
+  fields = [{ name: "Front" }, { name: "Back" }],
+  templates = [{ name: "Card 1", ord: 0 }],
+  noteFields = "Front?\u001fBack.",
+  noteTags = "tag",
+  cards = [{ id: 20, nid: 10, did: 1, ord: 0 }],
+  mediaManifest = null,
+} = {}) {
+  return {
+    file: { name: "fixture.apkg", size: 4096 },
+    decks: [{ id: "1", name: "Fixture Deck" }],
+    colRows: [
+      {
+        decks: JSON.stringify({ 1: { id: 1, name: "Fixture Deck" } }),
+        models: JSON.stringify({
+          99: {
+            name: modelName,
+            flds: fields,
+            tmpls: templates,
+          },
+        }),
+      },
+    ],
+    notes: [
+      {
+        id: 10,
+        mid: 99,
+        tags: noteTags,
+        flds: noteFields,
+      },
+    ],
+    cards,
+    mediaBundle: {
+      mediaMap: {},
+      mediaFiles: [],
+      manifest: mediaManifest ?? {
+        format: "none",
+        assets: [],
+        missingAssets: [],
+      },
+    },
+  };
 }
 
 test("validates APKG extension and browser import size", () => {
@@ -181,6 +231,157 @@ test("maps Anki notes and cards to immutable CoRe originals", () => {
   assert.equal(deck.cards[0].coreState.isCoreReady, false);
   assert.equal(deck.cards[0].coreState.variantCount, 0);
   assert.equal(deck.cards[0].coreState.repetitionLevel, 0);
+});
+
+test("maps Basic APKG parser output to a normalized import deck", () => {
+  const mapped = mapAnkiApkgToNormalizedDeck(parsedApkgFixture({
+    noteFields: "What is ATP?\u001fEnergy carrier",
+    noteTags: "cell exam",
+  }));
+  const item = mapped.normalizedDeck.items[0];
+  const variant = item.variants[0];
+
+  assert.equal(mapped.errors.length, 0);
+  assert.equal(mapped.normalizedDeck.title, "Fixture Deck");
+  assert.equal(mapped.normalizedDeck.sourceType, "anki_import");
+  assert.equal(mapped.normalizedDeck.sourceExternalId, "anki-deck-1");
+  assert.equal(item.sourceType, "anki_import");
+  assert.equal(item.sourceExternalId, "anki-note-10");
+  assert.deepEqual(item.tags, ["cell", "exam"]);
+  assert.equal(item.canonicalQuestion, "What is ATP?");
+  assert.equal(item.canonicalAnswer, "Energy carrier");
+  assert.equal(variant.sourceExternalId, "anki-card-20");
+  assert.equal(variant.isOriginal, true);
+  assert.equal(variant.anchorToOriginal, false);
+  assert.equal(variant.metadataJson.ankiNoteId, undefined);
+  assert.equal(item.metadataJson.ankiNoteId, "10");
+});
+
+test("maps Basic Reverse notes to one LearningItem with anchored imported variants", async () => {
+  const parsed = parsedApkgFixture({
+    modelName: "Basic (and reversed card)",
+    templates: [
+      { name: "Card 1", ord: 0 },
+      { name: "Card 2", ord: 1 },
+    ],
+    noteFields: "ATP\u001fEnergy carrier",
+    cards: [
+      { id: 20, nid: 10, did: 1, ord: 0 },
+      { id: 21, nid: 10, did: 1, ord: 1 },
+    ],
+  });
+  const mapped = mapAnkiApkgToNormalizedDeck(parsed);
+  const item = mapped.normalizedDeck.items[0];
+  const reverseVariant = item.variants.find((variant) => variant.variantType === "reverse");
+  const committed = await commitApkgImport(parsed, { existingDecks: [] });
+  const imported = committed.deck.cards[0];
+  const original = getOriginalVariant(imported);
+  const importedReverse = getActiveVariants(imported).find((variant) => variant.variantType === "reverse");
+  const reviewed = answerVariant(committed.deck, imported.id, importedReverse.id, "good", {
+    now: "2026-07-07T10:00:00.000Z",
+  });
+
+  assert.equal(mapped.errors.length, 0);
+  assert.equal(mapped.normalizedDeck.items.length, 1);
+  assert.equal(item.variants.filter((variant) => variant.isOriginal).length, 1);
+  assert.ok(reverseVariant);
+  assert.equal(reverseVariant.front, "Energy carrier");
+  assert.equal(reverseVariant.back, "ATP");
+  assert.equal(reverseVariant.isOriginal, false);
+  assert.equal(reverseVariant.anchorToOriginal, true);
+  assert.equal(committed.deck.source, "anki-apkg");
+  assert.equal(committed.deck.cards.length, 1);
+  assert.equal(imported.reviewState.schedulerVersion, "fsrs_v1");
+  assert.equal(imported.reviewState.state, "new");
+  assert.equal(getLearningItemMaturity(imported).stage, "new");
+  assert.equal(getVariantGenerationRecommendation(imported).shouldSuggest, false);
+  assert.equal(imported.variants.filter((variant) => variant.isOriginal).length, 1);
+  assert.equal(importedReverse.anchorVariantId, original.id);
+  assert.equal(importedReverse.parentVariantId, original.id);
+  assert.equal(getAnswerSideAnchorMiniCard(imported, importedReverse).shouldShow, true);
+  assert.equal(getNextReviewItem(committed.deck).learningItemId, imported.id);
+  assert.equal(getNextReviewItem(committed.deck).ratingButtonOptions.good.intervalLabel, "15 Min.");
+  assert.equal(reviewed.deck.cards[0].reviewState.reps, 1);
+  assert.equal(reviewed.deck.reviewEvents.length, 1);
+  assert.equal(getActiveVariants(reviewed.deck.cards[0]).find((variant) => variant.id === importedReverse.id).performance.correctCount, 1);
+});
+
+test("imports Cloze parser output as cloze content with a warning instead of crashing", async () => {
+  const parsed = parsedApkgFixture({
+    modelName: "Cloze",
+    fields: [{ name: "Text" }, { name: "Extra" }],
+    noteFields: "{{c1::ATP}} liefert Energie.\u001fExtra: Zellstoffwechsel",
+  });
+  const mapped = mapAnkiApkgToNormalizedDeck(parsed);
+  const committed = await commitApkgImport(parsed, { existingDecks: [] });
+  const imported = committed.deck.cards[0];
+
+  assert.equal(mapped.errors.length, 0);
+  assert.equal(mapped.normalizedDeck.items[0].variants[0].variantType, "cloze");
+  assert.equal(mapped.warnings.some((warning) => warning.includes("Cloze")), true);
+  assert.equal(imported.kind, "cloze");
+  assert.equal(getOriginalVariant(imported).variantType, "cloze");
+});
+
+test("APKG dry run reports scheduling and media without mutating or importing Anki progress", async () => {
+  const parsed = parsedApkgFixture({
+    noteFields: "Cell image?<br><img src=\"cell.png\">\u001fA cell.",
+    cards: [{ id: 20, nid: 10, did: 1, ord: 0, reps: 4, lapses: 1, ivl: 12, type: 2, queue: 2 }],
+    mediaManifest: {
+      format: "legacy-json",
+      assets: [{ name: "cell.png", sha1: "abc123", size: 4, mimeType: "image/png", zipEntryName: "0" }],
+      missingAssets: [{ name: "missing.png" }],
+    },
+  });
+  const dryRun = await dryRunApkgImport(parsed, { existingDecks: [] });
+  const committed = await commitApkgImport(parsed, { existingDecks: [] });
+  const imported = committed.deck.cards[0];
+
+  assert.equal(dryRun.deck, null);
+  assert.equal(dryRun.report.dryRun, true);
+  assert.equal(dryRun.report.apkg.detectedNotes, 1);
+  assert.equal(dryRun.report.apkg.detectedCards, 1);
+  assert.equal(dryRun.report.apkg.detectedVariants, 1);
+  assert.equal(dryRun.report.hasAnkiScheduling, true);
+  assert.equal(dryRun.report.schedulingImported, false);
+  assert.equal(dryRun.report.mediaCount, 1);
+  assert.equal(dryRun.report.missingMediaCount, 1);
+  assert.equal(dryRun.report.warnings.some((warning) => warning.includes("Anki-Lernfortschritt")), true);
+  assert.equal(committed.deck.importMeta.mediaManifest.assets.length, 1);
+  assert.deepEqual(imported.mediaRefs, ["cell.png"]);
+  assert.equal(imported.reviewState.schedulerVersion, "fsrs_v1");
+  assert.equal(imported.reviewState.state, "new");
+  assert.equal(imported.reviewState.reps, 0);
+  assert.equal(imported.reviewState.lapses, 0);
+  assert.equal(imported.reviewState.sourceSchedulerData, null);
+  assert.equal(committed.deck.reviewEvents.length, 0);
+});
+
+test("APKG duplicate detection uses Anki note source ids and merge strategies", async () => {
+  const parsed = parsedApkgFixture({
+    noteFields: "Duplicate?\u001fSame note.",
+  });
+  const committed = await commitApkgImport(parsed, { existingDecks: [] });
+  const skipped = await commitApkgImport(parsed, {
+    existingDecks: [committed.deck],
+    mergeStrategy: "skip_duplicates",
+  });
+  const createNew = await commitApkgImport(parsed, {
+    existingDecks: [committed.deck],
+    mergeStrategy: "create_new",
+  });
+  const updateExisting = await commitApkgImport(parsed, {
+    existingDecks: [committed.deck],
+    mergeStrategy: "update_existing",
+  });
+
+  assert.equal(skipped.report.duplicates.length, 1);
+  assert.equal(skipped.report.skipped.length, 1);
+  assert.equal(skipped.deck.cards.length, 0);
+  assert.equal(createNew.report.warnings.some((warning) => warning.includes("moegliche Dublette")), true);
+  assert.equal(createNew.deck.cards.length, 1);
+  assert.equal(updateExisting.deck.cards.length, 0);
+  assert.equal(updateExisting.report.warnings.some((warning) => warning.includes("update_existing")), true);
 });
 
 test("commitImport merges reimports and preserves local content edits", async () => {

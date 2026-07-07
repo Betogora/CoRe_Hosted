@@ -112,6 +112,12 @@ function normalizeAnchors(anchors) {
   return Array.isArray(anchors) ? anchors.filter((anchor) => anchor && typeof anchor === "object").map((anchor) => ({ ...anchor })) : [];
 }
 
+function normalizeStringList(values) {
+  if (Array.isArray(values)) return values.map((value) => String(value ?? "").trim()).filter(Boolean);
+  if (values === null || values === undefined || values === "") return [];
+  return [String(values).trim()].filter(Boolean);
+}
+
 function createEmptyReport({ dryRun = false, sourceType = "mixed", targetDeckId = null } = {}) {
   return {
     dryRun,
@@ -312,6 +318,9 @@ export function normalizeImportItem(input = {}, options = {}) {
       sourceDocumentId: input.sourceDocumentId ?? options.sourceDocumentId ?? null,
       sourceAnchors: normalizeAnchors(input.sourceAnchors),
       variants: variantResult.variants,
+      cardType: input.cardType ?? null,
+      mediaRefs: normalizeStringList(input.mediaRefs),
+      originalFields: Array.isArray(input.originalFields) ? input.originalFields.map((field) => ({ ...field })) : [],
       metadataJson: metadata(input.metadataJson ?? input.meta),
     },
     warnings,
@@ -501,6 +510,9 @@ function toPipelineItem(item, options = {}) {
     sourceDocumentId: item.sourceDocumentId,
     sourceAnchors: item.sourceAnchors,
     variants: item.variants.map(toPipelineVariant),
+    cardType: item.cardType ?? undefined,
+    mediaRefs: item.mediaRefs ?? [],
+    originalFields: item.originalFields ?? [],
     meta: {
       ...(item.metadataJson ?? {}),
       importFingerprint,
@@ -552,7 +564,7 @@ export function importNormalizedDeck(input = {}, options = {}) {
   if (normalizedOptions.importScheduling === false) {
     normalizedDeck.items.forEach((item, index) => {
       if (itemHasSchedulingData(item)) {
-        report.warnings.push(`Item ${index + 1}: Scheduling-Daten wurden erkannt, aber in Prompt 6 nicht übernommen.`);
+        report.warnings.push(`Item ${index + 1}: Scheduling-Daten wurden erkannt, aber in diesem Schritt nicht uebernommen.`);
       }
     });
   }
@@ -591,13 +603,13 @@ export function importNormalizedDeck(input = {}, options = {}) {
       }
 
       if (normalizedOptions.mergeStrategy === "update_existing") {
-        report.warnings.push("mergeStrategy update_existing ist im lokalen MVP noch nicht vollständig implementiert; bestehende Karten wurden nicht überschrieben.");
+        report.warnings.push("mergeStrategy update_existing ist im lokalen MVP noch nicht vollstaendig implementiert; bestehende Karten wurden nicht ueberschrieben.");
         report.skipped.push({ index, reason: "update_existing_not_implemented", duplicate });
         report.previewItems.push(previewItem(item, duplicateInfo));
         return;
       }
 
-      report.warnings.push(`Item ${index + 1}: mögliche Dublette erkannt, wegen create_new trotzdem importiert.`);
+      report.warnings.push(`Item ${index + 1}: moegliche Dublette (m\u00f6gliche Dublette) erkannt, wegen create_new trotzdem importiert.`);
     }
 
     importableItems.push(item);
@@ -653,6 +665,13 @@ export function importNormalizedDeck(input = {}, options = {}) {
     errors: report.errors,
     duplicates: report.duplicates,
     summary: report.summary,
+    sourceMetadata: normalizedDeck.metadataJson ?? {},
+    mediaAssets: normalizedDeck.mediaAssets ?? [],
+    mediaManifest: normalizedDeck.metadataJson?.mediaManifest ?? {
+      format: "none",
+      assets: [],
+      missingAssets: [],
+    },
   };
   const deck = targetDeck
     ? normalizeCoreDeck({

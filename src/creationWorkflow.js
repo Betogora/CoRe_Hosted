@@ -1,4 +1,4 @@
-import { commitImport, createApkgImportPreview } from "./apkgImport.js";
+import { commitApkgImport, createApkgImportPreview, dryRunApkgImport } from "./apkgImport.js";
 import { generateCardsFromDocument } from "./aiOrchestrator.js";
 import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument } from "./coreModel.js";
 import { createDocumentFromFile } from "./documentModel.js";
@@ -68,18 +68,23 @@ function createManualDeckInput(input = {}) {
 
 export function createCreationWorkflow() {
   return {
-    async parseApkgFile(file, { onStep } = {}) {
+    async parseApkgFile(file, { onStep, existingDecks = [] } = {}) {
       try {
         const result = await createApkgImportPreview(file, onStep);
+        const dryRun = result.preview ? await dryRunApkgImport(result.preview, { existingDecks }) : null;
         const mediaStatus = result.preview ? await storeDeckMedia(result.preview.deck, result.preview.mediaFiles) : null;
         const mediaErrors = mediaStatus?.errors ?? [];
+        const reportWarnings = dryRun?.report?.warnings ?? [];
+        const reportErrors = dryRun?.report?.errors ?? [];
 
         return {
-          preview: result.preview,
+          preview: result.preview ? { ...result.preview, importReport: dryRun?.report ?? result.preview.importReport } : null,
           mediaStatus,
           job: {
             ...result.job,
-            warnings: [...(result.job.warnings ?? []), ...mediaErrors],
+            status: reportErrors.length > 0 ? "error" : result.job.status,
+            warnings: [...new Set([...(result.job.warnings ?? []), ...reportWarnings, ...mediaErrors])],
+            errors: [...new Set([...(result.job.errors ?? []), ...reportErrors])],
           },
         };
       } catch (error) {
@@ -94,8 +99,16 @@ export function createCreationWorkflow() {
     },
 
     async commitApkgPreview(preview, { existingDecks = [] } = {}) {
-      if (!preview) return null;
-      return commitImport(preview, { existingDecks });
+      if (!preview) {
+        return {
+          deck: null,
+          report: {
+            warnings: [],
+            errors: ["Keine APKG-Vorschau zum Importieren vorhanden."],
+          },
+        };
+      }
+      return commitApkgImport(preview, { existingDecks });
     },
 
     importPastedDeck({ mode = "text", deckName = "Importierter Stapel", content = "", dryRun = false } = {}) {

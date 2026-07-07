@@ -23,6 +23,27 @@ function createTestWorkspace() {
   return createCoreWorkspace(createCoreRepository(createMemoryStorage()));
 }
 
+function parsedApkgFixture() {
+  return {
+    file: { name: "workspace.apkg", size: 1024 },
+    decks: [{ id: "1", name: "Workspace APKG" }],
+    colRows: [
+      {
+        decks: JSON.stringify({ 1: { id: 1, name: "Workspace APKG" } }),
+        models: JSON.stringify({
+          99: {
+            name: "Basic",
+            flds: [{ name: "Front" }, { name: "Back" }],
+            tmpls: [{ name: "Card 1", ord: 0 }],
+          },
+        }),
+      },
+    ],
+    notes: [{ id: 10, mid: 99, tags: "apkg", flds: "Workspace front?\u001fWorkspace back." }],
+    cards: [{ id: 20, nid: 10, did: 1, ord: 0 }],
+  };
+}
+
 test("workspace creates the demo deck behind one interface", () => {
   const workspace = createTestWorkspace();
   const demo = workspace.createDemoDeck();
@@ -31,6 +52,23 @@ test("workspace creates the demo deck behind one interface", () => {
   assert.equal(demo.cards.length, 2);
   assert.equal(workspace.getState().decks.length, 1);
   assert.equal(workspace.getState().decks[0].cards[0].coreState.isCoreReady, true);
+});
+
+test("workspace APKG commands dry-run and commit through normalized import", async () => {
+  const workspace = createTestWorkspace();
+  const dryRun = await workspace.dryRunApkgImport(parsedApkgFixture());
+  const beforeCommit = workspace.getState().decks.length;
+  const committed = await workspace.commitApkgImport(parsedApkgFixture());
+
+  assert.equal(dryRun.deck, null);
+  assert.equal(dryRun.report.createdLearningItems, 1);
+  assert.equal(dryRun.report.apkg.detectedCards, 1);
+  assert.equal(beforeCommit, 0);
+  assert.equal(committed.deck.source, "anki-apkg");
+  assert.equal(committed.deck.cards.length, 1);
+  assert.equal(committed.deck.cards[0].sourceType, "anki_import");
+  assert.equal(committed.deck.cards[0].reviewState.schedulerVersion, "fsrs_v1");
+  assert.equal(workspace.getState().decks.length, 1);
 });
 
 test("workspace graph and community commands hide app orchestration", () => {

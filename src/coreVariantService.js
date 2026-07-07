@@ -335,6 +335,14 @@ export function getVariantReadiness(item, reviewEvents = [], options = {}) {
     maturity,
   };
 
+  if (state.fallbackUntilCorrect || state.forcedVariantId) {
+    return {
+      ...base,
+      shouldFallbackToOriginal: true,
+      reason: "Fallback aktiv: erst Original oder einfachere Variante stabil beantworten.",
+    };
+  }
+
   if (maturity.stage === "early_review") {
     return {
       ...base,
@@ -439,7 +447,8 @@ export function getVariantGenerationRecommendation(item, reviewEvents = [], opti
   const warnings = [...coverage.warnings];
   const coverageTarget = recommendedCoverageTarget(maturity.stage);
   const enoughForStage = coverage.activeRephraseCount >= coverageTarget;
-  const recentFailure = maturity.recentFailureCount > 0 || maturity.stage === "relearning";
+  const state = getSchedulerStateForItem(item);
+  const recentFailure = maturity.recentFailureCount > 0 || maturity.stage === "relearning" || state.fallbackUntilCorrect || Boolean(state.forcedVariantId);
   let shouldSuggest = false;
   let mode = "none";
   let reason = readiness.reason;
