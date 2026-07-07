@@ -203,9 +203,6 @@ function updateDeckTreePlacement(state, { deckId, name = null, parentDeckId = un
         : currentDeck.versionLog,
     });
   });
-  const savedState = state.decks === nextDecks ? state : null;
-  const saved = savedState ?? null;
-
   return {
     ok: true,
     error: null,
@@ -215,7 +212,6 @@ function updateDeckTreePlacement(state, { deckId, name = null, parentDeckId = un
     changedDeckIds,
     renamedTo: nextName,
     movedToParentDeckId: requestedParentId,
-    saved,
   };
 }
 
