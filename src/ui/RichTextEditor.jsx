@@ -43,15 +43,94 @@ function ColorSwatch({ label, color, onRun }) {
 export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel }) {
   const editorRef = React.useRef(null);
   const selectionRef = React.useRef(null);
+  const isFocusedRef = React.useRef(false);
+  const lastEmittedNormalizedHtmlRef = React.useRef("");
   const normalizedValue = React.useMemo(() => normalizeRichTextForEditor(value), [value]);
 
   React.useLayoutEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
+    const isLocalEditorUpdate = normalizedValue === lastEmittedNormalizedHtmlRef.current && (isFocusedRef.current || hasEditorSelection());
+    if (isLocalEditorUpdate) return;
+
     if (editor.innerHTML !== normalizedValue) {
+      const selection = isFocusedRef.current ? captureTextSelection() : null;
       editor.innerHTML = normalizedValue;
+      restoreTextSelection(selection);
     }
+    lastEmittedNormalizedHtmlRef.current = normalizedValue;
   }, [normalizedValue]);
+
+  function hasEditorSelection() {
+    const editor = editorRef.current;
+    if (!editor || typeof window === "undefined") return false;
+
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return false;
+    return editor.contains(selection.anchorNode) && editor.contains(selection.focusNode);
+  }
+
+  function captureTextSelection() {
+    const editor = editorRef.current;
+    if (!editor || typeof window === "undefined") return null;
+
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return null;
+
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) return null;
+
+    const beforeRange = range.cloneRange();
+    beforeRange.selectNodeContents(editor);
+    beforeRange.setEnd(range.startContainer, range.startOffset);
+    const start = beforeRange.toString().length;
+
+    return {
+      start,
+      end: start + range.toString().length,
+    };
+  }
+
+  function findTextPosition(node, offset) {
+    let remaining = Math.max(0, offset);
+    let fallback = { node, offset: node.childNodes.length };
+
+    function visit(currentNode) {
+      if (currentNode.nodeType === 3) {
+        const textLength = currentNode.textContent?.length ?? 0;
+        if (remaining <= textLength) return { node: currentNode, offset: remaining };
+        remaining -= textLength;
+        fallback = { node: currentNode, offset: textLength };
+        return null;
+      }
+
+      for (const child of currentNode.childNodes) {
+        const found = visit(child);
+        if (found) return found;
+      }
+
+      fallback = { node: currentNode, offset: currentNode.childNodes.length };
+      return null;
+    }
+
+    return visit(node) ?? fallback;
+  }
+
+  function restoreTextSelection(selectionOffsets) {
+    const editor = editorRef.current;
+    if (!editor || !selectionOffsets || typeof document === "undefined" || typeof window === "undefined") return;
+
+    const start = findTextPosition(editor, selectionOffsets.start);
+    const end = findTextPosition(editor, selectionOffsets.end);
+    const range = document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset);
+
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    selectionRef.current = range.cloneRange();
+  }
 
   function saveSelection() {
     const editor = editorRef.current;
@@ -93,8 +172,24 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   function emitChange() {
     const editor = editorRef.current;
     if (!editor) return;
+    isFocusedRef.current = true;
     saveSelection();
-    onChange?.(sanitizeCardHtml(editor.innerHTML));
+    const sanitizedHtml = sanitizeCardHtml(editor.innerHTML);
+    lastEmittedNormalizedHtmlRef.current = normalizeRichTextForEditor(sanitizedHtml);
+    onChange?.(lastEmittedNormalizedHtmlRef.current);
+  }
+
+  function handleBlur() {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    isFocusedRef.current = false;
+    const normalizedHtml = normalizeRichTextForEditor(editor.innerHTML);
+    lastEmittedNormalizedHtmlRef.current = normalizedHtml;
+    if (editor.innerHTML !== normalizedHtml) {
+      editor.innerHTML = normalizedHtml;
+    }
+    onChange?.(normalizedHtml);
   }
 
   function runCommand(command, commandValue = null) {
@@ -159,6 +254,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         aria-multiline="true"
         suppressContentEditableWarning
         onFocus={(event) => {
+          isFocusedRef.current = true;
           onFocus?.(event);
           saveSelection();
         }}
@@ -169,7 +265,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
             selectEditorContents();
           }
         }}
-        onBlur={emitChange}
+        onBlur={handleBlur}
         onKeyUp={saveSelection}
         onMouseUp={saveSelection}
         onPaste={handlePaste}

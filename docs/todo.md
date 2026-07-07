@@ -15,6 +15,7 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [x] APKG-Basic-Import mit Mapping, echten Unterstapeln, Importbericht, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten, lokalem Browser-Medienspeicher und Reimport-Merge.
 - [x] Text-, CSV- und Excel-/Tabellen-Paste-Import ueber die gemeinsame Learning-Item-Pipeline mit Warnungen fuer uebersprungene Eingaben.
 - [x] Manuelle Kartenanlage mit Rich-Text-Editor fuer Front/Back, bestehendem/neuem Stapelziel, Dokumentmodus, CoRe-integriertem minimalem visuellem PDF-Viewer, Auswahl-zu-Feld, PDF-/Text-Auslesung, Multiple-Choice/Free-Text-Selbstcheck und Original-Variantenanker.
+- [x] Erstellen oeffnet standardmaessig die manuelle Kartenerstellung; die Reiter stehen in der Reihenfolge Manuell, PDF/Text, Import, KI.
 - [x] Lokale KI-Drafts aus Quellentext mit Schema-Validation, Draft-Annahme und normalisierter Learning-Item-Erstellung.
 - [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, append-only Review-Events und Learning-Item-/Varianten-Kompatibilitaetsfeldern.
 - [x] Tages-Queue im Lernmodus fuer jetzt faellige/ueberfaellige Karten plus pro Stapel einstellbare neue Karten; Elternstapel lernen ihren Unterbaum.
@@ -24,7 +25,7 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [x] FSRS-like Scheduler-State mit Stability, Difficulty, Desired Retention, Retrievability und konservativen Intervallen.
 - [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker-Minikarte, Variant-Level, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
 - [x] Lokale Community-Gruppen, Ordner und Deck-Kopie ohne fremde Reviewdaten.
-- [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan, AI-Job-Datenmodell und Heute-Jahres-Heatmap.
+- [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan, AI-Job-Datenmodell und responsive, pfeilnavigierbare Heute-Jahres-Heatmap ohne horizontalen Slider.
 - [x] Lokaler JSON-Export/-Import ohne Passwort-Verifier.
 - [x] Modul-/Browser-Verifikation fuer die zentralen lokalen Pfade.
 - [x] Supabase/Postgres-Schemaanker in `supabase/core_schema_v1.sql` mit RLS-Policies und Verify-Query dokumentiert.

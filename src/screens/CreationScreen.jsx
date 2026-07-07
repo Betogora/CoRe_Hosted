@@ -247,12 +247,12 @@ function TabButton({ icon: Icon, label, isActive, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
+      className={`inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
         isActive ? "bg-[#4f5eb1] text-white shadow-sm" : "border border-[#dfe4f5] bg-white/76 text-[#4f5eb1] hover:bg-white"
       }`}
     >
-      <Icon size={17} aria-hidden="true" />
-      {label}
+      <Icon className="shrink-0" size={17} aria-hidden="true" />
+      <span className="min-w-0 whitespace-normal text-left leading-snug">{label}</span>
     </button>
   );
 }
@@ -691,7 +691,7 @@ function ManualCreationPanel({ onCreated }) {
   );
 }
 
-function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
+function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, documentMode = false }) {
   const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
   const [selectedDeckId, setSelectedDeckId] = React.useState(decks[0]?.id ?? "");
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
@@ -702,7 +702,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
   const [correctAnswer, setCorrectAnswer] = React.useState("");
   const [tags, setTags] = React.useState("");
   const [activeField, setActiveField] = React.useState("front");
-  const [showDocumentMode, setShowDocumentMode] = React.useState(false);
+  const [showDocumentMode, setShowDocumentMode] = React.useState(documentMode);
   const [document, setDocument] = React.useState(null);
   const [documentObjectUrl, setDocumentObjectUrl] = React.useState("");
   const [documentText, setDocumentText] = React.useState("");
@@ -716,6 +716,10 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
     if (selectedDeckId && !decks.some((deck) => deck.id === selectedDeckId)) setSelectedDeckId(decks[0]?.id ?? "");
     if (decks.length === 0) setUseNewDeck(true);
   }, [decks, selectedDeckId]);
+
+  React.useEffect(() => {
+    setShowDocumentMode(documentMode);
+  }, [documentMode]);
 
   React.useEffect(() => {
     if (cardType === "multiple-choice" && !correctAnswer && parsedOptions[0]) {
@@ -818,6 +822,9 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = showDocumentMode && isPdfDocument(document) && documentObjectUrl;
+  const panelEyebrow = documentMode ? "PDF-/Text-Erstellung" : "Manuelle Erstellung";
+  const panelTitle = documentMode ? "Karten aus PDF-Text / Text erstellen" : "Karte erstellen";
+  const sourceFileName = document?.fileName ?? "Keine Datei ausgewählt";
 
   const editor = (
     <div className="grid gap-4">
@@ -926,24 +933,28 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
 
   return (
     <SoftPanel className="p-6">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-3">
           <OrbIcon icon={PenLine} className="bg-sky-50 text-sky-700" />
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">Manuelle Erstellung</p>
-            <h2 className="text-2xl font-semibold text-[#17214f]">Karte erstellen</h2>
+            <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">{panelEyebrow}</p>
+            <h2 className="text-2xl font-semibold text-[#17214f]">{panelTitle}</h2>
           </div>
         </div>
-        <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-800">
-          <FileText size={17} aria-hidden="true" />
-          PDF/Text auslesen
-          <input className="sr-only" type="file" accept=".txt,.md,.markdown,.pdf,.docx" onChange={handleDocument} />
-        </label>
       </div>
 
       {showDocumentMode ? (
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="grid content-start gap-4">
+            <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+              Quelle
+              <span className="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[#cfd6ed] px-3 text-[#66709a]">
+                <FileText className="shrink-0" size={17} aria-hidden="true" />
+                <span className="shrink-0 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#4f5eb1] shadow-sm">Datei auswählen</span>
+                <span className="min-w-0 truncate text-sm font-medium">{sourceFileName}</span>
+                <input className="sr-only" type="file" accept=".txt,.md,.markdown,.pdf,.docx" onChange={handleDocument} />
+              </span>
+            </label>
             {document && !shouldShowPdfViewer ? (
               <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-3 text-sm text-[#66709a]">
                 <p className="font-semibold text-[#17214f]">{document.fileName}</p>
@@ -1184,20 +1195,22 @@ function CreationMethodButton({ method, isSelected, onSelect }) {
 }
 
 export function CreationScreen({ decks = [], onCreated, onAppendManualCard, onJob }) {
-  const [selectedMethod, setSelectedMethod] = React.useState("import");
+  const [selectedMethod, setSelectedMethod] = React.useState("manual");
 
   function renderSelectedMethod() {
     if (selectedMethod === "import") return <ImportCreationPanel decks={decks} onCreated={onCreated} />;
     if (selectedMethod === "manual") return <ManualCreationPanelV2 decks={decks} onCreated={onCreated} onAppendManualCard={onAppendManualCard} />;
+    if (selectedMethod === "document") return <ManualCreationPanelV2 decks={decks} onCreated={onCreated} onAppendManualCard={onAppendManualCard} documentMode />;
     return <AiCreationPanel onCreated={onCreated} onJob={onJob} />;
   }
 
   return (
     <div className="grid gap-7">
-      <PageHeader eyebrow="Erstellen" title="Neue Karten" body="Import, manuelle Erstellung und KI-Drafts." />
+      <PageHeader eyebrow="Erstellen" title="Neue Karten" body="Manuelle Erstellung, PDF-/Text-Erstellung, Import und KI-Drafts." />
       <section className="flex flex-wrap gap-2" aria-label="Erstellungsart">
-        <TabButton icon={FileArchive} label="Import" isActive={selectedMethod === "import"} onClick={() => setSelectedMethod("import")} />
         <TabButton icon={PenLine} label="Karten manuell erstellen" isActive={selectedMethod === "manual"} onClick={() => setSelectedMethod("manual")} />
+        <TabButton icon={FileText} label="Karten aus PDF-Text / Text erstellen" isActive={selectedMethod === "document"} onClick={() => setSelectedMethod("document")} />
+        <TabButton icon={FileArchive} label="Import" isActive={selectedMethod === "import"} onClick={() => setSelectedMethod("import")} />
         <TabButton icon={WandSparkles} label="KI-gestützte Kartenerstellung" isActive={selectedMethod === "ai"} onClick={() => setSelectedMethod("ai")} />
       </section>
       {renderSelectedMethod()}

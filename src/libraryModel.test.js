@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createCoreCard, createCoreDeck } from "./coreModel.js";
-import { createAiJobLedger, createDeckLibraryModel, createStudyHeatmapModel, createVisibleDeckRows } from "./libraryModel.js";
+import {
+  createAiJobLedger,
+  createDeckLibraryModel,
+  createStudyHeatmapModel,
+  createStudyHeatmapWindow,
+  createVisibleDeckRows,
+  getStudyHeatmapVisibleWeekCount,
+} from "./libraryModel.js";
 
 function createDeckWithInactiveCards() {
   const active = createCoreCard({
@@ -207,6 +214,50 @@ test("study heatmap counts learned cards by local day", () => {
   assert.ok(heatmap.monthLabels.includes("Jul"));
   assert.equal(heatmap.days.find((day) => day.key === "2026-07-07").count, 2);
   assert.equal(heatmap.days.find((day) => day.key === "2026-07-07").level, 4);
+});
+
+test("study heatmap window fits whole weeks to viewport width and navigates by arrows", () => {
+  const deck = createCoreDeck({
+    id: "deck_heatmap_window",
+    name: "Heatmap Window",
+    source: "manual",
+    cards: [],
+    reviewEvents: [
+      { id: "review_latest", reviewedAt: "2026-07-07T08:00:00.000Z", learningItemId: "card_latest" },
+      { id: "review_previous", reviewedAt: "2026-06-11T08:00:00.000Z", learningItemId: "card_previous" },
+      { id: "review_old", reviewedAt: "2025-08-05T08:00:00.000Z", learningItemId: "card_old" },
+    ],
+  });
+  const heatmap = createStudyHeatmapModel([deck], {
+    now: "2026-07-07T12:00:00.000Z",
+    weeks: 53,
+  });
+
+  assert.equal(getStudyHeatmapVisibleWeekCount(320, heatmap.weekCount), 14);
+
+  const latestWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 320 });
+  assert.equal(latestWindow.weeks.length, 14);
+  assert.equal(latestWindow.days.length, 98);
+  assert.equal(latestWindow.endWeekIndex, heatmap.weekCount);
+  assert.equal(latestWindow.canShowPrevious, true);
+  assert.equal(latestWindow.canShowNext, false);
+  assert.equal(latestWindow.totalCount, 2);
+  assert.equal(latestWindow.rangeEndKey, "2026-07-07");
+
+  const explicitDefaultWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 320, endWeekIndex: null });
+  assert.equal(explicitDefaultWindow.endWeekIndex, heatmap.weekCount);
+  assert.equal(explicitDefaultWindow.rangeEndKey, "2026-07-07");
+
+  const previousWindow = createStudyHeatmapWindow(heatmap, {
+    viewportWidth: 320,
+    endWeekIndex: latestWindow.previousEndWeekIndex,
+  });
+
+  assert.equal(previousWindow.weeks.length, 14);
+  assert.equal(previousWindow.days.length, 98);
+  assert.equal(previousWindow.endWeekIndex, latestWindow.endWeekIndex - 4);
+  assert.equal(previousWindow.canShowNext, true);
+  assert.equal(previousWindow.weeks.every((week) => week.length === 7), true);
 });
 
 test("AI job ledger merges global and deck jobs with stable counts", () => {

@@ -1,6 +1,6 @@
 import React from "react";
-import { Activity, Bell, CalendarDays, ChevronRight, Layers, Sparkles, Target } from "lucide-react";
-import { createDeckLibraryModel } from "../libraryModel.js";
+import { Activity, Bell, CalendarDays, ChevronLeft, ChevronRight, Layers, Sparkles, Target } from "lucide-react";
+import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.js";
 import { DonutValue, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
 
 const heatmapToneByLevel = [
@@ -42,9 +42,53 @@ function HeatmapMetric({ label, value, hint }) {
   );
 }
 
+function useElementWidth() {
+  const elementRef = React.useRef(null);
+  const [width, setWidth] = React.useState(null);
+
+  React.useLayoutEffect(() => {
+    const element = elementRef.current;
+    if (!element) return undefined;
+
+    const updateWidth = () => setWidth(element.getBoundingClientRect().width);
+    updateWidth();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateWidth);
+      return () => window.removeEventListener("resize", updateWidth);
+    }
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return [elementRef, width];
+}
+
 function StudyHeatmap({ heatmap }) {
-  const gridColumns = `2.25rem repeat(${heatmap.weeks.length}, 1rem)`;
-  const bestDayLabel = heatmap.bestDay ? `Stärkster Tag: ${formatHeatmapDate(heatmap.bestDay.key)} mit ${formatCardCount(heatmap.bestDay.count)}` : "Noch keine Lernaktivität im Zeitraum";
+  const [heatmapViewportRef, heatmapViewportWidth] = useElementWidth();
+  const [heatmapEndWeekIndex, setHeatmapEndWeekIndex] = React.useState(null);
+  const visibleHeatmap = React.useMemo(
+    () => createStudyHeatmapWindow(heatmap, { viewportWidth: heatmapViewportWidth, endWeekIndex: heatmapEndWeekIndex }),
+    [heatmap, heatmapEndWeekIndex, heatmapViewportWidth],
+  );
+  const gridColumns = `2.25rem repeat(${visibleHeatmap.weeks.length}, 1rem)`;
+  const bestDayLabel = visibleHeatmap.bestDay
+    ? `Stärkster Tag: ${formatHeatmapDate(visibleHeatmap.bestDay.key)} mit ${formatCardCount(visibleHeatmap.bestDay.count)}`
+    : "Noch keine Lernaktivität im Zeitraum";
+  const goToPreviousHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.previousEndWeekIndex);
+  const goToNextHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.nextEndWeekIndex);
+  const handleHeatmapKeyDown = (event) => {
+    if (event.key === "ArrowLeft" && visibleHeatmap.canShowPrevious) {
+      event.preventDefault();
+      goToPreviousHeatmapWindow();
+    }
+    if (event.key === "ArrowRight" && visibleHeatmap.canShowNext) {
+      event.preventDefault();
+      goToNextHeatmapWindow();
+    }
+  };
 
   return (
     <SoftPanel className="p-7">
@@ -53,35 +97,64 @@ function StudyHeatmap({ heatmap }) {
           <OrbIcon icon={Activity} className="bg-teal-50 text-teal-700" />
           <div>
             <h3 className="text-xl font-semibold text-[#17214f]">Lern-Heatmap</h3>
-            <p className="mt-2 text-sm leading-6 text-[#66709a]">Gelernte Karten pro Tag · {heatmap.rangeLabel}</p>
+            <p className="mt-2 text-sm leading-6 text-[#66709a]">Gelernte Karten pro Tag · {visibleHeatmap.rangeLabel}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-x-7 gap-y-4 md:grid-cols-4">
-          <HeatmapMetric label="Karten" value={heatmap.totalCount} hint="im Zeitraum" />
-          <HeatmapMetric label="Aktive Tage" value={heatmap.activeDays} />
-          <HeatmapMetric label="Ø aktiver Tag" value={formatDecimal(heatmap.averagePerActiveDay)} hint="Karten" />
-          <HeatmapMetric label="Serie" value={heatmap.currentStreak} hint={`Bestwert ${heatmap.longestStreak} Tage`} />
+          <HeatmapMetric label="Karten" value={visibleHeatmap.totalCount} hint="im Zeitraum" />
+          <HeatmapMetric label="Aktive Tage" value={visibleHeatmap.activeDays} />
+          <HeatmapMetric label="Ø aktiver Tag" value={formatDecimal(visibleHeatmap.averagePerActiveDay)} hint="Karten" />
+          <HeatmapMetric label="Serie" value={visibleHeatmap.currentStreak} hint={`Bestwert ${visibleHeatmap.longestStreak} Tage`} />
         </div>
       </div>
 
-      <div className="mt-7 overflow-x-auto pb-2">
+      <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={goToPreviousHeatmapWindow}
+          disabled={!visibleHeatmap.canShowPrevious}
+          className="inline-flex size-9 items-center justify-center rounded-xl border border-[#dfe4f3] bg-white text-[#4f5eb1] transition hover:border-[#c7cee8] hover:bg-[#f7f9ff] disabled:cursor-not-allowed disabled:opacity-40"
+          title="Frühere Wochen anzeigen"
+          aria-label="Frühere Wochen anzeigen"
+        >
+          <ChevronLeft size={17} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={goToNextHeatmapWindow}
+          disabled={!visibleHeatmap.canShowNext}
+          className="inline-flex size-9 items-center justify-center rounded-xl border border-[#dfe4f3] bg-white text-[#4f5eb1] transition hover:border-[#c7cee8] hover:bg-[#f7f9ff] disabled:cursor-not-allowed disabled:opacity-40"
+          title="Spätere Wochen anzeigen"
+          aria-label="Spätere Wochen anzeigen"
+        >
+          <ChevronRight size={17} aria-hidden="true" />
+        </button>
+      </div>
+
+      <div
+        ref={heatmapViewportRef}
+        className="mt-3 min-w-0 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5361aa]/35"
+        tabIndex={0}
+        onKeyDown={handleHeatmapKeyDown}
+        aria-label={`Lern-Heatmap-Ausschnitt von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}`}
+      >
         <div
-          className="grid w-max gap-1"
+          className="grid max-w-full gap-1"
           style={{ gridTemplateColumns: gridColumns }}
           role="img"
-          aria-label={`Lern-Heatmap von ${heatmap.rangeStartKey} bis ${heatmap.rangeEndKey}`}
+          aria-label={`Lern-Heatmap von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}`}
         >
           <span aria-hidden="true" />
-          {heatmap.monthLabels.map((label, index) => (
+          {visibleHeatmap.monthLabels.map((label, index) => (
             <span key={`${label}-${index}`} className="h-5 whitespace-nowrap text-left text-[0.68rem] font-semibold text-[#66709a]">
               {label}
             </span>
           ))}
 
-          {heatmap.weekdayLabels.map((label, dayIndex) => (
+          {visibleHeatmap.weekdayLabels.map((label, dayIndex) => (
             <React.Fragment key={label}>
               <span className="flex h-4 items-center text-[0.68rem] font-semibold text-[#66709a]">{label}</span>
-              {heatmap.weeks.map((week, weekIndex) => {
+              {visibleHeatmap.weeks.map((week, weekIndex) => {
                 const day = week[dayIndex];
                 return (
                   <span

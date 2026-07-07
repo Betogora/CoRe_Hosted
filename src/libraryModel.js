@@ -1,8 +1,19 @@
 import { stripHtml } from "./htmlSafety.js";
 import { listReviewableCards, summarizeDeckReview } from "./scheduler.js";
 
+const DEFAULT_HEATMAP_WEEK_COUNT = 53;
+const MIN_HEATMAP_WINDOW_WEEKS = 4;
+const HEATMAP_DEFAULT_VIEWPORT_WIDTH = 360;
+const HEATMAP_WEEKDAY_LABEL_WIDTH = 36;
+const HEATMAP_WEEK_TRACK_WIDTH = 20;
+const HEATMAP_NAVIGATION_STEP_WEEKS = 4;
+
 function normalizeQuery(value) {
   return String(value ?? "").trim().toLowerCase();
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function deckPath(deck) {
@@ -98,6 +109,27 @@ function longestStreakLength(days) {
     longest = Math.max(longest, current);
   }
   return longest;
+}
+
+function summarizeHeatmapDays(days) {
+  const visibleDays = days.filter((day) => !day.isFuture);
+  const totalCount = visibleDays.reduce((sum, day) => sum + day.count, 0);
+  const activeDays = visibleDays.filter((day) => day.count > 0).length;
+  const bestDay = visibleDays.reduce((best, day) => (day.count > (best?.count ?? 0) ? day : best), null);
+  const rangeStartDay = days[0] ?? null;
+  const rangeEndDay = [...days].reverse().find((day) => !day.isFuture) ?? days.at(-1) ?? null;
+
+  return {
+    totalCount,
+    activeDays,
+    averagePerActiveDay: activeDays ? Math.round((totalCount / activeDays) * 10) / 10 : 0,
+    bestDay: bestDay?.count > 0 ? bestDay : null,
+    rangeStartKey: rangeStartDay?.key ?? null,
+    rangeEndKey: rangeEndDay?.key ?? null,
+    rangeLabel: rangeStartDay && rangeEndDay ? `${formatShortDate(rangeStartDay.date)} - ${formatShortDate(rangeEndDay.date)}` : "",
+    currentStreak: currentStreakLength(days),
+    longestStreak: longestStreakLength(days),
+  };
 }
 
 function resultLabel(job) {
@@ -230,8 +262,71 @@ export function createVisibleDeckRows(rows = [], collapsedDeckIds = new Set()) {
   });
 }
 
+export function getStudyHeatmapVisibleWeekCount(viewportWidth, totalWeeks = DEFAULT_HEATMAP_WEEK_COUNT) {
+  const normalizedTotalWeeks = Math.max(MIN_HEATMAP_WINDOW_WEEKS, Math.round(Number(totalWeeks) || DEFAULT_HEATMAP_WEEK_COUNT));
+  const measuredWidth = Number(viewportWidth);
+  const safeWidth = Number.isFinite(measuredWidth) && measuredWidth > 0 ? measuredWidth : HEATMAP_DEFAULT_VIEWPORT_WIDTH;
+  const weeksThatFit = Math.floor(Math.max(0, safeWidth - HEATMAP_WEEKDAY_LABEL_WIDTH) / HEATMAP_WEEK_TRACK_WIDTH);
+
+  return clampNumber(weeksThatFit, MIN_HEATMAP_WINDOW_WEEKS, normalizedTotalWeeks);
+}
+
+export function createStudyHeatmapWindow(heatmap = {}, options = {}) {
+  const allWeeks = heatmap.weeks ?? [];
+  const totalWeekCount = allWeeks.length;
+
+  if (!totalWeekCount) {
+    return {
+      ...heatmap,
+      days: [],
+      weeks: [],
+      weekCount: 0,
+      visibleWeekCount: 0,
+      totalWeekCount: 0,
+      startWeekIndex: 0,
+      endWeekIndex: 0,
+      canShowPrevious: false,
+      canShowNext: false,
+      previousEndWeekIndex: 0,
+      nextEndWeekIndex: 0,
+      monthLabels: [],
+      ...summarizeHeatmapDays([]),
+    };
+  }
+
+  const visibleWeekCount = getStudyHeatmapVisibleWeekCount(options.viewportWidth, totalWeekCount);
+  const hasRequestedEndWeekIndex = options.endWeekIndex !== null && options.endWeekIndex !== undefined;
+  const requestedEndWeekIndex = hasRequestedEndWeekIndex ? Math.round(Number(options.endWeekIndex)) : Number.NaN;
+  const endWeekIndex = clampNumber(
+    Number.isFinite(requestedEndWeekIndex) ? requestedEndWeekIndex : totalWeekCount,
+    visibleWeekCount,
+    totalWeekCount,
+  );
+  const startWeekIndex = endWeekIndex - visibleWeekCount;
+  const weeks = allWeeks.slice(startWeekIndex, endWeekIndex);
+  const days = weeks.flat();
+  const navigationStep = Math.min(visibleWeekCount, HEATMAP_NAVIGATION_STEP_WEEKS);
+
+  return {
+    ...heatmap,
+    ...summarizeHeatmapDays(days),
+    days,
+    weeks,
+    weekCount: visibleWeekCount,
+    visibleWeekCount,
+    totalWeekCount,
+    startWeekIndex,
+    endWeekIndex,
+    canShowPrevious: startWeekIndex > 0,
+    canShowNext: endWeekIndex < totalWeekCount,
+    previousEndWeekIndex: Math.max(visibleWeekCount, endWeekIndex - navigationStep),
+    nextEndWeekIndex: Math.min(totalWeekCount, endWeekIndex + navigationStep),
+    monthLabels: createHeatmapMonthLabels(weeks),
+  };
+}
+
 export function createStudyHeatmapModel(decks = [], options = {}) {
-  const weekCount = Math.max(4, Math.round(Number(options.weeks ?? 53) || 53));
+  const weekCount = Math.max(MIN_HEATMAP_WINDOW_WEEKS, Math.round(Number(options.weeks ?? DEFAULT_HEATMAP_WEEK_COUNT) || DEFAULT_HEATMAP_WEEK_COUNT));
   const today = startOfLocalDay(options.now ?? new Date());
   const firstWeekStart = addLocalDays(startOfWeek(today), -(weekCount - 1) * 7);
   const lastDay = addLocalDays(firstWeekStart, weekCount * 7 - 1);
