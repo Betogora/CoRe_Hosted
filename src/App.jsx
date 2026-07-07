@@ -220,7 +220,7 @@ export function App() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-[96rem] overflow-hidden rounded-[22px] border border-[#dce2f4] bg-white/52 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl md:grid-cols-[13rem_minmax(0,1fr)]">
+      <div className="grid min-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[22px] border border-[#dce2f4] bg-white/52 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] md:grid-cols-[13rem_minmax(0,1fr)]">
         <aside className="border-b border-[#dce2f4] bg-white/42 md:border-b-0 md:border-r">
           <div className="flex h-full flex-col px-5 py-7 sm:px-8 md:px-4 md:py-8 lg:px-5 lg:py-10">
             <div>

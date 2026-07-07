@@ -38,7 +38,7 @@ test("creation workflow captures manual document anchors behind one interface", 
     front: "Was ist ATP?",
     back: "",
     documentText: document.text,
-    selectedText: "",
+    selectedText: "ATP ist ein universeller Energietraeger.",
   });
 
   const deck = workflow.createManualDeck({
@@ -55,11 +55,77 @@ test("creation workflow captures manual document anchors behind one interface", 
   const card = deck.cards[0];
 
   assert.equal(selection.changed, true);
-  assert.equal(selection.back, document.text);
+  assert.equal(selection.back, "<p>ATP ist ein universeller Energietraeger.</p>");
   assert.equal(workflow.canCreateManualCard({ cardType: "basic", front: selection.front, back: selection.back }), true);
   assert.equal(deck.sourceDocuments[0].fileName, "quelle.txt");
   assert.equal(card.sourceAnchors[0].targetField, "back");
   assert.equal(getOriginalVariant(card).front, "Was ist ATP?");
+});
+
+test("creation workflow preserves rich text manual cards", () => {
+  const workflow = createCreationWorkflow();
+  const front = '<p><strong>ATP</strong> ist <span style="color:#b42318">wichtig</span>.</p><ul><li>Energie</li></ul>';
+  const back = '<p><em>Universeller</em> Energietraeger mit <span style="background-color:#fef08a">Phosphatgruppen</span>.</p>';
+  const deck = workflow.createManualDeck({
+    deckName: "Rich Text",
+    cardType: "basic",
+    front,
+    back,
+  });
+  const card = deck.cards[0];
+
+  assert.equal(workflow.canCreateManualCard({ cardType: "basic", front: "<p><br></p>", back }), false);
+  assert.equal(workflow.canCreateManualCard({ cardType: "basic", front, back }), true);
+  assert.equal(card.originalFront, front);
+  assert.equal(card.originalBack, back);
+  assert.equal(getOriginalVariant(card).front, front);
+  assert.equal(getOriginalVariant(card).back, back);
+});
+
+test("manual document capture ignores empty selections", () => {
+  const workflow = createCreationWorkflow();
+  const document = workflow.createInitialAiDocument({
+    fileName: "quelle.txt",
+    text: "Dieser Absatz darf nicht durch einen einfachen Klick uebernommen werden.",
+  });
+  const selection = workflow.captureManualSelection({
+    activeField: "front",
+    front: "",
+    back: "",
+    document,
+    documentText: document.text,
+    selectedText: "",
+  });
+
+  assert.equal(selection.changed, false);
+  assert.equal(selection.front, "");
+  assert.equal(selection.back, "");
+  assert.equal(selection.selection, "");
+});
+
+test("manual PDF selection can pass page and bounding box into the source anchor", () => {
+  const workflow = createCreationWorkflow();
+  const document = workflow.createInitialAiDocument({
+    fileName: "skript.pdf",
+    text: "Nervenzellen leiten elektrische Signale.",
+    mimeType: "application/pdf",
+  });
+  const selection = workflow.captureManualSelection({
+    activeField: "front",
+    front: "",
+    back: "",
+    document,
+    documentText: document.text,
+    selectedText: "Nervenzellen leiten elektrische Signale.",
+    sourceAnchorOptions: {
+      pageNumber: 3,
+      bbox: { left: 12, top: 24, right: 220, bottom: 48 },
+    },
+  });
+
+  assert.equal(selection.changed, true);
+  assert.equal(selection.sourceAnchor.pageNumber, 3);
+  assert.deepEqual(selection.sourceAnchor.bbox, { left: 12, top: 24, right: 220, bottom: 48 });
 });
 
 test("creation workflow prepares multiple-choice manual cards", () => {

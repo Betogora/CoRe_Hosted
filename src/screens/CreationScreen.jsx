@@ -1,8 +1,10 @@
 import React from "react";
+import { PDFViewer } from "@embedpdf/react-pdf-viewer";
 import { AlertCircle, Bot, CheckCircle2, ClipboardCheck, Database, FileArchive, FileSpreadsheet, FileText, Image, Loader2, PenLine, Trash2, Upload, WandSparkles } from "lucide-react";
 import { createCreationWorkflow } from "../creationWorkflow.js";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
 import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
+import { RichTextEditor } from "../ui/RichTextEditor.jsx";
 import { cardTypeOptions, formatBytes, importSteps } from "./screenConstants.js";
 
 const creationWorkflow = createCreationWorkflow();
@@ -23,6 +25,221 @@ function splitAnswerOptions(value) {
     .split(/\n+/)
     .map((option) => option.trim())
     .filter(Boolean);
+}
+
+const PDF_VIEWER_DISABLED_CATEGORIES = [
+  "annotation",
+  "redaction",
+  "stamp",
+  "signature",
+  "form",
+  "capture",
+  "document-open",
+  "document-print",
+  "document-export",
+  "document-fullscreen",
+  "panel-search",
+  "panel-comment",
+  "panel-thumbnails",
+  "panel-outline",
+];
+
+const PDF_VIEWER_THEME = {
+  preference: "light",
+  light: {
+    background: {
+      app: "#f8f9fe",
+      surface: "#ffffff",
+      surfaceAlt: "#f3f5fd",
+      elevated: "#ffffff",
+      overlay: "rgba(23,33,79,0.28)",
+      input: "#ffffff",
+    },
+    foreground: {
+      primary: "#17214f",
+      secondary: "#4e5b8c",
+      muted: "#66709a",
+      disabled: "#aab2cf",
+      onAccent: "#ffffff",
+    },
+    border: {
+      default: "#dfe4f5",
+      subtle: "#e8ecf8",
+      strong: "#8c96dc",
+    },
+    accent: {
+      primary: "#4f5eb1",
+      primaryHover: "#4655a4",
+      primaryActive: "#3d4a91",
+      primaryLight: "#eef1fb",
+      primaryForeground: "#ffffff",
+    },
+    interactive: {
+      hover: "#f3f5fd",
+      active: "#eef1fb",
+      selected: "#eef1fb",
+      focus: "#4f5eb1",
+      focusRing: "rgba(79,94,177,0.18)",
+    },
+    state: {
+      error: "#b42318",
+      errorLight: "#fef3f2",
+      warning: "#b54708",
+      warningLight: "#fffaeb",
+      success: "#047857",
+      successLight: "#ecfdf3",
+      info: "#4f5eb1",
+      infoLight: "#eef1fb",
+    },
+    scrollbar: {
+      track: "#f3f5fd",
+      thumb: "#cfd6ed",
+      thumbHover: "#aab2cf",
+    },
+  },
+};
+
+function isPdfDocument(document) {
+  return document?.mimeType === "application/pdf";
+}
+
+function normalizePdfSelectionText(textParts = []) {
+  return textParts
+    .map((part) => String(part ?? "").trim())
+    .filter(Boolean)
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function serializePdfRect(rect) {
+  if (!rect) return null;
+  return {
+    left: Number(rect.left ?? rect.origin?.x ?? 0),
+    top: Number(rect.top ?? rect.origin?.y ?? 0),
+    right: Number(rect.right ?? (rect.origin?.x ?? 0) + (rect.size?.width ?? 0)),
+    bottom: Number(rect.bottom ?? (rect.origin?.y ?? 0) + (rect.size?.height ?? 0)),
+  };
+}
+
+function getViewerCapability(registry, pluginId) {
+  const plugin = registry?.getPlugin?.(pluginId);
+  return typeof plugin?.provides === "function" ? plugin.provides() : null;
+}
+
+function MinimalPdfDocumentViewer({ document, src, onSelection }) {
+  const onSelectionRef = React.useRef(onSelection);
+  const cleanupRef = React.useRef([]);
+
+  React.useEffect(() => {
+    onSelectionRef.current = onSelection;
+  }, [onSelection]);
+
+  React.useEffect(
+    () => () => {
+      cleanupRef.current.forEach((cleanup) => cleanup?.());
+      cleanupRef.current = [];
+    },
+    [],
+  );
+
+  const viewerConfig = React.useMemo(
+    () => ({
+      src,
+      tabBar: "never",
+      log: false,
+      fontFallback: null,
+      fonts: { ui: null, signature: null },
+      theme: PDF_VIEWER_THEME,
+      disabledCategories: PDF_VIEWER_DISABLED_CATEGORIES,
+      permissions: {
+        enforceDocumentPermissions: false,
+        overrides: {
+          print: false,
+          printHighQuality: false,
+          modifyContents: false,
+          modifyAnnotations: false,
+          fillForms: false,
+          assembleDocument: false,
+        },
+      },
+      zoom: {
+        defaultZoomLevel: "fit-width",
+        minZoom: 0.55,
+        maxZoom: 2.5,
+        zoomStep: 0.1,
+      },
+      selection: {
+        minSelectionDragDistance: 4,
+        marquee: { enabled: false },
+      },
+      ui: {
+        disabledCategories: PDF_VIEWER_DISABLED_CATEGORIES,
+      },
+    }),
+    [src],
+  );
+
+  const handleReady = React.useCallback((registry) => {
+    cleanupRef.current.forEach((cleanup) => cleanup?.());
+    cleanupRef.current = [];
+
+    const selection = getViewerCapability(registry, "selection");
+    const documentManager = getViewerCapability(registry, "document-manager");
+    const cleanups = [];
+    let selectionCleanup = null;
+
+    const attachSelection = (documentId) => {
+      selectionCleanup?.();
+      selectionCleanup = null;
+      if (!documentId || !selection?.forDocument) return;
+
+      const scope = selection.forDocument(documentId);
+      selectionCleanup = scope.onEndSelection(async () => {
+        try {
+          if (!scope.getState?.()?.selection) return;
+          const selectedText = normalizePdfSelectionText(await scope.getSelectedText().toPromise());
+          if (!selectedText) return;
+          const firstSelection = scope.getFormattedSelection?.()[0] ?? null;
+          onSelectionRef.current?.(selectedText, {
+            pageNumber: Number.isFinite(firstSelection?.pageIndex) ? firstSelection.pageIndex + 1 : null,
+            bbox: serializePdfRect(firstSelection?.rect),
+          });
+        } catch {
+          // Empty clicks and cancelled selections should be silent.
+        }
+      });
+    };
+
+    attachSelection(documentManager?.getActiveDocumentId?.());
+    if (documentManager?.onDocumentOpened) {
+      cleanups.push(documentManager.onDocumentOpened((state) => attachSelection(state?.id)));
+    }
+    if (documentManager?.onActiveDocumentChanged) {
+      cleanups.push(documentManager.onActiveDocumentChanged((event) => attachSelection(event?.currentDocumentId)));
+    }
+    cleanups.push(() => selectionCleanup?.());
+    cleanupRef.current = cleanups;
+  }, []);
+
+  return (
+    <div className="min-h-[40rem] overflow-hidden rounded-[16px] border border-[#e3e7f5] bg-[#f8f9fe]">
+      <div className="flex min-h-14 items-center justify-between gap-3 border-b border-[#e8ecf8] bg-[#f8f9fe]/90 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sky-50 text-sky-700">
+            <FileText size={18} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-[#17214f]">{document?.fileName ?? "PDF"}</p>
+            <p className="truncate text-xs font-medium text-[#66709a]">{documentStatusMessage(document)}</p>
+          </div>
+        </div>
+      </div>
+      <div className="core-pdf-viewer bg-[#f8f9fe]">
+        <PDFViewer key={`${document?.id ?? "pdf"}-${src}`} config={viewerConfig} className="h-full min-h-[37rem] bg-transparent" style={{ height: "37rem", width: "100%" }} onReady={handleReady} />
+      </div>
+    </div>
+  );
 }
 
 function TabButton({ icon: Icon, label, isActive, onClick }) {
@@ -487,6 +704,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
   const [activeField, setActiveField] = React.useState("front");
   const [showDocumentMode, setShowDocumentMode] = React.useState(false);
   const [document, setDocument] = React.useState(null);
+  const [documentObjectUrl, setDocumentObjectUrl] = React.useState("");
   const [documentText, setDocumentText] = React.useState("");
   const [selection, setSelection] = React.useState("");
   const [sourceAnchor, setSourceAnchor] = React.useState(null);
@@ -505,18 +723,27 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
     }
   }, [cardType, correctAnswer, parsedOptions]);
 
+  React.useEffect(
+    () => () => {
+      if (documentObjectUrl) URL.revokeObjectURL(documentObjectUrl);
+    },
+    [documentObjectUrl],
+  );
+
   async function handleDocument(event) {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const nextDocument = await creationWorkflow.readSourceDocument(file);
     setDocument(nextDocument);
+    setDocumentObjectUrl(isPdfDocument(nextDocument) ? URL.createObjectURL(file) : "");
     setDocumentText(nextDocument.text);
     setShowDocumentMode(true);
     setStatus(documentStatusMessage(nextDocument));
+    event.target.value = "";
   }
 
-  function applySelection(selectedText) {
+  function applySelection(selectedText, sourceAnchorOptions = {}) {
     const next = creationWorkflow.captureManualSelection({
       activeField,
       front,
@@ -524,6 +751,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
       document,
       documentText,
       selectedText,
+      sourceAnchorOptions,
     });
     if (!next.changed) return;
     setSelection(next.selection);
@@ -587,6 +815,9 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
 
   const canCreate = creationWorkflow.canCreateManualCard({ front, back, cardType, answerOptions, correctAnswer });
   const answerLabel = cardType === "cloze" ? "Zusatzinfo" : cardType === "multiple-choice" ? "Erklärung / Musterantwort" : "Rückseite";
+  const frontFieldActive = activeField === "front";
+  const backFieldActive = activeField === "back";
+  const shouldShowPdfViewer = showDocumentMode && isPdfDocument(document) && documentObjectUrl;
 
   const editor = (
     <div className="grid gap-4">
@@ -629,24 +860,29 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
         </label>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => setActiveField("front")} className={`min-h-10 rounded-xl text-sm font-semibold ${activeField === "front" ? "bg-[#4f5eb1] text-white" : "border border-[#dfe4f5] text-[#4f5eb1]"}`}>
-          Vorderseite aktiv
-        </button>
-        <button type="button" onClick={() => setActiveField("back")} className={`min-h-10 rounded-xl text-sm font-semibold ${activeField === "back" ? "bg-[#4f5eb1] text-white" : "border border-[#dfe4f5] text-[#4f5eb1]"}`}>
-          Rückseite aktiv
-        </button>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-          {cardType === "cloze" ? "Cloze-Text" : "Vorderseite"}
-          <textarea className="min-h-56 rounded-xl border border-[#dfe4f5] p-4 text-base leading-7" value={front} onFocus={() => setActiveField("front")} onChange={(event) => setFront(event.target.value)} />
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-          {answerLabel}
-          <textarea className="min-h-56 rounded-xl border border-[#dfe4f5] p-4 text-base leading-7" value={back} onFocus={() => setActiveField("back")} onChange={(event) => setBack(event.target.value)} />
-        </label>
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+          <span>{cardType === "cloze" ? "Cloze-Text" : "Vorderseite"}</span>
+          <RichTextEditor
+            value={front}
+            onFocus={() => setActiveField("front")}
+            onChange={setFront}
+            isActive={frontFieldActive}
+            minHeightClass="min-h-[22rem]"
+            ariaLabel={cardType === "cloze" ? "Cloze-Text" : "Vorderseite"}
+          />
+        </div>
+        <div className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+          <span>{answerLabel}</span>
+          <RichTextEditor
+            value={back}
+            onFocus={() => setActiveField("back")}
+            onChange={setBack}
+            isActive={backFieldActive}
+            minHeightClass="min-h-[22rem]"
+            ariaLabel={answerLabel}
+          />
+        </div>
       </div>
 
       {cardType === "multiple-choice" ? (
@@ -678,10 +914,6 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
           <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="biologie zelle prüfung" />
         </label>
         <div className="flex flex-wrap items-end gap-2">
-          <button type="button" onClick={() => setShowDocumentMode((value) => !value)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1]">
-            <FileText size={17} aria-hidden="true" />
-            PDF/Text auslesen
-          </button>
           <button type="button" disabled={!canCreate} onClick={saveManualCard} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
             <Database size={17} aria-hidden="true" />
             Originalkarte speichern
@@ -710,33 +942,26 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard }) {
       </div>
 
       {showDocumentMode ? (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+        <div className="grid gap-5 xl:grid-cols-2">
           <div className="grid content-start gap-4">
-            <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-              Dokument
-              <span className="flex min-h-11 items-center gap-2 rounded-xl border border-dashed border-[#cfd6ed] px-3 text-[#66709a]">
-                <FileText size={17} aria-hidden="true" />
-                <input type="file" accept=".txt,.md,.markdown,.pdf,.docx" onChange={handleDocument} />
-              </span>
-            </label>
-            {document ? (
+            {document && !shouldShowPdfViewer ? (
               <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-3 text-sm text-[#66709a]">
                 <p className="font-semibold text-[#17214f]">{document.fileName}</p>
                 <p>{documentStatusMessage(document)}</p>
               </div>
             ) : null}
-            <div
-              className="max-h-[34rem] min-h-96 overflow-auto rounded-xl border border-[#dfe4f5] bg-white p-4 text-sm leading-6 text-[#17214f]"
-              onMouseUp={captureSelection}
-              onKeyUp={captureSelection}
-              tabIndex={0}
-            >
-              {documentText ? <pre className="whitespace-pre-wrap break-words font-sans">{documentText}</pre> : <p className="text-[#66709a]">Keine Textquelle geöffnet.</p>}
-            </div>
-            <button type="button" onClick={captureSelection} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
-              <ClipboardCheck size={16} aria-hidden="true" />
-              Auswahl übernehmen
-            </button>
+            {shouldShowPdfViewer ? (
+              <MinimalPdfDocumentViewer document={document} src={documentObjectUrl} onSelection={applySelection} />
+            ) : (
+              <div
+                className="max-h-[40rem] min-h-[40rem] overflow-auto rounded-xl border border-[#dfe4f5] bg-white p-4 text-sm leading-6 text-[#17214f]"
+                onMouseUp={captureSelection}
+                onKeyUp={captureSelection}
+                tabIndex={0}
+              >
+                {documentText ? <pre className="whitespace-pre-wrap break-words font-sans">{documentText}</pre> : <p className="text-[#66709a]">Keine Textquelle geöffnet.</p>}
+              </div>
+            )}
           </div>
           {editor}
         </div>

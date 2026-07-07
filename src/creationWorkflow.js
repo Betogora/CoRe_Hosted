@@ -2,6 +2,7 @@ import { commitApkgImport, createApkgImportPreview, dryRunApkgImport } from "./a
 import { generateCardsFromDocument } from "./aiOrchestrator.js";
 import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument } from "./coreModel.js";
 import { createAnchorFromSelection, createDocumentFromFile } from "./documentModel.js";
+import { appendPlainTextToCardHtml, hasCardRichTextContent } from "./richText.js";
 import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.js";
 import { storeDeckMedia } from "./mediaStore.js";
 
@@ -18,10 +19,6 @@ function createApkgJob(file, status, overrides = {}) {
     errors: [],
     ...overrides,
   };
-}
-
-function appendWithNewline(current, addition) {
-  return current ? `${current}\n\n${addition}` : addition;
 }
 
 function normalizePasteMode(mode) {
@@ -140,28 +137,28 @@ export function createCreationWorkflow() {
       return createDocumentFromFile(file);
     },
 
-    captureManualSelection({ activeField = "front", front = "", back = "", document = null, documentText = "", selectedText = "" } = {}) {
-      const selection = String(selectedText || documentText.slice(0, 400)).trim();
+    captureManualSelection({ activeField = "front", front = "", back = "", document = null, documentText = "", selectedText = "", sourceAnchorOptions = {} } = {}) {
+      const selection = String(selectedText ?? "").trim();
       if (!selection) return { changed: false, front, back, selection: "" };
-      const sourceAnchor = document ? createAnchorFromSelection({ ...document, text: documentText || document.text }, selection, activeField) : null;
+      const sourceAnchor = document ? createAnchorFromSelection({ ...document, text: documentText || document.text }, selection, activeField, sourceAnchorOptions) : null;
 
       return {
         changed: true,
         selection,
         sourceAnchor,
-        front: activeField === "back" ? front : appendWithNewline(front, selection),
-        back: activeField === "back" ? appendWithNewline(back, selection) : back,
+        front: activeField === "back" ? front : appendPlainTextToCardHtml(front, selection),
+        back: activeField === "back" ? appendPlainTextToCardHtml(back, selection) : back,
       };
     },
 
     canCreateManualCard({ cardType = "basic", front = "", back = "", answerOptions = [], correctAnswer = "" } = {}) {
-      const hasFront = Boolean(String(front).trim());
+      const hasFront = hasCardRichTextContent(front);
       if (cardType === "cloze") return hasFront;
       if (cardType === "image-occlusion") return hasFront;
       if (cardType === "multiple-choice") {
         return hasFront && normalizeAnswerOptions(answerOptions).length >= 2 && Boolean(String(correctAnswer || back).trim());
       }
-      return hasFront && Boolean(String(back).trim());
+      return hasFront && hasCardRichTextContent(back);
     },
 
     createManualDeckInput(input = {}) {

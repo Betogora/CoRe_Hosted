@@ -20,6 +20,46 @@ button {
   word-break: break-word;
 }
 
+.card-html p,
+.rich-text-field p {
+  margin: 0 0 0.65rem;
+}
+
+.card-html p:last-child,
+.rich-text-field p:last-child {
+  margin-bottom: 0;
+}
+
+.card-html ul,
+.rich-text-field ul {
+  margin: 0.45rem 0 0.65rem;
+  padding-left: 1.4rem;
+  list-style: disc;
+}
+
+.card-html ol,
+.rich-text-field ol {
+  margin: 0.45rem 0 0.65rem;
+  padding-left: 1.4rem;
+  list-style: decimal;
+}
+
+.card-html li,
+.rich-text-field li {
+  margin: 0.2rem 0;
+}
+
+.card-html mark,
+.rich-text-field mark {
+  border-radius: 0.2rem;
+  padding: 0.02rem 0.16rem;
+}
+
+.rich-text-field:empty::before {
+  content: attr(aria-label);
+  color: #aab2cf;
+}
+
 .card-html img,
 .card-html video,
 .card-html canvas,
@@ -52,4 +92,20 @@ button {
   max-width: 100%;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.core-pdf-viewer :where([data-embedpdf-theme], [data-color-scheme], [data-epdf]) {
+  font-family: inherit;
+}
+
+.core-pdf-viewer :where([data-embedpdf-theme], [data-color-scheme]) {
+  background: #f8f9fe;
+}
+
+.core-pdf-viewer :where(button, input, select) {
+  font: inherit;
+}
+
+.core-pdf-viewer :where(button) {
+  border-radius: 0.75rem;
 }

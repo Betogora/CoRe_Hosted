@@ -7,13 +7,14 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 ## Aktuell erledigt
 
 - [x] Cleanere lokale Navigation fuer Heute, Erstellen, Lernen, Graph und Community; Kartenstapel ist ueber Lernen erreichbar, Einstellungen ueber den Account-Button.
+- [x] Responsive Full-Width-App-Shell: Hauptnavigation und Lernmodus wachsen mit der Browserbreite statt bei Desktopbreiten fest begrenzt zu bleiben.
 - [x] Persistenter lokaler App-State ueber `src/coreRepository.js`.
 - [x] Deck-/Learning-Item-Modell mit Review-State, Quellenankern, Versionen, Varianten und CoRe-Modus.
 - [x] Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, Import-Varianten und KI-Drafts.
 - [x] Legacy-Card-Normalisierung ohne Verlust bestehender Review-Events.
 - [x] APKG-Basic-Import mit Mapping, echten Unterstapeln, Importbericht, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten, lokalem Browser-Medienspeicher und Reimport-Merge.
 - [x] Text-, CSV- und Excel-/Tabellen-Paste-Import ueber die gemeinsame Learning-Item-Pipeline mit Warnungen fuer uebersprungene Eingaben.
-- [x] Manuelle Kartenanlage mit grossem Editor, bestehendem/neuem Stapelziel, Dokumentmodus, Auswahl-zu-Feld, PDF-/Text-Auslesung, Multiple-Choice/Free-Text-Selbstcheck und Original-Variantenanker.
+- [x] Manuelle Kartenanlage mit Rich-Text-Editor fuer Front/Back, bestehendem/neuem Stapelziel, Dokumentmodus, CoRe-integriertem minimalem visuellem PDF-Viewer, Auswahl-zu-Feld, PDF-/Text-Auslesung, Multiple-Choice/Free-Text-Selbstcheck und Original-Variantenanker.
 - [x] Lokale KI-Drafts aus Quellentext mit Schema-Validation, Draft-Annahme und normalisierter Learning-Item-Erstellung.
 - [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, append-only Review-Events und Learning-Item-/Varianten-Kompatibilitaetsfeldern.
 - [x] Tages-Queue im Lernmodus fuer jetzt faellige/ueberfaellige Karten plus pro Stapel einstellbare neue Karten; Elternstapel lernen ihren Unterbaum.
@@ -82,8 +83,9 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [ ] Supabase Storage/Object-Storage-Strategie fuer APKG-Originale, extrahierte Medien, Dokumente und spaetere CDN-URLs festlegen.
 - [ ] Browser-Importgrenzen definieren: grosse Decks und medienreiche APKGs serverseitig/workerbasiert verarbeiten, Fortschritt und Abbruch anbieten.
 - [x] Erste browserseitige PDF-/Text-Textextraktion als Modul mit Fehlerstatus und formatierter Textanzeige umsetzen.
+- [x] Minimalen visuellen PDF-Viewer im manuellen Dokumentmodus einbinden: PDF-Seiten sichtbar, CoRe-integrierte Viewer-Flaeche, Text markierbar, einfacher Klick ohne Uebernahme.
 - [ ] DOCX-Textextraktion als echtes Modul planen, inklusive Fehlerfaellen.
-- [ ] OCR, Bildregionen und echter PDF-Bildviewer erst nach textbasiertem Dokumentpfad priorisieren.
+- [ ] OCR, Bildregionen und erweiterte PDF-Werkzeuge erst nach textbasiertem Dokumentpfad priorisieren.
 - [ ] Produktive Medienpersistenz fuer APKG-Assets bauen: Server-Ablage, stabile Referenzen, Sync, Export und Loeschregeln.
 - [ ] Medienreferenzen fuer geteilte Decks stabil und datenschutzbewusst modellieren.
 

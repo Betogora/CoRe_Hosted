@@ -286,7 +286,7 @@
 <tr><td>Account, Profil, Datenschutz</td><td><code>SettingsScreen</code>, <code>createCoreRepository().saveProfile()</code></td></tr>
 <tr><td>Decks, Hierarchie, CoRe-Modus</td><td><code>menuModel</code>, <code>DecksScreen</code>, <code>LearnScreen</code>, <code>libraryModel</code>, <code>coreModel.createCoreDeck</code>, <code>deckSettings.coreMode</code>, echte Parent-/Child-Stapel aus APKG-Hierarchien, aufklappbare Lernuebersicht, Learning-Item-Normalisierung</td></tr>
 <tr><td>Import</td><td><code>creationWorkflow</code>, <code>apkgImport</code>, <code>importService</code> fuer APKG/Text/CSV/Excel-Paste, Importberichte, echte Unterstapel, Raw-Fallbacks, <code>collection.anki21b</code>/Zstd, Media-Manifeste, Reimport-Merge</td></tr>
-<tr><td>Manuelle Erstellung</td><td><code>creationWorkflow</code>, <code>ManualCreationPanel</code>, <code>documentModel</code>, <code>sourceAnchors</code>, <code>createBasicLearningItem</code>, <code>createBasicReverseLearningItem</code>, <code>createClozeLearningItem</code></td></tr>
+<tr><td>Manuelle Erstellung</td><td><code>creationWorkflow</code>, <code>ManualCreationPanel</code>, <code>RichTextEditor</code>, <code>richText</code>, <code>documentModel</code>, <code>sourceAnchors</code>, <code>createBasicLearningItem</code>, <code>createBasicReverseLearningItem</code>, <code>createClozeLearningItem</code></td></tr>
 <tr><td>KI-Kartenerstellung</td><td><code>creationWorkflow</code>, <code>aiOrchestrator.generateCardsFromDocument</code>, Draft-Review, Schema-Validation, normalisierte Draft-Items</td></tr>
 <tr><td>Review/Scheduler</td><td><code>reviewService</code>, <code>reviewFlow</code> als Legacy-Fassade, <code>scheduler</code>, <code>reviewShortcuts</code>, Tages-Queue aus jetzt fälligen oder überfälligen Karten plus einstellbaren neuen Karten, vier Buttons mit Intervallvorschau, Tastatur, Front+Back nach Aufdeckung, FSRS-like State, Learning-Item-/Varianten-Events</td></tr>
 <tr><td>Content Repetition</td><td><code>coreVariantService</code>, <code>variantGeneration</code>, <code>variantSelection</code>, Eligibility, Rephrase, Variant-Level, Readiness/Coverage/Generation-Plan, Fallback nach Fehlern, Original-Variantenanker, Variantenstatus, Dedupe-Hash</td></tr>
@@ -302,12 +302,13 @@
 <h3 id="was-lokal-bereits-funktioniert">Was lokal bereits funktioniert</h3>
 <ul>
 <li>Cleanere Navigation fuer Heute, Erstellen, Lernen, Graph und Community; Kartenstapel ist ueber den Lernen-Kopf erreichbar, Einstellungen ueber den Account-Button.</li>
+<li>App-Shell und Lernmodus nutzen die verfuegbare Browserbreite ohne feste Desktop-Maximalbreite; beim Herauszoomen waechst die Oberflaeche mit der Seitenbreite.</li>
 <li>Dashboard mit Tagesmetriken, aktiven Stapeln und GitHub-/Anki-artiger Jahres-Heatmap aus lokalen Review-Events.</li>
 <li>Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare Stapelliste mit Neu-, Faellig- und Gesamtzahlen, CoRe-Status und Stapeloptionen ohne kartenbezogene Maturity-Anzeige.</li>
 <li>Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, importierte Varianten und KI-Drafts; Legacy-Karten werden beim Lesen normalisiert.</li>
 <li>APKG-Basic-Import inklusive Importbericht, echtem Unterstapel-Mapping aus Anki-Hierarchien, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer <code>collection.anki21b</code>/Zstd-Unterstuetzung, Media-Manifesten pro Unterstapel, lokalem Browser-Medienspeicher und Reimport-Merge ohne Verlust lokaler Content-Edits.</li>
 <li>Text-, CSV- und Excel-/Tabellen-Paste-Import als schnelle Front/Back-Erstellung ueber dieselbe Normalisierungsschicht.</li>
-<li>Manuelle Kartenerstellung mit groesserem Editor, bestehendem/neuem Stapelziel, Basic/Reverse/Cloze/Multiple-Choice/Free-Text, Dokumentmodus, PDF-/Text-Auslesung, Quellenankern fuer markierten Text und stabiler Original-Variante.</li>
+<li>Manuelle Kartenerstellung mit Rich-Text-Editor fuer Vorder- und Rueckseite, bestehendem/neuem Stapelziel, Basic/Reverse/Cloze/Multiple-Choice/Free-Text, Dokumentmodus, CoRe-integriertem minimalem visuellem PDF-Viewer, PDF-/Text-Auslesung, Quellenankern fuer markierten Text und stabiler Original-Variante.</li>
 <li>Deterministische KI-Drafts aus Quellentext mit Schema-Validation, Draft-Review und Annahme in die Bibliothek.</li>
 <li>Fullscreen-Review mit Antwortaufdeckung, Tages-Queue fuer ganze Stapel/Unterbaeume, einstellbarem Neue-Karten-Kontingent, vier Ratings mit naechster Intervallanzeige, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP. Bereits bewertete Karten erscheinen erst wieder, wenn ihr gespeichertes <code>dueAt</code> erreicht ist.</li>
 <li>Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker-Minikarte, konservativen Variant-Levels, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.</li>
@@ -321,7 +322,7 @@
 <li>Accounts sind lokal modelliert; es gibt keine echte Registrierung, E-Mail-Verifikation, OAuth-Anbindung oder Session-Infrastruktur.</li>
 <li>KI ist lokal/deterministisch simuliert; es gibt noch keine Provider-Adapter, kein echtes Token-/Kostenlogging und keine produktive Prompt-/Eval-Pipeline.</li>
 <li>Jobs laufen nicht in einer Queue oder Worker-Infrastruktur; die Job-Sicht ist ein lokaler Produkt- und Datenmodell-Prototyp.</li>
-<li>Datei- und Dokumentverarbeitung ist bewusst begrenzt: eine erste browserseitige PDF-/Text-Auslesung ist vorhanden; robuste DOCX-Extraktion, OCR, Bildregionen, echter PDF-Bildviewer, serverseitige APKG-Medienpersistenz und Medienhosting fehlen noch.</li>
+<li>Datei- und Dokumentverarbeitung ist bewusst begrenzt: eine erste browserseitige PDF-/Text-Auslesung und ein minimaler visueller PDF-Viewer sind vorhanden; robuste DOCX-Extraktion, OCR, Bildregionen, erweiterte PDF-Werkzeuge, serverseitige APKG-Medienpersistenz und Medienhosting fehlen noch.</li>
 <li>Community ist lokal und privacy-sicher modelliert, aber ohne echte Mitgliederverwaltung, Berechtigungen, Einladungen oder Moderation.</li>
 <li>Export/Import ist als lokaler JSON-Portabilitaetspfad vorhanden, aber noch kein interoperabler Anki-/Cloud-/Backup-Standard.</li>
 <li>Mobile, PWA-Offline, Push-Benachrichtigungen, Zahlungen, Admin-/Support-Werkzeuge und produktive Observability sind nicht umgesetzt.</li>
@@ -756,8 +757,8 @@
 <p><strong>Felder:</strong></p>
 <ul>
 <li>Deck/Unterdeck.</li>
-<li>Vorderseite.</li>
-<li>Rückseite.</li>
+<li>Vorderseite als Rich-Text-Inhalt mit Fett, Kursiv, Unterstreichung, Listen, Textfarbe und Highlighting.</li>
+<li>Rückseite als Rich-Text-Inhalt mit denselben Basisformatierungen.</li>
 <li>Tags.</li>
 <li>Medienanhänge.</li>
 <li>Notizen/Quelle optional.</li>
@@ -2448,7 +2449,13 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
     And das Feld Vorderseite ist aktiv
     When der Nutzer Text im PDF markiert
     Then fügt CoRe den Text in die Vorderseite ein
-    And speichert einen Quellenanker zur PDF-Seite</code></pre>
+    And speichert einen Quellenanker zur PDF-Seite
+
+  Scenario: Einfacher Klick im Dokument uebernimmt nichts
+    Given der Nutzer hat ein PDF oder eine Textquelle im Dokumentviewer geoeffnet
+    When der Nutzer ohne Textmarkierung in das Dokument klickt
+    Then bleibt die Vorderseite unveraendert
+    And bleibt die Rueckseite unveraendert</code></pre>
 <h2 id="17-5-ki-kartengenerierung">17.5 KI-Kartengenerierung</h2>
 <pre><code class="language-gherkin">Feature: AI Card Generation
   Scenario: Nutzer generiert Karten aus PDF
@@ -2773,7 +2780,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <tr><td><code>src/menuModel.js</code></td><td><code>createMenuModel</code></td><td>Informationsarchitektur und Navigation</td></tr>
 </tbody></table>
 <h3 id="27-2-ui-screens">27.2 UI-Screens</h3>
-<p><code>src/App.jsx</code> ist die App-Shell fuer Workspace-State, Navigation, Study-Routing und Persistenz-Callbacks. Produktnahe UI liegt in <code>src/screens/</code>; geteilte Praesentationsbausteine und Medien-HTML liegen in <code>src/ui/</code>. Die Screen-Map fuer KI-Programmierung wird in <code>src/screens/README.md</code> gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.</p>
+<p><code>src/App.jsx</code> ist die App-Shell fuer Workspace-State, Navigation, Study-Routing und Persistenz-Callbacks. Die Shell nutzt die verfuegbare Browserbreite statt einer festen Desktop-Maximalbreite; <code>StudyMode</code> folgt demselben Full-Width-Verhalten. Produktnahe UI liegt in <code>src/screens/</code>; geteilte Praesentationsbausteine und Medien-HTML liegen in <code>src/ui/</code>. Die Screen-Map fuer KI-Programmierung wird in <code>src/screens/README.md</code> gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.</p>
 <p>Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen, Lernen, Graph und Community. <code>DecksScreen</code> bleibt als View erhalten, wird aber ueber den Kartenstapel-Button im Lernen-Kopf geoeffnet. <code>SettingsScreen</code> bleibt ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad erreichbar. KI-Jobs und Assistent sind aktuell keine eigenen Hauptnavigationspunkte.</p>
 <ul>
 <li><code>src/screens/DashboardScreen.jsx</code>: Tagesmetriken, aktive Stapel und GitHub-/Anki-artige Jahres-Heatmap.</li>
@@ -2823,8 +2830,8 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 </ul>
 <p>Jedes Learning Item besitzt eine unveraenderliche Originalrepraesentation in <code>immutableOriginal</code> und genau eine <code>isOriginal: true</code>-Variante. Abgeleitete Varianten duerfen spaeter nur separat entstehen und nie <code>originalFront</code>, <code>originalBack</code>, <code>originalFields</code>, <code>originalHtml</code>, <code>immutableOriginal</code> oder die Original-Variante ueberschreiben. Antwortseitige Original-Minikarten werden ueber <code>getAnswerSideAnchorMiniCard</code> aus <code>anchorVariantId</code>/<code>parentVariantId</code> abgeleitet.</p>
 <h3 id="27-5-manuelle-erstellung-und-quellenanker">27.5 Manuelle Erstellung und Quellenanker</h3>
-<p>Der Screen <code>Erstellen</code> ist aktuell in drei Hauptbereiche gegliedert: Import, manuelle Kartenerstellung und KI-gestuetzte Kartenerstellung. Im Importbereich werden APKG, Text, CSV und Excel-/Tabellen-Paste als Unterauswahl angeboten. Die manuelle Kartenerstellung unterstuetzt bestehende Stapel oder einen neuen Stapel als Ziel und erzeugt Basic, Reverse, Cloze, Multiple Choice und Free Text ueber die gemeinsame Learning-Item-Creation-Pipeline. Multiple Choice und Free Text werden im Review als selbstbewertete Kartentypen angezeigt; die Scheduler-Bewertung bleibt bei Again/Hard/Good/Easy. Image occlusion bleibt bewusst fuer einen spaeteren separaten Ausbau.</p>
-<p>Der Dokumentmodus in der manuellen Erstellung ist standardmaessig geschlossen und wird ueber „Aus Dokument einfuegen“ geoeffnet. Textdateien koennen direkt im Browser gelesen werden; textbasierte PDFs werden ueber <code>pdfjs-dist</code> seiten- und zeilenweise als kopierbarer Text angezeigt. Markierter Text wird in das aktive Feld uebernommen. DOCX, OCR, Bildregionen und ein echter PDF-Bildviewer gehoeren weiterhin in die spaetere Server-/Worker- bzw. Viewer-Ausbaustufe.</p>
+<p>Der Screen <code>Erstellen</code> ist aktuell in drei Hauptbereiche gegliedert: Import, manuelle Kartenerstellung und KI-gestuetzte Kartenerstellung. Im Importbereich werden APKG, Text, CSV und Excel-/Tabellen-Paste als Unterauswahl angeboten. Die manuelle Kartenerstellung unterstuetzt bestehende Stapel oder einen neuen Stapel als Ziel und erzeugt Basic, Reverse, Cloze, Multiple Choice und Free Text ueber die gemeinsame Learning-Item-Creation-Pipeline. Vorder- und Rueckseite nutzen einen lokalen Rich-Text-Editor fuer Fett, Kursiv, Unterstreichung, Stichpunkte, nummerierte Listen, Textfarbe, Highlighting und Formatierung entfernen; gespeichert wird weiter sanitisiertes Karten-HTML. Multiple Choice und Free Text werden im Review als selbstbewertete Kartentypen angezeigt; die Scheduler-Bewertung bleibt bei Again/Hard/Good/Easy. Image occlusion bleibt bewusst fuer einen spaeteren separaten Ausbau.</p>
+<p>Der Dokumentmodus in der manuellen Erstellung ist standardmaessig geschlossen und wird ueber den oberen Upload-Button „PDF/Text auslesen“ geoeffnet. Textdateien koennen direkt im Browser gelesen werden; PDFs werden minimal visuell in einer CoRe-integrierten Viewer-Flaeche angezeigt, sodass Seitenbilder sichtbar bleiben und Text mit Textlayer markierbar ist. Nur echte Markierungen werden automatisch in das aktive Kartenfeld uebernommen; einfacher Klick auf PDF oder Textquelle fuegt nichts ein. Markierter Quellentext wird als lesbarer Absatz in das aktive Rich-Text-Feld uebernommen. DOCX, OCR, Bildregionen und erweiterte PDF-Werkzeuge gehoeren weiterhin in die spaetere Server-/Worker- bzw. Viewer-Ausbaustufe.</p>
 <p>Markierter Text wird in das aktive Kartenfeld uebernommen und als <code>SourceAnchor</code> gespeichert:</p>
 <ul>
 <li><code>documentId</code></li>

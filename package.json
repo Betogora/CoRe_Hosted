@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@embedpdf/react-pdf-viewer": "^2.14.4",
     "@vitejs/plugin-react": "^5.0.0",
     "fzstd": "^0.1.1",
     "lucide-react": "^0.468.0",

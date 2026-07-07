@@ -147,7 +147,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#eef2fb_100%)] p-4 text-[#17214f] sm:p-8">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col">
+      <div className="flex min-h-[calc(100vh-2rem)] w-full flex-col sm:min-h-[calc(100vh-4rem)]">
         <header className="grid gap-4">
           <div className="flex items-center justify-between gap-4">
             <button type="button" onClick={onExit} className="grid size-11 place-items-center rounded-full bg-white/75 text-[#4f5eb1] shadow-[0_14px_40px_rgba(91,105,154,0.12)]" aria-label="Lernmodus verlassen">
@@ -189,10 +189,10 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
         </header>
 
         <section className="grid flex-1 place-items-center py-8">
-          <div className="flex min-h-[56vh] w-full max-w-3xl flex-col justify-center rounded-[28px] border border-[#dfe4f5] bg-white/86 p-8 shadow-[0_30px_90px_rgba(91,105,154,0.18)] sm:p-14">
+          <div className="flex min-h-[56vh] w-full flex-col justify-center rounded-[28px] border border-[#dfe4f5] bg-white/86 p-8 shadow-[0_30px_90px_rgba(91,105,154,0.18)] sm:p-14">
             {current ? (
               <>
-                <div className="mx-auto w-full max-w-2xl">
+                <div className="w-full">
                   <p className="mb-5 text-sm font-semibold uppercase tracking-[0.18em] text-[#7a84c7]">Frage</p>
                   {current.fallbackInfo?.active ? (
                     <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
