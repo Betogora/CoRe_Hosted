@@ -70,7 +70,7 @@ import { createPortableExport, mergePortableExportIntoState, stringifyPortableEx
 import { answerDeckQuestion } from "./deckAssistant.js";
 import { buildDeckGraph, shouldRefreshDeckGraph } from "./deckGraph.js";
 import { createDocumentFromFile } from "./documentModel.js";
-import { createCsvImportDeck, createTableImportDeck, createTextImportDeck } from "./importService.js";
+import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.js";
 import { createLearningPlan } from "./learningPlan.js";
 import { createAiJobLedger, createDeckLibraryModel } from "./libraryModel.js";
 import { createDeckMediaUrlMap, resolveCardHtmlMedia, storeDeckMedia } from "./mediaStore.js";
@@ -1050,15 +1050,13 @@ function TextCsvImportPanel({ onImported }) {
   const [content, setContent] = React.useState("");
   const [report, setReport] = React.useState(null);
 
-  function importDeck() {
-    const deck =
-      mode === "csv"
-        ? createCsvImportDeck({ deckName, csv: content })
-        : mode === "spreadsheet"
-          ? createTableImportDeck({ deckName, table: content })
-          : createTextImportDeck({ deckName, text: content });
-    setReport(deck.importMeta);
-    onImported(deck);
+  function runImport(dryRun = false) {
+    const result =
+      mode === "text"
+        ? importTextAsNormalizedDeck({ deckName, text: content }, { dryRun })
+        : importCsvAsNormalizedDeck({ deckName, csv: content, sourceType: "csv_import" }, { dryRun });
+    setReport(result.report);
+    if (!dryRun && result.deck) onImported(result.deck);
   }
 
   return (
@@ -1088,16 +1086,33 @@ function TextCsvImportPanel({ onImported }) {
               Excel
             </button>
           </div>
-          <button type="button" disabled={!content.trim()} onClick={importDeck} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
-            <Database size={17} aria-hidden="true" />
-            Importieren
-          </button>
-          {report ? <p className="text-sm text-[#66709a]">{report.detectedCards} Karten erkannt.</p> : null}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={!content.trim()} onClick={() => runImport(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
+              <Database size={17} aria-hidden="true" />
+              Import pruefen
+            </button>
+            <button type="button" disabled={!content.trim() || report?.errors?.length > 0} onClick={() => runImport(false)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+              <Database size={17} aria-hidden="true" />
+              Import uebernehmen
+            </button>
+          </div>
+          {report ? (
+            <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4 text-sm text-[#66709a]">
+              <p className="font-semibold text-[#17214f]">
+                {report.createdLearningItems} Karten · {report.createdVariants} Varianten · {report.duplicates.length} Dubletten
+              </p>
+              {report.warnings.length ? <p className="mt-2">{report.warnings.slice(0, 2).join(" ")}</p> : null}
+              {report.errors.length ? <p className="mt-2 text-red-700">{report.errors.slice(0, 2).join(" ")}</p> : null}
+            </div>
+          ) : null}
         </div>
         <textarea
           className="min-h-72 rounded-xl border border-[#dfe4f5] p-4 text-sm leading-6"
           value={content}
-          onChange={(event) => setContent(event.target.value)}
+          onChange={(event) => {
+            setContent(event.target.value);
+            setReport(null);
+          }}
           placeholder={mode === "text" ? "Front\n---\nBack" : mode === "csv" ? "front,back,tags" : "front\tback\ttags"}
         />
       </div>

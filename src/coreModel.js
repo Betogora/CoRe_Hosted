@@ -18,6 +18,7 @@ export const CORE_DECK_SOURCES = [
   "community",
   "text-import",
   "csv-import",
+  "json-import",
   "spreadsheet-import",
 ];
 
@@ -26,7 +27,7 @@ export const DECK_VISIBILITIES = ["private", "community", "unlisted", "public"];
 export const VARIANT_TRANSFORMS = ["original", "rephrase", "front_back_style_shift", "cloze_conversion"];
 export const VARIANT_STATUSES = ["draft", "active", "rejected", "flagged", "disabled"];
 export const REVIEW_RATINGS = ["again", "hard", "good", "easy"];
-export const LEARNING_ITEM_SOURCE_TYPES = ["manual", "anki_import", "ai_generated", "mixed"];
+export const LEARNING_ITEM_SOURCE_TYPES = ["manual", "text_import", "csv_import", "json_import", "anki_import", "ai_generated", "mixed"];
 export const CARD_VARIANT_TYPES = ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"];
 export const VARIANT_GENERATION_SOURCES = ["original", "ai_generated", "user_edited", "imported"];
 
@@ -431,6 +432,9 @@ function normalizeLearningSourceType(sourceType, legacySource) {
   if (LEARNING_ITEM_SOURCE_TYPES.includes(sourceType)) return sourceType;
   if (legacySource === "anki-apkg") return "anki_import";
   if (legacySource === "ai-assisted") return "ai_generated";
+  if (legacySource === "text-import") return "text_import";
+  if (legacySource === "csv-import" || legacySource === "spreadsheet-import") return "csv_import";
+  if (legacySource === "json-import") return "json_import";
   if (legacySource === "manual") return "manual";
   return "mixed";
 }
@@ -438,6 +442,9 @@ function normalizeLearningSourceType(sourceType, legacySource) {
 function legacySourceFromLearningSourceType(sourceType) {
   if (sourceType === "anki_import") return "anki-apkg";
   if (sourceType === "ai_generated") return "ai-assisted";
+  if (sourceType === "text_import") return "text-import";
+  if (sourceType === "csv_import") return "csv-import";
+  if (sourceType === "json_import") return "json-import";
   return "manual";
 }
 
@@ -1390,8 +1397,10 @@ export function createLearningItemsFromNormalizedInput(deckId, normalizedItems =
             answerOptionsJson: variant.answerOptionsJson ?? null,
             expectedAnswerJson: variant.expectedAnswerJson ?? null,
             meta: {
+              ...(variant.meta ?? {}),
               normalizedInputIndex: index,
               sourceVariantId: variant.id ?? null,
+              sourceVariantExternalId: variant.sourceExternalId ?? null,
             },
           });
         });

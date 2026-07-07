@@ -3,6 +3,12 @@ import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createVer
 import { createCoreRepository } from "./coreRepository.js";
 import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.js";
 import { buildDeckGraph } from "./deckGraph.js";
+import {
+  importCsvAsNormalizedDeck,
+  importJsonAsNormalizedDeck,
+  importNormalizedDeck,
+  importTextAsNormalizedDeck,
+} from "./importService.js";
 
 export function createDemoAnatomyDeck() {
   return createCoreDeck({
@@ -138,6 +144,49 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
     updateAllDecks(updater) {
       const state = repository.getState();
       return state.decks.map((deck) => repository.updateDeck(deck.id, updater)).filter(Boolean);
+    },
+    dryRunNormalizedImport(payload, options = {}) {
+      const state = repository.getState();
+      return importNormalizedDeck(payload, {
+        ...options,
+        dryRun: true,
+        existingDecks: state.decks,
+      });
+    },
+    commitNormalizedImport(payload, options = {}) {
+      const state = repository.getState();
+      const result = importNormalizedDeck(payload, {
+        ...options,
+        dryRun: false,
+        existingDecks: state.decks,
+      });
+      return result.deck ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+    },
+    importTextDeck(input = {}, options = {}) {
+      const state = repository.getState();
+      const payload = typeof input === "string" ? { text: input } : input;
+      const result = importTextAsNormalizedDeck(payload, {
+        ...options,
+        existingDecks: state.decks,
+      });
+      return result.deck && !options.dryRun ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+    },
+    importCsvDeck(input = {}, options = {}) {
+      const state = repository.getState();
+      const payload = typeof input === "string" ? { csv: input } : input;
+      const result = importCsvAsNormalizedDeck(payload, {
+        ...options,
+        existingDecks: state.decks,
+      });
+      return result.deck && !options.dryRun ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+    },
+    importJsonDeck(input = {}, options = {}) {
+      const state = repository.getState();
+      const result = importJsonAsNormalizedDeck(input, {
+        ...options,
+        existingDecks: state.decks,
+      });
+      return result.deck && !options.dryRun ? { ...result, deck: repository.saveDeck(result.deck) } : result;
     },
     ensureDeckGraph(deckId) {
       const deck = repository.getDeck(deckId);
