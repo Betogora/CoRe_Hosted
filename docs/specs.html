@@ -282,35 +282,37 @@
 <table>
 <thead><tr><th>Bereich</th><th>Implementierte lokale Module / Screens</th></tr></thead>
 <tbody>
-<tr><td>Account, Profil, Datenschutz</td><td><code>DashboardScreen</code>, <code>SettingsScreen</code>, <code>createCoreRepository().saveProfile()</code></td></tr>
-<tr><td>Decks, Hierarchie, CoRe-Modus</td><td><code>menuModel</code>, <code>DecksScreen</code>, <code>coreModel.createCoreDeck</code>, <code>deckSettings.coreMode</code>, Learning-Item-Normalisierung</td></tr>
-<tr><td>Import</td><td><code>creationWorkflow</code>, <code>apkgImport</code>, <code>importService</code> fuer APKG/Text/CSV/Excel-Paste, Importberichte, Raw-Fallbacks, <code>collection.anki21b</code>/Zstd, Media-Manifeste, Reimport-Merge</td></tr>
+<tr><td>Dashboard und Lernaktivitaet</td><td><code>DashboardScreen</code>, <code>libraryModel.createStudyHeatmapModel</code>, Tagesmetriken, aktive Stapel, Lern-Heatmap</td></tr>
+<tr><td>Account, Profil, Datenschutz</td><td><code>SettingsScreen</code>, <code>createCoreRepository().saveProfile()</code></td></tr>
+<tr><td>Decks, Hierarchie, CoRe-Modus</td><td><code>menuModel</code>, <code>DecksScreen</code>, <code>libraryModel</code>, <code>coreModel.createCoreDeck</code>, <code>deckSettings.coreMode</code>, echte Parent-/Child-Stapel aus APKG-Hierarchien, Learning-Item-Normalisierung</td></tr>
+<tr><td>Import</td><td><code>creationWorkflow</code>, <code>apkgImport</code>, <code>importService</code> fuer APKG/Text/CSV/Excel-Paste, Importberichte, echte Unterstapel, Raw-Fallbacks, <code>collection.anki21b</code>/Zstd, Media-Manifeste, Reimport-Merge</td></tr>
 <tr><td>Manuelle Erstellung</td><td><code>creationWorkflow</code>, <code>ManualCreationPanel</code>, <code>documentModel</code>, <code>sourceAnchors</code>, <code>createBasicLearningItem</code>, <code>createBasicReverseLearningItem</code>, <code>createClozeLearningItem</code></td></tr>
 <tr><td>KI-Kartenerstellung</td><td><code>creationWorkflow</code>, <code>aiOrchestrator.generateCardsFromDocument</code>, Draft-Review, Schema-Validation, normalisierte Draft-Items</td></tr>
-<tr><td>Review/Scheduler</td><td><code>reviewService</code>, <code>reviewFlow</code> als Legacy-Fassade, <code>scheduler</code>, <code>reviewShortcuts</code>, vier Buttons, Tastatur, Front+Back nach Aufdeckung, FSRS-like State, Learning-Item-/Varianten-Events</td></tr>
+<tr><td>Review/Scheduler</td><td><code>reviewService</code>, <code>reviewFlow</code> als Legacy-Fassade, <code>scheduler</code>, <code>reviewShortcuts</code>, Tages-Queue aus jetzt fälligen oder überfälligen Karten plus einstellbaren neuen Karten, vier Buttons mit Intervallvorschau, Tastatur, Front+Back nach Aufdeckung, FSRS-like State, Learning-Item-/Varianten-Events</td></tr>
 <tr><td>Content Repetition</td><td><code>coreVariantService</code>, <code>variantGeneration</code>, <code>variantSelection</code>, Eligibility, Rephrase, Variant-Level, Readiness/Coverage/Generation-Plan, Fallback nach Fehlern, Original-Variantenanker, Variantenstatus, Dedupe-Hash</td></tr>
 <tr><td>Trust/Versionierung</td><td><code>sourceAnchors</code>, <code>versionLog</code>, Variant-Feedback, Deaktivieren, Restore-Basis</td></tr>
 <tr><td>Community</td><td><code>communityModel</code>, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten</td></tr>
 <tr><td>Deck Graph</td><td><code>deckGraph</code>, Triggerlogik und SVG-Mindmap-Screen</td></tr>
-<tr><td>KI-Orchestrierung</td><td>lokale Jobs, Modellrouter-Slots, strukturierte Outputs, Job-Screen</td></tr>
-<tr><td>Chat-your-Deck</td><td><code>deckAssistant.answerDeckQuestion</code>, Assistent-Screen, belegte Karten-Zitate, Halluzinationsbremse</td></tr>
+<tr><td>KI-Orchestrierung</td><td>lokale Jobs, Modellrouter-Slots, strukturierte Outputs; aktuell kein eigener Hauptmenuepunkt</td></tr>
+<tr><td>Chat-your-Deck</td><td><code>deckAssistant.answerDeckQuestion</code>, belegte Karten-Zitate, Halluzinationsbremse; aktuell kein eigener Hauptmenuepunkt</td></tr>
 <tr><td>Lernplan</td><td><code>learningPlan.createLearningPlan</code>, Zieltermin, Tagesminuten, neue Karten, Varianten-Tage</td></tr>
 <tr><td>Lokale Auth</td><td><code>authModel</code>, lokaler Account, Anmelden/Abmelden, OAuth-Platzhalter</td></tr>
 <tr><td>Datenportabilitaet</td><td><code>dataPortability</code>, JSON-Export/-Import ohne Passwort-Verifier</td></tr>
 </tbody></table>
 <h3 id="was-lokal-bereits-funktioniert">Was lokal bereits funktioniert</h3>
 <ul>
-<li>Navigation, Dashboard, Profil-Onboarding, Datenschutzeinstellungen und globale CoRe-Voreinstellungen.</li>
-<li>Deck-Verwaltung mit Suche/Filter, Hierarchie-Metadaten, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen.</li>
+<li>Cleanere Navigation fuer Heute, Erstellen, Lernen, Graph und Community; Kartenstapel ist ueber den Lernen-Kopf erreichbar, Einstellungen ueber den Account-Button.</li>
+<li>Dashboard mit Tagesmetriken, aktiven Stapeln und Lern-Heatmap aus lokalen Review-Events.</li>
+<li>Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen.</li>
 <li>Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, importierte Varianten und KI-Drafts; Legacy-Karten werden beim Lesen normalisiert.</li>
-<li>APKG-Basic-Import inklusive Importbericht, Deck-Mapping, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer <code>collection.anki21b</code>/Zstd-Unterstuetzung, Media-Manifesten, lokalem Browser-Medienspeicher und Reimport-Merge ohne Verlust lokaler Content-Edits.</li>
+<li>APKG-Basic-Import inklusive Importbericht, echtem Unterstapel-Mapping aus Anki-Hierarchien, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer <code>collection.anki21b</code>/Zstd-Unterstuetzung, Media-Manifesten pro Unterstapel, lokalem Browser-Medienspeicher und Reimport-Merge ohne Verlust lokaler Content-Edits.</li>
 <li>Text-, CSV- und Excel-/Tabellen-Paste-Import als schnelle Front/Back-Erstellung ueber dieselbe Normalisierungsschicht.</li>
 <li>Manuelle Kartenerstellung mit Dokumentkontext, Quellenankern fuer markierten Text und stabiler Original-Variante.</li>
 <li>Deterministische KI-Drafts aus Quellentext mit Schema-Validation, Draft-Review und Annahme in die Bibliothek.</li>
-<li>Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP.</li>
+<li>Fullscreen-Review mit Antwortaufdeckung, Tages-Queue fuer ganze Stapel/Unterbaeume, einstellbarem Neue-Karten-Kontingent, vier Ratings mit naechster Intervallanzeige, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP. Bereits bewertete Karten erscheinen erst wieder, wenn ihr gespeichertes <code>dueAt</code> erreicht ist.</li>
 <li>Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker-Minikarte, konservativen Variant-Levels, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.</li>
 <li>Kleine lokale Community-Logik mit Ordnern und Deck-Kopien ohne fremde Reviewdaten.</li>
-<li>Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten, Lernplan-Generator, AI-Job-Uebersicht und JSON-Datenportabilitaet.</li>
+<li>Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten, Lernplan-Generator, AI-Job-Datenmodell und JSON-Datenportabilitaet.</li>
 </ul>
 <h3 id="was-erwartungsgemaess-noch-nicht-funktioniert">Was erwartungsgemaess noch nicht funktioniert</h3>
 <ul>
@@ -504,14 +506,7 @@
 <ul>
 <li>Tagesübersicht: fällige Karten, neue Karten, optionale Lernzeit.</li>
 <li>Startpunkt für Review-Sessions.</li>
-</ul>
-<ol>
-<li><strong>Kartenstapel</strong></li>
-</ol>
-<ul>
-<li>Deck- und Unterdeck-Übersicht.</li>
-<li>Pro Stapel: Lernfortschritt, fällige Karten, CoRe-Modus.</li>
-<li>Aktionen: Import, manuell erstellen, KI-erstellen, Graph, Teilen.</li>
+<li>Lern-Heatmap für gelernte Karten pro Tag.</li>
 </ul>
 <ol>
 <li><strong>Review / Lernen</strong></li>
@@ -520,6 +515,7 @@
 <li>Fullscreen oder nahezu Fullscreen.</li>
 <li>Ablenkungsarm, klare Typografie.</li>
 <li>Antwort aufdecken, vier Review-Buttons.</li>
+<li>Einstieg in Kartenstapel-Verwaltung und neue Karten über Header-Aktionen statt über eigene Hauptmenüpunkte.</li>
 </ul>
 <ol>
 <li><strong>Erstellen</strong></li>
@@ -530,14 +526,6 @@
 <li>KI-Kartengenerierung.</li>
 </ul>
 <ol>
-<li><strong>Communitys</strong></li>
-</ol>
-<ul>
-<li>Kleine Gruppen.</li>
-<li>Ordnerstruktur.</li>
-<li>Stapel ansehen, übernehmen, kopieren oder verlinken.</li>
-</ul>
-<ol>
 <li><strong>Graph / Mindmap</strong></li>
 </ol>
 <ul>
@@ -546,11 +534,12 @@
 <li>Regenerierung durch Trigger oder manuellen Button.</li>
 </ul>
 <ol>
-<li><strong>KI / Assistent</strong></li>
+<li><strong>Communitys</strong></li>
 </ol>
 <ul>
-<li>Später: Chat-your-Deck, Lernplan, Erklärungen.</li>
-<li>Zunächst: KI-Jobs sichtbar machen und kontrollieren.</li>
+<li>Kleine Gruppen.</li>
+<li>Ordnerstruktur.</li>
+<li>Stapel ansehen, übernehmen, kopieren oder verlinken.</li>
 </ul>
 <ol>
 <li><strong>Einstellungen</strong></li>
@@ -702,7 +691,7 @@
 <hr>
 <h2 id="8-3-import">8.3 Import</h2>
 <h3 id="fr-import-001-importwege">FR-IMPORT-001 — Importwege</h3>
-<p>Im Menübereich <strong>Kartenstapel</strong> MUSS es drei Wege geben, neue Karten hinzuzufügen:</p>
+<p>In der <strong>Kartenstapel</strong>-Ansicht MUSS es drei Wege geben, neue Karten hinzuzufügen:</p>
 <p>A. <strong>Import</strong> — primär APKG/Anki, später Text/CSV/Excel. B. <strong>Manuelle/analoge Kartenerstellung</strong> — inklusive Dokumentviewer. C. <strong>KI-gestützte Kartenerstellung</strong> — aus Datei oder Textquelle.</p>
 <h3 id="fr-import-002-apkg-import-mvp">FR-IMPORT-002 — APKG-Import MVP</h3>
 <p>Der MVP MUSS APKG-Dateien importieren können, mindestens für:</p>
@@ -1712,6 +1701,11 @@ export interface Deck {
 
 export interface DeckSettings {
   coreMode: CoreMode;
+  newCardsPerDay: number;
+  newCardsTodayOverride?: {
+    date: string;
+    limit: number;
+  } | null;
   variantThresholdXp: number;
   maxActiveVariantsPerCard: number;
   schedulerProfile: SchedulerProfile;
@@ -2754,8 +2748,8 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <tr><td><code>src/coreWorkspace.js</code></td><td><code>createCoreWorkspace</code>, <code>createDemoAnatomyDeck</code>, <code>setDeckCoreMode</code>, <code>saveDeckCardContent</code>, <code>deleteDeckCard</code></td><td>Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates</td></tr>
 <tr><td><code>src/creationWorkflow.js</code></td><td><code>createCreationWorkflow</code></td><td>In-process Creation-Kommandos fuer APKG-Preview/Commit, Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme; haelt Import-/Medien-/KI-Orchestrierung aus React heraus</td></tr>
 <tr><td><code>src/scheduler.js</code></td><td><code>scheduleWithFsrsLikeModel</code>, <code>calculateRetrievability</code>, <code>getSchedulerStateForItem</code>, <code>applyReviewRating</code>, <code>listReviewableCards</code>, <code>summarizeDeckReview</code></td><td>FSRS-like Vier-Button-Scheduler, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung</td></tr>
-<tr><td><code>src/libraryModel.js</code></td><td><code>createDeckLibraryModel</code>, <code>createAiJobLedger</code></td><td>UI-nahe Bibliotheksprojektion fuer Dashboard, Deckliste, aktive Kartenzeilen und KI-Job-Ledger</td></tr>
-<tr><td><code>src/reviewService.js</code></td><td><code>answerVariant</code>, <code>getNextReviewItem</code>, <code>createReviewSession</code>, <code>recordReviewRating</code>, <code>recordVariantFeedback</code></td><td>Tiefer Review-Flow fuer Antwortverarbeitung, FSRS-State, Fallback nach Fehlern, Eventbau, Familien-/Variantenstatus, Session-Projektion und Feedback-Kommandos</td></tr>
+<tr><td><code>src/libraryModel.js</code></td><td><code>createDeckLibraryModel</code>, <code>createAiJobLedger</code></td><td>UI-nahe Bibliotheksprojektion fuer Dashboard, baumartige Deckliste, Unterstapel-Aggregate, aktive Kartenzeilen und KI-Job-Ledger</td></tr>
+<tr><td><code>src/reviewService.js</code></td><td><code>answerVariant</code>, <code>getNextReviewItem</code>, <code>createDailyReviewQueue</code>, <code>getEffectiveNewCardsPerDay</code>, <code>countNewCardsIntroducedToday</code>, <code>createReviewSession</code>, <code>recordReviewRating</code>, <code>recordVariantFeedback</code></td><td>Tiefer Review-Flow fuer Antwortverarbeitung, Tages-Queue aus <code>dueAt &lt;= now</code> plus Neue-Karten-Kontingent, FSRS-State, Fallback nach Fehlern, Eventbau, Familien-/Variantenstatus, Session-Projektion und Feedback-Kommandos</td></tr>
 <tr><td><code>src/reviewFlow.js</code></td><td><code>answerVariant</code>, <code>getNextReviewItem</code></td><td>Legacy-Fassade fuer bestehende Imports; Implementierung lebt in <code>src/reviewService.js</code></td></tr>
 <tr><td><code>src/coreVariantService.js</code></td><td><code>classifyCardEligibility</code>, <code>createVariantReviewModel</code>, <code>getLearningItemMaturity</code>, <code>getVariantReadiness</code>, <code>getVariantCoverage</code>, <code>getVariantGenerationRecommendation</code>, <code>getVariantGenerationPlan</code>, <code>getVariantFallbackTarget</code>, <code>ensureVariantsForCard</code>, <code>chooseReviewCard</code>, <code>deactivateVariant</code>, <code>flagVariant</code></td><td>CoRe-Eligibility, Reifegrad-/Readiness-Projektion, Coverage, Generation-Plan, Fallback-Ziele, lokaler Fallback-Rephrase und Varianten-Feedback</td></tr>
 <tr><td><code>src/variantGeneration.js</code></td><td><code>buildCardVariationPrompt</code>, <code>parseVariantGenerationResponse</code>, <code>validateVariantSuggestion</code>, <code>generateRephrasedVariantsForLearningItem</code></td><td>Promptbau, JSON-Parsing, Vorschlagsvalidierung und verankerte KI-Varianten-Erstellung</td></tr>
@@ -2763,8 +2757,8 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <tr><td><code>src/reviewShortcuts.js</code></td><td><code>resolveReviewShortcut</code></td><td>Tastaturvertrag fuer Reveal, Bewertung und Exit im Review</td></tr>
 <tr><td><code>src/aiOrchestrator.js</code></td><td><code>generateCardsFromDocument</code>, <code>selectModel</code>, <code>validateCardGenerationOutput</code></td><td>Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts</td></tr>
 <tr><td><code>src/documentModel.js</code></td><td><code>createDocumentFromFile</code>, <code>createAnchorFromSelection</code>, <code>splitDocumentIntoPassages</code></td><td>Dokumente, Textlayer, Auswahl-zu-Quelle</td></tr>
-<tr><td><code>src/importService.js</code></td><td><code>createTextImportDeck</code>, <code>createCsvImportDeck</code>, <code>createTableImportDeck</code></td><td>Text-/CSV-/Excel-Paste-Import ueber die Learning-Item-Creation-Pipeline</td></tr>
-<tr><td><code>src/apkgImport.js</code></td><td><code>createApkgImportPreview</code>, <code>findReadableCollectionDatabase</code>, <code>parseAnkiMedia</code>, <code>mapAnkiToCoreDeck</code>, <code>mergeImportedDeck</code>, <code>commitImport</code></td><td>APKG-Import, <code>collection.anki21b</code>/Zstd, Media-Manifeste, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten</td></tr>
+<tr><td><code>src/importService.js</code></td><td><code>createTextImportDeck</code>, <code>createCsvImportDeck</code>, <code>createTableImportDeck</code>, <code>importNormalizedDeck</code></td><td>Text-/CSV-/Excel-Paste-Import und normalisierte Deck-Erstellung mit Parent-/Hierarchy-Feldern ueber die Learning-Item-Creation-Pipeline</td></tr>
+<tr><td><code>src/apkgImport.js</code></td><td><code>createApkgImportPreview</code>, <code>findReadableCollectionDatabase</code>, <code>parseAnkiMedia</code>, <code>mapAnkiToCoreDeck</code>, <code>commitApkgImport</code>, <code>mergeImportedDeck</code>, <code>commitImport</code></td><td>APKG-Import, <code>collection.anki21b</code>/Zstd, Media-Manifeste, echte Anki-Unterstapel, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten</td></tr>
 <tr><td><code>src/sqliteReader.js</code> / <code>src/zipReader.js</code></td><td><code>readSqliteDatabase</code>, <code>readZipArchive</code></td><td>Lokales Lesen der APKG-Container und minimaler SQLite-Tabellen</td></tr>
 <tr><td><code>src/mediaStore.js</code></td><td><code>storeDeckMedia</code>, <code>createDeckMediaUrlMap</code>, <code>resolveCardHtmlMedia</code></td><td>Lokaler APKG-Medienspeicher ueber IndexedDB/Session-Fallback und sichere HTML-Medien-URL-Aufloesung</td></tr>
 <tr><td><code>src/communityModel.js</code></td><td><code>createCommunity</code>, <code>shareDeckToCommunity</code>, <code>copySharedDeckToLibrary</code></td><td>Kleine Gruppen, Ordner, Deck-Kopien ohne Lernmetriken</td></tr>
@@ -2777,16 +2771,16 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 </tbody></table>
 <h3 id="27-2-ui-screens">27.2 UI-Screens</h3>
 <p><code>src/App.jsx</code> ist die App-Shell fuer Workspace-State, Navigation, Study-Routing und Persistenz-Callbacks. Produktnahe UI liegt in <code>src/screens/</code>; geteilte Praesentationsbausteine und Medien-HTML liegen in <code>src/ui/</code>. Die Screen-Map fuer KI-Programmierung wird in <code>src/screens/README.md</code> gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.</p>
-<p>Die sichtbare Sidebar zeigt die primaeren Produktbereiche. <code>SettingsScreen</code> bleibt als View erhalten, wird aber ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad aufgerufen statt als separater Hauptnavigationspunkt.</p>
+<p>Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen, Lernen, Graph und Community. <code>DecksScreen</code> bleibt als View erhalten, wird aber ueber den Kartenstapel-Button im Lernen-Kopf geoeffnet. <code>SettingsScreen</code> bleibt ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad erreichbar. KI-Jobs und Assistent sind aktuell keine eigenen Hauptnavigationspunkte.</p>
 <ul>
-<li><code>src/screens/DashboardScreen.jsx</code>: Profil-Onboarding, Tagesmetriken, Schnellzugriff.</li>
+<li><code>src/screens/DashboardScreen.jsx</code>: Tagesmetriken, aktive Stapel und Lern-Heatmap.</li>
 <li><code>src/screens/DecksScreen.jsx</code>: Deck-Hierarchie, Suche/Filter, CoRe-Modus, Karten-CRUD, Aktionen.</li>
 <li><code>src/screens/CreationScreen.jsx</code>: APKG, Text/CSV/Excel-Paste, manuell mit Dokumentanker, KI-Drafts.</li>
-<li><code>src/screens/StudyMode.jsx</code>: Clean Fullscreen Review, Front+Back nach Aufdeckung, vier Buttons, Tastatursteuerung, Originalanker, Variantenfeedback.</li>
+<li><code>src/screens/StudyMode.jsx</code>: Clean Fullscreen Review, Tages-Queue fuer jetzt faellige Karten plus neue Karten, Neue-Karten-Tageslimit, Front+Back nach Aufdeckung, vier Buttons mit Intervallvorschau, Tastatursteuerung, Originalanker, Variantenfeedback.</li>
 <li><code>src/screens/GraphScreen.jsx</code>: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.</li>
 <li><code>src/screens/CommunityScreen.jsx</code>: Community erstellen, Deck teilen, Deck kopieren.</li>
-<li><code>src/screens/AiJobsScreen.jsx</code>: lokale Job-Historie und Status.</li>
-<li><code>src/screens/AssistantScreen.jsx</code>: Chat-your-Deck und Lernplan.</li>
+<li><code>src/screens/AiJobsScreen.jsx</code>: lokale Job-Historie und Status; derzeit nicht als eigener Hauptreiter verlinkt.</li>
+<li><code>src/screens/AssistantScreen.jsx</code>: Chat-your-Deck und Lernplan; derzeit nicht als eigener Hauptreiter verlinkt.</li>
 <li><code>src/screens/SettingsScreen.jsx</code>: Profil, lokale Account-Sitzung, Hochschule, Sprache, Datenschutz, globaler CoRe-Modus, Datenportabilitaet.</li>
 </ul>
 <h3 id="27-3-testoberflaeche">27.3 Testoberflaeche</h3>
@@ -2849,7 +2843,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <li>Media-Manifeste mit Assets, fehlenden Assets, SHA-1, Groesse und MIME-Typ; die Importvorschau kann extrahierte Media-Dateien mit Bytes halten.</li>
 <li>Lokaler Browser-Medienspeicher ueber <code>src/mediaStore.js</code>: IndexedDB als persistenter Pfad, Session-Map als Fallback, Objekt-URLs fuer Review/Preview/Deck-Editor.</li>
 <li>Sichere HTML-Medienauflösung ueber <code>resolveCardHtmlMedia</code> nach vorheriger Sanitization.</li>
-<li>Erhalt von Deck-/Unterdeck-Hierarchien ueber <code>importMeta.deckHierarchy</code>.</li>
+<li>Erhalt von Deck-/Unterdeck-Hierarchien als sichtbare lokale Parent-/Child-Decks mit <code>parentDeckId</code>, <code>hierarchyPath</code>, gemeinsamem <code>importGroupId</code> und weiterhin gesichertem <code>importMeta.deckHierarchy</code>.</li>
 <li>Raw-Fallback fuer unbekannte oder nicht voll verstandene Note Types.</li>
 <li>Uebernahme von Anki-Scheduler-Rohdaten in <code>reviewState.sourceSchedulerData</code>, ohne die Karte direkt als gelernt zu markieren.</li>
 <li>Mapping in <code>CoreDeck</code> und Learning Items (<code>deck.cards[]</code> als lokale Compatibility Collection).</li>

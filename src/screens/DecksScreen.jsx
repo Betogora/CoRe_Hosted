@@ -334,12 +334,13 @@ export function DecksScreen({ decks, onSetDeckCoreMode, onSaveCard, onDeleteCard
             const isSelected = selectedRow?.id === row.id;
             return (
               <SoftPanel key={row.id} className={`p-4 sm:p-5 ${isSelected ? "ring-2 ring-[#8c96dc]" : ""}`}>
-                <div className="flex min-w-0 flex-wrap items-center gap-4">
+                <div className="flex min-w-0 flex-wrap items-center gap-4" style={{ paddingLeft: `${Math.min(row.depth, 4) * 1.1}rem` }}>
                   <button type="button" onClick={() => setSelectedDeckId(deck.id)} className="flex min-w-0 flex-[1_1_14rem] items-center gap-4 text-left">
                     <OrbIcon icon={Layers} className="bg-[#eef1fb] text-[#6672bf]" />
                     <span className="min-w-0">
                       <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
                       <span className="block truncate text-sm text-[#66709a]">{row.path}</span>
+                      {row.hasChildren ? <span className="mt-1 block text-xs font-semibold text-[#66709a]">{row.childrenCount} Unterstapel</span> : null}
                     </span>
                   </button>
                   <CoreModeControl value={deck.deckSettings.coreMode} onChange={(mode) => updateCoreMode(deck, mode)} />

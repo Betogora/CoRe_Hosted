@@ -1,4 +1,4 @@
-import { createCoreCard, createCoreDeck, createReviewState } from "./coreModel.js";
+import { createCoreCard, createCoreDeck, createReviewState, stableContentHash } from "./coreModel.js";
 import { stripHtml } from "./htmlSafety.js";
 import { importNormalizedDeck } from "./importService.js";
 import { readSqliteDatabase } from "./sqliteReader.js";
@@ -238,6 +238,131 @@ function buildDeckHierarchy(decks) {
   }
 
   return [...nodeByPath.values()];
+}
+
+function splitDeckPath(value) {
+  return String(value ?? "Anki Deck")
+    .split("::")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function hierarchyExternalId(node) {
+  return String(node.id ?? "").startsWith("virtual_") ? `anki-deck-path-${node.path}` : `anki-deck-${String(node.id)}`;
+}
+
+function hierarchyDeckId({ fileName, sourceExternalId, path }) {
+  return stableContentHash({ fileName, sourceExternalId, path }, "deck");
+}
+
+function createImportGroupId(normalizedDeck = {}) {
+  const metadata = normalizedDeck.metadataJson ?? {};
+  return stableContentHash(
+    {
+      fileName: metadata.fileName ?? null,
+      fileSize: metadata.fileSize ?? null,
+      sourceExternalId: normalizedDeck.sourceExternalId ?? null,
+      detectedDeckIds: metadata.detectedDeckIds ?? [],
+    },
+    "apkg_import",
+  );
+}
+
+function splitNormalizedApkgDeckByHierarchy(normalizedDeck = {}) {
+  const metadata = normalizedDeck.metadataJson ?? {};
+  const hierarchy = Array.isArray(metadata.deckHierarchy) ? metadata.deckHierarchy : [];
+  const importGroupId = createImportGroupId(normalizedDeck);
+  const fileName = metadata.fileName ?? normalizedDeck.title ?? "Anki APKG";
+
+  if (hierarchy.length === 0) {
+    const sourceExternalId = normalizedDeck.sourceExternalId ?? `anki-deck-path-${normalizedDeck.title ?? "Anki Deck"}`;
+    const id = normalizedDeck.id ?? hierarchyDeckId({ fileName, sourceExternalId, path: normalizedDeck.title });
+    return {
+      importGroupId,
+      rootDeckIds: [id],
+      normalizedDecks: [
+        {
+          ...normalizedDeck,
+          id,
+          originalDeckId: sourceExternalId,
+          hierarchyPath: normalizedDeck.hierarchyPath ?? splitDeckPath(normalizedDeck.title),
+          metadataJson: {
+            ...metadata,
+            importGroupId,
+            hierarchyMode: "single_deck",
+          },
+        },
+      ],
+    };
+  }
+
+  const nodeByPath = new Map(hierarchy.map((node) => [node.path, node]));
+  const idByPath = new Map();
+  const itemsByPath = new Map();
+
+  for (const item of normalizedDeck.items ?? []) {
+    const itemMetadata = item.metadataJson ?? {};
+    const ankiDeckName = itemMetadata.ankiDeckNames?.[0] ?? metadata.detectedDecks?.find((deck) => String(deck.id) === String(itemMetadata.ankiDeckId))?.name ?? normalizedDeck.title;
+    const path = splitDeckPath(ankiDeckName).join("::") || normalizedDeck.title;
+    itemsByPath.set(path, [...(itemsByPath.get(path) ?? []), item]);
+  }
+
+  for (const node of hierarchy) {
+    const sourceExternalId = hierarchyExternalId(node);
+    idByPath.set(node.path, hierarchyDeckId({ fileName, sourceExternalId, path: node.path }));
+  }
+
+  for (const path of itemsByPath.keys()) {
+    if (nodeByPath.has(path)) continue;
+    const parts = splitDeckPath(path);
+    const parentPath = parts.slice(0, -1).join("::") || null;
+    const node = {
+      id: `virtual_${path}`,
+      name: parts.at(-1) ?? path,
+      path,
+      parentPath,
+      depth: Math.max(0, parts.length - 1),
+    };
+    nodeByPath.set(path, node);
+    idByPath.set(path, hierarchyDeckId({ fileName, sourceExternalId: hierarchyExternalId(node), path }));
+  }
+
+  const nodes = [...nodeByPath.values()].sort((left, right) => Number(left.depth ?? 0) - Number(right.depth ?? 0) || String(left.path).localeCompare(String(right.path)));
+  const normalizedDecks = nodes.map((node) => {
+    const sourceExternalId = hierarchyExternalId(node);
+    const hierarchyPath = splitDeckPath(node.path);
+    const directItems = itemsByPath.get(node.path) ?? [];
+    const isContainerDeck = directItems.length === 0;
+
+    return {
+      ...normalizedDeck,
+      id: idByPath.get(node.path),
+      title: node.name,
+      sourceExternalId,
+      originalDeckId: sourceExternalId,
+      parentDeckId: node.parentPath ? idByPath.get(node.parentPath) ?? null : null,
+      hierarchyPath,
+      items: directItems,
+      tags: unique(directItems.flatMap((item) => item.tags ?? [])),
+      metadataJson: {
+        ...metadata,
+        importGroupId,
+        hierarchyMode: "anki_subdecks",
+        ankiDeckPath: node.path,
+        ankiDeckDepth: node.depth ?? Math.max(0, hierarchyPath.length - 1),
+        ankiParentPath: node.parentPath ?? null,
+        isContainerDeck,
+        detectedCards: directItems.reduce((sum, item) => sum + Math.max(1, item.variants?.length ?? 1), 0),
+        importedScheduling: false,
+      },
+    };
+  });
+
+  return {
+    importGroupId,
+    rootDeckIds: normalizedDecks.filter((deck) => !deck.parentDeckId).map((deck) => deck.id),
+    normalizedDecks,
+  };
 }
 
 function extractMediaRefs(html) {
@@ -1056,7 +1181,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
   }
 
   if (decks.length > 1) {
-    warnings.push("Mehrere Anki-Decks wurden erkannt; dieser lokale Import erzeugt einen CoRe-Stapel und bewahrt Deck-Zuordnungen in metadataJson.");
+    warnings.push("Mehrere Anki-Decks wurden erkannt; CoRe legt daraus sichtbare Stapel und Unterstapel an.");
   }
 
   if (hasCloze) {
@@ -1252,6 +1377,72 @@ function attachApkgReportDetails(result, parsed, parsedWarnings = [], parsedErro
   return result;
 }
 
+function mergeImportReports(results = []) {
+  const report = results[0]?.report
+    ? { ...results[0].report }
+    : {
+        dryRun: false,
+        createdDecks: 0,
+        createdLearningItems: 0,
+        createdCards: 0,
+        createdVariants: 0,
+        skipped: [],
+        duplicates: [],
+        warnings: [],
+        errors: [],
+        summary: {},
+      };
+
+  report.createdDecks = results.reduce((sum, result) => sum + Number(result.report?.createdDecks ?? 0), 0);
+  report.createdLearningItems = results.reduce((sum, result) => sum + Number(result.report?.createdLearningItems ?? 0), 0);
+  report.createdCards = report.createdLearningItems;
+  report.createdVariants = results.reduce((sum, result) => sum + Number(result.report?.createdVariants ?? 0), 0);
+  report.skipped = results.flatMap((result) => result.report?.skipped ?? []);
+  report.duplicates = results.flatMap((result) => result.report?.duplicates ?? []);
+  report.warnings = unique(results.flatMap((result) => result.report?.warnings ?? []));
+  report.errors = unique(results.flatMap((result) => result.report?.errors ?? []));
+  report.summary = {
+    ...(report.summary ?? {}),
+    wouldCreateDecks: report.createdDecks,
+    wouldCreateLearningItems: report.createdLearningItems,
+    wouldCreateCards: report.createdCards,
+    wouldCreateVariants: report.createdVariants,
+    skipped: report.skipped.length,
+    duplicates: report.duplicates.length,
+    warnings: report.warnings.length,
+    errors: report.errors.length,
+  };
+
+  return report;
+}
+
+function commitNormalizedApkgHierarchy(normalizedDeck, options = {}) {
+  const hierarchy = splitNormalizedApkgDeckByHierarchy(normalizedDeck);
+  const results = hierarchy.normalizedDecks.map((subDeck) =>
+    importNormalizedDeck(subDeck, {
+      ...options,
+      dryRun: false,
+      importScheduling: false,
+    }),
+  );
+  const decks = results
+    .map((result) => result.deck)
+    .filter(Boolean)
+    .map((createdDeck) => mergeImportedDeck(createdDeck, options.existingDecks ?? []));
+  const rootOrder = new Map(hierarchy.normalizedDecks.map((deck, index) => [deck.id, index]));
+  decks.sort((left, right) => (rootOrder.get(left.id) ?? 0) - (rootOrder.get(right.id) ?? 0));
+
+  return {
+    deck: decks[0] ?? null,
+    decks,
+    rootDeckIds: hierarchy.rootDeckIds,
+    importGroupId: hierarchy.importGroupId,
+    normalizedDeck,
+    normalizedDecks: hierarchy.normalizedDecks,
+    report: mergeImportReports(results),
+  };
+}
+
 export async function parseApkgToNormalizedImport(fileOrParsed, options = {}) {
   if (isApkgPreview(fileOrParsed)) {
     const preview = fileOrParsed.preview ?? fileOrParsed;
@@ -1366,15 +1557,14 @@ export async function commitApkgImport(fileOrParsed, options = {}) {
       importScheduling: false,
     });
     result.deck = null;
+    result.decks = [];
+    result.rootDeckIds = [];
+    result.importGroupId = null;
     result.mediaFiles = parsed.mediaFiles;
     return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
   }
 
-  const result = importNormalizedDeck(parsed.normalizedDeck, {
-    ...options,
-    dryRun: false,
-    importScheduling: false,
-  });
+  const result = commitNormalizedApkgHierarchy(parsed.normalizedDeck, options);
   result.mediaFiles = parsed.mediaFiles;
   return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
 }
@@ -1465,6 +1655,7 @@ export async function createApkgImportPreview(file, onStep = () => {}) {
 function findExistingImportedDeck(importedDeck, existingDecks = []) {
   return (
     existingDecks.find((deck) => deck.source === "anki-apkg" && deck.originalDeckId === importedDeck.originalDeckId) ??
+    existingDecks.find((deck) => deck.source === "anki-apkg" && deck.importMeta?.sourceExternalId && deck.importMeta.sourceExternalId === importedDeck.importMeta?.sourceExternalId) ??
     existingDecks.find(
       (deck) =>
         deck.source === "anki-apkg" &&

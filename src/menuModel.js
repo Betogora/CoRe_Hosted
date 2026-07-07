@@ -16,6 +16,7 @@ const views = [
     id: "kartenstapel",
     label: "Kartenstapel",
     iconKey: "layers",
+    navigation: false,
     title: "Kartenstapel",
     eyebrow: "Bibliothek",
     body: "Deck-Hierarchie, Suche, Filter, CoRe-Modus und Stapelaktionen.",
@@ -78,35 +79,10 @@ const views = [
     ],
   },
   {
-    id: "ki",
-    label: "KI-Jobs",
-    iconKey: "bot",
-    title: "KI-Jobs",
-    eyebrow: "Orchestrierung",
-    body: "Jobs, Modellrouter, Trigger und strukturierte Outputs.",
-    stats: [
-      { label: "Jobs", value: "0" },
-      { label: "Fehler", value: "0" },
-      { label: "Kosten", value: "0" },
-    ],
-  },
-  {
-    id: "assistent",
-    label: "Assistent",
-    iconKey: "assistant",
-    title: "Assistent",
-    eyebrow: "Chat und Lernplan",
-    body: "Quellengebundene Deck-Antworten und prüfungsorientierte Lernplanung.",
-    stats: [
-      { label: "Antworten", value: "0" },
-      { label: "Pläne", value: "0" },
-      { label: "Quellen", value: "Karten" },
-    ],
-  },
-  {
     id: "einstellungen",
     label: "Einstellungen",
     iconKey: "settings",
+    navigation: false,
     title: "Einstellungen",
     eyebrow: "Profil",
     body: "Profil, Hochschule, Sprache, Datenschutz und Scheduler.",
@@ -125,7 +101,7 @@ export function createMenuModel() {
   return {
     defaultViewId,
     listNavigationItems() {
-      return views.map(({ id, label, iconKey }) => ({ id, label, iconKey }));
+      return views.filter((view) => view.navigation !== false).map(({ id, label, iconKey }) => ({ id, label, iconKey }));
     },
     listViews() {
       return views.map((view) => ({ ...view, stats: [...view.stats] }));

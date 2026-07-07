@@ -3,7 +3,7 @@ import test from "node:test";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getOriginalVariant } from "./coreModel.js";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.js";
 import { importNormalizedDeck } from "./importService.js";
-import { answerVariant, getNextReviewItem } from "./reviewService.js";
+import { answerVariant, createDailyReviewQueue, getNextReviewItem } from "./reviewService.js";
 import { formatIntervalLabel, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.js";
 
 const NOW = "2026-07-07T10:00:00.000Z";
@@ -258,4 +258,108 @@ test("normalized imported cards start with learning-step button options", () => 
   assert.equal(next.reviewState.state, "new");
   assert.equal(next.ratingButtonOptions.good.intervalLabel, "15 Min.");
   assert.equal(next.ratingButtonOptions.easy.intervalLabel, "30 Min.");
+});
+
+test("daily review queue includes currently due cards plus the per-deck new-card quota", () => {
+  const due = reviewItem({ dueAt: "2026-07-07T09:00:00.000Z" });
+  const laterToday = reviewItem({ dueAt: "2026-07-07T18:00:00.000Z" });
+  const newCards = Array.from({ length: 30 }, (_value, index) =>
+    createBasicLearningItem("deck_scheduler_intervals", `Neue Frage ${index + 1}?`, "Antwort.", {
+      id: `new_item_${index + 1}`,
+      reviewState: {
+        state: "new",
+        reps: 0,
+        dueAt: NOW,
+      },
+    }),
+  );
+  const deck = createCoreDeck({
+    id: "deck_scheduler_intervals",
+    name: "Queue",
+    source: "manual",
+    deckSettings: { newCardsPerDay: 20 },
+    cards: [laterToday, due, ...newCards],
+  });
+  const queue = createDailyReviewQueue(deck, { now: NOW });
+
+  assert.equal(queue.dueCount, 1);
+  assert.equal(queue.newCount, 20);
+  assert.equal(queue.total, 21);
+  assert.equal(queue.items[0].learningItemId, due.id);
+  assert.equal(queue.items.some((item) => item.learningItemId === laterToday.id), false);
+  assert.equal(queue.items.filter((item) => item.schedulerInfo.queueKind === "new").length, 20);
+});
+
+test("daily review queue subtracts new cards introduced today and honors today's override", () => {
+  const newCards = Array.from({ length: 8 }, (_value, index) =>
+    createBasicLearningItem("deck_scheduler_intervals", `Neue Frage ${index + 1}?`, "Antwort.", {
+      id: `quota_new_${index + 1}`,
+      reviewState: {
+        state: "new",
+        reps: 0,
+        dueAt: NOW,
+      },
+    }),
+  );
+  const deck = createCoreDeck({
+    id: "deck_scheduler_intervals",
+    name: "Queue",
+    source: "manual",
+    deckSettings: {
+      newCardsPerDay: 5,
+      newCardsTodayOverride: { date: "2026-07-07", limit: 7 },
+    },
+    cards: newCards,
+    reviewEvents: [
+      {
+        id: "review_today",
+        deckId: "deck_scheduler_intervals",
+        learningItemId: "already_introduced",
+        reviewedAt: "2026-07-07T08:00:00.000Z",
+        previousLearningItemStateJson: { state: "new", reps: 0 },
+      },
+      {
+        id: "review_yesterday",
+        deckId: "deck_scheduler_intervals",
+        learningItemId: "old_introduction",
+        reviewedAt: "2026-07-06T08:00:00.000Z",
+        previousLearningItemStateJson: { state: "new", reps: 0 },
+      },
+    ],
+  });
+  const queue = createDailyReviewQueue(deck, { now: NOW });
+
+  assert.equal(queue.newCardsPerDay, 7);
+  assert.equal(queue.newCardsIntroducedToday, 1);
+  assert.equal(queue.newCount, 6);
+  assert.equal(queue.total, 6);
+});
+
+test("daily review queue carries rating interval labels for the UI buttons", () => {
+  const item = newItem();
+  const queue = createDailyReviewQueue(deckWith(item), { now: NOW });
+  const current = queue.items[0];
+  const committed = answerVariant(deckWith(item), item.id, getOriginalVariant(item).id, "good", { now: NOW });
+
+  assert.equal(current.ratingButtonOptions.again.intervalLabel, "5 Min.");
+  assert.equal(current.ratingButtonOptions.good.intervalLabel, "15 Min.");
+  assert.equal(current.ratingButtonOptions.good.dueAt, committed.updatedCard.reviewState.dueAt);
+});
+
+test("daily review queue keeps answered learning cards out until their stored dueAt", () => {
+  const item = newItem();
+  const committed = answerVariant(deckWith(item), item.id, getOriginalVariant(item).id, "good", { now: NOW });
+  const nextDueAt = committed.updatedCard.reviewState.dueAt;
+
+  assert.equal(minutesBetween(NOW, nextDueAt), 15);
+  assert.equal(committed.deck.reviewEvents.length, 1);
+
+  const immediatelyRestarted = createDailyReviewQueue(committed.deck, { now: "2026-07-07T10:01:00.000Z" });
+  const atStoredDueAt = createDailyReviewQueue(committed.deck, { now: nextDueAt });
+
+  assert.equal(immediatelyRestarted.total, 0);
+  assert.equal(immediatelyRestarted.items.some((queueItem) => queueItem.learningItemId === item.id), false);
+  assert.equal(atStoredDueAt.total, 1);
+  assert.equal(atStoredDueAt.items[0].learningItemId, item.id);
+  assert.equal(atStoredDueAt.items[0].schedulerInfo.queueKind, "due");
 });

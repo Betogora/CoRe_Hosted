@@ -206,7 +206,15 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         ...options,
         existingDecks: state.decks,
       });
-      return result.deck ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+      if (result.decks?.length) {
+        const savedDecks = result.decks.map((deck) => repository.saveDeck(deck));
+        return { ...result, deck: savedDecks[0] ?? null, decks: savedDecks };
+      }
+      if (result.deck) {
+        const savedDeck = repository.saveDeck(result.deck);
+        return { ...result, deck: savedDeck, decks: [savedDeck] };
+      }
+      return result;
     },
     async importApkgDeck(input, options = {}) {
       const state = repository.getState();
@@ -214,7 +222,15 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         ...options,
         existingDecks: state.decks,
       });
-      return result.deck ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+      if (result.decks?.length) {
+        const savedDecks = result.decks.map((deck) => repository.saveDeck(deck));
+        return { ...result, deck: savedDecks[0] ?? null, decks: savedDecks };
+      }
+      if (result.deck) {
+        const savedDeck = repository.saveDeck(result.deck);
+        return { ...result, deck: savedDeck, decks: [savedDeck] };
+      }
+      return result;
     },
     ensureDeckGraph(deckId) {
       const deck = repository.getDeck(deckId);

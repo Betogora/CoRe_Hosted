@@ -67,20 +67,22 @@ function mediaEntriesBytes(entries) {
 }
 
 function parsedApkgFixture({
+  decks = [{ id: "1", name: "Fixture Deck" }],
   modelName = "Basic",
   fields = [{ name: "Front" }, { name: "Back" }],
   templates = [{ name: "Card 1", ord: 0 }],
   noteFields = "Front?\u001fBack.",
   noteTags = "tag",
+  notes = null,
   cards = [{ id: 20, nid: 10, did: 1, ord: 0 }],
   mediaManifest = null,
 } = {}) {
   return {
     file: { name: "fixture.apkg", size: 4096 },
-    decks: [{ id: "1", name: "Fixture Deck" }],
+    decks,
     colRows: [
       {
-        decks: JSON.stringify({ 1: { id: 1, name: "Fixture Deck" } }),
+        decks: JSON.stringify(Object.fromEntries(decks.map((deck) => [deck.id, { id: deck.id, name: deck.name }]))),
         models: JSON.stringify({
           99: {
             name: modelName,
@@ -90,7 +92,7 @@ function parsedApkgFixture({
         }),
       },
     ],
-    notes: [
+    notes: notes ?? [
       {
         id: 10,
         mid: 99,
@@ -304,6 +306,49 @@ test("maps Basic Reverse notes to one LearningItem with anchored imported varian
   assert.equal(reviewed.deck.cards[0].reviewState.reps, 1);
   assert.equal(reviewed.deck.reviewEvents.length, 1);
   assert.equal(getActiveVariants(reviewed.deck.cards[0]).find((variant) => variant.id === importedReverse.id).performance.correctCount, 1);
+});
+
+test("committed APKG import creates visible parent and child decks from Anki hierarchy", async () => {
+  const parsed = parsedApkgFixture({
+    decks: [
+      { id: "1", name: "Medizin" },
+      { id: "2", name: "Medizin::Anatomie" },
+      { id: "3", name: "Medizin::Physio" },
+    ],
+    notes: [
+      { id: 10, mid: 99, tags: "ana", flds: "Was ist der Nervus vagus?\u001fHirnnerv X." },
+      { id: 11, mid: 99, tags: "physio", flds: "Was ist ATP?\u001fEnergietraeger." },
+    ],
+    cards: [
+      { id: 20, nid: 10, did: 2, ord: 0 },
+      { id: 21, nid: 11, did: 3, ord: 0 },
+    ],
+    mediaManifest: {
+      format: "legacy-json",
+      assets: [{ name: "cell.png", sha1: "abc123", size: 4, mimeType: "image/png", zipEntryName: "0" }],
+      missingAssets: [],
+    },
+  });
+  const committed = await commitApkgImport(parsed, { existingDecks: [] });
+  const root = committed.decks.find((deck) => deck.name === "Medizin");
+  const anatomy = committed.decks.find((deck) => deck.name === "Anatomie");
+  const physio = committed.decks.find((deck) => deck.name === "Physio");
+
+  assert.equal(committed.decks.length, 3);
+  assert.ok(root);
+  assert.ok(anatomy);
+  assert.ok(physio);
+  assert.equal(root.parentDeckId, null);
+  assert.equal(root.cards.length, 0);
+  assert.equal(anatomy.parentDeckId, root.id);
+  assert.equal(physio.parentDeckId, root.id);
+  assert.deepEqual(anatomy.hierarchyPath, ["Medizin", "Anatomie"]);
+  assert.deepEqual(physio.hierarchyPath, ["Medizin", "Physio"]);
+  assert.equal(anatomy.cards.length, 1);
+  assert.equal(physio.cards.length, 1);
+  assert.equal(committed.rootDeckIds[0], root.id);
+  assert.equal(committed.importGroupId.startsWith("apkg_import_"), true);
+  assert.equal(committed.decks.every((deck) => deck.importMeta.mediaManifest.assets.length === 1), true);
 });
 
 test("imports Cloze parser output as cloze content with a warning instead of crashing", async () => {

@@ -184,11 +184,15 @@ function itemHasSchedulingData(item) {
 
 function normalizeNormalizedDeckShape(input = {}) {
   return {
+    id: input.id ?? null,
     title: input.title ?? input.name ?? input.deckName ?? "Importierter Stapel",
     description: input.description ?? "",
     sourceType: input.sourceType ?? "mixed",
     sourceExternalId: input.sourceExternalId ?? input.externalId ?? null,
     sourceDocumentId: input.sourceDocumentId ?? null,
+    parentDeckId: input.parentDeckId ?? null,
+    hierarchyPath: input.hierarchyPath ?? null,
+    originalDeckId: input.originalDeckId ?? null,
     tags: input.tags ?? [],
     metadataJson: input.metadataJson ?? input.meta ?? {},
     items: input.items ?? input.cards ?? [],
@@ -334,11 +338,15 @@ export function normalizeImportDeck(input = {}, options = {}) {
   const deckInput = normalizeNormalizedDeckShape(input);
   const sourceType = normalizeSourceType(deckInput.sourceType ?? options.sourceType, options.sourceType ?? "mixed");
   const normalizedDeck = {
+    id: deckInput.id ?? null,
     title: text(deckInput.title, options) || "Importierter Stapel",
     description: text(deckInput.description, options),
     sourceType,
     sourceExternalId: deckInput.sourceExternalId ?? null,
     sourceDocumentId: deckInput.sourceDocumentId ?? null,
+    parentDeckId: deckInput.parentDeckId ?? null,
+    hierarchyPath: Array.isArray(deckInput.hierarchyPath) ? deckInput.hierarchyPath.map((part) => text(part, options)).filter(Boolean) : null,
+    originalDeckId: deckInput.originalDeckId ?? deckInput.sourceExternalId ?? null,
     tags: normalizeTags(deckInput.tags),
     metadataJson: metadata(deckInput.metadataJson),
     items: [],
@@ -686,10 +694,13 @@ export function importNormalizedDeck(input = {}, options = {}) {
         updatedAt: new Date().toISOString(),
       })
     : createCoreDeck({
-        id: normalizedOptions.targetDeckId ?? undefined,
+        id: normalizedOptions.targetDeckId ?? normalizedDeck.id ?? undefined,
         name: normalizedDeck.title,
         description: normalizedDeck.description,
         source: deckSourceFor(normalizedDeck.sourceType),
+        parentDeckId: normalizedDeck.parentDeckId,
+        hierarchyPath: normalizedDeck.hierarchyPath,
+        originalDeckId: normalizedDeck.originalDeckId,
         tags: normalizedDeck.tags,
         cards: createdItems,
         importMeta,

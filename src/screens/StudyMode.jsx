@@ -2,64 +2,112 @@ import React from "react";
 import { Ban, Eye, Flag, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { getLearningItemAnswer, getLearningItemQuestion } from "../coreModel.js";
 import { resolveReviewShortcut } from "../reviewShortcuts.js";
-import { answerVariant, getNextReviewItem, recordVariantFeedback } from "../reviewService.js";
+import { answerVariant, createDailyReviewQueue, getLocalReviewDateKey, recordVariantFeedback } from "../reviewService.js";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
 import { MiniProgress } from "../ui/coreUi.jsx";
 import { maturityStageLabels, ratingButtons } from "./screenConstants.js";
 
-export function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
-  const [sessionDeck, setSessionDeck] = React.useState(deck);
+export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?.id, variantSession, onExit, onDeckUpdated }) {
+  const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [reviewedCount, setReviewedCount] = React.useState(0);
+  const [reviewedKeys, setReviewedKeys] = React.useState([]);
   const [showAnswer, setShowAnswer] = React.useState(false);
   const [showAnchor, setShowAnchor] = React.useState(false);
-  const maxReviews = React.useMemo(() => {
-    const activeCards = (deck.cards ?? []).filter((card) => card.status !== "deleted" && card.draftStatus !== "draft");
-    return Math.max(1, Math.min(12, activeCards.length));
-  }, [deck.id, deck.cards?.length]);
-  const current = React.useMemo(() => getNextReviewItem(sessionDeck, { language: "de" }), [sessionDeck, reviewedCount, variantSession]);
-  const progress = maxReviews ? (Math.min(reviewedCount + (current ? 1 : 0), maxReviews) / maxReviews) * 100 : 0;
+  const [showSettings, setShowSettings] = React.useState(false);
+  const rootDeck = sessionDecks.find((candidate) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
+  const queue = React.useMemo(
+    () =>
+      createDailyReviewQueue(sessionDecks, {
+        deckId: rootDeck?.id,
+        language: "de",
+        variantSession,
+        excludeKeys: reviewedKeys,
+      }),
+    [sessionDecks, rootDeck?.id, variantSession, reviewedKeys],
+  );
+  const current = queue.items[0] ?? null;
+  const currentDeck = sessionDecks.find((candidate) => candidate.id === current?.deckId) ?? rootDeck;
+  const sessionTotal = reviewedCount + queue.total;
+  const progress = sessionTotal ? (Math.min(reviewedCount + (current ? 1 : 0), sessionTotal) / sessionTotal) * 100 : 0;
   const sourceCard = current?.learningItem ?? null;
   const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
   const anchorMiniCard = current?.answerSideAnchorMiniCard;
-  const { urls: studyMediaUrls } = useDeckMediaUrls(sessionDeck);
+  const { urls: studyMediaUrls } = useDeckMediaUrls(currentDeck);
 
   React.useEffect(() => {
-    setSessionDeck(deck);
+    setSessionDecks(decks);
     setReviewedCount(0);
+    setReviewedKeys([]);
     setShowAnswer(false);
     setShowAnchor(false);
-  }, [deck.id, variantSession]);
+    setShowSettings(false);
+  }, [deckId, variantSession, decks.length]);
 
-  function finishOrNext(nextDeck, nextCount) {
-    onDeckUpdated(nextDeck);
-    setSessionDeck(nextDeck);
-    const nextItem = getNextReviewItem(nextDeck, { language: "de" });
-    if (nextItem && nextCount < maxReviews) {
-      setReviewedCount(nextCount);
-      setShowAnswer(false);
-      setShowAnchor(false);
-    } else {
+  function reviewItemKey(item = current) {
+    return item ? `${item.deckId}:${item.learningItemId}` : "";
+  }
+
+  function replaceSessionDeck(updatedDeck, nextDecks = sessionDecks) {
+    return nextDecks.map((candidate) => (candidate.id === updatedDeck.id ? updatedDeck : candidate));
+  }
+
+  function finishOrNext(updatedDeck, nextCount, reviewedKey) {
+    const nextDecks = replaceSessionDeck(updatedDeck);
+    const nextReviewedKeys = [...reviewedKeys, reviewedKey].filter(Boolean);
+    const nextQueue = createDailyReviewQueue(nextDecks, {
+      deckId: rootDeck?.id,
+      language: "de",
+      variantSession,
+      excludeKeys: nextReviewedKeys,
+    });
+
+    onDeckUpdated(updatedDeck);
+    setSessionDecks(nextDecks);
+    setReviewedKeys(nextReviewedKeys);
+    setReviewedCount(nextCount);
+    setShowAnswer(false);
+    setShowAnchor(false);
+
+    if (nextQueue.total === 0) {
       onExit();
     }
   }
 
   function grade(rating) {
-    if (!current) return;
-    const result = answerVariant(sessionDeck, current.learningItemId, current.cardVariantId, rating, {
+    if (!current || !currentDeck) return;
+    const result = answerVariant(currentDeck, current.learningItemId, current.cardVariantId, rating, {
       now: new Date().toISOString(),
     });
-    finishOrNext(result.deck, reviewedCount + 1);
+    finishOrNext(result.deck, reviewedCount + 1, reviewItemKey());
   }
 
   function updateVariant(action) {
-    if (!isCurrentVariant) return;
-    const result = recordVariantFeedback(sessionDeck, {
+    if (!isCurrentVariant || !currentDeck) return;
+    const result = recordVariantFeedback(currentDeck, {
       id: current.variantId,
       sourceCardId: current.learningItemId,
       isVariant: true,
     }, { action });
     onDeckUpdated(result.deck);
-    setSessionDeck(result.deck);
+    setSessionDecks((currentDecks) => replaceSessionDeck(result.deck, currentDecks));
+  }
+
+  function setTodayNewCardLimit(limit) {
+    if (!rootDeck) return;
+    const nextLimit = Math.max(0, Math.round(Number(limit) || 0));
+    const updatedRootDeck = {
+      ...rootDeck,
+      deckSettings: {
+        ...rootDeck.deckSettings,
+        newCardsTodayOverride: {
+          date: getLocalReviewDateKey(),
+          limit: nextLimit,
+        },
+      },
+      updatedAt: new Date().toISOString(),
+    };
+    onDeckUpdated(updatedRootDeck);
+    setSessionDecks((currentDecks) => replaceSessionDeck(updatedRootDeck, currentDecks));
   }
 
   React.useEffect(() => {
@@ -79,7 +127,7 @@ export function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [current, showAnswer, sessionDeck, reviewedCount]);
+  }, [current, showAnswer, sessionDecks, reviewedCount, reviewedKeys]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#eef2fb_100%)] p-4 text-[#17214f] sm:p-8">
@@ -90,14 +138,38 @@ export function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
               <X size={22} aria-hidden="true" />
             </button>
             <div className="text-center">
-              <p className="text-sm font-semibold text-[#66709a]">{deck.name}</p>
-              <p className="mt-1 text-sm text-[#66709a]">{current ? `${Math.min(reviewedCount + 1, maxReviews)} / ${maxReviews}` : "0 / 0"}</p>
+              <p className="text-sm font-semibold text-[#66709a]">{rootDeck?.name ?? deck?.name}</p>
+              <p className="mt-1 text-sm text-[#66709a]">{current ? `${Math.min(reviewedCount + 1, sessionTotal)} / ${sessionTotal}` : "0 / 0"}</p>
             </div>
-            <button type="button" className="grid size-11 place-items-center rounded-full bg-white/75 text-[#4f5eb1] shadow-[0_14px_40px_rgba(91,105,154,0.12)]" aria-label="Lerneinstellungen">
+            <button type="button" onClick={() => setShowSettings((value) => !value)} className="grid size-11 place-items-center rounded-full bg-white/75 text-[#4f5eb1] shadow-[0_14px_40px_rgba(91,105,154,0.12)]" aria-label="Lerneinstellungen">
               <SlidersHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
           <MiniProgress value={progress} />
+          {showSettings ? (
+            <div className="rounded-2xl border border-[#dfe4f5] bg-white/80 p-4 shadow-[0_14px_40px_rgba(91,105,154,0.10)]">
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="grid gap-1 text-sm font-semibold text-[#4e5b8c]">
+                  Neue Karten heute
+                  <input
+                    className="min-h-11 w-32 rounded-xl border border-[#dfe4f5] px-3 text-[#17214f]"
+                    type="number"
+                    min="0"
+                    max="500"
+                    value={queue.newCardsPerDay}
+                    onChange={(event) => setTodayNewCardLimit(event.target.value)}
+                  />
+                </label>
+                <div className="grid gap-1 text-sm text-[#66709a]">
+                  <span>{queue.newCardsIntroducedToday} heute eingeführt</span>
+                  <span>{queue.availableNewCards} neue Karten im Stapel verfügbar</span>
+                </div>
+                <button type="button" onClick={() => setTodayNewCardLimit(queue.newCardsPerDay + 10)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1]">
+                  +10
+                </button>
+              </div>
+            </div>
+          ) : null}
         </header>
 
         <section className="grid flex-1 place-items-center py-8">
@@ -188,7 +260,7 @@ export function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
             ) : (
               <div className="text-center">
                 <h1 className="text-3xl font-semibold">Keine fälligen Karten</h1>
-                <p className="mt-3 text-[#66709a]">Dieser Stapel hat aktuell keine reviewbaren Karten.</p>
+                <p className="mt-3 text-[#66709a]">Dieser Stapel hat für heute keine Karten in der Lern-Queue.</p>
               </div>
             )}
           </div>
@@ -200,6 +272,7 @@ export function StudyMode({ deck, variantSession, onExit, onDeckUpdated }) {
               <button key={rating.key} type="button" onClick={() => grade(rating.key)} disabled={!current} className={`min-h-20 rounded-2xl border text-center shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${rating.className}`}>
                 <span className="block text-2xl font-semibold">{rating.number}</span>
                 <span className="mt-1 block text-sm font-semibold">{rating.label}</span>
+                <span className="mt-1 block text-xs font-semibold opacity-80">{current?.ratingButtonOptions?.[rating.key]?.intervalLabel ?? ""}</span>
               </button>
             ))}
           </footer>

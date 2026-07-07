@@ -83,9 +83,22 @@ export function getMaturityBand(maturityXp = 0) {
 
 export function createDefaultDeckSettings(settings = {}) {
   const coreMode = CORE_MODES.includes(settings.coreMode) ? settings.coreMode : "auto";
+  const newCardsPerDay = Number.isFinite(Number(settings.newCardsPerDay))
+    ? Math.max(0, Math.round(Number(settings.newCardsPerDay)))
+    : 20;
+  const override = settings.newCardsTodayOverride;
+  const newCardsTodayOverride =
+    override && typeof override === "object" && String(override.date ?? "").trim()
+      ? {
+          date: String(override.date).slice(0, 10),
+          limit: Math.max(0, Math.round(Number(override.limit ?? newCardsPerDay) || 0)),
+        }
+      : null;
 
   return {
     coreMode,
+    newCardsPerDay,
+    newCardsTodayOverride,
     variantThresholdXp: Number.isFinite(settings.variantThresholdXp) ? settings.variantThresholdXp : 121,
     maxActiveVariantsPerCard: Number.isFinite(settings.maxActiveVariantsPerCard) ? settings.maxActiveVariantsPerCard : 2,
     schedulerProfile: {

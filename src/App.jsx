@@ -1,10 +1,8 @@
 import React from "react";
-import { BarChart3, BookOpen, Bot, Database, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
+import { BarChart3, BookOpen, Database, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
 import { createCoreWorkspace } from "./coreWorkspace.js";
 import { createMenuModel } from "./menuModel.js";
 import {
-  AiJobsScreen,
-  AssistantScreen,
   CommunityScreen,
   CreationScreen,
   DashboardScreen,
@@ -18,7 +16,6 @@ import {
 const menu = createMenuModel();
 
 const iconByKey = {
-  bot: Bot,
   chart: BarChart3,
   community: Users,
   graph: Network,
@@ -27,7 +24,6 @@ const iconByKey = {
   learn: BookOpen,
   plus: PlusSquare,
   settings: Settings,
-  assistant: Bot,
 };
 
 function getIcon(iconKey) {
@@ -39,13 +35,18 @@ export function App() {
   const [state, setState] = React.useState(() => workspace.getState());
   const [activeView, setActiveView] = React.useState(menu.defaultViewId);
   const [studyRequest, setStudyRequest] = React.useState(null);
-  const navigationItems = menu.listNavigationItems().filter((view) => view.id !== "einstellungen");
+  const navigationItems = menu.listNavigationItems();
 
   function refresh() {
     setState(workspace.getState());
   }
 
   function saveDeck(deck) {
+    if (Array.isArray(deck)) {
+      const savedDecks = deck.map((item) => workspace.saveDeck(item));
+      refresh();
+      return savedDecks;
+    }
     const saved = workspace.saveDeck(deck);
     refresh();
     return saved;
@@ -104,16 +105,6 @@ export function App() {
     refresh();
   }
 
-  function saveChat(exchange) {
-    workspace.saveChatExchange(exchange);
-    refresh();
-  }
-
-  function savePlan(plan) {
-    workspace.saveLearningPlan(plan);
-    refresh();
-  }
-
   function saveState(nextState) {
     const saved = workspace.saveState(nextState);
     setState(saved);
@@ -167,19 +158,13 @@ export function App() {
       return <CreationScreen decks={state.decks} onCreated={saveDeck} onJob={saveJob} />;
     }
     if (activeView === "lernen") {
-      return <LearnScreen decks={state.decks} onStartDeck={startDeck} onCreateDeck={() => setActiveView("neue-karten")} />;
+      return <LearnScreen decks={state.decks} onStartDeck={startDeck} onCreateDeck={() => setActiveView("neue-karten")} onOpenDecks={() => setActiveView("kartenstapel")} />;
     }
     if (activeView === "graph") {
       return <GraphScreen decks={state.decks} onUpdateDeck={updateDeck} />;
     }
     if (activeView === "community") {
       return <CommunityScreen decks={state.decks} communities={state.communities} onSaveCommunity={saveCommunity} onSaveDeck={saveDeck} />;
-    }
-    if (activeView === "ki") {
-      return <AiJobsScreen decks={state.decks} jobs={state.aiJobs} />;
-    }
-    if (activeView === "assistent") {
-      return <AssistantScreen decks={state.decks} transcript={state.chatTranscript} plans={state.learningPlans} onSaveChat={saveChat} onSavePlan={savePlan} />;
     }
     if (activeView === "einstellungen") {
       return <SettingsScreen appState={state} profile={state.profile} decks={state.decks} onSaveProfile={saveProfile} onUpdateAllDecks={updateAllDecks} onSaveState={saveState} />;
@@ -192,6 +177,8 @@ export function App() {
     return (
       <StudyMode
         deck={studyDeck}
+        decks={state.decks}
+        deckId={studyDeck.id}
         variantSession={studyRequest.variantSession}
         onExit={() => {
           setStudyRequest(null);

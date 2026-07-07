@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createCoreCard, createCoreDeck } from "./coreModel.js";
-import { createAiJobLedger, createDeckLibraryModel } from "./libraryModel.js";
+import { createAiJobLedger, createDeckLibraryModel, createStudyHeatmapModel } from "./libraryModel.js";
 
 function createDeckWithInactiveCards() {
   const active = createCoreCard({
@@ -95,6 +95,75 @@ test("library model keeps an explicitly selected deck even when filters hide it"
 
   assert.equal(library.filteredRows.length, 0);
   assert.equal(library.selectedRow.id, deck.id);
+});
+
+test("library model projects deck hierarchies with aggregate parent summaries", () => {
+  const childCard = createCoreCard({
+    id: "card_child",
+    source: "manual",
+    originalFront: "Was ist ATP?",
+    originalBack: "Ein Energietraeger.",
+    reviewState: {
+      dueAt: "2026-07-01T07:00:00.000Z",
+      repetitions: 0,
+    },
+  });
+  const parent = createCoreDeck({
+    id: "deck_parent",
+    name: "Medizin",
+    source: "manual",
+    hierarchyPath: ["Medizin"],
+    cards: [],
+  });
+  const child = createCoreDeck({
+    id: "deck_child",
+    name: "Anatomie",
+    source: "manual",
+    parentDeckId: parent.id,
+    hierarchyPath: ["Medizin", "Anatomie"],
+    cards: [childCard],
+  });
+  const library = createDeckLibraryModel([parent, child], { now: "2026-07-01T08:00:00.000Z" });
+  const parentRow = library.rows.find((row) => row.id === parent.id);
+  const childRow = library.rows.find((row) => row.id === child.id);
+
+  assert.equal(library.rows[0].id, parent.id);
+  assert.equal(parentRow.depth, 0);
+  assert.equal(childRow.depth, 1);
+  assert.deepEqual(parentRow.scopeDeckIds, [parent.id, child.id]);
+  assert.equal(parentRow.directSummary.totalCards, 0);
+  assert.equal(parentRow.summary.totalCards, 1);
+  assert.equal(parentRow.summary.newCards, 1);
+  assert.equal(childRow.summary.totalCards, 1);
+  assert.equal(library.totals.totalCards, 1);
+});
+
+test("study heatmap counts learned cards by local day", () => {
+  const deck = createCoreDeck({
+    id: "deck_heatmap",
+    name: "Heatmap",
+    source: "manual",
+    cards: [],
+    reviewEvents: [
+      { id: "review_1", reviewedAt: "2026-07-07T08:00:00.000Z", learningItemId: "card_1" },
+      { id: "review_2", answeredAt: "2026-07-07T09:00:00.000Z", learningItemId: "card_2" },
+      { id: "review_3", createdAt: "2026-07-06T10:00:00.000Z", learningItemId: "card_3" },
+      { id: "review_4", reviewedAt: "2026-07-04T10:00:00.000Z", learningItemId: "card_4" },
+    ],
+  });
+
+  const heatmap = createStudyHeatmapModel([deck], {
+    now: "2026-07-07T12:00:00.000Z",
+    weeks: 4,
+  });
+
+  assert.equal(heatmap.weeks.length, 4);
+  assert.equal(heatmap.totalCount, 4);
+  assert.equal(heatmap.activeDays, 3);
+  assert.equal(heatmap.currentStreak, 2);
+  assert.equal(heatmap.longestStreak, 2);
+  assert.equal(heatmap.days.find((day) => day.key === "2026-07-07").count, 2);
+  assert.equal(heatmap.days.find((day) => day.key === "2026-07-07").level, 4);
 });
 
 test("AI job ledger merges global and deck jobs with stable counts", () => {

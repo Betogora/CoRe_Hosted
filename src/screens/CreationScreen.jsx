@@ -70,7 +70,7 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
     }
     setJob((currentJob) => ({ ...currentJob, status: "done", warnings: [...new Set([...(currentJob?.warnings ?? []), ...(result.report.warnings ?? [])])] }));
     setPreview((currentPreview) => (currentPreview ? { ...currentPreview, importReport: result.report } : currentPreview));
-    onImported(result.deck);
+    onImported(result.decks?.length ? result.decks : result.deck);
   }
 
   const report = preview?.importReport ?? null;
