@@ -3,6 +3,8 @@ import test from "node:test";
 import { createSourceDocument, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.js";
 import { createCoreRepository } from "./coreRepository.js";
 import { createCoreWorkspace, createDemoAnatomyDeck } from "./coreWorkspace.js";
+import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.js";
+import { createStudyHeatmapModel } from "./libraryModel.js";
 
 function createMemoryStorage() {
   const store = new Map();
@@ -21,6 +23,46 @@ function createMemoryStorage() {
 
 function createTestWorkspace() {
   return createCoreWorkspace(createCoreRepository(createMemoryStorage()));
+}
+
+function stripWorldCapitalsStudyHistory(decks) {
+  return decks.map((deck) => ({
+    ...deck,
+    reviewEvents: [],
+    importMeta: {
+      ...deck.importMeta,
+      studyHistory: null,
+    },
+    cards: (deck.cards ?? []).map((card) => {
+      const reviewState = {
+        ...card.reviewState,
+        state: "new",
+        dueAt: "2026-07-07T00:00:00.000Z",
+        intervalDays: 0,
+        intervalMinutes: null,
+        stability: 0,
+        difficulty: 5,
+        retrievability: null,
+        reps: 0,
+        repetitions: 0,
+        lapses: 0,
+        maturityXp: 0,
+        lastReviewedAt: null,
+        lastRating: null,
+      };
+
+      return {
+        ...card,
+        learningItemState: reviewState,
+        reviewState,
+        meta: {
+          ...card.meta,
+          studyProfile: null,
+          studyHistoryVersion: null,
+        },
+      };
+    }),
+  }));
 }
 
 function parsedApkgFixture(overrides = {}) {
@@ -74,12 +116,54 @@ test("workspace can seed the world capitals deck for an empty local tester accou
   const state = workspace.getState();
   const root = state.decks.find((deck) => deck.id === "deck_world_capitals");
   const europe = state.decks.find((deck) => deck.id === "deck_world_capitals_europa");
+  const cards = state.decks.flatMap((deck) => deck.cards ?? []);
+  const reviewEventCount = state.decks.reduce((sum, deck) => sum + (deck.reviewEvents?.length ?? 0), 0);
+  const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.reviewState?.maturityBand));
+  const dueCards = cards.filter((card) => new Date(card.reviewState?.dueAt ?? 0).getTime() <= new Date("2026-07-07T12:00:00.000Z").getTime());
+  const stubbornCards = cards.filter((card) => card.meta?.studyProfile === "hartnäckig-aber-stabil");
+  const heatmap = createStudyHeatmapModel(state.decks, { now: "2026-07-07T12:00:00.000Z", weeks: 14 });
 
   assert.equal(state.decks.length, 8);
   assert.equal(root.name, "Welt-Hauptstädte");
   assert.equal(root.cards.length, 0);
   assert.equal(europe.parentDeckId, root.id);
   assert.equal(state.decks.reduce((sum, deck) => sum + deck.cards.length, 0), 245);
+  assert.equal(root.createdAt, "2026-04-07T06:30:00.000Z");
+  assert.equal(root.importMeta.studyHistory.version, "study-history-v1");
+  assert.equal(reviewEventCount, 1952);
+  assert.equal(heatmap.totalCount, reviewEventCount);
+  assert.equal(heatmap.activeDays, 81);
+  assert.equal(matureCards.length, 148);
+  assert.equal(dueCards.length, 26);
+  assert.equal(stubbornCards.length, 19);
+  assert.equal(stubbornCards.every((card) => card.reviewState.lapses >= 2 && card.reviewState.maturityBand === "variant_ready"), true);
+});
+
+test("repository enriches an untouched persisted world-capitals seed with study history", () => {
+  const storage = createMemoryStorage();
+  const oldSeedDecks = stripWorldCapitalsStudyHistory(createWorldCapitalsSeedDecks());
+  storage.setItem(
+    "core.appState.v2",
+    JSON.stringify({
+      version: 2,
+      profile: {},
+      decks: oldSeedDecks,
+      communities: [],
+      aiJobs: [],
+      documents: [],
+      chatTranscript: [],
+      learningPlans: [],
+    }),
+  );
+
+  const workspace = createCoreWorkspace(createCoreRepository(storage, { seedDefaultDecks: false }));
+  const state = workspace.getState();
+  const reviewEventCount = state.decks.reduce((sum, deck) => sum + (deck.reviewEvents?.length ?? 0), 0);
+  const firstReviewedCard = state.decks.flatMap((deck) => deck.cards ?? []).find((card) => card.reviewState?.repetitions > 0);
+
+  assert.equal(reviewEventCount, 1952);
+  assert.equal(state.decks.find((deck) => deck.id === "deck_world_capitals").importMeta.studyHistory.version, "study-history-v1");
+  assert.equal(firstReviewedCard.reviewState.lastReviewedAt !== null, true);
 });
 
 test("workspace APKG commands dry-run and commit through normalized import", async () => {

@@ -394,7 +394,7 @@ export function createDeckLibraryModel(decks = [], options = {}) {
     rows,
     filteredRows,
     selectedRow,
-    dashboardRows: rows.slice(0, 4),
+    dashboardRows: rows.filter((row) => row.depth === 0).slice(0, 4),
     totals: summarizeDecks(decks, now),
     studyHeatmap: createStudyHeatmapModel(decks, { now }),
   };

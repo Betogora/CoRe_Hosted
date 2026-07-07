@@ -187,7 +187,6 @@ export function App() {
           onCreateDeck={createDeck}
           onDeleteDeck={deleteDeck}
           onRenameDeck={renameDeck}
-          onMoveDeck={moveDeck}
           onOpenCardCreation={() => setActiveView("neue-karten")}
           onOpenGraph={openGraph}
           onShareDeck={shareDeck}

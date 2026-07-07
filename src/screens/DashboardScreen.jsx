@@ -97,7 +97,6 @@ function StudyHeatmap({ heatmap }) {
           <OrbIcon icon={Activity} className="bg-teal-50 text-teal-700" />
           <div>
             <h3 className="text-xl font-semibold text-[#17214f]">Lern-Heatmap</h3>
-            <p className="mt-2 text-sm leading-6 text-[#66709a]">Gelernte Karten pro Tag · {visibleHeatmap.rangeLabel}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-x-7 gap-y-4 md:grid-cols-4">
@@ -205,7 +204,6 @@ export function DashboardScreen({ state, onNavigate, onStartDeck }) {
       <PageHeader
         eyebrow="Heute"
         title={`Guten Morgen, ${state.profile.displayName || "Noemi"}`}
-        body="Fällige Karten, Lernaktivität und aktive Stapel."
         action={<Bell className="mt-2 text-[#5361aa]" size={22} aria-hidden="true" />}
       />
 

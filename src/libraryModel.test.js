@@ -144,6 +144,8 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
   assert.equal(parentRow.summary.newCards, 1);
   assert.equal(childRow.summary.totalCards, 1);
   assert.equal(library.totals.totalCards, 1);
+  assert.deepEqual(library.dashboardRows.map((row) => row.id), [parent.id]);
+  assert.equal(library.dashboardRows[0].summary.totalCards, 1);
 });
 
 test("visible deck rows hide descendants of collapsed parent decks", () => {

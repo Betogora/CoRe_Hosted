@@ -25,14 +25,15 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [x] Lokale KI-Drafts aus Quellentext mit Schema-Validation, Draft-Annahme und normalisierter Learning-Item-Erstellung.
 - [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, append-only Review-Events und Learning-Item-/Varianten-Kompatibilitaetsfeldern.
 - [x] Tages-Queue im Lernmodus fuer jetzt faellige/ueberfaellige Karten plus pro Stapel einstellbare neue Karten; Elternstapel lernen ihren Unterbaum.
-- [x] Lernuebersicht mit aufklappbaren Unterstapeln, aggregierten Neu-/Faellig-/Gesamtzahlen, CoRe-Status, Stapeloptionen ohne kartenbezogene Maturity-Anzeige und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
-- [x] Manuelle Stapelverwaltung mit Hauptstapeln, beliebig tiefen Unterstapeln, direktem Umbenennen, Drag-and-drop-Reparenting und Loeschen ganzer Stapelbaeume; APKG-Unterstapel sind im Workspace-Importpfad abgesichert.
-- [x] Reproduzierbarer Welt-Hauptstädte-Teststapel als Default-Seed fuer frische lokale Browser-States und echte APKG-Fixture mit sieben Kontinent-Unterstapeln.
+- [x] Lernuebersicht mit aufklappbaren Unterstapeln, gestaffelten hellgrauen Gruppenhintergruenden, aggregierten Neu-/Faellig-/Gesamtzahlen, CoRe-Status, klickbaren Stapelzeilen zum Lernstart, direktem Zahnrad-Einstieg in die Stapelverwaltung und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
+- [x] Manuelle Stapelverwaltung mit Hauptstapeln, beliebig tiefen Unterstapeln, direktem Umbenennen und Loeschen ganzer Stapelbaeume; APKG-Unterstapel sind im Workspace-Importpfad abgesichert.
+- [x] Reproduzierbarer Welt-Hauptstädte-Teststapel als Default-Seed fuer frische lokale Browser-States und echte APKG-Fixture mit sieben Kontinent-Unterstapeln, dreimonatiger Lernhistorie, Heatmap-Daten, fälligen Karten, CoRe-reifen Karten und unberuehrter Seed-Migration.
 - [x] Intervallvorschau direkt auf den Buttons Again, Hard, Good und Easy.
 - [x] FSRS-like Scheduler-State mit Stability, Difficulty, Desired Retention, Retrievability und konservativen Intervallen.
 - [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker-Minikarte, Variant-Level, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
 - [x] Lokale Community-Gruppen, Ordner und Deck-Kopie ohne fremde Reviewdaten.
 - [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan, AI-Job-Datenmodell und responsive, pfeilnavigierbare Heute-Jahres-Heatmap ohne horizontalen Slider.
+- [x] Heute-Dashboard nutzt kompakte Hero- und Heatmap-Kopfbereiche ohne zusaetzliche Beschreibungstexte; Metriken, Heatmap-Labels, Hauptstapel-Aggregate und Navigation bleiben erhalten.
 - [x] Lokaler JSON-Export/-Import ohne Passwort-Verifier.
 - [x] Appweite Surface-/Elevation-Regel umgesetzt: dauerhafte glasige Panels nutzen gemeinsame Surface-Tokens ohne benachbarte Elemente sichtbar abzudunkeln; grosse Schatten bleiben echten Overlays vorbehalten.
 - [x] Modul-/Browser-Verifikation fuer die zentralen lokalen Pfade, inklusive `libraryModel.test.js`, `normalizedImport.test.js`, `richText.test.js` und `schedulerIntervals.test.js`.

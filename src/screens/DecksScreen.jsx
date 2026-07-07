@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, ChevronRight, Copy, FolderPlus, GripVertical, Layers, Network, Pencil, Play, PlusSquare, Save, Search, Share2, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
+import { Check, ChevronRight, Copy, FolderPlus, Layers, Network, Pencil, Play, PlusSquare, Save, Search, Share2, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
 import { getOriginalVariant, getVariantAnchor } from "../coreModel.js";
 import { buildCardVariationPrompt, createVariantReviewModel } from "../coreVariantService.js";
 import { createDeckLibraryModel } from "../libraryModel.js";
@@ -252,7 +252,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   );
 }
 
-export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, onStartDeck, onCreateDeck, onDeleteDeck, onRenameDeck, onMoveDeck, onOpenCardCreation, onOpenGraph, onShareDeck }) {
+export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, onStartDeck, onCreateDeck, onDeleteDeck, onRenameDeck, onOpenCardCreation, onOpenGraph, onShareDeck }) {
   const [query, setQuery] = React.useState("");
   const [modeFilter, setModeFilter] = React.useState("all");
   const [selectedDeckId, setSelectedDeckId] = React.useState(initialSelectedDeckId ?? decks[0]?.id ?? null);
@@ -261,10 +261,6 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
   const [deckStatus, setDeckStatus] = React.useState("");
   const [editingDeckId, setEditingDeckId] = React.useState(null);
   const [renameDraft, setRenameDraft] = React.useState("");
-  const [draggedDeckId, setDraggedDeckId] = React.useState(null);
-  const [dragTargetDeckId, setDragTargetDeckId] = React.useState(null);
-  const [isTopDropTarget, setIsTopDropTarget] = React.useState(false);
-  const draggedDeckIdRef = React.useRef(null);
   const library = createDeckLibraryModel(decks, { query, coreMode: modeFilter, selectedDeckId });
   const filteredRows = library.filteredRows;
   const selectedRow = library.selectedRow;
@@ -364,48 +360,6 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
     setDeckStatus(`Stapel "${renamedDeck.name}" umbenannt.`);
   }
 
-  function startDrag(event, deck) {
-    draggedDeckIdRef.current = deck.id;
-    setDraggedDeckId(deck.id);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", deck.id);
-  }
-
-  function clearDragState() {
-    draggedDeckIdRef.current = null;
-    setDraggedDeckId(null);
-    setDragTargetDeckId(null);
-    setIsTopDropTarget(false);
-  }
-
-  function allowDeckDrop(event, targetDeckId = null) {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    setDragTargetDeckId(targetDeckId);
-    setIsTopDropTarget(targetDeckId === null);
-  }
-
-  function dropDeck(event, parentDeckId = null) {
-    event.preventDefault();
-    const sourceDeckId = event.dataTransfer.getData("text/plain") || draggedDeckIdRef.current || draggedDeckId;
-    clearDragState();
-    if (!sourceDeckId) return;
-
-    const result = onMoveDeck?.(sourceDeckId, parentDeckId);
-    if (result?.error) {
-      setDeckStatus(result.error);
-      return;
-    }
-    if (result?.changedDeckIds?.length === 0) {
-      setDeckStatus("Stapel bleibt an dieser Stelle.");
-      return;
-    }
-    const movedDeck = result?.deck;
-    if (movedDeck) setSelectedDeckId(movedDeck.id);
-    const targetLabel = parentDeckId ? decks.find((deck) => deck.id === parentDeckId)?.name ?? "Zielstapel" : "Hauptebene";
-    setDeckStatus(parentDeckId ? `Stapel nach "${targetLabel}" verschoben.` : "Stapel auf die Hauptebene verschoben.");
-  }
-
   function deleteDeckTree(deck, row) {
     const affectedDeckCount = row.scopeDeckIds?.length ?? 1;
     const childLabel = affectedDeckCount > 1 ? ` und ${affectedDeckCount - 1} Unterstapel` : "";
@@ -491,47 +445,19 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
         />
       ) : (
         <div className="grid gap-4">
-          <div
-            data-testid="deck-top-drop-zone"
-            aria-label="Drop-Zone für die Hauptebene"
-            onDragOver={(event) => allowDeckDrop(event, null)}
-            onDragLeave={() => setIsTopDropTarget(false)}
-            onDrop={(event) => dropDeck(event, null)}
-            className={`grid min-h-12 place-items-center rounded-2xl border border-dashed px-4 text-sm font-semibold transition ${
-              isTopDropTarget ? "border-[#4f5eb1] bg-[#eef1fb] text-[#24327a]" : "border-[#dfe4f5] bg-white/45 text-[#66709a]"
-            }`}
-          >
-            Auf die Hauptebene ziehen
-          </div>
           {filteredRows.map((row) => {
             const deck = row.deck;
             const summary = row.summary;
             const isSelected = selectedRow?.id === row.id;
             const isRenaming = editingDeckId === deck.id;
-            const isDropTarget = dragTargetDeckId === deck.id;
             return (
               <SoftPanel
                 key={row.id}
                 data-testid={`deck-row-${deck.id}`}
-                onDragOver={(event) => allowDeckDrop(event, deck.id)}
-                onDragLeave={() => setDragTargetDeckId(null)}
-                onDrop={(event) => dropDeck(event, deck.id)}
-                className={`p-4 transition sm:p-5 ${isSelected ? "ring-2 ring-[#8c96dc]" : ""} ${isDropTarget ? "border-[#8c96dc] bg-[#f3f5fd]" : ""}`}
+                className={`p-4 transition sm:p-5 ${isSelected ? "ring-2 ring-[#8c96dc]" : ""}`}
               >
                 <div className="flex min-w-0 flex-wrap items-center gap-4" style={{ paddingLeft: `${Math.min(row.depth, 4) * 1.1}rem` }}>
                   <div className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
-                    <button
-                      type="button"
-                      draggable
-                      onDragStart={(event) => startDrag(event, deck)}
-                      onDragEnd={clearDragState}
-                      className="grid size-10 shrink-0 cursor-grab place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1] active:cursor-grabbing"
-                      aria-label={`Stapel "${deck.name}" verschieben`}
-                      title="Stapel verschieben"
-                      data-testid={`deck-drag-handle-${deck.id}`}
-                    >
-                      <GripVertical size={18} aria-hidden="true" />
-                    </button>
                     <OrbIcon icon={Layers} className="bg-[#eef1fb] text-[#6672bf]" />
                     <div className="min-w-0 flex-1">
                       {isRenaming ? (

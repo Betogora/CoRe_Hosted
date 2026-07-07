@@ -9,7 +9,7 @@ Die gepflegte Projektdokumentation liegt im Ordner `docs/`. Es gibt genau eine T
 ## Funktionsumfang
 
 - Dashboard, Profil-Onboarding, Datenschutzoptionen und globale CoRe-Einstellungen.
-- Deck-Verwaltung und Lernuebersicht mit Hierarchie-Metadaten, Suche/Filtern, direktem Umbenennen, Anki-artigem Drag-and-drop fuer Unterstapel, Kartenbearbeitung und Versionseintraegen.
+- Deck-Verwaltung mit Hierarchie-Metadaten, Suche/Filtern, direktem Umbenennen, Unterstapel-Anlage, Kartenbearbeitung und Versionseintraegen; Lernuebersicht mit Anki-artigem Drag-and-drop fuer Unterstapel.
 - Reproduzierbarer lokaler Teststapel `Welt-Hauptstädte` mit echter APKG-Fixture und sieben Kontinent-Unterstapeln.
 - Importpfade fuer Anki-APKG, Text, CSV, normalisierte JSON-Payloads und Tabellen-/Excel-Paste.
 - Manuelle Kartenerstellung mit Dokumentkontext und Quellenankern.
@@ -85,7 +85,7 @@ src/
 - `docs/anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
 - `fixtures/apkg/world-capitals.apkg`: reproduzierbare APKG-Fixture fuer Unterstapel-Tests.
 - `scripts/create_world_capitals_apkg.py`: Generator fuer APKG-Fixture, Quell-Snapshot und lokalen Seed.
-- `tests/e2e/world-capitals-hierarchy.spec.js`: Playwright-Smoke fuer Seed, Unterstapel und direkte Lernlisten-Drag-and-drop-Gesten.
+- `tests/e2e/world-capitals-hierarchy.spec.js`: Playwright-Smoke fuer Seed, Unterstapel, direkte Lernlisten-Drag-and-drop-Gesten und die Kartenstapel-Verwaltung ohne alten Drag-Handle.
 - `AGENTS.md`: lokale Entwicklungsregeln, empfohlene Kommandos und Architekturleitplanken.
 - `vercel.json`: aktueller Vercel-Build-/Rewrite-Anker fuer die Vite-App.
 - `.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag.

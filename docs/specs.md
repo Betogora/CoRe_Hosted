@@ -22,9 +22,9 @@ Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdow
 
 | Bereich | Implementierte lokale Module / Screens |
 |---|---|
-| Dashboard und Lernaktivitaet | `DashboardScreen`, `libraryModel.createStudyHeatmapModel`, `libraryModel.createStudyHeatmapWindow`, `libraryModel.getStudyHeatmapVisibleWeekCount`, Tagesmetriken, aktive Stapel, responsive und pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap |
+| Dashboard und Lernaktivitaet | `DashboardScreen`, `libraryModel.createStudyHeatmapModel`, `libraryModel.createStudyHeatmapWindow`, `libraryModel.getStudyHeatmapVisibleWeekCount`, kompakter Heute-/Heatmap-Kopf, Tagesmetriken, aktive Hauptstapel mit Unterbaum-Aggregaten, responsive und pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap |
 | Account, Profil, Datenschutz | `SettingsScreen`, `createCoreRepository().saveProfile()` |
-| Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `LearnScreen`, `libraryModel`, `coreWorkspace.renameDeck`, `coreWorkspace.moveDeck`, `coreModel.createCoreDeck`, `deckSettings.coreMode`, echte Parent-/Child-Stapel aus APKG-Hierarchien, Drag-and-drop-Unterstapel, direkte Umbenennung, aufklappbare und direkt ziehbare Lernuebersicht, Learning-Item-Normalisierung |
+| Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `LearnScreen`, `libraryModel`, `coreWorkspace.renameDeck`, `coreWorkspace.moveDeck`, `coreModel.createCoreDeck`, `deckSettings.coreMode`, echte Parent-/Child-Stapel aus APKG-Hierarchien, manuelle Unterstapel-Anlage, direkte Umbenennung, aufklappbare, gestaffelt hinterlegte und direkt klick- und ziehbare Lernuebersicht, Learning-Item-Normalisierung |
 | Import | `creationWorkflow`, `apkgImport`, `importService` fuer APKG/Text/CSV/Excel-Paste und normalisierte JSON-Payloads, Importberichte, Fingerprints/Dedupe, echte Unterstapel, Raw-Fallbacks, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge |
 | Manuelle Erstellung | `creationWorkflow`, `ManualCreationPanel`, `RichTextEditor`, `richText`, `htmlSafety`, `documentModel`, `sourceAnchors`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem` |
 | KI-Kartenerstellung | `creationWorkflow`, `aiOrchestrator.generateCardsFromDocument`, Draft-Review, Schema-Validation, normalisierte Draft-Items |
@@ -43,9 +43,9 @@ Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdow
 
 - Cleanere Navigation fuer Heute, Erstellen, Lernen, Graph und Community; Kartenstapel ist ueber den Lernen-Kopf erreichbar, Einstellungen ueber den Account-Button.
 - App-Shell und Lernmodus nutzen die verfuegbare Browserbreite ohne feste Desktop-Maximalbreite; beim Herauszoomen waechst die Oberflaeche mit der Seitenbreite.
-- Dashboard mit Tagesmetriken, aktiven Stapeln und GitHub-/Anki-artiger Jahres-Heatmap aus lokalen Review-Events; die Heatmap zeigt abhängig von der verfügbaren Breite ganze Wochen ohne horizontalen Slider und ist per Pfeil-Buttons bzw. Tastaturpfeilen navigierbar.
-- Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, direktem Umbenennen, Drag-and-drop-Verschieben nach Anki-Semantik, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare Stapelliste mit Neu-, Faellig- und Gesamtzahlen, CoRe-Status und Stapeloptionen ohne kartenbezogene Maturity-Anzeige und unterstützt direktes Anki-artiges Ziehen auf Stapelzeilen.
-- Frische lokale Browser-States werden mit einem reproduzierbaren Teststapel `Welt-Hauptstädte` geseedet: 245 Hauptstadtkarten aus dem ODbL-lizenzierten `mledoze/countries`-Snapshot, gruppiert in sieben Kontinent-Unterstapel; die zugehoerige echte APKG-Fixture liegt im Repository.
+- Dashboard mit kompaktem Heute-/Heatmap-Kopf, Tagesmetriken, aktiven Hauptstapeln mit aggregierten Unterstapel-Zahlen und GitHub-/Anki-artiger Jahres-Heatmap aus lokalen Review-Events; die Heatmap zeigt abhängig von der verfügbaren Breite ganze Wochen ohne horizontalen Slider und ist per Pfeil-Buttons bzw. Tastaturpfeilen navigierbar.
+- Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, direktem Umbenennen, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare, gestaffelt hinterlegte Stapelliste mit Neu-, Faellig- und Gesamtzahlen, CoRe-Status und direktem Zahnrad-Einstieg in die Stapelverwaltung ohne Zwischenmenue, startet Lernen per Klick auf die Stapelzeile und unterstützt direktes Anki-artiges Ziehen auf Stapelzeilen; Hauptstapel-Hintergründe umschließen sichtbare Unterstapel logisch wie eine Klammer.
+- Frische lokale Browser-States werden mit einem reproduzierbaren Teststapel `Welt-Hauptstädte` geseedet: 245 Hauptstadtkarten aus dem ODbL-lizenzierten `mledoze/countries`-Snapshot, gruppiert in sieben Kontinent-Unterstapel und mit dreimonatiger realistischer Lernhistorie inklusive 1.952 Review-Events, fälligen Karten, CoRe-reifen Karten und hartnäckigen, aber stabil bewältigten Karten; die zugehoerige echte APKG-Fixture liegt im Repository.
 - Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, importierte Varianten und KI-Drafts; Legacy-Karten werden beim Lesen normalisiert.
 - APKG-Basic-Import inklusive Importbericht, echtem Unterstapel-Mapping aus Anki-Hierarchien, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten pro Unterstapel, lokalem Browser-Medienspeicher und Reimport-Merge ohne Verlust lokaler Content-Edits.
 - Text-, CSV-, normalisierte JSON- und Excel-/Tabellen-Paste-Importe laufen ueber dieselbe Normalisierungsschicht; Fingerprints, Duplicate-Erkennung, Parent-/Hierarchy-Felder und Import-Warnungen sind im Modul abgesichert.
@@ -441,9 +441,11 @@ Lernstände sind privat. Standardmäßig DÜRFEN weder Lernfortschritt, fällige
 
 ### FR-DECK-001 — Deck-Hierarchie
 
-In der Stapelverwaltung MUESSEN Stapel direkt umbenannt und per Drag-and-drop verschoben werden koennen: Drop auf einen Stapel macht ihn zum Unterstapel, Drop auf die Hauptebene macht ihn zum Hauptstapel, Drop auf sich selbst oder eigene Nachfahren wird abgelehnt.
+In der Stapelverwaltung MUESSEN Stapel direkt umbenannt, manuell als Haupt- oder Unterstapel angelegt und als ganzer Stapelbaum geloescht werden koennen. Die alte sichtbare Drag-and-drop-Griffbedienung gehoert nicht mehr zur Stapelverwaltung.
 
-Die Lernuebersicht MUSS dieselbe Reparenting-Semantik direkt auf der Stapelzeile anbieten: Stapel koennen ohne sichtbaren Drag-Handle gezogen werden, interaktive Buttons bleiben Klickziele, und die linke Outdent-/freie Panel-Flaeche zieht Unterstapel wieder aus ihrem aktuellen Oberstapel heraus.
+Die Lernuebersicht MUSS dieselbe Reparenting-Semantik direkt auf der Stapelzeile anbieten: Stapel koennen ohne sichtbaren Drag-Handle gezogen werden, ein Klick auf nicht-interaktive Zeilenbereiche startet die Lernsitzung, interaktive Buttons bleiben eigene Klickziele, und die linke Outdent-/freie Panel-Flaeche zieht Unterstapel wieder aus ihrem aktuellen Oberstapel heraus.
+
+Die Lernuebersicht MUSS sichtbare Stapel als verschachtelte hellgraue Gruppen darstellen: Hauptstapel-Flächen sind etwas dunkler als Unterstapel-Flächen, benachbarte Gruppen haben klare Lücken, und der Eltern-Hintergrund bleibt hinter den sichtbaren Kindern erhalten.
 
 CoRe MUSS Stapel und Unterstapel abbilden können. Importierte Anki-Hierarchien können tief verschachtelt sein und SOLLEN so weit wie möglich erhalten bleiben. Lern- und Verwaltungsuebersichten MUESSEN Unterstapel als echte Hierarchie anzeigen; Elternstapel bleiben als aggregierter Lernstart fuer ihren Unterbaum funktionsfaehig. Nutzende MUESSEN manuell Hauptstapel und beliebig tief verschachtelte Unterstapel anlegen koennen.
 
@@ -491,7 +493,6 @@ Auf jedem Deck SOLLEN folgende Aktionen verfügbar sein:
 - Karte erstellen.
 - Unterstapel erstellen.
 - Stapel umbenennen.
-- Stapel per Drag-and-drop als Unterstapel oder Hauptstapel verschieben.
 - Importieren.
 - KI-Karten generieren.
 - CoRe-Modus ändern.
@@ -3004,11 +3005,11 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | Modul | Interface | Verantwortung |
 |---|---|---|
 | `src/coreModel.js` | `createCoreDeck`, `createCoreLearningItem`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem`, `createLearningItemsFromNormalizedInput`, `createCardVariant`, `getOriginalVariant`, `getAnswerSideAnchorMiniCard`, `updateCardContent`, `restoreCardVersion` | Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen, Deck-Settings |
-| `src/coreRepository.js` | `createCoreRepository()` | Persistenter lokaler App-State, Migration alter Decks, Default-Seed `Welt-Hauptstädte` fuer frische lokale Browser-States, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene |
-| `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `createDeck`, `renameDeck`, `moveDeck`, `deleteDeckTree`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard`, `addManualCardToDeck`, `applyVariantGenerationResponse` | Lokale App-Kommandos fuer Demo-Daten, manuelle Stapel-/Unterstapel-Baeume, Umbenennen, Drag-and-drop-Reparenting, Stapelbaum-Loeschen, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege, manuelles Anhängen an bestehende Stapel und KI-Variantenannahme |
+| `src/coreRepository.js` | `createCoreRepository()` | Persistenter lokaler App-State, Migration alter Decks, Default-Seed `Welt-Hauptstädte` samt dreimonatiger Lernhistorie fuer frische lokale Browser-States und unberuehrte persistierte Seeds, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene |
+| `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `createDeck`, `renameDeck`, `moveDeck`, `deleteDeckTree`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard`, `addManualCardToDeck`, `applyVariantGenerationResponse` | Lokale App-Kommandos fuer Demo-Daten, manuelle Stapel-/Unterstapel-Baeume, Umbenennen, Reparenting fuer die Lernuebersicht, Stapelbaum-Loeschen, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege, manuelles Anhängen an bestehende Stapel und KI-Variantenannahme |
 | `src/creationWorkflow.js` | `createCreationWorkflow` | In-process Creation-Kommandos fuer APKG-Preview/Commit, Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme; haelt Import-/Medien-/KI-Orchestrierung aus React heraus |
 | `src/scheduler.js` | `formatIntervalLabel`, `simulateRatingOutcome`, `getReviewButtonOptions`, `scheduleWithFsrsLikeModel`, `calculateRetrievability`, `getSchedulerStateForItem`, `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | FSRS-like Vier-Button-Scheduler, Button-Intervallvorschau, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
-| `src/libraryModel.js` | `createDeckLibraryModel`, `createVisibleDeckRows`, `createStudyHeatmapModel`, `createStudyHeatmapWindow`, `getStudyHeatmapVisibleWeekCount`, `createAiJobLedger` | UI-nahe Bibliotheksprojektion fuer Dashboard, baumartige Deckliste, aufklappbare Unterstapel-Sicht, Unterstapel-Aggregate, aktive Kartenzeilen, responsive Heatmap und KI-Job-Ledger |
+| `src/libraryModel.js` | `createDeckLibraryModel`, `createVisibleDeckRows`, `createStudyHeatmapModel`, `createStudyHeatmapWindow`, `getStudyHeatmapVisibleWeekCount`, `createAiJobLedger` | UI-nahe Bibliotheksprojektion fuer Dashboard-Hauptstapel, baumartige Deckliste, aufklappbare Unterstapel-Sicht, Unterstapel-Aggregate, aktive Kartenzeilen, responsive Heatmap und KI-Job-Ledger |
 | `src/reviewService.js` | `answerVariant`, `getNextReviewItem`, `createDailyReviewQueue`, `getEffectiveNewCardsPerDay`, `countNewCardsIntroducedToday`, `createReviewSession`, `recordReviewRating`, `recordVariantFeedback` | Tiefer Review-Flow fuer Antwortverarbeitung, Tages-Queue aus `dueAt <= now` plus Neue-Karten-Kontingent, FSRS-State, Fallback nach Fehlern, Eventbau, Familien-/Variantenstatus, Session-Projektion und Feedback-Kommandos |
 | `src/reviewFlow.js` | `answerVariant`, `getNextReviewItem` | Legacy-Fassade fuer bestehende Imports; Implementierung lebt in `src/reviewService.js` |
 | `src/coreVariantService.js` | `classifyCardEligibility`, `createVariantReviewModel`, `getLearningItemMaturity`, `getVariantReadiness`, `getVariantCoverage`, `getVariantGenerationRecommendation`, `getVariantGenerationPlan`, `getVariantFallbackTarget`, `ensureVariantsForCard`, `chooseReviewCard`, `deactivateVariant`, `flagVariant` | CoRe-Eligibility, Reifegrad-/Readiness-Projektion, Coverage, Generation-Plan, Fallback-Ziele, lokaler Fallback-Rephrase und Varianten-Feedback |
@@ -3037,10 +3038,10 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 
 Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen, Lernen, Graph und Community. `DecksScreen` bleibt als View erhalten, wird aber ueber den Kartenstapel-Button im Lernen-Kopf geoeffnet. `SettingsScreen` bleibt ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad erreichbar. KI-Jobs und Assistent sind aktuell keine eigenen Hauptnavigationspunkte.
 
-- `src/screens/DashboardScreen.jsx`: Tagesmetriken, aktive Stapel und responsive, pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap.
-- `src/screens/DecksScreen.jsx`: Deck-Hierarchie, Suche/Filter, manuelle Stapel-/Unterstapel-Anlage, direkte Stapel-Umbenennung, Drag-and-drop-Reparenting, Stapelbaum-Loeschen, CoRe-Modus, Karten-CRUD, Aktionen.
+- `src/screens/DashboardScreen.jsx`: kompakter Heute-/Heatmap-Kopf, Tagesmetriken, aktive Hauptstapel mit Unterbaum-Aggregaten und responsive, pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap.
+- `src/screens/DecksScreen.jsx`: Deck-Hierarchie, Suche/Filter, manuelle Stapel-/Unterstapel-Anlage, direkte Stapel-Umbenennung, Stapelbaum-Loeschen, CoRe-Modus, Karten-CRUD, Aktionen.
 - `src/screens/CreationScreen.jsx`: APKG, Text/CSV/Excel-Paste, manuell, PDF-/Text-Dokumenterstellung mit Quellenanker, KI-Drafts.
-- `src/screens/LearnScreen.jsx`: Aufklappbare Lernuebersicht fuer Stapel und Unterstapel mit Neu-/Faellig-/Gesamtzahlen, CoRe-Status, Lernen-Start, Stapeloptionen und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
+- `src/screens/LearnScreen.jsx`: Aufklappbare Lernuebersicht fuer Stapel und Unterstapel mit gestaffelten hellgrauen Gruppenhintergruenden, Neu-/Faellig-/Gesamtzahlen, CoRe-Status, klickbaren Stapelzeilen zum Lernstart, direktem Zahnrad-Einstieg in die Stapelverwaltung und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
 - `src/screens/StudyMode.jsx`: Clean Fullscreen Review, Tages-Queue fuer jetzt faellige Karten plus neue Karten, Neue-Karten-Tageslimit, Front+Back nach Aufdeckung, vier Buttons mit Intervallvorschau, Tastatursteuerung, Originalanker, Variantenfeedback.
 - `src/screens/GraphScreen.jsx`: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.
 - `src/screens/CommunityScreen.jsx`: Community erstellen, Deck teilen, Deck kopieren.
@@ -3051,7 +3052,7 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 ### 27.3 Testoberflaeche
 
 - `src/coreFeatures.test.js`: Scheduler, Bibliotheksmodell, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.
-- `src/coreWorkspace.test.js`: lokale App-Kommandos fuer Demo-Deck, Welt-Hauptstadt-Seed, Stapel-Rename, Stapel-Move, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.
+- `src/coreWorkspace.test.js`: lokale App-Kommandos fuer Demo-Deck, Welt-Hauptstadt-Seed mit Lernhistorie, unberuehrte Seed-Migration, Stapel-Rename, Stapel-Move, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.
 - `src/creationWorkflow.test.js`: Creation-Workflow-Interface fuer APKG-Fehlerform, Paste-Import, manuelle Dokumentanker, KI-Draft-Erzeugung und Draft-Annahme.
 - `src/coreModel.test.js`: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.
 - `src/libraryModel.test.js`: Dashboard-/Bibliotheksprojektionen, sichtbare Deckzeilen und Heatmap-Fenster.
@@ -3066,7 +3067,7 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 - `src/mediaStore.test.js`: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.
 - `src/richText.test.js`: Rich-Text-Normalisierung, Plain-Text-Anhaengen und leere Karteninhalte.
 - `src/menuModel.test.js`: Navigationsvertrag.
-- `tests/e2e/world-capitals-hierarchy.spec.js`: Browser-Smoke fuer frischen lokalen Seed, sichtbare Unterstapel, direkte Lernlisten-Drag-Geste, Outdent-Reparenting und interaktive Controls ohne Drag-Start.
+- `tests/e2e/world-capitals-hierarchy.spec.js`: Browser-Smoke fuer frischen lokalen Seed, sichtbare Unterstapel, gestaffelte Lernlisten-Gruppenhintergruende, Zeilenklick zum Lernstart, direkte Lernlisten-Drag-Geste, Outdent-Reparenting, interaktive Controls ohne Drag-Start und Kartenstapel-Verwaltung ohne alten Drag-Handle.
 
 ### 27.4 Gemeinsames Kartenmodell
 

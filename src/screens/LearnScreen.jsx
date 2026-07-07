@@ -1,11 +1,16 @@
 import React from "react";
-import { BookOpen, ChevronDown, ChevronRight, Ellipsis, Layers, Play, PlusSquare } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronRight, Layers, PlusSquare, Settings } from "lucide-react";
 import { createDeckLibraryModel, createVisibleDeckRows } from "../libraryModel.js";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
 
 const INTERACTIVE_DRAG_SELECTOR = "button, a, input, textarea, select, [role='menu'], [role='menuitem']";
 const LEARN_TOP_LEVEL_GUTTER_PX = 28;
-const LEARN_DEPTH_INDENT_PX = 20;
+const LEARN_GROUP_STYLES = [
+  { backgroundColor: "#eef2f7", borderColor: "#dde5f0" },
+  { backgroundColor: "#f4f6fa", borderColor: "#e3e8f1" },
+  { backgroundColor: "#f8f9fc", borderColor: "#e8edf5" },
+  { backgroundColor: "#fbfcff", borderColor: "#edf1f7" },
+];
 
 function coreModeLabel(mode) {
   if (mode === "off") return "CoRe aus";
@@ -39,15 +44,33 @@ function isRowElement(target) {
   return target instanceof Element && Boolean(target.closest("[data-learn-deck-row='true']"));
 }
 
+function getLearnGroupStyle(depth = 0) {
+  return LEARN_GROUP_STYLES[Math.min(Math.max(0, depth), LEARN_GROUP_STYLES.length - 1)];
+}
+
+function createVisibleDeckTree(rows = []) {
+  const nodesById = new Map(rows.map((row) => [row.id, { row, children: [] }]));
+  const roots = [];
+
+  for (const node of nodesById.values()) {
+    const parentNode = node.row.parentDeckId ? nodesById.get(node.row.parentDeckId) : null;
+    if (parentNode) parentNode.children.push(node);
+    else roots.push(node);
+  }
+
+  return roots;
+}
+
 export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onMoveDeck }) {
   const library = createDeckLibraryModel(decks);
   const [collapsedDeckIds, setCollapsedDeckIds] = React.useState(() => new Set());
-  const [openOptionsDeckId, setOpenOptionsDeckId] = React.useState(null);
   const [draggedDeckId, setDraggedDeckId] = React.useState(null);
   const [dropIntent, setDropIntent] = React.useState(null);
   const [dragStatus, setDragStatus] = React.useState("");
   const draggedDeckIdRef = React.useRef(null);
+  const lastDragEndAtRef = React.useRef(0);
   const visibleRows = createVisibleDeckRows(library.rows, collapsedDeckIds);
+  const visibleTree = React.useMemo(() => createVisibleDeckTree(visibleRows), [visibleRows]);
   const rowById = React.useMemo(() => new Map(library.rows.map((row) => [row.id, row])), [library.rows]);
 
   function toggleCollapsed(deckId) {
@@ -59,12 +82,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
     });
   }
 
-  function toggleOptions(deckId) {
-    setOpenOptionsDeckId((current) => (current === deckId ? null : deckId));
-  }
-
   function openDeckManagement(deckId) {
-    setOpenOptionsDeckId(null);
     onOpenDecks(deckId);
   }
 
@@ -73,6 +91,9 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
   }
 
   function clearDragState() {
+    if (draggedDeckIdRef.current || draggedDeckId) {
+      lastDragEndAtRef.current = Date.now();
+    }
     draggedDeckIdRef.current = null;
     setDraggedDeckId(null);
     setDropIntent(null);
@@ -92,6 +113,20 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
     event.dataTransfer.setData("text/plain", row.id);
   }
 
+  function startDeckFromRow(event, deck) {
+    if (event.defaultPrevented || isInteractiveDragTarget(event.target)) return;
+    if (Date.now() - lastDragEndAtRef.current < 250) return;
+    onStartDeck(deck, false);
+  }
+
+  function startDeckFromKeyboard(event, deck) {
+    if (isInteractiveDragTarget(event.target)) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    onStartDeck(deck, false);
+  }
+
   function isInvalidDropTarget(row, sourceDeckId) {
     const sourceRow = rowById.get(sourceDeckId);
     return !sourceDeckId || row.id === sourceDeckId || Boolean(sourceRow?.scopeDeckIds?.includes(row.id));
@@ -101,8 +136,8 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
     const sourceDeckId = readDraggedDeckId(event);
     const invalid = isInvalidDropTarget(row, sourceDeckId);
     const rowRect = event.currentTarget.getBoundingClientRect();
-    const outdentLimit = rowRect.left + Math.min(row.depth, 6) * LEARN_DEPTH_INDENT_PX + LEARN_TOP_LEVEL_GUTTER_PX;
-    const shouldMoveToTopLevel = row.depth > 0 && event.clientX <= outdentLimit;
+    const pointerX = event.clientX - rowRect.left;
+    const shouldMoveToTopLevel = row.depth > 0 && pointerX <= LEARN_TOP_LEVEL_GUTTER_PX;
 
     return {
       targetDeckId: row.id,
@@ -159,6 +194,99 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
     clearDragState();
   }
 
+  function renderDeckGroup(node) {
+    const row = node.row;
+    const deck = row.deck;
+    const summary = row.summary;
+    const isCollapsed = collapsedDeckIds.has(deck.id);
+    const isDragged = draggedDeckId === deck.id;
+    const isDeckDropTarget = dropIntent?.targetDeckId === deck.id && !dropIntent.invalid && dropIntent.parentDeckId === deck.id;
+    const isOutdentDropTarget = dropIntent?.targetDeckId === deck.id && !dropIntent.invalid && dropIntent.kind === "top";
+    const isInvalidDropTarget = dropIntent?.targetDeckId === deck.id && dropIntent.invalid;
+
+    return (
+      <div
+        key={deck.id}
+        data-testid={`learn-deck-group-${deck.id}`}
+        data-learn-deck-group="true"
+        className={`grid gap-2 rounded-2xl border p-2 transition md:gap-3 md:p-3 ${isDragged ? "opacity-60" : ""}`}
+        style={getLearnGroupStyle(row.depth)}
+      >
+        <div
+          draggable={Boolean(onMoveDeck)}
+          onDragStart={(event) => startDeckDrag(event, row)}
+          onDragEnd={clearDragState}
+          onDragOver={(event) => allowRowDrop(event, row)}
+          onDragLeave={leaveDropTarget}
+          onDrop={(event) => dropDeck(event, createRowDropIntent(event, row))}
+          onClick={(event) => startDeckFromRow(event, deck)}
+          onKeyDown={(event) => startDeckFromKeyboard(event, deck)}
+          role="button"
+          tabIndex={0}
+          aria-label={`${deck.name} lernen`}
+          data-testid={`learn-deck-row-${deck.id}`}
+          data-learn-deck-row="true"
+          className={`relative grid min-w-0 cursor-pointer gap-3 rounded-xl px-1 py-4 transition duration-150 hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8c96dc] md:grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_8rem_3rem] md:items-center md:gap-3 md:px-3 ${
+            onMoveDeck ? "active:cursor-grabbing" : ""
+          } ${isDeckDropTarget ? "bg-[#eef1fb] ring-2 ring-[#8c96dc]" : ""} ${isOutdentDropTarget ? "bg-white/85 shadow-[inset_5px_0_0_#8c96dc]" : ""} ${
+            isInvalidDropTarget ? "bg-red-50 ring-2 ring-red-200" : ""
+          }`}
+        >
+          <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${Math.min(row.depth, 6) * 1.25}rem` }}>
+            {row.hasChildren ? (
+              <button
+                type="button"
+                onClick={() => toggleCollapsed(deck.id)}
+                className="grid size-8 shrink-0 place-items-center rounded-lg text-[#4f5eb1] hover:bg-[#eef1fb]"
+                aria-label={isCollapsed ? "Unterstapel anzeigen" : "Unterstapel ausblenden"}
+                aria-expanded={!isCollapsed}
+              >
+                {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
+              </button>
+            ) : (
+              <span className="size-8 shrink-0" aria-hidden="true" />
+            )}
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]">
+              <BookOpen size={18} aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
+              <span className="mt-1 block text-sm text-[#66709a] md:hidden">
+                {summary.newCards} neu · {summary.dueCards} fällig · {summary.totalCards} gesamt
+              </span>
+              {row.hasChildren ? <span className="mt-1 block text-xs font-semibold text-[#66709a]">{row.childrenCount} Unterstapel</span> : null}
+            </span>
+          </div>
+
+          <CountCell label="Neu" value={summary.newCards} />
+          <CountCell label="Fällig" value={summary.dueCards} />
+          <CountCell label="Gesamt" value={summary.totalCards} />
+
+          <div className="flex items-center md:block">
+            <CoreStatusBadge mode={deck.deckSettings?.coreMode} />
+          </div>
+
+          <div className="flex justify-start md:justify-end">
+            <button
+              type="button"
+              onClick={() => openDeckManagement(deck.id)}
+              className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1] hover:bg-white"
+              aria-label="Stapel verwalten"
+            >
+              <Settings size={18} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
+        {node.children.length > 0 ? (
+          <div data-learn-deck-children="true" className="grid gap-2 md:gap-3">
+            {node.children.map(renderDeckGroup)}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="grid min-w-0 gap-7">
       <PageHeader
@@ -201,110 +329,16 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
           <span className="sr-only" aria-live="polite">
             {dragStatus}
           </span>
-          <div className="hidden grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_8rem_8rem_3rem] items-center gap-3 border-b border-[#e3e7f5] px-3 pb-3 text-xs font-semibold uppercase tracking-wide text-[#66709a] md:grid">
+          <div className="hidden grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_8rem_3rem] items-center gap-3 border-b border-[#e3e7f5] px-3 pb-3 text-xs font-semibold uppercase tracking-wide text-[#66709a] md:grid">
             <span>Stapel</span>
             <span className="text-right">Neu</span>
             <span className="text-right">Fällig</span>
             <span className="text-right">Gesamt</span>
             <span>CoRe</span>
-            <span className="text-right">Start</span>
             <span className="sr-only">Extras</span>
           </div>
-          <div className="divide-y divide-[#e6eaf6]">
-            {visibleRows.map((row) => {
-              const deck = row.deck;
-              const summary = row.summary;
-              const isCollapsed = collapsedDeckIds.has(deck.id);
-              const isOptionsOpen = openOptionsDeckId === deck.id;
-              const menuId = `learn-deck-options-${deck.id}`;
-              const isDragged = draggedDeckId === deck.id;
-              const isDeckDropTarget = dropIntent?.targetDeckId === deck.id && !dropIntent.invalid && dropIntent.parentDeckId === deck.id;
-              const isOutdentDropTarget = dropIntent?.targetDeckId === deck.id && !dropIntent.invalid && dropIntent.kind === "top";
-              const isInvalidDropTarget = dropIntent?.targetDeckId === deck.id && dropIntent.invalid;
-
-              return (
-                <div
-                  key={deck.id}
-                  draggable={Boolean(onMoveDeck)}
-                  onDragStart={(event) => startDeckDrag(event, row)}
-                  onDragEnd={clearDragState}
-                  onDragOver={(event) => allowRowDrop(event, row)}
-                  onDragLeave={leaveDropTarget}
-                  onDrop={(event) => dropDeck(event, createRowDropIntent(event, row))}
-                  data-testid={`learn-deck-row-${deck.id}`}
-                  data-learn-deck-row="true"
-                  className={`relative grid min-w-0 gap-3 rounded-xl px-1 py-4 transition duration-150 md:grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_8rem_8rem_3rem] md:items-center md:gap-3 md:px-3 ${
-                    onMoveDeck ? "cursor-grab active:cursor-grabbing" : ""
-                  } ${isDragged ? "scale-[0.995] opacity-60 ring-1 ring-[#c7cee8]" : ""} ${
-                    isDeckDropTarget ? "bg-[#eef1fb] ring-2 ring-[#8c96dc]" : ""
-                  } ${isOutdentDropTarget ? "bg-white/85 shadow-[inset_5px_0_0_#8c96dc]" : ""} ${
-                    isInvalidDropTarget ? "bg-red-50 ring-2 ring-red-200" : ""
-                  }`}
-                >
-                  <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${Math.min(row.depth, 6) * 1.25}rem` }}>
-                    {row.hasChildren ? (
-                      <button
-                        type="button"
-                        onClick={() => toggleCollapsed(deck.id)}
-                        className="grid size-8 shrink-0 place-items-center rounded-lg text-[#4f5eb1] hover:bg-[#eef1fb]"
-                        aria-label={isCollapsed ? "Unterstapel anzeigen" : "Unterstapel ausblenden"}
-                        aria-expanded={!isCollapsed}
-                      >
-                        {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
-                      </button>
-                    ) : (
-                      <span className="size-8 shrink-0" aria-hidden="true" />
-                    )}
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]">
-                      <BookOpen size={18} aria-hidden="true" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
-                      <span className="mt-1 block text-sm text-[#66709a] md:hidden">
-                        {summary.newCards} neu · {summary.dueCards} fällig · {summary.totalCards} gesamt
-                      </span>
-                      {row.hasChildren ? <span className="mt-1 block text-xs font-semibold text-[#66709a]">{row.childrenCount} Unterstapel</span> : null}
-                    </span>
-                  </div>
-
-                  <CountCell label="Neu" value={summary.newCards} />
-                  <CountCell label="Fällig" value={summary.dueCards} />
-                  <CountCell label="Gesamt" value={summary.totalCards} />
-
-                  <div className="flex items-center md:block">
-                    <CoreStatusBadge mode={deck.deckSettings?.coreMode} />
-                  </div>
-
-                  <div className="flex items-center gap-2 md:justify-end">
-                    <button type="button" onClick={() => onStartDeck(deck, false)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
-                      <Play size={16} aria-hidden="true" />
-                      Lernen
-                    </button>
-                  </div>
-
-                  <div className="flex justify-start md:justify-end">
-                    <button
-                      type="button"
-                      onClick={() => toggleOptions(deck.id)}
-                      className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1] hover:bg-white"
-                      aria-label="Stapeloptionen"
-                      aria-haspopup="menu"
-                      aria-expanded={isOptionsOpen}
-                      aria-controls={menuId}
-                    >
-                      <Ellipsis size={18} aria-hidden="true" />
-                    </button>
-                    {isOptionsOpen ? (
-                      <div id={menuId} role="menu" className="core-overlay absolute right-3 top-[calc(100%-0.75rem)] z-10 min-w-48 rounded-xl p-2 text-sm font-semibold text-[#17214f]">
-                        <button type="button" role="menuitem" onClick={() => openDeckManagement(deck.id)} className="block min-h-10 w-full rounded-lg px-3 text-left hover:bg-[#f2f4fd]">
-                          Stapel verwalten
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid gap-3" data-testid="learn-deck-tree">
+            {visibleTree.map(renderDeckGroup)}
           </div>
         </SoftPanel>
       )}

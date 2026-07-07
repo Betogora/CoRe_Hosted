@@ -1,5 +1,5 @@
 import { createDefaultDeckSettings, normalizeCoreDeck } from "./coreModel.js";
-import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.js";
+import { createWorldCapitalsSeedDecks, ensureWorldCapitalsStudyHistory } from "./fixtures/worldCapitals.js";
 
 const LEGACY_DECKS_KEY = "core.importedDecks.v1";
 const APP_STATE_KEY = "core.appState.v2";
@@ -77,7 +77,7 @@ function normalizeStoredDecks(decks) {
 
 function normalizeState(rawState) {
   const fallback = createDefaultState({ seedDefaultDecks: false });
-  const decks = normalizeStoredDecks(rawState?.decks);
+  const decks = ensureWorldCapitalsStudyHistory(normalizeStoredDecks(rawState?.decks));
 
   return {
     ...fallback,
