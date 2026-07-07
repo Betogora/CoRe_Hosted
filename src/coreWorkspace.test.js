@@ -58,6 +58,17 @@ test("workspace creates the demo deck behind one interface", () => {
   assert.equal(workspace.getState().decks[0].cards[0].coreState.isCoreReady, true);
 });
 
+test("workspace saves single and multi-deck creation results behind one interface", () => {
+  const workspace = createTestWorkspace();
+  const single = workspace.saveDecks(createDemoAnatomyDeck());
+  const multiple = workspace.saveDecks([createDemoAnatomyDeck(), createDemoAnatomyDeck()]);
+
+  assert.equal(single.name, "Demo / Anatomie");
+  assert.equal(multiple.length, 2);
+  assert.equal(multiple.every((deck) => deck.cards.length === 2), true);
+  assert.equal(workspace.getState().decks.length, 3);
+});
+
 test("workspace can seed the world capitals deck for an empty local tester account", () => {
   const workspace = createCoreWorkspace(createCoreRepository(createMemoryStorage(), { seedDefaultDecks: true }));
   const state = workspace.getState();

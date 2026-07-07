@@ -215,6 +215,30 @@ function updateDeckTreePlacement(state, { deckId, name = null, parentDeckId = un
   };
 }
 
+function toDeckArray(deckOrDecks) {
+  if (Array.isArray(deckOrDecks)) return deckOrDecks.filter(Boolean);
+  return deckOrDecks ? [deckOrDecks] : [];
+}
+
+function saveDeckCollection(repository, deckOrDecks) {
+  const savedDecks = toDeckArray(deckOrDecks).map((deck) => repository.saveDeck(deck));
+  return Array.isArray(deckOrDecks) ? savedDecks : savedDecks[0] ?? null;
+}
+
+function saveImportDeckResult(repository, result, options = {}) {
+  if (options.dryRun) return result;
+
+  const decks = result?.decks?.length ? result.decks : toDeckArray(result?.deck);
+  if (!decks.length) return result;
+
+  const savedDecks = saveDeckCollection(repository, decks);
+  return {
+    ...result,
+    deck: savedDecks[0] ?? null,
+    decks: savedDecks,
+  };
+}
+
 export function createCoreWorkspace(repository = createCoreRepository()) {
   return {
     getState() {
@@ -225,6 +249,9 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
     },
     saveDeck(deck) {
       return repository.saveDeck(deck);
+    },
+    saveDecks(deckOrDecks) {
+      return saveDeckCollection(repository, deckOrDecks);
     },
     createDeck({ name = "Neuer Stapel", parentDeckId = null, description = "", deckSettings = {} } = {}) {
       const state = repository.getState();
@@ -441,7 +468,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         dryRun: false,
         existingDecks: state.decks,
       });
-      return result.deck ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+      return saveImportDeckResult(repository, result);
     },
     importTextDeck(input = {}, options = {}) {
       const state = repository.getState();
@@ -450,7 +477,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         ...options,
         existingDecks: state.decks,
       });
-      return result.deck && !options.dryRun ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+      return saveImportDeckResult(repository, result, options);
     },
     importCsvDeck(input = {}, options = {}) {
       const state = repository.getState();
@@ -459,7 +486,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         ...options,
         existingDecks: state.decks,
       });
-      return result.deck && !options.dryRun ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+      return saveImportDeckResult(repository, result, options);
     },
     importJsonDeck(input = {}, options = {}) {
       const state = repository.getState();
@@ -467,7 +494,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         ...options,
         existingDecks: state.decks,
       });
-      return result.deck && !options.dryRun ? { ...result, deck: repository.saveDeck(result.deck) } : result;
+      return saveImportDeckResult(repository, result, options);
     },
     async dryRunApkgImport(input, options = {}) {
       const state = repository.getState();
@@ -482,15 +509,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         ...options,
         existingDecks: state.decks,
       });
-      if (result.decks?.length) {
-        const savedDecks = result.decks.map((deck) => repository.saveDeck(deck));
-        return { ...result, deck: savedDecks[0] ?? null, decks: savedDecks };
-      }
-      if (result.deck) {
-        const savedDeck = repository.saveDeck(result.deck);
-        return { ...result, deck: savedDeck, decks: [savedDeck] };
-      }
-      return result;
+      return saveImportDeckResult(repository, result);
     },
     async importApkgDeck(input, options = {}) {
       const state = repository.getState();
@@ -498,15 +517,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         ...options,
         existingDecks: state.decks,
       });
-      if (result.decks?.length) {
-        const savedDecks = result.decks.map((deck) => repository.saveDeck(deck));
-        return { ...result, deck: savedDecks[0] ?? null, decks: savedDecks };
-      }
-      if (result.deck) {
-        const savedDeck = repository.saveDeck(result.deck);
-        return { ...result, deck: savedDeck, decks: [savedDeck] };
-      }
-      return result;
+      return saveImportDeckResult(repository, result);
     },
     ensureDeckGraph(deckId) {
       const deck = repository.getDeck(deckId);

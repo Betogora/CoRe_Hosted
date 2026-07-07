@@ -2,7 +2,7 @@ import React from "react";
 import { Ban, Eye, Flag, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { getLearningItemAnswer, getLearningItemQuestion } from "../coreModel.js";
 import { resolveReviewShortcut } from "../reviewShortcuts.js";
-import { answerVariant, createDailyReviewQueue, getLocalReviewDateKey, recordVariantFeedback } from "../reviewService.js";
+import { answerVariant, createDailyReviewQueue, recordVariantFeedback, updateDeckNewCardLimitForDate } from "../reviewService.js";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
 import { MiniProgress } from "../ui/coreUi.jsx";
 import { maturityStageLabels, ratingButtons } from "./screenConstants.js";
@@ -110,18 +110,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
 
   function setTodayNewCardLimit(limit) {
     if (!rootDeck) return;
-    const nextLimit = Math.max(0, Math.round(Number(limit) || 0));
-    const updatedRootDeck = {
-      ...rootDeck,
-      deckSettings: {
-        ...rootDeck.deckSettings,
-        newCardsTodayOverride: {
-          date: getLocalReviewDateKey(),
-          limit: nextLimit,
-        },
-      },
-      updatedAt: new Date().toISOString(),
-    };
+    const updatedRootDeck = updateDeckNewCardLimitForDate(rootDeck, limit);
     onDeckUpdated(updatedRootDeck);
     setSessionDecks((currentDecks) => replaceSessionDeck(updatedRootDeck, currentDecks));
   }

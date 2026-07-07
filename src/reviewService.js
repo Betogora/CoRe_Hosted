@@ -115,6 +115,24 @@ export function getEffectiveNewCardsPerDay(deck, options = {}) {
   return settings.newCardsPerDay;
 }
 
+export function updateDeckNewCardLimitForDate(deck, limit, options = {}) {
+  const now = options.now ?? new Date();
+  const updatedAt = options.updatedAt ?? new Date(now).toISOString();
+  const nextLimit = Math.max(0, Math.round(Number(limit) || 0));
+
+  return {
+    ...deck,
+    deckSettings: {
+      ...deck.deckSettings,
+      newCardsTodayOverride: {
+        date: getLocalReviewDateKey(now),
+        limit: nextLimit,
+      },
+    },
+    updatedAt,
+  };
+}
+
 export function countNewCardsIntroducedToday(decksOrDeck, options = {}) {
   const now = options.now ?? new Date();
   const dateKey = options.dateKey ?? localDateKey(now);

@@ -43,12 +43,7 @@ export function App() {
   }
 
   function saveDeck(deck) {
-    if (Array.isArray(deck)) {
-      const savedDecks = deck.map((item) => workspace.saveDeck(item));
-      refresh();
-      return savedDecks;
-    }
-    const saved = workspace.saveDeck(deck);
+    const saved = workspace.saveDecks(deck);
     refresh();
     return saved;
   }

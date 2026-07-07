@@ -248,11 +248,15 @@ test("workspace commit normalized import mutates state and dry run does not", ()
   const dryRun = workspace.dryRunNormalizedImport(sampleNormalizedDeck());
   const beforeCommit = workspace.getState().decks.length;
   const committed = workspace.commitNormalizedImport(sampleNormalizedDeck());
+  const commitWorkspace = createCoreWorkspace(createCoreRepository(createMemoryStorage()));
+  const committedDespiteDryRunOption = commitWorkspace.commitNormalizedImport(sampleNormalizedDeck(), { dryRun: true });
   const textDryRun = workspace.importTextDeck({ deckName: "Text", text: "Front\n---\nBack" }, { dryRun: true });
 
   assert.equal(dryRun.report.createdLearningItems, 2);
   assert.equal(beforeCommit, 0);
   assert.equal(committed.deck.cards.length, 2);
+  assert.equal(committedDespiteDryRunOption.deck.cards.length, 2);
+  assert.equal(commitWorkspace.getState().decks.length, 1);
   assert.equal(workspace.getState().decks.length, 1);
   assert.equal(workspace.getState().decks[0].cards[0].reviewState.schedulerVersion, "fsrs_v1");
   assert.equal(getNextReviewItem(workspace.getState().decks[0]).learningItemId, workspace.getState().decks[0].cards[0].id);

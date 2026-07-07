@@ -3,7 +3,7 @@ import test from "node:test";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getOriginalVariant } from "./coreModel.js";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.js";
 import { importNormalizedDeck } from "./importService.js";
-import { answerVariant, createDailyReviewQueue, getNextReviewItem } from "./reviewService.js";
+import { answerVariant, createDailyReviewQueue, getNextReviewItem, updateDeckNewCardLimitForDate } from "./reviewService.js";
 import { formatIntervalLabel, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.js";
 
 const NOW = "2026-07-07T10:00:00.000Z";
@@ -333,6 +333,25 @@ test("daily review queue subtracts new cards introduced today and honors today's
   assert.equal(queue.newCardsIntroducedToday, 1);
   assert.equal(queue.newCount, 6);
   assert.equal(queue.total, 6);
+});
+
+test("daily new-card limit updates through the review interface", () => {
+  const deck = createCoreDeck({
+    id: "deck_scheduler_intervals",
+    name: "Queue",
+    source: "manual",
+    deckSettings: { newCardsPerDay: 5 },
+    cards: [newItem()],
+  });
+  const updated = updateDeckNewCardLimitForDate(deck, "7", { now: NOW });
+  const clamped = updateDeckNewCardLimitForDate(deck, "-4", { now: NOW });
+  const queue = createDailyReviewQueue(updated, { now: NOW });
+
+  assert.equal(updated.deckSettings.newCardsTodayOverride.date, "2026-07-07");
+  assert.equal(updated.deckSettings.newCardsTodayOverride.limit, 7);
+  assert.equal(updated.updatedAt, NOW);
+  assert.equal(queue.newCardsPerDay, 7);
+  assert.equal(clamped.deckSettings.newCardsTodayOverride.limit, 0);
 });
 
 test("daily review queue carries rating interval labels for the UI buttons", () => {
