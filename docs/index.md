@@ -8,6 +8,7 @@ Diese Datei ist die Dokumentationskarte fuer CoRe. Die Root-Ebene bleibt bewusst
 - `specs.md`: kanonische Produkt- und Engineering-Spezifikation.
 - `specs.html`: generierte HTML-Fassung von `specs.md`.
 - `todo.md`: priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.
+- `anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
 
 ## Technical Anchors Outside Documentation
 
