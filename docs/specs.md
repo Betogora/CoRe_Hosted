@@ -22,9 +22,9 @@ Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese ze
 |---|---|
 | Account, Profil, Datenschutz | `DashboardScreen`, `SettingsScreen`, `createCoreRepository().saveProfile()` |
 | Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `coreModel.createCoreDeck`, `deckSettings.coreMode`, Learning-Item-Normalisierung |
-| Import | `apkgImport`, `importService` fuer APKG/Text/CSV/Excel-Paste, Importberichte, Raw-Fallbacks, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge |
-| Manuelle Erstellung | `ManualCreationPanel`, `documentModel`, `sourceAnchors`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem` |
-| KI-Kartenerstellung | `aiOrchestrator.generateCardsFromDocument`, Draft-Review, Schema-Validation, normalisierte Draft-Items |
+| Import | `creationWorkflow`, `apkgImport`, `importService` fuer APKG/Text/CSV/Excel-Paste, Importberichte, Raw-Fallbacks, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge |
+| Manuelle Erstellung | `creationWorkflow`, `ManualCreationPanel`, `documentModel`, `sourceAnchors`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem` |
+| KI-Kartenerstellung | `creationWorkflow`, `aiOrchestrator.generateCardsFromDocument`, Draft-Review, Schema-Validation, normalisierte Draft-Items |
 | Review/Scheduler | `reviewService`, `reviewFlow` als Legacy-Fassade, `scheduler`, `reviewShortcuts`, vier Buttons, Tastatur, Front+Back nach Aufdeckung, FSRS-like State, Learning-Item-/Varianten-Events |
 | Content Repetition | `coreVariantService`, `variantGeneration`, `variantSelection`, Eligibility, Rephrase, Variant-Level, Readiness/Coverage/Generation-Plan, Fallback nach Fehlern, Original-Variantenanker, Variantenstatus, Dedupe-Hash |
 | Trust/Versionierung | `sourceAnchors`, `versionLog`, Variant-Feedback, Deaktivieren, Restore-Basis |
@@ -2959,6 +2959,7 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/coreModel.js` | `createCoreDeck`, `createCoreLearningItem`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem`, `createLearningItemsFromNormalizedInput`, `createCardVariant`, `getOriginalVariant`, `getAnswerSideAnchorMiniCard`, `updateCardContent`, `restoreCardVersion` | Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen, Deck-Settings |
 | `src/coreRepository.js` | `createCoreRepository()` | Persistenter lokaler App-State, Migration alter Decks, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene |
 | `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard` | Lokale App-Kommandos fuer Demo-Daten, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege und Massen-Deck-Updates |
+| `src/creationWorkflow.js` | `createCreationWorkflow` | In-process Creation-Kommandos fuer APKG-Preview/Commit, Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme; haelt Import-/Medien-/KI-Orchestrierung aus React heraus |
 | `src/scheduler.js` | `scheduleWithFsrsLikeModel`, `calculateRetrievability`, `getSchedulerStateForItem`, `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | FSRS-like Vier-Button-Scheduler, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
 | `src/libraryModel.js` | `createDeckLibraryModel`, `createAiJobLedger` | UI-nahe Bibliotheksprojektion fuer Dashboard, Deckliste, aktive Kartenzeilen und KI-Job-Ledger |
 | `src/reviewService.js` | `answerVariant`, `getNextReviewItem`, `createReviewSession`, `recordReviewRating`, `recordVariantFeedback` | Tiefer Review-Flow fuer Antwortverarbeitung, FSRS-State, Fallback nach Fehlern, Eventbau, Familien-/Variantenstatus, Session-Projektion und Feedback-Kommandos |
@@ -2999,6 +3000,7 @@ Alle Screens liegen derzeit in `src/App.jsx`, verwenden aber die Module oben als
 
 - `src/coreFeatures.test.js`: Scheduler, Bibliotheksmodell, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.
 - `src/coreWorkspace.test.js`: lokale App-Kommandos fuer Demo-Deck, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.
+- `src/creationWorkflow.test.js`: Creation-Workflow-Interface fuer APKG-Fehlerform, Paste-Import, manuelle Dokumentanker, KI-Draft-Erzeugung und Draft-Annahme.
 - `src/coreModel.test.js`: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.
 - `src/creationPipeline.test.js`: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.
 - `src/learningModel.test.js`: Legacy-Card-Normalisierung, Learning-Item-Invarianten und Review-Event-Kompatibilitaetsfelder.

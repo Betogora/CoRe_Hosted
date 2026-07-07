@@ -48,14 +48,9 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
-import { commitImport, createApkgImportPreview } from "./apkgImport.js";
-import { generateCardsFromDocument } from "./aiOrchestrator.js";
 import { connectOAuthPlaceholder, createLocalAccount, signInLocalAccount, signOutLocalAccount } from "./authModel.js";
 import { createCommunity, copySharedDeckToLibrary, shareDeckToCommunity } from "./communityModel.js";
 import {
-  acceptAiDraftDeck,
-  createManualCoreDeck,
-  createSourceDocument,
   getLearningItemAnswer,
   getLearningItemQuestion,
   getOriginalVariant,
@@ -66,19 +61,19 @@ import {
   buildCardVariationPrompt,
   createVariantReviewModel,
 } from "./coreVariantService.js";
+import { createCreationWorkflow } from "./creationWorkflow.js";
 import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport, validatePortableExport } from "./dataPortability.js";
 import { answerDeckQuestion } from "./deckAssistant.js";
 import { buildDeckGraph, shouldRefreshDeckGraph } from "./deckGraph.js";
-import { createDocumentFromFile } from "./documentModel.js";
-import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.js";
 import { createLearningPlan } from "./learningPlan.js";
 import { createAiJobLedger, createDeckLibraryModel } from "./libraryModel.js";
-import { createDeckMediaUrlMap, resolveCardHtmlMedia, storeDeckMedia } from "./mediaStore.js";
+import { createDeckMediaUrlMap, resolveCardHtmlMedia } from "./mediaStore.js";
 import { createMenuModel } from "./menuModel.js";
 import { resolveReviewShortcut } from "./reviewShortcuts.js";
 import { answerVariant, getNextReviewItem, recordVariantFeedback } from "./reviewService.js";
 
 const menu = createMenuModel();
+const creationWorkflow = createCreationWorkflow();
 
 const iconByKey = {
   bot: Bot,
@@ -873,23 +868,10 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
     setIsParsing(true);
 
     try {
-      const result = await createApkgImportPreview(file, setActiveStep);
-      const storedMedia = result.preview ? await storeDeckMedia(result.preview.deck, result.preview.mediaFiles) : null;
-      setMediaStatus(storedMedia);
-      setJob({
-        ...result.job,
-        warnings: [...(result.job.warnings ?? []), ...(storedMedia?.errors ?? [])],
-      });
+      const result = await creationWorkflow.parseApkgFile(file, { onStep: setActiveStep });
+      setMediaStatus(result.mediaStatus);
+      setJob(result.job);
       setPreview(result.preview);
-    } catch (error) {
-      setJob({
-        fileName: file.name,
-        fileSize: file.size,
-        status: "error",
-        warnings: [],
-        errors: [error instanceof Error ? error.message : "Der Import ist fehlgeschlagen."],
-      });
-      setPreview(null);
     } finally {
       setIsParsing(false);
     }
@@ -909,7 +891,7 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
 
   async function handleCommit() {
     if (!preview) return;
-    const deck = await commitImport(preview, { existingDecks });
+    const deck = await creationWorkflow.commitApkgPreview(preview, { existingDecks });
     setJob((currentJob) => ({ ...currentJob, status: "done" }));
     onImported(deck);
   }
@@ -1051,10 +1033,7 @@ function TextCsvImportPanel({ onImported }) {
   const [report, setReport] = React.useState(null);
 
   function runImport(dryRun = false) {
-    const result =
-      mode === "text"
-        ? importTextAsNormalizedDeck({ deckName, text: content }, { dryRun })
-        : importCsvAsNormalizedDeck({ deckName, csv: content, sourceType: "csv_import" }, { dryRun });
+    const result = creationWorkflow.importPastedDeck({ mode, deckName, content, dryRun });
     setReport(result.report);
     if (!dryRun && result.deck) onImported(result.deck);
   }
@@ -1136,49 +1115,38 @@ function ManualCreationPanel({ onCreated }) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const nextDocument = await createDocumentFromFile(file);
+    const nextDocument = await creationWorkflow.readSourceDocument(file);
     setDocument(nextDocument);
     setDocumentText(nextDocument.text);
     setStatus(nextDocument.textExtractionStatus === "success" ? "Textlayer geladen." : "Dokument als Quelle gespeichert; Textextraktion steht aus.");
   }
 
   function captureSelection() {
-    const selectedText = window.getSelection?.().toString().trim() || documentText.slice(0, 400);
-    if (!selectedText) return;
-    setSelection(selectedText);
-    if (activeField === "back") {
-      setBack((current) => (current ? `${current}\n${selectedText}` : selectedText));
-    } else {
-      setFront((current) => (current ? `${current}\n${selectedText}` : selectedText));
-    }
+    const selectedText = window.getSelection?.().toString().trim() || "";
+    const next = creationWorkflow.captureManualSelection({ activeField, front, back, documentText, selectedText });
+    if (!next.changed) return;
+    setSelection(next.selection);
+    setFront(next.front);
+    setBack(next.back);
   }
 
   function createManualDeck() {
-    const deck = createManualCoreDeck({
+    const deck = creationWorkflow.createManualDeck({
       deckName,
-      card: {
-        cardType,
-        front,
-        back,
-        tags,
-        answerOptions: cardType === "multiple-choice" ? back.split("\n").filter(Boolean) : [],
-        mediaRefs: document?.fileName && cardType === "image-occlusion" ? [document.fileName] : [],
-      },
-      documentContext: {
-        document,
-        documentId: document?.id,
-        fileName: document?.fileName,
-        mimeType: document?.mimeType,
-        documentText,
-        selection,
-        targetField: activeField,
-      },
+      cardType,
+      front,
+      back,
+      tags,
+      document,
+      documentText,
+      selection,
+      activeField,
     });
     onCreated(deck);
     setStatus("Originalkarte gespeichert.");
   }
 
-  const canCreate = front.trim() && (back.trim() || cardType === "image-occlusion");
+  const canCreate = creationWorkflow.canCreateManualCard({ front, back, cardType });
 
   return (
     <SoftPanel className="p-6">
@@ -1276,7 +1244,7 @@ function AiCreationPanel({ onCreated, onJob }) {
     subject: "",
     costTier: "balanced",
   });
-  const [document, setDocument] = React.useState(createSourceDocument({ fileName: "Textquelle", text: "", textExtractionStatus: "success" }));
+  const [document, setDocument] = React.useState(() => creationWorkflow.createInitialAiDocument());
   const [draftDeck, setDraftDeck] = React.useState(null);
   const [draftCards, setDraftCards] = React.useState([]);
   const [status, setStatus] = React.useState("");
@@ -1286,43 +1254,38 @@ function AiCreationPanel({ onCreated, onJob }) {
   }
 
   function toggleCardType(cardType) {
-    setConfig((current) => {
-      const cardTypes = current.cardTypes.includes(cardType)
-        ? current.cardTypes.filter((value) => value !== cardType)
-        : [...current.cardTypes, cardType];
-      return { ...current, cardTypes: cardTypes.length ? cardTypes : ["basic"] };
-    });
+    setConfig((current) => creationWorkflow.toggleAiCardType(current, cardType));
   }
 
   async function handleFile(event) {
     const file = event.target.files?.[0];
     if (!file) return;
-    setDocument(await createDocumentFromFile(file));
+    setDocument(await creationWorkflow.readSourceDocument(file));
   }
 
   function updateDocumentText(text) {
-    setDocument((current) => ({ ...current, text, textExtractionStatus: text ? "success" : current.textExtractionStatus }));
+    setDocument((current) => creationWorkflow.updateAiDocumentText(current, text));
   }
 
   function generateDrafts(nextConfig = config) {
-    const result = generateCardsFromDocument({
+    const result = creationWorkflow.generateAiDrafts({
       document,
       config: nextConfig,
       deckName: nextConfig.subject || "KI-Entwuerfe",
     });
     onJob(result.job);
-    setStatus(result.validation.valid ? `${result.draftDeck.cards.length} Entwuerfe generiert.` : result.validation.errors.join(" "));
+    setStatus(result.statusMessage);
     setDraftDeck(result.draftDeck);
     setDraftCards(result.draftDeck?.cards ?? []);
   }
 
   function updateDraft(cardId, key, value) {
-    setDraftCards((cards) => cards.map((card) => (card.id === cardId ? { ...card, [key]: value } : card)));
+    setDraftCards((cards) => creationWorkflow.updateDraftCard(cards, cardId, { [key]: value }));
   }
 
   function acceptDrafts() {
     if (!draftDeck || draftCards.length === 0) return;
-    const acceptedDeck = acceptAiDraftDeck({ ...draftDeck, cards: draftCards });
+    const acceptedDeck = creationWorkflow.acceptAiDrafts(draftDeck, draftCards);
     onCreated(acceptedDeck);
     setStatus("Entwuerfe uebernommen.");
   }

@@ -52,6 +52,7 @@ src/
   coreModel.js            Zentrales Deck-, Karten-, Varianten- und Review-Datenmodell
   coreRepository.js       Lokale Persistenz und State-Normalisierung
   coreWorkspace.js        App-Kommandos und Demo-Daten
+  creationWorkflow.js     Creation-/Import-Orchestrierung fuer APKG, Paste, manuell und KI-Drafts
   apkgImport.js           Anki-APKG-Importpipeline
   importService.js        Text-, CSV- und Tabellen-Import
   reviewService.js        Tiefer Review-Flow, Sessions, Fallback und Rating-Erfassung
