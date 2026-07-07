@@ -1754,7 +1754,7 @@ Der produktive Persistenzpfad soll an den bestehenden tiefen Modulen ansetzen, n
 - `src/coreRepository.js` bleibt die lokale Persistenzgrenze und wird spaeter durch einen echten Server-/Supabase-Pfad ergaenzt.
 - `src/coreWorkspace.js` bleibt die Kommandoflaeche fuer App-Aktionen, damit UI-Screens keine Tabellen- oder RLS-Details kennen.
 - `src/coreModel.js` bleibt die Quelle der Dateninvarianten: genau eine Original-Variante pro Learning Item, abgeleitete Varianten mit Anker, append-only Review Events, unveraenderliches `immutableOriginal`.
-- `src/apkgImport.js` und `src/mediaStore.js` bleiben die Grenzen fuer APKG-/Medienlogik; produktive Storage-Referenzen duerfen diese Details nicht in `src/App.jsx` ziehen.
+- `src/apkgImport.js` und `src/mediaStore.js` bleiben die Grenzen fuer APKG-/Medienlogik; produktive Storage-Referenzen duerfen diese Details nicht in React-Screens ziehen.
 
 Der aktuelle SQL-Anker unter `supabase/core_schema_v1.sql` enthaelt bereits diese produktionsnahen Tabellen:
 
@@ -2984,17 +2984,19 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 
 ### 27.2 UI-Screens
 
-Alle Screens liegen derzeit in `src/App.jsx`, verwenden aber die Module oben als Test- und Implementierungsoberflaeche.
+`src/App.jsx` ist die App-Shell fuer Workspace-State, Navigation, Study-Routing und Persistenz-Callbacks. Produktnahe UI liegt in `src/screens/`; geteilte Praesentationsbausteine und Medien-HTML liegen in `src/ui/`. Die Screen-Map fuer KI-Programmierung wird in `src/screens/README.md` gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.
 
-- `DashboardScreen`: Profil-Onboarding, Tagesmetriken, Schnellzugriff.
-- `DecksScreen`: Deck-Hierarchie, Suche/Filter, CoRe-Modus, Karten-CRUD, Aktionen.
-- `CreationScreen`: APKG, Text/CSV/Excel-Paste, manuell mit Dokumentanker, KI-Drafts.
-- `StudyMode`: Clean Fullscreen Review, Front+Back nach Aufdeckung, vier Buttons, Tastatursteuerung, Originalanker, Variantenfeedback.
-- `GraphScreen`: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.
-- `CommunityScreen`: Community erstellen, Deck teilen, Deck kopieren.
-- `AiJobsScreen`: lokale Job-Historie und Status.
-- `AssistantScreen`: Chat-your-Deck und Lernplan.
-- `SettingsScreen`: Profil, lokale Account-Sitzung, Hochschule, Sprache, Datenschutz, globaler CoRe-Modus, Datenportabilitaet.
+Die sichtbare Sidebar zeigt die primaeren Produktbereiche. `SettingsScreen` bleibt als View erhalten, wird aber ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad aufgerufen statt als separater Hauptnavigationspunkt.
+
+- `src/screens/DashboardScreen.jsx`: Profil-Onboarding, Tagesmetriken, Schnellzugriff.
+- `src/screens/DecksScreen.jsx`: Deck-Hierarchie, Suche/Filter, CoRe-Modus, Karten-CRUD, Aktionen.
+- `src/screens/CreationScreen.jsx`: APKG, Text/CSV/Excel-Paste, manuell mit Dokumentanker, KI-Drafts.
+- `src/screens/StudyMode.jsx`: Clean Fullscreen Review, Front+Back nach Aufdeckung, vier Buttons, Tastatursteuerung, Originalanker, Variantenfeedback.
+- `src/screens/GraphScreen.jsx`: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.
+- `src/screens/CommunityScreen.jsx`: Community erstellen, Deck teilen, Deck kopieren.
+- `src/screens/AiJobsScreen.jsx`: lokale Job-Historie und Status.
+- `src/screens/AssistantScreen.jsx`: Chat-your-Deck und Lernplan.
+- `src/screens/SettingsScreen.jsx`: Profil, lokale Account-Sitzung, Hochschule, Sprache, Datenschutz, globaler CoRe-Modus, Datenportabilitaet.
 
 ### 27.3 Testoberflaeche
 

@@ -1790,7 +1790,7 @@ export interface ReviewState {
 <li><code>src/coreRepository.js</code> bleibt die lokale Persistenzgrenze und wird spaeter durch einen echten Server-/Supabase-Pfad ergaenzt.</li>
 <li><code>src/coreWorkspace.js</code> bleibt die Kommandoflaeche fuer App-Aktionen, damit UI-Screens keine Tabellen- oder RLS-Details kennen.</li>
 <li><code>src/coreModel.js</code> bleibt die Quelle der Dateninvarianten: genau eine Original-Variante pro Learning Item, abgeleitete Varianten mit Anker, append-only Review Events, unveraenderliches <code>immutableOriginal</code>.</li>
-<li><code>src/apkgImport.js</code> und <code>src/mediaStore.js</code> bleiben die Grenzen fuer APKG-/Medienlogik; produktive Storage-Referenzen duerfen diese Details nicht in <code>src/App.jsx</code> ziehen.</li>
+<li><code>src/apkgImport.js</code> und <code>src/mediaStore.js</code> bleiben die Grenzen fuer APKG-/Medienlogik; produktive Storage-Referenzen duerfen diese Details nicht in React-Screens ziehen.</li>
 </ul>
 <p>Der aktuelle SQL-Anker unter <code>supabase/core_schema_v1.sql</code> enthaelt bereits diese produktionsnahen Tabellen:</p>
 <ul>
@@ -2776,17 +2776,18 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <tr><td><code>src/menuModel.js</code></td><td><code>createMenuModel</code></td><td>Informationsarchitektur und Navigation</td></tr>
 </tbody></table>
 <h3 id="27-2-ui-screens">27.2 UI-Screens</h3>
-<p>Alle Screens liegen derzeit in <code>src/App.jsx</code>, verwenden aber die Module oben als Test- und Implementierungsoberflaeche.</p>
+<p><code>src/App.jsx</code> ist die App-Shell fuer Workspace-State, Navigation, Study-Routing und Persistenz-Callbacks. Produktnahe UI liegt in <code>src/screens/</code>; geteilte Praesentationsbausteine und Medien-HTML liegen in <code>src/ui/</code>. Die Screen-Map fuer KI-Programmierung wird in <code>src/screens/README.md</code> gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.</p>
+<p>Die sichtbare Sidebar zeigt die primaeren Produktbereiche. <code>SettingsScreen</code> bleibt als View erhalten, wird aber ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad aufgerufen statt als separater Hauptnavigationspunkt.</p>
 <ul>
-<li><code>DashboardScreen</code>: Profil-Onboarding, Tagesmetriken, Schnellzugriff.</li>
-<li><code>DecksScreen</code>: Deck-Hierarchie, Suche/Filter, CoRe-Modus, Karten-CRUD, Aktionen.</li>
-<li><code>CreationScreen</code>: APKG, Text/CSV/Excel-Paste, manuell mit Dokumentanker, KI-Drafts.</li>
-<li><code>StudyMode</code>: Clean Fullscreen Review, Front+Back nach Aufdeckung, vier Buttons, Tastatursteuerung, Originalanker, Variantenfeedback.</li>
-<li><code>GraphScreen</code>: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.</li>
-<li><code>CommunityScreen</code>: Community erstellen, Deck teilen, Deck kopieren.</li>
-<li><code>AiJobsScreen</code>: lokale Job-Historie und Status.</li>
-<li><code>AssistantScreen</code>: Chat-your-Deck und Lernplan.</li>
-<li><code>SettingsScreen</code>: Profil, lokale Account-Sitzung, Hochschule, Sprache, Datenschutz, globaler CoRe-Modus, Datenportabilitaet.</li>
+<li><code>src/screens/DashboardScreen.jsx</code>: Profil-Onboarding, Tagesmetriken, Schnellzugriff.</li>
+<li><code>src/screens/DecksScreen.jsx</code>: Deck-Hierarchie, Suche/Filter, CoRe-Modus, Karten-CRUD, Aktionen.</li>
+<li><code>src/screens/CreationScreen.jsx</code>: APKG, Text/CSV/Excel-Paste, manuell mit Dokumentanker, KI-Drafts.</li>
+<li><code>src/screens/StudyMode.jsx</code>: Clean Fullscreen Review, Front+Back nach Aufdeckung, vier Buttons, Tastatursteuerung, Originalanker, Variantenfeedback.</li>
+<li><code>src/screens/GraphScreen.jsx</code>: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.</li>
+<li><code>src/screens/CommunityScreen.jsx</code>: Community erstellen, Deck teilen, Deck kopieren.</li>
+<li><code>src/screens/AiJobsScreen.jsx</code>: lokale Job-Historie und Status.</li>
+<li><code>src/screens/AssistantScreen.jsx</code>: Chat-your-Deck und Lernplan.</li>
+<li><code>src/screens/SettingsScreen.jsx</code>: Profil, lokale Account-Sitzung, Hochschule, Sprache, Datenschutz, globaler CoRe-Modus, Datenportabilitaet.</li>
 </ul>
 <h3 id="27-3-testoberflaeche">27.3 Testoberflaeche</h3>
 <ul>

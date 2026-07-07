@@ -716,7 +716,7 @@ export function createCardVariant({
   const normalizedLearningItemId = learningItemId ?? cardId ?? sourceCardId;
   const normalizedSourceCardId = sourceCardId ?? cardId ?? learningItemId;
   if (!normalizedLearningItemId) {
-    throw new Error("Varianten benoetigen learningItemId, cardId oder sourceCardId.");
+    throw new Error("Varianten benötigen learningItemId, cardId oder sourceCardId.");
   }
   if (!VARIANT_TRANSFORMS.includes(transformType)) {
     throw new Error(`Unbekannte Transformationsart: ${transformType}`);
@@ -1344,7 +1344,7 @@ export function createLearningItemsFromNormalizedInput(deckId, normalizedItems =
       const anchorAnswer = originalInput?.back ?? canonicalAnswer;
       if (!String(canonicalQuestion).trim() && !String(canonicalAnswer).trim()) {
         skipped.push({ index, reason: "Keine canonicalQuestion/canonicalAnswer oder valide Variante." });
-        warnings.push(`Item ${index + 1} wurde uebersprungen: keine valide Frage/Antwort.`);
+        warnings.push(`Item ${index + 1} wurde übersprungen: keine valide Frage/Antwort.`);
         return;
       }
 
@@ -1381,7 +1381,7 @@ export function createLearningItemsFromNormalizedInput(deckId, normalizedItems =
         .filter((variant) => variant !== originalInput)
         .forEach((variant) => {
           if (!String(variant.front ?? "").trim() && !String(variant.back ?? "").trim()) {
-            warnings.push(`Item ${index + 1}: Leere Variante uebersprungen.`);
+            warnings.push(`Item ${index + 1}: Leere Variante übersprungen.`);
             return;
           }
           item = addRephrasedVariant(item, variant.front ?? canonicalQuestion, variant.back ?? canonicalAnswer, {
@@ -1407,7 +1407,7 @@ export function createLearningItemsFromNormalizedInput(deckId, normalizedItems =
       createdItems.push(item);
     } catch (error) {
       skipped.push({ index, reason: error.message });
-      warnings.push(`Item ${index + 1} wurde uebersprungen: ${error.message}`);
+      warnings.push(`Item ${index + 1} wurde übersprungen: ${error.message}`);
     }
   });
 

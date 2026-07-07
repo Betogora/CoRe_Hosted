@@ -59,7 +59,7 @@ function sampleNormalizedDeck() {
         sourceExternalId: "note-1",
         variants: [
           {
-            front: "Wofuer steht MRSA?",
+            front: "Wofür steht MRSA?",
             back: "Methicillin-resistenter Staphylococcus aureus.",
             variantType: "basic",
             variantLevel: 2,
@@ -174,7 +174,7 @@ test("duplicate detection supports source ids, fingerprints and merge strategies
   assert.equal(skipped.report.duplicates.length, 1);
   assert.equal(skipped.report.skipped.length, 1);
   assert.equal(skipped.deck.cards.length, 1);
-  assert.equal(createNew.report.warnings.some((warning) => warning.includes("moegliche Dublette")), true);
+  assert.equal(createNew.report.warnings.some((warning) => warning.includes("mögliche Dublette")), true);
   assert.equal(createNew.deck.cards.length, 2);
   assert.equal(updateExisting.deck.cards.length, 1);
   assert.equal(updateExisting.report.warnings.some((warning) => warning.includes("update_existing")), true);

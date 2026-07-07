@@ -16,11 +16,11 @@ export function createDemoAnatomyDeck() {
     source: "manual",
     tags: ["anatomie", "demo"],
     cards: [
-      createBasicLearningItem("", "Welche Aufgabe hat die Myelinscheide im Nervensystem?", "Sie isoliert Axone elektrisch und erhoeht die Leitungsgeschwindigkeit saltatorischer Erregungsleitung.", {
+      createBasicLearningItem("", "Welche Aufgabe hat die Myelinscheide im Nervensystem?", "Sie isoliert Axone elektrisch und erhöht die Leitungsgeschwindigkeit saltatorischer Erregungsleitung.", {
         tags: ["anatomie", "nerven"],
         reviewState: { maturityXp: 132, maturityBand: "variant_ready", repetitions: 4 },
       }),
-      createBasicLearningItem("", "Was ist ATP?", "ATP ist ein universeller Energietraeger der Zelle.", {
+      createBasicLearningItem("", "Was ist ATP?", "ATP ist ein universeller Energieträger der Zelle.", {
         tags: ["biochemie"],
       }),
     ],
@@ -42,7 +42,7 @@ function softDeleteCard(card, deletedAt) {
         changeType: "deleted",
         before: { status: card.status ?? "active" },
         after: { status: "deleted" },
-        reason: "Karte geloescht",
+        reason: "Karte gelöscht",
         createdAt: deletedAt,
       }),
     ],

@@ -104,10 +104,10 @@ export function validateCardGenerationOutput(output, policy = {}) {
 
   for (const [index, card] of (output?.cards ?? []).entries()) {
     if (!card.type || !card.front || !card.back) {
-      errors.push(`Karte ${index + 1} benoetigt type, front und back.`);
+      errors.push(`Karte ${index + 1} benötigt type, front und back.`);
     }
     if (policy.requireSourceAnchors !== false && (!Array.isArray(card.sourceAnchors) || card.sourceAnchors.length === 0)) {
-      errors.push(`Karte ${index + 1} benoetigt einen Quellenanker.`);
+      errors.push(`Karte ${index + 1} benötigt einen Quellenanker.`);
     }
   }
 
@@ -170,7 +170,7 @@ export function generateCardsFromDocument({ document, config = {}, deckName = ""
   }
 
   const draftDeck = createAiDraftDeck({
-    deckName: deckName || config.subject || "KI-Entwuerfe",
+    deckName: deckName || config.subject || "KI-Entwürfe",
     config,
     drafts: output.cards,
     sourceDocuments: document ? [document] : [],

@@ -337,7 +337,7 @@ export function normalizeImportDeck(input = {}, options = {}) {
   };
 
   if (!Array.isArray(deckInput.items)) {
-    errors.push("Importdeck benoetigt ein items-Array.");
+    errors.push("Importdeck benötigt ein items-Array.");
   } else {
     deckInput.items.forEach((candidate, index) => {
       const result = normalizeImportItem(candidate, {
@@ -552,7 +552,7 @@ export function importNormalizedDeck(input = {}, options = {}) {
   if (normalizedOptions.importScheduling === false) {
     normalizedDeck.items.forEach((item, index) => {
       if (itemHasSchedulingData(item)) {
-        report.warnings.push(`Item ${index + 1}: Scheduling-Daten wurden erkannt, aber in Prompt 6 nicht uebernommen.`);
+        report.warnings.push(`Item ${index + 1}: Scheduling-Daten wurden erkannt, aber in Prompt 6 nicht übernommen.`);
       }
     });
   }
@@ -591,13 +591,13 @@ export function importNormalizedDeck(input = {}, options = {}) {
       }
 
       if (normalizedOptions.mergeStrategy === "update_existing") {
-        report.warnings.push("mergeStrategy update_existing ist im lokalen MVP noch nicht vollstaendig implementiert; bestehende Karten wurden nicht ueberschrieben.");
+        report.warnings.push("mergeStrategy update_existing ist im lokalen MVP noch nicht vollständig implementiert; bestehende Karten wurden nicht überschrieben.");
         report.skipped.push({ index, reason: "update_existing_not_implemented", duplicate });
         report.previewItems.push(previewItem(item, duplicateInfo));
         return;
       }
 
-      report.warnings.push(`Item ${index + 1}: moegliche Dublette erkannt, wegen create_new trotzdem importiert.`);
+      report.warnings.push(`Item ${index + 1}: mögliche Dublette erkannt, wegen create_new trotzdem importiert.`);
     }
 
     importableItems.push(item);
@@ -731,7 +731,7 @@ export function parseCsvToNormalizedImport({ deckName = "CSV-Import", csv = "", 
     return {
       normalizedDeck: { title: deckName, sourceType, tags, items: [] },
       warnings,
-      errors: ["CSV enthaelt keine importierbaren Zeilen."],
+      errors: ["CSV enthält keine importierbaren Zeilen."],
     };
   }
 
@@ -750,7 +750,7 @@ export function parseCsvToNormalizedImport({ deckName = "CSV-Import", csv = "", 
     const front = columns[frontIndex] ?? "";
     const back = columns[backIndex] ?? "";
     if (!front.trim() || !back.trim()) {
-      warnings.push(`Zeile ${index + (hasHeader ? 2 : 1)} wurde uebersprungen: front/question oder back/answer fehlt.`);
+      warnings.push(`Zeile ${index + (hasHeader ? 2 : 1)} wurde übersprungen: front/question oder back/answer fehlt.`);
       return;
     }
 
@@ -786,7 +786,7 @@ export function parseCsvToNormalizedImport({ deckName = "CSV-Import", csv = "", 
       metadataJson: { parser: "parseCsvToNormalizedImport" },
     },
     warnings,
-    errors: items.length === 0 ? ["Keine gueltigen Front/Back-Zeilen erkannt."] : [],
+    errors: items.length === 0 ? ["Keine gültigen Front/Back-Zeilen erkannt."] : [],
   };
 }
 

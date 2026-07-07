@@ -22,7 +22,7 @@ function findEndOfCentralDirectory(bytes) {
     }
   }
 
-  throw new Error("Die APKG-Datei enthaelt kein gueltiges ZIP-Verzeichnis.");
+  throw new Error("Die APKG-Datei enthält kein gültiges ZIP-Verzeichnis.");
 }
 
 function getName(bytes, start, length) {
@@ -31,7 +31,7 @@ function getName(bytes, start, length) {
 
 async function inflateRaw(deflatedBytes) {
   if (typeof DecompressionStream === "undefined") {
-    throw new Error("Dieses Browser-Umfeld kann komprimierte ZIP-Eintraege nicht entpacken.");
+    throw new Error("Dieses Browser-Umfeld kann komprimierte ZIP-Einträge nicht entpacken.");
   }
 
   const stream = new Blob([deflatedBytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
@@ -43,7 +43,7 @@ async function readEntry(bytes, entry) {
   const localOffset = entry.localHeaderOffset;
 
   if (readUint32(view, localOffset) !== 0x04034b50) {
-    throw new Error(`ZIP-Eintrag "${entry.name}" hat einen ungueltigen lokalen Header.`);
+    throw new Error(`ZIP-Eintrag "${entry.name}" hat einen ungültigen lokalen Header.`);
   }
 
   const fileNameLength = readUint16(view, localOffset + 26);
@@ -59,7 +59,7 @@ async function readEntry(bytes, entry) {
     return inflateRaw(compressed);
   }
 
-  throw new Error(`ZIP-Kompression ${entry.compressionMethod} wird im MVP noch nicht unterstuetzt.`);
+  throw new Error(`ZIP-Kompression ${entry.compressionMethod} wird im MVP noch nicht unterstützt.`);
 }
 
 export async function readZipArchive(file) {
@@ -73,7 +73,7 @@ export async function readZipArchive(file) {
 
   for (let index = 0; index < entryCount; index += 1) {
     if (readUint32(view, offset) !== 0x02014b50) {
-      throw new Error("Das ZIP-Verzeichnis der APKG-Datei ist beschaedigt.");
+      throw new Error("Das ZIP-Verzeichnis der APKG-Datei ist beschädigt.");
     }
 
     const compressionMethod = readUint16(view, offset + 10);

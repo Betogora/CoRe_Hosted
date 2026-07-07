@@ -67,14 +67,14 @@ export function classifyCardEligibility(card, deckSettings = {}) {
     reasons.push("Unbekannter Kartentyp.");
   }
   if (settings.coreMode === "off") {
-    reasons.push("CoRe-Modus ist fuer diesen Stapel ausgeschaltet.");
+    reasons.push("CoRe-Modus ist für diesen Stapel ausgeschaltet.");
   }
   if (blockedByDeckSettings(card, settings, "rephrase")) {
     reasons.push("Deck-, Karten- oder Transformations-Blacklist greift.");
     blockedTransforms.push("rephrase");
   }
   if (tags.some((tag) => VOCAB_TAGS.includes(tag))) {
-    reasons.push("Vokabel- oder reine Uebersetzungskarte.");
+    reasons.push("Vokabel- oder reine Übersetzungskarte.");
   }
   if (tags.some((tag) => EXACT_WORDING_TAGS.includes(tag)) || card.meta?.exactWordingRequired) {
     reasons.push("Exakter Wortlaut ist wahrscheinlich Lernziel.");
@@ -84,7 +84,7 @@ export function classifyCardEligibility(card, deckSettings = {}) {
     blockedTransforms.push("image_variation");
   }
   if (isVeryShort(front, back)) {
-    reasons.push("Zu wenig textlicher Kontext fuer robuste Variation.");
+    reasons.push("Zu wenig textlicher Kontext für robuste Variation.");
   }
   if (containsMathLikeText(`${front} ${back}`)) {
     reasons.push("Mathematische oder formelartige Karte braucht manuelle Freigabe.");
@@ -110,13 +110,13 @@ function rephraseQuestion(front) {
   const clean = plain(front).replace(/\?+$/, "");
 
   if (/^was\s+ist\s+/i.test(clean)) {
-    return clean.replace(/^was\s+ist\s+/i, "Wie laesst sich ") + " beschreiben?";
+    return clean.replace(/^was\s+ist\s+/i, "Wie lässt sich ") + " beschreiben?";
   }
   if (/^welche\s+/i.test(clean)) {
     return clean.replace(/^welche\s+/i, "Nenne die ") + ".";
   }
   if (/^warum\s+/i.test(clean)) {
-    return clean.replace(/^warum\s+/i, "Begruende, weshalb ") + ".";
+    return clean.replace(/^warum\s+/i, "Begründe, weshalb ") + ".";
   }
   if (/^wie\s+/i.test(clean)) {
     return clean.replace(/^wie\s+/i, "Beschreibe, wie ") + ".";
@@ -267,16 +267,16 @@ export function getLearningItemMaturity(item, now = new Date(), reviewEvents = [
   } else if (state.state === "review") {
     if (stability >= 30 || (intervalDays >= 21 && successfulReviewCount >= 5 && recentFailureCount === 0)) {
       stage = "mastered";
-      reasons.push("Hohe Stabilitaet oder langes Intervall ohne aktuelle Fehler.");
+      reasons.push("Hohe Stabilität oder langes Intervall ohne aktuelle Fehler.");
     } else if ((successfulReviewCount >= 4 || stability >= 10 || intervalDays >= 7) && recentFailureCount === 0) {
       stage = "mature";
       reasons.push("Mehrere erfolgreiche Reviews oder stabile FSRS-Werte.");
     } else if ((profile.consecutiveGoodOrEasy >= 3 || successfulReviewCount >= 3 || stability >= 4) && !isFragile) {
       stage = "variant_ready";
-      reasons.push("Mindestens drei gute Abrufe oder vergleichbare Stabilitaet.");
+      reasons.push("Mindestens drei gute Abrufe oder vergleichbare Stabilität.");
     } else {
       stage = "early_review";
-      reasons.push("Review begonnen, aber noch nicht robust genug fuer automatische Varianten.");
+      reasons.push("Review begonnen, aber noch nicht robust genug für automatische Varianten.");
     }
   } else {
     stage = reps > 0 ? "early_review" : "new";
@@ -293,8 +293,8 @@ export function getLearningItemMaturity(item, now = new Date(), reviewEvents = [
   const labels = {
     new: "Neu",
     learning: "Lernen",
-    early_review: "Fruehes Review",
-    variant_ready: "Bereit fuer Varianten",
+    early_review: "Frühes Review",
+    variant_ready: "Bereit für Varianten",
     mature: "Reif",
     mastered: "Sicher",
     relearning: "Wiederlernen",
@@ -340,7 +340,7 @@ export function getVariantReadiness(item, reviewEvents = [], options = {}) {
       ...base,
       allowedLevels: [1, 2],
       maxAllowedLevel: 2,
-      reason: "Fruehes Review: nur Original oder sehr nahe Umformulierung.",
+      reason: "Frühes Review: nur Original oder sehr nahe Umformulierung.",
     };
   }
 
@@ -352,7 +352,7 @@ export function getVariantReadiness(item, reviewEvents = [], options = {}) {
       maxAllowedLevel: 2,
       allowAiRephrasing: true,
       shouldPreferOriginal: false,
-      reason: "Die Grundkarte ist stabil genug fuer eine nahe KI-Umformulierung.",
+      reason: "Die Grundkarte ist stabil genug für eine nahe KI-Umformulierung.",
     };
   }
 
@@ -364,7 +364,7 @@ export function getVariantReadiness(item, reviewEvents = [], options = {}) {
       maxAllowedLevel: 3,
       allowAiRephrasing: true,
       shouldPreferOriginal: false,
-      reason: "Reife Grundkarte: nahe Level-2/3-Varianten duerfen rotieren.",
+      reason: "Reife Grundkarte: nahe Level-2/3-Varianten dürfen rotieren.",
     };
   }
 
@@ -376,7 +376,7 @@ export function getVariantReadiness(item, reviewEvents = [], options = {}) {
       maxAllowedLevel: 3,
       allowAiRephrasing: true,
       shouldPreferOriginal: false,
-      reason: "Sehr stabile Grundkarte: nahe Varianten sind sicher moeglich.",
+      reason: "Sehr stabile Grundkarte: nahe Varianten sind sicher möglich.",
     };
   }
 
@@ -384,7 +384,7 @@ export function getVariantReadiness(item, reviewEvents = [], options = {}) {
     return {
       ...base,
       shouldFallbackToOriginal: true,
-      reason: "Nach Fehlern faellt CoRe auf Original oder Level 1 zurueck.",
+      reason: "Nach Fehlern fällt CoRe auf Original oder Level 1 zurück.",
     };
   }
 
@@ -570,8 +570,8 @@ export function getVariantFallbackTarget(item, failedVariant, reviewEvents = [])
   return {
     fallbackVariantId: target?.id ?? null,
     fallbackReason: fallback
-      ? `Level-${failedLevel}-Variante falsch beantwortet: Rueckfall auf Level ${fallback.variantLevel}.`
-      : `Level-${failedLevel}-Variante falsch beantwortet: Rueckfall auf Originalkarte.`,
+      ? `Level-${failedLevel}-Variante falsch beantwortet: Rückfall auf Level ${fallback.variantLevel}.`
+      : `Level-${failedLevel}-Variante falsch beantwortet: Rückfall auf Originalkarte.`,
     shouldUseOriginal: !fallback,
     previousVariantId: profile.lastSuccessfulVariantId,
   };

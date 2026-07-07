@@ -52,7 +52,7 @@ test("keeps stats as label and value pairs", () => {
   const menu = createMenuModel();
 
   assert.deepStrictEqual(menu.getView("uebersicht").stats, [
-    { label: "Faellig", value: "0" },
+    { label: "Fällig", value: "0" },
     { label: "Originalkarten", value: "0" },
     { label: "CoRe-ready", value: "0" },
   ]);

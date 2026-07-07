@@ -29,14 +29,14 @@ function nearVariantResponse() {
   return JSON.stringify({
     variants: [
       {
-        front: "Wofuer steht die Abkuerzung MRSA?",
+        front: "Wofür steht die Abkürzung MRSA?",
         back: "Methicillin-resistenter Staphylococcus aureus.",
         variantType: "basic",
         variantLevel: 2,
         relationToOriginal: "same_card_rephrasing",
         containsNewFacts: false,
         abstractionLevel: 1,
-        reason: "Die Frage prueft dieselbe ausgeschriebene Bedeutung.",
+        reason: "Die Frage prüft dieselbe ausgeschriebene Bedeutung.",
       },
     ],
   });
@@ -55,7 +55,7 @@ test("card variation prompt keeps AI generation close to the original card", () 
   assert.match(prompt, /keine neuen Fakten/);
   assert.match(prompt, /keine Transferfragen/);
   assert.match(prompt, /keine Fallbeispiele/);
-  assert.match(prompt, /ausschliesslich valides JSON/);
+  assert.match(prompt, /ausschließlich valides JSON/);
   assert.match(prompt, /Erzeuge 2 neue Varianten/);
   assert.match(prompt, /Sprache: de/);
   assert.match(prompt, /basic, reverse/);
@@ -70,7 +70,7 @@ test("variant response parser accepts valid JSON and reports invalid JSON clearl
   assert.equal(parsed.variants[0].generationSource, "ai_generated");
   assert.equal(parsed.skippedVariants.length, 0);
   assert.equal(invalid.variants.length, 0);
-  assert.match(invalid.errors[0], /kein gueltiges JSON/);
+  assert.match(invalid.errors[0], /kein gültiges JSON/);
 });
 
 test("variant validation rejects empty, new-fact and transfer-like suggestions by default", () => {
@@ -107,7 +107,7 @@ test("variant validation rejects empty, new-fact and transfer-like suggestions b
   assert.equal(newFacts.valid, false);
   assert.match(newFacts.errors.join(" "), /containsNewFacts/);
   assert.equal(transfer.valid, false);
-  assert.match(transfer.errors.join(" "), /same_card_rephrasing|standardmaessig/);
+  assert.match(transfer.errors.join(" "), /same_card_rephrasing|standardmäßig/);
 });
 
 test("mock AI generation stores anchored near rephrase variants without variant scheduler state", () => {
@@ -134,7 +134,7 @@ test("automatic variant selection stays near, active and anchored to the origina
     createBasicLearningItem("deck_variants", "Was bedeutet MRSA?", "Methicillin-resistenter Staphylococcus aureus.", {
       reviewState: { state: "new", dueAt: "2026-07-01T08:00:00.000Z" },
     }),
-    "Wofuer steht MRSA?",
+    "Wofür steht MRSA?",
     "Methicillin-resistenter Staphylococcus aureus.",
     { variantLevel: 1, generationSource: "ai_generated" },
   );
@@ -142,7 +142,7 @@ test("automatic variant selection stays near, active and anchored to the origina
     createBasicLearningItem("deck_variants", "Was bedeutet ATP?", "Adenosintriphosphat.", {
       reviewState: { state: "learning", repetitions: 1, preferredVariantLevel: 2, dueAt: "2026-07-01T08:00:00.000Z" },
     }),
-    "Wofuer steht ATP?",
+    "Wofür steht ATP?",
     "Adenosintriphosphat.",
     { variantLevel: 2, generationSource: "ai_generated" },
   );
@@ -151,7 +151,7 @@ test("automatic variant selection stays near, active and anchored to the origina
   });
   reviewItem = addRephrasedVariant(reviewItem, "Was macht Myelin an Axonen?", "Myelin isoliert Axone.", { variantLevel: 1, generationSource: "ai_generated" });
   reviewItem = addRephrasedVariant(reviewItem, "Welche Wirkung hat Myelin auf Axone?", "Myelin isoliert Axone.", { variantLevel: 2, generationSource: "ai_generated" });
-  reviewItem = addRephrasedVariant(reviewItem, "Pruefungsnah: Welche Funktion hat Myelin?", "Myelin isoliert Axone.", { variantLevel: 3, generationSource: "ai_generated" });
+  reviewItem = addRephrasedVariant(reviewItem, "Prüfungsnah: Welche Funktion hat Myelin?", "Myelin isoliert Axone.", { variantLevel: 3, generationSource: "ai_generated" });
   let againItem = createBasicLearningItem("deck_variants", "Was ist Insulin?", "Ein blutzuckersenkendes Hormon.", {
     reviewState: { state: "relearning", repetitions: 5, lastRating: "again", preferredVariantLevel: 3, dueAt: "2026-07-01T08:00:00.000Z" },
   });

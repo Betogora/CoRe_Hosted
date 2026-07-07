@@ -47,7 +47,7 @@ export function validatePortableExport(value) {
     errors.push("Unbekanntes Export-Schema.");
   }
   if (payload?.schemaVersion !== EXPORT_SCHEMA_VERSION) {
-    errors.push("Nicht unterstuetzte Export-Version.");
+    errors.push("Nicht unterstützte Export-Version.");
   }
   if (!Array.isArray(payload?.decks)) {
     errors.push("decks muss ein Array sein.");

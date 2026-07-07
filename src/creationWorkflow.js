@@ -160,13 +160,13 @@ export function createCreationWorkflow() {
       const result = generateCardsFromDocument({
         document,
         config,
-        deckName: deckName || config.subject || "KI-Entwuerfe",
+        deckName: deckName || config.subject || "KI-Entwürfe",
       });
 
       return {
         ...result,
         statusMessage: result.validation.valid
-          ? `${result.draftDeck.cards.length} Entwuerfe generiert.`
+          ? `${result.draftDeck.cards.length} Entwürfe generiert.`
           : result.validation.errors.join(" "),
       };
     },

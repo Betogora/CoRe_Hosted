@@ -17,6 +17,11 @@
 - Preserve local content edits on APKG reimport; update import metadata and media references without replacing user-edited fronts/backs.
 - Preserve visible features during overhauls. Structure and logic may be changed freely, but existing user-visible features, screens, controls, and flows should only be removed when the user explicitly asks for that removal.
 
+## UI Copy
+
+- Write German user-facing UI copy, status messages, error messages, and AI prompts with proper Unicode spelling: use `ä`, `ö`, `ü`, `Ä`, `Ö`, `Ü`, and `ß` instead of ASCII fallbacks such as `ae`, `oe`, `ue`, or `ss`.
+- Keep ASCII only for technical identifiers, route IDs, enum values, JSON fields, import formats, and external API/schema names.
+
 ## Project Navigation
 
 - Start with `docs/specs.md` before changing features; it contains product scope, acceptance criteria, architecture notes, module map, import rules, assistant/planning context, hosting/database guidance, and current implementation status.

@@ -138,7 +138,7 @@ export function answerVariant(deck, learningItemId, cardVariantId, rating, respo
       throw new Error(`Variante nicht gefunden: ${String(cardVariantId ?? "")}`);
     }
     if (!belongsToLearningItem(item, variant)) {
-      throw new Error("Diese Variante gehoert nicht zur angegebenen Grundkarte.");
+      throw new Error("Diese Variante gehört nicht zur angegebenen Grundkarte.");
     }
 
     const previousState = createReviewState(item.learningItemState ?? item.reviewState);
@@ -300,7 +300,7 @@ function createFallbackViewModel(item) {
     failedVariantId: failedVariant?.id ?? state.lastFailedVariantId ?? null,
     shouldUseOriginal: Boolean(forcedVariant?.isOriginal ?? true),
     fallbackReason: failedVariant
-      ? `Nach Fehler bei Level ${failedVariant.variantLevel ?? 1}: Rueckfall auf ${forcedVariant?.isOriginal ? "Originalkarte" : `Level ${forcedVariant?.variantLevel ?? 1}`}.`
+      ? `Nach Fehler bei Level ${failedVariant.variantLevel ?? 1}: Rückfall auf ${forcedVariant?.isOriginal ? "Originalkarte" : `Level ${forcedVariant?.variantLevel ?? 1}`}.`
       : "Fallback aktiv: CoRe nutzt Original oder eine einfachere Variante, bis wieder korrekt geantwortet wurde.",
   };
 }

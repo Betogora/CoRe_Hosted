@@ -235,7 +235,7 @@ export function readSqliteDatabase(buffer) {
   const signature = sqliteTextDecoder.decode(bytes.slice(0, 16));
 
   if (signature !== "SQLite format 3\0") {
-    throw new Error("Die Anki-Collection ist keine gueltige SQLite-Datenbank.");
+    throw new Error("Die Anki-Collection ist keine gültige SQLite-Datenbank.");
   }
 
   const rawPageSize = readUint16(bytes, 16);

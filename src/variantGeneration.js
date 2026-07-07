@@ -22,7 +22,7 @@ const DEFAULT_VARIATION_PROMPT_OPTIONS = {
 export const CARD_VARIATION_PROMPT_VERSION = "card-variation-near-rephrase-v1";
 
 export const CARD_VARIATION_PROMPT_TEMPLATE = `SYSTEM / INSTRUCTION:
-Du erzeugst Karteikartenvarianten. Eine Variante ist keine neue Karte, sondern eine nahe Umformulierung derselben Wissenseinheit. Bleibe bei denselben Fakten. Fuege keine neuen Inhalte hinzu. Erzeuge keine Transferfragen, keine Fallvignetten und keine Fragen zu angrenzenden Themen, ausser dies wird ausdruecklich erlaubt. Die Antwort muss weiterhin aus der Originalantwort ableitbar sein.
+Du erzeugst Karteikartenvarianten. Eine Variante ist keine neue Karte, sondern eine nahe Umformulierung derselben Wissenseinheit. Bleibe bei denselben Fakten. Füge keine neuen Inhalte hinzu. Erzeuge keine Transferfragen, keine Fallvignetten und keine Fragen zu angrenzenden Themen, außer dies wird ausdrücklich erlaubt. Die Antwort muss weiterhin aus der Originalantwort ableitbar sein.
 
 USER-CONTEXT:
 Originalfrage:
@@ -46,15 +46,15 @@ Regeln:
 - Antwort fachlich gleichwertig zur Originalantwort
 - keine Fallbeispiele
 - keine Transferfragen
-- keine Erklaertexte als Frage
-- keine unnoetig abstrakte Formulierung
+- keine Erklärungstexte als Frage
+- keine unnötig abstrakte Formulierung
 - Sprache: {{language}}
 
 Erlaubte Typen:
 {{allowedVariantTypes}}
 
 Ausgabeformat:
-Gib ausschliesslich valides JSON zurueck.
+Gib ausschließlich valides JSON zurück.
 
 JSON-Schema:
 {
@@ -67,13 +67,13 @@ JSON-Schema:
       "relationToOriginal": "same_card_rephrasing",
       "containsNewFacts": false,
       "abstractionLevel": 1,
-      "reason": "kurze Begruendung, warum es dieselbe Karte bleibt"
+      "reason": "kurze Begründung, warum es dieselbe Karte bleibt"
     }
   ]
 }
 
 Wichtige Regel:
-Wenn du keine sinnvolle nahe Variante erzeugen kannst, gib weniger Varianten zurueck. Erfinde keine neuen Inhalte.`;
+Wenn du keine sinnvolle nahe Variante erzeugen kannst, gib weniger Varianten zurück. Erfinde keine neuen Inhalte.`;
 
 function plain(value) {
   return stripHtml(value).replace(/\s+/g, " ").trim();
@@ -184,7 +184,7 @@ export function buildCardVariationPrompt(item, options = {}) {
     `Fallvignetten erlaubt: ${normalizedOptions.allowCaseVignette ? "ja" : "nein"}`,
   ];
 
-  return `${prompt}\n\nZusaetzliche Optionen:\n${constraints.map((constraint) => `- ${constraint}`).join("\n")}`;
+  return `${prompt}\n\nZusätzliche Optionen:\n${constraints.map((constraint) => `- ${constraint}`).join("\n")}`;
 }
 
 export function validateVariantSuggestion(suggestion, originalItem = null, options = {}) {
@@ -205,7 +205,7 @@ export function validateVariantSuggestion(suggestion, originalItem = null, optio
     errors.push(`variantType ${String(variantType)} ist nicht erlaubt.`);
   }
   if (TRANSFER_LIKE_TYPES.has(variantType) && !(normalizedOptions.allowTransfer || normalizedOptions.allowCaseVignette)) {
-    errors.push("Transfer- oder Case-Varianten sind standardmaessig nicht erlaubt.");
+    errors.push("Transfer- oder Case-Varianten sind standardmäßig nicht erlaubt.");
   }
   if (variantLevel < 1 || variantLevel > normalizedOptions.maxVariantLevel) {
     errors.push(`variantLevel muss zwischen 1 und ${normalizedOptions.maxVariantLevel} liegen.`);
@@ -214,10 +214,10 @@ export function validateVariantSuggestion(suggestion, originalItem = null, optio
     errors.push("relationToOriginal muss same_card_rephrasing sein.");
   }
   if (containsNewFacts && !normalizedOptions.allowNewFacts) {
-    errors.push("containsNewFacts=true ist fuer nahe Varianten nicht erlaubt.");
+    errors.push("containsNewFacts=true ist für nahe Varianten nicht erlaubt.");
   }
   if (abstractionLevel > 2 && !normalizedOptions.allowTransfer) {
-    errors.push("abstractionLevel darf standardmaessig hoechstens 2 sein.");
+    errors.push("abstractionLevel darf standardmäßig höchstens 2 sein.");
   }
 
   if (originalItem) {
@@ -261,7 +261,7 @@ export function parseVariantGenerationResponse(response, options = {}) {
       variants,
       skippedVariants,
       warnings,
-      errors: [`KI-Antwort ist kein gueltiges JSON: ${error.message}`],
+      errors: [`KI-Antwort ist kein gültiges JSON: ${error.message}`],
       rawJson: payload,
     };
   }
@@ -271,7 +271,7 @@ export function parseVariantGenerationResponse(response, options = {}) {
       variants,
       skippedVariants,
       warnings,
-      errors: ["KI-Antwort benoetigt ein variants-Array."],
+      errors: ["KI-Antwort benötigt ein variants-Array."],
       rawJson: payload,
     };
   }
@@ -315,7 +315,7 @@ export function generateRephrasedVariantsForLearningItem(item, options = {}) {
       card: item,
       createdVariants: [],
       skippedVariants: [],
-      warnings: ["Keine KI-Antwort vorhanden. Uebergib mockResponse/response oder einen provider, um Varianten zu erzeugen."],
+      warnings: ["Keine KI-Antwort vorhanden. Übergib mockResponse/response oder einen provider, um Varianten zu erzeugen."],
       promptUsed,
     };
   }

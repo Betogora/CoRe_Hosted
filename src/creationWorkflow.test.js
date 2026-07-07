@@ -72,7 +72,7 @@ test("creation workflow owns AI draft generation and acceptance", () => {
     cardCount: 2,
     detailLevel: "normal",
     cardTypes: ["basic", "cloze"],
-    focus: "Pruefungswissen",
+    focus: "Prüfungswissen",
     subject: "Neuro",
     costTier: "balanced",
   };
@@ -84,7 +84,7 @@ test("creation workflow owns AI draft generation and acceptance", () => {
   const accepted = workflow.acceptAiDrafts(generated.draftDeck, updatedDrafts);
 
   assert.equal(generated.validation.valid, true);
-  assert.match(generated.statusMessage, /Entwuerfe generiert/);
+  assert.match(generated.statusMessage, /Entwürfe generiert/);
   assert.equal(generated.job.status, "succeeded");
   assert.equal(workflow.toggleAiCardType({ cardTypes: ["cloze"] }, "cloze").cardTypes[0], "basic");
   assert.equal(accepted.importMeta.draftOnly, false);

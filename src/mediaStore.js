@@ -24,7 +24,7 @@ function openMediaDatabase() {
       }
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Medienspeicher konnte nicht geoeffnet werden."));
+    request.onerror = () => reject(request.error ?? new Error("Medienspeicher konnte nicht geöffnet werden."));
   });
 }
 
@@ -110,7 +110,7 @@ export async function storeDeckMedia(deck, mediaFiles = []) {
       return {
         persisted: false,
         count: records.length,
-        errors: ["IndexedDB ist nicht verfuegbar; Medien bleiben nur fuer diese Browser-Sitzung sichtbar."],
+        errors: ["IndexedDB ist nicht verfügbar; Medien bleiben nur für diese Browser-Sitzung sichtbar."],
       };
     }
 

@@ -102,7 +102,7 @@ export function answerDeckQuestion({ decks, deckId = "all", question, now = new 
   const supporting = evidence.slice(1, 3);
   const answerParts = [
     leading.back,
-    ...supporting.map((item) => `Ergaenzend: ${item.front} -> ${item.back}`),
+    ...supporting.map((item) => `Ergänzend: ${item.front} -> ${item.back}`),
   ].filter(Boolean);
 
   return {

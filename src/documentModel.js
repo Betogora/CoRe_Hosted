@@ -15,7 +15,7 @@ export function isTextReadableFile(file) {
 
 export async function createDocumentFromFile(file) {
   if (!file) {
-    throw new Error("Es wurde keine Datei uebergeben.");
+    throw new Error("Es wurde keine Datei übergeben.");
   }
 
   const canReadText = isTextReadableFile(file);

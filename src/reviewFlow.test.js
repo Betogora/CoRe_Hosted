@@ -118,7 +118,7 @@ test("answerVariant rejects foreign variants and suspended cards without writing
 
   assert.throws(
     () => answerVariant(deck, left.id, getOriginalVariant(right).id, "good"),
-    /Variante nicht gefunden|gehoert nicht/,
+    /Variante nicht gefunden|gehört nicht/,
   );
   assert.throws(
     () => answerVariant(deck, suspended.id, getOriginalVariant(suspended).id, "good"),

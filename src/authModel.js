@@ -11,7 +11,7 @@ export function createLocalAccount({
 } = {}) {
   const normalizedEmail = String(email).trim().toLowerCase();
   if (!normalizedEmail || !normalizedEmail.includes("@")) {
-    throw new Error("Eine gueltige E-Mail-Adresse ist erforderlich.");
+    throw new Error("Eine gültige E-Mail-Adresse ist erforderlich.");
   }
   if (String(password).length < 8) {
     throw new Error("Das lokale Passwort muss mindestens 8 Zeichen haben.");

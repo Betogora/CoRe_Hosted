@@ -48,7 +48,10 @@ npm run preview  # Lokale Preview auf Port 5190
 
 ```text
 src/
-  App.jsx                 UI-Screens und lokale Produktflows
+  App.jsx                 App-Shell: Workspace-State, Navigation und Routing
+  screens/                UI-Screens mit kleinen Props-Interfaces
+  screens/README.md       Screen-Map und Regeln fuer KI-Programmierung
+  ui/                     Geteilte Praesentationsbausteine und Medien-HTML
   coreModel.js            Zentrales Deck-, Karten-, Varianten- und Review-Datenmodell
   coreRepository.js       Lokale Persistenz und State-Normalisierung
   coreWorkspace.js        App-Kommandos und Demo-Daten

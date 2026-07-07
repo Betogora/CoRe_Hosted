@@ -12,6 +12,7 @@ const STOP_WORDS = new Set([
   "eines",
   "mit",
   "von",
+  "für",
   "fuer",
   "ist",
   "sind",
@@ -85,7 +86,7 @@ export function buildDeckGraph(deck, options = {}) {
       from: centerId,
       to: termNodeId,
       type: "contains",
-      label: "gehoert zu",
+      label: "gehört zu",
     });
 
     for (const cardId of linkedCards.slice(0, 4)) {
@@ -104,7 +105,7 @@ export function buildDeckGraph(deck, options = {}) {
         from: termNodeId,
         to: cardNodeId,
         type: "tests_same_content",
-        label: "prueft",
+        label: "prüft",
       });
     }
   }

@@ -5,9 +5,9 @@ const views = [
     iconKey: "home",
     title: "Heute lernen",
     eyebrow: "Dashboard",
-    body: "Faellige Karten, neue Inhalte und CoRe-Status an einem Ort.",
+    body: "Fällige Karten, neue Inhalte und CoRe-Status an einem Ort.",
     stats: [
-      { label: "Faellig", value: "0" },
+      { label: "Fällig", value: "0" },
       { label: "Originalkarten", value: "0" },
       { label: "CoRe-ready", value: "0" },
     ],
@@ -48,7 +48,7 @@ const views = [
     stats: [
       { label: "Heute gelernt", value: "0" },
       { label: "Trefferquote", value: "-" },
-      { label: "Naechste Runde", value: "-" },
+      { label: "Nächste Runde", value: "-" },
     ],
   },
   {
@@ -96,10 +96,10 @@ const views = [
     iconKey: "assistant",
     title: "Assistent",
     eyebrow: "Chat und Lernplan",
-    body: "Quellengebundene Deck-Antworten und pruefungsorientierte Lernplanung.",
+    body: "Quellengebundene Deck-Antworten und prüfungsorientierte Lernplanung.",
     stats: [
       { label: "Antworten", value: "0" },
-      { label: "Plaene", value: "0" },
+      { label: "Pläne", value: "0" },
       { label: "Quellen", value: "Karten" },
     ],
   },

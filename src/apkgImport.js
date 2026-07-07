@@ -69,7 +69,7 @@ function readVarint(bytes, startOffset = 0) {
     shift += 7;
   }
 
-  throw new Error("Ungueltiges MediaEntries-Varint.");
+  throw new Error("Ungültiges MediaEntries-Varint.");
 }
 
 function readLengthDelimited(bytes, offset) {
@@ -85,7 +85,7 @@ function skipProtoField(bytes, wireType, offset) {
   if (wireType === 1) return offset + 8;
   if (wireType === 2) return readLengthDelimited(bytes, offset).offset;
   if (wireType === 5) return offset + 4;
-  throw new Error(`Nicht unterstuetzter MediaEntries-Wire-Type: ${wireType}`);
+  throw new Error(`Nicht unterstützter MediaEntries-Wire-Type: ${wireType}`);
 }
 
 function maybeDecompressZstdBytes(bytes) {
@@ -302,7 +302,7 @@ function getMediaAssetCount(mediaMap = {}, mediaManifest = null) {
 
 function buildWarnings({ cards, notes, mediaMap, mediaManifest, hasCloze, unsupportedNoteTypes }) {
   const warnings = [
-    "Scheduling-Daten und Review-Historie werden im MVP bewusst noch nicht vollstaendig uebernommen.",
+    "Scheduling-Daten und Review-Historie werden im MVP bewusst noch nicht vollständig übernommen.",
   ];
 
   if (cards.some((card) => Number(card.ord ?? 0) > 0)) {
@@ -310,11 +310,11 @@ function buildWarnings({ cards, notes, mediaMap, mediaManifest, hasCloze, unsupp
   }
 
   if (hasCloze) {
-    warnings.push("Cloze-Karten wurden erkannt und als solche markiert; eine spezialisierte Cloze-Review-Logik folgt spaeter.");
+    warnings.push("Cloze-Karten wurden erkannt und als solche markiert; eine spezialisierte Cloze-Review-Logik folgt später.");
   }
 
   if (getMediaAssetCount(mediaMap, mediaManifest) > 0) {
-    warnings.push("Medien wurden erkannt und fuer den lokalen Browser-Medienspeicher vorbereitet.");
+    warnings.push("Medien wurden erkannt und für den lokalen Browser-Medienspeicher vorbereitet.");
   }
 
   if ((mediaManifest?.missingAssets?.length ?? 0) > 0) {
@@ -322,11 +322,11 @@ function buildWarnings({ cards, notes, mediaMap, mediaManifest, hasCloze, unsupp
   }
 
   if (unsupportedNoteTypes.length > 0) {
-    warnings.push(`Nicht vollstaendig verstandene Note Types wurden roh gesichert: ${unsupportedNoteTypes.join(", ")}.`);
+    warnings.push(`Nicht vollständig verstandene Note Types wurden roh gesichert: ${unsupportedNoteTypes.join(", ")}.`);
   }
 
   if (notes.length === 0 || cards.length === 0) {
-    warnings.push("Die Collection enthaelt keine auslesbaren Notes oder Cards.");
+    warnings.push("Die Collection enthält keine auslesbaren Notes oder Cards.");
   }
 
   return warnings;
@@ -336,7 +336,7 @@ export function validateApkgFile(file) {
   const errors = [];
 
   if (!file) {
-    errors.push("Bitte waehle eine .apkg-Datei aus.");
+    errors.push("Bitte wähle eine .apkg-Datei aus.");
   }
 
   if (file && !file.name.toLowerCase().endsWith(".apkg")) {
@@ -344,7 +344,7 @@ export function validateApkgFile(file) {
   }
 
   if (file && file.size > MAX_APKG_SIZE) {
-    errors.push("Die Datei ist groesser als 250 MB und wird im MVP nicht direkt im Browser importiert.");
+    errors.push("Die Datei ist größer als 250 MB und wird im MVP nicht direkt im Browser importiert.");
   }
 
   return {
