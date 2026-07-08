@@ -137,11 +137,11 @@ function WeakDecks({ rows }) {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-3">
+      <div className="mt-6 grid min-w-0 gap-3">
         {rows.length ? (
           rows.map((row) => (
-            <div key={row.id} className="flex items-center justify-between gap-4 rounded-2xl border border-[#e3e7f5] bg-white/72 px-5 py-4">
-              <div className="min-w-0">
+            <div key={row.id} className="flex min-w-0 w-full max-w-full items-center justify-between gap-4 rounded-2xl border border-[#e3e7f5] bg-white/72 px-5 py-4">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-semibold text-[#17214f]">{row.name}</p>
                 <p className="mt-1 text-sm text-[#66709a]">{row.weakCount} schwere Antworten</p>
               </div>

@@ -1232,7 +1232,7 @@ const creationMethods = [
     title: "Import",
     eyebrow: "APKG, Text, Tabellen",
     body: "Übernimm bestehende Stapel oder Front/Back-Listen aus Dateien und Tabellen.",
-    icon: FileArchive,
+    icon: FileSpreadsheet,
     color: "teal",
   },
   {
@@ -1245,21 +1245,42 @@ const creationMethods = [
   },
 ];
 
+const methodThemes = {
+  sky: {
+    eyebrow: "text-sky-700",
+    icon: "bg-sky-50 text-sky-700 shadow-[inset_0_-18px_42px_rgba(14,165,233,0.08)]",
+    hover: "hover:border-sky-200 hover:shadow-[0_18px_42px_rgba(14,116,144,0.12)]",
+  },
+  teal: {
+    eyebrow: "text-teal-700",
+    icon: "bg-teal-50 text-teal-700 shadow-[inset_0_-18px_42px_rgba(20,184,166,0.09)]",
+    hover: "hover:border-teal-200 hover:shadow-[0_18px_42px_rgba(13,148,136,0.12)]",
+  },
+  indigo: {
+    eyebrow: "text-indigo-700",
+    icon: "bg-indigo-50 text-indigo-700 shadow-[inset_0_-18px_42px_rgba(79,70,229,0.08)]",
+    hover: "hover:border-indigo-200 hover:shadow-[0_18px_42px_rgba(79,70,229,0.12)]",
+  },
+};
+
 function CreationMethodButton({ method, isSelected, onSelect }) {
   const Icon = method.icon;
-  const colorClass = method.color === "teal" ? "text-teal-700 bg-teal-50" : method.color === "emerald" ? "text-emerald-700 bg-emerald-50" : method.color === "sky" ? "text-sky-700 bg-sky-50" : "text-indigo-700 bg-indigo-50";
+  const theme = methodThemes[method.color] ?? methodThemes.indigo;
 
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={isSelected}
-      className={`core-surface-raised rounded-[18px] p-6 text-left transition hover:-translate-y-1 ${isSelected ? "ring-2 ring-[#8790d8]" : ""}`}
+      className={`group grid min-h-[28rem] content-start rounded-[20px] border border-[#dde3f4] bg-white/82 px-7 py-10 text-center shadow-[0_8px_22px_rgba(91,105,154,0.08)] transition duration-200 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8790d8] sm:px-8 lg:px-9 ${theme.hover} ${isSelected ? "ring-2 ring-[#8790d8]" : ""}`}
     >
-      <OrbIcon icon={Icon} className={colorClass} />
-      <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-[#66709a]">{method.eyebrow}</p>
-      <h3 className="mt-2 text-2xl font-semibold text-[#17214f]">{method.title}</h3>
-      <p className="mt-3 text-sm leading-6 text-[#66709a]">{method.body}</p>
+      <span className={`mx-auto grid size-44 place-items-center rounded-full ${theme.icon}`}>
+        <Icon size={70} strokeWidth={1.7} aria-hidden="true" />
+      </span>
+      <span className={`mt-10 text-sm font-semibold uppercase ${theme.eyebrow}`}>{method.eyebrow}</span>
+      <span className="mx-auto mt-5 block max-w-[17rem] text-[2rem] font-semibold leading-tight text-[#17214f]">{method.title}</span>
+      <span className="mx-auto mt-7 block h-px w-full max-w-[17rem] bg-[#dfe4f5]" aria-hidden="true" />
+      <span className="mx-auto mt-6 block max-w-[18rem] text-left text-base leading-7 text-[#66709a]">{method.body}</span>
     </button>
   );
 }
@@ -1289,7 +1310,7 @@ export function CreationScreen({ decks = [], onCreated, onAppendManualCard, onJo
           {renderSelectedMethod()}
         </section>
       ) : (
-        <section className="grid min-h-[calc(100vh-18rem)] content-start gap-5 md:grid-cols-3" aria-label="Erstellungsart">
+        <section className="grid min-h-[calc(100vh-18rem)] items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3 xl:gap-6" aria-label="Erstellungsart">
           {creationMethods.map((method) => (
             <CreationMethodButton key={method.id} method={method} isSelected={false} onSelect={() => setSelectedMethod(method.id)} />
           ))}
