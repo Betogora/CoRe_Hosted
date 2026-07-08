@@ -46,7 +46,7 @@ Relevante Zielrichtungen:
 - `src/coreVariantService.js` buendelt Eligibility, Reifegrad, Readiness, Coverage, Variant-Generation-Plan und Fallback-Projektion hinter kleinen Interfaces.
 - `src/importService.js` buendelt Text-, CSV-, JSON- und Tabellen-Importe, Fingerprints, Dedupe und Parent-/Hierarchy-Felder hinter der Learning-Item-Creation-Pipeline.
 - `src/richText.js` und `src/htmlSafety.js` halten Rich-Text-Normalisierung und HTML-Sanitization aus Screens und Importpfaden heraus.
-- `src/libraryModel.js` erzeugt Dashboard-, Decklisten-, Heatmap- und KI-Job-Projektionen fuer die Screens.
+- `src/libraryModel.js` erzeugt Dashboard-, Statistik-, Decklisten-, Heatmap- und KI-Job-Projektionen fuer die Screens.
 - `src/App.jsx` ist nur noch App-Shell fuer Workspace-State, Navigation und Routing; produktnahe UI liegt in `src/screens/`.
 - `src/screens/README.md` ist die Einstiegskarte fuer KI-Programmierung an Screens; geteilte UI-Bausteine liegen in `src/ui/`.
 - Sichtbare Features sollen bei Ueberarbeitungen erhalten bleiben und nur durch explizite Prompts entfernt werden.

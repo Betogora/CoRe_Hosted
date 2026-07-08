@@ -1,11 +1,34 @@
 import React from "react";
-import { Ban, Eye, Flag, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { Ban, CheckCircle2, Eye, Flag, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
 import { getLearningItemAnswer, getLearningItemQuestion } from "../coreModel.js";
 import { resolveReviewShortcut } from "../reviewShortcuts.js";
 import { answerVariant, createDailyReviewQueue, recordVariantFeedback, updateDeckNewCardLimitForDate } from "../reviewService.js";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
 import { MiniProgress } from "../ui/coreUi.jsx";
 import { maturityStageLabels, ratingButtons } from "./screenConstants.js";
+
+function normalizeReviewCardType(cardType, variant) {
+  if (variant?.variantType === "reverse") return "basic-reversed";
+  if (cardType === "multiple-choice" || cardType === "cloze" || cardType === "basic-reversed") return cardType;
+  return "basic";
+}
+
+function normalizeChoiceOptions(value) {
+  if (Array.isArray(value)) return value.map((option) => String(option).trim()).filter(Boolean);
+  return String(value ?? "")
+    .split(/\n+/)
+    .map((option) => option.trim())
+    .filter(Boolean);
+}
+
+function normalizeExpectedAnswer(value) {
+  if (Array.isArray(value)) return String(value[0] ?? "").trim();
+  return String(value ?? "").trim();
+}
+
+function sameAnswer(left, right) {
+  return String(left ?? "").trim().toLowerCase() === String(right ?? "").trim().toLowerCase();
+}
 
 export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?.id, variantSession, onExit, onDeckUpdated }) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
@@ -15,7 +38,6 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   const [showAnchor, setShowAnchor] = React.useState(false);
   const [showSettings, setShowSettings] = React.useState(false);
   const [selectedChoice, setSelectedChoice] = React.useState("");
-  const [typedAnswer, setTypedAnswer] = React.useState("");
   const rootDeck = sessionDecks.find((candidate) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
   const queue = React.useMemo(
     () =>
@@ -35,11 +57,18 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
   const anchorMiniCard = current?.answerSideAnchorMiniCard;
   const { urls: studyMediaUrls } = useDeckMediaUrls(currentDeck);
-  const cardType = sourceCard?.kind ?? sourceCard?.cardType ?? current?.variant?.meta?.cardType ?? "basic";
-  const answerOptions = current?.variant?.answerOptionsJson ?? sourceCard?.meta?.answerOptions ?? [];
-  const expectedAnswer = current?.variant?.expectedAnswerJson ?? sourceCard?.meta?.correctAnswer ?? sourceCard?.meta?.expectedAnswer ?? current?.back ?? "";
-  const isMultipleChoice = cardType === "multiple-choice" && Array.isArray(answerOptions) && answerOptions.length > 0;
-  const isFreeText = cardType === "free-text";
+  const rawCardType = sourceCard?.kind ?? sourceCard?.cardType ?? current?.variant?.meta?.cardType ?? "basic";
+  const cardType = normalizeReviewCardType(rawCardType, current?.variant);
+  const answerOptions = normalizeChoiceOptions(current?.variant?.answerOptionsJson ?? sourceCard?.meta?.answerOptions ?? []);
+  const expectedAnswer = normalizeExpectedAnswer(current?.variant?.expectedAnswerJson ?? sourceCard?.meta?.correctAnswer ?? sourceCard?.meta?.expectedAnswer ?? current?.back ?? "");
+  const isMultipleChoice = cardType === "multiple-choice" && answerOptions.length >= 2 && expectedAnswer && answerOptions.some((option) => sameAnswer(option, expectedAnswer));
+  const hasIncompleteMultipleChoice = cardType === "multiple-choice" && !isMultipleChoice;
+  const selectedChoiceIsCorrect = Boolean(isMultipleChoice && selectedChoice && sameAnswer(selectedChoice, expectedAnswer));
+  const multipleChoiceFeedbackClass = !selectedChoice
+    ? "border-[#dfe4f5] bg-[#f8f9fe] text-[#4e5b8c]"
+    : selectedChoiceIsCorrect
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : "border-red-200 bg-red-50 text-red-800";
 
   React.useEffect(() => {
     setSessionDecks(decks);
@@ -49,12 +78,10 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
     setShowAnchor(false);
     setShowSettings(false);
     setSelectedChoice("");
-    setTypedAnswer("");
   }, [deckId, variantSession, decks.length]);
 
   React.useEffect(() => {
     setSelectedChoice("");
-    setTypedAnswer("");
   }, [current?.learningItemId, current?.variantId]);
 
   function reviewItemKey(item = current) {
@@ -82,11 +109,16 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
     setShowAnswer(false);
     setShowAnchor(false);
     setSelectedChoice("");
-    setTypedAnswer("");
 
     if (nextQueue.total === 0) {
       onExit();
     }
+  }
+
+  function selectChoice(option) {
+    if (!isMultipleChoice || showAnswer) return;
+    setSelectedChoice(option);
+    setShowAnswer(true);
   }
 
   function grade(rating) {
@@ -192,26 +224,41 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                     <CardHtml html={current.front} mediaUrls={studyMediaUrls} />
                   </div>
                   {isMultipleChoice ? (
-                    <div className="mt-6 grid gap-2">
-                      {answerOptions.map((option) => (
+                    <div className="mt-6 grid gap-3">
+                      {answerOptions.map((option, index) => {
+                        const isSelected = sameAnswer(option, selectedChoice);
+                        const isCorrect = sameAnswer(option, expectedAnswer);
+                        const isWrongSelection = showAnswer && isSelected && !isCorrect;
+                        const stateClass = showAnswer
+                          ? isCorrect
+                            ? "core-mcq-option-correct border-emerald-300 bg-emerald-50 text-emerald-800"
+                            : isWrongSelection
+                              ? "core-mcq-option-wrong border-red-300 bg-red-50 text-red-800"
+                              : "border-[#dfe4f5] bg-white/72 text-[#66709a]"
+                          : isSelected
+                            ? "border-[#4f5eb1] bg-[#eef1fb] text-[#24327a]"
+                            : "border-[#dfe4f5] bg-white/88 text-[#4e5b8c] hover:border-[#8c96dc] hover:bg-[#f8f9fe]";
+                        return (
                         <button
                           key={option}
                           type="button"
-                          onClick={() => setSelectedChoice(option)}
-                          className={`min-h-11 rounded-xl border px-4 text-left text-sm font-semibold ${
-                            selectedChoice === option ? "border-[#4f5eb1] bg-[#eef1fb] text-[#24327a]" : "border-[#dfe4f5] bg-white/80 text-[#4e5b8c]"
-                          }`}
+                          onClick={() => selectChoice(option)}
+                          disabled={showAnswer}
+                          aria-pressed={isSelected}
+                          className={`core-mcq-option flex min-h-12 items-center justify-between gap-3 rounded-xl border px-4 text-left text-sm font-semibold ${stateClass}`}
                         >
-                          {option}
+                          <span><span className="mr-2 text-xs uppercase tracking-wide opacity-70">{String.fromCharCode(65 + index)}</span>{option}</span>
+                          {showAnswer && isCorrect ? <CheckCircle2 className="shrink-0" size={18} aria-hidden="true" /> : null}
+                          {isWrongSelection ? <XCircle className="shrink-0" size={18} aria-hidden="true" /> : null}
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : null}
-                  {isFreeText && !showAnswer ? (
-                    <label className="mt-6 grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-                      Deine Antwort
-                      <textarea className="min-h-28 rounded-xl border border-[#dfe4f5] bg-white/80 p-3 text-base leading-7 text-[#17214f]" value={typedAnswer} onChange={(event) => setTypedAnswer(event.target.value)} />
-                    </label>
+                  {hasIncompleteMultipleChoice ? (
+                    <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+                      Diese Multiple-Choice-Karte hat keine vollständigen Antwortoptionen und wird wie eine normale Karte angezeigt.
+                    </div>
                   ) : null}
                   <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-[#66709a]">
                     <span className="rounded-lg bg-[#eef1fb] px-2 py-1">{isCurrentVariant ? `Variante Level ${current.variant.variantLevel ?? 1}` : "Originalkarte"}</span>
@@ -226,15 +273,10 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                         <CardHtml html={current.back} mediaUrls={studyMediaUrls} />
                       </div>
                       {isMultipleChoice ? (
-                        <div className="mt-5 rounded-2xl border border-[#dfe4f5] bg-[#f8f9fe] p-4 text-sm text-[#4e5b8c]">
-                          <p className="font-semibold text-[#17214f]">Richtige Antwort: {expectedAnswer}</p>
-                          {selectedChoice ? <p className="mt-2">Deine Auswahl: {selectedChoice}</p> : null}
-                        </div>
-                      ) : null}
-                      {isFreeText && typedAnswer.trim() ? (
-                        <div className="mt-5 rounded-2xl border border-[#dfe4f5] bg-[#f8f9fe] p-4 text-sm text-[#4e5b8c]">
-                          <p className="font-semibold text-[#17214f]">Deine Antwort</p>
-                          <p className="mt-2 whitespace-pre-wrap">{typedAnswer}</p>
+                        <div className={`mt-5 rounded-2xl border p-4 text-sm ${multipleChoiceFeedbackClass}`}>
+                          <p className="font-semibold">{selectedChoice ? (selectedChoiceIsCorrect ? "Richtig ausgewählt." : "Nicht ganz.") : "Lösung aufgedeckt."}</p>
+                          <p className="mt-2">Richtige Antwort: {expectedAnswer}</p>
+                          {selectedChoice ? <p className="mt-1">Deine Auswahl: {selectedChoice}</p> : null}
                         </div>
                       ) : null}
                       {anchorMiniCard?.shouldShow ? (

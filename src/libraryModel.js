@@ -7,6 +7,14 @@ const HEATMAP_DEFAULT_VIEWPORT_WIDTH = 360;
 const HEATMAP_WEEKDAY_LABEL_WIDTH = 36;
 const HEATMAP_WEEK_TRACK_WIDTH = 20;
 const HEATMAP_NAVIGATION_STEP_WEEKS = 4;
+const PERFORMANCE_RECENT_DAY_COUNT = 14;
+const REVIEW_RATING_KEYS = ["again", "hard", "good", "easy"];
+const REVIEW_RATING_LABELS = {
+  again: "Wiederholen",
+  hard: "Schwer",
+  good: "Gut",
+  easy: "Leicht",
+};
 
 function normalizeQuery(value) {
   return String(value ?? "").trim().toLowerCase();
@@ -77,6 +85,13 @@ function formatShortDate(value) {
   return `${day}.${month}.${year}`;
 }
 
+function formatShortDayMonth(value) {
+  const date = new Date(value);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}.${month}.`;
+}
+
 function monthShortLabel(value) {
   return ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"][new Date(value).getMonth()];
 }
@@ -136,6 +151,134 @@ function resultLabel(job) {
   if (job.resultRef?.cardCount) return `${job.resultRef.cardCount} Karten`;
   if (job.resultRef?.generatedVariantIds) return `${job.resultRef.generatedVariantIds.length} Varianten`;
   return "";
+}
+
+function percentage(part, total) {
+  return total > 0 ? Math.round((part / total) * 100) : 0;
+}
+
+function average(values) {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function normalizeRating(rating) {
+  return REVIEW_RATING_KEYS.includes(rating) ? rating : null;
+}
+
+function isPositiveRating(rating) {
+  return rating === "hard" || rating === "good" || rating === "easy";
+}
+
+function isStrongRating(rating) {
+  return rating === "good" || rating === "easy";
+}
+
+function isVariantReviewEvent(event) {
+  return event?.reviewableType === "variant" || event?.variantLevel > 1 || event?.variantType === "rephrase";
+}
+
+function createPerformanceEvent(deck, event) {
+  const rating = normalizeRating(event?.rating);
+  const rawDate = reviewEventDate(event);
+  const date = rawDate ? new Date(rawDate) : null;
+
+  if (!rating || !date || Number.isNaN(date.getTime())) return null;
+
+  const responseTimeMs = Number(event.responseTimeMs);
+
+  return {
+    id: event.id,
+    deckId: deck.id,
+    deckName: deck.name,
+    learningItemId: event.learningItemId ?? event.cardId ?? null,
+    variantId: event.variantId ?? event.cardVariantId ?? null,
+    rating,
+    reviewedAt: date.toISOString(),
+    dateKey: localDateKey(date),
+    responseTimeMs: Number.isFinite(responseTimeMs) && responseTimeMs > 0 ? responseTimeMs : null,
+    isPositive: isPositiveRating(rating),
+    isStrong: isStrongRating(rating),
+    isVariant: isVariantReviewEvent(event),
+  };
+}
+
+function collectPerformanceEvents(decks = []) {
+  return decks
+    .flatMap((deck) => (deck.reviewEvents ?? []).map((event) => createPerformanceEvent(deck, event)).filter(Boolean))
+    .sort((left, right) => String(right.reviewedAt).localeCompare(String(left.reviewedAt)));
+}
+
+function createRatingBreakdown(events) {
+  return REVIEW_RATING_KEYS.map((rating) => {
+    const count = events.filter((event) => event.rating === rating).length;
+
+    return {
+      rating,
+      label: REVIEW_RATING_LABELS[rating],
+      count,
+      percent: percentage(count, events.length),
+    };
+  });
+}
+
+function createRecentPerformanceDays(events, options = {}) {
+  const dayCount = Math.max(1, Math.round(Number(options.dayCount ?? PERFORMANCE_RECENT_DAY_COUNT) || PERFORMANCE_RECENT_DAY_COUNT));
+  const end = startOfLocalDay(options.now ?? new Date());
+  const start = addLocalDays(end, -(dayCount - 1));
+  const eventsByDate = new Map();
+
+  for (const event of events) {
+    eventsByDate.set(event.dateKey, [...(eventsByDate.get(event.dateKey) ?? []), event]);
+  }
+
+  return Array.from({ length: dayCount }, (_, index) => {
+    const date = addLocalDays(start, index);
+    const key = localDateKey(date);
+    const dayEvents = eventsByDate.get(key) ?? [];
+    const successCount = dayEvents.filter((event) => event.isPositive).length;
+
+    return {
+      key,
+      label: formatShortDayMonth(date),
+      reviews: dayEvents.length,
+      successCount,
+      successPercent: percentage(successCount, dayEvents.length),
+      weakCount: dayEvents.filter((event) => event.rating === "again" || event.rating === "hard").length,
+    };
+  });
+}
+
+function createDeckPerformanceRows(decks = [], events = [], now = new Date()) {
+  const eventsByDeckId = new Map();
+  for (const event of events) {
+    eventsByDeckId.set(event.deckId, [...(eventsByDeckId.get(event.deckId) ?? []), event]);
+  }
+
+  return decks
+    .map((deck) => {
+      const deckEvents = eventsByDeckId.get(deck.id) ?? [];
+      const summary = summarizeDeckReview(deck, now);
+      const successCount = deckEvents.filter((event) => event.isPositive).length;
+      const weakCount = deckEvents.filter((event) => event.rating === "again" || event.rating === "hard").length;
+      const variantReviewCount = deckEvents.filter((event) => event.isVariant).length;
+
+      return {
+        id: deck.id,
+        name: deckPath(deck),
+        deckName: deck.name,
+        reviewCount: deckEvents.length,
+        successCount,
+        successPercent: percentage(successCount, deckEvents.length),
+        weakCount,
+        weakPercent: percentage(weakCount, deckEvents.length),
+        variantReviewCount,
+        averageResponseSeconds: Math.round(average(deckEvents.map((event) => event.responseTimeMs).filter(Boolean)) / 100) / 10,
+        dueCards: summary.dueCards,
+        totalCards: summary.totalCards,
+        matureCards: summary.matureCards,
+      };
+    })
+    .sort((left, right) => right.reviewCount - left.reviewCount || right.weakCount - left.weakCount || left.name.localeCompare(right.name));
 }
 
 function createDeckRow(deck, { now, cardLimit, scopeDecks = [deck], depth = 0, childrenCount = 0 }) {
@@ -397,6 +540,52 @@ export function createDeckLibraryModel(decks = [], options = {}) {
     dashboardRows: rows.filter((row) => row.depth === 0).slice(0, 4),
     totals: summarizeDecks(decks, now),
     studyHeatmap: createStudyHeatmapModel(decks, { now }),
+  };
+}
+
+export function createPerformanceStatisticsModel(decks = [], options = {}) {
+  const now = options.now ?? new Date();
+  const events = collectPerformanceEvents(decks);
+  const successCount = events.filter((event) => event.isPositive).length;
+  const strongCount = events.filter((event) => event.isStrong).length;
+  const variantEvents = events.filter((event) => event.isVariant);
+  const variantSuccessCount = variantEvents.filter((event) => event.isPositive).length;
+  const responseTimes = events.map((event) => event.responseTimeMs).filter(Boolean);
+  const heatmap = createStudyHeatmapModel(decks, {
+    now,
+    weeks: options.heatmapWeeks ?? DEFAULT_HEATMAP_WEEK_COUNT,
+  });
+  const deckRows = createDeckPerformanceRows(decks, events, now);
+  const weakDeckRows = deckRows
+    .filter((row) => row.reviewCount > 0 && row.weakCount > 0)
+    .sort((left, right) => right.weakPercent - left.weakPercent || right.weakCount - left.weakCount || right.reviewCount - left.reviewCount)
+    .slice(0, 5);
+
+  return {
+    hasReviewEvents: events.length > 0,
+    events,
+    totals: {
+      reviewCount: events.length,
+      successCount,
+      successPercent: percentage(successCount, events.length),
+      strongCount,
+      strongPercent: percentage(strongCount, events.length),
+      averageResponseSeconds: Math.round(average(responseTimes) / 100) / 10,
+      activeDays: heatmap.activeDays,
+      averagePerActiveDay: heatmap.averagePerActiveDay,
+      currentStreak: heatmap.currentStreak,
+      longestStreak: heatmap.longestStreak,
+      variantReviewCount: variantEvents.length,
+      variantSuccessPercent: percentage(variantSuccessCount, variantEvents.length),
+    },
+    ratingBreakdown: createRatingBreakdown(events),
+    recentDays: createRecentPerformanceDays(events, {
+      now,
+      dayCount: options.recentDayCount ?? PERFORMANCE_RECENT_DAY_COUNT,
+    }),
+    deckRows,
+    weakDeckRows,
+    latestReview: events[0] ?? null,
   };
 }
 

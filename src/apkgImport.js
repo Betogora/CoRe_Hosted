@@ -561,7 +561,7 @@ function buildWarnings({ cards, notes, mediaMap, mediaManifest, hasCloze, unsupp
   }
 
   if (hasCloze) {
-    warnings.push("Cloze-Karten wurden erkannt und als solche markiert; eine spezialisierte Cloze-Review-Logik folgt spaeter.");
+    warnings.push("Cloze-Karten wurden erkannt und als Cloze-Varianten importiert.");
   }
 
   if (getMediaAssetCount(mediaMap, mediaManifest) > 0) {
@@ -1185,7 +1185,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
   }
 
   if (hasCloze) {
-    warnings.push("Cloze-Karten wurden erkannt und als cloze-Varianten importiert; spezialisierte Cloze-Review-UI bleibt ein Ausbaupunkt.");
+    warnings.push("Cloze-Karten wurden erkannt und als Cloze-Varianten importiert.");
   }
 
   if (getMediaAssetCount(mediaMap, mediaManifest) > 0) {

@@ -7,11 +7,9 @@ export const importSteps = [
 
 export const cardTypeOptions = [
   { value: "basic", label: "Basic" },
-  { value: "basic-reversed", label: "Reverse" },
-  { value: "cloze", label: "Cloze" },
-  { value: "image-occlusion", label: "Image" },
+  { value: "basic-reversed", label: "Umgekehrt" },
+  { value: "cloze", label: "Lückentext" },
   { value: "multiple-choice", label: "Multiple Choice" },
-  { value: "free-text", label: "Free Text" },
 ];
 
 export const ratingButtons = [

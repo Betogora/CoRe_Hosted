@@ -30,6 +30,7 @@ export const REVIEW_RATINGS = ["again", "hard", "good", "easy"];
 export const LEARNING_ITEM_SOURCE_TYPES = ["manual", "text_import", "csv_import", "json_import", "anki_import", "ai_generated", "mixed"];
 export const CARD_VARIANT_TYPES = ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"];
 export const VARIANT_GENERATION_SOURCES = ["original", "ai_generated", "user_edited", "imported"];
+const CREATABLE_CARD_TYPES = new Set(["basic", "basic-reversed", "cloze", "multiple-choice"]);
 
 export const MATURITY_BANDS = [
   { id: "new", min: 0, max: 20, label: "Neu" },
@@ -494,6 +495,10 @@ function normalizeVariantType(variantType, fallbackCardType = "basic") {
   }[fallbackCardType];
 
   return CARD_VARIANT_TYPES.includes(mapped) ? mapped : CARD_VARIANT_TYPES.includes(fallbackCardType) ? fallbackCardType : "basic";
+}
+
+function normalizeCreatableCardType(cardType, fallback = "basic") {
+  return CREATABLE_CARD_TYPES.has(cardType) ? cardType : fallback;
 }
 
 function normalizeGenerationSource(generationSource, { isOriginal = false, sourceType = "manual", modelRunId = null } = {}) {
@@ -1067,6 +1072,10 @@ function revealClozeText(text) {
   return String(text ?? "").replace(/\{\{c\d+::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, "$1");
 }
 
+function hasClozeSyntax(text) {
+  return /\{\{c\d+::[\s\S]+?\}\}/.test(String(text ?? ""));
+}
+
 function extractClozeGroups(text) {
   const groups = new Map();
   const pattern = /\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g;
@@ -1118,6 +1127,7 @@ export function createBasicLearningItem(deckId, front, back, options = {}) {
   const id = options.id ?? makeId("card");
   const sourceType = options.sourceType ?? "manual";
   const source = resolveLegacySource(sourceType, options.source);
+  const cardType = normalizeCreatableCardType(options.cardType ?? "basic");
   const normalizedFront = sanitizeCardHtml(front);
   const normalizedBack = sanitizeCardHtml(back);
   const meta = options.meta ?? {};
@@ -1128,7 +1138,7 @@ export function createBasicLearningItem(deckId, front, back, options = {}) {
     learningItemId: id,
     cardId: id,
     sourceCardId: id,
-    variantType: ["multiple-choice", "free-text"].includes(options.cardType) ? normalizeVariantType(null, options.cardType) : "basic",
+    variantType: cardType === "multiple-choice" ? normalizeVariantType(null, cardType) : "basic",
     variantLevel: 1,
     front: normalizedFront,
     back: normalizedBack,
@@ -1143,7 +1153,7 @@ export function createBasicLearningItem(deckId, front, back, options = {}) {
     createdAt,
     updatedAt,
     meta: {
-      cardType: options.cardType ?? "basic",
+      cardType,
       sourceType,
     },
   });
@@ -1152,7 +1162,7 @@ export function createBasicLearningItem(deckId, front, back, options = {}) {
     id,
     deckId,
     title: options.title ?? "",
-    cardType: options.cardType ?? "basic",
+    cardType,
     source,
     sourceType,
     sourceRefId: options.sourceRefId ?? options.sourceExternalId ?? null,
@@ -1182,7 +1192,7 @@ export function createBasicLearningItem(deckId, front, back, options = {}) {
 export function createBasicReverseLearningItem(deckId, front, back, options = {}) {
   const item = createBasicLearningItem(deckId, front, back, {
     ...options,
-    cardType: options.cardType ?? "basic-reversed",
+    cardType: "basic-reversed",
   });
   const originalVariant = getOriginalVariant(item);
   const reverseVariant = createCardVariant({
@@ -1395,7 +1405,7 @@ export function createLearningItemsFromNormalizedInput(deckId, normalizedItems =
         source: input.source ?? options.source,
         sourceRefId: input.sourceRefId ?? input.sourceExternalId ?? options.sourceRefId ?? null,
         sourceExternalId: input.sourceExternalId,
-        cardType: input.cardType ?? options.cardType,
+        cardType: normalizeCreatableCardType(input.cardType ?? options.cardType),
         mediaRefs: input.mediaRefs ?? options.mediaRefs ?? [],
         originalFields: input.originalFields ?? options.originalFields ?? [],
         sourceAnchors: input.sourceAnchors ?? options.sourceAnchors ?? [],
@@ -1406,12 +1416,13 @@ export function createLearningItemsFromNormalizedInput(deckId, normalizedItems =
           ...(input.meta ?? {}),
         },
       };
-      const isCloze = input.cardType === "cloze" || /\{\{c\d+::/.test(String(canonicalQuestion));
+      const normalizedCardType = commonOptions.cardType;
+      const isCloze = normalizedCardType === "cloze" || /\{\{c\d+::/.test(String(canonicalQuestion));
       let item = isCloze
         ? createClozeLearningItem(deckId, anchorQuestion, anchorAnswer, commonOptions)
         : createBasicLearningItem(deckId, anchorQuestion, anchorAnswer, {
             ...commonOptions,
-            cardType: input.cardType ?? "basic",
+            cardType: normalizedCardType,
           });
       item = normalizeLearningItem({
         ...item,
@@ -1488,12 +1499,14 @@ function createManualCardArtifacts({ card = {}, documentContext = {}, createdAt 
   const answerOptions = Array.isArray(card.answerOptions)
     ? card.answerOptions.map((option) => String(option).trim()).filter(Boolean)
     : [];
+  const requestedCardType = normalizeCreatableCardType(card.cardType ?? "basic");
+  const cardType = requestedCardType === "cloze" && !hasClozeSyntax(card.front) ? "basic" : requestedCardType;
   const correctAnswer = String(card.correctAnswer ?? card.back ?? "").trim();
-  const expectedAnswer = card.cardType === "multiple-choice" ? correctAnswer : String(card.expectedAnswer ?? card.back ?? "").trim();
+  const expectedAnswer = cardType === "multiple-choice" ? correctAnswer : String(card.expectedAnswer ?? card.back ?? "").trim();
   const itemOptions = {
     sourceType: "manual",
     source: "manual",
-    cardType: card.cardType,
+    cardType,
     tags: card.tags,
     mediaRefs: card.mediaRefs,
     sourceAnchors: sourceAnchor ? [sourceAnchor] : [],
@@ -1518,14 +1531,13 @@ function createManualCardArtifacts({ card = {}, documentContext = {}, createdAt 
       answerOptions,
       correctAnswer,
       expectedAnswer,
-      selfCheck: card.cardType === "free-text",
       exactWordingRequired: Boolean(card.exactWordingRequired),
     },
   };
   const coreCard =
-    card.cardType === "basic-reversed"
+    cardType === "basic-reversed"
       ? createBasicReverseLearningItem("", card.front, card.back, itemOptions)
-      : card.cardType === "cloze"
+      : cardType === "cloze"
         ? createClozeLearningItem("", card.front, card.back, itemOptions)
         : createBasicLearningItem("", card.front, card.back, itemOptions);
 
@@ -1556,7 +1568,7 @@ export function createManualCoreDeck({ deckName, card, documentContext }) {
 export function createAiDraftDeck({ deckName, config, drafts, sourceDocuments = [] }) {
   const createdAt = new Date().toISOString();
   const cards = drafts.map((draft) => {
-    const cardType = draft.cardType ?? draft.type ?? "basic";
+    const cardType = (draft.cardType ?? draft.type) === "cloze" ? "cloze" : "basic";
     const sourceAnchors = (draft.sourceAnchors ?? []).map((anchor) =>
       createSourceAnchor({
         ...anchor,

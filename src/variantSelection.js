@@ -22,6 +22,14 @@ function rotateVariant(candidates, state = {}) {
   return sorted[index];
 }
 
+function cardTypeOf(card) {
+  return card?.kind ?? card?.cardType ?? "basic";
+}
+
+function primaryVariantByType(card, variantType) {
+  return getActiveVariants(card).find((variant) => variant.variantType === variantType) ?? null;
+}
+
 export function isAutomaticRephraseVariant(variant, options = {}) {
   if (!variant || variant.isOriginal || variant.qualityStatus !== "active" || variant.isActive === false) return false;
   const variantType = variant.variantType ?? "basic";
@@ -38,6 +46,13 @@ export function isAutomaticRephraseVariant(variant, options = {}) {
 export function selectAutomaticReviewVariant(card, options = {}) {
   const original = getOriginalVariant(card);
   const state = card?.learningItemState ?? card?.reviewState ?? {};
+  const cardType = cardTypeOf(card);
+  const primaryReverse = cardType === "basic-reversed" ? primaryVariantByType(card, "reverse") : null;
+  const clozeVariants = cardType === "cloze" ? getActiveVariants(card).filter((variant) => variant.variantType === "cloze") : [];
+
+  if (primaryReverse) return primaryReverse;
+  if (clozeVariants.length > 0) return rotateVariant(clozeVariants, state);
+
   const phase = inferLearningPhase(state);
   const preferredLevel = clampAutomaticLevel(options.preferredVariantLevel ?? state.preferredVariantLevel ?? 1);
   const nearVariants = getActiveVariants(card).filter((variant) =>

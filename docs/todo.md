@@ -20,8 +20,9 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [x] Legacy-Card-Normalisierung ohne Verlust bestehender Review-Events.
 - [x] APKG-Basic-Import mit Mapping, echten Unterstapeln, Importbericht, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten, lokalem Browser-Medienspeicher und Reimport-Merge.
 - [x] Text-, CSV-, normalisierte JSON- und Excel-/Tabellen-Paste-Importe ueber die gemeinsame Learning-Item-Pipeline mit Warnungen, Fingerprints, Dedupe und Parent-/Hierarchy-Feldern.
-- [x] Manuelle Kartenanlage mit Rich-Text-Editor fuer Front/Back, bestehendem/neuem Stapelziel, Dokumentmodus, CoRe-integriertem minimalem visuellem PDF-Viewer, Auswahl-zu-Feld, PDF-/Text-Auslesung, Multiple-Choice/Free-Text-Selbstcheck, Rich-Text-Helfern und Original-Variantenanker.
-- [x] Erstellen oeffnet standardmaessig die manuelle Kartenerstellung; die Reiter stehen in der Reihenfolge Manuell, PDF/Text, Import, KI.
+- [x] Manuelle Kartenanlage mit Anki-artig untereinander angeordneter Vorder-/Rueckseite, Pinnfunktion pro Kartenfeld, Rich-Text-Editor fuer Front/Back, bestehendem/neuem Stapelziel, Dokumentmodus, CoRe-integriertem minimalem visuellem PDF-Viewer, Auswahl-zu-Feld, PDF-/Text-Auslesung, Multiple Choice, Cloze-/Reverse-Review, Free-Text-Legacy-Fallback, Rich-Text-Helfern und Original-Variantenanker.
+- [x] Rich-Text-Werkzeugleiste fuer die Kartenerstellung aufgeraeumt: Stift- und Markerfarben oeffnen erst auf Klick ein CoRe-eigenes Farbpopover mit je drei lokal gespeicherten Farben, Farbspektrum, Schnellfarben und Hex-Anpassung statt nativem Systemfarbdialog.
+- [x] Erstellen startet mit drei grossen Auswahlkacheln fuer manuelle Erstellung mit optionaler PDF-/Textquelle, Import und KI; der gewaehlte Arbeitsbereich oeffnet danach moeglichst flaechenfuellend neben der Sidebar.
 - [x] Lokale KI-Drafts aus Quellentext mit Schema-Validation, Draft-Annahme und normalisierter Learning-Item-Erstellung.
 - [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, append-only Review-Events und Learning-Item-/Varianten-Kompatibilitaetsfeldern.
 - [x] Tages-Queue im Lernmodus fuer jetzt faellige/ueberfaellige Karten plus pro Stapel einstellbare neue Karten; Elternstapel lernen ihren Unterbaum.
@@ -32,7 +33,7 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [x] FSRS-like Scheduler-State mit Stability, Difficulty, Desired Retention, Retrievability und konservativen Intervallen.
 - [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker-Minikarte, Variant-Level, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
 - [x] Lokale Community-Gruppen, Ordner und Deck-Kopie ohne fremde Reviewdaten.
-- [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan, AI-Job-Datenmodell und responsive, pfeilnavigierbare Heute-Jahres-Heatmap ohne horizontalen Slider.
+- [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan, AI-Job-Datenmodell, responsive pfeilnavigierbare Heute-Jahres-Heatmap ohne horizontalen Slider und eigener Statistik-Reiter fuer Leistungs-Auswertung.
 - [x] Heute-Dashboard nutzt kompakte Hero- und Heatmap-Kopfbereiche ohne zusaetzliche Beschreibungstexte; Metriken, Heatmap-Labels, Hauptstapel-Aggregate und Navigation bleiben erhalten.
 - [x] Lokaler JSON-Export/-Import ohne Passwort-Verifier.
 - [x] Appweite Surface-/Elevation-Regel umgesetzt: dauerhafte glasige Panels nutzen gemeinsame Surface-Tokens ohne benachbarte Elemente sichtbar abzudunkeln; grosse Schatten bleiben echten Overlays vorbehalten.
@@ -173,7 +174,7 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - `src/coreFeatures.test.js`: groesster Modul-Test fuer die implementierten MVP-Pfade.
 - `src/creationPipeline.test.js` und `src/learningModel.test.js`: aktuelle Tests fuer Learning-Item-Erstellung, Variantenanker und Legacy-Kompatibilitaet.
 - `src/normalizedImport.test.js`: normalisierte Importpayloads, JSON-Pfad, Fingerprints und Dedupe.
-- `src/libraryModel.test.js`: Dashboard-/Heatmap- und Bibliotheksprojektionen.
+- `src/libraryModel.test.js`: Dashboard-/Heatmap-, Statistik- und Bibliotheksprojektionen.
 - `src/richText.test.js`: Rich-Text-Normalisierung und Textanhaengen.
 - `src/schedulerIntervals.test.js`: Intervall-Labels und Rating-Vorschau.
 - `src/fsrsVariantFlow.test.js`: FSRS-like Scheduler, Variant-Readiness, Coverage, Fallback und Next-Review-Projektion.

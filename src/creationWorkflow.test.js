@@ -145,6 +145,27 @@ test("creation workflow prepares multiple-choice manual cards", () => {
   assert.equal(workflow.canCreateManualCard({ cardType: "multiple-choice", front: input.card.front, answerOptions: input.card.answerOptions, correctAnswer: input.card.correctAnswer }), true);
 });
 
+test("creation workflow validates cloze syntax and maps old free-text input to basic", () => {
+  const workflow = createCreationWorkflow();
+  const clozeInput = workflow.createManualDeckInput({
+    deckName: "Cloze",
+    cardType: "cloze",
+    front: "{{c1::ATP}} liefert Energie.",
+    back: "Extra: Zellstoffwechsel.",
+  });
+  const freeTextInput = workflow.createManualDeckInput({
+    deckName: "Alt",
+    cardType: "free-text",
+    front: "Definiere Osmose.",
+    back: "Osmose ist die Diffusion von Wasser.",
+  });
+
+  assert.equal(clozeInput.card.cardType, "cloze");
+  assert.equal(workflow.canCreateManualCard({ cardType: "cloze", front: "ATP liefert Energie.", back: "Extra" }), false);
+  assert.equal(workflow.canCreateManualCard({ cardType: "cloze", front: clozeInput.card.front, back: clozeInput.card.back }), true);
+  assert.equal(freeTextInput.card.cardType, "basic");
+});
+
 test("formats synthetic PDF text items into readable page lines", () => {
   const text = formatPdfTextContentItems(
     [

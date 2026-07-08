@@ -2,6 +2,7 @@ export { DashboardScreen } from "./DashboardScreen.jsx";
 export { DecksScreen } from "./DecksScreen.jsx";
 export { CreationScreen } from "./CreationScreen.jsx";
 export { LearnScreen } from "./LearnScreen.jsx";
+export { StatisticsScreen } from "./StatisticsScreen.jsx";
 export { StudyMode } from "./StudyMode.jsx";
 export { GraphScreen } from "./GraphScreen.jsx";
 export { CommunityScreen } from "./CommunityScreen.jsx";

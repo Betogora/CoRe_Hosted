@@ -22,7 +22,7 @@ Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdow
 
 | Bereich | Implementierte lokale Module / Screens |
 |---|---|
-| Dashboard und Lernaktivitaet | `DashboardScreen`, `libraryModel.createStudyHeatmapModel`, `libraryModel.createStudyHeatmapWindow`, `libraryModel.getStudyHeatmapVisibleWeekCount`, kompakter Heute-/Heatmap-Kopf, Tagesmetriken, aktive Hauptstapel mit Unterbaum-Aggregaten, responsive und pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap |
+| Dashboard, Statistik und Lernaktivitaet | `DashboardScreen`, `StatisticsScreen`, `libraryModel.createStudyHeatmapModel`, `libraryModel.createStudyHeatmapWindow`, `libraryModel.getStudyHeatmapVisibleWeekCount`, `libraryModel.createPerformanceStatisticsModel`, kompakter Heute-/Heatmap-Kopf, Tagesmetriken, aktive Hauptstapel mit Unterbaum-Aggregaten, responsive und pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap, Leistungsstatistik mit Trefferquote, Bewertungsverteilung und Stapel-Auswertung |
 | Account, Profil, Datenschutz | `SettingsScreen`, `createCoreRepository().saveProfile()` |
 | Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `LearnScreen`, `libraryModel`, `coreWorkspace.renameDeck`, `coreWorkspace.moveDeck`, `coreModel.createCoreDeck`, `deckSettings.coreMode`, echte Parent-/Child-Stapel aus APKG-Hierarchien, manuelle Unterstapel-Anlage, direkte Umbenennung, aufklappbare, gestaffelt hinterlegte und direkt klick- und ziehbare Lernuebersicht, Learning-Item-Normalisierung |
 | Import | `creationWorkflow`, `apkgImport`, `importService` fuer APKG/Text/CSV/Excel-Paste und normalisierte JSON-Payloads, Importberichte, Fingerprints/Dedupe, echte Unterstapel, Raw-Fallbacks, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge |
@@ -41,15 +41,16 @@ Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdow
 
 ### Was lokal bereits funktioniert
 
-- Cleanere Navigation fuer Heute, Erstellen, Lernen, Graph und Community; Kartenstapel ist ueber den Lernen-Kopf erreichbar, Einstellungen ueber den Account-Button.
+- Cleanere Navigation fuer Heute, Erstellen, Lernen, Statistik, Graph und Community; Kartenstapel ist ueber den Lernen-Kopf erreichbar, Einstellungen ueber den Account-Button.
 - App-Shell und Lernmodus nutzen die verfuegbare Browserbreite ohne feste Desktop-Maximalbreite; beim Herauszoomen waechst die Oberflaeche mit der Seitenbreite.
 - Dashboard mit kompaktem Heute-/Heatmap-Kopf, Tagesmetriken, aktiven Hauptstapeln mit aggregierten Unterstapel-Zahlen und GitHub-/Anki-artiger Jahres-Heatmap aus lokalen Review-Events; die Heatmap zeigt abhängig von der verfügbaren Breite ganze Wochen ohne horizontalen Slider und ist per Pfeil-Buttons bzw. Tastaturpfeilen navigierbar.
-- Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, direktem Umbenennen, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare, gestaffelt hinterlegte Stapelliste mit Neu-, Faellig- und Gesamtzahlen, CoRe-Status und direktem Zahnrad-Einstieg in die Stapelverwaltung ohne Zwischenmenue, startet Lernen per Klick auf die Stapelzeile und unterstützt direktes Anki-artiges Ziehen auf Stapelzeilen; Hauptstapel-Hintergründe umschließen sichtbare Unterstapel logisch wie eine Klammer.
+- Eigener Statistik-Reiter zur Leistungs-Auswertung aus lokalen Review-Events: Reviews, Trefferquote, Lernserie, Antwortzeit, Bewertungsverteilung, 14-Tage-Trend, Varianten-Reviews und Stapel mit auffällig vielen schweren Antworten.
+- Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, direktem Umbenennen, Drag-and-drop-Verschieben nach Anki-Semantik, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare, gestaffelt hinterlegte Stapelliste mit Neu-, Faellig- und Gesamtzahlen, CoRe-Status und direktem Zahnrad-Einstieg in die Stapelverwaltung ohne Zwischenmenue, startet Lernen per Klick auf die Stapelzeile und unterstützt direktes Anki-artiges Ziehen auf Stapelzeilen; Hauptstapel-Hintergründe umschließen sichtbare Unterstapel logisch wie eine Klammer.
 - Frische lokale Browser-States werden mit einem reproduzierbaren Teststapel `Welt-Hauptstädte` geseedet: 245 Hauptstadtkarten aus dem ODbL-lizenzierten `mledoze/countries`-Snapshot, gruppiert in sieben Kontinent-Unterstapel und mit dreimonatiger realistischer Lernhistorie inklusive 1.952 Review-Events, fälligen Karten, CoRe-reifen Karten und hartnäckigen, aber stabil bewältigten Karten; die zugehoerige echte APKG-Fixture liegt im Repository.
 - Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, importierte Varianten und KI-Drafts; Legacy-Karten werden beim Lesen normalisiert.
 - APKG-Basic-Import inklusive Importbericht, echtem Unterstapel-Mapping aus Anki-Hierarchien, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten pro Unterstapel, lokalem Browser-Medienspeicher und Reimport-Merge ohne Verlust lokaler Content-Edits.
 - Text-, CSV-, normalisierte JSON- und Excel-/Tabellen-Paste-Importe laufen ueber dieselbe Normalisierungsschicht; Fingerprints, Duplicate-Erkennung, Parent-/Hierarchy-Felder und Import-Warnungen sind im Modul abgesichert.
-- Manuelle Kartenerstellung mit Rich-Text-Editor fuer Vorder- und Rueckseite, bestehendem/neuem Stapelziel, Basic/Reverse/Cloze/Multiple-Choice/Free-Text, Dokumentmodus, CoRe-integriertem minimalem visuellem PDF-Viewer, PDF-/Text-Auslesung, Quellenankern fuer markierten Text und stabiler Original-Variante.
+- Erstellen-Screen mit drei Einstiegskacheln fuer manuelle Erstellung mit optionaler PDF-/Textquelle, Import und KI-Drafts; manuelle Kartenerstellung mit Anki-artig untereinander angeordneter Vorder- und Rueckseite, Pinnfunktion pro Kartenfeld, kompaktem Rich-Text-Editor, bestehendem/neuem Stapelziel, Basic, Umgekehrt, Lueckentext und Multiple Choice. Free Text wird nicht mehr als normaler Kartentyp angeboten; alte Free-Text-Daten werden defensiv wie Basic behandelt.
 - Rich-Text-Normalisierung und HTML-Safety sind in `src/richText.js` und `src/htmlSafety.js` gekapselt; React-Screens sollen keine eigene Sanitization- oder Text-zu-HTML-Logik duplizieren.
 - Deterministische KI-Drafts aus Quellentext mit Schema-Validation, Draft-Review und Annahme in die Bibliothek.
 - Fullscreen-Review mit Antwortaufdeckung, Tages-Queue fuer ganze Stapel/Unterbaeume, einstellbarem Neue-Karten-Kontingent, vier Ratings mit naechster Intervallanzeige, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP. Bereits bewertete Karten erscheinen erst wieder, wenn ihr gespeichertes `dueAt` erreicht ist.
@@ -302,22 +303,27 @@ Die App SOLL folgende Hauptbereiche enthalten:
    - Antwort aufdecken, vier Review-Buttons.
    - Einstieg in Kartenstapel-Verwaltung und neue Karten über Header-Aktionen statt über eigene Hauptmenüpunkte.
 
-3. **Erstellen**
+3. **Statistik / Leistung**
+   - Trefferquote, Antwortverteilung und Lernserie aus lokalen Review-Events.
+   - 14-Tage-Trend für aktuelle Lernaktivität.
+   - Stapel-Auswertung, damit schwache oder auffällige Decks sichtbar werden.
+
+4. **Erstellen**
    - Manuelle Karte.
    - Dokumentviewer + Auswahl-zu-Feld.
    - KI-Kartengenerierung.
 
-4. **Graph / Mindmap**
+5. **Graph / Mindmap**
    - Überblick pro Stapel.
    - Themenknoten mit Kartenverlinkung.
    - Regenerierung durch Trigger oder manuellen Button.
 
-5. **Communitys**
+6. **Communitys**
    - Kleine Gruppen.
    - Ordnerstruktur.
    - Stapel ansehen, übernehmen, kopieren oder verlinken.
 
-6. **Einstellungen**
+7. **Einstellungen**
    - Profil, Hochschule, Sprache.
    - Scheduler-Parameter.
    - KI-Kosten-/Modellpräferenzen.
@@ -333,6 +339,7 @@ Die App SOLL folgende Hauptbereiche enthalten:
 /decks/:deckId/create     Manuelle Kartenerstellung
 /decks/:deckId/import     Import-Wizard
 /decks/:deckId/ai-create  KI-Kartenerstellung
+/statistics               Leistungsstatistik
 /decks/:deckId/graph      Mindmap / Deck Graph
 /cards/:cardId            Karten-Detail / Versionen / Anker
 /communities              Community-Übersicht
@@ -507,12 +514,11 @@ Auf jedem Deck SOLLEN folgende Aktionen verfügbar sein:
 
 ### FR-IMPORT-001 — Importwege
 
-Im Bereich **Erstellen** MUSS es vier Einstiege geben, neue Karten hinzuzufügen. Die manuelle Kartenerstellung steht links und ist der Standard-Einstieg:
+Im Bereich **Erstellen** MUSS es drei grosse Einstiege geben, neue Karten hinzuzufügen. Die manuelle Kartenerstellung steht links und kann bei Bedarf PDF-/Textquellen anhaengen:
 
-A. **Manuelle/analoge Kartenerstellung** — inklusive Dokumentviewer.
-B. **Karten aus PDF-Text / Text erstellen** — Dokumentmodus für markierbare Quellen und Quellenanker.
-C. **Import** — primär APKG/Anki, später Text/CSV/Excel.
-D. **KI-gestützte Kartenerstellung** — aus Datei oder Textquelle.
+A. **Manuelle/analoge Kartenerstellung** — inklusive optionalem Dokumentviewer fuer PDF-/Textquellen.
+B. **Import** — primär APKG/Anki, später Text/CSV/Excel.
+C. **KI-gestützte Kartenerstellung** — aus Datei oder Textquelle.
 
 ### FR-IMPORT-002 — APKG-Import MVP
 
@@ -595,6 +601,7 @@ Nutzende MÜSSEN Karten mit Vorderseite und Rückseite erstellen können.
 - Deck/Unterdeck.
 - Vorderseite als Rich-Text-Inhalt mit Fett, Kursiv, Unterstreichung, Listen, Textfarbe und Highlighting.
 - Rückseite als Rich-Text-Inhalt mit denselben Basisformatierungen.
+- Vorder- und Rückseite stehen in der lokalen UI untereinander; beide Felder können per Pinnadel nach dem Speichern fuer die nächste Karte behalten werden.
 - Tags.
 - Medienanhänge.
 - Notizen/Quelle optional.
@@ -612,7 +619,7 @@ CoRe SOLL typische Karteitypen anbieten:
 | Multi-Field Note | Später | Flexible Notizen mit mehreren generierten Karten. |
 | Case/Vignette | Später | Fallbasierte Varianten, z. B. Medizin/Jura. |
 
-**Lokaler Stand 2026-07-06:** `createBasicLearningItem`, `createBasicReverseLearningItem` und `createClozeLearningItem` bilden den gemeinsamen Erstellungspfad. Basic erzeugt genau eine Original-Variante; Reverse und Cloze erzeugen zusaetzliche aktive Varianten, die an diese Original-Variante gebunden sind.
+**Lokaler Stand 2026-07-07:** `createBasicLearningItem`, `createBasicReverseLearningItem` und `createClozeLearningItem` bilden den gemeinsamen Erstellungspfad. Basic erzeugt genau eine Original-Variante; Reverse und Cloze erzeugen zusaetzliche aktive Varianten, die an diese Original-Variante gebunden sind. Der Review waehlt fuer Reverse die Rueckseite als Frage und die Vorderseite als Antwort; Cloze-Varianten blenden `{{c1::...}}`-Gruppen in der Frage aus und zeigen nach dem Aufdecken den vollstaendigen Text.
 
 ### FR-CREATE-003 — Dokumentviewer in der Kartenerstellung
 
@@ -1464,7 +1471,7 @@ Serverseitig SOLL diese Tabelle die fachliche Einheit tragen, die lokal aus Komp
 | `id` | uuid | Learning-Item-ID; lokal weiterhin kompatibel als Card-ID nutzbar. |
 | `note_id` | uuid nullable | Optionale Note-/Import-Quelle. |
 | `deck_id` | uuid | Zieldeck. |
-| `card_type` | enum | `basic/basic-reversed/cloze/image-occlusion/multiple-choice/free-text/multi-field/case-vignette`. |
+| `card_type` | enum | `basic/basic-reversed/cloze/image-occlusion/multiple-choice/free-text/multi-field/case-vignette`; `free-text` bleibt nur fuer Legacy-Daten, nicht fuer neue UI-Erstellung. |
 | `source_type` | enum | `manual/anki_import/ai_generated/mixed`. |
 | `source_ref_id` | string nullable | Externe Import-/Quellenreferenz. |
 | `canonical_question` | rich_text | Semantische Kernfrage. |
@@ -3009,7 +3016,7 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `createDeck`, `renameDeck`, `moveDeck`, `deleteDeckTree`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard`, `addManualCardToDeck`, `applyVariantGenerationResponse` | Lokale App-Kommandos fuer Demo-Daten, manuelle Stapel-/Unterstapel-Baeume, Umbenennen, Reparenting fuer die Lernuebersicht, Stapelbaum-Loeschen, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege, manuelles Anhängen an bestehende Stapel und KI-Variantenannahme |
 | `src/creationWorkflow.js` | `createCreationWorkflow` | In-process Creation-Kommandos fuer APKG-Preview/Commit, Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme; haelt Import-/Medien-/KI-Orchestrierung aus React heraus |
 | `src/scheduler.js` | `formatIntervalLabel`, `simulateRatingOutcome`, `getReviewButtonOptions`, `scheduleWithFsrsLikeModel`, `calculateRetrievability`, `getSchedulerStateForItem`, `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | FSRS-like Vier-Button-Scheduler, Button-Intervallvorschau, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
-| `src/libraryModel.js` | `createDeckLibraryModel`, `createVisibleDeckRows`, `createStudyHeatmapModel`, `createStudyHeatmapWindow`, `getStudyHeatmapVisibleWeekCount`, `createAiJobLedger` | UI-nahe Bibliotheksprojektion fuer Dashboard-Hauptstapel, baumartige Deckliste, aufklappbare Unterstapel-Sicht, Unterstapel-Aggregate, aktive Kartenzeilen, responsive Heatmap und KI-Job-Ledger |
+| `src/libraryModel.js` | `createDeckLibraryModel`, `createVisibleDeckRows`, `createStudyHeatmapModel`, `createStudyHeatmapWindow`, `getStudyHeatmapVisibleWeekCount`, `createPerformanceStatisticsModel`, `createAiJobLedger` | UI-nahe Bibliotheksprojektion fuer Dashboard-Hauptstapel, Statistik, baumartige Deckliste, aufklappbare Unterstapel-Sicht, Unterstapel-Aggregate, aktive Kartenzeilen, responsive Heatmap, Leistungs-Auswertung und KI-Job-Ledger |
 | `src/reviewService.js` | `answerVariant`, `getNextReviewItem`, `createDailyReviewQueue`, `getEffectiveNewCardsPerDay`, `countNewCardsIntroducedToday`, `createReviewSession`, `recordReviewRating`, `recordVariantFeedback` | Tiefer Review-Flow fuer Antwortverarbeitung, Tages-Queue aus `dueAt <= now` plus Neue-Karten-Kontingent, FSRS-State, Fallback nach Fehlern, Eventbau, Familien-/Variantenstatus, Session-Projektion und Feedback-Kommandos |
 | `src/reviewFlow.js` | `answerVariant`, `getNextReviewItem` | Legacy-Fassade fuer bestehende Imports; Implementierung lebt in `src/reviewService.js` |
 | `src/coreVariantService.js` | `classifyCardEligibility`, `createVariantReviewModel`, `getLearningItemMaturity`, `getVariantReadiness`, `getVariantCoverage`, `getVariantGenerationRecommendation`, `getVariantGenerationPlan`, `getVariantFallbackTarget`, `ensureVariantsForCard`, `chooseReviewCard`, `deactivateVariant`, `flagVariant` | CoRe-Eligibility, Reifegrad-/Readiness-Projektion, Coverage, Generation-Plan, Fallback-Ziele, lokaler Fallback-Rephrase und Varianten-Feedback |
@@ -3036,12 +3043,13 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 
 `src/App.jsx` ist die App-Shell fuer Workspace-State, Navigation, Study-Routing und Persistenz-Callbacks. Die Shell nutzt die verfuegbare Browserbreite statt einer festen Desktop-Maximalbreite; `StudyMode` folgt demselben Full-Width-Verhalten. Produktnahe UI liegt in `src/screens/`; geteilte Praesentationsbausteine und Medien-HTML liegen in `src/ui/`. Die Screen-Map fuer KI-Programmierung wird in `src/screens/README.md` gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.
 
-Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen, Lernen, Graph und Community. `DecksScreen` bleibt als View erhalten, wird aber ueber den Kartenstapel-Button im Lernen-Kopf geoeffnet. `SettingsScreen` bleibt ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad erreichbar. KI-Jobs und Assistent sind aktuell keine eigenen Hauptnavigationspunkte.
+Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen, Lernen, Statistik, Graph und Community. `DecksScreen` bleibt als View erhalten, wird aber ueber den Kartenstapel-Button im Lernen-Kopf geoeffnet. `SettingsScreen` bleibt ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad erreichbar. KI-Jobs und Assistent sind aktuell keine eigenen Hauptnavigationspunkte.
 
 - `src/screens/DashboardScreen.jsx`: kompakter Heute-/Heatmap-Kopf, Tagesmetriken, aktive Hauptstapel mit Unterbaum-Aggregaten und responsive, pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap.
 - `src/screens/DecksScreen.jsx`: Deck-Hierarchie, Suche/Filter, manuelle Stapel-/Unterstapel-Anlage, direkte Stapel-Umbenennung, Stapelbaum-Loeschen, CoRe-Modus, Karten-CRUD, Aktionen.
 - `src/screens/CreationScreen.jsx`: APKG, Text/CSV/Excel-Paste, manuell, PDF-/Text-Dokumenterstellung mit Quellenanker, KI-Drafts.
 - `src/screens/LearnScreen.jsx`: Aufklappbare Lernuebersicht fuer Stapel und Unterstapel mit gestaffelten hellgrauen Gruppenhintergruenden, Neu-/Faellig-/Gesamtzahlen, CoRe-Status, klickbaren Stapelzeilen zum Lernstart, direktem Zahnrad-Einstieg in die Stapelverwaltung und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
+- `src/screens/StatisticsScreen.jsx`: Leistungsstatistik aus Review-Events mit Trefferquote, Antwortverteilung, Lernserie, 14-Tage-Trend, Varianten-Reviews und Stapel-Auswertung.
 - `src/screens/StudyMode.jsx`: Clean Fullscreen Review, Tages-Queue fuer jetzt faellige Karten plus neue Karten, Neue-Karten-Tageslimit, Front+Back nach Aufdeckung, vier Buttons mit Intervallvorschau, Tastatursteuerung, Originalanker, Variantenfeedback.
 - `src/screens/GraphScreen.jsx`: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.
 - `src/screens/CommunityScreen.jsx`: Community erstellen, Deck teilen, Deck kopieren.
@@ -3055,7 +3063,7 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 - `src/coreWorkspace.test.js`: lokale App-Kommandos fuer Demo-Deck, Welt-Hauptstadt-Seed mit Lernhistorie, unberuehrte Seed-Migration, Stapel-Rename, Stapel-Move, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.
 - `src/creationWorkflow.test.js`: Creation-Workflow-Interface fuer APKG-Fehlerform, Paste-Import, manuelle Dokumentanker, KI-Draft-Erzeugung und Draft-Annahme.
 - `src/coreModel.test.js`: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.
-- `src/libraryModel.test.js`: Dashboard-/Bibliotheksprojektionen, sichtbare Deckzeilen und Heatmap-Fenster.
+- `src/libraryModel.test.js`: Dashboard-/Bibliotheks-/Statistikprojektionen, sichtbare Deckzeilen und Heatmap-Fenster.
 - `src/creationPipeline.test.js`: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.
 - `src/learningModel.test.js`: Legacy-Card-Normalisierung, Learning-Item-Invarianten und Review-Event-Kompatibilitaetsfelder.
 - `src/normalizedImport.test.js`: normalisierte Importpayloads, JSON-Import, Fingerprints, Dedupe und Parent-/Hierarchy-Felder.
@@ -3093,9 +3101,9 @@ Jedes Learning Item besitzt eine unveraenderliche Originalrepraesentation in `im
 
 ### 27.5 Manuelle Erstellung und Quellenanker
 
-Der Screen `Erstellen` oeffnet standardmaessig die manuelle Kartenerstellung und ist aktuell in vier Top-Reiter gegliedert: Karten manuell erstellen, Karten aus PDF-Text / Text erstellen, Import und KI-gestuetzte Kartenerstellung. Im Importbereich werden APKG, Text, CSV und Excel-/Tabellen-Paste als Unterauswahl angeboten. Die manuelle Kartenerstellung unterstuetzt bestehende Stapel oder einen neuen Stapel als Ziel und erzeugt Basic, Reverse, Cloze, Multiple Choice und Free Text ueber die gemeinsame Learning-Item-Creation-Pipeline. Vorder- und Rueckseite nutzen einen lokalen Rich-Text-Editor fuer Fett, Kursiv, Unterstreichung, Stichpunkte, nummerierte Listen, Textfarbe, Highlighting und Formatierung entfernen; gespeichert wird weiter sanitisiertes Karten-HTML. Multiple Choice und Free Text werden im Review als selbstbewertete Kartentypen angezeigt; die Scheduler-Bewertung bleibt bei Again/Hard/Good/Easy. Image occlusion bleibt bewusst fuer einen spaeteren separaten Ausbau.
+Der Screen `Erstellen` zeigt zuerst drei grosse Auswahlkacheln: `Karten manuell erstellen`, `Import` und `KI-gestuetzte Erstellung`. Nach Auswahl einer Kachel oeffnet der jeweilige Arbeitsbereich moeglichst flaechenfuellend neben der Sidebar; ein Auswahl-Knopf fuehrt zurueck zur Kachelauswahl. Manuelle Kartenerstellung und PDF-/Text-Erstellung sind zusammengefuehrt: Im manuellen Arbeitsbereich kann per `PDF/Text anfügen` eine PDF-, Text-, Markdown- oder DOCX-Quelle angehaengt werden. Im Importbereich werden APKG, Text, CSV und Excel-/Tabellen-Paste als Unterauswahl angeboten. Die manuelle Kartenerstellung unterstuetzt bestehende Stapel oder einen neuen Stapel als Ziel und erzeugt Basic, Umgekehrt, Lueckentext und Multiple Choice ueber die gemeinsame Learning-Item-Creation-Pipeline. Vorder- und Rueckseite stehen Anki-artig untereinander, wachsen nur ueber ihren Inhalt und koennen jeweils per Pinnadel nach dem Speichern fuer die naechste Karte behalten werden. Beide Seiten nutzen einen lokalen Rich-Text-Editor fuer Fett, Kursiv, Unterstreichung, Stichpunkte, nummerierte Listen, CoRe-eigene kompakte Farbpopover mit je drei lokal gespeicherten und per Farbspektrum, Schnellfarben oder Hex-Eingabe anpassbaren Stift-/Markerfarben sowie Formatierung entfernen; gespeichert wird weiter sanitisiertes Karten-HTML. Multiple Choice markiert im Review gewaehlte und richtige Antworten sichtbar; Free Text wird nicht mehr angeboten und alte Free-Text-Daten laufen defensiv als Basic. Image occlusion bleibt bewusst fuer einen spaeteren separaten Ausbau.
 
-Der Dokumentmodus wird ueber den zweiten Top-Reiter `Karten aus PDF-Text / Text erstellen` geoeffnet. Der normale manuelle Reiter startet ohne Quellenbereich; im PDF-/Text-Reiter ist der Quellenbereich geoeffnet und bietet eine Dateiauswahl fuer PDF- und Textquellen. Textdateien koennen direkt im Browser gelesen werden; PDFs werden minimal visuell in einer CoRe-integrierten Viewer-Flaeche angezeigt, sodass Seitenbilder sichtbar bleiben und Text mit Textlayer markierbar ist. Nur echte Markierungen werden automatisch in das aktive Kartenfeld uebernommen; einfacher Klick auf PDF oder Textquelle fuegt nichts ein. Markierter Quellentext wird als lesbarer Absatz in das aktive Rich-Text-Feld uebernommen. DOCX, OCR, Bildregionen und erweiterte PDF-Werkzeuge gehoeren weiterhin in die spaetere Server-/Worker- bzw. Viewer-Ausbaustufe.
+Die optionale Quelle im manuellen Arbeitsbereich oeffnet den Quellenbereich neben den Kartenfeldern und bietet eine Dateiauswahl fuer PDF- und Textquellen. Textdateien koennen direkt im Browser gelesen werden; PDFs werden minimal visuell in einer CoRe-integrierten Viewer-Flaeche angezeigt, sodass Seitenbilder sichtbar bleiben und Text mit Textlayer markierbar ist. Nur echte Markierungen werden automatisch in das aktive Kartenfeld uebernommen; einfacher Klick auf PDF oder Textquelle fuegt nichts ein. Markierter Quellentext wird als lesbarer Absatz in das aktive Rich-Text-Feld uebernommen. DOCX, OCR, Bildregionen und erweiterte PDF-Werkzeuge gehoeren weiterhin in die spaetere Server-/Worker- bzw. Viewer-Ausbaustufe.
 
 Markierter Text wird in das aktive Kartenfeld uebernommen und als `SourceAnchor` gespeichert:
 
@@ -3135,7 +3143,7 @@ Unterstuetzt:
 Bewusst noch nicht unterstuetzt:
 
 - Vollstaendige Anki-Template-Auswertung.
-- Vollstaendige Cloze-Review-Logik.
+- Vollstaendige Anki-Cloze-Familienlogik jenseits der aktuellen `{{c1::...}}`-Basisanzeige.
 - Export, Sync und serverseitige Persistenz der eigentlichen Mediendateien.
 - Produktive/serverseitige Medienablage, CDN/Storage-Referenzen, Sync und Garbage Collection fuer nicht mehr referenzierte Assets.
 - Vollstaendige Scheduling-, Review-Historie- und Revlog-Migration; Rohdaten werden aber erhalten.

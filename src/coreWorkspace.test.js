@@ -323,7 +323,7 @@ test("workspace appends a manual card to an existing deck with source document",
   const appended = updated.cards.at(-1);
 
   assert.equal(updated.cards.length, deck.cards.length + 1);
-  assert.equal(appended.kind, "free-text");
+  assert.equal(appended.kind, "basic");
   assert.equal(appended.sourceAnchors[0].targetField, "back");
   assert.equal(updated.sourceDocuments[0].fileName, "quelle.txt");
 });

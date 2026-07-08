@@ -9,6 +9,7 @@ test("lists the navigation items in product order", () => {
     { id: "uebersicht", label: "Heute", iconKey: "home" },
     { id: "neue-karten", label: "Erstellen", iconKey: "plus" },
     { id: "lernen", label: "Lernen", iconKey: "learn" },
+    { id: "statistik", label: "Statistik", iconKey: "chart" },
     { id: "graph", label: "Graph", iconKey: "graph" },
     { id: "community", label: "Community", iconKey: "community" },
   ]);

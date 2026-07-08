@@ -25,7 +25,7 @@ test("creates manual cards as immutable accepted originals", () => {
   assert.equal(deck.cards[0].coreState.variantCount, 0);
 });
 
-test("manual multiple-choice and free-text cards keep structured self-check metadata", () => {
+test("manual multiple-choice cards keep structured metadata and free-text falls back to basic", () => {
   const mcDeck = createManualCoreDeck({
     deckName: "Manual MC",
     card: {
@@ -51,8 +51,8 @@ test("manual multiple-choice and free-text cards keep structured self-check meta
   assert.deepEqual(mcCard.meta.answerOptions, ["Antwort A", "Antwort B", "Antwort C"]);
   assert.equal(mcCard.meta.correctAnswer, "Antwort B");
   assert.deepEqual(getOriginalVariant(mcCard).answerOptionsJson, ["Antwort A", "Antwort B", "Antwort C"]);
-  assert.equal(freeTextCard.kind, "free-text");
-  assert.equal(freeTextCard.meta.selfCheck, true);
+  assert.equal(freeTextCard.kind, "basic");
+  assert.equal(freeTextCard.meta.selfCheck, undefined);
   assert.equal(getOriginalVariant(freeTextCard).expectedAnswerJson, freeTextCard.originalBack);
 });
 

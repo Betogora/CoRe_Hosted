@@ -9,9 +9,10 @@ Each exported screen in this folder is a UI module with a small props interface.
 ## Screen Map
 
 - `DashboardScreen.jsx`: dashboard metrics, active decks and responsive keyboard-navigable study heatmap.
-- `DecksScreen.jsx`: deck library, filtering, parent/child hierarchy, rename, manual subdeck creation, CoRe mode controls, card editor and variant prompt UI; opened from the Learn header.
+- `DecksScreen.jsx`: deck library, filtering, parent/child hierarchy, rename, manual subdeck creation, drag-and-drop reparenting, CoRe mode controls, card editor and variant prompt UI; opened from the Learn header.
 - `CreationScreen.jsx`: APKG import, Text/CSV/table paste import, manual creation, PDF/text document mode, Rich Text editing and AI draft creation panels.
 - `LearnScreen.jsx`: collapsible deck tree, subtree study entry points, direct row drag-and-drop reparenting, new/due/total counts and direct deck management buttons.
+- `StatisticsScreen.jsx`: performance statistics from local review events, including success rate, rating distribution, streaks, recent trend and deck-level weak spots.
 - `StudyMode.jsx`: fullscreen review, daily queue, new-card limit, shortcut handling, interval previews, grading, anchor display and variant feedback.
 - `GraphScreen.jsx`: deck graph generation and SVG projection.
 - `CommunityScreen.jsx`: local community creation, sharing and deck copy actions.

@@ -4,6 +4,7 @@ import { createCoreCard, createCoreDeck } from "./coreModel.js";
 import {
   createAiJobLedger,
   createDeckLibraryModel,
+  createPerformanceStatisticsModel,
   createStudyHeatmapModel,
   createStudyHeatmapWindow,
   createVisibleDeckRows,
@@ -260,6 +261,116 @@ test("study heatmap window fits whole weeks to viewport width and navigates by a
   assert.equal(previousWindow.endWeekIndex, latestWindow.endWeekIndex - 4);
   assert.equal(previousWindow.canShowNext, true);
   assert.equal(previousWindow.weeks.every((week) => week.length === 7), true);
+});
+
+test("performance statistics summarize ratings, trends and weak decks", () => {
+  const neuroCard = createCoreCard({
+    id: "card_neuro",
+    source: "manual",
+    originalFront: "Was macht Myelin?",
+    originalBack: "Es isoliert Axone.",
+    reviewState: {
+      dueAt: "2026-07-07T06:00:00.000Z",
+      repetitions: 3,
+      maturityXp: 64,
+    },
+    variants: [
+      {
+        id: "variant_neuro_rephrase",
+        sourceCardId: "card_neuro",
+        front: "Welche Rolle hat Myelin?",
+        back: "Myelin isoliert Axone.",
+        variantLevel: 2,
+        variantType: "rephrase",
+        qualityStatus: "active",
+      },
+    ],
+  });
+  const anatomyCard = createCoreCard({
+    id: "card_anatomy",
+    source: "manual",
+    originalFront: "Was ist ATP?",
+    originalBack: "Ein Energietraeger.",
+    reviewState: {
+      dueAt: "2026-07-09T06:00:00.000Z",
+      repetitions: 2,
+      maturityXp: 42,
+    },
+  });
+  const neuro = createCoreDeck({
+    id: "deck_neuro_stats",
+    name: "Neuro",
+    source: "manual",
+    cards: [neuroCard],
+    reviewEvents: [
+      {
+        id: "review_good",
+        rating: "good",
+        reviewedAt: "2026-07-07T08:00:00.000Z",
+        learningItemId: neuroCard.id,
+        reviewableType: "card",
+        responseTimeMs: 1200,
+      },
+      {
+        id: "review_again_variant",
+        rating: "again",
+        reviewedAt: "2026-07-06T08:00:00.000Z",
+        learningItemId: neuroCard.id,
+        variantId: "variant_neuro_rephrase",
+        reviewableType: "variant",
+        variantLevel: 2,
+        responseTimeMs: 3000,
+      },
+      {
+        id: "review_hard",
+        rating: "hard",
+        reviewedAt: "2026-07-05T08:00:00.000Z",
+        learningItemId: neuroCard.id,
+        reviewableType: "card",
+        responseTimeMs: 1800,
+      },
+    ],
+  });
+  const anatomy = createCoreDeck({
+    id: "deck_anatomy_stats",
+    name: "Anatomie",
+    source: "manual",
+    cards: [anatomyCard],
+    reviewEvents: [
+      {
+        id: "review_easy",
+        rating: "easy",
+        reviewedAt: "2026-07-07T09:00:00.000Z",
+        learningItemId: anatomyCard.id,
+        reviewableType: "card",
+        responseTimeMs: 2000,
+      },
+    ],
+  });
+
+  const statistics = createPerformanceStatisticsModel([neuro, anatomy], {
+    now: "2026-07-07T12:00:00.000Z",
+    recentDayCount: 4,
+  });
+
+  assert.equal(statistics.hasReviewEvents, true);
+  assert.equal(statistics.totals.reviewCount, 4);
+  assert.equal(statistics.totals.successPercent, 75);
+  assert.equal(statistics.totals.strongPercent, 50);
+  assert.equal(statistics.totals.averageResponseSeconds, 2);
+  assert.equal(statistics.totals.variantReviewCount, 1);
+  assert.equal(statistics.totals.variantSuccessPercent, 0);
+  assert.equal(statistics.ratingBreakdown.find((row) => row.rating === "again").count, 1);
+  assert.equal(statistics.ratingBreakdown.find((row) => row.rating === "easy").percent, 25);
+  assert.equal(statistics.recentDays.length, 4);
+  assert.deepEqual(
+    statistics.recentDays.map((day) => day.reviews),
+    [0, 1, 1, 2],
+  );
+  assert.equal(statistics.deckRows[0].id, neuro.id);
+  assert.equal(statistics.deckRows[0].successPercent, 67);
+  assert.equal(statistics.weakDeckRows[0].id, neuro.id);
+  assert.equal(statistics.latestReview.id, "review_easy");
 });
 
 test("AI job ledger merges global and deck jobs with stable counts", () => {

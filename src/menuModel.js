@@ -53,6 +53,19 @@ const views = [
     ],
   },
   {
+    id: "statistik",
+    label: "Statistik",
+    iconKey: "chart",
+    title: "Statistik",
+    eyebrow: "Leistung",
+    body: "Trefferquote, Lernserie, Antwortverteilung und Stapel-Auswertung.",
+    stats: [
+      { label: "Reviews", value: "0" },
+      { label: "Trefferquote", value: "-" },
+      { label: "Serie", value: "0" },
+    ],
+  },
+  {
     id: "graph",
     label: "Graph",
     iconKey: "graph",

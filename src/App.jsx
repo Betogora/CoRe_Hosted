@@ -10,6 +10,7 @@ import {
   GraphScreen,
   LearnScreen,
   SettingsScreen,
+  StatisticsScreen,
   StudyMode,
 } from "./screens/index.js";
 
@@ -198,6 +199,9 @@ export function App() {
     }
     if (activeView === "lernen") {
       return <LearnScreen decks={state.decks} onStartDeck={startDeck} onCreateDeck={() => setActiveView("neue-karten")} onOpenDecks={openDecks} onMoveDeck={moveDeck} />;
+    }
+    if (activeView === "statistik") {
+      return <StatisticsScreen decks={state.decks} onNavigate={setActiveView} />;
     }
     if (activeView === "graph") {
       return <GraphScreen decks={state.decks} onUpdateDeck={updateDeck} />;

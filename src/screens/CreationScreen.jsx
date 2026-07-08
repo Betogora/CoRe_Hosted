@@ -1,6 +1,6 @@
 import React from "react";
 import { PDFViewer } from "@embedpdf/react-pdf-viewer";
-import { AlertCircle, Bot, CheckCircle2, ClipboardCheck, Database, FileArchive, FileSpreadsheet, FileText, Image, Loader2, PenLine, Trash2, Upload, WandSparkles } from "lucide-react";
+import { AlertCircle, ArrowLeft, Bot, CheckCircle2, ClipboardCheck, Database, FileArchive, FileSpreadsheet, FileText, Loader2, PenLine, Pin, PinOff, Trash2, Upload, WandSparkles } from "lucide-react";
 import { createCreationWorkflow } from "../creationWorkflow.js";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
 import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
@@ -8,7 +8,7 @@ import { RichTextEditor } from "../ui/RichTextEditor.jsx";
 import { cardTypeOptions, formatBytes, importSteps } from "./screenConstants.js";
 
 const creationWorkflow = createCreationWorkflow();
-const manualCardTypeOptions = cardTypeOptions.filter((option) => option.value !== "image-occlusion");
+const manualCardTypeOptions = cardTypeOptions;
 
 function documentStatusMessage(document) {
   if (!document) return "";
@@ -626,7 +626,6 @@ function ManualCreationPanel({ onCreated }) {
           </label>
           {document ? (
             <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-3 text-sm text-[#66709a]">
-              {cardType === "image-occlusion" ? <Image className="mb-2 text-sky-700" size={18} aria-hidden="true" /> : null}
               <p className="font-semibold text-[#17214f]">{document.fileName}</p>
               <p>{document.textExtractionStatus}</p>
             </div>
@@ -691,7 +690,30 @@ function ManualCreationPanel({ onCreated }) {
   );
 }
 
+function PinFieldButton({ isPinned, label, onToggle }) {
+  const Icon = isPinned ? Pin : PinOff;
+  const title = isPinned ? `${label} nach dem Speichern leeren` : `${label} nach dem Speichern behalten`;
+
+  return (
+    <button
+      type="button"
+      aria-label={title}
+      aria-pressed={isPinned}
+      title={title}
+      onClick={onToggle}
+      className={`grid size-8 shrink-0 place-items-center rounded-lg border transition ${
+        isPinned
+          ? "border-[#8c96dc] bg-[#eef1fb] text-[#4f5eb1] shadow-[0_0_0_2px_rgba(79,94,177,0.10)]"
+          : "border-[#dfe4f5] bg-white text-[#8a94bd] hover:border-[#8c96dc] hover:text-[#4f5eb1]"
+      }`}
+    >
+      <Icon size={15} aria-hidden="true" />
+    </button>
+  );
+}
+
 function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, documentMode = false }) {
+  const sourceInputRef = React.useRef(null);
   const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
   const [selectedDeckId, setSelectedDeckId] = React.useState(decks[0]?.id ?? "");
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
@@ -701,6 +723,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
   const [answerOptions, setAnswerOptions] = React.useState("");
   const [correctAnswer, setCorrectAnswer] = React.useState("");
   const [tags, setTags] = React.useState("");
+  const [pinnedFields, setPinnedFields] = React.useState({ front: false, back: false });
   const [activeField, setActiveField] = React.useState("front");
   const [showDocumentMode, setShowDocumentMode] = React.useState(documentMode);
   const [document, setDocument] = React.useState(null);
@@ -747,6 +770,11 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
     event.target.value = "";
   }
 
+  function openSourcePicker() {
+    setShowDocumentMode(true);
+    window.setTimeout(() => sourceInputRef.current?.click(), 0);
+  }
+
   function applySelection(selectedText, sourceAnchorOptions = {}) {
     const next = creationWorkflow.captureManualSelection({
       activeField,
@@ -789,13 +817,21 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
     };
   }
 
+  function togglePinnedField(field) {
+    setPinnedFields((current) => ({ ...current, [field]: !current[field] }));
+  }
+
   function resetCardFields() {
-    setFront("");
-    setBack("");
+    const keepSourceAnchor = sourceAnchor?.targetField ? pinnedFields[sourceAnchor.targetField] : false;
+    setFront((current) => (pinnedFields.front ? current : ""));
+    setBack((current) => (pinnedFields.back ? current : ""));
     setAnswerOptions("");
     setCorrectAnswer("");
-    setSelection("");
-    setSourceAnchor(null);
+    if (!keepSourceAnchor) {
+      setSelection("");
+      setSourceAnchor(null);
+    }
+    setActiveField(pinnedFields.front && !pinnedFields.back ? "back" : "front");
   }
 
   function saveManualCard() {
@@ -822,8 +858,8 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = showDocumentMode && isPdfDocument(document) && documentObjectUrl;
-  const panelEyebrow = documentMode ? "PDF-/Text-Erstellung" : "Manuelle Erstellung";
-  const panelTitle = documentMode ? "Karten aus PDF-Text / Text erstellen" : "Karte erstellen";
+  const panelEyebrow = showDocumentMode ? "Manuelle Erstellung mit Quelle" : "Manuelle Erstellung";
+  const panelTitle = "Karten manuell erstellen";
   const sourceFileName = document?.fileName ?? "Keine Datei ausgewählt";
 
   const editor = (
@@ -867,26 +903,32 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
         </label>
       </div>
 
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-4">
         <div className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
-          <span>{cardType === "cloze" ? "Cloze-Text" : "Vorderseite"}</span>
+          <div className="flex min-h-9 items-center justify-between gap-2">
+            <span>{cardType === "cloze" ? "Cloze-Text" : "Vorderseite"}</span>
+            <PinFieldButton isPinned={pinnedFields.front} label={cardType === "cloze" ? "Cloze-Text" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
+          </div>
           <RichTextEditor
             value={front}
             onFocus={() => setActiveField("front")}
             onChange={setFront}
             isActive={frontFieldActive}
-            minHeightClass="min-h-[22rem]"
+            minHeightClass="min-h-32"
             ariaLabel={cardType === "cloze" ? "Cloze-Text" : "Vorderseite"}
           />
         </div>
         <div className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
-          <span>{answerLabel}</span>
+          <div className="flex min-h-9 items-center justify-between gap-2">
+            <span>{answerLabel}</span>
+            <PinFieldButton isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
+          </div>
           <RichTextEditor
             value={back}
             onFocus={() => setActiveField("back")}
             onChange={setBack}
             isActive={backFieldActive}
-            minHeightClass="min-h-[22rem]"
+            minHeightClass="min-h-32"
             ariaLabel={answerLabel}
           />
         </div>
@@ -932,8 +974,8 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
   );
 
   return (
-    <SoftPanel className="p-6">
-      <div className="mb-5 flex flex-wrap items-center gap-3">
+    <SoftPanel className="min-h-[calc(100vh-15rem)] p-6">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <OrbIcon icon={PenLine} className="bg-sky-50 text-sky-700" />
           <div>
@@ -941,20 +983,24 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
             <h2 className="text-2xl font-semibold text-[#17214f]">{panelTitle}</h2>
           </div>
         </div>
+        <button type="button" onClick={openSourcePicker} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-4 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
+          <FileText size={17} aria-hidden="true" />
+          {document ? "Quelle wechseln" : "PDF/Text anfügen"}
+        </button>
+        <input ref={sourceInputRef} className="sr-only" type="file" accept=".txt,.md,.markdown,.pdf,.docx" onChange={handleDocument} />
       </div>
 
       {showDocumentMode ? (
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="grid content-start gap-4">
-            <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-              Quelle
-              <span className="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[#cfd6ed] px-3 text-[#66709a]">
+            <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <span>Quelle</span>
+              <button type="button" onClick={openSourcePicker} className="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[#cfd6ed] px-3 text-left text-[#66709a] hover:border-[#8c96dc] hover:bg-white">
                 <FileText className="shrink-0" size={17} aria-hidden="true" />
                 <span className="shrink-0 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#4f5eb1] shadow-sm">Datei auswählen</span>
                 <span className="min-w-0 truncate text-sm font-medium">{sourceFileName}</span>
-                <input className="sr-only" type="file" accept=".txt,.md,.markdown,.pdf,.docx" onChange={handleDocument} />
-              </span>
-            </label>
+              </button>
+            </div>
             {document && !shouldShowPdfViewer ? (
               <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-3 text-sm text-[#66709a]">
                 <p className="font-semibold text-[#17214f]">{document.fileName}</p>
@@ -1170,10 +1216,30 @@ function ImportCreationPanel({ decks = [], onCreated }) {
 }
 
 const creationMethods = [
-  { id: "anki", title: "Anki APKG", eyebrow: "Import", body: "Decks, Notes, Karten und Raw-Fallbacks.", icon: FileArchive, color: "teal" },
-  { id: "text", title: "Text / CSV / Excel", eyebrow: "Import", body: "Front/Back-Daten schnell übernehmen.", icon: FileSpreadsheet, color: "emerald" },
-  { id: "manual", title: "Manuell", eyebrow: "Dokumentanker", body: "Karten mit aktiver Front/Back-Auswahl.", icon: PenLine, color: "sky" },
-  { id: "ai", title: "KI-Drafts", eyebrow: "Review-first", body: "Strukturierte Entwürfe aus Quellen.", icon: WandSparkles, color: "indigo" },
+  {
+    id: "manual",
+    title: "Karten manuell erstellen",
+    eyebrow: "Manuell + PDF/Text",
+    body: "Schreibe Karten selbst und füge bei Bedarf eine PDF- oder Textquelle an.",
+    icon: PenLine,
+    color: "sky",
+  },
+  {
+    id: "import",
+    title: "Import",
+    eyebrow: "APKG, Text, Tabellen",
+    body: "Übernimm bestehende Stapel oder Front/Back-Listen aus Dateien und Tabellen.",
+    icon: FileArchive,
+    color: "teal",
+  },
+  {
+    id: "ai",
+    title: "KI-gestützte Erstellung",
+    eyebrow: "Drafts prüfen",
+    body: "Erzeuge strukturierte Entwürfe aus Quellentext und übernimm sie nach Prüfung.",
+    icon: WandSparkles,
+    color: "indigo",
+  },
 ];
 
 function CreationMethodButton({ method, isSelected, onSelect }) {
@@ -1195,25 +1261,36 @@ function CreationMethodButton({ method, isSelected, onSelect }) {
 }
 
 export function CreationScreen({ decks = [], onCreated, onAppendManualCard, onJob }) {
-  const [selectedMethod, setSelectedMethod] = React.useState("manual");
+  const [selectedMethod, setSelectedMethod] = React.useState(null);
+  const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod);
 
   function renderSelectedMethod() {
     if (selectedMethod === "import") return <ImportCreationPanel decks={decks} onCreated={onCreated} />;
     if (selectedMethod === "manual") return <ManualCreationPanelV2 decks={decks} onCreated={onCreated} onAppendManualCard={onAppendManualCard} />;
-    if (selectedMethod === "document") return <ManualCreationPanelV2 decks={decks} onCreated={onCreated} onAppendManualCard={onAppendManualCard} documentMode />;
     return <AiCreationPanel onCreated={onCreated} onJob={onJob} />;
   }
 
   return (
-    <div className="grid gap-7">
-      <PageHeader eyebrow="Erstellen" title="Neue Karten" body="Manuelle Erstellung, PDF-/Text-Erstellung, Import und KI-Drafts." />
-      <section className="flex flex-wrap gap-2" aria-label="Erstellungsart">
-        <TabButton icon={PenLine} label="Karten manuell erstellen" isActive={selectedMethod === "manual"} onClick={() => setSelectedMethod("manual")} />
-        <TabButton icon={FileText} label="Karten aus PDF-Text / Text erstellen" isActive={selectedMethod === "document"} onClick={() => setSelectedMethod("document")} />
-        <TabButton icon={FileArchive} label="Import" isActive={selectedMethod === "import"} onClick={() => setSelectedMethod("import")} />
-        <TabButton icon={WandSparkles} label="KI-gestützte Kartenerstellung" isActive={selectedMethod === "ai"} onClick={() => setSelectedMethod("ai")} />
-      </section>
-      {renderSelectedMethod()}
+    <div className="grid min-h-[calc(100vh-10rem)] content-start gap-7">
+      <PageHeader eyebrow="Erstellen" title="Neue Karten" />
+      {selectedMethod ? (
+        <section className="grid min-h-[calc(100vh-16rem)] content-start gap-5" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button type="button" onClick={() => setSelectedMethod(null)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/78 px-3 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
+              <ArrowLeft size={16} aria-hidden="true" />
+              Auswahl
+            </button>
+            {selectedMethodMeta ? <p className="text-sm font-semibold uppercase tracking-wide text-[#66709a]">{selectedMethodMeta.eyebrow}</p> : null}
+          </div>
+          {renderSelectedMethod()}
+        </section>
+      ) : (
+        <section className="grid min-h-[calc(100vh-18rem)] content-start gap-5 md:grid-cols-3" aria-label="Erstellungsart">
+          {creationMethods.map((method) => (
+            <CreationMethodButton key={method.id} method={method} isSelected={false} onSelect={() => setSelectedMethod(method.id)} />
+          ))}
+        </section>
+      )}
     </div>
   );
 }

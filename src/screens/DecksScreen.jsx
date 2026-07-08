@@ -7,6 +7,10 @@ import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
 import { CoreModeControl, EmptyState, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.js";
 
+function normalizeEditableCardType(kind) {
+  return cardTypeOptions.some((option) => option.value === kind) ? kind : "basic";
+}
+
 function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson }) {
   const card = cards.find((item) => item.id === selectedCardId) ?? cards[0];
   const [form, setForm] = React.useState(null);
@@ -22,7 +26,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
             front: card.originalFront,
             back: card.originalBack,
             tags: (card.originalTags ?? []).join(" "),
-            kind: card.kind,
+            kind: normalizeEditableCardType(card.kind),
           }
         : null,
     );

@@ -45,11 +45,37 @@ function normalizeAnswerOptions(value) {
     .filter(Boolean);
 }
 
-function createManualDeckInput(input = {}) {
-  const cardType = input.cardType ?? "basic";
-  const document = input.document ?? null;
-  const answerOptions = normalizeAnswerOptions(input.answerOptions);
+const SUPPORTED_MANUAL_CARD_TYPES = new Set(["basic", "basic-reversed", "cloze", "multiple-choice"]);
+
+function normalizeManualCardType(cardType) {
+  return SUPPORTED_MANUAL_CARD_TYPES.has(cardType) ? cardType : "basic";
+}
+
+function hasClozeSyntax(value) {
+  return /\{\{c\d+::[\s\S]+?\}\}/.test(String(value ?? ""));
+}
+
+function normalizeMultipleChoiceData(input = {}, answerOptions = []) {
   const correctAnswer = String(input.correctAnswer ?? answerOptions[0] ?? input.back ?? "").trim();
+  const options = [...answerOptions];
+
+  if (correctAnswer && !options.includes(correctAnswer)) {
+    options.push(correctAnswer);
+  }
+
+  return {
+    answerOptions: [...new Set(options)],
+    correctAnswer,
+  };
+}
+
+function createManualDeckInput(input = {}) {
+  const requestedCardType = normalizeManualCardType(input.cardType);
+  const cardType = requestedCardType === "cloze" && !hasClozeSyntax(input.front) ? "basic" : requestedCardType;
+  const document = input.document ?? null;
+  const mcq = normalizeMultipleChoiceData(input, normalizeAnswerOptions(input.answerOptions));
+  const answerOptions = cardType === "multiple-choice" ? mcq.answerOptions : [];
+  const correctAnswer = mcq.correctAnswer;
   const rawExpectedAnswer = String(input.expectedAnswer ?? input.back ?? "").trim();
   const expectedAnswer = rawExpectedAnswer || correctAnswer;
   const back = cardType === "multiple-choice" ? String(input.back || correctAnswer).trim() : input.back;
@@ -61,10 +87,10 @@ function createManualDeckInput(input = {}) {
       front: input.front,
       back,
       tags: input.tags,
-      answerOptions: cardType === "multiple-choice" ? answerOptions : [],
+      answerOptions,
       correctAnswer,
       expectedAnswer,
-      mediaRefs: document?.fileName && cardType === "image-occlusion" ? [document.fileName] : [],
+      mediaRefs: [],
     },
     documentContext: {
       document,
@@ -152,11 +178,12 @@ export function createCreationWorkflow() {
     },
 
     canCreateManualCard({ cardType = "basic", front = "", back = "", answerOptions = [], correctAnswer = "" } = {}) {
+      const normalizedCardType = normalizeManualCardType(cardType);
       const hasFront = hasCardRichTextContent(front);
-      if (cardType === "cloze") return hasFront;
-      if (cardType === "image-occlusion") return hasFront;
-      if (cardType === "multiple-choice") {
-        return hasFront && normalizeAnswerOptions(answerOptions).length >= 2 && Boolean(String(correctAnswer || back).trim());
+      if (normalizedCardType === "cloze") return hasFront && hasClozeSyntax(front);
+      if (normalizedCardType === "multiple-choice") {
+        const mcq = normalizeMultipleChoiceData({ correctAnswer, back }, normalizeAnswerOptions(answerOptions));
+        return hasFront && mcq.answerOptions.length >= 2 && Boolean(mcq.correctAnswer);
       }
       return hasFront && hasCardRichTextContent(back);
     },

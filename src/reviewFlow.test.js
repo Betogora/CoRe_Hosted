@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   addRephrasedVariant,
   createBasicLearningItem,
+  createBasicReverseLearningItem,
+  createClozeLearningItem,
   createCoreDeck,
   getActiveVariants,
   getOriginalVariant,
@@ -190,4 +192,33 @@ test("getNextReviewItem returns due learning items with selected variants and an
   const originalNext = getNextReviewItem(createDeckWithItem(newItem), { now: "2026-07-06T10:00:00.000Z" });
   assert.equal(originalNext.variant.isOriginal, true);
   assert.equal(originalNext.answerSideAnchorMiniCard.shouldShow, false);
+});
+
+test("reverse and cloze card types select their functional review face", () => {
+  const reverseItem = createBasicReverseLearningItem("deck_review", "ATP", "Energietraeger", {
+    reviewState: {
+      state: "new",
+      dueAt: "2026-07-01T08:00:00.000Z",
+    },
+  });
+  const reverseNext = getNextReviewItem(createDeckWithItem(reverseItem), { now: "2026-07-06T10:00:00.000Z" });
+
+  assert.equal(reverseNext.variant.variantType, "reverse");
+  assert.equal(reverseNext.front, "Energietraeger");
+  assert.equal(reverseNext.back, "ATP");
+  assert.equal(reverseNext.answerSideAnchorMiniCard.shouldShow, true);
+
+  const clozeItem = createClozeLearningItem("deck_review", "{{c1::ATP}} liefert Energie fuer {{c2::Muskelkontraktion}}.", "Extra", {
+    reviewState: {
+      state: "new",
+      dueAt: "2026-07-01T08:00:00.000Z",
+    },
+  });
+  const clozeNext = getNextReviewItem(createDeckWithItem(clozeItem), { now: "2026-07-06T10:00:00.000Z" });
+
+  assert.equal(clozeNext.variant.variantType, "cloze");
+  assert.match(clozeNext.front, /\[\.\.\.\]/);
+  assert.doesNotMatch(clozeNext.front, /\{\{c1::/);
+  assert.match(clozeNext.back, /ATP/);
+  assert.match(clozeNext.back, /Muskelkontraktion/);
 });
