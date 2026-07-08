@@ -8,7 +8,7 @@ export function AiJobsScreen({ decks, jobs }) {
 
   return (
     <div className="grid gap-7">
-      <PageHeader eyebrow="Orchestrierung" title="KI-Jobs" body="Trigger, Status und strukturierte Ergebnisse." />
+      <PageHeader eyebrow="Orchestrierung" title="KI-Jobs" />
       <div className="grid gap-6 lg:grid-cols-3">
         <StatTile icon={Bot} label="Jobs" value={ledger.total} />
         <StatTile icon={CheckCircle2} label="Succeeded" value={ledger.succeeded} accent="text-emerald-700" />

@@ -7,6 +7,7 @@ import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
 export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePlan }) {
   const [activeTab, setActiveTab] = React.useState("chat");
   const [deckId, setDeckId] = React.useState("all");
+  const [status, setStatus] = React.useState("");
   const [question, setQuestion] = React.useState("Welche Karten hängen mit Myelin zusammen?");
   const [targetDate, setTargetDate] = React.useState(() => {
     const date = new Date();
@@ -21,6 +22,7 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
     if (!question.trim()) return;
     const exchange = answerDeckQuestion({ decks, deckId, question });
     onSaveChat(exchange);
+    setStatus(exchange.citations.length ? "Antwort mit Kartenquellen erstellt." : "Keine passende Kartenquelle gefunden.");
   }
 
   function generatePlan() {
@@ -32,19 +34,20 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
       includeVariants: true,
     });
     onSavePlan(plan);
+    setStatus("Lernplan generiert.");
   }
 
   return (
     <div className="grid gap-7">
-      <PageHeader eyebrow="Chat und Lernplan" title="Assistent" body="Antwortet quellengebunden aus deinen Karten und plant Wiederholungstage." />
+      <PageHeader eyebrow="Chat und Lernplan" title="Assistent" />
 
       <SoftPanel className="p-5">
         <div className="flex flex-wrap items-center gap-3">
           <div className="inline-grid min-h-10 grid-cols-2 overflow-hidden rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] text-sm font-semibold text-[#596489]">
-            <button type="button" onClick={() => setActiveTab("chat")} className={`px-4 ${activeTab === "chat" ? "bg-[#4f5eb1] text-white" : "hover:bg-white"}`}>
+            <button type="button" onClick={() => setActiveTab("chat")} aria-pressed={activeTab === "chat"} className={`px-4 ${activeTab === "chat" ? "bg-[#4f5eb1] text-white" : "hover:bg-white"}`}>
               Chat
             </button>
-            <button type="button" onClick={() => setActiveTab("plan")} className={`px-4 ${activeTab === "plan" ? "bg-[#4f5eb1] text-white" : "hover:bg-white"}`}>
+            <button type="button" onClick={() => setActiveTab("plan")} aria-pressed={activeTab === "plan"} className={`px-4 ${activeTab === "plan" ? "bg-[#4f5eb1] text-white" : "hover:bg-white"}`}>
               Lernplan
             </button>
           </div>
@@ -56,6 +59,7 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
               </option>
             ))}
           </select>
+          {status ? <p className="text-sm font-semibold text-[#66709a]" role="status" aria-live="polite">{status}</p> : null}
         </div>
       </SoftPanel>
 
@@ -69,7 +73,7 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
                 <h3 className="text-xl font-semibold text-[#17214f]">Frage an deine Karten</h3>
               </div>
             </div>
-            <textarea className="min-h-32 w-full rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={question} onChange={(event) => setQuestion(event.target.value)} />
+            <textarea className="min-h-32 w-full rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={question} onChange={(event) => setQuestion(event.target.value)} aria-label="Frage an deine Karten" />
             <button type="button" onClick={askQuestion} disabled={!decks.length || !question.trim()} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
               <Bot size={17} aria-hidden="true" />
               Quellengebunden antworten
@@ -85,7 +89,7 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
                   <p className="text-sm font-semibold text-[#17214f]">{exchange.question}</p>
                   <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[#4e5b8c]">{exchange.answer}</p>
                   {exchange.warnings.length > 0 ? (
-                    <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">{exchange.warnings.join(" ")}</div>
+                    <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">{exchange.warnings.join(" ")}</div>
                   ) : null}
                   <div className="mt-4 grid gap-2">
                     {exchange.citations.map((citation) => (

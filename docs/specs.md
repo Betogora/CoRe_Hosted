@@ -22,7 +22,7 @@ Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdow
 
 | Bereich | Implementierte lokale Module / Screens |
 |---|---|
-| Dashboard, Statistik und Lernaktivitaet | `DashboardScreen`, `StatisticsScreen`, `libraryModel.createStudyHeatmapModel`, `libraryModel.createStudyHeatmapWindow`, `libraryModel.getStudyHeatmapVisibleWeekCount`, `libraryModel.createPerformanceStatisticsModel`, kompakter Heute-/Heatmap-Kopf, Tagesmetriken, aktive Hauptstapel mit Unterbaum-Aggregaten, responsive und pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap, Leistungsstatistik mit Trefferquote, Bewertungsverteilung und Stapel-Auswertung |
+| Dashboard, Statistik und Lernaktivitaet | `DashboardScreen`, `StatisticsScreen`, `libraryModel.createStudyHeatmapModel`, `libraryModel.createStudyHeatmapWindow`, `libraryModel.getStudyHeatmapVisibleWeekCount`, `libraryModel.createPerformanceStatisticsModel`, reduzierter Heute-Kopf mit Fällig-/Originalkarten-Kacheln, kompakter Heatmap-Kopf mit aktiven Tagen, Durchschnitt pro aktivem Tag, Legende und Pfeilnavigation, aktive Hauptstapel mit Unterbaum-Aggregaten, responsive GitHub-/Anki-artige Jahres-Heatmap mit Monats- und Jahreswechselmarken, Leistungsstatistik mit Trefferquote, Bewertungsverteilung und Stapel-Auswertung |
 | Account, Profil, Datenschutz | `SettingsScreen`, `createCoreRepository().saveProfile()` |
 | Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `LearnScreen`, `libraryModel`, `coreWorkspace.renameDeck`, `coreWorkspace.moveDeck`, `coreModel.createCoreDeck`, `deckSettings.coreMode`, echte Parent-/Child-Stapel aus APKG-Hierarchien, manuelle Unterstapel-Anlage, direkte Umbenennung, aufklappbare, gestaffelt hinterlegte und direkt klick- und ziehbare Lernuebersicht, Learning-Item-Normalisierung |
 | Import | `creationWorkflow`, `apkgImport`, `importService` fuer APKG/Text/CSV/Excel-Paste und normalisierte JSON-Payloads, Importberichte, Fingerprints/Dedupe, echte Unterstapel, Raw-Fallbacks, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge |
@@ -34,18 +34,18 @@ Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdow
 | Community | `communityModel`, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten |
 | Deck Graph | `deckGraph`, Triggerlogik und SVG-Mindmap-Screen |
 | KI-Orchestrierung | lokale Jobs, Modellrouter-Slots, strukturierte Outputs; aktuell kein eigener Hauptmenuepunkt |
-| Chat-your-Deck | `deckAssistant.answerDeckQuestion`, belegte Karten-Zitate, Halluzinationsbremse; aktuell kein eigener Hauptmenuepunkt |
+| Chat-your-Deck | `deckAssistant.answerDeckQuestion`, belegte Karten-Zitate, Halluzinationsbremse; ueber den Heute-Sekundaereinstieg erreichbar, aber kein eigener Hauptmenuepunkt |
 | Lernplan | `learningPlan.createLearningPlan`, Zieltermin, Tagesminuten, neue Karten, Varianten-Tage |
 | Lokale Auth | `authModel`, lokaler Account, Anmelden/Abmelden, OAuth-Platzhalter |
 | Datenportabilitaet | `dataPortability`, JSON-Export/-Import ohne Passwort-Verifier |
 
 ### Was lokal bereits funktioniert
 
-- Cleanere Navigation fuer Heute, Erstellen, Lernen, Statistik, Graph und Community; Kartenstapel ist ueber den Lernen-Kopf erreichbar, Einstellungen ueber den Account-Button.
+- Cleanere Navigation fuer Heute, Erstellen, Lernen, Statistik, Graph und Community; Kartenstapel ist ueber die Lernen-Control-Leiste erreichbar, Einstellungen ueber den Account-Button.
 - App-Shell und Lernmodus nutzen die verfuegbare Browserbreite ohne feste Desktop-Maximalbreite; beim Herauszoomen waechst die Oberflaeche mit der Seitenbreite.
-- Dashboard mit kompaktem Heute-/Heatmap-Kopf, Tagesmetriken, aktiven Hauptstapeln mit aggregierten Unterstapel-Zahlen und GitHub-/Anki-artiger Jahres-Heatmap aus lokalen Review-Events; die Heatmap zeigt abhängig von der verfügbaren Breite ganze Wochen ohne horizontalen Slider und ist per Pfeil-Buttons bzw. Tastaturpfeilen navigierbar.
+- Dashboard mit reduziertem Heute-Kopf, Fällig-/Originalkarten-Kacheln, aktiven Hauptstapeln mit aggregierten Unterstapel-Zahlen und GitHub-/Anki-artiger Jahres-Heatmap aus lokalen Review-Events; der Heatmap-Kopf bündelt aktive Tage, Durchschnitt pro aktivem Tag, Legende und Pfeilnavigation, die Heatmap selbst zeigt Monats- und Jahreswechselmarken, abhängig von der verfügbaren Breite ganze Wochen ohne horizontalen Slider und ist per Pfeil-Buttons bzw. Tastaturpfeilen navigierbar.
 - Eigener Statistik-Reiter zur Leistungs-Auswertung aus lokalen Review-Events: Reviews, Trefferquote, Lernserie, Antwortzeit, Bewertungsverteilung, 14-Tage-Trend, Varianten-Reviews und Stapel mit auffällig vielen schweren Antworten.
-- Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, direktem Umbenennen, Drag-and-drop-Verschieben nach Anki-Semantik, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare, gestaffelt hinterlegte Stapelliste mit Neu-, Faellig- und Gesamtzahlen, CoRe-Status und direktem Zahnrad-Einstieg in die Stapelverwaltung ohne Zwischenmenue, startet Lernen per Klick auf die Stapelzeile und unterstützt direktes Anki-artiges Ziehen auf Stapelzeilen; Hauptstapel-Hintergründe umschließen sichtbare Unterstapel logisch wie eine Klammer.
+- Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, manuellem Anlegen beliebig tiefer Unterstapel, direktem Umbenennen, Drag-and-drop-Verschieben nach Anki-Semantik, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel und Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare, gestaffelt hinterlegte Stapelliste mit spaltenbündigen Neu-, Faellig- und Gesamtzahlen ohne wiederholte Desktop-Zelllabels, CoRe-Status und direktem Zahnrad-Einstieg in die Stapelverwaltung ohne Zwischenmenue, startet Lernen per Klick auf die Stapelzeile und unterstützt direktes Anki-artiges Ziehen auf Stapelzeilen; Hauptstapel-Hintergründe umschließen sichtbare Unterstapel logisch wie eine Klammer.
 - Frische lokale Browser-States werden mit einem reproduzierbaren Teststapel `Welt-Hauptstädte` geseedet: 245 Hauptstadtkarten aus dem ODbL-lizenzierten `mledoze/countries`-Snapshot, gruppiert in sieben Kontinent-Unterstapel und mit dreimonatiger realistischer Lernhistorie inklusive 1.952 Review-Events, fälligen Karten, CoRe-reifen Karten und hartnäckigen, aber stabil bewältigten Karten; die zugehoerige echte APKG-Fixture liegt im Repository.
 - Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, importierte Varianten und KI-Drafts; Legacy-Karten werden beim Lesen normalisiert.
 - APKG-Basic-Import inklusive Importbericht, echtem Unterstapel-Mapping aus Anki-Hierarchien, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten pro Unterstapel, lokalem Browser-Medienspeicher und Reimport-Merge ohne Verlust lokaler Content-Edits.
@@ -56,7 +56,7 @@ Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdow
 - Fullscreen-Review mit Antwortaufdeckung, Tages-Queue fuer ganze Stapel/Unterbaeume, einstellbarem Neue-Karten-Kontingent, vier Ratings mit naechster Intervallanzeige, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP. Bereits bewertete Karten erscheinen erst wieder, wenn ihr gespeichertes `dueAt` erreicht ist.
 - Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker-Minikarte, konservativen Variant-Levels, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
 - Kleine lokale Community-Logik mit Ordnern und Deck-Kopien ohne fremde Reviewdaten.
-- Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten, Lernplan-Generator, AI-Job-Datenmodell und JSON-Datenportabilitaet.
+- Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten und Heute-Sekundaereinstieg, Lernplan-Generator, AI-Job-Datenmodell und JSON-Datenportabilitaet.
 
 ### Was erwartungsgemaess noch nicht funktioniert
 
@@ -293,15 +293,15 @@ Breiten, Schriftgrößen und Schriftgewichte SOLLEN aus festen Tokens kommen, ni
 Die App SOLL folgende Hauptbereiche enthalten:
 
 1. **Dashboard / Heute lernen**
-   - Tagesübersicht: fällige Karten, neue Karten, optionale Lernzeit.
+   - Tagesübersicht: fällige Karten und Originalkarten als reduzierte Kopfmetriken.
    - Startpunkt für Review-Sessions.
-   - GitHub-/Anki-artige Jahres-Heatmap für gelernte Karten pro Tag mit Monatsmarken, Intensitätsstufen und Serienwerten; sichtbar ist ein breitenabhängiger Ausschnitt aus ganzen Wochen, der ohne horizontalen Slider per Pfeilen durchklickbar bleibt.
+   - GitHub-/Anki-artige Jahres-Heatmap für gelernte Karten pro Tag mit Monatsmarken, Jahreszahl am sichtbaren Jahreswechsel, Intensitätsstufen, Legende, aktiven Tagen und Durchschnitt pro aktivem Tag; sichtbar ist ein breitenabhängiger Ausschnitt aus ganzen Wochen, der ohne horizontalen Slider per Pfeilen durchklickbar bleibt.
 
 2. **Review / Lernen**
    - Fullscreen oder nahezu Fullscreen.
    - Ablenkungsarm, klare Typografie.
    - Antwort aufdecken, vier Review-Buttons.
-   - Einstieg in Kartenstapel-Verwaltung und neue Karten über Header-Aktionen statt über eigene Hauptmenüpunkte.
+   - Einstieg in Kartenstapel-Verwaltung und neue Karten über eine direkte Control-Leiste statt über eigene Hauptmenüpunkte.
 
 3. **Statistik / Leistung**
    - Trefferquote, Antwortverteilung und Lernserie aus lokalen Review-Events.
@@ -354,6 +354,7 @@ Die App SOLL folgende Hauptbereiche enthalten:
 - Dashboard, Stapelverwaltung und Community SOLLEN normale Arbeitsflächen von **1180–1280 px** nutzen; lesende Text-/Formspalten bleiben bei **720–960 px**.
 - Review SOLL eine ruhige Kartenfläche bis **1040 px** nutzen; die eigentliche Frage-/Antworttypografie kommt aus den festen Stufen **24 / 32 / 40 px**, je nach Inhalt und Bildschirmhöhe.
 - Manuelle Kartenerstellung mit Dokumentviewer SOLL auf Desktop als Zwei-Spalten-Fläche funktionieren: Dokument und Editor je mindestens **560 px**, bei **1440 px** Zielbreite bevorzugt ungefähr **50 / 50** geteilt.
+- Hauptbereich-Header SOLLEN nur Eyebrow und Titel zeigen. Neue Tabs orientieren sich an den bestehenden Tabs: keine dritte beschreibende Untertitelzeile und keine dekorativen rechten Header-Icons; echte Aktionen liegen als Controls im Screen-Inhalt.
 - Unter **1024 px** dürfen Deck-Verwaltung und Dokumentviewer in Tabs oder eine Einspalten-Ansicht wechseln. Mobile/PWA, Offline-Queue, Push und native Touch-Optimierung bleiben spätere Ausbaupunkte.
 
 ---
@@ -452,7 +453,9 @@ In der Stapelverwaltung MUESSEN Stapel direkt umbenannt, manuell als Haupt- oder
 
 Die Lernuebersicht MUSS dieselbe Reparenting-Semantik direkt auf der Stapelzeile anbieten: Stapel koennen ohne sichtbaren Drag-Handle gezogen werden, ein Klick auf nicht-interaktive Zeilenbereiche startet die Lernsitzung, interaktive Buttons bleiben eigene Klickziele, und die linke Outdent-/freie Panel-Flaeche zieht Unterstapel wieder aus ihrem aktuellen Oberstapel heraus.
 
-Die Lernuebersicht MUSS sichtbare Stapel als verschachtelte hellgraue Gruppen darstellen: Hauptstapel-Flächen sind etwas dunkler als Unterstapel-Flächen, benachbarte Gruppen haben klare Lücken, und der Eltern-Hintergrund bleibt hinter den sichtbaren Kindern erhalten.
+Die Lernuebersicht MUSS sichtbare Stapel als verschachtelte hellgraue Gruppen darstellen: Hauptstapel-Flächen sind sehr hell, tiefere Unterstapel-Flächen werden stufenweise etwas dunkler, benachbarte Gruppen haben klare Lücken, und der Eltern-Hintergrund bleibt hinter den sichtbaren Kindern erhalten.
+
+Die Lernuebersicht MUSS auf Desktop Neu-, Fällig- und Gesamtzahlen für Haupt- und Unterstapel in gemeinsamen Spalten ausrichten. Die Desktop-Zeilen zeigen nur die Zahlen, während die Spaltenüberschriften die Bedeutung liefern; die mobile Zeile darf die erklärenden Wörter weiter direkt neben den Zahlen anzeigen.
 
 CoRe MUSS Stapel und Unterstapel abbilden können. Importierte Anki-Hierarchien können tief verschachtelt sein und SOLLEN so weit wie möglich erhalten bleiben. Lern- und Verwaltungsuebersichten MUESSEN Unterstapel als echte Hierarchie anzeigen; Elternstapel bleiben als aggregierter Lernstart fuer ihren Unterbaum funktionsfaehig. Nutzende MUESSEN manuell Hauptstapel und beliebig tief verschachtelte Unterstapel anlegen koennen.
 
@@ -2309,6 +2312,10 @@ Für den ersten Desktop-Website-Build SOLLEN React/Tailwind-Komponenten auf ein 
 
 Dauerhafte glasige Panels und Karten MUESSEN ihre optische Abhebung ueber gemeinsame Surface-Tokens, Border, Hintergrundtransparenz und kompakte bzw. inset Elevation erzeugen. Sie duerfen benachbarte Elemente nicht sichtbar abdunkeln oder mit grossen diffusen Schatten unterlaufen. Grosse auslaufende Schatten sind nur fuer echte Overlays wie Menues, Popovers, Dialoge oder aktive Drag-/Floating-Zustaende erlaubt; solche Ausnahmen sollen eine eigene Overlay-Klasse nutzen.
 
+### Header-Regel
+
+`PageHeader` ist fuer Hauptbereiche bewusst knapp: Eyebrow plus Titel, keine Body-/Subtitle-Zeile und keine dekorative rechte Icon-Flaeche. Wenn ein Screen echte Primaeraktionen braucht, stehen sie als sichtbare Controls in der jeweiligen Arbeitsflaeche oder direkt darunter, nicht als Header-Dekoration.
+
 ### Frontend-Ordnerstruktur
 
 ```text
@@ -3043,18 +3050,18 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 
 `src/App.jsx` ist die App-Shell fuer Workspace-State, Navigation, Study-Routing und Persistenz-Callbacks. Die Shell nutzt die verfuegbare Browserbreite statt einer festen Desktop-Maximalbreite; `StudyMode` folgt demselben Full-Width-Verhalten. Produktnahe UI liegt in `src/screens/`; geteilte Praesentationsbausteine und Medien-HTML liegen in `src/ui/`. Die Screen-Map fuer KI-Programmierung wird in `src/screens/README.md` gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.
 
-Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen, Lernen, Statistik, Graph und Community. `DecksScreen` bleibt als View erhalten, wird aber ueber den Kartenstapel-Button im Lernen-Kopf geoeffnet. `SettingsScreen` bleibt ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad erreichbar. KI-Jobs und Assistent sind aktuell keine eigenen Hauptnavigationspunkte.
+Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen, Lernen, Statistik, Graph und Community. `DecksScreen` bleibt als View erhalten, wird aber ueber den Kartenstapel-Button in der Lernen-Control-Leiste geoeffnet. `SettingsScreen` bleibt ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad erreichbar. `AssistantScreen` ist ueber einen sekundaeren Heute-Button erreichbar, bleibt aber wie KI-Jobs ohne eigenen Hauptnavigationspunkt. Hauptbereich-Header folgen der kompakten `PageHeader`-Konvention: Eyebrow und Titel ohne Untertitelzeile oder dekoratives rechtes Header-Icon.
 
-- `src/screens/DashboardScreen.jsx`: kompakter Heute-/Heatmap-Kopf, Tagesmetriken, aktive Hauptstapel mit Unterbaum-Aggregaten und responsive, pfeilnavigierbare GitHub-/Anki-artige Jahres-Heatmap.
+- `src/screens/DashboardScreen.jsx`: reduzierter Heute-Kopf mit Fällig-/Originalkarten-Kacheln, kompakter Heatmap-Kopf mit aktiven Tagen, Durchschnitt pro aktivem Tag, Legende und Pfeilnavigation, aktive Hauptstapel mit Unterbaum-Aggregaten und responsive GitHub-/Anki-artige Jahres-Heatmap mit Monats- und Jahreswechselmarken.
 - `src/screens/DecksScreen.jsx`: Deck-Hierarchie, Suche/Filter, manuelle Stapel-/Unterstapel-Anlage, direkte Stapel-Umbenennung, Stapelbaum-Loeschen, CoRe-Modus, Karten-CRUD, Aktionen.
 - `src/screens/CreationScreen.jsx`: APKG, Text/CSV/Excel-Paste, manuell, PDF-/Text-Dokumenterstellung mit Quellenanker, KI-Drafts.
-- `src/screens/LearnScreen.jsx`: Aufklappbare Lernuebersicht fuer Stapel und Unterstapel mit gestaffelten hellgrauen Gruppenhintergruenden, Neu-/Faellig-/Gesamtzahlen, CoRe-Status, klickbaren Stapelzeilen zum Lernstart, direktem Zahnrad-Einstieg in die Stapelverwaltung und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
+- `src/screens/LearnScreen.jsx`: Aufklappbare Lernuebersicht fuer Stapel und Unterstapel mit hellen Hauptstapel-Hintergruenden und je Tiefe dunkleren hellgrauen Gruppenhintergruenden, spaltenbündigen Neu-/Faellig-/Gesamtzahlen, CoRe-Status, klickbaren Stapelzeilen zum Lernstart, direktem Zahnrad-Einstieg in die Stapelverwaltung und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
 - `src/screens/StatisticsScreen.jsx`: Leistungsstatistik aus Review-Events mit Trefferquote, Antwortverteilung, Lernserie, 14-Tage-Trend, Varianten-Reviews und Stapel-Auswertung.
 - `src/screens/StudyMode.jsx`: Clean Fullscreen Review, Tages-Queue fuer jetzt faellige Karten plus neue Karten, Neue-Karten-Tageslimit, Front+Back nach Aufdeckung, vier Buttons mit Intervallvorschau, Tastatursteuerung, Originalanker, Variantenfeedback.
 - `src/screens/GraphScreen.jsx`: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.
 - `src/screens/CommunityScreen.jsx`: Community erstellen, Deck teilen, Deck kopieren.
 - `src/screens/AiJobsScreen.jsx`: lokale Job-Historie und Status; derzeit nicht als eigener Hauptreiter verlinkt.
-- `src/screens/AssistantScreen.jsx`: Chat-your-Deck und Lernplan; derzeit nicht als eigener Hauptreiter verlinkt.
+- `src/screens/AssistantScreen.jsx`: Chat-your-Deck und Lernplan; ueber den Heute-Sekundaereinstieg erreichbar, nicht als eigener Hauptreiter verlinkt.
 - `src/screens/SettingsScreen.jsx`: Profil, lokale Account-Sitzung, Hochschule, Sprache, Datenschutz, globaler CoRe-Modus, Datenportabilitaet.
 
 ### 27.3 Testoberflaeche
@@ -3066,6 +3073,7 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 - `src/libraryModel.test.js`: Dashboard-/Bibliotheks-/Statistikprojektionen, sichtbare Deckzeilen und Heatmap-Fenster.
 - `src/creationPipeline.test.js`: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.
 - `src/learningModel.test.js`: Legacy-Card-Normalisierung, Learning-Item-Invarianten und Review-Event-Kompatibilitaetsfelder.
+- `src/dataPortability.test.js`: Export-Redaction, kaputtes JSON, nicht unterstuetzte Exportversionen, Merge-Konflikte und Repository-Normalisierung importierter Legacy-Karten.
 - `src/normalizedImport.test.js`: normalisierte Importpayloads, JSON-Import, Fingerprints, Dedupe und Parent-/Hierarchy-Felder.
 - `src/reviewFlow.test.js`: Antwortverarbeitung, Scheduler-Events, Variantenperformance, Anchor-Snapshots und Next-Review-Auswahl.
 - `src/fsrsVariantFlow.test.js`: FSRS-like Scheduler-State, Reifegradstufen, Variant-Readiness, Coverage, Generation-Plan, Fallback nach Fehlern und Next-Review-Projektion.
@@ -3075,7 +3083,8 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 - `src/mediaStore.test.js`: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.
 - `src/richText.test.js`: Rich-Text-Normalisierung, Plain-Text-Anhaengen und leere Karteninhalte.
 - `src/menuModel.test.js`: Navigationsvertrag.
-- `tests/e2e/world-capitals-hierarchy.spec.js`: Browser-Smoke fuer frischen lokalen Seed, sichtbare Unterstapel, gestaffelte Lernlisten-Gruppenhintergruende, Zeilenklick zum Lernstart, direkte Lernlisten-Drag-Geste, Outdent-Reparenting, interaktive Controls ohne Drag-Start und Kartenstapel-Verwaltung ohne alten Drag-Handle.
+- `tests/e2e/core-stabilization.spec.js`: Browser-Smoke fuer Review-Rating, manuell vorbereitete Varianten-Session, KI-Draft-Erstellung, Assistenten-Einstieg und lokalen JSON-Export/-Import mit Fehlerstatus.
+- `tests/e2e/world-capitals-hierarchy.spec.js`: Browser-Smoke fuer frischen lokalen Seed, sichtbare Unterstapel, gestaffelte Lernlisten-Gruppenhintergruende, spaltenbündige Lernlisten-Zahlen, Zeilenklick zum Lernstart, direkte Lernlisten-Drag-Geste, Outdent-Reparenting, interaktive Controls ohne Drag-Start und Kartenstapel-Verwaltung ohne alten Drag-Handle.
 
 ### 27.4 Gemeinsames Kartenmodell
 
@@ -3152,11 +3161,11 @@ Bewusst noch nicht unterstuetzt:
 
 ### 27.8 Chat-your-Deck, Lernplan und Portabilitaet
 
-Der lokale Assistent beantwortet Fragen nur aus vorhandenen Karten. Karten werden ueber einfache Token-Ueberschneidung und Tags gerankt. Reifegrad kann einen vorhandenen Treffer leicht priorisieren, erzeugt aber keinen Treffer ohne inhaltliche Ueberschneidung. Jede Antwort enthaelt `citations` mit `deckId`, `cardId`, Kartenquote und optionalem Quellenanker. Wenn keine Quelle gefunden wird, verweigert der Assistent eine freie Antwort.
+Der lokale Assistent beantwortet Fragen nur aus vorhandenen Karten. Karten werden ueber einfache Token-Ueberschneidung und Tags gerankt. Reifegrad kann einen vorhandenen Treffer leicht priorisieren, erzeugt aber keinen Treffer ohne inhaltliche Ueberschneidung. Jede Antwort enthaelt `citations` mit `deckId`, `cardId`, Kartenquote und optionalem Quellenanker. Wenn keine Quelle gefunden wird, verweigert der Assistent eine freie Antwort. Die UI bleibt ohne Hauptmenuepunkt, ist aber vom Heute-Dashboard aus als sekundaerer Arbeitsbereich erreichbar.
 
 `createLearningPlan` erzeugt einen Plan aus Zieltermin, verfuegbaren Minuten pro Tag, neuen Karten pro Tag, faelligen Reviews, aktiven Varianten und schwachen Tags aus Review-Events oder Graph-Knoten. Der Plan erzeugt Tageszeilen mit Review-Quota, neuen Karten, Varianten-Tagen und Fokusdeck. Er ist kein Kalender-Adapter; ein spaeterer Kalender- oder Benachrichtigungsadapter soll die erzeugten Planobjekte konsumieren.
 
-`src/dataPortability.js` erzeugt einen lokalen JSON-Export mit Decks, Communities, Jobs und Dokumenten. Der lokale Passwort-Verifier wird bewusst entfernt. Import validiert Schema und Version, bevor Daten in den lokalen App-State gemergt werden.
+`src/dataPortability.js` erzeugt einen lokalen JSON-Export mit Decks, Communities, Jobs und Dokumenten. Der lokale Passwort-Verifier wird bewusst entfernt. Import validiert Schema und Version, gibt kaputtes JSON als Validierungsfehler statt Exception zurueck und mergt neue Decks ohne lokale Decks mit gleicher ID zu ersetzen.
 
 ### 27.9 Adapter-Entscheidung
 

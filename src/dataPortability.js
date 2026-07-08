@@ -40,8 +40,20 @@ export function stringifyPortableExport(state, now) {
 }
 
 export function validatePortableExport(value) {
-  const payload = typeof value === "string" ? JSON.parse(value) : value;
+  let payload = value;
   const errors = [];
+
+  if (typeof value === "string") {
+    try {
+      payload = JSON.parse(value);
+    } catch {
+      return {
+        valid: false,
+        errors: ["Export-JSON konnte nicht gelesen werden."],
+        payload: null,
+      };
+    }
+  }
 
   if (payload?.schema !== "core-portable-export") {
     errors.push("Unbekanntes Export-Schema.");

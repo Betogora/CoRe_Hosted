@@ -11,6 +11,7 @@ export function SettingsScreen({ appState, profile, decks, onSaveProfile, onUpda
   const [exportText, setExportText] = React.useState("");
   const [importText, setImportText] = React.useState("");
   const [portabilityMessage, setPortabilityMessage] = React.useState("");
+  const [portabilityMessageType, setPortabilityMessageType] = React.useState("status");
 
   React.useEffect(() => {
     setForm(profile);
@@ -68,6 +69,7 @@ export function SettingsScreen({ appState, profile, decks, onSaveProfile, onUpda
     const text = stringifyPortableExport(appState);
     const payload = createPortableExport(appState);
     setExportText(text);
+    setPortabilityMessageType("status");
     setPortabilityMessage(`Export vorbereitet: ${payload.decks.length} Decks, Hash ${payload.contentHash}.`);
   }
 
@@ -75,21 +77,24 @@ export function SettingsScreen({ appState, profile, decks, onSaveProfile, onUpda
     try {
       const validation = validatePortableExport(importText);
       if (!validation.valid) {
+        setPortabilityMessageType("alert");
         setPortabilityMessage(validation.errors.join(" "));
         return;
       }
       const nextState = mergePortableExportIntoState(appState, validation.payload);
       onSaveState(nextState);
       setImportText("");
+      setPortabilityMessageType("status");
       setPortabilityMessage("Export validiert und in die lokale Bibliothek gemergt.");
     } catch (error) {
+      setPortabilityMessageType("alert");
       setPortabilityMessage(error instanceof Error ? error.message : "Import konnte nicht gelesen werden.");
     }
   }
 
   return (
     <div className="grid gap-7">
-      <PageHeader eyebrow="Profil" title="Einstellungen" body="Account, Hochschule, Datenschutz, Scheduler und Datenportabilität." />
+      <PageHeader eyebrow="Profil" title="Einstellungen" />
       <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
         <SoftPanel className="p-6">
           <div className="mb-5 flex items-center gap-3">
@@ -154,7 +159,7 @@ export function SettingsScreen({ appState, profile, decks, onSaveProfile, onUpda
           <p className="mt-3 text-sm text-[#66709a]">
             Status: {profile.account?.status ?? "lokales Profil"} {profile.account?.authProvider ? `· ${profile.account.authProvider}` : ""}
           </p>
-          {accountMessage ? <p className="mt-2 text-sm text-[#66709a]">{accountMessage}</p> : null}
+          {accountMessage ? <p className="mt-2 text-sm text-[#66709a]" role="status" aria-live="polite">{accountMessage}</p> : null}
         </SoftPanel>
 
         <SoftPanel className="p-6">
@@ -195,17 +200,35 @@ export function SettingsScreen({ appState, profile, decks, onSaveProfile, onUpda
               <Database size={17} aria-hidden="true" />
               Export vorbereiten
             </button>
-            <textarea className="min-h-72 rounded-xl border border-[#dfe4f5] p-3 font-mono text-xs leading-5" value={exportText} onChange={(event) => setExportText(event.target.value)} placeholder="Export-JSON" />
+            <textarea
+              className="min-h-72 rounded-xl border border-[#dfe4f5] p-3 font-mono text-xs leading-5"
+              value={exportText}
+              onChange={(event) => setExportText(event.target.value)}
+              placeholder="Export-JSON"
+              aria-label="Vorbereiteter Export als JSON"
+              data-testid="portable-export-json"
+            />
           </div>
           <div className="grid gap-3">
             <button type="button" onClick={importExport} disabled={!importText.trim()} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
               <Upload size={17} aria-hidden="true" />
               JSON importieren
             </button>
-            <textarea className="min-h-72 rounded-xl border border-[#dfe4f5] p-3 font-mono text-xs leading-5" value={importText} onChange={(event) => setImportText(event.target.value)} placeholder="CoRe Export hier einfügen" />
+            <textarea
+              className="min-h-72 rounded-xl border border-[#dfe4f5] p-3 font-mono text-xs leading-5"
+              value={importText}
+              onChange={(event) => setImportText(event.target.value)}
+              placeholder="CoRe Export hier einfügen"
+              aria-label="CoRe Export JSON importieren"
+              data-testid="portable-import-json"
+            />
           </div>
         </div>
-        {portabilityMessage ? <p className="mt-3 text-sm text-[#66709a]">{portabilityMessage}</p> : null}
+        {portabilityMessage ? (
+          <p className="mt-3 text-sm text-[#66709a]" role={portabilityMessageType} aria-live={portabilityMessageType === "alert" ? "assertive" : "polite"}>
+            {portabilityMessage}
+          </p>
+        ) : null}
       </SoftPanel>
     </div>
   );

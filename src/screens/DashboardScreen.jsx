@@ -1,5 +1,5 @@
 import React from "react";
-import { Activity, Bell, CalendarDays, ChevronLeft, ChevronRight, Layers, Sparkles, Target } from "lucide-react";
+import { Activity, Bot, CalendarDays, ChevronLeft, ChevronRight, Layers } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.js";
 import { DonutValue, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
 
@@ -42,6 +42,18 @@ function HeatmapMetric({ label, value, hint }) {
   );
 }
 
+function HeatmapLegend() {
+  return (
+    <div className="flex items-center gap-2 text-sm text-[#66709a]">
+      <span>Weniger</span>
+      {[0, 1, 2, 3, 4].map((level) => (
+        <span key={level} className={`block size-3 rounded-[4px] border ${heatmapToneByLevel[level]}`} />
+      ))}
+      <span>Mehr</span>
+    </div>
+  );
+}
+
 function useElementWidth() {
   const elementRef = React.useRef(null);
   const [width, setWidth] = React.useState(null);
@@ -74,9 +86,6 @@ function StudyHeatmap({ heatmap }) {
     [heatmap, heatmapEndWeekIndex, heatmapViewportWidth],
   );
   const gridColumns = `2.25rem repeat(${visibleHeatmap.weeks.length}, 1rem)`;
-  const bestDayLabel = visibleHeatmap.bestDay
-    ? `Stärkster Tag: ${formatHeatmapDate(visibleHeatmap.bestDay.key)} mit ${formatCardCount(visibleHeatmap.bestDay.count)}`
-    : "Noch keine Lernaktivität im Zeitraum";
   const goToPreviousHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.previousEndWeekIndex);
   const goToNextHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.nextEndWeekIndex);
   const handleHeatmapKeyDown = (event) => {
@@ -92,47 +101,47 @@ function StudyHeatmap({ heatmap }) {
 
   return (
     <SoftPanel className="p-7">
-      <div className="flex flex-wrap items-start justify-between gap-5">
+      <div className="flex flex-wrap items-start justify-start gap-x-10 gap-y-4">
         <div className="flex gap-4">
           <OrbIcon icon={Activity} className="bg-teal-50 text-teal-700" />
           <div>
             <h3 className="text-xl font-semibold text-[#17214f]">Lern-Heatmap</h3>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-x-7 gap-y-4 md:grid-cols-4">
-          <HeatmapMetric label="Karten" value={visibleHeatmap.totalCount} hint="im Zeitraum" />
-          <HeatmapMetric label="Aktive Tage" value={visibleHeatmap.activeDays} />
-          <HeatmapMetric label="Ø aktiver Tag" value={formatDecimal(visibleHeatmap.averagePerActiveDay)} hint="Karten" />
-          <HeatmapMetric label="Serie" value={visibleHeatmap.currentStreak} hint={`Bestwert ${visibleHeatmap.longestStreak} Tage`} />
+        <div className="flex flex-wrap items-center justify-start gap-x-5 gap-y-3">
+          <div className="grid grid-cols-2 gap-x-7 gap-y-4">
+            <HeatmapMetric label="Aktive Tage" value={visibleHeatmap.activeDays} />
+            <HeatmapMetric label="Ø aktiver Tag" value={formatDecimal(visibleHeatmap.averagePerActiveDay)} hint="Karten" />
+          </div>
+          <HeatmapLegend />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={goToPreviousHeatmapWindow}
+              disabled={!visibleHeatmap.canShowPrevious}
+              className="inline-flex size-9 items-center justify-center rounded-xl border border-[#dfe4f3] bg-white text-[#4f5eb1] transition hover:border-[#c7cee8] hover:bg-[#f7f9ff] disabled:cursor-not-allowed disabled:opacity-40"
+              title="Frühere Wochen anzeigen"
+              aria-label="Frühere Wochen anzeigen"
+            >
+              <ChevronLeft size={17} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={goToNextHeatmapWindow}
+              disabled={!visibleHeatmap.canShowNext}
+              className="inline-flex size-9 items-center justify-center rounded-xl border border-[#dfe4f3] bg-white text-[#4f5eb1] transition hover:border-[#c7cee8] hover:bg-[#f7f9ff] disabled:cursor-not-allowed disabled:opacity-40"
+              title="Spätere Wochen anzeigen"
+              aria-label="Spätere Wochen anzeigen"
+            >
+              <ChevronRight size={17} aria-hidden="true" />
+            </button>
+          </div>
         </div>
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={goToPreviousHeatmapWindow}
-          disabled={!visibleHeatmap.canShowPrevious}
-          className="inline-flex size-9 items-center justify-center rounded-xl border border-[#dfe4f3] bg-white text-[#4f5eb1] transition hover:border-[#c7cee8] hover:bg-[#f7f9ff] disabled:cursor-not-allowed disabled:opacity-40"
-          title="Frühere Wochen anzeigen"
-          aria-label="Frühere Wochen anzeigen"
-        >
-          <ChevronLeft size={17} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={goToNextHeatmapWindow}
-          disabled={!visibleHeatmap.canShowNext}
-          className="inline-flex size-9 items-center justify-center rounded-xl border border-[#dfe4f3] bg-white text-[#4f5eb1] transition hover:border-[#c7cee8] hover:bg-[#f7f9ff] disabled:cursor-not-allowed disabled:opacity-40"
-          title="Spätere Wochen anzeigen"
-          aria-label="Spätere Wochen anzeigen"
-        >
-          <ChevronRight size={17} aria-hidden="true" />
-        </button>
       </div>
 
       <div
         ref={heatmapViewportRef}
-        className="mt-3 min-w-0 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5361aa]/35"
+        className="mt-4 min-w-0 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5361aa]/35"
         tabIndex={0}
         onKeyDown={handleHeatmapKeyDown}
         aria-label={`Lern-Heatmap-Ausschnitt von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}`}
@@ -168,17 +177,6 @@ function StudyHeatmap({ heatmap }) {
           ))}
         </div>
       </div>
-
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 text-sm text-[#66709a]">
-        <span>{bestDayLabel}</span>
-        <div className="flex items-center gap-2">
-          <span>Weniger</span>
-          {[0, 1, 2, 3, 4].map((level) => (
-            <span key={level} className={`block size-3 rounded-[4px] border ${heatmapToneByLevel[level]}`} />
-          ))}
-          <span>Mehr</span>
-        </div>
-      </div>
     </SoftPanel>
   );
 }
@@ -204,14 +202,18 @@ export function DashboardScreen({ state, onNavigate, onStartDeck }) {
       <PageHeader
         eyebrow="Heute"
         title={`Guten Morgen, ${state.profile.displayName || "Noemi"}`}
-        action={<Bell className="mt-2 text-[#5361aa]" size={22} aria-hidden="true" />}
       />
 
-      <div className="grid gap-6 lg:grid-cols-4">
-        <StatTile icon={CalendarDays} label="Heute fällig" value={totals.dueCards} hint="Review-Objekte" />
-        <StatTile icon={Layers} label="Originalkarten" value={totals.totalCards} hint={`${totals.deckCount} Stapel`} accent="text-teal-700" />
-        <StatTile icon={Sparkles} label="CoRe-ready" value={totals.matureCards} hint={`${totals.activeVariants} aktive Varianten`} accent="text-amber-700" />
-        <StatTile icon={Target} label="Reifegrad" value={`${totals.completionPercent} %`} hint="Karten ab Reifegrad" accent="text-emerald-700" />
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={() => onNavigate("assistent")} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
+          <Bot size={17} aria-hidden="true" />
+          Assistent öffnen
+        </button>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <StatTile icon={CalendarDays} label="Heute fällig" value={totals.dueCards} />
+        <StatTile icon={Layers} label="Originalkarten" value={totals.totalCards} accent="text-teal-700" />
       </div>
 
       <StudyHeatmap heatmap={studyHeatmap} />

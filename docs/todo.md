@@ -26,7 +26,7 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [x] Lokale KI-Drafts aus Quellentext mit Schema-Validation, Draft-Annahme und normalisierter Learning-Item-Erstellung.
 - [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, append-only Review-Events und Learning-Item-/Varianten-Kompatibilitaetsfeldern.
 - [x] Tages-Queue im Lernmodus fuer jetzt faellige/ueberfaellige Karten plus pro Stapel einstellbare neue Karten; Elternstapel lernen ihren Unterbaum.
-- [x] Lernuebersicht mit aufklappbaren Unterstapeln, gestaffelten hellgrauen Gruppenhintergruenden, aggregierten Neu-/Faellig-/Gesamtzahlen, CoRe-Status, klickbaren Stapelzeilen zum Lernstart, direktem Zahnrad-Einstieg in die Stapelverwaltung und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
+- [x] Lernuebersicht mit aufklappbaren Unterstapeln, sehr hellen Hauptstapel-Hintergruenden, je Tiefe dunkleren hellgrauen Gruppenhintergruenden und spaltenbündigen Neu-/Faellig-/Gesamtzahlen ohne wiederholte Desktop-Zelllabels, CoRe-Status, klickbaren Stapelzeilen zum Lernstart, direktem Zahnrad-Einstieg in die Stapelverwaltung und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
 - [x] Manuelle Stapelverwaltung mit Hauptstapeln, beliebig tiefen Unterstapeln, direktem Umbenennen und Loeschen ganzer Stapelbaeume; APKG-Unterstapel sind im Workspace-Importpfad abgesichert.
 - [x] Reproduzierbarer Welt-Hauptstädte-Teststapel als Default-Seed fuer frische lokale Browser-States und echte APKG-Fixture mit sieben Kontinent-Unterstapeln, dreimonatiger Lernhistorie, Heatmap-Daten, fälligen Karten, CoRe-reifen Karten und unberuehrter Seed-Migration.
 - [x] Intervallvorschau direkt auf den Buttons Again, Hard, Good und Easy.
@@ -34,8 +34,10 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 - [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker-Minikarte, Variant-Level, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
 - [x] Lokale Community-Gruppen, Ordner und Deck-Kopie ohne fremde Reviewdaten.
 - [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan, AI-Job-Datenmodell, responsive pfeilnavigierbare Heute-Jahres-Heatmap ohne horizontalen Slider und eigener Statistik-Reiter fuer Leistungs-Auswertung.
-- [x] Heute-Dashboard nutzt kompakte Hero- und Heatmap-Kopfbereiche ohne zusaetzliche Beschreibungstexte; Metriken, Heatmap-Labels, Hauptstapel-Aggregate und Navigation bleiben erhalten.
+- [x] Heute-Dashboard nutzt kompakte Hero- und Heatmap-Kopfbereiche ohne zusätzliche Beschreibungstexte; sichtbar bleiben reduzierte Fällig-/Originalkarten-Kacheln, aktive Heatmap-Tage, Durchschnitt pro aktivem Tag, Monats-/Jahreswechsel-Labels, Legende, Hauptstapel-Aggregate und Navigation.
+- [x] Hauptbereich-Header sind appweit auf Eyebrow und Titel reduziert; Untertitelzeilen und dekorative rechte Header-Icons werden nicht mehr fuer neue Tabs verwendet.
 - [x] Lokaler JSON-Export/-Import ohne Passwort-Verifier.
+- [x] P0-Stabilisierung fuer Review, Varianten, KI-Drafts, Assistent und Export: `tests/e2e/core-stabilization.spec.js`, dedizierte `dataPortability`-Roundtrips und Accessibility-/Fehlerstatus in den betroffenen Screens.
 - [x] Appweite Surface-/Elevation-Regel umgesetzt: dauerhafte glasige Panels nutzen gemeinsame Surface-Tokens ohne benachbarte Elemente sichtbar abzudunkeln; grosse Schatten bleiben echten Overlays vorbehalten.
 - [x] Modul-/Browser-Verifikation fuer die zentralen lokalen Pfade, inklusive `libraryModel.test.js`, `normalizedImport.test.js`, `richText.test.js` und `schedulerIntervals.test.js`.
 - [x] Supabase/Postgres-Schemaanker in `supabase/core_schema_v1.sql` mit RLS-Policies und Verify-Query dokumentiert.
@@ -55,24 +57,21 @@ Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md
 
 ## Priorisierte naechste Schritte mit Code-Sicht
 
-1. **P0.1 Browser-Smokes erweitern:** Neue Playwright-Flows in `tests/e2e/` fuer Review, Variante, KI-Draft, Assistent und Export. Relevante UI-Einstiege: `src/App.jsx`, `src/screens/StudyMode.jsx`, `src/screens/CreationScreen.jsx`, `src/screens/AssistantScreen.jsx`, `src/screens/SettingsScreen.jsx`.
-2. **P0.2 Fehler- und Accessibility-Pass:** Fokusreihenfolge, Labels, Tastatur und Fehlermeldungen in `StudyMode`, `CreationScreen`, `DecksScreen`, `LearnScreen` und `SettingsScreen`. Fachliche Validierung bleibt in `creationWorkflow`, `importService`, `apkgImport`, `documentModel`, `reviewService` und `dataPortability`.
-3. **P0.3 Portabilitaet-Roundtrips:** Fixtures fuer `createPortableExport`, `mergePortableExportIntoState`, alte Exportversionen, Konflikte, Legacy-Card-Normalisierung und Learning-Item-Invarianten. Tests: `coreModel.test.js`, `learningModel.test.js`, `normalizedImport.test.js`, neue `dataPortability`-Cases.
-4. **P1.1 Persistenznaht schaerfen:** `createCoreRepository()` und `createCoreWorkspace()` so dokumentieren/testen, dass spaeter Supabase-Persistenz ergaenzt werden kann, ohne React-Screens umzubauen.
-5. **P1.2 Schema-Abgleich:** `supabase/core_schema_v1.sql` gegen `coreModel`, `importService`, `mediaStore`, `reviewService`, `aiOrchestrator` und `dataPortability` pruefen. Ziel: Learning Items, Original-Variante, Review Events, Medienreferenzen und AI Jobs eindeutig abbilden.
-6. **P1.3 APKG-/Medienausbau:** Fixtures fuer Reverse, Optional Reverse, Cloze, Medien, moderne MediaEntries und ungewohnte Notetypes ergaenzen; Importidentitaeten und Template-Snapshots gemaess `docs/anki-format-analysis.md` konsolidieren.
-7. **P2.1 KI-/Job-Pfad:** Server-Proxy, Prompt-/Schema-Versionierung, Eval-Datensatz, Kostenlogging und Rate-Limits aus `aiOrchestrator`, `variantGeneration` und dem lokalen `aiJobs`-Modell ableiten.
-8. **P2.2 Lernqualitaet validieren:** `scheduler`, `reviewService`, `coreVariantService`, `variantSelection` und `variantGeneration` mit echten Decks pruefen; Intervallvorschau, Variant-Fallback und Feedbackdaten auswerten.
-9. **P3 erst nach Produktivgrundlagen:** Community-Rechte, Sync, Mobile/PWA, Push und Wachstumsschicht erst nach echter Auth, Persistenz, Storage und Job-Infrastruktur bauen.
+1. **P1.1 Persistenznaht schaerfen:** `createCoreRepository()` und `createCoreWorkspace()` so dokumentieren/testen, dass spaeter Supabase-Persistenz ergaenzt werden kann, ohne React-Screens umzubauen.
+2. **P1.2 Schema-Abgleich:** `supabase/core_schema_v1.sql` gegen `coreModel`, `importService`, `mediaStore`, `reviewService`, `aiOrchestrator` und `dataPortability` pruefen. Ziel: Learning Items, Original-Variante, Review Events, Medienreferenzen und AI Jobs eindeutig abbilden.
+3. **P1.3 APKG-/Medienausbau:** Fixtures fuer Reverse, Optional Reverse, Cloze, Medien, moderne MediaEntries und ungewohnte Notetypes ergaenzen; Importidentitaeten und Template-Snapshots gemaess `docs/anki-format-analysis.md` konsolidieren.
+4. **P2.1 KI-/Job-Pfad:** Server-Proxy, Prompt-/Schema-Versionierung, Eval-Datensatz, Kostenlogging und Rate-Limits aus `aiOrchestrator`, `variantGeneration` und dem lokalen `aiJobs`-Modell ableiten.
+5. **P2.2 Lernqualitaet validieren:** `scheduler`, `reviewService`, `coreVariantService`, `variantSelection` und `variantGeneration` mit echten Decks pruefen; Intervallvorschau, Variant-Fallback und Feedbackdaten auswerten.
+6. **P3 erst nach Produktivgrundlagen:** Community-Rechte, Sync, Mobile/PWA, Push und Wachstumsschicht erst nach echter Auth, Persistenz, Storage und Job-Infrastruktur bauen.
 
 ## P0: Lokalen MVP stabilisieren
 
-- [ ] Smoke-Test-Skript fuer weitere wichtige Browser-Flows automatisieren: Review, Variante, KI-Draft, Assistent, Export.
+- [x] Smoke-Test-Skript fuer weitere wichtige Browser-Flows automatisieren: Review, Variante, KI-Draft, Assistent, Export.
 - [ ] Desktop-Website-Designraster im UI-Code nachziehen: Zielviewport **1440 × 900 px**, Desktop-Mindestbreite **1280 px**, App-Canvas **1280–1440 px**, Standard-Arbeitsflächen **1180–1280 px**, Review-Karte maximal **1040 px**, Schriftgrößen **12 / 14 / 16 / 18 / 24 / 32 / 40 px** und Gewichte **400 / 600 / 700** als feste Tokens statt kontinuierlicher `clamp`-/Arbitrary-Werte.
-- [ ] Accessibility-Pass fuer Review, Import und Settings durchfuehren: Fokusreihenfolge, Labels, Kontrast, Tastatur.
+- [x] Accessibility-Pass fuer Review, Import und Settings durchfuehren: Fokusreihenfolge, Labels, Tastatur und Live-Status fuer zentrale Fehler-/Statusmeldungen.
 - [ ] Leere, fehlerhafte und grosse Eingaben fuer Text/CSV/Excel/APKG mit UI-Fehlermeldungen absichern.
 - [ ] Version-Restore in der UI voll klickbar machen, nicht nur im Modell vorbereiten.
-- [ ] Datenportabilitaet mit Roundtrip-Fixtures testen: Export alter Version, Import in frischen State, Konfliktfall, Learning-Item/Legacy-Card-Normalisierung.
+- [x] Datenportabilitaet mit Roundtrip-Fixtures testen: kaputtes JSON, alte Exportversion, Konfliktfall, Import in frischen State und Learning-Item/Legacy-Card-Normalisierung.
 - [ ] Bestehende lokale Demo-Daten als reproduzierbare Fixtures statt impliziter UI-Erzeugung pflegen.
 
 ## P1: Hosting und Produktivbetrieb vorbereiten

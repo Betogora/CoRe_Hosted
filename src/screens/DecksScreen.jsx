@@ -122,11 +122,11 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
       <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
           Vorderseite
-          <textarea className="min-h-28 min-w-0 rounded-xl border border-[#dfe4f5] p-3" value={form.front} onChange={(event) => update("front", event.target.value)} />
+          <textarea className="min-h-28 min-w-0 rounded-xl border border-[#dfe4f5] p-3" value={form.front} onChange={(event) => update("front", event.target.value)} aria-label="Karten-Vorderseite" />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
           Rückseite
-          <textarea className="min-h-28 min-w-0 rounded-xl border border-[#dfe4f5] p-3" value={form.back} onChange={(event) => update("back", event.target.value)} />
+          <textarea className="min-h-28 min-w-0 rounded-xl border border-[#dfe4f5] p-3" value={form.back} onChange={(event) => update("back", event.target.value)} aria-label="Karten-Rückseite" />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
           Kartentyp
@@ -191,14 +191,14 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
         {showPrompt ? (
           <div className="mt-4 grid min-w-0 gap-3">
             {!generationPlan.canGenerate ? <p className="text-sm text-[#66709a]">Diese Karte ist noch nicht reif für automatische Varianten. Der Prompt kann trotzdem als Vorschau angezeigt werden.</p> : null}
-            <textarea className="min-h-56 min-w-0 rounded-xl border border-[#dfe4f5] bg-white p-3 font-mono text-xs leading-5" value={promptPreview} readOnly />
+              <textarea className="min-h-56 min-w-0 rounded-xl border border-[#dfe4f5] bg-white p-3 font-mono text-xs leading-5" value={promptPreview} readOnly aria-label="KI-Prompt für Varianten" />
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={copyPrompt} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#4f5eb1]">
                 <Copy size={16} aria-hidden="true" />
                 Prompt kopieren
               </button>
             </div>
-            <textarea className="min-h-32 min-w-0 rounded-xl border border-[#dfe4f5] bg-white p-3 font-mono text-xs leading-5" value={jsonResponse} onChange={(event) => setJsonResponse(event.target.value)} placeholder='{"variants":[{"front":"...","back":"...","variantType":"basic","variantLevel":2,"relationToOriginal":"same_card_rephrasing","containsNewFacts":false,"abstractionLevel":1}]}' />
+            <textarea className="min-h-32 min-w-0 rounded-xl border border-[#dfe4f5] bg-white p-3 font-mono text-xs leading-5" value={jsonResponse} onChange={(event) => setJsonResponse(event.target.value)} placeholder='{"variants":[{"front":"...","back":"...","variantType":"basic","variantLevel":2,"relationToOriginal":"same_card_rephrasing","containsNewFacts":false,"abstractionLevel":1}]}' aria-label="Varianten-JSON" />
             <button type="button" onClick={applyJsonResponse} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl bg-indigo-700 px-3 text-sm font-semibold text-white">
               <Sparkles size={16} aria-hidden="true" />
               Varianten aus JSON übernehmen
@@ -237,9 +237,9 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           <p className="text-sm font-semibold text-[#17214f]">Nahe Umformulierung hinzufügen</p>
           <p className="text-sm text-[#66709a]">Prüfe dieselbe Wissenseinheit. Keine neuen Fakten, keine neuen Konzepte.</p>
           <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-            <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.front} onChange={(event) => updateVariantForm("front", event.target.value)} placeholder="Frage / Front" />
-            <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.back} onChange={(event) => updateVariantForm("back", event.target.value)} placeholder="Antwort / Back" />
-            <select className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.variantLevel} onChange={(event) => updateVariantForm("variantLevel", Number(event.target.value))}>
+            <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.front} onChange={(event) => updateVariantForm("front", event.target.value)} placeholder="Frage / Front" aria-label="Variantenfrage" />
+            <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.back} onChange={(event) => updateVariantForm("back", event.target.value)} placeholder="Antwort / Back" aria-label="Variantenantwort" />
+            <select className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.variantLevel} onChange={(event) => updateVariantForm("variantLevel", Number(event.target.value))} aria-label="Variantenlevel">
               {[1, 2, 3].map((level) => (
                 <option key={level} value={level}>Level {level}</option>
               ))}
@@ -249,7 +249,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
             <PlusSquare size={16} aria-hidden="true" />
             Umformulierung hinzufügen
           </button>
-          {variantStatus ? <p className="text-sm text-[#66709a]">{variantStatus}</p> : null}
+          {variantStatus ? <p className="text-sm text-[#66709a]" role="status" aria-live="polite">{variantStatus}</p> : null}
         </div>
       </div>
     </SoftPanel>
@@ -381,13 +381,6 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
       <PageHeader
         eyebrow="Bibliothek"
         title="Kartenstapel"
-        body="Deck-Hierarchie, CoRe-Modus und Kartenpflege."
-        action={
-          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#4f5eb1] px-5 text-sm font-semibold text-white">
-            <PlusSquare size={17} aria-hidden="true" />
-            Neue Karten
-          </button>
-        }
       />
 
       <SoftPanel className="p-5">
@@ -402,6 +395,10 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
             <option value="auto">Auto</option>
             <option value="manual">Manuell</option>
           </select>
+          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white">
+            <PlusSquare size={17} aria-hidden="true" />
+            Neue Karten
+          </button>
         </div>
         <form onSubmit={createDeckFromDraft} className="mt-4 grid min-w-0 gap-3 border-t border-[#e3e7f5] pt-4 lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_auto]">
           <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
@@ -433,7 +430,7 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
             Stapel anlegen
           </button>
         </form>
-        {deckStatus ? <p className="mt-3 text-sm font-semibold text-[#66709a]">{deckStatus}</p> : null}
+        {deckStatus ? <p className="mt-3 text-sm font-semibold text-[#66709a]" role="status" aria-live="polite">{deckStatus}</p> : null}
       </SoftPanel>
 
       {filteredRows.length === 0 ? (

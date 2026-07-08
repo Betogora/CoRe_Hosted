@@ -247,6 +247,7 @@ function TabButton({ icon: Icon, label, isActive, onClick }) {
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={isActive}
       className={`inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
         isActive ? "bg-[#4f5eb1] text-white shadow-sm" : "border border-[#dfe4f5] bg-white/76 text-[#4f5eb1] hover:bg-white"
       }`}
@@ -391,7 +392,7 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
         </div>
 
         {job?.errors?.length > 0 ? (
-          <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
             {job.errors.map((error) => (
               <p key={error}>{error}</p>
             ))}
@@ -533,7 +534,7 @@ function TextCsvImportPanel({ initialMode = "text", onImported }) {
             </button>
           </div>
           {report ? (
-            <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4 text-sm text-[#66709a]">
+          <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4 text-sm text-[#66709a]" role={report.errors.length ? "alert" : "status"} aria-live={report.errors.length ? "assertive" : "polite"}>
               <p className="font-semibold text-[#17214f]">
                 {report.createdLearningItems} Karten · {report.createdVariants} Varianten · {report.duplicates.length} Dubletten
               </p>
@@ -550,6 +551,7 @@ function TextCsvImportPanel({ initialMode = "text", onImported }) {
             setReport(null);
           }}
           placeholder={mode === "text" ? "Front\n---\nBack" : mode === "csv" ? "front,back,tags" : "front\tback\ttags"}
+          aria-label="Importinhalt"
         />
       </div>
     </SoftPanel>
@@ -630,11 +632,12 @@ function ManualCreationPanel({ onCreated }) {
               <p>{document.textExtractionStatus}</p>
             </div>
           ) : null}
-          <textarea
+            <textarea
             className="min-h-80 rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6"
             value={documentText}
             onChange={(event) => setDocumentText(event.target.value)}
             placeholder="Dokumenttext"
+            aria-label="Dokumenttext"
           />
           <button type="button" onClick={captureSelection} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
             <ClipboardCheck size={16} aria-hidden="true" />
@@ -669,11 +672,11 @@ function ManualCreationPanel({ onCreated }) {
           </div>
           <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
             Vorderseite
-            <textarea className="min-h-28 rounded-xl border border-[#dfe4f5] p-3" value={front} onFocus={() => setActiveField("front")} onChange={(event) => setFront(event.target.value)} />
+            <textarea className="min-h-28 rounded-xl border border-[#dfe4f5] p-3" value={front} onFocus={() => setActiveField("front")} onChange={(event) => setFront(event.target.value)} aria-label="Vorderseite" />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
             Rückseite
-            <textarea className="min-h-28 rounded-xl border border-[#dfe4f5] p-3" value={back} onFocus={() => setActiveField("back")} onChange={(event) => setBack(event.target.value)} />
+            <textarea className="min-h-28 rounded-xl border border-[#dfe4f5] p-3" value={back} onFocus={() => setActiveField("back")} onChange={(event) => setBack(event.target.value)} aria-label="Rückseite" />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
             Tags
@@ -683,7 +686,7 @@ function ManualCreationPanel({ onCreated }) {
             <Database size={17} aria-hidden="true" />
             Originalkarte speichern
           </button>
-          {status ? <p className="text-sm text-[#66709a]">{status}</p> : null}
+          {status ? <p className="text-sm text-[#66709a]" role="status" aria-live="polite">{status}</p> : null}
         </div>
       </div>
     </SoftPanel>
@@ -938,7 +941,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
         <div className="grid gap-4 lg:grid-cols-[1fr_0.8fr]">
           <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
             Antwortoptionen
-            <textarea className="min-h-32 rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={answerOptions} onChange={(event) => setAnswerOptions(event.target.value)} placeholder={"Option A\nOption B\nOption C"} />
+            <textarea className="min-h-32 rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={answerOptions} onChange={(event) => setAnswerOptions(event.target.value)} placeholder={"Option A\nOption B\nOption C"} aria-label="Antwortoptionen" />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
             Richtige Antwort
@@ -969,7 +972,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
           </button>
         </div>
       </div>
-      {status ? <p className="text-sm text-[#66709a]">{status}</p> : null}
+      {status ? <p className="text-sm text-[#66709a]" role="status" aria-live="polite">{status}</p> : null}
     </div>
   );
 
@@ -1104,7 +1107,7 @@ function AiCreationPanel({ onCreated, onJob }) {
               <input type="file" accept=".txt,.md,.markdown,.pdf,.docx" onChange={handleFile} />
             </span>
           </label>
-          <textarea className="min-h-48 rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={document.text} onChange={(event) => updateDocumentText(event.target.value)} placeholder="Quellentext" />
+          <textarea className="min-h-48 rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={document.text} onChange={(event) => updateDocumentText(event.target.value)} placeholder="Quellentext" aria-label="Quellentext für KI-Drafts" />
           <div className="grid gap-3 md:grid-cols-2">
             {[
               ["language", "Sprache"],
@@ -1153,7 +1156,7 @@ function AiCreationPanel({ onCreated, onJob }) {
               Weniger
             </button>
           </div>
-          {status ? <p className="text-sm text-[#66709a]">{status}</p> : null}
+          {status ? <p className="text-sm text-[#66709a]" role="status" aria-live="polite">{status}</p> : null}
         </div>
 
         <div className="grid gap-4">
@@ -1174,8 +1177,8 @@ function AiCreationPanel({ onCreated, onJob }) {
                     <span className="rounded-xl bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">{card.kind}</span>
                     <span className="text-xs font-semibold text-[#66709a]">Confidence {Math.round((card.meta?.confidence ?? 0.75) * 100)} %</span>
                   </div>
-                  <textarea className="min-h-20 w-full rounded-xl border border-[#dfe4f5] p-3 text-sm" value={card.originalFront} onChange={(event) => updateDraft(card.id, "originalFront", event.target.value)} />
-                  <textarea className="mt-3 min-h-24 w-full rounded-xl border border-[#dfe4f5] p-3 text-sm" value={card.originalBack} onChange={(event) => updateDraft(card.id, "originalBack", event.target.value)} />
+                  <textarea className="min-h-20 w-full rounded-xl border border-[#dfe4f5] p-3 text-sm" value={card.originalFront} onChange={(event) => updateDraft(card.id, "originalFront", event.target.value)} aria-label="Entwurf Vorderseite" />
+                  <textarea className="mt-3 min-h-24 w-full rounded-xl border border-[#dfe4f5] p-3 text-sm" value={card.originalBack} onChange={(event) => updateDraft(card.id, "originalBack", event.target.value)} aria-label="Entwurf Rückseite" />
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#66709a]">
                     <span>{card.sourceAnchors?.[0]?.textQuote?.slice(0, 120) || "Quelle fehlt"}</span>
                     <button type="button" onClick={() => setDraftCards((cards) => cards.filter((item) => item.id !== card.id))} className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-red-50 px-2 font-semibold text-red-700">
@@ -1250,6 +1253,7 @@ function CreationMethodButton({ method, isSelected, onSelect }) {
     <button
       type="button"
       onClick={onSelect}
+      aria-pressed={isSelected}
       className={`core-surface-raised rounded-[18px] p-6 text-left transition hover:-translate-y-1 ${isSelected ? "ring-2 ring-[#8790d8]" : ""}`}
     >
       <OrbIcon icon={Icon} className={colorClass} />

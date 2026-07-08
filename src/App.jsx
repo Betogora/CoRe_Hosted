@@ -3,6 +3,7 @@ import { BarChart3, BookOpen, Database, Home, Layers, Network, PlusSquare, Setti
 import { createCoreWorkspace } from "./coreWorkspace.js";
 import { createMenuModel } from "./menuModel.js";
 import {
+  AssistantScreen,
   CommunityScreen,
   CreationScreen,
   DashboardScreen,
@@ -136,6 +137,18 @@ export function App() {
     refresh();
   }
 
+  function saveChat(exchange) {
+    const saved = workspace.saveChatExchange(exchange);
+    refresh();
+    return saved;
+  }
+
+  function savePlan(plan) {
+    const saved = workspace.saveLearningPlan(plan);
+    refresh();
+    return saved;
+  }
+
   function saveState(nextState) {
     const saved = workspace.saveState(nextState);
     setState(saved);
@@ -208,6 +221,9 @@ export function App() {
     }
     if (activeView === "community") {
       return <CommunityScreen decks={state.decks} communities={state.communities} onSaveCommunity={saveCommunity} onSaveDeck={saveDeck} />;
+    }
+    if (activeView === "assistent") {
+      return <AssistantScreen decks={state.decks} transcript={state.chatTranscript} plans={state.learningPlans} onSaveChat={saveChat} onSavePlan={savePlan} />;
     }
     if (activeView === "einstellungen") {
       return <SettingsScreen appState={state} profile={state.profile} decks={state.decks} onSaveProfile={saveProfile} onUpdateAllDecks={updateAllDecks} onSaveState={saveState} />;

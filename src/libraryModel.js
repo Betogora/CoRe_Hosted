@@ -96,10 +96,24 @@ function monthShortLabel(value) {
   return ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"][new Date(value).getMonth()];
 }
 
+function heatmapMonthLabel(value, options = {}) {
+  const date = new Date(value);
+  const monthLabel = monthShortLabel(value);
+  return options.includeYear ? `${monthLabel} ${date.getFullYear()}` : monthLabel;
+}
+
+function hasVisiblePreviousYearDay(day, weeks) {
+  const previousDayKey = localDateKey(addLocalDays(day.date, -1));
+  return weeks.some((week) => week.some((candidate) => candidate.key === previousDayKey));
+}
+
 function createHeatmapMonthLabels(weeks) {
   return weeks.map((week, weekIndex) => {
     const monthStart = week.find((day) => new Date(day.date).getDate() === 1);
-    if (monthStart) return monthShortLabel(monthStart.date);
+    if (monthStart) {
+      const isVisibleYearChange = new Date(monthStart.date).getMonth() === 0 && hasVisiblePreviousYearDay(monthStart, weeks);
+      return heatmapMonthLabel(monthStart.date, { includeYear: isVisibleYearChange });
+    }
     if (weekIndex === 0) return monthShortLabel(week[0].date);
     return "";
   });

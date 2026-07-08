@@ -22,7 +22,6 @@ function RatingBreakdown({ rows }) {
         <OrbIcon icon={Target} className="bg-emerald-50 text-emerald-700" />
         <div>
           <h3 className="text-xl font-semibold text-[#17214f]">Antwortverteilung</h3>
-          <p className="mt-2 text-sm leading-6 text-[#66709a]">Wie deine Bewertungen über alle Reviews verteilt sind.</p>
         </div>
       </div>
 
@@ -54,7 +53,6 @@ function RecentTrend({ days }) {
         <OrbIcon icon={TrendingUp} className="bg-teal-50 text-teal-700" />
         <div>
           <h3 className="text-xl font-semibold text-[#17214f]">Letzte 14 Tage</h3>
-          <p className="mt-2 text-sm leading-6 text-[#66709a]">Reviews pro Tag mit Trefferquote im Tagesbalken.</p>
         </div>
       </div>
 
@@ -89,7 +87,6 @@ function DeckPerformanceRows({ rows }) {
           <OrbIcon icon={Layers} className="bg-[#eef1fb] text-[#6672bf]" />
           <div>
             <h3 className="text-xl font-semibold text-[#17214f]">Stapel-Auswertung</h3>
-            <p className="mt-2 text-sm leading-6 text-[#66709a]">Welche Stapel laufen stabil und wo häufen sich schwere Antworten?</p>
           </div>
         </div>
       </div>
@@ -137,7 +134,6 @@ function WeakDecks({ rows }) {
         <OrbIcon icon={AlertTriangle} className="bg-amber-50 text-amber-700" />
         <div>
           <h3 className="text-xl font-semibold text-[#17214f]">Aufmerksamkeit</h3>
-          <p className="mt-2 text-sm leading-6 text-[#66709a]">Stapel mit vielen „Schwer“ oder „Wiederholen“-Bewertungen.</p>
         </div>
       </div>
 
@@ -171,8 +167,6 @@ export function StatisticsScreen({ decks, onNavigate }) {
       <PageHeader
         eyebrow="Statistik"
         title="Leistung auswerten"
-        body="Trefferquote, Antwortverteilung, Lernserie und Stapel, die mehr Aufmerksamkeit brauchen."
-        action={<BarChart3 className="mt-2 text-[#5361aa]" size={24} aria-hidden="true" />}
       />
 
       <div className="grid gap-6 lg:grid-cols-4">

@@ -46,6 +46,31 @@ async function firstDirectChildGroupGap(rootGroup) {
   });
 }
 
+async function firstGroupHeaderGap(page) {
+  return page.evaluate(() => {
+    const header = document.querySelector('[data-testid="learn-deck-list-header"]');
+    const firstGroup = document.querySelector('[data-testid="learn-deck-tree"] > [data-learn-deck-group="true"]');
+    if (!header || !firstGroup) return 0;
+
+    return firstGroup.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
+  });
+}
+
+async function visibleRowText(row) {
+  return row.evaluate((element) => element.innerText.replace(/\s+/g, " ").trim());
+}
+
+async function countCellRightEdges(row) {
+  return row.evaluate((element) => {
+    const edges = {};
+    for (const metric of ["new", "due", "total"]) {
+      const cell = element.querySelector(`[data-learn-count-cell="${metric}"]`);
+      edges[metric] = cell?.getBoundingClientRect().right ?? 0;
+    }
+    return edges;
+  });
+}
+
 async function rowPoint(page, deckId, placement = "content") {
   const row = page.getByTestId(`learn-deck-row-${deckId}`);
   const box = await row.boundingBox();
@@ -93,11 +118,23 @@ test("world capitals learn list supports Anki-like direct drag-and-drop reparent
   await expect(rootGroup).toBeVisible();
   await expect(africaGroup).toBeVisible();
   await expect(rootGroup.getByTestId(`learn-deck-group-${DECK_IDS.antarctica}`)).toBeVisible();
-  expect(rgbLuminance(await groupBackgroundColor(rootGroup))).toBeLessThan(rgbLuminance(await groupBackgroundColor(africaGroup)));
+  expect(rgbLuminance(await groupBackgroundColor(rootGroup))).toBeGreaterThan(rgbLuminance(await groupBackgroundColor(africaGroup)));
   await expect.poll(() => firstDirectChildGroupGap(rootGroup)).toBeGreaterThan(0);
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
+  await expect(page.getByText("Originale und variantenfokussierte Sessions.")).toHaveCount(0);
+  await expect(page.getByTestId("learn-deck-list-header")).toContainText("Neu");
+  await expect(page.getByTestId("learn-deck-list-header")).toContainText("Fällig");
+  await expect(page.getByTestId("learn-deck-list-header")).toContainText("Gesamt");
+  await expect.poll(() => firstGroupHeaderGap(page)).toBeGreaterThanOrEqual(8);
+  expect(await visibleRowText(rootRow)).not.toMatch(/\b(Neu|Fällig|Gesamt)\b/);
+  expect(await visibleRowText(europeRow)).not.toMatch(/\b(Neu|Fällig|Gesamt)\b/);
+  const rootCountEdges = await countCellRightEdges(rootRow);
+  const europeCountEdges = await countCellRightEdges(europeRow);
+  for (const metric of ["new", "due", "total"]) {
+    expect(Math.abs(rootCountEdges[metric] - europeCountEdges[metric])).toBeLessThanOrEqual(2);
+  }
   await expect(europeRow.getByRole("button", { name: /^Lernen$/ })).toHaveCount(0);
   await expectControlDoesNotStartDrag(page, rootRow.getByRole("button", { name: "Unterstapel ausblenden" }));
   await expectControlDoesNotStartDrag(page, europeRow.getByRole("button", { name: "Stapel verwalten" }));

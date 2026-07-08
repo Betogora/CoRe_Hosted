@@ -31,7 +31,7 @@ export function CommunityScreen({ decks, communities, onSaveCommunity, onSaveDec
 
   return (
     <div className="grid gap-7">
-      <PageHeader eyebrow="Kleine Gruppen" title="Community" body="Ordnerbasiertes Teilen ohne Lernstandsvergleich." />
+      <PageHeader eyebrow="Kleine Gruppen" title="Community" />
       <div className="grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">

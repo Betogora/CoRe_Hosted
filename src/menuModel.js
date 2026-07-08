@@ -5,7 +5,6 @@ const views = [
     iconKey: "home",
     title: "Heute lernen",
     eyebrow: "Dashboard",
-    body: "Fällige Karten, neue Inhalte und CoRe-Status an einem Ort.",
     stats: [
       { label: "Fällig", value: "0" },
       { label: "Originalkarten", value: "0" },
@@ -19,7 +18,6 @@ const views = [
     navigation: false,
     title: "Kartenstapel",
     eyebrow: "Bibliothek",
-    body: "Deck-Hierarchie, Suche, Filter, CoRe-Modus und Stapelaktionen.",
     stats: [
       { label: "Decks", value: "0" },
       { label: "Varianten", value: "0" },
@@ -32,7 +30,6 @@ const views = [
     iconKey: "plus",
     title: "Neue Karten",
     eyebrow: "Import und Erstellung",
-    body: "APKG, Text/CSV, manuelle Karten mit Dokumentanker und KI-Drafts.",
     stats: [
       { label: "Anki", value: "APKG" },
       { label: "Manuell", value: "6 Typen" },
@@ -45,7 +42,6 @@ const views = [
     iconKey: "learn",
     title: "Lernen",
     eyebrow: "Review",
-    body: "Clean Review, vier Buttons, Maturity und Variantenanker.",
     stats: [
       { label: "Heute gelernt", value: "0" },
       { label: "Trefferquote", value: "-" },
@@ -58,7 +54,6 @@ const views = [
     iconKey: "chart",
     title: "Statistik",
     eyebrow: "Leistung",
-    body: "Trefferquote, Lernserie, Antwortverteilung und Stapel-Auswertung.",
     stats: [
       { label: "Reviews", value: "0" },
       { label: "Trefferquote", value: "-" },
@@ -71,7 +66,6 @@ const views = [
     iconKey: "graph",
     title: "Deck Graph",
     eyebrow: "Mindmap",
-    body: "Themenknoten, Kartenlinks und manuelle Regeneration.",
     stats: [
       { label: "Knoten", value: "0" },
       { label: "Kanten", value: "0" },
@@ -84,7 +78,6 @@ const views = [
     iconKey: "community",
     title: "Communitys",
     eyebrow: "Kleine Gruppen",
-    body: "Ordnerbasiertes Teilen ohne fremde Lernmetriken.",
     stats: [
       { label: "Gruppen", value: "0" },
       { label: "Geteilte Decks", value: "0" },
@@ -98,7 +91,6 @@ const views = [
     navigation: false,
     title: "Einstellungen",
     eyebrow: "Profil",
-    body: "Profil, Hochschule, Sprache, Datenschutz und Scheduler.",
     stats: [
       { label: "Sprache", value: "de" },
       { label: "CoRe", value: "Auto" },

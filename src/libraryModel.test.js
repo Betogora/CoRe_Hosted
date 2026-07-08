@@ -219,6 +219,19 @@ test("study heatmap counts learned cards by local day", () => {
   assert.equal(heatmap.days.find((day) => day.key === "2026-07-07").level, 4);
 });
 
+test("study heatmap labels the visible year change on January", () => {
+  const heatmap = createStudyHeatmapModel([], {
+    now: "2026-02-10T12:00:00.000Z",
+    weeks: 12,
+  });
+  const monthLabels = heatmap.monthLabels.filter(Boolean);
+
+  assert.ok(monthLabels.includes("Dez"));
+  assert.ok(monthLabels.includes("Jan 2026"));
+  assert.ok(monthLabels.includes("Feb"));
+  assert.equal(monthLabels.includes("Jan"), false);
+});
+
 test("study heatmap window fits whole weeks to viewport width and navigates by arrows", () => {
   const deck = createCoreDeck({
     id: "deck_heatmap_window",

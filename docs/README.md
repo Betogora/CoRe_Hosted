@@ -99,9 +99,7 @@ CoRe laeuft lokal als Vite/React-App und hat einen initialen Vercel-/Supabase-In
 
 ## Naechste sinnvolle Schritte
 
-- Browser-Smokes fuer Review, Variante, KI-Draft, Assistent und Export in `tests/e2e/` ergaenzen.
-- Accessibility und Fehlerzustaende in `StudyMode`, `CreationScreen`, `DecksScreen`, `LearnScreen` und `SettingsScreen` haerten.
-- Datenportabilitaet, normalisierte Importpayloads und Legacy-Card-Normalisierung mit Roundtrip-Fixtures absichern.
 - `supabase/core_schema_v1.sql` gegen `coreModel`, `importService`, `mediaStore`, `reviewService`, `aiOrchestrator` und `dataPortability` abgleichen.
+- Persistenznaht in `createCoreRepository()` und `createCoreWorkspace()` fuer den spaeteren Supabase-Pfad schaerfen.
 - APKG-/Medienfixtures und Importidentitaeten gemaess `docs/anki-format-analysis.md` ausbauen.
 - Server-KI-Proxy, Job-Queue, Prompt-Versionierung, Kostenlogging und Rate-Limits planen, bevor echte Provider angebunden werden.

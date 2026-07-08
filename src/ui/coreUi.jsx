@@ -47,16 +47,12 @@ export function StatTile({ icon: Icon, label, value, hint, accent = "text-[#6672
   );
 }
 
-export function PageHeader({ eyebrow, title, body, action }) {
+export function PageHeader({ eyebrow, title }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div className="max-w-3xl">
-        <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">{eyebrow}</p>
-        <h2 className="mt-2 text-4xl font-semibold tracking-normal text-[#17214f]">{title}</h2>
-        {body ? <p className="mt-3 text-lg leading-7 text-[#66709a]">{body}</p> : null}
-      </div>
-      {action}
-    </div>
+    <header className="min-w-0">
+      <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">{eyebrow}</p>
+      <h2 className="mt-2 text-4xl font-semibold tracking-normal text-[#17214f]">{title}</h2>
+    </header>
   );
 }
 
@@ -91,6 +87,7 @@ export function CoreModeControl({ value, onChange }) {
           key={mode.value}
           type="button"
           onClick={() => onChange(mode.value)}
+          aria-pressed={value === mode.value}
           className={`px-3 transition ${value === mode.value ? "bg-[#4f5eb1] text-white" : "hover:bg-white"}`}
         >
           {mode.label}

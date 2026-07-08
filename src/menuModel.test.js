@@ -30,7 +30,6 @@ test("returns new-card content by id", () => {
     iconKey: "plus",
     title: "Neue Karten",
     eyebrow: "Import und Erstellung",
-    body: "APKG, Text/CSV, manuelle Karten mit Dokumentanker und KI-Drafts.",
     stats: [
       { label: "Anki", value: "APKG" },
       { label: "Manuell", value: "6 Typen" },

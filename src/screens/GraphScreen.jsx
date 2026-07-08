@@ -23,28 +23,27 @@ export function GraphScreen({ decks, onUpdateDeck }) {
       <PageHeader
         eyebrow="Mindmap"
         title="Deck Graph"
-        body="Themen, Kartenlinks und Refresh-Trigger."
-        action={
-          <button type="button" onClick={generateGraph} disabled={!deck} className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-emerald-700 px-5 text-sm font-semibold text-white disabled:bg-slate-300">
-            <Network size={17} aria-hidden="true" />
-            Graph generieren
-          </button>
-        }
       />
       {decks.length === 0 ? (
         <EmptyState icon={Network} title="Kein Stapel für Graph" body="Importiere oder erstelle Karten." />
       ) : (
         <>
           <SoftPanel className="p-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <select className="min-h-11 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#4f5eb1]" value={deck?.id ?? ""} onChange={(event) => setDeckId(event.target.value)}>
-                {decks.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-              <span className="text-sm font-semibold text-[#66709a]">Status: {graph?.status ?? "offen"} · Refresh: {shouldRefreshDeckGraph(deck) ? "fällig" : "aktuell"}</span>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <select className="min-h-11 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#4f5eb1]" value={deck?.id ?? ""} onChange={(event) => setDeckId(event.target.value)}>
+                  {decks.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-sm font-semibold text-[#66709a]">Status: {graph?.status ?? "offen"} · Refresh: {shouldRefreshDeckGraph(deck) ? "fällig" : "aktuell"}</span>
+              </div>
+              <button type="button" onClick={generateGraph} disabled={!deck} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+                <Network size={17} aria-hidden="true" />
+                Graph generieren
+              </button>
             </div>
           </SoftPanel>
           <SoftPanel className="p-6">

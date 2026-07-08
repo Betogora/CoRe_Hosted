@@ -216,7 +216,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                 <div className="w-full">
                   <p className="mb-5 text-sm font-semibold uppercase tracking-[0.18em] text-[#7a84c7]">Frage</p>
                   {current.fallbackInfo?.active ? (
-                    <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+                    <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800" role="status" aria-live="polite">
                       {current.fallbackInfo.fallbackReason || "CoRe zeigt jetzt wieder eine einfachere Variante, bis diese sitzt."}
                     </div>
                   ) : null}
@@ -245,6 +245,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                           onClick={() => selectChoice(option)}
                           disabled={showAnswer}
                           aria-pressed={isSelected}
+                          aria-label={`Antwortoption ${String.fromCharCode(65 + index)}: ${option}`}
                           className={`core-mcq-option flex min-h-12 items-center justify-between gap-3 rounded-xl border px-4 text-left text-sm font-semibold ${stateClass}`}
                         >
                           <span><span className="mr-2 text-xs uppercase tracking-wide opacity-70">{String.fromCharCode(65 + index)}</span>{option}</span>
@@ -256,7 +257,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                     </div>
                   ) : null}
                   {hasIncompleteMultipleChoice ? (
-                    <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+                    <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800" role="alert">
                       Diese Multiple-Choice-Karte hat keine vollständigen Antwortoptionen und wird wie eine normale Karte angezeigt.
                     </div>
                   ) : null}
@@ -350,7 +351,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
         {showAnswer ? (
           <footer className="grid gap-3 sm:grid-cols-4">
             {ratingButtons.map((rating) => (
-              <button key={rating.key} type="button" onClick={() => grade(rating.key)} disabled={!current} className={`min-h-20 rounded-2xl border text-center shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${rating.className}`}>
+              <button key={rating.key} type="button" onClick={() => grade(rating.key)} disabled={!current} aria-label={`Bewertung ${rating.label}${current?.ratingButtonOptions?.[rating.key]?.intervalLabel ? `: ${current.ratingButtonOptions[rating.key].intervalLabel}` : ""}`} className={`min-h-20 rounded-2xl border text-center shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${rating.className}`}>
                 <span className="block text-2xl font-semibold">{rating.number}</span>
                 <span className="mt-1 block text-sm font-semibold">{rating.label}</span>
                 <span className="mt-1 block text-xs font-semibold opacity-80">{current?.ratingButtonOptions?.[rating.key]?.intervalLabel ?? ""}</span>

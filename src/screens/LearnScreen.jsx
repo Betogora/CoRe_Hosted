@@ -5,11 +5,12 @@ import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
 
 const INTERACTIVE_DRAG_SELECTOR = "button, a, input, textarea, select, [role='menu'], [role='menuitem']";
 const LEARN_TOP_LEVEL_GUTTER_PX = 28;
+const LEARN_DECK_GRID_COLUMNS = "md:grid-cols-[minmax(12rem,1fr)_6rem_6rem_6rem_8rem_3rem]";
 const LEARN_GROUP_STYLES = [
-  { backgroundColor: "#eef2f7", borderColor: "#dde5f0" },
-  { backgroundColor: "#f4f6fa", borderColor: "#e3e8f1" },
-  { backgroundColor: "#f8f9fc", borderColor: "#e8edf5" },
   { backgroundColor: "#fbfcff", borderColor: "#edf1f7" },
+  { backgroundColor: "#f8f9fc", borderColor: "#e8edf5" },
+  { backgroundColor: "#f4f6fa", borderColor: "#e3e8f1" },
+  { backgroundColor: "#eef2f7", borderColor: "#dde5f0" },
 ];
 
 function coreModeLabel(mode) {
@@ -27,11 +28,12 @@ function CoreStatusBadge({ mode }) {
   );
 }
 
-function CountCell({ label, value }) {
+function CountCell({ label, metric, value }) {
   return (
-    <div className="hidden min-w-16 text-right md:block">
-      <span className="block text-xs font-semibold text-[#66709a]">{label}</span>
-      <span className="mt-1 block text-lg font-semibold text-[#17214f]">{value}</span>
+    <div className="hidden text-right md:block" aria-label={`${label}: ${value}`} data-learn-count-cell={metric}>
+      <span aria-hidden="true" className="block text-lg font-semibold text-[#17214f]">
+        {value}
+      </span>
     </div>
   );
 }
@@ -209,7 +211,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
         key={deck.id}
         data-testid={`learn-deck-group-${deck.id}`}
         data-learn-deck-group="true"
-        className={`grid gap-2 rounded-2xl border p-2 transition md:gap-3 md:p-3 ${isDragged ? "opacity-60" : ""}`}
+        className={`grid gap-2 rounded-2xl border p-2 transition md:gap-3 md:px-0 md:py-3 ${isDragged ? "opacity-60" : ""}`}
         style={getLearnGroupStyle(row.depth)}
       >
         <div
@@ -226,7 +228,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
           aria-label={`${deck.name} lernen`}
           data-testid={`learn-deck-row-${deck.id}`}
           data-learn-deck-row="true"
-          className={`relative grid min-w-0 cursor-pointer gap-3 rounded-xl px-1 py-4 transition duration-150 hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8c96dc] md:grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_8rem_3rem] md:items-center md:gap-3 md:px-3 ${
+          className={`relative grid min-w-0 cursor-pointer gap-3 rounded-xl px-1 py-4 transition duration-150 hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8c96dc] ${LEARN_DECK_GRID_COLUMNS} md:items-center md:gap-3 md:px-3 ${
             onMoveDeck ? "active:cursor-grabbing" : ""
           } ${isDeckDropTarget ? "bg-[#eef1fb] ring-2 ring-[#8c96dc]" : ""} ${isOutdentDropTarget ? "bg-white/85 shadow-[inset_5px_0_0_#8c96dc]" : ""} ${
             isInvalidDropTarget ? "bg-red-50 ring-2 ring-red-200" : ""
@@ -258,9 +260,9 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
             </span>
           </div>
 
-          <CountCell label="Neu" value={summary.newCards} />
-          <CountCell label="Fällig" value={summary.dueCards} />
-          <CountCell label="Gesamt" value={summary.totalCards} />
+          <CountCell label="Neu" metric="new" value={summary.newCards} />
+          <CountCell label="Fällig" metric="due" value={summary.dueCards} />
+          <CountCell label="Gesamt" metric="total" value={summary.totalCards} />
 
           <div className="flex items-center md:block">
             <CoreStatusBadge mode={deck.deckSettings?.coreMode} />
@@ -292,20 +294,18 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
       <PageHeader
         eyebrow="Review"
         title="Lernen"
-        body="Originale und variantenfokussierte Sessions."
-        action={
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={() => onOpenDecks()} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
-              <Layers size={17} aria-hidden="true" />
-              Kartenstapel
-            </button>
-            <button type="button" onClick={onCreateDeck} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
-              <PlusSquare size={17} aria-hidden="true" />
-              Neue Karten
-            </button>
-          </div>
-        }
       />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={() => onOpenDecks()} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
+          <Layers size={17} aria-hidden="true" />
+          Kartenstapel
+        </button>
+        <button type="button" onClick={onCreateDeck} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
+          <PlusSquare size={17} aria-hidden="true" />
+          Neue Karten
+        </button>
+      </div>
 
       {decks.length === 0 ? (
         <EmptyState
@@ -326,18 +326,18 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
           onDragLeave={leaveDropTarget}
           onDrop={(event) => dropDeck(event, { targetDeckId: null, parentDeckId: null, invalid: false, kind: "top" })}
         >
-          <span className="sr-only" aria-live="polite">
+          <span className="sr-only" role="status" aria-live="polite">
             {dragStatus}
           </span>
-          <div className="hidden grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_8rem_3rem] items-center gap-3 border-b border-[#e3e7f5] px-3 pb-3 text-xs font-semibold uppercase tracking-wide text-[#66709a] md:grid">
+          <div className={`hidden items-center gap-3 border-b border-[#e3e7f5] px-3 pb-3 text-xs font-semibold uppercase tracking-wide text-[#66709a] md:grid ${LEARN_DECK_GRID_COLUMNS}`} data-testid="learn-deck-list-header">
             <span>Stapel</span>
-            <span className="text-right">Neu</span>
-            <span className="text-right">Fällig</span>
-            <span className="text-right">Gesamt</span>
+            <span className="text-right" data-learn-column="new">Neu</span>
+            <span className="text-right" data-learn-column="due">Fällig</span>
+            <span className="text-right" data-learn-column="total">Gesamt</span>
             <span>CoRe</span>
             <span className="sr-only">Extras</span>
           </div>
-          <div className="grid gap-3" data-testid="learn-deck-tree">
+          <div className="mt-3 grid gap-3" data-testid="learn-deck-tree">
             {visibleTree.map(renderDeckGroup)}
           </div>
         </SoftPanel>
