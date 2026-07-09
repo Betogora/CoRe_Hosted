@@ -54,6 +54,29 @@ function scoreCard(card, queryTokens) {
   return overlap + tagBoost + maturityBoost;
 }
 
+function createExtractiveAnswer(evidence) {
+  const leading = evidence[0];
+  const supporting = evidence.slice(1, 3);
+  const answerParts = [
+    leading?.back,
+    ...supporting.map((item) => `Ergänzend: ${item.front} -> ${item.back}`),
+  ].filter(Boolean);
+
+  return answerParts.join("\n");
+}
+
+function createCitations(evidence) {
+  return evidence.map((item) => ({
+    deckId: item.deckId,
+    deckName: item.deckName,
+    cardId: item.cardId,
+    quote: item.back.slice(0, 240),
+    source: item.sourceAnchors[0]?.documentName || item.deckName,
+    sourceQuote: item.sourceAnchors[0]?.textQuote || item.front,
+    score: item.score,
+  }));
+}
+
 export function retrieveDeckEvidence({ decks, deckId = "all", question, limit = 5 }) {
   const queryTokens = tokenize(question);
   const candidateDecks = deckId === "all" ? decks : decks.filter((deck) => deck.id === deckId);
@@ -84,9 +107,15 @@ export function retrieveDeckEvidence({ decks, deckId = "all", question, limit = 
   }));
 }
 
-export function answerDeckQuestion({ decks, deckId = "all", question, now = new Date().toISOString() }) {
-  const evidence = retrieveDeckEvidence({ decks, deckId, question, limit: 5 });
-
+export function createDeckAssistantExchange({
+  question,
+  evidence = [],
+  answer = "",
+  warnings = [],
+  now = new Date().toISOString(),
+  provider = "local",
+  model = "card-search",
+} = {}) {
   if (evidence.length === 0) {
     return {
       id: makeId("chat"),
@@ -95,32 +124,90 @@ export function answerDeckQuestion({ decks, deckId = "all", question, now = new 
       citations: [],
       warnings: ["Keine Quellenkarte gefunden."],
       createdAt: now,
+      provider: "local",
+      model: "card-search",
     };
   }
-
-  const leading = evidence[0];
-  const supporting = evidence.slice(1, 3);
-  const answerParts = [
-    leading.back,
-    ...supporting.map((item) => `Ergänzend: ${item.front} -> ${item.back}`),
-  ].filter(Boolean);
 
   return {
     id: makeId("chat"),
     question,
-    answer: answerParts.join("\n"),
-    citations: evidence.map((item) => ({
-      deckId: item.deckId,
-      deckName: item.deckName,
-      cardId: item.cardId,
-      quote: item.back.slice(0, 240),
-      source: item.sourceAnchors[0]?.documentName || item.deckName,
-      sourceQuote: item.sourceAnchors[0]?.textQuote || item.front,
-      score: item.score,
-    })),
-    warnings: [],
+    answer: answer || createExtractiveAnswer(evidence),
+    citations: createCitations(evidence),
+    warnings,
     createdAt: now,
+    provider,
+    model,
   };
+}
+
+export function answerDeckQuestion({ decks, deckId = "all", question, now = new Date().toISOString() }) {
+  const evidence = retrieveDeckEvidence({ decks, deckId, question, limit: 5 });
+  return createDeckAssistantExchange({ question, evidence, now });
+}
+
+export async function answerDeckQuestionWithServer({
+  decks,
+  deckId = "all",
+  question,
+  now = new Date().toISOString(),
+  endpoint = "/api/ai/chat",
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  const evidence = retrieveDeckEvidence({ decks, deckId, question, limit: 5 });
+  const fallbackExchange = createDeckAssistantExchange({ question, evidence, now });
+
+  if (evidence.length === 0 || typeof fetchImpl !== "function") {
+    return {
+      exchange: fallbackExchange,
+      usedServer: false,
+      fallbackReason: evidence.length === 0 ? "no-evidence" : "fetch-unavailable",
+    };
+  }
+
+  try {
+    const response = await fetchImpl(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question,
+        evidence,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`KI-Route antwortet mit Status ${response.status}.`);
+    }
+
+    const payload = await response.json();
+    const aiAnswer = String(payload?.answer ?? "").trim();
+
+    if (!aiAnswer) {
+      throw new Error("KI-Route hat keine Antwort geliefert.");
+    }
+
+    return {
+      exchange: createDeckAssistantExchange({
+        question,
+        evidence,
+        answer: aiAnswer,
+        warnings: Array.isArray(payload?.warnings) ? payload.warnings : [],
+        now,
+        provider: payload?.provider || "google",
+        model: payload?.model || "gemma-4-31b-it",
+      }),
+      usedServer: true,
+      fallbackReason: null,
+    };
+  } catch {
+    return {
+      exchange: fallbackExchange,
+      usedServer: false,
+      fallbackReason: "server-error",
+    };
+  }
 }
 
 export function createDeckChatTranscript(previous = [], exchange) {

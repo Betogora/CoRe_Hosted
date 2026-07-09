@@ -78,10 +78,22 @@ test("ai draft creation and assistant smoke through hidden dashboard entry", asy
   await expect.poll(() => storedDeckCountBySource(page, "ai-assisted")).toBeGreaterThan(aiDecksBefore);
 
   await page.getByLabel("Hauptmenue").getByRole("button", { name: "Heute" }).click();
+  await page.route("**/api/ai/chat", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        answer: "Gemma: Algier ist die Hauptstadt von Algerien.",
+        model: "gemma-4-31b-it",
+        provider: "google",
+      }),
+    });
+  }, { times: 1 });
   await page.getByRole("button", { name: "Assistent öffnen" }).click();
   await page.getByLabel("Frage an deine Karten").fill("Was ist die Hauptstadt von Algerien?");
   await page.getByRole("button", { name: "Quellengebunden antworten" }).click();
   await expect(page.getByRole("status")).toContainText("Antwort mit Kartenquellen erstellt.");
+  await expect(page.getByText("Gemma: Algier ist die Hauptstadt von Algerien.")).toBeVisible();
   await expect(page.getByText("Algier").first()).toBeVisible();
 });
 

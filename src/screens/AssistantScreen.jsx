@@ -1,6 +1,6 @@
 import React from "react";
 import { Bot, CalendarDays } from "lucide-react";
-import { answerDeckQuestion } from "../deckAssistant.js";
+import { answerDeckQuestionWithServer } from "../deckAssistant.js";
 import { createLearningPlan } from "../learningPlan.js";
 import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
 
@@ -8,6 +8,7 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
   const [activeTab, setActiveTab] = React.useState("chat");
   const [deckId, setDeckId] = React.useState("all");
   const [status, setStatus] = React.useState("");
+  const [isAsking, setIsAsking] = React.useState(false);
   const [question, setQuestion] = React.useState("Welche Karten hängen mit Myelin zusammen?");
   const [targetDate, setTargetDate] = React.useState(() => {
     const date = new Date();
@@ -18,11 +19,26 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
   const [newCardsPerDay, setNewCardsPerDay] = React.useState(8);
   const latestPlan = plans[0] ?? null;
 
-  function askQuestion() {
-    if (!question.trim()) return;
-    const exchange = answerDeckQuestion({ decks, deckId, question });
-    onSaveChat(exchange);
-    setStatus(exchange.citations.length ? "Antwort mit Kartenquellen erstellt." : "Keine passende Kartenquelle gefunden.");
+  async function askQuestion() {
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion || isAsking) return;
+
+    setIsAsking(true);
+    setStatus("Kartenquellen werden geprüft.");
+    try {
+      const result = await answerDeckQuestionWithServer({ decks, deckId, question: trimmedQuestion });
+      onSaveChat(result.exchange);
+
+      if (result.exchange.citations.length === 0) {
+        setStatus("Keine passende Kartenquelle gefunden.");
+      } else if (result.usedServer) {
+        setStatus("Antwort mit Kartenquellen erstellt.");
+      } else {
+        setStatus("Antwort mit Kartenquellen erstellt. Lokale Quellenantwort verwendet.");
+      }
+    } finally {
+      setIsAsking(false);
+    }
   }
 
   function generatePlan() {
@@ -74,9 +90,9 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
               </div>
             </div>
             <textarea className="min-h-32 w-full rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={question} onChange={(event) => setQuestion(event.target.value)} aria-label="Frage an deine Karten" />
-            <button type="button" onClick={askQuestion} disabled={!decks.length || !question.trim()} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+            <button type="button" onClick={askQuestion} disabled={!decks.length || !question.trim() || isAsking} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
               <Bot size={17} aria-hidden="true" />
-              Quellengebunden antworten
+              {isAsking ? "Antwort wird erstellt" : "Quellengebunden antworten"}
             </button>
             <p className="mt-3 text-sm text-[#66709a]">Ohne passende Kartenquelle gibt der Assistent keine freie Antwort.</p>
           </SoftPanel>

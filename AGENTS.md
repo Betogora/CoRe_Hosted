@@ -16,6 +16,7 @@
 - Keep local APKG media persistence in `src/mediaStore.js`; React should consume resolved media URLs instead of parsing media manifests itself.
 - Preserve local content edits on APKG reimport; update import metadata and media references without replacing user-edited fronts/backs.
 - Preserve visible features during overhauls. Structure and logic may be changed freely, but existing user-visible features, screens, controls, and flows should only be removed when the user explicitly asks for that removal.
+- Keep AI provider keys server-only. `/api/ai/*` routes may read `GOOGLE_API_KEY` or other provider secrets only from `process.env`; never introduce `VITE_*` AI keys, browser-side provider SDK calls, localStorage/export persistence for secrets, or logs that contain raw prompts plus secrets.
 
 ## UI Copy
 

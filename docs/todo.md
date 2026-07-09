@@ -1,179 +1,156 @@
-# CoRe ToDo
+# CoRe TODO
 
-Stand: 2026-07-07
+Stand: 2026-07-09
 
-Diese Datei beschreibt die Differenz zwischen Soll-Spezifikation (`docs/specs.md` / `docs/specs.html`) und aktuellem Codebase-Ist. Der aktuelle Stand ist ein lokaler Vite/React-Web-MVP mit `localStorage`, lokalen Deep Modules und testbaren Produktpfaden. Seit dem 2026-07-06 ist das lokale Kartenmodell Learning-Item-kompatibel: Deck-`cards` bleiben als lokale Compatibility Collection erhalten, werden aber ueber die gemeinsame Creation Pipeline normalisiert. Am 2026-07-07 wurden die relevanten Hosting-, Supabase-, Datenbank-, Secret- und KI-Proxy-Hinweise aus dem externen Hosting-Guide in die Specs uebernommen und die Projektdokumentation unter `docs/` gebuendelt. Ebenfalls am 2026-07-07 wurden Supabase-CLI, erste Remote-Migration, Vercel-Projekt, Vercel-Env-Grenzen und Deployment initial eingerichtet. Der erste UI-Zielpfad ist jetzt als Desktop-Website mit **1440 × 900 px** Zielviewport, **1280 px** Desktop-Mindestbreite und festen Breiten-/Typografie-Tokens spezifiziert. Der MVP ist weiterhin kein fertiges gehostetes Mehrnutzerprodukt, weil App-Persistenz, echte Auth, Sync, Serverjobs und produktive Betriebsablaeufe noch fehlen.
+Diese Datei ist die einzige TODO-Markdown-Datei im Repository. Sie bündelt die offene Arbeit aus der früheren Kurzliste und der technischen Roadmap. Neue Aufgaben werden hier nach Oberthemen einsortiert.
 
-## TODO-Markdown-Inventar
+## Aktueller Stand
 
-- Aktuell existiert genau eine TODO-Markdown-Datei: `docs/todo.md`.
-- Es gibt keine weitere `TODO.md`, `todo.md` oder `*-todo.md`-Datei im Repository.
-- Neue Aufgaben sollen hier einsortiert werden, damit `docs/specs.md`, `docs/specs.html` und diese Roadmap keine zweite Wahrheit aufbauen.
+CoRe ist ein Vite/React-Web-MVP mit Supabase-Pflichtlogin, E-Mail/Passwort, Google-OAuth-Start, Magic Link, Recovery-Abschluss, Profil-Upsert, accountgebundenem Browser-Cache, lokalem Erstimportdialog, Sync-Engine-vermitteltem Autosave und echten Supabase-Tabellen für den ersten Cloud-Datenpfad.
 
-## Aktuell erledigt
+Vorhanden sind außerdem: Learning-Item-kompatibles Kartenmodell, APKG-/Text-/CSV-/JSON-/Tabellen-Importe, lokaler APKG-Medienspeicher, `cloudMediaStore`-Grundlage für private Supabase-Storage-Medien, deutsche Auth-Mailtemplates, RLS-/Grant-Schemaanker, Vercel-/Supabase-Startpfad und breite Modultests.
 
-- [x] Cleanere lokale Navigation fuer Heute, Erstellen, Lernen, Graph und Community; Kartenstapel ist ueber Lernen erreichbar, Einstellungen ueber den Account-Button.
-- [x] Responsive Full-Width-App-Shell: Hauptnavigation und Lernmodus wachsen mit der Browserbreite statt bei Desktopbreiten fest begrenzt zu bleiben.
-- [x] Persistenter lokaler App-State ueber `src/coreRepository.js`.
-- [x] Deck-/Learning-Item-Modell mit Review-State, Quellenankern, Versionen, Varianten und CoRe-Modus.
-- [x] Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, Import-Varianten und KI-Drafts.
-- [x] Legacy-Card-Normalisierung ohne Verlust bestehender Review-Events.
-- [x] APKG-Basic-Import mit Mapping, echten Unterstapeln, Importbericht, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten, lokalem Browser-Medienspeicher und Reimport-Merge.
-- [x] Text-, CSV-, normalisierte JSON- und Excel-/Tabellen-Paste-Importe ueber die gemeinsame Learning-Item-Pipeline mit Warnungen, Fingerprints, Dedupe und Parent-/Hierarchy-Feldern.
-- [x] Manuelle Kartenanlage mit Anki-artig untereinander angeordneter Vorder-/Rueckseite, Pinnfunktion pro Kartenfeld, Rich-Text-Editor fuer Front/Back, bestehendem/neuem Stapelziel, Dokumentmodus, CoRe-integriertem minimalem visuellem PDF-Viewer, Auswahl-zu-Feld, PDF-/Text-Auslesung, Multiple Choice, Cloze-/Reverse-Review, Free-Text-Legacy-Fallback, Rich-Text-Helfern und Original-Variantenanker.
-- [x] Rich-Text-Werkzeugleiste fuer die Kartenerstellung aufgeraeumt: Stift- und Markerfarben oeffnen erst auf Klick ein CoRe-eigenes Farbpopover mit je drei lokal gespeicherten Farben, Farbspektrum, Schnellfarben und Hex-Anpassung statt nativem Systemfarbdialog.
-- [x] Erstellen startet mit drei grossformatigen, zentrierten Auswahlkacheln fuer manuelle Erstellung mit optionaler PDF-/Textquelle, Import und KI; der gewaehlte Arbeitsbereich oeffnet danach moeglichst flaechenfuellend neben der Sidebar.
-- [x] Lokale KI-Drafts aus Quellentext mit Schema-Validation, Draft-Annahme und normalisierter Learning-Item-Erstellung.
-- [x] Fullscreen-Review mit Antwortaufdeckung, vier Ratings, Tastatursteuerung, append-only Review-Events und Learning-Item-/Varianten-Kompatibilitaetsfeldern.
-- [x] Tages-Queue im Lernmodus fuer jetzt faellige/ueberfaellige Karten plus pro Stapel einstellbare neue Karten; Elternstapel lernen ihren Unterbaum.
-- [x] Lernuebersicht mit aufklappbaren Unterstapeln, sehr hellen Hauptstapel-Hintergruenden, je Tiefe dunkleren hellgrauen Gruppenhintergruenden und spaltenbündigen Neu-/Faellig-/Gesamtzahlen ohne wiederholte Desktop-Zelllabels, CoRe-Status, klickbaren Stapelzeilen zum Lernstart, direktem Zahnrad-Einstieg in die Stapelverwaltung und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
-- [x] Manuelle Stapelverwaltung mit Hauptstapeln, beliebig tiefen Unterstapeln, direktem Umbenennen und Loeschen ganzer Stapelbaeume; APKG-Unterstapel sind im Workspace-Importpfad abgesichert.
-- [x] Reproduzierbarer Welt-Hauptstädte-Teststapel als Default-Seed fuer frische lokale Browser-States und echte APKG-Fixture mit sieben Kontinent-Unterstapeln, dreimonatiger Lernhistorie, Heatmap-Daten, fälligen Karten, CoRe-reifen Karten und unberuehrter Seed-Migration.
-- [x] Intervallvorschau direkt auf den Buttons Again, Hard, Good und Easy.
-- [x] FSRS-like Scheduler-State mit Stability, Difficulty, Desired Retention, Retrievability und konservativen Intervallen.
-- [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker-Minikarte, Variant-Level, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
-- [x] Lokale Community-Gruppen, Ordner und Deck-Kopie ohne fremde Reviewdaten.
-- [x] Lokaler Deck-Graph, Chat-your-Deck mit Zitaten, Lernplan, AI-Job-Datenmodell, responsive pfeilnavigierbare Heute-Jahres-Heatmap ohne horizontalen Slider und eigener Statistik-Reiter fuer Leistungs-Auswertung.
-- [x] Heute-Dashboard nutzt kompakte Hero- und Heatmap-Kopfbereiche ohne zusätzliche Beschreibungstexte; sichtbar bleiben reduzierte Fällig-/Originalkarten-Kacheln, aktive Heatmap-Tage, Durchschnitt pro aktivem Tag, Monats-/Jahreswechsel-Labels, Legende, Hauptstapel-Aggregate und Navigation.
-- [x] Hauptbereich-Header sind appweit auf Eyebrow und Titel reduziert; Untertitelzeilen und dekorative rechte Header-Icons werden nicht mehr fuer neue Tabs verwendet.
-- [x] Lokaler JSON-Export/-Import ohne Passwort-Verifier.
-- [x] P0-Stabilisierung fuer Review, Varianten, KI-Drafts, Assistent und Export: `tests/e2e/core-stabilization.spec.js`, dedizierte `dataPortability`-Roundtrips und Accessibility-/Fehlerstatus in den betroffenen Screens.
-- [x] Appweite Surface-/Elevation-Regel umgesetzt: dauerhafte glasige Panels nutzen gemeinsame Surface-Tokens ohne benachbarte Elemente sichtbar abzudunkeln; grosse Schatten bleiben echten Overlays vorbehalten.
-- [x] Modul-/Browser-Verifikation fuer die zentralen lokalen Pfade, inklusive `libraryModel.test.js`, `normalizedImport.test.js`, `richText.test.js` und `schedulerIntervals.test.js`.
-- [x] Supabase/Postgres-Schemaanker in `supabase/core_schema_v1.sql` mit RLS-Policies und Verify-Query dokumentiert.
-- [x] Hosting-/Database-/KI-Guide in die zentrale Spezifikation ueberfuehrt und redundante Guide-Datei entfernt.
-- [x] Supabase CLI lokal initialisiert und mit `CoRe-Database` verlinkt.
-- [x] `supabase/core_schema_v1.sql` als erste Migration angewendet und RLS-/Policy-Verify gegen Remote ausgefuehrt.
-- [x] Vercel-Projekt `core-hosted` angelegt, `vercel.json` mit Vite-Output und SPA-Rewrite gepflegt, Env-Grenzen fuer oeffentliche `VITE_*`-Variablen gesetzt und Deployment verifiziert.
-- [x] Dokumentationsinventar aktualisiert: `docs/specs.md`, `docs/specs.html`, `docs/index.md`, `docs/README.md`, `docs/anki-format-analysis.md`, `src/screens/README.md` und diese einzige TODO-Datei bilden den aktuellen Stand ab.
+Noch nicht produktionsfertig sind vor allem: vollständige Offline-Konfliktauflösung, resumable Medien-/APKG-Jobs, Hosted-Auth-Konfiguration, Admin-APIs, Monitoring, Backup-/Restore-Runbooks, Community-Rechte, externe KI-Jobs und Bundle-Code-Splitting.
 
-## Bewusst noch nicht bauen
+## 1. Betrieb, Deployment und Konfiguration
 
-- [ ] Keine generische Adapter-Schicht einfuehren, solange es nur einen lokalen Pfad und keinen entschiedenen Anbieter gibt.
-- [ ] Keine weiteren produktiven Datenbankmigrationen schreiben, bevor Datenbank/Hosting-Stack, Auth-Flow und Medienstrategie entschieden sind.
-- [ ] Keine externe LLM-Provider-Abstraktion bauen, bevor Provider, Datenschutzrahmen und Kostenmodell klar sind.
-- [ ] Keine vollstaendige Sync-Engine bauen, bevor Auth, Server-Persistenz und Konfliktmodell feststehen.
-- [ ] Keine Community-Rechteverwaltung vortaeuschen, solange es keine echten Nutzer, Rollen und Serverregeln gibt.
-
-## Priorisierte naechste Schritte mit Code-Sicht
-
-1. **P1.1 Persistenznaht schaerfen:** `createCoreRepository()` und `createCoreWorkspace()` so dokumentieren/testen, dass spaeter Supabase-Persistenz ergaenzt werden kann, ohne React-Screens umzubauen.
-2. **P1.2 Schema-Abgleich:** `supabase/core_schema_v1.sql` gegen `coreModel`, `importService`, `mediaStore`, `reviewService`, `aiOrchestrator` und `dataPortability` pruefen. Ziel: Learning Items, Original-Variante, Review Events, Medienreferenzen und AI Jobs eindeutig abbilden.
-3. **P1.3 APKG-/Medienausbau:** Fixtures fuer Reverse, Optional Reverse, Cloze, Medien, moderne MediaEntries und ungewohnte Notetypes ergaenzen; Importidentitaeten und Template-Snapshots gemaess `docs/anki-format-analysis.md` konsolidieren.
-4. **P2.1 KI-/Job-Pfad:** Server-Proxy, Prompt-/Schema-Versionierung, Eval-Datensatz, Kostenlogging und Rate-Limits aus `aiOrchestrator`, `variantGeneration` und dem lokalen `aiJobs`-Modell ableiten.
-5. **P2.2 Lernqualitaet validieren:** `scheduler`, `reviewService`, `coreVariantService`, `variantSelection` und `variantGeneration` mit echten Decks pruefen; Intervallvorschau, Variant-Fallback und Feedbackdaten auswerten.
-6. **P3 erst nach Produktivgrundlagen:** Community-Rechte, Sync, Mobile/PWA, Push und Wachstumsschicht erst nach echter Auth, Persistenz, Storage und Job-Infrastruktur bauen.
-
-## P0: Lokalen MVP stabilisieren
-
-- [x] Smoke-Test-Skript fuer weitere wichtige Browser-Flows automatisieren: Review, Variante, KI-Draft, Assistent, Export.
-- [ ] Desktop-Website-Designraster im UI-Code nachziehen: Zielviewport **1440 × 900 px**, Desktop-Mindestbreite **1280 px**, App-Canvas **1280–1440 px**, Standard-Arbeitsflächen **1180–1280 px**, Review-Karte maximal **1040 px**, Schriftgrößen **12 / 14 / 16 / 18 / 24 / 32 / 40 px** und Gewichte **400 / 600 / 700** als feste Tokens statt kontinuierlicher `clamp`-/Arbitrary-Werte.
-- [x] Accessibility-Pass fuer Review, Import und Settings durchfuehren: Fokusreihenfolge, Labels, Tastatur und Live-Status fuer zentrale Fehler-/Statusmeldungen.
-- [ ] Leere, fehlerhafte und grosse Eingaben fuer Text/CSV/Excel/APKG mit UI-Fehlermeldungen absichern.
-- [ ] Version-Restore in der UI voll klickbar machen, nicht nur im Modell vorbereiten.
-- [x] Datenportabilitaet mit Roundtrip-Fixtures testen: kaputtes JSON, alte Exportversion, Konfliktfall, Import in frischen State und Learning-Item/Legacy-Card-Normalisierung.
-- [ ] Bestehende lokale Demo-Daten als reproduzierbare Fixtures statt impliziter UI-Erzeugung pflegen.
-
-## P1: Hosting und Produktivbetrieb vorbereiten
-
-- [x] Zielplattform entscheiden; aktueller Startpfad: Vercel fuer Vite-Hosting, Preview/Production und eigene `/api/*` Functions.
+- [ ] Neue lokale Migration `supabase/migrations/20260709091315_sync_media_auth_operations.sql` remote anwenden und gegen `supabase/verify_schema_v1.sql` prüfen.
 - [ ] Domain-/DNS-Pfad dokumentieren: eigene Domain in Vercel verbinden, Preview-URLs getrennt halten, Production-Domain bewusst mappen.
-- [ ] Build-/Preview-/Production-Pipeline ausbauen: `npm test`, `npm run build`, Preview Smoke, Production Rollback.
-- [x] SPA-Routing fuer Vite/Vercel festlegen: statische App aus `dist`, Browser-Routen auf `index.html`, `/api/*` nicht umschreiben.
-- [x] `vercel.json` als aktueller Build-/Rewrite-Anker fuer Vite/Vercel vorhanden.
-- [ ] Basale Runtime-Konfiguration einziehen: Umgebungsvariablen, App-Version, Fehlerseite.
-- [x] Env-Var-Konzept festlegen: Browser nur `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, Featureflags; geheime KI-/Supabase-Keys nur serverseitig.
-- [x] `.env.example` mit oeffentlichen Browser-Variablen und KI-Proxy-Featureflag vorhanden.
-- [ ] Secret-Hygiene pruefen: keine KI-Keys in Browser-Code, `localStorage`, Export-State, Logs oder Supabase-Userdaten; Vercel Sensitive Env Vars nutzen.
-- [ ] Produktives Logging/Monitoring-Konzept definieren, aber erst nach Hosting-Auswahl anbinden.
-- [ ] Deployment-Checkliste erstellen: Build, Tests, Smoke, Rollback, Datenschutzhinweise, Netzwerk-Tab ohne Secrets, KI-Route mit/ohne Key.
+- [ ] Deployment-Checkliste pflegen: `npm test`, `npm run build`, Preview-Smoke, Production-Rollback, Netzwerk-Tab ohne Secrets, KI-Route mit/ohne Key.
+- [ ] Basale Runtime-Konfiguration ergänzen: App-Version, Fehlerseite, Build-Metadaten und klare Umgebungsanzeige für Development/Preview/Production.
+- [ ] Secret-Hygiene prüfen: keine KI-Keys in Browser-Code, `localStorage`, Export-State, Logs oder Supabase-Userdaten; `GOOGLE_API_KEY` bleibt serverseitig in Vercel Sensitive Env Vars und wird nur aus `process.env` gelesen.
+- [ ] Build-Warnung zu großen Chunks abarbeiten: PDF-, Worker-, APKG-/ZIP-/SQLite- und Import-Code per dynamic import oder Rollup-Chunking trennen.
 
-## P1: Persistenz und Auth
+## 2. Auth, Accounts und E-Mail
 
-- [x] Datenbank-Stack entscheiden; aktueller Startpfad: Supabase Auth + Postgres + RLS, perspektivisch Supabase Storage fuer Medien/Dokumente.
-- [ ] `supabase/core_schema_v1.sql` gegen das aktuelle `src/coreModel.js` abgleichen: Learning Items, Original-Variantenanker, Review Events, Medienreferenzen, AI Jobs.
-- [ ] Echte Tabellen statt grossen Store-Blob als Produktivquelle verwenden; JSONB nur fuer flexible Metadaten, Policies, Importrohdetails und Versionseintraege.
-- [x] Supabase Grants + RLS als Einheit behandeln: Tabellen im exposed Schema explizit fuer `authenticated` freigeben, RLS aktivieren, Ownership-Policies pruefen.
-- [ ] RLS-Tests definieren: Nutzer A sieht eigene Decks/Karten/Events, Nutzer B sieht sie nicht; Updates brauchen `using` und `with check`.
-- [ ] Repository-Interface aus `createCoreRepository()` und lokale App-Kommandos aus `createCoreWorkspace()` als echte Persistenz-/Produktionsnaht schaerfen.
-- [ ] Lokale IDs, Versionen und Review-Events auf serverfaehige Tabellen/Dokumente mappen.
-- [ ] Echte Auth-Entscheidung treffen: E-Mail/Passwort, OAuth, Magic Link oder externer Anbieter; MVP darf cloud-first mit Login-Gate sein.
-- [ ] Account-Recovery, Session-Gueltigkeit und Datenschutz-/Exportrechte spezifizieren.
-- [ ] Migration von lokalem `localStorage` in Serverkonto definieren.
+- [ ] Hosted Supabase Auth konfigurieren: Site URL, Redirect-Allowlist, Google OAuth Client-ID/Secret, eigene SMTP-Domain, DKIM/SPF/DMARC und Template-Deployment prüfen.
+- [ ] Session-Tests im Browser ergänzen: Magic-Link-Redirect, Google-Redirect, Recovery-Redirect, Passwortänderung, erneuter Login, Rate-Limit-Fehler und ausgelaufener Link.
+- [ ] Session-Gültigkeit, Reauth-Regeln, Account-Löschung, Datenschutzexport und Datenportabilitätsrechte spezifizieren.
+- [ ] Auth-Mailtemplates im echten Projekt testen: Confirm Signup, Magic Link, Reset Password und Password Changed mit deutscher Copy, korrekten Redirects und freundlichen Fehlerzuständen.
 
-## P1: Dokumente, Medien und Import
+## 3. Persistenz, Schema und RLS
 
-- [ ] APKG-Fixtures weiter erweitern: Basic reversed, optional reversed, Cloze, Medienreferenzen, moderne MediaEntries, ungewohnte Note Types und echte `collection.anki21b`/Zstd-Beispiele.
-- [ ] Notetype-/Template-Snapshots und Importidentitaeten gemaess `docs/anki-format-analysis.md` pruefen: Anki-GUID, Note-ID, Card-ID, Notetype-ID, Template-Ordinal, Deck-Pfad und Medienchecksums.
-- [ ] Importbericht in der UI detailreicher machen: erkannte Decks, Warnungen, nicht gemappte Felder.
-- [ ] Server-/Worker-Pfad fuer grosse APKGs und Medien entwerfen; Rust/WASM erst nach Benchmark echter Import-Hotpaths pruefen.
-- [ ] Supabase Storage/Object-Storage-Strategie fuer APKG-Originale, extrahierte Medien, Dokumente und spaetere CDN-URLs festlegen.
-- [ ] Browser-Importgrenzen definieren: grosse Decks und medienreiche APKGs serverseitig/workerbasiert verarbeiten, Fortschritt und Abbruch anbieten.
-- [x] Erste browserseitige PDF-/Text-Textextraktion als Modul mit Fehlerstatus und formatierter Textanzeige umsetzen.
-- [x] Minimalen visuellen PDF-Viewer im manuellen Dokumentmodus einbinden: PDF-Seiten sichtbar, CoRe-integrierte Viewer-Flaeche, Text markierbar, einfacher Klick ohne Uebernahme.
-- [ ] DOCX-Textextraktion als echtes Modul planen, inklusive Fehlerfaellen.
-- [ ] OCR, Bildregionen und erweiterte PDF-Werkzeuge erst nach textbasiertem Dokumentpfad priorisieren.
-- [ ] Produktive Medienpersistenz fuer APKG-Assets bauen: Server-Ablage, stabile Referenzen, Sync, Export und Loeschregeln.
-- [ ] Medienreferenzen fuer geteilte Decks stabil und datenschutzbewusst modellieren.
+- [ ] `supabase/core_schema_v1.sql` weiter gegen das aktuelle `src/coreModel.js` abgleichen: Importrohdetails, Community-Rechte, Admin-Rollen und Jobtabellen fehlen noch.
+- [ ] Echte Tabellen statt großen Store-Blob als Produktivquelle durchziehen; JSONB nur für flexible Metadaten, Policies, Importrohdetails und Versionseinträge verwenden.
+- [ ] RLS-Tests schreiben: Nutzer A kann eigene Decks/Karten/Events/Medien lesen und schreiben, Nutzer B nie; `anon` bleibt ohne Core-Tabellenzugriff.
+- [ ] Update-Policies gesondert prüfen: jede schreibbare Tabelle braucht sowohl `using` als auch `with check`.
+- [ ] Nutzer-A/Nutzer-B-Smoke für `decks`, `cards`, `card_variants`, `review_events`, `source_documents`, `ai_jobs`, `media_assets`, `sync_devices` und `sync_conflicts` automatisieren.
 
-## P2: KI und Jobs produktionsfaehig machen
+## 4. Sync, Offline und Konflikte
 
-- [ ] Entscheiden, welche KI-Faehigkeiten echte LLMs brauchen: Kartenerstellung, Varianten, Graph, Chat.
+- [ ] Outbox-Modell implementieren: `sync_mutations` oder äquivalente persistente Queue mit `id`, `device_id`, `base_revision`, `entity_table`, `entity_id`, `payload`, `created_at`, `flushed_at`, Retry-Zähler und idempotenter Verarbeitung.
+- [ ] Konfliktregeln produktiv durchziehen: Review-Events append-only mergen, Medien per SHA-1 deduplizieren, Karten-/Deck-Content bei unterschiedlichem `base_revision` als `sync_conflicts` markieren.
+- [ ] Metadaten-Feldregeln explizit festlegen: unabhängige Felder nur mit dokumentierten Merge-Regeln zusammenführen, sonst Konflikt.
+- [ ] `cloudRepository` schrittweise von Vollzustands-Upsert auf Entitätsmutationen umstellen: `applyDeckMutation`, `applyCardMutation`, `appendReviewEvent`, `softDeleteEntity`, `markConflict`.
+- [ ] Konflikt-UI in Settings oder eigenem Sync-Panel bauen; Konfliktlogik bleibt in `syncEngine`/Repository-Modulen, nicht in React-Screens.
+- [ ] Zwei-Geräte-Tests ergänzen: stale Snapshot darf neuere Serveränderungen nicht löschen; Offline-Review-Events werden append-only nachgezogen.
+
+## 5. Medien, Dokumente und APKG
+
+- [ ] TUS/resumable Upload implementieren: `uploadLargeMediaAsset()`, Fortschritt, Resume, Abbruch, Fehlerklassen und Tests gegen Supabase Storage.
+- [ ] APKG-Server-/Worker-Importjob spezifizieren: Browsergrenze 250 MB beibehalten, größere APKGs über `/api/imports`, Jobstatus, Storage-Originaldatei, Worker-Extraktion und Importreport verarbeiten.
+- [ ] Storage-Orphan-GC als Admin-/Cron-Job bauen: `media_assets.deleted_at`, fehlende DB-Referenzen, fehlende Storage-Objekte und Storage-Objekte ohne Row getrennt melden.
+- [ ] Storage-Tests erweitern: signed URL, fehlendes Medium, Delete/Garbage Collection, APKG-Reimport ohne doppelte Assets, große Datei mit `resumable-required`.
+- [ ] APKG-Fixtures erweitern: Basic reversed, optional reversed, Cloze, Medienreferenzen, moderne MediaEntries, ungewöhnliche Note Types und echte `collection.anki21b`/Zstd-Beispiele.
+- [ ] Notetype-/Template-Snapshots und Importidentitäten gemäß `docs/anki-format-analysis.md` prüfen: Anki-GUID, Note-ID, Card-ID, Notetype-ID, Template-Ordinal, Deck-Pfad und Medienchecksums.
+- [ ] Importbericht in der UI detailreicher machen: erkannte Decks, Warnungen, nicht gemappte Felder, Medienstatus und Reimport-Dedupe.
+- [ ] DOCX-Textextraktion als echtes Modul planen, inklusive Fehlerfällen.
+- [ ] OCR, Bildregionen und erweiterte PDF-Werkzeuge erst nach stabilem textbasiertem Dokumentpfad priorisieren.
+- [ ] Medienreferenzen für geteilte Decks stabil und datenschutzbewusst modellieren.
+
+## 6. Monitoring, Backups und Admin-Werkzeuge
+
+- [ ] `/api/admin/*` nur serverseitig mit Service-Role-Secret bauen: Nutzerexport/-löschung, Sync-Konflikte, Storage-Orphans, fehlgeschlagene Jobs und RLS-Smoke-Checks.
+- [ ] Admin-Rollen festlegen: bevorzugt `app_metadata` oder DB-Rollentabelle; keine Admin-Rechte in `user_metadata`.
+- [ ] Admin-Aktionen vollständig auditieren: `admin_audit_events` mit Actor, Target, Aktion, Metadaten und Zeitstempel.
+- [ ] Monitoring-Runbook schreiben: Vercel Runtime Logs/Observability, Supabase Logs/Auth Audit Logs, DB-Fehler, Auth-Rate-Limits, Storage-Fehler, Worker-Fehler und Build-Status.
+- [ ] Backup-Runbook trennen: Supabase-DB-Backup/Restore und Storage-Mirror/Restore separat testen, weil DB-Backups Storage-Objekte nicht wiederherstellen.
+- [ ] Betriebs-Checks automatisieren: Backup-Dump erzeugen, Restore in Testprojekt, Storage-Mirror prüfen, Admin-Aktion auditieren, RLS-Query gegen Nutzer A/B/anon ausführen.
+
+## 7. KI, Jobs und Kostenkontrolle
+
+- [ ] Entscheiden, welche weiteren KI-Fähigkeiten echte LLMs brauchen: Kartenerstellung, Varianten und Graph; Chat nutzt bereits den serverseitigen Gemma-Pfad.
 - [ ] Provider- und Datenschutzentscheidung treffen, bevor externe Inhalte gesendet werden.
-- [ ] Server-KI-Proxy entwerfen: Browser ruft nur eigene `/api/ai/*` Route auf; Provider-Key bleibt in Vercel/Supabase-Serverumgebung.
-- [ ] Supabase-Session-Strategie fuer KI-Routen festlegen: erst Drafts zurueckgeben und Client speichert via RLS, spaeter User-Identitaet fuer Kostenlimits serverseitig pruefen.
+- [x] Server-KI-Proxy für Chat umsetzen: Browser ruft nur `/api/ai/chat` auf; `GOOGLE_API_KEY` bleibt in Vercel/Supabase-Serverumgebung und wird serverseitig aus `process.env` gelesen.
+- [ ] Weitere Server-KI-Proxys für Kartenerstellung, Varianten und Graph entwerfen; Provider-Keys bleiben ausnahmslos serverseitig.
+- [ ] Supabase-Session-Strategie für KI-Routen festlegen: erst Drafts zurückgeben und Client speichert via RLS, später User-Identität für Kostenlimits serverseitig prüfen.
 - [ ] Job-Queue-Interface aus dem lokalen `aiJobs`-Modell ableiten.
-- [ ] Idempotenz, Retry, Rate-Limits und Fehlerklassifikation fuer KI-Jobs spezifizieren.
-- [ ] Prompt-/Schema-Versionierung fuer `aiOrchestrator` einfuehren.
-- [ ] Eval-Datensatz fuer Halluzinationen, Quellenanker und Kartenqualitaet erstellen.
+- [ ] Idempotenz, Retry, Rate-Limits und Fehlerklassifikation für KI-Jobs spezifizieren.
+- [ ] Prompt-/Schema-Versionierung für `aiOrchestrator` einführen.
+- [ ] Eval-Datensatz für Halluzinationen, Quellenanker und Kartenqualität erstellen.
 - [ ] Token-/Kostenlogging und Budgetgrenzen pro Nutzer/Deck planen.
-- [ ] Abuse-Schutz fuer KI planen: Same-Origin, Request-Groessenlimit, Modell-Allowlist, Outputlimit, IP-/User-Rate-Limit, keine Secrets in Logs.
+- [ ] Abuse-Schutz für KI planen: Same-Origin, Request-Größenlimit, Modell-Allowlist, Outputlimit, IP-/User-Rate-Limit, keine Secrets in Logs.
 
-## P2: Scheduler, Varianten und Lernqualitaet
+## 8. Produktqualität, UI und E2E
+
+- [ ] Desktop-Website-Designraster im UI-Code nachziehen: Zielviewport 1440 x 900 px, Desktop-Mindestbreite 1280 px, feste Arbeitsflächen-/Review-Breiten und feste Typografie-Tokens.
+- [ ] Leere, fehlerhafte und große Eingaben für Text/CSV/Excel/APKG mit UI-Fehlermeldungen absichern.
+- [ ] Version-Restore in der UI voll klickbar machen, nicht nur im Modell vorbereiten.
+- [ ] Bestehende lokale Demo-Daten als reproduzierbare Fixtures statt impliziter UI-Erzeugung pflegen.
+- [ ] Tastatur- und Mobile-Review weiter polieren.
+- [ ] Nach größeren UI-/Routing-Änderungen `npm test`, `npm run build` und Browser-Preview-Smoke gegen `http://127.0.0.1:5190/` ausführen.
+
+## 9. Scheduler, Varianten und Lernqualität
 
 - [ ] FSRS-like Scheduler-Parameter gegen reale Lernsessions validieren: Stability, Difficulty, Desired Retention, Retrievability und Kurzintervall-Bias.
 - [ ] Learning-Item-State, Varianten-State, Fallback-State und Family-State gegen reale Lernsessions validieren.
-- [ ] Regeln fuer welche Kartentypen Varianten bekommen duerfen aus echten Decks nachschaerfen; Cloze-Familien, Reverse-Varianten und importierte Template-Ordnungen gesondert validieren.
-- [ ] Variantenqualitaet aus Feedback ableiten: deaktiviert, fachlich falsch, schlecht formuliert.
-- [x] Review-Queue fuer jetzt faellige Karten und neue Karten im lokalen Lernmodus nachvollziehbar anzeigen; bewertete Karten erscheinen erst wieder ab ihrem gespeicherten `dueAt`.
-- [ ] Tastatur- und Mobile-Review weiter polieren.
+- [ ] Regeln für Variantenzulässigkeit aus echten Decks nachschärfen; Cloze-Familien, Reverse-Varianten und importierte Template-Ordnungen gesondert validieren.
+- [ ] Variantenqualität aus Feedback ableiten: deaktiviert, fachlich falsch, schlecht formuliert.
 
-## P2: Community und Teilen
+## 10. Community, Teilen und Wachstum
 
 - [ ] Echtes Mitglieder-, Rollen- und Einladungsmodell entwerfen.
-- [ ] Serverregeln definieren: Geteilte Inhalte ja, fremde Review-Events nein.
-- [ ] Ordner, Deck-Kopien und spaetere Varianten-Wiederverwendung mit Berechtigungen verbinden.
-- [ ] Moderations- und Missbrauchsfaelle minimal beschreiben.
+- [ ] Serverregeln definieren: geteilte Inhalte ja, fremde Review-Events nein.
+- [ ] Ordner, Deck-Kopien und spätere Varianten-Wiederverwendung mit Berechtigungen verbinden.
+- [ ] Moderations- und Missbrauchsfälle minimal beschreiben.
 - [ ] Export/Import und Community-Kopie konsistent halten.
-
-## P3: Sync, Mobile und Offline
-
 - [ ] Entscheiden, ob zuerst responsive Web, PWA oder native App verfolgt wird.
-- [ ] Offline-Queue fuer Review-Events erst nach Server-Persistenz entwerfen.
-- [ ] Konfliktloesung fuer Kartenbearbeitung, Review-Events und Varianten definieren.
-- [ ] Push-/Reminder-Konzept an Lernplan und Faelligkeit koppeln.
-
-## P3: Produkt- und Wachstumsschicht
-
+- [ ] Push-/Reminder-Konzept an Lernplan und Fälligkeit koppeln.
 - [ ] Onboarding mit realen Zielgruppen testen: Medizin, Jura, Power-User.
 - [ ] Kurs-/Hochschulfelder erst nutzen, wenn Community-Findung oder Deck-Empfehlungen konkret werden.
-- [ ] Keine Social-Rankings einfuehren; Community bleibt ordner- und lerninhaltzentriert.
+- [ ] Keine Social-Rankings einführen; Community bleibt ordner- und lerninhaltzentriert.
 - [ ] Zahlungs-/Abo-Modell erst nach Hosting, Kostenmessung und KI-Budgetlogik diskutieren.
+
+## Bewusst noch nicht bauen
+
+- [ ] Keine generische Backend-Adapter-Schicht einführen, solange Supabase der einzige reale Anbieter ist.
+- [ ] Keine weitere breite produktive Datenbankmigration schreiben, bevor die neue Sync-/Media-Migration remote geprüft ist.
+- [ ] Keine externe LLM-Provider-Abstraktion bauen, bevor Provider, Datenschutzrahmen und Kostenmodell klar sind.
+- [ ] Keine vollständige Offline-first Sync-Auflösung bauen, bevor Outbox, Konflikt-UI, Medienstrategie und Server-/Admin-Routinen zusammen spezifiziert sind.
+- [ ] Keine Community-Rechteverwaltung vortäuschen, solange es keine echten Nutzer, Rollen und Serverregeln gibt.
+
+## Erledigte Grundlagen
+
+- [x] Pflichtlogin, Supabase E-Mail/Passwort, Profil-Upsert und accountgebundener Browser-Cache.
+- [x] Google-OAuth-Start, Magic Link ohne Auto-Signup, Passwort-Recovery-Abschluss und deutsche Auth-Mailtemplates.
+- [x] Einmalige lokale Datenübernahme pro Supabase-Account.
+- [x] Account-owned Tabellen mit `(user_id, id)` für lokale ID-Kollisionen.
+- [x] `syncEngine`-Skelett mit Snapshot-Load, Mutation Queue, Flush, Konfliktliste und Konfliktauflösung.
+- [x] Regulärer Autosave über `upsertAccountCloudState()` ohne Delete-Missing-Semantik; bewusster Voll-Replace bleibt für Legacy-Importe.
+- [x] `cloudMediaStore`, `media_assets`, private `core-media`-Bucket-Policies, signed URLs und Markierung großer Uploads.
+- [x] Learning-Item-Creation-Pipeline für Basic, Reverse, Cloze, Importvarianten und KI-Drafts.
+- [x] APKG-Basic-Import mit Unterstapeln, Media-Manifesten, HTML-Sanitization, lokaler Medienablage und Reimport-Merge.
+- [x] Text-, CSV-, normalisierte JSON- und Tabellen-/Excel-Paste-Importe.
+- [x] Fullscreen-Review, append-only Review-Events, FSRS-like Scheduler-State und Intervallvorschau.
+- [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker, Fallback und Feedback.
+- [x] Lokale Community-Gruppen, Deck-Graph, Chat-your-Deck, Lernplan, AI-Job-Modell und JSON-Datenportabilität.
+- [x] Vercel-Route `POST /api/ai/chat` für quellengebundene Gemma-4-31B-IT-Chatantworten mit lokalem Quellen-Fallback und server-only `GOOGLE_API_KEY`.
+- [x] Vercel-/Supabase-Startpfad, Env-Grenzen, Vercel-Projekt, Supabase-CLI-Link, RLS-/Grant-Schemaanker und Verify-Query.
 
 ## Referenzen
 
 - `docs/index.md`: Dokumentationskarte.
 - `docs/specs.md`: Produkt-, Engineering-, Modul- und Implementierungs-Soll.
 - `docs/specs.html`: navigierbare HTML-Version der Spezifikation.
-- `docs/anki-format-analysis.md`: Differential- und Differenzanalyse des offiziellen Anki-Modells mit CoRe-Prioritaeten, Formatentscheidungen und Sprach-/Backend-Empfehlungen.
-- `docs/todo.md`: diese einzige TODO-Markdown-Datei.
+- `docs/anki-format-analysis.md`: Differentialanalyse des offiziellen Anki-Modells mit CoRe-Prioritäten.
 - `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
 - `supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration.
+- `supabase/migrations/20260709074255_cloud_variant_schema_alignment.sql`: angewendete Schema-Abgleichsmigration.
+- `supabase/migrations/20260709082140_account_scoped_primary_keys.sql`: angewendete Account-Isolationsmigration.
+- `supabase/migrations/20260709091315_sync_media_auth_operations.sql`: neue lokale Migration für Sync, Medien, Storage-Policies und Admin-Audit.
 - `supabase/verify_schema_v1.sql`: RLS-/Policy-Verifikation.
-- `src/coreFeatures.test.js`: groesster Modul-Test fuer die implementierten MVP-Pfade.
-- `src/creationPipeline.test.js` und `src/learningModel.test.js`: aktuelle Tests fuer Learning-Item-Erstellung, Variantenanker und Legacy-Kompatibilitaet.
-- `src/normalizedImport.test.js`: normalisierte Importpayloads, JSON-Pfad, Fingerprints und Dedupe.
-- `src/libraryModel.test.js`: Dashboard-/Heatmap-, Statistik- und Bibliotheksprojektionen.
-- `src/richText.test.js`: Rich-Text-Normalisierung und Textanhaengen.
-- `src/schedulerIntervals.test.js`: Intervall-Labels und Rating-Vorschau.
-- `src/fsrsVariantFlow.test.js`: FSRS-like Scheduler, Variant-Readiness, Coverage, Fallback und Next-Review-Projektion.
+- `src/cloudAuth.test.js`: Supabase-Profil- und Auth-Mapping.
+- `src/cloudMediaStore.test.js`: Supabase-Storage-Medienpfad, direkte Uploads, große Upload-Markierung und signed URLs.
+- `src/syncEngine.test.js`: Autosave ohne Delete-Missing-Semantik, append-only Merge und Revision-Konflikterkennung.
+- `src/cloudRepository.test.js`: Cloud-Tabellenmapping für Decks, Cards/Learning Items, Originalvarianten und Review Events.
+- `src/coreFeatures.test.js`: großer Modul-Test für MVP-Pfade.

@@ -44,7 +44,7 @@
     <aside>
       <div class="brand">CoRe Specs</div>
       <div class="subtitle">Generated from docs/specs.md</div>
-      <nav><a class="toc-level-2" href="#implementierungsstand-2026-07-07">Implementierungsstand 2026-07-07</a>
+      <nav><a class="toc-level-2" href="#implementierungsstand-2026-07-09">Implementierungsstand 2026-07-09</a>
 <a class="toc-level-3" href="#was-lokal-bereits-funktioniert">Was lokal bereits funktioniert</a>
 <a class="toc-level-3" href="#was-erwartungsgemaess-noch-nicht-funktioniert">Was erwartungsgemaess noch nicht funktioniert</a>
 <a class="toc-level-3" href="#aktuelle-ausbauhaltung">Aktuelle Ausbauhaltung</a>
@@ -274,14 +274,15 @@
     </aside>
     <main><article>
 <h1 id="core-content-repetition">CoRe — Content Repetition</h1>
-<p><strong>Produkt- und Engineering-Spezifikation</strong> <strong>Dateien:</strong> <code>docs/specs.md</code> und <code>docs/specs.html</code> <strong>Status:</strong> Arbeitsfassung v0.4 <strong>Datum:</strong> 2026-07-07 <strong>Quellenbasis:</strong> Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App + <code>docs/anki-format-analysis.md</code> + aktueller Test-/Infrastrukturstand</p>
+<p><strong>Produkt- und Engineering-Spezifikation</strong> <strong>Dateien:</strong> <code>docs/specs.md</code> und <code>docs/specs.html</code> <strong>Status:</strong> Arbeitsfassung v0.4 <strong>Datum:</strong> 2026-07-09 <strong>Quellenbasis:</strong> Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + erneuter Gruendergespraech-Abgleich + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App + <code>docs/anki-format-analysis.md</code> + aktueller Test-/Infrastrukturstand</p>
 <hr>
-<h2 id="implementierungsstand-2026-07-07">Implementierungsstand 2026-07-07</h2>
-<p>Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter lokaler Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt. Ein erstes Supabase-Projekt (<code>CoRe-Database</code>) und ein erstes Vercel-Projekt (<code>core-hosted</code>) sind angebunden, aber CoRe ist noch kein fertiges gehostetes Mehrnutzerprodukt. Der App-State liegt weiterhin in <code>localStorage</code>, Authentifizierung ist lokal modelliert, KI-Funktionen laufen deterministisch/lokal, und Hintergrundjobs sind im Frontend sichtbar statt serverseitig ausgefuehrt.</p>
+<h2 id="implementierungsstand-2026-07-09">Implementierungsstand 2026-07-09</h2>
+<p>Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt. Ein Supabase-Projekt (<code>CoRe-Database</code>) und ein Vercel-Projekt (<code>core-hosted</code>) sind angebunden. Seit dem 2026-07-09 gibt es ein Pflicht-Login-Gate fuer die deployed App, Supabase-E-Mail/Passwort, accountgebundene lokale Cache-Keys, Cloud-first Autosave und eine einmalige Uebernahme vorhandener lokaler Browserdaten in den angemeldeten Account. CoRe ist trotzdem noch kein fertiges gehostetes Mehrnutzerprodukt: Offline-Konfliktloesung, produktive Medienablage, KI-Serverjobs, Monitoring, Backups und Community-Rechte fehlen noch.</p>
 <p>Wichtige Aenderung seit der ersten lokalen Spezifikationsfassung: Die bisherige Deck-<code>cards</code>-Collection bleibt im lokalen State aus Kompatibilitaetsgruenden bestehen, enthaelt fachlich aber Learning Items. <code>src/coreModel.js</code> normalisiert neue und alte Karten ueber eine gemeinsame Creation Pipeline. Jedes Learning Item besitzt genau eine Original-Variante; Reverse-, Cloze-, importierte und KI-/Rephrase-Varianten sind daran verankert und koennen eigene Review-States, Performance- und Feedbackdaten tragen.</p>
-<p>Die aktuelle Architektur macht bewusst noch keine umfangreiche Bauvorleistung fuer Hosting, Datenbank, externe Auth-Provider oder externe LLM-Provider. Diese Adapter sollen erst eingefuehrt werden, wenn der reale Zielpfad entschieden ist. Bis dahin sind die bestehenden Modul-Interfaces die relevante Vorbereitung: React-Caller sollen keine Datenbank-, Auth- oder Modellanbieter-Details kennen muessen.</p>
+<p>Die aktuelle Architektur macht bewusst keine breite Adapter-Vorleistung fuer noch unentschiedene Anbieter. Fuer den entschiedenen Startpfad wurden kleine Supabase-Module eingefuehrt: <code>src/supabaseClient.js</code> kapselt die Browser-Client-Konfiguration, <code>src/cloudAuth.js</code> kapselt Auth/Profile, <code>src/accountSession.js</code> kapselt Auth-Phasen und Sync-Status, <code>src/accountStorage.js</code> kapselt accountgebundene Browser-Cache-Keys, und <code>src/cloudRepository.js</code> kapselt accountgefilterte Tabellen-Loads, Replace-Saves und Loeschsemantik fuer den ersten Online-MVP. React-Caller sollen weiterhin keine SQL-, RLS- oder Key-Details kennen muessen.</p>
 <p>Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese zentrale Spezifikation uebernommen. Der relevante Zielpfad ist jetzt hier dokumentiert: Vercel als naheliegender Hosting-/Preview-/Domain-Pfad, Supabase Auth/Postgres/RLS als naheliegender Persistenzpfad, echte Tabellen statt grossem Store-Blob, Supabase Storage/Object Storage fuer grosse Medien und Dokumente, eigene <code>/api/ai/*</code>-Routen fuer geheime KI-Keys, sowie klare Env-Var- und Secret-Grenzen.</p>
 <p>Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdown-Datei, <code>docs/todo.md</code>. Sie ist die einzige Roadmap-Quelle fuer offene Arbeit; neue TODO-Markdowns sollen nicht entstehen. <code>docs/specs.md</code> bleibt kanonisch, <code>docs/specs.html</code> ist die visuelle HTML-Fassung derselben Spezifikation, und <code>docs/anki-format-analysis.md</code> dokumentiert die Anki-Differenzentscheidungen hinter Import-, Medien- und Learning-Item-Ausbau.</p>
+<p>Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug bestaetigt die bestehenden Kernentscheidungen zu Import, Kartenerstellung, Review, Content-Repetition, Community, Graph und sparsamer KI-Orchestrierung. Ergaenzt wurden vor allem zwei Schaerfungen: Varianten sollen mit wachsendem Reifegrad nur konservativ anspruchsvoller werden, und serverseitig wiederverwendbare Varianten muessen strikt von privaten Review-Events, Lernstaenden und persoenlichen Qualitaetsurteilen getrennt bleiben.</p>
 <table>
 <thead><tr><th>Bereich</th><th>Implementierte lokale Module / Screens</th></tr></thead>
 <tbody>
@@ -297,9 +298,9 @@
 <tr><td>Community</td><td><code>communityModel</code>, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten</td></tr>
 <tr><td>Deck Graph</td><td><code>deckGraph</code>, Triggerlogik und SVG-Mindmap-Screen</td></tr>
 <tr><td>KI-Orchestrierung</td><td>lokale Jobs, Modellrouter-Slots, strukturierte Outputs; aktuell kein eigener Hauptmenuepunkt</td></tr>
-<tr><td>Chat-your-Deck</td><td><code>deckAssistant.answerDeckQuestion</code>, belegte Karten-Zitate, Halluzinationsbremse; ueber den Heute-Sekundaereinstieg erreichbar, aber kein eigener Hauptmenuepunkt</td></tr>
+<tr><td>Chat-your-Deck</td><td><code>deckAssistant.answerDeckQuestion</code>, <code>deckAssistant.answerDeckQuestionWithServer</code>, belegte Karten-Zitate, Halluzinationsbremse, serverseitige Gemma-4-31B-IT-Formulierung ueber <code>/api/ai/chat</code> mit lokalem Quellen-Fallback; ueber den Heute-Sekundaereinstieg erreichbar, aber kein eigener Hauptmenuepunkt</td></tr>
 <tr><td>Lernplan</td><td><code>learningPlan.createLearningPlan</code>, Zieltermin, Tagesminuten, neue Karten, Varianten-Tage</td></tr>
-<tr><td>Lokale Auth</td><td><code>authModel</code>, lokaler Account, Anmelden/Abmelden, OAuth-Platzhalter</td></tr>
+<tr><td>Auth und Cloud-Persistenz</td><td><code>AuthGateScreen</code>, <code>SettingsScreen</code>, <code>accountSession</code>, <code>accountStorage</code>, <code>supabaseClient</code>, <code>cloudAuth</code>, <code>cloudRepository</code>, Pflichtlogin, Supabase-E-Mail/Passwort, Profil-Upsert, accountgebundener Cache, Cloud-first Autosave, einmaliger lokaler Importdialog</td></tr>
 <tr><td>Datenportabilitaet</td><td><code>dataPortability</code>, JSON-Export/-Import ohne Passwort-Verifier</td></tr>
 </tbody></table>
 <h3 id="was-lokal-bereits-funktioniert">Was lokal bereits funktioniert</h3>
@@ -319,14 +320,16 @@
 <li>Fullscreen-Review mit Antwortaufdeckung, Tages-Queue fuer ganze Stapel/Unterbaeume, einstellbarem Neue-Karten-Kontingent, vier Ratings mit naechster Intervallanzeige, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP. Bereits bewertete Karten erscheinen erst wieder, wenn ihr gespeichertes <code>dueAt</code> erreicht ist.</li>
 <li>Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker-Minikarte, konservativen Variant-Levels, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.</li>
 <li>Kleine lokale Community-Logik mit Ordnern und Deck-Kopien ohne fremde Reviewdaten.</li>
-<li>Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten und Heute-Sekundaereinstieg, Lernplan-Generator, AI-Job-Datenmodell und JSON-Datenportabilitaet.</li>
+<li>Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten, Heute-Sekundaereinstieg und serverseitiger Gemma-4-31B-IT-Antwortformulierung ueber <code>/api/ai/chat</code>, Lernplan-Generator, AI-Job-Datenmodell und JSON-Datenportabilitaet.</li>
+<li>Supabase Browser-Client ueber <code>VITE_SUPABASE_URL</code> und <code>VITE_SUPABASE_PUBLISHABLE_KEY</code>, Pflicht-Login-Gate, echte E-Mail/Passwort-Registrierung und Anmeldung, Profil-Upsert in <code>public.profiles</code>, accountgebundener Browser-Cache, einmalige lokale Datenuebernahme und Cloud-first Autosave fuer Decks, Karten/Learning Items, Varianten, Review Events, Dokumente und AI Jobs.</li>
+<li>Zweite Supabase-Migration <code>20260709074255_cloud_variant_schema_alignment.sql</code>: <code>card_variants</code> ist mit Originalvarianten, Variantentyp, Variant-Level, Generation Source, Ankerfeldern, Aktivstatus und Performance JSON kompatibel; <code>json-import</code> ist in <code>decks.source</code> und <code>cards.source</code> erlaubt; <code>anon</code>-Grants auf Core-Tabellen sind entfernt. Dritte Migration <code>20260709082140_account_scoped_primary_keys.sql</code>: account-owned Tabellen nutzen zusammengesetzte Primary Keys <code>(user_id, id)</code>, damit zwei Accounts dieselben lokalen IDs besitzen koennen, ohne Daten zu teilen.</li>
 </ul>
 <h3 id="was-erwartungsgemaess-noch-nicht-funktioniert">Was erwartungsgemaess noch nicht funktioniert</h3>
 <ul>
 <li>Es gibt ein erstes Vercel-Projekt mit Deployment, aber noch keine ausgereifte Deployment-Pipeline, eigene Domain, Rollback-Checkliste oder produktive Betriebsumgebung.</li>
-<li>Es gibt eine angewendete Supabase/Postgres-Erstmigration mit RLS-Policies, aber noch keine serverseitige App-Persistenz, keinen Sync und keine Konfliktloesung zwischen Geraeten.</li>
-<li>Accounts sind lokal modelliert; es gibt keine echte Registrierung, E-Mail-Verifikation, OAuth-Anbindung oder Session-Infrastruktur.</li>
-<li>KI ist lokal/deterministisch simuliert; es gibt noch keine Provider-Adapter, kein echtes Token-/Kostenlogging und keine produktive Prompt-/Eval-Pipeline.</li>
+<li>Es gibt angewendete Supabase/Postgres-Migrationen mit RLS-Policies, expliziten <code>authenticated</code>-Grants und ohne <code>anon</code>-Grants auf Core-Tabellen. Der erste explizite App-Persistenzpfad schreibt und liest Decks, Karten, Varianten, Review Events, Dokumente und AI Jobs ueber Supabase-Tabellen, ist aber noch kein automatischer Sync und keine Konfliktloesung zwischen Geraeten.</li>
+<li>Accounts koennen ueber Supabase E-Mail/Passwort erstellt und angemeldet werden; OAuth, Magic Link, Account-Recovery-Feinschliff und E-Mail-Template-Politur fehlen noch.</li>
+<li>KI-Kartenerstellung, Varianten, Graph und Jobs sind weiterhin lokal/deterministisch simuliert; Chat-your-Deck hat als erster produktiver KI-Pfad eine Vercel-Serverroute <code>/api/ai/chat</code> fuer Gemma 4 31B IT. Es gibt noch kein echtes Token-/Kostenlogging, keine produktive Prompt-/Eval-Pipeline und keine serverseitige Job-Queue fuer laengere KI-Aufgaben.</li>
 <li>Jobs laufen nicht in einer Queue oder Worker-Infrastruktur; die Job-Sicht ist ein lokaler Produkt- und Datenmodell-Prototyp.</li>
 <li>Datei- und Dokumentverarbeitung ist bewusst begrenzt: eine erste browserseitige PDF-/Text-Auslesung und ein minimaler visueller PDF-Viewer sind vorhanden; robuste DOCX-Extraktion, OCR, Bildregionen, erweiterte PDF-Werkzeuge, serverseitige APKG-Medienpersistenz und Medienhosting fehlen noch.</li>
 <li>Community ist lokal und privacy-sicher modelliert, aber ohne echte Mitgliederverwaltung, Berechtigungen, Einladungen oder Moderation.</li>
@@ -770,6 +773,7 @@
 <p>Im MVP KANN CoRe keinen vollwertigen Export anbieten, weil die Plattform-Sharing-Logik zunächst wichtiger ist. Es SOLL aber architektonisch möglich bleiben, später Export oder Datenportabilität einzuführen, um Nutzervertrauen zu sichern und Kritik zu vermeiden.</p>
 <h3 id="fr-import-007-serverseitige-variantenhaltung">FR-IMPORT-007 — Serverseitige Variantenhaltung</h3>
 <p>Varianten SOLLEN serverseitig gespeichert und über Content Hashes dedupliziert werden. Wenn mehrere Nutzer denselben geteilten Stapel verwenden, müssen identische Varianten nicht erneut erzeugt werden.</p>
+<p>Geteilte Varianten gehoeren fachlich zum geteilten Deck- bzw. Learning-Item-Inhalt. Persoenliche Review-States, Review-Events, Lernfortschritte, Antwortzeiten und nutzerspezifische Fehlerurteile bleiben dagegen privat und duerfen nicht als Community-Signal sichtbar werden. Spaetere aggregierte Qualitaetssignale sind nur zulaessig, wenn sie datenschutzrechtlich sauber anonymisiert und produktseitig bewusst freigegeben sind.</p>
 <p><strong>Dedupe-Schlüssel-Vorschlag:</strong></p>
 <pre><code class="language-text">variant_hash = hash(
   source_card_id_or_content_hash,
@@ -1056,6 +1060,7 @@
 <li>Falls nein: ist Variantengenerierung nach Trigger-/Kostenlogik erlaubt?</li>
 <li>Zeige Original oder Variante.</li>
 </ol>
+<p>Der Automatikmodus SOLL Variantenstufen an den Reifegrad koppeln: Fruehe Varianten bleiben nahe am Original und veraendern vor allem Wiedererkennungs-Cues; hoehere <code>variant_level</code> duerfen erst nach stabil guter Performance anspruchsvollere Transformationen wie <code>aspect_focus</code>, <code>compare_contrast</code> oder spaeter <code>case_vignette</code> waehlen. Nach Fehlern faellt die Auswahl wieder auf einfachere Varianten oder das Original zurueck.</p>
 <p><strong>Pseudocode:</strong></p>
 <pre><code class="language-ts">function chooseReviewCard(cardFamily, deckSettings, userSettings) {
   if (deckSettings.coreMode === &quot;off&quot;) return originalDueCard(cardFamily);
@@ -1084,6 +1089,7 @@
 <li>„Diese Karte einmal anders abfragen“.</li>
 <li>„Zurück zu Originalen“.</li>
 </ul>
+<p>Kurzzeitige Variantensessions wie „Heute nur Varianten lernen“ SOLLEN den dauerhaften Deck-Modus nicht heimlich umstellen. Ein Nutzer kann eine solche Session beenden und anschliessend wieder Originalkarten im normalen Scheduler lernen; eine dauerhafte Aenderung des Stapelmodus braucht eine ausdrueckliche Aktion.</p>
 <h3 id="fr-core-011-variantentransparenz-ohne-lernstorung">FR-CORE-011 — Variantentransparenz ohne Lernstörung</h3>
 <p>Vor dem Aufdecken soll die Karte nicht als Variante auffallen. Nach dem Aufdecken muss Transparenz möglich sein. Das löst den Konflikt zwischen Lernwirkung und Vertrauen.</p>
 <hr>
@@ -1192,6 +1198,7 @@
 <li>Variante qualitätsgeprüft oder nicht negativ markiert ist,</li>
 <li>Berechtigungen dies erlauben.</li>
 </ul>
+<p>Diese Wiederverwendung betrifft nur den geteilten Inhalts- und Variantenpool. Private Review-Events, persoenliche Scheduler-Zustaende, Streaks, Online-Status und individuelle Lernleistung bleiben ausgeschlossen.</p>
 <h3 id="fr-comm-006-community-freigabe">FR-COMM-006 — Community-Freigabe</h3>
 <p>Ein Deck kann privat, community-geteilt oder später öffentlich sein.</p>
 <table>
@@ -1418,7 +1425,7 @@ Aktionen: Variante deaktivieren · Fehler melden · Original lernen</code></pre>
 <li>KI/Varianten/Quellen/Community.</li>
 </ol>
 <p><strong>Aktueller lokaler Modellstand 2026-07-06:</strong> Im Browser-State heisst die Deck-Collection weiterhin <code>cards</code>, damit bestehende lokale Daten kompatibel bleiben. Semantisch sind diese Eintraege aber Learning Items: Sie tragen <code>canonicalQuestion</code>, <code>canonicalAnswer</code>, <code>learningItemState</code>/<code>reviewState</code>, Quellenanker, Versionen und eine Variantenliste. Die Variantenliste enthaelt immer genau eine <code>isOriginal: true</code>-Variante als unveraenderlichen Lernanker; weitere Varianten referenzieren sie ueber <code>anchorVariantId</code>/<code>parentVariantId</code>.</p>
-<p><strong>Produktiver Datenbankpfad 2026-07-07:</strong> Fuer CoRe ist Supabase/Postgres der initial angebundene Zielpfad. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. <code>supabase/core_schema_v1.sql</code> ist als erste Supabase-Migration nach <code>CoRe-Database</code> uebernommen und mit RLS-/Policy-Verify-Queries sowie Supabase Advisors geprueft. Vor echter App-Nutzung muss das Schema weiter gegen <code>src/coreModel.js</code>, <code>src/coreRepository.js</code>, Import-Medienpfade und die geplante Auth-/Storage-Strategie validiert werden.</p>
+<p><strong>Produktiver Datenbankpfad 2026-07-09:</strong> Fuer CoRe ist Supabase/Postgres der initial angebundene Zielpfad. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. <code>supabase/core_schema_v1.sql</code> ist als Supabase-Schemaanker nach <code>CoRe-Database</code> uebernommen. Die Migrationen <code>20260707081417_core_schema_v1.sql</code>, <code>20260709074255_cloud_variant_schema_alignment.sql</code> und <code>20260709082140_account_scoped_primary_keys.sql</code> sind remote angewendet; RLS-/Policy-Verify, GRANT-Check und Supabase Security/Performance Advisors laufen sauber. Vor einem vollstaendigen Offline-Sync muss das Schema weiter gegen Import-Medienpfade, Konfliktloesung und die geplante Storage-Strategie validiert werden.</p>
 <h3 id="10-1-entity-ubersicht">10.1 Entity-Übersicht</h3>
 <pre><code class="language-mermaid">erDiagram
   User ||--o{ Deck : owns
@@ -1814,7 +1821,7 @@ export interface ReviewState {
 <h3 id="10-4-supabase-postgres-zielmodell">10.4 Supabase/Postgres-Zielmodell</h3>
 <p>Der produktive Persistenzpfad soll an den bestehenden tiefen Modulen ansetzen, nicht an React-Callern:</p>
 <ul>
-<li><code>src/coreRepository.js</code> bleibt die lokale Persistenzgrenze und wird spaeter durch einen echten Server-/Supabase-Pfad ergaenzt.</li>
+<li><code>src/coreRepository.js</code> bleibt die lokale Persistenzgrenze fuer den laufenden Browser-State. <code>src/accountStorage.js</code> trennt diesen Cache pro Supabase-Account. <code>src/cloudRepository.js</code> ist der Supabase-Tabellenpfad fuer accountgefiltertes Laden, Replace-Speichern, Autosave und Loeschsemantik.</li>
 <li><code>src/coreWorkspace.js</code> bleibt die Kommandoflaeche fuer App-Aktionen, damit UI-Screens keine Tabellen- oder RLS-Details kennen.</li>
 <li><code>src/coreModel.js</code> bleibt die Quelle der Dateninvarianten: genau eine Original-Variante pro Learning Item, abgeleitete Varianten mit Anker, append-only Review Events, unveraenderliches <code>immutableOriginal</code>.</li>
 <li><code>src/apkgImport.js</code> und <code>src/mediaStore.js</code> bleiben die Grenzen fuer APKG-/Medienlogik; produktive Storage-Referenzen duerfen diese Details nicht in React-Screens ziehen.</li>
@@ -1830,7 +1837,7 @@ export interface ReviewState {
 <li><code>source_documents</code></li>
 <li><code>ai_jobs</code></li>
 </ul>
-<p>Vor einer echten Supabase-Anbindung muss entschieden werden, ob <code>cards</code> produktiv weiterhin als Learning-Item-Tabelle dient oder ob eine explizite <code>learning_items</code>-Tabelle eingefuehrt wird. Solange die lokale Compatibility Collection <code>deck.cards[]</code> besteht, darf diese Entscheidung nicht zu zwei unkoordinierten Wahrheiten fuehren.</p>
+<p>Fuer den ersten Online-MVP dient <code>cards</code> produktiv weiterhin als Learning-Item-Tabelle, weil die lokale Compatibility Collection <code>deck.cards[]</code> fachlich bereits Learning Items enthaelt. Eine spaetere Umbenennung in <code>learning_items</code> darf nur als koordinierte Migration passieren, nicht als zweite Wahrheit parallel zur bestehenden Tabelle. <code>card_variants</code> speichert seit <code>20260709074255_cloud_variant_schema_alignment.sql</code> auch Originalvarianten, Ankerfelder, Variantentyp, Variant-Level, Generation Source, Aktivstatus und Performance JSON. Seit <code>20260709082140_account_scoped_primary_keys.sql</code> sind die account-owned Tabellen ueber <code>(user_id, id)</code> primaer identifiziert, damit lokale IDs accountuebergreifend wiederverwendet werden duerfen.</p>
 <p>Supabase-spezifische Leitplanken:</p>
 <ul>
 <li>Tabellen in einem exposed Schema brauchen explizite Grants fuer die Rollen, die ueber die Data API zugreifen sollen.</li>
@@ -1906,7 +1913,8 @@ POST   /api/variants/:variantId/disable
 POST   /api/variants/:variantId/flag
 GET    /api/variants/:variantId/original</code></pre>
 <h3 id="11-6-ki-kartenerstellung">11.6 KI-Kartenerstellung</h3>
-<pre><code class="language-http">POST   /api/ai/card-generation/jobs
+<pre><code class="language-http">POST   /api/ai/chat
+POST   /api/ai/card-generation/jobs
 GET    /api/ai/jobs/:jobId
 POST   /api/ai/jobs/:jobId/cancel
 POST   /api/ai/card-generation/jobs/:jobId/accept-card
@@ -1943,6 +1951,7 @@ Browser
       -&gt; externer KI-Anbieter
       -&gt; validierte Draft-Antwort zurueck an Browser</code></pre>
 <p>Browser-sichtbar sind nur nicht-geheime Werte wie <code>VITE_SUPABASE_URL</code>, <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> und Featureflags. Nicht in den Browser gehoeren <code>OPENAI_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>GEMINI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>SUPABASE_SECRET_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code> oder andere Admin-/Provider-Secrets.</p>
+<p>Aktueller erster KI-Proxy: <code>POST /api/ai/chat</code> nutzt serverseitig ausschliesslich <code>process.env.GOOGLE_API_KEY</code>, ruft die Gemini Interactions API mit <code>model: &quot;gemma-4-31b-it&quot;</code> und <code>store: false</code> auf, nimmt nur die lokal ermittelten Top-Kartenbelege entgegen und gibt eine quellengebundene Antwort zurueck. Der Key darf nie als <code>VITE_GOOGLE_API_KEY</code>, nie im Browser, nie in <code>localStorage</code>, nie in Exportdaten und nie in Logs auftauchen.</p>
 <p>KI-Routen sollen zunaechst Drafts zurueckgeben. Der Nutzer prueft, bearbeitet und akzeptiert sie; erst danach speichert die App ueber die normalen Modellpfade. Sobald serverseitige Kostenlimits pro Nutzer benoetigt werden, muss die API-Route eine belastbare Supabase-Session/JWT-Pruefung erhalten.</p>
 <hr>
 <h2 id="12-ki-orchestrierung">12. KI-Orchestrierung</h2>
@@ -2093,7 +2102,7 @@ interface AIPolicy {
   }
 }</code></pre>
 <h3 id="12-10-ki-proxy-kosten-und-abuse-schutz">12.10 KI-Proxy, Kosten- und Abuse-Schutz</h3>
-<p>Produktive KI-Aufrufe laufen nicht direkt aus dem Browser zum Anbieter. CoRe braucht eigene Serverrouten wie <code>/api/ai/generate-cards</code>, <code>/api/ai/rephrase-variant</code> oder <code>/api/ai/build-graph</code>, die Provider-Keys nur aus serverseitigen Env Vars lesen.</p>
+<p>Produktive KI-Aufrufe laufen nicht direkt aus dem Browser zum Anbieter. CoRe nutzt als ersten umgesetzten Pfad <code>POST /api/ai/chat</code> fuer quellengebundene Chat-your-Deck-Antworten mit Gemma 4 31B IT. Weitere Serverrouten wie <code>/api/ai/generate-cards</code>, <code>/api/ai/rephrase-variant</code> oder <code>/api/ai/build-graph</code> bleiben Ausbaupfade und muessen Provider-Keys ebenfalls nur aus serverseitigen Env Vars lesen.</p>
 <p>Mindestanforderungen an diese Routen:</p>
 <ul>
 <li>nur erlaubte HTTP-Methoden akzeptieren,</li>
@@ -2140,6 +2149,7 @@ interface ReviewContext {
 <li><code>preferredVariantLevel</code>: konservative Stufe fuer nahe Varianten.</li>
 <li><code>forcedVariantId</code> / <code>fallbackUntilCorrect</code>: Rueckfall auf einfachere Variante oder Original nach Fehlern.</li>
 </ul>
+<p><code>preferredVariantLevel</code> SOLL nicht nur technisch gespeichert, sondern als Lernqualitaetsregel verstanden werden: CoRe steigert die Variantenanspruchsstufe erst, wenn eine Kartenfamilie wiederholt stabil beantwortet wurde. Anfangs geht es um eine andere Formulierung desselben Inhalts; spaeter koennen einzelne Aspekte, Abgrenzungen oder Fallkontexte hinzukommen.</p>
 <p><strong>Beispiel-Update:</strong></p>
 <pre><code class="language-ts">function updateMaturityXp(oldXp: number, rating: ReviewRating, wasVariant: boolean) {
   const delta = {
@@ -2284,7 +2294,7 @@ VariantState     ← einzelne Variante</code></pre>
 <li>Browser-Routen der SPA fallen auf <code>index.html</code> zurueck; <code>/api/*</code> bleibt fuer Serverless Functions reserviert.</li>
 <li>Environment Variables werden pro Umgebung gepflegt; Production-/Preview-Secrets werden nicht lokal in Git abgelegt.</li>
 </ul>
-<p>Die initiale Vite/Vercel-Konfiguration ist umgesetzt: <code>vercel.json</code> setzt Build Command, Output Directory und einen SPA-Rewrite, der <code>/api/*</code> nicht von der Frontend-Fallback-Regel verschluckt. Das Vercel-Projekt <code>core-hosted</code> ist angelegt und mit den oeffentlichen <code>VITE_SUPABASE_*</code>-Variablen vorbereitet; echte Serverrouten, Domain-Mapping, Rollback-Prozess und Observability bleiben Ausbaupunkte.</p>
+<p>Die initiale Vite/Vercel-Konfiguration ist umgesetzt: <code>vercel.json</code> setzt Build Command, Output Directory und einen SPA-Rewrite, der <code>/api/*</code> nicht von der Frontend-Fallback-Regel verschluckt. Das Vercel-Projekt <code>core-hosted</code> ist angelegt; die oeffentlichen Variablen <code>VITE_SUPABASE_URL</code>, <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> und <code>VITE_AI_USE_SERVER_PROXY</code> sind fuer Development, Preview und Production gesetzt und lokal per <code>vercel env pull</code> in <code>.env.local</code> gezogen. Echte Serverrouten, Domain-Mapping, Rollback-Prozess und Observability bleiben Ausbaupunkte.</p>
 <h3 id="empfohlene-services">Empfohlene Services</h3>
 <pre><code class="language-text">API Server
   ├── DeckService
@@ -2354,6 +2364,7 @@ SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 VITE_GOOGLE_API_KEY=...
 VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <p>Secrets duerfen nicht in <code>localStorage</code>, Exportdateien, Supabase-Userdaten, Client-Logs oder Browser-Code landen. <code>.env</code>, <code>.env.*</code> und <code>.vercel/</code> gehoeren in <code>.gitignore</code>; falls ein dokumentiertes Beispiel gebraucht wird, dann nur als <code>.env.example</code> ohne echte Werte.</p>
+<p>Fuer das Vercel-Projekt <code>bengt2/core-hosted</code> ist <code>GOOGLE_API_KEY</code> als sensitive Environment Variable fuer Production und Preview vorgesehen. CoRe-Code darf diesen Key ausschliesslich in Serverrouten wie <code>/api/ai/chat</code> ueber <code>process.env.GOOGLE_API_KEY</code> lesen; Frontend-Code, <code>VITE_*</code>-Variablen und Logs duerfen ihn nicht beruehren.</p>
 <hr>
 <h2 id="15-sicherheit-datenschutz-und-rechte">15. Sicherheit, Datenschutz und Rechte</h2>
 <h3 id="15-1-datenschutz">15.1 Datenschutz</h3>
@@ -2660,7 +2671,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <li>KI-Jobs asynchron laufen und Status anzeigen.</li>
 <li>Es gibt keine Anzeige fremder Lernstände oder Social-Rankings.</li>
 </ol>
-<p><strong>Stand 2026-07-07:</strong> Diese Punkte sind lokal als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher und Reimport-Merge mit Erhalt lokaler Content-Edits. Ebenfalls initial umgesetzt sind Supabase-CLI-Link, erste Remote-Migration, RLS-/Policy-Verify, Vercel-Projekt, Vercel-Env-Grenzen und Deployment. Nicht Teil dieser lokalen DoD-Erfuellung sind echte Authentifizierung, App-Persistenz ueber Supabase, externe KI-Provider, serverseitige Jobs, Sync, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind jetzt in dieser Spec dokumentiert; die Umsetzungsluecke wird in <code>docs/todo.md</code> als Ausbaupfad gefuehrt.</p>
+<p><strong>Stand 2026-07-09:</strong> Diese Punkte sind als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher, Reimport-Merge mit Erhalt lokaler Content-Edits, Pflichtlogin, accountgebundener Cache, lokaler Erstimportdialog und Sync-Engine-vermittelter Autosave. Ebenfalls umgesetzt sind Supabase-CLI-Link, Remote-Migrationen, RLS-/Policy-/Grant-Verify, Vercel-Projekt, Vercel-Env-Grenzen, Deployment und echter Supabase-Auth-/Profilpfad. Nicht Teil dieser lokalen DoD-Erfuellung sind vollständige Offline-Konfliktloesung, externe KI-Provider, serverseitige Jobs, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz, Admin-Werkzeuge und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind in dieser Spec dokumentiert; die Umsetzungsluecke wird in <code>docs/todo.md</code> als Ausbaupfad gefuehrt.</p>
 <hr>
 <h2 id="22-beispielhafte-user-stories">22. Beispielhafte User Stories</h2>
 <h3 id="us-001-anki-nutzer-importiert-deck">US-001 — Anki-Nutzer importiert Deck</h3>
@@ -2787,7 +2798,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <li>Hosting- und Produktivpfad konkretisieren: <code>vercel.json</code>, <code>.env.example</code>, <code>npm test</code>, <code>npm run build</code>, Preview-Smoke, Production-Rollback, Domain/DNS und Secret-Grenzen als Deployment-Checkliste festhalten.</li>
 <li>Supabase/Postgres/Auth validieren: <code>supabase/core_schema_v1.sql</code> gegen <code>src/coreModel.js</code>, <code>src/coreRepository.js</code>, <code>src/coreWorkspace.js</code>, <code>src/importService.js</code>, <code>src/mediaStore.js</code> und <code>src/dataPortability.js</code> abgleichen, bevor ein echter Repository-/Auth-Adapter entsteht.</li>
 <li>Dokument-, Medien- und APKG-Verarbeitung ausbauen: APKG-Fixtures, Notetype-/Template-Snapshots, Importidentitaeten, Medienchecksums und Storage-Referenzen hinter <code>apkgImport</code>, <code>mediaStore</code>, <code>htmlSafety</code> und spaeteren Worker-/Servermodulen halten.</li>
-<li>KI und Jobs produktionsfaehig machen: Provider-Auswahl, <code>/api/ai/*</code>-Proxy, Supabase-Session-Grenzen, Prompt-/Schema-Versionen, Kostenlogging, Rate-Limits und Eval-Datensatz aus <code>aiOrchestrator</code>, <code>variantGeneration</code> und dem lokalen <code>aiJobs</code>-Modell ableiten.</li>
+<li>KI und Jobs produktionsfaehig machen: vorhandenen <code>/api/ai/chat</code>-Proxy fuer Chat beobachten, weitere <code>/api/ai/*</code>-Pfade fuer Kartenerstellung, Varianten und Graph ableiten, Supabase-Session-Grenzen, Prompt-/Schema-Versionen, Kostenlogging, Rate-Limits und Eval-Datensatz aus <code>aiOrchestrator</code>, <code>variantGeneration</code> und dem lokalen <code>aiJobs</code>-Modell ergaenzen.</li>
 <li>Scheduler, Varianten und Lernwirksamkeit validieren: <code>scheduler</code>, <code>reviewService</code>, <code>coreVariantService</code>, <code>variantSelection</code> und <code>variantGeneration</code> mit echten Decks, Review-Events, Intervallvorschauen und Variant-Fallbacks pruefen.</li>
 <li>Community-Rechte, Sync, Mobile/PWA und Wachstumsschicht erst nach Persistenz/Auth/Storage/Jobs ausbauen; relevante lokale Vorlaeufer sind <code>communityModel</code>, <code>learningPlan</code>, <code>deckAssistant</code>, <code>deckGraph</code> und <code>dataPortability</code>.</li>
 </ol>
@@ -2800,6 +2811,12 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <tbody>
 <tr><td><code>src/coreModel.js</code></td><td><code>createCoreDeck</code>, <code>createCoreLearningItem</code>, <code>createBasicLearningItem</code>, <code>createBasicReverseLearningItem</code>, <code>createClozeLearningItem</code>, <code>createLearningItemsFromNormalizedInput</code>, <code>createCardVariant</code>, <code>getOriginalVariant</code>, <code>getAnswerSideAnchorMiniCard</code>, <code>updateCardContent</code>, <code>restoreCardVersion</code></td><td>Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen, Deck-Settings</td></tr>
 <tr><td><code>src/coreRepository.js</code></td><td><code>createCoreRepository()</code></td><td>Persistenter lokaler App-State, Migration alter Decks, Default-Seed <code>Welt-Hauptstädte</code> samt dreimonatiger Lernhistorie fuer frische lokale Browser-States und unberuehrte persistierte Seeds, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene</td></tr>
+<tr><td><code>src/supabaseClient.js</code></td><td><code>createSupabaseBrowserClient</code>, <code>getSupabaseBrowserConfig</code></td><td>Supabase Browser-Client aus oeffentlichen <code>VITE_*</code>-Variablen; keine Secret-Keys im Browser</td></tr>
+<tr><td><code>src/cloudAuth.js</code></td><td><code>signUpCloudAccount</code>, <code>signInCloudAccount</code>, <code>signInWithGoogle</code>, <code>signInWithMagicLink</code>, <code>updateCloudPassword</code>, <code>signOutCloudAccount</code>, <code>resetCloudPassword</code>, <code>getCloudUser</code>, <code>loadCloudProfile</code>, <code>saveCloudProfile</code></td><td>Echte Supabase-E-Mail/Passwort-Auth, Google-OAuth-Start, Magic Link ohne Auto-Signup, Recovery-Abschluss per neuem Passwort, Profil-Upsert und Profil-Merge ohne Passwort-Verifier</td></tr>
+<tr><td><code>src/accountSession.js</code></td><td><code>authPhaseForSession</code>, <code>shouldShowAuthGate</code>, <code>shouldShowAppShell</code>, <code>createSync*Status</code>, <code>formatSyncStatusText</code></td><td>Kleine Auth-/Sync-Zustandslogik fuer Pflichtlogin, App-Shell-Sperre, Passwort-Recovery-Gate und sichtbare Retry-/Save-Statusmeldungen</td></tr>
+<tr><td><code>src/accountStorage.js</code></td><td><code>createAccountStorage</code>, <code>readLegacyLocalState</code>, <code>hasPendingLocalMigration</code>, <code>markLocalMigrationHandled</code></td><td>Accountgebundene Browser-Cache-Keys und einmalige lokale Datenuebernahme</td></tr>
+<tr><td><code>src/cloudRepository.js</code></td><td><code>replaceAccountCloudState</code>, <code>upsertAccountCloudState</code>, <code>loadAccountCloudState</code>, <code>listAccountSyncConflicts</code>, <code>resolveAccountSyncConflict</code>, Mapping-Helfer</td><td>Accountgefiltertes Laden, bewusster Voll-Replace fuer Migrationen, regulaerer Upsert ohne Delete-Missing-Semantik und Konfliktzeilen ueber echte Supabase-Tabellen fuer Decks, Cards/Learning Items, Varianten, Review Events, Dokumente und AI Jobs</td></tr>
+<tr><td><code>src/syncEngine.js</code></td><td><code>createAccountSyncEngine</code>, <code>createSyncEngine</code>, <code>enqueueMutation</code>, <code>flush</code>, <code>listConflicts</code>, <code>resolveConflict</code>, <code>mergeAppendOnlyRows</code>, <code>detectRevisionConflict</code></td><td>Sync-Modulgrenze vor React fuer Snapshot-Load, Mutation Queue, Delete-freien Autosave, append-only Merge-Regeln und vorbereitete Revision-Konflikterkennung</td></tr>
 <tr><td><code>src/coreWorkspace.js</code></td><td><code>createCoreWorkspace</code>, <code>createDemoAnatomyDeck</code>, <code>createDeck</code>, <code>renameDeck</code>, <code>moveDeck</code>, <code>deleteDeckTree</code>, <code>setDeckCoreMode</code>, <code>saveDeckCardContent</code>, <code>deleteDeckCard</code>, <code>addManualCardToDeck</code>, <code>applyVariantGenerationResponse</code></td><td>Lokale App-Kommandos fuer Demo-Daten, manuelle Stapel-/Unterstapel-Baeume, Umbenennen, Reparenting fuer die Lernuebersicht, Stapelbaum-Loeschen, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege, manuelles Anhängen an bestehende Stapel und KI-Variantenannahme</td></tr>
 <tr><td><code>src/creationWorkflow.js</code></td><td><code>createCreationWorkflow</code></td><td>In-process Creation-Kommandos fuer APKG-Preview/Commit, Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme; haelt Import-/Medien-/KI-Orchestrierung aus React heraus</td></tr>
 <tr><td><code>src/scheduler.js</code></td><td><code>formatIntervalLabel</code>, <code>simulateRatingOutcome</code>, <code>getReviewButtonOptions</code>, <code>scheduleWithFsrsLikeModel</code>, <code>calculateRetrievability</code>, <code>getSchedulerStateForItem</code>, <code>applyReviewRating</code>, <code>listReviewableCards</code>, <code>summarizeDeckReview</code></td><td>FSRS-like Vier-Button-Scheduler, Button-Intervallvorschau, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung</td></tr>
@@ -2816,11 +2833,12 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <tr><td><code>src/apkgImport.js</code></td><td><code>createApkgImportPreview</code>, <code>findReadableCollectionDatabase</code>, <code>parseAnkiMedia</code>, <code>mapAnkiToCoreDeck</code>, <code>commitApkgImport</code>, <code>mergeImportedDeck</code>, <code>commitImport</code></td><td>APKG-Import, <code>collection.anki21b</code>/Zstd, Media-Manifeste, echte Anki-Unterstapel, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten, Welt-Hauptstadt-Fixture-Verifikation</td></tr>
 <tr><td><code>src/sqliteReader.js</code> / <code>src/zipReader.js</code></td><td><code>readSqliteDatabase</code>, <code>readZipArchive</code></td><td>Lokales Lesen der APKG-Container und minimaler SQLite-Tabellen</td></tr>
 <tr><td><code>src/mediaStore.js</code></td><td><code>storeDeckMedia</code>, <code>createDeckMediaUrlMap</code>, <code>resolveCardHtmlMedia</code></td><td>Lokaler APKG-Medienspeicher ueber IndexedDB/Session-Fallback und sichere HTML-Medien-URL-Aufloesung</td></tr>
+<tr><td><code>src/cloudMediaStore.js</code></td><td><code>persistDeckMedia</code>, <code>resolveDeckMediaUrls</code>, <code>deleteUnreferencedMedia</code>, <code>createCloudMediaPath</code>, <code>createMediaAssetRow</code></td><td>Supabase-Storage-Pfad fuer private APKG-Medien, <code>media_assets</code>-Rows, immutable Hash-Pfade, signed URLs, grosse Upload-Markierung und spaetere Storage-Garbage-Collection</td></tr>
 <tr><td><code>src/richText.js</code> / <code>src/htmlSafety.js</code></td><td><code>normalizeRichTextForEditor</code>, <code>appendPlainTextToCardHtml</code>, <code>hasCardRichTextContent</code>, <code>sanitizeCardHtml</code>, <code>stripHtml</code></td><td>Rich-Text-Normalisierung, Quellen-Text-Anhaengen und HTML-Sanitization als Modulgrenze fuer Screens, Import und Review</td></tr>
 <tr><td><code>src/ui/cardMedia.jsx</code> / <code>src/ui/RichTextEditor.jsx</code> / <code>src/ui/coreUi.jsx</code></td><td><code>useDeckMediaUrls</code>, <code>CardHtml</code>, <code>RichTextEditor</code>, gemeinsame UI-Bausteine</td><td>Medien-URL-Aufloesung fuer React, sicheres Karten-HTML, Rich-Text-Eingabe und geteilte Praesentationskomponenten</td></tr>
 <tr><td><code>src/communityModel.js</code></td><td><code>createCommunity</code>, <code>shareDeckToCommunity</code>, <code>copySharedDeckToLibrary</code></td><td>Kleine Gruppen, Ordner, Deck-Kopien ohne Lernmetriken</td></tr>
 <tr><td><code>src/deckGraph.js</code></td><td><code>buildDeckGraph</code>, <code>shouldRefreshDeckGraph</code></td><td>Themen-/Karten-Mindmap und Triggerlogik</td></tr>
-<tr><td><code>src/deckAssistant.js</code></td><td><code>answerDeckQuestion</code>, <code>retrieveDeckEvidence</code></td><td>Quellengebundene Antworten aus Karten, keine freien Halluzinationen</td></tr>
+<tr><td><code>src/deckAssistant.js</code> / <code>api/ai/chat.js</code></td><td><code>retrieveDeckEvidence</code>, <code>answerDeckQuestion</code>, <code>answerDeckQuestionWithServer</code>, <code>POST /api/ai/chat</code></td><td>Quellengebundene Antworten aus Karten, keine freien Halluzinationen; optionale Gemma-4-31B-IT-Formulierung laeuft serverseitig mit <code>GOOGLE_API_KEY</code> aus <code>process.env</code> und lokalem Fallback</td></tr>
 <tr><td><code>src/learningPlan.js</code></td><td><code>createLearningPlan</code></td><td>Pruefungsplan aus Due-Karten, neuen Karten, Varianten und schwachen Themen</td></tr>
 <tr><td><code>src/authModel.js</code></td><td><code>createLocalAccount</code>, <code>signInLocalAccount</code>, <code>signOutLocalAccount</code>, <code>connectOAuthPlaceholder</code></td><td>Lokale Account-/Sitzungslogik fuer den Web-MVP</td></tr>
 <tr><td><code>src/dataPortability.js</code></td><td><code>createPortableExport</code>, <code>stringifyPortableExport</code>, <code>validatePortableExport</code>, <code>mergePortableExportIntoState</code></td><td>JSON-Export/-Import ohne Passwort-Verifier</td></tr>
@@ -2846,6 +2864,12 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <ul>
 <li><code>src/coreFeatures.test.js</code>: Scheduler, Bibliotheksmodell, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.</li>
 <li><code>src/coreWorkspace.test.js</code>: lokale App-Kommandos fuer Demo-Deck, Welt-Hauptstadt-Seed mit Lernhistorie, unberuehrte Seed-Migration, Stapel-Rename, Stapel-Move, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.</li>
+<li><code>src/accountStorage.test.js</code>: accountgebundene lokale Cache-Keys und einmalige Legacy-Migrationsmarkierung.</li>
+<li><code>src/accountSession.test.js</code>: Pflichtlogin-Gate, Recovery-Gate, App-Shell-Sperre ohne Session und sichtbarer Autosave-Fehlerstatus.</li>
+<li><code>src/cloudAuth.test.js</code>: Supabase-Profilmapping, password-freie Cloud-Profile, Pending-/Signed-out-Status, Google-OAuth, Magic Link, Recovery-Passwortupdate und deutsche Auth-Fehlermeldungen.</li>
+<li><code>src/cloudRepository.test.js</code>: Tabellenmapping fuer Decks, Cards/Learning Items, Originalvarianten, Review Events und account-scoped gleiche lokale IDs.</li>
+<li><code>src/syncEngine.test.js</code>: Delete-freier Autosave-Flush, append-only Merge fuer Events und Revision-Konflikterkennung.</li>
+<li><code>src/cloudMediaStore.test.js</code>: Supabase-Storage-Pfade, direkte Uploads ohne Upsert, grosse Upload-Markierung und signed URLs fuer private Medien.</li>
 <li><code>src/creationWorkflow.test.js</code>: Creation-Workflow-Interface fuer APKG-Fehlerform, Paste-Import, manuelle Dokumentanker, KI-Draft-Erzeugung und Draft-Annahme.</li>
 <li><code>src/coreModel.test.js</code>: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.</li>
 <li><code>src/libraryModel.test.js</code>: Dashboard-/Bibliotheks-/Statistikprojektionen, sichtbare Deckzeilen und Heatmap-Fenster.</li>
@@ -2930,18 +2954,18 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <li>Sehr grosse Decks ueber 250 MB direkt im Browser.</li>
 </ul>
 <h3 id="27-8-chat-your-deck-lernplan-und-portabilitaet">27.8 Chat-your-Deck, Lernplan und Portabilitaet</h3>
-<p>Der lokale Assistent beantwortet Fragen nur aus vorhandenen Karten. Karten werden ueber einfache Token-Ueberschneidung und Tags gerankt. Reifegrad kann einen vorhandenen Treffer leicht priorisieren, erzeugt aber keinen Treffer ohne inhaltliche Ueberschneidung. Jede Antwort enthaelt <code>citations</code> mit <code>deckId</code>, <code>cardId</code>, Kartenquote und optionalem Quellenanker. Wenn keine Quelle gefunden wird, verweigert der Assistent eine freie Antwort. Die UI bleibt ohne Hauptmenuepunkt, ist aber vom Heute-Dashboard aus als sekundaerer Arbeitsbereich erreichbar.</p>
+<p>Der Assistent beantwortet Fragen nur aus vorhandenen Karten. Karten werden lokal ueber einfache Token-Ueberschneidung und Tags gerankt. Reifegrad kann einen vorhandenen Treffer leicht priorisieren, erzeugt aber keinen Treffer ohne inhaltliche Ueberschneidung. Jede Antwort enthaelt <code>citations</code> mit <code>deckId</code>, <code>cardId</code>, Kartenquote und optionalem Quellenanker. Wenn keine Quelle gefunden wird, verweigert der Assistent eine freie Antwort und ruft keinen KI-Provider auf. Wenn Quellen vorhanden sind, kann die UI <code>POST /api/ai/chat</code> aufrufen; die Vercel-Serverroute sendet nur Frage und Top-Kartenbelege an Gemma 4 31B IT (<code>gemma-4-31b-it</code>, <code>store: false</code>) und faellt bei fehlender Route, fehlendem Key oder Providerfehler auf die lokale Quellenantwort zurueck. Die UI bleibt ohne Hauptmenuepunkt, ist aber vom Heute-Dashboard aus als sekundaerer Arbeitsbereich erreichbar.</p>
 <p><code>createLearningPlan</code> erzeugt einen Plan aus Zieltermin, verfuegbaren Minuten pro Tag, neuen Karten pro Tag, faelligen Reviews, aktiven Varianten und schwachen Tags aus Review-Events oder Graph-Knoten. Der Plan erzeugt Tageszeilen mit Review-Quota, neuen Karten, Varianten-Tagen und Fokusdeck. Er ist kein Kalender-Adapter; ein spaeterer Kalender- oder Benachrichtigungsadapter soll die erzeugten Planobjekte konsumieren.</p>
 <p><code>src/dataPortability.js</code> erzeugt einen lokalen JSON-Export mit Decks, Communities, Jobs und Dokumenten. Der lokale Passwort-Verifier wird bewusst entfernt. Import validiert Schema und Version, gibt kaputtes JSON als Validierungsfehler statt Exception zurueck und mergt neue Decks ohne lokale Decks mit gleicher ID zu ersetzen.</p>
 <h3 id="27-9-adapter-entscheidung">27.9 Adapter-Entscheidung</h3>
-<p>Noch keine Adapter-Schicht fuer Backend/Auth/LLM einfuehren, solange es nur einen lokalen Pfad gibt. Spaetere Adapter sollen hinter den bestehenden Modul-Interfaces landen, nicht in React-Callern. Diese Haltung folgt dem Projektprinzip: eine echte Naht entsteht erst, wenn mindestens zwei reale Adapterpfade existieren.</p>
+<p>Keine generische Adapter-Schicht fuer Backend/Auth/LLM einfuehren, solange nur ein realer Anbieterpfad existiert. Fuer den entschiedenen Supabase-Startpfad sind bewusst kleine konkrete Module erlaubt (<code>supabaseClient</code>, <code>cloudAuth</code>, <code>accountSession</code>, <code>accountStorage</code>, <code>cloudRepository</code>), waehrend React-Caller weiterhin keine SQL-, RLS- oder Provider-Key-Details kennen. Eine echte austauschbare Naht entsteht erst, wenn mindestens zwei reale Anbieter- oder Speicherpfade existieren.</p>
 <h3 id="27-10-dokumentations-und-sql-inventar">27.10 Dokumentations- und SQL-Inventar</h3>
 <p>Projekt-Dokumente:</p>
 <ul>
 <li><code>docs/index.md</code>: Dokumentationskarte und Einstiegspunkt.</li>
 <li><code>docs/specs.md</code>: kanonische Produkt-/Engineering-Spezifikation.</li>
 <li><code>docs/specs.html</code>: generierte HTML-Version von <code>docs/specs.md</code>.</li>
-<li><code>docs/todo.md</code>: einzige TODO-Markdown-Datei und priorisierter Gap-Backlog.</li>
+<li><code>docs/todo.md</code>: einzige TODO-Markdown-Datei und nach Oberthemen sortierter Gap-Backlog.</li>
 <li><code>docs/README.md</code>: Projektueberblick, Start und Scripts.</li>
 <li><code>docs/anki-format-analysis.md</code>: Anki-Modell-, APKG-, Template-, Medien- und Backend-Differenzanalyse.</li>
 <li><code>AGENTS.md</code>: Root-Regeln fuer Coding-Agenten.</li>
@@ -2954,6 +2978,8 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <ul>
 <li><code>supabase/core_schema_v1.sql</code>: aktueller Supabase/Postgres-Schemaanker fuer Profile, portable Exports, Decks, Cards/Learning Items, Varianten, Review Events, Dokumente und AI Jobs.</li>
 <li><code>supabase/migrations/20260707081417_core_schema_v1.sql</code>: angewendete Erst-Migration des Schemaankers.</li>
+<li><code>supabase/migrations/20260709074255_cloud_variant_schema_alignment.sql</code>: angewendete Schema-Abgleichsmigration fuer Cloud-Varianten, <code>json-import</code>-Quellen und entfernte <code>anon</code>-Grants auf Core-Tabellen.</li>
+<li><code>supabase/migrations/20260709082140_account_scoped_primary_keys.sql</code>: angewendete Account-Isolationsmigration fuer zusammengesetzte Primary Keys <code>(user_id, id)</code> auf account-owned Tabellen.</li>
 <li><code>supabase/verify_schema_v1.sql</code>: Verify-Queries fuer RLS-/Policy-Praesenz.</li>
 </ul>
 <p>Hosting-/Runtime-Artefakte:</p>
