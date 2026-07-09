@@ -134,7 +134,7 @@ Noch nicht produktionsfertig sind vor allem: vollständige Offline-Konfliktaufl�
 - [x] Fullscreen-Review, append-only Review-Events, FSRS-like Scheduler-State und Intervallvorschau.
 - [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker, Fallback und Feedback.
 - [x] Lokale Community-Gruppen, Deck-Graph, Chat-your-Deck, Lernplan, AI-Job-Modell und JSON-Datenportabilität.
-- [x] Vercel-Route `POST /api/ai/chat` für quellengebundene Gemma-4-31B-IT-Chatantworten mit lokalem Quellen-Fallback und server-only `GOOGLE_API_KEY`.
+- [x] Vercel-Route `POST /api/ai/chat` für freie Gemma-4-31B-IT-Chatantworten per Default, optionale Quellenbindung mit lokalem Quellen-Fallback und server-only `GOOGLE_API_KEY`.
 - [x] Vercel-/Supabase-Startpfad, Env-Grenzen, Vercel-Projekt, Supabase-CLI-Link, RLS-/Grant-Schemaanker und Verify-Query.
 
 ## Referenzen

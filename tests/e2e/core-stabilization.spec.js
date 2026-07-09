@@ -91,10 +91,10 @@ test("ai draft creation and assistant smoke through hidden dashboard entry", asy
   }, { times: 1 });
   await page.getByRole("button", { name: "Assistent öffnen" }).click();
   await page.getByLabel("Frage an deine Karten").fill("Was ist die Hauptstadt von Algerien?");
-  await page.getByRole("button", { name: "Quellengebunden antworten" }).click();
-  await expect(page.getByRole("status")).toContainText("Antwort mit Kartenquellen erstellt.");
+  await expect(page.getByLabel("Nur mit Kartenquellen antworten")).not.toBeChecked();
+  await page.getByRole("button", { name: "Antwort erstellen" }).click();
+  await expect(page.getByRole("status")).toContainText("KI-Antwort erstellt.");
   await expect(page.getByText("Gemma: Algier ist die Hauptstadt von Algerien.")).toBeVisible();
-  await expect(page.getByText("Algier").first()).toBeVisible();
 });
 
 test("local portability export and import expose status and validation errors", async ({ page }) => {

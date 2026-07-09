@@ -29,11 +29,12 @@ test("deck assistant keeps the local source-bound refusal", () => {
   assert.match(exchange.answer, /keine belastbare Quelle/);
 });
 
-test("deck assistant does not call the server without local evidence", async () => {
+test("deck assistant does not call the server without local evidence in source-bound mode", async () => {
   let fetchCalls = 0;
   const result = await answerDeckQuestionWithServer({
     decks: [createMyelinDeck()],
     question: "Photosynthese Chlorophyll Lichtreaktion",
+    sourceBound: true,
     fetchImpl: async () => {
       fetchCalls += 1;
       return { ok: true, json: async () => ({ answer: "Darf nicht aufgerufen werden." }) };
@@ -46,12 +47,43 @@ test("deck assistant does not call the server without local evidence", async () 
   assert.equal(fetchCalls, 0);
 });
 
+test("deck assistant calls the server without local evidence when source binding is off", async () => {
+  let fetchCalls = 0;
+  const result = await answerDeckQuestionWithServer({
+    decks: [createMyelinDeck()],
+    question: "Welche KI bist du?",
+    sourceBound: false,
+    fetchImpl: async (_endpoint, options) => {
+      fetchCalls += 1;
+      const body = JSON.parse(options.body);
+      assert.equal(body.sourceBound, false);
+      assert.deepEqual(body.evidence, []);
+      return {
+        ok: true,
+        json: async () => ({
+          answer: "Ich bin der CoRe-Assistent mit Gemma.",
+          model: "gemma-4-31b-it",
+          provider: "google",
+        }),
+      };
+    },
+  });
+
+  assert.equal(result.usedServer, true);
+  assert.equal(result.exchange.citations.length, 0);
+  assert.equal(result.exchange.warnings.length, 0);
+  assert.match(result.exchange.answer, /Gemma/);
+  assert.equal(fetchCalls, 1);
+});
+
 test("deck assistant uses Gemma route answers when evidence exists", async () => {
   const result = await answerDeckQuestionWithServer({
     decks: [createMyelinDeck()],
     question: "Was macht die Myelinscheide?",
+    sourceBound: true,
     fetchImpl: async (_endpoint, options) => {
       const body = JSON.parse(options.body);
+      assert.equal(body.sourceBound, true);
       assert.equal(body.evidence.length, 1);
       return {
         ok: true,
@@ -74,6 +106,7 @@ test("deck assistant falls back to the local evidence answer on route errors", a
   const result = await answerDeckQuestionWithServer({
     decks: [createMyelinDeck()],
     question: "Was macht die Myelinscheide?",
+    sourceBound: true,
     fetchImpl: async () => ({
       ok: false,
       status: 503,

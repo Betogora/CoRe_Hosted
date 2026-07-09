@@ -9,6 +9,7 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
   const [deckId, setDeckId] = React.useState("all");
   const [status, setStatus] = React.useState("");
   const [isAsking, setIsAsking] = React.useState(false);
+  const [sourceBound, setSourceBound] = React.useState(false);
   const [question, setQuestion] = React.useState("Welche Karten hängen mit Myelin zusammen?");
   const [targetDate, setTargetDate] = React.useState(() => {
     const date = new Date();
@@ -24,15 +25,19 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
     if (!trimmedQuestion || isAsking) return;
 
     setIsAsking(true);
-    setStatus("Kartenquellen werden geprüft.");
+    setStatus(sourceBound ? "Kartenquellen werden geprüft." : "KI-Antwort wird erstellt.");
     try {
-      const result = await answerDeckQuestionWithServer({ decks, deckId, question: trimmedQuestion });
+      const result = await answerDeckQuestionWithServer({ decks, deckId, question: trimmedQuestion, sourceBound });
       onSaveChat(result.exchange);
 
-      if (result.exchange.citations.length === 0) {
+      if (sourceBound && result.exchange.citations.length === 0) {
         setStatus("Keine passende Kartenquelle gefunden.");
-      } else if (result.usedServer) {
+      } else if (sourceBound && result.usedServer) {
         setStatus("Antwort mit Kartenquellen erstellt.");
+      } else if (result.usedServer) {
+        setStatus("KI-Antwort erstellt.");
+      } else if (!sourceBound) {
+        setStatus("KI-Antwort konnte nicht erstellt werden.");
       } else {
         setStatus("Antwort mit Kartenquellen erstellt. Lokale Quellenantwort verwendet.");
       }
@@ -90,11 +95,25 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
               </div>
             </div>
             <textarea className="min-h-32 w-full rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={question} onChange={(event) => setQuestion(event.target.value)} aria-label="Frage an deine Karten" />
-            <button type="button" onClick={askQuestion} disabled={!decks.length || !question.trim() || isAsking} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+            <label className="mt-4 flex items-start gap-3 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] px-3 py-3 text-sm text-[#4e5b8c]">
+              <input
+                type="checkbox"
+                checked={sourceBound}
+                onChange={(event) => setSourceBound(event.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-[#cfd6ee] text-indigo-700 focus:ring-indigo-600"
+              />
+              <span>
+                <span className="font-semibold text-[#17214f]">Nur mit Kartenquellen antworten</span>
+                <span className="block text-xs leading-5 text-[#66709a]">Aus: freie KI-Antwort. An: Antwort nur, wenn passende Karten gefunden werden.</span>
+              </span>
+            </label>
+            <button type="button" onClick={askQuestion} disabled={(sourceBound && !decks.length) || !question.trim() || isAsking} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
               <Bot size={17} aria-hidden="true" />
-              {isAsking ? "Antwort wird erstellt" : "Quellengebunden antworten"}
+              {isAsking ? "Antwort wird erstellt" : "Antwort erstellen"}
             </button>
-            <p className="mt-3 text-sm text-[#66709a]">Ohne passende Kartenquelle gibt der Assistent keine freie Antwort.</p>
+            <p className="mt-3 text-sm text-[#66709a]">
+              {sourceBound ? "Ohne passende Kartenquelle gibt der Assistent keine freie Antwort." : "Der Assistent nutzt eine freie KI-Antwort, wenn die Quellenbindung ausgeschaltet ist."}
+            </p>
           </SoftPanel>
 
           <SoftPanel className="p-6">

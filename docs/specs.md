@@ -36,7 +36,7 @@ Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug
 | Community | `communityModel`, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten |
 | Deck Graph | `deckGraph`, Triggerlogik und SVG-Mindmap-Screen |
 | KI-Orchestrierung | lokale Jobs, Modellrouter-Slots, strukturierte Outputs; aktuell kein eigener Hauptmenuepunkt |
-| Chat-your-Deck | `deckAssistant.answerDeckQuestion`, `deckAssistant.answerDeckQuestionWithServer`, belegte Karten-Zitate, Halluzinationsbremse, serverseitige Gemma-4-31B-IT-Formulierung ueber `/api/ai/chat` mit lokalem Quellen-Fallback; ueber den Heute-Sekundaereinstieg erreichbar, aber kein eigener Hauptmenuepunkt |
+| Chat-your-Deck | `deckAssistant.answerDeckQuestion`, `deckAssistant.answerDeckQuestionWithServer`, freie Gemma-4-31B-IT-Chatantworten per Default, optionale Quellenbindung per Checkbox mit belegten Karten-Zitaten und lokalem Quellen-Fallback; ueber den Heute-Sekundaereinstieg erreichbar, aber kein eigener Hauptmenuepunkt |
 | Lernplan | `learningPlan.createLearningPlan`, Zieltermin, Tagesminuten, neue Karten, Varianten-Tage |
 | Auth und Cloud-Persistenz | `AuthGateScreen`, `SettingsScreen`, `accountSession`, `accountStorage`, `supabaseClient`, `cloudAuth`, `cloudRepository`, Pflichtlogin, Supabase-E-Mail/Passwort, Profil-Upsert, accountgebundener Cache, Cloud-first Autosave, einmaliger lokaler Importdialog |
 | Datenportabilitaet | `dataPortability`, JSON-Export/-Import ohne Passwort-Verifier |
@@ -58,7 +58,7 @@ Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug
 - Fullscreen-Review mit Antwortaufdeckung, Tages-Queue fuer ganze Stapel/Unterbaeume, einstellbarem Neue-Karten-Kontingent, vier Ratings mit naechster Intervallanzeige, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP. Bereits bewertete Karten erscheinen erst wieder, wenn ihr gespeichertes `dueAt` erreicht ist.
 - Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker-Minikarte, konservativen Variant-Levels, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
 - Kleine lokale Community-Logik mit Ordnern und Deck-Kopien ohne fremde Reviewdaten.
-- Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten, Heute-Sekundaereinstieg und serverseitiger Gemma-4-31B-IT-Antwortformulierung ueber `/api/ai/chat`, Lernplan-Generator, AI-Job-Datenmodell und JSON-Datenportabilitaet.
+- Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit freier Gemma-4-31B-IT-Antwort per Default, optionaler Quellenbindung mit Zitaten, Heute-Sekundaereinstieg, Lernplan-Generator, AI-Job-Datenmodell und JSON-Datenportabilitaet.
 - Supabase Browser-Client ueber `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY`, Pflicht-Login-Gate, echte E-Mail/Passwort-Registrierung und Anmeldung, Profil-Upsert in `public.profiles`, accountgebundener Browser-Cache, einmalige lokale Datenuebernahme und Cloud-first Autosave fuer Decks, Karten/Learning Items, Varianten, Review Events, Dokumente und AI Jobs.
 - Zweite Supabase-Migration `20260709074255_cloud_variant_schema_alignment.sql`: `card_variants` ist mit Originalvarianten, Variantentyp, Variant-Level, Generation Source, Ankerfeldern, Aktivstatus und Performance JSON kompatibel; `json-import` ist in `decks.source` und `cards.source` erlaubt; `anon`-Grants auf Core-Tabellen sind entfernt. Dritte Migration `20260709082140_account_scoped_primary_keys.sql`: account-owned Tabellen nutzen zusammengesetzte Primary Keys `(user_id, id)`, damit zwei Accounts dieselben lokalen IDs besitzen koennen, ohne Daten zu teilen.
 
@@ -1983,7 +1983,7 @@ Browser
 
 Browser-sichtbar sind nur nicht-geheime Werte wie `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und Featureflags. Nicht in den Browser gehoeren `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY` oder andere Admin-/Provider-Secrets.
 
-Aktueller erster KI-Proxy: `POST /api/ai/chat` nutzt serverseitig ausschliesslich `process.env.GOOGLE_API_KEY`, ruft die Gemini Interactions API mit `model: "gemma-4-31b-it"` und `store: false` auf, nimmt nur die lokal ermittelten Top-Kartenbelege entgegen und gibt eine quellengebundene Antwort zurueck. Der Key darf nie als `VITE_GOOGLE_API_KEY`, nie im Browser, nie in `localStorage`, nie in Exportdaten und nie in Logs auftauchen.
+Aktueller erster KI-Proxy: `POST /api/ai/chat` nutzt serverseitig ausschliesslich `process.env.GOOGLE_API_KEY`, ruft die Gemini Interactions API mit `model: "gemma-4-31b-it"` und `store: false` auf und gibt eine freie KI-Antwort zurueck, solange `sourceBound` nicht aktiv ist. Bei `sourceBound: true` nimmt die Route die lokal ermittelten Top-Kartenbelege entgegen, verlangt mindestens eine Quelle und gibt eine quellengebundene Antwort zurueck. Der Key darf nie als `VITE_GOOGLE_API_KEY`, nie im Browser, nie in `localStorage`, nie in Exportdaten und nie in Logs auftauchen.
 
 KI-Routen sollen zunaechst Drafts zurueckgeben. Der Nutzer prueft, bearbeitet und akzeptiert sie; erst danach speichert die App ueber die normalen Modellpfade. Sobald serverseitige Kostenlimits pro Nutzer benoetigt werden, muss die API-Route eine belastbare Supabase-Session/JWT-Pruefung erhalten.
 
@@ -2171,7 +2171,7 @@ Bei Fehler:
 
 ### 12.10 KI-Proxy, Kosten- und Abuse-Schutz
 
-Produktive KI-Aufrufe laufen nicht direkt aus dem Browser zum Anbieter. CoRe nutzt als ersten umgesetzten Pfad `POST /api/ai/chat` fuer quellengebundene Chat-your-Deck-Antworten mit Gemma 4 31B IT. Weitere Serverrouten wie `/api/ai/generate-cards`, `/api/ai/rephrase-variant` oder `/api/ai/build-graph` bleiben Ausbaupfade und muessen Provider-Keys ebenfalls nur aus serverseitigen Env Vars lesen.
+Produktive KI-Aufrufe laufen nicht direkt aus dem Browser zum Anbieter. CoRe nutzt als ersten umgesetzten Pfad `POST /api/ai/chat` fuer freie Chat-Antworten mit Gemma 4 31B IT; quellengebundene Chat-your-Deck-Antworten sind per Checkbox optional. Weitere Serverrouten wie `/api/ai/generate-cards`, `/api/ai/rephrase-variant` oder `/api/ai/build-graph` bleiben Ausbaupfade und muessen Provider-Keys ebenfalls nur aus serverseitigen Env Vars lesen.
 
 Mindestanforderungen an diese Routen:
 
@@ -3066,7 +3066,7 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/ui/cardMedia.jsx` / `src/ui/RichTextEditor.jsx` / `src/ui/coreUi.jsx` | `useDeckMediaUrls`, `CardHtml`, `RichTextEditor`, gemeinsame UI-Bausteine | Medien-URL-Aufloesung fuer React, sicheres Karten-HTML, Rich-Text-Eingabe und geteilte Praesentationskomponenten |
 | `src/communityModel.js` | `createCommunity`, `shareDeckToCommunity`, `copySharedDeckToLibrary` | Kleine Gruppen, Ordner, Deck-Kopien ohne Lernmetriken |
 | `src/deckGraph.js` | `buildDeckGraph`, `shouldRefreshDeckGraph` | Themen-/Karten-Mindmap und Triggerlogik |
-| `src/deckAssistant.js` / `api/ai/chat.js` | `retrieveDeckEvidence`, `answerDeckQuestion`, `answerDeckQuestionWithServer`, `POST /api/ai/chat` | Quellengebundene Antworten aus Karten, keine freien Halluzinationen; optionale Gemma-4-31B-IT-Formulierung laeuft serverseitig mit `GOOGLE_API_KEY` aus `process.env` und lokalem Fallback |
+| `src/deckAssistant.js` / `api/ai/chat.js` | `retrieveDeckEvidence`, `answerDeckQuestion`, `answerDeckQuestionWithServer`, `POST /api/ai/chat` | Freie Chatantworten per Default; optionale quellengebundene Antworten aus Karten mit lokaler Evidenzsuche, keine Provider-Aufrufe ohne Quelle im Quellenmodus, Gemma-4-31B-IT laeuft serverseitig mit `GOOGLE_API_KEY` aus `process.env` |
 | `src/learningPlan.js` | `createLearningPlan` | Pruefungsplan aus Due-Karten, neuen Karten, Varianten und schwachen Themen |
 | `src/authModel.js` | `createLocalAccount`, `signInLocalAccount`, `signOutLocalAccount`, `connectOAuthPlaceholder` | Lokale Account-/Sitzungslogik fuer den Web-MVP |
 | `src/dataPortability.js` | `createPortableExport`, `stringifyPortableExport`, `validatePortableExport`, `mergePortableExportIntoState` | JSON-Export/-Import ohne Passwort-Verifier |
@@ -3193,7 +3193,7 @@ Bewusst noch nicht unterstuetzt:
 
 ### 27.8 Chat-your-Deck, Lernplan und Portabilitaet
 
-Der Assistent beantwortet Fragen nur aus vorhandenen Karten. Karten werden lokal ueber einfache Token-Ueberschneidung und Tags gerankt. Reifegrad kann einen vorhandenen Treffer leicht priorisieren, erzeugt aber keinen Treffer ohne inhaltliche Ueberschneidung. Jede Antwort enthaelt `citations` mit `deckId`, `cardId`, Kartenquote und optionalem Quellenanker. Wenn keine Quelle gefunden wird, verweigert der Assistent eine freie Antwort und ruft keinen KI-Provider auf. Wenn Quellen vorhanden sind, kann die UI `POST /api/ai/chat` aufrufen; die Vercel-Serverroute sendet nur Frage und Top-Kartenbelege an Gemma 4 31B IT (`gemma-4-31b-it`, `store: false`) und faellt bei fehlender Route, fehlendem Key oder Providerfehler auf die lokale Quellenantwort zurueck. Die UI bleibt ohne Hauptmenuepunkt, ist aber vom Heute-Dashboard aus als sekundaerer Arbeitsbereich erreichbar.
+Der Assistent beantwortet Fragen per Default als freie KI-Antwort ueber `POST /api/ai/chat`. Die Option `Nur mit Kartenquellen antworten` ist standardmaessig aus und kann per Checkbox aktiviert werden. Im Quellenmodus werden Karten lokal ueber einfache Token-Ueberschneidung und Tags gerankt; Reifegrad kann einen vorhandenen Treffer leicht priorisieren, erzeugt aber keinen Treffer ohne inhaltliche Ueberschneidung. Quellengebundene Antworten enthalten `citations` mit `deckId`, `cardId`, Kartenquote und optionalem Quellenanker. Wenn im Quellenmodus keine Quelle gefunden wird, verweigert der Assistent eine freie Antwort und ruft keinen KI-Provider auf. Ohne Quellenbindung sendet die UI nur die Frage an die Vercel-Serverroute; mit Quellenbindung sendet sie Frage und Top-Kartenbelege an Gemma 4 31B IT (`gemma-4-31b-it`, `store: false`). Bei fehlender Route, fehlendem Key oder Providerfehler faellt der Quellenmodus auf die lokale Quellenantwort zurueck; freie Antworten zeigen einen Fehlerstatus. Die UI bleibt ohne Hauptmenuepunkt, ist aber vom Heute-Dashboard aus als sekundaerer Arbeitsbereich erreichbar.
 
 `createLearningPlan` erzeugt einen Plan aus Zieltermin, verfuegbaren Minuten pro Tag, neuen Karten pro Tag, faelligen Reviews, aktiven Varianten und schwachen Tags aus Review-Events oder Graph-Knoten. Der Plan erzeugt Tageszeilen mit Review-Quota, neuen Karten, Varianten-Tagen und Fokusdeck. Er ist kein Kalender-Adapter; ein spaeterer Kalender- oder Benachrichtigungsadapter soll die erzeugten Planobjekte konsumieren.
 

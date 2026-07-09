@@ -49,7 +49,7 @@ const evidence = [
 ];
 
 test("Gemma chat route builds a stateless allowlisted interaction payload", () => {
-  const payload = buildGemmaInteractionPayload({ question: "Was macht Myelin?", evidence });
+  const payload = buildGemmaInteractionPayload({ question: "Was macht Myelin?", evidence, sourceBound: true });
 
   assert.equal(payload.model, GEMMA_CHAT_MODEL);
   assert.equal(payload.store, false);
@@ -105,7 +105,36 @@ test("Gemma chat route rejects oversized requests before provider fetch", async 
   assert.equal(fetchCalls, 0);
 });
 
-test("Gemma chat route requires local card evidence before provider fetch", async () => {
+test("Gemma chat route answers free questions without local card evidence", async () => {
+  let fetchCalls = 0;
+  const handler = createChatHandler({
+    env: { GOOGLE_API_KEY: "test-secret" },
+    fetchImpl: async (_url, options) => {
+      fetchCalls += 1;
+      const payload = JSON.parse(options.body);
+      assert.equal(payload.store, false);
+      assert.equal(payload.model, GEMMA_CHAT_MODEL);
+      assert.match(payload.system_instruction, /CoRe-Lernassistent/);
+      assert.doesNotMatch(payload.system_instruction, /gelieferten Kartenquellen/);
+      return {
+        ok: true,
+        json: async () => ({
+          steps: [{ type: "model_output", content: [{ type: "text", text: "Mir geht es gut." }] }],
+          usage: { total_tokens: 42 },
+        }),
+      };
+    },
+  });
+  const res = createRes();
+
+  await handler(createReq({ body: { question: "Wie geht es dir?", evidence: [], sourceBound: false } }), res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.json().answer, "Mir geht es gut.");
+  assert.equal(fetchCalls, 1);
+});
+
+test("Gemma chat route requires local card evidence in source-bound mode before provider fetch", async () => {
   let fetchCalls = 0;
   const handler = createChatHandler({
     env: { GOOGLE_API_KEY: "test-secret" },
@@ -116,7 +145,7 @@ test("Gemma chat route requires local card evidence before provider fetch", asyn
   });
   const res = createRes();
 
-  await handler(createReq({ body: { question: "Welche KI bist du?", evidence: [] } }), res);
+  await handler(createReq({ body: { question: "Welche KI bist du?", evidence: [], sourceBound: true } }), res);
 
   assert.equal(res.statusCode, 400);
   assert.equal(res.json().error.code, "invalid_request");

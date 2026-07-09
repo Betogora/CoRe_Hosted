@@ -115,8 +115,23 @@ export function createDeckAssistantExchange({
   now = new Date().toISOString(),
   provider = "local",
   model = "card-search",
+  sourceBound = true,
 } = {}) {
   if (evidence.length === 0) {
+    if (!sourceBound) {
+      return {
+        id: makeId("chat"),
+        question,
+        answer: answer || "Die KI-Antwort konnte gerade nicht erstellt werden. Bitte versuche es gleich erneut.",
+        citations: [],
+        warnings,
+        createdAt: now,
+        provider,
+        model,
+        sourceBound: false,
+      };
+    }
+
     return {
       id: makeId("chat"),
       question,
@@ -126,6 +141,7 @@ export function createDeckAssistantExchange({
       createdAt: now,
       provider: "local",
       model: "card-search",
+      sourceBound: true,
     };
   }
 
@@ -138,6 +154,7 @@ export function createDeckAssistantExchange({
     createdAt: now,
     provider,
     model,
+    sourceBound,
   };
 }
 
@@ -153,15 +170,22 @@ export async function answerDeckQuestionWithServer({
   now = new Date().toISOString(),
   endpoint = "/api/ai/chat",
   fetchImpl = globalThis.fetch,
+  sourceBound = false,
 } = {}) {
-  const evidence = retrieveDeckEvidence({ decks, deckId, question, limit: 5 });
-  const fallbackExchange = createDeckAssistantExchange({ question, evidence, now });
+  const evidence = sourceBound ? retrieveDeckEvidence({ decks, deckId, question, limit: 5 }) : [];
+  const fallbackExchange = createDeckAssistantExchange({
+    question,
+    evidence,
+    now,
+    sourceBound,
+    warnings: sourceBound ? [] : ["KI-Route nicht erreichbar."],
+  });
 
-  if (evidence.length === 0 || typeof fetchImpl !== "function") {
+  if ((sourceBound && evidence.length === 0) || typeof fetchImpl !== "function") {
     return {
       exchange: fallbackExchange,
       usedServer: false,
-      fallbackReason: evidence.length === 0 ? "no-evidence" : "fetch-unavailable",
+      fallbackReason: sourceBound && evidence.length === 0 ? "no-evidence" : "fetch-unavailable",
     };
   }
 
@@ -174,6 +198,7 @@ export async function answerDeckQuestionWithServer({
       body: JSON.stringify({
         question,
         evidence,
+        sourceBound,
       }),
     });
 
@@ -197,6 +222,7 @@ export async function answerDeckQuestionWithServer({
         now,
         provider: payload?.provider || "google",
         model: payload?.model || "gemma-4-31b-it",
+        sourceBound,
       }),
       usedServer: true,
       fallbackReason: null,
