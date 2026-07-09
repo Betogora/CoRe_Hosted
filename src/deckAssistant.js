@@ -163,6 +163,31 @@ export function answerDeckQuestion({ decks, deckId = "all", question, now = new 
   return createDeckAssistantExchange({ question, evidence, now });
 }
 
+const ROUTE_ERROR_WARNINGS = {
+  missing_google_api_key: "KI-Route ist nicht konfiguriert.",
+  provider_error: "KI-Anbieter konnte keine Antwort erstellen.",
+  provider_invalid_json: "KI-Anbieter lieferte eine unlesbare Antwort.",
+  provider_empty_answer: "KI-Anbieter lieferte eine leere Antwort.",
+  provider_unreachable: "KI-Anbieter ist gerade nicht erreichbar.",
+  invalid_request: "KI-Anfrage war ungültig.",
+  request_too_large: "KI-Anfrage war zu groß.",
+  internal_error: "KI-Route ist auf einen internen Fehler gelaufen.",
+};
+
+async function readRouteErrorWarning(response) {
+  try {
+    const payload = await response.json();
+    const code = payload?.error?.code;
+    if (code && ROUTE_ERROR_WARNINGS[code]) {
+      return ROUTE_ERROR_WARNINGS[code];
+    }
+  } catch {
+    // Ignore malformed error payloads and fall back to the HTTP status.
+  }
+
+  return `KI-Route antwortete mit Status ${response.status}.`;
+}
+
 export async function answerDeckQuestionWithServer({
   decks,
   deckId = "all",
@@ -203,7 +228,7 @@ export async function answerDeckQuestionWithServer({
     });
 
     if (!response.ok) {
-      throw new Error(`KI-Route antwortet mit Status ${response.status}.`);
+      throw new Error(await readRouteErrorWarning(response));
     }
 
     const payload = await response.json();
@@ -227,9 +252,16 @@ export async function answerDeckQuestionWithServer({
       usedServer: true,
       fallbackReason: null,
     };
-  } catch {
+  } catch (error) {
+    const warning = error instanceof Error && error.message ? error.message : "KI-Route nicht erreichbar.";
     return {
-      exchange: fallbackExchange,
+      exchange: createDeckAssistantExchange({
+        question,
+        evidence,
+        now,
+        sourceBound,
+        warnings: [warning],
+      }),
       usedServer: false,
       fallbackReason: "server-error",
     };

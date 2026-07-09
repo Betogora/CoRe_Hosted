@@ -119,3 +119,21 @@ test("deck assistant falls back to the local evidence answer on route errors", a
   assert.match(result.exchange.answer, /isoliert Axone/);
   assert.equal(result.exchange.citations.length, 1);
 });
+
+test("deck assistant surfaces provider error reasons in free chat mode", async () => {
+  const result = await answerDeckQuestionWithServer({
+    decks: [createMyelinDeck()],
+    question: "Wie wird das Wetter heute in New York City?",
+    sourceBound: false,
+    fetchImpl: async () => ({
+      ok: false,
+      status: 502,
+      json: async () => ({ error: { code: "provider_empty_answer" } }),
+    }),
+  });
+
+  assert.equal(result.usedServer, false);
+  assert.equal(result.fallbackReason, "server-error");
+  assert.match(result.exchange.answer, /nicht erstellt/);
+  assert.deepEqual(result.exchange.warnings, ["KI-Anbieter lieferte eine leere Antwort."]);
+});

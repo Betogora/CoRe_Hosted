@@ -216,14 +216,19 @@ function sanitizeUsage(usage) {
 }
 
 async function callGemma({ apiKey, fetchImpl, question, evidence, sourceBound }) {
-  const response = await fetchImpl(GOOGLE_INTERACTIONS_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify(buildGemmaInteractionPayload({ question, evidence, sourceBound })),
-  });
+  let response;
+  try {
+    response = await fetchImpl(GOOGLE_INTERACTIONS_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify(buildGemmaInteractionPayload({ question, evidence, sourceBound })),
+    });
+  } catch {
+    throw new HttpError(502, "Der KI-Anbieter ist gerade nicht erreichbar.", "provider_unreachable");
+  }
 
   if (!response.ok) {
     throw new HttpError(502, "Der KI-Anbieter konnte keine Antwort erstellen.", "provider_error");

@@ -170,6 +170,39 @@ test("Gemma chat route maps provider failures without leaking secrets", async ()
   assert.equal(res.body.includes("provider-secret-detail"), false);
 });
 
+test("Gemma chat route maps provider network failures as unavailable", async () => {
+  const handler = createChatHandler({
+    env: { GOOGLE_API_KEY: "test-secret" },
+    fetchImpl: async () => {
+      throw new Error("network detail");
+    },
+  });
+  const res = createRes();
+
+  await handler(createReq({ body: { question: "Was macht Myelin?", evidence } }), res);
+
+  assert.equal(res.statusCode, 502);
+  assert.equal(res.json().error.code, "provider_unreachable");
+  assert.equal(res.body.includes("network detail"), false);
+  assert.equal(res.body.includes("test-secret"), false);
+});
+
+test("Gemma chat route maps empty provider output as provider_empty_answer", async () => {
+  const handler = createChatHandler({
+    env: { GOOGLE_API_KEY: "test-secret" },
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({ steps: [{ type: "model_output", content: [] }] }),
+    }),
+  });
+  const res = createRes();
+
+  await handler(createReq({ body: { question: "Was macht Myelin?", evidence } }), res);
+
+  assert.equal(res.statusCode, 502);
+  assert.equal(res.json().error.code, "provider_empty_answer");
+});
+
 test("Gemma chat route accepts same-origin or originless requests only", () => {
   assert.equal(isAllowedOrigin(createReq({ headers: {} })), true);
   assert.equal(isAllowedOrigin(createReq({ headers: { origin: "http://127.0.0.1:5190", "x-forwarded-proto": "http" } })), true);
