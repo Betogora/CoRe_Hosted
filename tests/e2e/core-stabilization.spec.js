@@ -30,6 +30,55 @@ async function storedDeckCountBySource(page, source) {
   return state.decks?.filter((deck) => deck.source === source).length ?? 0;
 }
 
+async function skipWhenAppShellIsBehindLogin(page) {
+  const loginGateVisible = await page.getByRole("heading", { name: "Bei CoRe anmelden" }).isVisible({ timeout: 1000 }).catch(() => false);
+  test.skip(loginGateVisible, "Screen-history smoke needs an authenticated E2E session; resetToFreshLocalState clears the current Supabase session.");
+}
+
+function mainMenu(page) {
+  return page.getByRole("navigation", { name: /Hauptmen/ });
+}
+
+test("browser back returns from deck management to learning without reload", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await skipWhenAppShellIsBehindLogin(page);
+
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
+  await page.getByRole("button", { name: "Kartenstapel" }).click();
+  await expect(page.getByTestId(`deck-row-${DECK_IDS.europe}`)).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
+  await expect(page).toHaveURL(/\/lernen$/);
+});
+
+test("browser back exits study mode to the previous learning screen", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await skipWhenAppShellIsBehindLogin(page);
+
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
+  await expect(page).toHaveURL(/\/lernen$/);
+});
+
+test("browser back returns from settings to the previous screen", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await skipWhenAppShellIsBehindLogin(page);
+
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByLabel(/Einstellungen/).click();
+  await expect(page.getByRole("button", { name: "Export vorbereiten" })).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
+  await expect(page).toHaveURL(/\/lernen$/);
+});
+
 test("review flow records a rating through accessible controls", async ({ page }) => {
   await resetToFreshLocalState(page);
   const before = await deckReviewEventCount(page, DECK_IDS.europe);

@@ -8,7 +8,7 @@ Diese Datei ist die einzige TODO-Markdown-Datei im Repository. Sie bündelt die 
 
 CoRe ist ein Vite/React-Web-MVP mit Supabase-Pflichtlogin, E-Mail/Passwort, Google-OAuth-Start, Magic Link, Recovery-Abschluss, Profil-Upsert, accountgebundenem Browser-Cache, lokalem Erstimportdialog, Sync-Engine-vermitteltem Autosave und echten Supabase-Tabellen für den ersten Cloud-Datenpfad.
 
-Vorhanden sind außerdem: Learning-Item-kompatibles Kartenmodell, APKG-/Text-/CSV-/JSON-/Tabellen-Importe, lokaler APKG-Medienspeicher, `cloudMediaStore`-Grundlage für private Supabase-Storage-Medien, deutsche Auth-Mailtemplates, RLS-/Grant-Schemaanker, Vercel-/Supabase-Startpfad und breite Modultests.
+Vorhanden sind außerdem: Learning-Item-kompatibles Kartenmodell, APKG-/Text-/CSV-/JSON-/Tabellen-Importe, lokaler APKG-Medienspeicher, `cloudMediaStore`-Grundlage für private Supabase-Storage-Medien, neue Haupt- und Unterstapel-Anlage direkt auf der Lern-Ebene, Screen-Level-Browser-Verlauf für Hauptscreens, versteckte Screens und Lernmodus, kalenderjahrbasierte Dashboard-Heatmap mit responsiven Wochenfenstern, deutsche Auth-Mailtemplates, RLS-/Grant-Schemaanker, Vercel-/Supabase-Startpfad und breite Modultests.
 
 Noch nicht produktionsfertig sind vor allem: vollständige Offline-Konfliktauflösung, resumable Medien-/APKG-Jobs, Hosted-Auth-Konfiguration, Admin-APIs, Monitoring, Backup-/Restore-Runbooks, Community-Rechte, externe KI-Jobs und Bundle-Code-Splitting.
 
@@ -133,6 +133,8 @@ Noch nicht produktionsfertig sind vor allem: vollständige Offline-Konfliktaufl�
 - [x] Text-, CSV-, normalisierte JSON- und Tabellen-/Excel-Paste-Importe.
 - [x] Fullscreen-Review, append-only Review-Events, FSRS-like Scheduler-State und Intervallvorschau.
 - [x] Content-Repetition-Varianten mit Eligibility, Reifegrad-Gate, Originalanker, Fallback und Feedback.
+- [x] Screen-Level-Browser-Verlauf für Hauptscreens, versteckte Screens und Lernmodus ohne SPA-Reload.
+- [x] Dashboard-Heatmap zeigt standardmäßig das Kalenderjahr von Januar bis Dezember, nutzt breite Viewports mit flexiblen Wochen-Spalten und bleibt auf schmalen Breiten als ganzer Wochenausschnitt navigierbar.
 - [x] Lokale Community-Gruppen, Deck-Graph, Chat-your-Deck, Lernplan, AI-Job-Modell und JSON-Datenportabilität.
 - [x] Vercel-Route `POST /api/ai/chat` für freie Gemma-4-31B-IT-Chatantworten per Default, optionale Quellenbindung mit lokalem Quellen-Fallback und server-only `GOOGLE_API_KEY`.
 - [x] Vercel-/Supabase-Startpfad, Env-Grenzen, Vercel-Projekt, Supabase-CLI-Link, RLS-/Grant-Schemaanker und Verify-Query.

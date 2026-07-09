@@ -236,6 +236,25 @@ test("workspace creates manual deck trees and deletes a selected subtree", () =>
   assert.equal(remainingIds.includes(head.id), false);
 });
 
+test("workspace stores deck appearance while creating nested decks", () => {
+  const workspace = createTestWorkspace();
+  const root = workspace.createDeck({ name: "Medizin" });
+  const deck = workspace.createDeck({
+    name: "Biochemie",
+    parentDeckId: root.id,
+    deckSettings: {
+      appearance: {
+        iconKey: "brain",
+        iconColor: "#047857",
+      },
+    },
+  });
+
+  assert.equal(deck.parentDeckId, root.id);
+  assert.deepEqual(deck.hierarchyPath, ["Medizin", "Biochemie"]);
+  assert.deepEqual(deck.deckSettings.appearance, { iconKey: "brain", iconColor: "#047857" });
+});
+
 test("workspace renames a deck tree without replacing imported metadata or child contents", () => {
   const workspace = createTestWorkspace();
   const root = workspace.createDeck({ name: "Medizin" });

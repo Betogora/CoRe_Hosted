@@ -232,6 +232,40 @@ test("study heatmap labels the visible year change on January", () => {
   assert.equal(monthLabels.includes("Jan"), false);
 });
 
+test("study heatmap defaults to the current calendar year and pads whole weeks", () => {
+  const deck = createCoreDeck({
+    id: "deck_heatmap_year",
+    name: "Heatmap Jahr",
+    source: "manual",
+    cards: [],
+    reviewEvents: [
+      { id: "review_previous_year", reviewedAt: "2025-12-31T08:00:00.000Z", learningItemId: "card_previous_year" },
+      { id: "review_january", reviewedAt: "2026-01-02T08:00:00.000Z", learningItemId: "card_january" },
+      { id: "review_today", reviewedAt: "2026-07-07T08:00:00.000Z", learningItemId: "card_today" },
+      { id: "review_next_year", reviewedAt: "2027-01-01T08:00:00.000Z", learningItemId: "card_next_year" },
+    ],
+  });
+
+  const heatmap = createStudyHeatmapModel([deck], {
+    now: "2026-07-07T12:00:00.000Z",
+  });
+
+  assert.equal(heatmap.isCalendarYear, true);
+  assert.equal(heatmap.displayYear, 2026);
+  assert.equal(heatmap.calendarStartKey, "2026-01-01");
+  assert.equal(heatmap.calendarEndKey, "2026-12-31");
+  assert.equal(heatmap.weeks.length, 53);
+  assert.equal(heatmap.days[0].key, "2025-12-29");
+  assert.equal(heatmap.days[0].isOutsideDisplayYear, true);
+  assert.equal(heatmap.days.at(-1).key, "2027-01-03");
+  assert.equal(heatmap.days.at(-1).isOutsideDisplayYear, true);
+  assert.equal(heatmap.totalCount, 2);
+  assert.equal(heatmap.days.find((day) => day.key === "2025-12-31").count, 0);
+  assert.equal(heatmap.days.find((day) => day.key === "2026-01-02").count, 1);
+  assert.equal(heatmap.monthLabels.filter(Boolean)[0], "Jan 2026");
+  assert.ok(heatmap.monthLabels.includes("Dez"));
+});
+
 test("study heatmap window fits whole weeks to viewport width and navigates by arrows", () => {
   const deck = createCoreDeck({
     id: "deck_heatmap_window",
@@ -249,11 +283,11 @@ test("study heatmap window fits whole weeks to viewport width and navigates by a
     weeks: 53,
   });
 
-  assert.equal(getStudyHeatmapVisibleWeekCount(320, heatmap.weekCount), 14);
+  assert.equal(getStudyHeatmapVisibleWeekCount(320, heatmap.weekCount), 22);
 
   const latestWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 320 });
-  assert.equal(latestWindow.weeks.length, 14);
-  assert.equal(latestWindow.days.length, 98);
+  assert.equal(latestWindow.weeks.length, 22);
+  assert.equal(latestWindow.days.length, 154);
   assert.equal(latestWindow.endWeekIndex, heatmap.weekCount);
   assert.equal(latestWindow.canShowPrevious, true);
   assert.equal(latestWindow.canShowNext, false);
@@ -269,11 +303,32 @@ test("study heatmap window fits whole weeks to viewport width and navigates by a
     endWeekIndex: latestWindow.previousEndWeekIndex,
   });
 
-  assert.equal(previousWindow.weeks.length, 14);
-  assert.equal(previousWindow.days.length, 98);
+  assert.equal(previousWindow.weeks.length, 22);
+  assert.equal(previousWindow.days.length, 154);
   assert.equal(previousWindow.endWeekIndex, latestWindow.endWeekIndex - 4);
   assert.equal(previousWindow.canShowNext, true);
   assert.equal(previousWindow.weeks.every((week) => week.length === 7), true);
+});
+
+test("study heatmap calendar year shows the whole year when possible and anchors narrow windows near today", () => {
+  const heatmap = createStudyHeatmapModel([], {
+    now: "2026-07-07T12:00:00.000Z",
+  });
+
+  assert.equal(getStudyHeatmapVisibleWeekCount(900, heatmap.weekCount), heatmap.weekCount);
+
+  const fullYearWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 900 });
+  assert.equal(fullYearWindow.weeks.length, heatmap.weekCount);
+  assert.equal(fullYearWindow.canShowPrevious, false);
+  assert.equal(fullYearWindow.canShowNext, false);
+
+  const narrowWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 320 });
+  assert.equal(narrowWindow.weeks.length, 22);
+  assert.equal(narrowWindow.endWeekIndex, heatmap.defaultEndWeekIndex);
+  assert.equal(narrowWindow.canShowPrevious, true);
+  assert.equal(narrowWindow.canShowNext, true);
+  assert.equal(narrowWindow.days.some((day) => day.key === "2026-07-07"), true);
+  assert.equal(narrowWindow.days.some((day) => day.key === "2026-12-31"), false);
 });
 
 test("performance statistics summarize ratings, trends and weak decks", () => {

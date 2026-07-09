@@ -4,7 +4,8 @@ import { getOriginalVariant, getVariantAnchor } from "../coreModel.js";
 import { buildCardVariationPrompt, createVariantReviewModel } from "../coreVariantService.js";
 import { createDeckLibraryModel } from "../libraryModel.js";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
-import { CoreModeControl, EmptyState, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
+import { CoreModeControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
+import { DeckAppearanceIcon } from "../ui/deckAppearance.jsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.js";
 
 function normalizeEditableCardType(kind) {
@@ -256,12 +257,11 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   );
 }
 
-export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, onStartDeck, onCreateDeck, onDeleteDeck, onRenameDeck, onOpenCardCreation, onOpenGraph, onShareDeck }) {
+export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, onStartDeck, onDeleteDeck, onRenameDeck, onOpenCardCreation, onPrepareSubdeckCreation, onOpenGraph, onShareDeck }) {
   const [query, setQuery] = React.useState("");
   const [modeFilter, setModeFilter] = React.useState("all");
   const [selectedDeckId, setSelectedDeckId] = React.useState(initialSelectedDeckId ?? decks[0]?.id ?? null);
   const [selectedCardId, setSelectedCardId] = React.useState(null);
-  const [deckDraft, setDeckDraft] = React.useState({ name: "", parentDeckId: "" });
   const [deckStatus, setDeckStatus] = React.useState("");
   const [editingDeckId, setEditingDeckId] = React.useState(null);
   const [renameDraft, setRenameDraft] = React.useState("");
@@ -306,31 +306,8 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
     onDeleteCard(selectedDeck.id, cardId);
   }
 
-  function updateDeckDraft(key, value) {
-    setDeckDraft((current) => ({ ...current, [key]: value }));
-  }
-
-  function createDeckFromDraft(event) {
-    event.preventDefault();
-    const name = deckDraft.name.trim();
-    if (!name) {
-      setDeckStatus("Bitte gib einen Stapelnamen ein.");
-      return;
-    }
-
-    const created = onCreateDeck({
-      name,
-      parentDeckId: deckDraft.parentDeckId || null,
-    });
-    setSelectedDeckId(created.id);
-    setSelectedCardId(null);
-    setDeckDraft({ name: "", parentDeckId: created.parentDeckId ?? "" });
-    setDeckStatus(created.parentDeckId ? `Unterstapel "${created.name}" angelegt.` : `Stapel "${created.name}" angelegt.`);
-  }
-
   function prepareSubdeck(deck) {
-    setDeckDraft({ name: "", parentDeckId: deck.id });
-    setDeckStatus(`Unterstapel unter "${deck.name}" anlegen.`);
+    onPrepareSubdeckCreation?.(deck.id);
   }
 
   function beginRename(deck) {
@@ -400,36 +377,6 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
             Neue Karten
           </button>
         </div>
-        <form onSubmit={createDeckFromDraft} className="mt-4 grid min-w-0 gap-3 border-t border-[#e3e7f5] pt-4 lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_auto]">
-          <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
-            Stapelname
-            <input
-              className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-medium text-[#17214f] outline-none"
-              value={deckDraft.name}
-              onChange={(event) => updateDeckDraft("name", event.target.value)}
-              placeholder="z. B. Anatomie"
-            />
-          </label>
-          <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
-            Ebene
-            <select
-              className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-medium text-[#17214f]"
-              value={deckDraft.parentDeckId}
-              onChange={(event) => updateDeckDraft("parentDeckId", event.target.value)}
-            >
-              <option value="">Als Hauptstapel</option>
-              {library.rows.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {"— ".repeat(row.depth)}{row.path}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
-            <FolderPlus size={17} aria-hidden="true" />
-            Stapel anlegen
-          </button>
-        </form>
         {deckStatus ? <p className="mt-3 text-sm font-semibold text-[#66709a]" role="status" aria-live="polite">{deckStatus}</p> : null}
       </SoftPanel>
 
@@ -459,7 +406,7 @@ export function DecksScreen({ decks, initialSelectedDeckId = null, onSetDeckCore
               >
                 <div className="flex min-w-0 flex-wrap items-center gap-4" style={{ paddingLeft: `${Math.min(row.depth, 4) * 1.1}rem` }}>
                   <div className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
-                    <OrbIcon icon={Layers} className="bg-[#eef1fb] text-[#6672bf]" />
+                    <DeckAppearanceIcon deck={deck} className="size-12 rounded-full bg-[#eef1fb]" iconSize={22} />
                     <div className="min-w-0 flex-1">
                       {isRenaming ? (
                         <form onSubmit={(event) => submitRename(event, deck)} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(10rem,1fr)_auto_auto]">

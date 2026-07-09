@@ -1,24 +1,25 @@
 # UI Screen Modules
 
-Stand: 2026-07-07
+Stand: 2026-07-09
 
-`src/App.jsx` owns app orchestration only: workspace state, navigation, study-mode routing, and persistence callbacks.
+`src/App.jsx` owns app orchestration only: Supabase session boot, account-scoped workspace state, navigation, study-mode routing, SyncEngine-backed autosave and persistence callbacks. Auth phase and sync status wording live in `src/accountSession.js`; cloud persistence and conflict behavior stay in `src/syncEngine.js` and `src/cloudRepository.js`.
 
 Each exported screen in this folder is a UI module with a small props interface. Keep screen-specific panels private in the same file when they are only used by that screen. Move shared presentational pieces to `src/ui/`; move domain behavior to the existing deep modules such as `coreWorkspace.js`, `creationWorkflow.js`, `reviewService.js`, `coreVariantService.js`, `apkgImport.js`, and `mediaStore.js`.
 
 ## Screen Map
 
 - `DashboardScreen.jsx`: dashboard metrics, active decks and responsive keyboard-navigable study heatmap.
-- `DecksScreen.jsx`: deck library, filtering, parent/child hierarchy, rename, manual subdeck creation, drag-and-drop reparenting, CoRe mode controls, card editor and variant prompt UI; opened from the Learn controls.
+- `AuthGateScreen.jsx`: required Supabase login, registration, Google start, Magic Link, reset-link request and password-recovery completion before the app shell opens.
+- `DecksScreen.jsx`: deck library, filtering, parent/child hierarchy, rename, subdeck creation handoff to Learn, drag-and-drop reparenting, CoRe mode controls, card editor and variant prompt UI; opened from the Learn controls.
 - `CreationScreen.jsx`: APKG import, Text/CSV/table paste import, manual creation, PDF/text document mode, Rich Text editing and AI draft creation panels.
-- `LearnScreen.jsx`: collapsible deck tree, subtree study entry points, direct row drag-and-drop reparenting, new/due/total counts and direct deck management buttons.
+- `LearnScreen.jsx`: collapsible deck tree, main/subdeck creation, subtree study entry points, direct row drag-and-drop reparenting, new/due/total counts and direct deck management buttons.
 - `StatisticsScreen.jsx`: performance statistics from local review events, including success rate, rating distribution, streaks, recent trend and deck-level weak spots.
 - `StudyMode.jsx`: fullscreen review, daily queue, new-card limit, shortcut handling, interval previews, grading, anchor display and variant feedback.
 - `GraphScreen.jsx`: deck graph generation and SVG projection.
 - `CommunityScreen.jsx`: local community creation, sharing and deck copy actions.
 - `AssistantScreen.jsx`: Chat-your-Deck and learning plan UI, opened from the Dashboard secondary action and not exposed as a main tab.
 - `AiJobsScreen.jsx`: local AI job ledger, currently not exposed as a main tab.
-- `SettingsScreen.jsx`: profile, local auth placeholders, privacy, global CoRe mode and data portability.
+- `SettingsScreen.jsx`: signed-in profile, sync status, manual sync, sign-out, privacy, global CoRe mode and data portability.
 
 ## Design Rules
 

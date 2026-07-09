@@ -23,6 +23,42 @@ export const CORE_DECK_SOURCES = [
 ];
 
 export const CORE_MODES = ["off", "auto", "manual"];
+export const DECK_ICON_KEYS = [
+  "book-open",
+  "folder",
+  "graduation-cap",
+  "notebook",
+  "pencil",
+  "pen-line",
+  "braces",
+  "terminal",
+  "music",
+  "gift",
+  "scissors",
+  "palette",
+  "stethoscope",
+  "asterisk",
+  "flower",
+  "briefcase",
+  "chart-column",
+  "circle",
+  "dumbbell",
+  "scale",
+  "microscope",
+  "plane",
+  "globe",
+  "wrench",
+  "flask",
+  "brain",
+  "heart",
+  "shopping-bag",
+  "badge-dollar",
+  "school",
+];
+export const DEFAULT_DECK_APPEARANCE = {
+  iconKey: "book-open",
+  iconColor: "#4f5eb1",
+};
 export const DECK_VISIBILITIES = ["private", "community", "unlisted", "public"];
 export const VARIANT_TRANSFORMS = ["original", "rephrase", "front_back_style_shift", "cloze_conversion"];
 export const VARIANT_STATUSES = ["draft", "active", "rejected", "flagged", "disabled"];
@@ -82,6 +118,18 @@ export function getMaturityBand(maturityXp = 0) {
   return MATURITY_BANDS.find((band) => maturityXp >= band.min && maturityXp <= band.max)?.id ?? "new";
 }
 
+const deckIconColorPattern = /^#[0-9a-f]{6}$/i;
+
+export function normalizeDeckAppearance(appearance = {}) {
+  const iconKey = DECK_ICON_KEYS.includes(appearance?.iconKey) ? appearance.iconKey : DEFAULT_DECK_APPEARANCE.iconKey;
+  const iconColor = String(appearance?.iconColor ?? "").trim();
+
+  return {
+    iconKey,
+    iconColor: deckIconColorPattern.test(iconColor) ? iconColor.toLowerCase() : DEFAULT_DECK_APPEARANCE.iconColor,
+  };
+}
+
 export function createDefaultDeckSettings(settings = {}) {
   const coreMode = CORE_MODES.includes(settings.coreMode) ? settings.coreMode : "auto";
   const newCardsPerDay = Number.isFinite(Number(settings.newCardsPerDay))
@@ -98,6 +146,7 @@ export function createDefaultDeckSettings(settings = {}) {
 
   return {
     coreMode,
+    appearance: normalizeDeckAppearance(settings.appearance),
     newCardsPerDay,
     newCardsTodayOverride,
     variantThresholdXp: Number.isFinite(settings.variantThresholdXp) ? settings.variantThresholdXp : 121,

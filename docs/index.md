@@ -25,6 +25,8 @@ Es gibt keine weitere `TODO.md`, `todo.md` oder `*-todo.md`-Datei im Repository.
 - `../.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag.
 - `../supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
 - `../supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
+- `../supabase/migrations/20260709074255_cloud_variant_schema_alignment.sql`: angewendete Schema-Abgleichsmigration fuer Cloud-Varianten, `json-import`-Quellen und entfernte `anon`-Grants.
+- `../supabase/migrations/20260709082140_account_scoped_primary_keys.sql`: angewendete Account-Isolationsmigration fuer `(user_id, id)` auf account-owned Tabellen.
 - `../supabase/verify_schema_v1.sql`: Verify-Queries fuer RLS- und Policy-Praesenz.
 
 ## Production Path Notes
@@ -36,6 +38,7 @@ Relevante Zielrichtungen:
 - Vercel fuer Hosting, Preview/Production, Domain und `/api/*` Functions.
 - Supabase Auth + Postgres + RLS als naheliegender Persistenzpfad.
 - Echte Tabellen fuer Decks, Learning Items, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs statt grossem Store-Blob.
+- Aktueller erster Online-Pfad: Pflichtlogin, Supabase E-Mail/Passwort, Profil-Upsert, accountgebundener Browser-Cache und Cloud-first Autosave ueber Tabellen.
 - Supabase Storage/Object Storage fuer APKG-Medien, Dokumente und grosse Uploads.
 - Eigene KI-Proxy-Routen fuer geheime Provider-Keys; Browser bekommt nur Drafts und nie Secrets.
 
@@ -47,6 +50,7 @@ Relevante Zielrichtungen:
 - `src/importService.js` buendelt Text-, CSV-, JSON- und Tabellen-Importe, Fingerprints, Dedupe und Parent-/Hierarchy-Felder hinter der Learning-Item-Creation-Pipeline.
 - `src/richText.js` und `src/htmlSafety.js` halten Rich-Text-Normalisierung und HTML-Sanitization aus Screens und Importpfaden heraus.
 - `src/libraryModel.js` erzeugt Dashboard-, Statistik-, Decklisten-, Heatmap- und KI-Job-Projektionen fuer die Screens.
+- `src/supabaseClient.js`, `src/cloudAuth.js`, `src/accountSession.js`, `src/accountStorage.js` und `src/cloudRepository.js` kapseln den konkreten Supabase-Pfad fuer Auth, Profile, Login-Gate-Zustand, accountgebundenen Cache und Cloud-Tabellenpersistenz.
 - `src/App.jsx` ist nur noch App-Shell fuer Workspace-State, Navigation und Routing; produktnahe UI liegt in `src/screens/`.
 - `src/screens/README.md` ist die Einstiegskarte fuer KI-Programmierung an Screens; geteilte UI-Bausteine liegen in `src/ui/`.
 - Sichtbare Features sollen bei Ueberarbeitungen erhalten bleiben und nur durch explizite Prompts entfernt werden.

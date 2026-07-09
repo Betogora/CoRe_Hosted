@@ -2,6 +2,7 @@ import React from "react";
 import { Activity, Bot, CalendarDays, ChevronLeft, ChevronRight, Layers } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.js";
 import { DonutValue, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
+import { DeckAppearanceIcon } from "../ui/deckAppearance.jsx";
 
 const heatmapToneByLevel = [
   "border-[#dfe5ec] bg-[#f3f6f8]",
@@ -16,10 +17,6 @@ function formatHeatmapDate(key) {
   return `${date}.${month}.${year}`;
 }
 
-function formatDecimal(value) {
-  return String(value).replace(".", ",");
-}
-
 function formatCardCount(count) {
   if (count === 1) return "1 Karte";
   return `${count} Karten`;
@@ -27,17 +24,17 @@ function formatCardCount(count) {
 
 function heatmapDayLabel(day) {
   const date = formatHeatmapDate(day.key);
+  if (day.isOutsideDisplayYear) return `${date}: außerhalb des Kalenderjahres`;
   if (day.isFuture) return `${date}: noch offen`;
   if (day.count === 0) return `${date}: keine Karten gelernt`;
   return `${date}: ${formatCardCount(day.count)} gelernt`;
 }
 
-function HeatmapMetric({ label, value, hint }) {
+function HeatmapMetric({ label, value }) {
   return (
     <div className="min-w-24">
       <p className="text-sm font-semibold text-[#66709a]">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-[#17214f]">{value}</p>
-      {hint ? <p className="mt-1 text-sm text-[#66709a]">{hint}</p> : null}
     </div>
   );
 }
@@ -85,7 +82,7 @@ function StudyHeatmap({ heatmap }) {
     () => createStudyHeatmapWindow(heatmap, { viewportWidth: heatmapViewportWidth, endWeekIndex: heatmapEndWeekIndex }),
     [heatmap, heatmapEndWeekIndex, heatmapViewportWidth],
   );
-  const gridColumns = `2.25rem repeat(${visibleHeatmap.weeks.length}, 1rem)`;
+  const gridColumns = `2.25rem repeat(${visibleHeatmap.weeks.length}, minmax(0, 1fr))`;
   const goToPreviousHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.previousEndWeekIndex);
   const goToNextHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.nextEndWeekIndex);
   const handleHeatmapKeyDown = (event) => {
@@ -101,19 +98,15 @@ function StudyHeatmap({ heatmap }) {
 
   return (
     <SoftPanel className="p-7">
-      <div className="flex flex-wrap items-start justify-start gap-x-10 gap-y-4">
+      <div className="flex flex-wrap items-start gap-x-10 gap-y-4">
         <div className="flex gap-4">
           <OrbIcon icon={Activity} className="bg-teal-50 text-teal-700" />
           <div>
             <h3 className="text-xl font-semibold text-[#17214f]">Lern-Heatmap</h3>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-start gap-x-5 gap-y-3">
-          <div className="grid grid-cols-2 gap-x-7 gap-y-4">
-            <HeatmapMetric label="Aktive Tage" value={visibleHeatmap.activeDays} />
-            <HeatmapMetric label="Ø aktiver Tag" value={formatDecimal(visibleHeatmap.averagePerActiveDay)} hint="Karten" />
-          </div>
-          <HeatmapLegend />
+        <HeatmapMetric label="Aktive Tage" value={visibleHeatmap.activeDays} />
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-3">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -136,6 +129,7 @@ function StudyHeatmap({ heatmap }) {
               <ChevronRight size={17} aria-hidden="true" />
             </button>
           </div>
+          <HeatmapLegend />
         </div>
       </div>
 
@@ -147,7 +141,7 @@ function StudyHeatmap({ heatmap }) {
         aria-label={`Lern-Heatmap-Ausschnitt von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}`}
       >
         <div
-          className="grid max-w-full gap-1"
+          className="grid w-full max-w-full gap-1"
           style={{ gridTemplateColumns: gridColumns }}
           role="img"
           aria-label={`Lern-Heatmap von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}`}
@@ -161,13 +155,13 @@ function StudyHeatmap({ heatmap }) {
 
           {visibleHeatmap.weekdayLabels.map((label, dayIndex) => (
             <React.Fragment key={label}>
-              <span className="flex h-4 items-center text-[0.68rem] font-semibold text-[#66709a]">{label}</span>
+              <span className="flex min-h-4 items-center text-[0.68rem] font-semibold text-[#66709a]">{label}</span>
               {visibleHeatmap.weeks.map((week, weekIndex) => {
                 const day = week[dayIndex];
                 return (
                   <span
                     key={`${weekIndex}-${day.key}`}
-                    className={`block h-4 w-4 rounded-[4px] border transition-transform hover:scale-110 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-[#17214f]/35 ring-offset-1" : ""} ${day.isFuture ? "opacity-35" : ""}`}
+                    className={`block aspect-square w-full rounded-[4px] border transition-transform hover:scale-110 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-[#17214f]/35 ring-offset-1" : ""} ${day.isFuture ? "opacity-35" : ""} ${day.isOutsideDisplayYear ? "opacity-20" : ""}`}
                     title={heatmapDayLabel(day)}
                     aria-label={heatmapDayLabel(day)}
                   />
@@ -230,7 +224,7 @@ export function DashboardScreen({ state, onNavigate, onStartDeck }) {
             const summary = row.summary;
             return (
               <div key={row.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#e3e7f5] bg-white/72 px-5 py-4">
-                <OrbIcon icon={Layers} className="size-10 bg-[#eef1fb] text-[#6672bf]" />
+                <DeckAppearanceIcon deck={row.deck} className="size-10 rounded-full bg-[#eef1fb]" iconSize={19} />
                 <div className="min-w-[12rem] flex-1">
                   <p className="truncate text-base font-semibold text-[#17214f]">{row.name}</p>
                   <p className="text-sm text-[#66709a]">

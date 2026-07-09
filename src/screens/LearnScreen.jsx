@@ -1,11 +1,15 @@
 import React from "react";
-import { BookOpen, ChevronDown, ChevronRight, Layers, PlusSquare, Settings } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderPlus, Layers, Palette, PlusSquare, Settings } from "lucide-react";
+import { DEFAULT_DECK_APPEARANCE, normalizeDeckAppearance } from "../coreModel.js";
 import { createDeckLibraryModel, createVisibleDeckRows } from "../libraryModel.js";
+import { ColorPopover, ColorToolButton, defaultTextColors, normalizeColor, textPaletteColors, useStoredColorSlots } from "../ui/colorPicker.jsx";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
+import { DeckAppearanceIcon, deckIconOptions } from "../ui/deckAppearance.jsx";
 
-const INTERACTIVE_DRAG_SELECTOR = "button, a, input, textarea, select, [role='menu'], [role='menuitem']";
+const INTERACTIVE_DRAG_SELECTOR = "button, a, input, textarea, select, [role='dialog'], [role='menu'], [role='menuitem']";
 const LEARN_TOP_LEVEL_GUTTER_PX = 28;
 const LEARN_DECK_GRID_COLUMNS = "md:grid-cols-[minmax(12rem,1fr)_6rem_6rem_6rem_8rem_3rem]";
+const DECK_ICON_COLOR_STORAGE_KEY = "core.deck.iconColors";
 const LEARN_GROUP_STYLES = [
   { backgroundColor: "#fbfcff", borderColor: "#edf1f7" },
   { backgroundColor: "#f8f9fc", borderColor: "#e8edf5" },
@@ -63,17 +67,60 @@ function createVisibleDeckTree(rows = []) {
   return roots;
 }
 
-export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onMoveDeck }) {
+function createDefaultDeckDraft(parentDeckId = "") {
+  return {
+    name: "",
+    parentDeckId,
+    iconKey: DEFAULT_DECK_APPEARANCE.iconKey,
+    iconColor: DEFAULT_DECK_APPEARANCE.iconColor,
+  };
+}
+
+export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDeckId = "", onDeckCreationHandled, onOpenCardCreation, onOpenDecks, onMoveDeck }) {
   const library = createDeckLibraryModel(decks);
   const [collapsedDeckIds, setCollapsedDeckIds] = React.useState(() => new Set());
   const [draggedDeckId, setDraggedDeckId] = React.useState(null);
   const [dropIntent, setDropIntent] = React.useState(null);
   const [dragStatus, setDragStatus] = React.useState("");
+  const [isDeckCreateOpen, setIsDeckCreateOpen] = React.useState(false);
+  const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft());
+  const [deckStatus, setDeckStatus] = React.useState("");
+  const [openAppearanceMenu, setOpenAppearanceMenu] = React.useState(null);
+  const [selectedIconColorSlot, setSelectedIconColorSlot] = React.useState(0);
+  const [iconColors, updateIconColorSlot] = useStoredColorSlots(DECK_ICON_COLOR_STORAGE_KEY, defaultTextColors);
   const draggedDeckIdRef = React.useRef(null);
   const lastDragEndAtRef = React.useRef(0);
+  const deckCreatePanelRef = React.useRef(null);
+  const deckIconMenuId = React.useId();
+  const deckColorMenuId = React.useId();
   const visibleRows = createVisibleDeckRows(library.rows, collapsedDeckIds);
   const visibleTree = React.useMemo(() => createVisibleDeckTree(visibleRows), [visibleRows]);
   const rowById = React.useMemo(() => new Map(library.rows.map((row) => [row.id, row])), [library.rows]);
+  const selectedIconOption = deckIconOptions.find((option) => option.key === deckDraft.iconKey) ?? deckIconOptions[0];
+
+  React.useEffect(() => {
+    if (!initialParentDeckId) return;
+    const parentDeck = decks.find((deck) => deck.id === initialParentDeckId);
+    if (!parentDeck) return;
+
+    setDeckDraft(createDefaultDeckDraft(parentDeck.id));
+    setIsDeckCreateOpen(true);
+    setDeckStatus(`Unterstapel unter "${parentDeck.name}" anlegen.`);
+    onDeckCreationHandled?.();
+  }, [decks, initialParentDeckId, onDeckCreationHandled]);
+
+  React.useEffect(() => {
+    if (!openAppearanceMenu || typeof document === "undefined") return undefined;
+
+    function closeAppearanceMenu(event) {
+      if (!deckCreatePanelRef.current?.contains(event.target)) {
+        setOpenAppearanceMenu(null);
+      }
+    }
+
+    document.addEventListener("mousedown", closeAppearanceMenu);
+    return () => document.removeEventListener("mousedown", closeAppearanceMenu);
+  }, [openAppearanceMenu]);
 
   function toggleCollapsed(deckId) {
     setCollapsedDeckIds((current) => {
@@ -86,6 +133,49 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
 
   function openDeckManagement(deckId) {
     onOpenDecks(deckId);
+  }
+
+  function updateDeckDraft(key, value) {
+    setDeckDraft((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateDeckAppearance(patch) {
+    setDeckDraft((current) => {
+      const appearance = normalizeDeckAppearance({
+        iconKey: current.iconKey,
+        iconColor: current.iconColor,
+        ...patch,
+      });
+
+      return {
+        ...current,
+        ...appearance,
+      };
+    });
+  }
+
+  function createDeckFromDraft(event) {
+    event.preventDefault();
+    const name = deckDraft.name.trim();
+    if (!name) {
+      setDeckStatus("Bitte gib einen Stapelnamen ein.");
+      return;
+    }
+
+    const created = onCreateDeck({
+      name,
+      parentDeckId: deckDraft.parentDeckId || null,
+      deckSettings: {
+        appearance: normalizeDeckAppearance({
+          iconKey: deckDraft.iconKey,
+          iconColor: deckDraft.iconColor,
+        }),
+      },
+    });
+    setDeckDraft(createDefaultDeckDraft(created.parentDeckId ?? ""));
+    setIsDeckCreateOpen(false);
+    setOpenAppearanceMenu(null);
+    setDeckStatus(created.parentDeckId ? `Unterstapel "${created.name}" angelegt.` : `Stapel "${created.name}" angelegt.`);
   }
 
   function readDraggedDeckId(event) {
@@ -248,9 +338,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
             ) : (
               <span className="size-8 shrink-0" aria-hidden="true" />
             )}
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]">
-              <BookOpen size={18} aria-hidden="true" />
-            </span>
+            <DeckAppearanceIcon deck={deck} className="size-10 rounded-xl bg-[#eef1fb]" />
             <span className="min-w-0">
               <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
               <span className="mt-1 block text-sm text-[#66709a] md:hidden">
@@ -296,15 +384,148 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
         title="Lernen"
       />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={() => onOpenDecks()} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
-          <Layers size={17} aria-hidden="true" />
-          Kartenstapel
-        </button>
-        <button type="button" onClick={onCreateDeck} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
-          <PlusSquare size={17} aria-hidden="true" />
-          Neue Karten
-        </button>
+      <div className="grid min-w-0 gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={() => onOpenDecks()} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
+            <Layers size={17} aria-hidden="true" />
+            Kartenstapel
+          </button>
+          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
+            <PlusSquare size={17} aria-hidden="true" />
+            Neue Karten
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsDeckCreateOpen((current) => !current);
+              setOpenAppearanceMenu(null);
+            }}
+            className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]"
+            aria-expanded={isDeckCreateOpen}
+            aria-controls="learn-deck-create-form"
+            data-testid="learn-deck-create-toggle"
+          >
+            <FolderPlus size={17} aria-hidden="true" />
+            Stapel anlegen
+          </button>
+        </div>
+        {isDeckCreateOpen ? (
+          <form
+            id="learn-deck-create-form"
+            ref={deckCreatePanelRef}
+            onSubmit={createDeckFromDraft}
+            className="core-overlay relative z-40 grid min-w-0 gap-3 rounded-2xl p-3 sm:grid-cols-[minmax(11rem,1fr)_minmax(11rem,1fr)_minmax(8rem,auto)_minmax(8rem,auto)_auto]"
+            data-testid="learn-deck-create-form"
+          >
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+            Stapelname
+            <input
+              className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-medium text-[#17214f] outline-none"
+              value={deckDraft.name}
+              onChange={(event) => updateDeckDraft("name", event.target.value)}
+              placeholder="z. B. Anatomie"
+              data-testid="learn-deck-name-input"
+            />
+          </label>
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+            Ebene
+            <select
+              className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-medium text-[#17214f]"
+              value={deckDraft.parentDeckId}
+              onChange={(event) => updateDeckDraft("parentDeckId", event.target.value)}
+              data-testid="learn-deck-parent-select"
+            >
+              <option value="">Als Hauptstapel</option>
+              {library.rows.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {"— ".repeat(row.depth)}{row.path}
+                </option>
+              ))}
+            </select>
+          </label>
+            <div className="relative grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <span>Icon</span>
+              <button
+                type="button"
+                className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-2 text-sm font-semibold text-[#17214f] transition hover:bg-[#f8f9fe]"
+                aria-haspopup="dialog"
+                aria-expanded={openAppearanceMenu === "icon"}
+                aria-controls={openAppearanceMenu === "icon" ? deckIconMenuId : undefined}
+                onClick={() => setOpenAppearanceMenu((current) => (current === "icon" ? null : "icon"))}
+                data-testid="learn-deck-icon-button"
+              >
+                <DeckAppearanceIcon appearance={deckDraft} className="size-8 rounded-lg bg-[#eef1fb]" iconSize={17} />
+                <span className="truncate">{selectedIconOption.label}</span>
+              </button>
+              {openAppearanceMenu === "icon" ? (
+                <div id={deckIconMenuId} role="dialog" aria-label="Icon auswählen" className="core-overlay absolute left-0 top-full z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl p-3">
+                  <div className="mb-3 flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-[#66709a]">
+                    <span>Icon</span>
+                    <DeckAppearanceIcon appearance={deckDraft} className="size-7 rounded-lg bg-[#eef1fb]" iconSize={15} />
+                  </div>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {deckIconOptions.map((option) => {
+                      const Icon = option.icon;
+                      const isSelected = option.key === deckDraft.iconKey;
+                      return (
+                        <button
+                          key={option.key}
+                          type="button"
+                          className={`grid size-9 place-items-center rounded-lg border bg-white transition hover:bg-[#f8f9fe] ${
+                            isSelected ? "border-[#4f5eb1] shadow-[0_0_0_2px_rgba(79,94,177,0.13)]" : "border-[#dfe4f5]"
+                          }`}
+                          title={option.label}
+                          aria-label={`Icon ${option.label}`}
+                          aria-pressed={isSelected}
+                          onClick={() => {
+                            updateDeckAppearance({ iconKey: option.key });
+                            setOpenAppearanceMenu(null);
+                          }}
+                        >
+                          <Icon size={18} color={deckDraft.iconColor} aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div className="relative grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <span>Iconfarbe</span>
+              <div className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-2">
+                <ColorToolButton
+                  label="Iconfarbe"
+                  icon={Palette}
+                  color={deckDraft.iconColor}
+                  isOpen={openAppearanceMenu === "color"}
+                  menuId={deckColorMenuId}
+                  onToggle={() => setOpenAppearanceMenu((current) => (current === "color" ? null : "color"))}
+                />
+                <span className="font-mono text-sm font-semibold uppercase text-[#17214f]">{deckDraft.iconColor}</span>
+              </div>
+              {openAppearanceMenu === "color" ? (
+                <ColorPopover
+                  id={deckColorMenuId}
+                  label="Iconfarbe"
+                  icon={Palette}
+                  colors={iconColors}
+                  paletteColors={textPaletteColors}
+                  selectedSlot={selectedIconColorSlot}
+                  onSelectSlot={setSelectedIconColorSlot}
+                  onApply={(color) => updateDeckAppearance({ iconColor: normalizeColor(color, DEFAULT_DECK_APPEARANCE.iconColor) })}
+                  onChangeSlot={updateIconColorSlot}
+                />
+              ) : null}
+            </div>
+            <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
+            <FolderPlus size={17} aria-hidden="true" />
+              Anlegen
+          </button>
+            {deckStatus ? <p className="text-sm font-semibold text-[#66709a] sm:col-span-5" role="status" aria-live="polite">{deckStatus}</p> : null}
+          </form>
+        ) : deckStatus ? (
+          <p className="text-sm font-semibold text-[#66709a]" role="status" aria-live="polite">{deckStatus}</p>
+        ) : null}
       </div>
 
       {decks.length === 0 ? (
@@ -313,7 +534,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, onOpenDecks, onM
           title="Keine Karten"
           body="Erstelle oder importiere zuerst einen Stapel."
           action={
-            <button type="button" onClick={onCreateDeck} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+            <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
               Erstellen <ChevronRight size={16} aria-hidden="true" />
             </button>
           }

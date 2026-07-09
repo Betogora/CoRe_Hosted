@@ -1,9 +1,19 @@
 import React from "react";
 import { BarChart3, BookOpen, Database, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
+import { authPhaseForSession, authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
+import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.js";
+import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
+import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.js";
+import { replaceAccountCloudState } from "./cloudRepository.js";
+import { createCoreRepository } from "./coreRepository.js";
 import { createCoreWorkspace } from "./coreWorkspace.js";
+import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.js";
 import { createMenuModel } from "./menuModel.js";
+import { createAccountSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.js";
+import { createSupabaseBrowserClient } from "./supabaseClient.js";
 import {
   AssistantScreen,
+  AuthGateScreen,
   CommunityScreen,
   CreationScreen,
   DashboardScreen,
@@ -14,8 +24,10 @@ import {
   StatisticsScreen,
   StudyMode,
 } from "./screens/index.js";
+import { OrbIcon, SoftPanel } from "./ui/coreUi.jsx";
 
 const menu = createMenuModel();
+const AUTOSAVE_DELAY_MS = 900;
 
 const iconByKey = {
   chart: BarChart3,
@@ -32,16 +44,498 @@ function getIcon(iconKey) {
   return iconByKey[iconKey] ?? Home;
 }
 
+function hasPasswordRecoveryIntent() {
+  if (typeof window === "undefined") return false;
+  const authUrl = `${window.location.search ?? ""} ${window.location.hash ?? ""}`;
+  return /type=recovery|password_recovery/i.test(authUrl);
+}
+
+function clearAuthRedirectParams() {
+  if (typeof window === "undefined" || !window.history?.replaceState) return;
+  const url = new URL(window.location.href);
+  url.hash = "";
+  url.searchParams.delete("code");
+  url.searchParams.delete("type");
+  url.searchParams.delete("error");
+  url.searchParams.delete("error_code");
+  url.searchParams.delete("error_description");
+  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
+}
+
+function LoadingScreen({ message = "CoRe wird geladen." }) {
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
+      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[#dce2f4] bg-white/52 px-5 py-10 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
+        <SoftPanel className="w-full max-w-md p-6">
+          <div className="flex items-center gap-3">
+            <OrbIcon icon={Database} />
+            <div>
+              <h1 className="text-2xl font-semibold text-[#17214f]">CoRe</h1>
+              <p className="mt-1 text-sm text-[#66709a]" role="status" aria-live="polite">
+                {message}
+              </p>
+            </div>
+          </div>
+        </SoftPanel>
+      </div>
+    </main>
+  );
+}
+
+function MigrationChoiceScreen({ legacyState, busy = false, message = "", onImport, onSkip }) {
+  const deckCount = legacyState?.decks?.length ?? 0;
+  const documentCount = legacyState?.documents?.length ?? 0;
+
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
+      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[#dce2f4] bg-white/52 px-5 py-10 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
+        <SoftPanel className="w-full max-w-xl p-6">
+          <div className="mb-6 flex items-center gap-3">
+            <OrbIcon icon={Database} />
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">Lokale Daten gefunden</p>
+              <h1 className="text-2xl font-semibold text-[#17214f]">Daten in diesen Account übernehmen?</h1>
+            </div>
+          </div>
+          <p className="text-sm leading-6 text-[#66709a]">
+            In diesem Browser liegen noch lokale CoRe-Daten: {deckCount} Stapel und {documentCount} Dokumente. Du kannst sie in deinen angemeldeten Account übernehmen oder mit einem leeren Cloud-Stand weiterarbeiten.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button type="button" onClick={onImport} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+              <Database size={17} aria-hidden="true" />
+              Lokale Daten übernehmen
+            </button>
+            <button type="button" onClick={onSkip} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
+              Leer starten
+            </button>
+          </div>
+          {message ? (
+            <p className="mt-4 text-sm text-red-700" role="alert">
+              {message}
+            </p>
+          ) : null}
+        </SoftPanel>
+      </div>
+    </main>
+  );
+}
+
 export function App() {
-  const workspace = React.useMemo(() => createCoreWorkspace(), []);
-  const [state, setState] = React.useState(() => workspace.getState());
+  const supabase = React.useMemo(() => createSupabaseBrowserClient(), []);
+  const syncEngine = React.useMemo(() => (supabase ? createAccountSyncEngine(supabase) : null), [supabase]);
+  const navigationItems = React.useMemo(() => menu.listNavigationItems(), []);
+  const bootRunRef = React.useRef(0);
+  const historyInitializedRef = React.useRef(false);
+  const currentRouteRef = React.useRef(createViewRoute(menu.defaultViewId));
+  const [authPhase, setAuthPhase] = React.useState("checking-session");
+  const [authBusy, setAuthBusy] = React.useState(false);
+  const [authMessage, setAuthMessage] = React.useState("");
+  const [authMessageType, setAuthMessageType] = React.useState("status");
+  const [migrationMessage, setMigrationMessage] = React.useState("");
+  const [workspace, setWorkspace] = React.useState(null);
+  const [state, setState] = React.useState(null);
+  const [cloudUser, setCloudUser] = React.useState(null);
+  const [legacyState, setLegacyState] = React.useState(null);
+  const [syncStatus, setSyncStatus] = React.useState(createSyncIdleStatus);
   const [activeView, setActiveView] = React.useState(menu.defaultViewId);
   const [studyRequest, setStudyRequest] = React.useState(null);
   const [focusedDeckId, setFocusedDeckId] = React.useState(null);
-  const navigationItems = menu.listNavigationItems();
+  const [deckCreationParentId, setDeckCreationParentId] = React.useState("");
+
+  function getValidDeckIds() {
+    return state?.decks?.map((deck) => deck.id) ?? [];
+  }
+
+  function applyRouteState(route) {
+    const normalized = normalizeAppRoute(route, { validDeckIds: getValidDeckIds() });
+    currentRouteRef.current = normalized;
+
+    if (normalized.mode === "study") {
+      const returnRoute = normalized.returnRoute ?? createViewRoute("lernen");
+      setActiveView(returnRoute.viewId);
+      setFocusedDeckId(returnRoute.viewId === "kartenstapel" ? (returnRoute.focusedDeckId ?? null) : null);
+      setDeckCreationParentId(returnRoute.viewId === "lernen" ? (returnRoute.deckCreationParentId ?? "") : "");
+      setStudyRequest({
+        deckId: normalized.deckId,
+        variantSession: normalized.variantSession,
+        returnRoute,
+      });
+      return normalized;
+    }
+
+    setStudyRequest(null);
+    setActiveView(normalized.viewId);
+    setFocusedDeckId(normalized.viewId === "kartenstapel" ? (normalized.focusedDeckId ?? null) : null);
+    setDeckCreationParentId(normalized.viewId === "lernen" ? (normalized.deckCreationParentId ?? "") : "");
+    return normalized;
+  }
+
+  function writeBrowserRoute(route, { replace = false, apply = true } = {}) {
+    const validDeckIds = getValidDeckIds();
+    const normalized = normalizeAppRoute(route, { validDeckIds });
+    const url = appRouteToUrl(normalized, { validDeckIds });
+
+    if (typeof window !== "undefined" && window.history?.pushState) {
+      const historyState = createAppHistoryState(normalized, { validDeckIds, currentState: window.history.state });
+      if (replace) {
+        window.history.replaceState(historyState, "", url);
+      } else {
+        window.history.pushState(historyState, "", url);
+      }
+    }
+
+    currentRouteRef.current = normalized;
+    if (apply) applyRouteState(normalized);
+    return normalized;
+  }
+
+  function navigateToRoute(route, { replace = false } = {}) {
+    const validDeckIds = getValidDeckIds();
+    const normalized = normalizeAppRoute(route, { validDeckIds });
+    const nextUrl = appRouteToUrl(normalized, { validDeckIds });
+    const currentUrl = typeof window === "undefined" ? "" : `${window.location.pathname}${window.location.search}`;
+
+    if (!replace && currentUrl === nextUrl && areAppRoutesEqual(currentRouteRef.current, normalized, { validDeckIds })) {
+      return applyRouteState(normalized);
+    }
+
+    return writeBrowserRoute(normalized, { replace });
+  }
+
+  function navigateToView(viewId, fields = {}, options = {}) {
+    return navigateToRoute(createViewRoute(viewId, fields, { validDeckIds: getValidDeckIds() }), options);
+  }
+
+  function getStudyReturnRoute() {
+    const currentRoute = currentRouteRef.current;
+    if (currentRoute?.mode === "view") return currentRoute;
+    return currentRoute?.returnRoute ?? createViewRoute("lernen");
+  }
+
+  function resetBrowserRouteToDefault() {
+    historyInitializedRef.current = false;
+    writeBrowserRoute(createViewRoute(menu.defaultViewId), { replace: true, apply: false });
+  }
+
+  async function bootAuthenticatedUser(user) {
+    const runId = bootRunRef.current + 1;
+    bootRunRef.current = runId;
+    historyInitializedRef.current = false;
+    setAuthPhase("loading-cloud");
+    setAuthMessage("");
+    setMigrationMessage("");
+
+    const accountStorage = createAccountStorage(user.id);
+    const nextWorkspace = createCoreWorkspace(createCoreRepository(accountStorage, { seedDefaultDecks: false }));
+    const fallbackState = nextWorkspace.getState();
+    const cloudState = await syncEngine.loadSnapshot(fallbackState);
+    const savedState = nextWorkspace.saveState(cloudState);
+
+    if (bootRunRef.current !== runId) return;
+
+    setWorkspace(nextWorkspace);
+    setState(savedState);
+    setCloudUser(user);
+    setStudyRequest(null);
+    setFocusedDeckId(null);
+    setDeckCreationParentId("");
+    setActiveView(menu.defaultViewId);
+    setSyncStatus(createSyncSavedStatus("Cloud geladen."));
+
+    const pendingLegacyState = readLegacyLocalState();
+    if (hasPendingLocalMigration(user.id) && pendingLegacyState) {
+      setLegacyState(pendingLegacyState);
+      setAuthPhase("migration-choice");
+      return;
+    }
+
+    setLegacyState(null);
+    setAuthPhase("ready");
+  }
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function loadSession() {
+      if (!supabase) {
+        setAuthPhase(authPhaseForSession({ configured: false, user: null }));
+        setAuthMessage("Supabase ist für diese Umgebung noch nicht konfiguriert.");
+        setAuthMessageType("alert");
+        return;
+      }
+
+      try {
+        const user = await getCloudUser(supabase);
+        if (cancelled) return;
+        if (!user) {
+          setAuthPhase(authPhaseForSession({ configured: true, user: null }));
+          return;
+        }
+        if (hasPasswordRecoveryIntent()) {
+          setCloudUser(user);
+          setWorkspace(null);
+          setState(null);
+          setAuthPhase(authPhases.passwordRecovery);
+          setAuthMessage("Bitte lege ein neues Passwort fest.");
+          setAuthMessageType("status");
+          return;
+        }
+        await bootAuthenticatedUser(user);
+      } catch (error) {
+        if (cancelled) return;
+        setAuthPhase("signed-out");
+        setAuthMessage(formatCloudAuthError(error, "Sitzung konnte nicht geladen werden."));
+        setAuthMessageType("alert");
+      }
+    }
+
+    loadSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
+
+  React.useEffect(() => {
+    if (!supabase?.auth?.onAuthStateChange) return undefined;
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "PASSWORD_RECOVERY" || !session?.user) return;
+      bootRunRef.current += 1;
+      historyInitializedRef.current = false;
+      setCloudUser(session.user);
+      setWorkspace(null);
+      setState(null);
+      setLegacyState(null);
+      setAuthPhase(authPhases.passwordRecovery);
+      setAuthMessage("Bitte lege ein neues Passwort fest.");
+      setAuthMessageType("status");
+    });
+
+    return () => {
+      data?.subscription?.unsubscribe?.();
+    };
+  }, [supabase]);
+
+  React.useEffect(() => {
+    if (!shouldShowAppShell(authPhase) || !state) {
+      if (authPhase !== "ready") historyInitializedRef.current = false;
+      return;
+    }
+    if (historyInitializedRef.current) return;
+
+    const validDeckIds = getValidDeckIds();
+    const route = parseAppRouteFromUrl(window.location.href, { validDeckIds });
+    const normalized = normalizeAppRoute(route, { validDeckIds });
+    historyInitializedRef.current = true;
+    writeBrowserRoute(normalized, { replace: true });
+  }, [authPhase, state]);
+
+  React.useEffect(() => {
+    if (!shouldShowAppShell(authPhase) || !state) return undefined;
+
+    function handlePopState(event) {
+      const validDeckIds = getValidDeckIds();
+      const route = readAppRouteFromHistoryState(event.state, { validDeckIds }) ?? parseAppRouteFromUrl(window.location.href, { validDeckIds });
+      applyRouteState(route);
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [authPhase, state]);
+
+  React.useEffect(() => {
+    if (authPhase !== "ready" || !syncEngine || !state) return undefined;
+
+    setSyncStatus((current) => (current.status === "saving" ? current : createSyncPendingStatus()));
+    let cancelled = false;
+    const snapshot = state;
+    const timer = window.setTimeout(async () => {
+      setSyncStatus(createSyncSavingStatus());
+      try {
+        syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
+        await syncEngine.flush();
+        if (!cancelled) setSyncStatus(createSyncSavedStatus());
+      } catch (error) {
+        if (!cancelled) setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Synchronisierung fehlgeschlagen.")));
+      }
+    }, AUTOSAVE_DELAY_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [authPhase, state, syncEngine]);
+
+  async function handleSignIn({ email, password }) {
+    if (!supabase) return;
+    setAuthBusy(true);
+    setAuthMessage("");
+    try {
+      await signInCloudAccount(supabase, { email }, password);
+      const user = await getCloudUser(supabase);
+      if (!user) throw new Error("Anmeldung konnte nicht bestätigt werden.");
+      await bootAuthenticatedUser(user);
+    } catch (error) {
+      setAuthPhase("signed-out");
+      setAuthMessage(formatCloudAuthError(error, "Anmeldung fehlgeschlagen."));
+      setAuthMessageType("alert");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleSignUp({ displayName, email, password }) {
+    if (!supabase) return;
+    setAuthBusy(true);
+    setAuthMessage("");
+    try {
+      const profile = await signUpCloudAccount(supabase, { displayName, email }, password);
+      if (profile.account?.status === "pending-email-confirmation") {
+        setAuthPhase("signed-out");
+        setAuthMessage("Account erstellt. Bitte bestätige deine E-Mail-Adresse und melde dich danach an.");
+        setAuthMessageType("status");
+        return;
+      }
+      const user = await getCloudUser(supabase);
+      if (!user) throw new Error("Account wurde erstellt, aber die Sitzung konnte nicht geladen werden.");
+      await bootAuthenticatedUser(user);
+    } catch (error) {
+      setAuthPhase("signed-out");
+      setAuthMessage(formatCloudAuthError(error, "Account konnte nicht erstellt werden."));
+      setAuthMessageType("alert");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleResetPassword({ email }) {
+    if (!supabase) return;
+    setAuthBusy(true);
+    setAuthMessage("");
+    try {
+      await resetCloudPassword(supabase, email);
+      setAuthMessage("Wenn diese E-Mail registriert ist, wurde ein Reset-Link verschickt.");
+      setAuthMessageType("status");
+    } catch (error) {
+      setAuthMessage(formatCloudAuthError(error, "Reset-Link konnte nicht gesendet werden."));
+      setAuthMessageType("alert");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleMagicLink({ email }) {
+    if (!supabase) return;
+    setAuthBusy(true);
+    setAuthMessage("");
+    try {
+      await signInWithMagicLink(supabase, email);
+      setAuthMessage("Wenn dieser Account existiert, wurde ein Magic Link verschickt.");
+      setAuthMessageType("status");
+    } catch (error) {
+      setAuthMessage(formatCloudAuthError(error, "Magic Link konnte nicht gesendet werden."));
+      setAuthMessageType("alert");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    if (!supabase) return;
+    setAuthBusy(true);
+    setAuthMessage("");
+    try {
+      await signInWithGoogle(supabase);
+      setAuthMessage("Weiterleitung zu Google wird geöffnet.");
+      setAuthMessageType("status");
+    } catch (error) {
+      setAuthMessage(formatCloudAuthError(error, "Google-Anmeldung konnte nicht gestartet werden."));
+      setAuthMessageType("alert");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleUpdatePassword({ password, passwordRepeat }) {
+    if (!supabase) return;
+    setAuthBusy(true);
+    setAuthMessage("");
+    try {
+      if (password !== passwordRepeat) throw new Error("Die Passwörter stimmen nicht überein.");
+      await updateCloudPassword(supabase, password);
+      clearAuthRedirectParams();
+      const user = (await getCloudUser(supabase)) ?? cloudUser;
+      if (!user) throw new Error("Passwort wurde gespeichert, aber die Sitzung konnte nicht geladen werden.");
+      setAuthMessage("Passwort aktualisiert.");
+      setAuthMessageType("status");
+      await bootAuthenticatedUser(user);
+    } catch (error) {
+      setAuthPhase(authPhases.passwordRecovery);
+      setAuthMessage(formatCloudAuthError(error, "Passwort konnte nicht gespeichert werden."));
+      setAuthMessageType("alert");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function importLegacyLocalState() {
+    if (!workspace || !state || !cloudUser || !legacyState) return;
+    setAuthBusy(true);
+    setMigrationMessage("");
+    try {
+      const nextState = mergePortableExportIntoState(state, createPortableExport(legacyState));
+      const savedState = workspace.saveState(nextState);
+      setState(savedState);
+      await replaceAccountCloudState(supabase, savedState);
+      markLocalMigrationHandled(cloudUser.id, "imported");
+      setLegacyState(null);
+      setSyncStatus(createSyncSavedStatus("Lokale Daten übernommen und synchronisiert."));
+      setAuthPhase("ready");
+    } catch (error) {
+      setMigrationMessage(error instanceof Error ? error.message : "Lokale Daten konnten nicht übernommen werden.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  function skipLegacyLocalState() {
+    if (cloudUser) markLocalMigrationHandled(cloudUser.id, "skipped");
+    setLegacyState(null);
+    setAuthPhase("ready");
+  }
+
+  async function syncNow() {
+    if (!syncEngine || !state) return;
+    setSyncStatus(createSyncSavingStatus());
+    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state } });
+    await syncEngine.flush();
+    setSyncStatus(createSyncSavedStatus());
+  }
+
+  async function signOut() {
+    if (supabase && state?.profile) {
+      await signOutCloudAccount(supabase, state.profile);
+    }
+    bootRunRef.current += 1;
+    resetBrowserRouteToDefault();
+    setWorkspace(null);
+    setState(null);
+    setCloudUser(null);
+    setLegacyState(null);
+    setStudyRequest(null);
+    setFocusedDeckId(null);
+    setDeckCreationParentId("");
+    setActiveView(menu.defaultViewId);
+    setSyncStatus(createSyncIdleStatus());
+    setAuthPhase("signed-out");
+    setAuthMessage("Du bist abgemeldet.");
+    setAuthMessageType("status");
+  }
 
   function refresh() {
-    setState(workspace.getState());
+    if (!workspace) return null;
+    const nextState = workspace.getState();
+    setState(nextState);
+    return nextState;
   }
 
   function saveDeck(deck) {
@@ -53,6 +547,7 @@ export function App() {
   function createDeck(input) {
     const saved = workspace.createDeck(input);
     setFocusedDeckId(saved.id);
+    setDeckCreationParentId("");
     refresh();
     return saved;
   }
@@ -156,12 +651,15 @@ export function App() {
   }
 
   function startDeck(deck, variantSession = false) {
-    setStudyRequest({ deckId: deck.id, variantSession });
+    navigateToRoute(createStudyRoute(deck.id, { variantSession, returnRoute: getStudyReturnRoute() }, { validDeckIds: getValidDeckIds() }));
   }
 
   function openDecks(deckId = null) {
-    setFocusedDeckId(deckId);
-    setActiveView("kartenstapel");
+    navigateToView("kartenstapel", { focusedDeckId: deckId || null });
+  }
+
+  function openDeckCreation(parentDeckId = "") {
+    navigateToView("lernen", { deckCreationParentId: parentDeckId || "" });
   }
 
   function updateAllDecks(updater) {
@@ -170,19 +668,14 @@ export function App() {
   }
 
   function openGraph(deck) {
-    setActiveView("graph");
+    navigateToView("graph");
     workspace.ensureDeckGraph(deck.id);
     refresh();
   }
 
   function shareDeck(deck) {
-    setActiveView("community");
+    navigateToView("community");
     workspace.shareDeckToDefaultCommunity(deck.id);
-    refresh();
-  }
-
-  function createDemoDeck() {
-    workspace.createDemoDeck();
     refresh();
   }
 
@@ -198,10 +691,10 @@ export function App() {
           onApplyVariantJson={applyVariantJson}
           onStartDeck={startDeck}
           initialSelectedDeckId={focusedDeckId}
-          onCreateDeck={createDeck}
           onDeleteDeck={deleteDeck}
           onRenameDeck={renameDeck}
-          onOpenCardCreation={() => setActiveView("neue-karten")}
+          onOpenCardCreation={() => navigateToView("neue-karten")}
+          onPrepareSubdeckCreation={openDeckCreation}
           onOpenGraph={openGraph}
           onShareDeck={shareDeck}
         />
@@ -211,10 +704,21 @@ export function App() {
       return <CreationScreen decks={state.decks} onCreated={saveDeck} onAppendManualCard={addManualCardToDeck} onJob={saveJob} />;
     }
     if (activeView === "lernen") {
-      return <LearnScreen decks={state.decks} onStartDeck={startDeck} onCreateDeck={() => setActiveView("neue-karten")} onOpenDecks={openDecks} onMoveDeck={moveDeck} />;
+      return (
+        <LearnScreen
+          decks={state.decks}
+          onStartDeck={startDeck}
+          onCreateDeck={createDeck}
+          initialParentDeckId={deckCreationParentId}
+          onDeckCreationHandled={() => setDeckCreationParentId("")}
+          onOpenCardCreation={() => navigateToView("neue-karten")}
+          onOpenDecks={openDecks}
+          onMoveDeck={moveDeck}
+        />
+      );
     }
     if (activeView === "statistik") {
-      return <StatisticsScreen decks={state.decks} onNavigate={setActiveView} />;
+      return <StatisticsScreen decks={state.decks} onNavigate={navigateToView} />;
     }
     if (activeView === "graph") {
       return <GraphScreen decks={state.decks} onUpdateDeck={updateDeck} />;
@@ -226,9 +730,55 @@ export function App() {
       return <AssistantScreen decks={state.decks} transcript={state.chatTranscript} plans={state.learningPlans} onSaveChat={saveChat} onSavePlan={savePlan} />;
     }
     if (activeView === "einstellungen") {
-      return <SettingsScreen appState={state} profile={state.profile} decks={state.decks} onSaveProfile={saveProfile} onUpdateAllDecks={updateAllDecks} onSaveState={saveState} />;
+      return (
+        <SettingsScreen
+          appState={state}
+          profile={state.profile}
+          decks={state.decks}
+          syncStatus={syncStatus}
+          onSaveProfile={saveProfile}
+          onUpdateAllDecks={updateAllDecks}
+          onSaveState={saveState}
+          onSyncNow={syncNow}
+          onSignOut={signOut}
+        />
+      );
     }
-    return <DashboardScreen state={state} onSaveProfile={saveProfile} onNavigate={setActiveView} onStartDeck={startDeck} />;
+    return <DashboardScreen state={state} onSaveProfile={saveProfile} onNavigate={navigateToView} onStartDeck={startDeck} />;
+  }
+
+  if (authPhase === "checking-session") {
+    return <LoadingScreen message="Sitzung wird geprüft." />;
+  }
+
+  if (authPhase === "loading-cloud") {
+    return <LoadingScreen message="Deine Cloud-Daten werden geladen." />;
+  }
+
+  if (shouldShowAuthGate(authPhase)) {
+    return (
+      <AuthGateScreen
+        configured={Boolean(supabase)}
+        recoveryMode={authPhase === authPhases.passwordRecovery}
+        busy={authBusy}
+        message={authMessage}
+        messageType={authMessageType}
+        onSignIn={handleSignIn}
+        onSignUp={handleSignUp}
+        onResetPassword={handleResetPassword}
+        onMagicLink={handleMagicLink}
+        onGoogleSignIn={handleGoogleSignIn}
+        onUpdatePassword={handleUpdatePassword}
+      />
+    );
+  }
+
+  if (authPhase === "migration-choice") {
+    return <MigrationChoiceScreen legacyState={legacyState} busy={authBusy} message={migrationMessage} onImport={importLegacyLocalState} onSkip={skipLegacyLocalState} />;
+  }
+
+  if (!shouldShowAppShell(authPhase) || !workspace || !state) {
+    return <LoadingScreen />;
   }
 
   const studyDeck = studyRequest ? state.decks.find((deck) => deck.id === studyRequest.deckId) : null;
@@ -240,8 +790,8 @@ export function App() {
         deckId={studyDeck.id}
         variantSession={studyRequest.variantSession}
         onExit={() => {
-          setStudyRequest(null);
           refresh();
+          navigateToRoute(studyRequest.returnRoute ?? createViewRoute("lernen"), { replace: true });
         }}
         onDeckUpdated={saveDeck}
       />
@@ -258,7 +808,7 @@ export function App() {
               <p className="mt-2 text-base text-[#66709a]">Content Repetition</p>
             </div>
 
-            <nav aria-label="Hauptmenue" className="mt-12 grid max-w-[14rem] gap-2 md:mt-10 md:max-w-none">
+            <nav aria-label="Hauptmenü" className="mt-12 grid max-w-[14rem] gap-2 md:mt-10 md:max-w-none">
               {navigationItems.map((view) => {
                 const NavIcon = getIcon(view.iconKey);
                 const isActive = view.id === activeView;
@@ -267,7 +817,7 @@ export function App() {
                   <button
                     key={view.id}
                     type="button"
-                    onClick={() => setActiveView(view.id)}
+                    onClick={() => navigateToView(view.id)}
                     className={`flex min-h-12 w-full max-w-[14rem] items-center gap-2.5 rounded-xl px-3 text-left text-base font-medium transition md:max-w-none ${
                       isActive ? "bg-[#e9ecfb] text-[#24327a] shadow-sm" : "text-[#4f5a86] hover:bg-white/70 hover:text-[#17214f]"
                     }`}
@@ -280,26 +830,17 @@ export function App() {
               })}
             </nav>
 
-            <div className="mt-6 grid gap-2">
-              {state.decks.length === 0 ? (
-                <button type="button" onClick={createDemoDeck} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#eef1fb] px-3 text-sm font-semibold text-[#4f5eb1]">
-                  <Database size={15} aria-hidden="true" />
-                  Demo-Stapel
-                </button>
-              ) : null}
-            </div>
-
             <div className="mt-auto border-t border-[#dce2f4] pt-6">
               <button
                 type="button"
-                onClick={() => setActiveView("einstellungen")}
+                onClick={() => navigateToView("einstellungen")}
                 className={`flex min-h-12 w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left transition ${
                   activeView === "einstellungen" ? "bg-[#e9ecfb] text-[#24327a] shadow-sm" : "text-[#24327a] hover:bg-white/70"
                 }`}
-                aria-label="Einstellungen oeffnen"
+                aria-label="Einstellungen öffnen"
                 aria-current={activeView === "einstellungen" ? "page" : undefined}
               >
-                <span className="grid size-10 place-items-center rounded-full bg-[#dfe4fb] text-sm font-semibold">{(state.profile.displayName || "NC").slice(0, 2).toUpperCase()}</span>
+                <span className="grid size-10 place-items-center rounded-full bg-[#dfe4fb] text-sm font-semibold">{(state.profile.displayName || "CO").slice(0, 2).toUpperCase()}</span>
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]">
                   <Settings size={18} aria-hidden="true" />
                 </span>

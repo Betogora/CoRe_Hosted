@@ -169,7 +169,14 @@ export function createCoreRepository(storage = null, options = {}) {
     updateDeckSettings(deckId, settings) {
       return this.updateDeck(deckId, (deck) => ({
         ...deck,
-        deckSettings: createDefaultDeckSettings({ ...deck.deckSettings, ...settings }),
+        deckSettings: createDefaultDeckSettings({
+          ...deck.deckSettings,
+          ...settings,
+          appearance: {
+            ...(deck.deckSettings?.appearance ?? {}),
+            ...(settings.appearance ?? {}),
+          },
+        }),
       }));
     },
     getProfile() {

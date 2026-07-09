@@ -8,4 +8,5 @@ export { GraphScreen } from "./GraphScreen.jsx";
 export { CommunityScreen } from "./CommunityScreen.jsx";
 export { AssistantScreen } from "./AssistantScreen.jsx";
 export { AiJobsScreen } from "./AiJobsScreen.jsx";
+export { AuthGateScreen } from "./AuthGateScreen.jsx";
 export { SettingsScreen } from "./SettingsScreen.jsx";

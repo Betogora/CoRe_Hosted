@@ -1,13 +1,13 @@
 import React from "react";
-import { Database, GraduationCap, Languages, Lock, Save, ShieldCheck, Upload, User, X } from "lucide-react";
-import { connectOAuthPlaceholder, createLocalAccount, signInLocalAccount, signOutLocalAccount } from "../authModel.js";
+import { Database, GraduationCap, Languages, Lock, RefreshCw, Save, Upload, User, X } from "lucide-react";
+import { formatSyncStatusText } from "../accountSession.js";
 import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport, validatePortableExport } from "../dataPortability.js";
 import { CoreModeControl, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
 
-export function SettingsScreen({ appState, profile, decks, onSaveProfile, onUpdateAllDecks, onSaveState }) {
+export function SettingsScreen({ appState, profile, decks, syncStatus, onSaveProfile, onUpdateAllDecks, onSaveState, onSyncNow, onSignOut }) {
   const [form, setForm] = React.useState(profile);
-  const [password, setPassword] = React.useState("");
   const [accountMessage, setAccountMessage] = React.useState("");
+  const [accountBusy, setAccountBusy] = React.useState(false);
   const [exportText, setExportText] = React.useState("");
   const [importText, setImportText] = React.useState("");
   const [portabilityMessage, setPortabilityMessage] = React.useState("");
@@ -27,42 +27,34 @@ export function SettingsScreen({ appState, profile, decks, onSaveProfile, onUpda
 
   function save() {
     onSaveProfile(form);
+    setAccountMessage("Profil gespeichert. Die Cloud-Synchronisierung läuft automatisch.");
   }
 
   function setAllMode(coreMode) {
     onUpdateAllDecks((deck) => ({ ...deck, deckSettings: { ...deck.deckSettings, coreMode } }));
   }
 
-  function createAccount() {
+  async function syncNow() {
+    setAccountBusy(true);
     try {
-      const nextProfile = createLocalAccount({ ...form, password });
-      onSaveProfile(nextProfile);
-      setPassword("");
-      setAccountMessage("Lokaler Account erstellt und angemeldet.");
+      await onSyncNow?.();
+      setAccountMessage("Synchronisierung abgeschlossen.");
     } catch (error) {
-      setAccountMessage(error instanceof Error ? error.message : "Account konnte nicht erstellt werden.");
+      setAccountMessage(error instanceof Error ? error.message : "Synchronisierung fehlgeschlagen.");
+    } finally {
+      setAccountBusy(false);
     }
   }
 
-  function signIn() {
+  async function signOut() {
+    setAccountBusy(true);
     try {
-      const nextProfile = signInLocalAccount(profile, { email: form.email, password });
-      onSaveProfile(nextProfile);
-      setPassword("");
-      setAccountMessage("Lokale Anmeldung erfolgreich.");
+      await onSignOut?.();
     } catch (error) {
-      setAccountMessage(error instanceof Error ? error.message : "Anmeldung fehlgeschlagen.");
+      setAccountMessage(error instanceof Error ? error.message : "Abmeldung fehlgeschlagen.");
+    } finally {
+      setAccountBusy(false);
     }
-  }
-
-  function signOut() {
-    onSaveProfile(signOutLocalAccount(profile));
-    setAccountMessage("Abgemeldet.");
-  }
-
-  function connectProvider(provider) {
-    onSaveProfile(connectOAuthPlaceholder(profile, provider));
-    setAccountMessage(`${provider} als OAuth-Platzhalter verbunden.`);
   }
 
   function prepareExport() {
@@ -85,7 +77,7 @@ export function SettingsScreen({ appState, profile, decks, onSaveProfile, onUpda
       onSaveState(nextState);
       setImportText("");
       setPortabilityMessageType("status");
-      setPortabilityMessage("Export validiert und in die lokale Bibliothek gemergt.");
+      setPortabilityMessage("Export validiert und in deine Bibliothek übernommen.");
     } catch (error) {
       setPortabilityMessageType("alert");
       setPortabilityMessage(error instanceof Error ? error.message : "Import konnte nicht gelesen werden.");
@@ -128,38 +120,28 @@ export function SettingsScreen({ appState, profile, decks, onSaveProfile, onUpda
               </span>
             </label>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto_auto]">
-            <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-              Lokales Passwort
-              <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
-            </label>
-            <button type="button" onClick={createAccount} className="mt-auto inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white">
-              <User size={17} aria-hidden="true" />
-              Account erstellen
-            </button>
-            <button type="button" onClick={signIn} className="mt-auto inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1]">
-              <ShieldCheck size={17} aria-hidden="true" />
-              Anmelden
-            </button>
-          </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button type="button" onClick={save} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1]">
+            <button type="button" onClick={save} disabled={accountBusy} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
               <Save size={16} aria-hidden="true" />
               Profil speichern
             </button>
-            <button type="button" onClick={() => connectProvider("oauth-demo")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1]">
-              <Lock size={16} aria-hidden="true" />
-              OAuth-Platzhalter
+            <button type="button" onClick={syncNow} disabled={accountBusy || syncStatus?.status === "saving"} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
+              <RefreshCw size={16} aria-hidden="true" />
+              Jetzt synchronisieren
             </button>
-            <button type="button" onClick={signOut} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700">
+            <button type="button" onClick={signOut} disabled={accountBusy} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 disabled:text-slate-400">
               <X size={16} aria-hidden="true" />
               Abmelden
             </button>
           </div>
-          <p className="mt-3 text-sm text-[#66709a]">
-            Status: {profile.account?.status ?? "lokales Profil"} {profile.account?.authProvider ? `· ${profile.account.authProvider}` : ""}
+          <p className={`mt-3 text-sm ${syncStatus?.status === "error" ? "text-red-700" : "text-[#66709a]"}`} role={syncStatus?.status === "error" ? "alert" : "status"} aria-live="polite">
+            {formatSyncStatusText(syncStatus)}
           </p>
-          {accountMessage ? <p className="mt-2 text-sm text-[#66709a]" role="status" aria-live="polite">{accountMessage}</p> : null}
+          {accountMessage ? (
+            <p className="mt-2 text-sm text-[#66709a]" role="status" aria-live="polite">
+              {accountMessage}
+            </p>
+          ) : null}
         </SoftPanel>
 
         <SoftPanel className="p-6">

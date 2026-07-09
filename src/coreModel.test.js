@@ -1,6 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { acceptAiDraftDeck, createAiDraftDeck, createManualCoreDeck, getOriginalVariant, normalizeCoreDeck, updateCardContent } from "./coreModel.js";
+import { acceptAiDraftDeck, createAiDraftDeck, createDefaultDeckSettings, createManualCoreDeck, getOriginalVariant, normalizeCoreDeck, updateCardContent } from "./coreModel.js";
+
+test("deck settings normalize appearance defaults and fallbacks", () => {
+  const defaults = createDefaultDeckSettings();
+  const custom = createDefaultDeckSettings({
+    appearance: {
+      iconKey: "brain",
+      iconColor: "#ABCDEF",
+    },
+  });
+  const fallback = createDefaultDeckSettings({
+    appearance: {
+      iconKey: "unknown",
+      iconColor: "blue",
+    },
+  });
+
+  assert.deepEqual(defaults.appearance, { iconKey: "book-open", iconColor: "#4f5eb1" });
+  assert.deepEqual(custom.appearance, { iconKey: "brain", iconColor: "#abcdef" });
+  assert.deepEqual(fallback.appearance, defaults.appearance);
+});
 
 test("creates manual cards as immutable accepted originals", () => {
   const deck = createManualCoreDeck({

@@ -2,7 +2,7 @@
 
 CoRe ist ein lokaler Web-MVP fuer eine Lernplattform, die klassische Spaced-Repetition-Karten um inhaltliche Wiederholung erweitert. Das Ziel ist, Kartenblindheit zu reduzieren: Lernende sollen nicht nur Layout, Wortlaut oder Lueckenposition wiedererkennen, sondern den Inhalt auch bei veraenderter Fragestellung abrufen koennen.
 
-Der aktuelle Stand ist bewusst ein breiter lokaler Prototyp. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind initial angebunden, aber CoRe ist noch kein fertiges gehostetes Mehrnutzerprodukt. App-State, Profile, Decks, Jobs, Community-Daten und Lernplaene liegen weiterhin lokal im Browser-Storage.
+Der aktuelle Stand ist ein breiter Web-MVP. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind angebunden, und es gibt Pflichtlogin, Supabase-E-Mail/Passwort, accountgebundenen Browser-Cache und Cloud-first Autosave ueber Tabellen. CoRe ist aber noch kein fertiges gehostetes Mehrnutzerprodukt: Offline-Konfliktloesung, produktive Medienablage, Serverjobs sowie Betriebsablaeufe fehlen noch.
 
 Die gepflegte Projektdokumentation liegt im Ordner `docs/`. Es gibt genau eine TODO-Markdown-Datei: `docs/todo.md`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
 
@@ -26,7 +26,8 @@ Die gepflegte Projektdokumentation liegt im Ordner `docs/`. Es gibt genau eine T
 - React 19
 - Tailwind CSS
 - Node.js `node:test` fuer Modultests
-- Lokale Browser-Persistenz ueber `localStorage`
+- Accountgebundener Browser-Cache ueber `localStorage`
+- Supabase Auth/Postgres fuer Account-, Profil- und Cloud-first Datenpfad
 
 ## Lokaler Start
 
@@ -57,6 +58,11 @@ src/
   ui/                     Geteilte Praesentationsbausteine und Medien-HTML
   coreModel.js            Zentrales Deck-, Karten-, Varianten- und Review-Datenmodell
   coreRepository.js       Lokale Persistenz und State-Normalisierung
+  accountSession.js       Auth-Phasen, Login-Gate-Entscheidung und Sync-Statusmeldungen
+  accountStorage.js       Accountgebundene Browser-Cache-Keys und Legacy-Importmarkierung
+  supabaseClient.js       Supabase Browser-Client aus oeffentlichen Vite-Env-Variablen
+  cloudAuth.js            Supabase Auth/Profile-Kommandos
+  cloudRepository.js      Accountgefiltertes Laden/Speichern ueber Supabase-Tabellen
   coreWorkspace.js        App-Kommandos und Demo-Daten
   fixtures/               Lokale Seed-/Fixture-Daten
   creationWorkflow.js     Creation-/Import-Orchestrierung fuer APKG, Paste, manuell und KI-Drafts
@@ -91,15 +97,17 @@ src/
 - `.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag.
 - `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker fuer den spaeteren Produktivpfad.
 - `supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
+- `supabase/migrations/20260709074255_cloud_variant_schema_alignment.sql`: angewendete Schema-Abgleichsmigration fuer Cloud-Varianten, `json-import`-Quellen und entfernte `anon`-Grants.
+- `supabase/migrations/20260709082140_account_scoped_primary_keys.sql`: angewendete Account-Isolationsmigration fuer zusammengesetzte Primary Keys `(user_id, id)`.
 - `supabase/verify_schema_v1.sql`: RLS-/Policy-Verifikation fuer das Supabase-Schema.
 
 ## Aktueller Status
 
-CoRe laeuft lokal als Vite/React-App und hat einen initialen Vercel-/Supabase-Infrastrukturpfad. Es gibt noch keine ausgereifte Deployment-Pipeline, keine eigene Domain, keine App-Persistenz ueber Supabase, keine echte Registrierung, keinen Sync zwischen Geraeten und keine externen LLM-Provider. Die vorhandenen Module sind darauf ausgelegt, diese Adapter spaeter gezielt zu ergaenzen, sobald Persistenz, Auth, KI-Provider und Job-Infrastruktur ausgebaut werden.
+CoRe laeuft lokal als Vite/React-App und hat einen initialen Vercel-/Supabase-Infrastrukturpfad. Pflichtlogin, E-Mail/Passwort-Auth, Profil-Upsert, accountgebundener Cache und Cloud-first Autosave sind vorhanden. Es gibt noch keine ausgereifte Deployment-Pipeline, keine eigene Domain, keine Offline-Konfliktloesung zwischen Geraeten und keine externen LLM-Provider.
 
 ## Naechste sinnvolle Schritte
 
-- `supabase/core_schema_v1.sql` gegen `coreModel`, `importService`, `mediaStore`, `reviewService`, `aiOrchestrator` und `dataPortability` abgleichen.
-- Persistenznaht in `createCoreRepository()` und `createCoreWorkspace()` fuer den spaeteren Supabase-Pfad schaerfen.
+- Cloud-first Autosave zu einer Offline-Strategie weiterentwickeln: Konfliktmodell, Queue, Merge-Regeln und Medien-Storage.
+- `supabase/core_schema_v1.sql` weiter gegen Medien-/Storage-Referenzen, Importdetails und Community-Rechte abgleichen.
 - APKG-/Medienfixtures und Importidentitaeten gemaess `docs/anki-format-analysis.md` ausbauen.
 - Server-KI-Proxy, Job-Queue, Prompt-Versionierung, Kostenlogging und Rate-Limits planen, bevor echte Provider angebunden werden.
