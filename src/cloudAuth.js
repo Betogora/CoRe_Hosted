@@ -28,7 +28,13 @@ function accountFromUser(user, status = "signed-in", timestamp = nowIso()) {
 }
 
 function isSessionMissing(error) {
-  return SESSION_MISSING_CODES.has(error?.name) || SESSION_MISSING_CODES.has(error?.code) || /session/i.test(error?.message ?? "");
+  const message = String(error?.message ?? "").toLowerCase();
+  return (
+    SESSION_MISSING_CODES.has(error?.name) ||
+    SESSION_MISSING_CODES.has(error?.code) ||
+    message.includes("auth session missing") ||
+    message.includes("session not found")
+  );
 }
 
 export function formatCloudAuthError(error, fallback = "Aktion konnte nicht abgeschlossen werden.") {
@@ -36,6 +42,23 @@ export function formatCloudAuthError(error, fallback = "Aktion konnte nicht abge
   const message = String(error?.message ?? "").toLowerCase();
   const combined = `${code} ${message}`;
 
+  if (
+    combined.includes("session_expired") ||
+    combined.includes("session expired") ||
+    combined.includes("refresh_token_not_found") ||
+    combined.includes("invalid refresh token")
+  ) {
+    return "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.";
+  }
+  if (
+    combined.includes("failed to fetch") ||
+    combined.includes("fetch failed") ||
+    combined.includes("networkerror") ||
+    combined.includes("network request failed") ||
+    combined.includes("err_network")
+  ) {
+    return "Supabase ist momentan nicht erreichbar. Prüfe deine Internetverbindung und versuche es erneut.";
+  }
   if (message.includes("invalid login credentials")) return "E-Mail oder Passwort stimmt nicht.";
   if (combined.includes("email rate limit") || (combined.includes("rate limit") && combined.includes("email"))) {
     return "Supabase hat gerade zu viele Auth-E-Mails versendet. Bitte warte kurz oder richte einen eigenen SMTP-Versand ein.";

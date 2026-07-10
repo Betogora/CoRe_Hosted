@@ -2,9 +2,11 @@ import React from "react";
 import { Database, GraduationCap, Languages, Lock, RefreshCw, Save, Upload, User, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.js";
 import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport, validatePortableExport } from "../dataPortability.js";
-import { CoreModeControl, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
+import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.jsx";
+import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
+import { ReleaseInfo } from "../ui/ReleaseInfo.jsx";
 
-export function SettingsScreen({ appState, profile, decks, syncStatus, onSaveProfile, onUpdateAllDecks, onSaveState, onSyncNow, onSignOut }) {
+export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onSignOut }) {
   const [form, setForm] = React.useState(profile);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
@@ -28,10 +30,6 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, onSavePro
   function save() {
     onSaveProfile(form);
     setAccountMessage("Profil gespeichert. Die Cloud-Synchronisierung läuft automatisch.");
-  }
-
-  function setAllMode(coreMode) {
-    onUpdateAllDecks((deck) => ({ ...deck, deckSettings: { ...deck.deckSettings, coreMode } }));
   }
 
   async function syncNow() {
@@ -161,13 +159,16 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, onSavePro
               </label>
             ))}
           </div>
-          <div className="mt-6">
-            <p className="mb-2 text-sm font-semibold text-[#4e5b8c]">CoRe-Modus für alle Stapel</p>
-            <CoreModeControl value="auto" onChange={setAllMode} />
-            <p className="mt-3 text-sm text-[#66709a]">{decks.length} Stapel betroffen.</p>
-          </div>
         </SoftPanel>
       </div>
+      <LearningSettingsPanel
+        settings={globalDeckSettings}
+        coreMode={globalDeckSettings?.coreMode}
+        scopeTitle="Globale Lernvorgaben"
+        scopeDescription="Diese Werte werden auf alle vorhandenen Stapel angewendet und dienen als Vorgabe für neue oder importierte Stapel. Einzelne Stapel kannst du danach weiterhin über das Zahnrad im Lernen-Menü abweichend einstellen."
+        affectedDeckCount={decks.length}
+        onSave={onSaveGlobalLearningSettings}
+      />
       <SoftPanel className="p-6">
         <div className="mb-5 flex items-center gap-3">
           <OrbIcon icon={Database} className="bg-sky-50 text-sky-700" />
@@ -212,6 +213,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, onSavePro
           </p>
         ) : null}
       </SoftPanel>
+      <ReleaseInfo className="text-center" />
     </div>
   );
 }

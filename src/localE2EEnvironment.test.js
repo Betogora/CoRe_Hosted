@@ -17,6 +17,23 @@ test("parseSupabaseStatusEnvironment reads quoted Supabase CLI env output", () =
   );
 });
 
+test("parseSupabaseStatusEnvironment reads current Supabase CLI JSON output", () => {
+  assert.deepEqual(
+    parseSupabaseStatusEnvironment(
+      JSON.stringify({
+        API_URL: "http://127.0.0.1:54321",
+        PUBLISHABLE_KEY: "sb_publishable_local",
+        SERVICE_ROLE_KEY: "must-not-be-used-by-the-runner",
+      }),
+    ),
+    {
+      API_URL: "http://127.0.0.1:54321",
+      PUBLISHABLE_KEY: "sb_publishable_local",
+      SERVICE_ROLE_KEY: "must-not-be-used-by-the-runner",
+    },
+  );
+});
+
 test("isLocalSupabaseUrl only accepts loopback Supabase targets", () => {
   assert.equal(isLocalSupabaseUrl("http://127.0.0.1:54321"), true);
   assert.equal(isLocalSupabaseUrl("http://localhost:54321"), true);

@@ -9,6 +9,7 @@ Diese Datei ist die Dokumentationskarte fuer CoRe. Die Root-Ebene bleibt bewusst
 - `specs.html`: generierte HTML-Fassung von `specs.md`.
 - `todo.md`: einzige TODO-Markdown-Datei und priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.
 - `anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
+- `anki-ecosystem-feature-radar.md`: Recherche zu offiziellem Anki, Forks, Add-ons, Popularitaetssignalen und priorisiertem Feature-Radar fuer CoRe.
 
 ## TODO Inventory
 
@@ -22,6 +23,7 @@ Es gibt keine weitere `TODO.md`, `todo.md` oder `*-todo.md`-Datei im Repository.
 
 - `../AGENTS.md`: lokale Entwicklungsregeln, Architekturleitplanken und Verifikationskommandos.
 - `../vercel.json`: Vercel-Build, `dist`-Output und SPA-Rewrite ausserhalb von `/api/*`.
+- `../vite.config.js`: allowlist-basierter Buildvertrag fuer App-Version, normalisierte Umgebung und kurzen Vercel-/GitHub-Commit.
 - `../.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag sowie leere Platzhalter fuer den separaten Playwright-Testaccount.
 - `../supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
 - `../supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
@@ -36,6 +38,8 @@ Die Hinweise aus dem externen Hosting-/Database-/KI-Guide wurden am 2026-07-07 i
 Relevante Zielrichtungen:
 
 - Vercel fuer Hosting, Preview/Production, Domain und `/api/*` Functions.
+- Das ausfuehrbare Preview-/Production-/Rollback-Runbook liegt in `specs.md` Abschnitt 14.2.2 und gespiegelt in `specs.html`; Release-Nachweise bleiben secretsfrei.
+- Login-Gate, Einstellungen und React-Fehlerfallback zeigen dieselbe Release-Information aus Version, Umgebung und kurzem Commit; weitere Env-Werte werden nicht in den Browser uebernommen.
 - Supabase Auth + Postgres + RLS als naheliegender Persistenzpfad.
 - Echte Tabellen fuer Decks, Learning Items, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs statt grossem Store-Blob.
 - Aktueller erster Online-Pfad: Pflichtlogin, Supabase E-Mail/Passwort, Profil-Upsert, accountgebundener Browser-Cache und Cloud-first Autosave ueber Tabellen.
@@ -51,6 +55,7 @@ Relevante Zielrichtungen:
 - `src/richText.js` und `src/htmlSafety.js` halten Rich-Text-Normalisierung und HTML-Sanitization aus Screens und Importpfaden heraus.
 - `src/libraryModel.js` erzeugt Dashboard-, Statistik-, Decklisten-, Heatmap- und KI-Job-Projektionen fuer die Screens.
 - `src/supabaseClient.js`, `src/cloudAuth.js`, `src/accountSession.js`, `src/accountStorage.js` und `src/cloudRepository.js` kapseln den konkreten Supabase-Pfad fuer Auth, Profile, Login-Gate-Zustand, accountgebundenen Cache und Cloud-Tabellenpersistenz.
+- `src/appRuntime.js`, `src/ui/ReleaseInfo.jsx` und `src/AppErrorBoundary.jsx` kapseln Release-Identitaet, sichere Anzeige und den deutschen Wiederherstellungsfallback ohne rohe Fehler- oder Nutzerdaten.
 - `src/App.jsx` ist nur noch App-Shell fuer Workspace-State, Navigation und Routing; produktnahe UI liegt in `src/screens/`.
 - `src/screens/README.md` ist die Einstiegskarte fuer KI-Programmierung an Screens; geteilte UI-Bausteine liegen in `src/ui/`.
 - Sichtbare Features sollen bei Ueberarbeitungen erhalten bleiben und nur durch explizite Prompts entfernt werden.

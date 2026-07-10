@@ -1,4 +1,5 @@
 import { sanitizeCardHtml, stripHtml } from "./htmlSafety.js";
+import { normalizeLearningSettings } from "./deckSettings.js";
 
 export const CORE_CARD_TYPES = [
   "basic",
@@ -132,32 +133,23 @@ export function normalizeDeckAppearance(appearance = {}) {
 
 export function createDefaultDeckSettings(settings = {}) {
   const coreMode = CORE_MODES.includes(settings.coreMode) ? settings.coreMode : "auto";
-  const newCardsPerDay = Number.isFinite(Number(settings.newCardsPerDay))
-    ? Math.max(0, Math.round(Number(settings.newCardsPerDay)))
-    : 20;
+  const learningSettings = normalizeLearningSettings(settings);
   const override = settings.newCardsTodayOverride;
   const newCardsTodayOverride =
     override && typeof override === "object" && String(override.date ?? "").trim()
       ? {
           date: String(override.date).slice(0, 10),
-          limit: Math.max(0, Math.round(Number(override.limit ?? newCardsPerDay) || 0)),
+          limit: Math.max(0, Math.round(Number(override.limit ?? learningSettings.newCardsPerDay) || 0)),
         }
       : null;
 
   return {
+    ...learningSettings,
     coreMode,
     appearance: normalizeDeckAppearance(settings.appearance),
-    newCardsPerDay,
     newCardsTodayOverride,
     variantThresholdXp: Number.isFinite(settings.variantThresholdXp) ? settings.variantThresholdXp : 121,
     maxActiveVariantsPerCard: Number.isFinite(settings.maxActiveVariantsPerCard) ? settings.maxActiveVariantsPerCard : 2,
-    schedulerProfile: {
-      name: settings.schedulerProfile?.name ?? "standard",
-      learningStepsMinutes: settings.schedulerProfile?.learningStepsMinutes ?? [10, 60],
-      graduatingIntervalDays: settings.schedulerProfile?.graduatingIntervalDays ?? 1,
-      easyIntervalDays: settings.schedulerProfile?.easyIntervalDays ?? 4,
-      lessShortIntervalBias: Boolean(settings.schedulerProfile?.lessShortIntervalBias),
-    },
     aiPolicy: {
       costTier: settings.aiPolicy?.costTier ?? "balanced",
       allowLocalModels: settings.aiPolicy?.allowLocalModels ?? true,

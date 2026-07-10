@@ -24,17 +24,21 @@ Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug
 
 Datenbank-Release am 2026-07-10: Die Supabase-CLI-Konfiguration findet alle vier versionierten E-Mail-Templates. `20260709091315_sync_media_auth_operations.sql` wurde nach erfolgreichem Dry-Run remote angewendet; `npx supabase migration list --linked` bestaetigt jetzt alle vier Migrationen lokal und remote. Das erweiterte `supabase/verify_schema_v1.sql` bestaetigt Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, Grants ohne `anon`-Zugriff und den privaten Bucket `core-media`. Der Performance-Advisor meldet keine Warnung; beim Security-Advisor bleibt ausschliesslich der bereits vorher vorhandene Hosted-Auth-Hinweis zur deaktivierten Leaked-Password-Protection offen.
 
-E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus `e2e` und trennt die Suite in drei Projekte. `auth-gate-chromium` prueft das Login-Gate und gemappte Auth-Fehler mit zwei sessionlosen Smokes ohne Account-Reset. `auth-setup` baut eine Supabase-Session auf und gibt sie als ignorierte, von `core.*`-App-Daten bereinigte `storageState` an elf `authenticated-chromium`-Produkt-Smokes weiter. `npm run test:e2e -- --list` bestaetigt alle 14 Tests; die zwei sessionlosen Smokes sind gruen. Fuer die kostenfreie vollstaendige Abnahme existiert jetzt `npm run test:e2e:local`: Der Befehl startet einen auf notwendige Dienste reduzierten lokalen Supabase-Stack, wendet ausstehende Migrationen an, akzeptiert Status-Zugangsdaten nur fuer Loopback-URLs, legt den lokalen Testaccount idempotent an, fuehrt Playwright aus und stoppt den Stack wieder. Hosted-E2E bleibt ueber einen vorab angelegten Account und `.env.e2e.local` bzw. CI-Secrets kompatibel. Vor jedem authentifizierten Lauf ersetzt das Setup ausschliesslich die Daten dieses Testaccounts ueber die vorhandene RLS-geschuetzte Repository-Funktion mit der reproduzierbaren Welt-Hauptstadt-Fixture; eine Service Role ist nicht beteiligt. Der erste vollstaendige lokale Lauf wartet noch auf die einmalige administrative WSL-Installation und den danach erforderlichen regulaeren Windows-Neustart.
+E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus `e2e` und trennt die Suite in vier Projekte. `auth-gate-chromium` prueft das Login-Gate, gemappte Auth-Fehler und den sicheren React-Fehlerfallback mit drei sessionlosen Smokes ohne Account-Reset. `auth-resilience-chromium` prueft auf einem getrennten unkonfigurierten Vite-Port sowie ueber Browser-Netzwerkrouten fehlende Supabase-Konfiguration, Offline-Start und `session_expired`; alle drei cloudfreien Smokes sind gruen und erwarten deutsche Fehlertexte. `auth-setup` baut eine Supabase-Session auf und gibt sie als ignorierte, von `core.*`-App-Daten bereinigte `storageState` an elf `authenticated-chromium`-Produkt-Smokes weiter. `npm run test:e2e -- --list` bestaetigt alle 18 Tests. Fuer die kostenfreie vollstaendige Abnahme existiert `npm run test:e2e:local`: Der Befehl startet einen auf notwendige Dienste reduzierten lokalen Supabase-Stack, wendet ausstehende Migrationen an, liest den JSON-Status der installierten Supabase-CLI und akzeptiert URL-/Publishable-Key nur fuer Loopback-URLs, legt den lokalen Testaccount idempotent an, fuehrt Playwright aus und stoppt den Stack wieder. Die Status-Auswertung bleibt mit aelteren `KEY=VALUE`-Ausgaben kompatibel; der Start-Status mit lokalen Default-Schluesseln wird nicht in den Testlauf-Log geschrieben. Hosted-E2E bleibt ueber einen vorab angelegten Account und `.env.e2e.local` kompatibel. Vor jedem authentifizierten Lauf ersetzt das Setup ausschliesslich die Daten dieses Testaccounts ueber die vorhandene RLS-geschuetzte Repository-Funktion mit der reproduzierbaren Welt-Hauptstadt-Fixture; eine Service Role ist nicht beteiligt. Das GitHub-Actions-Release-Gate `.github/workflows/ci.yml` fuehrt bei Pull Requests, Pushes auf `main` und manuellen Laeufen zuerst `npm test` und `npm run build` aus und startet danach alle Browser-Smokes mit lokalem Supabase ohne externe Zugangsdaten oder KI-Secrets. Im CI-Modus bleiben Retries deaktiviert; Fehlerberichte und Screenshots sowie Traces der sessionlosen Projekte werden sieben Tage als Artefakt aufbewahrt. `auth-setup` und `authenticated-chromium` erzeugen keine Traces, und `playwright/.auth/` sowie `.env`-Dateien werden nicht hochgeladen.
+
+E2E-Abnahme am 2026-07-10: Der lokale Docker-/Supabase-Lauf mit `npm run test:e2e:local` ist nach der CLI-JSON-Kompatibilitätskorrektur, den aktualisierten Unicode-/Status-Selektoren, der deterministischen Drag-and-drop-Testgeste und dem neuen Fehlerfallback-Smoke mit 18/18 Browser-Smokes grün. Der Runner startet nur die benötigten Supabase-Dienste, verarbeitet die aktuellen JSON-Statusdaten, schreibt lokale Schlüssel nicht in den normalen Start-Log und stoppt den Stack nach dem Lauf. Der Modul-Testlauf umfasst 207 bestandene Tests.
+
+Release-Diagnose am 2026-07-10: `vite.config.js` injiziert ausschliesslich Version, Commit und Umgebung. Die Version stammt aus `package.json`, der Commit bevorzugt `VERCEL_GIT_COMMIT_SHA` vor `GITHUB_SHA` und faellt sonst auf `local` zurueck; die Umgebung wird auf Production, Preview, Development oder Test normalisiert. `src/appRuntime.js` formatiert diese Werte fuer `ReleaseInfo` am Login-Gate, in den Einstellungen und im Fehlerfallback. `AppErrorBoundary` faengt React-Render-, Lifecycle- und Lazy-Load-Fehler ab, zeigt weder rohe Exception noch Stack oder Nutzerdaten und bietet Neuladen sowie Startseiten-Rueckkehr. Der Renderfehler-Trigger ist nur im Vite-Modus `e2e` aktiv und im Production-Bundle nicht enthalten.
 
 | Bereich | Implementierte lokale Module / Screens |
 |---|---|
 | Dashboard, Statistik und Lernaktivitaet | `DashboardScreen`, `StatisticsScreen`, `libraryModel.createStudyHeatmapModel`, `libraryModel.createStudyHeatmapWindow`, `libraryModel.getStudyHeatmapVisibleWeekCount`, `libraryModel.createPerformanceStatisticsModel`, reduzierter Heute-Kopf mit Fällig-/Originalkarten-Kacheln, kompakter Heatmap-Kopf mit aktiven Tagen, rechtsbündiger Legende und Pfeilnavigation, aktive Hauptstapel mit Unterbaum-Aggregaten, responsive GitHub-/Anki-artige Jahres-Heatmap mit standardmäßigem Kalenderjahr von Januar bis Dezember, Monats- und Jahreswechselmarken, Leistungsstatistik mit Trefferquote, Bewertungsverteilung und Stapel-Auswertung |
-| Account, Profil, Datenschutz | `SettingsScreen`, `createCoreRepository().saveProfile()` |
-| Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `LearnScreen`, `libraryModel`, `coreWorkspace.renameDeck`, `coreWorkspace.moveDeck`, `coreModel.createCoreDeck`, `deckSettings.coreMode`, `deckSettings.appearance`, echte Parent-/Child-Stapel aus APKG-Hierarchien, manuelle Unterstapel-Anlage hinter einem Button, Icon-/Farb-Customizing fuer neue Stapel, direkte Umbenennung, aufklappbare, gestaffelt hinterlegte und direkt klick- und ziehbare Lernuebersicht, Learning-Item-Normalisierung |
+| Account, Profil, Datenschutz | `SettingsScreen`, `LearningSettingsPanel`, `deckSettings.getGlobalDeckSettings`, `createCoreRepository().saveProfile()`, globale Lernvorgaben in `profile.schedulerPreferences` |
+| Decks, Hierarchie, CoRe-Modus | `menuModel`, `DecksScreen`, `LearnScreen`, `DeckSettingsScreen`, `deckSettings`, `libraryModel`, `coreWorkspace.renameDeck`, `coreWorkspace.moveDeck`, `coreModel.createCoreDeck`, `deckSettings.coreMode`, `deckSettings.appearance`, echte Parent-/Child-Stapel aus APKG-Hierarchien, manuelle Unterstapel-Anlage hinter einem Button, Icon-/Farb-Customizing fuer neue Stapel, direkte Umbenennung, isolierte Lernoptionen je Stapel, aufklappbare, gestaffelt hinterlegte und direkt klick- und ziehbare Lernuebersicht, Learning-Item-Normalisierung |
 | Import | `creationWorkflow`, `apkgImport`, `importService` fuer APKG/Text/CSV/Excel-Paste und normalisierte JSON-Payloads, Importberichte, Fingerprints/Dedupe, echte Unterstapel, Raw-Fallbacks, `collection.anki21b`/Zstd, Media-Manifeste, Reimport-Merge |
 | Manuelle Erstellung | `creationWorkflow`, `ManualCreationPanel`, `RichTextEditor`, `richText`, `htmlSafety`, `documentModel`, `sourceAnchors`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem` |
 | KI-Kartenerstellung | `creationWorkflow`, `aiOrchestrator.generateCardsFromDocument`, Draft-Review, Schema-Validation, normalisierte Draft-Items |
-| Review/Scheduler | `reviewService`, `reviewFlow` als Legacy-Fassade, `scheduler`, `reviewShortcuts`, `scheduler.formatIntervalLabel`, `scheduler.getReviewButtonOptions`, Tages-Queue aus jetzt fälligen oder überfälligen Karten plus einstellbaren neuen Karten, vier Buttons mit Intervallvorschau, Tastatur, Front+Back nach Aufdeckung, FSRS-like State, Learning-Item-/Varianten-Events |
+| Review/Scheduler | `deckSettings`, `reviewService`, `reviewFlow` als Legacy-Fassade, `scheduler`, `reviewShortcuts`, `scheduler.formatIntervalLabel`, `scheduler.getReviewButtonOptions`, konfigurierbare Tages-Queue mit Neu-/Review-Limits und Reihenfolge, Lern-/Wiederlern- und Maximalintervalle, Zielerinnerung, vier Buttons mit Intervallvorschau, Tastatur, Front+Back nach Aufdeckung, FSRS-like State, Learning-Item-/Varianten-Events |
 | Content Repetition | `coreVariantService`, `variantGeneration`, `variantSelection`, Eligibility, Rephrase, Variant-Level, Readiness/Coverage/Generation-Plan, Fallback nach Fehlern, Original-Variantenanker, Variantenstatus, Dedupe-Hash |
 | Trust/Versionierung | `sourceAnchors`, `versionLog`, Variant-Feedback, Deaktivieren, Restore-Basis |
 | Community | `communityModel`, kleine Gruppen, Ordner, Deck-Kopie ohne Reviewdaten |
@@ -43,6 +47,7 @@ E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus `e2e` 
 | Chat-your-Deck | `deckAssistant.answerDeckQuestion`, `deckAssistant.answerDeckQuestionWithServer`, freie Gemma-4-31B-IT-Chatantworten per Default, optionale Quellenbindung per Checkbox mit belegten Karten-Zitaten und lokalem Quellen-Fallback; ueber den Heute-Sekundaereinstieg erreichbar, aber kein eigener Hauptmenuepunkt |
 | Lernplan | `learningPlan.createLearningPlan`, Zieltermin, Tagesminuten, neue Karten, Varianten-Tage |
 | Auth und Cloud-Persistenz | `AuthGateScreen`, `SettingsScreen`, `accountSession`, `accountStorage`, `supabaseClient`, `cloudAuth`, `cloudRepository`, Pflichtlogin, Supabase-E-Mail/Passwort, Profil-Upsert, accountgebundener Cache, Cloud-first Autosave, einmaliger lokaler Importdialog |
+| Release und Fehlerdiagnose | `appRuntime`, `ReleaseInfo`, `AppErrorBoundary`, sichtbare Version/Umgebung/Commit-Zuordnung und deutscher Wiederherstellungsfallback ohne rohe Fehler- oder Nutzerdaten |
 | Datenportabilitaet | `dataPortability`, JSON-Export/-Import ohne Passwort-Verifier |
 
 ### Was lokal bereits funktioniert
@@ -51,7 +56,7 @@ E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus `e2e` 
 - App-Shell und Lernmodus nutzen die verfuegbare Browserbreite ohne feste Desktop-Maximalbreite; beim Herauszoomen waechst die Oberflaeche mit der Seitenbreite.
 - Dashboard mit reduziertem Heute-Kopf, Fällig-/Originalkarten-Kacheln, aktiven Hauptstapeln mit aggregierten Unterstapel-Zahlen und GitHub-/Anki-artiger Jahres-Heatmap aus lokalen Review-Events; der Heatmap-Kopf zeigt aktive Tage sowie rechtsbündige Legende und Pfeilnavigation, die Heatmap zeigt standardmäßig das aktuelle Kalenderjahr von Januar bis Dezember, nutzt breite Flächen mit mitwachsenden Wochen-Spalten aus, fällt auf schmaleren Viewports auf ganze Wochenausschnitte zurück und ist per Pfeil-Buttons bzw. Tastaturpfeilen navigierbar.
 - Eigener Statistik-Reiter zur Leistungs-Auswertung aus lokalen Review-Events: Reviews, Trefferquote, Lernserie, Antwortzeit, Bewertungsverteilung, 14-Tage-Trend, Varianten-Reviews und Stapel mit auffällig vielen schweren Antworten.
-- Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, Unterstapel-Einstieg zur Lern-Ebene, direktem Umbenennen, Drag-and-drop-Verschieben nach Anki-Semantik, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel, `deckSettings.appearance` fuer Stapel-Icon und Iconfarbe sowie Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare, gestaffelt hinterlegte Stapelliste mit spaltenbündigen Neu-, Faellig- und Gesamtzahlen ohne wiederholte Desktop-Zelllabels, CoRe-Status, Haupt-/Unterstapel-Anlage hinter einem Button mit Icon-/Farb-Customizing, direktem Zahnrad-Einstieg in die Stapelverwaltung ohne Zwischenmenue, startet Lernen per Klick auf die Stapelzeile und unterstützt direktes Anki-artiges Ziehen auf Stapelzeilen; Hauptstapel-Hintergründe umschließen sichtbare Unterstapel logisch wie eine Klammer.
+- Deck-Verwaltung mit Suche/Filter, sichtbarer Parent-/Child-Hierarchie, Unterstapel-Einstieg zur Lern-Ebene, direktem Umbenennen, Drag-and-drop-Verschieben nach Anki-Semantik, Stapelbaum-Loeschen, aggregierten Elternstapel-Zahlen, CoRe-Modus pro Stapel, `deckSettings.appearance` fuer Stapel-Icon und Iconfarbe sowie Kartenbearbeitung mit Versionseintraegen. Die Lernuebersicht zeigt dieselbe Hierarchie als aufklappbare, gestaffelt hinterlegte Stapelliste mit spaltenbündigen Neu-, Faellig- und Gesamtzahlen ohne wiederholte Desktop-Zelllabels, CoRe-Status, Haupt-/Unterstapel-Anlage hinter einem Button mit Icon-/Farb-Customizing, direktem Zahnrad-Einstieg in eine isolierte Einstellungsseite nur fuer den gewählten Stapel, startet Lernen per Klick auf die Stapelzeile und unterstützt direktes Anki-artiges Ziehen auf Stapelzeilen; Hauptstapel-Hintergründe umschließen sichtbare Unterstapel logisch wie eine Klammer.
 - Frische lokale Browser-States werden mit einem reproduzierbaren Teststapel `Welt-Hauptstädte` geseedet: 245 Hauptstadtkarten aus dem ODbL-lizenzierten `mledoze/countries`-Snapshot, gruppiert in sieben Kontinent-Unterstapel und mit dreimonatiger realistischer Lernhistorie inklusive 1.952 Review-Events, fälligen Karten, CoRe-reifen Karten und hartnäckigen, aber stabil bewältigten Karten; die zugehoerige echte APKG-Fixture liegt im Repository.
 - Kompatible Learning-Item-Creation-Pipeline fuer Basic, Reverse, Cloze, importierte Varianten und KI-Drafts; Legacy-Karten werden beim Lesen normalisiert.
 - APKG-Basic-Import inklusive Importbericht, echtem Unterstapel-Mapping aus Anki-Hierarchien, HTML-Sanitization, Raw-/Fallback-Feldern, lesbarer `collection.anki21b`/Zstd-Unterstuetzung, Media-Manifesten pro Unterstapel, lokalem Browser-Medienspeicher und Reimport-Merge ohne Verlust lokaler Content-Edits.
@@ -59,17 +64,18 @@ E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus `e2e` 
 - Erstellen-Screen mit drei grossformatigen, zentrierten Einstiegskacheln fuer manuelle Erstellung mit optionaler PDF-/Textquelle, Import und KI-Drafts; manuelle Kartenerstellung mit Anki-artig untereinander angeordneter Vorder- und Rueckseite, Pinnfunktion pro Kartenfeld, kompaktem Rich-Text-Editor, bestehendem/neuem Stapelziel, Basic, Umgekehrt, Lueckentext und Multiple Choice. Free Text wird nicht mehr als normaler Kartentyp angeboten; alte Free-Text-Daten werden defensiv wie Basic behandelt.
 - Rich-Text-Normalisierung und HTML-Safety sind in `src/richText.js` und `src/htmlSafety.js` gekapselt; React-Screens sollen keine eigene Sanitization- oder Text-zu-HTML-Logik duplizieren.
 - Deterministische KI-Drafts aus Quellentext mit Schema-Validation, Draft-Review und Annahme in die Bibliothek.
-- Fullscreen-Review mit Antwortaufdeckung, Tages-Queue fuer ganze Stapel/Unterbaeume, einstellbarem Neue-Karten-Kontingent, vier Ratings mit naechster Intervallanzeige, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP. Bereits bewertete Karten erscheinen erst wieder, wenn ihr gespeichertes `dueAt` erreicht ist.
+- Fullscreen-Review mit Antwortaufdeckung, Tages-Queue fuer ganze Stapel/Unterbaeume, stapelspezifischem Neue-Karten- und Review-Kontingent, wählbarer Neu-/Review-Reihenfolge, konfigurierbaren Lern-/Wiederlern-/Maximalintervallen und Zielerinnerung, vier Ratings mit naechster Intervallanzeige, Tastatursteuerung, Review-Events, Learning-Item-Kompatibilitaetsfeldern, FSRS-like Scheduler-State und Maturity-XP. Bereits bewertete Karten erscheinen erst wieder, wenn ihr gespeichertes `dueAt` erreicht ist.
 - Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker-Minikarte, konservativen Variant-Levels, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
 - Kleine lokale Community-Logik mit Ordnern und Deck-Kopien ohne fremde Reviewdaten.
 - Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit freier Gemma-4-31B-IT-Antwort per Default, optionaler Quellenbindung mit Zitaten, Heute-Sekundaereinstieg, Lernplan-Generator, AI-Job-Datenmodell und JSON-Datenportabilitaet.
 - Supabase Browser-Client ueber `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY`, Pflicht-Login-Gate, echte E-Mail/Passwort-Registrierung und Anmeldung, Profil-Upsert in `public.profiles`, accountgebundener Browser-Cache, einmalige lokale Datenuebernahme und Cloud-first Autosave fuer Decks, Karten/Learning Items, Varianten, Review Events, Dokumente und AI Jobs.
+- Sichtbare Release-Information am Login-Gate, in den Einstellungen und im sicheren React-Fehlerfallback; angezeigt werden ausschliesslich App-Version, normalisierte Umgebung und kurzer Build-Commit. Der Fallback bietet Neuladen und Startseiten-Rueckkehr, ohne Exception, Stack, Secrets oder Nutzerdaten auszugeben.
 - Zweite Supabase-Migration `20260709074255_cloud_variant_schema_alignment.sql`: `card_variants` ist mit Originalvarianten, Variantentyp, Variant-Level, Generation Source, Ankerfeldern, Aktivstatus und Performance JSON kompatibel; `json-import` ist in `decks.source` und `cards.source` erlaubt; `anon`-Grants auf Core-Tabellen sind entfernt. Dritte Migration `20260709082140_account_scoped_primary_keys.sql`: account-owned Tabellen nutzen zusammengesetzte Primary Keys `(user_id, id)`, damit zwei Accounts dieselben lokalen IDs besitzen koennen, ohne Daten zu teilen.
 - Vierte Supabase-Migration `20260709091315_sync_media_auth_operations.sql`: remote angewendete additive Spalten fuer Revisionen, Soft-Deletes und Geraete-IDs sowie neue Tabellen fuer Medien, Sync-Geraete, Konflikte und Audit-Events; der private Bucket `core-media`, explizite Grants und accountgebundene RLS-/Storage-Policies sind verifiziert.
 
 ### Was erwartungsgemaess noch nicht funktioniert
 
-- Es gibt ein erstes Vercel-Projekt mit Deployment, aber noch keine ausgereifte Deployment-Pipeline, eigene Domain, Rollback-Checkliste oder produktive Betriebsumgebung.
+- Es gibt ein erstes Vercel-Projekt, das automatisierte CI-Release-Gate und das dokumentierte Preview-/Production-/Rollback-Runbook. Eine eigene Domain, die erste protokollierte Production-Abnahme und eine vollstaendige Betriebsumgebung mit Monitoring und Backups fehlen noch.
 - Es gibt angewendete Supabase/Postgres-Migrationen mit RLS-Policies, expliziten `authenticated`-Grants, ohne `anon`-Grants auf Core-Tabellen und mit account-scoped Primary Keys fuer die wichtigsten Nutzerdaten. Der App-Persistenzpfad schreibt und liest Decks, Karten, Varianten, Review Events, Dokumente und AI Jobs ueber Supabase-Tabellen und speichert automatisch, hat aber noch keine echte Offline-Konfliktloesung zwischen Geraeten.
 - Accounts koennen ueber Supabase E-Mail/Passwort erstellt und angemeldet werden; OAuth, Magic Link, Account-Recovery-Feinschliff und E-Mail-Template-Politur fehlen noch.
 - KI-Kartenerstellung, Varianten, Graph und Jobs sind weiterhin lokal/deterministisch simuliert; Chat-your-Deck hat als erster produktiver KI-Pfad eine Vercel-Serverroute `/api/ai/chat` fuer Gemma 4 31B IT. Es gibt noch kein echtes Token-/Kostenlogging, keine produktive Prompt-/Eval-Pipeline und keine serverseitige Job-Queue fuer laengere KI-Aufgaben.
@@ -2305,12 +2311,14 @@ VariantState     ← einzelne Variante
 Die Gründerdiskussion weist darauf hin, dass sehr kurze Wiederholintervalle möglicherweise zu stark Recognition fördern können. CoRe SOLL daher Scheduling-Parameter zugänglich machen, ohne Nutzer mit Expertensettings zu überfordern.
 
 **MVP:** sinnvolle Defaults.  
-**Später:** einfache Profile:
+**Umgesetzt:** einfache Profile und individuelle Regler:
 
 - Standard.
 - Intensiv vor Prüfung.
-- Weniger Kurzintervall.
-- Mehr Variantenfokus.
+- Entspannt.
+- Eigene Einstellungen mit Tageslimits, Queue-Reihenfolge, Lern-/Wiederlernschritten, ersten Intervallen, Zielerinnerung, Maximalintervall und optional weniger Kurzintervallen.
+
+**Lokaler Stand 2026-07-10:** `src/deckSettings.js` normalisiert Presets, globale `profile.schedulerPreferences` und stapelspezifische Werte. Das Zahnrad einer Stapelzeile öffnet `DeckSettingsScreen` für genau diesen Stapel. `SettingsScreen` verwendet denselben `LearningSettingsPanel` global; Speichern aktualisiert vorhandene Stapel und setzt die Vorgabe für neue oder importierte Stapel. `reviewService.createDailyReviewQueue` verwendet Tageslimits und Reihenfolge, während `scheduler.js` Lern-/Wiederlernintervalle, Zielerinnerung und Maximalintervall in Vorschau und Commit berücksichtigt.
 
 ---
 
@@ -2425,7 +2433,84 @@ Naheliegender Startpfad fuer CoRe:
 - Browser-Routen der SPA fallen auf `index.html` zurueck; `/api/*` bleibt fuer Serverless Functions reserviert.
 - Environment Variables werden pro Umgebung gepflegt; Production-/Preview-Secrets werden nicht lokal in Git abgelegt.
 
-Die initiale Vite/Vercel-Konfiguration ist umgesetzt: `vercel.json` setzt Build Command, Output Directory und einen SPA-Rewrite, der `/api/*` nicht von der Frontend-Fallback-Regel verschluckt. Das Vercel-Projekt `core-hosted` ist angelegt; die oeffentlichen Variablen `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und `VITE_AI_USE_SERVER_PROXY` sind fuer Development, Preview und Production gesetzt und lokal per `vercel env pull` in `.env.local` gezogen. Echte Serverrouten, Domain-Mapping, Rollback-Prozess und Observability bleiben Ausbaupunkte.
+Die initiale Vite/Vercel-Konfiguration ist umgesetzt: `vercel.json` setzt Build Command, Output Directory und einen SPA-Rewrite, der `/api/*` nicht von der Frontend-Fallback-Regel verschluckt. Das Vercel-Projekt `core-hosted` ist angelegt; die oeffentlichen Variablen `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und `VITE_AI_USE_SERVER_PROXY` sind fuer Development, Preview und Production gesetzt und lokal per `vercel env pull` in `.env.local` gezogen. `vite.config.js` injiziert zusaetzlich einen allowlist-basierten Release-Vertrag aus der Version in `package.json`, `VERCEL_GIT_COMMIT_SHA` beziehungsweise `GITHUB_SHA` und der normalisierten Vercel-/Vite-Umgebung. Diese drei Werte werden am Login-Gate, in den Einstellungen und im React-Fehlerfallback angezeigt; andere Env-Werte, URLs und Secrets werden nicht uebernommen. Die Serverroute `/api/ai/chat` und das folgende Release-Runbook sind vorhanden; Domain-Mapping, die erste protokollierte Production-Abnahme und Observability bleiben Ausbaupunkte.
+
+### 14.2.2 Preview-Smoke und Production-Rollback-Runbook
+
+Dieses Runbook ist das manuelle Gate zwischen einem gruenen Pull Request und Production. Es loest selbst kein Deployment aus und enthaelt keine Secrets.
+
+#### Freigabevoraussetzungen und Nachweis
+
+- Die GitHub-Actions-Checks `quality` und `browser-e2e` muessen fuer den freizugebenden Commit gruen sein. Ein Lauf mit Retry oder ein anderer Commit gilt nicht als Nachweis.
+- Fuer manuelle Cloud-Pruefungen wird ausschliesslich ein eigener Release-Smoke-Account im angebundenen Supabase-Projekt verwendet. Er darf keine persoenlichen oder fremden Daten enthalten; seine Mutationen bleiben durch RLS accountgebunden.
+- Vor dem Smoke werden Commit-SHA, CI-Lauf, Preview-URL beziehungsweise Deployment-ID, aktuelle Production-Deployment-ID, Vercel-CLI-Version, Tester und Startzeit notiert. In den Nachweis gehoeren keine Passwoerter, Tokens, Environment-Werte, `.env`-Dateien oder Screenshots mit Auth-Daten.
+- Die Preview muss in Vercel den Zustand `Ready` erreicht haben. `vercel inspect <preview-url>` darf keine Buildfehler zeigen. Mit `vercel env ls preview` werden nur Namen und Zielumgebungen kontrolliert; Secret-Werte werden weder ausgegeben noch in eine Datei gezogen.
+- Bei einer schemaaendernden Version muss vor der Freigabe ein eigener vorwaertskompatibler Supabase-Migrations- und Rueckfallplan existieren. Ein Vercel-Rollback wechselt nur den App-Build und setzt weder Daten noch Migrationen zurueck.
+
+#### Preview-Smoke in fester Reihenfolge
+
+1. Die eindeutige PR-Preview-URL und danach einen tiefen SPA-Link wie `/lernen` direkt oeffnen beziehungsweise neu laden. Erwartet werden das Login-Gate, kein 404, keine roten Laufzeitfehler und eine sichtbare Release-Information, deren Umgebung `Vorschau` und deren Kurz-Commit dem freizugebenden Commit entspricht.
+2. Mit dem Release-Smoke-Account anmelden. Danach muss das Hauptmenue sichtbar werden; ein fehlgeschlagener Login beendet die Freigabe.
+3. Unter `Lernen` einen bekannten Cloud-Stapel wie `Welt-Hauptstädte` oeffnen. Damit ist geprueft, dass nicht nur der lokale Browser-Cache, sondern der accountgebundene Cloud-State geladen wurde.
+4. Eine Karte beantworten und zum Beispiel mit `Good` bewerten. In `Einstellungen` warten, bis `Zuletzt synchronisiert: ...` erscheint; falls der Status aussteht, einmal `Jetzt synchronisieren` verwenden. Anschliessend neu laden und kontrollieren, dass kein Sync-Fehler erscheint. Vor dem naechsten Schritt muss der Save-Status gruen sein.
+5. Unter `Erstellen` den Pfad `Import` -> `APKG` oeffnen und die kleine bekannte Fixture `fixtures/apkg/world-capitals.apkg` auswaehlen. Die `Importvorschau` muss Deck-, Note-, Varianten- und Medienangaben zeigen. `Import uebernehmen` wird im Smoke **nicht** angeklickt, damit die Preview keine unbeabsichtigte Importmutation erzeugt.
+6. Mit vorhandenem `GOOGLE_API_KEY` auf `Heute` den `Assistent` oeffnen, die Quellenbindung ausgeschaltet lassen und eine harmlose Testfrage senden. Erwartet werden `KI-Antwort erstellt.`, eine nichtleere Antwort und kein Key oder Token in Browserkonsole, Network-Antwort oder Vercel-Log.
+7. Der fehlende-Key-Pfad ist im Release-Gate durch `src/aiChatRoute.test.js` verpflichtend abgedeckt: Die Route muss ohne Provider-Aufruf HTTP `503` mit `missing_google_api_key` liefern, die UI zeigt `KI-Route ist nicht konfiguriert.`. Wenn eine absichtlich keylose Preview-Umgebung vorhanden ist, wird derselbe UI-Pfad dort zusaetzlich manuell geprueft. Der gemeinsam verwendete Preview-Key darf fuer diesen Smoke nicht entfernt oder ueberschrieben werden.
+8. In `Einstellungen` abmelden. Das Login-Gate muss wieder erscheinen; Hauptmenue und Cloud-Inhalte duerfen ohne Sitzung nicht sichtbar bleiben.
+
+Jeder fehlgeschlagene Schritt stoppt die Freigabe. Nach einer Korrektur wird ein neues Deployment desselben korrigierten Commits erzeugt und der Smoke beginnt wieder bei Schritt 1; einzelne alte Ergebnisse werden nicht zusammengesetzt.
+
+#### Production-Freigabe
+
+Der bevorzugte Pfad validiert zuerst die PR-Preview und baut danach mit den echten Production-Variablen ein noch nicht zugeordnetes Production-Deployment. So wird kein Preview-Build mit abweichenden Environment Variables blind freigegeben.
+
+```powershell
+git status --short
+git rev-parse HEAD
+vercel --version
+vercel list --prod
+vercel deploy --prod --skip-domain
+vercel inspect <staged-production-url>
+vercel promote <staged-production-url>
+vercel promote status
+```
+
+- `git status --short` muss fuer den Release leer sein; `HEAD` muss dem gruenen CI-Commit entsprechen.
+- Vor `promote` wird der kurze Smoke gegen die staged Production-URL mit Production-Variablen wiederholt: Login, Cloud-Stapel laden, eine Navigation ohne Mutation, Abmeldung. Erst dann darf die Production-Zuordnung wechseln.
+- Damit ein Merge auf `main` das manuelle Gate nicht vorher umgeht, muss die automatische Zuordnung der Production-Domain im Vercel-Projekt deaktiviert oder der Release anderweitig als staged Production gefuehrt werden. Diese Einstellung wird vor dem ersten echten Release im Dashboard bestaetigt.
+- Direkt nach `promote` werden Production-URL, Deployment-ID und Zeitpunkt notiert und derselbe kurze Login-/Cloud-Laden-/Abmelden-Smoke gegen Production ausgefuehrt. Ein Fehler fuehrt ohne weiteren Fixversuch in Production zum Rollback.
+
+#### Rollback und Wiederherstellung
+
+Rollback-Trigger sind insbesondere 5xx-Fehler, nicht funktionierender Login, fehlendes Cloud-Laden oder -Speichern, falsche Environment-Zuordnung, sichtbare Secret-Leaks oder eine nicht nutzbare Kernnavigation.
+
+```powershell
+vercel logs --environment production --status-code 5xx --since 30m
+vercel rollback
+vercel rollback status
+vercel logs --environment production --status-code 5xx --since 5m
+```
+
+- Auf dem Vercel-Hobby-Plan rollt `vercel rollback` auf das unmittelbar vorherige Production-Deployment zurueck. Falls der Plan ein explizites Ziel erlaubt, darf stattdessen die vorher notierte URL mit `vercel rollback <previous-production-url>` verwendet werden.
+- Nach erfolgreichem Status werden Login, Cloud-Laden und Abmeldung gegen Production wiederholt. Zeitpunkt, Grund, fehlerhaftes Deployment, wiederhergestelltes Deployment und verbleibende Auswirkungen werden notiert.
+- Nach einem Rollback wird geprueft, ob Vercel die automatische Domain-Zuordnung deaktiviert hat. Ein korrigierter Build durchlaeuft wieder CI, Preview-Smoke und staged Production; erst `vercel promote <fixed-staged-production-url>` beendet den Rueckfallzustand.
+- Supabase-Daten oder Migrationen werden niemals als Nebenwirkung des App-Rollbacks veraendert. Bei einer inkompatiblen Datenbankaenderung bleibt die Freigabe blockiert, bis ein separat gepruefter Forward-Fix oder Datenbank-Rueckfallplan vorliegt.
+
+Minimaler Release-Nachweis:
+
+```text
+Commit / CI-Lauf:
+Preview-URL und Deployment-ID:
+Angezeigte Version / Umgebung / Kurz-Commit:
+Vorherige Production-URL und Deployment-ID:
+Staged-Production-URL und Deployment-ID:
+Tester / Start / Ende:
+Preview-Smoke 1-8:
+Production-Kurzsmoke:
+Ergebnis oder Rollback-Grund:
+```
+
+Offizielle Betriebsreferenzen: [staged Production und Promotion](https://vercel.com/docs/cli/deploying-from-cli), [Production-Rollback](https://vercel.com/docs/deployments/rollback-production-deployment) und [Environment Variables pro Umgebung beziehungsweise Preview-Branch](https://vercel.com/docs/environment-variables).
 
 ### Empfohlene Services
 
@@ -3035,7 +3120,7 @@ Kurzfassung mit Code-Sicht:
 1. Lokalen MVP stabilisieren: Browser-Smokes fuer Review, Import, KI-Draft, Assistent und Export ergaenzen; Einstiegspunkte sind `tests/e2e/`, `src/App.jsx`, `src/screens/StudyMode.jsx`, `src/screens/CreationScreen.jsx`, `src/screens/AssistantScreen.jsx` und `src/screens/SettingsScreen.jsx`.
 2. Accessibility und Fehlerzustaende haerten: Fokus, Labels, Tastatur und Fehlertexte in `StudyMode`, `CreationScreen`, `DecksScreen` und `SettingsScreen` pruefen; Validierungslogik in `creationWorkflow`, `importService`, `apkgImport`, `documentModel` und `dataPortability` halten.
 3. Datenportabilitaet und Import-Roundtrips absichern: Fixtures fuer `createPortableExport`, `mergePortableExportIntoState`, normalisierte Importpayloads, Legacy-Card-Normalisierung und Learning-Item-Invarianten pflegen.
-4. Hosting- und Produktivpfad konkretisieren: `vercel.json`, `.env.example`, `npm test`, `npm run build`, Preview-Smoke, Production-Rollback, Domain/DNS und Secret-Grenzen als Deployment-Checkliste festhalten.
+4. Hosting- und Produktivpfad weiter konkretisieren: das dokumentierte Preview-/Production-/Rollback-Runbook praktisch abnehmen, danach Domain/DNS, Supabase-Redirect-Allowlist, sichtbare Build-Informationen und Observability ergaenzen.
 5. Supabase/Postgres/Auth validieren: `supabase/core_schema_v1.sql` gegen `src/coreModel.js`, `src/coreRepository.js`, `src/coreWorkspace.js`, `src/importService.js`, `src/mediaStore.js` und `src/dataPortability.js` abgleichen, bevor ein echter Repository-/Auth-Adapter entsteht.
 6. Dokument-, Medien- und APKG-Verarbeitung ausbauen: APKG-Fixtures, Notetype-/Template-Snapshots, Importidentitaeten, Medienchecksums und Storage-Referenzen hinter `apkgImport`, `mediaStore`, `htmlSafety` und spaeteren Worker-/Servermodulen halten.
 7. KI und Jobs produktionsfaehig machen: vorhandenen `/api/ai/chat`-Proxy fuer Chat beobachten, weitere `/api/ai/*`-Pfade fuer Kartenerstellung, Varianten und Graph ableiten, Supabase-Session-Grenzen, Prompt-/Schema-Versionen, Kostenlogging, Rate-Limits und Eval-Datensatz aus `aiOrchestrator`, `variantGeneration` und dem lokalen `aiJobs`-Modell ergaenzen.
@@ -3053,6 +3138,7 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | Modul | Interface | Verantwortung |
 |---|---|---|
 | `src/coreModel.js` | `createCoreDeck`, `createCoreLearningItem`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem`, `createLearningItemsFromNormalizedInput`, `createCardVariant`, `getOriginalVariant`, `getAnswerSideAnchorMiniCard`, `updateCardContent`, `restoreCardVersion`, `createDefaultDeckSettings`, `normalizeDeckAppearance` | Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen, Deck-Settings inklusive `appearance` |
+| `src/deckSettings.js` | `normalizeLearningSettings`, `applyLearningPreset`, `markLearningSettingsCustom`, `applyLearningSettingsToDeckSettings`, `getGlobalDeckSettings`, `withGlobalDeckSettings` | Presets, Normalisierung, Legacy-Migration, globale Profilvorgaben und stapelspezifische Lernparameter hinter einer testbaren Modulgrenze |
 | `src/coreRepository.js` | `createCoreRepository()` | Persistenter lokaler App-State, Migration alter Decks, Default-Seed `Welt-Hauptstädte` samt dreimonatiger Lernhistorie fuer frische lokale Browser-States und unberuehrte persistierte Seeds, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene |
 | `src/supabaseClient.js` | `createSupabaseBrowserClient`, `getSupabaseBrowserConfig` | Supabase Browser-Client aus oeffentlichen `VITE_*`-Variablen; keine Secret-Keys im Browser |
 | `src/cloudAuth.js` | `signUpCloudAccount`, `signInCloudAccount`, `signInWithGoogle`, `signInWithMagicLink`, `updateCloudPassword`, `signOutCloudAccount`, `resetCloudPassword`, `getCloudUser`, `loadCloudProfile`, `saveCloudProfile` | Echte Supabase-E-Mail/Passwort-Auth, Google-OAuth-Start, Magic Link ohne Auto-Signup, Recovery-Abschluss per neuem Passwort, Profil-Upsert und Profil-Merge ohne Passwort-Verifier |
@@ -3062,9 +3148,9 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/syncEngine.js` | `createAccountSyncEngine`, `createSyncEngine`, `enqueueMutation`, `flush`, `listConflicts`, `resolveConflict`, `mergeAppendOnlyRows`, `detectRevisionConflict` | Sync-Modulgrenze vor React fuer Snapshot-Load, Mutation Queue, Delete-freien Autosave, append-only Merge-Regeln und vorbereitete Revision-Konflikterkennung |
 | `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `createDeck`, `renameDeck`, `moveDeck`, `deleteDeckTree`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard`, `addManualCardToDeck`, `applyVariantGenerationResponse` | Lokale App-Kommandos fuer Demo-Daten, manuelle Stapel-/Unterstapel-Baeume, Umbenennen, Reparenting fuer die Lernuebersicht, Stapelbaum-Loeschen, Graph-Sicherstellung, Default-Community-Sharing, Kartenpflege, manuelles Anhängen an bestehende Stapel und KI-Variantenannahme |
 | `src/creationWorkflow.js` | `createCreationWorkflow` | In-process Creation-Kommandos fuer APKG-Preview/Commit, Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme; haelt Import-/Medien-/KI-Orchestrierung aus React heraus |
-| `src/scheduler.js` | `formatIntervalLabel`, `simulateRatingOutcome`, `getReviewButtonOptions`, `scheduleWithFsrsLikeModel`, `calculateRetrievability`, `getSchedulerStateForItem`, `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | FSRS-like Vier-Button-Scheduler, Button-Intervallvorschau, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
+| `src/scheduler.js` | `formatIntervalLabel`, `simulateRatingOutcome`, `getReviewButtonOptions`, `scheduleWithFsrsLikeModel`, `calculateRetrievability`, `getSchedulerStateForItem`, `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | FSRS-like Vier-Button-Scheduler, Button-Intervallvorschau, konfigurierbare Lern-/Wiederlern- und Maximalintervalle, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
 | `src/libraryModel.js` | `createDeckLibraryModel`, `createVisibleDeckRows`, `createStudyHeatmapModel`, `createStudyHeatmapWindow`, `getStudyHeatmapVisibleWeekCount`, `createPerformanceStatisticsModel`, `createAiJobLedger` | UI-nahe Bibliotheksprojektion fuer Dashboard-Hauptstapel, Statistik, baumartige Deckliste, aufklappbare Unterstapel-Sicht, Unterstapel-Aggregate, aktive Kartenzeilen, responsive kalenderjahrbasierte Heatmap, Leistungs-Auswertung und KI-Job-Ledger |
-| `src/reviewService.js` | `answerVariant`, `getNextReviewItem`, `createDailyReviewQueue`, `getEffectiveNewCardsPerDay`, `countNewCardsIntroducedToday`, `createReviewSession`, `recordReviewRating`, `recordVariantFeedback` | Tiefer Review-Flow fuer Antwortverarbeitung, Tages-Queue aus `dueAt <= now` plus Neue-Karten-Kontingent, FSRS-State, Fallback nach Fehlern, Eventbau, Familien-/Variantenstatus, Session-Projektion und Feedback-Kommandos |
+| `src/reviewService.js` | `answerVariant`, `getNextReviewItem`, `createDailyReviewQueue`, `getEffectiveNewCardsPerDay`, `countNewCardsIntroducedToday`, `createReviewSession`, `recordReviewRating`, `recordVariantFeedback` | Tiefer Review-Flow fuer Antwortverarbeitung, Tages-Queue aus `dueAt <= now` plus Neu-/Review-Limits und konfigurierbarer Reihenfolge, FSRS-State, Fallback nach Fehlern, Eventbau, Familien-/Variantenstatus, Session-Projektion und Feedback-Kommandos |
 | `src/reviewFlow.js` | `answerVariant`, `getNextReviewItem` | Legacy-Fassade fuer bestehende Imports; Implementierung lebt in `src/reviewService.js` |
 | `src/coreVariantService.js` | `classifyCardEligibility`, `createVariantReviewModel`, `getLearningItemMaturity`, `getVariantReadiness`, `getVariantCoverage`, `getVariantGenerationRecommendation`, `getVariantGenerationPlan`, `getVariantFallbackTarget`, `ensureVariantsForCard`, `chooseReviewCard`, `deactivateVariant`, `flagVariant` | CoRe-Eligibility, Reifegrad-/Readiness-Projektion, Coverage, Generation-Plan, Fallback-Ziele, lokaler Fallback-Rephrase und Varianten-Feedback |
 | `src/variantGeneration.js` | `buildCardVariationPrompt`, `parseVariantGenerationResponse`, `validateVariantSuggestion`, `generateRephrasedVariantsForLearningItem` | Promptbau, JSON-Parsing, Vorschlagsvalidierung und verankerte KI-Varianten-Erstellung |
@@ -3087,24 +3173,27 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/dataPortability.js` | `createPortableExport`, `stringifyPortableExport`, `validatePortableExport`, `mergePortableExportIntoState` | JSON-Export/-Import ohne Passwort-Verifier |
 | `src/menuModel.js` | `createMenuModel` | Informationsarchitektur und Navigation |
 | `src/appNavigation.js` | `parseAppRouteFromUrl`, `appRouteToUrl`, `normalizeAppRoute` | Screen-Level-Routing fuer Browser-Back/Forward, versteckte Screens und Lernmodus |
+| `src/appRuntime.js` | `APP_RUNTIME_INFO`, `normalizeAppRuntimeInfo`, `formatAppRuntimeInfo` | Allowlist-basierte, testbare Release-Information aus App-Version, kurzem Commit und normalisierter Umgebung; ignoriert zusaetzliche Build-/Env-Felder |
+| `src/AppErrorBoundary.jsx` / `src/ui/ReleaseInfo.jsx` | `AppErrorBoundary`, `AppErrorFallback`, `ReleaseInfo` | Sichtbare Release-Zuordnung und deutscher React-Wiederherstellungsfallback mit Neuladen und Startseiten-Rueckkehr ohne rohe Fehler-, Secret- oder Nutzerdaten |
 
 ### 27.2 UI-Screens
 
-`src/App.jsx` ist die App-Shell fuer Workspace-State, Navigation, Study-Routing, Browser-History-Anbindung und Persistenz-Callbacks. `src/appNavigation.js` kapselt den Screen-Level-Routing-Vertrag fuer Hauptscreens, versteckte Screens und Lernmodus. Die Shell nutzt die verfuegbare Browserbreite statt einer festen Desktop-Maximalbreite; `StudyMode` folgt demselben Full-Width-Verhalten. Produktnahe UI liegt in `src/screens/`; geteilte Praesentationsbausteine und Medien-HTML liegen in `src/ui/`. Die Screen-Map fuer KI-Programmierung wird in `src/screens/README.md` gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.
+`src/App.jsx` ist die App-Shell fuer Workspace-State, Navigation, Study-Routing, Browser-History-Anbindung und Persistenz-Callbacks. `src/main.jsx` umschliesst die Shell mit `AppErrorBoundary`; `src/appNavigation.js` kapselt den Screen-Level-Routing-Vertrag fuer Hauptscreens, versteckte Screens und Lernmodus. Die Shell nutzt die verfuegbare Browserbreite statt einer festen Desktop-Maximalbreite; `StudyMode` folgt demselben Full-Width-Verhalten. Produktnahe UI liegt in `src/screens/`; geteilte Praesentationsbausteine, Medien-HTML und `ReleaseInfo` liegen in `src/ui/`. Die Screen-Map fuer KI-Programmierung wird in `src/screens/README.md` gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.
 
-Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen, Lernen, Statistik, Graph und Community. `DecksScreen` bleibt als View erhalten, wird aber ueber den Kartenstapel-Button in der Lernen-Control-Leiste geoeffnet; neue Haupt- und Unterstapel werden direkt auf der Lern-Ebene angelegt. `SettingsScreen` bleibt ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad erreichbar. `AssistantScreen` ist ueber einen sekundaeren Heute-Button erreichbar, bleibt aber wie KI-Jobs ohne eigenen Hauptnavigationspunkt. Hauptbereich-Header folgen der kompakten `PageHeader`-Konvention: Eyebrow und Titel ohne Untertitelzeile oder dekoratives rechtes Header-Icon.
+Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen, Lernen, Statistik, Graph und Community. `DecksScreen` bleibt als View erhalten, wird aber ueber den Kartenstapel-Button in der Lernen-Control-Leiste geoeffnet; neue Haupt- und Unterstapel werden direkt auf der Lern-Ebene angelegt. Das Zahnrad einer Stapelzeile öffnet `DeckSettingsScreen` als isolierte Lernoptionen-View für genau diesen Stapel. `SettingsScreen` bleibt ueber den Account-Button am unteren Sidebar-Ende mit Zahnrad erreichbar und bietet dieselben Lernoptionen als globale Vorgabe. `AssistantScreen` ist ueber einen sekundaeren Heute-Button erreichbar, bleibt aber wie KI-Jobs ohne eigenen Hauptnavigationspunkt. Hauptbereich-Header folgen der kompakten `PageHeader`-Konvention: Eyebrow und Titel ohne Untertitelzeile oder dekoratives rechtes Header-Icon.
 
 - `src/screens/DashboardScreen.jsx`: reduzierter Heute-Kopf mit Fällig-/Originalkarten-Kacheln, kompakter Heatmap-Kopf mit aktiven Tagen, rechtsbündiger Legende und Pfeilnavigation, aktive Hauptstapel mit Unterbaum-Aggregaten, Stapel-Icons/-Farben und responsive GitHub-/Anki-artige Kalenderjahr-Heatmap mit Monats- und Jahreswechselmarken.
 - `src/screens/DecksScreen.jsx`: Deck-Hierarchie, Suche/Filter, Unterstapel-Einstieg zur Lern-Ebene, direkte Stapel-Umbenennung, Stapelbaum-Loeschen, CoRe-Modus, Stapel-Icons/-Farben, Karten-CRUD, Aktionen.
 - `src/screens/CreationScreen.jsx`: APKG, Text/CSV/Excel-Paste, manuell, PDF-/Text-Dokumenterstellung mit Quellenanker, KI-Drafts.
-- `src/screens/LearnScreen.jsx`: Aufklappbare Lernuebersicht fuer Stapel und Unterstapel mit hellen Hauptstapel-Hintergruenden und je Tiefe dunkleren hellgrauen Gruppenhintergruenden, spaltenbündigen Neu-/Faellig-/Gesamtzahlen, CoRe-Status, Stapel-Icons/-Farben, hinter einem Button geoeffneter Haupt-/Unterstapel-Anlage mit Icon- und Farbauswahl, klickbaren Stapelzeilen zum Lernstart, direktem Zahnrad-Einstieg in die Stapelverwaltung und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
+- `src/screens/LearnScreen.jsx`: Aufklappbare Lernuebersicht fuer Stapel und Unterstapel mit hellen Hauptstapel-Hintergruenden und je Tiefe dunkleren hellgrauen Gruppenhintergruenden, spaltenbündigen Neu-/Faellig-/Gesamtzahlen, CoRe-Status, Stapel-Icons/-Farben, hinter einem Button geoeffneter Haupt-/Unterstapel-Anlage mit Icon- und Farbauswahl, klickbaren Stapelzeilen zum Lernstart, direktem Zahnrad-Einstieg in die Einzelstapel-Lernoptionen und direktem Anki-artigem Drag-and-drop auf Stapelzeilen.
+- `src/screens/DeckSettingsScreen.jsx`: Isolierte Einstellungsseite fuer genau einen Stapel mit gemeinsamem `LearningSettingsPanel`, Tagespensum, Queue-Reihenfolge, CoRe-Modus, Lern-/Wiederlernintervallen und Zielerinnerung.
 - `src/screens/StatisticsScreen.jsx`: Leistungsstatistik aus Review-Events mit Trefferquote, Antwortverteilung, Lernserie, 14-Tage-Trend, Varianten-Reviews und Stapel-Auswertung.
 - `src/screens/StudyMode.jsx`: Clean Fullscreen Review, Tages-Queue fuer jetzt faellige Karten plus neue Karten, Neue-Karten-Tageslimit, Front+Back nach Aufdeckung, vier Buttons mit Intervallvorschau, Tastatursteuerung, Originalanker, Variantenfeedback.
 - `src/screens/GraphScreen.jsx`: Deck-Auswahl, Graph-Generierung, SVG-Mindmap.
 - `src/screens/CommunityScreen.jsx`: Community erstellen, Deck teilen, Deck kopieren.
 - `src/screens/AiJobsScreen.jsx`: lokale Job-Historie und Status; derzeit nicht als eigener Hauptreiter verlinkt.
 - `src/screens/AssistantScreen.jsx`: Chat-your-Deck und Lernplan; ueber den Heute-Sekundaereinstieg erreichbar, nicht als eigener Hauptreiter verlinkt.
-- `src/screens/SettingsScreen.jsx`: Profil, lokale Account-Sitzung, Hochschule, Sprache, Datenschutz, globaler CoRe-Modus, Datenportabilitaet.
+- `src/screens/SettingsScreen.jsx`: Profil, lokale Account-Sitzung, Hochschule, Sprache, Datenschutz, globale Lernvorgaben inklusive CoRe-Modus, Datenportabilitaet und sichtbare Release-Information.
 
 ### 27.3 Testoberflaeche
 
@@ -3112,12 +3201,14 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 - `src/coreWorkspace.test.js`: lokale App-Kommandos fuer Demo-Deck, Welt-Hauptstadt-Seed mit Lernhistorie, unberuehrte Seed-Migration, Stapel-Rename, Stapel-Move, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.
 - `src/accountStorage.test.js`: accountgebundene lokale Cache-Keys und einmalige Legacy-Migrationsmarkierung.
 - `src/accountSession.test.js`: Pflichtlogin-Gate, Recovery-Gate, App-Shell-Sperre ohne Session und sichtbarer Autosave-Fehlerstatus.
+- `src/appRuntime.test.js`: Prioritaet von Vercel-/GitHub-Metadaten, Commit-Kuerzung, Umgebungslabels, sichere Fallbacks und Ignorieren zusaetzlicher beziehungsweise secret-artiger Felder.
 - `src/cloudAuth.test.js`: Supabase-Profilmapping, password-freie Cloud-Profile, Pending-/Signed-out-Status, Google-OAuth, Magic Link, Recovery-Passwortupdate und deutsche Auth-Fehlermeldungen.
 - `src/cloudRepository.test.js`: Tabellenmapping fuer Decks, Cards/Learning Items, Originalvarianten, Review Events und account-scoped gleiche lokale IDs.
 - `src/syncEngine.test.js`: Delete-freier Autosave-Flush, append-only Merge fuer Events und Revision-Konflikterkennung.
 - `src/cloudMediaStore.test.js`: Supabase-Storage-Pfade, direkte Uploads ohne Upsert, große Upload-Markierung und signed URLs fuer private Medien.
 - `src/creationWorkflow.test.js`: Creation-Workflow-Interface fuer APKG-Fehlerform, Paste-Import, manuelle Dokumentanker, KI-Draft-Erzeugung und Draft-Annahme.
 - `src/coreModel.test.js`: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.
+- `src/deckSettings.test.js`: Presets, Legacy-Migration, globale Profil-Roundtrips und Erhalt stapelspezifischer Darstellung/Tages-Overrides.
 - `src/libraryModel.test.js`: Dashboard-/Bibliotheks-/Statistikprojektionen, sichtbare Deckzeilen, Kalenderjahr-Heatmap und Heatmap-Fenster.
 - `src/creationPipeline.test.js`: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.
 - `src/learningModel.test.js`: Legacy-Card-Normalisierung, Learning-Item-Invarianten und Review-Event-Kompatibilitaetsfelder.
@@ -3125,16 +3216,17 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 - `src/normalizedImport.test.js`: normalisierte Importpayloads, JSON-Import, Fingerprints, Dedupe und Parent-/Hierarchy-Felder.
 - `src/reviewFlow.test.js`: Antwortverarbeitung, Scheduler-Events, Variantenperformance, Anchor-Snapshots und Next-Review-Auswahl.
 - `src/fsrsVariantFlow.test.js`: FSRS-like Scheduler-State, Reifegradstufen, Variant-Readiness, Coverage, Generation-Plan, Fallback nach Fehlern und Next-Review-Projektion.
-- `src/schedulerIntervals.test.js`: Intervall-Labels, Rating-Simulation und Button-Intervallvorschau.
+- `src/schedulerIntervals.test.js`: Intervall-Labels, Rating-Simulation, Button-Intervallvorschau, konfigurierbare Lern-/Wiederlernintervalle, Zielerinnerung, Maximalintervall, Tageslimits und Queue-Reihenfolge.
 - `src/variantGeneration.test.js`: Prompt-Vertrag, KI-JSON-Parsing, Vorschlagsvalidierung, Anchoring und automatische Varianten-Auswahl.
 - `src/apkgImport.test.js`: APKG-Mapping, HTML-Sicherheit, lesbare Collection-Auswahl fuer `collection.anki21b`/Zstd-Fallbacks, Welt-Hauptstadt-APKG-Fixture und Reimport-Merge.
 - `src/mediaStore.test.js`: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.
 - `src/richText.test.js`: Rich-Text-Normalisierung, Plain-Text-Anhaengen und leere Karteninhalte.
 - `src/menuModel.test.js`: Navigationsvertrag.
 - `tests/e2e/auth.setup.js` und `tests/e2e/support/`: validierte E2E-Umgebung, RLS-konformer Testaccount-Reset, bereinigte Playwright-`storageState`, selektiver `core.*`-Reset und accountgebundene State-Leser.
-- `tests/e2e/auth-gate.spec.js`: sessionlose Browser-Smokes fuer Login-Gate, Auth-Modi und deterministisch gemappte Fehler bei ungueltigen Zugangsdaten.
+- `tests/e2e/auth-gate.spec.js`: sessionlose Browser-Smokes fuer Login-Gate, sichtbare Release-Information, Auth-Modi, deterministisch gemappte Fehler bei ungueltigen Zugangsdaten und den sicheren React-Fehlerfallback mit Startseiten-Rueckkehr.
+- `tests/e2e/auth-resilience.spec.js`: cloudfreie Browser-Smokes fuer fehlende Supabase-Konfiguration, nicht erreichbares Supabase und serverseitig abgelaufene Sessions mit deutschen Statusmeldungen.
 - `tests/e2e/core-stabilization.spec.js`: authentifizierte Browser-Smokes fuer Navigation, Review-Rating, manuell vorbereitete Varianten-Session, getrennte KI-Draft- und Assistenten-Flows sowie lokalen JSON-Export/-Import mit Fehlerstatus.
-- `tests/e2e/world-capitals-hierarchy.spec.js`: authentifizierter Browser-Smoke fuer den deterministisch zurueckgesetzten Cloud-Seed, sichtbare Unterstapel, gestaffelte Lernlisten-Gruppenhintergruende, spaltenbündige Lernlisten-Zahlen, Zeilenklick zum Lernstart, direkte Lernlisten-Drag-Geste, Outdent-Reparenting, interaktive Controls ohne Drag-Start und Kartenstapel-Verwaltung ohne alten Drag-Handle.
+- `tests/e2e/world-capitals-hierarchy.spec.js`: authentifizierter Browser-Smoke fuer den deterministisch zurueckgesetzten Cloud-Seed, sichtbare Unterstapel, gestaffelte Lernlisten-Gruppenhintergruende, spaltenbündige Lernlisten-Zahlen, Zeilenklick zum Lernstart, direkte Lernlisten-Drag-Geste, Outdent-Reparenting, interaktive Controls ohne Drag-Start und isolierte Einzelstapel-Einstellungen.
 
 ### 27.4 Gemeinsames Kartenmodell
 
@@ -3249,6 +3341,7 @@ Technische SQL-Artefakte:
 Hosting-/Runtime-Artefakte:
 
 - `vercel.json`: Vercel-Build, `dist`-Output und SPA-Rewrite ausserhalb von `/api/*`.
+- `vite.config.js`, `src/appRuntime.js` und `src/AppErrorBoundary.jsx`: allowlist-basierte Release-Metadaten, normalisierte Anzeige und sicherer React-Fehlerfallback; der E2E-Renderfehlerpfad wird nicht in den Production-Build uebernommen.
 - `.env.example`: oeffentliche Browser-Env-Grenzen fuer `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und das KI-Proxy-Featureflag sowie leere Platzhalter fuer den separaten Playwright-Testaccount und dessen explizite Reset-Freigabe.
 
 Die entfernte Arbeitsnotiz war ein externer Transfer-Guide. Relevante Inhalte wurden in die Abschnitte zu Datenmodell, API, KI-Proxy, Architektur, Sicherheit und Todo uebernommen; die Datei soll nicht als zweite Wahrheit erhalten bleiben.

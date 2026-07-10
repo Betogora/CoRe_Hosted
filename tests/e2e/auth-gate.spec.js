@@ -13,6 +13,7 @@ test("login gate exposes the supported authentication paths without an app sessi
   await expect(page.getByLabel("E-Mail")).toBeVisible();
   await expect(page.getByLabel("Passwort", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mit Google anmelden" })).toBeVisible();
+  await expect(page.getByLabel("Release-Information")).toHaveText(/^CoRe 0\.1\.0 · Test · Commit (?:lokal|[a-f0-9]{7})$/);
 
   await page.getByRole("button", { name: "Magic Link", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Magic Link senden" })).toBeVisible();
@@ -51,4 +52,18 @@ test("invalid credentials stay behind the login gate and show the German auth er
   await expect(page.getByRole("alert")).toHaveText("E-Mail oder Passwort stimmt nicht.");
   await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toHaveCount(0);
+});
+
+test("render errors show a safe recovery page with release context", async ({ page }) => {
+  await page.goto("/?core_e2e_render_error=1");
+
+  await expect(page.getByRole("heading", { name: "CoRe konnte nicht geladen werden" })).toBeVisible();
+  await expect(page.getByText("Nicht synchronisierte Änderungen seit dem letzten erfolgreichen Speichern können verloren gehen.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Seite neu laden" })).toBeVisible();
+  await expect(page.getByLabel("Release-Information")).toHaveText(/^CoRe 0\.1\.0 · Test · Commit (?:lokal|[a-f0-9]{7})$/);
+  await expect(page.getByText("core_e2e_render_error")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Startseite öffnen" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
 });

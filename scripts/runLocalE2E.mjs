@@ -79,12 +79,12 @@ export async function runLocalE2E(playwrightArguments = []) {
     await runSupabase([
       "start",
       "--exclude",
-      "analytics,edge-runtime,functions,imgproxy,inbucket,meta,realtime,studio,vector",
-    ]);
+      "edge-runtime,imgproxy,logflare,mailpit,postgres-meta,realtime,studio,supavisor,vector",
+    ], { capture: true });
     console.log("Ausstehende lokale Migrationen anwenden …");
     await runSupabase(["migration", "up", "--local"]);
 
-    const { stdout } = await runSupabase(["status", "--output-format", "env"], {
+    const { stdout } = await runSupabase(["status", "--output-format", "json"], {
       capture: true,
     });
     const statusEnvironment = parseSupabaseStatusEnvironment(stdout);

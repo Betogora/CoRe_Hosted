@@ -9,6 +9,10 @@ const DECK_IDS = {
   southAmerica: "deck_world_capitals_suedamerika",
 };
 
+function mainMenu(page) {
+  return page.getByRole("navigation", { name: /Hauptmen/ });
+}
+
 async function storedParentDeckId(page, deckId) {
   const state = await readActiveAccountState(page);
   return state.decks?.find((deck) => deck.id === deckId)?.parentDeckId ?? null;
@@ -60,28 +64,38 @@ async function countCellRightEdges(row) {
   });
 }
 
-async function rowPoint(page, deckId, placement = "content") {
-  const row = page.getByTestId(`learn-deck-row-${deckId}`);
-  const box = await row.boundingBox();
-  if (!box) throw new Error(`Missing deck row ${deckId}`);
-  return {
-    x: placement === "outdent" ? 4 : Math.min(260, box.width - 12),
-    y: box.height / 2,
-  };
+async function dispatchDeckDrop(page, sourceDeckId, targetDeckId, placement = "content") {
+  const source = page.getByTestId(`learn-deck-row-${sourceDeckId}`);
+  const target = page.getByTestId(`learn-deck-row-${targetDeckId}`);
+  const targetBox = await target.boundingBox();
+  if (!targetBox) throw new Error(`Missing deck row ${targetDeckId}`);
+
+  const pointerX = placement === "outdent" ? 4 : Math.min(260, targetBox.width - 12);
+  const clientX = targetBox.x + pointerX;
+  const clientY = targetBox.y + targetBox.height / 2;
+  const dataTransfer = await page.evaluateHandle((deckId) => {
+    const transfer = new DataTransfer();
+    transfer.effectAllowed = "move";
+    transfer.setData("text/plain", deckId);
+    return transfer;
+  }, sourceDeckId);
+
+  try {
+    await source.dispatchEvent("dragstart", { dataTransfer });
+    await target.dispatchEvent("dragover", { dataTransfer, clientX, clientY });
+    await target.dispatchEvent("drop", { dataTransfer, clientX, clientY });
+    await source.dispatchEvent("dragend", { dataTransfer });
+  } finally {
+    await dataTransfer.dispose();
+  }
 }
 
 async function dragLearnDeckToDeck(page, sourceDeckId, targetDeckId) {
-  const targetPoint = await rowPoint(page, targetDeckId, "content");
-  await page.getByTestId(`learn-deck-row-${sourceDeckId}`).dragTo(page.getByTestId(`learn-deck-row-${targetDeckId}`), {
-    targetPosition: targetPoint,
-  });
+  await dispatchDeckDrop(page, sourceDeckId, targetDeckId);
 }
 
 async function dragLearnDeckToRowOutdent(page, sourceDeckId, targetDeckId) {
-  const targetPoint = await rowPoint(page, targetDeckId, "outdent");
-  await page.getByTestId(`learn-deck-row-${sourceDeckId}`).dragTo(page.getByTestId(`learn-deck-row-${targetDeckId}`), {
-    targetPosition: targetPoint,
-  });
+  await dispatchDeckDrop(page, sourceDeckId, targetDeckId, "outdent");
 }
 
 async function expectControlDoesNotStartDrag(page, control) {
@@ -94,7 +108,7 @@ async function expectControlDoesNotStartDrag(page, control) {
 test("world capitals learn list supports Anki-like direct drag-and-drop reparenting", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  await page.getByLabel("Hauptmenue").getByRole("button", { name: "Lernen" }).click();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.root}`)).toContainText("Welt-Hauptstädte");
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.root}`)).toContainText("245");
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toContainText("Europa");
@@ -126,11 +140,15 @@ test("world capitals learn list supports Anki-like direct drag-and-drop reparent
   }
   await expect(europeRow.getByRole("button", { name: /^Lernen$/ })).toHaveCount(0);
   await expectControlDoesNotStartDrag(page, rootRow.getByRole("button", { name: "Unterstapel ausblenden" }));
-  await expectControlDoesNotStartDrag(page, europeRow.getByRole("button", { name: "Stapel verwalten" }));
-  await europeRow.getByRole("button", { name: "Stapel verwalten" }).click();
-  await expect(page.getByTestId(`deck-row-${DECK_IDS.europe}`)).toBeVisible();
-  await expect(page.getByTestId(`deck-row-${DECK_IDS.europe}`)).toHaveClass(/ring-2/);
-  await page.getByLabel("Hauptmenue").getByRole("button", { name: "Lernen" }).click();
+  const europeSettingsButton = europeRow.getByRole("button", { name: "Einstellungen für Europa" });
+  await expectControlDoesNotStartDrag(page, europeSettingsButton);
+  await europeSettingsButton.click();
+  await expect(page.getByTestId(`deck-settings-${DECK_IDS.europe}`)).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.europe}$`));
+  await expect(page.getByText("Nur dieser Stapel")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Europa", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
 
   await dragLearnDeckToDeck(page, DECK_IDS.southAmerica, DECK_IDS.europe);
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
@@ -147,7 +165,7 @@ test("world capitals learn list supports Anki-like direct drag-and-drop reparent
 test("world capitals learn rows start study mode directly", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  await page.getByLabel("Hauptmenue").getByRole("button", { name: "Lernen" }).click();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
 
   await europeRow.click();
@@ -159,7 +177,7 @@ test("world capitals learn rows start study mode directly", async ({ page }) => 
 test("deck management does not expose the old drag handle or drop target", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  await page.getByLabel("Hauptmenue").getByRole("button", { name: "Lernen" }).click();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Kartenstapel" }).click();
 
   await expect(page.getByTestId(`deck-row-${DECK_IDS.root}`)).toBeVisible();

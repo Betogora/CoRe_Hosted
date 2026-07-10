@@ -5,7 +5,7 @@ export const APP_HISTORY_STATE_KEY = "coreAppRoute";
 const menu = createMenuModel();
 const defaultViewId = menu.defaultViewId;
 const studyFallbackViewId = "lernen";
-const extraRoutableViewIds = ["assistent"];
+const extraRoutableViewIds = ["assistent", "stapel-einstellungen"];
 const routableViewIds = new Set([...menu.listViews().map((view) => view.id), ...extraRoutableViewIds]);
 
 function deckIdSetFrom(validDeckIds) {
@@ -116,7 +116,7 @@ export function appRouteToUrl(route, options = {}) {
 
   const path = normalized.viewId === defaultViewId ? "/" : `/${encodeURIComponent(normalized.viewId)}`;
   const params = new URLSearchParams();
-  if (normalized.viewId === "kartenstapel" && normalized.focusedDeckId) params.set("deck", normalized.focusedDeckId);
+  if (["kartenstapel", "stapel-einstellungen"].includes(normalized.viewId) && normalized.focusedDeckId) params.set("deck", normalized.focusedDeckId);
   if (normalized.viewId === "lernen" && normalized.deckCreationParentId) params.set("parent", normalized.deckCreationParentId);
   const search = params.toString();
   return `${path}${search ? `?${search}` : ""}`;

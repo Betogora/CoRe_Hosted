@@ -8,6 +8,7 @@ import { replaceAccountCloudState } from "./cloudRepository.js";
 import { createCoreRepository } from "./coreRepository.js";
 import { createCoreWorkspace } from "./coreWorkspace.js";
 import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.js";
+import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings } from "./deckSettings.js";
 import { createMenuModel } from "./menuModel.js";
 import { createAccountSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.js";
 import { createSupabaseBrowserClient } from "./supabaseClient.js";
@@ -17,6 +18,7 @@ import {
   CommunityScreen,
   CreationScreen,
   DashboardScreen,
+  DeckSettingsScreen,
   DecksScreen,
   GraphScreen,
   LearnScreen,
@@ -28,6 +30,7 @@ import { OrbIcon, SoftPanel } from "./ui/coreUi.jsx";
 
 const menu = createMenuModel();
 const AUTOSAVE_DELAY_MS = 900;
+const focusedDeckViewIds = new Set(["kartenstapel", "stapel-einstellungen"]);
 
 const iconByKey = {
   chart: BarChart3,
@@ -153,7 +156,7 @@ export function App() {
     if (normalized.mode === "study") {
       const returnRoute = normalized.returnRoute ?? createViewRoute("lernen");
       setActiveView(returnRoute.viewId);
-      setFocusedDeckId(returnRoute.viewId === "kartenstapel" ? (returnRoute.focusedDeckId ?? null) : null);
+      setFocusedDeckId(focusedDeckViewIds.has(returnRoute.viewId) ? (returnRoute.focusedDeckId ?? null) : null);
       setDeckCreationParentId(returnRoute.viewId === "lernen" ? (returnRoute.deckCreationParentId ?? "") : "");
       setStudyRequest({
         deckId: normalized.deckId,
@@ -165,7 +168,7 @@ export function App() {
 
     setStudyRequest(null);
     setActiveView(normalized.viewId);
-    setFocusedDeckId(normalized.viewId === "kartenstapel" ? (normalized.focusedDeckId ?? null) : null);
+    setFocusedDeckId(focusedDeckViewIds.has(normalized.viewId) ? (normalized.focusedDeckId ?? null) : null);
     setDeckCreationParentId(normalized.viewId === "lernen" ? (normalized.deckCreationParentId ?? "") : "");
     return normalized;
   }
@@ -259,8 +262,8 @@ export function App() {
     async function loadSession() {
       if (!supabase) {
         setAuthPhase(authPhaseForSession({ configured: false, user: null }));
-        setAuthMessage("Supabase ist für diese Umgebung noch nicht konfiguriert.");
-        setAuthMessageType("alert");
+        setAuthMessage("");
+        setAuthMessageType("status");
         return;
       }
 
@@ -546,11 +549,30 @@ export function App() {
   }
 
   function saveDeck(deck) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDecks(deck));
+    const existingDeckIds = new Set(state?.decks?.map((item) => item.id) ?? []);
+    const globalSettings = getGlobalDeckSettings(state?.profile);
+    const applyDefaults = (item) => existingDeckIds.has(item.id)
+      ? item
+      : {
+          ...item,
+          deckSettings: {
+            ...applyLearningSettingsToDeckSettings(item.deckSettings, globalSettings),
+            coreMode: globalSettings.coreMode,
+          },
+        };
+    const nextDeck = Array.isArray(deck) ? deck.map(applyDefaults) : applyDefaults(deck);
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDecks(nextDeck));
   }
 
   function createDeck(input) {
-    const saved = runWorkspaceMutation((currentWorkspace) => currentWorkspace.createDeck(input));
+    const globalSettings = getGlobalDeckSettings(state?.profile);
+    const saved = runWorkspaceMutation((currentWorkspace) => currentWorkspace.createDeck({
+      ...input,
+      deckSettings: {
+        ...applyLearningSettingsToDeckSettings(input?.deckSettings, globalSettings),
+        coreMode: input?.deckSettings?.coreMode ?? globalSettings.coreMode,
+      },
+    }));
     if (!saved) return null;
     setFocusedDeckId(saved.id);
     setDeckCreationParentId("");
@@ -584,6 +606,31 @@ export function App() {
 
   function setDeckCoreMode(deckId, coreMode) {
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.setDeckCoreMode(deckId, coreMode));
+  }
+
+  function saveDeckLearningSettings(deckId, settings) {
+    return updateDeck(deckId, (deck) => ({
+      ...deck,
+      deckSettings: {
+        ...applyLearningSettingsToDeckSettings(deck.deckSettings, settings),
+        coreMode: settings.coreMode ?? deck.deckSettings?.coreMode ?? "auto",
+      },
+      updatedAt: new Date().toISOString(),
+    }));
+  }
+
+  function saveGlobalLearningSettings(settings) {
+    return runWorkspaceMutation((currentWorkspace) => {
+      currentWorkspace.saveProfile(withGlobalDeckSettings(state.profile, settings));
+      return currentWorkspace.updateAllDecks((deck) => ({
+        ...deck,
+        deckSettings: {
+          ...applyLearningSettingsToDeckSettings(deck.deckSettings, settings),
+          coreMode: settings.coreMode ?? deck.deckSettings?.coreMode ?? "auto",
+        },
+        updatedAt: new Date().toISOString(),
+      }));
+    });
   }
 
   function saveDeckCard(deckId, cardId, patch) {
@@ -638,12 +685,12 @@ export function App() {
     navigateToView("kartenstapel", { focusedDeckId: deckId || null });
   }
 
-  function openDeckCreation(parentDeckId = "") {
-    navigateToView("lernen", { deckCreationParentId: parentDeckId || "" });
+  function openDeckSettings(deckId) {
+    navigateToView("stapel-einstellungen", { focusedDeckId: deckId });
   }
 
-  function updateAllDecks(updater) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.updateAllDecks(updater));
+  function openDeckCreation(parentDeckId = "") {
+    navigateToView("lernen", { deckCreationParentId: parentDeckId || "" });
   }
 
   function openGraph(deck) {
@@ -657,6 +704,15 @@ export function App() {
   }
 
   function renderActiveView() {
+    if (activeView === "stapel-einstellungen") {
+      return (
+        <DeckSettingsScreen
+          deck={state.decks.find((deck) => deck.id === focusedDeckId) ?? null}
+          onSave={saveDeckLearningSettings}
+          onBack={() => navigateToView("lernen")}
+        />
+      );
+    }
     if (activeView === "kartenstapel") {
       return (
         <DecksScreen
@@ -690,6 +746,7 @@ export function App() {
           onDeckCreationHandled={() => setDeckCreationParentId("")}
           onOpenCardCreation={() => navigateToView("neue-karten")}
           onOpenDecks={openDecks}
+          onOpenDeckSettings={openDeckSettings}
           onMoveDeck={moveDeck}
         />
       );
@@ -714,7 +771,8 @@ export function App() {
           decks={state.decks}
           syncStatus={syncStatus}
           onSaveProfile={saveProfile}
-          onUpdateAllDecks={updateAllDecks}
+          globalDeckSettings={getGlobalDeckSettings(state.profile)}
+          onSaveGlobalLearningSettings={saveGlobalLearningSettings}
           onSaveState={saveState}
           onSyncNow={syncNow}
           onSignOut={signOut}

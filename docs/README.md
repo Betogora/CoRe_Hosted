@@ -2,7 +2,7 @@
 
 CoRe ist ein lokaler Web-MVP fuer eine Lernplattform, die klassische Spaced-Repetition-Karten um inhaltliche Wiederholung erweitert. Das Ziel ist, Kartenblindheit zu reduzieren: Lernende sollen nicht nur Layout, Wortlaut oder Lueckenposition wiedererkennen, sondern den Inhalt auch bei veraenderter Fragestellung abrufen koennen.
 
-Der aktuelle Stand ist ein breiter Web-MVP. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind angebunden, und es gibt Pflichtlogin, Supabase-E-Mail/Passwort, accountgebundenen Browser-Cache und Cloud-first Autosave ueber Tabellen. CoRe ist aber noch kein fertiges gehostetes Mehrnutzerprodukt: Offline-Konfliktloesung, produktive Medienablage, Serverjobs sowie Betriebsablaeufe fehlen noch.
+Der aktuelle Stand ist ein breiter Web-MVP. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind angebunden, und es gibt Pflichtlogin, Supabase-E-Mail/Passwort, accountgebundenen Browser-Cache und Cloud-first Autosave ueber Tabellen. Das Preview-/Production-/Rollback-Runbook ist dokumentiert; Version, Umgebung und Build-Commit sind am Login, in den Einstellungen und im sicheren React-Fehlerfallback sichtbar. CoRe ist aber noch kein fertiges gehostetes Mehrnutzerprodukt: Offline-Konfliktloesung, produktive Medienablage, Serverjobs, Monitoring und Backups fehlen noch.
 
 Die gepflegte Projektdokumentation liegt im Ordner `docs/`. Es gibt genau eine TODO-Markdown-Datei: `docs/todo.md`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
 
@@ -49,6 +49,29 @@ npm run build    # Produktionsbuild
 npm run preview  # Lokale Preview auf Port 5190
 ```
 
+## Automatisiertes Release-Gate
+
+`.github/workflows/ci.yml` läuft bei Pull Requests, bei Pushes auf `main` und manuell über GitHub Actions. Der Check `quality` installiert reproduzierbar mit `npm ci` und führt `npm test` sowie `npm run build` aus. Danach installiert `browser-e2e` Chromium und startet mit `npm run test:e2e:local` einen vollständig lokalen Supabase-Stack auf dem GitHub-Ubuntu-Runner. Der CI-Pfad benötigt deshalb weder Hosted-Supabase-Zugangsdaten noch KI-Provider-Secrets.
+
+Playwright schreibt im CI-Modus einen HTML-Bericht und Screenshots für fehlgeschlagene Tests. Traces werden nur für die sessionlosen Projekte erzeugt; `auth-setup` und `authenticated-chromium` deaktivieren sie, damit keine Supabase-Sitzung in Diagnoseartefakte gelangt. Bei einem Fehler lädt der Workflow ausschließlich `playwright-report/` und `test-results/` für sieben Tage als GitHub-Actions-Artefakt hoch; `playwright/.auth/` und `.env`-Dateien bleiben ausgeschlossen. Retries bleiben deaktiviert, damit instabile Tests das Gate sichtbar fehlschlagen lassen.
+
+## Preview- und Production-Release
+
+Der verbindliche manuelle Ablauf steht in [`docs/specs.md`, Abschnitt 14.2.2](specs.md#1422-preview-smoke-und-production-rollback-runbook) und gespiegelt in [`docs/specs.html`](specs.html#14-2-2-preview-smoke-und-production-rollback-runbook). Er prueft auf der PR-Preview Login, Cloud-Laden, Review samt Save-Status, eine nicht uebernommene APKG-Importvorschau, `/api/ai/chat` mit vorhandenem Key sowie die Abmeldung. Der fehlende-Key-Pfad bleibt als verpflichtender Route-Test im CI-Gate und kann zusaetzlich in einer absichtlich keylosen Preview geprueft werden, ohne den gemeinsam verwendeten Preview-Key zu entfernen.
+
+Am Login-Gate, in den Einstellungen und im React-Fehlerfallback steht eine kompakte Release-Information aus `package.json`-Version, normalisierter Umgebung und kurzem Commit. Vercel-Commits haben Vorrang vor GitHub-Commits; andere Env-Felder, URLs und Secrets werden nicht in den Browservertrag aufgenommen. Der Fehlerfallback zeigt keine rohe Exception und bietet Neuladen sowie Startseiten-Rueckkehr.
+
+Production wird bevorzugt zuerst ohne Domain-Zuordnung gebaut und nach einem kurzen Smoke explizit freigegeben:
+
+```powershell
+vercel deploy --prod --skip-domain
+vercel inspect <staged-production-url>
+vercel promote <staged-production-url>
+vercel promote status
+```
+
+Bei einem Produktionsfehler stellt `vercel rollback` das vorherige App-Deployment wieder her. Dieser Vorgang setzt keine Supabase-Migrationen oder Nutzerdaten zurueck; Datenbankaenderungen brauchen deshalb einen eigenen vorwaertskompatiblen Rueckfallplan. Release-Nachweise duerfen keine Secrets, Tokens, `.env`-Dateien oder Passwoerter enthalten.
+
 ## Authentifizierte Browser-Tests
 
 Der bevorzugte kostenfreie Testpfad verwendet Docker Desktop und den lokalen Supabase-Stack:
@@ -57,7 +80,9 @@ Der bevorzugte kostenfreie Testpfad verwendet Docker Desktop und den lokalen Sup
 npm run test:e2e:local
 ```
 
-Der Befehl prüft die Docker-Engine, startet nur die für CoRe benötigten lokalen Supabase-Dienste, wendet ausstehende Migrationen an, übernimmt URL und Publishable Key ausschließlich von der Loopback-Instanz, legt den lokalen Testaccount bei Bedarf an, führt Playwright aus und stoppt den Stack anschließend wieder. Beim ersten Lauf lädt Supabase die Docker-Images herunter. Docker muss dafür laufen; für `npm test`, `npm run build` und normale Entwicklungsarbeit ist Docker nicht erforderlich. Zusätzliche Playwright-Argumente werden weitergereicht, zum Beispiel `npm run test:e2e:local -- --project=auth-gate-chromium`.
+Der Befehl prüft die Docker-Engine, startet nur die für CoRe benötigten lokalen Supabase-Dienste, wendet ausstehende Migrationen an, liest URL und Publishable Key aus dem JSON-Status der installierten Supabase-CLI ausschließlich von der Loopback-Instanz, legt den lokalen Testaccount bei Bedarf an, führt Playwright aus und stoppt den Stack anschließend wieder. Die Status-Auswertung bleibt auch mit älteren `KEY=VALUE`-Ausgaben kompatibel. Beim ersten Lauf lädt Supabase die Docker-Images herunter. Docker muss dafür laufen; für `npm test`, `npm run build` und normale Entwicklungsarbeit ist Docker nicht erforderlich. Zusätzliche Playwright-Argumente werden weitergereicht, zum Beispiel `npm run test:e2e:local -- --project=auth-gate-chromium`.
+
+Der lokale Lauf wurde am 2026-07-10 mit allen 18 Tests erfolgreich abgenommen. Darin enthalten ist ein ausschließlich im E2E-Modus aktivierbarer Renderfehler-Smoke fuer den sicheren Fehlerfallback; der Production-Build enthaelt diesen Testparameter nicht. Beim ersten Start werden die Docker-Images einmalig lokal heruntergeladen; danach startet der Lauf deutlich schneller.
 
 Alternativ unterstützen die Playwright-Produkttests weiterhin ein separates Hosted-Supabase-Testprojekt mit einem einmalig vorab angelegten Testaccount. Lege dafür lokal eine von Git ignorierte `.env.e2e.local` mit diesen Werten an:
 
@@ -69,22 +94,25 @@ CORE_E2E_PASSWORD=<testpasswort>
 CORE_E2E_ALLOW_ACCOUNT_RESET=true
 ```
 
-`npm run test:e2e` startet Vite immer im Modus `e2e` auf `http://127.0.0.1:5190/`; ein normal laufender Dev-Server muss vorher beendet werden. Das Setup ersetzt bei jedem Lauf ausschließlich die Daten des isolierten Testaccounts durch die reproduzierbare `Welt-Hauptstädte`-Fixture und speichert die Supabase-Sitzung unter `playwright/.auth/`. Dieses Verzeichnis enthält Zugriffstoken, ist ignoriert und darf nicht committed werden. Verwende für Hosted-Variablen lokal oder in CI niemals einen persönlichen oder produktiven Account.
+`npm run test:e2e` startet Vite immer im Modus `e2e` auf `http://127.0.0.1:5190/`; ein normal laufender Dev-Server muss vorher beendet werden. Das Setup ersetzt bei jedem Lauf ausschließlich die Daten des isolierten Testaccounts durch die reproduzierbare `Welt-Hauptstädte`-Fixture und speichert die Supabase-Sitzung unter `playwright/.auth/`. Dieses Verzeichnis enthält Zugriffstoken, ist ignoriert und darf nicht committed werden. Verwende für den optionalen Hosted-Pfad niemals einen persönlichen oder produktiven Account; der GitHub-Actions-Workflow verwendet ausschließlich den lokalen Loopback-Pfad.
 
 Die sessionlosen Auth-Gate-Smokes und die authentifizierten Produkt-Smokes lassen sich getrennt starten:
 
 ```bash
 npm run test:e2e -- --project=auth-gate-chromium
+npm run test:e2e -- --project=auth-resilience-chromium
 npm run test:e2e -- --project=authenticated-chromium
 ```
 
-`auth-gate-chromium` verwendet keine gespeicherte Sitzung und setzt keinen Account zurück. `authenticated-chromium` führt über seine Projektabhängigkeit zuerst `auth-setup` aus und verwendet danach die bereinigte Test-Session.
+`auth-gate-chromium` verwendet keine gespeicherte Sitzung und setzt keinen Account zurück. `auth-resilience-chromium` simuliert fehlende Konfiguration, Netzwerkausfall und Sessionablauf vollständig ohne Cloud-Mutation. `authenticated-chromium` führt über seine Projektabhängigkeit zuerst `auth-setup` aus und verwendet danach die bereinigte Test-Session.
 
 ## Projektstruktur
 
 ```text
 src/
   App.jsx                 App-Shell: Workspace-State, Navigation und Routing
+  AppErrorBoundary.jsx    Sicherer React-Fehlerfallback und Wiederherstellungsaktionen
+  appRuntime.js           Allowlist-basierte App-Version, Umgebung und Build-Commit
   screens/                UI-Screens mit kleinen Props-Interfaces
   screens/README.md       Screen-Map und Regeln fuer KI-Programmierung
   ui/                     Geteilte Praesentationsbausteine und Medien-HTML
@@ -138,10 +166,12 @@ src/
 
 ## Aktueller Status
 
-CoRe laeuft lokal als Vite/React-App und hat einen initialen Vercel-/Supabase-Infrastrukturpfad. Pflichtlogin, E-Mail/Passwort-Auth, Profil-Upsert, accountgebundener Cache und Cloud-first Autosave sind vorhanden. Es gibt noch keine ausgereifte Deployment-Pipeline, keine eigene Domain, keine Offline-Konfliktloesung zwischen Geraeten und keine externen LLM-Provider.
+CoRe laeuft lokal als Vite/React-App und hat einen initialen Vercel-/Supabase-Infrastrukturpfad. Pflichtlogin, E-Mail/Passwort-Auth, Profil-Upsert, accountgebundener Cache, Cloud-first Autosave, automatisiertes CI-Gate, sichtbare Release-Identitaet, sicherer React-Fehlerfallback und ein manuelles Preview-/Production-/Rollback-Runbook sind vorhanden. Es gibt noch keine eigene Domain, keine protokollierte Production-Abnahme, keine Offline-Konfliktloesung zwischen Geraeten und keine vollstaendige Betriebsbeobachtung.
 
 ## Naechste sinnvolle Schritte
 
+- Domain-/DNS-Pfad und Supabase-Redirect-Allowlist fuer klar getrennte Preview- und Production-URLs festlegen.
+- Das Release-Runbook beim ersten echten staged Production-Deployment ausfuehren und den secretsfreien Nachweis ablegen.
 - Cloud-first Autosave zu einer Offline-Strategie weiterentwickeln: Konfliktmodell, Queue, Merge-Regeln und Medien-Storage.
 - `supabase/core_schema_v1.sql` weiter gegen Medien-/Storage-Referenzen, Importdetails und Community-Rechte abgleichen.
 - APKG-/Medienfixtures und Importidentitaeten gemaess `docs/anki-format-analysis.md` ausbauen.

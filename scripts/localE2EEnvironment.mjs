@@ -11,8 +11,18 @@ function stripOptionalQuotes(value) {
 }
 
 export function parseSupabaseStatusEnvironment(output) {
+  const rawOutput = String(output ?? "").trim();
+  if (!rawOutput) return {};
+
+  try {
+    const parsed = JSON.parse(rawOutput);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+  } catch {
+    // Ältere Supabase-CLI-Versionen liefern weiterhin KEY=VALUE-Zeilen.
+  }
+
   return Object.fromEntries(
-    String(output ?? "")
+    rawOutput
       .split(/\r?\n/)
       .map((line) => line.match(/^([A-Z][A-Z0-9_]*)=(.*)$/))
       .filter(Boolean)

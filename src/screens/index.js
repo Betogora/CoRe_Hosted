@@ -1,5 +1,6 @@
 export { DashboardScreen } from "./DashboardScreen.jsx";
 export { DecksScreen } from "./DecksScreen.jsx";
+export { DeckSettingsScreen } from "./DeckSettingsScreen.jsx";
 export { CreationScreen } from "./CreationScreen.jsx";
 export { LearnScreen } from "./LearnScreen.jsx";
 export { StatisticsScreen } from "./StatisticsScreen.jsx";

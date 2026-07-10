@@ -6,9 +6,9 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 
 ## Auditierter Ist-Stand
 
-- `npm test`: 187 Tests bestanden.
+- `npm test`: 207 Tests bestanden.
 - `npm run build`: erfolgreich; der Build meldet aber einen ca. 1,97 MB großen Hauptchunk sowie große PDF-/Worker-Chunks.
-- `npm run test:e2e -- --list`: ein Auth-Setup, zwei sessionlose Auth-Gate-Smokes und elf authentifizierte Produkt-Smokes werden in drei getrennten Playwright-Projekten korrekt erkannt. Der vollständige Lauf benötigt die nicht committeden Zugangsdaten eines separaten Supabase-Testprojekts in `.env.e2e.local`.
+- `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und elf authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 18/18 Tests grün.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
 - `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
@@ -37,12 +37,12 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 ### 1.2 Deterministische Tests und Deployment
 
 - [x] Playwright-Auth-Fixture eingeführt: `auth-setup` setzt ausschließlich einen vorab angelegten Account im separaten Supabase-Testprojekt auf die Hauptstadt-Fixture zurück, schreibt eine bereinigte und ignorierte `storageState`-Datei und lässt `resetToFreshLocalState()` nur `core.*` statt der Supabase-Session löschen.
-- [ ] Die E2E-Suite in zwei klare Gruppen teilen: Login-Gate/Auth-Fehlerfälle und authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent, Portabilität und Deck-Hierarchie. Die drei Playwright-Projekte und 14 Tests sind umgesetzt und per `--list` bestätigt; die zwei sessionlosen Auth-Gate-Smokes sind grün. `npm run test:e2e:local` automatisiert jetzt den kostenfreien Loopback-Pfad einschließlich Docker-Prüfung, reduziertem Supabase-Start, Migrationen, lokalem Testaccount, vollständigem Playwright-Lauf und Stop. Die administrative WSL-Installation ist aus der nicht erhöhten Codex-Sitzung noch offen; nach Installation und späterem regulären Windows-Neustart den Befehl ausführen und 14/14 Tests abnehmen.
-- [ ] E2E-Tests für Offline-Start, fehlende Supabase-Konfiguration und abgelaufene Session explizit ergänzen; derzeit sind diese Fälle nur teilweise über Modul-Tests abgedeckt.
-- [ ] Einen CI- oder Release-Job anlegen, der mindestens `npm test`, `npm run build` und `npm run test:e2e` mit der Test-Session ausführt. Secrets dürfen nur als CI-/Vercel-Secrets injiziert werden.
-- [ ] Preview-Smoke und Production-Rollback dokumentieren: Deployment, Login, Cloud-Laden, Review mit Save-Status, Importvorschau, `/api/ai/chat` mit und ohne Key, Abmeldung und Rollback.
+- [x] E2E-Suite in klare Gruppen geteilt: Login-Gate/Auth-Fehlerfälle, cloudfreie Auth-Resilience und authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent, Portabilität und Deck-Hierarchie. Die vier Playwright-Projekte und 18 Tests sind per `--list` bestätigt; `npm run test:e2e:local` läuft mit lokalem Docker/Supabase, reduziertem Service-Set, Migrationen, lokalem Testaccount und anschließendem Stop reproduzierbar mit 18/18 grünen Tests. Der GitHub-Actions-Job `browser-e2e` führt denselben secretfreien Loopback-Pfad aus.
+- [x] E2E-Tests für Offline-Start, fehlende Supabase-Konfiguration und abgelaufene Session ergänzt. Die drei cloudfreien Smokes verwenden einen getrennten unkonfigurierten Vite-Port bzw. Browser-Routen für Netzwerkausfall und `session_expired`; alle drei sind grün und prüfen verständliche deutsche Fehlerzustände ohne Cloud-Mutation.
+- [x] GitHub-Actions-Release-Gate mit den stabilen Checks `quality` und `browser-e2e` angelegt. `quality` führt `npm test` und `npm run build` aus; `browser-e2e` startet den lokalen Supabase-Stack und alle Playwright-Smokes ohne Hosted-Zugangsdaten oder KI-Secrets. Fehlerberichte und Screenshots sowie Traces der sessionlosen Projekte werden sieben Tage als Artefakt aufbewahrt; Auth-Session und `.env`-Dateien sind ausgeschlossen.
+- [x] Preview-Smoke und Production-Rollback in `docs/specs.md` Abschnitt 14.2.2 dokumentiert: gruenes CI und fester Commit als Eingangsgate, eigener RLS-geschuetzter Smoke-Account, Login, Cloud-Laden, Review mit sichtbarem Save-Status, mutationsfreie APKG-Importvorschau, `/api/ai/chat` mit vorhandenem Key sowie verpflichtender fehlender-Key-Pruefung, Abmeldung, staged Production per `--skip-domain`, Promotion, konkrete Rollback-Trigger und der Hinweis, dass ein Vercel-Rollback keine Supabase-Daten oder Migrationen zuruecksetzt. Die erste echte Production-Abnahme bleibt ein auszufuehrender Betriebsnachweis, nicht Teil dieses Dokumentationspunkts.
 - [ ] Domain-/DNS-Pfad für Vercel festlegen: Preview-URLs und Production-Domain trennen, Redirect-Allowlist in Supabase passend pflegen.
-- [ ] App-Version, Build-Commit, Umgebung und eine nutzbare Fehlerseite anzeigen; keine sensiblen Env-Werte ausgeben.
+- [x] App-Version, Build-Commit und Umgebung aus einem allowlist-basierten Vite-Buildvertrag sichtbar machen: `ReleaseInfo` erscheint am Login-Gate, in den Einstellungen und im React-Fehlerfallback. Die Error Boundary zeigt keine rohe Exception oder Nutzerdaten, bietet Neuladen und Startseiten-Rückkehr und ist über einen ausschließlich im E2E-Modus vorhandenen Renderfehler-Smoke geprüft; der Production-Build enthält den Testparameter nicht.
 - [ ] `npm run build` ohne Chunk-Warnung bekommen: PDF-/Worker-/APKG-/SQLite-Code über echte Route-/Feature-Dynamic-Imports oder gezieltes Rollup-Chunking aus dem Hauptchunk herauslösen. Keine bloße Erhöhung von `chunkSizeWarningLimit`.
 
 ## 2. P1 — Cloud-Persistenz fachlich korrekt machen
@@ -120,7 +120,7 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 
 ## 7. P1 — Produktqualität und Lernwirksamkeit
 
-- [ ] Die authentifizierten Browser-Smokes nach dem E2E-Fixture-Fix für Review, Variantenreview, KI-Draft, Chat, Lernplan, Export/Import, Deck-Hierarchie und Browser-Back/Forward grün bekommen.
+- [x] Die authentifizierten Browser-Smokes nach dem E2E-Fixture-Fix für Review, Variantenreview, KI-Draft, Chat, Lernplan, Export/Import, Deck-Hierarchie und Browser-Back/Forward grün bekommen; elf authentifizierte Produkt-Smokes laufen im vollständigen lokalen 18/18-Lauf stabil.
 - [ ] Accessibility und Fehlerzustände an `AuthGateScreen`, `StudyMode`, `CreationScreen`, `DecksScreen` und `SettingsScreen` prüfen: Fokusführung, sichtbare Labels, Tastatur, Screenreader-Status, Kontrast, leere Zustände, große Dateien und Netzwerkfehler.
 - [ ] Version-Restore/Undo in `DecksScreen` tatsächlich klickbar machen. `versionLog` und Restore-Basis existieren im Modell, aber der Nutzerfluss ist noch nicht vollständig sichtbar.
 - [ ] Datenportabilität mit Roundtrips testen: `createPortableExport`, `validatePortableExport`, `mergePortableExportIntoState`, Legacy-Card-Normalisierung, Learning-Item-Invariante und ID-Kollisionen. Medien- und serverseitige Account-Rechte müssen ausdrücklich als nicht enthalten markiert bleiben.
@@ -129,7 +129,7 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 
 ## 8. P2 — Scheduler, Varianten und Content-Repetition
 
-- [ ] FSRS-like Parameter mit aufgezeichneten anonymisierten Lernverläufen oder einer versionierten synthetischen Session-Fixture validieren: Stability, Difficulty, Desired Retention, Retrievability, Lernschritte und Kurzintervall-Bias.
+- [ ] Die jetzt sichtbaren globalen und stapelspezifischen Lernprofile mit aufgezeichneten anonymisierten Lernverläufen oder einer versionierten synthetischen Session-Fixture validieren: Tageslimits, Queue-Reihenfolge, Stability, Difficulty, Desired Retention, Retrievability, Lern-/Wiederlernschritte, Maximalintervall und Kurzintervall-Bias.
 - [ ] Invarianten für Learning Item, Originalvariante, Varianten-State, Family-State und Fallback-State über mehrere Sessions testen; insbesondere `Again` auf Variante, Rückkehr zur einfacheren Variante und kein Review-Duplikat der Originalkarte.
 - [ ] Eligibility und konservative Variant-Level mit realistisch gemischten Decks prüfen: Vokabeln, Cloze-Familien, Reverse-Varianten, importierte Templates und Karten mit Medien.
 - [ ] Feedbackpfad fachlich auswerten: deaktiviert, fachlich falsch, schlecht formuliert, Quellenanker unbrauchbar. Feedback darf private Reviewdaten nicht in serverseitig wiederverwendbare Variantenqualität vermischen.
@@ -179,4 +179,4 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 - `src/cloudRepository.js`, `src/syncEngine.js`: aktueller Cloud-/Sync-Pfad und nächste technische Naht.
 - `src/cloudMediaStore.js`, `src/mediaStore.js`, `src/creationWorkflow.js`: aktueller lokaler und vorbereiteter Cloud-Medienpfad.
 - `api/ai/chat.js`, `src/deckAssistant.js`, `src/aiOrchestrator.js`: aktueller Chat-Proxy und lokale KI-Drafts.
-- `tests/e2e/`, `playwright.config.js`: bestehende Browser-Smokes und fehlende Auth-Fixture.
+- `.github/workflows/ci.yml`, `tests/e2e/`, `playwright.config.js`: automatisiertes Release-Gate, bestehende Browser-Smokes und lokale Supabase-Test-Session.

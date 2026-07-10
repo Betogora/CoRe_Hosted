@@ -76,7 +76,7 @@ function createDefaultDeckDraft(parentDeckId = "") {
   };
 }
 
-export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDeckId = "", onDeckCreationHandled, onOpenCardCreation, onOpenDecks, onMoveDeck }) {
+export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDeckId = "", onDeckCreationHandled, onOpenCardCreation, onOpenDecks, onOpenDeckSettings, onMoveDeck }) {
   const library = createDeckLibraryModel(decks);
   const [collapsedDeckIds, setCollapsedDeckIds] = React.useState(() => new Set());
   const [draggedDeckId, setDraggedDeckId] = React.useState(null);
@@ -131,8 +131,8 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
     });
   }
 
-  function openDeckManagement(deckId) {
-    onOpenDecks(deckId);
+  function openDeckSettings(deckId) {
+    onOpenDeckSettings(deckId);
   }
 
   function updateDeckDraft(key, value) {
@@ -359,9 +359,10 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
           <div className="flex justify-start md:justify-end">
             <button
               type="button"
-              onClick={() => openDeckManagement(deck.id)}
+              onClick={() => openDeckSettings(deck.id)}
               className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1] hover:bg-white"
-              aria-label="Stapel verwalten"
+              aria-label={`Einstellungen für ${deck.name}`}
+              title={`Lernoptionen für ${deck.name}`}
             >
               <Settings size={18} aria-hidden="true" />
             </button>

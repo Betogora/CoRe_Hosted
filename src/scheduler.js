@@ -1,4 +1,5 @@
 import { REVIEW_RATINGS, createReviewState, getMaturityBand } from "./coreModel.js";
+import { normalizeLearningSettings } from "./deckSettings.js";
 
 export const SCHEDULER_VERSION = "fsrs_v1";
 export const SIMPLE_SCHEDULER_VERSION = "simple_v1";
@@ -57,6 +58,34 @@ function clamp(value, min, max) {
 function round(value, digits = 2) {
   const factor = 10 ** digits;
   return Math.round(Number(value) * factor) / factor;
+}
+
+function getSchedulerProfile(deckSettings = {}) {
+  return normalizeLearningSettings(deckSettings).schedulerProfile;
+}
+
+function getDesiredRetention(deckSettings, state) {
+  const configuredRetention = deckSettings?.schedulerProfile?.desiredRetention;
+  return configuredRetention == null
+    ? clamp(state?.desiredRetention ?? 0.9, 0.7, 0.99)
+    : getSchedulerProfile(deckSettings).desiredRetention;
+}
+
+function getLearningIntervals(deckSettings = {}) {
+  const profile = getSchedulerProfile(deckSettings);
+  const [againMinutes, goodMinutes] = profile.learningStepsMinutes;
+  const shortIntervalFactor = profile.lessShortIntervalBias ? 2 : 1;
+
+  return {
+    againMinutes: againMinutes * shortIntervalFactor,
+    hardMinutes: Math.max(againMinutes, Math.round((againMinutes + goodMinutes) / 2)) * shortIntervalFactor,
+    goodMinutes: goodMinutes * shortIntervalFactor,
+    easyMinutes: Math.max(goodMinutes * 2, 30) * shortIntervalFactor,
+    relearningAgainMinutes: profile.relearningStepMinutes * shortIntervalFactor,
+    relearningHardMinutes: profile.relearningStepMinutes * 2 * shortIntervalFactor,
+    graduatingDays: profile.graduatingIntervalDays,
+    easyGraduatingDays: profile.easyGraduatingIntervalDays,
+  };
 }
 
 function dayKey(date) {
@@ -205,24 +234,24 @@ function nextStability(previousState, rating) {
 
 function nextFsrsIntervalDays(previousState, rating, nextStabilityValue, deckSettings) {
   const current = Math.max(0, Number(previousState.intervalDays ?? 0) || 0);
-  const desiredRetention = clamp(previousState.desiredRetention ?? deckSettings?.schedulerProfile?.desiredRetention ?? 0.9, 0.5, 0.99);
+  const profile = getSchedulerProfile(deckSettings);
+  const desiredRetention = getDesiredRetention(deckSettings, previousState);
   const retentionFactor = clamp(0.9 / desiredRetention, 0.85, 1.35);
+  const maximumIntervalDays = profile.maximumIntervalDays;
 
   if (rating === "again") {
-    return deckSettings?.schedulerProfile?.lessShortIntervalBias ? 0.5 : 0.1;
+    return Math.min(maximumIntervalDays, profile.lessShortIntervalBias ? 0.5 : 0.1);
   }
 
   if (rating === "hard") {
-    return round(Math.max(0.5, Math.min(Math.max(current + 0.25, nextStabilityValue * 0.8), Math.max(0.5, current * 1.25 || 0.5))), 1);
+    return Math.min(maximumIntervalDays, round(Math.max(0.5, Math.min(Math.max(current + 0.25, nextStabilityValue * 0.8), Math.max(0.5, current * 1.25 || 0.5))), 1));
   }
 
   if (rating === "easy") {
-    const firstEasy = deckSettings?.schedulerProfile?.easyIntervalDays ?? 4;
-    return round(Math.max(current + 1, firstEasy, nextStabilityValue * 1.6 * retentionFactor), 1);
+    return Math.min(maximumIntervalDays, round(Math.max(current + 1, profile.easyIntervalDays, nextStabilityValue * 1.6 * retentionFactor), 1));
   }
 
-  const firstGood = deckSettings?.schedulerProfile?.graduatingIntervalDays ?? 1;
-  return round(Math.max(current + 0.5, firstGood, nextStabilityValue * retentionFactor), 1);
+  return Math.min(maximumIntervalDays, round(Math.max(current + 0.5, profile.graduatingIntervalDays, nextStabilityValue * retentionFactor), 1));
 }
 
 export function calculateRetrievability(learningItemState, now = new Date()) {
@@ -311,7 +340,7 @@ function baseNextState(state, rating, now, context = {}) {
   const stability = nextStability(state, rating);
   const difficulty = nextDifficulty(state.difficulty, rating);
   const retrievabilityBefore = calculateRetrievability(state, now);
-  const desiredRetention = state.desiredRetention ?? context.deckSettings?.schedulerProfile?.desiredRetention ?? 0.9;
+  const desiredRetention = getDesiredRetention(context.deckSettings, state);
   const fallback = fallbackStateForRating(state, rating, context);
 
   return createReviewState({
@@ -350,6 +379,7 @@ function simulateLearningOutcome(state, rating, now, context = {}) {
   const nextBase = baseNextState(state, rating, now, context);
   const resetSuccess = rating === "again" || rating === "hard";
   const successCount = resetSuccess ? 0 : priorSuccessCount + 1;
+  const intervals = getLearningIntervals(context.deckSettings);
   const common = {
     firstLearningAt: state.firstLearningAt ?? now.toISOString(),
     lastLearningStepAt: now.toISOString(),
@@ -361,7 +391,7 @@ function simulateLearningOutcome(state, rating, now, context = {}) {
   };
 
   if (rating === "again") {
-    return withInterval(nextBase, now, { intervalMinutes: LEARNING_STEPS.againMinutes }, {
+    return withInterval(nextBase, now, { intervalMinutes: intervals.againMinutes }, {
       ...common,
       state: "learning",
       stability: Math.max(0.05, Math.min(nextBase.stability, 0.2)),
@@ -372,7 +402,7 @@ function simulateLearningOutcome(state, rating, now, context = {}) {
   }
 
   if (rating === "hard") {
-    return withInterval(nextBase, now, { intervalMinutes: LEARNING_STEPS.hardMinutes }, {
+    return withInterval(nextBase, now, { intervalMinutes: intervals.hardMinutes }, {
       ...common,
       state: "learning",
       stability: Math.max(0.1, Math.min(nextBase.stability, 0.5)),
@@ -384,7 +414,7 @@ function simulateLearningOutcome(state, rating, now, context = {}) {
   }
 
   if (successCount >= 2) {
-    const intervalDays = rating === "easy" ? LEARNING_STEPS.easyGraduatingDays : LEARNING_STEPS.goodGraduatingDays;
+    const intervalDays = rating === "easy" ? intervals.easyGraduatingDays : intervals.graduatingDays;
     return withInterval(nextBase, now, { intervalDays }, {
       ...common,
       state: "review",
@@ -396,7 +426,7 @@ function simulateLearningOutcome(state, rating, now, context = {}) {
   }
 
   return withInterval(nextBase, now, {
-    intervalMinutes: rating === "easy" ? LEARNING_STEPS.easyFirstSuccessMinutes : LEARNING_STEPS.goodFirstSuccessMinutes,
+    intervalMinutes: rating === "easy" ? intervals.easyMinutes : intervals.goodMinutes,
   }, {
     ...common,
     state: "learning",
@@ -406,9 +436,10 @@ function simulateLearningOutcome(state, rating, now, context = {}) {
 
 function simulateRelearningOutcome(state, rating, now, context = {}) {
   const nextBase = baseNextState(state, rating, now, context);
+  const intervals = getLearningIntervals(context.deckSettings);
 
   if (rating === "again") {
-    return withInterval(nextBase, now, { intervalMinutes: LEARNING_STEPS.againMinutes }, {
+    return withInterval(nextBase, now, { intervalMinutes: intervals.relearningAgainMinutes }, {
       state: "relearning",
       preferredVariantLevel: 1,
       stability: Math.max(0.05, nextBase.stability),
@@ -416,14 +447,14 @@ function simulateRelearningOutcome(state, rating, now, context = {}) {
   }
 
   if (rating === "hard") {
-    return withInterval(nextBase, now, { intervalMinutes: LEARNING_STEPS.hardMinutes }, {
+    return withInterval(nextBase, now, { intervalMinutes: intervals.relearningHardMinutes }, {
       state: "relearning",
       preferredVariantLevel: 1,
       stability: Math.max(0.1, nextBase.stability),
     });
   }
 
-  const intervalDays = rating === "easy" ? LEARNING_STEPS.relearningEasyDays : LEARNING_STEPS.relearningGoodDays;
+  const intervalDays = rating === "easy" ? intervals.easyGraduatingDays : intervals.graduatingDays;
   return withInterval(nextBase, now, { intervalDays }, {
     state: "review",
     isGraduated: true,
@@ -435,10 +466,11 @@ function simulateRelearningOutcome(state, rating, now, context = {}) {
 
 function simulateReviewOutcome(state, rating, now, context = {}) {
   const nextBase = baseNextState(state, rating, now, context);
+  const intervals = getLearningIntervals(context.deckSettings);
   const previousWasReview = state.state === "review" || (getStateReps(state) > 0 && state.state !== "learning" && state.state !== "new");
 
   if (rating === "again") {
-    return withInterval(nextBase, now, { intervalMinutes: LEARNING_STEPS.againMinutes }, {
+    return withInterval(nextBase, now, { intervalMinutes: intervals.relearningAgainMinutes }, {
       state: "relearning",
       lapses: Number(state.lapses ?? 0) + (previousWasReview ? RATING_EFFECT.again.lapse : 0),
       preferredVariantLevel: 1,

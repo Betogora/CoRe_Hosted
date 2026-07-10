@@ -59,8 +59,9 @@ test("browser back returns from settings to the previous screen", async ({ page 
   await resetToFreshLocalState(page);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByLabel(/Einstellungen/).click();
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
   await expect(page.getByRole("button", { name: "Export vorbereiten" })).toBeVisible();
+  await expect(page.getByLabel("Release-Information")).toHaveText(/^CoRe 0\.1\.0 · Test · Commit (?:lokal|[a-f0-9]{7})$/);
 
   await page.goBack();
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
@@ -71,7 +72,7 @@ test("review flow records a rating through accessible controls", async ({ page }
   await resetToFreshLocalState(page);
   const before = await deckReviewEventCount(page, DECK_IDS.europe);
 
-  await page.getByLabel("Hauptmenue").getByRole("button", { name: "Lernen" }).click();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await page.getByRole("button", { name: /Bewertung Good/ }).click();
@@ -83,14 +84,14 @@ test("review flow records a rating through accessible controls", async ({ page }
 test("variant review flow can be prepared from the deck editor", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  await page.getByLabel("Hauptmenue").getByRole("button", { name: "Lernen" }).click();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Kartenstapel" }).click();
   await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
   await page.getByText("Was ist die Hauptstadt von Côte d'Ivoire?").click();
   await page.getByLabel("Variantenfrage").fill("Welche Hauptstadt hat Côte d'Ivoire?");
   await page.getByLabel("Variantenantwort").fill("Yamoussoukro");
   await page.getByRole("button", { name: "Umformulierung hinzufügen" }).click();
-  await expect(page.getByRole("status")).toContainText("Umformulierung gespeichert.");
+  await expect(page.getByRole("status").filter({ hasText: "Umformulierung gespeichert." })).toBeVisible();
 
   await page.getByTestId(`deck-row-${DECK_IDS.africa}`).getByRole("button", { name: "Varianten" }).click();
   await expect(page.getByText(/Variante Level 2/)).toBeVisible();
@@ -105,12 +106,12 @@ test("ai draft creation stores an accepted draft deck", async ({ page }) => {
   await resetToFreshLocalState(page);
   const aiDecksBefore = await storedDeckCountBySource(page, "ai-assisted");
 
-  await page.getByLabel("Hauptmenue").getByRole("button", { name: "Erstellen" }).click();
+  await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /KI-gestützte Erstellung/ }).click();
   await page.getByLabel("Quellentext für KI-Drafts").fill("ATP speichert Energie in der Zelle. Mitochondrien stellen ATP durch Zellatmung bereit.");
   await page.getByLabel("Fach").fill("Biologie");
   await page.getByRole("button", { name: "Generieren" }).click();
-  await expect(page.getByRole("status")).toContainText(/Entwurf|Entwürfe|Karten/);
+  await expect(page.getByRole("status").filter({ hasText: /Entwurf|Entwürfe|Karten/ })).toBeVisible();
   await page.getByRole("button", { name: /Übernehmen/ }).click();
   await expect.poll(() => storedDeckCountBySource(page, "ai-assisted")).toBeGreaterThan(aiDecksBefore);
 });
@@ -118,7 +119,7 @@ test("ai draft creation stores an accepted draft deck", async ({ page }) => {
 test("assistant smoke returns a server answer through the hidden dashboard entry", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  await page.getByLabel("Hauptmenue").getByRole("button", { name: "Heute" }).click();
+  await mainMenu(page).getByRole("button", { name: "Heute" }).click();
   await page.route("**/api/ai/chat", async (route) => {
     await route.fulfill({
       status: 200,
@@ -134,16 +135,16 @@ test("assistant smoke returns a server answer through the hidden dashboard entry
   await page.getByLabel("Frage an deine Karten").fill("Was ist die Hauptstadt von Algerien?");
   await expect(page.getByLabel("Nur mit Kartenquellen antworten")).not.toBeChecked();
   await page.getByRole("button", { name: "Antwort erstellen" }).click();
-  await expect(page.getByRole("status")).toContainText("KI-Antwort erstellt.");
+  await expect(page.getByRole("status").filter({ hasText: "KI-Antwort erstellt." })).toBeVisible();
   await expect(page.getByText("Gemma: Algier ist die Hauptstadt von Algerien.")).toBeVisible();
 });
 
 test("local portability export and import expose status and validation errors", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  await page.getByLabel(/Einstellungen/).click();
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
   await page.getByRole("button", { name: "Export vorbereiten" }).click();
-  await expect(page.getByRole("status")).toContainText("Export vorbereitet:");
+  await expect(page.getByRole("status").filter({ hasText: "Export vorbereitet:" })).toBeVisible();
   const exportJson = await page.getByTestId("portable-export-json").inputValue();
   expect(exportJson).toContain('"schema": "core-portable-export"');
   expect(exportJson).not.toContain("passwordVerifier");
@@ -164,5 +165,5 @@ test("local portability export and import expose status and validation errors", 
   });
   await page.getByTestId("portable-import-json").fill(smallValidExport);
   await page.getByRole("button", { name: "JSON importieren" }).click();
-  await expect(page.getByRole("status")).toContainText("Export validiert");
+  await expect(page.getByRole("status").filter({ hasText: "Export validiert" })).toBeVisible();
 });

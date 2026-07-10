@@ -115,6 +115,30 @@ export function getEffectiveNewCardsPerDay(deck, options = {}) {
   return settings.newCardsPerDay;
 }
 
+function orderDailyQueueEntries(dueEntries, newEntries, order) {
+  if (order === "new-first") return [...newEntries, ...dueEntries];
+  if (order !== "mixed") return [...dueEntries, ...newEntries];
+
+  const mixed = [];
+  const length = Math.max(dueEntries.length, newEntries.length);
+  for (let index = 0; index < length; index += 1) {
+    if (dueEntries[index]) mixed.push(dueEntries[index]);
+    if (newEntries[index]) mixed.push(newEntries[index]);
+  }
+  return mixed;
+}
+
+function limitEntriesPerDeck(entries, limitForDeck) {
+  const counts = new Map();
+  return entries.filter((entry) => {
+    const count = counts.get(entry.deck.id) ?? 0;
+    const limit = Math.max(0, Number(limitForDeck(entry.deck)) || 0);
+    if (count >= limit) return false;
+    counts.set(entry.deck.id, count + 1);
+    return true;
+  });
+}
+
 export function updateDeckNewCardLimitForDate(deck, limit, options = {}) {
   const now = options.now ?? new Date();
   const updatedAt = options.updatedAt ?? new Date(now).toISOString();
@@ -530,10 +554,25 @@ export function createDailyReviewQueue(decksOrDeck, options = {}) {
   dueEntries.sort(compareQueueEntries);
   newEntries.sort(compareQueueEntries);
 
+  const rootSettings = createDefaultDeckSettings(rootDeck?.deckSettings ?? {});
   const newLimit = getEffectiveNewCardsPerDay(rootDeck, { now });
   const introducedToday = countNewCardsIntroducedToday(scopeDecks, { now });
   const remainingNewCards = Math.max(0, newLimit - introducedToday);
-  const selectedEntries = [...dueEntries, ...newEntries.slice(0, remainingNewCards)];
+  const dueEntriesWithinDeckLimits = limitEntriesPerDeck(
+    dueEntries,
+    (deck) => createDefaultDeckSettings(deck.deckSettings).maximumReviewsPerDay,
+  );
+  const remainingNewCardsByDeckId = new Map(scopeDecks.map((deck) => [
+    deck.id,
+    Math.max(0, getEffectiveNewCardsPerDay(deck, { now }) - countNewCardsIntroducedToday(deck, { now })),
+  ]));
+  const newEntriesWithinDeckLimits = limitEntriesPerDeck(
+    newEntries,
+    (deck) => remainingNewCardsByDeckId.get(deck.id) ?? 0,
+  );
+  const selectedDueEntries = dueEntriesWithinDeckLimits.slice(0, rootSettings.maximumReviewsPerDay);
+  const selectedNewEntries = newEntriesWithinDeckLimits.slice(0, remainingNewCards);
+  const selectedEntries = orderDailyQueueEntries(selectedDueEntries, selectedNewEntries, rootSettings.newReviewOrder);
   const items = selectedEntries
     .map((entry) =>
       createReviewItemViewModel(entry.deck, entry.learningItem, {
@@ -551,8 +590,11 @@ export function createDailyReviewQueue(decksOrDeck, options = {}) {
     scopeDeckIds: scopeDecks.map((deck) => deck.id),
     items,
     total: items.length,
-    dueCount: dueEntries.length,
-    newCount: Math.min(newEntries.length, remainingNewCards),
+    dueCount: selectedDueEntries.length,
+    availableDueCards: dueEntries.length,
+    maximumReviewsPerDay: rootSettings.maximumReviewsPerDay,
+    newReviewOrder: rootSettings.newReviewOrder,
+    newCount: selectedNewEntries.length,
     availableNewCards: newEntries.length,
     newCardsPerDay: newLimit,
     newCardsIntroducedToday: introducedToday,

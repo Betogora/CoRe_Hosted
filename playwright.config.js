@@ -5,28 +5,56 @@ export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
   workers: 1,
+  retries: 0,
+  reporter: process.env.CI
+    ? [["line"], ["html", { open: "never", outputFolder: "playwright-report" }]]
+    : "list",
   expect: {
     timeout: 8_000,
   },
   use: {
     baseURL: "http://127.0.0.1:5190/",
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
-  webServer: {
-    command: "npm run dev -- --mode e2e",
-    url: "http://127.0.0.1:5190/",
-    reuseExistingServer: false,
-    timeout: 60_000,
-  },
+  webServer: [
+    {
+      name: "configured-app",
+      command: "npm run dev -- --mode e2e",
+      url: "http://127.0.0.1:5190/",
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    {
+      name: "unconfigured-app",
+      command: "npm run dev -- --mode e2e-unconfigured --port 5191",
+      url: "http://127.0.0.1:5191/",
+      env: {
+        ...process.env,
+        VITE_SUPABASE_URL: "",
+        VITE_SUPABASE_PUBLISHABLE_KEY: "",
+      },
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+  ],
   projects: [
     {
       name: "auth-setup",
       testMatch: /auth\.setup\.js/,
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        trace: "off",
+      },
     },
     {
       name: "auth-gate-chromium",
       testMatch: /auth-gate\.spec\.js/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "auth-resilience-chromium",
+      testMatch: /auth-resilience\.spec\.js/,
       use: { ...devices["Desktop Chrome"] },
     },
     {
@@ -36,6 +64,7 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         storageState: e2eAuthStatePath,
+        trace: "off",
       },
     },
   ],

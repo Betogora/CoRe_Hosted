@@ -382,3 +382,92 @@ test("daily review queue keeps answered learning cards out until their stored du
   assert.equal(atStoredDueAt.items[0].learningItemId, item.id);
   assert.equal(atStoredDueAt.items[0].schedulerInfo.queueKind, "due");
 });
+
+test("deck learning settings control learning, relearning and graduation intervals", () => {
+  const item = newItem();
+  const original = getOriginalVariant(item);
+  const deckSettings = {
+    schedulerProfile: {
+      settingsVersion: 2,
+      learningStepsMinutes: [10, 30],
+      relearningStepMinutes: 12,
+      graduatingIntervalDays: 3,
+      easyGraduatingIntervalDays: 5,
+    },
+  };
+  const firstGood = simulateRatingOutcome({ learningItem: item, variant: original, rating: "good", now: NOW, deckSettings });
+  const secondGood = simulateRatingOutcome({ previousState: firstGood.nextReviewState, variant: original, rating: "good", now: "2026-07-07T10:30:00.000Z", deckSettings });
+  const reviewAgain = simulateRatingOutcome({ learningItem: reviewItem(), variant: original, rating: "again", now: NOW, deckSettings });
+
+  assert.equal(firstGood.intervalLabel, "30 Min.");
+  assert.equal(secondGood.intervalDays, 3);
+  assert.equal(reviewAgain.intervalLabel, "12 Min.");
+});
+
+test("desired retention and maximum interval change the next FSRS-like interval", () => {
+  const item = reviewItem({ stability: 40, intervalDays: 20 });
+  const original = getOriginalVariant(item);
+  const relaxed = simulateRatingOutcome({
+    learningItem: item,
+    variant: original,
+    rating: "good",
+    now: NOW,
+    deckSettings: { schedulerProfile: { desiredRetention: 0.8, maximumIntervalDays: 36500 } },
+  });
+  const intensive = simulateRatingOutcome({
+    learningItem: item,
+    variant: original,
+    rating: "good",
+    now: NOW,
+    deckSettings: { schedulerProfile: { desiredRetention: 0.96, maximumIntervalDays: 30 } },
+  });
+
+  assert.equal(intensive.intervalDays < relaxed.intervalDays, true);
+  assert.equal(intensive.intervalDays <= 30, true);
+  assert.equal(intensive.nextReviewState.desiredRetention, 0.96);
+});
+
+test("daily queue applies review caps and the selected new-card order", () => {
+  const dueCards = Array.from({ length: 3 }, (_value, index) => reviewItem({ id: `due_${index}`, dueAt: "2026-07-07T09:00:00.000Z" }));
+  const newCards = Array.from({ length: 2 }, (_value, index) => createBasicLearningItem("deck_scheduler_intervals", `Neu ${index}?`, "Antwort", {
+    id: `ordered_new_${index}`,
+    reviewState: { state: "new", reps: 0, dueAt: NOW },
+  }));
+  const deck = createCoreDeck({
+    id: "deck_scheduler_intervals",
+    name: "Reihenfolge",
+    source: "manual",
+    deckSettings: { newCardsPerDay: 2, maximumReviewsPerDay: 2, newReviewOrder: "new-first" },
+    cards: [...dueCards, ...newCards],
+  });
+  const queue = createDailyReviewQueue(deck, { now: NOW });
+
+  assert.equal(queue.availableDueCards, 3);
+  assert.equal(queue.dueCount, 2);
+  assert.equal(queue.newCount, 2);
+  assert.equal(queue.total, 4);
+  assert.equal(queue.items[0].schedulerInfo.queueKind, "new");
+});
+
+test("parent review sessions respect both root and subdeck review limits", () => {
+  const root = createCoreDeck({
+    id: "deck_limit_root",
+    name: "Root",
+    source: "manual",
+    deckSettings: { maximumReviewsPerDay: 3 },
+    cards: [reviewItem({ dueAt: "2026-07-07T08:00:00.000Z" }), reviewItem({ dueAt: "2026-07-07T08:05:00.000Z" })],
+  });
+  const child = createCoreDeck({
+    id: "deck_limit_child",
+    parentDeckId: root.id,
+    name: "Child",
+    source: "manual",
+    deckSettings: { maximumReviewsPerDay: 1 },
+    cards: [reviewItem({ dueAt: "2026-07-07T08:10:00.000Z" }), reviewItem({ dueAt: "2026-07-07T08:15:00.000Z" })],
+  });
+  const queue = createDailyReviewQueue([root, child], { deckId: root.id, now: NOW });
+
+  assert.equal(queue.availableDueCards, 4);
+  assert.equal(queue.dueCount, 3);
+  assert.equal(queue.items.filter((item) => item.deckId === child.id).length, 1);
+});

@@ -5,6 +5,7 @@ import {
   createPendingCloudProfile,
   createProfileRow,
   formatCloudAuthError,
+  getCloudUser,
   markCloudSignedOut,
   resetCloudPassword,
   signInWithGoogle,
@@ -75,12 +76,37 @@ test("cloud auth represents pending email confirmation and signed-out state", ()
 });
 
 test("cloud auth formats common Supabase auth errors in German", () => {
+  assert.match(formatCloudAuthError({ code: "session_expired", message: "Session expired" }), /Sitzung ist abgelaufen/);
+  assert.match(formatCloudAuthError({ status: 403, message: "Session expired" }), /Sitzung ist abgelaufen/);
+  assert.match(formatCloudAuthError({ name: "AuthRetryableFetchError", message: "Failed to fetch" }), /nicht erreichbar/);
   assert.equal(formatCloudAuthError({ message: "Invalid login credentials" }), "E-Mail oder Passwort stimmt nicht.");
   assert.match(formatCloudAuthError({ message: "Email rate limit exceeded" }), /zu viele Auth-E-Mails/);
   assert.match(formatCloudAuthError({ message: "Email not confirmed" }), /bestätige zuerst/);
   assert.match(formatCloudAuthError({ message: "Email signups are disabled" }), /Registrierung ist in Supabase.*deaktiviert/);
   assert.match(formatCloudAuthError({ message: "User already registered" }), /existiert wahrscheinlich schon/);
   assert.match(formatCloudAuthError({ message: "Password should be stronger" }), /gültiges Passwort/);
+});
+
+test("cloud auth distinguishes a missing session from an expired session", async () => {
+  const missingClient = {
+    from() {},
+    auth: {
+      async getUser() {
+        return { data: { user: null }, error: { name: "AuthSessionMissingError", message: "Auth session missing" } };
+      },
+    },
+  };
+  const expiredClient = {
+    from() {},
+    auth: {
+      async getUser() {
+        return { data: { user: null }, error: { code: "session_expired", message: "Session expired" } };
+      },
+    },
+  };
+
+  assert.equal(await getCloudUser(missingClient), null);
+  await assert.rejects(() => getCloudUser(expiredClient), (error) => error?.code === "session_expired");
 });
 
 test("cloud auth passes the app URL into confirmation and reset email redirects", async () => {

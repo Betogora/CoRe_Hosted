@@ -1,6 +1,7 @@
 import React from "react";
 import { Chrome, KeyRound, Link2, Lock, Mail, RotateCcw, ShieldCheck, UserPlus } from "lucide-react";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.jsx";
+import { ReleaseInfo } from "../ui/ReleaseInfo.jsx";
 
 export function AuthGateScreen({
   configured = true,
@@ -169,6 +170,7 @@ export function AuthGateScreen({
               </p>
             ) : null}
           </SoftPanel>
+          <ReleaseInfo className="mt-5 text-center" />
         </div>
       </div>
     </main>

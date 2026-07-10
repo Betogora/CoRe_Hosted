@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CoRe TODO – Review</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1d2939;
+      --muted: #667085;
+      --line: #e4e7ec;
+      --paper: #f8fafc;
+      --card: #ffffff;
+      --accent: #146c94;
+      --accent-soft: #e7f3f8;
+      --done: #13795b;
+      --done-soft: #e8f7f0;
+      --warning: #b54708;
+      --warning-soft: #fff4e5;
+      --shadow: 0 18px 45px rgba(16, 24, 40, .08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: linear-gradient(180deg, #eef7fa 0, var(--paper) 420px);
+      line-height: 1.55;
+    }
+    button, input, select { font: inherit; }
+    button, select { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+      outline: 3px solid rgba(20, 108, 148, .28);
+      outline-offset: 2px;
+    }
+    code {
+      padding: .12em .35em;
+      border: 1px solid #d7e6eb;
+      border-radius: 5px;
+      background: #f2f8fa;
+      color: #0e5875;
+      font-size: .9em;
+    }
+    .shell { width: min(1480px, calc(100% - 40px)); margin: 0 auto; }
+    .hero { padding: 48px 0 26px; }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { margin: 0; line-height: 1.15; letter-spacing: -.025em; }
+    h1 { max-width: 850px; font-size: clamp(2.3rem, 5vw, 4.7rem); }
+    .lede { max-width: 760px; margin: 18px 0 0; color: var(--muted); font-size: 1.08rem; }
+    .source-note { margin-top: 14px; color: var(--muted); font-size: .92rem; }
+    .source-note strong { color: var(--ink); }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin: 24px 0 18px;
+    }
+    .metric {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 8px 22px rgba(16, 24, 40, .04);
+    }
+    .metric-label { color: var(--muted); font-size: .82rem; font-weight: 700; }
+    .metric-value { display: block; margin-top: 5px; font-size: 2rem; font-weight: 800; }
+    .metric small { color: var(--muted); }
+    .progress-card {
+      margin-bottom: 28px;
+      padding: 18px 20px;
+      border: 1px solid #cde7ef;
+      border-radius: 16px;
+      background: var(--accent-soft);
+    }
+    .progress-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 9px; font-weight: 700; }
+    .progress-track { height: 10px; overflow: hidden; border-radius: 99px; background: #c9e0e7; }
+    .progress-bar { width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .25s ease; }
+
+    .layout { display: grid; grid-template-columns: 285px minmax(0, 1fr); align-items: start; gap: 28px; padding-bottom: 70px; }
+    .sidebar {
+      position: sticky;
+      top: 18px;
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.88);
+      box-shadow: 0 8px 22px rgba(16, 24, 40, .04);
+    }
+    .sidebar h2 { margin-bottom: 12px; font-size: 1rem; }
+    .nav-list { display: grid; gap: 5px; }
+    .nav-list a {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 9px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: .88rem;
+      text-decoration: none;
+    }
+    .nav-list a:hover { color: var(--accent); background: var(--accent-soft); }
+    .nav-list b { color: var(--ink); font-variant-numeric: tabular-nums; }
+    .content { min-width: 0; }
+    .toolbar {
+      position: sticky;
+      top: 18px;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) 150px 150px auto auto;
+      gap: 9px;
+      margin-bottom: 18px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 8px 22px rgba(16, 24, 40, .06);
+      backdrop-filter: blur(10px);
+    }
+    .toolbar input, .toolbar select, .toolbar button {
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--ink);
+    }
+    .toolbar input::placeholder { color: #98a2b3; }
+    .toolbar button { font-weight: 700; }
+    .toolbar button:hover { border-color: #9ccbd8; background: var(--accent-soft); }
+    .section {
+      scroll-margin-top: 90px;
+      margin-bottom: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 8px 22px rgba(16, 24, 40, .035);
+    }
+    .section > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 20px 22px;
+      list-style: none;
+      cursor: pointer;
+    }
+    .section > summary::-webkit-details-marker { display: none; }
+    .section > summary::after { content: "⌄"; color: var(--muted); font-size: 1.35rem; transition: transform .2s; }
+    .section:not([open]) > summary::after { transform: rotate(-90deg); }
+    .section-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .section-title h2 { font-size: 1.2rem; }
+    .section-title .index { color: var(--accent); font-weight: 800; }
+    .section-count { flex: 0 0 auto; color: var(--muted); font-size: .86rem; }
+    .section-body { padding: 0 22px 22px; }
+    .subsection { margin: 22px 0 0; }
+    .subsection:first-child { margin-top: 0; }
+    .subsection h3 { padding-top: 2px; font-size: 1rem; color: #344054; }
+    .task-list { display: grid; gap: 9px; margin: 12px 0 0; }
+    .task {
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr);
+      gap: 10px;
+      padding: 13px 14px;
+      border: 1px solid #eaecf0;
+      border-radius: 11px;
+      background: #fff;
+    }
+    .task.done { border-color: #c7e8d9; background: var(--done-soft); }
+    .task.deferred { border-color: #f3dfbd; background: var(--warning-soft); }
+    .task input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--done); }
+    .task-text { min-width: 0; }
+    .task-text p { margin: 0; }
+    .task.done .task-text { color: #4b635a; }
+    .task.done .task-text p { text-decoration: line-through; text-decoration-color: #8bbba5; }
+    .plain-list, .prose { margin: 12px 0 0; color: var(--muted); }
+    .plain-list { padding-left: 22px; }
+    .plain-list li + li { margin-top: 6px; }
+    .prose p { margin: 10px 0; }
+    .prose p:first-child { margin-top: 0; }
+    .hidden { display: none !important; }
+    .empty { padding: 34px; border: 1px dashed #cfd5dc; border-radius: 14px; color: var(--muted); text-align: center; }
+    footer { padding: 22px 0 50px; color: var(--muted); font-size: .88rem; }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; max-height: none; }
+      .nav-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .toolbar { top: 8px; grid-template-columns: 1fr 1fr; }
+      .toolbar input { grid-column: 1 / -1; }
+    }
+    @media (max-width: 620px) {
+      .shell { width: min(100% - 24px, 1480px); }
+      .hero { padding-top: 30px; }
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric { padding: 15px; }
+      .metric-value { font-size: 1.55rem; }
+      .toolbar { grid-template-columns: 1fr; }
+      .toolbar input { grid-column: auto; }
+      .nav-list { grid-template-columns: 1fr; }
+      .section > summary, .section-body { padding-left: 15px; padding-right: 15px; }
+      .section-title h2 { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="shell hero">
+    <p class="eyebrow">CoRe · Einmalige Review-Ansicht</p>
+    <h1>TODO, aber lesbar.</h1>
+    <p class="lede">Eine ruhige, klickbare Übersicht über den aktuellen Entwicklungs- und Produkt-Backlog. Erledigte, offene und bewusst zurückgestellte Punkte bleiben sichtbar getrennt.</p>
+    <p class="source-note"><strong>Quelle:</strong> <code>docs/todo.md</code> · Die Ansicht liest die Markdown-Datei beim Öffnen und ist selbst keine zweite TODO-Quelle.</p>
+  </header>
+
+  <main class="shell">
+    <section class="summary" aria-label="Fortschrittsübersicht">
+      <div class="metric"><span class="metric-label">Offene Aufgaben</span><strong class="metric-value" id="open-count">–</strong><small>im priorisierten Backlog</small></div>
+      <div class="metric"><span class="metric-label">Erledigt</span><strong class="metric-value" id="done-count">–</strong><small>im priorisierten Backlog</small></div>
+      <div class="metric"><span class="metric-label">Fortschritt</span><strong class="metric-value" id="progress-value">–</strong><small>ohne Inventar- und Deferred-Punkte</small></div>
+      <div class="metric"><span class="metric-label">Bereiche</span><strong class="metric-value" id="area-count">–</strong><small>P0 bis P3</small></div>
+    </section>
+    <section class="progress-card" aria-label="Fortschrittsbalken">
+      <div class="progress-row"><span>Priorisierter Backlog</span><span id="progress-label">Wird geladen …</span></div>
+      <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+    </section>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <h2>Springe zu</h2>
+        <nav class="nav-list" id="section-nav" aria-label="TODO-Bereiche"></nav>
+      </aside>
+      <section class="content">
+        <div class="toolbar" aria-label="TODO-Filter">
+          <input id="search" type="search" placeholder="Aufgaben durchsuchen …" aria-label="Aufgaben durchsuchen">
+          <select id="status-filter" aria-label="Status filtern">
+            <option value="all">Alle Stati</option>
+            <option value="open">Nur offen</option>
+            <option value="done">Nur erledigt</option>
+          </select>
+          <select id="priority-filter" aria-label="Priorität filtern">
+            <option value="all">Alle Prioritäten</option>
+            <option value="P0">P0</option>
+            <option value="P1">P1</option>
+            <option value="P2">P2</option>
+            <option value="P3">P3</option>
+          </select>
+          <button type="button" id="open-all">Alles öffnen</button>
+          <button type="button" id="close-all">Alles schließen</button>
+        </div>
+        <div id="content" aria-live="polite"><div class="empty">TODO.md wird geladen …</div></div>
+      </section>
+    </div>
+  </main>
+  <footer class="shell">Temporäre Review-Datei. Nach der Durchsicht kann <code>docs/todo-review.html</code> gelöscht werden.</footer>
+
+  <script>
+    const state = { sections: [], tasks: [] };
+    const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[character]));
+    const inlineMarkdown = (value) => escapeHtml(value)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    const slugify = (value) => value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+    function isBacklogSection(title) {
+      return /^\d+\.\s+P[0-3]\s+—/.test(title) || /^\d+\.\s+P[0-3]\s+-/.test(title);
+    }
+
+    function parseMarkdown(markdown) {
+      const lines = markdown.replace(/^\uFEFF/, "").split(/\r?\n/);
+      const sections = [];
+      let section = null;
+      let subsection = null;
+      let paragraph = [];
+      let list = [];
+      const flushBlocks = () => {
+        if (paragraph.length && subsection) subsection.blocks.push({ type: "prose", text: paragraph.join(" ") });
+        if (list.length && subsection) subsection.blocks.push({ type: "list", items: [...list] });
+        paragraph = [];
+        list = [];
+      };
+      const ensureSubsection = () => {
+        if (!section) {
+          section = { title: "Übersicht", subsections: [], backlog: false };
+          sections.push(section);
+        }
+        if (!subsection) {
+          subsection = { title: "", blocks: [] };
+          section.subsections.push(subsection);
+        }
+      };
+
+      for (const line of lines) {
+        const h2 = line.match(/^##\s+(.+)$/);
+        const h3 = line.match(/^###\s+(.+)$/);
+        const task = line.match(/^-\s+\[([ xX])\]\s+(.+)$/);
+        if (h2) {
+          flushBlocks();
+          section = { title: h2[1].trim(), subsections: [], backlog: isBacklogSection(h2[1].trim()) };
+          sections.push(section);
+          subsection = null;
+          continue;
+        }
+        if (h3) {
+          flushBlocks();
+          ensureSubsection();
+          subsection = { title: h3[1].trim(), blocks: [] };
+          section.subsections.push(subsection);
+          continue;
+        }
+        if (task) {
+          flushBlocks();
+          ensureSubsection();
+          const done = task[1].toLowerCase() === "x";
+          const priorityMatch = section.title.match(/P([0-3])/);
+          const deferred = /bewusst noch nicht bauen/i.test(section.title);
+          const item = { text: task[2].trim(), done, deferred, priority: priorityMatch ? `P${priorityMatch[1]}` : "", section: section.title };
+          subsection.blocks.push({ type: "task", item });
+          state.tasks.push(item);
+          continue;
+        }
+        if (/^-\s+/.test(line)) {
+          flushBlocks();
+          ensureSubsection();
+          list.push(line.replace(/^-\s+/, "").trim());
+          continue;
+        }
+        if (line.trim() === "") {
+          flushBlocks();
+          continue;
+        }
+        ensureSubsection();
+        paragraph.push(line.trim());
+      }
+      flushBlocks();
+      return sections;
+    }
+
+    function renderBlock(block) {
+      if (block.type === "task") {
+        const { item } = block;
+        return `<article class="task ${item.done ? "done" : ""} ${item.deferred ? "deferred" : ""}" data-status="${item.done ? "done" : "open"}" data-priority="${item.priority}" data-search="${escapeHtml(item.text.toLowerCase())}"><input type="checkbox" ${item.done ? "checked" : ""} disabled aria-label="${item.done ? "Erledigt" : "Offen"}"><div class="task-text"><p>${inlineMarkdown(item.text)}</p></div></article>`;
+      }
+      if (block.type === "list") return `<ul class="plain-list">${block.items.map((item) => `<li>${inlineMarkdown(item)}</li>`).join("")}</ul>`;
+      return `<div class="prose"><p>${inlineMarkdown(block.text)}</p></div>`;
+    }
+
+    function render(sections) {
+      const content = document.querySelector("#content");
+      const nav = document.querySelector("#section-nav");
+      const backlogSections = sections.filter((section) => section.backlog);
+      const backlogTasks = state.tasks.filter((task) => !task.deferred && task.priority);
+      const done = backlogTasks.filter((task) => task.done).length;
+      const open = backlogTasks.length - done;
+      const progress = backlogTasks.length ? Math.round((done / backlogTasks.length) * 100) : 0;
+      document.querySelector("#open-count").textContent = open;
+      document.querySelector("#done-count").textContent = done;
+      document.querySelector("#progress-value").textContent = `${progress}%`;
+      document.querySelector("#area-count").textContent = backlogSections.length;
+      document.querySelector("#progress-label").textContent = `${done} von ${backlogTasks.length} erledigt`;
+      document.querySelector("#progress-bar").style.width = `${progress}%`;
+
+      nav.innerHTML = backlogSections.map((section, index) => {
+        const tasks = state.tasks.filter((task) => task.section === section.title && !task.deferred);
+        return `<a href="#section-${index}"><span>${inlineMarkdown(section.title.replace(/^\d+\.\s+/, ""))}</span><b>${tasks.filter((task) => task.done).length}/${tasks.length}</b></a>`;
+      }).join("");
+
+      content.innerHTML = sections.map((section, index) => {
+        const sectionTasks = state.tasks.filter((task) => task.section === section.title);
+        const count = sectionTasks.length ? `<span class="section-count">${sectionTasks.filter((task) => task.done).length}/${sectionTasks.length} erledigt</span>` : "";
+        return `<details class="section ${section.backlog ? "backlog" : "context"}" id="section-${index}" ${section.backlog ? "open" : ""}><summary><span class="section-title"><span class="index">${section.backlog ? "Backlog" : "Kontext"}</span><h2>${inlineMarkdown(section.title)}</h2></span>${count}</summary><div class="section-body">${section.subsections.map((subsection) => `${subsection.title ? `<div class="subsection"><h3>${inlineMarkdown(subsection.title)}</h3>` : "<div class=\"subsection\">"}${subsection.blocks.map(renderBlock).join("")}</div>`).join("")}</div></details>`;
+      }).join("");
+    }
+
+    function applyFilters() {
+      const search = document.querySelector("#search").value.trim().toLowerCase();
+      const status = document.querySelector("#status-filter").value;
+      const priority = document.querySelector("#priority-filter").value;
+      let visible = 0;
+      document.querySelectorAll(".task").forEach((task) => {
+        const matchesSearch = !search || task.dataset.search.includes(search);
+        const matchesStatus = status === "all" || task.dataset.status === status;
+        const matchesPriority = priority === "all" || task.dataset.priority === priority;
+        const show = matchesSearch && matchesStatus && matchesPriority;
+        task.classList.toggle("hidden", !show);
+        if (show) visible += 1;
+      });
+      document.querySelectorAll(".section").forEach((section) => {
+        const hasVisibleTask = [...section.querySelectorAll(".task")].some((task) => !task.classList.contains("hidden"));
+        const isContext = section.classList.contains("context");
+        section.classList.toggle("hidden", !isContext && !hasVisibleTask);
+      });
+      const existingEmpty = document.querySelector("#filter-empty");
+      if (existingEmpty) existingEmpty.remove();
+      if (!visible && document.querySelector("#content")) {
+        document.querySelector("#content").insertAdjacentHTML("beforeend", `<div class="empty" id="filter-empty">Keine Aufgaben passen zu diesem Filter.</div>`);
+      }
+    }
+
+    async function boot() {
+      try {
+        const response = await fetch("./todo.md", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const markdown = await response.text();
+        const sections = parseMarkdown(markdown);
+        render(sections);
+        document.querySelectorAll("#search, #status-filter, #priority-filter").forEach((control) => control.addEventListener("input", applyFilters));
+        document.querySelector("#open-all").addEventListener("click", () => document.querySelectorAll(".section").forEach((section) => { section.open = true; }));
+        document.querySelector("#close-all").addEventListener("click", () => document.querySelectorAll(".section").forEach((section) => { section.open = false; }));
+      } catch (error) {
+        document.querySelector("#content").innerHTML = `<div class="empty">Die TODO-Datei konnte nicht geladen werden. Öffne diese HTML über den lokalen Projektserver, damit <code>todo.md</code> gelesen werden kann.<br><br><small>${escapeHtml(error.message)}</small></div>`;
+      }
+    }
+    boot();
+  </script>
+</body>
+</html>
