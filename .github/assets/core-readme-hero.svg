@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title description">
+  <title id="title">CoRe — Content Repetition</title>
+  <desc id="description">Lerne Inhalte, nicht Karten. Ein visueller Ablauf von einer Originalkarte zu neuen inhaltlichen Varianten.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10183f"/>
+      <stop offset="0.52" stop-color="#17214f"/>
+      <stop offset="1" stop-color="#263478"/>
+    </linearGradient>
+    <radialGradient id="glow-teal" cx="0.82" cy="0.18" r="0.68">
+      <stop offset="0" stop-color="#61b6ad" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#61b6ad" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-indigo" cx="0.18" cy="0.86" r="0.72">
+      <stop offset="0" stop-color="#7886dc" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#7886dc" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card-accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6672bf"/>
+      <stop offset="1" stop-color="#61b6ad"/>
+    </linearGradient>
+    <pattern id="dot-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.5" fill="#ffffff" fill-opacity="0.08"/>
+    </pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#050922" flood-opacity="0.34"/>
+    </filter>
+    <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#050922" flood-opacity="0.22"/>
+    </filter>
+    <clipPath id="frame">
+      <rect width="1200" height="520" rx="30"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <rect width="1200" height="520" fill="url(#background)"/>
+    <rect width="1200" height="520" fill="url(#glow-teal)"/>
+    <rect width="1200" height="520" fill="url(#glow-indigo)"/>
+    <rect width="1200" height="520" fill="url(#dot-grid)"/>
+
+    <circle cx="1116" cy="48" r="168" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/>
+    <circle cx="1116" cy="48" r="116" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/>
+    <circle cx="94" cy="496" r="112" fill="none" stroke="#61b6ad" stroke-opacity="0.12" stroke-width="1"/>
+
+    <g transform="translate(76 72)">
+      <rect width="72" height="72" rx="19" fill="#f8f9ff"/>
+      <path d="M18 36c0-11.3 8-19 19.3-19 7.9 0 13.7 3.8 16.7 9.8l-8.4 4.2c-1.6-3.4-4.4-5.2-8.3-5.2-6.1 0-10.1 4.2-10.1 10.2s4 10.2 10.1 10.2c3.9 0 6.8-1.8 8.4-5.2l8.4 4.2C51.1 51.2 45.2 55 37.3 55 26 55 18 47.3 18 36z" fill="#17214f"/>
+      <circle cx="56" cy="17" r="7" fill="#61b6ad"/>
+    </g>
+
+    <g transform="translate(76 176)">
+      <text x="0" y="0" fill="#f8f9ff" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="86" font-weight="720" letter-spacing="-3">CoRe</text>
+      <text x="3" y="50" fill="#aeb8e4" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="650" letter-spacing="4">CONTENT REPETITION</text>
+
+      <text x="0" y="132" fill="#ffffff" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="36" font-weight="680" letter-spacing="-0.8">Lerne Inhalte.</text>
+      <text x="0" y="178" fill="#80d0c5" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="36" font-weight="680" letter-spacing="-0.8">Nicht Karten.</text>
+
+      <text x="2" y="230" fill="#c7cdec" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="450">Spaced Repetition, erweitert um neue Perspektiven</text>
+      <text x="2" y="256" fill="#c7cdec" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="450">auf denselben Lerninhalt.</text>
+    </g>
+
+    <g transform="translate(664 62) rotate(-5 202 98)" opacity="0.58" filter="url(#soft-shadow)">
+      <rect width="404" height="196" rx="22" fill="#eef1fb"/>
+      <rect x="24" y="24" width="78" height="24" rx="12" fill="#dfe4f5"/>
+      <text x="63" y="41" text-anchor="middle" fill="#66709a" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="10" font-weight="750" letter-spacing="1.3">ORIGINAL</text>
+      <text x="24" y="89" fill="#17214f" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="650">Was ist die Hauptstadt</text>
+      <text x="24" y="117" fill="#17214f" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="650">von Japan?</text>
+      <rect x="24" y="151" width="214" height="7" rx="3.5" fill="#cfd6ed"/>
+      <rect x="24" y="166" width="146" height="7" rx="3.5" fill="#dfe4f5"/>
+    </g>
+
+    <g transform="translate(716 170) rotate(4 202 108)" opacity="0.82" filter="url(#soft-shadow)">
+      <rect width="404" height="216" rx="22" fill="#f8f9ff"/>
+      <rect x="24" y="24" width="94" height="24" rx="12" fill="#e7f6f4"/>
+      <text x="71" y="41" text-anchor="middle" fill="#2d817a" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="10" font-weight="750" letter-spacing="1.2">VARIANTE 01</text>
+      <circle cx="354" cy="36" r="7" fill="#61b6ad"/>
+      <text x="24" y="90" fill="#17214f" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="650">Welche Stadt ist Japans</text>
+      <text x="24" y="118" fill="#17214f" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="650">politisches Zentrum?</text>
+      <rect x="24" y="158" width="234" height="7" rx="3.5" fill="#cfd6ed"/>
+      <rect x="24" y="174" width="172" height="7" rx="3.5" fill="#dfe4f5"/>
+    </g>
+
+    <g transform="translate(650 282) rotate(-2 222 104)" filter="url(#shadow)">
+      <rect width="444" height="208" rx="24" fill="#ffffff"/>
+      <rect width="444" height="6" rx="3" fill="url(#card-accent)"/>
+      <rect x="26" y="27" width="96" height="25" rx="12.5" fill="#eef1fb"/>
+      <text x="74" y="44" text-anchor="middle" fill="#4f5eb1" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="10" font-weight="750" letter-spacing="1.15">NEUER BLICK</text>
+      <circle cx="392" cy="40" r="17" fill="#e7f6f4"/>
+      <path d="M384 40l5 5 10-11" fill="none" stroke="#2d817a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="26" y="96" fill="#17214f" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="21" font-weight="670">Ordne Tokio seinem Land zu.</text>
+      <rect x="26" y="126" width="392" height="1" fill="#e8ecf8"/>
+      <rect x="26" y="146" width="88" height="36" rx="11" fill="#17214f"/>
+      <text x="70" y="169" text-anchor="middle" fill="#ffffff" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="700">Japan</text>
+      <text x="135" y="169" fill="#66709a" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12" font-weight="600">Inhalt erkannt — nicht nur die Karte.</text>
+    </g>
+  </g>
+
+  <rect x="0.75" y="0.75" width="1198.5" height="518.5" rx="29.25" fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="1.5"/>
+</svg>
