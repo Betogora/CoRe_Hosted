@@ -25,8 +25,13 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      name: "auth-gate-chromium",
+      testMatch: /auth-gate\.spec\.js/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "authenticated-chromium",
-      testIgnore: /auth\.setup\.js/,
+      testMatch: [/core-stabilization\.spec\.js/, /world-capitals-hierarchy\.spec\.js/],
       dependencies: ["auth-setup"],
       use: {
         ...devices["Desktop Chrome"],

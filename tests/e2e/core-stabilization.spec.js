@@ -101,7 +101,7 @@ test("variant review flow can be prepared from the deck editor", async ({ page }
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
 });
 
-test("ai draft creation and assistant smoke through hidden dashboard entry", async ({ page }) => {
+test("ai draft creation stores an accepted draft deck", async ({ page }) => {
   await resetToFreshLocalState(page);
   const aiDecksBefore = await storedDeckCountBySource(page, "ai-assisted");
 
@@ -113,6 +113,10 @@ test("ai draft creation and assistant smoke through hidden dashboard entry", asy
   await expect(page.getByRole("status")).toContainText(/Entwurf|Entwürfe|Karten/);
   await page.getByRole("button", { name: /Übernehmen/ }).click();
   await expect.poll(() => storedDeckCountBySource(page, "ai-assisted")).toBeGreaterThan(aiDecksBefore);
+});
+
+test("assistant smoke returns a server answer through the hidden dashboard entry", async ({ page }) => {
+  await resetToFreshLocalState(page);
 
   await page.getByLabel("Hauptmenue").getByRole("button", { name: "Heute" }).click();
   await page.route("**/api/ai/chat", async (route) => {

@@ -62,6 +62,15 @@ CORE_E2E_ALLOW_ACCOUNT_RESET=true
 
 `npm run test:e2e` startet Vite immer im Modus `e2e` auf `http://127.0.0.1:5190/`; ein normal laufender Dev-Server muss vorher beendet werden. Das Setup ersetzt bei jedem Lauf ausschließlich die Cloud-Daten dieses Testaccounts durch die reproduzierbare `Welt-Hauptstädte`-Fixture und speichert die Supabase-Sitzung unter `playwright/.auth/`. Dieses Verzeichnis enthält Zugriffstoken, ist ignoriert und darf nicht committed werden. Verwende für diese Variablen lokal oder in CI niemals einen persönlichen oder produktiven Account.
 
+Die sessionlosen Auth-Gate-Smokes und die authentifizierten Produkt-Smokes lassen sich getrennt starten:
+
+```bash
+npm run test:e2e -- --project=auth-gate-chromium
+npm run test:e2e -- --project=authenticated-chromium
+```
+
+`auth-gate-chromium` verwendet keine gespeicherte Sitzung und setzt keinen Account zurück. `authenticated-chromium` führt über seine Projektabhängigkeit zuerst `auth-setup` aus und verwendet danach die bereinigte Test-Session.
+
 ## Projektstruktur
 
 ```text
@@ -107,6 +116,8 @@ src/
 - `scripts/create_world_capitals_apkg.py`: Generator fuer APKG-Fixture, Quell-Snapshot und lokalen Seed.
 - `tests/e2e/world-capitals-hierarchy.spec.js`: Playwright-Smoke fuer Seed, Unterstapel, direkte Lernlisten-Drag-and-drop-Gesten und die Kartenstapel-Verwaltung ohne alten Drag-Handle.
 - `tests/e2e/auth.setup.js`: RLS-konformer Reset des dedizierten Testaccounts und Aufbau der ignorierten Playwright-`storageState`-Session.
+- `tests/e2e/auth-gate.spec.js`: sessionlose Login-Gate- und Auth-Fehler-Smokes.
+- `tests/e2e/core-stabilization.spec.js`: authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent und Portabilität.
 - `AGENTS.md`: lokale Entwicklungsregeln, empfohlene Kommandos und Architekturleitplanken.
 - `vercel.json`: aktueller Vercel-Build-/Rewrite-Anker fuer die Vite-App.
 - `.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag.

@@ -49,7 +49,7 @@ setup("dedizierten Testaccount zurücksetzen und Auth-Session speichern", async 
   await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
   await page.getByLabel("E-Mail").fill(environment.email);
   await page.getByLabel("Passwort", { exact: true }).fill(environment.password);
-  await page.getByRole("button", { name: "Anmelden", exact: true }).click();
+  await page.locator("form").getByRole("button", { name: "Anmelden", exact: true }).click();
 
   await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toBeVisible({ timeout: 30_000 });
   await page.getByRole("navigation", { name: /Hauptmen/ }).getByRole("button", { name: "Lernen" }).click();
