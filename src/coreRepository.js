@@ -35,6 +35,7 @@ function createDefaultState({ seedDefaultDecks = false } = {}) {
     communities: [],
     aiJobs: [],
     documents: [],
+    cloudTombstones: [],
     chatTranscript: [],
     learningPlans: [],
     updatedAt: new Date().toISOString(),
@@ -88,6 +89,7 @@ function normalizeState(rawState) {
     communities: Array.isArray(rawState?.communities) ? rawState.communities : [],
     aiJobs: Array.isArray(rawState?.aiJobs) ? rawState.aiJobs : [],
     documents: Array.isArray(rawState?.documents) ? rawState.documents : [],
+    cloudTombstones: Array.isArray(rawState?.cloudTombstones) ? rawState.cloudTombstones : [],
     chatTranscript: Array.isArray(rawState?.chatTranscript) ? rawState.chatTranscript : [],
     learningPlans: Array.isArray(rawState?.learningPlans) ? rawState.learningPlans : [],
   };

@@ -285,6 +285,10 @@ export function createSourceDocument({
   textExtractionStatus = text ? "success" : "pending",
   metadata = {},
   createdAt = new Date().toISOString(),
+  updatedAt = createdAt,
+  revision = 1,
+  deletedAt = null,
+  updatedByDeviceId = null,
 } = {}) {
   return {
     id,
@@ -296,6 +300,10 @@ export function createSourceDocument({
     textExtractionStatus,
     metadata,
     createdAt,
+    updatedAt,
+    revision,
+    deletedAt,
+    updatedByDeviceId,
   };
 }
 
@@ -629,6 +637,9 @@ export function createCoreCard({
   learningItemState = null,
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
+  revision = 1,
+  deletedAt = null,
+  updatedByDeviceId = null,
   immutableOriginal = null,
   versionLog = [],
   meta = {},
@@ -742,6 +753,9 @@ export function createCoreCard({
     },
     createdAt,
     updatedAt,
+    revision,
+    deletedAt,
+    updatedByDeviceId,
     meta,
   };
 }
@@ -789,6 +803,9 @@ export function createCardVariant({
   feedback = [],
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
+  revision = 1,
+  deletedAt = null,
+  updatedByDeviceId = null,
   versionLog = [],
   meta = {},
 }) {
@@ -868,6 +885,9 @@ export function createCardVariant({
     versionLog: normalizeVersionLog(versionLog, createdEntry),
     createdAt,
     updatedAt,
+    revision,
+    deletedAt,
+    updatedByDeviceId,
     meta,
   };
 }
@@ -1016,6 +1036,9 @@ export function createCoreDeck({
   communityRefs = [],
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
+  revision = 1,
+  deletedAt = null,
+  updatedByDeviceId = null,
   versionLog = [],
 }) {
   if (!CORE_DECK_SOURCES.includes(source)) {
@@ -1055,6 +1078,9 @@ export function createCoreDeck({
     hierarchyPath: path.length > 0 ? path : [deckName],
     createdAt,
     updatedAt,
+    revision,
+    deletedAt,
+    updatedByDeviceId,
     cardCount: normalizedCards.length,
     tags: deckTags,
     importMeta,
@@ -1226,6 +1252,9 @@ export function createBasicLearningItem(deckId, front, back, options = {}) {
     learningItemState: options.learningItemState ?? options.reviewState ?? createLearningItemState({ learningItemId: id, reviewableType: "card", reviewableId: id }),
     createdAt,
     updatedAt,
+    revision: options.revision ?? 1,
+    deletedAt: options.deletedAt ?? null,
+    updatedByDeviceId: options.updatedByDeviceId ?? null,
     meta,
   });
 }
@@ -1358,6 +1387,9 @@ export function createClozeLearningItem(deckId, textWithClozes, extra = "", opti
     learningItemState: options.learningItemState ?? options.reviewState ?? createLearningItemState({ learningItemId: id, reviewableType: "card", reviewableId: id }),
     createdAt,
     updatedAt,
+    revision: options.revision ?? 1,
+    deletedAt: options.deletedAt ?? null,
+    updatedByDeviceId: options.updatedByDeviceId ?? null,
     meta: {
       ...(options.meta ?? {}),
       clozeGroupCount: clozeVariants.length,

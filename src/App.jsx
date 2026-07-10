@@ -4,7 +4,7 @@ import { authPhaseForSession, authPhases, createSyncErrorStatus, createSyncIdleS
 import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.js";
 import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
 import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.js";
-import { replaceAccountCloudState } from "./cloudRepository.js";
+import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.js";
 import { createCoreRepository } from "./coreRepository.js";
 import { createCoreWorkspace } from "./coreWorkspace.js";
 import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.js";
@@ -142,6 +142,8 @@ export function App() {
   const syncEngine = React.useMemo(() => (supabase ? createAccountSyncEngine(supabase) : null), [supabase]);
   const navigationItems = React.useMemo(() => menu.listNavigationItems(), []);
   const bootRunRef = React.useRef(0);
+  const latestStateRef = React.useRef(null);
+  const lastAcknowledgedStateRef = React.useRef(null);
   const historyInitializedRef = React.useRef(false);
   const currentRouteRef = React.useRef(createViewRoute(menu.defaultViewId));
   const [authPhase, setAuthPhase] = React.useState("checking-session");
@@ -158,6 +160,21 @@ export function App() {
   const [studyRequest, setStudyRequest] = React.useState(null);
   const [focusedDeckId, setFocusedDeckId] = React.useState(null);
   const [deckCreationParentId, setDeckCreationParentId] = React.useState("");
+
+  function setAppState(nextState) {
+    latestStateRef.current = nextState;
+    setState(nextState);
+  }
+
+  function applyCloudAcknowledgement(snapshot, acknowledgedState, runId = bootRunRef.current) {
+    if (!acknowledgedState || !workspace || bootRunRef.current !== runId) return null;
+    const currentState = latestStateRef.current;
+    if (!currentState) return null;
+    const savedState = workspace.saveState(mergeCloudSyncMetadata(currentState, acknowledgedState));
+    if (currentState === snapshot) lastAcknowledgedStateRef.current = savedState;
+    setAppState(savedState);
+    return savedState;
+  }
 
   function getValidDeckIds() {
     return state?.decks?.map((deck) => deck.id) ?? [];
@@ -251,7 +268,8 @@ export function App() {
     if (bootRunRef.current !== runId) return;
 
     setWorkspace(nextWorkspace);
-    setState(savedState);
+    lastAcknowledgedStateRef.current = savedState;
+    setAppState(savedState);
     setCloudUser(user);
     setStudyRequest(null);
     setFocusedDeckId(null);
@@ -291,7 +309,8 @@ export function App() {
         if (hasPasswordRecoveryIntent()) {
           setCloudUser(user);
           setWorkspace(null);
-          setState(null);
+          lastAcknowledgedStateRef.current = null;
+          setAppState(null);
           setAuthPhase(authPhases.passwordRecovery);
           setAuthMessage("Bitte lege ein neues Passwort fest.");
           setAuthMessageType("status");
@@ -320,7 +339,8 @@ export function App() {
       historyInitializedRef.current = false;
       setCloudUser(session.user);
       setWorkspace(null);
-      setState(null);
+      lastAcknowledgedStateRef.current = null;
+      setAppState(null);
       setLegacyState(null);
       setAuthPhase(authPhases.passwordRecovery);
       setAuthMessage("Bitte lege ein neues Passwort fest.");
@@ -360,16 +380,18 @@ export function App() {
   }, [authPhase, state]);
 
   React.useEffect(() => {
-    if (authPhase !== "ready" || !syncEngine || !state) return undefined;
+    if (authPhase !== "ready" || !syncEngine || !state || state === lastAcknowledgedStateRef.current) return undefined;
 
     setSyncStatus((current) => (current.status === "saving" ? current : createSyncPendingStatus()));
     let cancelled = false;
     const snapshot = state;
+    const runId = bootRunRef.current;
     const timer = window.setTimeout(async () => {
       setSyncStatus(createSyncSavingStatus());
       try {
         syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
-        await syncEngine.flush();
+        const result = await syncEngine.flush();
+        applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
         if (!cancelled) setSyncStatus(createSyncSavedStatus());
       } catch (error) {
         if (!cancelled) setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Synchronisierung fehlgeschlagen.")));
@@ -380,7 +402,7 @@ export function App() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [authPhase, state, syncEngine]);
+  }, [authPhase, state, syncEngine, workspace]);
 
   async function handleSignIn({ email, password }) {
     if (!supabase) return;
@@ -501,8 +523,11 @@ export function App() {
     try {
       const nextState = mergePortableExportIntoState(state, createPortableExport(legacyState));
       const savedState = workspace.saveState(nextState);
-      setState(savedState);
-      await replaceAccountCloudState(supabase, savedState);
+      setAppState(savedState);
+      const result = await replaceAccountCloudState(supabase, savedState);
+      const acknowledgedState = workspace.saveState(result.state);
+      lastAcknowledgedStateRef.current = acknowledgedState;
+      setAppState(acknowledgedState);
       markLocalMigrationHandled(cloudUser.id, "imported");
       setLegacyState(null);
       setSyncStatus(createSyncSavedStatus("Lokale Daten übernommen und synchronisiert."));
@@ -523,9 +548,16 @@ export function App() {
   async function syncNow() {
     if (!syncEngine || !state) return;
     setSyncStatus(createSyncSavingStatus());
-    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state } });
-    await syncEngine.flush();
-    setSyncStatus(createSyncSavedStatus());
+    const snapshot = state;
+    const runId = bootRunRef.current;
+    try {
+      syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
+      const result = await syncEngine.flush();
+      applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
+      setSyncStatus(createSyncSavedStatus());
+    } catch (error) {
+      setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Synchronisierung fehlgeschlagen.")));
+    }
   }
 
   async function signOut() {
@@ -535,7 +567,8 @@ export function App() {
     bootRunRef.current += 1;
     resetBrowserRouteToDefault();
     setWorkspace(null);
-    setState(null);
+    lastAcknowledgedStateRef.current = null;
+    setAppState(null);
     setCloudUser(null);
     setLegacyState(null);
     setStudyRequest(null);
@@ -551,7 +584,7 @@ export function App() {
   function refresh() {
     if (!workspace) return null;
     const nextState = workspace.getState();
-    setState(nextState);
+    setAppState(nextState);
     return nextState;
   }
 

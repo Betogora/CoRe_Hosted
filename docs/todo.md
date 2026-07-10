@@ -6,13 +6,13 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 
 ## Auditierter Ist-Stand
 
-- `npm test`: 216 Tests bestanden.
-- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der lokale Entry-Chunk ist 225,58 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
+- `npm test`: 226 Tests bestanden.
+- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der lokale Entry-Chunk ist 235,26 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
 - `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und zwölf authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 19/19 Tests grün; der zusätzliche Produkt-Smoke prüft PDF-Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
 - `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
-- Der aktuelle Autosave ist ein debounceter Vollzustands-Upsert über `src/syncEngine.js` und `src/cloudRepository.js`. Die Queue lebt nur im Speicher; `reviewEventAppend` besitzt keinen produktiven Adapterpfad.
+- Der debouncete Autosave läuft über `src/syncEngine.js` und `src/cloudRepository.js`: unveränderte Rows werden nicht geschrieben, geänderte Rows nur bei passender Serverrevision aktualisiert, bestätigte Revisionen fließen in den lokalen Cache zurück und Review-Events werden append-only ergänzt. Die Queue lebt weiterhin nur im Speicher; `reviewEventAppend` besitzt noch keinen eigenen produktiven Adapterpfad.
 - `src/creationWorkflow.js` verwendet weiterhin den lokalen `src/mediaStore.js`. `src/cloudMediaStore.js` ist separat getestet, aber noch nicht in Import, Cloud-State-Laden oder Karten-Rendering integriert.
 - Der einzige Server-KI-Pfad ist `POST /api/ai/chat`. Die Route prüft Origin, Request-Größe und Providerfehler, liest aktuelle `steps`- sowie ältere `outputs`-Responses und protokolliert bei Providerfehlern nur sichere Strukturmetadaten. Supabase-Session, Nutzer-/IP-Limits und Kostenbudgets fehlen weiterhin; der Browser sendet derzeit keinen Bearer-Token.
 - Community, Graph, KI-Drafts, Varianten und Jobs sind weiterhin lokale Produktmodelle; nur Chat besitzt einen externen Gemma-Proxy.
@@ -23,11 +23,11 @@ Die Abhängigkeiten sind absichtlich enger als in der früheren Liste:
 
 `P0 Prüf- und Deploymentbasis` → `P1 Cloud-Datenkorrektheit` → `P1 Sync und Medien` → `P1 externe KI-Jobs` → `P2 Community-Rechte und Wachstum`.
 
-Das P0-Betriebsgate ist seit dem 2026-07-10 geschlossen. Die Reihenfolge beginnt deshalb aktiv mit P1 Cloud-Datenkorrektheit.
+Das P0-Betriebsgate und P1 Repository-Mapping sind seit dem 2026-07-10 geschlossen. Die Reihenfolge läuft deshalb mit Ownership-/RLS-Abnahme weiter, bevor die persistente Outbox folgt.
 
 ## Aktives nächstes Ziel
 
-**P1 Cloud-Persistenz fachlich korrekt machen.** Als nächster Slice werden `revision`, `deleted_at`, `updated_by_device_id` und `created_by_device_id` in `cloudRepository` korrekt gemappt, Soft-Deletes beim Laden erhalten und regulärer Autosave vom ausdrücklichen Voll-Replace getrennt. Das P0-Release-Gate einschließlich Hosted-Supabase-Readback, Preview-Smoke, staged Production, Promotion, kanonischem Production-Smoke und Log-Scan ist abgeschlossen.
+**P1 Ownership und RLS automatisiert abnehmen.** Als nächster Slice wird ein reproduzierbarer Nutzer-A/Nutzer-B/`anon`-Smoke gegen lokales Supabase ergänzt. Er prüft Core-, Medien- und Sync-Tabellen, UPDATE-Policies mit `using`/`with check` sowie accountgebundene Foreign Keys. Das revisionssichere Repository-Mapping, Soft-Delete-Tombstones, append-only Review-Events und die Trennung zwischen Delta-Autosave und ausdrücklichem Voll-Replace sind abgeschlossen.
 
 Verbindlicher URL-Vertrag:
 
@@ -41,7 +41,7 @@ Phasen und messbare Abnahme:
 - [x] Lokale P0-Implementierung: tiefer PDF.js-Viewer mit kontinuierlicher Anzeige, Fit-to-width, Navigation, Zoom, Textauswahl und `pageNumber`/`bbox`; Lazy-Loading der authentifizierten Screens; dynamischer APKG-Pfad; getrennte React-/Supabase-Chunks; harte 500-kB-Buildgrenze; Modul- und Browser-Smokes grün.
 - [x] Hosted Supabase konfiguriert und geprüft: Site URL und genau die drei Redirect-Muster oben sind eingetragen; Production bleibt exakt, Wildcard nur für Preview. Der Dashboard-Readback nach Reload bestätigt alle vier Werte ohne Secret- oder Auth-Daten.
 - [x] Release-Abnahme nach grünem CI: Commit `e600ac4817f80c8ca8062df3aa2c706ee1f71178`, GitHub-Lauf `29121208290`, Preview `dpl_ADcYAJBLJWcZ9mu2cMJPeMAyCMGG`, staged/Production `dpl_CCF8hGMt236krS8CdPW5W9G1yWM9`, Preview-Smoke 1-8, Kurzsmoke vor und nach Promotion sowie 5xx-/Error-Log-Scan sind grün und in `docs/specs.md` 14.2.2 protokolliert.
-- [x] Nach erfolgreicher Betriebsabnahme beide verbleibenden P0-Punkte geschlossen und P1 Cloud-Datenkorrektheit als aktives Ziel gesetzt.
+- [x] P1 Repository-Mapping mit revisionsbedingtem Delta-Autosave, Tombstones und Server-Acknowledgements geschlossen; Ownership-/RLS-Smokes als aktives Ziel gesetzt.
 
 ## 1. P0 — Prüfbare Release- und Infrastruktur-Basis
 
@@ -67,10 +67,10 @@ Phasen und messbare Abnahme:
 
 ### 2.1 Repository-Mapping
 
-- [ ] `src/cloudRepository.js` um die in der lokalen Migration vorhandenen Felder ergänzen: `revision`, `deleted_at`, `updated_by_device_id` für Decks, Cards, Varianten, Dokumente und Jobs sowie `created_by_device_id` für Review-Events.
-- [ ] Beim Laden Soft-Deletes und Revisionen korrekt in das lokale Modell überführen; beim Schreiben Revisionen nicht stillschweigend zurücksetzen.
-- [ ] `replaceAccountCloudState()` ausschließlich für den einmaligen Legacy-Import bzw. einen ausdrücklich bestätigten Voll-Replace verwenden. Regulärer Autosave darf weder fehlende Rows löschen noch einen älteren Snapshot bedingungslos über einen neueren Serverstand schreiben.
-- [ ] Mapping-Tests in `src/cloudRepository.test.js` für Revision, Soft-Delete, Geräte-ID, Medienreferenzen und leere/teilweise Cloud-Daten ergänzen.
+- [x] `src/cloudRepository.js` um die in der lokalen Migration vorhandenen Felder ergänzt: `revision`, `deleted_at`, `updated_by_device_id` für Decks, Cards, Varianten, Dokumente und Jobs sowie `created_by_device_id` für Review-Events.
+- [x] Beim Laden Soft-Deletes als unsichtbare `cloudTombstones` und Revisionen korrekt in das lokale Modell überführen; Core-Normalisierung und Server-Acknowledgements erhalten die Metadaten.
+- [x] `replaceAccountCloudState()` bleibt ausschließlich für Legacy-Import bzw. Test-Reset destruktiv. Regulärer Autosave schreibt nur Deltas, prüft Updates atomar über Account, ID und Basisrevision und reaktiviert keine Remote-Tombstones.
+- [x] Mapping- und Repository-Tests für Revisionen, Soft-Deletes, Geräte-IDs, Medienreferenzen, leere/teilweise Cloud-Daten, unveränderte Snapshots, stale Writes, append-only Events und Voll-Replace ergänzt.
 
 ### 2.2 Ownership, RLS und Account-Lifecycle
 
@@ -178,7 +178,7 @@ Phasen und messbare Abnahme:
 ## Bereits belastbar vorhanden
 
 - [x] Vite/React-App mit Port 5190, Pflichtlogin, Supabase E-Mail/Passwort, Google-Start, Magic Link, Recovery-Abschluss, Profil-Upsert und accountgebundenem Browser-Cache.
-- [x] Cloud-first Autosave über echte Tabellen ohne Delete-Missing-Semantik im regulären Autosave; bewusster Voll-Replace bleibt für den Legacy-Import.
+- [x] Cloud-first Delta-Autosave über echte Tabellen ohne Delete-Missing-Semantik: unveränderte Rows bleiben unberührt, Updates sind revisionsbedingt, Review-Events append-only und bewusster Voll-Replace bleibt für Legacy-Import/Test-Reset.
 - [x] Learning-Item-Creation-Pipeline für Basic, Reverse, Cloze, Importvarianten und KI-Drafts mit genau einer Originalvariante.
 - [x] APKG-, Text-, CSV-, normalisierte JSON- und Tabellen-/Excel-Paste-Importe mit Dry-Run, Dedupe, Hierarchie und Reimport-Merge.
 - [x] Lokaler APKG-Medienspeicher, HTML-Safety, Rich Text, PDF-/Textauslesung und Quellenanker; produktive Cloud-Medienanbindung ist separat offen.

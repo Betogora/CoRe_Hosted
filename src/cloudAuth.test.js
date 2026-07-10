@@ -86,6 +86,7 @@ test("cloud auth formats common Supabase auth errors in German", () => {
   assert.match(formatCloudAuthError({ message: "Email signups are disabled" }), /Registrierung ist in Supabase.*deaktiviert/);
   assert.match(formatCloudAuthError({ message: "User already registered" }), /existiert wahrscheinlich schon/);
   assert.match(formatCloudAuthError({ message: "Password should be stronger" }), /gültiges Passwort/);
+  assert.match(formatCloudAuthError({ code: "cloud_revision_conflict", message: "internal details" }), /anderen Gerät.*neuere Version/);
 });
 
 test("cloud auth distinguishes a missing session from an expired session", async () => {

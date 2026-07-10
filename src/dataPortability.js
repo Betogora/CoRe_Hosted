@@ -17,16 +17,42 @@ function redactProfile(profile) {
   };
 }
 
+function stripSyncMetadata(entity = {}) {
+  const { revision: _revision, deletedAt: _deletedAt, updatedByDeviceId: _updatedByDeviceId, createdByDeviceId: _createdByDeviceId, ...content } = entity;
+  return content;
+}
+
+function portableDocument(document) {
+  return stripSyncMetadata(document);
+}
+
+function portableAiJob(job) {
+  return stripSyncMetadata(job);
+}
+
+function portableDeck(deck) {
+  return {
+    ...stripSyncMetadata(deck),
+    cards: (deck.cards ?? []).map((card) => ({
+      ...stripSyncMetadata(card),
+      variants: (card.variants ?? []).map(stripSyncMetadata),
+    })),
+    reviewEvents: (deck.reviewEvents ?? []).map(stripSyncMetadata),
+    sourceDocuments: (deck.sourceDocuments ?? []).map(portableDocument),
+    aiJobs: (deck.aiJobs ?? []).map(portableAiJob),
+  };
+}
+
 export function createPortableExport(state, now = new Date().toISOString()) {
   const payload = {
     schema: "core-portable-export",
     schemaVersion: EXPORT_SCHEMA_VERSION,
     exportedAt: now,
     profile: redactProfile(state.profile),
-    decks: state.decks ?? [],
+    decks: (state.decks ?? []).map(portableDeck),
     communities: state.communities ?? [],
-    aiJobs: state.aiJobs ?? [],
-    documents: state.documents ?? [],
+    aiJobs: (state.aiJobs ?? []).map(portableAiJob),
+    documents: (state.documents ?? []).map(portableDocument),
   };
 
   return {

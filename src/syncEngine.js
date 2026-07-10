@@ -59,8 +59,11 @@ function createDefaultAdapter(client) {
     loadSnapshot(fallbackState) {
       return loadAccountCloudState(client, fallbackState);
     },
-    upsertState(state) {
-      return upsertAccountCloudState(client, state);
+    upsertState(state, context = {}) {
+      return upsertAccountCloudState(client, state, {
+        deviceId: context.deviceId,
+        now: context.flushedAt ? () => context.flushedAt : undefined,
+      });
     },
     listConflicts() {
       return listAccountSyncConflicts(client);
@@ -107,7 +110,7 @@ export function createSyncEngine({ adapter, deviceId = "browser-device", now = n
       };
 
       if (latestStatePatch?.payload?.state) {
-        result.saved = await adapter.upsertState(latestStatePatch.payload.state, { deviceId, mutations: batch });
+        result.saved = await adapter.upsertState(latestStatePatch.payload.state, { deviceId, mutations: batch, flushedAt: result.flushedAt });
       }
 
       const remaining = batch.filter((mutation) => mutation !== latestStatePatch);

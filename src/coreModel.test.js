@@ -132,3 +132,32 @@ test("normalizing edited decks preserves immutable originals and version history
   assert.equal(card.versionLog.some((entry) => entry.changeType === "content_updated"), true);
   assert.equal(normalized.versionLog.length, deck.versionLog.length);
 });
+
+test("core normalization preserves cloud sync metadata", () => {
+  const deck = createManualCoreDeck({
+    deckName: "Cloud Metadata",
+    card: { cardType: "basic", front: "ATP", back: "Energieträger" },
+  });
+  const card = deck.cards[0];
+  const normalized = normalizeCoreDeck({
+    ...deck,
+    revision: 8,
+    deletedAt: null,
+    updatedByDeviceId: "device-a",
+    cards: [
+      {
+        ...card,
+        revision: 5,
+        updatedByDeviceId: "device-b",
+        variants: card.variants.map((variant) => ({ ...variant, revision: 4, updatedByDeviceId: "device-c" })),
+      },
+    ],
+  });
+
+  assert.equal(normalized.revision, 8);
+  assert.equal(normalized.updatedByDeviceId, "device-a");
+  assert.equal(normalized.cards[0].revision, 5);
+  assert.equal(normalized.cards[0].updatedByDeviceId, "device-b");
+  assert.equal(normalized.cards[0].variants[0].revision, 4);
+  assert.equal(normalized.cards[0].variants[0].updatedByDeviceId, "device-c");
+});

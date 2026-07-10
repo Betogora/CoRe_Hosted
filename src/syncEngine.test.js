@@ -58,3 +58,28 @@ test("revision conflicts describe changed content fields", () => {
   assert.equal(conflict.localValue.original_front, "Lokal");
   assert.equal(conflict.remoteValue.original_front, "Remote");
 });
+
+test("sync flush returns the acknowledged state and passes device context", async () => {
+  const acknowledgedState = { decks: [{ id: "deck-1", revision: 4 }] };
+  let receivedContext = null;
+  const engine = createSyncEngine({
+    deviceId: "device-a",
+    now: () => "2026-07-10T12:00:00.000Z",
+    adapter: {
+      async loadSnapshot() {
+        return { decks: [] };
+      },
+      async upsertState(_state, context) {
+        receivedContext = context;
+        return { state: acknowledgedState, summary: { decks: 1 } };
+      },
+    },
+  });
+
+  engine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [{ id: "deck-1", revision: 3 }] } } });
+  const result = await engine.flush();
+
+  assert.equal(receivedContext.deviceId, "device-a");
+  assert.equal(receivedContext.flushedAt, "2026-07-10T12:00:00.000Z");
+  assert.deepEqual(result.saved.state, acknowledgedState);
+});

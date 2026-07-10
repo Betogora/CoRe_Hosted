@@ -22,7 +22,18 @@ export function selectModel(task, policy = {}, context = {}) {
   return { ...capability, estimatedCost: 0 };
 }
 
-export function createAiJob({ jobType, deckId = null, inputRef = {}, policy = {}, status = "queued", resultRef = null, error = null }) {
+export function createAiJob({
+  jobType,
+  deckId = null,
+  inputRef = {},
+  policy = {},
+  status = "queued",
+  resultRef = null,
+  error = null,
+  revision = 1,
+  deletedAt = null,
+  updatedByDeviceId = null,
+}) {
   const createdAt = new Date().toISOString();
   return {
     id: makeId("job"),
@@ -35,6 +46,9 @@ export function createAiJob({ jobType, deckId = null, inputRef = {}, policy = {}
     resultRef,
     error,
     createdAt,
+    revision,
+    deletedAt,
+    updatedByDeviceId,
     startedAt: status === "queued" ? null : createdAt,
     finishedAt: ["succeeded", "failed", "cancelled"].includes(status) ? createdAt : null,
   };

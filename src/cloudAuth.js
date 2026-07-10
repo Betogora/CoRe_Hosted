@@ -42,6 +42,10 @@ export function formatCloudAuthError(error, fallback = "Aktion konnte nicht abge
   const message = String(error?.message ?? "").toLowerCase();
   const combined = `${code} ${message}`;
 
+  if (combined.includes("cloud_revision_conflict")) {
+    return "Auf einem anderen Gerät liegt bereits eine neuere Version vor. Bitte lade die Cloud-Daten neu.";
+  }
+
   if (
     combined.includes("session_expired") ||
     combined.includes("session expired") ||

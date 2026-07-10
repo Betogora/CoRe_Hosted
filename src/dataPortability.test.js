@@ -28,7 +28,9 @@ function portableState(overrides = {}) {
         id: "deck_export",
         name: "Export Deck",
         source: "manual",
-        cards: [createBasicLearningItem("deck_export", "Was ist ATP?", "Ein Energietraeger der Zelle.")],
+        cards: [createBasicLearningItem("deck_export", "Was ist ATP?", "Ein Energietraeger der Zelle.", { revision: 3, updatedByDeviceId: "device-card" })],
+        revision: 4,
+        updatedByDeviceId: "device-deck",
       }),
     ],
     communities: [],
@@ -45,6 +47,10 @@ test("portable export redacts local password verifier", () => {
   assert.equal(validation.valid, true);
   assert.equal(exported.profile.account.passwordVerifier, undefined);
   assert.equal(exported.profile.account.status, "signed-in");
+  assert.equal(exported.decks[0].revision, undefined);
+  assert.equal(exported.decks[0].updatedByDeviceId, undefined);
+  assert.equal(exported.decks[0].cards[0].revision, undefined);
+  assert.equal(exported.decks[0].cards[0].updatedByDeviceId, undefined);
 });
 
 test("portable export validation reports malformed json without throwing", () => {
