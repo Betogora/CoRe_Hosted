@@ -9,8 +9,9 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 - `npm test`: 187 Tests bestanden.
 - `npm run build`: erfolgreich; der Build meldet aber einen ca. 1,97 MB großen Hauptchunk sowie große PDF-/Worker-Chunks.
 - `npm run test:e2e`: 7 Tests fehlgeschlagen, 3 übersprungen. Ursache ist der verpflichtende Login-Gate: Die Tests löschen den lokalen App-State, besitzen aber keine reproduzierbare authentifizierte Test-Session.
-- `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Die Migrationen `20260707081417`, `20260709074255` und `20260709082140` sind lokal und remote vorhanden.
-- Die Migration `supabase/migrations/20260709091315_sync_media_auth_operations.sql` ist ausschließlich lokal vorhanden und wurde bei diesem Preflight nicht remote angewendet.
+- `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
+- `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
+- Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
 - Der aktuelle Autosave ist ein debounceter Vollzustands-Upsert über `src/syncEngine.js` und `src/cloudRepository.js`. Die Queue lebt nur im Speicher; `reviewEventAppend` besitzt keinen produktiven Adapterpfad.
 - `src/creationWorkflow.js` verwendet weiterhin den lokalen `src/mediaStore.js`. `src/cloudMediaStore.js` ist separat getestet, aber noch nicht in Import, Cloud-State-Laden oder Karten-Rendering integriert.
 - Der einzige Server-KI-Pfad ist `POST /api/ai/chat`. Die Route prüft Origin, Request-Größe und Providerfehler, aber noch keine Supabase-Session, Nutzer-/IP-Limits oder Kostenbudgets. Der Browser sendet derzeit keinen Bearer-Token.
@@ -29,9 +30,9 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 ### 1.1 Supabase-CLI und Migration
 
 - [x] In `supabase/config.toml` die drei `auth.email.template.*.content_path`-Werte auf `./supabase/templates/...` korrigieren; das Security-Notification-Template bleibt CLI-konform bei `./templates/...`. `npx supabase migration list --linked` läuft erfolgreich.
-- [x] Remote-Migrationsstand dokumentiert: Die ersten drei Migrationen sind lokal und remote vorhanden; `20260709091315_sync_media_auth_operations.sql` ist nur lokal. Eine Remote-Anwendung bleibt bis zur geplanten Datenbankfreigabe ausdrücklich ausstehend.
-- [ ] Nach der Anwendung `supabase/verify_schema_v1.sql` ausführen und zusätzlich Bucket `core-media`, `authenticated`-Grants, fehlende `anon`-Grants sowie alle Policies für `media_assets`, `sync_devices` und `sync_conflicts` prüfen.
-- [ ] Den Unterschied zwischen Schemaanker `supabase/core_schema_v1.sql`, angewendeten Migrationen und Remote-Schema in einer kurzen Release-Notiz festhalten; keine neue breite Migration erzeugen, bevor dieser Abgleich sauber ist.
+- [x] Remote-Migrationsstand vor dem Release dokumentiert und `20260709091315_sync_media_auth_operations.sql` nach erfolgreichem Dry-Run und Datenbankfreigabe remote angewendet; alle vier Migrationen stimmen lokal und remote überein.
+- [x] Nach der Anwendung `supabase/verify_schema_v1.sql` ausgeführt und Bucket `core-media`, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants, Constraints sowie alle erwarteten Core- und Storage-Policies bestätigt.
+- [x] Unterschied zwischen Schemaanker `supabase/core_schema_v1.sql`, angewendeten Migrationen und Remote-Schema als Release-Stand in `docs/specs.md` festgehalten; es wurde keine zusätzliche breite Migration erzeugt.
 
 ### 1.2 Deterministische Tests und Deployment
 
@@ -57,7 +58,7 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 
 - [ ] Einen echten Nutzer-A/Nutzer-B/`anon`-Smoke gegen das verlinkte oder lokale Supabase-Projekt automatisieren. Prüfen: `decks`, `cards`, `card_variants`, `review_events`, `source_documents`, `ai_jobs`, `media_assets`, `sync_devices` und `sync_conflicts`.
 - [ ] Für jede schreibbare Tabelle gesondert verifizieren, dass UPDATE sowohl `using` als auch `with check` hat und Foreign Keys keine fremden Deck-/Card-IDs akzeptieren.
-- [ ] Hosted Auth konfigurieren und dokumentieren: Site URL, Redirect-Allowlist, Google OAuth, SMTP-Absender, DKIM/SPF/DMARC, deutsche Templates und E-Mail-Bestätigung.
+- [ ] Hosted Auth konfigurieren und dokumentieren: Site URL, Redirect-Allowlist, Google OAuth, SMTP-Absender, DKIM/SPF/DMARC, deutsche Templates, E-Mail-Bestätigung und Leaked-Password-Protection.
 - [ ] Browser-Tests für Magic Link, Google Redirect, Recovery, Passwortänderung, erneuten Login, Rate-Limit-Fehler und abgelaufene Links mit der Test-Fixture ergänzen.
 - [ ] Account-Löschung, Reauth, Datenschutzexport und Datenportabilitätsrechte als Datenfluss spezifizieren. Der vorhandene JSON-Export ist nur ein lokaler Inhalts-Export und ersetzt keine Account-Löschung oder serverseitige DSGVO-Antwort.
 
@@ -173,8 +174,8 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 - `docs/specs.md`: kanonische Produkt- und Engineering-Spezifikation, insbesondere Abschnitte 10, 12, 14–18, 21, 26 und 27.
 - `docs/anki-format-analysis.md`: Anki-/APKG-Differenzen und Importidentitäten.
 - `supabase/core_schema_v1.sql`: Schemaanker für Tabellen, RLS, Grants und Storage-Policies.
-- `supabase/migrations/20260709091315_sync_media_auth_operations.sql`: lokale, noch nicht remote angewendete Migration für Revisionen, Medien, Geräte, Konflikte und Storage-Policies.
-- `supabase/verify_schema_v1.sql`: SQL-Prüfungen für RLS und Policies.
+- `supabase/migrations/20260709091315_sync_media_auth_operations.sql`: remote angewendete Migration für Revisionen, Medien, Geräte, Konflikte und Storage-Policies.
+- `supabase/verify_schema_v1.sql`: fehlschlagendes Verify-Gate für Zieltabellen/-spalten, RLS, Policies, Grants, Constraints und den privaten Medien-Bucket.
 - `src/cloudRepository.js`, `src/syncEngine.js`: aktueller Cloud-/Sync-Pfad und nächste technische Naht.
 - `src/cloudMediaStore.js`, `src/mediaStore.js`, `src/creationWorkflow.js`: aktueller lokaler und vorbereiteter Cloud-Medienpfad.
 - `api/ai/chat.js`, `src/deckAssistant.js`, `src/aiOrchestrator.js`: aktueller Chat-Proxy und lokale KI-Drafts.

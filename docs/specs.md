@@ -22,7 +22,7 @@ Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdow
 
 Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug bestaetigt die bestehenden Kernentscheidungen zu Import, Kartenerstellung, Review, Content-Repetition, Community, Graph und sparsamer KI-Orchestrierung. Ergaenzt wurden vor allem zwei Schaerfungen: Varianten sollen mit wachsendem Reifegrad nur konservativ anspruchsvoller werden, und serverseitig wiederverwendbare Varianten muessen strikt von privaten Review-Events, Lernstaenden und persoenlichen Qualitaetsurteilen getrennt bleiben.
 
-Infrastrukturabgleich am 2026-07-10: Die Supabase-CLI-Konfiguration findet alle vier versionierten E-Mail-Templates. `npx supabase migration list --linked` bestaetigt die Migrationen `20260707081417`, `20260709074255` und `20260709082140` lokal und remote; `20260709091315_sync_media_auth_operations.sql` liegt weiterhin nur lokal vor und wurde nicht remote angewendet.
+Datenbank-Release am 2026-07-10: Die Supabase-CLI-Konfiguration findet alle vier versionierten E-Mail-Templates. `20260709091315_sync_media_auth_operations.sql` wurde nach erfolgreichem Dry-Run remote angewendet; `npx supabase migration list --linked` bestaetigt jetzt alle vier Migrationen lokal und remote. Das erweiterte `supabase/verify_schema_v1.sql` bestaetigt Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, Grants ohne `anon`-Zugriff und den privaten Bucket `core-media`. Der Performance-Advisor meldet keine Warnung; beim Security-Advisor bleibt ausschliesslich der bereits vorher vorhandene Hosted-Auth-Hinweis zur deaktivierten Leaked-Password-Protection offen.
 
 | Bereich | Implementierte lokale Module / Screens |
 |---|---|
@@ -63,6 +63,7 @@ Infrastrukturabgleich am 2026-07-10: Die Supabase-CLI-Konfiguration findet alle 
 - Lokaler Deck-Graph/Mindmap, Chat-your-Deck mit freier Gemma-4-31B-IT-Antwort per Default, optionaler Quellenbindung mit Zitaten, Heute-Sekundaereinstieg, Lernplan-Generator, AI-Job-Datenmodell und JSON-Datenportabilitaet.
 - Supabase Browser-Client ueber `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY`, Pflicht-Login-Gate, echte E-Mail/Passwort-Registrierung und Anmeldung, Profil-Upsert in `public.profiles`, accountgebundener Browser-Cache, einmalige lokale Datenuebernahme und Cloud-first Autosave fuer Decks, Karten/Learning Items, Varianten, Review Events, Dokumente und AI Jobs.
 - Zweite Supabase-Migration `20260709074255_cloud_variant_schema_alignment.sql`: `card_variants` ist mit Originalvarianten, Variantentyp, Variant-Level, Generation Source, Ankerfeldern, Aktivstatus und Performance JSON kompatibel; `json-import` ist in `decks.source` und `cards.source` erlaubt; `anon`-Grants auf Core-Tabellen sind entfernt. Dritte Migration `20260709082140_account_scoped_primary_keys.sql`: account-owned Tabellen nutzen zusammengesetzte Primary Keys `(user_id, id)`, damit zwei Accounts dieselben lokalen IDs besitzen koennen, ohne Daten zu teilen.
+- Vierte Supabase-Migration `20260709091315_sync_media_auth_operations.sql`: remote angewendete additive Spalten fuer Revisionen, Soft-Deletes und Geraete-IDs sowie neue Tabellen fuer Medien, Sync-Geraete, Konflikte und Audit-Events; der private Bucket `core-media`, explizite Grants und accountgebundene RLS-/Storage-Policies sind verifiziert.
 
 ### Was erwartungsgemaess noch nicht funktioniert
 
@@ -1394,7 +1395,7 @@ Die Datenstruktur muss drei Welten verbinden:
 
 **Aktueller lokaler Modellstand 2026-07-06:** Im Browser-State heisst die Deck-Collection weiterhin `cards`, damit bestehende lokale Daten kompatibel bleiben. Semantisch sind diese Eintraege aber Learning Items: Sie tragen `canonicalQuestion`, `canonicalAnswer`, `learningItemState`/`reviewState`, Quellenanker, Versionen und eine Variantenliste. Die Variantenliste enthaelt immer genau eine `isOriginal: true`-Variante als unveraenderlichen Lernanker; weitere Varianten referenzieren sie ueber `anchorVariantId`/`parentVariantId`.
 
-**Produktiver Datenbankpfad 2026-07-10:** Fuer CoRe ist Supabase/Postgres der initial angebundene Zielpfad. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. `supabase/core_schema_v1.sql` ist als Supabase-Schemaanker nach `CoRe-Database` uebernommen. Die Migrationen `20260707081417_core_schema_v1.sql`, `20260709074255_cloud_variant_schema_alignment.sql` und `20260709082140_account_scoped_primary_keys.sql` sind remote angewendet; RLS-/Policy-Verify, GRANT-Check und Supabase Security/Performance Advisors laufen sauber. Die Migration `20260709091315_sync_media_auth_operations.sql` ist im CLI-Abgleich nur lokal vorhanden und bleibt bis zur geplanten Datenbankfreigabe noch nicht angewendet. Vor einem vollstaendigen Offline-Sync muss das Schema weiter gegen Import-Medienpfade, Konfliktloesung und die geplante Storage-Strategie validiert werden.
+**Produktiver Datenbankpfad 2026-07-10:** Fuer CoRe ist Supabase/Postgres der initial angebundene Zielpfad. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. `supabase/core_schema_v1.sql` ist als Supabase-Schemaanker nach `CoRe-Database` uebernommen. Die Migrationen `20260707081417_core_schema_v1.sql`, `20260709074255_cloud_variant_schema_alignment.sql`, `20260709082140_account_scoped_primary_keys.sql` und `20260709091315_sync_media_auth_operations.sql` sind remote angewendet. Das projektspezifische Verify-Gate fuer Tabellen, Spalten, Constraints, RLS, Policies, Grants und Bucket-Konfiguration sowie der Performance-Advisor laufen sauber; im Security-Advisor bleibt ausschliesslich die bereits vor diesem Release vorhandene Leaked-Password-Protection-Warnung offen. Vor einem vollstaendigen Offline-Sync muessen Repository-Mapping, Mutation-Semantik, Konflikterzeugung und Cloud-Medienintegration weiter ausgebaut werden.
 
 ### 10.1 Entity-Übersicht
 
@@ -1836,7 +1837,7 @@ Supabase-spezifische Leitplanken:
 - UPDATE-Policies brauchen `using` und `with check`, damit Nutzer keine Zeilen auf andere `user_id`s umhaengen.
 - Autorisierung darf nicht aus nutzerveraenderbaren `user_metadata` abgeleitet werden.
 - Views, Security-Definer-Funktionen und Storage-Policies muessen separat gegen RLS-/Bypass-Risiken geprueft werden.
-- `supabase/verify_schema_v1.sql` ist die minimale Verify-Query fuer RLS-/Policy-Praesenz; zusaetzlich sind Nutzer-A/Nutzer-B-Zugriffstests notwendig.
+- `supabase/verify_schema_v1.sql` ist ein fehlschlagendes Verify-Gate fuer Zieltabellen/-spalten, RLS, Policies, Grants, Constraints und Bucket-Konfiguration; zusaetzlich sind Nutzer-A/Nutzer-B-Zugriffstests notwendig.
 
 ---
 
@@ -3238,8 +3239,8 @@ Technische SQL-Artefakte:
 - `supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
 - `supabase/migrations/20260709074255_cloud_variant_schema_alignment.sql`: angewendete Schema-Abgleichsmigration fuer Cloud-Varianten, `json-import`-Quellen und entfernte `anon`-Grants auf Core-Tabellen.
 - `supabase/migrations/20260709082140_account_scoped_primary_keys.sql`: angewendete Account-Isolationsmigration fuer zusammengesetzte Primary Keys `(user_id, id)` auf account-owned Tabellen.
-- `supabase/migrations/20260709091315_sync_media_auth_operations.sql`: lokal vorhandene, noch nicht remote angewendete Migration fuer Revisionen, Medien, Geraete, Konflikte und Storage-Policies.
-- `supabase/verify_schema_v1.sql`: Verify-Queries fuer RLS-/Policy-Praesenz.
+- `supabase/migrations/20260709091315_sync_media_auth_operations.sql`: remote angewendete Migration fuer Revisionen, Medien, Geraete, Konflikte und Storage-Policies.
+- `supabase/verify_schema_v1.sql`: fehlschlagendes Verify-Gate fuer Tabellen, Spalten, RLS, Policies, Grants, Constraints und den privaten Medien-Bucket.
 
 Hosting-/Runtime-Artefakte:
 
