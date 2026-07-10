@@ -3,12 +3,12 @@
 **Produkt- und Engineering-Spezifikation**  
 **Dateien:** `docs/specs.md` und `docs/specs.html`  
 **Status:** Arbeitsfassung v0.4
-**Datum:** 2026-07-09
+**Datum:** 2026-07-10
 **Quellenbasis:** Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + erneuter Gruendergespraech-Abgleich + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App + `docs/anki-format-analysis.md` + aktueller Test-/Infrastrukturstand
 
 ---
 
-## Implementierungsstand 2026-07-09
+## Implementierungsstand 2026-07-10
 
 Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt. Ein Supabase-Projekt (`CoRe-Database`) und ein Vercel-Projekt (`core-hosted`) sind angebunden. Seit dem 2026-07-09 gibt es ein Pflicht-Login-Gate fuer die deployed App, Supabase-E-Mail/Passwort, accountgebundene lokale Cache-Keys, Cloud-first Autosave und eine einmalige Uebernahme vorhandener lokaler Browserdaten in den angemeldeten Account. CoRe ist trotzdem noch kein fertiges gehostetes Mehrnutzerprodukt: Offline-Konfliktloesung, produktive Medienablage, KI-Serverjobs, Monitoring, Backups und Community-Rechte fehlen noch.
 
@@ -21,6 +21,8 @@ Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese ze
 Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdown-Datei, `docs/todo.md`. Sie ist die einzige Roadmap-Quelle fuer offene Arbeit; neue TODO-Markdowns sollen nicht entstehen. `docs/specs.md` bleibt kanonisch, `docs/specs.html` ist die visuelle HTML-Fassung derselben Spezifikation, und `docs/anki-format-analysis.md` dokumentiert die Anki-Differenzentscheidungen hinter Import-, Medien- und Learning-Item-Ausbau.
 
 Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug bestaetigt die bestehenden Kernentscheidungen zu Import, Kartenerstellung, Review, Content-Repetition, Community, Graph und sparsamer KI-Orchestrierung. Ergaenzt wurden vor allem zwei Schaerfungen: Varianten sollen mit wachsendem Reifegrad nur konservativ anspruchsvoller werden, und serverseitig wiederverwendbare Varianten muessen strikt von privaten Review-Events, Lernstaenden und persoenlichen Qualitaetsurteilen getrennt bleiben.
+
+Infrastrukturabgleich am 2026-07-10: Die Supabase-CLI-Konfiguration findet alle vier versionierten E-Mail-Templates. `npx supabase migration list --linked` bestaetigt die Migrationen `20260707081417`, `20260709074255` und `20260709082140` lokal und remote; `20260709091315_sync_media_auth_operations.sql` liegt weiterhin nur lokal vor und wurde nicht remote angewendet.
 
 | Bereich | Implementierte lokale Module / Screens |
 |---|---|
@@ -1392,7 +1394,7 @@ Die Datenstruktur muss drei Welten verbinden:
 
 **Aktueller lokaler Modellstand 2026-07-06:** Im Browser-State heisst die Deck-Collection weiterhin `cards`, damit bestehende lokale Daten kompatibel bleiben. Semantisch sind diese Eintraege aber Learning Items: Sie tragen `canonicalQuestion`, `canonicalAnswer`, `learningItemState`/`reviewState`, Quellenanker, Versionen und eine Variantenliste. Die Variantenliste enthaelt immer genau eine `isOriginal: true`-Variante als unveraenderlichen Lernanker; weitere Varianten referenzieren sie ueber `anchorVariantId`/`parentVariantId`.
 
-**Produktiver Datenbankpfad 2026-07-09:** Fuer CoRe ist Supabase/Postgres der initial angebundene Zielpfad. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. `supabase/core_schema_v1.sql` ist als Supabase-Schemaanker nach `CoRe-Database` uebernommen. Die Migrationen `20260707081417_core_schema_v1.sql`, `20260709074255_cloud_variant_schema_alignment.sql` und `20260709082140_account_scoped_primary_keys.sql` sind remote angewendet; RLS-/Policy-Verify, GRANT-Check und Supabase Security/Performance Advisors laufen sauber. Vor einem vollstaendigen Offline-Sync muss das Schema weiter gegen Import-Medienpfade, Konfliktloesung und die geplante Storage-Strategie validiert werden.
+**Produktiver Datenbankpfad 2026-07-10:** Fuer CoRe ist Supabase/Postgres der initial angebundene Zielpfad. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. `supabase/core_schema_v1.sql` ist als Supabase-Schemaanker nach `CoRe-Database` uebernommen. Die Migrationen `20260707081417_core_schema_v1.sql`, `20260709074255_cloud_variant_schema_alignment.sql` und `20260709082140_account_scoped_primary_keys.sql` sind remote angewendet; RLS-/Policy-Verify, GRANT-Check und Supabase Security/Performance Advisors laufen sauber. Die Migration `20260709091315_sync_media_auth_operations.sql` ist im CLI-Abgleich nur lokal vorhanden und bleibt bis zur geplanten Datenbankfreigabe noch nicht angewendet. Vor einem vollstaendigen Offline-Sync muss das Schema weiter gegen Import-Medienpfade, Konfliktloesung und die geplante Storage-Strategie validiert werden.
 
 ### 10.1 Entity-Übersicht
 
@@ -3236,6 +3238,7 @@ Technische SQL-Artefakte:
 - `supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
 - `supabase/migrations/20260709074255_cloud_variant_schema_alignment.sql`: angewendete Schema-Abgleichsmigration fuer Cloud-Varianten, `json-import`-Quellen und entfernte `anon`-Grants auf Core-Tabellen.
 - `supabase/migrations/20260709082140_account_scoped_primary_keys.sql`: angewendete Account-Isolationsmigration fuer zusammengesetzte Primary Keys `(user_id, id)` auf account-owned Tabellen.
+- `supabase/migrations/20260709091315_sync_media_auth_operations.sql`: lokal vorhandene, noch nicht remote angewendete Migration fuer Revisionen, Medien, Geraete, Konflikte und Storage-Policies.
 - `supabase/verify_schema_v1.sql`: Verify-Queries fuer RLS-/Policy-Praesenz.
 
 Hosting-/Runtime-Artefakte:

@@ -247,15 +247,15 @@ otp_expiry = 3600
 # verified SMTP sender/domain before these should be treated as production deliverability.
 [auth.email.template.confirmation]
 subject = "CoRe: E-Mail bestätigen"
-content_path = "./templates/confirm_signup.html"
+content_path = "./supabase/templates/confirm_signup.html"
 
 [auth.email.template.magic_link]
 subject = "CoRe: Anmelden per Magic Link"
-content_path = "./templates/magic_link.html"
+content_path = "./supabase/templates/magic_link.html"
 
 [auth.email.template.recovery]
 subject = "CoRe: Passwort zurücksetzen"
-content_path = "./templates/reset_password.html"
+content_path = "./supabase/templates/reset_password.html"
 
 # Uncomment to customize notification email template
 [auth.email.notification.password_changed]
