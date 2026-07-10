@@ -44,13 +44,22 @@ Die Entwicklungs- und Preview-Server sind auf `http://127.0.0.1:5190/` konfiguri
 npm run dev      # Vite-Dev-Server
 npm test         # Node-Testlauf fuer src/*.test.js
 npm run test:e2e # Playwright-Smoke fuer lokale Browser-Flows
+npm run test:e2e:local # Supabase lokal starten, alle Browser-Smokes ausführen und wieder stoppen
 npm run build    # Produktionsbuild
 npm run preview  # Lokale Preview auf Port 5190
 ```
 
 ## Authentifizierte Browser-Tests
 
-Die Playwright-Produkttests verwenden ein separates Supabase-Testprojekt und einen einmalig vorab angelegten Testaccount. Lege lokal eine von Git ignorierte `.env.e2e.local` mit diesen Werten an:
+Der bevorzugte kostenfreie Testpfad verwendet Docker Desktop und den lokalen Supabase-Stack:
+
+```bash
+npm run test:e2e:local
+```
+
+Der Befehl prüft die Docker-Engine, startet nur die für CoRe benötigten lokalen Supabase-Dienste, wendet ausstehende Migrationen an, übernimmt URL und Publishable Key ausschließlich von der Loopback-Instanz, legt den lokalen Testaccount bei Bedarf an, führt Playwright aus und stoppt den Stack anschließend wieder. Beim ersten Lauf lädt Supabase die Docker-Images herunter. Docker muss dafür laufen; für `npm test`, `npm run build` und normale Entwicklungsarbeit ist Docker nicht erforderlich. Zusätzliche Playwright-Argumente werden weitergereicht, zum Beispiel `npm run test:e2e:local -- --project=auth-gate-chromium`.
+
+Alternativ unterstützen die Playwright-Produkttests weiterhin ein separates Hosted-Supabase-Testprojekt mit einem einmalig vorab angelegten Testaccount. Lege dafür lokal eine von Git ignorierte `.env.e2e.local` mit diesen Werten an:
 
 ```text
 VITE_SUPABASE_URL=https://<testprojekt>.supabase.co
@@ -60,7 +69,7 @@ CORE_E2E_PASSWORD=<testpasswort>
 CORE_E2E_ALLOW_ACCOUNT_RESET=true
 ```
 
-`npm run test:e2e` startet Vite immer im Modus `e2e` auf `http://127.0.0.1:5190/`; ein normal laufender Dev-Server muss vorher beendet werden. Das Setup ersetzt bei jedem Lauf ausschließlich die Cloud-Daten dieses Testaccounts durch die reproduzierbare `Welt-Hauptstädte`-Fixture und speichert die Supabase-Sitzung unter `playwright/.auth/`. Dieses Verzeichnis enthält Zugriffstoken, ist ignoriert und darf nicht committed werden. Verwende für diese Variablen lokal oder in CI niemals einen persönlichen oder produktiven Account.
+`npm run test:e2e` startet Vite immer im Modus `e2e` auf `http://127.0.0.1:5190/`; ein normal laufender Dev-Server muss vorher beendet werden. Das Setup ersetzt bei jedem Lauf ausschließlich die Daten des isolierten Testaccounts durch die reproduzierbare `Welt-Hauptstädte`-Fixture und speichert die Supabase-Sitzung unter `playwright/.auth/`. Dieses Verzeichnis enthält Zugriffstoken, ist ignoriert und darf nicht committed werden. Verwende für Hosted-Variablen lokal oder in CI niemals einen persönlichen oder produktiven Account.
 
 Die sessionlosen Auth-Gate-Smokes und die authentifizierten Produkt-Smokes lassen sich getrennt starten:
 

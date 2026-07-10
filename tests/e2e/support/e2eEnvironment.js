@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { createClient } from "@supabase/supabase-js";
 import { loadEnv } from "vite";
+import { isLocalSupabaseUrl } from "../../../scripts/localE2EEnvironment.mjs";
 
 export const e2eAuthStatePath = path.join(process.cwd(), "playwright", ".auth", "user.json");
 const e2eEnvironmentFilePath = path.join(process.cwd(), ".env.e2e.local");
@@ -55,4 +57,46 @@ export function loadE2EEnvironment() {
     email: String(environment.CORE_E2E_EMAIL).trim().toLowerCase(),
     password: String(environment.CORE_E2E_PASSWORD),
   };
+}
+
+export async function ensureLocalE2EAccount(environment, clientFactory = createClient) {
+  if (!isLocalSupabaseUrl(environment.supabaseUrl)) return false;
+
+  const client = clientFactory(environment.supabaseUrl, environment.publishableKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  try {
+    const existingLogin = await client.auth.signInWithPassword({
+      email: environment.email,
+      password: environment.password,
+    });
+    if (!existingLogin.error) {
+      await client.auth.signOut({ scope: "local" });
+      return false;
+    }
+
+    const signup = await client.auth.signUp({
+      email: environment.email,
+      password: environment.password,
+    });
+    if (signup.error) throw new Error(`Der lokale E2E-Testaccount konnte nicht angelegt werden: ${signup.error.message}`);
+    await client.auth.signOut({ scope: "local" });
+
+    const verification = await client.auth.signInWithPassword({
+      email: environment.email,
+      password: environment.password,
+    });
+    if (verification.error) {
+      throw new Error(`Der lokale E2E-Testaccount konnte nach der Anlage nicht angemeldet werden: ${verification.error.message}`);
+    }
+    await client.auth.signOut({ scope: "local" });
+    return true;
+  } finally {
+    client.auth.dispose?.();
+  }
 }

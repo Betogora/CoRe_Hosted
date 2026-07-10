@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { replaceAccountCloudState } from "../../src/cloudRepository.js";
 import { createCoreRepository } from "../../src/coreRepository.js";
 import { hasSupabaseAuthStorage, sanitizeStorageState } from "./support/appState.js";
-import { e2eAuthStatePath, loadE2EEnvironment } from "./support/e2eEnvironment.js";
+import { e2eAuthStatePath, ensureLocalE2EAccount, loadE2EEnvironment } from "./support/e2eEnvironment.js";
 
 function createE2ESeedState(email) {
   const seedState = createCoreRepository(null, { seedDefaultDecks: true }).getState();
@@ -43,6 +43,7 @@ async function resetTestAccount(environment) {
 
 setup("dedizierten Testaccount zurücksetzen und Auth-Session speichern", async ({ page }) => {
   const environment = loadE2EEnvironment();
+  await ensureLocalE2EAccount(environment);
   await resetTestAccount(environment);
 
   await page.goto("/");
