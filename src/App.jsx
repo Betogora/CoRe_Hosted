@@ -538,116 +538,96 @@ export function App() {
     return nextState;
   }
 
-  function saveDeck(deck) {
-    const saved = workspace.saveDecks(deck);
+  function runWorkspaceMutation(mutation) {
+    if (!workspace) return null;
+    const result = mutation(workspace);
     refresh();
-    return saved;
+    return result;
+  }
+
+  function saveDeck(deck) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDecks(deck));
   }
 
   function createDeck(input) {
-    const saved = workspace.createDeck(input);
+    const saved = runWorkspaceMutation((currentWorkspace) => currentWorkspace.createDeck(input));
+    if (!saved) return null;
     setFocusedDeckId(saved.id);
     setDeckCreationParentId("");
-    refresh();
     return saved;
   }
 
   function updateDeck(deckId, updater) {
-    const updated = workspace.updateDeck(deckId, updater);
-    refresh();
-    return updated;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.updateDeck(deckId, updater));
   }
 
   function deleteDeck(deckId) {
-    const result = workspace.deleteDeckTree(deckId);
+    const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckTree(deckId));
+    if (!result) return null;
     setFocusedDeckId(result.nextSelectedDeckId);
-    refresh();
     return result;
   }
 
   function renameDeck(deckId, name) {
-    const result = workspace.renameDeck(deckId, name);
+    const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.renameDeck(deckId, name));
+    if (!result) return null;
     if (result.deck) setFocusedDeckId(result.deck.id);
-    refresh();
     return result;
   }
 
   function moveDeck(deckId, parentDeckId = null) {
-    const result = workspace.moveDeck(deckId, parentDeckId);
+    const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.moveDeck(deckId, parentDeckId));
+    if (!result) return null;
     if (result.deck) setFocusedDeckId(result.deck.id);
-    refresh();
     return result;
   }
 
   function setDeckCoreMode(deckId, coreMode) {
-    const updated = workspace.setDeckCoreMode(deckId, coreMode);
-    refresh();
-    return updated;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.setDeckCoreMode(deckId, coreMode));
   }
 
   function saveDeckCard(deckId, cardId, patch) {
-    const updated = workspace.saveDeckCardContent(deckId, cardId, patch);
-    refresh();
-    return updated;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDeckCardContent(deckId, cardId, patch));
   }
 
   function deleteDeckCard(deckId, cardId) {
-    const updated = workspace.deleteDeckCard(deckId, cardId);
-    refresh();
-    return updated;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckCard(deckId, cardId));
   }
 
   function addDeckCardVariant(deckId, cardId, variant) {
-    const updated = workspace.addDeckCardVariant(deckId, cardId, variant);
-    refresh();
-    return updated;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.addDeckCardVariant(deckId, cardId, variant));
   }
 
   function addManualCardToDeck(deckId, manualDeckInput) {
-    const updated = workspace.addManualCardToDeck(deckId, manualDeckInput);
-    refresh();
-    return updated;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.addManualCardToDeck(deckId, manualDeckInput));
   }
 
   function applyVariantJson(deckId, cardId, response, options) {
-    const result = workspace.applyVariantGenerationResponse(deckId, cardId, response, options);
-    refresh();
-    return result;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.applyVariantGenerationResponse(deckId, cardId, response, options));
   }
 
   function saveProfile(profile) {
-    const saved = workspace.saveProfile(profile);
-    refresh();
-    return saved;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(profile));
   }
 
   function saveCommunity(community) {
-    const saved = workspace.saveCommunity(community);
-    refresh();
-    return saved;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveCommunity(community));
   }
 
   function saveJob(job) {
-    workspace.saveAiJob(job);
-    refresh();
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveAiJob(job));
   }
 
   function saveChat(exchange) {
-    const saved = workspace.saveChatExchange(exchange);
-    refresh();
-    return saved;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveChatExchange(exchange));
   }
 
   function savePlan(plan) {
-    const saved = workspace.saveLearningPlan(plan);
-    refresh();
-    return saved;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveLearningPlan(plan));
   }
 
   function saveState(nextState) {
-    const saved = workspace.saveState(nextState);
-    setState(saved);
-    return saved;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveState(nextState));
   }
 
   function startDeck(deck, variantSession = false) {
@@ -663,20 +643,17 @@ export function App() {
   }
 
   function updateAllDecks(updater) {
-    workspace.updateAllDecks(updater);
-    refresh();
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.updateAllDecks(updater));
   }
 
   function openGraph(deck) {
     navigateToView("graph");
-    workspace.ensureDeckGraph(deck.id);
-    refresh();
+    runWorkspaceMutation((currentWorkspace) => currentWorkspace.ensureDeckGraph(deck.id));
   }
 
   function shareDeck(deck) {
     navigateToView("community");
-    workspace.shareDeckToDefaultCommunity(deck.id);
-    refresh();
+    runWorkspaceMutation((currentWorkspace) => currentWorkspace.shareDeckToDefaultCommunity(deck.id));
   }
 
   function renderActiveView() {

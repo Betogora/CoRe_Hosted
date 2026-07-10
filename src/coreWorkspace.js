@@ -215,6 +215,23 @@ function updateDeckTreePlacement(state, { deckId, name = null, parentDeckId = un
   };
 }
 
+function commitDeckTreePlacement(repository, deckId, mutation) {
+  const state = repository.getState();
+  const result = updateDeckTreePlacement(state, { deckId, ...mutation });
+  if (!result.ok || !result.nextDecks) return result;
+
+  const saved = repository.saveState({
+    ...state,
+    decks: result.nextDecks,
+  });
+  const changedIds = new Set(result.changedDeckIds);
+  return {
+    ...result,
+    deck: saved.decks.find((deck) => deck.id === deckId) ?? null,
+    updatedDecks: saved.decks.filter((deck) => changedIds.has(deck.id)),
+  };
+}
+
 function toDeckArray(deckOrDecks) {
   if (Array.isArray(deckOrDecks)) return deckOrDecks.filter(Boolean);
   return deckOrDecks ? [deckOrDecks] : [];
@@ -273,46 +290,18 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
       const trimmedName = normalizeDeckName(name);
       if (!trimmedName) return createDeckMutationError("Bitte gib einen Stapelnamen ein.");
 
-      const state = repository.getState();
-      const result = updateDeckTreePlacement(state, {
-        deckId,
+      return commitDeckTreePlacement(repository, deckId, {
         name: trimmedName,
         changeType: "deck_renamed",
         reason: "Stapel umbenannt",
       });
-      if (!result.ok || !result.nextDecks) return result;
-
-      const saved = repository.saveState({
-        ...state,
-        decks: result.nextDecks,
-      });
-      const changedIds = new Set(result.changedDeckIds);
-      return {
-        ...result,
-        deck: saved.decks.find((deck) => deck.id === deckId) ?? null,
-        updatedDecks: saved.decks.filter((deck) => changedIds.has(deck.id)),
-      };
     },
     moveDeck(deckId, parentDeckId = null) {
-      const state = repository.getState();
-      const result = updateDeckTreePlacement(state, {
-        deckId,
+      return commitDeckTreePlacement(repository, deckId, {
         parentDeckId,
         changeType: "deck_moved",
         reason: parentDeckId ? "Stapel als Unterstapel verschoben" : "Stapel auf Hauptebene verschoben",
       });
-      if (!result.ok || !result.nextDecks) return result;
-
-      const saved = repository.saveState({
-        ...state,
-        decks: result.nextDecks,
-      });
-      const changedIds = new Set(result.changedDeckIds);
-      return {
-        ...result,
-        deck: saved.decks.find((deck) => deck.id === deckId) ?? null,
-        updatedDecks: saved.decks.filter((deck) => changedIds.has(deck.id)),
-      };
     },
     updateDeck(deckId, updater) {
       return repository.updateDeck(deckId, updater);
