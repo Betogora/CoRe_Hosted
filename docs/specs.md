@@ -80,7 +80,7 @@ Build- und PDF-Split am 2026-07-10: Nur Login-Gate und App-Shell laden eager; al
 
 ### Was erwartungsgemaess noch nicht funktioniert
 
-- Es gibt ein erstes Vercel-Projekt, das automatisierte CI-Release-Gate und das dokumentierte Preview-/Production-/Rollback-Runbook. `https://core-hosted.vercel.app` ist als kanonische Production-URL entschieden; die Anwendung des Redirect-Vertrags im Hosted-Supabase-Dashboard, die erste protokollierte Production-Abnahme und eine vollstaendige Betriebsumgebung mit Monitoring und Backups fehlen noch. Eine eigene Domain ist fuer das aktuelle P0-Ziel nicht erforderlich.
+- Das Vercel-Projekt, das automatisierte CI-Release-Gate und das Preview-/Production-/Rollback-Runbook sind eingerichtet. `https://core-hosted.vercel.app` ist als kanonische Production-URL gesetzt; der Redirect-Vertrag wurde in Hosted Supabase angewendet und die erste Production-Abnahme am 2026-07-10 erfolgreich protokolliert. Eine vollstaendige Betriebsumgebung mit Monitoring und Backups fehlt weiterhin; eine eigene Domain ist fuer die aktuelle Release-Basis nicht erforderlich.
 - Es gibt angewendete Supabase/Postgres-Migrationen mit RLS-Policies, expliziten `authenticated`-Grants, ohne `anon`-Grants auf Core-Tabellen und mit account-scoped Primary Keys fuer die wichtigsten Nutzerdaten. Der App-Persistenzpfad schreibt und liest Decks, Karten, Varianten, Review Events, Dokumente und AI Jobs ueber Supabase-Tabellen und speichert automatisch, hat aber noch keine echte Offline-Konfliktloesung zwischen Geraeten.
 - Accounts koennen ueber Supabase E-Mail/Passwort erstellt und angemeldet werden; OAuth, Magic Link, Account-Recovery-Feinschliff und E-Mail-Template-Politur fehlen noch.
 - KI-Kartenerstellung, Varianten, Graph und Jobs sind weiterhin lokal/deterministisch simuliert; Chat-your-Deck hat als erster produktiver KI-Pfad eine Vercel-Serverroute `/api/ai/chat` fuer Gemma 4 31B IT. Es gibt noch kein echtes Token-/Kostenlogging, keine produktive Prompt-/Eval-Pipeline und keine serverseitige Job-Queue fuer laengere KI-Aufgaben.
@@ -2009,7 +2009,7 @@ Browser
 
 Browser-sichtbar sind nur nicht-geheime Werte wie `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und Featureflags. Nicht in den Browser gehoeren `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY` oder andere Admin-/Provider-Secrets.
 
-Aktueller erster KI-Proxy: `POST /api/ai/chat` nutzt serverseitig ausschliesslich `process.env.GOOGLE_API_KEY`, ruft die Gemini Interactions API mit `model: "gemma-4-31b-it"` und `store: false` auf und gibt eine freie KI-Antwort zurueck, solange `sourceBound` nicht aktiv ist. Bei `sourceBound: true` nimmt die Route die lokal ermittelten Top-Kartenbelege entgegen, verlangt mindestens eine Quelle und gibt eine quellengebundene Antwort zurueck. Der Key darf nie als `VITE_GOOGLE_API_KEY`, nie im Browser, nie in `localStorage`, nie in Exportdaten und nie in Logs auftauchen.
+Aktueller erster KI-Proxy: `POST /api/ai/chat` nutzt serverseitig ausschliesslich `process.env.GOOGLE_API_KEY`, ruft die Gemini Interactions API mit `model: "gemma-4-31b-it"`, `store: false` und einem Ausgabelimit von 2048 Tokens auf und gibt eine freie KI-Antwort zurueck, solange `sourceBound` nicht aktiv ist. Das groessere Limit laesst dem Modell nach einem internen Thought-Schritt ausreichend Platz fuer die eigentliche Textantwort; ein `thinking_level` wird nicht mitgesendet, weil der Live-Endpoint diesen Parameter fuer das Modell mit HTTP 400 abgewiesen hat. Bei `sourceBound: true` nimmt die Route die lokal ermittelten Top-Kartenbelege entgegen, verlangt mindestens eine Quelle und gibt eine quellengebundene Antwort zurueck. Der Response-Parser akzeptiert sowohl das aktuelle `steps`-/`model_output`-Schema als auch das aeltere `outputs`-Textschema der Interactions API. Providerfehler protokollieren nur HTTP-Status und Schema-/Content-Typen, niemals Prompt-, Antwort- oder Key-Inhalte. Der Key darf nie als `VITE_GOOGLE_API_KEY`, nie im Browser, nie in `localStorage`, nie in Exportdaten und nie in Logs auftauchen.
 
 KI-Routen sollen zunaechst Drafts zurueckgeben. Der Nutzer prueft, bearbeitet und akzeptiert sie; erst danach speichert die App ueber die normalen Modellpfade. Sobald serverseitige Kostenlimits pro Nutzer benoetigt werden, muss die API-Route eine belastbare Supabase-Session/JWT-Pruefung erhalten.
 
@@ -2438,7 +2438,7 @@ Naheliegender Startpfad fuer CoRe:
 - Browser-Routen der SPA fallen auf `index.html` zurueck; `/api/*` bleibt fuer Serverless Functions reserviert.
 - Environment Variables werden pro Umgebung gepflegt; Production-/Preview-Secrets werden nicht lokal in Git abgelegt.
 
-Die initiale Vite/Vercel-Konfiguration ist umgesetzt: `vercel.json` setzt Build Command, Output Directory und einen SPA-Rewrite, der `/api/*` nicht von der Frontend-Fallback-Regel verschluckt. Das Vercel-Projekt `core-hosted` ist angelegt; die oeffentlichen Variablen `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und `VITE_AI_USE_SERVER_PROXY` sind fuer Development, Preview und Production gesetzt und lokal per `vercel env pull` in `.env.local` gezogen. `vite.config.js` injiziert zusaetzlich einen allowlist-basierten Release-Vertrag aus der Version in `package.json`, `VERCEL_GIT_COMMIT_SHA` beziehungsweise `GITHUB_SHA` und der normalisierten Vercel-/Vite-Umgebung. Diese drei Werte werden am Login-Gate, in den Einstellungen und im React-Fehlerfallback angezeigt; andere Env-Werte, URLs und Secrets werden nicht uebernommen. Authentifizierte Screens laden bedarfsgesteuert, React und Supabase sind getrennte Vendor-Chunks und `scripts/verifyBuildChunks.mjs` erzwingt nach dem Build anhand des Manifests maximal 500.000 Byte je JavaScript-Chunk. Die Serverroute `/api/ai/chat` und das folgende Release-Runbook sind vorhanden; die erste protokollierte Production-Abnahme und Observability bleiben Ausbaupunkte.
+Die initiale Vite/Vercel-Konfiguration ist umgesetzt: `vercel.json` setzt Build Command, Output Directory und einen SPA-Rewrite, der `/api/*` nicht von der Frontend-Fallback-Regel verschluckt. Das Vercel-Projekt `core-hosted` ist angelegt; die oeffentlichen Variablen `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und `VITE_AI_USE_SERVER_PROXY` sind fuer Development, Preview und Production gesetzt und lokal per `vercel env pull` in `.env.local` gezogen. `vite.config.js` injiziert zusaetzlich einen allowlist-basierten Release-Vertrag aus der Version in `package.json`, `VERCEL_GIT_COMMIT_SHA` beziehungsweise `GITHUB_SHA` und der normalisierten Vercel-/Vite-Umgebung. Diese drei Werte werden am Login-Gate, in den Einstellungen und im React-Fehlerfallback angezeigt; andere Env-Werte, URLs und Secrets werden nicht uebernommen. Authentifizierte Screens laden bedarfsgesteuert, React und Supabase sind getrennte Vendor-Chunks und `scripts/verifyBuildChunks.mjs` erzwingt nach dem Build anhand des Manifests maximal 500.000 Byte je JavaScript-Chunk. Die Serverroute `/api/ai/chat`, das folgende Release-Runbook und die erste protokollierte Production-Abnahme sind vorhanden; weitergehende Observability bleibt ein Ausbaupunkt.
 
 Der verbindliche Auth-URL-Vertrag lautet:
 
@@ -2447,13 +2447,26 @@ Der verbindliche Auth-URL-Vertrag lautet:
 - erlaubter Vercel-Preview-Redirect: `https://*-bengt2.vercel.app/**`
 - erlaubter lokaler Redirect: `http://127.0.0.1:5190/**`
 
-Production bleibt damit auf den festen Vercel-Alias begrenzt; das Wildcard-Muster gilt ausschliesslich fuer Preview-Deployments gemaess der [Supabase-Dokumentation zu Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls). `src/cloudAuth.js` bildet Browser-Origins fuer OAuth, Magic Link und Recovery auf eine kanonische Root-URL mit abschliessendem Slash ab. Diese Soll-Konfiguration ist entschieden und testbar dokumentiert, wurde im Rahmen dieser lokalen Aenderung aber nicht in Hosted Supabase geschrieben oder live verifiziert. Dashboard-Aenderung und Live-Abnahme sind deshalb weiterhin ein offenes P0-Betriebsgate.
+Production bleibt damit auf den festen Vercel-Alias begrenzt; das Wildcard-Muster gilt ausschliesslich fuer Preview-Deployments gemaess der [Supabase-Dokumentation zu Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls). `src/cloudAuth.js` bildet Browser-Origins fuer OAuth, Magic Link und Recovery auf eine kanonische Root-URL mit abschliessendem Slash ab. Die Konfiguration wurde am 2026-07-10 in Hosted Supabase gespeichert und nach einem Dashboard-Reload ausgelesen: Site URL und exakt die drei Redirect-Muster oben waren aktiv, `http://localhost:3000` war nicht mehr vorhanden.
 
 ### 14.2.2 Preview-Smoke und Production-Rollback-Runbook
 
 Dieses Runbook ist das manuelle Gate zwischen einem gruenen Pull Request und Production. Es loest selbst kein Deployment aus und enthaelt keine Secrets.
 
-Aktueller Betriebsstatus: Fuer diese Fassung existiert noch kein Release-Nachweis mit Commit, CI-Lauf, Deployment-IDs, Zeiten und Smoke-Ergebnissen. Preview-Deployment, staged Production, Promotion und Production-Smoke duerfen erst nach ausdruecklicher Release-Autorisierung ausgefuehrt und erst danach als abgeschlossen dokumentiert werden.
+Aktueller Betriebsstatus: Das P0-Betriebsgate wurde am 2026-07-10 nach ausdruecklicher Release-Autorisierung erfolgreich abgeschlossen. Preview, staged Production und kanonische Production liefen auf demselben gruenen Commit; ein Rollback war nicht erforderlich.
+
+#### Release-Nachweis 2026-07-10
+
+- Commit: `e600ac4817f80c8ca8062df3aa2c706ee1f71178` (`e600ac4`); der Checkout war vor Preview-Smoke und Production-Deployment sauber.
+- GitHub Actions: Lauf [`29121208290`](https://github.com/Betogora/CoRe_Hosted/actions/runs/29121208290) fuer exakt diesen Commit; `quality` war nach 21 Sekunden gruen, `browser-e2e` nach 3 Minuten 36 Sekunden. Der Lauf endete um 22:27:06 CEST.
+- Werkzeuge und Konfiguration: lokale Vercel CLI `54.21.0`, Build-CLI `55.0.0`; Tester `bengt.rademacher`. `autoAssignCustomDomains` wurde unmittelbar vor dem staged Deployment als `false` ausgelesen. Preview und Production enthielten die erwarteten Variablennamen `GOOGLE_API_KEY`, `VITE_AI_USE_SERVER_PROXY`, `VITE_SUPABASE_PUBLISHABLE_KEY` und `VITE_SUPABASE_URL`; Werte wurden nicht ausgelesen oder dokumentiert.
+- Supabase-Readback: Site URL `https://core-hosted.vercel.app`; Redirects exakt `https://core-hosted.vercel.app/**`, `https://*-bengt2.vercel.app/**` und `http://127.0.0.1:5190/**`; keine aktive `http://localhost:3000`-Site-URL.
+- Preview: `https://core-hosted-k77v2wj19-bengt2.vercel.app`, Deployment `dpl_ADcYAJBLJWcZ9mu2cMJPeMAyCMGG`, erstellt 22:23:07 CEST, `Ready` 22:23:24 CEST, Anzeige `0.1.0 · Vorschau · Commit e600ac4`.
+- Preview-Smoke 1-8: bestanden. Der tiefe Link `/lernen`, Anmeldung und Cloud-Laden waren erfolgreich; sichtbar waren unter anderem `Anatomie 2`, `Manueller Kartenstapel` und `Demo / Anatomie`. Eine faellige Karte wurde mit `Good` bewertet und der Save-/Sync-Status bestaetigt. `fixtures/apkg/world-capitals.apkg` zeigte mutationsfrei 8 Decks, 245 Notes, 245 Varianten, 0 Dubletten und keine Medien; `Import uebernehmen` wurde nicht ausgefuehrt. Der KI-Smoke lieferte `KI-Antwort erstellt.` und eine nichtleere Antwort. Der Missing-Key-Pfad war durch das gruene CI-Gate abgedeckt. Die Abmeldung fuehrte zum Login-Gate zurueck.
+- Vorherige Production: `https://core-hosted-38mw22988-bengt2.vercel.app`, Deployment `dpl_3HhXHhqRiL6dSqpRALwDc6dXuBYP`.
+- Staged Production: `https://core-hosted-94320qvku-bengt2.vercel.app`, Deployment `dpl_CCF8hGMt236krS8CdPW5W9G1yWM9`; Start 22:30:14 CEST, erstellt 22:30:17 CEST, `Ready` 22:30:40 CEST. Commit-Metadaten und Anzeige `0.1.0 · Produktion · Commit e600ac4` stimmten. Login, Cloud-Stapel, mutationsfreie Navigation und Abmeldung bestanden vor der Promotion.
+- Promotion: um 22:32 CEST erfolgreich. `https://core-hosted.vercel.app` wurde anschliessend per `vercel inspect` auf Deployment `dpl_CCF8hGMt236krS8CdPW5W9G1yWM9` aufgeloest. Der kanonische Kurzsmoke mit Login, Cloud-Laden, Navigation und Abmeldung bestand. Der Log-Scan seit 22:30:14 CEST enthielt weder 5xx-Treffer noch Error-Level-Eintraege.
+- Ergebnis: Release erfolgreich, kein Rollback. Release-Fenster 22:23-22:36 CEST; keine Passwoerter, Tokens, Environment-Werte oder Auth-Screenshots wurden in den Nachweis aufgenommen.
 
 #### Freigabevoraussetzungen und Nachweis
 
@@ -2502,12 +2515,12 @@ Rollback-Trigger sind insbesondere 5xx-Fehler, nicht funktionierender Login, feh
 
 ```powershell
 vercel logs --environment production --status-code 5xx --since 30m
-vercel rollback
+vercel rollback https://core-hosted-38mw22988-bengt2.vercel.app
 vercel rollback status
 vercel logs --environment production --status-code 5xx --since 5m
 ```
 
-- Auf dem Vercel-Hobby-Plan rollt `vercel rollback` auf das unmittelbar vorherige Production-Deployment zurueck. Falls der Plan ein explizites Ziel erlaubt, darf stattdessen die vorher notierte URL mit `vercel rollback <previous-production-url>` verwendet werden.
+- Fuer diesen Release ist das explizite Rueckfallziel `https://core-hosted-38mw22988-bengt2.vercel.app` (`dpl_3HhXHhqRiL6dSqpRALwDc6dXuBYP`). Zukuenftige Releases ersetzen diesen Wert im Nachweis durch ihre jeweils vorher notierte Production-URL und verwenden `vercel rollback <previous-production-url>`.
 - Nach erfolgreichem Status werden Login, Cloud-Laden und Abmeldung gegen Production wiederholt. Zeitpunkt, Grund, fehlerhaftes Deployment, wiederhergestelltes Deployment und verbleibende Auswirkungen werden notiert.
 - Nach einem Rollback wird geprueft, ob Vercel die automatische Domain-Zuordnung deaktiviert hat. Ein korrigierter Build durchlaeuft wieder CI, Preview-Smoke und staged Production; erst `vercel promote <fixed-staged-production-url>` beendet den Rueckfallzustand.
 - Supabase-Daten oder Migrationen werden niemals als Nebenwirkung des App-Rollbacks veraendert. Bei einer inkompatiblen Datenbankaenderung bleibt die Freigabe blockiert, bis ein separat gepruefter Forward-Fix oder Datenbank-Rueckfallplan vorliegt.
@@ -3133,13 +3146,12 @@ Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisi
 
 Kurzfassung mit Code-Sicht:
 
-1. Verbleibendes P0-Betriebsgate schliessen: den dokumentierten Site-URL-/Redirect-Vertrag in Hosted Supabase anwenden, nach gruenem CI Preview-Smoke, staged Production mit `--skip-domain`, Promotion und Production-Kurzsmoke ausfuehren und Commit, Deployment-IDs, Zeiten und Ergebnisse secretsfrei protokollieren.
-2. Danach P1 Cloud-Datenkorrektheit aktivieren: `revision`, `deleted_at`, `updated_by_device_id` und `created_by_device_id` in `cloudRepository` fachlich korrekt mappen, Soft-Deletes erhalten und den normalen Autosave vom ausdruecklichen Voll-Replace trennen.
-3. Ownership und Auth-Lifecycle absichern: Nutzer-A/Nutzer-B/`anon`-RLS-Smokes, UPDATE-Checks, Magic Link, Google Redirect, Recovery, Passwortwechsel, Rate-Limits und Account-Lifecycle testen.
-4. Sync und Medien produktionsfaehig machen: dauerhafte Outbox, idempotente Mutationen, Server-Revisionen, Konfliktzeilen und den vorhandenen `cloudMediaStore` in Import, Laden und Rendering integrieren.
-5. Dokument-, Medien- und APKG-Qualitaet weiter ausbauen: APKG-Fixtures, Notetype-/Template-Snapshots, Importidentitaeten, Medienchecksums, grosse Uploads und serverseitige Importjobs hinter den bestehenden tiefen Modulen halten.
-6. KI und Jobs produktionsfaehig machen: `/api/ai/chat` an die Supabase-Session binden, Rate-Limits und Kostenbudgets ergaenzen und weitere KI-Faehigkeiten nur ueber validierte, versionierte Serverjobs aufbauen.
-7. Accessibility, Datenportabilitaet, Scheduler und Lernwirksamkeit weiter validieren; Community-Rechte, Mobile/PWA und Wachstumsschicht erst nach Persistenz, Auth, Storage und Jobs ausbauen.
+1. P1 Cloud-Datenkorrektheit umsetzen: `revision`, `deleted_at`, `updated_by_device_id` und `created_by_device_id` in `cloudRepository` fachlich korrekt mappen, Soft-Deletes erhalten und den normalen Autosave vom ausdruecklichen Voll-Replace trennen.
+2. Ownership und Auth-Lifecycle absichern: Nutzer-A/Nutzer-B/`anon`-RLS-Smokes, UPDATE-Checks, Magic Link, Google Redirect, Recovery, Passwortwechsel, Rate-Limits und Account-Lifecycle testen.
+3. Sync und Medien produktionsfaehig machen: dauerhafte Outbox, idempotente Mutationen, Server-Revisionen, Konfliktzeilen und den vorhandenen `cloudMediaStore` in Import, Laden und Rendering integrieren.
+4. Dokument-, Medien- und APKG-Qualitaet weiter ausbauen: APKG-Fixtures, Notetype-/Template-Snapshots, Importidentitaeten, Medienchecksums, grosse Uploads und serverseitige Importjobs hinter den bestehenden tiefen Modulen halten.
+5. KI und Jobs produktionsfaehig machen: `/api/ai/chat` an die Supabase-Session binden, Rate-Limits und Kostenbudgets ergaenzen und weitere KI-Faehigkeiten nur ueber validierte, versionierte Serverjobs aufbauen.
+6. Accessibility, Datenportabilitaet, Scheduler und Lernwirksamkeit weiter validieren; Community-Rechte, Mobile/PWA und Wachstumsschicht erst nach Persistenz, Auth, Storage und Jobs ausbauen.
 
 ---
 
@@ -3182,7 +3194,7 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/ui/cardMedia.jsx` / `src/ui/RichTextEditor.jsx` / `src/ui/colorPicker.jsx` / `src/ui/deckAppearance.jsx` / `src/ui/coreUi.jsx` | `useDeckMediaUrls`, `CardHtml`, `RichTextEditor`, `ColorPopover`, `ColorToolButton`, `DeckAppearanceIcon`, gemeinsame UI-Bausteine | Medien-URL-Aufloesung fuer React, sicheres Karten-HTML, Rich-Text-Eingabe, wiederverwendeter Farbpicker, Stapel-Icon-Darstellung und geteilte Praesentationskomponenten |
 | `src/communityModel.js` | `createCommunity`, `shareDeckToCommunity`, `copySharedDeckToLibrary` | Kleine Gruppen, Ordner, Deck-Kopien ohne Lernmetriken |
 | `src/deckGraph.js` | `buildDeckGraph`, `shouldRefreshDeckGraph` | Themen-/Karten-Mindmap und Triggerlogik |
-| `src/deckAssistant.js` / `api/ai/chat.js` | `retrieveDeckEvidence`, `answerDeckQuestion`, `answerDeckQuestionWithServer`, `POST /api/ai/chat` | Freie Chatantworten per Default; optionale quellengebundene Antworten aus Karten mit lokaler Evidenzsuche, keine Provider-Aufrufe ohne Quelle im Quellenmodus, Gemma-4-31B-IT laeuft serverseitig mit `GOOGLE_API_KEY` aus `process.env` |
+| `src/deckAssistant.js` / `api/ai/chat.js` | `retrieveDeckEvidence`, `answerDeckQuestion`, `answerDeckQuestionWithServer`, `POST /api/ai/chat` | Freie Chatantworten per Default; optionale quellengebundene Antworten aus Karten mit lokaler Evidenzsuche, keine Provider-Aufrufe ohne Quelle im Quellenmodus, Gemma-4-31B-IT laeuft serverseitig mit `GOOGLE_API_KEY` aus `process.env`, Interactions-Responses werden aus `steps` oder Legacy-`outputs` gelesen |
 | `src/learningPlan.js` | `createLearningPlan` | Pruefungsplan aus Due-Karten, neuen Karten, Varianten und schwachen Themen |
 | `src/authModel.js` | `createLocalAccount`, `signInLocalAccount`, `signOutLocalAccount`, `connectOAuthPlaceholder` | Lokale Account-/Sitzungslogik fuer den Web-MVP |
 | `src/dataPortability.js` | `createPortableExport`, `stringifyPortableExport`, `validatePortableExport`, `mergePortableExportIntoState` | JSON-Export/-Import ohne Passwort-Verifier |
