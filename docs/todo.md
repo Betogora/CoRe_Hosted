@@ -6,9 +6,9 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 
 ## Auditierter Ist-Stand
 
-- `npm test`: 207 Tests bestanden.
-- `npm run build`: erfolgreich; der Build meldet aber einen ca. 1,97 MB großen Hauptchunk sowie große PDF-/Worker-Chunks.
-- `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und elf authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 18/18 Tests grün.
+- `npm test`: 214 Tests bestanden.
+- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der Entry-Chunk ist 225,58 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
+- `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und zwölf authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 19/19 Tests grün; der zusätzliche Produkt-Smoke prüft PDF-Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
 - `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
@@ -25,6 +25,24 @@ Die Abhängigkeiten sind absichtlich enger als in der früheren Liste:
 
 Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- oder Fixture-Arbeit sinnvoll.
 
+## Aktives nächstes Ziel
+
+**P0-Release-Basis betriebsseitig abschließen.** Die lokale Code-, Build- und Browserbasis ist umgesetzt. Offen bleiben ausschließlich die Anwendung und Verifikation des URL-Vertrags in Hosted Supabase sowie die protokollierte Preview-/Production-Abnahme. Erst danach wird P1 „Cloud-Persistenz fachlich korrekt machen“ zum aktiven Ziel.
+
+Verbindlicher URL-Vertrag:
+
+- kanonische Production- und Supabase-Site-URL: `https://core-hosted.vercel.app`
+- exakter Production-Redirect: `https://core-hosted.vercel.app/**`
+- ausschließlich für Vercel-Previews: `https://*-bengt2.vercel.app/**`
+- lokaler Redirect: `http://127.0.0.1:5190/**`
+
+Phasen und messbare Abnahme:
+
+- [x] Lokale P0-Implementierung: tiefer PDF.js-Viewer mit kontinuierlicher Anzeige, Fit-to-width, Navigation, Zoom, Textauswahl und `pageNumber`/`bbox`; Lazy-Loading der authentifizierten Screens; dynamischer APKG-Pfad; getrennte React-/Supabase-Chunks; harte 500-kB-Buildgrenze; Modul- und Browser-Smokes grün.
+- [ ] Hosted Supabase konfigurieren und prüfen: Site URL und genau die drei Redirect-Muster oben eintragen; Production bleibt exakt, Wildcard nur für Preview. Keine Secret- oder Auth-Daten dokumentieren.
+- [ ] Release-Abnahme nach grünem CI: Preview-Smoke, staged Production mit `--skip-domain`, Kurzsmoke, Promotion und Production-Kurzsmoke. Nachweis mit Commit, CI-Lauf, Deployment-IDs, Zeiten und Ergebnissen ablegen.
+- [ ] Nach erfolgreicher Betriebsabnahme beide verbleibenden P0-Punkte schließen und P1 Cloud-Datenkorrektheit als aktives Ziel setzen.
+
 ## 1. P0 — Prüfbare Release- und Infrastruktur-Basis
 
 ### 1.1 Supabase-CLI und Migration
@@ -37,13 +55,13 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 ### 1.2 Deterministische Tests und Deployment
 
 - [x] Playwright-Auth-Fixture eingeführt: `auth-setup` setzt ausschließlich einen vorab angelegten Account im separaten Supabase-Testprojekt auf die Hauptstadt-Fixture zurück, schreibt eine bereinigte und ignorierte `storageState`-Datei und lässt `resetToFreshLocalState()` nur `core.*` statt der Supabase-Session löschen.
-- [x] E2E-Suite in klare Gruppen geteilt: Login-Gate/Auth-Fehlerfälle, cloudfreie Auth-Resilience und authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent, Portabilität und Deck-Hierarchie. Die vier Playwright-Projekte und 18 Tests sind per `--list` bestätigt; `npm run test:e2e:local` läuft mit lokalem Docker/Supabase, reduziertem Service-Set, Migrationen, lokalem Testaccount und anschließendem Stop reproduzierbar mit 18/18 grünen Tests. Der GitHub-Actions-Job `browser-e2e` führt denselben secretfreien Loopback-Pfad aus.
+- [x] E2E-Suite in klare Gruppen geteilt: Login-Gate/Auth-Fehlerfälle, cloudfreie Auth-Resilience und authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent, Portabilität, Deck-Hierarchie und PDF-Quellenauswahl. Die vier Playwright-Projekte und 19 Tests sind per `--list` bestätigt; `npm run test:e2e:local` läuft mit lokalem Docker/Supabase, reduziertem Service-Set, Migrationen, lokalem Testaccount und anschließendem Stop reproduzierbar mit 19/19 grünen Tests. Der GitHub-Actions-Job `browser-e2e` führt denselben secretfreien Loopback-Pfad aus.
 - [x] E2E-Tests für Offline-Start, fehlende Supabase-Konfiguration und abgelaufene Session ergänzt. Die drei cloudfreien Smokes verwenden einen getrennten unkonfigurierten Vite-Port bzw. Browser-Routen für Netzwerkausfall und `session_expired`; alle drei sind grün und prüfen verständliche deutsche Fehlerzustände ohne Cloud-Mutation.
 - [x] GitHub-Actions-Release-Gate mit den stabilen Checks `quality` und `browser-e2e` angelegt. `quality` führt `npm test` und `npm run build` aus; `browser-e2e` startet den lokalen Supabase-Stack und alle Playwright-Smokes ohne Hosted-Zugangsdaten oder KI-Secrets. Fehlerberichte und Screenshots sowie Traces der sessionlosen Projekte werden sieben Tage als Artefakt aufbewahrt; Auth-Session und `.env`-Dateien sind ausgeschlossen.
 - [x] Preview-Smoke und Production-Rollback in `docs/specs.md` Abschnitt 14.2.2 dokumentiert: gruenes CI und fester Commit als Eingangsgate, eigener RLS-geschuetzter Smoke-Account, Login, Cloud-Laden, Review mit sichtbarem Save-Status, mutationsfreie APKG-Importvorschau, `/api/ai/chat` mit vorhandenem Key sowie verpflichtender fehlender-Key-Pruefung, Abmeldung, staged Production per `--skip-domain`, Promotion, konkrete Rollback-Trigger und der Hinweis, dass ein Vercel-Rollback keine Supabase-Daten oder Migrationen zuruecksetzt. Die erste echte Production-Abnahme bleibt ein auszufuehrender Betriebsnachweis, nicht Teil dieses Dokumentationspunkts.
-- [ ] Domain-/DNS-Pfad für Vercel festlegen: Preview-URLs und Production-Domain trennen, Redirect-Allowlist in Supabase passend pflegen.
+- [ ] URL-/Redirect-Pfad live anwenden und abnehmen: `https://core-hosted.vercel.app` ist als kanonische Production-URL entschieden; Hosted Supabase muss noch mit der Site URL sowie den exakten Production-, Preview- und lokalen Redirect-Mustern aus dem aktiven Ziel konfiguriert und verifiziert werden.
 - [x] App-Version, Build-Commit und Umgebung aus einem allowlist-basierten Vite-Buildvertrag sichtbar machen: `ReleaseInfo` erscheint am Login-Gate, in den Einstellungen und im React-Fehlerfallback. Die Error Boundary zeigt keine rohe Exception oder Nutzerdaten, bietet Neuladen und Startseiten-Rückkehr und ist über einen ausschließlich im E2E-Modus vorhandenen Renderfehler-Smoke geprüft; der Production-Build enthält den Testparameter nicht.
-- [ ] `npm run build` ohne Chunk-Warnung bekommen: PDF-/Worker-/APKG-/SQLite-Code über echte Route-/Feature-Dynamic-Imports oder gezieltes Rollup-Chunking aus dem Hauptchunk herauslösen. Keine bloße Erhöhung von `chunkSizeWarningLimit`.
+- [x] `npm run build` ohne Chunk-Warnung: authentifizierte Screens laden per `React.lazy`, APKG/SQLite/Zstd bleibt hinter den asynchronen Workspace-Methoden dynamisch, React und Supabase liegen in eigenen Vendor-Chunks und der tiefe PDF.js-Viewer lädt Runtime und Worker separat. Ein manifestbasierter Postbuild-Check erzwingt maximal 500.000 Byte je JavaScript-Chunk; größter geprüfter Chunk ist PDF.js mit 431,65 kB.
 
 ## 2. P1 — Cloud-Persistenz fachlich korrekt machen
 
@@ -120,7 +138,7 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 
 ## 7. P1 — Produktqualität und Lernwirksamkeit
 
-- [x] Die authentifizierten Browser-Smokes nach dem E2E-Fixture-Fix für Review, Variantenreview, KI-Draft, Chat, Lernplan, Export/Import, Deck-Hierarchie und Browser-Back/Forward grün bekommen; elf authentifizierte Produkt-Smokes laufen im vollständigen lokalen 18/18-Lauf stabil.
+- [x] Die authentifizierten Browser-Smokes nach dem E2E-Fixture-Fix für Review, Variantenreview, KI-Draft, Chat, Lernplan, Export/Import, Deck-Hierarchie, Browser-Back/Forward und PDF-Quellenauswahl grün bekommen; zwölf authentifizierte Produkt-Smokes laufen im vollständigen lokalen 19/19-Lauf stabil.
 - [ ] Accessibility und Fehlerzustände an `AuthGateScreen`, `StudyMode`, `CreationScreen`, `DecksScreen` und `SettingsScreen` prüfen: Fokusführung, sichtbare Labels, Tastatur, Screenreader-Status, Kontrast, leere Zustände, große Dateien und Netzwerkfehler.
 - [ ] Version-Restore/Undo in `DecksScreen` tatsächlich klickbar machen. `versionLog` und Restore-Basis existieren im Modell, aber der Nutzerfluss ist noch nicht vollständig sichtbar.
 - [ ] Datenportabilität mit Roundtrips testen: `createPortableExport`, `validatePortableExport`, `mergePortableExportIntoState`, Legacy-Card-Normalisierung, Learning-Item-Invariante und ID-Kollisionen. Medien- und serverseitige Account-Rechte müssen ausdrücklich als nicht enthalten markiert bleiben.

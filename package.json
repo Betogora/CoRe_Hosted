@@ -9,10 +9,10 @@
     "test:e2e": "playwright test",
     "test:e2e:local": "node scripts/runLocalE2E.mjs",
     "build": "vite build",
+    "postbuild": "node scripts/verifyBuildChunks.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@embedpdf/react-pdf-viewer": "^2.14.4",
     "@supabase/supabase-js": "2.110.1",
     "@vitejs/plugin-react": "^5.0.0",
     "fzstd": "^0.1.1",

@@ -1,4 +1,5 @@
 import { createSourceAnchor, createSourceDocument } from "./coreModel.js";
+import { loadPdfJs } from "./pdfRuntime.js";
 
 const TEXT_EXTENSIONS = [".txt", ".md", ".markdown", ".csv", ".tsv"];
 const PDF_EXTENSIONS = [".pdf"];
@@ -96,10 +97,7 @@ function joinPageTexts(pages) {
 }
 
 async function readPdfText(file) {
-  const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
-  if (typeof window !== "undefined" && pdfjs.GlobalWorkerOptions && !pdfjs.GlobalWorkerOptions.workerSrc) {
-    pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).toString();
-  }
+  const pdfjs = await loadPdfJs();
 
   const data = new Uint8Array(await file.arrayBuffer());
   const loadingTask = pdfjs.getDocument({

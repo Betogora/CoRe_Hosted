@@ -80,9 +80,17 @@ export function formatCloudAuthError(error, fallback = "Aktion konnte nicht abge
   return error?.message || fallback;
 }
 
+export function createCloudAuthRedirectUrl(origin) {
+  try {
+    return new URL("/", origin).toString();
+  } catch {
+    return undefined;
+  }
+}
+
 function getDefaultAuthRedirectTo() {
   if (typeof window === "undefined" || !window.location?.origin) return undefined;
-  return window.location.origin;
+  return createCloudAuthRedirectUrl(window.location.origin);
 }
 
 export function createProfileRow(profile, user, timestamp = nowIso()) {

@@ -2,7 +2,7 @@
 
 CoRe ist ein lokaler Web-MVP fuer eine Lernplattform, die klassische Spaced-Repetition-Karten um inhaltliche Wiederholung erweitert. Das Ziel ist, Kartenblindheit zu reduzieren: Lernende sollen nicht nur Layout, Wortlaut oder Lueckenposition wiedererkennen, sondern den Inhalt auch bei veraenderter Fragestellung abrufen koennen.
 
-Der aktuelle Stand ist ein breiter Web-MVP. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind angebunden, und es gibt Pflichtlogin, Supabase-E-Mail/Passwort, accountgebundenen Browser-Cache und Cloud-first Autosave ueber Tabellen. Das Preview-/Production-/Rollback-Runbook ist dokumentiert; Version, Umgebung und Build-Commit sind am Login, in den Einstellungen und im sicheren React-Fehlerfallback sichtbar. CoRe ist aber noch kein fertiges gehostetes Mehrnutzerprodukt: Offline-Konfliktloesung, produktive Medienablage, Serverjobs, Monitoring und Backups fehlen noch.
+Der aktuelle Stand ist ein breiter Web-MVP. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind angebunden, und es gibt Pflichtlogin, Supabase-E-Mail/Passwort, accountgebundenen Browser-Cache und Cloud-first Autosave ueber Tabellen. Authentifizierte Screens laden bedarfsgerecht, der PDF.js-Viewer kapselt Anzeige und Quellenauswahl, und ein harter Postbuild-Check begrenzt JavaScript-Chunks auf 500.000 Byte. Das Preview-/Production-/Rollback-Runbook ist dokumentiert; Version, Umgebung und Build-Commit sind am Login, in den Einstellungen und im sicheren React-Fehlerfallback sichtbar. CoRe ist aber noch kein fertiges gehostetes Mehrnutzerprodukt: Die Hosted-Redirect-Konfiguration und erste Production-Abnahme sowie Offline-Konfliktloesung, produktive Medienablage, Serverjobs, Monitoring und Backups fehlen noch.
 
 Die gepflegte Projektdokumentation liegt im Ordner `docs/`. Es gibt genau eine TODO-Markdown-Datei: `docs/todo.md`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
 
@@ -45,7 +45,7 @@ npm run dev      # Vite-Dev-Server
 npm test         # Node-Testlauf fuer src/*.test.js
 npm run test:e2e # Playwright-Smoke fuer lokale Browser-Flows
 npm run test:e2e:local # Supabase lokal starten, alle Browser-Smokes ausführen und wieder stoppen
-npm run build    # Produktionsbuild
+npm run build    # Produktionsbuild plus manifestbasierte 500-kB-Chunk-Pruefung
 npm run preview  # Lokale Preview auf Port 5190
 ```
 
@@ -82,7 +82,7 @@ npm run test:e2e:local
 
 Der Befehl prüft die Docker-Engine, startet nur die für CoRe benötigten lokalen Supabase-Dienste, wendet ausstehende Migrationen an, liest URL und Publishable Key aus dem JSON-Status der installierten Supabase-CLI ausschließlich von der Loopback-Instanz, legt den lokalen Testaccount bei Bedarf an, führt Playwright aus und stoppt den Stack anschließend wieder. Die Status-Auswertung bleibt auch mit älteren `KEY=VALUE`-Ausgaben kompatibel. Beim ersten Lauf lädt Supabase die Docker-Images herunter. Docker muss dafür laufen; für `npm test`, `npm run build` und normale Entwicklungsarbeit ist Docker nicht erforderlich. Zusätzliche Playwright-Argumente werden weitergereicht, zum Beispiel `npm run test:e2e:local -- --project=auth-gate-chromium`.
 
-Der lokale Lauf wurde am 2026-07-10 mit allen 18 Tests erfolgreich abgenommen. Darin enthalten ist ein ausschließlich im E2E-Modus aktivierbarer Renderfehler-Smoke fuer den sicheren Fehlerfallback; der Production-Build enthaelt diesen Testparameter nicht. Beim ersten Start werden die Docker-Images einmalig lokal heruntergeladen; danach startet der Lauf deutlich schneller.
+Der lokale Lauf wurde am 2026-07-10 mit allen 19 Tests erfolgreich abgenommen. Darin enthalten sind ein ausschließlich im E2E-Modus aktivierbarer Renderfehler-Smoke fuer den sicheren Fehlerfallback und ein PDF-Smoke fuer Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker; der Production-Build enthaelt den Renderfehler-Testparameter nicht. Beim ersten Start werden die Docker-Images einmalig lokal heruntergeladen; danach startet der Lauf deutlich schneller.
 
 Alternativ unterstützen die Playwright-Produkttests weiterhin ein separates Hosted-Supabase-Testprojekt mit einem einmalig vorab angelegten Testaccount. Lege dafür lokal eine von Git ignorierte `.env.e2e.local` mit diesen Werten an:
 
@@ -127,6 +127,9 @@ src/
   fixtures/               Lokale Seed-/Fixture-Daten
   creationWorkflow.js     Creation-/Import-Orchestrierung fuer APKG, Paste, manuell und KI-Drafts
   apkgImport.js           Anki-APKG-Importpipeline
+  pdfRuntime.js           Geteilte, bedarfsgeladene PDF.js-Runtime samt Worker-Vertrag
+  pdfSelection.js         Text- und Koordinaten-Normalisierung fuer PDF-Quellenanker
+  ui/PdfDocumentViewer.jsx Tiefer PDF-Viewer fuer Anzeige, Navigation, Zoom und Auswahl
   importService.js        Text-, CSV-, JSON- und Tabellen-Import mit Fingerprints/Dedupe
   reviewService.js        Tiefer Review-Flow, Sessions, Fallback und Rating-Erfassung
   reviewFlow.js           Legacy-Fassade fuer bestehende Review-Imports
@@ -166,12 +169,12 @@ src/
 
 ## Aktueller Status
 
-CoRe laeuft lokal als Vite/React-App und hat einen initialen Vercel-/Supabase-Infrastrukturpfad. Pflichtlogin, E-Mail/Passwort-Auth, Profil-Upsert, accountgebundener Cache, Cloud-first Autosave, automatisiertes CI-Gate, sichtbare Release-Identitaet, sicherer React-Fehlerfallback und ein manuelles Preview-/Production-/Rollback-Runbook sind vorhanden. Es gibt noch keine eigene Domain, keine protokollierte Production-Abnahme, keine Offline-Konfliktloesung zwischen Geraeten und keine vollstaendige Betriebsbeobachtung.
+CoRe laeuft lokal als Vite/React-App und hat einen initialen Vercel-/Supabase-Infrastrukturpfad. Pflichtlogin, E-Mail/Passwort-Auth, Profil-Upsert, accountgebundener Cache, Cloud-first Autosave, bedarfsgeladene Produktscreens, ein PDF.js-Quellenviewer, ein hartes Build-Chunk-Gate, automatisiertes CI, sichtbare Release-Identitaet, sicherer React-Fehlerfallback und ein manuelles Preview-/Production-/Rollback-Runbook sind vorhanden. `https://core-hosted.vercel.app` ist als kanonische Production-URL festgelegt; Hosted-Supabase-Konfiguration und die protokollierte Production-Abnahme sind noch offen. Eine eigene Domain ist fuer dieses P0-Ziel nicht erforderlich. Offline-Konfliktloesung zwischen Geraeten und vollstaendige Betriebsbeobachtung fehlen ebenfalls.
 
 ## Naechste sinnvolle Schritte
 
-- Domain-/DNS-Pfad und Supabase-Redirect-Allowlist fuer klar getrennte Preview- und Production-URLs festlegen.
-- Das Release-Runbook beim ersten echten staged Production-Deployment ausfuehren und den secretsfreien Nachweis ablegen.
+- Den festgelegten URL-Vertrag in Hosted Supabase anwenden: Site URL `https://core-hosted.vercel.app`, Production `https://core-hosted.vercel.app/**`, Preview `https://*-bengt2.vercel.app/**`, lokal `http://127.0.0.1:5190/**`.
+- Das Release-Runbook nach gruenem CI beim ersten echten staged Production-Deployment ausfuehren und den secretsfreien Nachweis ablegen; danach P1 Cloud-Datenkorrektheit aktivieren.
 - Cloud-first Autosave zu einer Offline-Strategie weiterentwickeln: Konfliktmodell, Queue, Merge-Regeln und Medien-Storage.
 - `supabase/core_schema_v1.sql` weiter gegen Medien-/Storage-Referenzen, Importdetails und Community-Rechte abgleichen.
 - APKG-/Medienfixtures und Importidentitaeten gemaess `docs/anki-format-analysis.md` ausbauen.

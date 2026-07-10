@@ -5,6 +5,13 @@ import react from "@vitejs/plugin-react";
 const packageJson = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
 const knownVercelEnvironments = new Set(["production", "preview", "development"]);
 
+export function manualChunkForModule(moduleId = "") {
+  const id = String(moduleId).replaceAll("\\", "/");
+  if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react-vendor";
+  if (id.includes("/node_modules/@supabase/")) return "supabase-vendor";
+  return undefined;
+}
+
 function normalizeBuildCommit(value) {
   const commit = String(value ?? "").trim();
   return /^[a-f0-9]{7,40}$/i.test(commit) ? commit.slice(0, 7).toLowerCase() : "local";
@@ -27,6 +34,14 @@ export function resolveReleaseInfo({ mode = "development", env = process.env, ve
 }
 
 export default defineConfig(({ mode }) => ({
+  build: {
+    manifest: true,
+    rollupOptions: {
+      output: {
+        manualChunks: manualChunkForModule,
+      },
+    },
+  },
   define: {
     __CORE_RELEASE_INFO__: JSON.stringify(resolveReleaseInfo({ mode })),
   },

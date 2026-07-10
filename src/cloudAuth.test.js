@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createCloudProfile,
+  createCloudAuthRedirectUrl,
   createPendingCloudProfile,
   createProfileRow,
   formatCloudAuthError,
@@ -137,6 +138,13 @@ test("cloud auth passes the app URL into confirmation and reset email redirects"
   assert.equal(signUpCalls[0].options.data.display_name, "Noemi");
   assert.equal(resetCalls[0].email, "noemi@example.test");
   assert.equal(resetCalls[0].options.redirectTo, redirectTo);
+});
+
+test("cloud auth normalizes production, preview and local origins to allowlisted root redirects", () => {
+  assert.equal(createCloudAuthRedirectUrl("https://core-hosted.vercel.app"), "https://core-hosted.vercel.app/");
+  assert.equal(createCloudAuthRedirectUrl("https://core-hosted-abc123-bengt2.vercel.app/lernen"), "https://core-hosted-abc123-bengt2.vercel.app/");
+  assert.equal(createCloudAuthRedirectUrl("http://127.0.0.1:5190"), "http://127.0.0.1:5190/");
+  assert.equal(createCloudAuthRedirectUrl("kein-url"), undefined);
 });
 
 test("cloud auth sends magic links only for existing users", async () => {

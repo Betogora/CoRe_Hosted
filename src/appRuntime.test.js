@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveReleaseInfo } from "../vite.config.js";
+import { manualChunkForModule, resolveReleaseInfo } from "../vite.config.js";
 import { formatAppRuntimeInfo, normalizeAppRuntimeInfo } from "./appRuntime.js";
 
 test("release info prefers Vercel metadata and exposes only the allowlisted fields", () => {
@@ -66,4 +66,11 @@ test("runtime info formats German environment labels and never includes extra in
 
   assert.equal(formatted, "CoRe 0.1.0 · Produktion · Commit abcdef1");
   assert.equal(formatted.includes("must-not-appear"), false);
+});
+
+test("build chunking isolates React and Supabase without inventing broad vendor buckets", () => {
+  assert.equal(manualChunkForModule("C:/repo/node_modules/react-dom/client.js"), "react-vendor");
+  assert.equal(manualChunkForModule("C:/repo/node_modules/@supabase/auth-js/index.js"), "supabase-vendor");
+  assert.equal(manualChunkForModule("C:/repo/node_modules/lucide-react/dist/index.js"), undefined);
+  assert.equal(manualChunkForModule("C:\\repo\\src\\App.jsx"), undefined);
 });

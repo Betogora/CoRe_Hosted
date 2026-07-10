@@ -12,21 +12,24 @@ import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalD
 import { createMenuModel } from "./menuModel.js";
 import { createAccountSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.js";
 import { createSupabaseBrowserClient } from "./supabaseClient.js";
-import {
-  AssistantScreen,
-  AuthGateScreen,
-  CommunityScreen,
-  CreationScreen,
-  DashboardScreen,
-  DeckSettingsScreen,
-  DecksScreen,
-  GraphScreen,
-  LearnScreen,
-  SettingsScreen,
-  StatisticsScreen,
-  StudyMode,
-} from "./screens/index.js";
+import { AuthGateScreen } from "./screens/AuthGateScreen.jsx";
 import { OrbIcon, SoftPanel } from "./ui/coreUi.jsx";
+
+function lazyNamedExport(loader, exportName) {
+  return React.lazy(() => loader().then((module) => ({ default: module[exportName] })));
+}
+
+const AssistantScreen = lazyNamedExport(() => import("./screens/AssistantScreen.jsx"), "AssistantScreen");
+const CommunityScreen = lazyNamedExport(() => import("./screens/CommunityScreen.jsx"), "CommunityScreen");
+const CreationScreen = lazyNamedExport(() => import("./screens/CreationScreen.jsx"), "CreationScreen");
+const DashboardScreen = lazyNamedExport(() => import("./screens/DashboardScreen.jsx"), "DashboardScreen");
+const DeckSettingsScreen = lazyNamedExport(() => import("./screens/DeckSettingsScreen.jsx"), "DeckSettingsScreen");
+const DecksScreen = lazyNamedExport(() => import("./screens/DecksScreen.jsx"), "DecksScreen");
+const GraphScreen = lazyNamedExport(() => import("./screens/GraphScreen.jsx"), "GraphScreen");
+const LearnScreen = lazyNamedExport(() => import("./screens/LearnScreen.jsx"), "LearnScreen");
+const SettingsScreen = lazyNamedExport(() => import("./screens/SettingsScreen.jsx"), "SettingsScreen");
+const StatisticsScreen = lazyNamedExport(() => import("./screens/StatisticsScreen.jsx"), "StatisticsScreen");
+const StudyMode = lazyNamedExport(() => import("./screens/StudyMode.jsx"), "StudyMode");
 
 const menu = createMenuModel();
 const AUTOSAVE_DELAY_MS = 900;
@@ -82,6 +85,17 @@ function LoadingScreen({ message = "CoRe wird geladen." }) {
         </SoftPanel>
       </div>
     </main>
+  );
+}
+
+function ScreenLoadingFallback() {
+  return (
+    <div className="grid min-h-[20rem] place-items-center" role="status" aria-live="polite">
+      <SoftPanel className="flex items-center gap-3 px-5 py-4 text-sm font-medium text-[#66709a]">
+        <span className="size-3 animate-pulse rounded-full bg-[#6672bf]" aria-hidden="true" />
+        Bereich wird geladen.
+      </SoftPanel>
+    </div>
   );
 }
 
@@ -819,17 +833,19 @@ export function App() {
   const studyDeck = studyRequest ? state.decks.find((deck) => deck.id === studyRequest.deckId) : null;
   if (studyRequest && studyDeck) {
     return (
-      <StudyMode
-        deck={studyDeck}
-        decks={state.decks}
-        deckId={studyDeck.id}
-        variantSession={studyRequest.variantSession}
-        onExit={() => {
-          refresh();
-          navigateToRoute(studyRequest.returnRoute ?? createViewRoute("lernen"), { replace: true });
-        }}
-        onDeckUpdated={saveDeck}
-      />
+      <React.Suspense fallback={<LoadingScreen message="Lernmodus wird geladen." />}>
+        <StudyMode
+          deck={studyDeck}
+          decks={state.decks}
+          deckId={studyDeck.id}
+          variantSession={studyRequest.variantSession}
+          onExit={() => {
+            refresh();
+            navigateToRoute(studyRequest.returnRoute ?? createViewRoute("lernen"), { replace: true });
+          }}
+          onDeckUpdated={saveDeck}
+        />
+      </React.Suspense>
     );
   }
 
@@ -885,7 +901,9 @@ export function App() {
           </div>
         </aside>
 
-        <section className="min-w-0 overflow-x-hidden px-5 py-8 sm:px-8 lg:px-12 lg:py-12">{renderActiveView()}</section>
+        <section className="min-w-0 overflow-x-hidden px-5 py-8 sm:px-8 lg:px-12 lg:py-12">
+          <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
+        </section>
       </div>
     </main>
   );

@@ -39,6 +39,7 @@ Relevante Zielrichtungen:
 
 - Vercel fuer Hosting, Preview/Production, Domain und `/api/*` Functions.
 - Das ausfuehrbare Preview-/Production-/Rollback-Runbook liegt in `specs.md` Abschnitt 14.2.2 und gespiegelt in `specs.html`; Release-Nachweise bleiben secretsfrei.
+- `https://core-hosted.vercel.app` ist die kanonische Production-URL. Der entschiedene Supabase-Vertrag umfasst diese Site URL sowie `https://core-hosted.vercel.app/**`, `https://*-bengt2.vercel.app/**` nur fuer Previews und `http://127.0.0.1:5190/**` lokal; die Anwendung im Hosted Dashboard und die erste protokollierte Production-Abnahme bleiben offen.
 - Login-Gate, Einstellungen und React-Fehlerfallback zeigen dieselbe Release-Information aus Version, Umgebung und kurzem Commit; weitere Env-Werte werden nicht in den Browser uebernommen.
 - Supabase Auth + Postgres + RLS als naheliegender Persistenzpfad.
 - Echte Tabellen fuer Decks, Learning Items, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs statt grossem Store-Blob.
@@ -56,6 +57,8 @@ Relevante Zielrichtungen:
 - `src/libraryModel.js` erzeugt Dashboard-, Statistik-, Decklisten-, Heatmap- und KI-Job-Projektionen fuer die Screens.
 - `src/supabaseClient.js`, `src/cloudAuth.js`, `src/accountSession.js`, `src/accountStorage.js` und `src/cloudRepository.js` kapseln den konkreten Supabase-Pfad fuer Auth, Profile, Login-Gate-Zustand, accountgebundenen Cache und Cloud-Tabellenpersistenz.
 - `src/appRuntime.js`, `src/ui/ReleaseInfo.jsx` und `src/AppErrorBoundary.jsx` kapseln Release-Identitaet, sichere Anzeige und den deutschen Wiederherstellungsfallback ohne rohe Fehler- oder Nutzerdaten.
-- `src/App.jsx` ist nur noch App-Shell fuer Workspace-State, Navigation und Routing; produktnahe UI liegt in `src/screens/`.
+- `src/pdfRuntime.js`, `src/pdfSelection.js` und `src/ui/PdfDocumentViewer.jsx` kapseln PDF.js-Lifecycle, Worker, kontinuierliche Anzeige, Zoom, Textauswahl und die Umrechnung in stabile PDF-Quellenkoordinaten.
+- `src/App.jsx` ist nur noch App-Shell fuer Workspace-State, Navigation und Routing; authentifizierte Produktscreens laden per `React.lazy`, produktnahe UI liegt in `src/screens/`.
+- `scripts/verifyBuildChunks.mjs` prueft das Vite-Manifest nach jedem Production-Build und erzwingt die 500.000-Byte-Grenze fuer JavaScript-Chunks; PDF-Worker und WASM bleiben getrennte Assets.
 - `src/screens/README.md` ist die Einstiegskarte fuer KI-Programmierung an Screens; geteilte UI-Bausteine liegen in `src/ui/`.
 - Sichtbare Features sollen bei Ueberarbeitungen erhalten bleiben und nur durch explizite Prompts entfernt werden.

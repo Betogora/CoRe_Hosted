@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { fileURLToPath } from "node:url";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.js";
+
+const PDF_SELECTION_FIXTURE = fileURLToPath(new URL("../fixtures/pdf-selection.pdf", import.meta.url));
 
 const DECK_IDS = {
   africa: "deck_world_capitals_afrika",
@@ -23,6 +26,11 @@ async function hasVariantReviewEvent(page, deckId) {
 async function storedDeckCountBySource(page, source) {
   const state = await readAppState(page);
   return state.decks?.filter((deck) => deck.source === source).length ?? 0;
+}
+
+async function findPdfAnchoredCard(page) {
+  const state = await readAppState(page);
+  return state.decks?.flatMap((deck) => deck.cards ?? []).find((card) => String(card.originalFront ?? card.canonicalQuestion ?? "").includes("Mitochondrien erzeugen ATP")) ?? null;
 }
 
 function mainMenu(page) {
@@ -114,6 +122,45 @@ test("ai draft creation stores an accepted draft deck", async ({ page }) => {
   await expect(page.getByRole("status").filter({ hasText: /Entwurf|Entwürfe|Karten/ })).toBeVisible();
   await page.getByRole("button", { name: /Übernehmen/ }).click();
   await expect.poll(() => storedDeckCountBySource(page, "ai-assisted")).toBeGreaterThan(aiDecksBefore);
+});
+
+test("lazy creation screen renders a selectable PDF and stores its source anchor", async ({ page }) => {
+  await resetToFreshLocalState(page);
+
+  await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
+  await page.getByRole("button", { name: /Karten manuell erstellen/ }).click();
+  await page.getByRole("button", { name: "Neuen Stapel erstellen" }).click();
+  await page.getByRole("textbox", { name: "Neuer Kartenstapel" }).fill("PDF-Quellenauswahl-Smoke");
+  await page.locator('input[type="file"][accept*=".pdf"]').setInputFiles(PDF_SELECTION_FIXTURE);
+
+  const viewer = page.getByTestId("pdf-document-viewer");
+  await expect(viewer).toBeVisible();
+  await expect(viewer.getByRole("status")).toContainText("Seite 1 von 1");
+  const textLayer = viewer.locator('[data-pdf-page-number="1"] .core-pdf-text-layer');
+  await expect.poll(() => textLayer.locator("span").count()).toBeGreaterThan(0);
+
+  await textLayer.evaluate((layer) => {
+    const textSpan = [...layer.querySelectorAll("span")].find((span) => span.textContent?.includes("Mitochondrien erzeugen ATP"));
+    if (!textSpan) throw new Error("PDF-Testtext wurde nicht im Textlayer gefunden.");
+    const range = document.createRange();
+    range.selectNodeContents(textSpan);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    layer.closest("[aria-label='PDF-Dokument']").dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+  });
+
+  await expect(page.getByRole("status").filter({ hasText: "Vorderseite ergänzt." })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Mitochondrien erzeugen ATP durch Zellatmung.");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Zellatmung erzeugt ATP.");
+  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+
+  await expect.poll(async () => {
+    const card = await findPdfAnchoredCard(page);
+    return card?.sourceAnchors?.[0]?.pageNumber ?? null;
+  }).toBe(1);
+  const storedCard = await findPdfAnchoredCard(page);
+  expect(storedCard.sourceAnchors[0].bbox).toEqual(expect.objectContaining({ left: expect.any(Number), right: expect.any(Number) }));
 });
 
 test("assistant smoke returns a server answer through the hidden dashboard entry", async ({ page }) => {

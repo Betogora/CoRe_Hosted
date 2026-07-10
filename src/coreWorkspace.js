@@ -1,9 +1,4 @@
 import { createCommunity, shareDeckToCommunity } from "./communityModel.js";
-import {
-  commitApkgImport as commitApkgImportService,
-  dryRunApkgImport as dryRunApkgImportService,
-  importApkgDeck as importApkgDeckService,
-} from "./apkgImport.js";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.js";
 import { createCoreRepository } from "./coreRepository.js";
 import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.js";
@@ -14,6 +9,13 @@ import {
   importNormalizedDeck,
   importTextAsNormalizedDeck,
 } from "./importService.js";
+
+let apkgImportModulePromise = null;
+
+function loadApkgImportModule() {
+  apkgImportModulePromise ??= import("./apkgImport.js");
+  return apkgImportModulePromise;
+}
 
 export function createDemoAnatomyDeck() {
   return createCoreDeck({
@@ -487,14 +489,16 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
     },
     async dryRunApkgImport(input, options = {}) {
       const state = repository.getState();
-      return dryRunApkgImportService(input, {
+      const { dryRunApkgImport } = await loadApkgImportModule();
+      return dryRunApkgImport(input, {
         ...options,
         existingDecks: state.decks,
       });
     },
     async commitApkgImport(input, options = {}) {
       const state = repository.getState();
-      const result = await commitApkgImportService(input, {
+      const { commitApkgImport } = await loadApkgImportModule();
+      const result = await commitApkgImport(input, {
         ...options,
         existingDecks: state.decks,
       });
@@ -502,7 +506,8 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
     },
     async importApkgDeck(input, options = {}) {
       const state = repository.getState();
-      const result = await importApkgDeckService(input, {
+      const { importApkgDeck } = await loadApkgImportModule();
+      const result = await importApkgDeck(input, {
         ...options,
         existingDecks: state.decks,
       });
