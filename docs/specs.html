@@ -284,6 +284,7 @@
 <p>Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdown-Datei, <code>docs/todo.md</code>. Sie ist die einzige Roadmap-Quelle fuer offene Arbeit; neue TODO-Markdowns sollen nicht entstehen. <code>docs/specs.md</code> bleibt kanonisch, <code>docs/specs.html</code> ist die visuelle HTML-Fassung derselben Spezifikation, und <code>docs/anki-format-analysis.md</code> dokumentiert die Anki-Differenzentscheidungen hinter Import-, Medien- und Learning-Item-Ausbau.</p>
 <p>Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug bestaetigt die bestehenden Kernentscheidungen zu Import, Kartenerstellung, Review, Content-Repetition, Community, Graph und sparsamer KI-Orchestrierung. Ergaenzt wurden vor allem zwei Schaerfungen: Varianten sollen mit wachsendem Reifegrad nur konservativ anspruchsvoller werden, und serverseitig wiederverwendbare Varianten muessen strikt von privaten Review-Events, Lernstaenden und persoenlichen Qualitaetsurteilen getrennt bleiben.</p>
 <p>Datenbank-Release am 2026-07-10: Die Supabase-CLI-Konfiguration findet alle vier versionierten E-Mail-Templates. <code>20260709091315_sync_media_auth_operations.sql</code> wurde nach erfolgreichem Dry-Run remote angewendet; <code>npx supabase migration list --linked</code> bestaetigt jetzt alle vier Migrationen lokal und remote. Das erweiterte <code>supabase/verify_schema_v1.sql</code> bestaetigt Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, Grants ohne <code>anon</code>-Zugriff und den privaten Bucket <code>core-media</code>. Der Performance-Advisor meldet keine Warnung; beim Security-Advisor bleibt ausschliesslich der bereits vorher vorhandene Hosted-Auth-Hinweis zur deaktivierten Leaked-Password-Protection offen.</p>
+<p>E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus <code>e2e</code>, baut ueber ein <code>auth-setup</code>-Projekt eine Supabase-Session fuer einen vorab angelegten Account in einem separaten Testprojekt auf und gibt sie als ignorierte, von <code>core.*</code>-App-Daten bereinigte <code>storageState</code> an zehn authentifizierte Produkt-Smokes weiter. Vor jedem Lauf ersetzt das Setup ausschliesslich die Cloud-Daten dieses Testaccounts ueber die vorhandene RLS-geschuetzte Repository-Funktion mit der reproduzierbaren Welt-Hauptstadt-Fixture. Zugangsdaten und Reset-Freigabe kommen nur aus <code>.env.e2e.local</code> oder CI-Secrets; eine Service Role ist nicht beteiligt.</p>
 <table>
 <thead><tr><th>Bereich</th><th>Implementierte lokale Module / Screens</th></tr></thead>
 <tbody>
@@ -2897,8 +2898,9 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <li><code>src/mediaStore.test.js</code>: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.</li>
 <li><code>src/richText.test.js</code>: Rich-Text-Normalisierung, Plain-Text-Anhaengen und leere Karteninhalte.</li>
 <li><code>src/menuModel.test.js</code>: Navigationsvertrag.</li>
+<li><code>tests/e2e/auth.setup.js</code> und <code>tests/e2e/support/</code>: validierte E2E-Umgebung, RLS-konformer Testaccount-Reset, bereinigte Playwright-<code>storageState</code>, selektiver <code>core.*</code>-Reset und accountgebundene State-Leser.</li>
 <li><code>tests/e2e/core-stabilization.spec.js</code>: Browser-Smoke fuer Review-Rating, manuell vorbereitete Varianten-Session, KI-Draft-Erstellung, Assistenten-Einstieg und lokalen JSON-Export/-Import mit Fehlerstatus.</li>
-<li><code>tests/e2e/world-capitals-hierarchy.spec.js</code>: Browser-Smoke fuer frischen lokalen Seed, sichtbare Unterstapel, gestaffelte Lernlisten-Gruppenhintergruende, spaltenbündige Lernlisten-Zahlen, Zeilenklick zum Lernstart, direkte Lernlisten-Drag-Geste, Outdent-Reparenting, interaktive Controls ohne Drag-Start und Kartenstapel-Verwaltung ohne alten Drag-Handle.</li>
+<li><code>tests/e2e/world-capitals-hierarchy.spec.js</code>: authentifizierter Browser-Smoke fuer den deterministisch zurueckgesetzten Cloud-Seed, sichtbare Unterstapel, gestaffelte Lernlisten-Gruppenhintergruende, spaltenbündige Lernlisten-Zahlen, Zeilenklick zum Lernstart, direkte Lernlisten-Drag-Geste, Outdent-Reparenting, interaktive Controls ohne Drag-Start und Kartenstapel-Verwaltung ohne alten Drag-Handle.</li>
 </ul>
 <h3 id="27-4-gemeinsames-kartenmodell">27.4 Gemeinsames Kartenmodell</h3>
 <p>Alle Lerninhalte gehoeren zu einem <code>CoreDeck</code>. Die aktuelle Quelle einer Karte ist einer der folgenden lokalen Werte:</p>
@@ -2998,7 +3000,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...</code></pre>
 <p>Hosting-/Runtime-Artefakte:</p>
 <ul>
 <li><code>vercel.json</code>: Vercel-Build, <code>dist</code>-Output und SPA-Rewrite ausserhalb von <code>/api/*</code>.</li>
-<li><code>.env.example</code>: oeffentliche Browser-Env-Grenzen fuer <code>VITE_SUPABASE_URL</code>, <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> und das KI-Proxy-Featureflag.</li>
+<li><code>.env.example</code>: oeffentliche Browser-Env-Grenzen fuer <code>VITE_SUPABASE_URL</code>, <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> und das KI-Proxy-Featureflag sowie leere Platzhalter fuer den separaten Playwright-Testaccount und dessen explizite Reset-Freigabe.</li>
 </ul>
 <p>Die entfernte Arbeitsnotiz war ein externer Transfer-Guide. Relevante Inhalte wurden in die Abschnitte zu Datenmodell, API, KI-Proxy, Architektur, Sicherheit und Todo uebernommen; die Datei soll nicht als zweite Wahrheit erhalten bleiben.</p>
     </article></main>

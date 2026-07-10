@@ -24,6 +24,8 @@ Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug
 
 Datenbank-Release am 2026-07-10: Die Supabase-CLI-Konfiguration findet alle vier versionierten E-Mail-Templates. `20260709091315_sync_media_auth_operations.sql` wurde nach erfolgreichem Dry-Run remote angewendet; `npx supabase migration list --linked` bestaetigt jetzt alle vier Migrationen lokal und remote. Das erweiterte `supabase/verify_schema_v1.sql` bestaetigt Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, Grants ohne `anon`-Zugriff und den privaten Bucket `core-media`. Der Performance-Advisor meldet keine Warnung; beim Security-Advisor bleibt ausschliesslich der bereits vorher vorhandene Hosted-Auth-Hinweis zur deaktivierten Leaked-Password-Protection offen.
 
+E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus `e2e`, baut ueber ein `auth-setup`-Projekt eine Supabase-Session fuer einen vorab angelegten Account in einem separaten Testprojekt auf und gibt sie als ignorierte, von `core.*`-App-Daten bereinigte `storageState` an zehn authentifizierte Produkt-Smokes weiter. Vor jedem Lauf ersetzt das Setup ausschliesslich die Cloud-Daten dieses Testaccounts ueber die vorhandene RLS-geschuetzte Repository-Funktion mit der reproduzierbaren Welt-Hauptstadt-Fixture. Zugangsdaten und Reset-Freigabe kommen nur aus `.env.e2e.local` oder CI-Secrets; eine Service Role ist nicht beteiligt.
+
 | Bereich | Implementierte lokale Module / Screens |
 |---|---|
 | Dashboard, Statistik und Lernaktivitaet | `DashboardScreen`, `StatisticsScreen`, `libraryModel.createStudyHeatmapModel`, `libraryModel.createStudyHeatmapWindow`, `libraryModel.getStudyHeatmapVisibleWeekCount`, `libraryModel.createPerformanceStatisticsModel`, reduzierter Heute-Kopf mit Fällig-/Originalkarten-Kacheln, kompakter Heatmap-Kopf mit aktiven Tagen, rechtsbündiger Legende und Pfeilnavigation, aktive Hauptstapel mit Unterbaum-Aggregaten, responsive GitHub-/Anki-artige Jahres-Heatmap mit standardmäßigem Kalenderjahr von Januar bis Dezember, Monats- und Jahreswechselmarken, Leistungsstatistik mit Trefferquote, Bewertungsverteilung und Stapel-Auswertung |
@@ -3129,8 +3131,9 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 - `src/mediaStore.test.js`: sichere HTML-Medien-URL-Aufloesung ohne Script-/Event-Attribut-Durchreiche.
 - `src/richText.test.js`: Rich-Text-Normalisierung, Plain-Text-Anhaengen und leere Karteninhalte.
 - `src/menuModel.test.js`: Navigationsvertrag.
+- `tests/e2e/auth.setup.js` und `tests/e2e/support/`: validierte E2E-Umgebung, RLS-konformer Testaccount-Reset, bereinigte Playwright-`storageState`, selektiver `core.*`-Reset und accountgebundene State-Leser.
 - `tests/e2e/core-stabilization.spec.js`: Browser-Smoke fuer Review-Rating, manuell vorbereitete Varianten-Session, KI-Draft-Erstellung, Assistenten-Einstieg und lokalen JSON-Export/-Import mit Fehlerstatus.
-- `tests/e2e/world-capitals-hierarchy.spec.js`: Browser-Smoke fuer frischen lokalen Seed, sichtbare Unterstapel, gestaffelte Lernlisten-Gruppenhintergruende, spaltenbündige Lernlisten-Zahlen, Zeilenklick zum Lernstart, direkte Lernlisten-Drag-Geste, Outdent-Reparenting, interaktive Controls ohne Drag-Start und Kartenstapel-Verwaltung ohne alten Drag-Handle.
+- `tests/e2e/world-capitals-hierarchy.spec.js`: authentifizierter Browser-Smoke fuer den deterministisch zurueckgesetzten Cloud-Seed, sichtbare Unterstapel, gestaffelte Lernlisten-Gruppenhintergruende, spaltenbündige Lernlisten-Zahlen, Zeilenklick zum Lernstart, direkte Lernlisten-Drag-Geste, Outdent-Reparenting, interaktive Controls ohne Drag-Start und Kartenstapel-Verwaltung ohne alten Drag-Handle.
 
 ### 27.4 Gemeinsames Kartenmodell
 
@@ -3245,6 +3248,6 @@ Technische SQL-Artefakte:
 Hosting-/Runtime-Artefakte:
 
 - `vercel.json`: Vercel-Build, `dist`-Output und SPA-Rewrite ausserhalb von `/api/*`.
-- `.env.example`: oeffentliche Browser-Env-Grenzen fuer `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und das KI-Proxy-Featureflag.
+- `.env.example`: oeffentliche Browser-Env-Grenzen fuer `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und das KI-Proxy-Featureflag sowie leere Platzhalter fuer den separaten Playwright-Testaccount und dessen explizite Reset-Freigabe.
 
 Die entfernte Arbeitsnotiz war ein externer Transfer-Guide. Relevante Inhalte wurden in die Abschnitte zu Datenmodell, API, KI-Proxy, Architektur, Sicherheit und Todo uebernommen; die Datei soll nicht als zweite Wahrheit erhalten bleiben.

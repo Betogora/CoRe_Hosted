@@ -22,7 +22,7 @@ Es gibt keine weitere `TODO.md`, `todo.md` oder `*-todo.md`-Datei im Repository.
 
 - `../AGENTS.md`: lokale Entwicklungsregeln, Architekturleitplanken und Verifikationskommandos.
 - `../vercel.json`: Vercel-Build, `dist`-Output und SPA-Rewrite ausserhalb von `/api/*`.
-- `../.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag.
+- `../.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag sowie leere Platzhalter fuer den separaten Playwright-Testaccount.
 - `../supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
 - `../supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
 - `../supabase/migrations/20260709074255_cloud_variant_schema_alignment.sql`: angewendete Schema-Abgleichsmigration fuer Cloud-Varianten, `json-import`-Quellen und entfernte `anon`-Grants.

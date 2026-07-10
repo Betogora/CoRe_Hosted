@@ -48,6 +48,20 @@ npm run build    # Produktionsbuild
 npm run preview  # Lokale Preview auf Port 5190
 ```
 
+## Authentifizierte Browser-Tests
+
+Die Playwright-Produkttests verwenden ein separates Supabase-Testprojekt und einen einmalig vorab angelegten Testaccount. Lege lokal eine von Git ignorierte `.env.e2e.local` mit diesen Werten an:
+
+```text
+VITE_SUPABASE_URL=https://<testprojekt>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-key-des-testprojekts>
+CORE_E2E_EMAIL=<vorab-angelegter-testaccount>
+CORE_E2E_PASSWORD=<testpasswort>
+CORE_E2E_ALLOW_ACCOUNT_RESET=true
+```
+
+`npm run test:e2e` startet Vite immer im Modus `e2e` auf `http://127.0.0.1:5190/`; ein normal laufender Dev-Server muss vorher beendet werden. Das Setup ersetzt bei jedem Lauf ausschließlich die Cloud-Daten dieses Testaccounts durch die reproduzierbare `Welt-Hauptstädte`-Fixture und speichert die Supabase-Sitzung unter `playwright/.auth/`. Dieses Verzeichnis enthält Zugriffstoken, ist ignoriert und darf nicht committed werden. Verwende für diese Variablen lokal oder in CI niemals einen persönlichen oder produktiven Account.
+
 ## Projektstruktur
 
 ```text
@@ -92,6 +106,7 @@ src/
 - `fixtures/apkg/world-capitals.apkg`: reproduzierbare APKG-Fixture fuer Unterstapel-Tests.
 - `scripts/create_world_capitals_apkg.py`: Generator fuer APKG-Fixture, Quell-Snapshot und lokalen Seed.
 - `tests/e2e/world-capitals-hierarchy.spec.js`: Playwright-Smoke fuer Seed, Unterstapel, direkte Lernlisten-Drag-and-drop-Gesten und die Kartenstapel-Verwaltung ohne alten Drag-Handle.
+- `tests/e2e/auth.setup.js`: RLS-konformer Reset des dedizierten Testaccounts und Aufbau der ignorierten Playwright-`storageState`-Session.
 - `AGENTS.md`: lokale Entwicklungsregeln, empfohlene Kommandos und Architekturleitplanken.
 - `vercel.json`: aktueller Vercel-Build-/Rewrite-Anker fuer die Vite-App.
 - `.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag.

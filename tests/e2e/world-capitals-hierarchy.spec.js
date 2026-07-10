@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.js";
 
 const DECK_IDS = {
   root: "deck_world_capitals",
@@ -8,21 +9,9 @@ const DECK_IDS = {
   southAmerica: "deck_world_capitals_suedamerika",
 };
 
-async function resetToFreshLocalState(page) {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-}
-
 async function storedParentDeckId(page, deckId) {
-  return page.evaluate((id) => {
-    const state = JSON.parse(localStorage.getItem("core.appState.v2") ?? "{}");
-    return state.decks?.find((deck) => deck.id === id)?.parentDeckId ?? null;
-  }, deckId);
-}
-
-async function hasStoredAppState(page) {
-  return page.evaluate(() => localStorage.getItem("core.appState.v2") !== null);
+  const state = await readActiveAccountState(page);
+  return state.decks?.find((deck) => deck.id === deckId)?.parentDeckId ?? null;
 }
 
 async function groupBackgroundColor(group) {
@@ -176,6 +165,7 @@ test("deck management does not expose the old drag handle or drop target", async
   await expect(page.getByTestId(`deck-row-${DECK_IDS.root}`)).toBeVisible();
   await expect(page.getByTestId("deck-top-drop-zone")).toHaveCount(0);
   await expect(page.getByTestId(`deck-drag-handle-${DECK_IDS.root}`)).toHaveCount(0);
+  const parentDeckIdBefore = await storedParentDeckId(page, DECK_IDS.southAmerica);
 
   const dataTransfer = await page.evaluateHandle((sourceDeckId) => {
     const transfer = new DataTransfer();
@@ -187,5 +177,5 @@ test("deck management does not expose the old drag handle or drop target", async
   await page.getByTestId(`deck-row-${DECK_IDS.europe}`).dispatchEvent("drop", { dataTransfer });
   await dataTransfer.dispose();
 
-  await expect.poll(() => hasStoredAppState(page)).toBe(false);
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(parentDeckIdBefore);
 });

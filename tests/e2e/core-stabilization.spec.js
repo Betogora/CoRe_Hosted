@@ -1,18 +1,13 @@
 import { expect, test } from "@playwright/test";
+import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.js";
 
 const DECK_IDS = {
   africa: "deck_world_capitals_afrika",
   europe: "deck_world_capitals_europa",
 };
 
-async function resetToFreshLocalState(page) {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-}
-
 async function readAppState(page) {
-  return page.evaluate(() => JSON.parse(localStorage.getItem("core.appState.v2") ?? "{}"));
+  return readActiveAccountState(page);
 }
 
 async function deckReviewEventCount(page, deckId) {
@@ -30,18 +25,13 @@ async function storedDeckCountBySource(page, source) {
   return state.decks?.filter((deck) => deck.source === source).length ?? 0;
 }
 
-async function skipWhenAppShellIsBehindLogin(page) {
-  const loginGateVisible = await page.getByRole("heading", { name: "Bei CoRe anmelden" }).isVisible({ timeout: 1000 }).catch(() => false);
-  test.skip(loginGateVisible, "Screen-history smoke needs an authenticated E2E session; resetToFreshLocalState clears the current Supabase session.");
-}
-
 function mainMenu(page) {
   return page.getByRole("navigation", { name: /Hauptmen/ });
 }
 
 test("browser back returns from deck management to learning without reload", async ({ page }) => {
-  await resetToFreshLocalState(page);
-  await skipWhenAppShellIsBehindLogin(page);
+  const { authStorageKey } = await resetToFreshLocalState(page);
+  expect(authStorageKey).toMatch(/^sb-.+-auth-token$/);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
@@ -55,7 +45,6 @@ test("browser back returns from deck management to learning without reload", asy
 
 test("browser back exits study mode to the previous learning screen", async ({ page }) => {
   await resetToFreshLocalState(page);
-  await skipWhenAppShellIsBehindLogin(page);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
@@ -68,7 +57,6 @@ test("browser back exits study mode to the previous learning screen", async ({ p
 
 test("browser back returns from settings to the previous screen", async ({ page }) => {
   await resetToFreshLocalState(page);
-  await skipWhenAppShellIsBehindLogin(page);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByLabel(/Einstellungen/).click();

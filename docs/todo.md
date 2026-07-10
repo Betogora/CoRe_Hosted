@@ -8,7 +8,7 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 
 - `npm test`: 187 Tests bestanden.
 - `npm run build`: erfolgreich; der Build meldet aber einen ca. 1,97 MB großen Hauptchunk sowie große PDF-/Worker-Chunks.
-- `npm run test:e2e`: 7 Tests fehlgeschlagen, 3 übersprungen. Ursache ist der verpflichtende Login-Gate: Die Tests löschen den lokalen App-State, besitzen aber keine reproduzierbare authentifizierte Test-Session.
+- `npm run test:e2e -- --list`: ein Auth-Setup und zehn authentifizierte Produkt-Smokes werden korrekt erkannt. Der vollständige Lauf benötigt die nicht committeden Zugangsdaten eines separaten Supabase-Testprojekts in `.env.e2e.local`.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
 - `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
@@ -36,7 +36,7 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 
 ### 1.2 Deterministische Tests und Deployment
 
-- [ ] Playwright-Auth-Fixture einführen: eine lokale oder dedizierte Test-Supabase-Session über `storageState` bereitstellen, ohne Zugangsdaten zu committen. `resetToFreshLocalState()` darf nur den App-State löschen und nicht die Auth-Session.
+- [x] Playwright-Auth-Fixture eingeführt: `auth-setup` setzt ausschließlich einen vorab angelegten Account im separaten Supabase-Testprojekt auf die Hauptstadt-Fixture zurück, schreibt eine bereinigte und ignorierte `storageState`-Datei und lässt `resetToFreshLocalState()` nur `core.*` statt der Supabase-Session löschen.
 - [ ] Die E2E-Suite in zwei klare Gruppen teilen: Login-Gate/Auth-Fehlerfälle und authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent, Portabilität und Deck-Hierarchie.
 - [ ] E2E-Tests für Offline-Start, fehlende Supabase-Konfiguration und abgelaufene Session explizit ergänzen; derzeit sind diese Fälle nur teilweise über Modul-Tests abgedeckt.
 - [ ] Einen CI- oder Release-Job anlegen, der mindestens `npm test`, `npm run build` und `npm run test:e2e` mit der Test-Session ausführt. Secrets dürfen nur als CI-/Vercel-Secrets injiziert werden.

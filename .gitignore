@@ -9,4 +9,5 @@ npm-debug.log*
 vite-*.log
 test-results/
 playwright-report/
+playwright/.auth/
 !.env.example
