@@ -186,8 +186,7 @@ export function buildGemmaInteractionPayload({ question, evidence = [], sourceBo
     input: buildGemmaChatPrompt({ question, evidence, sourceBound }),
     generation_config: {
       temperature: 0.2,
-      thinking_level: "minimal",
-      max_output_tokens: 512,
+      max_output_tokens: 2048,
     },
   };
 }

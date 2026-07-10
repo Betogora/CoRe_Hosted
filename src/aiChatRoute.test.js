@@ -54,8 +54,8 @@ test("Gemma chat route builds a stateless allowlisted interaction payload", () =
   assert.equal(payload.model, GEMMA_CHAT_MODEL);
   assert.equal(payload.store, false);
   assert.equal(payload.generation_config.temperature, 0.2);
-  assert.equal(payload.generation_config.thinking_level, "minimal");
-  assert.equal(payload.generation_config.max_output_tokens, 512);
+  assert.equal("thinking_level" in payload.generation_config, false);
+  assert.equal(payload.generation_config.max_output_tokens, 2048);
   assert.match(payload.system_instruction, /quellengebundene/);
   assert.match(payload.input, /Myelinscheide/);
 });
