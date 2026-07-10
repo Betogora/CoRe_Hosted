@@ -197,12 +197,36 @@ export function extractGemmaOutputText(payload) {
   const outputSteps = Array.isArray(payload?.steps) ? payload.steps.filter((step) => step?.type === "model_output") : [];
   const lastOutput = outputSteps.at(-1);
   const content = Array.isArray(lastOutput?.content) ? lastOutput.content : [];
-
-  return content
+  const stepText = content
     .filter((item) => item?.type === "text" && typeof item.text === "string")
     .map((item) => item.text)
     .join("")
     .trim();
+
+  if (stepText) return stepText;
+
+  const legacyOutputs = Array.isArray(payload?.outputs) ? payload.outputs : [];
+  return legacyOutputs
+    .filter((item) => item?.type === "text" && typeof item.text === "string")
+    .map((item) => item.text)
+    .join("")
+    .trim();
+}
+
+function summarizeGemmaPayload(payload) {
+  const steps = Array.isArray(payload?.steps) ? payload.steps : [];
+  const modelOutputs = steps.filter((step) => step?.type === "model_output");
+  const contentTypes = modelOutputs.flatMap((step) => (Array.isArray(step?.content) ? step.content.map((item) => item?.type) : [])).filter(Boolean);
+  const legacyOutputs = Array.isArray(payload?.outputs) ? payload.outputs : [];
+
+  return {
+    status: typeof payload?.status === "string" ? payload.status : null,
+    hasOutputText: typeof payload?.output_text === "string",
+    stepTypes: [...new Set(steps.map((step) => step?.type).filter(Boolean))],
+    contentTypes: [...new Set(contentTypes)],
+    legacyOutputTypes: [...new Set(legacyOutputs.map((item) => item?.type).filter(Boolean))],
+    hasUsage: Boolean(payload?.usage && typeof payload.usage === "object"),
+  };
 }
 
 function sanitizeUsage(usage) {
@@ -231,6 +255,7 @@ async function callGemma({ apiKey, fetchImpl, question, evidence, sourceBound })
   }
 
   if (!response.ok) {
+    console.warn("[api/ai/chat] provider_error", { status: response.status });
     throw new HttpError(502, "Der KI-Anbieter konnte keine Antwort erstellen.", "provider_error");
   }
 
@@ -238,11 +263,13 @@ async function callGemma({ apiKey, fetchImpl, question, evidence, sourceBound })
   try {
     payload = await response.json();
   } catch {
+    console.warn("[api/ai/chat] provider_invalid_json", { status: response.status });
     throw new HttpError(502, "Die KI-Antwort konnte nicht gelesen werden.", "provider_invalid_json");
   }
 
   const answer = extractGemmaOutputText(payload);
   if (!answer) {
+    console.warn("[api/ai/chat] provider_empty_answer", summarizeGemmaPayload(payload));
     throw new HttpError(502, "Die KI-Antwort war leer.", "provider_empty_answer");
   }
 

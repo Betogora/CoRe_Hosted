@@ -69,6 +69,17 @@ test("Gemma chat route extracts text from Interactions API responses", () => {
   assert.equal(text, "Antwort aus Karten.");
 });
 
+test("Gemma chat route extracts text from legacy Interactions API outputs", () => {
+  const text = extractGemmaOutputText({
+    outputs: [
+      { type: "thought", text: "ignored" },
+      { type: "text", text: "Antwort aus dem Legacy-Schema." },
+    ],
+  });
+
+  assert.equal(text, "Antwort aus dem Legacy-Schema.");
+});
+
 test("Gemma chat route rejects missing GOOGLE_API_KEY before provider fetch", async () => {
   let fetchCalls = 0;
   const handler = createChatHandler({
@@ -132,6 +143,24 @@ test("Gemma chat route answers free questions without local card evidence", asyn
   assert.equal(res.statusCode, 200);
   assert.equal(res.json().answer, "Mir geht es gut.");
   assert.equal(fetchCalls, 1);
+});
+
+test("Gemma chat route accepts legacy provider output without exposing provider details", async () => {
+  const handler = createChatHandler({
+    env: { GOOGLE_API_KEY: "test-secret" },
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ outputs: [{ type: "text", text: "Legacy-Antwort." }] }),
+    }),
+  });
+  const res = createRes();
+
+  await handler(createReq({ body: { question: "Was macht Myelin?", evidence: [], sourceBound: false } }), res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.json().answer, "Legacy-Antwort.");
+  assert.equal(res.body.includes("test-secret"), false);
 });
 
 test("Gemma chat route requires local card evidence in source-bound mode before provider fetch", async () => {

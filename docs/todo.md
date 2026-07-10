@@ -14,7 +14,7 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
 - Der aktuelle Autosave ist ein debounceter Vollzustands-Upsert über `src/syncEngine.js` und `src/cloudRepository.js`. Die Queue lebt nur im Speicher; `reviewEventAppend` besitzt keinen produktiven Adapterpfad.
 - `src/creationWorkflow.js` verwendet weiterhin den lokalen `src/mediaStore.js`. `src/cloudMediaStore.js` ist separat getestet, aber noch nicht in Import, Cloud-State-Laden oder Karten-Rendering integriert.
-- Der einzige Server-KI-Pfad ist `POST /api/ai/chat`. Die Route prüft Origin, Request-Größe und Providerfehler, aber noch keine Supabase-Session, Nutzer-/IP-Limits oder Kostenbudgets. Der Browser sendet derzeit keinen Bearer-Token.
+- Der einzige Server-KI-Pfad ist `POST /api/ai/chat`. Die Route prüft Origin, Request-Größe und Providerfehler, liest aktuelle `steps`- sowie ältere `outputs`-Responses und protokolliert bei Providerfehlern nur sichere Strukturmetadaten. Supabase-Session, Nutzer-/IP-Limits und Kostenbudgets fehlen weiterhin; der Browser sendet derzeit keinen Bearer-Token.
 - Community, Graph, KI-Drafts, Varianten und Jobs sind weiterhin lokale Produktmodelle; nur Chat besitzt einen externen Gemma-Proxy.
 
 ## Reihenfolge
@@ -27,7 +27,7 @@ Solange ein P0-Gate offen ist, sind neue Produktfeatures nur als lokale Modul- o
 
 ## Aktives nächstes Ziel
 
-**P0-Release-Basis betriebsseitig abschließen.** Die lokale Code-, Build- und Browserbasis ist umgesetzt. Offen bleiben ausschließlich die Anwendung und Verifikation des URL-Vertrags in Hosted Supabase sowie die protokollierte Preview-/Production-Abnahme. Erst danach wird P1 „Cloud-Persistenz fachlich korrekt machen“ zum aktiven Ziel.
+**P0-Release-Basis betriebsseitig abschließen.** Die lokale Code-, Build- und Browserbasis ist umgesetzt und der URL-Vertrag ist in Hosted Supabase angewendet sowie per Reload verifiziert. Offen bleibt ausschließlich die protokollierte Preview-/Production-Abnahme. Erst danach wird P1 „Cloud-Persistenz fachlich korrekt machen“ zum aktiven Ziel.
 
 Verbindlicher URL-Vertrag:
 
@@ -39,7 +39,7 @@ Verbindlicher URL-Vertrag:
 Phasen und messbare Abnahme:
 
 - [x] Lokale P0-Implementierung: tiefer PDF.js-Viewer mit kontinuierlicher Anzeige, Fit-to-width, Navigation, Zoom, Textauswahl und `pageNumber`/`bbox`; Lazy-Loading der authentifizierten Screens; dynamischer APKG-Pfad; getrennte React-/Supabase-Chunks; harte 500-kB-Buildgrenze; Modul- und Browser-Smokes grün.
-- [ ] Hosted Supabase konfigurieren und prüfen: Site URL und genau die drei Redirect-Muster oben eintragen; Production bleibt exakt, Wildcard nur für Preview. Keine Secret- oder Auth-Daten dokumentieren.
+- [x] Hosted Supabase konfiguriert und geprüft: Site URL und genau die drei Redirect-Muster oben sind eingetragen; Production bleibt exakt, Wildcard nur für Preview. Der Dashboard-Readback nach Reload bestätigt alle vier Werte ohne Secret- oder Auth-Daten.
 - [ ] Release-Abnahme nach grünem CI: Preview-Smoke, staged Production mit `--skip-domain`, Kurzsmoke, Promotion und Production-Kurzsmoke. Nachweis mit Commit, CI-Lauf, Deployment-IDs, Zeiten und Ergebnissen ablegen.
 - [ ] Nach erfolgreicher Betriebsabnahme beide verbleibenden P0-Punkte schließen und P1 Cloud-Datenkorrektheit als aktives Ziel setzen.
 
@@ -59,7 +59,7 @@ Phasen und messbare Abnahme:
 - [x] E2E-Tests für Offline-Start, fehlende Supabase-Konfiguration und abgelaufene Session ergänzt. Die drei cloudfreien Smokes verwenden einen getrennten unkonfigurierten Vite-Port bzw. Browser-Routen für Netzwerkausfall und `session_expired`; alle drei sind grün und prüfen verständliche deutsche Fehlerzustände ohne Cloud-Mutation.
 - [x] GitHub-Actions-Release-Gate mit den stabilen Checks `quality` und `browser-e2e` angelegt. `quality` führt `npm test` und `npm run build` aus; `browser-e2e` startet den lokalen Supabase-Stack und alle Playwright-Smokes ohne Hosted-Zugangsdaten oder KI-Secrets. Fehlerberichte und Screenshots sowie Traces der sessionlosen Projekte werden sieben Tage als Artefakt aufbewahrt; Auth-Session und `.env`-Dateien sind ausgeschlossen.
 - [x] Preview-Smoke und Production-Rollback in `docs/specs.md` Abschnitt 14.2.2 dokumentiert: gruenes CI und fester Commit als Eingangsgate, eigener RLS-geschuetzter Smoke-Account, Login, Cloud-Laden, Review mit sichtbarem Save-Status, mutationsfreie APKG-Importvorschau, `/api/ai/chat` mit vorhandenem Key sowie verpflichtender fehlender-Key-Pruefung, Abmeldung, staged Production per `--skip-domain`, Promotion, konkrete Rollback-Trigger und der Hinweis, dass ein Vercel-Rollback keine Supabase-Daten oder Migrationen zuruecksetzt. Die erste echte Production-Abnahme bleibt ein auszufuehrender Betriebsnachweis, nicht Teil dieses Dokumentationspunkts.
-- [ ] URL-/Redirect-Pfad live anwenden und abnehmen: `https://core-hosted.vercel.app` ist als kanonische Production-URL entschieden; Hosted Supabase muss noch mit der Site URL sowie den exakten Production-, Preview- und lokalen Redirect-Mustern aus dem aktiven Ziel konfiguriert und verifiziert werden.
+- [x] URL-/Redirect-Pfad live angewendet und abgenommen: `https://core-hosted.vercel.app` ist kanonische Production- und Site-URL; Hosted Supabase enthält das exakte Production-, Preview- und lokale Redirect-Muster aus dem aktiven Ziel. Der Readback nach Reload bestätigt exakt drei Redirects und keine alte `localhost:3000`-Site-URL.
 - [x] App-Version, Build-Commit und Umgebung aus einem allowlist-basierten Vite-Buildvertrag sichtbar machen: `ReleaseInfo` erscheint am Login-Gate, in den Einstellungen und im React-Fehlerfallback. Die Error Boundary zeigt keine rohe Exception oder Nutzerdaten, bietet Neuladen und Startseiten-Rückkehr und ist über einen ausschließlich im E2E-Modus vorhandenen Renderfehler-Smoke geprüft; der Production-Build enthält den Testparameter nicht.
 - [x] `npm run build` ohne Chunk-Warnung: authentifizierte Screens laden per `React.lazy`, APKG/SQLite/Zstd bleibt hinter den asynchronen Workspace-Methoden dynamisch, React und Supabase liegen in eigenen Vendor-Chunks und der tiefe PDF.js-Viewer lädt Runtime und Worker separat. Ein manifestbasierter Postbuild-Check erzwingt maximal 500.000 Byte je JavaScript-Chunk; größter geprüfter Chunk ist PDF.js mit 431,65 kB.
 
@@ -184,7 +184,7 @@ Phasen und messbare Abnahme:
 - [x] Lokaler APKG-Medienspeicher, HTML-Safety, Rich Text, PDF-/Textauslesung und Quellenanker; produktive Cloud-Medienanbindung ist separat offen.
 - [x] Fullscreen-Review, vier Ratings, Tastatur, Review-Events, FSRS-like State, Fälligkeit, Varianten-Fallback und Originalanker.
 - [x] Lokale Community, Graph, Chat-/Lernplan-UI, AI-Job-Ledger und JSON-Portabilität als MVP-Modelle.
-- [x] Serverroute `/api/ai/chat` mit serverseitigem `GOOGLE_API_KEY`, Origin-/Payload-Prüfung, Gemma-Response-Parsing und lokalem Quellen-Fallback.
+- [x] Serverroute `/api/ai/chat` mit serverseitigem `GOOGLE_API_KEY`, Origin-/Payload-Prüfung, aktuellem `steps`- und Legacy-`outputs`-Gemma-Response-Parsing, secretsfreien Fehler-Metadaten und lokalem Quellen-Fallback.
 - [x] Breite Modul-Testabdeckung für Core-Modell, Import, Review, Varianten, Auth, Cloud-Mapping, Medien-Grundlage, Portabilität und Sync-Grundfunktionen.
 
 ## Referenzen
