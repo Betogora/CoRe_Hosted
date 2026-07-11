@@ -5,6 +5,8 @@ export const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
 
 const ACCOUNT_TABLES = ["decks", "cards", "card_variants", "review_events", "source_documents", "ai_jobs"];
 const REVISIONED_TABLES = ["source_documents", "decks", "cards", "card_variants", "ai_jobs"];
+const REVISIONED_TABLE_SET = new Set(REVISIONED_TABLES);
+const TABLES_WITH_UPDATED_AT = new Set(["source_documents", "decks", "cards", "card_variants"]);
 const DELETE_ORDER = ["ai_jobs", "review_events", "card_variants", "cards", "decks", "source_documents"];
 const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "revision", "updated_by_device_id"]);
 
@@ -13,15 +15,19 @@ function nowIso() {
 }
 
 export class CloudRevisionConflictError extends Error {
-  constructor({ entityTable, entityId, localRevision = null, remoteRevision = null, remoteDeleted = false } = {}) {
+  constructor({ entityTable, entityId, baseRevision = null, localRevision = null, remoteRevision = null, remoteDeleted = false, localValue = {}, remoteValue = {}, conflict = null } = {}) {
     super("Auf einem anderen Gerät liegt bereits eine neuere Version vor. Bitte lade die Cloud-Daten neu.");
     this.name = "CloudRevisionConflictError";
     this.code = "cloud_revision_conflict";
     this.entityTable = entityTable ?? "unknown";
     this.entityId = entityId ?? "unknown";
+    this.baseRevision = baseRevision;
     this.localRevision = localRevision;
     this.remoteRevision = remoteRevision;
     this.remoteDeleted = Boolean(remoteDeleted);
+    this.localValue = localValue;
+    this.remoteValue = remoteValue;
+    this.conflict = conflict;
   }
 }
 
@@ -66,6 +72,14 @@ function comparableRow(row = {}) {
 
 function rowsHaveSameContent(left, right) {
   return JSON.stringify(stableValue(comparableRow(left))) === JSON.stringify(stableValue(comparableRow(right)));
+}
+
+function conflictValue(row = {}) {
+  return Object.fromEntries(Object.entries(row).filter(([key]) => key !== "user_id"));
+}
+
+function conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision }) {
+  return ["sync-conflict", entityTable, entityId, baseRevision ?? "new", remoteRevision ?? "missing"].map((value) => encodeURIComponent(String(value))).join(":");
 }
 
 function profileHasSameContent(profile, user, remoteRow) {
@@ -151,6 +165,78 @@ async function selectOptionalRows(client, table, userId, columns = "*") {
     throw error;
   }
   return data ?? [];
+}
+
+async function selectRowById(client, table, userId, entityId, columns = "*") {
+  const { data, error } = await client.from(table).select(columns).eq("user_id", userId).eq("id", entityId).maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
+
+function requireBaseRevision(value) {
+  if (value === null) return null;
+  const revision = Number(value);
+  if (!Number.isInteger(revision) || revision < 1) throw new Error("Basisrevision ist ungültig.");
+  return revision;
+}
+
+async function markConflictForUser(client, user, input = {}, { deviceId, createdAt } = {}) {
+  const entityTable = requireNonEmptyString(input.entityTable, "Konflikttabelle fehlt.");
+  const entityId = requireNonEmptyString(input.entityId, "Konfliktentität fehlt.");
+  const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
+  const resolvedCreatedAt = requireTimestamp(createdAt, nowIso, "Konfliktzeitpunkt ist ungültig.");
+  const baseRevision = input.baseRevision == null ? null : requireBaseRevision(input.baseRevision);
+  const localRevision = input.localRevision == null ? null : normalizeRevision(input.localRevision);
+  const remoteRevision = input.remoteRevision == null ? null : normalizeRevision(input.remoteRevision);
+  const id = conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision });
+  const row = {
+    id,
+    user_id: user.id,
+    entity_table: entityTable,
+    entity_id: entityId,
+    base_revision: baseRevision,
+    local_revision: localRevision,
+    remote_revision: remoteRevision,
+    local_value: conflictValue(input.localValue),
+    remote_value: conflictValue(input.remoteValue),
+    status: "open",
+    resolution: {},
+    updated_by_device_id: resolvedDeviceId,
+    created_at: resolvedCreatedAt,
+  };
+  const { error } = await client.from("sync_conflicts").upsert(row, {
+    onConflict: ACCOUNT_UPSERT_CONFLICT,
+    ignoreDuplicates: true,
+  });
+  if (error) throw error;
+  const persisted = await selectRowById(client, "sync_conflicts", user.id, id);
+  if (!persisted) throw new Error("Der Synchronisierungskonflikt konnte nicht bestätigt werden.");
+  return syncConflictFromRow(persisted);
+}
+
+async function throwRevisionConflict(client, user, { entityTable, entityId, baseRevision, localValue, remoteValue, deviceId, createdAt }) {
+  const remoteRevision = remoteValue?.revision == null ? null : normalizeRevision(remoteValue.revision);
+  const localRevision = localValue?.revision == null ? baseRevision : normalizeRevision(localValue.revision);
+  const conflict = await markConflictForUser(client, user, {
+    entityTable,
+    entityId,
+    baseRevision,
+    localRevision,
+    remoteRevision,
+    localValue,
+    remoteValue,
+  }, { deviceId, createdAt });
+  throw new CloudRevisionConflictError({
+    entityTable,
+    entityId,
+    baseRevision,
+    localRevision,
+    remoteRevision,
+    remoteDeleted: Boolean(remoteValue?.deleted_at),
+    localValue: conflictValue(localValue),
+    remoteValue: conflictValue(remoteValue),
+    conflict,
+  });
 }
 
 async function deleteRowsById(client, table, userId, ids) {
@@ -682,35 +768,38 @@ async function loadAccountRows(client, userId) {
   return Object.fromEntries(ACCOUNT_TABLES.map((table, index) => [table, values[index]]));
 }
 
-function createRevisionWritePlans(desiredRows, remoteRows) {
+function createRevisionWritePlans(desiredRows, remoteRows, tombstones = []) {
   const plans = {};
 
   for (const table of REVISIONED_TABLES) {
     const remoteById = new Map(toArray(remoteRows[table]).map((row) => [row.id, row]));
     plans[table] = toArray(desiredRows[table]).map((row) => {
       const remoteRow = remoteById.get(row.id);
-      if (!remoteRow) return { type: "insert", row: { ...row, revision: 1 } };
-
-      if (remoteRow.deleted_at && !row.deleted_at) {
-        throw new CloudRevisionConflictError({
-          entityTable: table,
-          entityId: row.id,
-          localRevision: normalizeRevision(row.revision),
-          remoteRevision: normalizeRevision(remoteRow.revision),
-          remoteDeleted: true,
-        });
-      }
-
+      if (!remoteRow) return row.deleted_at ? { type: "unchanged", row } : { type: "insert", row: { ...row, revision: 1 }, baseRevision: null, remoteRow: null };
+      if (row.deleted_at && remoteRow.deleted_at) return { type: "unchanged", row: remoteRow };
       if (rowsHaveSameContent(row, remoteRow)) return { type: "unchanged", row: remoteRow };
-
       const localRevision = normalizeRevision(row.revision);
-      const remoteRevision = normalizeRevision(remoteRow.revision);
-      if (localRevision !== remoteRevision) {
-        throw new CloudRevisionConflictError({ entityTable: table, entityId: row.id, localRevision, remoteRevision });
+      if (row.deleted_at) {
+        return { type: "delete", row, baseRevision: localRevision, deletedAt: row.deleted_at, remoteRow };
       }
-
-      return { type: "update", row, baseRevision: localRevision };
+      return { type: "update", row, baseRevision: localRevision, remoteRow };
     });
+
+    const plannedIds = new Set(plans[table].map((plan) => plan.row?.id).filter(Boolean));
+    for (const tombstone of toArray(tombstones).filter((item) => item?.entityTable === table && item?.entityId && !plannedIds.has(item.entityId))) {
+      const remoteRow = remoteById.get(tombstone.entityId) ?? null;
+      if (!remoteRow || remoteRow.deleted_at) {
+        plans[table].push({ type: "unchanged", row: remoteRow ?? { id: tombstone.entityId } });
+        continue;
+      }
+      plans[table].push({
+        type: "delete",
+        row: { id: tombstone.entityId },
+        baseRevision: normalizeRevision(tombstone.revision),
+        deletedAt: tombstone.deletedAt,
+        remoteRow,
+      });
+    }
   }
 
   return plans;
@@ -724,6 +813,180 @@ function updatePayload(row, { revision, deviceId, now }) {
   return payload;
 }
 
+function revisionMutationResult(entityTable, row, { applied = false, idempotent = false } = {}) {
+  return {
+    entityTable,
+    entityId: row?.id ?? null,
+    revision: row?.revision == null ? null : normalizeRevision(row.revision),
+    deletedAt: row?.deleted_at ?? null,
+    updatedByDeviceId: row?.updated_by_device_id ?? null,
+    applied,
+    idempotent,
+  };
+}
+
+async function applyRevisionedRowMutation(client, user, entityTable, desiredRow, options = {}) {
+  if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Nicht revisionierbare Cloud-Tabelle: ${entityTable}`);
+  const entityId = requireNonEmptyString(desiredRow?.id, "Entitäts-ID fehlt.");
+  const deviceId = requireNonEmptyString(options.deviceId, "Geräte-ID fehlt.");
+  if (!Object.hasOwn(options, "baseRevision")) throw new Error("Basisrevision fehlt.");
+  const baseRevision = requireBaseRevision(options.baseRevision);
+  const flushedAt = requireTimestamp(options.flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
+  const writeNow = () => flushedAt;
+  const row = { ...desiredRow, id: entityId, user_id: user.id };
+  let remoteRow = Object.hasOwn(options, "remoteRow") ? options.remoteRow : await selectRowById(client, entityTable, user.id, entityId);
+
+  if (remoteRow && rowsHaveSameContent(row, remoteRow)) {
+    return revisionMutationResult(entityTable, remoteRow, { idempotent: true });
+  }
+
+  if (!remoteRow) {
+    if (baseRevision !== null) {
+      return throwRevisionConflict(client, user, {
+        entityTable,
+        entityId,
+        baseRevision,
+        localValue: row,
+        remoteValue: {},
+        deviceId,
+        createdAt: flushedAt,
+      });
+    }
+    const candidate = {
+      ...row,
+      revision: 1,
+      updated_by_device_id: deviceId,
+    };
+    const { data, error } = await client.from(entityTable).insert(candidate).select("*");
+    if (!error && data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });
+    if (error && String(error.code ?? "") !== "23505" && !/duplicate/i.test(error.message ?? "")) throw error;
+    remoteRow = await selectRowById(client, entityTable, user.id, entityId);
+    if (remoteRow && rowsHaveSameContent(candidate, remoteRow)) {
+      return revisionMutationResult(entityTable, remoteRow, { idempotent: true });
+    }
+    return throwRevisionConflict(client, user, {
+      entityTable,
+      entityId,
+      baseRevision,
+      localValue: candidate,
+      remoteValue: remoteRow ?? {},
+      deviceId,
+      createdAt: flushedAt,
+    });
+  }
+
+  if (baseRevision === null || remoteRow.deleted_at || normalizeRevision(remoteRow.revision) !== baseRevision) {
+    return throwRevisionConflict(client, user, {
+      entityTable,
+      entityId,
+      baseRevision,
+      localValue: row,
+      remoteValue: remoteRow,
+      deviceId,
+      createdAt: flushedAt,
+    });
+  }
+
+  const nextRevision = baseRevision + 1;
+  const payload = updatePayload(row, { revision: nextRevision, deviceId, now: writeNow });
+  const { data, error } = await client
+    .from(entityTable)
+    .update(payload)
+    .eq("user_id", user.id)
+    .eq("id", entityId)
+    .eq("revision", baseRevision)
+    .select("*");
+  if (error) throw error;
+  if (data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });
+
+  remoteRow = await selectRowById(client, entityTable, user.id, entityId);
+  if (remoteRow && rowsHaveSameContent({ ...row, revision: nextRevision, updated_by_device_id: deviceId }, remoteRow)) {
+    return revisionMutationResult(entityTable, remoteRow, { idempotent: true });
+  }
+  return throwRevisionConflict(client, user, {
+    entityTable,
+    entityId,
+    baseRevision,
+    localValue: row,
+    remoteValue: remoteRow ?? {},
+    deviceId,
+    createdAt: flushedAt,
+  });
+}
+
+export async function applyDeckMutation(client, deck, options = {}) {
+  const user = await getAuthenticatedUser(client);
+  return applyRevisionedRowMutation(client, user, "decks", deckToCloudRow(deck, user.id), options);
+}
+
+export async function applyCardMutation(client, card, options = {}) {
+  const user = await getAuthenticatedUser(client);
+  const deckId = requireNonEmptyString(options.deckId ?? card?.deckId, "Deck-ID der Karte fehlt.");
+  return applyRevisionedRowMutation(client, user, "cards", cardToCloudRow(card, { id: deckId, source: card?.source }, user.id), options);
+}
+
+async function softDeleteEntityForUser(client, user, input = {}, options = {}) {
+  const entityTable = requireNonEmptyString(input.entityTable, "Tabelle für Soft-Delete fehlt.");
+  if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Soft-Delete ist für diese Tabelle nicht erlaubt: ${entityTable}`);
+  const entityId = requireNonEmptyString(input.entityId, "Entitäts-ID für Soft-Delete fehlt.");
+  const baseRevision = requireBaseRevision(input.baseRevision);
+  const deviceId = requireNonEmptyString(options.deviceId, "Geräte-ID fehlt.");
+  const deletedAt = requireTimestamp(input.deletedAt ?? options.flushedAt, nowIso, "Löschzeitpunkt ist ungültig.");
+  const remoteRow = Object.hasOwn(options, "remoteRow") ? options.remoteRow : await selectRowById(client, entityTable, user.id, entityId);
+
+  if (!remoteRow) return revisionMutationResult(entityTable, { id: entityId }, { idempotent: true });
+  if (remoteRow.deleted_at) return revisionMutationResult(entityTable, remoteRow, { idempotent: true });
+  if (normalizeRevision(remoteRow.revision) !== baseRevision) {
+    return throwRevisionConflict(client, user, {
+      entityTable,
+      entityId,
+      baseRevision,
+      localValue: { id: entityId, revision: baseRevision, deleted_at: deletedAt },
+      remoteValue: remoteRow,
+      deviceId,
+      createdAt: deletedAt,
+    });
+  }
+
+  const payload = {
+    deleted_at: deletedAt,
+    revision: baseRevision + 1,
+    updated_by_device_id: deviceId,
+    ...(TABLES_WITH_UPDATED_AT.has(entityTable) ? { updated_at: deletedAt } : {}),
+  };
+  const { data, error } = await client
+    .from(entityTable)
+    .update(payload)
+    .eq("user_id", user.id)
+    .eq("id", entityId)
+    .eq("revision", baseRevision)
+    .select("*");
+  if (error) throw error;
+  if (data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });
+
+  const latest = await selectRowById(client, entityTable, user.id, entityId);
+  if (!latest || latest.deleted_at) return revisionMutationResult(entityTable, latest ?? { id: entityId }, { idempotent: true });
+  return throwRevisionConflict(client, user, {
+    entityTable,
+    entityId,
+    baseRevision,
+    localValue: { id: entityId, revision: baseRevision, deleted_at: deletedAt },
+    remoteValue: latest,
+    deviceId,
+    createdAt: deletedAt,
+  });
+}
+
+export async function softDeleteEntity(client, input, options = {}) {
+  const user = await getAuthenticatedUser(client);
+  return softDeleteEntityForUser(client, user, input, options);
+}
+
+export async function markConflict(client, input, options = {}) {
+  const user = await getAuthenticatedUser(client);
+  return markConflictForUser(client, user, input, options);
+}
+
 async function insertRowsReturning(client, table, rows) {
   if (!rows.length) return [];
   const { data, error } = await client.from(table).insert(rows).select("*");
@@ -731,31 +994,7 @@ async function insertRowsReturning(client, table, rows) {
   return data ?? [];
 }
 
-async function updateRevisionedRow(client, table, userId, plan, { deviceId, now }) {
-  const nextRevision = plan.baseRevision + 1;
-  const payload = updatePayload(plan.row, { revision: nextRevision, deviceId, now });
-  const { data, error } = await client
-    .from(table)
-    .update(payload)
-    .eq("user_id", userId)
-    .eq("id", plan.row.id)
-    .eq("revision", plan.baseRevision)
-    .select("*");
-  if (error) throw error;
-  if (data?.[0]) return data[0];
-
-  const latestRows = await selectRows(client, table, userId, "id,revision,deleted_at");
-  const remoteRow = latestRows.find((row) => row.id === plan.row.id);
-  throw new CloudRevisionConflictError({
-    entityTable: table,
-    entityId: plan.row.id,
-    localRevision: plan.baseRevision,
-    remoteRevision: remoteRow?.revision ?? null,
-    remoteDeleted: Boolean(remoteRow?.deleted_at),
-  });
-}
-
-async function applyRevisionWritePlans(client, userId, plans, { deviceId, now }) {
+async function applyRevisionWritePlans(client, user, plans, { deviceId, flushedAt }) {
   for (const table of REVISIONED_TABLES) {
     const inserts = plans[table]
       .filter((plan) => plan.type === "insert")
@@ -764,10 +1003,41 @@ async function applyRevisionWritePlans(client, userId, plans, { deviceId, now })
         revision: 1,
         updated_by_device_id: deviceId ?? plan.row.updated_by_device_id ?? null,
       }));
-    await insertRowsReturning(client, table, inserts);
+    if (inserts.length) {
+      try {
+        await insertRowsReturning(client, table, inserts);
+      } catch (error) {
+        if (String(error?.code ?? "") !== "23505" && !/duplicate/i.test(error?.message ?? "")) throw error;
+        for (const plan of plans[table].filter((item) => item.type === "insert")) {
+          await applyRevisionedRowMutation(client, user, table, plan.row, {
+            deviceId,
+            baseRevision: null,
+            flushedAt,
+          });
+        }
+      }
+    }
 
     for (const plan of plans[table].filter((item) => item.type === "update")) {
-      await updateRevisionedRow(client, table, userId, plan, { deviceId, now });
+      await applyRevisionedRowMutation(client, user, table, plan.row, {
+        deviceId,
+        baseRevision: plan.baseRevision,
+        flushedAt,
+        remoteRow: plan.remoteRow,
+      });
+    }
+
+    for (const plan of plans[table].filter((item) => item.type === "delete")) {
+      await softDeleteEntityForUser(client, user, {
+        entityTable: table,
+        entityId: plan.row.id,
+        baseRevision: plan.baseRevision,
+        deletedAt: plan.deletedAt,
+      }, {
+        deviceId,
+        flushedAt,
+        remoteRow: plan.remoteRow,
+      });
     }
   }
 }
@@ -794,6 +1064,12 @@ export async function appendReviewEvent(client, event, { deviceId, mutationId } 
     ignoreDuplicates: true,
   });
   if (error) throw error;
+  const persisted = await selectRowById(client, "review_events", user.id, row.id);
+  if (!persisted || !rowsHaveSameContent(row, persisted)) {
+    const mismatch = new Error("Das Review-Event konnte nicht unverändert in der Cloud bestätigt werden.");
+    mismatch.code = "review_event_confirmation_failed";
+    throw mismatch;
+  }
   return { eventId: row.id, acknowledgedMutationId: resolvedMutationId };
 }
 
@@ -835,13 +1111,12 @@ export async function upsertAccountCloudState(client, state, { deviceId, mutatio
   const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
   const acknowledgedMutationIds = requireMutationIds(mutationIds);
   const writeTimestamp = requireTimestamp(flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
-  const writeNow = () => writeTimestamp;
   const user = await getAuthenticatedUser(client);
   const desiredRows = createCloudStateRows(state, user.id, { deviceId: resolvedDeviceId });
   const [remoteRows, profileRows] = await Promise.all([loadAccountRows(client, user.id), selectProfileRows(client, user.id)]);
-  const plans = createRevisionWritePlans(desiredRows, remoteRows);
+  const plans = createRevisionWritePlans(desiredRows, remoteRows, state.cloudTombstones);
 
-  await applyRevisionWritePlans(client, user.id, plans, { deviceId: resolvedDeviceId, now: writeNow });
+  await applyRevisionWritePlans(client, user, plans, { deviceId: resolvedDeviceId, flushedAt: writeTimestamp });
   await appendMissingReviewEvents(client, desiredRows.review_events, remoteRows.review_events, { deviceId: resolvedDeviceId });
   if (!profileHasSameContent(state.profile ?? {}, user, profileRows[0] ?? null)) {
     await saveCloudProfile(client, state.profile ?? {});

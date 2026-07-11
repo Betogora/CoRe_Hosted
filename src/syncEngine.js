@@ -170,6 +170,25 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
           flushedAt: now(),
         };
 
+        const remaining = batch.filter((mutation) => mutation.type !== SYNC_MUTATION_TYPES.statePatch);
+        if (remaining.length > 0 && adapter.applyMutationBatch) {
+          try {
+            const batchResult = await adapter.applyMutationBatch(remaining, { deviceId: syncDevice.id, flushedAt: result.flushedAt });
+            result.conflicts = batchResult?.conflicts ?? [];
+            const remainingIds = new Set(remaining.map((mutation) => mutation.id));
+            const acknowledgedMutationIds = (batchResult?.acknowledgedMutationIds ?? []).filter((id) => remainingIds.has(id));
+            const failedMutationIds = (batchResult?.failedMutationIds ?? []).filter((id) => remainingIds.has(id));
+            outbox.markFlushed(acknowledgedMutationIds, result.flushedAt);
+            outbox.remove(acknowledgedMutationIds);
+            outbox.markFailed(failedMutationIds, new Error("Mutation konnte nicht synchronisiert werden."));
+          } catch (error) {
+            outbox.markFailed(remaining.map((mutation) => mutation.id), error);
+            throw error;
+          }
+        } else if (remaining.length > 0) {
+          outbox.markFailed(remaining.map((mutation) => mutation.id), new Error("Sync-Adapter unterstützt diese Mutation nicht."));
+        }
+
         if (latestStatePatch?.payload?.state) {
           const statePatchIds = batch.filter((mutation) => mutation.type === SYNC_MUTATION_TYPES.statePatch).map((mutation) => mutation.id);
           try {
@@ -189,25 +208,6 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
             outbox.markFailed(statePatchIds, error);
             throw error;
           }
-        }
-
-        const remaining = batch.filter((mutation) => mutation.type !== SYNC_MUTATION_TYPES.statePatch);
-        if (remaining.length > 0 && adapter.applyMutationBatch) {
-          try {
-            const batchResult = await adapter.applyMutationBatch(remaining, { deviceId: syncDevice.id, flushedAt: result.flushedAt });
-            result.conflicts = batchResult?.conflicts ?? [];
-            const remainingIds = new Set(remaining.map((mutation) => mutation.id));
-            const acknowledgedMutationIds = (batchResult?.acknowledgedMutationIds ?? []).filter((id) => remainingIds.has(id));
-            const failedMutationIds = (batchResult?.failedMutationIds ?? []).filter((id) => remainingIds.has(id));
-            outbox.markFlushed(acknowledgedMutationIds, result.flushedAt);
-            outbox.remove(acknowledgedMutationIds);
-            outbox.markFailed(failedMutationIds, new Error("Mutation konnte nicht synchronisiert werden."));
-          } catch (error) {
-            outbox.markFailed(remaining.map((mutation) => mutation.id), error);
-            throw error;
-          }
-        } else if (remaining.length > 0) {
-          outbox.markFailed(remaining.map((mutation) => mutation.id), new Error("Sync-Adapter unterstützt diese Mutation nicht."));
         }
 
         lastFlush = result;

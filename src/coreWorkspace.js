@@ -40,6 +40,7 @@ function softDeleteCard(card, deletedAt) {
   return {
     ...card,
     status: "deleted",
+    deletedAt,
     updatedAt: deletedAt,
     versionLog: [
       ...(card.versionLog ?? []),
@@ -121,6 +122,40 @@ function createDeckMutationError(error) {
     updatedDecks: [],
     changedDeckIds: [],
   };
+}
+
+function mergeCloudTombstones(existing = [], next = []) {
+  const byEntity = new Map(existing.map((tombstone) => [`${tombstone.entityTable}:${tombstone.entityId}`, tombstone]));
+  for (const tombstone of next) byEntity.set(`${tombstone.entityTable}:${tombstone.entityId}`, tombstone);
+  return [...byEntity.values()];
+}
+
+function createDeckTreeTombstones(decks, deletedAt) {
+  return decks.flatMap((deck) => [
+    {
+      entityTable: "decks",
+      entityId: deck.id,
+      revision: deck.revision ?? 1,
+      deletedAt,
+      updatedByDeviceId: deck.updatedByDeviceId ?? null,
+    },
+    ...(deck.cards ?? []).flatMap((card) => [
+      {
+        entityTable: "cards",
+        entityId: card.id,
+        revision: card.revision ?? 1,
+        deletedAt,
+        updatedByDeviceId: card.updatedByDeviceId ?? null,
+      },
+      ...(card.variants ?? []).map((variant) => ({
+        entityTable: "card_variants",
+        entityId: variant.id,
+        revision: variant.revision ?? 1,
+        deletedAt,
+        updatedByDeviceId: variant.updatedByDeviceId ?? null,
+      })),
+    ]),
+  ]);
 }
 
 function updateDeckTreePlacement(state, { deckId, name = null, parentDeckId = undefined, changeType, reason }) {
@@ -322,9 +357,11 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
       const deletedIds = collectDeckTreeIds(state.decks, deckId);
       const deletedDecks = state.decks.filter((item) => deletedIds.has(item.id));
       const remainingDecks = state.decks.filter((item) => !deletedIds.has(item.id));
+      const deletedAt = new Date().toISOString();
       repository.saveState({
         ...state,
         decks: remainingDecks,
+        cloudTombstones: mergeCloudTombstones(state.cloudTombstones, createDeckTreeTombstones(deletedDecks, deletedAt)),
       });
 
       return {

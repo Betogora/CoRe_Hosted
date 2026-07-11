@@ -4,6 +4,8 @@ import { createProfileRow } from "./cloudAuth.js";
 import { createBasicLearningItem, createCoreDeck, createSourceDocument, getOriginalVariant } from "./coreModel.js";
 import {
   ACCOUNT_UPSERT_CONFLICT,
+  applyCardMutation,
+  applyDeckMutation,
   appendReviewEvent,
   cardToCloudRow,
   CloudRevisionConflictError,
@@ -14,6 +16,7 @@ import {
   registerAccountSyncDevice,
   replaceAccountCloudState,
   reviewEventToCloudRow,
+  softDeleteEntity,
   upsertAccountCloudState,
   variantToCloudRow,
 } from "./cloudRepository.js";
@@ -565,6 +568,77 @@ test("matching revisions update only changed rows and acknowledge the next revis
   assert.deepEqual(result.acknowledgedMutationIds, ["state-mutation-1"]);
 });
 
+test("concrete deck and card mutations insert, compare-and-set and replay idempotently", async () => {
+  const fixture = createCloudFixture();
+  const rows = clone(fixture.rows);
+  rows.decks = [];
+  rows.cards = [];
+  rows.card_variants = [];
+  rows.review_events = [];
+  rows.ai_jobs = [];
+  const client = createMemorySupabaseClient(rows, fixture.user);
+  const deck = { ...fixture.state.decks[0], revision: 1, cards: [] };
+
+  const insertedDeck = await applyDeckMutation(client, deck, {
+    deviceId: "device-b",
+    baseRevision: null,
+    flushedAt: "2026-07-10T11:00:00.000Z",
+  });
+  const updatedDeck = { ...deck, name: "Konkretes Deck", updatedAt: "2026-07-10T12:00:00.000Z", revision: 1 };
+  const firstDeckUpdate = await applyDeckMutation(client, updatedDeck, {
+    deviceId: "device-b",
+    baseRevision: 1,
+    flushedAt: "2026-07-10T12:00:00.000Z",
+  });
+  const replayedDeckUpdate = await applyDeckMutation(client, updatedDeck, {
+    deviceId: "device-b",
+    baseRevision: 1,
+    flushedAt: "2026-07-10T12:00:00.000Z",
+  });
+
+  const card = { ...fixture.state.decks[0].cards[0], deckId: deck.id, revision: 1 };
+  const insertedCard = await applyCardMutation(client, card, {
+    deckId: deck.id,
+    deviceId: "device-b",
+    baseRevision: null,
+    flushedAt: "2026-07-10T12:00:00.000Z",
+  });
+
+  assert.equal(insertedDeck.revision, 1);
+  assert.equal(firstDeckUpdate.revision, 2);
+  assert.equal(firstDeckUpdate.applied, true);
+  assert.equal(replayedDeckUpdate.revision, 2);
+  assert.equal(replayedDeckUpdate.idempotent, true);
+  assert.equal(client.tables.decks[0].name, "Konkretes Deck");
+  assert.equal(client.tables.decks[0].updated_by_device_id, "device-b");
+  assert.equal(insertedCard.revision, 1);
+  assert.equal(client.tables.cards[0].deck_id, deck.id);
+});
+
+test("soft deletes are revision-checked, idempotent and restricted to revisioned tables", async () => {
+  const fixture = createCloudFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const input = {
+    entityTable: "cards",
+    entityId: "card-1",
+    baseRevision: 2,
+    deletedAt: "2026-07-10T13:00:00.000Z",
+  };
+
+  const first = await softDeleteEntity(client, input, { deviceId: "device-b" });
+  const replay = await softDeleteEntity(client, input, { deviceId: "device-b" });
+
+  assert.equal(first.applied, true);
+  assert.equal(first.revision, 3);
+  assert.equal(replay.idempotent, true);
+  assert.equal(client.tables.cards[0].deleted_at, input.deletedAt);
+  assert.equal(client.calls.filter((call) => call.table === "cards" && call.operation === "update").length, 1);
+  await assert.rejects(
+    () => softDeleteEntity(client, { ...input, entityTable: "review_events" }, { deviceId: "device-b" }),
+    /nicht erlaubt/,
+  );
+});
+
 test("state mutations are not acknowledged when the persisted-state reload fails", async () => {
   const fixture = createCloudFixture();
   let deckSelectCount = 0;
@@ -604,9 +678,16 @@ test("newer remote revisions and remote tombstones reject stale writes before mu
 
   await assert.rejects(
     () => upsertAccountCloudState(staleClient, localState, { deviceId: "device-b" }),
-    (error) => error instanceof CloudRevisionConflictError && error.remoteRevision === 4 && error.remoteDeleted === false,
+    (error) => error instanceof CloudRevisionConflictError && error.remoteRevision === 4 && error.remoteDeleted === false && error.conflict?.status === "open",
   );
-  assert.equal(staleClient.calls.some((call) => ["insert", "upsert", "update", "delete"].includes(call.operation)), false);
+  assert.equal(staleClient.calls.some((call) => call.table === "decks" && ["insert", "update", "delete"].includes(call.operation)), false);
+  assert.equal(staleClient.tables.sync_conflicts.length, 1);
+  const conflictId = staleClient.tables.sync_conflicts[0].id;
+  staleClient.tables.sync_conflicts[0].status = "resolved";
+  await assert.rejects(() => upsertAccountCloudState(staleClient, localState, { deviceId: "device-b" }), CloudRevisionConflictError);
+  assert.equal(staleClient.tables.sync_conflicts.length, 1);
+  assert.equal(staleClient.tables.sync_conflicts[0].id, conflictId);
+  assert.equal(staleClient.tables.sync_conflicts[0].status, "resolved");
 
   const deletedRows = clone(fixture.rows);
   deletedRows.cards[0].deleted_at = "2026-07-10T12:00:00.000Z";
@@ -614,9 +695,9 @@ test("newer remote revisions and remote tombstones reject stale writes before mu
   const deletedClient = createMemorySupabaseClient(deletedRows, fixture.user);
   await assert.rejects(
     () => upsertAccountCloudState(deletedClient, fixture.state, { deviceId: "device-b" }),
-    (error) => error instanceof CloudRevisionConflictError && error.entityTable === "cards" && error.remoteDeleted === true,
+    (error) => error instanceof CloudRevisionConflictError && error.entityTable === "cards" && error.remoteDeleted === true && error.conflict?.entityId === "card-1",
   );
-  assert.equal(deletedClient.calls.some((call) => ["insert", "upsert", "update", "delete"].includes(call.operation)), false);
+  assert.equal(deletedClient.calls.some((call) => call.table === "cards" && ["insert", "update", "delete"].includes(call.operation)), false);
 });
 
 test("review events are append-only, idempotent and receive the creating device", async () => {
@@ -660,6 +741,46 @@ test("single review event append is idempotent and stores the device id", async 
   assert.equal(client.calls.filter((call) => call.table === "review_events" && call.operation === "upsert").length, 2);
   assert.deepEqual(first, { eventId: event.id, acknowledgedMutationId: "mutation-1" });
   assert.deepEqual(second, { eventId: event.id, acknowledgedMutationId: "mutation-1" });
+});
+
+test("review event append refuses to acknowledge a different persisted event with the same id", async () => {
+  const fixture = createCloudFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const changedEvent = { ...fixture.state.decks[0].reviewEvents[0], rating: "easy" };
+
+  await assert.rejects(
+    () => appendReviewEvent(client, changedEvent, { deviceId: "device-b", mutationId: "mutation-conflict" }),
+    (error) => error?.code === "review_event_confirmation_failed",
+  );
+  assert.equal(client.tables.review_events[0].rating, "good");
+});
+
+test("state tombstones soft-delete removed deck trees before acknowledging the snapshot", async () => {
+  const fixture = createCloudFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const deletedAt = "2026-07-10T14:00:00.000Z";
+  const state = {
+    ...fixture.state,
+    decks: [],
+    cloudTombstones: [
+      { entityTable: "decks", entityId: "deck-1", revision: 3, deletedAt },
+      { entityTable: "cards", entityId: "card-1", revision: 2, deletedAt },
+      { entityTable: "card_variants", entityId: fixture.rows.card_variants[0].id, revision: 2, deletedAt },
+    ],
+  };
+
+  const result = await upsertAccountCloudState(client, state, {
+    deviceId: "device-b",
+    mutationIds: ["delete-tree-1"],
+    flushedAt: deletedAt,
+  });
+
+  assert.equal(client.tables.decks[0].deleted_at, deletedAt);
+  assert.equal(client.tables.cards[0].deleted_at, deletedAt);
+  assert.equal(client.tables.card_variants[0].deleted_at, deletedAt);
+  assert.deepEqual(result.acknowledgedMutationIds, ["delete-tree-1"]);
+  assert.equal(result.state.decks.length, 0);
+  assert.equal(result.state.cloudTombstones.length >= 3, true);
 });
 
 test("cloud mutation writes require explicit device and mutation identifiers", async () => {

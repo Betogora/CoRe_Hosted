@@ -180,6 +180,32 @@ test("mixed flush acknowledges snapshot and review mutations through separate re
   assert.equal(engine.pendingCount(), 0);
 });
 
+test("confirmed review events leave the outbox even when the following snapshot reports a conflict", async () => {
+  const outbox = createTestOutbox();
+  const conflictError = new Error("stale snapshot");
+  conflictError.code = "cloud_revision_conflict";
+  conflictError.conflict = { id: "conflict-1", entityId: "card-1", status: "open" };
+  const engine = createSyncEngine({
+    device: testDevice,
+    outbox,
+    adapter: {
+      async applyMutationBatch(mutations) {
+        return { acknowledgedMutationIds: mutations.map((mutation) => mutation.id), failedMutationIds: [], conflicts: [] };
+      },
+      async upsertState() {
+        throw conflictError;
+      },
+    },
+  });
+  engine.enqueueMutation({ id: "state-conflict", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [] } } });
+  engine.enqueueMutation({ id: "review-confirmed", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
+
+  await assert.rejects(() => engine.flush(), (error) => error === conflictError);
+
+  assert.deepEqual(outbox.listPending().map((mutation) => mutation.id), ["state-conflict"]);
+  assert.equal(outbox.listPending()[0].retryCount, 1);
+});
+
 test("snapshot mutations stay pending when the repository omits acknowledgements", async () => {
   const engine = createSyncEngine({
     device: testDevice,

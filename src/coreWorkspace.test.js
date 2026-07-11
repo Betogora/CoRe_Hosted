@@ -234,6 +234,10 @@ test("workspace creates manual deck trees and deletes a selected subtree", () =>
   assert.equal(remainingIds.includes(physio.id), true);
   assert.equal(remainingIds.includes(anatomy.id), false);
   assert.equal(remainingIds.includes(head.id), false);
+  assert.deepEqual(
+    new Set(workspace.getState().cloudTombstones.filter((tombstone) => tombstone.entityTable === "decks").map((tombstone) => tombstone.entityId)),
+    new Set([anatomy.id, head.id]),
+  );
 });
 
 test("workspace stores deck appearance while creating nested decks", () => {
@@ -394,6 +398,7 @@ test("workspace card maintenance hides editing and delete invariants", () => {
   assert.equal(editedCard.versionLog.some((entry) => entry.changeType === "content_updated"), true);
   assert.equal(modeChanged.deckSettings.coreMode, "off");
   assert.equal(deletedCard.status, "deleted");
+  assert.equal(Boolean(deletedCard.deletedAt), true);
   assert.equal(deletedCard.versionLog.some((entry) => entry.changeType === "deleted"), true);
 });
 

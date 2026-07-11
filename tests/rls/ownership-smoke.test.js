@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { createClient } from "@supabase/supabase-js";
 import { isLocalSupabaseUrl } from "../../scripts/localE2EEnvironment.mjs";
+import { markConflict } from "../../src/cloudRepository.js";
 
 const TABLES = [
   "profiles",
@@ -307,6 +308,61 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       for (const [table, row] of cases) {
         const result = await clientA.from(table).insert(row);
         assertPostgresError(result, "23503", `${table}: fremde Deck-/Card-Referenz`);
+      }
+    });
+
+    await t.test("serverseitige Basisrevision bestätigt genau einen konkurrierenden Deck-Write", async () => {
+      const current = assertNoError(
+        await clientA.from("decks").select("*").eq("id", fixtureA.decks.id).single(),
+        "Deck vor konkurrierenden Writes lesen",
+      );
+      const baseRevision = current.revision;
+      const first = assertNoError(
+        await clientA
+          .from("decks")
+          .update({ description: "CAS Gewinner", revision: baseRevision + 1, updated_by_device_id: "rls-device-a" })
+          .eq("id", fixtureA.decks.id)
+          .eq("revision", baseRevision)
+          .select("*"),
+        "Ersten revisionsbedingten Deck-Write ausführen",
+      );
+      const second = assertNoError(
+        await clientA
+          .from("decks")
+          .update({ description: "CAS Verlierer", revision: baseRevision + 1, updated_by_device_id: "rls-device-b" })
+          .eq("id", fixtureA.decks.id)
+          .eq("revision", baseRevision)
+          .select("*"),
+        "Zweiten revisionsbedingten Deck-Write ausführen",
+      );
+
+      assert.equal(first.length, 1);
+      assert.deepEqual(second, []);
+      const conflict = await markConflict(clientA, {
+        entityTable: "decks",
+        entityId: fixtureA.decks.id,
+        baseRevision,
+        localRevision: baseRevision,
+        remoteRevision: first[0].revision,
+        localValue: { ...current, description: "CAS Verlierer" },
+        remoteValue: first[0],
+      }, {
+        deviceId: "rls-device-b",
+        createdAt: "2026-07-11T10:00:00.000Z",
+      });
+
+      try {
+        assert.equal(conflict.status, "open");
+        assert.equal(conflict.baseRevision, baseRevision);
+        assert.equal(conflict.remoteRevision, baseRevision + 1);
+        const persisted = assertNoError(
+          await clientA.from("sync_conflicts").select("*").eq("id", conflict.id).single(),
+          "CAS-Konflikt lesen",
+        );
+        assert.equal(persisted.entity_id, fixtureA.decks.id);
+        assert.equal(persisted.remote_value.description, "CAS Gewinner");
+      } finally {
+        assertNoError(await clientA.from("sync_conflicts").delete().eq("id", conflict.id), "CAS-Konflikt löschen");
       }
     });
 
