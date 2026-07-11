@@ -1,6 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createSyncEngine, detectRevisionConflict, mergeAppendOnlyRows, SYNC_MUTATION_TYPES } from "./syncEngine.js";
+import { createSyncOutbox } from "./syncOutbox.js";
+
+function createMemoryStorage() {
+  const values = new Map();
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: (key) => values.delete(key),
+  };
+}
+
+function createTestOutbox(storage = createMemoryStorage()) {
+  return createSyncOutbox({ userId: "user-1", storage, now: () => "2026-07-09T09:00:00.000Z" });
+}
 
 test("sync engine flushes the latest state patch without issuing deletions", async () => {
   const calls = [];
@@ -16,7 +30,7 @@ test("sync engine flushes the latest state patch without issuing deletions", asy
       return [];
     },
   };
-  const engine = createSyncEngine({ adapter, deviceId: "device-a", now: () => "2026-07-09T09:00:00.000Z" });
+  const engine = createSyncEngine({ adapter, outbox: createTestOutbox(), deviceId: "device-a", now: () => "2026-07-09T09:00:00.000Z" });
 
   engine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [{ id: "stale-local" }] } } });
   engine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [{ id: "local-latest" }] } } });
@@ -64,6 +78,7 @@ test("sync flush returns the acknowledged state and passes device context", asyn
   let receivedContext = null;
   const engine = createSyncEngine({
     deviceId: "device-a",
+    outbox: createTestOutbox(),
     now: () => "2026-07-10T12:00:00.000Z",
     adapter: {
       async loadSnapshot() {
@@ -82,4 +97,47 @@ test("sync flush returns the acknowledged state and passes device context", asyn
   assert.equal(receivedContext.deviceId, "device-a");
   assert.equal(receivedContext.flushedAt, "2026-07-10T12:00:00.000Z");
   assert.deepEqual(result.saved.state, acknowledgedState);
+});
+
+test("sync engine restores pending review events and removes only acknowledged mutations", async () => {
+  const storage = createMemoryStorage();
+  const firstOutbox = createTestOutbox(storage);
+  const first = createSyncEngine({
+    outbox: firstOutbox,
+    deviceId: "device-a",
+    adapter: { async applyMutationBatch() { throw new Error("offline"); } },
+  });
+  first.enqueueMutation({ id: "review-1", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
+
+  await assert.rejects(() => first.flush(), /offline/);
+  assert.equal(first.pendingCount(), 1);
+
+  const restored = createSyncEngine({
+    outbox: createTestOutbox(storage),
+    deviceId: "device-a",
+    adapter: {
+      async applyMutationBatch(mutations) {
+        return { acknowledgedMutationIds: [mutations[0].id], failedMutationIds: [], conflicts: [] };
+      },
+    },
+  });
+  await restored.flush();
+  assert.equal(restored.pendingCount(), 0);
+});
+
+test("sync engine serializes concurrent flushes", async () => {
+  let calls = 0;
+  const engine = createSyncEngine({
+    outbox: createTestOutbox(),
+    adapter: {
+      async applyMutationBatch(mutations) {
+        calls += 1;
+        await Promise.resolve();
+        return { acknowledgedMutationIds: mutations.map((mutation) => mutation.id), failedMutationIds: [], conflicts: [] };
+      },
+    },
+  });
+  engine.enqueueMutation({ id: "review-1", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
+  await Promise.all([engine.flush(), engine.flush()]);
+  assert.equal(calls, 1);
 });

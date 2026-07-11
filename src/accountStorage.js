@@ -2,6 +2,7 @@ const APP_STATE_KEY = "core.appState.v2";
 const LEGACY_DECKS_KEY = "core.importedDecks.v1";
 const ACCOUNT_STORAGE_PREFIX = "core.accountState.v1";
 const ACCOUNT_MIGRATION_PREFIX = "core.accountMigration.v1";
+const SYNC_DEVICE_KEY = "core.syncDevice.v1";
 
 function getStorage(storage = null) {
   if (storage) return storage;
@@ -62,6 +63,17 @@ export function createAccountStorage(userId, storage = null) {
   };
 }
 
+export function getOrCreateSyncDeviceId(storage = null) {
+  const resolvedStorage = getStorage(storage);
+  const existing = resolvedStorage.getItem(SYNC_DEVICE_KEY);
+  if (existing) return existing;
+  const id = typeof crypto !== "undefined" && crypto.randomUUID
+    ? `device_${crypto.randomUUID()}`
+    : `device_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  resolvedStorage.setItem(SYNC_DEVICE_KEY, id);
+  return id;
+}
+
 export function readLegacyLocalState(storage = null) {
   const resolvedStorage = getStorage(storage);
   const currentState = parseJson(resolvedStorage.getItem(APP_STATE_KEY), null);
@@ -116,4 +128,5 @@ export const accountStorageKeys = {
   LEGACY_DECKS_KEY,
   ACCOUNT_STORAGE_PREFIX,
   ACCOUNT_MIGRATION_PREFIX,
+  SYNC_DEVICE_KEY,
 };

@@ -25,25 +25,21 @@
 
 ## Project Navigation
 
-- Start with `docs/specs.md` before changing features; it contains product scope, acceptance criteria, architecture notes, module map, import rules, assistant/planning context, hosting/database guidance, and current implementation status.
-- Use `docs/todo.md` to understand the current gap between local MVP and production-ready product scope.
-- `docs/specs.html` is the human-readable visual version of `docs/specs.md` and should carry the same content.
-- `docs/index.md` is the documentation map for the maintained project docs.
-- `docs/todo.md` is the only maintained TODO markdown; add new roadmap work there instead of creating additional TODO files.
-- `docs/anki-format-analysis.md` documents Anki/APKG/model differences and should be consulted before changing import, template, media, or Learning Item behavior.
-- Current UI screens are in `src/App.jsx`; domain behavior belongs in the smaller modules listed in `docs/specs.md`.
+- Always read `AGENTS.md` first. It is the compact repository guide and routes to the canonical sources below. Load only the sources and sections relevant to the task; do not read every canonical document in full by default.
+- Use headings or targeted search in `docs/specs.md` to locate relevant sections before reading them. Read only the applicable product behavior, acceptance criteria, domain model, API, security, or operational sections. `docs/specs.html` is the generated visual mirror, not an additional agent source.
+- For module placement, interfaces, import rules, or architecture changes, read the relevant parts of `docs/specs.md`, especially sections 14 and 27. For Anki/APKG, templates, media, or Learning Item behavior, also read the relevant parts of `docs/anki-format-analysis.md`. For database work, inspect the applicable files under `supabase/`, including schema anchors, migrations, and verification SQL.
+- Read `docs/todo.md` only for scope, priority, status, or planning work. Prefer active or open entries; consult completed entries only when checking previous work or evidence. It remains the only maintained TODO markdown.
+- No dedicated ADR directory currently exists. When a task touches an existing or hard-to-reverse architectural decision, read the relevant decision material in `docs/specs.md` (especially sections 19 and 25) and any domain analysis such as `docs/anki-format-analysis.md`.
+- For broad, repository-wide changes, expand reading to all affected sections and, when necessary, complete documents. Use `docs/index.md` when the correct canonical source is unclear.
+- Read `docs/file-naming-conventions.md` before adding or renaming files.
+- Current UI screens are in `src/App.jsx`; domain behavior belongs in the smaller modules listed in section 27 of `docs/specs.md`.
+
+## Documentation Updates
+
+- When current behavior or a product contract changes, update the relevant section of `docs/specs.md` and keep `docs/specs.html` synchronized.
+- Update `docs/todo.md` only when scope, priority, status, planning, or roadmap evidence changes. Add new roadmap work there instead of creating additional TODO files.
+- Do not shorten canonical documents merely because they are long; keep them as structured reference sources.
 - Add or update module tests in `src/*.test.js` when changing scheduler, variants, import, AI jobs, graph, community, repository behavior, or the Learning Item creation pipeline.
-- When current behavior changes, update `docs/specs.md`, regenerate/update `docs/specs.html`, and adjust `docs/todo.md` in the same change.
-
-## Documentation Inventory
-
-- `docs/specs.md`: canonical product and engineering specification, including the production path for hosting, Supabase/Postgres, Auth, storage, KI proxying, and jobs.
-- `docs/specs.html`: generated, human-readable HTML version of the same spec.
-- `docs/todo.md`: prioritized gap list from local MVP to production readiness.
-- `docs/README.md`: project overview, local start, scripts, and document links.
-- `docs/anki-format-analysis.md`: Anki format and model differential analysis for import, templates, media, and Learning Item decisions.
-- `supabase/core_schema_v1.sql`: current Supabase schema anchor for the eventual production persistence layer.
-- `supabase/verify_schema_v1.sql`: verification queries for RLS/policy presence.
 
 ## Verification
 

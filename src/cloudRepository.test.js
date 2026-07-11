@@ -4,6 +4,7 @@ import { createProfileRow } from "./cloudAuth.js";
 import { createBasicLearningItem, createCoreDeck, createSourceDocument, getOriginalVariant } from "./coreModel.js";
 import {
   ACCOUNT_UPSERT_CONFLICT,
+  appendReviewEvent,
   cardToCloudRow,
   CloudRevisionConflictError,
   createCloudStateRows,
@@ -486,6 +487,21 @@ test("review events are append-only, idempotent and receive the creating device"
   assert.equal(client.tables.review_events.find((event) => event.id === "review-1").rating, "good");
   assert.equal(result.state.decks[0].reviewEvents.find((event) => event.id === "review-1").rating, "good");
   assert.equal(result.state.decks[0].reviewEvents.find((event) => event.id === "review-2").createdByDeviceId, "device-b");
+});
+
+test("single review event append is idempotent and stores the device id", async () => {
+  const fixture = createCloudFixture();
+  const rows = clone(fixture.rows);
+  rows.review_events = [];
+  const client = createMemorySupabaseClient(rows, fixture.user);
+  const event = { ...fixture.state.decks[0].reviewEvents[0], createdByDeviceId: null };
+
+  await appendReviewEvent(client, event, { deviceId: "device-b", mutationId: "mutation-1" });
+  await appendReviewEvent(client, event, { deviceId: "device-b", mutationId: "mutation-1" });
+
+  assert.equal(client.tables.review_events.length, 1);
+  assert.equal(client.tables.review_events[0].created_by_device_id, "device-b");
+  assert.equal(client.calls.filter((call) => call.table === "review_events" && call.operation === "upsert").length, 2);
 });
 
 test("explicit full replace deletes missing rows and advances existing revisions", async () => {

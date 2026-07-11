@@ -739,6 +739,19 @@ async function appendMissingReviewEvents(client, desiredRows, remoteRows, { devi
   if (error) throw error;
 }
 
+export async function appendReviewEvent(client, event, { deviceId = "browser-device" } = {}) {
+  const user = await getAuthenticatedUser(client);
+  const deckId = event?.deckId;
+  if (!event?.id || !deckId || !event?.rating) throw new Error("Review-Event ist unvollständig.");
+  const row = reviewEventToCloudRow(event, { id: deckId }, user.id, { deviceId });
+  const { error } = await client.from("review_events").upsert([row], {
+    onConflict: ACCOUNT_UPSERT_CONFLICT,
+    ignoreDuplicates: true,
+  });
+  if (error) throw error;
+  return { eventId: row.id };
+}
+
 export async function replaceAccountCloudState(client, state, { deviceId = "browser-device" } = {}) {
   const user = await getAuthenticatedUser(client);
   const remoteRows = await loadAccountRows(client, user.id);

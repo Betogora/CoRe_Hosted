@@ -2,7 +2,7 @@ import React from "react";
 import { BarChart3, BookOpen, Database, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
 import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.js";
-import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
+import { createAccountStorage, getOrCreateSyncDeviceId, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
 import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.js";
 import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.js";
 import { createCoreRepository } from "./coreRepository.js";
@@ -139,7 +139,6 @@ function MigrationChoiceScreen({ legacyState, busy = false, message = "", onImpo
 
 export function App() {
   const supabase = React.useMemo(() => createSupabaseBrowserClient(), []);
-  const syncEngine = React.useMemo(() => (supabase ? createAccountSyncEngine(supabase) : null), [supabase]);
   const navigationItems = React.useMemo(() => menu.listNavigationItems(), []);
   const bootRunRef = React.useRef(0);
   const latestStateRef = React.useRef(null);
@@ -156,6 +155,7 @@ export function App() {
   const [cloudUser, setCloudUser] = React.useState(null);
   const [legacyState, setLegacyState] = React.useState(null);
   const [syncStatus, setSyncStatus] = React.useState(createSyncIdleStatus);
+  const [syncEngine, setSyncEngine] = React.useState(null);
   const [activeView, setActiveView] = React.useState(menu.defaultViewId);
   const [studyRequest, setStudyRequest] = React.useState(null);
   const [focusedDeckId, setFocusedDeckId] = React.useState(null);
@@ -260,14 +260,20 @@ export function App() {
     setMigrationMessage("");
 
     const accountStorage = createAccountStorage(user.id);
+    const nextSyncEngine = createAccountSyncEngine(supabase, {
+      userId: user.id,
+      storage: accountStorage,
+      deviceId: getOrCreateSyncDeviceId(),
+    });
     const nextWorkspace = createCoreWorkspace(createCoreRepository(accountStorage, { seedDefaultDecks: false }));
     const fallbackState = nextWorkspace.getState();
-    const cloudState = await syncEngine.loadSnapshot(fallbackState);
+    const cloudState = await nextSyncEngine.loadSnapshot(fallbackState);
     const savedState = nextWorkspace.saveState(cloudState);
 
     if (bootRunRef.current !== runId) return;
 
     setWorkspace(nextWorkspace);
+    setSyncEngine(nextSyncEngine);
     lastAcknowledgedStateRef.current = savedState;
     setAppState(savedState);
     setCloudUser(user);
@@ -567,6 +573,7 @@ export function App() {
     bootRunRef.current += 1;
     resetBrowserRouteToDefault();
     setWorkspace(null);
+    setSyncEngine(null);
     lastAcknowledgedStateRef.current = null;
     setAppState(null);
     setCloudUser(null);
@@ -609,6 +616,17 @@ export function App() {
         };
     const nextDeck = Array.isArray(deck) ? deck.map(applyDefaults) : applyDefaults(deck);
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDecks(nextDeck));
+  }
+
+  function enqueueReviewEvent(event) {
+    if (!syncEngine || !event?.id) return;
+    syncEngine.enqueueMutation({
+      id: `review_${event.id}`,
+      type: SYNC_MUTATION_TYPES.reviewEventAppend,
+      table: "review_events",
+      entityId: event.id,
+      payload: { event },
+    });
   }
 
   function createDeck(input) {
@@ -877,6 +895,7 @@ export function App() {
             navigateToRoute(studyRequest.returnRoute ?? createViewRoute("lernen"), { replace: true });
           }}
           onDeckUpdated={saveDeck}
+          onReviewEvent={enqueueReviewEvent}
         />
       </React.Suspense>
     );

@@ -87,6 +87,8 @@ Es ist noch kein fertiges Produktionsprodukt. Offline-Konfliktlösung, produktiv
   ·
   <a href="docs/anki-format-analysis.md">Anki-Format-Analyse</a>
   ·
+  <a href="docs/file-naming-conventions.md">Dateinamenskonvention</a>
+  ·
   <a href="docs/index.md">Dokumentation</a>
   ·
   <a href="docs/README.md">Entwicklerhinweise</a>

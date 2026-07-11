@@ -30,7 +30,7 @@ function sameAnswer(left, right) {
   return String(left ?? "").trim().toLowerCase() === String(right ?? "").trim().toLowerCase();
 }
 
-export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?.id, variantSession, onExit, onDeckUpdated }) {
+export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?.id, variantSession, onExit, onDeckUpdated, onReviewEvent }) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [reviewedCount, setReviewedCount] = React.useState(0);
   const [reviewedKeys, setReviewedKeys] = React.useState([]);
@@ -126,6 +126,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
     const result = answerVariant(currentDeck, current.learningItemId, current.cardVariantId, rating, {
       now: new Date().toISOString(),
     });
+    onReviewEvent?.(result.event);
     finishOrNext(result.deck, reviewedCount + 1, reviewItemKey());
   }
 
