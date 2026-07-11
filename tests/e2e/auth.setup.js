@@ -4,7 +4,7 @@ import { expect, test as setup } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { replaceAccountCloudState } from "../../src/cloudRepository.js";
 import { createCoreRepository } from "../../src/coreRepository.js";
-import { hasSupabaseAuthStorage, sanitizeStorageState } from "./support/appState.js";
+import { hasSupabaseAuthStorage, readSyncDeviceId, sanitizeStorageState } from "./support/appState.js";
 import { e2eAuthStatePath, ensureLocalE2EAccount, loadE2EEnvironment } from "./support/e2eEnvironment.js";
 
 function createE2ESeedState(email) {
@@ -30,11 +30,38 @@ async function resetTestAccount(environment) {
     },
   });
 
-  const { error } = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
+  const { data, error } = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
   if (error) throw new Error(`Der dedizierte E2E-Testaccount konnte nicht angemeldet werden: ${error.message}`);
+  if (!data.user) throw new Error("Der dedizierte E2E-Testaccount hat nach der Anmeldung keinen Nutzer.");
 
   try {
-    await replaceAccountCloudState(client, createE2ESeedState(environment.email));
+    const { error: deviceCleanupError } = await client.from("sync_devices").delete().eq("user_id", data.user.id);
+    if (deviceCleanupError) throw new Error(`Registrierte E2E-Geräte konnten nicht zurückgesetzt werden: ${deviceCleanupError.message}`);
+    await replaceAccountCloudState(client, createE2ESeedState(environment.email), { deviceId: "e2e-test-reset" });
+  } finally {
+    await client.auth.signOut({ scope: "local" }).catch(() => undefined);
+    client.auth.dispose?.();
+  }
+}
+
+async function readRegisteredDevices(environment) {
+  const client = createClient(environment.supabaseUrl, environment.publishableKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+  });
+  const { error: signInError } = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
+  if (signInError) throw new Error(`Die Geräte-Registrierung konnte nicht geprüft werden: ${signInError.message}`);
+
+  try {
+    const { data, error } = await client
+      .from("sync_devices")
+      .select("id, label, user_agent, last_seen_at, created_at")
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(`Registrierte E2E-Geräte konnten nicht gelesen werden: ${error.message}`);
+    return data ?? [];
   } finally {
     await client.auth.signOut({ scope: "local" }).catch(() => undefined);
     client.auth.dispose?.();
@@ -55,6 +82,24 @@ setup("dedizierten Testaccount zurücksetzen und Auth-Session speichern", async 
   await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toBeVisible({ timeout: 30_000 });
   await page.getByRole("navigation", { name: /Hauptmen/ }).getByRole("button", { name: "Lernen" }).click();
   await expect(page.getByTestId("learn-deck-row-deck_world_capitals")).toContainText("Welt-Hauptstädte");
+
+  const syncDeviceId = await readSyncDeviceId(page);
+  const devicesAfterLogin = await readRegisteredDevices(environment);
+  expect(devicesAfterLogin).toHaveLength(1);
+  expect(devicesAfterLogin[0]).toMatchObject({ id: syncDeviceId });
+  expect(devicesAfterLogin[0].label).not.toBe("");
+  expect(devicesAfterLogin[0].user_agent).not.toBe("");
+  expect(Date.parse(devicesAfterLogin[0].last_seen_at)).not.toBeNaN();
+  expect(Date.parse(devicesAfterLogin[0].created_at)).not.toBeNaN();
+
+  await page.reload();
+  await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toBeVisible({ timeout: 30_000 });
+  expect(await readSyncDeviceId(page)).toBe(syncDeviceId);
+  const devicesAfterReload = await readRegisteredDevices(environment);
+  expect(devicesAfterReload).toHaveLength(1);
+  expect(devicesAfterReload[0].id).toBe(syncDeviceId);
+  expect(devicesAfterReload[0].created_at).toBe(devicesAfterLogin[0].created_at);
+  expect(Date.parse(devicesAfterReload[0].last_seen_at)).toBeGreaterThanOrEqual(Date.parse(devicesAfterLogin[0].last_seen_at));
 
   const storageState = sanitizeStorageState(await page.context().storageState());
   expect(hasSupabaseAuthStorage(storageState)).toBe(true);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createAccountStorage, hasMeaningfulLocalState, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
+import { createAccountStorage, getOrCreateSyncDeviceId, hasMeaningfulLocalState, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
 
 function createMemoryStorage() {
   const values = new Map();
@@ -28,6 +28,15 @@ test("account storage keeps identical app keys separated per Supabase user", () 
   assert.equal(JSON.parse(userA.getItem("core.appState.v2")).owner, "A");
   assert.equal(JSON.parse(userB.getItem("core.appState.v2")).owner, "B");
   assert.notEqual(userA.accountKey("core.appState.v2"), userB.accountKey("core.appState.v2"));
+});
+
+test("sync device IDs stay stable per browser storage", () => {
+  const storageA = createMemoryStorage();
+  const storageB = createMemoryStorage();
+
+  const firstId = getOrCreateSyncDeviceId(storageA);
+  assert.equal(getOrCreateSyncDeviceId(storageA), firstId);
+  assert.notEqual(getOrCreateSyncDeviceId(storageB), firstId);
 });
 
 test("legacy local state is offered once for account migration", () => {

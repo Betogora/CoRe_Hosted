@@ -87,6 +87,22 @@ test("cloud auth formats common Supabase auth errors in German", () => {
   assert.match(formatCloudAuthError({ message: "User already registered" }), /existiert wahrscheinlich schon/);
   assert.match(formatCloudAuthError({ message: "Password should be stronger" }), /gültiges Passwort/);
   assert.match(formatCloudAuthError({ code: "cloud_revision_conflict", message: "internal details" }), /anderen Gerät.*neuere Version/);
+  assert.equal(
+    formatCloudAuthError({ code: "sync_device_registration_failed", message: "safe", cause: { message: "database details" } }),
+    "Dieses Gerät konnte nicht für die Synchronisierung registriert werden.",
+  );
+  assert.match(
+    formatCloudAuthError({ code: "sync_device_registration_failed", cause: { name: "AuthRetryableFetchError", message: "Failed to fetch" } }),
+    /nicht erreichbar/,
+  );
+  assert.match(
+    formatCloudAuthError({ code: "sync_device_registration_failed", cause: { name: "AuthSessionMissingError", message: "Auth session missing" } }),
+    /Sitzung ist abgelaufen/,
+  );
+  assert.match(
+    formatCloudAuthError({ code: "sync_device_registration_failed", cause: { code: "session_not_found", message: "Bitte melde dich zuerst an." } }),
+    /Sitzung ist abgelaufen/,
+  );
 });
 
 test("cloud auth distinguishes a missing session from an expired session", async () => {

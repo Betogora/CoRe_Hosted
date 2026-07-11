@@ -2,7 +2,7 @@ import React from "react";
 import { BarChart3, BookOpen, Database, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
 import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.js";
-import { createAccountStorage, getOrCreateSyncDeviceId, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
+import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
 import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.js";
 import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.js";
 import { createCoreRepository } from "./coreRepository.js";
@@ -11,6 +11,7 @@ import { createPortableExport, mergePortableExportIntoState } from "./dataPortab
 import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings } from "./deckSettings.js";
 import { createMenuModel } from "./menuModel.js";
 import { createAccountSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.js";
+import { createBrowserSyncDevice } from "./syncDevice.js";
 import { createSupabaseBrowserClient } from "./supabaseClient.js";
 import { AuthGateScreen } from "./screens/AuthGateScreen.jsx";
 import { OrbIcon, SoftPanel } from "./ui/coreUi.jsx";
@@ -260,10 +261,11 @@ export function App() {
     setMigrationMessage("");
 
     const accountStorage = createAccountStorage(user.id);
+    const device = createBrowserSyncDevice();
     const nextSyncEngine = createAccountSyncEngine(supabase, {
       userId: user.id,
       storage: accountStorage,
-      deviceId: getOrCreateSyncDeviceId(),
+      device,
     });
     const nextWorkspace = createCoreWorkspace(createCoreRepository(accountStorage, { seedDefaultDecks: false }));
     const fallbackState = nextWorkspace.getState();
@@ -530,7 +532,7 @@ export function App() {
       const nextState = mergePortableExportIntoState(state, createPortableExport(legacyState));
       const savedState = workspace.saveState(nextState);
       setAppState(savedState);
-      const result = await replaceAccountCloudState(supabase, savedState);
+      const result = await replaceAccountCloudState(supabase, savedState, { deviceId: createBrowserSyncDevice().id });
       const acknowledgedState = workspace.saveState(result.state);
       lastAcknowledgedStateRef.current = acknowledgedState;
       setAppState(acknowledgedState);

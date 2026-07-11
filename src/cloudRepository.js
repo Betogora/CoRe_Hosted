@@ -102,8 +102,28 @@ async function getAuthenticatedUser(client) {
   if (!client?.auth || !client?.from) throw new Error("Supabase ist noch nicht konfiguriert.");
   const { data, error } = await client.auth.getUser();
   if (error) throw error;
-  if (!data?.user) throw new Error("Bitte melde dich zuerst an.");
+  if (!data?.user) {
+    const missingSessionError = new Error("Bitte melde dich zuerst an.");
+    missingSessionError.code = "session_not_found";
+    throw missingSessionError;
+  }
   return data.user;
+}
+
+function requireNonEmptyString(value, message) {
+  if (typeof value !== "string" || !value.trim()) throw new Error(message);
+  return value.trim();
+}
+
+function requireTimestamp(value, fallback, message) {
+  const timestamp = value ?? fallback();
+  if (typeof timestamp !== "string" || Number.isNaN(Date.parse(timestamp))) throw new Error(message);
+  return timestamp;
+}
+
+function requireMutationIds(mutationIds) {
+  if (!Array.isArray(mutationIds)) throw new Error("Mutation-IDs müssen als Liste übergeben werden.");
+  return mutationIds.map((mutationId) => requireNonEmptyString(mutationId, "Mutation-ID fehlt."));
 }
 
 async function upsertRows(client, table, rows) {
@@ -623,6 +643,29 @@ export async function hasAccountCloudData(client) {
   return false;
 }
 
+export async function registerAccountSyncDevice(client, device, { lastSeenAt } = {}) {
+  const id = requireNonEmptyString(device?.id, "Geräte-ID fehlt.");
+  const label = requireNonEmptyString(device?.label, "Gerätebezeichnung fehlt.");
+  if (typeof device?.userAgent !== "string") throw new Error("User-Agent des Geräts fehlt.");
+  const seenAt = requireTimestamp(lastSeenAt, nowIso, "Zeitpunkt der Geräte-Registrierung ist ungültig.");
+  const user = await getAuthenticatedUser(client);
+  const row = {
+    id,
+    user_id: user.id,
+    label,
+    last_seen_at: seenAt,
+    user_agent: device.userAgent,
+  };
+  const { data, error } = await client
+    .from("sync_devices")
+    .upsert(row, { onConflict: ACCOUNT_UPSERT_CONFLICT })
+    .select("*")
+    .single();
+  if (error) throw error;
+  if (!data) throw new Error("Dieses Gerät konnte nicht für die Synchronisierung registriert werden.");
+  return data;
+}
+
 function summarizeCloudRows(rows) {
   return {
     decks: rows.decks.length,
@@ -739,30 +782,33 @@ async function appendMissingReviewEvents(client, desiredRows, remoteRows, { devi
   if (error) throw error;
 }
 
-export async function appendReviewEvent(client, event, { deviceId = "browser-device" } = {}) {
-  const user = await getAuthenticatedUser(client);
+export async function appendReviewEvent(client, event, { deviceId, mutationId } = {}) {
+  const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
+  const resolvedMutationId = requireNonEmptyString(mutationId, "Mutation-ID fehlt.");
   const deckId = event?.deckId;
   if (!event?.id || !deckId || !event?.rating) throw new Error("Review-Event ist unvollständig.");
-  const row = reviewEventToCloudRow(event, { id: deckId }, user.id, { deviceId });
+  const user = await getAuthenticatedUser(client);
+  const row = reviewEventToCloudRow(event, { id: deckId }, user.id, { deviceId: resolvedDeviceId });
   const { error } = await client.from("review_events").upsert([row], {
     onConflict: ACCOUNT_UPSERT_CONFLICT,
     ignoreDuplicates: true,
   });
   if (error) throw error;
-  return { eventId: row.id };
+  return { eventId: row.id, acknowledgedMutationId: resolvedMutationId };
 }
 
-export async function replaceAccountCloudState(client, state, { deviceId = "browser-device" } = {}) {
+export async function replaceAccountCloudState(client, state, { deviceId } = {}) {
+  const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
   const user = await getAuthenticatedUser(client);
   const remoteRows = await loadAccountRows(client, user.id);
-  const rows = createCloudStateRows(state, user.id, { deviceId });
+  const rows = createCloudStateRows(state, user.id, { deviceId: resolvedDeviceId });
 
   for (const table of REVISIONED_TABLES) {
     const remoteById = new Map(toArray(remoteRows[table]).map((row) => [row.id, row]));
     rows[table] = rows[table].map((row) => ({
       ...row,
       revision: remoteById.has(row.id) ? normalizeRevision(remoteById.get(row.id).revision) + 1 : 1,
-      updated_by_device_id: deviceId ?? row.updated_by_device_id ?? null,
+      updated_by_device_id: resolvedDeviceId,
     }));
   }
 
@@ -785,14 +831,18 @@ export async function replaceAccountCloudState(client, state, { deviceId = "brow
   };
 }
 
-export async function upsertAccountCloudState(client, state, { deviceId = "browser-device", now = nowIso } = {}) {
+export async function upsertAccountCloudState(client, state, { deviceId, mutationIds = [], flushedAt } = {}) {
+  const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
+  const acknowledgedMutationIds = requireMutationIds(mutationIds);
+  const writeTimestamp = requireTimestamp(flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
+  const writeNow = () => writeTimestamp;
   const user = await getAuthenticatedUser(client);
-  const desiredRows = createCloudStateRows(state, user.id, { deviceId });
+  const desiredRows = createCloudStateRows(state, user.id, { deviceId: resolvedDeviceId });
   const [remoteRows, profileRows] = await Promise.all([loadAccountRows(client, user.id), selectProfileRows(client, user.id)]);
   const plans = createRevisionWritePlans(desiredRows, remoteRows);
 
-  await applyRevisionWritePlans(client, user.id, plans, { deviceId, now });
-  await appendMissingReviewEvents(client, desiredRows.review_events, remoteRows.review_events, { deviceId });
+  await applyRevisionWritePlans(client, user.id, plans, { deviceId: resolvedDeviceId, now: writeNow });
+  await appendMissingReviewEvents(client, desiredRows.review_events, remoteRows.review_events, { deviceId: resolvedDeviceId });
   if (!profileHasSameContent(state.profile ?? {}, user, profileRows[0] ?? null)) {
     await saveCloudProfile(client, state.profile ?? {});
   }
@@ -801,6 +851,7 @@ export async function upsertAccountCloudState(client, state, { deviceId = "brows
   return {
     state: reconcileCloudStateMetadata(state, persistedRows),
     summary: summarizeCloudRows(desiredRows),
+    acknowledgedMutationIds,
   };
 }
 
@@ -889,8 +940,8 @@ export async function loadAccountCloudState(client, fallbackState = {}) {
   };
 }
 
-export async function saveCloudState(client, state) {
-  return replaceAccountCloudState(client, state);
+export async function saveCloudState(client, state, options) {
+  return replaceAccountCloudState(client, state, options);
 }
 
 export async function loadCloudState(client, fallbackState = {}) {

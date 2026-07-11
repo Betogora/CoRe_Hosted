@@ -51,6 +51,14 @@ required_columns(table_name, column_name) as (
     ('ai_jobs', 'deleted_at'),
     ('ai_jobs', 'updated_by_device_id')
 ),
+expected_sync_device_columns(column_name, data_type, is_nullable, column_default) as (
+  values
+    ('id', 'text', 'NO', null::text),
+    ('label', 'text', 'NO', '''Browser''::text'),
+    ('last_seen_at', 'timestamp with time zone', 'NO', 'now()'),
+    ('user_agent', 'text', 'NO', '''''::text'),
+    ('created_at', 'timestamp with time zone', 'NO', 'now()')
+),
 expected_policies(
   schema_name,
   table_name,
@@ -144,6 +152,30 @@ checks(check_name, passed, details) as (
     ),
     jsonb_build_object('schema', 'public', 'table', c.table_name, 'column', c.column_name)
   from required_columns c
+
+  union all
+
+  select
+    'column-contract:sync_devices.' || e.column_name,
+    exists (
+      select 1
+      from information_schema.columns ic
+      where ic.table_schema = 'public'
+        and ic.table_name = 'sync_devices'
+        and ic.column_name = e.column_name
+        and ic.data_type = e.data_type
+        and ic.is_nullable = e.is_nullable
+        and ic.column_default is not distinct from e.column_default
+    ),
+    jsonb_build_object(
+      'schema', 'public',
+      'table', 'sync_devices',
+      'column', e.column_name,
+      'data_type', e.data_type,
+      'is_nullable', e.is_nullable,
+      'column_default', e.column_default
+    )
+  from expected_sync_device_columns e
 
   union all
 

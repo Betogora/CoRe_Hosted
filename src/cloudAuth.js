@@ -40,7 +40,9 @@ function isSessionMissing(error) {
 export function formatCloudAuthError(error, fallback = "Aktion konnte nicht abgeschlossen werden.") {
   const code = String(error?.code ?? error?.status ?? error?.name ?? "").toLowerCase();
   const message = String(error?.message ?? "").toLowerCase();
-  const combined = `${code} ${message}`;
+  const causeCode = String(error?.cause?.code ?? error?.cause?.status ?? error?.cause?.name ?? "").toLowerCase();
+  const causeMessage = String(error?.cause?.message ?? "").toLowerCase();
+  const combined = `${code} ${message} ${causeCode} ${causeMessage}`;
 
   if (combined.includes("cloud_revision_conflict")) {
     return "Auf einem anderen Gerät liegt bereits eine neuere Version vor. Bitte lade die Cloud-Daten neu.";
@@ -54,6 +56,9 @@ export function formatCloudAuthError(error, fallback = "Aktion konnte nicht abge
   ) {
     return "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.";
   }
+  if (isSessionMissing(error) || isSessionMissing(error?.cause)) {
+    return "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.";
+  }
   if (
     combined.includes("failed to fetch") ||
     combined.includes("fetch failed") ||
@@ -62,6 +67,9 @@ export function formatCloudAuthError(error, fallback = "Aktion konnte nicht abge
     combined.includes("err_network")
   ) {
     return "Supabase ist momentan nicht erreichbar. Prüfe deine Internetverbindung und versuche es erneut.";
+  }
+  if (combined.includes("sync_device_registration_failed")) {
+    return "Dieses Gerät konnte nicht für die Synchronisierung registriert werden.";
   }
   if (message.includes("invalid login credentials")) return "E-Mail oder Passwort stimmt nicht.";
   if (combined.includes("email rate limit") || (combined.includes("rate limit") && combined.includes("email"))) {

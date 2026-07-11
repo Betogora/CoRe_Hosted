@@ -11,6 +11,7 @@ import {
   deckToCloudRow,
   loadAccountCloudState,
   mergeCloudSyncMetadata,
+  registerAccountSyncDevice,
   replaceAccountCloudState,
   reviewEventToCloudRow,
   upsertAccountCloudState,
@@ -21,12 +22,11 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function createMemorySupabaseClient(initialTables = {}, user = { id: "user-1", email: "user@example.test" }) {
+function createMemorySupabaseClient(initialTables = {}, user = { id: "user-1", email: "user@example.test" }, { fail } = {}) {
   const tables = Object.fromEntries(
-    ["profiles", "decks", "cards", "card_variants", "review_events", "source_documents", "ai_jobs", "sync_conflicts"].map((table) => [
-      table,
-      clone(initialTables[table] ?? []),
-    ]),
+    ["profiles", "decks", "cards", "card_variants", "review_events", "source_documents", "ai_jobs", "sync_devices", "sync_conflicts"].map(
+      (table) => [table, clone(initialTables[table] ?? [])],
+    ),
   );
   const calls = [];
 
@@ -121,24 +121,39 @@ function createMemorySupabaseClient(initialTables = {}, user = { id: "user-1", e
 
     async execute() {
       const rows = tables[this.table] ?? (tables[this.table] = []);
-      calls.push({
+      const call = {
         table: this.table,
         operation: this.operation,
         filters: clone(this.filters),
         payload: clone(this.payload),
         options: clone(this.options),
-      });
+      };
+      calls.push(call);
+      const injectedError = fail?.(call, calls);
+      if (injectedError) return { data: null, error: injectedError };
 
       if (this.operation === "select") return { data: this.project(rows.filter((row) => this.matches(row))), error: null };
 
       if (this.operation === "insert") {
+        const affected = [];
         for (const candidate of this.payload) {
           if (rows.some((row) => row.user_id === candidate.user_id && row.id === candidate.id)) {
             return { data: null, error: new Error(`duplicate ${this.table}`) };
           }
-          rows.push(candidate);
+          const stored =
+            this.table === "sync_devices"
+              ? {
+                  label: "Browser",
+                  last_seen_at: "2026-07-10T08:00:00.000Z",
+                  user_agent: "",
+                  created_at: "2026-07-10T08:00:00.000Z",
+                  ...candidate,
+                }
+              : candidate;
+          rows.push(stored);
+          affected.push(stored);
         }
-        return { data: this.returning ? this.project(this.payload) : null, error: null };
+        return { data: this.returning ? this.project(affected) : null, error: null };
       }
 
       if (this.operation === "upsert") {
@@ -151,8 +166,18 @@ function createMemorySupabaseClient(initialTables = {}, user = { id: "user-1", e
             rows[index] = { ...rows[index], ...candidate };
             affected.push(rows[index]);
           } else {
-            rows.push(candidate);
-            affected.push(candidate);
+            const stored =
+              this.table === "sync_devices"
+                ? {
+                    label: "Browser",
+                    last_seen_at: "2026-07-10T08:00:00.000Z",
+                    user_agent: "",
+                    created_at: "2026-07-10T08:00:00.000Z",
+                    ...candidate,
+                  }
+                : candidate;
+            rows.push(stored);
+            affected.push(stored);
           }
         }
         return { data: this.returning ? this.project(affected) : null, error: null };
@@ -358,6 +383,98 @@ test("cloud repository scopes identical local ids by account", () => {
   assert.equal(rowsB.cards[0].user_id, "user-b");
 });
 
+test("device registration is account-bound and preserves the database creation timestamp on refresh", async () => {
+  const client = createMemorySupabaseClient({}, { id: "user-1", email: "user@example.test" });
+  const first = await registerAccountSyncDevice(
+    client,
+    { id: "device-1", label: "Chrome auf Windows", userAgent: "first-agent" },
+    { lastSeenAt: "2026-07-10T09:00:00.000Z" },
+  );
+  const createdAt = first.created_at;
+  const second = await registerAccountSyncDevice(
+    client,
+    { id: "device-1", label: "Edge auf Windows", userAgent: "second-agent" },
+    { lastSeenAt: "2026-07-10T10:00:00.000Z" },
+  );
+  const writes = client.calls.filter((call) => call.table === "sync_devices" && call.operation === "upsert");
+
+  assert.equal(client.tables.sync_devices.length, 1);
+  assert.equal(first.user_id, "user-1");
+  assert.equal(second.label, "Edge auf Windows");
+  assert.equal(second.user_agent, "second-agent");
+  assert.equal(second.last_seen_at, "2026-07-10T10:00:00.000Z");
+  assert.equal(second.created_at, createdAt);
+  assert.equal(writes.length, 2);
+  assert.equal(writes[0].options.onConflict, ACCOUNT_UPSERT_CONFLICT);
+  assert.equal(Object.hasOwn(writes[0].payload[0], "created_at"), false);
+  assert.equal(Object.hasOwn(writes[1].payload[0], "created_at"), false);
+});
+
+test("device registration scopes the same device id to the authenticated account", async () => {
+  const createdAt = "2026-07-10T08:00:00.000Z";
+  const client = createMemorySupabaseClient(
+    {
+      sync_devices: [
+        {
+          id: "shared-device",
+          user_id: "user-a",
+          label: "Firefox auf Linux",
+          last_seen_at: createdAt,
+          user_agent: "agent-a",
+          created_at: createdAt,
+        },
+      ],
+    },
+    { id: "user-b", email: "b@example.test" },
+  );
+
+  await registerAccountSyncDevice(
+    client,
+    { id: "shared-device", label: "Safari auf macOS", userAgent: "agent-b", userId: "user-a" },
+    { lastSeenAt: "2026-07-10T11:00:00.000Z" },
+  );
+
+  assert.equal(client.tables.sync_devices.length, 2);
+  assert.deepEqual(
+    client.tables.sync_devices.map((device) => device.user_id).sort(),
+    ["user-a", "user-b"],
+  );
+  assert.equal(client.tables.sync_devices.find((device) => device.user_id === "user-a").label, "Firefox auf Linux");
+  assert.equal(client.tables.sync_devices.find((device) => device.user_id === "user-b").label, "Safari auf macOS");
+});
+
+test("device registration rejects incomplete descriptors before writing", async () => {
+  const client = createMemorySupabaseClient();
+
+  await assert.rejects(
+    () => registerAccountSyncDevice(client, { id: "", label: "Browser", userAgent: "agent" }),
+    /Geräte-ID fehlt/,
+  );
+  await assert.rejects(
+    () => registerAccountSyncDevice(client, { id: "device-1", label: " ", userAgent: "agent" }),
+    /Gerätebezeichnung fehlt/,
+  );
+  await assert.rejects(
+    () => registerAccountSyncDevice(client, { id: "device-1", label: "Browser" }),
+    /User-Agent des Geräts fehlt/,
+  );
+  await assert.rejects(
+    () =>
+      registerAccountSyncDevice(client, { id: "device-1", label: "Browser", userAgent: "" }, { lastSeenAt: "not-a-date" }),
+    /Zeitpunkt der Geräte-Registrierung ist ungültig/,
+  );
+  assert.equal(client.calls.some((call) => call.table === "sync_devices"), false);
+});
+
+test("device registration exposes a missing authenticated session as a session error", async () => {
+  const client = createMemorySupabaseClient({}, null);
+
+  await assert.rejects(
+    () => registerAccountSyncDevice(client, { id: "device-1", label: "Browser", userAgent: "agent" }),
+    (error) => error?.code === "session_not_found" && /melde dich zuerst an/.test(error.message),
+  );
+});
+
 test("cloud repository roundtrips sync metadata and media references", async () => {
   const fixture = createCloudFixture();
   const client = createMemorySupabaseClient(fixture.rows, fixture.user);
@@ -402,14 +519,19 @@ test("cloud load hides soft-deleted rows and preserves minimal tombstones", asyn
   assert.equal(loaded.cloudTombstones.find((tombstone) => tombstone.entityId === "deck-deleted").revision, 7);
 });
 
-test("unchanged cloud snapshots do not write or increment revisions", async () => {
+test("unchanged cloud snapshots do not write or increment revisions and acknowledge only supplied state mutations", async () => {
   const fixture = createCloudFixture();
   const client = createMemorySupabaseClient(fixture.rows, fixture.user);
 
-  const result = await upsertAccountCloudState(client, fixture.state, { deviceId: "device-b" });
+  const result = await upsertAccountCloudState(client, fixture.state, {
+    deviceId: "device-b",
+    mutationIds: ["state-mutation-1", "state-mutation-2"],
+    flushedAt: "2026-07-10T11:00:00.000Z",
+  });
   const writes = client.calls.filter((call) => ["insert", "upsert", "update", "delete"].includes(call.operation));
 
   assert.deepEqual(writes, []);
+  assert.deepEqual(result.acknowledgedMutationIds, ["state-mutation-1", "state-mutation-2"]);
   assert.equal(result.state.decks[0].revision, 3);
   assert.equal(result.state.decks[0].cards[0].revision, 2);
 });
@@ -422,7 +544,11 @@ test("matching revisions update only changed rows and acknowledge the next revis
     decks: [{ ...fixture.state.decks[0], name: "Cloud Deck Neu", updatedAt: "2026-07-10T12:00:00.000Z" }],
   };
 
-  const result = await upsertAccountCloudState(client, nextState, { deviceId: "device-b", now: () => "2026-07-10T12:00:00.000Z" });
+  const result = await upsertAccountCloudState(client, nextState, {
+    deviceId: "device-b",
+    mutationIds: ["state-mutation-1"],
+    flushedAt: "2026-07-10T12:00:00.000Z",
+  });
   const entityWrites = client.calls.filter((call) => ["decks", "cards", "card_variants", "source_documents", "ai_jobs"].includes(call.table) && call.operation === "update");
 
   assert.equal(entityWrites.length, 1);
@@ -436,6 +562,36 @@ test("matching revisions update only changed rows and acknowledge the next revis
   assert.equal(client.tables.decks[0].updated_by_device_id, "device-b");
   assert.equal(result.state.decks[0].revision, 4);
   assert.equal(result.state.decks[0].updatedByDeviceId, "device-b");
+  assert.deepEqual(result.acknowledgedMutationIds, ["state-mutation-1"]);
+});
+
+test("state mutations are not acknowledged when the persisted-state reload fails", async () => {
+  const fixture = createCloudFixture();
+  let deckSelectCount = 0;
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user, {
+    fail(call) {
+      if (call.table !== "decks" || call.operation !== "select") return null;
+      deckSelectCount += 1;
+      return deckSelectCount === 2 ? new Error("persisted reload failed") : null;
+    },
+  });
+  const nextState = {
+    ...fixture.state,
+    decks: [{ ...fixture.state.decks[0], name: "Cloud Deck Neu" }],
+  };
+  let result;
+
+  await assert.rejects(
+    async () => {
+      result = await upsertAccountCloudState(client, nextState, {
+        deviceId: "device-b",
+        mutationIds: ["state-mutation-1"],
+        flushedAt: "2026-07-10T12:00:00.000Z",
+      });
+    },
+    /persisted reload failed/,
+  );
+  assert.equal(result, undefined);
 });
 
 test("newer remote revisions and remote tombstones reject stale writes before mutation", async () => {
@@ -496,12 +652,30 @@ test("single review event append is idempotent and stores the device id", async 
   const client = createMemorySupabaseClient(rows, fixture.user);
   const event = { ...fixture.state.decks[0].reviewEvents[0], createdByDeviceId: null };
 
-  await appendReviewEvent(client, event, { deviceId: "device-b", mutationId: "mutation-1" });
-  await appendReviewEvent(client, event, { deviceId: "device-b", mutationId: "mutation-1" });
+  const first = await appendReviewEvent(client, event, { deviceId: "device-b", mutationId: "mutation-1" });
+  const second = await appendReviewEvent(client, event, { deviceId: "device-b", mutationId: "mutation-1" });
 
   assert.equal(client.tables.review_events.length, 1);
   assert.equal(client.tables.review_events[0].created_by_device_id, "device-b");
   assert.equal(client.calls.filter((call) => call.table === "review_events" && call.operation === "upsert").length, 2);
+  assert.deepEqual(first, { eventId: event.id, acknowledgedMutationId: "mutation-1" });
+  assert.deepEqual(second, { eventId: event.id, acknowledgedMutationId: "mutation-1" });
+});
+
+test("cloud mutation writes require explicit device and mutation identifiers", async () => {
+  const fixture = createCloudFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const event = fixture.state.decks[0].reviewEvents[0];
+
+  await assert.rejects(() => appendReviewEvent(client, event, { mutationId: "mutation-1" }), /Geräte-ID fehlt/);
+  await assert.rejects(() => appendReviewEvent(client, event, { deviceId: "device-b" }), /Mutation-ID fehlt/);
+  await assert.rejects(() => upsertAccountCloudState(client, fixture.state, { mutationIds: [] }), /Geräte-ID fehlt/);
+  await assert.rejects(
+    () => upsertAccountCloudState(client, fixture.state, { deviceId: "device-b", mutationIds: [""] }),
+    /Mutation-ID fehlt/,
+  );
+  await assert.rejects(() => replaceAccountCloudState(client, fixture.state), /Geräte-ID fehlt/);
+  assert.equal(client.calls.some((call) => ["insert", "upsert", "update", "delete"].includes(call.operation)), false);
 });
 
 test("explicit full replace deletes missing rows and advances existing revisions", async () => {

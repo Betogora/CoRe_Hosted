@@ -6,14 +6,14 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 
 ## Auditierter Ist-Stand
 
-- `npm test`: 232 Tests bestanden.
-- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der lokale Entry-Chunk ist 235,26 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
+- `npm test`: 252 Tests bestanden.
+- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der lokale Entry-Chunk ist 241,89 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
 - `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und zwölf authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 19/19 Tests grün; der zusätzliche Produkt-Smoke prüft PDF-Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
-- `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
-- `npm run test:rls:local`: SQL-Struktur-Gate und sechs echte Data-API-Smokes mit Nutzer A, Nutzer B und `anon` sind grün. Eigene CRUD-Zugriffe, unsichtbare fremde Rows, wirkungslose Fremdmutationen, Ownership-Fälschung, accountgebundene Foreign Keys und gleiche lokale IDs in zwei Accounts sind reproduzierbar geprüft.
+- `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten einschließlich des vollständigen `sync_devices`-Spaltenvertrags, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
+- `npm run test:rls:local`: SQL-Struktur-Gate und sieben echte Data-API-Smokes mit Nutzer A, Nutzer B und `anon` sind grün. Eigene CRUD-Zugriffe, unsichtbare fremde Rows, wirkungslose Fremdmutationen, Ownership-Fälschung, accountgebundene Foreign Keys, gleiche lokale IDs sowie Geräte-Heartbeat und gleiche Geräte-IDs in zwei Accounts sind reproduzierbar geprüft.
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
-- Der debouncete Autosave läuft über `src/syncEngine.js` und `src/cloudRepository.js`: unveränderte Rows werden nicht geschrieben, geänderte Rows nur bei passender Serverrevision aktualisiert und bestätigte Revisionen fließen in den lokalen Cache zurück. Die accountgebundene Outbox überlebt Reloads, behält fehlgeschlagene Mutationen mit Retry-Zähler und verarbeitet `reviewEventAppend` als idempotente Einzelmutation.
+- Der debouncete Autosave läuft über `src/syncEngine.js` und `src/cloudRepository.js`: unveränderte Rows werden nicht geschrieben, geänderte Rows nur bei passender Serverrevision aktualisiert und bestätigte Revisionen fließen in den lokalen Cache zurück. Die accountgebundene Outbox überlebt Reloads, behält fehlgeschlagene Mutationen mit Retry-Zähler und verarbeitet `reviewEventAppend` als idempotente Einzelmutation. `sync_devices` registriert die stabile Browser-ID vor dem Cloud-Load; Snapshot- und Review-Mutationen werden nur über ihre getrennten Repository-Acknowledgements entfernt.
 - `src/creationWorkflow.js` verwendet weiterhin den lokalen `src/mediaStore.js`. `src/cloudMediaStore.js` ist separat getestet, aber noch nicht in Import, Cloud-State-Laden oder Karten-Rendering integriert.
 - Der einzige Server-KI-Pfad ist `POST /api/ai/chat`. Die Route prüft Origin, Request-Größe und Providerfehler, liest aktuelle `steps`- sowie ältere `outputs`-Responses und protokolliert bei Providerfehlern nur sichere Strukturmetadaten. Supabase-Session, Nutzer-/IP-Limits und Kostenbudgets fehlen weiterhin; der Browser sendet derzeit keinen Bearer-Token.
 - Community, Graph, KI-Drafts, Varianten und Jobs sind weiterhin lokale Produktmodelle; nur Chat besitzt einen externen Gemma-Proxy.
@@ -24,11 +24,11 @@ Die Abhängigkeiten sind absichtlich enger als in der früheren Liste:
 
 `P0 Prüf- und Deploymentbasis` → `P1 Cloud-Datenkorrektheit` → `P1 Sync und Medien` → `P1 externe KI-Jobs` → `P2 Community-Rechte und Wachstum`.
 
-Das P0-Betriebsgate, P1 Repository-Mapping, die lokale Ownership-/RLS-Abnahme und die persistente Outbox sind geschlossen. Die Reihenfolge läuft deshalb mit der Geräte-Registrierung weiter.
+Das P0-Betriebsgate, P1 Repository-Mapping, die lokale Ownership-/RLS-Abnahme, die persistente Outbox und die Geräte-Registrierung sind geschlossen. Die Reihenfolge läuft deshalb mit konkreten Cloud-Mutationen weiter.
 
 ## Aktives nächstes Ziel
 
-**P1 Geräte-Registrierung über `sync_devices`.** Als nächster Slice wird die bereits lokal stabile Geräte-ID beim ersten Account-Start registriert und `last_seen_at`, User-Agent sowie eine verständliche Gerätebezeichnung aktualisiert. Die persistente Outbox und `reviewEventAppend` sind reloadfest, accountgebunden und idempotent umgesetzt.
+**P1 Konkrete Cloud-Mutationen mit serverseitiger Revisionsprüfung.** Als nächster Slice werden `applyDeckMutation`, `applyCardMutation`, `appendReviewEvent`, `softDeleteEntity` und `markConflict` als enge Repository-Interfaces vervollständigt. Sie müssen Basisrevisionen atomar am Server prüfen und dürfen nur tatsächlich bestätigte Mutation-IDs aus der accountgebundenen Outbox entfernen.
 
 Verbindlicher URL-Vertrag:
 
@@ -43,7 +43,8 @@ Phasen und messbare Abnahme:
 - [x] Hosted Supabase konfiguriert und geprüft: Site URL und genau die drei Redirect-Muster oben sind eingetragen; Production bleibt exakt, Wildcard nur für Preview. Der Dashboard-Readback nach Reload bestätigt alle vier Werte ohne Secret- oder Auth-Daten.
 - [x] Release-Abnahme nach grünem CI: Commit `e600ac4817f80c8ca8062df3aa2c706ee1f71178`, GitHub-Lauf `29121208290`, Preview `dpl_ADcYAJBLJWcZ9mu2cMJPeMAyCMGG`, staged/Production `dpl_CCF8hGMt236krS8CdPW5W9G1yWM9`, Preview-Smoke 1-8, Kurzsmoke vor und nach Promotion sowie 5xx-/Error-Log-Scan sind grün und in `docs/specs.md` 14.2.2 protokolliert.
 - [x] P1 Repository-Mapping mit revisionsbedingtem Delta-Autosave, Tombstones und Server-Acknowledgements geschlossen; Ownership-/RLS-Smokes als aktives Ziel gesetzt.
-- [x] P1 Ownership-/RLS-Gate geschlossen: `npm run test:rls:local` führt das erweiterte SQL-Verify und sechs Nutzer-A/Nutzer-B/`anon`-Data-API-Smokes ausschließlich gegen Loopback-Supabase aus; `npm run test:e2e:local` führt dasselbe Gate vor Playwright aus.
+- [x] P1 Ownership-/RLS-Gate geschlossen: `npm run test:rls:local` führt das erweiterte SQL-Verify und sieben Nutzer-A/Nutzer-B/`anon`-Data-API-Smokes ausschließlich gegen Loopback-Supabase aus; `npm run test:e2e:local` führt dasselbe Gate vor Playwright aus.
+- [x] P1 Geräte-Registrierung geschlossen: der Account-Boot registriert `sync_devices` vor dem Cloud-Load, aktualisiert `last_seen_at`, User-Agent und Browser-/Betriebssystem-Label, bewahrt `created_at` und übergibt getrennte Snapshot-/Review-Mutation-IDs samt Geräte-ID an das Repository; 252 Modul-, sieben RLS- und 19 Browser-Tests sind grün.
 
 ## 1. P0 — Prüfbare Release- und Infrastruktur-Basis
 
@@ -88,7 +89,7 @@ Phasen und messbare Abnahme:
 
 - [x] Eine dauerhafte Outbox hinter `src/syncEngine.js` eingeführt. Mutation-ID, Geräte-ID, `baseRevision`, Entitätstabelle, Entitäts-ID, Payload, Erstellzeit, Flushzeit und Retry-Zähler werden accountgebunden gespeichert; die Queue überlebt Reload und Tab-Neustart.
 - [x] `SYNC_MUTATION_TYPES.reviewEventAppend` produktiv verdrahtet. Der Lernmodus reicht das erzeugte Event direkt weiter, der Supabase-Adapter verarbeitet es idempotent über `(user_id, id)`, und Autosave sowie manueller Sync verwenden dieselbe Outbox.
-- [ ] `sync_devices` beim ersten Login/Start registrieren und `last_seen_at`, User-Agent und Gerätebezeichnung aktualisieren. Flushes müssen Mutation-IDs und Geräte-ID an das Repository übergeben.
+- [x] `sync_devices` beim ersten Login/Start registriert und `last_seen_at`, User-Agent und Gerätebezeichnung aktualisiert. Flushes übergeben getrennte Snapshot-/Review-Mutation-IDs und die Geräte-ID an das Repository; nur bestätigte IDs verlassen die Outbox.
 - [ ] In `cloudRepository` konkrete Mutationsfunktionen ergänzen: `applyDeckMutation`, `applyCardMutation`, `appendReviewEvent`, `softDeleteEntity` und `markConflict`. Die Funktionen müssen Server-Revisionen bedingt prüfen, statt nur clientseitig zu vergleichen.
 - [ ] Konfliktregeln dokumentieren und testen: Review-Events append-only zusammenführen, gleiche Medien per SHA-1 deduplizieren, Content-Änderungen bei abweichender `baseRevision` in `sync_conflicts` ablegen; unabhängige Metadaten nur mit expliziter Feldregel mergen.
 - [ ] `sync_conflicts` beim Erkennen tatsächlich beschreiben. Die vorhandenen Funktionen listen und lösen Konflikte nur auf; sie erzeugen noch keinen Konflikt-Datensatz.

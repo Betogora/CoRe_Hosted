@@ -310,7 +310,69 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       }
     });
 
-    await t.test("dieselbe lokale ID darf in zwei Accounts existieren", async () => {
+    await t.test("Geräte-Upsert aktualisiert den Heartbeat und dieselbe Geräte-ID bleibt accountgebunden", async () => {
+      const sharedId = `${prefix}_shared_device`;
+      const firstSeenAt = "2026-07-11T08:00:00.000Z";
+      const heartbeatAt = "2026-07-11T09:00:00.000Z";
+
+      try {
+        const initialA = assertNoError(await clientA
+          .from("sync_devices")
+          .upsert({
+            id: sharedId,
+            user_id: userA.id,
+            label: "Firefox auf Linux",
+            user_agent: "CoRe RLS Smoke A/1",
+            last_seen_at: firstSeenAt,
+            created_at: firstSeenAt,
+          }, { onConflict: "user_id,id" })
+          .select("id, label, user_agent, last_seen_at, created_at")
+          .single(), "Gerät für Nutzer A registrieren");
+        assert.equal(initialA.id, sharedId);
+        assert.equal(new Date(initialA.last_seen_at).toISOString(), firstSeenAt);
+        assert.equal(new Date(initialA.created_at).toISOString(), firstSeenAt);
+
+        const heartbeatA = assertNoError(await clientA
+          .from("sync_devices")
+          .upsert({
+            id: sharedId,
+            user_id: userA.id,
+            label: "Firefox auf Linux aktualisiert",
+            user_agent: "CoRe RLS Smoke A/2",
+            last_seen_at: heartbeatAt,
+          }, { onConflict: "user_id,id" })
+          .select("id, label, user_agent, last_seen_at, created_at")
+          .single(), "Geräte-Heartbeat für Nutzer A aktualisieren");
+        assert.equal(heartbeatA.label, "Firefox auf Linux aktualisiert");
+        assert.equal(heartbeatA.user_agent, "CoRe RLS Smoke A/2");
+        assert.equal(new Date(heartbeatA.last_seen_at).toISOString(), heartbeatAt);
+        assert.equal(new Date(heartbeatA.created_at).toISOString(), firstSeenAt, "Heartbeat darf created_at nicht ersetzen");
+
+        const ownB = assertNoError(await clientB
+          .from("sync_devices")
+          .upsert({
+            id: sharedId,
+            user_id: userB.id,
+            label: "Chrome auf Windows",
+            user_agent: "CoRe RLS Smoke B/1",
+            last_seen_at: heartbeatAt,
+          }, { onConflict: "user_id,id" })
+          .select("id, label")
+          .single(), "Dieselbe Geräte-ID für Nutzer B registrieren");
+        assert.equal(ownB.id, sharedId);
+        assert.equal(ownB.label, "Chrome auf Windows");
+
+        const visibleToA = assertNoError(await clientA.from("sync_devices").select("user_id, label").eq("id", sharedId), "Shared-Geräte-ID als Nutzer A lesen");
+        const visibleToB = assertNoError(await clientB.from("sync_devices").select("user_id, label").eq("id", sharedId), "Shared-Geräte-ID als Nutzer B lesen");
+        assert.deepEqual(visibleToA, [{ user_id: userA.id, label: "Firefox auf Linux aktualisiert" }]);
+        assert.deepEqual(visibleToB, [{ user_id: userB.id, label: "Chrome auf Windows" }]);
+      } finally {
+        assertNoError(await clientA.from("sync_devices").delete().eq("id", sharedId), "Shared-Geräte-ID für Nutzer A löschen");
+        assertNoError(await clientB.from("sync_devices").delete().eq("id", sharedId), "Shared-Geräte-ID für Nutzer B löschen");
+      }
+    });
+
+    await t.test("dieselbe lokale Deck-ID darf in zwei Accounts existieren", async () => {
       const sharedId = `${prefix}_shared_deck`;
       assertNoError(await clientA.from("decks").insert({ ...fixtureA.decks, id: sharedId, name: "Shared A" }), "Shared-ID für Nutzer A");
       assertNoError(await clientB.from("decks").insert({ ...fixtureB.decks, id: sharedId, name: "Shared B" }), "Shared-ID für Nutzer B");

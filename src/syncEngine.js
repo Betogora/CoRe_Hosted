@@ -1,4 +1,11 @@
-import { appendReviewEvent, listAccountSyncConflicts, loadAccountCloudState, resolveAccountSyncConflict, upsertAccountCloudState } from "./cloudRepository.js";
+import {
+  appendReviewEvent,
+  listAccountSyncConflicts,
+  loadAccountCloudState,
+  registerAccountSyncDevice,
+  resolveAccountSyncConflict,
+  upsertAccountCloudState,
+} from "./cloudRepository.js";
 import { createSyncOutbox } from "./syncOutbox.js";
 
 export const SYNC_MUTATION_TYPES = Object.freeze({
@@ -14,13 +21,30 @@ function makeId(prefix = "sync") {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function createMutation(input = {}, now = nowIso, deviceId = null) {
+function normalizeDevice(device = {}) {
+  const id = String(device?.id ?? "").trim();
+  if (!id) throw new Error("Sync-Engine braucht eine Geräte-ID.");
+  return {
+    id,
+    label: String(device?.label ?? "Browser").trim() || "Browser",
+    userAgent: typeof device?.userAgent === "string" ? device.userAgent : "",
+  };
+}
+
+function createDeviceRegistrationError(error) {
+  const registrationError = new Error("Dieses Gerät konnte nicht für die Synchronisierung registriert werden.", { cause: error });
+  registrationError.name = "SyncDeviceRegistrationError";
+  registrationError.code = "sync_device_registration_failed";
+  return registrationError;
+}
+
+function createMutation(input = {}, now = nowIso, deviceId) {
   return {
     id: input.id ?? makeId("mutation"),
     type: input.type ?? SYNC_MUTATION_TYPES.statePatch,
     payload: input.payload ?? {},
     baseRevision: input.baseRevision ?? null,
-    deviceId: input.deviceId ?? deviceId,
+    deviceId,
     table: input.table ?? (input.type === SYNC_MUTATION_TYPES.reviewEventAppend ? "review_events" : null),
     entityId: input.entityId ?? input.payload?.event?.id ?? null,
     createdAt: input.createdAt ?? now(),
@@ -60,13 +84,17 @@ export function detectRevisionConflict({ localRow, remoteRow, baseRevision, cont
 
 function createDefaultAdapter(client) {
   return {
+    registerDevice(device, context = {}) {
+      return registerAccountSyncDevice(client, device, { lastSeenAt: context.lastSeenAt });
+    },
     loadSnapshot(fallbackState) {
       return loadAccountCloudState(client, fallbackState);
     },
     upsertState(state, context = {}) {
       return upsertAccountCloudState(client, state, {
         deviceId: context.deviceId,
-        now: context.flushedAt ? () => context.flushedAt : undefined,
+        mutationIds: context.mutationIds,
+        flushedAt: context.flushedAt,
       });
     },
     listConflicts() {
@@ -84,12 +112,15 @@ function createDefaultAdapter(client) {
           continue;
         }
         try {
-          await appendReviewEvent(client, mutation.payload?.event, {
+          const acknowledgement = await appendReviewEvent(client, mutation.payload?.event, {
             mutationId: mutation.id,
             deviceId: mutation.deviceId ?? context.deviceId,
-            flushedAt: context.flushedAt,
           });
-          acknowledgedMutationIds.push(mutation.id);
+          if (acknowledgement?.acknowledgedMutationId === mutation.id) {
+            acknowledgedMutationIds.push(mutation.id);
+          } else {
+            failedMutationIds.push(mutation.id);
+          }
         } catch (error) {
           failedMutationIds.push(mutation.id);
         }
@@ -99,19 +130,26 @@ function createDefaultAdapter(client) {
   };
 }
 
-export function createSyncEngine({ adapter, deviceId = "browser-device", now = nowIso, outbox } = {}) {
+export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {}) {
   if (!adapter) throw new Error("Sync-Engine braucht einen Adapter.");
   if (!outbox) throw new Error("Sync-Engine braucht eine persistente Outbox.");
+  const syncDevice = normalizeDevice(device);
   let lastFlush = null;
   let activeFlush = null;
 
   return {
     async loadSnapshot(fallbackState = {}) {
+      if (!adapter.registerDevice) throw new Error("Sync-Adapter kann kein Gerät registrieren.");
+      try {
+        await adapter.registerDevice(syncDevice, { lastSeenAt: now() });
+      } catch (error) {
+        throw createDeviceRegistrationError(error);
+      }
       return adapter.loadSnapshot(fallbackState);
     },
 
     enqueueMutation(input = {}) {
-      return outbox.enqueue(createMutation(input, now, deviceId));
+      return outbox.enqueue(createMutation(input, now, syncDevice.id));
     },
 
     pendingCount() {
@@ -128,18 +166,27 @@ export function createSyncEngine({ adapter, deviceId = "browser-device", now = n
           mutations: batch.length,
           conflicts: [],
           saved: null,
-          deviceId,
+          deviceId: syncDevice.id,
           flushedAt: now(),
         };
 
         if (latestStatePatch?.payload?.state) {
+          const statePatchIds = batch.filter((mutation) => mutation.type === SYNC_MUTATION_TYPES.statePatch).map((mutation) => mutation.id);
           try {
-            result.saved = await adapter.upsertState(latestStatePatch.payload.state, { deviceId, mutations: batch, flushedAt: result.flushedAt });
-            const statePatchIds = batch.filter((mutation) => mutation.type === SYNC_MUTATION_TYPES.statePatch).map((mutation) => mutation.id);
-            outbox.markFlushed(statePatchIds, result.flushedAt);
-            outbox.remove(statePatchIds);
+            result.saved = await adapter.upsertState(latestStatePatch.payload.state, {
+              deviceId: syncDevice.id,
+              mutationIds: statePatchIds,
+              flushedAt: result.flushedAt,
+            });
+            const acknowledgedStatePatchIds = statePatchIds.filter((id) => result.saved?.acknowledgedMutationIds?.includes(id));
+            const missingAcknowledgements = statePatchIds.filter((id) => !acknowledgedStatePatchIds.includes(id));
+            outbox.markFlushed(acknowledgedStatePatchIds, result.flushedAt);
+            outbox.remove(acknowledgedStatePatchIds);
+            if (missingAcknowledgements.length > 0) {
+              throw new Error("Cloud-Repository hat nicht alle Snapshot-Mutationen bestätigt.");
+            }
           } catch (error) {
-            outbox.markFailed(batch.filter((mutation) => mutation.type === SYNC_MUTATION_TYPES.statePatch).map((mutation) => mutation.id), error);
+            outbox.markFailed(statePatchIds, error);
             throw error;
           }
         }
@@ -147,11 +194,14 @@ export function createSyncEngine({ adapter, deviceId = "browser-device", now = n
         const remaining = batch.filter((mutation) => mutation.type !== SYNC_MUTATION_TYPES.statePatch);
         if (remaining.length > 0 && adapter.applyMutationBatch) {
           try {
-            const batchResult = await adapter.applyMutationBatch(remaining, { deviceId, flushedAt: result.flushedAt });
+            const batchResult = await adapter.applyMutationBatch(remaining, { deviceId: syncDevice.id, flushedAt: result.flushedAt });
             result.conflicts = batchResult?.conflicts ?? [];
-            outbox.markFlushed(batchResult?.acknowledgedMutationIds ?? [], result.flushedAt);
-            outbox.remove(batchResult?.acknowledgedMutationIds ?? []);
-            outbox.markFailed(batchResult?.failedMutationIds ?? [], new Error("Mutation konnte nicht synchronisiert werden."));
+            const remainingIds = new Set(remaining.map((mutation) => mutation.id));
+            const acknowledgedMutationIds = (batchResult?.acknowledgedMutationIds ?? []).filter((id) => remainingIds.has(id));
+            const failedMutationIds = (batchResult?.failedMutationIds ?? []).filter((id) => remainingIds.has(id));
+            outbox.markFlushed(acknowledgedMutationIds, result.flushedAt);
+            outbox.remove(acknowledgedMutationIds);
+            outbox.markFailed(failedMutationIds, new Error("Mutation konnte nicht synchronisiert werden."));
           } catch (error) {
             outbox.markFailed(remaining.map((mutation) => mutation.id), error);
             throw error;
@@ -177,13 +227,15 @@ export function createSyncEngine({ adapter, deviceId = "browser-device", now = n
 
     async resolveConflict(conflictId, resolution) {
       if (!adapter.resolveConflict) throw new Error("Dieser Sync-Adapter kann Konflikte nicht auflösen.");
-      return adapter.resolveConflict(conflictId, { ...resolution, deviceId, resolvedAt: now() });
+      return adapter.resolveConflict(conflictId, { ...resolution, deviceId: syncDevice.id, resolvedAt: now() });
     },
   };
 }
 
 export function createAccountSyncEngine(client, options = {}) {
-  if (!options.userId || !options.storage) throw new Error("Account-Sync braucht Nutzer-ID und accountgebundenen Speicher.");
+  if (!options.userId || !options.storage || !options.device) {
+    throw new Error("Account-Sync braucht Nutzer-ID, accountgebundenen Speicher und Gerätedaten.");
+  }
   return createSyncEngine({
     ...options,
     adapter: options.adapter ?? createDefaultAdapter(client),
