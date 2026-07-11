@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-07-10
+Stand: 2026-07-11
 
 Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage waren `docs/specs.md`, `AGENTS.md`, die Module unter `src/`, die Vercel-Route unter `api/`, die Supabase-SQL-Dateien, die Tests und die lokalen Build-/E2E-Läufe. Die Liste beschreibt deshalb konkrete Lücken und keine allgemeinen Produktideen.
 
@@ -11,6 +11,7 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 - `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und zwölf authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 19/19 Tests grün; der zusätzliche Produkt-Smoke prüft PDF-Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
 - `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
+- `npm run test:rls:local`: SQL-Struktur-Gate und sechs echte Data-API-Smokes mit Nutzer A, Nutzer B und `anon` sind grün. Eigene CRUD-Zugriffe, unsichtbare fremde Rows, wirkungslose Fremdmutationen, Ownership-Fälschung, accountgebundene Foreign Keys und gleiche lokale IDs in zwei Accounts sind reproduzierbar geprüft.
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
 - Der debouncete Autosave läuft über `src/syncEngine.js` und `src/cloudRepository.js`: unveränderte Rows werden nicht geschrieben, geänderte Rows nur bei passender Serverrevision aktualisiert, bestätigte Revisionen fließen in den lokalen Cache zurück und Review-Events werden append-only ergänzt. Die Queue lebt weiterhin nur im Speicher; `reviewEventAppend` besitzt noch keinen eigenen produktiven Adapterpfad.
 - `src/creationWorkflow.js` verwendet weiterhin den lokalen `src/mediaStore.js`. `src/cloudMediaStore.js` ist separat getestet, aber noch nicht in Import, Cloud-State-Laden oder Karten-Rendering integriert.
@@ -23,11 +24,11 @@ Die Abhängigkeiten sind absichtlich enger als in der früheren Liste:
 
 `P0 Prüf- und Deploymentbasis` → `P1 Cloud-Datenkorrektheit` → `P1 Sync und Medien` → `P1 externe KI-Jobs` → `P2 Community-Rechte und Wachstum`.
 
-Das P0-Betriebsgate und P1 Repository-Mapping sind seit dem 2026-07-10 geschlossen. Die Reihenfolge läuft deshalb mit Ownership-/RLS-Abnahme weiter, bevor die persistente Outbox folgt.
+Das P0-Betriebsgate, P1 Repository-Mapping und die lokale Ownership-/RLS-Abnahme sind geschlossen. Die Reihenfolge läuft deshalb mit der persistenten Outbox weiter.
 
 ## Aktives nächstes Ziel
 
-**P1 Ownership und RLS automatisiert abnehmen.** Als nächster Slice wird ein reproduzierbarer Nutzer-A/Nutzer-B/`anon`-Smoke gegen lokales Supabase ergänzt. Er prüft Core-, Medien- und Sync-Tabellen, UPDATE-Policies mit `using`/`with check` sowie accountgebundene Foreign Keys. Das revisionssichere Repository-Mapping, Soft-Delete-Tombstones, append-only Review-Events und die Trennung zwischen Delta-Autosave und ausdrücklichem Voll-Replace sind abgeschlossen.
+**P1 Persistente Outbox hinter `src/syncEngine.js`.** Als nächster Slice wird die flüchtige In-Memory-Queue accountgebunden und reloadfest gespeichert. Mutation-ID, Geräte-ID, `baseRevision`, Tabelle, Entitäts-ID, Payload, Zeitstempel und Retry-Zähler bilden den Mindestvertrag; `reviewEventAppend` wird als erste idempotente Einzelmutation produktiv verdrahtet. Ownership, RLS, accountgebundene Foreign Keys und das revisionssichere Repository-Mapping sind dafür automatisiert abgesichert.
 
 Verbindlicher URL-Vertrag:
 
@@ -42,6 +43,7 @@ Phasen und messbare Abnahme:
 - [x] Hosted Supabase konfiguriert und geprüft: Site URL und genau die drei Redirect-Muster oben sind eingetragen; Production bleibt exakt, Wildcard nur für Preview. Der Dashboard-Readback nach Reload bestätigt alle vier Werte ohne Secret- oder Auth-Daten.
 - [x] Release-Abnahme nach grünem CI: Commit `e600ac4817f80c8ca8062df3aa2c706ee1f71178`, GitHub-Lauf `29121208290`, Preview `dpl_ADcYAJBLJWcZ9mu2cMJPeMAyCMGG`, staged/Production `dpl_CCF8hGMt236krS8CdPW5W9G1yWM9`, Preview-Smoke 1-8, Kurzsmoke vor und nach Promotion sowie 5xx-/Error-Log-Scan sind grün und in `docs/specs.md` 14.2.2 protokolliert.
 - [x] P1 Repository-Mapping mit revisionsbedingtem Delta-Autosave, Tombstones und Server-Acknowledgements geschlossen; Ownership-/RLS-Smokes als aktives Ziel gesetzt.
+- [x] P1 Ownership-/RLS-Gate geschlossen: `npm run test:rls:local` führt das erweiterte SQL-Verify und sechs Nutzer-A/Nutzer-B/`anon`-Data-API-Smokes ausschließlich gegen Loopback-Supabase aus; `npm run test:e2e:local` führt dasselbe Gate vor Playwright aus.
 
 ## 1. P0 — Prüfbare Release- und Infrastruktur-Basis
 
@@ -74,8 +76,8 @@ Phasen und messbare Abnahme:
 
 ### 2.2 Ownership, RLS und Account-Lifecycle
 
-- [ ] Einen echten Nutzer-A/Nutzer-B/`anon`-Smoke gegen das verlinkte oder lokale Supabase-Projekt automatisieren. Prüfen: `decks`, `cards`, `card_variants`, `review_events`, `source_documents`, `ai_jobs`, `media_assets`, `sync_devices` und `sync_conflicts`.
-- [ ] Für jede schreibbare Tabelle gesondert verifizieren, dass UPDATE sowohl `using` als auch `with check` hat und Foreign Keys keine fremden Deck-/Card-IDs akzeptieren.
+- [x] Einen echten Nutzer-A/Nutzer-B/`anon`-Smoke gegen lokales Supabase automatisiert. Geprüft werden `profiles`, `core_portable_exports`, `decks`, `cards`, `card_variants`, `review_events`, `source_documents`, `ai_jobs`, `media_assets`, `sync_devices` und `sync_conflicts`; der Runner verweigert Hosted-Ziele.
+- [x] Für jede authentifiziert schreibbare Tabelle verifiziert, dass UPDATE sowohl `using` als auch `with check` hat. Runtime-Smokes bestätigen eigene Updates, unsichtbare und unveränderbare fremde Rows sowie abgewiesene Ownership-Fälschungen; Composite-FKs verweigern fremde Deck-/Card-IDs mit `23503`.
 - [ ] Hosted Auth konfigurieren und dokumentieren: Site URL, Redirect-Allowlist, Google OAuth, SMTP-Absender, DKIM/SPF/DMARC, deutsche Templates, E-Mail-Bestätigung und Leaked-Password-Protection.
 - [ ] Browser-Tests für Magic Link, Google Redirect, Recovery, Passwortänderung, erneuten Login, Rate-Limit-Fehler und abgelaufene Links mit der Test-Fixture ergänzen.
 - [ ] Account-Löschung, Reauth, Datenschutzexport und Datenportabilitätsrechte als Datenfluss spezifizieren. Der vorhandene JSON-Export ist nur ein lokaler Inhalts-Export und ersetzt keine Account-Löschung oder serverseitige DSGVO-Antwort.
@@ -194,6 +196,7 @@ Phasen und messbare Abnahme:
 - `supabase/core_schema_v1.sql`: Schemaanker für Tabellen, RLS, Grants und Storage-Policies.
 - `supabase/migrations/20260709091315_sync_media_auth_operations.sql`: remote angewendete Migration für Revisionen, Medien, Geräte, Konflikte und Storage-Policies.
 - `supabase/verify_schema_v1.sql`: fehlschlagendes Verify-Gate für Zieltabellen/-spalten, RLS, Policies, Grants, Constraints und den privaten Medien-Bucket.
+- `tests/rls/ownership-smoke.test.js`: echter lokaler Data-API-Smoke für Nutzer A, Nutzer B, `anon`, Ownership und accountgebundene Foreign Keys.
 - `src/cloudRepository.js`, `src/syncEngine.js`: aktueller Cloud-/Sync-Pfad und nächste technische Naht.
 - `src/cloudMediaStore.js`, `src/mediaStore.js`, `src/creationWorkflow.js`: aktueller lokaler und vorbereiteter Cloud-Medienpfad.
 - `api/ai/chat.js`, `src/deckAssistant.js`, `src/aiOrchestrator.js`: aktueller Chat-Proxy und lokale KI-Drafts.

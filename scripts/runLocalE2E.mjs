@@ -8,6 +8,7 @@ import {
 
 const SUPABASE_CLI_PATH = path.join(process.cwd(), "node_modules", "supabase", "dist", "supabase.js");
 const PLAYWRIGHT_CLI_PATH = path.join(process.cwd(), "node_modules", "@playwright", "test", "cli.js");
+const RLS_TEST_PATH = path.join(process.cwd(), "tests", "rls", "ownership-smoke.test.js");
 
 function runSupabase(args, options) {
   return runCommand(process.execPath, [SUPABASE_CLI_PATH, ...args], options);
@@ -66,6 +67,9 @@ async function stopLocalSupabase() {
 }
 
 export async function runLocalE2E(playwrightArguments = []) {
+  const rlsOnly = playwrightArguments.includes("--rls-only");
+  const forwardedPlaywrightArguments = playwrightArguments.filter((argument) => argument !== "--rls-only");
+
   try {
     await runCommand("docker", ["info", "--format", "{{.ServerVersion}}"], { capture: true, timeoutMs: 5_000 });
   } catch {
@@ -90,10 +94,22 @@ export async function runLocalE2E(playwrightArguments = []) {
     const statusEnvironment = parseSupabaseStatusEnvironment(stdout);
     const testEnvironment = createLocalE2ERuntimeEnvironment(statusEnvironment, process.env);
 
-    console.log("Playwright gegen lokales Supabase ausführen …");
-    await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", ...playwrightArguments], {
+    console.log("Supabase-Schema, RLS-Policies und Foreign Keys prüfen …");
+    await runSupabase(["db", "query", "--local", "--file", "supabase/verify_schema_v1.sql"], {
+      capture: true,
+    });
+
+    console.log("Nutzer-A/Nutzer-B/anon-Smoke gegen die lokale Data API ausführen …");
+    await runCommand(process.execPath, ["--test", RLS_TEST_PATH], {
       env: testEnvironment,
     });
+
+    if (!rlsOnly) {
+      console.log("Playwright gegen lokales Supabase ausführen …");
+      await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", ...forwardedPlaywrightArguments], {
+        env: testEnvironment,
+      });
+    }
   } finally {
     if (supabaseStartAttempted) {
       console.log("Lokalen Supabase-Stack stoppen …");

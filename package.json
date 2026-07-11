@@ -8,6 +8,7 @@
     "test": "node --test src/*.test.js",
     "test:e2e": "playwright test",
     "test:e2e:local": "node scripts/runLocalE2E.mjs",
+    "test:rls:local": "node scripts/runLocalE2E.mjs --rls-only",
     "build": "vite build",
     "postbuild": "node scripts/verifyBuildChunks.mjs",
     "preview": "vite preview"

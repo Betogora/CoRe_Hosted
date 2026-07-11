@@ -45,13 +45,14 @@ npm run dev      # Vite-Dev-Server
 npm test         # Node-Testlauf fuer src/*.test.js
 npm run test:e2e # Playwright-Smoke fuer lokale Browser-Flows
 npm run test:e2e:local # Supabase lokal starten, alle Browser-Smokes ausführen und wieder stoppen
+npm run test:rls:local # Supabase lokal starten, Schema-/RLS-Gate und A/B/anon-Smokes ausführen
 npm run build    # Produktionsbuild plus manifestbasierte 500-kB-Chunk-Pruefung
 npm run preview  # Lokale Preview auf Port 5190
 ```
 
 ## Automatisiertes Release-Gate
 
-`.github/workflows/ci.yml` läuft bei Pull Requests, bei Pushes auf `main` und manuell über GitHub Actions. Der Check `quality` installiert reproduzierbar mit `npm ci` und führt `npm test` sowie `npm run build` aus. Danach installiert `browser-e2e` Chromium und startet mit `npm run test:e2e:local` einen vollständig lokalen Supabase-Stack auf dem GitHub-Ubuntu-Runner. Der CI-Pfad benötigt deshalb weder Hosted-Supabase-Zugangsdaten noch KI-Provider-Secrets.
+`.github/workflows/ci.yml` läuft bei Pull Requests, bei Pushes auf `main` und manuell über GitHub Actions. Der Check `quality` installiert reproduzierbar mit `npm ci` und führt `npm test` sowie `npm run build` aus. Danach installiert `browser-e2e` Chromium und startet mit `npm run test:e2e:local` einen vollständig lokalen Supabase-Stack auf dem GitHub-Ubuntu-Runner. Vor Playwright laufen das SQL-Struktur-Gate und die Nutzer-A/Nutzer-B/`anon`-Data-API-Smokes. Der CI-Pfad benötigt deshalb weder Hosted-Supabase-Zugangsdaten noch KI-Provider-Secrets.
 
 Playwright schreibt im CI-Modus einen HTML-Bericht und Screenshots für fehlgeschlagene Tests. Traces werden nur für die sessionlosen Projekte erzeugt; `auth-setup` und `authenticated-chromium` deaktivieren sie, damit keine Supabase-Sitzung in Diagnoseartefakte gelangt. Bei einem Fehler lädt der Workflow ausschließlich `playwright-report/` und `test-results/` für sieben Tage als GitHub-Actions-Artefakt hoch; `playwright/.auth/` und `.env`-Dateien bleiben ausgeschlossen. Retries bleiben deaktiviert, damit instabile Tests das Gate sichtbar fehlschlagen lassen.
 
@@ -80,7 +81,7 @@ Der bevorzugte kostenfreie Testpfad verwendet Docker Desktop und den lokalen Sup
 npm run test:e2e:local
 ```
 
-Der Befehl prüft die Docker-Engine, startet nur die für CoRe benötigten lokalen Supabase-Dienste, wendet ausstehende Migrationen an, liest URL und Publishable Key aus dem JSON-Status der installierten Supabase-CLI ausschließlich von der Loopback-Instanz, legt den lokalen Testaccount bei Bedarf an, führt Playwright aus und stoppt den Stack anschließend wieder. Die Status-Auswertung bleibt auch mit älteren `KEY=VALUE`-Ausgaben kompatibel. Beim ersten Lauf lädt Supabase die Docker-Images herunter. Docker muss dafür laufen; für `npm test`, `npm run build` und normale Entwicklungsarbeit ist Docker nicht erforderlich. Zusätzliche Playwright-Argumente werden weitergereicht, zum Beispiel `npm run test:e2e:local -- --project=auth-gate-chromium`.
+Der Befehl prüft die Docker-Engine, startet nur die für CoRe benötigten lokalen Supabase-Dienste, wendet ausstehende Migrationen an, führt das SQL-Struktur-Gate und echte Nutzer-A/Nutzer-B/`anon`-Data-API-Smokes aus, liest URL und Publishable Key aus dem JSON-Status der installierten Supabase-CLI ausschließlich von der Loopback-Instanz, legt lokale Testaccounts bei Bedarf an, führt Playwright aus und stoppt den Stack anschließend wieder. Die Status-Auswertung bleibt auch mit älteren `KEY=VALUE`-Ausgaben kompatibel. Beim ersten Lauf lädt Supabase die Docker-Images herunter. Docker muss dafür laufen; für `npm test`, `npm run build` und normale Entwicklungsarbeit ist Docker nicht erforderlich. Zusätzliche Playwright-Argumente werden weitergereicht, zum Beispiel `npm run test:e2e:local -- --project=auth-gate-chromium`. Für die fokussierte Datenbankabnahme ohne Browser dient `npm run test:rls:local`.
 
 Der lokale Lauf wurde am 2026-07-10 mit allen 19 Tests erfolgreich abgenommen. Darin enthalten sind ein ausschließlich im E2E-Modus aktivierbarer Renderfehler-Smoke fuer den sicheren Fehlerfallback und ein PDF-Smoke fuer Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker; der Production-Build enthaelt den Renderfehler-Testparameter nicht. Beim ersten Start werden die Docker-Images einmalig lokal heruntergeladen; danach startet der Lauf deutlich schneller.
 
@@ -156,6 +157,7 @@ src/
 - `scripts/create_world_capitals_apkg.py`: Generator fuer APKG-Fixture, Quell-Snapshot und lokalen Seed.
 - `tests/e2e/world-capitals-hierarchy.spec.js`: Playwright-Smoke fuer Seed, Unterstapel, direkte Lernlisten-Drag-and-drop-Gesten und die Kartenstapel-Verwaltung ohne alten Drag-Handle.
 - `tests/e2e/auth.setup.js`: RLS-konformer Reset des dedizierten Testaccounts und Aufbau der ignorierten Playwright-`storageState`-Session.
+- `tests/rls/ownership-smoke.test.js`: echter lokaler Nutzer-A/Nutzer-B/`anon`-Smoke für Core-, Medien- und Sync-Tabellen.
 - `tests/e2e/auth-gate.spec.js`: sessionlose Login-Gate- und Auth-Fehler-Smokes.
 - `tests/e2e/core-stabilization.spec.js`: authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent und Portabilität.
 - `AGENTS.md`: lokale Entwicklungsregeln, empfohlene Kommandos und Architekturleitplanken.

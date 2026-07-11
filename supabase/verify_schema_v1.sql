@@ -82,6 +82,14 @@ expected_policies(
 ),
 expected_primary_keys(table_name, column_names) as (
   values
+    ('profiles', array['id']::text[]),
+    ('core_portable_exports', array['id']::text[]),
+    ('decks', array['user_id', 'id']::text[]),
+    ('cards', array['user_id', 'id']::text[]),
+    ('card_variants', array['user_id', 'id']::text[]),
+    ('review_events', array['user_id', 'id']::text[]),
+    ('source_documents', array['user_id', 'id']::text[]),
+    ('ai_jobs', array['user_id', 'id']::text[]),
     ('media_assets', array['user_id', 'id']::text[]),
     ('sync_devices', array['user_id', 'id']::text[]),
     ('sync_conflicts', array['user_id', 'id']::text[]),
@@ -96,6 +104,18 @@ expected_foreign_keys(
   referenced_columns
 ) as (
   values
+    ('profiles', 'profiles_id_fkey', array['id']::text[], 'auth', 'users', array['id']::text[]),
+    ('core_portable_exports', 'core_portable_exports_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
+    ('decks', 'decks_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
+    ('cards', 'cards_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
+    ('cards', 'cards_deck_owner_fk', array['deck_id', 'user_id']::text[], 'public', 'decks', array['id', 'user_id']::text[]),
+    ('card_variants', 'card_variants_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
+    ('card_variants', 'card_variants_card_owner_fk', array['card_id', 'user_id']::text[], 'public', 'cards', array['id', 'user_id']::text[]),
+    ('review_events', 'review_events_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
+    ('review_events', 'review_events_deck_owner_fk', array['deck_id', 'user_id']::text[], 'public', 'decks', array['id', 'user_id']::text[]),
+    ('source_documents', 'source_documents_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
+    ('ai_jobs', 'ai_jobs_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
+    ('ai_jobs', 'ai_jobs_deck_owner_fk', array['deck_id', 'user_id']::text[], 'public', 'decks', array['id', 'user_id']::text[]),
     ('media_assets', 'media_assets_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
     ('media_assets', 'media_assets_deck_owner_fk', array['deck_id', 'user_id']::text[], 'public', 'decks', array['id', 'user_id']::text[]),
     ('media_assets', 'media_assets_card_owner_fk', array['card_id', 'user_id']::text[], 'public', 'cards', array['id', 'user_id']::text[]),

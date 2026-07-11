@@ -3,12 +3,12 @@
 **Produkt- und Engineering-Spezifikation**  
 **Dateien:** `docs/specs.md` und `docs/specs.html`  
 **Status:** Arbeitsfassung v0.4
-**Datum:** 2026-07-10
+**Datum:** 2026-07-11
 **Quellenbasis:** Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + erneuter Gruendergespraech-Abgleich + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App + `docs/anki-format-analysis.md` + aktueller Test-/Infrastrukturstand
 
 ---
 
-## Implementierungsstand 2026-07-10
+## Implementierungsstand 2026-07-11
 
 Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt. Ein Supabase-Projekt (`CoRe-Database`) und ein Vercel-Projekt (`core-hosted`) sind angebunden. Seit dem 2026-07-09 gibt es ein Pflicht-Login-Gate fuer die deployed App, Supabase-E-Mail/Passwort, accountgebundene lokale Cache-Keys, Cloud-first Autosave und eine einmalige Uebernahme vorhandener lokaler Browserdaten in den angemeldeten Account. CoRe ist trotzdem noch kein fertiges gehostetes Mehrnutzerprodukt: Offline-Konfliktloesung, produktive Medienablage, KI-Serverjobs, Monitoring, Backups und Community-Rechte fehlen noch.
 
@@ -29,6 +29,8 @@ E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus `e2e` 
 E2E-Abnahme am 2026-07-10: Der lokale Docker-/Supabase-Lauf mit `npm run test:e2e:local` ist nach der CLI-JSON-Kompatibilitätskorrektur, den aktualisierten Unicode-/Status-Selektoren, der deterministischen Drag-and-drop-Testgeste, dem Fehlerfallback-Smoke und dem PDF-Auswahl-Smoke mit 19/19 Browser-Smokes grün. Der Runner startet nur die benötigten Supabase-Dienste, verarbeitet die aktuellen JSON-Statusdaten, schreibt lokale Schlüssel nicht in den normalen Start-Log und stoppt den Stack nach dem Lauf. Der Modul-Testlauf umfasst 226 bestandene Tests.
 
 Cloud-Datenkorrektheit am 2026-07-10: `cloudRepository` mappt Revisionen, Soft-Deletes und Geräte-IDs bidirektional. Soft-gelöschte Rows bleiben als minimale `cloudTombstones` erhalten, erscheinen aber nicht in sichtbaren Collections. Der reguläre Autosave schreibt nur geänderte Rows, schützt Updates atomar über `user_id`, `id` und Basisrevision, ergänzt Review-Events append-only und führt bestätigte Serverrevisionen ohne Autosave-Loop in Workspace und accountgebundenen Cache zurück. `replaceAccountCloudState()` bleibt der ausdrücklich destruktive Pfad für Legacy-Import und E2E-Reset. Persistente Outbox, Geräte-Registrierung und Konflikt-UI fehlen weiterhin.
+
+Ownership-/RLS-Abnahme am 2026-07-11: `npm run test:rls:local` startet ausschließlich Loopback-Supabase, wendet Migrationen an, führt `supabase/verify_schema_v1.sql` als fehlschlagendes Struktur-Gate aus und prüft anschließend die Data API mit zwei angemeldeten Testnutzern sowie einem sessionlosen `anon`-Client. Sechs grüne Smokes decken eigene Lese-/Schreibzugriffe, unsichtbare und unveränderbare fremde Rows, abgewiesene Ownership-Fälschung, verweigerte `anon`-Zugriffe, accountgebundene Deck-/Card-FKs und gleiche lokale IDs in zwei Accounts ab. `npm run test:e2e:local` führt dasselbe Security-Gate vor Playwright aus; keine Service-Role-, Access- oder Refresh-Tokens gelangen in Vite, Playwright oder Fehlerartefakte. Das nächste aktive Ziel ist die persistente Outbox hinter `src/syncEngine.js`.
 
 Release-Diagnose am 2026-07-10: `vite.config.js` injiziert ausschliesslich Version, Commit und Umgebung. Die Version stammt aus `package.json`, der Commit bevorzugt `VERCEL_GIT_COMMIT_SHA` vor `GITHUB_SHA` und faellt sonst auf `local` zurueck; die Umgebung wird auf Production, Preview, Development oder Test normalisiert. `src/appRuntime.js` formatiert diese Werte fuer `ReleaseInfo` am Login-Gate, in den Einstellungen und im Fehlerfallback. `AppErrorBoundary` faengt React-Render-, Lifecycle- und Lazy-Load-Fehler ab, zeigt weder rohe Exception noch Stack oder Nutzerdaten und bietet Neuladen sowie Startseiten-Rueckkehr. Der Renderfehler-Trigger ist nur im Vite-Modus `e2e` aktiv und im Production-Bundle nicht enthalten.
 
@@ -1854,7 +1856,7 @@ Supabase-spezifische Leitplanken:
 - UPDATE-Policies brauchen `using` und `with check`, damit Nutzer keine Zeilen auf andere `user_id`s umhaengen.
 - Autorisierung darf nicht aus nutzerveraenderbaren `user_metadata` abgeleitet werden.
 - Views, Security-Definer-Funktionen und Storage-Policies muessen separat gegen RLS-/Bypass-Risiken geprueft werden.
-- `supabase/verify_schema_v1.sql` ist ein fehlschlagendes Verify-Gate fuer Zieltabellen/-spalten, RLS, Policies, Grants, Constraints und Bucket-Konfiguration; zusaetzlich sind Nutzer-A/Nutzer-B-Zugriffstests notwendig.
+- `supabase/verify_schema_v1.sql` ist ein fehlschlagendes Verify-Gate fuer Zieltabellen/-spalten, RLS, Policies, Grants, Constraints und Bucket-Konfiguration; `tests/rls/ownership-smoke.test.js` prueft zusaetzlich echte Nutzer-A/Nutzer-B/`anon`-Zugriffe ueber die Data API.
 
 ---
 
@@ -3150,8 +3152,8 @@ Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisi
 
 Kurzfassung mit Code-Sicht:
 
-1. Ownership und Auth-Lifecycle absichern: Nutzer-A/Nutzer-B/`anon`-RLS-Smokes, UPDATE-Checks, Magic Link, Google Redirect, Recovery, Passwortwechsel, Rate-Limits und Account-Lifecycle testen.
-2. Persistenten Sync ausbauen: dauerhafte Outbox, Geräte-Registrierung, idempotente Einzelmutationen, Konfliktzeilen und Konfliktauflösung auf dem revisionssicheren Repository aufbauen.
+1. Persistenten Sync ausbauen: dauerhafte Outbox, Geräte-Registrierung, idempotente Einzelmutationen, Konfliktzeilen und Konfliktauflösung auf dem revisionssicheren Repository aufbauen.
+2. Auth-Lifecycle vervollstaendigen: Magic Link, Google Redirect, Recovery, Passwortwechsel, Rate-Limits und Account-Lifecycle testen.
 3. Cloud-Medien produktionsfaehig machen: den vorhandenen `cloudMediaStore` in Import, accountgebundenes Laden und Karten-Rendering integrieren sowie Dedupe- und Reimportregeln absichern.
 4. Dokument-, Medien- und APKG-Qualitaet weiter ausbauen: APKG-Fixtures, Notetype-/Template-Snapshots, Importidentitaeten, Medienchecksums, grosse Uploads und serverseitige Importjobs hinter den bestehenden tiefen Modulen halten.
 5. KI und Jobs produktionsfaehig machen: `/api/ai/chat` an die Supabase-Session binden, Rate-Limits und Kostenbudgets ergaenzen und weitere KI-Faehigkeiten nur ueber validierte, versionierte Serverjobs aufbauen.
@@ -3370,6 +3372,7 @@ Technische SQL-Artefakte:
 - `supabase/migrations/20260709082140_account_scoped_primary_keys.sql`: angewendete Account-Isolationsmigration fuer zusammengesetzte Primary Keys `(user_id, id)` auf account-owned Tabellen.
 - `supabase/migrations/20260709091315_sync_media_auth_operations.sql`: remote angewendete Migration fuer Revisionen, Medien, Geraete, Konflikte und Storage-Policies.
 - `supabase/verify_schema_v1.sql`: fehlschlagendes Verify-Gate fuer Tabellen, Spalten, RLS, Policies, Grants, Constraints und den privaten Medien-Bucket.
+- `tests/rls/ownership-smoke.test.js`: lokaler Data-API-Smoke fuer Nutzer A, Nutzer B, `anon`, Ownership und accountgebundene Foreign Keys.
 
 Hosting-/Runtime-Artefakte:
 

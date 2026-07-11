@@ -57,7 +57,7 @@ jobs:
       - name: Chromium installieren
         run: npx playwright install --with-deps chromium
 
-      - name: Browser-Smokes mit lokalem Supabase ausführen
+      - name: Supabase-Security-Gate und Browser-Smokes ausführen
         run: npm run test:e2e:local
 
       - name: Playwright-Fehlerartefakte hochladen

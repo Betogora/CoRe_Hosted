@@ -1,6 +1,17 @@
 const LOCAL_E2E_EMAIL = "core-e2e-local@example.com";
 const LOCAL_E2E_PASSWORD = "CoRe-E2E-local-2026!";
+const LOCAL_RLS_USER_B_EMAIL = "core-rls-user-b-local@example.com";
+const LOCAL_RLS_USER_B_PASSWORD = "CoRe-RLS-user-b-local-2026!";
 const LOOPBACK_HOSTNAMES = new Set(["127.0.0.1", "localhost", "::1"]);
+const PRIVILEGED_ENVIRONMENT_KEYS = new Set([
+  "SERVICE_ROLE_KEY",
+  "SECRET_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_SECRET_KEY",
+  "SUPABASE_ACCESS_TOKEN",
+  "SUPABASE_REFRESH_TOKEN",
+  "SUPABASE_DB_PASSWORD",
+]);
 
 function stripOptionalQuotes(value) {
   const trimmed = String(value ?? "").trim();
@@ -50,12 +61,18 @@ export function createLocalE2ERuntimeEnvironment(statusEnvironment, baseEnvironm
     throw new Error("Der lokale Supabase-Status enthält weder PUBLISHABLE_KEY noch ANON_KEY.");
   }
 
+  const safeBaseEnvironment = Object.fromEntries(
+    Object.entries(baseEnvironment).filter(([name]) => !PRIVILEGED_ENVIRONMENT_KEYS.has(name)),
+  );
+
   return {
-    ...baseEnvironment,
+    ...safeBaseEnvironment,
     VITE_SUPABASE_URL: String(supabaseUrl).replace(/\/$/, ""),
     VITE_SUPABASE_PUBLISHABLE_KEY: String(publishableKey).trim(),
     CORE_E2E_EMAIL: LOCAL_E2E_EMAIL,
     CORE_E2E_PASSWORD: LOCAL_E2E_PASSWORD,
     CORE_E2E_ALLOW_ACCOUNT_RESET: "true",
+    CORE_RLS_USER_B_EMAIL: LOCAL_RLS_USER_B_EMAIL,
+    CORE_RLS_USER_B_PASSWORD: LOCAL_RLS_USER_B_PASSWORD,
   };
 }

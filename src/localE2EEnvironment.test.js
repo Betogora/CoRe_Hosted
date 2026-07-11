@@ -41,16 +41,30 @@ test("isLocalSupabaseUrl only accepts loopback Supabase targets", () => {
 });
 
 test("createLocalE2ERuntimeEnvironment builds isolated non-secret local credentials", () => {
-  const environment = createLocalE2ERuntimeEnvironment({
-    API_URL: "http://127.0.0.1:54321/",
-    ANON_KEY: "local-anon-key",
-  });
+  const environment = createLocalE2ERuntimeEnvironment(
+    {
+      API_URL: "http://127.0.0.1:54321/",
+      ANON_KEY: "local-anon-key",
+      SERVICE_ROLE_KEY: "status-secret-must-not-be-forwarded",
+    },
+    {
+      PATH: "test-path",
+      SUPABASE_ACCESS_TOKEN: "management-token-must-not-be-forwarded",
+      SUPABASE_SERVICE_ROLE_KEY: "base-secret-must-not-be-forwarded",
+    },
+  );
 
   assert.equal(environment.VITE_SUPABASE_URL, "http://127.0.0.1:54321");
   assert.equal(environment.VITE_SUPABASE_PUBLISHABLE_KEY, "local-anon-key");
   assert.equal(environment.CORE_E2E_ALLOW_ACCOUNT_RESET, "true");
   assert.match(environment.CORE_E2E_EMAIL, /@example\.com$/);
   assert.ok(environment.CORE_E2E_PASSWORD.length >= 12);
+  assert.match(environment.CORE_RLS_USER_B_EMAIL, /@example\.com$/);
+  assert.ok(environment.CORE_RLS_USER_B_PASSWORD.length >= 12);
+  assert.equal(environment.PATH, "test-path");
+  assert.equal("SERVICE_ROLE_KEY" in environment, false);
+  assert.equal("SUPABASE_SERVICE_ROLE_KEY" in environment, false);
+  assert.equal("SUPABASE_ACCESS_TOKEN" in environment, false);
 });
 
 test("createLocalE2ERuntimeEnvironment rejects hosted projects", () => {
