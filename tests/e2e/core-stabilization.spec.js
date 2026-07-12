@@ -1,10 +1,13 @@
 import { expect, test } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.js";
+import { loadE2EEnvironment } from "./support/e2eEnvironment.js";
 
 const PDF_SELECTION_FIXTURE = fileURLToPath(new URL("../fixtures/pdf-selection.pdf", import.meta.url));
 
 const DECK_IDS = {
+  root: "deck_world_capitals",
   africa: "deck_world_capitals_afrika",
   europe: "deck_world_capitals_europa",
 };
@@ -213,4 +216,66 @@ test("local portability export and import expose status and validation errors", 
   await page.getByTestId("portable-import-json").fill(smallValidExport);
   await page.getByRole("button", { name: "JSON importieren" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Export validiert" })).toBeVisible();
+});
+
+test("settings resolve and persist an account-bound sync conflict", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  const environment = loadE2EEnvironment();
+  const client = createClient(environment.supabaseUrl, environment.publishableKey, {
+    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+  });
+  const conflictId = "e2e-settings-conflict";
+  const login = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
+  if (login.error || !login.data.user) throw login.error ?? new Error("E2E-Nutzer fehlt.");
+
+  try {
+    await client.from("sync_conflicts").delete().eq("id", conflictId);
+    const { data: remoteDeck, error: deckError } = await client.from("decks").select("*").eq("id", DECK_IDS.root).single();
+    if (deckError) throw deckError;
+    const localValue = { ...remoteDeck, name: "Lokaler E2E-Stapel" };
+    const remoteValue = { ...remoteDeck };
+    delete localValue.user_id;
+    delete remoteValue.user_id;
+    const { error: insertError } = await client.from("sync_conflicts").insert({
+      id: conflictId,
+      user_id: login.data.user.id,
+      entity_table: "decks",
+      entity_id: remoteDeck.id,
+      base_revision: remoteDeck.revision,
+      local_revision: remoteDeck.revision,
+      remote_revision: remoteDeck.revision,
+      local_value: localValue,
+      remote_value: remoteValue,
+      status: "open",
+      resolution: {},
+      updated_by_device_id: "e2e-conflict-device",
+      created_at: "2026-07-12T12:00:00.000Z",
+    });
+    if (insertError) throw insertError;
+
+    await page.reload();
+    await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toBeVisible();
+    await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+    const panel = page.getByTestId("sync-conflict-panel");
+    await expect(panel.getByRole("heading", { name: "Lokaler E2E-Stapel" })).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Remote-Version behalten" })).toBeVisible();
+
+    await panel.getByRole("button", { name: "Später entscheiden" }).click();
+    await expect(panel.getByText("Für später zurückgestellt (1)")).toBeVisible();
+    await page.reload();
+    await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+    await page.getByText("Für später zurückgestellt (1)").click();
+    await page.getByRole("button", { name: "Wieder aufnehmen" }).click();
+    await expect(panel.getByRole("button", { name: "Remote-Version behalten" })).toBeVisible();
+    await panel.getByRole("button", { name: "Remote-Version behalten" }).click();
+    await expect(panel.getByText("Keine offenen Synchronisierungskonflikte.")).toBeVisible();
+
+    const { data: persisted, error: readError } = await client.from("sync_conflicts").select("status, resolution").eq("id", conflictId).single();
+    if (readError) throw readError;
+    expect(persisted).toMatchObject({ status: "resolved", resolution: { action: "keep-remote" } });
+  } finally {
+    await client.from("sync_conflicts").delete().eq("id", conflictId);
+    await client.auth.signOut({ scope: "local" }).catch(() => undefined);
+    client.auth.dispose?.();
+  }
 });

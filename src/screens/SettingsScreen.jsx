@@ -5,8 +5,9 @@ import { createPortableExport, mergePortableExportIntoState, stringifyPortableEx
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.jsx";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.jsx";
+import { SyncConflictPanel } from "./SyncConflictPanel.jsx";
 
-export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onSignOut }) {
+export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut }) {
   const [form, setForm] = React.useState(profile);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
@@ -161,6 +162,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
           </div>
         </SoftPanel>
       </div>
+      <SyncConflictPanel onListConflicts={onListConflicts} onResolveConflict={onResolveConflict} />
       <LearningSettingsPanel
         settings={globalDeckSettings}
         coreMode={globalDeckSettings?.coreMode}

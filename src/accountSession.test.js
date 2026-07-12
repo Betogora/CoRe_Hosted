@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { authPhaseForSession, createSyncErrorStatus, createSyncSavedStatus, formatSyncStatusText, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
+import { authPhaseForSession, createSyncConflictStatus, createSyncErrorStatus, createSyncSavedStatus, formatSyncStatusText, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
 
 test("login gate blocks the app shell without a Supabase session", () => {
   const signedOutPhase = authPhaseForSession({ configured: true, user: null });
@@ -46,4 +46,12 @@ test("saved sync status records the save time without exposing account tokens", 
   assert.equal(status.savedAt, "2026-07-09T08:00:00.000Z");
   assert.equal(Object.hasOwn(status, "access_token"), false);
   assert.equal(Object.hasOwn(status, "refresh_token"), false);
+});
+
+test("conflict sync status explains that a user decision is required", () => {
+  const status = createSyncConflictStatus(2);
+
+  assert.equal(status.status, "conflict");
+  assert.equal(status.conflictCount, 2);
+  assert.equal(formatSyncStatusText(status), "2 Änderungen brauchen deine Entscheidung.");
 });

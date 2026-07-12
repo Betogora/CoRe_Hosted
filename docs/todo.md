@@ -1,20 +1,20 @@
 # CoRe TODO
 
-Stand: 2026-07-11
+Stand: 2026-07-12
 
 Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage waren `docs/specs.md`, `AGENTS.md`, die Module unter `src/`, die Vercel-Route unter `api/`, die Supabase-SQL-Dateien, die Tests und die lokalen Build-/E2E-Läufe. Die Liste beschreibt deshalb konkrete Lücken und keine allgemeinen Produktideen.
 
 ## Auditierter Ist-Stand
 
-- `npm test`: 257 Tests bestanden.
-- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der lokale Entry-Chunk ist 248,29 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
-- `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und zwölf authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 19/19 Tests grün; der zusätzliche Produkt-Smoke prüft PDF-Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker.
+- `npm test`: 273 Tests bestanden.
+- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der lokale Entry-Chunk ist 248,30 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
+- `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und dreizehn authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 20/20 Tests grün; zusätzlich zu PDF-Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker ist die accountgebundene Konfliktentscheidung mit Zurückstellen, Reload, Wiederaufnahme und Remote-Version abgedeckt.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
 - `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten einschließlich des vollständigen `sync_devices`-Spaltenvertrags, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
 - `npm run test:rls:local`: SQL-Struktur-Gate und acht echte Data-API-Smokes mit Nutzer A, Nutzer B und `anon` sind grün. Eigene CRUD-Zugriffe, unsichtbare fremde Rows, wirkungslose Fremdmutationen, Ownership-Fälschung, accountgebundene Foreign Keys, gleiche lokale IDs, Geräte-Heartbeat sowie zwei konkurrierende Deck-Writes auf derselben Basisrevision mit persistiertem Konflikt sind reproduzierbar geprüft.
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
 - Der debouncete Autosave läuft über `src/syncEngine.js` und `src/cloudRepository.js`: `applyDeckMutation`, `applyCardMutation` und `softDeleteEntity` prüfen Basisrevisionen atomar über `user_id`, `id` und `revision`; stale Writes erzeugen idempotente `sync_conflicts`. Deckbaum-Löschungen bleiben bis zur Cloud-Bestätigung als Tombstones erhalten. Die accountgebundene Outbox überlebt Reloads, behält fehlgeschlagene Mutationen mit Retry-Zähler und entfernt Review- beziehungsweise Snapshot-Mutationen nur nach getrenntem Persistenz-Readback.
-- `src/creationWorkflow.js` verwendet weiterhin den lokalen `src/mediaStore.js`. `src/cloudMediaStore.js` ist separat getestet, aber noch nicht in Import, Cloud-State-Laden oder Karten-Rendering integriert.
+- `src/creationWorkflow.js` verwendet weiterhin den lokalen `src/mediaStore.js`. `src/cloudMediaStore.js` dedupliziert separat getestet innerhalb eines Deck-/Card-Kontexts über Nutzer, Bucket und SHA-1, verwendet dateinamenunabhängige kanonische Pfade und bestätigt keine Row für noch nicht hochgeladene große Dateien; die Integration in Import, Cloud-State-Laden und Karten-Rendering fehlt weiterhin.
 - Der einzige Server-KI-Pfad ist `POST /api/ai/chat`. Die Route prüft Origin, Request-Größe und Providerfehler, liest aktuelle `steps`- sowie ältere `outputs`-Responses und protokolliert bei Providerfehlern nur sichere Strukturmetadaten. Supabase-Session, Nutzer-/IP-Limits und Kostenbudgets fehlen weiterhin; der Browser sendet derzeit keinen Bearer-Token.
 - Community, Graph, KI-Drafts, Varianten und Jobs sind weiterhin lokale Produktmodelle; nur Chat besitzt einen externen Gemma-Proxy.
 
@@ -24,11 +24,11 @@ Die Abhängigkeiten sind absichtlich enger als in der früheren Liste:
 
 `P0 Prüf- und Deploymentbasis` → `P1 Cloud-Datenkorrektheit` → `P1 Sync und Medien` → `P1 externe KI-Jobs` → `P2 Community-Rechte und Wachstum`.
 
-Das P0-Betriebsgate, P1 Repository-Mapping, die lokale Ownership-/RLS-Abnahme, die persistente Outbox, die Geräte-Registrierung und konkrete revisionsgeprüfte Cloud-Mutationen sind geschlossen. Die Reihenfolge läuft deshalb mit den breiteren Konfliktregeln weiter.
+Das P0-Betriebsgate, P1 Repository-Mapping, die lokale Ownership-/RLS-Abnahme, die persistente Outbox, die Geräte-Registrierung, konkrete revisionsgeprüfte Cloud-Mutationen, die fachlichen Konfliktregeln und die klickbare Konfliktauflösung sind geschlossen. Die Reihenfolge läuft deshalb mit Online-/Offline-Status und Wiederverbindungslogik weiter.
 
 ## Aktives nächstes Ziel
 
-**P1 Konfliktregeln dokumentieren und testen.** Als nächster Slice werden die noch offenen fachlichen Regeln für SHA-1-Mediendubletten und explizit mergefähige Metadaten festgelegt. Content-Änderungen mit abweichender `baseRevision` werden bereits idempotent in `sync_conflicts` geschrieben; automatische Feld-Merges dürfen erst nach einer ausdrücklichen Feldregel hinzukommen.
+**P1 Online-/Offline-Status und Wiederverbindung.** Als nächster Slice werden Netzwerkstatus, Retry mit Backoff, Flush bei Wiederverbindung und die sichtbaren Zustände `pending`, `saving`, `saved`, `offline` und `conflict` hinter der bestehenden Sync-Modulgrenze vervollständigt.
 
 Verbindlicher URL-Vertrag:
 
@@ -46,6 +46,8 @@ Phasen und messbare Abnahme:
 - [x] P1 Ownership-/RLS-Gate geschlossen: `npm run test:rls:local` führt das erweiterte SQL-Verify und acht Nutzer-A/Nutzer-B/`anon`-Data-API-Smokes ausschließlich gegen Loopback-Supabase aus; `npm run test:e2e:local` führt dasselbe Gate vor Playwright aus.
 - [x] P1 Geräte-Registrierung geschlossen: der Account-Boot registriert `sync_devices` vor dem Cloud-Load, aktualisiert `last_seen_at`, User-Agent und Browser-/Betriebssystem-Label, bewahrt `created_at` und übergibt getrennte Snapshot-/Review-Mutation-IDs samt Geräte-ID an das Repository.
 - [x] P1 konkrete Cloud-Mutationen geschlossen: `applyDeckMutation`, `applyCardMutation`, `appendReviewEvent`, `softDeleteEntity` und `markConflict` bestätigen nur persistierte Writes, halten stale Snapshots in der Outbox und schreiben Konflikte idempotent; 257 Modul-, acht RLS- und 19 Browser-Tests sind grün.
+- [x] P1 Konfliktregeln geschlossen: Review-Events bleiben unveränderlich append-only, stale Nutzerinhalte und -metadaten erzeugen Konflikte, reine Servermetadaten werden anerkannt und Cloud-Medien werden innerhalb eines Deck-/Card-Kontexts per SHA-1 dedupliziert; 262 Modultests und der Production-Build sind grün.
+- [x] P1 Konfliktauflösung geschlossen: `SyncConflictPanel` zeigt accountgebundene Konflikte, lokale/Remote-Versionen, sicheren Feld-Merge und zurückgestellte Entscheidungen; CAS, Tombstones, Outbox-Neubildung und weiterlaufende append-only Reviews bleiben hinter `cloudRepository`/`syncEngine`. 273 Modul-, acht RLS- und 20 Browser-Tests sowie der Production-Build sind grün.
 
 ## 1. P0 — Prüfbare Release- und Infrastruktur-Basis
 
@@ -59,7 +61,7 @@ Phasen und messbare Abnahme:
 ### 1.2 Deterministische Tests und Deployment
 
 - [x] Playwright-Auth-Fixture eingeführt: `auth-setup` setzt ausschließlich einen vorab angelegten Account im separaten Supabase-Testprojekt auf die Hauptstadt-Fixture zurück, schreibt eine bereinigte und ignorierte `storageState`-Datei und lässt `resetToFreshLocalState()` nur `core.*` statt der Supabase-Session löschen.
-- [x] E2E-Suite in klare Gruppen geteilt: Login-Gate/Auth-Fehlerfälle, cloudfreie Auth-Resilience und authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent, Portabilität, Deck-Hierarchie und PDF-Quellenauswahl. Die vier Playwright-Projekte und 19 Tests sind per `--list` bestätigt; `npm run test:e2e:local` läuft mit lokalem Docker/Supabase, reduziertem Service-Set, Migrationen, lokalem Testaccount und anschließendem Stop reproduzierbar mit 19/19 grünen Tests. Der GitHub-Actions-Job `browser-e2e` führt denselben secretfreien Loopback-Pfad aus.
+- [x] E2E-Suite in klare Gruppen geteilt: Login-Gate/Auth-Fehlerfälle, cloudfreie Auth-Resilience und authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent, Portabilität, Deck-Hierarchie, PDF-Quellenauswahl und Konfliktentscheidung. Die vier Playwright-Projekte und 20 Tests sind per `--list` bestätigt; `npm run test:e2e:local` läuft mit lokalem Docker/Supabase, reduziertem Service-Set, Migrationen, lokalem Testaccount und anschließendem Stop reproduzierbar mit 20/20 grünen Tests. Der GitHub-Actions-Job `browser-e2e` führt denselben secretfreien Loopback-Pfad aus.
 - [x] E2E-Tests für Offline-Start, fehlende Supabase-Konfiguration und abgelaufene Session ergänzt. Die drei cloudfreien Smokes verwenden einen getrennten unkonfigurierten Vite-Port bzw. Browser-Routen für Netzwerkausfall und `session_expired`; alle drei sind grün und prüfen verständliche deutsche Fehlerzustände ohne Cloud-Mutation.
 - [x] GitHub-Actions-Release-Gate mit den stabilen Checks `quality` und `browser-e2e` angelegt. `quality` führt `npm test` und `npm run build` aus; `browser-e2e` startet den lokalen Supabase-Stack und alle Playwright-Smokes ohne Hosted-Zugangsdaten oder KI-Secrets. Fehlerberichte und Screenshots sowie Traces der sessionlosen Projekte werden sieben Tage als Artefakt aufbewahrt; Auth-Session und `.env`-Dateien sind ausgeschlossen.
 - [x] Preview-Smoke und Production-Rollback in `docs/specs.md` Abschnitt 14.2.2 dokumentiert: gruenes CI und fester Commit als Eingangsgate, eigener RLS-geschuetzter Smoke-Account, Login, Cloud-Laden, Review mit sichtbarem Save-Status, mutationsfreie APKG-Importvorschau, `/api/ai/chat` mit vorhandenem Key sowie verpflichtender fehlender-Key-Pruefung, Abmeldung, staged Production per `--skip-domain`, Promotion, konkrete Rollback-Trigger und der Hinweis, dass ein Vercel-Rollback keine Supabase-Daten oder Migrationen zuruecksetzt. Die erste echte Production-Abnahme vom 2026-07-10 ist dort mit Commit, CI-Lauf, Deployment-IDs, Zeiten und Ergebnissen secretsfrei festgehalten.
@@ -92,9 +94,9 @@ Phasen und messbare Abnahme:
 - [x] `SYNC_MUTATION_TYPES.reviewEventAppend` produktiv verdrahtet. Der Lernmodus reicht das erzeugte Event direkt weiter, der Supabase-Adapter verarbeitet es idempotent über `(user_id, id)`, und Autosave sowie manueller Sync verwenden dieselbe Outbox.
 - [x] `sync_devices` beim ersten Login/Start registriert und `last_seen_at`, User-Agent und Gerätebezeichnung aktualisiert. Flushes übergeben getrennte Snapshot-/Review-Mutation-IDs und die Geräte-ID an das Repository; nur bestätigte IDs verlassen die Outbox.
 - [x] In `cloudRepository` konkrete Mutationsfunktionen ergänzen: `applyDeckMutation`, `applyCardMutation`, `appendReviewEvent`, `softDeleteEntity` und `markConflict`. Die Funktionen prüfen Server-Revisionen bedingt, bestätigen idempotente Retries per Readback und halten nicht bestätigte Mutation-IDs in der Outbox.
-- [ ] Konfliktregeln dokumentieren und testen: Review-Events append-only zusammenführen, gleiche Medien per SHA-1 deduplizieren, Content-Änderungen bei abweichender `baseRevision` in `sync_conflicts` ablegen; unabhängige Metadaten nur mit expliziter Feldregel mergen.
+- [x] Konfliktregeln dokumentiert und getestet: Review-Events werden append-only und inhaltsidentisch bestätigt, gleiche Cloud-Medien innerhalb eines Deck-/Card-Kontexts per SHA-1 dedupliziert, Content- und Nutzer-Metadatenänderungen bei abweichender `baseRevision` in `sync_conflicts` abgelegt und reine Servermetadaten ohne automatischen Nutzerfeld-Merge anerkannt.
 - [x] `sync_conflicts` beim Erkennen tatsächlich beschreiben. Revisionskonflikte erzeugen deterministische, accountgebundene Konfliktzeilen; Retries duplizieren oder öffnen bereits gelöste Konflikte nicht erneut.
-- [ ] Konfliktauflösung in `SettingsScreen` oder einem eigenen Sync-Panel klickbar machen: lokale Version behalten, Remote-Version behalten, manuell zusammenführen, ignorieren. Die Merge-Logik bleibt in `syncEngine`/Repository-Modulen.
+- [x] Konfliktauflösung in `SettingsScreen` über `SyncConflictPanel` klickbar: lokale Version behalten, Remote-Version behalten, pro geändertem Fachfeld manuell zusammenführen oder für später zurückstellen. React konsumiert sichere Projektionen; Merge-, CAS-, Tombstone- und State-Regeln bleiben in `syncEngine`/Repository-Modulen.
 - [ ] Online-/Offline-Status, Retry mit Backoff, Flush bei Wiederverbindung und sichtbare Zustände für `pending`, `saving`, `saved`, `offline` und `conflict` ergänzen.
 - [ ] Zwei-Geräte-Tests schreiben: alter Snapshot darf neue Remote-Content-Änderungen nicht löschen; Offline-Reviews werden nach Wiederverbindung genau einmal ergänzt; Soft-Delete wird nicht durch einen älteren Snapshot reaktiviert.
 
@@ -104,14 +106,14 @@ Phasen und messbare Abnahme:
 
 - [ ] Den APKG-Importpfad in `src/creationWorkflow.js` so erweitern, dass nach der Vorschau wahlweise `src/cloudMediaStore.js` statt ausschließlich `src/mediaStore.js` verwendet wird. Lokaler Browser-Medienspeicher und Cloud-Medien müssen klar getrennte Statusmeldungen haben.
 - [ ] `media_assets` in den Cloud-Persistenzpfad aufnehmen: Rows mit Deck-/Card-Referenzen speichern, beim Laden accountgebunden laden und für `src/ui/cardMedia.jsx` in aufgelöste signed URLs übersetzen. React darf keine Storage-Manifeste selbst interpretieren.
-- [ ] Reimport- und Dedupe-Regeln festlegen: SHA-1 plus Nutzer/Bucket/Storage-Pfad, keine doppelten Assets, lokale Content-Edits bleiben erhalten, fehlende signed URLs erscheinen als verständlicher Medienstatus.
+- [ ] Accountweite Reimport- und Referenzregeln festlegen: SHA-1 plus Nutzer/Bucket/Storage-Pfad über mehrere Decks und Karten, keine verwaisten oder mehrfach gespeicherten Objekte, lokale Content-Edits bleiben erhalten, fehlende signed URLs erscheinen als verständlicher Medienstatus.
 
 ### 4.2 Große Dateien und Hintergrundjobs
 
 - [ ] `uploadLargeMediaAsset()` implementieren: resumable Upload, Fortschritt, Abbruch, Wiederaufnahme, eindeutige Fehlerklassen und Tests. `persistDeckMedia()` markiert Dateien über 6 MB derzeit nur als `resumable-required` und lädt sie nicht hoch.
 - [ ] Einen serverseitigen APKG-Importjob für Dateien oberhalb der Browsergrenze von 250 MB spezifizieren: Original in Storage, Jobstatus, Worker-Extraktion, Importreport, Fehler-/Retry-Status und idempotenter Abschluss.
 - [ ] Storage-Orphan-GC bauen: Rows mit `deleted_at`, fehlende DB-Referenzen, fehlende Storage-Objekte und Storage-Objekte ohne DB-Row getrennt melden; Löschung nur über serverseitig geschützte Admin-/Cron-Aktionen.
-- [ ] Signed-URL-, fehlendes-Medium-, Delete-, Reimport- und `resumable-required`-Tests in `src/cloudMediaStore.test.js` ergänzen.
+- [ ] Fehlendes-Medium-, Delete-, accountweite Reimport- und echte resumable-Upload-Tests in `src/cloudMediaStore.test.js` ergänzen; deckgebundene signed URLs, SHA-1-Reimport und `resumable-required` sind bereits abgedeckt.
 
 ### 4.3 Importqualität
 

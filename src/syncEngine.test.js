@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createSyncEngine, detectRevisionConflict, mergeAppendOnlyRows, SYNC_MUTATION_TYPES } from "./syncEngine.js";
+import { createSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.js";
 import { createSyncOutbox } from "./syncOutbox.js";
 
 function createMemoryStorage() {
@@ -43,36 +43,6 @@ test("sync engine flushes the latest state patch without issuing deletions", asy
   assert.equal(calls[0].method, "upsertState");
   assert.deepEqual(calls[0].state.decks.map((deck) => deck.id), ["local-latest"]);
   assert.equal(Object.hasOwn(calls[0], "deleteRowsMissingFromState"), false);
-});
-
-test("append-only rows merge by id instead of replacing remote history", () => {
-  const merged = mergeAppendOnlyRows(
-    [
-      { id: "review-2", rating: "easy" },
-      { id: "review-3", rating: "hard" },
-    ],
-    [
-      { id: "review-1", rating: "good" },
-      { id: "review-2", rating: "good" },
-    ],
-  );
-
-  assert.deepEqual(merged.map((row) => row.id), ["review-1", "review-2", "review-3"]);
-  assert.equal(merged.find((row) => row.id === "review-2").rating, "easy");
-});
-
-test("revision conflicts describe changed content fields", () => {
-  const conflict = detectRevisionConflict({
-    baseRevision: 3,
-    localRow: { id: "card-1", revision: 3, original_front: "Lokal", original_back: "Antwort" },
-    remoteRow: { id: "card-1", revision: 4, original_front: "Remote", original_back: "Antwort" },
-    contentFields: ["original_front", "original_back"],
-  });
-
-  assert.equal(conflict.entityId, "card-1");
-  assert.deepEqual(conflict.changedFields, ["original_front"]);
-  assert.equal(conflict.localValue.original_front, "Lokal");
-  assert.equal(conflict.remoteValue.original_front, "Remote");
 });
 
 test("sync flush returns the acknowledged state and passes device context", async () => {
@@ -264,4 +234,109 @@ test("sync engine serializes concurrent flushes", async () => {
   engine.enqueueMutation({ id: "review-1", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
   await Promise.all([engine.flush(), engine.flush()]);
   assert.equal(calls, 1);
+});
+
+test("open conflicts pause snapshot writes after append-only reviews are confirmed", async () => {
+  const outbox = createTestOutbox();
+  let snapshotWrites = 0;
+  let reviewWrites = 0;
+  const engine = createSyncEngine({
+    outbox,
+    device: testDevice,
+    adapter: {
+      async listConflicts() {
+        return [{ id: "conflict-1", status: "open" }];
+      },
+      async applyMutationBatch(mutations) {
+        reviewWrites += 1;
+        return { acknowledgedMutationIds: mutations.map((mutation) => mutation.id), failedMutationIds: [], conflicts: [] };
+      },
+      async upsertState() {
+        snapshotWrites += 1;
+        return { acknowledgedMutationIds: [] };
+      },
+    },
+  });
+  engine.enqueueMutation({ id: "state-1", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [] } } });
+  engine.enqueueMutation({ id: "review-1", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
+
+  const result = await engine.flush();
+
+  assert.equal(result.paused, true);
+  assert.deepEqual(result.conflicts.map((conflict) => conflict.id), ["conflict-1"]);
+  assert.equal(reviewWrites, 1);
+  assert.equal(snapshotWrites, 0);
+  assert.deepEqual(outbox.listPending().map((mutation) => mutation.id), ["state-1"]);
+});
+
+test("resolving a conflict replaces stale snapshots, preserves reviews and returns the canonical state", async () => {
+  const outbox = createTestOutbox();
+  let resolved = false;
+  let stateContext = null;
+  let reviewIds = [];
+  const engine = createSyncEngine({
+    outbox,
+    device: testDevice,
+    now: () => "2026-07-12T12:00:00.000Z",
+    adapter: {
+      async resolveConflict(_conflictId, decision, context) {
+        assert.equal(decision.action, "keep-remote");
+        assert.equal(context.deviceId, "device-a");
+        resolved = true;
+        return {
+          conflict: { id: "conflict-1", status: "resolved" },
+          nextState: { decks: [{ id: "deck-1", name: "Remote", revision: 4 }] },
+          resolved: true,
+        };
+      },
+      async listConflicts() {
+        return resolved ? [] : [{ id: "conflict-1", status: "open" }];
+      },
+      async applyMutationBatch(mutations) {
+        reviewIds = mutations.map((mutation) => mutation.id);
+        return { acknowledgedMutationIds: reviewIds, failedMutationIds: [], conflicts: [] };
+      },
+      async upsertState(state, context) {
+        stateContext = { state, context };
+        return { state: { decks: [{ ...state.decks[0], revision: 5 }] }, acknowledgedMutationIds: context.mutationIds };
+      },
+    },
+  });
+  engine.enqueueMutation({ id: "stale-state-1", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [{ id: "deck-1", name: "Alt" }] } } });
+  engine.enqueueMutation({ id: "stale-state-2", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [{ id: "deck-1", name: "Lokal" }] } } });
+  engine.enqueueMutation({ id: "review-1", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
+
+  const result = await engine.resolveConflict("conflict-1", { action: "keep-remote" }, { decks: [{ id: "deck-1", name: "Lokal" }] });
+
+  assert.deepEqual(reviewIds, ["review-1"]);
+  assert.deepEqual(stateContext.state.decks.map((deck) => deck.name), ["Remote"]);
+  assert.equal(stateContext.context.mutationIds.length, 1);
+  assert.equal(stateContext.context.mutationIds.includes("stale-state-1"), false);
+  assert.equal(result.nextState.decks[0].revision, 5);
+  assert.equal(result.syncStatus.status, "saved");
+  assert.equal(engine.pendingCount(), 0);
+});
+
+test("ignoring a conflict keeps the stale snapshot paused and returns conflict status", async () => {
+  const outbox = createTestOutbox();
+  const engine = createSyncEngine({
+    outbox,
+    device: testDevice,
+    adapter: {
+      async resolveConflict(_conflictId, decision, context) {
+        return { conflict: { id: "conflict-1", status: "ignored" }, nextState: context.currentState, resolved: false };
+      },
+      async listConflicts() {
+        return [{ id: "conflict-1", status: "ignored" }];
+      },
+    },
+  });
+  engine.enqueueMutation({ id: "state-1", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [] } } });
+
+  const currentState = { decks: [{ id: "deck-1" }] };
+  const result = await engine.resolveConflict("conflict-1", { action: "ignore" }, currentState);
+
+  assert.equal(result.nextState, currentState);
+  assert.equal(result.syncStatus.status, "conflict");
+  assert.deepEqual(outbox.listPending().map((mutation) => mutation.id), ["state-1"]);
 });

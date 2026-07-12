@@ -12,11 +12,14 @@ import {
   createCloudStateRows,
   deckToCloudRow,
   loadAccountCloudState,
+  listAccountSyncConflicts,
   mergeCloudSyncMetadata,
   registerAccountSyncDevice,
   replaceAccountCloudState,
+  resolveAccountSyncConflict,
   reviewEventToCloudRow,
   softDeleteEntity,
+  SyncConflictChangedError,
   upsertAccountCloudState,
   variantToCloudRow,
 } from "./cloudRepository.js";
@@ -302,6 +305,41 @@ function createCloudFixture() {
   };
 }
 
+function createDeckConflictFixture({ tombstone = false } = {}) {
+  const fixture = createCloudFixture();
+  const rows = clone(fixture.rows);
+  rows.decks[0].revision = 4;
+  rows.decks[0].name = "Remote Deck";
+  rows.decks[0].description = "Remote Beschreibung";
+  const localDeck = { ...fixture.state.decks[0], name: "Lokales Deck", description: "Lokale Beschreibung", revision: 3 };
+  const localValue = deckToCloudRow(localDeck, fixture.user.id);
+  const remoteValue = clone(rows.decks[0]);
+  delete localValue.user_id;
+  delete remoteValue.user_id;
+  if (tombstone) localValue.deleted_at = "2026-07-12T10:00:00.000Z";
+  rows.sync_conflicts = [{
+    id: "conflict-deck-1",
+    user_id: fixture.user.id,
+    entity_table: "decks",
+    entity_id: "deck-1",
+    base_revision: 3,
+    local_revision: 3,
+    remote_revision: 4,
+    local_value: localValue,
+    remote_value: remoteValue,
+    status: "open",
+    resolution: {},
+    updated_by_device_id: "device-b",
+    created_at: "2026-07-12T09:00:00.000Z",
+    resolved_at: null,
+  }];
+  return {
+    ...fixture,
+    rows,
+    state: { ...fixture.state, decks: [localDeck] },
+  };
+}
+
 test("cloud repository maps deck and card rows to production table fields", () => {
   const card = createBasicLearningItem("deck_cloud", "Was ist ATP?", "Ein Energieträger.", {
     tags: ["biochemie"],
@@ -537,6 +575,50 @@ test("unchanged cloud snapshots do not write or increment revisions and acknowle
   assert.deepEqual(result.acknowledgedMutationIds, ["state-mutation-1", "state-mutation-2"]);
   assert.equal(result.state.decks[0].revision, 3);
   assert.equal(result.state.decks[0].cards[0].revision, 2);
+});
+
+test("newer server metadata is acknowledged without creating a user-content conflict", async () => {
+  const fixture = createCloudFixture();
+  const rows = clone(fixture.rows);
+  rows.decks[0].revision = 4;
+  rows.decks[0].updated_at = "2026-07-10T11:00:00.000Z";
+  rows.decks[0].updated_by_device_id = "device-b";
+  const client = createMemorySupabaseClient(rows, fixture.user);
+
+  const result = await upsertAccountCloudState(client, fixture.state, {
+    deviceId: "device-a",
+    mutationIds: ["state-metadata-only"],
+    flushedAt: "2026-07-10T12:00:00.000Z",
+  });
+  const deckWrites = client.calls.filter((call) => call.table === "decks" && ["insert", "update", "delete"].includes(call.operation));
+
+  assert.deepEqual(deckWrites, []);
+  assert.deepEqual(client.tables.sync_conflicts, []);
+  assert.equal(result.state.decks[0].revision, 4);
+  assert.equal(result.state.decks[0].updatedByDeviceId, "device-b");
+  assert.deepEqual(result.acknowledgedMutationIds, ["state-metadata-only"]);
+});
+
+test("stale user metadata is never auto-merged and creates one deterministic conflict", async () => {
+  const fixture = createCloudFixture();
+  const rows = clone(fixture.rows);
+  rows.decks[0].revision = 4;
+  rows.decks[0].tags = ["remote-tag"];
+  const client = createMemorySupabaseClient(rows, fixture.user);
+  const localState = {
+    ...fixture.state,
+    decks: [{ ...fixture.state.decks[0], tags: ["local-tag"] }],
+  };
+
+  await assert.rejects(
+    () => upsertAccountCloudState(client, localState, { deviceId: "device-b", flushedAt: "2026-07-10T12:00:00.000Z" }),
+    (error) => error instanceof CloudRevisionConflictError && error.entityTable === "decks" && error.remoteRevision === 4,
+  );
+
+  assert.deepEqual(client.tables.decks[0].tags, ["remote-tag"]);
+  assert.equal(client.tables.sync_conflicts.length, 1);
+  assert.deepEqual(client.tables.sync_conflicts[0].local_value.tags, ["local-tag"]);
+  assert.deepEqual(client.tables.sync_conflicts[0].remote_value.tags, ["remote-tag"]);
 });
 
 test("matching revisions update only changed rows and acknowledge the next revision", async () => {
@@ -831,4 +913,214 @@ test("cloud acknowledgements update metadata without overwriting newer local con
   assert.equal(merged.decks[0].name, "Noch neuere lokale Änderung");
   assert.equal(merged.decks[0].revision, 4);
   assert.equal(merged.decks[0].updatedByDeviceId, "device-b");
+});
+
+test("sync conflicts are account-bound, sorted and projected without raw cloud rows", async () => {
+  const fixture = createDeckConflictFixture();
+  fixture.rows.sync_conflicts.push({
+    ...clone(fixture.rows.sync_conflicts[0]),
+    id: "ignored-conflict",
+    status: "ignored",
+    created_at: "2026-07-12T10:00:00.000Z",
+  }, {
+    ...clone(fixture.rows.sync_conflicts[0]),
+    id: "resolved-conflict",
+    status: "resolved",
+  }, {
+    ...clone(fixture.rows.sync_conflicts[0]),
+    id: "foreign-conflict",
+    user_id: "user-2",
+  });
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+
+  const conflicts = await listAccountSyncConflicts(client);
+
+  assert.deepEqual(conflicts.map((conflict) => conflict.id), ["conflict-deck-1", "ignored-conflict"]);
+  assert.equal(conflicts[0].entityLabel, "Stapel");
+  assert.equal(conflicts[0].title, "Lokales Deck");
+  assert.deepEqual(conflicts[0].fields.map((field) => field.key), ["description", "name"]);
+  assert.equal(Object.hasOwn(conflicts[0], "localValue"), false);
+  assert.equal(conflicts[0].allowedActions.includes("merge-fields"), true);
+});
+
+test("keeping the local conflict version advances the remote revision and projects it into state", async () => {
+  const fixture = createDeckConflictFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+
+  const result = await resolveAccountSyncConflict(client, "conflict-deck-1", { action: "keep-local" }, {
+    deviceId: "device-c",
+    resolvedAt: "2026-07-12T11:00:00.000Z",
+    currentState: fixture.state,
+  });
+
+  assert.equal(client.tables.decks[0].name, "Lokales Deck");
+  assert.equal(client.tables.decks[0].revision, 5);
+  assert.equal(client.tables.decks[0].updated_by_device_id, "device-c");
+  assert.equal(client.tables.sync_conflicts[0].status, "resolved");
+  assert.equal(client.tables.sync_conflicts[0].resolution.action, "keep-local");
+  assert.equal(result.nextState.decks[0].name, "Lokales Deck");
+  assert.equal(result.nextState.decks[0].revision, 5);
+  assert.equal(result.resolved, true);
+
+  await resolveAccountSyncConflict(client, "conflict-deck-1", { action: "keep-local" }, {
+    deviceId: "device-c",
+    resolvedAt: "2026-07-12T11:01:00.000Z",
+    currentState: result.nextState,
+  });
+  assert.equal(client.tables.decks[0].revision, 5);
+});
+
+test("keeping remote and field-wise merging never accept protected or incomplete choices", async () => {
+  const remoteFixture = createDeckConflictFixture();
+  const remoteClient = createMemorySupabaseClient(remoteFixture.rows, remoteFixture.user);
+  const remoteResult = await resolveAccountSyncConflict(remoteClient, "conflict-deck-1", { action: "keep-remote" }, {
+    deviceId: "device-c",
+    resolvedAt: "2026-07-12T11:00:00.000Z",
+    currentState: remoteFixture.state,
+  });
+  assert.equal(remoteClient.tables.decks[0].revision, 4);
+  assert.equal(remoteResult.nextState.decks[0].name, "Remote Deck");
+
+  const mergeFixture = createDeckConflictFixture();
+  const mergeClient = createMemorySupabaseClient(mergeFixture.rows, mergeFixture.user);
+  await assert.rejects(
+    () => resolveAccountSyncConflict(mergeClient, "conflict-deck-1", { action: "merge-fields", fieldChoices: { id: "local", name: "local", description: "remote" } }, { deviceId: "device-c", currentState: mergeFixture.state }),
+    /nicht auswählbar/,
+  );
+  await assert.rejects(
+    () => resolveAccountSyncConflict(mergeClient, "conflict-deck-1", { action: "merge-fields", fieldChoices: { name: "local" } }, { deviceId: "device-c", currentState: mergeFixture.state }),
+    /jedes geänderte Feld/,
+  );
+  const merged = await resolveAccountSyncConflict(mergeClient, "conflict-deck-1", {
+    action: "merge-fields",
+    fieldChoices: { name: "local", description: "remote" },
+  }, {
+    deviceId: "device-c",
+    resolvedAt: "2026-07-12T11:00:00.000Z",
+    currentState: mergeFixture.state,
+  });
+  assert.equal(mergeClient.tables.decks[0].name, "Lokales Deck");
+  assert.equal(mergeClient.tables.decks[0].description, "Remote Beschreibung");
+  assert.equal(merged.nextState.decks[0].revision, 5);
+});
+
+test("ignored conflicts can be reopened while tombstones reject field merges", async () => {
+  const fixture = createDeckConflictFixture({ tombstone: true });
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+
+  await assert.rejects(
+    () => resolveAccountSyncConflict(client, "conflict-deck-1", { action: "merge-fields", fieldChoices: {} }, { deviceId: "device-c", currentState: fixture.state }),
+    /nicht feldweise/,
+  );
+  const ignored = await resolveAccountSyncConflict(client, "conflict-deck-1", { action: "ignore" }, { deviceId: "device-c", currentState: fixture.state });
+  assert.equal(ignored.resolved, false);
+  assert.equal(client.tables.sync_conflicts[0].status, "ignored");
+  assert.equal(client.tables.decks[0].name, "Remote Deck");
+
+  await resolveAccountSyncConflict(client, "conflict-deck-1", { action: "reopen" }, { deviceId: "device-c", currentState: fixture.state });
+  assert.equal(client.tables.sync_conflicts[0].status, "open");
+  assert.deepEqual(client.tables.sync_conflicts[0].resolution, {});
+});
+
+test("tombstone decisions restore the full remote deck subtree or keep the local deletion", async () => {
+  const remoteFixture = createDeckConflictFixture({ tombstone: true });
+  remoteFixture.state = {
+    ...remoteFixture.state,
+    decks: [],
+    cloudTombstones: [{ entityTable: "decks", entityId: "deck-1", revision: 3, deletedAt: "2026-07-12T10:00:00.000Z" }],
+  };
+  const remoteClient = createMemorySupabaseClient(remoteFixture.rows, remoteFixture.user);
+  const restored = await resolveAccountSyncConflict(remoteClient, "conflict-deck-1", { action: "keep-remote" }, {
+    deviceId: "device-c",
+    currentState: remoteFixture.state,
+  });
+  assert.equal(restored.nextState.decks[0].name, "Remote Deck");
+  assert.equal(restored.nextState.decks[0].cards.length, 1);
+  assert.equal(restored.nextState.cloudTombstones.some((item) => item.entityTable === "decks" && item.entityId === "deck-1"), false);
+
+  const localFixture = createDeckConflictFixture({ tombstone: true });
+  const localClient = createMemorySupabaseClient(localFixture.rows, localFixture.user);
+  const deleted = await resolveAccountSyncConflict(localClient, "conflict-deck-1", { action: "keep-local" }, {
+    deviceId: "device-c",
+    currentState: localFixture.state,
+  });
+  assert.equal(deleted.nextState.decks.length, 0);
+  assert.equal(deleted.nextState.cloudTombstones.some((item) => item.entityTable === "decks" && item.entityId === "deck-1"), true);
+});
+
+test("resolution fails safely when the remote revision changed again", async () => {
+  const fixture = createDeckConflictFixture();
+  fixture.rows.decks[0].revision = 5;
+  fixture.rows.decks[0].name = "Noch neuer remote";
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+
+  await assert.rejects(
+    () => resolveAccountSyncConflict(client, "conflict-deck-1", { action: "keep-local" }, { deviceId: "device-c", currentState: fixture.state }),
+    SyncConflictChangedError,
+  );
+  assert.equal(client.tables.decks[0].name, "Noch neuer remote");
+  assert.equal(client.tables.sync_conflicts[0].status, "open");
+});
+
+test("remote conflict choices project canonical cards, variants, documents and jobs into local state", async () => {
+  const scenarios = [
+    {
+      table: "cards",
+      field: "original_front",
+      value: "Remote Kartenfrage",
+      read: (state) => state.decks[0].cards[0].originalFront,
+    },
+    {
+      table: "card_variants",
+      field: "front",
+      value: "Remote Variantenfrage",
+      read: (state) => state.decks[0].cards[0].variants[0].front,
+    },
+    {
+      table: "source_documents",
+      field: "text",
+      value: "Remote Dokumenttext",
+      read: (state) => state.documents[0].text,
+    },
+    {
+      table: "ai_jobs",
+      field: "status",
+      value: "failed",
+      read: (state) => state.aiJobs[0].status,
+    },
+  ];
+
+  for (const scenario of scenarios) {
+    const fixture = createCloudFixture();
+    const rows = clone(fixture.rows);
+    const remote = rows[scenario.table][0];
+    const local = clone(remote);
+    remote.revision += 1;
+    remote[scenario.field] = scenario.value;
+    delete local.user_id;
+    const remoteValue = clone(remote);
+    delete remoteValue.user_id;
+    rows.sync_conflicts = [{
+      id: `conflict-${scenario.table}`,
+      user_id: fixture.user.id,
+      entity_table: scenario.table,
+      entity_id: remote.id,
+      base_revision: local.revision,
+      local_revision: local.revision,
+      remote_revision: remote.revision,
+      local_value: local,
+      remote_value: remoteValue,
+      status: "open",
+      resolution: {},
+      updated_by_device_id: "device-b",
+      created_at: "2026-07-12T09:00:00.000Z",
+      resolved_at: null,
+    }];
+    const client = createMemorySupabaseClient(rows, fixture.user);
+    const result = await resolveAccountSyncConflict(client, `conflict-${scenario.table}`, { action: "keep-remote" }, {
+      deviceId: "device-c",
+      currentState: fixture.state,
+    });
+    assert.equal(scenario.read(result.nextState), scenario.value, scenario.table);
+  }
 });

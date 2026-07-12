@@ -41,11 +41,23 @@ export function createSyncErrorStatus(message = "Synchronisierung fehlgeschlagen
   return { status: "error", message };
 }
 
+export function createSyncConflictStatus(count = 1) {
+  const conflictCount = Math.max(1, Number(count) || 1);
+  return {
+    status: "conflict",
+    conflictCount,
+    message: conflictCount === 1
+      ? "Eine Änderung braucht deine Entscheidung."
+      : `${conflictCount} Änderungen brauchen deine Entscheidung.`,
+  };
+}
+
 export function formatSyncStatusText(syncStatus) {
   if (!syncStatus?.status || syncStatus.status === "idle") return "Noch keine Änderung synchronisiert.";
   if (syncStatus.status === "pending") return "Änderungen werden gleich synchronisiert.";
   if (syncStatus.status === "saving") return "Synchronisierung läuft.";
   if (syncStatus.status === "saved") return syncStatus.savedAt ? `Zuletzt synchronisiert: ${new Date(syncStatus.savedAt).toLocaleString("de-DE")}.` : "Synchronisiert.";
+  if (syncStatus.status === "conflict") return syncStatus.message || "Eine Änderung braucht deine Entscheidung.";
   if (syncStatus.status === "error") return syncStatus.message || "Synchronisierung fehlgeschlagen.";
   return syncStatus.message || "Sync-Status unbekannt.";
 }

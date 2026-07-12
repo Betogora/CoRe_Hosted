@@ -8,7 +8,89 @@ const REVISIONED_TABLES = ["source_documents", "decks", "cards", "card_variants"
 const REVISIONED_TABLE_SET = new Set(REVISIONED_TABLES);
 const TABLES_WITH_UPDATED_AT = new Set(["source_documents", "decks", "cards", "card_variants"]);
 const DELETE_ORDER = ["ai_jobs", "review_events", "card_variants", "cards", "decks", "source_documents"];
-const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "revision", "updated_by_device_id"]);
+const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at", "revision", "updated_by_device_id"]);
+const CONFLICT_PROTECTED_FIELDS = new Set([
+  ...ROW_IDENTITY_FIELDS,
+  "deck_id",
+  "card_id",
+  "source_card_id",
+  "local_owner_id",
+  "parent_deck_id",
+  "original_deck_id",
+  "parent_variant_id",
+  "anchor_variant_id",
+  "model_run_id",
+]);
+const CONFLICT_ACTIONS = new Set(["keep-local", "keep-remote", "merge-fields", "ignore", "reopen"]);
+const CONFLICT_ENTITY_LABELS = Object.freeze({
+  decks: "Stapel",
+  cards: "Karte",
+  card_variants: "Variante",
+  source_documents: "Dokument",
+  ai_jobs: "KI-Aufgabe",
+});
+const CONFLICT_FIELD_LABELS = Object.freeze({
+  name: "Name",
+  description: "Beschreibung",
+  parent_deck_id: "Übergeordneter Stapel",
+  visibility: "Sichtbarkeit",
+  hierarchy_path: "Stapelpfad",
+  tags: "Tags",
+  import_meta: "Importdaten",
+  deck_settings: "Stapeleinstellungen",
+  graph: "Graph",
+  community_refs: "Community-Verknüpfungen",
+  version_log: "Versionsverlauf",
+  kind: "Kartentyp",
+  draft_status: "Entwurfsstatus",
+  status: "Status",
+  original_front: "Vorderseite",
+  original_back: "Rückseite",
+  original_fields: "Originalfelder",
+  original_tags: "Original-Tags",
+  original_html: "Originalformatierung",
+  immutable_original: "Originalanker",
+  media_refs: "Medien",
+  source_anchors: "Quellenanker",
+  content_hash: "Inhaltsprüfsumme",
+  review_state: "Lernstand",
+  core_state: "CoRe-Status",
+  meta: "Metadaten",
+  front: "Vorderseite",
+  back: "Rückseite",
+  variant_type: "Variantentyp",
+  variant_level: "Variantenstufe",
+  generation_source: "Erstellungsquelle",
+  parent_variant_id: "Ausgangsvariante",
+  anchor_variant_id: "Originalanker",
+  is_original: "Originalvariante",
+  is_active: "Aktiv",
+  transform_type: "Transformation",
+  transform_profile: "Transformationsprofil",
+  explanation: "Erklärung",
+  hints_json: "Hinweise",
+  answer_options_json: "Antwortoptionen",
+  expected_answer_json: "Erwartete Antwort",
+  confidence: "Konfidenz",
+  semantic_delta: "Semantische Abweichung",
+  changed_recognition_cues: "Geänderte Erkennungshinweise",
+  quality_status: "Qualitätsstatus",
+  performance: "Leistungsdaten",
+  feedback: "Feedback",
+  file_name: "Dateiname",
+  mime_type: "Dateityp",
+  text: "Dokumenttext",
+  storage_url: "Speicherreferenz",
+  text_extraction_status: "Texterkennung",
+  metadata: "Dokumentmetadaten",
+  job_type: "Aufgabentyp",
+  input_ref: "Eingabe",
+  policy: "Regeln",
+  result_ref: "Ergebnisreferenz",
+  error: "Fehler",
+  started_at: "Gestartet",
+  finished_at: "Beendet",
+});
 
 function nowIso() {
   return new Date().toISOString();
@@ -28,6 +110,14 @@ export class CloudRevisionConflictError extends Error {
     this.localValue = localValue;
     this.remoteValue = remoteValue;
     this.conflict = conflict;
+  }
+}
+
+export class SyncConflictChangedError extends Error {
+  constructor() {
+    super("Der Remote-Stand hat sich erneut geändert. Bitte lade die Konflikte neu.");
+    this.name = "SyncConflictChangedError";
+    this.code = "sync_conflict_changed";
   }
 }
 
@@ -76,6 +166,62 @@ function rowsHaveSameContent(left, right) {
 
 function conflictValue(row = {}) {
   return Object.fromEntries(Object.entries(row).filter(([key]) => key !== "user_id"));
+}
+
+function conflictValuesEqual(left, right) {
+  return JSON.stringify(stableValue(left ?? null)) === JSON.stringify(stableValue(right ?? null));
+}
+
+function conflictFieldKeys(localValue = {}, remoteValue = {}) {
+  return [...new Set([...Object.keys(localValue), ...Object.keys(remoteValue)])]
+    .filter((field) => !CONFLICT_PROTECTED_FIELDS.has(field) && field !== "deleted_at")
+    .filter((field) => !conflictValuesEqual(localValue[field], remoteValue[field]))
+    .sort((left, right) => (CONFLICT_FIELD_LABELS[left] ?? left).localeCompare(CONFLICT_FIELD_LABELS[right] ?? right, "de"));
+}
+
+function formatConflictDisplayValue(value) {
+  if (value == null || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Ja" : "Nein";
+  if (typeof value === "string") return value.length > 500 ? `${value.slice(0, 497)}…` : value;
+  const serialized = JSON.stringify(value, null, 2);
+  return serialized.length > 700 ? `${serialized.slice(0, 697)}…` : serialized;
+}
+
+function conflictEntityTitle(row = {}) {
+  const local = row.local_value ?? {};
+  const remote = row.remote_value ?? {};
+  return local.name ?? remote.name ?? local.file_name ?? remote.file_name ?? local.original_front ?? remote.original_front ?? local.front ?? remote.front ?? local.job_type ?? remote.job_type ?? row.entity_id;
+}
+
+function createConflictProjection(row = {}) {
+  const localValue = conflictValue(row.local_value ?? {});
+  const remoteValue = conflictValue(row.remote_value ?? {});
+  const tombstone = Boolean(localValue.deleted_at || remoteValue.deleted_at || Object.keys(localValue).length === 0 || Object.keys(remoteValue).length === 0);
+  const fields = conflictFieldKeys(localValue, remoteValue).map((field) => ({
+    key: field,
+    label: CONFLICT_FIELD_LABELS[field] ?? field,
+    localText: formatConflictDisplayValue(localValue[field]),
+    remoteText: formatConflictDisplayValue(remoteValue[field]),
+  }));
+  return {
+    id: row.id,
+    entityTable: row.entity_table,
+    entityId: row.entity_id,
+    entityLabel: CONFLICT_ENTITY_LABELS[row.entity_table] ?? "Inhalt",
+    title: String(conflictEntityTitle(row)),
+    baseRevision: row.base_revision,
+    localRevision: row.local_revision,
+    remoteRevision: row.remote_revision,
+    status: row.status,
+    fields,
+    tombstone,
+    allowedActions: tombstone
+      ? ["keep-local", "keep-remote", "ignore"]
+      : ["keep-local", "keep-remote", "merge-fields", "ignore"],
+    resolution: row.resolution ?? {},
+    createdAt: row.created_at,
+    resolvedAt: row.resolved_at,
+  };
 }
 
 function conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision }) {
@@ -542,6 +688,118 @@ function aiJobFromRow(row) {
     finishedAt: row.finished_at,
     ...syncMetadataFromRow(row),
   };
+}
+
+function withoutConflictTombstone(state, entityTable, entityId) {
+  return toArray(state.cloudTombstones).filter((item) => item.entityTable !== entityTable || item.entityId !== entityId);
+}
+
+function replaceOrAppendById(items, nextItem) {
+  if (!nextItem) return items;
+  return items.some((item) => item.id === nextItem.id)
+    ? items.map((item) => item.id === nextItem.id ? nextItem : item)
+    : [...items, nextItem];
+}
+
+function projectResolvedCloudEntity(state, cloudState, entityTable, entityId) {
+  if (!state) return state;
+  const remoteTombstone = toArray(cloudState.cloudTombstones).find((item) => item.entityTable === entityTable && item.entityId === entityId);
+  const cloudTombstones = remoteTombstone
+    ? [...withoutConflictTombstone(state, entityTable, entityId), remoteTombstone]
+    : withoutConflictTombstone(state, entityTable, entityId);
+
+  if (entityTable === "decks") {
+    const remoteDeck = toArray(cloudState.decks).find((deck) => deck.id === entityId);
+    return {
+      ...state,
+      decks: remoteDeck ? replaceOrAppendById(toArray(state.decks), remoteDeck) : toArray(state.decks).filter((deck) => deck.id !== entityId),
+      cloudTombstones,
+    };
+  }
+
+  if (entityTable === "cards") {
+    const remoteDeck = toArray(cloudState.decks).find((deck) => toArray(deck.cards).some((card) => card.id === entityId));
+    const remoteCard = remoteDeck?.cards.find((card) => card.id === entityId) ?? null;
+    return {
+      ...state,
+      decks: toArray(state.decks).map((deck) => ({
+        ...deck,
+        cards: remoteCard && deck.id === remoteDeck.id
+          ? replaceOrAppendById(toArray(deck.cards), remoteCard)
+          : toArray(deck.cards).filter((card) => card.id !== entityId),
+      })),
+      cloudTombstones,
+    };
+  }
+
+  if (entityTable === "card_variants") {
+    let remoteVariant = null;
+    let remoteCardId = null;
+    for (const deck of toArray(cloudState.decks)) {
+      for (const card of toArray(deck.cards)) {
+        const candidate = toArray(card.variants).find((variant) => variant.id === entityId);
+        if (candidate) {
+          remoteVariant = candidate;
+          remoteCardId = card.id;
+          break;
+        }
+      }
+      if (remoteVariant) break;
+    }
+    return {
+      ...state,
+      decks: toArray(state.decks).map((deck) => ({
+        ...deck,
+        cards: toArray(deck.cards).map((card) => ({
+          ...card,
+          variants: remoteVariant && card.id === remoteCardId
+            ? replaceOrAppendById(toArray(card.variants), remoteVariant)
+            : toArray(card.variants).filter((variant) => variant.id !== entityId),
+        })),
+      })),
+      cloudTombstones,
+    };
+  }
+
+  if (entityTable === "source_documents") {
+    const remoteDocument = toArray(cloudState.documents).find((document) => document.id === entityId) ?? null;
+    const remoteDecks = new Map(toArray(cloudState.decks).map((deck) => [deck.id, deck]));
+    return {
+      ...state,
+      documents: remoteDocument
+        ? replaceOrAppendById(toArray(state.documents), remoteDocument)
+        : toArray(state.documents).filter((document) => document.id !== entityId),
+      decks: toArray(state.decks).map((deck) => {
+        const remoteDeckDocument = toArray(remoteDecks.get(deck.id)?.sourceDocuments).find((document) => document.id === entityId) ?? null;
+        return {
+          ...deck,
+          sourceDocuments: remoteDeckDocument
+            ? replaceOrAppendById(toArray(deck.sourceDocuments), remoteDeckDocument)
+            : toArray(deck.sourceDocuments).filter((document) => document.id !== entityId),
+        };
+      }),
+      cloudTombstones,
+    };
+  }
+
+  if (entityTable === "ai_jobs") {
+    const remoteJob = toArray(cloudState.aiJobs).find((job) => job.id === entityId) ?? null;
+    const remoteDecks = new Map(toArray(cloudState.decks).map((deck) => [deck.id, deck]));
+    return {
+      ...state,
+      aiJobs: remoteJob ? replaceOrAppendById(toArray(state.aiJobs), remoteJob) : toArray(state.aiJobs).filter((job) => job.id !== entityId),
+      decks: toArray(state.decks).map((deck) => {
+        const remoteDeckJob = toArray(remoteDecks.get(deck.id)?.aiJobs).find((job) => job.id === entityId) ?? null;
+        return {
+          ...deck,
+          aiJobs: remoteDeckJob ? replaceOrAppendById(toArray(deck.aiJobs), remoteDeckJob) : toArray(deck.aiJobs).filter((job) => job.id !== entityId),
+        };
+      }),
+      cloudTombstones,
+    };
+  }
+
+  throw new Error(`Konfliktauflösung ist für ${entityTable} nicht unterstützt.`);
 }
 
 function documentsForDeck(deckCards, documents) {
@@ -1224,38 +1482,150 @@ export async function loadCloudState(client, fallbackState = {}) {
 }
 
 export function syncConflictFromRow(row) {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    entityTable: row.entity_table,
-    entityId: row.entity_id,
-    baseRevision: row.base_revision,
-    localRevision: row.local_revision,
-    remoteRevision: row.remote_revision,
-    localValue: row.local_value,
-    remoteValue: row.remote_value,
-    status: row.status,
-    resolution: row.resolution,
-    updatedByDeviceId: row.updated_by_device_id,
-    createdAt: row.created_at,
-    resolvedAt: row.resolved_at,
-  };
+  return createConflictProjection(row);
 }
 
 export async function listAccountSyncConflicts(client) {
   const user = await getAuthenticatedUser(client);
   const rows = await selectOptionalRows(client, "sync_conflicts", user.id);
-  return rows.map(syncConflictFromRow);
+  const statusOrder = { open: 0, ignored: 1 };
+  return rows
+    .filter((row) => row.status === "open" || row.status === "ignored")
+    .sort((left, right) => (statusOrder[left.status] - statusOrder[right.status]) || String(right.created_at).localeCompare(String(left.created_at)))
+    .map(syncConflictFromRow);
 }
 
-export async function resolveAccountSyncConflict(client, conflictId, resolution) {
-  const user = await getAuthenticatedUser(client);
-  const row = {
-    status: "resolved",
-    resolution: toJson(resolution, {}),
-    resolved_at: new Date().toISOString(),
+function normalizeConflictDecision(decision = {}, conflictRow = {}) {
+  const action = requireNonEmptyString(decision.action, "Konfliktentscheidung fehlt.");
+  if (!CONFLICT_ACTIONS.has(action)) throw new Error("Konfliktentscheidung ist ungültig.");
+  const localValue = conflictValue(conflictRow.local_value ?? {});
+  const remoteValue = conflictValue(conflictRow.remote_value ?? {});
+  const fields = conflictFieldKeys(localValue, remoteValue);
+  const tombstone = Boolean(localValue.deleted_at || remoteValue.deleted_at || Object.keys(localValue).length === 0 || Object.keys(remoteValue).length === 0);
+
+  if (action !== "merge-fields") return { action, fieldChoices: {}, localValue, remoteValue, fields, tombstone };
+  if (tombstone) throw new Error("Gelöschte Inhalte können nicht feldweise zusammengeführt werden.");
+  const fieldChoices = decision.fieldChoices && typeof decision.fieldChoices === "object" ? decision.fieldChoices : {};
+  for (const field of Object.keys(fieldChoices)) {
+    if (!fields.includes(field) || CONFLICT_PROTECTED_FIELDS.has(field)) throw new Error(`Konfliktfeld ist nicht auswählbar: ${field}`);
+    if (fieldChoices[field] !== "local" && fieldChoices[field] !== "remote") throw new Error(`Auswahl für ${field} ist ungültig.`);
+  }
+  const missing = fields.filter((field) => fieldChoices[field] !== "local" && fieldChoices[field] !== "remote");
+  if (missing.length) throw new Error("Bitte entscheide jedes geänderte Feld.");
+  return { action, fieldChoices: Object.fromEntries(fields.map((field) => [field, fieldChoices[field]])), localValue, remoteValue, fields, tombstone };
+}
+
+function chosenConflictRow(normalized) {
+  if (normalized.action === "keep-local") return { ...normalized.localValue };
+  if (normalized.action === "keep-remote") return { ...normalized.remoteValue };
+  if (normalized.action !== "merge-fields") return null;
+  const chosen = { ...normalized.remoteValue };
+  for (const field of normalized.fields) chosen[field] = normalized.fieldChoices[field] === "local" ? normalized.localValue[field] : normalized.remoteValue[field];
+  return chosen;
+}
+
+async function persistConflictChoice(client, user, conflictRow, normalized, { deviceId, resolvedAt }) {
+  const entityTable = conflictRow.entity_table;
+  if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Konfliktauflösung ist für ${entityTable} nicht unterstützt.`);
+  const currentRemote = await selectRowById(client, entityTable, user.id, conflictRow.entity_id);
+  const chosen = chosenConflictRow(normalized);
+  const expectedRemoteRevision = conflictRow.remote_revision == null ? null : normalizeRevision(conflictRow.remote_revision);
+  const currentRemoteRevision = currentRemote?.revision == null ? null : normalizeRevision(currentRemote.revision);
+  const alreadyApplied = Boolean(currentRemote && chosen && rowsHaveSameContent(chosen, currentRemote));
+  if (currentRemoteRevision !== expectedRemoteRevision && !alreadyApplied) throw new SyncConflictChangedError();
+
+  if (normalized.action === "keep-remote") return currentRemote;
+  if (alreadyApplied) return currentRemote;
+  if (chosen?.deleted_at) {
+    if (!currentRemote || currentRemote.deleted_at) return currentRemote;
+    await softDeleteEntityForUser(client, user, {
+      entityTable,
+      entityId: conflictRow.entity_id,
+      baseRevision: currentRemoteRevision,
+      deletedAt: chosen.deleted_at,
+    }, { deviceId, flushedAt: resolvedAt });
+    return selectRowById(client, entityTable, user.id, conflictRow.entity_id);
+  }
+
+  const candidate = {
+    ...chosen,
+    id: conflictRow.entity_id,
+    user_id: user.id,
+    created_at: chosen?.created_at ?? currentRemote?.created_at ?? resolvedAt,
+    revision: currentRemoteRevision == null ? 1 : currentRemoteRevision + 1,
+    updated_by_device_id: deviceId,
+    ...(TABLES_WITH_UPDATED_AT.has(entityTable) ? { updated_at: resolvedAt } : {}),
   };
-  const { data, error } = await client.from("sync_conflicts").update(row).eq("user_id", user.id).eq("id", conflictId).select("*").maybeSingle();
+  if (!currentRemote) {
+    const { data, error } = await client.from(entityTable).insert(candidate).select("*");
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const payload = updatePayload(candidate, { revision: candidate.revision, deviceId, now: () => resolvedAt });
+  const { data, error } = await client
+    .from(entityTable)
+    .update(payload)
+    .eq("user_id", user.id)
+    .eq("id", conflictRow.entity_id)
+    .eq("revision", currentRemoteRevision)
+    .select("*");
   if (error) throw error;
-  return data ? syncConflictFromRow(data) : null;
+  if (!data?.[0]) throw new SyncConflictChangedError();
+  return data[0];
+}
+
+async function updateConflictResolution(client, user, conflictRow, normalized, { deviceId, resolvedAt }) {
+  const ignored = normalized.action === "ignore";
+  const reopened = normalized.action === "reopen";
+  const payload = {
+    status: ignored ? "ignored" : reopened ? "open" : "resolved",
+    resolution: reopened ? {} : { action: normalized.action, fieldChoices: normalized.fieldChoices },
+    resolved_at: ignored || reopened ? null : resolvedAt,
+    updated_by_device_id: deviceId,
+  };
+  const { data, error } = await client
+    .from("sync_conflicts")
+    .update(payload)
+    .eq("user_id", user.id)
+    .eq("id", conflictRow.id)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Der Synchronisierungskonflikt wurde nicht gefunden.");
+  return data;
+}
+
+export async function resolveAccountSyncConflict(client, conflictId, decision, options = {}) {
+  const user = await getAuthenticatedUser(client);
+  const id = requireNonEmptyString(conflictId, "Konflikt-ID fehlt.");
+  const deviceId = requireNonEmptyString(options.deviceId, "Geräte-ID fehlt.");
+  const resolvedAt = requireTimestamp(options.resolvedAt, nowIso, "Konfliktzeitpunkt ist ungültig.");
+  const conflictRow = await selectRowById(client, "sync_conflicts", user.id, id);
+  if (!conflictRow) throw new Error("Der Synchronisierungskonflikt wurde nicht gefunden.");
+  const normalized = normalizeConflictDecision(decision, conflictRow);
+
+  if (conflictRow.status === "resolved") {
+    const cloudState = await loadAccountCloudState(client, options.currentState ?? {});
+    return {
+      conflict: syncConflictFromRow(conflictRow),
+      nextState: projectResolvedCloudEntity(options.currentState, cloudState, conflictRow.entity_table, conflictRow.entity_id),
+      resolved: true,
+    };
+  }
+  if (normalized.action === "reopen" && conflictRow.status !== "ignored") throw new Error("Nur zurückgestellte Konflikte können wieder aufgenommen werden.");
+
+  if (!["ignore", "reopen"].includes(normalized.action)) {
+    await persistConflictChoice(client, user, conflictRow, normalized, { deviceId, resolvedAt });
+  }
+  const updatedConflict = await updateConflictResolution(client, user, conflictRow, normalized, { deviceId, resolvedAt });
+  const cloudState = ["ignore", "reopen"].includes(normalized.action)
+    ? null
+    : await loadAccountCloudState(client, options.currentState ?? {});
+  return {
+    conflict: syncConflictFromRow(updatedConflict),
+    nextState: ["ignore", "reopen"].includes(normalized.action)
+      ? options.currentState
+      : projectResolvedCloudEntity(options.currentState, cloudState, conflictRow.entity_table, conflictRow.entity_id),
+    resolved: !["ignore", "reopen"].includes(normalized.action),
+  };
 }

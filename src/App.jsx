@@ -1,6 +1,6 @@
 import React from "react";
 import { BarChart3, BookOpen, Database, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
-import { authPhaseForSession, authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
+import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
 import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.js";
 import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
 import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.js";
@@ -271,6 +271,7 @@ export function App() {
     const fallbackState = nextWorkspace.getState();
     const cloudState = await nextSyncEngine.loadSnapshot(fallbackState);
     const savedState = nextWorkspace.saveState(cloudState);
+    const conflicts = await nextSyncEngine.listConflicts();
 
     if (bootRunRef.current !== runId) return;
 
@@ -283,7 +284,7 @@ export function App() {
     setFocusedDeckId(null);
     setDeckCreationParentId("");
     setActiveView(menu.defaultViewId);
-    setSyncStatus(createSyncSavedStatus("Cloud geladen."));
+    setSyncStatus(conflicts.length > 0 ? createSyncConflictStatus(conflicts.length) : createSyncSavedStatus("Cloud geladen."));
 
     const pendingLegacyState = readLegacyLocalState();
     if (hasPendingLocalMigration(user.id) && pendingLegacyState) {
@@ -400,7 +401,7 @@ export function App() {
         syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
         const result = await syncEngine.flush();
         applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
-        if (!cancelled) setSyncStatus(createSyncSavedStatus());
+        if (!cancelled) setSyncStatus(result.conflicts?.length ? createSyncConflictStatus(result.conflicts.length) : createSyncSavedStatus());
       } catch (error) {
         if (!cancelled) setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Synchronisierung fehlgeschlagen.")));
       }
@@ -562,9 +563,29 @@ export function App() {
       syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
       const result = await syncEngine.flush();
       applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
-      setSyncStatus(createSyncSavedStatus());
+      setSyncStatus(result.conflicts?.length ? createSyncConflictStatus(result.conflicts.length) : createSyncSavedStatus());
     } catch (error) {
       setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Synchronisierung fehlgeschlagen.")));
+    }
+  }
+
+  const listSyncConflicts = React.useCallback(async () => {
+    return syncEngine ? syncEngine.listConflicts() : [];
+  }, [syncEngine]);
+
+  async function resolveSyncConflict(conflictId, decision) {
+    if (!syncEngine || !workspace || !latestStateRef.current) throw new Error("Synchronisierung ist noch nicht bereit.");
+    setSyncStatus(createSyncSavingStatus());
+    try {
+      const result = await syncEngine.resolveConflict(conflictId, decision, latestStateRef.current);
+      const savedState = workspace.saveState(result.nextState);
+      lastAcknowledgedStateRef.current = savedState;
+      setAppState(savedState);
+      setSyncStatus(result.syncStatus);
+      return result;
+    } catch (error) {
+      setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Konfliktentscheidung konnte nicht gespeichert werden.")));
+      throw error;
     }
   }
 
@@ -842,6 +863,8 @@ export function App() {
           onSaveGlobalLearningSettings={saveGlobalLearningSettings}
           onSaveState={saveState}
           onSyncNow={syncNow}
+          onListConflicts={listSyncConflicts}
+          onResolveConflict={resolveSyncConflict}
           onSignOut={signOut}
         />
       );

@@ -21,6 +21,7 @@ Each exported screen in this folder is a UI module with a small props interface.
 - `AssistantScreen.jsx`: Chat-your-Deck and learning plan UI, opened from the Dashboard secondary action and not exposed as a main tab.
 - `AiJobsScreen.jsx`: local AI job ledger, currently not exposed as a main tab.
 - `SettingsScreen.jsx`: signed-in profile, sync status, manual sync, sign-out, privacy, global learning defaults including CoRe mode and data portability.
+- `SyncConflictPanel.jsx`: accountgebundene Konfliktprojektionen, lokale/Remote-Entscheidung, sicherer Feld-Merge sowie Zurückstellen und Wiederaufnahme ohne Tabellenlogik in React.
 
 ## Design Rules
 

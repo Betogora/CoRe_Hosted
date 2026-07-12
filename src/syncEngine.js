@@ -2,10 +2,12 @@ import {
   appendReviewEvent,
   listAccountSyncConflicts,
   loadAccountCloudState,
+  mergeCloudSyncMetadata,
   registerAccountSyncDevice,
   resolveAccountSyncConflict,
   upsertAccountCloudState,
 } from "./cloudRepository.js";
+import { createSyncConflictStatus, createSyncSavedStatus } from "./accountSession.js";
 import { createSyncOutbox } from "./syncOutbox.js";
 
 export const SYNC_MUTATION_TYPES = Object.freeze({
@@ -51,37 +53,6 @@ function createMutation(input = {}, now = nowIso, deviceId) {
   };
 }
 
-function uniqueById(rows = []) {
-  const byId = new Map();
-  for (const row of rows) {
-    if (row?.id) byId.set(row.id, row);
-  }
-  return [...byId.values()];
-}
-
-export function mergeAppendOnlyRows(localRows = [], remoteRows = []) {
-  return uniqueById([...remoteRows, ...localRows]);
-}
-
-export function detectRevisionConflict({ localRow, remoteRow, baseRevision, contentFields = [] } = {}) {
-  if (!localRow || !remoteRow || baseRevision == null) return null;
-  const remoteRevision = Number(remoteRow.revision ?? 0);
-  if (remoteRevision <= Number(baseRevision)) return null;
-
-  const changedFields = contentFields.filter((field) => JSON.stringify(localRow[field] ?? null) !== JSON.stringify(remoteRow[field] ?? null));
-  if (changedFields.length === 0) return null;
-
-  return {
-    entityId: localRow.id ?? remoteRow.id,
-    baseRevision,
-    localRevision: localRow.revision ?? null,
-    remoteRevision,
-    changedFields,
-    localValue: Object.fromEntries(changedFields.map((field) => [field, localRow[field] ?? null])),
-    remoteValue: Object.fromEntries(changedFields.map((field) => [field, remoteRow[field] ?? null])),
-  };
-}
-
 function createDefaultAdapter(client) {
   return {
     registerDevice(device, context = {}) {
@@ -100,8 +71,8 @@ function createDefaultAdapter(client) {
     listConflicts() {
       return listAccountSyncConflicts(client);
     },
-    resolveConflict(conflictId, resolution) {
-      return resolveAccountSyncConflict(client, conflictId, resolution);
+    resolveConflict(conflictId, decision, context = {}) {
+      return resolveAccountSyncConflict(client, conflictId, decision, context);
     },
     async applyMutationBatch(mutations, context = {}) {
       const acknowledgedMutationIds = [];
@@ -190,6 +161,13 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
         }
 
         if (latestStatePatch?.payload?.state) {
+          const blockingConflicts = adapter.listConflicts ? await adapter.listConflicts() : [];
+          if (blockingConflicts.length > 0) {
+            result.conflicts = blockingConflicts;
+            result.paused = true;
+            lastFlush = result;
+            return result;
+          }
           const statePatchIds = batch.filter((mutation) => mutation.type === SYNC_MUTATION_TYPES.statePatch).map((mutation) => mutation.id);
           try {
             result.saved = await adapter.upsertState(latestStatePatch.payload.state, {
@@ -225,9 +203,40 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
       return adapter.listConflicts();
     },
 
-    async resolveConflict(conflictId, resolution) {
+    async resolveConflict(conflictId, decision, currentState) {
       if (!adapter.resolveConflict) throw new Error("Dieser Sync-Adapter kann Konflikte nicht auflösen.");
-      return adapter.resolveConflict(conflictId, { ...resolution, deviceId: syncDevice.id, resolvedAt: now() });
+      const resolvedAt = now();
+      const repositoryResult = await adapter.resolveConflict(conflictId, decision, {
+        deviceId: syncDevice.id,
+        resolvedAt,
+        currentState,
+      });
+      let nextState = repositoryResult?.nextState ?? currentState;
+      let flushResult = null;
+
+      if (repositoryResult?.resolved) {
+        const staleStatePatchIds = outbox.listPending()
+          .filter((mutation) => mutation.type === SYNC_MUTATION_TYPES.statePatch)
+          .map((mutation) => mutation.id);
+        outbox.remove(staleStatePatchIds);
+        this.enqueueMutation({
+          type: SYNC_MUTATION_TYPES.statePatch,
+          payload: { state: nextState },
+        });
+        flushResult = await this.flush();
+        nextState = mergeCloudSyncMetadata(nextState, flushResult.saved?.state);
+      }
+
+      const conflicts = adapter.listConflicts ? await adapter.listConflicts() : [];
+      return {
+        conflict: repositoryResult?.conflict ?? null,
+        nextState,
+        conflicts,
+        flushResult,
+        syncStatus: conflicts.length > 0
+          ? createSyncConflictStatus(conflicts.length)
+          : createSyncSavedStatus("Konfliktentscheidung synchronisiert.", () => resolvedAt),
+      };
     },
   };
 }
