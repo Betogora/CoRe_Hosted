@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   commitApkgImport,
   commitImport,
+  createApkgImportPreview,
   dryRunApkgImport,
   findReadableCollectionDatabase,
   mapAnkiApkgToNormalizedDeck,
@@ -14,7 +15,7 @@ import {
   parsePackageMetadataBytes,
   validateApkgFile,
 } from "./apkgImport.js";
-import { createBasicLearningItem, createCoreDeck, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.js";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.js";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.js";
 import { answerVariant, getNextReviewItem } from "./reviewService.js";
 
@@ -390,6 +391,19 @@ test("committed APKG fixture imports the world capitals hierarchy", async () => 
   }
 });
 
+test("APKG preview uses the normalized Learning Item path", async () => {
+  const result = await createApkgImportPreview(await worldCapitalsApkgFile());
+  const preview = result.preview;
+
+  assert.equal(result.job.status, "preview");
+  assert.equal(preview.deck.cards.length, 245);
+  assert.equal(preview.sampleCards.length, 5);
+  assert.equal(preview.importReport.apkg.detectedCards, 245);
+  assert.equal(preview.deck.importMeta.deckHierarchy.length, 8);
+  assert.equal(preview.deck.cards.every((item) => item.variants.filter((variant) => variant.isOriginal).length === 1), true);
+  assert.equal(getOriginalVariant(preview.deck.cards[0]).front, preview.deck.cards[0].canonicalQuestion);
+});
+
 test("imports Cloze parser output as cloze content with a warning instead of crashing", async () => {
   const parsed = parsedApkgFixture({
     modelName: "Cloze",
@@ -462,7 +476,7 @@ test("APKG duplicate detection uses Anki note source ids and merge strategies", 
   assert.equal(skipped.report.duplicates.length, 1);
   assert.equal(skipped.report.skipped.length, 1);
   assert.equal(skipped.deck.cards.length, 0);
-  assert.equal(createNew.report.warnings.some((warning) => warning.includes("moegliche Dublette")), true);
+  assert.equal(createNew.report.warnings.some((warning) => warning.includes("mögliche Dublette")), true);
   assert.equal(createNew.deck.cards.length, 1);
   assert.equal(updateExisting.deck.cards.length, 0);
   assert.equal(updateExisting.report.warnings.some((warning) => warning.includes("update_existing")), true);
@@ -470,11 +484,13 @@ test("APKG duplicate detection uses Anki note source ids and merge strategies", 
 
 test("commitImport merges reimports and preserves local content edits", async () => {
   const existingCard = {
-    ...createBasicLearningItem("", "Lokale Frage", "Lokale Antwort", {
+    ...createBasicLearningItem("", "Alte Importfrage", "Alte Importantwort", {
       id: "card_existing",
       sourceType: "anki_import",
       sourceRefId: "note_10",
     }),
+    originalFront: "Lokale Frage",
+    originalBack: "Lokale Antwort",
     versionLog: [{ id: "version_local", changeType: "content_updated" }],
   };
   const incomingCard = createBasicLearningItem("", "Importierte Frage", "Importierte Antwort", {
@@ -504,6 +520,128 @@ test("commitImport merges reimports and preserves local content edits", async ()
   assert.equal(merged.id, "deck_existing");
   assert.equal(merged.cards[0].id, "card_existing");
   assert.equal(merged.cards[0].originalFront, "Lokale Frage");
+  assert.equal(merged.cards[0].canonicalQuestion, "Lokale Frage");
+  assert.equal(getOriginalVariant(merged.cards[0]).front, "Lokale Frage");
+  assert.equal(getOriginalVariant(merged.cards[0]).back, "Lokale Antwort");
   assert.deepEqual(merged.cards[0].mediaRefs, ["cell.png"]);
   assert.equal(merged.importMeta.replacedDeckId, "deck_existing");
+});
+
+test("commitImport matches imported variants by stable source id across repeated reimports", async () => {
+  const existingBase = createBasicLearningItem("", "Alte Frage", "Alte Antwort", {
+    id: "card_existing",
+    sourceType: "anki_import",
+    sourceRefId: "note_10",
+  });
+  const existingOriginal = getOriginalVariant(existingBase);
+  const existingCard = {
+    ...existingBase,
+    variants: [
+      existingOriginal,
+      {
+        ...existingOriginal,
+        id: "variant_existing_reverse",
+        isOriginal: false,
+        type: "reverse",
+        front: "Alte Antwort",
+        back: "Alte Frage",
+        anchorVariantId: existingOriginal.id,
+        isActive: false,
+        qualityStatus: "flagged",
+        meta: { ...existingOriginal.meta, sourceVariantExternalId: "anki-card-reverse" },
+      },
+    ],
+  };
+  const incomingBase = createBasicLearningItem("", "Neue Frage", "Neue Antwort", {
+    id: "card_incoming",
+    sourceType: "anki_import",
+    sourceRefId: "note_10",
+  });
+  const incomingOriginal = getOriginalVariant(incomingBase);
+  const incomingCard = {
+    ...incomingBase,
+    variants: [
+      incomingOriginal,
+      {
+        ...incomingOriginal,
+        id: "variant_new_runtime_id",
+        isOriginal: false,
+        type: "reverse",
+        front: "Neue Antwort",
+        back: "Neue Frage",
+        anchorVariantId: incomingOriginal.id,
+        meta: { ...incomingOriginal.meta, sourceVariantExternalId: "anki-card-reverse" },
+      },
+    ],
+  };
+  const existingDeck = createCoreDeck({
+    id: "deck_existing",
+    name: "Biology",
+    source: "anki-apkg",
+    originalDeckId: "1",
+    cards: [existingCard],
+  });
+  const incomingDeck = createCoreDeck({
+    name: "Biology Imported",
+    source: "anki-apkg",
+    originalDeckId: "1",
+    cards: [incomingCard],
+  });
+
+  const firstMerge = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
+  const secondMerge = await commitImport({ deck: incomingDeck }, { existingDecks: [firstMerge] });
+  const importedVariants = secondMerge.cards[0].variants.filter((variant) => !variant.isOriginal);
+
+  assert.equal(importedVariants.length, 1);
+  assert.equal(importedVariants[0].id, "variant_existing_reverse");
+  assert.equal(importedVariants[0].front, "Neue Antwort");
+  assert.equal(importedVariants[0].isActive, false);
+  assert.equal(importedVariants[0].qualityStatus, "flagged");
+});
+
+test("commitImport updates untouched originals and preserves local variant state", async () => {
+  const existingCard = addRephrasedVariant(
+    createBasicLearningItem("", "Alte Importfrage", "Alte Importantwort", {
+      id: "card_existing",
+      sourceType: "anki_import",
+      sourceRefId: "note_10",
+    }),
+    "Lokale Zusatzfrage",
+    "Lokale Zusatzantwort",
+    {
+      id: "variant_local",
+      isActive: false,
+      qualityStatus: "flagged",
+    },
+  );
+  const incomingCard = createBasicLearningItem("", "Neue Importfrage", "Neue Importantwort", {
+    id: "card_incoming",
+    sourceType: "anki_import",
+    sourceRefId: "note_10",
+  });
+  const existingDeck = createCoreDeck({
+    id: "deck_existing",
+    name: "Biology",
+    source: "anki-apkg",
+    originalDeckId: "1",
+    cards: [existingCard],
+  });
+  const incomingDeck = createCoreDeck({
+    name: "Biology Imported",
+    source: "anki-apkg",
+    originalDeckId: "1",
+    cards: [incomingCard],
+  });
+
+  const merged = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
+  const mergedCard = merged.cards[0];
+  const localVariant = mergedCard.variants.find((variant) => variant.id === "variant_local");
+
+  assert.equal(mergedCard.id, "card_existing");
+  assert.equal(mergedCard.canonicalQuestion, "Neue Importfrage");
+  assert.equal(getOriginalVariant(mergedCard).front, "Neue Importfrage");
+  assert.equal(getOriginalVariant(mergedCard).back, "Neue Importantwort");
+  assert.equal(localVariant.isActive, false);
+  assert.equal(localVariant.qualityStatus, "flagged");
+  assert.equal(localVariant.anchorVariantId, getOriginalVariant(mergedCard).id);
 });

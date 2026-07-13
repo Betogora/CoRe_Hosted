@@ -262,16 +262,22 @@ export function App() {
 
     const accountStorage = createAccountStorage(user.id);
     const device = createBrowserSyncDevice();
+    const nextWorkspace = createCoreWorkspace(createCoreRepository(accountStorage, { seedDefaultDecks: false }));
     const nextSyncEngine = createAccountSyncEngine(supabase, {
       userId: user.id,
       storage: accountStorage,
       device,
+      persistSnapshot: (nextState) => nextWorkspace.saveState(nextState),
     });
-    const nextWorkspace = createCoreWorkspace(createCoreRepository(accountStorage, { seedDefaultDecks: false }));
     const fallbackState = nextWorkspace.getState();
     const cloudState = await nextSyncEngine.loadSnapshot(fallbackState);
     const savedState = nextWorkspace.saveState(cloudState);
-    const conflicts = await nextSyncEngine.listConflicts();
+    let conflicts = [];
+    try {
+      conflicts = await nextSyncEngine.listConflicts();
+    } catch (error) {
+      if (nextSyncEngine.pendingCount() === 0) throw error;
+    }
 
     if (bootRunRef.current !== runId) return;
 
@@ -284,7 +290,13 @@ export function App() {
     setFocusedDeckId(null);
     setDeckCreationParentId("");
     setActiveView(menu.defaultViewId);
-    setSyncStatus(conflicts.length > 0 ? createSyncConflictStatus(conflicts.length) : createSyncSavedStatus("Cloud geladen."));
+    setSyncStatus(
+      conflicts.length > 0
+        ? createSyncConflictStatus(conflicts.length)
+        : nextSyncEngine.pendingCount() > 0
+          ? createSyncPendingStatus()
+          : createSyncSavedStatus("Cloud geladen."),
+    );
 
     const pendingLegacyState = readLegacyLocalState();
     if (hasPendingLocalMigration(user.id) && pendingLegacyState) {
@@ -584,6 +596,7 @@ export function App() {
       setSyncStatus(result.syncStatus);
       return result;
     } catch (error) {
+      setAppState(workspace.getState());
       setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Konfliktentscheidung konnte nicht gespeichert werden.")));
       throw error;
     }

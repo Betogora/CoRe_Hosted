@@ -535,6 +535,102 @@ test("cloud repository roundtrips sync metadata and media references", async () 
   assert.equal(loaded.aiJobs[0].revision, 2);
 });
 
+test("cloud repository roundtrips Learning Item fields and review compatibility aliases", async () => {
+  const fixture = createCloudFixture();
+  const timestamp = "2026-07-10T12:00:00.000Z";
+  const baseCard = createBasicLearningItem("deck-1", "Importierte Vorderseite", "Importierte Rückseite", {
+    id: "card-semantic",
+    title: "ATP-Grundlagen",
+    tags: ["Biochemie"],
+    concepts: ["ATP", "Energie"],
+    sourceType: "anki_import",
+    sourceRefId: "note-42",
+    meta: { custom: "bleibt erhalten" },
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  });
+  const card = {
+    ...baseCard,
+    canonicalQuestion: "Kanonische Frage",
+    canonicalAnswer: "Kanonische Antwort",
+  };
+  const variant = getOriginalVariant(card);
+  const reviewEvent = {
+    id: "review-semantic",
+    deckId: "deck-1",
+    learningItemId: card.id,
+    cardId: card.id,
+    cardVariantId: variant.id,
+    variantId: variant.id,
+    reviewableType: "card",
+    reviewableId: variant.id,
+    sourceCardId: card.id,
+    rating: "good",
+    reviewedAt: timestamp,
+    answeredAt: timestamp,
+    variantLevel: 1,
+    variantType: "basic",
+    previousLearningItemStateJson: { state: "learning", reps: 1 },
+    nextLearningItemStateJson: { state: "review", reps: 2 },
+    schedulerVersion: "fsrs_v1",
+    schedulerParamsJson: { desiredRetention: 0.9 },
+    anchorVariantId: null,
+    anchorSnapshotJson: { shouldShow: false },
+    fallbackInfo: { active: false },
+    schedulerBefore: { card: { state: "learning", reps: 1 } },
+    schedulerAfter: { card: { state: "review", reps: 2 } },
+    flags: { manual: true },
+    createdAt: timestamp,
+  };
+  const deck = createCoreDeck({
+    ...fixture.state.decks[0],
+    cards: [card],
+    reviewEvents: [reviewEvent],
+  });
+  const state = { ...fixture.state, decks: [deck] };
+  const rows = createCloudStateRows(state, fixture.user.id, { deviceId: "device-a" });
+  const storedReview = rows.review_events[0];
+  const storedReviewModel = storedReview.flags.__coreReview;
+  assert.deepEqual(storedReview.scheduler_before.card, reviewEvent.previousLearningItemStateJson);
+  assert.deepEqual(storedReview.scheduler_after.card, reviewEvent.nextLearningItemStateJson);
+  assert.equal(Object.hasOwn(storedReviewModel, "learningItemId"), false);
+  assert.equal(Object.hasOwn(storedReviewModel, "cardId"), false);
+  assert.equal(Object.hasOwn(storedReviewModel, "cardVariantId"), false);
+  assert.equal(Object.hasOwn(storedReviewModel, "variantId"), false);
+  assert.equal(Object.hasOwn(storedReviewModel, "reviewedAt"), false);
+  assert.equal(Object.hasOwn(storedReviewModel, "previousLearningItemStateJson"), false);
+  assert.equal(Object.hasOwn(storedReviewModel, "nextLearningItemStateJson"), false);
+  const client = createMemorySupabaseClient({ ...rows, profiles: fixture.rows.profiles }, fixture.user);
+
+  const loaded = await loadAccountCloudState(client, { profile: state.profile });
+  const loadedCard = loaded.decks[0].cards[0];
+  const loadedEvent = loaded.decks[0].reviewEvents[0];
+
+  assert.equal(loadedCard.title, card.title);
+  assert.equal(loadedCard.canonicalQuestion, card.canonicalQuestion);
+  assert.equal(loadedCard.canonicalAnswer, card.canonicalAnswer);
+  assert.deepEqual(loadedCard.tags, card.tags);
+  assert.deepEqual(loadedCard.concepts, card.concepts);
+  assert.equal(loadedCard.sourceType, card.sourceType);
+  assert.equal(loadedCard.sourceRefId, card.sourceRefId);
+  assert.deepEqual(loadedCard.meta, { custom: "bleibt erhalten" });
+  assert.equal(loadedEvent.learningItemId, card.id);
+  assert.equal(loadedEvent.cardId, card.id);
+  assert.equal(loadedEvent.cardVariantId, variant.id);
+  assert.equal(loadedEvent.variantId, variant.id);
+  assert.equal(loadedEvent.reviewedAt, timestamp);
+  assert.deepEqual(loadedEvent.previousLearningItemStateJson, reviewEvent.previousLearningItemStateJson);
+  assert.deepEqual(loadedEvent.nextLearningItemStateJson, reviewEvent.nextLearningItemStateJson);
+  assert.equal(loadedEvent.variantLevel, reviewEvent.variantLevel);
+  assert.equal(loadedEvent.variantType, reviewEvent.variantType);
+  assert.equal(loadedEvent.schedulerVersion, "fsrs_v1");
+  assert.deepEqual(loadedEvent.schedulerParamsJson, reviewEvent.schedulerParamsJson);
+  assert.equal(loadedEvent.anchorVariantId, reviewEvent.anchorVariantId);
+  assert.deepEqual(loadedEvent.anchorSnapshotJson, reviewEvent.anchorSnapshotJson);
+  assert.deepEqual(loadedEvent.fallbackInfo, reviewEvent.fallbackInfo);
+  assert.deepEqual(loadedEvent.flags, { manual: true });
+});
+
 test("cloud load hides soft-deleted rows and preserves minimal tombstones", async () => {
   const fixture = createCloudFixture();
   const deletedAt = "2026-07-10T11:00:00.000Z";

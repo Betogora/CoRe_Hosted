@@ -7,6 +7,8 @@ const ACCOUNT_TABLES = ["decks", "cards", "card_variants", "review_events", "sou
 const REVISIONED_TABLES = ["source_documents", "decks", "cards", "card_variants", "ai_jobs"];
 const REVISIONED_TABLE_SET = new Set(REVISIONED_TABLES);
 const TABLES_WITH_UPDATED_AT = new Set(["source_documents", "decks", "cards", "card_variants"]);
+const CARD_MODEL_META_KEY = "__coreModel";
+const REVIEW_EVENT_META_KEY = "__coreReview";
 const DELETE_ORDER = ["ai_jobs", "review_events", "card_variants", "cards", "decks", "source_documents"];
 const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at", "revision", "updated_by_device_id"]);
 const CONFLICT_PROTECTED_FIELDS = new Set([
@@ -129,6 +131,66 @@ function toJson(value, fallback) {
   return value == null ? fallback : value;
 }
 
+function toObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function cardMetaToCloud(card) {
+  return {
+    ...toObject(card.meta),
+    [CARD_MODEL_META_KEY]: {
+      schemaVersion: 1,
+      title: card.title ?? "",
+      canonicalQuestion: card.canonicalQuestion ?? card.originalFront ?? "",
+      canonicalAnswer: card.canonicalAnswer ?? card.originalBack ?? "",
+      tags: toArray(card.tags ?? card.originalTags),
+      concepts: toArray(card.concepts),
+      sourceType: card.sourceType ?? null,
+      sourceRefId: card.sourceRefId ?? null,
+    },
+  };
+}
+
+function cardMetaFromCloud(value) {
+  const storedMeta = toObject(value);
+  const { [CARD_MODEL_META_KEY]: model = {}, ...meta } = storedMeta;
+  return { meta, model: toObject(model) };
+}
+
+function reviewFlagsToCloud(event, projection) {
+  const { [REVIEW_EVENT_META_KEY]: _reserved, ...flags } = toObject(event.flags);
+  const model = {};
+  const storeIfDistinct = (key, value, fallback = null) => {
+    if (value != null && !jsonValuesEqual(value, fallback)) model[key] = value;
+  };
+  const schedulerParams = event.schedulerParamsJson ?? projection.schedulerAfter?.card?.schedulerParamsJson ?? null;
+
+  storeIfDistinct("learningItemId", event.learningItemId, projection.sourceCardId);
+  storeIfDistinct("cardId", event.cardId, event.learningItemId ?? projection.sourceCardId);
+  storeIfDistinct("cardVariantId", event.cardVariantId, projection.reviewableId);
+  storeIfDistinct("variantId", event.variantId, event.cardVariantId ?? projection.reviewableId);
+  storeIfDistinct("reviewedAt", event.reviewedAt, projection.answeredAt);
+  storeIfDistinct("variantLevel", event.variantLevel, schedulerParams?.variantLevel);
+  storeIfDistinct("variantType", event.variantType, schedulerParams?.variantType);
+  storeIfDistinct("previousLearningItemStateJson", event.previousLearningItemStateJson, projection.schedulerBefore?.card);
+  storeIfDistinct("nextLearningItemStateJson", event.nextLearningItemStateJson, projection.schedulerAfter?.card);
+  storeIfDistinct("schedulerVersion", event.schedulerVersion, schedulerParams?.schedulerVersion);
+  storeIfDistinct("schedulerParamsJson", event.schedulerParamsJson, projection.schedulerAfter?.card?.schedulerParamsJson);
+  storeIfDistinct("anchorVariantId", event.anchorVariantId);
+  storeIfDistinct("anchorSnapshotJson", event.anchorSnapshotJson);
+  storeIfDistinct("fallbackInfo", event.fallbackInfo);
+
+  return Object.keys(model).length > 0
+    ? { ...flags, [REVIEW_EVENT_META_KEY]: { schemaVersion: 1, ...model } }
+    : flags;
+}
+
+function reviewFlagsFromCloud(value) {
+  const storedFlags = toObject(value);
+  const { [REVIEW_EVENT_META_KEY]: model = {}, ...flags } = storedFlags;
+  return { flags, model: toObject(model) };
+}
+
 function normalizeRevision(value, fallback = 1) {
   const revision = Number(value);
   return Number.isInteger(revision) && revision >= 1 ? revision : fallback;
@@ -156,6 +218,10 @@ function stableValue(value) {
   return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
 }
 
+function jsonValuesEqual(left, right) {
+  return JSON.stringify(stableValue(left ?? null)) === JSON.stringify(stableValue(right ?? null));
+}
+
 function comparableRow(row = {}) {
   return Object.fromEntries(Object.entries(row).filter(([key]) => !ROW_IDENTITY_FIELDS.has(key)));
 }
@@ -169,7 +235,7 @@ function conflictValue(row = {}) {
 }
 
 function conflictValuesEqual(left, right) {
-  return JSON.stringify(stableValue(left ?? null)) === JSON.stringify(stableValue(right ?? null));
+  return jsonValuesEqual(left, right);
 }
 
 function conflictFieldKeys(localValue = {}, remoteValue = {}) {
@@ -235,10 +301,6 @@ function profileHasSameContent(profile, user, remoteRow) {
   const left = Object.fromEntries(keys.map((key) => [key, candidate[key]]));
   const right = Object.fromEntries(keys.map((key) => [key, remoteRow[key]]));
   return JSON.stringify(stableValue(left)) === JSON.stringify(stableValue(right));
-}
-
-function replaceRow(rows, nextRow) {
-  return [nextRow, ...rows.filter((row) => row.id !== nextRow.id)];
 }
 
 function uniqueRowsById(rows) {
@@ -447,7 +509,7 @@ export function cardToCloudRow(card, deck, userId) {
     review_state: toJson(card.learningItemState ?? card.reviewState, {}),
     core_state: toJson(card.coreState, {}),
     version_log: toJson(card.versionLog, []),
-    meta: toJson(card.meta, {}),
+    meta: cardMetaToCloud(card),
     created_at: card.createdAt,
     updated_at: card.updatedAt,
     ...syncFields(card),
@@ -494,19 +556,24 @@ export function variantToCloudRow(variant, card, userId) {
 }
 
 export function reviewEventToCloudRow(event, deck, userId, { deviceId = null } = {}) {
+  const reviewableId = event.reviewableId ?? event.cardId ?? event.variantId ?? "";
+  const sourceCardId = event.sourceCardId ?? event.learningItemId ?? null;
+  const answeredAt = event.answeredAt ?? event.createdAt;
+  const schedulerBefore = event.schedulerBefore ?? (event.previousLearningItemStateJson ? { card: event.previousLearningItemStateJson } : null);
+  const schedulerAfter = event.schedulerAfter ?? (event.nextLearningItemStateJson ? { card: event.nextLearningItemStateJson } : null);
   return {
     id: event.id,
     user_id: userId,
     deck_id: event.deckId ?? deck.id,
     reviewable_type: event.reviewableType ?? "card",
-    reviewable_id: event.reviewableId ?? event.cardId ?? event.variantId ?? "",
-    source_card_id: event.sourceCardId ?? event.learningItemId ?? null,
+    reviewable_id: reviewableId,
+    source_card_id: sourceCardId,
     rating: event.rating,
-    answered_at: event.answeredAt ?? event.createdAt,
+    answered_at: answeredAt,
     response_time_ms: event.responseTimeMs ?? null,
-    scheduler_before: event.schedulerBefore ?? null,
-    scheduler_after: event.schedulerAfter ?? null,
-    flags: toJson(event.flags, {}),
+    scheduler_before: schedulerBefore,
+    scheduler_after: schedulerAfter,
+    flags: reviewFlagsToCloud(event, { reviewableId, sourceCardId, answeredAt, schedulerBefore, schedulerAfter }),
     created_at: event.createdAt ?? event.answeredAt,
     created_by_device_id: event.createdByDeviceId ?? deviceId,
   };
@@ -605,6 +672,8 @@ function variantFromRow(row) {
 }
 
 function cardFromRow(row, variants) {
+  const { meta, model } = cardMetaFromCloud(row.meta);
+
   return {
     id: row.id,
     noteId: row.note_id,
@@ -612,6 +681,13 @@ function cardFromRow(row, variants) {
     source: row.source,
     sourceCardId: row.source_card_id,
     sourceNoteId: row.source_note_id,
+    title: model.title ?? "",
+    canonicalQuestion: model.canonicalQuestion ?? row.original_front,
+    canonicalAnswer: model.canonicalAnswer ?? row.original_back,
+    tags: model.tags ?? row.original_tags,
+    concepts: model.concepts ?? [],
+    sourceType: model.sourceType ?? null,
+    sourceRefId: model.sourceRefId ?? row.source_card_id ?? row.source_note_id ?? null,
     cardType: row.kind,
     kind: row.kind,
     draftStatus: row.draft_status,
@@ -630,7 +706,7 @@ function cardFromRow(row, variants) {
     coreState: row.core_state,
     variants,
     versionLog: row.version_log,
-    meta: row.meta,
+    meta,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     ...syncMetadataFromRow(row),
@@ -638,6 +714,11 @@ function cardFromRow(row, variants) {
 }
 
 function reviewEventFromRow(row) {
+  const { flags, model } = reviewFlagsFromCloud(row.flags);
+  const learningItemId = model.learningItemId ?? row.source_card_id ?? row.reviewable_id;
+  const variantId = model.variantId ?? model.cardVariantId ?? row.reviewable_id;
+  const schedulerParamsJson = model.schedulerParamsJson ?? row.scheduler_after?.card?.schedulerParamsJson ?? null;
+
   return {
     id: row.id,
     userId: row.user_id,
@@ -645,12 +726,26 @@ function reviewEventFromRow(row) {
     reviewableType: row.reviewable_type,
     reviewableId: row.reviewable_id,
     sourceCardId: row.source_card_id,
+    learningItemId,
+    cardId: model.cardId ?? learningItemId,
+    cardVariantId: model.cardVariantId ?? variantId,
+    variantId,
     rating: row.rating,
     answeredAt: row.answered_at,
+    reviewedAt: model.reviewedAt ?? row.answered_at ?? row.created_at,
     responseTimeMs: row.response_time_ms,
+    variantLevel: model.variantLevel ?? schedulerParamsJson?.variantLevel ?? null,
+    variantType: model.variantType ?? schedulerParamsJson?.variantType ?? null,
+    previousLearningItemStateJson: model.previousLearningItemStateJson ?? row.scheduler_before?.card ?? null,
+    nextLearningItemStateJson: model.nextLearningItemStateJson ?? row.scheduler_after?.card ?? null,
+    schedulerVersion: model.schedulerVersion ?? schedulerParamsJson?.schedulerVersion ?? null,
+    schedulerParamsJson,
+    anchorVariantId: model.anchorVariantId ?? null,
+    anchorSnapshotJson: model.anchorSnapshotJson ?? null,
+    fallbackInfo: model.fallbackInfo ?? null,
     schedulerBefore: row.scheduler_before,
     schedulerAfter: row.scheduler_after,
-    flags: row.flags,
+    flags,
     createdAt: row.created_at,
     createdByDeviceId: row.created_by_device_id ?? null,
   };

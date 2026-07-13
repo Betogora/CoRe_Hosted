@@ -458,26 +458,6 @@ function getTemplateName(card, model = {}) {
   return getTemplateForCard(card, model)?.name ?? (Number(card?.ord ?? 0) > 0 ? `Card ${Number(card.ord) + 1}` : "Card 1");
 }
 
-function extractClozeGroupsFromText(text) {
-  const groups = new Set();
-  const pattern = /\{\{c(\d+)::/g;
-  let match = pattern.exec(String(text ?? ""));
-
-  while (match) {
-    groups.add(Number(match[1]));
-    match = pattern.exec(String(text ?? ""));
-  }
-
-  return [...groups].sort((left, right) => left - right);
-}
-
-function renderAnkiClozeFront(text, groupId) {
-  return String(text ?? "").replace(/\{\{c(\d+)::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, (_match, candidateGroup, value) => {
-    if (Number(candidateGroup) !== groupId) return value;
-    return "[...]";
-  });
-}
-
 function resolveAnkiCardFace({ card, note, models, warnings }) {
   const fields = parseFields(note, models);
   const frontBack = chooseFrontBack(note, models);
@@ -487,8 +467,6 @@ function resolveAnkiCardFace({ card, note, models, warnings }) {
   const ord = Number(card.ord ?? 0);
 
   if (frontBack.isCloze) {
-    const groups = extractClozeGroupsFromText(frontBack.front);
-    const groupId = groups[ord] ?? groups[0] ?? 1;
     return {
       front: frontBack.front,
       back: frontBack.back,
@@ -549,45 +527,11 @@ function createNormalizedMediaAssets(mediaManifest = null) {
   }));
 }
 
-function buildWarnings({ cards, notes, mediaMap, mediaManifest, hasCloze, unsupportedNoteTypes, hasAnkiScheduling = false }) {
-  const warnings = [];
-
-  if (hasAnkiScheduling) {
-    warnings.push("Anki-Lernfortschritt erkannt, aber in diesem Schritt nicht uebernommen.");
-  }
-
-  if (cards.some((card) => Number(card.ord ?? 0) > 0)) {
-    warnings.push("Komplexere Card Templates wurden erkannt; CoRe bewahrt die Originaldaten und nutzt eine einfache Front/Back-Vorschau.");
-  }
-
-  if (hasCloze) {
-    warnings.push("Cloze-Karten wurden erkannt und als Cloze-Varianten importiert.");
-  }
-
-  if (getMediaAssetCount(mediaMap, mediaManifest) > 0) {
-    warnings.push("Medien wurden erkannt und fuer den lokalen Browser-Medienspeicher vorbereitet.");
-  }
-
-  if ((mediaManifest?.missingAssets?.length ?? 0) > 0) {
-    warnings.push(`${mediaManifest.missingAssets.length} Medienreferenzen konnten nicht aus dem APKG gelesen werden.`);
-  }
-
-  if (unsupportedNoteTypes.length > 0) {
-    warnings.push(`Nicht vollstaendig verstandene Note Types wurden roh gesichert: ${unsupportedNoteTypes.join(", ")}.`);
-  }
-
-  if (notes.length === 0 || cards.length === 0) {
-    warnings.push("Die Collection enthaelt keine auslesbaren Notes oder Cards.");
-  }
-
-  return warnings;
-}
-
 export function validateApkgFile(file) {
   const errors = [];
 
   if (!file) {
-    errors.push("Bitte waehle eine .apkg-Datei aus.");
+    errors.push("Bitte wähle eine .apkg-Datei aus.");
   }
 
   if (file && !file.name.toLowerCase().endsWith(".apkg")) {
@@ -595,7 +539,7 @@ export function validateApkgFile(file) {
   }
 
   if (file && file.size > MAX_APKG_SIZE) {
-    errors.push("Die Datei ist groesser als 250 MB und wird im MVP nicht direkt im Browser importiert.");
+    errors.push("Die Datei ist größer als 250 MB und wird im MVP nicht direkt im Browser importiert.");
   }
 
   return {
@@ -1189,7 +1133,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
   }
 
   if (getMediaAssetCount(mediaMap, mediaManifest) > 0) {
-    warnings.push("APKG-Medien wurden erkannt; Referenzen und Manifest bleiben erhalten, produktive Medienablage bleibt ein spaeterer Ausbaupunkt.");
+    warnings.push("APKG-Medien wurden erkannt; Referenzen und Manifest bleiben erhalten, produktive Medienablage bleibt ein späterer Ausbaupunkt.");
   }
 
   if ((mediaManifest?.missingAssets?.length ?? 0) > 0) {
@@ -1197,11 +1141,11 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
   }
 
   if (hasAnkiScheduling) {
-    warnings.push("Anki-Lernfortschritt erkannt, aber in diesem Schritt nicht uebernommen.");
+    warnings.push("Anki-Lernfortschritt erkannt, aber in diesem Schritt nicht übernommen.");
   }
 
   if (unsupportedNoteTypes.length > 0) {
-    warnings.push(`Nicht vollstaendig verstandene Note Types wurden roh in metadataJson gesichert: ${unique(unsupportedNoteTypes).join(", ")}.`);
+    warnings.push(`Nicht vollständig verstandene Note Types wurden roh in metadataJson gesichert: ${unique(unsupportedNoteTypes).join(", ")}.`);
   }
 
   if (items.length === 0) {
@@ -1573,80 +1517,74 @@ export async function importApkgDeck(fileOrParsed, options = {}) {
   return commitApkgImport(fileOrParsed, options);
 }
 
-export async function createApkgImportPreview(file, onStep = () => {}) {
+export async function createApkgImportPreview(file, onStep = () => {}, options = {}) {
   const startedAt = new Date().toISOString();
-  const validation = validateApkgFile(file);
+  const parsed = await parseApkgToNormalizedImport(file, { onStep });
+  const details = createApkgReportDetails(parsed.parsedPackage, parsed.normalizedDeck);
+  const job = {
+    id: makeId("import"),
+    fileName: file?.name ?? "",
+    fileSize: file?.size ?? 0,
+    status: parsed.errors.length > 0 ? "error" : "preview",
+    detectedDecks: details.detectedDecks,
+    detectedCards: details.detectedCards,
+    detectedNotes: details.detectedNotes,
+    warnings: unique(parsed.warnings),
+    errors: unique(parsed.errors),
+    createdAt: startedAt,
+  };
 
-  if (!validation.valid) {
+  if (parsed.errors.length > 0) {
+    return { job, preview: null };
+  }
+
+  const normalizedPreview = importNormalizedDeck(parsed.normalizedDeck, {
+    dryRun: false,
+    importScheduling: false,
+    existingDecks: options.existingDecks ?? [],
+    mergeStrategy: options.mergeStrategy,
+  });
+  normalizedPreview.mediaFiles = parsed.mediaFiles;
+  attachApkgReportDetails(normalizedPreview, parsed.parsedPackage, parsed.warnings, parsed.errors);
+  normalizedPreview.report.dryRun = true;
+
+  if (!normalizedPreview.deck || normalizedPreview.report.errors.length > 0) {
     return {
       job: {
-        id: makeId("import"),
-        fileName: file?.name ?? "",
-        fileSize: file?.size ?? 0,
+        ...job,
         status: "error",
-        detectedDecks: [],
-        detectedCards: 0,
-        detectedNotes: 0,
-        warnings: [],
-        errors: validation.errors,
-        createdAt: startedAt,
+        warnings: normalizedPreview.report.warnings,
+        errors: normalizedPreview.report.errors,
       },
       preview: null,
     };
   }
 
-  const parsedPackage = await readApkgPackage(file, onStep);
-  const { colRows, decks, notes, cards, mediaBundle } = parsedPackage;
-  const coreDeck = mapAnkiToCoreDeck({
-    file,
-    decks,
-    notes,
-    cards,
-    colRows,
-    mediaMap: mediaBundle.mediaMap,
-    mediaManifest: mediaBundle.manifest,
-  });
-  const warnings = buildWarnings({
-    cards,
-    notes,
-    mediaMap: mediaBundle.mediaMap,
-    mediaManifest: mediaBundle.manifest,
-    hasCloze: coreDeck.importMeta.hasCloze,
-    unsupportedNoteTypes: coreDeck.importMeta.unsupportedNoteTypes,
-    hasAnkiScheduling: cards.some(cardHasAnkiSchedulingData),
-  });
-  const normalized = mapAnkiApkgToNormalizedDeck({
-    file,
-    decks,
-    notes,
-    cards,
-    colRows,
-    mediaMap: mediaBundle.mediaMap,
-    mediaManifest: mediaBundle.manifest,
-  });
-  const normalizedPreview = importNormalizedDeck(normalized.normalizedDeck, {
-    dryRun: true,
-    importScheduling: false,
-  });
-  attachApkgReportDetails(normalizedPreview, parsedPackage, normalized.warnings, normalized.errors);
-  onStep("preview");
+  const metadata = parsed.normalizedDeck.metadataJson ?? {};
+  const previewDeck = {
+    ...normalizedPreview.deck,
+    importMeta: {
+      ...normalizedPreview.deck.importMeta,
+      detectedDecks: details.detectedDecks,
+      detectedNotes: details.detectedNotes,
+      detectedCards: details.detectedCards,
+      detectedVariants: details.detectedVariants,
+      hasAnkiScheduling: details.hasAnkiScheduling,
+      hasMedia: details.hasMedia,
+      mediaCount: details.mediaCount,
+      mediaManifest: details.mediaManifest,
+      deckHierarchy: metadata.deckHierarchy ?? [],
+    },
+  };
 
   return {
     job: {
-      id: makeId("import"),
-      fileName: file.name,
-      fileSize: file.size,
-      status: "preview",
-      detectedDecks: decks,
-      detectedCards: cards.length,
-      detectedNotes: notes.length,
-      warnings,
-      errors: [],
-      createdAt: startedAt,
+      ...job,
+      warnings: normalizedPreview.report.warnings,
     },
     preview: {
-      ...createImportPreview(coreDeck, unique([...warnings, ...normalized.warnings]), mediaBundle.mediaFiles),
-      normalizedDeck: normalized.normalizedDeck,
+      ...createImportPreview(previewDeck, normalizedPreview.report.warnings, parsed.mediaFiles),
+      normalizedDeck: parsed.normalizedDeck,
       importReport: normalizedPreview.report,
     },
   };
@@ -1671,17 +1609,85 @@ function hasLocalContentEdit(card) {
   return (card.versionLog ?? []).some((entry) => entry.changeType === "content_updated");
 }
 
+function synchronizeOriginalVariant(variants = [], card = {}) {
+  const originalVariant = variants.find((variant) => variant.isOriginal) ?? null;
+  if (!originalVariant) return variants;
+
+  return variants.map((variant) =>
+    variant === originalVariant
+      ? {
+          ...variant,
+          front: card.originalFront ?? card.canonicalQuestion ?? variant.front,
+          back: card.originalBack ?? card.canonicalAnswer ?? variant.back,
+          updatedAt: card.updatedAt ?? variant.updatedAt,
+          meta: {
+            ...(variant.meta ?? {}),
+            cardType: card.cardType ?? card.kind ?? variant.meta?.cardType,
+          },
+        }
+      : variant,
+  );
+}
+
+function mergeImportedVariants(incomingCard, existingCard, preserveContent) {
+  if (preserveContent) {
+    return synchronizeOriginalVariant(existingCard.variants ?? [], existingCard);
+  }
+
+  const existingVariants = existingCard.variants ?? [];
+  const existingById = new Map(existingVariants.map((variant) => [variant.id, variant]));
+  const existingBySourceId = new Map(
+    existingVariants
+      .map((variant) => [String(variant.meta?.sourceVariantExternalId ?? "").trim(), variant])
+      .filter(([sourceId]) => sourceId),
+  );
+  const existingOriginal = existingVariants.find((variant) => variant.isOriginal) ?? null;
+  const retainedIds = new Set();
+  const merged = (incomingCard.variants ?? []).map((incomingVariant) => {
+    const sourceId = String(incomingVariant.meta?.sourceVariantExternalId ?? "").trim();
+    const existingVariant = incomingVariant.isOriginal
+      ? existingOriginal
+      : (sourceId ? existingBySourceId.get(sourceId) : null) ?? existingById.get(incomingVariant.id);
+    if (!existingVariant) return incomingVariant;
+
+    retainedIds.add(existingVariant.id);
+    return {
+      ...existingVariant,
+      ...incomingVariant,
+      id: existingVariant.id,
+      createdAt: existingVariant.createdAt ?? incomingVariant.createdAt,
+      reviewState: existingVariant.reviewState ?? incomingVariant.reviewState,
+      performance: existingVariant.performance ?? incomingVariant.performance,
+      feedback: existingVariant.feedback?.length ? existingVariant.feedback : incomingVariant.feedback,
+      versionLog: existingVariant.versionLog?.length ? existingVariant.versionLog : incomingVariant.versionLog,
+      qualityStatus: incomingVariant.isOriginal ? incomingVariant.qualityStatus : existingVariant.qualityStatus ?? incomingVariant.qualityStatus,
+      isActive: incomingVariant.isOriginal ? true : existingVariant.isActive ?? incomingVariant.isActive,
+    };
+  });
+
+  return [
+    ...merged,
+    ...existingVariants.filter((variant) => !variant.isOriginal && !retainedIds.has(variant.id)),
+  ];
+}
+
 function mergeImportedCard(incomingCard, existingCard) {
   if (!existingCard) return incomingCard;
 
   const preserveContent = hasLocalContentEdit(existingCard);
+  const localFront = existingCard.originalFront ?? existingCard.canonicalQuestion;
+  const localBack = existingCard.originalBack ?? existingCard.canonicalAnswer;
   const preservedContent = preserveContent
     ? {
         title: existingCard.title,
-        canonicalQuestion: existingCard.canonicalQuestion,
-        canonicalAnswer: existingCard.canonicalAnswer,
-        originalFront: existingCard.originalFront,
-        originalBack: existingCard.originalBack,
+        canonicalQuestion: localFront,
+        canonicalAnswer: localBack,
+        tags: existingCard.tags,
+        concepts: existingCard.concepts,
+        cardType: existingCard.cardType,
+        kind: existingCard.kind,
+        originalFront: localFront,
+        originalBack: localBack,
         originalFields: existingCard.originalFields,
         originalTags: existingCard.originalTags,
         originalHtml: existingCard.originalHtml,
@@ -1698,7 +1704,8 @@ function mergeImportedCard(incomingCard, existingCard) {
     updatedAt: new Date().toISOString(),
     reviewState: existingCard.reviewState ?? incomingCard.reviewState,
     learningItemState: existingCard.learningItemState ?? incomingCard.learningItemState,
-    variants: existingCard.variants?.length ? existingCard.variants : incomingCard.variants,
+    variants: mergeImportedVariants(incomingCard, existingCard, preserveContent),
+    immutableOriginal: existingCard.immutableOriginal ?? incomingCard.immutableOriginal,
     versionLog: existingCard.versionLog?.length ? existingCard.versionLog : incomingCard.versionLog,
     sourceAnchors: existingCard.sourceAnchors?.length ? existingCard.sourceAnchors : incomingCard.sourceAnchors,
     mediaRefs: incomingCard.mediaRefs,

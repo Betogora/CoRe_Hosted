@@ -8,15 +8,20 @@ import { createStudyHeatmapModel } from "./libraryModel.js";
 
 function createMemoryStorage() {
   const store = new Map();
+  let writeCount = 0;
   return {
     getItem(key) {
       return store.get(key) ?? null;
     },
     setItem(key, value) {
+      writeCount += 1;
       store.set(key, value);
     },
     removeItem(key) {
       store.delete(key);
+    },
+    get writeCount() {
+      return writeCount;
     },
   };
 }
@@ -101,14 +106,17 @@ test("workspace creates the demo deck behind one interface", () => {
 });
 
 test("workspace saves single and multi-deck creation results behind one interface", () => {
-  const workspace = createTestWorkspace();
+  const storage = createMemoryStorage();
+  const workspace = createCoreWorkspace(createCoreRepository(storage));
   const single = workspace.saveDecks(createDemoAnatomyDeck());
+  const writesBeforeBatch = storage.writeCount;
   const multiple = workspace.saveDecks([createDemoAnatomyDeck(), createDemoAnatomyDeck()]);
 
   assert.equal(single.name, "Demo / Anatomie");
   assert.equal(multiple.length, 2);
   assert.equal(multiple.every((deck) => deck.cards.length === 2), true);
   assert.equal(workspace.getState().decks.length, 3);
+  assert.equal(storage.writeCount - writesBeforeBatch, 1);
 });
 
 test("workspace can seed the world capitals deck for an empty local tester account", () => {
@@ -349,6 +357,7 @@ test("workspace appends a manual card to an existing deck with source document",
   assert.equal(appended.kind, "basic");
   assert.equal(appended.sourceAnchors[0].targetField, "back");
   assert.equal(updated.sourceDocuments[0].fileName, "quelle.txt");
+  assert.equal(workspace.getState().documents.some((item) => item.id === document.id), true);
 });
 
 test("workspace graph and community commands hide app orchestration", () => {

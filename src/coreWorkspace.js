@@ -275,7 +275,7 @@ function toDeckArray(deckOrDecks) {
 }
 
 function saveDeckCollection(repository, deckOrDecks) {
-  const savedDecks = toDeckArray(deckOrDecks).map((deck) => repository.saveDeck(deck));
+  const savedDecks = repository.saveDecks(toDeckArray(deckOrDecks));
   return Array.isArray(deckOrDecks) ? savedDecks : savedDecks[0] ?? null;
 }
 
@@ -479,7 +479,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
     },
     updateAllDecks(updater) {
       const state = repository.getState();
-      return state.decks.map((deck) => repository.updateDeck(deck.id, updater)).filter(Boolean);
+      return repository.saveDecks(state.decks.map(updater));
     },
     dryRunNormalizedImport(payload, options = {}) {
       const state = repository.getState();

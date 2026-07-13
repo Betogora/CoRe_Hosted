@@ -124,9 +124,31 @@ function upsertById(items = [], item) {
   return [item, ...items.filter((storedItem) => storedItem.id !== item.id)];
 }
 
+function mergeDeckDocuments(documents = [], decks = []) {
+  return decks.reduce(
+    (currentDocuments, deck) =>
+      (deck.sourceDocuments ?? []).reduce(
+        (nextDocuments, document) => upsertById(nextDocuments, document),
+        currentDocuments,
+      ),
+    documents,
+  );
+}
+
 export function createCoreRepository(storage = null, options = {}) {
   const resolvedStorage = storage ?? getStorage();
   const seedDefaultDecks = options.seedDefaultDecks ?? storage == null;
+  const saveDecks = (decks = []) => {
+    const normalizedDecks = decks.filter(Boolean).map((deck) => normalizeCoreDeck(deck));
+    if (!normalizedDecks.length) return [];
+
+    updateStoredState(resolvedStorage, { seedDefaultDecks }, (state) => ({
+      ...state,
+      decks: normalizedDecks.reduce((currentDecks, deck) => upsertById(currentDecks, deck), state.decks),
+      documents: mergeDeckDocuments(state.documents, normalizedDecks),
+    }));
+    return normalizedDecks;
+  };
 
   return {
     getState() {
@@ -144,17 +166,9 @@ export function createCoreRepository(storage = null, options = {}) {
       return readState(resolvedStorage, { seedDefaultDecks }).decks.find((deck) => deck.id === deckId) ?? null;
     },
     saveDeck(deck) {
-      const normalizedDeck = normalizeCoreDeck(deck);
-      updateStoredState(resolvedStorage, { seedDefaultDecks }, (state) => ({
-        ...state,
-        decks: upsertById(state.decks, normalizedDeck),
-        documents: [
-          ...normalizedDeck.sourceDocuments,
-          ...state.documents.filter((document) => !normalizedDeck.sourceDocuments.some((nextDocument) => nextDocument.id === document.id)),
-        ],
-      }));
-      return normalizedDeck;
+      return saveDecks([deck])[0] ?? null;
     },
+    saveDecks,
     updateDeck(deckId, updater) {
       let normalizedDeck = null;
       updateStoredState(resolvedStorage, { seedDefaultDecks }, (state) => {
@@ -165,6 +179,7 @@ export function createCoreRepository(storage = null, options = {}) {
         return {
           ...state,
           decks: upsertById(state.decks, normalizedDeck),
+          documents: mergeDeckDocuments(state.documents, [normalizedDeck]),
         };
       });
       return normalizedDeck;

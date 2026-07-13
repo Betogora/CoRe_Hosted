@@ -33,12 +33,6 @@ function localDateKey(value = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-function endOfLocalDay(value = new Date()) {
-  const date = new Date(value);
-  date.setHours(23, 59, 59, 999);
-  return date;
-}
-
 function stateReps(state = {}) {
   return Math.max(0, Math.round(Number(state?.reps ?? state?.repetitions ?? 0) || 0));
 }

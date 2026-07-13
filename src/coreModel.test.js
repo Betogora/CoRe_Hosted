@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { acceptAiDraftDeck, createAiDraftDeck, createDefaultDeckSettings, createManualCoreDeck, getOriginalVariant, normalizeCoreDeck, updateCardContent } from "./coreModel.js";
+import {
+  acceptAiDraftDeck,
+  addRephrasedVariant,
+  createAiDraftDeck,
+  createBasicLearningItem,
+  createDefaultDeckSettings,
+  createManualCoreDeck,
+  getOriginalVariant,
+  normalizeCoreDeck,
+  normalizeLearningItem,
+  updateCardContent,
+} from "./coreModel.js";
 
 test("deck settings normalize appearance defaults and fallbacks", () => {
   const defaults = createDefaultDeckSettings();
@@ -128,9 +139,37 @@ test("normalizing edited decks preserves immutable originals and version history
   const card = normalized.cards[0];
 
   assert.equal(card.originalFront, "What is ATP?");
+  assert.equal(card.canonicalQuestion, "What is ATP?");
+  assert.equal(card.canonicalAnswer, "A short-term cellular energy carrier.");
+  assert.equal(getOriginalVariant(card).front, "What is ATP?");
+  assert.equal(getOriginalVariant(card).back, "A short-term cellular energy carrier.");
   assert.equal(card.immutableOriginal.front, "ATP");
   assert.equal(card.versionLog.some((entry) => entry.changeType === "content_updated"), true);
   assert.equal(normalized.versionLog.length, deck.versionLog.length);
+});
+
+test("content edits preserve the supported original variant type", () => {
+  const cases = [
+    ["image-occlusion", "image_occlusion"],
+    ["free-text", "custom"],
+    ["multi-field", "custom"],
+    ["case-vignette", "case"],
+  ];
+
+  for (const [cardType, variantType] of cases) {
+    const base = createBasicLearningItem("deck-1", "Frage", "Antwort", { cardType });
+    const typed = normalizeLearningItem({
+      ...base,
+      cardType,
+      kind: cardType,
+      variants: base.variants.map((variant) => variant.isOriginal ? { ...variant, variantType } : variant),
+    });
+
+    const updated = updateCardContent(typed, { canonicalQuestion: "Präzisere Frage" });
+
+    assert.equal(updated.cardType, cardType);
+    assert.equal(getOriginalVariant(updated).variantType, variantType);
+  }
 });
 
 test("core normalization preserves cloud sync metadata", () => {
@@ -160,4 +199,47 @@ test("core normalization preserves cloud sync metadata", () => {
   assert.equal(normalized.cards[0].updatedByDeviceId, "device-b");
   assert.equal(normalized.cards[0].variants[0].revision, 4);
   assert.equal(normalized.cards[0].variants[0].updatedByDeviceId, "device-c");
+});
+
+test("Learning Item normalization keeps exactly one original and repairs every anchor", () => {
+  const item = createBasicLearningItem("deck-1", "Frage", "Antwort", { id: "card-1" });
+  const original = getOriginalVariant(item);
+  const normalized = normalizeLearningItem({
+    ...item,
+    variants: [
+      original,
+      {
+        ...original,
+        id: "duplicate-original",
+        front: "Historische Alternative",
+        isOriginal: true,
+        isActive: false,
+        qualityStatus: "flagged",
+      },
+    ],
+  });
+  const repaired = normalized.variants.find((variant) => variant.id === "duplicate-original");
+
+  assert.equal(normalized.variants.length, 2);
+  assert.equal(normalized.variants.filter((variant) => variant.isOriginal).length, 1);
+  assert.equal(repaired.isOriginal, false);
+  assert.equal(repaired.isActive, false);
+  assert.equal(repaired.qualityStatus, "flagged");
+  assert.equal(repaired.anchorVariantId, getOriginalVariant(normalized).id);
+});
+
+test("adding a variant preserves inactive and moderated variants", () => {
+  const item = createBasicLearningItem("deck-1", "Frage", "Antwort", { id: "card-1" });
+  const withDisabled = addRephrasedVariant(item, "Deaktivierte Frage", "Antwort", {
+    id: "variant-disabled",
+    isActive: false,
+    qualityStatus: "disabled",
+  });
+  const withAnother = addRephrasedVariant(withDisabled, "Neue Frage", "Antwort", { id: "variant-new" });
+  const disabled = withAnother.variants.find((variant) => variant.id === "variant-disabled");
+
+  assert.equal(withAnother.variants.length, 3);
+  assert.equal(disabled.isActive, false);
+  assert.equal(disabled.qualityStatus, "disabled");
+  assert.equal(disabled.anchorVariantId, getOriginalVariant(withAnother).id);
 });

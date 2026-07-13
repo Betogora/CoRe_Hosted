@@ -101,14 +101,20 @@ function createDefaultAdapter(client) {
   };
 }
 
-export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {}) {
+export function createSyncEngine({ adapter, device, now = nowIso, outbox, persistSnapshot } = {}) {
   if (!adapter) throw new Error("Sync-Engine braucht einen Adapter.");
   if (!outbox) throw new Error("Sync-Engine braucht eine persistente Outbox.");
   const syncDevice = normalizeDevice(device);
   let lastFlush = null;
   let activeFlush = null;
+  const stateSnapshots = new Map();
 
-  return {
+  function removeMutations(ids = []) {
+    outbox.remove(ids);
+    ids.forEach((id) => stateSnapshots.delete(id));
+  }
+
+  const api = {
     async loadSnapshot(fallbackState = {}) {
       if (!adapter.registerDevice) throw new Error("Sync-Adapter kann kein Gerät registrieren.");
       try {
@@ -116,23 +122,48 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
       } catch (error) {
         throw createDeviceRegistrationError(error);
       }
+      if (outbox.count() > 0) {
+        try {
+          const replay = await api.flush(fallbackState);
+          if (replay?.paused || outbox.count() > 0) return fallbackState;
+        } catch {
+          return fallbackState;
+        }
+      }
       return adapter.loadSnapshot(fallbackState);
     },
 
     enqueueMutation(input = {}) {
-      return outbox.enqueue(createMutation(input, now, syncDevice.id));
+      const mutation = createMutation(input, now, syncDevice.id);
+      if (mutation.type !== SYNC_MUTATION_TYPES.statePatch || !mutation.payload || typeof mutation.payload !== "object") {
+        return outbox.enqueue(mutation);
+      }
+
+      const { state, ...payload } = mutation.payload;
+      if (!state || typeof state !== "object" || Array.isArray(state)) {
+        throw new Error("Snapshot-Mutation braucht einen vollständigen Zustand.");
+      }
+      const staleStatePatchIds = outbox.listPending()
+        .filter((pending) => pending.type === SYNC_MUTATION_TYPES.statePatch)
+        .map((pending) => pending.id);
+      removeMutations(staleStatePatchIds);
+      stateSnapshots.set(mutation.id, state);
+      return outbox.enqueue({ ...mutation, payload });
     },
 
     pendingCount() {
       return outbox.count();
     },
 
-    async flush() {
+    async flush(fallbackState) {
       if (activeFlush) return activeFlush;
       activeFlush = (async () => {
         const batch = outbox.listPending();
         if (batch.length === 0) return lastFlush ?? { mutations: 0, conflicts: [], saved: null };
         const latestStatePatch = [...batch].reverse().find((mutation) => mutation.type === SYNC_MUTATION_TYPES.statePatch);
+        const latestStateSnapshot = latestStatePatch
+          ? (stateSnapshots.has(latestStatePatch.id) ? stateSnapshots.get(latestStatePatch.id) : fallbackState)
+          : undefined;
         const result = {
           mutations: batch.length,
           conflicts: [],
@@ -150,7 +181,7 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
             const acknowledgedMutationIds = (batchResult?.acknowledgedMutationIds ?? []).filter((id) => remainingIds.has(id));
             const failedMutationIds = (batchResult?.failedMutationIds ?? []).filter((id) => remainingIds.has(id));
             outbox.markFlushed(acknowledgedMutationIds, result.flushedAt);
-            outbox.remove(acknowledgedMutationIds);
+            removeMutations(acknowledgedMutationIds);
             outbox.markFailed(failedMutationIds, new Error("Mutation konnte nicht synchronisiert werden."));
           } catch (error) {
             outbox.markFailed(remaining.map((mutation) => mutation.id), error);
@@ -160,7 +191,7 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
           outbox.markFailed(remaining.map((mutation) => mutation.id), new Error("Sync-Adapter unterstützt diese Mutation nicht."));
         }
 
-        if (latestStatePatch?.payload?.state) {
+        if (latestStatePatch) {
           const blockingConflicts = adapter.listConflicts ? await adapter.listConflicts() : [];
           if (blockingConflicts.length > 0) {
             result.conflicts = blockingConflicts;
@@ -170,7 +201,10 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
           }
           const statePatchIds = batch.filter((mutation) => mutation.type === SYNC_MUTATION_TYPES.statePatch).map((mutation) => mutation.id);
           try {
-            result.saved = await adapter.upsertState(latestStatePatch.payload.state, {
+            if (!latestStateSnapshot || typeof latestStateSnapshot !== "object") {
+              throw new Error("Persistierter Sync-Snapshot konnte nicht wiederhergestellt werden.");
+            }
+            result.saved = await adapter.upsertState(latestStateSnapshot, {
               deviceId: syncDevice.id,
               mutationIds: statePatchIds,
               flushedAt: result.flushedAt,
@@ -178,7 +212,7 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
             const acknowledgedStatePatchIds = statePatchIds.filter((id) => result.saved?.acknowledgedMutationIds?.includes(id));
             const missingAcknowledgements = statePatchIds.filter((id) => !acknowledgedStatePatchIds.includes(id));
             outbox.markFlushed(acknowledgedStatePatchIds, result.flushedAt);
-            outbox.remove(acknowledgedStatePatchIds);
+            removeMutations(acknowledgedStatePatchIds);
             if (missingAcknowledgements.length > 0) {
               throw new Error("Cloud-Repository hat nicht alle Snapshot-Mutationen bestätigt.");
             }
@@ -215,15 +249,16 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
       let flushResult = null;
 
       if (repositoryResult?.resolved) {
+        if (persistSnapshot) nextState = await persistSnapshot(nextState) ?? nextState;
         const staleStatePatchIds = outbox.listPending()
           .filter((mutation) => mutation.type === SYNC_MUTATION_TYPES.statePatch)
           .map((mutation) => mutation.id);
-        outbox.remove(staleStatePatchIds);
-        this.enqueueMutation({
+        removeMutations(staleStatePatchIds);
+        api.enqueueMutation({
           type: SYNC_MUTATION_TYPES.statePatch,
           payload: { state: nextState },
         });
-        flushResult = await this.flush();
+        flushResult = await api.flush();
         nextState = mergeCloudSyncMetadata(nextState, flushResult.saved?.state);
       }
 
@@ -239,6 +274,8 @@ export function createSyncEngine({ adapter, device, now = nowIso, outbox } = {})
       };
     },
   };
+
+  return api;
 }
 
 export function createAccountSyncEngine(client, options = {}) {

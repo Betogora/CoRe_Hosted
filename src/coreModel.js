@@ -941,14 +941,20 @@ function ensureOriginalVariant(variants, item) {
     variants.find((variant) => variant.isOriginal) ??
     createOriginalVariantForItem(item);
   const withOriginal = variants.some((variant) => variant.id === originalVariant.id) ? variants : [...variants, originalVariant];
+  const variantIds = new Set(withOriginal.map((variant) => variant.id));
 
   return withOriginal.map((variant) => {
-    if (variant.isOriginal) {
+    if (variant === originalVariant) {
       return normalizeCardVariant({
         ...variant,
         learningItemId: item.id,
         cardId: item.id,
         sourceCardId: item.id,
+        anchorVariantId: null,
+        parentVariantId: null,
+        generationSource: "original",
+        transformType: "original",
+        variantLevel: 1,
         isOriginal: true,
         isActive: true,
         qualityStatus: variant.qualityStatus ?? "active",
@@ -960,8 +966,13 @@ function ensureOriginalVariant(variants, item) {
       learningItemId: item.id,
       cardId: item.id,
       sourceCardId: item.id,
-      anchorVariantId: variant.anchorVariantId ?? originalVariant.id,
-      parentVariantId: variant.parentVariantId ?? originalVariant.id,
+      anchorVariantId: originalVariant.id,
+      parentVariantId:
+        variant.parentVariantId && variant.parentVariantId !== variant.id && variantIds.has(variant.parentVariantId)
+          ? variant.parentVariantId
+          : originalVariant.id,
+      generationSource: variant.isOriginal && variant.generationSource === "original" ? undefined : variant.generationSource,
+      transformType: variant.isOriginal && variant.transformType === "original" ? "rephrase" : variant.transformType,
       isOriginal: false,
     });
   });
@@ -1292,7 +1303,7 @@ export function createBasicReverseLearningItem(deckId, front, back, options = {}
 
   return normalizeLearningItem({
     ...item,
-    variants: [...getActiveVariants(item), reverseVariant, ...(originalVariant ? [originalVariant] : [])],
+    variants: [...item.variants, reverseVariant],
     updatedAt: options.updatedAt ?? new Date().toISOString(),
   });
 }
@@ -1437,7 +1448,7 @@ export function addRephrasedVariant(learningItemOrId, front, back, options = {})
 
   return normalizeLearningItem({
     ...item,
-    variants: [...getActiveVariants(item), variant, ...(originalVariant ? [originalVariant] : [])],
+    variants: [...item.variants, variant],
     updatedAt,
   });
 }
@@ -1716,20 +1727,40 @@ export function acceptAiDraftDeck(deck) {
 
 export function updateCardContent(card, patch, reason = "Manuelle Bearbeitung") {
   const updatedAt = new Date().toISOString();
-  const nextFront = patch.originalFront ?? patch.front ?? card.originalFront;
-  const nextBack = patch.originalBack ?? patch.back ?? card.originalBack;
-  const nextTags = patch.originalTags ?? patch.tags ?? card.originalTags;
-  const nextKind = patch.kind ?? patch.cardType ?? card.kind;
+  const nextFront = patch.canonicalQuestion ?? patch.originalFront ?? patch.front ?? card.canonicalQuestion ?? card.originalFront;
+  const nextBack = patch.canonicalAnswer ?? patch.originalBack ?? patch.back ?? card.canonicalAnswer ?? card.originalBack;
+  const nextTags = patch.tags ?? patch.originalTags ?? card.tags ?? card.originalTags;
+  const nextKind = patch.cardType ?? patch.kind ?? card.cardType ?? card.kind;
+  const currentOriginal = (card.variants ?? []).find((variant) => variant.isOriginal) ?? null;
+  const nextOriginalVariantType = normalizeVariantType(null, nextKind);
   const updated = createCoreCard({
     ...card,
     cardType: nextKind,
+    canonicalQuestion: nextFront,
+    canonicalAnswer: nextBack,
     originalFront: nextFront,
     originalBack: nextBack,
     originalTags: nextTags,
+    tags: nextTags,
     originalFields: [
       { name: "Front", value: nextFront },
       { name: "Back", value: nextBack },
     ],
+    variants: (card.variants ?? []).map((variant) =>
+      variant === currentOriginal
+        ? {
+            ...variant,
+            front: nextFront,
+            back: nextBack,
+            variantType: nextOriginalVariantType,
+            updatedAt,
+            meta: {
+              ...(variant.meta ?? {}),
+              cardType: nextKind,
+            },
+          }
+        : variant,
+    ),
     createdAt: card.createdAt,
     updatedAt,
   });

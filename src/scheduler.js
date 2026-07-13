@@ -307,7 +307,7 @@ function deriveOutcomeMaturity(state) {
   if (state.state === "review") {
     if ((stability >= 30 || intervalDays >= 21) && !recentFailure) return { stage: "mastered", label: "Sicher" };
     if ((stability >= 10 || intervalDays >= 7 || successfulReviews >= 4) && !recentFailure) return { stage: "mature", label: "Reif" };
-    if ((stability >= 4 || successfulReviews >= 3) && !recentFailure) return { stage: "variant_ready", label: "Bereit fuer Varianten" };
+    if ((stability >= 4 || successfulReviews >= 3) && !recentFailure) return { stage: "variant_ready", label: "Bereit für Varianten" };
     return { stage: "early_review", label: "Fruehes Review" };
   }
 

@@ -1,8 +1,18 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { getOriginalVariant } from "./coreModel.js";
 import { createCreationWorkflow } from "./creationWorkflow.js";
 import { formatPdfTextContentItems } from "./documentModel.js";
+
+async function worldCapitalsApkgFile() {
+  const bytes = await readFile(new URL("../fixtures/apkg/world-capitals.apkg", import.meta.url));
+  return {
+    name: "world-capitals.apkg",
+    size: bytes.length,
+    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+  };
+}
 
 test("creation workflow hides pasted text and spreadsheet import details", () => {
   const workflow = createCreationWorkflow();
@@ -219,4 +229,16 @@ test("creation workflow returns APKG errors in the UI job shape", async () => {
   assert.equal(result.job.status, "error");
   assert.equal(result.job.fileName, "broken.apkg");
   assert.equal(result.job.errors.length, 1);
+});
+
+test("creation workflow previews and commits APKG through its lazy interface", async () => {
+  const workflow = createCreationWorkflow();
+  const parsed = await workflow.parseApkgFile(await worldCapitalsApkgFile());
+  const committed = await workflow.commitApkgPreview(parsed.preview);
+
+  assert.equal(parsed.job.status, "preview");
+  assert.equal(parsed.preview.deck.cards.length, 245);
+  assert.equal(parsed.preview.importReport.apkg.detectedCards, 245);
+  assert.equal(committed.decks.length, 8);
+  assert.equal(committed.report.errors.length, 0);
 });

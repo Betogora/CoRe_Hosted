@@ -159,7 +159,7 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" disabled={isParsing} onClick={() => void parseFile(selectedFile)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-teal-700 disabled:text-slate-400">
               <Database size={16} aria-hidden="true" />
-              Import pruefen
+              Import prüfen
             </button>
           </div>
         ) : null}
@@ -200,7 +200,7 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
                 </div>
                 <button type="button" disabled={previewErrors.length > 0 || isParsing} onClick={() => void handleCommit()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
                   <Database size={17} aria-hidden="true" />
-                  Import uebernehmen
+                  Import übernehmen
                 </button>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -213,7 +213,7 @@ function ApkgImportPanel({ existingDecks = [], onImported }) {
                 <p>Medien: {preview.deck.importMeta.hasMedia ? `${preview.deck.importMeta.mediaCount} erkannt` : "keine"} · Hierarchie-Knoten: {preview.deck.importMeta.deckHierarchy?.length ?? 0}</p>
                 {mediaStatus ? <p>Medienspeicher: {mediaStatus.persisted ? `${mediaStatus.count} Dateien persistent` : `${mediaStatus.count} Dateien nur temporär`}</p> : null}
                 {previewMissingMedia.length > 0 ? <p>{previewMissingMedia.length} Mediendateien fehlen im lokalen Speicher.</p> : null}
-                <p>Lernfortschritt: {report?.hasAnkiScheduling ? "Anki-Daten erkannt, nicht uebernommen" : "neuer CoRe-FSRS-State"}</p>
+                <p>Lernfortschritt: {report?.hasAnkiScheduling ? "Anki-Daten erkannt, nicht übernommen" : "neuer CoRe-FSRS-State"}</p>
               </div>
               {previewErrors.length > 0 ? (
                 <div className="mt-5 grid gap-2">

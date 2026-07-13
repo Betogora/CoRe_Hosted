@@ -1,10 +1,13 @@
-import { commitApkgImport, createApkgImportPreview, dryRunApkgImport } from "./apkgImport.js";
 import { generateCardsFromDocument } from "./aiOrchestrator.js";
 import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument } from "./coreModel.js";
 import { createAnchorFromSelection, createDocumentFromFile } from "./documentModel.js";
 import { appendPlainTextToCardHtml, hasCardRichTextContent } from "./richText.js";
 import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.js";
 import { storeDeckMedia } from "./mediaStore.js";
+
+function loadApkgImport() {
+  return import("./apkgImport.js");
+}
 
 function describeError(error, fallback) {
   return error instanceof Error ? error.message : fallback;
@@ -109,15 +112,15 @@ export function createCreationWorkflow() {
   return {
     async parseApkgFile(file, { onStep, existingDecks = [] } = {}) {
       try {
-        const result = await createApkgImportPreview(file, onStep);
-        const dryRun = result.preview ? await dryRunApkgImport(result.preview, { existingDecks }) : null;
+        const { createApkgImportPreview } = await loadApkgImport();
+        const result = await createApkgImportPreview(file, onStep, { existingDecks });
         const mediaStatus = result.preview ? await storeDeckMedia(result.preview.deck, result.preview.mediaFiles) : null;
         const mediaErrors = mediaStatus?.errors ?? [];
-        const reportWarnings = dryRun?.report?.warnings ?? [];
-        const reportErrors = dryRun?.report?.errors ?? [];
+        const reportWarnings = result.preview?.importReport?.warnings ?? [];
+        const reportErrors = result.preview?.importReport?.errors ?? [];
 
         return {
-          preview: result.preview ? { ...result.preview, importReport: dryRun?.report ?? result.preview.importReport } : null,
+          preview: result.preview,
           mediaStatus,
           job: {
             ...result.job,
@@ -147,6 +150,7 @@ export function createCreationWorkflow() {
           },
         };
       }
+      const { commitApkgImport } = await loadApkgImport();
       return commitApkgImport(preview, { existingDecks });
     },
 

@@ -572,7 +572,7 @@ export function importNormalizedDeck(input = {}, options = {}) {
   if (normalizedOptions.importScheduling === false) {
     normalizedDeck.items.forEach((item, index) => {
       if (itemHasSchedulingData(item)) {
-        report.warnings.push(`Item ${index + 1}: Scheduling-Daten wurden erkannt, aber in diesem Schritt nicht uebernommen.`);
+        report.warnings.push(`Item ${index + 1}: Scheduling-Daten wurden erkannt, aber in diesem Schritt nicht übernommen.`);
       }
     });
   }
@@ -611,13 +611,13 @@ export function importNormalizedDeck(input = {}, options = {}) {
       }
 
       if (normalizedOptions.mergeStrategy === "update_existing") {
-        report.warnings.push("mergeStrategy update_existing ist im lokalen MVP noch nicht vollstaendig implementiert; bestehende Karten wurden nicht ueberschrieben.");
+        report.warnings.push("mergeStrategy update_existing ist im lokalen MVP noch nicht vollständig implementiert; bestehende Karten wurden nicht überschrieben.");
         report.skipped.push({ index, reason: "update_existing_not_implemented", duplicate });
         report.previewItems.push(previewItem(item, duplicateInfo));
         return;
       }
 
-      report.warnings.push(`Item ${index + 1}: moegliche Dublette (m\u00f6gliche Dublette) erkannt, wegen create_new trotzdem importiert.`);
+      report.warnings.push(`Item ${index + 1}: mögliche Dublette erkannt, wegen create_new trotzdem importiert.`);
     }
 
     importableItems.push(item);
