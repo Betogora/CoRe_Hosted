@@ -284,7 +284,7 @@
 <h2 id="implementierungsstand-2026-07-13">Implementierungsstand 2026-07-13</h2>
 <p>Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt. Ein Supabase-Projekt (<code>CoRe-Database</code>) und ein Vercel-Projekt (<code>core-hosted</code>) sind angebunden. Seit dem 2026-07-09 gibt es ein Pflicht-Login-Gate fuer die deployed App, Supabase-E-Mail/Passwort, accountgebundene lokale Cache-Keys, Cloud-first Autosave und eine einmalige Uebernahme vorhandener lokaler Browserdaten in den angemeldeten Account. CoRe ist trotzdem noch kein fertiges gehostetes Mehrnutzerprodukt: Offline-Konfliktloesung, produktive Medienablage, KI-Serverjobs, Monitoring, Backups und Community-Rechte fehlen noch.</p>
 <p>Wichtige Aenderung seit der ersten lokalen Spezifikationsfassung: Die bisherige Deck-<code>cards</code>-Collection bleibt im lokalen State aus Kompatibilitaetsgruenden bestehen, enthaelt fachlich aber Learning Items. <code>src/coreModel.ts</code> normalisiert neue und alte Karten ueber eine gemeinsame Creation Pipeline. Jedes Learning Item besitzt genau eine Original-Variante; Reverse-, Cloze-, importierte und KI-/Rephrase-Varianten sind daran verankert und koennen eigene Review-States, Performance- und Feedbackdaten tragen.</p>
-<p>Die aktuelle Architektur macht bewusst keine breite Adapter-Vorleistung fuer noch unentschiedene Anbieter. Fuer den entschiedenen Startpfad wurden kleine Supabase-Module eingefuehrt: <code>src/supabaseClient.js</code> kapselt die Browser-Client-Konfiguration, <code>src/cloudAuth.js</code> kapselt Auth/Profile, <code>src/accountSession.js</code> kapselt Auth-Phasen und Sync-Status, <code>src/accountStorage.js</code> kapselt accountgebundene Browser-Cache-Keys, <code>src/syncDevice.js</code> kapselt die stabile Browser-ID samt verständlichem Geräte-Label, und <code>src/cloudRepository.js</code> kapselt accountgefilterte Tabellen-Loads, Geräte-Registrierung, Saves und Loeschsemantik fuer den ersten Online-MVP. React-Caller kennen weiterhin keine SQL-, RLS-, Row- oder User-Agent-Parsing-Details.</p>
+<p>Die aktuelle Architektur macht bewusst keine breite Adapter-Vorleistung fuer noch unentschiedene Anbieter. Fuer den entschiedenen Startpfad wurden kleine Supabase-Module eingefuehrt: <code>src/supabaseClient.ts</code> kapselt die Browser-Client-Konfiguration, <code>src/cloudAuth.ts</code> kapselt Auth/Profile, <code>src/accountSession.ts</code> kapselt Auth-Phasen und Sync-Status, <code>src/accountStorage.ts</code> kapselt accountgebundene Browser-Cache-Keys, <code>src/syncDevice.ts</code> kapselt die stabile Browser-ID samt verständlichem Geräte-Label, und <code>src/cloudRepository.ts</code> kapselt accountgefilterte Tabellen-Loads, Geräte-Registrierung, Saves und Loeschsemantik fuer den ersten Online-MVP. React-Caller kennen weiterhin keine SQL-, RLS-, Row- oder User-Agent-Parsing-Details.</p>
 <p>Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese zentrale Spezifikation uebernommen. Der relevante Zielpfad ist jetzt hier dokumentiert: Vercel als naheliegender Hosting-/Preview-/Domain-Pfad, Supabase Auth/Postgres/RLS als naheliegender Persistenzpfad, echte Tabellen statt grossem Store-Blob, Supabase Storage/Object Storage fuer grosse Medien und Dokumente, eigene <code>/api/ai/*</code>-Routen fuer geheime KI-Keys, sowie klare Env-Var- und Secret-Grenzen.</p>
 <p>Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdown-Datei, <code>docs/todo.md</code>. Sie ist die einzige Roadmap-Quelle fuer offene Arbeit; neue TODO-Markdowns sollen nicht entstehen. <code>docs/specs.md</code> bleibt kanonisch, <code>docs/specs.html</code> ist die visuelle HTML-Fassung derselben Spezifikation, und <code>docs/anki-format-analysis.md</code> dokumentiert die Anki-Differenzentscheidungen hinter Import-, Medien- und Learning-Item-Ausbau.</p>
 <p>Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug bestaetigt die bestehenden Kernentscheidungen zu Import, Kartenerstellung, Review, Content-Repetition, Community, Graph und sparsamer KI-Orchestrierung. Ergaenzt wurden vor allem zwei Schaerfungen: Varianten sollen mit wachsendem Reifegrad nur konservativ anspruchsvoller werden, und serverseitig wiederverwendbare Varianten muessen strikt von privaten Review-Events, Lernstaenden und persoenlichen Qualitaetsurteilen getrennt bleiben.</p>
@@ -967,7 +967,7 @@ C. <strong>KI-gestützte Kartenerstellung</strong> — aus Datei oder Textquelle
 <li>Deck- und Unterdecknamen.</li>
 <li>Tags, sofern vorhanden.</li>
 </ul>
-<p><strong>Lokaler Stand 2026-07-06:</strong> <code>src/apkgImport.js</code> liest APKG-Dateien als ZIP, sucht <code>collection.anki21b</code>, <code>collection.anki21</code> und <code>collection.anki2</code>, akzeptiert direkte SQLite-Collections und versucht bei Zstd-Signatur eine lokale Dekompression ueber <code>fzstd</code>. Wenn <code>collection.anki21b</code> nicht lesbar ist, kann ein lesbares <code>collection.anki2</code>-Fallback genutzt werden. Legacy-<code>media</code>-JSON und moderne MediaEntries werden als Manifest mit Dateiname, ZIP-Entry, SHA-1, Groesse und MIME-Typ ausgewertet; die Importvorschau kann Media-Dateien mit Bytes tragen. <code>src/mediaStore.js</code> speichert APKG-Medien lokal in IndexedDB und nutzt einen Session-Fallback, wenn IndexedDB nicht verfuegbar ist. Serverseitige Medienpersistenz und Hosting bleiben Ausbaupunkte.</p>
+<p><strong>Lokaler Stand 2026-07-06:</strong> <code>src/apkgImport.ts</code> liest APKG-Dateien als ZIP, sucht <code>collection.anki21b</code>, <code>collection.anki21</code> und <code>collection.anki2</code>, akzeptiert direkte SQLite-Collections und versucht bei Zstd-Signatur eine lokale Dekompression ueber <code>fzstd</code>. Wenn <code>collection.anki21b</code> nicht lesbar ist, kann ein lesbares <code>collection.anki2</code>-Fallback genutzt werden. Legacy-<code>media</code>-JSON und moderne MediaEntries werden als Manifest mit Dateiname, ZIP-Entry, SHA-1, Groesse und MIME-Typ ausgewertet; die Importvorschau kann Media-Dateien mit Bytes tragen. <code>src/mediaStore.ts</code> speichert APKG-Medien lokal in IndexedDB und nutzt einen Session-Fallback, wenn IndexedDB nicht verfuegbar ist. Serverseitige Medienpersistenz und Hosting bleiben Ausbaupunkte.</p>
 <h3 id="fr-import-003-apkg-ausbau">FR-IMPORT-003 — APKG-Ausbau</h3>
 <p>Die Importarchitektur MUSS so gebaut werden, dass weitere Anki-Formate und Note Types ergänzt werden können:</p>
 <ul>
@@ -3011,10 +3011,10 @@ export interface ReviewState {
 <h3 id="10-4-supabase-postgres-zielmodell">10.4 Supabase/Postgres-Zielmodell</h3>
 <p>Der produktive Persistenzpfad soll an den bestehenden tiefen Modulen ansetzen, nicht an React-Callern:</p>
 <ul>
-<li><code>src/coreRepository.js</code> bleibt die lokale Persistenzgrenze fuer den laufenden Browser-State. <code>src/accountStorage.js</code> trennt diesen Cache pro Supabase-Account. <code>src/cloudRepository.js</code> ist der Supabase-Tabellenpfad fuer accountgefiltertes Laden, Replace-Speichern, Autosave und Loeschsemantik.</li>
+<li><code>src/coreRepository.ts</code> bleibt die lokale Persistenzgrenze fuer den laufenden Browser-State. <code>src/accountStorage.ts</code> trennt diesen Cache pro Supabase-Account. <code>src/cloudRepository.ts</code> ist der Supabase-Tabellenpfad fuer accountgefiltertes Laden, Replace-Speichern, Autosave und Loeschsemantik.</li>
 <li><code>src/coreWorkspace.ts</code> bleibt die Kommandoflaeche fuer App-Aktionen, damit UI-Screens keine Tabellen- oder RLS-Details kennen.</li>
 <li><code>src/coreModel.ts</code> bleibt die Quelle der Dateninvarianten: genau eine Original-Variante pro Learning Item, abgeleitete Varianten mit Anker, append-only Review Events, unveraenderliches <code>immutableOriginal</code>.</li>
-<li><code>src/apkgImport.js</code> und <code>src/mediaStore.js</code> bleiben die Grenzen fuer APKG-/Medienlogik; produktive Storage-Referenzen duerfen diese Details nicht in React-Screens ziehen.</li>
+<li><code>src/apkgImport.ts</code> und <code>src/mediaStore.ts</code> bleiben die Grenzen fuer APKG-/Medienlogik; produktive Storage-Referenzen duerfen diese Details nicht in React-Screens ziehen.</li>
 </ul>
 <p>Der aktuelle SQL-Anker unter <code>supabase/core_schema_v1.sql</code> enthaelt bereits diese produktionsnahen Tabellen:</p>
 <ul>
@@ -3029,7 +3029,7 @@ export interface ReviewState {
 </ul>
 <p>Fuer den ersten Online-MVP dient <code>cards</code> produktiv weiterhin als Learning-Item-Tabelle, weil die lokale Compatibility Collection <code>deck.cards[]</code> fachlich bereits Learning Items enthaelt. Eine spaetere Umbenennung in <code>learning_items</code> darf nur als koordinierte Migration passieren, nicht als zweite Wahrheit parallel zur bestehenden Tabelle. <code>card_variants</code> speichert seit <code>20260709074255_cloud_variant_schema_alignment.sql</code> auch Originalvarianten, Ankerfelder, Variantentyp, Variant-Level, Generation Source, Aktivstatus und Performance JSON. Seit <code>20260709082140_account_scoped_primary_keys.sql</code> sind die account-owned Tabellen ueber <code>(user_id, id)</code> primaer identifiziert, damit lokale IDs accountuebergreifend wiederverwendet werden duerfen.</p>
 <p>Der lokale Compatibility-State trägt für revisionierte Entitäten <code>revision</code>, <code>deletedAt</code> und <code>updatedByDeviceId</code>, Review-Events zusätzlich <code>createdByDeviceId</code>. Beim Laden werden Soft-Deletes nicht in sichtbare Collections aufgenommen, sondern als minimale <code>cloudTombstones</code> erhalten. Deckbaum-Löschungen erzeugen lokale Tombstones für Decks, Karten und Varianten, damit entfernte Collections nicht als bloß fehlende Snapshot-Rows verloren gehen. Reguläre Saves delegieren Deck-, Card- und Delete-Pläne an konkrete Repository-Interfaces, überspringen unveränderte Rows und aktualisieren geänderte Rows nur mit passender Basisrevision; der bestätigte Server-State aktualisiert anschließend ausschließlich Sync-Metadaten und überschreibt keine zwischenzeitlich neueren lokalen Inhalte.</p>
-<p>Die vierte Migration ergänzt unter anderem <code>sync_devices</code>. Der Browser speichert nur eine origin-stabile Geräte-ID; <code>src/syncDevice.js</code> leitet zur Laufzeit ein verständliches Label aus Browser und Betriebssystem ab. <code>registerAccountSyncDevice()</code> bezieht <code>user_id</code> ausschließlich aus der authentifizierten Supabase-Session und führt vor jedem Account-Cloud-Load einen Upsert auf <code>(user_id, id)</code> aus. Dabei werden <code>label</code>, <code>user_agent</code> und <code>last_seen_at</code> aktualisiert, während <code>created_at</code> unverändert bleibt. Dieselbe Browser-ID darf wegen des zusammengesetzten Schlüssels in mehreren Accounts getrennt existieren. User-Agent und Label werden weder exportiert noch geloggt oder in der UI angezeigt.</p>
+<p>Die vierte Migration ergänzt unter anderem <code>sync_devices</code>. Der Browser speichert nur eine origin-stabile Geräte-ID; <code>src/syncDevice.ts</code> leitet zur Laufzeit ein verständliches Label aus Browser und Betriebssystem ab. <code>registerAccountSyncDevice()</code> bezieht <code>user_id</code> ausschließlich aus der authentifizierten Supabase-Session und führt vor jedem Account-Cloud-Load einen Upsert auf <code>(user_id, id)</code> aus. Dabei werden <code>label</code>, <code>user_agent</code> und <code>last_seen_at</code> aktualisiert, während <code>created_at</code> unverändert bleibt. Dieselbe Browser-ID darf wegen des zusammengesetzten Schlüssels in mehreren Accounts getrennt existieren. User-Agent und Label werden weder exportiert noch geloggt oder in der UI angezeigt.</p>
 <p>Der Flush-Vertrag transportiert Geräte-ID und Mutation-IDs bis in <code>cloudRepository</code>. Snapshot-Saves bestätigen ausschließlich die zugehörigen <code>statePatch</code>-IDs nach erfolgreichem Persisted-State-Reload; ein einzelnes Review bestätigt seine eigene Mutation erst nach Upsert und inhaltlich identischem Readback. Review-Mutationen laufen vor dem Snapshot und dürfen daher unabhängig bestätigt werden. Ein Revisionsfehler schreibt über <code>markConflict()</code> eine deterministische, accountgebundene Konfliktzeile und lässt die nicht bestätigten Snapshot-IDs mit Retry-Zähler in der Outbox. Die IDs sind weiterhin Korrelations- und Acknowledgement-Metadaten und werden nicht als eigenes Mutation-Ledger in Postgres gespeichert.</p>
 <p>Supabase-spezifische Leitplanken:</p>
 <ul>
@@ -3538,6 +3538,8 @@ VariantState     ← einzelne Variante
 <li><strong>Entscheidungsmaß:</strong> Optimiert wird nicht auf minimale physische Lines of Code, sondern auf kleine semantische Änderungsoberfläche, verlässliche Interfaces, Bundlevolumen, Laufzeit, Speicherbedarf und testbare Lokalität. Ein Sprachwechsel ohne messbaren Gesamtvorteil findet nicht statt.</li>
 </ul>
 <p><strong>M2-Abnahme am 2026-07-13:</strong> <code>coreModel</code>, <code>deckSettings</code>, <code>scheduler</code>, <code>reviewService</code>, <code>coreVariantService</code>, <code>variantGeneration</code>, <code>variantSelection</code>, <code>libraryModel</code>, <code>coreWorkspace</code> und <code>creationWorkflow</code> sind strict geprüfte <code>.ts</code>-Module. <code>src/coreModel.ts</code> bleibt die einzige öffentliche Kernmodell-Naht und bündelt private Verantwortungsflächen unter <code>src/coreModel/</code>; React und <code>reviewService.ts</code> verwenden Variantenwahl und -generierung über <code>coreVariantService.ts</code>. <code>allowJs: true</code> bleibt vertragsgemäß bis M4 bestehen. M2 hat keine Persistenz-, Supabase-, APKG-Format-, Medien-, Server- oder sichtbaren Produktverträge geändert.</p>
+<p><strong>M3-Abnahme am 2026-07-13:</strong> Persistenz, Auth/Account, Sync/Outbox, lokale und Cloud-Medien, Datei-/JSON-/CSV-/APKG-Import, ZIP/SQLite, KI-Client und <code>/api/ai/chat</code> sind strict geprüfte <code>.ts</code>-Module. Valibot 1.4.2 validiert Daten an der jeweils besitzenden Naht; <code>src/cloudRepositoryValidation.ts</code> kapselt Cloud-Row-/JSONB-Schemas, <code>src/aiChatContract.ts</code> den gemeinsamen Chatvertrag. Der Browser-Supabase-Client verwendet <code>SupabaseClient&lt;Database&gt;</code>, während <code>database.types.ts</code> generiert bleibt. <code>src/apkgImportWorker.ts</code> und <code>src/apkgImportWorkerProtocol.ts</code> bilden einen privaten nativen Dedicated-Worker-Pfad; APKG- und Medienbuffer werden übertragen und der Worker bei Erfolg, Fehler, ungültiger Nachricht oder Abbruch beendet. <code>allowJs: true</code> bleibt ausschließlich für M4 bestehen.</p>
+<p>Der opt-in Lauf <code>npm run benchmark:apkg</code> erzeugt über <code>scripts/create_world_capitals_apkg.py</code> eine ignorierte, deterministische große und medienreiche Fixture unter <code>test-results/</code>. Der Referenzlauf vom 2026-07-13 umfasste 4.900 Karten, 200 Medien, 2.522.246 Eingabebytes und 820.800 Medienbytes; direktes Parsing dauerte lokal 236,89 ms bei einem best-effort Heap-Delta von 33.662.760 Byte. Diese Zeitwerte dokumentieren die Größenordnung und sind ausdrücklich kein maschinenabhängiges CI-Limit. Der Production-Build hält APKG und Worker getrennt lazy (47,33 kB beziehungsweise 38,98 kB); alle budgetierten JavaScript-Chunks bleiben unter 500.000 Byte.</p>
 <p>Migrationsabschluss bedeutet: <code>npm run typecheck</code>, Modulprüfungen, Production-Build, RLS-Smokes und der vollständige lokale Browserlauf sind grün; <code>allowJs</code> ist für <code>src/</code>, <code>api/</code> und <code>tests/</code> deaktiviert; notwendige JavaScript-Ausnahmen in Build-/Tool-Konfiguration sind einzeln dokumentiert; alle sichtbaren Features, Screens, Controls und Flows bleiben erhalten. Abschnitt 27 und die Dateinamenkonventionen werden mit den tatsächlich migrierten Pfaden aktualisiert, nicht vorauseilend.</p>
 <h3 id="layout-und-typografie-tokens">Layout- und Typografie-Tokens</h3>
 <p>Für den ersten Desktop-Website-Build SOLLEN React/Tailwind-Komponenten auf ein kleines, explizites Token-Set begrenzt werden:</p>
@@ -3675,7 +3677,7 @@ VariantState     ← einzelne Variante
 <li>erlaubter Vercel-Preview-Redirect: <code>https://*-bengt2.vercel.app/**</code></li>
 <li>erlaubter lokaler Redirect: <code>http://127.0.0.1:5190/**</code></li>
 </ul>
-<p>Production bleibt damit auf den festen Vercel-Alias begrenzt; das Wildcard-Muster gilt ausschliesslich fuer Preview-Deployments gemaess der <a href="https://supabase.com/docs/guides/auth/redirect-urls">Supabase-Dokumentation zu Redirect URLs</a>. <code>src/cloudAuth.js</code> bildet Browser-Origins fuer OAuth, Magic Link und Recovery auf eine kanonische Root-URL mit abschliessendem Slash ab. Die Konfiguration wurde am 2026-07-10 in Hosted Supabase gespeichert und nach einem Dashboard-Reload ausgelesen: Site URL und exakt die drei Redirect-Muster oben waren aktiv, <code>http://localhost:3000</code> war nicht mehr vorhanden.</p>
+<p>Production bleibt damit auf den festen Vercel-Alias begrenzt; das Wildcard-Muster gilt ausschliesslich fuer Preview-Deployments gemaess der <a href="https://supabase.com/docs/guides/auth/redirect-urls">Supabase-Dokumentation zu Redirect URLs</a>. <code>src/cloudAuth.ts</code> bildet Browser-Origins fuer OAuth, Magic Link und Recovery auf eine kanonische Root-URL mit abschliessendem Slash ab. Die Konfiguration wurde am 2026-07-10 in Hosted Supabase gespeichert und nach einem Dashboard-Reload ausgelesen: Site URL und exakt die drei Redirect-Muster oben waren aktiv, <code>http://localhost:3000</code> war nicht mehr vorhanden.</p>
 <h3 id="14-2-2-preview-smoke-und-production-rollback-runbook">14.2.2 Preview-Smoke und Production-Rollback-Runbook</h3>
 <p>Dieses Runbook ist das manuelle Gate zwischen einem gruenen Pull Request und Production. Es loest selbst kein Deployment aus und enthaelt keine Secrets.</p>
 <p>Aktueller Betriebsstatus: Das P0-Betriebsgate wurde am 2026-07-10 nach ausdruecklicher Release-Autorisierung erfolgreich abgeschlossen. Preview, staged Production und kanonische Production liefen auf demselben gruenen Commit; ein Rollback war nicht erforderlich.</p>
@@ -3777,7 +3779,7 @@ Worker
 <h2 id="14-3-dateiablage">14.3 Dateiablage</h2>
 <p>Dokumente, Medien und APKG-Dateien sollen in Object Storage liegen. Die Datenbank speichert Metadaten und sichere Referenzen.</p>
 <p><strong>Wichtig:</strong> Importierte Mediendateien müssen stabil referenzierbar sein, auch wenn Karten später geteilt werden.</p>
-<p>Fuer CoRe ist dieser Punkt groesser als bei kleinen Rezept-/Fitness-Datensaetzen: Kartenstapel koennen hunderte MB an Bildern, Audios, HTML-Medienreferenzen, PDF-Quellen und APKG-Originalen tragen. Der lokale Browser-Medienspeicher in <code>src/mediaStore.js</code> ist eine MVP-Loesung, aber kein Produktivspeicher.</p>
+<p>Fuer CoRe ist dieser Punkt groesser als bei kleinen Rezept-/Fitness-Datensaetzen: Kartenstapel koennen hunderte MB an Bildern, Audios, HTML-Medienreferenzen, PDF-Quellen und APKG-Originalen tragen. Der lokale Browser-Medienspeicher in <code>src/mediaStore.ts</code> ist eine MVP-Loesung, aber kein Produktivspeicher.</p>
 <p>Produktivregeln:</p>
 <ul>
 <li>APKG-Originaldatei, extrahierte Medien, hochgeladene PDFs/DOCX/Bilder und OCR-/Textlayer brauchen stabile Storage-Referenzen.</li>
@@ -4577,42 +4579,47 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <td>Presets, Normalisierung, Legacy-Migration, globale Profilvorgaben und stapelspezifische Lernparameter hinter einer testbaren Modulgrenze</td>
 </tr>
 <tr>
-<td><code>src/coreRepository.js</code></td>
+<td><code>src/coreRepository.ts</code></td>
 <td><code>createCoreRepository()</code></td>
 <td>Persistenter lokaler App-State, Migration alter Decks, Default-Seed <code>Welt-Hauptstädte</code> samt dreimonatiger Lernhistorie fuer frische lokale Browser-States und unberuehrte persistierte Seeds, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene</td>
 </tr>
 <tr>
-<td><code>src/supabaseClient.js</code></td>
+<td><code>src/supabaseClient.ts</code></td>
 <td><code>createSupabaseBrowserClient</code>, <code>getSupabaseBrowserConfig</code></td>
 <td>Supabase Browser-Client aus oeffentlichen <code>VITE_*</code>-Variablen; keine Secret-Keys im Browser</td>
 </tr>
 <tr>
-<td><code>src/cloudAuth.js</code></td>
+<td><code>src/cloudAuth.ts</code></td>
 <td><code>createCloudAuthRedirectUrl</code>, <code>signUpCloudAccount</code>, <code>signInCloudAccount</code>, <code>signInWithGoogle</code>, <code>signInWithMagicLink</code>, <code>updateCloudPassword</code>, <code>signOutCloudAccount</code>, <code>resetCloudPassword</code>, <code>getCloudUser</code>, <code>saveCloudProfile</code></td>
 <td>Echte Supabase-E-Mail/Passwort-Auth, kanonische Root-Redirects fuer Production/Preview/lokal, Google-OAuth-Start, Magic Link ohne Auto-Signup, Recovery-Abschluss per neuem Passwort, Profil-Upsert und Profil-Merge ohne Passwort-Verifier</td>
 </tr>
 <tr>
-<td><code>src/accountSession.js</code></td>
+<td><code>src/accountSession.ts</code></td>
 <td><code>authPhaseForSession</code>, <code>shouldShowAuthGate</code>, <code>shouldShowAppShell</code>, <code>createSync*Status</code>, <code>createSyncOfflineStatus</code>, <code>formatSyncStatusText</code></td>
 <td>Kleine Auth-/Sync-Zustandslogik fuer Pflichtlogin, App-Shell-Sperre, Passwort-Recovery-Gate und sichtbare Pending-/Save-/Offline-/Konfliktmeldungen</td>
 </tr>
 <tr>
-<td><code>src/accountStorage.js</code></td>
+<td><code>src/accountStorage.ts</code></td>
 <td><code>createAccountStorage</code>, <code>getOrCreateSyncDeviceId</code>, <code>readLegacyLocalState</code>, <code>hasPendingLocalMigration</code>, <code>markLocalMigrationHandled</code></td>
 <td>Accountgebundene Browser-Cache-Keys, origin-stabile Geräte-ID und einmalige lokale Datenuebernahme</td>
 </tr>
 <tr>
-<td><code>src/syncDevice.js</code></td>
+<td><code>src/syncDevice.ts</code></td>
 <td><code>createBrowserSyncDevice</code></td>
 <td>Stabiler Geräte-Descriptor mit ID, rohem User-Agent und automatisch abgeleitetem Browser-/Betriebssystem-Label; nur die ID wird lokal gespeichert</td>
 </tr>
 <tr>
-<td><code>src/cloudRepository.js</code></td>
-<td><code>registerAccountSyncDevice</code>, <code>applyDeckMutation</code>, <code>applyCardMutation</code>, <code>appendReviewEvent</code>, <code>softDeleteEntity</code>, <code>markConflict</code>, <code>replaceAccountCloudState</code>, <code>upsertAccountCloudState</code>, <code>loadAccountCloudState</code>, <code>mergeCloudSyncMetadata</code>, <code>listAccountSyncConflicts</code>, <code>resolveAccountSyncConflict</code>, Mapping-Helfer</td>
+<td><code>src/cloudRepository.ts</code></td>
+<td><code>registerAccountSyncDevice</code>, <code>applyDeckMutation</code>, <code>applyCardMutation</code>, <code>appendReviewEvent</code>, <code>softDeleteEntity</code>, <code>markConflict</code>, <code>replaceAccountCloudState</code>, <code>upsertAccountCloudState</code>, <code>loadAccountCloudState</code>, <code>mergeCloudSyncMetadata</code>, <code>listAccountSyncConflicts</code>, <code>resolveAccountSyncConflict</code></td>
 <td>Accountgefiltertes Laden, Geräte-Upsert, serverseitiges Compare-and-set, idempotente Konfliktzeilen, sichere Konfliktprojektionen, CAS-geschützte lokale/Remote-/Feldentscheidungen, Tombstone-Projektion, getrennte Snapshot-/Review-Acknowledgements und bewusster Voll-Replace fuer Legacy-Import/Test-Reset</td>
 </tr>
 <tr>
-<td><code>src/syncEngine.js</code>, <code>src/syncOutbox.js</code></td>
+<td><code>src/cloudRepositoryValidation.ts</code></td>
+<td>private Row-/JSONB-Schemas und Mapper-Typen</td>
+<td>Eigentümerlokale Laufzeitprüfung von Supabase-Rows und JSONB vor dem Mapping; verwendet die generierten <code>Database</code>-/<code>Tables</code>-/<code>TablesInsert</code>-/<code>TablesUpdate</code>-/<code>Json</code>-Verträge ohne neue Backend-Seam</td>
+</tr>
+<tr>
+<td><code>src/syncEngine.ts</code>, <code>src/syncOutbox.ts</code></td>
 <td><code>createAccountSyncEngine</code>, <code>createSyncEngine</code>, <code>createSyncOutbox</code>, <code>loadSnapshot</code>, <code>enqueueMutation</code>, <code>flush(fallbackState, { force })</code>, <code>startSyncLifecycle({ onStatus, onFlush })</code>, <code>listConflicts</code>, <code>resolveConflict</code></td>
 <td>Tiefe Sync-Modulgrenze vor React für Geräte-Registrierung, accountgebundene reloadfeste Mutationen, revisionssicheren Delta-Autosave, Browser-Netzstatus, gecapptes Backoff mit Jitter, Reconnect-Flush, idempotente Review-Events und pausierte Konflikt-Snapshots</td>
 </tr>
@@ -4667,12 +4674,12 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <td>Tastaturvertrag fuer Reveal, Bewertung und Exit im Review</td>
 </tr>
 <tr>
-<td><code>src/aiOrchestrator.js</code></td>
+<td><code>src/aiOrchestrator.ts</code></td>
 <td><code>generateCardsFromDocument</code>, <code>selectModel</code>, <code>validateCardGenerationOutput</code></td>
 <td>Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts</td>
 </tr>
 <tr>
-<td><code>src/documentModel.js</code></td>
+<td><code>src/documentModel.ts</code></td>
 <td><code>isTextReadableFile</code>, <code>isPdfFile</code>, <code>isDocxFile</code>, <code>formatPdfTextContentItems</code>, <code>createDocumentFromFile</code>, <code>createAnchorFromSelection</code>, <code>splitDocumentIntoPassages</code></td>
 <td>Dokumente, Dateityp-Gates, PDF-Textformatierung und Auswahl-zu-Quelle; PDF.js wird ueber die geteilte Runtime bedarfsgeladen</td>
 </tr>
@@ -4682,27 +4689,27 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <td>Tiefe PDF.js-Modulgrenze fuer Runtime und Worker, kontinuierliche Anzeige, Fit-to-width, Navigation, Zoom, Textlayer, Auswahltext und stabile PDF-Koordinaten</td>
 </tr>
 <tr>
-<td><code>src/importService.js</code></td>
+<td><code>src/importService.ts</code></td>
 <td><code>normalizeImportDeck</code>, <code>normalizeNormalizedImportPayload</code>, <code>finalizeImportReport</code>, <code>importNormalizedDeck</code>, <code>parseTextToNormalizedImport</code>, <code>parseCsvToNormalizedImport</code>, <code>parseJsonToNormalizedImport</code>, <code>createImportFingerprint</code>, <code>findDuplicateLearningItem</code>, <code>createTextImportDeck</code>, <code>createCsvImportDeck</code>, <code>createTableImportDeck</code></td>
 <td>Text-/CSV-/JSON-/Excel-Paste-Import, Fingerprints/Dedupe und normalisierte Deck-Erstellung mit Parent-/Hierarchy-Feldern ueber die Learning-Item-Creation-Pipeline</td>
 </tr>
 <tr>
-<td><code>src/apkgImport.js</code></td>
-<td><code>createApkgImportPreview</code>, <code>findReadableCollectionDatabase</code>, <code>parseAnkiMedia</code>, <code>mapAnkiToCoreDeck</code>, <code>commitApkgImport</code>, <code>mergeImportedDeck</code>, <code>commitImport</code></td>
-<td>APKG-Import, <code>collection.anki21b</code>/Zstd, Media-Manifeste, echte Anki-Unterstapel, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten, Welt-Hauptstadt-Fixture-Verifikation</td>
+<td><code>src/apkgImport.ts</code></td>
+<td><code>createApkgImportPreview</code>, <code>commitApkgImport</code>, <code>commitImport</code></td>
+<td>Öffentliche Preview-/Commit-Seam für APKG-Import, <code>collection.anki21b</code>/Zstd, Media-Manifeste, echte Anki-Unterstapel, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten und Welt-Hauptstadt-Fixture-Verifikation</td>
 </tr>
 <tr>
-<td><code>src/sqliteReader.js</code> / <code>src/zipReader.js</code></td>
-<td><code>readSqliteDatabase</code>, <code>readZipArchive</code></td>
-<td>Lokales Lesen der APKG-Container und minimaler SQLite-Tabellen</td>
+<td><code>src/apkgImportWorker.ts</code> / <code>src/apkgImportWorkerProtocol.ts</code> / <code>src/sqliteReader.ts</code> / <code>src/zipReader.ts</code></td>
+<td>private Worker-, Format- und Parserinterfaces</td>
+<td>Nativer lazy Dedicated Worker mit typisierten Nachrichten und transferierten Buffern sowie defensives Lesen von ZIP, MediaEntries, Zstd und minimalen SQLite-Tabellen</td>
 </tr>
 <tr>
-<td><code>src/mediaStore.js</code></td>
+<td><code>src/mediaStore.ts</code></td>
 <td><code>storeDeckMedia</code>, <code>createDeckMediaUrlMap</code>, <code>resolveCardHtmlMedia</code></td>
 <td>Lokaler APKG-Medienspeicher ueber IndexedDB/Session-Fallback und sichere HTML-Medien-URL-Aufloesung</td>
 </tr>
 <tr>
-<td><code>src/cloudMediaStore.js</code></td>
+<td><code>src/cloudMediaStore.ts</code></td>
 <td><code>persistDeckMedia</code>, <code>resolveDeckMediaUrls</code>, <code>deleteUnreferencedMedia</code>, <code>createCloudMediaPath</code>, <code>createMediaAssetRow</code></td>
 <td>Supabase-Storage-Pfad fuer private APKG-Medien, deck-/cardgebundene SHA-1-Deduplizierung, kanonische dateinamenunabhängige Row-IDs und Hash-Pfade, URL-Aliase, bestätigte <code>media_assets</code>-Rows, große Upload-Markierung und spätere Storage-Garbage-Collection</td>
 </tr>
@@ -4727,9 +4734,9 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <td>Themen-/Karten-Mindmap und Triggerlogik</td>
 </tr>
 <tr>
-<td><code>src/deckAssistant.js</code> / <code>api/ai/chat.js</code></td>
-<td><code>retrieveDeckEvidence</code>, <code>answerDeckQuestion</code>, <code>answerDeckQuestionWithServer</code>, <code>POST /api/ai/chat</code></td>
-<td>Freie Chatantworten per Default; optionale quellengebundene Antworten aus Karten mit lokaler Evidenzsuche, keine Provider-Aufrufe ohne Quelle im Quellenmodus, Gemma-4-31B-IT laeuft serverseitig mit <code>GOOGLE_API_KEY</code> aus <code>process.env</code>, Interactions-Responses werden aus <code>steps</code> oder Legacy-<code>outputs</code> gelesen</td>
+<td><code>src/deckAssistant.ts</code> / <code>src/aiChatContract.ts</code> / <code>api/ai/chat.ts</code></td>
+<td><code>retrieveDeckEvidence</code>, <code>answerDeckQuestion</code>, <code>answerDeckQuestionWithServer</code>, validierter gemeinsamer Chatvertrag, <code>POST /api/ai/chat</code></td>
+<td>Freie Chatantworten per Default; optionale quellengebundene Antworten aus Karten mit lokaler Evidenzsuche, keine Provider-Aufrufe ohne Quelle im Quellenmodus, Gemma-4-31B-IT laeuft serverseitig mit <code>GOOGLE_API_KEY</code> aus <code>process.env</code>; aktuelle und Legacy-Providerantworten werden getrennt geprüft und unerwartete Payloads sanitisiert abgewiesen</td>
 </tr>
 <tr>
 <td><code>src/learningPlan.js</code></td>
@@ -4737,12 +4744,12 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <td>Pruefungsplan aus Due-Karten, neuen Karten, Varianten und schwachen Themen</td>
 </tr>
 <tr>
-<td><code>src/authModel.js</code></td>
+<td><code>src/authModel.ts</code></td>
 <td><code>createLocalAccount</code>, <code>signInLocalAccount</code>, <code>signOutLocalAccount</code></td>
 <td>Lokale Account-/Sitzungslogik fuer den Web-MVP</td>
 </tr>
 <tr>
-<td><code>src/dataPortability.js</code></td>
+<td><code>src/dataPortability.ts</code></td>
 <td><code>createPortableExport</code>, <code>stringifyPortableExport</code>, <code>validatePortableExport</code>, <code>mergePortableExportIntoState</code></td>
 <td>JSON-Export/-Import ohne Passwort-Verifier</td>
 </tr>
@@ -4851,20 +4858,22 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <li>optionale Seite, Zeichenposition und Bounding Box</li>
 </ul>
 <h3 id="27-6-ki-erstellung">27.6 KI-Erstellung</h3>
-<p>KI-assistierte Erstellung ist review-first. Der lokale MVP kennt Parameter fuer Sprache, Kartenanzahl, Detailgrad, Quellennaehe, Kartentypen, Schwierigkeit, Fach/Kontext und Stil. Aktuell wird keine externe KI-API aufgerufen. <code>src/aiOrchestrator.js</code> erzeugt deterministische, strukturierte Entwuerfe aus Quellentext, validiert das erwartete JSON-Schema und speichert Quellenanker. <code>createAiDraftDeck</code> fuehrt die Entwuerfe durch dieselbe Learning-Item-Creation-Pipeline wie manuelle und importierte Inhalte. Generierte Karten behalten <code>draftStatus: &quot;draft&quot;</code>, bis der Nutzer sie akzeptiert.</p>
+<p>KI-assistierte Erstellung ist review-first. Der lokale MVP kennt Parameter fuer Sprache, Kartenanzahl, Detailgrad, Quellennaehe, Kartentypen, Schwierigkeit, Fach/Kontext und Stil. Aktuell wird keine externe KI-API aufgerufen. <code>src/aiOrchestrator.ts</code> erzeugt deterministische, strukturierte Entwuerfe aus Quellentext, validiert das erwartete JSON-Schema und speichert Quellenanker. <code>createAiDraftDeck</code> fuehrt die Entwuerfe durch dieselbe Learning-Item-Creation-Pipeline wie manuelle und importierte Inhalte. Generierte Karten behalten <code>draftStatus: &quot;draft&quot;</code>, bis der Nutzer sie akzeptiert.</p>
 <h3 id="27-7-apkg-import">27.7 APKG-Import</h3>
 <p>Unterstuetzt:</p>
 <ul>
 <li>Upload und Validierung von <code>.apkg</code>-Dateien im Import-Screen.</li>
 <li>Reproduzierbare APKG-Fixture <code>fixtures/apkg/world-capitals.apkg</code> mit 245 Hauptstadtkarten und sieben Kontinent-Unterstapeln; <code>scripts/create_world_capitals_apkg.py</code> erzeugt APKG, Quell-Snapshot und lokalen Seed aus <code>mledoze/countries</code>.</li>
+<li>Opt-in Benchmark-Fixture mit 4.900 Karten und 200 Medien wird deterministisch in <code>test-results/</code> erzeugt und nicht als große Binärdatei versioniert.</li>
 <li>Lokales Lesen der APKG-Datei als ZIP-Archiv.</li>
+<li>Browser-Preview über einen privaten nativen Vite Dedicated Worker mit typisiertem Nachrichtenvertrag, übertragbaren APKG-/Medienbuffern, Fortschritt, Abbruch und garantiertem Cleanup; der direkte Pfad bleibt für Node-Tests, bereits geparste Eingaben und fehlende Worker-Unterstützung.</li>
 <li>Erkennung von <code>collection.anki2</code>, <code>collection.anki21</code> und <code>collection.anki21b</code>.</li>
 <li>Zstd-Dekompression lesbarer <code>collection.anki21b</code>-Collections ueber <code>fzstd</code>, mit Fallback auf lesbare aeltere Collection-Dateien im selben Archiv.</li>
-<li>Minimaler SQLite-Reader fuer die Anki-Tabellen <code>col</code>, <code>notes</code> und <code>cards</code>.</li>
+<li>Minimaler SQLite-Reader fuer die Anki-Tabellen <code>col</code>, <code>notes</code> und <code>cards</code> mit Signatur-, Seitengrößen-, Bounds-, Varint-, Overflow- und Zyklusprüfungen.</li>
 <li>Auslesen von Deck-Namen, Notes, Cards, Fields, Tags und Media-Mapping.</li>
 <li>Auslesen von APKG-Paketmetadaten, Legacy-<code>media</code>-JSON und modernen MediaEntries.</li>
 <li>Media-Manifeste mit Assets, fehlenden Assets, SHA-1, Groesse und MIME-Typ; die Importvorschau kann extrahierte Media-Dateien mit Bytes halten.</li>
-<li>Lokaler Browser-Medienspeicher ueber <code>src/mediaStore.js</code>: IndexedDB als persistenter Pfad, Session-Map als Fallback, Objekt-URLs fuer Review/Preview/Deck-Editor.</li>
+<li>Lokaler Browser-Medienspeicher ueber <code>src/mediaStore.ts</code>: IndexedDB als persistenter Pfad, Session-Map als Fallback, Objekt-URLs fuer Review/Preview/Deck-Editor.</li>
 <li>Sichere HTML-Medienauflösung ueber <code>resolveCardHtmlMedia</code> nach vorheriger Sanitization.</li>
 <li>Erhalt von Deck-/Unterdeck-Hierarchien als sichtbare lokale Parent-/Child-Decks mit <code>parentDeckId</code>, <code>hierarchyPath</code>, gemeinsamem <code>importGroupId</code> und weiterhin gesichertem <code>importMeta.deckHierarchy</code>.</li>
 <li>Raw-Fallback fuer unbekannte oder nicht voll verstandene Note Types.</li>
@@ -4885,9 +4894,9 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <li>Sehr grosse Decks ueber 250 MB direkt im Browser.</li>
 </ul>
 <h3 id="27-8-chat-your-deck-lernplan-und-portabilitaet">27.8 Chat-your-Deck, Lernplan und Portabilitaet</h3>
-<p>Der Assistent beantwortet Fragen per Default als freie KI-Antwort ueber <code>POST /api/ai/chat</code>. Die Option <code>Nur mit Kartenquellen antworten</code> ist standardmaessig aus und kann per Checkbox aktiviert werden. Im Quellenmodus werden Karten lokal ueber einfache Token-Ueberschneidung und Tags gerankt; Reifegrad kann einen vorhandenen Treffer leicht priorisieren, erzeugt aber keinen Treffer ohne inhaltliche Ueberschneidung. Quellengebundene Antworten enthalten <code>citations</code> mit <code>deckId</code>, <code>cardId</code>, Kartenquote und optionalem Quellenanker. Wenn im Quellenmodus keine Quelle gefunden wird, verweigert der Assistent eine freie Antwort und ruft keinen KI-Provider auf. Ohne Quellenbindung sendet die UI nur die Frage an die Vercel-Serverroute; mit Quellenbindung sendet sie Frage und Top-Kartenbelege an Gemma 4 31B IT (<code>gemma-4-31b-it</code>, <code>store: false</code>). Bei fehlender Route, fehlendem Key oder Providerfehler faellt der Quellenmodus auf die lokale Quellenantwort zurueck; freie Antworten zeigen einen Fehlerstatus. Die UI bleibt ohne Hauptmenuepunkt, ist aber vom Heute-Dashboard aus als sekundaerer Arbeitsbereich erreichbar.</p>
+<p>Der Assistent beantwortet Fragen per Default als freie KI-Antwort ueber <code>POST /api/ai/chat</code>. <code>src/aiChatContract.ts</code> validiert Request-, Success- und Errorformen auf Browser und Server gemeinsam; aktuelle <code>steps</code>-, direkte <code>output_text</code>- und Legacy-<code>outputs</code>-Providerformen werden serverintern separat geprüft. Unerwartete Providerpayloads ergeben einen sanitisierten <code>502</code>, und Logs enthalten weder Secrets noch vollständige Prompts oder Providerpayloads. Die Option <code>Nur mit Kartenquellen antworten</code> ist standardmaessig aus und kann per Checkbox aktiviert werden. Im Quellenmodus werden Karten lokal ueber einfache Token-Ueberschneidung und Tags gerankt; Reifegrad kann einen vorhandenen Treffer leicht priorisieren, erzeugt aber keinen Treffer ohne inhaltliche Ueberschneidung. Quellengebundene Antworten enthalten <code>citations</code> mit <code>deckId</code>, <code>cardId</code>, Kartenquote und optionalem Quellenanker. Wenn im Quellenmodus keine Quelle gefunden wird, verweigert der Assistent eine freie Antwort und ruft keinen KI-Provider auf. Ohne Quellenbindung sendet die UI nur die Frage an die Vercel-Serverroute; mit Quellenbindung sendet sie Frage und Top-Kartenbelege an Gemma 4 31B IT (<code>gemma-4-31b-it</code>, <code>store: false</code>). Bei fehlender Route, fehlendem Key oder Providerfehler faellt der Quellenmodus auf die lokale Quellenantwort zurueck; freie Antworten zeigen einen Fehlerstatus. Die UI bleibt ohne Hauptmenuepunkt, ist aber vom Heute-Dashboard aus als sekundaerer Arbeitsbereich erreichbar.</p>
 <p><code>createLearningPlan</code> erzeugt einen Plan aus Zieltermin, verfuegbaren Minuten pro Tag, neuen Karten pro Tag, faelligen Reviews, aktiven Varianten und schwachen Tags aus Review-Events oder Graph-Knoten. Der Plan erzeugt Tageszeilen mit Review-Quota, neuen Karten, Varianten-Tagen und Fokusdeck. Er ist kein Kalender-Adapter; ein spaeterer Kalender- oder Benachrichtigungsadapter soll die erzeugten Planobjekte konsumieren.</p>
-<p><code>src/dataPortability.js</code> erzeugt einen lokalen JSON-Export mit Decks, Communities, Jobs und Dokumenten. Der lokale Passwort-Verifier wird bewusst entfernt. Import validiert Schema und Version, gibt kaputtes JSON als Validierungsfehler statt Exception zurueck und mergt neue Decks ohne lokale Decks mit gleicher ID zu ersetzen.</p>
+<p><code>src/dataPortability.ts</code> erzeugt einen lokalen JSON-Export mit Decks, Communities, Jobs und Dokumenten. Der lokale Passwort-Verifier wird bewusst entfernt. Import validiert Schema und Version, gibt kaputtes JSON als Validierungsfehler statt Exception zurueck und mergt neue Decks ohne lokale Decks mit gleicher ID zu ersetzen.</p>
 <h3 id="27-9-adapter-entscheidung">27.9 Adapter-Entscheidung</h3>
 <p>Keine generische Adapter-Schicht fuer Backend/Auth/LLM einfuehren, solange nur ein realer Anbieterpfad existiert. Fuer den entschiedenen Supabase-Startpfad sind bewusst kleine konkrete Module erlaubt (<code>supabaseClient</code>, <code>cloudAuth</code>, <code>accountSession</code>, <code>accountStorage</code>, <code>cloudRepository</code>), waehrend React-Caller weiterhin keine SQL-, RLS- oder Provider-Key-Details kennen. Eine echte austauschbare Naht entsteht erst, wenn mindestens zwei reale Anbieter- oder Speicherpfade existieren.</p>
 <h3 id="27-10-dokumentations-und-sql-inventar">27.10 Dokumentations- und SQL-Inventar</h3>

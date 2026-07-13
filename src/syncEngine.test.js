@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.js";
-import { createSyncOutbox } from "./syncOutbox.js";
+import { createSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.ts";
+import { createSyncOutbox } from "./syncOutbox.ts";
 
 function createMemoryStorage() {
   const values = new Map();

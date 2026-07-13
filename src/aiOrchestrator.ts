@@ -1,5 +1,5 @@
 import { createAiDraftDeck, makeId, stableContentHash } from "./coreModel.ts";
-import { createAnchorFromSelection, splitDocumentIntoPassages } from "./documentModel.js";
+import { createAnchorFromSelection, splitDocumentIntoPassages } from "./documentModel.ts";
 
 const CAPABILITY_MODEL = {
   eligibility_classifier: { provider: "local", model: "rule-small", class: "small" },
@@ -11,8 +11,8 @@ const CAPABILITY_MODEL = {
   quality_checker: { provider: "local", model: "rule-quality", class: "medium" },
 };
 
-export function selectModel(task, policy = {}, context = {}) {
-  const capability = CAPABILITY_MODEL[task] ?? CAPABILITY_MODEL.card_generator;
+export function selectModel(task: any, policy: any = {}, context: any = {}) {
+  const capability = (CAPABILITY_MODEL as Record<string, (typeof CAPABILITY_MODEL)["card_generator"]>)[String(task)] ?? CAPABILITY_MODEL.card_generator;
   const costTier = policy.costTier ?? "balanced";
 
   if (policy.allowExternalModels && costTier === "quality" && context.requiresReasoning) {
@@ -33,7 +33,7 @@ export function createAiJob({
   revision = 1,
   deletedAt = null,
   updatedByDeviceId = null,
-}) {
+}: any) {
   const createdAt = new Date().toISOString();
   return {
     id: makeId("job"),
@@ -54,7 +54,7 @@ export function createAiJob({
   };
 }
 
-function firstWords(text, count = 9) {
+function firstWords(text: any, count: any = 9) {
   return String(text ?? "")
     .replace(/\s+/g, " ")
     .trim()
@@ -63,9 +63,9 @@ function firstWords(text, count = 9) {
     .join(" ");
 }
 
-function createCloze(passage) {
+function createCloze(passage: any) {
   const words = passage.split(/\s+/);
-  const candidateIndex = words.findIndex((word) => word.length > 7 && /^[A-Za-zA-ZÄÖÜäöüß-]+$/.test(word));
+  const candidateIndex = words.findIndex((word: any) => word.length > 7 && /^[A-Za-zA-ZÄÖÜäöüß-]+$/.test(word));
 
   if (candidateIndex < 0) {
     return passage;
@@ -76,7 +76,7 @@ function createCloze(passage) {
   return words.join(" ");
 }
 
-function buildDraftFromPassage(passage, index, config, document) {
+function buildDraftFromPassage(passage: any, index: any, config: any, document: any) {
   const typePreference = config.cardTypes?.[index % config.cardTypes.length] ?? "basic";
   const cardType = typePreference === "cloze" ? "cloze" : "basic";
   const quote = passage.slice(0, 420);
@@ -109,8 +109,8 @@ function buildDraftFromPassage(passage, index, config, document) {
   };
 }
 
-export function validateCardGenerationOutput(output, policy = {}) {
-  const errors = [];
+export function validateCardGenerationOutput(output: any, policy: any = {}) {
+  const errors: any[] = [];
 
   if (!output || !Array.isArray(output.cards)) {
     errors.push("cards muss ein Array sein.");
@@ -131,7 +131,7 @@ export function validateCardGenerationOutput(output, policy = {}) {
   };
 }
 
-export function generateCardsFromDocument({ document, config = {}, deckName = "" }) {
+export function generateCardsFromDocument({ document, config = {}, deckName = "" }: any) {
   const policy = {
     costTier: config.costTier ?? "balanced",
     allowLocalModels: true,
@@ -150,7 +150,7 @@ export function generateCardsFromDocument({ document, config = {}, deckName = ""
     status: "running",
   });
   const passages = splitDocumentIntoPassages(document?.text ?? config.rawText ?? "", Math.max(1, Number(config.cardCount ?? 6)));
-  const cards = passages.map((passage, index) => buildDraftFromPassage(passage, index, config, document));
+  const cards = passages.map((passage: any, index: any) => buildDraftFromPassage(passage, index, config, document));
   const output = {
     cards,
     coverage: {
@@ -186,7 +186,7 @@ export function generateCardsFromDocument({ document, config = {}, deckName = ""
   const draftDeck = createAiDraftDeck({
     deckName: deckName || config.subject || "KI-Entwürfe",
     config,
-    drafts: output.cards,
+    drafts: output.cards.map((card: any) => ({ ...card, type: card.type ?? "basic" })),
     sourceDocuments: document ? [document] : [],
   });
 
@@ -206,4 +206,3 @@ export function generateCardsFromDocument({ document, config = {}, deckName = ""
     validation,
   };
 }
-

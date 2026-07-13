@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createCoreCard, createCoreDeck } from "./coreModel.ts";
-import { answerDeckQuestion, answerDeckQuestionWithServer } from "./deckAssistant.js";
+import { answerDeckQuestion, answerDeckQuestionWithServer } from "./deckAssistant.ts";
 
 function createMyelinDeck() {
   return createCoreDeck({

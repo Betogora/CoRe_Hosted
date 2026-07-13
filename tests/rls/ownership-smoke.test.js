@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { createClient } from "@supabase/supabase-js";
 import { isLocalSupabaseUrl } from "../../scripts/localE2EEnvironment.mjs";
-import { markConflict } from "../../src/cloudRepository.js";
+import { markConflict } from "../../src/cloudRepository.ts";
 
 const TABLES = [
   "profiles",

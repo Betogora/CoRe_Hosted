@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { authPhaseForSession, createSyncConflictStatus, createSyncErrorStatus, createSyncOfflineStatus, createSyncSavedStatus, formatSyncStatusText, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
+import { authPhaseForSession, createSyncConflictStatus, createSyncErrorStatus, createSyncOfflineStatus, createSyncSavedStatus, formatSyncStatusText, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 
 test("login gate blocks the app shell without a Supabase session", () => {
   const signedOutPhase = authPhaseForSession({ configured: true, user: null });

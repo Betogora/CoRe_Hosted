@@ -1,6 +1,6 @@
 import React from "react";
 import { Bot, CalendarDays } from "lucide-react";
-import { answerDeckQuestionWithServer } from "../deckAssistant.js";
+import { answerDeckQuestionWithServer } from "../deckAssistant.ts";
 import { createLearningPlan } from "../learningPlan.js";
 import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
 

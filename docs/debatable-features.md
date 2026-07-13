@@ -87,7 +87,7 @@ Ein Feature ist hier nicht automatisch schlecht. Es steht hier, wenn mindestens 
 
 ## 7. Alte lokale Anmeldung
 
-**Was ist das?** `authModel.js` enthält eine lokale Account- und Passwortlogik, während die produktive App bereits Supabase-Anmeldung verlangt.
+**Was ist das?** `authModel.ts` enthält eine lokale Account- und Passwortlogik, während die produktive App bereits Supabase-Anmeldung verlangt.
 
 **Warum diskutierbar?** Das ist wie ein zweites Türschloss, das nicht an der benutzten Haustür sitzt. Es kann sinnvoll sein, falls ein echter Offline-Login geplant ist; sonst ist es vor allem test-only Altcode.
 

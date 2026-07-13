@@ -22,31 +22,34 @@ const FREE_CHAT_SYSTEM_INSTRUCTION = [
 ].join(" ");
 
 class HttpError extends Error {
-  constructor(statusCode, message, code) {
+  readonly statusCode: number;
+  readonly code: string;
+
+  constructor(statusCode: any, message: any, code: any) {
     super(message);
     this.statusCode = statusCode;
     this.code = code;
   }
 }
 
-function firstHeaderValue(value) {
+function firstHeaderValue(value: any) {
   return String(Array.isArray(value) ? value[0] : value ?? "")
     .split(",")[0]
     .trim();
 }
 
-function byteLength(value) {
+function byteLength(value: any) {
   return Buffer.byteLength(String(value ?? ""), "utf8");
 }
 
-function trimText(value, maxChars) {
+function trimText(value: any, maxChars: any) {
   return String(value ?? "")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, maxChars);
 }
 
-function json(res, statusCode, payload, extraHeaders = {}) {
+function json(res: any, statusCode: any, payload: any, extraHeaders: any = {}) {
   res.statusCode = statusCode;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   for (const [key, value] of Object.entries(extraHeaders)) {
@@ -55,7 +58,7 @@ function json(res, statusCode, payload, extraHeaders = {}) {
   res.end(JSON.stringify(payload));
 }
 
-export function isAllowedOrigin(req) {
+export function isAllowedOrigin(req: any) {
   const origin = firstHeaderValue(req.headers?.origin);
   if (!origin) return true;
 
@@ -73,7 +76,7 @@ export function isAllowedOrigin(req) {
   }
 }
 
-export async function readJsonBody(req, maxBytes = MAX_CHAT_REQUEST_BYTES) {
+export async function readJsonBody(req: any, maxBytes: any = MAX_CHAT_REQUEST_BYTES) {
   const contentLength = Number(firstHeaderValue(req.headers?.["content-length"]));
   if (Number.isFinite(contentLength) && contentLength > maxBytes) {
     throw new HttpError(413, "Die Anfrage ist zu groß.", "request_too_large");
@@ -109,12 +112,12 @@ export async function readJsonBody(req, maxBytes = MAX_CHAT_REQUEST_BYTES) {
   }
 }
 
-export function normalizeEvidence(evidence) {
+export function normalizeEvidence(evidence: any) {
   if (!Array.isArray(evidence)) return [];
 
   return evidence
     .slice(0, MAX_EVIDENCE_ITEMS)
-    .map((item, index) => ({
+    .map((item: any, index: any) => ({
       index: index + 1,
       deckId: trimText(item?.deckId, 120),
       deckName: trimText(item?.deckName || "Unbenannter Stapel", 160),
@@ -124,15 +127,17 @@ export function normalizeEvidence(evidence) {
       source: trimText(item?.source || item?.sourceAnchors?.[0]?.documentName || item?.deckName, 160),
       sourceQuote: trimText(item?.sourceQuote || item?.sourceAnchors?.[0]?.textQuote || item?.front, MAX_EVIDENCE_TEXT_CHARS),
     }))
-    .filter((item) => item.front || item.back || item.sourceQuote);
+    .filter((item: any) => item.front || item.back || item.sourceQuote);
 }
 
-export function validateChatInput(body) {
-  const question = trimText(body?.question, MAX_QUESTION_CHARS);
-  const sourceBound = body?.sourceBound === true;
-  const evidence = normalizeEvidence(body?.evidence);
-  const errors = [];
+export function validateChatInput(body: any) {
+  const parsed = parseAiChatRequest(body);
+  const question = parsed.success ? trimText(parsed.output.question, MAX_QUESTION_CHARS) : "";
+  const sourceBound = parsed.success && parsed.output.sourceBound === true;
+  const evidence = parsed.success ? normalizeEvidence(parsed.output.evidence) : [];
+  const errors: any[] = [];
 
+  if (!parsed.success) errors.push("Anfrage oder Kartenquellen haben ein ungültiges Format.");
   if (!question) errors.push("question ist erforderlich.");
   if (sourceBound && evidence.length === 0) errors.push("Mindestens eine Kartenquelle ist erforderlich.");
 
@@ -145,10 +150,10 @@ export function validateChatInput(body) {
   };
 }
 
-export function buildGemmaChatPrompt({ question, evidence = [], sourceBound = false }) {
+export function buildGemmaChatPrompt({ question, evidence = [], sourceBound = false }: any) {
   const sourceBlocks = evidence
     .map(
-      (item) => [
+      (item: any) => [
         `[${item.index}] Stapel: ${item.deckName}`,
         `Vorderseite: ${item.front || "Nicht angegeben"}`,
         `Rückseite: ${item.back || "Nicht angegeben"}`,
@@ -178,7 +183,7 @@ export function buildGemmaChatPrompt({ question, evidence = [], sourceBound = fa
   ].join("\n");
 }
 
-export function buildGemmaInteractionPayload({ question, evidence = [], sourceBound = false }) {
+export function buildGemmaInteractionPayload({ question, evidence = [], sourceBound = false }: any) {
   return {
     model: GEMMA_CHAT_MODEL,
     store: false,
@@ -191,45 +196,81 @@ export function buildGemmaInteractionPayload({ question, evidence = [], sourceBo
   };
 }
 
-export function extractGemmaOutputText(payload) {
-  if (typeof payload?.output_text === "string") return payload.output_text.trim();
+const providerUsageSchema = v.looseObject({
+  total_tokens: v.optional(v.number()),
+  total_input_tokens: v.optional(v.number()),
+  total_output_tokens: v.optional(v.number()),
+  totalTokens: v.optional(v.number()),
+  inputTokens: v.optional(v.number()),
+  outputTokens: v.optional(v.number()),
+});
+const providerTextItemSchema = v.looseObject({ type: v.string(), text: v.optional(v.string()) });
+const currentProviderResponseSchema = v.looseObject({
+  output_text: v.optional(v.string()),
+  steps: v.array(v.looseObject({
+    type: v.string(),
+    content: v.optional(v.array(providerTextItemSchema), []),
+  })),
+  usage: v.optional(providerUsageSchema),
+});
+const outputTextProviderResponseSchema = v.looseObject({
+  output_text: v.string(),
+  usage: v.optional(providerUsageSchema),
+});
+const legacyProviderResponseSchema = v.looseObject({
+  outputs: v.array(providerTextItemSchema),
+  usage: v.optional(providerUsageSchema),
+});
+const gemmaProviderResponseSchema = v.union([
+  outputTextProviderResponseSchema,
+  currentProviderResponseSchema,
+  legacyProviderResponseSchema,
+]);
 
-  const outputSteps = Array.isArray(payload?.steps) ? payload.steps.filter((step) => step?.type === "model_output") : [];
+export function extractGemmaOutputText(payload: unknown) {
+  const parsed = v.safeParse(gemmaProviderResponseSchema, payload);
+  if (!parsed.success) return "";
+  const validatedPayload = parsed.output;
+  if (typeof validatedPayload.output_text === "string") return validatedPayload.output_text.trim();
+
+  const outputSteps = Array.isArray(validatedPayload.steps)
+    ? validatedPayload.steps.filter((step: any) => step.type === "model_output")
+    : [];
   const lastOutput = outputSteps.at(-1);
   const content = Array.isArray(lastOutput?.content) ? lastOutput.content : [];
   const stepText = content
-    .filter((item) => item?.type === "text" && typeof item.text === "string")
-    .map((item) => item.text)
+    .filter((item: any) => item?.type === "text" && typeof item.text === "string")
+    .map((item: any) => item.text)
     .join("")
     .trim();
 
   if (stepText) return stepText;
 
-  const legacyOutputs = Array.isArray(payload?.outputs) ? payload.outputs : [];
+  const legacyOutputs = Array.isArray(validatedPayload.outputs) ? validatedPayload.outputs : [];
   return legacyOutputs
-    .filter((item) => item?.type === "text" && typeof item.text === "string")
-    .map((item) => item.text)
+    .filter((item: any) => item?.type === "text" && typeof item.text === "string")
+    .map((item: any) => item.text)
     .join("")
     .trim();
 }
 
-function summarizeGemmaPayload(payload) {
+function summarizeGemmaPayload(payload: any) {
   const steps = Array.isArray(payload?.steps) ? payload.steps : [];
-  const modelOutputs = steps.filter((step) => step?.type === "model_output");
-  const contentTypes = modelOutputs.flatMap((step) => (Array.isArray(step?.content) ? step.content.map((item) => item?.type) : [])).filter(Boolean);
+  const modelOutputs = steps.filter((step: any) => step?.type === "model_output");
+  const contentTypes = modelOutputs.flatMap((step: any) => (Array.isArray(step?.content) ? step.content.map((item: any) => item?.type) : [])).filter(Boolean);
   const legacyOutputs = Array.isArray(payload?.outputs) ? payload.outputs : [];
 
   return {
     status: typeof payload?.status === "string" ? payload.status : null,
     hasOutputText: typeof payload?.output_text === "string",
-    stepTypes: [...new Set(steps.map((step) => step?.type).filter(Boolean))],
+    stepTypes: [...new Set(steps.map((step: any) => step?.type).filter(Boolean))],
     contentTypes: [...new Set(contentTypes)],
-    legacyOutputTypes: [...new Set(legacyOutputs.map((item) => item?.type).filter(Boolean))],
+    legacyOutputTypes: [...new Set(legacyOutputs.map((item: any) => item?.type).filter(Boolean))],
     hasUsage: Boolean(payload?.usage && typeof payload.usage === "object"),
   };
 }
 
-function sanitizeUsage(usage) {
+function sanitizeUsage(usage: any) {
   if (!usage || typeof usage !== "object") return null;
 
   return {
@@ -239,7 +280,7 @@ function sanitizeUsage(usage) {
   };
 }
 
-async function callGemma({ apiKey, fetchImpl, question, evidence, sourceBound }) {
+async function callGemma({ apiKey, fetchImpl, question, evidence, sourceBound }: any) {
   let response;
   try {
     response = await fetchImpl(GOOGLE_INTERACTIONS_ENDPOINT, {
@@ -267,7 +308,13 @@ async function callGemma({ apiKey, fetchImpl, question, evidence, sourceBound })
     throw new HttpError(502, "Die KI-Antwort konnte nicht gelesen werden.", "provider_invalid_json");
   }
 
-  const answer = extractGemmaOutputText(payload);
+  const providerPayload = v.safeParse(gemmaProviderResponseSchema, payload);
+  if (!providerPayload.success) {
+    console.warn("[api/ai/chat] provider_invalid_response", { status: response.status });
+    throw new HttpError(502, "Die KI-Antwort hatte ein unerwartetes Format.", "provider_invalid_response");
+  }
+
+  const answer = extractGemmaOutputText(providerPayload.output);
   if (!answer) {
     console.warn("[api/ai/chat] provider_empty_answer", summarizeGemmaPayload(payload));
     throw new HttpError(502, "Die KI-Antwort war leer.", "provider_empty_answer");
@@ -275,12 +322,12 @@ async function callGemma({ apiKey, fetchImpl, question, evidence, sourceBound })
 
   return {
     answer,
-    usage: sanitizeUsage(payload.usage),
+    usage: sanitizeUsage(providerPayload.output.usage),
   };
 }
 
-export function createChatHandler({ env = process.env, fetchImpl = globalThis.fetch } = {}) {
-  return async function handler(req, res) {
+export function createChatHandler({ env = process.env, fetchImpl = globalThis.fetch }: any = {}) {
+  return async function handler(req: any, res: any) {
     if (req.method !== "POST") {
       json(res, 405, { error: { code: "method_not_allowed", message: "Nur POST ist erlaubt." } }, { Allow: "POST" });
       return;
@@ -330,3 +377,5 @@ export function createChatHandler({ env = process.env, fetchImpl = globalThis.fe
 }
 
 export default createChatHandler();
+import * as v from "valibot";
+import { parseAiChatRequest } from "../../src/aiChatContract.ts";

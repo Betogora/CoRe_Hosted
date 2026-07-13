@@ -1,5 +1,7 @@
-import { createCloudProfile, createProfileRow, saveCloudProfile } from "./cloudAuth.js";
+import { createCloudProfile, createProfileRow, saveCloudProfile } from "./cloudAuth.ts";
 import { createCoreDeck } from "./coreModel.ts";
+import type { Tables } from "./database.types.ts";
+import { validateAccountRows, validateIdRows, validateProfileRows, type AccountTable } from "./cloudRepositoryValidation.ts";
 
 export const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
 
@@ -23,6 +25,7 @@ const CONFLICT_PROTECTED_FIELDS = new Set([
   "anchor_variant_id",
   "model_run_id",
 ]);
+
 const CONFLICT_ACTIONS = new Set(["keep-local", "keep-remote", "merge-fields", "ignore", "reopen"]);
 const CONFLICT_ENTITY_LABELS = Object.freeze({
   decks: "Stapel",
@@ -99,10 +102,20 @@ function nowIso() {
 }
 
 export class CloudRevisionConflictError extends Error {
-  constructor({ entityTable, entityId, baseRevision = null, localRevision = null, remoteRevision = null, remoteDeleted = false, localValue = {}, remoteValue = {}, conflict = null } = {}) {
+  readonly code = "cloud_revision_conflict";
+  readonly entityTable: string;
+  readonly entityId: string;
+  readonly baseRevision: number | null;
+  readonly localRevision: number | null;
+  readonly remoteRevision: number | null;
+  readonly remoteDeleted: boolean;
+  readonly localValue: Record<string, unknown>;
+  readonly remoteValue: Record<string, unknown>;
+  readonly conflict: unknown;
+
+  constructor({ entityTable, entityId, baseRevision = null, localRevision = null, remoteRevision = null, remoteDeleted = false, localValue = {}, remoteValue = {}, conflict = null }: any = {}) {
     super("Auf einem anderen Gerät liegt bereits eine neuere Version vor. Bitte lade die Cloud-Daten neu.");
     this.name = "CloudRevisionConflictError";
-    this.code = "cloud_revision_conflict";
     this.entityTable = entityTable ?? "unknown";
     this.entityId = entityId ?? "unknown";
     this.baseRevision = baseRevision;
@@ -116,26 +129,27 @@ export class CloudRevisionConflictError extends Error {
 }
 
 export class SyncConflictChangedError extends Error {
+  readonly code = "sync_conflict_changed";
+
   constructor() {
     super("Der Remote-Stand hat sich erneut geändert. Bitte lade die Konflikte neu.");
     this.name = "SyncConflictChangedError";
-    this.code = "sync_conflict_changed";
   }
 }
 
-function toArray(value) {
+function toArray(value: any): any[] {
   return Array.isArray(value) ? value : [];
 }
 
-function toJson(value, fallback) {
+function toJson(value: any, fallback: any) {
   return value == null ? fallback : value;
 }
 
-function toObject(value) {
+function toObject(value: any): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
-function cardMetaToCloud(card) {
+function cardMetaToCloud(card: any) {
   return {
     ...toObject(card.meta),
     [CARD_MODEL_META_KEY]: {
@@ -151,16 +165,16 @@ function cardMetaToCloud(card) {
   };
 }
 
-function cardMetaFromCloud(value) {
+function cardMetaFromCloud(value: any) {
   const storedMeta = toObject(value);
   const { [CARD_MODEL_META_KEY]: model = {}, ...meta } = storedMeta;
   return { meta, model: toObject(model) };
 }
 
-function reviewFlagsToCloud(event, projection) {
+function reviewFlagsToCloud(event: any, projection: any) {
   const { [REVIEW_EVENT_META_KEY]: _reserved, ...flags } = toObject(event.flags);
-  const model = {};
-  const storeIfDistinct = (key, value, fallback = null) => {
+  const model: Record<string, any> = {};
+  const storeIfDistinct = (key: any, value: any, fallback: any = null) => {
     if (value != null && !jsonValuesEqual(value, fallback)) model[key] = value;
   };
   const schedulerParams = event.schedulerParamsJson ?? projection.schedulerAfter?.card?.schedulerParamsJson ?? null;
@@ -185,18 +199,18 @@ function reviewFlagsToCloud(event, projection) {
     : flags;
 }
 
-function reviewFlagsFromCloud(value) {
+function reviewFlagsFromCloud(value: any) {
   const storedFlags = toObject(value);
   const { [REVIEW_EVENT_META_KEY]: model = {}, ...flags } = storedFlags;
   return { flags, model: toObject(model) };
 }
 
-function normalizeRevision(value, fallback = 1) {
+function normalizeRevision(value: any, fallback: any = 1) {
   const revision = Number(value);
   return Number.isInteger(revision) && revision >= 1 ? revision : fallback;
 }
 
-function syncFields(entity = {}) {
+function syncFields(entity: any = {}) {
   return {
     revision: normalizeRevision(entity.revision),
     deleted_at: entity.deletedAt ?? null,
@@ -204,7 +218,7 @@ function syncFields(entity = {}) {
   };
 }
 
-function syncMetadataFromRow(row = {}) {
+function syncMetadataFromRow(row: any = {}) {
   return {
     revision: normalizeRevision(row.revision),
     deletedAt: row.deleted_at ?? null,
@@ -212,40 +226,40 @@ function syncMetadataFromRow(row = {}) {
   };
 }
 
-function stableValue(value) {
+function stableValue(value: any): any {
   if (Array.isArray(value)) return value.map(stableValue);
   if (!value || typeof value !== "object") return value;
-  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+  return Object.fromEntries(Object.keys(value).sort().map((key: any) => [key, stableValue(value[key])]));
 }
 
-function jsonValuesEqual(left, right) {
+function jsonValuesEqual(left: any, right: any) {
   return JSON.stringify(stableValue(left ?? null)) === JSON.stringify(stableValue(right ?? null));
 }
 
-function comparableRow(row = {}) {
-  return Object.fromEntries(Object.entries(row).filter(([key]) => !ROW_IDENTITY_FIELDS.has(key)));
+function comparableRow(row: any = {}) {
+  return Object.fromEntries(Object.entries(row).filter(([key]: any) => !ROW_IDENTITY_FIELDS.has(key)));
 }
 
-function rowsHaveSameContent(left, right) {
+function rowsHaveSameContent(left: any, right: any) {
   return JSON.stringify(stableValue(comparableRow(left))) === JSON.stringify(stableValue(comparableRow(right)));
 }
 
-function conflictValue(row = {}) {
-  return Object.fromEntries(Object.entries(row).filter(([key]) => key !== "user_id"));
+function conflictValue(row: any = {}) {
+  return Object.fromEntries(Object.entries(row).filter(([key]: any) => key !== "user_id"));
 }
 
-function conflictValuesEqual(left, right) {
+function conflictValuesEqual(left: any, right: any) {
   return jsonValuesEqual(left, right);
 }
 
-function conflictFieldKeys(localValue = {}, remoteValue = {}) {
+function conflictFieldKeys(localValue: any = {}, remoteValue: any = {}) {
   return [...new Set([...Object.keys(localValue), ...Object.keys(remoteValue)])]
-    .filter((field) => !CONFLICT_PROTECTED_FIELDS.has(field) && field !== "deleted_at")
-    .filter((field) => !conflictValuesEqual(localValue[field], remoteValue[field]))
-    .sort((left, right) => (CONFLICT_FIELD_LABELS[left] ?? left).localeCompare(CONFLICT_FIELD_LABELS[right] ?? right, "de"));
+    .filter((field: any) => !CONFLICT_PROTECTED_FIELDS.has(field) && field !== "deleted_at")
+    .filter((field: any) => !conflictValuesEqual(localValue[field], remoteValue[field]))
+    .sort((left: any, right: any) => ((CONFLICT_FIELD_LABELS as Record<string, string>)[left] ?? left).localeCompare((CONFLICT_FIELD_LABELS as Record<string, string>)[right] ?? right, "de"));
 }
 
-function formatConflictDisplayValue(value) {
+function formatConflictDisplayValue(value: any) {
   if (value == null || value === "") return "—";
   if (typeof value === "boolean") return value ? "Ja" : "Nein";
   if (typeof value === "string") return value.length > 500 ? `${value.slice(0, 497)}…` : value;
@@ -253,19 +267,19 @@ function formatConflictDisplayValue(value) {
   return serialized.length > 700 ? `${serialized.slice(0, 697)}…` : serialized;
 }
 
-function conflictEntityTitle(row = {}) {
+function conflictEntityTitle(row: any = {}) {
   const local = row.local_value ?? {};
   const remote = row.remote_value ?? {};
   return local.name ?? remote.name ?? local.file_name ?? remote.file_name ?? local.original_front ?? remote.original_front ?? local.front ?? remote.front ?? local.job_type ?? remote.job_type ?? row.entity_id;
 }
 
-function createConflictProjection(row = {}) {
+function createConflictProjection(row: any = {}) {
   const localValue = conflictValue(row.local_value ?? {});
   const remoteValue = conflictValue(row.remote_value ?? {});
   const tombstone = Boolean(localValue.deleted_at || remoteValue.deleted_at || Object.keys(localValue).length === 0 || Object.keys(remoteValue).length === 0);
-  const fields = conflictFieldKeys(localValue, remoteValue).map((field) => ({
+  const fields = conflictFieldKeys(localValue, remoteValue).map((field: any) => ({
     key: field,
-    label: CONFLICT_FIELD_LABELS[field] ?? field,
+    label: (CONFLICT_FIELD_LABELS as Record<string, string>)[field] ?? field,
     localText: formatConflictDisplayValue(localValue[field]),
     remoteText: formatConflictDisplayValue(remoteValue[field]),
   }));
@@ -273,7 +287,7 @@ function createConflictProjection(row = {}) {
     id: row.id,
     entityTable: row.entity_table,
     entityId: row.entity_id,
-    entityLabel: CONFLICT_ENTITY_LABELS[row.entity_table] ?? "Inhalt",
+    entityLabel: (CONFLICT_ENTITY_LABELS as Record<string, string>)[row.entity_table] ?? "Inhalt",
     title: String(conflictEntityTitle(row)),
     baseRevision: row.base_revision,
     localRevision: row.local_revision,
@@ -290,20 +304,20 @@ function createConflictProjection(row = {}) {
   };
 }
 
-function conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision }) {
-  return ["sync-conflict", entityTable, entityId, baseRevision ?? "new", remoteRevision ?? "missing"].map((value) => encodeURIComponent(String(value))).join(":");
+function conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision }: any) {
+  return ["sync-conflict", entityTable, entityId, baseRevision ?? "new", remoteRevision ?? "missing"].map((value: any) => encodeURIComponent(String(value))).join(":");
 }
 
-function profileHasSameContent(profile, user, remoteRow) {
+function profileHasSameContent(profile: any, user: any, remoteRow: any) {
   if (!remoteRow) return false;
   const candidate = createProfileRow(profile, user, remoteRow.updated_at);
-  const keys = Object.keys(candidate).filter((key) => key !== "updated_at");
-  const left = Object.fromEntries(keys.map((key) => [key, candidate[key]]));
-  const right = Object.fromEntries(keys.map((key) => [key, remoteRow[key]]));
+  const keys = Object.keys(candidate).filter((key: any) => key !== "updated_at");
+  const left = Object.fromEntries(keys.map((key: any) => [key, (candidate as Record<string, unknown>)[key]]));
+  const right = Object.fromEntries(keys.map((key: any) => [key, remoteRow[key]]));
   return JSON.stringify(stableValue(left)) === JSON.stringify(stableValue(right));
 }
 
-function uniqueRowsById(rows) {
+function uniqueRowsById(rows: any) {
   const byId = new Map();
   for (const row of rows) {
     if (row?.id) byId.set(row.id, row);
@@ -311,62 +325,67 @@ function uniqueRowsById(rows) {
   return [...byId.values()];
 }
 
-function normalizeSource(source) {
+function normalizeSource(source: any) {
   return source === "json_import" ? "json-import" : source || "manual";
 }
 
-function normalizeTransformType(transformType, isOriginal) {
+function normalizeTransformType(transformType: any, isOriginal: any) {
   if (isOriginal) return "original";
   return transformType || "rephrase";
 }
 
-async function getAuthenticatedUser(client) {
+async function getAuthenticatedUser(client: any) {
   if (!client?.auth || !client?.from) throw new Error("Supabase ist noch nicht konfiguriert.");
   const { data, error } = await client.auth.getUser();
   if (error) throw error;
   if (!data?.user) {
-    const missingSessionError = new Error("Bitte melde dich zuerst an.");
+    const missingSessionError = new Error("Bitte melde dich zuerst an.") as Error & { code: string };
     missingSessionError.code = "session_not_found";
     throw missingSessionError;
   }
   return data.user;
 }
 
-function requireNonEmptyString(value, message) {
+function requireNonEmptyString(value: any, message: any) {
   if (typeof value !== "string" || !value.trim()) throw new Error(message);
   return value.trim();
 }
 
-function requireTimestamp(value, fallback, message) {
+function requireTimestamp(value: any, fallback: any, message: any) {
   const timestamp = value ?? fallback();
   if (typeof timestamp !== "string" || Number.isNaN(Date.parse(timestamp))) throw new Error(message);
   return timestamp;
 }
 
-function requireMutationIds(mutationIds) {
+function requireMutationIds(mutationIds: any) {
   if (!Array.isArray(mutationIds)) throw new Error("Mutation-IDs müssen als Liste übergeben werden.");
-  return mutationIds.map((mutationId) => requireNonEmptyString(mutationId, "Mutation-ID fehlt."));
+  return mutationIds.map((mutationId: any) => requireNonEmptyString(mutationId, "Mutation-ID fehlt."));
 }
 
-async function upsertRows(client, table, rows) {
+async function upsertRows(client: any, table: any, rows: any) {
   if (!rows.length) return;
   const { error } = await client.from(table).upsert(rows, { onConflict: ACCOUNT_UPSERT_CONFLICT });
   if (error) throw error;
 }
 
-async function selectRows(client, table, userId, columns = "*") {
+async function selectRows<T extends AccountTable>(client: any, table: T, userId: string): Promise<Tables<T>[]>;
+async function selectRows(client: any, table: AccountTable, userId: string, columns: string): Promise<Array<Record<string, unknown>>>;
+async function selectRows(client: any, table: AccountTable, userId: string, columns: string = "*"): Promise<any[]> {
   const { data, error } = await client.from(table).select(columns).eq("user_id", userId);
   if (error) throw error;
-  return data ?? [];
+  if (columns !== "*") {
+    return validateIdRows(data ?? [], table);
+  }
+  return validateAccountRows(table as AccountTable, data ?? []);
 }
 
-async function selectProfileRows(client, userId) {
+async function selectProfileRows(client: any, userId: any) {
   const { data, error } = await client.from("profiles").select("*").eq("id", userId);
   if (error) throw error;
-  return data ?? [];
+  return validateProfileRows(data ?? []);
 }
 
-async function selectOptionalRows(client, table, userId, columns = "*") {
+async function selectOptionalRows(client: any, table: any, userId: any, columns: any = "*") {
   const { data, error } = await client.from(table).select(columns).eq("user_id", userId);
   if (error) {
     if (String(error?.code ?? "") === "42P01" || /does not exist|not exist/i.test(error?.message ?? "")) return [];
@@ -375,20 +394,20 @@ async function selectOptionalRows(client, table, userId, columns = "*") {
   return data ?? [];
 }
 
-async function selectRowById(client, table, userId, entityId, columns = "*") {
+async function selectRowById(client: any, table: any, userId: any, entityId: any, columns: any = "*") {
   const { data, error } = await client.from(table).select(columns).eq("user_id", userId).eq("id", entityId).maybeSingle();
   if (error) throw error;
   return data ?? null;
 }
 
-function requireBaseRevision(value) {
+function requireBaseRevision(value: any) {
   if (value === null) return null;
   const revision = Number(value);
   if (!Number.isInteger(revision) || revision < 1) throw new Error("Basisrevision ist ungültig.");
   return revision;
 }
 
-async function markConflictForUser(client, user, input = {}, { deviceId, createdAt } = {}) {
+async function markConflictForUser(client: any, user: any, input: any = {}, { deviceId, createdAt }: any = {}) {
   const entityTable = requireNonEmptyString(input.entityTable, "Konflikttabelle fehlt.");
   const entityId = requireNonEmptyString(input.entityId, "Konfliktentität fehlt.");
   const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
@@ -422,7 +441,7 @@ async function markConflictForUser(client, user, input = {}, { deviceId, created
   return syncConflictFromRow(persisted);
 }
 
-async function throwRevisionConflict(client, user, { entityTable, entityId, baseRevision, localValue, remoteValue, deviceId, createdAt }) {
+async function throwRevisionConflict(client: any, user: any, { entityTable, entityId, baseRevision, localValue, remoteValue, deviceId, createdAt }: any) {
   const remoteRevision = remoteValue?.revision == null ? null : normalizeRevision(remoteValue.revision);
   const localRevision = localValue?.revision == null ? baseRevision : normalizeRevision(localValue.revision);
   const conflict = await markConflictForUser(client, user, {
@@ -447,20 +466,20 @@ async function throwRevisionConflict(client, user, { entityTable, entityId, base
   });
 }
 
-async function deleteRowsById(client, table, userId, ids) {
+async function deleteRowsById(client: any, table: any, userId: any, ids: any) {
   if (!ids.length) return;
   const { error } = await client.from(table).delete().eq("user_id", userId).in("id", ids);
   if (error) throw error;
 }
 
-async function deleteRowsMissingFromState(client, table, userId, keepRows) {
-  const keepIds = new Set(keepRows.map((row) => row.id));
+async function deleteRowsMissingFromState(client: any, table: any, userId: any, keepRows: any) {
+  const keepIds = new Set(keepRows.map((row: any) => row.id));
   const existingRows = await selectRows(client, table, userId, "id");
-  const missingIds = existingRows.map((row) => row.id).filter((id) => !keepIds.has(id));
+  const missingIds = existingRows.map((row: any) => row.id).filter((id: any) => !keepIds.has(id));
   await deleteRowsById(client, table, userId, missingIds);
 }
 
-export function deckToCloudRow(deck, userId) {
+export function deckToCloudRow(deck: any, userId: any) {
   return {
     id: deck.id,
     user_id: userId,
@@ -485,7 +504,7 @@ export function deckToCloudRow(deck, userId) {
   };
 }
 
-export function cardToCloudRow(card, deck, userId) {
+export function cardToCloudRow(card: any, deck: any, userId: any) {
   return {
     id: card.id,
     user_id: userId,
@@ -516,7 +535,7 @@ export function cardToCloudRow(card, deck, userId) {
   };
 }
 
-export function variantToCloudRow(variant, card, userId) {
+export function variantToCloudRow(variant: any, card: any, userId: any) {
   return {
     id: variant.id,
     user_id: userId,
@@ -555,7 +574,7 @@ export function variantToCloudRow(variant, card, userId) {
   };
 }
 
-export function reviewEventToCloudRow(event, deck, userId, { deviceId = null } = {}) {
+export function reviewEventToCloudRow(event: any, deck: any, userId: any, { deviceId = null }: any = {}) {
   const reviewableId = event.reviewableId ?? event.cardId ?? event.variantId ?? "";
   const sourceCardId = event.sourceCardId ?? event.learningItemId ?? null;
   const answeredAt = event.answeredAt ?? event.createdAt;
@@ -579,7 +598,7 @@ export function reviewEventToCloudRow(event, deck, userId, { deviceId = null } =
   };
 }
 
-export function sourceDocumentToCloudRow(document, userId) {
+export function sourceDocumentToCloudRow(document: any, userId: any) {
   return {
     id: document.id,
     user_id: userId,
@@ -596,7 +615,7 @@ export function sourceDocumentToCloudRow(document, userId) {
   };
 }
 
-export function aiJobToCloudRow(job, userId, deckIds = new Set()) {
+export function aiJobToCloudRow(job: any, userId: any, deckIds: any = new Set()) {
   const deckId = job.deckId && deckIds.has(job.deckId) ? job.deckId : null;
 
   return {
@@ -616,23 +635,23 @@ export function aiJobToCloudRow(job, userId, deckIds = new Set()) {
   };
 }
 
-export function createCloudStateRows(state, userId, { deviceId = null } = {}) {
+export function createCloudStateRows(state: any, userId: any, { deviceId = null }: any = {}) {
   const decks = toArray(state.decks);
-  const deckIds = new Set(decks.map((deck) => deck.id));
+  const deckIds = new Set(decks.map((deck: any) => deck.id));
 
   return {
-    decks: uniqueRowsById(decks.map((deck) => deckToCloudRow(deck, userId))),
-    cards: uniqueRowsById(decks.flatMap((deck) => toArray(deck.cards).map((card) => cardToCloudRow(card, deck, userId)))),
-    card_variants: uniqueRowsById(decks.flatMap((deck) => toArray(deck.cards).flatMap((card) => toArray(card.variants).map((variant) => variantToCloudRow(variant, card, userId))))),
+    decks: uniqueRowsById(decks.map((deck: any) => deckToCloudRow(deck, userId))),
+    cards: uniqueRowsById(decks.flatMap((deck: any) => toArray(deck.cards).map((card: any) => cardToCloudRow(card, deck, userId)))),
+    card_variants: uniqueRowsById(decks.flatMap((deck: any) => toArray(deck.cards).flatMap((card: any) => toArray(card.variants).map((variant: any) => variantToCloudRow(variant, card, userId))))),
     review_events: uniqueRowsById(
-      decks.flatMap((deck) => toArray(deck.reviewEvents).map((event) => reviewEventToCloudRow(event, deck, userId, { deviceId })).filter((row) => row.id && row.rating)),
+      decks.flatMap((deck: any) => toArray(deck.reviewEvents).map((event: any) => reviewEventToCloudRow(event, deck, userId, { deviceId })).filter((row: any) => row.id && row.rating)),
     ),
-    source_documents: uniqueRowsById(toArray(state.documents).map((document) => sourceDocumentToCloudRow(document, userId))),
-    ai_jobs: uniqueRowsById([...decks.flatMap((deck) => toArray(deck.aiJobs)), ...toArray(state.aiJobs)].map((job) => aiJobToCloudRow(job, userId, deckIds))),
+    source_documents: uniqueRowsById(toArray(state.documents).map((document: any) => sourceDocumentToCloudRow(document, userId))),
+    ai_jobs: uniqueRowsById([...decks.flatMap((deck: any) => toArray(deck.aiJobs)), ...toArray(state.aiJobs)].map((job: any) => aiJobToCloudRow(job, userId, deckIds))),
   };
 }
 
-function variantFromRow(row) {
+function variantFromRow(row: any) {
   return {
     id: row.id,
     learningItemId: row.card_id,
@@ -671,7 +690,7 @@ function variantFromRow(row) {
   };
 }
 
-function cardFromRow(row, variants) {
+function cardFromRow(row: any, variants: any) {
   const { meta, model } = cardMetaFromCloud(row.meta);
 
   return {
@@ -713,7 +732,7 @@ function cardFromRow(row, variants) {
   };
 }
 
-function reviewEventFromRow(row) {
+function reviewEventFromRow(row: any) {
   const { flags, model } = reviewFlagsFromCloud(row.flags);
   const learningItemId = model.learningItemId ?? row.source_card_id ?? row.reviewable_id;
   const variantId = model.variantId ?? model.cardVariantId ?? row.reviewable_id;
@@ -751,7 +770,7 @@ function reviewEventFromRow(row) {
   };
 }
 
-function sourceDocumentFromRow(row) {
+function sourceDocumentFromRow(row: any) {
   return {
     id: row.id,
     ownerId: row.local_owner_id ?? row.user_id,
@@ -767,7 +786,7 @@ function sourceDocumentFromRow(row) {
   };
 }
 
-function aiJobFromRow(row) {
+function aiJobFromRow(row: any) {
   return {
     id: row.id,
     userId: row.user_id,
@@ -785,43 +804,43 @@ function aiJobFromRow(row) {
   };
 }
 
-function withoutConflictTombstone(state, entityTable, entityId) {
-  return toArray(state.cloudTombstones).filter((item) => item.entityTable !== entityTable || item.entityId !== entityId);
+function withoutConflictTombstone(state: any, entityTable: any, entityId: any) {
+  return toArray(state.cloudTombstones).filter((item: any) => item.entityTable !== entityTable || item.entityId !== entityId);
 }
 
-function replaceOrAppendById(items, nextItem) {
+function replaceOrAppendById(items: any, nextItem: any) {
   if (!nextItem) return items;
-  return items.some((item) => item.id === nextItem.id)
-    ? items.map((item) => item.id === nextItem.id ? nextItem : item)
+  return items.some((item: any) => item.id === nextItem.id)
+    ? items.map((item: any) => item.id === nextItem.id ? nextItem : item)
     : [...items, nextItem];
 }
 
-function projectResolvedCloudEntity(state, cloudState, entityTable, entityId) {
+function projectResolvedCloudEntity(state: any, cloudState: any, entityTable: any, entityId: any) {
   if (!state) return state;
-  const remoteTombstone = toArray(cloudState.cloudTombstones).find((item) => item.entityTable === entityTable && item.entityId === entityId);
+  const remoteTombstone = toArray(cloudState.cloudTombstones).find((item: any) => item.entityTable === entityTable && item.entityId === entityId);
   const cloudTombstones = remoteTombstone
     ? [...withoutConflictTombstone(state, entityTable, entityId), remoteTombstone]
     : withoutConflictTombstone(state, entityTable, entityId);
 
   if (entityTable === "decks") {
-    const remoteDeck = toArray(cloudState.decks).find((deck) => deck.id === entityId);
+    const remoteDeck = toArray(cloudState.decks).find((deck: any) => deck.id === entityId);
     return {
       ...state,
-      decks: remoteDeck ? replaceOrAppendById(toArray(state.decks), remoteDeck) : toArray(state.decks).filter((deck) => deck.id !== entityId),
+      decks: remoteDeck ? replaceOrAppendById(toArray(state.decks), remoteDeck) : toArray(state.decks).filter((deck: any) => deck.id !== entityId),
       cloudTombstones,
     };
   }
 
   if (entityTable === "cards") {
-    const remoteDeck = toArray(cloudState.decks).find((deck) => toArray(deck.cards).some((card) => card.id === entityId));
-    const remoteCard = remoteDeck?.cards.find((card) => card.id === entityId) ?? null;
+    const remoteDeck = toArray(cloudState.decks).find((deck: any) => toArray(deck.cards).some((card: any) => card.id === entityId));
+    const remoteCard = remoteDeck?.cards.find((card: any) => card.id === entityId) ?? null;
     return {
       ...state,
-      decks: toArray(state.decks).map((deck) => ({
+      decks: toArray(state.decks).map((deck: any) => ({
         ...deck,
         cards: remoteCard && deck.id === remoteDeck.id
           ? replaceOrAppendById(toArray(deck.cards), remoteCard)
-          : toArray(deck.cards).filter((card) => card.id !== entityId),
+          : toArray(deck.cards).filter((card: any) => card.id !== entityId),
       })),
       cloudTombstones,
     };
@@ -832,7 +851,7 @@ function projectResolvedCloudEntity(state, cloudState, entityTable, entityId) {
     let remoteCardId = null;
     for (const deck of toArray(cloudState.decks)) {
       for (const card of toArray(deck.cards)) {
-        const candidate = toArray(card.variants).find((variant) => variant.id === entityId);
+        const candidate = toArray(card.variants).find((variant: any) => variant.id === entityId);
         if (candidate) {
           remoteVariant = candidate;
           remoteCardId = card.id;
@@ -843,13 +862,13 @@ function projectResolvedCloudEntity(state, cloudState, entityTable, entityId) {
     }
     return {
       ...state,
-      decks: toArray(state.decks).map((deck) => ({
+      decks: toArray(state.decks).map((deck: any) => ({
         ...deck,
-        cards: toArray(deck.cards).map((card) => ({
+        cards: toArray(deck.cards).map((card: any) => ({
           ...card,
           variants: remoteVariant && card.id === remoteCardId
             ? replaceOrAppendById(toArray(card.variants), remoteVariant)
-            : toArray(card.variants).filter((variant) => variant.id !== entityId),
+            : toArray(card.variants).filter((variant: any) => variant.id !== entityId),
         })),
       })),
       cloudTombstones,
@@ -857,20 +876,20 @@ function projectResolvedCloudEntity(state, cloudState, entityTable, entityId) {
   }
 
   if (entityTable === "source_documents") {
-    const remoteDocument = toArray(cloudState.documents).find((document) => document.id === entityId) ?? null;
-    const remoteDecks = new Map(toArray(cloudState.decks).map((deck) => [deck.id, deck]));
+    const remoteDocument = toArray(cloudState.documents).find((document: any) => document.id === entityId) ?? null;
+    const remoteDecks = new Map(toArray(cloudState.decks).map((deck: any) => [deck.id, deck]));
     return {
       ...state,
       documents: remoteDocument
         ? replaceOrAppendById(toArray(state.documents), remoteDocument)
-        : toArray(state.documents).filter((document) => document.id !== entityId),
-      decks: toArray(state.decks).map((deck) => {
-        const remoteDeckDocument = toArray(remoteDecks.get(deck.id)?.sourceDocuments).find((document) => document.id === entityId) ?? null;
+        : toArray(state.documents).filter((document: any) => document.id !== entityId),
+      decks: toArray(state.decks).map((deck: any) => {
+        const remoteDeckDocument = toArray(remoteDecks.get(deck.id)?.sourceDocuments).find((document: any) => document.id === entityId) ?? null;
         return {
           ...deck,
           sourceDocuments: remoteDeckDocument
             ? replaceOrAppendById(toArray(deck.sourceDocuments), remoteDeckDocument)
-            : toArray(deck.sourceDocuments).filter((document) => document.id !== entityId),
+            : toArray(deck.sourceDocuments).filter((document: any) => document.id !== entityId),
         };
       }),
       cloudTombstones,
@@ -878,16 +897,16 @@ function projectResolvedCloudEntity(state, cloudState, entityTable, entityId) {
   }
 
   if (entityTable === "ai_jobs") {
-    const remoteJob = toArray(cloudState.aiJobs).find((job) => job.id === entityId) ?? null;
-    const remoteDecks = new Map(toArray(cloudState.decks).map((deck) => [deck.id, deck]));
+    const remoteJob = toArray(cloudState.aiJobs).find((job: any) => job.id === entityId) ?? null;
+    const remoteDecks = new Map(toArray(cloudState.decks).map((deck: any) => [deck.id, deck]));
     return {
       ...state,
-      aiJobs: remoteJob ? replaceOrAppendById(toArray(state.aiJobs), remoteJob) : toArray(state.aiJobs).filter((job) => job.id !== entityId),
-      decks: toArray(state.decks).map((deck) => {
-        const remoteDeckJob = toArray(remoteDecks.get(deck.id)?.aiJobs).find((job) => job.id === entityId) ?? null;
+      aiJobs: remoteJob ? replaceOrAppendById(toArray(state.aiJobs), remoteJob) : toArray(state.aiJobs).filter((job: any) => job.id !== entityId),
+      decks: toArray(state.decks).map((deck: any) => {
+        const remoteDeckJob = toArray(remoteDecks.get(deck.id)?.aiJobs).find((job: any) => job.id === entityId) ?? null;
         return {
           ...deck,
-          aiJobs: remoteDeckJob ? replaceOrAppendById(toArray(deck.aiJobs), remoteDeckJob) : toArray(deck.aiJobs).filter((job) => job.id !== entityId),
+          aiJobs: remoteDeckJob ? replaceOrAppendById(toArray(deck.aiJobs), remoteDeckJob) : toArray(deck.aiJobs).filter((job: any) => job.id !== entityId),
         };
       }),
       cloudTombstones,
@@ -897,20 +916,20 @@ function projectResolvedCloudEntity(state, cloudState, entityTable, entityId) {
   throw new Error(`Konfliktauflösung ist für ${entityTable} nicht unterstützt.`);
 }
 
-function documentsForDeck(deckCards, documents) {
-  const documentIds = new Set(deckCards.flatMap((card) => toArray(card.sourceAnchors).map((anchor) => anchor.documentId)).filter(Boolean));
-  return documents.filter((document) => documentIds.has(document.id));
+function documentsForDeck(deckCards: any, documents: any) {
+  const documentIds = new Set(deckCards.flatMap((card: any) => toArray(card.sourceAnchors).map((anchor: any) => anchor.documentId)).filter(Boolean));
+  return documents.filter((document: any) => documentIds.has(document.id));
 }
 
-function rowMaps(rowsByTable = {}) {
-  return Object.fromEntries(ACCOUNT_TABLES.map((table) => [table, new Map(toArray(rowsByTable[table]).map((row) => [row.id, row]))]));
+function rowMaps(rowsByTable: any = {}) {
+  return Object.fromEntries(ACCOUNT_TABLES.map((table: any) => [table, new Map(toArray(rowsByTable[table]).map((row: any) => [row.id, row]))]));
 }
 
-function createCloudTombstones(rowsByTable = {}) {
-  return REVISIONED_TABLES.flatMap((entityTable) =>
+function createCloudTombstones(rowsByTable: any = {}) {
+  return REVISIONED_TABLES.flatMap((entityTable: any) =>
     toArray(rowsByTable[entityTable])
-      .filter((row) => row.deleted_at)
-      .map((row) => ({
+      .filter((row: any) => row.deleted_at)
+      .map((row: any) => ({
         entityTable,
         entityId: row.id,
         revision: normalizeRevision(row.revision),
@@ -920,27 +939,27 @@ function createCloudTombstones(rowsByTable = {}) {
   );
 }
 
-function metadataById(items = []) {
-  return new Map(items.map((item) => [item.id, item]));
+function metadataById(items: any = []): Map<any, any> {
+  return new Map<any, any>(toArray(items).map((item: any) => [item.id, item]));
 }
 
-function tombstoneKeys(tombstones = []) {
-  return new Set(tombstones.map((tombstone) => `${tombstone.entityTable}:${tombstone.entityId}`));
+function tombstoneKeys(tombstones: any = []) {
+  return new Set(tombstones.map((tombstone: any) => `${tombstone.entityTable}:${tombstone.entityId}`));
 }
 
-export function reconcileCloudStateMetadata(state, rowsByTable = {}) {
+export function reconcileCloudStateMetadata(state: any, rowsByTable: any = {}) {
   const maps = rowMaps(rowsByTable);
   const cloudTombstones = createCloudTombstones(rowsByTable);
   const deletedKeys = tombstoneKeys(cloudTombstones);
   const documents = toArray(state.documents)
-    .filter((document) => !deletedKeys.has(`source_documents:${document.id}`))
-    .map((document) => {
+    .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
+    .map((document: any) => {
       const row = maps.source_documents.get(document.id);
       return row ? { ...document, ...syncMetadataFromRow(row), updatedAt: row.updated_at ?? document.updatedAt } : document;
     });
   const aiJobs = toArray(state.aiJobs)
-    .filter((job) => !deletedKeys.has(`ai_jobs:${job.id}`))
-    .map((job) => {
+    .filter((job: any) => !deletedKeys.has(`ai_jobs:${job.id}`))
+    .map((job: any) => {
       const row = maps.ai_jobs.get(job.id);
       return row ? { ...job, ...syncMetadataFromRow(row) } : job;
     });
@@ -948,31 +967,31 @@ export function reconcileCloudStateMetadata(state, rowsByTable = {}) {
   const aiJobMap = metadataById(aiJobs);
 
   const decks = toArray(state.decks)
-    .filter((deck) => !deletedKeys.has(`decks:${deck.id}`))
-    .map((deck) => {
+    .filter((deck: any) => !deletedKeys.has(`decks:${deck.id}`))
+    .map((deck: any) => {
       const deckRow = maps.decks.get(deck.id);
       const cards = toArray(deck.cards)
-        .filter((card) => !deletedKeys.has(`cards:${card.id}`))
-        .map((card) => {
+        .filter((card: any) => !deletedKeys.has(`cards:${card.id}`))
+        .map((card: any) => {
           const cardRow = maps.cards.get(card.id);
           const variants = toArray(card.variants)
-            .filter((variant) => !deletedKeys.has(`card_variants:${variant.id}`))
-            .map((variant) => {
+            .filter((variant: any) => !deletedKeys.has(`card_variants:${variant.id}`))
+            .map((variant: any) => {
               const variantRow = maps.card_variants.get(variant.id);
               return variantRow ? { ...variant, ...syncMetadataFromRow(variantRow) } : variant;
             });
           return cardRow ? { ...card, ...syncMetadataFromRow(cardRow), variants } : { ...card, variants };
         });
-      const reviewEvents = toArray(deck.reviewEvents).map((event) => {
+      const reviewEvents = toArray(deck.reviewEvents).map((event: any) => {
         const row = maps.review_events.get(event.id);
         return row ? reviewEventFromRow(row) : event;
       });
       const sourceDocuments = toArray(deck.sourceDocuments)
-        .filter((document) => !deletedKeys.has(`source_documents:${document.id}`))
-        .map((document) => documentMap.get(document.id) ?? document);
+        .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
+        .map((document: any) => documentMap.get(document.id) ?? document);
       const deckAiJobs = toArray(deck.aiJobs)
-        .filter((job) => !deletedKeys.has(`ai_jobs:${job.id}`))
-        .map((job) => aiJobMap.get(job.id) ?? job);
+        .filter((job: any) => !deletedKeys.has(`ai_jobs:${job.id}`))
+        .map((job: any) => aiJobMap.get(job.id) ?? job);
 
       return {
         ...deck,
@@ -993,7 +1012,7 @@ export function reconcileCloudStateMetadata(state, rowsByTable = {}) {
   };
 }
 
-export function mergeCloudSyncMetadata(state, acknowledgedState) {
+export function mergeCloudSyncMetadata(state: any, acknowledgedState: any) {
   if (!acknowledgedState) return state;
   const acknowledgedDecks = metadataById(acknowledgedState.decks);
   const acknowledgedDocuments = metadataById(acknowledgedState.documents);
@@ -1002,8 +1021,8 @@ export function mergeCloudSyncMetadata(state, acknowledgedState) {
   const deletedKeys = tombstoneKeys(cloudTombstones);
 
   const decks = toArray(state.decks)
-    .filter((deck) => !deletedKeys.has(`decks:${deck.id}`))
-    .map((deck) => {
+    .filter((deck: any) => !deletedKeys.has(`decks:${deck.id}`))
+    .map((deck: any) => {
       const acknowledgedDeck = acknowledgedDecks.get(deck.id);
       const acknowledgedCards = metadataById(acknowledgedDeck?.cards);
       const acknowledgedEvents = metadataById(acknowledgedDeck?.reviewEvents);
@@ -1019,8 +1038,8 @@ export function mergeCloudSyncMetadata(state, acknowledgedState) {
             }
           : {}),
         cards: toArray(deck.cards)
-          .filter((card) => !deletedKeys.has(`cards:${card.id}`))
-          .map((card) => {
+          .filter((card: any) => !deletedKeys.has(`cards:${card.id}`))
+          .map((card: any) => {
             const acknowledgedCard = acknowledgedCards.get(card.id);
             const acknowledgedVariants = metadataById(acknowledgedCard?.variants);
             return {
@@ -1033,8 +1052,8 @@ export function mergeCloudSyncMetadata(state, acknowledgedState) {
                   }
                 : {}),
               variants: toArray(card.variants)
-                .filter((variant) => !deletedKeys.has(`card_variants:${variant.id}`))
-                .map((variant) => {
+                .filter((variant: any) => !deletedKeys.has(`card_variants:${variant.id}`))
+                .map((variant: any) => {
                   const acknowledgedVariant = acknowledgedVariants.get(variant.id);
                   return acknowledgedVariant
                     ? {
@@ -1047,13 +1066,13 @@ export function mergeCloudSyncMetadata(state, acknowledgedState) {
                 }),
             };
           }),
-        reviewEvents: toArray(deck.reviewEvents).map((event) => acknowledgedEvents.get(event.id) ?? event),
+        reviewEvents: toArray(deck.reviewEvents).map((event: any) => acknowledgedEvents.get(event.id) ?? event),
         sourceDocuments: toArray(deck.sourceDocuments)
-          .filter((document) => !deletedKeys.has(`source_documents:${document.id}`))
-          .map((document) => acknowledgedDeckDocuments.get(document.id) ?? acknowledgedDocuments.get(document.id) ?? document),
+          .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
+          .map((document: any) => acknowledgedDeckDocuments.get(document.id) ?? acknowledgedDocuments.get(document.id) ?? document),
         aiJobs: toArray(deck.aiJobs)
-          .filter((job) => !deletedKeys.has(`ai_jobs:${job.id}`))
-          .map((job) => acknowledgedDeckJobs.get(job.id) ?? acknowledgedAiJobs.get(job.id) ?? job),
+          .filter((job: any) => !deletedKeys.has(`ai_jobs:${job.id}`))
+          .map((job: any) => acknowledgedDeckJobs.get(job.id) ?? acknowledgedAiJobs.get(job.id) ?? job),
       };
     });
 
@@ -1061,16 +1080,16 @@ export function mergeCloudSyncMetadata(state, acknowledgedState) {
     ...state,
     decks,
     documents: toArray(state.documents)
-      .filter((document) => !deletedKeys.has(`source_documents:${document.id}`))
-      .map((document) => acknowledgedDocuments.get(document.id) ?? document),
+      .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
+      .map((document: any) => acknowledgedDocuments.get(document.id) ?? document),
     aiJobs: toArray(state.aiJobs)
-      .filter((job) => !deletedKeys.has(`ai_jobs:${job.id}`))
-      .map((job) => acknowledgedAiJobs.get(job.id) ?? job),
+      .filter((job: any) => !deletedKeys.has(`ai_jobs:${job.id}`))
+      .map((job: any) => acknowledgedAiJobs.get(job.id) ?? job),
     cloudTombstones,
   };
 }
 
-export async function registerAccountSyncDevice(client, device, { lastSeenAt } = {}) {
+export async function registerAccountSyncDevice(client: any, device: any, { lastSeenAt }: any = {}) {
   const id = requireNonEmptyString(device?.id, "Geräte-ID fehlt.");
   const label = requireNonEmptyString(device?.label, "Gerätebezeichnung fehlt.");
   if (typeof device?.userAgent !== "string") throw new Error("User-Agent des Geräts fehlt.");
@@ -1093,7 +1112,7 @@ export async function registerAccountSyncDevice(client, device, { lastSeenAt } =
   return data;
 }
 
-function summarizeCloudRows(rows) {
+function summarizeCloudRows(rows: any) {
   return {
     decks: rows.decks.length,
     cards: rows.cards.length,
@@ -1104,17 +1123,17 @@ function summarizeCloudRows(rows) {
   };
 }
 
-async function loadAccountRows(client, userId) {
-  const values = await Promise.all(ACCOUNT_TABLES.map((table) => selectRows(client, table, userId)));
-  return Object.fromEntries(ACCOUNT_TABLES.map((table, index) => [table, values[index]]));
+async function loadAccountRows(client: any, userId: any) {
+  const values = await Promise.all(ACCOUNT_TABLES.map((table: any) => selectRows(client, table, userId)));
+  return Object.fromEntries(ACCOUNT_TABLES.map((table: any, index: any) => [table, values[index]]));
 }
 
-function createRevisionWritePlans(desiredRows, remoteRows, tombstones = []) {
-  const plans = {};
+function createRevisionWritePlans(desiredRows: any, remoteRows: any, tombstones: any = []) {
+  const plans: Record<string, any> = {};
 
   for (const table of REVISIONED_TABLES) {
-    const remoteById = new Map(toArray(remoteRows[table]).map((row) => [row.id, row]));
-    plans[table] = toArray(desiredRows[table]).map((row) => {
+    const remoteById = new Map(toArray(remoteRows[table]).map((row: any) => [row.id, row]));
+    plans[table] = toArray(desiredRows[table]).map((row: any) => {
       const remoteRow = remoteById.get(row.id);
       if (!remoteRow) return row.deleted_at ? { type: "unchanged", row } : { type: "insert", row: { ...row, revision: 1 }, baseRevision: null, remoteRow: null };
       if (row.deleted_at && remoteRow.deleted_at) return { type: "unchanged", row: remoteRow };
@@ -1126,8 +1145,8 @@ function createRevisionWritePlans(desiredRows, remoteRows, tombstones = []) {
       return { type: "update", row, baseRevision: localRevision, remoteRow };
     });
 
-    const plannedIds = new Set(plans[table].map((plan) => plan.row?.id).filter(Boolean));
-    for (const tombstone of toArray(tombstones).filter((item) => item?.entityTable === table && item?.entityId && !plannedIds.has(item.entityId))) {
+    const plannedIds = new Set(plans[table].map((plan: any) => plan.row?.id).filter(Boolean));
+    for (const tombstone of toArray(tombstones).filter((item: any) => item?.entityTable === table && item?.entityId && !plannedIds.has(item.entityId))) {
       const remoteRow = remoteById.get(tombstone.entityId) ?? null;
       if (!remoteRow || remoteRow.deleted_at) {
         plans[table].push({ type: "unchanged", row: remoteRow ?? { id: tombstone.entityId } });
@@ -1146,15 +1165,15 @@ function createRevisionWritePlans(desiredRows, remoteRows, tombstones = []) {
   return plans;
 }
 
-function updatePayload(row, { revision, deviceId, now }) {
-  const payload = Object.fromEntries(Object.entries(row).filter(([key]) => !["id", "user_id", "created_at"].includes(key)));
+function updatePayload(row: any, { revision, deviceId, now }: any) {
+  const payload = Object.fromEntries(Object.entries(row).filter(([key]: any) => !["id", "user_id", "created_at"].includes(key)));
   payload.revision = revision;
   payload.updated_by_device_id = deviceId ?? row.updated_by_device_id ?? null;
   if (Object.hasOwn(payload, "updated_at") && !payload.updated_at) payload.updated_at = now();
   return payload;
 }
 
-function revisionMutationResult(entityTable, row, { applied = false, idempotent = false } = {}) {
+function revisionMutationResult(entityTable: any, row: any, { applied = false, idempotent = false }: any = {}) {
   return {
     entityTable,
     entityId: row?.id ?? null,
@@ -1166,7 +1185,7 @@ function revisionMutationResult(entityTable, row, { applied = false, idempotent 
   };
 }
 
-async function applyRevisionedRowMutation(client, user, entityTable, desiredRow, options = {}) {
+async function applyRevisionedRowMutation(client: any, user: any, entityTable: any, desiredRow: any, options: any = {}) {
   if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Nicht revisionierbare Cloud-Tabelle: ${entityTable}`);
   const entityId = requireNonEmptyString(desiredRow?.id, "Entitäts-ID fehlt.");
   const deviceId = requireNonEmptyString(options.deviceId, "Geräte-ID fehlt.");
@@ -1255,18 +1274,18 @@ async function applyRevisionedRowMutation(client, user, entityTable, desiredRow,
   });
 }
 
-export async function applyDeckMutation(client, deck, options = {}) {
+export async function applyDeckMutation(client: any, deck: any, options: any = {}) {
   const user = await getAuthenticatedUser(client);
   return applyRevisionedRowMutation(client, user, "decks", deckToCloudRow(deck, user.id), options);
 }
 
-export async function applyCardMutation(client, card, options = {}) {
+export async function applyCardMutation(client: any, card: any, options: any = {}) {
   const user = await getAuthenticatedUser(client);
   const deckId = requireNonEmptyString(options.deckId ?? card?.deckId, "Deck-ID der Karte fehlt.");
   return applyRevisionedRowMutation(client, user, "cards", cardToCloudRow(card, { id: deckId, source: card?.source }, user.id), options);
 }
 
-async function softDeleteEntityForUser(client, user, input = {}, options = {}) {
+async function softDeleteEntityForUser(client: any, user: any, input: any = {}, options: any = {}) {
   const entityTable = requireNonEmptyString(input.entityTable, "Tabelle für Soft-Delete fehlt.");
   if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Soft-Delete ist für diese Tabelle nicht erlaubt: ${entityTable}`);
   const entityId = requireNonEmptyString(input.entityId, "Entitäts-ID für Soft-Delete fehlt.");
@@ -1291,7 +1310,7 @@ async function softDeleteEntityForUser(client, user, input = {}, options = {}) {
 
   const payload = {
     deleted_at: deletedAt,
-    revision: baseRevision + 1,
+    revision: normalizeRevision(baseRevision) + 1,
     updated_by_device_id: deviceId,
     ...(TABLES_WITH_UPDATED_AT.has(entityTable) ? { updated_at: deletedAt } : {}),
   };
@@ -1318,28 +1337,28 @@ async function softDeleteEntityForUser(client, user, input = {}, options = {}) {
   });
 }
 
-export async function softDeleteEntity(client, input, options = {}) {
+export async function softDeleteEntity(client: any, input: any, options: any = {}) {
   const user = await getAuthenticatedUser(client);
   return softDeleteEntityForUser(client, user, input, options);
 }
 
-export async function markConflict(client, input, options = {}) {
+export async function markConflict(client: any, input: any, options: any = {}) {
   const user = await getAuthenticatedUser(client);
   return markConflictForUser(client, user, input, options);
 }
 
-async function insertRowsReturning(client, table, rows) {
+async function insertRowsReturning(client: any, table: any, rows: any) {
   if (!rows.length) return [];
   const { data, error } = await client.from(table).insert(rows).select("*");
   if (error) throw error;
   return data ?? [];
 }
 
-async function applyRevisionWritePlans(client, user, plans, { deviceId, flushedAt }) {
+async function applyRevisionWritePlans(client: any, user: any, plans: any, { deviceId, flushedAt }: any) {
   for (const table of REVISIONED_TABLES) {
     const inserts = plans[table]
-      .filter((plan) => plan.type === "insert")
-      .map((plan) => ({
+      .filter((plan: any) => plan.type === "insert")
+      .map((plan: any) => ({
         ...plan.row,
         revision: 1,
         updated_by_device_id: deviceId ?? plan.row.updated_by_device_id ?? null,
@@ -1348,8 +1367,9 @@ async function applyRevisionWritePlans(client, user, plans, { deviceId, flushedA
       try {
         await insertRowsReturning(client, table, inserts);
       } catch (error) {
-        if (String(error?.code ?? "") !== "23505" && !/duplicate/i.test(error?.message ?? "")) throw error;
-        for (const plan of plans[table].filter((item) => item.type === "insert")) {
+        const databaseError = error as { code?: unknown; message?: unknown };
+        if (String(databaseError.code ?? "") !== "23505" && !/duplicate/i.test(String(databaseError.message ?? ""))) throw error;
+        for (const plan of plans[table].filter((item: any) => item.type === "insert")) {
           await applyRevisionedRowMutation(client, user, table, plan.row, {
             deviceId,
             baseRevision: null,
@@ -1359,7 +1379,7 @@ async function applyRevisionWritePlans(client, user, plans, { deviceId, flushedA
       }
     }
 
-    for (const plan of plans[table].filter((item) => item.type === "update")) {
+    for (const plan of plans[table].filter((item: any) => item.type === "update")) {
       await applyRevisionedRowMutation(client, user, table, plan.row, {
         deviceId,
         baseRevision: plan.baseRevision,
@@ -1368,7 +1388,7 @@ async function applyRevisionWritePlans(client, user, plans, { deviceId, flushedA
       });
     }
 
-    for (const plan of plans[table].filter((item) => item.type === "delete")) {
+    for (const plan of plans[table].filter((item: any) => item.type === "delete")) {
       await softDeleteEntityForUser(client, user, {
         entityTable: table,
         entityId: plan.row.id,
@@ -1383,17 +1403,17 @@ async function applyRevisionWritePlans(client, user, plans, { deviceId, flushedA
   }
 }
 
-async function appendMissingReviewEvents(client, desiredRows, remoteRows, { deviceId }) {
-  const remoteIds = new Set(toArray(remoteRows).map((row) => row.id));
+async function appendMissingReviewEvents(client: any, desiredRows: any, remoteRows: any, { deviceId }: any) {
+  const remoteIds = new Set(toArray(remoteRows).map((row: any) => row.id));
   const inserts = toArray(desiredRows)
-    .filter((row) => !remoteIds.has(row.id))
-    .map((row) => ({ ...row, created_by_device_id: row.created_by_device_id ?? deviceId ?? null }));
+    .filter((row: any) => !remoteIds.has(row.id))
+    .map((row: any) => ({ ...row, created_by_device_id: row.created_by_device_id ?? deviceId ?? null }));
   if (!inserts.length) return;
   const { error } = await client.from("review_events").upsert(inserts, { onConflict: ACCOUNT_UPSERT_CONFLICT, ignoreDuplicates: true });
   if (error) throw error;
 }
 
-export async function appendReviewEvent(client, event, { deviceId, mutationId } = {}) {
+export async function appendReviewEvent(client: any, event: any, { deviceId, mutationId }: any = {}) {
   const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
   const resolvedMutationId = requireNonEmptyString(mutationId, "Mutation-ID fehlt.");
   const deckId = event?.deckId;
@@ -1407,22 +1427,22 @@ export async function appendReviewEvent(client, event, { deviceId, mutationId } 
   if (error) throw error;
   const persisted = await selectRowById(client, "review_events", user.id, row.id);
   if (!persisted || !rowsHaveSameContent(row, persisted)) {
-    const mismatch = new Error("Das Review-Event konnte nicht unverändert in der Cloud bestätigt werden.");
+    const mismatch = new Error("Das Review-Event konnte nicht unverändert in der Cloud bestätigt werden.") as Error & { code: string };
     mismatch.code = "review_event_confirmation_failed";
     throw mismatch;
   }
   return { eventId: row.id, acknowledgedMutationId: resolvedMutationId };
 }
 
-export async function replaceAccountCloudState(client, state, { deviceId } = {}) {
+export async function replaceAccountCloudState(client: any, state: any, { deviceId }: any = {}) {
   const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
   const user = await getAuthenticatedUser(client);
   const remoteRows = await loadAccountRows(client, user.id);
-  const rows = createCloudStateRows(state, user.id, { deviceId: resolvedDeviceId });
+  const rows: Record<string, any[]> = createCloudStateRows(state, user.id, { deviceId: resolvedDeviceId });
 
   for (const table of REVISIONED_TABLES) {
-    const remoteById = new Map(toArray(remoteRows[table]).map((row) => [row.id, row]));
-    rows[table] = rows[table].map((row) => ({
+    const remoteById = new Map(toArray(remoteRows[table]).map((row: any) => [row.id, row]));
+    rows[table] = rows[table].map((row: any) => ({
       ...row,
       revision: remoteById.has(row.id) ? normalizeRevision(remoteById.get(row.id).revision) + 1 : 1,
       updated_by_device_id: resolvedDeviceId,
@@ -1448,7 +1468,7 @@ export async function replaceAccountCloudState(client, state, { deviceId } = {})
   };
 }
 
-export async function upsertAccountCloudState(client, state, { deviceId, mutationIds = [], flushedAt } = {}) {
+export async function upsertAccountCloudState(client: any, state: any, { deviceId, mutationIds = [], flushedAt }: any = {}) {
   const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
   const acknowledgedMutationIds = requireMutationIds(mutationIds);
   const writeTimestamp = requireTimestamp(flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
@@ -1471,7 +1491,7 @@ export async function upsertAccountCloudState(client, state, { deviceId, mutatio
   };
 }
 
-export async function loadAccountCloudState(client, fallbackState = {}) {
+export async function loadAccountCloudState(client: any, fallbackState: any = {}) {
   const user = await getAuthenticatedUser(client);
   const [profileRows, deckRows, cardRows, variantRows, reviewRows, documentRows, aiJobRows] = await Promise.all([
     selectProfileRows(client, user.id),
@@ -1490,12 +1510,12 @@ export async function loadAccountCloudState(client, fallbackState = {}) {
     source_documents: documentRows,
     ai_jobs: aiJobRows,
   };
-  const activeDeckIds = new Set(deckRows.filter((row) => !row.deleted_at).map((row) => row.id));
-  const activeCardRows = cardRows.filter((row) => !row.deleted_at && activeDeckIds.has(row.deck_id));
-  const activeCardIds = new Set(activeCardRows.map((row) => row.id));
-  const activeVariantRows = variantRows.filter((row) => !row.deleted_at && activeCardIds.has(row.card_id));
-  const documents = documentRows.filter((row) => !row.deleted_at).map(sourceDocumentFromRow);
-  const aiJobs = aiJobRows.filter((row) => !row.deleted_at).map(aiJobFromRow);
+  const activeDeckIds = new Set(deckRows.filter((row: any) => !row.deleted_at).map((row: any) => row.id));
+  const activeCardRows = cardRows.filter((row: any) => !row.deleted_at && activeDeckIds.has(row.deck_id));
+  const activeCardIds = new Set(activeCardRows.map((row: any) => row.id));
+  const activeVariantRows = variantRows.filter((row: any) => !row.deleted_at && activeCardIds.has(row.card_id));
+  const documents = documentRows.filter((row: any) => !row.deleted_at).map(sourceDocumentFromRow);
+  const aiJobs = aiJobRows.filter((row: any) => !row.deleted_at).map(aiJobFromRow);
   const variantsByCardId = new Map();
   for (const variant of activeVariantRows.map(variantFromRow)) {
     variantsByCardId.set(variant.cardId, [...(variantsByCardId.get(variant.cardId) ?? []), variant]);
@@ -1513,11 +1533,11 @@ export async function loadAccountCloudState(client, fallbackState = {}) {
   }
 
   const aiJobsByDeckId = new Map();
-  for (const job of aiJobs.filter((item) => item.deckId)) {
+  for (const job of aiJobs.filter((item: any) => item.deckId)) {
     aiJobsByDeckId.set(job.deckId, [...(aiJobsByDeckId.get(job.deckId) ?? []), job]);
   }
 
-  const decks = deckRows.filter((row) => !row.deleted_at).map((row) => {
+  const decks = deckRows.filter((row: any) => !row.deleted_at).map((row: any) => {
     const cards = cardsByDeckId.get(row.id) ?? [];
     return createCoreDeck({
       id: row.id,
@@ -1556,21 +1576,21 @@ export async function loadAccountCloudState(client, fallbackState = {}) {
   };
 }
 
-export function syncConflictFromRow(row) {
+export function syncConflictFromRow(row: any) {
   return createConflictProjection(row);
 }
 
-export async function listAccountSyncConflicts(client) {
+export async function listAccountSyncConflicts(client: any) {
   const user = await getAuthenticatedUser(client);
   const rows = await selectOptionalRows(client, "sync_conflicts", user.id);
-  const statusOrder = { open: 0, ignored: 1 };
+  const statusOrder: Record<string, number> = { open: 0, ignored: 1 };
   return rows
-    .filter((row) => row.status === "open" || row.status === "ignored")
-    .sort((left, right) => (statusOrder[left.status] - statusOrder[right.status]) || String(right.created_at).localeCompare(String(left.created_at)))
+    .filter((row: any) => row.status === "open" || row.status === "ignored")
+    .sort((left: any, right: any) => (statusOrder[left.status] - statusOrder[right.status]) || String(right.created_at).localeCompare(String(left.created_at)))
     .map(syncConflictFromRow);
 }
 
-function normalizeConflictDecision(decision = {}, conflictRow = {}) {
+function normalizeConflictDecision(decision: any = {}, conflictRow: any = {}) {
   const action = requireNonEmptyString(decision.action, "Konfliktentscheidung fehlt.");
   if (!CONFLICT_ACTIONS.has(action)) throw new Error("Konfliktentscheidung ist ungültig.");
   const localValue = conflictValue(conflictRow.local_value ?? {});
@@ -1585,12 +1605,12 @@ function normalizeConflictDecision(decision = {}, conflictRow = {}) {
     if (!fields.includes(field) || CONFLICT_PROTECTED_FIELDS.has(field)) throw new Error(`Konfliktfeld ist nicht auswählbar: ${field}`);
     if (fieldChoices[field] !== "local" && fieldChoices[field] !== "remote") throw new Error(`Auswahl für ${field} ist ungültig.`);
   }
-  const missing = fields.filter((field) => fieldChoices[field] !== "local" && fieldChoices[field] !== "remote");
+  const missing = fields.filter((field: any) => fieldChoices[field] !== "local" && fieldChoices[field] !== "remote");
   if (missing.length) throw new Error("Bitte entscheide jedes geänderte Feld.");
-  return { action, fieldChoices: Object.fromEntries(fields.map((field) => [field, fieldChoices[field]])), localValue, remoteValue, fields, tombstone };
+  return { action, fieldChoices: Object.fromEntries(fields.map((field: any) => [field, fieldChoices[field]])), localValue, remoteValue, fields, tombstone };
 }
 
-function chosenConflictRow(normalized) {
+function chosenConflictRow(normalized: any) {
   if (normalized.action === "keep-local") return { ...normalized.localValue };
   if (normalized.action === "keep-remote") return { ...normalized.remoteValue };
   if (normalized.action !== "merge-fields") return null;
@@ -1599,7 +1619,7 @@ function chosenConflictRow(normalized) {
   return chosen;
 }
 
-async function persistConflictChoice(client, user, conflictRow, normalized, { deviceId, resolvedAt }) {
+async function persistConflictChoice(client: any, user: any, conflictRow: any, normalized: any, { deviceId, resolvedAt }: any) {
   const entityTable = conflictRow.entity_table;
   if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Konfliktauflösung ist für ${entityTable} nicht unterstützt.`);
   const currentRemote = await selectRowById(client, entityTable, user.id, conflictRow.entity_id);
@@ -1649,7 +1669,7 @@ async function persistConflictChoice(client, user, conflictRow, normalized, { de
   return data[0];
 }
 
-async function updateConflictResolution(client, user, conflictRow, normalized, { deviceId, resolvedAt }) {
+async function updateConflictResolution(client: any, user: any, conflictRow: any, normalized: any, { deviceId, resolvedAt }: any) {
   const ignored = normalized.action === "ignore";
   const reopened = normalized.action === "reopen";
   const payload = {
@@ -1670,7 +1690,7 @@ async function updateConflictResolution(client, user, conflictRow, normalized, {
   return data;
 }
 
-export async function resolveAccountSyncConflict(client, conflictId, decision, options = {}) {
+export async function resolveAccountSyncConflict(client: any, conflictId: any, decision: any, options: any = {}) {
   const user = await getAuthenticatedUser(client);
   const id = requireNonEmptyString(conflictId, "Konflikt-ID fehlt.");
   const deviceId = requireNonEmptyString(options.deviceId, "Geräte-ID fehlt.");

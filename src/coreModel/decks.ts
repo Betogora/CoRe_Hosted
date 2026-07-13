@@ -1,10 +1,10 @@
-import type { Deck, DeckSource, DeckVisibility, VersionEntry } from "../coreTypes.ts";
+import type { AiJob, Deck, DeckSource, DeckVisibility, ReviewEvent, SourceDocument, VersionEntry } from "../coreTypes.ts";
 import { CORE_DECK_SOURCES, DECK_VISIBILITIES, createDefaultDeckSettings, makeId, normalizeTags, unique } from "./coreValues.ts";
 import { createVersionEntry, normalizeVersionLog } from "./reviewState.ts";
 import { createCoreLearningItem, type CoreCardInput } from "./learningItems.ts";
 
 type DeckSettingsInput = Parameters<typeof createDefaultDeckSettings>[0];
-interface CoreDeckInput { id?: string; name?: string; description?: string; source?: DeckSource; ownerId?: string; parentDeckId?: string | null; hierarchyPath?: string[] | null; visibility?: DeckVisibility; originalDeckId?: string | null; cards?: CoreCardInput[]; tags?: unknown; importMeta?: unknown; deckSettings?: DeckSettingsInput; sourceDocuments?: unknown[]; reviewEvents?: unknown[]; aiJobs?: unknown[]; graph?: unknown; communityRefs?: unknown[]; createdAt?: string; updatedAt?: string; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; versionLog?: VersionEntry[]; }
+interface CoreDeckInput { id?: string; name?: string; description?: string; source?: DeckSource; ownerId?: string; parentDeckId?: string | null; hierarchyPath?: string[] | null; visibility?: DeckVisibility; originalDeckId?: string | null; cards?: CoreCardInput[]; tags?: unknown; importMeta?: Record<string, unknown>; deckSettings?: DeckSettingsInput; sourceDocuments?: SourceDocument[]; reviewEvents?: ReviewEvent[]; aiJobs?: AiJob[]; graph?: unknown; communityRefs?: unknown[]; createdAt?: string; updatedAt?: string; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; versionLog?: VersionEntry[]; }
 function objectRecord(value: unknown): Record<string, unknown> { return value !== null && typeof value === "object" ? value as Record<string, unknown> : {}; }
 function splitDeckPath(name: unknown, hierarchyPath: unknown): string[] {
   if (Array.isArray(hierarchyPath) && hierarchyPath.length > 0) {
@@ -104,7 +104,7 @@ export function createCoreDeck({
 }
 
 export function normalizeCoreDeck(deck: unknown): Deck {
-  const input = objectRecord(deck) as CoreDeckInput;
+  const input = objectRecord(deck) as unknown as CoreDeckInput;
   return createCoreDeck({
     ...input,
     id: input.id,

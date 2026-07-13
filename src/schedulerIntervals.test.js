@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getOriginalVariant } from "./coreModel.ts";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
-import { importNormalizedDeck } from "./importService.js";
+import { importNormalizedDeck } from "./importService.ts";
 import { answerVariant, createDailyReviewQueue, getNextReviewItem, updateDeckNewCardLimitForDate } from "./reviewService.ts";
 import { formatIntervalLabel, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
 

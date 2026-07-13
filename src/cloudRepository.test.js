@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createProfileRow } from "./cloudAuth.js";
+import { createProfileRow } from "./cloudAuth.ts";
 import { createBasicLearningItem, createCoreDeck, createSourceDocument, getOriginalVariant } from "./coreModel.ts";
 import {
   ACCOUNT_UPSERT_CONFLICT,
@@ -22,7 +22,7 @@ import {
   SyncConflictChangedError,
   upsertAccountCloudState,
   variantToCloudRow,
-} from "./cloudRepository.js";
+} from "./cloudRepository.ts";
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -533,6 +533,17 @@ test("cloud repository roundtrips sync metadata and media references", async () 
   assert.equal(deck.reviewEvents[0].createdByDeviceId, "device-a");
   assert.equal(loaded.documents[0].revision, 2);
   assert.equal(loaded.aiJobs[0].revision, 2);
+});
+
+test("cloud repository rejects malformed JSONB before replacing local state", async () => {
+  const fixture = createCloudFixture();
+  fixture.rows.cards[0].review_state = "kein Objekt";
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+
+  await assert.rejects(
+    () => loadAccountCloudState(client, fixture.state),
+    /Cloud-Daten für cards hatten ein ungültiges Format/,
+  );
 });
 
 test("cloud repository roundtrips Learning Item fields and review compatibility aliases", async () => {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveCardHtmlMedia } from "./mediaStore.js";
+import { createDeckMediaUrlMap, resolveCardHtmlMedia } from "./mediaStore.ts";
 
 test("resolves only known media refs in sanitized card html", () => {
   const resolved = resolveCardHtmlMedia(
@@ -16,3 +16,34 @@ test("resolves only known media refs in sanitized card html", () => {
   assert.equal(resolved.includes('src="missing.jpg"'), true);
 });
 
+test("invalid IndexedDB media records become missing media without object URLs", async () => {
+  const originalIndexedDb = globalThis.indexedDB;
+  const recordRequest = { result: { sha1: "abc123", name: "card.png", size: 4, mimeType: "image/png", updatedAt: "invalid", blob: "not-a-blob" } };
+  const database = {
+    objectStoreNames: { contains: () => true },
+    transaction() {
+      return { objectStore: () => ({ get: () => {
+        queueMicrotask(() => recordRequest.onsuccess?.());
+        return recordRequest;
+      } }) };
+    },
+    close() {},
+  };
+  globalThis.indexedDB = {
+    open() {
+      const request = { result: database };
+      queueMicrotask(() => request.onsuccess?.());
+      return request;
+    },
+  };
+
+  try {
+    const result = await createDeckMediaUrlMap({
+      importMeta: { mediaManifest: { assets: [{ sha1: "abc123", name: "card.png", size: 4, mimeType: "image/png" }] } },
+    });
+    assert.deepEqual(result.urls, {});
+    assert.equal(result.missing.length, 1);
+  } finally {
+    globalThis.indexedDB = originalIndexedDb;
+  }
+});

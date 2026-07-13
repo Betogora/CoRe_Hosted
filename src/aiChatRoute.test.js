@@ -7,7 +7,7 @@ import {
   GEMMA_CHAT_MODEL,
   isAllowedOrigin,
   MAX_CHAT_REQUEST_BYTES,
-} from "../api/ai/chat.js";
+} from "../api/ai/chat.ts";
 
 function createReq({ method = "POST", headers = {}, body = {} } = {}) {
   return {
@@ -220,6 +220,29 @@ test("Gemma chat route maps empty provider output as provider_empty_answer", asy
 
   assert.equal(res.statusCode, 502);
   assert.equal(res.json().error.code, "provider_empty_answer");
+});
+
+test("Gemma chat route rejects unexpected provider payloads without logging prompts or secrets", async () => {
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args);
+  try {
+    const handler = createChatHandler({
+      env: { GOOGLE_API_KEY: "test-secret" },
+      fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ answer: "provider-intern" }) }),
+    });
+    const res = createRes();
+    await handler(createReq({ body: { question: "Geheime vollständige Frage", evidence: [], sourceBound: false } }), res);
+
+    assert.equal(res.statusCode, 502);
+    assert.equal(res.json().error.code, "provider_invalid_response");
+    const logText = JSON.stringify(warnings);
+    assert.equal(logText.includes("test-secret"), false);
+    assert.equal(logText.includes("Geheime vollständige Frage"), false);
+    assert.equal(logText.includes("provider-intern"), false);
+  } finally {
+    console.warn = originalWarn;
+  }
 });
 
 test("Gemma chat route accepts same-origin or originless requests only", () => {

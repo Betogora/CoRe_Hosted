@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createSourceDocument, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.ts";
-import { createCoreRepository } from "./coreRepository.js";
+import { createCoreRepository } from "./coreRepository.ts";
 import { createCoreWorkspace, createDemoAnatomyDeck } from "./coreWorkspace.ts";
 import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.js";
 import { createStudyHeatmapModel } from "./libraryModel.ts";
@@ -246,6 +246,17 @@ test("workspace creates manual deck trees and deletes a selected subtree", () =>
     new Set(workspace.getState().cloudTombstones.filter((tombstone) => tombstone.entityTable === "decks").map((tombstone) => tombstone.entityId)),
     new Set([anatomy.id, head.id]),
   );
+});
+
+test("repository falls back to a safe default for structurally damaged app state", () => {
+  const storage = createMemoryStorage();
+  storage.setItem("core.appState.v2", JSON.stringify({ version: 2, decks: [{ name: "ID fehlt" }] }));
+
+  const state = createCoreRepository(storage, { seedDefaultDecks: false }).getState();
+
+  assert.equal(state.version, 2);
+  assert.deepEqual(state.decks, []);
+  assert.equal(state.profile.userId, "local-user");
 });
 
 test("workspace stores deck appearance while creating nested decks", () => {

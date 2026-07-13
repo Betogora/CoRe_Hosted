@@ -7,15 +7,15 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 ## Auditierter Ist-Stand
 
 - `npm run typecheck`: strikter TypeScript-Graph und Type-Policy ohne `@ts-ignore`/`@ts-nocheck` sind grün; `allowJs` bleibt für die M1–M3-Migration aktiv und `checkJs` bewusst aus.
-- `npm test`: 298 Tests bestanden, einschließlich des ersten ausgeführten `.test.ts` für die kanonischen Kernformen.
+- `npm test`: 306 Tests bestanden, einschließlich Runtime-Vertragstests für lokale/Cloud-Persistenz, Medien, KI-Provider und den APKG-Worker.
 - `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der lokale Entry-Chunk ist 275,35 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
 - `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und vierzehn authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 21/21 Tests grün; zusätzlich zu PDF-Lazy-Loading, Textauswahl, Kartenfeld, Quellenanker und accountgebundener Konfliktentscheidung ist eine Offline-Änderung mit anschließendem Reconnect-Flush abgedeckt.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
 - `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten einschließlich des vollständigen `sync_devices`-Spaltenvertrags, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
 - `npm run test:rls:local`: SQL-Struktur-Gate und acht echte Data-API-Smokes mit Nutzer A, Nutzer B und `anon` sind grün. Eigene CRUD-Zugriffe, unsichtbare fremde Rows, wirkungslose Fremdmutationen, Ownership-Fälschung, accountgebundene Foreign Keys, gleiche lokale IDs, Geräte-Heartbeat sowie zwei konkurrierende Deck-Writes auf derselben Basisrevision mit persistiertem Konflikt sind reproduzierbar geprüft.
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
-- Der debouncete Autosave läuft über `src/syncEngine.js` und `src/cloudRepository.js`: `applyDeckMutation`, `applyCardMutation` und `softDeleteEntity` prüfen Basisrevisionen atomar über `user_id`, `id` und `revision`; stale Writes erzeugen idempotente `sync_conflicts`. Deckbaum-Löschungen bleiben bis zur Cloud-Bestätigung als Tombstones erhalten. Die accountgebundene Outbox überlebt Reloads, behält fehlgeschlagene Mutationen mit Retry-Zähler und entfernt Review- beziehungsweise Snapshot-Mutationen nur nach getrenntem Persistenz-Readback.
-- `src/creationWorkflow.ts` verwendet weiterhin den lokalen `src/mediaStore.js`. `src/cloudMediaStore.js` dedupliziert separat getestet innerhalb eines Deck-/Card-Kontexts über Nutzer, Bucket und SHA-1, verwendet dateinamenunabhängige kanonische Pfade und bestätigt keine Row für noch nicht hochgeladene große Dateien; die Integration in Import, Cloud-State-Laden und Karten-Rendering fehlt weiterhin.
+- Der debouncete Autosave läuft über `src/syncEngine.ts` und `src/cloudRepository.ts`: `applyDeckMutation`, `applyCardMutation` und `softDeleteEntity` prüfen Basisrevisionen atomar über `user_id`, `id` und `revision`; stale Writes erzeugen idempotente `sync_conflicts`. Deckbaum-Löschungen bleiben bis zur Cloud-Bestätigung als Tombstones erhalten. Die accountgebundene Outbox überlebt Reloads, behält fehlgeschlagene Mutationen mit Retry-Zähler und entfernt Review- beziehungsweise Snapshot-Mutationen nur nach getrenntem Persistenz-Readback.
+- `src/creationWorkflow.ts` verwendet weiterhin den lokalen `src/mediaStore.ts`. `src/cloudMediaStore.ts` dedupliziert separat getestet innerhalb eines Deck-/Card-Kontexts über Nutzer, Bucket und SHA-1, verwendet dateinamenunabhängige kanonische Pfade und bestätigt keine Row für noch nicht hochgeladene große Dateien; die Integration in Import, Cloud-State-Laden und Karten-Rendering fehlt weiterhin.
 - Der einzige Server-KI-Pfad ist `POST /api/ai/chat`. Die Route prüft Origin, Request-Größe und Providerfehler, liest aktuelle `steps`- sowie ältere `outputs`-Responses und protokolliert bei Providerfehlern nur sichere Strukturmetadaten. Supabase-Session, Nutzer-/IP-Limits und Kostenbudgets fehlen weiterhin; der Browser sendet derzeit keinen Bearer-Token.
 - Community, Graph, KI-Drafts, Varianten und Jobs sind weiterhin lokale Produktmodelle; nur Chat besitzt einen externen Gemma-Proxy.
 
@@ -29,7 +29,7 @@ Das bisherige P0-Betriebsgate, P1 Repository-Mapping, die lokale Ownership-/RLS-
 
 ## Aktives nächstes Ziel
 
-**P0 M3 — Persistenz-, Import- und Servergrenzen.** Als nächster TypeScript-Slice werden die I/O- und Vertrauensgrenzen hinter ihren bestehenden Interfaces migriert und mit Laufzeitvalidierung abgesichert. Die bereits offene Zwei-Geräte-Abnahme bleibt ein parallel zulässiges Korrektheitsgate, ist aber kein Grund, weitere untypisierte Featurepfade zu ergänzen.
+**P0 M4 — React, Tests und Tooling abschließen.** Nach dem abgeschlossenen M3-Slice werden App-Shell, Screens, UI-Module und produktnahe Tests migriert und anschließend `allowJs` deaktiviert. Die bereits offene Zwei-Geräte-Abnahme bleibt ein parallel zulässiges Korrektheitsgate.
 
 Verbindlicher URL-Vertrag:
 
@@ -49,6 +49,7 @@ Phasen und messbare Abnahme:
 - [x] P1 konkrete Cloud-Mutationen geschlossen: `applyDeckMutation`, `applyCardMutation`, `appendReviewEvent`, `softDeleteEntity` und `markConflict` bestätigen nur persistierte Writes, halten stale Snapshots in der Outbox und schreiben Konflikte idempotent; 257 Modul-, acht RLS- und 19 Browser-Tests sind grün.
 - [x] P1 Konfliktregeln geschlossen: Review-Events bleiben unveränderlich append-only, stale Nutzerinhalte und -metadaten erzeugen Konflikte, reine Servermetadaten werden anerkannt und Cloud-Medien werden innerhalb eines Deck-/Card-Kontexts per SHA-1 dedupliziert; 262 Modultests und der Production-Build sind grün.
 - [x] P1 Konfliktauflösung geschlossen: `SyncConflictPanel` zeigt accountgebundene Konflikte, lokale/Remote-Versionen, sicheren Feld-Merge und zurückgestellte Entscheidungen; CAS, Tombstones, Outbox-Neubildung und weiterlaufende append-only Reviews bleiben hinter `cloudRepository`/`syncEngine`. 273 Modul-, acht RLS- und 20 Browser-Tests sowie der Production-Build sind grün.
+- [x] P0 M3 geschlossen: Persistenz-, Auth-/Sync-, Medien-, Import-/APKG- und KI-/Servermodule sind `.ts`; Valibot 1.4.2 validiert die jeweiligen Vertrauensgrenzen, Supabase verwendet den generierten `Database`-Vertrag, und der native APKG-Preview-Worker bleibt als eigener 38,98-kB-Chunk lazy. Abnahme: 306 Modul-, acht RLS- und 21 Browser-Tests, Typecheck, DB-Typdrift und Build mit maximal 431,65 kB je budgetiertem JavaScript-Chunk sind grün.
 
 ## 0. P0 — TypeScript-Modernisierung vor weiterem Featureausbau
 
@@ -64,7 +65,7 @@ Die vier Pakete werden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 
 ### 0.3 M3 — Persistenz-, Import- und Servergrenzen typisieren
 
-- [ ] **Alle I/O- und Vertrauensgrenzen auf explizite TypeScript- und Laufzeitverträge umstellen.** `cloudRepository`, `syncEngine`, `syncOutbox`, Auth-/Account-Module, lokale und Cloud-Medienspeicher, `importService`, `apkgImport`, ZIP-/SQLite-Leser sowie `/api/ai/*` werden zu `.ts` migriert und verwenden die generierten Supabase-Typen. Daten aus Supabase, Local Storage, IndexedDB, APKG/ZIP/SQLite, JSON/CSV, Browser-Events und KI-Providern werden an der jeweiligen Naht einmal validiert beziehungsweise normalisiert; dahinter arbeiten die Module mit kanonischen Typen. Geheimnisse bleiben server-only. APKG-Performance wird mit großen und medienreichen Fixtures gemessen; vor Rust/WASM wird ein Web-Worker-Pfad geprüft, und eine weitere Sprache wird nur für einen nachgewiesenen Hotspot oder einen tatsächlich separat deployten Worker eingeführt.
+- [x] **Alle I/O- und Vertrauensgrenzen auf explizite TypeScript- und Laufzeitverträge umstellen.** Persistenz, Auth/Account, Sync/Outbox, lokale und Cloud-Medien, Datei-/JSON-/CSV-/APKG-Import, ZIP/SQLite, KI-Client und `/api/ai/chat` sind zu `.ts` migriert. Owner-lokale Valibot-Schemas prüfen LocalStorage, Outbox-Accountbindung, Supabase-Rows/JSONB, Profile, IndexedDB-Records, Import-/Exportpayloads sowie KI- und Worker-Nachrichten. `createClient<Database>` und die generierten Row-/Insert-/Update-/Json-Typen bleiben die Cloud-Typquelle; `database.types.ts` wurde nicht manuell geändert. Der native Vite-Worker überträgt APKG- und Medienbuffer, meldet Fortschritt und wird bei Resultat, Fehler, ungültiger Nachricht oder Abbruch beendet. ZIP-/SQLite-Leser prüfen Bounds, Größen, Seiten, Varints, Overflow und Zyklen. `npm run benchmark:apkg` erzeugt im ignorierten `test-results/` deterministisch 4.900 Karten und 200 Medien (2.522.246 Eingabebytes); der lokale Referenzlauf dauerte 236,89 ms bei 33.662.760 Byte Heap-Delta best-effort. Zeitwerte sind kein CI-Limit. Abnahme am 2026-07-13: Typecheck, 306 Modultests, Build/Chunkbudget, DB-Typdrift, 8 RLS-Smokes und 21 Playwright-Flows grün.
 
 ### 0.4 M4 — React, Tests und Tooling abschließen; Übergang schließen
 
@@ -94,7 +95,7 @@ Die vier Pakete werden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 
 ### 2.1 Repository-Mapping
 
-- [x] `src/cloudRepository.js` um die in der lokalen Migration vorhandenen Felder ergänzt: `revision`, `deleted_at`, `updated_by_device_id` für Decks, Cards, Varianten, Dokumente und Jobs sowie `created_by_device_id` für Review-Events.
+- [x] `src/cloudRepository.ts` um die in der lokalen Migration vorhandenen Felder ergänzt: `revision`, `deleted_at`, `updated_by_device_id` für Decks, Cards, Varianten, Dokumente und Jobs sowie `created_by_device_id` für Review-Events.
 - [x] Beim Laden Soft-Deletes als unsichtbare `cloudTombstones` und Revisionen korrekt in das lokale Modell überführen; Core-Normalisierung und Server-Acknowledgements erhalten die Metadaten.
 - [x] `replaceAccountCloudState()` bleibt ausschließlich für Legacy-Import bzw. Test-Reset destruktiv. Regulärer Autosave schreibt nur Deltas, prüft Updates atomar über Account, ID und Basisrevision und reaktiviert keine Remote-Tombstones.
 - [x] Mapping- und Repository-Tests für Revisionen, Soft-Deletes, Geräte-IDs, Medienreferenzen, leere/teilweise Cloud-Daten, unveränderte Snapshots, stale Writes, append-only Events und Voll-Replace ergänzt.
@@ -111,7 +112,7 @@ Die vier Pakete werden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 
 ### 3.1 Erst die Mutation-Semantik, dann Offline-UI
 
-- [x] Eine dauerhafte Outbox hinter `src/syncEngine.js` eingeführt. Mutation-ID, Geräte-ID, `baseRevision`, Entitätstabelle, Entitäts-ID, Payload, Erstellzeit, Flushzeit und Retry-Zähler werden accountgebunden gespeichert; die Queue überlebt Reload und Tab-Neustart.
+- [x] Eine dauerhafte Outbox hinter `src/syncEngine.ts` eingeführt. Mutation-ID, Geräte-ID, `baseRevision`, Entitätstabelle, Entitäts-ID, Payload, Erstellzeit, Flushzeit und Retry-Zähler werden accountgebunden gespeichert; die Queue überlebt Reload und Tab-Neustart.
 - [x] `SYNC_MUTATION_TYPES.reviewEventAppend` produktiv verdrahtet. Der Lernmodus reicht das erzeugte Event direkt weiter, der Supabase-Adapter verarbeitet es idempotent über `(user_id, id)`, und Autosave sowie manueller Sync verwenden dieselbe Outbox.
 - [x] `sync_devices` beim ersten Login/Start registriert und `last_seen_at`, User-Agent und Gerätebezeichnung aktualisiert. Flushes übergeben getrennte Snapshot-/Review-Mutation-IDs und die Geräte-ID an das Repository; nur bestätigte IDs verlassen die Outbox.
 - [x] In `cloudRepository` konkrete Mutationsfunktionen ergänzen: `applyDeckMutation`, `applyCardMutation`, `appendReviewEvent`, `softDeleteEntity` und `markConflict`. Die Funktionen prüfen Server-Revisionen bedingt, bestätigen idempotente Retries per Readback und halten nicht bestätigte Mutation-IDs in der Outbox.
@@ -125,7 +126,7 @@ Die vier Pakete werden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 
 ### 4.1 Cloud-Medien an den bestehenden Import anschließen
 
-- [ ] Den APKG-Importpfad in `src/creationWorkflow.ts` so erweitern, dass nach der Vorschau wahlweise `src/cloudMediaStore.js` statt ausschließlich `src/mediaStore.js` verwendet wird. Lokaler Browser-Medienspeicher und Cloud-Medien müssen klar getrennte Statusmeldungen haben.
+- [ ] Den APKG-Importpfad in `src/creationWorkflow.ts` so erweitern, dass nach der Vorschau wahlweise `src/cloudMediaStore.ts` statt ausschließlich `src/mediaStore.ts` verwendet wird. Lokaler Browser-Medienspeicher und Cloud-Medien müssen klar getrennte Statusmeldungen haben.
 - [ ] `media_assets` in den Cloud-Persistenzpfad aufnehmen: Rows mit Deck-/Card-Referenzen speichern, beim Laden accountgebunden laden und für `src/ui/cardMedia.jsx` in aufgelöste signed URLs übersetzen. React darf keine Storage-Manifeste selbst interpretieren.
 - [ ] Accountweite Reimport- und Referenzregeln festlegen: SHA-1 plus Nutzer/Bucket/Storage-Pfad über mehrere Decks und Karten, keine verwaisten oder mehrfach gespeicherten Objekte, lokale Content-Edits bleiben erhalten, fehlende signed URLs erscheinen als verständlicher Medienstatus.
 
@@ -145,7 +146,7 @@ Die vier Pakete werden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 
 ## 5. P1 — KI-Proxy, Jobs und Kostenkontrolle
 
-- [ ] `/api/ai/chat` an die eingeloggte Nutzeridentität binden. `src/deckAssistant.js` muss den Supabase-Access-Token sicher als Bearer-Header mitsenden; die Serverroute muss Token prüfen, ohne Secrets oder vollständige Prompts zu loggen.
+- [ ] `/api/ai/chat` an die eingeloggte Nutzeridentität binden. `src/deckAssistant.ts` muss den Supabase-Access-Token sicher als Bearer-Header mitsenden; die Serverroute muss Token prüfen, ohne Secrets oder vollständige Prompts zu loggen.
 - [ ] Pro Nutzer und IP Rate-Limits, maximale Evidenz-/Promptgröße, Modell-Allowlist, Outputlimit und Missbrauchsschutz ergänzen. Origin-Prüfung und Request-Byte-Limit allein sind kein ausreichender Abuse-Schutz.
 - [ ] `ai_jobs` vom lokalen Ledger zu einem echten Server-Jobvertrag ausbauen: Capability, Prompt-/Schema-Version, Status, Retry, Idempotency-Key, Resultat-Referenz, Fehlerklasse, Tokenverbrauch und Kosten.
 - [ ] Vor weiteren Providerpfaden eine Entscheidung zu Provider, Datenschutz und übertragbaren Inhalten dokumentieren. Danach Server-Proxys für Kartenerstellung, Varianten und Graph mit strukturierten, validierten Drafts bauen.
@@ -222,7 +223,7 @@ Die vier Pakete werden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 - `supabase/migrations/20260709091315_sync_media_auth_operations.sql`: remote angewendete Migration für Revisionen, Medien, Geräte, Konflikte und Storage-Policies.
 - `supabase/verify_schema_v1.sql`: fehlschlagendes Verify-Gate für Zieltabellen/-spalten, RLS, Policies, Grants, Constraints und den privaten Medien-Bucket.
 - `tests/rls/ownership-smoke.test.js`: echter lokaler Data-API-Smoke für Nutzer A, Nutzer B, `anon`, Ownership und accountgebundene Foreign Keys.
-- `src/cloudRepository.js`, `src/syncEngine.js`: aktueller Cloud-/Sync-Pfad und nächste technische Naht.
-- `src/cloudMediaStore.js`, `src/mediaStore.js`, `src/creationWorkflow.ts`: aktueller lokaler und vorbereiteter Cloud-Medienpfad.
-- `api/ai/chat.js`, `src/deckAssistant.js`, `src/aiOrchestrator.js`: aktueller Chat-Proxy und lokale KI-Drafts.
+- `src/cloudRepository.ts`, `src/syncEngine.ts`: aktueller Cloud-/Sync-Pfad und nächste technische Naht.
+- `src/cloudMediaStore.ts`, `src/mediaStore.ts`, `src/creationWorkflow.ts`: aktueller lokaler und vorbereiteter Cloud-Medienpfad.
+- `api/ai/chat.ts`, `src/deckAssistant.ts`, `src/aiOrchestrator.ts`: aktueller Chat-Proxy und lokale KI-Drafts.
 - `.github/workflows/ci.yml`, `tests/e2e/`, `playwright.config.js`: automatisiertes Release-Gate, bestehende Browser-Smokes und lokale Supabase-Test-Session.

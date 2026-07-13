@@ -54,10 +54,10 @@ Relevante Zielrichtungen:
 - `src/reviewService.ts` ist der tiefe Review-Flow fuer FSRS-like Scheduling, Variant-Fallback und Next-Review-Projektionen.
 - `src/reviewFlow.js` bleibt nur als Legacy-Fassade fuer bestehende Imports bestehen.
 - `src/coreVariantService.ts` buendelt Eligibility, Reifegrad, Readiness, Coverage, Variant-Generation-Plan und Fallback-Projektion hinter kleinen Interfaces.
-- `src/importService.js` buendelt Text-, CSV-, JSON- und Tabellen-Importe, Fingerprints, Dedupe und Parent-/Hierarchy-Felder hinter der Learning-Item-Creation-Pipeline.
+- `src/importService.ts` buendelt Text-, CSV-, JSON- und Tabellen-Importe, Fingerprints, Dedupe und Parent-/Hierarchy-Felder hinter der Learning-Item-Creation-Pipeline.
 - `src/richText.js` und `src/htmlSafety.js` halten Rich-Text-Normalisierung und HTML-Sanitization aus Screens und Importpfaden heraus.
 - `src/libraryModel.ts` erzeugt Dashboard-, Statistik-, Decklisten-, Heatmap- und KI-Job-Projektionen fuer die Screens.
-- `src/supabaseClient.js`, `src/cloudAuth.js`, `src/accountSession.js`, `src/accountStorage.js` und `src/cloudRepository.js` kapseln den konkreten Supabase-Pfad fuer Auth, Profile, Login-Gate-Zustand, accountgebundenen Cache und Cloud-Tabellenpersistenz.
+- `src/supabaseClient.ts`, `src/cloudAuth.ts`, `src/accountSession.ts`, `src/accountStorage.ts` und `src/cloudRepository.ts` kapseln den konkreten Supabase-Pfad fuer Auth, Profile, Login-Gate-Zustand, accountgebundenen Cache und Cloud-Tabellenpersistenz.
 - `src/appRuntime.js`, `src/ui/ReleaseInfo.jsx` und `src/AppErrorBoundary.jsx` kapseln Release-Identitaet, sichere Anzeige und den deutschen Wiederherstellungsfallback ohne rohe Fehler- oder Nutzerdaten.
 - `src/pdfRuntime.js`, `src/pdfSelection.js` und `src/ui/PdfDocumentViewer.jsx` kapseln PDF.js-Lifecycle, Worker, kontinuierliche Anzeige, Zoom, Textauswahl und die Umrechnung in stabile PDF-Quellenkoordinaten.
 - `src/App.jsx` ist nur noch App-Shell fuer Workspace-State, Navigation und Routing; authentifizierte Produktscreens laden per `React.lazy`, produktnahe UI liegt in `src/screens/`.

@@ -1,19 +1,39 @@
+import * as v from "valibot";
 import { sanitizeCardHtml } from "./htmlSafety.js";
 
 const DB_NAME = "core-media-store";
 const DB_VERSION = 1;
 const STORE_NAME = "assets";
-const sessionAssets = new Map();
+const mediaKeySchema = v.pipe(v.string(), v.minLength(1), v.maxLength(64), v.regex(/^[A-Za-z0-9]+$/));
+const mediaAssetSchema = v.looseObject({
+  sha1: mediaKeySchema,
+  name: v.pipe(v.string(), v.minLength(1)),
+  size: v.pipe(v.number(), v.minValue(0)),
+  mimeType: v.optional(v.string(), "application/octet-stream"),
+});
+const mediaFileSchema = v.looseObject({
+  ...mediaAssetSchema.entries,
+  bytes: v.instance(Uint8Array),
+});
+const mediaRecordSchema = v.looseObject({
+  ...mediaAssetSchema.entries,
+  updatedAt: v.string(),
+  blob: v.instance(Blob),
+});
+
+type MediaRecord = v.InferOutput<typeof mediaRecordSchema>;
+
+const sessionAssets = new Map<string, MediaRecord>();
 
 function getIndexedDb() {
   return typeof indexedDB === "undefined" ? null : indexedDB;
 }
 
-function openMediaDatabase() {
+function openMediaDatabase(): Promise<IDBDatabase | null> {
   const databaseApi = getIndexedDb();
   if (!databaseApi) return Promise.resolve(null);
 
-  return new Promise((resolve, reject) => {
+  return new Promise<IDBDatabase>((resolve, reject) => {
     const request = databaseApi.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = () => {
@@ -28,7 +48,7 @@ function openMediaDatabase() {
   });
 }
 
-function putRecord(db, record) {
+function putRecord(db: IDBDatabase, record: MediaRecord): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, "readwrite");
     transaction.objectStore(STORE_NAME).put(record);
@@ -37,7 +57,7 @@ function putRecord(db, record) {
   });
 }
 
-function getRecord(db, sha1) {
+function getRecord(db: IDBDatabase, sha1: string): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, "readonly");
     const request = transaction.objectStore(STORE_NAME).get(sha1);
@@ -46,11 +66,11 @@ function getRecord(db, sha1) {
   });
 }
 
-function toBlob(file) {
+function toBlob(file: any) {
   return new Blob([file.bytes], { type: file.mimeType || "application/octet-stream" });
 }
 
-function normalizeRef(value) {
+function normalizeRef(value: any) {
   const withoutQuery = String(value ?? "").split(/[?#]/)[0];
   const normalized = withoutQuery.replace(/\\/g, "/").split("/").filter(Boolean).at(-1) ?? withoutQuery;
 
@@ -61,18 +81,18 @@ function normalizeRef(value) {
   }
 }
 
-function lookupMediaUrl(mediaUrls, ref) {
+function lookupMediaUrl(mediaUrls: any, ref: any) {
   const candidates = [ref, normalizeRef(ref)];
-  return candidates.map((candidate) => mediaUrls?.[candidate]).find(Boolean) ?? null;
+  return candidates.map((candidate: any) => mediaUrls?.[candidate]).find(Boolean) ?? null;
 }
 
-function escapeAttribute(value) {
+function escapeAttribute(value: any) {
   return String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
 
-export function resolveCardHtmlMedia(html, mediaUrls = {}) {
+export function resolveCardHtmlMedia(html: any, mediaUrls: any = {}) {
   const safeHtml = sanitizeCardHtml(html);
-  return safeHtml.replace(/\s(src|href)=("[^"]*"|'[^']*'|[^\s>]+)/gi, (match, attr, rawValue) => {
+  return safeHtml.replace(/\s(src|href)=("[^"]*"|'[^']*'|[^\s>]+)/gi, (match: any, attr: any, rawValue: any) => {
     const quote = rawValue.startsWith("'") ? "'" : rawValue.startsWith('"') ? '"' : "";
     const value = quote ? rawValue.slice(1, -1) : rawValue;
     const mediaUrl = lookupMediaUrl(mediaUrls, value);
@@ -86,23 +106,33 @@ export function resolveCardHtmlMedia(html, mediaUrls = {}) {
   });
 }
 
-export async function storeDeckMedia(deck, mediaFiles = []) {
+export async function storeDeckMedia(deck: any, mediaFiles: any = []) {
   if (!Array.isArray(mediaFiles) || mediaFiles.length === 0) {
     return { persisted: true, count: 0, errors: [] };
   }
 
-  const records = mediaFiles.map((file) => {
-    const record = {
-      sha1: file.sha1,
-      name: file.name,
-      size: file.size,
-      mimeType: file.mimeType,
+  const invalidFiles: unknown[] = [];
+  const records = mediaFiles.flatMap((file: unknown) => {
+    const parsed = v.safeParse(mediaFileSchema, file);
+    if (!parsed.success) {
+      invalidFiles.push(file);
+      return [];
+    }
+    const record: MediaRecord = {
+      sha1: parsed.output.sha1,
+      name: parsed.output.name,
+      size: parsed.output.size,
+      mimeType: parsed.output.mimeType,
       updatedAt: new Date().toISOString(),
-      blob: toBlob(file),
+      blob: toBlob(parsed.output),
     };
     sessionAssets.set(record.sha1, record);
-    return record;
+    return [record];
   });
+
+  if (records.length === 0 && invalidFiles.length > 0) {
+    return { persisted: false, count: 0, errors: ["Medien enthielten ungültige Metadaten oder Dateidaten."] };
+  }
 
   try {
     const db = await openMediaDatabase();
@@ -114,7 +144,7 @@ export async function storeDeckMedia(deck, mediaFiles = []) {
       };
     }
 
-    await Promise.all(records.map((record) => putRecord(db, record)));
+    await Promise.all(records.map((record: any) => putRecord(db, record)));
     db.close();
     return { persisted: true, count: records.length, errors: [] };
   } catch (error) {
@@ -126,11 +156,13 @@ export async function storeDeckMedia(deck, mediaFiles = []) {
   }
 }
 
-export async function createDeckMediaUrlMap(deck) {
-  const assets = deck?.importMeta?.mediaManifest?.assets ?? [];
-  const urls = {};
-  const objectUrls = [];
-  const missing = [];
+export async function createDeckMediaUrlMap(deck: any) {
+  const assets: unknown[] = Array.isArray(deck?.importMeta?.mediaManifest?.assets)
+    ? deck.importMeta.mediaManifest.assets
+    : [];
+  const urls: Record<string, any> = {};
+  const objectUrls: any[] = [];
+  const missing: any[] = [];
 
   if (assets.length === 0 || typeof URL === "undefined" || typeof URL.createObjectURL !== "function") {
     return {
@@ -140,23 +172,30 @@ export async function createDeckMediaUrlMap(deck) {
     };
   }
 
-  let db = null;
+  let db: IDBDatabase | null = null;
   try {
     db = await openMediaDatabase();
   } catch {
     db = null;
   }
 
-  for (const asset of assets) {
+  for (const candidate of assets) {
+    const assetResult = v.safeParse(mediaAssetSchema, candidate);
+    if (!assetResult.success) {
+      missing.push(candidate);
+      continue;
+    }
+    const asset = assetResult.output;
     const sessionRecord = sessionAssets.get(asset.sha1);
-    const record = sessionRecord ?? (db ? await getRecord(db, asset.sha1).catch(() => null) : null);
+    const storedRecord = sessionRecord ?? (db ? await getRecord(db, asset.sha1).catch(() => null) : null);
+    const recordResult = v.safeParse(mediaRecordSchema, storedRecord);
 
-    if (!record?.blob) {
+    if (!recordResult.success || recordResult.output.sha1 !== asset.sha1 || recordResult.output.name !== asset.name) {
       missing.push(asset);
       continue;
     }
 
-    const url = URL.createObjectURL(record.blob);
+    const url = URL.createObjectURL(recordResult.output.blob);
     objectUrls.push(url);
     urls[asset.name] = url;
     urls[normalizeRef(asset.name)] = url;
@@ -168,7 +207,7 @@ export async function createDeckMediaUrlMap(deck) {
     urls,
     missing,
     revoke() {
-      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      objectUrls.forEach((url: any) => URL.revokeObjectURL(url));
     },
   };
 }

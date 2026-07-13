@@ -1,18 +1,18 @@
 import React from "react";
 import { BarChart3, BookOpen, Database, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
-import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
+import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.js";
-import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
-import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.js";
-import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.js";
-import { createCoreRepository } from "./coreRepository.js";
+import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
+import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
+import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.ts";
+import { createCoreRepository } from "./coreRepository.ts";
 import { createCoreWorkspace } from "./coreWorkspace.ts";
-import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.js";
+import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.ts";
 import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings } from "./deckSettings.ts";
 import { createMenuModel } from "./menuModel.js";
-import { createAccountSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.js";
-import { createBrowserSyncDevice } from "./syncDevice.js";
-import { createSupabaseBrowserClient } from "./supabaseClient.js";
+import { createAccountSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.ts";
+import { createBrowserSyncDevice } from "./syncDevice.ts";
+import { createSupabaseBrowserClient } from "./supabaseClient.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.jsx";
 import { OrbIcon, SoftPanel } from "./ui/coreUi.jsx";
 

@@ -1,9 +1,9 @@
-import { generateCardsFromDocument } from "./aiOrchestrator.js";
+import { generateCardsFromDocument } from "./aiOrchestrator.ts";
 import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument } from "./coreModel.ts";
-import { createAnchorFromSelection, createDocumentFromFile } from "./documentModel.js";
+import { createAnchorFromSelection, createDocumentFromFile } from "./documentModel.ts";
 import { appendPlainTextToCardHtml, hasCardRichTextContent } from "./richText.js";
-import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.js";
-import { storeDeckMedia } from "./mediaStore.js";
+import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
+import { storeDeckMedia } from "./mediaStore.ts";
 import type { CardType, Deck, LearningItem, SourceAnchor } from "./coreTypes.ts";
 
 interface FileLike {
@@ -66,8 +66,8 @@ interface ManualValidationInput {
 
 export type CreationWorkflow = ReturnType<typeof createCreationWorkflow>;
 
-function loadApkgImport(): Promise<typeof import("./apkgImport.js")> {
-  return import("./apkgImport.js");
+function loadApkgImport(): Promise<typeof import("./apkgImport.ts")> {
+  return import("./apkgImport.ts");
 }
 
 function describeError(error: unknown, fallback: string): string {

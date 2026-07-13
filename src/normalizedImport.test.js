@@ -8,7 +8,7 @@ import {
   getOriginalVariant,
 } from "./coreModel.ts";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
-import { createCoreRepository } from "./coreRepository.js";
+import { createCoreRepository } from "./coreRepository.ts";
 import { createCoreWorkspace } from "./coreWorkspace.ts";
 import {
   createImportFingerprint,
@@ -23,7 +23,7 @@ import {
   parseCsvToNormalizedImport,
   parseJsonToNormalizedImport,
   parseTextToNormalizedImport,
-} from "./importService.js";
+} from "./importService.ts";
 import { answerVariant, getNextReviewItem } from "./reviewService.ts";
 
 function createMemoryStorage() {

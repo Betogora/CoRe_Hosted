@@ -2,8 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test as setup } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { replaceAccountCloudState } from "../../src/cloudRepository.js";
-import { createCoreRepository } from "../../src/coreRepository.js";
+import { replaceAccountCloudState } from "../../src/cloudRepository.ts";
+import { createCoreRepository } from "../../src/coreRepository.ts";
 import { hasSupabaseAuthStorage, readSyncDeviceId, sanitizeStorageState } from "./support/appState.js";
 import { e2eAuthStatePath, ensureLocalE2EAccount, loadE2EEnvironment } from "./support/e2eEnvironment.js";
 

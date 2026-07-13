@@ -1,8 +1,9 @@
 import { createCoreCard, createCoreDeck, createReviewState, makeId, stableContentHash } from "./coreModel.ts";
 import { stripHtml } from "./htmlSafety.js";
-import { finalizeImportReport, importNormalizedDeck } from "./importService.js";
-import { readSqliteDatabase } from "./sqliteReader.js";
-import { readZipArchive } from "./zipReader.js";
+import { finalizeImportReport, importNormalizedDeck } from "./importService.ts";
+import { readSqliteDatabase } from "./sqliteReader.ts";
+import { readZipArchive } from "./zipReader.ts";
+import { parseApkgWorkerResponse, type ApkgWorkerResult } from "./apkgImportWorkerProtocol.ts";
 import { decompress as decompressZstd } from "fzstd";
 
 const MAX_APKG_SIZE = 250 * 1024 * 1024;
@@ -12,7 +13,7 @@ const SQLITE_SIGNATURE = "SQLite format 3\0";
 const ZSTD_MAGIC = [0x28, 0xb5, 0x2f, 0xfd];
 const textDecoder = new TextDecoder("utf-8");
 
-function parseJson(value, fallback) {
+function parseJson(value: any, fallback: any) {
   if (!value || typeof value !== "string") return fallback;
 
   try {
@@ -22,22 +23,22 @@ function parseJson(value, fallback) {
   }
 }
 
-function normalizeTags(rawTags) {
+function normalizeTags(rawTags: any) {
   return String(rawTags ?? "")
     .split(/\s+/)
-    .map((tag) => tag.trim())
+    .map((tag: any) => tag.trim())
     .filter(Boolean);
 }
 
-function unique(values) {
+function unique(values: any) {
   return [...new Set(values.filter(Boolean))];
 }
 
-function bytesToHex(bytes) {
-  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+function bytesToHex(bytes: any) {
+  return [...bytes].map((byte: any) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function normalizeMediaFileName(value) {
+function normalizeMediaFileName(value: any) {
   return String(value ?? "")
     .replace(/\\/g, "/")
     .split("/")
@@ -45,7 +46,7 @@ function normalizeMediaFileName(value) {
     .at(-1);
 }
 
-function readVarint(bytes, startOffset = 0) {
+function readVarint(bytes: any, startOffset: any = 0) {
   let result = 0;
   let shift = 0;
   let offset = startOffset;
@@ -65,7 +66,7 @@ function readVarint(bytes, startOffset = 0) {
   throw new Error("Ungültiges MediaEntries-Varint.");
 }
 
-function readLengthDelimited(bytes, offset) {
+function readLengthDelimited(bytes: any, offset: any) {
   const length = readVarint(bytes, offset);
   return {
     bytes: bytes.slice(length.offset, length.offset + length.value),
@@ -73,7 +74,7 @@ function readLengthDelimited(bytes, offset) {
   };
 }
 
-function skipProtoField(bytes, wireType, offset) {
+function skipProtoField(bytes: any, wireType: any, offset: any) {
   if (wireType === 0) return readVarint(bytes, offset).offset;
   if (wireType === 1) return offset + 8;
   if (wireType === 2) return readLengthDelimited(bytes, offset).offset;
@@ -81,7 +82,7 @@ function skipProtoField(bytes, wireType, offset) {
   throw new Error(`Nicht unterstützter MediaEntries-Wire-Type: ${wireType}`);
 }
 
-function maybeDecompressZstdBytes(bytes) {
+function maybeDecompressZstdBytes(bytes: any) {
   if (!hasZstdSignature(bytes)) return bytes;
 
   try {
@@ -91,11 +92,11 @@ function maybeDecompressZstdBytes(bytes) {
   }
 }
 
-function rotateLeft(value, bits) {
+function rotateLeft(value: any, bits: any) {
   return (value << bits) | (value >>> (32 - bits));
 }
 
-function sha1HexSync(bytes) {
+function sha1HexSync(bytes: any) {
   const paddedLength = Math.ceil((bytes.length + 9) / 64) * 64;
   const padded = new Uint8Array(paddedLength);
   padded.set(bytes);
@@ -160,10 +161,10 @@ function sha1HexSync(bytes) {
     h4 = (h4 + e) >>> 0;
   }
 
-  return [h0, h1, h2, h3, h4].map((word) => word.toString(16).padStart(8, "0")).join("");
+  return [h0, h1, h2, h3, h4].map((word: any) => word.toString(16).padStart(8, "0")).join("");
 }
 
-async function sha1Hex(bytes) {
+async function sha1Hex(bytes: any) {
   if (globalThis.crypto?.subtle) {
     const digest = await globalThis.crypto.subtle.digest("SHA-1", bytes);
     return bytesToHex(new Uint8Array(digest));
@@ -172,7 +173,7 @@ async function sha1Hex(bytes) {
   return sha1HexSync(bytes);
 }
 
-function inferMimeType(name, bytes = new Uint8Array()) {
+function inferMimeType(name: any, bytes: any = new Uint8Array()) {
   const normalized = String(name ?? "").toLowerCase();
 
   if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
@@ -190,31 +191,31 @@ function inferMimeType(name, bytes = new Uint8Array()) {
   return "application/octet-stream";
 }
 
-function getDecksFromCollection(colRows) {
+function getDecksFromCollection(colRows: any) {
   const first = colRows[0] ?? {};
   const deckMap = parseJson(first.decks, {});
 
-  return Object.values(deckMap).map((deck) => ({
+  return Object.values(deckMap).map((deck: any) => ({
     id: String(deck.id ?? ""),
     name: deck.name ?? "Anki Deck",
   }));
 }
 
-function getModelsFromCollection(colRows) {
+function getModelsFromCollection(colRows: any) {
   const first = colRows[0] ?? {};
   return parseJson(first.models, {});
 }
 
-function buildDeckHierarchy(decks) {
+function buildDeckHierarchy(decks: any) {
   const nodeByPath = new Map();
 
   for (const deck of decks) {
     const parts = String(deck.name ?? "Anki Deck")
       .split("::")
-      .map((part) => part.trim())
+      .map((part: any) => part.trim())
       .filter(Boolean);
 
-    parts.forEach((part, index) => {
+    parts.forEach((part: any, index: any) => {
       const path = parts.slice(0, index + 1).join("::");
       const parentPath = parts.slice(0, index).join("::") || null;
       if (!nodeByPath.has(path)) {
@@ -232,22 +233,22 @@ function buildDeckHierarchy(decks) {
   return [...nodeByPath.values()];
 }
 
-function splitDeckPath(value) {
+function splitDeckPath(value: any) {
   return String(value ?? "Anki Deck")
     .split("::")
-    .map((part) => part.trim())
+    .map((part: any) => part.trim())
     .filter(Boolean);
 }
 
-function hierarchyExternalId(node) {
+function hierarchyExternalId(node: any) {
   return String(node.id ?? "").startsWith("virtual_") ? `anki-deck-path-${node.path}` : `anki-deck-${String(node.id)}`;
 }
 
-function hierarchyDeckId({ fileName, sourceExternalId, path }) {
+function hierarchyDeckId({ fileName, sourceExternalId, path }: any) {
   return stableContentHash({ fileName, sourceExternalId, path }, "deck");
 }
 
-function createImportGroupId(normalizedDeck = {}) {
+function createImportGroupId(normalizedDeck: any = {}) {
   const metadata = normalizedDeck.metadataJson ?? {};
   return stableContentHash(
     {
@@ -260,7 +261,7 @@ function createImportGroupId(normalizedDeck = {}) {
   );
 }
 
-function splitNormalizedApkgDeckByHierarchy(normalizedDeck = {}) {
+function splitNormalizedApkgDeckByHierarchy(normalizedDeck: any = {}) {
   const metadata = normalizedDeck.metadataJson ?? {};
   const hierarchy = Array.isArray(metadata.deckHierarchy) ? metadata.deckHierarchy : [];
   const importGroupId = createImportGroupId(normalizedDeck);
@@ -288,13 +289,13 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck = {}) {
     };
   }
 
-  const nodeByPath = new Map(hierarchy.map((node) => [node.path, node]));
+  const nodeByPath = new Map(hierarchy.map((node: any) => [node.path, node]));
   const idByPath = new Map();
   const itemsByPath = new Map();
 
   for (const item of normalizedDeck.items ?? []) {
     const itemMetadata = item.metadataJson ?? {};
-    const ankiDeckName = itemMetadata.ankiDeckNames?.[0] ?? metadata.detectedDecks?.find((deck) => String(deck.id) === String(itemMetadata.ankiDeckId))?.name ?? normalizedDeck.title;
+    const ankiDeckName = itemMetadata.ankiDeckNames?.[0] ?? metadata.detectedDecks?.find((deck: any) => String(deck.id) === String(itemMetadata.ankiDeckId))?.name ?? normalizedDeck.title;
     const path = splitDeckPath(ankiDeckName).join("::") || normalizedDeck.title;
     itemsByPath.set(path, [...(itemsByPath.get(path) ?? []), item]);
   }
@@ -319,8 +320,8 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck = {}) {
     idByPath.set(path, hierarchyDeckId({ fileName, sourceExternalId: hierarchyExternalId(node), path }));
   }
 
-  const nodes = [...nodeByPath.values()].sort((left, right) => Number(left.depth ?? 0) - Number(right.depth ?? 0) || String(left.path).localeCompare(String(right.path)));
-  const normalizedDecks = nodes.map((node) => {
+  const nodes = [...nodeByPath.values()].sort((left: any, right: any) => Number(left.depth ?? 0) - Number(right.depth ?? 0) || String(left.path).localeCompare(String(right.path)));
+  const normalizedDecks = nodes.map((node: any) => {
     const sourceExternalId = hierarchyExternalId(node);
     const hierarchyPath = splitDeckPath(node.path);
     const directItems = itemsByPath.get(node.path) ?? [];
@@ -335,7 +336,7 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck = {}) {
       parentDeckId: node.parentPath ? idByPath.get(node.parentPath) ?? null : null,
       hierarchyPath,
       items: directItems,
-      tags: unique(directItems.flatMap((item) => item.tags ?? [])),
+      tags: unique(directItems.flatMap((item: any) => item.tags ?? [])),
       metadataJson: {
         ...metadata,
         importGroupId,
@@ -344,7 +345,7 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck = {}) {
         ankiDeckDepth: node.depth ?? Math.max(0, hierarchyPath.length - 1),
         ankiParentPath: node.parentPath ?? null,
         isContainerDeck,
-        detectedCards: directItems.reduce((sum, item) => sum + Math.max(1, item.variants?.length ?? 1), 0),
+        detectedCards: directItems.reduce((sum: any, item: any) => sum + Math.max(1, item.variants?.length ?? 1), 0),
         importedScheduling: false,
       },
     };
@@ -352,13 +353,13 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck = {}) {
 
   return {
     importGroupId,
-    rootDeckIds: normalizedDecks.filter((deck) => !deck.parentDeckId).map((deck) => deck.id),
+    rootDeckIds: normalizedDecks.filter((deck: any) => !deck.parentDeckId).map((deck: any) => deck.id),
     normalizedDecks,
   };
 }
 
-function extractMediaRefs(html) {
-  const refs = [];
+function extractMediaRefs(html: any) {
+  const refs: any[] = [];
   const mediaPattern = /(?:src|href)=["']([^"']+)["']|\[sound:([^\]]+)\]/gi;
   let match = mediaPattern.exec(html ?? "");
 
@@ -370,31 +371,31 @@ function extractMediaRefs(html) {
   return unique(refs);
 }
 
-function extractClozeText(value) {
+function extractClozeText(value: any) {
   return String(value ?? "").replace(/\{\{c\d+::(.*?)(?:::.*?)?\}\}/g, "$1");
 }
 
-function fieldNamesForNote(note, models) {
+function fieldNamesForNote(note: any, models: any) {
   const model = models[String(note.mid)];
   const fields = Array.isArray(model?.flds) ? model.flds : [];
-  return fields.map((field, index) => field.name ?? `Field ${index + 1}`);
+  return fields.map((field: any, index: any) => field.name ?? `Field ${index + 1}`);
 }
 
-function parseFields(note, models) {
+function parseFields(note: any, models: any) {
   const values = String(note.flds ?? "").split(FIELD_SEPARATOR);
   const names = fieldNamesForNote(note, models);
 
-  return values.map((value, index) => ({
+  return values.map((value: any, index: any) => ({
     name: names[index] ?? `Field ${index + 1}`,
     value,
   }));
 }
 
-function chooseFrontBack(note, models) {
+function chooseFrontBack(note: any, models: any) {
   const fields = parseFields(note, models);
   const first = fields[0]?.value ?? "";
   const second = fields[1]?.value ?? "";
-  const clozeSource = fields.map((field) => field.value).find((value) => /\{\{c\d+::/i.test(value));
+  const clozeSource = fields.map((field: any) => field.value).find((value: any) => /\{\{c\d+::/i.test(value));
 
   if (clozeSource) {
     const clean = extractClozeText(clozeSource);
@@ -408,21 +409,21 @@ function chooseFrontBack(note, models) {
 
   return {
     front: first,
-    back: second || fields.slice(1).map((field) => field.value).join("<br>"),
+    back: second || fields.slice(1).map((field: any) => field.value).join("<br>"),
     isCloze: false,
     fields,
   };
 }
 
-function getMediaAssetCount(mediaMap = {}, mediaManifest = null) {
+function getMediaAssetCount(mediaMap: any = {}, mediaManifest: any = null) {
   return mediaManifest?.assets?.length ?? Object.keys(mediaMap).length;
 }
 
-function cardHasAnkiSchedulingData(card = {}) {
-  return ["reps", "lapses", "ivl", "type", "queue", "odue", "odid"].some((key) => Number(card[key] ?? 0) > 0);
+function cardHasAnkiSchedulingData(card: any = {}) {
+  return ["reps", "lapses", "ivl", "type", "queue", "odue", "odid"].some((key: any) => Number(card[key] ?? 0) > 0);
 }
 
-function createAnkiSchedulingSnapshot(card = {}) {
+function createAnkiSchedulingSnapshot(card: any = {}) {
   return {
     due: card.due ?? null,
     interval: card.ivl ?? null,
@@ -436,21 +437,21 @@ function createAnkiSchedulingSnapshot(card = {}) {
   };
 }
 
-function getModelForNote(note, models) {
+function getModelForNote(note: any, models: any) {
   return models[String(note?.mid)] ?? {};
 }
 
-function getTemplateForCard(card, model = {}) {
+function getTemplateForCard(card: any, model: any = {}) {
   const templates = Array.isArray(model.tmpls) ? model.tmpls : [];
   const ord = Number(card?.ord ?? 0);
-  return templates.find((template) => Number(template.ord ?? -1) === ord) ?? templates[ord] ?? null;
+  return templates.find((template: any) => Number(template.ord ?? -1) === ord) ?? templates[ord] ?? null;
 }
 
-function getTemplateName(card, model = {}) {
+function getTemplateName(card: any, model: any = {}) {
   return getTemplateForCard(card, model)?.name ?? (Number(card?.ord ?? 0) > 0 ? `Card ${Number(card.ord) + 1}` : "Card 1");
 }
 
-function resolveAnkiCardFace({ card, note, models, warnings }) {
+function resolveAnkiCardFace({ card, note, models, warnings }: any) {
   const fields = parseFields(note, models);
   const frontBack = chooseFrontBack(note, models);
   const model = getModelForNote(note, models);
@@ -504,8 +505,8 @@ function resolveAnkiCardFace({ card, note, models, warnings }) {
   };
 }
 
-function createNormalizedMediaAssets(mediaManifest = null) {
-  return (mediaManifest?.assets ?? []).map((asset) => ({
+function createNormalizedMediaAssets(mediaManifest: any = null) {
+  return (mediaManifest?.assets ?? []).map((asset: any) => ({
     filename: asset.name,
     mimeType: asset.mimeType,
     sourceExternalId: asset.zipEntryName ?? asset.sha1 ?? asset.name,
@@ -519,8 +520,8 @@ function createNormalizedMediaAssets(mediaManifest = null) {
   }));
 }
 
-export function validateApkgFile(file) {
-  const errors = [];
+export function validateApkgFile(file: any) {
+  const errors: any[] = [];
 
   if (!file) {
     errors.push("Bitte wähle eine .apkg-Datei aus.");
@@ -540,12 +541,12 @@ export function validateApkgFile(file) {
   };
 }
 
-export async function extractApkgArchive(file) {
+export async function extractApkgArchive(file: any) {
   return readZipArchive(file);
 }
 
-export function findCollectionDatabase(archive) {
-  const collectionName = COLLECTION_NAMES.find((name) => archive.getEntry(name));
+export function findCollectionDatabase(archive: any) {
+  const collectionName = COLLECTION_NAMES.find((name: any) => archive.getEntry(name));
 
   if (!collectionName) {
     throw new Error("Keine Anki-Collection gefunden. Erwartet wurde collection.anki2, collection.anki21 oder collection.anki21b.");
@@ -554,16 +555,16 @@ export function findCollectionDatabase(archive) {
   return archive.getEntry(collectionName);
 }
 
-function hasSqliteSignature(bytes) {
+function hasSqliteSignature(bytes: any) {
   return textDecoder.decode(bytes.slice(0, SQLITE_SIGNATURE.length)) === SQLITE_SIGNATURE;
 }
 
-function hasZstdSignature(bytes) {
-  return ZSTD_MAGIC.every((byte, index) => bytes[index] === byte);
+function hasZstdSignature(bytes: any) {
+  return ZSTD_MAGIC.every((byte: any, index: any) => bytes[index] === byte);
 }
 
-export async function findReadableCollectionDatabase(archive) {
-  const entries = COLLECTION_NAMES.map((name) => archive.getEntry(name)).filter(Boolean);
+export async function findReadableCollectionDatabase(archive: any) {
+  const entries = COLLECTION_NAMES.map((name: any) => archive.getEntry(name)).filter(Boolean);
 
   if (entries.length === 0) {
     throw new Error("Keine Anki-Collection gefunden. Erwartet wurde collection.anki2, collection.anki21 oder collection.anki21b.");
@@ -600,21 +601,21 @@ export async function findReadableCollectionDatabase(archive) {
   throw new Error("Keine lesbare SQLite-Collection gefunden. Dieses APKG nutzt vermutlich ein neueres Collection-Format, das der lokale MVP noch nicht entpacken kann.");
 }
 
-export async function readAnkiDatabase(collectionEntry) {
+export async function readAnkiDatabase(collectionEntry: any) {
   const bytes = maybeDecompressZstdBytes(await collectionEntry.readBytes());
   return readSqliteDatabase(bytes);
 }
 
-export function parseAnkiDecks(database) {
+export function parseAnkiDecks(database: any) {
   const deckRows = database.readTable("decks");
 
   if (deckRows.length > 0) {
     return deckRows
-      .map((deck) => ({
+      .map((deck: any) => ({
         id: String(deck.id ?? deck.rowid ?? ""),
         name: deck.name ?? "Anki Deck",
       }))
-      .sort((left, right) => {
+      .sort((left: any, right: any) => {
         const leftDefault = left.name === "Default" ? 1 : 0;
         const rightDefault = right.name === "Default" ? 1 : 0;
         return leftDefault - rightDefault;
@@ -624,16 +625,16 @@ export function parseAnkiDecks(database) {
   return getDecksFromCollection(database.readTable("col"));
 }
 
-export function parseAnkiNotes(database) {
+export function parseAnkiNotes(database: any) {
   return database.readTable("notes");
 }
 
-export function parseAnkiCards(database) {
+export function parseAnkiCards(database: any) {
   return database.readTable("cards");
 }
 
-export function parsePackageMetadataBytes(bytes) {
-  const metadata = {
+export function parsePackageMetadataBytes(bytes: any) {
+  const metadata: { version: string; rawVersion?: number } = {
     version: "unknown",
   };
 
@@ -657,8 +658,8 @@ export function parsePackageMetadataBytes(bytes) {
   return metadata;
 }
 
-export function parseMediaEntriesBytes(bytes) {
-  const entries = [];
+export function parseMediaEntriesBytes(bytes: any) {
+  const entries: any[] = [];
   let offset = 0;
 
   while (offset < bytes.length) {
@@ -675,7 +676,7 @@ export function parseMediaEntriesBytes(bytes) {
     const message = readLengthDelimited(bytes, offset);
     offset = message.offset;
     let entryOffset = 0;
-    const entry = {
+    const entry: { name: string; size: number; sha1: string; legacyZipFileName: string | null } = {
       name: "",
       size: 0,
       sha1: "",
@@ -717,7 +718,7 @@ export function parseMediaEntriesBytes(bytes) {
   return entries;
 }
 
-export async function parseAnkiPackageMetadata(archive) {
+export async function parseAnkiPackageMetadata(archive: any) {
   const metaEntry = archive.getEntry("meta");
 
   if (!metaEntry) {
@@ -728,7 +729,7 @@ export async function parseAnkiPackageMetadata(archive) {
   return parsePackageMetadataBytes(bytes);
 }
 
-function createEmptyMediaBundle(format = "none", metadata = {}) {
+function createEmptyMediaBundle(format: any = "none", metadata: any = {}) {
   return {
     format,
     mediaMap: {},
@@ -742,14 +743,14 @@ function createEmptyMediaBundle(format = "none", metadata = {}) {
   };
 }
 
-async function readArchiveMediaBytes(archive, entryName) {
+async function readArchiveMediaBytes(archive: any, entryName: any) {
   const entry = archive.getEntry(String(entryName));
   if (!entry) return null;
   return maybeDecompressZstdBytes(await entry.readBytes());
 }
 
-async function collectLegacyMediaBundle(archive, mediaMap, metadata) {
-  const mediaFiles = [];
+async function collectLegacyMediaBundle(archive: any, mediaMap: any, metadata: any) {
+  const mediaFiles: any[] = [];
 
   for (const [zipEntryName, name] of Object.entries(mediaMap)) {
     const bytes = await readArchiveMediaBytes(archive, zipEntryName);
@@ -774,27 +775,27 @@ async function collectLegacyMediaBundle(archive, mediaMap, metadata) {
     manifest: {
       format: "legacy-json",
       packageVersion: metadata.version,
-      assets: mediaFiles.map(({ bytes, ...asset }) => asset),
+      assets: mediaFiles.map(({ bytes, ...asset }: any) => asset),
       missingAssets: Object.entries(mediaMap)
-        .filter(([zipEntryName]) => !mediaFiles.some((file) => file.zipEntryName === String(zipEntryName)))
-        .map(([zipEntryName, name]) => ({ name: normalizeMediaFileName(name), zipEntryName: String(zipEntryName) })),
+        .filter(([zipEntryName]: any) => !mediaFiles.some((file: any) => file.zipEntryName === String(zipEntryName)))
+        .map(([zipEntryName, name]: any) => ({ name: normalizeMediaFileName(name), zipEntryName: String(zipEntryName) })),
     },
   };
 }
 
-function listNumericMediaEntries(archive) {
+function listNumericMediaEntries(archive: any) {
   if (typeof archive.listEntries !== "function") return [];
 
   return archive
     .listEntries()
-    .filter((entry) => /^\d+$/.test(entry.name))
-    .sort((left, right) => Number(left.name) - Number(right.name));
+    .filter((entry: any) => /^\d+$/.test(entry.name))
+    .sort((left: any, right: any) => Number(left.name) - Number(right.name));
 }
 
-async function collectModernMediaBundle(archive, mediaEntries, metadata) {
-  const mediaMap = {};
-  const mediaFiles = [];
-  const availableFiles = [];
+async function collectModernMediaBundle(archive: any, mediaEntries: any, metadata: any) {
+  const mediaMap: Record<string, any> = {};
+  const mediaFiles: any[] = [];
+  const availableFiles: any[] = [];
 
   for (const entry of listNumericMediaEntries(archive)) {
     const bytes = await readArchiveMediaBytes(archive, entry.name);
@@ -812,9 +813,9 @@ async function collectModernMediaBundle(archive, mediaEntries, metadata) {
   for (const manifestEntry of mediaEntries) {
     const matched =
       (manifestEntry.legacyZipFileName
-        ? availableFiles.find((file) => file.zipEntryName === manifestEntry.legacyZipFileName)
+        ? availableFiles.find((file: any) => file.zipEntryName === manifestEntry.legacyZipFileName)
         : null) ??
-      availableFiles.find((file) => file.sha1 === manifestEntry.sha1 && file.size === manifestEntry.size);
+      availableFiles.find((file: any) => file.sha1 === manifestEntry.sha1 && file.size === manifestEntry.size);
 
     if (!matched) continue;
 
@@ -830,7 +831,7 @@ async function collectModernMediaBundle(archive, mediaEntries, metadata) {
     });
   }
 
-  const matchedNames = new Set(mediaFiles.map((file) => file.name));
+  const matchedNames = new Set(mediaFiles.map((file: any) => file.name));
 
   return {
     format: "media-entries",
@@ -839,9 +840,9 @@ async function collectModernMediaBundle(archive, mediaEntries, metadata) {
     manifest: {
       format: "media-entries",
       packageVersion: metadata.version,
-      assets: mediaEntries.map((entry) => {
+      assets: mediaEntries.map((entry: any) => {
         const normalizedName = normalizeMediaFileName(entry.name);
-        const matched = mediaFiles.find((file) => file.name === normalizedName);
+        const matched = mediaFiles.find((file: any) => file.name === normalizedName);
         return {
           name: normalizedName,
           zipEntryName: matched?.zipEntryName ?? entry.legacyZipFileName ?? null,
@@ -851,8 +852,8 @@ async function collectModernMediaBundle(archive, mediaEntries, metadata) {
         };
       }),
       missingAssets: mediaEntries
-        .filter((entry) => !matchedNames.has(normalizeMediaFileName(entry.name)))
-        .map((entry) => ({
+        .filter((entry: any) => !matchedNames.has(normalizeMediaFileName(entry.name)))
+        .map((entry: any) => ({
           name: normalizeMediaFileName(entry.name),
           sha1: entry.sha1,
           size: entry.size,
@@ -861,7 +862,7 @@ async function collectModernMediaBundle(archive, mediaEntries, metadata) {
   };
 }
 
-export async function parseAnkiMedia(archive) {
+export async function parseAnkiMedia(archive: any) {
   const mediaEntry = archive.getEntry("media");
   const metadata = await parseAnkiPackageMetadata(archive);
 
@@ -885,17 +886,17 @@ export async function parseAnkiMedia(archive) {
   return createEmptyMediaBundle("unknown", { packageVersion: metadata.version });
 }
 
-export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap = {}, mediaManifest = null }) {
+export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap = {}, mediaManifest = null }: any) {
   const models = getModelsFromCollection(colRows);
-  const deckById = new Map(decks.map((deck) => [deck.id, deck]));
-  const noteById = new Map(notes.map((note) => [String(note.id), note]));
+  const deckById = new Map<any, any>(decks.map((deck: any) => [deck.id, deck]));
+  const noteById = new Map<any, any>(notes.map((note: any) => [String(note.id), note]));
   const primaryDeck = decks[0] ?? { id: "unknown", name: file.name.replace(/\.apkg$/i, "") };
-  const unsupportedNoteTypes = [];
+  const unsupportedNoteTypes: any[] = [];
   const createdAt = new Date().toISOString();
   let hasCloze = false;
 
   const coreCards = cards
-    .map((card) => {
+    .map((card: any) => {
       const note = noteById.get(String(card.nid));
       if (!note) return null;
 
@@ -911,9 +912,9 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
       const originalHtml = [frontBack.front, frontBack.back].filter(Boolean).join("<hr>");
       const mediaRefs = unique([
         ...extractMediaRefs(originalHtml),
-        ...Object.values(mediaMap).filter((name) => originalHtml.includes(String(name))),
-        ...(mediaManifest?.assets ?? []).map((asset) => asset.name).filter((name) => originalHtml.includes(String(name))),
-      ]);
+        ...Object.values(mediaMap).filter((name: any) => originalHtml.includes(String(name))),
+        ...(mediaManifest?.assets ?? []).map((asset: any) => asset.name).filter((name: any) => originalHtml.includes(String(name))),
+      ]).map(String);
 
       return createCoreCard({
         deckId: "",
@@ -961,7 +962,7 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
     })
     .filter(Boolean);
 
-  const deckTags = unique(coreCards.flatMap((card) => card.originalTags));
+  const deckTags = unique(coreCards.flatMap((card: any) => card.originalTags));
 
   return createCoreDeck({
     name: primaryDeck.name,
@@ -991,14 +992,14 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
   });
 }
 
-export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [], cards = [], colRows = [], mediaMap = {}, mediaManifest = null } = {}) {
+export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [], cards = [], colRows = [], mediaMap = {}, mediaManifest = null }: any = {}) {
   const models = getModelsFromCollection(colRows);
-  const deckById = new Map(decks.map((deck) => [String(deck.id), deck]));
-  const noteById = new Map(notes.map((note) => [String(note.id), note]));
+  const deckById = new Map<any, any>(decks.map((deck: any) => [String(deck.id), deck]));
+  const noteById = new Map(notes.map((note: any) => [String(note.id), note]));
   const cardsByNoteId = new Map();
-  const warnings = [];
-  const errors = [];
-  const unsupportedNoteTypes = [];
+  const warnings: any[] = [];
+  const errors: any[] = [];
+  const unsupportedNoteTypes: any[] = [];
   const primaryDeck = decks[0] ?? { id: "unknown", name: String(file.name ?? "Anki Deck").replace(/\.apkg$/i, "") };
   let hasCloze = false;
   let hasAnkiScheduling = false;
@@ -1012,25 +1013,25 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
     cardsByNoteId.set(noteId, [...(cardsByNoteId.get(noteId) ?? []), card]);
   }
 
-  const items = [];
+  const items: any[] = [];
 
   for (const note of notes) {
-    const noteCards = (cardsByNoteId.get(String(note.id)) ?? []).sort((left, right) => {
+    const noteCards = (cardsByNoteId.get(String(note.id)) ?? []).sort((left: any, right: any) => {
       const byOrd = Number(left.ord ?? 0) - Number(right.ord ?? 0);
       return byOrd || String(left.id ?? "").localeCompare(String(right.id ?? ""));
     });
 
     if (noteCards.length === 0) continue;
 
-    const itemWarnings = [];
+    const itemWarnings: any[] = [];
     const model = getModelForNote(note, models);
     const modelName = model.name ?? "Unknown Note Type";
     const fields = parseFields(note, models);
     const tags = normalizeTags(note.tags);
-    const sourceDeckIds = unique(noteCards.map((card) => String(card.did ?? "")));
-    const sourceDeckNames = unique(sourceDeckIds.map((deckId) => deckById.get(deckId)?.name ?? primaryDeck.name));
+    const sourceDeckIds = unique(noteCards.map((card: any) => String(card.did ?? "")));
+    const sourceDeckNames = unique(sourceDeckIds.map((deckId: any) => deckById.get(deckId)?.name ?? primaryDeck.name));
     const noteHasScheduling = noteCards.some(cardHasAnkiSchedulingData);
-    const variants = [];
+    const variants: any[] = [];
 
     if (!modelName || (!/basic|cloze/i.test(modelName) && fields.length > 2)) {
       unsupportedNoteTypes.push(modelName);
@@ -1038,7 +1039,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
 
     hasAnkiScheduling = hasAnkiScheduling || noteHasScheduling;
 
-    noteCards.forEach((card, index) => {
+    noteCards.forEach((card: any, index: any) => {
       const face = resolveAnkiCardFace({ card, note, models, warnings: itemWarnings });
       hasCloze = hasCloze || face.isCloze;
       const original = index === 0;
@@ -1066,13 +1067,13 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
       });
     });
 
-    const originalVariant = variants.find((variant) => variant.isOriginal) ?? variants[0] ?? null;
+    const originalVariant = variants.find((variant: any) => variant.isOriginal) ?? variants[0] ?? null;
     const mediaRefs = unique([
-      ...variants.flatMap((variant) => [...extractMediaRefs(variant.front), ...extractMediaRefs(variant.back)]),
-      ...Object.values(mediaMap).filter((name) => variants.some((variant) => `${variant.front}${variant.back}`.includes(String(name)))),
+      ...variants.flatMap((variant: any) => [...extractMediaRefs(variant.front), ...extractMediaRefs(variant.back)]),
+      ...Object.values(mediaMap).filter((name: any) => variants.some((variant: any) => `${variant.front}${variant.back}`.includes(String(name)))),
       ...(mediaManifest?.assets ?? [])
-        .map((asset) => asset.name)
-        .filter((name) => variants.some((variant) => `${variant.front}${variant.back}`.includes(String(name)))),
+        .map((asset: any) => asset.name)
+        .filter((name: any) => variants.some((variant: any) => `${variant.front}${variant.back}`.includes(String(name)))),
     ]);
 
     warnings.push(...itemWarnings);
@@ -1091,7 +1092,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
       metadataJson: {
         importFormat: "apkg",
         ankiNoteId: note.id == null ? null : String(note.id),
-        ankiCardIds: noteCards.map((card) => String(card.id ?? "")),
+        ankiCardIds: noteCards.map((card: any) => String(card.id ?? "")),
         ankiDeckId: sourceDeckIds[0] ?? null,
         ankiDeckIds: sourceDeckIds,
         ankiDeckNames: sourceDeckNames,
@@ -1111,7 +1112,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
     });
   }
 
-  const missingNoteIds = unique(cards.map((card) => String(card.nid ?? "")).filter((noteId) => noteId && !noteById.has(noteId)));
+  const missingNoteIds = unique(cards.map((card: any) => String(card.nid ?? "")).filter((noteId: any) => noteId && !noteById.has(noteId)));
   if (missingNoteIds.length > 0) {
     warnings.push(`${missingNoteIds.length} Anki-Cards referenzieren Notes, die nicht gelesen werden konnten.`);
   }
@@ -1145,7 +1146,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
   }
 
   const mediaAssets = createNormalizedMediaAssets(mediaManifest);
-  const detectedDeckIds = unique(cards.map((card) => String(card.did ?? "")).filter(Boolean));
+  const detectedDeckIds = unique(cards.map((card: any) => String(card.did ?? "")).filter(Boolean));
 
   return {
     normalizedDeck: {
@@ -1153,7 +1154,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
       description: `Import aus ${file.name ?? "Anki APKG"}`,
       sourceType: "anki_import",
       sourceExternalId: primaryDeck.id == null ? null : `anki-deck-${String(primaryDeck.id)}`,
-      tags: unique(items.flatMap((item) => item.tags)),
+      tags: unique(items.flatMap((item: any) => item.tags)),
       items,
       mediaAssets,
       metadataJson: {
@@ -1185,11 +1186,11 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
   };
 }
 
-export function createImportPreview(coreDeck, warnings, mediaFiles = []) {
+export function createImportPreview(coreDeck: any, warnings: any, mediaFiles: any = []) {
   return {
     deck: coreDeck,
     mediaFiles,
-    sampleCards: coreDeck.cards.slice(0, 5).map((card) => ({
+    sampleCards: coreDeck.cards.slice(0, 5).map((card: any) => ({
       ...card,
       plainFront: stripHtml(card.originalFront).slice(0, 240),
       plainBack: stripHtml(card.originalBack).slice(0, 240),
@@ -1198,7 +1199,7 @@ export function createImportPreview(coreDeck, warnings, mediaFiles = []) {
   };
 }
 
-async function readApkgPackage(file, onStep = () => {}) {
+async function readApkgPackage(file: any, onStep: any = () => {}) {
   onStep("validate");
   const archive = await extractApkgArchive(file);
   onStep("collection");
@@ -1224,15 +1225,15 @@ async function readApkgPackage(file, onStep = () => {}) {
   };
 }
 
-function isParsedAnkiPackage(input) {
+function isParsedAnkiPackage(input: any) {
   return Boolean(input && Array.isArray(input.decks) && Array.isArray(input.notes) && Array.isArray(input.cards));
 }
 
-function isApkgPreview(input) {
+function isApkgPreview(input: any) {
   return Boolean(input?.normalizedDeck || input?.preview?.normalizedDeck);
 }
 
-function emptyNormalizedApkgDeck(file = {}) {
+function emptyNormalizedApkgDeck(file: any = {}) {
   return {
     title: String(file.name ?? "Anki Import").replace(/\.apkg$/i, ""),
     sourceType: "anki_import",
@@ -1259,12 +1260,12 @@ function emptyNormalizedApkgDeck(file = {}) {
   };
 }
 
-function createApkgReportDetails(parsed, normalizedDeck) {
+function createApkgReportDetails(parsed: any, normalizedDeck: any) {
   const metadata = normalizedDeck?.metadataJson ?? {};
   const detectedDecks = metadata.detectedDecks ?? parsed?.decks ?? [];
   const detectedNotes = metadata.detectedNotes ?? parsed?.notes?.length ?? normalizedDeck?.items?.length ?? 0;
   const detectedCards = metadata.detectedCards ?? parsed?.cards?.length ?? 0;
-  const detectedVariants = metadata.detectedVariants ?? normalizedDeck?.items?.reduce((sum, item) => sum + (item.variants?.length ?? 0), 0) ?? 0;
+  const detectedVariants = metadata.detectedVariants ?? normalizedDeck?.items?.reduce((sum: any, item: any) => sum + (item.variants?.length ?? 0), 0) ?? 0;
   const hasAnkiScheduling = Boolean(metadata.hasAnkiScheduling ?? parsed?.cards?.some(cardHasAnkiSchedulingData));
   const mediaManifest = metadata.mediaManifest ?? parsed?.mediaBundle?.manifest ?? { format: "none", assets: [], missingAssets: [] };
 
@@ -1285,7 +1286,7 @@ function createApkgReportDetails(parsed, normalizedDeck) {
   };
 }
 
-function attachApkgReportDetails(result, parsed, parsedWarnings = [], parsedErrors = []) {
+function attachApkgReportDetails(result: any, parsed: any, parsedWarnings: any = [], parsedErrors: any = []) {
   const report = result.report;
   const details = createApkgReportDetails(parsed, result.normalizedDeck);
   const warnings = unique([...(parsedWarnings ?? []), ...(report.warnings ?? [])]);
@@ -1313,7 +1314,7 @@ function attachApkgReportDetails(result, parsed, parsedWarnings = [], parsedErro
   return result;
 }
 
-function mergeImportReports(results = []) {
+function mergeImportReports(results: any = []) {
   const report = results[0]?.report
     ? { ...results[0].report }
     : {
@@ -1329,20 +1330,20 @@ function mergeImportReports(results = []) {
         summary: {},
       };
 
-  report.createdDecks = results.reduce((sum, result) => sum + Number(result.report?.createdDecks ?? 0), 0);
-  report.createdLearningItems = results.reduce((sum, result) => sum + Number(result.report?.createdLearningItems ?? 0), 0);
+  report.createdDecks = results.reduce((sum: any, result: any) => sum + Number(result.report?.createdDecks ?? 0), 0);
+  report.createdLearningItems = results.reduce((sum: any, result: any) => sum + Number(result.report?.createdLearningItems ?? 0), 0);
   report.createdCards = report.createdLearningItems;
-  report.createdVariants = results.reduce((sum, result) => sum + Number(result.report?.createdVariants ?? 0), 0);
-  report.skipped = results.flatMap((result) => result.report?.skipped ?? []);
-  report.duplicates = results.flatMap((result) => result.report?.duplicates ?? []);
-  report.warnings = unique(results.flatMap((result) => result.report?.warnings ?? []));
-  report.errors = unique(results.flatMap((result) => result.report?.errors ?? []));
+  report.createdVariants = results.reduce((sum: any, result: any) => sum + Number(result.report?.createdVariants ?? 0), 0);
+  report.skipped = results.flatMap((result: any) => result.report?.skipped ?? []);
+  report.duplicates = results.flatMap((result: any) => result.report?.duplicates ?? []);
+  report.warnings = unique(results.flatMap((result: any) => result.report?.warnings ?? []));
+  report.errors = unique(results.flatMap((result: any) => result.report?.errors ?? []));
   return finalizeImportReport(report);
 }
 
-function commitNormalizedApkgHierarchy(normalizedDeck, options = {}) {
+function commitNormalizedApkgHierarchy(normalizedDeck: any, options: any = {}) {
   const hierarchy = splitNormalizedApkgDeckByHierarchy(normalizedDeck);
-  const results = hierarchy.normalizedDecks.map((subDeck) =>
+  const results = hierarchy.normalizedDecks.map((subDeck: any) =>
     importNormalizedDeck(subDeck, {
       ...options,
       dryRun: false,
@@ -1350,11 +1351,11 @@ function commitNormalizedApkgHierarchy(normalizedDeck, options = {}) {
     }),
   );
   const decks = results
-    .map((result) => result.deck)
+    .map((result: any) => result.deck)
     .filter(Boolean)
-    .map((createdDeck) => mergeImportedDeck(createdDeck, options.existingDecks ?? []));
-  const rootOrder = new Map(hierarchy.normalizedDecks.map((deck, index) => [deck.id, index]));
-  decks.sort((left, right) => (rootOrder.get(left.id) ?? 0) - (rootOrder.get(right.id) ?? 0));
+    .map((createdDeck: any) => mergeImportedDeck(createdDeck, options.existingDecks ?? []));
+  const rootOrder = new Map(hierarchy.normalizedDecks.map((deck: any, index: any) => [deck.id, index]));
+  decks.sort((left: any, right: any) => (rootOrder.get(left.id) ?? 0) - (rootOrder.get(right.id) ?? 0));
 
   return {
     deck: decks[0] ?? null,
@@ -1367,7 +1368,7 @@ function commitNormalizedApkgHierarchy(normalizedDeck, options = {}) {
   };
 }
 
-export async function parseApkgToNormalizedImport(fileOrParsed, options = {}) {
+export async function parseApkgToNormalizedImport(fileOrParsed: any, options: any = {}) {
   if (isApkgPreview(fileOrParsed)) {
     const preview = fileOrParsed.preview ?? fileOrParsed;
     return {
@@ -1452,10 +1453,10 @@ export async function parseApkgToNormalizedImport(fileOrParsed, options = {}) {
   }
 }
 
-export async function dryRunApkgImport(fileOrParsed, options = {}) {
+export async function dryRunApkgImport(fileOrParsed: any, options: any = {}) {
   const parsed = await parseApkgToNormalizedImport(fileOrParsed, options);
   if (parsed.errors.length > 0) {
-    const result = importNormalizedDeck(parsed.normalizedDeck, {
+    const result: any = importNormalizedDeck(parsed.normalizedDeck, {
       ...options,
       dryRun: true,
       importScheduling: false,
@@ -1463,7 +1464,7 @@ export async function dryRunApkgImport(fileOrParsed, options = {}) {
     return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
   }
 
-  const result = importNormalizedDeck(parsed.normalizedDeck, {
+  const result: any = importNormalizedDeck(parsed.normalizedDeck, {
     ...options,
     dryRun: true,
     importScheduling: false,
@@ -1472,10 +1473,10 @@ export async function dryRunApkgImport(fileOrParsed, options = {}) {
   return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
 }
 
-export async function commitApkgImport(fileOrParsed, options = {}) {
+export async function commitApkgImport(fileOrParsed: any, options: any = {}) {
   const parsed = await parseApkgToNormalizedImport(fileOrParsed, options);
   if (parsed.errors.length > 0) {
-    const result = importNormalizedDeck(parsed.normalizedDeck, {
+    const result: any = importNormalizedDeck(parsed.normalizedDeck, {
       ...options,
       dryRun: true,
       importScheduling: false,
@@ -1488,18 +1489,87 @@ export async function commitApkgImport(fileOrParsed, options = {}) {
     return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
   }
 
-  const result = commitNormalizedApkgHierarchy(parsed.normalizedDeck, options);
+  const result: any = commitNormalizedApkgHierarchy(parsed.normalizedDeck, options);
   result.mediaFiles = parsed.mediaFiles;
   return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
 }
 
-export async function importApkgDeck(fileOrParsed, options = {}) {
+export async function importApkgDeck(fileOrParsed: any, options: any = {}) {
   return commitApkgImport(fileOrParsed, options);
 }
 
-export async function createApkgImportPreview(file, onStep = () => {}, options = {}) {
+function canUseApkgWorker(file: unknown): file is File {
+  return typeof Worker === "function" && Boolean(file && typeof (file as File).arrayBuffer === "function");
+}
+
+function parseApkgInWorker(file: File, onStep: (step: string) => void, signal?: AbortSignal): Promise<ApkgWorkerResult> {
+  const requestId = makeId("apkg-worker");
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL("./apkgImportWorker.ts", import.meta.url), { type: "module" });
+    let settled = false;
+
+    const cleanup = () => {
+      signal?.removeEventListener("abort", abort);
+      worker.terminate();
+    };
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    const abort = () => fail(new DOMException("APKG-Import wurde abgebrochen.", "AbortError"));
+
+    worker.onmessage = (event: MessageEvent<unknown>) => {
+      const response = parseApkgWorkerResponse(event.data);
+      if (!response.success || (response.output.requestId !== requestId && response.output.requestId !== "invalid")) {
+        fail(new Error("APKG-Worker hat eine ungültige Nachricht geliefert."));
+        return;
+      }
+      if (response.output.type === "progress") {
+        onStep(response.output.step);
+        return;
+      }
+      if (response.output.type === "error") {
+        fail(new Error(response.output.message));
+        return;
+      }
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(response.output.result);
+    };
+    worker.onerror = () => fail(new Error("APKG-Import-Worker ist unerwartet abgebrochen."));
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) {
+      abort();
+      return;
+    }
+
+    void file.arrayBuffer()
+      .then((buffer) => {
+        if (settled) return;
+        worker.postMessage({
+          type: "parse",
+          requestId,
+          file: {
+            name: file.name,
+            size: file.size,
+            type: file.type || "application/octet-stream",
+            lastModified: file.lastModified || 0,
+          },
+          buffer,
+        }, [buffer]);
+      })
+      .catch(() => fail(new Error("APKG-Datei konnte nicht für den Import-Worker gelesen werden.")));
+  });
+}
+
+export async function createApkgImportPreview(file: any, onStep: any = () => {}, options: any = {}) {
   const startedAt = new Date().toISOString();
-  const parsed = await parseApkgToNormalizedImport(file, { onStep });
+  const parsed = canUseApkgWorker(file)
+    ? await parseApkgInWorker(file, onStep, options.signal)
+    : await parseApkgToNormalizedImport(file, { onStep });
   const details = createApkgReportDetails(parsed.parsedPackage, parsed.normalizedDeck);
   const job = {
     id: makeId("import"),
@@ -1570,12 +1640,12 @@ export async function createApkgImportPreview(file, onStep = () => {}, options =
   };
 }
 
-function findExistingImportedDeck(importedDeck, existingDecks = []) {
+function findExistingImportedDeck(importedDeck: any, existingDecks: any = []) {
   return (
-    existingDecks.find((deck) => deck.source === "anki-apkg" && deck.originalDeckId === importedDeck.originalDeckId) ??
-    existingDecks.find((deck) => deck.source === "anki-apkg" && deck.importMeta?.sourceExternalId && deck.importMeta.sourceExternalId === importedDeck.importMeta?.sourceExternalId) ??
+    existingDecks.find((deck: any) => deck.source === "anki-apkg" && deck.originalDeckId === importedDeck.originalDeckId) ??
+    existingDecks.find((deck: any) => deck.source === "anki-apkg" && deck.importMeta?.sourceExternalId && deck.importMeta.sourceExternalId === importedDeck.importMeta?.sourceExternalId) ??
     existingDecks.find(
-      (deck) =>
+      (deck: any) =>
         deck.source === "anki-apkg" &&
         deck.importMeta?.fileName === importedDeck.importMeta?.fileName &&
         deck.importMeta?.detectedNotes === importedDeck.importMeta?.detectedNotes &&
@@ -1585,15 +1655,15 @@ function findExistingImportedDeck(importedDeck, existingDecks = []) {
   );
 }
 
-function hasLocalContentEdit(card) {
-  return (card.versionLog ?? []).some((entry) => entry.changeType === "content_updated");
+function hasLocalContentEdit(card: any) {
+  return (card.versionLog ?? []).some((entry: any) => entry.changeType === "content_updated");
 }
 
-function synchronizeOriginalVariant(variants = [], card = {}) {
-  const originalVariant = variants.find((variant) => variant.isOriginal) ?? null;
+function synchronizeOriginalVariant(variants: any = [], card: any = {}) {
+  const originalVariant = variants.find((variant: any) => variant.isOriginal) ?? null;
   if (!originalVariant) return variants;
 
-  return variants.map((variant) =>
+  return variants.map((variant: any) =>
     variant === originalVariant
       ? {
           ...variant,
@@ -1609,21 +1679,21 @@ function synchronizeOriginalVariant(variants = [], card = {}) {
   );
 }
 
-function mergeImportedVariants(incomingCard, existingCard, preserveContent) {
+function mergeImportedVariants(incomingCard: any, existingCard: any, preserveContent: any) {
   if (preserveContent) {
     return synchronizeOriginalVariant(existingCard.variants ?? [], existingCard);
   }
 
   const existingVariants = existingCard.variants ?? [];
-  const existingById = new Map(existingVariants.map((variant) => [variant.id, variant]));
+  const existingById = new Map(existingVariants.map((variant: any) => [variant.id, variant]));
   const existingBySourceId = new Map(
     existingVariants
-      .map((variant) => [String(variant.meta?.sourceVariantExternalId ?? "").trim(), variant])
-      .filter(([sourceId]) => sourceId),
+      .map((variant: any) => [String(variant.meta?.sourceVariantExternalId ?? "").trim(), variant])
+      .filter(([sourceId]: any) => sourceId),
   );
-  const existingOriginal = existingVariants.find((variant) => variant.isOriginal) ?? null;
+  const existingOriginal = existingVariants.find((variant: any) => variant.isOriginal) ?? null;
   const retainedIds = new Set();
-  const merged = (incomingCard.variants ?? []).map((incomingVariant) => {
+  const merged = (incomingCard.variants ?? []).map((incomingVariant: any) => {
     const sourceId = String(incomingVariant.meta?.sourceVariantExternalId ?? "").trim();
     const existingVariant = incomingVariant.isOriginal
       ? existingOriginal
@@ -1647,11 +1717,11 @@ function mergeImportedVariants(incomingCard, existingCard, preserveContent) {
 
   return [
     ...merged,
-    ...existingVariants.filter((variant) => !variant.isOriginal && !retainedIds.has(variant.id)),
+    ...existingVariants.filter((variant: any) => !variant.isOriginal && !retainedIds.has(variant.id)),
   ];
 }
 
-function mergeImportedCard(incomingCard, existingCard) {
+function mergeImportedCard(incomingCard: any, existingCard: any) {
   if (!existingCard) return incomingCard;
 
   const preserveContent = hasLocalContentEdit(existingCard);
@@ -1696,12 +1766,12 @@ function mergeImportedCard(incomingCard, existingCard) {
   };
 }
 
-export function mergeImportedDeck(importedDeck, existingDecks = []) {
+export function mergeImportedDeck(importedDeck: any, existingDecks: any = []) {
   const existingDeck = findExistingImportedDeck(importedDeck, existingDecks);
   if (!existingDeck) return importedDeck;
 
   const existingCardsBySourceId = new Map(
-    existingDeck.cards.map((card) => [String(card.sourceCardId ?? card.sourceRefId ?? card.id), card]),
+    existingDeck.cards.map((card: any) => [String(card.sourceCardId ?? card.sourceRefId ?? card.id), card]),
   );
   const now = new Date().toISOString();
 
@@ -1727,11 +1797,11 @@ export function mergeImportedDeck(importedDeck, existingDecks = []) {
       reimportedAt: now,
       replacedDeckId: existingDeck.id,
     },
-    cards: importedDeck.cards.map((card) => mergeImportedCard(card, existingCardsBySourceId.get(String(card.sourceCardId ?? card.sourceRefId ?? card.id)))),
+    cards: importedDeck.cards.map((card: any) => mergeImportedCard(card, existingCardsBySourceId.get(String(card.sourceCardId ?? card.sourceRefId ?? card.id)))),
   });
 }
 
-export async function commitImport(preview, options = {}) {
+export async function commitImport(preview: any, options: any = {}) {
   if (!preview?.deck) {
     throw new Error("Es gibt keine Importvorschau, die gespeichert werden kann.");
   }

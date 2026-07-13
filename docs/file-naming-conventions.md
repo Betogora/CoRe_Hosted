@@ -23,6 +23,7 @@ Diese Konvention gilt für neue und umbenannte Dateien im CoRe-Repository. Maßg
 | Szenario-, Integrations- oder Smoke-Test | `kebab-case.test.ts` oder `kebab-case.spec.ts` als Ziel, während der Migration auch `.js` | `ownership-smoke.test.js`, `auth-gate.spec.js` |
 | Test-Setup | `<rolle>.setup.ts` als Ziel, während der Migration auch `.js` | `auth.setup.js` |
 | JavaScript-Skript | `camelCase.mjs` | `runLocalE2E.mjs` |
+| TypeScript-Skript | `camelCase.ts` | `benchmarkApkgImport.ts` |
 | Python-Modul oder -Skript | `snake_case.py` | `create_world_capitals_apkg.py` |
 | Freies Markdown-Dokument | `kebab-case.md` | `anki-format-analysis.md` |
 | Reserviertes Markdown-Dokument | offizieller Name | `README.md`, `AGENTS.md` |

@@ -8,6 +8,7 @@ fixture stays deterministic. Run with --refresh-source to fetch a new snapshot.
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import sqlite3
@@ -153,8 +154,11 @@ def card_front(item) -> str:
 
 def card_back(item) -> str:
     if len(item["capitals"]) == 1:
-        return item["capitals"][0]
-    return "Hauptstädte: " + ", ".join(item["capitals"])
+        answer = item["capitals"][0]
+    else:
+        answer = "Hauptstädte: " + ", ".join(item["capitals"])
+    media_name = item.get("benchmarkMedia")
+    return f'{answer}<br><img src="{media_name}">' if media_name else answer
 
 
 def write_seed_module(source) -> None:
@@ -180,7 +184,7 @@ def write_seed_module(source) -> None:
         "continents": continents,
     }
     serialized = json.dumps(payload, ensure_ascii=False, indent=2)
-    code = f'''import {{ createBasicLearningItem, createCoreDeck }} from "../coreModel.js";
+    code = f'''import {{ createBasicLearningItem, createCoreDeck }} from "../coreModel.ts";
 
 export const WORLD_CAPITALS_FIXTURE = {serialized};
 
@@ -461,21 +465,71 @@ def build_sqlite(source, path: Path) -> None:
         connection.close()
 
 
-def write_apkg(source) -> None:
-    APKG_PATH.parent.mkdir(parents=True, exist_ok=True)
+def deterministic_zip_info(name: str) -> zipfile.ZipInfo:
+    info = zipfile.ZipInfo(name, date_time=(2026, 7, 7, 0, 0, 0))
+    info.compress_type = zipfile.ZIP_STORED
+    info.external_attr = 0o600 << 16
+    return info
+
+
+def write_apkg(source, output_path: Path = APKG_PATH, media_files: dict[str, bytes] | None = None) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    media_files = media_files or {}
     with tempfile.TemporaryDirectory() as temp_dir:
         sqlite_path = Path(temp_dir) / "collection.anki2"
         build_sqlite(source, sqlite_path)
-        with zipfile.ZipFile(APKG_PATH, "w", compression=zipfile.ZIP_STORED) as archive:
-            archive.write(sqlite_path, "collection.anki2")
-            archive.writestr("media", "{}")
+        with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_STORED) as archive:
+            archive.writestr(deterministic_zip_info("collection.anki2"), sqlite_path.read_bytes())
+            media_map = {str(index): name for index, name in enumerate(media_files)}
+            archive.writestr(deterministic_zip_info("media"), json.dumps(media_map, sort_keys=True))
+            for index, data in enumerate(media_files.values()):
+                archive.writestr(deterministic_zip_info(str(index)), data)
+
+
+def build_benchmark_fixture(source, repeat: int, media_count: int):
+    benchmark = copy.deepcopy(source)
+    original_items = benchmark["items"]
+    media_files = {
+        f"benchmark-{index:04d}.png": b"\x89PNG\r\n\x1a\n" + bytes([index % 251]) * 4096
+        for index in range(media_count)
+    }
+    media_names = list(media_files)
+    expanded = []
+    for repetition in range(repeat):
+        for index, original in enumerate(original_items):
+            item = copy.deepcopy(original)
+            serial = repetition * len(original_items) + index + 1
+            item["id"] = f"benchmark-card-{serial}"
+            item["variantId"] = f"benchmark-variant-{serial}"
+            item["ankiNoteId"] = 1820400000000 + serial
+            item["ankiCardId"] = 1820500000000 + serial
+            item["country"] = f"{item['country']} ({repetition + 1})"
+            if media_names:
+                item["benchmarkMedia"] = media_names[serial % len(media_names)]
+            expanded.append(item)
+    benchmark["items"] = expanded
+    benchmark["metadata"] = {**benchmark["metadata"], "totalCards": len(expanded), "fixture": "m3-benchmark"}
+    return benchmark, media_files
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--refresh-source", action="store_true")
+    parser.add_argument("--benchmark-output", type=Path)
+    parser.add_argument("--benchmark-repeat", type=int, default=20)
+    parser.add_argument("--benchmark-media-count", type=int, default=200)
     args = parser.parse_args()
     source = build_source(refresh=args.refresh_source)
+    if args.benchmark_output:
+        output_path = args.benchmark_output if args.benchmark_output.is_absolute() else ROOT / args.benchmark_output
+        benchmark, media_files = build_benchmark_fixture(
+            source,
+            max(1, args.benchmark_repeat),
+            max(0, args.benchmark_media_count),
+        )
+        write_apkg(benchmark, output_path, media_files)
+        print(f"wrote {output_path.relative_to(ROOT)}")
+        return
     write_seed_module(source)
     write_apkg(source)
     print(f"wrote {SOURCE_PATH.relative_to(ROOT)}")

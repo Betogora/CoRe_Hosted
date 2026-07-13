@@ -1,7 +1,7 @@
 import React from "react";
 import { Database, GraduationCap, Languages, Lock, RefreshCw, Save, Upload, User, X } from "lucide-react";
-import { formatSyncStatusText } from "../accountSession.js";
-import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport, validatePortableExport } from "../dataPortability.js";
+import { formatSyncStatusText } from "../accountSession.ts";
+import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport, validatePortableExport } from "../dataPortability.ts";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.jsx";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.jsx";

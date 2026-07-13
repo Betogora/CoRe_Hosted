@@ -54,9 +54,9 @@ Lokale CoRe-Quellen:
 - `docs/specs.md`
 - `docs/todo.md`
 - `src/coreModel.ts`
-- `src/apkgImport.js`
-- `src/importService.js`
-- `src/mediaStore.js`
+- `src/apkgImport.ts`
+- `src/importService.ts`
+- `src/mediaStore.ts`
 - `src/htmlSafety.js`
 - `src/richText.js`
 - `src/reviewService.ts`
@@ -128,16 +128,16 @@ Aktuelle Paketvarianten laut Anki-Code:
 
 Bei modernen Paketen ist die Medienliste Protobuf-basiert; Legacy-Medien nutzen eine JSON-Hashmap wie `{"0": "bild.png"}`. Der Import normalisiert Dateinamen, prüft Sicherheit, nutzt SHA-1/Größe, dekomprimiert bei Bedarf und kopiert Medien getrennt von den Karteninhalten.
 
-Rigorose CoRe-Folgerung: APKG ist Austauschformat, nicht Persistenzformat. ZIP, SQLite, Zstd, MediaEntries und Legacy-Mappings gehören in `src/apkgImport.js` beziehungsweise ein späteres Import-/Worker-Modul, nicht in React und nicht in das kanonische CoRe-Datenmodell.
+Rigorose CoRe-Folgerung: APKG ist Austauschformat, nicht Persistenzformat. ZIP, SQLite, Zstd, MediaEntries und Legacy-Mappings gehören in `src/apkgImport.ts` beziehungsweise ein späteres Import-/Worker-Modul, nicht in React und nicht in das kanonische CoRe-Datenmodell.
 
 ## CoRe-Istmodell
 
 CoRe hat die entscheidende Richtung bereits eingeschlagen:
 
 - `src/coreModel.ts` erzeugt Learning Items, Original-Varianten, Reverse-Varianten, Cloze-Varianten und Review-State.
-- `src/importService.js` normalisiert Text-, CSV-, JSON- und Tabellen-Importdaten in Learning Items mit Varianten, Parent-/Hierarchy-Feldern, stabilen Fingerprints und Duplicate-Erkennung.
-- `src/apkgImport.js` liest APKG-Container, erkennt `collection.anki2`, `collection.anki21`, `collection.anki21b`, extrahiert Notes/Cards/Decks/Media, erzeugt echte Unterstapel und speichert Raw-Fallbacks.
-- `src/mediaStore.js` kapselt lokale Medienauflösung; React konsumiert aufgelöste Medien-URLs.
+- `src/importService.ts` normalisiert Text-, CSV-, JSON- und Tabellen-Importdaten in Learning Items mit Varianten, Parent-/Hierarchy-Feldern, stabilen Fingerprints und Duplicate-Erkennung.
+- `src/apkgImport.ts` liest APKG-Container, erkennt `collection.anki2`, `collection.anki21`, `collection.anki21b`, extrahiert Notes/Cards/Decks/Media, erzeugt echte Unterstapel und speichert Raw-Fallbacks.
+- `src/mediaStore.ts` kapselt lokale Medienauflösung; React konsumiert aufgelöste Medien-URLs.
 - `src/htmlSafety.js` und `src/richText.js` kapseln HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung fuer Karteninhalt, Importvorschau und Review.
 - `src/reviewService.ts` schreibt Review-Events und aktualisiert Learning-Item- und Varianten-State.
 - `src/scheduler.ts` hält FSRS-like State mit Stability, Difficulty, Desired Retention, Retrievability, Variant-Kontext und Intervallvorschau fuer die vier Review-Buttons.

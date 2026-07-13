@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createLocalAccount } from "./authModel.js";
+import { createLocalAccount } from "./authModel.ts";
 import { createBasicLearningItem, createCoreDeck, getOriginalVariant } from "./coreModel.ts";
-import { createCoreRepository } from "./coreRepository.js";
-import { createPortableExport, mergePortableExportIntoState, validatePortableExport } from "./dataPortability.js";
+import { createCoreRepository } from "./coreRepository.ts";
+import { createPortableExport, mergePortableExportIntoState, validatePortableExport } from "./dataPortability.ts";
 
 function createMemoryStorage() {
   const store = new Map();

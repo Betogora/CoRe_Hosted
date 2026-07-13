@@ -7,7 +7,7 @@ import {
   persistDeckMedia,
   RESUMABLE_UPLOAD_THRESHOLD_BYTES,
   resolveDeckMediaUrls,
-} from "./cloudMediaStore.js";
+} from "./cloudMediaStore.ts";
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));

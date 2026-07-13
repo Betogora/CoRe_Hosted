@@ -12,12 +12,14 @@
 - Prefer deep modules: hide data shaping and fallback behavior inside the module instead of spreading it through React callers.
 - Do not introduce a seam or adapter unless there are at least two real adapters.
 - Treat deck `cards` as the local compatibility collection for Learning Items. New card/import/AI creation paths should go through the helpers in `src/coreModel.ts` so every item keeps exactly one original variant and all non-original variants stay anchored.
-- Keep APKG handling inside `src/apkgImport.js`; do not spread ZIP, SQLite, or Zstd collection details into React callers.
-- Keep local APKG media persistence in `src/mediaStore.js`; React should consume resolved media URLs instead of parsing media manifests itself.
+- Keep APKG handling inside `src/apkgImport.ts`; do not spread ZIP, SQLite, or Zstd collection details into React callers.
+- Keep the browser APKG preview behind `src/apkgImportWorker.ts` and `src/apkgImportWorkerProtocol.ts`; parser failures from an active worker must not be hidden by a direct retry.
+- Keep local APKG media persistence in `src/mediaStore.ts`; React should consume resolved media URLs instead of parsing media manifests itself.
 - Preserve local content edits on APKG reimport; update import metadata and media references without replacing user-edited fronts/backs.
 - Preserve visible features during overhauls. Structure and logic may be changed freely, but existing user-visible features, screens, controls, and flows should only be removed when the user explicitly asks for that removal.
 - Keep AI provider keys server-only. `/api/ai/*` routes may read `GOOGLE_API_KEY` or other provider secrets only from `process.env`; never introduce `VITE_*` AI keys, browser-side provider SDK calls, localStorage/export persistence for secrets, or logs that contain raw prompts plus secrets.
 - Treat `src/coreTypes.ts` as the canonical type source for normalized Deck, Learning Item, Card Variant, and Review State forms. Keep unvalidated external payloads `unknown` until their owning module validates or normalizes them.
+- Keep Valibot schemas with the module that owns the trust boundary. Cloud row/JSONB validation belongs in `src/cloudRepositoryValidation.ts`; AI chat request/response validation belongs in `src/aiChatContract.ts`. Do not create a central mega-schema.
 - Treat `src/database.types.ts` as generated output. With local Supabase running, use `npm run db:types:generate` to update it and `npm run db:types:check` for a read-only drift check; never edit it manually.
 
 ## UI Copy

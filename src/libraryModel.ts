@@ -739,7 +739,7 @@ export function createAiJobLedger(
 ) {
   const deckJobs = decks.flatMap((deck) =>
     (deck.aiJobs ?? []).map((job) => ({
-      ...(job as AiJobInput),
+      ...(job as unknown as AiJobInput),
       deckName: deck.name,
     })),
   );

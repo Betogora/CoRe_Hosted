@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { getOriginalVariant } from "./coreModel.ts";
 import { createCreationWorkflow } from "./creationWorkflow.ts";
-import { formatPdfTextContentItems } from "./documentModel.js";
+import { formatPdfTextContentItems } from "./documentModel.ts";
 
 async function worldCapitalsApkgFile() {
   const bytes = await readFile(new URL("../fixtures/apkg/world-capitals.apkg", import.meta.url));

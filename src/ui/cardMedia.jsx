@@ -1,5 +1,5 @@
 import React from "react";
-import { createDeckMediaUrlMap, resolveCardHtmlMedia } from "../mediaStore.js";
+import { createDeckMediaUrlMap, resolveCardHtmlMedia } from "../mediaStore.ts";
 
 function createMediaSignature(deck) {
   return (deck?.importMeta?.mediaManifest?.assets ?? []).map((asset) => asset.sha1).join("|");

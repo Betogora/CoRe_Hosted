@@ -1,12 +1,12 @@
-import { getOrCreateSyncDeviceId } from "./accountStorage.js";
+import { getOrCreateSyncDeviceId } from "./accountStorage.ts";
 
-function getNavigator(navigatorObject) {
+function getNavigator(navigatorObject: any) {
   if (navigatorObject) return navigatorObject;
   if (typeof navigator !== "undefined") return navigator;
   return null;
 }
 
-function detectBrowser(userAgent) {
+function detectBrowser(userAgent: any) {
   if (/\b(?:Edg|EdgA|EdgiOS)\//i.test(userAgent)) return "Edge";
   if (/\b(?:Firefox|FxiOS)\//i.test(userAgent)) return "Firefox";
   if (/\b(?:Chrome|CriOS)\//i.test(userAgent)) return "Chrome";
@@ -14,7 +14,7 @@ function detectBrowser(userAgent) {
   return "Browser";
 }
 
-function detectOperatingSystem(userAgent, navigatorObject) {
+function detectOperatingSystem(userAgent: any, navigatorObject: any) {
   if (/\bWindows NT\b/i.test(userAgent)) return "Windows";
   if (/\bAndroid\b/i.test(userAgent)) return "Android";
   if (/\bCrOS\b/i.test(userAgent)) return "ChromeOS";
@@ -25,7 +25,7 @@ function detectOperatingSystem(userAgent, navigatorObject) {
   return null;
 }
 
-export function createBrowserSyncDevice({ storage = null, navigatorObject = null } = {}) {
+export function createBrowserSyncDevice({ storage = null, navigatorObject = null }: any = {}) {
   const resolvedNavigator = getNavigator(navigatorObject);
   const userAgent = typeof resolvedNavigator?.userAgent === "string"
     ? resolvedNavigator.userAgent

@@ -2,9 +2,9 @@
 
 Stand: 2026-07-10
 
-`src/App.jsx` owns app orchestration only: Supabase session boot, account-scoped workspace state, navigation, study-mode routing, SyncEngine-backed autosave and persistence callbacks. Auth phase and sync status wording live in `src/accountSession.js`; cloud persistence and conflict behavior stay in `src/syncEngine.js` and `src/cloudRepository.js`.
+`src/App.jsx` owns app orchestration only: Supabase session boot, account-scoped workspace state, navigation, study-mode routing, SyncEngine-backed autosave and persistence callbacks. Auth phase and sync status wording live in `src/accountSession.ts`; cloud persistence and conflict behavior stay in `src/syncEngine.ts` and `src/cloudRepository.ts`.
 
-Each exported screen in this folder is a UI module with a small props interface. Keep screen-specific panels private in the same file when they are only used by that screen. Move shared presentational pieces to `src/ui/`; move domain behavior to the existing deep modules such as `coreWorkspace.js`, `creationWorkflow.js`, `reviewService.js`, `coreVariantService.js`, `apkgImport.js`, and `mediaStore.js`.
+Each exported screen in this folder is a UI module with a small props interface. Keep screen-specific panels private in the same file when they are only used by that screen. Move shared presentational pieces to `src/ui/`; move domain behavior to the existing deep modules such as `coreWorkspace.js`, `creationWorkflow.js`, `reviewService.js`, `coreVariantService.js`, `apkgImport.ts`, and `mediaStore.ts`.
 
 ## Screen Map
 
@@ -30,5 +30,5 @@ Each exported screen in this folder is a UI module with a small props interface.
 - Keep new screen interfaces narrow: pass callbacks from `App.jsx`, let `coreWorkspace.js` and the domain modules hide update details.
 - Use `screenConstants.js` for shared screen labels/options, `src/ui/RichTextEditor.jsx` for card editing, `src/ui/cardMedia.jsx` for resolved card media, and `src/ui/coreUi.jsx` for shared presentation primitives.
 - Keep main `PageHeader` usage compact: eyebrow plus title only. Do not add tab-level subtitles/third lines or decorative right-side header icons; place real actions as normal controls in the screen content.
-- Keep Rich Text, HTML sanitization, import normalization, learning-setting normalization, scheduler intervals and media URL behavior in `richText.js`, `htmlSafety.js`, `importService.js`, `deckSettings.js`, `scheduler.js` and `mediaStore.js`.
+- Keep Rich Text, HTML sanitization, import normalization, learning-setting normalization, scheduler intervals and media URL behavior in `richText.js`, `htmlSafety.js`, `importService.ts`, `deckSettings.js`, `scheduler.js` and `mediaStore.ts`.
 - Update this map when adding, renaming, or moving screens so future agent work starts in the right module.

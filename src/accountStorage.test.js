@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createAccountStorage, getOrCreateSyncDeviceId, hasMeaningfulLocalState, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
+import { createAccountStorage, getOrCreateSyncDeviceId, hasMeaningfulLocalState, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
 
 function createMemoryStorage() {
   const values = new Map();

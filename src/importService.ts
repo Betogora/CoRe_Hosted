@@ -1,3 +1,4 @@
+import * as v from "valibot";
 import {
   CARD_VARIANT_TYPES,
   VARIANT_GENERATION_SOURCES,
@@ -24,6 +25,47 @@ const DEFAULT_IMPORT_OPTIONS = {
   normalizeText: true,
 };
 
+const importStringListSchema = v.union([v.string(), v.array(v.string())]);
+const importVariantSchema = v.looseObject({
+  front: v.optional(v.string()),
+  back: v.optional(v.string()),
+  question: v.optional(v.string()),
+  answer: v.optional(v.string()),
+  variantType: v.optional(v.string()),
+  variantLevel: v.optional(v.union([v.number(), v.string()])),
+  generationSource: v.optional(v.string()),
+  isOriginal: v.optional(v.boolean()),
+});
+const importItemSchema = v.looseObject({
+  canonicalQuestion: v.optional(v.string()),
+  canonicalAnswer: v.optional(v.string()),
+  question: v.optional(v.string()),
+  answer: v.optional(v.string()),
+  front: v.optional(v.string()),
+  back: v.optional(v.string()),
+  tags: v.optional(importStringListSchema),
+  concepts: v.optional(importStringListSchema),
+  sourceType: v.optional(v.string()),
+  variants: v.optional(v.array(importVariantSchema)),
+  sourceAnchors: v.optional(v.array(v.unknown())),
+  mediaRefs: v.optional(v.array(v.string())),
+  originalFields: v.optional(v.array(v.unknown())),
+});
+const normalizedImportPayloadSchema = v.looseObject({
+  schemaVersion: v.optional(v.literal(1)),
+  title: v.optional(v.string()),
+  name: v.optional(v.string()),
+  deckName: v.optional(v.string()),
+  description: v.optional(v.string()),
+  sourceType: v.optional(v.string()),
+  tags: v.optional(importStringListSchema),
+  hierarchyPath: v.optional(v.nullable(v.array(v.string()))),
+  items: v.optional(v.array(importItemSchema)),
+  cards: v.optional(v.array(importItemSchema)),
+  mediaAssets: v.optional(v.array(v.unknown())),
+  media: v.optional(v.array(v.unknown())),
+});
+
 const DECK_SOURCE_BY_IMPORT_SOURCE = {
   manual: "manual",
   text_import: "text-import",
@@ -45,8 +87,8 @@ const TRANSFORM_BY_VARIANT_TYPE = {
   custom: "rephrase",
 };
 
-function splitCsvLine(line) {
-  const result = [];
+function splitCsvLine(line: any) {
+  const result: any[] = [];
   let current = "";
   let quoted = false;
 
@@ -71,21 +113,21 @@ function splitCsvLine(line) {
   return result;
 }
 
-function text(value, { normalizeText = true } = {}) {
+function text(value: any, { normalizeText = true }: any = {}) {
   const trimmed = String(value ?? "").trim();
   return normalizeText ? trimmed.replace(/\s+/g, " ") : trimmed;
 }
 
-function metadata(value) {
+function metadata(value: any) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return { ...value };
 }
 
-function normalizeSourceType(value, fallback = "mixed") {
+function normalizeSourceType(value: any, fallback: any = "mixed") {
   return NORMALIZED_IMPORT_SOURCE_TYPES.includes(value) ? value : fallback;
 }
 
-function normalizeVariantType(value) {
+function normalizeVariantType(value: any) {
   const candidate = String(value ?? "basic").trim();
   const mapped = {
     "basic-reversed": "reverse",
@@ -94,31 +136,31 @@ function normalizeVariantType(value) {
     "case-vignette": "case",
   }[candidate] ?? candidate;
 
-  return CARD_VARIANT_TYPES.includes(mapped) ? mapped : "basic";
+  return CARD_VARIANT_TYPES.includes(mapped as (typeof CARD_VARIANT_TYPES)[number]) ? mapped : "basic";
 }
 
-function normalizeGenerationSource(value, isOriginal = false) {
+function normalizeGenerationSource(value: any, isOriginal: any = false) {
   if (!isOriginal && value === "original") return "imported";
   if (VARIANT_GENERATION_SOURCES.includes(value)) return value;
   return isOriginal ? "original" : "imported";
 }
 
-function normalizeVariantLevel(value, isOriginal = false) {
+function normalizeVariantLevel(value: any, isOriginal: any = false) {
   if (!Number.isFinite(Number(value))) return isOriginal ? 1 : 2;
   return Math.min(3, Math.max(1, Math.round(Number(value))));
 }
 
-function normalizeAnchors(anchors) {
-  return Array.isArray(anchors) ? anchors.filter((anchor) => anchor && typeof anchor === "object").map((anchor) => ({ ...anchor })) : [];
+function normalizeAnchors(anchors: any) {
+  return Array.isArray(anchors) ? anchors.filter((anchor: any) => anchor && typeof anchor === "object").map((anchor: any) => ({ ...anchor })) : [];
 }
 
-function normalizeStringList(values) {
-  if (Array.isArray(values)) return values.map((value) => String(value ?? "").trim()).filter(Boolean);
+function normalizeStringList(values: any) {
+  if (Array.isArray(values)) return values.map((value: any) => String(value ?? "").trim()).filter(Boolean);
   if (values === null || values === undefined || values === "") return [];
   return [String(values).trim()].filter(Boolean);
 }
 
-function createEmptyReport({ dryRun = false, sourceType = "mixed", targetDeckId = null } = {}) {
+function createEmptyReport({ dryRun = false, sourceType = "mixed", targetDeckId = null }: any = {}): any {
   return {
     dryRun,
     createdDecks: 0,
@@ -145,7 +187,7 @@ function createEmptyReport({ dryRun = false, sourceType = "mixed", targetDeckId 
   };
 }
 
-export function finalizeImportReport(report) {
+export function finalizeImportReport(report: any) {
   report.createdCards = report.createdLearningItems;
   report.summary = {
     ...report.summary,
@@ -161,7 +203,7 @@ export function finalizeImportReport(report) {
   return report;
 }
 
-function normalizeOptions(options = {}) {
+function normalizeOptions(options: any = {}) {
   const mergeStrategy = IMPORT_MERGE_STRATEGIES.includes(options.mergeStrategy) ? options.mergeStrategy : DEFAULT_IMPORT_OPTIONS.mergeStrategy;
   return {
     ...DEFAULT_IMPORT_OPTIONS,
@@ -177,12 +219,12 @@ function normalizeOptions(options = {}) {
   };
 }
 
-function itemHasSchedulingData(item) {
+function itemHasSchedulingData(item: any) {
   const meta = item?.metadataJson ?? item?.meta ?? {};
   return Boolean(item?.reviewState || item?.learningItemState || item?.scheduling || meta.scheduling || meta.reviewState || meta.learningItemState);
 }
 
-function normalizeNormalizedDeckShape(input = {}) {
+function normalizeNormalizedDeckShape(input: any = {}) {
   return {
     id: input.id ?? null,
     title: input.title ?? input.name ?? input.deckName ?? "Importierter Stapel",
@@ -200,9 +242,9 @@ function normalizeNormalizedDeckShape(input = {}) {
   };
 }
 
-export function normalizeImportVariant(input = {}, options = {}) {
-  const warnings = [];
-  const errors = [];
+export function normalizeImportVariant(input: any = {}, options: any = {}) {
+  const warnings: any[] = [];
+  const errors: any[] = [];
   const isOriginal = Boolean(input.isOriginal);
   const front = text(input.front ?? input.question ?? input.canonicalQuestion ?? "", options);
   const back = text(input.back ?? input.answer ?? input.canonicalAnswer ?? "", options);
@@ -234,23 +276,23 @@ export function normalizeImportVariant(input = {}, options = {}) {
   };
 }
 
-function normalizeItemVariants(input, canonicalQuestion, canonicalAnswer, options) {
-  const warnings = [];
-  const errors = [];
+function normalizeItemVariants(input: any, canonicalQuestion: any, canonicalAnswer: any, options: any) {
+  const warnings: any[] = [];
+  const errors: any[] = [];
   const rawVariants = Array.isArray(input.variants) ? input.variants : [];
-  const variants = [];
+  const variants: any[] = [];
 
-  rawVariants.forEach((candidate, index) => {
+  rawVariants.forEach((candidate: any, index: any) => {
     const result = normalizeImportVariant(candidate, options);
-    warnings.push(...result.warnings.map((warning) => `Variante ${index + 1}: ${warning}`));
+    warnings.push(...result.warnings.map((warning: any) => `Variante ${index + 1}: ${warning}`));
     if (result.errors.length > 0) {
-      errors.push(...result.errors.map((error) => `Variante ${index + 1}: ${error}`));
+      errors.push(...result.errors.map((error: any) => `Variante ${index + 1}: ${error}`));
       return;
     }
     variants.push(result.variant);
   });
 
-  if (!variants.some((variant) => variant.isOriginal)) {
+  if (!variants.some((variant: any) => variant.isOriginal)) {
     const firstOriginalCandidate = variants[0];
     if (firstOriginalCandidate && (!canonicalQuestion || !canonicalAnswer)) {
       firstOriginalCandidate.isOriginal = true;
@@ -277,7 +319,7 @@ function normalizeItemVariants(input, canonicalQuestion, canonicalAnswer, option
   }
 
   const originalSeen = new Set();
-  const normalizedVariants = variants.map((variant) => {
+  const normalizedVariants = variants.map((variant: any) => {
     const keepOriginal = variant.isOriginal && originalSeen.size === 0;
     if (keepOriginal) originalSeen.add("original");
     return {
@@ -293,9 +335,9 @@ function normalizeItemVariants(input, canonicalQuestion, canonicalAnswer, option
   return { variants: normalizedVariants, warnings, errors };
 }
 
-export function normalizeImportItem(input = {}, options = {}) {
-  const warnings = [];
-  const errors = [];
+export function normalizeImportItem(input: any = {}, options: any = {}) {
+  const warnings: any[] = [];
+  const errors: any[] = [];
   const initialCanonicalQuestion = text(input.canonicalQuestion ?? input.question ?? input.front ?? "", options);
   const initialCanonicalAnswer = text(input.canonicalAnswer ?? input.answer ?? input.back ?? "", options);
 
@@ -303,7 +345,7 @@ export function normalizeImportItem(input = {}, options = {}) {
   const variantResult = normalizeItemVariants(input, initialCanonicalQuestion, initialCanonicalAnswer, options);
   warnings.push(...variantResult.warnings);
   errors.push(...variantResult.errors);
-  const originalCandidate = variantResult.variants.find((variant) => variant.isOriginal) ?? variantResult.variants[0] ?? null;
+  const originalCandidate = variantResult.variants.find((variant: any) => variant.isOriginal) ?? variantResult.variants[0] ?? null;
   const canonicalQuestion = initialCanonicalQuestion || originalCandidate?.front || "";
   const canonicalAnswer = initialCanonicalAnswer || originalCandidate?.back || "";
 
@@ -324,7 +366,7 @@ export function normalizeImportItem(input = {}, options = {}) {
       variants: variantResult.variants,
       cardType: input.cardType ?? null,
       mediaRefs: normalizeStringList(input.mediaRefs),
-      originalFields: Array.isArray(input.originalFields) ? input.originalFields.map((field) => ({ ...field })) : [],
+      originalFields: Array.isArray(input.originalFields) ? input.originalFields.map((field: any) => ({ ...field })) : [],
       metadataJson: metadata(input.metadataJson ?? input.meta),
     },
     warnings,
@@ -332,12 +374,12 @@ export function normalizeImportItem(input = {}, options = {}) {
   };
 }
 
-export function normalizeImportDeck(input = {}, options = {}) {
-  const warnings = [];
-  const errors = [];
+export function normalizeImportDeck(input: any = {}, options: any = {}): any {
+  const warnings: any[] = [];
+  const errors: any[] = [];
   const deckInput = normalizeNormalizedDeckShape(input);
   const sourceType = normalizeSourceType(deckInput.sourceType ?? options.sourceType, options.sourceType ?? "mixed");
-  const normalizedDeck = {
+  const normalizedDeck: any = {
     id: deckInput.id ?? null,
     title: text(deckInput.title, options) || "Importierter Stapel",
     description: text(deckInput.description, options),
@@ -345,7 +387,7 @@ export function normalizeImportDeck(input = {}, options = {}) {
     sourceExternalId: deckInput.sourceExternalId ?? null,
     sourceDocumentId: deckInput.sourceDocumentId ?? null,
     parentDeckId: deckInput.parentDeckId ?? null,
-    hierarchyPath: Array.isArray(deckInput.hierarchyPath) ? deckInput.hierarchyPath.map((part) => text(part, options)).filter(Boolean) : null,
+    hierarchyPath: Array.isArray(deckInput.hierarchyPath) ? deckInput.hierarchyPath.map((part: any) => text(part, options)).filter(Boolean) : null,
     originalDeckId: deckInput.originalDeckId ?? deckInput.sourceExternalId ?? null,
     tags: normalizeTags(deckInput.tags),
     metadataJson: metadata(deckInput.metadataJson),
@@ -356,16 +398,16 @@ export function normalizeImportDeck(input = {}, options = {}) {
   if (!Array.isArray(deckInput.items)) {
     errors.push("Importdeck benötigt ein items-Array.");
   } else {
-    deckInput.items.forEach((candidate, index) => {
+    deckInput.items.forEach((candidate: any, index: any) => {
       const result = normalizeImportItem(candidate, {
         ...options,
         sourceType: candidate?.sourceType ?? sourceType,
         tags: candidate?.tags ?? normalizedDeck.tags,
         sourceDocumentId: candidate?.sourceDocumentId ?? normalizedDeck.sourceDocumentId,
       });
-      warnings.push(...result.warnings.map((warning) => `Item ${index + 1}: ${warning}`));
+      warnings.push(...result.warnings.map((warning: any) => `Item ${index + 1}: ${warning}`));
       if (result.errors.length > 0) {
-        errors.push(...result.errors.map((error) => `Item ${index + 1}: ${error}`));
+        errors.push(...result.errors.map((error: any) => `Item ${index + 1}: ${error}`));
         return;
       }
       normalizedDeck.items.push(result.item);
@@ -375,12 +417,12 @@ export function normalizeImportDeck(input = {}, options = {}) {
   return { normalizedDeck, warnings, errors };
 }
 
-export function normalizeImportMediaAssets(mediaAssets = []) {
+export function normalizeImportMediaAssets(mediaAssets: any = []) {
   if (!Array.isArray(mediaAssets)) return [];
 
   return mediaAssets
-    .filter((asset) => asset && typeof asset === "object" && String(asset.filename ?? "").trim())
-    .map((asset) => ({
+    .filter((asset: any) => asset && typeof asset === "object" && String(asset.filename ?? "").trim())
+    .map((asset: any) => ({
       filename: String(asset.filename).trim(),
       mimeType: String(asset.mimeType ?? "application/octet-stream").trim(),
       sourceExternalId: asset.sourceExternalId ?? asset.externalId ?? null,
@@ -390,7 +432,7 @@ export function normalizeImportMediaAssets(mediaAssets = []) {
     }));
 }
 
-export function normalizeNormalizedImportPayload(input = {}, options = {}) {
+export function normalizeNormalizedImportPayload(input: any = {}, options: any = {}): any {
   const result = normalizeImportDeck(input, options);
   const report = createEmptyReport({
     dryRun: Boolean(options.dryRun),
@@ -403,41 +445,41 @@ export function normalizeNormalizedImportPayload(input = {}, options = {}) {
   return { ...result, report: finalizeImportReport(report) };
 }
 
-export function normalizeTextForFingerprint(value) {
+export function normalizeTextForFingerprint(value: any) {
   return stripHtml(value)
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
 }
 
-export function createImportFingerprint(item = {}) {
+export function createImportFingerprint(item: any = {}) {
   const variants = (item.variants ?? [])
-    .map((variant) => ({
+    .map((variant: any) => ({
       front: normalizeTextForFingerprint(variant.front),
       back: normalizeTextForFingerprint(variant.back),
       type: normalizeVariantType(variant.variantType),
     }))
-    .sort((left, right) => `${left.type}:${left.front}:${left.back}`.localeCompare(`${right.type}:${right.front}:${right.back}`));
+    .sort((left: any, right: any) => `${left.type}:${left.front}:${left.back}`.localeCompare(`${right.type}:${right.front}:${right.back}`));
 
   return stableContentHash(
     {
       question: normalizeTextForFingerprint(item.canonicalQuestion ?? item.originalFront ?? item.front),
       answer: normalizeTextForFingerprint(item.canonicalAnswer ?? item.originalBack ?? item.back),
-      tags: normalizeTags(item.tags ?? item.originalTags).map((tag) => tag.toLowerCase()).sort(),
+      tags: normalizeTags(item.tags ?? item.originalTags).map((tag: any) => tag.toLowerCase()).sort(),
       variants,
     },
     "importfp",
   );
 }
 
-function asDeckList(existingDecksOrDeck) {
+function asDeckList(existingDecksOrDeck: any) {
   if (Array.isArray(existingDecksOrDeck)) return existingDecksOrDeck;
   if (Array.isArray(existingDecksOrDeck?.decks)) return existingDecksOrDeck.decks;
   if (existingDecksOrDeck?.cards) return [existingDecksOrDeck];
   return [];
 }
 
-function getExistingSourceExternalIds(card) {
+function getExistingSourceExternalIds(card: any) {
   return [
     card.sourceExternalId,
     card.sourceRefId,
@@ -449,7 +491,7 @@ function getExistingSourceExternalIds(card) {
   ].filter(Boolean).map(String);
 }
 
-export function findDuplicateLearningItem(existingDecksOrDeck, normalizedItem) {
+export function findDuplicateLearningItem(existingDecksOrDeck: any, normalizedItem: any) {
   const decks = asDeckList(existingDecksOrDeck);
   const sourceExternalId = normalizedItem?.sourceExternalId ? String(normalizedItem.sourceExternalId) : null;
   const fingerprint = createImportFingerprint(normalizedItem);
@@ -482,7 +524,7 @@ export function findDuplicateLearningItem(existingDecksOrDeck, normalizedItem) {
   return { duplicate: false, fingerprint };
 }
 
-function toPipelineVariant(variant) {
+function toPipelineVariant(variant: any) {
   return {
     sourceExternalId: variant.sourceExternalId ?? null,
     front: variant.front,
@@ -492,7 +534,7 @@ function toPipelineVariant(variant) {
     generationSource: variant.isOriginal ? "original" : variant.generationSource ?? "imported",
     isOriginal: Boolean(variant.isOriginal),
     isActive: variant.isActive ?? true,
-    transformType: variant.isOriginal ? "original" : TRANSFORM_BY_VARIANT_TYPE[variant.variantType] ?? "rephrase",
+    transformType: variant.isOriginal ? "original" : (TRANSFORM_BY_VARIANT_TYPE as Record<string, string>)[variant.variantType] ?? "rephrase",
     meta: {
       sourceExternalId: variant.sourceExternalId ?? null,
       abstractionLevel: variant.abstractionLevel,
@@ -503,7 +545,7 @@ function toPipelineVariant(variant) {
   };
 }
 
-function toPipelineItem(item, options = {}) {
+function toPipelineItem(item: any, options: any = {}) {
   const importFingerprint = createImportFingerprint(item);
   const coreSourceType = item.sourceType;
 
@@ -534,11 +576,11 @@ function toPipelineItem(item, options = {}) {
   };
 }
 
-function countNonOriginalVariants(items) {
-  return items.reduce((sum, item) => sum + (item.variants ?? []).filter((variant) => !variant.isOriginal).length, 0);
+function countNonOriginalVariants(items: any) {
+  return items.reduce((sum: any, item: any) => sum + (item.variants ?? []).filter((variant: any) => !variant.isOriginal).length, 0);
 }
 
-function previewItem(item, duplicateInfo = null) {
+function previewItem(item: any, duplicateInfo: any = null) {
   return {
     title: item.title,
     canonicalQuestion: item.canonicalQuestion,
@@ -547,17 +589,17 @@ function previewItem(item, duplicateInfo = null) {
     sourceType: item.sourceType,
     sourceExternalId: item.sourceExternalId,
     variantCount: (item.variants ?? []).length,
-    nonOriginalVariantCount: (item.variants ?? []).filter((variant) => !variant.isOriginal).length,
+    nonOriginalVariantCount: (item.variants ?? []).filter((variant: any) => !variant.isOriginal).length,
     duplicate: duplicateInfo?.duplicate ?? false,
     duplicateReason: duplicateInfo?.reason ?? null,
   };
 }
 
-function deckSourceFor(sourceType, fallback = null) {
-  return fallback ?? DECK_SOURCE_BY_IMPORT_SOURCE[sourceType] ?? "manual";
+function deckSourceFor(sourceType: any, fallback: any = null) {
+  return fallback ?? (DECK_SOURCE_BY_IMPORT_SOURCE as Record<string, string>)[sourceType] ?? "manual";
 }
 
-export function importNormalizedDeck(input = {}, options = {}) {
+export function importNormalizedDeck(input: any = {}, options: any = {}): any {
   const normalizedOptions = normalizeOptions(options);
   const normalization = normalizeImportDeck(input, normalizedOptions);
   const normalizedDeck = normalization.normalizedDeck;
@@ -570,7 +612,7 @@ export function importNormalizedDeck(input = {}, options = {}) {
   report.errors.push(...normalization.errors);
 
   if (normalizedOptions.importScheduling === false) {
-    normalizedDeck.items.forEach((item, index) => {
+    normalizedDeck.items.forEach((item: any, index: any) => {
       if (itemHasSchedulingData(item)) {
         report.warnings.push(`Item ${index + 1}: Scheduling-Daten wurden erkannt, aber in diesem Schritt nicht übernommen.`);
       }
@@ -578,13 +620,13 @@ export function importNormalizedDeck(input = {}, options = {}) {
   }
 
   const targetDeck = normalizedOptions.targetDeckId
-    ? normalizedOptions.existingDecks.find((deck) => deck.id === normalizedOptions.targetDeckId) ?? null
+    ? normalizedOptions.existingDecks.find((deck: any) => deck.id === normalizedOptions.targetDeckId) ?? null
     : null;
   const duplicateScope = targetDeck ?? normalizedOptions.existingDecks;
-  const importableItems = [];
+  const importableItems: any[] = [];
   const seenImportFingerprints = new Map();
 
-  normalizedDeck.items.forEach((item, index) => {
+  normalizedDeck.items.forEach((item: any, index: any) => {
     const duplicateInfo = findDuplicateLearningItem(duplicateScope, item);
     const itemFingerprint = duplicateInfo.fingerprint ?? createImportFingerprint(item);
     if (!duplicateInfo.duplicate && seenImportFingerprints.has(itemFingerprint)) {
@@ -640,7 +682,7 @@ export function importNormalizedDeck(input = {}, options = {}) {
   const deckId = targetDeck?.id ?? normalizedOptions.targetDeckId ?? "";
   const creation = createLearningItemsFromNormalizedInput(
     deckId,
-    importableItems.map((item) => toPipelineItem(item, normalizedOptions)),
+    importableItems.map((item: any) => toPipelineItem(item, normalizedOptions)),
     {
       tags: normalizedDeck.tags,
       sourceType: normalizedDeck.sourceType,
@@ -652,10 +694,10 @@ export function importNormalizedDeck(input = {}, options = {}) {
     },
   );
   report.warnings.push(...creation.warnings);
-  report.skipped.push(...creation.skipped.map((item) => ({ ...item, reason: item.reason ?? "creation_pipeline_skipped" })));
+  report.skipped.push(...creation.skipped.map((item: any) => ({ ...item, reason: item.reason ?? "creation_pipeline_skipped" })));
 
   const createdItems = creation.createdItems;
-  const createdVariantCount = createdItems.reduce((sum, item) => sum + getActiveVariants(item).length, 0);
+  const createdVariantCount = createdItems.reduce((sum: any, item: any) => sum + getActiveVariants(item).length, 0);
   report.createdLearningItems = createdItems.length;
   report.createdVariants = createdVariantCount;
   report.createdDecks = targetDeck ? 0 : 1;
@@ -713,13 +755,13 @@ export function importNormalizedDeck(input = {}, options = {}) {
   };
 }
 
-export function parseTextToNormalizedImport({ deckName = "Text-Import", text: rawText = "", tags = [], sourceExternalId = null } = {}) {
-  const warnings = [];
+export function parseTextToNormalizedImport({ deckName = "Text-Import", text: rawText = "", tags = [], sourceExternalId = null }: any = {}) {
+  const warnings: any[] = [];
   const passages = String(rawText)
     .split(/\n{2,}/)
-    .map((passage) => passage.trim())
-    .filter((passage) => passage.length > 0);
-  const items = passages.map((passage, index) => {
+    .map((passage: any) => passage.trim())
+    .filter((passage: any) => passage.length > 0);
+  const items = passages.map((passage: any, index: any) => {
     const [front, ...backParts] = passage.split(/\n-+\n|\nAntwort:\s*/i);
     const back = backParts.join("\n").trim() || passage;
     if (!front.trim() || !back.trim()) warnings.push(`Textblock ${index + 1}: Frage oder Antwort war leer.`);
@@ -750,11 +792,11 @@ export function parseTextToNormalizedImport({ deckName = "Text-Import", text: ra
   };
 }
 
-export function parseCsvToNormalizedImport({ deckName = "CSV-Import", csv = "", tags = [], sourceType = "csv_import", format = null } = {}) {
-  const warnings = [];
+export function parseCsvToNormalizedImport({ deckName = "CSV-Import", csv = "", tags = [], sourceType = "csv_import", format = null }: any = {}) {
+  const warnings: any[] = [];
   const lines = String(csv)
     .split(/\r?\n/)
-    .map((line) => line.trim())
+    .map((line: any) => line.trim())
     .filter(Boolean);
 
   if (lines.length === 0) {
@@ -765,17 +807,17 @@ export function parseCsvToNormalizedImport({ deckName = "CSV-Import", csv = "", 
     };
   }
 
-  const header = splitCsvLine(lines[0]).map((value) => value.toLowerCase());
-  const hasHeader = ["front", "back", "question", "answer"].some((column) => header.includes(column));
+  const header = splitCsvLine(lines[0]).map((value: any) => value.toLowerCase());
+  const hasHeader = ["front", "back", "question", "answer"].some((column: any) => header.includes(column));
   const frontIndex = hasHeader ? Math.max(header.indexOf("front"), header.indexOf("question")) : 0;
   const backIndex = hasHeader ? Math.max(header.indexOf("back"), header.indexOf("answer")) : 1;
   const tagsIndex = hasHeader ? header.indexOf("tags") : 2;
   const variantLevelIndex = hasHeader ? header.indexOf("variantlevel") : -1;
   const variantTypeIndex = hasHeader ? header.indexOf("varianttype") : -1;
   const dataLines = hasHeader ? lines.slice(1) : lines;
-  const items = [];
+  const items: any[] = [];
 
-  dataLines.forEach((line, index) => {
+  dataLines.forEach((line: any, index: any) => {
     const columns = splitCsvLine(line);
     const front = columns[frontIndex] ?? "";
     const back = columns[backIndex] ?? "";
@@ -820,10 +862,14 @@ export function parseCsvToNormalizedImport({ deckName = "CSV-Import", csv = "", 
   };
 }
 
-export function parseJsonToNormalizedImport(jsonOrObject) {
+export function parseJsonToNormalizedImport(jsonOrObject: any) {
   try {
-    const payload = typeof jsonOrObject === "string" ? JSON.parse(jsonOrObject) : jsonOrObject;
-    const normalized = normalizeImportDeck(payload, { sourceType: payload?.sourceType ?? "json_import" });
+    const payload: unknown = typeof jsonOrObject === "string" ? JSON.parse(jsonOrObject) : jsonOrObject;
+    const validated = v.safeParse(normalizedImportPayloadSchema, payload);
+    if (!validated.success) {
+      throw new Error("JSON-Import entspricht nicht dem unterstützten Format oder der Schema-Version.");
+    }
+    const normalized = normalizeImportDeck(validated.output, { sourceType: validated.output.sourceType ?? "json_import" });
     return normalized;
   } catch (error) {
     return {
@@ -836,12 +882,12 @@ export function parseJsonToNormalizedImport(jsonOrObject) {
         mediaAssets: [],
       },
       warnings: [],
-      errors: [`JSON konnte nicht gelesen werden: ${error.message}`],
+      errors: [`JSON konnte nicht gelesen werden: ${error instanceof Error ? error.message : String(error)}`],
     };
   }
 }
 
-function importParsedNormalizedDeck(parsed, options = {}) {
+function importParsedNormalizedDeck(parsed: any, options: any = {}) {
   const report = createEmptyReport({
     dryRun: Boolean(options.dryRun),
     sourceType: parsed.normalizedDeck?.sourceType ?? "mixed",
@@ -864,19 +910,19 @@ function importParsedNormalizedDeck(parsed, options = {}) {
   return result;
 }
 
-export function importTextAsNormalizedDeck(input = {}, options = {}) {
+export function importTextAsNormalizedDeck(input: any = {}, options: any = {}) {
   return importParsedNormalizedDeck(parseTextToNormalizedImport(input), options);
 }
 
-export function importCsvAsNormalizedDeck(input = {}, options = {}) {
+export function importCsvAsNormalizedDeck(input: any = {}, options: any = {}) {
   return importParsedNormalizedDeck(parseCsvToNormalizedImport(input), options);
 }
 
-export function importJsonAsNormalizedDeck(jsonOrObject, options = {}) {
+export function importJsonAsNormalizedDeck(jsonOrObject: any, options: any = {}) {
   return importParsedNormalizedDeck(parseJsonToNormalizedImport(jsonOrObject), options);
 }
 
-export function createTextImportDeck({ deckName = "Text-Import", text = "", tags = [] }) {
+export function createTextImportDeck({ deckName = "Text-Import", text = "", tags = [] }: any) {
   const result = importTextAsNormalizedDeck({ deckName, text, tags }, { dryRun: false });
   return result.deck ?? createCoreDeck({
     name: deckName,
@@ -892,11 +938,11 @@ export function createTextImportDeck({ deckName = "Text-Import", text = "", tags
   });
 }
 
-export function createCsvImportDeck({ deckName = "CSV-Import", csv = "" }) {
+export function createCsvImportDeck({ deckName = "CSV-Import", csv = "" }: any) {
   return createTableImportDeck({ deckName, table: csv, format: "csv" });
 }
 
-export function createTableImportDeck({ deckName = "Tabellen-Import", table = "", format = "spreadsheet" }) {
+export function createTableImportDeck({ deckName = "Tabellen-Import", table = "", format = "spreadsheet" }: any) {
   const sourceType = format === "csv" ? "csv_import" : "csv_import";
   const result = importCsvAsNormalizedDeck({ deckName, csv: table, sourceType, format }, { dryRun: false });
   return result.deck ?? createCoreDeck({

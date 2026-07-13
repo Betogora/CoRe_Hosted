@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCoreRepository } from "./coreRepository.js";
+import { createCoreRepository } from "./coreRepository.ts";
 import {
   createCoreLearningItem,
   createVariantReviewEvent,

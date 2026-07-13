@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { accountStorageKeys } from "./accountStorage.js";
-import { createBrowserSyncDevice } from "./syncDevice.js";
+import { accountStorageKeys } from "./accountStorage.ts";
+import { createBrowserSyncDevice } from "./syncDevice.ts";
 
 function createMemoryStorage() {
   const values = new Map();

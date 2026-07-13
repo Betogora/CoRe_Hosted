@@ -13,6 +13,7 @@
     "db:types:generate": "node scripts/databaseTypes.mjs --write",
     "db:types:check": "node scripts/databaseTypes.mjs --check",
     "build": "vite build",
+    "benchmark:apkg": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/m3-large-media.apkg && tsx scripts/benchmarkApkgImport.ts",
     "postbuild": "node scripts/verifyBuildChunks.mjs",
     "preview": "vite preview"
   },
@@ -24,6 +25,7 @@
     "pdfjs-dist": "^6.1.200",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "valibot": "1.4.2",
     "vite": "^7.0.0"
   },
   "devDependencies": {

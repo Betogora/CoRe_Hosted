@@ -49,6 +49,88 @@ export type SchedulerPreset = "standard" | "intensive" | "relaxed" | "custom";
 export type RichTextContent = string;
 export type MediaRef = string;
 
+export interface PrivacySettings {
+  shareLearningProgress: boolean;
+  showOnlineStatus: boolean;
+  showStreaksToOthers: boolean;
+}
+
+export interface Profile {
+  userId: string;
+  email: string;
+  displayName: string;
+  university: string;
+  fieldOfStudy: string;
+  preferredLanguage: string;
+  timezone: string;
+  onboardingComplete: boolean;
+  privacy: PrivacySettings;
+  schedulerPreferences: Record<string, unknown>;
+}
+
+export interface SourceDocument {
+  id: string;
+  ownerId: string;
+  fileName: string;
+  mimeType: string;
+  text: string;
+  storageUrl: string;
+  textExtractionStatus: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  revision: number;
+  deletedAt: string | null;
+  updatedByDeviceId: string | null;
+}
+
+export interface ReviewEvent {
+  id: string;
+  userId: string;
+  deckId: string;
+  learningItemId: string;
+  variantId: string | null;
+  reviewableType: ReviewableType;
+  reviewableId: string;
+  sourceCardId: string;
+  rating: ReviewRating;
+  answeredAt: string;
+  responseTimeMs: number | null;
+  schedulerBefore: unknown;
+  schedulerAfter: unknown;
+  flags: Record<string, unknown>;
+  createdAt: string;
+  createdByDeviceId?: string | null;
+}
+
+export type AiJobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+
+export interface AiJob {
+  id: string;
+  jobType: string;
+  status: AiJobStatus;
+  userId: string;
+  deckId: string | null;
+  inputRef: Record<string, unknown>;
+  policy: Record<string, unknown>;
+  resultRef: Record<string, unknown> | null;
+  error: Record<string, unknown> | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  revision: number;
+  deletedAt: string | null;
+  updatedByDeviceId: string | null;
+}
+
+export interface CloudTombstone {
+  entityTable: "decks" | "cards" | "card_variants" | "source_documents" | "ai_jobs";
+  entityId: string;
+  revision: number;
+  deletedAt: string;
+  updatedByDeviceId: string | null;
+}
+
 export interface DeckAppearance {
   iconKey: string;
   iconColor: string;
@@ -390,13 +472,26 @@ export interface Deck {
   updatedByDeviceId: string | null;
   cardCount: number;
   tags: string[];
-  importMeta: unknown;
+  importMeta: Record<string, unknown>;
   deckSettings: DeckSettings;
-  sourceDocuments: unknown[];
+  sourceDocuments: SourceDocument[];
   cards: LearningItem[];
-  reviewEvents: unknown[];
-  aiJobs: unknown[];
+  reviewEvents: ReviewEvent[];
+  aiJobs: AiJob[];
   graph: unknown;
   communityRefs: unknown[];
   versionLog: VersionEntry[];
+}
+
+export interface AppState {
+  version: 2;
+  profile: Profile;
+  decks: Deck[];
+  communities: unknown[];
+  aiJobs: AiJob[];
+  documents: SourceDocument[];
+  cloudTombstones: CloudTombstone[];
+  chatTranscript: unknown[];
+  learningPlans: unknown[];
+  updatedAt: string;
 }

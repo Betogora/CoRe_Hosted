@@ -4,26 +4,40 @@ const ACCOUNT_STORAGE_PREFIX = "core.accountState.v1";
 const ACCOUNT_MIGRATION_PREFIX = "core.accountMigration.v1";
 const SYNC_DEVICE_KEY = "core.syncDevice.v1";
 
-function getStorage(storage = null) {
+function getStorage(storage: any = null) {
   if (storage) return storage;
   if (typeof localStorage !== "undefined") return localStorage;
 
   const memory = new Map();
   return {
-    getItem(key) {
+    getItem(key: any) {
       return memory.get(key) ?? null;
     },
-    setItem(key, value) {
+    setItem(key: any, value: any) {
       memory.set(key, String(value));
     },
-    removeItem(key) {
+    removeItem(key: any) {
       memory.delete(key);
     },
   };
 }
 
-function parseJson(value, fallback = null) {
-  if (!value) return fallback;
+const storedDeckSchema = v.looseObject({ id: v.string() });
+const legacyStateSchema = v.looseObject({
+  version: v.optional(v.number()),
+  profile: v.optional(v.nullable(v.unknown())),
+  decks: v.array(storedDeckSchema),
+  communities: v.optional(v.array(v.unknown())),
+  aiJobs: v.optional(v.array(v.unknown())),
+  documents: v.optional(v.array(v.unknown())),
+  chatTranscript: v.optional(v.array(v.unknown())),
+  learningPlans: v.optional(v.array(v.unknown())),
+});
+const migrationMarkerSchema = v.looseObject({ decision: v.string(), handledAt: v.string() });
+const deviceIdSchema = v.pipe(v.string(), v.regex(/^device_[A-Za-z0-9_-]+$/));
+
+function parseJson(value: unknown, fallback: unknown = null): unknown {
+  if (typeof value !== "string" || !value) return fallback;
 
   try {
     return JSON.parse(value);
@@ -32,41 +46,41 @@ function parseJson(value, fallback = null) {
   }
 }
 
-function safeUserKey(userId) {
+function safeUserKey(userId: any) {
   return encodeURIComponent(String(userId ?? "anonymous"));
 }
 
-function accountKey(userId, key) {
+function accountKey(userId: any, key: any) {
   return `${ACCOUNT_STORAGE_PREFIX}.${safeUserKey(userId)}.${key}`;
 }
 
-function migrationKey(userId) {
+function migrationKey(userId: any) {
   return `${ACCOUNT_MIGRATION_PREFIX}.${safeUserKey(userId)}`;
 }
 
-export function createAccountStorage(userId, storage = null) {
+export function createAccountStorage(userId: any, storage: any = null) {
   const resolvedStorage = getStorage(storage);
 
   return {
-    getItem(key) {
+    getItem(key: any) {
       return resolvedStorage.getItem(accountKey(userId, key));
     },
-    setItem(key, value) {
+    setItem(key: any, value: any) {
       resolvedStorage.setItem(accountKey(userId, key), value);
     },
-    removeItem(key) {
+    removeItem(key: any) {
       resolvedStorage.removeItem(accountKey(userId, key));
     },
-    accountKey(key) {
+    accountKey(key: any) {
       return accountKey(userId, key);
     },
   };
 }
 
-export function getOrCreateSyncDeviceId(storage = null) {
+export function getOrCreateSyncDeviceId(storage: any = null) {
   const resolvedStorage = getStorage(storage);
   const existing = resolvedStorage.getItem(SYNC_DEVICE_KEY);
-  if (existing) return existing;
+  if (v.safeParse(deviceIdSchema, existing).success) return existing;
   const id = typeof crypto !== "undefined" && crypto.randomUUID
     ? `device_${crypto.randomUUID()}`
     : `device_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -74,18 +88,20 @@ export function getOrCreateSyncDeviceId(storage = null) {
   return id;
 }
 
-export function readLegacyLocalState(storage = null) {
+export function readLegacyLocalState(storage: any = null) {
   const resolvedStorage = getStorage(storage);
   const currentState = parseJson(resolvedStorage.getItem(APP_STATE_KEY), null);
-  if (currentState) return currentState;
+  const currentResult = v.safeParse(legacyStateSchema, currentState);
+  if (currentResult.success) return currentResult.output;
 
   const legacyDecks = parseJson(resolvedStorage.getItem(LEGACY_DECKS_KEY), []);
-  if (!Array.isArray(legacyDecks) || legacyDecks.length === 0) return null;
+  const legacyDeckResult = v.safeParse(v.array(storedDeckSchema), legacyDecks);
+  if (!legacyDeckResult.success || legacyDeckResult.output.length === 0) return null;
 
   return {
     version: 2,
     profile: null,
-    decks: legacyDecks,
+    decks: legacyDeckResult.output,
     communities: [],
     aiJobs: [],
     documents: [],
@@ -95,7 +111,7 @@ export function readLegacyLocalState(storage = null) {
   };
 }
 
-export function hasMeaningfulLocalState(state) {
+export function hasMeaningfulLocalState(state: any) {
   return Boolean(
     state &&
       ((Array.isArray(state.decks) && state.decks.length > 0) ||
@@ -105,14 +121,15 @@ export function hasMeaningfulLocalState(state) {
   );
 }
 
-export function hasPendingLocalMigration(userId, storage = null) {
+export function hasPendingLocalMigration(userId: any, storage: any = null) {
   const resolvedStorage = getStorage(storage);
-  if (resolvedStorage.getItem(migrationKey(userId))) return false;
+  const marker = parseJson(resolvedStorage.getItem(migrationKey(userId)), null);
+  if (v.safeParse(migrationMarkerSchema, marker).success) return false;
 
   return hasMeaningfulLocalState(readLegacyLocalState(resolvedStorage));
 }
 
-export function markLocalMigrationHandled(userId, decision, storage = null) {
+export function markLocalMigrationHandled(userId: any, decision: any, storage: any = null) {
   const resolvedStorage = getStorage(storage);
   resolvedStorage.setItem(
     migrationKey(userId),
@@ -130,3 +147,4 @@ export const accountStorageKeys = {
   ACCOUNT_MIGRATION_PREFIX,
   SYNC_DEVICE_KEY,
 };
+import * as v from "valibot";

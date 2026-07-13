@@ -1,3 +1,5 @@
+import type { SyncStatus } from "./coreTypes.ts";
+
 export const authPhases = Object.freeze({
   checkingSession: "checking-session",
   configError: "config-error",
@@ -8,28 +10,30 @@ export const authPhases = Object.freeze({
   ready: "ready",
 });
 
-export function authPhaseForSession({ configured, user }) {
+export type AuthPhase = (typeof authPhases)[keyof typeof authPhases];
+
+export function authPhaseForSession({ configured, user }: { configured: boolean; user: unknown }): AuthPhase {
   if (!configured) return authPhases.configError;
   return user ? authPhases.loadingCloud : authPhases.signedOut;
 }
 
-export function shouldShowAuthGate(authPhase) {
+export function shouldShowAuthGate(authPhase: AuthPhase) {
   return authPhase === authPhases.configError || authPhase === authPhases.signedOut || authPhase === authPhases.passwordRecovery;
 }
 
-export function shouldShowAppShell(authPhase) {
+export function shouldShowAppShell(authPhase: AuthPhase) {
   return authPhase === authPhases.ready;
 }
 
-export function createSyncIdleStatus() {
+export function createSyncIdleStatus(): SyncStatus {
   return { status: "idle" };
 }
 
-export function createSyncPendingStatus() {
+export function createSyncPendingStatus(): SyncStatus {
   return { status: "pending", message: "Änderungen werden gleich synchronisiert." };
 }
 
-export function createSyncOfflineStatus({ pendingCount = 0, nextRetryAt = null } = {}) {
+export function createSyncOfflineStatus({ pendingCount = 0, nextRetryAt = null }: { pendingCount?: number; nextRetryAt?: string | null } = {}): SyncStatus {
   const normalizedPendingCount = Math.max(0, Number(pendingCount) || 0);
   const parsedRetryAt = nextRetryAt ? Date.parse(nextRetryAt) : Number.NaN;
   const normalizedNextRetryAt = Number.isFinite(parsedRetryAt) ? new Date(parsedRetryAt).toISOString() : null;
@@ -49,19 +53,19 @@ export function createSyncOfflineStatus({ pendingCount = 0, nextRetryAt = null }
   };
 }
 
-export function createSyncSavingStatus() {
+export function createSyncSavingStatus(): SyncStatus {
   return { status: "saving", message: "Synchronisierung läuft." };
 }
 
-export function createSyncSavedStatus(message = "Synchronisiert.", now = () => new Date().toISOString()) {
+export function createSyncSavedStatus(message = "Synchronisiert.", now: () => string = () => new Date().toISOString()): SyncStatus {
   return { status: "saved", savedAt: now(), message };
 }
 
-export function createSyncErrorStatus(message = "Synchronisierung fehlgeschlagen.") {
+export function createSyncErrorStatus(message = "Synchronisierung fehlgeschlagen."): SyncStatus {
   return { status: "error", message };
 }
 
-export function createSyncConflictStatus(count = 1) {
+export function createSyncConflictStatus(count = 1): SyncStatus {
   const conflictCount = Math.max(1, Number(count) || 1);
   return {
     status: "conflict",
@@ -72,7 +76,7 @@ export function createSyncConflictStatus(count = 1) {
   };
 }
 
-export function formatSyncStatusText(syncStatus) {
+export function formatSyncStatusText(syncStatus: SyncStatus) {
   if (!syncStatus?.status || syncStatus.status === "idle") return "Noch keine Änderung synchronisiert.";
   if (syncStatus.status === "pending") return "Änderungen werden gleich synchronisiert.";
   if (syncStatus.status === "saving") return "Synchronisierung läuft.";
@@ -80,5 +84,5 @@ export function formatSyncStatusText(syncStatus) {
   if (syncStatus.status === "offline") return syncStatus.message || "Offline. Änderungen werden automatisch synchronisiert, sobald die Verbindung wieder da ist.";
   if (syncStatus.status === "conflict") return syncStatus.message || "Eine Änderung braucht deine Entscheidung.";
   if (syncStatus.status === "error") return syncStatus.message || "Synchronisierung fehlgeschlagen.";
-  return syncStatus.message || "Sync-Status unbekannt.";
+  return "Sync-Status unbekannt.";
 }

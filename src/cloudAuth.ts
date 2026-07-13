@@ -1,14 +1,40 @@
+import * as v from "valibot";
+import type { Tables, TablesInsert } from "./database.types.ts";
+
 const SESSION_MISSING_CODES = new Set(["AuthSessionMissingError", "session_not_found"]);
+
+type ProfileRow = Tables<"profiles">;
+type ProfileInsert = TablesInsert<"profiles">;
+const profileRowSchema = v.looseObject({
+  id: v.string(),
+  email: v.optional(v.string()),
+  display_name: v.optional(v.string()),
+  university: v.optional(v.nullable(v.string())),
+  field_of_study: v.optional(v.nullable(v.string())),
+  preferred_language: v.optional(v.string()),
+  timezone: v.optional(v.string()),
+  onboarding_complete: v.optional(v.boolean()),
+  privacy: v.optional(v.record(v.string(), v.unknown())),
+  scheduler_preferences: v.optional(v.record(v.string(), v.unknown())),
+  created_at: v.optional(v.string()),
+  updated_at: v.optional(v.string()),
+});
+
+function validateProfileRow(input: unknown): ProfileRow {
+  const result = v.safeParse(profileRowSchema, input);
+  if (!result.success) throw new Error("Cloud-Profildaten hatten ein ungültiges Format.");
+  return result.output as ProfileRow;
+}
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-function normalizeEmail(email) {
+function normalizeEmail(email: any) {
   return String(email ?? "").trim().toLowerCase();
 }
 
-function mergePrivacy(profile) {
+function mergePrivacy(profile: any) {
   return {
     shareLearningProgress: false,
     showOnlineStatus: false,
@@ -17,7 +43,7 @@ function mergePrivacy(profile) {
   };
 }
 
-function accountFromUser(user, status = "signed-in", timestamp = nowIso()) {
+function accountFromUser(user: any, status: any = "signed-in", timestamp: any = nowIso()) {
   return {
     status,
     authProvider: "supabase",
@@ -27,7 +53,7 @@ function accountFromUser(user, status = "signed-in", timestamp = nowIso()) {
   };
 }
 
-function isSessionMissing(error) {
+function isSessionMissing(error: any) {
   const message = String(error?.message ?? "").toLowerCase();
   return (
     SESSION_MISSING_CODES.has(error?.name) ||
@@ -37,7 +63,7 @@ function isSessionMissing(error) {
   );
 }
 
-export function formatCloudAuthError(error, fallback = "Aktion konnte nicht abgeschlossen werden.") {
+export function formatCloudAuthError(error: any, fallback: any = "Aktion konnte nicht abgeschlossen werden.") {
   const code = String(error?.code ?? error?.status ?? error?.name ?? "").toLowerCase();
   const message = String(error?.message ?? "").toLowerCase();
   const causeCode = String(error?.cause?.code ?? error?.cause?.status ?? error?.cause?.name ?? "").toLowerCase();
@@ -92,7 +118,7 @@ export function formatCloudAuthError(error, fallback = "Aktion konnte nicht abge
   return error?.message || fallback;
 }
 
-export function createCloudAuthRedirectUrl(origin) {
+export function createCloudAuthRedirectUrl(origin: any) {
   try {
     return new URL("/", origin).toString();
   } catch {
@@ -105,7 +131,7 @@ function getDefaultAuthRedirectTo() {
   return createCloudAuthRedirectUrl(window.location.origin);
 }
 
-export function createProfileRow(profile, user, timestamp = nowIso()) {
+export function createProfileRow(profile: any, user: any, timestamp: any = nowIso()): ProfileInsert {
   const email = normalizeEmail(user?.email ?? profile?.email);
 
   return {
@@ -123,26 +149,27 @@ export function createProfileRow(profile, user, timestamp = nowIso()) {
   };
 }
 
-export function createCloudProfile(row, user, fallback = {}, timestamp = nowIso()) {
-  const email = normalizeEmail(row?.email ?? user?.email ?? fallback?.email);
+export function createCloudProfile(row: any, user: any, fallback: any = {}, timestamp: any = nowIso()) {
+  const validatedRow = row == null ? null : validateProfileRow(row);
+  const email = normalizeEmail(validatedRow?.email ?? user?.email ?? fallback?.email);
 
   return {
     ...fallback,
-    userId: user?.id ?? row?.id ?? fallback?.userId ?? "local-user",
+    userId: user?.id ?? validatedRow?.id ?? fallback?.userId ?? "local-user",
     email,
-    displayName: row?.display_name ?? fallback?.displayName ?? email.split("@")[0] ?? "",
-    university: row?.university ?? fallback?.university ?? "",
-    fieldOfStudy: row?.field_of_study ?? fallback?.fieldOfStudy ?? "",
-    preferredLanguage: row?.preferred_language ?? fallback?.preferredLanguage ?? "de",
-    timezone: row?.timezone ?? fallback?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
-    onboardingComplete: row?.onboarding_complete ?? fallback?.onboardingComplete ?? true,
-    privacy: { ...mergePrivacy(fallback), ...(row?.privacy ?? {}) },
-    schedulerPreferences: row?.scheduler_preferences ?? fallback?.schedulerPreferences ?? { profile: "standard" },
-    account: accountFromUser(user ?? { id: row?.id, email, created_at: row?.created_at }, "signed-in", timestamp),
+    displayName: validatedRow?.display_name ?? fallback?.displayName ?? email.split("@")[0] ?? "",
+    university: validatedRow?.university ?? fallback?.university ?? "",
+    fieldOfStudy: validatedRow?.field_of_study ?? fallback?.fieldOfStudy ?? "",
+    preferredLanguage: validatedRow?.preferred_language ?? fallback?.preferredLanguage ?? "de",
+    timezone: validatedRow?.timezone ?? fallback?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
+    onboardingComplete: validatedRow?.onboarding_complete ?? fallback?.onboardingComplete ?? true,
+    privacy: { ...mergePrivacy(fallback), ...((validatedRow?.privacy as Record<string, unknown> | undefined) ?? {}) },
+    schedulerPreferences: validatedRow?.scheduler_preferences ?? fallback?.schedulerPreferences ?? { profile: "standard" },
+    account: accountFromUser(user ?? { id: validatedRow?.id, email, created_at: validatedRow?.created_at }, "signed-in", timestamp),
   };
 }
 
-export function createPendingCloudProfile(profile, user, timestamp = nowIso()) {
+export function createPendingCloudProfile(profile: any, user: any, timestamp: any = nowIso()) {
   const email = normalizeEmail(user?.email ?? profile?.email);
 
   return {
@@ -154,7 +181,7 @@ export function createPendingCloudProfile(profile, user, timestamp = nowIso()) {
   };
 }
 
-export function markCloudSignedOut(profile, timestamp = nowIso()) {
+export function markCloudSignedOut(profile: any, timestamp: any = nowIso()) {
   return {
     ...profile,
     account: {
@@ -166,24 +193,24 @@ export function markCloudSignedOut(profile, timestamp = nowIso()) {
   };
 }
 
-async function assertCloudClient(client) {
+async function assertCloudClient(client: any) {
   if (!client?.auth || !client?.from) {
     throw new Error("Supabase ist noch nicht konfiguriert.");
   }
 }
 
-async function getCurrentUser(client) {
+async function getCurrentUser(client: any) {
   await assertCloudClient(client);
   const { data, error } = await client.auth.getUser();
   if (error && !isSessionMissing(error)) throw error;
   return data?.user ?? null;
 }
 
-export async function getCloudUser(client) {
+export async function getCloudUser(client: any) {
   return getCurrentUser(client);
 }
 
-export async function saveCloudProfile(client, profile, timestamp = nowIso()) {
+export async function saveCloudProfile(client: any, profile: any, timestamp: any = nowIso()) {
   const user = await getCurrentUser(client);
   if (!user) throw new Error("Bitte melde dich zuerst an.");
 
@@ -194,7 +221,7 @@ export async function saveCloudProfile(client, profile, timestamp = nowIso()) {
   return createCloudProfile(data, user, profile, timestamp);
 }
 
-export async function signUpCloudAccount(client, profile, password, timestamp = nowIso(), redirectTo = getDefaultAuthRedirectTo()) {
+export async function signUpCloudAccount(client: any, profile: any, password: any, timestamp: any = nowIso(), redirectTo: any = getDefaultAuthRedirectTo()) {
   await assertCloudClient(client);
   const email = normalizeEmail(profile?.email);
   if (!email || !email.includes("@")) throw new Error("Eine gültige E-Mail-Adresse ist erforderlich.");
@@ -216,7 +243,7 @@ export async function signUpCloudAccount(client, profile, password, timestamp = 
   return saveCloudProfile(client, createCloudProfile(null, data.user, profile, timestamp), timestamp);
 }
 
-export async function signInCloudAccount(client, profile, password, timestamp = nowIso()) {
+export async function signInCloudAccount(client: any, profile: any, password: any, timestamp: any = nowIso()) {
   await assertCloudClient(client);
   const email = normalizeEmail(profile?.email);
   if (!email || !email.includes("@")) throw new Error("Eine gültige E-Mail-Adresse ist erforderlich.");
@@ -227,7 +254,7 @@ export async function signInCloudAccount(client, profile, password, timestamp = 
   return saveCloudProfile(client, createCloudProfile(null, data.user, profile, timestamp), timestamp);
 }
 
-export async function signInWithMagicLink(client, email, redirectTo = getDefaultAuthRedirectTo()) {
+export async function signInWithMagicLink(client: any, email: any, redirectTo: any = getDefaultAuthRedirectTo()) {
   await assertCloudClient(client);
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !normalizedEmail.includes("@")) throw new Error("Eine gültige E-Mail-Adresse ist erforderlich.");
@@ -244,7 +271,7 @@ export async function signInWithMagicLink(client, email, redirectTo = getDefault
   return { email: normalizedEmail };
 }
 
-export async function signInWithGoogle(client, redirectTo = getDefaultAuthRedirectTo()) {
+export async function signInWithGoogle(client: any, redirectTo: any = getDefaultAuthRedirectTo()) {
   await assertCloudClient(client);
   const { data, error } = await client.auth.signInWithOAuth({
     provider: "google",
@@ -255,7 +282,7 @@ export async function signInWithGoogle(client, redirectTo = getDefaultAuthRedire
   return data;
 }
 
-export async function signOutCloudAccount(client, profile, timestamp = nowIso()) {
+export async function signOutCloudAccount(client: any, profile: any, timestamp: any = nowIso()) {
   await assertCloudClient(client);
   const { error } = await client.auth.signOut();
   if (error) throw error;
@@ -263,7 +290,7 @@ export async function signOutCloudAccount(client, profile, timestamp = nowIso())
   return markCloudSignedOut(profile, timestamp);
 }
 
-export async function resetCloudPassword(client, email, redirectTo = getDefaultAuthRedirectTo()) {
+export async function resetCloudPassword(client: any, email: any, redirectTo: any = getDefaultAuthRedirectTo()) {
   await assertCloudClient(client);
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !normalizedEmail.includes("@")) throw new Error("Eine gültige E-Mail-Adresse ist erforderlich.");
@@ -273,7 +300,7 @@ export async function resetCloudPassword(client, email, redirectTo = getDefaultA
   return { email: normalizedEmail };
 }
 
-export async function updateCloudPassword(client, password) {
+export async function updateCloudPassword(client: any, password: any) {
   await assertCloudClient(client);
   if (String(password ?? "").length < 8) throw new Error("Das Passwort muss mindestens 8 Zeichen haben.");
 

@@ -118,20 +118,20 @@ src/
   screens/README.md       Screen-Map und Regeln fuer KI-Programmierung
   ui/                     Geteilte Praesentationsbausteine und Medien-HTML
   coreModel.js            Zentrales Deck-, Karten-, Varianten- und Review-Datenmodell
-  coreRepository.js       Lokale Persistenz und State-Normalisierung
-  accountSession.js       Auth-Phasen, Login-Gate-Entscheidung und Sync-Statusmeldungen
-  accountStorage.js       Accountgebundene Browser-Cache-Keys und Legacy-Importmarkierung
-  supabaseClient.js       Supabase Browser-Client aus oeffentlichen Vite-Env-Variablen
-  cloudAuth.js            Supabase Auth/Profile-Kommandos
-  cloudRepository.js      Accountgefiltertes Laden/Speichern ueber Supabase-Tabellen
+  coreRepository.ts       Lokale Persistenz und State-Normalisierung
+  accountSession.ts       Auth-Phasen, Login-Gate-Entscheidung und Sync-Statusmeldungen
+  accountStorage.ts       Accountgebundene Browser-Cache-Keys und Legacy-Importmarkierung
+  supabaseClient.ts       Supabase Browser-Client aus oeffentlichen Vite-Env-Variablen
+  cloudAuth.ts            Supabase Auth/Profile-Kommandos
+  cloudRepository.ts      Accountgefiltertes Laden/Speichern ueber Supabase-Tabellen
   coreWorkspace.js        App-Kommandos und Demo-Daten
   fixtures/               Lokale Seed-/Fixture-Daten
   creationWorkflow.js     Creation-/Import-Orchestrierung fuer APKG, Paste, manuell und KI-Drafts
-  apkgImport.js           Anki-APKG-Importpipeline
+  apkgImport.ts           Anki-APKG-Importpipeline
   pdfRuntime.js           Geteilte, bedarfsgeladene PDF.js-Runtime samt Worker-Vertrag
   pdfSelection.js         Text- und Koordinaten-Normalisierung fuer PDF-Quellenanker
   ui/PdfDocumentViewer.jsx Tiefer PDF-Viewer fuer Anzeige, Navigation, Zoom und Auswahl
-  importService.js        Text-, CSV-, JSON- und Tabellen-Import mit Fingerprints/Dedupe
+  importService.ts        Text-, CSV-, JSON- und Tabellen-Import mit Fingerprints/Dedupe
   reviewService.js        Tiefer Review-Flow, Sessions, Fallback und Rating-Erfassung
   reviewFlow.js           Legacy-Fassade fuer bestehende Review-Imports
   scheduler.js            FSRS-like Review-State, Intervalle, Retrievability und Maturity-XP
@@ -139,11 +139,11 @@ src/
   richText.js             Rich-Text-Normalisierung und Text-zu-Karten-HTML
   htmlSafety.js           HTML-Sanitization und HTML-zu-Text-Helfer
   coreVariantService.js   Eligibility, Reifegrad, Variant-Plan, Fallback und Varianten-Feedback
-  aiOrchestrator.js       Lokale KI-Job- und Draft-Erzeugung
+  aiOrchestrator.ts       Lokale KI-Job- und Draft-Erzeugung
   deckGraph.js            Mindmap-/Graph-Modell
-  deckAssistant.js        Quellengebundene Deck-Antworten
+  deckAssistant.ts        Quellengebundene Deck-Antworten
   learningPlan.js         Lokale Lernplan-Erzeugung
-  dataPortability.js      JSON-Export/-Import
+  dataPortability.ts      JSON-Export/-Import
 ```
 
 ## Wichtige Dokumente

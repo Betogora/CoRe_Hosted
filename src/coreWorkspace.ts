@@ -1,6 +1,6 @@
 import { createCommunity, shareDeckToCommunity } from "./communityModel.js";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.ts";
-import { createCoreRepository } from "./coreRepository.js";
+import { createCoreRepository } from "./coreRepository.ts";
 import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.ts";
 import { buildDeckGraph } from "./deckGraph.js";
 import {
@@ -8,8 +8,8 @@ import {
   importJsonAsNormalizedDeck,
   importNormalizedDeck,
   importTextAsNormalizedDeck,
-} from "./importService.js";
-import type { CardVariant, CoreMode, Deck, DeckSettings, LearningItem } from "./coreTypes.ts";
+} from "./importService.ts";
+import type { CardVariant, CoreMode, Deck, DeckSettings, LearningItem, SourceDocument } from "./coreTypes.ts";
 
 interface CloudTombstone {
   entityTable: string;
@@ -84,10 +84,10 @@ interface VariantDraft {
 
 export type CoreWorkspace = ReturnType<typeof createCoreWorkspace>;
 
-let apkgImportModulePromise: Promise<typeof import("./apkgImport.js")> | null = null;
+let apkgImportModulePromise: Promise<typeof import("./apkgImport.ts")> | null = null;
 
-function loadApkgImportModule(): Promise<typeof import("./apkgImport.js")> {
-  apkgImportModulePromise ??= import("./apkgImport.js");
+function loadApkgImportModule(): Promise<typeof import("./apkgImport.ts")> {
+  apkgImportModulePromise ??= import("./apkgImport.ts");
   return apkgImportModulePromise;
 }
 
@@ -131,8 +131,8 @@ function softDeleteCard(card: LearningItem, deletedAt: string): LearningItem {
   };
 }
 
-function mergeSourceDocuments(existingDocuments: unknown[] = [], nextDocuments: unknown[] = []): unknown[] {
-  const documentId = (document: unknown) => document !== null && typeof document === "object" && "id" in document ? String(document.id) : "";
+function mergeSourceDocuments(existingDocuments: SourceDocument[] = [], nextDocuments: SourceDocument[] = []): SourceDocument[] {
+  const documentId = (document: SourceDocument) => document.id;
   const nextIds = new Set(nextDocuments.map(documentId));
   return [...nextDocuments, ...existingDocuments.filter((document) => !nextIds.has(documentId(document)))];
 }

@@ -1,9 +1,9 @@
-import type { ReviewRating, ReviewSchedulerState, ReviewState, ReviewStateBase, SourceAnchor, VariantPerformance, VersionEntry } from "../coreTypes.ts";
+import type { ReviewRating, ReviewSchedulerState, ReviewState, ReviewStateBase, SourceAnchor, SourceDocument, VariantPerformance, VersionEntry } from "../coreTypes.ts";
+export type { SourceDocument } from "../coreTypes.ts";
 import { REVIEW_RATINGS, getMaturityBand, makeId, stableContentHash } from "./coreValues.ts";
 
 type StringMap = Record<string, unknown>;
 type ReviewStateInput = Partial<Omit<ReviewStateBase, "state" | "reps" | "repetitions">> & { state?: ReviewSchedulerState | null; reps?: number | null; repetitions?: number | null };
-export interface SourceDocument { id: string; ownerId: string; fileName: string; mimeType: string; text: string; storageUrl: string; textExtractionStatus: string; metadata: StringMap; createdAt: string; updatedAt: string; revision: number; deletedAt: string | null; updatedByDeviceId: string | null; }
 interface SourceDocumentInput extends Partial<SourceDocument> {}
 export interface SourceAnchorInput extends Partial<Omit<SourceAnchor, "textQuote">> { textQuote?: unknown; }
 interface VersionEntryInput extends Partial<VersionEntry> { objectType?: string; objectId?: string; changeType?: string; }

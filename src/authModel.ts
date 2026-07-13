@@ -8,7 +8,7 @@ export function createLocalAccount({
   fieldOfStudy = "",
   preferredLanguage = "de",
   now = new Date().toISOString(),
-} = {}) {
+}: any = {}) {
   const normalizedEmail = String(email).trim().toLowerCase();
   if (!normalizedEmail || !normalizedEmail.includes("@")) {
     throw new Error("Eine gültige E-Mail-Adresse ist erforderlich.");
@@ -40,7 +40,7 @@ export function createLocalAccount({
   };
 }
 
-export function signInLocalAccount(profile, { email = "", password = "", now = new Date().toISOString() } = {}) {
+export function signInLocalAccount(profile: any, { email = "", password = "", now = new Date().toISOString() }: any = {}) {
   const normalizedEmail = String(email).trim().toLowerCase();
   const verifier = stableContentHash({ normalizedEmail, password }, "pw");
 
@@ -60,7 +60,7 @@ export function signInLocalAccount(profile, { email = "", password = "", now = n
   };
 }
 
-export function signOutLocalAccount(profile, now = new Date().toISOString()) {
+export function signOutLocalAccount(profile: any, now: any = new Date().toISOString()) {
   return {
     ...profile,
     account: {
@@ -70,4 +70,3 @@ export function signOutLocalAccount(profile, now = new Date().toISOString()) {
     },
   };
 }
-

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createSyncOutbox } from "./syncOutbox.js";
+import { createSyncOutbox } from "./syncOutbox.ts";
 
 function createMemoryStorage() {
   const values = new Map();
@@ -38,4 +38,40 @@ test("failed mutations remain pending and increment their retry counter", () => 
   assert.equal(outbox.listPending()[0].retryCount, 1);
   outbox.markFlushed(["mutation-1"], "2026-07-11T12:00:00.000Z");
   assert.equal(outbox.count(), 0);
+});
+
+test("outbox keeps valid account mutations while discarding invalid and foreign rows", () => {
+  const storage = createMemoryStorage();
+  storage.setItem("syncOutbox.v1", JSON.stringify([
+    {
+      id: "mutation-valid",
+      userId: "user-a",
+      deviceId: null,
+      type: "state-patch",
+      table: null,
+      entityId: null,
+      baseRevision: null,
+      payload: {},
+      createdAt: "2026-07-13T08:00:00.000Z",
+      flushedAt: null,
+      retryCount: 0,
+    },
+    { id: "mutation-invalid", userId: "user-a", type: "state-patch" },
+    {
+      id: "mutation-foreign",
+      userId: "user-b",
+      deviceId: null,
+      type: "state-patch",
+      table: null,
+      entityId: null,
+      baseRevision: null,
+      payload: {},
+      createdAt: "2026-07-13T08:00:00.000Z",
+      flushedAt: null,
+      retryCount: 0,
+    },
+  ]));
+
+  const outbox = createSyncOutbox({ userId: "user-a", storage });
+  assert.deepEqual(outbox.listPending().map((row) => row.id), ["mutation-valid"]);
 });

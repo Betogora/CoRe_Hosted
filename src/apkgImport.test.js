@@ -11,13 +11,15 @@ import {
   mapAnkiApkgToNormalizedDeck,
   mapAnkiToCoreDeck,
   parseAnkiMedia,
+  parseApkgToNormalizedImport,
   parseMediaEntriesBytes,
   parsePackageMetadataBytes,
   validateApkgFile,
-} from "./apkgImport.js";
+} from "./apkgImport.ts";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.ts";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
 import { answerVariant, getNextReviewItem } from "./reviewService.ts";
+import { readSqliteDatabase } from "./sqliteReader.ts";
 
 function archiveFromEntries(entries) {
   return {
@@ -372,6 +374,27 @@ test("committed APKG import creates visible parent and child decks from Anki hie
   assert.equal(committed.decks.every((deck) => deck.importMeta.mediaManifest.assets.length === 1), true);
 });
 
+test("binary readers reject truncated ZIP, invalid MediaEntries and SQLite page sizes", async () => {
+  const complete = await worldCapitalsApkgFile();
+  const completeBytes = new Uint8Array(await complete.arrayBuffer());
+  const truncated = completeBytes.slice(0, 64);
+  const parsed = await parseApkgToNormalizedImport({
+    name: "truncated.apkg",
+    size: truncated.length,
+    arrayBuffer: async () => truncated.buffer,
+  });
+
+  assert.equal(parsed.errors.length, 1);
+  assert.match(parsed.errors[0], /ZIP|abgeschnitten/);
+  assert.throws(() => parseMediaEntriesBytes(Uint8Array.of(0x0a, 0x80)), /Varint/);
+
+  const invalidSqlite = new Uint8Array(512);
+  invalidSqlite.set(new TextEncoder().encode("SQLite format 3\0"));
+  invalidSqlite[16] = 0x01;
+  invalidSqlite[17] = 0x2c;
+  assert.throws(() => readSqliteDatabase(invalidSqlite), /Seitengröße/);
+});
+
 test("committed APKG fixture imports the world capitals hierarchy", async () => {
   const committed = await commitApkgImport(await worldCapitalsApkgFile(), { existingDecks: [] });
   const root = committed.decks.find((deck) => deck.name === "Welt-Hauptstädte");
@@ -412,6 +435,93 @@ test("APKG preview uses the normalized Learning Item path", async () => {
   assert.equal(preview.deck.importMeta.deckHierarchy.length, 8);
   assert.equal(preview.deck.cards.every((item) => item.variants.filter((variant) => variant.isOriginal).length === 1), true);
   assert.equal(getOriginalVariant(preview.deck.cards[0]).front, preview.deck.cards[0].canonicalQuestion);
+});
+
+test("APKG preview worker transfers input, reports progress and always terminates", async () => {
+  const file = await worldCapitalsApkgFile();
+  const direct = await parseApkgToNormalizedImport(file);
+  const originalWorker = globalThis.Worker;
+  const steps = [];
+
+  class PreviewWorker {
+    static instance = null;
+    constructor() {
+      PreviewWorker.instance = this;
+      this.terminated = false;
+    }
+    postMessage(request, transfer) {
+      this.request = request;
+      this.transfer = transfer;
+      queueMicrotask(() => {
+        this.onmessage({ data: { type: "progress", requestId: request.requestId, step: "collection" } });
+        this.onmessage({
+          data: {
+            type: "result",
+            requestId: request.requestId,
+            result: {
+              normalizedDeck: direct.normalizedDeck,
+              warnings: direct.warnings,
+              errors: direct.errors,
+              mediaFiles: direct.mediaFiles,
+              parsedPackage: null,
+            },
+          },
+        });
+      });
+    }
+    terminate() {
+      this.terminated = true;
+    }
+  }
+
+  globalThis.Worker = PreviewWorker;
+  try {
+    const workerPreview = await createApkgImportPreview(file, (step) => steps.push(step));
+    assert.equal(workerPreview.preview.deck.cards.length, direct.normalizedDeck.items.length);
+    assert.deepEqual(steps, ["collection"]);
+    assert.equal(PreviewWorker.instance.request.buffer instanceof ArrayBuffer, true);
+    assert.deepEqual(PreviewWorker.instance.transfer, [PreviewWorker.instance.request.buffer]);
+    assert.equal(PreviewWorker.instance.terminated, true);
+  } finally {
+    globalThis.Worker = originalWorker;
+  }
+});
+
+test("APKG preview rejects invalid worker messages and aborts with cleanup", async () => {
+  const file = await worldCapitalsApkgFile();
+  const originalWorker = globalThis.Worker;
+
+  class InvalidWorker {
+    static instance = null;
+    constructor() {
+      InvalidWorker.instance = this;
+      this.terminated = false;
+    }
+    postMessage() {
+      queueMicrotask(() => this.onmessage({ data: { type: "unknown" } }));
+    }
+    terminate() {
+      this.terminated = true;
+    }
+  }
+
+  globalThis.Worker = InvalidWorker;
+  try {
+    await assert.rejects(() => createApkgImportPreview(file), /ungültige Nachricht/);
+    assert.equal(InvalidWorker.instance.terminated, true);
+
+    class WaitingWorker extends InvalidWorker {
+      postMessage() {}
+    }
+    globalThis.Worker = WaitingWorker;
+    const controller = new AbortController();
+    const pending = createApkgImportPreview(file, () => {}, { signal: controller.signal });
+    controller.abort();
+    await assert.rejects(() => pending, (error) => error?.name === "AbortError");
+    assert.equal(WaitingWorker.instance.terminated, true);
+  } finally {
+    globalThis.Worker = originalWorker;
+  }
 });
 
 test("imports Cloze parser output as cloze content with a warning instead of crashing", async () => {
