@@ -2,21 +2,9 @@ import { REVIEW_RATINGS, createReviewState, getMaturityBand } from "./coreModel.
 import { normalizeLearningSettings } from "./deckSettings.js";
 
 export const SCHEDULER_VERSION = "fsrs_v1";
-export const SIMPLE_SCHEDULER_VERSION = "simple_v1";
 export const FSRS_SCHEDULER_VERSION = "fsrs_v1";
 export const MINUTE_MS = 60 * 1000;
 export const DAY_MS = 24 * 60 * 60 * 1000;
-
-export const LEARNING_STEPS = {
-  againMinutes: 5,
-  hardMinutes: 10,
-  goodFirstSuccessMinutes: 15,
-  easyFirstSuccessMinutes: 30,
-  goodGraduatingDays: 1,
-  easyGraduatingDays: 2,
-  relearningGoodDays: 1,
-  relearningEasyDays: 2,
-};
 
 const RATING_LABELS = {
   again: "Again",

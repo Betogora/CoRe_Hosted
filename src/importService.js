@@ -145,7 +145,7 @@ function createEmptyReport({ dryRun = false, sourceType = "mixed", targetDeckId 
   };
 }
 
-function finalizeReport(report) {
+export function finalizeImportReport(report) {
   report.createdCards = report.createdLearningItems;
   report.summary = {
     ...report.summary,
@@ -400,7 +400,7 @@ export function normalizeNormalizedImportPayload(input = {}, options = {}) {
 
   report.warnings.push(...result.warnings);
   report.errors.push(...result.errors);
-  return { ...result, report: finalizeReport(report) };
+  return { ...result, report: finalizeImportReport(report) };
 }
 
 export function normalizeTextForFingerprint(value) {
@@ -633,7 +633,7 @@ export function importNormalizedDeck(input = {}, options = {}) {
     return {
       deck: null,
       normalizedDeck,
-      report: finalizeReport(report),
+      report: finalizeImportReport(report),
     };
   }
 
@@ -709,7 +709,7 @@ export function importNormalizedDeck(input = {}, options = {}) {
   return {
     deck,
     normalizedDeck,
-    report: finalizeReport(report),
+    report: finalizeImportReport(report),
   };
 }
 
@@ -854,7 +854,7 @@ function importParsedNormalizedDeck(parsed, options = {}) {
     return {
       deck: null,
       normalizedDeck: parsed.normalizedDeck,
-      report: finalizeReport(report),
+      report: finalizeImportReport(report),
     };
   }
 

@@ -1124,10 +1124,6 @@ export function createCoreLearningItem(item = {}) {
   });
 }
 
-export function createLearningItem(item = {}) {
-  return createCoreLearningItem(item);
-}
-
 export function normalizeLearningItem(item = {}) {
   return createCoreLearningItem({
     ...item,
@@ -1626,10 +1622,6 @@ function createManualCardArtifacts({ card = {}, documentContext = {}, createdAt 
         : createBasicLearningItem("", card.front, card.back, itemOptions);
 
   return { coreCard, sourceDocument, sourceAnchor };
-}
-
-export function createManualLearningItem({ card, documentContext } = {}) {
-  return createManualCardArtifacts({ card, documentContext }).coreCard;
 }
 
 export function createManualCoreDeck({ deckName, card, documentContext }) {

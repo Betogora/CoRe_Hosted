@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { authPhaseForSession, createSyncConflictStatus, createSyncErrorStatus, createSyncSavedStatus, formatSyncStatusText, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
+import { authPhaseForSession, createSyncConflictStatus, createSyncErrorStatus, createSyncOfflineStatus, createSyncSavedStatus, formatSyncStatusText, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
 
 test("login gate blocks the app shell without a Supabase session", () => {
   const signedOutPhase = authPhaseForSession({ configured: true, user: null });
@@ -54,4 +54,13 @@ test("conflict sync status explains that a user decision is required", () => {
   assert.equal(status.status, "conflict");
   assert.equal(status.conflictCount, 2);
   assert.equal(formatSyncStatusText(status), "2 Änderungen brauchen deine Entscheidung.");
+});
+
+test("offline sync status keeps pending changes visible without exposing technical errors", () => {
+  const status = createSyncOfflineStatus({ pendingCount: 2, nextRetryAt: "2026-07-13T12:00:30.000Z" });
+
+  assert.equal(status.status, "offline");
+  assert.equal(status.pendingCount, 2);
+  assert.equal(status.nextRetryAt, "2026-07-13T12:00:30.000Z");
+  assert.match(formatSyncStatusText(status), /^Offline\. 2 Änderungen bleiben vorgemerkt und werden automatisch synchronisiert\. Nächster Versuch: .+\.$/);
 });

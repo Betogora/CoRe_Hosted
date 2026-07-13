@@ -194,17 +194,6 @@ export async function saveCloudProfile(client, profile, timestamp = nowIso()) {
   return createCloudProfile(data, user, profile, timestamp);
 }
 
-export async function loadCloudProfile(client, fallback = {}, timestamp = nowIso()) {
-  const user = await getCurrentUser(client);
-  if (!user) return markCloudSignedOut(fallback, timestamp);
-
-  const { data, error } = await client.from("profiles").select("*").eq("id", user.id).maybeSingle();
-  if (error) throw error;
-  if (data) return createCloudProfile(data, user, fallback, timestamp);
-
-  return saveCloudProfile(client, createCloudProfile(null, user, fallback, timestamp), timestamp);
-}
-
 export async function signUpCloudAccount(client, profile, password, timestamp = nowIso(), redirectTo = getDefaultAuthRedirectTo()) {
   await assertCloudClient(client);
   const email = normalizeEmail(profile?.email);

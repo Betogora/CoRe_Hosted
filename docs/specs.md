@@ -3,12 +3,12 @@
 **Produkt- und Engineering-Spezifikation**  
 **Dateien:** `docs/specs.md` und `docs/specs.html`  
 **Status:** Arbeitsfassung v0.4
-**Datum:** 2026-07-11
+**Datum:** 2026-07-13
 **Quellenbasis:** Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + erneuter Gruendergespraech-Abgleich + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App + `docs/anki-format-analysis.md` + aktueller Test-/Infrastrukturstand
 
 ---
 
-## Implementierungsstand 2026-07-12
+## Implementierungsstand 2026-07-13
 
 Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt. Ein Supabase-Projekt (`CoRe-Database`) und ein Vercel-Projekt (`core-hosted`) sind angebunden. Seit dem 2026-07-09 gibt es ein Pflicht-Login-Gate fuer die deployed App, Supabase-E-Mail/Passwort, accountgebundene lokale Cache-Keys, Cloud-first Autosave und eine einmalige Uebernahme vorhandener lokaler Browserdaten in den angemeldeten Account. CoRe ist trotzdem noch kein fertiges gehostetes Mehrnutzerprodukt: Offline-Konfliktloesung, produktive Medienablage, KI-Serverjobs, Monitoring, Backups und Community-Rechte fehlen noch.
 
@@ -24,17 +24,19 @@ Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug
 
 Datenbank-Release am 2026-07-10: Die Supabase-CLI-Konfiguration findet alle vier versionierten E-Mail-Templates. `20260709091315_sync_media_auth_operations.sql` wurde nach erfolgreichem Dry-Run remote angewendet; `npx supabase migration list --linked` bestaetigt jetzt alle vier Migrationen lokal und remote. Das erweiterte `supabase/verify_schema_v1.sql` bestaetigt Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, Grants ohne `anon`-Zugriff und den privaten Bucket `core-media`. Der Performance-Advisor meldet keine Warnung; beim Security-Advisor bleibt ausschliesslich der bereits vorher vorhandene Hosted-Auth-Hinweis zur deaktivierten Leaked-Password-Protection offen.
 
-E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus `e2e` und trennt die Suite in vier Projekte. `auth-gate-chromium` prueft das Login-Gate, gemappte Auth-Fehler und den sicheren React-Fehlerfallback mit drei sessionlosen Smokes ohne Account-Reset. `auth-resilience-chromium` prueft auf einem getrennten unkonfigurierten Vite-Port sowie ueber Browser-Netzwerkrouten fehlende Supabase-Konfiguration, Offline-Start und `session_expired`; alle drei cloudfreien Smokes sind gruen und erwarten deutsche Fehlertexte. `auth-setup` baut eine Supabase-Session auf und gibt sie als ignorierte, von `core.*`-App-Daten bereinigte `storageState` an zwoelf `authenticated-chromium`-Produkt-Smokes weiter. `npm run test:e2e -- --list` bestaetigt alle 19 Tests. Fuer die kostenfreie vollstaendige Abnahme existiert `npm run test:e2e:local`: Der Befehl startet einen auf notwendige Dienste reduzierten lokalen Supabase-Stack, wendet ausstehende Migrationen an, liest den JSON-Status der installierten Supabase-CLI und akzeptiert URL-/Publishable-Key nur fuer Loopback-URLs, legt den lokalen Testaccount idempotent an, fuehrt Playwright aus und stoppt den Stack wieder. Die Status-Auswertung bleibt mit aelteren `KEY=VALUE`-Ausgaben kompatibel; der Start-Status mit lokalen Default-Schluesseln wird nicht in den Testlauf-Log geschrieben. Hosted-E2E bleibt ueber einen vorab angelegten Account und `.env.e2e.local` kompatibel. Vor jedem authentifizierten Lauf ersetzt das Setup ausschliesslich die Daten dieses Testaccounts ueber die vorhandene RLS-geschuetzte Repository-Funktion mit der reproduzierbaren Welt-Hauptstadt-Fixture; eine Service Role ist nicht beteiligt. Das GitHub-Actions-Release-Gate `.github/workflows/ci.yml` fuehrt bei Pull Requests, Pushes auf `main` und manuellen Laeufen zuerst `npm test` und `npm run build` aus und startet danach alle Browser-Smokes mit lokalem Supabase ohne externe Zugangsdaten oder KI-Secrets. Im CI-Modus bleiben Retries deaktiviert; Fehlerberichte und Screenshots sowie Traces der sessionlosen Projekte werden sieben Tage als Artefakt aufbewahrt. `auth-setup` und `authenticated-chromium` erzeugen keine Traces, und `playwright/.auth/` sowie `.env`-Dateien werden nicht hochgeladen.
+E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus `e2e` und trennt die Suite in vier Projekte. `auth-gate-chromium` prueft das Login-Gate, gemappte Auth-Fehler und den sicheren React-Fehlerfallback mit drei sessionlosen Smokes ohne Account-Reset. `auth-resilience-chromium` prueft auf einem getrennten unkonfigurierten Vite-Port sowie ueber Browser-Netzwerkrouten fehlende Supabase-Konfiguration, Offline-Start und `session_expired`; alle drei cloudfreien Smokes sind gruen und erwarten deutsche Fehlertexte. `auth-setup` baut eine Supabase-Session auf und gibt sie als ignorierte, von `core.*`-App-Daten bereinigte `storageState` an vierzehn `authenticated-chromium`-Produkt-Smokes weiter. `npm run test:e2e -- --list` bestaetigt alle 21 Tests. Fuer die kostenfreie vollstaendige Abnahme existiert `npm run test:e2e:local`: Der Befehl startet einen auf notwendige Dienste reduzierten lokalen Supabase-Stack, wendet ausstehende Migrationen an, liest den JSON-Status der installierten Supabase-CLI und akzeptiert URL-/Publishable-Key nur fuer Loopback-URLs, legt den lokalen Testaccount idempotent an, fuehrt Playwright aus und stoppt den Stack wieder. Die Status-Auswertung bleibt mit aelteren `KEY=VALUE`-Ausgaben kompatibel; der Start-Status mit lokalen Default-Schluesseln wird nicht in den Testlauf-Log geschrieben. Hosted-E2E bleibt ueber einen vorab angelegten Account und `.env.e2e.local` kompatibel. Vor jedem authentifizierten Lauf ersetzt das Setup ausschliesslich die Daten dieses Testaccounts ueber die vorhandene RLS-geschuetzte Repository-Funktion mit der reproduzierbaren Welt-Hauptstadt-Fixture; eine Service Role ist nicht beteiligt. Das GitHub-Actions-Release-Gate `.github/workflows/ci.yml` fuehrt bei Pull Requests, Pushes auf `main` und manuellen Laeufen zuerst `npm run typecheck`, `npm test` und `npm run build` aus und startet danach alle Browser-Smokes mit lokalem Supabase ohne externe Zugangsdaten oder KI-Secrets. Im CI-Modus bleiben Retries deaktiviert; Fehlerberichte und Screenshots sowie Traces der sessionlosen Projekte werden sieben Tage als Artefakt aufbewahrt. `auth-setup` und `authenticated-chromium` erzeugen keine Traces, und `playwright/.auth/` sowie `.env`-Dateien werden nicht hochgeladen.
 
-E2E-Abnahme am 2026-07-12: Der lokale Docker-/Supabase-Lauf mit `npm run test:e2e:local` ist einschließlich Geräte-Registrierung beim Auth-Boot, duplikatfreiem Geräte-Reload, Fehlerfallback, PDF-Auswahl, accountgebundener Konfliktentscheidung und den bestehenden Produktszenarien mit 20/20 Browser-Smokes grün. Der Runner startet nur die benötigten Supabase-Dienste, verarbeitet die aktuellen JSON-Statusdaten, schreibt lokale Schlüssel nicht in den normalen Start-Log und stoppt den Stack nach dem Lauf. Der Modul-Testlauf umfasst nach dem Konfliktauflösungs-Slice 273 bestandene Tests; das getrennte RLS-Gate bleibt mit acht Smokes grün.
+E2E-Abnahme am 2026-07-13: Der lokale Docker-/Supabase-Lauf mit `npm run test:e2e:local` ist einschließlich Geräte-Registrierung beim Auth-Boot, duplikatfreiem Geräte-Reload, Fehlerfallback, PDF-Auswahl, accountgebundener Konfliktentscheidung, Offline-Änderung und Reconnect-Flush sowie den bestehenden Produktszenarien mit 21/21 Browser-Smokes grün. Der Runner startet nur die benötigten Supabase-Dienste, verarbeitet die aktuellen JSON-Statusdaten, schreibt lokale Schlüssel nicht in den normalen Start-Log und stoppt den Stack nach dem Lauf. Der Modul-Testlauf umfasst nach M1 298 bestandene Tests; das getrennte RLS-Gate bleibt mit acht Smokes grün.
 
-Cloud-Datenkorrektheit am 2026-07-12: `cloudRepository` mappt Revisionen, Soft-Deletes und Geräte-IDs bidirektional. `applyDeckMutation`, `applyCardMutation` und `softDeleteEntity` schützen Inserts, Updates und Tombstones atomar über `user_id`, `id` und Basisrevision; identische Retries werden ohne zweiten Revisionssprung bestätigt. Abweichende oder bereits gelöschte Remote-Rows erzeugen deterministische `sync_conflicts`, ohne bereits gelöste Konflikte erneut zu öffnen. Deckbaum-Löschungen bleiben lokal als Tombstones erhalten, bis der Server sie bestätigt. `appendReviewEvent` bestätigt nur ein per Readback inhaltlich identisches append-only Event. Nutzeränderbare Inhalte und Metadaten werden bei abweichender Basisrevision niemals automatisch vereinigt; reine Servermetadaten wie Revision, Zeitstempel und Geräte-ID werden ohne Inhaltskonflikt anerkannt. `SyncConflictPanel` zeigt accountgebundene offene und zurückgestellte Konflikte mit lokalen/Remote-Versionen und sicherem Feld-Merge. Entscheidungen werden per CAS im Repository angewendet, in genau die betroffene lokale Entität projiziert und bilden veraltete Snapshot-Mutationen neu; append-only Reviews laufen auch bei pausiertem Snapshot weiter. `replaceAccountCloudState()` bleibt der ausdrücklich destruktive Pfad für Legacy-Import und E2E-Reset. Vollständige Zwei-Geräte-Szenarien und Wiederverbindungs-Backoff fehlen weiterhin.
+TypeScript-M1-Abnahme am 2026-07-13: `strict`/`noEmit`, der vollständige gemischte Modulgraph, die Type-Policy und der erste `.test.ts` sind grün. `src/coreTypes.ts` ist die kanonische Quelle der normalisierten Kernformen. `src/database.types.ts` wurde mit Supabase CLI 2.109.0 aus dem lokal migrierten Schema erzeugt; der gemeinsame Generate-/Check-Pfad erkennt eine absichtlich eingebrachte Abweichung und läuft vor RLS und Playwright. Bestehendes JavaScript bleibt mit `allowJs: true` und `checkJs: false` bis M2–M4 ausdrücklich permissiv. Das Datenbankschema und das sichtbare Produktverhalten wurden in M1 nicht geändert.
+
+Cloud-Datenkorrektheit am 2026-07-13: `cloudRepository` mappt Revisionen, Soft-Deletes und Geräte-IDs bidirektional. `applyDeckMutation`, `applyCardMutation` und `softDeleteEntity` schützen Inserts, Updates und Tombstones atomar über `user_id`, `id` und Basisrevision; identische Retries werden ohne zweiten Revisionssprung bestätigt. Abweichende oder bereits gelöschte Remote-Rows erzeugen deterministische `sync_conflicts`, ohne bereits gelöste Konflikte erneut zu öffnen. Deckbaum-Löschungen bleiben lokal als Tombstones erhalten, bis der Server sie bestätigt. `appendReviewEvent` bestätigt nur ein per Readback inhaltlich identisches append-only Event. Nutzeränderbare Inhalte und Metadaten werden bei abweichender Basisrevision niemals automatisch vereinigt; reine Servermetadaten wie Revision, Zeitstempel und Geräte-ID werden ohne Inhaltskonflikt anerkannt. `SyncConflictPanel` zeigt accountgebundene offene und zurückgestellte Konflikte mit lokalen/Remote-Versionen und sicherem Feld-Merge. Entscheidungen werden per CAS im Repository angewendet, in genau die betroffene lokale Entität projiziert und bilden veraltete Snapshot-Mutationen neu; append-only Reviews laufen auch bei pausiertem Snapshot weiter. `syncEngine` verwaltet jetzt zusätzlich Browser-Netzstatus, genau einen Retry-Timer, exponentielles Backoff mit Jitter und Flush bei Wiederverbindung; nur eine leere Outbox gilt als gespeichert. `replaceAccountCloudState()` bleibt der ausdrücklich destruktive Pfad für Legacy-Import und E2E-Reset. Vollständige Zwei-Geräte-Szenarien fehlen weiterhin.
 
 Architektur-Audit am 2026-07-13: Die produktiv genutzten Modulschnittstellen bleiben kompatibel, ihre Invarianten wurden jedoch vertieft. `coreModel` synchronisiert Inhaltsänderungen atomar zwischen kanonischen Feldern, lokalen `cards`-Kompatibilitätsfeldern und der genau einen Originalvariante; inaktive, markierte oder abgelehnte Varianten bleiben erhalten und werden an den Originalanker repariert. APKG-Vorschau und Commit verwenden denselben normalisierten Learning-Item-Pfad, der APKG-Chunk wird im Creation-Workflow erst bei APKG-Nutzung geladen, und Reimports bewahren lokale Inhaltsänderungen einschließlich älterer Kompatibilitätsfelder sowie importierte Varianten anhand ihrer stabilen Anki-Quell-ID. `coreRepository` speichert Deck-Batches mit einem Zustands-Write und hält dabei die globale Dokumentprojektion konsistent. `cloudRepository` transportiert Titel, kanonische Inhalte, Konzepte, Quellenreferenzen sowie Review-Kompatibilitätsfelder verlustfrei und möglichst sparsam in reservierten Bereichen der vorhandenen JSONB-Spalten `cards.meta` und `review_events.flags`; bereits vorhandene Scheduler-Spalten werden nicht nochmals dupliziert und das Supabase-Schema ändert sich nicht. Die Sync-Outbox persistiert für vollständige Zustände nur kompakte Marker und liest den bereits accountgebunden gespeicherten Snapshot beim Wiederanlauf, sodass große Stapel nicht doppelt das Browser-Speicherlimit belegen. Die Welt-Hauptstadt-Fixture wird aus `fixtures/apkg/world-capitals.source.json` abgeleitet statt als zweites Datenliteral gepflegt. Echte Feature-Entfernungen sind ausdrücklich nicht Teil des Audits; mögliche Produktentscheidungen stehen in `docs/debatable-features.md`.
 
 Cloud-Medienregel am 2026-07-12: `cloudMediaStore` dedupliziert bestätigte Assets innerhalb eines Deck-/Card-Kontexts über Nutzer, Bucket und SHA-1. Kanonische Row-IDs und Storage-Pfade hängen nicht vom Dateinamen ab; Reimport und parallele Standarduploads verwenden dieselbe Referenz. Abweichende Größen unter derselben Prüfsumme werden als Integritätsfehler abgewiesen, gelöschte Rows erst nach erfolgreichem Upload reaktiviert und Dateien über 6 MB ohne vorhandenes Objekt ausschließlich als `resumable-required` gemeldet. Accountweite Wiederverwendung über mehrere Decks und die produktive Anbindung an Import, Cloud-Load und Karten-Rendering bleiben getrennte Ausbauschritte.
 
-Ownership-/RLS-Abnahme am 2026-07-11: `npm run test:rls:local` startet ausschließlich Loopback-Supabase, wendet Migrationen an, führt `supabase/verify_schema_v1.sql` als fehlschlagendes Struktur-Gate aus und prüft anschließend die Data API mit zwei angemeldeten Testnutzern sowie einem sessionlosen `anon`-Client. Acht grüne Smokes decken eigene Lese-/Schreibzugriffe, unsichtbare und unveränderbare fremde Rows, abgewiesene Ownership-Fälschung, verweigerte `anon`-Zugriffe, accountgebundene Deck-/Card-FKs, gleiche lokale IDs, Geräte-Heartbeat sowie zwei konkurrierende Deck-Writes auf derselben Basisrevision mit persistiertem Konflikt ab. `npm run test:e2e:local` führt dasselbe Security-Gate vor Playwright aus; keine Service-Role-, Access- oder Refresh-Tokens gelangen in Vite, Playwright oder Fehlerartefakte. Nach der klickbaren Konfliktauflösung ist Online-/Offline-Status mit Wiederverbindungs-Backoff das nächste aktive Ziel.
+Ownership-/RLS-Abnahme am 2026-07-11: `npm run test:rls:local` startet ausschließlich Loopback-Supabase, wendet Migrationen an, führt `supabase/verify_schema_v1.sql` als fehlschlagendes Struktur-Gate aus und prüft anschließend die Data API mit zwei angemeldeten Testnutzern sowie einem sessionlosen `anon`-Client. Acht grüne Smokes decken eigene Lese-/Schreibzugriffe, unsichtbare und unveränderbare fremde Rows, abgewiesene Ownership-Fälschung, verweigerte `anon`-Zugriffe, accountgebundene Deck-/Card-FKs, gleiche lokale IDs, Geräte-Heartbeat sowie zwei konkurrierende Deck-Writes auf derselben Basisrevision mit persistiertem Konflikt ab. `npm run test:e2e:local` führt dasselbe Security-Gate vor Playwright aus; keine Service-Role-, Access- oder Refresh-Tokens gelangen in Vite, Playwright oder Fehlerartefakte. Nach Online-/Offline-Lifecycle und Wiederverbindungs-Backoff sind vollständige Zwei-Geräte-Szenarien das nächste aktive Sync-Ziel.
 
 Release-Diagnose am 2026-07-10: `vite.config.js` injiziert ausschliesslich Version, Commit und Umgebung. Die Version stammt aus `package.json`, der Commit bevorzugt `VERCEL_GIT_COMMIT_SHA` vor `GITHUB_SHA` und faellt sonst auf `local` zurueck; die Umgebung wird auf Production, Preview, Development oder Test normalisiert. `src/appRuntime.js` formatiert diese Werte fuer `ReleaseInfo` am Login-Gate, in den Einstellungen und im Fehlerfallback. `AppErrorBoundary` faengt React-Render-, Lifecycle- und Lazy-Load-Fehler ab, zeigt weder rohe Exception noch Stack oder Nutzerdaten und bietet Neuladen sowie Startseiten-Rueckkehr. Der Renderfehler-Trigger ist nur im Vite-Modus `e2e` aktiv und im Production-Bundle nicht enthalten.
 
@@ -89,7 +91,7 @@ Build- und PDF-Split am 2026-07-12: Nur Login-Gate und App-Shell laden eager; al
 ### Was erwartungsgemaess noch nicht funktioniert
 
 - Das Vercel-Projekt, das automatisierte CI-Release-Gate und das Preview-/Production-/Rollback-Runbook sind eingerichtet. `https://core-hosted.vercel.app` ist als kanonische Production-URL gesetzt; der Redirect-Vertrag wurde in Hosted Supabase angewendet und die erste Production-Abnahme am 2026-07-10 erfolgreich protokolliert. Eine vollstaendige Betriebsumgebung mit Monitoring und Backups fehlt weiterhin; eine eigene Domain ist fuer die aktuelle Release-Basis nicht erforderlich.
-- Es gibt angewendete Supabase/Postgres-Migrationen mit RLS-Policies, expliziten `authenticated`-Grants, ohne `anon`-Grants auf Core-Tabellen und mit account-scoped Primary Keys fuer die wichtigsten Nutzerdaten. Der App-Persistenzpfad schreibt und liest Decks, Karten, Varianten, Review Events, Dokumente und AI Jobs ueber Supabase-Tabellen, schützt konkrete Entity-Mutationen per Basisrevision, registriert Geräte accountgebunden und speichert Mutationen in einer reloadfesten Outbox. Konfliktzeilen werden erzeugt und in den Einstellungen als sichere Fachfeldprojektion mit lokaler, Remote-, manueller oder zurückgestellter Entscheidung bearbeitet. Vollständiger Offline-Backoff und Zwei-Geräte-Szenarien fehlen noch.
+- Es gibt angewendete Supabase/Postgres-Migrationen mit RLS-Policies, expliziten `authenticated`-Grants, ohne `anon`-Grants auf Core-Tabellen und mit account-scoped Primary Keys fuer die wichtigsten Nutzerdaten. Der App-Persistenzpfad schreibt und liest Decks, Karten, Varianten, Review Events, Dokumente und AI Jobs ueber Supabase-Tabellen, schützt konkrete Entity-Mutationen per Basisrevision, registriert Geräte accountgebunden und speichert Mutationen in einer reloadfesten Outbox. Konfliktzeilen werden erzeugt und in den Einstellungen als sichere Fachfeldprojektion mit lokaler, Remote-, manueller oder zurückgestellter Entscheidung bearbeitet. Browser-Netzstatus, gecapptes Wiederverbindungs-Backoff und Reconnect-Flush sind vorhanden; vollständige Zwei-Geräte-Szenarien fehlen noch.
 - Accounts koennen ueber Supabase E-Mail/Passwort erstellt und angemeldet werden; OAuth, Magic Link, Account-Recovery-Feinschliff und E-Mail-Template-Politur fehlen noch.
 - KI-Kartenerstellung, Varianten, Graph und Jobs sind weiterhin lokal/deterministisch simuliert; Chat-your-Deck hat als erster produktiver KI-Pfad eine Vercel-Serverroute `/api/ai/chat` fuer Gemma 4 31B IT. Es gibt noch kein echtes Token-/Kostenlogging, keine produktive Prompt-/Eval-Pipeline und keine serverseitige Job-Queue fuer laengere KI-Aufgaben.
 - Jobs laufen nicht in einer Queue oder Worker-Infrastruktur; die Job-Sicht ist ein lokaler Produkt- und Datenmodell-Prototyp.
@@ -1416,7 +1418,7 @@ Die Datenstruktur muss drei Welten verbinden:
 
 **Aktueller lokaler Modellstand 2026-07-06:** Im Browser-State heisst die Deck-Collection weiterhin `cards`, damit bestehende lokale Daten kompatibel bleiben. Semantisch sind diese Eintraege aber Learning Items: Sie tragen `canonicalQuestion`, `canonicalAnswer`, `learningItemState`/`reviewState`, Quellenanker, Versionen und eine Variantenliste. Die Variantenliste enthaelt immer genau eine `isOriginal: true`-Variante als unveraenderlichen Lernanker; weitere Varianten referenzieren sie ueber `anchorVariantId`/`parentVariantId`.
 
-**Produktiver Datenbankpfad 2026-07-10:** Fuer CoRe ist Supabase/Postgres der initial angebundene Zielpfad. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. `supabase/core_schema_v1.sql` ist als Supabase-Schemaanker nach `CoRe-Database` uebernommen. Die Migrationen `20260707081417_core_schema_v1.sql`, `20260709074255_cloud_variant_schema_alignment.sql`, `20260709082140_account_scoped_primary_keys.sql` und `20260709091315_sync_media_auth_operations.sql` sind remote angewendet. Das projektspezifische Verify-Gate fuer Tabellen, Spalten, Constraints, RLS, Policies, Grants und Bucket-Konfiguration sowie der Performance-Advisor laufen sauber; im Security-Advisor bleibt ausschliesslich die bereits vor diesem Release vorhandene Leaked-Password-Protection-Warnung offen. Repository-Mapping, Tombstone-Projektion, konkrete revisionsgeprüfte Mutationen, Konflikterzeugung und klickbare Konfliktauflösung sind umgesetzt; vor einem vollstaendigen Offline-Sync muessen Wiederverbindungslogik, Backoff, Zwei-Geräte-Tests und Cloud-Medienintegration weiter ausgebaut werden.
+**Produktiver Datenbankpfad 2026-07-13:** Fuer CoRe ist Supabase/Postgres der initial angebundene Zielpfad. Der wichtige Architekturhinweis aus dem Hosting-Guide lautet: Karteikartenstapel duerfen produktiv nicht als ein grosser Store-Blob gespeichert werden. CoRe braucht echte Tabellen fuer Decks, Learning Items/Cards, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs, damit Suche, Sync, SRS, Sharing, RLS, Kostenlogging und spaetere Analytik natuerlich bleiben. `supabase/core_schema_v1.sql` ist als Supabase-Schemaanker nach `CoRe-Database` uebernommen. Die Migrationen `20260707081417_core_schema_v1.sql`, `20260709074255_cloud_variant_schema_alignment.sql`, `20260709082140_account_scoped_primary_keys.sql` und `20260709091315_sync_media_auth_operations.sql` sind remote angewendet. Das projektspezifische Verify-Gate fuer Tabellen, Spalten, Constraints, RLS, Policies, Grants und Bucket-Konfiguration sowie der Performance-Advisor laufen sauber; im Security-Advisor bleibt ausschliesslich die bereits vor diesem Release vorhandene Leaked-Password-Protection-Warnung offen. Repository-Mapping, Tombstone-Projektion, konkrete revisionsgeprüfte Mutationen, Konflikterzeugung, klickbare Konfliktauflösung und Wiederverbindungs-Backoff sind umgesetzt; vor einem vollstaendigen Offline-Sync muessen Zwei-Geräte-Tests und Cloud-Medienintegration weiter ausgebaut werden.
 
 ### 10.1 Entity-Übersicht
 
@@ -1712,6 +1714,8 @@ Serverseitig SOLL diese Tabelle die fachliche Einheit tragen, die lokal aus Komp
 
 ### 10.3 TypeScript-Domänentypen
 
+Seit M1 ist `src/coreTypes.ts` die kanonische Typquelle für die normalisierten Kernformen. Der folgende Auszug dokumentiert die fachliche Oberfläche; die vollständigen Untertypen für Settings, Scheduler, Variantenperformance, Quellenanker, Versionen und Sync-Metadaten stehen im Modul selbst. Bestehende JavaScript-Module verwenden diese Typquelle erst bei ihrer Migration in M2/M3, damit M1 kein verdeckter Big-Bang-Rewrite wird.
+
 ```ts
 export type CoreMode = "off" | "auto" | "manual";
 export type ReviewRating = "again" | "hard" | "good" | "easy";
@@ -1724,28 +1728,50 @@ export type CardType =
   | "free-text"
   | "multi-field"
   | "case-vignette";
-export type LearningItemSourceType = "manual" | "anki_import" | "ai_generated" | "mixed";
+export type DeckSource =
+  | "anki-apkg"
+  | "manual"
+  | "ai-assisted"
+  | "community"
+  | "text-import"
+  | "csv-import"
+  | "json-import"
+  | "spreadsheet-import";
+export type LearningItemSourceType =
+  | "manual"
+  | "text_import"
+  | "csv_import"
+  | "json_import"
+  | "anki_import"
+  | "ai_generated"
+  | "mixed";
 export type CardVariantType = "basic" | "reverse" | "cloze" | "mcq" | "transfer" | "case" | "image_occlusion" | "custom";
 export type VariantGenerationSource = "original" | "ai_generated" | "user_edited" | "imported";
-export type ReviewableType = "learning_item" | "card" | "variant";
+export type ReviewableType = "learning_item" | "card" | "variant" | "card_family";
 
 export interface Deck {
   id: string;
   ownerId: string;
-  parentDeckId?: string | null;
+  parentDeckId: string | null;
   name: string;
-  description?: string | null;
+  description: string;
+  source: DeckSource;
   visibility: "private" | "community" | "unlisted" | "public";
-  settings: DeckSettings;
+  deckSettings: DeckSettings;
   cards: LearningItem[]; // local compatibility collection name
-  counts?: DeckCounts;
+  cardCount: number;
+  revision: number;
+  deletedAt: string | null;
+  updatedByDeviceId: string | null;
 }
 
 export interface DeckSettings {
   coreMode: CoreMode;
   appearance: DeckAppearance;
   newCardsPerDay: number;
-  newCardsTodayOverride?: {
+  maximumReviewsPerDay: number;
+  newReviewOrder: "reviews-first" | "new-first" | "mixed";
+  newCardsTodayOverride: {
     date: string;
     limit: number;
   } | null;
@@ -1762,11 +1788,12 @@ export interface DeckAppearance {
 
 export interface LearningItem {
   id: string;
-  noteId?: string | null;
+  noteId: string | null;
   deckId: string;
   cardType: CardType;
   kind: CardType;
   sourceType: LearningItemSourceType;
+  sourceRefId: string | null;
   canonicalQuestion: RichTextContent;
   canonicalAnswer: RichTextContent;
   originalFront: RichTextContent;
@@ -1782,6 +1809,9 @@ export interface LearningItem {
   draftStatus: "draft" | "accepted";
   status: "active" | "suspended" | "deleted";
   versionLog: VersionEntry[];
+  revision: number;
+  deletedAt: string | null;
+  updatedByDeviceId: string | null;
 }
 
 export interface CardVariant {
@@ -1794,16 +1824,19 @@ export interface CardVariant {
   front: RichTextContent;
   back: RichTextContent;
   generationSource: VariantGenerationSource;
-  parentVariantId?: string | null;
-  anchorVariantId?: string | null;
+  parentVariantId: string | null;
+  anchorVariantId: string | null;
   isOriginal: boolean;
   isActive: boolean;
   transformType: TransformType;
   confidence: number;
   qualityStatus: "draft" | "active" | "rejected" | "flagged" | "disabled";
   sourceAnchors: SourceAnchor[];
-  reviewState?: ReviewState | null;
-  modelRunId?: string | null;
+  reviewState: ReviewState | null;
+  modelRunId: string | null;
+  revision: number;
+  deletedAt: string | null;
+  updatedByDeviceId: string | null;
 }
 
 export type TransformType =
@@ -1813,20 +1846,27 @@ export type TransformType =
   | "cloze_conversion";
 
 export interface ReviewState {
-  learningItemId?: string | null;
-  reviewableType: ReviewableType | "card_family";
+  id: string;
+  learningItemId: string;
+  reviewableType: ReviewableType;
   reviewableId: string;
+  state: "new" | "learning" | "review" | "relearning";
   dueAt: string;
   intervalDays: number;
-  ease?: number;
-  difficulty?: number;
-  stability?: number;
+  ease: number;
+  difficulty: number;
+  stability: number;
+  desiredRetention: number;
+  retrievability: number | null;
+  reps: number;
   repetitions: number;
   lapses: number;
   maturityXp: number;
   maturityBand: "new" | "learning" | "young" | "mature" | "variant_ready" | "mastered";
 }
 ```
+
+`RichTextContent` und `MediaRef` sind im aktuellen Browsermodell Strings. Strukturierte, aber vom Kernmodell nicht validierte Payloads wie `importMeta`, Graphdaten, fremde Providerdaten und JSON-Kompatibilitätsfelder bleiben `unknown`; ein TypeScript-Cast ersetzt dort keine Laufzeitvalidierung. Die von der Supabase-CLI erzeugte Datei `src/database.types.ts` ist die alleinige Quelle für `Database`, `Json` sowie Row-/Insert-/Update-Typen und wird nicht manuell gepflegt.
 
 ### 10.4 Supabase/Postgres-Zielmodell
 
@@ -2357,6 +2397,26 @@ Die Gründerdiskussion weist darauf hin, dass sehr kurze Wiederholintervalle mö
 - Rich-Text-Editor für Karteninhalte.
 - PDF Viewer für Dokumentmodus.
 
+### Verbindlicher Sprach- und Migrationsvertrag
+
+**Entscheidung ab 2026-07-13:** TypeScript ist die Standardsprache für neue und wesentlich geänderte Anwendungs-, Domänen-, Test- und Serverlogik. Die bestehende JavaScript-/JSX-Codebasis wird vor weiterem Featureausbau in den vier Arbeitspaketen M1 bis M4 aus `docs/todo.md` schrittweise migriert. JavaScript bleibt während dieser Migration ein ausdrücklich temporärer Kompatibilitätspfad; ein Big-Bang-Rewrite ohne durchgehend grüne Verhaltensprüfungen ist nicht vorgesehen.
+
+Verbindliche Regeln:
+
+- **TypeScript:** `.ts` und `.tsx` sind das Ziel für produktiven Code unter `src/` und `api/` sowie für produktnahe Tests. `strict` und `noEmit` bilden das Zielniveau. Vite transpiliert, ein eigener `typecheck`-Befehl prüft unabhängig davon den vollständigen produktiven Modulgraphen und läuft im CI-Qualitätsgate.
+- **M1-Übergang:** `allowJs: true` hält `src/`, `api/`, `tests/`, `scripts/` und die Root-Konfigurationen im gemeinsamen auflösbaren Modulgraphen; `checkJs: false` lässt bestehendes JavaScript bis zu seiner paketweisen Migration permissiv. Strikte Prüfung gilt für jede `.ts`-/`.tsx`-Datei. `@ts-ignore` und `@ts-nocheck` sind im produkt- und testnahen TypeScript-Pfad verboten; unvalidierte Werte bleiben `unknown` statt breitem `any`.
+- **Testlauf:** `tsx --test` führt während der Migration `.test.js`, `.test.jsx`, `.test.ts` und `.test.tsx` aus. `tsx` transpiliert nur für die Ausführung; `npm run typecheck` bleibt das davon unabhängige, verpflichtende Typgate.
+- **Domänentypen:** Learning Items, Varianten, Review-/Scheduler-State, Sync-Zustände, Importberichte und Fehlerformen erhalten kanonische Typen und, wo Zustände einander ausschließen, Discriminated Unions. Supabase-Row-/Insert-/Update-Typen werden reproduzierbar aus dem lokalen Schema generiert und nicht parallel von Hand gepflegt.
+- **Vertrauensgrenzen:** TypeScript-Typen ersetzen keine Laufzeitprüfung. Daten aus Supabase, Browser-Speichern, APKG/ZIP/SQLite, Datei-/JSON-/CSV-Importen, Browser-Events und KI-Providern gelten zunächst als `unknown`, werden an genau einer zuständigen Naht validiert beziehungsweise normalisiert und erst danach als kanonische Typen weitergereicht.
+- **Module:** Die Migration soll tiefe Module mit kleinen Interfaces erzeugen. Große Implementationen dürfen in private interne Module zerlegt werden, ohne ihre Details an React-Caller zu verteilen. Eine neue Adapter-Naht entsteht weiterhin nur bei mindestens zwei realen Adaptern; TypeScript ist kein Anlass für zusätzliche Pass-through-Schichten.
+- **SQL/PL/pgSQL:** SQL bleibt die richtige Sprache für Schema, RLS, Constraints, set-basierte Aggregationen und atomare datenbanknahe Operationen. Scheduler-, Import- und UI-nahe Produktlogik wird nicht allein zur Zeilenreduktion in die Datenbank verschoben.
+- **Python:** Python bleibt für reproduzierbare Fixtures und Hilfsskripte zulässig und kann später für einen konkret benötigten OCR-, Dokument-, Daten- oder KI-Worker verwendet werden. Gewöhnliche CoRe-Domänenlogik erhält keinen parallelen Python-Pfad.
+- **Rust/WASM:** Rust/WASM ist ausschließlich ein möglicher Beschleuniger für reproduzierbar gemessene CPU-/Speicher-Hotspots, etwa Dekompression, SQLite/APKG-Parsing, Medien-Hashing oder große Index-Builds. Vor einem Rust/WASM-Modul werden große Fixtures, Laufzeit, Peak Memory und UI-Blockierung gemessen und ein Web-Worker-Pfad geprüft. Das Rust-Modul muss hinter einem kleinen TypeScript-Interface liegen; ein App- oder Domänen-Rewrite in Rust ist nicht vorgesehen.
+- **Go oder separater Python-Worker:** Eine weitere Serversprache ist erst zulässig, wenn ein tatsächlich separat deployter, langlebiger oder CPU-intensiver Worker existiert, dessen Betriebs- und Bibliotheksvorteile die zusätzliche Queue-/HTTP-Naht, Schematypen, Deployments, Monitoring und Sicherheitswartung rechtfertigen. Vercel-/Supabase-nahe Standardpfade bleiben TypeScript.
+- **Entscheidungsmaß:** Optimiert wird nicht auf minimale physische Lines of Code, sondern auf kleine semantische Änderungsoberfläche, verlässliche Interfaces, Bundlevolumen, Laufzeit, Speicherbedarf und testbare Lokalität. Ein Sprachwechsel ohne messbaren Gesamtvorteil findet nicht statt.
+
+Migrationsabschluss bedeutet: `npm run typecheck`, Modulprüfungen, Production-Build, RLS-Smokes und der vollständige lokale Browserlauf sind grün; `allowJs` ist für `src/`, `api/` und `tests/` deaktiviert; notwendige JavaScript-Ausnahmen in Build-/Tool-Konfiguration sind einzeln dokumentiert; alle sichtbaren Features, Screens, Controls und Flows bleiben erhalten. Abschnitt 27 und die Dateinamenkonventionen werden mit den tatsächlich migrierten Pfaden aktualisiert, nicht vorauseilend.
+
 ### Layout- und Typografie-Tokens
 
 Für den ersten Desktop-Website-Build SOLLEN React/Tailwind-Komponenten auf ein kleines, explizites Token-Set begrenzt werden:
@@ -2729,6 +2789,12 @@ MVP KANN online-only sein. Architektur SOLL aber erlauben:
 - Review-Events später syncen.
 - Konflikte anhand Eventlog lösen.
 - Karten für Session prefetching.
+
+#### Verbindlicher Wiederverbindungsvertrag
+
+`syncEngine` besitzt den Browser-Lifecycle und veröffentlicht `pending`, `saving`, `saved`, `offline`, `conflict` sowie den terminalen Fehlerzustand. `navigator.onLine` ist nur ein Hinweis: Automatische Versuche pausieren bei `offline`, manueller Sync bleibt aber möglich. Ein `online`-Ereignis verwirft den wartenden Timer und startet genau einen Flush. Netzwerkfehler sowie HTTP 408, 429 und 5xx werden mit exponentiellem Backoff ab 1 Sekunde, Faktor 2, 50–100 Prozent Jitter und maximal 30 Sekunden Abstand dauerhaft erneut versucht. Es existiert höchstens ein Timer; Erfolg, Konflikt, Abmeldung oder erneutes `offline` beendet ihn.
+
+Nur eine leere Outbox ergibt `saved`. Teilweise bestätigte Review-Batches entfernen ausschließlich bestätigte Mutation-IDs und planen die verbleibenden erneut ein. Konflikte starten keinen Snapshot-Retry; append-only Review-Events dürfen vor der Konfliktpause weiterhin bestätigt werden. `startSyncLifecycle({ onStatus, onFlush })` liefert automatisch ausgelöste Flush-Ergebnisse an den React-Aufrufer zurück, damit bestätigte Cloud-Revisionen in den lokalen Zustand übernommen werden. Der Lifecycle-Cleanup entfernt Listener und Timer beim Accountwechsel. Offline-Kaltstart, Service Worker/PWA und vollständige Zwei-Geräte-Szenarien sind nicht Teil dieses Vertrags.
 
 #### Verbindlicher Konfliktvertrag
 
@@ -3167,6 +3233,7 @@ sequenceDiagram
 13. **Communitys sind klein, ordnerbasiert und ohne Lernstandsvergleich.**
 14. **Graph/Mindmap pro Stapel ist ein starkes späteres Kontext-Feature.**
 15. **Die Architektur muss mobile Nutzung, Servervarianten, Dedupe und spätere Datenportabilität berücksichtigen.**
+16. **TypeScript ist der verbindliche Standard für neue und wesentlich geänderte Produktlogik; SQL bleibt datenbanknah, weitere Sprachen brauchen eine reale Laufzeitgrenze oder einen gemessenen Hotspot.**
 
 ---
 
@@ -3176,12 +3243,13 @@ Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisi
 
 Kurzfassung mit Code-Sicht:
 
-1. Persistenten Sync ausbauen: auf den revisionsgeprüften Mutationen, erzeugten Konfliktzeilen, dokumentierten Feld-/Medienregeln und der klickbaren Konfliktauflösung jetzt Wiederverbindungs-Backoff und Zwei-Geräte-Szenarien aufbauen.
-2. Auth-Lifecycle vervollstaendigen: Magic Link, Google Redirect, Recovery, Passwortwechsel, Rate-Limits und Account-Lifecycle testen.
-3. Cloud-Medien produktionsfaehig machen: den vorhandenen `cloudMediaStore` in Import, accountgebundenes Laden und Karten-Rendering integrieren sowie Dedupe- und Reimportregeln absichern.
-4. Dokument-, Medien- und APKG-Qualitaet weiter ausbauen: APKG-Fixtures, Notetype-/Template-Snapshots, Importidentitaeten, Medienchecksums, grosse Uploads und serverseitige Importjobs hinter den bestehenden tiefen Modulen halten.
-5. KI und Jobs produktionsfaehig machen: `/api/ai/chat` an die Supabase-Session binden, Rate-Limits und Kostenbudgets ergaenzen und weitere KI-Faehigkeiten nur ueber validierte, versionierte Serverjobs aufbauen.
-6. Accessibility, Datenportabilitaet, Scheduler und Lernwirksamkeit weiter validieren; Community-Rechte, Mobile/PWA und Wachstumsschicht erst nach Persistenz, Auth, Storage und Jobs ausbauen.
+1. TypeScript-Modernisierung M1 bis M4 abschließen: Typfundament und CI-Gate, tiefe Domänenmodule, typisierte I/O-Grenzen sowie React-/Test-/Tooling-Cleanup vor weiterem Featureausbau.
+2. Persistenten Sync ausbauen: parallel nur als Korrektheitsgate auf der reloadfesten Outbox, den revisionsgeprüften Mutationen, der klickbaren Konfliktauflösung und dem Wiederverbindungs-Backoff vollständige Zwei-Geräte-Szenarien aufbauen.
+3. Auth-Lifecycle vervollstaendigen: Magic Link, Google Redirect, Recovery, Passwortwechsel, Rate-Limits und Account-Lifecycle testen.
+4. Cloud-Medien produktionsfaehig machen: den vorhandenen `cloudMediaStore` in Import, accountgebundenes Laden und Karten-Rendering integrieren sowie Dedupe- und Reimportregeln absichern.
+5. Dokument-, Medien- und APKG-Qualitaet weiter ausbauen: APKG-Fixtures, Notetype-/Template-Snapshots, Importidentitaeten, Medienchecksums, grosse Uploads und serverseitige Importjobs hinter den bestehenden tiefen Modulen halten.
+6. KI und Jobs produktionsfaehig machen: `/api/ai/chat` an die Supabase-Session binden, Rate-Limits und Kostenbudgets ergaenzen und weitere KI-Faehigkeiten nur ueber validierte, versionierte Serverjobs aufbauen.
+7. Accessibility, Datenportabilitaet, Scheduler und Lernwirksamkeit weiter validieren; Community-Rechte, Mobile/PWA und Wachstumsschicht erst nach Persistenz, Auth, Storage und Jobs ausbauen.
 
 ---
 
@@ -3193,16 +3261,18 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 
 | Modul | Interface | Verantwortung |
 |---|---|---|
+| `src/coreTypes.ts` | `Deck`, `DeckSettings`, `LearningItem`, `CardVariant`, `ReviewState` und zugehörige Unions/Untertypen | Kanonische, laufzeitfreie Typquelle für normalisierte Kernformen; unvalidierte Fremdpayloads bleiben `unknown` |
+| `src/database.types.ts` | generierte `Database`-/`Json`-/Row-/Insert-/Update-Typen | Versionierter, ausschließlich aus dem lokal migrierten Supabase-Schema erzeugter Datenbankvertrag für die M3-Persistenzmigration |
 | `src/coreModel.js` | `createCoreDeck`, `createCoreLearningItem`, `createBasicLearningItem`, `createBasicReverseLearningItem`, `createClozeLearningItem`, `createLearningItemsFromNormalizedInput`, `createCardVariant`, `getOriginalVariant`, `getAnswerSideAnchorMiniCard`, `updateCardContent`, `restoreCardVersion`, `createDefaultDeckSettings`, `normalizeDeckAppearance` | Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen, Deck-Settings inklusive `appearance` |
 | `src/deckSettings.js` | `normalizeLearningSettings`, `applyLearningPreset`, `markLearningSettingsCustom`, `applyLearningSettingsToDeckSettings`, `getGlobalDeckSettings`, `withGlobalDeckSettings` | Presets, Normalisierung, Legacy-Migration, globale Profilvorgaben und stapelspezifische Lernparameter hinter einer testbaren Modulgrenze |
 | `src/coreRepository.js` | `createCoreRepository()` | Persistenter lokaler App-State, Migration alter Decks, Default-Seed `Welt-Hauptstädte` samt dreimonatiger Lernhistorie fuer frische lokale Browser-States und unberuehrte persistierte Seeds, Profile, Communities, Jobs, Dokumente, Chat und Lernplaene |
 | `src/supabaseClient.js` | `createSupabaseBrowserClient`, `getSupabaseBrowserConfig` | Supabase Browser-Client aus oeffentlichen `VITE_*`-Variablen; keine Secret-Keys im Browser |
-| `src/cloudAuth.js` | `createCloudAuthRedirectUrl`, `signUpCloudAccount`, `signInCloudAccount`, `signInWithGoogle`, `signInWithMagicLink`, `updateCloudPassword`, `signOutCloudAccount`, `resetCloudPassword`, `getCloudUser`, `loadCloudProfile`, `saveCloudProfile` | Echte Supabase-E-Mail/Passwort-Auth, kanonische Root-Redirects fuer Production/Preview/lokal, Google-OAuth-Start, Magic Link ohne Auto-Signup, Recovery-Abschluss per neuem Passwort, Profil-Upsert und Profil-Merge ohne Passwort-Verifier |
-| `src/accountSession.js` | `authPhaseForSession`, `shouldShowAuthGate`, `shouldShowAppShell`, `createSync*Status`, `formatSyncStatusText` | Kleine Auth-/Sync-Zustandslogik fuer Pflichtlogin, App-Shell-Sperre, Passwort-Recovery-Gate und sichtbare Retry-/Save-Statusmeldungen |
+| `src/cloudAuth.js` | `createCloudAuthRedirectUrl`, `signUpCloudAccount`, `signInCloudAccount`, `signInWithGoogle`, `signInWithMagicLink`, `updateCloudPassword`, `signOutCloudAccount`, `resetCloudPassword`, `getCloudUser`, `saveCloudProfile` | Echte Supabase-E-Mail/Passwort-Auth, kanonische Root-Redirects fuer Production/Preview/lokal, Google-OAuth-Start, Magic Link ohne Auto-Signup, Recovery-Abschluss per neuem Passwort, Profil-Upsert und Profil-Merge ohne Passwort-Verifier |
+| `src/accountSession.js` | `authPhaseForSession`, `shouldShowAuthGate`, `shouldShowAppShell`, `createSync*Status`, `createSyncOfflineStatus`, `formatSyncStatusText` | Kleine Auth-/Sync-Zustandslogik fuer Pflichtlogin, App-Shell-Sperre, Passwort-Recovery-Gate und sichtbare Pending-/Save-/Offline-/Konfliktmeldungen |
 | `src/accountStorage.js` | `createAccountStorage`, `getOrCreateSyncDeviceId`, `readLegacyLocalState`, `hasPendingLocalMigration`, `markLocalMigrationHandled` | Accountgebundene Browser-Cache-Keys, origin-stabile Geräte-ID und einmalige lokale Datenuebernahme |
 | `src/syncDevice.js` | `createBrowserSyncDevice` | Stabiler Geräte-Descriptor mit ID, rohem User-Agent und automatisch abgeleitetem Browser-/Betriebssystem-Label; nur die ID wird lokal gespeichert |
 | `src/cloudRepository.js` | `registerAccountSyncDevice`, `applyDeckMutation`, `applyCardMutation`, `appendReviewEvent`, `softDeleteEntity`, `markConflict`, `replaceAccountCloudState`, `upsertAccountCloudState`, `loadAccountCloudState`, `mergeCloudSyncMetadata`, `listAccountSyncConflicts`, `resolveAccountSyncConflict`, Mapping-Helfer | Accountgefiltertes Laden, Geräte-Upsert, serverseitiges Compare-and-set, idempotente Konfliktzeilen, sichere Konfliktprojektionen, CAS-geschützte lokale/Remote-/Feldentscheidungen, Tombstone-Projektion, getrennte Snapshot-/Review-Acknowledgements und bewusster Voll-Replace fuer Legacy-Import/Test-Reset |
-| `src/syncEngine.js`, `src/syncOutbox.js` | `createAccountSyncEngine`, `createSyncEngine`, `createSyncOutbox`, `loadSnapshot`, `enqueueMutation`, `flush`, `listConflicts`, `resolveConflict` | Sync-Modulgrenze vor React für Geräte-Registrierung, accountgebundene reloadfeste Mutationen, revisionssicheren Delta-Autosave, idempotente Review-Events, pausierte Konflikt-Snapshots sowie Neubildung und Flush eines konsolidierten Snapshots nach einer Entscheidung |
+| `src/syncEngine.js`, `src/syncOutbox.js` | `createAccountSyncEngine`, `createSyncEngine`, `createSyncOutbox`, `loadSnapshot`, `enqueueMutation`, `flush(fallbackState, { force })`, `startSyncLifecycle({ onStatus, onFlush })`, `listConflicts`, `resolveConflict` | Tiefe Sync-Modulgrenze vor React für Geräte-Registrierung, accountgebundene reloadfeste Mutationen, revisionssicheren Delta-Autosave, Browser-Netzstatus, gecapptes Backoff mit Jitter, Reconnect-Flush, idempotente Review-Events und pausierte Konflikt-Snapshots |
 | `src/coreWorkspace.js` | `createCoreWorkspace`, `createDemoAnatomyDeck`, `createDeck`, `renameDeck`, `moveDeck`, `deleteDeckTree`, `setDeckCoreMode`, `saveDeckCardContent`, `deleteDeckCard`, `addManualCardToDeck`, `dryRunApkgImport`, `commitApkgImport`, `importApkgDeck`, `applyVariantGenerationResponse` | Lokale App-Kommandos fuer Demo-Daten, Stapelpflege, Kartenpflege und KI-Variantenannahme; die bestehenden asynchronen APKG-Methoden laden APKG-/SQLite-/Zstd-Code erst bei Nutzung |
 | `src/creationWorkflow.js` | `createCreationWorkflow` | In-process Creation-Kommandos fuer APKG-Preview/Commit, Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme; haelt Import-/Medien-/KI-Orchestrierung aus React heraus |
 | `src/scheduler.js` | `formatIntervalLabel`, `simulateRatingOutcome`, `getReviewButtonOptions`, `scheduleWithFsrsLikeModel`, `calculateRetrievability`, `getSchedulerStateForItem`, `applyReviewRating`, `listReviewableCards`, `summarizeDeckReview` | FSRS-like Vier-Button-Scheduler, Button-Intervallvorschau, konfigurierbare Lern-/Wiederlern- und Maximalintervalle, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung |
@@ -3216,7 +3286,7 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/aiOrchestrator.js` | `generateCardsFromDocument`, `selectModel`, `validateCardGenerationOutput` | Lokale KI-Jobs, Modellrouter-Slots, strukturierte Drafts |
 | `src/documentModel.js` | `isTextReadableFile`, `isPdfFile`, `isDocxFile`, `formatPdfTextContentItems`, `createDocumentFromFile`, `createAnchorFromSelection`, `splitDocumentIntoPassages` | Dokumente, Dateityp-Gates, PDF-Textformatierung und Auswahl-zu-Quelle; PDF.js wird ueber die geteilte Runtime bedarfsgeladen |
 | `src/pdfRuntime.js` / `src/pdfSelection.js` / `src/ui/PdfDocumentViewer.jsx` | `loadPdfJs`, `normalizePdfSelectionText`, `firstSelectionRectOnPage`, `createPdfSelectionBbox`, `PdfDocumentViewer({ document, src, onSelection })` | Tiefe PDF.js-Modulgrenze fuer Runtime und Worker, kontinuierliche Anzeige, Fit-to-width, Navigation, Zoom, Textlayer, Auswahltext und stabile PDF-Koordinaten |
-| `src/importService.js` | `normalizeImportDeck`, `normalizeNormalizedImportPayload`, `importNormalizedDeck`, `parseTextToNormalizedImport`, `parseCsvToNormalizedImport`, `parseJsonToNormalizedImport`, `createImportFingerprint`, `findDuplicateLearningItem`, `createTextImportDeck`, `createCsvImportDeck`, `createTableImportDeck` | Text-/CSV-/JSON-/Excel-Paste-Import, Fingerprints/Dedupe und normalisierte Deck-Erstellung mit Parent-/Hierarchy-Feldern ueber die Learning-Item-Creation-Pipeline |
+| `src/importService.js` | `normalizeImportDeck`, `normalizeNormalizedImportPayload`, `finalizeImportReport`, `importNormalizedDeck`, `parseTextToNormalizedImport`, `parseCsvToNormalizedImport`, `parseJsonToNormalizedImport`, `createImportFingerprint`, `findDuplicateLearningItem`, `createTextImportDeck`, `createCsvImportDeck`, `createTableImportDeck` | Text-/CSV-/JSON-/Excel-Paste-Import, Fingerprints/Dedupe und normalisierte Deck-Erstellung mit Parent-/Hierarchy-Feldern ueber die Learning-Item-Creation-Pipeline |
 | `src/apkgImport.js` | `createApkgImportPreview`, `findReadableCollectionDatabase`, `parseAnkiMedia`, `mapAnkiToCoreDeck`, `commitApkgImport`, `mergeImportedDeck`, `commitImport` | APKG-Import, `collection.anki21b`/Zstd, Media-Manifeste, echte Anki-Unterstapel, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten, Welt-Hauptstadt-Fixture-Verifikation |
 | `src/sqliteReader.js` / `src/zipReader.js` | `readSqliteDatabase`, `readZipArchive` | Lokales Lesen der APKG-Container und minimaler SQLite-Tabellen |
 | `src/mediaStore.js` | `storeDeckMedia`, `createDeckMediaUrlMap`, `resolveCardHtmlMedia` | Lokaler APKG-Medienspeicher ueber IndexedDB/Session-Fallback und sichere HTML-Medien-URL-Aufloesung |
@@ -3227,7 +3297,7 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/deckGraph.js` | `buildDeckGraph`, `shouldRefreshDeckGraph` | Themen-/Karten-Mindmap und Triggerlogik |
 | `src/deckAssistant.js` / `api/ai/chat.js` | `retrieveDeckEvidence`, `answerDeckQuestion`, `answerDeckQuestionWithServer`, `POST /api/ai/chat` | Freie Chatantworten per Default; optionale quellengebundene Antworten aus Karten mit lokaler Evidenzsuche, keine Provider-Aufrufe ohne Quelle im Quellenmodus, Gemma-4-31B-IT laeuft serverseitig mit `GOOGLE_API_KEY` aus `process.env`, Interactions-Responses werden aus `steps` oder Legacy-`outputs` gelesen |
 | `src/learningPlan.js` | `createLearningPlan` | Pruefungsplan aus Due-Karten, neuen Karten, Varianten und schwachen Themen |
-| `src/authModel.js` | `createLocalAccount`, `signInLocalAccount`, `signOutLocalAccount`, `connectOAuthPlaceholder` | Lokale Account-/Sitzungslogik fuer den Web-MVP |
+| `src/authModel.js` | `createLocalAccount`, `signInLocalAccount`, `signOutLocalAccount` | Lokale Account-/Sitzungslogik fuer den Web-MVP |
 | `src/dataPortability.js` | `createPortableExport`, `stringifyPortableExport`, `validatePortableExport`, `mergePortableExportIntoState` | JSON-Export/-Import ohne Passwort-Verifier |
 | `src/menuModel.js` | `createMenuModel` | Informationsarchitektur und Navigation |
 | `src/appNavigation.js` | `parseAppRouteFromUrl`, `appRouteToUrl`, `normalizeAppRoute` | Screen-Level-Routing fuer Browser-Back/Forward, versteckte Screens und Lernmodus |
@@ -3258,13 +3328,13 @@ Die sichtbare Sidebar zeigt nur die primaeren Produktbereiche: Heute, Erstellen,
 - `src/coreFeatures.test.js`: Scheduler, Bibliotheksmodell, Varianten, Review, KI-Drafts, Community, Graph, Text/CSV/Excel-Paste, Review-Shortcuts, lokaler Account, Deck-Assistent, Lernplan, Datenportabilitaet.
 - `src/coreWorkspace.test.js`: lokale App-Kommandos fuer Demo-Deck, Welt-Hauptstadt-Seed mit Lernhistorie, unberuehrte Seed-Migration, Stapel-Rename, Stapel-Move, Graph, Community-Share, Kartenpflege und Massen-Deck-Update.
 - `src/accountStorage.test.js`, `src/syncDevice.test.js`: accountgebundene Cache-Keys, stabile und storage-getrennte Geräte-ID, Browser-/Betriebssystem-Label, iPadOS und sichere Fallbacks.
-- `src/accountSession.test.js`: Pflichtlogin-Gate, Recovery-Gate, App-Shell-Sperre ohne Session und sichtbarer Autosave-Fehlerstatus.
+- `src/accountSession.test.js`: Pflichtlogin-Gate, Recovery-Gate, App-Shell-Sperre ohne Session und sichtbare Autosave-, Offline- und Konfliktstatus.
 - `src/appRuntime.test.js`: Prioritaet von Vercel-/GitHub-Metadaten, Commit-Kuerzung, Umgebungslabels, sichere Fallbacks und Ignorieren zusaetzlicher beziehungsweise secret-artiger Felder.
 - `src/cloudAuth.test.js`: Supabase-Profilmapping, password-freie Cloud-Profile, Pending-/Signed-out-Status, kanonische Production-/Preview-/lokale Root-Redirects, Google-OAuth, Magic Link, Recovery-Passwortupdate und deutsche Auth-Fehlermeldungen.
 - `src/pdfSelection.test.js`: deterministische Textnormalisierung, Seitentreffer und DOM-zu-PDF-Koordinaten fuer Quellenanker.
 - `src/buildChunkBudget.test.js`: Vite-Manifest-Auswertung, 500.000-Byte-Grenze und Ausschluss separat geladener Worker-/WASM-Assets.
 - `src/cloudRepository.test.js`: Tabellenmapping, Geräte-Registrierung/Heartbeat, Account-Isolation, konkrete Deck-/Card-Mutationen, CAS-Revisionen, idempotente Konfliktzeilen, sichere Konfliktprojektionen, lokale/Remote-/Feldentscheidungen, geschützte Relationsfelder, erneute Remote-Änderung sowie Tombstone-Löschen und vollständige Remote-Wiederherstellung.
-- `src/syncEngine.test.js`, `src/syncOutbox.test.js`: Registrierung vor Snapshot-Load, Review-vor-Snapshot-Reihenfolge, pausierte Konflikt-Snapshots, weiterlaufende Review-Events, Neubildung veralteter Snapshot-Mutationen, reloadfeste accountgebundene Queue, Retry-Erhalt und serialisierte Flushes.
+- `src/syncEngine.test.js`, `src/syncOutbox.test.js`: Registrierung vor Snapshot-Load, Review-vor-Snapshot-Reihenfolge, pausierte Konflikt-Snapshots, reloadfeste accountgebundene Queue, serialisierte Flushes, deterministisches Backoff/Jitter, Offline-/Online-Ereignisse, Teilbestätigungen, manueller Sofortversuch und Lifecycle-Cleanup.
 - `src/cloudMediaStore.test.js`: kanonische Supabase-Storage-Pfade und Row-IDs, SHA-1-Deduplizierung innerhalb eines Decks, getrennte Deck-Kontexte, Reimport, Upload-Rennen, Integritätsfehler, Reaktivierung, große Upload-Markierung und Dateinamen-Aliase für private signed URLs.
 - `src/creationWorkflow.test.js`: Creation-Workflow-Interface fuer APKG-Fehlerform, Paste-Import, manuelle Dokumentanker, KI-Draft-Erzeugung und Draft-Annahme.
 - `src/coreModel.test.js`: manuelle Karten, KI-Draft-Akzeptanz und Normalisierungsinvarianten.
@@ -3392,6 +3462,8 @@ TODO-Markdown-Inventar:
 - `docs/todo.md` ist die einzige aktuell vorhandene TODO-Markdown-Datei. Es gibt keine weitere `TODO.md`, `todo.md` oder `*-todo.md`-Datei im Repository.
 
 Technische SQL-Artefakte:
+
+- `scripts/databaseTypes.mjs`: einziges Tooling-Interface zum Generieren oder read-only Prüfen von `src/database.types.ts`; der lokale RLS-/E2E-Runner nutzt denselben Driftpfad nach den Migrationen.
 
 - `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker fuer Profile, portable Exports, Decks, Cards/Learning Items, Varianten, Review Events, Dokumente und AI Jobs.
 - `supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.

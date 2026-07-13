@@ -267,7 +267,3 @@ export async function answerDeckQuestionWithServer({
     };
   }
 }
-
-export function createDeckChatTranscript(previous = [], exchange) {
-  return [exchange, ...previous].slice(0, 30);
-}

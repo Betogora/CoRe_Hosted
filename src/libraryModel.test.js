@@ -11,6 +11,19 @@ import {
   getStudyHeatmapVisibleWeekCount,
 } from "./libraryModel.js";
 
+function createDeckHierarchy(cards = []) {
+  const parent = createCoreDeck({ id: "deck_parent", name: "Medizin", source: "manual", hierarchyPath: ["Medizin"], cards: [] });
+  const child = createCoreDeck({
+    id: "deck_child",
+    name: "Anatomie",
+    source: "manual",
+    parentDeckId: parent.id,
+    hierarchyPath: ["Medizin", "Anatomie"],
+    cards,
+  });
+  return { parent, child };
+}
+
 function createDeckWithInactiveCards() {
   const active = createCoreCard({
     id: "card_active",
@@ -116,21 +129,7 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
       repetitions: 0,
     },
   });
-  const parent = createCoreDeck({
-    id: "deck_parent",
-    name: "Medizin",
-    source: "manual",
-    hierarchyPath: ["Medizin"],
-    cards: [],
-  });
-  const child = createCoreDeck({
-    id: "deck_child",
-    name: "Anatomie",
-    source: "manual",
-    parentDeckId: parent.id,
-    hierarchyPath: ["Medizin", "Anatomie"],
-    cards: [childCard],
-  });
+  const { parent, child } = createDeckHierarchy([childCard]);
   const library = createDeckLibraryModel([parent, child], { now: "2026-07-01T08:00:00.000Z" });
   const parentRow = library.rows.find((row) => row.id === parent.id);
   const childRow = library.rows.find((row) => row.id === child.id);
@@ -150,21 +149,7 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
 });
 
 test("visible deck rows hide descendants of collapsed parent decks", () => {
-  const parent = createCoreDeck({
-    id: "deck_parent",
-    name: "Medizin",
-    source: "manual",
-    hierarchyPath: ["Medizin"],
-    cards: [],
-  });
-  const child = createCoreDeck({
-    id: "deck_child",
-    name: "Anatomie",
-    source: "manual",
-    parentDeckId: parent.id,
-    hierarchyPath: ["Medizin", "Anatomie"],
-    cards: [],
-  });
+  const { parent, child } = createDeckHierarchy();
   const grandchild = createCoreDeck({
     id: "deck_grandchild",
     name: "Kopf",

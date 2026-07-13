@@ -124,6 +124,16 @@ async function worldCapitalsApkgFile() {
   };
 }
 
+function createReimportDeck(card, { existing = false, withImportMeta = false } = {}) {
+  return createCoreDeck({
+    ...(existing ? { id: "deck_existing", name: "Biology" } : { name: "Biology Imported" }),
+    source: "anki-apkg",
+    originalDeckId: "1",
+    ...(withImportMeta ? { importMeta: { fileName: "biology.apkg", detectedNotes: 1, detectedCards: 1 } } : {}),
+    cards: [card],
+  });
+}
+
 test("validates APKG extension and browser import size", () => {
   assert.equal(validateApkgFile({ name: "deck.apkg", size: 1024 }).valid, true);
 
@@ -499,21 +509,8 @@ test("commitImport merges reimports and preserves local content edits", async ()
     sourceRefId: "note_10",
     mediaRefs: ["cell.png"],
   });
-  const existingDeck = createCoreDeck({
-    id: "deck_existing",
-    name: "Biology",
-    source: "anki-apkg",
-    originalDeckId: "1",
-    importMeta: { fileName: "biology.apkg", detectedNotes: 1, detectedCards: 1 },
-    cards: [existingCard],
-  });
-  const incomingDeck = createCoreDeck({
-    name: "Biology Imported",
-    source: "anki-apkg",
-    originalDeckId: "1",
-    importMeta: { fileName: "biology.apkg", detectedNotes: 1, detectedCards: 1 },
-    cards: [incomingCard],
-  });
+  const existingDeck = createReimportDeck(existingCard, { existing: true, withImportMeta: true });
+  const incomingDeck = createReimportDeck(incomingCard, { withImportMeta: true });
 
   const merged = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
 
@@ -574,19 +571,8 @@ test("commitImport matches imported variants by stable source id across repeated
       },
     ],
   };
-  const existingDeck = createCoreDeck({
-    id: "deck_existing",
-    name: "Biology",
-    source: "anki-apkg",
-    originalDeckId: "1",
-    cards: [existingCard],
-  });
-  const incomingDeck = createCoreDeck({
-    name: "Biology Imported",
-    source: "anki-apkg",
-    originalDeckId: "1",
-    cards: [incomingCard],
-  });
+  const existingDeck = createReimportDeck(existingCard, { existing: true });
+  const incomingDeck = createReimportDeck(incomingCard);
 
   const firstMerge = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
   const secondMerge = await commitImport({ deck: incomingDeck }, { existingDecks: [firstMerge] });
@@ -619,19 +605,8 @@ test("commitImport updates untouched originals and preserves local variant state
     sourceType: "anki_import",
     sourceRefId: "note_10",
   });
-  const existingDeck = createCoreDeck({
-    id: "deck_existing",
-    name: "Biology",
-    source: "anki-apkg",
-    originalDeckId: "1",
-    cards: [existingCard],
-  });
-  const incomingDeck = createCoreDeck({
-    name: "Biology Imported",
-    source: "anki-apkg",
-    originalDeckId: "1",
-    cards: [incomingCard],
-  });
+  const existingDeck = createReimportDeck(existingCard, { existing: true });
+  const incomingDeck = createReimportDeck(incomingCard);
 
   const merged = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
   const mergedCard = merged.cards[0];

@@ -79,6 +79,34 @@ test("browser back returns from settings to the previous screen", async ({ page 
   await expect(page).toHaveURL(/\/lernen$/);
 });
 
+test("offline changes stay pending and flush when the browser reconnects", async ({ page, context }) => {
+  await resetToFreshLocalState(page);
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  const displayName = page.getByLabel("Anzeigename");
+  const originalDisplayName = await displayName.inputValue();
+  const syncNow = page.getByRole("button", { name: "Jetzt synchronisieren" });
+
+  try {
+    await context.setOffline(true);
+    await expect(page.getByText("Offline. Die Verbindung wird automatisch erneut geprüft.")).toBeVisible();
+    await expect(syncNow).toBeEnabled();
+
+    await displayName.fill(`${originalDisplayName} Offline`);
+    await page.getByRole("button", { name: "Profil speichern" }).click();
+    await expect(page.getByText("Offline. Eine Änderung bleibt vorgemerkt und wird automatisch synchronisiert.")).toBeVisible();
+
+    await context.setOffline(false);
+    await expect(page.getByText(/Zuletzt synchronisiert:/)).toBeVisible();
+
+    await displayName.fill(originalDisplayName);
+    await page.getByRole("button", { name: "Profil speichern" }).click();
+    await page.waitForTimeout(800);
+    await expect(page.getByText(/Zuletzt synchronisiert:/)).toBeVisible();
+  } finally {
+    await context.setOffline(false);
+  }
+});
+
 test("review flow records a rating through accessible controls", async ({ page }) => {
   await resetToFreshLocalState(page);
   const before = await deckReviewEventCount(page, DECK_IDS.europe);
@@ -98,7 +126,7 @@ test("variant review flow can be prepared from the deck editor", async ({ page }
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Kartenstapel" }).click();
   await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
-  await page.getByText("Was ist die Hauptstadt von Côte d'Ivoire?").click();
+  await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await page.getByLabel("Variantenfrage").fill("Welche Hauptstadt hat Côte d'Ivoire?");
   await page.getByLabel("Variantenantwort").fill("Yamoussoukro");
   await page.getByRole("button", { name: "Umformulierung hinzufügen" }).click();

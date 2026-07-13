@@ -5,6 +5,7 @@ import {
   createLocalE2ERuntimeEnvironment,
   parseSupabaseStatusEnvironment,
 } from "./localE2EEnvironment.mjs";
+import { synchronizeDatabaseTypes } from "./databaseTypes.mjs";
 
 const SUPABASE_CLI_PATH = path.join(process.cwd(), "node_modules", "supabase", "dist", "supabase.js");
 const PLAYWRIGHT_CLI_PATH = path.join(process.cwd(), "node_modules", "@playwright", "test", "cli.js");
@@ -87,6 +88,9 @@ export async function runLocalE2E(playwrightArguments = []) {
     ], { capture: true });
     console.log("Ausstehende lokale Migrationen anwenden …");
     await runSupabase(["migration", "up", "--local"]);
+
+    console.log("Versionierte Supabase-Datenbanktypen prüfen …");
+    await synchronizeDatabaseTypes({ mode: "check" });
 
     const { stdout } = await runSupabase(["status", "--output-format", "json"], {
       capture: true,

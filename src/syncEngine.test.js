@@ -31,7 +31,64 @@ function createTestOutbox(storage = createMemoryStorage()) {
   return createSyncOutbox({ userId: "user-1", storage, now: () => "2026-07-09T09:00:00.000Z" });
 }
 
+function createNetworkTarget(initialOnline = true) {
+  const listeners = new Map();
+  return {
+    navigator: { onLine: initialOnline },
+    addEventListener(type, listener) {
+      const selected = listeners.get(type) ?? new Set();
+      selected.add(listener);
+      listeners.set(type, selected);
+    },
+    removeEventListener(type, listener) {
+      listeners.get(type)?.delete(listener);
+    },
+    setOnline(online) {
+      this.navigator.onLine = online;
+      for (const listener of listeners.get(online ? "online" : "offline") ?? []) listener();
+    },
+  };
+}
+
+function createFakeTimers() {
+  let nextId = 1;
+  const tasks = new Map();
+  const delays = [];
+  return {
+    delays,
+    setTimer(callback, delay) {
+      const id = nextId;
+      nextId += 1;
+      tasks.set(id, callback);
+      delays.push(delay);
+      return id;
+    },
+    clearTimer(id) {
+      tasks.delete(id);
+    },
+    count() {
+      return tasks.size;
+    },
+    async runNext() {
+      const [id, callback] = tasks.entries().next().value ?? [];
+      if (!callback) return;
+      tasks.delete(id);
+      callback();
+      await new Promise((resolve) => setImmediate(resolve));
+    },
+  };
+}
+
+function waitForAsyncWork() {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
 const testDevice = Object.freeze({ id: "device-a", label: "Chrome auf Windows", userAgent: "Chrome Test" });
+
+function restartWithPendingMutation(storage, mutation, adapter) {
+  createSyncEngine({ adapter: {}, outbox: createTestOutbox(storage), device: testDevice }).enqueueMutation(mutation);
+  return createSyncEngine({ adapter, outbox: createTestOutbox(storage), device: testDevice });
+}
 
 test("sync engine flushes the latest state patch without issuing deletions", async () => {
   const calls = [];
@@ -137,16 +194,11 @@ test("invalid state markers cannot replace the latest complete snapshot", () => 
 test("account boot restores a persisted state marker from the durable local fallback", async () => {
   const storage = createMemoryStorage();
   const durableState = { decks: [{ id: "offline-deck", revision: 3 }] };
-  const first = createSyncEngine({
-    adapter: {},
-    outbox: createTestOutbox(storage),
-    device: testDevice,
-  });
-  first.enqueueMutation({ id: "offline-state", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: durableState } });
-
   const calls = [];
-  const restored = createSyncEngine({
-    adapter: {
+  const restored = restartWithPendingMutation(
+    storage,
+    { id: "offline-state", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: durableState } },
+    {
       async registerDevice() {
         calls.push("register");
       },
@@ -160,9 +212,7 @@ test("account boot restores a persisted state marker from the durable local fall
         return durableState;
       },
     },
-    outbox: createTestOutbox(storage),
-    device: testDevice,
-  });
+  );
 
   const snapshot = await restored.loadSnapshot(durableState);
 
@@ -174,11 +224,11 @@ test("account boot restores a persisted state marker from the durable local fall
 test("account boot keeps the durable local fallback while a state marker is conflict-blocked", async () => {
   const storage = createMemoryStorage();
   const localState = { decks: [{ id: "deck-1", name: "Lokal" }] };
-  const first = createSyncEngine({ adapter: {}, outbox: createTestOutbox(storage), device: testDevice });
-  first.enqueueMutation({ id: "blocked-state", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: localState } });
   let cloudLoads = 0;
-  const restored = createSyncEngine({
-    adapter: {
+  const restored = restartWithPendingMutation(
+    storage,
+    { id: "blocked-state", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: localState } },
+    {
       async registerDevice() {},
       async listConflicts() {
         return [{ id: "conflict-1", status: "open" }];
@@ -188,9 +238,7 @@ test("account boot keeps the durable local fallback while a state marker is conf
         return { decks: [{ id: "deck-1", name: "Remote" }] };
       },
     },
-    outbox: createTestOutbox(storage),
-    device: testDevice,
-  });
+  );
 
   const snapshot = await restored.loadSnapshot(localState);
 
@@ -202,11 +250,11 @@ test("account boot keeps the durable local fallback while a state marker is conf
 test("account boot stays usable when replaying a pending review fails", async () => {
   const storage = createMemoryStorage();
   const localState = { decks: [{ id: "deck-1" }] };
-  const first = createSyncEngine({ adapter: {}, outbox: createTestOutbox(storage), device: testDevice });
-  first.enqueueMutation({ id: "review-offline", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
   let cloudLoads = 0;
-  const restored = createSyncEngine({
-    adapter: {
+  const restored = restartWithPendingMutation(
+    storage,
+    { id: "review-offline", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } },
+    {
       async registerDevice() {},
       async applyMutationBatch() {
         throw new Error("offline");
@@ -216,9 +264,7 @@ test("account boot stays usable when replaying a pending review fails", async ()
         return { decks: [] };
       },
     },
-    outbox: createTestOutbox(storage),
-    device: testDevice,
-  });
+  );
 
   const snapshot = await restored.loadSnapshot(localState);
 
@@ -352,8 +398,10 @@ test("confirmed review events leave the outbox even when the following snapshot 
   engine.enqueueMutation({ id: "state-conflict", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [] } } });
   engine.enqueueMutation({ id: "review-confirmed", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
 
-  await assert.rejects(() => engine.flush(), (error) => error === conflictError);
+  const result = await engine.flush();
 
+  assert.equal(result.paused, true);
+  assert.equal(result.syncStatus.status, "conflict");
   assert.deepEqual(outbox.listPending().map((mutation) => mutation.id), ["state-conflict"]);
   assert.equal(outbox.listPending()[0].retryCount, 1);
 });
@@ -384,7 +432,8 @@ test("sync engine restores pending review events and removes only acknowledged m
   });
   first.enqueueMutation({ id: "review-1", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
 
-  await assert.rejects(() => first.flush(), /offline/);
+  const failed = await first.flush();
+  assert.equal(failed.offline, true);
   assert.equal(first.pendingCount(), 1);
 
   const restored = createSyncEngine({
@@ -420,11 +469,16 @@ test("sync engine serializes concurrent flushes", async () => {
 
 test("open conflicts pause snapshot writes after append-only reviews are confirmed", async () => {
   const outbox = createTestOutbox();
+  const timers = createFakeTimers();
+  const statuses = [];
   let snapshotWrites = 0;
   let reviewWrites = 0;
   const engine = createSyncEngine({
     outbox,
     device: testDevice,
+    networkTarget: createNetworkTarget(true),
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
     adapter: {
       async listConflicts() {
         return [{ id: "conflict-1", status: "open" }];
@@ -439,6 +493,7 @@ test("open conflicts pause snapshot writes after append-only reviews are confirm
       },
     },
   });
+  const stop = engine.startSyncLifecycle({ onStatus: (status) => statuses.push(status) });
   engine.enqueueMutation({ id: "state-1", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [] } } });
   engine.enqueueMutation({ id: "review-1", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
 
@@ -448,7 +503,10 @@ test("open conflicts pause snapshot writes after append-only reviews are confirm
   assert.deepEqual(result.conflicts.map((conflict) => conflict.id), ["conflict-1"]);
   assert.equal(reviewWrites, 1);
   assert.equal(snapshotWrites, 0);
+  assert.equal(timers.count(), 0);
+  assert.equal(statuses.at(-1).status, "conflict");
   assert.deepEqual(outbox.listPending().map((mutation) => mutation.id), ["state-1"]);
+  stop();
 });
 
 test("resolving a conflict replaces stale snapshots, preserves reviews and returns the canonical state", async () => {
@@ -524,7 +582,8 @@ test("a resolved conflict persists its chosen state before a failed flush and re
     },
   });
 
-  await assert.rejects(() => first.resolveConflict("conflict-1", { action: "keep-remote" }, localState), /offline after resolution/);
+  const failedResolution = await first.resolveConflict("conflict-1", { action: "keep-remote" }, localState);
+  assert.equal(failedResolution.syncStatus.status, "offline");
   assert.equal(durableState, remoteState);
   assert.equal(first.pendingCount(), 1);
 
@@ -575,4 +634,275 @@ test("ignoring a conflict keeps the stale snapshot paused and returns conflict s
   assert.equal(result.nextState, currentState);
   assert.equal(result.syncStatus.status, "conflict");
   assert.deepEqual(outbox.listPending().map((mutation) => mutation.id), ["state-1"]);
+});
+
+test("offline lifecycle keeps mutations pending without starting an automatic timer", async () => {
+  const networkTarget = createNetworkTarget(false);
+  const timers = createFakeTimers();
+  const statuses = [];
+  let writes = 0;
+  const engine = createSyncEngine({
+    device: testDevice,
+    outbox: createTestOutbox(),
+    networkTarget,
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    adapter: {
+      async applyMutationBatch(mutations) {
+        writes += 1;
+        return { acknowledgedMutationIds: mutations.map((mutation) => mutation.id), failedMutationIds: [], conflicts: [] };
+      },
+    },
+  });
+  const stop = engine.startSyncLifecycle({ onStatus: (status) => statuses.push(status) });
+  engine.enqueueMutation({ id: "review-offline", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
+
+  const result = await engine.flush();
+
+  assert.equal(result.offline, true);
+  assert.equal(writes, 0);
+  assert.equal(engine.pendingCount(), 1);
+  assert.equal(timers.count(), 0);
+  assert.equal(statuses.at(-1).status, "offline");
+  stop();
+});
+
+test("online event cancels backoff and flushes pending mutations exactly once", async () => {
+  const networkTarget = createNetworkTarget(true);
+  const timers = createFakeTimers();
+  const statuses = [];
+  const flushResults = [];
+  let writes = 0;
+  const engine = createSyncEngine({
+    device: testDevice,
+    outbox: createTestOutbox(),
+    networkTarget,
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    random: () => 0.5,
+    adapter: {
+      async applyMutationBatch(mutations) {
+        writes += 1;
+        if (writes === 1) throw new TypeError("Failed to fetch");
+        return { acknowledgedMutationIds: mutations.map((mutation) => mutation.id), failedMutationIds: [], conflicts: [] };
+      },
+    },
+  });
+  const stop = engine.startSyncLifecycle({
+    onStatus: (status) => statuses.push(status),
+    onFlush: (result) => flushResults.push(result),
+  });
+  engine.enqueueMutation({ id: "review-reconnect", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
+  await engine.flush();
+  assert.equal(timers.count(), 1);
+
+  networkTarget.setOnline(false);
+  assert.equal(timers.count(), 0);
+  networkTarget.setOnline(true);
+  await waitForAsyncWork();
+
+  assert.equal(writes, 2);
+  assert.equal(engine.pendingCount(), 0);
+  assert.equal(statuses.at(-1).status, "saved");
+  assert.equal(flushResults.length, 1);
+  assert.equal(flushResults[0].syncStatus.status, "saved");
+  stop();
+});
+
+test("retry backoff grows with deterministic jitter, respects the cap and keeps one timer", async () => {
+  const timers = createFakeTimers();
+  let writes = 0;
+  const engine = createSyncEngine({
+    device: testDevice,
+    outbox: createTestOutbox(),
+    networkTarget: createNetworkTarget(true),
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    random: () => 0,
+    adapter: {
+      async applyMutationBatch() {
+        writes += 1;
+        const error = new Error("Service unavailable");
+        error.status = 503;
+        throw error;
+      },
+    },
+  });
+  const stop = engine.startSyncLifecycle({ onStatus() {} });
+  engine.enqueueMutation({ id: "review-backoff", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
+  await engine.flush();
+  await engine.flush();
+  assert.equal(writes, 1);
+  assert.equal(timers.count(), 1);
+
+  for (let attempt = 0; attempt < 6; attempt += 1) await timers.runNext();
+
+  assert.deepEqual(timers.delays, [500, 1_000, 2_000, 4_000, 8_000, 15_000, 15_000]);
+  assert.equal(timers.count(), 1);
+  stop();
+});
+
+test("manual flush bypasses an active retry delay", async () => {
+  const timers = createFakeTimers();
+  let writes = 0;
+  const engine = createSyncEngine({
+    device: testDevice,
+    outbox: createTestOutbox(),
+    networkTarget: createNetworkTarget(true),
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    adapter: {
+      async applyMutationBatch(mutations) {
+        writes += 1;
+        if (writes === 1) throw new TypeError("Failed to fetch");
+        return { acknowledgedMutationIds: mutations.map((mutation) => mutation.id), failedMutationIds: [], conflicts: [] };
+      },
+    },
+  });
+  const stop = engine.startSyncLifecycle({ onStatus() {} });
+  engine.enqueueMutation({ id: "review-manual", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
+  await engine.flush();
+  await engine.flush();
+  assert.equal(writes, 1);
+
+  await engine.flush(undefined, { force: true });
+
+  assert.equal(writes, 2);
+  assert.equal(engine.pendingCount(), 0);
+  assert.equal(timers.count(), 0);
+  stop();
+});
+
+test("partial review acknowledgement retries only the remaining mutation", async () => {
+  const timers = createFakeTimers();
+  const batches = [];
+  const engine = createSyncEngine({
+    device: testDevice,
+    outbox: createTestOutbox(),
+    networkTarget: createNetworkTarget(true),
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    adapter: {
+      async applyMutationBatch(mutations) {
+        batches.push(mutations.map((mutation) => mutation.id));
+        if (batches.length === 1) {
+          return {
+            acknowledgedMutationIds: ["review-a"],
+            failedMutationIds: ["review-b"],
+            failures: [{ mutationId: "review-b", error: new TypeError("Failed to fetch") }],
+            conflicts: [],
+          };
+        }
+        return { acknowledgedMutationIds: ["review-b"], failedMutationIds: [], conflicts: [] };
+      },
+    },
+  });
+  const stop = engine.startSyncLifecycle({ onStatus() {} });
+  engine.enqueueMutation({ id: "review-a", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-a" } } });
+  engine.enqueueMutation({ id: "review-b", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-b" } } });
+  await engine.flush();
+  assert.equal(engine.pendingCount(), 1);
+
+  await timers.runNext();
+
+  assert.deepEqual(batches, [["review-a", "review-b"], ["review-b"]]);
+  assert.equal(engine.pendingCount(), 0);
+  stop();
+});
+
+test("lifecycle cleanup prevents reconnect writes for the previous account", async () => {
+  const networkTarget = createNetworkTarget(false);
+  const timers = createFakeTimers();
+  let writes = 0;
+  const engine = createSyncEngine({
+    device: testDevice,
+    outbox: createTestOutbox(),
+    networkTarget,
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    adapter: {
+      async upsertState() {
+        writes += 1;
+        return { acknowledgedMutationIds: [] };
+      },
+    },
+  });
+  const stop = engine.startSyncLifecycle({ onStatus() {} });
+  engine.enqueueMutation({ id: "state-cleanup", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: { decks: [] } } });
+  stop();
+  networkTarget.setOnline(true);
+  await waitForAsyncWork();
+
+  assert.equal(writes, 0);
+  assert.equal(timers.count(), 0);
+  assert.equal(engine.pendingCount(), 1);
+});
+
+test("non-retryable sync failures surface an error without scheduling a timer", async () => {
+  const timers = createFakeTimers();
+  const statuses = [];
+  const engine = createSyncEngine({
+    device: testDevice,
+    outbox: createTestOutbox(),
+    networkTarget: createNetworkTarget(true),
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    adapter: {
+      async applyMutationBatch() {
+        const error = new Error("Review-Inhalt stimmt nicht überein.");
+        error.code = "review_event_confirmation_failed";
+        throw error;
+      },
+    },
+  });
+  const stop = engine.startSyncLifecycle({ onStatus: (status) => statuses.push(status) });
+  engine.enqueueMutation({ id: "review-invalid", type: SYNC_MUTATION_TYPES.reviewEventAppend, payload: { event: { id: "event-1" } } });
+
+  await assert.rejects(() => engine.flush(), /stimmt nicht überein/);
+
+  assert.equal(statuses.at(-1).status, "error");
+  assert.equal(timers.count(), 0);
+  assert.equal(engine.pendingCount(), 1);
+  stop();
+});
+
+test("lifecycle retries a persisted state marker with the remembered fallback snapshot", async () => {
+  const storage = createMemoryStorage();
+  const fallbackState = { decks: [{ id: "deck-offline", revision: 2 }] };
+  createSyncEngine({ adapter: {}, outbox: createTestOutbox(storage), device: testDevice })
+    .enqueueMutation({ id: "state-persisted", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: fallbackState } });
+  let receivedState = null;
+  let writes = 0;
+  const timers = createFakeTimers();
+  const engine = createSyncEngine({
+    outbox: createTestOutbox(storage),
+    device: testDevice,
+    networkTarget: createNetworkTarget(true),
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    adapter: {
+      async registerDevice() {},
+      async listConflicts() {
+        return [];
+      },
+      async upsertState(state, context) {
+        writes += 1;
+        if (writes === 1) throw new TypeError("Failed to fetch");
+        receivedState = state;
+        return { state, acknowledgedMutationIds: context.mutationIds };
+      },
+      async loadSnapshot() {
+        return fallbackState;
+      },
+    },
+  });
+  const loaded = await engine.loadSnapshot(fallbackState);
+  assert.equal(loaded, fallbackState);
+
+  const stop = engine.startSyncLifecycle({ onStatus() {} });
+  await timers.runNext();
+
+  assert.equal(receivedState, fallbackState);
+  assert.equal(engine.pendingCount(), 0);
+  stop();
 });

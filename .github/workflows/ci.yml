@@ -31,6 +31,9 @@ jobs:
       - name: Abhängigkeiten installieren
         run: npm ci
 
+      - name: TypeScript-Verträge prüfen
+        run: npm run typecheck
+
       - name: Modultests ausführen
         run: npm test
 

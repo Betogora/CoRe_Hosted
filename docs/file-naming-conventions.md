@@ -13,14 +13,15 @@ Diese Konvention gilt für neue und umbenannte Dateien im CoRe-Repository. Maßg
 
 | Rolle | Muster | Beispiele |
 | --- | --- | --- |
-| Einzelne React-Komponente | `PascalCase.jsx` | `DashboardScreen.jsx`, `RichTextEditor.jsx` |
-| React-Modus mit eigenem Komponentennamen | `PascalCase.jsx` | `StudyMode.jsx` |
-| JSX-Sammlung oder UI-Helfermodul | `camelCase.jsx` | `coreUi.jsx`, `cardMedia.jsx` |
-| JavaScript-Modul | `camelCase.js` | `coreModel.js`, `cloudRepository.js` |
+| Einzelne React-Komponente | `PascalCase.tsx` als Ziel, während der Migration auch `.jsx` | `DashboardScreen.tsx`, `RichTextEditor.jsx` |
+| React-Modus mit eigenem Komponentennamen | `PascalCase.tsx` als Ziel, während der Migration auch `.jsx` | `StudyMode.tsx`, `StudyMode.jsx` |
+| JSX-/TSX-Sammlung oder UI-Helfermodul | `camelCase.tsx` als Ziel, während der Migration auch `.jsx` | `coreUi.tsx`, `cardMedia.jsx` |
+| Anwendungsmodul | `camelCase.ts` als Ziel, während der Migration auch `.js` | `coreTypes.ts`, `coreModel.js` |
 | JavaScript-Einstieg oder Barrel | etablierter Rollenname | `main.jsx`, `index.js` |
-| Zugeordneter Modultest | `<modul>.test.js` | `coreModel.test.js` |
-| Szenario-, Integrations- oder Smoke-Test | `kebab-case.test.js` oder `kebab-case.spec.js` | `ownership-smoke.test.js`, `auth-gate.spec.js` |
-| Test-Setup | `<rolle>.setup.js` | `auth.setup.js` |
+| Generierte TypeScript-Typen | werkzeugüblicher Rollenname | `database.types.ts` |
+| Zugeordneter Modultest | `<modul>.test.ts`/`.test.tsx` als Ziel, während der Migration auch `.test.js`/`.test.jsx` | `coreTypes.test.ts`, `coreModel.test.js` |
+| Szenario-, Integrations- oder Smoke-Test | `kebab-case.test.ts` oder `kebab-case.spec.ts` als Ziel, während der Migration auch `.js` | `ownership-smoke.test.js`, `auth-gate.spec.js` |
+| Test-Setup | `<rolle>.setup.ts` als Ziel, während der Migration auch `.js` | `auth.setup.js` |
 | JavaScript-Skript | `camelCase.mjs` | `runLocalE2E.mjs` |
 | Python-Modul oder -Skript | `snake_case.py` | `create_world_capitals_apkg.py` |
 | Freies Markdown-Dokument | `kebab-case.md` | `anki-format-analysis.md` |
@@ -39,8 +40,9 @@ Diese Konvention gilt für neue und umbenannte Dateien im CoRe-Repository. Maßg
 ## Entscheidungsregeln
 
 - Der Dateiname einer einzelnen React-Komponente entspricht ihrem exportierten Hauptsymbol. Dateien mit mehreren gleichrangigen UI-Exports dürfen als `camelCase.jsx` benannt sein.
-- Fachliche JavaScript-Module verwenden `camelCase`, passend zu den importierten Symbolen und zur bestehenden ESM-Codebasis.
-- `*.test.js` bezeichnet Node-Modul-, Integrations- und Smoke-Tests. Browserbasierte Playwright-Szenarien verwenden `*.spec.js`.
+- Fachliche TypeScript- und temporäre JavaScript-Module verwenden `camelCase`, passend zu den importierten Symbolen und zur bestehenden ESM-Codebasis.
+- `*.test.{js,jsx,ts,tsx}` bezeichnet Node-Modul-, Integrations- und Smoke-Tests. Browserbasierte Playwright-Szenarien verwenden während der Migration `*.spec.js` und im Zielzustand `*.spec.ts`.
+- `src/database.types.ts` ist eine bewusst werkzeugübliche Ausnahme vom allgemeinen `camelCase.ts`-Muster und darf ausschließlich durch den dokumentierten Supabase-CLI-Pfad geändert werden.
 - Zusätze wie `.source`, `.expected` oder `.snapshot` stehen bei Datenartefakten direkt vor der eigentlichen Endung.
 - Supabase-Migrationen werden mit `supabase migration new <name>` erzeugt. Bereits angewendete Migrationen werden nicht nachträglich umbenannt.
 - Supabase-Template-Dateien dürfen nur zusammen mit allen `content_path`-Referenzen umbenannt werden. Ohne fachlichen Grund bleiben die derzeitigen Pfade stabil.
@@ -65,4 +67,3 @@ Diese Konvention gilt für neue und umbenannte Dateien im CoRe-Repository. Maßg
 - [Supabase: Migrationen als `<timestamp>_<name>.sql`](https://supabase.com/docs/guides/local-development/overview)
 - [Supabase: lokale E-Mail-Templates über `content_path`](https://supabase.com/docs/guides/local-development/customizing-email-templates)
 - [Vite: `vite.config.js` und `index.html` als etablierte Projektdateien](https://vite.dev/guide/)
-

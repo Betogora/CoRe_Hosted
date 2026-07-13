@@ -1,6 +1,6 @@
 import React from "react";
 import { BarChart3, BookOpen, Database, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
-import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
+import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.js";
 import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.js";
 import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.js";
 import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.js";
@@ -401,19 +401,28 @@ export function App() {
   }, [authPhase, state]);
 
   React.useEffect(() => {
+    if (authPhase !== "ready" || !syncEngine) return undefined;
+    const runId = bootRunRef.current;
+    return syncEngine.startSyncLifecycle({
+      onStatus: setSyncStatus,
+      onFlush(result) {
+        const snapshot = latestStateRef.current;
+        applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
+      },
+    });
+  }, [authPhase, syncEngine, workspace]);
+
+  React.useEffect(() => {
     if (authPhase !== "ready" || !syncEngine || !state || state === lastAcknowledgedStateRef.current) return undefined;
 
-    setSyncStatus((current) => (current.status === "saving" ? current : createSyncPendingStatus()));
     let cancelled = false;
     const snapshot = state;
     const runId = bootRunRef.current;
     const timer = window.setTimeout(async () => {
-      setSyncStatus(createSyncSavingStatus());
       try {
         syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
         const result = await syncEngine.flush();
         applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
-        if (!cancelled) setSyncStatus(result.conflicts?.length ? createSyncConflictStatus(result.conflicts.length) : createSyncSavedStatus());
       } catch (error) {
         if (!cancelled) setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Synchronisierung fehlgeschlagen.")));
       }
@@ -568,16 +577,16 @@ export function App() {
 
   async function syncNow() {
     if (!syncEngine || !state) return;
-    setSyncStatus(createSyncSavingStatus());
     const snapshot = state;
     const runId = bootRunRef.current;
     try {
       syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
-      const result = await syncEngine.flush();
+      const result = await syncEngine.flush(undefined, { force: true });
       applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
-      setSyncStatus(result.conflicts?.length ? createSyncConflictStatus(result.conflicts.length) : createSyncSavedStatus());
+      return result;
     } catch (error) {
       setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Synchronisierung fehlgeschlagen.")));
+      throw error;
     }
   }
 
@@ -587,13 +596,11 @@ export function App() {
 
   async function resolveSyncConflict(conflictId, decision) {
     if (!syncEngine || !workspace || !latestStateRef.current) throw new Error("Synchronisierung ist noch nicht bereit.");
-    setSyncStatus(createSyncSavingStatus());
     try {
       const result = await syncEngine.resolveConflict(conflictId, decision, latestStateRef.current);
       const savedState = workspace.saveState(result.nextState);
       lastAcknowledgedStateRef.current = savedState;
       setAppState(savedState);
-      setSyncStatus(result.syncStatus);
       return result;
     } catch (error) {
       setAppState(workspace.getState());

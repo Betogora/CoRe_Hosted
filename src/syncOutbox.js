@@ -69,5 +69,3 @@ export function createSyncOutbox({ userId, storage, now = () => new Date().toISO
     },
   };
 }
-
-export const syncOutboxKeys = { OUTBOX_KEY };

@@ -1070,18 +1070,6 @@ export function mergeCloudSyncMetadata(state, acknowledgedState) {
   };
 }
 
-export async function hasAccountCloudData(client) {
-  const user = await getAuthenticatedUser(client);
-
-  for (const table of ACCOUNT_TABLES) {
-    const { data, error } = await client.from(table).select("id").eq("user_id", user.id).limit(1);
-    if (error) throw error;
-    if (data?.length) return true;
-  }
-
-  return false;
-}
-
 export async function registerAccountSyncDevice(client, device, { lastSeenAt } = {}) {
   const id = requireNonEmptyString(device?.id, "Geräte-ID fehlt.");
   const label = requireNonEmptyString(device?.label, "Gerätebezeichnung fehlt.");
@@ -1566,14 +1554,6 @@ export async function loadAccountCloudState(client, fallbackState = {}) {
     cloudTombstones: createCloudTombstones(rowsByTable),
     updatedAt: new Date().toISOString(),
   };
-}
-
-export async function saveCloudState(client, state, options) {
-  return replaceAccountCloudState(client, state, options);
-}
-
-export async function loadCloudState(client, fallbackState = {}) {
-  return loadAccountCloudState(client, fallbackState);
 }
 
 export function syncConflictFromRow(row) {

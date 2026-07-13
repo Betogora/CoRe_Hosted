@@ -82,41 +82,47 @@ test("Gemma chat route extracts text from legacy Interactions API outputs", () =
   assert.equal(text, "Antwort aus dem Legacy-Schema.");
 });
 
-test("Gemma chat route rejects missing GOOGLE_API_KEY before provider fetch", async () => {
-  let fetchCalls = 0;
-  const handler = createChatHandler({
+for (const rejection of [
+  {
+    name: "Gemma chat route rejects missing GOOGLE_API_KEY before provider fetch",
     env: {},
-    fetchImpl: async () => {
-      fetchCalls += 1;
-      return { ok: true, json: async () => ({}) };
-    },
-  });
-  const res = createRes();
-
-  await handler(createReq({ body: { question: "Was macht Myelin?", evidence } }), res);
-
-  assert.equal(res.statusCode, 503);
-  assert.equal(res.json().error.code, "missing_google_api_key");
-  assert.equal(fetchCalls, 0);
-});
-
-test("Gemma chat route rejects oversized requests before provider fetch", async () => {
-  let fetchCalls = 0;
-  const handler = createChatHandler({
+    request: { body: { question: "Was macht Myelin?", evidence } },
+    statusCode: 503,
+    code: "missing_google_api_key",
+  },
+  {
+    name: "Gemma chat route rejects oversized requests before provider fetch",
     env: { GOOGLE_API_KEY: "test-secret" },
-    fetchImpl: async () => {
-      fetchCalls += 1;
-      return { ok: true, json: async () => ({}) };
-    },
+    request: { headers: { "content-length": String(MAX_CHAT_REQUEST_BYTES + 1) }, body: null },
+    statusCode: 413,
+    code: "request_too_large",
+  },
+  {
+    name: "Gemma chat route requires local card evidence in source-bound mode before provider fetch",
+    env: { GOOGLE_API_KEY: "test-secret" },
+    request: { body: { question: "Welche KI bist du?", evidence: [], sourceBound: true } },
+    statusCode: 400,
+    code: "invalid_request",
+  },
+]) {
+  test(rejection.name, async () => {
+    let fetchCalls = 0;
+    const handler = createChatHandler({
+      env: rejection.env,
+      fetchImpl: async () => {
+        fetchCalls += 1;
+        return { ok: true, json: async () => ({}) };
+      },
+    });
+    const res = createRes();
+
+    await handler(createReq(rejection.request), res);
+
+    assert.equal(res.statusCode, rejection.statusCode);
+    assert.equal(res.json().error.code, rejection.code);
+    assert.equal(fetchCalls, 0);
   });
-  const res = createRes();
-
-  await handler(createReq({ headers: { "content-length": String(MAX_CHAT_REQUEST_BYTES + 1) }, body: null }), res);
-
-  assert.equal(res.statusCode, 413);
-  assert.equal(res.json().error.code, "request_too_large");
-  assert.equal(fetchCalls, 0);
-});
+}
 
 test("Gemma chat route answers free questions without local card evidence", async () => {
   let fetchCalls = 0;
@@ -163,24 +169,6 @@ test("Gemma chat route accepts legacy provider output without exposing provider 
   assert.equal(res.statusCode, 200);
   assert.equal(res.json().answer, "Legacy-Antwort.");
   assert.equal(res.body.includes("test-secret"), false);
-});
-
-test("Gemma chat route requires local card evidence in source-bound mode before provider fetch", async () => {
-  let fetchCalls = 0;
-  const handler = createChatHandler({
-    env: { GOOGLE_API_KEY: "test-secret" },
-    fetchImpl: async () => {
-      fetchCalls += 1;
-      return { ok: true, json: async () => ({}) };
-    },
-  });
-  const res = createRes();
-
-  await handler(createReq({ body: { question: "Welche KI bist du?", evidence: [], sourceBound: true } }), res);
-
-  assert.equal(res.statusCode, 400);
-  assert.equal(res.json().error.code, "invalid_request");
-  assert.equal(fetchCalls, 0);
 });
 
 test("Gemma chat route maps provider failures without leaking secrets", async () => {

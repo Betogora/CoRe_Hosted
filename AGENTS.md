@@ -17,6 +17,8 @@
 - Preserve local content edits on APKG reimport; update import metadata and media references without replacing user-edited fronts/backs.
 - Preserve visible features during overhauls. Structure and logic may be changed freely, but existing user-visible features, screens, controls, and flows should only be removed when the user explicitly asks for that removal.
 - Keep AI provider keys server-only. `/api/ai/*` routes may read `GOOGLE_API_KEY` or other provider secrets only from `process.env`; never introduce `VITE_*` AI keys, browser-side provider SDK calls, localStorage/export persistence for secrets, or logs that contain raw prompts plus secrets.
+- Treat `src/coreTypes.ts` as the canonical type source for normalized Deck, Learning Item, Card Variant, and Review State forms. Keep unvalidated external payloads `unknown` until their owning module validates or normalizes them.
+- Treat `src/database.types.ts` as generated output. With local Supabase running, use `npm run db:types:generate` to update it and `npm run db:types:check` for a read-only drift check; never edit it manually.
 
 ## UI Copy
 
@@ -39,8 +41,9 @@
 - When current behavior or a product contract changes, update the relevant section of `docs/specs.md` and keep `docs/specs.html` synchronized.
 - Update `docs/todo.md` only when scope, priority, status, planning, or roadmap evidence changes. Add new roadmap work there instead of creating additional TODO files.
 - Do not shorten canonical documents merely because they are long; keep them as structured reference sources.
-- Add or update module tests in `src/*.test.js` when changing scheduler, variants, import, AI jobs, graph, community, repository behavior, or the Learning Item creation pipeline.
+- Add or update module tests in `src/*.test.{js,jsx,ts,tsx}` when changing scheduler, variants, import, AI jobs, graph, community, repository behavior, or the Learning Item creation pipeline.
 
 ## Verification
 
-- Run `npm test` and `npm run build` before handing off changes.
+- Run `npm run typecheck`, `npm test`, and `npm run build` before handing off changes.
+- When Supabase types or schema-adjacent tooling changes, also run `npm run test:rls:local`; `npm run test:e2e:local` includes the same database-type drift gate before browser tests.

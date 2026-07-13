@@ -1,6 +1,6 @@
-import { createCoreCard, createCoreDeck, createReviewState, stableContentHash } from "./coreModel.js";
+import { createCoreCard, createCoreDeck, createReviewState, makeId, stableContentHash } from "./coreModel.js";
 import { stripHtml } from "./htmlSafety.js";
-import { importNormalizedDeck } from "./importService.js";
+import { finalizeImportReport, importNormalizedDeck } from "./importService.js";
 import { readSqliteDatabase } from "./sqliteReader.js";
 import { readZipArchive } from "./zipReader.js";
 import { decompress as decompressZstd } from "fzstd";
@@ -11,14 +11,6 @@ const FIELD_SEPARATOR = "\u001f";
 const SQLITE_SIGNATURE = "SQLite format 3\0";
 const ZSTD_MAGIC = [0x28, 0xb5, 0x2f, 0xfd];
 const textDecoder = new TextDecoder("utf-8");
-
-function makeId(prefix) {
-  const cryptoPart =
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  return `${prefix}_${cryptoPart}`;
-}
 
 function parseJson(value, fallback) {
   if (!value || typeof value !== "string") return fallback;
@@ -1345,19 +1337,7 @@ function mergeImportReports(results = []) {
   report.duplicates = results.flatMap((result) => result.report?.duplicates ?? []);
   report.warnings = unique(results.flatMap((result) => result.report?.warnings ?? []));
   report.errors = unique(results.flatMap((result) => result.report?.errors ?? []));
-  report.summary = {
-    ...(report.summary ?? {}),
-    wouldCreateDecks: report.createdDecks,
-    wouldCreateLearningItems: report.createdLearningItems,
-    wouldCreateCards: report.createdCards,
-    wouldCreateVariants: report.createdVariants,
-    skipped: report.skipped.length,
-    duplicates: report.duplicates.length,
-    warnings: report.warnings.length,
-    errors: report.errors.length,
-  };
-
-  return report;
+  return finalizeImportReport(report);
 }
 
 function commitNormalizedApkgHierarchy(normalizedDeck, options = {}) {

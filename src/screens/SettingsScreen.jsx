@@ -37,7 +37,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
     setAccountBusy(true);
     try {
       await onSyncNow?.();
-      setAccountMessage("Synchronisierung abgeschlossen.");
+      setAccountMessage("");
     } catch (error) {
       setAccountMessage(error instanceof Error ? error.message : "Synchronisierung fehlgeschlagen.");
     } finally {
@@ -133,7 +133,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
               Abmelden
             </button>
           </div>
-          <p className={`mt-3 text-sm ${syncStatus?.status === "error" ? "text-red-700" : "text-[#66709a]"}`} role={syncStatus?.status === "error" ? "alert" : "status"} aria-live="polite">
+          <p className={`mt-3 text-sm ${syncStatus?.status === "error" ? "text-red-700" : syncStatus?.status === "offline" || syncStatus?.status === "conflict" ? "text-amber-700" : "text-[#66709a]"}`} role={syncStatus?.status === "error" ? "alert" : "status"} aria-live="polite">
             {formatSyncStatusText(syncStatus)}
           </p>
           {accountMessage ? (

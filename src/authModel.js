@@ -71,16 +71,3 @@ export function signOutLocalAccount(profile, now = new Date().toISOString()) {
   };
 }
 
-export function connectOAuthPlaceholder(profile, provider, now = new Date().toISOString()) {
-  return {
-    ...profile,
-    account: {
-      ...(profile.account ?? {}),
-      status: "signed-in",
-      authProvider: provider,
-      oauthPlaceholder: true,
-      lastSignedInAt: now,
-    },
-  };
-}
-
