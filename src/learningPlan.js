@@ -1,5 +1,5 @@
-import { summarizeDeckReview } from "./scheduler.js";
-import { makeId } from "./coreModel.js";
+import { summarizeDeckReview } from "./scheduler.ts";
+import { makeId } from "./coreModel.ts";
 
 function daysBetween(start, end) {
   const startDate = new Date(start);

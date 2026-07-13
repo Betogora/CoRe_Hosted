@@ -7,7 +7,7 @@ import {
   markLearningSettingsCustom,
   normalizeLearningSettings,
   withGlobalDeckSettings,
-} from "./deckSettings.js";
+} from "./deckSettings.ts";
 
 test("learning settings migrate the previously unused legacy step defaults", () => {
   const settings = normalizeLearningSettings({

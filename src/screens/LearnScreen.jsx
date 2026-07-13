@@ -1,7 +1,7 @@
 import React from "react";
 import { ChevronDown, ChevronRight, FolderPlus, Layers, Palette, PlusSquare, Settings } from "lucide-react";
-import { DEFAULT_DECK_APPEARANCE, normalizeDeckAppearance } from "../coreModel.js";
-import { createDeckLibraryModel, createVisibleDeckRows } from "../libraryModel.js";
+import { DEFAULT_DECK_APPEARANCE, normalizeDeckAppearance } from "../coreModel.ts";
+import { createDeckLibraryModel, createVisibleDeckRows } from "../libraryModel.ts";
 import { ColorPopover, ColorToolButton, defaultTextColors, normalizeColor, textPaletteColors, useStoredColorSlots } from "../ui/colorPicker.jsx";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
 import { DeckAppearanceIcon, deckIconOptions } from "../ui/deckAppearance.jsx";

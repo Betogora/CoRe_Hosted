@@ -6,9 +6,9 @@ import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandl
 import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.js";
 import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.js";
 import { createCoreRepository } from "./coreRepository.js";
-import { createCoreWorkspace } from "./coreWorkspace.js";
+import { createCoreWorkspace } from "./coreWorkspace.ts";
 import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.js";
-import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings } from "./deckSettings.js";
+import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings } from "./deckSettings.ts";
 import { createMenuModel } from "./menuModel.js";
 import { createAccountSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.js";
 import { createBrowserSyncDevice } from "./syncDevice.js";

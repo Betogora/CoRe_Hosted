@@ -1,18 +1,30 @@
-import { getActiveVariants, getOriginalVariant } from "./coreModel.js";
+import { getActiveVariants, getOriginalVariant } from "../coreModel.ts";
+import type { CardType, CardVariant, CardVariantType, LearningItem, ReviewSchedulerState, ReviewState } from "../coreTypes.ts";
 
-const AUTOMATIC_REPHRASE_TYPES = new Set(["basic", "cloze", "reverse"]);
+const AUTOMATIC_REPHRASE_TYPES = new Set<CardVariantType>(["basic", "cloze", "reverse"]);
 
-function inferLearningPhase(state = {}) {
+type ReviewStateInput = Partial<ReviewState>;
+
+interface VariantSelectionOptions {
+  allowTransfer?: boolean;
+  allowCaseVignette?: boolean;
+  allowNewFacts?: boolean;
+  maxVariantLevel?: number;
+  preferredVariantLevel?: number;
+  allowLearningVariant?: boolean;
+}
+
+function inferLearningPhase(state: ReviewStateInput = {}): ReviewSchedulerState {
   const repetitions = Number(state.reps ?? state.repetitions ?? 0);
   if (!state.state || (state.state === "new" && repetitions > 0)) return repetitions > 0 ? "review" : "new";
   return state.state;
 }
 
-function clampAutomaticLevel(level) {
+function clampAutomaticLevel(level: unknown): number {
   return Math.min(3, Math.max(1, Math.round(Number(level) || 1)));
 }
 
-function rotateVariant(candidates, state = {}) {
+function rotateVariant(candidates: CardVariant[], state: ReviewStateInput = {}): CardVariant | null {
   if (candidates.length === 0) return null;
   const sorted = [...candidates].sort((left, right) => {
     const levelDiff = Number(left.variantLevel ?? 1) - Number(right.variantLevel ?? 1);
@@ -22,15 +34,15 @@ function rotateVariant(candidates, state = {}) {
   return sorted[index];
 }
 
-function cardTypeOf(card) {
+function cardTypeOf(card: LearningItem | null | undefined): CardType {
   return card?.kind ?? card?.cardType ?? "basic";
 }
 
-function primaryVariantByType(card, variantType) {
+function primaryVariantByType(card: LearningItem, variantType: CardVariantType): CardVariant | null {
   return getActiveVariants(card).find((variant) => variant.variantType === variantType) ?? null;
 }
 
-export function isAutomaticRephraseVariant(variant, options = {}) {
+export function isAutomaticRephraseVariant(variant: CardVariant | null | undefined, options: VariantSelectionOptions = {}): boolean {
   if (!variant || variant.isOriginal || variant.qualityStatus !== "active" || variant.isActive === false) return false;
   const variantType = variant.variantType ?? "basic";
   const variantLevel = Number(variant.variantLevel ?? 1);
@@ -43,7 +55,7 @@ export function isAutomaticRephraseVariant(variant, options = {}) {
   return true;
 }
 
-export function selectAutomaticReviewVariant(card, options = {}) {
+export function selectAutomaticReviewVariant(card: LearningItem, options: VariantSelectionOptions = {}): CardVariant | null {
   const original = getOriginalVariant(card);
   const state = card?.learningItemState ?? card?.reviewState ?? {};
   const cardType = cardTypeOf(card);

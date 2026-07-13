@@ -6,10 +6,10 @@ import {
   getActiveVariants,
   getAnswerSideAnchorMiniCard,
   getOriginalVariant,
-} from "./coreModel.js";
-import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.js";
+} from "./coreModel.ts";
+import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
 import { createCoreRepository } from "./coreRepository.js";
-import { createCoreWorkspace } from "./coreWorkspace.js";
+import { createCoreWorkspace } from "./coreWorkspace.ts";
 import {
   createImportFingerprint,
   findDuplicateLearningItem,
@@ -24,7 +24,7 @@ import {
   parseJsonToNormalizedImport,
   parseTextToNormalizedImport,
 } from "./importService.js";
-import { answerVariant, getNextReviewItem } from "./reviewService.js";
+import { answerVariant, getNextReviewItem } from "./reviewService.ts";
 
 function createMemoryStorage() {
   const store = new Map();

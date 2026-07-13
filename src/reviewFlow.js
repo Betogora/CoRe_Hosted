@@ -1,1 +1,1 @@
-export { answerVariant, getNextReviewItem } from "./reviewService.js";
+export { answerVariant, getNextReviewItem } from "./reviewService.ts";

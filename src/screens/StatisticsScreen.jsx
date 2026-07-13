@@ -1,6 +1,6 @@
 import React from "react";
 import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, Flame, Layers, Target, TrendingUp } from "lucide-react";
-import { createPerformanceStatisticsModel } from "../libraryModel.js";
+import { createPerformanceStatisticsModel } from "../libraryModel.ts";
 import { EmptyState, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
 
 function formatPercent(value) {

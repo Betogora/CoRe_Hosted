@@ -9,7 +9,7 @@ import {
   getActiveVariants,
   getAnswerSideAnchorMiniCard,
   getOriginalVariant,
-} from "./coreModel.js";
+} from "./coreModel.ts";
 
 test("createBasicLearningItem creates a learning item with exactly one original variant", () => {
   const item = createBasicLearningItem("deck_1", "Was ist ATP?", "Ein kurzfristiger Energietraeger.", {

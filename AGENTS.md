@@ -11,7 +11,7 @@
 - Keep app logic behind small, testable module interfaces.
 - Prefer deep modules: hide data shaping and fallback behavior inside the module instead of spreading it through React callers.
 - Do not introduce a seam or adapter unless there are at least two real adapters.
-- Treat deck `cards` as the local compatibility collection for Learning Items. New card/import/AI creation paths should go through the helpers in `src/coreModel.js` so every item keeps exactly one original variant and all non-original variants stay anchored.
+- Treat deck `cards` as the local compatibility collection for Learning Items. New card/import/AI creation paths should go through the helpers in `src/coreModel.ts` so every item keeps exactly one original variant and all non-original variants stay anchored.
 - Keep APKG handling inside `src/apkgImport.js`; do not spread ZIP, SQLite, or Zstd collection details into React callers.
 - Keep local APKG media persistence in `src/mediaStore.js`; React should consume resolved media URLs instead of parsing media manifests itself.
 - Preserve local content edits on APKG reimport; update import metadata and media references without replacing user-edited fronts/backs.

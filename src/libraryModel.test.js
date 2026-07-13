@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCoreCard, createCoreDeck } from "./coreModel.js";
+import { createCoreCard, createCoreDeck } from "./coreModel.ts";
 import {
   createAiJobLedger,
   createDeckLibraryModel,
@@ -9,7 +9,7 @@ import {
   createStudyHeatmapWindow,
   createVisibleDeckRows,
   getStudyHeatmapVisibleWeekCount,
-} from "./libraryModel.js";
+} from "./libraryModel.ts";
 
 function createDeckHierarchy(cards = []) {
   const parent = createCoreDeck({ id: "deck_parent", name: "Medizin", source: "manual", hierarchyPath: ["Medizin"], cards: [] });

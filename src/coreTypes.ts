@@ -102,14 +102,13 @@ export interface DeckSettings {
   blacklist: VariantBlacklist;
 }
 
-export interface ReviewState {
+export interface ReviewStateBase {
   id: string;
   learningItemId: string;
   reviewableType: ReviewableType;
   reviewableId: string;
   userId: string;
   schedulerVersion: string;
-  state: ReviewSchedulerState;
   dueAt: string;
   intervalDays: number;
   ease: number;
@@ -141,6 +140,12 @@ export interface ReviewState {
   schedulerParamsJson: unknown;
   sourceSchedulerData: unknown;
 }
+
+export type ReviewState =
+  | (ReviewStateBase & { state: "new" })
+  | (ReviewStateBase & { state: "learning" })
+  | (ReviewStateBase & { state: "review" })
+  | (ReviewStateBase & { state: "relearning" });
 
 export interface CardField {
   name: string;
@@ -220,7 +225,7 @@ export interface VariantFeedback {
   createdAt: string;
 }
 
-export interface CardVariant {
+export interface CardVariantBase {
   id: string;
   learningItemId: string;
   cardId: string;
@@ -234,9 +239,6 @@ export interface CardVariant {
   answerOptionsJson: unknown;
   expectedAnswerJson: unknown;
   generationSource: VariantGenerationSource;
-  parentVariantId: string | null;
-  anchorVariantId: string | null;
-  isOriginal: boolean;
   isActive: boolean;
   transformType: TransformType;
   transformProfile: Record<string, unknown>;
@@ -258,6 +260,68 @@ export interface CardVariant {
   updatedByDeviceId: string | null;
   meta: Record<string, unknown>;
 }
+
+export interface OriginalCardVariant extends CardVariantBase {
+  isOriginal: true;
+  parentVariantId: null;
+  anchorVariantId: null;
+}
+
+export interface DerivedCardVariant extends CardVariantBase {
+  isOriginal: false;
+  parentVariantId: string;
+  anchorVariantId: string;
+}
+
+export type CardVariant = OriginalCardVariant | DerivedCardVariant;
+
+export interface LearningItemCreationBase {
+  deckId: string;
+  tags?: string[];
+  sourceAnchors?: SourceAnchor[];
+  mediaRefs?: MediaRef[];
+}
+
+export interface BasicLearningItemCreationInput extends LearningItemCreationBase {
+  cardType: "basic";
+  front: RichTextContent;
+  back: RichTextContent;
+}
+
+export interface ReverseLearningItemCreationInput extends LearningItemCreationBase {
+  cardType: "basic-reversed";
+  front: RichTextContent;
+  back: RichTextContent;
+}
+
+export interface ClozeLearningItemCreationInput extends LearningItemCreationBase {
+  cardType: "cloze";
+  textWithClozes: RichTextContent;
+  extra?: RichTextContent;
+}
+
+export interface MultipleChoiceLearningItemCreationInput extends LearningItemCreationBase {
+  cardType: "multiple-choice";
+  front: RichTextContent;
+  back: RichTextContent;
+  answerOptions: string[];
+  correctAnswer: string;
+}
+
+export type LearningItemCreationInput =
+  | BasicLearningItemCreationInput
+  | ReverseLearningItemCreationInput
+  | ClozeLearningItemCreationInput
+  | MultipleChoiceLearningItemCreationInput;
+
+export type SyncStatus =
+  | { status: "idle" }
+  | { status: "pending"; message: string; pendingCount?: number }
+  | { status: "offline"; message: string; pendingCount: number; nextRetryAt: string | null }
+  | { status: "saving"; message: string }
+  | { status: "saved"; message: string; savedAt: string }
+  | { status: "error"; message: string }
+  | { status: "conflict"; message: string; conflictCount: number };
 
 export interface CoreState {
   isCoreReady: boolean;

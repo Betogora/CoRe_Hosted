@@ -3,11 +3,83 @@ import {
   getLearningItemAnswer,
   getLearningItemQuestion,
   getOriginalVariant,
-} from "./coreModel.js";
-import { stripHtml } from "./htmlSafety.js";
+} from "../coreModel.ts";
+import { stripHtml } from "../htmlSafety.js";
+import type { CardVariant, CardVariantType, LearningItem, TransformType } from "../coreTypes.ts";
 
-const DEFAULT_VARIANT_TYPES = ["basic", "cloze", "reverse"];
-const TRANSFER_LIKE_TYPES = new Set(["transfer", "case"]);
+const DEFAULT_VARIANT_TYPES = ["basic", "cloze", "reverse"] as const satisfies readonly CardVariantType[];
+const TRANSFER_LIKE_TYPES = new Set<CardVariantType>(["transfer", "case"]);
+
+interface VariantGenerationOptions {
+  numberOfVariants?: number;
+  language?: string;
+  maxVariantLevel?: number;
+  allowedVariantTypes?: unknown[];
+  keepCloseToOriginal?: boolean;
+  allowNewFacts?: boolean;
+  allowTransfer?: boolean;
+  allowCaseVignette?: boolean;
+  originalItem?: LearningItem | null;
+  variantProvider?: VariantProvider | null;
+  provider?: VariantProvider | null;
+  mockResponse?: unknown;
+  response?: unknown;
+  rawResponse?: unknown;
+  includeRawResponse?: boolean;
+  modelRunId?: string | null;
+  style?: string | null;
+}
+
+interface NormalizedVariantGenerationOptions extends Omit<VariantGenerationOptions, "allowedVariantTypes"> {
+  numberOfVariants: number;
+  language: string;
+  maxVariantLevel: number;
+  allowedVariantTypes: CardVariantType[];
+  keepCloseToOriginal: boolean;
+  allowNewFacts: boolean;
+  allowTransfer: boolean;
+  allowCaseVignette: boolean;
+}
+
+type VariantProvider = (input: {
+  prompt: string;
+  learningItem: LearningItem;
+  options: NormalizedVariantGenerationOptions;
+}) => unknown;
+
+interface VariantSuggestionInput {
+  front?: unknown;
+  back?: unknown;
+  variantType?: unknown;
+  variantLevel?: unknown;
+  relationToOriginal?: unknown;
+  containsNewFacts?: unknown;
+  abstractionLevel?: unknown;
+  reason?: unknown;
+}
+
+interface NormalizedVariantSuggestion {
+  front: string;
+  back: string;
+  variantType: CardVariantType;
+  variantLevel: number;
+  relationToOriginal: string;
+  containsNewFacts: boolean;
+  abstractionLevel: number;
+  reason: string;
+  generationSource: "ai_generated";
+  transformType: TransformType;
+}
+
+type VariantValidationResult =
+  | { valid: true; errors: []; warnings: string[]; suggestion: NormalizedVariantSuggestion }
+  | { valid: false; errors: string[]; warnings: string[]; suggestion: NormalizedVariantSuggestion };
+
+interface SkippedVariant {
+  index?: number;
+  suggestion: unknown;
+  errors: string[];
+}
 const DEFAULT_VARIATION_PROMPT_OPTIONS = {
   numberOfVariants: 3,
   language: "de",
@@ -75,21 +147,24 @@ JSON-Schema:
 Wichtige Regel:
 Wenn du keine sinnvolle nahe Variante erzeugen kannst, gib weniger Varianten zurück. Erfinde keine neuen Inhalte.`;
 
-function plain(value) {
+function plain(value: unknown): string {
   return stripHtml(value).replace(/\s+/g, " ").trim();
 }
 
-function normalizeComparisonText(value) {
+function normalizeComparisonText(value: unknown): string {
   return plain(value).toLowerCase();
 }
 
-function normalizeVariantGenerationOptions(options = {}) {
+function normalizeVariantGenerationOptions(options: VariantGenerationOptions = {}): NormalizedVariantGenerationOptions {
   const requestedTypes =
     Array.isArray(options.allowedVariantTypes) && options.allowedVariantTypes.length > 0
       ? options.allowedVariantTypes
       : DEFAULT_VARIATION_PROMPT_OPTIONS.allowedVariantTypes;
   const allowedVariantTypes = requestedTypes
-    .filter((type) => DEFAULT_VARIANT_TYPES.includes(type) || (type === "transfer" && options.allowTransfer) || (type === "case" && options.allowCaseVignette))
+    .filter((type): type is CardVariantType => typeof type === "string" &&
+      (DEFAULT_VARIANT_TYPES.includes(type as typeof DEFAULT_VARIANT_TYPES[number]) ||
+        (type === "transfer" && Boolean(options.allowTransfer)) ||
+        (type === "case" && Boolean(options.allowCaseVignette))))
     .filter((type, index, list) => list.indexOf(type) === index);
 
   return {
@@ -98,7 +173,7 @@ function normalizeVariantGenerationOptions(options = {}) {
     numberOfVariants: Math.max(1, Math.round(Number(options.numberOfVariants ?? DEFAULT_VARIATION_PROMPT_OPTIONS.numberOfVariants) || 1)),
     language: options.language ?? DEFAULT_VARIATION_PROMPT_OPTIONS.language,
     maxVariantLevel: Math.min(3, Math.max(1, Math.round(Number(options.maxVariantLevel ?? DEFAULT_VARIATION_PROMPT_OPTIONS.maxVariantLevel) || 3))),
-    allowedVariantTypes: allowedVariantTypes.length > 0 ? allowedVariantTypes : DEFAULT_VARIANT_TYPES,
+    allowedVariantTypes: allowedVariantTypes.length > 0 ? allowedVariantTypes : [...DEFAULT_VARIANT_TYPES],
     keepCloseToOriginal: options.keepCloseToOriginal ?? DEFAULT_VARIATION_PROMPT_OPTIONS.keepCloseToOriginal,
     allowNewFacts: options.allowNewFacts ?? DEFAULT_VARIATION_PROMPT_OPTIONS.allowNewFacts,
     allowTransfer: options.allowTransfer ?? DEFAULT_VARIATION_PROMPT_OPTIONS.allowTransfer,
@@ -106,7 +181,7 @@ function normalizeVariantGenerationOptions(options = {}) {
   };
 }
 
-function extractExistingVariants(item) {
+function extractExistingVariants(item: LearningItem): string {
   return (
     (item?.variants ?? [])
       .filter((variant) => !variant.isOriginal)
@@ -115,20 +190,21 @@ function extractExistingVariants(item) {
   );
 }
 
-function fillPromptTemplate(template, values) {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => String(values[key] ?? ""));
+function fillPromptTemplate(template: string, values: Record<string, unknown>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => String(values[key] ?? ""));
 }
 
-function parseResponseText(response) {
+function parseResponseText(response: unknown): string {
   if (typeof response === "string") return response;
-  if (typeof response?.content === "string") return response.content;
-  if (typeof response?.text === "string") return response.text;
-  if (typeof response?.rawResponse === "string") return response.rawResponse;
+  const value = response !== null && typeof response === "object" ? response as Record<string, unknown> : {};
+  if (typeof value.content === "string") return value.content;
+  if (typeof value.text === "string") return value.text;
+  if (typeof value.rawResponse === "string") return value.rawResponse;
   if (response && typeof response === "object") return JSON.stringify(response);
   return "";
 }
 
-function extractJsonPayload(text) {
+function extractJsonPayload(text: unknown): string {
   const trimmed = String(text ?? "").trim();
   const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fenced) return fenced[1].trim();
@@ -142,14 +218,14 @@ function extractJsonPayload(text) {
   return trimmed;
 }
 
-function transformTypeForVariantType(variantType) {
+function transformTypeForVariantType(variantType: CardVariantType): TransformType {
   if (variantType === "cloze") return "cloze_conversion";
   if (variantType === "reverse") return "front_back_style_shift";
   return "rephrase";
 }
 
-function collectDuplicateKeys(item) {
-  const keys = new Set();
+function collectDuplicateKeys(item: LearningItem): Set<string> {
+  const keys = new Set<string>();
   const originalFront = getLearningItemQuestion(item);
   const originalBack = getLearningItemAnswer(item);
   if (originalFront || originalBack) {
@@ -163,10 +239,11 @@ function collectDuplicateKeys(item) {
   return keys;
 }
 
-export function buildCardVariationPrompt(item, options = {}) {
+export function buildCardVariationPrompt(item: LearningItem, options: VariantGenerationOptions = {}): string {
   const normalizedOptions = normalizeVariantGenerationOptions(options);
-  const canonicalQuestion = plain(getLearningItemQuestion(item) || item?.originalFront || item?.front);
-  const canonicalAnswer = plain(getLearningItemAnswer(item) || item?.originalBack || item?.back);
+  const legacyItem = item as LearningItem & { front?: string; back?: string };
+  const canonicalQuestion = plain(getLearningItemQuestion(item) || item.originalFront || legacyItem.front);
+  const canonicalAnswer = plain(getLearningItemAnswer(item) || item.originalBack || legacyItem.back);
   const prompt = fillPromptTemplate(CARD_VARIATION_PROMPT_TEMPLATE, {
     canonicalQuestion,
     canonicalAnswer,
@@ -187,17 +264,22 @@ export function buildCardVariationPrompt(item, options = {}) {
   return `${prompt}\n\nZusätzliche Optionen:\n${constraints.map((constraint) => `- ${constraint}`).join("\n")}`;
 }
 
-export function validateVariantSuggestion(suggestion, originalItem = null, options = {}) {
+export function validateVariantSuggestion(
+  suggestion: unknown,
+  originalItem: LearningItem | null = null,
+  options: VariantGenerationOptions = {},
+): VariantValidationResult {
+  const input = suggestion !== null && typeof suggestion === "object" ? suggestion as VariantSuggestionInput : {};
   const normalizedOptions = normalizeVariantGenerationOptions(options);
-  const errors = [];
-  const warnings = [];
-  const front = plain(suggestion?.front);
-  const back = plain(suggestion?.back);
-  const variantType = suggestion?.variantType ?? "basic";
-  const variantLevel = Math.round(Number(suggestion?.variantLevel ?? 1) || 1);
-  const relationToOriginal = suggestion?.relationToOriginal ?? "same_card_rephrasing";
-  const containsNewFacts = Boolean(suggestion?.containsNewFacts);
-  const abstractionLevel = Math.round(Number(suggestion?.abstractionLevel ?? 1) || 1);
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const front = plain(input.front);
+  const back = plain(input.back);
+  const variantType = typeof input.variantType === "string" ? input.variantType as CardVariantType : "basic";
+  const variantLevel = Math.round(Number(input.variantLevel ?? 1) || 1);
+  const relationToOriginal = typeof input.relationToOriginal === "string" ? input.relationToOriginal : "same_card_rephrasing";
+  const containsNewFacts = Boolean(input.containsNewFacts);
+  const abstractionLevel = Math.round(Number(input.abstractionLevel ?? 1) || 1);
 
   if (!front) errors.push("front fehlt oder ist leer.");
   if (!back) errors.push("back fehlt oder ist leer.");
@@ -239,20 +321,26 @@ export function validateVariantSuggestion(suggestion, originalItem = null, optio
       relationToOriginal,
       containsNewFacts,
       abstractionLevel,
-      reason: plain(suggestion?.reason),
+      reason: plain(input.reason),
       generationSource: "ai_generated",
       transformType: transformTypeForVariantType(variantType),
     },
-  };
+  } as VariantValidationResult;
 }
 
-export function parseVariantGenerationResponse(response, options = {}) {
-  const warnings = [];
-  const errors = [];
-  const skippedVariants = [];
-  const variants = [];
+export function parseVariantGenerationResponse(response: unknown, options: VariantGenerationOptions = {}): {
+  variants: NormalizedVariantSuggestion[];
+  skippedVariants: SkippedVariant[];
+  warnings: string[];
+  errors: string[];
+  rawJson: string;
+} {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  const skippedVariants: SkippedVariant[] = [];
+  const variants: NormalizedVariantSuggestion[] = [];
   const payload = extractJsonPayload(parseResponseText(response));
-  let parsed = null;
+  let parsed: unknown = null;
 
   try {
     parsed = JSON.parse(payload);
@@ -261,12 +349,13 @@ export function parseVariantGenerationResponse(response, options = {}) {
       variants,
       skippedVariants,
       warnings,
-      errors: [`KI-Antwort ist kein gültiges JSON: ${error.message}`],
+      errors: [`KI-Antwort ist kein gültiges JSON: ${error instanceof Error ? error.message : "Unbekannter Fehler."}`],
       rawJson: payload,
     };
   }
 
-  if (!parsed || !Array.isArray(parsed.variants)) {
+  const parsedRecord = parsed !== null && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+  if (!Array.isArray(parsedRecord.variants)) {
     return {
       variants,
       skippedVariants,
@@ -276,7 +365,7 @@ export function parseVariantGenerationResponse(response, options = {}) {
     };
   }
 
-  parsed.variants.forEach((suggestion, index) => {
+  parsedRecord.variants.forEach((suggestion, index) => {
     const validation = validateVariantSuggestion(suggestion, options.originalItem, options);
     warnings.push(...validation.warnings.map((warning) => `Variante ${index + 1}: ${warning}`));
     if (validation.valid) {
@@ -300,7 +389,7 @@ export function parseVariantGenerationResponse(response, options = {}) {
   };
 }
 
-export function generateRephrasedVariantsForLearningItem(item, options = {}) {
+export function generateRephrasedVariantsForLearningItem(item: LearningItem, options: VariantGenerationOptions = {}) {
   const promptUsed = buildCardVariationPrompt(item, options);
   const provider = options.variantProvider ?? options.provider ?? null;
   const providerResponse = provider
@@ -320,7 +409,7 @@ export function generateRephrasedVariantsForLearningItem(item, options = {}) {
     };
   }
 
-  if (rawResponse && typeof rawResponse.then === "function") {
+  if (rawResponse && typeof rawResponse === "object" && "then" in rawResponse && typeof rawResponse.then === "function") {
     return {
       learningItem: item,
       card: item,
@@ -332,8 +421,8 @@ export function generateRephrasedVariantsForLearningItem(item, options = {}) {
   }
 
   let updatedItem = item;
-  const createdVariants = [];
-  const skippedVariants = [];
+  const createdVariants: CardVariant[] = [];
+  const skippedVariants: SkippedVariant[] = [];
   const parseResult = parseVariantGenerationResponse(rawResponse, { ...options, originalItem: updatedItem });
   warnings.push(...parseResult.warnings);
   skippedVariants.push(...parseResult.skippedVariants);

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createSourceDocument, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.js";
+import { createSourceDocument, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.ts";
 import { createCoreRepository } from "./coreRepository.js";
-import { createCoreWorkspace, createDemoAnatomyDeck } from "./coreWorkspace.js";
+import { createCoreWorkspace, createDemoAnatomyDeck } from "./coreWorkspace.ts";
 import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.js";
-import { createStudyHeatmapModel } from "./libraryModel.js";
+import { createStudyHeatmapModel } from "./libraryModel.ts";
 
 function createMemoryStorage() {
   const store = new Map();

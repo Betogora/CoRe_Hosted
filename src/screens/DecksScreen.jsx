@@ -1,8 +1,8 @@
 import React from "react";
 import { Check, ChevronRight, Copy, FolderPlus, Layers, Network, Pencil, Play, PlusSquare, Save, Search, Share2, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
-import { getOriginalVariant, getVariantAnchor } from "../coreModel.js";
-import { buildCardVariationPrompt, createVariantReviewModel } from "../coreVariantService.js";
-import { createDeckLibraryModel } from "../libraryModel.js";
+import { getOriginalVariant, getVariantAnchor } from "../coreModel.ts";
+import { buildCardVariationPrompt, createVariantReviewModel } from "../coreVariantService.ts";
+import { createDeckLibraryModel } from "../libraryModel.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
 import { CoreModeControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.jsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.jsx";

@@ -1,6 +1,6 @@
 import React from "react";
 import { Brain, Clock3, Gauge, Save, SlidersHorizontal } from "lucide-react";
-import { LEARNING_SETTING_PRESETS, applyLearningPreset, markLearningSettingsCustom, normalizeLearningSettings } from "../deckSettings.js";
+import { LEARNING_SETTING_PRESETS, applyLearningPreset, markLearningSettingsCustom, normalizeLearningSettings } from "../deckSettings.ts";
 import { CoreModeControl, OrbIcon, SoftPanel } from "./coreUi.jsx";
 
 const learningStepOptions = [

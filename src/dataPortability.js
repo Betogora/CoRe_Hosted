@@ -1,4 +1,4 @@
-import { stableContentHash } from "./coreModel.js";
+import { stableContentHash } from "./coreModel.ts";
 
 const EXPORT_SCHEMA_VERSION = 1;
 

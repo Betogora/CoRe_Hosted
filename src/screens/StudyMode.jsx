@@ -1,8 +1,8 @@
 import React from "react";
 import { Ban, CheckCircle2, Eye, Flag, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
-import { getLearningItemAnswer, getLearningItemQuestion } from "../coreModel.js";
+import { getLearningItemAnswer, getLearningItemQuestion } from "../coreModel.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.js";
-import { answerVariant, createDailyReviewQueue, recordVariantFeedback, updateDeckNewCardLimitForDate } from "../reviewService.js";
+import { answerVariant, createDailyReviewQueue, recordVariantFeedback, updateDeckNewCardLimitForDate } from "../reviewService.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
 import { MiniProgress } from "../ui/coreUi.jsx";
 import { maturityStageLabels, ratingButtons } from "./screenConstants.js";

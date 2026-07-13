@@ -15,9 +15,9 @@ import {
   parsePackageMetadataBytes,
   validateApkgFile,
 } from "./apkgImport.js";
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.js";
-import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.js";
-import { answerVariant, getNextReviewItem } from "./reviewService.js";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant } from "./coreModel.ts";
+import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
+import { answerVariant, getNextReviewItem } from "./reviewService.ts";
 
 function archiveFromEntries(entries) {
   return {

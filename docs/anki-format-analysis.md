@@ -53,14 +53,14 @@ Lokale CoRe-Quellen:
 
 - `docs/specs.md`
 - `docs/todo.md`
-- `src/coreModel.js`
+- `src/coreModel.ts`
 - `src/apkgImport.js`
 - `src/importService.js`
 - `src/mediaStore.js`
 - `src/htmlSafety.js`
 - `src/richText.js`
-- `src/reviewService.js`
-- `src/scheduler.js`
+- `src/reviewService.ts`
+- `src/scheduler.ts`
 - `supabase/core_schema_v1.sql`
 
 TODO-Markdown-Inventar: Aktuell existiert genau `docs/todo.md`. Die Anki-bezogenen naechsten Arbeitspakete in dieser Analyse sollen dort priorisiert werden, statt eine zweite TODO-Datei aufzubauen.
@@ -134,13 +134,13 @@ Rigorose CoRe-Folgerung: APKG ist Austauschformat, nicht Persistenzformat. ZIP, 
 
 CoRe hat die entscheidende Richtung bereits eingeschlagen:
 
-- `src/coreModel.js` erzeugt Learning Items, Original-Varianten, Reverse-Varianten, Cloze-Varianten und Review-State.
+- `src/coreModel.ts` erzeugt Learning Items, Original-Varianten, Reverse-Varianten, Cloze-Varianten und Review-State.
 - `src/importService.js` normalisiert Text-, CSV-, JSON- und Tabellen-Importdaten in Learning Items mit Varianten, Parent-/Hierarchy-Feldern, stabilen Fingerprints und Duplicate-Erkennung.
 - `src/apkgImport.js` liest APKG-Container, erkennt `collection.anki2`, `collection.anki21`, `collection.anki21b`, extrahiert Notes/Cards/Decks/Media, erzeugt echte Unterstapel und speichert Raw-Fallbacks.
 - `src/mediaStore.js` kapselt lokale Medienauflösung; React konsumiert aufgelöste Medien-URLs.
 - `src/htmlSafety.js` und `src/richText.js` kapseln HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung fuer Karteninhalt, Importvorschau und Review.
-- `src/reviewService.js` schreibt Review-Events und aktualisiert Learning-Item- und Varianten-State.
-- `src/scheduler.js` hält FSRS-like State mit Stability, Difficulty, Desired Retention, Retrievability, Variant-Kontext und Intervallvorschau fuer die vier Review-Buttons.
+- `src/reviewService.ts` schreibt Review-Events und aktualisiert Learning-Item- und Varianten-State.
+- `src/scheduler.ts` hält FSRS-like State mit Stability, Difficulty, Desired Retention, Retrievability, Variant-Kontext und Intervallvorschau fuer die vier Review-Buttons.
 - `supabase/core_schema_v1.sql` trennt bereits `decks`, `cards`, `card_variants`, `review_events`, `source_documents` und `ai_jobs`.
 
 Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzepte werden importiert und roh konserviert, aber noch nicht vollständig als explizite CoRe-Strukturen modelliert. Das ist für den MVP richtig, sollte aber in den nächsten Ausbaustufen gezielt geschlossen werden.

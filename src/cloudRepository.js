@@ -1,5 +1,5 @@
 import { createCloudProfile, createProfileRow, saveCloudProfile } from "./cloudAuth.js";
-import { createCoreDeck } from "./coreModel.js";
+import { createCoreDeck } from "./coreModel.ts";
 
 export const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
 

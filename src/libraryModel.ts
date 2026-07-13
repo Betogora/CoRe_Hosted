@@ -1,5 +1,82 @@
 import { stripHtml } from "./htmlSafety.js";
-import { listReviewableCards, summarizeDeckReview } from "./scheduler.js";
+import { listReviewableCards, summarizeDeckReview } from "./scheduler.ts";
+import type { CoreMode, Deck, LearningItem, ReviewRating } from "./coreTypes.ts";
+
+type DateInput = string | number | Date;
+
+interface ReviewEventInput {
+  id?: string;
+  deckId?: string;
+  learningItemId?: string;
+  cardId?: string;
+  variantId?: string;
+  cardVariantId?: string;
+  rating?: ReviewRating;
+  reviewedAt?: string;
+  answeredAt?: string;
+  createdAt?: string;
+  responseTimeMs?: number;
+  reviewableType?: string;
+  variantLevel?: number;
+  variantType?: string;
+}
+
+interface PerformanceEvent {
+  id?: string;
+  deckId: string;
+  deckName: string;
+  learningItemId: string | null;
+  variantId: string | null;
+  rating: ReviewRating;
+  reviewedAt: string;
+  dateKey: string | null;
+  responseTimeMs: number | null;
+  isPositive: boolean;
+  isStrong: boolean;
+  isVariant: boolean;
+}
+
+interface HeatmapDay {
+  key: string | null;
+  date: string;
+  dayOfMonth: number;
+  count: number;
+  isToday: boolean;
+  isFuture: boolean;
+  isOutsideDisplayYear: boolean;
+  level?: number;
+}
+
+interface AiJobInput {
+  id?: string;
+  status?: string;
+  deckId?: string;
+  deckName?: string;
+  createdAt?: string;
+  resultRef?: { cardCount?: number; generatedVariantIds?: string[] };
+  [key: string]: unknown;
+}
+
+interface LibraryOptions {
+  query?: unknown;
+  coreMode?: CoreMode | "all";
+  cardLimit?: number;
+  now?: DateInput;
+  selectedDeckId?: string;
+  heatmapWeeks?: number;
+  recentDayCount?: number;
+  weeks?: number | null;
+  year?: number;
+  viewportWidth?: number;
+  endWeekIndex?: number | null;
+  dayCount?: number;
+}
+
+interface HeatmapInput {
+  weeks?: HeatmapDay[][];
+  defaultEndWeekIndex?: number;
+  [key: string]: unknown;
+}
 
 const DEFAULT_HEATMAP_WEEK_COUNT = 53;
 const MIN_HEATMAP_WINDOW_WEEKS = 4;
@@ -8,49 +85,49 @@ const HEATMAP_MIN_CELL_SIZE = 9;
 const HEATMAP_COLUMN_GAP = 4;
 const HEATMAP_NAVIGATION_STEP_WEEKS = 4;
 const PERFORMANCE_RECENT_DAY_COUNT = 14;
-const REVIEW_RATING_KEYS = ["again", "hard", "good", "easy"];
-const REVIEW_RATING_LABELS = {
+const REVIEW_RATING_KEYS = ["again", "hard", "good", "easy"] as const satisfies readonly ReviewRating[];
+const REVIEW_RATING_LABELS: Record<ReviewRating, string> = {
   again: "Wiederholen",
   hard: "Schwer",
   good: "Gut",
   easy: "Leicht",
 };
 
-function normalizeQuery(value) {
+function normalizeQuery(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
 }
 
-function clampNumber(value, min, max) {
+function clampNumber(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function deckPath(deck) {
+function deckPath(deck: Deck): string {
   return (deck.hierarchyPath ?? [deck.name]).join(" / ");
 }
 
-function progressPercent(summary) {
+function progressPercent(summary: ReturnType<typeof summarizeDeckReview>): number {
   return summary.totalCards ? Math.round((summary.matureCards / summary.totalCards) * 100) : 0;
 }
 
-function previewText(value) {
+function previewText(value: unknown): string {
   return stripHtml(value).replace(/\s+/g, " ").trim() || "Leere Karte";
 }
 
-function startOfLocalDay(value) {
+function startOfLocalDay(value: DateInput): Date {
   const date = new Date(value);
   date.setHours(0, 0, 0, 0);
   return date;
 }
 
-function addLocalDays(value, days) {
+function addLocalDays(value: DateInput, days: number): Date {
   const date = new Date(value);
   date.setDate(date.getDate() + days);
   date.setHours(0, 0, 0, 0);
   return date;
 }
 
-function localDateKey(value) {
-  const date = new Date(value);
+function localDateKey(value: DateInput | null | undefined): string | null {
+  const date = new Date(value ?? 0);
   if (Number.isNaN(date.getTime())) return null;
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -58,30 +135,30 @@ function localDateKey(value) {
   return `${year}-${month}-${day}`;
 }
 
-function startOfWeek(value) {
+function startOfWeek(value: DateInput): Date {
   const date = startOfLocalDay(value);
   const daysSinceMonday = (date.getDay() + 6) % 7;
   return addLocalDays(date, -daysSinceMonday);
 }
 
-function startOfYear(year) {
+function startOfYear(year: number): Date {
   return startOfLocalDay(new Date(year, 0, 1));
 }
 
-function endOfYear(year) {
+function endOfYear(year: number): Date {
   return startOfLocalDay(new Date(year, 11, 31));
 }
 
-function normalizeCalendarYear(value, fallbackYear) {
+function normalizeCalendarYear(value: unknown, fallbackYear: number): number {
   const year = Math.round(Number(value));
   return Number.isFinite(year) && year >= 1900 && year <= 9999 ? year : fallbackYear;
 }
 
-function reviewEventDate(event) {
+function reviewEventDate(event: ReviewEventInput): string | null {
   return event?.reviewedAt ?? event?.answeredAt ?? event?.createdAt ?? null;
 }
 
-function heatmapLevel(count, maxCount) {
+function heatmapLevel(count: number, maxCount: number): number {
   if (count <= 0 || maxCount <= 0) return 0;
   const ratio = count / maxCount;
   if (ratio >= 0.75) return 4;
@@ -90,7 +167,7 @@ function heatmapLevel(count, maxCount) {
   return 1;
 }
 
-function formatShortDate(value) {
+function formatShortDate(value: DateInput): string {
   const date = new Date(value);
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -98,29 +175,29 @@ function formatShortDate(value) {
   return `${day}.${month}.${year}`;
 }
 
-function formatShortDayMonth(value) {
+function formatShortDayMonth(value: DateInput): string {
   const date = new Date(value);
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   return `${day}.${month}.`;
 }
 
-function monthShortLabel(value) {
+function monthShortLabel(value: DateInput): string {
   return ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"][new Date(value).getMonth()];
 }
 
-function heatmapMonthLabel(value, options = {}) {
-  const date = new Date(value);
+function heatmapMonthLabel(value: DateInput, options: { includeYear?: boolean } = {}): string {
+  const date = new Date(value ?? 0);
   const monthLabel = monthShortLabel(value);
   return options.includeYear ? `${monthLabel} ${date.getFullYear()}` : monthLabel;
 }
 
-function hasVisiblePreviousYearDay(day, weeks) {
+function hasVisiblePreviousYearDay(day: HeatmapDay, weeks: HeatmapDay[][]): boolean {
   const previousDayKey = localDateKey(addLocalDays(day.date, -1));
   return weeks.some((week) => week.some((candidate) => candidate.key === previousDayKey));
 }
 
-function createHeatmapMonthLabels(weeks) {
+function createHeatmapMonthLabels(weeks: HeatmapDay[][]): string[] {
   return weeks.map((week, weekIndex) => {
     const monthStart = week.find((day) => !day.isOutsideDisplayYear && new Date(day.date).getDate() === 1);
     if (monthStart) {
@@ -136,11 +213,11 @@ function createHeatmapMonthLabels(weeks) {
   });
 }
 
-function isHeatmapCountableDay(day) {
+function isHeatmapCountableDay(day: HeatmapDay): boolean {
   return !day.isFuture && !day.isOutsideDisplayYear;
 }
 
-function currentStreakLength(days) {
+function currentStreakLength(days: HeatmapDay[]): number {
   let streak = 0;
   for (const day of [...days].reverse()) {
     if (day.isFuture || day.isOutsideDisplayYear) continue;
@@ -150,7 +227,7 @@ function currentStreakLength(days) {
   return streak;
 }
 
-function longestStreakLength(days) {
+function longestStreakLength(days: HeatmapDay[]): number {
   let longest = 0;
   let current = 0;
   for (const day of days) {
@@ -161,11 +238,11 @@ function longestStreakLength(days) {
   return longest;
 }
 
-function summarizeHeatmapDays(days) {
+function summarizeHeatmapDays(days: HeatmapDay[]) {
   const visibleDays = days.filter(isHeatmapCountableDay);
   const totalCount = visibleDays.reduce((sum, day) => sum + day.count, 0);
   const activeDays = visibleDays.filter((day) => day.count > 0).length;
-  const bestDay = visibleDays.reduce((best, day) => (day.count > (best?.count ?? 0) ? day : best), null);
+  const bestDay = visibleDays.reduce<HeatmapDay | null>((best, day) => (day.count > (best?.count ?? 0) ? day : best), null);
   const rangeStartDay = days.find((day) => !day.isOutsideDisplayYear) ?? days[0] ?? null;
   const rangeEndDay =
     [...days].reverse().find(isHeatmapCountableDay) ??
@@ -177,7 +254,7 @@ function summarizeHeatmapDays(days) {
     totalCount,
     activeDays,
     averagePerActiveDay: activeDays ? Math.round((totalCount / activeDays) * 10) / 10 : 0,
-    bestDay: bestDay?.count > 0 ? bestDay : null,
+    bestDay: bestDay && bestDay.count > 0 ? bestDay : null,
     rangeStartKey: rangeStartDay?.key ?? null,
     rangeEndKey: rangeEndDay?.key ?? null,
     rangeLabel: rangeStartDay && rangeEndDay ? `${formatShortDate(rangeStartDay.date)} - ${formatShortDate(rangeEndDay.date)}` : "",
@@ -186,37 +263,37 @@ function summarizeHeatmapDays(days) {
   };
 }
 
-function resultLabel(job) {
+function resultLabel(job: AiJobInput): string {
   if (job.resultRef?.cardCount) return `${job.resultRef.cardCount} Karten`;
   if (job.resultRef?.generatedVariantIds) return `${job.resultRef.generatedVariantIds.length} Varianten`;
   return "";
 }
 
-function percentage(part, total) {
+function percentage(part: number, total: number): number {
   return total > 0 ? Math.round((part / total) * 100) : 0;
 }
 
-function average(values) {
+function average(values: number[]): number {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
 
-function normalizeRating(rating) {
-  return REVIEW_RATING_KEYS.includes(rating) ? rating : null;
+function normalizeRating(rating: unknown): ReviewRating | null {
+  return typeof rating === "string" && REVIEW_RATING_KEYS.includes(rating as ReviewRating) ? rating as ReviewRating : null;
 }
 
-function isPositiveRating(rating) {
+function isPositiveRating(rating: ReviewRating): boolean {
   return rating === "hard" || rating === "good" || rating === "easy";
 }
 
-function isStrongRating(rating) {
+function isStrongRating(rating: ReviewRating): boolean {
   return rating === "good" || rating === "easy";
 }
 
-function isVariantReviewEvent(event) {
-  return event?.reviewableType === "variant" || event?.variantLevel > 1 || event?.variantType === "rephrase";
+function isVariantReviewEvent(event: ReviewEventInput): boolean {
+  return event.reviewableType === "variant" || Number(event.variantLevel ?? 0) > 1 || event.variantType === "rephrase";
 }
 
-function createPerformanceEvent(deck, event) {
+function createPerformanceEvent(deck: Deck, event: ReviewEventInput): PerformanceEvent | null {
   const rating = normalizeRating(event?.rating);
   const rawDate = reviewEventDate(event);
   const date = rawDate ? new Date(rawDate) : null;
@@ -241,13 +318,13 @@ function createPerformanceEvent(deck, event) {
   };
 }
 
-function collectPerformanceEvents(decks = []) {
+function collectPerformanceEvents(decks: Deck[] = []): PerformanceEvent[] {
   return decks
-    .flatMap((deck) => (deck.reviewEvents ?? []).map((event) => createPerformanceEvent(deck, event)).filter(Boolean))
+    .flatMap((deck) => (deck.reviewEvents ?? []).map((event) => createPerformanceEvent(deck, event as ReviewEventInput)).filter((event): event is PerformanceEvent => Boolean(event)))
     .sort((left, right) => String(right.reviewedAt).localeCompare(String(left.reviewedAt)));
 }
 
-function createRatingBreakdown(events) {
+function createRatingBreakdown(events: PerformanceEvent[]) {
   return REVIEW_RATING_KEYS.map((rating) => {
     const count = events.filter((event) => event.rating === rating).length;
 
@@ -260,11 +337,11 @@ function createRatingBreakdown(events) {
   });
 }
 
-function createRecentPerformanceDays(events, options = {}) {
+function createRecentPerformanceDays(events: PerformanceEvent[], options: LibraryOptions = {}) {
   const dayCount = Math.max(1, Math.round(Number(options.dayCount ?? PERFORMANCE_RECENT_DAY_COUNT) || PERFORMANCE_RECENT_DAY_COUNT));
   const end = startOfLocalDay(options.now ?? new Date());
   const start = addLocalDays(end, -(dayCount - 1));
-  const eventsByDate = new Map();
+  const eventsByDate = new Map<string | null, PerformanceEvent[]>();
 
   for (const event of events) {
     eventsByDate.set(event.dateKey, [...(eventsByDate.get(event.dateKey) ?? []), event]);
@@ -287,8 +364,8 @@ function createRecentPerformanceDays(events, options = {}) {
   });
 }
 
-function createDeckPerformanceRows(decks = [], events = [], now = new Date()) {
-  const eventsByDeckId = new Map();
+function createDeckPerformanceRows(decks: Deck[] = [], events: PerformanceEvent[] = [], now: DateInput = new Date()) {
+  const eventsByDeckId = new Map<string, PerformanceEvent[]>();
   for (const event of events) {
     eventsByDeckId.set(event.deckId, [...(eventsByDeckId.get(event.deckId) ?? []), event]);
   }
@@ -311,7 +388,7 @@ function createDeckPerformanceRows(decks = [], events = [], now = new Date()) {
         weakCount,
         weakPercent: percentage(weakCount, deckEvents.length),
         variantReviewCount,
-        averageResponseSeconds: Math.round(average(deckEvents.map((event) => event.responseTimeMs).filter(Boolean)) / 100) / 10,
+        averageResponseSeconds: Math.round(average(deckEvents.map((event) => event.responseTimeMs).filter((value): value is number => value != null)) / 100) / 10,
         dueCards: summary.dueCards,
         totalCards: summary.totalCards,
         matureCards: summary.matureCards,
@@ -320,10 +397,19 @@ function createDeckPerformanceRows(decks = [], events = [], now = new Date()) {
     .sort((left, right) => right.reviewCount - left.reviewCount || right.weakCount - left.weakCount || left.name.localeCompare(right.name));
 }
 
-function createDeckRow(deck, { now, cardLimit, scopeDecks = [deck], depth = 0, childrenCount = 0 }) {
+function createDeckRow(
+  deck: Deck,
+  { now, cardLimit, scopeDecks = [deck], depth = 0, childrenCount = 0 }: {
+    now: DateInput;
+    cardLimit: number;
+    scopeDecks?: Deck[];
+    depth?: number;
+    childrenCount?: number;
+  },
+) {
   const activeCards = listReviewableCards(deck);
   const directSummary = summarizeDeckReview(deck, now);
-  const summary = summarizeDeckReview({ cards: scopeDecks.flatMap((scopeDeck) => scopeDeck.cards ?? []) }, now);
+  const summary = summarizeDeckReview({ ...deck, cards: scopeDecks.flatMap((scopeDeck) => scopeDeck.cards ?? []) }, now);
 
   return {
     id: deck.id,
@@ -350,7 +436,9 @@ function createDeckRow(deck, { now, cardLimit, scopeDecks = [deck], depth = 0, c
   };
 }
 
-function matchesDeckRow(row, query, coreMode) {
+type DeckRow = ReturnType<typeof createDeckRow>;
+
+function matchesDeckRow(row: DeckRow, query: string, coreMode: CoreMode | "all"): boolean {
   const haystack = normalizeQuery(`${row.name} ${row.deck.tags?.join(" ") ?? ""} ${row.path}`);
   const matchesQuery = !query || haystack.includes(query);
   const matchesMode = coreMode === "all" || row.coreMode === coreMode;
@@ -358,7 +446,7 @@ function matchesDeckRow(row, query, coreMode) {
   return matchesQuery && matchesMode;
 }
 
-function summarizeDecks(decks, now) {
+function summarizeDecks(decks: Deck[], now: DateInput) {
   const summaries = decks.map((deck) => summarizeDeckReview(deck, now));
   const totals = summaries.reduce(
     (accumulator, row) => {
@@ -394,9 +482,9 @@ function summarizeDecks(decks, now) {
   };
 }
 
-function buildChildrenByParent(decks) {
+function buildChildrenByParent(decks: Deck[]): Map<string | null, Deck[]> {
   const deckIds = new Set(decks.map((deck) => deck.id));
-  const childrenByParent = new Map();
+  const childrenByParent = new Map<string | null, Deck[]>();
 
   for (const deck of decks) {
     const parentId = deck.parentDeckId && deckIds.has(deck.parentDeckId) ? deck.parentDeckId : null;
@@ -406,16 +494,16 @@ function buildChildrenByParent(decks) {
   return childrenByParent;
 }
 
-function collectScopeDecks(deck, childrenByParent) {
+function collectScopeDecks(deck: Deck, childrenByParent: Map<string | null, Deck[]>): Deck[] {
   const children = childrenByParent.get(deck.id) ?? [];
   return [deck, ...children.flatMap((child) => collectScopeDecks(child, childrenByParent))];
 }
 
-function flattenDeckTree(decks, options = {}) {
+function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: number }): DeckRow[] {
   const childrenByParent = buildChildrenByParent(decks);
-  const rows = [];
+  const rows: DeckRow[] = [];
 
-  function visit(deck, depth) {
+  function visit(deck: Deck, depth: number): void {
     const children = childrenByParent.get(deck.id) ?? [];
     rows.push(createDeckRow(deck, {
       ...options,
@@ -430,7 +518,7 @@ function flattenDeckTree(decks, options = {}) {
   return rows;
 }
 
-export function createVisibleDeckRows(rows = [], collapsedDeckIds = new Set()) {
+export function createVisibleDeckRows(rows: DeckRow[] = [], collapsedDeckIds: Set<string> | string[] = new Set()): DeckRow[] {
   const collapsedIds = collapsedDeckIds instanceof Set ? collapsedDeckIds : new Set(collapsedDeckIds);
   const rowById = new Map(rows.map((row) => [row.id, row]));
 
@@ -444,7 +532,7 @@ export function createVisibleDeckRows(rows = [], collapsedDeckIds = new Set()) {
   });
 }
 
-export function getStudyHeatmapVisibleWeekCount(viewportWidth, totalWeeks = DEFAULT_HEATMAP_WEEK_COUNT) {
+export function getStudyHeatmapVisibleWeekCount(viewportWidth: unknown, totalWeeks = DEFAULT_HEATMAP_WEEK_COUNT): number {
   const normalizedTotalWeeks = Math.max(MIN_HEATMAP_WINDOW_WEEKS, Math.round(Number(totalWeeks) || DEFAULT_HEATMAP_WEEK_COUNT));
   const measuredWidth = Number(viewportWidth);
   if (!Number.isFinite(measuredWidth) || measuredWidth <= 0) return normalizedTotalWeeks;
@@ -455,7 +543,7 @@ export function getStudyHeatmapVisibleWeekCount(viewportWidth, totalWeeks = DEFA
   return clampNumber(weeksThatFit, MIN_HEATMAP_WINDOW_WEEKS, normalizedTotalWeeks);
 }
 
-export function createStudyHeatmapWindow(heatmap = {}, options = {}) {
+export function createStudyHeatmapWindow(heatmap: HeatmapInput = {}, options: LibraryOptions = {}) {
   const allWeeks = heatmap.weeks ?? [];
   const totalWeekCount = allWeeks.length;
 
@@ -510,36 +598,36 @@ export function createStudyHeatmapWindow(heatmap = {}, options = {}) {
   };
 }
 
-export function createStudyHeatmapModel(decks = [], options = {}) {
+export function createStudyHeatmapModel(decks: Deck[] = [], options: LibraryOptions = {}) {
   const today = startOfLocalDay(options.now ?? new Date());
   const useCalendarYear = options.weeks === null || options.weeks === undefined;
   const displayYear = useCalendarYear ? normalizeCalendarYear(options.year, today.getFullYear()) : null;
-  const calendarStartDay = useCalendarYear ? startOfYear(displayYear) : null;
-  const calendarEndDay = useCalendarYear ? endOfYear(displayYear) : null;
+  const calendarStartDay = useCalendarYear ? startOfYear(displayYear as number) : null;
+  const calendarEndDay = useCalendarYear ? endOfYear(displayYear as number) : null;
   const requestedWeekCount = Math.max(
     MIN_HEATMAP_WINDOW_WEEKS,
     Math.round(Number(options.weeks ?? DEFAULT_HEATMAP_WEEK_COUNT) || DEFAULT_HEATMAP_WEEK_COUNT),
   );
   const firstWeekStart = useCalendarYear
-    ? startOfWeek(calendarStartDay)
+    ? startOfWeek(calendarStartDay as Date)
     : addLocalDays(startOfWeek(today), -(requestedWeekCount - 1) * 7);
   const lastDay = useCalendarYear
-    ? addLocalDays(startOfWeek(calendarEndDay), 6)
+    ? addLocalDays(startOfWeek(calendarEndDay as Date), 6)
     : addLocalDays(firstWeekStart, requestedWeekCount * 7 - 1);
-  const countsByDate = new Map();
+  const countsByDate = new Map<string | null, number>();
 
   for (const deck of decks) {
     for (const event of deck.reviewEvents ?? []) {
-      const key = localDateKey(reviewEventDate(event));
+      const key = localDateKey(reviewEventDate(event as ReviewEventInput));
       if (!key) continue;
       countsByDate.set(key, (countsByDate.get(key) ?? 0) + 1);
     }
   }
 
-  const days = [];
+  const days: HeatmapDay[] = [];
   for (let cursor = firstWeekStart; cursor.getTime() <= lastDay.getTime(); cursor = addLocalDays(cursor, 1)) {
     const key = localDateKey(cursor);
-    const isOutsideDisplayYear = useCalendarYear && (cursor.getTime() < calendarStartDay.getTime() || cursor.getTime() > calendarEndDay.getTime());
+    const isOutsideDisplayYear = useCalendarYear && (cursor.getTime() < (calendarStartDay as Date).getTime() || cursor.getTime() > (calendarEndDay as Date).getTime());
     const isFuture = cursor.getTime() > today.getTime();
     days.push({
       key,
@@ -559,7 +647,7 @@ export function createStudyHeatmapModel(decks = [], options = {}) {
   const weeks = Array.from({ length: weekCount }, (_, index) => daysWithLevels.slice(index * 7, index * 7 + 7));
   const todayWeekIndex = weeks.findIndex((week) => week.some((day) => day.isToday));
   const defaultEndWeekIndex =
-    useCalendarYear && calendarStartDay.getTime() > today.getTime()
+    useCalendarYear && (calendarStartDay as Date).getTime() > today.getTime()
       ? MIN_HEATMAP_WINDOW_WEEKS
       : todayWeekIndex >= 0
         ? todayWeekIndex + 1
@@ -581,7 +669,7 @@ export function createStudyHeatmapModel(decks = [], options = {}) {
   };
 }
 
-export function createDeckLibraryModel(decks = [], options = {}) {
+export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptions = {}) {
   const query = normalizeQuery(options.query);
   const coreMode = options.coreMode ?? "all";
   const cardLimit = options.cardLimit ?? 80;
@@ -600,14 +688,14 @@ export function createDeckLibraryModel(decks = [], options = {}) {
   };
 }
 
-export function createPerformanceStatisticsModel(decks = [], options = {}) {
+export function createPerformanceStatisticsModel(decks: Deck[] = [], options: LibraryOptions = {}) {
   const now = options.now ?? new Date();
   const events = collectPerformanceEvents(decks);
   const successCount = events.filter((event) => event.isPositive).length;
   const strongCount = events.filter((event) => event.isStrong).length;
   const variantEvents = events.filter((event) => event.isVariant);
   const variantSuccessCount = variantEvents.filter((event) => event.isPositive).length;
-  const responseTimes = events.map((event) => event.responseTimeMs).filter(Boolean);
+  const responseTimes = events.map((event) => event.responseTimeMs).filter((value): value is number => value != null);
   const heatmap = createStudyHeatmapModel(decks, {
     now,
     weeks: options.heatmapWeeks ?? DEFAULT_HEATMAP_WEEK_COUNT,
@@ -646,10 +734,12 @@ export function createPerformanceStatisticsModel(decks = [], options = {}) {
   };
 }
 
-export function createAiJobLedger({ decks = [], jobs = [] } = {}) {
+export function createAiJobLedger(
+  { decks = [], jobs = [] }: { decks?: Deck[]; jobs?: AiJobInput[] } = {},
+) {
   const deckJobs = decks.flatMap((deck) =>
     (deck.aiJobs ?? []).map((job) => ({
-      ...job,
+      ...(job as AiJobInput),
       deckName: deck.name,
     })),
   );
@@ -660,7 +750,10 @@ export function createAiJobLedger({ decks = [], jobs = [] } = {}) {
       scopeLabel: job.deckName ?? job.deckId ?? "global",
       resultLabel: resultLabel(job),
     }));
-  const statusCounts = ledgerJobs.reduce((counts, job) => ({ ...counts, [job.status]: (counts[job.status] ?? 0) + 1 }), {});
+  const statusCounts = ledgerJobs.reduce<Record<string, number>>((counts, job) => {
+    const status = String(job.status ?? "unknown");
+    return { ...counts, [status]: (counts[status] ?? 0) + 1 };
+  }, {});
 
   return {
     jobs: ledgerJobs,

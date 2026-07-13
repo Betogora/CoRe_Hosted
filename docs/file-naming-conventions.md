@@ -16,7 +16,7 @@ Diese Konvention gilt für neue und umbenannte Dateien im CoRe-Repository. Maßg
 | Einzelne React-Komponente | `PascalCase.tsx` als Ziel, während der Migration auch `.jsx` | `DashboardScreen.tsx`, `RichTextEditor.jsx` |
 | React-Modus mit eigenem Komponentennamen | `PascalCase.tsx` als Ziel, während der Migration auch `.jsx` | `StudyMode.tsx`, `StudyMode.jsx` |
 | JSX-/TSX-Sammlung oder UI-Helfermodul | `camelCase.tsx` als Ziel, während der Migration auch `.jsx` | `coreUi.tsx`, `cardMedia.jsx` |
-| Anwendungsmodul | `camelCase.ts` als Ziel, während der Migration auch `.js` | `coreTypes.ts`, `coreModel.js` |
+| Anwendungsmodul | `camelCase.ts` als Ziel, während der Migration auch `.js` | `coreTypes.ts`, `coreModel.ts` |
 | JavaScript-Einstieg oder Barrel | etablierter Rollenname | `main.jsx`, `index.js` |
 | Generierte TypeScript-Typen | werkzeugüblicher Rollenname | `database.types.ts` |
 | Zugeordneter Modultest | `<modul>.test.ts`/`.test.tsx` als Ziel, während der Migration auch `.test.js`/`.test.jsx` | `coreTypes.test.ts`, `coreModel.test.js` |

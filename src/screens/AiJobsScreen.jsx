@@ -1,6 +1,6 @@
 import React from "react";
 import { AlertCircle, Bot, CheckCircle2 } from "lucide-react";
-import { createAiJobLedger } from "../libraryModel.js";
+import { createAiJobLedger } from "../libraryModel.ts";
 import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
 
 export function AiJobsScreen({ decks, jobs }) {

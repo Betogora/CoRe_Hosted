@@ -6,10 +6,112 @@ import {
   getActiveVariants,
   getOriginalVariant,
   stableContentHash,
-} from "./coreModel.js";
+} from "./coreModel.ts";
 import { stripHtml } from "./htmlSafety.js";
-import { calculateRetrievability, getSchedulerStateForItem } from "./scheduler.js";
-import { isAutomaticRephraseVariant, selectAutomaticReviewVariant } from "./variantSelection.js";
+import { calculateRetrievability, getSchedulerStateForItem } from "./scheduler.ts";
+import { isAutomaticRephraseVariant, selectAutomaticReviewVariant } from "./coreVariantService/variantSelection.ts";
+import type {
+  CardVariant,
+  LearningItem,
+  ReviewRating,
+  ReviewState,
+  TransformType,
+} from "./coreTypes.ts";
+
+type DeckSettingsInput = Parameters<typeof createDefaultDeckSettings>[0];
+type DateInput = string | number | Date;
+
+interface ReviewEventInput {
+  learningItemId?: string;
+  cardId?: string;
+  sourceCardId?: string;
+  variantId?: string;
+  cardVariantId?: string;
+  rating?: ReviewRating;
+  reviewedAt?: string;
+  answeredAt?: string;
+  createdAt?: string;
+}
+
+interface VariantServiceOptions {
+  language?: string;
+  style?: string | null;
+  modelRunId?: string | null;
+  confidence?: number;
+  now?: DateInput;
+  maturity?: VariantMaturity;
+  readiness?: VariantReadiness;
+  coverage?: VariantCoverage;
+  recommendation?: VariantRecommendation;
+  plan?: unknown;
+  force?: boolean;
+  providerConfigured?: boolean;
+  variantProvider?: unknown;
+  provider?: unknown;
+  autoGenerateAllowed?: boolean;
+  variantSession?: boolean;
+  allowGenerate?: boolean;
+  showGeneratedImmediately?: boolean;
+}
+
+interface VariantMaturity {
+  stage: string;
+  score: number;
+  label: string;
+  description: string;
+  isStable: boolean;
+  isFragile: boolean;
+  successfulReviewCount: number;
+  consecutivePositiveReviews: number;
+  consecutiveGoodOrEasy: number;
+  recentFailureCount: number;
+  retrievability: number;
+  stability: number;
+  difficulty: number;
+  intervalDays: number;
+  reps: number;
+  reasons: string[];
+}
+
+interface VariantReadiness {
+  allowedLevels: number[];
+  preferredLevel: number;
+  maxAllowedLevel: number;
+  allowAiRephrasing: boolean;
+  allowAdvancedVariants: boolean;
+  shouldPreferOriginal: boolean;
+  shouldFallbackToOriginal: boolean;
+  reason: string;
+  maturity: VariantMaturity;
+}
+
+interface VariantCoverage {
+  originalCount: number;
+  activeRephraseCount: number;
+  aiGeneratedCount: number;
+  userEditedCount: number;
+  levelCounts: Record<number, number>;
+  hasOriginal: boolean;
+  hasNearRephrases: boolean;
+  hasEnoughVariants: boolean;
+  missingRecommendedLevels: number[];
+  warnings: string[];
+}
+
+interface VariantRecommendation {
+  shouldSuggest: boolean;
+  shouldAutoGenerate: boolean;
+  shouldShowInUi: boolean;
+  mode: string;
+  recommendedVariantCount: number;
+  recommendedLevels: number[];
+  allowedVariantTypes: readonly string[];
+  reason: string;
+  warnings: string[];
+  maturity: VariantMaturity;
+  readiness: VariantReadiness;
+  coverage: VariantCoverage;
+}
 
 export {
   CARD_VARIATION_PROMPT_TEMPLATE,
@@ -18,32 +120,32 @@ export {
   generateRephrasedVariantsForLearningItem,
   parseVariantGenerationResponse,
   validateVariantSuggestion,
-} from "./variantGeneration.js";
-export { isAutomaticRephraseVariant, selectAutomaticReviewVariant } from "./variantSelection.js";
-export { getActiveVariants } from "./coreModel.js";
+} from "./coreVariantService/variantGeneration.ts";
+export { isAutomaticRephraseVariant, selectAutomaticReviewVariant } from "./coreVariantService/variantSelection.ts";
+export { getActiveVariants } from "./coreModel.ts";
 
 const DEFAULT_VARIANT_TYPES = ["basic", "cloze", "reverse"];
 const VOCAB_TAGS = ["vocab", "vocabulary", "vokabel", "wortschatz", "translation"];
 const EXACT_WORDING_TAGS = ["exact", "wortlaut", "definition", "quote", "gesetz"];
 
-function plain(value) {
+function plain(value: unknown): string {
   return stripHtml(value).replace(/\s+/g, " ").trim();
 }
 
-function lowerTags(card) {
+function lowerTags(card: LearningItem): string[] {
   return (card.originalTags ?? []).map((tag) => String(tag).toLowerCase());
 }
 
-function containsMathLikeText(text) {
+function containsMathLikeText(text: string): boolean {
   return /(\$[^$]+\$|\\\(|\\\[|=>|<=|>=|[a-z]\s*=\s*[^?]+)/i.test(text);
 }
 
-function isVeryShort(front, back) {
+function isVeryShort(front: string, back: string): boolean {
   const combinedLength = `${front} ${back}`.trim().length;
   return front.length < 10 || back.length < 8 || combinedLength < 34;
 }
 
-function blockedByDeckSettings(card, deckSettings, transformType) {
+function blockedByDeckSettings(card: LearningItem, deckSettings: ReturnType<typeof createDefaultDeckSettings>, transformType: TransformType): boolean {
   const blacklist = deckSettings.blacklist ?? {};
   const tags = lowerTags(card);
 
@@ -55,13 +157,13 @@ function blockedByDeckSettings(card, deckSettings, transformType) {
   );
 }
 
-export function classifyCardEligibility(card, deckSettings = {}) {
+export function classifyCardEligibility(card: LearningItem, deckSettings: DeckSettingsInput = {}) {
   const settings = createDefaultDeckSettings(deckSettings);
   const front = plain(card.originalFront);
   const back = plain(card.originalBack);
   const tags = lowerTags(card);
-  const reasons = [];
-  const blockedTransforms = [];
+  const reasons: string[] = [];
+  const blockedTransforms: string[] = [];
 
   if (!CORE_CARD_TYPES.includes(card.kind)) {
     reasons.push("Unbekannter Kartentyp.");
@@ -106,7 +208,7 @@ export function classifyCardEligibility(card, deckSettings = {}) {
   };
 }
 
-function rephraseQuestion(front) {
+function rephraseQuestion(front: unknown): string {
   const clean = plain(front).replace(/\?+$/, "");
 
   if (/^was\s+ist\s+/i.test(clean)) {
@@ -125,7 +227,7 @@ function rephraseQuestion(front) {
   return `Formuliere den Kerninhalt zu: ${clean}`;
 }
 
-export function createRephraseVariant(card, options = {}) {
+export function createRephraseVariant(card: LearningItem, options: VariantServiceOptions = {}): CardVariant {
   const profile = {
     language: options.language ?? "de",
     preserveMeaning: true,
@@ -160,29 +262,29 @@ export function createRephraseVariant(card, options = {}) {
   });
 }
 
-function reviewTimestamp(event) {
+function reviewTimestamp(event: ReviewEventInput): number {
   return new Date(event?.reviewedAt ?? event?.answeredAt ?? event?.createdAt ?? 0).getTime();
 }
 
-function getItemReviewEvents(item, reviewEvents = []) {
+function getItemReviewEvents(item: LearningItem, reviewEvents: ReviewEventInput[] = []): ReviewEventInput[] {
   return (reviewEvents ?? [])
     .filter((event) => [event.learningItemId, event.cardId, event.sourceCardId].includes(item?.id))
     .sort((left, right) => reviewTimestamp(right) - reviewTimestamp(left));
 }
 
-function isPositiveRating(rating) {
-  return ["hard", "good", "easy"].includes(rating);
+function isPositiveRating(rating: ReviewRating | null | undefined): boolean {
+  return rating != null && (["hard", "good", "easy"] as ReviewRating[]).includes(rating);
 }
 
-function isStrongPositiveRating(rating) {
-  return ["good", "easy"].includes(rating);
+function isStrongPositiveRating(rating: ReviewRating | null | undefined): boolean {
+  return rating != null && (["good", "easy"] as ReviewRating[]).includes(rating);
 }
 
-function successfulReviewCountFromState(state) {
+function successfulReviewCountFromState(state: Partial<ReviewState>): number {
   return Math.max(0, Number(state.reps ?? state.repetitions ?? 0) - Number(state.lapses ?? 0));
 }
 
-export function getReviewSuccessProfile(item, reviewEvents = []) {
+export function getReviewSuccessProfile(item: LearningItem, reviewEvents: ReviewEventInput[] = []) {
   const events = getItemReviewEvents(item, reviewEvents);
   const state = getSchedulerStateForItem(item);
   const totalReviews = events.length > 0 ? events.length : Number(state.reps ?? state.repetitions ?? 0);
@@ -225,7 +327,11 @@ export function getReviewSuccessProfile(item, reviewEvents = []) {
   };
 }
 
-export function getLearningItemMaturity(item, now = new Date(), reviewEvents = []) {
+export function getLearningItemMaturity(
+  item: LearningItem,
+  now: DateInput | ReviewEventInput[] = new Date(),
+  reviewEvents: ReviewEventInput[] = [],
+): VariantMaturity {
   if (Array.isArray(now)) {
     reviewEvents = now;
     now = new Date();
@@ -243,7 +349,7 @@ export function getLearningItemMaturity(item, now = new Date(), reviewEvents = [
   const retrievability = calculateRetrievability(state, now);
   const successfulReviewCount = Math.max(profile.successfulReviews, successfulReviewCountFromState(state));
   const recentFailureCount = profile.recentFailureCount;
-  const reasons = [];
+  const reasons: string[] = [];
   let stage = "new";
 
   const isFragile =
@@ -290,7 +396,7 @@ export function getLearningItemMaturity(item, now = new Date(), reviewEvents = [
       Math.round(successfulReviewCount * 14 + Math.min(36, stability * 3) + Math.min(20, intervalDays) + retrievability * 20 - recentFailureCount * 18),
     ),
   );
-  const labels = {
+  const labels: Record<string, string> = {
     new: "Neu",
     learning: "Lernen",
     early_review: "Frühes Review",
@@ -320,7 +426,11 @@ export function getLearningItemMaturity(item, now = new Date(), reviewEvents = [
   };
 }
 
-export function getVariantReadiness(item, reviewEvents = [], options = {}) {
+export function getVariantReadiness(
+  item: LearningItem,
+  reviewEvents: ReviewEventInput[] = [],
+  options: VariantServiceOptions = {},
+): VariantReadiness {
   const maturity = options.maturity ?? getLearningItemMaturity(item, options.now ?? new Date(), reviewEvents);
   const state = getSchedulerStateForItem(item);
   const base = {
@@ -399,12 +509,12 @@ export function getVariantReadiness(item, reviewEvents = [], options = {}) {
   return base;
 }
 
-export function getVariantCoverage(item) {
+export function getVariantCoverage(item: LearningItem): VariantCoverage {
   const variants = item?.variants ?? [];
   const originals = variants.filter((variant) => variant.isOriginal);
   const activeNearVariants = getActiveVariants(item).filter((variant) => isAutomaticRephraseVariant(variant));
-  const levelCounts = { 1: 0, 2: 0, 3: 0 };
-  const warnings = [];
+  const levelCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+  const warnings: string[] = [];
 
   for (const variant of activeNearVariants) {
     const level = Math.min(3, Math.max(1, Number(variant.variantLevel ?? 1) || 1));
@@ -428,19 +538,23 @@ export function getVariantCoverage(item) {
   };
 }
 
-function recommendedCoverageTarget(stage) {
+function recommendedCoverageTarget(stage: string): number {
   if (stage === "variant_ready") return 1;
   if (stage === "mature" || stage === "mastered") return 2;
   return 0;
 }
 
-function recommendedLevelsFor(readiness, coverage, count) {
+function recommendedLevelsFor(readiness: VariantReadiness, coverage: VariantCoverage, count: number): number[] {
   const levels = readiness.allowedLevels.filter((level) => level > 1 && coverage.levelCounts[level] === 0);
   const fallback = readiness.allowedLevels.filter((level) => level > 1);
   return (levels.length > 0 ? levels : fallback).slice(0, Math.max(0, count));
 }
 
-export function getVariantGenerationRecommendation(item, reviewEvents = [], options = {}) {
+export function getVariantGenerationRecommendation(
+  item: LearningItem,
+  reviewEvents: ReviewEventInput[] = [],
+  options: VariantServiceOptions = {},
+): VariantRecommendation {
   const maturity = options.maturity ?? getLearningItemMaturity(item, options.now ?? new Date(), reviewEvents);
   const readiness = options.readiness ?? getVariantReadiness(item, reviewEvents, { ...options, maturity });
   const coverage = options.coverage ?? getVariantCoverage(item);
@@ -493,7 +607,7 @@ export function getVariantGenerationRecommendation(item, reviewEvents = [], opti
   };
 }
 
-export function getVariantGenerationPlan(item, reviewEvents = [], options = {}) {
+export function getVariantGenerationPlan(item: LearningItem, reviewEvents: ReviewEventInput[] = [], options: VariantServiceOptions = {}) {
   const recommendation = options.recommendation ?? getVariantGenerationRecommendation(item, reviewEvents, options);
   const canGenerate = Boolean(recommendation.shouldSuggest || options.force);
   const maxVariantLevel = Math.min(3, recommendation.readiness.maxAllowedLevel || 1);
@@ -519,7 +633,7 @@ export function getVariantGenerationPlan(item, reviewEvents = [], options = {}) 
   };
 }
 
-export function createVariantReviewModel(item, reviewEvents = [], options = {}) {
+export function createVariantReviewModel(item: LearningItem, reviewEvents: ReviewEventInput[] = [], options: VariantServiceOptions = {}) {
   const now = options.now ?? new Date();
   const maturity = options.maturity ?? getLearningItemMaturity(item, now, reviewEvents);
   const readiness = options.readiness ?? getVariantReadiness(item, reviewEvents, { ...options, now, maturity });
@@ -552,7 +666,7 @@ export function createVariantReviewModel(item, reviewEvents = [], options = {}) 
   };
 }
 
-export function getVariantFallbackTarget(item, failedVariant, reviewEvents = []) {
+export function getVariantFallbackTarget(item: LearningItem, failedVariant: CardVariant | null, reviewEvents: ReviewEventInput[] = []) {
   const original = getOriginalVariant(item);
   const profile = getReviewSuccessProfile(item, reviewEvents);
   const failed = failedVariant ?? original;
@@ -586,7 +700,7 @@ export function getVariantFallbackTarget(item, failedVariant, reviewEvents = [])
   };
 }
 
-export function ensureVariantsForCard(card, deckSettings = {}, options = {}) {
+export function ensureVariantsForCard(card: LearningItem, deckSettings: DeckSettingsInput = {}, options: VariantServiceOptions = {}) {
   const settings = createDefaultDeckSettings(deckSettings);
   const eligibility = classifyCardEligibility(card, settings);
   const activeVariants = getActiveVariants(card);
@@ -627,7 +741,7 @@ export function ensureVariantsForCard(card, deckSettings = {}, options = {}) {
   };
 }
 
-export function toReviewable(card, variant = null) {
+export function toReviewable(card: LearningItem, variant: CardVariant | null = null) {
   if (!variant) {
     return {
       id: card.id,
@@ -655,7 +769,7 @@ export function toReviewable(card, variant = null) {
   };
 }
 
-export function chooseReviewCard(card, deckSettings = {}, options = {}) {
+export function chooseReviewCard(card: LearningItem, deckSettings: DeckSettingsInput = {}, options: VariantServiceOptions = {}) {
   const settings = createDefaultDeckSettings(deckSettings);
   const baseEligibility = classifyCardEligibility(card, settings);
   let nextCard = {
@@ -698,7 +812,7 @@ export function chooseReviewCard(card, deckSettings = {}, options = {}) {
   };
 }
 
-export function deactivateVariant(card, variantId, reason = "Nutzer hat die Variante deaktiviert.") {
+export function deactivateVariant(card: LearningItem, variantId: string, reason = "Nutzer hat die Variante deaktiviert."): LearningItem {
   const updatedAt = new Date().toISOString();
   return {
     ...card,
@@ -727,7 +841,7 @@ export function deactivateVariant(card, variantId, reason = "Nutzer hat die Vari
   };
 }
 
-export function flagVariant(card, variantId, feedbackType, note = "") {
+export function flagVariant(card: LearningItem, variantId: string, feedbackType: string, note = ""): LearningItem {
   const updatedAt = new Date().toISOString();
   const feedback = {
     id: stableContentHash({ variantId, feedbackType, note, updatedAt }, "feedback"),

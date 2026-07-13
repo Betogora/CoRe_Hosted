@@ -283,7 +283,7 @@
 <hr>
 <h2 id="implementierungsstand-2026-07-13">Implementierungsstand 2026-07-13</h2>
 <p>Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknuepft und wurde am 2026-07-07 an die aktuellen Codebase-Aenderungen sowie an die uebernommenen Hosting-, Database- und KI-Key-Hinweise angepasst. Der aktuelle Stand ist ein breiter Web-MVP: Viele Produktablaeufe sind klickbar, testbar und ueber kleine Module gekapselt. Ein Supabase-Projekt (<code>CoRe-Database</code>) und ein Vercel-Projekt (<code>core-hosted</code>) sind angebunden. Seit dem 2026-07-09 gibt es ein Pflicht-Login-Gate fuer die deployed App, Supabase-E-Mail/Passwort, accountgebundene lokale Cache-Keys, Cloud-first Autosave und eine einmalige Uebernahme vorhandener lokaler Browserdaten in den angemeldeten Account. CoRe ist trotzdem noch kein fertiges gehostetes Mehrnutzerprodukt: Offline-Konfliktloesung, produktive Medienablage, KI-Serverjobs, Monitoring, Backups und Community-Rechte fehlen noch.</p>
-<p>Wichtige Aenderung seit der ersten lokalen Spezifikationsfassung: Die bisherige Deck-<code>cards</code>-Collection bleibt im lokalen State aus Kompatibilitaetsgruenden bestehen, enthaelt fachlich aber Learning Items. <code>src/coreModel.js</code> normalisiert neue und alte Karten ueber eine gemeinsame Creation Pipeline. Jedes Learning Item besitzt genau eine Original-Variante; Reverse-, Cloze-, importierte und KI-/Rephrase-Varianten sind daran verankert und koennen eigene Review-States, Performance- und Feedbackdaten tragen.</p>
+<p>Wichtige Aenderung seit der ersten lokalen Spezifikationsfassung: Die bisherige Deck-<code>cards</code>-Collection bleibt im lokalen State aus Kompatibilitaetsgruenden bestehen, enthaelt fachlich aber Learning Items. <code>src/coreModel.ts</code> normalisiert neue und alte Karten ueber eine gemeinsame Creation Pipeline. Jedes Learning Item besitzt genau eine Original-Variante; Reverse-, Cloze-, importierte und KI-/Rephrase-Varianten sind daran verankert und koennen eigene Review-States, Performance- und Feedbackdaten tragen.</p>
 <p>Die aktuelle Architektur macht bewusst keine breite Adapter-Vorleistung fuer noch unentschiedene Anbieter. Fuer den entschiedenen Startpfad wurden kleine Supabase-Module eingefuehrt: <code>src/supabaseClient.js</code> kapselt die Browser-Client-Konfiguration, <code>src/cloudAuth.js</code> kapselt Auth/Profile, <code>src/accountSession.js</code> kapselt Auth-Phasen und Sync-Status, <code>src/accountStorage.js</code> kapselt accountgebundene Browser-Cache-Keys, <code>src/syncDevice.js</code> kapselt die stabile Browser-ID samt verständlichem Geräte-Label, und <code>src/cloudRepository.js</code> kapselt accountgefilterte Tabellen-Loads, Geräte-Registrierung, Saves und Loeschsemantik fuer den ersten Online-MVP. React-Caller kennen weiterhin keine SQL-, RLS-, Row- oder User-Agent-Parsing-Details.</p>
 <p>Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese zentrale Spezifikation uebernommen. Der relevante Zielpfad ist jetzt hier dokumentiert: Vercel als naheliegender Hosting-/Preview-/Domain-Pfad, Supabase Auth/Postgres/RLS als naheliegender Persistenzpfad, echte Tabellen statt grossem Store-Blob, Supabase Storage/Object Storage fuer grosse Medien und Dokumente, eigene <code>/api/ai/*</code>-Routen fuer geheime KI-Keys, sowie klare Env-Var- und Secret-Grenzen.</p>
 <p>Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdown-Datei, <code>docs/todo.md</code>. Sie ist die einzige Roadmap-Quelle fuer offene Arbeit; neue TODO-Markdowns sollen nicht entstehen. <code>docs/specs.md</code> bleibt kanonisch, <code>docs/specs.html</code> ist die visuelle HTML-Fassung derselben Spezifikation, und <code>docs/anki-format-analysis.md</code> dokumentiert die Anki-Differenzentscheidungen hinter Import-, Medien- und Learning-Item-Ausbau.</p>
@@ -3012,8 +3012,8 @@ export interface ReviewState {
 <p>Der produktive Persistenzpfad soll an den bestehenden tiefen Modulen ansetzen, nicht an React-Callern:</p>
 <ul>
 <li><code>src/coreRepository.js</code> bleibt die lokale Persistenzgrenze fuer den laufenden Browser-State. <code>src/accountStorage.js</code> trennt diesen Cache pro Supabase-Account. <code>src/cloudRepository.js</code> ist der Supabase-Tabellenpfad fuer accountgefiltertes Laden, Replace-Speichern, Autosave und Loeschsemantik.</li>
-<li><code>src/coreWorkspace.js</code> bleibt die Kommandoflaeche fuer App-Aktionen, damit UI-Screens keine Tabellen- oder RLS-Details kennen.</li>
-<li><code>src/coreModel.js</code> bleibt die Quelle der Dateninvarianten: genau eine Original-Variante pro Learning Item, abgeleitete Varianten mit Anker, append-only Review Events, unveraenderliches <code>immutableOriginal</code>.</li>
+<li><code>src/coreWorkspace.ts</code> bleibt die Kommandoflaeche fuer App-Aktionen, damit UI-Screens keine Tabellen- oder RLS-Details kennen.</li>
+<li><code>src/coreModel.ts</code> bleibt die Quelle der Dateninvarianten: genau eine Original-Variante pro Learning Item, abgeleitete Varianten mit Anker, append-only Review Events, unveraenderliches <code>immutableOriginal</code>.</li>
 <li><code>src/apkgImport.js</code> und <code>src/mediaStore.js</code> bleiben die Grenzen fuer APKG-/Medienlogik; produktive Storage-Referenzen duerfen diese Details nicht in React-Screens ziehen.</li>
 </ul>
 <p>Der aktuelle SQL-Anker unter <code>supabase/core_schema_v1.sql</code> enthaelt bereits diese produktionsnahen Tabellen:</p>
@@ -3483,7 +3483,7 @@ interface ReviewContext {
 </tr>
 </tbody></table>
 <p>Diese Werte sind Platzhalter und müssen empirisch getestet werden.</p>
-<p><strong>Lokaler Stand 2026-07-07:</strong> <code>src/scheduler.js</code> stellt <code>scheduleWithFsrsLikeModel</code>, <code>calculateRetrievability</code>, <code>getSchedulerStateForItem</code> und <code>applyReviewRating</code> bereit. <code>src/coreVariantService.js</code> leitet daraus Maturity-Stages wie <code>new</code>, <code>learning</code>, <code>early_review</code>, <code>variant_ready</code>, <code>mature</code>, <code>mastered</code> und <code>relearning</code> ab und erzeugt Readiness, Coverage, Generation-Recommendation und Generation-Plan fuer die UI.</p>
+<p><strong>Lokaler Stand 2026-07-07:</strong> <code>src/scheduler.ts</code> stellt <code>scheduleWithFsrsLikeModel</code>, <code>calculateRetrievability</code>, <code>getSchedulerStateForItem</code> und <code>applyReviewRating</code> bereit. <code>src/coreVariantService.ts</code> leitet daraus Maturity-Stages wie <code>new</code>, <code>learning</code>, <code>early_review</code>, <code>variant_ready</code>, <code>mature</code>, <code>mastered</code> und <code>relearning</code> ab und erzeugt Readiness, Coverage, Generation-Recommendation und Generation-Plan fuer die UI.</p>
 <h3 id="13-4-varianten-scheduling">13.4 Varianten-Scheduling</h3>
 <p>Es gibt zwei mögliche Modelle:</p>
 <h4 id="modell-a-varianten-teilen-den-review-state-der-originalkarte">Modell A — Varianten teilen den Review-State der Originalkarte</h4>
@@ -3505,7 +3505,7 @@ VariantState     ← einzelne Variante
 <li>Entspannt.</li>
 <li>Eigene Einstellungen mit Tageslimits, Queue-Reihenfolge, Lern-/Wiederlernschritten, ersten Intervallen, Zielerinnerung, Maximalintervall und optional weniger Kurzintervallen.</li>
 </ul>
-<p><strong>Lokaler Stand 2026-07-10:</strong> <code>src/deckSettings.js</code> normalisiert Presets, globale <code>profile.schedulerPreferences</code> und stapelspezifische Werte. Das Zahnrad einer Stapelzeile öffnet <code>DeckSettingsScreen</code> für genau diesen Stapel. <code>SettingsScreen</code> verwendet denselben <code>LearningSettingsPanel</code> global; Speichern aktualisiert vorhandene Stapel und setzt die Vorgabe für neue oder importierte Stapel. <code>reviewService.createDailyReviewQueue</code> verwendet Tageslimits und Reihenfolge, während <code>scheduler.js</code> Lern-/Wiederlernintervalle, Zielerinnerung und Maximalintervall in Vorschau und Commit berücksichtigt.</p>
+<p><strong>Lokaler Stand 2026-07-10:</strong> <code>src/deckSettings.ts</code> normalisiert Presets, globale <code>profile.schedulerPreferences</code> und stapelspezifische Werte. Das Zahnrad einer Stapelzeile öffnet <code>DeckSettingsScreen</code> für genau diesen Stapel. <code>SettingsScreen</code> verwendet denselben <code>LearningSettingsPanel</code> global; Speichern aktualisiert vorhandene Stapel und setzt die Vorgabe für neue oder importierte Stapel. <code>reviewService.createDailyReviewQueue</code> verwendet Tageslimits und Reihenfolge, während <code>scheduler.ts</code> Lern-/Wiederlernintervalle, Zielerinnerung und Maximalintervall in Vorschau und Commit berücksichtigt.</p>
 <hr>
 <h2 id="14-technische-architektur">14. Technische Architektur</h2>
 <h2 id="14-1-frontend">14.1 Frontend</h2>
@@ -3537,6 +3537,7 @@ VariantState     ← einzelne Variante
 <li><strong>Go oder separater Python-Worker:</strong> Eine weitere Serversprache ist erst zulässig, wenn ein tatsächlich separat deployter, langlebiger oder CPU-intensiver Worker existiert, dessen Betriebs- und Bibliotheksvorteile die zusätzliche Queue-/HTTP-Naht, Schematypen, Deployments, Monitoring und Sicherheitswartung rechtfertigen. Vercel-/Supabase-nahe Standardpfade bleiben TypeScript.</li>
 <li><strong>Entscheidungsmaß:</strong> Optimiert wird nicht auf minimale physische Lines of Code, sondern auf kleine semantische Änderungsoberfläche, verlässliche Interfaces, Bundlevolumen, Laufzeit, Speicherbedarf und testbare Lokalität. Ein Sprachwechsel ohne messbaren Gesamtvorteil findet nicht statt.</li>
 </ul>
+<p><strong>M2-Abnahme am 2026-07-13:</strong> <code>coreModel</code>, <code>deckSettings</code>, <code>scheduler</code>, <code>reviewService</code>, <code>coreVariantService</code>, <code>variantGeneration</code>, <code>variantSelection</code>, <code>libraryModel</code>, <code>coreWorkspace</code> und <code>creationWorkflow</code> sind strict geprüfte <code>.ts</code>-Module. <code>src/coreModel.ts</code> bleibt die einzige öffentliche Kernmodell-Naht und bündelt private Verantwortungsflächen unter <code>src/coreModel/</code>; React und <code>reviewService.ts</code> verwenden Variantenwahl und -generierung über <code>coreVariantService.ts</code>. <code>allowJs: true</code> bleibt vertragsgemäß bis M4 bestehen. M2 hat keine Persistenz-, Supabase-, APKG-Format-, Medien-, Server- oder sichtbaren Produktverträge geändert.</p>
 <p>Migrationsabschluss bedeutet: <code>npm run typecheck</code>, Modulprüfungen, Production-Build, RLS-Smokes und der vollständige lokale Browserlauf sind grün; <code>allowJs</code> ist für <code>src/</code>, <code>api/</code> und <code>tests/</code> deaktiviert; notwendige JavaScript-Ausnahmen in Build-/Tool-Konfiguration sind einzeln dokumentiert; alle sichtbaren Features, Screens, Controls und Flows bleiben erhalten. Abschnitt 27 und die Dateinamenkonventionen werden mit den tatsächlich migrierten Pfaden aktualisiert, nicht vorauseilend.</p>
 <h3 id="layout-und-typografie-tokens">Layout- und Typografie-Tokens</h3>
 <p>Für den ersten Desktop-Website-Build SOLLEN React/Tailwind-Komponenten auf ein kleines, explizites Token-Set begrenzt werden:</p>
@@ -4566,12 +4567,12 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <td>Versionierter, ausschließlich aus dem lokal migrierten Supabase-Schema erzeugter Datenbankvertrag für die M3-Persistenzmigration</td>
 </tr>
 <tr>
-<td><code>src/coreModel.js</code></td>
+<td><code>src/coreModel.ts</code> und private Module unter <code>src/coreModel/</code></td>
 <td><code>createCoreDeck</code>, <code>createCoreLearningItem</code>, <code>createBasicLearningItem</code>, <code>createBasicReverseLearningItem</code>, <code>createClozeLearningItem</code>, <code>createLearningItemsFromNormalizedInput</code>, <code>createCardVariant</code>, <code>getOriginalVariant</code>, <code>getAnswerSideAnchorMiniCard</code>, <code>updateCardContent</code>, <code>restoreCardVersion</code>, <code>createDefaultDeckSettings</code>, <code>normalizeDeckAppearance</code></td>
-<td>Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen, Deck-Settings inklusive <code>appearance</code></td>
+<td>Einzige öffentliche Seam für Learning Items, Compatibility-Cards, Original-Variantenanker, Review-State, Quellenanker, Versionen und Deck-Settings; interne Exportflächen sind nach Werte/IDs, Review-State, Learning Items, Creation und Decks getrennt und werden außerhalb des Verzeichnisses nicht direkt importiert</td>
 </tr>
 <tr>
-<td><code>src/deckSettings.js</code></td>
+<td><code>src/deckSettings.ts</code></td>
 <td><code>normalizeLearningSettings</code>, <code>applyLearningPreset</code>, <code>markLearningSettingsCustom</code>, <code>applyLearningSettingsToDeckSettings</code>, <code>getGlobalDeckSettings</code>, <code>withGlobalDeckSettings</code></td>
 <td>Presets, Normalisierung, Legacy-Migration, globale Profilvorgaben und stapelspezifische Lernparameter hinter einer testbaren Modulgrenze</td>
 </tr>
@@ -4616,47 +4617,47 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <td>Tiefe Sync-Modulgrenze vor React für Geräte-Registrierung, accountgebundene reloadfeste Mutationen, revisionssicheren Delta-Autosave, Browser-Netzstatus, gecapptes Backoff mit Jitter, Reconnect-Flush, idempotente Review-Events und pausierte Konflikt-Snapshots</td>
 </tr>
 <tr>
-<td><code>src/coreWorkspace.js</code></td>
+<td><code>src/coreWorkspace.ts</code></td>
 <td><code>createCoreWorkspace</code>, <code>createDemoAnatomyDeck</code>, <code>createDeck</code>, <code>renameDeck</code>, <code>moveDeck</code>, <code>deleteDeckTree</code>, <code>setDeckCoreMode</code>, <code>saveDeckCardContent</code>, <code>deleteDeckCard</code>, <code>addManualCardToDeck</code>, <code>dryRunApkgImport</code>, <code>commitApkgImport</code>, <code>importApkgDeck</code>, <code>applyVariantGenerationResponse</code></td>
 <td>Lokale App-Kommandos fuer Demo-Daten, Stapelpflege, Kartenpflege und KI-Variantenannahme; die bestehenden asynchronen APKG-Methoden laden APKG-/SQLite-/Zstd-Code erst bei Nutzung</td>
 </tr>
 <tr>
-<td><code>src/creationWorkflow.js</code></td>
+<td><code>src/creationWorkflow.ts</code></td>
 <td><code>createCreationWorkflow</code></td>
 <td>In-process Creation-Kommandos fuer APKG-Preview/Commit, Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme; haelt Import-/Medien-/KI-Orchestrierung aus React heraus</td>
 </tr>
 <tr>
-<td><code>src/scheduler.js</code></td>
+<td><code>src/scheduler.ts</code></td>
 <td><code>formatIntervalLabel</code>, <code>simulateRatingOutcome</code>, <code>getReviewButtonOptions</code>, <code>scheduleWithFsrsLikeModel</code>, <code>calculateRetrievability</code>, <code>getSchedulerStateForItem</code>, <code>applyReviewRating</code>, <code>listReviewableCards</code>, <code>summarizeDeckReview</code></td>
 <td>FSRS-like Vier-Button-Scheduler, Button-Intervallvorschau, konfigurierbare Lern-/Wiederlern- und Maximalintervalle, Stability, Difficulty, Desired Retention, Retrievability, Maturity-XP, reviewbare Karten, Faelligkeit und Deck-Zusammenfassung</td>
 </tr>
 <tr>
-<td><code>src/libraryModel.js</code></td>
+<td><code>src/libraryModel.ts</code></td>
 <td><code>createDeckLibraryModel</code>, <code>createVisibleDeckRows</code>, <code>createStudyHeatmapModel</code>, <code>createStudyHeatmapWindow</code>, <code>getStudyHeatmapVisibleWeekCount</code>, <code>createPerformanceStatisticsModel</code>, <code>createAiJobLedger</code></td>
 <td>UI-nahe Bibliotheksprojektion fuer Dashboard-Hauptstapel, Statistik, baumartige Deckliste, aufklappbare Unterstapel-Sicht, Unterstapel-Aggregate, aktive Kartenzeilen, responsive kalenderjahrbasierte Heatmap, Leistungs-Auswertung und KI-Job-Ledger</td>
 </tr>
 <tr>
-<td><code>src/reviewService.js</code></td>
+<td><code>src/reviewService.ts</code></td>
 <td><code>answerVariant</code>, <code>getNextReviewItem</code>, <code>createDailyReviewQueue</code>, <code>getEffectiveNewCardsPerDay</code>, <code>countNewCardsIntroducedToday</code>, <code>createReviewSession</code>, <code>recordReviewRating</code>, <code>recordVariantFeedback</code></td>
 <td>Tiefer Review-Flow fuer Antwortverarbeitung, Tages-Queue aus <code>dueAt &lt;= now</code> plus Neu-/Review-Limits und konfigurierbarer Reihenfolge, FSRS-State, Fallback nach Fehlern, Eventbau, Familien-/Variantenstatus, Session-Projektion und Feedback-Kommandos</td>
 </tr>
 <tr>
 <td><code>src/reviewFlow.js</code></td>
 <td><code>answerVariant</code>, <code>getNextReviewItem</code></td>
-<td>Legacy-Fassade fuer bestehende Imports; Implementierung lebt in <code>src/reviewService.js</code></td>
+<td>Legacy-Fassade fuer bestehende Imports; Implementierung lebt in <code>src/reviewService.ts</code></td>
 </tr>
 <tr>
-<td><code>src/coreVariantService.js</code></td>
+<td><code>src/coreVariantService.ts</code></td>
 <td><code>classifyCardEligibility</code>, <code>createVariantReviewModel</code>, <code>getLearningItemMaturity</code>, <code>getVariantReadiness</code>, <code>getVariantCoverage</code>, <code>getVariantGenerationRecommendation</code>, <code>getVariantGenerationPlan</code>, <code>getVariantFallbackTarget</code>, <code>ensureVariantsForCard</code>, <code>chooseReviewCard</code>, <code>deactivateVariant</code>, <code>flagVariant</code></td>
 <td>CoRe-Eligibility, Reifegrad-/Readiness-Projektion, Coverage, Generation-Plan, Fallback-Ziele, lokaler Fallback-Rephrase und Varianten-Feedback</td>
 </tr>
 <tr>
-<td><code>src/variantGeneration.js</code></td>
+<td><code>src/coreVariantService/variantGeneration.ts</code></td>
 <td><code>buildCardVariationPrompt</code>, <code>parseVariantGenerationResponse</code>, <code>validateVariantSuggestion</code>, <code>generateRephrasedVariantsForLearningItem</code></td>
 <td>Promptbau, JSON-Parsing, Vorschlagsvalidierung und verankerte KI-Varianten-Erstellung</td>
 </tr>
 <tr>
-<td><code>src/variantSelection.js</code></td>
+<td><code>src/coreVariantService/variantSelection.ts</code></td>
 <td><code>selectAutomaticReviewVariant</code>, <code>isAutomaticRephraseVariant</code></td>
 <td>Automatische Auswahl nahe am Original bleibender Review-Varianten nach Lernphase und Variant-Level</td>
 </tr>

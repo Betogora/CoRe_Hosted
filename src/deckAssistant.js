@@ -1,5 +1,5 @@
 import { stripHtml } from "./htmlSafety.js";
-import { makeId } from "./coreModel.js";
+import { makeId } from "./coreModel.ts";
 
 const STOP_WORDS = new Set([
   "der",

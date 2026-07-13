@@ -10,7 +10,7 @@ import {
   getLearningItemQuestion,
   getOriginalVariant,
   normalizeLearningItem,
-} from "./coreModel.js";
+} from "./coreModel.ts";
 
 function createMemoryStorage() {
   const store = new Map();

@@ -1,4 +1,4 @@
-import { createCoreCard, createCoreDeck, createReviewState, makeId, stableContentHash } from "./coreModel.js";
+import { createCoreCard, createCoreDeck, createReviewState, makeId, stableContentHash } from "./coreModel.ts";
 import { stripHtml } from "./htmlSafety.js";
 import { finalizeImportReport, importNormalizedDeck } from "./importService.js";
 import { readSqliteDatabase } from "./sqliteReader.js";

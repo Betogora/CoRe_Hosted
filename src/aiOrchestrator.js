@@ -1,4 +1,4 @@
-import { createAiDraftDeck, makeId, stableContentHash } from "./coreModel.js";
+import { createAiDraftDeck, makeId, stableContentHash } from "./coreModel.ts";
 import { createAnchorFromSelection, splitDocumentIntoPassages } from "./documentModel.js";
 
 const CAPABILITY_MODEL = {

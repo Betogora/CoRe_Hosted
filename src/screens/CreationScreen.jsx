@@ -1,6 +1,6 @@
 import React from "react";
 import { AlertCircle, ArrowLeft, Bot, CheckCircle2, Database, FileArchive, FileSpreadsheet, FileText, Loader2, PenLine, Pin, PinOff, Trash2, Upload, WandSparkles } from "lucide-react";
-import { createCreationWorkflow } from "../creationWorkflow.js";
+import { createCreationWorkflow } from "../creationWorkflow.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.jsx";
 import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.jsx";

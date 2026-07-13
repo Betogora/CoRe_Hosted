@@ -6,14 +6,14 @@ import {
   createCoreDeck,
   getActiveVariants,
   getOriginalVariant,
-} from "./coreModel.js";
+} from "./coreModel.ts";
 import {
   buildCardVariationPrompt,
   generateRephrasedVariantsForLearningItem,
   parseVariantGenerationResponse,
   validateVariantSuggestion,
-} from "./variantGeneration.js";
-import { getNextReviewItem } from "./reviewService.js";
+} from "./coreVariantService.ts";
+import { getNextReviewItem } from "./reviewService.ts";
 
 function createDeckWithItem(item) {
   return createCoreDeck({

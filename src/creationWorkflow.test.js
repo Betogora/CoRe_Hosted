@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { getOriginalVariant } from "./coreModel.js";
-import { createCreationWorkflow } from "./creationWorkflow.js";
+import { getOriginalVariant } from "./coreModel.ts";
+import { createCreationWorkflow } from "./creationWorkflow.ts";
 import { formatPdfTextContentItems } from "./documentModel.js";
 
 async function worldCapitalsApkgFile() {

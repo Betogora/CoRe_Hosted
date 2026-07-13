@@ -1,5 +1,5 @@
-import { createBasicLearningItem, createCoreDeck, createReviewState, getOriginalVariant, normalizeLearningItem } from "../coreModel.js";
-import { simulateRatingOutcome } from "../scheduler.js";
+import { createBasicLearningItem, createCoreDeck, createReviewState, getOriginalVariant, normalizeLearningItem } from "../coreModel.ts";
+import { simulateRatingOutcome } from "../scheduler.ts";
 import worldCapitalsSource from "../../fixtures/apkg/world-capitals.source.json" with { type: "json" };
 
 function createWorldCapitalsFixture(source) {

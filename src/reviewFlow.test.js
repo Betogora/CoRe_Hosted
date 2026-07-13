@@ -8,7 +8,7 @@ import {
   createCoreDeck,
   getActiveVariants,
   getOriginalVariant,
-} from "./coreModel.js";
+} from "./coreModel.ts";
 import { answerVariant, getNextReviewItem } from "./reviewFlow.js";
 
 function createDeckWithItem(item) {

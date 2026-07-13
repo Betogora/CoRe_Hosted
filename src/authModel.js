@@ -1,4 +1,4 @@
-import { stableContentHash } from "./coreModel.js";
+import { stableContentHash } from "./coreModel.ts";
 
 export function createLocalAccount({
   displayName = "",

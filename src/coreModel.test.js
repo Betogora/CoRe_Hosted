@@ -11,7 +11,7 @@ import {
   normalizeCoreDeck,
   normalizeLearningItem,
   updateCardContent,
-} from "./coreModel.js";
+} from "./coreModel.ts";
 
 test("deck settings normalize appearance defaults and fallbacks", () => {
   const defaults = createDefaultDeckSettings();

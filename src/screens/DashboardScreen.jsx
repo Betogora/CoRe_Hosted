@@ -1,6 +1,6 @@
 import React from "react";
 import { Activity, Bot, CalendarDays, ChevronLeft, ChevronRight, Layers } from "lucide-react";
-import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.js";
+import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.ts";
 import { DonutValue, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.jsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.jsx";
 

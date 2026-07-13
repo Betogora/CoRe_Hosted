@@ -31,7 +31,7 @@ import {
   Stethoscope,
   Wrench,
 } from "lucide-react";
-import { DECK_ICON_KEYS, normalizeDeckAppearance } from "../coreModel.js";
+import { DECK_ICON_KEYS, normalizeDeckAppearance } from "../coreModel.ts";
 
 const iconByKey = {
   "badge-dollar": BadgeDollarSign,

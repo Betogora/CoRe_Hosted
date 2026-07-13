@@ -1,19 +1,80 @@
 import { generateCardsFromDocument } from "./aiOrchestrator.js";
-import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument } from "./coreModel.js";
+import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument } from "./coreModel.ts";
 import { createAnchorFromSelection, createDocumentFromFile } from "./documentModel.js";
 import { appendPlainTextToCardHtml, hasCardRichTextContent } from "./richText.js";
 import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.js";
 import { storeDeckMedia } from "./mediaStore.js";
+import type { CardType, Deck, LearningItem, SourceAnchor } from "./coreTypes.ts";
 
-function loadApkgImport() {
+interface FileLike {
+  name?: string;
+  size?: number;
+  [key: string]: unknown;
+}
+
+interface ManualCreationInput {
+  deckName?: string;
+  cardType?: CardType;
+  front?: string;
+  back?: string;
+  tags?: unknown;
+  answerOptions?: unknown;
+  correctAnswer?: unknown;
+  expectedAnswer?: unknown;
+  document?: ReturnType<typeof createSourceDocument> | null;
+  documentText?: string;
+  selection?: string;
+  sourceAnchor?: SourceAnchor;
+  activeField?: string;
+}
+
+interface AiConfig {
+  cardTypes?: CardType[];
+  subject?: string;
+  [key: string]: unknown;
+}
+
+interface ApkgOptions {
+  onStep?: () => void;
+  existingDecks?: Deck[];
+}
+
+interface PasteImportInput {
+  mode?: "text" | "csv" | "spreadsheet";
+  deckName?: string;
+  content?: string;
+  dryRun?: boolean;
+}
+
+interface SelectionInput {
+  activeField?: string;
+  front?: string;
+  back?: string;
+  document?: ReturnType<typeof createSourceDocument> | null;
+  documentText?: string;
+  selectedText?: string;
+  sourceAnchorOptions?: Record<string, unknown>;
+}
+
+interface ManualValidationInput {
+  cardType?: CardType;
+  front?: string;
+  back?: string;
+  answerOptions?: unknown;
+  correctAnswer?: unknown;
+}
+
+export type CreationWorkflow = ReturnType<typeof createCreationWorkflow>;
+
+function loadApkgImport(): Promise<typeof import("./apkgImport.js")> {
   return import("./apkgImport.js");
 }
 
-function describeError(error, fallback) {
+function describeError(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-function createApkgJob(file, status, overrides = {}) {
+function createApkgJob(file: FileLike, status: string, overrides: Record<string, unknown> = {}) {
   return {
     fileName: file?.name ?? "APKG-Datei",
     fileSize: file?.size ?? 0,
@@ -24,11 +85,11 @@ function createApkgJob(file, status, overrides = {}) {
   };
 }
 
-function normalizePasteMode(mode) {
+function normalizePasteMode(mode: unknown): "text" | "csv" | "spreadsheet" {
   return mode === "csv" || mode === "spreadsheet" ? mode : "text";
 }
 
-function createPasteImportInput({ mode, deckName, content }) {
+function createPasteImportInput({ mode, deckName, content }: { mode: unknown; deckName: string; content: string }) {
   const normalizedMode = normalizePasteMode(mode);
   if (normalizedMode === "text") return { deckName, text: content };
 
@@ -40,7 +101,7 @@ function createPasteImportInput({ mode, deckName, content }) {
   };
 }
 
-function normalizeAnswerOptions(value) {
+function normalizeAnswerOptions(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((option) => String(option).trim()).filter(Boolean);
   return String(value ?? "")
     .split(/\n+/)
@@ -48,17 +109,17 @@ function normalizeAnswerOptions(value) {
     .filter(Boolean);
 }
 
-const SUPPORTED_MANUAL_CARD_TYPES = new Set(["basic", "basic-reversed", "cloze", "multiple-choice"]);
+const SUPPORTED_MANUAL_CARD_TYPES = new Set<CardType>(["basic", "basic-reversed", "cloze", "multiple-choice"]);
 
-function normalizeManualCardType(cardType) {
-  return SUPPORTED_MANUAL_CARD_TYPES.has(cardType) ? cardType : "basic";
+function normalizeManualCardType(cardType: unknown): CardType {
+  return typeof cardType === "string" && SUPPORTED_MANUAL_CARD_TYPES.has(cardType as CardType) ? cardType as CardType : "basic";
 }
 
-function hasClozeSyntax(value) {
+function hasClozeSyntax(value: unknown): boolean {
   return /\{\{c\d+::[\s\S]+?\}\}/.test(String(value ?? ""));
 }
 
-function normalizeMultipleChoiceData(input = {}, answerOptions = []) {
+function normalizeMultipleChoiceData(input: ManualCreationInput = {}, answerOptions: string[] = []) {
   const correctAnswer = String(input.correctAnswer ?? answerOptions[0] ?? input.back ?? "").trim();
   const options = [...answerOptions];
 
@@ -72,7 +133,7 @@ function normalizeMultipleChoiceData(input = {}, answerOptions = []) {
   };
 }
 
-function createManualDeckInput(input = {}) {
+function createManualDeckInput(input: ManualCreationInput = {}) {
   const requestedCardType = normalizeManualCardType(input.cardType);
   const cardType = requestedCardType === "cloze" && !hasClozeSyntax(input.front) ? "basic" : requestedCardType;
   const document = input.document ?? null;
@@ -84,11 +145,11 @@ function createManualDeckInput(input = {}) {
   const back = cardType === "multiple-choice" ? String(input.back || correctAnswer).trim() : input.back;
 
   return {
-    deckName: input.deckName,
+    deckName: input.deckName ?? "Neuer Kartenstapel",
     card: {
       cardType,
-      front: input.front,
-      back,
+      front: input.front ?? "",
+      back: back ?? "",
       tags: input.tags,
       answerOptions,
       correctAnswer,
@@ -110,7 +171,7 @@ function createManualDeckInput(input = {}) {
 
 export function createCreationWorkflow() {
   return {
-    async parseApkgFile(file, { onStep, existingDecks = [] } = {}) {
+    async parseApkgFile(file: FileLike, { onStep, existingDecks = [] }: ApkgOptions = {}) {
       try {
         const { createApkgImportPreview } = await loadApkgImport();
         const result = await createApkgImportPreview(file, onStep, { existingDecks });
@@ -140,7 +201,7 @@ export function createCreationWorkflow() {
       }
     },
 
-    async commitApkgPreview(preview, { existingDecks = [] } = {}) {
+    async commitApkgPreview(preview: unknown, { existingDecks = [] }: ApkgOptions = {}) {
       if (!preview) {
         return {
           deck: null,
@@ -154,7 +215,7 @@ export function createCreationWorkflow() {
       return commitApkgImport(preview, { existingDecks });
     },
 
-    importPastedDeck({ mode = "text", deckName = "Importierter Stapel", content = "", dryRun = false } = {}) {
+    importPastedDeck({ mode = "text", deckName = "Importierter Stapel", content = "", dryRun = false }: PasteImportInput = {}) {
       const normalizedMode = normalizePasteMode(mode);
       const input = createPasteImportInput({ mode: normalizedMode, deckName, content });
 
@@ -163,11 +224,11 @@ export function createCreationWorkflow() {
         : importCsvAsNormalizedDeck(input, { dryRun });
     },
 
-    async readSourceDocument(file) {
+    async readSourceDocument(file: FileLike) {
       return createDocumentFromFile(file);
     },
 
-    captureManualSelection({ activeField = "front", front = "", back = "", document = null, documentText = "", selectedText = "", sourceAnchorOptions = {} } = {}) {
+    captureManualSelection({ activeField = "front", front = "", back = "", document = null, documentText = "", selectedText = "", sourceAnchorOptions = {} }: SelectionInput = {}) {
       const selection = String(selectedText ?? "").trim();
       if (!selection) return { changed: false, front, back, selection: "" };
       const sourceAnchor = document ? createAnchorFromSelection({ ...document, text: documentText || document.text }, selection, activeField, sourceAnchorOptions) : null;
@@ -181,7 +242,7 @@ export function createCreationWorkflow() {
       };
     },
 
-    canCreateManualCard({ cardType = "basic", front = "", back = "", answerOptions = [], correctAnswer = "" } = {}) {
+    canCreateManualCard({ cardType = "basic", front = "", back = "", answerOptions = [], correctAnswer = "" }: ManualValidationInput = {}) {
       const normalizedCardType = normalizeManualCardType(cardType);
       const hasFront = hasCardRichTextContent(front);
       if (normalizedCardType === "cloze") return hasFront && hasClozeSyntax(front);
@@ -192,15 +253,15 @@ export function createCreationWorkflow() {
       return hasFront && hasCardRichTextContent(back);
     },
 
-    createManualDeckInput(input = {}) {
+    createManualDeckInput(input: ManualCreationInput = {}) {
       return createManualDeckInput(input);
     },
 
-    createManualDeck(input = {}) {
+    createManualDeck(input: ManualCreationInput = {}) {
       return createManualCoreDeck(createManualDeckInput(input));
     },
 
-    createInitialAiDocument(overrides = {}) {
+    createInitialAiDocument(overrides: Partial<ReturnType<typeof createSourceDocument>> = {}) {
       return createSourceDocument({
         fileName: "Textquelle",
         text: "",
@@ -209,7 +270,7 @@ export function createCreationWorkflow() {
       });
     },
 
-    updateAiDocumentText(document, text) {
+    updateAiDocumentText(document: ReturnType<typeof createSourceDocument>, text: string) {
       return {
         ...document,
         text,
@@ -217,7 +278,7 @@ export function createCreationWorkflow() {
       };
     },
 
-    toggleAiCardType(config = {}, cardType) {
+    toggleAiCardType(config: AiConfig = {}, cardType: CardType) {
       const currentTypes = Array.isArray(config.cardTypes) ? config.cardTypes : ["basic"];
       const cardTypes = currentTypes.includes(cardType)
         ? currentTypes.filter((value) => value !== cardType)
@@ -225,7 +286,11 @@ export function createCreationWorkflow() {
       return { ...config, cardTypes: cardTypes.length ? cardTypes : ["basic"] };
     },
 
-    generateAiDrafts({ document, config = {}, deckName = "" } = {}) {
+    generateAiDrafts({ document, config = {}, deckName = "" }: {
+      document?: ReturnType<typeof createSourceDocument>;
+      config?: AiConfig;
+      deckName?: string;
+    } = {}) {
       const result = generateCardsFromDocument({
         document,
         config,
@@ -235,16 +300,16 @@ export function createCreationWorkflow() {
       return {
         ...result,
         statusMessage: result.validation.valid
-          ? `${result.draftDeck.cards.length} Entwürfe generiert.`
+          ? `${result.draftDeck?.cards.length ?? 0} Entwürfe generiert.`
           : result.validation.errors.join(" "),
       };
     },
 
-    updateDraftCard(cards = [], cardId, patch = {}) {
+    updateDraftCard(cards: LearningItem[] = [], cardId: string, patch: Partial<LearningItem> = {}): LearningItem[] {
       return cards.map((card) => (card.id === cardId ? { ...card, ...patch } : card));
     },
 
-    acceptAiDrafts(draftDeck, draftCards = []) {
+    acceptAiDrafts(draftDeck: Deck | null, draftCards: LearningItem[] = []): Deck | null {
       if (!draftDeck || draftCards.length === 0) return null;
       return acceptAiDraftDeck({ ...draftDeck, cards: draftCards });
     },

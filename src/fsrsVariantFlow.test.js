@@ -6,7 +6,7 @@ import {
   createCoreDeck,
   getActiveVariants,
   getOriginalVariant,
-} from "./coreModel.js";
+} from "./coreModel.ts";
 import {
   getLearningItemMaturity,
   getReviewSuccessProfile,
@@ -16,9 +16,9 @@ import {
   getVariantGenerationPlan,
   getVariantGenerationRecommendation,
   getVariantReadiness,
-} from "./coreVariantService.js";
-import { answerVariant, getNextReviewItem } from "./reviewService.js";
-import { calculateRetrievability, scheduleWithFsrsLikeModel } from "./scheduler.js";
+} from "./coreVariantService.ts";
+import { answerVariant, getNextReviewItem } from "./reviewService.ts";
+import { calculateRetrievability, scheduleWithFsrsLikeModel } from "./scheduler.ts";
 
 function deckWith(item, reviewEvents = []) {
   return createCoreDeck({

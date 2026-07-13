@@ -8,14 +8,14 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 
 - `npm run typecheck`: strikter TypeScript-Graph und Type-Policy ohne `@ts-ignore`/`@ts-nocheck` sind grün; `allowJs` bleibt für die M1–M3-Migration aktiv und `checkJs` bewusst aus.
 - `npm test`: 298 Tests bestanden, einschließlich des ersten ausgeführten `.test.ts` für die kanonischen Kernformen.
-- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der lokale Entry-Chunk ist 273,45 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
+- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der lokale Entry-Chunk ist 275,35 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
 - `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und vierzehn authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 21/21 Tests grün; zusätzlich zu PDF-Lazy-Loading, Textauswahl, Kartenfeld, Quellenanker und accountgebundener Konfliktentscheidung ist eine Offline-Änderung mit anschließendem Reconnect-Flush abgedeckt.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
 - `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten einschließlich des vollständigen `sync_devices`-Spaltenvertrags, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
 - `npm run test:rls:local`: SQL-Struktur-Gate und acht echte Data-API-Smokes mit Nutzer A, Nutzer B und `anon` sind grün. Eigene CRUD-Zugriffe, unsichtbare fremde Rows, wirkungslose Fremdmutationen, Ownership-Fälschung, accountgebundene Foreign Keys, gleiche lokale IDs, Geräte-Heartbeat sowie zwei konkurrierende Deck-Writes auf derselben Basisrevision mit persistiertem Konflikt sind reproduzierbar geprüft.
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
 - Der debouncete Autosave läuft über `src/syncEngine.js` und `src/cloudRepository.js`: `applyDeckMutation`, `applyCardMutation` und `softDeleteEntity` prüfen Basisrevisionen atomar über `user_id`, `id` und `revision`; stale Writes erzeugen idempotente `sync_conflicts`. Deckbaum-Löschungen bleiben bis zur Cloud-Bestätigung als Tombstones erhalten. Die accountgebundene Outbox überlebt Reloads, behält fehlgeschlagene Mutationen mit Retry-Zähler und entfernt Review- beziehungsweise Snapshot-Mutationen nur nach getrenntem Persistenz-Readback.
-- `src/creationWorkflow.js` verwendet weiterhin den lokalen `src/mediaStore.js`. `src/cloudMediaStore.js` dedupliziert separat getestet innerhalb eines Deck-/Card-Kontexts über Nutzer, Bucket und SHA-1, verwendet dateinamenunabhängige kanonische Pfade und bestätigt keine Row für noch nicht hochgeladene große Dateien; die Integration in Import, Cloud-State-Laden und Karten-Rendering fehlt weiterhin.
+- `src/creationWorkflow.ts` verwendet weiterhin den lokalen `src/mediaStore.js`. `src/cloudMediaStore.js` dedupliziert separat getestet innerhalb eines Deck-/Card-Kontexts über Nutzer, Bucket und SHA-1, verwendet dateinamenunabhängige kanonische Pfade und bestätigt keine Row für noch nicht hochgeladene große Dateien; die Integration in Import, Cloud-State-Laden und Karten-Rendering fehlt weiterhin.
 - Der einzige Server-KI-Pfad ist `POST /api/ai/chat`. Die Route prüft Origin, Request-Größe und Providerfehler, liest aktuelle `steps`- sowie ältere `outputs`-Responses und protokolliert bei Providerfehlern nur sichere Strukturmetadaten. Supabase-Session, Nutzer-/IP-Limits und Kostenbudgets fehlen weiterhin; der Browser sendet derzeit keinen Bearer-Token.
 - Community, Graph, KI-Drafts, Varianten und Jobs sind weiterhin lokale Produktmodelle; nur Chat besitzt einen externen Gemma-Proxy.
 
@@ -29,7 +29,7 @@ Das bisherige P0-Betriebsgate, P1 Repository-Mapping, die lokale Ownership-/RLS-
 
 ## Aktives nächstes Ziel
 
-**P0 M2 — Domänen-, Scheduler- und Creation-Module.** Als nächster TypeScript-Slice werden die in-process Kernmodule hinter ihren bestehenden Interfaces migriert und vertieft. Die bereits offene Zwei-Geräte-Abnahme bleibt ein parallel zulässiges Korrektheitsgate, ist aber kein Grund, weitere untypisierte Featurepfade zu ergänzen.
+**P0 M3 — Persistenz-, Import- und Servergrenzen.** Als nächster TypeScript-Slice werden die I/O- und Vertrauensgrenzen hinter ihren bestehenden Interfaces migriert und mit Laufzeitvalidierung abgesichert. Die bereits offene Zwei-Geräte-Abnahme bleibt ein parallel zulässiges Korrektheitsgate, ist aber kein Grund, weitere untypisierte Featurepfade zu ergänzen.
 
 Verbindlicher URL-Vertrag:
 
@@ -60,7 +60,7 @@ Die vier Pakete werden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 
 ### 0.2 M2 — Domänen-, Scheduler- und Creation-Module migrieren und vertiefen
 
-- [ ] **Die in-process Produktlogik nach TypeScript überführen und ihre Interfaces verkleinern.** Mindestens `coreModel`, `deckSettings`, `scheduler`, `reviewService`, `coreVariantService`, `variantGeneration`, `variantSelection`, `libraryModel`, `coreWorkspace`, `creationWorkflow` und die gemeinsame Learning-Item-Creation-Pipeline werden zu `.ts` migriert. Große Implementationen dürfen nach kohärenten Verantwortungen in private interne Module geteilt werden; React-Caller und Tests verwenden weiterhin das jeweilige öffentliche Interface, und es entsteht kein Adapter ohne zwei reale Adapter. Discriminated Unions bilden Kartenarten, Variantenstatus, Review-/Sync-Zustände und Fehlerformen ab. Alle bestehenden Invarianten — genau eine Originalvariante, stabile Anker, getrennte Varianten-States, Reimport-Erhalt und unveränderte sichtbare Features — bleiben durch Verhaltenstests am Interface abgesichert.
+- [x] **Die in-process Produktlogik nach TypeScript überführen und ihre Interfaces verkleinern.** `coreModel`, `deckSettings`, `scheduler`, `reviewService`, `coreVariantService`, `variantGeneration`, `variantSelection`, `libraryModel`, `coreWorkspace`, `creationWorkflow` und die gemeinsame Learning-Item-Creation-Pipeline sind zu strict geprüftem TypeScript migriert. `src/coreModel.ts` bleibt die einzige öffentliche Seam und bündelt private Verantwortungsflächen unter `src/coreModel/`; React und Review-Flow verwenden die Variantenlogik über `coreVariantService.ts`, ohne neue Adapternaht. Discriminated Unions und exhaustive Typvertragstests decken Kartenarten, Original-/abgeleitete Varianten, Review- und Sync-Zustände ab. Abnahme am 2026-07-13: `npm run typecheck`, 298 Modultests, Production-Build samt Chunkbudget, 8 lokale RLS-/Schema-Smokes und 21 Playwright-Browserflows sind grün; Originalvariante, Anker, Varianten-State, Reimport-/Edit-Erhalt und sichtbare Features blieben unverändert.
 
 ### 0.3 M3 — Persistenz-, Import- und Servergrenzen typisieren
 
@@ -125,7 +125,7 @@ Die vier Pakete werden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 
 ### 4.1 Cloud-Medien an den bestehenden Import anschließen
 
-- [ ] Den APKG-Importpfad in `src/creationWorkflow.js` so erweitern, dass nach der Vorschau wahlweise `src/cloudMediaStore.js` statt ausschließlich `src/mediaStore.js` verwendet wird. Lokaler Browser-Medienspeicher und Cloud-Medien müssen klar getrennte Statusmeldungen haben.
+- [ ] Den APKG-Importpfad in `src/creationWorkflow.ts` so erweitern, dass nach der Vorschau wahlweise `src/cloudMediaStore.js` statt ausschließlich `src/mediaStore.js` verwendet wird. Lokaler Browser-Medienspeicher und Cloud-Medien müssen klar getrennte Statusmeldungen haben.
 - [ ] `media_assets` in den Cloud-Persistenzpfad aufnehmen: Rows mit Deck-/Card-Referenzen speichern, beim Laden accountgebunden laden und für `src/ui/cardMedia.jsx` in aufgelöste signed URLs übersetzen. React darf keine Storage-Manifeste selbst interpretieren.
 - [ ] Accountweite Reimport- und Referenzregeln festlegen: SHA-1 plus Nutzer/Bucket/Storage-Pfad über mehrere Decks und Karten, keine verwaisten oder mehrfach gespeicherten Objekte, lokale Content-Edits bleiben erhalten, fehlende signed URLs erscheinen als verständlicher Medienstatus.
 
@@ -223,6 +223,6 @@ Die vier Pakete werden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 - `supabase/verify_schema_v1.sql`: fehlschlagendes Verify-Gate für Zieltabellen/-spalten, RLS, Policies, Grants, Constraints und den privaten Medien-Bucket.
 - `tests/rls/ownership-smoke.test.js`: echter lokaler Data-API-Smoke für Nutzer A, Nutzer B, `anon`, Ownership und accountgebundene Foreign Keys.
 - `src/cloudRepository.js`, `src/syncEngine.js`: aktueller Cloud-/Sync-Pfad und nächste technische Naht.
-- `src/cloudMediaStore.js`, `src/mediaStore.js`, `src/creationWorkflow.js`: aktueller lokaler und vorbereiteter Cloud-Medienpfad.
+- `src/cloudMediaStore.js`, `src/mediaStore.js`, `src/creationWorkflow.ts`: aktueller lokaler und vorbereiteter Cloud-Medienpfad.
 - `api/ai/chat.js`, `src/deckAssistant.js`, `src/aiOrchestrator.js`: aktueller Chat-Proxy und lokale KI-Drafts.
 - `.github/workflows/ci.yml`, `tests/e2e/`, `playwright.config.js`: automatisiertes Release-Gate, bestehende Browser-Smokes und lokale Supabase-Test-Session.

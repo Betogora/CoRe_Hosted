@@ -1,5 +1,78 @@
-import { REVIEW_RATINGS, createReviewState, getMaturityBand } from "./coreModel.js";
-import { normalizeLearningSettings } from "./deckSettings.js";
+import { REVIEW_RATINGS, createReviewState, getMaturityBand } from "./coreModel.ts";
+import { normalizeLearningSettings } from "./deckSettings.ts";
+import type { LearningSettingsInput } from "./deckSettings.ts";
+import type {
+  CardVariant,
+  CardVariantType,
+  Deck,
+  LearningItem,
+  ReviewRating,
+  ReviewSchedulerState,
+  ReviewState,
+} from "./coreTypes.ts";
+
+type DateInput = string | number | Date;
+type ReviewStateInput = Partial<ReviewState>;
+
+interface IntervalInput {
+  intervalMinutes?: number | null;
+  intervalDays?: number | null;
+  intervalMs?: number | null;
+}
+
+interface SchedulerContext {
+  now?: DateInput;
+  isVariant?: boolean;
+  variantId?: string | null;
+  variantIsOriginal?: boolean;
+  variantLevel?: number;
+  variantType?: CardVariantType;
+  fallbackVariantId?: string | null;
+  deckSettings?: LearningSettingsInput | null;
+  reviewEvents?: unknown[];
+  [key: string]: unknown;
+}
+
+interface RatingSimulationInput extends SchedulerContext {
+  learningItem?: LearningItem | null;
+  previousState?: ReviewStateInput | null;
+  variant?: CardVariant | null;
+  rating?: ReviewRating;
+  now?: DateInput;
+  commit?: boolean;
+}
+
+interface ReviewButtonOptions extends SchedulerContext {
+  now?: DateInput;
+  fallbackVariantIdByRating?: Partial<Record<ReviewRating, string | null>>;
+}
+
+interface RatingOutcome {
+  rating: ReviewRating;
+  label: string;
+  effect: string;
+  schedulerVersion: string;
+  previousReviewState: ReviewState;
+  nextReviewState: ReviewState;
+  nextLearningItemState: ReviewState;
+  nextState: ReviewSchedulerState;
+  dueAt: string;
+  intervalDays: number;
+  intervalMinutes: number | null;
+  intervalMs: number;
+  intervalLabel: string;
+  nextMaturity: { stage: string; label: string };
+  fallbackEffect: {
+    fallbackUntilCorrect: boolean;
+    forcedVariantId: string | null;
+    lastFailedVariantId: string | null;
+  };
+  commit: boolean;
+}
+
+type ReviewButtonOption = Pick<RatingOutcome,
+  "rating" | "label" | "intervalLabel" | "dueAt" | "nextState" | "nextMaturity" | "schedulerVersion" | "effect" | "intervalDays" | "intervalMinutes"
+>;
 
 export const SCHEDULER_VERSION = "fsrs_v1";
 export const FSRS_SCHEDULER_VERSION = "fsrs_v1";
@@ -27,39 +100,39 @@ const RATING_EFFECT = {
   easy: { xp: 18, intervalMultiplier: 2.15, ease: 0.08, lapse: 0 },
 };
 
-function addDays(date, days) {
+function addDays(date: DateInput, days: number): Date {
   const next = new Date(date);
   next.setTime(next.getTime() + days * DAY_MS);
   return next;
 }
 
-function addMinutes(date, minutes) {
+function addMinutes(date: DateInput, minutes: number): Date {
   const next = new Date(date);
   next.setTime(next.getTime() + minutes * MINUTE_MS);
   return next;
 }
 
-function clamp(value, min, max) {
+function clamp(value: unknown, min: number, max: number): number {
   return Math.min(max, Math.max(min, Number(value)));
 }
 
-function round(value, digits = 2) {
+function round(value: unknown, digits = 2): number {
   const factor = 10 ** digits;
   return Math.round(Number(value) * factor) / factor;
 }
 
-function getSchedulerProfile(deckSettings = {}) {
+function getSchedulerProfile(deckSettings: LearningSettingsInput = {}) {
   return normalizeLearningSettings(deckSettings).schedulerProfile;
 }
 
-function getDesiredRetention(deckSettings, state) {
+function getDesiredRetention(deckSettings: LearningSettingsInput | null | undefined, state: ReviewStateInput): number {
   const configuredRetention = deckSettings?.schedulerProfile?.desiredRetention;
   return configuredRetention == null
     ? clamp(state?.desiredRetention ?? 0.9, 0.7, 0.99)
-    : getSchedulerProfile(deckSettings).desiredRetention;
+    : getSchedulerProfile(deckSettings ?? {}).desiredRetention;
 }
 
-function getLearningIntervals(deckSettings = {}) {
+function getLearningIntervals(deckSettings: LearningSettingsInput = {}) {
   const profile = getSchedulerProfile(deckSettings);
   const [againMinutes, goodMinutes] = profile.learningStepsMinutes;
   const shortIntervalFactor = profile.lessShortIntervalBias ? 2 : 1;
@@ -76,11 +149,11 @@ function getLearningIntervals(deckSettings = {}) {
   };
 }
 
-function dayKey(date) {
+function dayKey(date: DateInput): string {
   return new Date(date).toISOString().slice(0, 10);
 }
 
-function intervalParts({ intervalMinutes = null, intervalDays = null, intervalMs = null } = {}) {
+function intervalParts({ intervalMinutes = null, intervalDays = null, intervalMs = null }: IntervalInput = {}) {
   if (intervalMs !== null && intervalMs !== undefined && Number.isFinite(Number(intervalMs))) {
     const ms = Math.max(0, Number(intervalMs));
     return {
@@ -107,7 +180,7 @@ function intervalParts({ intervalMinutes = null, intervalDays = null, intervalMs
   };
 }
 
-export function formatIntervalLabel(input = {}) {
+export function formatIntervalLabel(input: number | IntervalInput = {}): string {
   const parts = typeof input === "number" ? intervalParts({ intervalDays: input }) : intervalParts(input);
   const minutes = Math.max(0, Math.round(parts.intervalMs / MINUTE_MS));
 
@@ -129,7 +202,7 @@ export function formatIntervalLabel(input = {}) {
   return months === 1 ? "1 Monat" : `${months} Monate`;
 }
 
-function withInterval(state, now, interval, extra = {}) {
+function withInterval(state: ReviewState, now: Date, interval: IntervalInput, extra: Partial<ReviewState> = {}): ReviewState {
   const parts = intervalParts(interval);
   const dueAt =
     Number.isFinite(Number(interval.intervalMinutes)) || (Number.isFinite(Number(interval.intervalMs)) && parts.intervalMs < DAY_MS)
@@ -142,10 +215,10 @@ function withInterval(state, now, interval, extra = {}) {
     dueAt,
     intervalDays: parts.intervalDays,
     intervalMinutes: parts.intervalMinutes < 24 * 60 ? parts.intervalMinutes : null,
-  };
+  } as ReviewState;
 }
 
-function nextIntervalDays(state, rating, deckSettings) {
+function nextIntervalDays(state: ReviewStateInput, rating: ReviewRating, deckSettings: LearningSettingsInput): number {
   const current = Math.max(0, Number(state.intervalDays ?? 0));
 
   if (rating === "again") {
@@ -163,14 +236,14 @@ function nextIntervalDays(state, rating, deckSettings) {
   return Math.max(0.5, Math.round(current * effect.intervalMultiplier * ease * 10) / 10);
 }
 
-function nextLearningState(oldState, rating) {
+function nextLearningState(oldState: ReviewStateInput, rating: ReviewRating): ReviewSchedulerState {
   const previousState = oldState.state ?? (Number(oldState.repetitions ?? 0) > 0 ? "review" : "new");
   if (rating === "again") return previousState === "review" ? "relearning" : "learning";
   if (rating === "hard") return previousState === "new" ? "learning" : "review";
   return "review";
 }
 
-function nextPreferredVariantLevel(oldState, rating, context = {}) {
+function nextPreferredVariantLevel(oldState: ReviewStateInput, rating: ReviewRating, context: SchedulerContext = {}): number {
   const currentLevel = Math.min(3, Math.max(1, Number(oldState.preferredVariantLevel ?? context.variantLevel ?? 1) || 1));
   if (rating === "again") return Math.max(1, currentLevel - 1);
   if (rating === "hard") return Math.max(1, currentLevel - 1);
@@ -178,18 +251,18 @@ function nextPreferredVariantLevel(oldState, rating, context = {}) {
   return Math.min(3, currentLevel + 1);
 }
 
-function getStateReps(state) {
+function getStateReps(state: ReviewStateInput): number {
   return Math.max(0, Math.round(Number(state.reps ?? state.repetitions ?? 0) || 0));
 }
 
-function nextFsrsState(previousState, rating) {
+function nextFsrsState(previousState: ReviewStateInput, rating: ReviewRating): ReviewSchedulerState {
   const previous = previousState.state ?? (getStateReps(previousState) > 0 ? "review" : "new");
   if (rating === "again") return previous === "review" ? "relearning" : "learning";
   if (rating === "hard") return previous === "new" ? "learning" : "review";
   return "review";
 }
 
-function nextDifficulty(previousDifficulty, rating) {
+function nextDifficulty(previousDifficulty: unknown, rating: ReviewRating): number {
   const current = clamp(previousDifficulty ?? 5, 1, 10);
   const delta = {
     again: 1.2,
@@ -200,7 +273,7 @@ function nextDifficulty(previousDifficulty, rating) {
   return round(clamp(current + delta, 1, 10));
 }
 
-function nextStability(previousState, rating) {
+function nextStability(previousState: ReviewStateInput, rating: ReviewRating): number {
   const current = Math.max(0, Number(previousState.stability ?? 0) || 0);
   const difficulty = clamp(previousState.difficulty ?? 5, 1, 10);
 
@@ -220,7 +293,7 @@ function nextStability(previousState, rating) {
   return round(Math.max(1, current * (1.35 + difficultyFactor * 0.25)));
 }
 
-function nextFsrsIntervalDays(previousState, rating, nextStabilityValue, deckSettings) {
+function nextFsrsIntervalDays(previousState: ReviewStateInput, rating: ReviewRating, nextStabilityValue: number, deckSettings: LearningSettingsInput): number {
   const current = Math.max(0, Number(previousState.intervalDays ?? 0) || 0);
   const profile = getSchedulerProfile(deckSettings);
   const desiredRetention = getDesiredRetention(deckSettings, previousState);
@@ -242,7 +315,7 @@ function nextFsrsIntervalDays(previousState, rating, nextStabilityValue, deckSet
   return Math.min(maximumIntervalDays, round(Math.max(current + 0.5, profile.graduatingIntervalDays, nextStabilityValue * retentionFactor), 1));
 }
 
-export function calculateRetrievability(learningItemState, now = new Date()) {
+export function calculateRetrievability(learningItemState: unknown, now: DateInput = new Date()): number {
   const state = createReviewState(learningItemState);
   const stability = Math.max(0, Number(state.stability ?? 0) || 0);
   const reviewedAt = state.lastReviewedAt ? new Date(state.lastReviewedAt).getTime() : null;
@@ -255,7 +328,7 @@ export function calculateRetrievability(learningItemState, now = new Date()) {
   return round((1 + elapsedDays / (9 * stability)) ** -1, 4);
 }
 
-export function getSchedulerStateForItem(item) {
+export function getSchedulerStateForItem(item: LearningItem): ReviewState {
   const rawState = item?.learningItemState ?? item?.reviewState ?? {};
   return createReviewState({
     ...rawState,
@@ -266,7 +339,7 @@ export function getSchedulerStateForItem(item) {
   });
 }
 
-export function updateMaturityXp(oldXp, rating, wasVariant = false) {
+export function updateMaturityXp(oldXp: unknown, rating: ReviewRating, wasVariant = false): number {
   if (!REVIEW_RATINGS.includes(rating)) {
     throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
   }
@@ -275,14 +348,14 @@ export function updateMaturityXp(oldXp, rating, wasVariant = false) {
   return Math.max(0, Math.round(Number(oldXp ?? 0) + RATING_EFFECT[rating].xp + variantBonus));
 }
 
-function successCountForLearningDay(state, now) {
+function successCountForLearningDay(state: ReviewStateInput, now: DateInput): number {
   const today = dayKey(now);
   if (state.state === "new") return 0;
   if (state.learningDayKey && state.learningDayKey !== today) return 0;
   return Math.max(0, Math.round(Number(state.learningSuccessCount ?? state.sameDaySuccessCount ?? 0) || 0));
 }
 
-function deriveOutcomeMaturity(state) {
+function deriveOutcomeMaturity(state: ReviewStateInput): { stage: string; label: string } {
   const reps = getStateReps(state);
   const successfulReviews = Math.max(0, reps - Number(state.lapses ?? 0));
   const stability = Number(state.stability ?? 0) || 0;
@@ -302,7 +375,7 @@ function deriveOutcomeMaturity(state) {
   return { stage: "new", label: "Neu" };
 }
 
-function fallbackStateForRating(state, rating, context = {}) {
+function fallbackStateForRating(state: ReviewStateInput, rating: ReviewRating, context: SchedulerContext = {}) {
   const shouldClearFallback =
     rating !== "again" &&
     Boolean(state.fallbackUntilCorrect) &&
@@ -322,7 +395,7 @@ function fallbackStateForRating(state, rating, context = {}) {
   };
 }
 
-function baseNextState(state, rating, now, context = {}) {
+function baseNextState(state: ReviewState, rating: ReviewRating, now: Date, context: SchedulerContext = {}): ReviewState {
   const previousReps = getStateReps(state);
   const maturityXp = updateMaturityXp(state.maturityXp, rating, Boolean(context.isVariant));
   const stability = nextStability(state, rating);
@@ -361,13 +434,13 @@ function baseNextState(state, rating, now, context = {}) {
   });
 }
 
-function simulateLearningOutcome(state, rating, now, context = {}) {
+function simulateLearningOutcome(state: ReviewState, rating: ReviewRating, now: Date, context: SchedulerContext = {}): ReviewState {
   const today = dayKey(now);
   const priorSuccessCount = successCountForLearningDay(state, now);
   const nextBase = baseNextState(state, rating, now, context);
   const resetSuccess = rating === "again" || rating === "hard";
   const successCount = resetSuccess ? 0 : priorSuccessCount + 1;
-  const intervals = getLearningIntervals(context.deckSettings);
+  const intervals = getLearningIntervals(context.deckSettings ?? {});
   const common = {
     firstLearningAt: state.firstLearningAt ?? now.toISOString(),
     lastLearningStepAt: now.toISOString(),
@@ -422,9 +495,9 @@ function simulateLearningOutcome(state, rating, now, context = {}) {
   });
 }
 
-function simulateRelearningOutcome(state, rating, now, context = {}) {
+function simulateRelearningOutcome(state: ReviewState, rating: ReviewRating, now: Date, context: SchedulerContext = {}): ReviewState {
   const nextBase = baseNextState(state, rating, now, context);
-  const intervals = getLearningIntervals(context.deckSettings);
+  const intervals = getLearningIntervals(context.deckSettings ?? {});
 
   if (rating === "again") {
     return withInterval(nextBase, now, { intervalMinutes: intervals.relearningAgainMinutes }, {
@@ -452,9 +525,9 @@ function simulateRelearningOutcome(state, rating, now, context = {}) {
   });
 }
 
-function simulateReviewOutcome(state, rating, now, context = {}) {
+function simulateReviewOutcome(state: ReviewState, rating: ReviewRating, now: Date, context: SchedulerContext = {}): ReviewState {
   const nextBase = baseNextState(state, rating, now, context);
-  const intervals = getLearningIntervals(context.deckSettings);
+  const intervals = getLearningIntervals(context.deckSettings ?? {});
   const previousWasReview = state.state === "review" || (getStateReps(state) > 0 && state.state !== "learning" && state.state !== "new");
 
   if (rating === "again") {
@@ -467,7 +540,7 @@ function simulateReviewOutcome(state, rating, now, context = {}) {
   }
 
   const stability = nextBase.stability;
-  const intervalDays = nextFsrsIntervalDays(state, rating, stability, context.deckSettings);
+  const intervalDays = nextFsrsIntervalDays(state, rating, stability, context.deckSettings ?? {});
   return withInterval(nextBase, now, { intervalDays }, {
     state: "review",
     lapses: Number(state.lapses ?? 0),
@@ -485,8 +558,8 @@ export function simulateRatingOutcome({
   deckSettings = null,
   commit = false,
   ...context
-} = {}) {
-  if (!REVIEW_RATINGS.includes(rating)) {
+}: RatingSimulationInput = {}): RatingOutcome {
+  if (!rating || !REVIEW_RATINGS.includes(rating)) {
     throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
   }
 
@@ -544,15 +617,20 @@ export function simulateRatingOutcome({
   };
 }
 
-export function getReviewButtonOptions(learningItem, variant = null, nowOrOptions = new Date().toISOString(), reviewEvents = []) {
+export function getReviewButtonOptions(
+  learningItem: LearningItem,
+  variant: CardVariant | null = null,
+  nowOrOptions: DateInput | ReviewButtonOptions = new Date().toISOString(),
+  reviewEvents: unknown[] = [],
+) {
   const options = typeof nowOrOptions === "object" && nowOrOptions !== null && !(nowOrOptions instanceof Date)
     ? nowOrOptions
     : { now: nowOrOptions, reviewEvents };
   const now = options.now ?? new Date().toISOString();
   const events = options.reviewEvents ?? reviewEvents ?? [];
-  const ratings = ["again", "hard", "good", "easy"];
+  const ratings: ReviewRating[] = ["again", "hard", "good", "easy"];
 
-  return ratings.reduce((result, rating) => {
+  return ratings.reduce<Partial<Record<ReviewRating, ReviewButtonOption>>>((result, rating) => {
     const fallbackVariantId =
       rating === "again"
         ? options.fallbackVariantIdByRating?.[rating] ?? options.fallbackVariantId ?? null
@@ -583,7 +661,7 @@ export function getReviewButtonOptions(learningItem, variant = null, nowOrOption
   }, {});
 }
 
-export function scheduleWithFsrsLikeModel(previousState, rating, context = {}) {
+export function scheduleWithFsrsLikeModel(previousState: ReviewStateInput, rating: ReviewRating, context: SchedulerContext = {}): ReviewState {
   return simulateRatingOutcome({
     previousState,
     rating,
@@ -593,15 +671,15 @@ export function scheduleWithFsrsLikeModel(previousState, rating, context = {}) {
   }).nextReviewState;
 }
 
-export function applyReviewRating(reviewState, rating, context = {}) {
+export function applyReviewRating(reviewState: ReviewStateInput, rating: ReviewRating, context: SchedulerContext = {}): ReviewState {
   return scheduleWithFsrsLikeModel(reviewState, rating, context);
 }
 
-export function listReviewableCards(deck) {
+export function listReviewableCards(deck: Deck): LearningItem[] {
   return (deck.cards ?? []).filter((card) => card.status !== "deleted" && card.draftStatus !== "draft");
 }
 
-export function summarizeDeckReview(deck, now = new Date()) {
+export function summarizeDeckReview(deck: Deck, now: DateInput = new Date()) {
   const cards = listReviewableCards(deck);
   const nowTime = new Date(now).getTime();
   const dueCards = cards.filter((card) => new Date(card.reviewState?.dueAt ?? 0).getTime() <= nowTime);

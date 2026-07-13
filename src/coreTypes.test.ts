@@ -4,9 +4,11 @@ import type {
   CardVariant,
   Deck,
   DeckSettings,
+  LearningItemCreationInput,
   LearningItem,
   ReviewRating,
   ReviewState,
+  SyncStatus,
 } from "./coreTypes.ts";
 
 const now = "2026-07-13T12:00:00.000Z";
@@ -232,9 +234,56 @@ const deck = {
   versionLog: [],
 } satisfies Deck;
 
+const creationInputs = [
+  { cardType: "basic", deckId: "deck-1", front: "Frage", back: "Antwort" },
+  { cardType: "basic-reversed", deckId: "deck-1", front: "Frage", back: "Antwort" },
+  { cardType: "cloze", deckId: "deck-1", textWithClozes: "{{c1::Antwort}}" },
+  { cardType: "multiple-choice", deckId: "deck-1", front: "Frage", back: "B", answerOptions: ["A", "B"], correctAnswer: "B" },
+] satisfies LearningItemCreationInput[];
+
+function assertNever(value: never): never {
+  throw new Error(`Nicht behandelter Typzustand: ${String(value)}`);
+}
+
+function creationLabel(input: LearningItemCreationInput): string {
+  switch (input.cardType) {
+    case "basic": return input.front;
+    case "basic-reversed": return input.back;
+    case "cloze": return input.textWithClozes;
+    case "multiple-choice": return input.correctAnswer;
+    default: return assertNever(input);
+  }
+}
+
+function reviewStateLabel(state: ReviewState): string {
+  switch (state.state) {
+    case "new": return "Neu";
+    case "learning": return "Lernen";
+    case "review": return "Review";
+    case "relearning": return "Wiederlernen";
+    default: return assertNever(state);
+  }
+}
+
+function syncStatusLabel(sync: SyncStatus): string {
+  switch (sync.status) {
+    case "idle": return "Idle";
+    case "pending": return sync.message;
+    case "offline": return sync.message;
+    case "saving": return sync.message;
+    case "saved": return sync.message;
+    case "error": return sync.message;
+    case "conflict": return sync.message;
+    default: return assertNever(sync);
+  }
+}
+
 test("führt TypeScript-Tests aus und bildet normalisierte Kernformen ab", () => {
   const rating: ReviewRating = "good";
   assert.equal(deck.cards[0]?.variants[0]?.isOriginal, true);
   assert.equal(deck.deckSettings.coreMode, "auto");
   assert.equal(rating, "good");
+  assert.deepEqual(creationInputs.map(creationLabel), ["Frage", "Antwort", "{{c1::Antwort}}", "B"]);
+  assert.equal(reviewStateLabel(reviewState), "Neu");
+  assert.equal(syncStatusLabel({ status: "idle" }), "Idle");
 });

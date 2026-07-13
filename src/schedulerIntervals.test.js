@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getOriginalVariant } from "./coreModel.js";
-import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.js";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getOriginalVariant } from "./coreModel.ts";
+import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
 import { importNormalizedDeck } from "./importService.js";
-import { answerVariant, createDailyReviewQueue, getNextReviewItem, updateDeckNewCardLimitForDate } from "./reviewService.js";
-import { formatIntervalLabel, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.js";
+import { answerVariant, createDailyReviewQueue, getNextReviewItem, updateDeckNewCardLimitForDate } from "./reviewService.ts";
+import { formatIntervalLabel, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
 
 const NOW = "2026-07-07T10:00:00.000Z";
 

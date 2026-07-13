@@ -1,4 +1,4 @@
-import { createCoreDeck, makeId } from "./coreModel.js";
+import { createCoreDeck, makeId } from "./coreModel.ts";
 
 export const COMMUNITY_ROLES = ["owner", "admin", "member", "viewer"];
 export const COMMUNITY_PERMISSIONS = ["view", "copy", "contribute", "admin"];

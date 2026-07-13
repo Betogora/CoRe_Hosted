@@ -3,17 +3,17 @@ import test from "node:test";
 import { generateCardsFromDocument } from "./aiOrchestrator.js";
 import { createLocalAccount, signInLocalAccount, signOutLocalAccount } from "./authModel.js";
 import { assertCommunityPrivacyPayload, copySharedDeckToLibrary, createCommunity, shareDeckToCommunity } from "./communityModel.js";
-import { createCoreCard, createCoreDeck, createSourceDocument } from "./coreModel.js";
-import { chooseReviewCard, classifyCardEligibility, deactivateVariant, ensureVariantsForCard } from "./coreVariantService.js";
+import { createCoreCard, createCoreDeck, createSourceDocument } from "./coreModel.ts";
+import { chooseReviewCard, classifyCardEligibility, deactivateVariant, ensureVariantsForCard } from "./coreVariantService.ts";
 import { createPortableExport, mergePortableExportIntoState, validatePortableExport } from "./dataPortability.js";
 import { answerDeckQuestion } from "./deckAssistant.js";
 import { buildDeckGraph, shouldRefreshDeckGraph } from "./deckGraph.js";
 import { createCsvImportDeck, createTableImportDeck, createTextImportDeck } from "./importService.js";
 import { createLearningPlan } from "./learningPlan.js";
-import { createAiJobLedger, createDeckLibraryModel } from "./libraryModel.js";
+import { createAiJobLedger, createDeckLibraryModel } from "./libraryModel.ts";
 import { resolveReviewShortcut } from "./reviewShortcuts.js";
-import { createReviewSession, recordReviewRating, recordVariantFeedback } from "./reviewService.js";
-import { applyReviewRating } from "./scheduler.js";
+import { createReviewSession, recordReviewRating, recordVariantFeedback } from "./reviewService.ts";
+import { applyReviewRating } from "./scheduler.ts";
 
 function matureCard() {
   return createCoreCard({

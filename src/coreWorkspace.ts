@@ -1,7 +1,7 @@
 import { createCommunity, shareDeckToCommunity } from "./communityModel.js";
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.js";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.ts";
 import { createCoreRepository } from "./coreRepository.js";
-import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.js";
+import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.ts";
 import { buildDeckGraph } from "./deckGraph.js";
 import {
   importCsvAsNormalizedDeck,
@@ -9,15 +9,89 @@ import {
   importNormalizedDeck,
   importTextAsNormalizedDeck,
 } from "./importService.js";
+import type { CardVariant, CoreMode, Deck, DeckSettings, LearningItem } from "./coreTypes.ts";
 
-let apkgImportModulePromise = null;
+interface CloudTombstone {
+  entityTable: string;
+  entityId: string;
+  revision: number;
+  deletedAt: string;
+  updatedByDeviceId: string | null;
+}
 
-function loadApkgImportModule() {
+interface WorkspaceState {
+  decks: Deck[];
+  communities: unknown[];
+  aiJobs: unknown[];
+  cloudTombstones: CloudTombstone[];
+  [key: string]: unknown;
+}
+
+interface WorkspaceRepository {
+  getState(): WorkspaceState;
+  saveState(state: WorkspaceState): WorkspaceState;
+  getDeck(deckId: string): Deck | null;
+  saveDeck(deck: Deck): Deck;
+  saveDecks(decks: Deck[]): Deck[];
+  updateDeck(deckId: string, updater: (deck: Deck) => Deck): Deck | null;
+  updateDeckSettings(deckId: string, settings: Partial<DeckSettings>): Deck | null;
+  saveProfile(profile: unknown): unknown;
+  saveCommunity(community: unknown): unknown;
+  saveAiJob(job: unknown): unknown;
+  saveChatExchange(exchange: unknown): unknown;
+  saveLearningPlan(plan: unknown): unknown;
+}
+
+interface DeckMutationResult {
+  ok: boolean;
+  error: string | null;
+  deck: Deck | null;
+  updatedDecks: Deck[];
+  changedDeckIds: string[];
+  nextDecks?: Deck[];
+  renamedTo?: string;
+  movedToParentDeckId?: string | null;
+}
+
+interface DeckPlacementInput {
+  deckId: string;
+  name?: string | null;
+  parentDeckId?: string | null;
+  changeType: string;
+  reason: string;
+}
+
+interface ImportOptions {
+  dryRun?: boolean;
+  [key: string]: unknown;
+}
+
+interface ImportResult {
+  deck?: Deck | null;
+  decks?: Deck[];
+  [key: string]: unknown;
+}
+
+interface VariantDraft {
+  front: string;
+  back: string;
+  variantLevel?: number;
+  generationSource?: "original" | "ai_generated" | "user_edited" | "imported";
+  qualityStatus?: "draft" | "active" | "rejected" | "flagged" | "disabled";
+  isActive?: boolean;
+  meta?: Record<string, unknown>;
+}
+
+export type CoreWorkspace = ReturnType<typeof createCoreWorkspace>;
+
+let apkgImportModulePromise: Promise<typeof import("./apkgImport.js")> | null = null;
+
+function loadApkgImportModule(): Promise<typeof import("./apkgImport.js")> {
   apkgImportModulePromise ??= import("./apkgImport.js");
   return apkgImportModulePromise;
 }
 
-export function createDemoAnatomyDeck() {
+export function createDemoAnatomyDeck(): Deck {
   return createCoreDeck({
     name: "Demo / Anatomie",
     source: "manual",
@@ -34,7 +108,7 @@ export function createDemoAnatomyDeck() {
   });
 }
 
-function softDeleteCard(card, deletedAt) {
+function softDeleteCard(card: LearningItem, deletedAt: string): LearningItem {
   if (card.status === "deleted") return card;
 
   return {
@@ -57,13 +131,14 @@ function softDeleteCard(card, deletedAt) {
   };
 }
 
-function mergeSourceDocuments(existingDocuments = [], nextDocuments = []) {
-  const nextIds = new Set(nextDocuments.map((document) => document.id));
-  return [...nextDocuments, ...existingDocuments.filter((document) => !nextIds.has(document.id))];
+function mergeSourceDocuments(existingDocuments: unknown[] = [], nextDocuments: unknown[] = []): unknown[] {
+  const documentId = (document: unknown) => document !== null && typeof document === "object" && "id" in document ? String(document.id) : "";
+  const nextIds = new Set(nextDocuments.map(documentId));
+  return [...nextDocuments, ...existingDocuments.filter((document) => !nextIds.has(documentId(document)))];
 }
 
-function collectDeckTreeIds(decks = [], rootDeckId) {
-  const ids = new Set([rootDeckId]);
+function collectDeckTreeIds(decks: Deck[] = [], rootDeckId: string): Set<string> {
+  const ids = new Set<string>([rootDeckId]);
   let changed = true;
 
   while (changed) {
@@ -79,17 +154,20 @@ function collectDeckTreeIds(decks = [], rootDeckId) {
   return ids;
 }
 
-function hierarchyPathOf(deck) {
+function hierarchyPathOf(deck: Deck): string[] {
   return Array.isArray(deck?.hierarchyPath) && deck.hierarchyPath.length > 0
     ? deck.hierarchyPath.map((part) => String(part).trim()).filter(Boolean)
     : [String(deck?.name ?? "Neuer Stapel").trim() || "Neuer Stapel"];
 }
 
-function normalizeDeckName(value) {
+function normalizeDeckName(value: unknown): string {
   return String(value ?? "").trim().replace(/\s+/g, " ");
 }
 
-function makeUniqueSiblingDeckName(decks = [], { name, parentDeckId = null, excludeDeckId = null } = {}) {
+function makeUniqueSiblingDeckName(
+  decks: Deck[] = [],
+  { name, parentDeckId = null, excludeDeckId = null }: { name?: unknown; parentDeckId?: string | null; excludeDeckId?: string | null } = {},
+): string {
   const baseName = normalizeDeckName(name) || "Neuer Stapel";
   const siblingNames = new Set(
     decks
@@ -106,7 +184,7 @@ function makeUniqueSiblingDeckName(decks = [], { name, parentDeckId = null, excl
   return candidate;
 }
 
-function createHierarchyPathForDeck(decks = [], { name, parentDeckId = null } = {}) {
+function createHierarchyPathForDeck(decks: Deck[] = [], { name, parentDeckId = null }: { name?: unknown; parentDeckId?: string | null } = {}): string[] {
   const deckName = makeUniqueSiblingDeckName(decks, { name, parentDeckId });
   const parent = parentDeckId ? decks.find((deck) => deck.id === parentDeckId) ?? null : null;
   const parentPath = parent ? hierarchyPathOf(parent) : [];
@@ -114,7 +192,7 @@ function createHierarchyPathForDeck(decks = [], { name, parentDeckId = null } = 
   return [...parentPath, deckName];
 }
 
-function createDeckMutationError(error) {
+function createDeckMutationError(error: string): DeckMutationResult {
   return {
     ok: false,
     error,
@@ -124,13 +202,13 @@ function createDeckMutationError(error) {
   };
 }
 
-function mergeCloudTombstones(existing = [], next = []) {
-  const byEntity = new Map(existing.map((tombstone) => [`${tombstone.entityTable}:${tombstone.entityId}`, tombstone]));
+function mergeCloudTombstones(existing: CloudTombstone[] = [], next: CloudTombstone[] = []): CloudTombstone[] {
+  const byEntity = new Map<string, CloudTombstone>(existing.map((tombstone) => [`${tombstone.entityTable}:${tombstone.entityId}`, tombstone]));
   for (const tombstone of next) byEntity.set(`${tombstone.entityTable}:${tombstone.entityId}`, tombstone);
   return [...byEntity.values()];
 }
 
-function createDeckTreeTombstones(decks, deletedAt) {
+function createDeckTreeTombstones(decks: Deck[], deletedAt: string): CloudTombstone[] {
   return decks.flatMap((deck) => [
     {
       entityTable: "decks",
@@ -158,7 +236,7 @@ function createDeckTreeTombstones(decks, deletedAt) {
   ]);
 }
 
-function updateDeckTreePlacement(state, { deckId, name = null, parentDeckId = undefined, changeType, reason }) {
+function updateDeckTreePlacement(state: WorkspaceState, { deckId, name = null, parentDeckId = undefined, changeType, reason }: DeckPlacementInput): DeckMutationResult {
   const decks = state.decks ?? [];
   const deck = decks.find((item) => item.id === deckId);
   if (!deck) return createDeckMutationError("Stapel nicht gefunden.");
@@ -252,7 +330,7 @@ function updateDeckTreePlacement(state, { deckId, name = null, parentDeckId = un
   };
 }
 
-function commitDeckTreePlacement(repository, deckId, mutation) {
+function commitDeckTreePlacement(repository: WorkspaceRepository, deckId: string, mutation: Omit<DeckPlacementInput, "deckId">): DeckMutationResult {
   const state = repository.getState();
   const result = updateDeckTreePlacement(state, { deckId, ...mutation });
   if (!result.ok || !result.nextDecks) return result;
@@ -269,23 +347,23 @@ function commitDeckTreePlacement(repository, deckId, mutation) {
   };
 }
 
-function toDeckArray(deckOrDecks) {
+function toDeckArray(deckOrDecks: Deck | Deck[] | null | undefined): Deck[] {
   if (Array.isArray(deckOrDecks)) return deckOrDecks.filter(Boolean);
   return deckOrDecks ? [deckOrDecks] : [];
 }
 
-function saveDeckCollection(repository, deckOrDecks) {
+function saveDeckCollection(repository: WorkspaceRepository, deckOrDecks: Deck | Deck[]): Deck | Deck[] | null {
   const savedDecks = repository.saveDecks(toDeckArray(deckOrDecks));
   return Array.isArray(deckOrDecks) ? savedDecks : savedDecks[0] ?? null;
 }
 
-function saveImportDeckResult(repository, result, options = {}) {
+function saveImportDeckResult(repository: WorkspaceRepository, result: ImportResult, options: ImportOptions = {}): ImportResult {
   if (options.dryRun) return result;
 
   const decks = result?.decks?.length ? result.decks : toDeckArray(result?.deck);
   if (!decks.length) return result;
 
-  const savedDecks = saveDeckCollection(repository, decks);
+  const savedDecks = repository.saveDecks(decks);
   return {
     ...result,
     deck: savedDecks[0] ?? null,
@@ -293,21 +371,26 @@ function saveImportDeckResult(repository, result, options = {}) {
   };
 }
 
-export function createCoreWorkspace(repository = createCoreRepository()) {
+export function createCoreWorkspace(repository: WorkspaceRepository = createCoreRepository() as WorkspaceRepository) {
   return {
     getState() {
       return repository.getState();
     },
-    saveState(nextState) {
+    saveState(nextState: WorkspaceState) {
       return repository.saveState(nextState);
     },
-    saveDeck(deck) {
+    saveDeck(deck: Deck) {
       return repository.saveDeck(deck);
     },
-    saveDecks(deckOrDecks) {
+    saveDecks(deckOrDecks: Deck | Deck[]) {
       return saveDeckCollection(repository, deckOrDecks);
     },
-    createDeck({ name = "Neuer Stapel", parentDeckId = null, description = "", deckSettings = {} } = {}) {
+    createDeck({ name = "Neuer Stapel", parentDeckId = null, description = "", deckSettings = {} }: {
+      name?: string;
+      parentDeckId?: string | null;
+      description?: string;
+      deckSettings?: Partial<DeckSettings>;
+    } = {}) {
       const state = repository.getState();
       const validParentId = parentDeckId && state.decks.some((deck) => deck.id === parentDeckId) ? parentDeckId : null;
       const hierarchyPath = createHierarchyPathForDeck(state.decks, { name, parentDeckId: validParentId });
@@ -323,7 +406,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
 
       return repository.saveDeck(deck);
     },
-    renameDeck(deckId, name) {
+    renameDeck(deckId: string, name: string): DeckMutationResult {
       const trimmedName = normalizeDeckName(name);
       if (!trimmedName) return createDeckMutationError("Bitte gib einen Stapelnamen ein.");
 
@@ -333,17 +416,17 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         reason: "Stapel umbenannt",
       });
     },
-    moveDeck(deckId, parentDeckId = null) {
+    moveDeck(deckId: string, parentDeckId: string | null = null): DeckMutationResult {
       return commitDeckTreePlacement(repository, deckId, {
         parentDeckId,
         changeType: "deck_moved",
         reason: parentDeckId ? "Stapel als Unterstapel verschoben" : "Stapel auf Hauptebene verschoben",
       });
     },
-    updateDeck(deckId, updater) {
+    updateDeck(deckId: string, updater: (deck: Deck) => Deck) {
       return repository.updateDeck(deckId, updater);
     },
-    deleteDeckTree(deckId) {
+    deleteDeckTree(deckId: string) {
       const state = repository.getState();
       const deck = state.decks.find((item) => item.id === deckId);
       if (!deck) {
@@ -370,10 +453,10 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         nextSelectedDeckId: remainingDecks[0]?.id ?? null,
       };
     },
-    setDeckCoreMode(deckId, coreMode) {
+    setDeckCoreMode(deckId: string, coreMode: CoreMode) {
       return repository.updateDeckSettings(deckId, { coreMode });
     },
-    saveDeckCardContent(deckId, cardId, patch, reason = "Manuelle Bearbeitung") {
+    saveDeckCardContent(deckId: string, cardId: string, patch: Parameters<typeof updateCardContent>[1], reason = "Manuelle Bearbeitung") {
       const updatedAt = new Date().toISOString();
 
       return repository.updateDeck(deckId, (deck) => ({
@@ -382,7 +465,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         cards: (deck.cards ?? []).map((card) => (card.id === cardId ? updateCardContent(card, patch, reason) : card)),
       }));
     },
-    deleteDeckCard(deckId, cardId) {
+    deleteDeckCard(deckId: string, cardId: string) {
       const deletedAt = new Date().toISOString();
 
       return repository.updateDeck(deckId, (deck) => ({
@@ -391,7 +474,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         cards: (deck.cards ?? []).map((card) => (card.id === cardId ? softDeleteCard(card, deletedAt) : card)),
       }));
     },
-    addDeckCardVariant(deckId, cardId, variant, reason = "Manuelle Umformulierung") {
+    addDeckCardVariant(deckId: string, cardId: string, variant: VariantDraft, reason = "Manuelle Umformulierung") {
       const updatedAt = new Date().toISOString();
 
       return repository.updateDeck(deckId, (deck) => ({
@@ -415,7 +498,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         ),
       }));
     },
-    addManualCardToDeck(deckId, manualDeckInput) {
+    addManualCardToDeck(deckId: string, manualDeckInput: Parameters<typeof createManualCoreDeck>[0]) {
       const createdAt = new Date().toISOString();
       const manualDeck = createManualCoreDeck({
         ...manualDeckInput,
@@ -444,8 +527,8 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         }),
       );
     },
-    applyVariantGenerationResponse(deckId, cardId, response, options = {}) {
-      let generationResult = null;
+    applyVariantGenerationResponse(deckId: string, cardId: string, response: unknown, options: Record<string, unknown> = {}) {
+      let generationResult: ReturnType<typeof generateRephrasedVariantsForLearningItem> | null = null;
       const updatedAt = new Date().toISOString();
       const deck = repository.updateDeck(deckId, (currentDeck) => ({
         ...currentDeck,
@@ -462,43 +545,43 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
 
       return { deck, result: generationResult };
     },
-    saveProfile(profile) {
+    saveProfile(profile: unknown) {
       return repository.saveProfile(profile);
     },
-    saveCommunity(community) {
+    saveCommunity(community: unknown) {
       return repository.saveCommunity(community);
     },
-    saveAiJob(job) {
+    saveAiJob(job: unknown) {
       return repository.saveAiJob(job);
     },
-    saveChatExchange(exchange) {
+    saveChatExchange(exchange: unknown) {
       return repository.saveChatExchange(exchange);
     },
-    saveLearningPlan(plan) {
+    saveLearningPlan(plan: unknown) {
       return repository.saveLearningPlan(plan);
     },
-    updateAllDecks(updater) {
+    updateAllDecks(updater: (deck: Deck) => Deck) {
       const state = repository.getState();
       return repository.saveDecks(state.decks.map(updater));
     },
-    dryRunNormalizedImport(payload, options = {}) {
+    dryRunNormalizedImport(payload: unknown, options: ImportOptions = {}) {
       const state = repository.getState();
-      return importNormalizedDeck(payload, {
+      return importNormalizedDeck(payload !== null && typeof payload === "object" ? payload : {}, {
         ...options,
         dryRun: true,
         existingDecks: state.decks,
       });
     },
-    commitNormalizedImport(payload, options = {}) {
+    commitNormalizedImport(payload: unknown, options: ImportOptions = {}) {
       const state = repository.getState();
-      const result = importNormalizedDeck(payload, {
+      const result = importNormalizedDeck(payload !== null && typeof payload === "object" ? payload : {}, {
         ...options,
         dryRun: false,
         existingDecks: state.decks,
       });
       return saveImportDeckResult(repository, result);
     },
-    importTextDeck(input = {}, options = {}) {
+    importTextDeck(input: string | Record<string, unknown> = {}, options: ImportOptions = {}) {
       const state = repository.getState();
       const payload = typeof input === "string" ? { text: input } : input;
       const result = importTextAsNormalizedDeck(payload, {
@@ -507,7 +590,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
       });
       return saveImportDeckResult(repository, result, options);
     },
-    importCsvDeck(input = {}, options = {}) {
+    importCsvDeck(input: string | Record<string, unknown> = {}, options: ImportOptions = {}) {
       const state = repository.getState();
       const payload = typeof input === "string" ? { csv: input } : input;
       const result = importCsvAsNormalizedDeck(payload, {
@@ -516,7 +599,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
       });
       return saveImportDeckResult(repository, result, options);
     },
-    importJsonDeck(input = {}, options = {}) {
+    importJsonDeck(input: unknown = {}, options: ImportOptions = {}) {
       const state = repository.getState();
       const result = importJsonAsNormalizedDeck(input, {
         ...options,
@@ -524,7 +607,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
       });
       return saveImportDeckResult(repository, result, options);
     },
-    async dryRunApkgImport(input, options = {}) {
+    async dryRunApkgImport(input: unknown, options: ImportOptions = {}) {
       const state = repository.getState();
       const { dryRunApkgImport } = await loadApkgImportModule();
       return dryRunApkgImport(input, {
@@ -532,7 +615,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
         existingDecks: state.decks,
       });
     },
-    async commitApkgImport(input, options = {}) {
+    async commitApkgImport(input: unknown, options: ImportOptions = {}) {
       const state = repository.getState();
       const { commitApkgImport } = await loadApkgImportModule();
       const result = await commitApkgImport(input, {
@@ -541,7 +624,7 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
       });
       return saveImportDeckResult(repository, result);
     },
-    async importApkgDeck(input, options = {}) {
+    async importApkgDeck(input: unknown, options: ImportOptions = {}) {
       const state = repository.getState();
       const { importApkgDeck } = await loadApkgImportModule();
       const result = await importApkgDeck(input, {
@@ -550,13 +633,13 @@ export function createCoreWorkspace(repository = createCoreRepository()) {
       });
       return saveImportDeckResult(repository, result);
     },
-    ensureDeckGraph(deckId) {
+    ensureDeckGraph(deckId: string) {
       const deck = repository.getDeck(deckId);
       if (!deck) return null;
       if (deck.graph || !deck.cards?.length) return deck;
       return repository.updateDeck(deck.id, (current) => ({ ...current, graph: buildDeckGraph(current) }));
     },
-    shareDeckToDefaultCommunity(deckId, { name = "CoRe Lerngruppe", permission = "copy" } = {}) {
+    shareDeckToDefaultCommunity(deckId: string, { name = "CoRe Lerngruppe", permission = "copy" }: { name?: string; permission?: string } = {}) {
       const state = repository.getState();
       const deck = state.decks.find((item) => item.id === deckId);
       if (!deck) return null;

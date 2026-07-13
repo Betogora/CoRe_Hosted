@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createProfileRow } from "./cloudAuth.js";
-import { createBasicLearningItem, createCoreDeck, createSourceDocument, getOriginalVariant } from "./coreModel.js";
+import { createBasicLearningItem, createCoreDeck, createSourceDocument, getOriginalVariant } from "./coreModel.ts";
 import {
   ACCOUNT_UPSERT_CONFLICT,
   applyCardMutation,

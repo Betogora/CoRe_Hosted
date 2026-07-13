@@ -1,4 +1,4 @@
-import { createDefaultDeckSettings, normalizeCoreDeck } from "./coreModel.js";
+import { createDefaultDeckSettings, normalizeCoreDeck } from "./coreModel.ts";
 import { createWorldCapitalsSeedDecks, ensureWorldCapitalsStudyHistory } from "./fixtures/worldCapitals.js";
 
 const LEGACY_DECKS_KEY = "core.importedDecks.v1";
