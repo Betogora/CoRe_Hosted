@@ -143,9 +143,11 @@ function getPageBounds(database: SqliteDatabaseBuffer, pageNumber: number) {
   return { pageStart, pageHeaderOffset };
 }
 
-function getLocalPayloadSize(database: SqliteDatabaseBuffer, payloadLength: number) {
+function getLocalPayloadSize(database: SqliteDatabaseBuffer, payloadLength: number, indexPage = false) {
   const usableSize = database.pageSize - database.reservedSpace;
-  const maxLocal = usableSize - 35;
+  const maxLocal = indexPage
+    ? Math.floor(((usableSize - 12) * 64) / 255) - 23
+    : usableSize - 35;
 
   if (payloadLength <= maxLocal) {
     return payloadLength;
@@ -157,11 +159,11 @@ function getLocalPayloadSize(database: SqliteDatabaseBuffer, payloadLength: numb
   return candidate <= maxLocal ? candidate : minLocal;
 }
 
-function readPayload(database: SqliteDatabaseBuffer, startOffset: number, payloadLength: number) {
+function readPayload(database: SqliteDatabaseBuffer, startOffset: number, payloadLength: number, indexPage = false) {
   const { buffer, pageSize, reservedSpace } = database;
   if (!Number.isSafeInteger(payloadLength) || payloadLength < 0) throw new Error("SQLite-Payloadgröße ist ungültig.");
   const usableSize = pageSize - reservedSpace;
-  const localPayloadSize = getLocalPayloadSize(database, payloadLength);
+  const localPayloadSize = getLocalPayloadSize(database, payloadLength, indexPage);
   assertBufferRange(buffer, startOffset, localPayloadSize, "Lokaler SQLite-Payload");
   const chunks = [buffer.slice(startOffset, startOffset + localPayloadSize)];
   let bytesRead = localPayloadSize;
@@ -242,6 +244,50 @@ function readTableLeafRows(database: SqliteDatabaseBuffer, pageNumber: number, v
 
     const rightMostPage = readUint32(buffer, pageStart + pageHeaderOffset + 8);
     if (rightMostPage <= 0) throw new Error("SQLite-Innenseite hat keine rechte Kindseite.");
+    rows.push(...readTableLeafRows(database, rightMostPage, visitedPages));
+
+    return rows;
+  }
+
+  if (pageType === 0x0a) {
+    assertBufferRange(buffer, pageStart + pageHeaderOffset + 8, cellCount * 2, "SQLite-Index-Zellzeiger");
+    for (let index = 0; index < cellCount; index += 1) {
+      const cellOffset = readUint16(buffer, pageStart + pageHeaderOffset + 8 + index * 2);
+      if (cellOffset < pageHeaderOffset + 8 || cellOffset >= pageSize) throw new Error("SQLite-Index-Zelloffset ist ungültig.");
+      let cursor = pageStart + cellOffset;
+      const payloadLength = readVarint(buffer, cursor);
+      if (typeof payloadLength.value !== "number" || !Number.isSafeInteger(payloadLength.value)) {
+        throw new Error("SQLite-Index-Payloadgröße ist zu groß.");
+      }
+      cursor += payloadLength.length;
+      const payload = readPayload(database, cursor, payloadLength.value, true);
+      rows.push({ rowid: null, values: parseRecord(payload, 0) });
+    }
+
+    return rows;
+  }
+
+  if (pageType === 0x02) {
+    assertBufferRange(buffer, pageStart + pageHeaderOffset, 12 + cellCount * 2, "SQLite-Index-Innenseitenheader");
+    for (let index = 0; index < cellCount; index += 1) {
+      const cellOffset = readUint16(buffer, pageStart + pageHeaderOffset + 12 + index * 2);
+      if (cellOffset < pageHeaderOffset + 12 || cellOffset > pageSize - 5) throw new Error("SQLite-Index-Innenseiten-Zelloffset ist ungültig.");
+      let cursor = pageStart + cellOffset;
+      const childPage = readUint32(buffer, cursor);
+      cursor += 4;
+      rows.push(...readTableLeafRows(database, childPage, visitedPages));
+
+      const payloadLength = readVarint(buffer, cursor);
+      if (typeof payloadLength.value !== "number" || !Number.isSafeInteger(payloadLength.value)) {
+        throw new Error("SQLite-Index-Payloadgröße ist zu groß.");
+      }
+      cursor += payloadLength.length;
+      const payload = readPayload(database, cursor, payloadLength.value, true);
+      rows.push({ rowid: null, values: parseRecord(payload, 0) });
+    }
+
+    const rightMostPage = readUint32(buffer, pageStart + pageHeaderOffset + 8);
+    if (rightMostPage <= 0) throw new Error("SQLite-Index-Innenseite hat keine rechte Kindseite.");
     rows.push(...readTableLeafRows(database, rightMostPage, visitedPages));
 
     return rows;

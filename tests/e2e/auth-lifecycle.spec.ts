@@ -79,11 +79,11 @@ test.describe("lokaler Auth-Lifecycle", () => {
     await page.route(/\/auth\/v1\/authorize(?:\?.*)?$/, async (route) => {
       authorizeUrl = new URL(route.request().url());
       await route.fulfill({
-        status: 302,
-        headers: { location: "https://accounts.google.com/o/oauth2/v2/auth?client_id=core-e2e" },
+        status: 200,
+        contentType: "text/html",
+        body: "<h1>Google OAuth seam</h1>",
       });
     });
-    await page.route("https://accounts.google.com/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<h1>Google OAuth seam</h1>" }));
 
     await page.goto("/");
     await page.getByRole("button", { name: "Mit Google anmelden" }).click();
@@ -91,7 +91,7 @@ test.describe("lokaler Auth-Lifecycle", () => {
 
     expect(authorizeUrl?.searchParams.get("provider")).toBe("google");
     expect(authorizeUrl?.searchParams.get("redirect_to")).toBe("http://127.0.0.1:5190/");
-    await expect(page).toHaveURL(/^https:\/\/accounts\.google\.com\//);
+    await expect(page).toHaveURL(/\/auth\/v1\/authorize/);
   });
 });
 

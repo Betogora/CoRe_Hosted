@@ -7,9 +7,9 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 ## Auditierter Ist-Stand
 
 - `npm run typecheck`: strikter reiner TypeScript-Graph und Type-Policy ohne `@ts-ignore`/`@ts-nocheck` sind grün; `allowJs: false` und das Dateipolicy-Gate verhindern JavaScript-Rückfälle in den Codewurzeln.
-- `npm test`: 346 Tests bestanden, einschließlich Redirect-/Fehlercode-Verträgen, Secret-Redaktion, Loopback-Grenzen und Mailpit-Linkextraktion sowie den bestehenden Runtime-Vertragstests für lokale/Cloud-Persistenz, Medien, KI und APKG.
+- `npm test`: 350 Tests bestanden, einschließlich Redirect-/Fehlercode-Verträgen, Secret-Redaktion, Loopback-Grenzen und Mailpit-Linkextraktion sowie den bestehenden Runtime-Vertragstests für lokale/Cloud-Persistenz, Medien, KI und APKG.
 - `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der aktuelle Entry-Chunk ist 314,05 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
-- `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes, drei cloudfreie Auth-Resilience-Smokes, fünf lokale Auth-Lifecycle-Flows und fünfzehn authentifizierte Produkt-Smokes werden in fünf getrennten Playwright-Projekten als 27 Tests korrekt erkannt. Der letzte vollständige lokale Lauf vor dem neuen Paket war mit 22/22 Tests grün; das neue 27-Test-Gate konnte in der aktuellen Arbeitsumgebung mangels laufendem Docker Desktop noch nicht ausgeführt werden.
+- `npm run test:e2e:local`: zehn RLS-Smokes, der lokale AI-Job-Ledger-Smoke und 28 Playwright-Tests einschließlich Desktop-/Mobile-Abnahme des APKG-Importberichts sind im vollständigen lokalen Docker-/Supabase-Gate grün.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
 - `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten einschließlich des vollständigen `sync_devices`-Spaltenvertrags, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
 - `npm run test:rls:local`: SQL-Struktur-Gate und zehn echte Data-API-/Sync-Smokes mit Nutzer A, Nutzer B und `anon` sind grün. Der Medien-Smoke prüft einen Standard-Upload, einen echten Upload über 6 MB per TUS, private Objekt-/Row-Zugriffe und zwei Referenzen auf dasselbe accountweite Objekt. Das Zwei-Geräte-Gate prüft mit getrennten Clients, Storages und Geräte-IDs stale Snapshots, idempotente Offline-Reviews und dauerhafte Soft-Deletes.
@@ -139,9 +139,9 @@ Die vier Pakete wurden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 
 ### 4.3 Importqualität
 
-- [ ] APKG-Fixtures für Basic reversed, optional reversed, Cloze, Medienreferenzen, moderne MediaEntries, ungewöhnliche Note Types und echte `collection.anki21b`/Zstd-Pakete hinzufügen.
-- [ ] Importidentität aus `docs/anki-format-analysis.md` in Tests festhalten: Anki-GUID, Note-ID, Card-ID, Notetype-ID, Template-Ordinal, Deck-Pfad und Medienchecksum.
-- [ ] Importbericht in `CreationScreen` um erkannte Decks, nicht gemappte Felder, Warnungen, Medienstatus und Reimport-Dedupe ergänzen.
+- [x] Deterministische Legacy- und eingecheckte `anki==26.5`-APKG-Fixtures decken Basic Reverse, Optional Reverse mit gesetztem und leerem Steuerfeld, Cloze `c1`/`c2`, ungewöhnliche Notetypes, vorhandene/fehlende Medien, moderne MediaEntries und echte `collection.anki21b`-/Zstd-Pakete ab. Ein Erwartungsmanifest prüft Paket-SHA-256, Container, Modelle, Identitäten und Medien-SHA-1.
+- [x] Die versionierte `ankiImportIdentityV1` hält GUID, Note-/Card-/Notetype-ID, Template-Ordinal/-Name, Deck-ID/-Pfad und Importgruppe fest. Reimport matcht GUID-basiert vor IDs, Legacy-Kennungen und Fingerprint; Modul- und JSONB-Roundtriptests belegen Dedupe sowie den Erhalt lokaler Inhalte, Varianten- und Reviewzustände.
+- [x] Der versionierte APKG-Importbericht zeigt in `CreationScreen` erkannte Stapel, Kartentypen und Templates, gemappte/nicht gemappte Felder, Paket-/Medienformat, vorhandene/fehlende Medien, Cache-/Cloudstatus, Warnungen und Reimport-Dedupe. Desktop- und Mobile-E2E prüfen die vier Berichtsbereiche und eine mutationsfreie Vorschau.
 - [ ] DOCX-Textextraktion als eigenes Modul mit Fehlerfällen planen. OCR, Bildregionen und erweiterte PDF-Werkzeuge erst nach einem stabilen textbasierten Dokumentpfad angehen.
 
 ## 5. P1 — KI-Proxy, Jobs und Kostenkontrolle

@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertCircle, ArrowLeft, Bot, CheckCircle2, Database, FileArchive, FileSpreadsheet, FileText, Loader2, PenLine, Pin, PinOff, Trash2, Upload, WandSparkles } from "lucide-react";
-import { createCreationWorkflow } from "../creationWorkflow.ts";
+import { createCreationWorkflow, type ApkgCreationPreview } from "../creationWorkflow.ts";
+import type { ApkgImportReportV1 } from "../apkgImport.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
 import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
@@ -10,6 +11,14 @@ import type { SourceDocument } from "../coreTypes.ts";
 
 const creationWorkflow = createCreationWorkflow();
 const manualCardTypeOptions = cardTypeOptions;
+
+const notetypeLabels: Record<ApkgImportReportV1["notetypes"][number]["classification"], string> = {
+  basic: "Einfach",
+  reverse: "Einfach + umgekehrt",
+  optional_reverse: "Optional umgekehrt",
+  cloze: "Lückentext",
+  custom: "Sicherer Fallback",
+};
 
 function documentStatusMessage(document: SourceDocument | null): string {
   if (!document) return "";
@@ -49,9 +58,9 @@ function TabButton({ icon: Icon, label, isActive, onClick }: any) {
 }
 
 function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, mediaStore }: any) {
-  const [selectedFile, setSelectedFile] = React.useState<any>(null);
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [job, setJob] = React.useState<any>(null);
-  const [preview, setPreview] = React.useState<any>(null);
+  const [preview, setPreview] = React.useState<ApkgCreationPreview | null>(null);
   const [mediaStatus, setMediaStatus] = React.useState<any>(null);
   const [activeStep, setActiveStep] = React.useState<any>(null);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -60,7 +69,7 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
   const [cloudProgress, setCloudProgress] = React.useState<any>(null);
   const { urls: previewMediaUrls, missing: previewMissingMedia } = useDeckMediaUrls(preview?.deck, mediaStore);
 
-  async function parseFile(file: any) {
+  async function parseFile(file: File) {
     setSelectedFile(file);
     setPreview(null);
     setMediaStatus(null);
@@ -125,7 +134,7 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
   }
 
   const report = preview?.importReport ?? null;
-  const apkgReport = report?.apkg ?? {};
+  const apkgReport = report?.apkg?.contractVersion === 1 ? report.apkg : null;
   const previewWarnings = [...new Set([...(preview?.warnings ?? []), ...(report?.warnings ?? [])])];
   const previewErrors = [...new Set([...(job?.errors ?? []), ...(report?.errors ?? [])])];
 
@@ -215,19 +224,69 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
                 </button>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <StatTile label="Decks" value={apkgReport.detectedDecks?.length ?? preview.deck.importMeta.detectedDecks.length} />
-                <StatTile label="Notes" value={apkgReport.detectedNotes ?? preview.deck.importMeta.detectedNotes} />
-                <StatTile label="Varianten" value={apkgReport.detectedVariants ?? preview.deck.importMeta.detectedCards} />
+                <StatTile label="Stapel" value={apkgReport?.decks.length ?? 0} />
+                <StatTile label="Notes" value={apkgReport?.detectedNotes ?? 0} />
+                <StatTile label="Varianten" value={apkgReport?.detectedVariants ?? 0} />
                 <StatTile label="Dubletten" value={report?.duplicates?.length ?? 0} />
               </div>
-              <div className="mt-4 grid gap-2 text-sm text-[#66709a]">
-                <p>Medien: {preview.deck.importMeta.hasMedia ? `${preview.deck.importMeta.mediaCount} erkannt` : "keine"} · Hierarchie-Knoten: {preview.deck.importMeta.deckHierarchy?.length ?? 0}</p>
-                {mediaStatus?.count != null ? <p>Lokaler Cache: {mediaStatus.persisted ? `${mediaStatus.count} Dateien persistent` : `${mediaStatus.count} Dateien nur temporär`}</p> : null}
-                {cloudProgress ? <p>Cloud: {cloudProgress.completed}/{cloudProgress.total} · {cloudProgress.uploaded} hochgeladen · {cloudProgress.reused} wiederverwendet · Status: {cloudProgress.status}</p> : null}
-                {mediaStatus?.message ? <p>{mediaStatus.message}</p> : null}
-                {previewMissingMedia.length > 0 ? <p>{previewMissingMedia.length} Medien sind nur lokal verfügbar oder fehlen.</p> : null}
-                <p>Lernfortschritt: {report?.hasAnkiScheduling ? "Anki-Daten erkannt, nicht übernommen" : "neuer CoRe-FSRS-State"}</p>
-              </div>
+              {apkgReport ? (
+                <div className="mt-5 grid gap-4">
+                  <section className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4" aria-labelledby="apkg-decks-heading">
+                    <h4 id="apkg-decks-heading" className="font-semibold text-[#17214f]">Erkannte Stapel</h4>
+                    <div className="mt-3 grid gap-2 text-sm text-[#66709a]">
+                      {apkgReport.decks.map((deck) => (
+                        <div key={deck.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edf0f8] pb-2 last:border-0 last:pb-0">
+                          <span className="font-medium text-[#4e5b8c]">{deck.path}</span>
+                          <span>{deck.noteCount} Notes · {deck.cardCount} Karten</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4" aria-labelledby="apkg-notetypes-heading">
+                    <h4 id="apkg-notetypes-heading" className="font-semibold text-[#17214f]">Kartentypen und Felder</h4>
+                    <div className="mt-3 grid gap-3">
+                      {apkgReport.notetypes.map((notetype) => (
+                        <article key={notetype.id} className="rounded-lg bg-[#f8f9fe] p-3 text-sm">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-semibold text-[#4e5b8c]">{notetype.name}</span>
+                            <span className="rounded-full bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">{notetypeLabels[notetype.classification]}</span>
+                          </div>
+                          <p className="mt-2 text-[#66709a]">Templates: {notetype.templates.map((template) => `${template.ordinal + 1}. ${template.name}`).join(", ") || "keine"}</p>
+                          <p className="mt-1 text-[#66709a]">Zugeordnet: {notetype.mappedFields.join(", ") || "keine"}</p>
+                          {notetype.unmappedFields.length > 0 ? <p className="mt-1 font-medium text-amber-800">Nicht zugeordnet: {notetype.unmappedFields.join(", ")}</p> : null}
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <section className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4" aria-labelledby="apkg-media-heading">
+                      <h4 id="apkg-media-heading" className="font-semibold text-[#17214f]">Medien</h4>
+                      <div className="mt-3 grid gap-2 text-sm text-[#66709a]">
+                        <p>Medien: {apkgReport.media.detected} erkannt · {apkgReport.media.referenced.length} referenziert · {apkgReport.media.missing.length} fehlend</p>
+                        <p>Format: {apkgReport.mediaFormat} · Paket: {apkgReport.packageFormat}</p>
+                        {mediaStatus?.count != null ? <p>Lokaler Cache: {mediaStatus.persisted ? `${mediaStatus.count} Dateien persistent` : `${mediaStatus.count} Dateien nur temporär`}</p> : null}
+                        {cloudProgress ? <p>Cloud: {cloudProgress.completed}/{cloudProgress.total} · {cloudProgress.uploaded} hochgeladen · {cloudProgress.reused} wiederverwendet · Status: {cloudProgress.status}</p> : null}
+                        {mediaStatus?.message ? <p>{mediaStatus.message}</p> : null}
+                        {previewMissingMedia.length > 0 ? <p>{previewMissingMedia.length} Medien sind nur lokal verfügbar oder fehlen.</p> : null}
+                        {apkgReport.media.missing.length > 0 ? <p className="font-medium text-amber-800">Fehlend: {apkgReport.media.missing.join(", ")}</p> : null}
+                      </div>
+                    </section>
+
+                    <section className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4" aria-labelledby="apkg-reimport-heading">
+                      <h4 id="apkg-reimport-heading" className="font-semibold text-[#17214f]">Reimport</h4>
+                      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                        <div><dt className="text-[#66709a]">Neu</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.newItems}</dd></div>
+                        <div><dt className="text-[#66709a]">Wiedererkannt</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.matchedItems}</dd></div>
+                        <div><dt className="text-[#66709a]">Übersprungen</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.skippedItems}</dd></div>
+                        <div><dt className="text-[#66709a]">Lokale Änderungen geschützt</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.protectedLocalEdits}</dd></div>
+                      </dl>
+                      <p className="mt-3 text-sm text-[#66709a]">Lernfortschritt: {apkgReport.hasAnkiScheduling ? "Anki-Daten erkannt, nicht übernommen" : "neuer CoRe-FSRS-State"}</p>
+                    </section>
+                  </div>
+                </div>
+              ) : null}
               {mediaTask && cloudProgress?.status !== "cloud-ready" && cloudProgress?.status !== "cancelled" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {cloudProgress?.status === "paused" ? <button type="button" onClick={() => mediaTask.resume()} className="min-h-10 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1]">Fortsetzen</button> : <button type="button" onClick={() => void mediaTask.pause()} className="min-h-10 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1]">Pausieren</button>}
@@ -257,7 +316,7 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
             </SoftPanel>
 
             <div className="grid gap-4">
-              {preview.sampleCards.map((card: { id: React.Key|null|undefined; kind: string|number|bigint|boolean|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|React.ReactPortal|Promise<string|number|bigint|boolean|React.ReactPortal|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|null|undefined>|null|undefined; originalFront: unknown; originalBack: unknown; }) => (
+              {preview.sampleCards.map((card) => (
                 <article key={card.id} className="core-surface-raised rounded-[18px] p-5">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <span className="rounded-xl bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800">Originalkarte</span>

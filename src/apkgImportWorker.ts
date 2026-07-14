@@ -24,6 +24,7 @@ function serializablePackage(parsedPackage: any) {
     decks: parsedPackage.decks ?? [],
     notes: parsedPackage.notes ?? [],
     cards: parsedPackage.cards ?? [],
+    models: parsedPackage.models ?? {},
     mediaBundle: parsedPackage.mediaBundle ?? null,
   };
 }

@@ -394,7 +394,7 @@ export function createLearningItemsFromNormalizedInput(
       };
       const normalizedCardType = commonOptions.cardType;
       const isCloze = normalizedCardType === "cloze" || /\{\{c\d+::/.test(String(canonicalQuestion));
-      let item = isCloze
+      let item = isCloze && variants.length === 0
         ? createClozeLearningItem(deckId, anchorQuestion, anchorAnswer, commonOptions)
         : createBasicLearningItem(deckId, anchorQuestion, anchorAnswer, {
             ...commonOptions,
@@ -405,6 +405,28 @@ export function createLearningItemsFromNormalizedInput(
         canonicalQuestion,
         canonicalAnswer,
       });
+      const createdOriginalVariant = getOriginalVariant(item);
+      if (createdOriginalVariant && originalInput) {
+        item = normalizeLearningItem({
+          ...item,
+          variants: item.variants.map((variant) =>
+            variant.id === createdOriginalVariant.id
+              ? {
+                  ...variant,
+                  variantType: originalInput.variantType ?? variant.variantType,
+                  variantLevel: originalInput.variantLevel ?? variant.variantLevel,
+                  meta: {
+                    ...(variant.meta ?? {}),
+                    ...(originalInput.meta ?? {}),
+                    normalizedInputIndex: index,
+                    sourceVariantId: originalInput.id ?? null,
+                    sourceVariantExternalId: originalInput.sourceExternalId ?? null,
+                  },
+                }
+              : variant,
+          ),
+        });
+      }
       const originalVariant = getOriginalVariant(item);
       variants
         .filter((variant) => variant !== originalInput)

@@ -64,7 +64,7 @@ export default defineConfig({
     },
     {
       name: "authenticated-chromium",
-      testMatch: [/core-stabilization\.spec\.ts/, /world-capitals-hierarchy\.spec\.ts/, /zz-media-import\.spec\.ts/],
+      testMatch: [/apkg-quality-report\.spec\.ts/, /core-stabilization\.spec\.ts/, /world-capitals-hierarchy\.spec\.ts/, /zz-media-import\.spec\.ts/],
       dependencies: ["auth-setup"],
       use: {
         ...devices["Desktop Chrome"],

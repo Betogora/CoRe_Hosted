@@ -622,6 +622,49 @@ test("cloud repository roundtrips sync metadata and media references", async () 
   assert.equal(loaded.aiJobs[0].outputTokens, null);
 });
 
+test("cloud repository preserves versioned Anki import identities in card and variant JSONB", async () => {
+  const fixture = createCloudFixture();
+  const identity = {
+    version: 1,
+    kind: "note",
+    guid: "core-quality-guid",
+    noteId: "42",
+    cardId: null,
+    notetypeId: "7",
+    templateOrdinal: null,
+    templateName: null,
+    deckId: "9",
+    deckPath: "Qualität::Biologie",
+    importGroupId: "apkg_import_fixture",
+  };
+  const deck = fixture.state.decks[0];
+  const card = deck.cards[0];
+  const variant = card.variants[0];
+  const state = {
+    ...fixture.state,
+    decks: [{
+      ...deck,
+      cards: [{
+        ...card,
+        meta: { ...card.meta, ankiImportIdentityV1: identity },
+        variants: [{
+          ...variant,
+          meta: {
+            ...variant.meta,
+            ankiImportIdentityV1: { ...identity, kind: "card", cardId: "84", templateOrdinal: 1, templateName: "Karte 2" },
+          },
+        }],
+      }],
+    }],
+  };
+  const rows = createCloudStateRows(state, fixture.user.id, { deviceId: "device-a" });
+  const loaded = await loadAccountCloudState(createMemorySupabaseClient({ ...rows, profiles: fixture.rows.profiles }, fixture.user), { profile: state.profile });
+
+  assert.deepEqual(loaded.decks[0].cards[0].meta.ankiImportIdentityV1, identity);
+  assert.equal(loaded.decks[0].cards[0].variants[0].meta.ankiImportIdentityV1.cardId, "84");
+  assert.equal(loaded.decks[0].cards[0].variants[0].meta.ankiImportIdentityV1.templateOrdinal, 1);
+});
+
 test("cloud repository reads server jobs, preserves local legacy jobs and never mutates the ledger", async () => {
   const fixture = createCloudFixture();
   const legacyJob = {

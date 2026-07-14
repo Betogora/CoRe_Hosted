@@ -1,51 +1,179 @@
 # AGENTS.md
 
+This file is the compact repository entrypoint for coding agents. It defines
+project-specific sources of truth, architecture boundaries, and validation
+requirements. General working agreements are inherited from the global
+`AGENTS.md`.
+
 ## Local Development
 
-- Use `npm run dev` for local hosting.
-- The local default URL is `http://127.0.0.1:5190/`.
-- Use port `5190` unless the user explicitly requests a different port.
+- Use `npm run dev` for local development.
+- The default local URL is `http://127.0.0.1:5190/`.
+- Use port `5190` unless the task explicitly requires another port.
 
-## Architecture
+## Canonical Documentation
 
-- Keep app logic behind small, testable module interfaces.
-- Prefer deep modules: hide data shaping and fallback behavior inside the module instead of spreading it through React callers.
-- Do not introduce a seam or adapter unless there are at least two real adapters.
-- Treat deck `cards` as the local compatibility collection for Learning Items. New card/import/AI creation paths should go through the helpers in `src/coreModel.ts` so every item keeps exactly one original variant and all non-original variants stay anchored.
-- Keep APKG handling inside `src/apkgImport.ts`; do not spread ZIP, SQLite, or Zstd collection details into React callers.
-- Keep the browser APKG preview behind `src/apkgImportWorker.ts` and `src/apkgImportWorkerProtocol.ts`; parser failures from an active worker must not be hidden by a direct retry.
-- Keep local APKG media persistence in `src/mediaStore.ts`; React should consume resolved media URLs instead of parsing media manifests itself.
-- Preserve local content edits on APKG reimport; update import metadata and media references without replacing user-edited fronts/backs.
-- Preserve visible features during overhauls. Structure and logic may be changed freely, but existing user-visible features, screens, controls, and flows should only be removed when the user explicitly asks for that removal.
-- Keep AI provider keys server-only. `/api/ai/*` routes may read `GOOGLE_API_KEY` or other provider secrets only from `process.env`; never introduce `VITE_*` AI keys, browser-side provider SDK calls, localStorage/export persistence for secrets, or logs that contain raw prompts plus secrets.
-- Treat `src/coreTypes.ts` as the canonical type source for normalized Deck, Learning Item, Card Variant, and Review State forms. Keep unvalidated external payloads `unknown` until their owning module validates or normalizes them.
-- Keep Valibot schemas with the module that owns the trust boundary. Cloud row/JSONB validation belongs in `src/cloudRepositoryValidation.ts`; AI chat request/response validation belongs in `src/aiChatContract.ts`. Do not create a central mega-schema.
-- Treat `src/database.types.ts` as generated output. With local Supabase running, use `npm run db:types:generate` to update it and `npm run db:types:check` for a read-only drift check; never edit it manually.
+Use `docs/index.md` when the relevant source of truth is unclear. Read only the
+documents and sections required for the current task.
+
+- `docs/specs.md`: canonical product behavior, acceptance criteria, domain
+  contracts, architecture, security, and operational behavior.
+- `docs/specs.html`: generated visual mirror of `docs/specs.md`; do not treat it
+  as a separate authoring source.
+- `docs/anki-format-analysis.md`: Anki/APKG, templates, media, and Learning Item
+  behavior.
+- `docs/todo.md`: open scope, priorities, planning status, and evidence. It
+  provides context, not permission to implement adjacent roadmap items.
+- `docs/file-naming-conventions.md`: naming rules for new or renamed files; read
+  it before making such changes.
+- `supabase/`: schema anchors, migrations, policies, and verification SQL.
+
+For targeted navigation in `docs/specs.md`:
+
+- use sections 14 and 27 for module ownership, interfaces, and import rules;
+- use section 19 for open decision context and section 25 for established
+  product decisions;
+- search for the affected behavior or acceptance criteria first, and expand
+  reading only as needed for broader changes.
+
+No dedicated ADR directory currently exists. Relevant decisions live in
+`docs/specs.md` and, where applicable, the domain analyses.
+
+## Repository Boundaries
+
+- `src/App.tsx` is the app shell and orchestrates the current UI screens.
+  Product UI lives in `src/screens/`; domain logic belongs in focused modules
+  rather than React callers.
+- `src/coreTypes.ts` is the canonical type source for normalized Deck, Learning
+  Item, Card Variant, and Review State forms.
+- Keep unvalidated external payloads typed as `unknown` until the owning module
+  validates or normalizes them.
+- `src/coreModel.ts` is the only public core-model seam for Learning Item
+  creation and normalization. New manual, import, and AI paths must use these
+  helpers.
+- Deck `cards` remains the local compatibility collection for Learning Items.
+  Each item must have exactly one original variant, and every other variant
+  must remain anchored to it.
+- `src/apkgImport.ts` is the public APKG import and normalization seam. Keep
+  worker, protocol, ZIP, and SQLite details private in
+  `src/apkgImportWorker.ts`, `src/apkgImportWorkerProtocol.ts`,
+  `src/zipReader.ts`, and `src/sqliteReader.ts`; do not expose them to React
+  callers.
+- `src/mediaStore.ts` is the public account-scoped media seam for the local
+  cache, persistent queue, and URL resolution. `src/cloudMediaStore.ts` owns
+  Supabase Storage, signed URLs, and TUS details. React consumes only resolved
+  URLs and media status.
+- `src/database.types.ts` is generated output. Never edit it manually.
+- Keep validation schemas with the module that owns the trust boundary: cloud
+  row and JSONB validation in `src/cloudRepositoryValidation.ts`, and AI chat
+  request/response validation in `src/aiChatContract.ts`. Do not create a
+  central mega-schema for unrelated trust boundaries.
+
+## Product And Data Invariants
+
+- Preserve existing visible screens, controls, features, and flows unless their
+  removal or replacement is explicitly part of the task.
+- Preserve user-edited card fronts and backs during APKG reimport. Reimport may
+  update import metadata and media references but must not silently overwrite
+  local content edits.
+- Parser failures from an active APKG worker must remain visible. Do not hide
+  them through a silent direct-parser retry.
+- Keep AI provider credentials server-only. `/api/ai/*` routes may read them
+  only from `process.env`.
+- Never introduce `VITE_*` AI credentials, secret-dependent provider SDK calls
+  in the browser, or secret persistence in `localStorage` or exports.
+- Never log raw secrets. Log raw prompts or payloads only when they are
+  explicitly sanitized and operationally required.
+
+## Architecture Guidance
+
+- Prefer small, testable interfaces and deep modules that hide their own data
+  shaping, validation, and fallback behavior.
+- Keep React callers focused on UI orchestration; parsing, persistence, and
+  compatibility logic stay in their owning modules.
+- Do not introduce an adapter or architectural seam for only one current
+  implementation.
+- New abstractions must preserve the ownership boundaries in `docs/specs.md`.
+  Verify the applicable ownership and import rules before moving behavior
+  between modules.
+- Before database changes, inspect the existing schema anchors, migrations,
+  policies, and verification SQL.
 
 ## UI Copy
 
-- Write German user-facing UI copy, status messages, error messages, and AI prompts with proper Unicode spelling: use `ä`, `ö`, `ü`, `Ä`, `Ö`, `Ü`, and `ß` instead of ASCII fallbacks such as `ae`, `oe`, `ue`, or `ss`.
-- Keep ASCII only for technical identifiers, route IDs, enum values, JSON fields, import formats, and external API/schema names.
+- Write user-facing UI copy, status messages, error messages, and AI prompts in
+  German.
+- Use proper Unicode spelling, including `ä`, `ö`, `ü`, `Ä`, `Ö`, `Ü`, and `ß`;
+  `ae`, `oe`, `ue`, and `ss` are not substitutes in user-facing German text.
+- Keep ASCII where required for technical identifiers, routes, enum values,
+  JSON fields, import formats, and external API or schema names.
 
-## Project Navigation
+## Documentation
 
-- Always read `AGENTS.md` first. It is the compact repository guide and routes to the canonical sources below. Load only the sources and sections relevant to the task; do not read every canonical document in full by default.
-- Use headings or targeted search in `docs/specs.md` to locate relevant sections before reading them. Read only the applicable product behavior, acceptance criteria, domain model, API, security, or operational sections. `docs/specs.html` is the generated visual mirror, not an additional agent source.
-- For module placement, interfaces, import rules, or architecture changes, read the relevant parts of `docs/specs.md`, especially sections 14 and 27. For Anki/APKG, templates, media, or Learning Item behavior, also read the relevant parts of `docs/anki-format-analysis.md`. For database work, inspect the applicable files under `supabase/`, including schema anchors, migrations, and verification SQL.
-- Read `docs/todo.md` only for scope, priority, status, or planning work. Prefer active or open entries; consult completed entries only when checking previous work or evidence. It remains the only maintained TODO markdown.
-- No dedicated ADR directory currently exists. When a task touches an existing or hard-to-reverse architectural decision, read the relevant decision material in `docs/specs.md` (especially sections 19 and 25) and any domain analysis such as `docs/anki-format-analysis.md`.
-- For broad, repository-wide changes, expand reading to all affected sections and, when necessary, complete documents. Use `docs/index.md` when the correct canonical source is unclear.
-- Read `docs/file-naming-conventions.md` before adding or renaming files.
-- Current UI screens are orchestrated by `src/App.tsx`; domain behavior belongs in the smaller modules listed in section 27 of `docs/specs.md`.
+Update documentation when the implemented contract changes:
 
-## Documentation Updates
+- Update the relevant section of `docs/specs.md` when product behavior,
+  acceptance criteria, public interfaces, security behavior, or architecture
+  changes; then synchronize `docs/specs.html`.
+- Update `docs/todo.md` only when roadmap scope, priority, status, planning, or
+  completion evidence changes. Add new roadmap work there; do not create
+  competing TODO files.
+- Do not update documentation for implementation details that do not alter a
+  documented contract.
+- Do not shorten canonical documents merely because they are long.
 
-- When current behavior or a product contract changes, update the relevant section of `docs/specs.md` and keep `docs/specs.html` synchronized.
-- Update `docs/todo.md` only when scope, priority, status, planning, or roadmap evidence changes. Add new roadmap work there instead of creating additional TODO files.
-- Do not shorten canonical documents merely because they are long; keep them as structured reference sources.
-- Add or update module tests in `src/*.test.{js,jsx,ts,tsx}` when changing scheduler, variants, import, AI jobs, graph, community, repository behavior, or the Learning Item creation pipeline.
+## Testing And Validation
 
-## Verification
+Choose checks proportionate to the affected area.
 
-- Run `npm run typecheck`, `npm test`, and `npm run build` before handing off changes.
-- When Supabase types or schema-adjacent tooling changes, also run `npm run test:rls:local`; `npm run test:e2e:local` includes the same database-type drift gate before browser tests.
+### Focused Validation
+
+- Run the relevant focused tests, and add or update them for requested behavior
+  or credible regression risks.
+- This applies especially to scheduler/review behavior, variants and
+  normalization, APKG/templates/media, AI jobs and chat contracts,
+  graph/community behavior, cloud repository behavior, and Learning Item
+  creation.
+- Tests live beside the affected modules in `src/**/*.test.{ts,tsx}` unless the
+  existing structure already establishes another location such as `api/` or
+  `tests/rls/`.
+
+### Standard Gate
+
+For ordinary implementation changes:
+
+1. run focused tests for the affected behavior;
+2. run `npm run typecheck`;
+3. run `npm run build` when production compilation or bundling could be
+   affected.
+
+Run the complete `npm test` suite when a change is cross-cutting, affects shared
+domain behavior or several feature areas, lacks sufficient coverage from
+focused tests, or is part of a release or repository-wide verification.
+
+### Database Validation
+
+When Supabase schema, generated database types, RLS behavior, or schema-adjacent
+tooling changes:
+
+- run `npm run db:types:generate` with local Supabase when generated types must
+  be updated;
+- run `npm run db:types:check` as a read-only drift check;
+- run `npm run test:rls:local`;
+- run `npm run test:e2e:local` when browser and database integration are
+  affected.
+
+`npm run test:e2e:local` already includes the database-type drift gate. Do not
+add redundant custom drift checks without a demonstrated need.
+
+## Completion Check
+
+Before handing off a change, verify that:
+
+- repository ownership boundaries remain intact and generated files were not
+  edited manually;
+- visible behavior was not removed unintentionally;
+- canonical documentation was updated only when its contract changed;
+- focused and broader checks match the actual risk;
+- the diff contains no unnecessary helpers, wrappers, guards, branches,
+  comments, or compatibility paths.

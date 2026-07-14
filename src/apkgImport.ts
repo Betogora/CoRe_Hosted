@@ -1,6 +1,6 @@
 import { createCoreCard, createCoreDeck, createReviewState, makeId, stableContentHash } from "./coreModel.ts";
 import { stripHtml } from "./htmlSafety.ts";
-import { finalizeImportReport, importNormalizedDeck } from "./importService.ts";
+import { finalizeImportReport, findDuplicateLearningItem, importNormalizedDeck } from "./importService.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
 import { readZipArchive } from "./zipReader.ts";
 import { parseApkgWorkerResponse, type ApkgWorkerResult } from "./apkgImportWorkerProtocol.ts";
@@ -12,6 +12,52 @@ const FIELD_SEPARATOR = "\u001f";
 const SQLITE_SIGNATURE = "SQLite format 3\0";
 const ZSTD_MAGIC = [0x28, 0xb5, 0x2f, 0xfd];
 const textDecoder = new TextDecoder("utf-8");
+
+export interface AnkiImportIdentityV1 {
+  version: 1;
+  kind: "note" | "card";
+  guid: string | null;
+  noteId: string | null;
+  cardId: string | null;
+  notetypeId: string | null;
+  templateOrdinal: number | null;
+  templateName: string | null;
+  deckId: string | null;
+  deckPath: string | null;
+  importGroupId: string | null;
+}
+
+export interface ApkgImportReportV1 {
+  contractVersion: 1;
+  packageFormat: string;
+  mediaFormat: string;
+  decks: Array<{ id: string; path: string; noteCount: number; cardCount: number }>;
+  notetypes: Array<{
+    id: string;
+    name: string;
+    classification: "basic" | "reverse" | "optional_reverse" | "cloze" | "custom";
+    templates: Array<{ ordinal: number; name: string }>;
+    mappedFields: string[];
+    unmappedFields: string[];
+  }>;
+  media: {
+    detected: number;
+    referenced: string[];
+    missing: string[];
+    assets: Array<{ name: string; size: number; sha1: string }>;
+  };
+  reimport: { newItems: number; matchedItems: number; skippedItems: number; protectedLocalEdits: number };
+  detectedDecks: Array<{ id: string; name: string }>;
+  detectedNotes: number;
+  detectedCards: number;
+  detectedVariants: number;
+  hasAnkiScheduling: boolean;
+  mediaCount: number;
+  hasMedia: boolean;
+  missingMediaCount: number;
+  mediaManifest: { format: string; assets: unknown[]; missingAssets: unknown[]; [key: string]: unknown };
+  [key: string]: unknown;
+}
 
 function parseJson(value: any, fallback: any) {
   if (!value || typeof value !== "string") return fallback;
@@ -474,7 +520,7 @@ function resolveAnkiCardFace({ card, note, models, warnings }: any) {
 
   const first = fields[0]?.value ?? frontBack.front;
   const second = fields[1]?.value ?? frontBack.back;
-  const canReverse = Boolean(first && second) && (ord > 0 || /reverse|card\s*2/i.test(`${modelName} ${templateName}`));
+  const canReverse = Boolean(first && second) && /reverse|reversed|umgekehrt/i.test(`${modelName} ${templateName}`);
 
   if (canReverse && ord > 0) {
     return {
@@ -613,7 +659,7 @@ export function parseAnkiDecks(database: any) {
     return deckRows
       .map((deck: any) => ({
         id: String(deck.id ?? deck.rowid ?? ""),
-        name: deck.name ?? "Anki Deck",
+        name: normalizeAnkiDeckPath(deck.name),
       }))
       .sort((left: any, right: any) => {
         const leftDefault = left.name === "Default" ? 1 : 0;
@@ -622,7 +668,10 @@ export function parseAnkiDecks(database: any) {
       });
   }
 
-  return getDecksFromCollection(database.readTable("col"));
+  return getDecksFromCollection(database.readTable("col")).map((deck: any) => ({
+    ...deck,
+    name: normalizeAnkiDeckPath(deck.name),
+  }));
 }
 
 export function parseAnkiNotes(database: any) {
@@ -992,8 +1041,8 @@ export function mapAnkiToCoreDeck({ file, decks, notes, cards, colRows, mediaMap
   });
 }
 
-export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [], cards = [], colRows = [], mediaMap = {}, mediaManifest = null }: any = {}) {
-  const models = getModelsFromCollection(colRows);
+export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [], cards = [], colRows = [], models: suppliedModels = null, mediaMap = {}, mediaManifest = null }: any = {}) {
+  const models = suppliedModels ?? getModelsFromCollection(colRows);
   const deckById = new Map<any, any>(decks.map((deck: any) => [String(deck.id), deck]));
   const noteById = new Map(notes.map((note: any) => [String(note.id), note]));
   const cardsByNoteId = new Map();
@@ -1001,6 +1050,13 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
   const errors: any[] = [];
   const unsupportedNoteTypes: any[] = [];
   const primaryDeck = decks[0] ?? { id: "unknown", name: String(file.name ?? "Anki Deck").replace(/\.apkg$/i, "") };
+  const importGroupId = stableContentHash(
+    {
+      fileName: file.name ?? null,
+      deckIds: decks.map((deck: any) => String(deck.id ?? "")).filter(Boolean),
+    },
+    "apkg_import",
+  );
   let hasCloze = false;
   let hasAnkiScheduling = false;
 
@@ -1026,6 +1082,8 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
     const itemWarnings: any[] = [];
     const model = getModelForNote(note, models);
     const modelName = model.name ?? "Unknown Note Type";
+    const noteGuid = String(note.guid ?? "").trim() || null;
+    const notetypeId = note.mid == null ? null : String(note.mid);
     const fields = parseFields(note, models);
     const tags = normalizeTags(note.tags);
     const sourceDeckIds = unique(noteCards.map((card: any) => String(card.did ?? "")));
@@ -1055,6 +1113,19 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
         isOriginal: original,
         anchorToOriginal: !original,
         metadataJson: {
+          ankiImportIdentityV1: {
+            version: 1,
+            kind: "card",
+            guid: noteGuid,
+            noteId: note.id == null ? null : String(note.id),
+            cardId: card.id == null ? null : String(card.id),
+            notetypeId,
+            templateOrdinal: Number(card.ord ?? 0),
+            templateName: face.templateName,
+            deckId: sourceDeck.id == null ? null : String(sourceDeck.id),
+            deckPath: sourceDeck.name ?? null,
+            importGroupId,
+          } satisfies AnkiImportIdentityV1,
           ankiCardId: card.id == null ? null : String(card.id),
           ankiTemplateOrd: card.ord ?? null,
           ankiTemplateName: face.templateName,
@@ -1084,12 +1155,25 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
       canonicalAnswer: originalVariant?.back ?? fields[1]?.value ?? "",
       tags,
       sourceType: "anki_import",
-      sourceExternalId: note.id == null ? null : `anki-note-${String(note.id)}`,
+      sourceExternalId: noteGuid ? `anki-guid-${noteGuid}` : note.id == null ? null : `anki-note-${String(note.id)}`,
       cardType: originalVariant?.variantType === "cloze" ? "cloze" : "basic",
       mediaRefs,
       originalFields: fields,
       variants,
       metadataJson: {
+        ankiImportIdentityV1: {
+          version: 1,
+          kind: "note",
+          guid: noteGuid,
+          noteId: note.id == null ? null : String(note.id),
+          cardId: null,
+          notetypeId,
+          templateOrdinal: null,
+          templateName: null,
+          deckId: sourceDeckIds[0] == null ? null : String(sourceDeckIds[0]),
+          deckPath: sourceDeckNames[0] == null ? null : String(sourceDeckNames[0]),
+          importGroupId,
+        } satisfies AnkiImportIdentityV1,
         importFormat: "apkg",
         ankiNoteId: note.id == null ? null : String(note.id),
         ankiCardIds: noteCards.map((card: any) => String(card.id ?? "")),
@@ -1160,6 +1244,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
       metadataJson: {
         importFormat: "apkg",
         parser: "mapAnkiApkgToNormalizedDeck",
+        importGroupId,
         fileName: file.name ?? null,
         fileSize: file.size ?? null,
         detectedDecks: decks,
@@ -1211,6 +1296,7 @@ async function readApkgPackage(file: any, onStep: any = () => {}) {
   const decks = parseAnkiDecks(database);
   const notes = parseAnkiNotes(database);
   const cards = parseAnkiCards(database);
+  const models = getModelsFromDatabase(database, colRows);
   const mediaBundle = await parseAnkiMedia(archive);
 
   return {
@@ -1221,6 +1307,7 @@ async function readApkgPackage(file: any, onStep: any = () => {}) {
     decks,
     notes,
     cards,
+    models,
     mediaBundle,
   };
 }
@@ -1260,7 +1347,34 @@ function emptyNormalizedApkgDeck(file: any = {}) {
   };
 }
 
-function createApkgReportDetails(parsed: any, normalizedDeck: any) {
+function classifyAnkiNotetype(model: any): ApkgImportReportV1["notetypes"][number]["classification"] {
+  const nameAndTemplates = `${model?.name ?? ""} ${(model?.tmpls ?? []).map((template: any) => template.name).join(" ")}`;
+  const fieldNames = (model?.flds ?? []).map((field: any) => String(field.name ?? ""));
+  if (Number(model?.type ?? 0) === 1 || /cloze|lückentext/i.test(nameAndTemplates)) return "cloze";
+  if (fieldNames.some((name: string) => /add reverse|umgekehrt hinzufügen/i.test(name))) return "optional_reverse";
+  if (/reverse|reversed|umgekehrt/i.test(nameAndTemplates)) return "reverse";
+  if (fieldNames.length > 2 || !/basic|einfach/i.test(nameAndTemplates)) return "custom";
+  return "basic";
+}
+
+function findExistingReportCard(item: any, existingDecks: any[]) {
+  const identity = item?.metadataJson?.ankiImportIdentityV1 as AnkiImportIdentityV1 | undefined;
+  const cards = existingDecks.flatMap((deck: any) => deck.cards ?? []);
+  const byGuid = identity?.guid ? cards.find((card: any) => getAnkiNoteIdentity(card)?.guid === identity.guid) : null;
+  if (byGuid) return byGuid;
+  const sourceIds = [item?.sourceExternalId, identity?.noteId ? `anki-note-${identity.noteId}` : null].filter(Boolean).map(String);
+  const bySource = cards.find((card: any) =>
+    [card.sourceExternalId, card.sourceRefId, card.sourceCardId, card.meta?.normalizedImport?.sourceExternalId]
+      .filter(Boolean)
+      .map(String)
+      .some((sourceId) => sourceIds.includes(sourceId)),
+  );
+  if (bySource) return bySource;
+  const duplicate = findDuplicateLearningItem(existingDecks, item);
+  return duplicate.duplicate ? cards.find((card: any) => card.id === duplicate.learningItemId) ?? null : null;
+}
+
+function createApkgReportDetails(parsed: any, normalizedDeck: any, existingDecks: any[] = [], baseReport: any = null): ApkgImportReportV1 {
   const metadata = normalizedDeck?.metadataJson ?? {};
   const detectedDecks = metadata.detectedDecks ?? parsed?.decks ?? [];
   const detectedNotes = metadata.detectedNotes ?? parsed?.notes?.length ?? normalizedDeck?.items?.length ?? 0;
@@ -1268,8 +1382,73 @@ function createApkgReportDetails(parsed: any, normalizedDeck: any) {
   const detectedVariants = metadata.detectedVariants ?? normalizedDeck?.items?.reduce((sum: any, item: any) => sum + (item.variants?.length ?? 0), 0) ?? 0;
   const hasAnkiScheduling = Boolean(metadata.hasAnkiScheduling ?? parsed?.cards?.some(cardHasAnkiSchedulingData));
   const mediaManifest = metadata.mediaManifest ?? parsed?.mediaBundle?.manifest ?? { format: "none", assets: [], missingAssets: [] };
+  const parsedCards = parsed?.cards ?? [];
+  const models = parsed?.models ?? getModelsFromCollection(parsed?.colRows ?? []);
+  const cardsByDeckId = new Map<string, any[]>();
+  for (const card of parsedCards) {
+    const deckId = String(card.did ?? "");
+    cardsByDeckId.set(deckId, [...(cardsByDeckId.get(deckId) ?? []), card]);
+  }
+  const reportDecks = detectedDecks.map((deck: any) => {
+    const deckCards = cardsByDeckId.get(String(deck.id ?? "")) ?? [];
+    return {
+      id: String(deck.id ?? ""),
+      path: normalizeAnkiDeckPath(deck.name),
+      noteCount: new Set(deckCards.map((card: any) => String(card.nid ?? ""))).size,
+      cardCount: deckCards.length,
+    };
+  });
+  const usedNotetypeIds = new Set((parsed?.notes ?? []).map((note: any) => String(note.mid ?? "")));
+  const notetypes = Object.entries(models)
+    .filter(([id]) => usedNotetypeIds.size === 0 || usedNotetypeIds.has(id))
+    .map(([id, value]: [string, any]) => {
+      const fieldNames = (value?.flds ?? []).map((field: any) => String(field.name ?? ""));
+      const classification = classifyAnkiNotetype(value);
+      const mappedFieldCount = classification === "optional_reverse" ? fieldNames.length : Math.min(2, fieldNames.length);
+      return {
+        id,
+        name: String(value?.name ?? "Unknown Note Type"),
+        classification,
+        templates: (value?.tmpls ?? []).map((template: any, index: number) => ({
+          ordinal: Number(template.ord ?? index),
+          name: String(template.name ?? `Card ${index + 1}`),
+        })),
+        mappedFields: fieldNames.slice(0, mappedFieldCount),
+        unmappedFields: fieldNames.slice(mappedFieldCount),
+      };
+    });
+  const referenced = unique((normalizedDeck?.items ?? []).flatMap((item: any) => item.mediaRefs ?? []).map(normalizeMediaFileName)) as string[];
+  const assets = (mediaManifest?.assets ?? []).map((asset: any) => ({
+    name: String(asset.name ?? ""),
+    size: Number(asset.size ?? 0),
+    sha1: String(asset.sha1 ?? ""),
+  }));
+  const availableNames = new Set(assets.map((asset: any) => asset.name));
+  const missing = unique([
+    ...(mediaManifest?.missingAssets ?? []).map((asset: any) => normalizeMediaFileName(asset.name)),
+    ...referenced.filter((name: string) => !availableNames.has(name)),
+  ]) as string[];
+  const matches = (normalizedDeck?.items ?? []).map((item: any) => findExistingReportCard(item, existingDecks));
+  const matchedItems = matches.filter(Boolean).length;
 
   return {
+    contractVersion: 1,
+    packageFormat: String(mediaManifest?.packageVersion ?? "unknown"),
+    mediaFormat: String(mediaManifest?.format ?? parsed?.mediaBundle?.format ?? "none"),
+    decks: reportDecks,
+    notetypes,
+    media: {
+      detected: assets.length,
+      referenced,
+      missing,
+      assets,
+    },
+    reimport: {
+      newItems: Math.max(0, (normalizedDeck?.items?.length ?? 0) - matchedItems),
+      matchedItems,
+      skippedItems: Number(baseReport?.skipped?.length ?? 0) + Number(baseReport?.duplicates?.length ?? 0),
+      protectedLocalEdits: matches.filter((card: any) => card && hasLocalContentEdit(card)).length,
+    },
     detectedDecks,
     detectedNotes,
     detectedCards,
@@ -1281,14 +1460,14 @@ function createApkgReportDetails(parsed: any, normalizedDeck: any) {
     schedulingImported: false,
     mediaCount: metadata.mediaCount ?? getMediaAssetCount(parsed?.mediaBundle?.mediaMap, mediaManifest),
     hasMedia: Boolean(metadata.hasMedia ?? getMediaAssetCount(parsed?.mediaBundle?.mediaMap, mediaManifest) > 0),
-    missingMediaCount: mediaManifest?.missingAssets?.length ?? 0,
+    missingMediaCount: missing.length,
     mediaManifest,
   };
 }
 
-function attachApkgReportDetails(result: any, parsed: any, parsedWarnings: any = [], parsedErrors: any = []) {
+function attachApkgReportDetails(result: any, parsed: any, parsedWarnings: any = [], parsedErrors: any = [], options: any = {}) {
   const report = result.report;
-  const details = createApkgReportDetails(parsed, result.normalizedDeck);
+  const details = createApkgReportDetails(parsed, result.normalizedDeck, options.existingDecks ?? [], report);
   const warnings = unique([...(parsedWarnings ?? []), ...(report.warnings ?? [])]);
   const errors = unique([...(parsedErrors ?? []), ...(report.errors ?? [])]);
 
@@ -1401,6 +1580,7 @@ export async function parseApkgToNormalizedImport(fileOrParsed: any, options: an
       notes: parsedPackage.notes,
       cards: parsedPackage.cards,
       colRows: parsedPackage.colRows,
+      models: parsedPackage.models,
       mediaMap: parsedPackage.mediaBundle.mediaMap,
       mediaManifest: parsedPackage.mediaBundle.manifest,
     });
@@ -1432,6 +1612,7 @@ export async function parseApkgToNormalizedImport(fileOrParsed: any, options: an
       notes: parsedPackage.notes,
       cards: parsedPackage.cards,
       colRows: parsedPackage.colRows,
+      models: parsedPackage.models,
       mediaMap: parsedPackage.mediaBundle.mediaMap,
       mediaManifest: parsedPackage.mediaBundle.manifest,
     });
@@ -1461,7 +1642,7 @@ export async function dryRunApkgImport(fileOrParsed: any, options: any = {}) {
       dryRun: true,
       importScheduling: false,
     });
-    return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
+    return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors, options);
   }
 
   const result: any = importNormalizedDeck(parsed.normalizedDeck, {
@@ -1470,7 +1651,7 @@ export async function dryRunApkgImport(fileOrParsed: any, options: any = {}) {
     importScheduling: false,
   });
   result.mediaFiles = parsed.mediaFiles;
-  return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
+  return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors, options);
 }
 
 export async function commitApkgImport(fileOrParsed: any, options: any = {}) {
@@ -1486,16 +1667,66 @@ export async function commitApkgImport(fileOrParsed: any, options: any = {}) {
     result.rootDeckIds = [];
     result.importGroupId = null;
     result.mediaFiles = parsed.mediaFiles;
-    return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
+    return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors, options);
   }
 
   const result: any = commitNormalizedApkgHierarchy(parsed.normalizedDeck, options);
   result.mediaFiles = parsed.mediaFiles;
-  return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors);
+  return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors, options);
 }
 
 export async function importApkgDeck(fileOrParsed: any, options: any = {}) {
   return commitApkgImport(fileOrParsed, options);
+}
+
+function normalizeAnkiDeckPath(value: unknown) {
+  return String(value ?? "Anki Deck")
+    .replaceAll(FIELD_SEPARATOR, "::")
+    .split("::")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join("::");
+}
+
+function getModelsFromDatabase(database: any, colRows: any) {
+  const legacyModels = getModelsFromCollection(colRows);
+  if (Object.keys(legacyModels).length > 0) return legacyModels;
+
+  const notetypes = database.readTable("notetypes");
+  const fields = database.readTable("fields");
+  const templates = database.readTable("templates");
+  const fieldsByNotetype = new Map<string, any[]>();
+  const templatesByNotetype = new Map<string, any[]>();
+
+  for (const field of fields) {
+    const id = String(field.ntid ?? "");
+    fieldsByNotetype.set(id, [...(fieldsByNotetype.get(id) ?? []), field]);
+  }
+  for (const template of templates) {
+    const id = String(template.ntid ?? "");
+    templatesByNotetype.set(id, [...(templatesByNotetype.get(id) ?? []), template]);
+  }
+
+  return Object.fromEntries(
+    notetypes.map((notetype: any) => {
+      const id = String(notetype.id ?? notetype.rowid ?? "");
+      const name = String(notetype.name ?? "Unknown Note Type");
+      return [
+        id,
+        {
+          id,
+          name,
+          type: /cloze|lückentext/i.test(name) ? 1 : 0,
+          flds: (fieldsByNotetype.get(id) ?? [])
+            .sort((left, right) => Number(left.ord ?? 0) - Number(right.ord ?? 0))
+            .map((field) => ({ name: String(field.name ?? ""), ord: Number(field.ord ?? 0) })),
+          tmpls: (templatesByNotetype.get(id) ?? [])
+            .sort((left, right) => Number(left.ord ?? 0) - Number(right.ord ?? 0))
+            .map((template) => ({ name: String(template.name ?? ""), ord: Number(template.ord ?? 0) })),
+        },
+      ];
+    }),
+  );
 }
 
 function canUseApkgWorker(file: unknown): file is File {
@@ -1570,7 +1801,7 @@ export async function createApkgImportPreview(file: any, onStep: any = () => {},
   const parsed = canUseApkgWorker(file)
     ? await parseApkgInWorker(file, onStep, options.signal)
     : await parseApkgToNormalizedImport(file, { onStep });
-  const details = createApkgReportDetails(parsed.parsedPackage, parsed.normalizedDeck);
+  const details = createApkgReportDetails(parsed.parsedPackage, parsed.normalizedDeck, options.existingDecks ?? []);
   const job = {
     id: makeId("import"),
     fileName: file?.name ?? "",
@@ -1595,7 +1826,7 @@ export async function createApkgImportPreview(file: any, onStep: any = () => {},
     mergeStrategy: options.mergeStrategy,
   });
   normalizedPreview.mediaFiles = parsed.mediaFiles;
-  attachApkgReportDetails(normalizedPreview, parsed.parsedPackage, parsed.warnings, parsed.errors);
+  attachApkgReportDetails(normalizedPreview, parsed.parsedPackage, parsed.warnings, parsed.errors, options);
   normalizedPreview.report.dryRun = true;
 
   if (!normalizedPreview.deck || normalizedPreview.report.errors.length > 0) {
@@ -1679,13 +1910,33 @@ function synchronizeOriginalVariant(variants: any = [], card: any = {}) {
   );
 }
 
-function mergeImportedVariants(incomingCard: any, existingCard: any, preserveContent: any) {
-  if (preserveContent) {
-    return synchronizeOriginalVariant(existingCard.variants ?? [], existingCard);
-  }
+function getAnkiNoteIdentity(card: any): AnkiImportIdentityV1 | null {
+  const candidate = card?.meta?.ankiImportIdentityV1 ?? card?.meta?.normalizedImport?.metadataJson?.ankiImportIdentityV1;
+  return candidate?.version === 1 && candidate?.kind === "note" ? candidate : null;
+}
 
+function getAnkiVariantIdentity(variant: any): AnkiImportIdentityV1 | null {
+  const candidate = variant?.meta?.ankiImportIdentityV1 ?? variant?.meta?.metadataJson?.ankiImportIdentityV1;
+  return candidate?.version === 1 && candidate?.kind === "card" ? candidate : null;
+}
+
+function noteTemplateKey(identity: AnkiImportIdentityV1 | null) {
+  return identity?.guid && identity.templateOrdinal != null ? `${identity.guid}:${identity.templateOrdinal}` : null;
+}
+
+function mergeImportedVariants(incomingCard: any, existingCard: any, preserveContent: any) {
   const existingVariants = existingCard.variants ?? [];
   const existingById = new Map(existingVariants.map((variant: any) => [variant.id, variant]));
+  const existingByCardId = new Map(
+    existingVariants
+      .map((variant: any) => [getAnkiVariantIdentity(variant)?.cardId, variant])
+      .filter(([cardId]: any) => cardId),
+  );
+  const existingByTemplate = new Map(
+    existingVariants
+      .map((variant: any) => [noteTemplateKey(getAnkiVariantIdentity(variant)), variant])
+      .filter(([key]: any) => key),
+  );
   const existingBySourceId = new Map(
     existingVariants
       .map((variant: any) => [String(variant.meta?.sourceVariantExternalId ?? "").trim(), variant])
@@ -1695,13 +1946,18 @@ function mergeImportedVariants(incomingCard: any, existingCard: any, preserveCon
   const retainedIds = new Set();
   const merged = (incomingCard.variants ?? []).map((incomingVariant: any) => {
     const sourceId = String(incomingVariant.meta?.sourceVariantExternalId ?? "").trim();
-    const existingVariant = incomingVariant.isOriginal
-      ? existingOriginal
-      : (sourceId ? existingBySourceId.get(sourceId) : null) ?? existingById.get(incomingVariant.id);
+    const identity = getAnkiVariantIdentity(incomingVariant);
+    const templateKey = noteTemplateKey(identity);
+    const existingVariant =
+      (identity?.cardId ? existingByCardId.get(identity.cardId) : null) ??
+      (templateKey ? existingByTemplate.get(templateKey) : null) ??
+      (sourceId ? existingBySourceId.get(sourceId) : null) ??
+      (incomingVariant.isOriginal ? existingOriginal : null) ??
+      existingById.get(incomingVariant.id);
     if (!existingVariant) return incomingVariant;
 
     retainedIds.add(existingVariant.id);
-    return {
+    const mergedVariant = {
       ...existingVariant,
       ...incomingVariant,
       id: existingVariant.id,
@@ -1713,12 +1969,16 @@ function mergeImportedVariants(incomingCard: any, existingCard: any, preserveCon
       qualityStatus: incomingVariant.isOriginal ? incomingVariant.qualityStatus : existingVariant.qualityStatus ?? incomingVariant.qualityStatus,
       isActive: incomingVariant.isOriginal ? true : existingVariant.isActive ?? incomingVariant.isActive,
     };
+    return preserveContent && incomingVariant.isOriginal
+      ? { ...mergedVariant, front: existingVariant.front, back: existingVariant.back }
+      : mergedVariant;
   });
 
-  return [
+  const result = [
     ...merged,
     ...existingVariants.filter((variant: any) => !variant.isOriginal && !retainedIds.has(variant.id)),
   ];
+  return preserveContent ? synchronizeOriginalVariant(result, existingCard) : result;
 }
 
 function mergeImportedCard(incomingCard: any, existingCard: any) {
@@ -1773,6 +2033,16 @@ export function mergeImportedDeck(importedDeck: any, existingDecks: any = []) {
   const existingCardsBySourceId = new Map(
     existingDeck.cards.map((card: any) => [String(card.sourceCardId ?? card.sourceRefId ?? card.id), card]),
   );
+  const existingCardsByGuid = new Map(
+    existingDeck.cards
+      .map((card: any) => [getAnkiNoteIdentity(card)?.guid, card])
+      .filter(([guid]: any) => guid),
+  );
+  const existingCardsByNoteId = new Map(
+    existingDeck.cards
+      .map((card: any) => [getAnkiNoteIdentity(card)?.noteId, card])
+      .filter(([noteId]: any) => noteId),
+  );
   const now = new Date().toISOString();
 
   return createCoreDeck({
@@ -1798,7 +2068,14 @@ export function mergeImportedDeck(importedDeck: any, existingDecks: any = []) {
       replacedDeckId: existingDeck.id,
     },
     mediaAssets: existingDeck.mediaAssets ?? [],
-    cards: importedDeck.cards.map((card: any) => mergeImportedCard(card, existingCardsBySourceId.get(String(card.sourceCardId ?? card.sourceRefId ?? card.id)))),
+    cards: importedDeck.cards.map((card: any) => {
+      const identity = getAnkiNoteIdentity(card);
+      const existingCard =
+        (identity?.guid ? existingCardsByGuid.get(identity.guid) : null) ??
+        existingCardsBySourceId.get(String(card.sourceCardId ?? card.sourceRefId ?? card.id)) ??
+        (identity?.noteId ? existingCardsByNoteId.get(identity.noteId) : null);
+      return mergeImportedCard(card, existingCard);
+    }),
   });
 }
 

@@ -1,0 +1,325 @@
+{
+  "contractVersion": 1,
+  "generatedAt": "2026-07-14",
+  "fixtures": {
+    "legacy": {
+      "packageFormat": "legacy-2",
+      "collectionEntry": "collection.anki21",
+      "notes": [
+        {
+          "guid": "core-quality-basic-reverse",
+          "noteId": "2600000001001",
+          "notetypeId": "2600000000101",
+          "deckPath": "CoRe APKG Qualität::Reverse",
+          "cardIds": [
+            "2600000002001",
+            "2600000002002"
+          ],
+          "templateOrdinals": [
+            0,
+            1
+          ]
+        },
+        {
+          "guid": "core-quality-optional-yes",
+          "noteId": "2600000001002",
+          "notetypeId": "2600000000102",
+          "deckPath": "CoRe APKG Qualität::Optional",
+          "cardIds": [
+            "2600000002003",
+            "2600000002004"
+          ],
+          "templateOrdinals": [
+            0,
+            1
+          ]
+        },
+        {
+          "guid": "core-quality-optional-no",
+          "noteId": "2600000001003",
+          "notetypeId": "2600000000102",
+          "deckPath": "CoRe APKG Qualität::Optional",
+          "cardIds": [
+            "2600000002005"
+          ],
+          "templateOrdinals": [
+            0
+          ]
+        },
+        {
+          "guid": "core-quality-cloze",
+          "noteId": "2600000001004",
+          "notetypeId": "2600000000103",
+          "deckPath": "CoRe APKG Qualität::Cloze",
+          "cardIds": [
+            "2600000002006",
+            "2600000002007"
+          ],
+          "templateOrdinals": [
+            0,
+            1
+          ]
+        },
+        {
+          "guid": "core-quality-custom",
+          "noteId": "2600000001005",
+          "notetypeId": "2600000000104",
+          "deckPath": "CoRe APKG Qualität::Sonderformat",
+          "cardIds": [
+            "2600000002008",
+            "2600000002009"
+          ],
+          "templateOrdinals": [
+            0,
+            1
+          ]
+        }
+      ],
+      "notetypes": [
+        {
+          "id": "2600000000101",
+          "name": "CoRe Basic und umgekehrt",
+          "fields": [
+            "Vorderseite",
+            "Rückseite"
+          ],
+          "templates": [
+            {
+              "name": "Karte 1",
+              "ordinal": 0
+            },
+            {
+              "name": "Karte 2",
+              "ordinal": 1
+            }
+          ]
+        },
+        {
+          "id": "2600000000102",
+          "name": "CoRe Optional umgekehrt",
+          "fields": [
+            "Vorderseite",
+            "Rückseite",
+            "Umgekehrt hinzufügen"
+          ],
+          "templates": [
+            {
+              "name": "Karte 1",
+              "ordinal": 0
+            },
+            {
+              "name": "Karte 2",
+              "ordinal": 1
+            }
+          ]
+        },
+        {
+          "id": "2600000000103",
+          "name": "CoRe Cloze",
+          "fields": [
+            "Text",
+            "Extra"
+          ],
+          "templates": [
+            {
+              "name": "Lückentext",
+              "ordinal": 0
+            }
+          ]
+        },
+        {
+          "id": "2600000000104",
+          "name": "CoRe Dreifeld-Sonderformat",
+          "fields": [
+            "Begriff",
+            "Definition",
+            "Kontext"
+          ],
+          "templates": [
+            {
+              "name": "Definition",
+              "ordinal": 0
+            },
+            {
+              "name": "Kontext",
+              "ordinal": 1
+            }
+          ]
+        }
+      ],
+      "media": [
+        {
+          "name": "quality.png",
+          "size": 34,
+          "sha1": "a2f01b42072ec20f06a59a12f6c692c474768e6e"
+        }
+      ],
+      "missingMediaReferences": [
+        "missing.png"
+      ],
+      "file": "import-quality-legacy.apkg",
+      "sha256": "94afa76b8f60e73c69d180a1997a8622517b7e5d794071f484a36cb5a39d524f",
+      "generator": "python-stdlib"
+    },
+    "latest": {
+      "packageFormat": "latest",
+      "collectionEntry": "collection.anki21b",
+      "notes": [
+        {
+          "guid": "core-quality-basic-reverse",
+          "noteId": "1784056824251",
+          "notetypeId": "1784056824245",
+          "deckPath": "CoRe APKG Qualität::Reverse",
+          "cardIds": [
+            "1784056824252",
+            "1784056824253"
+          ],
+          "templateOrdinals": [
+            0,
+            1
+          ]
+        },
+        {
+          "guid": "core-quality-optional-yes",
+          "noteId": "1784056824253",
+          "notetypeId": "1784056824247",
+          "deckPath": "CoRe APKG Qualität::Optional",
+          "cardIds": [
+            "1784056824254",
+            "1784056824255"
+          ],
+          "templateOrdinals": [
+            0,
+            1
+          ]
+        },
+        {
+          "guid": "core-quality-optional-no",
+          "noteId": "1784056824254",
+          "notetypeId": "1784056824247",
+          "deckPath": "CoRe APKG Qualität::Optional",
+          "cardIds": [
+            "1784056824256"
+          ],
+          "templateOrdinals": [
+            0
+          ]
+        },
+        {
+          "guid": "core-quality-cloze",
+          "noteId": "1784056824255",
+          "notetypeId": "1784056824248",
+          "deckPath": "CoRe APKG Qualität::Cloze",
+          "cardIds": [
+            "1784056824257",
+            "1784056824258"
+          ],
+          "templateOrdinals": [
+            0,
+            1
+          ]
+        },
+        {
+          "guid": "core-quality-custom",
+          "noteId": "1784056824256",
+          "notetypeId": "1784056824249",
+          "deckPath": "CoRe APKG Qualität::Sonderformat",
+          "cardIds": [
+            "1784056824259",
+            "1784056824260"
+          ],
+          "templateOrdinals": [
+            0,
+            1
+          ]
+        }
+      ],
+      "notetypes": [
+        {
+          "id": "1784056824245",
+          "name": "CoRe Basic und umgekehrt",
+          "fields": [
+            "Vorderseite",
+            "Rückseite"
+          ],
+          "templates": [
+            {
+              "name": "Karte 1",
+              "ordinal": 0
+            },
+            {
+              "name": "Karte 2",
+              "ordinal": 1
+            }
+          ]
+        },
+        {
+          "id": "1784056824247",
+          "name": "CoRe Optional umgekehrt",
+          "fields": [
+            "Vorderseite",
+            "Rückseite",
+            "Umgekehrt hinzufügen"
+          ],
+          "templates": [
+            {
+              "name": "Karte 1",
+              "ordinal": 0
+            },
+            {
+              "name": "Karte 2",
+              "ordinal": 1
+            }
+          ]
+        },
+        {
+          "id": "1784056824248",
+          "name": "CoRe Cloze",
+          "fields": [
+            "Text",
+            "Extra"
+          ],
+          "templates": [
+            {
+              "name": "Lückentext",
+              "ordinal": 0
+            }
+          ]
+        },
+        {
+          "id": "1784056824249",
+          "name": "CoRe Dreifeld-Sonderformat",
+          "fields": [
+            "Begriff",
+            "Definition",
+            "Kontext"
+          ],
+          "templates": [
+            {
+              "name": "Definition",
+              "ordinal": 0
+            },
+            {
+              "name": "Kontext",
+              "ordinal": 1
+            }
+          ]
+        }
+      ],
+      "media": [
+        {
+          "name": "quality.png",
+          "size": 34,
+          "sha1": "a2f01b42072ec20f06a59a12f6c692c474768e6e"
+        }
+      ],
+      "missingMediaReferences": [
+        "missing.png"
+      ],
+      "file": "import-quality-latest.apkg",
+      "sha256": "c4cc23eb2e526cfc636284194ddc52d9b5b539f40b85ccebd54a43e362494629",
+      "generator": "anki==26.5",
+      "provenance": "Offizieller Anki-Exporter, legacy=False; sämtliche Fixture-Inhalte sind CoRe-eigen."
+    }
+  }
+}

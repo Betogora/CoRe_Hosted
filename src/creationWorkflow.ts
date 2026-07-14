@@ -5,6 +5,7 @@ import { appendPlainTextToCardHtml, hasCardRichTextContent } from "./richText.ts
 import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
 import { createAccountMediaStore, type MediaSyncTask } from "./mediaStore.ts";
 import type { CardType, Deck, LearningItem, SourceAnchor } from "./coreTypes.ts";
+import type { ApkgImportReportV1 } from "./apkgImport.ts";
 
 interface FileLike {
   name?: string;
@@ -35,8 +36,24 @@ interface AiConfig {
 }
 
 interface ApkgOptions {
-  onStep?: () => void;
+  onStep?: (step: string) => void;
   existingDecks?: Deck[];
+}
+
+export interface ApkgCreationPreview {
+  deck: Deck;
+  sampleCards: LearningItem[];
+  warnings: string[];
+  normalizedDeck: unknown;
+  mediaFiles: unknown[];
+  importReport: {
+    apkg?: ApkgImportReportV1;
+    warnings?: string[];
+    errors?: string[];
+    duplicates?: unknown[];
+    hasAnkiScheduling?: boolean;
+    [key: string]: unknown;
+  };
 }
 
 interface PasteImportInput {
@@ -202,7 +219,7 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       }
     },
 
-    async commitApkgPreview(preview: unknown, { existingDecks = [] }: ApkgOptions = {}) {
+    async commitApkgPreview(preview: ApkgCreationPreview | null, { existingDecks = [] }: ApkgOptions = {}) {
       if (!preview) {
         return {
           deck: null,

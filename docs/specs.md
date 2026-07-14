@@ -567,7 +567,9 @@ Der MVP MUSS APKG-Dateien importieren können, mindestens für:
 - Deck- und Unterdecknamen.
 - Tags, sofern vorhanden.
 
-**Implementierungsstand 2026-07-14:** `src/apkgImport.ts` liest APKG-Dateien als ZIP, sucht `collection.anki21b`, `collection.anki21` und `collection.anki2`, akzeptiert direkte SQLite-Collections und versucht bei Zstd-Signatur eine lokale Dekompression über `fzstd`. Legacy-`media`-JSON und moderne MediaEntries werden als Manifest mit Dateiname, ZIP-Entry, SHA-1, Größe und MIME-Typ ausgewertet. Die Vorschau cached Bytes ausschließlich accountgebunden in IndexedDB; ein Session-Fallback warnt vor fehlender Reload-Garantie. Beim Commit bestätigt `creationWorkflow` zuerst die normalisierten Stapel in der Cloud und übergibt danach die Medien an die persistente Standard-/TUS-Upload-Queue. React erhält ausschließlich aufgelöste Cloud- oder lokale Objekt-URLs sowie verständliche Pending-/Missing-Status.
+**Implementierungsstand 2026-07-14:** `src/apkgImport.ts` liest APKG-Dateien als ZIP, sucht `collection.anki21b`, `collection.anki21` und `collection.anki2`, akzeptiert direkte SQLite-Collections und dekomprimiert Zstd über `fzstd`. Legacy-Modelle aus `col.models` und moderne V18-Notetypes aus `notetypes`, `fields` und `templates` werden privat vereinheitlicht; der defensive SQLite-Reader unterstützt dafür auch `WITHOUT ROWID`-Index-B-Bäume. Native Deck-Trenner `U+001F` werden nur an der Importgrenze zu kanonischen `::`-Pfaden. Basic Reverse, tatsächlich erzeugte optionale Reverse-Cards, Cloze-Card-Ordnungen und unbekannte Notetypes werden ohne beliebige Template-, CSS- oder JavaScript-Ausführung in Learning Items und verankerte Varianten übersetzt. Legacy-`media`-JSON und moderne MediaEntries werden als Manifest mit Dateiname, ZIP-Entry, SHA-1, Größe und MIME-Typ ausgewertet. Die Vorschau cached Bytes ausschließlich accountgebunden in IndexedDB; ein Session-Fallback warnt vor fehlender Reload-Garantie. Beim Commit bestätigt `creationWorkflow` zuerst die normalisierten Stapel in der Cloud und übergibt danach die Medien an die persistente Standard-/TUS-Upload-Queue. React erhält ausschließlich den versionierten Importbericht, aufgelöste Cloud- oder lokale Objekt-URLs sowie verständliche Pending-/Missing-Status.
+
+Reimports speichern `ankiImportIdentityV1` in vorhandenen Card-/Varianten-JSONB-Metadaten: GUID ist der primäre Note-Schlüssel; Card-ID beziehungsweise GUID plus Template-Ordinal identifizieren Varianten. Legacy-`anki-note-*`-/`anki-card-*`-IDs und Inhaltsfingerprints bleiben Fallbacks. Geänderte Anki-Note-/Card-IDs erzeugen dadurch keine Duplikate; lokale Inhalte, Variantenstatus und Review-State bleiben erhalten. Es gibt keine neue Datenbankspalte oder produktive Parser-Abhängigkeit.
 
 ### FR-IMPORT-003 — APKG-Ausbau
 
@@ -1298,12 +1300,12 @@ Eine Deck-Zeile MUSS den aktuellen Modus sichtbar machen. Varianten:
 
 ### Importbericht
 
-- Anzahl importierter Karten.
-- Anzahl übersprungener Karten.
-- erkannte Kartentypen.
-- nicht unterstützte Features.
-- Medienstatus.
-- Lernfortschrittstatus.
+- Versionierter APKG-Bericht mit Paket- und Medienformat.
+- Erkannte Stapel samt Pfad, Note- und Card-Anzahl.
+- Erkannte Notetypes, Klassifikation, Templates sowie gemappte und nicht gemappte Felder.
+- Erkannte, referenzierte und fehlende Medien samt Dateiname, Größe und SHA-1; Cache-/Cloudstatus stammt ausschließlich aus `mediaStore`.
+- Reimport-Zahlen für neue, wiedererkannte, übersprungene und durch lokale Änderungen geschützte Learning Items.
+- Vollständige Warnungen, Fehler, Lernfortschrittstatus und weiterhin kompatible Summen.
 - nächste empfohlene Aktion: Lernen, Karten prüfen, Graph generieren.
 
 ---
@@ -3358,8 +3360,8 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/documentModel.ts` | `isTextReadableFile`, `isPdfFile`, `isDocxFile`, `formatPdfTextContentItems`, `createDocumentFromFile`, `createAnchorFromSelection`, `splitDocumentIntoPassages` | Dokumente, Dateityp-Gates, PDF-Textformatierung und Auswahl-zu-Quelle; PDF.js wird ueber die geteilte Runtime bedarfsgeladen |
 | `src/pdfRuntime.ts` / `src/pdfSelection.ts` / `src/ui/PdfDocumentViewer.tsx` | `loadPdfJs`, `normalizePdfSelectionText`, `firstSelectionRectOnPage`, `createPdfSelectionBbox`, `PdfDocumentViewer({ document, src, onSelection })` | Tiefe PDF.js-Modulgrenze fuer Runtime und Worker, kontinuierliche Anzeige, Fit-to-width, Navigation, Zoom, Textlayer, Auswahltext und stabile PDF-Koordinaten |
 | `src/importService.ts` | `normalizeImportDeck`, `normalizeNormalizedImportPayload`, `finalizeImportReport`, `importNormalizedDeck`, `parseTextToNormalizedImport`, `parseCsvToNormalizedImport`, `parseJsonToNormalizedImport`, `createImportFingerprint`, `findDuplicateLearningItem`, `createTextImportDeck`, `createCsvImportDeck`, `createTableImportDeck` | Text-/CSV-/JSON-/Excel-Paste-Import, Fingerprints/Dedupe und normalisierte Deck-Erstellung mit Parent-/Hierarchy-Feldern ueber die Learning-Item-Creation-Pipeline |
-| `src/apkgImport.ts` | `createApkgImportPreview`, `commitApkgImport`, `commitImport` | Öffentliche Preview-/Commit-Seam für APKG-Import, `collection.anki21b`/Zstd, Media-Manifeste, echte Anki-Unterstapel, Reimport-Merge, Hierarchie, Raw-Fallback, Scheduler-Rohdaten und Welt-Hauptstadt-Fixture-Verifikation |
-| `src/apkgImportWorker.ts` / `src/apkgImportWorkerProtocol.ts` / `src/sqliteReader.ts` / `src/zipReader.ts` | private Worker-, Format- und Parserinterfaces | Nativer lazy Dedicated Worker mit typisierten Nachrichten und transferierten Buffern sowie defensives Lesen von ZIP, MediaEntries, Zstd und minimalen SQLite-Tabellen |
+| `src/apkgImport.ts` | `createApkgImportPreview`, `commitApkgImport`, `commitImport`, `ApkgImportReportV1` | Öffentliche Preview-/Commit-Seam für APKG-Import, Legacy- und moderne V18-Notetypes, `collection.anki21b`/Zstd, Media-Manifeste, stabile `ankiImportIdentityV1`, GUID-/Template-basierter Reimport, echte Anki-Unterstapel, Raw-Fallback und versionierte Berichtsprojektion |
+| `src/apkgImportWorker.ts` / `src/apkgImportWorkerProtocol.ts` / `src/sqliteReader.ts` / `src/zipReader.ts` | private Worker-, Format- und Parserinterfaces | Nativer lazy Dedicated Worker mit typisierten Nachrichten und transferierten Buffern sowie defensives Lesen von ZIP, MediaEntries, Zstd, Rowid- und `WITHOUT ROWID`-SQLite-B-Bäumen |
 | `src/mediaStore.ts` | `createAccountMediaStore({ client, supabaseUrl, userId, indexedDB })`, `resolveCardHtmlMedia` | Öffentliche Medien-Seam mit accountgebundenem IndexedDB-Cache, persistenter Upload-/Cleanup-Queue, Legacy-Übernahme, Session-Fallback, `MediaSyncTask`, Retry-Lifecycle sowie Cloud-/Local-/Missing-Auflösung. |
 | `src/cloudMediaStore.ts` | `syncReferences`, `resolveReferences` | Private Supabase-/TUS-Details: accountweite SHA-1-Objektpfade, Standard- und lazy TUS-Uploads, aktuelle Tokens je Request, Fehlerklassifikation, Referenz-Reimport/Soft-Delete, Shared-Object-Schutz und gebündelte Signed URLs. |
 | `src/richText.ts` / `src/htmlSafety.ts` | `normalizeRichTextForEditor`, `appendPlainTextToCardHtml`, `hasCardRichTextContent`, `sanitizeCardHtml`, `stripHtml` | Rich-Text-Normalisierung, Quellen-Text-Anhaengen und HTML-Sanitization als Modulgrenze fuer Screens, Import und Review |
@@ -3477,30 +3479,32 @@ Unterstuetzt:
 
 - Upload und Validierung von `.apkg`-Dateien im Import-Screen.
 - Reproduzierbare APKG-Fixture `fixtures/apkg/world-capitals.apkg` mit 245 Hauptstadtkarten und sieben Kontinent-Unterstapeln; `scripts/create_world_capitals_apkg.py` erzeugt APKG, Quell-Snapshot und lokalen Seed aus `mledoze/countries`.
+- Qualitäts-Fixtures `fixtures/apkg/import-quality-legacy.apkg` und `fixtures/apkg/import-quality-latest.apkg` samt gemeinsamem SHA-/Identitätsmanifest. Legacy wird deterministisch mit der Python-Standardbibliothek erzeugt; Latest wird opt-in mit dem gepinnten Referenzwerkzeug `anki==26.5` erzeugt und als Binärfixture eingecheckt. App, normale Tests und CI benötigen Anki nicht als Runtime-Abhängigkeit.
 - Opt-in Benchmark-Fixture mit 4.900 Karten und 200 Medien wird deterministisch in `test-results/` erzeugt und nicht als große Binärdatei versioniert.
 - Lokales Lesen der APKG-Datei als ZIP-Archiv.
 - Browser-Preview über einen privaten nativen Vite Dedicated Worker mit typisiertem Nachrichtenvertrag, übertragbaren APKG-/Medienbuffern, Fortschritt, Abbruch und garantiertem Cleanup; der direkte Pfad bleibt für Node-Tests, bereits geparste Eingaben und fehlende Worker-Unterstützung.
 - Erkennung von `collection.anki2`, `collection.anki21` und `collection.anki21b`.
 - Zstd-Dekompression lesbarer `collection.anki21b`-Collections ueber `fzstd`, mit Fallback auf lesbare aeltere Collection-Dateien im selben Archiv.
-- Minimaler SQLite-Reader fuer die Anki-Tabellen `col`, `notes` und `cards` mit Signatur-, Seitengrößen-, Bounds-, Varint-, Overflow- und Zyklusprüfungen.
-- Auslesen von Deck-Namen, Notes, Cards, Fields, Tags und Media-Mapping.
+- Minimaler SQLite-Reader fuer `col`, `notes`, `cards`, `decks`, `notetypes`, `fields` und `templates`, einschließlich moderner `WITHOUT ROWID`-Tabellen sowie Signatur-, Seitengrößen-, Bounds-, Varint-, Overflow- und Zyklusprüfungen.
+- Auslesen von Deck-Namen, Notes, Cards, Fields, Tags und Media-Mapping; moderne native `U+001F`-Deckpfade werden ausschließlich an der Importgrenze normalisiert.
 - Auslesen von APKG-Paketmetadaten, Legacy-`media`-JSON und modernen MediaEntries.
 - Media-Manifeste mit Assets, fehlenden Assets, SHA-1, Groesse und MIME-Typ; die Importvorschau kann extrahierte Media-Dateien mit Bytes halten.
 - Accountgebundener Browser-Medienspeicher über `src/mediaStore.ts`: versionierte IndexedDB-Blobs und Upload-/Cleanup-Queue, einmalige Legacy-Übernahme, Session-Map mit Warnung sowie Cloud-/lokale Objekt-URLs für Preview, Review und Deck-Editor.
 - Cloud-first Commit: Decks werden vor Medien bestätigt; kleine Medien verwenden Supabase-Standardupload, große Medien lazy TUS, und lokale Fehler bleiben reloadfest pending.
 - Sichere HTML-Medienauflösung ueber `resolveCardHtmlMedia` nach vorheriger Sanitization.
 - Erhalt von Deck-/Unterdeck-Hierarchien als sichtbare lokale Parent-/Child-Decks mit `parentDeckId`, `hierarchyPath`, gemeinsamem `importGroupId` und weiterhin gesichertem `importMeta.deckHierarchy`.
-- Raw-Fallback fuer unbekannte oder nicht voll verstandene Note Types.
+- Basic Reverse, Optional Reverse anhand tatsächlich vorhandener Cards sowie getrennte Cloze-Card-Ordnungen; Raw-Fallback fuer unbekannte oder nicht voll verstandene Note Types ohne beliebige Template-Ausführung.
 - Uebernahme von Anki-Scheduler-Rohdaten in `reviewState.sourceSchedulerData`, ohne die Karte direkt als gelernt zu markieren.
 - Mapping in `CoreDeck` und Learning Items (`deck.cards[]` als lokale Compatibility Collection).
-- Reimport-Merge ueber `mergeImportedDeck`: vorhandene importierte Decks werden wiedererkannt, lokale Content-Edits bleiben erhalten, Medienreferenzen und Import-Metadaten werden aktualisiert.
+- Reimport-Merge ueber `mergeImportedDeck`: `ankiImportIdentityV1` verwendet GUID, Card-ID und GUID plus Template-Ordinal vor Legacy-IDs und Fingerprint; lokale Content-Edits, Variantenstatus und Review-State bleiben erhalten, während Import- und Medienmetadaten aktualisiert werden.
+- Versionierter Importbericht in `CreationScreen` für erkannte Stapel, Notetypes/Templates/Felder, Medien und Reimport; React rendert nur diese Projektion und den `mediaStore`-Status.
 - Lokale Speicherung in `localStorage`, gekapselt hinter `createCoreRepository`.
 - Sichere HTML-Vorschau mit Entfernung von Scripts, Event-Attributen und `javascript:`-URLs.
 
 Bewusst noch nicht unterstuetzt:
 
 - Vollstaendige Anki-Template-Auswertung.
-- Vollstaendige Anki-Cloze-Familienlogik jenseits der aktuellen `{{c1::...}}`-Basisanzeige.
+- Vollstaendige Anki-Template-/Cloze-Darstellung jenseits der sicheren Feld- und Card-Ordinal-Projektion.
 - Export und Community-Sharing der eigentlichen Mediendateien.
 - Globales administratives/Cron-Garbage-Collection für historische oder nach Crash/Cache-Verlust verbliebene Storage-Orphans.
 - Vollstaendige Scheduling-, Review-Historie- und Revlog-Migration; Rohdaten werden aber erhalten.

@@ -20,7 +20,21 @@ import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActive
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
 import { answerVariant, getNextReviewItem } from "./reviewService.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
+import { readZipArchive } from "./zipReader.ts";
 import type { WithImplicitCoercion } from "buffer";
+
+const APKG_QUALITY_FIXTURE_ROOT = new URL("../fixtures/apkg/", import.meta.url);
+
+async function qualityFixtureFile(name: "legacy" | "latest") {
+  const fileName = `import-quality-${name}.apkg`;
+  const bytes = await readFile(new URL(fileName, APKG_QUALITY_FIXTURE_ROOT));
+  return {
+    name: fileName,
+    size: bytes.length,
+    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    bytes,
+  };
+}
 
 function archiveFromEntries(entries: { [x: string]: any; media?: Uint8Array<any>|Uint8Array<ArrayBuffer>; 0?: Uint8Array<ArrayBuffer>; meta?: Uint8Array<ArrayBuffer>; }) {
   return {
@@ -799,4 +813,100 @@ test("commitImport updates untouched originals and preserves local variant state
   assert.ok(getOriginalVariant);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(localVariant.anchorVariantId, getOriginalVariant(mergedCard).id);
+});
+
+test("quality APKG fixtures match their manifest and exercise legacy plus latest containers", async () => {
+  const manifest = JSON.parse(await readFile(new URL("import-quality.expected.json", APKG_QUALITY_FIXTURE_ROOT), "utf8"));
+
+  for (const name of ["legacy", "latest"] as const) {
+    const fixture = await qualityFixtureFile(name);
+    const expected = manifest.fixtures[name];
+    assert.equal(createHash("sha256").update(fixture.bytes).digest("hex"), expected.sha256);
+
+    const archive = await readZipArchive(fixture);
+    assert.ok(archive.getEntry(expected.collectionEntry));
+    if (name === "latest") assert.ok(archive.getEntry("meta"));
+
+    const parsed = await parseApkgToNormalizedImport(fixture);
+    assert.deepEqual(parsed.errors, []);
+    assert.deepEqual(
+      parsed.normalizedDeck.items.map((item: any) => item.metadataJson.ankiImportIdentityV1.guid),
+      expected.notes.map((note: any) => note.guid),
+    );
+    assert.deepEqual(
+      parsed.normalizedDeck.metadataJson.mediaManifest.assets.map((asset: any) => ({ name: asset.name, size: asset.size, sha1: asset.sha1 })),
+      expected.media,
+    );
+  }
+});
+
+test("quality fixtures preserve card semantics, custom fields, media and imported original identities", async () => {
+  for (const name of ["legacy", "latest"] as const) {
+    const previewResult = await createApkgImportPreview(await qualityFixtureFile(name));
+    assert.ok(previewResult.preview);
+    const preview = previewResult.preview;
+    const report = preview.importReport.apkg;
+
+    assert.equal(report.contractVersion, 1);
+    assert.equal(report.packageFormat, name === "latest" ? "latest" : "legacy-2");
+    assert.ok(report.decks.some((deck: any) => deck.path === "CoRe APKG Qualität::Sonderformat"));
+    assert.deepEqual(report.media.missing, ["missing.png"]);
+    assert.equal(report.media.assets[0].sha1, "a2f01b42072ec20f06a59a12f6c692c474768e6e");
+    assert.deepEqual(report.notetypes.find((notetype: any) => notetype.classification === "custom")?.unmappedFields, ["Kontext"]);
+
+    const byGuid = new Map<string, any>(preview.deck.cards.map((card: any) => [String((card.meta.ankiImportIdentityV1 as any).guid), card]));
+    assert.equal(byGuid.get("core-quality-basic-reverse")?.variants.length, 2);
+    assert.equal(byGuid.get("core-quality-optional-yes")?.variants.length, 2);
+    assert.equal(byGuid.get("core-quality-optional-no")?.variants.length, 1);
+    assert.deepEqual(
+      byGuid.get("core-quality-cloze")?.variants.map((variant: any) => variant.meta.ankiImportIdentityV1.templateOrdinal),
+      [0, 1],
+    );
+    assert.equal(byGuid.get("core-quality-custom")?.originalFields.length, 3);
+    const original = getOriginalVariant(byGuid.get("core-quality-basic-reverse"));
+    assert.equal((original?.meta.ankiImportIdentityV1 as any).cardId != null, true);
+  }
+});
+
+test("GUID and template ordinal keep reimports stable when Anki note and card ids change", async () => {
+  const fixture = await qualityFixtureFile("latest");
+  const parsed = await parseApkgToNormalizedImport(fixture);
+  const first = await commitApkgImport(parsed.parsedPackage);
+  const reverseDeck = first.decks.find((deck: any) => deck.hierarchyPath?.at(-1) === "Reverse");
+  assert.ok(reverseDeck);
+  const existingCard = reverseDeck.cards[0];
+  const existingReverse = existingCard.variants.find((variant: any) => !variant.isOriginal);
+  const locallyEditedDeck = {
+    ...reverseDeck,
+    cards: [{
+      ...existingCard,
+      canonicalQuestion: "Lokale Frage",
+      originalFront: "Lokale Frage",
+      versionLog: [...existingCard.versionLog, { id: "local-edit", changeType: "content_updated" }],
+      variants: existingCard.variants.map((variant: any) => variant.id === existingReverse.id ? { ...variant, isActive: false, qualityStatus: "flagged" } : variant),
+    }],
+  };
+  const noteIdMap = new Map(parsed.parsedPackage.notes.map((note: any) => [String(note.id), String(Number(note.id) + 100_000)]));
+  const shifted = {
+    ...parsed.parsedPackage,
+    notes: parsed.parsedPackage.notes.map((note: any) => ({ ...note, id: noteIdMap.get(String(note.id)) })),
+    cards: parsed.parsedPackage.cards.map((card: any) => ({
+    ...card,
+    id: String(Number(card.id) + 200_000),
+    nid: noteIdMap.get(String(card.nid)),
+    })),
+  };
+
+  const reimport = await commitApkgImport(shifted, { existingDecks: first.decks.map((deck: any) => deck.id === reverseDeck.id ? locallyEditedDeck : deck) });
+  const mergedReverseDeck = reimport.decks.find((deck: any) => deck.id === reverseDeck.id);
+  const mergedCard = mergedReverseDeck.cards[0];
+  const mergedReverse = mergedCard.variants.find((variant: any) => variant.meta.ankiImportIdentityV1.templateOrdinal === 1);
+
+  assert.equal(mergedReverseDeck.cards.length, 1);
+  assert.equal(mergedCard.id, existingCard.id);
+  assert.equal(mergedCard.originalFront, "Lokale Frage");
+  assert.equal(mergedReverse.id, existingReverse.id);
+  assert.equal(mergedReverse.isActive, false);
+  assert.equal(mergedReverse.qualityStatus, "flagged");
+  assert.notEqual(mergedReverse.meta.ankiImportIdentityV1.cardId, existingReverse.meta.ankiImportIdentityV1.cardId);
 });

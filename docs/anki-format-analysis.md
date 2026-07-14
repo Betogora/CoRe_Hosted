@@ -120,11 +120,13 @@ Rigorose CoRe-Folgerung: CoRe sollte aktuellen Zustand und Ereignisverlauf strik
 
 Anki speichert lokale Profilinhalte in `collection.anki2`; Medien liegen separat in `collection.media`. APKG-Dateien bündeln Collection, Medien und Metadaten.
 
-Aktuelle Paketvarianten laut Anki-Code:
+Aktuelle Paketvarianten laut Anki-Code und verifizierter CoRe-Fixture:
 
 - Legacy 1: `collection.anki2`, Schema V11
 - Legacy 2: `collection.anki21`, Schema V11
 - Latest: `collection.anki21b`, Schema V18, Zstd-komprimiert
+
+CoRe liest den modernen V18-Pfad ohne Anki-Runtime: `decks` und `notetypes` liegen in normalen Tabellen, `fields` und `templates` in `WITHOUT ROWID`-Index-B-Bäumen. Diese vier Tabellen werden hinter `src/apkgImport.ts` in dieselbe private Model-Form wie Legacy-`col.models` normalisiert. Ankis nativer Deck-Trenner `U+001F` wird erst an dieser Importgrenze in `::` übersetzt. Die eingecheckte Latest-Qualitätsfixture wurde ausschließlich als Referenzartefakt mit `anki==26.5` erzeugt; App, Tests und CI übernehmen daraus keine Runtime-Abhängigkeit.
 
 Bei modernen Paketen ist die Medienliste Protobuf-basiert; Legacy-Medien nutzen eine JSON-Hashmap wie `{"0": "bild.png"}`. Der Import normalisiert Dateinamen, prüft Sicherheit, nutzt SHA-1/Größe, dekomprimiert bei Bedarf und kopiert Medien getrennt von den Karteninhalten.
 
@@ -172,7 +174,7 @@ Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzept
 - **Genau eine Original-Variante:** Jede Import-, KI- und manuelle Erstellung muss genau eine `isOriginal: true`-Variante erzeugen. Nicht-originale Varianten müssen auf diese Originalvariante zeigen.
 - **Per-Variante Scheduler-State:** Reverse-, Cloze-, KI- und CoRe-Varianten brauchen eigene Fälligkeit, Performance und Fehlerhistorie. Das vermeidet, dass eine leichte Rephrase den Originalfortschritt verfälscht.
 - **Append-only Review Events:** Reviewdaten gehören als Ereignisse gespeichert, nicht nur als überschreibbarer Zustand. Der aktuelle State ist eine Projektion.
-- **Stabile Importidentität:** CoRe muss `ankiGuid`, ursprüngliche Note-ID, Card-ID, Notetype-ID, Template-Ordinal, Template-Name, Deck-Pfad, Importgruppe und Media-Checksums konservieren.
+- **Stabile Importidentität:** CoRe konserviert diese Werte versioniert als `ankiImportIdentityV1` in vorhandenen Card-/Varianten-JSONB-Metadaten. Notes werden beim Reimport in der Reihenfolge GUID, Legacy-Note-ID und Fingerprint wiedererkannt; Varianten in der Reihenfolge Card-ID, GUID plus Template-Ordinal, Legacy-Card-ID und lokale ID. GUID ist damit stabiler Primärschlüssel, während geänderte Anki-Note-/Card-IDs als aktualisierte Importmetadaten erhalten bleiben. Media-Checksums bleiben im Medienmanifest beziehungsweise in `MediaAssetReference.sha1`.
 - **Explizite Deck-Hierarchie:** Ankis `::`-Namen werden beim Import in echte Parent-/Child-Decks übersetzt. Intern sollte CoRe keine Baumstruktur aus Strings rekonstruieren müssen.
 - **Medien als Assets:** Dateiname, SHA-1, Größe, MIME-Typ, Storage-Referenz und Fundstelle gehören in `MediaAssetReference` hinter `mediaStore`. Physische Objekte sind accountweit unter `{userId}/objects/{sha1}` adressiert; React kennt weder Pfadbildung noch APKG-Manifeste.
 
@@ -317,14 +319,12 @@ Für den aktuellen Vercel/Supabase-Pfad ist Elixir kein P0 und kein P1. Es ist e
 
 ## Nächste Arbeitspakete
 
-1. **APKG-Fixtures erweitern:** Basic reversed, optional reversed, Cloze, Medien, ungewöhnliche Notetypes und echte `collection.anki21b`/Zstd-Beispiele; Tests in `src/apkgImport.test.ts` ergaenzen.
-2. **Importidentitäten prüfen:** GUID, ursprüngliche Note-/Card-ID, Template-Ordinal, Notetype-Snapshot, Deck-Pfad und Medienprüfsummen in `apkgImport`, `importService` und `coreModel` konsolidieren.
-3. **Cloze-Familien modellieren:** Cloze-Gruppen, Card-Ords, Review-State und UI-Verhalten explizit machen; relevante Stellen sind `coreModel`, `reviewService`, `scheduler`, `StudyMode` und `creationPipeline.test.ts`.
-4. **Template-Snapshots speichern:** Nicht beliebig ausführen, aber genug für Reimport, Debugging und späteren Export in Import-Metadaten bewahren.
-5. **Medienmodell weiterführen:** Export, Community-Sharing und administratives Orphan-GC auf dem vorhandenen accountweiten Storage-/Referenzmodell definieren.
-6. **Revlog-Import als Analytics-Spike:** Anki-Reviewverlauf lesbar machen, aber nicht ungeprüft als CoRe-Lernzustand übernehmen; Heatmap/Retention-Projektionen in `libraryModel` koennen spaeter davon profitieren.
-7. **Benchmark-Dokument anlegen:** Deckgröße, Medienanzahl, Importdauer, Speicherverbrauch, UI-Hänger und Abbruchverhalten messen.
-8. **Rust/WASM-Spike nur nach Messung:** Erst reale Engpässe nachweisen, dann ein enges Import-Hotpath-Modul bauen.
+1. **Cloze-Familien weiter modellieren:** Importierte `c1`/`c2`-Cards sind ordinalgetrennt und duplikatfrei verankert; als Nächstes Review-UI und Scheduler-Projektion pro Cloze-Gruppe weiter schärfen.
+2. **Template-Snapshots ausbauen:** Feld- und Template-Namen/-Ordnungen sind lesbar und im Bericht; Front-/Back-HTML, CSS und Requirements weiterhin nur konservieren, nicht beliebig ausführen.
+3. **Medienmodell weiterführen:** Export, Community-Sharing und administratives Orphan-GC auf dem vorhandenen accountweiten Storage-/Referenzmodell definieren.
+4. **Revlog-Import als Analytics-Spike:** Anki-Reviewverlauf lesbar machen, aber nicht ungeprüft als CoRe-Lernzustand übernehmen; Heatmap/Retention-Projektionen in `libraryModel` koennen spaeter davon profitieren.
+5. **Benchmark-Dokument anlegen:** Deckgröße, Medienanzahl, Importdauer, Speicherverbrauch, UI-Hänger und Abbruchverhalten messen.
+6. **Rust/WASM-Spike nur nach Messung:** Erst reale Engpässe nachweisen, dann ein enges Import-Hotpath-Modul bauen.
 
 ## Architekturentscheidung
 

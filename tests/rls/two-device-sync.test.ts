@@ -74,6 +74,8 @@ test("zwei Geräte schützen neueren Content, Offline-Reviews und Soft-Deletes",
   const userId = userData.user.id;
   const deviceA = createDeviceHarness(clientA, userId, "device_two_a");
   const deviceB = createDeviceHarness(clientB, userId, "device_two_b");
+  const { error: staleConflictError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
+  assert.ifError(staleConflictError);
 
   const deck = deviceA.workspace.createDeck({ name: "Zwei-Geräte-Ausgang" });
   const deckWithCard = deviceA.workspace.addManualCardToDeck(deck.id, {
@@ -97,12 +99,12 @@ test("zwei Geräte schützen neueren Content, Offline-Reviews und Soft-Deletes",
 
   const bDeck = deviceB.workspace.updateDeck(deck.id, (current) => ({ ...current, name: "Neuer Inhalt von Gerät B" }));
   assert.ok(bDeck);
-  deviceB.engine.enqueueMutation({ id: "two-device-content-b", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: deviceB.workspace.getState() } });
+  deviceB.engine.enqueueMutation({ id: `two-device-content-b-${deck.id}`, type: SYNC_MUTATION_TYPES.statePatch, payload: { state: deviceB.workspace.getState() } });
   const contentFlush = await deviceB.engine.flush(deviceB.workspace.getState(), { force: true });
   assert.ok(contentFlush.saved);
   assert.equal(deviceB.engine.pendingCount(), 0);
 
-  deviceA.engine.enqueueMutation({ id: "two-device-stale-a", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: staleSnapshotA } });
+  deviceA.engine.enqueueMutation({ id: `two-device-stale-a-${deck.id}`, type: SYNC_MUTATION_TYPES.statePatch, payload: { state: staleSnapshotA } });
   const staleFlush = await deviceA.engine.flush(staleSnapshotA, { force: true });
   assert.ok(staleFlush.conflicts.length > 0, "Der alte Snapshot muss einen Konflikt erzeugen.");
   const remoteAfterConflict = await deviceB.engine.loadSnapshot(deviceB.workspace.getState());
@@ -159,10 +161,12 @@ test("zwei Geräte schützen neueren Content, Offline-Reviews und Soft-Deletes",
   deviceB.workspace.saveState(currentB);
   const deletion = deviceB.workspace.deleteDeckTree(deck.id);
   assert.ok(deletion);
-  deviceB.engine.enqueueMutation({ id: "two-device-delete-b", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: deviceB.workspace.getState() } });
+  deviceB.engine.enqueueMutation({ id: `two-device-delete-b-${deck.id}`, type: SYNC_MUTATION_TYPES.statePatch, payload: { state: deviceB.workspace.getState() } });
   await deviceB.engine.flush(deviceB.workspace.getState(), { force: true });
-  deviceA.engine.enqueueMutation({ id: "two-device-reactivate-a", type: SYNC_MUTATION_TYPES.statePatch, payload: { state: staleSnapshotA } });
+  deviceA.engine.enqueueMutation({ id: `two-device-reactivate-a-${deck.id}`, type: SYNC_MUTATION_TYPES.statePatch, payload: { state: staleSnapshotA } });
   await deviceA.engine.flush(staleSnapshotA, { force: true });
   const remoteAfterDelete = await deviceB.engine.loadSnapshot(deviceB.workspace.getState());
   assert.equal(remoteAfterDelete.decks.some((item: { id: string; deletedAt?: string | null }) => item.id === deck.id && !item.deletedAt), false);
+  const { error: cleanupConflictError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
+  assert.ifError(cleanupConflictError);
 });

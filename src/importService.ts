@@ -480,6 +480,7 @@ function asDeckList(existingDecksOrDeck: any) {
 }
 
 function getExistingSourceExternalIds(card: any) {
+  const identity = card.meta?.ankiImportIdentityV1 ?? card.meta?.normalizedImport?.metadataJson?.ankiImportIdentityV1;
   return [
     card.sourceExternalId,
     card.sourceRefId,
@@ -488,6 +489,8 @@ function getExistingSourceExternalIds(card: any) {
     card.meta?.sourceExternalId,
     card.meta?.normalizedImport?.sourceExternalId,
     card.meta?.import?.sourceExternalId,
+    identity?.guid ? `anki-guid-${String(identity.guid)}` : null,
+    identity?.noteId ? `anki-note-${String(identity.noteId)}` : null,
   ].filter(Boolean).map(String);
 }
 
@@ -536,6 +539,7 @@ function toPipelineVariant(variant: any) {
     isActive: variant.isActive ?? true,
     transformType: variant.isOriginal ? "original" : (TRANSFORM_BY_VARIANT_TYPE as Record<string, string>)[variant.variantType] ?? "rephrase",
     meta: {
+      ...(variant.metadataJson ?? {}),
       sourceExternalId: variant.sourceExternalId ?? null,
       abstractionLevel: variant.abstractionLevel,
       semanticDistanceEstimate: variant.semanticDistanceEstimate,
