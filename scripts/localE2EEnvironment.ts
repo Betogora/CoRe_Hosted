@@ -54,8 +54,26 @@ interface SupabaseStatusEnvironment {
   API_URL?: unknown;
   ANON_KEY?: unknown;
   PUBLISHABLE_KEY?: unknown;
+  SECRET_KEY?: unknown;
+  SERVICE_ROLE_KEY?: unknown;
   SUPABASE_URL?: unknown;
   [key: string]: unknown;
+}
+
+export function createLocalPrivilegedTestEnvironment(
+  statusEnvironment: SupabaseStatusEnvironment,
+  baseEnvironment: NodeJS.ProcessEnv = {},
+): NodeJS.ProcessEnv {
+  const safeEnvironment = createLocalE2ERuntimeEnvironment(statusEnvironment, baseEnvironment);
+  const secret = statusEnvironment.SECRET_KEY ?? statusEnvironment.SERVICE_ROLE_KEY ?? "";
+  if (!String(secret).trim()) {
+    throw new Error("Der lokale Supabase-Status enthält weder SECRET_KEY noch SERVICE_ROLE_KEY.");
+  }
+  return {
+    ...safeEnvironment,
+    SUPABASE_URL: safeEnvironment.VITE_SUPABASE_URL,
+    SUPABASE_SECRET_KEY: String(secret).trim(),
+  };
 }
 
 export function createLocalE2ERuntimeEnvironment(

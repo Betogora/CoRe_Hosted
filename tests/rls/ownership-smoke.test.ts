@@ -15,7 +15,6 @@ const TABLES = [
   "card_variants",
   "review_events",
   "source_documents",
-  "ai_jobs",
   "media_assets",
   "sync_devices",
   "sync_conflicts",
@@ -172,7 +171,6 @@ const UPDATE_CASES = {
   card_variants: { column: "explanation", value: "aktualisiert" },
   review_events: { column: "flags", value: { verified: true } },
   source_documents: { column: "metadata", value: { verified: true } },
-  ai_jobs: { column: "policy", value: { verified: true } },
   media_assets: { column: "metadata", value: { verified: true } },
   sync_devices: { column: "label", value: "Aktualisierter Browser" },
   sync_conflicts: { column: "resolution", value: { verified: true } },
@@ -304,7 +302,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card`, deck_id: fixtureB.decks.id }],
         ["card_variants", { ...fixtureA.card_variants, id: `${prefix}_foreign_fk_variant`, card_id: fixtureB.cards.id }],
         ["review_events", { ...fixtureA.review_events, id: `${prefix}_foreign_fk_review`, deck_id: fixtureB.decks.id }],
-        ["ai_jobs", { ...fixtureA.ai_jobs, id: `${prefix}_foreign_fk_job`, deck_id: fixtureB.decks.id }],
         ["media_assets", {
           ...fixtureA.media_assets,
           id: `${prefix}_foreign_fk_media_deck`,

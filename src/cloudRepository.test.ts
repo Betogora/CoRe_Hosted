@@ -6,6 +6,7 @@ import {
   ACCOUNT_UPSERT_CONFLICT,
   applyCardMutation,
   applyDeckMutation,
+  aiJobToCloudRow,
   appendReviewEvent,
   cardToCloudRow,
   CloudRevisionConflictError,
@@ -355,7 +356,30 @@ function createCloudFixture() {
   };
   const state = { version: 2, profile, decks: [deck], documents: [document], aiJobs: [aiJob], cloudTombstones: [] };
   const user = { id: "user-1", email: profile.email, created_at: timestamp };
-  const rows = createCloudStateRows(state, user.id, { deviceId: "device-a" });
+  const rows = { ...createCloudStateRows(state, user.id, { deviceId: "device-a" }), ai_jobs: [] as any[] };
+  rows.ai_jobs = [{
+    ...aiJobToCloudRow(aiJob, user.id, new Set([deck.id])),
+    contract_version: 1,
+    prompt_version: "prompt-v1",
+    schema_version: "response-v1",
+    idempotency_key: "11111111-1111-4111-8111-111111111111",
+    request_fingerprint: "fingerprint",
+    attempt_count: 1,
+    max_attempts: 3,
+    retryable: false,
+    next_retry_at: null,
+    provider: "google",
+    model: "gemma-4-31b-it",
+    error_class: null,
+    error_code: null,
+    input_tokens: 10,
+    output_tokens: null,
+    total_tokens: 10,
+    pricing_version: "google-gemini-api-2026-07-09",
+    cost_micros: 0,
+    cost_currency: "USD",
+    updated_at: timestamp,
+  }];
   return {
     state,
     user,
@@ -594,6 +618,40 @@ test("cloud repository roundtrips sync metadata and media references", async () 
   assert.equal(deck.reviewEvents[0].createdByDeviceId, "device-a");
   assert.equal(loaded.documents[0].revision, 2);
   assert.equal(loaded.aiJobs[0].revision, 2);
+  assert.equal(loaded.aiJobs[0].contractVersion, 1);
+  assert.equal(loaded.aiJobs[0].outputTokens, null);
+});
+
+test("cloud repository reads server jobs, preserves local legacy jobs and never mutates the ledger", async () => {
+  const fixture = createCloudFixture();
+  const legacyJob = {
+    ...fixture.state.aiJobs[0],
+    id: "local-legacy-job",
+    contractVersion: 0,
+    status: "succeeded",
+  };
+  const state = {
+    ...fixture.state,
+    aiJobs: [legacyJob],
+    decks: fixture.state.decks.map((deck: any) => ({ ...deck, aiJobs: [legacyJob] })),
+  };
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const originalServerRows = clone(client.tables.ai_jobs);
+
+  const loaded = await loadAccountCloudState(client, state);
+  assert.deepEqual(new Set(loaded.aiJobs.map((job: any) => job.id)), new Set(["local-legacy-job", "job-1"]));
+
+  await upsertAccountCloudState(client, state, {
+    deviceId: "device-b",
+    mutationIds: ["state-ai-read-only"],
+    flushedAt: "2026-07-14T10:00:00.000Z",
+  });
+  await replaceAccountCloudState(client, { ...state, aiJobs: [], decks: [] }, { deviceId: "device-reset" });
+
+  const ledgerWrites = client.calls.filter((call: any) =>
+    call.table === "ai_jobs" && ["insert", "upsert", "update", "delete"].includes(call.operation));
+  assert.deepEqual(ledgerWrites, []);
+  assert.deepEqual(client.tables.ai_jobs, originalServerRows);
 });
 
 test("cloud repository validates and assigns account media to the owning deck and card", async () => {
@@ -750,7 +808,7 @@ test("cloud load hides soft-deleted rows and preserves minimal tombstones", asyn
   assert.equal(loaded.aiJobs.some((job: { id: string; }) => job.id === "job-deleted"), false);
   assert.deepEqual(
     new Set(loaded.cloudTombstones.map((tombstone: { entityTable: any; }) => tombstone.entityTable)),
-    new Set(["decks", "cards", "card_variants", "source_documents", "ai_jobs"]),
+    new Set(["decks", "cards", "card_variants", "source_documents"]),
   );
   assert.equal(loaded.cloudTombstones.find((tombstone: { entityId: string; }) => tombstone.entityId === "deck-deleted").revision, 7);
 });
@@ -1324,7 +1382,7 @@ test("resolution fails safely when the remote revision changed again", async () 
   assert.equal(client.tables.sync_conflicts[0].status, "open");
 });
 
-test("remote conflict choices project canonical cards, variants, documents and jobs into local state", async () => {
+test("remote conflict choices project canonical cards, variants and documents into local state", async () => {
   const scenarios = [
     {
       table: "cards",
@@ -1343,12 +1401,6 @@ test("remote conflict choices project canonical cards, variants, documents and j
       field: "text",
       value: "Remote Dokumenttext",
       read: (state: { documents: { text: any; }[]; }) => state.documents[0].text,
-    },
-    {
-      table: "ai_jobs",
-      field: "status",
-      value: "failed",
-      read: (state: { aiJobs: { status: any; }[]; }) => state.aiJobs[0].status,
     },
   ];
 

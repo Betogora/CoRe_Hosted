@@ -70,7 +70,7 @@ function createProtection(overrides: Record<string, unknown> = {}) {
 
 async function run(
   protection: ReturnType<typeof createChatProtection>,
-  options: { req?: any; input?: AiChatRequest; execute?: (input: AiChatRequest) => Promise<AiChatSuccess> } = {},
+  options: { req?: any; input?: AiChatRequest; execute?: (input: AiChatRequest, context?: any) => Promise<AiChatSuccess> } = {},
 ) {
   return protection.run({
     req: options.req ?? createReq(),
@@ -139,6 +139,21 @@ test("chat protection replays the same completed request without another provide
   assert.equal(JSON.stringify([...redis.values.values()]).includes("user-secret"), false);
   assert.equal(JSON.stringify([...redis.values.values()]).includes("203.0.113.8"), false);
   assert.equal(JSON.stringify([...redis.values.values()]).includes(request.question), false);
+});
+
+test("chat protection passes only authenticated execution identifiers downstream", async () => {
+  const { protection } = createProtection();
+  let context: any;
+  await run(protection, {
+    execute: async (_input: AiChatRequest, receivedContext?: any) => {
+      context = receivedContext;
+      return success;
+    },
+  });
+  assert.equal(context.userId, "user-secret");
+  assert.equal(context.idempotencyKey, IDEMPOTENCY_KEY);
+  assert.match(context.requestFingerprint, /^[a-f0-9]{64}$/);
+  assert.equal(JSON.stringify(context).includes(request.question), false);
 });
 
 test("chat protection rejects an idempotency key reused for another body", async () => {

@@ -23,7 +23,6 @@ authenticated_tables(table_name) as (
     ('card_variants'),
     ('review_events'),
     ('source_documents'),
-    ('ai_jobs'),
     ('media_assets'),
     ('sync_devices'),
     ('sync_conflicts')
@@ -49,7 +48,27 @@ required_columns(table_name, column_name) as (
     ('source_documents', 'updated_by_device_id'),
     ('ai_jobs', 'revision'),
     ('ai_jobs', 'deleted_at'),
-    ('ai_jobs', 'updated_by_device_id')
+    ('ai_jobs', 'updated_by_device_id'),
+    ('ai_jobs', 'contract_version'),
+    ('ai_jobs', 'prompt_version'),
+    ('ai_jobs', 'schema_version'),
+    ('ai_jobs', 'idempotency_key'),
+    ('ai_jobs', 'request_fingerprint'),
+    ('ai_jobs', 'attempt_count'),
+    ('ai_jobs', 'max_attempts'),
+    ('ai_jobs', 'retryable'),
+    ('ai_jobs', 'next_retry_at'),
+    ('ai_jobs', 'provider'),
+    ('ai_jobs', 'model'),
+    ('ai_jobs', 'error_class'),
+    ('ai_jobs', 'error_code'),
+    ('ai_jobs', 'input_tokens'),
+    ('ai_jobs', 'output_tokens'),
+    ('ai_jobs', 'total_tokens'),
+    ('ai_jobs', 'pricing_version'),
+    ('ai_jobs', 'cost_micros'),
+    ('ai_jobs', 'cost_currency'),
+    ('ai_jobs', 'updated_at')
 ),
 expected_sync_device_columns(column_name, data_type, is_nullable, column_default) as (
   values
@@ -79,7 +98,7 @@ expected_policies(
     ('public', 'card_variants', 'card_variants_owner_all', 'ALL', array['authenticated']::text[], true, true, 'user-owner'),
     ('public', 'review_events', 'review_events_owner_all', 'ALL', array['authenticated']::text[], true, true, 'user-owner'),
     ('public', 'source_documents', 'source_documents_owner_all', 'ALL', array['authenticated']::text[], true, true, 'user-owner'),
-    ('public', 'ai_jobs', 'ai_jobs_owner_all', 'ALL', array['authenticated']::text[], true, true, 'user-owner'),
+    ('public', 'ai_jobs', 'ai_jobs_select_own', 'SELECT', array['authenticated']::text[], true, false, 'user-owner'),
     ('public', 'media_assets', 'media_assets_owner_all', 'ALL', array['authenticated']::text[], true, true, 'user-owner'),
     ('public', 'sync_devices', 'sync_devices_owner_all', 'ALL', array['authenticated']::text[], true, true, 'user-owner'),
     ('public', 'sync_conflicts', 'sync_conflicts_owner_all', 'ALL', array['authenticated']::text[], true, true, 'user-owner'),
@@ -275,6 +294,31 @@ checks(check_name, passed, details) as (
     jsonb_build_object('role', 'authenticated', 'table', t.table_name, 'privilege', p.privilege_name)
   from authenticated_tables t
   cross join privileges p
+
+  union all
+
+  select
+    'grant:authenticated:ai_jobs:' || p.privilege_name,
+    case
+      when p.privilege_name = 'SELECT' then has_table_privilege('authenticated', 'public.ai_jobs', p.privilege_name)
+      else not has_table_privilege('authenticated', 'public.ai_jobs', p.privilege_name)
+    end,
+    jsonb_build_object('role', 'authenticated', 'table', 'ai_jobs', 'privilege', p.privilege_name, 'expected', 'select-only')
+  from privileges p
+
+  union all
+
+  select
+    'index:ai_jobs_user_idempotency_v1_idx',
+    to_regclass('public.ai_jobs_user_idempotency_v1_idx') is not null,
+    jsonb_build_object('index', 'ai_jobs_user_idempotency_v1_idx')
+
+  union all
+
+  select
+    'index:ai_jobs_user_created_at_idx',
+    to_regclass('public.ai_jobs_user_created_at_idx') is not null,
+    jsonb_build_object('index', 'ai_jobs_user_created_at_idx')
 
   union all
 

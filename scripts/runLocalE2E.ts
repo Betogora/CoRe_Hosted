@@ -4,6 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   createLocalE2ERuntimeEnvironment,
+  createLocalPrivilegedTestEnvironment,
   parseSupabaseStatusEnvironment,
 } from "./localE2EEnvironment.ts";
 import { synchronizeDatabaseTypes } from "./databaseTypes.ts";
@@ -11,10 +12,13 @@ import { synchronizeDatabaseTypes } from "./databaseTypes.ts";
 const SUPABASE_CLI_PATH = path.join(process.cwd(), "node_modules", "supabase", "dist", "supabase.js");
 const PLAYWRIGHT_CLI_PATH = path.join(process.cwd(), "node_modules", "@playwright", "test", "cli.js");
 const TSX_CLI_PATH = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
-const RLS_TEST_PATHS = readdirSync(path.join(process.cwd(), "tests", "rls"))
+const AI_JOB_RLS_TEST_NAME = "ai-job-ledger-smoke.test.ts";
+const ALL_RLS_TEST_PATHS = readdirSync(path.join(process.cwd(), "tests", "rls"))
   .filter((fileName) => fileName.endsWith(".test.ts"))
   .sort()
   .map((fileName) => path.join(process.cwd(), "tests", "rls", fileName));
+const AI_JOB_RLS_TEST_PATH = ALL_RLS_TEST_PATHS.find((filePath) => path.basename(filePath) === AI_JOB_RLS_TEST_NAME);
+const RLS_TEST_PATHS = ALL_RLS_TEST_PATHS.filter((filePath) => path.basename(filePath) !== AI_JOB_RLS_TEST_NAME);
 
 interface CommandOptions {
   capture?: boolean;
@@ -122,6 +126,12 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
     console.log("Nutzer-A/Nutzer-B/anon-Smoke gegen die lokale Data API ausführen …");
     await runCommand(process.execPath, [TSX_CLI_PATH, "--test", "--test-concurrency=1", ...RLS_TEST_PATHS], {
       env: testEnvironment,
+    });
+
+    if (!AI_JOB_RLS_TEST_PATH) throw new Error(`Der RLS-Smoke ${AI_JOB_RLS_TEST_NAME} fehlt.`);
+    console.log("Serverautoritativen KI-Job-Ledger separat mit lokalem Secret prüfen …");
+    await runCommand(process.execPath, [TSX_CLI_PATH, "--test", "--test-concurrency=1", AI_JOB_RLS_TEST_PATH], {
+      env: createLocalPrivilegedTestEnvironment(statusEnvironment, process.env),
     });
 
     if (!rlsOnly) {

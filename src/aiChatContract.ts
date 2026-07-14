@@ -39,9 +39,9 @@ export const aiChatRequestSchema = v.pipe(
 );
 
 const usageSchema = v.strictObject({
-  totalTokens: v.number(),
-  inputTokens: v.number(),
-  outputTokens: v.number(),
+  totalTokens: v.nullable(v.number()),
+  inputTokens: v.nullable(v.number()),
+  outputTokens: v.nullable(v.number()),
 });
 
 export const aiChatSuccessSchema = v.strictObject({

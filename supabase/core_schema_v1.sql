@@ -187,9 +187,28 @@ create unique index if not exists source_documents_id_user_id_idx on public.sour
 create table if not exists public.ai_jobs (
   id text,
   user_id uuid not null references auth.users(id) on delete cascade,
-  deck_id text not null,
+  deck_id text,
   job_type text not null,
   status text not null default 'queued' check (status in ('queued', 'running', 'succeeded', 'failed', 'cancelled')),
+  contract_version integer not null default 0 check (contract_version in (0, 1)),
+  prompt_version text,
+  schema_version text,
+  idempotency_key text,
+  request_fingerprint text,
+  attempt_count integer not null default 0 check (attempt_count >= 0),
+  max_attempts integer not null default 3 check (max_attempts between 1 and 10),
+  retryable boolean not null default false,
+  next_retry_at timestamptz,
+  provider text,
+  model text,
+  error_class text,
+  error_code text,
+  input_tokens bigint check (input_tokens is null or input_tokens >= 0),
+  output_tokens bigint check (output_tokens is null or output_tokens >= 0),
+  total_tokens bigint check (total_tokens is null or total_tokens >= 0),
+  pricing_version text,
+  cost_micros bigint check (cost_micros is null or cost_micros >= 0),
+  cost_currency text check (cost_currency is null or cost_currency ~ '^[A-Z]{3}$'),
   input_ref jsonb not null default '{}'::jsonb,
   policy jsonb not null default '{}'::jsonb,
   result_ref jsonb,
@@ -197,16 +216,25 @@ create table if not exists public.ai_jobs (
   created_at timestamptz not null default now(),
   started_at timestamptz,
   finished_at timestamptz,
+  updated_at timestamptz not null default now(),
   revision integer not null default 1,
   deleted_at timestamptz,
   updated_by_device_id text,
   primary key (user_id, id),
-  constraint ai_jobs_deck_owner_fk foreign key (deck_id, user_id) references public.decks (id, user_id) on delete cascade
+  constraint ai_jobs_deck_owner_fk foreign key (deck_id, user_id) references public.decks (id, user_id) on delete cascade,
+  constraint ai_jobs_v1_contract_check check (
+    contract_version = 0 or (
+      prompt_version is not null and schema_version is not null and idempotency_key is not null
+      and request_fingerprint is not null and provider is not null and model is not null
+    )
+  )
 );
 
 create index if not exists ai_jobs_user_id_idx on public.ai_jobs (user_id);
 create index if not exists ai_jobs_deck_id_idx on public.ai_jobs (deck_id);
 create unique index if not exists ai_jobs_id_user_id_idx on public.ai_jobs (id, user_id);
+create unique index if not exists ai_jobs_user_idempotency_v1_idx on public.ai_jobs (user_id, idempotency_key) where contract_version = 1;
+create index if not exists ai_jobs_user_created_at_idx on public.ai_jobs (user_id, created_at desc);
 
 create table if not exists public.media_assets (
   id text,
@@ -310,7 +338,8 @@ drop policy if exists "source_documents_owner_all" on public.source_documents;
 create policy "source_documents_owner_all" on public.source_documents for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 drop policy if exists "ai_jobs_owner_all" on public.ai_jobs;
-create policy "ai_jobs_owner_all" on public.ai_jobs for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists "ai_jobs_select_own" on public.ai_jobs;
+create policy "ai_jobs_select_own" on public.ai_jobs for select to authenticated using ((select auth.uid()) = user_id);
 
 drop policy if exists "media_assets_owner_all" on public.media_assets;
 create policy "media_assets_owner_all" on public.media_assets for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
@@ -376,11 +405,12 @@ grant select, insert, update, delete on table
   public.card_variants,
   public.review_events,
   public.source_documents,
-  public.ai_jobs,
   public.media_assets,
   public.sync_devices,
   public.sync_conflicts
 to authenticated;
+
+grant select on table public.ai_jobs to authenticated;
 
 grant all privileges on table
   public.profiles,

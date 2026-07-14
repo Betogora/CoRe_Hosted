@@ -40,10 +40,16 @@ interface ChatProtectionOverrides {
   now?: () => number;
 }
 
+export interface ChatExecutionContext {
+  userId: string;
+  idempotencyKey: string;
+  requestFingerprint: string;
+}
+
 interface ProtectedChatInput {
   req: any;
   parseRequest: () => Promise<AiChatRequest>;
-  execute: (input: AiChatRequest) => Promise<AiChatSuccess>;
+  execute: (input: AiChatRequest, context: ChatExecutionContext) => Promise<AiChatSuccess>;
 }
 
 type PendingEntry = { state: "pending"; requestHash: string };
@@ -311,7 +317,11 @@ export function createChatProtection(env: ProtectionEnv = process.env, overrides
       }
 
       try {
-        const response = await execute(input);
+        const response = await execute(input, {
+          userId: authenticated.userId,
+          idempotencyKey,
+          requestFingerprint: bodyHash,
+        });
         const validated = parseAiChatSuccess(response);
         if (!validated.success) throw protectionUnavailable();
         const complete: CompleteEntry = { state: "complete", requestHash: bodyHash, response: validated.output };

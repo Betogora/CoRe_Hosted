@@ -16,12 +16,12 @@ function mediaAssetFromRow(row: MediaAssetRow) {
 }
 
 const ACCOUNT_TABLES = ["decks", "cards", "card_variants", "review_events", "source_documents", "ai_jobs"];
-const REVISIONED_TABLES = ["source_documents", "decks", "cards", "card_variants", "ai_jobs"];
+const REVISIONED_TABLES = ["source_documents", "decks", "cards", "card_variants"];
 const REVISIONED_TABLE_SET = new Set(REVISIONED_TABLES);
 const TABLES_WITH_UPDATED_AT = new Set(["source_documents", "decks", "cards", "card_variants"]);
 const CARD_MODEL_META_KEY = "__coreModel";
 const REVIEW_EVENT_META_KEY = "__coreReview";
-const DELETE_ORDER = ["ai_jobs", "review_events", "card_variants", "cards", "decks", "source_documents"];
+const DELETE_ORDER = ["review_events", "card_variants", "cards", "decks", "source_documents"];
 const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at", "revision", "updated_by_device_id"]);
 const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at", "started_at", "finished_at"]);
 const CLOUD_DELETE_BATCH_SIZE = 100;
@@ -44,7 +44,6 @@ const CONFLICT_ENTITY_LABELS = Object.freeze({
   cards: "Karte",
   card_variants: "Variante",
   source_documents: "Dokument",
-  ai_jobs: "KI-Aufgabe",
 });
 const CONFLICT_FIELD_LABELS = Object.freeze({
   name: "Name",
@@ -673,7 +672,6 @@ export function aiJobToCloudRow(job: any, userId: any, deckIds: any = new Set())
 
 export function createCloudStateRows(state: any, userId: any, { deviceId = null }: any = {}) {
   const decks = toArray(state.decks);
-  const deckIds = new Set(decks.map((deck: any) => deck.id));
 
   return {
     decks: uniqueRowsById(decks.map((deck: any) => deckToCloudRow(deck, userId))),
@@ -683,7 +681,7 @@ export function createCloudStateRows(state: any, userId: any, { deviceId = null 
       decks.flatMap((deck: any) => toArray(deck.reviewEvents).map((event: any) => reviewEventToCloudRow(event, deck, userId, { deviceId })).filter((row: any) => row.id && row.rating)),
     ),
     source_documents: uniqueRowsById(toArray(state.documents).map((document: any) => sourceDocumentToCloudRow(document, userId))),
-    ai_jobs: uniqueRowsById([...decks.flatMap((deck: any) => toArray(deck.aiJobs)), ...toArray(state.aiJobs)].map((job: any) => aiJobToCloudRow(job, userId, deckIds))),
+    ai_jobs: [],
   };
 }
 
@@ -829,6 +827,25 @@ function aiJobFromRow(row: any) {
     deckId: row.deck_id,
     jobType: row.job_type,
     status: row.status,
+    contractVersion: row.contract_version ?? 0,
+    promptVersion: row.prompt_version ?? null,
+    schemaVersion: row.schema_version ?? null,
+    idempotencyKey: row.idempotency_key ?? null,
+    requestFingerprint: row.request_fingerprint ?? null,
+    attemptCount: row.attempt_count ?? 0,
+    maxAttempts: row.max_attempts ?? 3,
+    retryable: row.retryable ?? false,
+    nextRetryAt: row.next_retry_at ?? null,
+    provider: row.provider ?? null,
+    model: row.model ?? null,
+    errorClass: row.error_class ?? null,
+    errorCode: row.error_code ?? null,
+    inputTokens: row.input_tokens ?? null,
+    outputTokens: row.output_tokens ?? null,
+    totalTokens: row.total_tokens ?? null,
+    pricingVersion: row.pricing_version ?? null,
+    costMicros: row.cost_micros ?? null,
+    costCurrency: row.cost_currency ?? null,
     inputRef: row.input_ref,
     policy: row.policy,
     resultRef: row.result_ref,
@@ -836,6 +853,7 @@ function aiJobFromRow(row: any) {
     createdAt: row.created_at,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
+    updatedAt: row.updated_at ?? row.created_at,
     ...syncMetadataFromRow(row),
   };
 }
@@ -932,23 +950,6 @@ function projectResolvedCloudEntity(state: any, cloudState: any, entityTable: an
     };
   }
 
-  if (entityTable === "ai_jobs") {
-    const remoteJob = toArray(cloudState.aiJobs).find((job: any) => job.id === entityId) ?? null;
-    const remoteDecks = new Map(toArray(cloudState.decks).map((deck: any) => [deck.id, deck]));
-    return {
-      ...state,
-      aiJobs: remoteJob ? replaceOrAppendById(toArray(state.aiJobs), remoteJob) : toArray(state.aiJobs).filter((job: any) => job.id !== entityId),
-      decks: toArray(state.decks).map((deck: any) => {
-        const remoteDeckJob = toArray(remoteDecks.get(deck.id)?.aiJobs).find((job: any) => job.id === entityId) ?? null;
-        return {
-          ...deck,
-          aiJobs: remoteDeckJob ? replaceOrAppendById(toArray(deck.aiJobs), remoteDeckJob) : toArray(deck.aiJobs).filter((job: any) => job.id !== entityId),
-        };
-      }),
-      cloudTombstones,
-    };
-  }
-
   throw new Error(`Konfliktauflösung ist für ${entityTable} nicht unterstützt.`);
 }
 
@@ -993,12 +994,14 @@ export function reconcileCloudStateMetadata(state: any, rowsByTable: any = {}) {
       const row = maps.source_documents.get(document.id);
       return row ? { ...document, ...syncMetadataFromRow(row), updatedAt: row.updated_at ?? document.updatedAt } : document;
     });
-  const aiJobs = toArray(state.aiJobs)
-    .filter((job: any) => !deletedKeys.has(`ai_jobs:${job.id}`))
-    .map((job: any) => {
-      const row = maps.ai_jobs.get(job.id);
-      return row ? { ...job, ...syncMetadataFromRow(row) } : job;
-    });
+  const localLegacyJobs = uniqueRowsById([
+    ...toArray(state.aiJobs),
+    ...toArray(state.decks).flatMap((deck: any) => toArray(deck.aiJobs)),
+  ]).filter((job: any) => Number(job.contractVersion ?? 0) === 0);
+  const serverJobs = toArray(rowsByTable.ai_jobs)
+    .filter((row: any) => !row.deleted_at)
+    .map(aiJobFromRow);
+  const aiJobs = uniqueRowsById([...localLegacyJobs, ...serverJobs]);
   const documentMap = metadataById(documents);
   const aiJobMap = metadataById(aiJobs);
 
@@ -1500,7 +1503,6 @@ export async function replaceAccountCloudState(client: any, state: any, { device
   await upsertRows(client, "cards", rows.cards);
   await upsertRows(client, "card_variants", rows.card_variants);
   await upsertRows(client, "review_events", rows.review_events);
-  await upsertRows(client, "ai_jobs", rows.ai_jobs);
 
   const deletedAt = nowIso();
   for (const table of DELETE_ORDER) {
@@ -1568,7 +1570,12 @@ export async function loadAccountCloudState(client: any, fallbackState: any = {}
   const activeCardIds = new Set(activeCardRows.map((row: any) => row.id));
   const activeVariantRows = variantRows.filter((row: any) => !row.deleted_at && activeCardIds.has(row.card_id));
   const documents = documentRows.filter((row: any) => !row.deleted_at).map(sourceDocumentFromRow);
-  const aiJobs = aiJobRows.filter((row: any) => !row.deleted_at).map(aiJobFromRow);
+  const serverAiJobs = aiJobRows.filter((row: any) => !row.deleted_at).map(aiJobFromRow);
+  const fallbackLegacyJobs = uniqueRowsById([
+    ...toArray(fallbackState.aiJobs),
+    ...toArray(fallbackState.decks).flatMap((deck: any) => toArray(deck.aiJobs)),
+  ]).filter((job: any) => Number(job.contractVersion ?? 0) === 0);
+  const aiJobs = uniqueRowsById([...fallbackLegacyJobs, ...serverAiJobs]);
   const variantsByCardId = new Map();
   for (const variant of activeVariantRows.map(variantFromRow)) {
     variantsByCardId.set(variant.cardId, [...(variantsByCardId.get(variant.cardId) ?? []), variant]);

@@ -39,6 +39,7 @@ export function createAiJob({
     id: makeId("job"),
     jobType,
     status,
+    contractVersion: 0,
     userId: "local-user",
     deckId,
     inputRef,

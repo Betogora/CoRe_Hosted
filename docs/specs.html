@@ -409,7 +409,7 @@
 <li>Das Vercel-Projekt, das automatisierte CI-Release-Gate und das Preview-/Production-/Rollback-Runbook sind eingerichtet. <code>https://core-hosted.vercel.app</code> ist als kanonische Production-URL gesetzt; der Redirect-Vertrag wurde in Hosted Supabase angewendet und die erste Production-Abnahme am 2026-07-10 erfolgreich protokolliert. Eine vollstaendige Betriebsumgebung mit Monitoring und Backups fehlt weiterhin; eine eigene Domain ist fuer die aktuelle Release-Basis nicht erforderlich.</li>
 <li>Es gibt angewendete Supabase/Postgres-Migrationen mit RLS-Policies, expliziten <code>authenticated</code>-Grants, ohne <code>anon</code>-Grants auf Core-Tabellen und mit account-scoped Primary Keys fuer die wichtigsten Nutzerdaten. Der App-Persistenzpfad schreibt und liest Decks, Karten, Varianten, Review Events, Dokumente und AI Jobs ueber Supabase-Tabellen, schützt konkrete Entity-Mutationen per Basisrevision, registriert Geräte accountgebunden und speichert Mutationen in einer reloadfesten Outbox. Konfliktzeilen werden erzeugt und in den Einstellungen als sichere Fachfeldprojektion mit lokaler, Remote-, manueller oder zurückgestellter Entscheidung bearbeitet. Browser-Netzstatus, gecapptes Wiederverbindungs-Backoff und Reconnect-Flush sind vorhanden; das lokale Zwei-Geräte-Gate deckt stale Snapshots, idempotente Offline-Reviews und dauerhafte Soft-Deletes ab.</li>
 <li>Accounts koennen ueber Supabase E-Mail/Passwort erstellt und angemeldet werden; OAuth, Magic Link, Account-Recovery-Feinschliff und E-Mail-Template-Politur fehlen noch.</li>
-<li>KI-Kartenerstellung, Varianten, Graph und Jobs sind weiterhin lokal/deterministisch simuliert; Chat-your-Deck hat als erster produktiver KI-Pfad eine Vercel-Serverroute <code>/api/ai/chat</code> fuer Gemma 4 31B IT. Es gibt noch kein echtes Token-/Kostenlogging, keine produktive Prompt-/Eval-Pipeline und keine serverseitige Job-Queue fuer laengere KI-Aufgaben.</li>
+<li>KI-Kartenerstellung, Varianten und Graph sind weiterhin lokal/deterministisch simuliert; Chat-your-Deck hat als erster produktiver KI-Pfad eine Vercel-Serverroute <code>/api/ai/chat</code> fuer Gemma 4 31B IT und schreibt serverautoritatives Token-/Kosten-Telemetrie-Metadaten in <code>ai_jobs</code>. Es gibt noch keine produktive Prompt-/Eval-Pipeline, Nutzer-/Deck-Budgets oder serverseitige Job-Queue fuer laengere KI-Aufgaben.</li>
 <li>Jobs laufen nicht in einer Queue oder Worker-Infrastruktur; die Job-Sicht ist ein lokaler Produkt- und Datenmodell-Prototyp.</li>
 <li>Datei- und Dokumentverarbeitung ist bewusst begrenzt: PDF-/Text-Auslesung, visueller PDF-Viewer und browserseitige APKG-Medienpersistenz sind vorhanden; robuste DOCX-Extraktion, OCR, Bildregionen, erweiterte PDF-Werkzeuge, serverseitige APKG-Jobs, Medienexport/-sharing und globales Orphan-GC fehlen noch.</li>
 <li>Community ist lokal und privacy-sicher modelliert, aber ohne echte Mitgliederverwaltung, Berechtigungen, Einladungen oder Moderation.</li>
@@ -847,7 +847,7 @@
 </li>
 <li><p>Echte externe Authentifizierung, E-Mail-Verifikation, OAuth-Provider und Account-Recovery.</p>
 </li>
-<li><p>Externe LLM-Provider, produktive Prompt-/Eval-Pipeline und echtes Token-/Kostenlogging.</p>
+<li><p>Weitere externe LLM-Provider, produktive Prompt-/Eval-Pipeline, Nutzer-/Deck-Budgets und Admin-Telemetrie.</p>
 </li>
 <li><p>Serverseitige Job-Queue, Worker, Medienstorage und OCR-/Dokumentenpipeline.</p>
 </li>
@@ -3374,7 +3374,9 @@ interface AIPolicy {
 <li>strukturierte KI-Ausgabe validieren,</li>
 <li>KI-Ergebnisse als Drafts behandeln und nicht ungeprueft persistieren.</li>
 </ul>
-<p>Der Chat akzeptiert maximal 48 KiB Request, 600 Zeichen Frage, fuenf Evidenzen mit jeweils 900 Zeichen pro Textfeld, 13.500 Evidenzzeichen und 16.000 Zeichen finalen Prompt. Das Modell ist fest auf <code>gemma-4-31b-it</code>, die Ausgabe auf 2048 Tokens und der Providerlauf auf 45 Sekunden begrenzt. Karteninhalt ist im Prompt als nicht vertrauenswuerdige Evidenz abgegrenzt; patientenbezogene Diagnose- und Behandlungsanweisungen sind ausgeschlossen. Dauerhafte Kostenbudgets und Exactly-once-Semantik ueber Prozessabbrueche hinweg bleiben Aufgabe des spaeteren <code>ai_jobs</code>-Pfads.</p>
+<p>Der Chat akzeptiert maximal 48 KiB Request, 600 Zeichen Frage, fuenf Evidenzen mit jeweils 900 Zeichen pro Textfeld, 13.500 Evidenzzeichen und 16.000 Zeichen finalen Prompt. Das Modell ist fest auf <code>gemma-4-31b-it</code>, die Ausgabe auf 2048 Tokens und der Providerlauf auf 45 Sekunden begrenzt. Karteninhalt ist im Prompt als nicht vertrauenswuerdige Evidenz abgegrenzt; patientenbezogene Diagnose- und Behandlungsanweisungen sind ausgeschlossen.</p>
+<p>Jeder nach Auth, Einwilligung und Rate-Limit zugelassene Chatlauf wird ueber <code>api/ai/jobLedger.ts</code> als <code>contract_version = 1</code> reserviert. Das Modul kapselt den serverautoritativen Supabase-Pfad, atomare CAS-Uebergaenge <code>queued -&gt; running -&gt; succeeded|failed</code>, Fingerprint-Konflikte, parallele Claims, maximal drei Provider-Versuche und ein auf 30 Sekunden begrenztes Retry-Fenster. Ein bereits erfolgreicher Job loest nach Ablauf des zehnminuetigen Upstash-Ergebnisses keinen neuen Provideraufruf aus. Ist der Ledger vor dem Provideraufruf nicht verfuegbar oder kann der Abschluss danach nicht bestaetigt werden, faellt die Route geschlossen aus.</p>
+<p>Persistiert werden nur Strukturmetadaten, Status, Provider/Modell, sanitisiertes Fehlerpaar, nullable Tokenzaehler, Preisversion und Kostenprojektion. Fragen, Evidenzen, Antworten, Providerpayloads und Secrets gehoeren nicht in <code>ai_jobs</code>; <code>result_ref</code> beschreibt nur den kurzlebigen Upstash-Cache. Gemma 4 wird mit der offiziellen Preisgrundlage vom 2026-07-09 als <code>0 USD</code> erfasst. Nutzer-/Deck-Budgets und eine Admin-Sicht bleiben Folgeslices.</p>
 <hr>
 <h2 id="13-scheduling-und-reifegrad">13. Scheduling und Reifegrad</h2>
 <h2 id="13-1-scheduler-schnittstelle">13.1 Scheduler-Schnittstelle</h2>
@@ -3813,6 +3815,7 @@ Worker
 <li>nutzerfreundlicher Fortschritt,</li>
 <li>Kosten-/Tokenlogging bei KI.</li>
 </ul>
+<p>Der erste reale Vertrag ist der Chat-Tracer-Bullet in <code>api/ai/jobLedger.ts</code>. <code>ai_jobs.job_type</code> bleibt die einzige Capability-Spalte. Version-0-Zeilen sind lesbare Legacy-Jobs; neue Serverjobs verwenden Version 1 und einen partiellen Unique-Index auf Nutzer plus Idempotenzschluessel. <code>authenticated</code> darf nur eigene Rows lesen, waehrend Schreiben und Loeschen ausschliesslich ueber das serverseitige Supabase-Secret erfolgen. Das Browser-Repository liest Serverjobs und fuehrt sie mit lokalen deterministischen Legacy-Jobs zusammen, nimmt <code>ai_jobs</code> aber aus Autosave, Full-Replace, Tombstones und Konflikten heraus. Eine Queue, Worker-Retries und lange Karten-/Varianten-/Graph-Jobs sind noch nicht Bestandteil dieses Vertrags.</p>
 <h2 id="14-5-environment-variables-und-secrets">14.5 Environment Variables und Secrets</h2>
 <p>Vite-Regel: Alles mit <code>VITE_</code> ist oeffentlich und kann im Browser-Bundle sichtbar sein.</p>
 <p>Browser-sichtbar erlaubt:</p>
@@ -4646,7 +4649,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <tr>
 <td><code>src/cloudRepository.ts</code></td>
 <td><code>registerAccountSyncDevice</code>, <code>applyDeckMutation</code>, <code>applyCardMutation</code>, <code>appendReviewEvent</code>, <code>softDeleteEntity</code>, <code>markConflict</code>, <code>replaceAccountCloudState</code>, <code>upsertAccountCloudState</code>, <code>loadAccountCloudState</code>, <code>mergeCloudSyncMetadata</code>, <code>listAccountSyncConflicts</code>, <code>resolveAccountSyncConflict</code></td>
-<td>Accountgefiltertes Laden, Geräte-Upsert, serverseitiges Compare-and-set, idempotente Konfliktzeilen, sichere Konfliktprojektionen, CAS-geschützte lokale/Remote-/Feldentscheidungen, Tombstone-Projektion, getrennte Snapshot-/Review-Acknowledgements und bewusster Voll-Replace fuer Legacy-Import/Test-Reset</td>
+<td>Accountgefiltertes Laden, Geräte-Upsert, serverseitiges Compare-and-set, idempotente Konfliktzeilen, sichere Konfliktprojektionen, CAS-geschützte lokale/Remote-/Feldentscheidungen, Tombstone-Projektion, getrennte Snapshot-/Review-Acknowledgements und bewusster Voll-Replace fuer Legacy-Import/Test-Reset; <code>ai_jobs</code> wird nur gelesen und mit lokalen Version-0-Jobs zusammengefuehrt</td>
 </tr>
 <tr>
 <td><code>src/cloudRepositoryValidation.ts</code></td>
@@ -4764,9 +4767,9 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <td>Themen-/Karten-Mindmap und Triggerlogik</td>
 </tr>
 <tr>
-<td><code>src/deckAssistant.ts</code> / <code>src/aiChatContract.ts</code> / <code>api/ai/chat.ts</code> / <code>api/ai/chatProtection.ts</code></td>
-<td><code>retrieveDeckEvidence</code>, <code>answerDeckQuestionWithServer</code>, strikter gemeinsamer Chatvertrag, <code>createChatProtection</code>, <code>POST /api/ai/chat</code></td>
-<td>Minimierte freie oder quellengebundene Requests; Supabase-Bearer- und serverseitige Einwilligungspruefung, HMAC-pseudonymisierte Upstash-Limits und Idempotenz; Gemma-4-31B-IT bleibt der einzige Provider und aktuelle sowie Legacy-Antworten werden sanitisiert validiert</td>
+<td><code>src/deckAssistant.ts</code> / <code>src/aiChatContract.ts</code> / <code>api/ai/chat.ts</code> / <code>api/ai/chatProtection.ts</code> / <code>api/ai/jobLedger.ts</code></td>
+<td><code>retrieveDeckEvidence</code>, <code>answerDeckQuestionWithServer</code>, strikter gemeinsamer Chatvertrag, <code>createChatProtection</code>, <code>runTrackedJob</code>, <code>POST /api/ai/chat</code></td>
+<td>Minimierte freie oder quellengebundene Requests; Supabase-Bearer- und serverseitige Einwilligungspruefung, HMAC-pseudonymisierte Upstash-Limits und Kurzzeit-Replay sowie dauerhaftes serverautoritatives Idempotenz-/Telemetrie-Ledger; Gemma-4-31B-IT bleibt der einzige Provider und aktuelle sowie Legacy-Antworten werden sanitisiert validiert</td>
 </tr>
 <tr>
 <td><code>src/learningPlan.ts</code></td>
@@ -4930,6 +4933,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <p>Der Assistent beantwortet Fragen per Default als freie KI-Antwort ueber <code>POST /api/ai/chat</code>. Vor dem ersten externen Aufruf bestaetigt der Nutzer mindestens 18 Jahre, Google-Transfer und den maximal zehnminuetigen EU-Cache; <code>profile.privacy.aiChatConsent</code> wird erst nach Cloud-Bestaetigung freigeschaltet und bei jedem Aufruf serverseitig erneut gelesen. Lokale Suche und Lernplan bleiben ohne Einwilligung nutzbar.</p>
 <p><code>src/aiChatContract.ts</code> validiert strikte Request-, Success-, Error- und Einwilligungsformen auf Browser und Server gemeinsam. Der Browser holt unmittelbar vor dem Aufruf das aktuelle Supabase-Token, erzeugt pro Nutzeraktion eine UUID und sendet Token und Idempotenzschluessel nur als Header. Ohne Quellenbindung wird nur die Frage gesendet; mit Quellenbindung werden hoechstens fuenf Karten auf Deck-/Karten-ID, bereinigte Vorder-/Rueckseite und flache Quellenfelder reduziert. Tags, Scores, vollstaendige Anker, Profil und Reviewdaten verlassen den Browser nicht.</p>
 <p><code>api/ai/chatProtection.ts</code> verbirgt Auth, Einwilligung, Rate Limits und Idempotenz vor Route und React. 20 Nutzer- und 200 IP-Aufrufe je zehn Minuten werden mit HMAC-pseudonymisierten Upstash-Schluesseln begrenzt. Eine UUID reserviert den normalisierten Request 90 Sekunden; eine erfolgreiche bereinigte Antwort kann zehn Minuten wiederholt werden. Gleicher Schluessel mit anderem Request ergibt <code>idempotency_conflict</code>, ein paralleler Aufruf <code>request_in_progress</code>. Aktuelle <code>steps</code>-, direkte <code>output_text</code>- und Legacy-<code>outputs</code>-Providerformen werden serverintern getrennt geprüft. Unerwartete Providerpayloads ergeben einen sanitisierten <code>502</code>, und Logs enthalten weder Secrets noch vollständige Prompts oder Providerpayloads. Bei fehlender Route, fehlendem Key oder Providerfehler faellt der Quellenmodus auf die lokale Quellenantwort zurueck; freie Antworten zeigen einen deutschen Fehlerstatus. Die UI bleibt ohne Hauptmenuepunkt und ist vom Heute-Dashboard als sekundaerer Arbeitsbereich erreichbar.</p>
+<p>Nach diesem Schutz uebergibt das Modul nur Nutzer-ID, Idempotenzschluessel und Request-Fingerprint an <code>api/ai/jobLedger.ts</code>. Der Ledger ist die dauerhafte Wahrheit fuer Ausfuehrungsstatus und Telemetrie, Upstash bleibt ausschliesslich Rate-Limit- und zehnminuetiger Antwortcache. Abgelaufene erfolgreiche Antworten werden nicht durch einen zweiten Providerlauf ersetzt. Das Ledger speichert keine Frage, Evidenz, Antwort oder Providerpayload; fehlende einzelne Usage-Zaehler bleiben <code>null</code>.</p>
 <p><code>createLearningPlan</code> erzeugt einen Plan aus Zieltermin, verfuegbaren Minuten pro Tag, neuen Karten pro Tag, faelligen Reviews, aktiven Varianten und schwachen Tags aus Review-Events oder Graph-Knoten. Der Plan erzeugt Tageszeilen mit Review-Quota, neuen Karten, Varianten-Tagen und Fokusdeck. Er ist kein Kalender-Adapter; ein spaeterer Kalender- oder Benachrichtigungsadapter soll die erzeugten Planobjekte konsumieren.</p>
 <p><code>src/dataPortability.ts</code> erzeugt einen lokalen JSON-Export mit Decks, Communities, Jobs und Dokumenten. Der lokale Passwort-Verifier wird bewusst entfernt. Import validiert Schema und Version, gibt kaputtes JSON als Validierungsfehler statt Exception zurueck und mergt neue Decks ohne lokale Decks mit gleicher ID zu ersetzen.</p>
 <h3 id="27-9-adapter-entscheidung">27.9 Adapter-Entscheidung</h3>
@@ -4965,9 +4969,13 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 </li>
 <li><p><code>supabase/migrations/20260709091315_sync_media_auth_operations.sql</code>: remote angewendete Migration fuer Revisionen, Medien, Geraete, Konflikte und Storage-Policies.</p>
 </li>
+<li><p><code>supabase/migrations/20260714122218_server_ai_job_ledger.sql</code>: Version-1-Vertrag, CAS-/Retry-/Telemetriespalten, Idempotenz-/Ledger-Indizes und read-only Browserrechte fuer <code>ai_jobs</code>.</p>
+</li>
 <li><p><code>supabase/verify_schema_v1.sql</code>: fehlschlagendes Verify-Gate fuer Tabellen, Spalten, RLS, Policies, Grants, Constraints und den privaten Medien-Bucket.</p>
 </li>
 <li><p><code>tests/rls/ownership-smoke.test.ts</code>: lokaler Data-API-Smoke fuer Nutzer A, Nutzer B, <code>anon</code>, Ownership und accountgebundene Foreign Keys.</p>
+</li>
+<li><p><code>tests/rls/ai-job-ledger-smoke.test.ts</code>: separater loopback-geschuetzter Prozess fuer serverseitige Fixtures sowie Owner-SELECT und verweigerte Browsermutationen auf <code>ai_jobs</code>; das lokale Secret wird nicht an Playwright oder die uebrigen RLS-Tests weitergereicht.</p>
 </li>
 <li><p><code>tests/rls/two-device-sync.test.ts</code>: Zwei-Geräte-Gate für Content-Konflikt, Offline-Review-Idempotenz und Soft-Delete-Schutz über die bestehenden Sync-/Repository-Interfaces.</p>
 </li>

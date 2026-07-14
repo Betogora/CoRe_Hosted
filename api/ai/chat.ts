@@ -9,6 +9,7 @@ import {
 } from "../../src/aiChatContract.ts";
 import type { AiChatEvidence, AiChatRequest, AiChatSuccess } from "../../src/aiChatContract.ts";
 import { ChatProtectionError, createChatProtection } from "./chatProtection.ts";
+import { JobLedgerError, createServerJobLedger } from "./jobLedger.ts";
 
 export const GEMMA_CHAT_MODEL = AI_CHAT_MODEL;
 export { MAX_CHAT_REQUEST_BYTES };
@@ -262,10 +263,16 @@ function summarizeGemmaPayload(payload: any) {
 
 function sanitizeUsage(usage: any) {
   if (!usage || typeof usage !== "object") return null;
+  const tokenValue = (...values: unknown[]) => {
+    const value = values.find((candidate) => candidate !== undefined && candidate !== null);
+    if (value === undefined) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  };
   return {
-    totalTokens: Number(usage.total_tokens ?? usage.totalTokens ?? 0) || 0,
-    inputTokens: Number(usage.total_input_tokens ?? usage.inputTokens ?? 0) || 0,
-    outputTokens: Number(usage.total_output_tokens ?? usage.outputTokens ?? 0) || 0,
+    totalTokens: tokenValue(usage.total_tokens, usage.totalTokens),
+    inputTokens: tokenValue(usage.total_input_tokens, usage.inputTokens),
+    outputTokens: tokenValue(usage.total_output_tokens, usage.outputTokens),
   };
 }
 
@@ -321,10 +328,12 @@ export function createChatHandler({
   env = process.env,
   fetchImpl = globalThis.fetch,
   protection = createChatProtection(env),
+  ledger = createServerJobLedger({ env }),
 }: {
   env?: Record<string, string | undefined>;
   fetchImpl?: any;
   protection?: ReturnType<typeof createChatProtection>;
+  ledger?: ReturnType<typeof createServerJobLedger>;
 } = {}) {
   return async function handler(req: any, res: any) {
     if (req.method !== "POST") {
@@ -346,28 +355,44 @@ export function createChatHandler({
           }
           return input.input;
         },
-        execute: async (input): Promise<AiChatSuccess> => {
-          if (!env.GOOGLE_API_KEY) {
-            throw new HttpError(503, "Die KI-Route ist nicht konfiguriert.", "missing_google_api_key");
-          }
-          const result = await callGemma({ apiKey: env.GOOGLE_API_KEY, fetchImpl, input });
-          return {
-            answer: result.answer,
-            model: GEMMA_CHAT_MODEL,
+        execute: async (input, context): Promise<AiChatSuccess> => {
+          return ledger.runTrackedJob({
+            userId: context.userId,
+            idempotencyKey: context.idempotencyKey,
+            requestFingerprint: context.requestFingerprint,
+            jobType: "chat",
+            promptVersion: "gemma-chat-prompt-v1",
+            schemaVersion: "ai-chat-success-v1",
             provider: "google",
-            sourceBound: input.sourceBound,
-            usage: result.usage,
-            warnings: [],
-          };
+            model: GEMMA_CHAT_MODEL,
+            inputRef: { sourceBound: input.sourceBound, evidenceCount: input.evidence.length },
+            policy: { storeProviderResponse: false, responseCacheSeconds: 600 },
+            pricingVersion: "google-gemini-api-2026-07-09",
+            costCurrency: "USD",
+            projectedCostMicros: 0,
+          }, async () => {
+            if (!env.GOOGLE_API_KEY) {
+              throw new HttpError(503, "Die KI-Route ist nicht konfiguriert.", "missing_google_api_key");
+            }
+            const result = await callGemma({ apiKey: env.GOOGLE_API_KEY, fetchImpl, input });
+            return {
+              answer: result.answer,
+              model: GEMMA_CHAT_MODEL,
+              provider: "google" as const,
+              sourceBound: input.sourceBound,
+              usage: result.usage,
+              warnings: [],
+            };
+          });
         },
       });
       json(res, 200, response, { "Cache-Control": "private, no-store" });
     } catch (error) {
-      const knownError = error instanceof HttpError || error instanceof ChatProtectionError;
+      const knownError = error instanceof HttpError || error instanceof ChatProtectionError || error instanceof JobLedgerError;
       const statusCode = knownError ? error.statusCode : 500;
       const code = knownError ? error.code : "internal_error";
       const message = knownError ? error.message : "Die KI-Antwort konnte nicht erstellt werden.";
-      const headers = error instanceof ChatProtectionError ? error.headers : {};
+      const headers = error instanceof ChatProtectionError || error instanceof JobLedgerError ? error.headers : {};
       json(res, statusCode, { error: { code, message } }, headers);
     }
   };

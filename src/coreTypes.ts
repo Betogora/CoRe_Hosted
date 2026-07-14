@@ -134,8 +134,27 @@ export interface AiJob {
   id: string;
   jobType: string;
   status: AiJobStatus;
+  contractVersion?: 0 | 1;
   userId: string;
   deckId: string | null;
+  promptVersion?: string | null;
+  schemaVersion?: string | null;
+  idempotencyKey?: string | null;
+  requestFingerprint?: string | null;
+  attemptCount?: number;
+  maxAttempts?: number;
+  retryable?: boolean;
+  nextRetryAt?: string | null;
+  provider?: string | null;
+  model?: string | null;
+  errorClass?: string | null;
+  errorCode?: string | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  pricingVersion?: string | null;
+  costMicros?: number | null;
+  costCurrency?: string | null;
   inputRef: Record<string, unknown>;
   policy: Record<string, unknown>;
   resultRef: Record<string, unknown> | null;
@@ -143,13 +162,14 @@ export interface AiJob {
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
+  updatedAt?: string;
   revision: number;
   deletedAt: string | null;
   updatedByDeviceId: string | null;
 }
 
 export interface CloudTombstone {
-  entityTable: "decks" | "cards" | "card_variants" | "source_documents" | "ai_jobs";
+  entityTable: "decks" | "cards" | "card_variants" | "source_documents";
   entityId: string;
   revision: number;
   deletedAt: string;

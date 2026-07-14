@@ -38,53 +38,113 @@ export type Database = {
       }
       ai_jobs: {
         Row: {
+          attempt_count: number
+          contract_version: number
+          cost_currency: string | null
+          cost_micros: number | null
           created_at: string
           deck_id: string | null
           deleted_at: string | null
           error: Json | null
+          error_class: string | null
+          error_code: string | null
           finished_at: string | null
           id: string
+          idempotency_key: string | null
           input_ref: Json
+          input_tokens: number | null
           job_type: string
+          max_attempts: number
+          model: string | null
+          next_retry_at: string | null
+          output_tokens: number | null
           policy: Json
+          pricing_version: string | null
+          prompt_version: string | null
+          provider: string | null
+          request_fingerprint: string | null
           result_ref: Json | null
+          retryable: boolean
           revision: number
+          schema_version: string | null
           started_at: string | null
           status: string
+          total_tokens: number | null
+          updated_at: string
           updated_by_device_id: string | null
           user_id: string
         }
         Insert: {
+          attempt_count?: number
+          contract_version?: number
+          cost_currency?: string | null
+          cost_micros?: number | null
           created_at?: string
           deck_id?: string | null
           deleted_at?: string | null
           error?: Json | null
+          error_class?: string | null
+          error_code?: string | null
           finished_at?: string | null
           id: string
+          idempotency_key?: string | null
           input_ref?: Json
+          input_tokens?: number | null
           job_type: string
+          max_attempts?: number
+          model?: string | null
+          next_retry_at?: string | null
+          output_tokens?: number | null
           policy?: Json
+          pricing_version?: string | null
+          prompt_version?: string | null
+          provider?: string | null
+          request_fingerprint?: string | null
           result_ref?: Json | null
+          retryable?: boolean
           revision?: number
+          schema_version?: string | null
           started_at?: string | null
           status?: string
+          total_tokens?: number | null
+          updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
         }
         Update: {
+          attempt_count?: number
+          contract_version?: number
+          cost_currency?: string | null
+          cost_micros?: number | null
           created_at?: string
           deck_id?: string | null
           deleted_at?: string | null
           error?: Json | null
+          error_class?: string | null
+          error_code?: string | null
           finished_at?: string | null
           id?: string
+          idempotency_key?: string | null
           input_ref?: Json
+          input_tokens?: number | null
           job_type?: string
+          max_attempts?: number
+          model?: string | null
+          next_retry_at?: string | null
+          output_tokens?: number | null
           policy?: Json
+          pricing_version?: string | null
+          prompt_version?: string | null
+          provider?: string | null
+          request_fingerprint?: string | null
           result_ref?: Json | null
+          retryable?: boolean
           revision?: number
+          schema_version?: string | null
           started_at?: string | null
           status?: string
+          total_tokens?: number | null
+          updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string
         }

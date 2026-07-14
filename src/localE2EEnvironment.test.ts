@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createLocalE2ERuntimeEnvironment,
+  createLocalPrivilegedTestEnvironment,
   isLocalSupabaseUrl,
   parseSupabaseStatusEnvironment,
 } from "../scripts/localE2EEnvironment.ts";
@@ -82,6 +83,22 @@ test("createLocalE2ERuntimeEnvironment rejects hosted projects", () => {
       }),
     /ausschließlich/,
   );
+});
+
+test("createLocalPrivilegedTestEnvironment exposes the secret only for a loopback subprocess", () => {
+  const environment = createLocalPrivilegedTestEnvironment({
+    API_URL: "http://127.0.0.1:54321",
+    PUBLISHABLE_KEY: "local-publishable",
+    SECRET_KEY: "local-secret",
+  });
+  assert.equal(environment.SUPABASE_URL, "http://127.0.0.1:54321");
+  assert.equal(environment.SUPABASE_SECRET_KEY, "local-secret");
+  assert.equal("VITE_SUPABASE_SECRET_KEY" in environment, false);
+  assert.throws(() => createLocalPrivilegedTestEnvironment({
+    API_URL: "https://project.supabase.co",
+    PUBLISHABLE_KEY: "hosted-publishable",
+    SECRET_KEY: "hosted-secret",
+  }), /ausschließlich|ausschlieÃŸlich/);
 });
 
 test("ensureLocalE2EAccount never creates accounts on hosted projects", async () => {

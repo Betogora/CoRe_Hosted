@@ -8,6 +8,7 @@ import {
   isAllowedOrigin,
   MAX_CHAT_REQUEST_BYTES,
 } from "../api/ai/chat.ts";
+import { JobLedgerError } from "../api/ai/jobLedger.ts";
 
 function createReq({ method = "POST", headers = {}, body = {} }: any = {}) {
   return {
@@ -40,12 +41,22 @@ function createRes() {
 
 const bypassProtection = {
   async run({ parseRequest, execute }: any) {
-    return execute(await parseRequest());
+    return execute(await parseRequest(), {
+      userId: "test-user",
+      idempotencyKey: "11111111-1111-4111-8111-111111111111",
+      requestFingerprint: "test-request-fingerprint",
+    });
+  },
+};
+
+const passthroughLedger = {
+  async runTrackedJob(_spec: unknown, execute: () => Promise<unknown>) {
+    return execute();
   },
 };
 
 function createTestChatHandler(options: any = {}) {
-  return createChatHandler({ ...options, protection: bypassProtection as any });
+  return createChatHandler({ ledger: passthroughLedger as any, ...options, protection: bypassProtection as any });
 }
 
 const evidence = [
@@ -161,7 +172,67 @@ test("Gemma chat route answers free questions without local card evidence", asyn
 
   assert.equal(res.statusCode, 200);
   assert.equal(res.json().answer, "Mir geht es gut.");
+  assert.deepEqual(res.json().usage, { totalTokens: 42, inputTokens: null, outputTokens: null });
   assert.equal(fetchCalls, 1);
+});
+
+test("Gemma chat route passes only minimized metadata into the durable ledger", async () => {
+  let capturedSpec: any;
+  const ledger = {
+    async runTrackedJob(spec: any, execute: () => Promise<unknown>) {
+      capturedSpec = spec;
+      return execute();
+    },
+  };
+  const handler = createTestChatHandler({
+    env: { GOOGLE_API_KEY: "test-secret" },
+    ledger,
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({
+        output_text: "Minimierte Antwort.",
+        usage: { total_input_tokens: 7, total_output_tokens: 3 },
+      }),
+    }),
+  });
+  const res = createRes();
+
+  await handler(createReq({ body: { question: "Vertrauliche Frage", evidence, sourceBound: true } }), res);
+
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.json().usage, { totalTokens: null, inputTokens: 7, outputTokens: 3 });
+  assert.deepEqual(capturedSpec.inputRef, { sourceBound: true, evidenceCount: 1 });
+  const persisted = JSON.stringify(capturedSpec);
+  assert.equal(persisted.includes("Vertrauliche Frage"), false);
+  assert.equal(persisted.includes("Myelinscheide"), false);
+  assert.equal(persisted.includes("Minimierte Antwort"), false);
+  assert.equal(persisted.includes("test-secret"), false);
+});
+
+test("Gemma chat route fails closed on ledger errors before and after provider execution", async () => {
+  for (const phase of ["before", "after"] as const) {
+    let fetchCalls = 0;
+    const ledger = {
+      async runTrackedJob(_spec: unknown, execute: () => Promise<unknown>) {
+        if (phase === "before") throw new JobLedgerError(503, "job_ledger_unavailable", "Ledger fehlt.");
+        await execute();
+        throw new JobLedgerError(503, "job_ledger_unavailable", "Ledger fehlt.");
+      },
+    };
+    const handler = createTestChatHandler({
+      env: { GOOGLE_API_KEY: "test-secret" },
+      ledger,
+      fetchImpl: async () => {
+        fetchCalls += 1;
+        return { ok: true, json: async () => ({ output_text: "Antwort" }) };
+      },
+    });
+    const res = createRes();
+    await handler(createReq({ body: { question: "Frage", evidence: [], sourceBound: false } }), res);
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.json().error.code, "job_ledger_unavailable");
+    assert.equal(fetchCalls, phase === "before" ? 0 : 1);
+  }
 });
 
 test("Gemma chat route accepts legacy provider output without exposing provider details", async () => {
