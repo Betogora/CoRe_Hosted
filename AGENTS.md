@@ -22,8 +22,10 @@ documents and sections required for the current task.
   as a separate authoring source.
 - `docs/anki-format-analysis.md`: Anki/APKG, templates, media, and Learning Item
   behavior.
-- `docs/todo.md`: open scope, priorities, planning status, and evidence. It
-  provides context, not permission to implement adjacent roadmap items.
+- `docs/todo.md`: the only source for open scope, priorities, planning status,
+  acceptance gates, and required evidence. It contains no completed work or
+  release history and provides context, not permission to implement adjacent
+  roadmap items.
 - `docs/file-naming-conventions.md`: naming rules for new or renamed files; read
   it before making such changes.
 - `supabase/`: schema anchors, migrations, policies, and verification SQL.
@@ -73,6 +75,9 @@ No dedicated ADR directory currently exists. Relevant decisions live in
 
 - Preserve existing visible screens, controls, features, and flows unless their
   removal or replacement is explicitly part of the task.
+- A documented product decision may authorize deliberate feature hiding or
+  removal when the task includes that scope; remove obsolete UI, routing,
+  state, and tests together without leaving parallel compatibility paths.
 - Preserve user-edited card fronts and backs during APKG reimport. Reimport may
   update import metadata and media references but must not silently overwrite
   local content edits.
@@ -115,12 +120,15 @@ Update documentation when the implemented contract changes:
 - Update the relevant section of `docs/specs.md` when product behavior,
   acceptance criteria, public interfaces, security behavior, or architecture
   changes; then synchronize `docs/specs.html`.
-- Update `docs/todo.md` only when roadmap scope, priority, status, planning, or
-  completion evidence changes. Add new roadmap work there; do not create
-  competing TODO files.
+- Update `docs/todo.md` only when open roadmap scope, priority, planning,
+  acceptance gates, or required evidence changes. Move completed work and
+  release evidence to the appropriate status, changelog, or runbook area; do
+  not create competing TODO files.
 - Do not update documentation for implementation details that do not alter a
   documented contract.
-- Do not shorten canonical documents merely because they are long.
+- Do not shorten canonical documents merely because they are long. Structural
+  shortening is allowed only when the content is correctly moved to its
+  documented owner and all affected links remain valid.
 
 ## Testing And Validation
 

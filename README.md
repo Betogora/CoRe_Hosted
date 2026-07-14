@@ -50,8 +50,8 @@ CoRe verändert deshalb nicht nur den Wiederholungszeitpunkt, sondern auch die F
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <h3>🕸️ Zusammenhänge sichtbar machen</h3>
-      Deck-Graph, Lernstatistik, Lernplan und Chat mit dem eigenen Stapel öffnen neue Zugänge zum Wissen.
+      <h3>🧪 Neue Zugänge erproben</h3>
+      Lernstatistik gehört zum Kern; Deck-Graph, Lernplan und Chat mit dem eigenen Stapel bleiben klar gekennzeichnete Experimente.
     </td>
     <td width="50%" valign="top">
       <h3>🛡️ Persönliches bleibt persönlich</h3>
@@ -68,9 +68,9 @@ So entsteht aus einem Stapel keine Sammlung isolierter Vorder- und Rückseiten, 
 
 ## Aktueller Stand
 
-CoRe ist ein **breiter, aktiv entwickelter Web-MVP**. Die zentralen Produktwege sind bereits erlebbar: Erstellen und Importieren, Lernen und Auswerten, Content-Repetition-Varianten, Wissensgraph, Deck-Assistent, Accounts und Cloud-first Autosave.
+CoRe ist ein **breiter, aktiv entwickelter Web-MVP**. Der künftige Beta-Kern konzentriert sich auf Account, Erstellen und Importieren, Kartenverwaltung, Lernen mit Content-Repetition, Statistik, Einstellungen und verlässliche accountgebundene Speicherung.
 
-Es ist noch kein fertiges Produktionsprodukt. Offline-Konfliktlösung, produktive Medienablage, skalierte KI-Jobs und ausgereifte Community-Rechte gehören zur nächsten Ausbaustufe. Der Fortschritt bleibt in der [Roadmap](docs/todo.md) transparent.
+Die vorhandenen Flächen sind noch nicht überall wahrheitsgemäß nach Reife getrennt. Deck-Graph, Lernplan, Deck-Assistent, lokale Community-Demo und weitere KI-Flows sind Labs; große serverseitige APKG-Importe, produktive Community-Rechte sowie nicht abgenommene Auth- und Account-Lifecycle-Funktionen bleiben bis zu eigenen Freigabegates deaktiviert. Die offene Stabilisierung und ihre Abnahme stehen in der [Roadmap](docs/todo.md).
 
 ## Gebaut mit
 

@@ -2,11 +2,15 @@
 
 CoRe ist ein lokaler Web-MVP fuer eine Lernplattform, die klassische Spaced-Repetition-Karten um inhaltliche Wiederholung erweitert. Das Ziel ist, Kartenblindheit zu reduzieren: Lernende sollen nicht nur Layout, Wortlaut oder Lueckenposition wiedererkennen, sondern den Inhalt auch bei veraenderter Fragestellung abrufen koennen.
 
-Der aktuelle Stand ist ein breiter Web-MVP. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind angebunden, und es gibt Pflichtlogin, Supabase-E-Mail/Passwort, accountgebundenen Browser-Cache und Cloud-first Autosave ueber Tabellen. Authentifizierte Screens laden bedarfsgerecht, der PDF.js-Viewer kapselt Anzeige und Quellenauswahl, und ein harter Postbuild-Check begrenzt JavaScript-Chunks auf 500.000 Byte. Das Preview-/Production-/Rollback-Runbook, die Hosted-Redirect-Konfiguration und die erste Production-Abnahme sind dokumentiert; Version, Umgebung und Build-Commit sind am Login, in den Einstellungen und im sicheren React-Fehlerfallback sichtbar. TypeScript-Migration, Konfliktauflösung und das lokale Zwei-Geräte-Sync-Gate sind abgeschlossen. Produktive Medienablage, Serverjobs, Monitoring und Backups fehlen weiterhin.
+Der aktuelle Stand ist ein breiter Web-MVP. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind angebunden, und es gibt Pflichtlogin, Supabase-E-Mail/Passwort, accountgebundenen Browser-Cache, Cloud-first Autosave, Konfliktauflösung und einen lokal abgenommenen Medienpfad ueber Tabellen und private Storage-Objekte. Authentifizierte Screens laden bedarfsgerecht, der PDF.js-Viewer kapselt Anzeige und Quellenauswahl, und ein harter Postbuild-Check begrenzt JavaScript-Chunks auf 500.000 Byte. Das Preview-/Production-/Rollback-Runbook, die Hosted-Redirect-Konfiguration und die erste Production-Abnahme sind dokumentiert. Vor weiterem Ausbau wird die Produktoberflaeche in einen glaubwuerdigen Beta-Kern, klar gekennzeichnete Labs und deaktivierte, noch nicht freigegebene Funktionen getrennt.
 
 Die gepflegte Projektdokumentation liegt im Ordner `docs/`. Es gibt genau eine TODO-Markdown-Datei: `docs/todo.md`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
 
-## Funktionsumfang
+## Funktionsumfang und Reife
+
+Zum vorgesehenen Beta-Kern gehoeren Account, Dashboard, Erstellen und Importieren, Stapel- und Kartenverwaltung, Lernen mit vier Bewertungen und Content-Repetition, Statistik, Einstellungen sowie accountgebundene Speicherung und Syncstatus.
+
+Deck-Graph, Chat-your-Deck, Lernplan, lokale KI-Drafts, lokale Community-Demo, externe Varianten-JSON-Funktion, AI-Job-Uebersicht und erweiterte APKG-Diagnose sind Labs. Der serverseitige APKG-Pfad ueber 250 MiB, nicht abgenommene Google-/Magic-Link-Flows, echte Community-Rechte, produktive externe Karten-/Varianten-/Graph-Generierung sowie unvollstaendige Account-Lifecycle-Funktionen bleiben bis zu eigenen Freigabegates deaktiviert. Die sichtbare Trennung ist noch offene P0-Arbeit.
 
 - Dashboard, Profil-Onboarding, Datenschutzoptionen und globale CoRe-Einstellungen.
 - Deck-Verwaltung mit Hierarchie-Metadaten, Suche/Filtern, direktem Umbenennen, Unterstapel-Anlage, Kartenbearbeitung und Versionseintraegen; Lernuebersicht mit Anki-artigem Drag-and-drop fuer Unterstapel.
@@ -150,7 +154,7 @@ src/
 - `docs/index.md`: Dokumentationskarte fuer Menschen und Agenten.
 - `docs/specs.md`: Produktvision, Anforderungen, Datenmodell, API-Skizzen, Architektur, Hosting-/Datenbank-/KI-Leitplanken und Implementierungsstand.
 - `docs/specs.html`: navigierbare HTML-Fassung der Spezifikation.
-- `docs/todo.md`: einzige TODO-Markdown-Datei; Differenz zwischen aktuellem lokalen MVP und produktionsreifem Zielbild mit Code-Sicht.
+- `docs/todo.md`: einzige Roadmap fuer offene, priorisierte Arbeit am glaubwuerdigen Beta-Kern; abgeschlossene Nachweise bleiben ausserhalb der TODO-Datei.
 - `docs/file-naming-conventions.md`: verbindliche Dateinamenskonvention nach Werkzeug, Dateiformat und Rolle.
 - `docs/anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
 - `fixtures/apkg/world-capitals.apkg`: reproduzierbare APKG-Fixture fuer Unterstapel-Tests.
@@ -175,9 +179,8 @@ CoRe laeuft lokal als Vite/React-App und hat einen verifizierten Vercel-/Supabas
 
 ## Naechste sinnvolle Schritte
 
-- Den festgelegten URL-Vertrag in Hosted Supabase anwenden: Site URL `https://core-hosted.vercel.app`, Production `https://core-hosted.vercel.app/**`, Preview `https://*-bengt2.vercel.app/**`, lokal `http://127.0.0.1:5190/**`.
-- Das Release-Runbook nach gruenem CI beim ersten echten staged Production-Deployment ausfuehren und den secretsfreien Nachweis ablegen; danach P1 Cloud-Datenkorrektheit aktivieren.
-- Cloud-first Autosave zu einer Offline-Strategie weiterentwickeln: Konfliktmodell, Queue, Merge-Regeln und Medien-Storage.
-- `supabase/core_schema_v1.sql` weiter gegen Medien-/Storage-Referenzen, Importdetails und Community-Rechte abgleichen.
-- APKG-/Medienfixtures und Importidentitaeten gemaess `docs/anki-format-analysis.md` ausbauen.
-- Server-KI-Proxy, Job-Queue, Prompt-Versionierung, Kostenlogging und Rate-Limits planen, bevor echte Provider angebunden werden.
+1. Produktoberflaechen zentral als `core`, `labs` oder `disabled` klassifizieren und die Hauptnavigation auf den freigegebenen Kern reduzieren.
+2. Den Review- und Variantenvertrag korrigieren: vor der Antwort keine Herkunftshinweise, nach der Antwort genau ein verstaendlicher Original-/Quellenanker und ein klarer Sitzungsabschluss.
+3. Account und Einstellungen wahrheitsgemaess machen: keine scheinbar editierbare Login-E-Mail oder wirkungslose Datenschutzschalter, klare Exportgrenzen und verstaendlicher Syncstatus.
+
+Danach folgen Onboarding, Erstellen/Import, Informationsarchitektur, Accessibility und die vollstaendige Produktabnahme. Die verbindliche Reihenfolge und Akzeptanzkriterien stehen ausschliesslich in `docs/todo.md`.

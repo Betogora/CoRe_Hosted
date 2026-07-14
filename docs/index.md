@@ -7,7 +7,7 @@ Diese Datei ist die Dokumentationskarte fuer CoRe. Die Root-Ebene bleibt bewusst
 - `README.md`: Projektueberblick, lokaler Start, Scripts und Struktur.
 - `specs.md`: kanonische Produkt- und Engineering-Spezifikation.
 - `specs.html`: generierte HTML-Fassung von `specs.md`.
-- `todo.md`: einzige TODO-Markdown-Datei und priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.
+- `todo.md`: einzige Roadmap fuer offene, priorisierte Arbeit am glaubwuerdigen Beta-Kern; keine Ablage fuer abgeschlossene Nachweise.
 - `file-naming-conventions.md`: verbindliche, rollenbezogene Dateinamenskonvention und dokumentierter Projekt-Audit.
 - `debatable-features.md`: leicht verständliche Entscheidungsliste für potenziell verzichtbare Features; keine automatische Löschfreigabe.
 - `anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
@@ -20,6 +20,8 @@ Aktuell gibt es genau eine TODO-Markdown-Datei:
 - `todo.md`
 
 Es gibt keine weitere `TODO.md`, `todo.md` oder `*-todo.md`-Datei im Repository. Neue offene Arbeit soll in `todo.md` einsortiert werden.
+
+Die Roadmap trennt Produktflaechen in `Core`, `Labs` und `Disabled`. Abgeschlossene Arbeit, Teststaende und Release-Nachweise bleiben in den dafuer vorgesehenen Status- und Runbook-Abschnitten der kanonischen Spezifikation, nicht in `todo.md`.
 
 ## Technical Anchors Outside Documentation
 
@@ -41,7 +43,7 @@ Relevante Zielrichtungen:
 
 - Vercel fuer Hosting, Preview/Production, Domain und `/api/*` Functions.
 - Das ausfuehrbare Preview-/Production-/Rollback-Runbook liegt in `specs.md` Abschnitt 14.2.2 und gespiegelt in `specs.html`; Release-Nachweise bleiben secretsfrei.
-- `https://core-hosted.vercel.app` ist die kanonische Production-URL. Der entschiedene Supabase-Vertrag umfasst diese Site URL sowie `https://core-hosted.vercel.app/**`, `https://*-bengt2.vercel.app/**` nur fuer Previews und `http://127.0.0.1:5190/**` lokal; die Anwendung im Hosted Dashboard und die erste protokollierte Production-Abnahme bleiben offen.
+- `https://core-hosted.vercel.app` ist die kanonische Production-URL. Der entschiedene Supabase-Vertrag umfasst diese Site URL sowie `https://core-hosted.vercel.app/**`, `https://*-bengt2.vercel.app/**` nur fuer Previews und `http://127.0.0.1:5190/**` lokal; Hosted-Konfiguration und erste protokollierte Production-Abnahme sind abgeschlossen.
 - Login-Gate, Einstellungen und React-Fehlerfallback zeigen dieselbe Release-Information aus Version, Umgebung und kurzem Commit; weitere Env-Werte werden nicht in den Browser uebernommen.
 - Supabase Auth + Postgres + RLS als naheliegender Persistenzpfad.
 - Echte Tabellen fuer Decks, Learning Items, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs statt grossem Store-Blob.

@@ -44,7 +44,7 @@
     <aside>
       <div class="brand">CoRe Specs</div>
       <div class="subtitle">Generated from docs/specs.md</div>
-      <nav><a class="toc-level-2" href="#implementierungsstand-2026-07-13">Implementierungsstand 2026-07-13</a>
+      <nav><a class="toc-level-2" href="#implementierungsstand-2026-07-15">Implementierungsstand 2026-07-15</a>
 <a class="toc-level-3" href="#was-lokal-bereits-funktioniert">Was lokal bereits funktioniert</a>
 <a class="toc-level-3" href="#was-erwartungsgemaess-noch-nicht-funktioniert">Was erwartungsgemaess noch nicht funktioniert</a>
 <a class="toc-level-3" href="#aktuelle-ausbauhaltung">Aktuelle Ausbauhaltung</a>
@@ -75,11 +75,11 @@
 <a class="toc-level-3" href="#6-1-hauptbereiche">6.1 Hauptbereiche</a>
 <a class="toc-level-3" href="#6-2-navigationsvorschlag">6.2 Navigationsvorschlag</a>
 <a class="toc-level-3" href="#6-3-desktop-first-leitlinien">6.3 Desktop-first Leitlinien</a>
-<a class="toc-level-2" href="#7-mvp-scope">7. MVP-Scope</a>
-<a class="toc-level-3" href="#7-1-mvp-ziel">7.1 MVP-Ziel</a>
-<a class="toc-level-3" href="#7-2-mvp-mussumfang">7.2 MVP-Mussumfang</a>
-<a class="toc-level-3" href="#7-3-mvp-sollumfang">7.3 MVP-Sollumfang</a>
-<a class="toc-level-3" href="#7-4-mvp-nichtziele">7.4 MVP-Nichtziele</a>
+<a class="toc-level-2" href="#7-beta-kern-und-produktreife">7. Beta-Kern und Produktreife</a>
+<a class="toc-level-3" href="#7-1-ziel-des-beta-kerns">7.1 Ziel des Beta-Kerns</a>
+<a class="toc-level-3" href="#7-2-core">7.2 Core</a>
+<a class="toc-level-3" href="#7-3-labs">7.3 Labs</a>
+<a class="toc-level-3" href="#7-4-disabled-und-nichtziele">7.4 Disabled und Nichtziele</a>
 <a class="toc-level-2" href="#8-funktionale-anforderungen">8. Funktionale Anforderungen</a>
 <a class="toc-level-2" href="#8-1-account-profil-und-onboarding">8.1 Account, Profil und Onboarding</a>
 <a class="toc-level-3" href="#fr-auth-001-account-erstellen">FR-AUTH-001 — Account erstellen</a>
@@ -242,11 +242,9 @@
 <a class="toc-level-2" href="#17-5-ki-kartengenerierung">17.5 KI-Kartengenerierung</a>
 <a class="toc-level-2" href="#17-6-community">17.6 Community</a>
 <a class="toc-level-2" href="#18-entwicklungs-backlog-und-aufgabenmodule">18. Entwicklungs-Backlog und Aufgabenmodule</a>
-<a class="toc-level-3" href="#18-1-priorisierte-module">18.1 Priorisierte Module</a>
-<a class="toc-level-3" href="#18-2-erste-engineering-epics">18.2 Erste Engineering-Epics</a>
 <a class="toc-level-2" href="#19-offene-entscheidungen">19. Offene Entscheidungen</a>
 <a class="toc-level-2" href="#20-risiken-und-gegenma-nahmen">20. Risiken und Gegenma&#223;nahmen</a>
-<a class="toc-level-2" href="#21-definition-of-done-fur-mvp">21. Definition of Done f&#252;r MVP</a>
+<a class="toc-level-2" href="#21-definition-of-done-fur-den-beta-kern">21. Definition of Done f&#252;r den Beta-Kern</a>
 <a class="toc-level-2" href="#22-beispielhafte-user-stories">22. Beispielhafte User Stories</a>
 <a class="toc-level-3" href="#us-001-anki-nutzer-importiert-deck">US-001 — Anki-Nutzer importiert Deck</a>
 <a class="toc-level-3" href="#us-002-nutzer-erstellt-karte-aus-pdf">US-002 — Nutzer erstellt Karte aus PDF</a>
@@ -277,17 +275,18 @@
 <a class="toc-level-3" href="#27-10-dokumentations-und-sql-inventar">27.10 Dokumentations- und SQL-Inventar</a></nav>
     </aside>
     <main><article>
-<h1 id="core-content-repetition">CoRe — Content Repetition</h1>
-<p><strong>Produkt- und Engineering-Spezifikation</strong><br><strong>Dateien:</strong> <code>docs/specs.md</code> und <code>docs/specs.html</code><br><strong>Status:</strong> Arbeitsfassung v0.4
-<strong>Datum:</strong> 2026-07-13
+<p>﻿# CoRe — Content Repetition</p>
+<p><strong>Produkt- und Engineering-Spezifikation</strong><br><strong>Dateien:</strong> <code>docs/specs.md</code> und <code>docs/specs.html</code><br><strong>Status:</strong> Arbeitsfassung v0.5
+<strong>Datum:</strong> 2026-07-15
 <strong>Quellenbasis:</strong> Projektzusammenfassung des Auftraggebers + Speech-to-Text-Gruendergespraech + erneuter Gruendergespraech-Abgleich + aktueller Codebase-Stand + Hosting-/Database-/KI-Guide fuer Karteikarten-App + <code>docs/anki-format-analysis.md</code> + aktueller Test-/Infrastrukturstand</p>
 <hr>
-<h2 id="implementierungsstand-2026-07-13">Implementierungsstand 2026-07-13</h2>
+<h2 id="implementierungsstand-2026-07-15">Implementierungsstand 2026-07-15</h2>
 <p>Diese Spezifikation ist seit dem 2026-07-01 mit einer lokalen Vite/React-Implementierung verknüpft. Der aktuelle Stand ist ein breiter Web-MVP: Viele Produktabläufe sind klickbar, testbar und über kleine Module gekapselt. Ein Supabase-Projekt (<code>CoRe-Database</code>) und ein Vercel-Projekt (<code>core-hosted</code>) sind angebunden. Seit dem 2026-07-09 gibt es ein Pflicht-Login-Gate, Supabase-E-Mail/Passwort, accountgebundene lokale Cache-Keys, Cloud-first Autosave und eine einmalige Übernahme vorhandener lokaler Browserdaten. Seit dem 2026-07-14 ist auch der APKG-Medienpfad lokal implementiert: accountweite private Storage-Objekte, persistente Pending-Queue, Standard-/TUS-Uploads und Signed-URL-/Local-Fallback. CoRe ist trotzdem noch kein fertiges gehostetes Mehrnutzerprodukt: vollständiger Offline-Kaltstart, Medienexport/-sharing und Orphan-GC, KI-Serverjobs, Monitoring, Backups und Community-Rechte fehlen noch; die neue Medienmigration ist vor Remote-Nutzung separat auszurollen.</p>
 <p>Wichtige Aenderung seit der ersten lokalen Spezifikationsfassung: Die bisherige Deck-<code>cards</code>-Collection bleibt im lokalen State aus Kompatibilitaetsgruenden bestehen, enthaelt fachlich aber Learning Items. <code>src/coreModel.ts</code> normalisiert neue und alte Karten ueber eine gemeinsame Creation Pipeline. Jedes Learning Item besitzt genau eine Original-Variante; Reverse-, Cloze-, importierte und KI-/Rephrase-Varianten sind daran verankert und koennen eigene Review-States, Performance- und Feedbackdaten tragen.</p>
 <p>Die aktuelle Architektur macht bewusst keine breite Adapter-Vorleistung fuer noch unentschiedene Anbieter. Fuer den entschiedenen Startpfad wurden kleine Supabase-Module eingefuehrt: <code>src/supabaseClient.ts</code> kapselt die Browser-Client-Konfiguration, <code>src/cloudAuth.ts</code> kapselt Auth/Profile, <code>src/accountSession.ts</code> kapselt Auth-Phasen und Sync-Status, <code>src/accountStorage.ts</code> kapselt accountgebundene Browser-Cache-Keys, <code>src/syncDevice.ts</code> kapselt die stabile Browser-ID samt verständlichem Geräte-Label, und <code>src/cloudRepository.ts</code> kapselt accountgefilterte Tabellen-Loads, Geräte-Registrierung, Saves und Loeschsemantik fuer den ersten Online-MVP. React-Caller kennen weiterhin keine SQL-, RLS-, Row- oder User-Agent-Parsing-Details.</p>
 <p>Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese zentrale Spezifikation uebernommen. Der relevante Zielpfad ist jetzt hier dokumentiert: Vercel als naheliegender Hosting-/Preview-/Domain-Pfad, Supabase Auth/Postgres/RLS als naheliegender Persistenzpfad, echte Tabellen statt grossem Store-Blob, Supabase Storage/Object Storage fuer grosse Medien und Dokumente, eigene <code>/api/ai/*</code>-Routen fuer geheime KI-Keys, sowie klare Env-Var- und Secret-Grenzen.</p>
-<p>Dokumentationsstand nach Abgleich am 2026-07-07: Es gibt genau eine TODO-Markdown-Datei, <code>docs/todo.md</code>. Sie ist die einzige Roadmap-Quelle fuer offene Arbeit; neue TODO-Markdowns sollen nicht entstehen. <code>docs/specs.md</code> bleibt kanonisch, <code>docs/specs.html</code> ist die visuelle HTML-Fassung derselben Spezifikation, und <code>docs/anki-format-analysis.md</code> dokumentiert die Anki-Differenzentscheidungen hinter Import-, Medien- und Learning-Item-Ausbau.</p>
+<p>Dokumentationsstand nach Abgleich am 2026-07-15: Es gibt genau eine TODO-Markdown-Datei, <code>docs/todo.md</code>. Sie ist ausschliesslich die Roadmap-Quelle fuer offene, priorisierte Arbeit; abgeschlossene Arbeit, Teststaende und Release-Nachweise bleiben in den dafuer vorgesehenen Status- und Runbook-Abschnitten dieser Spezifikation. <code>docs/specs.md</code> bleibt kanonisch, <code>docs/specs.html</code> ist die visuelle HTML-Fassung derselben Spezifikation, und <code>docs/anki-format-analysis.md</code> dokumentiert die Anki-Differenzentscheidungen hinter Import-, Medien- und Learning-Item-Ausbau.</p>
+<p>Produktreife-Abgleich am 2026-07-15: Der breite lokale Web-MVP wird vor weiterem Ausbau in <code>Core</code>, <code>Labs</code> und <code>Disabled</code> getrennt. Diese Spezifikation definiert den Zielvertrag; die sichtbare Produktoberflaeche setzt ihn noch nicht vollstaendig durch. Die Umsetzung und UX-Abnahme sind in <code>docs/todo.md</code> als P0.1 bis P0.8 offen. Vor deren Abschluss gelten klickbare lokale oder technisch vorbereitete Flows nicht allein deshalb als freigegebener Produktkern.</p>
 <p>Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug bestaetigt die bestehenden Kernentscheidungen zu Import, Kartenerstellung, Review, Content-Repetition, Community, Graph und sparsamer KI-Orchestrierung. Ergaenzt wurden vor allem zwei Schaerfungen: Varianten sollen mit wachsendem Reifegrad nur konservativ anspruchsvoller werden, und serverseitig wiederverwendbare Varianten muessen strikt von privaten Review-Events, Lernstaenden und persoenlichen Qualitaetsurteilen getrennt bleiben.</p>
 <p>Datenbank-Release am 2026-07-10: Die Supabase-CLI-Konfiguration findet alle vier versionierten E-Mail-Templates. <code>20260709091315_sync_media_auth_operations.sql</code> wurde nach erfolgreichem Dry-Run remote angewendet; <code>npx supabase migration list --linked</code> bestaetigt jetzt alle vier Migrationen lokal und remote. Das erweiterte <code>supabase/verify_schema_v1.sql</code> bestaetigt Zielspalten, Tabellen, Composite Keys/FKs, RLS, Policies, Grants ohne <code>anon</code>-Zugriff und den privaten Bucket <code>core-media</code>. Der Performance-Advisor meldet keine Warnung; beim Security-Advisor bleibt ausschliesslich der bereits vorher vorhandene Hosted-Auth-Hinweis zur deaktivierten Leaked-Password-Protection offen.</p>
 <p>E2E-Pruefbasis am 2026-07-10: Playwright startet Vite im getrennten Modus <code>e2e</code> und trennt die Suite in vier Projekte. <code>auth-gate-chromium</code> prueft das Login-Gate, gemappte Auth-Fehler und den sicheren React-Fehlerfallback mit drei sessionlosen Smokes ohne Account-Reset. <code>auth-resilience-chromium</code> prueft auf einem getrennten unkonfigurierten Vite-Port sowie ueber Browser-Netzwerkrouten fehlende Supabase-Konfiguration, Offline-Start und <code>session_expired</code>; alle drei cloudfreien Smokes sind gruen und erwarten deutsche Fehlertexte. <code>auth-setup</code> baut eine Supabase-Session auf und gibt sie als ignorierte, von <code>core.*</code>-App-Daten bereinigte <code>storageState</code> an fünfzehn <code>authenticated-chromium</code>-Produkt-Smokes weiter. <code>npm run test:e2e -- --list</code> bestaetigt alle 22 Tests. Fuer die kostenfreie vollstaendige Abnahme existiert <code>npm run test:e2e:local</code>: Der Befehl startet einen auf notwendige Dienste reduzierten lokalen Supabase-Stack, wendet ausstehende Migrationen an, liest den JSON-Status der installierten Supabase-CLI und akzeptiert URL-/Publishable-Key nur fuer Loopback-URLs, legt den lokalen Testaccount idempotent an, fuehrt Playwright aus und stoppt den Stack wieder. Die Status-Auswertung bleibt mit aelteren <code>KEY=VALUE</code>-Ausgaben kompatibel; der Start-Status mit lokalen Default-Schluesseln wird nicht in den Testlauf-Log geschrieben. Hosted-E2E bleibt ueber einen vorab angelegten Account und <code>.env.e2e.local</code> kompatibel. Vor jedem authentifizierten Lauf bereinigt das Setup ausschließlich Medien, Konflikte und Geräte des dedizierten Testaccounts und ersetzt dessen Snapshot über die RLS-geschützte Repository-Funktion mit der reproduzierbaren Welt-Hauptstadt-Fixture; eine Service Role ist nicht beteiligt. Das GitHub-Actions-Release-Gate <code>.github/workflows/ci.yml</code> fuehrt bei Pull Requests, Pushes auf <code>main</code> und manuellen Laeufen zuerst <code>npm run typecheck</code>, <code>npm test</code> und <code>npm run build</code> aus und startet danach alle Browser-Smokes mit lokalem Supabase ohne externe Zugangsdaten oder KI-Secrets. Im CI-Modus bleiben Retries deaktiviert; Fehlerberichte und Screenshots sowie Traces der sessionlosen Projekte werden sieben Tage als Artefakt aufbewahrt. <code>auth-setup</code> und <code>authenticated-chromium</code> erzeugen keine Traces, und <code>playwright/.auth/</code> sowie <code>.env</code>-Dateien werden nicht hochgeladen.</p>
@@ -419,7 +418,7 @@
 <li>Mobile, PWA-Offline, Push-Benachrichtigungen, Zahlungen, Admin-/Support-Werkzeuge und produktive Observability sind nicht umgesetzt.</li>
 </ul>
 <h3 id="aktuelle-ausbauhaltung">Aktuelle Ausbauhaltung</h3>
-<p>Naechste Arbeit sollte nicht zuerst neue Adapter-Schichten bauen, sondern die bestehenden tiefen Module stabilisieren und dann gezielt reale Adapter an den Stellen einfuehren, an denen die Produktentscheidung gefallen ist: Hosting/Deployment, Persistenz/Auth, LLM/Job-Queue, Dokumentverarbeitung und spaeter Sync/Community-Rechte. Weitere KI-Coding-Arbeit liest zuerst die kompakte Root-Anweisung <code>AGENTS.md</code> und laedt danach nur die fuer die Aufgabe relevanten Abschnitte dieser Spezifikation. <code>docs/todo.md</code> wird nur fuer Scope-, Prioritaets-, Status- oder Planungsfragen konsultiert; abgeschlossene Eintraege sind nur fuer die Pruefung frueherer Arbeit oder Evidenz relevant.</p>
+<p>Naechste Arbeit korrigiert zuerst Produktvertrag und Produktoberflaeche: Reifestatus, Kernnavigation, Review-/Variantenvertrag sowie wahrheitsgemaesse Account- und Einstellungsablaeufe. Neue Adapter, Migrationen, Queues und Providerpfade bleiben bis nach dem P0-Produktgate oder bis zu einem expliziten Roadmap-Eintrag zurueckgestellt. Weitere KI-Coding-Arbeit liest zuerst die kompakte Root-Anweisung <code>AGENTS.md</code> und laedt danach nur die fuer die Aufgabe relevanten Abschnitte dieser Spezifikation. <code>docs/todo.md</code> wird ausschliesslich fuer offene Scope-, Prioritaets-, Planungs-, Akzeptanz- und Evidenzfragen konsultiert; abgeschlossene Arbeit und Release-Nachweise gehoeren nicht in die TODO-Datei.</p>
 <hr>
 <h2 id="0-zweck-dieses-dokuments">0. Zweck dieses Dokuments</h2>
 <p>Diese Spezifikation übersetzt die Gründerdiskussion und den Projektkontext in eine menschenlesbare, zugleich KI- und entwicklungsfreundliche Grundlage für die Softwareentwicklung von <strong>CoRe — Content Repetition</strong>.</p>
@@ -436,6 +435,9 @@
 <li><strong>KANN</strong> = optional, späterer Ausbau oder Experiment.</li>
 <li><strong>MVP</strong> = erster testbarer Produktkern, nicht zwingend marktreif.</li>
 <li><strong>Später</strong> = Roadmap nach MVP, aber architektonisch früh berücksichtigen.</li>
+<li><strong>Core</strong> = fuer normale Nutzer freigegebener und vollstaendig erklaerter Beta-Kern.</li>
+<li><strong>Labs</strong> = bewusst experimentelle, klar gekennzeichnete Flaeche ausserhalb des Kernversprechens.</li>
+<li><strong>Disabled</strong> = technisch vorhandene oder vorbereitete Funktion, die bis zu einem eigenen Betriebs-, Rechts- oder Produktgate nicht erreichbar ist.</li>
 </ul>
 <h3 id="0-2-wichtige-annahmen">0.2 Wichtige Annahmen</h3>
 <ul>
@@ -452,11 +454,11 @@
 <li><code>docs/index.md</code>: Dokumentationskarte fuer Menschen und KI-Agenten.</li>
 <li><code>docs/specs.md</code>: diese kanonische Produkt- und Engineering-Spezifikation.</li>
 <li><code>docs/specs.html</code>: generierte, visuelle HTML-Fassung derselben Spezifikation.</li>
-<li><code>docs/todo.md</code>: priorisierter Gap-Backlog vom lokalen MVP zum produktionsfaehigen Produkt.</li>
+<li><code>docs/todo.md</code>: einzige Roadmap fuer offene, priorisierte Arbeit am glaubwuerdigen Beta-Kern; keine Ablage fuer abgeschlossene Nachweise.</li>
 <li><code>docs/README.md</code>: Projektueberblick, lokaler Start, Scripts und Dokumentlinks.</li>
 <li><code>docs/anki-format-analysis.md</code>: Anki-Differenzanalyse fuer Import-, Medien-, Template- und Learning-Item-Entscheidungen.</li>
 </ul>
-<p>TODO-Markdown-Inventar: Aktuell existiert genau <code>docs/todo.md</code>. Offene Aufgaben, Roadmap-Priorisierung und Code-Sicht auf naechste Schritte werden dort gebuendelt; weitere TODO-Markdowns sollen nur angelegt werden, wenn diese Spezifikation explizit geaendert wird.</p>
+<p>TODO-Markdown-Inventar: Aktuell existiert genau <code>docs/todo.md</code>. Offene Aufgaben, Roadmap-Priorisierung und Code-Sicht auf naechste Schritte werden dort gebuendelt. Abgeschlossene Arbeit, Teststaende und Release-Nachweise verbleiben in Status-, Changelog- oder Runbook-Abschnitten ausserhalb der TODO-Datei; weitere TODO-Markdowns sollen nur angelegt werden, wenn diese Spezifikation explizit geaendert wird.</p>
 <p><code>AGENTS.md</code> bleibt bewusst auf Root-Ebene, weil Coding-Agenten dort die Arbeitsregeln automatisch finden. Supabase-Schema- und Verify-SQL bleiben im Ordner <code>supabase/</code>, weil sie lauffaehige technische Artefakte und keine Prosadokumente sind.</p>
 <hr>
 <h2 id="1-executive-summary">1. Executive Summary</h2>
@@ -686,7 +688,7 @@
 <hr>
 <h2 id="6-informationsarchitektur-der-app">6. Informationsarchitektur der App</h2>
 <h3 id="6-1-hauptbereiche">6.1 Hauptbereiche</h3>
-<p>Die App SOLL folgende Hauptbereiche enthalten:</p>
+<p>Die normale Hauptnavigation des Beta-Kerns SOLL hoechstens vier Produktbereiche enthalten:</p>
 <ol>
 <li><p><strong>Dashboard / Heute lernen</strong></p>
 <ul>
@@ -714,47 +716,46 @@
 <ul>
 <li>Manuelle Karte.</li>
 <li>Dokumentviewer + Auswahl-zu-Feld.</li>
-<li>KI-Kartengenerierung.</li>
-</ul>
-</li>
-<li><p><strong>Graph / Mindmap</strong></p>
-<ul>
-<li>Überblick pro Stapel.</li>
-<li>Themenknoten mit Kartenverlinkung.</li>
-<li>Regenerierung durch Trigger oder manuellen Button.</li>
-</ul>
-</li>
-<li><p><strong>Communitys</strong></p>
-<ul>
-<li>Kleine Gruppen.</li>
-<li>Ordnerstruktur.</li>
-<li>Stapel ansehen, übernehmen, kopieren oder verlinken.</li>
-</ul>
-</li>
-<li><p><strong>Einstellungen</strong></p>
-<ul>
-<li>Profil, Hochschule, Sprache.</li>
-<li>Scheduler-Parameter.</li>
-<li>KI-Kosten-/Modellpräferenzen.</li>
-<li>Datenschutz und Exportoptionen.</li>
+<li>APKG im freigegebenen Groessenbereich, Text und CSV/Tabelle importieren.</li>
 </ul>
 </li>
 </ol>
+<p><strong>Einstellungen</strong> sind ueber den Account-Einstieg erreichbar und keine fuenfte primaere Produktflaeche:</p>
+<ul>
+<li>Account und Profil.</li>
+<li>Lernen.</li>
+<li>Daten und Sync.</li>
+<li>Erweitert, einschliesslich klar begrenzter JSON-Portabilitaet.</li>
+</ul>
+<p>Folgende vorhandene Flaechen sind <strong>Labs</strong> und duerfen nicht wie fertige Kernfunktionen erscheinen:</p>
+<ul>
+<li>Chat-your-Deck und Lernplan.</li>
+<li>Lokale/deterministische KI-Kartenentwuerfe.</li>
+<li>Graph/Mindmap.</li>
+<li>Lokale Community-Demo.</li>
+<li>Externer Prompt-/JSON-Flow fuer Varianten.</li>
+<li>AI-Job-Historie.</li>
+<li>Erweiterte APKG-Diagnose.</li>
+</ul>
+<p>Folgende Funktionen bleiben <strong>Disabled</strong>, bis ihr eigenes Freigabegate erfuellt ist:</p>
+<ul>
+<li>Serverseitiger APKG-Import ueber 250 MiB.</li>
+<li>Google-Anmeldung und Magic Link ohne abgenommenen Hosted-Roundtrip.</li>
+<li>Echte Community-Mitgliedschaften und Freigaberechte.</li>
+<li>Produktive externe Karten-, Varianten- und Graph-Generierung.</li>
+<li>DOCX, OCR und Bildregionen.</li>
+<li>Account-Loeschung und Art.-15-Auskunft ohne serverseitigen Workflow.</li>
+</ul>
+<p>Die technische Existenz eines Screens, Modells oder lokalen Flows aendert seinen Reifestatus nicht. Eine zentrale typisierte Produktflaechen-Registry SOLL Sichtbarkeit und Kennzeichnung steuern; bis zu ihrer Umsetzung ist diese Trennung ein offenes P0-Produktgate.</p>
 <h3 id="6-2-navigationsvorschlag">6.2 Navigationsvorschlag</h3>
-<pre><code class="language-text">/                         Dashboard
-/decks                    Kartenstapel-Übersicht
-/decks/:deckId            Stapel-Detailansicht
-/decks/:deckId/review     Review-Session
-/decks/:deckId/create     Manuelle Kartenerstellung
-/decks/:deckId/import     Import-Wizard
-/decks/:deckId/ai-create  KI-Kartenerstellung
-/statistics               Leistungsstatistik
-/decks/:deckId/graph      Mindmap / Deck Graph
-/cards/:cardId            Karten-Detail / Versionen / Anker
-/communities              Community-Übersicht
-/communities/:id          Community-Workspace
-/settings                 Einstellungen
+<pre><code class="language-text">/                         Heute
+/learn                    Lernen und Stapelverwaltung
+/create                   Erstellen und Import
+/statistics               Statistik
+/settings                 Einstellungen ueber den Account-Einstieg
 </code></pre>
+<p>Labs duerfen ueber einen expliziten, bewusst aktivierten Einstieg und stabile Entwicklungs-/E2E-Routen erreichbar bleiben. Sie gehoeren nicht in die normale Hauptnavigation. Disabled-Flaechen duerfen in einer nicht freigegebenen Umgebung keinen sichtbaren Einstieg besitzen.</p>
+<p>Bestehende Detailrouten fuer Stapel, Karten, Review und Import bleiben interne Navigation unter diesen Hauptbereichen; ihre URL-Struktur ist kein Produktreife-Signal.</p>
 <h3 id="6-3-desktop-first-leitlinien">6.3 Desktop-first Leitlinien</h3>
 <ul>
 <li>CoRe wird zunächst als Desktop-Website optimiert: primärer Zielviewport <strong>1440 × 900 px</strong>, Desktop-Mindestbreite <strong>1280 × 720 px</strong>, responsive Fallback-Grenze <strong>1024 px</strong>.</li>
@@ -766,107 +767,66 @@
 <li>Unter <strong>1024 px</strong> dürfen Deck-Verwaltung und Dokumentviewer in Tabs oder eine Einspalten-Ansicht wechseln. Mobile/PWA, Offline-Queue, Push und native Touch-Optimierung bleiben spätere Ausbaupunkte.</li>
 </ul>
 <hr>
-<h2 id="7-mvp-scope">7. MVP-Scope</h2>
-<h3 id="7-1-mvp-ziel">7.1 MVP-Ziel</h3>
-<p>Der MVP soll beweisen, dass CoRe mehr ist als ein weiteres Karteikarten-Frontend:</p>
-<ul>
-<li>Anki-/APKG-nahe Decks können importiert werden.</li>
-<li>Nutzer können Karten lernen.</li>
-<li>Die App kann geeignete Karten ab einem Reifegrad variieren.</li>
-<li>Varianten bleiben kontrollierbar und rückführbar.</li>
-<li>Eine erste Form von KI-Kartenerstellung aus Dokumenten funktioniert.</li>
-<li>Die UX ist cleaner und zugänglicher als klassische Power-User-Tools.</li>
-</ul>
-<h3 id="7-2-mvp-mussumfang">7.2 MVP-Mussumfang</h3>
+<h2 id="7-beta-kern-und-produktreife">7. Beta-Kern und Produktreife</h2>
+<h3 id="7-1-ziel-des-beta-kerns">7.1 Ziel des Beta-Kerns</h3>
+<p>Der Beta-Kern soll fuenf Ablaeufe verlaesslich, verstaendlich und konsistent machen:</p>
+<ol>
+<li>Account oeffnen und den Produktzustand verstehen.</li>
+<li>Einen Stapel importieren oder manuell anlegen.</li>
+<li>Karten bearbeiten und eine Lernsitzung starten.</li>
+<li>Karten bewerten, neu laden und ohne Datenverlust fortfahren.</li>
+<li>Eine CoRe-Variante lernen, ohne sie vorab zu erkennen, und den Ursprung nach der Antwort pruefen.</li>
+</ol>
+<p>Neue Plattform-, Community-, KI-, Admin- oder Grossdatei-Funktionen werden erst weitergebaut, wenn diese Ablaeufe das P0-Abnahmegate aus <code>docs/todo.md</code> erfuellen.</p>
+<h3 id="7-2-core">7.2 Core</h3>
 <table>
 <thead>
 <tr>
 <th>Bereich</th>
-<th>MVP-Anforderung</th>
+<th>Verbindlicher Beta-Kern</th>
 </tr>
 </thead>
 <tbody><tr>
 <td>Account</td>
-<td>Registrierung/Login, Profil, optional Hochschule.</td>
+<td>E-Mail-/Passwort-Anmeldung, verstaendliches Profil und wahrheitsgemaesse Accountwerte.</td>
 </tr>
 <tr>
-<td>Decks</td>
-<td>Deck-/Unterdeck-Hierarchie, Stapelübersicht, Such-/Filterfunktion.</td>
+<td>Heute</td>
+<td>Verstaendlicher Leerzustand, faellige Karten und klarer Lernstart.</td>
+</tr>
+<tr>
+<td>Stapel und Karten</td>
+<td>Manuell anlegen, bearbeiten und loeschen; Deck-/Unterdeck-Hierarchie verstaendlich verwalten.</td>
 </tr>
 <tr>
 <td>Import</td>
-<td>APKG-Import mindestens für Basic Front/Back; Importarchitektur für weitere Formate vorbereiten.</td>
-</tr>
-<tr>
-<td>Card CRUD</td>
-<td>Basic-Karten erstellen, bearbeiten, löschen; später weitere Typen.</td>
+<td>APKG im freigegebenen Groessenbereich sowie Text und CSV/Tabelle.</td>
 </tr>
 <tr>
 <td>Review</td>
-<td>Fullscreen-Lernmodus, Antwort aufdecken, vier Buttons.</td>
+<td>Ablenkungsarmer Lernmodus, Antwortaufdeckung, vier Ratings mit Intervallvorschau und klarer Sitzungsabschluss.</td>
 </tr>
 <tr>
-<td>Scheduler</td>
-<td>Anki-inspirierte Scheduling-Schnittstelle; genaue Parameter austauschbar.</td>
+<td>Content Repetition</td>
+<td>Rephrase-Varianten ohne Herkunftshinweis vor der Antwort; Original-/Quellenanker erst nach der Antwort.</td>
 </tr>
 <tr>
-<td>CoRe-Modus</td>
-<td>Pro Stapel <code>off/auto/manual</code>. Default: <code>auto</code>, aber leicht änderbar.</td>
+<td>Persistenz</td>
+<td>Accountgebundene Speicherung, Autosave, Reload, Offline-/Syncstatus und Konfliktbehandlung.</td>
 </tr>
 <tr>
-<td>Varianten</td>
-<td>Erste KI-Umformulierungen für geeignete Textkarten; Originalanker anzeigen.</td>
+<td>Statistik</td>
+<td>Grundlegende Lernaktivitaet und Bewertungsverteilung.</td>
 </tr>
 <tr>
-<td>Trust</td>
-<td>Varianten-Status, Original anzeigen, Undo/Discard, Versionierung mindestens rudimentär.</td>
-</tr>
-<tr>
-<td>KI-Erstellung</td>
-<td>Datei hochladen, Parameter setzen, Kartenentwürfe generieren, Nutzer bestätigt Import.</td>
-</tr>
-<tr>
-<td>KI-Orchestrierung</td>
-<td>Hintergrundjobs, Trigger, Kosten-/Modellkapselung, strukturierte Outputs.</td>
+<td>Einstellungen</td>
+<td>Account, Lernen, Daten und Sync sowie ein klar abgegrenzter erweiterter Bereich.</td>
 </tr>
 </tbody></table>
-<h3 id="7-3-mvp-sollumfang">7.3 MVP-Sollumfang</h3>
-<ul>
-<li>Cloze-/Lückentext-Basisunterstützung.</li>
-<li>Text-/CSV-/Excel-Import als einfachere Alternative zu APKG.</li>
-<li>Manuelle Kartenerstellung mit Dokumentviewer für PDF/Text.</li>
-<li>Auswahl-zu-Feld für markierten Text.</li>
-<li>Erste Community-Gruppe mit Ordnerstruktur.</li>
-<li>Erste Graph-/Mindmap-Generierung pro Stapel.</li>
-<li>Review-Keyboard-Shortcuts.</li>
-</ul>
-<h3 id="7-4-mvp-nichtziele">7.4 MVP-Nichtziele</h3>
-<ul>
-<li><p>Hosting, produktive Deployment-Pipeline, Domains und Monitoring.</p>
-</li>
-<li><p>Datenbank, serverseitige Persistenz, Multi-Device-Sync und Konfliktloesung.</p>
-</li>
-<li><p>Echte externe Authentifizierung, E-Mail-Verifikation, OAuth-Provider und Account-Recovery.</p>
-</li>
-<li><p>Weitere externe LLM-Provider, produktive Prompt-/Eval-Pipeline, Nutzer-/Deck-Budgets und Admin-Telemetrie.</p>
-</li>
-<li><p>Serverseitige Job-Queue, Worker, Medienstorage und OCR-/Dokumentenpipeline.</p>
-</li>
-<li><p>Vollständige Anki-Kompatibilität für alle exotischen Note Types.</p>
-</li>
-<li><p>Perfekter Import jeder historischen Anki-Variation.</p>
-</li>
-<li><p>Vollständiger mobiler Offline-Betrieb.</p>
-</li>
-<li><p>Öffentliche Social-Plattform.</p>
-</li>
-<li><p>Fremde Lernstände, Rankings, Streaks anderer Nutzer.</p>
-</li>
-<li><p>Automatische Bildvarianten durch KI. Bildkarten können existieren; KI-Bildvariation ist ausdrücklich nicht priorisiert.</p>
-</li>
-<li><p>Fachlich garantierte KI-Korrektheit ohne menschliche Freigabe.</p>
-</li>
-</ul>
+<h3 id="7-3-labs">7.3 Labs</h3>
+<p>Labs sind nicht Teil des Beta-Kernversprechens. Sie duerfen fuer Entwicklung und bewusste Erprobung erreichbar sein, muessen aber als experimentell mit Funktionsumfang und bekannter Grenze gekennzeichnet werden. Aktuelle Labs sind Chat-your-Deck, Lernplan, lokale KI-Kartenentwuerfe, Deck-Graph, lokale Community-Demo, externe Varianten-JSON-Funktion, AI-Job-Historie und erweiterte APKG-Diagnose.</p>
+<h3 id="7-4-disabled-und-nichtziele">7.4 Disabled und Nichtziele</h3>
+<p>Disabled-Funktionen aus Abschnitt 6.1 bleiben bis zu einem eigenen Freigabegate unerreichbar. Darueber hinaus sind fuer den Beta-Kern ausdruecklich keine oeffentliche Social-Plattform, fremde Lernstaende oder Rankings, generische Backend-/Auth-/LLM-Adapter, mehrere KI-Provider, vollstaendiges Admin-Portal, Zahlungen, native Apps, oeffentlicher Deck-Marktplatz, KI-Bildvariation oder breiter OCR-/Dokumenten-Worker vorgesehen.</p>
 <hr>
 <h2 id="8-funktionale-anforderungen">8. Funktionale Anforderungen</h2>
 <h2 id="8-1-account-profil-und-onboarding">8.1 Account, Profil und Onboarding</h2>
@@ -4128,6 +4088,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
     And bleibt die Rückseite unverändert
 </code></pre>
 <h2 id="17-5-ki-kartengenerierung">17.5 KI-Kartengenerierung</h2>
+<p>Dieser Vertrag beschreibt aktuell eine Labs-Flaeche. Er ist kein Freigabenachweis fuer produktive externe Kartengenerierung.</p>
 <pre><code class="language-gherkin">Feature: AI Card Generation
   Scenario: Nutzer generiert Karten aus PDF
     Given der Nutzer lädt ein PDF hoch
@@ -4138,6 +4099,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
     And der Nutzer kann jede Karte bearbeiten, übernehmen oder verwerfen
 </code></pre>
 <h2 id="17-6-community">17.6 Community</h2>
+<p>Dieser Vertrag beschreibt das spaetere Ziel echter Community-Rechte. Die heutige lokale Community-Demo ist Labs; Mitgliedschaften und Freigaberechte bleiben Disabled.</p>
 <pre><code class="language-gherkin">Feature: Community Sharing
   Scenario: Nutzer teilt Deck in kleiner Gruppe
     Given der Nutzer ist Mitglied einer Community
@@ -4147,189 +4109,17 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 </code></pre>
 <hr>
 <h2 id="18-entwicklungs-backlog-und-aufgabenmodule">18. Entwicklungs-Backlog und Aufgabenmodule</h2>
-<h3 id="18-1-priorisierte-module">18.1 Priorisierte Module</h3>
-<table>
-<thead>
-<tr>
-<th align="right">Priorität</th>
-<th>Modul</th>
-<th>Ziel</th>
-<th>Abhängigkeiten</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="right">P0</td>
-<td>Auth/Profile</td>
-<td>Nutzerkonten und private Datenbasis.</td>
-<td>Datenbank/Auth.</td>
-</tr>
-<tr>
-<td align="right">P0</td>
-<td>Deck/Card Core</td>
-<td>Stapel, Karten, CRUD.</td>
-<td>Auth.</td>
-</tr>
-<tr>
-<td align="right">P0</td>
-<td>Review Engine</td>
-<td>Fällige Karten lernen und bewerten.</td>
-<td>Cards, Scheduler.</td>
-</tr>
-<tr>
-<td align="right">P0</td>
-<td>APKG Basic Import</td>
-<td>Bestehende Nutzer abholen.</td>
-<td>Import Worker, Storage.</td>
-</tr>
-<tr>
-<td align="right">P0</td>
-<td>CoRe Mode per Deck</td>
-<td>Off/Auto/Manual sichtbar einstellen.</td>
-<td>Deck Settings.</td>
-</tr>
-<tr>
-<td align="right">P0</td>
-<td>Variant Data Model</td>
-<td>Varianten, Originalanker, Status.</td>
-<td>Cards, AI Jobs.</td>
-</tr>
-<tr>
-<td align="right">P0</td>
-<td>AI Orchestrator Skeleton</td>
-<td>Jobs, Model Router, strukturierte Outputs.</td>
-<td>Worker Queue.</td>
-</tr>
-<tr>
-<td align="right">P1</td>
-<td>Rephrase Variant</td>
-<td>Erste Content-Repetition.</td>
-<td>Eligibility, AI Orchestrator.</td>
-</tr>
-<tr>
-<td align="right">P1</td>
-<td>KI-Kartenerstellung</td>
-<td>Datei zu Kartenentwürfen.</td>
-<td>Documents, AI.</td>
-</tr>
-<tr>
-<td align="right">P1</td>
-<td>Trust UI</td>
-<td>Original anzeigen, Undo, Flag.</td>
-<td>Variants.</td>
-</tr>
-<tr>
-<td align="right">P1</td>
-<td>Document Viewer</td>
-<td>PDF/Text im Editor.</td>
-<td>Storage, text extraction.</td>
-</tr>
-<tr>
-<td align="right">P1</td>
-<td>Selection-to-Field</td>
-<td>Markieren übernimmt Text.</td>
-<td>Document Viewer, Editor.</td>
-</tr>
-<tr>
-<td align="right">P2</td>
-<td>Community Basic</td>
-<td>Kleine Gruppen + Ordner.</td>
-<td>Permissions, Deck Sharing.</td>
-</tr>
-<tr>
-<td align="right">P2</td>
-<td>Graph MVP</td>
-<td>Mindmap pro Deck.</td>
-<td>AI, Deck Summaries.</td>
-</tr>
-<tr>
-<td align="right">P2</td>
-<td>Expanded Import</td>
-<td>Cloze, Image Occlusion, custom mapping.</td>
-<td>APKG Parser.</td>
-</tr>
-<tr>
-<td align="right">P3</td>
-<td>Chat-your-Deck</td>
-<td>Fragen an Stapel.</td>
-<td>Graph/RAG.</td>
-</tr>
-<tr>
-<td align="right">P3</td>
-<td>Lernplan</td>
-<td>Prüfungsplanung.</td>
-<td>Scheduler, analytics.</td>
-</tr>
-</tbody></table>
-<h3 id="18-2-erste-engineering-epics">18.2 Erste Engineering-Epics</h3>
-<h4 id="epic-1-datenmodell-grundapp">Epic 1 — Datenmodell &amp; Grundapp</h4>
-<ul>
-<li>Datenbankschema für User, Decks, Notes, Cards.</li>
-<li>DeckTree-Komponente.</li>
-<li>Basic Card Editor.</li>
-<li>Deck Settings mit <code>core_mode</code>.</li>
-<li>Seed-Daten für lokale Entwicklung.</li>
-</ul>
-<h4 id="epic-2-review-mvp">Epic 2 — Review MVP</h4>
-<ul>
-<li>Review Session API.</li>
-<li>Scheduler Interface.</li>
-<li>Review UI.</li>
-<li>Antwortaufdeckung mit Front+Back.</li>
-<li>Vier Buttons.</li>
-<li>Review Event Log.</li>
-</ul>
-<h4 id="epic-3-apkg-import-basic">Epic 3 — APKG Import Basic</h4>
-<ul>
-<li>APKG Upload.</li>
-<li>Entpacken und Metadaten extrahieren.</li>
-<li>Basic Front/Back Mapping.</li>
-<li>Deck-Hierarchie importieren.</li>
-<li>Importbericht.</li>
-<li>Unsupported Note Type Warning.</li>
-</ul>
-<h4 id="epic-4-core-varianten-mvp">Epic 4 — CoRe Varianten MVP</h4>
-<ul>
-<li>Variant Entity.</li>
-<li>Originalanker.</li>
-<li>Eligibility-Job für Textkarten.</li>
-<li>Rephrase-Job.</li>
-<li>Variantenanzeige im Review.</li>
-<li>Variante deaktivieren/flaggen.</li>
-</ul>
-<h4 id="epic-5-ki-kartengenerierung">Epic 5 — KI-Kartengenerierung</h4>
-<ul>
-<li>Dokumentupload.</li>
-<li>Text-Extraktion.</li>
-<li>Generierungsparameter.</li>
-<li>AI Card Drafts.</li>
-<li>Entwurf prüfen/übernehmen.</li>
-<li>Quellenanker anzeigen.</li>
-</ul>
-<h4 id="epic-6-trust-versioning">Epic 6 — Trust &amp; Versioning</h4>
-<ul>
-<li>Kartenversionslog.</li>
-<li>Restore/Undo.</li>
-<li>AI Job Log sichtbar.</li>
-<li>SourceAnchor UI.</li>
-<li>Feedback auf Varianten.</li>
-</ul>
-<h4 id="epic-7-community-basic">Epic 7 — Community Basic</h4>
-<ul>
-<li>Community erstellen.</li>
-<li>Beitritt per Passwort/Link.</li>
-<li>Ordnerstruktur.</li>
-<li>Deck teilen/kopieren.</li>
-<li>Privacy-Grenzen testen.</li>
-</ul>
-<h4 id="epic-8-graph-mindmap-mvp">Epic 8 — Graph/Mindmap MVP</h4>
-<ul>
-<li>Deck Summary Job.</li>
-<li>Graph Builder Job.</li>
-<li>Graph Data Model.</li>
-<li>Graph Canvas.</li>
-<li>Kartenlinks aus Knoten.</li>
-<li>Triggerlogik: manuell und 10-neue-Karten-Regel.</li>
-</ul>
+<p>Dieser Abschnitt fuehrt bewusst keinen zweiten priorisierten Backlog. Verbindliche offene Arbeit, Reihenfolge, Akzeptanz und Evidenz stehen ausschliesslich in <code>docs/todo.md</code>.</p>
+<p>Die aktuelle Reihenfolge lautet:</p>
+<ol>
+<li>Produktoberflaechen und Feature-Reife wahrheitsgemaess machen.</li>
+<li>Review- und Variantenvertrag korrigieren.</li>
+<li>Account und Einstellungen wahrheitsgemaess machen.</li>
+<li>Ersten Produktkontakt, Erstellen/Import und Informationsarchitektur stabilisieren.</li>
+<li>Konsistenz, Accessibility und echte Produktabnahme schliessen.</li>
+<li>Erst danach Architektur und Testportfolio vereinfachen, Beta-Betrieb absichern und einzelne Labs ueber eigene Gates graduieren.</li>
+</ol>
+<p>Abgeschlossene Epics, Testzaehler und Release-Nachweise werden nicht in die offene Roadmap zurueckkopiert. Architekturabschnitte dieser Spezifikation dokumentieren weiterhin den geltenden Vertrag und den implementierten Stand.</p>
 <hr>
 <h2 id="19-offene-entscheidungen">19. Offene Entscheidungen</h2>
 <table>
@@ -4464,26 +4254,19 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 </tr>
 </tbody></table>
 <hr>
-<h2 id="21-definition-of-done-fur-mvp">21. Definition of Done für MVP</h2>
-<p>Der MVP gilt als erfüllt, wenn:</p>
+<h2 id="21-definition-of-done-fur-den-beta-kern">21. Definition of Done für den Beta-Kern</h2>
+<p>Der technische Feature-MVP ist breit vorhanden. Der glaubwuerdige Beta-Kern gilt jedoch erst als erfuellt, wenn:</p>
 <ol>
-<li>Ein Nutzer sich registrieren und ein Profil anlegen kann.</li>
-<li>Ein Nutzer einen APKG-Basic-Stapel importieren kann.</li>
-<li>Die Deck-Hierarchie sichtbar ist.</li>
-<li>Ein Nutzer Basic-Karten erstellen und bearbeiten kann.</li>
-<li>Ein Nutzer Karten in cleanem Review-Modus lernen kann.</li>
-<li>Review-Events mit vier Buttons gespeichert werden.</li>
-<li>Pro Deck ein CoRe-Modus sichtbar und änderbar ist.</li>
-<li>Das System für geeignete Karten Varianten erzeugen kann.</li>
-<li>Varianten im Review erscheinen können, ohne vorab markiert zu sein.</li>
-<li>Nach dem Aufdecken die Originalkarte als Anker sichtbar ist.</li>
-<li>Varianten deaktiviert oder gemeldet werden können.</li>
-<li>KI-Kartenerstellung aus mindestens einem Text-/PDF-Dokument Entwürfe erzeugt.</li>
-<li>KI-Entwürfe vor Übernahme geprüft werden können.</li>
-<li>KI-Jobs asynchron laufen und Status anzeigen.</li>
-<li>Es gibt keine Anzeige fremder Lernstände oder Social-Rankings.</li>
+<li>Ein neuer Nutzer den Produktzustand versteht und ohne Sackgasse einen ersten Stapel anlegen oder importieren kann.</li>
+<li>Hauptnavigation und sichtbare Einstiege den Reifestatus <code>Core</code>, <code>Labs</code> oder <code>Disabled</code> aus genau einer Registry beziehen.</li>
+<li>Karten angelegt, bearbeitet, gelernt, bewertet, neu geladen und ohne Datenverlust fortgesetzt werden koennen.</li>
+<li>Varianten vor der Antwort nicht als solche erkennbar sind und der Original-/Quellenanker erst danach genau einmal verstaendlich erreichbar ist.</li>
+<li>Account-, Datenschutz-, Sync- und Exportoberflaechen ausschliesslich technisch wirksame oder klar begrenzte Funktionen versprechen.</li>
+<li>Alle vier Ratings per Maus und Tastatur funktionieren und das Sitzungsende einen Abschlusszustand zeigt.</li>
+<li>Die Kernablaeufe bei <strong>1440 × 900 px</strong> und <strong>1280 × 720 px</strong> manuell abgenommen sind, einschliesslich Fokus, Kontrast, Zoom, langen Inhalten, leerem Zustand und mindestens einem realistischen Fehlerfall.</li>
+<li>Automatisierte Tests die Produktvertraege und Regressionen schuetzen, ohne dass Testanzahl allein als Produktabnahme gilt.</li>
 </ol>
-<p><strong>Stand 2026-07-14:</strong> Diese Punkte sind als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher, Reimport-Merge mit Erhalt lokaler Content-Edits, Pflichtlogin, accountgebundener Cache, lokaler Erstimportdialog, revisionsbedingte konkrete Deck-/Card-/Delete-Mutationen, die persistente Outbox mit readback-bestätigten Review-Events, idempotente Konfliktzeilen, accountgebundene Geräte-Registrierung, klickbare Konfliktentscheidungen und der lokal abgenommene serverseitige APKG-Tracer-Bullet. Ebenfalls umgesetzt sind Supabase-CLI-Link, Remote-Migrationen, RLS-/Policy-/Grant-Verify, Vercel-Projekt, Vercel-Env-Grenzen, Deployment und echter Supabase-Auth-/Profilpfad. Nicht Teil dieser DoD-Erfuellung sind vollständiger Offline-/Wiederverbindungsbetrieb, lange externe KI-Jobs, produktive Community-Rechte, die Hosted-Ressourcenabnahme für große APKG-Importe, Admin-Werkzeuge und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind in dieser Spec dokumentiert; die verbleibenden Umsetzungsluecken werden in <code>docs/todo.md</code> als Ausbaupfade gefuehrt.</p>
+<p><strong>Stand 2026-07-15:</strong> Dieses Beta-DoD ist noch nicht erfuellt. Der technische Unterbau fuer Auth, Import, Review, Varianten, Sync, Konflikte und Medien ist weitgehend vorhanden; offen sind vor allem die wahrheitsgemaesse Produktflaeche, der korrigierte Review-/Variantenvertrag, Account- und Einstellungs-UX, Onboarding, Informationsarchitektur, Accessibility und die manuelle P0-Produktabnahme. Die detaillierte offene Arbeit und Evidenz stehen ausschliesslich in <code>docs/todo.md</code>.</p>
 <hr>
 <h2 id="22-beispielhafte-user-stories">22. Beispielhafte User Stories</h2>
 <h3 id="us-001-anki-nutzer-importiert-deck">US-001 — Anki-Nutzer importiert Deck</h3>
@@ -4605,16 +4388,15 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 </ol>
 <hr>
 <h2 id="26-naechste-empfohlene-schritte">26. Naechste empfohlene Schritte</h2>
-<p>Der lokale Feature-MVP ist umgesetzt. Die naechsten Schritte stehen als priorisierter Soll/Ist-Backlog in <code>docs/todo.md</code>.</p>
+<p>Der technische Feature-MVP ist breit umgesetzt. Vor weiterem Plattform- oder Featureausbau wird daraus ein glaubwuerdiger Beta-Kern. Die verbindliche Reihenfolge, Akzeptanz und Evidenz stehen ausschliesslich in <code>docs/todo.md</code>.</p>
 <p>Kurzfassung mit Code-Sicht:</p>
 <ol>
-<li>TypeScript-Modernisierung M1 bis M4 abgeschlossen halten: Type-Policy und CI-Gate verhindern JavaScript-Rückfälle; neue Module bleiben hinter kleinen, testbaren TypeScript-Interfaces.</li>
-<li>Persistenten Sync nach dem abgeschlossenen Zwei-Geräte-Korrektheitsgate nur bei konkretem Produktbedarf erweitern; die reloadfeste Outbox, revisionsgeprüfte Mutationen, Konfliktauflösung und das Wiederverbindungs-Backoff bleiben die verbindlichen Schnittstellen.</li>
-<li>Auth-Lifecycle abschließen: lokale Browser-Flows und der Account-/Datenschutz-Datenfluss sind angelegt; offen bleiben das grüne Docker-basierte E2E-Gate sowie die secretsfreie Hosted-Abnahme von SMTP, Google und Leaked-Password-Protection.</li>
-<li>Cloud-Medien weiterführen: Export- und Sharing-Regeln auf dem accountweiten Referenzmodell definieren und historisch verbliebene Objekte über ein geschütztes administratives Orphan-GC reconciliieren.</li>
-<li>Dokument-, Medien- und APKG-Qualitaet weiter ausbauen: APKG-Fixtures, Notetype-/Template-Snapshots, Importidentitaeten, Medienchecksums, grosse Uploads und serverseitige Importjobs hinter den bestehenden tiefen Modulen halten.</li>
-<li>KI und Jobs produktionsfaehig machen: <code>/api/ai/chat</code> an die Supabase-Session binden, Rate-Limits und Kostenbudgets ergaenzen und weitere KI-Faehigkeiten nur ueber validierte, versionierte Serverjobs aufbauen.</li>
-<li>Accessibility, Datenportabilitaet, Scheduler und Lernwirksamkeit weiter validieren; Community-Rechte, Mobile/PWA und Wachstumsschicht erst nach Persistenz, Auth, Storage und Jobs ausbauen.</li>
+<li>Eine kleine typisierte Produktflaechen-Registry als einzige Quelle fuer <code>core</code>, <code>labs</code> und <code>disabled</code> einfuehren; Hauptnavigation auf Heute, Lernen, Erstellen und Statistik begrenzen.</li>
+<li><code>StudyMode</code> und Variantenfeedback auf den verbindlichen Reveal-Vertrag bringen: keine Herkunfts- oder Schedulerhinweise vor der Antwort, danach genau ein Anker und ein klarer Sitzungsabschluss.</li>
+<li><code>SettingsScreen</code> und Auth-Einstiege wahrheitsgemaess machen: nicht editierbare Login-E-Mail, keine wirkungslosen Datenschutzschalter, verstaendlicher Syncstatus und klar begrenzter Export.</li>
+<li>Danach leeren Account, Erstellen/Import und die Trennung von Lernen, Bibliothek und Stapelverwaltung stabilisieren.</li>
+<li>Konsistenz, Accessibility und Fehlerzustaende pruefen und das vollstaendige P0-Gate manuell an beiden Zielviewports abnehmen.</li>
+<li>Erst nach diesem Produktgate App-Shell, grosse Screens und Testportfolio vereinfachen; Labs nur einzeln ueber messbare Freigabegates graduieren.</li>
 </ol>
 <hr>
 <h2 id="27-technischer-implementierungsanhang">27. Technischer Implementierungsanhang</h2>
@@ -4701,7 +4483,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <tr>
 <td><code>src/creationWorkflow.ts</code></td>
 <td><code>createCreationWorkflow({ mediaStore, persistImportedDecks, serverApkgImport })</code></td>
-<td>Öffentliche Creation-Seam und Größenweiche: lokale APKG-Preview bis 250 MiB, serverseitige diskriminierte Preview darüber, bestehender Reimport-Merge sowie Deck-Bestätigung vor lokaler oder serverseitiger Medienfinalisierung.</td>
+<td>Öffentliche Creation-Seam und Größenweiche: lokale APKG-Preview bis 250 MiB, serverseitige diskriminierte Preview darüber, bestehender Reimport-Merge sowie Deck-Bestätigung vor lokaler oder serverseitiger Medienfinalisierung. Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme bleiben hinter derselben Seam.</td>
 </tr>
 <tr>
 <td><code>src/scheduler.ts</code></td>
@@ -4771,17 +4553,17 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <tr>
 <td><code>src/serverApkgImportContract.ts</code> / <code>src/serverApkgImport.ts</code></td>
 <td><code>ApkgImportProgress</code>, <code>ApkgServerArtifact</code>, <code>createServerApkgImportClient</code></td>
-<td>Validierter Browser-/Serververtrag, signierter direkter TUS-Upload, sichere Statusprojektion, Polling, Reload einer fertigen Vorschau, Retry, Abbruch und kurzlebiger Artefaktabruf.</td>
+<td>Validierter Browser-/Serververtrag, signierter direkter TUS-Upload, sichere Statusprojektion, Polling, Reload einer fertigen Vorschau, Retry, Abbruch und kurzlebiger Artefaktabruf ohne Trigger- oder Storage-Interna in React</td>
 </tr>
 <tr>
 <td><code>api/imports/apkg.ts</code> / <code>api/imports/apkgJobs.ts</code></td>
-<td><code>GET|POST /api/imports/apkg</code>, <code>createApkgJobService</code>, <code>createTriggerApkgRunner</code></td>
-<td>Same-Origin-/Bearer-/Owner-Schutz, CAS-Zustandsübergänge, signierte Storage-Tokens und konkreter Trigger-Port; Postgres bleibt Produktwahrheit.</td>
+<td><code>GET/POST /api/imports/apkg</code>, <code>createApkgJobService</code>, <code>createTriggerApkgRunner</code></td>
+<td>Same-Origin-/Bearer-/Owner-Schutz, CAS-Zustandsübergänge, signierte Storage-Tokens und konkreter interner Trigger-Port; Postgres bleibt Produktwahrheit</td>
 </tr>
 <tr>
 <td><code>trigger/apkgImportTasks.ts</code> / <code>trigger/apkgArchive.ts</code></td>
 <td><code>analyze-apkg</code>, <code>finalize-apkg-media</code>, <code>cleanup-apkg</code></td>
-<td>Node-22-Tasks für begrenztes Streaming-ZIP/SQLite/Zstd-Parsen, medienfreies Normalisierungsartefakt, accountweite Medienfinalisierung und jobeigenes Cleanup.</td>
+<td>Node-22-Tasks für begrenztes Streaming-ZIP/SQLite/Zstd-Parsen, medienfreies Normalisierungsartefakt, accountweite Medienfinalisierung und jobeigenes Cleanup</td>
 </tr>
 <tr>
 <td><code>src/mediaStore.ts</code></td>
@@ -4950,15 +4732,15 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <li>Opt-in Benchmark-Fixture mit 4.900 Karten und 200 Medien wird deterministisch in <code>test-results/</code> erzeugt und nicht als große Binärdatei versioniert.</li>
 <li>Lokales Lesen der APKG-Datei als ZIP-Archiv.</li>
 <li>Browser-Preview über einen privaten nativen Vite Dedicated Worker mit typisiertem Nachrichtenvertrag, übertragbaren APKG-/Medienbuffern, Fortschritt, Abbruch und garantiertem Cleanup; der direkte Pfad bleibt für Node-Tests, bereits geparste Eingaben und fehlende Worker-Unterstützung.</li>
-<li>Dateien bis einschließlich 250 MiB bleiben unverändert im Browser-Worker. Dateien oberhalb 250 MiB bis einschließlich 1 GiB laufen hinter derselben <code>creationWorkflow</code>-Seam über den serverseitigen Pfad; Vorschau und <code>Import übernehmen</code> bleiben getrennt.</li>
-<li><code>GET|POST /api/imports/apkg</code> prüft Same-Origin, Supabase-Bearer, Owner, Aktion und CAS-Revision. Der Browser lädt per signiertem TUS direkt in den privaten Bucket <code>core-imports</code>; Browserrollen besitzen weder Bucket-SELECT/-DELETE noch Rechte auf <code>apkg_import_jobs</code>.</li>
-<li><code>apkg_import_jobs</code> ist die service-role-only Produktwahrheit für <code>uploading</code>, <code>queued</code>, <code>analyzing</code>, <code>ready</code>, <code>committing</code>, <code>syncing_media</code>, <code>succeeded</code>, <code>failed</code> und <code>cancelled</code>. Die Browserprojektion enthält nur Job-ID, Phase, Revision, Fortschritt, Retrybarkeit, sicheren Fehlercode und im Zustand <code>ready</code> den Bericht.</li>
-<li>Trigger.dev erhält für <code>analyze-apkg</code>, <code>finalize-apkg-media</code> und <code>cleanup-apkg</code> nur die opake Job-ID. Node 22 und <code>large-1x</code> sind festgelegt; OOM darf einmal auf <code>large-2x</code> wiederholen. Postgres-Status und Abbruchflag werden vor und während der Arbeit erneut geprüft, temporäre Dateien immer in <code>finally</code> entfernt.</li>
-<li>Die Analyse verwendet <code>yauzl@3.4.0</code>, read-only <code>node:sqlite</code> ohne Extensions und <code>node:zlib</code> für Zstd. Beide Parser reichen denselben internen Anki-Vertrag an das eine Mapping in <code>src/apkgImport.ts</code>.</li>
-<li>Doppelte Grenzprüfung gegen Metadaten und gelesene Bytes: 1 GiB APKG, 100.000 ZIP-Einträge, 6 GiB entpackt, 200:1 je Eintrag, 512 MiB Collection, 32 MiB Manifest, 500 MiB je Medium und 64 MiB normalisiertes Ergebnis. Doppelte, verschlüsselte, unsichere, symbolische und größeninkonsistente Einträge werden abgelehnt.</li>
-<li>Das gzip-Ergebnis ist versioniert und medienfrei. Erst nach Nutzerbestätigung validiert der Browser das kurz signierte Artefakt und führt den bestehenden Reimport-Merge aus; danach finalisiert Trigger Medien aus dem Original. Browser und Trigger verwenden denselben Medienplaner und dieselbe <code>syncReferences</code>-Logik für SHA-1-Deduplizierung, Referenzen und sichere Stilllegung.</li>
-<li>Abbruch setzt zuerst das Datenbankflag, Retry nutzt Job-ID, Task und Revision als Idempotenzschlüssel und höchstens drei fachliche Versuche. Erfolg/Abbruch löschen Original und Ergebnis; der jobeigene Cleanup räumt nach sieben Tagen auf. Allgemeines Orphan-GC bleibt separat.</li>
-<li>Hosted-Freigabe verlangt Supabase Pro mit 1-GiB-Limit, Trigger Frankfurt, DPA/SCC-/Subprozessorfreigabe und reale Ressourcenmessungen an der 250-MiB- und 1-GiB-Grenze. Bis dahin bleibt der Browserpfad bis 250 MiB die freigegebene Grenze.</li>
+<li>Dateien bis einschließlich 250 MiB bleiben unverändert im Browser-Worker. Dateien oberhalb 250 MiB bis einschließlich 1 GiB laufen hinter derselben <code>creationWorkflow</code>-Seam über den serverseitigen Pfad; die Vorschau und das ausdrückliche <code>Import übernehmen</code> bleiben in beiden Fällen getrennt.</li>
+<li>Der Browser legt über <code>GET|POST /api/imports/apkg</code> einen owner-geprüften Auftrag an und lädt das Original mit einem kurzlebigen signierten Token per TUS direkt nach <code>core-imports/{userId}/{jobId}/source.apkg</code>. Browserrollen besitzen auf Bucket und <code>apkg_import_jobs</code> weder SELECT noch Schreib-/Löschrechte. Die Route prüft Same-Origin, Supabase-Bearer, Eigentümer, Aktion, erlaubten Ausgangszustand und CAS-Revision.</li>
+<li><code>apkg_import_jobs</code> ist die kanonische service-role-only Produktwahrheit. Die sichere Browserprojektion enthält ausschließlich <code>jobId</code>, Status, Phase, Revision, <code>completed</code>, <code>total</code>, <code>retryable</code>, optionalen sanitisierten Fehlercode und im Zustand <code>ready</code> den Importbericht. Statuswerte sind <code>uploading</code>, <code>queued</code>, <code>analyzing</code>, <code>ready</code>, <code>committing</code>, <code>syncing_media</code>, <code>succeeded</code>, <code>failed</code> und <code>cancelled</code>.</li>
+<li>Trigger.dev erhält für <code>analyze-apkg</code>, <code>finalize-apkg-media</code> und <code>cleanup-apkg</code> nur die opake <code>jobId</code>. Alle Tasks laufen auf Node 22 und <code>large-1x</code>; ein erkannter OOM darf einmal auf <code>large-2x</code> wiederholt werden. Tasks lesen vor Arbeit und zwischen Medien erneut Postgres-Status sowie <code>cancel_requested_at</code>; Trigger-Status ist nie Produktwahrheit. Temporäre Dateien werden in <code>finally</code> entfernt.</li>
+<li>Die Analyse streamt das Original auf Trigger-Temp-Disk, prüft das ZIP mit <code>yauzl@3.4.0</code>, öffnet SQLite über <code>node:sqlite</code> read-only ohne Extensions und entpackt <code>collection.anki21b</code> über <code>node:zlib</code>. Browser- und Serverparser reichen denselben internen Anki-Vertrag an das eine Mapping in <code>src/apkgImport.ts</code>; Importidentität, Bericht und Reimport-Merge bleiben kanonisch.</li>
+<li>Sicherheitsgrenzen werden gegen ZIP-Metadaten und tatsächlich gelesene Bytes erzwungen: 1 GiB APKG, 100.000 Einträge, 6 GiB entpackte Gesamtdaten, 200:1 je Eintrag, 512 MiB Collection, 32 MiB Manifest, 500 MiB je Medium und 64 MiB unkomprimiertes Normalisierungsartefakt. Doppelte, verschlüsselte, unsichere, symbolische oder größeninkonsistente Einträge werden hart abgelehnt.</li>
+<li>Das versionierte gzip-Ergebnis enthält normalisierten Inhalt, Warnungen und Bericht, aber keine Medienbytes. <code>prepare-commit</code> stellt es für fünf Minuten signiert bereit; der Browser validiert den Vertrag und führt den bestehenden Merge erst nach Nutzerbestätigung aus. Nach bestätigter Cloud-Persistenz finalisiert Trigger Medien direkt aus dem Original; Browser und Trigger verwenden dafür denselben Medienplaner sowie dieselbe <code>syncReferences</code>-Logik für accountweite SHA-1-Deduplizierung, Referenzen und sichere Stilllegung nicht mehr verwendeter Objekte.</li>
+<li>Abbruch setzt zuerst das Datenbankflag, stoppt danach best-effort den Trigger-Run und startet Cleanup. Retry ist mit <code>jobId + Task + Revision</code> idempotent und auf drei fachliche Versuche begrenzt. Erfolgreiche oder abgebrochene Aufträge löschen Original und Ergebnis; liegengebliebene, fertige oder retryfähige Aufträge werden nach sieben Tagen durch den jobeigenen Cleanup bereinigt. Das allgemeine Storage-Orphan-GC bleibt getrennt.</li>
+<li>Produktionsfreigabe setzt Supabase Pro mit mindestens 1 GiB globalem Storage-Limit, ein Trigger-Projekt in Frankfurt, die organisatorische DPA/SCC-/Subprozessorfreigabe und eine reale Ressourcenmessung für knapp über 250 MiB sowie 1 GiB voraus. Control-Plane-Payloads enthalten keine Nutzer-ID, Dateinamen, Inhalte oder Storage-Pfade. Ohne diese Hosted-Abnahme bleibt der lokale 250-MiB-Pfad die freigegebene Grenze.</li>
 <li>Erkennung von <code>collection.anki2</code>, <code>collection.anki21</code> und <code>collection.anki21b</code>.</li>
 <li>Zstd-Dekompression lesbarer <code>collection.anki21b</code>-Collections ueber <code>fzstd</code>, mit Fallback auf lesbare aeltere Collection-Dateien im selben Archiv.</li>
 <li>Minimaler SQLite-Reader fuer <code>col</code>, <code>notes</code>, <code>cards</code>, <code>decks</code>, <code>notetypes</code>, <code>fields</code> und <code>templates</code>, einschließlich moderner <code>WITHOUT ROWID</code>-Tabellen sowie Signatur-, Seitengrößen-, Bounds-, Varint-, Overflow- und Zyklusprüfungen.</li>
