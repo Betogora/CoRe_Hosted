@@ -58,6 +58,11 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      name: "auth-lifecycle-chromium",
+      testMatch: /auth-lifecycle\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "authenticated-chromium",
       testMatch: [/core-stabilization\.spec\.ts/, /world-capitals-hierarchy\.spec\.ts/, /zz-media-import\.spec\.ts/],
       dependencies: ["auth-setup"],

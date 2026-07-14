@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  clearCloudAuthRedirectParams,
   createCloudProfile,
   createCloudAuthRedirectUrl,
   createPendingCloudProfile,
@@ -8,6 +9,7 @@ import {
   formatCloudAuthError,
   getCloudUser,
   markCloudSignedOut,
+  readCloudAuthRedirectOutcome,
   resetCloudPassword,
   signInWithGoogle,
   signInWithMagicLink,
@@ -104,7 +106,14 @@ test("cloud auth formats common Supabase auth errors in German", () => {
   assert.match(formatCloudAuthError({ status: 403, message: "Session expired" }), /Sitzung ist abgelaufen/);
   assert.match(formatCloudAuthError({ name: "AuthRetryableFetchError", message: "Failed to fetch" }), /nicht erreichbar/);
   assert.equal(formatCloudAuthError({ message: "Invalid login credentials" }), "E-Mail oder Passwort stimmt nicht.");
-  assert.match(formatCloudAuthError({ message: "Email rate limit exceeded" }), /zu viele Auth-E-Mails/);
+  assert.match(formatCloudAuthError({ message: "Email rate limit exceeded" }), /bereits eine Auth-E-Mail/);
+  assert.match(formatCloudAuthError({ code: "over_email_send_rate_limit" }), /warte kurz/);
+  assert.match(formatCloudAuthError({ code: "otp_expired" }), /abgelaufen oder wurde bereits verwendet/);
+  assert.match(formatCloudAuthError({ code: "flow_state_not_found" }), /neuen Link/);
+  assert.match(formatCloudAuthError({ code: "reauthentication_needed" }), /Identität erneut/);
+  assert.match(formatCloudAuthError({ code: "reauthentication_not_valid" }), /Bestätigungscode/);
+  assert.match(formatCloudAuthError({ code: "weak_password", message: "Password is compromised and pwned" }), /Datenleck/);
+  assert.match(formatCloudAuthError({ code: "weak_password", message: "Password is too weak" }), /Sicherheitsanforderungen/);
   assert.match(formatCloudAuthError({ message: "Email not confirmed" }), /bestätige zuerst/);
   assert.match(formatCloudAuthError({ message: "Email signups are disabled" }), /Registrierung ist in Supabase.*deaktiviert/);
   assert.match(formatCloudAuthError({ message: "User already registered" }), /existiert wahrscheinlich schon/);
@@ -126,6 +135,30 @@ test("cloud auth formats common Supabase auth errors in German", () => {
     formatCloudAuthError({ code: "sync_device_registration_failed", cause: { code: "session_not_found", message: "Bitte melde dich zuerst an." } }),
     /Sitzung ist abgelaufen/,
   );
+});
+
+test("cloud auth classifies and clears recovery and error redirects", () => {
+  assert.deepEqual(readCloudAuthRedirectOutcome({ search: "?type=recovery", hash: "" }), { kind: "recovery" });
+  assert.deepEqual(readCloudAuthRedirectOutcome({ search: "", hash: "#type=password_recovery&access_token=secret" }), { kind: "recovery" });
+  assert.deepEqual(readCloudAuthRedirectOutcome({ search: "", hash: "" }), { kind: "none" });
+
+  const expired = readCloudAuthRedirectOutcome({
+    search: "?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired",
+    hash: "",
+  });
+  assert.equal(expired.kind, "error");
+  if (expired.kind === "error") {
+    assert.equal(expired.code, "otp_expired");
+    assert.match(expired.message, /abgelaufen/);
+  }
+
+  const calls: any[] = [];
+  const cleanUrl = clearCloudAuthRedirectParams(
+    { href: "https://core-hosted.vercel.app/?type=recovery&code=secret&view=lernen#error=secret" },
+    { state: { keep: true }, replaceState(...args: any[]) { calls.push(args); } },
+  );
+  assert.equal(cleanUrl, "/?view=lernen");
+  assert.deepEqual(calls[0], [{ keep: true }, "", "/?view=lernen"]);
 });
 
 test("cloud auth distinguishes a missing session from an expired session", async () => {

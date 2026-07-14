@@ -7,9 +7,9 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 ## Auditierter Ist-Stand
 
 - `npm run typecheck`: strikter reiner TypeScript-Graph und Type-Policy ohne `@ts-ignore`/`@ts-nocheck` sind grün; `allowJs: false` und das Dateipolicy-Gate verhindern JavaScript-Rückfälle in den Codewurzeln.
-- `npm test`: 316 Tests bestanden, einschließlich Runtime-Vertragstests für lokale/Cloud-Persistenz, accountgebundene Medien-Queues, Cloud-Referenzen, KI-Provider, den APKG-Worker und medienerhaltende Cloud-Full-Replaces.
-- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der lokale Entry-Chunk ist 275,35 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
-- `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes einschließlich Fehlerfallback, drei cloudfreie Auth-Resilience-Smokes und fünfzehn authentifizierte Produkt-Smokes werden in vier getrennten Playwright-Projekten korrekt erkannt. Der vollständige lokale Lauf mit Docker/Supabase ist mit 22/22 Tests grün; zusätzlich zu PDF-Lazy-Loading, Textauswahl, Kartenfeld, Quellenanker, accountgebundener Konfliktentscheidung und Offline-Reconnect ist ein echter APKG-Medienimport bis zur Cloud-Row und gerenderten Signed URL abgedeckt.
+- `npm test`: 346 Tests bestanden, einschließlich Redirect-/Fehlercode-Verträgen, Secret-Redaktion, Loopback-Grenzen und Mailpit-Linkextraktion sowie den bestehenden Runtime-Vertragstests für lokale/Cloud-Persistenz, Medien, KI und APKG.
+- `npm run build`: erfolgreich und ohne Chunk-Warnung. Der größte budgetierte JavaScript-Chunk ist PDF.js mit 431,65 kB; der aktuelle Entry-Chunk ist 314,05 kB. Ein manifestbasierter Postbuild-Check bricht den Build bei mehr als 500.000 Byte pro JavaScript-Chunk ab. Der getrennt geladene PDF-Worker und WASM-Dateien sind von diesem JavaScript-Budget ausgenommen.
+- `npm run test:e2e -- --list`: ein Auth-Setup, drei sessionlose Auth-Gate-Smokes, drei cloudfreie Auth-Resilience-Smokes, fünf lokale Auth-Lifecycle-Flows und fünfzehn authentifizierte Produkt-Smokes werden in fünf getrennten Playwright-Projekten als 27 Tests korrekt erkannt. Der letzte vollständige lokale Lauf vor dem neuen Paket war mit 22/22 Tests grün; das neue 27-Test-Gate konnte in der aktuellen Arbeitsumgebung mangels laufendem Docker Desktop noch nicht ausgeführt werden.
 - `npx supabase migration list --linked`: mit Supabase CLI 2.109.0 erfolgreich. Alle vier Migrationen bis einschließlich `20260709091315` sind lokal und remote vorhanden.
 - `supabase/verify_schema_v1.sql` besteht vollständig: Zielspalten einschließlich des vollständigen `sync_devices`-Spaltenvertrags, Tabellen, Composite Keys/FKs, RLS, Policies, `authenticated`-/`service_role`-Grants, fehlende `anon`-Grants und der private Bucket `core-media` sind bestätigt.
 - `npm run test:rls:local`: SQL-Struktur-Gate und zehn echte Data-API-/Sync-Smokes mit Nutzer A, Nutzer B und `anon` sind grün. Der Medien-Smoke prüft einen Standard-Upload, einen echten Upload über 6 MB per TUS, private Objekt-/Row-Zugriffe und zwei Referenzen auf dasselbe accountweite Objekt. Das Zwei-Geräte-Gate prüft mit getrennten Clients, Storages und Geräte-IDs stale Snapshots, idempotente Offline-Reviews und dauerhafte Soft-Deletes.
@@ -29,7 +29,7 @@ Das bisherige P0-Betriebsgate, P1 Repository-Mapping, die lokale Ownership-/RLS-
 
 ## Aktives nächstes Ziel
 
-**P0 M4 — abgeschlossen.** App-Shell, Screens, UI-Module, Tests, Root-Konfigurationen und Toolskripte sind strict geprüftes TypeScript; `allowJs` ist deaktiviert und die Dateipolicy verhindert neue JavaScript-Dateien. Das parallel bearbeitete Zwei-Geräte-Korrektheitsgate ist ebenfalls geschlossen.
+**P1 Auth-Lifecycle — in Abnahme.** Redirect- und Fehlercode-Vertrag, lokale bestätigte Testaccounts, Mailpit-Hilfe, fünf Browser-Flows und der Account-/Datenschutz-Datenfluss sind umgesetzt. Offen bleiben das Docker-basierte lokale RLS-/E2E-Gate sowie die tatsächlich autorisierte Hosted-Konfiguration und deren secretsfreier Readback.
 
 Verbindlicher URL-Vertrag:
 
@@ -104,9 +104,9 @@ Die vier Pakete wurden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 
 - [x] Einen echten Nutzer-A/Nutzer-B/`anon`-Smoke gegen lokales Supabase automatisiert. Geprüft werden `profiles`, `core_portable_exports`, `decks`, `cards`, `card_variants`, `review_events`, `source_documents`, `ai_jobs`, `media_assets`, `sync_devices` und `sync_conflicts`; der Runner verweigert Hosted-Ziele.
 - [x] Für jede authentifiziert schreibbare Tabelle verifiziert, dass UPDATE sowohl `using` als auch `with check` hat. Runtime-Smokes bestätigen eigene Updates, unsichtbare und unveränderbare fremde Rows sowie abgewiesene Ownership-Fälschungen; Composite-FKs verweigern fremde Deck-/Card-IDs mit `23503`.
-- [ ] Hosted Auth konfigurieren und dokumentieren: Site URL, Redirect-Allowlist, Google OAuth, SMTP-Absender, DKIM/SPF/DMARC, deutsche Templates, E-Mail-Bestätigung und Leaked-Password-Protection.
-- [ ] Browser-Tests für Magic Link, Google Redirect, Recovery, Passwortänderung, erneuten Login, Rate-Limit-Fehler und abgelaufene Links mit der Test-Fixture ergänzen.
-- [ ] Account-Löschung, Reauth, Datenschutzexport und Datenportabilitätsrechte als Datenfluss spezifizieren. Der vorhandene JSON-Export ist nur ein lokaler Inhalts-Export und ersetzt keine Account-Löschung oder serverseitige DSGVO-Antwort.
+- [ ] Hosted Auth konfigurieren und dokumentieren: Der bestehende Site-/Redirect-Vertrag und das secretsfreie Abnahme-Runbook stehen in `docs/specs.md` Abschnitt 14.2.3. Offen bleiben die tatsächliche Resend-/Domain-/Google-Konfiguration, der Hosted-Readback und Leaked-Password-Protection; ohne kontrollierte Auth-Subdomain, dokumentierte Resend-DPA/SCC-Freigabe und Supabase Pro darf dieser Punkt nicht geschlossen werden.
+- [ ] Browser-Tests für Magic Link, Google Redirect, Recovery, Passwortänderung, erneuten Login, Rate-Limit-Fehler und abgelaufene Links sind als isolierter lokaler Playwright-Bereich samt Mailpit-Hilfe implementiert. Offen bleibt nur das vollständige grüne `npm run test:e2e:local`-Gate; die aktuelle Arbeitsumgebung hatte kein laufendes Docker Desktop.
+- [x] Account-Löschung, operationsgebundene Reauth, Art.-15-Auskunft, Art.-20-Portabilitätsexport und idempotente Löschreihenfolge in `docs/specs.md` Abschnitt 14.2.3 als verbindlichen Datenfluss spezifiziert. Produktive Routen, UI, Tabellen und Storage-Jobs bleiben ein eigenes sicherheitskritisches Folgepaket.
 
 ## 3. P1 — Sync, Offline und Konflikte
 

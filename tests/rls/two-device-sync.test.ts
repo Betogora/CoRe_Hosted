@@ -21,8 +21,6 @@ interface DeviceHarness {
   engine: AccountSyncEngine;
 }
 
-const TWO_DEVICE_RUN_ID = `${process.pid}-${Date.now()}`;
-
 function createMemoryStorage(): MemoryStorage {
   const values = new Map<string, string>();
   return {
@@ -38,25 +36,14 @@ function requiredEnvironment(name: string): string {
   return value;
 }
 
-function twoDeviceAccountEmail(email: string): string {
-  const separator = email.lastIndexOf("@");
-  assert.ok(separator > 0, "CORE_E2E_EMAIL muss eine gültige lokale Testadresse sein.");
-  return `${email.slice(0, separator)}+two-device-${TWO_DEVICE_RUN_ID}${email.slice(separator)}`;
-}
-
 async function createAuthenticatedClient(
   url: string,
   key: string,
   email: string,
   password: string,
-  { createIfMissing = false } = {},
 ): Promise<SupabaseClient> {
   const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-  const signInResult = await client.auth.signInWithPassword({ email, password });
-  const authentication = signInResult.error && createIfMissing
-    ? await client.auth.signUp({ email, password })
-    : signInResult;
-  const { data, error } = authentication;
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
   if (error || !data.user || !data.session) throw error ?? new Error(`Testaccount ${email} konnte nicht angemeldet werden.`);
   return client;
 }
@@ -76,11 +63,11 @@ function createDeviceHarness(client: SupabaseClient, userId: string, deviceId: s
 test("zwei Geräte schützen neueren Content, Offline-Reviews und Soft-Deletes", async () => {
   const url = requiredEnvironment("VITE_SUPABASE_URL");
   const key = requiredEnvironment("VITE_SUPABASE_PUBLISHABLE_KEY");
-  const email = twoDeviceAccountEmail(requiredEnvironment("CORE_E2E_EMAIL"));
-  const password = requiredEnvironment("CORE_E2E_PASSWORD");
+  const email = requiredEnvironment("CORE_TWO_DEVICE_EMAIL");
+  const password = requiredEnvironment("CORE_TWO_DEVICE_PASSWORD");
   assert.equal(isLocalSupabaseUrl(url), true, "Der Zwei-Geräte-Test darf nur gegen lokales Supabase laufen.");
 
-  const clientA = await createAuthenticatedClient(url, key, email, password, { createIfMissing: true });
+  const clientA = await createAuthenticatedClient(url, key, email, password);
   const clientB = await createAuthenticatedClient(url, key, email, password);
   const { data: userData } = await clientA.auth.getUser();
   assert.ok(userData.user);

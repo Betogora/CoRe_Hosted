@@ -59,6 +59,39 @@ export function loadE2EEnvironment() {
   };
 }
 
+const REQUIRED_LOCAL_AUTH_LIFECYCLE_VARIABLES = [
+  "MAILPIT_URL",
+  "CORE_AUTH_MAGIC_EMAIL",
+  "CORE_AUTH_RECOVERY_EMAIL",
+  "CORE_AUTH_RECOVERY_PASSWORD",
+  "CORE_AUTH_RECOVERY_NEXT_PASSWORD",
+  "CORE_AUTH_RATE_EMAIL",
+  "CORE_AUTH_SIGNUP_EMAIL",
+  "CORE_AUTH_SIGNUP_PASSWORD",
+] as const;
+
+export function loadLocalAuthLifecycleEnvironment() {
+  const environment = { ...loadEnv("e2e", process.cwd(), ""), ...process.env };
+  if (REQUIRED_LOCAL_AUTH_LIFECYCLE_VARIABLES.some((name) => !String(environment[name] ?? "").trim())) return null;
+
+  const supabaseUrl = String(environment.VITE_SUPABASE_URL ?? "").trim();
+  const mailpitUrl = String(environment.MAILPIT_URL).trim();
+  if (!isLocalSupabaseUrl(supabaseUrl) || !isLocalSupabaseUrl(mailpitUrl)) {
+    throw new Error("Auth-Lifecycle-E2E darf ausschließlich gegen lokale Supabase- und Mailpit-Instanzen laufen.");
+  }
+
+  return {
+    mailpitUrl: mailpitUrl.replace(/\/$/, ""),
+    magicEmail: String(environment.CORE_AUTH_MAGIC_EMAIL).trim().toLowerCase(),
+    recoveryEmail: String(environment.CORE_AUTH_RECOVERY_EMAIL).trim().toLowerCase(),
+    recoveryPassword: String(environment.CORE_AUTH_RECOVERY_PASSWORD),
+    recoveryNextPassword: String(environment.CORE_AUTH_RECOVERY_NEXT_PASSWORD),
+    rateEmail: String(environment.CORE_AUTH_RATE_EMAIL).trim().toLowerCase(),
+    signupEmail: String(environment.CORE_AUTH_SIGNUP_EMAIL).trim().toLowerCase(),
+    signupPassword: String(environment.CORE_AUTH_SIGNUP_PASSWORD),
+  };
+}
+
 export async function ensureLocalE2EAccount(environment: { supabaseUrl: any; publishableKey: any; email: any; password: any; }, clientFactory = createClient) {
   if (!isLocalSupabaseUrl(environment.supabaseUrl)) return false;
 

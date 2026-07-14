@@ -6,6 +6,7 @@ import {
   createLocalE2ERuntimeEnvironment,
   createLocalPrivilegedTestEnvironment,
   parseSupabaseStatusEnvironment,
+  provisionLocalE2EAccounts,
 } from "./localE2EEnvironment.ts";
 import { synchronizeDatabaseTypes } from "./databaseTypes.ts";
 
@@ -104,7 +105,7 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
     await runSupabase([
       "start",
       "--exclude",
-      "edge-runtime,imgproxy,logflare,mailpit,postgres-meta,realtime,studio,supavisor,vector",
+      "edge-runtime,imgproxy,logflare,postgres-meta,realtime,studio,supavisor,vector",
     ], { capture: true });
     console.log("Ausstehende lokale Migrationen anwenden …");
     await runSupabase(["migration", "up", "--local"]);
@@ -117,6 +118,10 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
     });
     const statusEnvironment = parseSupabaseStatusEnvironment(stdout);
     const testEnvironment = createLocalE2ERuntimeEnvironment(statusEnvironment, process.env);
+    const privilegedTestEnvironment = createLocalPrivilegedTestEnvironment(statusEnvironment, process.env);
+
+    console.log("Bestätigte lokale Auth-/RLS-Testaccounts provisionieren …");
+    await provisionLocalE2EAccounts(privilegedTestEnvironment);
 
     console.log("Supabase-Schema, RLS-Policies und Foreign Keys prüfen …");
     await runSupabase(["db", "query", "--local", "--file", "supabase/verify_schema_v1.sql"], {

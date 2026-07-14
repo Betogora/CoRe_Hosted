@@ -4,6 +4,22 @@ import { parseAiChatConsent } from "./aiChatContract.ts";
 
 const SESSION_MISSING_CODES = new Set(["AuthSessionMissingError", "session_not_found"]);
 
+export type CloudAuthRedirectOutcome =
+  | { kind: "none" }
+  | { kind: "recovery" }
+  | { kind: "error"; code: string; message: string };
+
+interface CloudAuthLocation {
+  href?: string;
+  hash?: string;
+  search?: string;
+}
+
+interface CloudAuthHistory {
+  state?: unknown;
+  replaceState(data: unknown, unused: string, url?: string | URL | null): void;
+}
+
 type ProfileRow = Tables<"profiles">;
 type ProfileInsert = TablesInsert<"profiles">;
 const profileRowSchema = v.looseObject({
@@ -78,6 +94,18 @@ export function formatCloudAuthError(error: any, fallback: any = "Aktion konnte 
   }
 
   if (
+    combined.includes("otp_expired") ||
+    combined.includes("flow_state_expired") ||
+    combined.includes("flow_state_not_found") ||
+    combined.includes("invite_not_found") ||
+    combined.includes("email link is invalid") ||
+    combined.includes("link is invalid") ||
+    combined.includes("link has expired")
+  ) {
+    return "Dieser Anmelde- oder Wiederherstellungslink ist abgelaufen oder wurde bereits verwendet. Fordere bitte einen neuen Link an.";
+  }
+
+  if (
     combined.includes("session_expired") ||
     combined.includes("session expired") ||
     combined.includes("refresh_token_not_found") ||
@@ -100,9 +128,9 @@ export function formatCloudAuthError(error: any, fallback: any = "Aktion konnte 
   if (combined.includes("sync_device_registration_failed")) {
     return "Dieses Gerät konnte nicht für die Synchronisierung registriert werden.";
   }
-  if (message.includes("invalid login credentials")) return "E-Mail oder Passwort stimmt nicht.";
-  if (combined.includes("email rate limit") || (combined.includes("rate limit") && combined.includes("email"))) {
-    return "Supabase hat gerade zu viele Auth-E-Mails versendet. Bitte warte kurz oder richte einen eigenen SMTP-Versand ein.";
+  if (code === "invalid_credentials" || message.includes("invalid login credentials")) return "E-Mail oder Passwort stimmt nicht.";
+  if (combined.includes("over_email_send_rate_limit") || combined.includes("email rate limit") || (combined.includes("rate limit") && combined.includes("email"))) {
+    return "Es wurde gerade bereits eine Auth-E-Mail angefordert. Bitte warte kurz und versuche es danach erneut.";
   }
   if (combined.includes("email not confirmed") || combined.includes("not confirmed")) {
     return "Bitte bestätige zuerst die E-Mail-Adresse. Prüfe auch Spam und Werbung.";
@@ -115,6 +143,18 @@ export function formatCloudAuthError(error: any, fallback: any = "Aktion konnte 
   }
   if (combined.includes("unable to validate email") || combined.includes("invalid email") || combined.includes("email address is invalid")) {
     return "Die E-Mail-Adresse wirkt ungültig. Bitte prüfe Schreibweise und Sonderzeichen.";
+  }
+  if (combined.includes("reauthentication_needed")) {
+    return "Bitte bestätige deine Identität erneut, bevor du das Passwort änderst.";
+  }
+  if (combined.includes("reauthentication_not_valid")) {
+    return "Der Bestätigungscode ist ungültig oder abgelaufen. Fordere bitte einen neuen Code an.";
+  }
+  if (combined.includes("weak_password") || combined.includes("authweakpassworderror")) {
+    if (combined.includes("pwned") || combined.includes("leak") || combined.includes("compromised")) {
+      return "Dieses Passwort ist aus einem Datenleck bekannt. Bitte wähle ein anderes Passwort.";
+    }
+    return "Das Passwort erfüllt die Sicherheitsanforderungen nicht. Nutze mindestens 8 Zeichen.";
   }
   if (message.includes("password")) return "Bitte nutze ein gültiges Passwort mit mindestens 8 Zeichen.";
   if (message.includes("email")) return `Supabase meldet ein E-Mail-Problem: ${error.message}`;
@@ -316,4 +356,45 @@ export async function updateCloudPassword(client: any, password: any) {
   if (error) throw error;
 
   return data?.user ?? null;
+}
+
+function authRedirectParameters(location: CloudAuthLocation) {
+  const search = new URLSearchParams(String(location.search ?? "").replace(/^\?/, ""));
+  const hash = new URLSearchParams(String(location.hash ?? "").replace(/^#/, ""));
+  return {
+    get(name: string) {
+      return search.get(name) ?? hash.get(name);
+    },
+  };
+}
+
+export function readCloudAuthRedirectOutcome(location: CloudAuthLocation | null = typeof window === "undefined" ? null : window.location): CloudAuthRedirectOutcome {
+  if (!location) return { kind: "none" };
+  const parameters = authRedirectParameters(location);
+  const code = parameters.get("error_code") ?? parameters.get("error") ?? "";
+  const description = parameters.get("error_description") ?? "";
+  if (code || description) {
+    return {
+      kind: "error",
+      code: code || "auth_redirect_error",
+      message: formatCloudAuthError({ code, message: description }, "Der Anmeldelink konnte nicht verarbeitet werden."),
+    };
+  }
+
+  const type = parameters.get("type")?.toLowerCase();
+  if (type === "recovery" || type === "password_recovery") return { kind: "recovery" };
+  return { kind: "none" };
+}
+
+export function clearCloudAuthRedirectParams(
+  location: CloudAuthLocation | null = typeof window === "undefined" ? null : window.location,
+  history: CloudAuthHistory | null = typeof window === "undefined" ? null : window.history,
+) {
+  if (!location?.href || !history?.replaceState) return undefined;
+  const url = new URL(location.href);
+  url.hash = "";
+  for (const name of ["code", "type", "error", "error_code", "error_description"]) url.searchParams.delete(name);
+  const cleanUrl = `${url.pathname}${url.search}`;
+  history.replaceState(history.state, "", cleanUrl);
+  return cleanUrl;
 }

@@ -2629,6 +2629,50 @@ Ergebnis oder Rollback-Grund:
 
 Offizielle Betriebsreferenzen: [staged Production und Promotion](https://vercel.com/docs/cli/deploying-from-cli), [Production-Rollback](https://vercel.com/docs/deployments/rollback-production-deployment) und [Environment Variables pro Umgebung beziehungsweise Preview-Branch](https://vercel.com/docs/environment-variables).
 
+### 14.2.3 Hosted Auth und Account-Lifecycle
+
+`src/cloudAuth.ts` bleibt die einzige Browser-Schnittstelle für Supabase Auth. Das Modul kapselt Sign-in, Registrierung, Magic Link, Google OAuth, Recovery, Passwortwechsel sowie die Auswertung und Bereinigung von Auth-Redirects. `App.tsx` erhält nur das diskriminierte Ergebnis `none`, `recovery` oder `error`; stabile Supabase-Fehlercodes werden dort nicht erneut interpretiert. Eine generische Provider-Adapter-Seam ist erst zulässig, wenn ein zweiter realer Auth-Provider neben Supabase betrieben wird.
+
+#### Hosted-Konfigurationsvertrag und Abnahme
+
+Der am 2026-07-10 ausgelesene URL-Vertrag aus Abschnitt 14.2.1 bleibt unverändert: Site URL `https://core-hosted.vercel.app` und exakt die drei dort genannten Redirect-Muster. Jede Auth-Freigabe liest diese vier Werte nach einem Dashboard-Reload erneut aus; zusätzliche Redirects, insbesondere alte Localhost-Ports, blockieren die Freigabe.
+
+Für den Google-Webclient gelten folgende feste Werte:
+
+- autorisierter JavaScript-Origin: `https://core-hosted.vercel.app`
+- autorisierte Redirect-URI: `https://hirbiuiydczmnjqtoyqx.supabase.co/auth/v1/callback`
+- die Client-ID wird Supabase Auth zugeordnet; das Client-Secret wird ausschließlich in Supabase gespeichert und weder an Vite noch an den Browser weitergegeben
+- CI prüft nur `provider=google`, den exakten `redirect_to`-Wert und die versuchte Navigation zu `accounts.google.com`; der echte Google-Roundtrip ist ein manueller Hosted-Smoke ohne gespeicherte Google-Zugangsdaten
+
+Produktive Auth-E-Mails werden über Resend in `eu-west-1` und eine kontrollierte Subdomain `auth.<eigene-domain>` versendet. Der sichtbare Absender lautet `CoRe <no-reply@auth.<eigene-domain>>`. Vor Freigabe müssen SPF und DKIM gültig sein, der Return-Path auf diese Absenderdomäne ausgerichtet sein und DMARC zunächst mit `p=none` beobachtend aktiv sein. Link-Tracking bleibt deaktiviert, damit Auth-Links nicht umgeschrieben werden. Die organisatorische Freigabe des Resend-DPA beziehungsweise der SCC und die tatsächliche Kontrolle der Domain sind harte Gates.
+
+Supabase Auth verwendet E-Mail-Bestätigung, die versionierten deutschen aktiven Templates, einen Empfänger-Cooldown von 60 Sekunden und eine Linkgültigkeit von einer Stunde. Das Passwortminimum bleibt in diesem Paket bei acht Zeichen. Leaked-Password-Protection wird erst mit bestätigtem Supabase-Pro-Plan aktiviert und danach über den Security Advisor abgenommen. Bis Domain, Resend-Freigabe und Pro-Plan vorliegen, bleibt das Hosted-Auth-TODO offen.
+
+Die secretsfreie Hosted-Abnahme protokolliert nur Datum, Tester, Umgebung und Ergebnis. Sie umfasst in dieser Reihenfolge: URL-Readback; SMTP-Zustelltest; Header-, SPF-, DKIM-, Return-Path- und DMARC-Prüfung; Registrierung mit Bestätigung; Magic Link; Recovery und Login nur mit dem neuen Passwort; Wiederverwendung eines verbrauchten Links; Cooldown-Fehler; Google-Roundtrip; Ablehnung eines aus einem Datenleck bekannten Passworts; abschließenden Dashboard- und Security-Advisor-Readback. Client-Secrets, SMTP-Passwort, Tokens, E-Mail-Inhalte und Zugangsdaten gehören nicht in den Nachweis.
+
+Lokal bleibt Google deaktiviert. `supabase/config.toml` aktiviert Bestätigungsmails und einen ausreichend langen Empfänger-Cooldown, erhöht aber nur das projektweite Testlimit. Der lokale Runner startet Mailpit, akzeptiert dessen URL ausschließlich auf Loopback und provisioniert bestätigte, dedizierte Lifecycle-Accounts mit dem lokalen Secret. Dieses Secret bleibt im privilegierten Node-Prozess; Vite und Playwright erhalten nur Publishable Key, Testaccountdaten und die Loopback-Mailpit-URL. Eine native `fetch`-Hilfe leert und pollt Mailpit und extrahiert Bestätigungslinks ohne zusätzliche Abhängigkeit.
+
+#### Datenschutzexport, Auskunft und Löschung
+
+Der bestehende lokale JSON-Export ist der importierbare Inhalts- und Portabilitätsexport nach Art. 20 DSGVO. Er enthält die für den Wechsel oder die Wiederherstellung benötigten CoRe-Inhalte, ersetzt aber nicht das umfassendere Auskunftspaket nach Art. 15. Das spätere Art.-15-Paket muss zusätzlich unter anderem verarbeitete Datenkategorien, Zwecke, Herkunft, Empfängerkategorien, Speicherfristen beziehungsweise deren Kriterien und relevante Account-/Sicherheitsmetadaten verständlich ausweisen. Beide Pakete werden serverseitig erzeugt, versioniert und getrennt benannt, damit die UI keine falsche Vollständigkeit verspricht.
+
+Export und Löschung sind sicherheitskritische Serveroperationen. Der Server verlangt dafür eine frische Supabase-Anmeldung, die eine neue Session für denselben Nutzer nachweist, und stellt danach ein kurzlebiges, einmal verwendbares Ticket aus. Das Ticket ist an Nutzer, Operation (`access-export`, `portable-export` oder `delete-account`) und Request-ID gebunden; es darf nicht für eine andere Operation wiederverwendet werden. Browserzeit, ein nur noch gültiges Access-JWT oder ein allgemeiner „kürzlich angemeldet“-Schalter genügen nicht.
+
+Die spätere Account-Löschung ist ein idempotent wiederholbarer Server-Workflow:
+
+1. Account in den Zustand `deletion_pending` setzen und alle neuen produktiven Schreibzugriffe dieses Nutzers stoppen.
+2. Refresh-Sessions widerrufen. Bereits ausgestellte Access-JWTs können technisch bis zu ihrem Ablauf gültig aussehen; deshalb muss jede Serverroute zusätzlich einen noch aktiven Auth-Nutzer und den nicht gesperrten Accountzustand prüfen.
+3. Alle Objekte unter dem Nutzerpräfix in Supabase Storage vollständig löschen und den Leerzustand per List-Readback bestätigen.
+4. Alle Zeilen und Payloads in `core_portable_exports` explizit löschen und bestätigen; auf `ON DELETE SET NULL` darf hier nicht vertraut werden, weil sonst anonymisierte Exportinhalte zurückbleiben könnten.
+5. Verbleibende accountgebundene Produktdaten gemäß Foreign-Key-/Löschvertrag entfernen oder deren zulässige Anonymisierung bestätigen.
+6. Erst nach diesen Nachweisen den Supabase-Auth-Nutzer hart löschen. Jeder Schritt speichert nur seinen Abschlussstatus, sodass ein Retry ab dem ersten unbestätigten Schritt fortsetzt.
+
+Ein Teilerfolg darf weder einen vermeintlich abgeschlossenen Löschstatus noch unzugängliche Storage-Objekte hinterlassen. Serverrouten verweigern nach `deletion_pending` sämtliche normalen Mutationen und nach Auth-Löschung auch ein formal noch nicht abgelaufenes Access-JWT. Auditdaten dürfen nur mit dokumentierter Rechtsgrundlage und Aufbewahrungsfrist verbleiben. Sie enthalten keine Lerninhalte, Exportpayloads, E-Mail-Adresse oder rohe Supabase-Nutzerkennung; falls Korrelation erforderlich ist, wird ein operationsspezifisches, nicht rückrechenbares Kennzeichen verwendet.
+
+Dieser Abschnitt spezifiziert den verbindlichen Datenfluss, implementiert aber bewusst noch keine Export-/Löschroute, UI, Tabelle oder Storage-Job. Diese Bestandteile bilden ein eigenes sicherheitskritisches Folgepaket mit Migration, RLS-, Storage- und Serverroute-Tests.
+
+Rechts- und Produktreferenzen: [Supabase User Management](https://supabase.com/docs/guides/auth/managing-user-data), [Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp), [Supabase Passwortschutz](https://supabase.com/docs/guides/auth/password-security), [Google Auth mit Supabase](https://supabase.com/docs/guides/auth/social-login/auth-google) und [DSGVO Art. 15, 17 und 20](https://eur-lex.europa.eu/eli/reg/2016/679/oj).
+
 ### Empfohlene Services
 
 ```text
@@ -3272,7 +3316,7 @@ Kurzfassung mit Code-Sicht:
 
 1. TypeScript-Modernisierung M1 bis M4 abgeschlossen halten: Type-Policy und CI-Gate verhindern JavaScript-Rückfälle; neue Module bleiben hinter kleinen, testbaren TypeScript-Interfaces.
 2. Persistenten Sync nach dem abgeschlossenen Zwei-Geräte-Korrektheitsgate nur bei konkretem Produktbedarf erweitern; die reloadfeste Outbox, revisionsgeprüfte Mutationen, Konfliktauflösung und das Wiederverbindungs-Backoff bleiben die verbindlichen Schnittstellen.
-3. Auth-Lifecycle vervollstaendigen: Magic Link, Google Redirect, Recovery, Passwortwechsel, Rate-Limits und Account-Lifecycle testen.
+3. Auth-Lifecycle abschließen: lokale Browser-Flows und der Account-/Datenschutz-Datenfluss sind angelegt; offen bleiben das grüne Docker-basierte E2E-Gate sowie die secretsfreie Hosted-Abnahme von SMTP, Google und Leaked-Password-Protection.
 4. Cloud-Medien weiterführen: Export- und Sharing-Regeln auf dem accountweiten Referenzmodell definieren und historisch verbliebene Objekte über ein geschütztes administratives Orphan-GC reconciliieren.
 5. Dokument-, Medien- und APKG-Qualitaet weiter ausbauen: APKG-Fixtures, Notetype-/Template-Snapshots, Importidentitaeten, Medienchecksums, grosse Uploads und serverseitige Importjobs hinter den bestehenden tiefen Modulen halten.
 6. KI und Jobs produktionsfaehig machen: `/api/ai/chat` an die Supabase-Session binden, Rate-Limits und Kostenbudgets ergaenzen und weitere KI-Faehigkeiten nur ueber validierte, versionierte Serverjobs aufbauen.

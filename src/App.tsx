@@ -9,7 +9,7 @@ import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncEr
 import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.ts";
 import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
 import { AI_CHAT_CONSENT_VERSION } from "./aiChatContract.ts";
-import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
+import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, readCloudAuthRedirectOutcome, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import { createCoreWorkspace, type CoreWorkspace, type WorkspaceState } from "./coreWorkspace.ts";
@@ -52,24 +52,6 @@ const iconByKey: Record<string, LucideIcon> = {
 
 function getIcon(iconKey: string) {
   return iconByKey[iconKey] ?? Home;
-}
-
-function hasPasswordRecoveryIntent() {
-  if (typeof window === "undefined") return false;
-  const authUrl = `${window.location.search ?? ""} ${window.location.hash ?? ""}`;
-  return /type=recovery|password_recovery/i.test(authUrl);
-}
-
-function clearAuthRedirectParams() {
-  if (typeof window === "undefined" || !window.history?.replaceState) return;
-  const url = new URL(window.location.href);
-  url.hash = "";
-  url.searchParams.delete("code");
-  url.searchParams.delete("type");
-  url.searchParams.delete("error");
-  url.searchParams.delete("error_code");
-  url.searchParams.delete("error_description");
-  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
 }
 
 function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string }) {
@@ -329,13 +311,21 @@ export function App() {
       }
 
       try {
+        const redirectOutcome = readCloudAuthRedirectOutcome();
+        if (redirectOutcome.kind === "error") {
+          clearCloudAuthRedirectParams();
+          setAuthPhase(authPhases.signedOut);
+          setAuthMessage(redirectOutcome.message);
+          setAuthMessageType("alert");
+          return;
+        }
         const user = await getCloudUser(supabase);
         if (cancelled) return;
         if (!user) {
           setAuthPhase(authPhaseForSession({ configured: true, user: null }));
           return;
         }
-        if (hasPasswordRecoveryIntent()) {
+        if (redirectOutcome.kind === "recovery") {
           setCloudUser(user);
           setWorkspace(null);
           lastAcknowledgedStateRef.current = null;
@@ -556,7 +546,7 @@ export function App() {
     try {
       if (password !== passwordRepeat) throw new Error("Die Passwörter stimmen nicht überein.");
       await updateCloudPassword(supabase, password);
-      clearAuthRedirectParams();
+      clearCloudAuthRedirectParams();
       const user = (await getCloudUser(supabase)) ?? cloudUser;
       if (!user) throw new Error("Passwort wurde gespeichert, aber die Sitzung konnte nicht geladen werden.");
       setAuthMessage("Passwort aktualisiert.");
