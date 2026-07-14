@@ -60,6 +60,8 @@ test("ai_jobs ist für Browser owner-lesbar und ausschließlich serverseitig sch
   const anon = client(url, publishableKey);
   const idA = `rls_server_job_${randomUUID()}`;
   const idB = `rls_server_job_${randomUUID()}`;
+  const importJobId = randomUUID();
+  const importPath = `${accountA.user.id}/${importJobId}/source.apkg`;
 
   try {
     const inserted = await server.from("ai_jobs").insert([fixture(accountA.user.id, idA), fixture(accountB.user.id, idB)]);
@@ -82,7 +84,22 @@ test("ai_jobs ist für Browser owner-lesbar und ausschließlich serverseitig sch
     assert.equal(browserUpdate.error?.code, "42501");
     const browserDelete = await accountA.client.from("ai_jobs").delete().eq("id", idA);
     assert.equal(browserDelete.error?.code, "42501");
+
+    const importRow = { id: importJobId, user_id: accountA.user.id, file_name: "large.apkg", file_size: 268435457, source_path: importPath, progress_total: 268435457 };
+    assert.equal((await accountA.client.from("apkg_import_jobs").insert(importRow)).error?.code, "42501");
+    assert.equal((await accountA.client.from("apkg_import_jobs").select("*").eq("id", importJobId)).error?.code, "42501");
+    assert.equal((await accountB.client.from("apkg_import_jobs").select("*").eq("id", importJobId)).error?.code, "42501");
+    assert.equal((await anon.from("apkg_import_jobs").select("*").eq("id", importJobId)).error?.code, "42501");
+    assert.equal((await server.from("apkg_import_jobs").insert(importRow)).error, null);
+    const transitioned = await server.from("apkg_import_jobs").update({ status: "queued", phase: "download", revision: 2 }).eq("id", importJobId).eq("revision", 1).select("*");
+    assert.equal(transitioned.error, null, transitioned.error?.message);
+    assert.equal(transitioned.data?.length, 1);
+    assert.ok((await accountA.client.storage.from("core-imports").download(importPath)).error);
+    assert.ok((await accountB.client.storage.from("core-imports").download(importPath)).error);
+    assert.ok((await anon.storage.from("core-imports").download(importPath)).error);
   } finally {
     await server.from("ai_jobs").delete().in("id", [idA, idB]);
+    await server.storage.from("core-imports").remove([importPath]);
+    await server.from("apkg_import_jobs").delete().eq("id", importJobId);
   }
 });

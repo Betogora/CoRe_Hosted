@@ -411,8 +411,8 @@
 <li>Es gibt angewendete Supabase/Postgres-Migrationen mit RLS-Policies, expliziten <code>authenticated</code>-Grants, ohne <code>anon</code>-Grants auf Core-Tabellen und mit account-scoped Primary Keys fuer die wichtigsten Nutzerdaten. Der App-Persistenzpfad schreibt und liest Decks, Karten, Varianten, Review Events, Dokumente und AI Jobs ueber Supabase-Tabellen, schützt konkrete Entity-Mutationen per Basisrevision, registriert Geräte accountgebunden und speichert Mutationen in einer reloadfesten Outbox. Konfliktzeilen werden erzeugt und in den Einstellungen als sichere Fachfeldprojektion mit lokaler, Remote-, manueller oder zurückgestellter Entscheidung bearbeitet. Browser-Netzstatus, gecapptes Wiederverbindungs-Backoff und Reconnect-Flush sind vorhanden; das lokale Zwei-Geräte-Gate deckt stale Snapshots, idempotente Offline-Reviews und dauerhafte Soft-Deletes ab.</li>
 <li>Accounts koennen ueber Supabase E-Mail/Passwort erstellt und angemeldet werden; OAuth, Magic Link, Account-Recovery-Feinschliff und E-Mail-Template-Politur fehlen noch.</li>
 <li>KI-Kartenerstellung, Varianten und Graph sind weiterhin lokal/deterministisch simuliert; Chat-your-Deck hat als erster produktiver KI-Pfad eine Vercel-Serverroute <code>/api/ai/chat</code> fuer Gemma 4 31B IT und schreibt serverautoritatives Token-/Kosten-Telemetrie-Metadaten in <code>ai_jobs</code>. Es gibt noch keine produktive Prompt-/Eval-Pipeline, Nutzer-/Deck-Budgets oder serverseitige Job-Queue fuer laengere KI-Aufgaben.</li>
-<li>Jobs laufen nicht in einer Queue oder Worker-Infrastruktur; die Job-Sicht ist ein lokaler Produkt- und Datenmodell-Prototyp.</li>
-<li>Datei- und Dokumentverarbeitung ist bewusst begrenzt: PDF-/Text-Auslesung, visueller PDF-Viewer und browserseitige APKG-Medienpersistenz sind vorhanden; robuste DOCX-Extraktion, OCR, Bildregionen, erweiterte PDF-Werkzeuge, serverseitige APKG-Jobs, Medienexport/-sharing und globales Orphan-GC fehlen noch.</li>
+<li>Lange KI-Jobs laufen weiterhin nicht in einer Queue oder Worker-Infrastruktur; <code>ai_jobs</code> bleibt das capability-spezifische Chat-Ledger. Nur große APKG-Importe besitzen den getrennten Trigger.dev-Jobpfad.</li>
+<li>Datei- und Dokumentverarbeitung ist bewusst begrenzt: PDF-/Text-Auslesung, visueller PDF-Viewer, browserseitiger APKG-Import bis 250 MiB und der lokal abgenommene serverseitige APKG-Pfad bis 1 GiB sind vorhanden; robuste DOCX-Extraktion, OCR, Bildregionen, erweiterte PDF-Werkzeuge, Medienexport/-sharing und globales Orphan-GC fehlen noch. Die Hosted-Ressourcenabnahme des großen APKG-Pfads steht aus.</li>
 <li>Community ist lokal und privacy-sicher modelliert, aber ohne echte Mitgliederverwaltung, Berechtigungen, Einladungen oder Moderation.</li>
 <li>Export/Import ist als lokaler JSON-Portabilitaetspfad vorhanden, aber noch kein interoperabler Anki-/Cloud-/Backup-Standard.</li>
 <li>Normalisierte JSON-Importe sind modulnah vorbereitet, aber noch kein eigener sichtbarer Importkanal in der UI und noch kein stabiler externer Austauschstandard.</li>
@@ -4483,7 +4483,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <li>KI-Jobs asynchron laufen und Status anzeigen.</li>
 <li>Es gibt keine Anzeige fremder Lernstände oder Social-Rankings.</li>
 </ol>
-<p><strong>Stand 2026-07-12:</strong> Diese Punkte sind als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher, Reimport-Merge mit Erhalt lokaler Content-Edits, Pflichtlogin, accountgebundener Cache, lokaler Erstimportdialog, revisionsbedingte konkrete Deck-/Card-/Delete-Mutationen, die persistente Outbox mit readback-bestätigten Review-Events, idempotente Konfliktzeilen, accountgebundene Geräte-Registrierung und klickbare Konfliktentscheidungen. Ebenfalls umgesetzt sind Supabase-CLI-Link, Remote-Migrationen, RLS-/Policy-/Grant-Verify, Vercel-Projekt, Vercel-Env-Grenzen, Deployment und echter Supabase-Auth-/Profilpfad. Nicht Teil dieser DoD-Erfuellung sind vollständiger Offline-/Wiederverbindungsbetrieb, externe KI-Provider, serverseitige Jobs, produktive Community-Rechte, produktive/serverseitige APKG-Medienpersistenz, Admin-Werkzeuge und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind in dieser Spec dokumentiert; die Umsetzungsluecke wird in <code>docs/todo.md</code> als Ausbaupfad gefuehrt.</p>
+<p><strong>Stand 2026-07-14:</strong> Diese Punkte sind als Web-MVP weitgehend erfuellt und durch Modul-/Browser-Pruefungen abgedeckt. Neu abgesichert sind die Learning-Item-Creation-Pipeline, Legacy-Card-Normalisierung, Variantenanker, APKG-Zstd-Collection-Erkennung, Media-Manifeste, lokaler Browser-Medienspeicher, Reimport-Merge mit Erhalt lokaler Content-Edits, Pflichtlogin, accountgebundener Cache, lokaler Erstimportdialog, revisionsbedingte konkrete Deck-/Card-/Delete-Mutationen, die persistente Outbox mit readback-bestätigten Review-Events, idempotente Konfliktzeilen, accountgebundene Geräte-Registrierung, klickbare Konfliktentscheidungen und der lokal abgenommene serverseitige APKG-Tracer-Bullet. Ebenfalls umgesetzt sind Supabase-CLI-Link, Remote-Migrationen, RLS-/Policy-/Grant-Verify, Vercel-Projekt, Vercel-Env-Grenzen, Deployment und echter Supabase-Auth-/Profilpfad. Nicht Teil dieser DoD-Erfuellung sind vollständiger Offline-/Wiederverbindungsbetrieb, lange externe KI-Jobs, produktive Community-Rechte, die Hosted-Ressourcenabnahme für große APKG-Importe, Admin-Werkzeuge und Observability. Die relevanten Produktivleitplanken fuer Vercel, Supabase/Postgres/RLS, Storage, Secrets und KI-Proxying sind in dieser Spec dokumentiert; die verbleibenden Umsetzungsluecken werden in <code>docs/todo.md</code> als Ausbaupfade gefuehrt.</p>
 <hr>
 <h2 id="22-beispielhafte-user-stories">22. Beispielhafte User Stories</h2>
 <h3 id="us-001-anki-nutzer-importiert-deck">US-001 — Anki-Nutzer importiert Deck</h3>
@@ -4700,8 +4700,8 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 </tr>
 <tr>
 <td><code>src/creationWorkflow.ts</code></td>
-<td><code>createCreationWorkflow({ mediaStore, persistImportedDecks })</code></td>
-<td>APKG-Preview cached Medien lokal; Commit normalisiert Reimport-IDs, wartet auf die Cloud-Bestätigung der Stapel und startet danach die persistente Medien-Synchronisierung. Paste-Import, manuelle Dokumentanker, KI-Drafts und Draft-Annahme bleiben hinter derselben Creation-Seam.</td>
+<td><code>createCreationWorkflow({ mediaStore, persistImportedDecks, serverApkgImport })</code></td>
+<td>Öffentliche Creation-Seam und Größenweiche: lokale APKG-Preview bis 250 MiB, serverseitige diskriminierte Preview darüber, bestehender Reimport-Merge sowie Deck-Bestätigung vor lokaler oder serverseitiger Medienfinalisierung.</td>
 </tr>
 <tr>
 <td><code>src/scheduler.ts</code></td>
@@ -4767,6 +4767,21 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <td><code>src/apkgImportWorker.ts</code> / <code>src/apkgImportWorkerProtocol.ts</code> / <code>src/sqliteReader.ts</code> / <code>src/zipReader.ts</code></td>
 <td>private Worker-, Format- und Parserinterfaces</td>
 <td>Nativer lazy Dedicated Worker mit typisierten Nachrichten und transferierten Buffern sowie defensives Lesen von ZIP, MediaEntries, Zstd, Rowid- und <code>WITHOUT ROWID</code>-SQLite-B-Bäumen</td>
+</tr>
+<tr>
+<td><code>src/serverApkgImportContract.ts</code> / <code>src/serverApkgImport.ts</code></td>
+<td><code>ApkgImportProgress</code>, <code>ApkgServerArtifact</code>, <code>createServerApkgImportClient</code></td>
+<td>Validierter Browser-/Serververtrag, signierter direkter TUS-Upload, sichere Statusprojektion, Polling, Reload einer fertigen Vorschau, Retry, Abbruch und kurzlebiger Artefaktabruf.</td>
+</tr>
+<tr>
+<td><code>api/imports/apkg.ts</code> / <code>api/imports/apkgJobs.ts</code></td>
+<td><code>GET|POST /api/imports/apkg</code>, <code>createApkgJobService</code>, <code>createTriggerApkgRunner</code></td>
+<td>Same-Origin-/Bearer-/Owner-Schutz, CAS-Zustandsübergänge, signierte Storage-Tokens und konkreter Trigger-Port; Postgres bleibt Produktwahrheit.</td>
+</tr>
+<tr>
+<td><code>trigger/apkgImportTasks.ts</code> / <code>trigger/apkgArchive.ts</code></td>
+<td><code>analyze-apkg</code>, <code>finalize-apkg-media</code>, <code>cleanup-apkg</code></td>
+<td>Node-22-Tasks für begrenztes Streaming-ZIP/SQLite/Zstd-Parsen, medienfreies Normalisierungsartefakt, accountweite Medienfinalisierung und jobeigenes Cleanup.</td>
 </tr>
 <tr>
 <td><code>src/mediaStore.ts</code></td>
@@ -4935,6 +4950,15 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <li>Opt-in Benchmark-Fixture mit 4.900 Karten und 200 Medien wird deterministisch in <code>test-results/</code> erzeugt und nicht als große Binärdatei versioniert.</li>
 <li>Lokales Lesen der APKG-Datei als ZIP-Archiv.</li>
 <li>Browser-Preview über einen privaten nativen Vite Dedicated Worker mit typisiertem Nachrichtenvertrag, übertragbaren APKG-/Medienbuffern, Fortschritt, Abbruch und garantiertem Cleanup; der direkte Pfad bleibt für Node-Tests, bereits geparste Eingaben und fehlende Worker-Unterstützung.</li>
+<li>Dateien bis einschließlich 250 MiB bleiben unverändert im Browser-Worker. Dateien oberhalb 250 MiB bis einschließlich 1 GiB laufen hinter derselben <code>creationWorkflow</code>-Seam über den serverseitigen Pfad; Vorschau und <code>Import übernehmen</code> bleiben getrennt.</li>
+<li><code>GET|POST /api/imports/apkg</code> prüft Same-Origin, Supabase-Bearer, Owner, Aktion und CAS-Revision. Der Browser lädt per signiertem TUS direkt in den privaten Bucket <code>core-imports</code>; Browserrollen besitzen weder Bucket-SELECT/-DELETE noch Rechte auf <code>apkg_import_jobs</code>.</li>
+<li><code>apkg_import_jobs</code> ist die service-role-only Produktwahrheit für <code>uploading</code>, <code>queued</code>, <code>analyzing</code>, <code>ready</code>, <code>committing</code>, <code>syncing_media</code>, <code>succeeded</code>, <code>failed</code> und <code>cancelled</code>. Die Browserprojektion enthält nur Job-ID, Phase, Revision, Fortschritt, Retrybarkeit, sicheren Fehlercode und im Zustand <code>ready</code> den Bericht.</li>
+<li>Trigger.dev erhält für <code>analyze-apkg</code>, <code>finalize-apkg-media</code> und <code>cleanup-apkg</code> nur die opake Job-ID. Node 22 und <code>large-1x</code> sind festgelegt; OOM darf einmal auf <code>large-2x</code> wiederholen. Postgres-Status und Abbruchflag werden vor und während der Arbeit erneut geprüft, temporäre Dateien immer in <code>finally</code> entfernt.</li>
+<li>Die Analyse verwendet <code>yauzl@3.4.0</code>, read-only <code>node:sqlite</code> ohne Extensions und <code>node:zlib</code> für Zstd. Beide Parser reichen denselben internen Anki-Vertrag an das eine Mapping in <code>src/apkgImport.ts</code>.</li>
+<li>Doppelte Grenzprüfung gegen Metadaten und gelesene Bytes: 1 GiB APKG, 100.000 ZIP-Einträge, 6 GiB entpackt, 200:1 je Eintrag, 512 MiB Collection, 32 MiB Manifest, 500 MiB je Medium und 64 MiB normalisiertes Ergebnis. Doppelte, verschlüsselte, unsichere, symbolische und größeninkonsistente Einträge werden abgelehnt.</li>
+<li>Das gzip-Ergebnis ist versioniert und medienfrei. Erst nach Nutzerbestätigung validiert der Browser das kurz signierte Artefakt und führt den bestehenden Reimport-Merge aus; danach finalisiert Trigger Medien aus dem Original. Browser und Trigger verwenden denselben Medienplaner und dieselbe <code>syncReferences</code>-Logik für SHA-1-Deduplizierung, Referenzen und sichere Stilllegung.</li>
+<li>Abbruch setzt zuerst das Datenbankflag, Retry nutzt Job-ID, Task und Revision als Idempotenzschlüssel und höchstens drei fachliche Versuche. Erfolg/Abbruch löschen Original und Ergebnis; der jobeigene Cleanup räumt nach sieben Tagen auf. Allgemeines Orphan-GC bleibt separat.</li>
+<li>Hosted-Freigabe verlangt Supabase Pro mit 1-GiB-Limit, Trigger Frankfurt, DPA/SCC-/Subprozessorfreigabe und reale Ressourcenmessungen an der 250-MiB- und 1-GiB-Grenze. Bis dahin bleibt der Browserpfad bis 250 MiB die freigegebene Grenze.</li>
 <li>Erkennung von <code>collection.anki2</code>, <code>collection.anki21</code> und <code>collection.anki21b</code>.</li>
 <li>Zstd-Dekompression lesbarer <code>collection.anki21b</code>-Collections ueber <code>fzstd</code>, mit Fallback auf lesbare aeltere Collection-Dateien im selben Archiv.</li>
 <li>Minimaler SQLite-Reader fuer <code>col</code>, <code>notes</code>, <code>cards</code>, <code>decks</code>, <code>notetypes</code>, <code>fields</code> und <code>templates</code>, einschließlich moderner <code>WITHOUT ROWID</code>-Tabellen sowie Signatur-, Seitengrößen-, Bounds-, Varint-, Overflow- und Zyklusprüfungen.</li>
@@ -4961,7 +4985,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 <li>Globales administratives/Cron-Garbage-Collection für historische oder nach Crash/Cache-Verlust verbliebene Storage-Orphans.</li>
 <li>Vollstaendige Scheduling-, Review-Historie- und Revlog-Migration; Rohdaten werden aber erhalten.</li>
 <li>Passwortgeschuetzte ZIPs, defekte Collections oder neue Collection-Formate ohne lesbares SQLite-Ergebnis.</li>
-<li>Sehr grosse Decks ueber 250 MB direkt im Browser.</li>
+<li>Sehr grosse Decks ueber 250 MiB direkt im Browser; dafür existiert der getrennte, noch hosted-abzunehmende Serverpfad bis 1 GiB.</li>
 </ul>
 <h3 id="27-8-chat-your-deck-lernplan-und-portabilitaet">27.8 Chat-your-Deck, Lernplan und Portabilitaet</h3>
 <p>Der Assistent beantwortet Fragen per Default als freie KI-Antwort ueber <code>POST /api/ai/chat</code>. Vor dem ersten externen Aufruf bestaetigt der Nutzer mindestens 18 Jahre, Google-Transfer und den maximal zehnminuetigen EU-Cache; <code>profile.privacy.aiChatConsent</code> wird erst nach Cloud-Bestaetigung freigeschaltet und bei jedem Aufruf serverseitig erneut gelesen. Lokale Suche und Lernplan bleiben ohne Einwilligung nutzbar.</p>
@@ -5005,7 +5029,9 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 </li>
 <li><p><code>supabase/migrations/20260714122218_server_ai_job_ledger.sql</code>: Version-1-Vertrag, CAS-/Retry-/Telemetriespalten, Idempotenz-/Ledger-Indizes und read-only Browserrechte fuer <code>ai_jobs</code>.</p>
 </li>
-<li><p><code>supabase/verify_schema_v1.sql</code>: fehlschlagendes Verify-Gate fuer Tabellen, Spalten, RLS, Policies, Grants, Constraints und den privaten Medien-Bucket.</p>
+<li><p><code>supabase/migrations/20260714212117_apkg_import_jobs.sql</code>: service-role-only APKG-Job-Ledger, aktiver-Job-Index und privater 1-GiB-Bucket <code>core-imports</code>.</p>
+</li>
+<li><p><code>supabase/verify_schema_v1.sql</code>: fehlschlagendes Verify-Gate fuer Tabellen, Spalten, RLS, Policies, Grants, Constraints sowie die privaten Buckets <code>core-media</code> und <code>core-imports</code>.</p>
 </li>
 <li><p><code>tests/rls/ownership-smoke.test.ts</code>: lokaler Data-API-Smoke fuer Nutzer A, Nutzer B, <code>anon</code>, Ownership und accountgebundene Foreign Keys.</p>
 </li>

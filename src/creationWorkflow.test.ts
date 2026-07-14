@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { getOriginalVariant } from "./coreModel.ts";
 import { createCreationWorkflow } from "./creationWorkflow.ts";
+import { LOCAL_APKG_MAX_BYTES } from "./serverApkgImportContract.ts";
 import { formatPdfTextContentItems } from "./documentModel.ts";
 
 async function worldCapitalsApkgFile() {
@@ -246,6 +247,55 @@ test("creation workflow returns APKG errors in the UI job shape", async () => {
   assert.equal(result.job.status, "error");
   assert.equal(result.job.fileName, "broken.apkg");
   assert.equal(result.job.errors.length, 1);
+});
+
+test("creation workflow switches to the server path strictly above 250 MiB", async () => {
+  let serverCalls = 0;
+  const progress = {
+    jobId: "11111111-1111-4111-8111-111111111111", status: "ready", phase: "preview", revision: 3,
+    completed: LOCAL_APKG_MAX_BYTES + 1, total: LOCAL_APKG_MAX_BYTES + 1, retryable: false,
+    report: { apkg: { contractVersion: 1, decks: [{ id: "1", path: "Großes Deck", noteCount: 1, cardCount: 1 }] } },
+  } as any;
+  const serverApkgImport: any = {
+    async analyze() { serverCalls += 1; return progress; },
+    getLastJobId() { return null; },
+  };
+  const workflow = createCreationWorkflow({ serverApkgImport });
+  const local = await workflow.parseApkgFile({ name: "boundary.apkg", size: LOCAL_APKG_MAX_BYTES });
+  assert.equal(serverCalls, 0);
+  assert.equal(local.job.status, "error");
+
+  const server = await workflow.parseApkgFile({ name: "large.apkg", size: LOCAL_APKG_MAX_BYTES + 1 });
+  assert.equal(serverCalls, 1);
+  assert.equal(server.preview?.kind, "server");
+  assert.equal(server.preview?.kind === "server" ? server.preview.deckSummary.name : "", "Großes Deck");
+});
+
+test("creation workflow resumes, retries and cancels server previews through one seam", async () => {
+  const ready: any = {
+    jobId: "11111111-1111-4111-8111-111111111111", status: "ready", phase: "preview", revision: 4,
+    completed: 42, total: 42, retryable: false,
+    report: { warnings: [], errors: [], apkg: { contractVersion: 1, decks: [{ id: "1", path: "Fortgesetzter Import", noteCount: 1, cardCount: 1 }] } },
+  };
+  const cancelled = { ...ready, status: "cancelled", phase: "cleanup", revision: 5 };
+  let retryCalls = 0;
+  let cancelCalls = 0;
+  const serverApkgImport: any = {
+    getLastJobId() { return ready.jobId; },
+    async get() { return ready; },
+    async retry() { retryCalls += 1; return { ...ready, status: "queued", phase: "download", revision: 5, report: undefined }; },
+    async waitUntilReady() { return { ...ready, revision: 6 }; },
+    async cancel() { cancelCalls += 1; return cancelled; },
+  };
+  const workflow = createCreationWorkflow({ serverApkgImport });
+  const resumed = await workflow.resumeApkgPreview();
+  assert.equal(resumed?.preview?.kind, "server");
+  assert.equal(resumed?.preview?.kind === "server" ? resumed.preview.deckSummary.name : "", "Fortgesetzter Import");
+  const retried = await workflow.retryApkgPreview(resumed!.preview!);
+  assert.equal(retried?.progress.revision, 6);
+  assert.equal(retryCalls, 1);
+  assert.equal((await workflow.cancelApkgPreview(retried!))?.status, "cancelled");
+  assert.equal(cancelCalls, 1);
 });
 
 test("creation workflow previews and commits APKG through its lazy interface", async () => {

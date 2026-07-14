@@ -25,6 +25,8 @@
     "tests/**/*.ts",
     "tests/**/*.tsx",
     "scripts/**/*.ts",
+    "trigger/**/*.ts",
+    "trigger.config.ts",
     "vite.config.ts",
     "playwright.config.ts",
     "postcss.config.ts",

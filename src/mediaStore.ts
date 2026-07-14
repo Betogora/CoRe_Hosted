@@ -15,6 +15,7 @@ const localAssetRecordSchema = v.looseObject({ key: v.string(), userId: v.string
 const queueRecordSchema = v.looseObject({ id: v.string(), userId: v.string(), deckId: v.string(), sha1: sha1Schema, size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), name: v.string(), cardId: v.nullable(v.string()), queuedAt: v.string() });
 
 interface LocalAssetRecord { key: string; userId: string; deckId: string; sha1: string; name: string; size: number; mimeType: string; blob: Blob; cardId: string | null; updatedAt: string; }
+type BrowserCloudMediaFile = CloudMediaFile & { blob: Blob };
 interface QueueRecord { id: string; userId: string; deckId: string; sha1: string; size: number; name: string; cardId: string | null; queuedAt: string; }
 export type MediaSyncStatus = "cloud-ready" | "local-pending" | "partial" | "paused" | "cancelled" | "blocked";
 export interface MediaSyncProgress { completed: number; total: number; uploaded: number; reused: number; currentName: string; }
@@ -67,7 +68,28 @@ function mediaUsageByName(deck: Deck) {
   return usage;
 }
 
-function normalizeFile(file: unknown): CloudMediaFile | null {
+export function planDeckMediaSync(deck: Deck, previousReferences: MediaAssetReference[] = deck.mediaAssets ?? []) {
+  const usage = mediaUsageByName(deck);
+  const usedReferenceKeys = new Set(usage.keys());
+  const files = assetManifest(deck).flatMap((item: any) => {
+    const sha1 = String(item?.sha1 ?? "").toLowerCase();
+    const name = String(item?.name ?? sha1);
+    const cardIds = usage.get(name) ?? usage.get(normalizeRef(name));
+    if (!cardIds?.size || !/^[a-f0-9]{40}$/.test(sha1)) return [];
+    return [{
+      sha1,
+      name,
+      size: Number(item?.size ?? 0),
+      mimeType: String(item?.mimeType ?? "application/octet-stream"),
+      cardId: cardIds.size === 1 ? [...cardIds][0] : null,
+      metadata: { zipEntryName: item?.zipEntryName ?? null },
+    }];
+  });
+  const retainedReferences = previousReferences.filter((reference) => usedReferenceKeys.has(reference.originalName) || usedReferenceKeys.has(normalizeRef(reference.originalName)) || usedReferenceKeys.has(reference.sha1));
+  return { files, previousReferences, retainedReferences };
+}
+
+function normalizeFile(file: unknown): BrowserCloudMediaFile | null {
   const parsed = v.safeParse(mediaFileSchema, file);
   if (!parsed.success) return null;
   const blob = parsed.output.blob ?? new Blob([parsed.output.bytes ?? new Uint8Array()], { type: parsed.output.mimeType });
@@ -137,7 +159,7 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
   }
 
   async function cachePreviewMedia(deck: Deck, files: unknown[] = []) {
-    const valid = files.map(normalizeFile).filter((file): file is CloudMediaFile => Boolean(file));
+    const valid = files.map(normalizeFile).filter((file): file is BrowserCloudMediaFile => Boolean(file));
     const errors = valid.length === files.length ? [] : ["Medien enthielten ungültige Metadaten oder Dateidaten."];
     const db = await openDatabase(databaseApi).catch(() => null);
     for (const file of valid) {
@@ -162,24 +184,17 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
       const db = await openDatabase(databaseApi).catch(() => null);
       for (const deck of decks) {
         const files: CloudMediaFile[] = [];
-        const usage = mediaUsageByName(deck);
-        const usedReferenceKeys = new Set(usage.keys());
-        for (const item of assetManifest(deck)) {
-          const sha1 = String((item as any)?.sha1 ?? "").toLowerCase();
-          const name = String((item as any)?.name ?? sha1);
-          const cardIds = usage.get(name) ?? usage.get(normalizeRef(name));
-          if (!cardIds?.size) continue;
-          const record = /^[a-f0-9]{40}$/.test(sha1) ? await readAsset(sha1) : null;
+        const plan = planDeckMediaSync(deck);
+        for (const item of plan.files) {
+          const record = await readAsset(item.sha1);
           if (record) {
-            const cardId = cardIds.size === 1 ? [...cardIds][0] : null;
-            files.push({ sha1, name, size: record.size, mimeType: record.mimeType, blob: record.blob, cardId });
-            const queue: QueueRecord = { id: queueIdFor(userId, deck.id, sha1, cardId), userId, deckId: deck.id, sha1, size: record.size, name, cardId, queuedAt: nowIso() };
+            files.push({ ...item, size: record.size, mimeType: record.mimeType, blob: record.blob });
+            const queue: QueueRecord = { id: queueIdFor(userId, deck.id, item.sha1, item.cardId), userId, deckId: deck.id, sha1: item.sha1, size: record.size, name: item.name, cardId: item.cardId, queuedAt: nowIso() };
             queuedIds.push(queue.id);
             sessionQueue.set(queue.id, queue); if (db) await put(db, QUEUE_STORE, queue);
           }
         }
-        const retainedReferences = (deck.mediaAssets ?? []).filter((reference) => usedReferenceKeys.has(reference.originalName) || usedReferenceKeys.has(normalizeRef(reference.originalName)) || usedReferenceKeys.has(reference.sha1));
-        inputs.push({ deckId: deck.id, files, previousReferences: deck.mediaAssets ?? [], retainedReferences });
+        inputs.push({ deckId: deck.id, files, previousReferences: plan.previousReferences, retainedReferences: plan.retainedReferences });
       }
       db?.close();
       progress = { ...progress, total: inputs.reduce((sum, input) => sum + input.files.length, 0) }; notify();

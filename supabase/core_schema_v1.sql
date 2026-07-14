@@ -85,7 +85,7 @@ create table if not exists public.cards (
   revision integer not null default 1,
   deleted_at timestamptz,
   updated_by_device_id text,
-  primary key (user_id, id),
+  primary key (id),
   constraint cards_deck_owner_fk foreign key (deck_id, user_id) references public.decks (id, user_id) on delete cascade
 );
 
@@ -236,6 +236,45 @@ create unique index if not exists ai_jobs_id_user_id_idx on public.ai_jobs (id, 
 create unique index if not exists ai_jobs_user_idempotency_v1_idx on public.ai_jobs (user_id, idempotency_key) where contract_version = 1;
 create index if not exists ai_jobs_user_created_at_idx on public.ai_jobs (user_id, created_at desc);
 
+create table if not exists public.apkg_import_jobs (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  id uuid not null,
+  status text not null default 'uploading',
+  phase text not null default 'upload',
+  revision bigint not null default 1,
+  file_name text not null,
+  file_size bigint not null,
+  source_path text not null,
+  result_path text,
+  execution_ref text,
+  report jsonb not null default '{}'::jsonb,
+  progress_completed bigint not null default 0,
+  progress_total bigint not null default 0,
+  attempt_count integer not null default 0,
+  max_attempts integer not null default 3,
+  retryable boolean not null default false,
+  error_class text,
+  error_code text,
+  cancel_requested_at timestamptz,
+  expires_at timestamptz not null default (now() + interval '7 days'),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  started_at timestamptz,
+  finished_at timestamptz,
+  primary key (user_id, id),
+  constraint apkg_import_jobs_status_check check (status in ('uploading', 'queued', 'analyzing', 'ready', 'committing', 'syncing_media', 'succeeded', 'failed', 'cancelled')),
+  constraint apkg_import_jobs_phase_check check (phase in ('upload', 'download', 'validate', 'parse', 'preview', 'commit', 'media', 'cleanup', 'done')),
+  constraint apkg_import_jobs_revision_check check (revision > 0),
+  constraint apkg_import_jobs_file_size_check check (file_size > 268435456 and file_size <= 1073741824),
+  constraint apkg_import_jobs_progress_check check (progress_completed >= 0 and progress_total >= 0 and progress_completed <= progress_total),
+  constraint apkg_import_jobs_attempts_check check (attempt_count >= 0 and max_attempts between 1 and 3),
+  constraint apkg_import_jobs_error_code_check check (error_code is null or error_code ~ '^[a-z0-9_]{1,80}$')
+);
+
+create index if not exists apkg_import_jobs_user_created_at_idx on public.apkg_import_jobs (user_id, created_at desc);
+create unique index if not exists apkg_import_jobs_one_active_per_user_idx on public.apkg_import_jobs (user_id)
+  where status in ('uploading', 'queued', 'analyzing', 'ready', 'committing', 'syncing_media');
+
 create table if not exists public.media_assets (
   id text,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -307,6 +346,7 @@ alter table public.card_variants enable row level security;
 alter table public.review_events enable row level security;
 alter table public.source_documents enable row level security;
 alter table public.ai_jobs enable row level security;
+alter table public.apkg_import_jobs enable row level security;
 alter table public.media_assets enable row level security;
 alter table public.sync_devices enable row level security;
 alter table public.sync_conflicts enable row level security;
@@ -360,6 +400,13 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('core-imports', 'core-imports', false, 1073741824, null)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
 drop policy if exists "core_media_select_own" on storage.objects;
 create policy "core_media_select_own" on storage.objects for select to authenticated
 using (bucket_id = 'core-media' and (select auth.uid())::text = (storage.foldername(name))[1]);
@@ -381,6 +428,7 @@ revoke all privileges on table
   public.review_events,
   public.source_documents,
   public.ai_jobs,
+  public.apkg_import_jobs,
   public.media_assets,
   public.sync_devices,
   public.sync_conflicts,
@@ -411,6 +459,7 @@ grant select, insert, update, delete on table
 to authenticated;
 
 grant select on table public.ai_jobs to authenticated;
+grant all privileges on table public.apkg_import_jobs to service_role;
 
 grant all privileges on table
   public.profiles,

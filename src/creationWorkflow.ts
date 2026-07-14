@@ -6,6 +6,8 @@ import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importS
 import { createAccountMediaStore, type MediaSyncTask } from "./mediaStore.ts";
 import type { CardType, Deck, LearningItem, SourceAnchor } from "./coreTypes.ts";
 import type { ApkgImportReportV1 } from "./apkgImport.ts";
+import { LOCAL_APKG_MAX_BYTES, SERVER_APKG_MAX_BYTES, type ApkgImportProgress } from "./serverApkgImportContract.ts";
+import type { ServerApkgImportClient } from "./serverApkgImport.ts";
 
 interface FileLike {
   name?: string;
@@ -37,24 +39,40 @@ interface AiConfig {
 
 interface ApkgOptions {
   onStep?: (step: string) => void;
+  onProgress?: (progress: ApkgImportProgress) => void;
   existingDecks?: Deck[];
 }
 
-export interface ApkgCreationPreview {
+interface ApkgReport {
+  apkg?: ApkgImportReportV1;
+  warnings?: string[];
+  errors?: string[];
+  duplicates?: unknown[];
+  hasAnkiScheduling?: boolean;
+  [key: string]: unknown;
+}
+
+export interface LocalApkgCreationPreview {
+  kind: "local";
   deck: Deck;
   sampleCards: LearningItem[];
   warnings: string[];
   normalizedDeck: unknown;
   mediaFiles: unknown[];
-  importReport: {
-    apkg?: ApkgImportReportV1;
-    warnings?: string[];
-    errors?: string[];
-    duplicates?: unknown[];
-    hasAnkiScheduling?: boolean;
-    [key: string]: unknown;
-  };
+  importReport: ApkgReport;
 }
+
+export interface ServerApkgCreationPreview {
+  kind: "server";
+  jobId: string;
+  progress: ApkgImportProgress;
+  deckSummary: { name: string };
+  sampleCards: [];
+  warnings: string[];
+  importReport: ApkgReport;
+}
+
+export type ApkgCreationPreview = LocalApkgCreationPreview | ServerApkgCreationPreview;
 
 interface PasteImportInput {
   mode?: "text" | "csv" | "spreadsheet";
@@ -187,19 +205,48 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
   };
 }
 
-export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" }), persistImportedDecks = async (_decks: Deck[]) => {} }: { mediaStore?: AccountMediaStore; persistImportedDecks?: (decks: Deck[], options?: { mediaOnly?: boolean }) => Promise<unknown> } = {}) {
+export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" }), persistImportedDecks = async (_decks: Deck[]) => {}, serverApkgImport = null }: { mediaStore?: AccountMediaStore; persistImportedDecks?: (decks: Deck[], options?: { mediaOnly?: boolean }) => Promise<unknown>; serverApkgImport?: ServerApkgImportClient | null } = {}) {
+  function serverPreview(progress: ApkgImportProgress, fallbackName = "Anki-Import"): ServerApkgCreationPreview {
+    const report = progress.report ?? {};
+    const apkg = report.apkg as ApkgImportReportV1 | undefined;
+    return {
+      kind: "server", jobId: progress.jobId, progress,
+      deckSummary: { name: apkg?.decks?.[0]?.path ?? fallbackName.replace(/\.apkg$/i, "") },
+      sampleCards: [], warnings: (report.warnings as string[] | undefined) ?? [], importReport: report,
+    };
+  }
+
   return {
-    async parseApkgFile(file: FileLike, { onStep, existingDecks = [] }: ApkgOptions = {}) {
+    async parseApkgFile(file: FileLike, { onStep, onProgress, existingDecks = [] }: ApkgOptions = {}) {
       try {
+        if (Number(file.size ?? 0) > SERVER_APKG_MAX_BYTES) throw new Error("Die APKG-Datei ist größer als 1 GiB.");
+        if (Number(file.size ?? 0) > LOCAL_APKG_MAX_BYTES) {
+          if (!serverApkgImport) throw new Error("Große APKG-Dateien benötigen eine aktive Cloud-Anmeldung.");
+          const progress = await serverApkgImport.analyze(file as unknown as File, (next) => {
+            onProgress?.(next);
+            onStep?.(next.phase);
+          });
+          const report = progress.report ?? {};
+          const failed = progress.status === "failed" || progress.status === "cancelled";
+          return {
+            preview: serverPreview(progress, file.name ?? "Anki-Import"),
+            mediaStatus: null,
+            job: createApkgJob(file, failed ? "error" : "preview", {
+              id: progress.jobId, progress, warnings: report.warnings ?? [],
+              errors: failed ? [progress.status === "cancelled" ? "Der APKG-Import wurde abgebrochen." : "Die APKG-Analyse ist fehlgeschlagen."] : report.errors ?? [],
+            }),
+          };
+        }
         const { createApkgImportPreview } = await loadApkgImport();
         const result = await createApkgImportPreview(file, onStep, { existingDecks });
-        const mediaStatus = result.preview ? await mediaStore.cachePreviewMedia(result.preview.deck, result.preview.mediaFiles) : null;
+        const preview = result.preview ? { ...result.preview, kind: "local" as const } : null;
+        const mediaStatus = preview ? await mediaStore.cachePreviewMedia(preview.deck, preview.mediaFiles) : null;
         const mediaErrors = mediaStatus?.errors ?? [];
         const reportWarnings = result.preview?.importReport?.warnings ?? [];
         const reportErrors = result.preview?.importReport?.errors ?? [];
 
         return {
-          preview: result.preview,
+          preview,
           mediaStatus,
           job: {
             ...result.job,
@@ -219,7 +266,41 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       }
     },
 
-    async commitApkgPreview(preview: ApkgCreationPreview | null, { existingDecks = [] }: ApkgOptions = {}) {
+    async resumeApkgPreview({ onProgress, existingDecks: _existingDecks = [] }: ApkgOptions = {}) {
+      const jobId = serverApkgImport?.getLastJobId();
+      if (!serverApkgImport || !jobId) return null;
+      const current = await serverApkgImport.get(jobId);
+      onProgress?.(current);
+      if (current.status === "uploading") return null;
+      const progress = ["ready", "failed", "cancelled", "succeeded"].includes(current.status)
+        ? current
+        : ["committing", "syncing_media"].includes(current.status)
+          ? await serverApkgImport.waitUntilFinished(jobId, onProgress)
+          : await serverApkgImport.waitUntilReady(jobId, onProgress);
+      return { preview: serverPreview(progress), mediaStatus: null, job: { id: jobId, status: "preview", progress, warnings: progress.report?.warnings ?? [], errors: progress.report?.errors ?? [] } };
+    },
+
+    async retryApkgPreview(preview: ApkgCreationPreview, onProgress?: (progress: ApkgImportProgress) => void) {
+      if (preview.kind !== "server" || !serverApkgImport) return null;
+      const queued = await serverApkgImport.retry(preview.progress);
+      onProgress?.(queued);
+      const terminal = queued.status === "syncing_media"
+        ? await serverApkgImport.waitUntilFinished(preview.jobId, onProgress)
+        : await serverApkgImport.waitUntilReady(preview.jobId, onProgress);
+      const next = serverPreview(terminal, preview.deckSummary.name);
+      return terminal.report ? next : { ...next, warnings: preview.warnings, importReport: preview.importReport };
+    },
+
+    async cancelApkgPreview(preview: ApkgCreationPreview) {
+      if (preview.kind !== "server" || !serverApkgImport) return null;
+      return serverApkgImport.cancel(preview.progress);
+    },
+
+    async cancelApkgProgress(progress: ApkgImportProgress) {
+      return serverApkgImport?.cancel(progress) ?? null;
+    },
+
+    async commitApkgPreview(preview: ApkgCreationPreview | null, { existingDecks = [], onProgress }: ApkgOptions = {}) {
       if (!preview) {
         return {
           deck: null,
@@ -228,6 +309,19 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
             errors: ["Keine APKG-Vorschau zum Importieren vorhanden."],
           },
         };
+      }
+      if (preview.kind === "server") {
+        if (!serverApkgImport) throw new Error("Der Serverimport ist nicht verfügbar.");
+        const prepared = await serverApkgImport.prepareCommit(preview.progress);
+        const { createApkgPreviewFromNormalizedImport, commitApkgImport } = await loadApkgImport();
+        const refreshed = await createApkgPreviewFromNormalizedImport(prepared.artifact.normalizedDeck, prepared.artifact.warnings, { existingDecks });
+        if (!refreshed.preview) return { deck: null, decks: [], report: refreshed.report, mediaTask: null as MediaSyncTask | null };
+        const committed = await commitApkgImport(refreshed.preview, { existingDecks });
+        const decks = (committed.decks?.length ? committed.decks : committed.deck ? [committed.deck] : []) as Deck[];
+        if (committed.report.errors.length > 0 || decks.length === 0) return { ...committed, mediaTask: null as MediaSyncTask | null };
+        await persistImportedDecks(decks);
+        const progress = await serverApkgImport.finalize(prepared.progress, onProgress);
+        return { ...committed, serverProgress: progress, mediaTask: null as MediaSyncTask | null };
       }
       const { commitApkgImport } = await loadApkgImport();
       const committed = await commitApkgImport(preview, { existingDecks });

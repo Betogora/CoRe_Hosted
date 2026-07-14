@@ -55,6 +55,27 @@ test("accountweite SHA-1-Wiederverwendung erzeugt ein Objekt und zwei Referenzen
   assert.equal(client.rows[1].storage_path, client.rows[0].storage_path);
 });
 
+test("serverseitiger Uploadadapter nutzt dieselben Referenz- und Deduplizierungsregeln", async () => {
+  const client = createClient();
+  const metadataOnly = { ...file(), blob: undefined };
+  let adapterCalls = 0;
+  const result = await syncReferences({
+    client,
+    supabaseUrl: "http://127.0.0.1:54321",
+    userId: "user-a",
+    control: control(),
+    decks: [{ deckId: "deck-1", files: [metadataOnly], previousReferences: [] }],
+    async uploadFile(item, path) {
+      adapterCalls += 1;
+      client.objects.set(path, item.size);
+      return "uploaded";
+    },
+  });
+  assert.equal(adapterCalls, 1);
+  assert.equal(result.uploaded, 1);
+  assert.equal(client.rows[0].storage_path, `user-a/objects/${HASH}`);
+});
+
 test("parallele Duplicate-Uploads bestätigen beide Referenzen über dasselbe Objekt", async () => {
   const client = createClient();
   const [first, second] = await Promise.all([

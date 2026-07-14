@@ -1,6 +1,8 @@
 import React from "react";
 import { AlertCircle, ArrowLeft, Bot, CheckCircle2, Database, FileArchive, FileSpreadsheet, FileText, Loader2, PenLine, Pin, PinOff, Trash2, Upload, WandSparkles } from "lucide-react";
 import { createCreationWorkflow, type ApkgCreationPreview } from "../creationWorkflow.ts";
+import { createServerApkgImportClient } from "../serverApkgImport.ts";
+import type { ApkgImportProgress } from "../serverApkgImportContract.ts";
 import type { ApkgImportReportV1 } from "../apkgImport.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
 import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
@@ -19,6 +21,23 @@ const notetypeLabels: Record<ApkgImportReportV1["notetypes"][number]["classifica
   cloze: "Lückentext",
   custom: "Sicherer Fallback",
 };
+
+const serverPhaseLabels: Record<ApkgImportProgress["phase"], string> = {
+  upload: "Hochladen",
+  download: "Datei laden",
+  validate: "Sicherheitsprüfung",
+  parse: "Anki-Daten lesen",
+  preview: "Vorschau erstellen",
+  commit: "Import übernehmen",
+  media: "Medien synchronisieren",
+  cleanup: "Aufräumen",
+  done: "Abgeschlossen",
+};
+
+function formatServerProgress(progress: ApkgImportProgress) {
+  if (progress.phase === "media" || progress.phase === "done") return `${progress.completed} / ${progress.total} Medien`;
+  return `${formatBytes(progress.completed)} / ${formatBytes(progress.total)}`;
+}
 
 function documentStatusMessage(document: SourceDocument | null): string {
   if (!document) return "";
@@ -67,17 +86,37 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
   const [isParsing, setIsParsing] = React.useState(false);
   const [mediaTask, setMediaTask] = React.useState<any>(null);
   const [cloudProgress, setCloudProgress] = React.useState<any>(null);
-  const { urls: previewMediaUrls, missing: previewMissingMedia } = useDeckMediaUrls(preview?.deck, mediaStore);
+  const [serverProgress, setServerProgress] = React.useState<ApkgImportProgress | null>(null);
+  const resumedRef = React.useRef(false);
+  const localPreviewDeck = preview?.kind === "local" ? preview.deck : null;
+  const { urls: previewMediaUrls, missing: previewMissingMedia } = useDeckMediaUrls(localPreviewDeck, mediaStore);
+
+  function handleServerProgress(next: ApkgImportProgress) {
+    setServerProgress(next);
+    setPreview((current) => current?.kind === "server" ? { ...current, progress: next } : current);
+  }
+
+  React.useEffect(() => {
+    if (resumedRef.current) return;
+    resumedRef.current = true;
+    void workflow.resumeApkgPreview?.({ existingDecks, onProgress: handleServerProgress }).then((result: any) => {
+      if (!result?.preview) return;
+      setPreview(result.preview);
+      setJob(result.job);
+      setServerProgress(result.preview.progress);
+    }).catch(() => undefined);
+  }, [existingDecks, workflow]);
 
   async function parseFile(file: File) {
     setSelectedFile(file);
     setPreview(null);
+    setServerProgress(null);
     setMediaStatus(null);
     setJob({ fileName: file.name, fileSize: file.size, status: "parsing", warnings: [], errors: [] });
     setIsParsing(true);
 
     try {
-      const result = await workflow.parseApkgFile(file, { onStep: setActiveStep as () => void, existingDecks });
+      const result = await workflow.parseApkgFile(file, { onStep: setActiveStep as () => void, onProgress: handleServerProgress, existingDecks });
       setMediaStatus(result.mediaStatus);
       setJob(result.job);
       setPreview(result.preview);
@@ -109,28 +148,58 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
 
   async function handleCommit() {
     if (!preview) return;
-    const result = await workflow.commitApkgPreview(preview, { existingDecks });
-    if (result.report.errors.length > 0 || !result.deck) {
-      setJob((currentJob: any) => ({
-        ...currentJob,
-        status: "error",
-        warnings: [...new Set([...(currentJob?.warnings ?? []), ...(result.report.warnings ?? [])])],
-        errors: [...new Set([...(currentJob?.errors ?? []), ...(result.report.errors ?? [])])],
-      }));
+    setIsParsing(true);
+    try {
+      const result = await workflow.commitApkgPreview(preview, { existingDecks, onProgress: handleServerProgress });
+      if (result.report.errors.length > 0 || !result.deck) {
+        setJob((currentJob: any) => ({
+          ...currentJob,
+          status: "error",
+          warnings: [...new Set([...(currentJob?.warnings ?? []), ...(result.report.warnings ?? [])])],
+          errors: [...new Set([...(currentJob?.errors ?? []), ...(result.report.errors ?? [])])],
+        }));
+        setPreview((currentPreview: any) => (currentPreview ? { ...currentPreview, importReport: result.report } : currentPreview));
+        return;
+      }
+      if (result.serverProgress) handleServerProgress(result.serverProgress);
+      setJob((currentJob: any) => ({ ...currentJob, status: result.serverProgress?.status ?? "done", progress: result.serverProgress ?? currentJob?.progress, warnings: [...new Set([...(currentJob?.warnings ?? []), ...(result.report.warnings ?? [])])] }));
       setPreview((currentPreview: any) => (currentPreview ? { ...currentPreview, importReport: result.report } : currentPreview));
-      return;
+      if (result.mediaTask) {
+        setMediaTask(result.mediaTask);
+        result.mediaTask.subscribe((progress: any, status: any) => setCloudProgress({ ...progress, status }));
+        void result.mediaTask.result.then((mediaResult: any) => {
+          setMediaStatus(mediaResult);
+          setCloudProgress({ ...mediaResult.progress, status: mediaResult.status });
+          setJob((currentJob: any) => ({ ...currentJob, status: mediaResult.status === "cloud-ready" ? "done" : mediaResult.status }));
+        });
+      }
+    } catch (error) {
+      setJob((currentJob: any) => ({ ...currentJob, status: "error", errors: [...(currentJob?.errors ?? []), error instanceof Error ? error.message : "Der Import ist fehlgeschlagen."] }));
+    } finally {
+      setIsParsing(false);
     }
-    setJob((currentJob: any) => ({ ...currentJob, status: "done", warnings: [...new Set([...(currentJob?.warnings ?? []), ...(result.report.warnings ?? [])])] }));
-    setPreview((currentPreview: any) => (currentPreview ? { ...currentPreview, importReport: result.report } : currentPreview));
-    if (result.mediaTask) {
-      setMediaTask(result.mediaTask);
-      result.mediaTask.subscribe((progress: any, status: any) => setCloudProgress({ ...progress, status }));
-      void result.mediaTask.result.then((mediaResult: any) => {
-        setMediaStatus(mediaResult);
-        setCloudProgress({ ...mediaResult.progress, status: mediaResult.status });
-        setJob((currentJob: any) => ({ ...currentJob, status: mediaResult.status === "cloud-ready" ? "done" : mediaResult.status }));
-      });
-    }
+  }
+
+  async function handleCancelServerImport() {
+    if (!serverProgress) return;
+    const cancelled = await workflow.cancelApkgProgress(serverProgress);
+    if (!cancelled) return;
+    setServerProgress(cancelled);
+    setJob((current: any) => ({ ...current, status: "cancelled", progress: cancelled }));
+    setIsParsing(false);
+  }
+
+  async function handleRetryServerImport() {
+    if (!preview || preview.kind !== "server") return;
+    setIsParsing(true);
+    try {
+      const next = await workflow.retryApkgPreview(preview, handleServerProgress);
+      if (next) {
+        setPreview(next);
+        const status = next.progress.status === "ready" ? "preview" : next.progress.status === "succeeded" ? "done" : "error";
+        setJob((current: any) => ({ ...current, status, progress: next.progress, errors: ["ready", "succeeded"].includes(next.progress.status) ? [] : current?.errors }));
+      }
+    } finally { setIsParsing(false); }
   }
 
   const report = preview?.importReport ?? null;
@@ -175,6 +244,24 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
           </div>
         ) : null}
 
+        {serverProgress ? (
+          <div className="mt-4 rounded-xl border border-[#e3e7f5] bg-white p-4" role="status" aria-live="polite">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="font-semibold text-[#4e5b8c]">Serverimport: {serverPhaseLabels[serverProgress.phase]}</span>
+              <span className="text-[#66709a]">{formatServerProgress(serverProgress)}</span>
+            </div>
+            <progress className="mt-3 h-2 w-full accent-teal-700" max={Math.max(1, serverProgress.total)} value={serverProgress.completed} />
+            <div className="mt-3 flex flex-wrap gap-2">
+              {!["ready", "succeeded", "failed", "cancelled"].includes(serverProgress.status) ? (
+                <button type="button" onClick={() => void handleCancelServerImport()} className="min-h-10 rounded-xl border border-red-200 px-3 text-sm font-semibold text-red-700">Import abbrechen</button>
+              ) : null}
+              {serverProgress.status === "failed" && serverProgress.retryable ? (
+                <button type="button" onClick={() => void handleRetryServerImport()} className="min-h-10 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-teal-700">Erneut versuchen</button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         {selectedFile ? (
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" disabled={isParsing} onClick={() => void parseFile(selectedFile)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-teal-700 disabled:text-slate-400">
@@ -216,7 +303,7 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">Importvorschau</p>
-                  <h3 className="mt-1 text-2xl font-semibold text-[#17214f]">{preview.deck.name}</h3>
+                  <h3 className="mt-1 text-2xl font-semibold text-[#17214f]">{preview.kind === "local" ? preview.deck.name : preview.deckSummary.name}</h3>
                 </div>
                 <button type="button" disabled={previewErrors.length > 0 || isParsing} onClick={() => void handleCommit()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
                   <Database size={17} aria-hidden="true" />
@@ -1017,10 +1104,11 @@ function CreationMethodButton({ method, isSelected, onSelect }: any) {
   );
 }
 
-export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, onCreated, onAppendManualCard, onJob }: any) {
+export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, supabase, supabaseUrl = "", onCreated, onAppendManualCard, onJob }: any) {
   const [selectedMethod, setSelectedMethod] = React.useState<any>(null);
   const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod);
-  const accountWorkflow = React.useMemo(() => createCreationWorkflow({ mediaStore, persistImportedDecks }), [mediaStore, persistImportedDecks]);
+  const serverApkgImport = React.useMemo(() => supabase && supabaseUrl ? createServerApkgImportClient({ client: supabase, supabaseUrl }) : null, [supabase, supabaseUrl]);
+  const accountWorkflow = React.useMemo(() => createCreationWorkflow({ mediaStore, persistImportedDecks, serverApkgImport }), [mediaStore, persistImportedDecks, serverApkgImport]);
 
   function renderSelectedMethod() {
     if (selectedMethod === "import") return <ImportCreationPanel decks={decks} onCreated={onCreated} workflow={accountWorkflow} mediaStore={mediaStore} />;

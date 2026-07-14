@@ -12,7 +12,7 @@ export interface CloudMediaFile {
   name: string;
   size: number;
   mimeType: string;
-  blob: Blob;
+  blob?: Blob;
   cardId?: string | null;
   source?: string;
   metadata?: Record<string, unknown>;
@@ -26,7 +26,15 @@ export interface CloudMediaControl {
 }
 
 interface SyncDeckInput { deckId: string; files: CloudMediaFile[]; previousReferences: MediaAssetReference[]; retainedReferences?: MediaAssetReference[]; }
-interface SyncOptions { client: any; supabaseUrl: string; userId: string; decks: SyncDeckInput[]; control: CloudMediaControl; onProgress?(progress: { completed: number; total: number; uploaded: number; reused: number; currentName: string }): void; }
+interface SyncOptions {
+  client: any;
+  supabaseUrl: string;
+  userId: string;
+  decks: SyncDeckInput[];
+  control: CloudMediaControl;
+  uploadFile?(file: CloudMediaFile, path: string): Promise<"uploaded" | "reused">;
+  onProgress?(progress: { completed: number; total: number; uploaded: number; reused: number; currentName: string }): void | Promise<void>;
+}
 
 function nowIso() { return new Date().toISOString(); }
 
@@ -104,6 +112,7 @@ async function verifyStoredObject(client: any, path: string, expectedSize: numbe
 }
 
 async function uploadSmall(client: any, file: CloudMediaFile, path: string) {
+  if (!file.blob) throw mediaError("storage", "Für den Medien-Upload fehlen die Dateidaten.");
   const { error } = await client.storage.from(CORE_MEDIA_BUCKET).upload(path, file.blob, { contentType: file.mimeType, upsert: false });
   if (!error) return "uploaded" as const;
   if (classifyMediaError(error) !== "duplicate") throw mediaError(classifyMediaError(error), "Das Medium konnte nicht hochgeladen werden.", error);
@@ -112,10 +121,12 @@ async function uploadSmall(client: any, file: CloudMediaFile, path: string) {
 }
 
 async function uploadLarge(client: any, supabaseUrl: string, userId: string, file: CloudMediaFile, path: string, control: CloudMediaControl) {
+  if (!file.blob) throw mediaError("storage", "Für den Medien-Upload fehlen die Dateidaten.");
+  const blob = file.blob;
   const { Upload } = await import("tus-js-client");
   let restarted = false;
   const run = async (): Promise<"uploaded" | "reused"> => new Promise((resolve, reject) => {
-    const upload = new Upload(file.blob, {
+    const upload = new Upload(blob, {
       endpoint: resumableEndpoint(supabaseUrl),
       chunkSize: RESUMABLE_UPLOAD_THRESHOLD_BYTES,
       retryDelays: TUS_RETRY_DELAYS,
@@ -177,7 +188,7 @@ async function retireStaleReferences(client: any, userId: string, previous: Medi
   }
 }
 
-export async function syncReferences({ client, supabaseUrl, userId, decks, control, onProgress }: SyncOptions) {
+export async function syncReferences({ client, supabaseUrl, userId, decks, control, uploadFile, onProgress }: SyncOptions) {
   const total = decks.reduce((sum, deck) => sum + deck.files.length, 0);
   let completed = 0, uploaded = 0, reused = 0;
   const referencesByDeck = new Map<string, MediaAssetReference[]>();
@@ -196,9 +207,11 @@ export async function syncReferences({ client, supabaseUrl, userId, decks, contr
         await verifyStoredObject(client, matchingObject.storage_path, file.size);
         outcome = "reused";
       } else {
-        outcome = file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES
-          ? await uploadSmall(client, file, path)
-          : await uploadLarge(client, supabaseUrl, userId, file, path, control);
+        outcome = uploadFile
+          ? await uploadFile(file, path)
+          : file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES
+            ? await uploadSmall(client, file, path)
+            : await uploadLarge(client, supabaseUrl, userId, file, path, control);
       }
       if (control.isCancelled()) {
         if (outcome === "uploaded") {
@@ -211,7 +224,7 @@ export async function syncReferences({ client, supabaseUrl, userId, decks, contr
       const persisted = await persistReference(client, toRow(file, userId, deck.deckId, matchingObject?.storage_path ?? path, oldReference));
       references.set(persisted.id, persisted);
       completed += 1; outcome === "uploaded" ? uploaded += 1 : reused += 1;
-      onProgress?.({ completed, total, uploaded, reused, currentName: file.name });
+      await onProgress?.({ completed, total, uploaded, reused, currentName: file.name });
     }
     await retireStaleReferences(client, userId, deck.previousReferences, new Set(references.keys()));
     referencesByDeck.set(deck.deckId, [...references.values()]);

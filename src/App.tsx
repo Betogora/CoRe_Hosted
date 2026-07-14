@@ -916,7 +916,7 @@ export function App() {
       );
     }
     if (activeView === "neue-karten") {
-      return <CreationScreen decks={state.decks} mediaStore={mediaStore} persistImportedDecks={persistImportedDecks} onCreated={saveDeck} onAppendManualCard={addManualCardToDeck} onJob={saveJob} />;
+      return <CreationScreen decks={state.decks} mediaStore={mediaStore} persistImportedDecks={persistImportedDecks} supabase={supabase} supabaseUrl={getSupabaseBrowserConfig().url} onCreated={saveDeck} onAppendManualCard={addManualCardToDeck} onJob={saveJob} />;
     }
     if (activeView === "lernen") {
       return (

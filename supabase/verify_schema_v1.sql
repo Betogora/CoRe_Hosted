@@ -9,6 +9,7 @@ core_tables(table_name) as (
     ('review_events'),
     ('source_documents'),
     ('ai_jobs'),
+    ('apkg_import_jobs'),
     ('media_assets'),
     ('sync_devices'),
     ('sync_conflicts'),
@@ -68,7 +69,17 @@ required_columns(table_name, column_name) as (
     ('ai_jobs', 'pricing_version'),
     ('ai_jobs', 'cost_micros'),
     ('ai_jobs', 'cost_currency'),
-    ('ai_jobs', 'updated_at')
+    ('ai_jobs', 'updated_at'),
+    ('apkg_import_jobs', 'status'),
+    ('apkg_import_jobs', 'phase'),
+    ('apkg_import_jobs', 'revision'),
+    ('apkg_import_jobs', 'source_path'),
+    ('apkg_import_jobs', 'result_path'),
+    ('apkg_import_jobs', 'execution_ref'),
+    ('apkg_import_jobs', 'progress_completed'),
+    ('apkg_import_jobs', 'progress_total'),
+    ('apkg_import_jobs', 'cancel_requested_at'),
+    ('apkg_import_jobs', 'expires_at')
 ),
 expected_sync_device_columns(column_name, data_type, is_nullable, column_default) as (
   values
@@ -117,6 +128,7 @@ expected_primary_keys(table_name, column_names) as (
     ('review_events', array['user_id', 'id']::text[]),
     ('source_documents', array['user_id', 'id']::text[]),
     ('ai_jobs', array['user_id', 'id']::text[]),
+    ('apkg_import_jobs', array['id']::text[]),
     ('media_assets', array['user_id', 'id']::text[]),
     ('sync_devices', array['user_id', 'id']::text[]),
     ('sync_conflicts', array['user_id', 'id']::text[]),
@@ -143,6 +155,7 @@ expected_foreign_keys(
     ('source_documents', 'source_documents_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
     ('ai_jobs', 'ai_jobs_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
     ('ai_jobs', 'ai_jobs_deck_owner_fk', array['deck_id', 'user_id']::text[], 'public', 'decks', array['id', 'user_id']::text[]),
+    ('apkg_import_jobs', 'apkg_import_jobs_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
     ('media_assets', 'media_assets_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
     ('media_assets', 'media_assets_deck_owner_fk', array['deck_id', 'user_id']::text[], 'public', 'decks', array['id', 'user_id']::text[]),
     ('media_assets', 'media_assets_card_deck_owner_fk', array['card_id', 'deck_id', 'user_id']::text[], 'public', 'cards', array['id', 'deck_id', 'user_id']::text[]),
@@ -309,6 +322,14 @@ checks(check_name, passed, details) as (
   union all
 
   select
+    'grant:authenticated:apkg_import_jobs:' || p.privilege_name,
+    not has_table_privilege('authenticated', 'public.apkg_import_jobs', p.privilege_name),
+    jsonb_build_object('role', 'authenticated', 'table', 'apkg_import_jobs', 'privilege', p.privilege_name, 'expected', 'absent')
+  from privileges p
+
+  union all
+
+  select
     'index:ai_jobs_user_idempotency_v1_idx',
     to_regclass('public.ai_jobs_user_idempotency_v1_idx') is not null,
     jsonb_build_object('index', 'ai_jobs_user_idempotency_v1_idx')
@@ -319,6 +340,13 @@ checks(check_name, passed, details) as (
     'index:ai_jobs_user_created_at_idx',
     to_regclass('public.ai_jobs_user_created_at_idx') is not null,
     jsonb_build_object('index', 'ai_jobs_user_created_at_idx')
+
+  union all
+
+  select
+    'index:apkg_import_jobs_one_active_per_user_idx',
+    to_regclass('public.apkg_import_jobs_one_active_per_user_idx') is not null,
+    jsonb_build_object('index', 'apkg_import_jobs_one_active_per_user_idx')
 
   union all
 
@@ -383,6 +411,16 @@ checks(check_name, passed, details) as (
         and b.allowed_mime_types is null
     ),
     jsonb_build_object('bucket', 'core-media', 'public', false, 'file_size_limit', 524288000)
+
+  union all
+
+  select
+    'bucket:core-imports',
+    exists (
+      select 1 from storage.buckets b
+      where b.id = 'core-imports' and b.name = 'core-imports' and b.public = false and b.file_size_limit = 1073741824
+    ),
+    jsonb_build_object('bucket', 'core-imports', 'public', false, 'file_size_limit', 1073741824)
 
   union all
 

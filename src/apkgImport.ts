@@ -1357,6 +1357,20 @@ function classifyAnkiNotetype(model: any): ApkgImportReportV1["notetypes"][numbe
   return "basic";
 }
 
+export function parseAnkiDatabasePackage(database: any, file: any, mediaBundle: any = null) {
+  const colRows = database.readTable("col");
+  return {
+    file,
+    database,
+    colRows,
+    decks: parseAnkiDecks(database),
+    notes: parseAnkiNotes(database),
+    cards: parseAnkiCards(database),
+    models: getModelsFromDatabase(database, colRows),
+    mediaBundle: mediaBundle ?? createEmptyMediaBundle(),
+  };
+}
+
 function findExistingReportCard(item: any, existingDecks: any[]) {
   const identity = item?.metadataJson?.ankiImportIdentityV1 as AnkiImportIdentityV1 | undefined;
   const cards = existingDecks.flatMap((deck: any) => deck.cards ?? []);
@@ -1908,6 +1922,28 @@ function synchronizeOriginalVariant(variants: any = [], card: any = {}) {
         }
       : variant,
   );
+}
+
+export async function createApkgPreviewFromNormalizedImport(normalizedDeck: any, warnings: string[] = [], options: any = {}) {
+  const parsed = await parseApkgToNormalizedImport({ normalizedDeck, warnings, mediaFiles: [] }, options);
+  const normalizedPreview: any = importNormalizedDeck(parsed.normalizedDeck, {
+    dryRun: false,
+    importScheduling: false,
+    existingDecks: options.existingDecks ?? [],
+    mergeStrategy: options.mergeStrategy,
+  });
+  normalizedPreview.mediaFiles = [];
+  attachApkgReportDetails(normalizedPreview, null, warnings, [], options);
+  normalizedPreview.report.dryRun = true;
+  if (!normalizedPreview.deck || normalizedPreview.report.errors.length > 0) return { preview: null, report: normalizedPreview.report };
+  return {
+    report: normalizedPreview.report,
+    preview: {
+      ...createImportPreview(normalizedPreview.deck, normalizedPreview.report.warnings, []),
+      normalizedDeck,
+      importReport: normalizedPreview.report,
+    },
+  };
 }
 
 function getAnkiNoteIdentity(card: any): AnkiImportIdentityV1 | null {

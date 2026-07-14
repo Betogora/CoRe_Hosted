@@ -158,6 +158,87 @@ export type Database = {
           },
         ]
       }
+      apkg_import_jobs: {
+        Row: {
+          attempt_count: number
+          cancel_requested_at: string | null
+          created_at: string
+          error_class: string | null
+          error_code: string | null
+          execution_ref: string | null
+          expires_at: string
+          file_name: string
+          file_size: number
+          finished_at: string | null
+          id: string
+          max_attempts: number
+          phase: string
+          progress_completed: number
+          progress_total: number
+          report: Json
+          result_path: string | null
+          retryable: boolean
+          revision: number
+          source_path: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          cancel_requested_at?: string | null
+          created_at?: string
+          error_class?: string | null
+          error_code?: string | null
+          execution_ref?: string | null
+          expires_at?: string
+          file_name: string
+          file_size: number
+          finished_at?: string | null
+          id: string
+          max_attempts?: number
+          phase?: string
+          progress_completed?: number
+          progress_total?: number
+          report?: Json
+          result_path?: string | null
+          retryable?: boolean
+          revision?: number
+          source_path: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          cancel_requested_at?: string | null
+          created_at?: string
+          error_class?: string | null
+          error_code?: string | null
+          execution_ref?: string | null
+          expires_at?: string
+          file_name?: string
+          file_size?: number
+          finished_at?: string | null
+          id?: string
+          max_attempts?: number
+          phase?: string
+          progress_completed?: number
+          progress_total?: number
+          report?: Json
+          result_path?: string | null
+          retryable?: boolean
+          revision?: number
+          source_path?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       card_variants: {
         Row: {
           anchor_variant_id: string | null
