@@ -1,10 +1,10 @@
-import type { AiJob, Deck, DeckSource, DeckVisibility, ReviewEvent, SourceDocument, VersionEntry } from "../coreTypes.ts";
+import type { AiJob, Deck, DeckSource, DeckVisibility, MediaAssetReference, ReviewEvent, SourceDocument, VersionEntry } from "../coreTypes.ts";
 import { CORE_DECK_SOURCES, DECK_VISIBILITIES, createDefaultDeckSettings, makeId, normalizeTags, unique } from "./coreValues.ts";
 import { createVersionEntry, normalizeVersionLog } from "./reviewState.ts";
 import { createCoreLearningItem, type CoreCardInput } from "./learningItems.ts";
 
 type DeckSettingsInput = Parameters<typeof createDefaultDeckSettings>[0];
-interface CoreDeckInput { id?: string; name?: string; description?: string; source?: DeckSource; ownerId?: string; parentDeckId?: string | null; hierarchyPath?: string[] | null; visibility?: DeckVisibility; originalDeckId?: string | null; cards?: CoreCardInput[]; tags?: unknown; importMeta?: Record<string, unknown>; deckSettings?: DeckSettingsInput; sourceDocuments?: SourceDocument[]; reviewEvents?: ReviewEvent[]; aiJobs?: AiJob[]; graph?: unknown; communityRefs?: unknown[]; createdAt?: string; updatedAt?: string; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; versionLog?: VersionEntry[]; }
+interface CoreDeckInput { id?: string; name?: string; description?: string; source?: DeckSource; ownerId?: string; parentDeckId?: string | null; hierarchyPath?: string[] | null; visibility?: DeckVisibility; originalDeckId?: string | null; cards?: CoreCardInput[]; tags?: unknown; importMeta?: Record<string, unknown>; mediaAssets?: MediaAssetReference[]; deckSettings?: DeckSettingsInput; sourceDocuments?: SourceDocument[]; reviewEvents?: ReviewEvent[]; aiJobs?: AiJob[]; graph?: unknown; communityRefs?: unknown[]; createdAt?: string; updatedAt?: string; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; versionLog?: VersionEntry[]; }
 function objectRecord(value: unknown): Record<string, unknown> { return value !== null && typeof value === "object" ? value as Record<string, unknown> : {}; }
 function splitDeckPath(name: unknown, hierarchyPath: unknown): string[] {
   if (Array.isArray(hierarchyPath) && hierarchyPath.length > 0) {
@@ -36,6 +36,7 @@ export function createCoreDeck({
   cards = [],
   tags = [],
   importMeta = {},
+  mediaAssets = [],
   deckSettings = {},
   sourceDocuments = [],
   reviewEvents = [],
@@ -92,6 +93,7 @@ export function createCoreDeck({
     cardCount: normalizedCards.length,
     tags: deckTags,
     importMeta,
+    mediaAssets: mediaAssets.filter((asset) => !asset.deletedAt),
     deckSettings: createDefaultDeckSettings(deckSettings),
     sourceDocuments,
     cards: normalizedCards,

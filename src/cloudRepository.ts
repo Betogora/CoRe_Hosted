@@ -1,9 +1,19 @@
 import { createCloudProfile, createProfileRow, saveCloudProfile } from "./cloudAuth.ts";
 import { createCoreDeck } from "./coreModel.ts";
 import type { Tables } from "./database.types.ts";
-import { validateAccountRows, validateIdRows, validateProfileRows, type AccountTable } from "./cloudRepositoryValidation.ts";
+import { validateAccountRows, validateIdRows, validateMediaAssetRows, validateProfileRows, type AccountTable, type MediaAssetRow } from "./cloudRepositoryValidation.ts";
 
 export const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
+
+function mediaAssetFromRow(row: MediaAssetRow) {
+  return {
+    id: row.id, userId: row.user_id, deckId: row.deck_id!, cardId: row.card_id,
+    sha1: row.sha1, size: row.size, mimeType: row.mime_type, originalName: row.original_name,
+    storageBucket: row.storage_bucket, storagePath: row.storage_path, source: row.source,
+    metadata: row.metadata as Record<string, unknown>, createdAt: row.created_at,
+    updatedAt: row.updated_at, deletedAt: row.deleted_at,
+  };
+}
 
 const ACCOUNT_TABLES = ["decks", "cards", "card_variants", "review_events", "source_documents", "ai_jobs"];
 const REVISIONED_TABLES = ["source_documents", "decks", "cards", "card_variants", "ai_jobs"];
@@ -13,6 +23,8 @@ const CARD_MODEL_META_KEY = "__coreModel";
 const REVIEW_EVENT_META_KEY = "__coreReview";
 const DELETE_ORDER = ["ai_jobs", "review_events", "card_variants", "cards", "decks", "source_documents"];
 const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at", "revision", "updated_by_device_id"]);
+const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at", "started_at", "finished_at"]);
+const CLOUD_DELETE_BATCH_SIZE = 100;
 const CONFLICT_PROTECTED_FIELDS = new Set([
   ...ROW_IDENTITY_FIELDS,
   "deck_id",
@@ -236,8 +248,18 @@ function jsonValuesEqual(left: any, right: any) {
   return JSON.stringify(stableValue(left ?? null)) === JSON.stringify(stableValue(right ?? null));
 }
 
+function normalizeComparableTimestamp(value: unknown) {
+  if (typeof value !== "string") return value;
+  const milliseconds = Date.parse(value);
+  return Number.isNaN(milliseconds) ? value : new Date(milliseconds).toISOString();
+}
+
 function comparableRow(row: any = {}) {
-  return Object.fromEntries(Object.entries(row).filter(([key]: any) => !ROW_IDENTITY_FIELDS.has(key)));
+  return Object.fromEntries(
+    Object.entries(row)
+      .filter(([key]: any) => !ROW_IDENTITY_FIELDS.has(key))
+      .map(([key, value]) => [key, COMPARABLE_TIMESTAMP_FIELDS.has(key) ? normalizeComparableTimestamp(value) : value]),
+  );
 }
 
 function rowsHaveSameContent(left: any, right: any) {
@@ -467,16 +489,30 @@ async function throwRevisionConflict(client: any, user: any, { entityTable, enti
 }
 
 async function deleteRowsById(client: any, table: any, userId: any, ids: any) {
-  if (!ids.length) return;
-  const { error } = await client.from(table).delete().eq("user_id", userId).in("id", ids);
-  if (error) throw error;
+  for (let offset = 0; offset < ids.length; offset += CLOUD_DELETE_BATCH_SIZE) {
+    const batch = ids.slice(offset, offset + CLOUD_DELETE_BATCH_SIZE);
+    const { error } = await client.from(table).delete().eq("user_id", userId).in("id", batch);
+    if (error) throw error;
+  }
 }
 
-async function deleteRowsMissingFromState(client: any, table: any, userId: any, keepRows: any) {
+async function deleteRowsMissingFromState(client: any, table: any, userId: any, keepRows: any, { protectedIds = new Set(), deletedAt, deviceId }: any = {}) {
   const keepIds = new Set(keepRows.map((row: any) => row.id));
-  const existingRows = await selectRows(client, table, userId, "id");
-  const missingIds = existingRows.map((row: any) => row.id).filter((id: any) => !keepIds.has(id));
-  await deleteRowsById(client, table, userId, missingIds);
+  const existingRows = await selectRows(client, table, userId, protectedIds.size > 0 ? "id, revision, deleted_at" : "id");
+  const missingRows = existingRows.filter((row: any) => !keepIds.has(row.id));
+  const protectedRows = missingRows.filter((row: any) => protectedIds.has(row.id));
+  for (const row of protectedRows) {
+    if (row.deleted_at) continue;
+    const timestamp = deletedAt ?? nowIso();
+    const { error } = await client.from(table).update({
+      deleted_at: timestamp,
+      updated_at: timestamp,
+      revision: normalizeRevision(row.revision) + 1,
+      updated_by_device_id: deviceId ?? null,
+    }).eq("user_id", userId).eq("id", row.id);
+    if (error) throw error;
+  }
+  await deleteRowsById(client, table, userId, missingRows.filter((row: any) => !protectedIds.has(row.id)).map((row: any) => row.id));
 }
 
 export function deckToCloudRow(deck: any, userId: any) {
@@ -1437,7 +1473,16 @@ export async function appendReviewEvent(client: any, event: any, { deviceId, mut
 export async function replaceAccountCloudState(client: any, state: any, { deviceId }: any = {}) {
   const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
   const user = await getAuthenticatedUser(client);
-  const remoteRows = await loadAccountRows(client, user.id);
+  const [remoteRows, mediaResult] = await Promise.all([
+    loadAccountRows(client, user.id),
+    client.from("media_assets").select("*").eq("user_id", user.id),
+  ]);
+  if (mediaResult.error) throw mediaResult.error;
+  const mediaRows = validateMediaAssetRows(mediaResult.data ?? []);
+  const mediaParentIds = {
+    decks: new Set(mediaRows.map((row) => row.deck_id).filter(Boolean)),
+    cards: new Set(mediaRows.map((row) => row.card_id).filter(Boolean)),
+  };
   const rows: Record<string, any[]> = createCloudStateRows(state, user.id, { deviceId: resolvedDeviceId });
 
   for (const table of REVISIONED_TABLES) {
@@ -1457,8 +1502,13 @@ export async function replaceAccountCloudState(client: any, state: any, { device
   await upsertRows(client, "review_events", rows.review_events);
   await upsertRows(client, "ai_jobs", rows.ai_jobs);
 
+  const deletedAt = nowIso();
   for (const table of DELETE_ORDER) {
-    await deleteRowsMissingFromState(client, table, user.id, rows[table]);
+    await deleteRowsMissingFromState(client, table, user.id, rows[table], {
+      protectedIds: table === "decks" ? mediaParentIds.decks : table === "cards" ? mediaParentIds.cards : new Set(),
+      deletedAt,
+      deviceId: resolvedDeviceId,
+    });
   }
 
   const persistedRows = await loadAccountRows(client, user.id);
@@ -1493,7 +1543,7 @@ export async function upsertAccountCloudState(client: any, state: any, { deviceI
 
 export async function loadAccountCloudState(client: any, fallbackState: any = {}) {
   const user = await getAuthenticatedUser(client);
-  const [profileRows, deckRows, cardRows, variantRows, reviewRows, documentRows, aiJobRows] = await Promise.all([
+  const [profileRows, deckRows, cardRows, variantRows, reviewRows, documentRows, aiJobRows, mediaResult] = await Promise.all([
     selectProfileRows(client, user.id),
     selectRows(client, "decks", user.id),
     selectRows(client, "cards", user.id),
@@ -1501,7 +1551,10 @@ export async function loadAccountCloudState(client: any, fallbackState: any = {}
     selectRows(client, "review_events", user.id),
     selectRows(client, "source_documents", user.id),
     selectRows(client, "ai_jobs", user.id),
+    client.from("media_assets").select("*").eq("user_id", user.id),
   ]);
+  if (mediaResult.error) throw mediaResult.error;
+  const mediaRows = validateMediaAssetRows(mediaResult.data ?? []).filter((row) => !row.deleted_at);
   const rowsByTable = {
     decks: deckRows,
     cards: cardRows,
@@ -1537,6 +1590,12 @@ export async function loadAccountCloudState(client: any, fallbackState: any = {}
     aiJobsByDeckId.set(job.deckId, [...(aiJobsByDeckId.get(job.deckId) ?? []), job]);
   }
 
+  const mediaByDeckId = new Map<string, ReturnType<typeof mediaAssetFromRow>[]>();
+  for (const media of mediaRows.map(mediaAssetFromRow)) {
+    if (!activeDeckIds.has(media.deckId) || (media.cardId && !activeCardIds.has(media.cardId))) continue;
+    mediaByDeckId.set(media.deckId, [...(mediaByDeckId.get(media.deckId) ?? []), media]);
+  }
+
   const decks = deckRows.filter((row: any) => !row.deleted_at).map((row: any) => {
     const cards = cardsByDeckId.get(row.id) ?? [];
     return createCoreDeck({
@@ -1552,6 +1611,7 @@ export async function loadAccountCloudState(client: any, fallbackState: any = {}
       cards,
       tags: row.tags,
       importMeta: row.import_meta,
+      mediaAssets: mediaByDeckId.get(row.id) ?? [],
       deckSettings: row.deck_settings,
       graph: row.graph,
       communityRefs: row.community_refs,

@@ -607,3 +607,5 @@ export function createAccountSyncEngine(client: any, options: any = {}) {
     outbox: options.outbox ?? createSyncOutbox({ userId: options.userId, storage: options.storage, now: options.now }),
   });
 }
+
+export type AccountSyncEngine = ReturnType<typeof createAccountSyncEngine>;

@@ -36,7 +36,7 @@
 - No dedicated ADR directory currently exists. When a task touches an existing or hard-to-reverse architectural decision, read the relevant decision material in `docs/specs.md` (especially sections 19 and 25) and any domain analysis such as `docs/anki-format-analysis.md`.
 - For broad, repository-wide changes, expand reading to all affected sections and, when necessary, complete documents. Use `docs/index.md` when the correct canonical source is unclear.
 - Read `docs/file-naming-conventions.md` before adding or renaming files.
-- Current UI screens are in `src/App.jsx`; domain behavior belongs in the smaller modules listed in section 27 of `docs/specs.md`.
+- Current UI screens are orchestrated by `src/App.tsx`; domain behavior belongs in the smaller modules listed in section 27 of `docs/specs.md`.
 
 ## Documentation Updates
 

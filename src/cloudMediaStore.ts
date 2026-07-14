@@ -1,348 +1,247 @@
-import * as v from "valibot";
-import type { Tables, TablesInsert } from "./database.types.ts";
+import type { MediaAssetReference } from "./coreTypes.ts";
+import { validateMediaAssetRows } from "./cloudRepositoryValidation.ts";
 
-export const CORE_MEDIA_BUCKET = "core-media";
-export const RESUMABLE_UPLOAD_THRESHOLD_BYTES = 6 * 1024 * 1024;
+const CORE_MEDIA_BUCKET = "core-media";
+const RESUMABLE_UPLOAD_THRESHOLD_BYTES = 6 * 1024 * 1024;
+const TUS_RETRY_DELAYS = [0, 3_000, 5_000, 10_000, 20_000];
 
-type MediaAssetRow = Tables<"media_assets">;
-type MediaAssetInsert = TablesInsert<"media_assets">;
+export type MediaFailureKind = "auth" | "network" | "expired-resume" | "integrity" | "duplicate" | "conflict" | "rate-limited" | "too-large" | "storage" | "cancelled";
 
-const mediaHashSchema = v.pipe(v.string(), v.minLength(6), v.maxLength(64), v.regex(/^[a-z0-9]+$/));
-const mediaAssetRowSchema = v.looseObject({
-  id: v.string(),
-  user_id: v.string(),
-  deck_id: v.nullable(v.string()),
-  card_id: v.nullable(v.string()),
-  sha1: mediaHashSchema,
-  size: v.pipe(v.number(), v.minValue(0)),
-  mime_type: v.string(),
-  original_name: v.string(),
-  storage_bucket: v.string(),
-  storage_path: v.string(),
-  source: v.string(),
-  metadata: v.record(v.string(), v.unknown()),
-  deleted_at: v.nullable(v.string()),
-  created_at: v.string(),
-  updated_at: v.string(),
-});
-
-function validateMediaRows(input: unknown): MediaAssetRow[] {
-  if (!Array.isArray(input)) throw new Error("Cloud-Mediendaten hatten ein ungültiges Zeilenformat.");
-  const rows = input.map((row) => v.safeParse(mediaAssetRowSchema, row));
-  if (rows.some((row) => !row.success)) throw new Error("Cloud-Mediendaten hatten ein ungültiges Format.");
-  return rows.map((row) => row.output as MediaAssetRow);
+export interface CloudMediaFile {
+  sha1: string;
+  name: string;
+  size: number;
+  mimeType: string;
+  blob: Blob;
+  cardId?: string | null;
+  source?: string;
+  metadata?: Record<string, unknown>;
 }
 
-function nowIso() {
-  return new Date().toISOString();
+export interface CloudMediaControl {
+  isCancelled(): boolean;
+  waitUntilResumed(): Promise<void>;
+  setActiveUpload(upload: { abort(shouldTerminate: boolean): Promise<void>; start?(): void } | null): void;
+  setCancelHandler(handler: (() => void) | null): void;
 }
 
-function sanitizePathPart(value: any, fallback: any = "asset") {
-  const safe = String(value ?? "")
-    .normalize("NFKD")
-    .replace(/[^\w.!$&'()+,;=@-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-  return safe || fallback;
-}
+interface SyncDeckInput { deckId: string; files: CloudMediaFile[]; previousReferences: MediaAssetReference[]; retainedReferences?: MediaAssetReference[]; }
+interface SyncOptions { client: any; supabaseUrl: string; userId: string; decks: SyncDeckInput[]; control: CloudMediaControl; onProgress?(progress: { completed: number; total: number; uploaded: number; reused: number; currentName: string }): void; }
 
-function requireSha1(value: any) {
+function nowIso() { return new Date().toISOString(); }
+
+function requireSha1(value: unknown) {
   const sha1 = String(value ?? "").trim().toLowerCase();
-  if (!v.safeParse(mediaHashSchema, sha1).success) {
-    const error = new Error("Für das Cloud-Medium fehlt die SHA-1-Prüfsumme.") as Error & { code: string };
-    error.code = "cloud_media_sha1_missing";
-    throw error;
-  }
+  if (!/^[a-f0-9]{40}$/.test(sha1)) throw mediaError("integrity", "Für das Cloud-Medium fehlt eine gültige SHA-1-Prüfsumme.");
   return sha1;
 }
 
-function mediaScope({ deckId = null, cardId = null }: any = {}) {
-  if (cardId) return { kind: "cards", id: sanitizePathPart(cardId, "unassigned") };
-  return { kind: "decks", id: sanitizePathPart(deckId, "unassigned") };
+function mediaError(kind: MediaFailureKind, message: string, cause?: unknown) {
+  return Object.assign(new Error(message, cause === undefined ? undefined : { cause }), { kind });
 }
 
-function canonicalMediaId(asset: any, context: any = {}) {
-  const scope = mediaScope(context);
-  return `media_${scope.kind}_${scope.id}_${requireSha1(asset?.sha1)}`;
+export function classifyMediaError(error: unknown): MediaFailureKind {
+  const known = error as { kind?: MediaFailureKind; status?: number; originalResponse?: { getStatus?(): number } };
+  if (known?.kind) return known.kind;
+  const status = Number(known?.status ?? known?.originalResponse?.getStatus?.() ?? 0);
+  const message = String((error as { message?: unknown })?.message ?? "").toLowerCase();
+  if (status === 401 || status === 403 || /jwt|unauthor|auth/.test(message)) return "auth";
+  if (status === 409 || /conflict/.test(message)) return "conflict";
+  if (status === 413 || /too large|maximum.*size/.test(message)) return "too-large";
+  if (status === 429 || /rate.?limit/.test(message)) return "rate-limited";
+  if (status === 404 || status === 410) return "expired-resume";
+  if (/network|fetch|offline|timeout/.test(message)) return "network";
+  if (/duplicate|already exists/.test(message)) return "duplicate";
+  return "storage";
 }
 
-function mediaDedupeKey(asset: any, { bucket = CORE_MEDIA_BUCKET, deckId = null, cardId = null }: any = {}) {
-  return [bucket, deckId ?? "", cardId ?? "", requireSha1(asset?.sha1)].join("\u0000");
+function toReference(row: ReturnType<typeof validateMediaAssetRows>[number]): MediaAssetReference {
+  return {
+    id: row.id, userId: row.user_id, deckId: row.deck_id!, cardId: row.card_id,
+    sha1: row.sha1, size: row.size, mimeType: row.mime_type, originalName: row.original_name,
+    storageBucket: row.storage_bucket, storagePath: row.storage_path, source: row.source,
+    metadata: row.metadata as Record<string, unknown>, createdAt: row.created_at,
+    updatedAt: row.updated_at, deletedAt: row.deleted_at,
+  };
 }
 
-function toBlob(file: any) {
-  if (file?.blob instanceof Blob) return file.blob;
-  if (file instanceof Blob) return file;
-  return new Blob([file?.bytes ?? ""], { type: file?.mimeType || "application/octet-stream" });
+function toRow(file: CloudMediaFile, userId: string, deckId: string, path: string, previous?: MediaAssetReference) {
+  const timestamp = nowIso();
+  const sha1 = requireSha1(file.sha1);
+  return {
+    id: previous?.id ?? `media_${deckId}_${file.cardId ?? "deck"}_${sha1}`,
+    user_id: userId, deck_id: deckId, card_id: file.cardId ?? null, sha1,
+    size: file.size, mime_type: file.mimeType || "application/octet-stream", original_name: file.name,
+    storage_bucket: CORE_MEDIA_BUCKET, storage_path: path, source: file.source ?? "apkg-media",
+    metadata: file.metadata ?? {}, created_at: previous?.createdAt ?? timestamp, updated_at: timestamp, deleted_at: null,
+  };
 }
 
-async function getAuthenticatedUser(client: any) {
-  if (!client?.auth || !client?.storage || !client?.from) throw new Error("Supabase Storage ist noch nicht konfiguriert.");
-  const { data, error } = await client.auth.getUser();
-  if (error) throw error;
-  if (!data?.user) throw new Error("Bitte melde dich zuerst an.");
-  return data.user;
+function accountObjectPath(userId: string, sha1: string) { return `${userId}/objects/${requireSha1(sha1)}`; }
+
+async function currentToken(client: any) {
+  const { data, error } = await client.auth.getSession();
+  if (error || !data?.session?.access_token) throw mediaError("auth", "Die Anmeldung ist für den Medien-Upload abgelaufen.", error);
+  return data.session.access_token as string;
 }
 
-function isAlreadyExistsError(error: any) {
-  return /already exists|asset already exists|duplicate/i.test(String(error?.message ?? error?.error ?? ""));
+function resumableEndpoint(supabaseUrl: string) {
+  const url = new URL(supabaseUrl);
+  if (url.hostname.endsWith(".supabase.co")) url.hostname = url.hostname.replace(/\.supabase\.co$/, ".storage.supabase.co");
+  url.pathname = "/storage/v1/upload/resumable";
+  url.search = "";
+  return url.toString();
 }
 
-function assertMatchingSize(row: any, asset: any) {
-  const persistedSize = Number(row?.size ?? 0);
-  const incomingSize = Number(asset?.size ?? 0);
-  if (persistedSize > 0 && incomingSize > 0 && persistedSize !== incomingSize) {
-    const error = new Error(`Die SHA-1-Prüfsumme ${asset.sha1} verweist auf unterschiedliche Dateigrößen.`) as Error & { code: string };
-    error.code = "cloud_media_hash_mismatch";
-    throw error;
-  }
+async function verifyStoredObject(client: any, path: string, expectedSize: number) {
+  const storage = client.storage.from(CORE_MEDIA_BUCKET);
+  if (typeof storage.info !== "function") throw mediaError("storage", "Die Größe des vorhandenen Cloud-Mediums konnte nicht geprüft werden.");
+  const { data, error } = await storage.info(path);
+  if (error) throw mediaError("storage", "Das vorhandene Cloud-Medium konnte nicht geprüft werden.", error);
+  const actualSize = Number(data?.metadata?.size ?? data?.size);
+  if (!Number.isSafeInteger(actualSize) || actualSize < 0) throw mediaError("storage", "Die Größe des vorhandenen Cloud-Mediums konnte nicht geprüft werden.");
+  if (actualSize !== expectedSize) throw mediaError("integrity", "Die Cloud-Datei hat nicht die erwartete Größe.");
 }
 
-function addScopeFilters(query: any, { deckId = null, cardId = null }: any = {}) {
-  query = deckId == null ? query.is("deck_id", null) : query.eq("deck_id", deckId);
-  return cardId == null ? query.is("card_id", null) : query.eq("card_id", cardId);
+async function uploadSmall(client: any, file: CloudMediaFile, path: string) {
+  const { error } = await client.storage.from(CORE_MEDIA_BUCKET).upload(path, file.blob, { contentType: file.mimeType, upsert: false });
+  if (!error) return "uploaded" as const;
+  if (classifyMediaError(error) !== "duplicate") throw mediaError(classifyMediaError(error), "Das Medium konnte nicht hochgeladen werden.", error);
+  await verifyStoredObject(client, path, file.size);
+  return "reused" as const;
 }
 
-async function selectScopedMediaRows(client: any, userId: any, sha1s: any, { bucket = CORE_MEDIA_BUCKET, deckId = null, cardId = null, includeDeleted = false }: any = {}) {
-  if (sha1s.length === 0) return [];
-  let query = client.from("media_assets").select("*").eq("user_id", userId).eq("storage_bucket", bucket).in("sha1", sha1s);
-  query = addScopeFilters(query, { deckId, cardId });
-  if (!includeDeleted) query = query.is("deleted_at", null);
-  const { data, error } = await query;
-  if (error) throw error;
-  return validateMediaRows(data ?? []);
-}
-
-function canonicalRowsBySha1(rows: any = []) {
-  const sorted = [...rows].sort((left: any, right: any) => {
-    if (Boolean(left.deleted_at) !== Boolean(right.deleted_at)) return left.deleted_at ? 1 : -1;
-    return String(left.created_at ?? "").localeCompare(String(right.created_at ?? "")) || String(left.id ?? "").localeCompare(String(right.id ?? ""));
+async function uploadLarge(client: any, supabaseUrl: string, userId: string, file: CloudMediaFile, path: string, control: CloudMediaControl) {
+  const { Upload } = await import("tus-js-client");
+  let restarted = false;
+  const run = async (): Promise<"uploaded" | "reused"> => new Promise((resolve, reject) => {
+    const upload = new Upload(file.blob, {
+      endpoint: resumableEndpoint(supabaseUrl),
+      chunkSize: RESUMABLE_UPLOAD_THRESHOLD_BYTES,
+      retryDelays: TUS_RETRY_DELAYS,
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      fingerprint: async () => ["core-media", userId, CORE_MEDIA_BUCKET, file.sha1, file.size].join("/"),
+      metadata: { bucketName: CORE_MEDIA_BUCKET, objectName: path, contentType: file.mimeType, cacheControl: "3600" },
+      onBeforeRequest: async (request) => { request.setHeader("Authorization", `Bearer ${await currentToken(client)}`); },
+      onSuccess: () => { control.setActiveUpload(null); control.setCancelHandler(null); resolve("uploaded"); },
+      onError: async (error) => {
+        control.setActiveUpload(null); control.setCancelHandler(null);
+        const kind = classifyMediaError(error);
+        if (kind === "duplicate") {
+          try { await verifyStoredObject(client, path, file.size); resolve("reused"); } catch (verificationError) { reject(verificationError); }
+          return;
+        }
+        if (kind === "expired-resume" && !restarted) {
+          restarted = true;
+          try { resolve(await run()); } catch (restartError) { reject(restartError); }
+          return;
+        }
+        reject(mediaError(kind, "Der fortsetzbare Medien-Upload ist fehlgeschlagen.", error));
+      },
+    });
+    control.setActiveUpload(upload);
+    control.setCancelHandler(() => reject(mediaError("cancelled", "Der Medien-Upload wurde abgebrochen.")));
+    void upload.findPreviousUploads().then((previous) => {
+      if (previous[0] && !restarted) upload.resumeFromPreviousUpload(previous[0]);
+      upload.start();
+    }).catch(reject);
   });
-  const bySha1 = new Map();
-  for (const row of sorted) {
-    if (row?.sha1 && !bySha1.has(row.sha1)) bySha1.set(row.sha1, row);
-  }
-  return bySha1;
+  return run();
 }
 
-async function upsertMediaRow(client: any, row: any) {
-  const { data, error } = await client.from("media_assets").upsert(row, { onConflict: "user_id,id" }).select("*").maybeSingle();
+async function selectAccountHashRows(client: any, userId: string, sha1: string) {
+  const { data, error } = await client.from("media_assets").select("*").eq("user_id", userId).eq("storage_bucket", CORE_MEDIA_BUCKET).eq("sha1", sha1).is("deleted_at", null);
   if (error) throw error;
-  if (!data) throw new Error("Das Cloud-Medium konnte nicht bestätigt werden.");
-  const validated = v.safeParse(mediaAssetRowSchema, data);
-  if (!validated.success) throw new Error("Das bestätigte Cloud-Medium hatte ein ungültiges Format.");
-  return validated.output as MediaAssetRow;
+  return validateMediaAssetRows(data ?? []);
 }
 
-function requestedNamesFor(asset: any) {
-  return [asset.originalName, asset.name, asset.fileName].map((value: any) => String(value ?? "").trim()).filter(Boolean);
+async function persistReference(client: any, row: ReturnType<typeof toRow>) {
+  const { data, error } = await client.from("media_assets").upsert(row, { onConflict: "user_id,id" }).select("*").single();
+  if (error) throw error;
+  return toReference(validateMediaAssetRows([data])[0]);
 }
 
-function groupMediaFiles(mediaFiles: any, context: any) {
-  const grouped = new Map();
-  for (const file of mediaFiles) {
-    const asset = normalizeCloudMediaAsset(file);
-    asset.sha1 = requireSha1(asset.sha1);
-    const key = mediaDedupeKey(asset, context);
-    const current = grouped.get(key);
-    if (current) {
-      assertMatchingSize(current.asset, asset);
-      requestedNamesFor(file).forEach((name: any) => current.requestedNames.add(name));
-      continue;
+async function retireStaleReferences(client: any, userId: string, previous: MediaAssetReference[], activeIds: Set<string>) {
+  const stale = previous.filter((reference) => !activeIds.has(reference.id) && !reference.deletedAt);
+  for (const reference of stale) {
+    const deletedAt = nowIso();
+    const { error } = await client.from("media_assets").update({ deleted_at: deletedAt, updated_at: deletedAt }).eq("user_id", userId).eq("id", reference.id);
+    if (error) throw error;
+    const { data, error: countError } = await client.from("media_assets").select("id").eq("user_id", userId).eq("storage_bucket", reference.storageBucket).eq("storage_path", reference.storagePath).is("deleted_at", null);
+    if (countError) throw countError;
+    if ((data ?? []).length === 0) {
+      const { error: removeError } = await client.storage.from(reference.storageBucket).remove([reference.storagePath]);
+      if (removeError) throw removeError;
     }
-    grouped.set(key, {
-      asset,
-      requestedNames: new Set(requestedNamesFor(file).length > 0 ? requestedNamesFor(file) : [asset.originalName]),
-    });
   }
-  return [...grouped.values()];
 }
 
-export function normalizeCloudMediaAsset(asset: any = {}) {
-  const sha1 = String(asset.sha1 ?? asset.contentHash ?? "").trim().toLowerCase();
-  const name = String((asset.originalName ?? asset.name ?? asset.fileName ?? sha1) || "medium").trim();
-  return {
-    id: asset.id ?? null,
-    sha1,
-    originalName: name,
-    size: Number(asset.size ?? asset.bytes?.byteLength ?? asset.bytes?.length ?? asset.blob?.size ?? 0),
-    mimeType: asset.mimeType ?? asset.type ?? "application/octet-stream",
-    source: asset.source ?? "apkg-media",
-    metadata: asset.metadata ?? {},
-    bytes: asset.bytes,
-    blob: asset.blob,
-  };
-}
-
-export function createCloudMediaPath(userId: any, asset: any, { deckId = "unassigned", cardId = null }: any = {}) {
-  const normalized = normalizeCloudMediaAsset(asset);
-  const scope = mediaScope({ deckId, cardId });
-  return `${userId}/${scope.kind}/${scope.id}/${sanitizePathPart(requireSha1(normalized.sha1), "hashless")}`;
-}
-
-export function createMediaAssetRow(asset: any, userId: any, { bucket = CORE_MEDIA_BUCKET, deckId = null, cardId = null, storagePath = null, deletedAt = null }: any = {}): MediaAssetInsert {
-  const normalized = normalizeCloudMediaAsset(asset);
-  normalized.sha1 = requireSha1(normalized.sha1);
-  return {
-    id: canonicalMediaId(normalized, { deckId, cardId }),
-    user_id: userId,
-    deck_id: deckId,
-    card_id: cardId,
-    sha1: normalized.sha1,
-    size: normalized.size,
-    mime_type: normalized.mimeType,
-    original_name: normalized.originalName,
-    storage_bucket: bucket,
-    storage_path: storagePath ?? createCloudMediaPath(userId, normalized, { deckId, cardId }),
-    source: normalized.source,
-    metadata: normalized.metadata,
-    deleted_at: deletedAt,
-    created_at: asset.createdAt ?? nowIso(),
-    updated_at: asset.updatedAt ?? nowIso(),
-  };
-}
-
-export async function persistDeckMedia(client: any, deck: any, mediaFiles: any = [], options: any = {}) {
-  if (!Array.isArray(mediaFiles) || mediaFiles.length === 0) {
-    return { bucket: options.bucket ?? CORE_MEDIA_BUCKET, rows: [], uploaded: [], reused: [], skippedLarge: [], warnings: [] };
-  }
-
-  const bucket = options.bucket ?? CORE_MEDIA_BUCKET;
-  const deckId = deck?.id ?? null;
-  const cardId = options.cardId ?? null;
-  const context = { bucket, deckId, cardId };
-  const groupedFiles = groupMediaFiles(mediaFiles, context);
-  const user = await getAuthenticatedUser(client);
-  const existingRows = await selectScopedMediaRows(client, user.id, groupedFiles.map(({ asset }: any) => asset.sha1), { ...context, includeDeleted: true });
-  const existingBySha1 = canonicalRowsBySha1(existingRows);
-  const rows: any[] = [];
-  const uploaded: any[] = [];
-  const reused: any[] = [];
-  const skippedLarge: any[] = [];
-  const warnings: any[] = [];
-  const storage = client.storage.from(bucket);
-
-  for (const { asset, requestedNames } of groupedFiles) {
-    const existing = existingBySha1.get(asset.sha1) ?? null;
-    if (existing && !existing.deleted_at) {
-      assertMatchingSize(existing, asset);
-      rows.push(existing);
-      reused.push({ ...existing, uploadStatus: "reused", requestedNames: [...requestedNames] });
-      continue;
+export async function syncReferences({ client, supabaseUrl, userId, decks, control, onProgress }: SyncOptions) {
+  const total = decks.reduce((sum, deck) => sum + deck.files.length, 0);
+  let completed = 0, uploaded = 0, reused = 0;
+  const referencesByDeck = new Map<string, MediaAssetReference[]>();
+  for (const deck of decks) {
+    const references = new Map((deck.retainedReferences ?? []).map((reference) => [reference.id, reference]));
+    for (const file of deck.files) {
+      await control.waitUntilResumed();
+      if (control.isCancelled()) throw mediaError("cancelled", "Der Medien-Upload wurde abgebrochen.");
+      const sha1 = requireSha1(file.sha1);
+      const path = accountObjectPath(userId, sha1);
+      const sameHashRows = await selectAccountHashRows(client, userId, sha1);
+      const matchingObject = sameHashRows[0];
+      if (matchingObject && Number(matchingObject.size) !== file.size) throw mediaError("integrity", "Dieselbe SHA-1-Prüfsumme verweist auf unterschiedliche Dateigrößen.");
+      let outcome: "uploaded" | "reused";
+      if (matchingObject) {
+        await verifyStoredObject(client, matchingObject.storage_path, file.size);
+        outcome = "reused";
+      } else {
+        outcome = file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES
+          ? await uploadSmall(client, file, path)
+          : await uploadLarge(client, supabaseUrl, userId, file, path, control);
+      }
+      if (control.isCancelled()) {
+        if (outcome === "uploaded") {
+          await client.storage.from(CORE_MEDIA_BUCKET).remove([path]);
+        }
+        throw mediaError("cancelled", "Der Medien-Upload wurde abgebrochen.");
+      }
+      const oldReference = deck.previousReferences.find((reference) => reference.sha1 === sha1 && reference.cardId === (file.cardId ?? null))
+        ?? deck.previousReferences.find((reference) => reference.sha1 === sha1 && reference.cardId == null);
+      const persisted = await persistReference(client, toRow(file, userId, deck.deckId, matchingObject?.storage_path ?? path, oldReference));
+      references.set(persisted.id, persisted);
+      completed += 1; outcome === "uploaded" ? uploaded += 1 : reused += 1;
+      onProgress?.({ completed, total, uploaded, reused, currentName: file.name });
     }
-
-    const candidate = createMediaAssetRow(asset, user.id, {
-      bucket,
-      deckId,
-      cardId,
-      storagePath: existing?.storage_path ?? null,
-      deletedAt: null,
-    });
-
-    if (asset.size > RESUMABLE_UPLOAD_THRESHOLD_BYTES) {
-      skippedLarge.push({ ...candidate, uploadStrategy: "resumable-required", requestedNames: [...requestedNames] });
-      warnings.push(`${asset.originalName} ist größer als 6 MB und braucht einen resumable Upload.`);
-      continue;
-    }
-
-    const { error: uploadError } = await storage.upload(candidate.storage_path, toBlob(asset), {
-      contentType: asset.mimeType,
-      upsert: false,
-    });
-    const alreadyExists = Boolean(uploadError && isAlreadyExistsError(uploadError));
-    if (uploadError && !alreadyExists) throw uploadError;
-
-    const persisted = await upsertMediaRow(client, {
-      ...candidate,
-      id: existing?.id ?? candidate.id,
-      created_at: existing?.created_at ?? candidate.created_at,
-      metadata: existing?.metadata ?? candidate.metadata,
-      updated_at: nowIso(),
-      deleted_at: null,
-    });
-    assertMatchingSize(persisted, asset);
-    rows.push(persisted);
-    existingBySha1.set(asset.sha1, persisted);
-
-    const outcome = { ...persisted, uploadStatus: alreadyExists ? "already-exists" : "uploaded", requestedNames: [...requestedNames] };
-    if (alreadyExists) reused.push(outcome);
-    else uploaded.push(outcome);
+    await retireStaleReferences(client, userId, deck.previousReferences, new Set(references.keys()));
+    referencesByDeck.set(deck.deckId, [...references.values()]);
   }
-
-  return { bucket, rows, uploaded, reused, skippedLarge, warnings };
+  return { referencesByDeck, completed, total, uploaded, reused };
 }
 
-export async function resolveDeckMediaUrls(client: any, deckOrAssets: any, options: any = {}) {
-  const user = await getAuthenticatedUser(client);
-  const expiresIn = options.expiresIn ?? 60 * 60;
-  const isExplicitRowList = Array.isArray(deckOrAssets);
-  const assets = isExplicitRowList ? deckOrAssets : deckOrAssets?.importMeta?.mediaManifest?.assets ?? [];
-  const aliasesBySha1 = new Map();
-  for (const asset of assets) {
-    const sha1 = String(asset?.sha1 ?? "").trim().toLowerCase();
-    if (!sha1) continue;
-    const aliases = aliasesBySha1.get(sha1) ?? new Set();
-    requestedNamesFor(asset).forEach((name: any) => aliases.add(name));
-    aliasesBySha1.set(sha1, aliases);
-  }
-
-  let rows = isExplicitRowList && assets.length > 0 && assets[0]?.storage_path ? assets : [];
-  if (rows.length === 0 && assets.length > 0) {
-    const sha1s = [...new Set(assets.map((asset: any) => String(asset?.sha1 ?? "").trim().toLowerCase()).filter(Boolean))];
-    rows = await selectScopedMediaRows(client, user.id, sha1s, {
-      bucket: options.bucket ?? CORE_MEDIA_BUCKET,
-      deckId: deckOrAssets?.id ?? options.deckId ?? null,
-      cardId: options.cardId ?? null,
-    });
-  }
-
+export async function resolveReferences(client: any, references: MediaAssetReference[], expiresIn = 3_600) {
   const urls: Record<string, string> = {};
-  const missing: any[] = [];
-  const resolvedSha1s = new Set();
-  for (const row of rows) {
-    if (!row?.storage_bucket || !row?.storage_path || row.deleted_at) {
-      missing.push(row);
-      continue;
+  const missing: MediaAssetReference[] = [];
+  const expiresAt = new Date(Date.now() + expiresIn * 1_000).toISOString();
+  const byBucket = new Map<string, MediaAssetReference[]>();
+  for (const reference of references.filter((item) => !item.deletedAt)) byBucket.set(reference.storageBucket, [...(byBucket.get(reference.storageBucket) ?? []), reference]);
+  for (const [bucket, items] of byBucket) {
+    const paths = [...new Set(items.map((item) => item.storagePath))];
+    const storage = client.storage.from(bucket);
+    if (typeof storage.createSignedUrls === "function") {
+      const { data, error } = await storage.createSignedUrls(paths, expiresIn);
+      if (error) { missing.push(...items); continue; }
+      const urlByPath = new Map<string, string>((data ?? []).filter((item: any) => item.signedUrl).map((item: any) => [String(item.path), String(item.signedUrl)]));
+      for (const item of items) {
+        const url = urlByPath.get(item.storagePath);
+        if (!url) missing.push(item); else { urls[item.sha1] = url; urls[item.originalName] = url; }
+      }
+    } else {
+      for (const item of items) {
+        const { data, error } = await storage.createSignedUrl(item.storagePath, expiresIn);
+        if (error || !data?.signedUrl) missing.push(item); else { urls[item.sha1] = data.signedUrl; urls[item.originalName] = data.signedUrl; }
+      }
     }
-    const { data, error } = await client.storage.from(row.storage_bucket).createSignedUrl(row.storage_path, expiresIn);
-    if (error || !data?.signedUrl) {
-      missing.push(row);
-      continue;
-    }
-    urls[row.original_name] = data.signedUrl;
-    if (row.sha1) {
-      const sha1 = String(row.sha1).toLowerCase();
-      urls[sha1] = data.signedUrl;
-      resolvedSha1s.add(sha1);
-      for (const alias of aliasesBySha1.get(sha1) ?? []) urls[alias] = data.signedUrl;
-    }
   }
-
-  for (const asset of assets) {
-    const sha1 = String(asset?.sha1 ?? "").trim().toLowerCase();
-    if (sha1 && !resolvedSha1s.has(sha1) && !missing.includes(asset)) missing.push(asset);
-  }
-
-  return { urls, missing, expiresIn };
-}
-
-export async function deleteUnreferencedMedia(client: any, rows: any = [], keepRefs: any = new Set(), options: any = {}) {
-  const user = await getAuthenticatedUser(client);
-  const bucket = options.bucket ?? CORE_MEDIA_BUCKET;
-  const deletable = rows.filter((row: any) => row?.user_id === user.id && !keepRefs.has(row.id) && !keepRefs.has(row.sha1) && !keepRefs.has(row.original_name));
-  if (deletable.length === 0) return { deleted: 0, rows: [] };
-
-  const paths = deletable.map((row: any) => row.storage_path).filter(Boolean);
-  if (paths.length > 0) {
-    const { error } = await client.storage.from(bucket).remove(paths);
-    if (error) throw error;
-  }
-
-  const deletedAt = nowIso();
-  for (const row of deletable) {
-    const { error } = await client.from("media_assets").update({ deleted_at: deletedAt, updated_at: deletedAt }).eq("user_id", user.id).eq("id", row.id);
-    if (error) throw error;
-  }
-
-  return { deleted: deletable.length, rows: deletable };
+  return { urls, missing, expiresAt };
 }

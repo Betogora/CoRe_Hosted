@@ -126,7 +126,7 @@ expected_foreign_keys(
     ('ai_jobs', 'ai_jobs_deck_owner_fk', array['deck_id', 'user_id']::text[], 'public', 'decks', array['id', 'user_id']::text[]),
     ('media_assets', 'media_assets_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
     ('media_assets', 'media_assets_deck_owner_fk', array['deck_id', 'user_id']::text[], 'public', 'decks', array['id', 'user_id']::text[]),
-    ('media_assets', 'media_assets_card_owner_fk', array['card_id', 'user_id']::text[], 'public', 'cards', array['id', 'user_id']::text[]),
+    ('media_assets', 'media_assets_card_deck_owner_fk', array['card_id', 'deck_id', 'user_id']::text[], 'public', 'cards', array['id', 'deck_id', 'user_id']::text[]),
     ('sync_devices', 'sync_devices_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
     ('sync_conflicts', 'sync_conflicts_user_id_fkey', array['user_id']::text[], 'auth', 'users', array['id']::text[]),
     ('admin_audit_events', 'admin_audit_events_actor_user_id_fkey', array['actor_user_id']::text[], 'auth', 'users', array['id']::text[]),

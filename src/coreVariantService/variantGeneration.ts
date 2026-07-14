@@ -4,7 +4,7 @@ import {
   getLearningItemQuestion,
   getOriginalVariant,
 } from "../coreModel.ts";
-import { stripHtml } from "../htmlSafety.js";
+import { stripHtml } from "../htmlSafety.ts";
 import type { CardVariant, CardVariantType, LearningItem, TransformType } from "../coreTypes.ts";
 
 const DEFAULT_VARIANT_TYPES = ["basic", "cloze", "reverse"] as const satisfies readonly CardVariantType[];

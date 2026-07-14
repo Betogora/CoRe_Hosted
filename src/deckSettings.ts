@@ -28,8 +28,7 @@ interface SchedulerPreferences {
 }
 
 interface ProfileWithSchedulerPreferences {
-  schedulerPreferences?: SchedulerPreferences;
-  [key: string]: unknown;
+  schedulerPreferences?: Record<string, unknown>;
 }
 
 interface PresetDefinition {
@@ -130,7 +129,7 @@ const presetDefinitions = {
   },
 } satisfies Record<Exclude<SchedulerPreset, "custom">, PresetDefinition>;
 
-export const LEARNING_SETTING_PRESETS = Object.values(presetDefinitions).map(({ id, label, description }) => ({ id, label, description }));
+export const LEARNING_SETTING_PRESETS = Object.values(presetDefinitions).map(({ id, label, description }: any) => ({ id, label, description }));
 
 export function normalizeLearningSettings(settings: LearningSettingsInput = {}): LearningSettings {
   const sourceSettings = settings ?? {};
@@ -211,7 +210,7 @@ export function applyLearningSettingsToDeckSettings<T extends Record<string, unk
 }
 
 export function getGlobalDeckSettings(profile: ProfileWithSchedulerPreferences = {}): LearningSettings & { coreMode: CoreMode } {
-  const preferences = profile.schedulerPreferences ?? {};
+  const preferences = (profile.schedulerPreferences ?? {}) as SchedulerPreferences;
   const storedSettings = preferences.deckSettings;
   const requestedPreset = typeof preferences.profile === "string" && preferences.profile in presetDefinitions
     ? preferences.profile

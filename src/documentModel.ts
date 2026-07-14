@@ -1,5 +1,5 @@
 import { createSourceAnchor, createSourceDocument } from "./coreModel.ts";
-import { loadPdfJs } from "./pdfRuntime.js";
+import { loadPdfJs } from "./pdfRuntime.ts";
 
 const TEXT_EXTENSIONS = [".txt", ".md", ".markdown", ".csv", ".tsv"];
 const PDF_EXTENSIONS = [".pdf"];

@@ -90,6 +90,7 @@ create table if not exists public.cards (
 );
 
 create unique index if not exists cards_id_user_id_idx on public.cards (id, user_id);
+create unique index if not exists cards_id_deck_id_user_id_idx on public.cards (id, deck_id, user_id);
 create index if not exists cards_user_id_idx on public.cards (user_id);
 create index if not exists cards_deck_id_idx on public.cards (deck_id);
 
@@ -186,7 +187,7 @@ create unique index if not exists source_documents_id_user_id_idx on public.sour
 create table if not exists public.ai_jobs (
   id text,
   user_id uuid not null references auth.users(id) on delete cascade,
-  deck_id text,
+  deck_id text not null,
   job_type text not null,
   status text not null default 'queued' check (status in ('queued', 'running', 'succeeded', 'failed', 'cancelled')),
   input_ref jsonb not null default '{}'::jsonb,
@@ -225,12 +226,13 @@ create table if not exists public.media_assets (
   deleted_at timestamptz,
   primary key (user_id, id),
   constraint media_assets_deck_owner_fk foreign key (deck_id, user_id) references public.decks (id, user_id) on delete cascade,
-  constraint media_assets_card_owner_fk foreign key (card_id, user_id) references public.cards (id, user_id) on delete cascade
+  constraint media_assets_card_deck_owner_fk foreign key (card_id, deck_id, user_id) references public.cards (id, deck_id, user_id) on delete cascade
 );
 
 create index if not exists media_assets_user_id_idx on public.media_assets (user_id);
 create index if not exists media_assets_sha1_idx on public.media_assets (sha1);
-create unique index if not exists media_assets_storage_path_idx on public.media_assets (storage_bucket, storage_path);
+create index if not exists media_assets_storage_path_idx on public.media_assets (storage_bucket, storage_path);
+create unique index if not exists media_assets_active_reference_idx on public.media_assets (user_id, storage_bucket, deck_id, coalesce(card_id, ''), sha1) where deleted_at is null;
 
 create table if not exists public.sync_devices (
   id text,

@@ -2,7 +2,7 @@
 
 CoRe ist ein lokaler Web-MVP fuer eine Lernplattform, die klassische Spaced-Repetition-Karten um inhaltliche Wiederholung erweitert. Das Ziel ist, Kartenblindheit zu reduzieren: Lernende sollen nicht nur Layout, Wortlaut oder Lueckenposition wiedererkennen, sondern den Inhalt auch bei veraenderter Fragestellung abrufen koennen.
 
-Der aktuelle Stand ist ein breiter Web-MVP. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind angebunden, und es gibt Pflichtlogin, Supabase-E-Mail/Passwort, accountgebundenen Browser-Cache und Cloud-first Autosave ueber Tabellen. Authentifizierte Screens laden bedarfsgerecht, der PDF.js-Viewer kapselt Anzeige und Quellenauswahl, und ein harter Postbuild-Check begrenzt JavaScript-Chunks auf 500.000 Byte. Das Preview-/Production-/Rollback-Runbook ist dokumentiert; Version, Umgebung und Build-Commit sind am Login, in den Einstellungen und im sicheren React-Fehlerfallback sichtbar. CoRe ist aber noch kein fertiges gehostetes Mehrnutzerprodukt: Die Hosted-Redirect-Konfiguration und erste Production-Abnahme sowie Offline-Konfliktloesung, produktive Medienablage, Serverjobs, Monitoring und Backups fehlen noch.
+Der aktuelle Stand ist ein breiter Web-MVP. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind angebunden, und es gibt Pflichtlogin, Supabase-E-Mail/Passwort, accountgebundenen Browser-Cache und Cloud-first Autosave ueber Tabellen. Authentifizierte Screens laden bedarfsgerecht, der PDF.js-Viewer kapselt Anzeige und Quellenauswahl, und ein harter Postbuild-Check begrenzt JavaScript-Chunks auf 500.000 Byte. Das Preview-/Production-/Rollback-Runbook, die Hosted-Redirect-Konfiguration und die erste Production-Abnahme sind dokumentiert; Version, Umgebung und Build-Commit sind am Login, in den Einstellungen und im sicheren React-Fehlerfallback sichtbar. TypeScript-Migration, Konfliktauflösung und das lokale Zwei-Geräte-Sync-Gate sind abgeschlossen. Produktive Medienablage, Serverjobs, Monitoring und Backups fehlen weiterhin.
 
 Die gepflegte Projektdokumentation liegt im Ordner `docs/`. Es gibt genau eine TODO-Markdown-Datei: `docs/todo.md`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
 
@@ -42,7 +42,7 @@ Die Entwicklungs- und Preview-Server sind auf `http://127.0.0.1:5190/` konfiguri
 
 ```bash
 npm run dev      # Vite-Dev-Server
-npm test         # Node-Testlauf fuer src/*.test.js
+npm test         # Node-Testlauf fuer src/**/*.test.{ts,tsx} und api/**/*.test.{ts,tsx}
 npm run test:e2e # Playwright-Smoke fuer lokale Browser-Flows
 npm run test:e2e:local # Supabase lokal starten, alle Browser-Smokes ausführen und wieder stoppen
 npm run test:rls:local # Supabase lokal starten, Schema-/RLS-Gate und A/B/anon-Smokes ausführen
@@ -83,7 +83,7 @@ npm run test:e2e:local
 
 Der Befehl prüft die Docker-Engine, startet nur die für CoRe benötigten lokalen Supabase-Dienste, wendet ausstehende Migrationen an, führt das SQL-Struktur-Gate und echte Nutzer-A/Nutzer-B/`anon`-Data-API-Smokes aus, liest URL und Publishable Key aus dem JSON-Status der installierten Supabase-CLI ausschließlich von der Loopback-Instanz, legt lokale Testaccounts bei Bedarf an, führt Playwright aus und stoppt den Stack anschließend wieder. Die Status-Auswertung bleibt auch mit älteren `KEY=VALUE`-Ausgaben kompatibel. Beim ersten Lauf lädt Supabase die Docker-Images herunter. Docker muss dafür laufen; für `npm test`, `npm run build` und normale Entwicklungsarbeit ist Docker nicht erforderlich. Zusätzliche Playwright-Argumente werden weitergereicht, zum Beispiel `npm run test:e2e:local -- --project=auth-gate-chromium`. Für die fokussierte Datenbankabnahme ohne Browser dient `npm run test:rls:local`.
 
-Der lokale Lauf wurde am 2026-07-10 mit allen 19 Tests erfolgreich abgenommen. Darin enthalten sind ein ausschließlich im E2E-Modus aktivierbarer Renderfehler-Smoke fuer den sicheren Fehlerfallback und ein PDF-Smoke fuer Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker; der Production-Build enthaelt den Renderfehler-Testparameter nicht. Beim ersten Start werden die Docker-Images einmalig lokal heruntergeladen; danach startet der Lauf deutlich schneller.
+Der lokale Lauf wurde am 2026-07-14 mit allen 21 Tests erfolgreich abgenommen. Darin enthalten sind ein ausschließlich im E2E-Modus aktivierbarer Renderfehler-Smoke fuer den sicheren Fehlerfallback, ein PDF-Smoke fuer Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker sowie Offline-Reconnect und Konfliktauflösung; der Production-Build enthaelt den Renderfehler-Testparameter nicht. Beim ersten Start werden die Docker-Images einmalig lokal heruntergeladen; danach startet der Lauf deutlich schneller.
 
 Alternativ unterstützen die Playwright-Produkttests weiterhin ein separates Hosted-Supabase-Testprojekt mit einem einmalig vorab angelegten Testaccount. Lege dafür lokal eine von Git ignorierte `.env.e2e.local` mit diesen Werten an:
 
@@ -111,38 +111,37 @@ npm run test:e2e -- --project=authenticated-chromium
 
 ```text
 src/
-  App.jsx                 App-Shell: Workspace-State, Navigation und Routing
-  AppErrorBoundary.jsx    Sicherer React-Fehlerfallback und Wiederherstellungsaktionen
-  appRuntime.js           Allowlist-basierte App-Version, Umgebung und Build-Commit
+  App.tsx                 App-Shell: Workspace-State, Navigation und Routing
+  AppErrorBoundary.tsx    Sicherer React-Fehlerfallback und Wiederherstellungsaktionen
+  appRuntime.ts           Allowlist-basierte App-Version, Umgebung und Build-Commit
   screens/                UI-Screens mit kleinen Props-Interfaces
   screens/README.md       Screen-Map und Regeln fuer KI-Programmierung
   ui/                     Geteilte Praesentationsbausteine und Medien-HTML
-  coreModel.js            Zentrales Deck-, Karten-, Varianten- und Review-Datenmodell
+  coreModel.ts            Zentrales Deck-, Karten-, Varianten- und Review-Datenmodell
   coreRepository.ts       Lokale Persistenz und State-Normalisierung
   accountSession.ts       Auth-Phasen, Login-Gate-Entscheidung und Sync-Statusmeldungen
   accountStorage.ts       Accountgebundene Browser-Cache-Keys und Legacy-Importmarkierung
   supabaseClient.ts       Supabase Browser-Client aus oeffentlichen Vite-Env-Variablen
   cloudAuth.ts            Supabase Auth/Profile-Kommandos
   cloudRepository.ts      Accountgefiltertes Laden/Speichern ueber Supabase-Tabellen
-  coreWorkspace.js        App-Kommandos und Demo-Daten
+  coreWorkspace.ts        App-Kommandos und Demo-Daten
   fixtures/               Lokale Seed-/Fixture-Daten
-  creationWorkflow.js     Creation-/Import-Orchestrierung fuer APKG, Paste, manuell und KI-Drafts
+  creationWorkflow.ts     Creation-/Import-Orchestrierung fuer APKG, Paste, manuell und KI-Drafts
   apkgImport.ts           Anki-APKG-Importpipeline
-  pdfRuntime.js           Geteilte, bedarfsgeladene PDF.js-Runtime samt Worker-Vertrag
-  pdfSelection.js         Text- und Koordinaten-Normalisierung fuer PDF-Quellenanker
-  ui/PdfDocumentViewer.jsx Tiefer PDF-Viewer fuer Anzeige, Navigation, Zoom und Auswahl
+  pdfRuntime.ts           Geteilte, bedarfsgeladene PDF.js-Runtime samt Worker-Vertrag
+  pdfSelection.ts         Text- und Koordinaten-Normalisierung fuer PDF-Quellenanker
+  ui/PdfDocumentViewer.tsx Tiefer PDF-Viewer fuer Anzeige, Navigation, Zoom und Auswahl
   importService.ts        Text-, CSV-, JSON- und Tabellen-Import mit Fingerprints/Dedupe
-  reviewService.js        Tiefer Review-Flow, Sessions, Fallback und Rating-Erfassung
-  reviewFlow.js           Legacy-Fassade fuer bestehende Review-Imports
-  scheduler.js            FSRS-like Review-State, Intervalle, Retrievability und Maturity-XP
-  libraryModel.js         Dashboard-, Decklisten-, Heatmap- und Job-Projektionen
-  richText.js             Rich-Text-Normalisierung und Text-zu-Karten-HTML
-  htmlSafety.js           HTML-Sanitization und HTML-zu-Text-Helfer
-  coreVariantService.js   Eligibility, Reifegrad, Variant-Plan, Fallback und Varianten-Feedback
+  reviewService.ts        Tiefer Review-Flow, Sessions, Fallback und Rating-Erfassung
+  scheduler.ts            FSRS-like Review-State, Intervalle, Retrievability und Maturity-XP
+  libraryModel.ts         Dashboard-, Decklisten-, Heatmap- und Job-Projektionen
+  richText.ts             Rich-Text-Normalisierung und Text-zu-Karten-HTML
+  htmlSafety.ts           HTML-Sanitization und HTML-zu-Text-Helfer
+  coreVariantService.ts   Eligibility, Reifegrad, Variant-Plan, Fallback und Varianten-Feedback
   aiOrchestrator.ts       Lokale KI-Job- und Draft-Erzeugung
-  deckGraph.js            Mindmap-/Graph-Modell
+  deckGraph.ts            Mindmap-/Graph-Modell
   deckAssistant.ts        Quellengebundene Deck-Antworten
-  learningPlan.js         Lokale Lernplan-Erzeugung
+  learningPlan.ts         Lokale Lernplan-Erzeugung
   dataPortability.ts      JSON-Export/-Import
 ```
 
@@ -156,11 +155,11 @@ src/
 - `docs/anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
 - `fixtures/apkg/world-capitals.apkg`: reproduzierbare APKG-Fixture fuer Unterstapel-Tests.
 - `scripts/create_world_capitals_apkg.py`: Generator fuer APKG-Fixture, Quell-Snapshot und lokalen Seed.
-- `tests/e2e/world-capitals-hierarchy.spec.js`: Playwright-Smoke fuer Seed, Unterstapel, direkte Lernlisten-Drag-and-drop-Gesten und die Kartenstapel-Verwaltung ohne alten Drag-Handle.
-- `tests/e2e/auth.setup.js`: RLS-konformer Reset des dedizierten Testaccounts und Aufbau der ignorierten Playwright-`storageState`-Session.
-- `tests/rls/ownership-smoke.test.js`: echter lokaler Nutzer-A/Nutzer-B/`anon`-Smoke für Core-, Medien- und Sync-Tabellen.
-- `tests/e2e/auth-gate.spec.js`: sessionlose Login-Gate- und Auth-Fehler-Smokes.
-- `tests/e2e/core-stabilization.spec.js`: authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent und Portabilität.
+- `tests/e2e/world-capitals-hierarchy.spec.ts`: Playwright-Smoke fuer Seed, Unterstapel, direkte Lernlisten-Drag-and-drop-Gesten und die Kartenstapel-Verwaltung ohne alten Drag-Handle.
+- `tests/e2e/auth.setup.ts`: RLS-konformer Reset des dedizierten Testaccounts und Aufbau der ignorierten Playwright-`storageState`-Session.
+- `tests/rls/ownership-smoke.test.ts`: echter lokaler Nutzer-A/Nutzer-B/`anon`-Smoke für Core-, Medien- und Sync-Tabellen.
+- `tests/e2e/auth-gate.spec.ts`: sessionlose Login-Gate- und Auth-Fehler-Smokes.
+- `tests/e2e/core-stabilization.spec.ts`: authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent und Portabilität.
 - `AGENTS.md`: lokale Entwicklungsregeln, empfohlene Kommandos und Architekturleitplanken.
 - `vercel.json`: aktueller Vercel-Build-/Rewrite-Anker fuer die Vite-App.
 - `.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag.
@@ -172,7 +171,7 @@ src/
 
 ## Aktueller Status
 
-CoRe laeuft lokal als Vite/React-App und hat einen initialen Vercel-/Supabase-Infrastrukturpfad. Pflichtlogin, E-Mail/Passwort-Auth, Profil-Upsert, accountgebundener Cache, Cloud-first Autosave, bedarfsgeladene Produktscreens, ein PDF.js-Quellenviewer, ein hartes Build-Chunk-Gate, automatisiertes CI, sichtbare Release-Identitaet, sicherer React-Fehlerfallback und ein manuelles Preview-/Production-/Rollback-Runbook sind vorhanden. `https://core-hosted.vercel.app` ist als kanonische Production-URL festgelegt; Hosted-Supabase-Konfiguration und die protokollierte Production-Abnahme sind noch offen. Eine eigene Domain ist fuer dieses P0-Ziel nicht erforderlich. Offline-Konfliktloesung zwischen Geraeten und vollstaendige Betriebsbeobachtung fehlen ebenfalls.
+CoRe laeuft lokal als Vite/React-App und hat einen verifizierten Vercel-/Supabase-Infrastrukturpfad. Pflichtlogin, E-Mail/Passwort-Auth, Profil-Upsert, accountgebundener Cache, Cloud-first Autosave, bedarfsgeladene Produktscreens, ein PDF.js-Quellenviewer, ein hartes Build-Chunk-Gate, automatisiertes CI, sichtbare Release-Identitaet, sicherer React-Fehlerfallback und ein manuelles Preview-/Production-/Rollback-Runbook sind vorhanden. `https://core-hosted.vercel.app` ist als kanonische Production-URL festgelegt; Hosted-Supabase-Konfiguration und die protokollierte Production-Abnahme sind abgeschlossen. Das lokale Zwei-Geräte-Gate verifiziert Konflikte, Offline-Reviews und Soft-Deletes. Eine eigene Domain ist fuer dieses P0-Ziel nicht erforderlich; vollständige Betriebsbeobachtung bleibt offen.
 
 ## Naechste sinnvolle Schritte
 

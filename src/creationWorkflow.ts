@@ -1,9 +1,9 @@
 import { generateCardsFromDocument } from "./aiOrchestrator.ts";
 import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument } from "./coreModel.ts";
 import { createAnchorFromSelection, createDocumentFromFile } from "./documentModel.ts";
-import { appendPlainTextToCardHtml, hasCardRichTextContent } from "./richText.js";
+import { appendPlainTextToCardHtml, hasCardRichTextContent } from "./richText.ts";
 import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
-import { storeDeckMedia } from "./mediaStore.ts";
+import { createAccountMediaStore, type MediaSyncTask } from "./mediaStore.ts";
 import type { CardType, Deck, LearningItem, SourceAnchor } from "./coreTypes.ts";
 
 interface FileLike {
@@ -65,6 +65,7 @@ interface ManualValidationInput {
 }
 
 export type CreationWorkflow = ReturnType<typeof createCreationWorkflow>;
+type AccountMediaStore = ReturnType<typeof createAccountMediaStore>;
 
 function loadApkgImport(): Promise<typeof import("./apkgImport.ts")> {
   return import("./apkgImport.ts");
@@ -169,13 +170,13 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
   };
 }
 
-export function createCreationWorkflow() {
+export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" }), persistImportedDecks = async (_decks: Deck[]) => {} }: { mediaStore?: AccountMediaStore; persistImportedDecks?: (decks: Deck[], options?: { mediaOnly?: boolean }) => Promise<unknown> } = {}) {
   return {
     async parseApkgFile(file: FileLike, { onStep, existingDecks = [] }: ApkgOptions = {}) {
       try {
         const { createApkgImportPreview } = await loadApkgImport();
         const result = await createApkgImportPreview(file, onStep, { existingDecks });
-        const mediaStatus = result.preview ? await storeDeckMedia(result.preview.deck, result.preview.mediaFiles) : null;
+        const mediaStatus = result.preview ? await mediaStore.cachePreviewMedia(result.preview.deck, result.preview.mediaFiles) : null;
         const mediaErrors = mediaStatus?.errors ?? [];
         const reportWarnings = result.preview?.importReport?.warnings ?? [];
         const reportErrors = result.preview?.importReport?.errors ?? [];
@@ -212,7 +213,17 @@ export function createCreationWorkflow() {
         };
       }
       const { commitApkgImport } = await loadApkgImport();
-      return commitApkgImport(preview, { existingDecks });
+      const committed = await commitApkgImport(preview, { existingDecks });
+      const decks = (committed.decks?.length ? committed.decks : committed.deck ? [committed.deck] : []) as Deck[];
+      if (committed.report.errors.length > 0 || decks.length === 0) return { ...committed, mediaTask: null as MediaSyncTask | null };
+      await persistImportedDecks(decks);
+      const mediaTask = mediaStore.syncImportMedia(decks);
+      void mediaTask.result.then(async (mediaResult) => {
+        if (mediaResult.status !== "cloud-ready") return;
+        const withReferences = decks.map((deck) => ({ ...deck, mediaAssets: mediaResult.referencesByDeck.get(deck.id) ?? deck.mediaAssets ?? [] }));
+        await persistImportedDecks(withReferences, { mediaOnly: true });
+      });
+      return { ...committed, mediaTask };
     },
 
     importPastedDeck({ mode = "text", deckName = "Importierter Stapel", content = "", dryRun = false }: PasteImportInput = {}) {

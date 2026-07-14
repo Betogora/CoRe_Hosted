@@ -1,4 +1,4 @@
-import { stripHtml } from "./htmlSafety.js";
+import { stripHtml } from "./htmlSafety.ts";
 import { listReviewableCards, summarizeDeckReview } from "./scheduler.ts";
 import type { CoreMode, Deck, LearningItem, ReviewRating } from "./coreTypes.ts";
 

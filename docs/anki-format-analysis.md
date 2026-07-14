@@ -57,8 +57,8 @@ Lokale CoRe-Quellen:
 - `src/apkgImport.ts`
 - `src/importService.ts`
 - `src/mediaStore.ts`
-- `src/htmlSafety.js`
-- `src/richText.js`
+- `src/htmlSafety.ts`
+- `src/richText.ts`
 - `src/reviewService.ts`
 - `src/scheduler.ts`
 - `supabase/core_schema_v1.sql`
@@ -137,8 +137,8 @@ CoRe hat die entscheidende Richtung bereits eingeschlagen:
 - `src/coreModel.ts` erzeugt Learning Items, Original-Varianten, Reverse-Varianten, Cloze-Varianten und Review-State.
 - `src/importService.ts` normalisiert Text-, CSV-, JSON- und Tabellen-Importdaten in Learning Items mit Varianten, Parent-/Hierarchy-Feldern, stabilen Fingerprints und Duplicate-Erkennung.
 - `src/apkgImport.ts` liest APKG-Container, erkennt `collection.anki2`, `collection.anki21`, `collection.anki21b`, extrahiert Notes/Cards/Decks/Media, erzeugt echte Unterstapel und speichert Raw-Fallbacks.
-- `src/mediaStore.ts` kapselt lokale Medienauflösung; React konsumiert aufgelöste Medien-URLs.
-- `src/htmlSafety.js` und `src/richText.js` kapseln HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung fuer Karteninhalt, Importvorschau und Review.
+- `src/mediaStore.ts` kapselt accountgebundenen lokalen Cache, persistente Upload-Queue und Cloud-/Fallback-Auflösung; React konsumiert ausschließlich aufgelöste Medien-URLs und Status.
+- `src/htmlSafety.ts` und `src/richText.ts` kapseln HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung fuer Karteninhalt, Importvorschau und Review.
 - `src/reviewService.ts` schreibt Review-Events und aktualisiert Learning-Item- und Varianten-State.
 - `src/scheduler.ts` hält FSRS-like State mit Stability, Difficulty, Desired Retention, Retrievability, Variant-Kontext und Intervallvorschau fuer die vier Review-Buttons.
 - `supabase/core_schema_v1.sql` trennt bereits `decks`, `cards`, `card_variants`, `review_events`, `source_documents` und `ai_jobs`.
@@ -158,7 +158,7 @@ Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzept
 | Filtered Decks | Temporäre Deck-Art mit Suche, Limits und Rescheduling-Optionen | Lernplan und Review-Queue lokal modelliert | Nicht als permanente Deck-Art übernehmen; als temporäre Session-/Plan-View abbilden |
 | Review-Verlauf | `revlog` append-only pro Card | lokale `reviewEvents`, Supabase-Tabelle `review_events` vorbereitet | Revlog-Import nur für Analytics/Migration, nicht automatisch als gelernter Zustand übernehmen |
 | Scheduler | Legacy-State plus FSRS-Felder | FSRS-like eigener Scheduler | CoRe-Scheduler bleibt eigenständig; Anki-Schedulerdaten als Quelle konservieren |
-| Medien | Separater Medienordner, APKG-Medienliste, SHA-1, sichere Dateinamen | Manifest, lokale IndexedDB/Session-Fallbacks, URL-Auflösung | Produktives `media_assets`-Modell mit Storage-Referenzen, Checksums, Löschregeln und Sharing-Sicherheit |
+| Medien | Separater Medienordner, APKG-Medienliste, SHA-1, sichere Dateinamen | Manifest, accountgebundene IndexedDB/Queue, accountweite SHA-1-Objekte, getrennte `media_assets`-Referenzen, Standard-/TUS-Upload und Cloud-/Local-/Missing-Auflösung | Export-/Sharing-Regeln und administratives Orphan-GC ergänzen |
 | Importidentität | Notes via GUID, Cards via Note/Template, Notetypes via IDs | `sourceExternalId`, Importgruppe, Raw-Metadaten, Fingerprints | Explizites `import_identities`-Konzept für Note-ID, Card-ID, GUID, Notetype-ID, Template-Ord, Deck-Pfad und Medienchecksums |
 | Reimport | Update/Merge/Duplicate-Optionen | lokale Content-Edits bleiben bei Reimport erhalten | Feldschema-Änderungen, Template-Änderungen und lokale Edits deterministisch mergen |
 | Stock-Formate | Basic, Reverse, Optional Reverse, Typing, Cloze, Image Occlusion | Basic, Reverse, Cloze, Multiple Choice, Free Text, Import-Fallbacks | Nur lernwirksame Formate übernehmen; Image Occlusion erst nach eigenem Bildregionen-/Medienkonzept |
@@ -174,7 +174,7 @@ Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzept
 - **Append-only Review Events:** Reviewdaten gehören als Ereignisse gespeichert, nicht nur als überschreibbarer Zustand. Der aktuelle State ist eine Projektion.
 - **Stabile Importidentität:** CoRe muss `ankiGuid`, ursprüngliche Note-ID, Card-ID, Notetype-ID, Template-Ordinal, Template-Name, Deck-Pfad, Importgruppe und Media-Checksums konservieren.
 - **Explizite Deck-Hierarchie:** Ankis `::`-Namen werden beim Import in echte Parent-/Child-Decks übersetzt. Intern sollte CoRe keine Baumstruktur aus Strings rekonstruieren müssen.
-- **Medien als Assets:** Dateiname, normalisierter Name, SHA-1, Größe, MIME-Typ, Storage-Referenz und Fundstelle gehören in ein Medienmodell hinter `mediaStore` beziehungsweise späterem Storage-Adapter.
+- **Medien als Assets:** Dateiname, SHA-1, Größe, MIME-Typ, Storage-Referenz und Fundstelle gehören in `MediaAssetReference` hinter `mediaStore`. Physische Objekte sind accountweit unter `{userId}/objects/{sha1}` adressiert; React kennt weder Pfadbildung noch APKG-Manifeste.
 
 ### P1: Nächste Ausbaustufe
 
@@ -182,7 +182,7 @@ Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzept
 - **Notetype-/Template-Snapshots:** Feldnamen, Feldreihenfolge, Template-Namen, Template-Reihenfolge, Front-/Back-HTML, CSS, Card-Requirements und optionales Zieldeck sollten als Snapshot erhalten bleiben.
 - **Reimport-Feldschema:** Wenn ein importierter Notetype neue Felder, geänderte Templates oder andere Ordnungen hat, muss CoRe lokale Edits erhalten und neue Importdaten kontrolliert ergänzen.
 - **Revlog-Import für Analytics:** Anki-Fortschritt sollte nicht ungeprüft den CoRe-Scheduler initialisieren, aber Revlog ist wertvoll für Heatmap, Retention, Migrationsdiagnose und Vertrauen.
-- **Produktive Medienpersistenz:** Browser-Speicher reicht für MVP. Produktiv braucht CoRe Object Storage, stabile Referenzen, Sync-/Exportregeln und Garbage Collection.
+- **Produktive Medienpersistenz:** Cloud-first mit lokalem reloadfestem Pending-Fallback ist umgesetzt. Offen bleiben Medienexport/-sharing sowie globales administratives Orphan-GC.
 - **Importbericht schärfen:** Der Nutzer sollte sehen, welche Decks, Notetypes, Templates, Medien, Cloze-Gruppen und Scheduling-Daten erkannt, übernommen, konserviert oder bewusst ignoriert wurden.
 
 ### P2: Optional und nutzergetrieben
@@ -317,11 +317,11 @@ Für den aktuellen Vercel/Supabase-Pfad ist Elixir kein P0 und kein P1. Es ist e
 
 ## Nächste Arbeitspakete
 
-1. **APKG-Fixtures erweitern:** Basic reversed, optional reversed, Cloze, Medien, ungewöhnliche Notetypes und echte `collection.anki21b`/Zstd-Beispiele; Tests in `src/apkgImport.test.js` ergaenzen.
+1. **APKG-Fixtures erweitern:** Basic reversed, optional reversed, Cloze, Medien, ungewöhnliche Notetypes und echte `collection.anki21b`/Zstd-Beispiele; Tests in `src/apkgImport.test.ts` ergaenzen.
 2. **Importidentitäten prüfen:** GUID, ursprüngliche Note-/Card-ID, Template-Ordinal, Notetype-Snapshot, Deck-Pfad und Medienprüfsummen in `apkgImport`, `importService` und `coreModel` konsolidieren.
-3. **Cloze-Familien modellieren:** Cloze-Gruppen, Card-Ords, Review-State und UI-Verhalten explizit machen; relevante Stellen sind `coreModel`, `reviewService`, `scheduler`, `StudyMode` und `creationPipeline.test.js`.
+3. **Cloze-Familien modellieren:** Cloze-Gruppen, Card-Ords, Review-State und UI-Verhalten explizit machen; relevante Stellen sind `coreModel`, `reviewService`, `scheduler`, `StudyMode` und `creationPipeline.test.ts`.
 4. **Template-Snapshots speichern:** Nicht beliebig ausführen, aber genug für Reimport, Debugging und späteren Export in Import-Metadaten bewahren.
-5. **Medienmodell produktionsfähig machen:** Storage-Referenzen, Checksums, MIME-Typen, Export, Sharing und Löschregeln hinter `mediaStore` beziehungsweise einem späteren Storage-Pfad definieren.
+5. **Medienmodell weiterführen:** Export, Community-Sharing und administratives Orphan-GC auf dem vorhandenen accountweiten Storage-/Referenzmodell definieren.
 6. **Revlog-Import als Analytics-Spike:** Anki-Reviewverlauf lesbar machen, aber nicht ungeprüft als CoRe-Lernzustand übernehmen; Heatmap/Retention-Projektionen in `libraryModel` koennen spaeter davon profitieren.
 7. **Benchmark-Dokument anlegen:** Deckgröße, Medienanzahl, Importdauer, Speicherverbrauch, UI-Hänger und Abbruchverhalten messen.
 8. **Rust/WASM-Spike nur nach Messung:** Erst reale Engpässe nachweisen, dann ein enges Import-Hotpath-Modul bauen.

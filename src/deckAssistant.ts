@@ -1,4 +1,4 @@
-import { stripHtml } from "./htmlSafety.js";
+import { stripHtml } from "./htmlSafety.ts";
 import { makeId } from "./coreModel.ts";
 import { parseAiChatError, parseAiChatSuccess } from "./aiChatContract.ts";
 

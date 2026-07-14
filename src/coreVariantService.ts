@@ -7,7 +7,7 @@ import {
   getOriginalVariant,
   stableContentHash,
 } from "./coreModel.ts";
-import { stripHtml } from "./htmlSafety.js";
+import { stripHtml } from "./htmlSafety.ts";
 import { calculateRetrievability, getSchedulerStateForItem } from "./scheduler.ts";
 import { isAutomaticRephraseVariant, selectAutomaticReviewVariant } from "./coreVariantService/variantSelection.ts";
 import type {

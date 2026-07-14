@@ -1,15 +1,15 @@
-import { createCommunity, shareDeckToCommunity } from "./communityModel.js";
+import { createCommunity, shareDeckToCommunity } from "./communityModel.ts";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.ts";
-import { buildDeckGraph } from "./deckGraph.js";
+import { buildDeckGraph } from "./deckGraph.ts";
 import {
   importCsvAsNormalizedDeck,
   importJsonAsNormalizedDeck,
   importNormalizedDeck,
   importTextAsNormalizedDeck,
 } from "./importService.ts";
-import type { CardVariant, CoreMode, Deck, DeckSettings, LearningItem, SourceDocument } from "./coreTypes.ts";
+import type { AiJob, CardVariant, CoreMode, Deck, DeckSettings, LearningItem, Profile, SourceDocument } from "./coreTypes.ts";
 
 interface CloudTombstone {
   entityTable: string;
@@ -19,11 +19,17 @@ interface CloudTombstone {
   updatedByDeviceId: string | null;
 }
 
-interface WorkspaceState {
+export interface WorkspaceState {
+  version?: number;
+  profile: Profile;
   decks: Deck[];
   communities: unknown[];
-  aiJobs: unknown[];
+  aiJobs: AiJob[];
+  documents: SourceDocument[];
+  chatTranscript: unknown[];
+  learningPlans: unknown[];
   cloudTombstones: CloudTombstone[];
+  updatedAt: string;
   [key: string]: unknown;
 }
 

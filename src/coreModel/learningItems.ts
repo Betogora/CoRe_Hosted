@@ -1,4 +1,4 @@
-import { sanitizeCardHtml, stripHtml } from "../htmlSafety.js";
+import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
 import type { CardField, CardType, CardVariant, CardVariantBase, CardVariantType, DeckSource, DraftStatus, LearningItem, LearningItemSourceType, LearningItemStatus, SourceAnchor, TransformType, VariantGenerationSource, VariantPerformance, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
 import { CARD_VARIANT_TYPES, CORE_CARD_TYPES, CORE_DECK_SOURCES, LEARNING_ITEM_SOURCE_TYPES, VARIANT_GENERATION_SOURCES, VARIANT_STATUSES, VARIANT_TRANSFORMS, makeId, normalizeTags, stableContentHash, unique } from "./coreValues.ts";
 import { createReviewState, createVariantPerformance, createVersionEntry, normalizeLearningItemState, normalizeVersionLog } from "./reviewState.ts";

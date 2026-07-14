@@ -1,5 +1,5 @@
 import { createCoreCard, createCoreDeck, createReviewState, makeId, stableContentHash } from "./coreModel.ts";
-import { stripHtml } from "./htmlSafety.js";
+import { stripHtml } from "./htmlSafety.ts";
 import { finalizeImportReport, importNormalizedDeck } from "./importService.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
 import { readZipArchive } from "./zipReader.ts";
@@ -1758,7 +1758,7 @@ function mergeImportedCard(incomingCard: any, existingCard: any) {
     immutableOriginal: existingCard.immutableOriginal ?? incomingCard.immutableOriginal,
     versionLog: existingCard.versionLog?.length ? existingCard.versionLog : incomingCard.versionLog,
     sourceAnchors: existingCard.sourceAnchors?.length ? existingCard.sourceAnchors : incomingCard.sourceAnchors,
-    mediaRefs: incomingCard.mediaRefs,
+    mediaRefs: preserveContent ? unique([...(existingCard.mediaRefs ?? []), ...(incomingCard.mediaRefs ?? [])]) : incomingCard.mediaRefs,
     meta: {
       ...(incomingCard.meta ?? {}),
       preservedLocalContent: preserveContent,
@@ -1797,6 +1797,7 @@ export function mergeImportedDeck(importedDeck: any, existingDecks: any = []) {
       reimportedAt: now,
       replacedDeckId: existingDeck.id,
     },
+    mediaAssets: existingDeck.mediaAssets ?? [],
     cards: importedDeck.cards.map((card: any) => mergeImportedCard(card, existingCardsBySourceId.get(String(card.sourceCardId ?? card.sourceRefId ?? card.id)))),
   });
 }

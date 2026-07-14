@@ -433,7 +433,7 @@ export type Database = {
         Row: {
           card_id: string | null
           created_at: string
-          deck_id: string | null
+          deck_id: string
           deleted_at: string | null
           id: string
           metadata: Json
@@ -450,7 +450,7 @@ export type Database = {
         Insert: {
           card_id?: string | null
           created_at?: string
-          deck_id?: string | null
+          deck_id: string
           deleted_at?: string | null
           id: string
           metadata?: Json
@@ -467,7 +467,7 @@ export type Database = {
         Update: {
           card_id?: string | null
           created_at?: string
-          deck_id?: string | null
+          deck_id?: string
           deleted_at?: string | null
           id?: string
           metadata?: Json
@@ -483,11 +483,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "media_assets_card_owner_fk"
-            columns: ["card_id", "user_id"]
+            foreignKeyName: "media_assets_card_deck_owner_fk"
+            columns: ["card_id", "deck_id", "user_id"]
             isOneToOne: false
             referencedRelation: "cards"
-            referencedColumns: ["id", "user_id"]
+            referencedColumns: ["id", "deck_id", "user_id"]
           },
           {
             foreignKeyName: "media_assets_deck_owner_fk"

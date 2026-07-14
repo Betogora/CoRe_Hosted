@@ -49,6 +49,24 @@ export type SchedulerPreset = "standard" | "intensive" | "relaxed" | "custom";
 export type RichTextContent = string;
 export type MediaRef = string;
 
+export interface MediaAssetReference {
+  id: string;
+  userId: string;
+  deckId: string;
+  cardId: string | null;
+  sha1: string;
+  size: number;
+  mimeType: string;
+  originalName: string;
+  storageBucket: string;
+  storagePath: string;
+  source: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
 export interface PrivacySettings {
   shareLearningProgress: boolean;
   showOnlineStatus: boolean;
@@ -473,6 +491,7 @@ export interface Deck {
   cardCount: number;
   tags: string[];
   importMeta: Record<string, unknown>;
+  mediaAssets: MediaAssetReference[];
   deckSettings: DeckSettings;
   sourceDocuments: SourceDocument[];
   cards: LearningItem[];

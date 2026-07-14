@@ -6,6 +6,7 @@ export type AccountRow = Tables<AccountTable>;
 export type AccountInsert = TablesInsert<AccountTable>;
 export type AccountUpdate = TablesUpdate<AccountTable>;
 export type CloudJson = Json;
+export type MediaAssetRow = Tables<"media_assets">;
 
 const jsonObjectSchema = v.record(v.string(), v.unknown());
 const accountRowBaseSchema = { id: v.string(), user_id: v.string() };
@@ -62,6 +63,23 @@ const profileRowSchema = v.looseObject({
   privacy: v.optional(jsonObjectSchema),
   scheduler_preferences: v.optional(jsonObjectSchema),
 });
+const mediaAssetRowSchema = v.looseObject({
+  id: v.string(),
+  user_id: v.string(),
+  deck_id: v.string(),
+  card_id: v.nullable(v.string()),
+  sha1: v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/)),
+  size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+  mime_type: v.string(),
+  original_name: v.pipe(v.string(), v.minLength(1)),
+  storage_bucket: v.pipe(v.string(), v.minLength(1)),
+  storage_path: v.pipe(v.string(), v.minLength(1)),
+  source: v.string(),
+  metadata: jsonObjectSchema,
+  created_at: v.string(),
+  updated_at: v.string(),
+  deleted_at: v.nullable(v.string()),
+});
 
 export function validateAccountRows(table: AccountTable, input: unknown): AccountRow[] {
   if (!Array.isArray(input)) throw new Error("Cloud-Daten hatten ein ungültiges Zeilenformat.");
@@ -76,6 +94,13 @@ export function validateProfileRows(input: unknown) {
   const rows = input.map((row) => v.safeParse(profileRowSchema, row));
   if (rows.some((row) => !row.success)) throw new Error("Cloud-Profildaten hatten ein ungültiges Format.");
   return rows.map((row) => row.output);
+}
+
+export function validateMediaAssetRows(input: unknown): MediaAssetRow[] {
+  if (!Array.isArray(input)) throw new Error("Cloud-Mediendaten hatten ein ungültiges Zeilenformat.");
+  const rows = input.map((row) => v.safeParse(mediaAssetRowSchema, row));
+  if (rows.some((row) => !row.success)) throw new Error("Cloud-Mediendaten hatten ein ungültiges Format.");
+  return rows.map((row) => row.output as MediaAssetRow);
 }
 
 export function validateIdRows(input: unknown, table: string) {

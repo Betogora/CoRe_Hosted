@@ -1,4 +1,4 @@
-import { sanitizeCardHtml } from "../htmlSafety.js";
+import { sanitizeCardHtml } from "../htmlSafety.ts";
 import type { CardField, CardType, CardVariantType, Deck, DeckSource, DraftStatus, LearningItem, LearningItemSourceType, LearningItemStatus, SourceAnchor, TransformType, VariantGenerationSource, VariantQualityStatus } from "../coreTypes.ts";
 import { CORE_CARD_TYPES, makeId, stableContentHash } from "./coreValues.ts";
 import { createLearningItemState, createSourceAnchor, createSourceDocument, createVersionEntry, type SourceAnchorInput, type SourceDocument } from "./reviewState.ts";
@@ -57,8 +57,8 @@ function extractClozeGroups(text: unknown): Array<{ groupId: number; clozes: Clo
   }
 
   return [...groups.entries()]
-    .sort(([left], [right]) => left - right)
-    .map(([groupId, clozes]) => ({ groupId, clozes }));
+    .sort(([left]: any, [right]: any) => left - right)
+    .map(([groupId, clozes]: any) => ({ groupId, clozes }));
 }
 
 function renderClozeFront(text: unknown, groupId: number): string {
@@ -227,7 +227,7 @@ export function createClozeLearningItem(deckId: string, textWithClozes: string, 
       sourceType,
     },
   });
-  const clozeVariants = extractClozeGroups(textWithClozes).map(({ groupId, clozes }) =>
+  const clozeVariants = extractClozeGroups(textWithClozes).map(({ groupId, clozes }: any) =>
     createCardVariant({
       id: stableContentHash({ learningItemId: id, groupId, textWithClozes }, "variant"),
       learningItemId: id,
@@ -238,8 +238,8 @@ export function createClozeLearningItem(deckId: string, textWithClozes: string, 
       front: renderClozeFront(textWithClozes, groupId),
       back: canonicalAnswer,
       explanation: extraText,
-      hintsJson: clozes.map((cloze) => cloze.hint).filter(Boolean),
-      expectedAnswerJson: clozes.map((cloze) => cloze.text),
+      hintsJson: clozes.map((cloze: { hint?: string }) => cloze.hint).filter(Boolean),
+      expectedAnswerJson: clozes.map((cloze: { text: string }) => cloze.text),
       generationSource: options.generationSource ?? "original",
       transformType: "cloze_conversion",
       qualityStatus: "active",

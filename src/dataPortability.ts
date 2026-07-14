@@ -74,7 +74,7 @@ export function createPortableExport(state: any, now: any = new Date().toISOStri
   };
 }
 
-export function stringifyPortableExport(state: any, now: any) {
+export function stringifyPortableExport(state: any, now: any = new Date().toISOString()) {
   return JSON.stringify(createPortableExport(state, now), null, 2);
 }
 

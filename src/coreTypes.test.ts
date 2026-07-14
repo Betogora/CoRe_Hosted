@@ -224,6 +224,7 @@ const deck = {
   cardCount: 1,
   tags: [],
   importMeta: {},
+  mediaAssets: [],
   deckSettings,
   sourceDocuments: [],
   cards: [learningItem],

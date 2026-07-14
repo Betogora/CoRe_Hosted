@@ -10,7 +10,7 @@ import {
   normalizeTags,
   stableContentHash,
 } from "./coreModel.ts";
-import { stripHtml } from "./htmlSafety.js";
+import { stripHtml } from "./htmlSafety.ts";
 
 export const NORMALIZED_IMPORT_SOURCE_TYPES = ["manual", "text_import", "csv_import", "json_import", "anki_import", "ai_generated", "mixed"];
 export const IMPORT_MERGE_STRATEGIES = ["create_new", "skip_duplicates", "update_existing"];

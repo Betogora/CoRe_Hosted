@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { createDefaultDeckSettings, normalizeCoreDeck } from "./coreModel.ts";
-import { createWorldCapitalsSeedDecks, ensureWorldCapitalsStudyHistory } from "./fixtures/worldCapitals.js";
+import { createWorldCapitalsSeedDecks, ensureWorldCapitalsStudyHistory } from "./fixtures/worldCapitals.ts";
 
 const LEGACY_DECKS_KEY = "core.importedDecks.v1";
 const APP_STATE_KEY = "core.appState.v2";

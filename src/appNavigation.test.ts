@@ -1,0 +1,60 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  appRouteToUrl,
+  areAppRoutesEqual,
+  createAppHistoryState,
+  createStudyRoute,
+  createViewRoute,
+  parseAppRouteFromUrl,
+  readAppRouteFromHistoryState,
+} from "./appNavigation.ts";
+
+test("parses the default route from the root path", () => {
+  assert.deepEqual(parseAppRouteFromUrl("/"), { mode: "view", viewId: "uebersicht" });
+  assert.equal(appRouteToUrl({ mode: "view", viewId: "uebersicht" }), "/");
+});
+
+test("roundtrips known view paths and supported screen context", () => {
+  const decks = ["deck_a", "deck_b"];
+  const deckRoute = parseAppRouteFromUrl("/kartenstapel?deck=deck_a", { validDeckIds: decks });
+  const deckSettingsRoute = parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b", { validDeckIds: decks });
+  const creationRoute = parseAppRouteFromUrl("/lernen?parent=deck_b", { validDeckIds: decks });
+
+  assert.deepEqual(deckRoute, { mode: "view", viewId: "kartenstapel", focusedDeckId: "deck_a" });
+  assert.deepEqual(deckSettingsRoute, { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" });
+  assert.deepEqual(creationRoute, { mode: "view", viewId: "lernen", deckCreationParentId: "deck_b" });
+  assert.equal(appRouteToUrl(deckRoute), "/kartenstapel?deck=deck_a");
+  assert.equal(appRouteToUrl(deckSettingsRoute), "/stapel-einstellungen?deck=deck_b");
+  assert.equal(appRouteToUrl(creationRoute), "/lernen?parent=deck_b");
+});
+
+test("falls back to today for unknown paths", () => {
+  assert.deepEqual(parseAppRouteFromUrl("/does-not-exist"), { mode: "view", viewId: "uebersicht" });
+});
+
+test("roundtrips review routes with encoded deck ids and variant sessions", () => {
+  const route = parseAppRouteFromUrl("/decks/deck%2Fspecial/review?variant=1", { validDeckIds: ["deck/special"] });
+
+  assert.deepEqual(route, {
+    mode: "study",
+    deckId: "deck/special",
+    variantSession: true,
+    returnRoute: { mode: "view", viewId: "lernen" },
+  });
+  assert.equal(appRouteToUrl(route), "/decks/deck%2Fspecial/review?variant=1");
+});
+
+test("normalizes invalid study routes back to learning", () => {
+  assert.deepEqual(parseAppRouteFromUrl("/decks/missing/review", { validDeckIds: ["deck_a"] }), { mode: "view", viewId: "lernen" });
+  assert.deepEqual(createStudyRoute("", {}, { validDeckIds: ["deck_a"] }), { mode: "view", viewId: "lernen" });
+});
+
+test("stores and reads app routes from browser history state", () => {
+  const route = createViewRoute("assistent");
+  const state = createAppHistoryState(route, { currentState: { external: "kept" } });
+
+  assert.equal(state.external, "kept");
+  assert.deepEqual(readAppRouteFromHistoryState(state), route);
+  assert.equal(areAppRoutesEqual(state.coreAppRoute, route), true);
+});

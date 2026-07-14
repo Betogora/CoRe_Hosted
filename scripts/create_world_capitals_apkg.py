@@ -149,7 +149,9 @@ def deck_id_for_continent(continent_id: str) -> str:
 
 
 def card_front(item) -> str:
-    return f"Was ist die Hauptstadt von {item['country']}?"
+    question = f"Was ist die Hauptstadt von {item['country']}?"
+    media_name = item.get("benchmarkMedia")
+    return f'{question}<br><img src="{media_name}">' if media_name else question
 
 
 def card_back(item) -> str:
@@ -486,9 +488,9 @@ def write_apkg(source, output_path: Path = APKG_PATH, media_files: dict[str, byt
                 archive.writestr(deterministic_zip_info(str(index)), data)
 
 
-def build_benchmark_fixture(source, repeat: int, media_count: int):
+def build_benchmark_fixture(source, repeat: int, media_count: int, item_count: int = 0):
     benchmark = copy.deepcopy(source)
-    original_items = benchmark["items"]
+    original_items = benchmark["items"][:item_count] if item_count > 0 else benchmark["items"]
     media_files = {
         f"benchmark-{index:04d}.png": b"\x89PNG\r\n\x1a\n" + bytes([index % 251]) * 4096
         for index in range(media_count)
@@ -518,6 +520,7 @@ def main() -> None:
     parser.add_argument("--benchmark-output", type=Path)
     parser.add_argument("--benchmark-repeat", type=int, default=20)
     parser.add_argument("--benchmark-media-count", type=int, default=200)
+    parser.add_argument("--benchmark-item-count", type=int, default=0)
     args = parser.parse_args()
     source = build_source(refresh=args.refresh_source)
     if args.benchmark_output:
@@ -526,6 +529,7 @@ def main() -> None:
             source,
             max(1, args.benchmark_repeat),
             max(0, args.benchmark_media_count),
+            max(0, args.benchmark_item_count),
         )
         write_apkg(benchmark, output_path, media_files)
         print(f"wrote {output_path.relative_to(ROOT)}")

@@ -25,7 +25,7 @@ Es gibt keine weitere `TODO.md`, `todo.md` oder `*-todo.md`-Datei im Repository.
 
 - `../AGENTS.md`: lokale Entwicklungsregeln, Architekturleitplanken und Verifikationskommandos.
 - `../vercel.json`: Vercel-Build, `dist`-Output und SPA-Rewrite ausserhalb von `/api/*`.
-- `../vite.config.js`: allowlist-basierter Buildvertrag fuer App-Version, normalisierte Umgebung und kurzen Vercel-/GitHub-Commit.
+- `../vite.config.ts`: allowlist-basierter Buildvertrag fuer App-Version, normalisierte Umgebung und kurzen Vercel-/GitHub-Commit.
 - `../.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag sowie leere Platzhalter fuer den separaten Playwright-Testaccount.
 - `../supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
 - `../supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
@@ -52,15 +52,15 @@ Relevante Zielrichtungen:
 ## Current Local Architecture Notes
 
 - `src/reviewService.ts` ist der tiefe Review-Flow fuer FSRS-like Scheduling, Variant-Fallback und Next-Review-Projektionen.
-- `src/reviewFlow.js` bleibt nur als Legacy-Fassade fuer bestehende Imports bestehen.
+- `src/reviewService.ts` ist die direkte Review-Schnittstelle; die frühere Ein-Zeilen-Fassade wurde nach der TypeScript-Migration entfernt.
 - `src/coreVariantService.ts` buendelt Eligibility, Reifegrad, Readiness, Coverage, Variant-Generation-Plan und Fallback-Projektion hinter kleinen Interfaces.
 - `src/importService.ts` buendelt Text-, CSV-, JSON- und Tabellen-Importe, Fingerprints, Dedupe und Parent-/Hierarchy-Felder hinter der Learning-Item-Creation-Pipeline.
-- `src/richText.js` und `src/htmlSafety.js` halten Rich-Text-Normalisierung und HTML-Sanitization aus Screens und Importpfaden heraus.
+- `src/richText.ts` und `src/htmlSafety.ts` halten Rich-Text-Normalisierung und HTML-Sanitization aus Screens und Importpfaden heraus.
 - `src/libraryModel.ts` erzeugt Dashboard-, Statistik-, Decklisten-, Heatmap- und KI-Job-Projektionen fuer die Screens.
 - `src/supabaseClient.ts`, `src/cloudAuth.ts`, `src/accountSession.ts`, `src/accountStorage.ts` und `src/cloudRepository.ts` kapseln den konkreten Supabase-Pfad fuer Auth, Profile, Login-Gate-Zustand, accountgebundenen Cache und Cloud-Tabellenpersistenz.
-- `src/appRuntime.js`, `src/ui/ReleaseInfo.jsx` und `src/AppErrorBoundary.jsx` kapseln Release-Identitaet, sichere Anzeige und den deutschen Wiederherstellungsfallback ohne rohe Fehler- oder Nutzerdaten.
-- `src/pdfRuntime.js`, `src/pdfSelection.js` und `src/ui/PdfDocumentViewer.jsx` kapseln PDF.js-Lifecycle, Worker, kontinuierliche Anzeige, Zoom, Textauswahl und die Umrechnung in stabile PDF-Quellenkoordinaten.
-- `src/App.jsx` ist nur noch App-Shell fuer Workspace-State, Navigation und Routing; authentifizierte Produktscreens laden per `React.lazy`, produktnahe UI liegt in `src/screens/`.
-- `scripts/verifyBuildChunks.mjs` prueft das Vite-Manifest nach jedem Production-Build und erzwingt die 500.000-Byte-Grenze fuer JavaScript-Chunks; PDF-Worker und WASM bleiben getrennte Assets.
+- `src/appRuntime.ts`, `src/ui/ReleaseInfo.tsx` und `src/AppErrorBoundary.tsx` kapseln Release-Identitaet, sichere Anzeige und den deutschen Wiederherstellungsfallback ohne rohe Fehler- oder Nutzerdaten.
+- `src/pdfRuntime.ts`, `src/pdfSelection.ts` und `src/ui/PdfDocumentViewer.tsx` kapseln PDF.js-Lifecycle, Worker, kontinuierliche Anzeige, Zoom, Textauswahl und die Umrechnung in stabile PDF-Quellenkoordinaten.
+- `src/App.tsx` ist nur noch App-Shell fuer Workspace-State, Navigation und Routing; authentifizierte Produktscreens laden per `React.lazy`, produktnahe UI liegt in `src/screens/`.
+- `scripts/verifyBuildChunks.ts` prueft das Vite-Manifest nach jedem Production-Build und erzwingt die 500.000-Byte-Grenze fuer JavaScript-Chunks; PDF-Worker und WASM bleiben getrennte Assets.
 - `src/screens/README.md` ist die Einstiegskarte fuer KI-Programmierung an Screens; geteilte UI-Bausteine liegen in `src/ui/`.
 - Sichtbare Features sollen bei Ueberarbeitungen erhalten bleiben und nur durch explizite Prompts entfernt werden.
