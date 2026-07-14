@@ -16,7 +16,7 @@ Diese Liste wurde gegen den tatsächlichen Repository-Stand geprüft. Grundlage 
 - Der Performance-Advisor meldet keine Warnungen. Der Security-Advisor meldet ausschließlich den bereits vor der Migration vorhandenen Hinweis `auth_leaked_password_protection`.
 - Der debouncete Autosave läuft über `src/syncEngine.ts` und `src/cloudRepository.ts`: `applyDeckMutation`, `applyCardMutation` und `softDeleteEntity` prüfen Basisrevisionen atomar über `user_id`, `id` und `revision`; stale Writes erzeugen idempotente `sync_conflicts`. Deckbaum-Löschungen bleiben bis zur Cloud-Bestätigung als Tombstones erhalten. Die accountgebundene Outbox überlebt Reloads, behält fehlgeschlagene Mutationen mit Retry-Zähler und entfernt Review- beziehungsweise Snapshot-Mutationen nur nach getrenntem Persistenz-Readback.
 - `src/creationWorkflow.ts` verwendet weiterhin den lokalen `src/mediaStore.ts`. `src/cloudMediaStore.ts` dedupliziert separat getestet innerhalb eines Deck-/Card-Kontexts über Nutzer, Bucket und SHA-1, verwendet dateinamenunabhängige kanonische Pfade und bestätigt keine Row für noch nicht hochgeladene große Dateien; die Integration in Import, Cloud-State-Laden und Karten-Rendering fehlt weiterhin.
-- Der einzige Server-KI-Pfad ist `POST /api/ai/chat`. Die Route prüft Origin, Request-Größe und Providerfehler, liest aktuelle `steps`- sowie ältere `outputs`-Responses und protokolliert bei Providerfehlern nur sichere Strukturmetadaten. Supabase-Session, Nutzer-/IP-Limits und Kostenbudgets fehlen weiterhin; der Browser sendet derzeit keinen Bearer-Token.
+- Der einzige Server-KI-Pfad ist `POST /api/ai/chat`. Die Route prüft Supabase-Bearer und accountgebundene Einwilligung, begrenzt Nutzer und IP über Upstash, erzwingt strikte Payload-/Prompt-/Modell-/Outputgrenzen sowie UUID-Idempotenz und protokolliert bei Providerfehlern nur sichere Strukturmetadaten. Dauerhafte Kostenbudgets und das echte Server-Jobmodell fehlen weiterhin.
 - Community, Graph, KI-Drafts, Varianten und Jobs sind weiterhin lokale Produktmodelle; nur Chat besitzt einen externen Gemma-Proxy.
 
 ## Reihenfolge
@@ -146,14 +146,15 @@ Die vier Pakete wurden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 
 ## 5. P1 — KI-Proxy, Jobs und Kostenkontrolle
 
-- [ ] `/api/ai/chat` an die eingeloggte Nutzeridentität binden. `src/deckAssistant.ts` muss den Supabase-Access-Token sicher als Bearer-Header mitsenden; die Serverroute muss Token prüfen, ohne Secrets oder vollständige Prompts zu loggen.
-- [ ] Pro Nutzer und IP Rate-Limits, maximale Evidenz-/Promptgröße, Modell-Allowlist, Outputlimit und Missbrauchsschutz ergänzen. Origin-Prüfung und Request-Byte-Limit allein sind kein ausreichender Abuse-Schutz.
+- [x] `/api/ai/chat` ist an die eingeloggte Nutzeridentität gebunden. `src/deckAssistant.ts` holt das aktuelle Supabase-Access-Token unmittelbar vor dem Request und sendet es nur als Bearer-Header; `api/ai/chatProtection.ts` prüft es per `auth.getUser`, liest die aktuelle Einwilligung RLS-geschützt mit demselben Client und nutzt keine Service Role. Abnahme 2026-07-14: Missing-/Invalid-Bearer, fehlende Einwilligung und secretsfreie Fehlerpfade sind getestet.
+- [x] Nutzer-/IP-Rate-Limits, Eingabegrenzen, Modell-Allowlist, Outputlimit, Timeout, Prompt-Injection-Basisschutz und Idempotenz sind für den Chat umgesetzt. Upstash nutzt 20 Nutzer- und 200 IP-Aufrufe je zehn Minuten, HMAC-pseudonymisierte Schlüssel, 90 Sekunden Pending- und zehn Minuten Completed-TTL; Schutzinfrastruktur fällt geschlossen aus. Die kostenlose `fra1`-Ressource ist CLI-seitig vorbereitet, kann aber erst nach der erforderlichen Upstash-Marketplace-Terms-Annahme provisioniert werden; ohne Ressource bleibt die Route absichtlich `503 protection_unavailable`.
 - [ ] `ai_jobs` vom lokalen Ledger zu einem echten Server-Jobvertrag ausbauen: Capability, Prompt-/Schema-Version, Status, Retry, Idempotency-Key, Resultat-Referenz, Fehlerklasse, Tokenverbrauch und Kosten.
-- [ ] Vor weiteren Providerpfaden eine Entscheidung zu Provider, Datenschutz und übertragbaren Inhalten dokumentieren. Danach Server-Proxys für Kartenerstellung, Varianten und Graph mit strukturierten, validierten Drafts bauen.
+- [x] Provider-, Datenschutz- und Inhaltsentscheidung für den bestehenden Chat dokumentiert: Google Gemma Paid Services, `store: false` ohne ZDR-Versprechen, DPA-/Billing-Produktionsgate, einmalige versionierte 18+-/Transfer-Einwilligung, maximal Frage plus fünf minimierte Kartenbelege und zehn Minuten EU-Antwortcache.
+- [ ] Vor Kartenerstellung, Varianten- oder Graph-Proxys die Datenschutz-, Kosten- und Jobentscheidung capability-spezifisch ergänzen und erst danach strukturierte, validierte Draft-Routen bauen.
 - [ ] Längere KI-Aufgaben über eine Queue/Worker-Infrastruktur ausführen; Browser-Requests dürfen nicht auf lange Providerläufe warten.
 - [ ] Eval-Datensatz und Qualitätsgates für Kartenqualität, Quellenanker, Halluzinationen, Prompt-Injection aus Dokumenten, Varianten-Nähe und KI-Fehlerfeedback erstellen.
 - [ ] Token-/Kostenlogging, Nutzer-/Deck-Budgets und Admin-Sicht auf fehlgeschlagene Jobs ergänzen. Der vorhandene Chat-Response enthält Usage nur aus der Providerantwort und persistiert keine Kosten.
-- [ ] Route-Tests um Auth-Fehler, Rate-Limit, fehlenden Bearer-Token, maximale Evidenz, Idempotenz und keine Secret-/Prompt-Leaks erweitern.
+- [x] Route- und Schutztests decken Auth-Fehler, fehlenden Bearer, fehlende/veraltete Einwilligung, beide Rate-Limits samt `Retry-After`, exakte Payloadgrenzen, parallele/abgeschlossene Idempotenz, Body-Konflikte, Freigabe nach Providerfehler und keine Token-/IP-/Nutzer-/Prompt-Leaks im Redis-Zustand ab.
 
 ## 6. P1 — Betrieb, Monitoring, Backups und Admin
 
@@ -201,7 +202,8 @@ Die vier Pakete wurden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 - [ ] Keine weitere breite produktive Datenbankmigration schreiben, bevor CLI-Konfiguration, Remote-Status, RLS-Verify und die lokale Migration `20260709091315...` abgeglichen sind.
 - [ ] Keine vollständige Offline-First-Lösung vortäuschen, bevor Outbox, Revisionen, Konflikterzeugung, Konflikt-UI, Medienstrategie und Zwei-Geräte-Tests zusammen funktionieren.
 - [ ] Keine Community-Rechte, Rankings oder fremde Lernstände in der UI als produktiv darstellen, solange Tabellen, Membership-RLS und Moderationsregeln fehlen.
-- [ ] Keine externen KI-Inhalte senden, bevor Provider-, Datenschutz-, Auth- und Kostenentscheidungen dokumentiert sind.
+- [x] Der bestehende Chat sendet externe Inhalte erst nach dokumentierter Provider-/Datenschutz-/Auth-/Kostenentscheidung und serverseitig bestätigter Einwilligung; Production bleibt zusätzlich hinter Upstash-/Google-DPA und Google-Billing gegatet.
+- [ ] Neue externe Karten-, Varianten-, Graph- oder weitere Providerpfade bleiben blockiert, bis ihre capability-spezifischen Datenschutz-, Auth-, Kosten- und Jobentscheidungen dokumentiert sind.
 
 ## Bereits belastbar vorhanden
 
@@ -212,7 +214,7 @@ Die vier Pakete wurden in der Reihenfolge `M1 → M2 → M3 → M4` abgeschlosse
 - [x] Accountgebundener APKG-Medienspeicher mit lokalem Vorschau-Cache, persistenter Pending-/Resume-Queue, Supabase-Referenzen, Signed-URL-Auflösung, HTML-Safety, Rich Text, PDF-/Textauslesung und Quellenankern.
 - [x] Fullscreen-Review, vier Ratings, Tastatur, Review-Events, FSRS-like State, Fälligkeit, Varianten-Fallback und Originalanker.
 - [x] Lokale Community, Graph, Chat-/Lernplan-UI, AI-Job-Ledger und JSON-Portabilität als MVP-Modelle.
-- [x] Serverroute `/api/ai/chat` mit serverseitigem `GOOGLE_API_KEY`, Origin-/Payload-Prüfung, aktuellem `steps`- und Legacy-`outputs`-Gemma-Response-Parsing, secretsfreien Fehler-Metadaten und lokalem Quellen-Fallback.
+- [x] Serverroute `/api/ai/chat` mit serverseitigem `GOOGLE_API_KEY`, Supabase-Bearer-/Einwilligungsprüfung, Upstash-Rate-Limits und Idempotenz, Origin-/Payload-/Promptgrenzen, aktuellem `steps`- und Legacy-`outputs`-Gemma-Response-Parsing, secretsfreien Fehler-Metadaten und lokalem Quellen-Fallback.
 - [x] Breite Modul-Testabdeckung für Core-Modell, Import, Review, Varianten, Auth, Cloud-Mapping, Medien-Grundlage, Portabilität und Sync-Grundfunktionen.
 
 ## Referenzen

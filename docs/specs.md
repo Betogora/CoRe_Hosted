@@ -2065,9 +2065,9 @@ Browser
 
 Browser-sichtbar sind nur nicht-geheime Werte wie `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und Featureflags. Nicht in den Browser gehoeren `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY` oder andere Admin-/Provider-Secrets.
 
-Aktueller erster KI-Proxy: `POST /api/ai/chat` nutzt serverseitig ausschliesslich `process.env.GOOGLE_API_KEY`, ruft die Gemini Interactions API mit `model: "gemma-4-31b-it"`, `store: false` und einem Ausgabelimit von 2048 Tokens auf und gibt eine freie KI-Antwort zurueck, solange `sourceBound` nicht aktiv ist. Das groessere Limit laesst dem Modell nach einem internen Thought-Schritt ausreichend Platz fuer die eigentliche Textantwort; ein `thinking_level` wird nicht mitgesendet, weil der Live-Endpoint diesen Parameter fuer das Modell mit HTTP 400 abgewiesen hat. Bei `sourceBound: true` nimmt die Route die lokal ermittelten Top-Kartenbelege entgegen, verlangt mindestens eine Quelle und gibt eine quellengebundene Antwort zurueck. Der Response-Parser akzeptiert sowohl das aktuelle `steps`-/`model_output`-Schema als auch das aeltere `outputs`-Textschema der Interactions API. Providerfehler protokollieren nur HTTP-Status und Schema-/Content-Typen, niemals Prompt-, Antwort- oder Key-Inhalte. Der Key darf nie als `VITE_GOOGLE_API_KEY`, nie im Browser, nie in `localStorage`, nie in Exportdaten und nie in Logs auftauchen.
+Aktueller erster KI-Proxy: `POST /api/ai/chat` nutzt serverseitig ausschliesslich `process.env.GOOGLE_API_KEY`, ruft die Gemini Interactions API mit `model: "gemma-4-31b-it"`, `store: false` und einem Ausgabelimit von 2048 Tokens auf und gibt eine freie KI-Antwort zurueck, solange `sourceBound` nicht aktiv ist. Bei `sourceBound: true` nimmt die Route hoechstens fuenf lokal ermittelte Kartenbelege entgegen, verlangt mindestens eine Quelle und gibt eine quellengebundene Antwort zurueck. Der Response-Parser akzeptiert sowohl das aktuelle `steps`-/`model_output`-Schema als auch das aeltere `outputs`-Textschema der Interactions API. Providerfehler protokollieren nur HTTP-Status und Schema-/Content-Typen, niemals Prompt-, Antwort- oder Key-Inhalte.
 
-KI-Routen sollen zunaechst Drafts zurueckgeben. Der Nutzer prueft, bearbeitet und akzeptiert sie; erst danach speichert die App ueber die normalen Modellpfade. Sobald serverseitige Kostenlimits pro Nutzer benoetigt werden, muss die API-Route eine belastbare Supabase-Session/JWT-Pruefung erhalten.
+Jeder Chat-Aufruf braucht einen aktuellen Supabase-Bearer-Token, eine serverseitig aus `profiles.privacy` gelesene Einwilligung `google-gemma-chat-v1` und einen UUID-`Idempotency-Key`. `api/ai/chatProtection.ts` kapselt die Tokenpruefung per `auth.getUser`, 20 Nutzer- und 200 IP-Aufrufe je zehn Minuten, HMAC-pseudonymisierte Redis-Schluessel sowie 90 Sekunden Pending- und zehn Minuten Completed-Idempotenz. Fehler der Auth-/Upstash-Infrastruktur werden fail-closed behandelt. Die Antwort bleibt fuer Browser und Zwischenstationen `private, no-store`; nur die bereinigte Erfolgsantwort darf fuer technische Wiederholungen zehn Minuten in Upstash liegen. KI-Routen sollen Drafts zurueckgeben, die erst ueber normale Modellpfade gespeichert werden.
 
 ---
 
@@ -2255,19 +2255,20 @@ Bei Fehler:
 
 Produktive KI-Aufrufe laufen nicht direkt aus dem Browser zum Anbieter. CoRe nutzt als ersten umgesetzten Pfad `POST /api/ai/chat` fuer freie Chat-Antworten mit Gemma 4 31B IT; quellengebundene Chat-your-Deck-Antworten sind per Checkbox optional. Weitere Serverrouten wie `/api/ai/generate-cards`, `/api/ai/rephrase-variant` oder `/api/ai/build-graph` bleiben Ausbaupfade und muessen Provider-Keys ebenfalls nur aus serverseitigen Env Vars lesen.
 
-Mindestanforderungen an diese Routen:
+Der bestehende Chat erfuellt folgende Mindestanforderungen; neue Providerpfade muessen denselben oder einen strengeren Vertrag erhalten:
 
 - nur erlaubte HTTP-Methoden akzeptieren,
-- Same-Origin- oder Auth-Pruefung durchfuehren,
+- Same-Origin- und Supabase-Auth-Pruefung durchfuehren,
 - Request-Groessen begrenzen,
 - Modell-Allowlist serverseitig erzwingen,
 - Output-/Tokenlimit setzen,
-- IP- und spaeter User-Rate-Limits nutzen,
+- IP- und User-Rate-Limits nutzen,
+- wiederholte und parallele Aufrufe ueber einen accountgebundenen Idempotenzschluessel absichern,
 - keine Roh-Secrets oder kompletten Promptinhalte unkontrolliert loggen,
 - strukturierte KI-Ausgabe validieren,
 - KI-Ergebnisse als Drafts behandeln und nicht ungeprueft persistieren.
 
-Fuer den ersten Online-MVP ist ein einfacher Weg erlaubt: Die Serverroute generiert Drafts und gibt sie zurueck; der Browser speichert akzeptierte Karten ueber Supabase RLS. Sobald Kostenbudgets, Abuse-Schutz pro Nutzer oder serverseitige Job-Queues wichtig werden, muss die Route die Supabase-Session belastbar pruefen und Nutzungszaehler serverseitig fuehren.
+Der Chat akzeptiert maximal 48 KiB Request, 600 Zeichen Frage, fuenf Evidenzen mit jeweils 900 Zeichen pro Textfeld, 13.500 Evidenzzeichen und 16.000 Zeichen finalen Prompt. Das Modell ist fest auf `gemma-4-31b-it`, die Ausgabe auf 2048 Tokens und der Providerlauf auf 45 Sekunden begrenzt. Karteninhalt ist im Prompt als nicht vertrauenswuerdige Evidenz abgegrenzt; patientenbezogene Diagnose- und Behandlungsanweisungen sind ausgeschlossen. Dauerhafte Kostenbudgets und Exactly-once-Semantik ueber Prozessabbrueche hinweg bleiben Aufgabe des spaeteren `ai_jobs`-Pfads.
 
 ---
 
@@ -2556,6 +2557,7 @@ Aktueller Betriebsstatus: Das P0-Betriebsgate wurde am 2026-07-10 nach ausdrueck
 - Fuer manuelle Cloud-Pruefungen wird ausschliesslich ein eigener Release-Smoke-Account im angebundenen Supabase-Projekt verwendet. Er darf keine persoenlichen oder fremden Daten enthalten; seine Mutationen bleiben durch RLS accountgebunden.
 - Vor dem Smoke werden Commit-SHA, CI-Lauf, Preview-URL beziehungsweise Deployment-ID, aktuelle Production-Deployment-ID, Vercel-CLI-Version, Tester und Startzeit notiert. In den Nachweis gehoeren keine Passwoerter, Tokens, Environment-Werte, `.env`-Dateien oder Screenshots mit Auth-Daten.
 - Die Preview muss in Vercel den Zustand `Ready` erreicht haben. `vercel inspect <preview-url>` darf keine Buildfehler zeigen. Mit `vercel env ls preview` werden nur Namen und Zielumgebungen kontrolliert; Secret-Werte werden weder ausgegeben noch in eine Datei gezogen.
+- Vor einem KI-Smoke muessen eine Upstash-KV-Ressource in `fra1`, `KV_REST_API_URL`, `KV_REST_API_TOKEN` und ein je Umgebung eigenes `AI_PROTECTION_HMAC_KEY` vorhanden sein. Fuer Production muessen ausserdem Upstash-DPA, aktives Google-Cloud-Billing und Google-DPA organisatorisch bestaetigt sein; andernfalls darf der Build nicht promoted werden.
 - Bei einer schemaaendernden Version muss vor der Freigabe ein eigener vorwaertskompatibler Supabase-Migrations- und Rueckfallplan existieren. Ein Vercel-Rollback wechselt nur den App-Build und setzt weder Daten noch Migrationen zurueck.
 
 #### Preview-Smoke in fester Reihenfolge
@@ -2565,7 +2567,7 @@ Aktueller Betriebsstatus: Das P0-Betriebsgate wurde am 2026-07-10 nach ausdrueck
 3. Unter `Lernen` einen bekannten Cloud-Stapel wie `Welt-Hauptstädte` oeffnen. Damit ist geprueft, dass nicht nur der lokale Browser-Cache, sondern der accountgebundene Cloud-State geladen wurde.
 4. Eine Karte beantworten und zum Beispiel mit `Good` bewerten. In `Einstellungen` warten, bis `Zuletzt synchronisiert: ...` erscheint; falls der Status aussteht, einmal `Jetzt synchronisieren` verwenden. Anschliessend neu laden und kontrollieren, dass kein Sync-Fehler erscheint. Vor dem naechsten Schritt muss der Save-Status gruen sein.
 5. Unter `Erstellen` den Pfad `Import` -> `APKG` oeffnen und die kleine bekannte Fixture `fixtures/apkg/world-capitals.apkg` auswaehlen. Die `Importvorschau` muss Deck-, Note-, Varianten- und Medienangaben zeigen. `Import uebernehmen` wird im Smoke **nicht** angeklickt, damit die Preview keine unbeabsichtigte Importmutation erzeugt.
-6. Mit vorhandenem `GOOGLE_API_KEY` auf `Heute` den `Assistent` oeffnen, die Quellenbindung ausgeschaltet lassen und eine harmlose Testfrage senden. Erwartet werden `KI-Antwort erstellt.`, eine nichtleere Antwort und kein Key oder Token in Browserkonsole, Network-Antwort oder Vercel-Log.
+6. Mit vorhandenem `GOOGLE_API_KEY` auf `Heute` den `Assistent` oeffnen. Beim ersten Aufruf die 18+- und Transferinformation bestaetigen und deren erfolgreichen Cloud-Save abwarten. Danach die Quellenbindung ausgeschaltet lassen und eine harmlose Testfrage senden. Erwartet werden ein Bearer- und UUID-Idempotenzheader, `KI-Antwort erstellt.`, eine nichtleere Antwort und kein Key, Token oder vollstaendiger Prompt in Browserkonsole, Network-Antwort oder Vercel-Log. Ein Wiederholungsaufruf mit demselben Schluessel muss ohne zweiten Provideraufruf dieselbe bereinigte Antwort liefern.
 7. Der fehlende-Key-Pfad ist im Release-Gate durch `src/aiChatRoute.test.ts` verpflichtend abgedeckt: Die Route muss ohne Provider-Aufruf HTTP `503` mit `missing_google_api_key` liefern, die UI zeigt `KI-Route ist nicht konfiguriert.`. Wenn eine absichtlich keylose Preview-Umgebung vorhanden ist, wird derselbe UI-Pfad dort zusaetzlich manuell geprueft. Der gemeinsam verwendete Preview-Key darf fuer diesen Smoke nicht entfernt oder ueberschrieben werden.
 8. In `Einstellungen` abmelden. Das Login-Gate muss wieder erscheinen; Hauptmenue und Cloud-Inhalte duerfen ohne Sitzung nicht sichtbar bleiben.
 
@@ -2704,6 +2706,9 @@ OPENAI_API_KEY=...
 GOOGLE_API_KEY=...
 GEMINI_API_KEY=...
 ANTHROPIC_API_KEY=...
+KV_REST_API_URL=...
+KV_REST_API_TOKEN=...
+AI_PROTECTION_HMAC_KEY=...
 SUPABASE_SECRET_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
@@ -2718,7 +2723,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 
 Secrets duerfen nicht in `localStorage`, Exportdateien, Supabase-Userdaten, Client-Logs oder Browser-Code landen. `.env`, `.env.*` und `.vercel/` gehoeren in `.gitignore`; falls ein dokumentiertes Beispiel gebraucht wird, dann nur als `.env.example` ohne echte Werte.
 
-Fuer das Vercel-Projekt `bengt2/core-hosted` ist `GOOGLE_API_KEY` als sensitive Environment Variable fuer Production und Preview vorgesehen. CoRe-Code darf diesen Key ausschliesslich in Serverrouten wie `/api/ai/chat` ueber `process.env.GOOGLE_API_KEY` lesen; Frontend-Code, `VITE_*`-Variablen und Logs duerfen ihn nicht beruehren.
+Fuer das Vercel-Projekt `bengt2/core-hosted` ist `GOOGLE_API_KEY` als sensitive Environment Variable fuer Production und Preview vorgesehen. Die Upstash-Marketplace-Ressource stellt `KV_REST_API_URL` und `KV_REST_API_TOKEN`; `AI_PROTECTION_HMAC_KEY` wird mit einem eigenen hochentropischen Wert fuer Development, Preview und Production gesetzt. CoRe-Code darf diese Werte ausschliesslich in Serverrouten lesen; Frontend-Code, `VITE_*`-Variablen und Logs duerfen sie nicht beruehren. Redis-Schluessel enthalten nur HMAC-Digests und einen umgebungsgebundenen Namespace, Analytics bleibt aus und Auto-Upgrade der Free-Ressource bleibt deaktiviert.
 
 ---
 
@@ -2730,6 +2735,9 @@ Fuer das Vercel-Projekt `bengt2/core-hosted` ist `GOOGLE_API_KEY` als sensitive 
 - Community-Teilen betrifft Inhalte, nicht persönliche Review-Historie.
 - KI-Jobs sollen nur notwendige Inhalte an externe Modelle geben.
 - Nutzer sollen verstehen, welche Daten KI verarbeitet.
+- Vor dem ersten externen Chat bestaetigt der Nutzer accountgebunden und versioniert, mindestens 18 Jahre alt zu sein und die Uebertragung an Google sowie den maximal zehnminuetigen EU-Zwischenspeicher verstanden zu haben. Die Route liest diese Einwilligung bei jedem Aufruf serverseitig; eine reine UI-Bestaetigung reicht nicht.
+- Ohne Quellenbindung wird nur die Frage uebertragen. Mit Quellenbindung werden zusaetzlich hoechstens fuenf minimierte Kartenbelege uebertragen; Profil, Lernstand, Tags, vollstaendige Stapel und Dateien bleiben lokal.
+- Der produktive EWR-Pfad setzt Google Paid Services mit aktivem Cloud Billing, Google-DPA, Upstash-DPA und die Frankfurt-Region voraus. `store: false` wird nicht als Zero Data Retention dargestellt.
 
 ### 15.2 Berechtigungen
 
@@ -2748,12 +2756,15 @@ Fuer das Vercel-Projekt `bengt2/core-hosted` ist `GOOGLE_API_KEY` als sensitive 
 - Keine automatische Aktivierung unsicherer KI-Karten, wenn Quelle fehlt.
 - Sanitization von HTML aus Anki und KI.
 - Prompt-Injection-Schutz bei importierten Dokumenten: Dokumentinhalt darf nicht Systemregeln überschreiben.
+- Karten- und Dokumentinhalt wird als nicht vertrauenswuerdige Evidenz gekennzeichnet; darin enthaltene Anweisungen werden nicht ausgefuehrt.
+- Der Lernassistent ersetzt keine medizinische Beratung und darf keine patientenbezogenen Diagnose-, Therapie- oder Behandlungsanweisungen geben.
 
 ### 15.4 Supabase/Auth- und Secret-Sicherheit
 
 Supabase trennt Projekt-API-Key und Nutzeridentitaet: Der Publishable Key identifiziert die App-Komponente, Auth/JWT identifiziert den Nutzer, und RLS entscheidet ueber Zeilenzugriff. Daraus folgen fuer CoRe:
 
 - Frontend nutzt nur Supabase URL plus Publishable Key.
+- `/api/ai/chat` validiert den Browser-Access-Token serverseitig mit `auth.getUser`, nutzt denselben Bearer-gebundenen Client fuer den RLS-geschuetzten Profil-Read und verwendet keine Service Role.
 - Secret Keys, Service Role Keys und KI-Provider-Keys bleiben serverseitig.
 - `service_role`/Secret darf nie in `VITE_*`, Browser-Code, `localStorage`, Exportdaten oder Nutzerprofilen landen.
 - Alle nutzerdatenhaltenden Tabellen in `public` brauchen explizite Grants, aktiviertes RLS und echte Ownership-/Membership-Policies.
@@ -3305,7 +3316,7 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 | `src/ui/cardMedia.tsx` / `src/ui/RichTextEditor.tsx` / `src/ui/colorPicker.tsx` / `src/ui/deckAppearance.tsx` / `src/ui/coreUi.tsx` | `useDeckMediaUrls`, `CardHtml`, `RichTextEditor`, `ColorPopover`, `ColorToolButton`, `DeckAppearanceIcon`, gemeinsame UI-Bausteine | Medien-URL-Aufloesung fuer React, sicheres Karten-HTML, Rich-Text-Eingabe, wiederverwendeter Farbpicker, Stapel-Icon-Darstellung und geteilte Praesentationskomponenten |
 | `src/communityModel.ts` | `createCommunity`, `shareDeckToCommunity`, `copySharedDeckToLibrary` | Kleine Gruppen, Ordner, Deck-Kopien ohne Lernmetriken |
 | `src/deckGraph.ts` | `buildDeckGraph`, `shouldRefreshDeckGraph` | Themen-/Karten-Mindmap und Triggerlogik |
-| `src/deckAssistant.ts` / `src/aiChatContract.ts` / `api/ai/chat.ts` | `retrieveDeckEvidence`, `answerDeckQuestion`, `answerDeckQuestionWithServer`, validierter gemeinsamer Chatvertrag, `POST /api/ai/chat` | Freie Chatantworten per Default; optionale quellengebundene Antworten aus Karten mit lokaler Evidenzsuche, keine Provider-Aufrufe ohne Quelle im Quellenmodus, Gemma-4-31B-IT laeuft serverseitig mit `GOOGLE_API_KEY` aus `process.env`; aktuelle und Legacy-Providerantworten werden getrennt geprüft und unerwartete Payloads sanitisiert abgewiesen |
+| `src/deckAssistant.ts` / `src/aiChatContract.ts` / `api/ai/chat.ts` / `api/ai/chatProtection.ts` | `retrieveDeckEvidence`, `answerDeckQuestionWithServer`, strikter gemeinsamer Chatvertrag, `createChatProtection`, `POST /api/ai/chat` | Minimierte freie oder quellengebundene Requests; Supabase-Bearer- und serverseitige Einwilligungspruefung, HMAC-pseudonymisierte Upstash-Limits und Idempotenz; Gemma-4-31B-IT bleibt der einzige Provider und aktuelle sowie Legacy-Antworten werden sanitisiert validiert |
 | `src/learningPlan.ts` | `createLearningPlan` | Pruefungsplan aus Due-Karten, neuen Karten, Varianten und schwachen Themen |
 | `src/authModel.ts` | `createLocalAccount`, `signInLocalAccount`, `signOutLocalAccount` | Lokale Account-/Sitzungslogik fuer den Web-MVP |
 | `src/dataPortability.ts` | `createPortableExport`, `stringifyPortableExport`, `validatePortableExport`, `mergePortableExportIntoState` | JSON-Export/-Import ohne Passwort-Verifier |
@@ -3448,7 +3459,11 @@ Bewusst noch nicht unterstuetzt:
 
 ### 27.8 Chat-your-Deck, Lernplan und Portabilitaet
 
-Der Assistent beantwortet Fragen per Default als freie KI-Antwort ueber `POST /api/ai/chat`. `src/aiChatContract.ts` validiert Request-, Success- und Errorformen auf Browser und Server gemeinsam; aktuelle `steps`-, direkte `output_text`- und Legacy-`outputs`-Providerformen werden serverintern separat geprüft. Unerwartete Providerpayloads ergeben einen sanitisierten `502`, und Logs enthalten weder Secrets noch vollständige Prompts oder Providerpayloads. Die Option `Nur mit Kartenquellen antworten` ist standardmaessig aus und kann per Checkbox aktiviert werden. Im Quellenmodus werden Karten lokal ueber einfache Token-Ueberschneidung und Tags gerankt; Reifegrad kann einen vorhandenen Treffer leicht priorisieren, erzeugt aber keinen Treffer ohne inhaltliche Ueberschneidung. Quellengebundene Antworten enthalten `citations` mit `deckId`, `cardId`, Kartenquote und optionalem Quellenanker. Wenn im Quellenmodus keine Quelle gefunden wird, verweigert der Assistent eine freie Antwort und ruft keinen KI-Provider auf. Ohne Quellenbindung sendet die UI nur die Frage an die Vercel-Serverroute; mit Quellenbindung sendet sie Frage und Top-Kartenbelege an Gemma 4 31B IT (`gemma-4-31b-it`, `store: false`). Bei fehlender Route, fehlendem Key oder Providerfehler faellt der Quellenmodus auf die lokale Quellenantwort zurueck; freie Antworten zeigen einen Fehlerstatus. Die UI bleibt ohne Hauptmenuepunkt, ist aber vom Heute-Dashboard aus als sekundaerer Arbeitsbereich erreichbar.
+Der Assistent beantwortet Fragen per Default als freie KI-Antwort ueber `POST /api/ai/chat`. Vor dem ersten externen Aufruf bestaetigt der Nutzer mindestens 18 Jahre, Google-Transfer und den maximal zehnminuetigen EU-Cache; `profile.privacy.aiChatConsent` wird erst nach Cloud-Bestaetigung freigeschaltet und bei jedem Aufruf serverseitig erneut gelesen. Lokale Suche und Lernplan bleiben ohne Einwilligung nutzbar.
+
+`src/aiChatContract.ts` validiert strikte Request-, Success-, Error- und Einwilligungsformen auf Browser und Server gemeinsam. Der Browser holt unmittelbar vor dem Aufruf das aktuelle Supabase-Token, erzeugt pro Nutzeraktion eine UUID und sendet Token und Idempotenzschluessel nur als Header. Ohne Quellenbindung wird nur die Frage gesendet; mit Quellenbindung werden hoechstens fuenf Karten auf Deck-/Karten-ID, bereinigte Vorder-/Rueckseite und flache Quellenfelder reduziert. Tags, Scores, vollstaendige Anker, Profil und Reviewdaten verlassen den Browser nicht.
+
+`api/ai/chatProtection.ts` verbirgt Auth, Einwilligung, Rate Limits und Idempotenz vor Route und React. 20 Nutzer- und 200 IP-Aufrufe je zehn Minuten werden mit HMAC-pseudonymisierten Upstash-Schluesseln begrenzt. Eine UUID reserviert den normalisierten Request 90 Sekunden; eine erfolgreiche bereinigte Antwort kann zehn Minuten wiederholt werden. Gleicher Schluessel mit anderem Request ergibt `idempotency_conflict`, ein paralleler Aufruf `request_in_progress`. Aktuelle `steps`-, direkte `output_text`- und Legacy-`outputs`-Providerformen werden serverintern getrennt geprüft. Unerwartete Providerpayloads ergeben einen sanitisierten `502`, und Logs enthalten weder Secrets noch vollständige Prompts oder Providerpayloads. Bei fehlender Route, fehlendem Key oder Providerfehler faellt der Quellenmodus auf die lokale Quellenantwort zurueck; freie Antworten zeigen einen deutschen Fehlerstatus. Die UI bleibt ohne Hauptmenuepunkt und ist vom Heute-Dashboard als sekundaerer Arbeitsbereich erreichbar.
 
 `createLearningPlan` erzeugt einen Plan aus Zieltermin, verfuegbaren Minuten pro Tag, neuen Karten pro Tag, faelligen Reviews, aktiven Varianten und schwachen Tags aus Review-Events oder Graph-Knoten. Der Plan erzeugt Tageszeilen mit Review-Quota, neuen Karten, Varianten-Tagen und Fokusdeck. Er ist kein Kalender-Adapter; ein spaeterer Kalender- oder Benachrichtigungsadapter soll die erzeugten Planobjekte konsumieren.
 

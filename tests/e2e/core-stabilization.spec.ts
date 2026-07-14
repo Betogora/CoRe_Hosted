@@ -201,6 +201,15 @@ test("assistant smoke returns a server answer through the hidden dashboard entry
 
   await mainMenu(page).getByRole("button", { name: "Heute" }).click();
   await page.route("**/api/ai/chat", async (route: any) => {
+    const headers = route.request().headers();
+    expect(headers.authorization).toMatch(/^Bearer\s+\S+$/);
+    expect(headers["idempotency-key"]).toMatch(/^[0-9a-f-]{36}$/i);
+    const body = route.request().postDataJSON();
+    expect(body).toEqual({
+      question: "Was ist die Hauptstadt von Algerien?",
+      evidence: [],
+      sourceBound: false,
+    });
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -212,6 +221,10 @@ test("assistant smoke returns a server answer through the hidden dashboard entry
     });
   }, { times: 1 });
   await page.getByRole("button", { name: "Assistent öffnen" }).click();
+  await expect(page.getByRole("heading", { name: "Externe KI-Nutzung bestätigen" })).toBeVisible();
+  await page.getByLabel(/Ich bin mindestens 18 Jahre alt/).check();
+  await page.getByRole("button", { name: "KI-Nutzung bestätigen" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "KI-Nutzung bestätigt." })).toBeVisible();
   await page.getByLabel("Frage an deine Karten").fill("Was ist die Hauptstadt von Algerien?");
   await expect(page.getByLabel("Nur mit Kartenquellen antworten")).not.toBeChecked();
   await page.getByRole("button", { name: "Antwort erstellen" }).click();

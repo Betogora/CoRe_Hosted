@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import type { Tables, TablesInsert } from "./database.types.ts";
+import { parseAiChatConsent } from "./aiChatContract.ts";
 
 const SESSION_MISSING_CODES = new Set(["AuthSessionMissingError", "session_not_found"]);
 
@@ -35,11 +36,13 @@ function normalizeEmail(email: any) {
 }
 
 function mergePrivacy(profile: any) {
+  const consent = parseAiChatConsent(profile?.privacy?.aiChatConsent);
   return {
     shareLearningProgress: false,
     showOnlineStatus: false,
     showStreaksToOthers: false,
     ...(profile?.privacy ?? {}),
+    aiChatConsent: consent.success ? consent.output : null,
   };
 }
 
@@ -163,7 +166,12 @@ export function createCloudProfile(row: any, user: any, fallback: any = {}, time
     preferredLanguage: validatedRow?.preferred_language ?? fallback?.preferredLanguage ?? "de",
     timezone: validatedRow?.timezone ?? fallback?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
     onboardingComplete: validatedRow?.onboarding_complete ?? fallback?.onboardingComplete ?? true,
-    privacy: { ...mergePrivacy(fallback), ...((validatedRow?.privacy as Record<string, unknown> | undefined) ?? {}) },
+    privacy: mergePrivacy({
+      privacy: {
+        ...mergePrivacy(fallback),
+        ...((validatedRow?.privacy as Record<string, unknown> | undefined) ?? {}),
+      },
+    }),
     schedulerPreferences: validatedRow?.scheduler_preferences ?? fallback?.schedulerPreferences ?? { profile: "standard" },
     account: accountFromUser(user ?? { id: validatedRow?.id, email, created_at: validatedRow?.created_at }, "signed-in", timestamp),
   };

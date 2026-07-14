@@ -1,6 +1,11 @@
 import { stripHtml } from "./htmlSafety.ts";
 import { makeId } from "./coreModel.ts";
-import { parseAiChatError, parseAiChatSuccess } from "./aiChatContract.ts";
+import {
+  MAX_CHAT_EVIDENCE_TEXT_CHARS,
+  MAX_CHAT_QUESTION_CHARS,
+  parseAiChatError,
+  parseAiChatSuccess,
+} from "./aiChatContract.ts";
 
 const STOP_WORDS = new Set([
   "der",
@@ -170,10 +175,35 @@ const ROUTE_ERROR_WARNINGS = {
   provider_invalid_json: "KI-Anbieter lieferte eine unlesbare Antwort.",
   provider_empty_answer: "KI-Anbieter lieferte eine leere Antwort.",
   provider_unreachable: "KI-Anbieter ist gerade nicht erreichbar.",
+  provider_timeout: "KI-Anbieter hat nicht rechtzeitig geantwortet.",
   invalid_request: "KI-Anfrage war ungültig.",
+  invalid_idempotency_key: "KI-Anfrage hatte keinen gültigen Wiederholungsschutz.",
   request_too_large: "KI-Anfrage war zu groß.",
+  unauthorized: "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
+  ai_consent_required: "Bitte bestätige zuerst die Bedingungen für die externe KI-Nutzung.",
+  rate_limited: "Zu viele KI-Anfragen. Bitte warte kurz.",
+  request_in_progress: "Diese KI-Anfrage wird bereits verarbeitet.",
+  idempotency_conflict: "Die KI-Anfrage konnte nicht sicher wiederholt werden.",
+  auth_unavailable: "Deine Anmeldung kann gerade nicht geprüft werden.",
+  protection_unavailable: "Der KI-Schutz ist gerade nicht verfügbar.",
   internal_error: "KI-Route ist auf einen internen Fehler gelaufen.",
 };
+
+function boundedWireText(value: unknown, maxLength: number): string {
+  return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+export function createAiChatEvidencePayload(evidence: any[]) {
+  return evidence.map((item) => ({
+    deckId: boundedWireText(item.deckId, 120),
+    deckName: boundedWireText(item.deckName, 160),
+    cardId: boundedWireText(item.cardId, 120),
+    front: boundedWireText(item.front, MAX_CHAT_EVIDENCE_TEXT_CHARS),
+    back: boundedWireText(item.back, MAX_CHAT_EVIDENCE_TEXT_CHARS),
+    source: boundedWireText(item.sourceAnchors?.[0]?.documentName || item.deckName, 160),
+    sourceQuote: boundedWireText(item.sourceAnchors?.[0]?.textQuote || item.front, MAX_CHAT_EVIDENCE_TEXT_CHARS),
+  }));
+}
 
 async function readRouteErrorWarning(response: any) {
   try {
@@ -199,6 +229,8 @@ export async function answerDeckQuestionWithServer({
   endpoint = "/api/ai/chat",
   fetchImpl = globalThis.fetch,
   sourceBound = false,
+  getAccessToken = async () => null,
+  createIdempotencyKey = () => globalThis.crypto.randomUUID(),
 }: any = {}) {
   const evidence = sourceBound ? retrieveDeckEvidence({ decks, deckId, question, limit: 5 }) : [];
   const fallbackExchange = createDeckAssistantExchange({
@@ -218,14 +250,24 @@ export async function answerDeckQuestionWithServer({
   }
 
   try {
+    if (question.length > MAX_CHAT_QUESTION_CHARS) {
+      throw new Error(`Deine Frage darf höchstens ${MAX_CHAT_QUESTION_CHARS} Zeichen lang sein.`);
+    }
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      throw new Error("Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.");
+    }
+    const idempotencyKey = createIdempotencyKey();
     const response = await fetchImpl(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify({
         question,
-        evidence,
+        evidence: createAiChatEvidencePayload(evidence),
         sourceBound,
       }),
     });

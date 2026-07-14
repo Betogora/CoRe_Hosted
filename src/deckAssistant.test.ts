@@ -3,6 +3,11 @@ import test from "node:test";
 import { createCoreCard, createCoreDeck } from "./coreModel.ts";
 import { answerDeckQuestion, answerDeckQuestionWithServer } from "./deckAssistant.ts";
 
+const authenticatedRequest = {
+  getAccessToken: async () => "supabase-access-token",
+  createIdempotencyKey: () => "11111111-1111-4111-8111-111111111111",
+};
+
 function createMyelinDeck() {
   return createCoreDeck({
     name: "Neuro",
@@ -32,6 +37,7 @@ test("deck assistant keeps the local source-bound refusal", () => {
 test("deck assistant does not call the server without local evidence in source-bound mode", async () => {
   let fetchCalls = 0;
   const result = await answerDeckQuestionWithServer({
+    ...authenticatedRequest,
     decks: [createMyelinDeck()],
     question: "Photosynthese Chlorophyll Lichtreaktion",
     sourceBound: true,
@@ -50,14 +56,17 @@ test("deck assistant does not call the server without local evidence in source-b
 test("deck assistant calls the server without local evidence when source binding is off", async () => {
   let fetchCalls = 0;
   const result = await answerDeckQuestionWithServer({
+    ...authenticatedRequest,
     decks: [createMyelinDeck()],
     question: "Welche KI bist du?",
     sourceBound: false,
-    fetchImpl: async (_endpoint: any, options: { body: string; }) => {
+    fetchImpl: async (_endpoint: any, options: { body: string; headers: Record<string, string> }) => {
       fetchCalls += 1;
       const body = JSON.parse(options.body);
       assert.equal(body.sourceBound, false);
       assert.deepEqual(body.evidence, []);
+      assert.equal(options.headers.Authorization, "Bearer supabase-access-token");
+      assert.equal(options.headers["Idempotency-Key"], "11111111-1111-4111-8111-111111111111");
       return {
         ok: true,
         json: async () => ({
@@ -76,8 +85,27 @@ test("deck assistant calls the server without local evidence when source binding
   assert.equal(fetchCalls, 1);
 });
 
+test("deck assistant does not call the route without a current session", async () => {
+  let fetchCalls = 0;
+  const result = await answerDeckQuestionWithServer({
+    decks: [createMyelinDeck()],
+    question: "Welche KI bist du?",
+    sourceBound: false,
+    getAccessToken: async () => null,
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      return { ok: true, json: async () => ({}) };
+    },
+  });
+
+  assert.equal(fetchCalls, 0);
+  assert.equal(result.usedServer, false);
+  assert.deepEqual(result.exchange.warnings, ["Deine Sitzung ist abgelaufen. Bitte melde dich erneut an."]);
+});
+
 test("deck assistant uses Gemma route answers when evidence exists", async () => {
   const result = await answerDeckQuestionWithServer({
+    ...authenticatedRequest,
     decks: [createMyelinDeck()],
     question: "Was macht die Myelinscheide?",
     sourceBound: true,
@@ -85,6 +113,10 @@ test("deck assistant uses Gemma route answers when evidence exists", async () =>
       const body = JSON.parse(options.body);
       assert.equal(body.sourceBound, true);
       assert.equal(body.evidence.length, 1);
+      assert.deepEqual(Object.keys(body.evidence[0]).sort(), ["back", "cardId", "deckId", "deckName", "front", "source", "sourceQuote"]);
+      assert.equal("tags" in body.evidence[0], false);
+      assert.equal("sourceAnchors" in body.evidence[0], false);
+      assert.equal("score" in body.evidence[0], false);
       return {
         ok: true,
         json: async () => ({
@@ -104,6 +136,7 @@ test("deck assistant uses Gemma route answers when evidence exists", async () =>
 
 test("deck assistant falls back to the local evidence answer on route errors", async () => {
   const result = await answerDeckQuestionWithServer({
+    ...authenticatedRequest,
     decks: [createMyelinDeck()],
     question: "Was macht die Myelinscheide?",
     sourceBound: true,
@@ -122,6 +155,7 @@ test("deck assistant falls back to the local evidence answer on route errors", a
 
 test("deck assistant surfaces provider error reasons in free chat mode", async () => {
   const result = await answerDeckQuestionWithServer({
+    ...authenticatedRequest,
     decks: [createMyelinDeck()],
     question: "Wie wird das Wetter heute in New York City?",
     sourceBound: false,

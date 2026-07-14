@@ -1,15 +1,28 @@
 import React from "react";
 import { Bot, CalendarDays } from "lucide-react";
+import { hasCurrentAiChatConsent, MAX_CHAT_QUESTION_CHARS } from "../aiChatContract.ts";
 import { answerDeckQuestionWithServer } from "../deckAssistant.ts";
 import { createLearningPlan } from "../learningPlan.ts";
 import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 
-export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePlan }: any) {
+export function AssistantScreen({
+  decks,
+  transcript,
+  plans,
+  profile,
+  getAccessToken,
+  onAcceptAiChatConsent,
+  onSaveChat,
+  onSavePlan,
+}: any) {
   const [activeTab, setActiveTab] = React.useState("chat");
   const [deckId, setDeckId] = React.useState("all");
   const [status, setStatus] = React.useState("");
   const [isAsking, setIsAsking] = React.useState(false);
   const [sourceBound, setSourceBound] = React.useState(false);
+  const [adultConfirmed, setAdultConfirmed] = React.useState(false);
+  const [isAcceptingConsent, setIsAcceptingConsent] = React.useState(false);
+  const [consentError, setConsentError] = React.useState("");
   const [question, setQuestion] = React.useState("Welche Karten hängen mit Myelin zusammen?");
   const [targetDate, setTargetDate] = React.useState(() => {
     const date = new Date();
@@ -19,15 +32,32 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
   const [dailyMinutes, setDailyMinutes] = React.useState(35);
   const [newCardsPerDay, setNewCardsPerDay] = React.useState(8);
   const latestPlan = plans[0] ?? null;
+  const hasAiConsent = hasCurrentAiChatConsent(profile?.privacy?.aiChatConsent);
+
+  async function acceptConsent() {
+    if (!adultConfirmed || isAcceptingConsent) return;
+    setIsAcceptingConsent(true);
+    setConsentError("");
+    setStatus("KI-Einwilligung wird sicher gespeichert.");
+    try {
+      await onAcceptAiChatConsent();
+      setStatus("KI-Nutzung bestätigt.");
+    } catch (error) {
+      setConsentError(error instanceof Error ? error.message : "Die KI-Einwilligung konnte nicht gespeichert werden.");
+      setStatus("");
+    } finally {
+      setIsAcceptingConsent(false);
+    }
+  }
 
   async function askQuestion() {
     const trimmedQuestion = question.trim();
-    if (!trimmedQuestion || isAsking) return;
+    if (!trimmedQuestion || isAsking || !hasAiConsent) return;
 
     setIsAsking(true);
     setStatus(sourceBound ? "Kartenquellen werden geprüft." : "KI-Antwort wird erstellt.");
     try {
-      const result = await answerDeckQuestionWithServer({ decks, deckId, question: trimmedQuestion, sourceBound });
+      const result = await answerDeckQuestionWithServer({ decks, deckId, question: trimmedQuestion, sourceBound, getAccessToken });
       onSaveChat(result.exchange);
 
       if (sourceBound && result.exchange.citations.length === 0) {
@@ -94,7 +124,41 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
                 <h3 className="text-xl font-semibold text-[#17214f]">Frage an deine Karten</h3>
               </div>
             </div>
-            <textarea className="min-h-32 w-full rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={question} onChange={(event) => setQuestion(event.target.value)} aria-label="Frage an deine Karten" />
+            {!hasAiConsent ? (
+              <div className="mb-5 rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4">
+                <h4 className="text-base font-semibold text-[#17214f]">Externe KI-Nutzung bestätigen</h4>
+                <p className="mt-2 text-sm leading-6 text-[#4e5b8c]">
+                  Für eine KI-Antwort werden deine Frage und – nur bei aktivierter Quellenbindung – bis zu fünf ausgewählte Karteninhalte an Google Gemma übertragen. Profil, Lernstand, vollständige Stapel und Dateien werden nicht gesendet. Die Antwort kann für technische Wiederholungen bis zu zehn Minuten in der EU zwischengespeichert werden.
+                </p>
+                <label className="mt-3 flex items-start gap-3 text-sm leading-6 text-[#384574]">
+                  <input
+                    type="checkbox"
+                    checked={adultConfirmed}
+                    disabled={isAcceptingConsent}
+                    onChange={(event) => setAdultConfirmed(event.target.checked)}
+                    className="mt-1 h-4 w-4 shrink-0 rounded border-[#aeb8dc] text-indigo-700 focus:ring-indigo-600"
+                  />
+                  <span>Ich bin mindestens 18 Jahre alt und habe die Angaben zur Übertragung und Zwischenspeicherung verstanden.</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={acceptConsent}
+                  disabled={!adultConfirmed || isAcceptingConsent}
+                  className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-indigo-700 px-4 text-sm font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:bg-slate-300"
+                >
+                  {isAcceptingConsent ? "Bestätigung wird gespeichert" : "KI-Nutzung bestätigen"}
+                </button>
+                {consentError ? <p className="mt-3 text-sm font-medium text-red-700" role="alert">{consentError}</p> : null}
+              </div>
+            ) : null}
+            <textarea
+              className="min-h-32 w-full rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6"
+              value={question}
+              maxLength={MAX_CHAT_QUESTION_CHARS}
+              onChange={(event) => setQuestion(event.target.value)}
+              aria-label="Frage an deine Karten"
+            />
+            <p className="mt-1 text-right text-xs text-[#7a84a8]">{question.length}/{MAX_CHAT_QUESTION_CHARS} Zeichen</p>
             <label className="mt-4 flex items-start gap-3 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] px-3 py-3 text-sm text-[#4e5b8c]">
               <input
                 type="checkbox"
@@ -107,13 +171,18 @@ export function AssistantScreen({ decks, transcript, plans, onSaveChat, onSavePl
                 <span className="block text-xs leading-5 text-[#66709a]">Aus: freie KI-Antwort. An: Antwort nur, wenn passende Karten gefunden werden.</span>
               </span>
             </label>
-            <button type="button" onClick={askQuestion} disabled={(sourceBound && !decks.length) || !question.trim() || isAsking} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+            <button type="button" onClick={askQuestion} disabled={!hasAiConsent || (sourceBound && !decks.length) || !question.trim() || isAsking} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-sm font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:bg-slate-300">
               <Bot size={17} aria-hidden="true" />
               {isAsking ? "Antwort wird erstellt" : "Antwort erstellen"}
             </button>
             <p className="mt-3 text-sm text-[#66709a]">
               {sourceBound ? "Ohne passende Kartenquelle gibt der Assistent keine freie Antwort." : "Der Assistent nutzt eine freie KI-Antwort, wenn die Quellenbindung ausgeschaltet ist."}
             </p>
+            {hasAiConsent ? (
+              <p className="mt-3 rounded-xl bg-[#f8f9fe] px-3 py-2 text-xs leading-5 text-[#66709a]">
+                Frage und ausgewählte Karteninhalte werden an Google Gemma übertragen und können für technische Wiederholungen bis zu zehn Minuten in der EU zwischengespeichert werden. Nur für Lernzwecke, nicht für medizinische Beratung.
+              </p>
+            ) : null}
           </SoftPanel>
 
           <SoftPanel className="p-6">

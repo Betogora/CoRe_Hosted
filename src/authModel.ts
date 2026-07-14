@@ -36,6 +36,7 @@ export function createLocalAccount({
       shareLearningProgress: false,
       showOnlineStatus: false,
       showStreaksToOthers: false,
+      aiChatConsent: null,
     },
   };
 }

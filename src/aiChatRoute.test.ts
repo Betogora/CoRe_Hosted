@@ -38,6 +38,16 @@ function createRes() {
   };
 }
 
+const bypassProtection = {
+  async run({ parseRequest, execute }: any) {
+    return execute(await parseRequest());
+  },
+};
+
+function createTestChatHandler(options: any = {}) {
+  return createChatHandler({ ...options, protection: bypassProtection as any });
+}
+
 const evidence = [
   {
     deckId: "deck_neuro",
@@ -108,7 +118,7 @@ for (const rejection of [
 ]) {
   test(rejection.name, async () => {
     let fetchCalls = 0;
-    const handler = createChatHandler({
+    const handler = createTestChatHandler({
       env: rejection.env,
       fetchImpl: async () => {
         fetchCalls += 1;
@@ -127,7 +137,7 @@ for (const rejection of [
 
 test("Gemma chat route answers free questions without local card evidence", async () => {
   let fetchCalls = 0;
-  const handler = createChatHandler({
+  const handler = createTestChatHandler({
     env: { GOOGLE_API_KEY: "test-secret" },
     fetchImpl: async (_url: any, options: { body: string; }) => {
       fetchCalls += 1;
@@ -155,7 +165,7 @@ test("Gemma chat route answers free questions without local card evidence", asyn
 });
 
 test("Gemma chat route accepts legacy provider output without exposing provider details", async () => {
-  const handler = createChatHandler({
+  const handler = createTestChatHandler({
     env: { GOOGLE_API_KEY: "test-secret" },
     fetchImpl: async () => ({
       ok: true,
@@ -173,7 +183,7 @@ test("Gemma chat route accepts legacy provider output without exposing provider 
 });
 
 test("Gemma chat route maps provider failures without leaking secrets", async () => {
-  const handler = createChatHandler({
+  const handler = createTestChatHandler({
     env: { GOOGLE_API_KEY: "test-secret" },
     fetchImpl: async (_url: any, options: { headers: { [x: string]: unknown; }; }) => {
       assert.equal(options.headers["x-goog-api-key"], "test-secret");
@@ -191,7 +201,7 @@ test("Gemma chat route maps provider failures without leaking secrets", async ()
 });
 
 test("Gemma chat route maps provider network failures as unavailable", async () => {
-  const handler = createChatHandler({
+  const handler = createTestChatHandler({
     env: { GOOGLE_API_KEY: "test-secret" },
     fetchImpl: async () => {
       throw new Error("network detail");
@@ -208,7 +218,7 @@ test("Gemma chat route maps provider network failures as unavailable", async () 
 });
 
 test("Gemma chat route maps empty provider output as provider_empty_answer", async () => {
-  const handler = createChatHandler({
+  const handler = createTestChatHandler({
     env: { GOOGLE_API_KEY: "test-secret" },
     fetchImpl: async () => ({
       ok: true,
@@ -228,7 +238,7 @@ test("Gemma chat route rejects unexpected provider payloads without logging prom
   const originalWarn = console.warn;
   console.warn = (...args) => warnings.push(args);
   try {
-    const handler = createChatHandler({
+    const handler = createTestChatHandler({
       env: { GOOGLE_API_KEY: "test-secret" },
       fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ answer: "provider-intern" }) }),
     });

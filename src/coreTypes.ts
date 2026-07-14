@@ -67,10 +67,17 @@ export interface MediaAssetReference {
   deletedAt: string | null;
 }
 
+export interface AiChatConsent {
+  version: "google-gemma-chat-v1";
+  acceptedAt: string;
+  adultConfirmed: true;
+}
+
 export interface PrivacySettings {
   shareLearningProgress: boolean;
   showOnlineStatus: boolean;
   showStreaksToOthers: boolean;
+  aiChatConsent?: AiChatConsent | null;
 }
 
 export interface Profile {

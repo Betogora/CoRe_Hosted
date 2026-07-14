@@ -8,6 +8,7 @@ import { BarChart3, BookOpen, Database, Home, Layers, Network, PlusSquare, Setti
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.ts";
 import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
+import { AI_CHAT_CONSENT_VERSION } from "./aiChatContract.ts";
 import { formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.ts";
 import { createCoreRepository } from "./coreRepository.ts";
@@ -806,6 +807,46 @@ export function App() {
     return runWorkspaceMutation((currentWorkspace: { saveProfile: (arg0: any) => any; }) => currentWorkspace.saveProfile(profile));
   }
 
+  async function getAiAccessToken() {
+    if (!supabase) return null;
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return data.session?.access_token ?? null;
+  }
+
+  async function acceptAiChatConsent() {
+    if (!workspace || !syncEngine || !latestStateRef.current) {
+      throw new Error("Die Cloud-Synchronisierung ist noch nicht bereit.");
+    }
+    const previousProfile = workspace.getState().profile;
+    const consent = {
+      version: AI_CHAT_CONSENT_VERSION,
+      acceptedAt: new Date().toISOString(),
+      adultConfirmed: true as const,
+    };
+    workspace.saveProfile({
+      ...previousProfile,
+      privacy: { ...previousProfile.privacy, aiChatConsent: consent },
+    });
+    const snapshot = workspace.getState();
+    const runId = bootRunRef.current;
+    setAppState(snapshot);
+    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
+
+    try {
+      const result = await syncEngine.flush(undefined, { force: true });
+      const acknowledged = applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
+      if (!acknowledged) throw new Error("Die KI-Einwilligung wurde nicht von der Cloud bestätigt.");
+      return consent;
+    } catch (error) {
+      workspace.saveProfile(previousProfile);
+      const rollback = workspace.getState();
+      setAppState(rollback);
+      syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: rollback } });
+      throw new Error(formatCloudAuthError(error, "Die KI-Einwilligung konnte nicht gespeichert werden."));
+    }
+  }
+
   function saveCommunity(community: any) {
     return runWorkspaceMutation((currentWorkspace: { saveCommunity: (arg0: any) => any; }) => currentWorkspace.saveCommunity(community));
   }
@@ -912,7 +953,18 @@ export function App() {
       return <CommunityScreen decks={state.decks} communities={state.communities} onSaveCommunity={saveCommunity} onSaveDeck={saveDeck} />;
     }
     if (activeView === "assistent") {
-      return <AssistantScreen decks={state.decks} transcript={state.chatTranscript} plans={state.learningPlans} onSaveChat={saveChat} onSavePlan={savePlan} />;
+      return (
+        <AssistantScreen
+          decks={state.decks}
+          transcript={state.chatTranscript}
+          plans={state.learningPlans}
+          profile={state.profile}
+          getAccessToken={getAiAccessToken}
+          onAcceptAiChatConsent={acceptAiChatConsent}
+          onSaveChat={saveChat}
+          onSavePlan={savePlan}
+        />
+      );
     }
     if (activeView === "einstellungen") {
       return (

@@ -69,6 +69,27 @@ test("cloud auth creates a password-free signed-in profile", () => {
   assert.equal(profile.displayName, "Noemi");
 });
 
+test("cloud auth preserves only the current versioned AI consent", () => {
+  const acceptedAt = "2026-07-14T10:00:00.000Z";
+  const current = createCloudProfile(
+    {
+      id: user.id,
+      privacy: { aiChatConsent: { version: "google-gemma-chat-v1", acceptedAt, adultConfirmed: true } },
+    },
+    user,
+  );
+  const outdated = createCloudProfile(
+    {
+      id: user.id,
+      privacy: { aiChatConsent: { version: "old-consent", acceptedAt, adultConfirmed: true } },
+    },
+    user,
+  );
+
+  assert.equal(current.privacy.aiChatConsent.acceptedAt, acceptedAt);
+  assert.equal(outdated.privacy.aiChatConsent, null);
+});
+
 test("cloud auth represents pending email confirmation and signed-out state", () => {
   const pending = createPendingCloudProfile({ email: "noemi@example.test" }, user, "2026-07-09T07:30:00.000Z");
   const signedOut = markCloudSignedOut(pending, "2026-07-09T07:45:00.000Z");

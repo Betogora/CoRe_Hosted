@@ -34,6 +34,7 @@ function createDefaultProfile() {
       shareLearningProgress: false,
       showOnlineStatus: false,
       showStreaksToOthers: false,
+      aiChatConsent: null,
     },
     schedulerPreferences: {
       profile: "standard",
@@ -98,7 +99,14 @@ function normalizeState(rawState: any) {
     ...fallback,
     ...rawState,
     version: 2,
-    profile: { ...fallback.profile, ...(rawState?.profile ?? {}) },
+    profile: {
+      ...fallback.profile,
+      ...(rawState?.profile ?? {}),
+      privacy: {
+        ...fallback.profile.privacy,
+        ...(rawState?.profile?.privacy ?? {}),
+      },
+    },
     decks,
     communities: Array.isArray(rawState?.communities) ? rawState.communities : [],
     aiJobs: Array.isArray(rawState?.aiJobs) ? rawState.aiJobs : [],
