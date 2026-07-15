@@ -43,6 +43,10 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   const [selectedChoice, setSelectedChoice] = React.useState("");
   const [feedbackStatus, setFeedbackStatus] = React.useState("");
   const answerHeadingRef = React.useRef<HTMLParagraphElement>(null);
+  const questionHeadingRef = React.useRef<HTMLParagraphElement>(null);
+  const completionHeadingRef = React.useRef<HTMLHeadingElement>(null);
+  const settingsButtonRef = React.useRef<HTMLButtonElement>(null);
+  const settingsInputRef = React.useRef<HTMLInputElement>(null);
   const feedbackDeckRef = React.useRef<Deck | null>(null);
   const rootDeck = sessionDecks.find((candidate: any) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
   const queue = React.useMemo(
@@ -160,7 +164,25 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   }, [showAnswer]);
 
   React.useEffect(() => {
+    if (showSettings) settingsInputRef.current?.focus();
+  }, [showSettings]);
+
+  React.useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      if (current) questionHeadingRef.current?.focus();
+      else if (reviewedCount > 0) completionHeadingRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [current?.learningItemId, current?.variantId, reviewedCount]);
+
+  React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && showSettings) {
+        event.preventDefault();
+        setShowSettings(false);
+        window.requestAnimationFrame(() => settingsButtonRef.current?.focus());
+        return;
+      }
       const action = resolveReviewShortcut(event, { hasCurrent: Boolean(current), showAnswer });
       if (!action) return;
 
@@ -176,7 +198,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [current, showAnswer, sessionDecks, reviewedCount, reviewedKeys]);
+  }, [current, showAnswer, showSettings, sessionDecks, reviewedCount, reviewedKeys]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#eef2fb_100%)] p-4 text-[#17214f] sm:p-8">
@@ -190,18 +212,19 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
               <p className="text-sm font-semibold text-[#66709a]">{rootDeck?.name ?? deck?.name}</p>
               <p className="mt-1 text-sm text-[#66709a]">{current ? `${Math.min(reviewedCount + 1, sessionTotal)} / ${sessionTotal}` : reviewedCount ? `${reviewedCount} / ${reviewedCount}` : "0 / 0"}</p>
             </div>
-            <button type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-11 place-items-center rounded-full text-[#4f5eb1]" aria-label="Lerneinstellungen">
+            <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-11 place-items-center rounded-full text-[#4f5eb1]" aria-label="Lerneinstellungen" aria-expanded={showSettings} aria-controls="study-settings-panel">
               <SlidersHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
           <MiniProgress value={progress} />
-          {studyMissingMedia.length > 0 ? <p className="text-center text-sm text-amber-800" role="status">{studyMissingMedia[0].status}{studyMissingMedia.length > 1 ? ` (${studyMissingMedia.length} Medien)` : ""}</p> : null}
+          {studyMissingMedia.length > 0 ? <p className="core-status-warning text-center text-sm" role="status">{studyMissingMedia[0].status}{studyMissingMedia.length > 1 ? ` (${studyMissingMedia.length} Medien)` : ""}</p> : null}
           {showSettings ? (
-            <div className="core-surface rounded-2xl p-4">
+            <div id="study-settings-panel" className="core-surface rounded-2xl p-4">
               <div className="flex flex-wrap items-center gap-4">
                 <label className="grid gap-1 text-sm font-semibold text-[#4e5b8c]">
                   Neue Karten heute
                   <input
+                    ref={settingsInputRef}
                     className="min-h-11 w-32 rounded-xl border border-[#dfe4f5] px-3 text-[#17214f]"
                     type="number"
                     min="0"
@@ -227,7 +250,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
             {current ? (
               <>
                 <div className="w-full">
-                  <p className="mb-5 text-sm font-semibold uppercase tracking-[0.18em] text-[#7a84c7]">Frage</p>
+                  <p ref={questionHeadingRef} tabIndex={-1} className="mb-5 text-sm font-semibold uppercase tracking-[0.18em] text-[#7a84c7] outline-none">Frage</p>
                   <div className="text-2xl font-semibold leading-relaxed text-[#17214f] sm:text-4xl">
                     <CardHtml html={current.front} mediaUrls={studyMediaUrls} />
                   </div>
@@ -349,9 +372,9 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                 </div>
               </>
             ) : reviewedCount > 0 ? (
-              <div className="text-center" role="status" aria-live="polite">
+              <div className="text-center">
                 <CheckCircle2 className="mx-auto text-emerald-600" size={44} aria-hidden="true" />
-                <h1 className="mt-4 text-3xl font-semibold">Sitzung abgeschlossen</h1>
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 text-3xl font-semibold outline-none">Sitzung abgeschlossen</h1>
                 <p className="mt-3 text-[#66709a]">{reviewedCount} {reviewedCount === 1 ? "Karte" : "Karten"} beantwortet.</p>
                 <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-12 items-center rounded-xl bg-[#4f5eb1] px-5 text-sm font-semibold text-white">
                   Zurück zu Lernen

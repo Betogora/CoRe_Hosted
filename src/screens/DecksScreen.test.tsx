@@ -30,6 +30,10 @@ test("deck management exposes explicit move, restore and collapsed Labs tools", 
   );
 
   assert.match(markup, /Biologie verschieben/);
+  assert.match(markup, /aria-label="Kartenstapel durchsuchen"/);
+  assert.match(markup, /aria-label="Kartenstapel nach CoRe-Modus filtern"/);
+  assert.match(markup, /aria-label="Biologie lernen"/);
+  assert.match(markup, /aria-label="Biologie mit Varianten lernen"/);
   assert.match(markup, /Version zum Wiederherstellen/);
   assert.match(markup, /Labs \/ Erweitert: Varianten und technische Lernwerte/);
   assert.match(markup, /<details[^>]*data-testid="card-labs-tools"/);

@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --core-focus-ring: #4f5eb1;
+  --core-focus-ring-soft: rgba(79, 94, 177, 0.22);
+  --core-status-info-border: #cfd6ed;
+  --core-status-info-bg: #f3f5fd;
+  --core-status-info-text: #4e5b8c;
+  --core-status-success-border: #99dfcd;
+  --core-status-success-bg: #ecfdf5;
+  --core-status-success-text: #12614f;
+  --core-status-warning-border: #f1cd75;
+  --core-status-warning-bg: #fffbeb;
+  --core-status-warning-text: #854d0e;
+  --core-status-error-border: #f3b8b8;
+  --core-status-error-bg: #fef2f2;
+  --core-status-error-text: #b42318;
+}
+
 @layer components {
   .core-surface {
     border: 1px solid rgba(221, 227, 244, 0.94);
@@ -46,6 +63,53 @@ body {
 
 button {
   font: inherit;
+  min-height: 2.75rem;
+}
+
+button[aria-label] {
+  min-width: 2.75rem;
+}
+
+summary {
+  min-height: 2.75rem;
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--core-focus-ring);
+  outline-offset: 3px;
+}
+
+.core-status-info,
+.core-status-success,
+.core-status-warning,
+.core-status-error {
+  border: 1px solid;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.core-status-info {
+  border-color: var(--core-status-info-border);
+  background: var(--core-status-info-bg);
+  color: var(--core-status-info-text);
+}
+
+.core-status-success {
+  border-color: var(--core-status-success-border);
+  background: var(--core-status-success-bg);
+  color: var(--core-status-success-text);
+}
+
+.core-status-warning {
+  border-color: var(--core-status-warning-border);
+  background: var(--core-status-warning-bg);
+  color: var(--core-status-warning-text);
+}
+
+.core-status-error {
+  border-color: var(--core-status-error-border);
+  background: var(--core-status-error-bg);
+  color: var(--core-status-error-text);
 }
 
 .core-mcq-option {
@@ -342,4 +406,15 @@ button {
   cursor: default;
   -webkit-user-select: none;
   user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

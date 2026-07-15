@@ -84,6 +84,53 @@ test("browser back exits study mode to the previous learning screen", async ({ p
   await expect(page).toHaveURL(/\/lernen$/);
 });
 
+test("keyboard focus follows deck creation and study overlays", async ({ page }: any) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await resetToFreshLocalState(page);
+
+  const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen" });
+  await learnNavigation.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeFocused();
+
+  const createToggle = page.getByTestId("learn-deck-create-toggle");
+  await createToggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("learn-deck-name-input")).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(createToggle).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(createToggle).toBeFocused();
+
+  const studyButton = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ });
+  await studyButton.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Frage", { exact: true })).toBeFocused();
+
+  const settings = page.getByRole("button", { name: "Lerneinstellungen" });
+  await settings.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("Neue Karten heute")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(settings).toBeFocused();
+
+  await page.getByText("Frage", { exact: true }).focus();
+  await page.keyboard.press("Space");
+  await expect(page.getByText("Antwort", { exact: true })).toBeFocused();
+  await page.keyboard.press("3");
+  await expect.poll(() => page.evaluate(() => document.activeElement?.textContent?.trim().startsWith("Frage") || document.activeElement?.textContent?.includes("Sitzung abgeschlossen"))).toBe(true);
+});
+
+test("core actions stay usable in a 200 percent effective viewport", async ({ page }: any) => {
+  await page.setViewportSize({ width: 640, height: 360 });
+  await resetToFreshLocalState(page);
+
+  await expect(mainMenu(page).getByRole("button", { name: "Lernen" })).toBeVisible();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
 test("browser back returns from settings to the previous screen", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
@@ -145,7 +192,7 @@ test("review flow records a rating through accessible controls", async ({ page }
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(1);
   await page.getByRole("button", { name: "Original anzeigen" }).click();
   await expect(page.getByTestId("original-anchor")).toHaveCount(1);
-  await page.getByRole("button", { name: /Bewertung Good/ }).click();
+  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 
   await expect.poll(() => deckReviewEventCount(page, DECK_IDS.europe)).toBeGreaterThan(before);
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
@@ -182,7 +229,7 @@ test("variant review flow can be prepared from the deck editor", async ({ page }
   await page.getByRole("button", { name: "Original anzeigen" }).click();
   await expect(page.getByTestId("original-anchor")).toHaveCount(1);
   await expect(page.getByTestId("original-anchor")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
-  await page.getByRole("button", { name: /Bewertung Good/ }).click();
+  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 
   await expect.poll(() => variantReviewEventCount(page, DECK_IDS.africa)).toBe(variantEventsBefore + 1);
   await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();

@@ -296,12 +296,12 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
         ) : null}
 
         {serverProgress ? (
-          <div className="mt-4 rounded-xl border border-[#e3e7f5] bg-white p-4" role="status" aria-live="polite">
+          <div className="mt-4 rounded-xl border border-[#e3e7f5] bg-white p-4">
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="font-semibold text-[#4e5b8c]">Serverimport: {serverPhaseLabels[serverProgress.phase]}</span>
               <span className="text-[#66709a]">{formatServerProgress(serverProgress)}</span>
             </div>
-            <progress className="mt-3 h-2 w-full accent-teal-700" max={Math.max(1, serverProgress.total)} value={serverProgress.completed} />
+            <progress className="mt-3 h-2 w-full accent-teal-700" max={Math.max(1, serverProgress.total)} value={serverProgress.completed} aria-label={`Serverimport: ${serverPhaseLabels[serverProgress.phase]}`} />
             <div className="mt-3 flex flex-wrap gap-2">
               {!["ready", "succeeded", "failed", "cancelled"].includes(serverProgress.status) ? (
                 <button type="button" onClick={() => void handleCancelServerImport()} className="min-h-10 rounded-xl border border-red-200 px-3 text-sm font-semibold text-red-700">Import abbrechen</button>
@@ -326,8 +326,14 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
           })}
         </ol>
 
+        {userStatus === "partial" ? (
+          <p className="core-status-warning mt-4 text-sm" role="status">
+            Import teilweise abgeschlossen. Die Karten sind übernommen; Medien konnten noch nicht vollständig synchronisiert werden. Du kannst den Upload fortsetzen oder später erneut synchronisieren.
+          </p>
+        ) : null}
+
         {job?.errors?.length > 0 || job?.status === "cancelled" ? (
-          <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+          <div className="core-status-error mt-5 text-sm" role="alert">
             {(job.errors?.length ? job.errors : ["Der Import wurde abgebrochen."]).map((error: unknown, index: number) => (
               <p key={`${String(error)}-${index}`}>{String(error)}</p>
             ))}
@@ -554,7 +560,7 @@ function TextCsvImportPanel({ initialMode = "text", onImported }: any) {
             </button>
           </div>
           {report ? (
-          <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4 text-sm text-[#66709a]" role={report.errors.length ? "alert" : "status"} aria-live={report.errors.length ? "assertive" : "polite"}>
+          <div className={`text-sm ${report.errors.length ? "core-status-error" : "core-status-success"}`} role={report.errors.length ? "alert" : "status"}>
               <p className="font-semibold text-[#17214f]">
                 {report.createdLearningItems} Karten · {report.createdVariants} Varianten · {report.duplicates.length} Dubletten
               </p>
@@ -602,6 +608,7 @@ function PinFieldButton({ isPinned, label, onToggle }: any) {
 
 function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, documentMode = false }: any) {
   const sourceInputRef = React.useRef<any>(null);
+  const editorRootRef = React.useRef<HTMLDivElement | null>(null);
   const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
   const [selectedDeckId, setSelectedDeckId] = React.useState(decks[0]?.id ?? "");
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
@@ -620,6 +627,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
   const [selection, setSelection] = React.useState("");
   const [sourceAnchor, setSourceAnchor] = React.useState<any>(null);
   const [status, setStatus] = React.useState("");
+  const [statusType, setStatusType] = React.useState<"status" | "alert">("status");
   const parsedOptions = splitAnswerOptions(answerOptions);
 
   React.useEffect(() => {
@@ -654,6 +662,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
     setDocumentObjectUrl(isPdfDocument(nextDocument) ? URL.createObjectURL(file) : "");
     setDocumentText(String(nextDocument.text ?? ""));
     setShowDocumentMode(true);
+    setStatusType(nextDocument.textExtractionStatus === "error" || nextDocument.textExtractionStatus === "unsupported" ? "alert" : "status");
     setStatus(documentStatusMessage(nextDocument));
     event.target.value = "";
   }
@@ -678,6 +687,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
     setSourceAnchor(next.sourceAnchor);
     setFront(next.front);
     setBack(next.back);
+    setStatusType("status");
     setStatus(`${activeField === "front" ? "Vorderseite" : "Rückseite"} ergänzt.`);
   }
 
@@ -723,22 +733,31 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
   }
 
   async function saveManualCard() {
-    const input = manualInput();
-    if (!useNewDeck && selectedDeckId && onAppendManualCard) {
-      const updatedDeck = await onAppendManualCard(selectedDeckId, creationWorkflow.createManualDeckInput(input));
-      if (updatedDeck) {
-        setStatus("Karte im ausgewählten Stapel gespeichert.");
-        resetCardFields();
+    try {
+      const input = manualInput();
+      if (!useNewDeck && selectedDeckId && onAppendManualCard) {
+        const updatedDeck = await onAppendManualCard(selectedDeckId, creationWorkflow.createManualDeckInput(input));
+        if (updatedDeck) {
+          setStatusType("status");
+          setStatus("Karte im ausgewählten Stapel gespeichert. Nächste Karte kann eingegeben werden.");
+          resetCardFields();
+          window.requestAnimationFrame(() => editorRootRef.current?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus());
+        }
+        return;
       }
-      return;
-    }
 
-    const deck = creationWorkflow.createManualDeck(input);
-    await onCreated(deck);
-    setUseNewDeck(false);
-    setSelectedDeckId(deck.id);
-    setStatus("Neuer Stapel mit Originalkarte gespeichert.");
-    resetCardFields();
+      const deck = creationWorkflow.createManualDeck(input);
+      await onCreated(deck);
+      setUseNewDeck(false);
+      setSelectedDeckId(deck.id);
+      setStatusType("status");
+      setStatus("Neuer Stapel mit Originalkarte gespeichert. Nächste Karte kann eingegeben werden.");
+      resetCardFields();
+      window.requestAnimationFrame(() => editorRootRef.current?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus());
+    } catch (error) {
+      setStatusType("alert");
+      setStatus(error instanceof Error ? error.message : "Karte konnte nicht gespeichert werden.");
+    }
   }
 
   const canCreate = creationWorkflow.canCreateManualCard({ front, back, cardType: cardType as any, answerOptions, correctAnswer });
@@ -751,7 +770,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
   const sourceFileName = document?.fileName ?? "Keine Datei ausgewählt";
 
   const editor = (
-    <div className="grid gap-4">
+    <div ref={editorRootRef} className="grid gap-4">
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="grid gap-3">
           <div className="flex flex-wrap items-end gap-3">
@@ -857,7 +876,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
           </button>
         </div>
       </div>
-      {status ? <p className="text-sm text-[#66709a]" role="status" aria-live="polite">{status}</p> : null}
+      {status ? <p className={`text-sm ${statusType === "alert" ? "core-status-error" : "core-status-success"}`} role={statusType}>{status}</p> : null}
     </div>
   );
 
@@ -1036,7 +1055,7 @@ function LocalDraftCreationPanel({ onCreated, onJob, surface }: { onCreated: any
               Weniger
             </button>
           </div>
-          {status ? <p className="text-sm text-[#66709a]" role="status" aria-live="polite">{status}</p> : null}
+          {status ? <p className="core-status-info text-sm" role="status">{status}</p> : null}
         </div>
 
         <div className="grid gap-4">
@@ -1167,12 +1186,19 @@ function CreationMethodButton({ method, isSelected, onSelect }: any) {
 }
 
 export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, supabase, supabaseUrl = "", initialMethod = "", completedDeckId = "", onMethodChange, onCreated, onAppendManualCard, onImportCompleted, onStartDeck, onReviewDeck, onJob, showAiDrafts = false, aiDraftSurface, enableServerApkgImport = false }: any) {
+  const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const selectedMethod = initialMethod;
   const availableCreationMethods = showAiDrafts ? creationMethods : creationMethods.filter((method) => method.id !== "ai");
   const selectedMethodMeta = availableCreationMethods.find((method) => method.id === selectedMethod);
   const completedDeck = decks.find((deck: any) => deck.id === completedDeckId) ?? null;
   const serverApkgImport = React.useMemo(() => enableServerApkgImport && supabase && supabaseUrl ? createServerApkgImportClient({ client: supabase, supabaseUrl }) : null, [enableServerApkgImport, supabase, supabaseUrl]);
   const accountWorkflow = React.useMemo(() => createCreationWorkflow({ mediaStore, persistImportedDecks, serverApkgImport }), [mediaStore, persistImportedDecks, serverApkgImport]);
+
+  React.useEffect(() => {
+    if (!completedDeck) return;
+    const frame = window.requestAnimationFrame(() => completionHeadingRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [completedDeck]);
 
   function renderSelectedMethod() {
     if (selectedMethod === "import") return <ImportCreationPanel decks={decks} onCreated={onCreated} onImportCompleted={onImportCompleted} workflow={accountWorkflow} mediaStore={mediaStore} serverApkgEnabled={enableServerApkgImport} />;
@@ -1185,12 +1211,12 @@ export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, s
     <div className="grid min-h-[calc(100vh-10rem)] content-start gap-7">
       <PageHeader eyebrow="Erstellen" title="Neue Karten" />
       {completedDeck ? (
-        <SoftPanel className="mx-auto w-full max-w-3xl p-7 text-center sm:p-10" aria-live="polite">
+        <SoftPanel className="mx-auto w-full max-w-3xl p-7 text-center sm:p-10">
           <span className="mx-auto grid size-16 place-items-center rounded-full bg-teal-50 text-teal-700">
             <CheckCircle2 size={34} aria-hidden="true" />
           </span>
           <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-teal-700">Gespeichert</p>
-          <h2 className="mt-2 text-3xl font-semibold text-[#17214f]">Deine Karten sind bereit</h2>
+          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 text-3xl font-semibold text-[#17214f] outline-none">Deine Karten sind bereit</h2>
           <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-[#66709a]">„{completedDeck.name}“ wurde gespeichert. Du kannst direkt mit dem ersten Review beginnen.</p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <button type="button" onClick={() => onStartDeck(completedDeck)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#4f5eb1] px-6 text-sm font-semibold text-white">

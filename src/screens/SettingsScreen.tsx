@@ -10,6 +10,7 @@ import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut }: any) {
   const [form, setForm] = React.useState(profile);
   const [accountMessage, setAccountMessage] = React.useState("");
+  const [accountMessageType, setAccountMessageType] = React.useState<"status" | "alert">("status");
   const [accountBusy, setAccountBusy] = React.useState(false);
   const [exportText, setExportText] = React.useState("");
   const [importText, setImportText] = React.useState("");
@@ -26,6 +27,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
 
   function save() {
     onSaveProfile({ ...form, email: profile.email });
+    setAccountMessageType("status");
     setAccountMessage("Profil gespeichert. Die Cloud-Synchronisierung läuft automatisch.");
   }
 
@@ -35,6 +37,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
       await onSyncNow?.();
       setAccountMessage("");
     } catch (error) {
+      setAccountMessageType("alert");
       setAccountMessage(error instanceof Error ? error.message : "Synchronisierung fehlgeschlagen.");
     } finally {
       setAccountBusy(false);
@@ -46,6 +49,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
     try {
       await onSignOut?.();
     } catch (error) {
+      setAccountMessageType("alert");
       setAccountMessage(error instanceof Error ? error.message : "Abmeldung fehlgeschlagen.");
     } finally {
       setAccountBusy(false);
@@ -148,7 +152,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
               </button>
             </div>
             {accountMessage ? (
-              <p className="mt-3 text-sm text-[#66709a]" role="status" aria-live="polite">
+              <p className={`mt-3 text-sm ${accountMessageType === "alert" ? "core-status-error" : "core-status-info"}`} role={accountMessageType}>
                 {accountMessage}
               </p>
             ) : null}
@@ -184,7 +188,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h3 className="text-xl font-semibold text-[#17214f]">Synchronisierung</h3>
-              <p className={`mt-2 text-sm ${syncStatus?.status === "error" ? "text-red-700" : syncStatus?.status === "offline" || syncStatus?.status === "conflict" ? "text-amber-700" : "text-[#66709a]"}`} role={syncStatus?.status === "error" ? "alert" : "status"} aria-live="polite">
+              <p className={`mt-2 text-sm ${syncStatus?.status === "error" ? "core-status-error" : syncStatus?.status === "offline" || syncStatus?.status === "conflict" ? "core-status-warning" : "core-status-info"}`} role={syncStatus?.status === "error" ? "alert" : syncStatus?.status === "idle" ? undefined : "status"}>
                 {formatSyncStatusText(syncStatus)}
               </p>
             </div>
@@ -240,7 +244,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
             </div>
           </div>
           {portabilityMessage ? (
-            <p className="mt-3 text-sm text-[#66709a]" role={portabilityMessageType} aria-live={portabilityMessageType === "alert" ? "assertive" : "polite"}>
+            <p className={`mt-3 text-sm ${portabilityMessageType === "alert" ? "core-status-error" : "core-status-success"}`} role={portabilityMessageType}>
               {portabilityMessage}
             </p>
           ) : null}

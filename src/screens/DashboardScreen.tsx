@@ -138,13 +138,16 @@ function StudyHeatmap({ heatmap }: any) {
         className="mt-4 min-w-0 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5361aa]/35"
         tabIndex={0}
         onKeyDown={handleHeatmapKeyDown}
+        role="group"
         aria-label={`Lern-Heatmap-Ausschnitt von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}`}
+        aria-describedby="study-heatmap-keyboard-help"
       >
+        <p id="study-heatmap-keyboard-help" className="sr-only">Mit der linken und rechten Pfeiltaste zwischen Zeiträumen wechseln.</p>
         <div
           className="grid w-full max-w-full gap-1"
           style={{ gridTemplateColumns: gridColumns }}
           role="img"
-          aria-label={`Lern-Heatmap von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}`}
+          aria-label={`Lern-Heatmap von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}, ${visibleHeatmap.activeDays} aktive Tage`}
         >
           <span aria-hidden="true" />
           {visibleHeatmap.monthLabels.map((label: string, index: number) => (

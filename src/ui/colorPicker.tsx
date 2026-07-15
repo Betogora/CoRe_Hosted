@@ -134,11 +134,13 @@ interface ColorToolButtonProps {
   isOpen: boolean;
   menuId: string;
   onToggle: () => void;
+  buttonRef?: React.Ref<HTMLButtonElement>;
 }
 
-export function ColorToolButton({ label, icon: Icon, color, isOpen, menuId, onToggle }: ColorToolButtonProps) {
+export function ColorToolButton({ label, icon: Icon, color, isOpen, menuId, onToggle, buttonRef }: ColorToolButtonProps) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       className="relative grid size-9 place-items-center rounded-lg border border-[#dfe4f5] bg-white text-[#4f5eb1] transition hover:bg-[#f8f9fe]"
       title={label}
@@ -148,8 +150,8 @@ export function ColorToolButton({ label, icon: Icon, color, isOpen, menuId, onTo
       aria-controls={isOpen ? menuId : undefined}
       onMouseDown={(event) => {
         event.preventDefault();
-        onToggle();
       }}
+      onClick={onToggle}
     >
       <Icon size={16} aria-hidden="true" />
       <span className="absolute bottom-1 right-1 size-3 rounded-full border border-black/10" style={{ backgroundColor: color }} />
@@ -256,6 +258,8 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
             aria-label={`${label} ${index + 1}`}
             onMouseDown={(event) => {
               event.preventDefault();
+            }}
+            onClick={() => {
               onSelectSlot(index);
               onApply(color, false);
               setCustomColor(color);
@@ -336,6 +340,8 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
               aria-label={`${label} ${color}`}
               onMouseDown={(event) => {
                 event.preventDefault();
+              }}
+              onClick={() => {
                 if (color) chooseColor(color);
               }}
             >

@@ -32,6 +32,21 @@ test("login gate exposes the supported authentication paths without an app sessi
   await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
 });
 
+test("login modes keep a predictable keyboard focus", async ({ page }: any) => {
+  await page.goto("/");
+  await expect(page.getByLabel("E-Mail")).toBeFocused();
+
+  await page.keyboard.press("Tab");
+  await expect(page.getByLabel("Passwort", { exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(authForm(page).getByRole("button", { name: "Anmelden", exact: true })).toBeFocused();
+
+  await page.getByRole("button", { name: "Magic Link", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("E-Mail")).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Magic Link senden" })).toBeVisible();
+});
+
 test("invalid credentials stay behind the login gate and show the German auth error", async ({ page }: any) => {
   await page.route(/\/auth\/v1\/token\?grant_type=password(?:&.*)?$/, async (route: any) => {
     await route.fulfill({

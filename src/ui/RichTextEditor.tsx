@@ -48,6 +48,8 @@ interface RichTextEditorProps {
 export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
+  const textColorButtonRef = React.useRef<HTMLButtonElement>(null);
+  const highlightColorButtonRef = React.useRef<HTMLButtonElement>(null);
   const selectionRef = React.useRef<Range | null>(null);
   const isFocusedRef = React.useRef(false);
   const lastEmittedNormalizedHtmlRef = React.useRef("");
@@ -82,9 +84,25 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
       }
     }
 
+    function closeColorMenuWithKeyboard(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      const trigger = openColorMenu === "text" ? textColorButtonRef.current : highlightColorButtonRef.current;
+      setOpenColorMenu(null);
+      window.requestAnimationFrame(() => trigger?.focus());
+    }
+
+    const menuId = openColorMenu === "text" ? textColorMenuId : highlightColorMenuId;
+    const frame = window.requestAnimationFrame(() => document.getElementById(menuId)?.querySelector<HTMLElement>("button, [tabindex], input")?.focus());
+
     document.addEventListener("mousedown", closeColorMenu);
-    return () => document.removeEventListener("mousedown", closeColorMenu);
-  }, [openColorMenu]);
+    document.addEventListener("keydown", closeColorMenuWithKeyboard);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("mousedown", closeColorMenu);
+      document.removeEventListener("keydown", closeColorMenuWithKeyboard);
+    };
+  }, [highlightColorMenuId, openColorMenu, textColorMenuId]);
 
   function hasEditorSelection() {
     const editor = editorRef.current;
@@ -260,7 +278,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   }`;
   return (
     <div className="min-w-0">
-      <div ref={toolbarRef} className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[#f8f9fe] p-2 ${isActive ? "border-[#4f5eb1]" : "border-[#dfe4f5]"}`}>
+      <div ref={toolbarRef} role="toolbar" aria-label={`${ariaLabel} formatieren`} className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[#f8f9fe] p-2 ${isActive ? "border-[#4f5eb1]" : "border-[#dfe4f5]"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
         <ToolbarButton label="Unterstrichen" icon={Underline} onRun={() => runCommand("underline")} />
@@ -270,6 +288,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         <span className="mx-1 h-7 w-px bg-[#dfe4f5]" aria-hidden="true" />
         <div className="relative">
           <ColorToolButton
+            buttonRef={textColorButtonRef}
             label="Stiftfarbe"
             icon={PenLine}
             color={textColors[selectedColorSlots.text] ?? textColors[0]}
@@ -296,6 +315,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         </div>
         <div className="relative">
           <ColorToolButton
+            buttonRef={highlightColorButtonRef}
             label="Markerfarbe"
             icon={Highlighter}
             color={highlightColors[selectedColorSlots.highlight] ?? highlightColors[0]}

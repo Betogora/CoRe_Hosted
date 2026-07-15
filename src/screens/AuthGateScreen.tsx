@@ -23,10 +23,15 @@ export function AuthGateScreen({
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [passwordRepeat, setPasswordRepeat] = React.useState("");
+  const formRef = React.useRef<HTMLFormElement | null>(null);
 
   React.useEffect(() => {
     if (recoveryMode) setMode("recovery");
   }, [recoveryMode]);
+
+  React.useEffect(() => {
+    formRef.current?.querySelector<HTMLElement>("input")?.focus();
+  }, [mode]);
 
   const isSignUp = mode === "sign-up";
   const isReset = mode === "reset";
@@ -78,12 +83,12 @@ export function AuthGateScreen({
             </div>
 
             {!configured ? (
-              <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert">
+              <p className="core-status-error text-sm font-semibold" role="alert">
                 Supabase ist für diese Umgebung noch nicht konfiguriert.
               </p>
             ) : null}
 
-            <form className="grid gap-4" onSubmit={submit}>
+            <form ref={formRef} className="grid gap-4" onSubmit={submit} aria-busy={busy}>
               {isSignUp ? (
                 <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
                   Anzeigename
@@ -133,7 +138,7 @@ export function AuthGateScreen({
 
               <button type="submit" disabled={!configured || busy} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#4f5eb1] px-5 text-sm font-semibold text-white disabled:bg-slate-300">
                 <PrimaryIcon size={17} aria-hidden="true" />
-                {busy ? "Bitte warten" : primaryLabel}
+                {busy ? `${primaryLabel} läuft` : primaryLabel}
               </button>
             </form>
 
@@ -169,7 +174,7 @@ export function AuthGateScreen({
             ) : null}
 
             {message ? (
-              <p className={`mt-4 text-sm ${messageType === "alert" ? "font-semibold text-red-700" : "text-[#66709a]"}`} role={messageType} aria-live={messageType === "alert" ? "assertive" : "polite"}>
+              <p className={`mt-4 text-sm ${messageType === "alert" ? "core-status-error font-semibold" : "core-status-info"}`} role={messageType}>
                 {message}
               </p>
             ) : null}

@@ -56,6 +56,9 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
   const [isDeckCreateOpen, setIsDeckCreateOpen] = React.useState(Boolean(initialParentDeckId));
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
   const [deckStatus, setDeckStatus] = React.useState("");
+  const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
+  const createToggleRef = React.useRef<HTMLButtonElement | null>(null);
+  const deckNameRef = React.useRef<HTMLInputElement | null>(null);
   const visibleRows = createVisibleDeckRows(library.rows, collapsedDeckIds);
   const visibleTree = React.useMemo(() => createVisibleDeckTree(visibleRows), [visibleRows]);
 
@@ -67,8 +70,13 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
     setDeckDraft(createDefaultDeckDraft(parentDeck.id));
     setIsDeckCreateOpen(true);
     setDeckStatus(`Unterstapel unter "${parentDeck.name}" anlegen.`);
+    setDeckStatusType("status");
     onDeckCreationHandled?.();
   }, [decks, initialParentDeckId, onDeckCreationHandled]);
+
+  React.useEffect(() => {
+    if (isDeckCreateOpen) deckNameRef.current?.focus();
+  }, [isDeckCreateOpen]);
 
   function toggleCollapsed(deckId: string) {
     setCollapsedDeckIds((current) => {
@@ -92,6 +100,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
     const name = deckDraft.name.trim();
     if (!name) {
       setDeckStatus("Bitte gib einen Stapelnamen ein.");
+      setDeckStatusType("alert");
       return;
     }
 
@@ -102,6 +111,8 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
     setDeckDraft(createDefaultDeckDraft(created.parentDeckId ?? ""));
     setIsDeckCreateOpen(false);
     setDeckStatus(created.parentDeckId ? `Unterstapel "${created.name}" angelegt.` : `Stapel "${created.name}" angelegt.`);
+    setDeckStatusType("status");
+    window.requestAnimationFrame(() => createToggleRef.current?.focus());
   }
 
   function startDeckFromRow(event: React.MouseEvent<HTMLDivElement,MouseEvent>, deck: any) {
@@ -200,6 +211,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
             Neue Karten
           </button>
           <button
+            ref={createToggleRef}
             type="button"
             onClick={() => {
               setIsDeckCreateOpen((current) => !current);
@@ -224,9 +236,12 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
             Stapelname
             <input
               className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-medium text-[#17214f] outline-none"
+              ref={deckNameRef}
               value={deckDraft.name}
               onChange={(event) => updateDeckDraft("name", event.target.value)}
               placeholder="z. B. Anatomie"
+              aria-invalid={deckStatusType === "alert" || undefined}
+              aria-describedby={deckStatus ? "learn-deck-create-status" : undefined}
               data-testid="learn-deck-name-input"
             />
           </label>
@@ -250,10 +265,10 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
             <FolderPlus size={17} aria-hidden="true" />
               Anlegen
           </button>
-            {deckStatus ? <p className="text-sm font-semibold text-[#66709a] sm:col-span-3" role="status" aria-live="polite">{deckStatus}</p> : null}
+            {deckStatus ? <p id="learn-deck-create-status" className={`text-sm font-semibold sm:col-span-3 ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
           </form>
         ) : deckStatus ? (
-          <p className="text-sm font-semibold text-[#66709a]" role="status" aria-live="polite">{deckStatus}</p>
+          <p id="learn-deck-create-status" className={`text-sm font-semibold ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p>
         ) : null}
       </div>
 

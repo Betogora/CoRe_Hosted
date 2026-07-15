@@ -4,6 +4,11 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck } from "../coreModel.ts";
 import { StudyMode } from "./StudyMode.tsx";
+import { ratingButtons } from "./screenConstants.ts";
+
+test("review ratings use clear German accessible labels", () => {
+  assert.deepEqual(ratingButtons.map(({ number, label }) => `${number} ${label}`), ["1 Nochmal", "2 Schwer", "3 Gut", "4 Leicht"]);
+});
 
 test("StudyMode exposes no origin or scheduler hints before reveal", () => {
   const item = addRephrasedVariant(

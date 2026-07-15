@@ -67,7 +67,7 @@ export function PageHeader({ eyebrow, title }: { eyebrow: ReactNode; title: Reac
   return (
     <header className="min-w-0">
       <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">{eyebrow}</p>
-      <h2 className="mt-2 text-4xl font-semibold tracking-normal text-[#17214f]">{title}</h2>
+      <h2 className="mt-2 text-4xl font-semibold tracking-normal text-[#17214f] outline-none" data-screen-heading tabIndex={-1}>{title}</h2>
     </header>
   );
 }

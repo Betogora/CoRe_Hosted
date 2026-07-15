@@ -12,6 +12,7 @@ function formatConflictDate(value: string|number|Date) {
 
 export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
   const mountedRef = React.useRef(true);
+  const refreshButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const [conflicts, setConflicts] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [busyId, setBusyId] = React.useState<any>(null);
@@ -54,6 +55,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
       setMergeConflictId(null);
       setFieldChoices((current) => ({ ...current, [conflict.id]: {} }));
       setMessage(decision.action === "ignore" ? "Konflikt wurde für später zurückgestellt." : decision.action === "reopen" ? "Konflikt wurde wieder aufgenommen." : "Konfliktentscheidung wurde synchronisiert.");
+      window.requestAnimationFrame(() => refreshButtonRef.current?.focus());
     } catch (decisionError) {
       setError(decisionError instanceof Error ? decisionError.message : "Konfliktentscheidung konnte nicht gespeichert werden.");
     } finally {
@@ -66,6 +68,17 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
       ...current,
       [conflictId]: { ...(current[conflictId] ?? {}), [field]: source },
     }));
+  }
+
+  function toggleMerge(conflictId: string | number) {
+    const opening = mergeConflictId !== conflictId;
+    setMergeConflictId(opening ? conflictId : null);
+    window.requestAnimationFrame(() => {
+      const target = opening
+        ? document.querySelector<HTMLElement>(`[data-testid="sync-conflict-${conflictId}"] input[type="radio"]`)
+        : document.querySelector<HTMLElement>(`[data-testid="sync-conflict-merge-${conflictId}"]`);
+      target?.focus();
+    });
   }
 
   const openConflicts = conflicts.filter((conflict) => conflict.status === "open");
@@ -81,7 +94,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
             <h3 className="text-xl font-semibold text-[#17214f]">Änderungskonflikte lösen</h3>
           </div>
         </div>
-        <button type="button" onClick={loadConflicts} disabled={loading || Boolean(busyId)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
+        <button ref={refreshButtonRef} type="button" onClick={loadConflicts} disabled={loading || Boolean(busyId)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
           <RefreshCw size={16} aria-hidden="true" />
           Neu laden
         </button>
@@ -92,9 +105,9 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
       </p>
 
       {loading ? <p className="mt-5 text-sm text-[#66709a]" role="status">Konflikte werden geladen.</p> : null}
-      {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p> : null}
-      {message ? <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="status" aria-live="polite">{message}</p> : null}
-      {!loading && conflicts.length === 0 ? <p className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="status">Keine offenen Synchronisierungskonflikte.</p> : null}
+      {error ? <p className="core-status-error mt-4 text-sm" role="alert">{error}</p> : null}
+      {message ? <p className="core-status-success mt-4 text-sm" role="status">{message}</p> : null}
+      {!loading && conflicts.length === 0 ? <p className="core-status-success mt-5 text-sm">Keine offenen Synchronisierungskonflikte.</p> : null}
 
       <div className="mt-5 grid gap-4">
         {openConflicts.map((conflict) => {
@@ -134,19 +147,19 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
               ) : <p className="mt-4 text-sm text-[#66709a]">Eine Seite wurde gelöscht oder ist nicht mehr vorhanden.</p>}
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="min-h-10 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white disabled:bg-slate-300">Diese Fassung behalten</button>
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="min-h-10 rounded-xl border border-[#cfd5ec] bg-white px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">Andere Fassung behalten</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="min-h-10 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white disabled:bg-slate-300" aria-label={`${conflict.title}: Diese Fassung behalten`}>Diese Fassung behalten</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="min-h-10 rounded-xl border border-[#cfd5ec] bg-white px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400" aria-label={`${conflict.title}: Andere Fassung behalten`}>Andere Fassung behalten</button>
                 {conflict.allowedActions.includes("merge-fields") ? (
-                  <button type="button" disabled={busy} aria-expanded={merging} onClick={() => setMergeConflictId(merging ? null : conflict.id)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#cfd5ec] bg-white px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
+                  <button type="button" disabled={busy} aria-expanded={merging} aria-controls={`sync-conflict-merge-fields-${conflict.id}`} onClick={() => toggleMerge(conflict.id)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#cfd5ec] bg-white px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400" data-testid={`sync-conflict-merge-${conflict.id}`}>
                     <GitMerge size={16} aria-hidden="true" />
                     Manuell zusammenführen
                   </button>
                 ) : null}
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "ignore" })} className="min-h-10 rounded-xl px-4 text-sm font-semibold text-[#66709a] disabled:text-slate-400">Später entscheiden</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "ignore" })} className="min-h-10 rounded-xl px-4 text-sm font-semibold text-[#66709a] disabled:text-slate-400" aria-label={`${conflict.title}: Später entscheiden`}>Später entscheiden</button>
               </div>
 
               {merging ? (
-                <fieldset className="mt-4 rounded-xl border border-[#cfd5ec] bg-white p-4">
+                <fieldset id={`sync-conflict-merge-fields-${conflict.id}`} className="mt-4 rounded-xl border border-[#cfd5ec] bg-white p-4">
                   <legend className="px-1 text-sm font-semibold text-[#17214f]">Quelle für jedes Feld wählen</legend>
                   <div className="grid gap-3">
                     {conflict.fields.map((field: any) => (
@@ -155,7 +168,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
                         <div className="flex gap-4">
                           {FIELD_SOURCES.map(([source, label]: any) => (
                             <label key={source} className="inline-flex min-h-10 items-center gap-2 text-sm text-[#4e5b8c]">
-                              <input type="radio" name={`${conflict.id}-${field.key}`} checked={choices[field.key] === source} onChange={() => chooseField(conflict.id, field.key, source)} />
+                              <input type="radio" name={`${conflict.id}-${field.key}`} checked={choices[field.key] === source} onChange={() => chooseField(conflict.id, field.key, source)} aria-label={`${field.label}: ${label}`} />
                               {label}
                             </label>
                           ))}

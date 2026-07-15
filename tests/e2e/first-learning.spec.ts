@@ -40,7 +40,7 @@ async function openEmptyDashboard(page: any) {
 async function completeOneReview(page: any) {
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await page.getByRole("button", { name: /Bewertung Good/ }).click();
+  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
   await expect.poll(async () => {
     const state = await readActiveAccountState(page);
     return state.decks.reduce((count: number, deck: any) => count + (deck.reviewEvents?.length ?? 0), 0);

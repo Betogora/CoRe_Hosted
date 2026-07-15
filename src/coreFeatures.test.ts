@@ -237,6 +237,7 @@ test("review shortcut resolver reveals, grades and ignores editing targets", () 
   assert.deepEqual(resolveReviewShortcut({ key: "3" }, { hasCurrent: true, showAnswer: true }), { type: "rate", rating: "good" });
   assert.deepEqual(resolveReviewShortcut({ key: "Escape" }, { hasCurrent: true, showAnswer: true }), { type: "exit" });
   assert.equal(resolveReviewShortcut({ key: "1", target: { tagName: "textarea" } }, { hasCurrent: true, showAnswer: true }), null);
+  assert.equal(resolveReviewShortcut({ key: "Enter", target: { tagName: "button" } }, { hasCurrent: true, showAnswer: false }), null);
 });
 
 test("review chooser returns original when core mode is off", () => {

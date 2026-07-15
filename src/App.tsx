@@ -165,12 +165,40 @@ export function App() {
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
   const [syncEngine, setSyncEngine] = React.useState<AccountSyncEngine | null>(null);
   const [activeView, setActiveView] = React.useState(menu.defaultViewId);
+  const screenRegionRef = React.useRef<HTMLElement | null>(null);
   const [studyRequest, setStudyRequest] = React.useState<StudyRoute | null>(null);
   const [focusedDeckId, setFocusedDeckId] = React.useState<string | null>(null);
   const [deckCreationParentId, setDeckCreationParentId] = React.useState("");
   const [creationMethod, setCreationMethod] = React.useState<"manual" | "import" | "ai" | "">("");
   const [completedDeckId, setCompletedDeckId] = React.useState("");
   const mediaStore = React.useMemo(() => cloudUser ? createAccountMediaStore({ client: supabase, supabaseUrl: getSupabaseBrowserConfig().url, userId: cloudUser.id }) : null, [cloudUser, supabase]);
+
+  React.useEffect(() => {
+    let observer: MutationObserver | null = null;
+    const frame = window.requestAnimationFrame(() => {
+      const region = screenRegionRef.current;
+      if (!region) return;
+      const heading = region.querySelector<HTMLElement>("[data-screen-heading]");
+      if (heading) {
+        heading.focus();
+        return;
+      }
+
+      region.focus();
+      observer = new MutationObserver(() => {
+        const loadedHeading = region.querySelector<HTMLElement>("[data-screen-heading]");
+        if (!loadedHeading) return;
+        loadedHeading.focus();
+        observer?.disconnect();
+        observer = null;
+      });
+      observer.observe(region, { childList: true, subtree: true });
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [activeView, authPhase, studyRequest]);
 
   function setAppState(nextState: WorkspaceState | null) {
     latestStateRef.current = nextState;
@@ -1192,7 +1220,7 @@ export function App() {
           </div>
         </aside>
 
-        <section className="min-w-0 overflow-x-hidden px-5 py-8 sm:px-8 lg:px-12 lg:py-12">
+        <section ref={screenRegionRef} className="min-w-0 overflow-x-hidden px-5 py-8 outline-none sm:px-8 lg:px-12 lg:py-12" tabIndex={-1} aria-label="Seiteninhalt">
           <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
         </section>
       </div>
