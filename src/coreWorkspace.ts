@@ -3,6 +3,7 @@ import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createMan
 import { createCoreRepository } from "./coreRepository.ts";
 import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.ts";
 import { buildDeckGraph } from "./deckGraph.ts";
+import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
 import {
   importCsvAsNormalizedDeck,
   importJsonAsNormalizedDeck,
@@ -659,6 +660,9 @@ export function createCoreWorkspace(repository: WorkspaceRepository = createCore
     },
     createDemoDeck() {
       return repository.saveDeck(createDemoAnatomyDeck());
+    },
+    createWorldCapitalsDemo() {
+      return repository.saveDecks(createWorldCapitalsSeedDecks().map((deck) => ({ ...deck, reviewEvents: [] })));
     },
   };
 }

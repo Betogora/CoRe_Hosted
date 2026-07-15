@@ -168,6 +168,8 @@ export function App() {
   const [studyRequest, setStudyRequest] = React.useState<StudyRoute | null>(null);
   const [focusedDeckId, setFocusedDeckId] = React.useState<string | null>(null);
   const [deckCreationParentId, setDeckCreationParentId] = React.useState("");
+  const [creationMethod, setCreationMethod] = React.useState<"manual" | "import" | "ai" | "">("");
+  const [completedDeckId, setCompletedDeckId] = React.useState("");
   const mediaStore = React.useMemo(() => cloudUser ? createAccountMediaStore({ client: supabase, supabaseUrl: getSupabaseBrowserConfig().url, userId: cloudUser.id }) : null, [cloudUser, supabase]);
 
   function setAppState(nextState: WorkspaceState | null) {
@@ -198,6 +200,8 @@ export function App() {
       setActiveView(returnRoute.viewId);
       setFocusedDeckId(focusedDeckViewIds.has(returnRoute.viewId) ? (returnRoute.focusedDeckId ?? null) : null);
       setDeckCreationParentId(returnRoute.viewId === "lernen" ? (returnRoute.deckCreationParentId ?? "") : "");
+      setCreationMethod(returnRoute.viewId === "neue-karten" ? (returnRoute.creationMethod ?? "") : "");
+      setCompletedDeckId(returnRoute.viewId === "neue-karten" ? (returnRoute.completedDeckId ?? "") : "");
       setStudyRequest(normalized);
       return normalized;
     }
@@ -206,6 +210,8 @@ export function App() {
     setActiveView(normalized.viewId);
     setFocusedDeckId(focusedDeckViewIds.has(normalized.viewId) ? (normalized.focusedDeckId ?? null) : null);
     setDeckCreationParentId(normalized.viewId === "lernen" ? (normalized.deckCreationParentId ?? "") : "");
+    setCreationMethod(normalized.viewId === "neue-karten" ? (normalized.creationMethod ?? "") : "");
+    setCompletedDeckId(normalized.viewId === "neue-karten" ? (normalized.completedDeckId ?? "") : "");
     return normalized;
   }
 
@@ -293,6 +299,8 @@ export function App() {
     setStudyRequest(null);
     setFocusedDeckId(null);
     setDeckCreationParentId("");
+    setCreationMethod("");
+    setCompletedDeckId("");
     setActiveView(menu.defaultViewId);
     setSyncStatus(
       conflicts.length > 0
@@ -653,6 +661,8 @@ export function App() {
     setStudyRequest(null);
     setFocusedDeckId(null);
     setDeckCreationParentId("");
+    setCreationMethod("");
+    setCompletedDeckId("");
     setActiveView(menu.defaultViewId);
     setSyncStatus(createSyncIdleStatus());
     setAuthPhase("signed-out");
@@ -803,6 +813,31 @@ export function App() {
     return runWorkspaceMutation((currentWorkspace: { addManualCardToDeck: (arg0: any,arg1: any) => any; }) => currentWorkspace.addManualCardToDeck(deckId, manualDeckInput));
   }
 
+  async function completeCreatedDeck(deck: Deck) {
+    await persistImportedDecks([deck]);
+    const completedDeck = workspace?.getState().decks.find((candidate) => candidate.id === deck.id) ?? null;
+    if (completedDeck) navigateToView("neue-karten", { completedDeckId: completedDeck.id }, { replace: true });
+    return completedDeck;
+  }
+
+  async function completeManualCard(deckId: string, manualDeckInput: unknown) {
+    const deck = addManualCardToDeck(deckId, manualDeckInput);
+    if (deck) await persistImportedDecks([deck]);
+    if (deck) navigateToView("neue-karten", { completedDeckId: deck.id }, { replace: true });
+    return deck;
+  }
+
+  function completeImportedDeck(deck: Deck) {
+    navigateToView("neue-karten", { completedDeckId: deck.id }, { replace: true });
+  }
+
+  async function createDemo() {
+    const decks = runWorkspaceMutation((currentWorkspace: { createWorldCapitalsDemo: () => Deck[] }) => currentWorkspace.createWorldCapitalsDemo());
+    if (decks?.length) await persistImportedDecks(decks);
+    navigateToView("lernen");
+    return decks;
+  }
+
   function applyVariantJson(deckId: any, cardId: any, response: any, options: any) {
     return runWorkspaceMutation((currentWorkspace: { applyVariantGenerationResponse: (arg0: any,arg1: any,arg2: any,arg3: any) => any; }) => currentWorkspace.applyVariantGenerationResponse(deckId, cardId, response, options));
   }
@@ -936,7 +971,7 @@ export function App() {
       );
     }
     if (activeView === "neue-karten") {
-      return <CreationScreen decks={state.decks} mediaStore={mediaStore} persistImportedDecks={persistImportedDecks} supabase={supabase} supabaseUrl={getSupabaseBrowserConfig().url} onCreated={saveDeck} onAppendManualCard={addManualCardToDeck} onJob={saveJob} showAiDrafts={productSurfaces.isAvailable("local-ai-drafts")} aiDraftSurface={productSurfaces.get("local-ai-drafts")} enableServerApkgImport={productSurfaces.isAvailable("server-apkg-over-250")} />;
+      return <CreationScreen decks={state.decks} mediaStore={mediaStore} persistImportedDecks={persistImportedDecks} supabase={supabase} supabaseUrl={getSupabaseBrowserConfig().url} initialMethod={creationMethod} completedDeckId={completedDeckId} onMethodChange={(method: "manual" | "import" | "ai" | "") => navigateToView("neue-karten", method ? { creationMethod: method } : {})} onCreated={completeCreatedDeck} onAppendManualCard={completeManualCard} onImportCompleted={completeImportedDeck} onStartDeck={startDeck} onReviewDeck={openDecks} onJob={saveJob} showAiDrafts={productSurfaces.isAvailable("local-ai-drafts")} aiDraftSurface={productSurfaces.get("local-ai-drafts")} enableServerApkgImport={productSurfaces.isAvailable("server-apkg-over-250")} />;
     }
     if (activeView === "lernen") {
       return (
@@ -999,7 +1034,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} onSaveProfile={saveProfile} onNavigate={navigateToView} onStartDeck={startDeck} showAssistant={productSurfaces.isAvailable("assistant-chat")} />;
+    return <DashboardScreen state={state} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} showAssistant={productSurfaces.isAvailable("assistant-chat")} />;
   }
 
   if (authPhase === "checking-session") {
@@ -1067,13 +1102,13 @@ export function App() {
     <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
       <div className="grid min-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[22px] border border-[#dce2f4] bg-white/52 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] md:grid-cols-[13rem_minmax(0,1fr)]">
         <aside className="border-b border-[#dce2f4] bg-white/42 md:border-b-0 md:border-r">
-          <div className="flex h-full flex-col px-5 py-7 sm:px-8 md:px-4 md:py-8 lg:px-5 lg:py-10">
+          <div className="flex flex-col px-5 py-6 sm:px-8 md:h-full md:px-4 md:py-8 lg:px-5 lg:py-10">
             <div>
-              <h1 className="text-5xl font-semibold tracking-normal text-[#17214f]">CoRe</h1>
+              <h1 className="text-4xl font-semibold tracking-normal text-[#17214f] md:text-5xl">CoRe</h1>
               <p className="mt-2 text-base text-[#66709a]">Content Repetition</p>
             </div>
 
-            <nav aria-label="Hauptmenü" className="mt-12 grid max-w-[14rem] gap-2 md:mt-10 md:max-w-none">
+            <nav aria-label="Hauptmenü" className="mt-6 grid grid-cols-2 gap-2 md:mt-10 md:max-w-none md:grid-cols-1">
               {navigationItems.map((view) => {
                 const NavIcon = getIcon(view.iconKey);
                 const isActive = view.id === activeView;
@@ -1083,7 +1118,7 @@ export function App() {
                     key={view.id}
                     type="button"
                     onClick={() => navigateToView(view.id)}
-                    className={`flex min-h-12 w-full max-w-[14rem] items-center gap-2.5 rounded-xl px-3 text-left text-base font-medium transition md:max-w-none ${
+                    className={`flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-sm font-medium transition md:min-h-12 md:text-base ${
                       isActive ? "bg-[#e9ecfb] text-[#24327a] shadow-sm" : "text-[#4f5a86] hover:bg-white/70 hover:text-[#17214f]"
                     }`}
                     aria-current={isActive ? "page" : undefined}
@@ -1123,7 +1158,7 @@ export function App() {
               </details>
             ) : null}
 
-            <div className="mt-auto border-t border-[#dce2f4] pt-6">
+            <div className="mt-5 border-t border-[#dce2f4] pt-5 md:mt-auto md:pt-6">
               <button
                 type="button"
                 onClick={() => navigateToView("einstellungen")}

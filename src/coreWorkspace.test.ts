@@ -277,6 +277,28 @@ test("workspace creates manual deck trees and deletes a selected subtree", () =>
   );
 });
 
+test("repository starts empty and neutral unless a fixture is explicitly requested", () => {
+  const workspace = createTestWorkspace();
+  const state = workspace.getState();
+
+  assert.equal(state.decks.length, 0);
+  assert.equal(state.profile.displayName, "");
+  assert.equal(state.profile.email, "");
+  assert.equal(state.profile.university, "");
+  assert.equal(state.profile.fieldOfStudy, "");
+});
+
+test("workspace creates the world-capitals fixture only through the explicit demo action", () => {
+  const workspace = createTestWorkspace();
+
+  assert.equal(workspace.getState().decks.length, 0);
+  const demoDecks = workspace.createWorldCapitalsDemo();
+
+  assert.equal(demoDecks.length, 8);
+  assert.equal(workspace.getState().decks.find((deck) => deck.id === "deck_world_capitals")?.name, "Welt-Hauptstädte");
+  assert.equal(workspace.getState().decks.reduce((count, deck) => count + (deck.reviewEvents?.length ?? 0), 0), 0);
+});
+
 test("repository falls back to a safe default for structurally damaged app state", () => {
   const storage = createMemoryStorage();
   storage.setItem("core.appState.v2", JSON.stringify({ version: 2, decks: [{ name: "ID fehlt" }] }));

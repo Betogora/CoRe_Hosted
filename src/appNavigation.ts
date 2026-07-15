@@ -13,6 +13,8 @@ export interface ViewRoute {
   viewId: string;
   focusedDeckId?: string;
   deckCreationParentId?: string;
+  creationMethod?: "manual" | "import" | "ai";
+  completedDeckId?: string;
 }
 
 export interface StudyRoute {
@@ -35,6 +37,8 @@ interface ViewRouteInput {
   viewId?: unknown;
   focusedDeckId?: unknown;
   deckCreationParentId?: unknown;
+  creationMethod?: unknown;
+  completedDeckId?: unknown;
 }
 type StudyRouteInput = Partial<Omit<StudyRoute, "mode" | "returnRoute">> & {
   mode?: unknown;
@@ -64,11 +68,15 @@ function normalizeViewRoute(
   const viewId = routableViewIds.has(rawViewId) ? rawViewId : defaultViewId;
   const focusedDeckId = cleanDeckId(route.focusedDeckId, validDeckIds);
   const deckCreationParentId = cleanDeckId(route.deckCreationParentId, validDeckIds);
+  const creationMethod = ["manual", "import", "ai"].includes(String(route.creationMethod)) ? route.creationMethod as "manual" | "import" | "ai" : "";
+  const completedDeckId = String(route.completedDeckId ?? "").trim();
   return {
     mode: "view",
     viewId,
     ...(focusedDeckId ? { focusedDeckId } : {}),
     ...(deckCreationParentId ? { deckCreationParentId } : {}),
+    ...(viewId === "neue-karten" && creationMethod ? { creationMethod } : {}),
+    ...(viewId === "neue-karten" && completedDeckId ? { completedDeckId } : {}),
   };
 }
 
@@ -123,6 +131,8 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     viewId: pathSegments[0],
     focusedDeckId: url.searchParams.get("deck") ?? undefined,
     deckCreationParentId: url.searchParams.get("parent") ?? undefined,
+    creationMethod: url.searchParams.get("method") ?? undefined,
+    completedDeckId: url.searchParams.get("done") ?? undefined,
   }, options);
 }
 
@@ -136,6 +146,8 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   const params = new URLSearchParams();
   if (["kartenstapel", "stapel-einstellungen"].includes(normalized.viewId) && normalized.focusedDeckId) params.set("deck", normalized.focusedDeckId);
   if (normalized.viewId === "lernen" && normalized.deckCreationParentId) params.set("parent", normalized.deckCreationParentId);
+  if (normalized.viewId === "neue-karten" && normalized.creationMethod) params.set("method", normalized.creationMethod);
+  if (normalized.viewId === "neue-karten" && normalized.completedDeckId) params.set("done", normalized.completedDeckId);
   const search = params.toString();
   return `${path}${search ? `?${search}` : ""}`;
 }

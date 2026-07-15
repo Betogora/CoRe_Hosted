@@ -32,7 +32,7 @@ test("APKG-Medium wird nach dem Deck-Commit cloudbestätigt und als Signed URL g
   await expect(page.getByText("Importvorschau", { exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/Medien: 1 erkannt/)).toBeVisible();
   await page.getByRole("button", { name: "Import übernehmen" }).click();
-  await expect(page.getByText(/Status: cloud-ready/)).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 60_000 });
 
   const state = await readActiveAccountState(page);
   const importedDeck = state.decks.find((deck: any) =>

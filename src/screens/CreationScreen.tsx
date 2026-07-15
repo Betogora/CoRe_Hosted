@@ -77,7 +77,7 @@ function TabButton({ icon: Icon, label, isActive, onClick }: any) {
   );
 }
 
-function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, mediaStore, serverApkgEnabled = false }: any) {
+function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, mediaStore, serverApkgEnabled = false, onCompleted }: any) {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [job, setJob] = React.useState<any>(null);
   const [preview, setPreview] = React.useState<ApkgCreationPreview | null>(null);
@@ -182,7 +182,10 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
           setMediaStatus(mediaResult);
           setCloudProgress({ ...mediaResult.progress, status: mediaResult.status });
           setJob((currentJob: any) => ({ ...currentJob, status: mediaResult.status === "cloud-ready" ? "done" : mediaResult.status }));
+          if (mediaResult.status === "cloud-ready") onCompleted?.(result.deck);
         });
+      } else {
+        onCompleted?.(result.deck);
       }
     } catch (error) {
       setJob((currentJob: any) => ({ ...currentJob, status: "error", errors: [...(currentJob?.errors ?? []), error instanceof Error ? error.message : "Der Import ist fehlgeschlagen."] }));
@@ -668,10 +671,10 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
     setActiveField(pinnedFields.front && !pinnedFields.back ? "back" : "front");
   }
 
-  function saveManualCard() {
+  async function saveManualCard() {
     const input = manualInput();
     if (!useNewDeck && selectedDeckId && onAppendManualCard) {
-      const updatedDeck = onAppendManualCard(selectedDeckId, creationWorkflow.createManualDeckInput(input));
+      const updatedDeck = await onAppendManualCard(selectedDeckId, creationWorkflow.createManualDeckInput(input));
       if (updatedDeck) {
         setStatus("Karte im ausgewählten Stapel gespeichert.");
         resetCardFields();
@@ -680,7 +683,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
     }
 
     const deck = creationWorkflow.createManualDeck(input);
-    onCreated(deck);
+    await onCreated(deck);
     setUseNewDeck(false);
     setSelectedDeckId(deck.id);
     setStatus("Neuer Stapel mit Originalkarte gespeichert.");
@@ -797,7 +800,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
           <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="biologie zelle prüfung" />
         </label>
         <div className="flex flex-wrap items-end gap-2">
-          <button type="button" disabled={!canCreate} onClick={saveManualCard} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+          <button type="button" disabled={!canCreate} onClick={() => void saveManualCard()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
             <Database size={17} aria-hidden="true" />
             Originalkarte speichern
           </button>
@@ -1037,7 +1040,7 @@ const importMethods = [
   { id: "spreadsheet", label: "Excel/Tabelle", icon: FileSpreadsheet },
 ];
 
-function ImportCreationPanel({ decks = [], onCreated, workflow, mediaStore, serverApkgEnabled = false }: any) {
+function ImportCreationPanel({ decks = [], onCreated, onImportCompleted, workflow, mediaStore, serverApkgEnabled = false }: any) {
   const [selectedImport, setSelectedImport] = React.useState("anki");
 
   return (
@@ -1047,7 +1050,7 @@ function ImportCreationPanel({ decks = [], onCreated, workflow, mediaStore, serv
           <TabButton key={method.id} icon={method.icon} label={method.label} isActive={selectedImport === method.id} onClick={() => setSelectedImport(method.id)} />
         ))}
       </div>
-      {selectedImport === "anki" ? <ApkgImportPanel existingDecks={decks} workflow={workflow} mediaStore={mediaStore} serverApkgEnabled={serverApkgEnabled} /> : <TextCsvImportPanel initialMode={selectedImport} onImported={onCreated} />}
+      {selectedImport === "anki" ? <ApkgImportPanel existingDecks={decks} workflow={workflow} mediaStore={mediaStore} serverApkgEnabled={serverApkgEnabled} onCompleted={onImportCompleted} /> : <TextCsvImportPanel initialMode={selectedImport} onImported={onCreated} />}
     </div>
   );
 }
@@ -1119,15 +1122,16 @@ function CreationMethodButton({ method, isSelected, onSelect }: any) {
   );
 }
 
-export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, supabase, supabaseUrl = "", onCreated, onAppendManualCard, onJob, showAiDrafts = false, aiDraftSurface, enableServerApkgImport = false }: any) {
-  const [selectedMethod, setSelectedMethod] = React.useState<any>(null);
+export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, supabase, supabaseUrl = "", initialMethod = "", completedDeckId = "", onMethodChange, onCreated, onAppendManualCard, onImportCompleted, onStartDeck, onReviewDeck, onJob, showAiDrafts = false, aiDraftSurface, enableServerApkgImport = false }: any) {
+  const selectedMethod = initialMethod;
   const availableCreationMethods = showAiDrafts ? creationMethods : creationMethods.filter((method) => method.id !== "ai");
   const selectedMethodMeta = availableCreationMethods.find((method) => method.id === selectedMethod);
+  const completedDeck = decks.find((deck: any) => deck.id === completedDeckId) ?? null;
   const serverApkgImport = React.useMemo(() => enableServerApkgImport && supabase && supabaseUrl ? createServerApkgImportClient({ client: supabase, supabaseUrl }) : null, [enableServerApkgImport, supabase, supabaseUrl]);
   const accountWorkflow = React.useMemo(() => createCreationWorkflow({ mediaStore, persistImportedDecks, serverApkgImport }), [mediaStore, persistImportedDecks, serverApkgImport]);
 
   function renderSelectedMethod() {
-    if (selectedMethod === "import") return <ImportCreationPanel decks={decks} onCreated={onCreated} workflow={accountWorkflow} mediaStore={mediaStore} serverApkgEnabled={enableServerApkgImport} />;
+    if (selectedMethod === "import") return <ImportCreationPanel decks={decks} onCreated={onCreated} onImportCompleted={onImportCompleted} workflow={accountWorkflow} mediaStore={mediaStore} serverApkgEnabled={enableServerApkgImport} />;
     if (selectedMethod === "manual") return <ManualCreationPanelV2 decks={decks} onCreated={onCreated} onAppendManualCard={onAppendManualCard} />;
     if (selectedMethod === "ai" && showAiDrafts) return <AiCreationPanel onCreated={onCreated} onJob={onJob} surface={aiDraftSurface} />;
     return null;
@@ -1136,10 +1140,27 @@ export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, s
   return (
     <div className="grid min-h-[calc(100vh-10rem)] content-start gap-7">
       <PageHeader eyebrow="Erstellen" title="Neue Karten" />
-      {selectedMethod ? (
+      {completedDeck ? (
+        <SoftPanel className="mx-auto w-full max-w-3xl p-7 text-center sm:p-10" aria-live="polite">
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-teal-50 text-teal-700">
+            <CheckCircle2 size={34} aria-hidden="true" />
+          </span>
+          <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-teal-700">Gespeichert</p>
+          <h2 className="mt-2 text-3xl font-semibold text-[#17214f]">Deine Karten sind bereit</h2>
+          <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-[#66709a]">„{completedDeck.name}“ wurde gespeichert. Du kannst direkt mit dem ersten Review beginnen.</p>
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <button type="button" onClick={() => onStartDeck(completedDeck)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#4f5eb1] px-6 text-sm font-semibold text-white">
+              Jetzt lernen
+            </button>
+            <button type="button" onClick={() => onReviewDeck(completedDeck.id)} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#dfe4f5] bg-white px-6 text-sm font-semibold text-[#4f5eb1]">
+              Karten prüfen
+            </button>
+          </div>
+        </SoftPanel>
+      ) : selectedMethod ? (
         <section className="grid min-h-[calc(100vh-16rem)] content-start gap-5" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <button type="button" onClick={() => setSelectedMethod(null)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/78 px-3 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
+            <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/78 px-3 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
               <ArrowLeft size={16} aria-hidden="true" />
               Auswahl
             </button>
@@ -1150,7 +1171,7 @@ export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, s
       ) : (
         <section className="grid min-h-[calc(100vh-18rem)] items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3 xl:gap-6" aria-label="Erstellungsart">
           {availableCreationMethods.map((method) => (
-            <CreationMethodButton key={method.id} method={method} isSelected={false} onSelect={() => setSelectedMethod(method.id)} />
+            <CreationMethodButton key={method.id} method={method} isSelected={false} onSelect={() => onMethodChange(method.id)} />
           ))}
         </section>
       )}

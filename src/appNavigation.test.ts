@@ -21,13 +21,16 @@ test("roundtrips known view paths and supported screen context", () => {
   const deckRoute = parseAppRouteFromUrl("/kartenstapel?deck=deck_a", { validDeckIds: decks });
   const deckSettingsRoute = parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b", { validDeckIds: decks });
   const creationRoute = parseAppRouteFromUrl("/lernen?parent=deck_b", { validDeckIds: decks });
+  const creationMethodRoute = parseAppRouteFromUrl("/neue-karten?method=manual&done=deck_new", { validDeckIds: decks });
 
   assert.deepEqual(deckRoute, { mode: "view", viewId: "kartenstapel", focusedDeckId: "deck_a" });
   assert.deepEqual(deckSettingsRoute, { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" });
   assert.deepEqual(creationRoute, { mode: "view", viewId: "lernen", deckCreationParentId: "deck_b" });
+  assert.deepEqual(creationMethodRoute, { mode: "view", viewId: "neue-karten", creationMethod: "manual", completedDeckId: "deck_new" });
   assert.equal(appRouteToUrl(deckRoute), "/kartenstapel?deck=deck_a");
   assert.equal(appRouteToUrl(deckSettingsRoute), "/stapel-einstellungen?deck=deck_b");
   assert.equal(appRouteToUrl(creationRoute), "/lernen?parent=deck_b");
+  assert.equal(appRouteToUrl(creationMethodRoute), "/neue-karten?method=manual&done=deck_new");
 });
 
 test("falls back to today for unknown paths", () => {

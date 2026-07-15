@@ -23,8 +23,8 @@ const appStateStorageSchema = v.looseObject({
 function createDefaultProfile() {
   return {
     userId: "local-user",
-    email: "noemi@example.test",
-    displayName: "Noemi C.",
+    email: "",
+    displayName: "",
     university: "",
     fieldOfStudy: "",
     preferredLanguage: "de",
@@ -161,7 +161,7 @@ function mergeDeckDocuments(documents: any = [], decks: any = []) {
 
 export function createCoreRepository(storage: any = null, options: any = {}) {
   const resolvedStorage = storage ?? getStorage();
-  const seedDefaultDecks = options.seedDefaultDecks ?? storage == null;
+  const seedDefaultDecks = options.seedDefaultDecks === true;
   const saveDecks = (decks: any = []) => {
     const normalizedDecks = decks.filter(Boolean).map((deck: any) => normalizeCoreDeck(deck));
     if (!normalizedDecks.length) return [];

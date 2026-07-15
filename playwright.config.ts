@@ -80,5 +80,14 @@ export default defineConfig({
         trace: "off",
       },
     },
+    {
+      name: "first-learning-chromium",
+      testMatch: /first-learning\.spec\.ts/,
+      dependencies: ["authenticated-chromium"],
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: e2eAuthStatePath,
+      },
+    },
   ],
 });

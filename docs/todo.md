@@ -121,35 +121,11 @@ Erst danach folgen Onboarding, Erstellen/Import und Informationsarchitektur.
 
 ## P0.4 Erster Produktkontakt und leerer Account
 
-### Aufgabe
+Implementierung und automatisierte Golden-Evidenz sind in `docs/specs.md` dokumentiert.
 
-- [ ] Den produktiven Account ohne automatisch eingefügten Welt-Hauptstadt-Stapel starten.
-- [ ] Die Hauptstadt-Fixture ausschließlich für Entwicklung, Demo auf ausdrückliche Auswahl und E2E verwenden.
-- [ ] Zeitunabhängige, neutrale Begrüßung verwenden; keine hart codierte Person als Fallback.
-- [ ] Für einen leeren Account drei klare Wege anbieten:
-  - `Anki-Stapel importieren`
-  - `Erste Karte erstellen`
-  - `Demo ausprobieren`
-- [ ] Das Kernversprechen in höchstens drei kurzen Aussagen erklären:
-  - lernen mit Spaced Repetition,
-  - später anders formuliert abgefragt werden,
-  - Original und Quelle bleiben prüfbar.
-- [ ] Nach dem ersten Import oder der ersten Karte direkt einen sinnvollen nächsten Schritt anbieten.
-- [ ] Onboarding-Felder auf tatsächlich verwendete Daten begrenzen. Hochschule und Fachgebiet bleiben optional und dürfen den Lernstart nicht blockieren.
+### Verbleibende Evidenz
 
-### Akzeptanz
-
-- Ein neuer Account kann ohne Vorwissen innerhalb weniger klarer Aktionen eine erste Karte lernen.
-- Demo-Daten verfälschen keine Statistiken eines echten Accounts.
-- Leere Zustände enthalten genau eine primäre und höchstens eine sekundäre Aktion.
-- Browser-Zurück und Reload funktionieren während des ersten Ablaufs.
-- Kein Labs-Feature ist für den ersten Lernerfolg erforderlich.
-
-### Evidenz
-
-- E2E `neuer Account → manuelle Karte → Review`.
-- E2E `neuer Account → kleiner APKG-Import → Review`.
-- Kurzer moderierter Test mit mindestens drei Personen vor Abschluss des P0-Gates.
+- [ ] Kurzer moderierter Test mit mindestens drei Personen vor Abschluss des P0-Gates.
 
 ---
 

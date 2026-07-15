@@ -1,5 +1,5 @@
 import React from "react";
-import { Activity, Bot, CalendarDays, ChevronLeft, ChevronRight, Layers } from "lucide-react";
+import { Activity, Bot, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileArchive, Layers, PenLine, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.ts";
 import { DonutValue, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
@@ -175,27 +175,62 @@ function StudyHeatmap({ heatmap }: any) {
   );
 }
 
-export function DashboardScreen({ state, onNavigate, onStartDeck, showAssistant = false }: any) {
+export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo, showAssistant = false }: any) {
   const library = createDeckLibraryModel(state.decks);
   const { totals, studyHeatmap } = library;
-  const dashboardRows = library.dashboardRows.length
-    ? library.dashboardRows
-    : [
-        {
-          id: "empty",
-          name: "Noch kein Kartenstapel",
-          deck: { id: "empty", name: "Noch kein Kartenstapel" },
-          summary: { totalCards: 0, dueCards: 0 },
-          progress: 0,
-          isEmpty: true,
-        },
-      ];
+  const dashboardRows = library.dashboardRows;
+
+  if (state.decks.length === 0) {
+    return (
+      <div className="grid min-w-0 gap-7">
+        <PageHeader eyebrow="Heute" title="Willkommen bei CoRe" />
+
+        <SoftPanel className="overflow-hidden p-7 sm:p-9">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">Dein erster Lernerfolg</p>
+            <h2 className="mt-2 text-3xl font-semibold text-[#17214f]">Womit möchtest du starten?</h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-[#66709a]">Lege eigenes Lernmaterial an oder probiere CoRe bewusst mit Beispieldaten aus.</p>
+          </div>
+
+          <div className="mt-7 grid gap-4 lg:grid-cols-3">
+            <button type="button" onClick={() => onNavigate("neue-karten", { creationMethod: "manual" })} className="group rounded-2xl bg-[#4f5eb1] p-5 text-left text-white shadow-[0_14px_30px_rgba(79,94,177,0.2)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8790d8] focus-visible:ring-offset-2">
+              <PenLine size={24} aria-hidden="true" />
+              <span className="mt-5 block text-lg font-semibold">Erste Karte erstellen</span>
+              <span className="mt-2 block text-sm leading-6 text-white/80">Frage und Antwort direkt eingeben.</span>
+            </button>
+            <button type="button" onClick={() => onNavigate("neue-karten", { creationMethod: "import" })} className="group rounded-2xl border border-[#dfe4f5] bg-white/80 p-5 text-left text-[#17214f] transition hover:-translate-y-0.5 hover:border-teal-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
+              <FileArchive size={24} className="text-teal-700" aria-hidden="true" />
+              <span className="mt-5 block text-lg font-semibold">Anki-Stapel importieren</span>
+              <span className="mt-2 block text-sm leading-6 text-[#66709a]">Eine vorhandene APKG-Datei übernehmen.</span>
+            </button>
+            <button type="button" onClick={onCreateDemo} className="group rounded-2xl border border-dashed border-[#cfd6ed] bg-[#f8f9fe] p-5 text-left text-[#17214f] transition hover:-translate-y-0.5 hover:border-[#8790d8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8790d8] focus-visible:ring-offset-2">
+              <Sparkles size={24} className="text-[#6672bf]" aria-hidden="true" />
+              <span className="mt-5 block text-lg font-semibold">Demo ausprobieren</span>
+              <span className="mt-2 block text-sm leading-6 text-[#66709a]">Beispielstapel nur auf deinen Klick anlegen.</span>
+            </button>
+          </div>
+        </SoftPanel>
+
+        <SoftPanel className="p-7">
+          <h2 className="text-xl font-semibold text-[#17214f]">Das macht CoRe</h2>
+          <ul className="mt-5 grid gap-3 md:grid-cols-3">
+            {["Zeitlich passend wiederholen.", "Später anders formuliert prüfen.", "Original und Quelle bleiben sichtbar."].map((point) => (
+              <li key={point} className="flex gap-3 text-sm leading-6 text-[#4e5b8c]">
+                <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
+                {point}
+              </li>
+            ))}
+          </ul>
+        </SoftPanel>
+      </div>
+    );
+  }
 
   return (
     <div className="grid min-w-0 gap-7">
       <PageHeader
         eyebrow="Heute"
-        title={`Guten Morgen, ${state.profile.displayName || "Noemi"}`}
+        title="Willkommen bei CoRe"
       />
 
       {showAssistant ? (
@@ -234,11 +269,9 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, showAssistant 
                   </p>
                 </div>
                 <DonutValue value={row.progress} />
-                {!row.isEmpty ? (
-                  <button type="button" onClick={() => onStartDeck(row.deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1]">
-                    Lernen <ChevronRight size={15} aria-hidden="true" />
-                  </button>
-                ) : null}
+                <button type="button" onClick={() => onStartDeck(row.deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1]">
+                  Lernen <ChevronRight size={15} aria-hidden="true" />
+                </button>
               </div>
             );
           })}
