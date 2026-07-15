@@ -2,20 +2,12 @@ import React from "react";
 import { AlertTriangle, GitMerge, RefreshCw, RotateCcw } from "lucide-react";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 
-const FIELD_SOURCES = [["local", "Lokal"], ["remote", "Remote"]];
+const FIELD_SOURCES = [["local", "Diese Fassung"], ["remote", "Andere Fassung"]];
 
 function formatConflictDate(value: string|number|Date) {
   if (!value) return "Unbekannter Zeitpunkt";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "Unbekannter Zeitpunkt" : date.toLocaleString("de-DE");
-}
-
-function RevisionSummary({ conflict }: any) {
-  return (
-    <p className="text-xs text-[#66709a]">
-      Basis {conflict.baseRevision ?? "neu"} · Lokal {conflict.localRevision ?? "neu"} · Remote {conflict.remoteRevision ?? "gelöscht"}
-    </p>
-  );
 }
 
 export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
@@ -86,7 +78,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
           <OrbIcon icon={AlertTriangle} className="bg-amber-50 text-amber-700" />
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-amber-700">Synchronisierung</p>
-            <h3 className="text-xl font-semibold text-[#17214f]">Konflikte entscheiden</h3>
+            <h3 className="text-xl font-semibold text-[#17214f]">Änderungskonflikte lösen</h3>
           </div>
         </div>
         <button type="button" onClick={loadConflicts} disabled={loading || Boolean(busyId)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
@@ -96,7 +88,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
       </div>
 
       <p className="mt-3 max-w-3xl text-sm leading-6 text-[#66709a]">
-        CoRe überschreibt Änderungen von anderen Geräten nicht automatisch. Vergleiche beide Stände und entscheide bewusst, welcher Inhalt weiterverwendet wird.
+        CoRe hat unterschiedliche Änderungen am selben Inhalt gefunden. Vergleiche beide Fassungen und entscheide, welcher Inhalt weiterverwendet wird.
       </p>
 
       {loading ? <p className="mt-5 text-sm text-[#66709a]" role="status">Konflikte werden geladen.</p> : null}
@@ -117,7 +109,6 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
                   <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">{conflict.entityLabel}</p>
                   <h4 className="mt-1 text-base font-semibold text-[#17214f]">{conflict.title}</h4>
                   <p className="mt-1 text-xs text-[#66709a]">Erkannt am {formatConflictDate(conflict.createdAt)}</p>
-                  <RevisionSummary conflict={conflict} />
                 </div>
                 <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Entscheidung nötig</span>
               </div>
@@ -129,11 +120,11 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
                       <p className="text-sm font-semibold text-[#4e5b8c]">{field.label}</p>
                       <div className="mt-2 grid gap-2 md:grid-cols-2">
                         <div className="min-w-0 rounded-lg bg-[#f8f9fe] p-3">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Lokal</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Diese Fassung</p>
                           <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans text-sm text-[#17214f]">{field.localText}</pre>
                         </div>
                         <div className="min-w-0 rounded-lg bg-[#f8f9fe] p-3">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Remote</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Andere Fassung</p>
                           <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans text-sm text-[#17214f]">{field.remoteText}</pre>
                         </div>
                       </div>
@@ -143,8 +134,8 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
               ) : <p className="mt-4 text-sm text-[#66709a]">Eine Seite wurde gelöscht oder ist nicht mehr vorhanden.</p>}
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="min-h-10 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white disabled:bg-slate-300">Lokale Version behalten</button>
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="min-h-10 rounded-xl border border-[#cfd5ec] bg-white px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">Remote-Version behalten</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="min-h-10 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white disabled:bg-slate-300">Diese Fassung behalten</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="min-h-10 rounded-xl border border-[#cfd5ec] bg-white px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">Andere Fassung behalten</button>
                 {conflict.allowedActions.includes("merge-fields") ? (
                   <button type="button" disabled={busy} aria-expanded={merging} onClick={() => setMergeConflictId(merging ? null : conflict.id)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#cfd5ec] bg-white px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
                     <GitMerge size={16} aria-hidden="true" />
@@ -189,7 +180,6 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
               <div key={conflict.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-3">
                 <div>
                   <p className="text-sm font-semibold text-[#17214f]">{conflict.entityLabel}: {conflict.title}</p>
-                  <RevisionSummary conflict={conflict} />
                 </div>
                 <button type="button" disabled={busyId === conflict.id} onClick={() => decide(conflict, { action: "reopen" })} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#cfd5ec] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
                   <RotateCcw size={16} aria-hidden="true" />

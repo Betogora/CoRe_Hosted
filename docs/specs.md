@@ -3298,6 +3298,8 @@ Dieser Abschnitt ersetzt die frueher getrennten Projekt-Dokumente. Er ist die ze
 
 Die sichtbare Hauptnavigation zeigt nur die primaeren Core-Bereiche Heute, Erstellen, Lernen und Statistik; Einstellungen bleiben ueber den Account-Button am unteren Sidebar-Ende erreichbar. Im Entwicklungsmodus oder bei expliziter Labs-Freigabe erscheint darunter ein zurueckhaltender Labs-Einstieg fuer Assistent, Graph, Community-Demo und KI-Job-Historie. Labs-Routen bleiben Browser-History-stabil, zeigen einen experimentellen Hinweis mit ihrer bekannten Grenze und fallen ohne Labs-Freigabe auf Heute zurueck. `DecksScreen` bleibt als View erhalten und wird ueber den Kartenstapel-Button in der Lernen-Control-Leiste geoeffnet; seine Graph-, Community- und externe Varianten-JSON-Aktionen sind ebenfalls an Labs gebunden. Neue Haupt- und Unterstapel werden direkt auf der Lern-Ebene angelegt. Das Zahnrad einer Stapelzeile öffnet `DeckSettingsScreen` als isolierte Lernoptionen-View für genau diesen Stapel. Hauptbereich-Header folgen der kompakten `PageHeader`-Konvention: Eyebrow und Titel ohne Untertitelzeile oder dekoratives rechtes Header-Icon.
 
+Die Einstellungen sind nach den Nutzeraufgaben `Account`, `Lernen`, `Daten und Sync` sowie `Erweitert` gegliedert. Die Login-E-Mail ist ein nicht editierbarer Accountwert, solange CoRe keine echte Auth-E-Mail-Aenderung anbietet. Lernstand, Online-Status und Streaks werden nicht als wirkungslose Schalter angeboten, sondern als derzeit nicht mit anderen Nutzern geteilte Daten erklaert. Syncstatus und Konfliktentscheidungen bleiben sichtbar, ohne Revisionen, Tabellen oder Geraete als Implementierungsdetails offenzulegen. Der Portabilitaetsexport wird vor dem Download als begrenzter JSON-Export ohne Medienbytes, Authdaten, Community-/Serverrechte und vollstaendiges Art.-15-Auskunftspaket erklaert; das Roh-JSON bleibt eine optionale Diagnoseansicht unter `Erweitert`.
+
 - `src/screens/DashboardScreen.tsx`: reduzierter Heute-Kopf mit Fällig-/Originalkarten-Kacheln, kompakter Heatmap-Kopf mit aktiven Tagen, rechtsbündiger Legende und Pfeilnavigation, aktive Hauptstapel mit Unterbaum-Aggregaten, Stapel-Icons/-Farben und responsive GitHub-/Anki-artige Kalenderjahr-Heatmap mit Monats- und Jahreswechselmarken.
 - `src/screens/DecksScreen.tsx`: Deck-Hierarchie, Suche/Filter, Unterstapel-Einstieg zur Lern-Ebene, direkte Stapel-Umbenennung, Stapelbaum-Loeschen, CoRe-Modus, Stapel-Icons/-Farben, Karten-CRUD, Aktionen.
 - `src/screens/CreationScreen.tsx`: APKG bis zur freigegebenen Groessengrenze, Text/CSV/Excel-Paste, manuell, PDF-/Text-Dokumenterstellung mit Quellenanker ueber den tiefen PDF.js-Viewer; lokale KI-Drafts nur in Labs.
@@ -3309,7 +3311,7 @@ Die sichtbare Hauptnavigation zeigt nur die primaeren Core-Bereiche Heute, Erste
 - `src/screens/CommunityScreen.tsx`: Community erstellen, Deck teilen, Deck kopieren.
 - `src/screens/AiJobsScreen.tsx`: lokale Job-Historie und Status; nur ueber den Labs-Einstieg erreichbar.
 - `src/screens/AssistantScreen.tsx`: Chat-your-Deck und Lernplan; nur ueber den Labs-Einstieg oder den dort freigegebenen Heute-Sekundaereinstieg erreichbar.
-- `src/screens/SettingsScreen.tsx`: Profil, lokale Account-Sitzung, Hochschule, Sprache, Datenschutz, globale Lernvorgaben inklusive CoRe-Modus, Datenportabilitaet und sichtbare Release-Information.
+- `src/screens/SettingsScreen.tsx`: Nicht editierbare Login-E-Mail, Profilpflege, statische Datenschutzinformation, globale Lernvorgaben, verstaendlicher Sync- und Konfliktstatus, begrenzter Portabilitaetsdownload, optionales Roh-JSON unter `Erweitert` und sichtbare Release-Information.
 
 ### 27.3 Testoberflaeche
 
@@ -3332,6 +3334,7 @@ Die sichtbare Hauptnavigation zeigt nur die primaeren Core-Bereiche Heute, Erste
 - `src/creationPipeline.test.ts`: Basic-, Reverse-, Cloze- und normalisierte Import-Erstellung mit Original-Variantenanker.
 - `src/learningModel.test.ts`: Legacy-Card-Normalisierung, Learning-Item-Invarianten und Review-Event-Kompatibilitaetsfelder.
 - `src/dataPortability.test.ts`: Export-Redaction, kaputtes JSON, nicht unterstuetzte Exportversionen, Merge-Konflikte und Repository-Normalisierung importierter Legacy-Karten.
+- `src/screens/SettingsScreen.test.tsx`: Aufgabenbasierte Bereiche, nicht editierbare Login-E-Mail, verborgene No-op-Datenschutzschalter und sichtbare Exportgrenzen.
 - `src/normalizedImport.test.ts`: normalisierte Importpayloads, JSON-Import, Fingerprints, Dedupe und Parent-/Hierarchy-Felder.
 - `src/reviewService.test.ts`: direkte Verifikation von Antwortverarbeitung, Scheduler-Events, Variantenperformance, Anchor-Snapshots und Next-Review-Auswahl.
 - `src/fsrsVariantFlow.test.ts`: FSRS-like Scheduler-State, Reifegradstufen, Variant-Readiness, Coverage, Generation-Plan, Fallback nach Fehlern und Next-Review-Projektion.
@@ -3447,7 +3450,7 @@ Nach diesem Schutz uebergibt das Modul nur Nutzer-ID, Idempotenzschluessel und R
 
 `createLearningPlan` erzeugt einen Plan aus Zieltermin, verfuegbaren Minuten pro Tag, neuen Karten pro Tag, faelligen Reviews, aktiven Varianten und schwachen Tags aus Review-Events oder Graph-Knoten. Der Plan erzeugt Tageszeilen mit Review-Quota, neuen Karten, Varianten-Tagen und Fokusdeck. Er ist kein Kalender-Adapter; ein spaeterer Kalender- oder Benachrichtigungsadapter soll die erzeugten Planobjekte konsumieren.
 
-`src/dataPortability.ts` erzeugt einen lokalen JSON-Export mit Decks, Communities, Jobs und Dokumenten. Der lokale Passwort-Verifier wird bewusst entfernt. Import validiert Schema und Version, gibt kaputtes JSON als Validierungsfehler statt Exception zurueck und mergt neue Decks ohne lokale Decks mit gleicher ID zu ersetzen.
+`src/dataPortability.ts` erzeugt einen lokalen JSON-Export mit Decks, Communities, Jobs und Dokumenten unter dem stabilen Dateinamen `core-portable-export.json`. Der lokale Passwort-Verifier wird bewusst entfernt. Der Download enthaelt keine Medienbytes, Authdaten oder serverseitigen Rechte und ist kein vollstaendiges Auskunftspaket nach Art. 15 DSGVO. Import validiert Schema und Version, gibt kaputtes JSON als Validierungsfehler statt Exception zurueck und mergt neue Decks ohne lokale Decks mit gleicher ID zu ersetzen.
 
 ### 27.9 Adapter-Entscheidung
 

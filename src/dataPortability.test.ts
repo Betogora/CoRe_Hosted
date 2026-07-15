@@ -3,7 +3,7 @@ import test from "node:test";
 import { createLocalAccount } from "./authModel.ts";
 import { createBasicLearningItem, createCoreDeck, getOriginalVariant } from "./coreModel.ts";
 import { createCoreRepository } from "./coreRepository.ts";
-import { createPortableExport, mergePortableExportIntoState, validatePortableExport } from "./dataPortability.ts";
+import { createPortableExport, mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, validatePortableExport } from "./dataPortability.ts";
 
 function createMemoryStorage() {
   const store = new Map();
@@ -39,6 +39,10 @@ function portableState(overrides = {}) {
     ...overrides,
   };
 }
+
+test("portable export uses a stable JSON file name", () => {
+  assert.equal(PORTABLE_EXPORT_FILE_NAME, "core-portable-export.json");
+});
 
 test("portable export redacts local password verifier", () => {
   const exported = createPortableExport(portableState(), "2026-07-01T08:00:00.000Z");

@@ -2,6 +2,7 @@ import * as v from "valibot";
 import { stableContentHash } from "./coreModel.ts";
 
 const EXPORT_SCHEMA_VERSION = 1;
+export const PORTABLE_EXPORT_FILE_NAME = "core-portable-export.json";
 const portableEntitySchema = v.looseObject({ id: v.string() });
 const portableExportSchema = v.looseObject({
   schema: v.literal("core-portable-export"),

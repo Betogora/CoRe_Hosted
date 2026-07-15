@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
@@ -83,7 +84,16 @@ test("browser back returns from settings to the previous screen", async ({ page 
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-  await expect(page.getByRole("button", { name: "Export vorbereiten" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Export herunterladen" })).toBeVisible();
+  for (const section of ["Account", "Lernen", "Daten und Sync", "Erweitert"]) {
+    await expect(page.getByRole("heading", { name: section, exact: true })).toBeVisible();
+  }
+  await expect(page.getByLabel("Login-E-Mail")).not.toBeEditable();
+  await expect(page.getByText("Eine Änderung der Login-E-Mail wird derzeit nicht in CoRe angeboten.")).toBeVisible();
+  await expect(page.getByLabel("Lernstand teilen")).toHaveCount(0);
+  await expect(page.getByLabel("Online-Status zeigen")).toHaveCount(0);
+  await expect(page.getByLabel("Streaks für andere")).toHaveCount(0);
+  await expect(page.getByText("Dein Lernstand, dein Online-Status und deine Streaks werden derzeit nicht mit anderen Nutzern geteilt.")).toBeVisible();
   await expect(page.getByLabel("Release-Information")).toHaveText(/^CoRe 0\.1\.0 · Test · Commit (?:lokal|[a-f0-9]{7})$/);
 
   await page.goBack();
@@ -270,9 +280,18 @@ test("local portability export and import expose status and validation errors", 
   await resetToFreshLocalState(page);
 
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-  await page.getByRole("button", { name: "Export vorbereiten" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Export vorbereitet:" })).toBeVisible();
-  const exportJson = await page.getByTestId("portable-export-json").inputValue();
+  await expect(page.getByText("Medienbytes", { exact: true })).toBeVisible();
+  await expect(page.getByText("Authdaten", { exact: true })).toBeVisible();
+  await expect(page.getByText("Community- oder Serverrechte", { exact: true })).toBeVisible();
+  await expect(page.getByText("vollständiges DSGVO-Auskunftspaket nach Art. 15", { exact: true })).toBeVisible();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export herunterladen" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("core-portable-export.json");
+  const downloadPath = await download.path();
+  expect(downloadPath).not.toBeNull();
+  const exportJson = await readFile(downloadPath!, "utf8");
+  await expect(page.getByRole("status").filter({ hasText: "core-portable-export.json" })).toBeVisible();
   expect(exportJson).toContain('"schema": "core-portable-export"');
   expect(exportJson).not.toContain("passwordVerifier");
 
@@ -335,7 +354,7 @@ test("settings resolve and persist an account-bound sync conflict", async ({ pag
     await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
     const panel = page.getByTestId("sync-conflict-panel");
     await expect(panel.getByRole("heading", { name: "Lokaler E2E-Stapel" })).toBeVisible();
-    await expect(panel.getByRole("button", { name: "Remote-Version behalten" })).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Andere Fassung behalten" })).toBeVisible();
 
     await panel.getByRole("button", { name: "Später entscheiden" }).click();
     await expect(panel.getByText("Für später zurückgestellt (1)")).toBeVisible();
@@ -343,8 +362,8 @@ test("settings resolve and persist an account-bound sync conflict", async ({ pag
     await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
     await page.getByText("Für später zurückgestellt (1)").click();
     await page.getByRole("button", { name: "Wieder aufnehmen" }).click();
-    await expect(panel.getByRole("button", { name: "Remote-Version behalten" })).toBeVisible();
-    await panel.getByRole("button", { name: "Remote-Version behalten" }).click();
+    await expect(panel.getByRole("button", { name: "Andere Fassung behalten" })).toBeVisible();
+    await panel.getByRole("button", { name: "Andere Fassung behalten" }).click();
     await expect(panel.getByText("Keine offenen Synchronisierungskonflikte.")).toBeVisible();
 
     const { data: persisted, error: readError } = await client.from("sync_conflicts").select("status, resolution").eq("id", conflictId).single();
