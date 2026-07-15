@@ -77,12 +77,24 @@ export function createSyncConflictStatus(count = 1): SyncStatus {
 }
 
 export function formatSyncStatusText(syncStatus: SyncStatus) {
-  if (!syncStatus?.status || syncStatus.status === "idle") return "Noch keine Änderung synchronisiert.";
-  if (syncStatus.status === "pending") return "Änderungen werden gleich synchronisiert.";
-  if (syncStatus.status === "saving") return "Synchronisierung läuft.";
-  if (syncStatus.status === "saved") return syncStatus.savedAt ? `Zuletzt synchronisiert: ${new Date(syncStatus.savedAt).toLocaleString("de-DE")}.` : "Synchronisiert.";
-  if (syncStatus.status === "offline") return syncStatus.message || "Offline. Änderungen werden automatisch synchronisiert, sobald die Verbindung wieder da ist.";
-  if (syncStatus.status === "conflict") return syncStatus.message || "Eine Änderung braucht deine Entscheidung.";
-  if (syncStatus.status === "error") return syncStatus.message || "Synchronisierung fehlgeschlagen.";
-  return "Sync-Status unbekannt.";
+  switch (syncStatus.status) {
+    case "idle":
+      return "Noch keine Änderung synchronisiert.";
+    case "pending":
+      return "Änderungen werden gleich synchronisiert.";
+    case "saving":
+      return "Synchronisierung läuft.";
+    case "saved":
+      return syncStatus.savedAt ? `Zuletzt synchronisiert: ${new Date(syncStatus.savedAt).toLocaleString("de-DE")}.` : "Synchronisiert.";
+    case "offline":
+      return syncStatus.message || "Offline. Änderungen werden automatisch synchronisiert, sobald die Verbindung wieder da ist.";
+    case "conflict":
+      return syncStatus.message || "Eine Änderung braucht deine Entscheidung.";
+    case "error":
+      return syncStatus.message || "Synchronisierung fehlgeschlagen.";
+    default: {
+      const exhaustiveStatus: never = syncStatus;
+      return exhaustiveStatus;
+    }
+  }
 }

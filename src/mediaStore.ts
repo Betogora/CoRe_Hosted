@@ -266,6 +266,8 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
   return { cachePreviewMedia, syncImportMedia, resolveDeckMedia, startRetryLifecycle };
 }
 
+export type AccountMediaStore = ReturnType<typeof createAccountMediaStore>;
+
 function nowIso() { return new Date().toISOString(); }
 
 const compatibilityStore = () => createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" });

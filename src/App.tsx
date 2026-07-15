@@ -2,44 +2,73 @@ import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import type { AuthPhase } from "./accountSession.ts";
-import type { AppRoute, StudyRoute, ViewRoute } from "./appNavigation.ts";
-import type { Deck, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { CoreMode, Deck, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import { BarChart3, BookOpen, Bot, Database, FlaskConical, History, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
-import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.ts";
-import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
+import { createStudyRoute, createViewRoute } from "./appNavigation.ts";
+import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
+import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
+import type {
+  AiJobsScreenProps,
+  AssistantScreenProps,
+  CommunityScreenProps,
+  CreationScreenProps,
+  DashboardScreenProps,
+  DeckSettingsScreenProps,
+  DecksScreenProps,
+  GraphScreenProps,
+  LearnScreenProps,
+  SettingsScreenProps,
+  StatisticsScreenProps,
+  StudyModeProps,
+} from "./appScreenProps.ts";
+import { startAppAutosaveLifecycle, startAppSyncLifecycle } from "./appSyncLifecycle.ts";
+import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
 import { AI_CHAT_CONSENT_VERSION } from "./aiChatContract.ts";
-import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, readCloudAuthRedirectOutcome, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
+import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.ts";
-import { createCoreRepository } from "./coreRepository.ts";
-import { createCoreWorkspace, type CoreWorkspace, type WorkspaceState } from "./coreWorkspace.ts";
+import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
 import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.ts";
 import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type LearningSettingsInput } from "./deckSettings.ts";
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
 import { productSurfaces, type ProductSurfaceId } from "./productSurfaces.ts";
-import { createAccountSyncEngine, SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
+import { SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
+import { useAppNavigation } from "./useAppNavigation.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
 import { LabsNotice, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 
-const AssistantScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/AssistantScreen.tsx").then(({ AssistantScreen }) => ({ default: AssistantScreen })));
-const AiJobsScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/AiJobsScreen.tsx").then(({ AiJobsScreen }) => ({ default: AiJobsScreen })));
-const CommunityScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/CommunityScreen.tsx").then(({ CommunityScreen }) => ({ default: CommunityScreen })));
-const CreationScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/CreationScreen.tsx").then(({ CreationScreen }) => ({ default: CreationScreen })));
-const DashboardScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })));
-const DeckSettingsScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/DeckSettingsScreen.tsx").then(({ DeckSettingsScreen }) => ({ default: DeckSettingsScreen })));
-const DecksScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/DecksScreen.tsx").then(({ DecksScreen }) => ({ default: DecksScreen })));
-const GraphScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/GraphScreen.tsx").then(({ GraphScreen }) => ({ default: GraphScreen })));
-const LearnScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/LearnScreen.tsx").then(({ LearnScreen }) => ({ default: LearnScreen })));
-const SettingsScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/SettingsScreen.tsx").then(({ SettingsScreen }) => ({ default: SettingsScreen })));
-const StatisticsScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/StatisticsScreen.tsx").then(({ StatisticsScreen }) => ({ default: StatisticsScreen })));
-const StudyMode = React.lazy<React.ComponentType<any>>(() => import("./screens/StudyMode.tsx").then(({ StudyMode }) => ({ default: StudyMode })));
+const AssistantScreen = React.lazy<React.ComponentType<AssistantScreenProps>>(() => import("./screens/AssistantScreen.tsx").then(({ AssistantScreen }) => ({ default: AssistantScreen })));
+const AiJobsScreen = React.lazy<React.ComponentType<AiJobsScreenProps>>(() => import("./screens/AiJobsScreen.tsx").then(({ AiJobsScreen }) => ({ default: AiJobsScreen })));
+const CommunityScreen = React.lazy<React.ComponentType<CommunityScreenProps>>(() => import("./screens/CommunityScreen.tsx").then(({ CommunityScreen }) => ({ default: CommunityScreen })));
+const CreationScreen = React.lazy<React.ComponentType<CreationScreenProps>>(() => import("./screens/CreationScreen.tsx").then(({ CreationScreen }) => ({ default: CreationScreen })));
+const DashboardScreen = React.lazy<React.ComponentType<DashboardScreenProps>>(() => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })));
+const DeckSettingsScreen = React.lazy<React.ComponentType<DeckSettingsScreenProps>>(() => import("./screens/DeckSettingsScreen.tsx").then(({ DeckSettingsScreen }) => ({ default: DeckSettingsScreen })));
+const DecksScreen = React.lazy<React.ComponentType<DecksScreenProps>>(() => import("./screens/DecksScreen.tsx").then(({ DecksScreen }) => ({ default: DecksScreen })));
+const GraphScreen = React.lazy<React.ComponentType<GraphScreenProps>>(() => import("./screens/GraphScreen.tsx").then(({ GraphScreen }) => ({ default: GraphScreen })));
+const LearnScreen = React.lazy<React.ComponentType<LearnScreenProps>>(() => import("./screens/LearnScreen.tsx").then(({ LearnScreen }) => ({ default: LearnScreen })));
+const SettingsScreen = React.lazy<React.ComponentType<SettingsScreenProps>>(() => import("./screens/SettingsScreen.tsx").then(({ SettingsScreen }) => ({ default: SettingsScreen })));
+const StatisticsScreen = React.lazy<React.ComponentType<StatisticsScreenProps>>(() => import("./screens/StatisticsScreen.tsx").then(({ StatisticsScreen }) => ({ default: StatisticsScreen })));
+const StudyMode = React.lazy<React.ComponentType<StudyModeProps>>(() => import("./screens/StudyMode.tsx").then(({ StudyMode }) => ({ default: StudyMode })));
 
 const menu = createMenuModel(productSurfaces);
 const AUTOSAVE_DELAY_MS = 900;
-const focusedDeckViewIds = new Set(["kartenstapel", "stapel-einstellungen"]);
+const emptyDecks: Deck[] = [];
+
+interface SignInInput { email: string; password: string }
+interface SignUpInput extends SignInInput { displayName: string }
+interface EmailInput { email: string }
+interface PasswordUpdateInput { password: string; passwordRepeat: string }
+type CreateDeckInput = Parameters<CoreWorkspace["createDeck"]>[0];
+type CardContentPatch = Parameters<CoreWorkspace["saveDeckCardContent"]>[2];
+type CardVariantInput = Parameters<CoreWorkspace["addDeckCardVariant"]>[2];
+type ManualCardInput = Parameters<CoreWorkspace["addManualCardToDeck"]>[1];
+
+function resolveCoreMode(value: unknown, fallback: CoreMode): CoreMode {
+  return value === "off" || value === "auto" || value === "manual" ? value : fallback;
+}
 
 const iconByKey: Record<string, LucideIcon> = {
   assistant: Bot,
@@ -151,12 +180,10 @@ export function App() {
   const bootRunRef = React.useRef(0);
   const latestStateRef = React.useRef<WorkspaceState | null>(null);
   const lastAcknowledgedStateRef = React.useRef<WorkspaceState | null>(null);
-  const historyInitializedRef = React.useRef(false);
-  const currentRouteRef = React.useRef<AppRoute>(createViewRoute(menu.defaultViewId));
   const [authPhase, setAuthPhase] = React.useState<AuthPhase>(authPhases.checkingSession);
   const [authBusy, setAuthBusy] = React.useState(false);
   const [authMessage, setAuthMessage] = React.useState("");
-  const [authMessageType, setAuthMessageType] = React.useState("status");
+  const [authMessageType, setAuthMessageType] = React.useState<"status" | "alert">("status");
   const [migrationMessage, setMigrationMessage] = React.useState("");
   const [workspace, setWorkspace] = React.useState<CoreWorkspace | null>(null);
   const [state, setState] = React.useState<WorkspaceState | null>(null);
@@ -164,13 +191,22 @@ export function App() {
   const [legacyState, setLegacyState] = React.useState<NonNullable<ReturnType<typeof readLegacyLocalState>> | null>(null);
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
   const [syncEngine, setSyncEngine] = React.useState<AccountSyncEngine | null>(null);
-  const [activeView, setActiveView] = React.useState(menu.defaultViewId);
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
-  const [studyRequest, setStudyRequest] = React.useState<StudyRoute | null>(null);
-  const [focusedDeckId, setFocusedDeckId] = React.useState<string | null>(null);
-  const [deckCreationParentId, setDeckCreationParentId] = React.useState("");
-  const [creationMethod, setCreationMethod] = React.useState<"manual" | "import" | "ai" | "">("");
-  const [completedDeckId, setCompletedDeckId] = React.useState("");
+  const {
+    activeView,
+    studyRequest,
+    focusedDeckId,
+    deckCreationParentId,
+    creationMethod,
+    completedDeckId,
+    validDeckIds,
+    navigateToRoute,
+    navigateToView,
+    getStudyReturnRoute,
+    resetBrowserRouteToDefault,
+    setFocusedDeckId,
+    setDeckCreationParentId,
+  } = useAppNavigation({ authPhase, decks: state?.decks ?? emptyDecks, defaultViewId: menu.defaultViewId });
   const mediaStore = React.useMemo(() => cloudUser ? createAccountMediaStore({ client: supabase, supabaseUrl: getSupabaseBrowserConfig().url, userId: cloudUser.id }) : null, [cloudUser, supabase]);
 
   React.useEffect(() => {
@@ -205,7 +241,7 @@ export function App() {
     setState(nextState);
   }
 
-  function applyCloudAcknowledgement(snapshot: WorkspaceState | null, acknowledgedState: WorkspaceState | null, runId = bootRunRef.current) {
+  function applyCloudAcknowledgement(snapshot: WorkspaceState | null, acknowledgedState: WorkspaceState | null | undefined, runId = bootRunRef.current) {
     if (!acknowledgedState || !workspace || bootRunRef.current !== runId) return null;
     const currentState = latestStateRef.current;
     if (!currentState) return null;
@@ -215,132 +251,35 @@ export function App() {
     return savedState;
   }
 
-  function getValidDeckIds() {
-    return state?.decks?.map((deck: { id: any; }) => deck.id) ?? [];
-  }
-
-  function applyRouteState(route: unknown) {
-    const normalized = normalizeAppRoute(route, { validDeckIds: getValidDeckIds() });
-    currentRouteRef.current = normalized;
-
-    if (normalized.mode === "study") {
-      const returnRoute = normalized.returnRoute ?? createViewRoute("lernen");
-      setActiveView(returnRoute.viewId);
-      setFocusedDeckId(focusedDeckViewIds.has(returnRoute.viewId) ? (returnRoute.focusedDeckId ?? null) : null);
-      setDeckCreationParentId(returnRoute.viewId === "lernen" ? (returnRoute.deckCreationParentId ?? "") : "");
-      setCreationMethod(returnRoute.viewId === "neue-karten" ? (returnRoute.creationMethod ?? "") : "");
-      setCompletedDeckId(returnRoute.viewId === "neue-karten" ? (returnRoute.completedDeckId ?? "") : "");
-      setStudyRequest(normalized);
-      return normalized;
-    }
-
-    setStudyRequest(null);
-    setActiveView(normalized.viewId);
-    setFocusedDeckId(focusedDeckViewIds.has(normalized.viewId) ? (normalized.focusedDeckId ?? null) : null);
-    setDeckCreationParentId(normalized.viewId === "lernen" ? (normalized.deckCreationParentId ?? "") : "");
-    setCreationMethod(normalized.viewId === "neue-karten" ? (normalized.creationMethod ?? "") : "");
-    setCompletedDeckId(normalized.viewId === "neue-karten" ? (normalized.completedDeckId ?? "") : "");
-    return normalized;
-  }
-
-  function writeBrowserRoute(route: unknown, { replace = false, apply = true }: { replace?: boolean; apply?: boolean } = {}) {
-    const validDeckIds = getValidDeckIds();
-    const normalized = normalizeAppRoute(route, { validDeckIds });
-    const url = appRouteToUrl(normalized, { validDeckIds });
-
-    if (typeof window !== "undefined" && window.history?.pushState) {
-      const historyState = createAppHistoryState(normalized, { validDeckIds, currentState: window.history.state });
-      if (replace) {
-        window.history.replaceState(historyState, "", url);
-      } else {
-        window.history.pushState(historyState, "", url);
-      }
-    }
-
-    currentRouteRef.current = normalized;
-    if (apply) applyRouteState(normalized);
-    return normalized;
-  }
-
-  function navigateToRoute(route: unknown, { replace = false }: { replace?: boolean } = {}) {
-    const validDeckIds = getValidDeckIds();
-    const normalized = normalizeAppRoute(route, { validDeckIds });
-    const nextUrl = appRouteToUrl(normalized, { validDeckIds });
-    const currentUrl = typeof window === "undefined" ? "" : `${window.location.pathname}${window.location.search}`;
-
-    if (!replace && currentUrl === nextUrl && areAppRoutesEqual(currentRouteRef.current, normalized, { validDeckIds })) {
-      return applyRouteState(normalized);
-    }
-
-    return writeBrowserRoute(normalized, { replace });
-  }
-
-  function navigateToView(viewId: string | undefined, fields: Parameters<typeof createViewRoute>[1] = {}, options: { replace?: boolean } = {}) {
-    return navigateToRoute(createViewRoute(viewId, fields, { validDeckIds: getValidDeckIds() }), options);
-  }
-
-  function getStudyReturnRoute() {
-    const currentRoute = currentRouteRef.current;
-    if (currentRoute?.mode === "view") return currentRoute;
-    return currentRoute?.returnRoute ?? createViewRoute("lernen");
-  }
-
-  function resetBrowserRouteToDefault() {
-    historyInitializedRef.current = false;
-    writeBrowserRoute(createViewRoute(menu.defaultViewId), { replace: true, apply: false });
-  }
-
   async function bootAuthenticatedUser(user: User) {
     const runId = bootRunRef.current + 1;
     bootRunRef.current = runId;
-    historyInitializedRef.current = false;
     setAuthPhase("loading-cloud");
     setAuthMessage("");
     setMigrationMessage("");
 
-    const accountStorage = createAccountStorage(user.id);
-    const device = createBrowserSyncDevice();
-    const nextWorkspace = createCoreWorkspace(createCoreRepository(accountStorage, { seedDefaultDecks: false }));
-    const nextSyncEngine = createAccountSyncEngine(supabase, {
-      userId: user.id,
-      storage: accountStorage,
-      device,
-      persistSnapshot: (nextState: WorkspaceState) => nextWorkspace.saveState(nextState),
-    });
-    const fallbackState = nextWorkspace.getState();
-    const cloudState = await nextSyncEngine.loadSnapshot(fallbackState);
-    const savedState = nextWorkspace.saveState(cloudState);
-    let conflicts: unknown[] = [];
-    try {
-      conflicts = await nextSyncEngine.listConflicts();
-    } catch (error) {
-      if (nextSyncEngine.pendingCount() === 0) throw error;
-    }
+    if (!supabase) throw new Error("Supabase ist für diese Umgebung nicht konfiguriert.");
+    const boot = await bootAuthenticatedWorkspace(supabase, user);
 
     if (bootRunRef.current !== runId) return;
 
-    setWorkspace(nextWorkspace);
-    setSyncEngine(nextSyncEngine);
-    lastAcknowledgedStateRef.current = savedState;
-    setAppState(savedState);
+    setWorkspace(boot.workspace);
+    setSyncEngine(boot.syncEngine);
+    lastAcknowledgedStateRef.current = boot.state;
+    setAppState(boot.state);
     setCloudUser(user);
-    setStudyRequest(null);
     setFocusedDeckId(null);
     setDeckCreationParentId("");
-    setCreationMethod("");
-    setCompletedDeckId("");
-    setActiveView(menu.defaultViewId);
     setSyncStatus(
-      conflicts.length > 0
-        ? createSyncConflictStatus(conflicts.length)
-        : nextSyncEngine.pendingCount() > 0
+      boot.conflictCount > 0
+        ? createSyncConflictStatus(boot.conflictCount)
+        : boot.pendingCount > 0
           ? createSyncPendingStatus()
           : createSyncSavedStatus("Cloud geladen."),
     );
 
-    const pendingLegacyState = readLegacyLocalState();
-    if (hasPendingLocalMigration(user.id) && pendingLegacyState) {
-      setLegacyState(pendingLegacyState);
+    if (boot.legacyState) {
+      setLegacyState(boot.legacyState);
       setAuthPhase("migration-choice");
       return;
     }
@@ -350,63 +289,9 @@ export function App() {
   }
 
   React.useEffect(() => {
-    let cancelled = false;
-
-    async function loadSession() {
-      if (!supabase) {
-        setAuthPhase(authPhaseForSession({ configured: false, user: null }));
-        setAuthMessage("");
-        setAuthMessageType("status");
-        return;
-      }
-
-      try {
-        const redirectOutcome = readCloudAuthRedirectOutcome();
-        if (redirectOutcome.kind === "error") {
-          clearCloudAuthRedirectParams();
-          setAuthPhase(authPhases.signedOut);
-          setAuthMessage(redirectOutcome.message);
-          setAuthMessageType("alert");
-          return;
-        }
-        const user = await getCloudUser(supabase);
-        if (cancelled) return;
-        if (!user) {
-          setAuthPhase(authPhaseForSession({ configured: true, user: null }));
-          return;
-        }
-        if (redirectOutcome.kind === "recovery") {
-          setCloudUser(user);
-          setWorkspace(null);
-          lastAcknowledgedStateRef.current = null;
-          setAppState(null);
-          setAuthPhase(authPhases.passwordRecovery);
-          setAuthMessage("Bitte lege ein neues Passwort fest.");
-          setAuthMessageType("status");
-          return;
-        }
-        await bootAuthenticatedUser(user);
-      } catch (error) {
-        if (cancelled) return;
-        setAuthPhase("signed-out");
-        setAuthMessage(formatCloudAuthError(error, "Sitzung konnte nicht geladen werden."));
-        setAuthMessageType("alert");
-      }
-    }
-
-    loadSession();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase]);
-
-  React.useEffect(() => {
-    if (!supabase?.auth?.onAuthStateChange) return undefined;
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event !== "PASSWORD_RECOVERY" || !session?.user) return;
+    const recoverPassword = (user: User) => {
       bootRunRef.current += 1;
-      historyInitializedRef.current = false;
-      setCloudUser(session.user);
+      setCloudUser(user);
       setWorkspace(null);
       lastAcknowledgedStateRef.current = null;
       setAppState(null);
@@ -414,92 +299,72 @@ export function App() {
       setAuthPhase(authPhases.passwordRecovery);
       setAuthMessage("Bitte lege ein neues Passwort fest.");
       setAuthMessageType("status");
+    };
+    const stop = startAuthenticatedWorkspaceSessionLifecycle({
+      supabase,
+      onUnavailable() {
+        setAuthPhase(authPhaseForSession({ configured: false, user: null }));
+        setAuthMessage("");
+        setAuthMessageType("status");
+      },
+      onSignedOut() {
+        setAuthPhase(authPhaseForSession({ configured: true, user: null }));
+      },
+      onRedirectError(message) {
+        setAuthPhase(authPhases.signedOut);
+        setAuthMessage(message);
+        setAuthMessageType("alert");
+      },
+      onPasswordRecovery: recoverPassword,
+      onBoot: bootAuthenticatedUser,
+      onFailure(error) {
+        setAuthPhase("signed-out");
+        setAuthMessage(formatCloudAuthError(error, "Sitzung konnte nicht geladen werden."));
+        setAuthMessageType("alert");
+      },
     });
-
     return () => {
-      data?.subscription?.unsubscribe?.();
+      bootRunRef.current += 1;
+      stop();
     };
   }, [supabase]);
 
   React.useEffect(() => {
-    if (!shouldShowAppShell(authPhase) || !state) {
-      if (authPhase !== "ready") historyInitializedRef.current = false;
-      return;
-    }
-    if (historyInitializedRef.current) return;
-
-    const validDeckIds = getValidDeckIds();
-    const route = parseAppRouteFromUrl(window.location.href, { validDeckIds });
-    const normalized = normalizeAppRoute(route, { validDeckIds });
-    historyInitializedRef.current = true;
-    writeBrowserRoute(normalized, { replace: true });
-  }, [authPhase, state]);
-
-  React.useEffect(() => {
-    if (!shouldShowAppShell(authPhase) || !state) return undefined;
-
-    function handlePopState(event: { state: { [x: string]: any; }; }) {
-      const validDeckIds = getValidDeckIds();
-      const route = readAppRouteFromHistoryState(event.state, { validDeckIds }) ?? parseAppRouteFromUrl(window.location.href, { validDeckIds });
-      applyRouteState(route);
-    }
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [authPhase, state]);
-
-  React.useEffect(() => {
-    if (authPhase !== "ready" || !syncEngine) return undefined;
-    const runId = bootRunRef.current;
-    return syncEngine.startSyncLifecycle({
+    return startAppSyncLifecycle({
+      authPhase,
+      syncEngine,
+      getLatestState: () => latestStateRef.current,
+      getRunId: () => bootRunRef.current,
       onStatus: setSyncStatus,
-      onFlush(result: { saved: { state: any; }; }) {
-        const snapshot = latestStateRef.current;
-        applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
-      },
+      onAcknowledged: applyCloudAcknowledgement,
     });
   }, [authPhase, syncEngine, workspace]);
 
   React.useEffect(() => {
     if (authPhase !== "ready" || !mediaStore || !syncEngine || !workspace) return undefined;
-    const lifecycle = mediaStore.startRetryLifecycle({
-      getDecks: () => latestStateRef.current?.decks ?? [],
+    return startAppMediaRetryLifecycle({
+      mediaStore,
+      getState: () => latestStateRef.current,
       ensureCloudParents: async () => { await syncNow(); },
-      onStatus(result) {
-        if (result.status !== "cloud-ready" || result.referencesByDeck.size === 0) return;
-        const currentDecks = latestStateRef.current?.decks ?? [];
-        const changed = currentDecks
-          .filter((deck) => result.referencesByDeck.has(deck.id))
-          .map((deck) => ({ ...deck, mediaAssets: result.referencesByDeck.get(deck.id) ?? deck.mediaAssets }));
-        void persistImportedDecks(changed, { mediaOnly: true });
-      },
+      persistMediaDecks: (decks) => persistImportedDecks(decks, { mediaOnly: true }),
     });
-    return () => lifecycle.stop();
   }, [authPhase, mediaStore, syncEngine, workspace]);
 
   React.useEffect(() => {
-    if (authPhase !== "ready" || !syncEngine || !state || state === lastAcknowledgedStateRef.current) return undefined;
-
-    let cancelled = false;
-    const snapshot = state;
-    const runId = bootRunRef.current;
-    const timer = window.setTimeout(async () => {
-      try {
-        syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
-        const result = await syncEngine.flush();
-        applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
-      } catch (error) {
-        if (!cancelled) setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Synchronisierung fehlgeschlagen.")));
-      }
-    }, AUTOSAVE_DELAY_MS);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
+    return startAppAutosaveLifecycle({
+      authPhase,
+      syncEngine,
+      state,
+      lastAcknowledgedState: lastAcknowledgedStateRef.current,
+      runId: bootRunRef.current,
+      delayMs: AUTOSAVE_DELAY_MS,
+      onAcknowledged: applyCloudAcknowledgement,
+      onStatus: setSyncStatus,
+      formatError: (error) => formatCloudAuthError(error, "Synchronisierung fehlgeschlagen."),
+    });
   }, [authPhase, state, syncEngine, workspace]);
 
-  async function handleSignIn({ email, password }: any) {
+  async function handleSignIn({ email, password }: SignInInput) {
     if (!supabase) return;
     setAuthBusy(true);
     setAuthMessage("");
@@ -517,7 +382,7 @@ export function App() {
     }
   }
 
-  async function handleSignUp({ displayName, email, password }: any) {
+  async function handleSignUp({ displayName, email, password }: SignUpInput) {
     if (!supabase) return;
     setAuthBusy(true);
     setAuthMessage("");
@@ -541,7 +406,7 @@ export function App() {
     }
   }
 
-  async function handleResetPassword({ email }: any) {
+  async function handleResetPassword({ email }: EmailInput) {
     if (!supabase) return;
     setAuthBusy(true);
     setAuthMessage("");
@@ -557,7 +422,7 @@ export function App() {
     }
   }
 
-  async function handleMagicLink({ email }: any) {
+  async function handleMagicLink({ email }: EmailInput) {
     if (!supabase) return;
     setAuthBusy(true);
     setAuthMessage("");
@@ -589,7 +454,7 @@ export function App() {
     }
   }
 
-  async function handleUpdatePassword({ password, passwordRepeat }: any) {
+  async function handleUpdatePassword({ password, passwordRepeat }: PasswordUpdateInput) {
     if (!supabase) return;
     setAuthBusy(true);
     setAuthMessage("");
@@ -659,7 +524,7 @@ export function App() {
     return syncEngine ? syncEngine.listConflicts() : [];
   }, [syncEngine]);
 
-  async function resolveSyncConflict(conflictId: any, decision: any) {
+  async function resolveSyncConflict(conflictId: string, decision: Record<string, unknown>) {
     if (!syncEngine || !workspace || !latestStateRef.current) throw new Error("Synchronisierung ist noch nicht bereit.");
     try {
       const result = await syncEngine.resolveConflict(conflictId, decision, latestStateRef.current);
@@ -686,12 +551,8 @@ export function App() {
     setAppState(null);
     setCloudUser(null);
     setLegacyState(null);
-    setStudyRequest(null);
     setFocusedDeckId(null);
     setDeckCreationParentId("");
-    setCreationMethod("");
-    setCompletedDeckId("");
-    setActiveView(menu.defaultViewId);
     setSyncStatus(createSyncIdleStatus());
     setAuthPhase("signed-out");
     setAuthMessage("Du bist abgemeldet.");
@@ -713,19 +574,20 @@ export function App() {
   }
 
   function saveDeck(deck: Deck | Deck[]) {
-    const existingDeckIds = new Set(state?.decks?.map((item: { id: any; }) => item.id) ?? []);
+    const existingDeckIds = new Set(state?.decks.map((item) => item.id) ?? []);
     const globalSettings = getGlobalDeckSettings(state?.profile);
-    const applyDefaults = (item: { id: unknown; deckSettings: any; }) => existingDeckIds.has(item.id)
+    const applyDefaults = (item: Deck): Deck => existingDeckIds.has(item.id)
       ? item
       : {
           ...item,
           deckSettings: {
-            ...applyLearningSettingsToDeckSettings(item.deckSettings, globalSettings),
+            ...item.deckSettings,
+            ...applyLearningSettingsToDeckSettings({ ...item.deckSettings }, globalSettings),
             coreMode: globalSettings.coreMode,
           },
         };
     const nextDeck = Array.isArray(deck) ? deck.map(applyDefaults) : applyDefaults(deck);
-    return runWorkspaceMutation((currentWorkspace: { saveDecks: (arg0: any) => any; }) => currentWorkspace.saveDecks(nextDeck));
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDecks(nextDeck));
   }
 
   async function persistImportedDecks(decks: Deck[], { mediaOnly = false }: { mediaOnly?: boolean } = {}) {
@@ -755,13 +617,14 @@ export function App() {
     });
   }
 
-  function createDeck(input: { deckSettings: { coreMode: any; }; }) {
+  function createDeck(input: CreateDeckInput = {}) {
     const globalSettings = getGlobalDeckSettings(state?.profile);
-    const saved = runWorkspaceMutation((currentWorkspace: { createDeck: (arg0: any) => any; }) => currentWorkspace.createDeck({
+    const saved = runWorkspaceMutation((currentWorkspace) => currentWorkspace.createDeck({
       ...input,
       deckSettings: {
-        ...applyLearningSettingsToDeckSettings(input?.deckSettings, globalSettings),
-        coreMode: input?.deckSettings?.coreMode ?? globalSettings.coreMode,
+        ...input.deckSettings,
+        ...applyLearningSettingsToDeckSettings({ ...input.deckSettings }, globalSettings),
+        coreMode: resolveCoreMode(input.deckSettings?.coreMode, globalSettings.coreMode),
       },
     }));
     if (!saved) return null;
@@ -770,41 +633,42 @@ export function App() {
     return saved;
   }
 
-  function updateDeck(deckId: any, updater: (deck: any) => any) {
-    return runWorkspaceMutation((currentWorkspace: { updateDeck: (arg0: any,arg1: any) => any; }) => currentWorkspace.updateDeck(deckId, updater));
+  function updateDeck(deckId: string, updater: (deck: Deck) => Deck) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.updateDeck(deckId, updater));
   }
 
-  function deleteDeck(deckId: any) {
-    const result = runWorkspaceMutation((currentWorkspace: { deleteDeckTree: (arg0: any) => any; }) => currentWorkspace.deleteDeckTree(deckId));
+  function deleteDeck(deckId: string) {
+    const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckTree(deckId));
     if (!result) return null;
     setFocusedDeckId(result.nextSelectedDeckId);
     return result;
   }
 
-  function renameDeck(deckId: any, name: any) {
-    const result = runWorkspaceMutation((currentWorkspace: { renameDeck: (arg0: any,arg1: any) => any; }) => currentWorkspace.renameDeck(deckId, name));
+  function renameDeck(deckId: string, name: string) {
+    const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.renameDeck(deckId, name));
     if (!result) return null;
     if (result.deck) setFocusedDeckId(result.deck.id);
     return result;
   }
 
-  function moveDeck(deckId: any, parentDeckId = null) {
-    const result = runWorkspaceMutation((currentWorkspace: { moveDeck: (arg0: any,arg1: null) => any; }) => currentWorkspace.moveDeck(deckId, parentDeckId));
+  function moveDeck(deckId: string, parentDeckId: string | null = null) {
+    const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.moveDeck(deckId, parentDeckId));
     if (!result) return null;
     if (result.deck) setFocusedDeckId(result.deck.id);
     return result;
   }
 
-  function setDeckCoreMode(deckId: any, coreMode: any) {
-    return runWorkspaceMutation((currentWorkspace: { setDeckCoreMode: (arg0: any,arg1: any) => any; }) => currentWorkspace.setDeckCoreMode(deckId, coreMode));
+  function setDeckCoreMode(deckId: string, coreMode: CoreMode) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.setDeckCoreMode(deckId, coreMode));
   }
 
   function saveDeckLearningSettings(deckId: string, settings: LearningSettingsInput = {}) {
-    return updateDeck(deckId, (deck: { deckSettings: { coreMode: any; }; }) => ({
+    return updateDeck(deckId, (deck) => ({
       ...deck,
       deckSettings: {
-        ...applyLearningSettingsToDeckSettings(deck.deckSettings, settings),
-        coreMode: settings.coreMode ?? deck.deckSettings?.coreMode ?? "auto",
+        ...deck.deckSettings,
+        ...applyLearningSettingsToDeckSettings({ ...deck.deckSettings }, settings),
+        coreMode: resolveCoreMode(settings.coreMode, deck.deckSettings.coreMode),
       },
       updatedAt: new Date().toISOString(),
     }));
@@ -820,37 +684,38 @@ export function App() {
 
   function saveGlobalLearningSettings(settings: LearningSettingsInput = {}) {
     if (!state) return null;
-    return runWorkspaceMutation((currentWorkspace: { saveProfile: (arg0: any) => void; updateAllDecks: (arg0: (deck: any) => any) => any; }) => {
+    return runWorkspaceMutation((currentWorkspace) => {
       currentWorkspace.saveProfile(withGlobalDeckSettings(state.profile, settings));
-      return currentWorkspace.updateAllDecks((deck: { deckSettings: { coreMode: any; }; }) => ({
+      return currentWorkspace.updateAllDecks((deck) => ({
         ...deck,
         deckSettings: {
-          ...applyLearningSettingsToDeckSettings(deck.deckSettings, settings),
-          coreMode: settings.coreMode ?? deck.deckSettings?.coreMode ?? "auto",
+          ...deck.deckSettings,
+          ...applyLearningSettingsToDeckSettings({ ...deck.deckSettings }, settings),
+          coreMode: resolveCoreMode(settings.coreMode, deck.deckSettings.coreMode),
         },
         updatedAt: new Date().toISOString(),
       }));
     });
   }
 
-  function saveDeckCard(deckId: any, cardId: any, patch: any) {
-    return runWorkspaceMutation((currentWorkspace: { saveDeckCardContent: (arg0: any,arg1: any,arg2: any) => any; }) => currentWorkspace.saveDeckCardContent(deckId, cardId, patch));
+  function saveDeckCard(deckId: string, cardId: string, patch: CardContentPatch) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDeckCardContent(deckId, cardId, patch));
   }
 
-  function deleteDeckCard(deckId: any, cardId: any) {
-    return runWorkspaceMutation((currentWorkspace: { deleteDeckCard: (arg0: any,arg1: any) => any; }) => currentWorkspace.deleteDeckCard(deckId, cardId));
+  function deleteDeckCard(deckId: string, cardId: string) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckCard(deckId, cardId));
   }
 
-  function restoreDeckCard(deckId: any, cardId: any, versionId: any) {
-    return runWorkspaceMutation((currentWorkspace: { restoreDeckCardVersion: (arg0: any,arg1: any,arg2: any) => any; }) => currentWorkspace.restoreDeckCardVersion(deckId, cardId, versionId));
+  function restoreDeckCard(deckId: string, cardId: string, versionId: string) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.restoreDeckCardVersion(deckId, cardId, versionId));
   }
 
-  function addDeckCardVariant(deckId: any, cardId: any, variant: any) {
-    return runWorkspaceMutation((currentWorkspace: { addDeckCardVariant: (arg0: any,arg1: any,arg2: any) => any; }) => currentWorkspace.addDeckCardVariant(deckId, cardId, variant));
+  function addDeckCardVariant(deckId: string, cardId: string, variant: CardVariantInput) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.addDeckCardVariant(deckId, cardId, variant));
   }
 
-  function addManualCardToDeck(deckId: any, manualDeckInput: any) {
-    return runWorkspaceMutation((currentWorkspace: { addManualCardToDeck: (arg0: any,arg1: any) => any; }) => currentWorkspace.addManualCardToDeck(deckId, manualDeckInput));
+  function addManualCardToDeck(deckId: string, manualDeckInput: ManualCardInput) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.addManualCardToDeck(deckId, manualDeckInput));
   }
 
   async function completeCreatedDeck(deck: Deck) {
@@ -860,7 +725,7 @@ export function App() {
     return completedDeck;
   }
 
-  async function completeManualCard(deckId: string, manualDeckInput: unknown) {
+  async function completeManualCard(deckId: string, manualDeckInput: ManualCardInput) {
     const deck = addManualCardToDeck(deckId, manualDeckInput);
     if (deck) await persistImportedDecks([deck]);
     if (deck) navigateToView("neue-karten", { completedDeckId: deck.id }, { replace: true });
@@ -878,12 +743,12 @@ export function App() {
     return decks;
   }
 
-  function applyVariantJson(deckId: any, cardId: any, response: any, options: any) {
-    return runWorkspaceMutation((currentWorkspace: { applyVariantGenerationResponse: (arg0: any,arg1: any,arg2: any,arg3: any) => any; }) => currentWorkspace.applyVariantGenerationResponse(deckId, cardId, response, options));
+  function applyVariantJson(deckId: string, cardId: string, response: unknown, options: Record<string, unknown>) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.applyVariantGenerationResponse(deckId, cardId, response, options));
   }
 
-  function saveProfile(profile: any) {
-    return runWorkspaceMutation((currentWorkspace: { saveProfile: (arg0: any) => any; }) => currentWorkspace.saveProfile(profile));
+  function saveProfile(profile: unknown) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(profile));
   }
 
   async function getAiAccessToken() {
@@ -926,35 +791,35 @@ export function App() {
     }
   }
 
-  function saveCommunity(community: any) {
-    return runWorkspaceMutation((currentWorkspace: { saveCommunity: (arg0: any) => any; }) => currentWorkspace.saveCommunity(community));
+  function saveCommunity(community: unknown) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveCommunity(community));
   }
 
-  function saveJob(job: any) {
-    return runWorkspaceMutation((currentWorkspace: { saveAiJob: (arg0: any) => any; }) => currentWorkspace.saveAiJob(job));
+  function saveJob(job: unknown) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveAiJob(job));
   }
 
-  function saveChat(exchange: any) {
-    return runWorkspaceMutation((currentWorkspace: { saveChatExchange: (arg0: any) => any; }) => currentWorkspace.saveChatExchange(exchange));
+  function saveChat(exchange: unknown) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveChatExchange(exchange));
   }
 
-  function savePlan(plan: any) {
-    return runWorkspaceMutation((currentWorkspace: { saveLearningPlan: (arg0: any) => any; }) => currentWorkspace.saveLearningPlan(plan));
+  function savePlan(plan: unknown) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveLearningPlan(plan));
   }
 
-  function saveState(nextState: any) {
-    return runWorkspaceMutation((currentWorkspace: { saveState: (arg0: any) => any; }) => currentWorkspace.saveState(nextState));
+  function saveState(nextState: WorkspaceState) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveState(nextState));
   }
 
   function startDeck(deck: { id: string; }, variantSession = false) {
-    navigateToRoute(createStudyRoute(deck.id, { variantSession, returnRoute: getStudyReturnRoute() }, { validDeckIds: getValidDeckIds() }));
+    navigateToRoute(createStudyRoute(deck.id, { variantSession, returnRoute: getStudyReturnRoute() }, { validDeckIds }));
   }
 
   function openDecks(deckId: string | null = null) {
     navigateToView("kartenstapel", { focusedDeckId: deckId || null });
   }
 
-  function openDeckSettings(deckId: any) {
+  function openDeckSettings(deckId: string) {
     navigateToView("stapel-einstellungen", { focusedDeckId: deckId });
   }
 
@@ -962,16 +827,16 @@ export function App() {
     navigateToView("lernen", { deckCreationParentId: parentDeckId || "" });
   }
 
-  function openGraph(deck: { id: any; }) {
+  function openGraph(deck: Deck) {
     if (!productSurfaces.isAvailable("graph")) return;
     navigateToView("graph");
-    runWorkspaceMutation((currentWorkspace: { ensureDeckGraph: (arg0: any) => any; }) => currentWorkspace.ensureDeckGraph(deck.id));
+    runWorkspaceMutation((currentWorkspace) => currentWorkspace.ensureDeckGraph(deck.id));
   }
 
-  function shareDeck(deck: { id: any; }) {
+  function shareDeck(deck: Deck) {
     if (!productSurfaces.isAvailable("community-demo")) return;
     navigateToView("community");
-    runWorkspaceMutation((currentWorkspace: { shareDeckToDefaultCommunity: (arg0: any) => any; }) => currentWorkspace.shareDeckToDefaultCommunity(deck.id));
+    runWorkspaceMutation((currentWorkspace) => currentWorkspace.shareDeckToDefaultCommunity(deck.id));
   }
 
   function renderActiveView() {
@@ -1115,7 +980,7 @@ export function App() {
     return <LoadingScreen />;
   }
 
-  const studyDeck = studyRequest ? state.decks.find((deck: { id: any; }) => deck.id === studyRequest.deckId) : null;
+  const studyDeck = studyRequest ? state.decks.find((deck) => deck.id === studyRequest.deckId) : null;
   if (studyRequest && studyDeck) {
     return (
       <React.Suspense fallback={<LoadingScreen message="Lernmodus wird geladen." />}>

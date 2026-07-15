@@ -4626,8 +4626,28 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 </tr>
 <tr>
 <td><code>src/appNavigation.ts</code></td>
-<td>`AppRoute = ViewRoute</td>
-<td>StudyRoute<code>, </code>parseAppRouteFromUrl<code>, </code>appRouteToUrl<code>, </code>normalizeAppRoute`</td>
+<td><code>AppRoute = ViewRoute | StudyRoute</code>, <code>parseAppRouteFromUrl</code>, <code>appRouteToUrl</code>, <code>normalizeAppRoute</code></td>
+<td>Diskriminierter Screen-Level-Routingvertrag fuer typisierten State, Browser-Back/Forward, versteckte Screens und Lernmodus</td>
+</tr>
+<tr>
+<td><code>src/authenticatedWorkspaceBoot.ts</code></td>
+<td><code>bootAuthenticatedWorkspace</code>, <code>startAuthenticatedWorkspaceSessionLifecycle</code></td>
+<td>Konkreter accountgebundener Session-/Recovery-Lifecycle und Boot von lokalem Repository, <code>coreWorkspace</code>, SyncEngine, Cloud-Snapshot, Konfliktanzahl und optionaler Legacy-Übernahme; Unmount invalidiert laufende Boots und entfernt das Auth-Abonnement</td>
+</tr>
+<tr>
+<td><code>src/appSyncLifecycle.ts</code></td>
+<td><code>startAppSyncLifecycle</code>, <code>startAppAutosaveLifecycle</code></td>
+<td>App-seitige React-Verkabelung von SyncEngine und verzögertem Autosave mit Cleanup bei Accountwechsel, Abmeldung und Unmount; fachliche Retry-, Konflikt- und Flush-Regeln bleiben in <code>syncEngine</code></td>
+</tr>
+<tr>
+<td><code>src/appMediaLifecycle.ts</code></td>
+<td><code>startAppMediaRetryLifecycle</code></td>
+<td>App-seitige Verkabelung des accountgebundenen Media-Retry-Lifecycles mit Cleanup und Projektion bestätigter Cloud-Referenzen zurück in bestehende Decks; Queue- und Uploadregeln bleiben im <code>mediaStore</code></td>
+</tr>
+<tr>
+<td><code>src/useAppNavigation.ts</code>, <code>src/appScreenProps.ts</code></td>
+<td><code>useAppNavigation</code>, <code>projectAppRoute</code>, <code>subscribeToBrowserNavigation</code>, konkrete Lazy-Screen-Props</td>
+<td>Projektspezifische Browser-History-/Route-Lifecycle-Verkabelung und ausschließlich typisierte Shell-zu-Screen-Komposition; keine neue öffentliche Daten-, Provider- oder Routing-Seam</td>
 </tr>
 <tr>
 <td><code>src/productSurfaces.ts</code></td>
@@ -4646,7 +4666,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=...
 </tr>
 </tbody></table>
 <h3 id="27-2-ui-screens">27.2 UI-Screens</h3>
-<p><code>src/App.tsx</code> ist die App-Shell fuer Workspace-State, Navigation, Study-Routing, Browser-History-Anbindung und Persistenz-Callbacks. Nur Login-Gate und Shell sind eager; authentifizierte Screens und <code>StudyMode</code> werden per <code>React.lazy</code> hinter einem deutschen <code>Suspense</code>-Status geladen. <code>src/main.tsx</code> umschliesst die Shell mit <code>AppErrorBoundary</code>; <code>src/appNavigation.ts</code> kapselt den Screen-Level-Routing-Vertrag fuer Hauptscreens, versteckte Screens und Lernmodus. Die Shell nutzt die verfuegbare Browserbreite statt einer festen Desktop-Maximalbreite; <code>StudyMode</code> folgt demselben Full-Width-Verhalten. Produktnahe UI liegt in <code>src/screens/</code>; geteilte Praesentationsbausteine, Medien-HTML, <code>PdfDocumentViewer</code> und <code>ReleaseInfo</code> liegen in <code>src/ui/</code>. Die Screen-Map fuer KI-Programmierung wird in <code>src/screens/README.md</code> gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, PDF.js-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.</p>
+<p><code>src/App.tsx</code> ist primär die App-Shell für Workspace-State, Workspace-Kommandowiring, Route-Auswahl und Screen-Komposition. Die zuvor direkt enthaltenen Verantwortungsblöcke waren Account-/Cloud-Boot, Browser-History/Navigation, Sync/Autosave und Media-Retry; sie liegen nun in <code>authenticatedWorkspaceBoot.ts</code>, <code>useAppNavigation.ts</code>, <code>appSyncLifecycle.ts</code> und <code>appMediaLifecycle.ts</code>. Diese Module verkabeln ausschließlich die bestehenden fachlichen Grenzen: Domänenkommandos bleiben in <code>coreWorkspace</code>, Syncregeln in <code>syncEngine</code>, Medienregeln in <code>mediaStore</code> und der Routingvertrag in <code>appNavigation</code>. Nur Login-Gate und Shell sind eager; authentifizierte Screens und <code>StudyMode</code> werden mit konkreten Props-Verträgen per <code>React.lazy</code> hinter einem deutschen <code>Suspense</code>-Status geladen. <code>src/main.tsx</code> umschliesst die Shell mit <code>AppErrorBoundary</code>. Die Shell nutzt die verfuegbare Browserbreite statt einer festen Desktop-Maximalbreite; <code>StudyMode</code> folgt demselben Full-Width-Verhalten. Produktnahe UI liegt in <code>src/screens/</code>; geteilte Praesentationsbausteine, Medien-HTML, <code>PdfDocumentViewer</code> und <code>ReleaseInfo</code> liegen in <code>src/ui/</code>. Die Screen-Map fuer KI-Programmierung wird in <code>src/screens/README.md</code> gepflegt. Screens verwenden die Module oben als Test- und Implementierungsoberflaeche und sollen keine APKG-, PDF.js-, Medien-, Scheduler-, Varianten- oder Persistenzdetails ausbreiten.</p>
 <p>Die sichtbare Hauptnavigation zeigt nur die primaeren Core-Bereiche Heute, Erstellen, Lernen und Statistik; Einstellungen bleiben ueber den Account-Button am unteren Sidebar-Ende erreichbar. Im Entwicklungsmodus oder bei expliziter Labs-Freigabe erscheint darunter ein zurueckhaltender Labs-Einstieg fuer Assistent, Graph, Community-Demo und KI-Job-Historie. Labs-Routen bleiben Browser-History-stabil, zeigen einen experimentellen Hinweis mit ihrer bekannten Grenze und fallen ohne Labs-Freigabe auf Heute zurueck. <code>DecksScreen</code> bleibt als View erhalten und wird ueber den Kartenstapel-Button in der Lernen-Control-Leiste geoeffnet; seine Graph-, Community- und externe Varianten-JSON-Aktionen sind ebenfalls an Labs gebunden. Neue Haupt- und Unterstapel werden direkt auf der Lern-Ebene angelegt. Das Zahnrad einer Stapelzeile öffnet <code>DeckSettingsScreen</code> als isolierte Lernoptionen-View für genau diesen Stapel. Hauptbereich-Header folgen der kompakten <code>PageHeader</code>-Konvention: Eyebrow und Titel ohne Untertitelzeile oder dekoratives rechtes Header-Icon.</p>
 <p>Die Einstellungen sind nach den Nutzeraufgaben <code>Account</code>, <code>Lernen</code>, <code>Daten und Sync</code> sowie <code>Erweitert</code> gegliedert. Die Login-E-Mail ist ein nicht editierbarer Accountwert, solange CoRe keine echte Auth-E-Mail-Aenderung anbietet. Lernstand, Online-Status und Streaks werden nicht als wirkungslose Schalter angeboten, sondern als derzeit nicht mit anderen Nutzern geteilte Daten erklaert. Syncstatus und Konfliktentscheidungen bleiben sichtbar, ohne Revisionen, Tabellen oder Geraete als Implementierungsdetails offenzulegen. Der Portabilitaetsexport wird vor dem Download als begrenzter JSON-Export ohne Medienbytes, Authdaten, Community-/Serverrechte und vollstaendiges Art.-15-Auskunftspaket erklaert; das Roh-JSON bleibt eine optionale Diagnoseansicht unter <code>Erweitert</code>.</p>
 <ul>
