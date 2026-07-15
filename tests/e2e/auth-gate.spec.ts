@@ -4,6 +4,16 @@ function authForm(page: Page) {
   return page.locator("form");
 }
 
+test("@beta-core @hosted-core Beta-Artefakt bietet nur E-Mail und Passwort an", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+  await expect(page.getByLabel("E-Mail")).toBeVisible();
+  await expect(page.getByLabel("Passwort", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mit Google anmelden" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Magic Link" })).toHaveCount(0);
+});
+
 test("login gate exposes the supported authentication paths without an app session", async ({ page }: any) => {
   await page.goto("/");
 
