@@ -181,13 +181,13 @@ export function App() {
       const heading = region.querySelector<HTMLElement>("[data-screen-heading]");
       if (heading) {
         heading.focus();
-        return;
+      } else {
+        region.focus();
       }
 
-      region.focus();
       observer = new MutationObserver(() => {
         const loadedHeading = region.querySelector<HTMLElement>("[data-screen-heading]");
-        if (!loadedHeading) return;
+        if (!loadedHeading || loadedHeading === heading) return;
         loadedHeading.focus();
         observer?.disconnect();
         observer = null;

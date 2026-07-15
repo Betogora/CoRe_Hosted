@@ -24,7 +24,13 @@ function openZip(path: string): Promise<ZipFile> {
 }
 
 function openEntry(zip: ZipFile, entry: Entry): Promise<NodeJS.ReadableStream> {
-  return new Promise((resolve, reject) => zip.openReadStream(entry, { decompress: true }, (error, stream) => error || !stream ? reject(error ?? new Error("zip_entry_failed")) : resolve(stream)));
+  return new Promise((resolve, reject) => {
+    const callback = (error: Error | null, stream?: NodeJS.ReadableStream) => error || !stream
+      ? reject(error ?? new Error("zip_entry_failed"))
+      : resolve(stream);
+    if (entry.compressionMethod === 0) zip.openReadStream(entry, callback);
+    else zip.openReadStream(entry, { decompress: true }, callback);
+  });
 }
 
 function validateName(name: string) {

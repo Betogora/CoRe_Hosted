@@ -7,6 +7,7 @@ Diese Datei ist die Dokumentationskarte fuer CoRe. Die Root-Ebene bleibt bewusst
 - `README.md`: Projektueberblick, lokaler Start, Scripts und Struktur.
 - `specs.md`: kanonische Produkt- und Engineering-Spezifikation.
 - `specs.html`: generierte HTML-Fassung von `specs.md`.
+- `test-portfolio.md`: ausführbare Testkategorien, geschützte Produktverträge, Laufzeiten und PR-/Release-Gates.
 - `todo.md`: einzige Roadmap fuer offene, priorisierte Arbeit am glaubwuerdigen Beta-Kern; keine Ablage fuer abgeschlossene Nachweise.
 - `file-naming-conventions.md`: verbindliche, rollenbezogene Dateinamenskonvention und dokumentierter Projekt-Audit.
 - `debatable-features.md`: leicht verständliche Entscheidungsliste für potenziell verzichtbare Features; keine automatische Löschfreigabe.

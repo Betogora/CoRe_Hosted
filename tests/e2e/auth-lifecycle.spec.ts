@@ -12,7 +12,7 @@ test.describe("lokaler Auth-Lifecycle", () => {
     await clearAuthMailbox(environment!.mailpitUrl);
   });
 
-  test("Registrierung wird erst durch die Bestätigungs-E-Mail zur App-Sitzung", async ({ page }) => {
+  test("[Vertrag: erster Account bis erster Review] @golden-e2e Registrierung führt über E-Mail-Bestätigung zur ersten Karte", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Account erstellen", exact: true }).click();
     await page.getByLabel("Anzeigename").fill("Auth Lifecycle");
@@ -27,6 +27,16 @@ test.describe("lokaler Auth-Lifecycle", () => {
     });
     await page.goto(extractAuthConfirmationUrl(message));
     await expectAuthenticated(page);
+    await expect(page.getByRole("heading", { name: "Willkommen bei CoRe" })).toBeVisible();
+    await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
+    await page.getByRole("textbox", { name: "Vorderseite" }).fill("Was schützt dieses Golden-E2E?");
+    await page.getByRole("textbox", { name: "Rückseite" }).fill("Den ersten Lernerfolg eines neuen Accounts.");
+    await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+    await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible();
+    await page.getByRole("button", { name: "Jetzt lernen" }).click();
+    await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+    await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+    await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
   });
 
   test("Magic Link meldet an und ein verbrauchter Link zeigt eine Ablaufmeldung", async ({ page }) => {

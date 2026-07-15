@@ -59,6 +59,19 @@ test("server APKG reader rejects duplicate and unsafe ZIP entries", async () => 
   });
 });
 
+test("server APKG reader reads stored and deflated entries through the same byte contract", async () => {
+  await fixture(zip([
+    { name: "stored", data: Buffer.from("stored bytes") },
+    { name: "deflated", data: Buffer.from("deflated bytes"), deflate: true },
+  ]), async (path) => {
+    const archive = await openValidatedApkg(path);
+    try {
+      assert.equal((await archive.readBytes("stored", 100)).toString(), "stored bytes");
+      assert.equal((await archive.readBytes("deflated", 100)).toString(), "deflated bytes");
+    } finally { archive.close(); }
+  });
+});
+
 test("server APKG reader enforces downscaled entry, expansion and byte-truth limits", async () => {
   await fixture(zip([{ name: "a", data: Buffer.from("a") }, { name: "b", data: Buffer.from("b") }]), async (path) => {
     await assert.rejects(openValidatedApkg(path, { entries: 1 }), /too_many_zip_entries/);

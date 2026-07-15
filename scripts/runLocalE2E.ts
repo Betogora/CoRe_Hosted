@@ -14,6 +14,10 @@ const SUPABASE_CLI_PATH = path.join(process.cwd(), "node_modules", "supabase", "
 const PLAYWRIGHT_CLI_PATH = path.join(process.cwd(), "node_modules", "@playwright", "test", "cli.js");
 const TSX_CLI_PATH = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
 const AI_JOB_RLS_TEST_NAME = "ai-job-ledger-smoke.test.ts";
+const OWNERSHIP_RLS_TEST_NAME = "ownership-smoke.test.ts";
+const GOLDEN_E2E_TAG = "@golden-e2e";
+const GATES = ["pr", "golden", "core-rls", "rls", "release"] as const;
+type LocalGate = (typeof GATES)[number];
 const ALL_RLS_TEST_PATHS = readdirSync(path.join(process.cwd(), "tests", "rls"))
   .filter((fileName) => fileName.endsWith(".test.ts"))
   .sort()
@@ -89,8 +93,15 @@ async function stopLocalSupabase() {
 }
 
 export async function runLocalE2E(playwrightArguments: string[] = []) {
-  const rlsOnly = playwrightArguments.includes("--rls-only");
-  const forwardedPlaywrightArguments = playwrightArguments.filter((argument) => argument !== "--rls-only");
+  const legacyRlsOnly = playwrightArguments.includes("--rls-only");
+  const gateArgument = playwrightArguments.find((argument) => argument.startsWith("--gate="));
+  const gate = (legacyRlsOnly ? "rls" : gateArgument?.slice("--gate=".length) ?? "release") as LocalGate;
+  if (!GATES.includes(gate)) throw new Error(`Unbekanntes lokales Testgate: ${gate}.`);
+  const forwardedPlaywrightArguments = playwrightArguments.filter((argument) => argument !== "--rls-only" && !argument.startsWith("--gate="));
+  const runCoreRls = gate === "pr" || gate === "core-rls";
+  const runFullRls = gate === "rls" || gate === "release";
+  const runGoldenE2E = gate === "pr" || gate === "golden";
+  const runFullE2E = gate === "release";
 
   try {
     await runCommand("docker", ["info", "--format", "{{.ServerVersion}}"], { capture: true, timeoutMs: 5_000 });
@@ -123,25 +134,44 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
     console.log("Bestätigte lokale Auth-/RLS-Testaccounts provisionieren …");
     await provisionLocalE2EAccounts(privilegedTestEnvironment);
 
+    console.log(`Lokales Produktgate „${gate}“ ausführen …`);
     console.log("Supabase-Schema, RLS-Policies und Foreign Keys prüfen …");
     await runSupabase(["db", "query", "--local", "--file", "supabase/verify_schema_v1.sql"], {
       capture: true,
     });
 
-    console.log("Nutzer-A/Nutzer-B/anon-Smoke gegen die lokale Data API ausführen …");
-    await runCommand(process.execPath, [TSX_CLI_PATH, "--test", "--test-concurrency=1", ...RLS_TEST_PATHS], {
-      env: testEnvironment,
-    });
+    if (runCoreRls || runFullRls) {
+      const rlsTestPaths = runCoreRls
+        ? RLS_TEST_PATHS.filter((filePath) => path.basename(filePath) === OWNERSHIP_RLS_TEST_NAME)
+        : RLS_TEST_PATHS;
+      if (rlsTestPaths.length === 0) throw new Error(`Der Kern-RLS-Smoke ${OWNERSHIP_RLS_TEST_NAME} fehlt.`);
+      console.log(runCoreRls
+        ? "Vertrag Kern-RLS: Account-Isolation, anon-Sperre, Foreign Keys und Storage-Ownership prüfen …"
+        : "Vollständige Nutzer-A/Nutzer-B/anon- und Zwei-Geräte-RLS-Suite ausführen …");
+      await runCommand(process.execPath, [TSX_CLI_PATH, "--test", "--test-concurrency=1", ...rlsTestPaths], {
+        env: { ...testEnvironment, CORE_RLS_GATE: runCoreRls ? "core" : "release" },
+      });
 
-    if (!AI_JOB_RLS_TEST_PATH) throw new Error(`Der RLS-Smoke ${AI_JOB_RLS_TEST_NAME} fehlt.`);
-    console.log("Serverautoritativen KI-Job-Ledger separat mit lokalem Secret prüfen …");
-    await runCommand(process.execPath, [TSX_CLI_PATH, "--test", "--test-concurrency=1", AI_JOB_RLS_TEST_PATH], {
-      env: createLocalPrivilegedTestEnvironment(statusEnvironment, process.env),
-    });
+      if (!AI_JOB_RLS_TEST_PATH) throw new Error(`Der RLS-Smoke ${AI_JOB_RLS_TEST_NAME} fehlt.`);
+      console.log("Vertrag serverautoritatives Job-Ledger separat mit lokalem Secret prüfen …");
+      await runCommand(process.execPath, [TSX_CLI_PATH, "--test", "--test-concurrency=1", AI_JOB_RLS_TEST_PATH], {
+        env: createLocalPrivilegedTestEnvironment(statusEnvironment, process.env),
+      });
+    }
 
-    if (!rlsOnly) {
-      console.log("Playwright gegen lokales Supabase ausführen …");
-      await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", ...forwardedPlaywrightArguments], {
+    if (runGoldenE2E || runFullE2E) {
+      console.log(runGoldenE2E
+        ? "Fünf Golden-E2E-Produktverträge gegen lokales Supabase ausführen …"
+        : "Vollständige Playwright-Suite einschließlich Medien- und Restore-Pfaden ausführen …");
+      if (runGoldenE2E) {
+        await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--project=auth-setup"], {
+          env: testEnvironment,
+        });
+      }
+      const selectedArguments = runGoldenE2E
+        ? ["--grep", GOLDEN_E2E_TAG, "--no-deps", ...forwardedPlaywrightArguments]
+        : forwardedPlaywrightArguments;
+      await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", ...selectedArguments], {
         env: testEnvironment,
       });
     }

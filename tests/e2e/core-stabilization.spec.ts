@@ -84,9 +84,10 @@ test("browser back exits study mode to the previous learning screen", async ({ p
   await expect(page).toHaveURL(/\/lernen$/);
 });
 
-test("keyboard focus follows deck creation and study overlays", async ({ page }: any) => {
+test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- und Overlaywechseln", async ({ page }: any) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await resetToFreshLocalState(page);
+  await expect(page.getByRole("heading", { name: "Willkommen bei CoRe" })).toBeFocused();
 
   const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen" });
   await learnNavigation.focus();
@@ -181,6 +182,49 @@ test("offline changes stay pending and flush when the browser reconnects", async
   }
 });
 
+test("[Vertrag: Review über Offline, Reconnect und Reload] @golden-e2e ein offline beantwortetes Review wird genau einmal cloudbestätigt", async ({ page, context }: any) => {
+  await resetToFreshLocalState(page);
+  const environment = loadE2EEnvironment();
+  const client = createClient(environment.supabaseUrl, environment.publishableKey, {
+    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+  });
+  const login = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
+  if (login.error || !login.data.user) throw login.error ?? new Error("Golden-E2E-Account fehlt.");
+
+  try {
+    const before = await deckReviewEventCount(page, DECK_IDS.europe);
+    await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+    await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
+    await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+
+    await context.setOffline(true);
+    await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+    await expect.poll(() => deckReviewEventCount(page, DECK_IDS.europe)).toBe(before + 1);
+    const offlineState = await readAppState(page);
+    const reviewEvent = offlineState.decks.find((deck: { id: string }) => deck.id === DECK_IDS.europe)?.reviewEvents?.at(-1);
+    expect(reviewEvent?.id).toBeTruthy();
+
+    await context.setOffline(false);
+    await expect.poll(async () => {
+      const result = await client.from("review_events").select("id").eq("id", reviewEvent.id).maybeSingle();
+      if (result.error) throw result.error;
+      return result.data?.id ?? null;
+    }, { timeout: 15_000 }).toBe(reviewEvent.id);
+
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+    const reloadedState = await readAppState(page);
+    const matchingEvents = reloadedState.decks
+      .flatMap((deck: { reviewEvents?: { id: string }[] }) => deck.reviewEvents ?? [])
+      .filter((event: { id: string }) => event.id === reviewEvent.id);
+    expect(matchingEvents).toHaveLength(1);
+  } finally {
+    await context.setOffline(false);
+    await client.auth.signOut({ scope: "local" }).catch(() => undefined);
+    client.auth.dispose?.();
+  }
+});
+
 test("review flow records a rating through accessible controls", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   const before = await deckReviewEventCount(page, DECK_IDS.europe);
@@ -198,7 +242,7 @@ test("review flow records a rating through accessible controls", async ({ page }
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
 });
 
-test("variant review flow can be prepared from the deck editor", async ({ page }: any) => {
+test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e Variantenfeedback bleibt kontrolliert und reviewbar", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   const variantEventsBefore = await variantReviewEventCount(page, DECK_IDS.africa);
 
@@ -213,22 +257,32 @@ test("variant review flow can be prepared from the deck editor", async ({ page }
   await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await page.getByTestId("card-labs-tools").getByText("Labs / Erweitert").click();
-  await page.getByLabel("Variantenfrage").fill("Welche Hauptstadt hat Côte d'Ivoire?");
+  const variantsBefore = (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0;
+  await page.getByLabel("Variantenfrage").fill("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?");
   await page.getByLabel("Variantenantwort").fill("Yamoussoukro");
   await page.getByRole("button", { name: "Umformulierung hinzufügen" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Umformulierung gespeichert." })).toBeVisible();
+  await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0).toBe(variantsBefore + 1);
 
   await page.getByTestId(`deck-row-${DECK_IDS.africa}`).getByRole("button", { name: "Varianten" }).click();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.getByText("Welche Hauptstadt hat Côte d'Ivoire?", { exact: true })).toBeVisible();
+  await expect(page.getByText("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?", { exact: true })).toBeVisible();
   await expect(page.getByText("Yamoussoukro", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(1);
   await page.getByRole("button", { name: "Original anzeigen" }).click();
   await expect(page.getByTestId("original-anchor")).toHaveCount(1);
   await expect(page.getByTestId("original-anchor")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
+  await page.getByRole("button", { name: "Unklar formuliert" }).click();
+  await expect(page.getByRole("status")).toContainText("Der ausgewählte Grund wurde gespeichert.");
+  const flaggedState = await readAppState(page);
+  const flaggedVariant = flaggedState.decks
+    .find((deck: { id: string }) => deck.id === DECK_IDS.africa)
+    ?.cards.flatMap((card: { variants?: any[] }) => card.variants ?? [])
+    .find((variant: { front: string }) => variant.front === "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?");
+  expect(flaggedVariant).toMatchObject({ qualityStatus: "flagged" });
+  expect(flaggedVariant.feedback.at(-1)?.type).toBe("unklar_formuliert");
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 
   await expect.poll(() => variantReviewEventCount(page, DECK_IDS.africa)).toBe(variantEventsBefore + 1);
@@ -284,7 +338,7 @@ test("ai draft creation stores an accepted draft deck", async ({ page }: any) =>
   await expect.poll(() => storedDeckCountBySource(page, "ai-assisted")).toBeGreaterThan(aiDecksBefore);
 });
 
-test("lazy creation screen renders a selectable PDF and stores its source anchor", async ({ page }: any) => {
+test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e Quellenanker und Kartenänderung bleiben im Review erhalten", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
@@ -321,8 +375,25 @@ test("lazy creation screen renders a selectable PDF and stores its source anchor
     const card = await findPdfAnchoredCard(page);
     return card?.sourceAnchors?.[0]?.pageNumber ?? null;
   }).toBe(1);
-  const storedCard = await findPdfAnchoredCard(page);
-  expect(storedCard.sourceAnchors[0].bbox).toEqual(expect.objectContaining({ left: expect.any(Number), right: expect.any(Number) }));
+  const createdCard = await findPdfAnchoredCard(page);
+  expect(createdCard.sourceAnchors[0].bbox).toEqual(expect.objectContaining({ left: expect.any(Number), right: expect.any(Number) }));
+
+  const stateAfterCreation = await readAppState(page);
+  const createdDeck = stateAfterCreation.decks.find((deck: { cards?: { id: string }[] }) => deck.cards?.some((card) => card.id === createdCard.id));
+  expect(createdDeck?.id).toBeTruthy();
+  await page.getByRole("button", { name: "Karten prüfen" }).click();
+  await page.getByRole("button", { name: /Mitochondrien erzeugen ATP/ }).click();
+  await page.getByLabel("Karten-Vorderseite").fill("Warum erzeugen Mitochondrien ATP?");
+  await page.getByRole("button", { name: "Speichern" }).click();
+  await expect.poll(async () => (await storedCard(page, createdDeck.id, createdCard.id))?.originalFront).toBe("Warum erzeugen Mitochondrien ATP?");
+
+  const reviewsBefore = await deckReviewEventCount(page, createdDeck.id);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByTestId(`learn-deck-row-${createdDeck.id}`).click();
+  await expect(page.getByText("Warum erzeugen Mitochondrien ATP?", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+  await expect.poll(() => deckReviewEventCount(page, createdDeck.id)).toBe(reviewsBefore + 1);
 });
 
 test("assistant smoke returns a server answer through the hidden dashboard entry", async ({ page }: any) => {

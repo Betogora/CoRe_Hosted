@@ -324,12 +324,10 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       }
     });
 
-    await t.test("private Standard- und TUS-Uploads bleiben accountgebunden und ein Objekt darf mehrere Referenzen haben", async () => {
+    await t.test("[Vertrag: private Medien-Ownership] Standarduploads bleiben accountgebunden und ein Objekt darf mehrere Referenzen haben", async () => {
       assert.ok(userA);
       const hash = "c".repeat(40);
-      const largeHash = "d".repeat(40);
       const path = `${userA.id}/objects/${hash}`;
-      const largePath = `${userA.id}/objects/${largeHash}`;
       const secondDeckId = `${prefix}_media_second_deck`;
       const secondReferenceId = `${prefix}_media_second_reference`;
       try {
@@ -344,7 +342,20 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         assert.ok((await clientA.storage.from("core-media").download(path)).data);
         assert.ok((await clientB.storage.from("core-media").download(path)).error);
         assert.ok((await anonClient.storage.from("core-media").download(path)).error);
+      } finally {
+        await clientA.storage.from("core-media").remove([path]);
+        await clientA.from("media_assets").delete().eq("id", secondReferenceId);
+        await clientA.from("decks").delete().eq("id", secondDeckId);
+      }
+    });
 
+    await t.test("[Vertrag: TUS über 6 MB] resumierbare Uploads bleiben accountgebunden", {
+      skip: process.env.CORE_RLS_GATE === "core" ? "Heavy-Release-Vertrag; im PR-Gate bewusst ausgelassen." : false,
+    }, async () => {
+      assert.ok(userA);
+      const largeHash = "d".repeat(40);
+      const largePath = `${userA.id}/objects/${largeHash}`;
+      try {
         const session = await clientA.auth.getSession();
         const token = session.data.session?.access_token;
         assert.ok(token);
@@ -365,10 +376,10 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         const largeDownload = await clientA.storage.from("core-media").download(largePath);
         assert.equal(largeDownload.error, null, `TUS-Download: ${largeDownload.error?.message ?? "Fehler"}`);
         assert.equal(largeDownload.data?.size, largeBlob.length);
+        assert.ok((await clientB.storage.from("core-media").download(largePath)).error);
+        assert.ok((await anonClient.storage.from("core-media").download(largePath)).error);
       } finally {
-        await clientA.storage.from("core-media").remove([path, largePath]);
-        await clientA.from("media_assets").delete().eq("id", secondReferenceId);
-        await clientA.from("decks").delete().eq("id", secondDeckId);
+        await clientA.storage.from("core-media").remove([largePath]);
       }
     });
 

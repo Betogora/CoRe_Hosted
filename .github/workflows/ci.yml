@@ -5,6 +5,11 @@ on:
   push:
     branches:
       - main
+  release:
+    types:
+      - published
+  schedule:
+    - cron: "17 2 * * *"
   workflow_dispatch:
 
 permissions:
@@ -34,14 +39,14 @@ jobs:
       - name: TypeScript-Verträge prüfen
         run: npm run typecheck
 
-      - name: Modultests ausführen
-        run: npm test
+      - name: Unit- und Contract-Produktverträge prüfen
+        run: npm run test:unit-contract
 
       - name: Produktionsbuild erstellen
         run: npm run build
 
-  browser-e2e:
-    needs: quality
+  pr-product-gate:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -60,14 +65,49 @@ jobs:
       - name: Chromium installieren
         run: npx playwright install --with-deps chromium
 
-      - name: Supabase-Security-Gate und Browser-Smokes ausführen
-        run: npm run test:e2e:local
+      - name: Kern-RLS und fünf Golden-E2E-Produktverträge prüfen
+        run: npm run test:pr:local
 
       - name: Playwright-Fehlerartefakte hochladen
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-failure-${{ github.run_id }}
+          name: pr-product-gate-failure-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  full-release-gate:
+    if: github.event_name != 'pull_request'
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v7
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Chromium installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: Vollständiges Supabase-, Medien-, APKG- und Restore-Gate ausführen
+        run: npm run test:release:local
+
+      - name: Fehlerartefakte des Release-Gates hochladen
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: full-release-gate-failure-${{ github.run_id }}
           path: |
             playwright-report/
             test-results/

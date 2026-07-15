@@ -297,39 +297,6 @@ P0 ist abgeschlossen, wenn:
 
 ---
 
-## P1.3 Testportfolio neu ordnen
-
-### Aufgabe
-
-- [ ] Tests den Kategorien `unit`, `contract`, `integration`, `golden-e2e`, `heavy-release` zuordnen.
-- [ ] Fünf Golden-E2E-Szenarien als Produktgate definieren:
-  1. Account → erste Karte → Review.
-  2. APKG → Vorschau → Import → Review.
-  3. Manuelle Karte mit Quelle → Bearbeiten → Review.
-  4. Review → Reload/Offline/Reconnect → persistierter Zustand.
-  5. Variante → Reveal → Anker → Feedback.
-- [ ] Tests korrigieren, die unerwünschte UX schützen.
-- [ ] Redundante Assertions und doppelte Fixture-Setups identifizieren.
-- [ ] Schwere Medien-, TUS-, große APKG- und vollständige Restore-Smokes als separates Release-/Nightly-Gate ausführen.
-- [ ] PR-Gate auf schnelle, belastbare Verträge begrenzen:
-  - Typecheck,
-  - fokussierte Unit-/Contract-Suite,
-  - Build,
-  - Kern-RLS-Smoke,
-  - Golden-E2E.
-- [ ] Vollständiges lokales Supabase-/Medien-/APKG-Gate für `main`, Release und manuellen Lauf behalten.
-- [ ] Flakiness, Laufzeit und abgedeckten Produktvertrag pro Suite dokumentieren.
-
-### Akzeptanz
-
-- Jede verpflichtende Suite hat einen klaren Zweck.
-- Kein Test bleibt nur erhalten, um eine hohe Testzahl zu bewahren.
-- UX-Verträge sind direkt testbar.
-- Schwere Infrastrukturtests blockieren nicht jede kleine UI-Iteration, bleiben aber Release-Gate.
-- Fehlgeschlagene Tests zeigen den betroffenen Produktvertrag.
-
----
-
 ## P1.4 Dokumentation nach Rollen trennen
 
 ### Aufgabe
