@@ -345,9 +345,11 @@ export interface VariantPerformance {
   updatedAt: string;
 }
 
+export type VariantFeedbackType = "fachlich_falsch" | "unklar_formuliert";
+
 export interface VariantFeedback {
   id: string;
-  type: string;
+  type: VariantFeedbackType;
   note: string;
   createdAt: string;
 }

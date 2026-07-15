@@ -1052,6 +1052,10 @@ export function App() {
             refresh();
             navigateToRoute(studyRequest.returnRoute ?? createViewRoute("lernen"), { replace: true });
           }}
+          onReturnToLearn={() => {
+            refresh();
+            navigateToRoute(createViewRoute("lernen"), { replace: true });
+          }}
           onDeckUpdated={saveDeck}
           onReviewEvent={enqueueReviewEvent}
         />

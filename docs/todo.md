@@ -1,6 +1,6 @@
 # CoRe TODO — Produktstabilisierung vor weiterem Ausbau
 
-**Stand:** 2026-07-14
+**Stand:** 2026-07-15
 **Zweck:** Offene, priorisierte Arbeit für einen glaubwürdigen und nutzbaren Beta-Kern.
 **Ersetzt:** die bisherige Mischung aus Changelog, Testnachweis, Betriebsprotokoll und Roadmap in `docs/todo.md`.
 
@@ -76,53 +76,16 @@ Neue Plattform-, Community-, KI-, Admin- oder Großdatei-Funktionen werden erst 
 
 ## 4. Unmittelbar nächste Arbeit
 
-Die nächsten drei Arbeitspakete werden in dieser Reihenfolge umgesetzt:
+Die nächsten zwei Arbeitspakete werden in dieser Reihenfolge umgesetzt:
 
-1. **P0.2 Review-/Variantenvertrag korrigieren.**
-2. **P0.3 Account- und Einstellungsoberfläche wahrheitsgemäß machen.**
-3. **P0.4 Ersten Produktkontakt und leeren Account korrigieren.**
+1. **P0.3 Account- und Einstellungsoberfläche wahrheitsgemäß machen.**
+2. **P0.4 Ersten Produktkontakt und leeren Account korrigieren.**
 
 Erst danach folgen Onboarding, Erstellen/Import und Informationsarchitektur.
 
 ---
 
 # P0 — Produktwahrheit und Kern-UX
-
-## P0.2 Review- und Variantenvertrag korrigieren
-
-### Aufgabe
-
-- [ ] Vor dem Aufdecken sämtliche Hinweise entfernen, ob die aktuelle Abfrage Original oder Variante ist.
-- [ ] Vor dem Aufdecken weder Variantenlevel, Reifegrad, Schedulername noch interne Zustandsdaten anzeigen.
-- [ ] Nach dem Aufdecken genau einen verständlichen Ursprungseinstieg anbieten.
-- [ ] Doppelte Original-/Ankerdarstellungen zusammenführen.
-- [ ] Technische Begriffe wie `fsrs_v1`, `variantLevel`, `generationSource`, `Stability` und `Difficulty` aus dem normalen Lernmodus entfernen.
-- [ ] Variantenfeedback nach der Antwort auf klare Nutzeraktionen begrenzen:
-  - `Nicht mehr zeigen`
-  - `Inhaltlich falsch`
-  - `Unklar formuliert`
-  - `Original anzeigen`
-- [ ] Das Ende einer Lernsitzung als Abschlusszustand mit Anzahl bearbeiteter Karten und Rückkehraktion anzeigen; nicht kommentarlos aus dem Lernmodus springen.
-- [ ] Fokusführung und Tastaturablauf prüfen: Frage → Antwort anzeigen → Bewertungsbuttons → nächste Karte.
-- [ ] Bestehende Tests ändern, die eine sichtbare Variantenkennzeichnung vor der Antwort erwarten.
-
-### Akzeptanz
-
-- Vor der Antwort ist im DOM und sichtbaren Text nicht erkennbar, ob eine Variante gezeigt wird.
-- Nach der Antwort sind Frage und Antwort gleichzeitig sichtbar.
-- Der Originalanker ist erst nach der Antwort erreichbar und erscheint nicht doppelt.
-- Alle vier Ratings funktionieren per Maus und Tastatur.
-- Eine gemeldete oder deaktivierte Variante wird nachvollziehbar gespeichert.
-- Der Browserflow schützt ausdrücklich die Abwesenheit von Variantenhinweisen vor dem Reveal.
-
-### Evidenz
-
-- Fokussierte Tests für `StudyMode`, Review-Service und Variantenfeedback.
-- Ein Golden-E2E für Originalkarte.
-- Ein Golden-E2E für Variante einschließlich Anker und Feedback.
-- Manuelle Abnahme bei langen Texten, Medienkarte, Cloze und Multiple Choice.
-
----
 
 ## P0.3 Account und Einstellungen wahrheitsgemäß machen
 

@@ -27,6 +27,7 @@ import type {
   NewReviewOrder,
   ReviewRating,
   ReviewState,
+  VariantFeedbackType,
 } from "./coreTypes.ts";
 
 type DateInput = string | number | Date;
@@ -81,7 +82,7 @@ interface ReviewServiceOptions {
   queueKind?: string | null;
   action?: "disable" | "flag";
   reason?: string;
-  feedbackType?: string;
+  feedbackType?: VariantFeedbackType;
   note?: string;
   reviewEvents?: unknown[];
 }

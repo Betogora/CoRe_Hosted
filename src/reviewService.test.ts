@@ -10,7 +10,7 @@ import {
   getOriginalVariant,
   type CoreCardInput,
 } from "./coreModel.ts";
-import { answerVariant, getNextReviewItem } from "./reviewService.ts";
+import { answerVariant, getNextReviewItem, recordVariantFeedback } from "./reviewService.ts";
 
 function createDeckWithItem(item: CoreCardInput) {
   return createCoreDeck({
@@ -196,6 +196,27 @@ test("variant performance and anchor snapshots are updated for non-original vari
   assert.ok(getOriginalVariant);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(event.anchorSnapshotJson.front, getOriginalVariant(item).front);
+});
+
+test("variant feedback stores a controlled quality reason without private review data", () => {
+  const item = addRephrasedVariant(
+    createBasicLearningItem("deck_review", "Was ist ATP?", "Ein Energieträger."),
+    "Wofür steht ATP?",
+    "Adenosintriphosphat",
+  );
+  const variant = getActiveVariants(item)[0];
+  const result = recordVariantFeedback(
+    createDeckWithItem(item),
+    { id: variant.id, sourceCardId: item.id, isVariant: true },
+    { action: "flag", feedbackType: "unklar_formuliert", now: "2026-07-06T10:00:00.000Z" },
+  );
+  const storedVariant = result.deck.cards[0].variants.find((candidate) => candidate.id === variant.id);
+  const storedFeedback = storedVariant?.feedback.at(-1);
+
+  assert.equal(storedVariant?.qualityStatus, "flagged");
+  assert.equal(storedFeedback?.type, "unklar_formuliert");
+  assert.deepEqual(Object.keys(storedFeedback ?? {}).sort(), ["createdAt", "id", "note", "type"]);
+  assert.deepEqual(result.deck.versionLog.at(-1)?.after, { cardId: item.id, variantId: variant.id });
 });
 
 test("getNextReviewItem returns due learning items with selected variants and anchor view model", () => {

@@ -17,6 +17,7 @@ import {
   getVariantGenerationPlan,
   getVariantGenerationRecommendation,
   getVariantReadiness,
+  flagVariant,
 } from "./coreVariantService.ts";
 import { answerVariant, getNextReviewItem } from "./reviewService.ts";
 import { calculateRetrievability, scheduleWithFsrsLikeModel } from "./scheduler.ts";
@@ -31,6 +32,21 @@ function deckWith(item: CoreCardInput, reviewEvents = []) {
     reviewEvents,
   });
 }
+
+test("flagVariant records only the selected understandable quality reason", () => {
+  const item = addRephrasedVariant(
+    createBasicLearningItem("deck_fsrs", "Frage", "Antwort"),
+    "Neu formulierte Frage",
+    "Antwort",
+  );
+  const variant = getActiveVariants(item)[0];
+  const updated = flagVariant(item, variant.id, "fachlich_falsch");
+  const feedback = updated.variants.find((candidate) => candidate.id === variant.id)?.feedback.at(-1);
+
+  assert.equal(feedback?.type, "fachlich_falsch");
+  assert.equal(feedback?.note, "");
+  assert.deepEqual(Object.keys(feedback ?? {}).sort(), ["createdAt", "id", "note", "type"]);
+});
 
 function reviewEvent(item: LearningItem|null|undefined, variant: CardVariant|null, rating: string, reviewedAt: string) {
   assert.ok(getOriginalVariant);

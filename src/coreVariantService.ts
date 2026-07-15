@@ -13,6 +13,7 @@ import { isAutomaticRephraseVariant, selectAutomaticReviewVariant } from "./core
 import type {
   CardVariant,
   LearningItem,
+  VariantFeedbackType,
   ReviewRating,
   ReviewState,
   TransformType,
@@ -841,7 +842,7 @@ export function deactivateVariant(card: LearningItem, variantId: string, reason 
   };
 }
 
-export function flagVariant(card: LearningItem, variantId: string, feedbackType: string, note = ""): LearningItem {
+export function flagVariant(card: LearningItem, variantId: string, feedbackType: VariantFeedbackType, note = ""): LearningItem {
   const updatedAt = new Date().toISOString();
   const feedback = {
     id: stableContentHash({ variantId, feedbackType, note, updatedAt }, "feedback"),

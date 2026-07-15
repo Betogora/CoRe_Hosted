@@ -20,7 +20,9 @@ Produktivhinweise aus dem externen Karteikarten-Hosting-Guide wurden in diese ze
 
 Dokumentationsstand nach Abgleich am 2026-07-15: Es gibt genau eine TODO-Markdown-Datei, `docs/todo.md`. Sie ist ausschliesslich die Roadmap-Quelle fuer offene, priorisierte Arbeit; abgeschlossene Arbeit, Teststaende und Release-Nachweise bleiben in den dafuer vorgesehenen Status- und Runbook-Abschnitten dieser Spezifikation. `docs/specs.md` bleibt kanonisch, `docs/specs.html` ist die visuelle HTML-Fassung derselben Spezifikation, und `docs/anki-format-analysis.md` dokumentiert die Anki-Differenzentscheidungen hinter Import-, Medien- und Learning-Item-Ausbau.
 
-Produktreife-Abgleich am 2026-07-15: Der breite lokale Web-MVP ist in `Core`, `Labs` und `Disabled` getrennt. `src/productSurfaces.ts` ist die typisierte Quelle fuer Reife, Hauptnavigationssichtbarkeit, bekannte Grenzen und explizite Environment-Freigaben. P0.1 ist umgesetzt; die weiteren Produkt- und UX-Gates ab P0.2 bleiben in `docs/todo.md` offen. Klickbare lokale oder technisch vorbereitete Flows gelten nicht allein deshalb als freigegebener Produktkern.
+Produktreife-Abgleich am 2026-07-15: Der breite lokale Web-MVP ist in `Core`, `Labs` und `Disabled` getrennt. `src/productSurfaces.ts` ist die typisierte Quelle fuer Reife, Hauptnavigationssichtbarkeit, bekannte Grenzen und explizite Environment-Freigaben. P0.1 und P0.2 sind umgesetzt; die weiteren Produkt- und UX-Gates ab P0.3 bleiben in `docs/todo.md` offen. Klickbare lokale oder technisch vorbereitete Flows gelten nicht allein deshalb als freigegebener Produktkern.
+
+P0.2-Abnahme am 2026-07-15: `StudyMode` legt vor dem Reveal weder sichtbare noch zugaengliche Herkunfts-, Variantenlevel-, Reifegrad- oder Schedulerhinweise offen. Nach dem Reveal bleiben Frage und Antwort gleichzeitig sichtbar; Original und optionale Quelle sind genau ueber einen kompakten Herkunftsbereich erreichbar. Varianten lassen sich deaktivieren oder mit den kontrollierten Gruenden `fachlich_falsch` und `unklar_formuliert` melden, ohne private Reviewdaten in Feedbackobjekte zu mischen. Die beim Sitzungsstart geplante Kartenanzahl bleibt stabil, der Abschluss nennt die beantwortete Anzahl und fuehrt gezielt zur Lernen-Uebersicht. Fokussierte StudyMode-, Review- und Variantenservice-Tests, Typecheck, Build sowie die lokalen Original- und Varianten-Golden-E2Es einschliesslich Supabase-/RLS-Gates sind gruen.
 
 Dokumentationsabgleich am 2026-07-09: Der nachgereichte Gruendergespraech-Auszug bestaetigt die bestehenden Kernentscheidungen zu Import, Kartenerstellung, Review, Content-Repetition, Community, Graph und sparsamer KI-Orchestrierung. Ergaenzt wurden vor allem zwei Schaerfungen: Varianten sollen mit wachsendem Reifegrad nur konservativ anspruchsvoller werden, und serverseitig wiederverwendbare Varianten muessen strikt von privaten Review-Events, Lernstaenden und persoenlichen Qualitaetsurteilen getrennt bleiben.
 
@@ -3064,7 +3066,7 @@ Der technische Feature-MVP ist breit vorhanden. Der glaubwuerdige Beta-Kern gilt
 7. Die Kernablaeufe bei **1440 × 900 px** und **1280 × 720 px** manuell abgenommen sind, einschliesslich Fokus, Kontrast, Zoom, langen Inhalten, leerem Zustand und mindestens einem realistischen Fehlerfall.
 8. Automatisierte Tests die Produktvertraege und Regressionen schuetzen, ohne dass Testanzahl allein als Produktabnahme gilt.
 
-**Stand 2026-07-15:** Dieses Beta-DoD ist noch nicht erfuellt. Der technische Unterbau fuer Auth, Import, Review, Varianten, Sync, Konflikte und Medien ist weitgehend vorhanden; offen sind vor allem die wahrheitsgemaesse Produktflaeche, der korrigierte Review-/Variantenvertrag, Account- und Einstellungs-UX, Onboarding, Informationsarchitektur, Accessibility und die manuelle P0-Produktabnahme. Die detaillierte offene Arbeit und Evidenz stehen ausschliesslich in `docs/todo.md`.
+**Stand 2026-07-15:** Dieses Beta-DoD ist noch nicht erfuellt. Der technische Unterbau fuer Auth, Import, Review, Varianten, Sync, Konflikte und Medien ist weitgehend vorhanden; der Review-/Variantenvertrag ist korrigiert. Offen sind vor allem Account- und Einstellungs-UX, Onboarding, Informationsarchitektur, Accessibility und die manuelle P0-Produktabnahme. Die detaillierte offene Arbeit und Evidenz stehen ausschliesslich in `docs/todo.md`.
 
 ---
 
@@ -3228,11 +3230,10 @@ Der technische Feature-MVP ist breit umgesetzt. Vor weiterem Plattform- oder Fea
 Kurzfassung mit Code-Sicht:
 
 1. Eine kleine typisierte Produktflaechen-Registry als einzige Quelle fuer `core`, `labs` und `disabled` einfuehren; Hauptnavigation auf Heute, Lernen, Erstellen und Statistik begrenzen.
-2. `StudyMode` und Variantenfeedback auf den verbindlichen Reveal-Vertrag bringen: keine Herkunfts- oder Schedulerhinweise vor der Antwort, danach genau ein Anker und ein klarer Sitzungsabschluss.
-3. `SettingsScreen` und Auth-Einstiege wahrheitsgemaess machen: nicht editierbare Login-E-Mail, keine wirkungslosen Datenschutzschalter, verstaendlicher Syncstatus und klar begrenzter Export.
-4. Danach leeren Account, Erstellen/Import und die Trennung von Lernen, Bibliothek und Stapelverwaltung stabilisieren.
-5. Konsistenz, Accessibility und Fehlerzustaende pruefen und das vollstaendige P0-Gate manuell an beiden Zielviewports abnehmen.
-6. Erst nach diesem Produktgate App-Shell, grosse Screens und Testportfolio vereinfachen; Labs nur einzeln ueber messbare Freigabegates graduieren.
+2. `SettingsScreen` und Auth-Einstiege wahrheitsgemaess machen: nicht editierbare Login-E-Mail, keine wirkungslosen Datenschutzschalter, verstaendlicher Syncstatus und klar begrenzter Export.
+3. Danach leeren Account, Erstellen/Import und die Trennung von Lernen, Bibliothek und Stapelverwaltung stabilisieren.
+4. Konsistenz, Accessibility und Fehlerzustaende pruefen und das vollstaendige P0-Gate manuell an beiden Zielviewports abnehmen.
+5. Erst nach diesem Produktgate App-Shell, grosse Screens und Testportfolio vereinfachen; Labs nur einzeln ueber messbare Freigabegates graduieren.
 
 ---
 

@@ -21,9 +21,9 @@ async function deckReviewEventCount(page: Page, deckId: string) {
   return state.decks?.find((deck: { id: any; }) => deck.id === deckId)?.reviewEvents?.length ?? 0;
 }
 
-async function hasVariantReviewEvent(page: Page, deckId: string) {
+async function variantReviewEventCount(page: Page, deckId: string) {
   const state = await readAppState(page);
-  return Boolean(state.decks?.find((deck: { id: any; }) => deck.id === deckId)?.reviewEvents?.some((event: { reviewableType: string; }) => event.reviewableType === "variant"));
+  return state.decks?.find((deck: { id: any; }) => deck.id === deckId)?.reviewEvents?.filter((event: { reviewableType: string; }) => event.reviewableType === "variant").length ?? 0;
 }
 
 async function storedDeckCountBySource(page: Page, source: string) {
@@ -38,6 +38,18 @@ async function findPdfAnchoredCard(page: Page) {
 
 function mainMenu(page: Page) {
   return page.getByRole("navigation", { name: /Hauptmen/ });
+}
+
+async function findOriginLeakBeforeReveal(page: Page) {
+  return page.locator("body").evaluate((body: HTMLElement) => {
+    const originTerms = /\b(?:Original(?:karte)?|Variante|Level|fsrs|Reifegrad)\b/i;
+    const accessibleValues = [...body.querySelectorAll("*")].flatMap((element) => [
+      element.getAttribute("aria-label"),
+      element.getAttribute("title"),
+      element.getAttribute("data-testid"),
+    ]).filter(Boolean);
+    return [body.innerText, ...accessibleValues].find((value) => originTerms.test(value ?? "")) ?? null;
+  });
 }
 
 test("browser back returns from deck management to learning without reload", async ({ page }: any) => {
@@ -113,7 +125,11 @@ test("review flow records a rating through accessible controls", async ({ page }
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
+  expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(1);
+  await page.getByRole("button", { name: "Original anzeigen" }).click();
+  await expect(page.getByTestId("original-anchor")).toHaveCount(1);
   await page.getByRole("button", { name: /Bewertung Good/ }).click();
 
   await expect.poll(() => deckReviewEventCount(page, DECK_IDS.europe)).toBeGreaterThan(before);
@@ -122,8 +138,15 @@ test("review flow records a rating through accessible controls", async ({ page }
 
 test("variant review flow can be prepared from the deck editor", async ({ page }: any) => {
   await resetToFreshLocalState(page);
+  const variantEventsBefore = await variantReviewEventCount(page, DECK_IDS.africa);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByRole("button", { name: "Einstellungen für Afrika" }).click();
+  await page.getByLabel("Neue Karten pro Tag als Zahl").fill("0");
+  await page.getByLabel("Reviews pro Tag als Zahl").fill("1");
+  await page.getByRole("button", { name: "Änderungen speichern" }).click();
+  await expect(page.getByRole("status")).toContainText("Stapel-Einstellungen gespeichert.");
+  await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   await page.getByRole("button", { name: "Kartenstapel" }).click();
   await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
@@ -133,12 +156,23 @@ test("variant review flow can be prepared from the deck editor", async ({ page }
   await expect(page.getByRole("status").filter({ hasText: "Umformulierung gespeichert." })).toBeVisible();
 
   await page.getByTestId(`deck-row-${DECK_IDS.africa}`).getByRole("button", { name: "Varianten" }).click();
-  await expect(page.getByText(/Variante Level 2/)).toBeVisible();
+  expect(await findOriginLeakBeforeReveal(page)).toBeNull();
+  await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
+
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await expect(page.getByText("Welche Hauptstadt hat Côte d'Ivoire?", { exact: true })).toBeVisible();
+  await expect(page.getByText("Yamoussoukro", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(1);
+  await page.getByRole("button", { name: "Original anzeigen" }).click();
+  await expect(page.getByTestId("original-anchor")).toHaveCount(1);
+  await expect(page.getByTestId("original-anchor")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
   await page.getByRole("button", { name: /Bewertung Good/ }).click();
 
-  await expect.poll(() => hasVariantReviewEvent(page, DECK_IDS.africa)).toBe(true);
-  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
+  await expect.poll(() => variantReviewEventCount(page, DECK_IDS.africa)).toBe(variantEventsBefore + 1);
+  await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
+  await expect(page.getByText("1 Karte beantwortet.")).toBeVisible();
+  await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
+  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.africa}`)).toBeVisible();
 });
 
 test("ai draft creation stores an accepted draft deck", async ({ page }: any) => {
