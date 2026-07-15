@@ -16,10 +16,19 @@ requirements. General working agreements are inherited from the global
 Use `docs/index.md` when the relevant source of truth is unclear. Read only the
 documents and sections required for the current task.
 
-- `docs/specs.md`: canonical product behavior, acceptance criteria, domain
-  contracts, architecture, security, and operational behavior.
+- `docs/specs.md`: canonical product behavior, core journeys, functional
+  requirements, and product acceptance criteria.
 - `docs/specs.html`: generated visual mirror of `docs/specs.md`; do not treat it
   as a separate authoring source.
+- `docs/architecture.md`: canonical current architecture, module ownership,
+  invariants, compatibility/target models, and implemented/planned APIs.
+- `docs/status.md`: canonical current implementation status and known gaps.
+- `docs/operations.md`: canonical operational gates, runbooks, release,
+  rollback, recovery, and incident guidance.
+- `docs/decisions.md`: canonical ADRs and durable product/architecture
+  decisions.
+- `docs/history.md`: canonical completed work, dated verification, release IDs,
+  and smoke records.
 - `docs/anki-format-analysis.md`: Anki/APKG, templates, media, and Learning Item
   behavior.
 - `docs/todo.md`: the only source for open scope, priorities, planning status,
@@ -30,16 +39,10 @@ documents and sections required for the current task.
   it before making such changes.
 - `supabase/`: schema anchors, migrations, policies, and verification SQL.
 
-For targeted navigation in `docs/specs.md`:
-
-- use sections 14 and 27 for module ownership, interfaces, and import rules;
-- use section 19 for open decision context and section 25 for established
-  product decisions;
-- search for the affected behavior or acceptance criteria first, and expand
-  reading only as needed for broader changes.
-
-No dedicated ADR directory currently exists. Relevant decisions live in
-`docs/specs.md` and, where applicable, the domain analyses.
+For targeted navigation, use `docs/specs.md` for visible behavior,
+`docs/architecture.md` for ownership and technical contracts,
+`docs/decisions.md` for established decisions, and `docs/todo.md` only for open
+scope and gates.
 
 ## Repository Boundaries
 
@@ -98,7 +101,8 @@ No dedicated ADR directory currently exists. Relevant decisions live in
   compatibility logic stay in their owning modules.
 - Do not introduce an adapter or architectural seam for only one current
   implementation.
-- New abstractions must preserve the ownership boundaries in `docs/specs.md`.
+- New abstractions must preserve the ownership boundaries in
+  `docs/architecture.md`.
   Verify the applicable ownership and import rules before moving behavior
   between modules.
 - Before database changes, inspect the existing schema anchors, migrations,
@@ -117,9 +121,11 @@ No dedicated ADR directory currently exists. Relevant decisions live in
 
 Update documentation when the implemented contract changes:
 
-- Update the relevant section of `docs/specs.md` when product behavior,
-  acceptance criteria, public interfaces, security behavior, or architecture
-  changes; then synchronize `docs/specs.html`.
+- Update the relevant role source from `docs/index.md`. Product behavior and
+  acceptance criteria belong in `docs/specs.md`; then synchronize
+  `docs/specs.html`. Architecture and public technical interfaces belong in
+  `docs/architecture.md`; operations, decisions, status, and history remain in
+  their own canonical files.
 - Update `docs/todo.md` only when open roadmap scope, priority, planning,
   acceptance gates, or required evidence changes. Move completed work and
   release evidence to the appropriate status, changelog, or runbook area; do

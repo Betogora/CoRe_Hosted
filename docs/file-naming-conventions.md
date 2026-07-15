@@ -56,7 +56,6 @@ Diese Konvention gilt für neue und umbenannte Dateien im CoRe-Repository. Maßg
 - `StudyMode.tsx` bleibt bestehen: `StudyMode` ist der exportierte Komponentenname und bezeichnet bewusst einen Vollbildmodus statt eines regulären Navigationsscreens.
 - `.github/workflows/ci.yml` bleibt bestehen, weil `.yml` für GitHub-Workflows unterstützt wird und der Name bereits Teil der CI-Konfiguration ist.
 - Supabase-Migrationen, `config.toml` und die referenzierten E-Mail-Templates bleiben unverändert, damit lokale und bereits angewendete Datenbankpfade stabil bleiben.
-- `docs/todo-review.html` ist ein eigenständiger temporärer Review-Bericht und keine generierte Spiegeldatei von `todo.md`; sein rollenbezogener Name bleibt daher bestehen.
 
 ## Offizielle Grundlagen
 

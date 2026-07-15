@@ -1,69 +1,43 @@
-# CoRe Documentation
+# CoRe-Dokumentenlandkarte
 
-Diese Datei ist die Dokumentationskarte fuer CoRe. Die Root-Ebene bleibt bewusst schlank; `AGENTS.md` bleibt dort, damit Coding-Agenten die Projektregeln automatisch finden.
+Diese Datei ist der Einstieg in die Projektdokumentation. Für jede kanonische Rolle gibt es genau eine Quelle.
 
-## Maintained Documentation
+## Kanonische Rollen
 
-- `README.md`: Projektueberblick, lokaler Start, Scripts und Struktur.
-- `specs.md`: kanonische Produkt- und Engineering-Spezifikation.
-- `specs.html`: generierte HTML-Fassung von `specs.md`.
-- `test-portfolio.md`: ausführbare Testkategorien, geschützte Produktverträge, Laufzeiten und PR-/Release-Gates.
-- `todo.md`: einzige Roadmap fuer offene, priorisierte Arbeit am glaubwuerdigen Beta-Kern; keine Ablage fuer abgeschlossene Nachweise.
-- `file-naming-conventions.md`: verbindliche, rollenbezogene Dateinamenskonvention und dokumentierter Projekt-Audit.
-- `debatable-features.md`: leicht verständliche Entscheidungsliste für potenziell verzichtbare Features; keine automatische Löschfreigabe.
-- `anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
-- `anki-ecosystem-feature-radar.md`: Recherche zu offiziellem Anki, Forks, Add-ons, Popularitaetssignalen und priorisiertem Feature-Radar fuer CoRe.
+| Rolle | Einzige Quelle | Enthält | Enthält ausdrücklich nicht |
+| --- | --- | --- | --- |
+| Produkt und Kernjourneys | [`specs.md`](specs.md) | Produktversprechen, Anforderungen, Kernjourneys, Beta-Abnahme | Implementierungsjournal, Architektur, APIs, Runbooks, Roadmap |
+| Architektur und Invarianten | [`architecture.md`](architecture.md) | Modulgrenzen, Domäneninvarianten, Compatibility-/Zielmodell, implementierte und geplante APIs | Produktstatus, Release-Nachweise |
+| Aktueller Status | [`status.md`](status.md) | heutiger verifizierter Ist-Stand und bekannte Lücken | historisch grüne Läufe, offene Planung |
+| Betrieb und Runbooks | [`operations.md`](operations.md) | lokale Gates, Release, Smoke, Rollback, Auth, Restore und Störungen | ausgefüllte Release-Protokolle |
+| Entscheidungen | [`decisions.md`](decisions.md) | angenommene oder abgelöste ADRs mit Status, Kontext, Entscheidung, Konsequenzen und Datum | offene Umsetzungsschritte |
+| Verlauf | [`history.md`](history.md) | abgeschlossene Pakete, datierte Abnahmen, Release-IDs und Smoke-Protokolle | heutiger Vertrag, offene Roadmap |
+| Offene Roadmap | [`todo.md`](todo.md) | ausschließlich offene Aufgaben, Gates und geparkte Themen | abgeschlossene Checklisten, Releasehistorie |
 
-## TODO Inventory
+[`specs.html`](specs.html) ist ausschließlich die generierte HTML-Spiegelung von `specs.md` und keine eigene Quelle. Für die anderen Rollen werden keine HTML-Spiegelungen gepflegt.
 
-Aktuell gibt es genau eine TODO-Markdown-Datei:
+## Ergänzende Analysen und Nachweise
 
-- `todo.md`
+Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 
-Es gibt keine weitere `TODO.md`, `todo.md` oder `*-todo.md`-Datei im Repository. Neue offene Arbeit soll in `todo.md` einsortiert werden.
+- [`test-portfolio.md`](test-portfolio.md): ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.
+- [`anki-format-analysis.md`](anki-format-analysis.md): Detailanalyse von Anki/APKG, Templates, Medien und Learning Items.
+- [`anki-ecosystem-feature-radar.md`](anki-ecosystem-feature-radar.md): zeitgebundene externe Produktrecherche.
+- [`debatable-features.md`](debatable-features.md): Evaluationsfragen für mögliche spätere Produktentscheidungen; keine Entscheidung oder Löschfreigabe.
+- [`p0-7-accessibility-audit.md`](p0-7-accessibility-audit.md): Arbeitsnachweis zur offenen Accessibility-Abnahme.
+- [`file-naming-conventions.md`](file-naming-conventions.md): Dateinamensregeln.
 
-Die Roadmap trennt Produktflaechen in `Core`, `Labs` und `Disabled`. Abgeschlossene Arbeit, Teststaende und Release-Nachweise bleiben in den dafuer vorgesehenen Status- und Runbook-Abschnitten der kanonischen Spezifikation, nicht in `todo.md`.
+## Technische Einstiegspunkte
 
-## Technical Anchors Outside Documentation
+- [`../AGENTS.md`](../AGENTS.md): Arbeitsregeln, Architekturgrenzen und Validierung für Coding-Agenten.
+- [`../src/screens/README.md`](../src/screens/README.md): Screen-Landkarte.
+- [`../supabase/core_schema_v1.sql`](../supabase/core_schema_v1.sql): aktueller Schemaanker.
+- [`../supabase/verify_schema_v1.sql`](../supabase/verify_schema_v1.sql): ausführbares Struktur-, RLS- und Policy-Gate.
 
-- `../AGENTS.md`: lokale Entwicklungsregeln, Architekturleitplanken und Verifikationskommandos.
-- `../vercel.json`: Vercel-Build, `dist`-Output und SPA-Rewrite ausserhalb von `/api/*`.
-- `../vite.config.ts`: allowlist-basierter Buildvertrag fuer App-Version, normalisierte Umgebung und kurzen Vercel-/GitHub-Commit.
-- `../.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag sowie leere Platzhalter fuer den separaten Playwright-Testaccount.
-- `../supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker.
-- `../supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
-- `../supabase/migrations/20260709074255_cloud_variant_schema_alignment.sql`: angewendete Schema-Abgleichsmigration fuer Cloud-Varianten, `json-import`-Quellen und entfernte `anon`-Grants.
-- `../supabase/migrations/20260709082140_account_scoped_primary_keys.sql`: angewendete Account-Isolationsmigration fuer `(user_id, id)` auf account-owned Tabellen.
-- `../supabase/verify_schema_v1.sql`: Verify-Queries fuer RLS- und Policy-Praesenz.
+## Inventarregeln
 
-## Production Path Notes
-
-Die Hinweise aus dem externen Hosting-/Database-/KI-Guide wurden am 2026-07-07 in `specs.md` und `todo.md` uebernommen. Der alte Guide soll nicht als zweite Wahrheit weitergefuehrt werden.
-
-Relevante Zielrichtungen:
-
-- Vercel fuer Hosting, Preview/Production, Domain und `/api/*` Functions.
-- Das ausfuehrbare Preview-/Production-/Rollback-Runbook liegt in `specs.md` Abschnitt 14.2.2 und gespiegelt in `specs.html`; Release-Nachweise bleiben secretsfrei.
-- `https://core-hosted.vercel.app` ist die kanonische Production-URL. Der entschiedene Supabase-Vertrag umfasst diese Site URL sowie `https://core-hosted.vercel.app/**`, `https://*-bengt2.vercel.app/**` nur fuer Previews und `http://127.0.0.1:5190/**` lokal; Hosted-Konfiguration und erste protokollierte Production-Abnahme sind abgeschlossen.
-- Login-Gate, Einstellungen und React-Fehlerfallback zeigen dieselbe Release-Information aus Version, Umgebung und kurzem Commit; weitere Env-Werte werden nicht in den Browser uebernommen.
-- Supabase Auth + Postgres + RLS als naheliegender Persistenzpfad.
-- Echte Tabellen fuer Decks, Learning Items, Varianten, Review Events, Dokumente, Medienreferenzen und AI Jobs statt grossem Store-Blob.
-- Aktueller erster Online-Pfad: Pflichtlogin, Supabase E-Mail/Passwort, Profil-Upsert, accountgebundener Browser-Cache und Cloud-first Autosave ueber Tabellen.
-- Supabase Storage/Object Storage fuer APKG-Medien, Dokumente und grosse Uploads.
-- Eigene KI-Proxy-Routen fuer geheime Provider-Keys; Browser bekommt nur Drafts und nie Secrets.
-
-## Current Local Architecture Notes
-
-- `src/reviewService.ts` ist der tiefe Review-Flow fuer FSRS-like Scheduling, Variant-Fallback und Next-Review-Projektionen.
-- `src/reviewService.ts` ist die direkte Review-Schnittstelle; die frühere Ein-Zeilen-Fassade wurde nach der TypeScript-Migration entfernt.
-- `src/coreVariantService.ts` buendelt Eligibility, Reifegrad, Readiness, Coverage, Variant-Generation-Plan und Fallback-Projektion hinter kleinen Interfaces.
-- `src/importService.ts` buendelt Text-, CSV-, JSON- und Tabellen-Importe, Fingerprints, Dedupe und Parent-/Hierarchy-Felder hinter der Learning-Item-Creation-Pipeline.
-- `src/richText.ts` und `src/htmlSafety.ts` halten Rich-Text-Normalisierung und HTML-Sanitization aus Screens und Importpfaden heraus.
-- `src/libraryModel.ts` erzeugt Dashboard-, Statistik-, Decklisten-, Heatmap- und KI-Job-Projektionen fuer die Screens.
-- `src/supabaseClient.ts`, `src/cloudAuth.ts`, `src/accountSession.ts`, `src/accountStorage.ts` und `src/cloudRepository.ts` kapseln den konkreten Supabase-Pfad fuer Auth, Profile, Login-Gate-Zustand, accountgebundenen Cache und Cloud-Tabellenpersistenz.
-- `src/appRuntime.ts`, `src/ui/ReleaseInfo.tsx` und `src/AppErrorBoundary.tsx` kapseln Release-Identitaet, sichere Anzeige und den deutschen Wiederherstellungsfallback ohne rohe Fehler- oder Nutzerdaten.
-- `src/pdfRuntime.ts`, `src/pdfSelection.ts` und `src/ui/PdfDocumentViewer.tsx` kapseln PDF.js-Lifecycle, Worker, kontinuierliche Anzeige, Zoom, Textauswahl und die Umrechnung in stabile PDF-Quellenkoordinaten.
-- `src/App.tsx` ist nur noch App-Shell fuer Workspace-State, Navigation und Routing; authentifizierte Produktscreens laden per `React.lazy`, produktnahe UI liegt in `src/screens/`.
-- `scripts/verifyBuildChunks.ts` prueft das Vite-Manifest nach jedem Production-Build und erzwingt die 500.000-Byte-Grenze fuer JavaScript-Chunks; PDF-Worker und WASM bleiben getrennte Assets.
-- `src/screens/README.md` ist die Einstiegskarte fuer KI-Programmierung an Screens; geteilte UI-Bausteine liegen in `src/ui/`.
-- Sichtbare Features sollen bei Ueberarbeitungen erhalten bleiben und nur durch explizite Prompts entfernt werden.
+- `docs/todo.md` ist die einzige TODO-Markdown-Datei.
+- Neue offene Arbeit wird nur dort eingetragen.
+- Abgeschlossene Arbeit wird aus dem TODO entfernt und datiert in `history.md` dokumentiert.
+- Eine Vertragsänderung wird nur in der Quelle ihrer Rolle vorgenommen; andere Dokumente verlinken darauf.
+- Frühere Sammelabschnitte aus `specs.md` werden über Abschnitt 11 der Spezifikation eindeutig auf ihre neue Quelle verwiesen.

@@ -1,186 +1,75 @@
-# CoRe - Content Repetition
+# CoRe — Content Repetition
 
-CoRe ist ein lokaler Web-MVP fuer eine Lernplattform, die klassische Spaced-Repetition-Karten um inhaltliche Wiederholung erweitert. Das Ziel ist, Kartenblindheit zu reduzieren: Lernende sollen nicht nur Layout, Wortlaut oder Lueckenposition wiedererkennen, sondern den Inhalt auch bei veraenderter Fragestellung abrufen koennen.
+CoRe ist ein Web-MVP für eine Lernplattform, die klassische Spaced-Repetition-Karten um inhaltliche Varianten erweitert. Lernende sollen Wissen auch bei veränderter Fragestellung abrufen und den Ursprung nach der Antwort prüfen können.
 
-Der aktuelle Stand ist ein breiter Web-MVP. Viele Produktpfade sind klickbar und testbar; Supabase und Vercel sind angebunden, und es gibt Pflichtlogin, Supabase-E-Mail/Passwort, accountgebundenen Browser-Cache, Cloud-first Autosave, Konfliktauflösung und einen lokal abgenommenen Medienpfad ueber Tabellen und private Storage-Objekte. Authentifizierte Screens laden bedarfsgerecht, der PDF.js-Viewer kapselt Anzeige und Quellenauswahl, und ein harter Postbuild-Check begrenzt JavaScript-Chunks auf 500.000 Byte. Das Preview-/Production-/Rollback-Runbook, die Hosted-Redirect-Konfiguration und die erste Production-Abnahme sind dokumentiert. Vor weiterem Ausbau wird die Produktoberflaeche in einen glaubwuerdigen Beta-Kern, klar gekennzeichnete Labs und deaktivierte, noch nicht freigegebene Funktionen getrennt.
-
-Die gepflegte Projektdokumentation liegt im Ordner `docs/`. Es gibt genau eine TODO-Markdown-Datei: `docs/todo.md`. `AGENTS.md` bleibt auf Root-Ebene, damit Coding-Agenten die Arbeitsregeln automatisch finden.
-
-## Funktionsumfang und Reife
-
-Zum vorgesehenen Beta-Kern gehoeren Account, Dashboard, Erstellen und Importieren, Stapel- und Kartenverwaltung, Lernen mit vier Bewertungen und Content-Repetition, Statistik, Einstellungen sowie accountgebundene Speicherung und Syncstatus.
-
-Deck-Graph, Chat-your-Deck, Lernplan, lokale KI-Drafts, lokale Community-Demo, externe Varianten-JSON-Funktion, AI-Job-Uebersicht und erweiterte APKG-Diagnose sind Labs. Der serverseitige APKG-Pfad ueber 250 MiB, nicht abgenommene Google-/Magic-Link-Flows, echte Community-Rechte, produktive externe Karten-/Varianten-/Graph-Generierung sowie unvollstaendige Account-Lifecycle-Funktionen bleiben bis zu eigenen Freigabegates deaktiviert. Die sichtbare Trennung ist noch offene P0-Arbeit.
-
-- Dashboard, Profil-Onboarding, Datenschutzoptionen und globale CoRe-Einstellungen.
-- Deck-Verwaltung mit Hierarchie-Metadaten, Suche/Filtern, direktem Umbenennen, Unterstapel-Anlage, Kartenbearbeitung und Versionseintraegen; Lernuebersicht mit Anki-artigem Drag-and-drop fuer Unterstapel.
-- Reproduzierbarer lokaler Teststapel `Welt-Hauptstädte` mit echter APKG-Fixture und sieben Kontinent-Unterstapeln.
-- Importpfade fuer Anki-APKG, Text, CSV, normalisierte JSON-Payloads und Tabellen-/Excel-Paste.
-- Manuelle Kartenerstellung mit Dokumentkontext und Quellenankern.
-- Rich-Text-Editor, Rich-Text-Helfer und HTML-Safety-Module fuer Karteninhalt und Importvorschau.
-- Deterministische lokale KI-Drafts aus Quellentext mit Schema-Validierung und Draft-Review.
-- Fullscreen-Review mit Antwortaufdeckung, vier Ratings (`Again`, `Hard`, `Good`, `Easy`), Tastatursteuerung und FSRS-like Scheduler-State.
-- Content-Repetition-Varianten fuer geeignete reife Karten, inklusive Originalanker, konservativer Variant-Level, Fallback nach Fehlern, Deaktivieren und Fehler-Feedback.
-- Lokale Community-Logik fuer kleine Gruppen, Ordner und Deck-Kopien ohne fremde Reviewdaten.
-- Deck-Graph/Mindmap, Chat-your-Deck mit Zitaten, Lernplan-Generator, AI-Job-Uebersicht und JSON-Datenportabilitaet.
-
-## Tech Stack
-
-- Vite
-- React 19
-- Tailwind CSS
-- Node.js `node:test` fuer Modultests
-- Accountgebundener Browser-Cache ueber `localStorage`
-- Supabase Auth/Postgres fuer Account-, Profil- und Cloud-first Datenpfad
+Die kanonische [Dokumentenlandkarte](index.md) trennt Produktvertrag, Architektur, Status, Betrieb, Entscheidungen, Verlauf und offene Roadmap. Diese README ist nur Projektüberblick und Startanleitung.
 
 ## Lokaler Start
 
-```bash
+```powershell
 npm install
 npm run dev
 ```
 
-Die Entwicklungs- und Preview-Server sind auf `http://127.0.0.1:5190/` konfiguriert.
+Die lokale URL ist `http://127.0.0.1:5190/`.
 
-## Scripts
+## Tech Stack
 
-```bash
-npm run dev      # Vite-Dev-Server
-npm test         # Node-Testlauf fuer src/**/*.test.{ts,tsx} und api/**/*.test.{ts,tsx}
-npm run test:e2e # Playwright-Smoke fuer lokale Browser-Flows
-npm run test:e2e:local # Supabase lokal starten, alle Browser-Smokes ausführen und wieder stoppen
-npm run test:rls:local # Supabase lokal starten, Schema-/RLS-Gate und A/B/anon-Smokes ausführen
-npm run build    # Produktionsbuild plus manifestbasierte 500-kB-Chunk-Pruefung
-npm run preview  # Lokale Preview auf Port 5190
-```
+- Vite und React 19
+- TypeScript
+- Tailwind CSS
+- Node.js `node:test` und Playwright
+- Supabase Auth, Postgres und Storage
+- Vercel für SPA und `/api/*`-Routen
 
-## Automatisiertes Release-Gate
-
-`.github/workflows/ci.yml` läuft bei Pull Requests, bei Pushes auf `main` und manuell über GitHub Actions. Der Check `quality` installiert reproduzierbar mit `npm ci` und führt `npm test` sowie `npm run build` aus. Danach installiert `browser-e2e` Chromium und startet mit `npm run test:e2e:local` einen vollständig lokalen Supabase-Stack auf dem GitHub-Ubuntu-Runner. Vor Playwright laufen das SQL-Struktur-Gate und die Nutzer-A/Nutzer-B/`anon`-Data-API-Smokes. Der CI-Pfad benötigt deshalb weder Hosted-Supabase-Zugangsdaten noch KI-Provider-Secrets.
-
-Playwright schreibt im CI-Modus einen HTML-Bericht und Screenshots für fehlgeschlagene Tests. Traces werden nur für die sessionlosen Projekte erzeugt; `auth-setup` und `authenticated-chromium` deaktivieren sie, damit keine Supabase-Sitzung in Diagnoseartefakte gelangt. Bei einem Fehler lädt der Workflow ausschließlich `playwright-report/` und `test-results/` für sieben Tage als GitHub-Actions-Artefakt hoch; `playwright/.auth/` und `.env`-Dateien bleiben ausgeschlossen. Retries bleiben deaktiviert, damit instabile Tests das Gate sichtbar fehlschlagen lassen.
-
-## Preview- und Production-Release
-
-Der verbindliche manuelle Ablauf steht in [`docs/specs.md`, Abschnitt 14.2.2](specs.md#1422-preview-smoke-und-production-rollback-runbook) und gespiegelt in [`docs/specs.html`](specs.html#14-2-2-preview-smoke-und-production-rollback-runbook). Er prueft auf der PR-Preview Login, Cloud-Laden, Review samt Save-Status, eine nicht uebernommene APKG-Importvorschau, `/api/ai/chat` mit vorhandenem Key sowie die Abmeldung. Der fehlende-Key-Pfad bleibt als verpflichtender Route-Test im CI-Gate und kann zusaetzlich in einer absichtlich keylosen Preview geprueft werden, ohne den gemeinsam verwendeten Preview-Key zu entfernen.
-
-Am Login-Gate, in den Einstellungen und im React-Fehlerfallback steht eine kompakte Release-Information aus `package.json`-Version, normalisierter Umgebung und kurzem Commit. Vercel-Commits haben Vorrang vor GitHub-Commits; andere Env-Felder, URLs und Secrets werden nicht in den Browservertrag aufgenommen. Der Fehlerfallback zeigt keine rohe Exception und bietet Neuladen sowie Startseiten-Rueckkehr.
-
-Production wird bevorzugt zuerst ohne Domain-Zuordnung gebaut und nach einem kurzen Smoke explizit freigegeben:
+## Wichtige Scripts
 
 ```powershell
-vercel deploy --prod --skip-domain
-vercel inspect <staged-production-url>
-vercel promote <staged-production-url>
-vercel promote status
+npm run dev                 # lokale Entwicklung
+npm run typecheck           # TypeScript und Type-Policy
+npm test                    # Unit-, Contract- und Integrationstests
+npm run test:e2e            # Playwright
+npm run test:rls:local      # lokales Schema-/RLS-Gate
+npm run test:e2e:local      # vollständige lokale Browser-/Datenbankabnahme
+npm run test:release        # vollständiges Release-Gate
+npm run build               # Production-Build und Chunk-Gate
+npm run preview             # lokale Production-Preview
 ```
 
-Bei einem Produktionsfehler stellt `vercel rollback` das vorherige App-Deployment wieder her. Dieser Vorgang setzt keine Supabase-Migrationen oder Nutzerdaten zurueck; Datenbankaenderungen brauchen deshalb einen eigenen vorwaertskompatiblen Rueckfallplan. Release-Nachweise duerfen keine Secrets, Tokens, `.env`-Dateien oder Passwoerter enthalten.
+Details zu Kategorien und Frequenzen stehen in [`test-portfolio.md`](test-portfolio.md), der manuelle Releaseablauf in [`operations.md`](operations.md).
 
-## Authentifizierte Browser-Tests
+## Produkt in Kürze
 
-Der bevorzugte kostenfreie Testpfad verwendet Docker Desktop und den lokalen Supabase-Stack:
+Der Beta-Kern umfasst Account, leeren Erstkontakt, Erstellen und Importieren, Kartenstapelverwaltung, Lernen mit vier Bewertungen und Content-Repetition, Statistik, Einstellungen sowie accountgebundene Speicherung und Syncstatus.
 
-```bash
-npm run test:e2e:local
-```
+Chat-your-Deck, Lernplan, lokaler Entwurfsassistent, Deck-Graph, Community-Demo, externer Varianten-JSON-Flow, AI-Job-Historie und erweiterte APKG-Diagnose sind Labs. Nicht abgenommene Hosted-, Großdatei-, Community-, KI- und Account-Lifecycle-Pfade bleiben deaktiviert.
 
-Der Befehl prüft die Docker-Engine, startet nur die für CoRe benötigten lokalen Supabase-Dienste, wendet ausstehende Migrationen an, führt das SQL-Struktur-Gate und echte Nutzer-A/Nutzer-B/`anon`-Data-API-Smokes aus, liest URL und Publishable Key aus dem JSON-Status der installierten Supabase-CLI ausschließlich von der Loopback-Instanz, legt lokale Testaccounts bei Bedarf an, führt Playwright aus und stoppt den Stack anschließend wieder. Die Status-Auswertung bleibt auch mit älteren `KEY=VALUE`-Ausgaben kompatibel. Beim ersten Lauf lädt Supabase die Docker-Images herunter. Docker muss dafür laufen; für `npm test`, `npm run build` und normale Entwicklungsarbeit ist Docker nicht erforderlich. Zusätzliche Playwright-Argumente werden weitergereicht, zum Beispiel `npm run test:e2e:local -- --project=auth-gate-chromium`. Für die fokussierte Datenbankabnahme ohne Browser dient `npm run test:rls:local`.
-
-Der lokale Lauf wurde am 2026-07-14 mit allen 21 Tests erfolgreich abgenommen. Darin enthalten sind ein ausschließlich im E2E-Modus aktivierbarer Renderfehler-Smoke fuer den sicheren Fehlerfallback, ein PDF-Smoke fuer Lazy-Loading, Textauswahl, Kartenfeld und Quellenanker sowie Offline-Reconnect und Konfliktauflösung; der Production-Build enthaelt den Renderfehler-Testparameter nicht. Beim ersten Start werden die Docker-Images einmalig lokal heruntergeladen; danach startet der Lauf deutlich schneller.
-
-Alternativ unterstützen die Playwright-Produkttests weiterhin ein separates Hosted-Supabase-Testprojekt mit einem einmalig vorab angelegten Testaccount. Lege dafür lokal eine von Git ignorierte `.env.e2e.local` mit diesen Werten an:
-
-```text
-VITE_SUPABASE_URL=https://<testprojekt>.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-key-des-testprojekts>
-CORE_E2E_EMAIL=<vorab-angelegter-testaccount>
-CORE_E2E_PASSWORD=<testpasswort>
-CORE_E2E_ALLOW_ACCOUNT_RESET=true
-```
-
-`npm run test:e2e` startet Vite immer im Modus `e2e` auf `http://127.0.0.1:5190/`; ein normal laufender Dev-Server muss vorher beendet werden. Das Setup ersetzt bei jedem Lauf ausschließlich die Daten des isolierten Testaccounts durch die reproduzierbare `Welt-Hauptstädte`-Fixture und speichert die Supabase-Sitzung unter `playwright/.auth/`. Dieses Verzeichnis enthält Zugriffstoken, ist ignoriert und darf nicht committed werden. Verwende für den optionalen Hosted-Pfad niemals einen persönlichen oder produktiven Account; der GitHub-Actions-Workflow verwendet ausschließlich den lokalen Loopback-Pfad.
-
-Die sessionlosen Auth-Gate-Smokes und die authentifizierten Produkt-Smokes lassen sich getrennt starten:
-
-```bash
-npm run test:e2e -- --project=auth-gate-chromium
-npm run test:e2e -- --project=auth-resilience-chromium
-npm run test:e2e -- --project=authenticated-chromium
-```
-
-`auth-gate-chromium` verwendet keine gespeicherte Sitzung und setzt keinen Account zurück. `auth-resilience-chromium` simuliert fehlende Konfiguration, Netzwerkausfall und Sessionablauf vollständig ohne Cloud-Mutation. `authenticated-chromium` führt über seine Projektabhängigkeit zuerst `auth-setup` aus und verwendet danach die bereinigte Test-Session.
+Der verbindliche Umfang steht ausschließlich in [`specs.md`](specs.md), der aktuelle Implementierungsstand ausschließlich in [`status.md`](status.md).
 
 ## Projektstruktur
 
 ```text
-src/
-  App.tsx                 App-Shell: Workspace-State, Navigation und Routing
-  AppErrorBoundary.tsx    Sicherer React-Fehlerfallback und Wiederherstellungsaktionen
-  appRuntime.ts           Allowlist-basierte App-Version, Umgebung und Build-Commit
-  screens/                UI-Screens mit kleinen Props-Interfaces
-  screens/README.md       Screen-Map und Regeln fuer KI-Programmierung
-  ui/                     Geteilte Praesentationsbausteine und Medien-HTML
-  coreModel.ts            Zentrales Deck-, Karten-, Varianten- und Review-Datenmodell
-  coreRepository.ts       Lokale Persistenz und State-Normalisierung
-  accountSession.ts       Auth-Phasen, Login-Gate-Entscheidung und Sync-Statusmeldungen
-  accountStorage.ts       Accountgebundene Browser-Cache-Keys und Legacy-Importmarkierung
-  supabaseClient.ts       Supabase Browser-Client aus oeffentlichen Vite-Env-Variablen
-  cloudAuth.ts            Supabase Auth/Profile-Kommandos
-  cloudRepository.ts      Accountgefiltertes Laden/Speichern ueber Supabase-Tabellen
-  coreWorkspace.ts        App-Kommandos und Demo-Daten
-  fixtures/               Lokale Seed-/Fixture-Daten
-  creationWorkflow.ts     Creation-/Import-Orchestrierung fuer APKG, Paste, manuell und KI-Drafts
-  apkgImport.ts           Anki-APKG-Importpipeline
-  pdfRuntime.ts           Geteilte, bedarfsgeladene PDF.js-Runtime samt Worker-Vertrag
-  pdfSelection.ts         Text- und Koordinaten-Normalisierung fuer PDF-Quellenanker
-  ui/PdfDocumentViewer.tsx Tiefer PDF-Viewer fuer Anzeige, Navigation, Zoom und Auswahl
-  importService.ts        Text-, CSV-, JSON- und Tabellen-Import mit Fingerprints/Dedupe
-  reviewService.ts        Tiefer Review-Flow, Sessions, Fallback und Rating-Erfassung
-  scheduler.ts            FSRS-like Review-State, Intervalle, Retrievability und Maturity-XP
-  libraryModel.ts         Dashboard-, Decklisten-, Heatmap- und Job-Projektionen
-  richText.ts             Rich-Text-Normalisierung und Text-zu-Karten-HTML
-  htmlSafety.ts           HTML-Sanitization und HTML-zu-Text-Helfer
-  coreVariantService.ts   Eligibility, Reifegrad, Variant-Plan, Fallback und Varianten-Feedback
-  aiOrchestrator.ts       Lokale KI-Job- und Draft-Erzeugung
-  deckGraph.ts            Mindmap-/Graph-Modell
-  deckAssistant.ts        Quellengebundene Deck-Antworten
-  learningPlan.ts         Lokale Lernplan-Erzeugung
-  dataPortability.ts      JSON-Export/-Import
+api/             Vercel-Serverrouten und serverseitige Verträge
+docs/            kanonische Dokumentation und Analysen
+fixtures/        deterministische Test- und Importdaten
+scripts/         Test-, Build-, Datenbank- und Benchmarkwerkzeuge
+src/             App-Shell, Screens, UI und Domänenmodule
+supabase/        Schemaanker, Migrationen, Policies und Verify-SQL
+tests/           E2E- und RLS-Szenarien
+trigger/         vorbereitete serverseitige APKG-Aufgaben
 ```
 
-## Wichtige Dokumente
+Für Coding-Agenten gilt zuerst [`../AGENTS.md`](../AGENTS.md). Die UI-Landkarte liegt in [`../src/screens/README.md`](../src/screens/README.md).
 
-- `docs/index.md`: Dokumentationskarte fuer Menschen und Agenten.
-- `docs/specs.md`: Produktvision, Anforderungen, Datenmodell, API-Skizzen, Architektur, Hosting-/Datenbank-/KI-Leitplanken und Implementierungsstand.
-- `docs/specs.html`: navigierbare HTML-Fassung der Spezifikation.
-- `docs/todo.md`: einzige Roadmap fuer offene, priorisierte Arbeit am glaubwuerdigen Beta-Kern; abgeschlossene Nachweise bleiben ausserhalb der TODO-Datei.
-- `docs/file-naming-conventions.md`: verbindliche Dateinamenskonvention nach Werkzeug, Dateiformat und Rolle.
-- `docs/anki-format-analysis.md`: Analyse des offiziellen Anki-Datei- und Kartenmodells mit CoRe-Prioritaeten.
-- `fixtures/apkg/world-capitals.apkg`: reproduzierbare APKG-Fixture fuer Unterstapel-Tests.
-- `scripts/create_world_capitals_apkg.py`: Generator fuer APKG-Fixture, Quell-Snapshot und lokalen Seed.
-- `tests/e2e/world-capitals-hierarchy.spec.ts`: Playwright-Smoke fuer Seed, Unterstapel, direkte Lernlisten-Drag-and-drop-Gesten und die Kartenstapel-Verwaltung ohne alten Drag-Handle.
-- `tests/e2e/auth.setup.ts`: RLS-konformer Reset des dedizierten Testaccounts und Aufbau der ignorierten Playwright-`storageState`-Session.
-- `tests/rls/ownership-smoke.test.ts`: echter lokaler Nutzer-A/Nutzer-B/`anon`-Smoke für Core-, Medien- und Sync-Tabellen.
-- `tests/e2e/auth-gate.spec.ts`: sessionlose Login-Gate- und Auth-Fehler-Smokes.
-- `tests/e2e/core-stabilization.spec.ts`: authentifizierte Produkt-Smokes für Navigation, Review, Varianten, KI-Draft, Assistent und Portabilität.
-- `AGENTS.md`: lokale Entwicklungsregeln, empfohlene Kommandos und Architekturleitplanken.
-- `vercel.json`: aktueller Vercel-Build-/Rewrite-Anker fuer die Vite-App.
-- `.env.example`: oeffentliche Browser-Env-Grenzen fuer Supabase und KI-Proxy-Featureflag.
-- `supabase/core_schema_v1.sql`: aktueller Supabase/Postgres-Schemaanker fuer den spaeteren Produktivpfad.
-- `supabase/migrations/20260707081417_core_schema_v1.sql`: angewendete Erst-Migration des Schemaankers.
-- `supabase/migrations/20260709074255_cloud_variant_schema_alignment.sql`: angewendete Schema-Abgleichsmigration fuer Cloud-Varianten, `json-import`-Quellen und entfernte `anon`-Grants.
-- `supabase/migrations/20260709082140_account_scoped_primary_keys.sql`: angewendete Account-Isolationsmigration fuer zusammengesetzte Primary Keys `(user_id, id)`.
-- `supabase/verify_schema_v1.sql`: RLS-/Policy-Verifikation fuer das Supabase-Schema.
+## Dokumentation
 
-## Aktueller Status
+- [Dokumentenlandkarte](index.md)
+- [Produktvertrag](specs.md) und [HTML-Spiegelung](specs.html)
+- [Architektur und Invarianten](architecture.md)
+- [aktueller Status](status.md)
+- [Betrieb und Runbooks](operations.md)
+- [Entscheidungen](decisions.md)
+- [Verlauf](history.md)
+- [offene Roadmap](todo.md)
 
-CoRe laeuft lokal als Vite/React-App und hat einen verifizierten Vercel-/Supabase-Infrastrukturpfad. Pflichtlogin, E-Mail/Passwort-Auth, Profil-Upsert, accountgebundener Cache, Cloud-first Autosave, bedarfsgeladene Produktscreens, ein PDF.js-Quellenviewer, ein hartes Build-Chunk-Gate, automatisiertes CI, sichtbare Release-Identitaet, sicherer React-Fehlerfallback und ein manuelles Preview-/Production-/Rollback-Runbook sind vorhanden. `https://core-hosted.vercel.app` ist als kanonische Production-URL festgelegt; Hosted-Supabase-Konfiguration und die protokollierte Production-Abnahme sind abgeschlossen. Das lokale Zwei-Geräte-Gate verifiziert Konflikte, Offline-Reviews und Soft-Deletes. Eine eigene Domain ist fuer dieses P0-Ziel nicht erforderlich; vollständige Betriebsbeobachtung bleibt offen.
-
-## Naechste sinnvolle Schritte
-
-1. Produktoberflaechen zentral als `core`, `labs` oder `disabled` klassifizieren und die Hauptnavigation auf den freigegebenen Kern reduzieren.
-2. Den Review- und Variantenvertrag korrigieren: vor der Antwort keine Herkunftshinweise, nach der Antwort genau ein verstaendlicher Original-/Quellenanker und ein klarer Sitzungsabschluss.
-3. Account und Einstellungen wahrheitsgemaess machen: keine scheinbar editierbare Login-E-Mail oder wirkungslose Datenschutzschalter, klare Exportgrenzen und verstaendlicher Syncstatus.
-
-Danach folgen Onboarding, Erstellen/Import, Informationsarchitektur, Accessibility und die vollstaendige Produktabnahme. Die verbindliche Reihenfolge und Akzeptanzkriterien stehen ausschliesslich in `docs/todo.md`.
+Es gibt genau eine TODO-Markdown-Datei: `docs/todo.md`.

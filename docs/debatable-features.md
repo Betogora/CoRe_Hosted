@@ -1,106 +1,61 @@
-# Diskutierbare Features
+# Evaluationsfragen für diskutierbare Features
 
-Stand: 13. Juli 2026
+**Rolle:** Arbeitsmaterial für spätere Produktentscheidungen. Dieses Dokument ist weder Roadmap noch ADR und erteilt keine Löschfreigabe.
 
-Diese Liste ist eine Entscheidungshilfe, keine Löschliste. Im Audit wurde keines der genannten Features entfernt, versteckt oder visuell verändert. Eine Entfernung braucht eine ausdrückliche Produktentscheidung.
+Verbindliche Entscheidungen stehen ausschließlich in [`decisions.md`](decisions.md), offene Evaluationen in [`todo.md`](todo.md).
 
-## Wie die Liste zu lesen ist
+## Lokale Community
 
-Ein Feature ist hier nicht automatisch schlecht. Es steht hier, wenn mindestens eine dieser Fragen noch offen ist:
+- Welches konkrete Problem löst die lokale Demo vor echten Mitgliedschaften und Rechten?
+- Verstehen Testpersonen die Fläche als Experiment oder erwarten sie eine fertige Online-Community?
+- Welche Membership-, RLS-, Datenschutz- und Moderationsverträge wären für eine Graduierung nötig?
+- Wird die Fläche genutzt, ohne fremde Lernstände oder soziale Leistungsmetriken einzuführen?
 
-- Benutzen echte Lernende es regelmäßig?
-- Löst es ein wichtiges Problem oder sieht es hauptsächlich interessant aus?
-- Ist der Nutzen groß genug für Tests, Fehlerbehebung und Weiterentwicklung?
-- Verspricht die Oberfläche bereits mehr, als die Technik heute wirklich leistet?
+Aktuelle Entscheidung: [ADR-005](decisions.md#adr-005--community-und-graph-bleiben-labs).
 
-## 1. Lokale Community
+## Deck-Graph
 
-**Was ist das?** Decks können in einer lokalen Community geteilt und kopiert werden.
+- Finden Lernende damit tatsächlich schwache Themen oder starten Lernaktionen?
+- Liefert der Graph mehr Orientierung als Statistik, Suche und Stapelhierarchie?
+- Welche messbare Nutzung rechtfertigt Layout-, Graph- und UI-Pflege?
+- Was wäre das Kill-Kriterium?
 
-**Warum diskutierbar?** Es sieht ein wenig wie gemeinsames Arbeiten aus, funktioniert heute aber eher wie ein Kopierer auf demselben Gerät. Es gibt noch keine echten Mitglieder, Einladungen oder serverseitigen Rechte.
+Aktuelle Entscheidung: [ADR-005](decisions.md#adr-005--community-und-graph-bleiben-labs).
 
-**Was ginge bei einer Entfernung verloren?** Die vorbereitete Oberfläche und der lokale Teilen-/Kopieren-Flow. Eine spätere echte Community müsste wieder sichtbar aufgebaut werden.
+## AI-Job-Historie
 
-**Welche Information fehlt für eine Entscheidung?** Beobachten, ob Testpersonen diesen lokalen Zwischenstand verstehen und benutzen oder dadurch eine bereits fertige Online-Community erwarten.
+- Brauchen Nutzer eine eigene Historie oder genügt ein verständlicher Status im auslösenden Flow?
+- Welche Informationen helfen beim Retry, ohne technische Ledgerdetails offenzulegen?
+- Ist ein versteckter Screen wartungswürdig, wenn kein Nutzerziel belegt ist?
 
-**Status:** Beibehalten, bis der geplante Community-Ausbau oder echte Nutzungsdaten Klarheit schaffen.
+## Externer Varianten-JSON-Flow
 
-## 2. Deck-Graph
+- Bleibt der Flow ein nützliches Expertenwerkzeug, wenn direkte Generierung denselben Zweck erfüllt?
+- Welche Nutzergruppe versteht und benötigt rohe Prompt-/JSON-Interaktion?
+- Kann der Flow entfernt werden, ohne eine persistierte oder externe Schnittstelle zu brechen?
 
-**Was ist das?** Der Graph zeigt Karten und Schlagwörter als visuelle Landkarte und kann neu berechnet werden.
+## Lokale Auth und Offline-Kaltstart
 
-**Warum diskutierbar?** Eine Landkarte ist nur hilfreich, wenn sie beim Lernen wirklich Orientierung gibt. Wenn sie hauptsächlich hübsch aussieht, kostet sie dauerhaft Layout-, Graph- und UI-Pflege, ohne den Lernerfolg stark zu verbessern.
+- Gibt es ein echtes Produktziel für Offline-Login oder nur für Offline-Nutzung nach bestehender Session?
+- Wie werden Identität, Cache und Cloud-Sync ohne parallelen Passwort-Verifier sicher getrennt?
+- Welche Session-, Ablauf- und Wiederverbindungsgrenzen müssen vor einer neuen Entscheidung geklärt sein?
 
-**Was ginge bei einer Entfernung verloren?** Die visuelle Themenübersicht und der eigene Hauptbereich „Graph“.
+Aktuelle Entscheidung: [ADR-004](decisions.md#adr-004--lokale-auth-ist-kein-paralleler-loginpfad).
 
-**Welche Information fehlt für eine Entscheidung?** Messen oder testen, ob Lernende über den Graphen tatsächlich schwache Themen finden oder Lernaktionen starten.
+## Demo-Seed
 
-**Status:** Beibehalten; später anhand echter Nutzung entscheiden.
+- Hilft die ausdrückliche Demo beim Erstkontakt, ohne einen fremden Accountzustand zu simulieren?
+- Wird klar, dass Demo-Reviews keine persönlichen Lernstände sind?
+- Braucht die Demo außerhalb Entwicklung, E2E und bewusster Nutzeraktion einen weiteren Einstieg?
 
-## 3. Versteckte KI-Job-Historie
+Aktuelle Entscheidung: [ADR-003](decisions.md#adr-003--demo-seed-ist-opt-in).
 
-**Was ist das?** `AiJobsScreen` kann ausgeführte KI-Aufgaben wie in einem Quittungsordner anzeigen.
+## Datenschutzdarstellung
 
-**Warum diskutierbar?** Der Screen ist gebaut, besitzt aber derzeit keine Tür in Navigation oder Routing. Versteckter Produktcode muss trotzdem getestet und bei Modelländerungen gepflegt werden.
+- Zeigt die UI nur technisch durchgesetzte Freigaben und Grenzen?
+- Werden Community- und Serverrechte von lokalen Einstellungen klar getrennt?
+- Entsteht an irgendeiner Stelle ein falsches Sicherheitsgefühl durch wirkungslose Schalter?
 
-**Was ginge bei einer Entfernung verloren?** Ein möglicher zentraler Ort für Transparenz, Fehlerdiagnose und Kosteninformationen zu KI-Aktionen.
+## Entscheidungsgate
 
-**Welche Information fehlt für eine Entscheidung?** Entweder einen echten Einstieg und einen klaren Nutzerzweck festlegen oder bestätigen, dass Status direkt bei der jeweiligen KI-Aktion genügt.
-
-**Status:** Nicht löschen; Produktentscheidung „sichtbar machen oder entfernen“ ausstehend.
-
-## 4. Privatsphäre-Schalter ohne angeschlossene Wirkung
-
-**Was ist das?** Einstellungen wie `shareLearningProgress`, `showOnlineStatus` und `showStreaksToOthers` werden gespeichert.
-
-**Warum diskutierbar?** Aktuell sind sie wie Lichtschalter ohne Lampe: Die Werte existieren, aber Community und Server setzen sie noch nicht sichtbar durch. Das kann ein falsches Sicherheitsgefühl erzeugen.
-
-**Was ginge bei einer Entfernung verloren?** Vorbereitete Präferenzen für eine spätere soziale Plattform.
-
-**Welche Information fehlt für eine Entscheidung?** Klären, welche sozialen Daten künftig überhaupt geteilt werden. Danach die Schalter entweder technisch durchsetzen oder bewusst entfernen.
-
-**Status:** Nicht still ändern; vor echtem Community-Release verbindlich entscheiden.
-
-## 5. Externer Prompt-/JSON-Flow für Varianten
-
-**Was ist das?** Fortgeschrittene Nutzer können einen Prompt kopieren, in einem externen KI-Tool ausführen und die JSON-Antwort wieder in CoRe einfügen.
-
-**Warum diskutierbar?** Der Ablauf ist mächtig, aber umständlich. Sobald die serverseitige Variantenerstellung zuverlässig funktioniert, gibt es möglicherweise zwei Wege für dasselbe Ziel. Zwei Wege bedeuten auch zwei Erklärungen, zwei Fehlerbilder und mehr Testaufwand.
-
-**Was ginge bei einer Entfernung verloren?** Ein providerunabhängiger Power-User- und Fallback-Weg, der ohne in CoRe gespeicherten API-Schlüssel funktioniert.
-
-**Welche Information fehlt für eine Entscheidung?** Prüfen, ob Nutzer den manuellen Weg nach Einführung der direkten KI-Erstellung noch verwenden und ob er als Notfallweg wichtig bleibt.
-
-**Status:** Beibehalten, bis der direkte KI-Weg produktiv und vergleichbar ist.
-
-## 6. Automatischer Welt-Hauptstadt-Demostapel mit Lernhistorie
-
-**Was ist das?** Ein großer Beispieldatensatz erzeugt Deckhierarchie, 245 Karten und eine realistisch simulierte dreimonatige Lernhistorie.
-
-**Warum diskutierbar?** Er ist ein sehr gutes Musterheft für Tests und Demonstrationen. In einem echten Nutzerkonto kann ein automatisch vorhandenes Musterheft aber Statistiken, Speicher und den ersten Eindruck mit fremden Daten füllen.
-
-**Was ginge bei einer Entfernung verloren?** Eine reproduzierbare Demo, starke visuelle Testdaten und ein sofort gefülltes Produkt für lokale Entwicklung.
-
-**Welche Information fehlt für eine Entscheidung?** Festlegen, ob der Datensatz nur Entwicklung/E2E dient, optional als Demo importiert wird oder bewusst Teil des Onboardings bleibt.
-
-**Status:** Datenquelle wurde im Audit nur dedupliziert; Seed und Historie bleiben vollständig erhalten.
-
-## 7. Alte lokale Anmeldung
-
-**Was ist das?** `authModel.ts` enthält eine lokale Account- und Passwortlogik, während die produktive App bereits Supabase-Anmeldung verlangt.
-
-**Warum diskutierbar?** Das ist wie ein zweites Türschloss, das nicht an der benutzten Haustür sitzt. Es kann sinnvoll sein, falls ein echter Offline-Login geplant ist; sonst ist es vor allem test-only Altcode.
-
-**Was ginge bei einer Entfernung verloren?** Eine vorbereitete lokale Login-Variante und die dazugehörigen Tests.
-
-**Welche Information fehlt für eine Entscheidung?** Eine klare Aussage, ob CoRe künftig ohne Cloud-Konto vollständig nutzbar sein soll.
-
-**Status:** Nicht entfernen, bevor die Offline-Produktentscheidung gefallen ist.
-
-## Empfohlene Entscheidungsreihenfolge
-
-1. Privatsphäre-Schalter vor einem echten Community-Release klären.
-2. KI-Job-Historie sichtbar machen oder bewusst stilllegen.
-3. Community und Graph mit kurzen Nutzertests bewerten.
-4. Nach produktiver KI-Erstellung den externen Variantenflow vergleichen.
-5. Demo-Seed und lokale Anmeldung anhand der gewünschten Onboarding-/Offline-Strategie entscheiden.
+Vor `graduieren`, `weiter als Labs` oder `entfernen` werden Nutzerproblem, Zielgruppe, qualitative Evidenz, Erfolgskriterium, Kill-Kriterium, Daten-/Rechtevertrag, Betrieb und Supportaufwand dokumentiert. Danach wird ein ADR in `decisions.md` ergänzt und die offene Aufgabe aus `todo.md` entfernt beziehungsweise angepasst.
