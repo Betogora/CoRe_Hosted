@@ -11,7 +11,13 @@ Each exported screen in this folder is a UI module with a small props interface.
 - `DashboardScreen.tsx`: dashboard metrics, active decks and responsive keyboard-navigable study heatmap.
 - `AuthGateScreen.tsx`: required Supabase login, registration, Google start, Magic Link, reset-link request and password-recovery completion before the app shell opens.
 - `DecksScreen.tsx`: deck library, filtering, parent/child hierarchy, rename, subdeck creation handoff to Learn, drag-and-drop reparenting, CoRe mode controls, card editor and variant prompt UI; opened from the Learn controls.
-- `CreationScreen.tsx`: APKG import, Text/CSV/table paste import, manual creation, PDF/text document mode, Rich Text editing and AI draft creation panels.
+- `CreationScreen.tsx`: composition and completion state for the creation area; keeps the public screen props and creation workflow wiring stable.
+  - `CreationHome.tsx`: manual, import and optional Labs-draft entry cards.
+  - `ManualCreationPanel.tsx`: manual cards, Rich Text fields and optional PDF/text source selection.
+  - `ImportCreationPanel.tsx`: local import-format selection and composition of the two import panels.
+  - `ApkgImportPanel.tsx`: APKG analysis, preview, commit status, media progress and import report presentation.
+  - `TextTableImportPanel.tsx`: Text/CSV/table paste preview and import.
+  - `AiDraftLabPanel.tsx`: local deterministic Labs draft generation, editing and acceptance.
 - `LearnScreen.tsx`: collapsible deck tree, main/subdeck creation, subtree study entry points, direct row drag-and-drop reparenting, new/due/total counts and per-deck learning-settings entry points.
 - `DeckSettingsScreen.tsx`: isolated settings for exactly one deck, using the shared learning-settings panel without exposing the rest of the deck library.
 - `StatisticsScreen.tsx`: performance statistics from local review events, including success rate, rating distribution, streaks, recent trend and deck-level weak spots.
