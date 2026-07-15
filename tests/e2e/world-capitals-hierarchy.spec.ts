@@ -66,48 +66,7 @@ async function countCellRightEdges(row: Locator) {
   });
 }
 
-async function dispatchDeckDrop(page: { getByTestId: (arg0: string) => any; evaluateHandle: (arg0: (deckId: any) => DataTransfer,arg1: any) => any; }, sourceDeckId: any, targetDeckId: any, placement = "content") {
-  const source = page.getByTestId(`learn-deck-row-${sourceDeckId}`);
-  const target = page.getByTestId(`learn-deck-row-${targetDeckId}`);
-  const targetBox = await target.boundingBox();
-  if (!targetBox) throw new Error(`Missing deck row ${targetDeckId}`);
-
-  const pointerX = placement === "outdent" ? 4 : Math.min(260, targetBox.width - 12);
-  const clientX = targetBox.x + pointerX;
-  const clientY = targetBox.y + targetBox.height / 2;
-  const dataTransfer = await page.evaluateHandle((deckId: string) => {
-    const transfer = new DataTransfer();
-    transfer.effectAllowed = "move";
-    transfer.setData("text/plain", deckId);
-    return transfer;
-  }, sourceDeckId);
-
-  try {
-    await source.dispatchEvent("dragstart", { dataTransfer });
-    await target.dispatchEvent("dragover", { dataTransfer, clientX, clientY });
-    await target.dispatchEvent("drop", { dataTransfer, clientX, clientY });
-    await source.dispatchEvent("dragend", { dataTransfer });
-  } finally {
-    await dataTransfer.dispose();
-  }
-}
-
-async function dragLearnDeckToDeck(page: Page, sourceDeckId: string, targetDeckId: string) {
-  await dispatchDeckDrop(page, sourceDeckId, targetDeckId);
-}
-
-async function dragLearnDeckToRowOutdent(page: Page, sourceDeckId: string, targetDeckId: string) {
-  await dispatchDeckDrop(page, sourceDeckId, targetDeckId, "outdent");
-}
-
-async function expectControlDoesNotStartDrag(page: Page, control: Locator) {
-  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
-  await control.dispatchEvent("dragstart", { dataTransfer });
-  await expect.poll(() => dataTransfer.evaluate((transfer: { getData: (arg0: string) => any; }) => transfer.getData("text/plain"))).toBe("");
-  await dataTransfer.dispose();
-}
-
-test("world capitals learn list supports Anki-like direct drag-and-drop reparenting", async ({ page }: any) => {
+test("world capitals learn list is simple and has an explicit learning start", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
@@ -142,10 +101,9 @@ test("world capitals learn list supports Anki-like direct drag-and-drop reparent
 // @ts-expect-error -- Das bestehende dynamische View-/Fixture-Modell wird an dieser lokalen Grenze bewusst eingeengt.
     expect(Math.abs(rootCountEdges[metric] - europeCountEdges[metric])).toBeLessThanOrEqual(2);
   }
-  await expect(europeRow.getByRole("button", { name: /^Lernen$/ })).toHaveCount(0);
-  await expectControlDoesNotStartDrag(page, rootRow.getByRole("button", { name: "Unterstapel ausblenden" }));
-  const europeSettingsButton = europeRow.getByRole("button", { name: "Einstellungen für Europa" });
-  await expectControlDoesNotStartDrag(page, europeSettingsButton);
+  await expect(europeRow.getByRole("button", { name: "Europa lernen" })).toBeVisible();
+  await expect(europeRow).not.toHaveAttribute("draggable", "true");
+  const europeSettingsButton = europeRow.getByRole("button", { name: "Stapeloptionen für Europa" });
   await europeSettingsButton.click();
   await expect(page.getByTestId(`deck-settings-${DECK_IDS.europe}`)).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.europe}$`));
@@ -153,17 +111,6 @@ test("world capitals learn list supports Anki-like direct drag-and-drop reparent
   await expect(page.getByRole("heading", { name: "Europa", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
-
-  await dragLearnDeckToDeck(page, DECK_IDS.southAmerica, DECK_IDS.europe);
-  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toContainText("67");
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toContainText("1 Unterstapel");
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.root}`)).toContainText("245");
-
-  await dragLearnDeckToRowOutdent(page, DECK_IDS.southAmerica, DECK_IDS.europe);
-  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.root);
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toContainText("53");
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.root}`)).toContainText("245");
 });
 
 test("world capitals learn rows start study mode directly", async ({ page }: any) => {
@@ -178,26 +125,25 @@ test("world capitals learn rows start study mode directly", async ({ page }: any
   await expect(europeRow).toBeVisible();
 });
 
-test("deck management does not expose the old drag handle or drop target", async ({ page }: any) => {
+test("deck management moves decks through an explicit keyboard-accessible action", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Kartenstapel" }).click();
 
   await expect(page.getByTestId(`deck-row-${DECK_IDS.root}`)).toBeVisible();
-  await expect(page.getByTestId("deck-top-drop-zone")).toHaveCount(0);
-  await expect(page.getByTestId(`deck-drag-handle-${DECK_IDS.root}`)).toHaveCount(0);
-  const parentDeckIdBefore = await storedParentDeckId(page, DECK_IDS.southAmerica);
+  const moveButton = page.getByTestId(`deck-move-button-${DECK_IDS.southAmerica}`);
+  await moveButton.focus();
+  await page.keyboard.press("Enter");
+  const target = page.getByLabel("Ziel für Südamerika");
+  await target.selectOption(DECK_IDS.europe);
+  await expect(page.getByTestId(`deck-move-summary-${DECK_IDS.southAmerica}`)).toContainText("unter „Europa“");
+  await page.getByRole("button", { name: "Verschieben bestätigen" }).focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
 
-  const dataTransfer = await page.evaluateHandle((sourceDeckId: any) => {
-    const transfer = new DataTransfer();
-    transfer.setData("text/plain", sourceDeckId);
-    return transfer;
-  }, DECK_IDS.southAmerica);
-
-  await page.getByTestId(`deck-row-${DECK_IDS.europe}`).dispatchEvent("dragover", { dataTransfer });
-  await page.getByTestId(`deck-row-${DECK_IDS.europe}`).dispatchEvent("drop", { dataTransfer });
-  await dataTransfer.dispose();
-
-  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(parentDeckIdBefore);
+  await page.getByTestId(`deck-move-button-${DECK_IDS.southAmerica}`).click();
+  await page.getByLabel("Ziel für Südamerika").selectOption(DECK_IDS.root);
+  await page.getByRole("button", { name: "Verschieben bestätigen" }).click();
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.root);
 });

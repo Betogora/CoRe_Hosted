@@ -782,6 +782,14 @@ export function App() {
     }));
   }
 
+  function saveDeckAppearance(deckId: string, appearance: Deck["deckSettings"]["appearance"]) {
+    return updateDeck(deckId, (deck: Deck) => ({
+      ...deck,
+      deckSettings: { ...deck.deckSettings, appearance },
+      updatedAt: new Date().toISOString(),
+    }));
+  }
+
   function saveGlobalLearningSettings(settings: LearningSettingsInput = {}) {
     if (!state) return null;
     return runWorkspaceMutation((currentWorkspace: { saveProfile: (arg0: any) => void; updateAllDecks: (arg0: (deck: any) => any) => any; }) => {
@@ -803,6 +811,10 @@ export function App() {
 
   function deleteDeckCard(deckId: any, cardId: any) {
     return runWorkspaceMutation((currentWorkspace: { deleteDeckCard: (arg0: any,arg1: any) => any; }) => currentWorkspace.deleteDeckCard(deckId, cardId));
+  }
+
+  function restoreDeckCard(deckId: any, cardId: any, versionId: any) {
+    return runWorkspaceMutation((currentWorkspace: { restoreDeckCardVersion: (arg0: any,arg1: any,arg2: any) => any; }) => currentWorkspace.restoreDeckCardVersion(deckId, cardId, versionId));
   }
 
   function addDeckCardVariant(deckId: any, cardId: any, variant: any) {
@@ -941,6 +953,7 @@ export function App() {
         <DeckSettingsScreen
           deck={state.decks.find((deck) => deck.id === focusedDeckId) ?? null}
           onSave={saveDeckLearningSettings}
+          onSaveAppearance={saveDeckAppearance}
           onBack={() => navigateToView("lernen")}
         />
       );
@@ -953,12 +966,14 @@ export function App() {
           onSetDeckCoreMode={setDeckCoreMode}
           onSaveCard={saveDeckCard}
           onDeleteCard={deleteDeckCard}
+          onRestoreCard={restoreDeckCard}
           onAddVariant={addDeckCardVariant}
           onApplyVariantJson={applyVariantJson}
           onStartDeck={startDeck}
           initialSelectedDeckId={focusedDeckId}
           onDeleteDeck={deleteDeck}
           onRenameDeck={renameDeck}
+          onMoveDeck={moveDeck}
           onOpenCardCreation={() => navigateToView("neue-karten")}
           onPrepareSubdeckCreation={openDeckCreation}
           onOpenGraph={openGraph}
@@ -984,7 +999,6 @@ export function App() {
           onOpenCardCreation={() => navigateToView("neue-karten")}
           onOpenDecks={openDecks}
           onOpenDeckSettings={openDeckSettings}
-          onMoveDeck={moveDeck}
         />
       );
     }

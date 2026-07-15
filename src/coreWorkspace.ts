@@ -1,5 +1,5 @@
 import { createCommunity, shareDeckToCommunity } from "./communityModel.ts";
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, updateCardContent } from "./coreModel.ts";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, restoreCardVersion, updateCardContent } from "./coreModel.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.ts";
 import { buildDeckGraph } from "./deckGraph.ts";
@@ -470,6 +470,15 @@ export function createCoreWorkspace(repository: WorkspaceRepository = createCore
         ...deck,
         updatedAt,
         cards: (deck.cards ?? []).map((card) => (card.id === cardId ? updateCardContent(card, patch, reason) : card)),
+      }));
+    },
+    restoreDeckCardVersion(deckId: string, cardId: string, versionId: string) {
+      const updatedAt = new Date().toISOString();
+
+      return repository.updateDeck(deckId, (deck) => ({
+        ...deck,
+        updatedAt,
+        cards: (deck.cards ?? []).map((card) => (card.id === cardId ? restoreCardVersion(card, versionId) : card)),
       }));
     },
     deleteDeckCard(deckId: string, cardId: string) {

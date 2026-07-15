@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, ChevronRight, Copy, FolderPlus, Layers, Network, Pencil, Play, PlusSquare, Save, Search, Share2, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
+import { Check, ChevronRight, Copy, FolderPlus, Layers, MoveRight, Network, Pencil, Play, PlusSquare, RotateCcw, Save, Search, Share2, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
 import { getOriginalVariant, getVariantAnchor } from "../coreModel.ts";
 import { buildCardVariationPrompt, createVariantReviewModel } from "../coreVariantService.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
@@ -14,13 +14,31 @@ function normalizeEditableCardType(kind: string) {
   return cardTypeOptions.some((option) => option.value === kind) ? kind : "basic";
 }
 
-function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, showExternalVariantFlow = false, externalVariantSurface }: any) {
+function versionContent(value: unknown, fallback: LearningItem) {
+  const snapshot = value !== null && typeof value === "object" ? value as Record<string, unknown> : {};
+  return {
+    front: typeof snapshot.originalFront === "string" ? snapshot.originalFront : fallback.originalFront,
+    back: typeof snapshot.originalBack === "string" ? snapshot.originalBack : fallback.originalBack,
+    tags: Array.isArray(snapshot.originalTags) ? snapshot.originalTags.map(String) : fallback.originalTags,
+    kind: typeof snapshot.kind === "string" ? snapshot.kind : fallback.kind,
+  };
+}
+
+function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSaveCard, onDeleteCard, onRestoreCard, onAddVariant, onApplyVariantJson, showExternalVariantFlow = false, externalVariantSurface }: any) {
   const card = cards.find((item: any) => item.id === selectedCardId) ?? cards[0];
-  const [form, setForm] = React.useState<any>(null);
+  const [form, setForm] = React.useState<any>(() => card ? {
+    front: card.originalFront,
+    back: card.originalBack,
+    tags: (card.originalTags ?? []).join(" "),
+    kind: normalizeEditableCardType(card.kind),
+  } : null);
   const [variantForm, setVariantForm] = React.useState({ front: "", back: "", variantLevel: 2 });
   const [showPrompt, setShowPrompt] = React.useState(false);
   const [jsonResponse, setJsonResponse] = React.useState("");
   const [variantStatus, setVariantStatus] = React.useState("");
+  const [restoreVersionId, setRestoreVersionId] = React.useState("");
+  const [confirmRestore, setConfirmRestore] = React.useState(false);
+  const [restoreStatus, setRestoreStatus] = React.useState("");
 
   React.useEffect(() => {
     setForm(
@@ -37,6 +55,12 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
     setShowPrompt(false);
     setJsonResponse("");
     setVariantStatus("");
+  }, [card?.id, card?.updatedAt]);
+
+  React.useEffect(() => {
+    setRestoreVersionId("");
+    setConfirmRestore(false);
+    setRestoreStatus("");
   }, [card?.id]);
 
   if (!card || !form) return null;
@@ -51,6 +75,15 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   const promptPreview = buildCardVariationPrompt(card, promptOptions);
   const originalVariant = getOriginalVariant(card);
   const variants = card.variants ?? [];
+  const restorableVersions = [...(card.versionLog ?? [])].reverse().filter((entry: any) => entry.before && typeof entry.before === "object");
+  const selectedVersion = restorableVersions.find((entry: any) => entry.id === restoreVersionId) ?? null;
+  const currentContent = versionContent({
+    originalFront: card.originalFront,
+    originalBack: card.originalBack,
+    originalTags: card.originalTags,
+    kind: card.kind,
+  }, card);
+  const restoredContent = selectedVersion ? versionContent(selectedVersion.before, card) : null;
 
   function update(key: string, value: string) {
     setForm((current: any) => ({ ...current, [key]: value }));
@@ -95,6 +128,18 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
     const warnings = [...(result?.result?.warnings ?? []), ...(errors ?? [])];
     setVariantStatus(`${created} Varianten übernommen. ${skipped} übersprungen.${warnings.length ? ` ${warnings.join(" ")}` : ""}`);
     if (created > 0) setJsonResponse("");
+  }
+
+  function restoreSelectedVersion() {
+    if (!selectedVersion) return;
+    const result = onRestoreCard(card.id, selectedVersion.id);
+    if (!result) {
+      setRestoreStatus("Die Version konnte nicht wiederhergestellt werden.");
+      return;
+    }
+    setConfirmRestore(false);
+    setRestoreVersionId("");
+    setRestoreStatus("Version wiederhergestellt. Der Restore wurde als neuer Versionseintrag gespeichert.");
   }
 
   return (
@@ -163,7 +208,72 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           <p className="mt-1 text-sm text-[#66709a]">Änderungslogeinträge</p>
         </div>
       </div>
-      <div className="mt-5 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
+      <section className="mt-5 min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4" aria-labelledby={`version-restore-${card.id}`}>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <label className="grid min-w-0 flex-1 gap-2 text-sm font-semibold text-[#4e5b8c]" htmlFor={`version-select-${card.id}`}>
+            <span id={`version-restore-${card.id}`}>Frühere Version wiederherstellen</span>
+            <select
+              id={`version-select-${card.id}`}
+              className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm text-[#17214f]"
+              value={restoreVersionId}
+              onChange={(event) => {
+                setRestoreVersionId(event.target.value);
+                setConfirmRestore(false);
+                setRestoreStatus("");
+              }}
+              aria-label="Version zum Wiederherstellen"
+            >
+              <option value="">Version auswählen</option>
+              {restorableVersions.map((entry: any) => (
+                <option key={entry.id} value={entry.id}>
+                  Stand vor {new Date(entry.createdAt).toLocaleString("de-DE")} · {entry.reason || entry.changeType}
+                </option>
+              ))}
+            </select>
+          </label>
+          {selectedVersion && !confirmRestore ? (
+            <button type="button" onClick={() => setConfirmRestore(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1]">
+              <RotateCcw size={16} aria-hidden="true" />
+              Restore bestätigen
+            </button>
+          ) : null}
+        </div>
+        {restoredContent ? (
+          <div className="mt-4 grid min-w-0 gap-3" data-testid="version-restore-summary">
+            <p className="text-sm text-[#66709a]">Vergleiche den aktuellen Inhalt mit dem Stand, der als neue Version übernommen wird.</p>
+            {[
+              ["Vorderseite", currentContent.front, restoredContent.front],
+              ["Rückseite", currentContent.back, restoredContent.back],
+              ["Tags", currentContent.tags.join(" "), restoredContent.tags.join(" ")],
+              ["Kartentyp", currentContent.kind, restoredContent.kind],
+            ].map(([label, current, restored]) => (
+              <div key={label} className="grid min-w-0 gap-2 rounded-xl border border-[#e3e7f5] p-3 md:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)]">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">{label}</span>
+                <span className="break-words text-sm text-[#17214f]"><span className="font-semibold">Aktuell:</span> {current || "—"}</span>
+                <span className="break-words text-sm text-[#17214f]"><span className="font-semibold">Nach Restore:</span> {restored || "—"}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {confirmRestore && selectedVersion ? (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4" role="group" aria-label="Restore endgültig bestätigen">
+            <p className="text-sm font-semibold text-amber-900">Der gezeigte Stand ersetzt den aktuellen Karteninhalt. Der aktuelle Stand bleibt im Versionsverlauf erhalten.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={restoreSelectedVersion} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white">
+                <RotateCcw size={16} aria-hidden="true" />
+                Wiederherstellen
+              </button>
+              <button type="button" onClick={() => setConfirmRestore(false)} className="min-h-10 rounded-xl border border-[#dfe4f5] bg-white px-4 text-sm font-semibold text-[#4f5eb1]">
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        ) : null}
+        {restoreStatus ? <p className="mt-3 text-sm font-semibold text-[#15705a]" role="status" aria-live="polite">{restoreStatus}</p> : null}
+      </section>
+      <details className="mt-5 min-w-0 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] p-4" data-testid="card-labs-tools">
+        <summary className="cursor-pointer text-sm font-semibold text-[#4f5eb1]">Labs / Erweitert: Varianten und technische Lernwerte</summary>
+        <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
         <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Reifegrad</p>
           <p className="mt-2 break-words text-lg font-semibold text-[#17214f]">{(maturityStageLabels as Record<string, string>)[maturity.stage] ?? maturity.label}</p>
@@ -180,7 +290,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           <p className="mt-2 break-words text-lg font-semibold text-[#17214f]">{coverage.activeRephraseCount} nahe Varianten</p>
           <p className="mt-1 break-words text-sm text-[#66709a]">{coverage.hasEnoughVariants ? "Genug Varianten vorhanden." : "Weitere nahe Umformulierungen möglich."}</p>
         </div>
-      </div>
+        </div>
       {showExternalVariantFlow ? (
         <div className="mt-5 grid gap-3">
           <LabsNotice surfaces={externalVariantSurface as ProductSurface} />
@@ -215,7 +325,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           </div>
         </div>
       ) : null}
-      <div className="mt-5 min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
+        <div className="mt-5 min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Varianten dieser Grundkarte</p>
@@ -260,12 +370,13 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           </button>
           {variantStatus ? <p className="text-sm text-[#66709a]" role="status" aria-live="polite">{variantStatus}</p> : null}
         </div>
-      </div>
+        </div>
+      </details>
     </SoftPanel>
   );
 }
 
-export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onAddVariant, onApplyVariantJson, onStartDeck, onDeleteDeck, onRenameDeck, onOpenCardCreation, onPrepareSubdeckCreation, onOpenGraph, onShareDeck, showGraph = false, showCommunity = false, showExternalVariantFlow = false, externalVariantSurface }: any) {
+export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onRestoreCard, onAddVariant, onApplyVariantJson, onStartDeck, onDeleteDeck, onRenameDeck, onMoveDeck, onOpenCardCreation, onPrepareSubdeckCreation, onOpenGraph, onShareDeck, showGraph = false, showCommunity = false, showExternalVariantFlow = false, externalVariantSurface }: any) {
   const [query, setQuery] = React.useState("");
   const [modeFilter, setModeFilter] = React.useState<CoreMode | "all">("all");
   const [selectedDeckId, setSelectedDeckId] = React.useState(initialSelectedDeckId ?? decks[0]?.id ?? null);
@@ -273,6 +384,8 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
   const [deckStatus, setDeckStatus] = React.useState("");
   const [editingDeckId, setEditingDeckId] = React.useState<any>(null);
   const [renameDraft, setRenameDraft] = React.useState("");
+  const [movingDeckId, setMovingDeckId] = React.useState<any>(null);
+  const [moveTargetId, setMoveTargetId] = React.useState("");
   const library = createDeckLibraryModel(decks, { query, coreMode: modeFilter, selectedDeckId });
   const filteredRows = library.filteredRows;
   const selectedRow = library.selectedRow;
@@ -327,6 +440,38 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
   function cancelRename() {
     setEditingDeckId(null);
     setRenameDraft("");
+  }
+
+  function beginMove(deck: Deck) {
+    setMovingDeckId(deck.id);
+    setMoveTargetId(deck.parentDeckId ?? "");
+    setDeckStatus(`Ziel für "${deck.name}" auswählen.`);
+  }
+
+  function cancelMove() {
+    setMovingDeckId(null);
+    setMoveTargetId("");
+  }
+
+  function submitMove(event: React.SubmitEvent<HTMLFormElement>, deck: Deck) {
+    event.preventDefault();
+    const result = onMoveDeck?.(deck.id, moveTargetId || null);
+    if (result?.error) {
+      setDeckStatus(result.error);
+      return;
+    }
+    if (result?.changedDeckIds?.length === 0) {
+      setMovingDeckId(null);
+      setMoveTargetId("");
+      setDeckStatus(`Stapel "${deck.name}" bleibt an der bisherigen Stelle.`);
+      return;
+    }
+
+    const target = library.rows.find((row) => row.id === moveTargetId)?.deck ?? null;
+    setSelectedDeckId(deck.id);
+    setMovingDeckId(null);
+    setMoveTargetId("");
+    setDeckStatus(target ? `Stapel "${deck.name}" unter "${target.name}" verschoben.` : `Stapel "${deck.name}" auf die Hauptebene verschoben.`);
   }
 
   function submitRename(event: React.SubmitEvent<HTMLFormElement>, deck: Deck) {
@@ -406,6 +551,8 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
             const summary = row.summary;
             const isSelected = selectedRow?.id === row.id;
             const isRenaming = editingDeckId === deck.id;
+            const isMoving = movingDeckId === deck.id;
+            const moveTarget = library.rows.find((candidate) => candidate.id === moveTargetId)?.deck ?? null;
             return (
               <SoftPanel
                 key={row.id}
@@ -462,6 +609,10 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
                     <button type="button" onClick={() => beginRename(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label="Stapel umbenennen" data-testid={`deck-rename-button-${deck.id}`}>
                       <Pencil size={17} aria-hidden="true" />
                     </button>
+                    <button type="button" onClick={() => beginMove(deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#f8f9fe] px-3 text-sm font-semibold text-[#4f5eb1]" aria-label={`${deck.name} verschieben`} data-testid={`deck-move-button-${deck.id}`}>
+                      <MoveRight size={17} aria-hidden="true" />
+                      Verschieben
+                    </button>
                     <button type="button" onClick={() => onStartDeck(deck, false)} className="grid size-10 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]" aria-label="Lernen">
                       <Play size={17} aria-hidden="true" />
                     </button>
@@ -486,6 +637,29 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
                     </button>
                   </div>
                 </div>
+                {isMoving ? (
+                  <form onSubmit={(event) => submitMove(event, deck)} className="mt-4 grid min-w-0 gap-3 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] p-4" data-testid={`deck-move-form-${deck.id}`}>
+                    <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+                      Neuer Elternstapel für „{deck.name}“
+                      <select className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm text-[#17214f]" value={moveTargetId} onChange={(event) => setMoveTargetId(event.target.value)} aria-label={`Ziel für ${deck.name}`} autoFocus>
+                        <option value="">Hauptebene</option>
+                        {library.rows.filter((candidate) => !row.scopeDeckIds.includes(candidate.id)).map((candidate) => (
+                          <option key={candidate.id} value={candidate.id}>{"— ".repeat(candidate.depth)}{candidate.path}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <p className="text-sm text-[#66709a]" data-testid={`deck-move-summary-${deck.id}`}>
+                      {moveTarget ? `„${deck.name}“ wird unter „${moveTarget.name}“ verschoben.` : `„${deck.name}“ wird auf die Hauptebene verschoben.`}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="submit" className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white">
+                        <MoveRight size={16} aria-hidden="true" />
+                        Verschieben bestätigen
+                      </button>
+                      <button type="button" onClick={cancelMove} className="min-h-10 rounded-xl border border-[#dfe4f5] bg-white px-4 text-sm font-semibold text-[#4f5eb1]">Abbrechen</button>
+                    </div>
+                  </form>
+                ) : null}
               </SoftPanel>
             );
           })}
@@ -523,6 +697,7 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
             mediaUrls={selectedDeckMediaUrls}
             onSaveCard={saveCard}
             onDeleteCard={deleteCard}
+            onRestoreCard={(cardId: any, versionId: any) => onRestoreCard(selectedDeck.id, cardId, versionId)}
             onAddVariant={(cardId: any, variant: any) => onAddVariant(selectedDeck.id, cardId, variant)}
             onApplyVariantJson={(cardId: any, response: any, options: any) => onApplyVariantJson(selectedDeck.id, cardId, response, options)}
             showExternalVariantFlow={showExternalVariantFlow}

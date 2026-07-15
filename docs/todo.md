@@ -166,32 +166,11 @@ Empfohlener Vertrag:
 - Ein Klick auf eine Lernzeile startet immer Lernen.
 - Strukturänderungen erfolgen nicht über eine unsichtbare Drag-Geste auf derselben Zeile.
 
-### Aufgabe
+Implementierung und automatisierte Evidenz für den dragfreien Lernstart, explizites und bestaetigtes Verschieben, die reduzierte Stapelanlage, nachgelagerte Darstellungseinstellungen, Labs-Werkzeuge und den auditierbaren Version-Restore sind in `docs/specs.md` dokumentiert.
 
-- [ ] Drag-and-drop aus der normalen Lernliste entfernen.
-- [ ] Reparenting ausschließlich in der Stapelverwaltung mit sichtbarem Griff oder explizitem `Verschieben` anbieten.
-- [ ] Lernliste auf Name, Fälligkeit, neue Karten, Gesamtzahl und Startaktion reduzieren.
-- [ ] Stapelanlage im Lernbereich auf Name und Ziel beschränken; Icon- und Farbwahl in die nachgelagerte Darstellungseinstellung verschieben.
-- [ ] CoRe-Modus im Lernbereich verständlich erklären oder nur als Status anzeigen; Änderung in Stapeloptionen vornehmen.
-- [ ] Kartenbearbeitung, Variantenwerkzeuge, technische Maturity-Werte und Prompt-/JSON-Werkzeuge aus der Standardbibliothek trennen.
-- [ ] Externen Varianten-Prompt nur in Labs/Erweitert anbieten.
-- [ ] Versionen nicht nur zählen: Restore/Undo als echten, bestätigten Nutzerflow umsetzen.
-- [ ] Löschen mit klarer Angabe des betroffenen Stapelbaums und einer sicheren Bestätigung versehen.
+### Verbleibende Evidenz
 
-### Akzeptanz
-
-- Lernstart und Strukturänderung können nicht durch dieselbe versteckte Geste ausgelöst werden.
-- Die Lernliste ist ohne Anleitung bedienbar.
-- Technische Scheduler- und Variantenwerte dominieren nicht die Kartenverwaltung.
-- Ein alter Kartenstand kann sichtbar geprüft und wiederhergestellt werden.
-- Alle Stapelaktionen funktionieren per Tastatur.
-
-### Evidenz
-
-- E2E für Lernstart.
-- E2E für explizites Verschieben und Outdent in der Verwaltung.
-- E2E für Version-Restore.
-- Moderierter Test mit mindestens drei Personen.
+- [ ] Moderierter Test mit mindestens drei Personen.
 
 ---
 

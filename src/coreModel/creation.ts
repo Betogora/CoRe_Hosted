@@ -1,5 +1,5 @@
 import { sanitizeCardHtml } from "../htmlSafety.ts";
-import type { CardField, CardType, CardVariantType, Deck, DeckSource, DraftStatus, LearningItem, LearningItemSourceType, LearningItemStatus, SourceAnchor, TransformType, VariantGenerationSource, VariantQualityStatus } from "../coreTypes.ts";
+import type { CardField, CardType, CardVariantType, Deck, DeckSource, DraftStatus, LearningItem, LearningItemSourceType, LearningItemStatus, SourceAnchor, TransformType, VariantGenerationSource, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
 import { CORE_CARD_TYPES, makeId, stableContentHash } from "./coreValues.ts";
 import { createLearningItemState, createSourceAnchor, createSourceDocument, createVersionEntry, type SourceAnchorInput, type SourceDocument } from "./reviewState.ts";
 import { createCardVariant, createCoreCard, getOriginalVariant, normalizeLearningItem } from "./learningItems.ts";
@@ -711,7 +711,7 @@ export function restoreCardVersion(card: LearningItem, versionId: string): Learn
   if (!version?.before) return card;
 
   const before = objectRecord(version.before);
-  return updateCardContent(
+  const restored = updateCardContent(
     card,
     {
       originalFront: typeof before.originalFront === "string" ? before.originalFront : card.originalFront,
@@ -719,6 +719,15 @@ export function restoreCardVersion(card: LearningItem, versionId: string): Learn
       originalTags: Array.isArray(before.originalTags) ? before.originalTags.map(String) : card.originalTags,
       kind: typeof before.kind === "string" && CORE_CARD_TYPES.includes(before.kind as CardType) ? before.kind as CardType : card.kind,
     },
-    `Restore auf Version ${versionId}`,
+    `Version ${versionId} wiederhergestellt`,
   );
+  const restoreEntry = restored.versionLog.at(-1);
+
+  return {
+    ...restored,
+    versionLog: [
+      ...restored.versionLog.slice(0, -1),
+      restoreEntry ? { ...restoreEntry, changeType: "version_restored" } : restoreEntry,
+    ].filter((entry): entry is VersionEntry => Boolean(entry)),
+  };
 }

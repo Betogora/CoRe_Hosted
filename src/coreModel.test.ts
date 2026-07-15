@@ -10,6 +10,7 @@ import {
   getOriginalVariant,
   normalizeCoreDeck,
   normalizeLearningItem,
+  restoreCardVersion,
   updateCardContent,
 } from "./coreModel.ts";
 
@@ -155,6 +156,27 @@ test("normalizing edited decks preserves immutable originals and version history
   assert.equal(card.immutableOriginal.front, "ATP");
   assert.equal(card.versionLog.some((entry) => entry.changeType === "content_updated"), true);
   assert.equal(normalized.versionLog.length, deck.versionLog.length);
+});
+
+test("restoring card content appends a traceable version instead of erasing history", () => {
+  const original = createBasicLearningItem("deck-1", "Alte Frage", "Alte Antwort");
+  const edited = updateCardContent(original, { originalFront: "Neue Frage", originalBack: "Neue Antwort" });
+  const editedVersion = edited.versionLog.at(-1);
+  assert.ok(editedVersion);
+
+  const restored = restoreCardVersion(edited, editedVersion.id);
+  const restoreEntry = restored.versionLog.at(-1);
+
+  assert.equal(restored.originalFront, "Alte Frage");
+  assert.equal(restored.originalBack, "Alte Antwort");
+  assert.equal(restored.versionLog.length, edited.versionLog.length + 1);
+  assert.equal(restoreEntry?.changeType, "version_restored");
+  assert.deepEqual(restoreEntry?.before, {
+    originalFront: "Neue Frage",
+    originalBack: "Neue Antwort",
+    originalTags: edited.originalTags,
+    kind: edited.kind,
+  });
 });
 
 test("content edits preserve the supported original variant type", () => {

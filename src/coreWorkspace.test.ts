@@ -507,6 +507,23 @@ test("workspace card maintenance hides editing and delete invariants", () => {
   assert.equal(deletedCard.versionLog.some((entry) => entry.changeType === "deleted"), true);
 });
 
+test("workspace restores a card version through the canonical repository mutation", () => {
+  const workspace = createTestWorkspace();
+  const deck = workspace.createDemoDeck();
+  const card = deck.cards[0];
+  const editedDeck = workspace.saveDeckCardContent(deck.id, card.id, { originalFront: "Geänderte Frage" });
+  const editedCard = editedDeck?.cards.find((item) => item.id === card.id);
+  const versionId = editedCard?.versionLog.at(-1)?.id;
+  assert.ok(versionId);
+
+  const restoredDeck = workspace.restoreDeckCardVersion(deck.id, card.id, versionId);
+  const restoredCard = restoredDeck?.cards.find((item) => item.id === card.id);
+
+  assert.equal(restoredCard?.originalFront, card.originalFront);
+  assert.equal(restoredCard?.versionLog.at(-1)?.changeType, "version_restored");
+  assert.equal(restoredCard?.versionLog.length, (editedCard?.versionLog.length ?? 0) + 1);
+});
+
 test("workspace variant commands support the UI editor without changing originals", () => {
   const workspace = createTestWorkspace();
   const deck = workspace.createDemoDeck();

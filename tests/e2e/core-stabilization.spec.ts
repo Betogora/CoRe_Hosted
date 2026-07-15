@@ -27,6 +27,11 @@ async function variantReviewEventCount(page: Page, deckId: string) {
   return state.decks?.find((deck: { id: any; }) => deck.id === deckId)?.reviewEvents?.filter((event: { reviewableType: string; }) => event.reviewableType === "variant").length ?? 0;
 }
 
+async function storedCard(page: Page, deckId: string, cardId: string) {
+  const state = await readAppState(page);
+  return state.decks?.find((deck: { id: string }) => deck.id === deckId)?.cards?.find((card: { id: string }) => card.id === cardId) ?? null;
+}
+
 async function storedDeckCountBySource(page: Page, source: string) {
   const state = await readAppState(page);
   return state.decks?.filter((deck: { source: any; }) => deck.source === source).length ?? 0;
@@ -151,7 +156,7 @@ test("variant review flow can be prepared from the deck editor", async ({ page }
   const variantEventsBefore = await variantReviewEventCount(page, DECK_IDS.africa);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Einstellungen für Afrika" }).click();
+  await page.getByRole("button", { name: "Stapeloptionen für Afrika" }).click();
   await page.getByLabel("Neue Karten pro Tag als Zahl").fill("0");
   await page.getByLabel("Reviews pro Tag als Zahl").fill("1");
   await page.getByRole("button", { name: "Änderungen speichern" }).click();
@@ -160,6 +165,7 @@ test("variant review flow can be prepared from the deck editor", async ({ page }
   await page.getByRole("button", { name: "Kartenstapel" }).click();
   await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
+  await page.getByTestId("card-labs-tools").getByText("Labs / Erweitert").click();
   await page.getByLabel("Variantenfrage").fill("Welche Hauptstadt hat Côte d'Ivoire?");
   await page.getByLabel("Variantenantwort").fill("Yamoussoukro");
   await page.getByRole("button", { name: "Umformulierung hinzufügen" }).click();
@@ -183,6 +189,37 @@ test("variant review flow can be prepared from the deck editor", async ({ page }
   await expect(page.getByText("1 Karte beantwortet.")).toBeVisible();
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.africa}`)).toBeVisible();
+});
+
+test("card version restore shows a comparison, requires confirmation and appends an audit entry", async ({ page }: any) => {
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByRole("button", { name: "Kartenstapel" }).click();
+  await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
+  await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
+
+  const state = await readAppState(page);
+  const originalCard = state.decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).cards.find((card: { originalFront: string }) => card.originalFront === "Was ist die Hauptstadt von Côte d'Ivoire?");
+  const originalVersionCount = originalCard.versionLog.length;
+  const resolvedCardId = originalCard.id;
+
+  await page.getByLabel("Karten-Vorderseite").fill("Welche Stadt ist die Hauptstadt der Côte d'Ivoire?");
+  await page.getByRole("button", { name: "Speichern" }).click();
+  await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, resolvedCardId))?.originalFront).toBe("Welche Stadt ist die Hauptstadt der Côte d'Ivoire?");
+
+  const versionSelect = page.getByLabel("Version zum Wiederherstellen");
+  const versionId = await versionSelect.locator("option").nth(1).getAttribute("value");
+  await versionSelect.selectOption(versionId ?? "");
+  await expect(page.getByTestId("version-restore-summary")).toContainText("Aktuell: Welche Stadt ist die Hauptstadt der Côte d'Ivoire?");
+  await expect(page.getByTestId("version-restore-summary")).toContainText("Nach Restore: Was ist die Hauptstadt von Côte d'Ivoire?");
+  await page.getByRole("button", { name: "Restore bestätigen" }).click();
+  await expect(page.getByRole("group", { name: "Restore endgültig bestätigen" })).toBeVisible();
+  await page.getByRole("button", { name: "Wiederherstellen", exact: true }).click();
+
+  await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, resolvedCardId))?.originalFront).toBe("Was ist die Hauptstadt von Côte d'Ivoire?");
+  const restoredCard = await storedCard(page, DECK_IDS.africa, resolvedCardId);
+  expect(restoredCard.versionLog).toHaveLength(originalVersionCount + 2);
+  expect(restoredCard.versionLog.at(-1)?.changeType).toBe("version_restored");
 });
 
 test("ai draft creation stores an accepted draft deck", async ({ page }: any) => {
