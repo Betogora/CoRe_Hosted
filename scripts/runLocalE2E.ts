@@ -16,7 +16,8 @@ const TSX_CLI_PATH = path.join(process.cwd(), "node_modules", "tsx", "dist", "cl
 const AI_JOB_RLS_TEST_NAME = "ai-job-ledger-smoke.test.ts";
 const OWNERSHIP_RLS_TEST_NAME = "ownership-smoke.test.ts";
 const GOLDEN_E2E_TAG = "@golden-e2e";
-const GATES = ["pr", "golden", "core-rls", "rls", "release"] as const;
+const BETA_CORE_TAG = "@beta-core";
+const GATES = ["pr", "golden", "beta", "core-rls", "rls", "release"] as const;
 type LocalGate = (typeof GATES)[number];
 const ALL_RLS_TEST_PATHS = readdirSync(path.join(process.cwd(), "tests", "rls"))
   .filter((fileName) => fileName.endsWith(".test.ts"))
@@ -98,9 +99,10 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
   const gate = (legacyRlsOnly ? "rls" : gateArgument?.slice("--gate=".length) ?? "release") as LocalGate;
   if (!GATES.includes(gate)) throw new Error(`Unbekanntes lokales Testgate: ${gate}.`);
   const forwardedPlaywrightArguments = playwrightArguments.filter((argument) => argument !== "--rls-only" && !argument.startsWith("--gate="));
-  const runCoreRls = gate === "pr" || gate === "core-rls";
+  const runCoreRls = gate === "pr" || gate === "beta" || gate === "core-rls";
   const runFullRls = gate === "rls" || gate === "release";
   const runGoldenE2E = gate === "pr" || gate === "golden";
+  const runBetaE2E = gate === "beta";
   const runFullE2E = gate === "release";
 
   try {
@@ -152,27 +154,32 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
         env: { ...testEnvironment, CORE_RLS_GATE: runCoreRls ? "core" : "release" },
       });
 
-      if (!AI_JOB_RLS_TEST_PATH) throw new Error(`Der RLS-Smoke ${AI_JOB_RLS_TEST_NAME} fehlt.`);
-      console.log("Vertrag serverautoritatives Job-Ledger separat mit lokalem Secret prüfen …");
-      await runCommand(process.execPath, [TSX_CLI_PATH, "--test", "--test-concurrency=1", AI_JOB_RLS_TEST_PATH], {
-        env: createLocalPrivilegedTestEnvironment(statusEnvironment, process.env),
-      });
+      if (runFullRls) {
+        if (!AI_JOB_RLS_TEST_PATH) throw new Error(`Der RLS-Smoke ${AI_JOB_RLS_TEST_NAME} fehlt.`);
+        console.log("Vertrag serverautoritatives Job-Ledger separat mit lokalem Secret prüfen …");
+        await runCommand(process.execPath, [TSX_CLI_PATH, "--test", "--test-concurrency=1", AI_JOB_RLS_TEST_PATH], {
+          env: createLocalPrivilegedTestEnvironment(statusEnvironment, process.env),
+        });
+      }
     }
 
-    if (runGoldenE2E || runFullE2E) {
-      console.log(runGoldenE2E
+    if (runGoldenE2E || runBetaE2E || runFullE2E) {
+      console.log(runBetaE2E
+        ? "Beta-Core-Verträge einschließlich Auth, Medien, Portabilität und Konflikten ausführen …"
+        : runGoldenE2E
         ? "Fünf Golden-E2E-Produktverträge gegen lokales Supabase ausführen …"
         : "Vollständige Playwright-Suite einschließlich Medien- und Restore-Pfaden ausführen …");
-      if (runGoldenE2E) {
+      if (runGoldenE2E || runBetaE2E) {
         await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--project=auth-setup"], {
           env: testEnvironment,
         });
       }
-      const selectedArguments = runGoldenE2E
-        ? ["--grep", GOLDEN_E2E_TAG, "--no-deps", ...forwardedPlaywrightArguments]
+      const selectedTag = runBetaE2E ? BETA_CORE_TAG : GOLDEN_E2E_TAG;
+      const selectedArguments = runGoldenE2E || runBetaE2E
+        ? ["--grep", selectedTag, "--no-deps", ...forwardedPlaywrightArguments]
         : forwardedPlaywrightArguments;
       await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", ...selectedArguments], {
-        env: testEnvironment,
+        env: { ...testEnvironment, CORE_BETA_GATE: runBetaE2E ? "true" : "" },
       });
     }
   } finally {

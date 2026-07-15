@@ -32,6 +32,7 @@ test("classifies every product surface as core, labs, or disabled", () => {
 test("exposes labs only in development or explicit labs mode", () => {
   assert.equal(createProductSurfaceRegistry().isAvailable("graph"), false);
   assert.equal(createProductSurfaceRegistry({ DEV: true }).isAvailable("graph"), true);
+  assert.equal(createProductSurfaceRegistry({ DEV: true, VITE_ENABLE_LABS: "false" }).isAvailable("graph"), false);
   assert.equal(createProductSurfaceRegistry({ VITE_ENABLE_LABS: "true" }).isAvailable("community-demo"), true);
   assert.equal(createProductSurfaceRegistry({ VITE_ENABLE_LABS: "0" }).isAvailable("assistant-chat"), false);
 });

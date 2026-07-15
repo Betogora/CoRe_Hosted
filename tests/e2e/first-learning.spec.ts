@@ -69,7 +69,7 @@ test("leerer Account erstellt die erste manuelle Karte und erreicht den Review",
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible();
 });
 
-test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e leerer Account importiert eine kleine APKG und erreicht den Review", async ({ page }) => {
+test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core leerer Account importiert eine kleine APKG und erreicht den Review", async ({ page }) => {
   await page.getByRole("button", { name: /Anki-Stapel importieren/ }).click();
   await expect(page).toHaveURL(/\/neue-karten\?method=import$/);
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(SMALL_APKG_FIXTURE);

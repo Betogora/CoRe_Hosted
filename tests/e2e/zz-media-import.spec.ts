@@ -21,7 +21,7 @@ test.beforeAll(async () => {
   ]);
 });
 
-test("APKG-Medium wird nach dem Deck-Commit cloudbestätigt und als Signed URL gerendert", async ({ page }) => {
+test("@beta-core @hosted-core APKG-Medium wird nach dem Deck-Commit cloudbestätigt und als Signed URL gerendert", async ({ page }) => {
   test.setTimeout(180_000);
   await resetToFreshLocalState(page);
 

@@ -12,7 +12,7 @@ test.describe("lokaler Auth-Lifecycle", () => {
     await clearAuthMailbox(environment!.mailpitUrl);
   });
 
-  test("[Vertrag: erster Account bis erster Review] @golden-e2e Registrierung führt über E-Mail-Bestätigung zur ersten Karte", async ({ page }) => {
+  test("[Vertrag: erster Account bis erster Review] @golden-e2e @beta-core Registrierung führt über E-Mail-Bestätigung zur ersten Karte", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Account erstellen", exact: true }).click();
     await page.getByLabel("Anzeigename").fill("Auth Lifecycle");
@@ -56,7 +56,7 @@ test.describe("lokaler Auth-Lifecycle", () => {
     await expect(page.getByRole("alert")).toContainText("abgelaufen oder wurde bereits verwendet");
   });
 
-  test("Recovery ersetzt das Passwort und nur das neue Passwort meldet danach an", async ({ page }) => {
+  test("@beta-core Recovery ersetzt das Passwort und nur das neue Passwort meldet danach an", async ({ page }) => {
     await requestEmailLink(page, "Passwort vergessen", environment!.recoveryEmail, "Reset-Link senden");
     const message = await waitForAuthEmail(environment!.mailpitUrl, {
       recipient: environment!.recoveryEmail,

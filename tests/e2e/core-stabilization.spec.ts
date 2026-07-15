@@ -182,7 +182,7 @@ test("offline changes stay pending and flush when the browser reconnects", async
   }
 });
 
-test("[Vertrag: Review über Offline, Reconnect und Reload] @golden-e2e ein offline beantwortetes Review wird genau einmal cloudbestätigt", async ({ page, context }: any) => {
+test("[Vertrag: Review über Offline, Reconnect und Reload] @golden-e2e @beta-core @hosted-core ein offline beantwortetes Review wird genau einmal cloudbestätigt", async ({ page, context }: any) => {
   await resetToFreshLocalState(page);
   const environment = loadE2EEnvironment();
   const client = createClient(environment.supabaseUrl, environment.publishableKey, {
@@ -242,7 +242,7 @@ test("review flow records a rating through accessible controls", async ({ page }
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
 });
 
-test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e Variantenfeedback bleibt kontrolliert und reviewbar", async ({ page }: any) => {
+test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-core @hosted-core Variantenfeedback bleibt kontrolliert und reviewbar", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   const variantEventsBefore = await variantReviewEventCount(page, DECK_IDS.africa);
 
@@ -338,7 +338,7 @@ test("ai draft creation stores an accepted draft deck", async ({ page }: any) =>
   await expect.poll(() => storedDeckCountBySource(page, "ai-assisted")).toBeGreaterThan(aiDecksBefore);
 });
 
-test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e Quellenanker und Kartenänderung bleiben im Review erhalten", async ({ page }: any) => {
+test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-core @hosted-core Quellenanker und Kartenänderung bleiben im Review erhalten", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
@@ -432,7 +432,7 @@ test("assistant smoke returns a server answer through the hidden dashboard entry
   await expect(page.getByText("Gemma: Algier ist die Hauptstadt von Algerien.")).toBeVisible();
 });
 
-test("local portability export and import expose status and validation errors", async ({ page }: any) => {
+test("@beta-core @hosted-core local portability export and import expose status and validation errors", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
@@ -470,7 +470,7 @@ test("local portability export and import expose status and validation errors", 
   await expect(page.getByRole("status").filter({ hasText: "Export validiert" })).toBeVisible();
 });
 
-test("settings resolve and persist an account-bound sync conflict", async ({ page }: any) => {
+test("@beta-core @hosted-core settings resolve and persist an account-bound sync conflict", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   const environment = loadE2EEnvironment();
   const client = createClient(environment.supabaseUrl, environment.publishableKey, {

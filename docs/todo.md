@@ -108,6 +108,11 @@ Akzeptanzgate:
 
 P2 beginnt erst nach bestandenem P0-Gate.
 
+## P2.0 Hosted Beta-Gate
+
+- [ ] `@hosted-core` mit dediziertem Smoke-Account auf Preview und staged Production ausführen.
+- [ ] Nach Promotion Login, Cloud-Laden, Review mit Save/Reload und Abmeldung auf der kanonischen Production wiederholen.
+
 ## P2.1 Hosted Auth
 
 - [ ] E-Mail-/Passwort-Registrierung, Bestätigung, Recovery und erneuten Login hosted abnehmen.
@@ -125,8 +130,7 @@ P2 beginnt erst nach bestandenem P0-Gate.
 
 ## P2.3 Monitoring und Wiederherstellung
 
-- [ ] Minimalen Betriebsüberblick für Vercel, Supabase Auth/DB/Storage und KI-Route definieren.
-- [ ] Fehlerbudgets und Alarmgrenzen nur für Kernflows festlegen.
+- [ ] Realen Alarmempfang für Hosted-Core-Smoke sowie Vercel-/Supabase-Kernsignale nachweisen.
 - [ ] DB-Restore und Storage-Restore getrennt in einem Testprojekt prüfen.
 - [ ] Einen Supportweg für Datenverlust-, Login- und Sync-Probleme schaffen.
 

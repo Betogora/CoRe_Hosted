@@ -79,7 +79,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  full-release-gate:
+  beta-core-gate:
     if: github.event_name != 'pull_request'
     needs: quality
     runs-on: ubuntu-latest
@@ -100,14 +100,50 @@ jobs:
       - name: Chromium installieren
         run: npx playwright install --with-deps chromium
 
-      - name: Vollständiges Supabase-, Medien-, APKG- und Restore-Gate ausführen
-        run: npm run test:release:local
+      - name: Freigegebenen Beta-Kern prüfen
+        run: npm run test:beta
 
-      - name: Fehlerartefakte des Release-Gates hochladen
+      - name: Fehlerartefakte des Beta-Core-Gates hochladen
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: full-release-gate-failure-${{ github.run_id }}
+          name: beta-core-gate-failure-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  extended-paths:
+    if: github.event_name != 'pull_request'
+    needs: beta-core-gate
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v7
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Chromium installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: Optionale Labs-, Heavy- und Großdateipfade prüfen
+        run: npm run test:release:local
+
+      - name: Fehlerartefakte der erweiterten Pfade hochladen
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: extended-paths-failure-${{ github.run_id }}
           path: |
             playwright-report/
             test-results/

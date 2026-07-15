@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 import { e2eAuthStatePath } from "./tests/e2e/support/e2eEnvironment.ts";
 
+const betaCoreGate = process.env.CORE_BETA_GATE === "true";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
@@ -24,9 +26,10 @@ export default defineConfig({
       url: "http://127.0.0.1:5190/",
       env: {
         ...process.env,
-        VITE_ENABLE_LABS: "true",
-        VITE_ENABLE_GOOGLE_AUTH: "true",
-        VITE_ENABLE_MAGIC_LINK: "true",
+        VITE_ENABLE_LABS: betaCoreGate ? "false" : "true",
+        VITE_ENABLE_SERVER_APKG_IMPORT: "",
+        VITE_ENABLE_GOOGLE_AUTH: betaCoreGate ? "" : "true",
+        VITE_ENABLE_MAGIC_LINK: betaCoreGate ? "" : "true",
       },
       reuseExistingServer: false,
       timeout: 60_000,

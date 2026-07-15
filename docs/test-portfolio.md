@@ -8,7 +8,7 @@ Stand: 15. Juli 2026. Laufzeiten sind auf einem bereits eingerichteten lokalen E
 - `contract`: öffentliche Modul-, Payload-, Sicherheits-, UI-Copy-, Schema- oder Boundary-Verträge. Externe Systeme werden dabei ersetzt oder mit einem engen Smoke geprüft.
 - `integration`: Zusammenspiel mehrerer produktiver Module oder persistenter lokaler Adapter ohne vollständige Nutzerreise.
 - `golden-e2e`: genau fünf verpflichtende Nutzerziele durch Browser, App und lokales Supabase. Der Testname beginnt mit dem betroffenen Vertrag.
-- `heavy-release`: ressourcen- oder zeitintensive Infrastrukturpfade. Sie blockieren `main`, Nightly, Releases und manuelle Vollabnahmen, aber nicht jeden Pull Request.
+- `heavy-release`: ressourcen- oder zeitintensive Infrastruktur-, Labs- oder Großdateipfade. Sie laufen als erweiterte Diagnose, blockieren aber das Beta-Core-Gate nicht, solange kein freigegebener Core-Vertrag betroffen ist.
 
 Die ausführbare Zuordnung der TypeScript-Modultests liegt in `scripts/runModuleTests.ts`. Neue `src/**/*.test.ts(x)`-Dateien sind zunächst `unit`; API- und Screen-Tests sind `contract`. Abweichende Contract- und Integration-Suites werden dort ausdrücklich zugeordnet.
 
@@ -31,6 +31,8 @@ Die ausführbare Zuordnung der TypeScript-Modultests liegt in `scripts/runModule
 | Serverseitiger Groß-APKG-Vertrag und Benchmark | `heavy-release` | Die Umschaltung oberhalb 250 MiB, ZIP-/Byte-Limits, serverseitige Jobprojektion, serverseitige Archiv-/Medienprüfung und der reproduzierbare große Browser-Parserpfad bleiben belastbar. | Benchmark unter 2 s; vollständiges Release-Gate etwa 4–6 min | Node.js, Python; im vollen Gate lokales Supabase | `main`, nightly, release, manuell |
 | Portabilitäts- und Restore-Flows | `heavy-release` | Export/Import redigiert Authdaten, validiert Versionen, erhält lokale Konfliktgewinner; Karten-Restore ist bestätigt und auditierbar. | etwa 1–2 min | Chromium, Docker, lokales Supabase, Download-Dateisystem | `main`, nightly, release, manuell |
 
+Die mit `@beta-core` markierte Auswahl ergänzt die fünf Golden-Flows um Passwort-Recovery, einen kleinen realen APKG-Medienimport, Portabilitätsgrenzen und Konfliktauflösung. `@hosted-core` bezeichnet den hosted-tauglichen Teil ohne Mailpit-Lifecycle. Registrierung, Bestätigung und Recovery werden hosted separat mit realer SMTP-Zustellung abgenommen.
+
 Eine globale Storage-Orphan-Reconciliation und ein betrieblicher Postgres-Backup-/Disaster-Restore sind noch keine implementierten Produktverträge. Das Heavy-Gate schützt den heute vorhandenen vollständigen Medienreferenz-, Portabilitäts- und Karten-Restore-Umfang und darf nicht als Nachweis für diese späteren Betriebsfunktionen bezeichnet werden.
 
 ## Gates und lokale Befehle
@@ -38,13 +40,15 @@ Eine globale Storage-Orphan-Reconciliation und ein betrieblicher Postgres-Backup
 - PR-Qualität: `npm run typecheck`, `npm run test:unit-contract`, `npm run build`.
 - PR-Produktgate: `npm run test:pr:local`; startet einmal lokales Supabase und führt Kern-RLS plus genau die fünf mit `@golden-e2e` markierten Flows aus.
 - Golden isoliert: `npm run test:e2e:golden:local`.
+- Beta-Core lokal: `npm run test:beta`; führt Quality, Integration, Kern-RLS und ausschließlich die mit `@beta-core` markierten Core-Flows aus. Labs, Google/Magic Link und serverseitige APKG über 250 MiB bleiben deaktiviert.
+- Beta-Core hosted: `npm run test:beta:hosted`; läuft mit dediziertem Testaccount gegen die in `CORE_HOSTED_BASE_URL` gesetzte Preview-, staged-Production- oder Production-URL. Die erforderlichen Variablennamen und Sicherheitsgrenzen stehen in [`operations.md`](operations.md#hosted-core-smoke).
 - Vollständiges RLS isoliert: `npm run test:rls:local`.
 - Vollständige lokale Infrastruktur: `npm run test:release:local`; Integration, komplette RLS-/Playwright-Suite und Groß-APKG-Benchmark.
-- Vollständige lokale Release-Abnahme: `npm run test:release`; entspricht Quality-Gate plus vollständiger lokaler Infrastruktur.
+- Erweiterte lokale Vollabnahme: `npm run test:release`; entspricht Quality-Gate plus vollständiger lokaler Infrastruktur, ist aber kein Beta-Core-Gate.
 
 Referenzmessung am 15. Juli 2026: `npm run test:pr:local` 2:20 einschließlich Supabase-Start, Kern-RLS, separatem Auth-Setup und fünf Golden-Flows; `npm run test:release:local` 5:24 einschließlich Integration, vollständigem RLS/TUS/Zwei-Geräte-Gate, 40 Browserflows sowie server- und browserseitigem APKG-Benchmark.
 
-`.github/workflows/ci.yml` führt das PR-Produktgate parallel zum Quality-Gate aus. Pushes auf `main`, veröffentlichte Releases, der tägliche Nightly-Lauf und `workflow_dispatch` führen nach dem Quality-Gate das vollständige Release-Gate aus.
+`.github/workflows/ci.yml` führt das PR-Produktgate parallel zum Quality-Gate aus. Pushes auf `main`, veröffentlichte Releases, der tägliche Nightly-Lauf und `workflow_dispatch` führen danach das blockierende Beta-Core-Gate aus. Labs-, Heavy- und Großdateipfade laufen separat mit `continue-on-error` und können die Core-Freigabe nicht vortäuschen oder unnötig blockieren.
 
 ## Pflegevertrag
 

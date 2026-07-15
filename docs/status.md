@@ -42,8 +42,8 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core
 ## Bekannte Lücken
 
 - Das P0-Produktgate mit moderierten Tests, Zielviewports, Tastatur- und Screenreader-Abnahme ist offen.
-- Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.
-- Monitoring, Restore-Proben, Supportweg und Storage-Orphan-GC fehlen.
+- Hosted-Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.
+- Das ausführbare Beta-Core-Gate und der minimale Monitoring-/Alarmvertrag sind vorhanden; realer Alarmempfang sowie getrennte DB-/Storage-Restore-Proben fehlen noch.
 - Vollständiger Offline-Kaltstart/PWA, Medienexport und Community-Sharing von Medien fehlen.
 - Der vorbereitete Großdatei-APKG-Pfad ist nicht hosted freigegeben.
 - Labs haben noch keine vollständigen Graduations- oder Rückbauentscheidungen.

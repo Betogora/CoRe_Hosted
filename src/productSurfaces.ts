@@ -118,6 +118,10 @@ function isExplicitlyEnabled(value: string | boolean | undefined): boolean {
   return ["1", "true", "yes", "on"].includes(String(value ?? "").trim().toLowerCase());
 }
 
+function hasExplicitSwitchValue(value: string | boolean | undefined): boolean {
+  return typeof value === "boolean" || String(value ?? "").trim() !== "";
+}
+
 export interface ProductSurfaceRegistry {
   labsEnabled: boolean;
   list(): ProductSurface[];
@@ -127,7 +131,9 @@ export interface ProductSurfaceRegistry {
 }
 
 export function createProductSurfaceRegistry(environment: ProductSurfaceEnvironment = {}): ProductSurfaceRegistry {
-  const labsEnabled = environment.DEV === true || isExplicitlyEnabled(environment.VITE_ENABLE_LABS);
+  const labsEnabled = hasExplicitSwitchValue(environment.VITE_ENABLE_LABS)
+    ? isExplicitlyEnabled(environment.VITE_ENABLE_LABS)
+    : environment.DEV === true;
   const byId = new Map<ProductSurfaceId, ProductSurface>(surfaces.map((surface) => [surface.id, surface]));
 
   function get(id: ProductSurfaceId): ProductSurface {

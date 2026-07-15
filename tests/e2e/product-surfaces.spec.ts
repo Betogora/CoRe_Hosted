@@ -19,6 +19,22 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   await expect(page.getByRole("button", { name: "Einstellungen öffnen" })).toBeVisible();
 });
 
+test("@beta-core @hosted-core Beta-Artefakt hält Labs, zusätzliche Anmeldung und Großdatei-APKG deaktiviert", async ({ page }) => {
+  await resetToFreshLocalState(page);
+
+  await expect(page.locator("summary").filter({ hasText: "Labs" })).toHaveCount(0);
+  await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
+  await expect(page.getByRole("button", { name: /Lokaler Entwurfsassistent/ })).toHaveCount(0);
+  await page.getByRole("button", { name: /APKG, Text, Tabellen/ }).click();
+  await expect(page.getByText("Freigegebene Dateigröße: bis 250 MiB.")).toBeVisible();
+  await expect(page.getByText("Explizit freigegeben bis 1 GiB.")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await page.getByRole("button", { name: "Abmelden" }).click();
+  await expect(page.getByRole("button", { name: "Mit Google anmelden" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Magic Link" })).toHaveCount(0);
+});
+
 test("creation choices stay compact in both desktop target viewports", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
