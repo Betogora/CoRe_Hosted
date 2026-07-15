@@ -2,14 +2,15 @@ import React from "react";
 import { AlertCircle, ArrowLeft, Bot, CheckCircle2, Database, FileArchive, FileSpreadsheet, FileText, Loader2, PenLine, Pin, PinOff, Trash2, Upload, WandSparkles } from "lucide-react";
 import { createCreationWorkflow, type ApkgCreationPreview } from "../creationWorkflow.ts";
 import { createServerApkgImportClient } from "../serverApkgImport.ts";
-import type { ApkgImportProgress } from "../serverApkgImportContract.ts";
+import { LOCAL_APKG_MAX_BYTES, type ApkgImportProgress } from "../serverApkgImportContract.ts";
 import type { ApkgImportReportV1 } from "../apkgImport.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
-import { OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { LabsNotice, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { cardTypeOptions, formatBytes, importSteps } from "./screenConstants.ts";
 import type { SourceDocument } from "../coreTypes.ts";
+import type { ProductSurface } from "../productSurfaces.ts";
 
 const creationWorkflow = createCreationWorkflow();
 const manualCardTypeOptions = cardTypeOptions;
@@ -76,7 +77,7 @@ function TabButton({ icon: Icon, label, isActive, onClick }: any) {
   );
 }
 
-function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, mediaStore }: any) {
+function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, mediaStore, serverApkgEnabled = false }: any) {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [job, setJob] = React.useState<any>(null);
   const [preview, setPreview] = React.useState<ApkgCreationPreview | null>(null);
@@ -112,6 +113,16 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
     setPreview(null);
     setServerProgress(null);
     setMediaStatus(null);
+    if (file.size > LOCAL_APKG_MAX_BYTES && !serverApkgEnabled) {
+      setJob({
+        fileName: file.name,
+        fileSize: file.size,
+        status: "error",
+        warnings: [],
+        errors: ["In dieser Umgebung sind APKG-Dateien bis 250 MiB freigegeben."],
+      });
+      return;
+    }
     setJob({ fileName: file.name, fileSize: file.size, status: "parsing", warnings: [], errors: [] });
     setIsParsing(true);
 
@@ -232,6 +243,7 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
           <Upload className="mb-4 text-teal-700" size={32} aria-hidden="true" />
           <span className="text-base font-semibold text-[#17214f]">.apkg-Datei ablegen oder auswählen</span>
           <span className="mt-2 max-w-md text-sm leading-6 text-[#66709a]">Decks, Notes, Karten, Tags, Medienreferenzen und Raw-Fallbacks.</span>
+          <span className="mt-1 max-w-md text-xs leading-5 text-[#66709a]">{serverApkgEnabled ? "Explizit freigegeben bis 1 GiB." : "Freigegebene Dateigröße: bis 250 MiB."}</span>
           <input className="sr-only" type="file" accept=".apkg" onChange={handleFileInput} />
         </label>
 
@@ -851,7 +863,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
   );
 }
 
-function AiCreationPanel({ onCreated, onJob }: any) {
+function AiCreationPanel({ onCreated, onJob, surface }: { onCreated: any; onJob: any; surface: ProductSurface }) {
   const [config, setConfig] = React.useState<any>({
     language: "Deutsch",
     cardCount: 6,
@@ -908,7 +920,9 @@ function AiCreationPanel({ onCreated, onJob }: any) {
   }
 
   return (
-    <SoftPanel className="p-6">
+    <div className="grid gap-5">
+      <LabsNotice surfaces={surface} />
+      <SoftPanel className="p-6">
       <div className="mb-5 flex items-center gap-3">
         <OrbIcon icon={WandSparkles} className="bg-indigo-50 text-indigo-700" />
         <div>
@@ -1011,7 +1025,8 @@ function AiCreationPanel({ onCreated, onJob }: any) {
           )}
         </div>
       </div>
-    </SoftPanel>
+      </SoftPanel>
+    </div>
   );
 }
 
@@ -1022,7 +1037,7 @@ const importMethods = [
   { id: "spreadsheet", label: "Excel/Tabelle", icon: FileSpreadsheet },
 ];
 
-function ImportCreationPanel({ decks = [], onCreated, workflow, mediaStore }: any) {
+function ImportCreationPanel({ decks = [], onCreated, workflow, mediaStore, serverApkgEnabled = false }: any) {
   const [selectedImport, setSelectedImport] = React.useState("anki");
 
   return (
@@ -1032,7 +1047,7 @@ function ImportCreationPanel({ decks = [], onCreated, workflow, mediaStore }: an
           <TabButton key={method.id} icon={method.icon} label={method.label} isActive={selectedImport === method.id} onClick={() => setSelectedImport(method.id)} />
         ))}
       </div>
-      {selectedImport === "anki" ? <ApkgImportPanel existingDecks={decks} workflow={workflow} mediaStore={mediaStore} /> : <TextCsvImportPanel initialMode={selectedImport} onImported={onCreated} />}
+      {selectedImport === "anki" ? <ApkgImportPanel existingDecks={decks} workflow={workflow} mediaStore={mediaStore} serverApkgEnabled={serverApkgEnabled} /> : <TextCsvImportPanel initialMode={selectedImport} onImported={onCreated} />}
     </div>
   );
 }
@@ -1104,16 +1119,18 @@ function CreationMethodButton({ method, isSelected, onSelect }: any) {
   );
 }
 
-export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, supabase, supabaseUrl = "", onCreated, onAppendManualCard, onJob }: any) {
+export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, supabase, supabaseUrl = "", onCreated, onAppendManualCard, onJob, showAiDrafts = false, aiDraftSurface, enableServerApkgImport = false }: any) {
   const [selectedMethod, setSelectedMethod] = React.useState<any>(null);
-  const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod);
-  const serverApkgImport = React.useMemo(() => supabase && supabaseUrl ? createServerApkgImportClient({ client: supabase, supabaseUrl }) : null, [supabase, supabaseUrl]);
+  const availableCreationMethods = showAiDrafts ? creationMethods : creationMethods.filter((method) => method.id !== "ai");
+  const selectedMethodMeta = availableCreationMethods.find((method) => method.id === selectedMethod);
+  const serverApkgImport = React.useMemo(() => enableServerApkgImport && supabase && supabaseUrl ? createServerApkgImportClient({ client: supabase, supabaseUrl }) : null, [enableServerApkgImport, supabase, supabaseUrl]);
   const accountWorkflow = React.useMemo(() => createCreationWorkflow({ mediaStore, persistImportedDecks, serverApkgImport }), [mediaStore, persistImportedDecks, serverApkgImport]);
 
   function renderSelectedMethod() {
-    if (selectedMethod === "import") return <ImportCreationPanel decks={decks} onCreated={onCreated} workflow={accountWorkflow} mediaStore={mediaStore} />;
+    if (selectedMethod === "import") return <ImportCreationPanel decks={decks} onCreated={onCreated} workflow={accountWorkflow} mediaStore={mediaStore} serverApkgEnabled={enableServerApkgImport} />;
     if (selectedMethod === "manual") return <ManualCreationPanelV2 decks={decks} onCreated={onCreated} onAppendManualCard={onAppendManualCard} />;
-    return <AiCreationPanel onCreated={onCreated} onJob={onJob} />;
+    if (selectedMethod === "ai" && showAiDrafts) return <AiCreationPanel onCreated={onCreated} onJob={onJob} surface={aiDraftSurface} />;
+    return null;
   }
 
   return (
@@ -1132,7 +1149,7 @@ export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, s
         </section>
       ) : (
         <section className="grid min-h-[calc(100vh-18rem)] items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3 xl:gap-6" aria-label="Erstellungsart">
-          {creationMethods.map((method) => (
+          {availableCreationMethods.map((method) => (
             <CreationMethodButton key={method.id} method={method} isSelected={false} onSelect={() => setSelectedMethod(method.id)} />
           ))}
         </section>

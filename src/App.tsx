@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import type { AuthPhase } from "./accountSession.ts";
 import type { AppRoute, StudyRoute, ViewRoute } from "./appNavigation.ts";
 import type { Deck, ReviewEvent, SyncStatus } from "./coreTypes.ts";
-import { BarChart3, BookOpen, Database, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
+import { BarChart3, BookOpen, Bot, Database, FlaskConical, History, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { appRouteToUrl, areAppRoutesEqual, createAppHistoryState, createStudyRoute, createViewRoute, normalizeAppRoute, parseAppRouteFromUrl, readAppRouteFromHistoryState } from "./appNavigation.ts";
 import { createAccountStorage, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
@@ -17,13 +17,15 @@ import { createPortableExport, mergePortableExportIntoState } from "./dataPortab
 import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type LearningSettingsInput } from "./deckSettings.ts";
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
+import { productSurfaces, type ProductSurfaceId } from "./productSurfaces.ts";
 import { createAccountSyncEngine, SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
-import { OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
+import { LabsNotice, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 
 const AssistantScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/AssistantScreen.tsx").then(({ AssistantScreen }) => ({ default: AssistantScreen })));
+const AiJobsScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/AiJobsScreen.tsx").then(({ AiJobsScreen }) => ({ default: AiJobsScreen })));
 const CommunityScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/CommunityScreen.tsx").then(({ CommunityScreen }) => ({ default: CommunityScreen })));
 const CreationScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/CreationScreen.tsx").then(({ CreationScreen }) => ({ default: CreationScreen })));
 const DashboardScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })));
@@ -35,20 +37,31 @@ const SettingsScreen = React.lazy<React.ComponentType<any>>(() => import("./scre
 const StatisticsScreen = React.lazy<React.ComponentType<any>>(() => import("./screens/StatisticsScreen.tsx").then(({ StatisticsScreen }) => ({ default: StatisticsScreen })));
 const StudyMode = React.lazy<React.ComponentType<any>>(() => import("./screens/StudyMode.tsx").then(({ StudyMode }) => ({ default: StudyMode })));
 
-const menu = createMenuModel();
+const menu = createMenuModel(productSurfaces);
 const AUTOSAVE_DELAY_MS = 900;
 const focusedDeckViewIds = new Set(["kartenstapel", "stapel-einstellungen"]);
 
 const iconByKey: Record<string, LucideIcon> = {
+  assistant: Bot,
   chart: BarChart3,
   community: Users,
   graph: Network,
   home: Home,
+  jobs: History,
   layers: Layers,
   learn: BookOpen,
   plus: PlusSquare,
   settings: Settings,
 };
+
+function LabsSurface({ ids, children }: { ids: ProductSurfaceId[]; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-5">
+      <LabsNotice surfaces={ids.map((id) => productSurfaces.get(id))} />
+      {children}
+    </div>
+  );
+}
 
 function getIcon(iconKey: string) {
   return iconByKey[iconKey] ?? Home;
@@ -134,6 +147,7 @@ function MigrationChoiceScreen({ legacyState, busy = false, message = "", onImpo
 export function App() {
   const supabase = React.useMemo(() => createSupabaseBrowserClient(), []);
   const navigationItems = React.useMemo(() => menu.listNavigationItems(), []);
+  const labsNavigationItems = React.useMemo(() => menu.listLabsNavigationItems(), []);
   const bootRunRef = React.useRef(0);
   const latestStateRef = React.useRef<WorkspaceState | null>(null);
   const lastAcknowledgedStateRef = React.useRef<WorkspaceState | null>(null);
@@ -874,11 +888,13 @@ export function App() {
   }
 
   function openGraph(deck: { id: any; }) {
+    if (!productSurfaces.isAvailable("graph")) return;
     navigateToView("graph");
     runWorkspaceMutation((currentWorkspace: { ensureDeckGraph: (arg0: any) => any; }) => currentWorkspace.ensureDeckGraph(deck.id));
   }
 
   function shareDeck(deck: { id: any; }) {
+    if (!productSurfaces.isAvailable("community-demo")) return;
     navigateToView("community");
     runWorkspaceMutation((currentWorkspace: { shareDeckToDefaultCommunity: (arg0: any) => any; }) => currentWorkspace.shareDeckToDefaultCommunity(deck.id));
   }
@@ -912,11 +928,15 @@ export function App() {
           onPrepareSubdeckCreation={openDeckCreation}
           onOpenGraph={openGraph}
           onShareDeck={shareDeck}
+          showGraph={productSurfaces.isAvailable("graph")}
+          showCommunity={productSurfaces.isAvailable("community-demo")}
+          showExternalVariantFlow={productSurfaces.isAvailable("external-variant-json")}
+          externalVariantSurface={productSurfaces.get("external-variant-json")}
         />
       );
     }
     if (activeView === "neue-karten") {
-      return <CreationScreen decks={state.decks} mediaStore={mediaStore} persistImportedDecks={persistImportedDecks} supabase={supabase} supabaseUrl={getSupabaseBrowserConfig().url} onCreated={saveDeck} onAppendManualCard={addManualCardToDeck} onJob={saveJob} />;
+      return <CreationScreen decks={state.decks} mediaStore={mediaStore} persistImportedDecks={persistImportedDecks} supabase={supabase} supabaseUrl={getSupabaseBrowserConfig().url} onCreated={saveDeck} onAppendManualCard={addManualCardToDeck} onJob={saveJob} showAiDrafts={productSurfaces.isAvailable("local-ai-drafts")} aiDraftSurface={productSurfaces.get("local-ai-drafts")} enableServerApkgImport={productSurfaces.isAvailable("server-apkg-over-250")} />;
     }
     if (activeView === "lernen") {
       return (
@@ -937,24 +957,29 @@ export function App() {
       return <StatisticsScreen decks={state.decks} onNavigate={navigateToView} />;
     }
     if (activeView === "graph") {
-      return <GraphScreen decks={state.decks} onUpdateDeck={updateDeck} />;
+      return <LabsSurface ids={["graph"]}><GraphScreen decks={state.decks} onUpdateDeck={updateDeck} /></LabsSurface>;
     }
     if (activeView === "community") {
-      return <CommunityScreen decks={state.decks} communities={state.communities} onSaveCommunity={saveCommunity} onSaveDeck={saveDeck} />;
+      return <LabsSurface ids={["community-demo"]}><CommunityScreen decks={state.decks} communities={state.communities} onSaveCommunity={saveCommunity} onSaveDeck={saveDeck} /></LabsSurface>;
     }
     if (activeView === "assistent") {
       return (
-        <AssistantScreen
-          decks={state.decks}
-          transcript={state.chatTranscript}
-          plans={state.learningPlans}
-          profile={state.profile}
-          getAccessToken={getAiAccessToken}
-          onAcceptAiChatConsent={acceptAiChatConsent}
-          onSaveChat={saveChat}
-          onSavePlan={savePlan}
-        />
+        <LabsSurface ids={["assistant-chat", "learning-plan"]}>
+          <AssistantScreen
+            decks={state.decks}
+            transcript={state.chatTranscript}
+            plans={state.learningPlans}
+            profile={state.profile}
+            getAccessToken={getAiAccessToken}
+            onAcceptAiChatConsent={acceptAiChatConsent}
+            onSaveChat={saveChat}
+            onSavePlan={savePlan}
+          />
+        </LabsSurface>
       );
+    }
+    if (activeView === "ki-jobs") {
+      return <LabsSurface ids={["ai-job-history"]}><AiJobsScreen decks={state.decks} jobs={state.aiJobs} /></LabsSurface>;
     }
     if (activeView === "einstellungen") {
       return (
@@ -974,7 +999,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} onSaveProfile={saveProfile} onNavigate={navigateToView} onStartDeck={startDeck} />;
+    return <DashboardScreen state={state} onSaveProfile={saveProfile} onNavigate={navigateToView} onStartDeck={startDeck} showAssistant={productSurfaces.isAvailable("assistant-chat")} />;
   }
 
   if (authPhase === "checking-session") {
@@ -998,6 +1023,8 @@ export function App() {
         onResetPassword={handleResetPassword}
         onMagicLink={handleMagicLink}
         onGoogleSignIn={handleGoogleSignIn}
+        showMagicLink={productSurfaces.isAvailable("auth-magic-link")}
+        showGoogleSignIn={productSurfaces.isAvailable("auth-google")}
         onUpdatePassword={handleUpdatePassword}
       />
     );
@@ -1063,6 +1090,34 @@ export function App() {
                 );
               })}
             </nav>
+
+            {labsNavigationItems.length > 0 ? (
+              <details className="mt-6 rounded-xl border border-[#dce2f4] bg-white/35 p-2" open={labsNavigationItems.some((view) => view.id === activeView) || undefined}>
+                <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm font-semibold text-[#66709a]">
+                  <FlaskConical size={17} aria-hidden="true" />
+                  Labs
+                  <span className="ml-auto text-xs font-medium">Experimentell</span>
+                </summary>
+                <nav aria-label="Labs" className="mt-1 grid gap-1">
+                  {labsNavigationItems.map((view) => {
+                    const NavIcon = getIcon(view.iconKey);
+                    const isActive = view.id === activeView;
+                    return (
+                      <button
+                        key={view.id}
+                        type="button"
+                        onClick={() => navigateToView(view.id)}
+                        className={`flex min-h-10 items-center gap-2 rounded-lg px-2 text-left text-sm transition ${isActive ? "bg-amber-50 text-amber-900" : "text-[#66709a] hover:bg-white/70"}`}
+                        aria-current={isActive ? "page" : undefined}
+                      >
+                        <NavIcon size={17} aria-hidden="true" />
+                        <span>{view.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </details>
+            ) : null}
 
             <div className="mt-auto border-t border-[#dce2f4] pt-6">
               <button

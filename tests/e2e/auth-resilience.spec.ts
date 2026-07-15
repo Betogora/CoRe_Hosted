@@ -56,7 +56,8 @@ test("missing Supabase configuration stays behind a disabled login gate", async 
   await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveText("Supabase ist für diese Umgebung noch nicht konfiguriert.");
   await expect(page.locator("form").getByRole("button", { name: "Anmelden", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Mit Google anmelden" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Mit Google anmelden" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Magic Link", exact: true })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toHaveCount(0);
 });
 

@@ -78,45 +78,15 @@ Neue Plattform-, Community-, KI-, Admin- oder Großdatei-Funktionen werden erst 
 
 Die nächsten drei Arbeitspakete werden in dieser Reihenfolge umgesetzt:
 
-1. **P0.1 Produktoberfläche und Feature-Reife wahrheitsgemäß machen.**
-2. **P0.2 Review-/Variantenvertrag korrigieren.**
-3. **P0.3 Account- und Einstellungsoberfläche wahrheitsgemäß machen.**
+1. **P0.2 Review-/Variantenvertrag korrigieren.**
+2. **P0.3 Account- und Einstellungsoberfläche wahrheitsgemäß machen.**
+3. **P0.4 Ersten Produktkontakt und leeren Account korrigieren.**
 
 Erst danach folgen Onboarding, Erstellen/Import und Informationsarchitektur.
 
 ---
 
 # P0 — Produktwahrheit und Kern-UX
-
-## P0.1 Produktoberfläche und Feature-Reife
-
-### Aufgabe
-
-- [ ] Eine kleine typisierte Produktflächen-Registry einführen, die jede sichtbare Fläche als `core`, `labs` oder `disabled` klassifiziert.
-- [ ] Hauptnavigation auf den freigegebenen Kern reduzieren: `Heute`, `Lernen`, `Erstellen`, `Statistik`.
-- [ ] `Graph` und `Community` aus der normalen Hauptnavigation entfernen und unter einen expliziten Labs-Einstieg legen oder standardmäßig verbergen.
-- [ ] `Assistent`, Lernplan, AI-Job-Historie und externe Varianten-JSON-Funktion ausschließlich als Labs behandeln.
-- [ ] Serverseitigen APKG-Import über 250 MiB nur anzeigen, wenn seine freigegebene Runtime-Konfiguration explizit aktiv ist.
-- [ ] Google und Magic Link nur anzeigen, wenn die jeweilige Funktion für die aktuelle Umgebung freigegeben ist.
-- [ ] Für Labs eine kurze, sachliche Kennzeichnung anzeigen: experimentell, möglicher Funktionsumfang, bekannte Grenze.
-- [ ] Es darf keinen sichtbaren Button geben, dessen Wirkung nur lokal simuliert wird, während die Oberfläche eine echte Mehrnutzer- oder KI-Funktion verspricht.
-
-### Akzeptanz
-
-- Ein normaler neuer Nutzer sieht keine Community-, Graph-, Großdatei- oder Providerfunktion als fertiges Kernprodukt.
-- Die Kernnavigation enthält höchstens vier primäre Produktbereiche plus Einstellungen.
-- Entwicklungs- und E2E-Zugriffe auf Labs bleiben möglich, ohne die normale Nutzeroberfläche zu überladen.
-- Die Registry ist die einzige Quelle für Sichtbarkeit und Reifestatus; Screens implementieren keine eigenen verstreuten Umgebungsentscheidungen.
-- Keine Domänen- oder Datenmigration ist für dieses Paket erforderlich.
-
-### Evidenz
-
-- Fokussierte Tests der Registry und Navigation.
-- Ein Browser-Smoke für Core-Modus.
-- Ein Browser-Smoke für bewusst aktivierten Labs-Modus.
-- Screenshots bei 1440 × 900 und 1280 × 720.
-
----
 
 ## P0.2 Review- und Variantenvertrag korrigieren
 
@@ -161,7 +131,6 @@ Erst danach folgen Onboarding, Erstellen/Import und Informationsarchitektur.
 - [ ] Die Login-E-Mail in den Einstellungen als nicht editierbaren Accountwert darstellen, solange keine echte Auth-E-Mail-Änderung implementiert ist.
 - [ ] No-op-Datenschutzschalter für Lernstand, Online-Status und fremde Streaks ausblenden.
 - [ ] Stattdessen den realen Zustand erklären: persönliche Lernstände werden derzeit nicht geteilt.
-- [ ] Google und Magic Link an den Reifestatus aus P0.1 binden.
 - [ ] Syncstatus, Offlinezustand und Konflikte in verständlicher Sprache anzeigen; interne Revisionen und Tabellenbegriffe nicht zeigen.
 - [ ] JSON-Portabilität in einen Bereich `Erweitert` verschieben und Grenzen deutlich nennen:
   - keine Medienbytes,

@@ -1,6 +1,8 @@
 import React, { type HTMLAttributes, type ReactNode } from "react";
+import { FlaskConical } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CoreMode } from "../coreTypes.ts";
+import type { ProductSurface } from "../productSurfaces.ts";
 
 interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
   children?: ReactNode;
@@ -67,6 +69,21 @@ export function PageHeader({ eyebrow, title }: { eyebrow: ReactNode; title: Reac
       <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">{eyebrow}</p>
       <h2 className="mt-2 text-4xl font-semibold tracking-normal text-[#17214f]">{title}</h2>
     </header>
+  );
+}
+
+export function LabsNotice({ surfaces }: { surfaces: ProductSurface | ProductSurface[] }) {
+  const items = Array.isArray(surfaces) ? surfaces : [surfaces];
+  const reasons = [...new Set(items.map((surface) => surface.reason).filter(Boolean))];
+
+  return (
+    <aside aria-label="Labs-Hinweis" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-amber-950">
+      <FlaskConical className="mt-0.5 shrink-0 text-amber-700" size={18} aria-hidden="true" />
+      <div>
+        <p className="text-sm font-semibold">Experimentelle Labs-Funktion</p>
+        {reasons.length > 0 ? <p className="mt-1 text-sm leading-6 text-amber-900">{reasons.join(" ")}</p> : null}
+      </div>
+    </aside>
   );
 }
 

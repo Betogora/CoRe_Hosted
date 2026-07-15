@@ -1,12 +1,12 @@
 import { createMenuModel } from "./menuModel.ts";
+import { productSurfaces, type ProductSurfaceRegistry } from "./productSurfaces.ts";
 
 export const APP_HISTORY_STATE_KEY = "coreAppRoute";
 
 const menu = createMenuModel();
 const defaultViewId = menu.defaultViewId;
 const studyFallbackViewId = "lernen";
-const extraRoutableViewIds = ["assistent", "stapel-einstellungen"];
-const routableViewIds = new Set([...menu.listViews().map((view) => view.id), ...extraRoutableViewIds]);
+const extraRoutableViewIds = ["stapel-einstellungen"];
 
 export interface ViewRoute {
   mode: "view";
@@ -27,6 +27,7 @@ export type AppRoute = ViewRoute | StudyRoute;
 interface RouteOptions {
   validDeckIds?: Iterable<string> | null;
   currentState?: unknown;
+  surfaceRegistry?: ProductSurfaceRegistry;
 }
 
 interface ViewRouteInput {
@@ -53,7 +54,12 @@ function cleanDeckId(value: unknown, validDeckIds: Set<string> | null): string {
   return deckId;
 }
 
-function normalizeViewRoute(route: ViewRouteInput = {}, validDeckIds: Set<string> | null = null): ViewRoute {
+function normalizeViewRoute(
+  route: ViewRouteInput = {},
+  validDeckIds: Set<string> | null = null,
+  surfaceRegistry: ProductSurfaceRegistry = productSurfaces,
+): ViewRoute {
+  const routableViewIds = new Set([...createMenuModel(surfaceRegistry).listRoutableViewIds(), ...extraRoutableViewIds]);
   const rawViewId = String(route.viewId ?? defaultViewId);
   const viewId = routableViewIds.has(rawViewId) ? rawViewId : defaultViewId;
   const focusedDeckId = cleanDeckId(route.focusedDeckId, validDeckIds);
@@ -67,7 +73,7 @@ function normalizeViewRoute(route: ViewRouteInput = {}, validDeckIds: Set<string
 }
 
 export function createViewRoute(viewId = defaultViewId, fields: Omit<ViewRouteInput, "viewId"> = {}, options: RouteOptions = {}): ViewRoute {
-  return normalizeViewRoute({ ...fields, mode: "view", viewId }, deckIdSetFrom(options.validDeckIds));
+  return normalizeViewRoute({ ...fields, mode: "view", viewId }, deckIdSetFrom(options.validDeckIds), options.surfaceRegistry);
 }
 
 export function normalizeAppRoute(route: unknown = {}, options: RouteOptions = {}): AppRoute {
@@ -76,15 +82,15 @@ export function normalizeAppRoute(route: unknown = {}, options: RouteOptions = {
   if (routeInput?.mode === "study") {
     const studyRoute = routeInput as StudyRouteInput;
     const deckId = cleanDeckId(studyRoute.deckId, validDeckIds);
-    if (!deckId) return normalizeViewRoute({ viewId: studyFallbackViewId }, validDeckIds);
+    if (!deckId) return normalizeViewRoute({ viewId: studyFallbackViewId }, validDeckIds, options.surfaceRegistry);
     return {
       mode: "study",
       deckId,
       variantSession: studyRoute.variantSession === true,
-      returnRoute: normalizeViewRoute(studyRoute.returnRoute ?? { viewId: studyFallbackViewId }, validDeckIds),
+      returnRoute: normalizeViewRoute(studyRoute.returnRoute ?? { viewId: studyFallbackViewId }, validDeckIds, options.surfaceRegistry),
     };
   }
-  return normalizeViewRoute(routeInput ?? {}, validDeckIds);
+  return normalizeViewRoute(routeInput ?? {}, validDeckIds, options.surfaceRegistry);
 }
 
 export function createStudyRoute(deckId: string, fields: Omit<StudyRouteInput, "deckId"> = {}, options: RouteOptions = {}): AppRoute {

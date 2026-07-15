@@ -22,6 +22,12 @@ export default defineConfig({
       name: "configured-app",
       command: "npm run dev -- --mode e2e",
       url: "http://127.0.0.1:5190/",
+      env: {
+        ...process.env,
+        VITE_ENABLE_LABS: "true",
+        VITE_ENABLE_GOOGLE_AUTH: "true",
+        VITE_ENABLE_MAGIC_LINK: "true",
+      },
       reuseExistingServer: false,
       timeout: 60_000,
     },
@@ -33,6 +39,8 @@ export default defineConfig({
         ...process.env,
         VITE_SUPABASE_URL: "",
         VITE_SUPABASE_PUBLISHABLE_KEY: "",
+        VITE_ENABLE_GOOGLE_AUTH: "",
+        VITE_ENABLE_MAGIC_LINK: "",
       },
       reuseExistingServer: false,
       timeout: 60_000,
@@ -64,7 +72,7 @@ export default defineConfig({
     },
     {
       name: "authenticated-chromium",
-      testMatch: [/apkg-quality-report\.spec\.ts/, /core-stabilization\.spec\.ts/, /world-capitals-hierarchy\.spec\.ts/, /zz-media-import\.spec\.ts/],
+      testMatch: [/apkg-quality-report\.spec\.ts/, /core-stabilization\.spec\.ts/, /product-surfaces\.spec\.ts/, /world-capitals-hierarchy\.spec\.ts/, /zz-media-import\.spec\.ts/],
       dependencies: ["auth-setup"],
       use: {
         ...devices["Desktop Chrome"],

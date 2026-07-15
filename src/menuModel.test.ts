@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createMenuModel } from "./menuModel.ts";
+import { createProductSurfaceRegistry } from "./productSurfaces.ts";
 
 test("lists the navigation items in product order", () => {
   const menu = createMenuModel();
@@ -10,9 +11,21 @@ test("lists the navigation items in product order", () => {
     { id: "neue-karten", label: "Erstellen", iconKey: "plus" },
     { id: "lernen", label: "Lernen", iconKey: "learn" },
     { id: "statistik", label: "Statistik", iconKey: "chart" },
-    { id: "graph", label: "Graph", iconKey: "graph" },
-    { id: "community", label: "Community", iconKey: "community" },
   ]);
+});
+
+test("keeps labs outside the main navigation and exposes them only in labs mode", () => {
+  const normalMenu = createMenuModel(createProductSurfaceRegistry());
+  const labsMenu = createMenuModel(createProductSurfaceRegistry({ VITE_ENABLE_LABS: "true" }));
+
+  assert.deepEqual(normalMenu.listLabsNavigationItems(), []);
+  assert.deepEqual(labsMenu.listLabsNavigationItems(), [
+    { id: "assistent", label: "Assistent", iconKey: "assistant" },
+    { id: "graph", label: "Graph", iconKey: "graph" },
+    { id: "community", label: "Community-Demo", iconKey: "community" },
+    { id: "ki-jobs", label: "KI-Job-Historie", iconKey: "jobs" },
+  ]);
+  assert.deepEqual(labsMenu.listNavigationItems(), normalMenu.listNavigationItems());
 });
 
 test("uses today as the default view", () => {
@@ -28,12 +41,14 @@ test("returns new-card content by id", () => {
     id: "neue-karten",
     label: "Erstellen",
     iconKey: "plus",
+    navigation: "primary",
+    productSurfaceId: "creation-manual-import",
     title: "Neue Karten",
     eyebrow: "Import und Erstellung",
     stats: [
       { label: "Anki", value: "APKG" },
       { label: "Manuell", value: "6 Typen" },
-      { label: "KI", value: "Drafts" },
+      { label: "KI", value: "Labs" },
     ],
   });
 });

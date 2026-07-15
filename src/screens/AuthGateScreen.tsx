@@ -9,6 +9,8 @@ export function AuthGateScreen({
   busy = false,
   message = "",
   messageType = "status",
+  showGoogleSignIn = false,
+  showMagicLink = false,
   onSignIn,
   onSignUp,
   onResetPassword,
@@ -135,7 +137,7 @@ export function AuthGateScreen({
               </button>
             </form>
 
-            {!isRecovery ? (
+            {!isRecovery && showGoogleSignIn ? (
               <button
                 type="button"
                 onClick={onGoogleSignIn}
@@ -152,9 +154,11 @@ export function AuthGateScreen({
                 <button type="button" onClick={() => setMode("sign-in")} className="text-sm font-semibold text-[#4f5eb1]" aria-pressed={!isSignUp && !isReset && !isMagicLink}>
                   Anmelden
                 </button>
-                <button type="button" onClick={() => setMode("magic-link")} className="text-sm font-semibold text-[#4f5eb1]" aria-pressed={isMagicLink}>
-                  Magic Link
-                </button>
+                {showMagicLink ? (
+                  <button type="button" onClick={() => setMode("magic-link")} className="text-sm font-semibold text-[#4f5eb1]" aria-pressed={isMagicLink}>
+                    Magic Link
+                  </button>
+                ) : null}
                 <button type="button" onClick={() => setMode("sign-up")} className="text-sm font-semibold text-[#4f5eb1]" aria-pressed={isSignUp}>
                   Account erstellen
                 </button>

@@ -9,6 +9,7 @@ import {
   parseAppRouteFromUrl,
   readAppRouteFromHistoryState,
 } from "./appNavigation.ts";
+import { createProductSurfaceRegistry } from "./productSurfaces.ts";
 
 test("parses the default route from the root path", () => {
   assert.deepEqual(parseAppRouteFromUrl("/"), { mode: "view", viewId: "uebersicht" });
@@ -33,6 +34,14 @@ test("falls back to today for unknown paths", () => {
   assert.deepEqual(parseAppRouteFromUrl("/does-not-exist"), { mode: "view", viewId: "uebersicht" });
 });
 
+test("accepts labs routes only with an enabled product-surface registry", () => {
+  const labsRegistry = createProductSurfaceRegistry({ VITE_ENABLE_LABS: "true" });
+
+  assert.deepEqual(parseAppRouteFromUrl("/graph"), { mode: "view", viewId: "uebersicht" });
+  assert.deepEqual(parseAppRouteFromUrl("/graph", { surfaceRegistry: labsRegistry }), { mode: "view", viewId: "graph" });
+  assert.equal(appRouteToUrl(createViewRoute("community", {}, { surfaceRegistry: labsRegistry }), { surfaceRegistry: labsRegistry }), "/community");
+});
+
 test("roundtrips review routes with encoded deck ids and variant sessions", () => {
   const route = parseAppRouteFromUrl("/decks/deck%2Fspecial/review?variant=1", { validDeckIds: ["deck/special"] });
 
@@ -51,10 +60,11 @@ test("normalizes invalid study routes back to learning", () => {
 });
 
 test("stores and reads app routes from browser history state", () => {
-  const route = createViewRoute("assistent");
-  const state = createAppHistoryState(route, { currentState: { external: "kept" } });
+  const labsRegistry = createProductSurfaceRegistry({ DEV: true });
+  const route = createViewRoute("assistent", {}, { surfaceRegistry: labsRegistry });
+  const state = createAppHistoryState(route, { currentState: { external: "kept" }, surfaceRegistry: labsRegistry });
 
   assert.equal(state.external, "kept");
-  assert.deepEqual(readAppRouteFromHistoryState(state), route);
-  assert.equal(areAppRoutesEqual(state.coreAppRoute, route), true);
+  assert.deepEqual(readAppRouteFromHistoryState(state, { surfaceRegistry: labsRegistry }), route);
+  assert.equal(areAppRoutesEqual(state.coreAppRoute, route, { surfaceRegistry: labsRegistry }), true);
 });
