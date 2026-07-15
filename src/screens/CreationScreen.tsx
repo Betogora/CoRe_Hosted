@@ -1,11 +1,11 @@
 import React from "react";
-import { AlertCircle, ArrowLeft, Bot, CheckCircle2, Database, FileArchive, FileSpreadsheet, FileText, Loader2, PenLine, Pin, PinOff, Trash2, Upload, WandSparkles } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Database, FileArchive, FileSpreadsheet, FileText, Loader2, PenLine, Pin, PinOff, Trash2, Upload, WandSparkles } from "lucide-react";
 import { createCreationWorkflow, type ApkgCreationPreview } from "../creationWorkflow.ts";
 import { createServerApkgImportClient } from "../serverApkgImport.ts";
 import { LOCAL_APKG_MAX_BYTES, type ApkgImportProgress } from "../serverApkgImportContract.ts";
 import type { ApkgImportReportV1 } from "../apkgImport.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
-import { LabsNotice, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { LabsNotice, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { cardTypeOptions, formatBytes, importSteps } from "./screenConstants.ts";
@@ -38,6 +38,30 @@ const serverPhaseLabels: Record<ApkgImportProgress["phase"], string> = {
 function formatServerProgress(progress: ApkgImportProgress) {
   if (progress.phase === "media" || progress.phase === "done") return `${progress.completed} / ${progress.total} Medien`;
   return `${formatBytes(progress.completed)} / ${formatBytes(progress.total)}`;
+}
+
+type ImportUserStatus = "analyze" | "preview" | "commit" | "media" | "complete" | "partial" | "failed";
+
+function getImportUserStatus({ job, preview, mediaTask, cloudProgress, isParsing }: any): ImportUserStatus {
+  if (job?.status === "error" || job?.status === "failed" || job?.status === "cancelled") return "failed";
+  if (["partial", "local-pending", "blocked", "cancelled"].includes(cloudProgress?.status)) return "partial";
+  if (job?.status === "done" || job?.status === "succeeded" || cloudProgress?.status === "cloud-ready") return "complete";
+  if (mediaTask || job?.status === "syncing_media") return "media";
+  if (job?.status === "committing" || (preview && isParsing)) return "commit";
+  if (preview || job?.status === "preview" || job?.status === "ready") return "preview";
+  return "analyze";
+}
+
+function importStatusLabel(status: ImportUserStatus): string {
+  return {
+    analyze: "Analysieren",
+    preview: "Vorschau bereit",
+    commit: "Übernehmen",
+    media: "Medien werden synchronisiert",
+    complete: "Fertig",
+    partial: "Teilweise fertig",
+    failed: "Fehlgeschlagen",
+  }[status];
 }
 
 function documentStatusMessage(document: SourceDocument | null): string {
@@ -78,11 +102,11 @@ function TabButton({ icon: Icon, label, isActive, onClick }: any) {
 }
 
 function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, mediaStore, serverApkgEnabled = false, onCompleted }: any) {
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [job, setJob] = React.useState<any>(null);
   const [preview, setPreview] = React.useState<ApkgCreationPreview | null>(null);
   const [mediaStatus, setMediaStatus] = React.useState<any>(null);
-  const [activeStep, setActiveStep] = React.useState<any>(null);
   const [isDragging, setIsDragging] = React.useState(false);
   const [isParsing, setIsParsing] = React.useState(false);
   const [mediaTask, setMediaTask] = React.useState<any>(null);
@@ -127,7 +151,7 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
     setIsParsing(true);
 
     try {
-      const result = await workflow.parseApkgFile(file, { onStep: setActiveStep as () => void, onProgress: handleServerProgress, existingDecks });
+      const result = await workflow.parseApkgFile(file, { onProgress: handleServerProgress, existingDecks });
       setMediaStatus(result.mediaStatus);
       setJob(result.job);
       setPreview(result.preview);
@@ -148,6 +172,7 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
   function handleFileInput(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (file) void parseFile(file);
+    event.target.value = "";
   }
 
   function handleDrop(event: React.DragEvent<HTMLLabelElement>) {
@@ -159,6 +184,7 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
 
   async function handleCommit() {
     if (!preview) return;
+    setJob((currentJob: any) => ({ ...currentJob, status: "committing" }));
     setIsParsing(true);
     try {
       const result = await workflow.commitApkgPreview(preview, { existingDecks, onProgress: handleServerProgress });
@@ -177,11 +203,12 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
       setPreview((currentPreview: any) => (currentPreview ? { ...currentPreview, importReport: result.report } : currentPreview));
       if (result.mediaTask) {
         setMediaTask(result.mediaTask);
+        setJob((currentJob: any) => ({ ...currentJob, status: "syncing_media" }));
         result.mediaTask.subscribe((progress: any, status: any) => setCloudProgress({ ...progress, status }));
         void result.mediaTask.result.then((mediaResult: any) => {
           setMediaStatus(mediaResult);
           setCloudProgress({ ...mediaResult.progress, status: mediaResult.status });
-          setJob((currentJob: any) => ({ ...currentJob, status: mediaResult.status === "cloud-ready" ? "done" : mediaResult.status }));
+          setJob((currentJob: any) => ({ ...currentJob, status: mediaResult.status === "cloud-ready" ? "done" : "partial" }));
           if (mediaResult.status === "cloud-ready") onCompleted?.(result.deck);
         });
       } else {
@@ -220,10 +247,19 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
   const apkgReport = report?.apkg?.contractVersion === 1 ? report.apkg : null;
   const previewWarnings = [...new Set([...(preview?.warnings ?? []), ...(report?.warnings ?? [])])];
   const previewErrors = [...new Set([...(job?.errors ?? []), ...(report?.errors ?? [])])];
+  const userStatus = getImportUserStatus({ job, preview, mediaTask, cloudProgress, isParsing });
+  const currentStepIndex = userStatus === "analyze" ? 0 : userStatus === "preview" ? 1 : userStatus === "commit" ? 2 : userStatus === "media" ? 3 : 4;
+  const presentMediaCount = apkgReport?.media.detected ?? 0;
+  const technicalIdentities = preview?.kind === "local"
+    ? preview.sampleCards.flatMap((card: any) => [
+        card.meta?.ankiImportIdentityV1,
+        ...(card.variants ?? []).map((variant: any) => variant.meta?.ankiImportIdentityV1 ?? variant.meta?.metadataJson?.ankiImportIdentityV1),
+      ]).filter(Boolean)
+    : [];
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-      <SoftPanel className="p-6">
+    <div className="grid gap-5">
+      <SoftPanel className="p-5 sm:p-6">
         <div className="mb-5 flex items-center gap-3">
           <OrbIcon icon={FileArchive} className="bg-teal-50 text-teal-700" />
           <div>
@@ -239,15 +275,15 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
           }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
-          className={`flex min-h-52 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 text-center transition ${
+          className={`flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-5 text-center transition ${
             isDragging ? "border-teal-500 bg-teal-50" : "border-[#dfe4f5] bg-[#f8f9fe] hover:border-teal-400"
           }`}
         >
-          <Upload className="mb-4 text-teal-700" size={32} aria-hidden="true" />
+          <Upload className="mb-2 text-teal-700" size={26} aria-hidden="true" />
           <span className="text-base font-semibold text-[#17214f]">.apkg-Datei ablegen oder auswählen</span>
-          <span className="mt-2 max-w-md text-sm leading-6 text-[#66709a]">Decks, Notes, Karten, Tags, Medienreferenzen und Raw-Fallbacks.</span>
+          <span className="mt-1 max-w-md text-sm leading-6 text-[#66709a]">Stapel, Karten und Medien werden vor dem Import geprüft.</span>
           <span className="mt-1 max-w-md text-xs leading-5 text-[#66709a]">{serverApkgEnabled ? "Explizit freigegeben bis 1 GiB." : "Freigegebene Dateigröße: bis 250 MiB."}</span>
-          <input className="sr-only" type="file" accept=".apkg" onChange={handleFileInput} />
+          <input ref={fileInputRef} className="sr-only" type="file" accept=".apkg" onChange={handleFileInput} />
         </label>
 
         {selectedFile ? (
@@ -255,7 +291,7 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[#17214f]">{selectedFile.name}</p>
             </div>
-            <p className="mt-1 text-sm text-[#66709a]">{formatBytes(selectedFile.size)} · Status: {job?.status ?? "idle"}</p>
+            <p className="mt-1 text-sm text-[#66709a]">{formatBytes(selectedFile.size)} · {importStatusLabel(userStatus)}</p>
           </div>
         ) : null}
 
@@ -270,43 +306,38 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
               {!["ready", "succeeded", "failed", "cancelled"].includes(serverProgress.status) ? (
                 <button type="button" onClick={() => void handleCancelServerImport()} className="min-h-10 rounded-xl border border-red-200 px-3 text-sm font-semibold text-red-700">Import abbrechen</button>
               ) : null}
-              {serverProgress.status === "failed" && serverProgress.retryable ? (
-                <button type="button" onClick={() => void handleRetryServerImport()} className="min-h-10 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-teal-700">Erneut versuchen</button>
-              ) : null}
             </div>
           </div>
         ) : null}
 
-        {selectedFile ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" disabled={isParsing} onClick={() => void parseFile(selectedFile)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-teal-700 disabled:text-slate-400">
-              <Database size={16} aria-hidden="true" />
-              Import prüfen
-            </button>
-          </div>
-        ) : null}
-
-        <div className="mt-6 grid gap-3">
+        <ol className="mt-5 grid gap-2 md:grid-cols-5" aria-label="Importstatus">
           {importSteps.map((step) => {
-            const currentIndex = importSteps.findIndex((item) => item.id === activeStep);
             const stepIndex = importSteps.findIndex((item) => item.id === step.id);
-            const isActive = activeStep === step.id && isParsing;
-            const isDone = stepIndex < currentIndex || job?.status === "preview" || job?.status === "done";
+            const isActive = stepIndex === currentStepIndex;
+            const isDone = stepIndex < currentStepIndex || userStatus === "complete";
+            const label = step.id === "complete" && ["partial", "failed"].includes(userStatus) ? importStatusLabel(userStatus) : step.label;
 
             return (
-              <div key={step.id} className="flex items-center gap-3 rounded-xl border border-[#e3e7f5] px-4 py-3">
-                {isActive ? <Loader2 className="animate-spin text-teal-700" size={18} aria-hidden="true" /> : isDone ? <CheckCircle2 className="text-teal-700" size={18} aria-hidden="true" /> : <span className="size-[18px] rounded-full border border-[#cfd6ed]" />}
-                <span className="text-sm font-medium text-[#4e5b8c]">{step.label}</span>
-              </div>
+              <li key={step.id} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${isActive ? userStatus === "failed" ? "border-red-200 bg-red-50" : "border-teal-200 bg-teal-50" : "border-[#e3e7f5]"}`}>
+                {isActive && isParsing ? <Loader2 className="shrink-0 animate-spin text-teal-700" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0 text-teal-700" size={16} aria-hidden="true" /> : isActive && userStatus === "failed" ? <AlertCircle className="shrink-0 text-red-700" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-full border border-[#cfd6ed]" />}
+                <span className="text-xs font-semibold text-[#4e5b8c]">{label}</span>
+              </li>
             );
           })}
-        </div>
+        </ol>
 
-        {job?.errors?.length > 0 ? (
+        {job?.errors?.length > 0 || job?.status === "cancelled" ? (
           <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
-            {job.errors.map((error: unknown, index: number) => (
+            {(job.errors?.length ? job.errors : ["Der Import wurde abgebrochen."]).map((error: unknown, index: number) => (
               <p key={`${String(error)}-${index}`}>{String(error)}</p>
             ))}
+            <button
+              type="button"
+              onClick={() => serverProgress?.status === "failed" && serverProgress.retryable ? void handleRetryServerImport() : selectedFile ? void parseFile(selectedFile) : fileInputRef.current?.click()}
+              className="mt-3 min-h-10 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white"
+            >
+              {serverProgress?.status === "failed" && serverProgress.retryable ? "Erneut versuchen" : selectedFile ? "Erneut analysieren" : "Andere Datei auswählen"}
+            </button>
           </div>
         ) : null}
       </SoftPanel>
@@ -325,12 +356,23 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
                   Import übernehmen
                 </button>
               </div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <StatTile label="Stapel" value={apkgReport?.decks.length ?? 0} />
-                <StatTile label="Notes" value={apkgReport?.detectedNotes ?? 0} />
-                <StatTile label="Varianten" value={apkgReport?.detectedVariants ?? 0} />
-                <StatTile label="Dubletten" value={report?.duplicates?.length ?? 0} />
+              <div className="mt-4 rounded-xl border border-[#e3e7f5] bg-white/70 px-4 py-3 text-sm text-[#66709a]">
+                <span className="font-semibold text-[#17214f]">{job?.fileName ?? selectedFile?.name ?? "APKG-Datei"}</span>
+                <span> · {formatBytes(job?.fileSize ?? selectedFile?.size ?? 0)}</span>
               </div>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ["Erkannte Stapel", apkgReport?.decks.length ?? 0],
+                  ["Karten", apkgReport?.detectedCards ?? 0],
+                  ["Medien vorhanden", presentMediaCount],
+                  ["Medien fehlen", apkgReport?.media.missing.length ?? 0],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-3">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">{label}</dt>
+                    <dd className="mt-1 text-2xl font-semibold text-[#17214f]">{value}</dd>
+                  </div>
+                ))}
+              </dl>
               {apkgReport ? (
                 <div className="mt-5 grid gap-4">
                   <section className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4" aria-labelledby="apkg-decks-heading">
@@ -339,13 +381,29 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
                       {apkgReport.decks.map((deck) => (
                         <div key={deck.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edf0f8] pb-2 last:border-0 last:pb-0">
                           <span className="font-medium text-[#4e5b8c]">{deck.path}</span>
-                          <span>{deck.noteCount} Notes · {deck.cardCount} Karten</span>
+                          <span>{deck.cardCount} Karten</span>
                         </div>
                       ))}
                     </div>
                   </section>
 
-                  <section className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4" aria-labelledby="apkg-notetypes-heading">
+                  {apkgReport.media.missing.length > 0 ? (
+                    <div className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
+                      <span>{apkgReport.media.missing.length} referenzierte Medien fehlen im Paket. Betroffene Karten können ohne Bild oder Ton erscheinen.</span>
+                    </div>
+                  ) : null}
+                  {previewWarnings.map((warning) => (
+                    <div key={warning} className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
+                      <span>{warning}</span>
+                    </div>
+                  ))}
+
+                  <details className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4">
+                    <summary className="cursor-pointer font-semibold text-[#17214f]">Technische Details</summary>
+                    <div className="mt-4 grid gap-4">
+                  <section className="rounded-xl bg-[#f8f9fe] p-4" aria-labelledby="apkg-notetypes-heading">
                     <h4 id="apkg-notetypes-heading" className="font-semibold text-[#17214f]">Kartentypen und Felder</h4>
                     <div className="mt-3 grid gap-3">
                       {apkgReport.notetypes.map((notetype) => (
@@ -354,7 +412,8 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
                             <span className="font-semibold text-[#4e5b8c]">{notetype.name}</span>
                             <span className="rounded-full bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">{notetypeLabels[notetype.classification]}</span>
                           </div>
-                          <p className="mt-2 text-[#66709a]">Templates: {notetype.templates.map((template) => `${template.ordinal + 1}. ${template.name}`).join(", ") || "keine"}</p>
+                          <p className="mt-2 break-all font-mono text-xs text-[#66709a]">Notetype-ID: {notetype.id}</p>
+                          <p className="mt-2 text-[#66709a]">Templates: {notetype.templates.map((template) => `Ordinal ${template.ordinal}: ${template.name}`).join(", ") || "keine"}</p>
                           <p className="mt-1 text-[#66709a]">Zugeordnet: {notetype.mappedFields.join(", ") || "keine"}</p>
                           {notetype.unmappedFields.length > 0 ? <p className="mt-1 font-medium text-amber-800">Nicht zugeordnet: {notetype.unmappedFields.join(", ")}</p> : null}
                         </article>
@@ -363,7 +422,7 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
                   </section>
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    <section className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4" aria-labelledby="apkg-media-heading">
+                    <section className="rounded-xl bg-[#f8f9fe] p-4" aria-labelledby="apkg-media-heading">
                       <h4 id="apkg-media-heading" className="font-semibold text-[#17214f]">Medien</h4>
                       <div className="mt-3 grid gap-2 text-sm text-[#66709a]">
                         <p>Medien: {apkgReport.media.detected} erkannt · {apkgReport.media.referenced.length} referenziert · {apkgReport.media.missing.length} fehlend</p>
@@ -373,10 +432,11 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
                         {mediaStatus?.message ? <p>{mediaStatus.message}</p> : null}
                         {previewMissingMedia.length > 0 ? <p>{previewMissingMedia.length} Medien sind nur lokal verfügbar oder fehlen.</p> : null}
                         {apkgReport.media.missing.length > 0 ? <p className="font-medium text-amber-800">Fehlend: {apkgReport.media.missing.join(", ")}</p> : null}
+                        {apkgReport.media.assets.map((asset) => <p key={`${asset.name}-${asset.sha1}`} className="break-all font-mono text-xs">{asset.name} · {formatBytes(asset.size)} · SHA-1 {asset.sha1}</p>)}
                       </div>
                     </section>
 
-                    <section className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4" aria-labelledby="apkg-reimport-heading">
+                    <section className="rounded-xl bg-[#f8f9fe] p-4" aria-labelledby="apkg-reimport-heading">
                       <h4 id="apkg-reimport-heading" className="font-semibold text-[#17214f]">Reimport</h4>
                       <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
                         <div><dt className="text-[#66709a]">Neu</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.newItems}</dd></div>
@@ -387,6 +447,14 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
                       <p className="mt-3 text-sm text-[#66709a]">Lernfortschritt: {apkgReport.hasAnkiScheduling ? "Anki-Daten erkannt, nicht übernommen" : "neuer CoRe-FSRS-State"}</p>
                     </section>
                   </div>
+                  {technicalIdentities.length > 0 ? (
+                    <section className="rounded-xl bg-[#f8f9fe] p-4" aria-labelledby="apkg-identities-heading">
+                      <h4 id="apkg-identities-heading" className="font-semibold text-[#17214f]">Importidentitäten</h4>
+                      <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-all text-xs text-[#66709a]">{JSON.stringify(technicalIdentities, null, 2)}</pre>
+                    </section>
+                  ) : null}
+                    </div>
+                  </details>
                 </div>
               ) : null}
               {mediaTask && cloudProgress?.status !== "cloud-ready" && cloudProgress?.status !== "cancelled" ? (
@@ -395,29 +463,11 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
                   <button type="button" onClick={() => void mediaTask.cancel()} className="min-h-10 rounded-xl border border-red-200 px-3 text-sm font-semibold text-red-700">Upload abbrechen</button>
                 </div>
               ) : null}
-              {previewErrors.length > 0 ? (
-                <div className="mt-5 grid gap-2">
-                  {previewErrors.map((error) => (
-                    <div key={error} className="flex gap-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">
-                      <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
-                      <span>{error}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-              {previewWarnings.length > 0 ? (
-                <div className="mt-5 grid gap-2">
-                  {previewWarnings.map((warning) => (
-                    <div key={warning} className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                      <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
-                      <span>{warning}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
             </SoftPanel>
 
-            <div className="grid gap-4">
+            {preview.sampleCards.length > 0 ? <details className="core-surface-raised rounded-[18px] p-5">
+              <summary className="cursor-pointer font-semibold text-[#17214f]">Kartenbeispiele</summary>
+              <div className="mt-4 grid gap-4">
               {preview.sampleCards.map((card) => (
                 <article key={card.id} className="core-surface-raised rounded-[18px] p-5">
                   <div className="mb-4 flex items-center justify-between gap-3">
@@ -436,7 +486,8 @@ function ApkgImportPanel({ existingDecks = [], workflow = creationWorkflow, medi
                   </div>
                 </article>
               ))}
-            </div>
+              </div>
+            </details> : null}
           </>
         ) : (
           <SoftPanel className="p-6">
@@ -824,14 +875,14 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
           <FileText size={17} aria-hidden="true" />
           {document ? "Quelle wechseln" : "PDF/Text anfügen"}
         </button>
-        <input ref={sourceInputRef} className="sr-only" type="file" accept=".txt,.md,.markdown,.pdf,.docx" onChange={handleDocument} />
+        <input ref={sourceInputRef} className="sr-only" type="file" accept={creationWorkflow.readableSourceDocumentAccept} onChange={handleDocument} />
       </div>
 
       {showDocumentMode ? (
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="grid content-start gap-4">
             <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-              <span>Quelle</span>
+              <span>Quelle ({creationWorkflow.readableSourceDocumentLabel})</span>
               <button type="button" onClick={openSourcePicker} className="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[#cfd6ed] px-3 text-left text-[#66709a] hover:border-[#8c96dc] hover:bg-white">
                 <FileText className="shrink-0" size={17} aria-hidden="true" />
                 <span className="shrink-0 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#4f5eb1] shadow-sm">Datei auswählen</span>
@@ -866,7 +917,7 @@ function ManualCreationPanelV2({ decks = [], onCreated, onAppendManualCard, docu
   );
 }
 
-function AiCreationPanel({ onCreated, onJob, surface }: { onCreated: any; onJob: any; surface: ProductSurface }) {
+function LocalDraftCreationPanel({ onCreated, onJob, surface }: { onCreated: any; onJob: any; surface: ProductSurface }) {
   const [config, setConfig] = React.useState<any>({
     language: "Deutsch",
     cardCount: 6,
@@ -874,7 +925,6 @@ function AiCreationPanel({ onCreated, onJob, surface }: { onCreated: any; onJob:
     cardTypes: ["basic", "cloze"],
     focus: "Prüfungswissen",
     subject: "",
-    costTier: "balanced",
   });
   const [document, setDocument] = React.useState(() => creationWorkflow.createInitialAiDocument());
   const [draftDeck, setDraftDeck] = React.useState<any>(null);
@@ -903,7 +953,7 @@ function AiCreationPanel({ onCreated, onJob, surface }: { onCreated: any; onJob:
     const result = creationWorkflow.generateAiDrafts({
       document,
       config: nextConfig,
-      deckName: nextConfig.subject || "KI-Entwürfe",
+      deckName: nextConfig.subject || "Lokale Entwürfe",
     });
     onJob(result.job);
     setStatus(result.statusMessage);
@@ -929,8 +979,9 @@ function AiCreationPanel({ onCreated, onJob, surface }: { onCreated: any; onJob:
       <div className="mb-5 flex items-center gap-3">
         <OrbIcon icon={WandSparkles} className="bg-indigo-50 text-indigo-700" />
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">KI-assistierte Erstellung</p>
-          <h2 className="text-2xl font-semibold text-[#17214f]">Datei zu Kartenentwürfen</h2>
+          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">Labs · lokal und deterministisch</p>
+          <h2 className="text-2xl font-semibold text-[#17214f]">Lokaler Entwurfsassistent</h2>
+          <p className="mt-1 text-sm text-[#66709a]">Es wird kein externes Modell aufgerufen.</p>
         </div>
       </div>
 
@@ -940,10 +991,11 @@ function AiCreationPanel({ onCreated, onJob, surface }: { onCreated: any; onJob:
             Datei
             <span className="flex min-h-11 items-center gap-2 rounded-xl border border-dashed border-[#cfd6ed] px-3 text-[#66709a]">
               <FileText size={17} aria-hidden="true" />
-              <input type="file" accept=".txt,.md,.markdown,.pdf,.docx" onChange={handleFile} />
+              <input type="file" accept={creationWorkflow.readableSourceDocumentAccept} onChange={handleFile} />
             </span>
+            <span className="font-normal text-[#66709a]">{creationWorkflow.readableSourceDocumentLabel}</span>
           </label>
-          <textarea className="min-h-48 rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={document.text} onChange={(event) => updateDocumentText(event.target.value)} placeholder="Quellentext" aria-label="Quellentext für KI-Drafts" />
+          <textarea className="min-h-48 rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={document.text} onChange={(event) => updateDocumentText(event.target.value)} placeholder="Quellentext" aria-label="Quellentext für lokale Entwürfe" />
           <div className="grid gap-3 md:grid-cols-2">
             {[
               ["language", "Sprache"],
@@ -960,14 +1012,6 @@ function AiCreationPanel({ onCreated, onJob, surface }: { onCreated: any; onJob:
               Kartenanzahl
               <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" type="number" min="1" max="30" value={config.cardCount} onChange={(event) => updateConfig("cardCount", Number(event.target.value))} />
             </label>
-            <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-              Kostenprofil
-              <select className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={config.costTier} onChange={(event) => updateConfig("costTier", event.target.value)}>
-                <option value="low">Low</option>
-                <option value="balanced">Balanced</option>
-                <option value="quality">Quality-ready</option>
-              </select>
-            </label>
           </div>
           <div>
             <p className="mb-2 text-sm font-semibold text-[#4e5b8c]">Kartentypen</p>
@@ -982,8 +1026,8 @@ function AiCreationPanel({ onCreated, onJob, surface }: { onCreated: any; onJob:
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => generateDrafts()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-sm font-semibold text-white">
-              <Bot size={17} aria-hidden="true" />
-              Generieren
+              <WandSparkles size={17} aria-hidden="true" />
+              Entwürfe erstellen
             </button>
             <button type="button" onClick={() => generateDrafts({ ...config, cardCount: Math.min(30, Number(config.cardCount) + 2) })} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1]">
               Mehr Details
@@ -1059,7 +1103,7 @@ const creationMethods = [
   {
     id: "manual",
     title: "Karten manuell erstellen",
-    eyebrow: "Manuell + PDF/Text",
+    eyebrow: "Core · Manuell + PDF/Text",
     body: "Schreibe Karten selbst und füge bei Bedarf eine PDF- oder Textquelle an.",
     icon: PenLine,
     color: "sky",
@@ -1067,16 +1111,16 @@ const creationMethods = [
   {
     id: "import",
     title: "Import",
-    eyebrow: "APKG, Text, Tabellen",
+    eyebrow: "Core · APKG, Text, Tabellen",
     body: "Übernimm bestehende Stapel oder Front/Back-Listen aus Dateien und Tabellen.",
     icon: FileSpreadsheet,
     color: "teal",
   },
   {
     id: "ai",
-    title: "KI-gestützte Erstellung",
-    eyebrow: "Drafts prüfen",
-    body: "Erzeuge strukturierte Entwürfe aus Quellentext und übernimm sie nach Prüfung.",
+    title: "Lokaler Entwurfsassistent",
+    eyebrow: "Labs · Entwürfe prüfen",
+    body: "Erzeuge lokal und deterministisch Entwürfe aus Quellentext. Es wird kein externes Modell aufgerufen.",
     icon: WandSparkles,
     color: "indigo",
   },
@@ -1109,15 +1153,15 @@ function CreationMethodButton({ method, isSelected, onSelect }: any) {
       type="button"
       onClick={onSelect}
       aria-pressed={isSelected}
-      className={`group grid min-h-[28rem] content-start rounded-[20px] border border-[#dde3f4] bg-white/82 px-7 py-10 text-center shadow-[0_8px_22px_rgba(91,105,154,0.08)] transition duration-200 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8790d8] sm:px-8 lg:px-9 ${theme.hover} ${isSelected ? "ring-2 ring-[#8790d8]" : ""}`}
+      className={`group grid min-h-60 content-start rounded-[18px] border border-[#dde3f4] bg-white/82 px-5 py-6 text-center shadow-[0_8px_22px_rgba(91,105,154,0.08)] transition duration-200 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8790d8] ${theme.hover} ${isSelected ? "ring-2 ring-[#8790d8]" : ""}`}
     >
-      <span className={`mx-auto grid size-44 place-items-center rounded-full ${theme.icon}`}>
-        <Icon size={70} strokeWidth={1.7} aria-hidden="true" />
+      <span className={`mx-auto grid size-16 place-items-center rounded-full ${theme.icon}`}>
+        <Icon size={28} strokeWidth={1.8} aria-hidden="true" />
       </span>
-      <span className={`mt-10 text-sm font-semibold uppercase ${theme.eyebrow}`}>{method.eyebrow}</span>
-      <span className="mx-auto mt-5 block max-w-[17rem] text-[2rem] font-semibold leading-tight text-[#17214f]">{method.title}</span>
-      <span className="mx-auto mt-7 block h-px w-full max-w-[17rem] bg-[#dfe4f5]" aria-hidden="true" />
-      <span className="mx-auto mt-6 block max-w-[18rem] text-left text-base leading-7 text-[#66709a]">{method.body}</span>
+      <span className={`mt-4 text-xs font-semibold uppercase ${theme.eyebrow}`}>{method.eyebrow}</span>
+      <span className="mx-auto mt-2 block max-w-[18rem] text-2xl font-semibold leading-tight text-[#17214f]">{method.title}</span>
+      <span className="mx-auto mt-4 block h-px w-full max-w-[18rem] bg-[#dfe4f5]" aria-hidden="true" />
+      <span className="mx-auto mt-3 block max-w-[19rem] text-left text-sm leading-6 text-[#66709a]">{method.body}</span>
     </button>
   );
 }
@@ -1133,7 +1177,7 @@ export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, s
   function renderSelectedMethod() {
     if (selectedMethod === "import") return <ImportCreationPanel decks={decks} onCreated={onCreated} onImportCompleted={onImportCompleted} workflow={accountWorkflow} mediaStore={mediaStore} serverApkgEnabled={enableServerApkgImport} />;
     if (selectedMethod === "manual") return <ManualCreationPanelV2 decks={decks} onCreated={onCreated} onAppendManualCard={onAppendManualCard} />;
-    if (selectedMethod === "ai" && showAiDrafts) return <AiCreationPanel onCreated={onCreated} onJob={onJob} surface={aiDraftSurface} />;
+    if (selectedMethod === "ai" && showAiDrafts) return <LocalDraftCreationPanel onCreated={onCreated} onJob={onJob} surface={aiDraftSurface} />;
     return null;
   }
 
@@ -1169,7 +1213,7 @@ export function CreationScreen({ decks = [], mediaStore, persistImportedDecks, s
           {renderSelectedMethod()}
         </section>
       ) : (
-        <section className="grid min-h-[calc(100vh-18rem)] items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3 xl:gap-6" aria-label="Erstellungsart">
+        <section className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Erstellungsart">
           {availableCreationMethods.map((method) => (
             <CreationMethodButton key={method.id} method={method} isSelected={false} onSelect={() => onMethodChange(method.id)} />
           ))}

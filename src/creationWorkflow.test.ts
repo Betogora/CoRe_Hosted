@@ -216,7 +216,6 @@ test("creation workflow owns AI draft generation and acceptance", () => {
     cardTypes: ["basic", "cloze"],
     focus: "Prüfungswissen",
     subject: "Neuro",
-    costTier: "balanced",
   };
 
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
@@ -247,6 +246,20 @@ test("creation workflow returns APKG errors in the UI job shape", async () => {
   assert.equal(result.job.status, "error");
   assert.equal(result.job.fileName, "broken.apkg");
   assert.equal(result.job.errors.length, 1);
+});
+
+test("creation workflow exposes only browser-readable source formats", async () => {
+  const workflow = createCreationWorkflow();
+
+  assert.equal(workflow.readableSourceDocumentAccept, ".txt,.md,.markdown,.csv,.tsv,.pdf");
+  assert.doesNotMatch(workflow.readableSourceDocumentAccept, /docx/i);
+  const unsupported = await workflow.readSourceDocument({
+    name: "quelle.docx",
+    size: 12,
+    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
+  assert.equal(unsupported.textExtractionStatus, "unsupported");
+  assert.equal(unsupported.metadata.extractionMethod, "unsupported");
 });
 
 test("creation workflow switches to the server path strictly above 250 MiB", async () => {

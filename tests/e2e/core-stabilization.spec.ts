@@ -190,10 +190,11 @@ test("ai draft creation stores an accepted draft deck", async ({ page }: any) =>
   const aiDecksBefore = await storedDeckCountBySource(page, "ai-assisted");
 
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /KI-gestützte Erstellung/ }).click();
-  await page.getByLabel("Quellentext für KI-Drafts").fill("ATP speichert Energie in der Zelle. Mitochondrien stellen ATP durch Zellatmung bereit.");
+  await page.getByRole("button", { name: /Lokaler Entwurfsassistent/ }).click();
+  await expect(page.getByLabel("Labs-Hinweis")).toContainText("kein externes Modell");
+  await page.getByLabel("Quellentext für lokale Entwürfe").fill("ATP speichert Energie in der Zelle. Mitochondrien stellen ATP durch Zellatmung bereit.");
   await page.getByLabel("Fach").fill("Biologie");
-  await page.getByRole("button", { name: "Generieren" }).click();
+  await page.getByRole("button", { name: "Entwürfe erstellen" }).click();
   await expect(page.getByRole("status").filter({ hasText: /Entwurf|Entwürfe|Karten/ })).toBeVisible();
   await page.getByRole("button", { name: /Übernehmen/ }).click();
   await expect.poll(() => storedDeckCountBySource(page, "ai-assisted")).toBeGreaterThan(aiDecksBefore);

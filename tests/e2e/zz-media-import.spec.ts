@@ -30,7 +30,7 @@ test("APKG-Medium wird nach dem Deck-Commit cloudbestätigt und als Signed URL g
   await page.getByRole("button", { name: /Import/ }).click();
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(fixturePath);
   await expect(page.getByText("Importvorschau", { exact: true })).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText(/Medien: 1 erkannt/)).toBeVisible();
+  await expect(page.getByText("Medien vorhanden", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 60_000 });
 

@@ -133,19 +133,11 @@ Implementierung und automatisierte Golden-Evidenz sind in `docs/specs.md` dokume
 
 ### Aufgabe
 
-- [ ] Die drei Einstiegskarten im Erstellen-Bereich kompakter gestalten; sie dürfen nicht den Großteil eines Desktop-Viewports beanspruchen.
-- [ ] `Manuell` und `Import` als Core darstellen.
-- [ ] Die lokale deterministische Entwurfserzeugung entweder:
-  - als `Lokaler Entwurfsassistent` korrekt benennen, oder
-  - vollständig unter Labs verschieben.
-- [ ] Für lokale Entwürfe kein Kostenprofil anzeigen.
-- [ ] Nur tatsächlich unterstützte Quellformate als auswählbar darstellen.
-- [ ] DOCX nicht als akzeptiertes Format ausgeben, solange keine Extraktion existiert.
-- [ ] APKG-Import als progressive Offenlegung gestalten:
-  - zuerst Datei, Status, erkannte Stapel/Karten, Warnungen und Übernehmen,
-  - technische Notetypes, Hashes, Template-IDs und Medienidentitäten nur in `Details`.
-- [ ] Fehler, Abbruch, Retry und Wiederaufnahme mit jeweils genau einer klaren nächsten Aktion darstellen.
-- [ ] Nach erfolgreichem Import Auswahl anbieten: `Jetzt lernen`, `Karten prüfen`, `Zur Bibliothek`.
+Implementierung und automatisierte Evidenz für kompakte Core-/Labs-Einstiege, lesbare Quellformate, den lokalen Entwurfsassistenten, progressive APKG-Offenlegung, eindeutige Status- und Fehleraktionen sowie `Jetzt lernen`/`Karten prüfen` sind in `docs/specs.md` dokumentiert.
+
+### Verbleibende Aufgabe
+
+- [ ] Nach erfolgreichem Import zusätzlich `Zur Bibliothek` anbieten.
 - [ ] Manuelles Speichern eindeutig bestätigen und Fokus für die nächste Karte sinnvoll setzen.
 - [ ] Unsaved-Changes-Verhalten beim Wechsel der Erstellungsart festlegen.
 
@@ -159,10 +151,7 @@ Implementierung und automatisierte Golden-Evidenz sind in `docs/specs.md` dokume
 
 ### Evidenz
 
-- Golden-E2E für kleinen APKG-Import.
-- Golden-E2E für manuelle Karte mit PDF-Quellenanker.
-- Fehlerflows für defekte APKG, Netzwerkfehler und nicht lesbare PDF.
-- Desktop-Abnahme bei 1440 × 900 und 1280 × 720.
+- [ ] Fehlerflows für Netzwerkfehler und nicht lesbare PDF ergänzen.
 
 ---
 

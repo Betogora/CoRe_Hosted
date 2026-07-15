@@ -1,8 +1,9 @@
 export const importSteps = [
-  { id: "validate", label: "Datei prüfen" },
-  { id: "collection", label: "Anki-Collection lesen" },
-  { id: "cards", label: "Karten extrahieren" },
-  { id: "preview", label: "Importvorschau erstellen" },
+  { id: "analyze", label: "Analysieren" },
+  { id: "preview", label: "Vorschau bereit" },
+  { id: "commit", label: "Übernehmen" },
+  { id: "media", label: "Medien werden synchronisiert" },
+  { id: "complete", label: "Fertig" },
 ];
 
 export const cardTypeOptions = [

@@ -15,8 +15,26 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   await menu.getByRole("button", { name: "Erstellen" }).click();
   await expect(page.getByRole("button", { name: /Karten manuell erstellen/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /APKG, Text, Tabellen/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /KI-gestützte Erstellung/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Lokaler Entwurfsassistent/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Einstellungen öffnen" })).toBeVisible();
+});
+
+test("creation choices stay compact in both desktop target viewports", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
+
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }]) {
+    await page.setViewportSize(viewport);
+    const cards = page.getByRole("region", { name: "Erstellungsart" }).getByRole("button");
+    await expect(cards).toHaveCount(3);
+    for (const card of await cards.all()) {
+      const box = await card.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.height).toBeLessThanOrEqual(360);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  }
 });
 
 test("explicit labs entry keeps experimental routes stable across browser history", async ({ page }) => {

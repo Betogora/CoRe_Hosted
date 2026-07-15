@@ -3,7 +3,9 @@ import { loadPdfJs } from "./pdfRuntime.ts";
 
 const TEXT_EXTENSIONS = [".txt", ".md", ".markdown", ".csv", ".tsv"];
 const PDF_EXTENSIONS = [".pdf"];
-const DOCX_EXTENSIONS = [".docx"];
+
+export const READABLE_SOURCE_DOCUMENT_ACCEPT = [...TEXT_EXTENSIONS, ...PDF_EXTENSIONS].join(",");
+export const READABLE_SOURCE_DOCUMENT_LABEL = "PDF, Text, Markdown, CSV oder TSV";
 
 function extensionOf(fileName: any = "") {
   const match = String(fileName).toLowerCase().match(/\.[^.]+$/);
@@ -20,12 +22,6 @@ export function isPdfFile(file: any) {
   const type = file?.type ?? "";
   const extension = extensionOf(file?.name);
   return type === "application/pdf" || PDF_EXTENSIONS.includes(extension);
-}
-
-export function isDocxFile(file: any) {
-  const type = file?.type ?? "";
-  const extension = extensionOf(file?.name);
-  return type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || DOCX_EXTENSIONS.includes(extension);
 }
 
 function createBaseMetadata(file: any, overrides: any = {}) {
@@ -143,7 +139,6 @@ export async function createDocumentFromFile(file: any) {
     file.type ||
     {
       ".pdf": "application/pdf",
-      ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       ".md": "text/markdown",
       ".markdown": "text/markdown",
       ".csv": "text/csv",
@@ -193,20 +188,6 @@ export async function createDocumentFromFile(file: any) {
         }),
       });
     }
-  }
-
-  if (isDocxFile(file)) {
-    return createSourceDocument({
-      fileName: file.name,
-      mimeType,
-      text: "",
-      textExtractionStatus: "unsupported",
-      metadata: createBaseMetadata(file, {
-        browserReadableText: false,
-        extractionMethod: "unsupported-docx",
-        userMessage: "Word-Dokumente werden im nächsten Dokument-Schritt ausgelesen.",
-      }),
-    });
   }
 
   return createSourceDocument({

@@ -80,7 +80,7 @@ const surfaces = [
     id: "local-ai-drafts",
     maturity: "labs",
     mainNavigation: false,
-    reason: "Die Entwürfe werden lokal deterministisch erzeugt und verwenden keine produktive KI-Pipeline.",
+    reason: "Die Entwürfe werden lokal deterministisch erzeugt; es wird kein externes Modell aufgerufen.",
     environmentSwitch: "VITE_ENABLE_LABS",
   },
   {

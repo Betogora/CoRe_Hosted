@@ -14,10 +14,15 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(LATEST_APKG_FIXTURE);
 
   await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
+  await expect(page.getByText("Karten", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Medien vorhanden", { exact: true })).toBeVisible();
+  await expect(page.getByText("Medien fehlen", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kartentypen und Felder" })).toBeHidden();
+  await page.getByText("Technische Details", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "Kartentypen und Felder" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Medien" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Reimport" })).toBeVisible();
-  await expect(page.getByText("CoRe APKG Qualität::Sonderformat")).toBeVisible();
+  await expect(page.getByText("CoRe APKG Qualität::Sonderformat", { exact: true })).toBeVisible();
   await expect(page.getByText("Nicht zugeordnet: Kontext")).toBeVisible();
   await expect(page.getByText("Fehlend: missing.png")).toBeVisible();
   await expect(page.getByText(/Mehrere Anki-Decks wurden erkannt/)).toBeVisible();
@@ -29,4 +34,20 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Reimport" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
+test("defective APKG offers exactly one recommended recovery action", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await page.getByRole("navigation", { name: /Hauptmenü/ }).getByRole("button", { name: "Erstellen" }).click();
+  await page.getByRole("button").filter({ hasText: "APKG, Text, Tabellen" }).click();
+  await page.locator('input[type="file"][accept=".apkg"]').setInputFiles({
+    name: "defekt.apkg",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from("keine gueltige APKG-Datei"),
+  });
+
+  const error = page.getByRole("alert");
+  await expect(error).toBeVisible();
+  await expect(error.getByRole("button")).toHaveCount(1);
+  await expect(error.getByRole("button", { name: "Erneut analysieren" })).toBeVisible();
 });

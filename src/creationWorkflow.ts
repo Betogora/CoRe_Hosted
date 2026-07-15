@@ -1,6 +1,6 @@
 import { generateCardsFromDocument } from "./aiOrchestrator.ts";
 import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument } from "./coreModel.ts";
-import { createAnchorFromSelection, createDocumentFromFile } from "./documentModel.ts";
+import { createAnchorFromSelection, createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "./documentModel.ts";
 import { appendPlainTextToCardHtml, hasCardRichTextContent } from "./richText.ts";
 import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
 import { createAccountMediaStore, type MediaSyncTask } from "./mediaStore.ts";
@@ -217,6 +217,9 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
   }
 
   return {
+    readableSourceDocumentAccept: READABLE_SOURCE_DOCUMENT_ACCEPT,
+    readableSourceDocumentLabel: READABLE_SOURCE_DOCUMENT_LABEL,
+
     async parseApkgFile(file: FileLike, { onStep, onProgress, existingDecks = [] }: ApkgOptions = {}) {
       try {
         if (Number(file.size ?? 0) > SERVER_APKG_MAX_BYTES) throw new Error("Die APKG-Datei ist größer als 1 GiB.");
@@ -277,7 +280,21 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
         : ["committing", "syncing_media"].includes(current.status)
           ? await serverApkgImport.waitUntilFinished(jobId, onProgress)
           : await serverApkgImport.waitUntilReady(jobId, onProgress);
-      return { preview: serverPreview(progress), mediaStatus: null, job: { id: jobId, status: "preview", progress, warnings: progress.report?.warnings ?? [], errors: progress.report?.errors ?? [] } };
+      const failed = progress.status === "failed" || progress.status === "cancelled";
+      const reportErrors = Array.isArray(progress.report?.errors) ? progress.report.errors.map(String) : [];
+      return {
+        preview: serverPreview(progress),
+        mediaStatus: null,
+        job: {
+          id: jobId,
+          status: failed ? "error" : progress.status === "succeeded" ? "done" : "preview",
+          progress,
+          warnings: progress.report?.warnings ?? [],
+          errors: failed
+            ? [...reportErrors, progress.status === "cancelled" ? "Der APKG-Import wurde abgebrochen." : "Die APKG-Analyse ist fehlgeschlagen."]
+            : reportErrors,
+        },
+      };
     },
 
     async retryApkgPreview(preview: ApkgCreationPreview, onProgress?: (progress: ApkgImportProgress) => void) {
