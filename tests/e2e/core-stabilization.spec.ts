@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -46,6 +46,17 @@ function mainMenu(page: Page) {
   return page.getByRole("navigation", { name: /Hauptmen/ });
 }
 
+async function hasVisibleOutline(locator: Locator) {
+  return locator.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    const color = style.outlineColor.replace(/\s/g, "");
+    return style.outlineStyle !== "none"
+      && Number.parseFloat(style.outlineWidth) > 0
+      && color !== "transparent"
+      && !color.endsWith(",0)");
+  });
+}
+
 async function findOriginLeakBeforeReveal(page: Page) {
   return page.locator("body").evaluate((body: HTMLElement) => {
     const originTerms = /\b(?:Original(?:karte)?|Variante|Level|fsrs|Reifegrad)\b/i;
@@ -91,8 +102,11 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
 
   const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen" });
   await learnNavigation.focus();
+  await expect.poll(() => hasVisibleOutline(learnNavigation)).toBe(true);
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeFocused();
+  const learnHeading = page.getByRole("heading", { name: "Lernen", exact: true });
+  await expect(learnHeading).toBeFocused();
+  await expect.poll(() => hasVisibleOutline(learnHeading)).toBe(false);
 
   const createToggle = page.getByTestId("learn-deck-create-toggle");
   await createToggle.focus();
@@ -106,7 +120,9 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   const studyButton = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ });
   await studyButton.focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByText("Frage", { exact: true })).toBeFocused();
+  const questionHeading = page.getByText("Frage", { exact: true });
+  await expect(questionHeading).toBeFocused();
+  await expect.poll(() => hasVisibleOutline(questionHeading)).toBe(false);
 
   const settings = page.getByRole("button", { name: "Lerneinstellungen" });
   await settings.focus();
@@ -115,9 +131,11 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   await page.keyboard.press("Escape");
   await expect(settings).toBeFocused();
 
-  await page.getByText("Frage", { exact: true }).focus();
+  await questionHeading.focus();
   await page.keyboard.press("Space");
-  await expect(page.getByText("Antwort", { exact: true })).toBeFocused();
+  const answerHeading = page.getByText("Antwort", { exact: true });
+  await expect(answerHeading).toBeFocused();
+  await expect.poll(() => hasVisibleOutline(answerHeading)).toBe(false);
   await page.keyboard.press("3");
   await expect.poll(() => page.evaluate(() => document.activeElement?.textContent?.trim().startsWith("Frage") || document.activeElement?.textContent?.includes("Sitzung abgeschlossen"))).toBe(true);
 });
@@ -126,8 +144,12 @@ test("core actions stay usable in a 200 percent effective viewport", async ({ pa
   await page.setViewportSize({ width: 640, height: 360 });
   await resetToFreshLocalState(page);
 
-  await expect(mainMenu(page).getByRole("button", { name: "Lernen" })).toBeVisible();
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen" });
+  await expect(learnNavigation).toBeVisible();
+  await learnNavigation.click();
+  const learnHeading = page.getByRole("heading", { name: "Lernen", exact: true });
+  await expect(learnHeading).toBeFocused();
+  await expect.poll(() => hasVisibleOutline(learnHeading)).toBe(false);
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });

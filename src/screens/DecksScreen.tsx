@@ -849,7 +849,7 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
 
       {selectedDeck ? (
         <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,0.85fr)_minmax(22rem,1.15fr)]">
-          <SoftPanel className="p-5 sm:p-6" data-testid={`deck-card-list-${selectedDeck.id}`} tabIndex={-1}>
+          <SoftPanel className="p-5 outline-none sm:p-6" data-testid={`deck-card-list-${selectedDeck.id}`} tabIndex={-1}>
             <h3 className="break-words text-xl font-semibold text-[#17214f]">Karten in {selectedDeck.name}</h3>
             {selectedDeckMissingMedia.length > 0 ? <p className="mt-2 text-sm text-amber-800" role="status">{selectedDeckMissingMedia[0].status}{selectedDeckMissingMedia.length > 1 ? ` (${selectedDeckMissingMedia.length} Medien)` : ""}</p> : null}
             <div className="mt-5 grid max-h-[28rem] min-w-0 gap-3 overflow-y-auto overflow-x-hidden pr-1">

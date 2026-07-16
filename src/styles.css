@@ -74,7 +74,7 @@ summary {
   min-height: 2.75rem;
 }
 
-:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
   outline: 3px solid var(--core-focus-ring);
   outline-offset: 3px;
 }
