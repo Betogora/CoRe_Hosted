@@ -162,10 +162,18 @@ test("creation workflow prepares multiple-choice manual cards", () => {
     back: "B ist richtig, weil die Definition passt.",
   });
 
-  assert.equal(input.card.cardType, "multiple-choice");
-  assert.deepEqual(input.card.answerOptions, ["A falsch", "B richtig", "C falsch"]);
-  assert.equal(input.card.correctAnswer, "B richtig");
-  assert.equal(workflow.canCreateManualCard({ cardType: "multiple-choice", front: input.card.front, answerOptions: input.card.answerOptions, correctAnswer: input.card.correctAnswer }), true);
+  assert.deepEqual(input.card.editorValue, {
+    cardType: "multiple-choice",
+    question: "Welche Aussage stimmt?",
+    options: ["A falsch", "B richtig", "C falsch"],
+    correctOptionIndex: 1,
+    explanation: "B ist richtig, weil die Definition passt.",
+    tags: [],
+  });
+  assert.equal(workflow.validateManualCard({ cardType: "multiple-choice", front: "Welche Aussage stimmt?", answerOptions: "A falsch\nB richtig", correctAnswer: "B richtig" }).ok, true);
+  assert.equal(workflow.validateManualCard({ cardType: "multiple-choice", front: "Welche Aussage stimmt?", answerOptions: ["A", "A"], correctAnswer: "A" }).ok, false);
+  assert.equal(workflow.validateManualCard({ cardType: "multiple-choice", front: "Welche Aussage stimmt?", answerOptions: ["A", ""], correctAnswer: "A" }).ok, false);
+  assert.equal(workflow.validateManualCard({ cardType: "multiple-choice", front: "Welche Aussage stimmt?", answerOptions: ["A", "B"], correctAnswer: "C" }).ok, false);
 });
 
 test("creation workflow validates cloze syntax and maps old free-text input to basic", () => {
@@ -183,10 +191,10 @@ test("creation workflow validates cloze syntax and maps old free-text input to b
     back: "Osmose ist die Diffusion von Wasser.",
   });
 
-  assert.equal(clozeInput.card.cardType, "cloze");
+  assert.equal(clozeInput.card.editorValue.cardType, "cloze");
   assert.equal(workflow.canCreateManualCard({ cardType: "cloze", front: "ATP liefert Energie.", back: "Extra" }), false);
-  assert.equal(workflow.canCreateManualCard({ cardType: "cloze", front: clozeInput.card.front, back: clozeInput.card.back }), true);
-  assert.equal(freeTextInput.card.cardType, "basic");
+  assert.equal(workflow.canCreateManualCard({ cardType: "cloze", front: "{{c1::ATP}} liefert Energie.", back: "Extra: Zellstoffwechsel." }), true);
+  assert.equal(freeTextInput.card.editorValue.cardType, "basic");
 });
 
 test("formats synthetic PDF text items into readable page lines", () => {

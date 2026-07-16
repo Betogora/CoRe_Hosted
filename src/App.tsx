@@ -62,7 +62,7 @@ interface SignUpInput extends SignInInput { displayName: string }
 interface EmailInput { email: string }
 interface PasswordUpdateInput { password: string; passwordRepeat: string }
 type CreateDeckInput = Parameters<CoreWorkspace["createDeck"]>[0];
-type CardContentPatch = Parameters<CoreWorkspace["saveDeckCardContent"]>[2];
+type CardEditorValue = Parameters<CoreWorkspace["saveDeckCard"]>[2];
 type CardVariantInput = Parameters<CoreWorkspace["addDeckCardVariant"]>[2];
 type ManualCardInput = Parameters<CoreWorkspace["addManualCardToDeck"]>[1];
 
@@ -698,8 +698,24 @@ export function App() {
     });
   }
 
-  function saveDeckCard(deckId: string, cardId: string, patch: CardContentPatch) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDeckCardContent(deckId, cardId, patch));
+  async function saveDeckCard(deckId: string, cardId: string, value: CardEditorValue) {
+    if (!workspace || !syncEngine) throw new Error("Die Cloud-Synchronisierung ist noch nicht bereit.");
+    const runId = bootRunRef.current;
+    const currentSnapshot = workspace.getState();
+    try {
+      const pendingResult = await syncEngine.flush(currentSnapshot, { force: true });
+      applyCloudAcknowledgement(currentSnapshot, pendingResult.saved?.state, runId);
+    } catch {
+      // Der definitive Snapshot nach der lokalen Kartenmutation versucht die Synchronisierung erneut.
+    }
+    const savedCard = workspace.saveDeckCard(deckId, cardId, value);
+    const snapshot = workspace.getState();
+    setAppState(snapshot);
+    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
+    const result = await syncEngine.flush(undefined, { force: true });
+    const acknowledged = applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
+    if (!acknowledged) throw new Error("Die Kartenänderung wurde nicht von der Cloud bestätigt.");
+    return savedCard;
   }
 
   function deleteDeckCard(deckId: string, cardId: string) {

@@ -43,9 +43,11 @@ interface RichTextEditorProps {
   isActive?: boolean;
   minHeightClass?: string;
   ariaLabel: string;
+  ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
 }
 
-export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel }: RichTextEditorProps) {
+export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   const textColorButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -278,7 +280,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   }`;
   return (
     <div className="min-w-0">
-      <div ref={toolbarRef} role="toolbar" aria-label={`${ariaLabel} formatieren`} className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[#f8f9fe] p-2 ${isActive ? "border-[#4f5eb1]" : "border-[#dfe4f5]"}`}>
+      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[#f8f9fe] p-2 ${isActive ? "border-[#4f5eb1]" : "border-[#dfe4f5]"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
         <ToolbarButton label="Unterstrichen" icon={Underline} onRun={() => runCommand("underline")} />
@@ -350,6 +352,8 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         role="textbox"
         aria-label={ariaLabel}
         aria-multiline="true"
+        aria-invalid={ariaInvalid || undefined}
+        aria-describedby={ariaDescribedBy}
         suppressContentEditableWarning
         onFocus={(event) => {
           isFocusedRef.current = true;

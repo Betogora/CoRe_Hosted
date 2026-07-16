@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLocalAccount } from "./authModel.ts";
-import { createBasicLearningItem, createCoreDeck, getOriginalVariant } from "./coreModel.ts";
+import { createBasicLearningItem, createCoreDeck, createLearningItemFromEditorValue, getCardEditorValue, getOriginalVariant, saveCardEditorValue } from "./coreModel.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import { createPortableExport, mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, validatePortableExport } from "./dataPortability.ts";
 
@@ -126,4 +126,30 @@ test("repository import roundtrip normalizes legacy cards into learning items", 
   assert.equal(original.isOriginal, true);
   assert.ok(original);
   assert.equal(original.front, "Was ist CoRe?");
+});
+
+test("portable export roundtrips structured card editor content", () => {
+  const repository = createCoreRepository(createMemoryStorage());
+  const created = createLearningItemFromEditorValue("deck_structured", {
+    cardType: "cloze",
+    textWithClozes: "{{c1::ATP}} speichert Energie.",
+    extra: "Adenosintriphosphat",
+    tags: ["biochemie"],
+  });
+  const card = saveCardEditorValue(created, {
+    cardType: "cloze",
+    textWithClozes: "{{c1::ATP}} überträgt {{c2::Energie}}.",
+    extra: "Zwei Lückengruppen",
+    tags: ["biochemie", "cloze"],
+  });
+  const state = portableState({
+    decks: [createCoreDeck({ id: "deck_structured", name: "Strukturiert", source: "manual", cards: [card] })],
+  });
+  const exported = createPortableExport(state, "2026-07-16T08:00:00.000Z");
+  const merged = mergePortableExportIntoState(repository.getState(), exported);
+  repository.saveState(merged);
+
+  const loaded = repository.getState().decks[0].cards[0];
+  assert.deepEqual(getCardEditorValue(loaded), getCardEditorValue(card));
+  assert.deepEqual(loaded.versionLog, card.versionLog);
 });

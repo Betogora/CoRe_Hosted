@@ -1,6 +1,6 @@
 # CoRe TODO — Beta-Basis klassisches Karteikartenprodukt
 
-Stand: 2026-07-15
+Stand: 2026-07-16
 
 Dieses Dokument ist die einzige operative Roadmap für offene Arbeit.
 
@@ -71,90 +71,9 @@ Vor Merge jedes Arbeitspakets:
 
 # P0 — Vor begleiteter Beta
 
-## P0.1 Typgerechter Kartenlebenszyklus
-
-Abhängigkeit: Globales Eingangsgate
-
-Ziel:
-Erstellung, Bearbeitung, Persistenz und Review verwenden für Basic,
-Reverse, Cloze und Multiple Choice denselben fachlichen Vertrag.
-
-### Domainvertrag
-
-- [ ] Diskriminierte Editorwerte für:
-  - [ ] Basic
-  - [ ] Reverse
-  - [ ] Cloze
-  - [ ] Multiple Choice
-- [ ] Eine kanonische typabhängige Save-Naht einführen.
-- [ ] Generisches `front/back/kind`-Speichern aus dem normalen
-      Verwaltungsfluss entfernen.
-- [ ] Bestehende öffentliche Compatibility-Felder weiter lesen und schreiben.
-- [ ] Keine parallele zweite Kartenrepräsentation einführen.
-
-### Basic
-
-- [ ] Vorderseite und Rückseite über Rich Text bearbeiten.
-- [ ] Tags, Quellenanker und Medien erhalten.
-- [ ] Leere Pflichtfelder am Feld anzeigen.
-- [ ] Normale Bearbeitung erzeugt einen Versionseintrag.
-
-### Reverse
-
-- [ ] Fachliche Front-/Back-Felder bearbeiten.
-- [ ] Reverse-Variante beim Speichern atomar regenerieren oder aktualisieren.
-- [ ] Veraltete Reverse-Inhalte dürfen nicht reviewbar bleiben.
-- [ ] Reviewrichtung nach Reload verifizieren.
-
-### Cloze
-
-- [ ] Kanonischen Cloze-Text bearbeiten.
-- [ ] Sichtbare Syntaxhilfe für `{{c1::...}}` anbieten.
-- [ ] Lücken vor Save parsen und validieren.
-- [ ] Varianten exakt aus den aktuellen Lücken regenerieren.
-- [ ] Entfernte Lücken dürfen keine aktive veraltete Variante hinterlassen.
-- [ ] Ungültige Syntax blockiert Save mit verständlicher Meldung.
-
-### Multiple Choice
-
-- [ ] Frage, Optionen, korrekte Option und Erklärung gemeinsam bearbeiten.
-- [ ] Mindestens zwei gültige Optionen verlangen.
-- [ ] Genau eine korrekte Option verlangen.
-- [ ] Sichtbare Antwort und Bewertungslogik müssen dieselbe Option verwenden.
-- [ ] Optionen nach Reload und Cloud-Roundtrip verifizieren.
-
-### Editor-UI
-
-- [ ] Raw HTML aus dem normalen Editierfluss entfernen.
-- [ ] Importierte Rohfelder und Templates unter `Erweitert` read-only anzeigen.
-- [ ] Quellenanker und Versionen progressiv offenlegen.
-- [ ] Vollständige Deckpfade in Zielauswahlen anzeigen.
-- [ ] Keine neue Kartentyp- oder KI-Funktion ergänzen.
-
-### Akzeptanzgates
-
-- [ ] Basic erstellen, bearbeiten, reloaden und reviewen.
-- [ ] Reverse erstellen, bearbeiten, reloaden und in beiden Richtungen reviewen.
-- [ ] Cloze mit mehreren Lücken bearbeiten; Varianten entsprechen exakt dem Text.
-- [ ] MC-Option und richtige Antwort bearbeiten; Review bewertet korrekt.
-- [ ] Originalvarianten-Invariante bleibt erhalten.
-- [ ] Reimport schützt lokale typgerechte Edits.
-- [ ] Cloud-/Portabilitätsroundtrip erhält strukturierte Felder.
-- [ ] Keine Datenbankmigration.
-
-### Tests
-
-- [ ] Unit-/Contracttests pro Kartentyp.
-- [ ] Regressionstest für genau eine Originalvariante.
-- [ ] Regressionstest für Reverse-/Cloze-Regeneration.
-- [ ] Regressionstest für MC-Konsistenz.
-- [ ] Legacy-Normalisierung und Reimport.
-- [ ] Browserjourney pro Typ.
-- [ ] Fokussierter Accessibility-Check des Editors.
-
 ## P0.2 Batch-Erstellung und Fehlertoleranz
 
-Abhängigkeit: P0.1
+Abhängigkeit: Globales Eingangsgate
 
 Ziel:
 Mehrere Karten lassen sich in einem zusammenhängenden Arbeitsfluss erstellen.
@@ -233,7 +152,7 @@ Drafts, Löschungen und Importterminalzustände sind fehlertolerant.
 
 ## P0.3 Stapel-IA und URL-Kontext
 
-Abhängigkeit: P0.1, P0.2
+Abhängigkeit: P0.2
 
 Ziel:
 `LearnScreen` und `DecksScreen` bleiben getrennte Aufgabenoberflächen,
@@ -402,7 +321,7 @@ Tests:
 
 ## P1.2 Kartenbrowser-Skalierung und globale Suche
 
-Abhängigkeit: P0.1, P0.3
+Abhängigkeit: P0.3
 
 Ziel:
 Jede Karte einer großen oder verschachtelten Sammlung ist auffindbar
@@ -588,7 +507,7 @@ Vor Self-Service-Beta zusätzlich:
 
 ## Begleitete Beta
 
-- [ ] P0.1 bis P0.4 abgeschlossen.
+- [ ] P0.2 bis P0.4 abgeschlossen.
 - [ ] `npm run test:beta` auf Freigabe-SHA grün.
 - [ ] Keine semantische Kartenbeschädigung.
 - [ ] Fünf-Karten-Batchjourney grün.

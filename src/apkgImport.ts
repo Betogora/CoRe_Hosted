@@ -2005,8 +2005,16 @@ function mergeImportedVariants(incomingCard: any, existingCard: any, preserveCon
       qualityStatus: incomingVariant.isOriginal ? incomingVariant.qualityStatus : existingVariant.qualityStatus ?? incomingVariant.qualityStatus,
       isActive: incomingVariant.isOriginal ? true : existingVariant.isActive ?? incomingVariant.isActive,
     };
-    return preserveContent && incomingVariant.isOriginal
-      ? { ...mergedVariant, front: existingVariant.front, back: existingVariant.back }
+    return preserveContent
+      ? {
+          ...mergedVariant,
+          front: existingVariant.front,
+          back: existingVariant.back,
+          explanation: existingVariant.explanation,
+          hintsJson: existingVariant.hintsJson,
+          answerOptionsJson: existingVariant.answerOptionsJson,
+          expectedAnswerJson: existingVariant.expectedAnswerJson,
+        }
       : mergedVariant;
   });
 
@@ -2015,6 +2023,21 @@ function mergeImportedVariants(incomingCard: any, existingCard: any, preserveCon
     ...existingVariants.filter((variant: any) => !variant.isOriginal && !retainedIds.has(variant.id)),
   ];
   return preserveContent ? synchronizeOriginalVariant(result, existingCard) : result;
+}
+
+function mergeImportedCardMeta(incomingMeta: any, existingMeta: any, preserveContent: boolean) {
+  if (!preserveContent) return { ...(incomingMeta ?? {}), preservedLocalContent: false };
+  const editorMetaKeys = ["answerOptions", "correctAnswer", "expectedAnswer", "explanation", "clozeGroupCount"];
+  const preservedEditorMeta = Object.fromEntries(
+    editorMetaKeys
+      .filter((key) => Object.prototype.hasOwnProperty.call(existingMeta ?? {}, key))
+      .map((key) => [key, existingMeta[key]]),
+  );
+  return {
+    ...(incomingMeta ?? {}),
+    ...preservedEditorMeta,
+    preservedLocalContent: true,
+  };
 }
 
 function mergeImportedCard(incomingCard: any, existingCard: any) {
@@ -2055,10 +2078,7 @@ function mergeImportedCard(incomingCard: any, existingCard: any) {
     versionLog: existingCard.versionLog?.length ? existingCard.versionLog : incomingCard.versionLog,
     sourceAnchors: existingCard.sourceAnchors?.length ? existingCard.sourceAnchors : incomingCard.sourceAnchors,
     mediaRefs: preserveContent ? unique([...(existingCard.mediaRefs ?? []), ...(incomingCard.mediaRefs ?? [])]) : incomingCard.mediaRefs,
-    meta: {
-      ...(incomingCard.meta ?? {}),
-      preservedLocalContent: preserveContent,
-    },
+    meta: mergeImportedCardMeta(incomingCard.meta, existingCard.meta, preserveContent),
   };
 }
 

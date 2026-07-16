@@ -477,12 +477,11 @@ test("workspace card maintenance hides editing and delete invariants", () => {
   const deck = workspace.createDemoDeck();
   const cardId = deck.cards[0].id;
 
-  const edited = workspace.saveDeckCardContent(deck.id, cardId, {
-    originalFront: "Welche Funktion hat Myelin?",
-    originalBack: "Myelin isoliert Axone und erhoeht die Leitungsgeschwindigkeit.",
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-    originalTags: "anatomie nerven",
-    kind: "basic",
+  const edited = workspace.saveDeckCard(deck.id, cardId, {
+    cardType: "basic",
+    front: "Welche Funktion hat Myelin?",
+    back: "Myelin isoliert Axone und erhöht die Leitungsgeschwindigkeit.",
+    tags: ["anatomie", "nerven"],
   });
   assert.ok(edited);
   const editedCard = edited.cards.find((card) => card.id === cardId);
@@ -511,7 +510,12 @@ test("workspace restores a card version through the canonical repository mutatio
   const workspace = createTestWorkspace();
   const deck = workspace.createDemoDeck();
   const card = deck.cards[0];
-  const editedDeck = workspace.saveDeckCardContent(deck.id, card.id, { originalFront: "Geänderte Frage" });
+  const editedDeck = workspace.saveDeckCard(deck.id, card.id, {
+    cardType: "basic",
+    front: "Geänderte Frage",
+    back: card.originalBack,
+    tags: card.tags,
+  });
   const editedCard = editedDeck?.cards.find((item) => item.id === card.id);
   const versionId = editedCard?.versionLog.at(-1)?.id;
   assert.ok(versionId);

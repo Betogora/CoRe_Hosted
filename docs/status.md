@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-07-15
+**Stand:** 2026-07-16
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -14,7 +14,8 @@ CoRe ist ein breiter Web-MVP mit einem abgegrenzten Beta-Kern, Labs-Flächen und
 - Pflichtlogin mit Supabase E-Mail/Passwort, Profil-Upsert und accountgebundenem Browser-Cache.
 - Cloud-first Autosave, Offline-Outbox, Wiederverbindung, revisionsgeprüfte Mutationen, Konfliktauflösung und Soft-Deletes.
 - Leerer Standardaccount ohne automatische Demo-Daten; Demo-Seed nur explizit beziehungsweise in Entwicklung/E2E.
-- Manuelle Erstellung für Basic, Reverse, Cloze und Multiple Choice mit Rich Text.
+- Typgerechte Erstellung und Bearbeitung für Basic, Reverse, Cloze und Multiple Choice mit Rich Text, Feldvalidierung, strukturierter Speicherung und auditierbaren Versionen.
+- Reverse-Richtungen, Cloze-Lückengruppen und Multiple-Choice-Lösung werden beim Speichern atomar in ihre reviewbaren Formen projiziert; Reimport, Cloud und Portabilität erhalten lokale strukturierte Änderungen.
 - APKG-, Text-, CSV- und Tabellenimport; APKG-Preview, Worker, Reimport-Merge und Medienstatus.
 - Accountgebundener Mediencache mit privaten Storage-Objekten, Standardupload bis 6 MiB, TUS darüber und URL-Fallback.
 - Review mit vier Bewertungen, Tastatursteuerung, Intervallvorschau und stabilem Sitzungsabschluss.

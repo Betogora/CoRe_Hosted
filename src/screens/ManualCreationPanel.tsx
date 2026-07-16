@@ -1,7 +1,7 @@
 import React from "react";
-import { Database, FileText, PenLine, Pin, PinOff } from "lucide-react";
+import { Database, FileText, PenLine, Pin, PinOff, Plus, X } from "lucide-react";
 import type { CreationWorkflow } from "../creationWorkflow.ts";
-import type { CardType, Deck, SourceAnchor, SourceDocument } from "../coreTypes.ts";
+import type { CardEditorFieldErrors, CardType, Deck, SourceAnchor, SourceDocument } from "../coreTypes.ts";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
@@ -9,10 +9,10 @@ import { cardTypeOptions } from "./screenConstants.ts";
 
 type ManualCreationWorkflow = Pick<
   CreationWorkflow,
-  | "canCreateManualCard"
   | "captureManualSelection"
   | "createManualDeck"
   | "createManualDeckInput"
+  | "validateManualCard"
   | "readableSourceDocumentAccept"
   | "readableSourceDocumentLabel"
   | "readSourceDocument"
@@ -44,13 +44,6 @@ function documentStatusMessage(document: SourceDocument | null): string {
   if (document.textExtractionStatus === "unsupported") return "Dieses Dateiformat kann in diesem Schritt noch nicht ausgelesen werden.";
   if (document.textExtractionStatus === "error") return String(document.metadata.extractionError || "Dokument konnte nicht ausgelesen werden.");
   return "Dokument als Quelle gespeichert; Textextraktion steht aus.";
-}
-
-function splitAnswerOptions(value: string): string[] {
-  return value
-    .split(/\n+/)
-    .map((option) => option.trim())
-    .filter(Boolean);
 }
 
 function isPdfDocument(document: SourceDocument | null): boolean {
@@ -88,8 +81,8 @@ export function ManualCreationPanel({ decks, workflow, onCreated, onAppendManual
   const [cardType, setCardType] = React.useState<CardType>("basic");
   const [front, setFront] = React.useState("");
   const [back, setBack] = React.useState("");
-  const [answerOptions, setAnswerOptions] = React.useState("");
-  const [correctAnswer, setCorrectAnswer] = React.useState("");
+  const [answerOptions, setAnswerOptions] = React.useState(["", ""]);
+  const [correctOptionIndex, setCorrectOptionIndex] = React.useState(0);
   const [tags, setTags] = React.useState("");
   const [pinnedFields, setPinnedFields] = React.useState<Record<ActiveField, boolean>>({ front: false, back: false });
   const [activeField, setActiveField] = React.useState<ActiveField>("front");
@@ -101,7 +94,7 @@ export function ManualCreationPanel({ decks, workflow, onCreated, onAppendManual
   const [sourceAnchor, setSourceAnchor] = React.useState<SourceAnchor | null>(null);
   const [status, setStatus] = React.useState("");
   const [statusType, setStatusType] = React.useState<"status" | "alert">("status");
-  const parsedOptions = splitAnswerOptions(answerOptions);
+  const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
 
   React.useEffect(() => {
     if (!selectedDeckId && decks[0]?.id) setSelectedDeckId(decks[0].id);
@@ -114,10 +107,8 @@ export function ManualCreationPanel({ decks, workflow, onCreated, onAppendManual
   }, [documentMode]);
 
   React.useEffect(() => {
-    if (cardType === "multiple-choice" && !correctAnswer && parsedOptions[0]) {
-      setCorrectAnswer(parsedOptions[0]);
-    }
-  }, [cardType, correctAnswer, parsedOptions]);
+    if (correctOptionIndex >= answerOptions.length) setCorrectOptionIndex(0);
+  }, [answerOptions.length, correctOptionIndex]);
 
   React.useEffect(
     () => () => {
@@ -177,7 +168,7 @@ export function ManualCreationPanel({ decks, workflow, onCreated, onAppendManual
       front,
       back,
       answerOptions,
-      correctAnswer,
+      correctAnswer: answerOptions[correctOptionIndex] ?? "",
       expectedAnswer: back,
       tags,
       document,
@@ -192,14 +183,27 @@ export function ManualCreationPanel({ decks, workflow, onCreated, onAppendManual
     setPinnedFields((current) => ({ ...current, [field]: !current[field] }));
   }
 
+  function updateAnswerOption(index: number, value: string) {
+    setAnswerOptions((current) => current.map((option, optionIndex) => optionIndex === index ? value : option));
+    setFieldErrors((current) => ({ ...current, options: undefined }));
+  }
+
+  function removeAnswerOption(index: number) {
+    if (answerOptions.length <= 2) return;
+    setAnswerOptions((current) => current.filter((_, optionIndex) => optionIndex !== index));
+    setCorrectOptionIndex((current) => current === index ? 0 : current > index ? current - 1 : current);
+    setFieldErrors((current) => ({ ...current, options: undefined, correctOptionIndex: undefined }));
+  }
+
   function resetCardFields() {
     const keepSourceAnchor = sourceAnchor?.targetField === "front" || sourceAnchor?.targetField === "back"
       ? pinnedFields[sourceAnchor.targetField]
       : false;
     setFront((current) => (pinnedFields.front ? current : ""));
     setBack((current) => (pinnedFields.back ? current : ""));
-    setAnswerOptions("");
-    setCorrectAnswer("");
+    setAnswerOptions(["", ""]);
+    setCorrectOptionIndex(0);
+    setFieldErrors({});
     if (!keepSourceAnchor) {
       setSelection("");
       setSourceAnchor(null);
@@ -208,6 +212,13 @@ export function ManualCreationPanel({ decks, workflow, onCreated, onAppendManual
   }
 
   async function saveManualCard() {
+    const validation = workflow.validateManualCard(manualInput());
+    if (!validation.ok) {
+      setFieldErrors(validation.errors);
+      setStatusType("alert");
+      setStatus("Bitte die markierten Felder prüfen.");
+      return;
+    }
     try {
       const input = manualInput();
       if (!useNewDeck && selectedDeckId) {
@@ -235,8 +246,7 @@ export function ManualCreationPanel({ decks, workflow, onCreated, onAppendManual
     }
   }
 
-  const canCreate = workflow.canCreateManualCard({ front, back, cardType, answerOptions, correctAnswer });
-  const answerLabel = cardType === "cloze" ? "Zusatzinfo" : cardType === "multiple-choice" ? "Erklärung / Musterantwort" : "Rückseite";
+  const answerLabel = cardType === "cloze" ? "Zusatzinfo" : cardType === "multiple-choice" ? "Erklärung (optional)" : "Rückseite";
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = showDocumentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
@@ -254,7 +264,7 @@ export function ManualCreationPanel({ decks, workflow, onCreated, onAppendManual
                 <select className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={selectedDeckId} onChange={(event) => setSelectedDeckId(event.target.value)}>
                   {decks.map((deck) => (
                     <option key={deck.id} value={deck.id}>
-                      {deck.name}
+                      {(deck.hierarchyPath.length ? deck.hierarchyPath : [deck.name]).join(" / ")}
                     </option>
                   ))}
                 </select>
@@ -287,41 +297,46 @@ export function ManualCreationPanel({ decks, workflow, onCreated, onAppendManual
       <div className="grid min-w-0 gap-4">
         <div className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
           <div className="flex min-h-9 items-center justify-between gap-2">
-            <span>{cardType === "cloze" ? "Cloze-Text" : "Vorderseite"}</span>
-            <PinFieldButton isPinned={pinnedFields.front} label={cardType === "cloze" ? "Cloze-Text" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
+            <span>{cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Frage" : "Vorderseite"}</span>
+            <PinFieldButton isPinned={pinnedFields.front} label={cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Frage" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
           </div>
-          <RichTextEditor value={front} onFocus={() => setActiveField("front")} onChange={setFront} isActive={frontFieldActive} minHeightClass="min-h-32" ariaLabel={cardType === "cloze" ? "Cloze-Text" : "Vorderseite"} />
+          <RichTextEditor value={front} onFocus={() => setActiveField("front")} onChange={(value) => {
+            setFront(value);
+            setFieldErrors((current) => ({ ...current, front: undefined, question: undefined, textWithClozes: undefined }));
+          }} isActive={frontFieldActive} minHeightClass="min-h-32" ariaLabel={cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Multiple-Choice-Frage" : "Vorderseite"} ariaInvalid={Boolean(fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes)} />
+          {cardType === "cloze" ? <p className="text-sm font-normal text-[#66709a]">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren.</p> : null}
+          {fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes ? <p className="text-sm font-medium text-red-700" role="alert">{fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes}</p> : null}
         </div>
         <div className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
           <div className="flex min-h-9 items-center justify-between gap-2">
             <span>{answerLabel}</span>
             <PinFieldButton isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
           </div>
-          <RichTextEditor value={back} onFocus={() => setActiveField("back")} onChange={setBack} isActive={backFieldActive} minHeightClass="min-h-32" ariaLabel={answerLabel} />
+          <RichTextEditor value={back} onFocus={() => setActiveField("back")} onChange={(value) => {
+            setBack(value);
+            setFieldErrors((current) => ({ ...current, back: undefined }));
+          }} isActive={backFieldActive} minHeightClass="min-h-32" ariaLabel={answerLabel} ariaInvalid={Boolean(fieldErrors.back)} />
+          {fieldErrors.back ? <p className="text-sm font-medium text-red-700" role="alert">{fieldErrors.back}</p> : null}
         </div>
       </div>
 
       {cardType === "multiple-choice" ? (
-        <div className="grid gap-4 lg:grid-cols-[1fr_0.8fr]">
-          <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-            Antwortoptionen
-            <textarea className="min-h-32 rounded-xl border border-[#dfe4f5] p-3 text-sm leading-6" value={answerOptions} onChange={(event) => setAnswerOptions(event.target.value)} placeholder={"Option A\nOption B\nOption C"} aria-label="Antwortoptionen" />
-          </label>
-          <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-            Richtige Antwort
-            {parsedOptions.length > 0 ? (
-              <select className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={correctAnswer} onChange={(event) => setCorrectAnswer(event.target.value)}>
-                {parsedOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={correctAnswer} onChange={(event) => setCorrectAnswer(event.target.value)} />
-            )}
-          </label>
-        </div>
+        <fieldset className="grid gap-3 rounded-xl border border-[#dfe4f5] p-4">
+          <legend className="px-1 text-sm font-semibold text-[#4e5b8c]">Antwortoptionen und richtige Antwort</legend>
+          {answerOptions.map((option, index) => (
+            <div key={index} className="flex min-w-0 items-center gap-2">
+              <input type="radio" name="manual-correct-option" checked={correctOptionIndex === index} onChange={() => {
+                setCorrectOptionIndex(index);
+                setFieldErrors((current) => ({ ...current, correctOptionIndex: undefined }));
+              }} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex)} />
+              <input className="min-h-11 min-w-0 flex-1 rounded-xl border border-[#dfe4f5] px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+              <button type="button" onClick={() => removeAnswerOption(index)} disabled={answerOptions.length <= 2} className="grid size-10 place-items-center rounded-xl border border-[#dfe4f5] text-[#66709a] disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
+            </div>
+          ))}
+          <button type="button" onClick={() => setAnswerOptions((current) => [...current, ""])} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1]"><Plus size={16} aria-hidden="true" />Option hinzufügen</button>
+          {fieldErrors.options ? <p className="text-sm font-medium text-red-700" role="alert">{fieldErrors.options}</p> : null}
+          {fieldErrors.correctOptionIndex ? <p className="text-sm font-medium text-red-700" role="alert">{fieldErrors.correctOptionIndex}</p> : null}
+        </fieldset>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
@@ -330,7 +345,7 @@ export function ManualCreationPanel({ decks, workflow, onCreated, onAppendManual
           <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="biologie zelle prüfung" />
         </label>
         <div className="flex flex-wrap items-end gap-2">
-          <button type="button" disabled={!canCreate} onClick={() => void saveManualCard()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+          <button type="button" onClick={() => void saveManualCard()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white">
             <Database size={17} aria-hidden="true" />
             Originalkarte speichern
           </button>

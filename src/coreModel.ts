@@ -48,12 +48,21 @@ export {
 } from "./coreModel/learningItems.ts";
 export type { CoreCardInput } from "./coreModel/learningItems.ts";
 export {
+  CardEditorValidationError,
+  assertValidCardEditorValue,
+  getCardEditorValue,
+  parseClozeGroups,
+  saveCardEditorValue,
+  validateCardEditorValue,
+} from "./coreModel/cardEditor.ts";
+export {
   acceptAiDraftDeck,
   addRephrasedVariant,
   createAiDraftDeck,
   createBasicLearningItem,
   createBasicReverseLearningItem,
   createClozeLearningItem,
+  createLearningItemFromEditorValue,
   createLearningItemsFromNormalizedInput,
   createManualCoreDeck,
   restoreCardVersion,

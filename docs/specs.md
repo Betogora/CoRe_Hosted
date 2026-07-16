@@ -124,9 +124,15 @@ Akzeptanz:
 - Ein Klick auf eine Lernzeile startet Lernen.
 - Verschieben, Outdent und Löschen sind explizite, bestätigte Verwaltungsaktionen.
 - Basic, Reverse, Cloze und Multiple Choice laufen durch dieselbe fachliche Erstellung.
-- Vorder- und Rückseite unterstützen sanitisiertes Rich Text.
+- Basic und Reverse bearbeiten Vorder- und Rückseite als sanitisiertes Rich Text; Pflichtfelder werden direkt am Feld validiert.
+- Reverse zeigt im normalen Review die Originalrichtung und im ausdrücklich gestarteten Variantenreview die atomar synchronisierte Rückrichtung.
+- Cloze bearbeitet den kanonischen Lückentext mit sichtbarer `{{c1::…}}`-Syntaxhilfe. Speichern ist nur mit gültigen Lücken möglich; aktive Reviewvarianten entsprechen danach exakt den vorhandenen Lückengruppen.
+- Multiple Choice bearbeitet Frage, mindestens zwei eindeutige Optionen, genau eine richtige Option und eine optionale Erklärung gemeinsam. Reviewanzeige und Bewertung verwenden dieselbe gespeicherte richtige Option.
 - Quellenanker bleiben beim Bearbeiten erhalten und nachvollziehbar.
-- Lokale Inhaltsänderungen werden bei APKG-Reimport nicht still überschrieben.
+- Importierte Rohfelder bleiben unter den Details read-only; Quellen, Versionen und Wiederherstellung werden progressiv offengelegt.
+- Eine erfolgreiche Bearbeitung erzeugt einen auditierbaren Versionseintrag; Wiederherstellung umfasst auch strukturierte Cloze- und Multiple-Choice-Inhalte.
+- Lokale typgerechte Inhaltsänderungen werden bei APKG-Reimport nicht still überschrieben.
+- Strukturierte Kartenfelder überleben den accountgebundenen Cloud-Roundtrip und den Portabilitätsexport.
 
 ### 5.4 Karte bewerten, neu laden und fortfahren
 

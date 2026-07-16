@@ -1,7 +1,7 @@
 # CoRe-Architektur und Invarianten
 
 **Rolle:** einzige kanonische Quelle für aktuelle Architektur, Modulgrenzen, technische Invarianten sowie die Trennung von Ist- und Zielmodell.
-**Stand:** 2026-07-15
+**Stand:** 2026-07-16
 
 Produktverhalten steht in [`specs.md`](specs.md), der verifizierte Ist-Stand in [`status.md`](status.md), Betrieb in [`operations.md`](operations.md) und offene Arbeit in [`todo.md`](todo.md).
 
@@ -30,9 +30,9 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | --- | --- |
 | `src/App.tsx` | App-Shell, Route-Auswahl und Screen-Komposition |
 | `src/screens/` | Produktnahe UI; die Screen-Landkarte steht in [`../src/screens/README.md`](../src/screens/README.md) |
-| `src/coreTypes.ts` | Kanonische normalisierte Typen für Deck, Learning Item, Card Variant und Review State |
-| `src/coreModel.ts` | Einzige öffentliche Seam für Erzeugung und Normalisierung von Learning Items und Varianten |
-| `src/coreWorkspace.ts` | Anwendungsbefehle für Decks, Karten, Import und Variantenannahme |
+| `src/coreTypes.ts` | Kanonische normalisierte Typen für Deck, Learning Item, Card Variant, Review State und diskriminierte Editorwerte |
+| `src/coreModel.ts` | Einzige öffentliche Seam für Erzeugung, Normalisierung, typgerechte Editorprojektion, Validierung und Speichern von Learning Items und Varianten |
+| `src/coreWorkspace.ts` | Anwendungsbefehle für Decks, typgerechte Kartenwerte, Import und Variantenannahme |
 | `src/coreRepository.ts` | Lokaler persistenter App-State und Legacy-Normalisierung |
 | `src/cloudRepository.ts` | Accountgefiltertes Laden, revisionsgeprüfte Mutationen, Konflikte und Soft-Deletes |
 | `src/apkgImport.ts` | Öffentliche APKG-Normalisierungsgrenze; Worker, ZIP und SQLite bleiben privat |
@@ -50,8 +50,11 @@ React-Caller kennen keine APKG-, SQLite-, Storage-, RLS-, Scheduler-, Provider- 
 - Ein Deck enthält fachlich Learning Items.
 - Jedes Learning Item besitzt genau eine Originalvariante.
 - Jede weitere Variante verweist auf dasselbe Learning Item und bleibt am Original verankert.
-- Änderungen an Vorder- oder Rückseite synchronisieren kanonischen Inhalt, Compatibility-Felder und Originalvariante atomar.
-- Reimport überschreibt keine lokal bearbeiteten Vorder- oder Rückseiten. Er darf Importmetadaten und Medienreferenzen aktualisieren.
+- Typgerechte Änderungen synchronisieren kanonischen Inhalt, Compatibility-Felder, strukturierte Options-/Lückenfelder und Originalvariante atomar.
+- Reverse-Speichern hält genau eine aktive Rückrichtung aktuell; regulärer Review verwendet die Originalrichtung, expliziter Variantenreview die Rückrichtung.
+- Cloze-Speichern erhält passende Variantenidentitäten, erzeugt neue Lückengruppen und deaktiviert entfernte Gruppen.
+- Importierte Rohfelder bleiben read-only und werden beim typgerechten Speichern nicht ersetzt.
+- Reimport überschreibt keine lokal bearbeiteten typgerechten Inhalte. Er darf Importmetadaten und Medienreferenzen aktualisieren.
 - Review Events sind append-only und accountgebunden. Community- oder geteilte Inhalte enthalten keine privaten Reviewdaten.
 - Parserfehler eines aktiven APKG-Workers bleiben sichtbar; es gibt keinen stillen Direktparser-Retry.
 - Fremdpayloads bleiben `unknown`, bis das besitzende Modul sie validiert oder normalisiert.

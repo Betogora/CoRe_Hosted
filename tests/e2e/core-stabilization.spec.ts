@@ -385,7 +385,7 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await page.getByRole("button", { name: /Mitochondrien erzeugen ATP/ }).click();
   await page.getByLabel("Karten-Vorderseite").fill("Warum erzeugen Mitochondrien ATP?");
   await page.getByRole("button", { name: "Speichern" }).click();
-  await expect.poll(async () => (await storedCard(page, createdDeck.id, createdCard.id))?.originalFront).toBe("Warum erzeugen Mitochondrien ATP?");
+  await expect.poll(async () => (await storedCard(page, createdDeck.id, createdCard.id))?.originalFront).toBe("<p>Warum erzeugen Mitochondrien ATP?</p>");
 
   const reviewsBefore = await deckReviewEventCount(page, createdDeck.id);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();

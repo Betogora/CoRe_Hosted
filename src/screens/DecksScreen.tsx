@@ -1,17 +1,19 @@
 import React from "react";
 import { Check, ChevronRight, Copy, FolderPlus, Layers, MoveRight, Network, Pencil, Play, PlusSquare, RotateCcw, Save, Search, Share2, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
-import { getOriginalVariant, getVariantAnchor } from "../coreModel.ts";
+import { getCardEditorValue, getOriginalVariant, getVariantAnchor, validateCardEditorValue } from "../coreModel.ts";
 import { buildCardVariationPrompt, createVariantReviewModel } from "../coreVariantService.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
 import { CoreModeControl, EmptyState, LabsNotice, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
+import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
-import type { CardType, CardVariant, CoreMode, Deck, LearningItem, MaturityBand } from "../coreTypes.ts";
+import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardType, CardVariant, CoreMode, Deck, LearningItem, MaturityBand } from "../coreTypes.ts";
 import type { ProductSurface } from "../productSurfaces.ts";
 
-function normalizeEditableCardType(kind: string) {
-  return cardTypeOptions.some((option) => option.value === kind) ? kind : "basic";
+function FieldError({ errors, field }: { errors: CardEditorFieldErrors; field: CardEditorField }) {
+  const message = errors[field];
+  return message ? <p className="text-sm font-medium text-red-700" role="alert">{message}</p> : null;
 }
 
 function versionContent(value: unknown, fallback: LearningItem) {
@@ -26,12 +28,11 @@ function versionContent(value: unknown, fallback: LearningItem) {
 
 function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSaveCard, onDeleteCard, onRestoreCard, onAddVariant, onApplyVariantJson, showExternalVariantFlow = false, externalVariantSurface }: any) {
   const card = cards.find((item: any) => item.id === selectedCardId) ?? cards[0];
-  const [form, setForm] = React.useState<any>(() => card ? {
-    front: card.originalFront,
-    back: card.originalBack,
-    tags: (card.originalTags ?? []).join(" "),
-    kind: normalizeEditableCardType(card.kind),
-  } : null);
+  const [form, setForm] = React.useState<CardEditorValue | null>(() => card ? getCardEditorValue(card) : null);
+  const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
+  const [saveStatus, setSaveStatus] = React.useState("");
+  const [saveError, setSaveError] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
   const [variantForm, setVariantForm] = React.useState({ front: "", back: "", variantLevel: 2 });
   const [showPrompt, setShowPrompt] = React.useState(false);
   const [jsonResponse, setJsonResponse] = React.useState("");
@@ -44,21 +45,19 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   const restoreActionRef = React.useRef<HTMLButtonElement | null>(null);
 
   React.useEffect(() => {
-    setForm(
-      card
-        ? {
-            front: card.originalFront,
-            back: card.originalBack,
-            tags: (card.originalTags ?? []).join(" "),
-            kind: normalizeEditableCardType(card.kind),
-          }
-        : null,
-    );
+    setForm(card ? getCardEditorValue(card) : null);
+    setFieldErrors({});
+    setSaveError(false);
     setVariantForm({ front: "", back: "", variantLevel: 2 });
     setShowPrompt(false);
     setJsonResponse("");
     setVariantStatus("");
   }, [card?.id, card?.updatedAt]);
+
+  React.useEffect(() => {
+    setSaveStatus("");
+    setSaveError(false);
+  }, [card?.id]);
 
   React.useEffect(() => {
     setRestoreVersionId("");
@@ -70,7 +69,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
     if (confirmRestore) restoreActionRef.current?.focus();
   }, [confirmRestore]);
 
-  if (!card || !form) return null;
+  if (!card) return null;
 
   const reviewEvents = deck?.reviewEvents ?? [];
   const variantReviewModel = createVariantReviewModel(card, reviewEvents);
@@ -92,8 +91,53 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   }, card);
   const restoredContent = selectedVersion ? versionContent(selectedVersion.before, card) : null;
 
-  function update(key: string, value: string) {
-    setForm((current: any) => ({ ...current, [key]: value }));
+  function update(key: string, value: string | string[] | number) {
+    setForm((current) => current ? ({ ...current, [key]: value } as CardEditorValue) : current);
+    setFieldErrors((current) => ({ ...current, [key]: undefined }));
+    setSaveStatus("");
+    setSaveError(false);
+  }
+
+  function updateMcOption(index: number, option: string) {
+    if (form?.cardType !== "multiple-choice") return;
+    update("options", form.options.map((current, optionIndex) => optionIndex === index ? option : current));
+  }
+
+  function addMcOption() {
+    if (form?.cardType !== "multiple-choice") return;
+    update("options", [...form.options, ""]);
+  }
+
+  function removeMcOption(index: number) {
+    if (form?.cardType !== "multiple-choice" || form.options.length <= 2) return;
+    const options = form.options.filter((_, optionIndex) => optionIndex !== index);
+    const correctOptionIndex = form.correctOptionIndex === index ? 0 : form.correctOptionIndex > index ? form.correctOptionIndex - 1 : form.correctOptionIndex;
+    setForm({ ...form, options, correctOptionIndex });
+    setFieldErrors((current) => ({ ...current, options: undefined, correctOptionIndex: undefined }));
+  }
+
+  async function saveEditorValue() {
+    if (!form) return;
+    const validation = validateCardEditorValue(form);
+    if (!validation.ok) {
+      setFieldErrors(validation.errors);
+      setSaveError(true);
+      setSaveStatus("Bitte die markierten Felder prüfen.");
+      return;
+    }
+    setIsSaving(true);
+    setSaveError(false);
+    setSaveStatus("Karte wird gespeichert …");
+    try {
+      await onSaveCard(card.id, validation.value);
+      setFieldErrors({});
+      setSaveStatus("Karte gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.");
+    } catch {
+      setSaveError(true);
+      setSaveStatus("Karte ist lokal gespeichert, aber die Cloud-Synchronisierung ist fehlgeschlagen. Bitte später erneut versuchen.");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function updateVariantForm(key: string, value: string|number) {
@@ -155,17 +199,16 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">Karten-Detail</p>
-          <h3 className="mt-1 break-words text-xl font-semibold text-[#17214f]">Original, Versionen und Anker</h3>
+          <h3 className="mt-1 break-words text-xl font-semibold text-[#17214f]">Karte typgerecht bearbeiten</h3>
+          <p className="mt-1 text-sm text-[#66709a]">{cardTypeOptions.find((option) => option.value === card.cardType)?.label ?? card.cardType}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onSaveCard(card.id, form)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white"
-          >
-            <Save size={16} aria-hidden="true" />
-            Speichern
-          </button>
+          {form ? (
+            <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white disabled:opacity-60">
+              <Save size={16} aria-hidden="true" />
+              {isSaving ? "Speichert …" : "Speichern"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onDeleteCard(card.id)}
@@ -176,31 +219,76 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           </button>
         </div>
       </div>
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-          Vorderseite
-          <textarea className="min-h-28 min-w-0 rounded-xl border border-[#dfe4f5] p-3" value={form.front} onChange={(event) => update("front", event.target.value)} aria-label="Karten-Vorderseite" />
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-          Rückseite
-          <textarea className="min-h-28 min-w-0 rounded-xl border border-[#dfe4f5] p-3" value={form.back} onChange={(event) => update("back", event.target.value)} aria-label="Karten-Rückseite" />
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-          Kartentyp
-          <select className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3" value={form.kind} onChange={(event) => update("kind", event.target.value)}>
-            {cardTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
-          Tags
-          <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3" value={form.tags} onChange={(event) => update("tags", event.target.value)} />
-        </label>
-      </div>
-      <div className="mt-5 grid min-w-0 gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))]">
+      {form ? (
+        <div className="grid min-w-0 gap-4">
+          {form.cardType === "basic" || form.cardType === "basic-reversed" ? (
+            <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                <span>Vorderseite</span>
+                <RichTextEditor value={form.front} onChange={(value) => update("front", value)} ariaLabel="Karten-Vorderseite" ariaInvalid={Boolean(fieldErrors.front)} minHeightClass="min-h-32" />
+                <FieldError errors={fieldErrors} field="front" />
+              </div>
+              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                <span>Rückseite</span>
+                <RichTextEditor value={form.back} onChange={(value) => update("back", value)} ariaLabel="Karten-Rückseite" ariaInvalid={Boolean(fieldErrors.back)} minHeightClass="min-h-32" />
+                <FieldError errors={fieldErrors} field="back" />
+              </div>
+            </div>
+          ) : null}
+          {form.cardType === "cloze" ? (
+            <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                <span>Cloze-Text</span>
+                <RichTextEditor value={form.textWithClozes} onChange={(value) => update("textWithClozes", value)} ariaLabel="Cloze-Text" ariaInvalid={Boolean(fieldErrors.textWithClozes)} minHeightClass="min-h-32" />
+                <p className="text-sm font-normal text-[#66709a]">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren. Gleiche Nummern gehören zu einer Reviewrichtung.</p>
+                <FieldError errors={fieldErrors} field="textWithClozes" />
+              </div>
+              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                <span>Zusatzinfo</span>
+                <RichTextEditor value={form.extra} onChange={(value) => update("extra", value)} ariaLabel="Cloze-Zusatzinfo" minHeightClass="min-h-32" />
+              </div>
+            </div>
+          ) : null}
+          {form.cardType === "multiple-choice" ? (
+            <div className="grid min-w-0 gap-4">
+              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                <span>Frage</span>
+                <RichTextEditor value={form.question} onChange={(value) => update("question", value)} ariaLabel="Multiple-Choice-Frage" ariaInvalid={Boolean(fieldErrors.question)} minHeightClass="min-h-32" />
+                <FieldError errors={fieldErrors} field="question" />
+              </div>
+              <fieldset className="grid gap-3 rounded-xl border border-[#dfe4f5] p-4">
+                <legend className="px-1 text-sm font-semibold text-[#4e5b8c]">Antwortoptionen und richtige Antwort</legend>
+                {form.options.map((option, index) => (
+                  <div key={index} className="flex min-w-0 items-center gap-2">
+                    <input type="radio" name={`correct-option-${card.id}`} checked={form.correctOptionIndex === index} onChange={() => update("correctOptionIndex", index)} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex)} />
+                    <input className="min-h-11 min-w-0 flex-1 rounded-xl border border-[#dfe4f5] px-3" value={option} onChange={(event) => updateMcOption(index, event.target.value)} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+                    <button type="button" onClick={() => removeMcOption(index)} disabled={form.options.length <= 2} className="grid size-10 place-items-center rounded-xl border border-[#dfe4f5] text-[#66709a] disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
+                  </div>
+                ))}
+                <button type="button" onClick={addMcOption} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1]"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button>
+                <FieldError errors={fieldErrors} field="options" />
+                <FieldError errors={fieldErrors} field="correctOptionIndex" />
+              </fieldset>
+              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                <span>Erklärung (optional)</span>
+                <RichTextEditor value={form.explanation} onChange={(value) => update("explanation", value)} ariaLabel="Erklärung zur richtigen Antwort" minHeightClass="min-h-28" />
+              </div>
+            </div>
+          ) : null}
+          <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+            Tags
+            <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3" value={form.tags.join(" ")} onChange={(event) => update("tags", event.target.value.split(/\s+/).filter(Boolean))} />
+          </label>
+          {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-success"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900" role="status">
+          Dieser importierte Kartentyp wird hier nur angezeigt. Typgerechtes Bearbeiten ist für Basic, Reverse, Cloze und Multiple Choice verfügbar.
+        </div>
+      )}
+      <details className="mt-5 min-w-0 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-[#4f5eb1]">Details, Herkunft und Versionen</summary>
+      <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))]">
         <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Initialer Anker</p>
           <CardHtml html={card.immutableOriginal?.front} mediaUrls={mediaUrls} />
@@ -216,6 +304,19 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           <p className="mt-1 text-sm text-[#66709a]">Änderungslogeinträge</p>
         </div>
       </div>
+      {card.originalFields.length > 0 ? (
+        <div className="mt-4 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Importierte Rohfelder (read-only)</p>
+          <dl className="mt-3 grid gap-3">
+            {card.originalFields.map((field: { name: string; value: string }, index: number) => (
+              <div key={`${field.name}-${index}`} className="grid gap-1">
+                <dt className="text-sm font-semibold text-[#4e5b8c]">{field.name}</dt>
+                <dd className="break-words text-sm text-[#66709a]"><CardHtml html={field.value} mediaUrls={mediaUrls} /></dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ) : null}
       <section className="mt-5 min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4" aria-labelledby={`version-restore-${card.id}`}>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <label className="grid min-w-0 flex-1 gap-2 text-sm font-semibold text-[#4e5b8c]" htmlFor={`version-select-${card.id}`}>
@@ -283,6 +384,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
         ) : null}
         {restoreStatus ? <p className="core-status-success mt-3 text-sm font-semibold" role="status">{restoreStatus}</p> : null}
       </section>
+      </details>
       <details className="mt-5 min-w-0 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] p-4" data-testid="card-labs-tools">
         <summary className="cursor-pointer text-sm font-semibold text-[#4f5eb1]">Labs / Erweitert: Varianten und technische Lernwerte</summary>
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
@@ -425,14 +527,9 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
     onSetDeckCoreMode(deck.id, coreMode);
   }
 
-  function saveCard(cardId: any, form: { front: any; back: any; tags: any; kind: any; }) {
+  function saveCard(cardId: string, value: CardEditorValue) {
     if (!selectedDeck) return;
-    onSaveCard(selectedDeck.id, cardId, {
-      originalFront: form.front,
-      originalBack: form.back,
-      originalTags: form.tags,
-      kind: form.kind,
-    });
+    return onSaveCard(selectedDeck.id, cardId, value);
   }
 
   function deleteCard(cardId: any) {

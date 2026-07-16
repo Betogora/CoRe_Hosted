@@ -792,7 +792,7 @@ export function chooseReviewCard(card: LearningItem, deckSettings: DeckSettingsI
     return { card: nextCard, reviewable: toReviewable(nextCard), generated: [], eligibility: baseEligibility };
   }
 
-  const activeVariant = selectAutomaticReviewVariant(nextCard, { allowLearningVariant: true });
+  const activeVariant = selectAutomaticReviewVariant(nextCard, { allowLearningVariant: true, variantSession: options.variantSession });
   if (activeVariant && !activeVariant.isOriginal) {
     return { card: nextCard, reviewable: toReviewable(nextCard, activeVariant), generated: [], eligibility: baseEligibility };
   }

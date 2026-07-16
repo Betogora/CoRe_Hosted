@@ -13,7 +13,7 @@ type NavigateToView = (
   options?: { replace?: boolean },
 ) => AppRoute;
 type CreateDeckInput = Parameters<CoreWorkspace["createDeck"]>[0];
-type CardContentPatch = Parameters<CoreWorkspace["saveDeckCardContent"]>[2];
+type CardEditorValue = Parameters<CoreWorkspace["saveDeckCard"]>[2];
 type CardVariantInput = Parameters<CoreWorkspace["addDeckCardVariant"]>[2];
 type ManualCardInput = Parameters<CoreWorkspace["addManualCardToDeck"]>[1];
 type SupabaseBrowserClient = ReturnType<typeof createSupabaseBrowserClient>;
@@ -77,7 +77,7 @@ export interface DecksScreenProps {
   decks: Deck[];
   mediaStore: AccountMediaStore | null;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
-  onSaveCard: (deckId: string, cardId: string, patch: CardContentPatch) => unknown;
+  onSaveCard: (deckId: string, cardId: string, value: CardEditorValue) => unknown;
   onDeleteCard: (deckId: string, cardId: string) => unknown;
   onRestoreCard: (deckId: string, cardId: string, versionId: string) => unknown;
   onAddVariant: (deckId: string, cardId: string, variant: CardVariantInput) => unknown;

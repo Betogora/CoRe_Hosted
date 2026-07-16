@@ -1,10 +1,10 @@
 import { generateCardsFromDocument } from "./aiOrchestrator.ts";
-import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument } from "./coreModel.ts";
+import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument, normalizeTags, validateCardEditorValue } from "./coreModel.ts";
 import { createAnchorFromSelection, createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "./documentModel.ts";
-import { appendPlainTextToCardHtml, hasCardRichTextContent } from "./richText.ts";
+import { appendPlainTextToCardHtml } from "./richText.ts";
 import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
 import { createAccountMediaStore, type MediaSyncTask } from "./mediaStore.ts";
-import type { CardType, Deck, LearningItem, SourceAnchor } from "./coreTypes.ts";
+import type { CardEditorValue, CardType, Deck, EditableCardType, LearningItem, SourceAnchor } from "./coreTypes.ts";
 import type { ApkgImportReportV1 } from "./apkgImport.ts";
 import { LOCAL_APKG_MAX_BYTES, SERVER_APKG_MAX_BYTES, type ApkgImportProgress } from "./serverApkgImportContract.ts";
 import type { ServerApkgImportClient } from "./serverApkgImport.ts";
@@ -138,58 +138,41 @@ function createPasteImportInput({ mode, deckName, content }: { mode: unknown; de
 }
 
 function normalizeAnswerOptions(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map((option) => String(option).trim()).filter(Boolean);
+  if (Array.isArray(value)) return value.map((option) => String(option).trim());
   return String(value ?? "")
     .split(/\n+/)
-    .map((option) => option.trim())
-    .filter(Boolean);
+    .map((option) => option.trim());
 }
 
 const SUPPORTED_MANUAL_CARD_TYPES = new Set<CardType>(["basic", "basic-reversed", "cloze", "multiple-choice"]);
 
-function normalizeManualCardType(cardType: unknown): CardType {
-  return typeof cardType === "string" && SUPPORTED_MANUAL_CARD_TYPES.has(cardType as CardType) ? cardType as CardType : "basic";
-}
-
-function hasClozeSyntax(value: unknown): boolean {
-  return /\{\{c\d+::[\s\S]+?\}\}/.test(String(value ?? ""));
+function normalizeManualCardType(cardType: unknown): EditableCardType {
+  return typeof cardType === "string" && SUPPORTED_MANUAL_CARD_TYPES.has(cardType as CardType) ? cardType as EditableCardType : "basic";
 }
 
 function normalizeMultipleChoiceData(input: ManualCreationInput = {}, answerOptions: string[] = []) {
   const correctAnswer = String(input.correctAnswer ?? answerOptions[0] ?? input.back ?? "").trim();
-  const options = [...answerOptions];
-
-  if (correctAnswer && !options.includes(correctAnswer)) {
-    options.push(correctAnswer);
-  }
-
   return {
-    answerOptions: [...new Set(options)],
+    answerOptions,
     correctAnswer,
   };
 }
 
 function createManualDeckInput(input: ManualCreationInput = {}) {
   const requestedCardType = normalizeManualCardType(input.cardType);
-  const cardType = requestedCardType === "cloze" && !hasClozeSyntax(input.front) ? "basic" : requestedCardType;
   const document = input.document ?? null;
   const mcq = normalizeMultipleChoiceData(input, normalizeAnswerOptions(input.answerOptions));
-  const answerOptions = cardType === "multiple-choice" ? mcq.answerOptions : [];
-  const correctAnswer = mcq.correctAnswer;
-  const rawExpectedAnswer = String(input.expectedAnswer ?? input.back ?? "").trim();
-  const expectedAnswer = rawExpectedAnswer || correctAnswer;
-  const back = cardType === "multiple-choice" ? String(input.back || correctAnswer).trim() : input.back;
+  const tags = normalizeTags(input.tags);
+  const editorValue: CardEditorValue = requestedCardType === "cloze"
+    ? { cardType: "cloze", textWithClozes: input.front ?? "", extra: input.back ?? "", tags }
+    : requestedCardType === "multiple-choice"
+      ? { cardType: "multiple-choice", question: input.front ?? "", options: mcq.answerOptions, correctOptionIndex: mcq.answerOptions.indexOf(mcq.correctAnswer), explanation: input.back ?? "", tags }
+      : { cardType: requestedCardType, front: input.front ?? "", back: input.back ?? "", tags };
 
   return {
     deckName: input.deckName ?? "Neuer Kartenstapel",
     card: {
-      cardType,
-      front: input.front ?? "",
-      back: back ?? "",
-      tags: input.tags,
-      answerOptions,
-      correctAnswer,
-      expectedAnswer,
+      editorValue,
       mediaRefs: [],
     },
     documentContext: {
@@ -382,14 +365,11 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
     },
 
     canCreateManualCard({ cardType = "basic", front = "", back = "", answerOptions = [], correctAnswer = "" }: ManualValidationInput = {}) {
-      const normalizedCardType = normalizeManualCardType(cardType);
-      const hasFront = hasCardRichTextContent(front);
-      if (normalizedCardType === "cloze") return hasFront && hasClozeSyntax(front);
-      if (normalizedCardType === "multiple-choice") {
-        const mcq = normalizeMultipleChoiceData({ correctAnswer, back }, normalizeAnswerOptions(answerOptions));
-        return hasFront && mcq.answerOptions.length >= 2 && Boolean(mcq.correctAnswer);
-      }
-      return hasFront && hasCardRichTextContent(back);
+      return validateCardEditorValue(createManualDeckInput({ cardType, front, back, answerOptions, correctAnswer }).card.editorValue).ok;
+    },
+
+    validateManualCard(input: ManualCreationInput = {}) {
+      return validateCardEditorValue(createManualDeckInput(input).card.editorValue);
     },
 
     createManualDeckInput(input: ManualCreationInput = {}) {

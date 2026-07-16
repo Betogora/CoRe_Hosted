@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createProfileRow } from "./cloudAuth.ts";
-import { createBasicLearningItem, createCoreDeck, createSourceDocument, getOriginalVariant } from "./coreModel.ts";
+import { createBasicLearningItem, createCoreDeck, createLearningItemFromEditorValue, createSourceDocument, getCardEditorValue, getOriginalVariant, saveCardEditorValue } from "./coreModel.ts";
 import {
   ACCOUNT_UPSERT_CONFLICT,
   applyCardMutation,
@@ -828,6 +828,35 @@ test("cloud repository roundtrips Learning Item fields and review compatibility 
   assert.deepEqual(loadedEvent.anchorSnapshotJson, reviewEvent.anchorSnapshotJson);
   assert.deepEqual(loadedEvent.fallbackInfo, reviewEvent.fallbackInfo);
   assert.deepEqual(loadedEvent.flags, { manual: true });
+});
+
+test("cloud repository roundtrips structured card editor content", async () => {
+  const fixture = createCloudFixture();
+  const created = createLearningItemFromEditorValue("deck-1", {
+    cardType: "multiple-choice",
+    question: "Welche Option?",
+    options: ["A", "B", "C"],
+    correctOptionIndex: 1,
+    explanation: "B ist richtig.",
+    tags: ["mc"],
+  }, { id: "card-editor-roundtrip" });
+  const card = saveCardEditorValue(created, {
+    cardType: "multiple-choice",
+    question: "Welche Option ist richtig?",
+    options: ["Alpha", "Beta", "Gamma"],
+    correctOptionIndex: 2,
+    explanation: "Gamma ist richtig.",
+    tags: ["mc", "bearbeitet"],
+  });
+  const deck = createCoreDeck({ ...fixture.state.decks[0], cards: [card] });
+  const state = { ...fixture.state, decks: [deck] };
+  const rows = createCloudStateRows(state, fixture.user.id, { deviceId: "device-a" });
+  const client = createMemorySupabaseClient({ ...rows, profiles: fixture.rows.profiles }, fixture.user);
+
+  const loaded = await loadAccountCloudState(client, { profile: state.profile });
+
+  assert.deepEqual(getCardEditorValue(loaded.decks[0].cards[0]), getCardEditorValue(card));
+  assert.deepEqual(loaded.decks[0].cards[0].versionLog, card.versionLog);
 });
 
 test("cloud load hides soft-deleted rows and preserves minimal tombstones", async () => {

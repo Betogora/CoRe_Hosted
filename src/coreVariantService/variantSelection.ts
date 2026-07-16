@@ -12,6 +12,7 @@ interface VariantSelectionOptions {
   maxVariantLevel?: number;
   preferredVariantLevel?: number;
   allowLearningVariant?: boolean;
+  variantSession?: boolean;
 }
 
 function inferLearningPhase(state: ReviewStateInput = {}): ReviewSchedulerState {
@@ -62,7 +63,7 @@ export function selectAutomaticReviewVariant(card: LearningItem, options: Varian
   const primaryReverse = cardType === "basic-reversed" ? primaryVariantByType(card, "reverse") : null;
   const clozeVariants = cardType === "cloze" ? getActiveVariants(card).filter((variant) => variant.variantType === "cloze") : [];
 
-  if (primaryReverse) return primaryReverse;
+  if (primaryReverse) return options.variantSession ? primaryReverse : original;
   if (clozeVariants.length > 0) return rotateVariant(clozeVariants, state);
 
   const phase = inferLearningPhase(state);

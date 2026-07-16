@@ -443,6 +443,60 @@ export type LearningItemCreationInput =
   | ClozeLearningItemCreationInput
   | MultipleChoiceLearningItemCreationInput;
 
+export type EditableCardType = "basic" | "basic-reversed" | "cloze" | "multiple-choice";
+
+export interface CardEditorValueBase {
+  tags: string[];
+}
+
+export interface BasicCardEditorValue extends CardEditorValueBase {
+  cardType: "basic";
+  front: RichTextContent;
+  back: RichTextContent;
+}
+
+export interface ReverseCardEditorValue extends CardEditorValueBase {
+  cardType: "basic-reversed";
+  front: RichTextContent;
+  back: RichTextContent;
+}
+
+export interface ClozeCardEditorValue extends CardEditorValueBase {
+  cardType: "cloze";
+  textWithClozes: RichTextContent;
+  extra: RichTextContent;
+}
+
+export interface MultipleChoiceCardEditorValue extends CardEditorValueBase {
+  cardType: "multiple-choice";
+  question: RichTextContent;
+  options: string[];
+  correctOptionIndex: number;
+  explanation: RichTextContent;
+}
+
+export type CardEditorValue =
+  | BasicCardEditorValue
+  | ReverseCardEditorValue
+  | ClozeCardEditorValue
+  | MultipleChoiceCardEditorValue;
+
+export type CardEditorField =
+  | "front"
+  | "back"
+  | "textWithClozes"
+  | "extra"
+  | "question"
+  | "options"
+  | "correctOptionIndex"
+  | "explanation";
+
+export type CardEditorFieldErrors = Partial<Record<CardEditorField, string>>;
+
+export type CardEditorValidationResult =
+  | { ok: true; value: CardEditorValue; errors: {} }
+  | { ok: false; value: null; errors: CardEditorFieldErrors };
+
 export type SyncStatus =
   | { status: "idle" }
   | { status: "pending"; message: string; pendingCount?: number }

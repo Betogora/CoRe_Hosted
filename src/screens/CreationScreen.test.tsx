@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createDemoAnatomyDeck } from "../coreWorkspace.ts";
+import { createCoreDeck } from "../coreModel.ts";
 import { CreationScreen } from "./CreationScreen.tsx";
 
 test("completed first creation offers study and card-review actions", () => {
@@ -77,4 +78,23 @@ test("manual and local-draft pickers accept only readable source documents", () 
     assert.match(markup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
     assert.doesNotMatch(markup, /\.docx/i);
   }
+});
+
+test("manual target selection shows complete deck paths", () => {
+  const parent = createCoreDeck({ id: "deck-parent", name: "Biologie", source: "manual", cards: [] });
+  const child = createCoreDeck({ id: "deck-child", parentDeckId: parent.id, name: "Zelle", hierarchyPath: ["Biologie", "Zelle"], source: "manual", cards: [] });
+  const markup = renderToStaticMarkup(
+    <CreationScreen
+      decks={[parent, child]}
+      initialMethod="manual"
+      onMethodChange={() => undefined}
+      onCreated={() => undefined}
+      onAppendManualCard={() => undefined}
+      onImportCompleted={() => undefined}
+      onStartDeck={() => undefined}
+      onReviewDeck={() => undefined}
+    />,
+  );
+
+  assert.match(markup, /Biologie \/ Zelle/);
 });

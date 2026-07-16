@@ -241,6 +241,7 @@ summary {
 }
 
 .card-html img,
+.rich-text-field img,
 .card-html video,
 .card-html canvas,
 .card-html svg,
@@ -249,13 +250,15 @@ summary {
 }
 
 .card-html img,
+.rich-text-field img,
 .card-html video,
 .card-html canvas,
 .card-html svg {
   height: auto;
 }
 
-.card-html img {
+.card-html img,
+.rich-text-field img {
   max-height: 9rem;
   border-radius: 0.75rem;
 }

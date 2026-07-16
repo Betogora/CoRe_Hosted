@@ -261,15 +261,20 @@ test("getNextReviewItem returns due learning items with selected variants and an
   assert.equal(originalNext.answerSideAnchorMiniCard.shouldShow, false);
 });
 
-test("reverse and cloze card types select their functional review face", () => {
+test("reverse exposes the original in regular review and the reverse face in a variant session", () => {
   const reverseItem = createBasicReverseLearningItem("deck_review", "ATP", "Energietraeger", {
     reviewState: {
       state: "new",
       dueAt: "2026-07-01T08:00:00.000Z",
     },
   });
-  const reverseNext = getNextReviewItem(createDeckWithItem(reverseItem), { now: "2026-07-06T10:00:00.000Z" });
+  const regularReverseNext = getNextReviewItem(createDeckWithItem(reverseItem), { now: "2026-07-06T10:00:00.000Z" });
+  const reverseNext = getNextReviewItem(createDeckWithItem(reverseItem), { now: "2026-07-06T10:00:00.000Z", variantSession: true });
 
+  assert.ok(regularReverseNext);
+  assert.equal(regularReverseNext.variant.isOriginal, true);
+  assert.equal(regularReverseNext.front, "ATP");
+  assert.equal(regularReverseNext.back, "Energietraeger");
   assert.ok(reverseNext);
   assert.equal(reverseNext.variant.variantType, "reverse");
   assert.ok(reverseNext);
@@ -278,7 +283,9 @@ test("reverse and cloze card types select their functional review face", () => {
   assert.equal(reverseNext.back, "ATP");
   assert.ok(reverseNext);
   assert.equal(reverseNext.answerSideAnchorMiniCard.shouldShow, true);
+});
 
+test("cloze card types select their functional review face", () => {
   const clozeItem = createClozeLearningItem("deck_review", "{{c1::ATP}} liefert Energie fuer {{c2::Muskelkontraktion}}.", "Extra", {
     reviewState: {
       state: "new",

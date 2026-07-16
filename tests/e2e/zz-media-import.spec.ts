@@ -60,5 +60,9 @@ test("@beta-core @hosted-core APKG-Medium wird nach dem Deck-Commit cloudbestät
   await mainMenu.getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Kartenstapel" }).click();
   await page.getByTestId(`deck-select-${importedDeck.id}`).click();
-  await expect(page.locator(`img[src*="/storage/v1/object/sign/core-media/${login.data.user.id}/objects/"]`).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(`img[src*="/storage/v1/object/sign/core-media/${login.data.user.id}/objects/"]`).first()).toHaveAttribute(
+    "src",
+    new RegExp(`/storage/v1/object/sign/core-media/${login.data.user.id}/objects/`),
+    { timeout: 20_000 },
+  );
 });

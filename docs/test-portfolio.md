@@ -1,6 +1,6 @@
 # Testportfolio und Produktverträge
 
-Stand: 15. Juli 2026. Laufzeiten sind auf einem bereits eingerichteten lokalen Entwicklungsrechner gemessene Korridore; der erste Docker- oder Playwright-Start kann länger dauern. Maßgeblich sind geschützte Produktverträge, nicht Testzahlen.
+Stand: 16. Juli 2026. Laufzeiten sind auf einem bereits eingerichteten lokalen Entwicklungsrechner gemessene Korridore; der erste Docker- oder Playwright-Start kann länger dauern. Maßgeblich sind geschützte Produktverträge, nicht Testzahlen.
 
 ## Kategorien
 
@@ -25,13 +25,14 @@ Die ausführbare Zuordnung der TypeScript-Modultests liegt in `scripts/runModule
 | Golden 3: manuell → PDF → Bearbeiten → Review | `golden-e2e` | PDF-Text wird als Quellenanker gespeichert; die Karte bleibt bearbeitbar und die Änderung erscheint im Review. | 5–15 s; gemessen 9,5 s | Chromium, Docker, lokales Supabase, PDF.js/PDF-Fixture | PR, `main`, nightly, release, manuell |
 | Golden 4: Review → Offline → Reconnect → Reload | `golden-e2e` | Ein offline beantwortetes Review bleibt lokal erhalten, wird nach Reconnect genau einmal cloudbestätigt und überlebt den Reload. | 5–15 s; gemessen 10,6 s | Chromium, Docker, lokales Supabase, Browser-Offlinemodus | PR, `main`, nightly, release, manuell |
 | Golden 5: Variante → Reveal → Anker → Feedback | `golden-e2e` | Vor Reveal leckt keine Herkunft; danach sind Originalanker und kontrollierter Feedbackgrund verfügbar und das Variantenreview bleibt möglich. | 5–15 s; gemessen 7,6 s | Chromium, Docker, lokales Supabase | PR, `main`, nightly, release, manuell |
+| Typgerechter Kartenlebenszyklus | `integration` | Basic, Reverse, Cloze und Multiple Choice durchlaufen Erstellung, Bearbeitung, Persistenz und Review; APKG-Reimport schützt lokale typgerechte Änderungen. | fünf Browserflows etwa 25–45 s; gemessen 26,6 s | Chromium, Docker, lokales Supabase, APKG-Fixture | Beta-Core, `main`, nightly, release, manuell |
 | Nicht-goldene Playwright-Flows | `integration` | Auth-Resilienz, Navigation, Accessibility-Smokes, Einstellungen, Labs-Grenzen, Hierarchie, Konflikte und Fehlerzustände bleiben browsernah funktionsfähig. | vollständige Browser-Suite etwa 3–5 min; zuletzt 4,5 min | Chromium, Docker, lokales Supabase | `main`, nightly, release, manuell |
 | TUS über 6 MB und vollständiger RLS-/Zwei-Geräte-Lauf | `heavy-release` | Große resumierbare Medienuploads bleiben privat; konkurrierende Geräte schützen neueren Content, Offline-Reviews und Soft-Deletes. | etwa 2–5 min | Docker, lokales Supabase Storage/Auth/Postgres, TUS | `main`, nightly, release, manuell |
 | Medien-Reconciliation und APKG-Medien-E2E | `heavy-release` | Accountweite SHA-1-Deduplizierung, Referenzreihenfolge, Shared-Object-Schutz, Pending-Queue, Cloudbestätigung und Signed URLs bleiben konsistent. | etwa 1–3 min | Chromium, Docker, lokales Supabase Storage, generierte APKG-Fixture | `main`, nightly, release, manuell |
 | Serverseitiger Groß-APKG-Vertrag und Benchmark | `heavy-release` | Die Umschaltung oberhalb 250 MiB, ZIP-/Byte-Limits, serverseitige Jobprojektion, serverseitige Archiv-/Medienprüfung und der reproduzierbare große Browser-Parserpfad bleiben belastbar. | Benchmark unter 2 s; vollständiges Release-Gate etwa 4–6 min | Node.js, Python; im vollen Gate lokales Supabase | `main`, nightly, release, manuell |
 | Portabilitäts- und Restore-Flows | `heavy-release` | Export/Import redigiert Authdaten, validiert Versionen, erhält lokale Konfliktgewinner; Karten-Restore ist bestätigt und auditierbar. | etwa 1–2 min | Chromium, Docker, lokales Supabase, Download-Dateisystem | `main`, nightly, release, manuell |
 
-Die mit `@beta-core` markierte Auswahl ergänzt die fünf Golden-Flows um Passwort-Recovery, einen kleinen realen APKG-Medienimport, Portabilitätsgrenzen und Konfliktauflösung. `@hosted-core` bezeichnet den hosted-tauglichen Teil ohne Mailpit-Lifecycle. Registrierung, Bestätigung und Recovery werden hosted separat mit realer SMTP-Zustellung abgenommen.
+Die mit `@beta-core` markierte Auswahl ergänzt die fünf Golden-Flows um den typgerechten Kartenlebenszyklus, Passwort-Recovery, einen kleinen realen APKG-Medienimport, Portabilitätsgrenzen und Konfliktauflösung. `@hosted-core` bezeichnet den hosted-tauglichen Teil ohne Mailpit-Lifecycle. Registrierung, Bestätigung und Recovery werden hosted separat mit realer SMTP-Zustellung abgenommen.
 
 Eine globale Storage-Orphan-Reconciliation und ein betrieblicher Postgres-Backup-/Disaster-Restore sind noch keine implementierten Produktverträge. Das Heavy-Gate schützt den heute vorhandenen vollständigen Medienreferenz-, Portabilitäts- und Karten-Restore-Umfang und darf nicht als Nachweis für diese späteren Betriebsfunktionen bezeichnet werden.
 

@@ -16,7 +16,7 @@ import {
   parsePackageMetadataBytes,
   validateApkgFile,
 } from "./apkgImport.ts";
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getAnswerSideAnchorMiniCard, getOriginalVariant, type CoreCardInput } from "./coreModel.ts";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createLearningItemFromEditorValue, getActiveVariants, getAnswerSideAnchorMiniCard, getCardEditorValue, getOriginalVariant, saveCardEditorValue, type CoreCardInput } from "./coreModel.ts";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
 import { answerVariant, getNextReviewItem } from "./reviewService.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
@@ -707,6 +707,57 @@ test("commitImport merges reimports and preserves local content edits", async ()
   assert.equal(getOriginalVariant(merged.cards[0]).back, "Lokale Antwort");
   assert.deepEqual(merged.cards[0].mediaRefs, ["cell.png"]);
   assert.equal(merged.importMeta.replacedDeckId, "deck_existing");
+});
+
+test("commitImport preserves structured multiple-choice edits across reimport", async () => {
+  const importedBeforeEdit = createLearningItemFromEditorValue("", {
+    cardType: "multiple-choice",
+    question: "Importfrage",
+    options: ["A", "B"],
+    correctOptionIndex: 0,
+    explanation: "Import-Erklärung",
+    tags: ["import"],
+  }, {
+    id: "card_existing_mc",
+    sourceType: "anki_import",
+    sourceRefId: "note_mc",
+  });
+  const locallyEdited = saveCardEditorValue(importedBeforeEdit, {
+    cardType: "multiple-choice",
+    question: "Lokale Frage",
+    options: ["Lokal A", "Lokal B", "Lokal C"],
+    correctOptionIndex: 2,
+    explanation: "Lokale Erklärung",
+    tags: ["lokal"],
+  });
+  const incomingCard = createLearningItemFromEditorValue("", {
+    cardType: "multiple-choice",
+    question: "Neue Importfrage",
+    options: ["Neu A", "Neu B"],
+    correctOptionIndex: 1,
+    explanation: "Neue Import-Erklärung",
+    tags: ["neu-importiert"],
+  }, {
+    id: "card_incoming_mc",
+    sourceType: "anki_import",
+    sourceRefId: "note_mc",
+    mediaRefs: ["neu.png"],
+  });
+  const existingDeck = createReimportDeck(locallyEdited, { existing: true, withImportMeta: true });
+  const incomingDeck = createReimportDeck(incomingCard, { withImportMeta: true });
+
+  const merged = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
+
+  assert.deepEqual(getCardEditorValue(merged.cards[0]), {
+    cardType: "multiple-choice",
+    question: "Lokale Frage",
+    options: ["Lokal A", "Lokal B", "Lokal C"],
+    correctOptionIndex: 2,
+    explanation: "Lokale Erklärung",
+    tags: ["lokal"],
+  });
+  assert.deepEqual(merged.cards[0].mediaRefs, ["neu.png"]);
+  assert.equal(merged.cards[0].meta.preservedLocalContent, true);
 });
 
 test("commitImport matches imported variants by stable source id across repeated reimports", async () => {
