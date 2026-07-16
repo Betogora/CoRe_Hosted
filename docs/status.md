@@ -15,8 +15,11 @@ CoRe ist ein breiter Web-MVP mit einem abgegrenzten Beta-Kern, Labs-Flächen und
 - Cloud-first Autosave, Offline-Outbox, Wiederverbindung, revisionsgeprüfte Mutationen, Konfliktauflösung und Soft-Deletes.
 - Leerer Standardaccount ohne automatische Demo-Daten; Demo-Seed nur explizit beziehungsweise in Entwicklung/E2E.
 - Typgerechte Erstellung und Bearbeitung für Basic, Reverse, Cloze und Multiple Choice mit Rich Text, Feldvalidierung, strukturierter Speicherung und auditierbaren Versionen.
+- Manuelle Batch-Erstellung bleibt nach jedem Save im Editor, erhält Pins und Zieldeck, setzt freie Felder und Fokus deterministisch zurück und endet erst über `Fertig`.
+- Nichtleere Erstellungsentwürfe sind bei interner Navigation durch einen zugänglichen Dialog und bei Browser-Unload durch den Browser-Fallback geschützt.
+- Karten- und Stapellöschung verwenden produktspezifische Auswirkungsdialoge; Karten bieten ein revisionsgeprüftes unmittelbares Undo über denselben Datensatz.
 - Reverse-Richtungen, Cloze-Lückengruppen und Multiple-Choice-Lösung werden beim Speichern atomar in ihre reviewbaren Formen projiziert; Reimport, Cloud und Portabilität erhalten lokale strukturierte Änderungen.
-- APKG-, Text-, CSV- und Tabellenimport; APKG-Preview, Worker, Reimport-Merge und Medienstatus.
+- APKG-, Text-, CSV- und Tabellenimport mit getrennten UI-Phasen und Terminalzuständen; Formatwechsel verwerfen alte Vorschau- und Commit-Zustände.
 - Accountgebundener Mediencache mit privaten Storage-Objekten, Standardupload bis 6 MiB, TUS darüber und URL-Fallback.
 - Review mit vier Bewertungen, Tastatursteuerung, Intervallvorschau und stabilem Sitzungsabschluss.
 - Content-Repetition-Varianten mit genau einem Originalanker, Eligibility, Reife, Deaktivierung und kontrolliertem Fehlerfeedback.

@@ -2,6 +2,7 @@ import React from "react";
 import { Database, FileSpreadsheet } from "lucide-react";
 import type { CreationWorkflow } from "../creationWorkflow.ts";
 import type { Deck } from "../coreTypes.ts";
+import type { ImportUiState } from "../importUiState.ts";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 
 export type TextTableImportMode = "text" | "csv" | "spreadsheet";
@@ -12,23 +13,36 @@ export interface TextTableImportPanelProps {
   initialMode?: TextTableImportMode;
   workflow: TextTableWorkflow;
   onImported: (deck: Deck) => unknown;
+  onCompleted?: (deck: Deck) => unknown;
 }
 
-export function TextTableImportPanel({ initialMode = "text", workflow, onImported }: TextTableImportPanelProps) {
-  const [mode, setMode] = React.useState<TextTableImportMode>(initialMode);
+export function TextTableImportPanel({ initialMode = "text", workflow, onImported, onCompleted = () => undefined }: TextTableImportPanelProps) {
+  const mode = initialMode;
   const [deckName, setDeckName] = React.useState("Importierter Stapel");
   const [content, setContent] = React.useState("");
   const [report, setReport] = React.useState<TextTableImportReport | null>(null);
+  const [uiState, setUiState] = React.useState<ImportUiState>({ status: "idle" });
+  const [completedDeck, setCompletedDeck] = React.useState<Deck | null>(null);
 
-  React.useEffect(() => {
-    setMode(initialMode);
-    setReport(null);
-  }, [initialMode]);
-
-  function runImport(dryRun = false) {
+  async function runImport(dryRun = false) {
+    setUiState({ status: dryRun ? "analyzing" : "committing" });
     const result = workflow.importPastedDeck({ mode, deckName, content, dryRun });
     setReport(result.report);
-    if (!dryRun && result.deck) onImported(result.deck);
+    if (result.report.errors.length > 0) {
+      setUiState({ status: "failed_terminal" });
+      return;
+    }
+    if (dryRun) {
+      setUiState({ status: "preview" });
+      return;
+    }
+    if (!result.deck) {
+      setUiState({ status: "failed_terminal" });
+      return;
+    }
+    await Promise.resolve(onImported(result.deck));
+    setCompletedDeck(result.deck);
+    setUiState({ status: "succeeded" });
   }
 
   return (
@@ -46,23 +60,12 @@ export function TextTableImportPanel({ initialMode = "text", workflow, onImporte
             Stapelname
             <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
           </label>
-          <div className="grid grid-cols-3 gap-2" aria-label="Importformat">
-            <button type="button" onClick={() => setMode("text")} className={`min-h-10 rounded-xl text-sm font-semibold ${mode === "text" ? "bg-[#4f5eb1] text-white" : "border border-[#dfe4f5] text-[#4f5eb1]"}`}>
-              Text
-            </button>
-            <button type="button" onClick={() => setMode("csv")} className={`min-h-10 rounded-xl text-sm font-semibold ${mode === "csv" ? "bg-[#4f5eb1] text-white" : "border border-[#dfe4f5] text-[#4f5eb1]"}`}>
-              CSV
-            </button>
-            <button type="button" onClick={() => setMode("spreadsheet")} className={`min-h-10 rounded-xl text-sm font-semibold ${mode === "spreadsheet" ? "bg-[#4f5eb1] text-white" : "border border-[#dfe4f5] text-[#4f5eb1]"}`}>
-              Excel
-            </button>
-          </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={!content.trim()} onClick={() => runImport(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
+            <button type="button" disabled={!content.trim() || uiState.status === "analyzing" || uiState.status === "committing"} onClick={() => void runImport(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
               <Database size={17} aria-hidden="true" />
               Import prüfen
             </button>
-            <button type="button" disabled={!content.trim() || Boolean(report?.errors.length)} onClick={() => runImport(false)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+            <button type="button" disabled={!content.trim() || uiState.status !== "preview" || Boolean(report?.errors.length)} onClick={() => void runImport(false)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
               <Database size={17} aria-hidden="true" />
               Import übernehmen
             </button>
@@ -72,8 +75,23 @@ export function TextTableImportPanel({ initialMode = "text", workflow, onImporte
               <p className="font-semibold text-[#17214f]">
                 {report.createdLearningItems} Karten · {report.createdVariants} Varianten · {report.duplicates.length} Dubletten
               </p>
-              {report.warnings.length ? <p className="mt-2">{report.warnings.slice(0, 2).join(" ")}</p> : null}
+              {report.warnings.length ? (
+                <details className="mt-2">
+                  <summary className="cursor-pointer font-semibold">{report.warnings.length} Warnungen anzeigen</summary>
+                  <ul className="mt-2 list-disc pl-5">
+                    {report.warnings.map((warning: string) => <li key={warning}>{warning}</li>)}
+                  </ul>
+                </details>
+              ) : null}
               {report.errors.length ? <p className="mt-2 text-red-700">{report.errors.slice(0, 2).join(" ")}</p> : null}
+            </div>
+          ) : null}
+          {uiState.status === "succeeded" && completedDeck ? (
+            <div className="core-status-success text-sm" role="status" aria-live="polite">
+              <p className="font-semibold">Import erfolgreich abgeschlossen.</p>
+              <button type="button" onClick={() => onCompleted(completedDeck)} className="mt-3 min-h-10 rounded-xl bg-emerald-700 px-4 font-semibold text-white">
+                Import abschließen
+              </button>
             </div>
           ) : null}
         </div>
@@ -83,6 +101,8 @@ export function TextTableImportPanel({ initialMode = "text", workflow, onImporte
           onChange={(event) => {
             setContent(event.target.value);
             setReport(null);
+            setCompletedDeck(null);
+            setUiState({ status: "idle" });
           }}
           placeholder={mode === "text" ? "Front\n---\nBack" : mode === "csv" ? "front,back,tags" : "front\tback\ttags"}
           aria-label="Importinhalt"

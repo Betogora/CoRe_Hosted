@@ -50,18 +50,27 @@ function TabButton({ icon: Icon, label, isActive, onClick }: TabButtonProps) {
 
 export function ImportCreationPanel({ decks, onCreated, onImportCompleted, workflow, mediaStore, serverApkgEnabled = false }: ImportCreationPanelProps) {
   const [selectedImport, setSelectedImport] = React.useState<ImportMethod>("anki");
+  const [sessionVersion, setSessionVersion] = React.useState(0);
+  const allowInitialApkgResumeRef = React.useRef(true);
+
+  function selectImport(method: ImportMethod) {
+    if (method === selectedImport) return;
+    allowInitialApkgResumeRef.current = false;
+    setSelectedImport(method);
+    setSessionVersion((version) => version + 1);
+  }
 
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap gap-2" aria-label="Importformat">
         {importMethods.map((method) => (
-          <TabButton key={method.id} icon={method.icon} label={method.label} isActive={selectedImport === method.id} onClick={() => setSelectedImport(method.id)} />
+          <TabButton key={method.id} icon={method.icon} label={method.label} isActive={selectedImport === method.id} onClick={() => selectImport(method.id)} />
         ))}
       </div>
       {selectedImport === "anki" ? (
-        <ApkgImportPanel existingDecks={decks} workflow={workflow} mediaStore={mediaStore} serverApkgEnabled={serverApkgEnabled} onCompleted={onImportCompleted} />
+        <ApkgImportPanel key={`anki-${sessionVersion}`} existingDecks={decks} workflow={workflow} mediaStore={mediaStore} serverApkgEnabled={serverApkgEnabled} resumeOnMount={allowInitialApkgResumeRef.current} onCompleted={onImportCompleted} />
       ) : (
-        <TextTableImportPanel initialMode={selectedImport} workflow={workflow} onImported={onCreated} />
+        <TextTableImportPanel key={`${selectedImport}-${sessionVersion}`} initialMode={selectedImport} workflow={workflow} onImported={onCreated} onCompleted={onImportCompleted} />
       )}
     </div>
   );

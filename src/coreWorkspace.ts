@@ -210,6 +210,34 @@ function createDeckMutationError(error: string): DeckMutationResult {
   };
 }
 
+function restoreSoftDeletedCard(card: LearningItem, restoredAt: string): LearningItem {
+  if (card.status !== "deleted") return card;
+  const deletedVersion = [...(card.versionLog ?? [])].reverse().find((entry) => entry.changeType === "deleted");
+  const previousStatus = deletedVersion?.before && typeof deletedVersion.before === "object"
+    ? (deletedVersion.before as { status?: unknown }).status
+    : "active";
+  const status = previousStatus === "suspended" ? "suspended" : "active";
+
+  return {
+    ...card,
+    status,
+    deletedAt: null,
+    updatedAt: restoredAt,
+    versionLog: [
+      ...(card.versionLog ?? []),
+      createVersionEntry({
+        objectType: "card",
+        objectId: card.id,
+        changeType: "delete_undone",
+        before: { status: "deleted", deletedAt: card.deletedAt },
+        after: { status, deletedAt: null },
+        reason: "Kartenlöschung rückgängig gemacht",
+        createdAt: restoredAt,
+      }),
+    ],
+  };
+}
+
 function mergeCloudTombstones(existing: CloudTombstone[] = [], next: CloudTombstone[] = []): CloudTombstone[] {
   const byEntity = new Map<string, CloudTombstone>(existing.map((tombstone) => [`${tombstone.entityTable}:${tombstone.entityId}`, tombstone]));
   for (const tombstone of next) byEntity.set(`${tombstone.entityTable}:${tombstone.entityId}`, tombstone);
@@ -490,6 +518,32 @@ export function createCoreWorkspace(repository: WorkspaceRepository = createCore
         updatedAt: deletedAt,
         cards: (deck.cards ?? []).map((card) => (card.id === cardId ? softDeleteCard(card, deletedAt) : card)),
       }));
+    },
+    restoreDeletedDeckCard(deckId: string, deletedCard: LearningItem) {
+      const restoredAt = new Date().toISOString();
+      const state = repository.getState();
+      const deck = state.decks.find((candidate) => candidate.id === deckId);
+      if (!deck) return null;
+      const tombstone = state.cloudTombstones.find(
+        (candidate) => candidate.entityTable === "cards" && candidate.entityId === deletedCard.id,
+      );
+      const restoredCard = restoreSoftDeletedCard({
+        ...deletedCard,
+        revision: tombstone?.revision ?? deletedCard.revision,
+        updatedByDeviceId: tombstone?.updatedByDeviceId ?? deletedCard.updatedByDeviceId,
+      }, restoredAt);
+      const cards = deck.cards.some((card) => card.id === restoredCard.id)
+        ? deck.cards.map((card) => (card.id === restoredCard.id ? restoredCard : card))
+        : [...deck.cards, restoredCard];
+      const restoredDeck = { ...deck, updatedAt: restoredAt, cards };
+      const savedState = repository.saveState({
+        ...state,
+        decks: state.decks.map((candidate) => (candidate.id === deckId ? restoredDeck : candidate)),
+        cloudTombstones: state.cloudTombstones.filter(
+          (candidate) => candidate.entityTable !== "cards" || candidate.entityId !== restoredCard.id,
+        ),
+      });
+      return savedState.decks.find((candidate) => candidate.id === deckId) ?? null;
     },
     addDeckCardVariant(deckId: string, cardId: string, variant: VariantDraft, reason = "Manuelle Umformulierung") {
       const updatedAt = new Date().toISOString();

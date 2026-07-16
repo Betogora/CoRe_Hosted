@@ -2,7 +2,7 @@ import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import type { AuthPhase } from "./accountSession.ts";
-import type { CoreMode, Deck, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { CoreMode, Deck, LearningItem, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import { BarChart3, BookOpen, Bot, Database, FlaskConical, History, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createStudyRoute, createViewRoute } from "./appNavigation.ts";
@@ -38,7 +38,7 @@ import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
 import { useAppNavigation } from "./useAppNavigation.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
-import { LabsNotice, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
+import { ActionDialog, LabsNotice, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 
 const AssistantScreen = React.lazy<React.ComponentType<AssistantScreenProps>>(() => import("./screens/AssistantScreen.tsx").then(({ AssistantScreen }) => ({ default: AssistantScreen })));
 const AiJobsScreen = React.lazy<React.ComponentType<AiJobsScreenProps>>(() => import("./screens/AiJobsScreen.tsx").then(({ AiJobsScreen }) => ({ default: AiJobsScreen })));
@@ -65,6 +65,7 @@ type CreateDeckInput = Parameters<CoreWorkspace["createDeck"]>[0];
 type CardEditorValue = Parameters<CoreWorkspace["saveDeckCard"]>[2];
 type CardVariantInput = Parameters<CoreWorkspace["addDeckCardVariant"]>[2];
 type ManualCardInput = Parameters<CoreWorkspace["addManualCardToDeck"]>[1];
+type PendingNavigation = { run: () => void };
 
 function resolveCoreMode(value: unknown, fallback: CoreMode): CoreMode {
   return value === "off" || value === "auto" || value === "manual" ? value : fallback;
@@ -191,6 +192,9 @@ export function App() {
   const [legacyState, setLegacyState] = React.useState<NonNullable<ReturnType<typeof readLegacyLocalState>> | null>(null);
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
   const [syncEngine, setSyncEngine] = React.useState<AccountSyncEngine | null>(null);
+  const [creationDraftDirty, setCreationDraftDirty] = React.useState(false);
+  const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
+  const creationDraftFocusRef = React.useRef<(() => void) | null>(null);
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
   const {
     activeView,
@@ -201,13 +205,26 @@ export function App() {
     completedDeckId,
     validDeckIds,
     navigateToRoute,
-    navigateToView,
+    navigateToView: navigateToViewNow,
     getStudyReturnRoute,
     resetBrowserRouteToDefault,
     setFocusedDeckId,
     setDeckCreationParentId,
   } = useAppNavigation({ authPhase, decks: state?.decks ?? emptyDecks, defaultViewId: menu.defaultViewId });
   const mediaStore = React.useMemo(() => cloudUser ? createAccountMediaStore({ client: supabase, supabaseUrl: getSupabaseBrowserConfig().url, userId: cloudUser.id }) : null, [cloudUser, supabase]);
+
+  const navigateToView = React.useCallback((...args: Parameters<typeof navigateToViewNow>) => {
+    if (activeView === "neue-karten" && creationDraftDirty) {
+      setPendingNavigation({ run: () => { navigateToViewNow(...args); } });
+      return createViewRoute(activeView);
+    }
+    return navigateToViewNow(...args);
+  }, [activeView, creationDraftDirty, navigateToViewNow]);
+
+  const handleCreationDraftStateChange = React.useCallback((dirty: boolean, focusDraft: (() => void) | null) => {
+    setCreationDraftDirty(dirty);
+    creationDraftFocusRef.current = focusDraft;
+  }, []);
 
   React.useEffect(() => {
     let observer: MutationObserver | null = null;
@@ -637,8 +654,8 @@ export function App() {
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.updateDeck(deckId, updater));
   }
 
-  function deleteDeck(deckId: string) {
-    const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckTree(deckId));
+  async function deleteDeck(deckId: string) {
+    const result = await runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckTree(deckId));
     if (!result) return null;
     setFocusedDeckId(result.nextSelectedDeckId);
     return result;
@@ -718,8 +735,25 @@ export function App() {
     return savedCard;
   }
 
+  async function runSyncedWorkspaceMutation<T>(mutation: (currentWorkspace: CoreWorkspace) => T): Promise<T | null> {
+    if (!workspace || !syncEngine) return null;
+    const result = runWorkspaceMutation(mutation);
+    if (result == null) return null;
+    const snapshot = workspace.getState();
+    const runId = bootRunRef.current;
+    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
+    const syncResult = await syncEngine.flush(undefined, { force: true });
+    const acknowledged = applyCloudAcknowledgement(snapshot, syncResult.saved?.state, runId);
+    if (!acknowledged) throw new Error("Die Änderung wurde nicht von der Cloud bestätigt.");
+    return result;
+  }
+
   function deleteDeckCard(deckId: string, cardId: string) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckCard(deckId, cardId));
+    return runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckCard(deckId, cardId));
+  }
+
+  function undoDeleteDeckCard(deckId: string, deletedCard: LearningItem) {
+    return runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.restoreDeletedDeckCard(deckId, deletedCard));
   }
 
   function restoreDeckCard(deckId: string, cardId: string, versionId: string) {
@@ -736,20 +770,13 @@ export function App() {
 
   async function completeCreatedDeck(deck: Deck) {
     await persistImportedDecks([deck]);
-    const completedDeck = workspace?.getState().decks.find((candidate) => candidate.id === deck.id) ?? null;
-    if (completedDeck) navigateToView("neue-karten", { completedDeckId: completedDeck.id }, { replace: true });
-    return completedDeck;
+    return workspace?.getState().decks.find((candidate) => candidate.id === deck.id) ?? null;
   }
 
   async function completeManualCard(deckId: string, manualDeckInput: ManualCardInput) {
     const deck = addManualCardToDeck(deckId, manualDeckInput);
     if (deck) await persistImportedDecks([deck]);
-    if (deck) navigateToView("neue-karten", { completedDeckId: deck.id }, { replace: true });
     return deck;
-  }
-
-  function completeImportedDeck(deck: Deck) {
-    navigateToView("neue-karten", { completedDeckId: deck.id }, { replace: true });
   }
 
   async function createDemo() {
@@ -875,6 +902,7 @@ export function App() {
           onSetDeckCoreMode={setDeckCoreMode}
           onSaveCard={saveDeckCard}
           onDeleteCard={deleteDeckCard}
+          onUndoDeleteCard={undoDeleteDeckCard}
           onRestoreCard={restoreDeckCard}
           onAddVariant={addDeckCardVariant}
           onApplyVariantJson={applyVariantJson}
@@ -895,7 +923,7 @@ export function App() {
       );
     }
     if (activeView === "neue-karten") {
-      return <CreationScreen decks={state.decks} mediaStore={mediaStore} persistImportedDecks={persistImportedDecks} supabase={supabase} supabaseUrl={getSupabaseBrowserConfig().url} initialMethod={creationMethod} completedDeckId={completedDeckId} onMethodChange={(method: "manual" | "import" | "ai" | "") => navigateToView("neue-karten", method ? { creationMethod: method } : {})} onCreated={completeCreatedDeck} onAppendManualCard={completeManualCard} onImportCompleted={completeImportedDeck} onStartDeck={startDeck} onReviewDeck={openDecks} onJob={saveJob} showAiDrafts={productSurfaces.isAvailable("local-ai-drafts")} aiDraftSurface={productSurfaces.get("local-ai-drafts")} enableServerApkgImport={productSurfaces.isAvailable("server-apkg-over-250")} />;
+      return <CreationScreen decks={state.decks} mediaStore={mediaStore} persistImportedDecks={persistImportedDecks} supabase={supabase} supabaseUrl={getSupabaseBrowserConfig().url} initialMethod={creationMethod} completedDeckId={completedDeckId} onMethodChange={(method: "manual" | "import" | "ai" | "") => navigateToView("neue-karten", method ? { creationMethod: method } : {})} onCreated={completeCreatedDeck} onAppendManualCard={completeManualCard} onDraftStateChange={handleCreationDraftStateChange} onSessionCompleted={(deckId) => navigateToView("neue-karten", { completedDeckId: deckId }, { replace: true })} onStartDeck={startDeck} onReviewDeck={openDecks} onJob={saveJob} showAiDrafts={productSurfaces.isAvailable("local-ai-drafts")} aiDraftSurface={productSurfaces.get("local-ai-drafts")} enableServerApkgImport={productSurfaces.isAvailable("server-apkg-over-250")} />;
     }
     if (activeView === "lernen") {
       return (
@@ -1105,6 +1133,24 @@ export function App() {
           <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
         </section>
       </div>
+      <ActionDialog
+        open={Boolean(pendingNavigation)}
+        title="Ungespeicherten Entwurf verlassen?"
+        description="Deine bereits gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte würden verworfen."
+        confirmLabel="Verwerfen und verlassen"
+        cancelLabel="Weiter bearbeiten"
+        destructive
+        onCancel={() => {
+          setPendingNavigation(null);
+          window.setTimeout(() => creationDraftFocusRef.current?.(), 0);
+        }}
+        onConfirm={() => {
+          const navigation = pendingNavigation;
+          setPendingNavigation(null);
+          setCreationDraftDirty(false);
+          navigation?.run();
+        }}
+      />
     </main>
   );
 }

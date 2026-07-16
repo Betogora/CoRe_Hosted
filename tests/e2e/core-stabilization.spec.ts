@@ -370,6 +370,7 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Mitochondrien erzeugen ATP durch Zellatmung.");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Zellatmung erzeugt ATP.");
   await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Fertig" }).click();
 
   await expect.poll(async () => {
     const card = await findPdfAnchoredCard(page);

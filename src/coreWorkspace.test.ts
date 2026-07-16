@@ -504,6 +504,36 @@ test("workspace card maintenance hides editing and delete invariants", () => {
   assert.equal(Boolean(deletedCard.deletedAt), true);
   assert.ok(deletedCard);
   assert.equal(deletedCard.versionLog.some((entry) => entry.changeType === "deleted"), true);
+
+  const deletedState = workspace.getState();
+  workspace.saveState({
+    ...deletedState,
+    decks: deletedState.decks.map((candidate) => (
+      candidate.id === deck.id
+        ? { ...candidate, cards: candidate.cards.filter((card) => card.id !== cardId) }
+        : candidate
+    )),
+    cloudTombstones: [
+      ...deletedState.cloudTombstones,
+      {
+        entityTable: "cards",
+        entityId: cardId,
+        revision: deletedCard.revision + 1,
+        deletedAt: deletedCard.deletedAt!,
+        updatedByDeviceId: "test-device",
+      },
+    ],
+  });
+
+  const restored = workspace.restoreDeletedDeckCard(deck.id, deletedCard);
+  const restoredCard = restored?.cards.find((card) => card.id === cardId);
+  assert.ok(restoredCard);
+  assert.equal(restoredCard.status, "active");
+  assert.equal(restoredCard.deletedAt, null);
+  assert.equal(restoredCard.id, cardId);
+  assert.equal(restoredCard.reviewState.id, deck.cards[0].reviewState.id);
+  assert.equal(restoredCard.versionLog.some((entry) => entry.changeType === "delete_undone"), true);
+  assert.equal(workspace.getState().cloudTombstones.some((tombstone) => tombstone.entityId === cardId), false);
 });
 
 test("workspace restores a card version through the canonical repository mutation", () => {

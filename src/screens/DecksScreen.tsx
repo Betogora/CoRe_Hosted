@@ -2,9 +2,10 @@ import React from "react";
 import { Check, ChevronRight, Copy, FolderPlus, Layers, MoveRight, Network, Pencil, Play, PlusSquare, RotateCcw, Save, Search, Share2, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
 import { getCardEditorValue, getOriginalVariant, getVariantAnchor, validateCardEditorValue } from "../coreModel.ts";
 import { buildCardVariationPrompt, createVariantReviewModel } from "../coreVariantService.ts";
+import { stripHtml } from "../htmlSafety.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
-import { CoreModeControl, EmptyState, LabsNotice, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreModeControl, EmptyState, LabsNotice, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
@@ -490,7 +491,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   );
 }
 
-export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onRestoreCard, onAddVariant, onApplyVariantJson, onStartDeck, onDeleteDeck, onRenameDeck, onMoveDeck, onOpenCardCreation, onPrepareSubdeckCreation, onOpenGraph, onShareDeck, showGraph = false, showCommunity = false, showExternalVariantFlow = false, externalVariantSurface }: any) {
+export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onUndoDeleteCard, onRestoreCard, onAddVariant, onApplyVariantJson, onStartDeck, onDeleteDeck, onRenameDeck, onMoveDeck, onOpenCardCreation, onPrepareSubdeckCreation, onOpenGraph, onShareDeck, showGraph = false, showCommunity = false, showExternalVariantFlow = false, externalVariantSurface }: any) {
   const [query, setQuery] = React.useState("");
   const [modeFilter, setModeFilter] = React.useState<CoreMode | "all">("all");
   const [selectedDeckId, setSelectedDeckId] = React.useState(initialSelectedDeckId ?? decks[0]?.id ?? null);
@@ -501,6 +502,9 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
   const [renameDraft, setRenameDraft] = React.useState("");
   const [movingDeckId, setMovingDeckId] = React.useState<any>(null);
   const [moveTargetId, setMoveTargetId] = React.useState("");
+  const [pendingCardDelete, setPendingCardDelete] = React.useState<{ deckId: string; card: LearningItem } | null>(null);
+  const [deletedCardUndo, setDeletedCardUndo] = React.useState<{ deckId: string; card: LearningItem; description: string } | null>(null);
+  const [pendingDeckDelete, setPendingDeckDelete] = React.useState<{ deck: Deck; row: any } | null>(null);
   const library = createDeckLibraryModel(decks, { query, coreMode: modeFilter, selectedDeckId });
   const filteredRows = library.filteredRows;
   const selectedRow = library.selectedRow;
@@ -534,7 +538,45 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
 
   function deleteCard(cardId: any) {
     if (!selectedDeck) return;
-    onDeleteCard(selectedDeck.id, cardId);
+    const card = selectedDeck.cards.find((candidate) => candidate.id === cardId);
+    if (card) setPendingCardDelete({ deckId: selectedDeck.id, card });
+  }
+
+  async function confirmCardDelete() {
+    if (!pendingCardDelete) return;
+    const description = stripHtml(pendingCardDelete.card.originalFront).replace(/\s+/g, " ").trim() || "Karte ohne Vorderseitentext";
+    try {
+      const result = await onDeleteCard(pendingCardDelete.deckId, pendingCardDelete.card.id);
+      const deletedCard = result?.cards.find((card: LearningItem) => card.id === pendingCardDelete.card.id);
+      if (deletedCard) {
+        setDeletedCardUndo({
+          deckId: pendingCardDelete.deckId,
+          card: deletedCard,
+          description,
+        });
+        setSelectedCardId(null);
+      }
+      setPendingCardDelete(null);
+    } catch {
+      setDeckStatus("Die Karte konnte nicht sicher gelöscht werden.");
+      setDeckStatusType("alert");
+    }
+  }
+
+  async function undoCardDelete() {
+    if (!deletedCardUndo) return;
+    try {
+      const result = await onUndoDeleteCard(deletedCardUndo.deckId, deletedCardUndo.card);
+      if (!result) throw new Error("Undo fehlgeschlagen.");
+      setSelectedDeckId(deletedCardUndo.deckId);
+      setSelectedCardId(deletedCardUndo.card.id);
+      setDeckStatus("Kartenlöschung rückgängig gemacht.");
+      setDeckStatusType("status");
+      setDeletedCardUndo(null);
+    } catch {
+      setDeckStatus("Die Kartenlöschung konnte nicht rückgängig gemacht werden.");
+      setDeckStatusType("alert");
+    }
   }
 
   function prepareSubdeck(deck: Deck) {
@@ -620,17 +662,22 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
   }
 
   function deleteDeckTree(deck: Deck, row: { id?: string; deck?: Deck; name?: string; path?: string; parentDeckId?: string|null; depth?: number; childrenCount?: number; hasChildren?: boolean; scopeDeckIds: any; coreMode?: CoreMode; summary?: { totalCards: number; dueCards: number; newCards: number; matureCards: number; activeVariants: number; averageMaturityXp: number; }; directSummary?: { totalCards: number; dueCards: number; newCards: number; matureCards: number; activeVariants: number; averageMaturityXp: number; }; progress?: number; activeCards?: LearningItem[]; cardRows?: { id: string; card: LearningItem; frontPreview: string; kind: CardType; maturityBand: MaturityBand; }[]; }) {
-    const affectedDeckCount = row.scopeDeckIds?.length ?? 1;
-    const childLabel = affectedDeckCount > 1 ? ` und ${affectedDeckCount - 1} Unterstapel` : "";
-    const confirmed = window.confirm(`"${deck.name}"${childLabel} löschen? Karten und lokale Lernstände in diesem Stapelbaum werden entfernt.`);
-    if (!confirmed) return;
+    setPendingDeckDelete({ deck, row });
+  }
 
-    const result = onDeleteDeck(deck.id);
+  async function confirmDeckDelete() {
+    if (!pendingDeckDelete) return;
+    const result = await onDeleteDeck(pendingDeckDelete.deck.id);
+    if (!result) return;
     setSelectedDeckId(result.nextSelectedDeckId);
     setSelectedCardId(null);
     setDeckStatus(`${result.deletedDeckIds.length} Stapel gelöscht.`);
     setDeckStatusType("status");
-    window.requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-testid="deck-select-${result.nextSelectedDeckId}"]`)?.focus());
+    setPendingDeckDelete(null);
+    window.requestAnimationFrame(() => {
+      if (result.nextSelectedDeckId) document.querySelector<HTMLElement>(`[data-testid="deck-select-${result.nextSelectedDeckId}"]`)?.focus();
+      else document.querySelector<HTMLElement>("[data-screen-heading]")?.focus();
+    });
   }
 
   return (
@@ -658,6 +705,14 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
           </button>
         </div>
         {deckStatus ? <p className={`mt-3 text-sm font-semibold ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
+        {deletedCardUndo ? (
+          <div className="core-status-success mt-3 flex flex-wrap items-center justify-between gap-3 text-sm" role="status" aria-live="assertive">
+            <span>Karte „{deletedCardUndo.description.slice(0, 90)}“ gelöscht.</span>
+            <button type="button" onClick={() => void undoCardDelete()} className="min-h-10 rounded-xl border border-teal-300 bg-white px-3 font-semibold text-teal-800">
+              Rückgängig
+            </button>
+          </div>
+        ) : null}
       </SoftPanel>
 
       {filteredRows.length === 0 ? (
@@ -833,6 +888,39 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
           />
         </div>
       ) : null}
+      <ActionDialog
+        open={Boolean(pendingCardDelete)}
+        title="Karte löschen?"
+        description={pendingCardDelete ? (
+          <p>„{(stripHtml(pendingCardDelete.card.originalFront).replace(/\s+/g, " ").trim() || "Karte ohne Vorderseitentext").slice(0, 180)}“ wird als gelöscht markiert. Du kannst die Löschung unmittelbar danach rückgängig machen.</p>
+        ) : null}
+        confirmLabel="Karte löschen"
+        cancelLabel="Abbrechen"
+        destructive
+        onCancel={() => setPendingCardDelete(null)}
+        onConfirm={() => void confirmCardDelete()}
+      />
+      <ActionDialog
+        open={Boolean(pendingDeckDelete)}
+        title="Stapelbaum löschen?"
+        description={pendingDeckDelete ? (
+          <div className="grid gap-2">
+            <p>„{pendingDeckDelete.deck.name}“ und alle Inhalte dieses Stapelbaums werden als gelöscht markiert.</p>
+            <ul className="list-disc pl-5">
+              <li>{Math.max(0, (pendingDeckDelete.row.scopeDeckIds?.length ?? 1) - 1)} Unterstapel</li>
+              <li>
+                {pendingDeckDelete.row.summary?.totalCards ?? 0}{" "}
+                {(pendingDeckDelete.row.summary?.totalCards ?? 0) === 1 ? "aktive Karte" : "aktive Karten"}
+              </li>
+            </ul>
+          </div>
+        ) : null}
+        confirmLabel="Stapelbaum löschen"
+        cancelLabel="Abbrechen"
+        destructive
+        onCancel={() => setPendingDeckDelete(null)}
+        onConfirm={() => void confirmDeckDelete()}
+      />
     </div>
   );
 }

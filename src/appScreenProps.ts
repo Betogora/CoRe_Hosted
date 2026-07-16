@@ -1,6 +1,6 @@
 import type { AppRoute, createViewRoute } from "./appNavigation.ts";
 import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
-import type { AiJob, CoreMode, Deck, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { AiJob, CoreMode, Deck, LearningItem, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import type { ProductSurface } from "./productSurfaces.ts";
@@ -49,7 +49,8 @@ export interface CreationScreenProps {
   onMethodChange: (method: CreationMethod) => unknown;
   onCreated: (deck: Deck) => Promise<Deck | null>;
   onAppendManualCard: (deckId: string, input: ManualCardInput) => Promise<Deck | null>;
-  onImportCompleted: (deck: Deck) => void;
+  onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null) => void;
+  onSessionCompleted: (deckId: string) => void;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onReviewDeck: (deckId?: string | null) => void;
   onJob: (job: unknown) => unknown;
@@ -79,6 +80,7 @@ export interface DecksScreenProps {
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onSaveCard: (deckId: string, cardId: string, value: CardEditorValue) => unknown;
   onDeleteCard: (deckId: string, cardId: string) => unknown;
+  onUndoDeleteCard: (deckId: string, deletedCard: LearningItem) => unknown;
   onRestoreCard: (deckId: string, cardId: string, versionId: string) => unknown;
   onAddVariant: (deckId: string, cardId: string, variant: CardVariantInput) => unknown;
   onApplyVariantJson: (deckId: string, cardId: string, response: unknown, options: Record<string, unknown>) => unknown;

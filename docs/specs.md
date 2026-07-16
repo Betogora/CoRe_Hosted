@@ -2,7 +2,7 @@
 
 **Rolle:** einzige kanonische Quelle für Produktversprechen, Kernjourneys, funktionale Anforderungen und Produktabnahme.
 **Status:** Arbeitsfassung
-**Stand:** 2026-07-15
+**Stand:** 2026-07-16
 
 Diese Spezifikation beschreibt ausschließlich, was CoRe für Nutzer leisten soll. Aktuelle Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und offene Roadmap haben eigene Quellen in der [Dokumentenlandkarte](index.md).
 
@@ -113,7 +113,12 @@ Akzeptanz:
 - APKG wird zuerst analysiert. Vorschau und `Import übernehmen` sind getrennte Schritte.
 - Der Hauptbericht nennt Datei, Stapel, Karten, vorhandene und fehlende Medien sowie verständliche Warnungen.
 - Notetype-IDs, Template-Ordinals, Hashes und Importidentitäten dominieren den Hauptflow nicht.
+- Ein Wechsel zwischen APKG, Text, CSV und Tabelle verwirft die vorherige Vorschau, Commitfähigkeit, Fehler und Fortschritte vollständig.
+- Abbruch, erneut versuchbarer Fehler, terminaler Fehler, Teilabschluss und Erfolg sind getrennte Zustände mit jeweils passender Folgeaktion.
 - Ein erfolgreicher Flow endet mit einem konkreten Ziel wie `Jetzt lernen`, `Karten prüfen` oder `Zur Bibliothek`.
+- Bei manueller Erstellung bleibt der Editor nach `Speichern` geöffnet. Angeheftete Felder bleiben erhalten, andere Felder werden geleert, das Zieldeck bleibt gewählt und der Fokus springt deterministisch in das erste freie Pflichtfeld.
+- Zielauswahlen zeigen vollständige hierarchische Stapelpfade. Erst `Fertig` öffnet den Abschluss mit Sitzungsanzahl, Zielpfad, `Jetzt lernen` und `Karten prüfen`.
+- Interne Navigation mit einem nichtleeren fachlichen Entwurf verlangt eine eigene Bestätigung. `Weiter bearbeiten` erhält Inhalt und Fokus; `Verwerfen und verlassen` verwirft nur den aktuellen Entwurf.
 
 ### 5.3 Karten bearbeiten und eine Sitzung starten
 
@@ -123,6 +128,8 @@ Akzeptanz:
 
 - Ein Klick auf eine Lernzeile startet Lernen.
 - Verschieben, Outdent und Löschen sind explizite, bestätigte Verwaltungsaktionen.
+- Kartenlöschung zeigt den betroffenen Inhalt, verwendet Soft Delete und bietet unmittelbar ein Undo, das denselben Datensatz samt Review State wiederherstellt.
+- Stapellöschung zeigt Stapelname, Unterstapelzahl und aktive Kartenanzahl; ein Abbruch verändert nichts.
 - Basic, Reverse, Cloze und Multiple Choice laufen durch dieselbe fachliche Erstellung.
 - Basic und Reverse bearbeiten Vorder- und Rückseite als sanitisiertes Rich Text; Pflichtfelder werden direkt am Feld validiert.
 - Reverse zeigt im normalen Review die Originalrichtung und im ausdrücklich gestarteten Variantenreview die atomar synchronisierte Rückrichtung.
@@ -183,6 +190,8 @@ Akzeptanz:
 
 - Unbekannte Note Types werden sicher und transparent projiziert; beliebige Templates werden nicht ausgeführt.
 - Importfehler bleiben sichtbar und enthalten eine sinnvolle nächste Aktion.
+- Die sichtbare Importsteuerung unterscheidet `idle`, `analyzing`, `preview`, `committing`, `syncing_media`, `succeeded`, `partial`, `failed_retryable`, `failed_terminal` und `cancelled`.
+- Warnungen werden zunächst zusammengefasst und vollständig aufklappbar angeboten; technische IDs und Hashes bleiben unter Details.
 - Reimport erkennt stabile Anki-Identitäten vor heuristischen Fingerprints.
 - Review-Rohdaten können erhalten werden, ohne importierte Karten automatisch als gelernt zu markieren.
 - Medienreferenzen werden sicher aufgelöst; fehlende Medien werden im Bericht genannt.
@@ -190,6 +199,8 @@ Akzeptanz:
 ### 6.4 Manuelle Erstellung und Quellen
 
 - Karten können ohne Dokumentquelle erstellt werden.
+- Mehrere Karten nacheinander zu erstellen ist der Standardfluss; gespeicherte Karten bleiben bei einem später verworfenen Entwurf erhalten.
+- Pinning steuert ausschließlich den Reset nach erfolgreichem Speichern. Es gibt kein Cloud-Autosave für ungespeicherte Entwürfe.
 - Aus einem lesbaren Dokument kann Text in Vorder- oder Rückseite übernommen werden.
 - Ein Quellenanker speichert Dokument, Seite beziehungsweise Textbereich und bleibt editierbar.
 - Rich Text wird vor Speicherung und Darstellung sanitisiert.
@@ -207,6 +218,7 @@ Akzeptanz:
 - Originalinhalt und Quellenanker bleiben prüfbar.
 - Nutzeränderungen erzeugen nachvollziehbare Versionen.
 - Restore ist explizit, auditierbar und überschreibt nicht still neuere Inhalte.
+- Ein unmittelbares Karten-Undo nimmt den bestehenden Soft-Delete-Tombstone revisionsgeprüft zurück; es erzeugt weder eine neue Karte noch einen zweiten Review State.
 - KI- oder Importfehler dürfen nicht zum Verlust des letzten verlässlichen Inhalts führen.
 
 ### 6.7 Statistik

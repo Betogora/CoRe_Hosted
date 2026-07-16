@@ -89,6 +89,8 @@ async function openManualCreation(page: Page, deckName: string, cardType: string
 
 async function finishManualCreation(page: Page, deckName: string) {
   await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await expect(page.getByRole("status")).toContainText("Karte gespeichert");
+  await page.getByRole("button", { name: "Fertig" }).click();
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 30_000 });
   const state = await readActiveAccountState(page);
   const deck = state.decks.find((candidate: { name: string }) => candidate.name === deckName);
@@ -270,6 +272,7 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport sch�
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(REIMPORT_FIXTURE);
   await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
   await page.getByRole("button", { name: "Import übernehmen" }).click();
+  await page.getByRole("button", { name: "Import abschließen" }).click();
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 30_000 });
   await page.reload();
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 30_000 });
@@ -295,6 +298,7 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport sch�
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(REIMPORT_FIXTURE);
   await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
   await page.getByRole("button", { name: "Import übernehmen" }).click();
+  await page.getByRole("button", { name: "Import abschließen" }).click();
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 30_000 });
 
   state = await readActiveAccountState(page);

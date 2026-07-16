@@ -2,6 +2,7 @@ import React from "react";
 import { AlertCircle, CheckCircle2, Database, FileArchive, Loader2, Upload } from "lucide-react";
 import type { ApkgCreationPreview, CreationWorkflow } from "../creationWorkflow.ts";
 import type { Deck } from "../coreTypes.ts";
+import { projectImportUiState, type ImportUiState } from "../importUiState.ts";
 import type { AccountMediaStore, MediaSyncProgress, MediaSyncResult, MediaSyncStatus, MediaSyncTask } from "../mediaStore.ts";
 import { LOCAL_APKG_MAX_BYTES, type ApkgImportProgress } from "../serverApkgImportContract.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
@@ -32,10 +33,10 @@ export interface ApkgImportPanelProps {
   workflow: ApkgWorkflow;
   mediaStore: AccountMediaStore | null;
   serverApkgEnabled?: boolean;
+  resumeOnMount?: boolean;
   onCompleted: (deck: Deck) => unknown;
 }
 
-type ImportUserStatus = "analyze" | "preview" | "commit" | "media" | "complete" | "partial" | "failed";
 type CloudProgress = MediaSyncProgress & { status: MediaSyncStatus };
 type PreviewMediaStatus = { persisted: boolean; count: number; errors: string[] };
 
@@ -80,31 +81,18 @@ function toImportJob(value: unknown): ApkgImportJob {
   };
 }
 
-function getImportUserStatus({ job, preview, mediaTask, cloudProgress, isParsing }: {
-  job: ApkgImportJob | null;
-  preview: ApkgCreationPreview | null;
-  mediaTask: MediaSyncTask | null;
-  cloudProgress: CloudProgress | null;
-  isParsing: boolean;
-}): ImportUserStatus {
-  if (job?.status === "error" || job?.status === "failed" || job?.status === "cancelled") return "failed";
-  if (cloudProgress && ["partial", "local-pending", "blocked", "cancelled"].includes(cloudProgress.status)) return "partial";
-  if (job?.status === "done" || job?.status === "succeeded" || cloudProgress?.status === "cloud-ready") return "complete";
-  if (mediaTask || job?.status === "syncing_media") return "media";
-  if (job?.status === "committing" || (preview && isParsing)) return "commit";
-  if (preview || job?.status === "preview" || job?.status === "ready") return "preview";
-  return "analyze";
-}
-
-function importStatusLabel(status: ImportUserStatus): string {
+function importStatusLabel(status: ImportUiState["status"]): string {
   return {
-    analyze: "Analysieren",
+    idle: "Bereit",
+    analyzing: "Analysieren",
     preview: "Vorschau bereit",
-    commit: "Übernehmen",
-    media: "Medien werden synchronisiert",
-    complete: "Fertig",
+    committing: "Übernehmen",
+    syncing_media: "Medien werden synchronisiert",
+    succeeded: "Erfolgreich",
     partial: "Teilweise fertig",
-    failed: "Fehlgeschlagen",
+    failed_retryable: "Fehlgeschlagen, erneut versuchbar",
+    failed_terminal: "Fehlgeschlagen",
+    cancelled: "Abgebrochen",
   }[status];
 }
 
@@ -113,7 +101,7 @@ function nestedImportIdentity(value: unknown): unknown {
   return (value as Record<string, unknown>).ankiImportIdentityV1;
 }
 
-export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApkgEnabled = false, onCompleted }: ApkgImportPanelProps) {
+export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApkgEnabled = false, resumeOnMount = true, onCompleted }: ApkgImportPanelProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [job, setJob] = React.useState<ApkgImportJob | null>(null);
@@ -124,6 +112,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
   const [mediaTask, setMediaTask] = React.useState<MediaSyncTask | null>(null);
   const [cloudProgress, setCloudProgress] = React.useState<CloudProgress | null>(null);
   const [serverProgress, setServerProgress] = React.useState<ApkgImportProgress | null>(null);
+  const [completedDeck, setCompletedDeck] = React.useState<Deck | null>(null);
   const resumedRef = React.useRef(false);
   const localPreviewDeck = preview?.kind === "local" ? preview.deck : null;
   const { urls: previewMediaUrls, missing: previewMissingMedia } = useDeckMediaUrls(localPreviewDeck, mediaStore);
@@ -134,7 +123,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
   }
 
   React.useEffect(() => {
-    if (resumedRef.current) return;
+    if (!resumeOnMount || resumedRef.current) return;
     resumedRef.current = true;
     void workflow.resumeApkgPreview({ existingDecks, onProgress: handleServerProgress }).then((result) => {
       if (!result?.preview) return;
@@ -142,13 +131,16 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
       setJob(toImportJob(result.job));
       setServerProgress(result.preview.progress);
     }).catch(() => undefined);
-  }, [existingDecks, workflow]);
+  }, [existingDecks, resumeOnMount, workflow]);
 
   async function parseFile(file: File) {
     setSelectedFile(file);
     setPreview(null);
     setServerProgress(null);
     setMediaStatus(null);
+    setMediaTask(null);
+    setCloudProgress(null);
+    setCompletedDeck(null);
     if (file.size > LOCAL_APKG_MAX_BYTES && !serverApkgEnabled) {
       setJob({
         fileName: file.name,
@@ -219,6 +211,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
         warnings: [...new Set([...(current?.warnings ?? []), ...(result.report.warnings ?? [])])],
       }));
       setPreview((current) => current ? { ...current, importReport: result.report } as ApkgCreationPreview : current);
+      setCompletedDeck(result.deck);
       if (result.mediaTask) {
         setMediaTask(result.mediaTask);
         setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "syncing_media" }));
@@ -227,10 +220,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
           setMediaStatus(mediaResult);
           setCloudProgress({ ...mediaResult.progress, status: mediaResult.status });
           setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: mediaResult.status === "cloud-ready" ? "done" : "partial" }));
-          if (mediaResult.status === "cloud-ready") onCompleted(result.deck);
         });
-      } else {
-        onCompleted(result.deck);
       }
     } catch (error) {
       setJob((current) => ({
@@ -276,8 +266,25 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
   const apkgReport = report?.apkg?.contractVersion === 1 ? report.apkg : null;
   const previewWarnings = [...new Set([...(preview?.warnings ?? []), ...(report?.warnings ?? [])])];
   const previewErrors = [...new Set([...(job?.errors ?? []), ...(report?.errors ?? [])])];
-  const userStatus = getImportUserStatus({ job, preview, mediaTask, cloudProgress, isParsing });
-  const currentStepIndex = userStatus === "analyze" ? 0 : userStatus === "preview" ? 1 : userStatus === "commit" ? 2 : userStatus === "media" ? 3 : 4;
+  const uiState = projectImportUiState({
+    jobStatus: job?.status,
+    progressStatus: serverProgress?.status,
+    retryable: serverProgress?.retryable,
+    mediaStatus: cloudProgress?.status,
+    hasPreview: Boolean(preview),
+    hasMediaTask: Boolean(mediaTask),
+    isBusy: isParsing,
+  });
+  const currentStepIndex = uiState.status === "idle" || uiState.status === "analyzing"
+    ? 0
+    : uiState.status === "preview"
+    ? 1
+    : uiState.status === "committing"
+    ? 2
+    : uiState.status === "syncing_media"
+    ? 3
+    : 4;
+  const previewVisible = Boolean(preview) && !["failed_retryable", "failed_terminal", "cancelled"].includes(uiState.status);
   const presentMediaCount = apkgReport?.media.detected ?? 0;
   const cacheStatus = mediaStatus && "count" in mediaStatus ? mediaStatus : null;
   const syncStatus = mediaStatus && "message" in mediaStatus ? mediaStatus : null;
@@ -322,7 +329,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[#17214f]">{selectedFile.name}</p>
             </div>
-            <p className="mt-1 text-sm text-[#66709a]">{formatBytes(selectedFile.size)} · {importStatusLabel(userStatus)}</p>
+            <p className="mt-1 text-sm text-[#66709a]">{formatBytes(selectedFile.size)} · {importStatusLabel(uiState.status)}</p>
           </div>
         ) : null}
 
@@ -345,37 +352,55 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
           {importSteps.map((step) => {
             const stepIndex = importSteps.findIndex((item) => item.id === step.id);
             const isActive = stepIndex === currentStepIndex;
-            const isDone = stepIndex < currentStepIndex || userStatus === "complete";
-            const label = step.id === "complete" && ["partial", "failed"].includes(userStatus) ? importStatusLabel(userStatus) : step.label;
+            const isDone = stepIndex < currentStepIndex || uiState.status === "succeeded";
+            const isFailure = ["failed_retryable", "failed_terminal", "cancelled"].includes(uiState.status);
+            const label = step.id === "complete" && currentStepIndex === 4 ? importStatusLabel(uiState.status) : step.label;
             return (
-              <li key={step.id} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${isActive ? userStatus === "failed" ? "border-red-200 bg-red-50" : "border-teal-200 bg-teal-50" : "border-[#e3e7f5]"}`}>
-                {isActive && isParsing ? <Loader2 className="shrink-0 animate-spin text-teal-700" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0 text-teal-700" size={16} aria-hidden="true" /> : isActive && userStatus === "failed" ? <AlertCircle className="shrink-0 text-red-700" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-full border border-[#cfd6ed]" />}
+              <li key={step.id} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${isActive ? isFailure ? "border-red-200 bg-red-50" : uiState.status === "partial" ? "border-amber-200 bg-amber-50" : "border-teal-200 bg-teal-50" : "border-[#e3e7f5]"}`}>
+                {isActive && isParsing ? <Loader2 className="shrink-0 animate-spin text-teal-700" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0 text-teal-700" size={16} aria-hidden="true" /> : isActive && isFailure ? <AlertCircle className="shrink-0 text-red-700" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-full border border-[#cfd6ed]" />}
                 <span className="text-xs font-semibold text-[#4e5b8c]">{label}</span>
               </li>
             );
           })}
         </ol>
 
-        {userStatus === "partial" ? (
-          <p className="core-status-warning mt-4 text-sm" role="status">
-            Import teilweise abgeschlossen. Die Karten sind übernommen; Medien konnten noch nicht vollständig synchronisiert werden. Du kannst den Upload fortsetzen oder später erneut synchronisieren.
-          </p>
+        {uiState.status === "succeeded" && completedDeck ? (
+          <div className="core-status-success mt-4 text-sm" role="status" aria-live="polite">
+            <p className="font-semibold">Import erfolgreich abgeschlossen.</p>
+            <button type="button" onClick={() => onCompleted(completedDeck)} className="mt-3 min-h-10 rounded-xl bg-teal-700 px-4 font-semibold text-white">Import abschließen</button>
+          </div>
         ) : null}
 
-        {Boolean(job?.errors.length) || job?.status === "cancelled" ? (
+        {uiState.status === "partial" ? (
+          <div className="core-status-warning mt-4 text-sm" role="status">
+            <p>Import teilweise abgeschlossen. Die Karten sind übernommen; Medien sind noch nicht vollständig synchronisiert.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {mediaTask ? <button type="button" onClick={() => mediaTask.resume()} className="min-h-10 rounded-xl bg-amber-700 px-4 font-semibold text-white">Medien-Sync fortsetzen</button> : null}
+              {completedDeck ? <button type="button" onClick={() => onCompleted(completedDeck)} className="min-h-10 rounded-xl border border-amber-300 bg-white px-4 font-semibold text-amber-900">Karten jetzt verwenden</button> : null}
+            </div>
+          </div>
+        ) : null}
+
+        {uiState.status === "failed_retryable" || uiState.status === "failed_terminal" ? (
           <div className="core-status-error mt-5 text-sm" role="alert">
-            {(job?.errors.length ? job.errors : ["Der Import wurde abgebrochen."]).map((error, index) => (
+            {(job?.errors.length ? job.errors : ["Die APKG-Datei konnte nicht verarbeitet werden."]).map((error, index) => (
               <p key={`${error}-${index}`}>{error}</p>
             ))}
-            <button type="button" onClick={() => serverProgress?.status === "failed" && serverProgress.retryable ? void handleRetryServerImport() : selectedFile ? void parseFile(selectedFile) : fileInputRef.current?.click()} className="mt-3 min-h-10 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white">
-              {serverProgress?.status === "failed" && serverProgress.retryable ? "Erneut versuchen" : selectedFile ? "Erneut analysieren" : "Andere Datei auswählen"}
+            <button type="button" onClick={() => uiState.status === "failed_retryable" ? void handleRetryServerImport() : fileInputRef.current?.click()} className="mt-3 min-h-10 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white">
+              {uiState.status === "failed_retryable" ? "Erneut versuchen" : "Andere Datei auswählen"}
             </button>
+          </div>
+        ) : null}
+        {uiState.status === "cancelled" ? (
+          <div className="core-status-info mt-5 text-sm" role="status">
+            <p>Import abgebrochen. Es wurden aus diesem Vorgang keine weiteren Karten übernommen.</p>
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-3 min-h-10 rounded-xl border border-[#dfe4f5] bg-white px-4 font-semibold text-[#4f5eb1]">Andere Datei auswählen</button>
           </div>
         ) : null}
       </SoftPanel>
 
       <section className="grid gap-5">
-        {preview ? (
+        {previewVisible && preview ? (
           <>
             <SoftPanel className="p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -383,10 +408,12 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
                   <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">Importvorschau</p>
                   <h3 className="mt-1 text-2xl font-semibold text-[#17214f]">{preview.kind === "local" ? preview.deck.name : preview.deckSummary.name}</h3>
                 </div>
-                <button type="button" disabled={previewErrors.length > 0 || isParsing} onClick={() => void handleCommit()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
-                  <Database size={17} aria-hidden="true" />
-                  Import übernehmen
-                </button>
+                {uiState.status === "preview" ? (
+                  <button type="button" disabled={previewErrors.length > 0 || isParsing} onClick={() => void handleCommit()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+                    <Database size={17} aria-hidden="true" />
+                    Import übernehmen
+                  </button>
+                ) : null}
               </div>
               <div className="mt-4 rounded-xl border border-[#e3e7f5] bg-white/70 px-4 py-3 text-sm text-[#66709a]">
                 <span className="font-semibold text-[#17214f]">{job?.fileName ?? selectedFile?.name ?? "APKG-Datei"}</span>
@@ -425,12 +452,17 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
                       <span>{apkgReport.media.missing.length} referenzierte Medien fehlen im Paket. Betroffene Karten können ohne Bild oder Ton erscheinen.</span>
                     </div>
                   ) : null}
-                  {previewWarnings.map((warning) => (
-                    <div key={warning} className="flex gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                      <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
-                      <span>{warning}</span>
-                    </div>
-                  ))}
+                  {previewWarnings.length > 0 ? (
+                    <details className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      <summary className="flex cursor-pointer items-center gap-2 font-semibold">
+                        <AlertCircle className="shrink-0" size={16} aria-hidden="true" />
+                        {previewWarnings.length} {previewWarnings.length === 1 ? "Warnung" : "Warnungen"}
+                      </summary>
+                      <ul className="mt-3 list-disc space-y-1 pl-6">
+                        {previewWarnings.map((warning) => <li key={warning}>{warning}</li>)}
+                      </ul>
+                    </details>
+                  ) : null}
 
                   <details className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4">
                     <summary className="cursor-pointer font-semibold text-[#17214f]">Technische Details</summary>

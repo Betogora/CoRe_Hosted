@@ -33,6 +33,8 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | `src/coreTypes.ts` | Kanonische normalisierte Typen für Deck, Learning Item, Card Variant, Review State und diskriminierte Editorwerte |
 | `src/coreModel.ts` | Einzige öffentliche Seam für Erzeugung, Normalisierung, typgerechte Editorprojektion, Validierung und Speichern von Learning Items und Varianten |
 | `src/coreWorkspace.ts` | Anwendungsbefehle für Decks, typgerechte Kartenwerte, Import und Variantenannahme |
+| `src/creationBatch.ts` | Reiner Batch-Session-State für Zähler, Zieldeck, aktuellen UI-Entwurf, Pins und deterministische Fokuswahl; keine zweite Kartenrepräsentation |
+| `src/importUiState.ts` | Diskriminierte Projektion sichtbarer Importphasen und Terminalzustände ohne Parser-, Protokoll- oder Medienverantwortung |
 | `src/coreRepository.ts` | Lokaler persistenter App-State und Legacy-Normalisierung |
 | `src/cloudRepository.ts` | Accountgefiltertes Laden, revisionsgeprüfte Mutationen, Konflikte und Soft-Deletes |
 | `src/apkgImport.ts` | Öffentliche APKG-Normalisierungsgrenze; Worker, ZIP und SQLite bleiben privat |
@@ -90,6 +92,7 @@ Dieses Zielmodell beschreibt die gewünschte fachliche Richtung, nicht bereits v
 - `src/accountStorage.ts` trennt lokale Cache-Keys pro Account.
 - Revisionierte Entitäten tragen Revision, Soft-Delete-Zeitpunkt und Geräte-ID.
 - Mutationen werden nur gegen die erwartete Basisrevision bestätigt. Abweichungen erzeugen accountgebundene Konflikte statt stiller Merges.
+- Karten-Undo setzt denselben soft-gelöschten Datensatz mit der bestätigten Tombstone-Revision wieder aktiv, entfernt genau diesen Tombstone und erhält Karten-ID sowie Review State.
 - Review-Mutationen werden einzeln und idempotent bestätigt; Snapshot-Mutationen erst nach Persistenz und Readback.
 - Medienobjekte liegen privat unter accountgebundenen Pfaden und werden über SHA-1 dedupliziert. Persistiert werden keine Bytes, Tokens oder Signed URLs im Deckmodell.
 - Reimport legt neue Medienreferenzen vor der Stilllegung alter Referenzen an.
@@ -122,6 +125,8 @@ Neue Endpunkte brauchen einen expliziten Roadmap-Auftrag, Laufzeitvalidierung, A
 ## 8. Importregeln
 
 - APKG-Vorschau und Commit verwenden dieselbe Normalisierung.
+- Jeder sichtbare Importmodus besitzt eine eigene UI-Session. Ein Formatwechsel remountet diese Session und entfernt Vorschau, Commitfähigkeit, Fehler und Fortschritt des vorherigen Modus.
+- `src/importUiState.ts` projiziert die gemeinsamen sichtbaren Phasen; APKG-Worker, Serverprotokoll, ZIP/SQLite, Reimport und Medienqueue bleiben in ihren bestehenden Eigentümermodulen.
 - Dateien bis einschließlich 250 MiB laufen im Browser-Worker. Der vorbereitete Pfad darüber bleibt bis zur Hosted-Abnahme deaktiviert.
 - Importidentität bevorzugt stabile Anki-IDs vor Fingerprints.
 - Unknown Note Types bleiben als sichere Rohprojektion erhalten; beliebige Anki-Templates werden nicht ausgeführt.

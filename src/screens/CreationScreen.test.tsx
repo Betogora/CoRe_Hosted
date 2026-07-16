@@ -14,7 +14,6 @@ test("completed first creation offers study and card-review actions", () => {
       onMethodChange={() => undefined}
       onCreated={() => undefined}
       onAppendManualCard={() => undefined}
-      onImportCompleted={() => undefined}
       onStartDeck={() => undefined}
       onReviewDeck={() => undefined}
     />,
@@ -32,7 +31,6 @@ test("creation entry marks core and labs surfaces without external-model or cost
       onMethodChange={() => undefined}
       onCreated={() => undefined}
       onAppendManualCard={() => undefined}
-      onImportCompleted={() => undefined}
       onStartDeck={() => undefined}
       onReviewDeck={() => undefined}
       onJob={() => undefined}
@@ -59,7 +57,6 @@ test("manual and local-draft pickers accept only readable source documents", () 
     onMethodChange: () => undefined,
     onCreated: () => undefined,
     onAppendManualCard: () => undefined,
-    onImportCompleted: () => undefined,
     onStartDeck: () => undefined,
     onReviewDeck: () => undefined,
     onJob: () => undefined,
@@ -90,11 +87,12 @@ test("manual target selection shows complete deck paths", () => {
       onMethodChange={() => undefined}
       onCreated={() => undefined}
       onAppendManualCard={() => undefined}
-      onImportCompleted={() => undefined}
       onStartDeck={() => undefined}
       onReviewDeck={() => undefined}
     />,
   );
 
   assert.match(markup, /Biologie \/ Zelle/);
+  assert.match(markup, /Fertig/);
+  assert.match(markup, /Vorderseite: Nach Speichern leeren\. Zum Behalten anheften/);
 });

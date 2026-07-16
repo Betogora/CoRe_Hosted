@@ -27,7 +27,7 @@ export default defineConfig({
       env: {
         ...process.env,
         VITE_ENABLE_LABS: betaCoreGate ? "false" : "true",
-        VITE_ENABLE_SERVER_APKG_IMPORT: "",
+        VITE_ENABLE_SERVER_APKG_IMPORT: process.env.CORE_TEST_SERVER_APKG_TERMINALS === "true" ? "true" : "",
         VITE_ENABLE_GOOGLE_AUTH: betaCoreGate ? "" : "true",
         VITE_ENABLE_MAGIC_LINK: betaCoreGate ? "" : "true",
       },
@@ -75,7 +75,7 @@ export default defineConfig({
     },
     {
       name: "authenticated-chromium",
-      testMatch: [/apkg-quality-report\.spec\.ts/, /card-lifecycle\.spec\.ts/, /core-stabilization\.spec\.ts/, /product-surfaces\.spec\.ts/, /world-capitals-hierarchy\.spec\.ts/, /zz-media-import\.spec\.ts/],
+      testMatch: [/apkg-quality-report\.spec\.ts/, /batch-resilience\.spec\.ts/, /card-lifecycle\.spec\.ts/, /core-stabilization\.spec\.ts/, /product-surfaces\.spec\.ts/, /world-capitals-hierarchy\.spec\.ts/, /zz-media-import\.spec\.ts/],
       dependencies: ["auth-setup"],
       use: {
         ...devices["Desktop Chrome"],

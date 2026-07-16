@@ -32,6 +32,7 @@ test("@beta-core @hosted-core APKG-Medium wird nach dem Deck-Commit cloudbestät
   await expect(page.getByText("Importvorschau", { exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("Medien vorhanden", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Import übernehmen" }).click();
+  await page.getByRole("button", { name: "Import abschließen" }).click();
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 60_000 });
 
   const state = await readActiveAccountState(page);

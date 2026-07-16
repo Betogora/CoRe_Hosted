@@ -71,88 +71,9 @@ Vor Merge jedes Arbeitspakets:
 
 # P0 — Vor begleiteter Beta
 
-## P0.2 Batch-Erstellung und Fehlertoleranz
-
-Abhängigkeit: Globales Eingangsgate
-
-Ziel:
-Mehrere Karten lassen sich in einem zusammenhängenden Arbeitsfluss erstellen.
-Drafts, Löschungen und Importterminalzustände sind fehlertolerant.
-
-### Batch-Erstellung
-
-- [ ] Nach `Speichern` im manuellen Editor bleiben.
-- [ ] Kompakte Bestätigung `Karte gespeichert` anzeigen.
-- [ ] Anzahl der in dieser Session erstellten Karten anzeigen.
-- [ ] Nicht angeheftete Felder leeren.
-- [ ] Angeheftete Felder unverändert behalten.
-- [ ] Zieldeck standardmäßig behalten.
-- [ ] Fokus in das erste erforderliche, nicht angeheftete Feld setzen.
-- [ ] `Fertig` als explizite Abschlussaktion ergänzen.
-- [ ] Abschluss zeigt Anzahl, Zieldeck, `Jetzt lernen` und `Karten prüfen`.
-- [ ] Pin-Beschriftungen beschreiben die tatsächliche Wirkung.
-
-### Draft-Sicherheit
-
-- [ ] Dirty-State aus fachlich relevanten Feldern ableiten.
-- [ ] Interne Navigation mit eigenem Dialog absichern.
-- [ ] Reload/Tab-Schließen über `beforeunload` absichern.
-- [ ] Abbrechen darf gespeicherte Karten nicht zurückrollen.
-- [ ] Kein Cloud-Draft-Autosave in diesem Paket.
-
-### Löschen
-
-- [ ] Kartenlöschung mit eigenem Bestätigungsdialog.
-- [ ] Nach Kartenlöschung unmittelbares Undo anbieten.
-- [ ] Undo darf keinen zweiten Datensatz erzeugen.
-- [ ] Stapellöschung zeigt:
-  - [ ] Deckname
-  - [ ] Zahl der Unterstapel
-  - [ ] Zahl der aktiven Karten
-- [ ] `window.confirm` aus den Core-Löschflüssen entfernen.
-- [ ] Soft Delete, Tombstones und Sync-Verträge erhalten.
-- [ ] Kein vollständiger Papierkorb in diesem Paket.
-
-### Importzustände
-
-- [ ] Importmodus als diskriminierte State-Union modellieren.
-- [ ] Wechsel des Importformats verwirft alte Vorschau und Commitfähigkeit.
-- [ ] Terminalzustände trennen:
-  - [ ] cancelled
-  - [ ] failed_retryable
-  - [ ] failed_terminal
-  - [ ] partial
-  - [ ] succeeded
-- [ ] Jeder Terminalzustand zeigt eine eindeutige nächste Aktion.
-- [ ] Warnungen zunächst zusammenfassen und vollständig aufklappbar machen.
-- [ ] Technische IDs und Hashes unter `Technische Details` belassen.
-- [ ] APKG-Parser, Reimport und Medienlogik nicht umbauen.
-
-### Akzeptanzgates
-
-- [ ] Fünf Karten ohne Verlassen des Editors erstellen.
-- [ ] Pins, Reset und Fokus funktionieren für Front und Back.
-- [ ] Gleichnamige Unterstapel sind über vollständige Pfade unterscheidbar.
-- [ ] Navigation mit Draft warnt; `Bleiben` erhält Inhalte.
-- [ ] Kartenlöschung abbrechen, bestätigen und rückgängig machen.
-- [ ] Decklöschung erklärt die Auswirkung.
-- [ ] Text → CSV → APKG zeigt nie eine alte Vorschau.
-- [ ] Partial- und Failure-Zustände besitzen sichere Folgeaktionen.
-- [ ] Keine Datenbankmigration.
-
-### Tests
-
-- [ ] Unit-/Componenttests für Batchreset und Pins.
-- [ ] Browsertest für fünf Karten.
-- [ ] Browsertest für Dirty-Navigation.
-- [ ] Browsertest für Card Delete und Undo.
-- [ ] Browsertest für Deck-Delete-Dialog.
-- [ ] Import-State-Transition-Tests.
-- [ ] Accessibility für Dialoge, Toast und Fokus.
-
 ## P0.3 Stapel-IA und URL-Kontext
 
-Abhängigkeit: P0.2
+Abhängigkeit: Globales Eingangsgate
 
 Ziel:
 `LearnScreen` und `DecksScreen` bleiben getrennte Aufgabenoberflächen,
@@ -507,7 +428,7 @@ Vor Self-Service-Beta zusätzlich:
 
 ## Begleitete Beta
 
-- [ ] P0.2 bis P0.4 abgeschlossen.
+- [ ] P0.3 bis P0.4 abgeschlossen.
 - [ ] `npm run test:beta` auf Freigabe-SHA grün.
 - [ ] Keine semantische Kartenbeschädigung.
 - [ ] Fünf-Karten-Batchjourney grün.

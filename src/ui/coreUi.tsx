@@ -8,11 +8,109 @@ interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
   children?: ReactNode;
 }
 
+interface ActionDialogProps {
+  open: boolean;
+  title: string;
+  description: ReactNode;
+  confirmLabel: string;
+  cancelLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  destructive?: boolean;
+}
+
 export function SoftPanel({ children, className = "", ...props }: SoftPanelProps) {
   return (
     <section {...props} className={`core-surface-raised min-w-0 rounded-[18px] ${className}`}>
       {children}
     </section>
+  );
+}
+
+export function ActionDialog({
+  open,
+  title,
+  description,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+  destructive = false,
+}: ActionDialogProps) {
+  const dialogRef = React.useRef<HTMLDivElement | null>(null);
+  const cancelRef = React.useRef<HTMLButtonElement | null>(null);
+  const returnFocusRef = React.useRef<HTMLElement | null>(null);
+  const onCancelRef = React.useRef(onCancel);
+  const titleId = React.useId();
+  const descriptionId = React.useId();
+
+  React.useEffect(() => {
+    onCancelRef.current = onCancel;
+  }, [onCancel]);
+
+  React.useEffect(() => {
+    if (!open) return undefined;
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = window.requestAnimationFrame(() => cancelRef.current?.focus());
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancelRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.requestAnimationFrame(() => returnFocusRef.current?.focus());
+    };
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[#17214f]/45 p-4" role="presentation">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        className="core-surface-raised w-full max-w-lg rounded-[18px] p-6 shadow-2xl"
+      >
+        <h2 id={titleId} className="text-2xl font-semibold text-[#17214f]">{title}</h2>
+        <div id={descriptionId} className="mt-3 text-sm leading-6 text-[#66709a]">{description}</div>
+        <div className="mt-6 flex flex-wrap justify-end gap-3">
+          <button ref={cancelRef} type="button" onClick={onCancel} className="min-h-11 rounded-xl border border-[#dfe4f5] bg-white px-4 text-sm font-semibold text-[#4f5eb1]">
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`min-h-11 rounded-xl px-4 text-sm font-semibold text-white ${destructive ? "bg-red-700" : "bg-[#4f5eb1]"}`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

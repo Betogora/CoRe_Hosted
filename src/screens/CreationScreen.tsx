@@ -35,7 +35,8 @@ export function CreationScreen({
   onMethodChange = () => undefined,
   onCreated = async (deck) => deck,
   onAppendManualCard = async () => null,
-  onImportCompleted = () => undefined,
+  onDraftStateChange = () => undefined,
+  onSessionCompleted = () => undefined,
   onStartDeck = () => undefined,
   onReviewDeck = () => undefined,
   onJob = () => undefined,
@@ -44,9 +45,13 @@ export function CreationScreen({
   enableServerApkgImport = false,
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
+  const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number } | null>(null);
   const selectedMethod = initialMethod;
   const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod && (method.id !== "ai" || showAiDrafts));
-  const completedDeck = decks.find((deck) => deck.id === completedDeckId) ?? null;
+  const completedDeck = decks.find((deck) => deck.id === (sessionCompletion?.deckId || completedDeckId)) ?? null;
+  const completedCount = sessionCompletion?.createdCount
+    ?? completedDeck?.cards.filter((card) => card.status !== "deleted").length
+    ?? 0;
   const serverApkgImport = React.useMemo(
     () => enableServerApkgImport && supabase && supabaseUrl ? createServerApkgImportClient({ client: supabase, supabaseUrl }) : null,
     [enableServerApkgImport, supabase, supabaseUrl],
@@ -55,6 +60,11 @@ export function CreationScreen({
     () => createCreationWorkflow({ mediaStore: mediaStore ?? undefined, persistImportedDecks, serverApkgImport }),
     [mediaStore, persistImportedDecks, serverApkgImport],
   );
+
+  function completeSession(deckId: string, createdCount: number) {
+    setSessionCompletion({ deckId, createdCount });
+    onSessionCompleted(deckId);
+  }
 
   React.useEffect(() => {
     if (!completedDeck) return;
@@ -68,7 +78,9 @@ export function CreationScreen({
         <ImportCreationPanel
           decks={decks}
           onCreated={onCreated}
-          onImportCompleted={onImportCompleted}
+          onImportCompleted={(deck) => {
+            completeSession(deck.id, deck.cards.filter((card) => card.status !== "deleted").length);
+          }}
           workflow={accountWorkflow}
           mediaStore={mediaStore}
           serverApkgEnabled={enableServerApkgImport}
@@ -85,6 +97,8 @@ export function CreationScreen({
             const result = await onAppendManualCard(deckId, input);
             return result && typeof result === "object" && "id" in result ? result as Deck : null;
           }}
+          onFinish={({ createdCount, targetDeckId }) => completeSession(targetDeckId, createdCount)}
+          onDraftStateChange={onDraftStateChange}
         />
       );
     }
@@ -104,13 +118,21 @@ export function CreationScreen({
           </span>
           <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-teal-700">Gespeichert</p>
           <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 text-3xl font-semibold text-[#17214f] outline-none">Deine Karten sind bereit</h2>
-          <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-[#66709a]">„{completedDeck.name}“ wurde gespeichert. Du kannst direkt mit dem ersten Review beginnen.</p>
+          <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-[#66709a]">
+            {completedCount} {completedCount === 1 ? "Karte wurde" : "Karten wurden"} in „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ gespeichert.
+          </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <button type="button" onClick={() => onStartDeck(completedDeck)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#4f5eb1] px-6 text-sm font-semibold text-white">
               Jetzt lernen
             </button>
             <button type="button" onClick={() => onReviewDeck(completedDeck.id)} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#dfe4f5] bg-white px-6 text-sm font-semibold text-[#4f5eb1]">
               Karten prüfen
+            </button>
+            <button type="button" onClick={() => {
+              setSessionCompletion(null);
+              onMethodChange("manual");
+            }} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#dfe4f5] bg-white px-6 text-sm font-semibold text-[#4f5eb1]">
+              Weitere Karten erstellen
             </button>
           </div>
         </SoftPanel>
