@@ -5,7 +5,7 @@ import type { AuthPhase } from "./accountSession.ts";
 import type { CoreMode, Deck, LearningItem, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import { BarChart3, BookOpen, Bot, Database, FlaskConical, History, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
-import { createStudyRoute, createViewRoute } from "./appNavigation.ts";
+import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute } from "./appNavigation.ts";
 import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
 import type {
@@ -38,7 +38,7 @@ import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
 import { useAppNavigation } from "./useAppNavigation.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
-import { ActionDialog, LabsNotice, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
+import { ActionDialog, EmptyState, LabsNotice, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 
 const AssistantScreen = React.lazy<React.ComponentType<AssistantScreenProps>>(() => import("./screens/AssistantScreen.tsx").then(({ AssistantScreen }) => ({ default: AssistantScreen })));
 const AiJobsScreen = React.lazy<React.ComponentType<AiJobsScreenProps>>(() => import("./screens/AiJobsScreen.tsx").then(({ AiJobsScreen }) => ({ default: AiJobsScreen })));
@@ -55,7 +55,6 @@ const StudyMode = React.lazy<React.ComponentType<StudyModeProps>>(() => import("
 
 const menu = createMenuModel(productSurfaces);
 const AUTOSAVE_DELAY_MS = 900;
-const emptyDecks: Deck[] = [];
 
 interface SignInInput { email: string; password: string }
 interface SignUpInput extends SignInInput { displayName: string }
@@ -200,17 +199,16 @@ export function App() {
     activeView,
     studyRequest,
     focusedDeckId,
+    selectedCardId,
     deckCreationParentId,
     creationMethod,
+    creationDeckId,
     completedDeckId,
-    validDeckIds,
     navigateToRoute,
     navigateToView: navigateToViewNow,
     getStudyReturnRoute,
     resetBrowserRouteToDefault,
-    setFocusedDeckId,
-    setDeckCreationParentId,
-  } = useAppNavigation({ authPhase, decks: state?.decks ?? emptyDecks, defaultViewId: menu.defaultViewId });
+  } = useAppNavigation({ authPhase, defaultViewId: menu.defaultViewId });
   const mediaStore = React.useMemo(() => cloudUser ? createAccountMediaStore({ client: supabase, supabaseUrl: getSupabaseBrowserConfig().url, userId: cloudUser.id }) : null, [cloudUser, supabase]);
 
   const navigateToView = React.useCallback((...args: Parameters<typeof navigateToViewNow>) => {
@@ -285,8 +283,6 @@ export function App() {
     lastAcknowledgedStateRef.current = boot.state;
     setAppState(boot.state);
     setCloudUser(user);
-    setFocusedDeckId(null);
-    setDeckCreationParentId("");
     setSyncStatus(
       boot.conflictCount > 0
         ? createSyncConflictStatus(boot.conflictCount)
@@ -568,8 +564,6 @@ export function App() {
     setAppState(null);
     setCloudUser(null);
     setLegacyState(null);
-    setFocusedDeckId(null);
-    setDeckCreationParentId("");
     setSyncStatus(createSyncIdleStatus());
     setAuthPhase("signed-out");
     setAuthMessage("Du bist abgemeldet.");
@@ -645,8 +639,7 @@ export function App() {
       },
     }));
     if (!saved) return null;
-    setFocusedDeckId(saved.id);
-    setDeckCreationParentId("");
+    navigateToViewNow("lernen", { focusedDeckId: saved.id }, { replace: true });
     return saved;
   }
 
@@ -657,21 +650,18 @@ export function App() {
   async function deleteDeck(deckId: string) {
     const result = await runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckTree(deckId));
     if (!result) return null;
-    setFocusedDeckId(result.nextSelectedDeckId);
     return result;
   }
 
   function renameDeck(deckId: string, name: string) {
     const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.renameDeck(deckId, name));
     if (!result) return null;
-    if (result.deck) setFocusedDeckId(result.deck.id);
     return result;
   }
 
   function moveDeck(deckId: string, parentDeckId: string | null = null) {
     const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.moveDeck(deckId, parentDeckId));
     if (!result) return null;
-    if (result.deck) setFocusedDeckId(result.deck.id);
     return result;
   }
 
@@ -855,11 +845,44 @@ export function App() {
   }
 
   function startDeck(deck: { id: string; }, variantSession = false) {
-    navigateToRoute(createStudyRoute(deck.id, { variantSession, returnRoute: getStudyReturnRoute() }, { validDeckIds }));
+    const currentRoute = getStudyReturnRoute();
+    const returnRoute = activeView === "kartenstapel"
+      ? createViewRoute("kartenstapel", {
+          focusedDeckId: focusedDeckId ?? deck.id,
+          selectedCardId,
+        })
+      : activeView === "lernen" || activeView === "stapel-einstellungen"
+        ? createViewRoute("lernen", { focusedDeckId: deck.id })
+        : currentRoute;
+    navigateToRoute(createStudyRoute(deck.id, {
+      variantSession,
+      returnContext: createReviewReturnContext(returnRoute, deck.id),
+    }));
   }
 
-  function openDecks(deckId: string | null = null) {
-    navigateToView("kartenstapel", { focusedDeckId: deckId || null });
+  function openDecks(deckId: string | null = null, cardId: string | null = null) {
+    navigateToView("kartenstapel", {
+      focusedDeckId: deckId || null,
+      selectedCardId: deckId && cardId ? cardId : null,
+    });
+  }
+
+  function openLearn(deckId: string | null = null) {
+    navigateToView("lernen", { focusedDeckId: deckId || null });
+  }
+
+  function selectDeckCard(cardId: string | null) {
+    navigateToView("kartenstapel", {
+      focusedDeckId,
+      selectedCardId: focusedDeckId && cardId ? cardId : null,
+    });
+  }
+
+  function openCardCreation(deckId: string | null = null) {
+    navigateToView("neue-karten", {
+      creationMethod: "manual",
+      creationDeckId: deckId || null,
+    });
   }
 
   function openDeckSettings(deckId: string) {
@@ -867,7 +890,10 @@ export function App() {
   }
 
   function openDeckCreation(parentDeckId = "") {
-    navigateToView("lernen", { deckCreationParentId: parentDeckId || "" });
+    navigateToView("lernen", {
+      focusedDeckId: parentDeckId || focusedDeckId,
+      deckCreationParentId: parentDeckId || "",
+    });
   }
 
   function openGraph(deck: Deck) {
@@ -884,13 +910,32 @@ export function App() {
 
   function renderActiveView() {
     if (!state) return null;
+    if (studyRequest && !state.decks.some((deck) => deck.id === studyRequest.deckId)) {
+      return (
+        <EmptyState
+          icon={Layers}
+          title="Stapel nicht gefunden oder nicht verfügbar."
+          body="Die verlinkte Lernsitzung kann nicht geöffnet werden, weil der Stapel gelöscht wurde oder in diesem Account nicht verfügbar ist."
+          action={
+            <div className="flex flex-wrap justify-center gap-3">
+              <button type="button" onClick={() => openLearn(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+                Zu Lernen
+              </button>
+              <button type="button" onClick={() => openDecks(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[#dfe4f5] bg-white px-5 text-sm font-semibold text-[#4f5eb1]">
+                Zur Kartenverwaltung
+              </button>
+            </div>
+          }
+        />
+      );
+    }
     if (activeView === "stapel-einstellungen") {
       return (
         <DeckSettingsScreen
           deck={state.decks.find((deck) => deck.id === focusedDeckId) ?? null}
           onSave={saveDeckLearningSettings}
           onSaveAppearance={saveDeckAppearance}
-          onBack={() => navigateToView("lernen")}
+          onBack={() => openLearn(focusedDeckId)}
         />
       );
     }
@@ -907,12 +952,16 @@ export function App() {
           onAddVariant={addDeckCardVariant}
           onApplyVariantJson={applyVariantJson}
           onStartDeck={startDeck}
-          initialSelectedDeckId={focusedDeckId}
+          selectedDeckId={focusedDeckId}
+          selectedCardId={selectedCardId}
+          onSelectDeck={openDecks}
+          onSelectCard={selectDeckCard}
           onDeleteDeck={deleteDeck}
           onRenameDeck={renameDeck}
           onMoveDeck={moveDeck}
-          onOpenCardCreation={() => navigateToView("neue-karten")}
+          onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onPrepareSubdeckCreation={openDeckCreation}
+          onOpenLearn={openLearn}
           onOpenGraph={openGraph}
           onShareDeck={shareDeck}
           showGraph={productSurfaces.isAvailable("graph")}
@@ -923,7 +972,36 @@ export function App() {
       );
     }
     if (activeView === "neue-karten") {
-      return <CreationScreen decks={state.decks} mediaStore={mediaStore} persistImportedDecks={persistImportedDecks} supabase={supabase} supabaseUrl={getSupabaseBrowserConfig().url} initialMethod={creationMethod} completedDeckId={completedDeckId} onMethodChange={(method: "manual" | "import" | "ai" | "") => navigateToView("neue-karten", method ? { creationMethod: method } : {})} onCreated={completeCreatedDeck} onAppendManualCard={completeManualCard} onDraftStateChange={handleCreationDraftStateChange} onSessionCompleted={(deckId) => navigateToView("neue-karten", { completedDeckId: deckId }, { replace: true })} onStartDeck={startDeck} onReviewDeck={openDecks} onJob={saveJob} showAiDrafts={productSurfaces.isAvailable("local-ai-drafts")} aiDraftSurface={productSurfaces.get("local-ai-drafts")} enableServerApkgImport={productSurfaces.isAvailable("server-apkg-over-250")} />;
+      return (
+        <CreationScreen
+          decks={state.decks}
+          mediaStore={mediaStore}
+          persistImportedDecks={persistImportedDecks}
+          supabase={supabase}
+          supabaseUrl={getSupabaseBrowserConfig().url}
+          initialMethod={creationMethod}
+          initialTargetDeckId={creationDeckId}
+          completedDeckId={completedDeckId}
+          onMethodChange={(method: "manual" | "import" | "ai" | "") => navigateToView("neue-karten", method ? {
+            creationMethod: method,
+            creationDeckId: method === "manual" ? creationDeckId || state.decks[0]?.id : null,
+          } : {})}
+          onTargetDeckChange={(deckId) => navigateToViewNow("neue-karten", {
+            creationMethod: "manual",
+            creationDeckId: deckId || null,
+          })}
+          onCreated={completeCreatedDeck}
+          onAppendManualCard={completeManualCard}
+          onDraftStateChange={handleCreationDraftStateChange}
+          onSessionCompleted={(deckId) => navigateToViewNow("neue-karten", { completedDeckId: deckId }, { replace: true })}
+          onStartDeck={startDeck}
+          onReviewDeck={openDecks}
+          onJob={saveJob}
+          showAiDrafts={productSurfaces.isAvailable("local-ai-drafts")}
+          aiDraftSurface={productSurfaces.get("local-ai-drafts")}
+          enableServerApkgImport={productSurfaces.isAvailable("server-apkg-over-250")}
+        />
+      );
     }
     if (activeView === "lernen") {
       return (
@@ -931,9 +1009,11 @@ export function App() {
           decks={state.decks}
           onStartDeck={startDeck}
           onCreateDeck={createDeck}
+          focusedDeckId={focusedDeckId}
           initialParentDeckId={deckCreationParentId}
-          onDeckCreationHandled={() => setDeckCreationParentId("")}
-          onOpenCardCreation={() => navigateToView("neue-karten")}
+          onDeckCreationHandled={() => navigateToViewNow("lernen", { focusedDeckId }, { replace: true })}
+          onFocusDeck={openLearn}
+          onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onOpenDecks={openDecks}
           onOpenDeckSettings={openDeckSettings}
         />
@@ -1033,14 +1113,15 @@ export function App() {
           decks={state.decks}
           deckId={studyDeck.id}
           variantSession={studyRequest.variantSession}
+          variantId={studyRequest.variantId}
           mediaStore={mediaStore}
           onExit={() => {
             refresh();
-            navigateToRoute(studyRequest.returnRoute ?? createViewRoute("lernen"), { replace: true });
+            navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
           }}
           onReturnToLearn={() => {
             refresh();
-            navigateToRoute(createViewRoute("lernen"), { replace: true });
+            navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
           }}
           onDeckUpdated={saveDeck}
           onReviewEvent={enqueueReviewEvent}

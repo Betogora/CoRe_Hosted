@@ -64,7 +64,7 @@ test("browser back returns from deck management to learning without reload", asy
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
-  await page.getByRole("button", { name: "Kartenstapel" }).click();
+  await page.getByRole("button", { name: "Karten verwalten" }).click();
   await expect(page.getByTestId(`deck-row-${DECK_IDS.europe}`)).toBeVisible();
 
   await page.goBack();
@@ -247,13 +247,13 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   const variantEventsBefore = await variantReviewEventCount(page, DECK_IDS.africa);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Stapeloptionen für Afrika" }).click();
+  await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" }).click();
   await page.getByLabel("Neue Karten pro Tag als Zahl").fill("0");
   await page.getByLabel("Reviews pro Tag als Zahl").fill("1");
   await page.getByRole("button", { name: "Änderungen speichern" }).click();
   await expect(page.getByRole("status")).toContainText("Stapel-Einstellungen gespeichert.");
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
-  await page.getByRole("button", { name: "Kartenstapel" }).click();
+  await page.getByRole("button", { name: "Karten verwalten" }).click();
   await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await page.getByTestId("card-labs-tools").getByText("Labs / Erweitert").click();
@@ -288,14 +288,15 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await expect.poll(() => variantReviewEventCount(page, DECK_IDS.africa)).toBe(variantEventsBefore + 1);
   await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
   await expect(page.getByText("1 Karte beantwortet.")).toBeVisible();
-  await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.africa}`)).toBeVisible();
+  await page.getByRole("button", { name: "Zurück zum Ausgangspunkt" }).click();
+  await expect(page.getByRole("heading", { name: "Karten in Afrika" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
 });
 
 test("card version restore shows a comparison, requires confirmation and appends an audit entry", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Kartenstapel" }).click();
+  await page.getByRole("button", { name: "Karten verwalten" }).click();
   await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
 
@@ -510,18 +511,19 @@ test("@beta-core @hosted-core settings resolve and persist an account-bound sync
     await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toBeVisible();
     await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
     const panel = page.getByTestId("sync-conflict-panel");
-    await expect(panel.getByRole("heading", { name: "Lokaler E2E-Stapel" })).toBeVisible();
-    await expect(panel.getByRole("button", { name: "Andere Fassung behalten" })).toBeVisible();
+    const conflict = page.getByTestId(`sync-conflict-${conflictId}`);
+    await expect(conflict.getByRole("heading", { name: "Lokaler E2E-Stapel" })).toBeVisible();
+    await expect(conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Andere Fassung behalten" })).toBeVisible();
 
-    await panel.getByRole("button", { name: "Später entscheiden" }).click();
+    await conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Später entscheiden" }).click();
     await expect(panel.getByText("Für später zurückgestellt (1)")).toBeVisible();
     await page.reload();
     await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
     await page.getByText("Für später zurückgestellt (1)").click();
     await page.getByRole("button", { name: "Wieder aufnehmen" }).click();
-    await expect(panel.getByRole("button", { name: "Andere Fassung behalten" })).toBeVisible();
-    await panel.getByRole("button", { name: "Andere Fassung behalten" }).click();
-    await expect(panel.getByText("Keine offenen Synchronisierungskonflikte.")).toBeVisible();
+    await expect(conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Andere Fassung behalten" })).toBeVisible();
+    await conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Andere Fassung behalten" }).click();
+    await expect(conflict).toHaveCount(0);
 
     const { data: persisted, error: readError } = await client.from("sync_conflicts").select("status, resolution").eq("id", conflictId).single();
     if (readError) throw readError;

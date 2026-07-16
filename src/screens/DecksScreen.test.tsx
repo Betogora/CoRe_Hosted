@@ -14,6 +14,10 @@ test("deck management exposes explicit move, restore and collapsed Labs tools", 
   const markup = renderToStaticMarkup(
     <DecksScreen
       decks={[deck]}
+      selectedDeckId={deck.id}
+      selectedCardId={deck.cards[0].id}
+      onSelectDeck={() => undefined}
+      onSelectCard={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onSaveCard={() => undefined}
       onDeleteCard={() => undefined}
@@ -26,6 +30,7 @@ test("deck management exposes explicit move, restore and collapsed Labs tools", 
       onMoveDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onPrepareSubdeckCreation={() => undefined}
+      onOpenLearn={() => undefined}
     />,
   );
 
@@ -37,7 +42,51 @@ test("deck management exposes explicit move, restore and collapsed Labs tools", 
   assert.match(markup, /Version zum Wiederherstellen/);
   assert.match(markup, /Labs \/ Erweitert: Varianten und technische Lernwerte/);
   assert.match(markup, /<details[^>]*data-testid="card-labs-tools"/);
+  const inventoryMarkup = markup.slice(0, markup.indexOf(`data-testid="deck-card-list-${deck.id}"`));
+  assert.match(inventoryMarkup, />Karten im Stapel</);
+  assert.doesNotMatch(inventoryMarkup, />Fällig</);
+  assert.doesNotMatch(inventoryMarkup, />Neu</);
   assert.doesNotMatch(markup, /draggable=/);
+});
+
+test("deck management shows safe fallbacks for unavailable deck and card links", () => {
+  const deck = createManualCoreDeck({
+    deckName: "Biologie",
+    card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
+  });
+  const sharedProps = {
+    decks: [deck],
+    onSelectDeck: () => undefined,
+    onSelectCard: () => undefined,
+    onSetDeckCoreMode: () => undefined,
+    onSaveCard: () => undefined,
+    onDeleteCard: () => undefined,
+    onRestoreCard: () => undefined,
+    onAddVariant: () => undefined,
+    onApplyVariantJson: () => undefined,
+    onStartDeck: () => undefined,
+    onDeleteDeck: () => undefined,
+    onRenameDeck: () => undefined,
+    onMoveDeck: () => undefined,
+    onOpenCardCreation: () => undefined,
+    onPrepareSubdeckCreation: () => undefined,
+    onOpenLearn: () => undefined,
+  };
+
+  const missingDeckMarkup = renderToStaticMarkup(
+    <DecksScreen {...sharedProps} selectedDeckId="missing-deck" selectedCardId={null} />,
+  );
+  assert.match(missingDeckMarkup, /Stapel nicht gefunden oder nicht verfügbar\./);
+  assert.match(missingDeckMarkup, /Zu Lernen/);
+  assert.match(missingDeckMarkup, /Zur Kartenverwaltung/);
+
+  const missingCardMarkup = renderToStaticMarkup(
+    <DecksScreen {...sharedProps} selectedDeckId={deck.id} selectedCardId="missing-card" />,
+  );
+  assert.match(missingCardMarkup, /Karte nicht gefunden oder nicht verfügbar\./);
+  assert.match(missingCardMarkup, /Zum Stapel/);
+  assert.match(missingCardMarkup, /Alle Karten/);
+  assert.doesNotMatch(missingCardMarkup, /aria-label="Karten-Vorderseite"/);
 });
 
 function renderEditorFor(editorValue: Parameters<typeof createLearningItemFromEditorValue>[1]) {
@@ -46,6 +95,10 @@ function renderEditorFor(editorValue: Parameters<typeof createLearningItemFromEd
   return renderToStaticMarkup(
     <DecksScreen
       decks={[deck]}
+      selectedDeckId={deck.id}
+      selectedCardId={card.id}
+      onSelectDeck={() => undefined}
+      onSelectCard={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onSaveCard={() => undefined}
       onDeleteCard={() => undefined}
@@ -58,6 +111,7 @@ function renderEditorFor(editorValue: Parameters<typeof createLearningItemFromEd
       onMoveDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onPrepareSubdeckCreation={() => undefined}
+      onOpenLearn={() => undefined}
     />,
   );
 }

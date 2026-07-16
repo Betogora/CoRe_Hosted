@@ -377,7 +377,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                 <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 text-3xl font-semibold outline-none">Sitzung abgeschlossen</h1>
                 <p className="mt-3 text-[#66709a]">{reviewedCount} {reviewedCount === 1 ? "Karte" : "Karten"} beantwortet.</p>
                 <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-12 items-center rounded-xl bg-[#4f5eb1] px-5 text-sm font-semibold text-white">
-                  Zurück zu Lernen
+                  Zurück zum Ausgangspunkt
                 </button>
               </div>
             ) : (

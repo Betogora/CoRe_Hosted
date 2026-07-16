@@ -5,6 +5,15 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-07-16 — Stapel-IA und URL-Kontext
+
+- Ausgangs-Commit war `0474d1c6f1a7c5efb9f476b4109111b00d5c74ce`. Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen, verwenden aber denselben kanonischen URL-Kontext für View, Deck, Karte und Erstellziel.
+- Der Reviewpfad serialisiert Reviewdeck, optionalen Variantenbezeichner und den diskriminierten Rückkontext `today | learn | decks` mit optionalem Rückdeck und Rückkarte. Alte Reviewpfade bleiben lesbar; freie Return-URLs werden nicht akzeptiert.
+- Lokale parallele Deck-/Kartenselektion wurde aus `LearnScreen` und `DecksScreen` entfernt. Die Kartenverwaltung ist sekundär über `Karten verwalten` erreichbar, zeigt nur Inventarzahlen `im Stapel` und unterscheidet gleichnamige Unterstapel über vollständige Pfade.
+- Ungültige oder gelöschte Deck-/Kartenlinks zeigen sichere deutsche Fallbacks und öffnen keine zufällige Ersatzkarte. Browser-Reload, Direktlink, neuer Tab sowie Zurück/Vorwärts erhalten den semantischen Kontext.
+- `npm run typecheck`, 415 Modul-/Contract-/Integrationstests, Production-Build mit Chunkbudget, die fokussierten Navigationsjourneys A–G und das vollständige `npm run test:beta` mit 22 Browserflows waren grün.
+- Es wurde keine Routerbibliothek, Datenbankmigration, Scheduler-/Queueänderung, KI-, Graph- oder Community-Funktion eingeführt.
+
 ## 2026-07-16 — Batch-Erstellung und Fehlertoleranz
 
 - Die manuelle Erstellung bleibt nach jedem Save geöffnet, führt einen expliziten Batch-Session-State und beendet die Sitzung erst über `Fertig`. Pin-Reset, Zieldeck, vollständige Hierarchiepfade und Fokus sind deterministisch.

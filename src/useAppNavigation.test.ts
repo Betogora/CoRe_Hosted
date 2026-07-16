@@ -4,27 +4,31 @@ import { createStudyRoute, createViewRoute } from "./appNavigation.ts";
 import { projectAppRoute, subscribeToBrowserNavigation } from "./useAppNavigation.ts";
 
 test("projects view and study routes into one exhaustive shell state", () => {
-  assert.deepEqual(projectAppRoute(createViewRoute("neue-karten", { creationMethod: "manual", completedDeckId: "deck-1" })), {
+  assert.deepEqual(projectAppRoute(createViewRoute("neue-karten", { creationMethod: "manual", creationDeckId: "deck-1", completedDeckId: "deck-1" })), {
     activeView: "neue-karten",
     studyRequest: null,
     focusedDeckId: null,
+    selectedCardId: null,
     deckCreationParentId: "",
     creationMethod: "manual",
+    creationDeckId: "deck-1",
     completedDeckId: "deck-1",
   });
 
   const studyRoute = createStudyRoute("deck-1", {
     variantSession: true,
-    returnRoute: createViewRoute("kartenstapel", { focusedDeckId: "deck-1" }),
-  }, { validDeckIds: ["deck-1"] });
+    returnContext: { view: "decks", deckId: "deck-1", cardId: "card-2" },
+  });
   assert.equal(studyRoute.mode, "study");
   if (studyRoute.mode !== "study") throw new Error("Lernroute wurde unerwartet normalisiert.");
   assert.deepEqual(projectAppRoute(studyRoute), {
     activeView: "kartenstapel",
     studyRequest: studyRoute,
     focusedDeckId: "deck-1",
+    selectedCardId: "card-2",
     deckCreationParentId: "",
     creationMethod: "",
+    creationDeckId: "",
     completedDeckId: "",
   });
 });

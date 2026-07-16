@@ -99,9 +99,10 @@ async function finishManualCreation(page: Page, deckName: string) {
   return deck;
 }
 
-async function openCreatedCardEditor(page: Page) {
+async function openCreatedCardEditor(page: Page, deck: Deck) {
   await page.getByRole("button", { name: "Karten prüfen" }).click();
   await expect(page.getByRole("heading", { name: "Kartenstapel", exact: true })).toBeVisible();
+  await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
 }
 
 test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bearbeiten, speichern und reviewen", async ({ page }) => {
@@ -112,7 +113,7 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   const deck = await finishManualCreation(page, deckName);
   const immutableOriginal = deck.cards[0].immutableOriginal;
 
-  await openCreatedCardEditor(page);
+  await openCreatedCardEditor(page, deck);
   await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Basic Frage neu");
   await page.getByRole("textbox", { name: "Karten-Rückseite", exact: true }).fill("Basic Antwort neu");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
@@ -130,6 +131,7 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await page.reload();
   await expect(page.getByRole("heading", { name: "Kartenstapel", exact: true })).toBeVisible();
   await page.getByTestId(`deck-select-${deck.id}`).click();
+  await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Basic Frage neu");
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
@@ -149,7 +151,7 @@ test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse hält beid
   const initialReverse = deck.cards[0].variants.find((variant: { variantType: string; isOriginal: boolean }) => variant.variantType === "reverse" && !variant.isOriginal);
   expect(initialReverse).toBeTruthy();
 
-  await openCreatedCardEditor(page);
+  await openCreatedCardEditor(page, deck);
   await page.getByRole("button", { name: `${deckName} lernen` }).click();
   await expect(page.getByText("Reverse vorne alt", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
@@ -174,6 +176,7 @@ test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse hält beid
   await page.reload();
   await expect(page.getByRole("heading", { name: "Kartenstapel", exact: true })).toBeVisible();
   await page.getByTestId(`deck-select-${deck.id}`).click();
+  await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await page.getByRole("button", { name: `${deckName} lernen` }).click();
   await expect(page.getByText("Reverse vorne neu", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
@@ -196,7 +199,7 @@ test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core Cloze ergänzt eine 
   const deck = await finishManualCreation(page, deckName);
   const initialGroups = new Map(deck.cards[0].variants.filter((variant: { isOriginal: boolean }) => !variant.isOriginal).map((variant: { meta: { clozeGroup: number }; id: string }) => [variant.meta.clozeGroup, variant.id]));
 
-  await openCreatedCardEditor(page);
+  await openCreatedCardEditor(page, deck);
   await page.getByRole("textbox", { name: "Cloze-Text", exact: true }).fill("{{c1::ATP} entsteht in Mitochondrien.");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByText("Bitte gültige Lücken wie {{c1::Begriff}} verwenden.", { exact: true })).toBeVisible();
@@ -217,6 +220,7 @@ test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core Cloze ergänzt eine 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Kartenstapel", exact: true })).toBeVisible();
   await page.getByTestId(`deck-select-${deck.id}`).click();
+  await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await page.getByRole("button", { name: `${deckName} mit Varianten lernen` }).click();
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
@@ -239,7 +243,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByRole("textbox", { name: "Erklärung (optional)" }).fill("Beta war zunächst richtig.");
   const deck = await finishManualCreation(page, deckName);
 
-  await openCreatedCardEditor(page);
+  await openCreatedCardEditor(page, deck);
   await page.getByRole("textbox", { name: "Multiple-Choice-Frage", exact: true }).fill("Welche Option ist jetzt richtig?");
   await page.getByRole("textbox", { name: "Antwortoption 3", exact: true }).fill("Gamma neu");
   await page.getByLabel("Option 3 als richtig markieren").check();
@@ -256,6 +260,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Kartenstapel", exact: true })).toBeVisible();
   await page.getByTestId(`deck-select-${deck.id}`).click();
+  await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${deck.id}`).click();
   await page.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
@@ -284,6 +289,7 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport sch�
   const learningItemStateBeforeReimport = importedCard.learningItemState;
   await page.getByRole("button", { name: "Karten prüfen" }).click();
   await page.getByTestId(`deck-select-${importedDeck.id}`).click();
+  await page.getByTestId(`deck-card-${importedCard.id}`).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Welches Organell erzeugt ATP");
   await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Welche Zellstruktur erzeugt lokal ATP?");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();

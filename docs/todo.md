@@ -71,66 +71,9 @@ Vor Merge jedes Arbeitspakets:
 
 # P0 — Vor begleiteter Beta
 
-## P0.3 Stapel-IA und URL-Kontext
-
-Abhängigkeit: Globales Eingangsgate
-
-Ziel:
-`LearnScreen` und `DecksScreen` bleiben getrennte Aufgabenoberflächen,
-teilen aber einen kanonischen Deck- und Kartenkontext.
-
-### Screenrollen
-
-- [ ] `LearnScreen` beantwortet ausschließlich `Was lerne ich jetzt?`.
-- [ ] `DecksScreen` beantwortet `Was besitze und verwalte ich?`.
-- [ ] Kartenverwaltung als sekundäre Aktion aus Lernen erreichbar machen.
-- [ ] Keine doppelte Tagesqueue in der Bibliothek anzeigen.
-- [ ] Inventarzahlen ausdrücklich als `im Stapel` kennzeichnen.
-- [ ] Graph, Community und Assistant nicht in Core-Navigation aufnehmen.
-
-### URL-Vertrag
-
-- [ ] Deck-ID in Learn- und Bibliotheks-URLs serialisieren.
-- [ ] Karten-ID in Bibliotheks-URL serialisieren.
-- [ ] Erstellmodus und Zieldeck serialisieren.
-- [ ] Reviewdeck und optionale Variante serialisieren.
-- [ ] Review-Rückweg als allowlist-basierten Kontext serialisieren:
-  - [ ] returnView
-  - [ ] returnDeck
-  - [ ] returnCard
-- [ ] Keine freie Return-URL akzeptieren.
-- [ ] Parser und Serializer als Roundtripvertrag testen.
-- [ ] Lokale parallele Deck-/Kartenselektion entfernen.
-
-### History-Verhalten
-
-- [ ] Reload erhält Deck und ausgewählte Karte.
-- [ ] Reload während Review erhält Rückweg.
-- [ ] Browser-Zurück stellt den vorherigen semantischen Kontext wieder her.
-- [ ] Browser-Vorwärts stellt ihn erneut her.
-- [ ] Ungültige Deck-/Karten-ID zeigt einen deutschen Fallback.
-- [ ] Gelöschte Entitäten führen nicht zu leerem oder falschem Editor.
-
-### Akzeptanzgates
-
-- [ ] Bibliothek → Karte → Review → Reload → Beenden kehrt zur Karte zurück.
-- [ ] Lernen → Unterstapel → Reload bleibt im Unterstapelkontext.
-- [ ] Direktlink zu einer Karte öffnet genau diese Karte.
-- [ ] Back/Forward erzeugt keine zusätzliche History-Schleife.
-- [ ] Keine neue Routerbibliothek.
-- [ ] Keine Datenbankmigration.
-
-### Tests
-
-- [ ] AppRoute Parse-/Serialize-Contracttests.
-- [ ] Not-found- und invalid-ID-Tests.
-- [ ] Browser-Back-/Forward-Test.
-- [ ] Reload aus Learn, Bibliothek und Review.
-- [ ] Accessibility der Fallbackzustände.
-
 ## P0.4 Reviewqueue, Zahlenwahrheit und Again-Semantik
 
-Abhängigkeit: P0.3
+Abhängigkeit: Globales Eingangsgate
 
 Ziel:
 Dashboard, Lernen, Review und Summary verwenden dieselbe heutige Queue.
@@ -428,7 +371,7 @@ Vor Self-Service-Beta zusätzlich:
 
 ## Begleitete Beta
 
-- [ ] P0.3 bis P0.4 abgeschlossen.
+- [ ] P0.4 abgeschlossen.
 - [ ] `npm run test:beta` auf Freigabe-SHA grün.
 - [ ] Keine semantische Kartenbeschädigung.
 - [ ] Fünf-Karten-Batchjourney grün.
@@ -442,7 +385,6 @@ Vor Self-Service-Beta zusätzlich:
 - [ ] Alle P0- und P1-Pakete abgeschlossen.
 - [ ] Karteninhalt deckübergreifend durchsuchbar.
 - [ ] 1.000-Karten-Fixture vollständig verwaltbar.
-- [ ] URL-, Reload-, Back- und Forward-Verträge grün.
 - [ ] globale Settings überschreiben keine Decks implizit.
 - [ ] Statistik verwendet konsistente Zeiträume.
 - [ ] Empty-, Error- und Partial-States besitzen sichere Folgeaktionen.

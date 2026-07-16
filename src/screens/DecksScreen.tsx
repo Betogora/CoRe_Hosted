@@ -28,7 +28,7 @@ function versionContent(value: unknown, fallback: LearningItem) {
 }
 
 function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSaveCard, onDeleteCard, onRestoreCard, onAddVariant, onApplyVariantJson, showExternalVariantFlow = false, externalVariantSurface }: any) {
-  const card = cards.find((item: any) => item.id === selectedCardId) ?? cards[0];
+  const card = cards.find((item: any) => item.id === selectedCardId) ?? null;
   const [form, setForm] = React.useState<CardEditorValue | null>(() => card ? getCardEditorValue(card) : null);
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
   const [saveStatus, setSaveStatus] = React.useState("");
@@ -491,11 +491,9 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   );
 }
 
-export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, onSetDeckCoreMode, onSaveCard, onDeleteCard, onUndoDeleteCard, onRestoreCard, onAddVariant, onApplyVariantJson, onStartDeck, onDeleteDeck, onRenameDeck, onMoveDeck, onOpenCardCreation, onPrepareSubdeckCreation, onOpenGraph, onShareDeck, showGraph = false, showCommunity = false, showExternalVariantFlow = false, externalVariantSurface }: any) {
+export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selectedCardId = null, onSelectDeck, onSelectCard, onSetDeckCoreMode, onSaveCard, onDeleteCard, onUndoDeleteCard, onRestoreCard, onAddVariant, onApplyVariantJson, onStartDeck, onDeleteDeck, onRenameDeck, onMoveDeck, onOpenCardCreation, onPrepareSubdeckCreation, onOpenLearn, onOpenGraph, onShareDeck, showGraph = false, showCommunity = false, showExternalVariantFlow = false, externalVariantSurface }: any) {
   const [query, setQuery] = React.useState("");
   const [modeFilter, setModeFilter] = React.useState<CoreMode | "all">("all");
-  const [selectedDeckId, setSelectedDeckId] = React.useState(initialSelectedDeckId ?? decks[0]?.id ?? null);
-  const [selectedCardId, setSelectedCardId] = React.useState<any>(null);
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const [editingDeckId, setEditingDeckId] = React.useState<any>(null);
@@ -507,25 +505,12 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
   const [pendingDeckDelete, setPendingDeckDelete] = React.useState<{ deck: Deck; row: any } | null>(null);
   const library = createDeckLibraryModel(decks, { query, coreMode: modeFilter, selectedDeckId });
   const filteredRows = library.filteredRows;
-  const selectedRow = library.selectedRow;
+  const selectedRow = selectedDeckId ? library.rows.find((row) => row.id === selectedDeckId) ?? null : null;
   const selectedDeck = selectedRow?.deck ?? null;
+  const selectedCard = selectedRow?.activeCards.find((card) => card.id === selectedCardId) ?? null;
+  const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
+  const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedCard);
   const { urls: selectedDeckMediaUrls, missing: selectedDeckMissingMedia } = useDeckMediaUrls(selectedDeck, mediaStore);
-
-  React.useEffect(() => {
-    if (!selectedDeckId && library.rows[0]) setSelectedDeckId(library.rows[0].id);
-  }, [decks, selectedDeckId]);
-
-  React.useEffect(() => {
-    if (selectedDeckId && !decks.some((deck: { id: any; }) => deck.id === selectedDeckId)) {
-      setSelectedDeckId(library.rows[0]?.id ?? null);
-    }
-  }, [decks, selectedDeckId, library.rows]);
-
-  React.useEffect(() => {
-    if (initialSelectedDeckId && decks.some((deck: { id: any; }) => deck.id === initialSelectedDeckId)) {
-      setSelectedDeckId(initialSelectedDeckId);
-    }
-  }, [decks, initialSelectedDeckId]);
 
   function updateCoreMode(deck: Deck, coreMode: any) {
     onSetDeckCoreMode(deck.id, coreMode);
@@ -554,7 +539,6 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
           card: deletedCard,
           description,
         });
-        setSelectedCardId(null);
       }
       setPendingCardDelete(null);
     } catch {
@@ -568,8 +552,7 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
     try {
       const result = await onUndoDeleteCard(deletedCardUndo.deckId, deletedCardUndo.card);
       if (!result) throw new Error("Undo fehlgeschlagen.");
-      setSelectedDeckId(deletedCardUndo.deckId);
-      setSelectedCardId(deletedCardUndo.card.id);
+      onSelectDeck(deletedCardUndo.deckId, deletedCardUndo.card.id);
       setDeckStatus("Kartenlöschung rückgängig gemacht.");
       setDeckStatusType("status");
       setDeletedCardUndo(null);
@@ -629,7 +612,6 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
     }
 
     const target = library.rows.find((row) => row.id === moveTargetId)?.deck ?? null;
-    setSelectedDeckId(deck.id);
     setMovingDeckId(null);
     setMoveTargetId("");
     setDeckStatus(target ? `Stapel "${deck.name}" unter "${target.name}" verschoben.` : `Stapel "${deck.name}" auf die Hauptebene verschoben.`);
@@ -653,7 +635,6 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
       return;
     }
     const renamedDeck = result?.deck ?? deck;
-    setSelectedDeckId(renamedDeck.id);
     setEditingDeckId(null);
     setRenameDraft("");
     setDeckStatus(`Stapel "${renamedDeck.name}" umbenannt.`);
@@ -669,14 +650,22 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
     if (!pendingDeckDelete) return;
     const result = await onDeleteDeck(pendingDeckDelete.deck.id);
     if (!result) return;
-    setSelectedDeckId(result.nextSelectedDeckId);
-    setSelectedCardId(null);
+    onSelectDeck(null);
     setDeckStatus(`${result.deletedDeckIds.length} Stapel gelöscht.`);
     setDeckStatusType("status");
     setPendingDeckDelete(null);
     window.requestAnimationFrame(() => {
-      if (result.nextSelectedDeckId) document.querySelector<HTMLElement>(`[data-testid="deck-select-${result.nextSelectedDeckId}"]`)?.focus();
-      else document.querySelector<HTMLElement>("[data-screen-heading]")?.focus();
+      document.querySelector<HTMLElement>("[data-screen-heading]")?.focus();
+    });
+  }
+
+  function clearCardSelection(focusTarget: "deck" | "cards") {
+    onSelectCard(null);
+    window.requestAnimationFrame(() => {
+      const selector = focusTarget === "deck"
+        ? `[data-testid="deck-select-${selectedDeckId}"]`
+        : `[data-testid="deck-card-list-${selectedDeckId}"]`;
+      document.querySelector<HTMLElement>(selector)?.focus();
     });
   }
 
@@ -764,7 +753,7 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
                           </button>
                         </form>
                       ) : (
-                        <button type="button" onClick={() => setSelectedDeckId(deck.id)} className="block min-w-0 text-left" data-testid={`deck-select-${deck.id}`}>
+                        <button type="button" onClick={() => onSelectDeck(deck.id)} className="block min-w-0 text-left" data-testid={`deck-select-${deck.id}`}>
                           <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
                           <span className="block truncate text-sm text-[#66709a]">{row.path}</span>
                           {row.hasChildren ? <span className="mt-1 block text-xs font-semibold text-[#66709a]">{row.childrenCount} Unterstapel</span> : null}
@@ -775,30 +764,22 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
                   <CoreModeControl value={deck.deckSettings.coreMode} onChange={(mode: any) => updateCoreMode(deck, mode)} />
                   <div className="flex flex-[1_1_14rem] flex-wrap items-center gap-4 sm:flex-none">
                     <div className="grid min-w-14 gap-1">
-                      <span className="text-xs font-semibold text-[#66709a]">Fällig</span>
-                      <span className="text-xl font-semibold text-[#17214f]">{summary.dueCards}</span>
-                    </div>
-                    <div className="grid min-w-14 gap-1">
-                      <span className="text-xs font-semibold text-[#66709a]">Neu</span>
-                      <span className="text-xl font-semibold text-[#17214f]">{summary.newCards}</span>
-                    </div>
-                    <div className="grid min-w-14 gap-1">
-                      <span className="text-xs font-semibold text-[#66709a]">Gesamt</span>
+                      <span className="text-xs font-semibold text-[#66709a]">Karten im Stapel</span>
                       <span className="text-xl font-semibold text-[#17214f]">{summary.totalCards}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => beginRename(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label={`${deck.name} umbenennen`} data-testid={`deck-rename-button-${deck.id}`}>
+                    <button type="button" onClick={() => beginRename(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label={`${row.path} umbenennen`} data-testid={`deck-rename-button-${deck.id}`}>
                       <Pencil size={17} aria-hidden="true" />
                     </button>
-                    <button type="button" onClick={() => beginMove(deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#f8f9fe] px-3 text-sm font-semibold text-[#4f5eb1]" aria-label={`${deck.name} verschieben`} data-testid={`deck-move-button-${deck.id}`}>
+                    <button type="button" onClick={() => beginMove(deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#f8f9fe] px-3 text-sm font-semibold text-[#4f5eb1]" aria-label={`${row.path} verschieben`} data-testid={`deck-move-button-${deck.id}`}>
                       <MoveRight size={17} aria-hidden="true" />
                       Verschieben
                     </button>
-                    <button type="button" onClick={() => onStartDeck(deck, false)} className="grid size-10 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]" aria-label={`${deck.name} lernen`}>
+                    <button type="button" onClick={() => onStartDeck(deck, false)} className="grid size-10 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]" aria-label={`${row.path} lernen`}>
                       <Play size={17} aria-hidden="true" />
                     </button>
-                    <button type="button" onClick={() => onStartDeck(deck, true)} className="grid size-10 place-items-center rounded-xl bg-amber-50 text-amber-700" aria-label={`${deck.name} mit Varianten lernen`}>
+                    <button type="button" onClick={() => onStartDeck(deck, true)} className="grid size-10 place-items-center rounded-xl bg-amber-50 text-amber-700" aria-label={`${row.path} mit Varianten lernen`}>
                       <Sparkles size={17} aria-hidden="true" />
                     </button>
                     {showGraph ? (
@@ -811,10 +792,10 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
                         <Share2 size={17} aria-hidden="true" />
                       </button>
                     ) : null}
-                    <button type="button" onClick={() => prepareSubdeck(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label={`Unterstapel in ${deck.name} anlegen`}>
+                    <button type="button" onClick={() => prepareSubdeck(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label={`Unterstapel in ${row.path} anlegen`}>
                       <FolderPlus size={17} aria-hidden="true" />
                     </button>
-                    <button type="button" onClick={() => deleteDeckTree(deck, row)} className="grid size-10 place-items-center rounded-xl bg-red-50 text-red-700" aria-label={`${deck.name} löschen`}>
+                    <button type="button" onClick={() => deleteDeckTree(deck, row)} className="grid size-10 place-items-center rounded-xl bg-red-50 text-red-700" aria-label={`${row.path} löschen`}>
                       <Trash2 size={17} aria-hidden="true" />
                     </button>
                   </div>
@@ -848,9 +829,27 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
         </div>
       )}
 
+      {selectedDeckMissing ? (
+        <EmptyState
+          icon={Layers}
+          title="Stapel nicht gefunden oder nicht verfügbar."
+          body="Der verlinkte Stapel wurde gelöscht oder steht in diesem Account nicht zur Verfügung."
+          action={
+            <div className="flex flex-wrap justify-center gap-3">
+              <button type="button" onClick={() => onOpenLearn(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+                Zu Lernen
+              </button>
+              <button type="button" onClick={() => onSelectDeck(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[#dfe4f5] bg-white px-5 text-sm font-semibold text-[#4f5eb1]">
+                Zur Kartenverwaltung
+              </button>
+            </div>
+          }
+        />
+      ) : null}
+
       {selectedDeck ? (
         <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,0.85fr)_minmax(22rem,1.15fr)]">
-          <SoftPanel className="p-5 sm:p-6">
+          <SoftPanel className="p-5 sm:p-6" data-testid={`deck-card-list-${selectedDeck.id}`} tabIndex={-1}>
             <h3 className="break-words text-xl font-semibold text-[#17214f]">Karten in {selectedDeck.name}</h3>
             {selectedDeckMissingMedia.length > 0 ? <p className="mt-2 text-sm text-amber-800" role="status">{selectedDeckMissingMedia[0].status}{selectedDeckMissingMedia.length > 1 ? ` (${selectedDeckMissingMedia.length} Medien)` : ""}</p> : null}
             <div className="mt-5 grid max-h-[28rem] min-w-0 gap-3 overflow-y-auto overflow-x-hidden pr-1">
@@ -860,10 +859,11 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
                   <button
                     key={cardRow.id}
                     type="button"
-                    onClick={() => setSelectedCardId(cardRow.id)}
-                    aria-pressed={(selectedCardId ?? selectedRow?.cardRows[0]?.id) === cardRow.id}
+                    data-testid={`deck-card-${cardRow.id}`}
+                    onClick={() => onSelectCard(cardRow.id)}
+                    aria-pressed={selectedCardId === cardRow.id}
                     className={`min-w-0 rounded-xl border px-4 py-3 text-left ${
-                      (selectedCardId ?? selectedRow?.cardRows[0]?.id) === cardRow.id ? "border-[#8c96dc] bg-[#f3f5fd]" : "border-[#e3e7f5] bg-white/70"
+                      selectedCardId === cardRow.id ? "border-[#8c96dc] bg-[#f3f5fd]" : "border-[#e3e7f5] bg-white/70"
                     }`}
                   >
                     <span className="block truncate text-sm font-semibold text-[#17214f]">{cardRow.frontPreview}</span>
@@ -873,19 +873,43 @@ export function DecksScreen({ decks, mediaStore, initialSelectedDeckId = null, o
               })}
             </div>
           </SoftPanel>
-          <DeckCardEditor
-            deck={selectedDeck}
-            cards={selectedRow?.activeCards ?? []}
-            selectedCardId={selectedCardId}
-            mediaUrls={selectedDeckMediaUrls}
-            onSaveCard={saveCard}
-            onDeleteCard={deleteCard}
-            onRestoreCard={(cardId: any, versionId: any) => onRestoreCard(selectedDeck.id, cardId, versionId)}
-            onAddVariant={(cardId: any, variant: any) => onAddVariant(selectedDeck.id, cardId, variant)}
-            onApplyVariantJson={(cardId: any, response: any, options: any) => onApplyVariantJson(selectedDeck.id, cardId, response, options)}
-            showExternalVariantFlow={showExternalVariantFlow}
-            externalVariantSurface={externalVariantSurface}
-          />
+          {selectedCardMissing ? (
+            <EmptyState
+              icon={Layers}
+              title="Karte nicht gefunden oder nicht verfügbar."
+              body="Die verlinkte Karte wurde gelöscht oder gehört nicht zu diesem Stapel."
+              action={
+                <div className="flex flex-wrap justify-center gap-3">
+                  <button type="button" onClick={() => clearCardSelection("deck")} className="inline-flex min-h-11 items-center rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+                    Zum Stapel
+                  </button>
+                  <button type="button" onClick={() => clearCardSelection("cards")} className="inline-flex min-h-11 items-center rounded-xl border border-[#dfe4f5] bg-white px-5 text-sm font-semibold text-[#4f5eb1]">
+                    Alle Karten
+                  </button>
+                </div>
+              }
+            />
+          ) : selectedCard ? (
+            <DeckCardEditor
+              deck={selectedDeck}
+              cards={selectedRow?.activeCards ?? []}
+              selectedCardId={selectedCardId}
+              mediaUrls={selectedDeckMediaUrls}
+              onSaveCard={saveCard}
+              onDeleteCard={deleteCard}
+              onRestoreCard={(cardId: any, versionId: any) => onRestoreCard(selectedDeck.id, cardId, versionId)}
+              onAddVariant={(cardId: any, variant: any) => onAddVariant(selectedDeck.id, cardId, variant)}
+              onApplyVariantJson={(cardId: any, response: any, options: any) => onApplyVariantJson(selectedDeck.id, cardId, response, options)}
+              showExternalVariantFlow={showExternalVariantFlow}
+              externalVariantSurface={externalVariantSurface}
+            />
+          ) : (
+            <EmptyState
+              icon={Layers}
+              title="Karte auswählen"
+              body="Wähle links eine Karte aus, um sie typgerecht zu bearbeiten."
+            />
+          )}
         </div>
       ) : null}
       <ActionDialog

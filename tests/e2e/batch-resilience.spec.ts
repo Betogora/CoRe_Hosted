@@ -153,8 +153,11 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
 
 test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und Auswirkungen bleiben sichtbar", async ({ page }) => {
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Kartenstapel" }).click();
+  await page.getByRole("button", { name: "Karten verwalten" }).click();
   await page.getByTestId(`deck-select-${DECK_IDS.target}`).click();
+  const targetState = await readActiveAccountState(page);
+  const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
+  await page.getByTestId(`deck-card-${existingCardId}`).click();
   await page.getByRole("button", { name: "Löschen", exact: true }).click();
   const cardDialog = page.getByRole("dialog", { name: "Karte löschen?" });
   await expect(cardDialog).toContainText("Bestehende Karte");
@@ -166,7 +169,6 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await page.getByRole("button", { name: "Rückgängig" }).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
   await page.reload();
-  await page.getByTestId(`deck-select-${DECK_IDS.target}`).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
 
   await page.getByRole("button", { name: "Bereich A löschen" }).click();

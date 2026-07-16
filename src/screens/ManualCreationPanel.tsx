@@ -33,8 +33,10 @@ export interface ManualCreationPanelProps {
   decks: Deck[];
   workflow: ManualCreationWorkflow;
   documentMode?: boolean;
+  initialTargetDeckId?: string;
   onCreated: (deck: Deck) => unknown;
   onAppendManualCard: (deckId: string, input: ManualDeckInput) => Promise<Deck | null>;
+  onTargetDeckChange?: (deckId: string) => unknown;
   onFinish?: (result: { createdCount: number; targetDeckId: string; lastSavedCardId: string | null }) => void;
   onDraftStateChange?: (dirty: boolean, focusDraft: (() => void) | null) => void;
 }
@@ -88,6 +90,8 @@ export function ManualCreationPanel({
   workflow,
   onCreated,
   onAppendManualCard,
+  initialTargetDeckId = "",
+  onTargetDeckChange = () => undefined,
   onFinish = () => undefined,
   onDraftStateChange = () => undefined,
   documentMode = false,
@@ -95,9 +99,10 @@ export function ManualCreationPanel({
   const sourceInputRef = React.useRef<HTMLInputElement | null>(null);
   const editorRootRef = React.useRef<HTMLDivElement | null>(null);
   const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
-  const [selectedDeckId, setSelectedDeckId] = React.useState(decks[0]?.id ?? "");
+  const targetDeckMissing = Boolean(initialTargetDeckId && !decks.some((deck) => deck.id === initialTargetDeckId));
+  const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
-  const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, decks[0]?.id ?? "", createManualBatchSession);
+  const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
   const cleanDraftRef = React.useRef(batchState.currentDraft);
   const { currentDraft, pinnedFields } = batchState;
   const { cardType, front, back, answerOptions, correctOptionIndex, tags, selection, sourceAnchor } = currentDraft;
@@ -111,17 +116,8 @@ export function ManualCreationPanel({
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
 
   React.useEffect(() => {
-    if (!selectedDeckId && decks[0]?.id) {
-      setSelectedDeckId(decks[0].id);
-      dispatchBatch({ type: "target-deck", deckId: decks[0].id });
-    }
-    if (selectedDeckId && !decks.some((deck) => deck.id === selectedDeckId)) {
-      const fallbackDeckId = decks[0]?.id ?? "";
-      setSelectedDeckId(fallbackDeckId);
-      dispatchBatch({ type: "target-deck", deckId: fallbackDeckId });
-    }
     if (decks.length === 0) setUseNewDeck(true);
-  }, [decks, selectedDeckId]);
+  }, [decks.length]);
 
   React.useEffect(() => {
     setShowDocumentMode(documentMode);
@@ -284,7 +280,7 @@ export function ManualCreationPanel({
       const deck = workflow.createManualDeck(input);
       await onCreated(deck);
       setUseNewDeck(false);
-      setSelectedDeckId(deck.id);
+      onTargetDeckChange(deck.id);
       recordSavedCard(deck, new Set());
     } catch (error) {
       setStatusType("alert");
@@ -308,9 +304,10 @@ export function ManualCreationPanel({
               <label className="grid min-w-[16rem] flex-1 gap-2 text-sm font-semibold text-[#4e5b8c]">
                 Kartenstapel
                 <select className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={selectedDeckId} onChange={(event) => {
-                  setSelectedDeckId(event.target.value);
+                  onTargetDeckChange(event.target.value);
                   dispatchBatch({ type: "target-deck", deckId: event.target.value });
                 }}>
+                  {targetDeckMissing ? <option value="">Zielstapel nicht gefunden</option> : null}
                   {decks.map((deck) => (
                     <option key={deck.id} value={deck.id}>
                       {(deck.hierarchyPath.length ? deck.hierarchyPath : [deck.name]).join(" / ")}
@@ -326,13 +323,20 @@ export function ManualCreationPanel({
             )}
             <button type="button" onClick={() => setUseNewDeck((value) => {
               const next = !value;
-              dispatchBatch({ type: "target-deck", deckId: next ? "" : selectedDeckId });
+              const nextDeckId = next ? "" : selectedDeckId || decks[0]?.id || "";
+              if (!next && nextDeckId !== initialTargetDeckId) onTargetDeckChange(nextDeckId);
+              dispatchBatch({ type: "target-deck", deckId: nextDeckId });
               return next;
             })} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1]">
               <Database size={16} aria-hidden="true" />
               {useNewDeck && decks.length > 0 ? "Stapel auswählen" : "Neuen Stapel erstellen"}
             </button>
           </div>
+          {targetDeckMissing && !useNewDeck ? (
+            <p className="core-status-error text-sm" role="alert">
+              Zielstapel nicht gefunden oder nicht verfügbar. Wähle einen anderen Stapel oder erstelle einen neuen.
+            </p>
+          ) : null}
         </div>
 
         <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">

@@ -31,8 +31,10 @@ export function CreationScreen({
   supabase,
   supabaseUrl = "",
   initialMethod = "",
+  initialTargetDeckId = "",
   completedDeckId = "",
   onMethodChange = () => undefined,
+  onTargetDeckChange = () => undefined,
   onCreated = async (deck) => deck,
   onAppendManualCard = async () => null,
   onDraftStateChange = () => undefined,
@@ -92,6 +94,8 @@ export function CreationScreen({
         <ManualCreationPanel
           decks={decks}
           workflow={accountWorkflow}
+          initialTargetDeckId={initialTargetDeckId}
+          onTargetDeckChange={onTargetDeckChange}
           onCreated={onCreated}
           onAppendManualCard={async (deckId, input) => {
             const result = await onAppendManualCard(deckId, input);

@@ -129,7 +129,7 @@ test("deck management moves decks through an explicit keyboard-accessible action
   await resetToFreshLocalState(page);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Kartenstapel" }).click();
+  await page.getByRole("button", { name: "Karten verwalten" }).click();
 
   await expect(page.getByTestId(`deck-row-${DECK_IDS.root}`)).toBeVisible();
   const moveButton = page.getByTestId(`deck-move-button-${DECK_IDS.southAmerica}`);

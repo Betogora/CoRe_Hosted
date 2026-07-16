@@ -1,6 +1,17 @@
 import { productSurfaces, type ProductSurfaceId, type ProductSurfaceRegistry } from "./productSurfaces.ts";
 
 type NavigationPlacement = "primary" | "labs" | "hidden";
+export type MenuViewId =
+  | "uebersicht"
+  | "kartenstapel"
+  | "neue-karten"
+  | "lernen"
+  | "statistik"
+  | "assistent"
+  | "graph"
+  | "community"
+  | "ki-jobs"
+  | "einstellungen";
 
 interface ViewStat {
   label: string;
@@ -8,7 +19,7 @@ interface ViewStat {
 }
 
 interface MenuView {
-  id: string;
+  id: MenuViewId;
   label: string;
   iconKey: string;
   navigation: NavigationPlacement;
@@ -151,6 +162,7 @@ const views: MenuView[] = [
     ],
   },
 ];
+const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "neue-karten", "statistik"];
 
 function navigationItem(view: MenuView) {
   return { id: view.id, label: view.label, iconKey: view.iconKey };
@@ -166,6 +178,7 @@ export function createMenuModel(surfaceRegistry: ProductSurfaceRegistry = produc
     listNavigationItems() {
       return views
         .filter((view) => view.navigation === "primary" && (!view.productSurfaceId || surfaceRegistry.isMainNavigationVisible(view.productSurfaceId)))
+        .sort((left, right) => primaryNavigationOrder.indexOf(left.id) - primaryNavigationOrder.indexOf(right.id))
         .map(navigationItem);
     },
     listLabsNavigationItems() {
@@ -180,7 +193,7 @@ export function createMenuModel(surfaceRegistry: ProductSurfaceRegistry = produc
       return views.filter(isAvailable).map((view) => view.id);
     },
     getView(viewId: string) {
-      const view = viewsById.get(viewId);
+      const view = viewsById.get(viewId as MenuViewId);
       return view && isAvailable(view) ? view : viewsById.get(defaultViewId);
     },
   };

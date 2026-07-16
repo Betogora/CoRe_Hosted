@@ -18,6 +18,8 @@ CoRe ist ein breiter Web-MVP mit einem abgegrenzten Beta-Kern, Labs-Flächen und
 - Manuelle Batch-Erstellung bleibt nach jedem Save im Editor, erhält Pins und Zieldeck, setzt freie Felder und Fokus deterministisch zurück und endet erst über `Fertig`.
 - Nichtleere Erstellungsentwürfe sind bei interner Navigation durch einen zugänglichen Dialog und bei Browser-Unload durch den Browser-Fallback geschützt.
 - Karten- und Stapellöschung verwenden produktspezifische Auswirkungsdialoge; Karten bieten ein revisionsgeprüftes unmittelbares Undo über denselben Datensatz.
+- Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen URL-Kontext für Deck, Karte, Erstellziel und allowlist-basierten Review-Rückweg; Reload, Direktlink sowie Browser-Zurück/-Vorwärts erhalten den semantischen Kontext.
+- Ungültige oder nicht verfügbare Deck-/Kartenlinks zeigen sichere deutsche Fallbacks und öffnen nicht still eine andere Karte.
 - Reverse-Richtungen, Cloze-Lückengruppen und Multiple-Choice-Lösung werden beim Speichern atomar in ihre reviewbaren Formen projiziert; Reimport, Cloud und Portabilität erhalten lokale strukturierte Änderungen.
 - APKG-, Text-, CSV- und Tabellenimport mit getrennten UI-Phasen und Terminalzuständen; Formatwechsel verwerfen alte Vorschau- und Commit-Zustände.
 - Accountgebundener Mediencache mit privaten Storage-Objekten, Standardupload bis 6 MiB, TUS darüber und URL-Fallback.

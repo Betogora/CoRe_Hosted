@@ -50,7 +50,7 @@ function createDefaultDeckDraft(parentDeckId = "") {
   };
 }
 
-export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDeckId = "", onDeckCreationHandled, onOpenCardCreation, onOpenDecks, onOpenDeckSettings }: any) {
+export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckSettings }: any) {
   const library = createDeckLibraryModel(decks);
   const [collapsedDeckIds, setCollapsedDeckIds] = React.useState<Set<string>>(() => new Set());
   const [isDeckCreateOpen, setIsDeckCreateOpen] = React.useState(Boolean(initialParentDeckId));
@@ -61,6 +61,8 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
   const deckNameRef = React.useRef<HTMLInputElement | null>(null);
   const visibleRows = createVisibleDeckRows(library.rows, collapsedDeckIds);
   const visibleTree = React.useMemo(() => createVisibleDeckTree(visibleRows), [visibleRows]);
+  const focusedRow = library.rows.find((row) => row.id === focusedDeckId) ?? null;
+  const focusedDeckMissing = Boolean(focusedDeckId && !focusedRow);
 
   React.useEffect(() => {
     if (!initialParentDeckId) return;
@@ -125,13 +127,14 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
     const deck = row.deck;
     const summary = row.summary;
     const isCollapsed = collapsedDeckIds.has(deck.id);
+    const isFocused = focusedDeckId === deck.id;
 
     return (
       <div
         key={deck.id}
         data-testid={`learn-deck-group-${deck.id}`}
         data-learn-deck-group="true"
-        className="grid gap-2 rounded-2xl border p-2 transition md:gap-3 md:px-0 md:py-3"
+        className={`grid gap-2 rounded-2xl border p-2 transition md:gap-3 md:px-0 md:py-3 ${isFocused ? "ring-2 ring-[#8c96dc]" : ""}`}
         style={getLearnGroupStyle(row.depth)}
       >
         <div
@@ -155,7 +158,15 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
               <span className="size-8 shrink-0" aria-hidden="true" />
             )}
             <span className="min-w-0">
-              <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
+              <button
+                type="button"
+                onClick={() => onFocusDeck(deck.id)}
+                aria-pressed={isFocused}
+                aria-label={`${row.path} auswählen`}
+                className="block max-w-full truncate text-left text-lg font-semibold text-[#17214f]"
+              >
+                {deck.name}
+              </button>
               <span className="mt-1 block text-sm text-[#66709a] md:hidden">
                 {summary.newCards} neu · {summary.dueCards} fällig · {summary.totalCards} gesamt
               </span>
@@ -166,7 +177,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
           <CountCell label="Fällig" metric="due" value={summary.dueCards} />
           <CountCell label="Gesamt" metric="total" value={summary.totalCards} />
 
-          <button type="button" onClick={() => onStartDeck(deck, false)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#4f5eb1] px-3 text-sm font-semibold text-white" aria-label={`${deck.name} lernen`}>
+          <button type="button" onClick={() => onStartDeck(deck, false)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#4f5eb1] px-3 text-sm font-semibold text-white" aria-label={`${row.path} lernen`}>
             <Play size={16} aria-hidden="true" />
             Lernen
           </button>
@@ -176,8 +187,8 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
               type="button"
               onClick={() => openDeckSettings(deck.id)}
               className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1] hover:bg-white"
-              aria-label={`Stapeloptionen für ${deck.name}`}
-              title={`Stapeloptionen für ${deck.name}`}
+              aria-label={`Stapeloptionen für ${row.path}`}
+              title={`Stapeloptionen für ${row.path}`}
             >
               <Settings size={18} aria-hidden="true" />
             </button>
@@ -202,9 +213,9 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
 
       <div className="grid min-w-0 gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={() => onOpenDecks()} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
+          <button type="button" onClick={() => onOpenDecks(focusedDeckId)} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
             <Layers size={17} aria-hidden="true" />
-            Kartenstapel
+            Karten verwalten
           </button>
           <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
             <PlusSquare size={17} aria-hidden="true" />
@@ -272,7 +283,23 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, initialParentDec
         ) : null}
       </div>
 
-      {decks.length === 0 ? (
+      {focusedDeckMissing ? (
+        <EmptyState
+          icon={Layers}
+          title="Stapel nicht gefunden oder nicht verfügbar."
+          body="Der verlinkte Stapel wurde gelöscht oder steht in diesem Account nicht zur Verfügung."
+          action={
+            <div className="flex flex-wrap justify-center gap-3">
+              <button type="button" onClick={() => onFocusDeck(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+                Zu Lernen
+              </button>
+              <button type="button" onClick={() => onOpenDecks(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[#dfe4f5] bg-white px-5 text-sm font-semibold text-[#4f5eb1]">
+                Zur Kartenverwaltung
+              </button>
+            </div>
+          }
+        />
+      ) : decks.length === 0 ? (
         <EmptyState
           icon={Layers}
           title="Keine Karten"

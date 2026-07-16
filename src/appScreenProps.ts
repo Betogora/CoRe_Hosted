@@ -1,4 +1,4 @@
-import type { AppRoute, createViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, createViewRoute } from "./appNavigation.ts";
 import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
 import type { AiJob, CoreMode, Deck, LearningItem, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
@@ -8,7 +8,7 @@ import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
 
 type NavigateToView = (
-  viewId: string | undefined,
+  viewId: AppViewId | undefined,
   fields?: Parameters<typeof createViewRoute>[1],
   options?: { replace?: boolean },
 ) => AppRoute;
@@ -45,8 +45,10 @@ export interface CreationScreenProps {
   supabase: SupabaseBrowserClient;
   supabaseUrl: string;
   initialMethod: CreationMethod;
+  initialTargetDeckId: string;
   completedDeckId: string;
   onMethodChange: (method: CreationMethod) => unknown;
+  onTargetDeckChange: (deckId: string) => unknown;
   onCreated: (deck: Deck) => Promise<Deck | null>;
   onAppendManualCard: (deckId: string, input: ManualCardInput) => Promise<Deck | null>;
   onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null) => void;
@@ -85,7 +87,11 @@ export interface DecksScreenProps {
   onAddVariant: (deckId: string, cardId: string, variant: CardVariantInput) => unknown;
   onApplyVariantJson: (deckId: string, cardId: string, response: unknown, options: Record<string, unknown>) => unknown;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
-  initialSelectedDeckId: string | null;
+  selectedDeckId: string | null;
+  selectedCardId: string | null;
+  onSelectDeck: (deckId: string | null, cardId?: string | null) => unknown;
+  onSelectCard: (cardId: string | null) => unknown;
+  onOpenLearn: (deckId?: string | null) => unknown;
   onDeleteDeck: (deckId: string) => unknown;
   onRenameDeck: (deckId: string, name: string) => unknown;
   onMoveDeck: (deckId: string, parentDeckId?: string | null) => unknown;
@@ -108,8 +114,10 @@ export interface LearnScreenProps {
   decks: Deck[];
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onCreateDeck: (input: CreateDeckInput) => Deck | null;
+  focusedDeckId: string | null;
   initialParentDeckId: string;
   onDeckCreationHandled: () => void;
+  onFocusDeck: (deckId: string | null) => unknown;
   onOpenCardCreation: () => unknown;
   onOpenDecks: (deckId?: string | null) => unknown;
   onOpenDeckSettings: (deckId: string) => unknown;
@@ -137,6 +145,7 @@ export interface StudyModeProps {
   decks: Deck[];
   deckId: string;
   variantSession: boolean;
+  variantId?: string;
   mediaStore: AccountMediaStore | null;
   onExit: () => void;
   onReturnToLearn: () => void;

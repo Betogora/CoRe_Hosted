@@ -29,6 +29,8 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | Grenze | Verantwortung |
 | --- | --- |
 | `src/App.tsx` | App-Shell, Route-Auswahl und Screen-Komposition |
+| `src/appNavigation.ts` | Kanonischer typisierter AppRoute-Vertrag, defensive URL-Parse-/Serialize-Naht und allowlist-basierter Review-Rückkontext |
+| `src/useAppNavigation.ts` | Einzige Browser-History-Anbindung; projiziert den kanonischen AppRoute ohne parallele Screen-Selektion |
 | `src/screens/` | Produktnahe UI; die Screen-Landkarte steht in [`../src/screens/README.md`](../src/screens/README.md) |
 | `src/coreTypes.ts` | Kanonische normalisierte Typen für Deck, Learning Item, Card Variant, Review State und diskriminierte Editorwerte |
 | `src/coreModel.ts` | Einzige öffentliche Seam für Erzeugung, Normalisierung, typgerechte Editorprojektion, Validierung und Speichern von Learning Items und Varianten |
@@ -46,6 +48,22 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | `src/cloudRepositoryValidation.ts` | Validierung externer Cloud-Rows und JSONB-Payloads |
 
 React-Caller kennen keine APKG-, SQLite-, Storage-, RLS-, Scheduler-, Provider- oder Persistenzdetails.
+
+### 2.1 Navigation und URL-Kontext
+
+`LearnScreen` und `DecksScreen` bleiben getrennte Aufgabenoberflächen. Lernen ist der primäre Lernstart; die Kartenverwaltung ist eine sekundäre, direktlinkfähige Oberfläche. Beide erhalten Deck- und Kartenidentität ausschließlich aus dem von `src/appNavigation.ts` normalisierten AppRoute.
+
+Der URL-Vertrag umfasst:
+
+- View sowie fokussiertes Deck für Lernen, Kartenverwaltung und Stapel-Einstellungen;
+- ausgewählte Karte ausschließlich in der Kartenverwaltung;
+- Erstellmethode, Zieldeck und Abschlussdeck im Erstellfluss;
+- Reviewdeck, optionalen Variantenbezeichner und den diskriminierten Rückkontext `today | learn | decks`;
+- optionales Rückdeck und ausschließlich für `decks` eine optionale Rückkarte.
+
+Freie Return-URLs werden nicht akzeptiert. Browser-History-State darf Zusatzdaten tragen, ist aber nie die einzige Quelle navigationsrelevanter Identität. `popstate`, Reload und Direktlinks werden aus der URL rekonstruiert. Unbekannte IDs bleiben bis zur zuständigen UI erhalten, damit diese einen sicheren deutschen Not-found-Zustand statt eines zufälligen Ersatzdecks oder einer zufälligen ersten Karte zeigt.
+
+Aufklappzustände, Tastaturfokus, lokale Suche, Dialoge und ungespeicherte Entwürfe bleiben transient. Es gibt keine Routerbibliothek und keine zweite Navigations- oder Persistenzebene.
 
 ## 3. Domäneninvarianten
 

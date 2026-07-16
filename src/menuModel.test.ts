@@ -8,8 +8,8 @@ test("lists the navigation items in product order", () => {
 
   assert.deepStrictEqual(menu.listNavigationItems(), [
     { id: "uebersicht", label: "Heute", iconKey: "home" },
-    { id: "neue-karten", label: "Erstellen", iconKey: "plus" },
     { id: "lernen", label: "Lernen", iconKey: "learn" },
+    { id: "neue-karten", label: "Erstellen", iconKey: "plus" },
     { id: "statistik", label: "Statistik", iconKey: "chart" },
   ]);
 });
@@ -64,7 +64,7 @@ test("keeps deck and settings views available outside the main navigation", () =
   assert.equal(menu.getView("einstellungen").title, "Einstellungen");
   assert.equal(menu.listNavigationItems().some((item) => item.id === "kartenstapel"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "einstellungen"), false);
-  assert.equal(menu.listNavigationItems().some((item) => item.id === "ki"), false);
+  assert.equal(menu.listNavigationItems().some((item) => String(item.id) === "ki"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "assistent"), false);
 });
 

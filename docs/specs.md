@@ -122,11 +122,15 @@ Akzeptanz:
 
 ### 5.3 Karten bearbeiten und eine Sitzung starten
 
-`Lernen` ist der schnelle Einstieg in eine Sitzung. `Kartenstapel` dient Struktur, Inhalt, Versionen und erweiterten Optionen.
+`Lernen` ist der primäre schnelle Einstieg in eine Sitzung. `Kartenstapel` bleibt eine getrennte, sekundäre Verwaltungsoberfläche für Struktur, Inhalt, Versionen und erweiterte Optionen; sie ist aus Lernen über `Karten verwalten` erreichbar.
 
 Akzeptanz:
 
 - Ein Klick auf eine Lernzeile startet Lernen.
+- Das fokussierte Deck ist in Lernen und Kartenverwaltung derselbe URL-reproduzierbare Kontext, ohne parallele lokale Deckidentität.
+- Lernen-, Kartenverwaltungs- und Erstelllinks erhalten ihr Deck beziehungsweise ihre ausgewählte Karte über Reload und Direktlink.
+- Gleichnamige Unterstapel werden in relevanten Links und Auswahlen durch ihren vollständigen Hierarchiepfad unterschieden.
+- Die Kartenverwaltung zeigt Inventarzahlen ausdrücklich als `im Stapel` und keine konkurrierende Projektion der heutigen Lernqueue.
 - Verschieben, Outdent und Löschen sind explizite, bestätigte Verwaltungsaktionen.
 - Kartenlöschung zeigt den betroffenen Inhalt, verwendet Soft Delete und bietet unmittelbar ein Undo, das denselben Datensatz samt Review State wiederherstellt.
 - Stapellöschung zeigt Stapelname, Unterstapelzahl und aktive Kartenanzahl; ein Abbruch verändert nichts.
@@ -151,7 +155,11 @@ Akzeptanz:
 - Intervallvorschauen passen zur tatsächlich angewendeten Bewertung.
 - Vor dem Reveal erscheinen keine Herkunfts-, Varianten-, Reife- oder Schedulerhinweise.
 - Die geplante Sitzungsgröße bleibt während der Sitzung stabil.
-- Das Ende nennt die beantwortete Anzahl und führt gezielt zur Lernen-Übersicht.
+- Das Ende nennt die beantwortete Anzahl und führt gezielt zum URL-kodierten Ausgangspunkt zurück.
+- Ein Review-Reload erhält Reviewdeck und den allowlist-basierten Rückkontext `today`, `learn` oder `decks`; eine freie Rück-URL wird nicht akzeptiert.
+- Review aus der Kartenverwaltung kehrt zu demselben Deck und derselben Karte zurück, Review aus Lernen zu demselben Lern-Deckkontext.
+- Browser-Zurück und -Vorwärts rekonstruieren View, Deck, Karte und Reviewkontext ohne zusätzliche History-Schleifen.
+- Unbekannte oder nicht verfügbare Deck- und Karten-IDs zeigen verständliche deutsche Folgeaktionen und öffnen niemals still eine andere Karte.
 - Nach erfolgreichem Save und Reload bleibt der Lernfortschritt erhalten.
 - Offline- oder Konfliktzustände werden sichtbar und niemals als gespeichert ausgegeben, solange Änderungen ausstehen.
 
@@ -182,6 +190,8 @@ Akzeptanz:
 
 - Decks können Eltern- und Unterstapel bilden.
 - Hierarchie bleibt beim unterstützten APKG-Import erhalten.
+- Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen Deckkontext.
+- Lernen ist Teil der Hauptnavigation; die direktlinkfähige Kartenverwaltung wird sekundär aus Lernen geöffnet.
 - Suche und Filter helfen bei großen Bibliotheken.
 - Stapelname, Lernoptionen und Content-Repetition-Modus sind bearbeitbar.
 - Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.
