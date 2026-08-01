@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
 import { resetToFreshLocalState } from "./support/appState.ts";
 
 function mainMenu(page: Page) {
@@ -19,6 +20,30 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   await expect(page.getByRole("button", { name: /APKG, Text, Tabellen/ })).toBeVisible();
   await expect(page.getByRole("region", { name: "Erstellungsart" }).getByRole("button")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Einstellungen öffnen" })).toBeVisible();
+});
+
+test("dark mode can be toggled from the sidebar and persists across reloads", async ({ page }) => {
+  await resetToFreshLocalState(page);
+
+  const toggle = page.getByRole("switch", { name: "Dark Mode einschalten" });
+  await expect(toggle).toBeVisible();
+  await expect(toggle).not.toBeChecked();
+  await toggle.click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
+  await expect(page.getByRole("switch", { name: "Dark Mode ausschalten" })).toBeChecked();
+  expect(await page.evaluate((key) => localStorage.getItem(key), CORE_THEME_STORAGE_KEY)).toBe("dark");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
+  await expect(page.getByRole("switch", { name: "Dark Mode ausschalten" })).toBeChecked();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("switch", { name: "Dark Mode ausschalten" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+
+  await page.getByRole("switch", { name: "Dark Mode ausschalten" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-core-theme", "light");
 });
 
 test("@beta-core @hosted-core Beta-Artefakt enthält weder Labs noch Großdatei-APKG", async ({ page }) => {

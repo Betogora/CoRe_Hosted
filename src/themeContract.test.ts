@@ -36,6 +36,8 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
   }
   assert.match(styles, /:root\s*\{[\s\S]*?color-scheme:\s*light/);
   assert.match(dark, /color-scheme:\s*dark/);
+  assert.match(styles, /--core-border:\s*#d5dbe5/);
+  assert.match(dark, /--core-border:\s*#536078/);
 });
 
 test("theme exposes the six canonical typography levels and AA primary contrast", () => {
@@ -62,7 +64,7 @@ test("productive TSX does not reintroduce the replaced palette or named status u
 
 test("the UI catalog lists every canonical shared export", () => {
   const catalog = readFileSync("src/ui/README.md", "utf8");
-  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "MiniProgress", "DonutValue", "CoreModeControl", "ActionButton", "IconButton", "StatusMessage"]) {
+  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "MiniProgress", "DonutValue", "CoreModeControl", "ThemeToggle", "ActionButton", "IconButton", "StatusMessage"]) {
     assert.match(catalog, new RegExp(`\\b${name}\\b`));
   }
 });

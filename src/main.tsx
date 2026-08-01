@@ -2,7 +2,10 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
 import { AppErrorBoundary } from "./AppErrorBoundary.tsx";
+import { initializeCoreTheme } from "./coreTheme.ts";
 import "./styles.css";
+
+initializeCoreTheme();
 
 function ApplicationRoot() {
   if (import.meta.env.MODE === "e2e" && new URLSearchParams(window.location.search).get("core_e2e_render_error") === "1") {

@@ -29,6 +29,7 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | `src/useAppNavigation.ts` | Einzige Browser-History-Anbindung; projiziert den kanonischen AppRoute ohne parallele Screen-Selektion |
 | `src/screens/` | Produktnahe UI; die Screen-Landkarte steht in [`../src/screens/README.md`](../src/screens/README.md) |
 | `src/ui/` | Kanonische produktweite UI-Seam und [UI-Katalog](../src/ui/README.md): strukturelle Module in `coreUi.tsx`, Actions in `actionUi.tsx`, Feedback in `feedbackUi.tsx` und fachliche Spezialmodule |
+| `src/coreTheme.ts` | Einzige Browser-Seam für validierte Light-/Dark-Auswahl, Dokumentattribut und lokale Theme-Präferenz |
 | `src/coreTypes.ts` | Kanonische normalisierte Typen für Deck, Learning Item, Card Variant, Review State und diskriminierte Editorwerte |
 | `src/coreModel.ts` | Einzige öffentliche Seam für Erzeugung, Normalisierung, typgerechte Editorprojektion, Validierung und Speichern von Learning Items und Varianten |
 | `src/coreWorkspace.ts` | Anwendungsbefehle für Decks, typgerechte Kartenwerte, Import und Variantenannahme |
@@ -47,7 +48,7 @@ React-Caller kennen keine APKG-, SQLite-, Storage-, RLS-, Scheduler-, Provider- 
 
 ### 2.1 Theme- und UI-Vertrag
 
-`src/styles.css` besitzt die primitive CoRe-Palette, semantische Farbrollen, Typostufen und gemeinsame Zustandsklassen. Produktive TSX-Dateien verwenden diese semantischen Rollen statt eigener Theme-Paletten. `:root` aktiviert den Light Mode. `[data-core-theme="dark"]` überschreibt den vollständigen semantischen Satz und ist der einzige vorbereitete Dark-Mode-Aktivator; Toggle, Persistenz, Systempräferenz und JavaScript-Aktivierung gehören nicht zum aktuellen Produkt.
+`src/styles.css` besitzt die primitive CoRe-Palette, semantische Farbrollen, Typostufen und gemeinsame Zustandsklassen. Produktive TSX-Dateien verwenden diese semantischen Rollen statt eigener Theme-Paletten. `:root` definiert den Light Mode; `[data-core-theme="dark"]` überschreibt den vollständigen semantischen Satz. `src/coreTheme.ts` validiert die lokal gespeicherte Auswahl, setzt das Dokumentattribut vor dem ersten React-Render und persistiert explizite Umschaltungen. `ThemeToggle` kapselt seinen lokalen Darstellungszustand unmittelbar über dem Einstellungszugang, sodass eine Umschaltung keinen App-Shell-Render auslöst; eine Systempräferenz wird nicht ausgewertet.
 
 `src/ui/coreUi.tsx` bleibt die Struktur-Seam, `src/ui/actionUi.tsx` besitzt normales Action- und Icon-Button-Verhalten und `src/ui/feedbackUi.tsx` besitzt Statusdarstellung und Live-Region-Semantik. Fachliche Controls wie Reviewratings, MCQ-Optionen, Tabs, Farbfelder und Drag-Ziele dürfen lokal bleiben, beziehen Farben, Typografie, Fokus und Disabled aber aus demselben Vertrag. Der auffindbare Nutzungsvertrag steht in [`../src/ui/README.md`](../src/ui/README.md); Wiederverwendung ist empfohlen, nicht erzwungen, wenn sie die Fachsemantik verschlechtern würde.
 

@@ -6,7 +6,7 @@ Dieser Katalog ist die code-nahe Übersicht der verfügbaren UI-Bausteine. Neue 
 
 ## Theme und Typografie
 
-`src/styles.css` besitzt die primitiven CoRe-Farben, alle semantischen Light-/Dark-Rollen und die Typostufen. Produktcode verwendet semantische Klassen beziehungsweise Variablen. Der Light Mode ist aktiv; ein zukünftiger Dark Mode setzt ausschließlich `data-core-theme="dark"` am Dokumentelement.
+`src/styles.css` besitzt die primitiven CoRe-Farben, alle semantischen Light-/Dark-Rollen und die Typostufen. Produktcode verwendet semantische Klassen beziehungsweise Variablen. Der Theme-Schalter in der Sidebar setzt ausschließlich `data-core-theme="light"` beziehungsweise `data-core-theme="dark"` am Dokumentelement; `src/coreTheme.ts` besitzt Validierung und lokale Persistenz der Auswahl. Eine automatische Systempräferenz gibt es bewusst nicht.
 
 - Überschriften: `core-heading-1`, `core-heading-2`, `core-heading-3`.
 - Fließtext: `core-body-large`, `core-body`, `core-caption`.
@@ -45,6 +45,7 @@ Direktimport aus `src/ui/coreUi.tsx`:
 - `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Cancel/Confirm und Fokuswiederherstellung; intern gemeinsame Actions.
 - `OrbIcon`: rein dekorativer Icon-Kreis; Bedeutung bleibt im umgebenden Text.
 - `CoreModeControl`: fachliches Drei-Wege-Control für Aus/Auto/Manuell, kein allgemeiner Tab-Ersatz.
+- `ThemeToggle`: zugänglicher Light-/Dark-Schalter für die App-Shell; das Modul besitzt seinen lokalen Darstellungszustand und die Switch-Semantik, `src/coreTheme.ts` Dokumentattribut und Persistenz.
 
 CSS-Oberflächen: `core-surface`, `core-surface-raised`, `core-surface-muted`, `core-overlay`.
 

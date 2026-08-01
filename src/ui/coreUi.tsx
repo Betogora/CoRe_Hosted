@@ -1,5 +1,7 @@
 import React, { type HTMLAttributes, type ReactNode } from "react";
+import { Moon } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { readCoreTheme, toggleCoreTheme } from "../coreTheme.ts";
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton } from "./actionUi.tsx";
 
@@ -233,5 +235,37 @@ export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange
         </button>
       ))}
     </div>
+  );
+}
+
+export function ThemeToggle({ className = "" }: { className?: string }) {
+  const [theme, setTheme] = React.useState(readCoreTheme);
+  const darkModeActive = theme === "dark";
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={darkModeActive}
+      aria-label={`Dark Mode ${darkModeActive ? "ausschalten" : "einschalten"}`}
+      onClick={() => setTheme(toggleCoreTheme(theme))}
+      className={`flex min-h-12 w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-core-secondary transition hover:bg-core-subtle hover:text-core-text ${className}`}
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-core-subtle text-core-action">
+        <Moon size={18} aria-hidden="true" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="core-control-label block text-core-text">Dark Mode</span>
+        <span className="core-caption block text-core-muted">{darkModeActive ? "Aktiv" : "Aus"}</span>
+      </span>
+      <span
+        aria-hidden="true"
+        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${darkModeActive ? "border-core-action bg-core-action" : "border-core-border-strong bg-core-subtle"}`}
+      >
+        <span
+          className={`absolute left-1 top-1 size-4 rounded-full bg-core-surface shadow-sm transition-transform ${darkModeActive ? "translate-x-5" : "translate-x-0"}`}
+        />
+      </span>
+    </button>
   );
 }

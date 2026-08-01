@@ -27,7 +27,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Content-Repetition-Varianten mit genau einem Originalanker, Eligibility, Reife, Deaktivierung und kontrolliertem Fehlerfeedback.
 - Statistik, Sync-/Konfliktstatus und begrenzter JSON-Portabilitätsexport.
 - Lazy geladene Produktscreens, sicherer React-Fehlerfallback und sichtbare Release-Information.
-- Produktweites semantisches CoRe-Theme mit aktivem Light Mode, vollständig vorbereitetem inaktivem Dark-Tokensatz, Amulya/Synonym-Typografie sowie dokumentierten wiederverwendbaren Action-, Feedback-, Struktur- und Formularbausteinen.
+- Produktweites semantisches CoRe-Theme mit Light und Dark Mode, lokal persistiertem zugänglichem Sidebar-Schalter, hellen dekorativen Rahmenlinien, Amulya/Synonym-Typografie sowie dokumentierten wiederverwendbaren Action-, Feedback-, Struktur- und Formularbausteinen.
 - Es werden keine eigenen CoRe-Serverendpunkte ausgeliefert.
 - Das produktive CoRe-Schema entspricht dem Core-Zielzustand: pensionierte Labs-/Jobtabellen und -spalten sowie `core-imports` fehlen; das verifizierte Rückbaumanifest enthielt keine zu löschenden Labs-Pfade in `core-media`.
 

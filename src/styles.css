@@ -33,7 +33,7 @@
   --core-text-secondary: var(--core-palette-graphite);
   --core-text-muted: #667492;
   --core-text-on-accent: #ffffff;
-  --core-border: var(--core-palette-mist);
+  --core-border: #d5dbe5;
   --core-border-interactive: var(--core-palette-slate);
   --core-focus: var(--core-palette-slate);
   --core-focus-ring: var(--core-focus);
@@ -87,7 +87,7 @@
   --core-text-secondary: var(--core-palette-highlight);
   --core-text-muted: var(--core-palette-highlight);
   --core-text-on-accent: var(--core-palette-midnight);
-  --core-border: #65738d;
+  --core-border: #536078;
   --core-border-interactive: var(--core-palette-highlight);
   --core-focus: var(--core-palette-golden-glow);
   --core-focus-ring: var(--core-focus);

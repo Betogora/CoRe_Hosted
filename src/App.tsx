@@ -32,7 +32,7 @@ import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
 import { useAppNavigation } from "./useAppNavigation.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
-import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
+import { ActionDialog, EmptyState, OrbIcon, SoftPanel, ThemeToggle } from "./ui/coreUi.tsx";
 
 const CreationScreen = React.lazy<React.ComponentType<CreationScreenProps>>(() => import("./screens/CreationScreen.tsx").then(({ CreationScreen }) => ({ default: CreationScreen })));
 const DashboardScreen = React.lazy<React.ComponentType<DashboardScreenProps>>(() => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })));
@@ -1031,6 +1031,7 @@ export function App() {
             </nav>
 
             <div className="mt-5 border-t border-[var(--core-border)] pt-5 md:mt-auto md:pt-6">
+              <ThemeToggle className="mb-2" />
               <button
                 type="button"
                 onClick={() => navigateToView("einstellungen")}
