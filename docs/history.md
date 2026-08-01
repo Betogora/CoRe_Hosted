@@ -13,6 +13,8 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Der Produktionsrückbau wurde gegen das über Vercel verifizierte Projekt `CoRe-Database` (`hirbiuiydczmnjqtoyqx`) ausgeführt. Sechs abgeschlossene KI-Jobzeilen sowie die pensionierten Tabellen und Spalten wurden entfernt; Labs-Decks, -Karten, Reviews, Konflikte und Medien waren nicht vorhanden.
 - Der Storage-API-Lauf bestätigte 0 zu löschende `core-media`-Objekte und einen bereits fehlenden Bucket `core-imports`. Die pensionierten Vercel-KI-Variablen wurden aus Development, Preview und Production entfernt. `smarter-nutrition` blieb verbunden und unverändert.
 - Lokal bestätigt: 346 Modul-/Integrationsprüfungen, Typecheck, Production-Build, Datenbanktypen, Beta-Core mit 22 Browserjourneys sowie Release mit vollständigem RLS/TUS, 51 Browserjourneys und lokalem 4.900-Karten-APKG-Benchmark. Die ausgemusterten Tabellen, Spalten und der Bucket `core-imports` fehlen im lokalen Zielzustand.
+- Commit `5c741ad09c113455466e68970848190d0e476c78` wurde erfolgreich nach `main` ausgeliefert. Quality und Beta-Core waren grün; `extended-core` bestand im Wiederholungslauf in 7:14 Minuten. Der erste Versuch war ausschließlich beim Abruf des Supabase-`postgres-meta`-Images durch ein externes Registry-Rate-Limit fehlgeschlagen, nachdem alle 103 Integrationstests bestanden hatten.
+- Vercel bestätigte genau diesen Commit. Die kanonische Startseite antwortete mit `200`, `/api/ai/chat` und `/api/imports/apkg` jeweils mit `404`.
 
 ## 2026-07-16 — Stapel-IA und URL-Kontext
 

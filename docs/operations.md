@@ -149,6 +149,8 @@ npm run test:e2e:local
 
 ### Irreversibler Labs-/Groß-APKG-Rückbau
 
+**Ausführungsstatus:** Für das aktuelle CoRe-Produktionsprojekt wurde dieser Ablauf am 1. August 2026 vollständig abgeschlossen und verifiziert. Er darf nicht erneut als regulärer Deployschritt ausgeführt werden. Die folgenden Schritte bleiben als Audit- und Wiederanlaufreferenz erhalten; der konkrete Nachweis steht in [`history.md`](history.md#2026-08-01--labs--und-gro%C3%9F-apkg-vorleistungen-zur%C3%BCckgebaut).
+
 Dieser Ablauf darf ausschließlich gegen das verifizierte CoRe-Produktionsprojekt ausgeführt werden. Das aktuell anderweitig verbundene Projekt `smarter-nutrition` ist kein zulässiges Ziel.
 
 1. Zuerst die neue Anwendung deployen und prüfen, dass `/api/ai/*` sowie `/api/imports/apkg` `404` liefern und keine Labs-/Server-APKG-Schreibvorgänge mehr entstehen.
@@ -204,7 +206,6 @@ Vor Promotion und 30 Minuten danach werden Vercel-5xx sowie Supabase Auth/DB/Sto
 - Login: Auth-Status, Redirect-Konfiguration und Supabase-Verfügbarkeit prüfen; keine Tokens loggen.
 - Sync: lokale Pending-Anzeige, Netzstatus, Konflikte und Repository-Readback prüfen; keine Nutzerinhalte in Tickets kopieren.
 - Medien: DB-Referenz und Storage-Objekt getrennt prüfen; keine vorschnelle Orphan-Löschung.
-- KI: Route, Consent, Rate Limit und Providerstatus prüfen; Prompts und Providerpayloads nicht loggen.
 - Datenverlust: Schreibzugriffe stoppen, betroffene Account- und Zeitgrenze sichern und Restore erst in einem Testprojekt prüfen.
 
 Solange die beiden Restore-Proben und der reale Alarmempfang nicht in [`history.md`](history.md) nachgewiesen sind, bleiben diese operativen Abnahmen offen.

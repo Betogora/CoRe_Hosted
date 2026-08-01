@@ -20,7 +20,7 @@ Die lokale URL ist `http://127.0.0.1:5190/`.
 - Tailwind CSS
 - Node.js `node:test` und Playwright
 - Supabase Auth, Postgres und Storage
-- Vercel für SPA und `/api/*`-Routen
+- Vercel für die SPA; CoRe liefert derzeit keine eigenen Server-API-Routen aus
 
 ## Wichtige Scripts
 

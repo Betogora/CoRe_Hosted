@@ -28,6 +28,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Statistik, Sync-/Konfliktstatus und begrenzter JSON-Portabilitätsexport.
 - Lazy geladene Produktscreens, sicherer React-Fehlerfallback und sichtbare Release-Information.
 - Es werden keine eigenen CoRe-Serverendpunkte ausgeliefert.
+- Das produktive CoRe-Schema entspricht dem Core-Zielzustand: pensionierte Labs-/Jobtabellen und -spalten sowie `core-imports` fehlen; das verifizierte Rückbaumanifest enthielt keine zu löschenden Labs-Pfade in `core-media`.
 
 ## Reifestatus
 

@@ -49,7 +49,7 @@ Eine globale Storage-Orphan-Reconciliation und ein betrieblicher Postgres-Backup
 - Vollständige lokale Infrastruktur: `npm run test:release:local`; Integration, komplette RLS-/Playwright-Suite und lokaler APKG-Benchmark.
 - Erweiterte lokale Vollabnahme: `npm run test:release`; entspricht Quality-Gate plus vollständiger lokaler Infrastruktur, ist aber kein Beta-Core-Gate.
 
-Referenzmessung am 15. Juli 2026: `npm run test:pr:local` 2:20 einschließlich Supabase-Start, Kern-RLS, separatem Auth-Setup und fünf Golden-Flows; `npm run test:release:local` 5:24 einschließlich Integration, vollständigem RLS/TUS/Zwei-Geräte-Gate, 40 Browserflows sowie server- und browserseitigem APKG-Benchmark.
+Referenzmessung am 1. August 2026: Beta-Core umfasste 22 Browserjourneys. Der CI-Job `extended-core` benötigte im erfolgreichen Wiederholungslauf 7:14 einschließlich Integration, lokalem Supabase-Start, Datenbanktypprüfung, vollständigem RLS/TUS/Zwei-Geräte-Gate, 51 Browserjourneys und lokalem 4.900-Karten-APKG-Benchmark. Externe Container-Registry-Rate-Limits sind Infrastrukturfehler und werden getrennt von Produktregressionen ausgewiesen.
 
 `.github/workflows/ci.yml` führt das PR-Produktgate parallel zum Quality-Gate aus. Pushes auf `main`, veröffentlichte Releases, der tägliche Nightly-Lauf und `workflow_dispatch` führen danach das blockierende Beta-Core-Gate aus. Der Job `extended-core` führt schwere Core-Infrastrukturpfade weiterhin mit `continue-on-error` aus.
 

@@ -370,6 +370,9 @@ Vor Self-Service-Beta zusätzlich:
 
 - [ ] P0.4 abgeschlossen.
 - [ ] `npm run test:beta` auf Freigabe-SHA grün.
+- [ ] DB-Restore-Probe in einem ausschließlich dafür vorgesehenen Testprojekt bestanden und in `history.md` dokumentiert.
+- [ ] Storage-Restore-Probe getrennt von der Datenbank bestanden und in `history.md` dokumentiert.
+- [ ] Realen Alarmempfang für mindestens ein Kernsignal ohne Nutzerinhalte nachgewiesen.
 - [ ] Keine semantische Kartenbeschädigung.
 - [ ] Fünf-Karten-Batchjourney grün.
 - [ ] sichere Karten- und Decklöschung.
