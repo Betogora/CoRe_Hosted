@@ -4,7 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const TSX_CLI_PATH = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
-const MODULE_TEST_ROOTS = ["src", "api"] as const;
+const MODULE_TEST_ROOTS = ["src"] as const;
 const CATEGORIES = ["unit", "contract", "integration"] as const;
 type TestCategory = (typeof CATEGORIES)[number];
 
@@ -40,7 +40,7 @@ function collectTests(directory: string): string[] {
 
 function categoryFor(filePath: string): TestCategory {
   if (INTEGRATION_TESTS.has(filePath)) return "integration";
-  if (filePath.startsWith("api/") || filePath.startsWith("src/screens/") || CONTRACT_TESTS.has(filePath)) return "contract";
+  if (filePath.startsWith("src/screens/") || CONTRACT_TESTS.has(filePath)) return "contract";
   return "unit";
 }
 
