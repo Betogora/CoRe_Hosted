@@ -3,20 +3,16 @@ import type { User } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import type { AuthPhase } from "./accountSession.ts";
 import type { CoreMode, Deck, LearningItem, ReviewEvent, SyncStatus } from "./coreTypes.ts";
-import { BarChart3, BookOpen, Bot, Database, FlaskConical, History, Home, Layers, Network, PlusSquare, Settings, Users } from "lucide-react";
+import { BarChart3, BookOpen, Database, Home, Layers, PlusSquare, Settings } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute } from "./appNavigation.ts";
 import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
 import type {
-  AiJobsScreenProps,
-  AssistantScreenProps,
-  CommunityScreenProps,
   CreationScreenProps,
   DashboardScreenProps,
   DeckSettingsScreenProps,
   DecksScreenProps,
-  GraphScreenProps,
   LearnScreenProps,
   SettingsScreenProps,
   StatisticsScreenProps,
@@ -24,7 +20,6 @@ import type {
 } from "./appScreenProps.ts";
 import { startAppAutosaveLifecycle, startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
-import { AI_CHAT_CONSENT_VERSION } from "./aiChatContract.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.ts";
 import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
@@ -32,29 +27,26 @@ import { createPortableExport, mergePortableExportIntoState } from "./dataPortab
 import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type LearningSettingsInput } from "./deckSettings.ts";
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
-import { productSurfaces, type ProductSurfaceId } from "./productSurfaces.ts";
 import { SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
 import { useAppNavigation } from "./useAppNavigation.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
-import { ActionDialog, EmptyState, LabsNotice, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
+import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 
-const AssistantScreen = React.lazy<React.ComponentType<AssistantScreenProps>>(() => import("./screens/AssistantScreen.tsx").then(({ AssistantScreen }) => ({ default: AssistantScreen })));
-const AiJobsScreen = React.lazy<React.ComponentType<AiJobsScreenProps>>(() => import("./screens/AiJobsScreen.tsx").then(({ AiJobsScreen }) => ({ default: AiJobsScreen })));
-const CommunityScreen = React.lazy<React.ComponentType<CommunityScreenProps>>(() => import("./screens/CommunityScreen.tsx").then(({ CommunityScreen }) => ({ default: CommunityScreen })));
 const CreationScreen = React.lazy<React.ComponentType<CreationScreenProps>>(() => import("./screens/CreationScreen.tsx").then(({ CreationScreen }) => ({ default: CreationScreen })));
 const DashboardScreen = React.lazy<React.ComponentType<DashboardScreenProps>>(() => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })));
 const DeckSettingsScreen = React.lazy<React.ComponentType<DeckSettingsScreenProps>>(() => import("./screens/DeckSettingsScreen.tsx").then(({ DeckSettingsScreen }) => ({ default: DeckSettingsScreen })));
 const DecksScreen = React.lazy<React.ComponentType<DecksScreenProps>>(() => import("./screens/DecksScreen.tsx").then(({ DecksScreen }) => ({ default: DecksScreen })));
-const GraphScreen = React.lazy<React.ComponentType<GraphScreenProps>>(() => import("./screens/GraphScreen.tsx").then(({ GraphScreen }) => ({ default: GraphScreen })));
 const LearnScreen = React.lazy<React.ComponentType<LearnScreenProps>>(() => import("./screens/LearnScreen.tsx").then(({ LearnScreen }) => ({ default: LearnScreen })));
 const SettingsScreen = React.lazy<React.ComponentType<SettingsScreenProps>>(() => import("./screens/SettingsScreen.tsx").then(({ SettingsScreen }) => ({ default: SettingsScreen })));
 const StatisticsScreen = React.lazy<React.ComponentType<StatisticsScreenProps>>(() => import("./screens/StatisticsScreen.tsx").then(({ StatisticsScreen }) => ({ default: StatisticsScreen })));
 const StudyMode = React.lazy<React.ComponentType<StudyModeProps>>(() => import("./screens/StudyMode.tsx").then(({ StudyMode }) => ({ default: StudyMode })));
 
-const menu = createMenuModel(productSurfaces);
+const menu = createMenuModel();
 const AUTOSAVE_DELAY_MS = 900;
+const googleAuthEnabled = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
+const magicLinkEnabled = import.meta.env.VITE_ENABLE_MAGIC_LINK === "true";
 
 interface SignInInput { email: string; password: string }
 interface SignUpInput extends SignInInput { displayName: string }
@@ -71,26 +63,13 @@ function resolveCoreMode(value: unknown, fallback: CoreMode): CoreMode {
 }
 
 const iconByKey: Record<string, LucideIcon> = {
-  assistant: Bot,
   chart: BarChart3,
-  community: Users,
-  graph: Network,
   home: Home,
-  jobs: History,
   layers: Layers,
   learn: BookOpen,
   plus: PlusSquare,
   settings: Settings,
 };
-
-function LabsSurface({ ids, children }: { ids: ProductSurfaceId[]; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-5">
-      <LabsNotice surfaces={ids.map((id) => productSurfaces.get(id))} />
-      {children}
-    </div>
-  );
-}
 
 function getIcon(iconKey: string) {
   return iconByKey[iconKey] ?? Home;
@@ -176,7 +155,6 @@ function MigrationChoiceScreen({ legacyState, busy = false, message = "", onImpo
 export function App() {
   const supabase = React.useMemo(() => createSupabaseBrowserClient(), []);
   const navigationItems = React.useMemo(() => menu.listNavigationItems(), []);
-  const labsNavigationItems = React.useMemo(() => menu.listLabsNavigationItems(), []);
   const bootRunRef = React.useRef(0);
   const latestStateRef = React.useRef<WorkspaceState | null>(null);
   const lastAcknowledgedStateRef = React.useRef<WorkspaceState | null>(null);
@@ -776,68 +754,8 @@ export function App() {
     return decks;
   }
 
-  function applyVariantJson(deckId: string, cardId: string, response: unknown, options: Record<string, unknown>) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.applyVariantGenerationResponse(deckId, cardId, response, options));
-  }
-
   function saveProfile(profile: unknown) {
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(profile));
-  }
-
-  async function getAiAccessToken() {
-    if (!supabase) return null;
-    const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    return data.session?.access_token ?? null;
-  }
-
-  async function acceptAiChatConsent() {
-    if (!workspace || !syncEngine || !latestStateRef.current) {
-      throw new Error("Die Cloud-Synchronisierung ist noch nicht bereit.");
-    }
-    const previousProfile = workspace.getState().profile;
-    const consent = {
-      version: AI_CHAT_CONSENT_VERSION,
-      acceptedAt: new Date().toISOString(),
-      adultConfirmed: true as const,
-    };
-    workspace.saveProfile({
-      ...previousProfile,
-      privacy: { ...previousProfile.privacy, aiChatConsent: consent },
-    });
-    const snapshot = workspace.getState();
-    const runId = bootRunRef.current;
-    setAppState(snapshot);
-    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
-
-    try {
-      const result = await syncEngine.flush(undefined, { force: true });
-      const acknowledged = applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
-      if (!acknowledged) throw new Error("Die KI-Einwilligung wurde nicht von der Cloud bestätigt.");
-      return consent;
-    } catch (error) {
-      workspace.saveProfile(previousProfile);
-      const rollback = workspace.getState();
-      setAppState(rollback);
-      syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: rollback } });
-      throw new Error(formatCloudAuthError(error, "Die KI-Einwilligung konnte nicht gespeichert werden."));
-    }
-  }
-
-  function saveCommunity(community: unknown) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveCommunity(community));
-  }
-
-  function saveJob(job: unknown) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveAiJob(job));
-  }
-
-  function saveChat(exchange: unknown) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveChatExchange(exchange));
-  }
-
-  function savePlan(plan: unknown) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveLearningPlan(plan));
   }
 
   function saveState(nextState: WorkspaceState) {
@@ -896,18 +814,6 @@ export function App() {
     });
   }
 
-  function openGraph(deck: Deck) {
-    if (!productSurfaces.isAvailable("graph")) return;
-    navigateToView("graph");
-    runWorkspaceMutation((currentWorkspace) => currentWorkspace.ensureDeckGraph(deck.id));
-  }
-
-  function shareDeck(deck: Deck) {
-    if (!productSurfaces.isAvailable("community-demo")) return;
-    navigateToView("community");
-    runWorkspaceMutation((currentWorkspace) => currentWorkspace.shareDeckToDefaultCommunity(deck.id));
-  }
-
   function renderActiveView() {
     if (!state) return null;
     if (studyRequest && !state.decks.some((deck) => deck.id === studyRequest.deckId)) {
@@ -950,7 +856,6 @@ export function App() {
           onUndoDeleteCard={undoDeleteDeckCard}
           onRestoreCard={restoreDeckCard}
           onAddVariant={addDeckCardVariant}
-          onApplyVariantJson={applyVariantJson}
           onStartDeck={startDeck}
           selectedDeckId={focusedDeckId}
           selectedCardId={selectedCardId}
@@ -962,12 +867,6 @@ export function App() {
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onPrepareSubdeckCreation={openDeckCreation}
           onOpenLearn={openLearn}
-          onOpenGraph={openGraph}
-          onShareDeck={shareDeck}
-          showGraph={productSurfaces.isAvailable("graph")}
-          showCommunity={productSurfaces.isAvailable("community-demo")}
-          showExternalVariantFlow={productSurfaces.isAvailable("external-variant-json")}
-          externalVariantSurface={productSurfaces.get("external-variant-json")}
         />
       );
     }
@@ -977,12 +876,10 @@ export function App() {
           decks={state.decks}
           mediaStore={mediaStore}
           persistImportedDecks={persistImportedDecks}
-          supabase={supabase}
-          supabaseUrl={getSupabaseBrowserConfig().url}
           initialMethod={creationMethod}
           initialTargetDeckId={creationDeckId}
           completedDeckId={completedDeckId}
-          onMethodChange={(method: "manual" | "import" | "ai" | "") => navigateToView("neue-karten", method ? {
+          onMethodChange={(method: "manual" | "import" | "") => navigateToView("neue-karten", method ? {
             creationMethod: method,
             creationDeckId: method === "manual" ? creationDeckId || state.decks[0]?.id : null,
           } : {})}
@@ -996,10 +893,6 @@ export function App() {
           onSessionCompleted={(deckId) => navigateToViewNow("neue-karten", { completedDeckId: deckId }, { replace: true })}
           onStartDeck={startDeck}
           onReviewDeck={openDecks}
-          onJob={saveJob}
-          showAiDrafts={productSurfaces.isAvailable("local-ai-drafts")}
-          aiDraftSurface={productSurfaces.get("local-ai-drafts")}
-          enableServerApkgImport={productSurfaces.isAvailable("server-apkg-over-250")}
         />
       );
     }
@@ -1022,31 +915,6 @@ export function App() {
     if (activeView === "statistik") {
       return <StatisticsScreen decks={state.decks} onNavigate={navigateToView} />;
     }
-    if (activeView === "graph") {
-      return <LabsSurface ids={["graph"]}><GraphScreen decks={state.decks} onUpdateDeck={updateDeck} /></LabsSurface>;
-    }
-    if (activeView === "community") {
-      return <LabsSurface ids={["community-demo"]}><CommunityScreen decks={state.decks} communities={state.communities} onSaveCommunity={saveCommunity} onSaveDeck={saveDeck} /></LabsSurface>;
-    }
-    if (activeView === "assistent") {
-      return (
-        <LabsSurface ids={["assistant-chat", "learning-plan"]}>
-          <AssistantScreen
-            decks={state.decks}
-            transcript={state.chatTranscript}
-            plans={state.learningPlans}
-            profile={state.profile}
-            getAccessToken={getAiAccessToken}
-            onAcceptAiChatConsent={acceptAiChatConsent}
-            onSaveChat={saveChat}
-            onSavePlan={savePlan}
-          />
-        </LabsSurface>
-      );
-    }
-    if (activeView === "ki-jobs") {
-      return <LabsSurface ids={["ai-job-history"]}><AiJobsScreen decks={state.decks} jobs={state.aiJobs} /></LabsSurface>;
-    }
     if (activeView === "einstellungen") {
       return (
         <SettingsScreen
@@ -1065,7 +933,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} showAssistant={productSurfaces.isAvailable("assistant-chat")} />;
+    return <DashboardScreen state={state} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} />;
   }
 
   if (authPhase === "checking-session") {
@@ -1089,8 +957,8 @@ export function App() {
         onResetPassword={handleResetPassword}
         onMagicLink={handleMagicLink}
         onGoogleSignIn={handleGoogleSignIn}
-        showMagicLink={productSurfaces.isAvailable("auth-magic-link")}
-        showGoogleSignIn={productSurfaces.isAvailable("auth-google")}
+        showMagicLink={magicLinkEnabled}
+        showGoogleSignIn={googleAuthEnabled}
         onUpdatePassword={handleUpdatePassword}
       />
     );
@@ -1161,34 +1029,6 @@ export function App() {
                 );
               })}
             </nav>
-
-            {labsNavigationItems.length > 0 ? (
-              <details className="mt-6 rounded-xl border border-[#dce2f4] bg-white/35 p-2" open={labsNavigationItems.some((view) => view.id === activeView) || undefined}>
-                <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm font-semibold text-[#66709a]">
-                  <FlaskConical size={17} aria-hidden="true" />
-                  Labs
-                  <span className="ml-auto text-xs font-medium">Experimentell</span>
-                </summary>
-                <nav aria-label="Labs" className="mt-1 grid gap-1">
-                  {labsNavigationItems.map((view) => {
-                    const NavIcon = getIcon(view.iconKey);
-                    const isActive = view.id === activeView;
-                    return (
-                      <button
-                        key={view.id}
-                        type="button"
-                        onClick={() => navigateToView(view.id)}
-                        className={`flex min-h-10 items-center gap-2 rounded-lg px-2 text-left text-sm transition ${isActive ? "bg-amber-50 text-amber-900" : "text-[#66709a] hover:bg-white/70"}`}
-                        aria-current={isActive ? "page" : undefined}
-                      >
-                        <NavIcon size={17} aria-hidden="true" />
-                        <span>{view.label}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </details>
-            ) : null}
 
             <div className="mt-5 border-t border-[#dce2f4] pt-5 md:mt-auto md:pt-6">
               <button

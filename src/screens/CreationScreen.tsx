@@ -3,19 +3,10 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import { createCreationWorkflow } from "../creationWorkflow.ts";
 import type { Deck } from "../coreTypes.ts";
-import type { ProductSurface } from "../productSurfaces.ts";
-import { createServerApkgImportClient } from "../serverApkgImport.ts";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
-import { AiDraftLabPanel } from "./AiDraftLabPanel.tsx";
 import { CreationHome, creationMethods } from "./CreationHome.tsx";
 import { ImportCreationPanel } from "./ImportCreationPanel.tsx";
 import { ManualCreationPanel } from "./ManualCreationPanel.tsx";
-
-const defaultAiDraftSurface: ProductSurface = {
-  id: "local-ai-drafts",
-  maturity: "labs",
-  mainNavigation: false,
-};
 
 type ManualCardInput = Parameters<CreationScreenProps["onAppendManualCard"]>[1];
 
@@ -28,8 +19,6 @@ export function CreationScreen({
   decks = [],
   mediaStore = null,
   persistImportedDecks = async () => undefined,
-  supabase,
-  supabaseUrl = "",
   initialMethod = "",
   initialTargetDeckId = "",
   completedDeckId = "",
@@ -41,26 +30,18 @@ export function CreationScreen({
   onSessionCompleted = () => undefined,
   onStartDeck = () => undefined,
   onReviewDeck = () => undefined,
-  onJob = () => undefined,
-  showAiDrafts = false,
-  aiDraftSurface = defaultAiDraftSurface,
-  enableServerApkgImport = false,
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number } | null>(null);
   const selectedMethod = initialMethod;
-  const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod && (method.id !== "ai" || showAiDrafts));
+  const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod);
   const completedDeck = decks.find((deck) => deck.id === (sessionCompletion?.deckId || completedDeckId)) ?? null;
   const completedCount = sessionCompletion?.createdCount
     ?? completedDeck?.cards.filter((card) => card.status !== "deleted").length
     ?? 0;
-  const serverApkgImport = React.useMemo(
-    () => enableServerApkgImport && supabase && supabaseUrl ? createServerApkgImportClient({ client: supabase, supabaseUrl }) : null,
-    [enableServerApkgImport, supabase, supabaseUrl],
-  );
   const accountWorkflow = React.useMemo(
-    () => createCreationWorkflow({ mediaStore: mediaStore ?? undefined, persistImportedDecks, serverApkgImport }),
-    [mediaStore, persistImportedDecks, serverApkgImport],
+    () => createCreationWorkflow({ mediaStore: mediaStore ?? undefined, persistImportedDecks }),
+    [mediaStore, persistImportedDecks],
   );
 
   function completeSession(deckId: string, createdCount: number) {
@@ -85,7 +66,6 @@ export function CreationScreen({
           }}
           workflow={accountWorkflow}
           mediaStore={mediaStore}
-          serverApkgEnabled={enableServerApkgImport}
         />
       );
     }
@@ -105,9 +85,6 @@ export function CreationScreen({
           onDraftStateChange={onDraftStateChange}
         />
       );
-    }
-    if (selectedMethod === "ai" && showAiDrafts) {
-      return <AiDraftLabPanel workflow={accountWorkflow} onCreated={onCreated} onJob={onJob} surface={aiDraftSurface} />;
     }
     return null;
   }
@@ -152,7 +129,7 @@ export function CreationScreen({
           {renderSelectedMethod()}
         </section>
       ) : (
-        <CreationHome showAiDrafts={showAiDrafts} onSelect={onMethodChange} />
+        <CreationHome onSelect={onMethodChange} />
       )}
     </div>
   );

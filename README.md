@@ -45,13 +45,13 @@ CoRe verändert deshalb nicht nur den Wiederholungszeitpunkt, sondern auch die F
     </td>
     <td width="50%" valign="top">
       <h3>✨ Mit Kontext erstellen</h3>
-      Karten entstehen manuell, aus Quellen oder als prüfbare KI-Entwürfe – mit Originalanker statt Blackbox.
+      Karten entstehen manuell oder aus unterstützten Importquellen – mit Originalanker statt Blackbox.
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
       <h3>🧪 Neue Zugänge erproben</h3>
-      Lernstatistik gehört zum Kern; Deck-Graph, Lernplan und Chat mit dem eigenen Stapel bleiben klar gekennzeichnete Experimente.
+      Lernstatistik, Stapelverwaltung und nachvollziehbare Varianten gehören zum fokussierten Kern.
     </td>
     <td width="50%" valign="top">
       <h3>🛡️ Persönliches bleibt persönlich</h3>
@@ -62,15 +62,15 @@ CoRe verändert deshalb nicht nur den Wiederholungszeitpunkt, sondern auch die F
 
 ## Mehr als ein hübscheres Karteikartensystem
 
-CoRe behandelt nicht die Karte, sondern den **Lerninhalt** als Zentrum. Jeder Inhalt besitzt genau eine Originalvariante. Umformulierungen, Cloze-Formen, Reverse-Karten und spätere KI-Varianten bleiben daran verankert – können aber ihren eigenen Lernstand und ihr eigenes Feedback tragen.
+CoRe behandelt nicht die Karte, sondern den **Lerninhalt** als Zentrum. Jeder Inhalt besitzt genau eine Originalvariante. Umformulierungen, Cloze-Formen und Reverse-Karten bleiben daran verankert – können aber ihren eigenen Lernstand und ihr eigenes Feedback tragen.
 
 So entsteht aus einem Stapel keine Sammlung isolierter Vorder- und Rückseiten, sondern ein wachsendes Netz aus Inhalt, Quelle, Varianten und persönlicher Lernerfahrung.
 
 ## Aktueller Stand
 
-CoRe ist ein **breiter, aktiv entwickelter Web-MVP**. Der künftige Beta-Kern konzentriert sich auf Account, Erstellen und Importieren, Kartenverwaltung, Lernen mit Content-Repetition, Statistik, Einstellungen und verlässliche accountgebundene Speicherung.
+CoRe ist ein **auf den Kartenlern-Kern reduzierter, aktiv entwickelter Web-MVP**. Der Beta-Kern konzentriert sich auf Account, Erstellen und Importieren, Kartenverwaltung, Lernen mit Content-Repetition, Statistik, Einstellungen und verlässliche accountgebundene Speicherung.
 
-Die vorhandenen Flächen sind noch nicht überall wahrheitsgemäß nach Reife getrennt. Deck-Graph, Lernplan, Deck-Assistent, lokale Community-Demo und weitere KI-Flows sind Labs; große serverseitige APKG-Importe, produktive Community-Rechte sowie nicht abgenommene Auth- und Account-Lifecycle-Funktionen bleiben bis zu eigenen Freigabegates deaktiviert. Die offene Stabilisierung und ihre Abnahme stehen in der [Roadmap](docs/todo.md).
+Labs-, KI-, Community- und Graph-Flächen sowie der serverseitige Groß-APKG-Pfad wurden entfernt. APKG wird bis einschließlich 250 MiB lokal verarbeitet; Google und Magic Link bleiben getrennt schaltbar. Die offene Stabilisierung und ihre Abnahme stehen in der [Roadmap](docs/todo.md).
 
 ## Gebaut mit
 

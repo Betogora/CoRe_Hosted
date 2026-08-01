@@ -1,13 +1,13 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-07-16
+**Stand:** 2026-08-01
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
 ## Gesamtbild
 
-CoRe ist ein breiter Web-MVP mit einem abgegrenzten Beta-Kern, Labs-Flächen und deaktivierten Ausbaupfaden. Vercel und Supabase sind angebunden. Der technische Unterbau für Account, Import, Review, Varianten, Cloud-Sync, Konflikte und APKG-Medien ist vorhanden; die manuelle Produkt-, Accessibility- und Hosted-Betriebsabnahme ist noch nicht vollständig.
+CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel und Supabase sind angebunden. Der technische Unterbau für Account, lokalen Import, Review, Varianten, Cloud-Sync, Konflikte und APKG-Medien ist vorhanden; die manuelle Produkt-, Accessibility- und Hosted-Betriebsabnahme ist noch nicht vollständig.
 
 ## Implementiert
 
@@ -27,7 +27,7 @@ CoRe ist ein breiter Web-MVP mit einem abgegrenzten Beta-Kern, Labs-Flächen und
 - Content-Repetition-Varianten mit genau einem Originalanker, Eligibility, Reife, Deaktivierung und kontrolliertem Fehlerfeedback.
 - Statistik, Sync-/Konfliktstatus und begrenzter JSON-Portabilitätsexport.
 - Lazy geladene Produktscreens, sicherer React-Fehlerfallback und sichtbare Release-Information.
-- Implementierte Serverendpunkte sind in [`architecture.md`](architecture.md#71-implementierte-endpunkte) aufgelistet.
+- Es werden keine eigenen CoRe-Serverendpunkte ausgeliefert.
 
 ## Reifestatus
 
@@ -35,13 +35,13 @@ CoRe ist ein breiter Web-MVP mit einem abgegrenzten Beta-Kern, Labs-Flächen und
 
 Account, Heute, Erstellen/Import, Lernen, Kartenstapelverwaltung, Statistik, Einstellungen, accountgebundene Persistenz und der freigegebene APKG-Pfad bilden den vorgesehenen Beta-Kern.
 
-### Labs
+### Entfernt
 
-Chat-your-Deck, Lernplan, lokaler deterministischer Entwurfsassistent, Deck-Graph, lokale Community-Demo, externer Varianten-JSON-Flow, AI-Job-Historie und erweiterte APKG-Diagnose sind experimentell und nicht Teil des Kernversprechens.
+Es gibt keine Labs-Oberflächen oder Labs-Routen. Die früheren Labs-Funktionen und ihre Persistenz wurden entfernt.
 
 ### Disabled
 
-Der APKG-Pfad über 250 MiB, nicht hosted abgenommene Google-/Magic-Link-Flows, echte Community-Rechte, produktive externe Karten-/Varianten-/Graph-Generierung, DOCX/OCR/Bildregionen sowie vollständige Account-Auskunft und -Löschung sind nicht freigegeben.
+APKG über 250 MiB wird ohne Serverfallback abgewiesen. Google und Magic Link bleiben separat konfigurierbar. DOCX/OCR/Bildregionen sowie vollständige Account-Auskunft und -Löschung sind nicht freigegeben.
 
 Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core-labs-und-disabled).
 
@@ -50,9 +50,8 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core
 - Das P0-Produktgate mit moderierten Tests, Zielviewports, Tastatur- und Screenreader-Abnahme ist offen.
 - Hosted-Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.
 - Das ausführbare Beta-Core-Gate und der minimale Monitoring-/Alarmvertrag sind vorhanden; realer Alarmempfang sowie getrennte DB-/Storage-Restore-Proben fehlen noch.
-- Vollständiger Offline-Kaltstart/PWA, Medienexport und Community-Sharing von Medien fehlen.
-- Der vorbereitete Großdatei-APKG-Pfad ist nicht hosted freigegeben.
-- Labs haben noch keine vollständigen Graduations- oder Rückbauentscheidungen.
+- Vollständiger Offline-Kaltstart/PWA und Medienexport fehlen.
+- Der irreversible Produktions-Daten- und Storage-Rückbau muss nach dem App-Deployment mit verifizierter CoRe-Projekt-Ref ausgeführt und protokolliert werden.
 
 ## Verifikation
 

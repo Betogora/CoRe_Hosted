@@ -2,61 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test as setup } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { replaceAccountCloudState } from "../../src/cloudRepository.ts";
-import { createCoreRepository } from "../../src/coreRepository.ts";
-import type { Deck } from "../../src/coreTypes.ts";
-import { hasSupabaseAuthStorage, readSyncDeviceId, sanitizeStorageState } from "./support/appState.ts";
+import { hasSupabaseAuthStorage, readSyncDeviceId, resetTestAccount, sanitizeStorageState } from "./support/appState.ts";
 import { e2eAuthStatePath, ensureLocalE2EAccount, loadE2EEnvironment } from "./support/e2eEnvironment.ts";
-
-function createE2ESeedState(email: string) {
-  const seedState = createCoreRepository(null, { seedDefaultDecks: true }).getState();
-  return {
-    ...seedState,
-    decks: seedState.decks.map((deck: Deck) => ({ ...deck, reviewEvents: [] })),
-    profile: {
-      ...seedState.profile,
-      email,
-      displayName: "CoRe E2E",
-      onboardingComplete: true,
-    },
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-async function resetTestAccount(environment: { supabaseUrl: any; publishableKey: any; email: any; password: any; }) {
-  const client = createClient(environment.supabaseUrl, environment.publishableKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-      detectSessionInUrl: false,
-    },
-  });
-
-  const { data, error } = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
-  if (error) throw new Error(`Der dedizierte E2E-Testaccount konnte nicht angemeldet werden: ${error.message}`);
-  if (!data.user) throw new Error("Der dedizierte E2E-Testaccount hat nach der Anmeldung keinen Nutzer.");
-
-  try {
-    const { data: mediaRows, error: mediaReadError } = await client.from("media_assets").select("storage_bucket, storage_path").eq("user_id", data.user.id);
-    if (mediaReadError) throw new Error(`E2E-Medienreferenzen konnten nicht gelesen werden: ${mediaReadError.message}`);
-    const { error: mediaDeleteError } = await client.from("media_assets").delete().eq("user_id", data.user.id);
-    if (mediaDeleteError) throw new Error(`E2E-Medienreferenzen konnten nicht zurückgesetzt werden: ${mediaDeleteError.message}`);
-    const pathsByBucket = new Map<string, Set<string>>();
-    for (const row of mediaRows ?? []) pathsByBucket.set(row.storage_bucket, new Set([...(pathsByBucket.get(row.storage_bucket) ?? []), row.storage_path]));
-    for (const [bucket, paths] of pathsByBucket) {
-      const { error: mediaObjectError } = await client.storage.from(bucket).remove([...paths]);
-      if (mediaObjectError) throw new Error(`E2E-Medienobjekte konnten nicht zurückgesetzt werden: ${mediaObjectError.message}`);
-    }
-    const { error: conflictCleanupError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
-    if (conflictCleanupError) throw new Error(`E2E-Synchronisierungskonflikte konnten nicht zurückgesetzt werden: ${conflictCleanupError.message}`);
-    const { error: deviceCleanupError } = await client.from("sync_devices").delete().eq("user_id", data.user.id);
-    if (deviceCleanupError) throw new Error(`Registrierte E2E-Geräte konnten nicht zurückgesetzt werden: ${deviceCleanupError.message}`);
-    await replaceAccountCloudState(client, createE2ESeedState(environment.email), { deviceId: "e2e-test-reset" });
-  } finally {
-    await client.auth.signOut({ scope: "local" }).catch(() => undefined);
-    client.auth.dispose?.();
-  }
-}
 
 async function readRegisteredDevices(environment: { supabaseUrl: any; publishableKey: any; email: any; password: any; }) {
   const client = createClient(environment.supabaseUrl, environment.publishableKey, {

@@ -32,11 +32,6 @@ async function storedCard(page: Page, deckId: string, cardId: string) {
   return state.decks?.find((deck: { id: string }) => deck.id === deckId)?.cards?.find((card: { id: string }) => card.id === cardId) ?? null;
 }
 
-async function storedDeckCountBySource(page: Page, source: string) {
-  const state = await readAppState(page);
-  return state.decks?.filter((deck: { source: any; }) => deck.source === source).length ?? 0;
-}
-
 async function findPdfAnchoredCard(page: Page) {
   const state = await readAppState(page);
   return state.decks?.flatMap((deck: { cards: any; }) => deck.cards ?? []).find((card: { originalFront: any; canonicalQuestion: any; }) => String(card.originalFront ?? card.canonicalQuestion ?? "").includes("Mitochondrien erzeugen ATP")) ?? null;
@@ -278,7 +273,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
-  await page.getByTestId("card-labs-tools").getByText("Labs / Erweitert").click();
+  await page.getByTestId("card-variant-tools").getByText("Varianten und Lernwerte").click();
   const variantsBefore = (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0;
   await page.getByLabel("Variantenfrage").fill("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?");
   await page.getByLabel("Variantenantwort").fill("Yamoussoukro");
@@ -329,12 +324,13 @@ test("card version restore shows a comparison, requires confirmation and appends
 
   await page.getByLabel("Karten-Vorderseite").fill("Welche Stadt ist die Hauptstadt der Côte d'Ivoire?");
   await page.getByRole("button", { name: "Speichern" }).click();
-  await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, resolvedCardId))?.originalFront).toBe("Welche Stadt ist die Hauptstadt der Côte d'Ivoire?");
+  await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, resolvedCardId))?.originalFront).toBe("<p>Welche Stadt ist die Hauptstadt der Côte d'Ivoire?</p>");
 
+  await page.locator("summary").filter({ hasText: "Details, Herkunft und Versionen" }).click();
   const versionSelect = page.getByLabel("Version zum Wiederherstellen");
   const versionId = await versionSelect.locator("option").nth(1).getAttribute("value");
   await versionSelect.selectOption(versionId ?? "");
-  await expect(page.getByTestId("version-restore-summary")).toContainText("Aktuell: Welche Stadt ist die Hauptstadt der Côte d'Ivoire?");
+  await expect(page.getByTestId("version-restore-summary")).toContainText("Aktuell: <p>Welche Stadt ist die Hauptstadt der Côte d'Ivoire?</p>");
   await expect(page.getByTestId("version-restore-summary")).toContainText("Nach Restore: Was ist die Hauptstadt von Côte d'Ivoire?");
   await page.getByRole("button", { name: "Restore bestätigen" }).click();
   await expect(page.getByRole("group", { name: "Restore endgültig bestätigen" })).toBeVisible();
@@ -344,21 +340,6 @@ test("card version restore shows a comparison, requires confirmation and appends
   const restoredCard = await storedCard(page, DECK_IDS.africa, resolvedCardId);
   expect(restoredCard.versionLog).toHaveLength(originalVersionCount + 2);
   expect(restoredCard.versionLog.at(-1)?.changeType).toBe("version_restored");
-});
-
-test("ai draft creation stores an accepted draft deck", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-  const aiDecksBefore = await storedDeckCountBySource(page, "ai-assisted");
-
-  await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /Lokaler Entwurfsassistent/ }).click();
-  await expect(page.getByLabel("Labs-Hinweis")).toContainText("kein externes Modell");
-  await page.getByLabel("Quellentext für lokale Entwürfe").fill("ATP speichert Energie in der Zelle. Mitochondrien stellen ATP durch Zellatmung bereit.");
-  await page.getByLabel("Fach").fill("Biologie");
-  await page.getByRole("button", { name: "Entwürfe erstellen" }).click();
-  await expect(page.getByRole("status").filter({ hasText: /Entwurf|Entwürfe|Karten/ })).toBeVisible();
-  await page.getByRole("button", { name: /Übernehmen/ }).click();
-  await expect.poll(() => storedDeckCountBySource(page, "ai-assisted")).toBeGreaterThan(aiDecksBefore);
 });
 
 test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-core @hosted-core Quellenanker und Kartenänderung bleiben im Review erhalten", async ({ page }: any) => {
@@ -420,49 +401,13 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await expect.poll(() => deckReviewEventCount(page, createdDeck.id)).toBe(reviewsBefore + 1);
 });
 
-test("assistant smoke returns a server answer through the hidden dashboard entry", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-
-  await mainMenu(page).getByRole("button", { name: "Heute" }).click();
-  await page.route("**/api/ai/chat", async (route: any) => {
-    const headers = route.request().headers();
-    expect(headers.authorization).toMatch(/^Bearer\s+\S+$/);
-    expect(headers["idempotency-key"]).toMatch(/^[0-9a-f-]{36}$/i);
-    const body = route.request().postDataJSON();
-    expect(body).toEqual({
-      question: "Was ist die Hauptstadt von Algerien?",
-      evidence: [],
-      sourceBound: false,
-    });
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        answer: "Gemma: Algier ist die Hauptstadt von Algerien.",
-        model: "gemma-4-31b-it",
-        provider: "google",
-      }),
-    });
-  }, { times: 1 });
-  await page.getByRole("button", { name: "Assistent öffnen" }).click();
-  await expect(page.getByRole("heading", { name: "Externe KI-Nutzung bestätigen" })).toBeVisible();
-  await page.getByLabel(/Ich bin mindestens 18 Jahre alt/).check();
-  await page.getByRole("button", { name: "KI-Nutzung bestätigen" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "KI-Nutzung bestätigt." })).toBeVisible();
-  await page.getByLabel("Frage an deine Karten").fill("Was ist die Hauptstadt von Algerien?");
-  await expect(page.getByLabel("Nur mit Kartenquellen antworten")).not.toBeChecked();
-  await page.getByRole("button", { name: "Antwort erstellen" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "KI-Antwort erstellt." })).toBeVisible();
-  await expect(page.getByText("Gemma: Algier ist die Hauptstadt von Algerien.")).toBeVisible();
-});
-
 test("@beta-core @hosted-core local portability export and import expose status and validation errors", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
   await expect(page.getByText("Medienbytes", { exact: true })).toBeVisible();
   await expect(page.getByText("Authdaten", { exact: true })).toBeVisible();
-  await expect(page.getByText("Community- oder Serverrechte", { exact: true })).toBeVisible();
+  await expect(page.getByText("serverseitige Sicherungskopien", { exact: true })).toBeVisible();
   await expect(page.getByText("vollständiges DSGVO-Auskunftspaket nach Art. 15", { exact: true })).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export herunterladen" }).click();

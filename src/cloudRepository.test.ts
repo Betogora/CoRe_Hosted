@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createProfileRow } from "./cloudAuth.ts";
+import type { ReviewEvent } from "./coreTypes.ts";
 import { createBasicLearningItem, createCoreDeck, createLearningItemFromEditorValue, createSourceDocument, getCardEditorValue, getOriginalVariant, saveCardEditorValue } from "./coreModel.ts";
 import {
   ACCOUNT_UPSERT_CONFLICT,
   applyCardMutation,
   applyDeckMutation,
-  aiJobToCloudRow,
   appendReviewEvent,
   cardToCloudRow,
   CloudRevisionConflictError,
@@ -31,7 +31,7 @@ function clone(value: any[]) {
 
 function createMemorySupabaseClient(initialTables = {}, user = { id: "user-1", email: "user@example.test" }, { fail }: any = {}) {
   const tables = Object.fromEntries(
-    ["profiles", "decks", "cards", "card_variants", "review_events", "source_documents", "ai_jobs", "media_assets", "sync_devices", "sync_conflicts"].map(
+    ["profiles", "decks", "cards", "card_variants", "review_events", "source_documents", "media_assets", "sync_devices", "sync_conflicts"].map(
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
       (table) => [table, clone(initialTables[table] ?? [])],
     ),
@@ -303,29 +303,23 @@ function createCloudFixture() {
     updatedByDeviceId: "device-a",
   });
   card.variants = card.variants.map((variant) => ({ ...variant, revision: 2, updatedByDeviceId: "device-a" }));
-  const reviewEvent = {
+  const reviewEvent: ReviewEvent = {
     id: "review-1",
+    userId: "user-1",
     deckId: "deck-1",
+    learningItemId: card.id,
+    variantId: null,
     reviewableType: "card",
     reviewableId: card.id,
     sourceCardId: card.id,
     rating: "good",
     answeredAt: timestamp,
+    responseTimeMs: null,
+    schedulerBefore: {},
+    schedulerAfter: {},
+    flags: {},
     createdAt: timestamp,
     createdByDeviceId: "device-a",
-  };
-  const aiJob = {
-    id: "job-1",
-    deckId: "deck-1",
-    jobType: "card_generation",
-    status: "succeeded",
-    inputRef: {},
-    policy: {},
-    resultRef: {},
-    createdAt: timestamp,
-    finishedAt: timestamp,
-    revision: 2,
-    updatedByDeviceId: "device-a",
   };
   const deck = createCoreDeck({
     id: "deck-1",
@@ -333,10 +327,7 @@ function createCloudFixture() {
     source: "manual",
     cards: [card],
     sourceDocuments: [document],
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
     reviewEvents: [reviewEvent],
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-    aiJobs: [aiJob],
     createdAt: timestamp,
     updatedAt: timestamp,
     revision: 3,
@@ -351,35 +342,11 @@ function createCloudFixture() {
     preferredLanguage: "de",
     timezone: "Europe/Berlin",
     onboardingComplete: true,
-    privacy: {},
     schedulerPreferences: { profile: "standard" },
   };
-  const state = { version: 2, profile, decks: [deck], documents: [document], aiJobs: [aiJob], cloudTombstones: [] };
+  const state = { version: 3, profile, decks: [deck], documents: [document], cloudTombstones: [] };
   const user = { id: "user-1", email: profile.email, created_at: timestamp };
-  const rows = { ...createCloudStateRows(state, user.id, { deviceId: "device-a" }), ai_jobs: [] as any[] };
-  rows.ai_jobs = [{
-    ...aiJobToCloudRow(aiJob, user.id, new Set([deck.id])),
-    contract_version: 1,
-    prompt_version: "prompt-v1",
-    schema_version: "response-v1",
-    idempotency_key: "11111111-1111-4111-8111-111111111111",
-    request_fingerprint: "fingerprint",
-    attempt_count: 1,
-    max_attempts: 3,
-    retryable: false,
-    next_retry_at: null,
-    provider: "google",
-    model: "gemma-4-31b-it",
-    error_class: null,
-    error_code: null,
-    input_tokens: 10,
-    output_tokens: null,
-    total_tokens: 10,
-    pricing_version: "google-gemini-api-2026-07-09",
-    cost_micros: 0,
-    cost_currency: "USD",
-    updated_at: timestamp,
-  }];
+  const rows = createCloudStateRows(state, user.id, { deviceId: "device-a" });
   return {
     state,
     user,
@@ -495,8 +462,8 @@ test("cloud repository scopes identical local ids by account", () => {
     cards: [createBasicLearningItem("same_local_deck_id", "Front", "Back", { id: "same_local_card_id" })],
   });
 
-  const rowsA = createCloudStateRows({ decks: [deck], documents: [], aiJobs: [] }, "user-a");
-  const rowsB = createCloudStateRows({ decks: [deck], documents: [], aiJobs: [] }, "user-b");
+  const rowsA = createCloudStateRows({ decks: [deck], documents: [] }, "user-a");
+  const rowsB = createCloudStateRows({ decks: [deck], documents: [] }, "user-b");
 
   assert.equal(ACCOUNT_UPSERT_CONFLICT, "user_id,id");
   assert.equal(rowsA.decks[0].id, rowsB.decks[0].id);
@@ -617,9 +584,6 @@ test("cloud repository roundtrips sync metadata and media references", async () 
   assert.equal(variant.revision, 2);
   assert.equal(deck.reviewEvents[0].createdByDeviceId, "device-a");
   assert.equal(loaded.documents[0].revision, 2);
-  assert.equal(loaded.aiJobs[0].revision, 2);
-  assert.equal(loaded.aiJobs[0].contractVersion, 1);
-  assert.equal(loaded.aiJobs[0].outputTokens, null);
 });
 
 test("cloud repository preserves versioned Anki import identities in card and variant JSONB", async () => {
@@ -663,38 +627,6 @@ test("cloud repository preserves versioned Anki import identities in card and va
   assert.deepEqual(loaded.decks[0].cards[0].meta.ankiImportIdentityV1, identity);
   assert.equal(loaded.decks[0].cards[0].variants[0].meta.ankiImportIdentityV1.cardId, "84");
   assert.equal(loaded.decks[0].cards[0].variants[0].meta.ankiImportIdentityV1.templateOrdinal, 1);
-});
-
-test("cloud repository reads server jobs, preserves local legacy jobs and never mutates the ledger", async () => {
-  const fixture = createCloudFixture();
-  const legacyJob = {
-    ...fixture.state.aiJobs[0],
-    id: "local-legacy-job",
-    contractVersion: 0,
-    status: "succeeded",
-  };
-  const state = {
-    ...fixture.state,
-    aiJobs: [legacyJob],
-    decks: fixture.state.decks.map((deck: any) => ({ ...deck, aiJobs: [legacyJob] })),
-  };
-  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
-  const originalServerRows = clone(client.tables.ai_jobs);
-
-  const loaded = await loadAccountCloudState(client, state);
-  assert.deepEqual(new Set(loaded.aiJobs.map((job: any) => job.id)), new Set(["local-legacy-job", "job-1"]));
-
-  await upsertAccountCloudState(client, state, {
-    deviceId: "device-b",
-    mutationIds: ["state-ai-read-only"],
-    flushedAt: "2026-07-14T10:00:00.000Z",
-  });
-  await replaceAccountCloudState(client, { ...state, aiJobs: [], decks: [] }, { deviceId: "device-reset" });
-
-  const ledgerWrites = client.calls.filter((call: any) =>
-    call.table === "ai_jobs" && ["insert", "upsert", "update", "delete"].includes(call.operation));
-  assert.deepEqual(ledgerWrites, []);
-  assert.deepEqual(client.tables.ai_jobs, originalServerRows);
 });
 
 test("cloud repository validates and assigns account media to the owning deck and card", async () => {
@@ -868,7 +800,6 @@ test("cloud load hides soft-deleted rows and preserves minimal tombstones", asyn
   rows.cards.push({ ...rows.cards[0], id: "card-deleted", deleted_at: deletedAt, revision: 6 });
   rows.card_variants.push({ ...rows.card_variants[0], id: "variant-deleted", deleted_at: deletedAt, revision: 5 });
   rows.source_documents.push({ ...rows.source_documents[0], id: "doc-deleted", deleted_at: deletedAt, revision: 4 });
-  rows.ai_jobs.push({ ...rows.ai_jobs[0], id: "job-deleted", deleted_at: deletedAt, revision: 3 });
   rows.cards.push({ ...rows.cards[0], id: "orphan-card", deck_id: "missing-deck" });
   const client = createMemorySupabaseClient(rows, fixture.user);
 
@@ -877,7 +808,6 @@ test("cloud load hides soft-deleted rows and preserves minimal tombstones", asyn
   assert.deepEqual(loaded.decks.map((deck: { id: any; }) => deck.id), ["deck-1"]);
   assert.equal(loaded.decks[0].cards.some((card: { id: string; }) => card.id === "card-deleted" || card.id === "orphan-card"), false);
   assert.equal(loaded.documents.some((document: { id: string; }) => document.id === "doc-deleted"), false);
-  assert.equal(loaded.aiJobs.some((job: { id: string; }) => job.id === "job-deleted"), false);
   assert.deepEqual(
     new Set(loaded.cloudTombstones.map((tombstone: { entityTable: any; }) => tombstone.entityTable)),
     new Set(["decks", "cards", "card_variants", "source_documents"]),
@@ -961,7 +891,7 @@ test("matching revisions update only changed rows and acknowledge the next revis
     mutationIds: ["state-mutation-1"],
     flushedAt: "2026-07-10T12:00:00.000Z",
   });
-  const entityWrites = client.calls.filter((call) => ["decks", "cards", "card_variants", "source_documents", "ai_jobs"].includes(call.table) && call.operation === "update");
+  const entityWrites = client.calls.filter((call) => ["decks", "cards", "card_variants", "source_documents"].includes(call.table) && call.operation === "update");
 
   assert.equal(entityWrites.length, 1);
   assert.equal(entityWrites[0].table, "decks");
@@ -985,7 +915,6 @@ test("concrete deck and card mutations insert, compare-and-set and replay idempo
   rows.cards = [];
   rows.card_variants = [];
   rows.review_events = [];
-  rows.ai_jobs = [];
   const client = createMemorySupabaseClient(rows, fixture.user);
   const deck = { ...fixture.state.decks[0], revision: 1, cards: [] };
 
@@ -1257,7 +1186,7 @@ test("explicit full replace tombstones media parents without deleting their refe
   const rows: any = JSON.parse(JSON.stringify(fixture.rows));
   rows.media_assets = [mediaRow];
   const client = createMemorySupabaseClient(rows, fixture.user);
-  const emptyState = { ...fixture.state, decks: [], documents: [], aiJobs: [] };
+  const emptyState = { ...fixture.state, decks: [], documents: [] };
 
   await replaceAccountCloudState(client, emptyState, { deviceId: "device-reset" });
 

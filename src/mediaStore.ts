@@ -241,12 +241,18 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     const retry = async () => {
       if (stopped || (typeof navigator !== "undefined" && navigator.onLine === false)) return;
       try {
-        const queuedDeckIds = new Set([...sessionQueue.values()].filter((item) => item.userId === userId).map((item) => item.deckId));
+        const activeDeckIds = new Set(getDecks().map((deck) => deck.id));
+        const queuedDeckIds = new Set<string>();
+        for (const [id, item] of sessionQueue) {
+          if (item.userId !== userId) continue;
+          if (activeDeckIds.has(item.deckId)) queuedDeckIds.add(item.deckId);
+          else sessionQueue.delete(id);
+        }
         const db = await openDatabase(databaseApi).catch(() => null);
         if (db) {
           for (const candidate of await getAllByIndex<unknown>(db, QUEUE_STORE, "userId", userId)) {
             const parsed = v.safeParse(queueRecordSchema, candidate);
-            if (parsed.success) queuedDeckIds.add(parsed.output.deckId);
+            if (parsed.success && activeDeckIds.has(parsed.output.deckId)) queuedDeckIds.add(parsed.output.deckId);
             else if (candidate && typeof candidate === "object" && "id" in candidate) await remove(db, QUEUE_STORE, String(candidate.id));
           }
           db.close();

@@ -1,13 +1,13 @@
 # CoRe-Architektur und Invarianten
 
 **Rolle:** einzige kanonische Quelle für aktuelle Architektur, Modulgrenzen, technische Invarianten sowie die Trennung von Ist- und Zielmodell.
-**Stand:** 2026-07-16
+**Stand:** 2026-08-01
 
 Produktverhalten steht in [`specs.md`](specs.md), der verifizierte Ist-Stand in [`status.md`](status.md), Betrieb in [`operations.md`](operations.md) und offene Arbeit in [`todo.md`](todo.md).
 
 ## 1. Systemkontext
 
-CoRe ist eine Vite-/React-Anwendung mit TypeScript. Der Browser nutzt Supabase Auth, Postgres und Storage über accountgebundene Module. Vercel liefert die SPA und die wenigen implementierten `/api/*`-Routen aus. Provider-Secrets bleiben ausschließlich auf dem Server.
+CoRe ist eine Vite-/React-Anwendung mit TypeScript. Der Browser nutzt Supabase Auth, Postgres und Storage über accountgebundene Module. Vercel liefert die SPA aus; CoRe besitzt derzeit keine eigenen Server-API-Routen.
 
 ```text
 React-Screens
@@ -16,10 +16,6 @@ React-Screens
   -> lokaler accountgebundener Cache
   -> Supabase Auth/Postgres/Storage mit RLS
 
-Browser
-  -> /api/ai/chat
-  -> /api/imports/apkg
-  -> serverseitige Secrets beziehungsweise Service-Role-Grenzen
 ```
 
 Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Architektur. Konkrete Module bleiben erlaubt, solange nur ein realer Anbieterpfad existiert.
@@ -44,7 +40,6 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | `src/cloudMediaStore.ts` | Supabase Storage, Signed URLs und TUS |
 | `src/reviewService.ts` | Auswahl, Bewertung und Projektion des Review-Flows |
 | `src/coreVariantService.ts` | Eligibility, Reife, Variantenplanung und Fallback |
-| `src/aiChatContract.ts` | Validierung des Browser-/Serververtrags für Chat |
 | `src/cloudRepositoryValidation.ts` | Validierung externer Cloud-Rows und JSONB-Payloads |
 
 React-Caller kennen keine APKG-, SQLite-, Storage-, RLS-, Scheduler-, Provider- oder Persistenzdetails.
@@ -75,11 +70,11 @@ Aufklappzustände, Tastaturfokus, lokale Suche, Dialoge und ungespeicherte Entw�
 - Cloze-Speichern erhält passende Variantenidentitäten, erzeugt neue Lückengruppen und deaktiviert entfernte Gruppen.
 - Importierte Rohfelder bleiben read-only und werden beim typgerechten Speichern nicht ersetzt.
 - Reimport überschreibt keine lokal bearbeiteten typgerechten Inhalte. Er darf Importmetadaten und Medienreferenzen aktualisieren.
-- Review Events sind append-only und accountgebunden. Community- oder geteilte Inhalte enthalten keine privaten Reviewdaten.
+- Review Events sind append-only und accountgebunden. Stapel sind implizit privat.
 - Parserfehler eines aktiven APKG-Workers bleiben sichtbar; es gibt keinen stillen Direktparser-Retry.
 - Fremdpayloads bleiben `unknown`, bis das besitzende Modul sie validiert oder normalisiert.
 - RLS ist auf nutzerdatenhaltenden Tabellen aktiv. Ownership entsteht nicht aus veränderbaren User-Metadaten.
-- Secrets erscheinen weder in `VITE_*`, Browsercode, `localStorage`, Exporten noch Logs.
+- Service-Secrets erscheinen weder in `VITE_*`, Browsercode, `localStorage`, Exporten noch Logs.
 
 ## 4. Heutiges Compatibility-Modell
 
@@ -90,7 +85,7 @@ Das implementierte Modell verwendet aus Kompatibilitätsgründen weiterhin diese
 - Die Supabase-Tabelle `cards` persistiert Learning Items.
 - Bestehende Scheduler- und Importfelder bleiben in ihren aktuellen kompatiblen Formen erhalten.
 
-Neue manuelle, Import- und KI-Pfade verwenden trotzdem die Learning-Item-Helfer aus `src/coreModel.ts`. Eine Umbenennung von `cards` zu `learning_items` wäre eine koordinierte Migration; parallele Collections oder Dual-Read/-Write-Pfade sind nicht zulässig.
+Neue manuelle und Importpfade verwenden die Learning-Item-Helfer aus `src/coreModel.ts`. Eine Umbenennung von `cards` zu `learning_items` wäre eine koordinierte Migration; parallele Collections oder Dual-Read/-Write-Pfade sind nicht zulässig.
 
 ## 5. Zielmodell
 
@@ -101,7 +96,6 @@ Das fachliche Zielmodell trennt:
 - `Review State`: nutzerbezogener Schedulingzustand pro reviewbarer Einheit;
 - `Review Event`: unveränderliches Bewertungsereignis;
 - `Source Document` und `Source Anchor`: Quelle und stabile Fundstelle;
-- `Shared Deck Reference`: geteilte Inhalte ohne private Lernmetriken.
 
 Dieses Zielmodell beschreibt die gewünschte fachliche Richtung, nicht bereits vorhandene Tabellennamen. Das Compatibility-Modell aus Abschnitt 4 bleibt die einzige Aussage über den aktuellen Persistenzvertrag.
 
@@ -121,11 +115,7 @@ Schemaanker, Migrationen, Policies und Verify-SQL unter `supabase/` sind die aus
 
 ### 7.1 Implementierte Endpunkte
 
-| Methode und Pfad | Zweck | Grenze |
-| --- | --- | --- |
-| `POST /api/ai/chat` | Freie oder quellengebundene Chat-Antwort | Supabase-Bearer, Einwilligung, Idempotenz, Rate Limit, serverseitiger Provider-Key |
-| `GET /api/imports/apkg?jobId=…` | Owner-geprüfte Projektion eines serverseitigen APKG-Auftrags | Bearer, Ownership, sanitisiertes Ergebnis |
-| `POST /api/imports/apkg` | APKG-Aktionen `create`, `enqueue-analysis`, `prepare-commit`, `finalize`, `retry`, `cancel` | Same-Origin, Bearer, Ownership, Zustands- und Revisionsprüfung |
+Es gibt derzeit keine CoRe-Serverendpunkte. Insbesondere `/api/ai/*` und `/api/imports/apkg` sind entfernt und liefern im Deployment `404`.
 
 Browserzugriffe auf Produktdaten erfolgen ansonsten direkt über die gekapselten Supabase-Repository-Module und RLS; sie sind keine CoRe-REST-Endpunkte.
 
@@ -134,8 +124,7 @@ Browserzugriffe auf Produktdaten erfolgen ansonsten direkt über die gekapselten
 Folgende Ressourcen sind Zielskizzen und dürfen nicht als verfügbar vorausgesetzt werden:
 
 - `/api/decks`, `/api/learning-items` und `/api/review/session`;
-- Karten- und Variantengenerierungsjobs unter `/api/ai/*`;
-- Dokument-, Community- und Graph-Endpunkte;
+- Dokumentendpunkte;
 - serverseitiger Art.-15-Export und Account-Löschworkflow.
 
 Neue Endpunkte brauchen einen expliziten Roadmap-Auftrag, Laufzeitvalidierung, Auth-/RLS-Grenzen und Tests. Frühere Beispiele mit `/api/cards` sind keine implementierte Compatibility-API.
@@ -144,11 +133,11 @@ Neue Endpunkte brauchen einen expliziten Roadmap-Auftrag, Laufzeitvalidierung, A
 
 - APKG-Vorschau und Commit verwenden dieselbe Normalisierung.
 - Jeder sichtbare Importmodus besitzt eine eigene UI-Session. Ein Formatwechsel remountet diese Session und entfernt Vorschau, Commitfähigkeit, Fehler und Fortschritt des vorherigen Modus.
-- `src/importUiState.ts` projiziert die gemeinsamen sichtbaren Phasen; APKG-Worker, Serverprotokoll, ZIP/SQLite, Reimport und Medienqueue bleiben in ihren bestehenden Eigentümermodulen.
-- Dateien bis einschließlich 250 MiB laufen im Browser-Worker. Der vorbereitete Pfad darüber bleibt bis zur Hosted-Abnahme deaktiviert.
+- `src/importUiState.ts` projiziert die gemeinsamen sichtbaren Phasen; APKG-Worker, ZIP/SQLite, Reimport und Medienqueue bleiben in ihren bestehenden Eigentümermodulen.
+- Dateien bis einschließlich 250 MiB laufen im Browser-Worker. Größere Dateien werden ohne Upload oder Serverfallback abgewiesen.
 - Importidentität bevorzugt stabile Anki-IDs vor Fingerprints.
 - Unknown Note Types bleiben als sichere Rohprojektion erhalten; beliebige Anki-Templates werden nicht ausgeführt.
-- Der Hauptbericht zeigt nutzerrelevante Ergebnisse, technische IDs nur in der Diagnose.
+- Der Hauptbericht zeigt nutzerrelevante Ergebnisse; Notetype-IDs, SHA-1-Listen und Importidentitäten werden nicht dargestellt.
 
 Die Detailanalyse des Anki-Formats steht in [`anki-format-analysis.md`](anki-format-analysis.md).
 

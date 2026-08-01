@@ -16,8 +16,6 @@ const DECK_IDS = {
   target: "batch-target",
 };
 const QUALITY_APKG_FIXTURE = path.join(process.cwd(), "fixtures", "apkg", "import-quality-latest.apkg");
-const SERVER_JOB_ID = "11111111-1111-4111-8111-111111111111";
-const LAST_SERVER_JOB_KEY = "core.apkgImport.lastJobId";
 
 function card(deckId: string, front: string, back: string) {
   return createLearningItemFromEditorValue(deckId, { cardType: "basic", front, back, tags: [] });
@@ -84,9 +82,8 @@ async function openManualCreation(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await seedAccount();
-  await resetToFreshLocalState(page);
+  await resetToFreshLocalState(page, { resetCloud: false });
 });
-
 test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten bleiben in einer sicheren Session", async ({ page }) => {
   await openManualCreation(page);
   const targetSelect = page.getByLabel("Kartenstapel");
@@ -116,7 +113,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
     await expect(page.getByText(`Batch-Frage ${index}`, { exact: true })).toBeVisible();
   }
 
-  await resetToFreshLocalState(page);
+  await resetToFreshLocalState(page, { resetCloud: false });
   await openManualCreation(page);
   await targetSelect.selectOption(DECK_IDS.target);
   await page.getByRole("button", { name: /Vorderseite: Nach Speichern leeren/ }).click();
@@ -228,40 +225,4 @@ test("[Vertrag: partieller Importabschluss] @beta-core Karten bleiben nach Medie
   await expect(page.getByText(/Import teilweise abgeschlossen/)).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("button", { name: "Medien-Sync fortsetzen" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Karten jetzt verwenden" })).toBeVisible();
-});
-
-test("[Vertrag: retryable und abgebrochener Serverimport] passende Folgeaktionen bleiben getrennt", async ({ page }) => {
-  test.skip(process.env.CORE_TEST_SERVER_APKG_TERMINALS !== "true", "Der fokussierte Smoke aktiviert den sonst deaktivierten Serverimport ausdrücklich.");
-  let terminalStatus: "failed" | "cancelled" = "failed";
-  await page.route("**/api/imports/apkg?jobId=*", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        jobId: SERVER_JOB_ID,
-        status: terminalStatus,
-        phase: terminalStatus === "failed" ? "validate" : "cleanup",
-        revision: 2,
-        completed: 1,
-        total: 1,
-        retryable: terminalStatus === "failed",
-        report: { errors: [terminalStatus === "failed" ? "Temporärer Importfehler." : "Import abgebrochen."] },
-      }),
-    });
-  });
-
-  async function openResumedImport() {
-    await page.evaluate(({ key, jobId }) => localStorage.setItem(key, jobId), { key: LAST_SERVER_JOB_KEY, jobId: SERVER_JOB_ID });
-    await page.reload();
-    await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-    await page.getByRole("button", { name: /APKG, Text, Tabellen/ }).click();
-  }
-
-  await openResumedImport();
-  await expect(page.getByRole("button", { name: "Erneut versuchen" })).toBeVisible();
-
-  terminalStatus = "cancelled";
-  await openResumedImport();
-  await expect(page.getByText(/Import abgebrochen/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Andere Datei auswählen" })).toBeVisible();
 });

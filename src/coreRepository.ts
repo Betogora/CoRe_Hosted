@@ -3,7 +3,9 @@ import { createDefaultDeckSettings, normalizeCoreDeck } from "./coreModel.ts";
 import { createWorldCapitalsSeedDecks, ensureWorldCapitalsStudyHistory } from "./fixtures/worldCapitals.ts";
 
 const LEGACY_DECKS_KEY = "core.importedDecks.v1";
-const APP_STATE_KEY = "core.appState.v2";
+const LEGACY_APP_STATE_KEY = "core.appState.v2";
+const APP_STATE_KEY = "core.appState.v3";
+const RETIRED_DECK_SOURCES = new Set(["ai-assisted", "community"]);
 
 let memoryState: any = null;
 
@@ -12,12 +14,8 @@ const appStateStorageSchema = v.looseObject({
   version: v.optional(v.number()),
   profile: v.optional(v.nullable(v.unknown())),
   decks: v.array(storedDeckSchema),
-  communities: v.optional(v.array(v.unknown())),
-  aiJobs: v.optional(v.array(v.unknown())),
   documents: v.optional(v.array(v.unknown())),
   cloudTombstones: v.optional(v.array(v.unknown())),
-  chatTranscript: v.optional(v.array(v.unknown())),
-  learningPlans: v.optional(v.array(v.unknown())),
 });
 
 function createDefaultProfile() {
@@ -30,12 +28,6 @@ function createDefaultProfile() {
     preferredLanguage: "de",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Berlin",
     onboardingComplete: false,
-    privacy: {
-      shareLearningProgress: false,
-      showOnlineStatus: false,
-      showStreaksToOthers: false,
-      aiChatConsent: null,
-    },
     schedulerPreferences: {
       profile: "standard",
     },
@@ -44,15 +36,11 @@ function createDefaultProfile() {
 
 function createDefaultState({ seedDefaultDecks = false }: any = {}) {
   return {
-    version: 2,
+    version: 3,
     profile: createDefaultProfile(),
     decks: seedDefaultDecks ? createWorldCapitalsSeedDecks() : [],
-    communities: [],
-    aiJobs: [],
     documents: [],
     cloudTombstones: [],
-    chatTranscript: [],
-    learningPlans: [],
     updatedAt: new Date().toISOString(),
   };
 }
@@ -88,40 +76,62 @@ function parseJson(value: any, fallback: any) {
 }
 
 function normalizeStoredDecks(decks: any) {
-  return Array.isArray(decks) ? decks.map((deck: any) => normalizeCoreDeck(deck)) : [];
+  if (!Array.isArray(decks)) return [];
+  return decks
+    .filter((deck: any) => !RETIRED_DECK_SOURCES.has(deck?.source))
+    .map((deck: any) => normalizeCoreDeck({
+      ...deck,
+      cards: Array.isArray(deck?.cards)
+        ? deck.cards.filter((card: any) => !RETIRED_DECK_SOURCES.has(card?.source) && card?.sourceType !== "ai_generated")
+        : [],
+    }));
 }
 
 function normalizeState(rawState: any) {
   const fallback = createDefaultState({ seedDefaultDecks: false });
   const decks = ensureWorldCapitalsStudyHistory(normalizeStoredDecks(rawState?.decks));
 
+  const { privacy: _privacy, ...profile } = rawState?.profile ?? {};
   return {
-    ...fallback,
-    ...rawState,
-    version: 2,
+    version: 3,
     profile: {
       ...fallback.profile,
-      ...(rawState?.profile ?? {}),
-      privacy: {
-        ...fallback.profile.privacy,
-        ...(rawState?.profile?.privacy ?? {}),
-      },
+      ...profile,
     },
     decks,
-    communities: Array.isArray(rawState?.communities) ? rawState.communities : [],
-    aiJobs: Array.isArray(rawState?.aiJobs) ? rawState.aiJobs : [],
     documents: Array.isArray(rawState?.documents) ? rawState.documents : [],
     cloudTombstones: Array.isArray(rawState?.cloudTombstones) ? rawState.cloudTombstones : [],
-    chatTranscript: Array.isArray(rawState?.chatTranscript) ? rawState.chatTranscript : [],
-    learningPlans: Array.isArray(rawState?.learningPlans) ? rawState.learningPlans : [],
+    updatedAt: typeof rawState?.updatedAt === "string" ? rawState.updatedAt : fallback.updatedAt,
   };
+}
+
+function hasRetiredState(rawState: any) {
+  if (!rawState || typeof rawState !== "object") return false;
+  if (rawState.version !== 3 || ["communities", "aiJobs", "chatTranscript", "learningPlans"].some((key) => key in rawState)) return true;
+  if (rawState.profile && typeof rawState.profile === "object" && "privacy" in rawState.profile) return true;
+  return (rawState.decks ?? []).some((deck: any) =>
+    RETIRED_DECK_SOURCES.has(deck?.source)
+    || ["aiJobs", "graph", "communityRefs", "visibility"].some((key) => key in (deck ?? {}))
+    || (deck?.cards ?? []).some((card: any) => RETIRED_DECK_SOURCES.has(card?.source) || card?.sourceType === "ai_generated"),
+  );
 }
 
 function readState(storage: any, options: any = {}) {
   const current = parseJson(storage.getItem(APP_STATE_KEY), null);
   const currentResult = v.safeParse(appStateStorageSchema, current);
   if (currentResult.success) {
-    return normalizeState(currentResult.output);
+    const normalized = normalizeState(currentResult.output);
+    if (hasRetiredState(currentResult.output)) writeState(storage, normalized);
+    return normalized;
+  }
+
+  const legacyState = parseJson(storage.getItem(LEGACY_APP_STATE_KEY), null);
+  const legacyResult = v.safeParse(appStateStorageSchema, legacyState);
+  if (legacyResult.success) {
+    const migrated = normalizeState(legacyResult.output);
+    writeState(storage, migrated);
+    storage.removeItem(LEGACY_APP_STATE_KEY);
+    return migrated;
   }
 
   const legacyDecks = parseJson(storage.getItem(LEGACY_DECKS_KEY), []);
@@ -237,40 +247,6 @@ export function createCoreRepository(storage: any = null, options: any = {}) {
         return { ...state, profile: nextProfile };
       });
       return nextProfile;
-    },
-    listCommunities() {
-      return readState(resolvedStorage, { seedDefaultDecks }).communities;
-    },
-    saveCommunity(community: any) {
-      updateStoredState(resolvedStorage, { seedDefaultDecks }, (state: any) => ({
-        ...state,
-        communities: upsertById(state.communities, community),
-      }));
-      return community;
-    },
-    saveAiJob(job: any) {
-      updateStoredState(resolvedStorage, { seedDefaultDecks }, (state: any) => ({
-        ...state,
-        aiJobs: upsertById(state.aiJobs, job),
-      }));
-      return job;
-    },
-    listAiJobs() {
-      return readState(resolvedStorage, { seedDefaultDecks }).aiJobs;
-    },
-    saveChatExchange(exchange: any) {
-      updateStoredState(resolvedStorage, { seedDefaultDecks }, (state: any) => ({
-        ...state,
-        chatTranscript: [exchange, ...state.chatTranscript].slice(0, 30),
-      }));
-      return exchange;
-    },
-    saveLearningPlan(plan: any) {
-      updateStoredState(resolvedStorage, { seedDefaultDecks }, (state: any) => ({
-        ...state,
-        learningPlans: upsertById(state.learningPlans, plan).slice(0, 10),
-      }));
-      return plan;
     },
     clear() {
       writeState(resolvedStorage, createDefaultState({ seedDefaultDecks }));

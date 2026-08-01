@@ -1,7 +1,7 @@
 # CoRe-Betrieb und Runbooks
 
 **Rolle:** einzige kanonische Quelle für lokale Betriebsabläufe, Release, Rollback, Wiederherstellung und operative Gates.
-**Stand:** 2026-07-15
+**Stand:** 2026-08-01
 
 Zeitgebundene Release-Nachweise stehen in [`history.md`](history.md). Produktanforderungen und Roadmap stehen nicht in diesem Dokument.
 
@@ -21,7 +21,7 @@ npm run typecheck
 npm run build
 ```
 
-Das verpflichtende Gate für den freigegebenen Beta-Kern ist `npm run test:beta`. `npm run test:release` prüft zusätzlich Labs-, Heavy- und Großdateipfade, ist aber kein Beta-Freigabekriterium. Datenbanknahe Gates sind in [`test-portfolio.md`](test-portfolio.md) beschrieben.
+Das verpflichtende Gate für den freigegebenen Beta-Kern ist `npm run test:beta`. `npm run test:release` prüft zusätzlich schwere Medien-, Restore- und Infrastrukturpfade. Datenbanknahe Gates sind in [`test-portfolio.md`](test-portfolio.md) beschrieben.
 
 ## 2. Umgebungen und Secrets
 
@@ -33,7 +33,7 @@ Erlaubte Supabase-Redirects:
 - `https://*-bengt2.vercel.app/**` ausschließlich für Vercel-Previews
 - `http://127.0.0.1:5190/**` lokal
 
-Browser-sichtbar erlaubt sind ausschließlich öffentliche Werte wie `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` und Featureflags. Provider-, Service-Role-, Redis- und HMAC-Secrets bleiben serverseitig. Nachweise enthalten keine Werte, Tokens, Passwörter, `.env`-Dateien oder Auth-Screenshots.
+Browser-sichtbar erlaubt sind ausschließlich öffentliche Werte wie `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_ENABLE_GOOGLE_AUTH` und `VITE_ENABLE_MAGIC_LINK`. Service-Role-Secrets bleiben außerhalb des Browsers. Nachweise enthalten keine Werte, Tokens, Passwörter, `.env`-Dateien oder Auth-Screenshots.
 
 ## 3. Preview- und Production-Freigabe
 
@@ -45,7 +45,7 @@ Das Beta-Gate umfasst ausschließlich E-Mail-/Passwort-Auth, die fünf Kernjourn
 npm run test:beta
 ```
 
-`VITE_ENABLE_LABS`, `VITE_ENABLE_SERVER_APKG_IMPORT`, `VITE_ENABLE_GOOGLE_AUTH` und `VITE_ENABLE_MAGIC_LINK` dürfen dabei nicht aktiviert sein; der lokale Beta-Lauf setzt Labs ausdrücklich auf `false`. Community, Graph, externe KI, Google, Magic Link und der serverseitige APKG-Pfad über 250 MiB sind keine Beta-Abnahmekriterien. Ein Fehler in einem zusätzlichen `heavy-release`-Lauf blockiert die Beta nur, wenn derselbe Fehler auch einen Core-Vertrag betrifft.
+Die früheren Variablen `VITE_ENABLE_LABS` und `VITE_ENABLE_SERVER_APKG_IMPORT` haben keine Wirkung. Google und Magic Link bleiben über ihre getrennten Flags schaltbar und sind keine Beta-Core-Abnahmekriterien. APKG über 250 MiB besitzt keinen Serverpfad.
 
 ### Voraussetzungen
 
@@ -53,7 +53,6 @@ npm run test:beta
 - Der Working Tree ist sauber.
 - Preview und Production enthalten die benötigten Variablennamen; Werte werden nicht ausgelesen.
 - Schemaänderungen besitzen einen vorwärtskompatiblen Migrations- und Rückfallplan.
-- Externe KI wird nur geprüft, wenn Rate Limit, HMAC-Key und organisatorische Providerfreigaben vorhanden sind.
 
 ### Hosted-Core-Smoke
 
@@ -69,7 +68,7 @@ $env:CORE_E2E_ALLOW_ACCOUNT_RESET = "true"
 npm run test:beta:hosted
 ```
 
-Der Lauf deckt die fünf Kernjourneys ab: Login und Cloud-Laden; kleinen APKG-Import; manuelle PDF-Quelle und Bearbeitung; Review mit Offline-Pending, Reconnect, Save und Reload; Variante mit Reveal, Originalanker und Feedback. Zusätzlich prüft er APKG-Medien in DB und privatem Storage, Portabilitätsgrenzen sowie einen accountgebundenen Konfliktstatus. Er prüft weder Google/Magic Link noch Labs oder den Großdateipfad.
+Der Lauf deckt die fünf Kernjourneys ab: Login und Cloud-Laden; kleinen APKG-Import; manuelle PDF-Quelle und Bearbeitung; Review mit Offline-Pending, Reconnect, Save und Reload; Variante mit Reveal, Originalanker und Feedback. Zusätzlich prüft er APKG-Medien in DB und privatem Storage, Portabilitätsgrenzen sowie einen accountgebundenen Konfliktstatus. Er prüft weder Google/Magic Link noch Dateien über 250 MiB.
 
 Der Smoke läuft zuerst gegen die Preview-URL und danach gegen die mit `--skip-domain` bereitgestellte staged Production. Ein fehlgeschlagener Core-Schritt stoppt die Freigabe. Nach einer Korrektur beginnt die Abnahme mit einem neuen Deployment wieder bei Preview.
 
@@ -147,6 +146,26 @@ npm run test:e2e:local
 ```
 
 `supabase/verify_schema_v1.sql` prüft Struktur, RLS, Policies, Grants, Constraints und Buckets. Restore-Proben für Datenbank und Storage bleiben getrennt und werden erst nach dokumentiertem Ergebnis als bestanden gewertet.
+
+### Irreversibler Labs-/Groß-APKG-Rückbau
+
+Dieser Ablauf darf ausschließlich gegen das verifizierte CoRe-Produktionsprojekt ausgeführt werden. Das aktuell anderweitig verbundene Projekt `smarter-nutrition` ist kein zulässiges Ziel.
+
+1. Zuerst die neue Anwendung deployen und prüfen, dass `/api/ai/*` sowie `/api/imports/apkg` `404` liefern und keine Labs-/Server-APKG-Schreibvorgänge mehr entstehen.
+2. Aktive Trigger- und APKG-Jobs ausschließen. Die CoRe-Projekt-Ref aus der verifizierten Vercel-Production-Konfiguration ermitteln und gegen die Supabase-URL prüfen.
+3. Vor der Migration ausschließlich IDs und Storage-Pfade der zu löschenden Daten in ein unversioniertes Manifest unter `test-results/` schreiben. Das Manifest enthält keine Nutzdaten oder Objektbytes und ist kein Backup.
+4. Löschzahlen und Projekt-Ref im Vier-Augen-Prinzip bestätigen, dann `20260801103920_retire_labs_and_server_apkg.sql` anwenden.
+5. `SUPABASE_URL` und `SUPABASE_SECRET_KEY` für exakt dieses Projekt setzen und den Storage-Rückbau mit derselben Projekt-Ref bestätigen:
+
+   ```powershell
+   npm run storage:retire-labs -- test-results/<manifest>.json --confirm-project-ref <core-project-ref>
+   ```
+
+   Das Skript entfernt manifestierte, nicht mehr referenzierte Objekte aus `core-media`, leert `core-imports` über die Storage-API und löscht danach den Bucket. Direkte Deletes in `storage.objects` oder `storage.buckets` sind verboten.
+6. Tabellen-/Spaltenabwesenheit, Quellen-Constraints, Bucket-Abwesenheit und Löschzahlen prüfen. Danach Trigger.dev-Konfiguration, dedizierte KI-/Upstash-Ressourcen und ihre Secrets außerhalb des Repositories entfernen.
+7. Supabase Security- und Performance-Advisors prüfen und Ergebnis ohne Dateninhalte in [`history.md`](history.md) protokollieren.
+
+Ein Vercel-Rollback stellt die gelöschten Daten nicht wieder her. Für diesen ausdrücklich irreversiblen Rückbau wird kein Daten- oder Objektbackup erstellt.
 
 ### DB-Restore-Probe im Testprojekt
 

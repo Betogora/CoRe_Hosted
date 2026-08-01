@@ -1,4 +1,5 @@
-const APP_STATE_KEY = "core.appState.v2";
+const APP_STATE_KEY = "core.appState.v3";
+const LEGACY_APP_STATE_KEY = "core.appState.v2";
 const LEGACY_DECKS_KEY = "core.importedDecks.v1";
 const ACCOUNT_STORAGE_PREFIX = "core.accountState.v1";
 const ACCOUNT_MIGRATION_PREFIX = "core.accountMigration.v1";
@@ -27,11 +28,7 @@ const legacyStateSchema = v.looseObject({
   version: v.optional(v.number()),
   profile: v.optional(v.nullable(v.unknown())),
   decks: v.array(storedDeckSchema),
-  communities: v.optional(v.array(v.unknown())),
-  aiJobs: v.optional(v.array(v.unknown())),
   documents: v.optional(v.array(v.unknown())),
-  chatTranscript: v.optional(v.array(v.unknown())),
-  learningPlans: v.optional(v.array(v.unknown())),
 });
 const migrationMarkerSchema = v.looseObject({ decision: v.string(), handledAt: v.string() });
 const deviceIdSchema = v.pipe(v.string(), v.regex(/^device_[A-Za-z0-9_-]+$/));
@@ -90,7 +87,8 @@ export function getOrCreateSyncDeviceId(storage: any = null) {
 
 export function readLegacyLocalState(storage: any = null) {
   const resolvedStorage = getStorage(storage);
-  const currentState = parseJson(resolvedStorage.getItem(APP_STATE_KEY), null);
+  const currentState = parseJson(resolvedStorage.getItem(APP_STATE_KEY), null)
+    ?? parseJson(resolvedStorage.getItem(LEGACY_APP_STATE_KEY), null);
   const currentResult = v.safeParse(legacyStateSchema, currentState);
   if (currentResult.success) return currentResult.output;
 
@@ -102,11 +100,7 @@ export function readLegacyLocalState(storage: any = null) {
     version: 2,
     profile: null,
     decks: legacyDeckResult.output,
-    communities: [],
-    aiJobs: [],
     documents: [],
-    chatTranscript: [],
-    learningPlans: [],
     updatedAt: new Date().toISOString(),
   };
 }
@@ -115,9 +109,7 @@ export function hasMeaningfulLocalState(state: any) {
   return Boolean(
     state &&
       ((Array.isArray(state.decks) && state.decks.length > 0) ||
-        (Array.isArray(state.documents) && state.documents.length > 0) ||
-        (Array.isArray(state.aiJobs) && state.aiJobs.length > 0) ||
-        (Array.isArray(state.communities) && state.communities.length > 0)),
+        (Array.isArray(state.documents) && state.documents.length > 0)),
   );
 }
 
@@ -142,6 +134,7 @@ export function markLocalMigrationHandled(userId: any, decision: any, storage: a
 
 export const accountStorageKeys = {
   APP_STATE_KEY,
+  LEGACY_APP_STATE_KEY,
   LEGACY_DECKS_KEY,
   ACCOUNT_STORAGE_PREFIX,
   ACCOUNT_MIGRATION_PREFIX,

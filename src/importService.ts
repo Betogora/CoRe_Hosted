@@ -12,7 +12,7 @@ import {
 } from "./coreModel.ts";
 import { stripHtml } from "./htmlSafety.ts";
 
-export const NORMALIZED_IMPORT_SOURCE_TYPES = ["manual", "text_import", "csv_import", "json_import", "anki_import", "ai_generated", "mixed"];
+export const NORMALIZED_IMPORT_SOURCE_TYPES = ["manual", "text_import", "csv_import", "json_import", "anki_import", "mixed"];
 export const IMPORT_MERGE_STRATEGIES = ["create_new", "skip_duplicates", "update_existing"];
 
 const DEFAULT_IMPORT_OPTIONS = {
@@ -72,7 +72,6 @@ const DECK_SOURCE_BY_IMPORT_SOURCE = {
   csv_import: "csv-import",
   json_import: "json-import",
   anki_import: "anki-apkg",
-  ai_generated: "ai-assisted",
   mixed: "manual",
 };
 

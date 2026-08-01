@@ -1,16 +1,15 @@
 import React from "react";
-import { Check, ChevronRight, Copy, FolderPlus, Layers, MoveRight, Network, Pencil, Play, PlusSquare, RotateCcw, Save, Search, Share2, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
+import { Check, ChevronRight, FolderPlus, Layers, MoveRight, Pencil, Play, PlusSquare, RotateCcw, Save, Search, Sparkles, Trash2, X } from "lucide-react";
 import { getCardEditorValue, getOriginalVariant, getVariantAnchor, validateCardEditorValue } from "../coreModel.ts";
-import { buildCardVariationPrompt, createVariantReviewModel } from "../coreVariantService.ts";
+import { createVariantReviewModel } from "../coreVariantService.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
-import { ActionDialog, CoreModeControl, EmptyState, LabsNotice, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreModeControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
 import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardType, CardVariant, CoreMode, Deck, LearningItem, MaturityBand } from "../coreTypes.ts";
-import type { ProductSurface } from "../productSurfaces.ts";
 
 function FieldError({ errors, field }: { errors: CardEditorFieldErrors; field: CardEditorField }) {
   const message = errors[field];
@@ -27,7 +26,7 @@ function versionContent(value: unknown, fallback: LearningItem) {
   };
 }
 
-function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSaveCard, onDeleteCard, onRestoreCard, onAddVariant, onApplyVariantJson, showExternalVariantFlow = false, externalVariantSurface }: any) {
+function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSaveCard, onDeleteCard, onRestoreCard, onAddVariant }: any) {
   const card = cards.find((item: any) => item.id === selectedCardId) ?? null;
   const [form, setForm] = React.useState<CardEditorValue | null>(() => card ? getCardEditorValue(card) : null);
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
@@ -35,8 +34,6 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   const [saveError, setSaveError] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [variantForm, setVariantForm] = React.useState({ front: "", back: "", variantLevel: 2 });
-  const [showPrompt, setShowPrompt] = React.useState(false);
-  const [jsonResponse, setJsonResponse] = React.useState("");
   const [variantStatus, setVariantStatus] = React.useState("");
   const [restoreVersionId, setRestoreVersionId] = React.useState("");
   const [confirmRestore, setConfirmRestore] = React.useState(false);
@@ -50,8 +47,6 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
     setFieldErrors({});
     setSaveError(false);
     setVariantForm({ front: "", back: "", variantLevel: 2 });
-    setShowPrompt(false);
-    setJsonResponse("");
     setVariantStatus("");
   }, [card?.id, card?.updatedAt]);
 
@@ -74,12 +69,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
 
   const reviewEvents = deck?.reviewEvents ?? [];
   const variantReviewModel = createVariantReviewModel(card, reviewEvents);
-  const { maturity, readiness, coverage, generationRecommendation: recommendation } = variantReviewModel;
-  const generationPlan = variantReviewModel.generationPlan as { canGenerate: boolean; promptOptions: Parameters<typeof buildCardVariationPrompt>[1] };
-  const promptOptions = generationPlan.canGenerate
-    ? generationPlan.promptOptions
-    : { ...generationPlan.promptOptions, numberOfVariants: 1, maxVariantLevel: Math.max(1, generationPlan.promptOptions?.maxVariantLevel || 1) };
-  const promptPreview = buildCardVariationPrompt(card, promptOptions);
+  const { maturity, readiness, coverage } = variantReviewModel;
   const originalVariant = getOriginalVariant(card);
   const variants = card.variants ?? [];
   const restorableVersions = [...(card.versionLog ?? [])].reverse().filter((entry: any) => entry.before && typeof entry.before === "object");
@@ -157,29 +147,6 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
     });
     setVariantForm({ front: "", back: "", variantLevel: 2 });
     setVariantStatus("Umformulierung gespeichert.");
-  }
-
-  async function copyPrompt() {
-    try {
-      await navigator.clipboard?.writeText(promptPreview);
-      setVariantStatus("Prompt kopiert.");
-    } catch {
-      setVariantStatus("Prompt ist sichtbar und kann manuell kopiert werden.");
-    }
-  }
-
-  function applyJsonResponse() {
-    if (!jsonResponse.trim()) {
-      setVariantStatus("Füge zuerst eine JSON-Antwort ein.");
-      return;
-    }
-    const result = onApplyVariantJson(card.id, jsonResponse, promptOptions);
-    const created = result?.result?.createdVariants?.length ?? 0;
-    const skipped = result?.result?.skippedVariants?.length ?? 0;
-    const errors = result?.result?.errors ?? [];
-    const warnings = [...(result?.result?.warnings ?? []), ...(errors ?? [])];
-    setVariantStatus(`${created} Varianten übernommen. ${skipped} übersprungen.${warnings.length ? ` ${warnings.join(" ")}` : ""}`);
-    if (created > 0) setJsonResponse("");
   }
 
   function restoreSelectedVersion() {
@@ -386,8 +353,8 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
         {restoreStatus ? <p className="core-status-success mt-3 text-sm font-semibold" role="status">{restoreStatus}</p> : null}
       </section>
       </details>
-      <details className="mt-5 min-w-0 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] p-4" data-testid="card-labs-tools">
-        <summary className="cursor-pointer text-sm font-semibold text-[#4f5eb1]">Labs / Erweitert: Varianten und technische Lernwerte</summary>
+      <details className="mt-5 min-w-0 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] p-4" data-testid="card-variant-tools">
+        <summary className="cursor-pointer text-sm font-semibold text-[#4f5eb1]">Varianten und Lernwerte</summary>
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
         <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Reifegrad</p>
@@ -406,40 +373,6 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           <p className="mt-1 break-words text-sm text-[#66709a]">{coverage.hasEnoughVariants ? "Genug Varianten vorhanden." : "Weitere nahe Umformulierungen möglich."}</p>
         </div>
         </div>
-      {showExternalVariantFlow ? (
-        <div className="mt-5 grid gap-3">
-          <LabsNotice surfaces={externalVariantSurface as ProductSurface} />
-          <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">KI-Variantenempfehlung</p>
-                <p className="mt-1 break-words text-sm text-[#17214f]">{recommendation.shouldSuggest ? `${recommendation.recommendedVariantCount} nahe Umformulierung empfohlen.` : recommendation.reason}</p>
-              </div>
-              <button type="button" onClick={() => setShowPrompt((value) => !value)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#4f5eb1]">
-                <WandSparkles size={16} aria-hidden="true" />
-                KI-Prompt für Varianten
-              </button>
-            </div>
-            {showPrompt ? (
-              <div className="mt-4 grid min-w-0 gap-3">
-                {!generationPlan.canGenerate ? <p className="text-sm text-[#66709a]">Diese Karte ist noch nicht reif für automatische Varianten. Der Prompt kann trotzdem als Vorschau angezeigt werden.</p> : null}
-                <textarea className="min-h-56 min-w-0 rounded-xl border border-[#dfe4f5] bg-white p-3 font-mono text-xs leading-5" value={promptPreview} readOnly aria-label="KI-Prompt für Varianten" />
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={copyPrompt} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#4f5eb1]">
-                    <Copy size={16} aria-hidden="true" />
-                    Prompt kopieren
-                  </button>
-                </div>
-                <textarea className="min-h-32 min-w-0 rounded-xl border border-[#dfe4f5] bg-white p-3 font-mono text-xs leading-5" value={jsonResponse} onChange={(event) => setJsonResponse(event.target.value)} placeholder='{"variants":[{"front":"...","back":"...","variantType":"basic","variantLevel":2,"relationToOriginal":"same_card_rephrasing","containsNewFacts":false,"abstractionLevel":1}]}' aria-label="Varianten-JSON" />
-                <button type="button" onClick={applyJsonResponse} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl bg-indigo-700 px-3 text-sm font-semibold text-white">
-                  <Sparkles size={16} aria-hidden="true" />
-                  Varianten aus JSON übernehmen
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
         <div className="mt-5 min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
@@ -491,7 +424,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   );
 }
 
-export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selectedCardId = null, onSelectDeck, onSelectCard, onSetDeckCoreMode, onSaveCard, onDeleteCard, onUndoDeleteCard, onRestoreCard, onAddVariant, onApplyVariantJson, onStartDeck, onDeleteDeck, onRenameDeck, onMoveDeck, onOpenCardCreation, onPrepareSubdeckCreation, onOpenLearn, onOpenGraph, onShareDeck, showGraph = false, showCommunity = false, showExternalVariantFlow = false, externalVariantSurface }: any) {
+export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selectedCardId = null, onSelectDeck, onSelectCard, onSetDeckCoreMode, onSaveCard, onDeleteCard, onUndoDeleteCard, onRestoreCard, onAddVariant, onStartDeck, onDeleteDeck, onRenameDeck, onMoveDeck, onOpenCardCreation, onPrepareSubdeckCreation, onOpenLearn }: any) {
   const [query, setQuery] = React.useState("");
   const [modeFilter, setModeFilter] = React.useState<CoreMode | "all">("all");
   const [deckStatus, setDeckStatus] = React.useState("");
@@ -782,16 +715,6 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
                     <button type="button" onClick={() => onStartDeck(deck, true)} className="grid size-10 place-items-center rounded-xl bg-amber-50 text-amber-700" aria-label={`${row.path} mit Varianten lernen`}>
                       <Sparkles size={17} aria-hidden="true" />
                     </button>
-                    {showGraph ? (
-                      <button type="button" onClick={() => onOpenGraph(deck)} className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700" aria-label="Graph">
-                        <Network size={17} aria-hidden="true" />
-                      </button>
-                    ) : null}
-                    {showCommunity ? (
-                      <button type="button" onClick={() => onShareDeck(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label="Teilen">
-                        <Share2 size={17} aria-hidden="true" />
-                      </button>
-                    ) : null}
                     <button type="button" onClick={() => prepareSubdeck(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label={`Unterstapel in ${row.path} anlegen`}>
                       <FolderPlus size={17} aria-hidden="true" />
                     </button>
@@ -899,9 +822,6 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
               onDeleteCard={deleteCard}
               onRestoreCard={(cardId: any, versionId: any) => onRestoreCard(selectedDeck.id, cardId, versionId)}
               onAddVariant={(cardId: any, variant: any) => onAddVariant(selectedDeck.id, cardId, variant)}
-              onApplyVariantJson={(cardId: any, response: any, options: any) => onApplyVariantJson(selectedDeck.id, cardId, response, options)}
-              showExternalVariantFlow={showExternalVariantFlow}
-              externalVariantSurface={externalVariantSurface}
             />
           ) : (
             <EmptyState

@@ -95,7 +95,7 @@ async function completeReview(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await seedAccount();
-  await resetToFreshLocalState(page);
+  await resetToFreshLocalState(page, { resetCloud: false });
 });
 
 test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg erhalten Stapel und Karte", async ({ page, context }) => {

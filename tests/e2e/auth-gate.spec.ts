@@ -4,7 +4,18 @@ function authForm(page: Page) {
   return page.locator("form");
 }
 
+test("Google und Magic Link bleiben unabhängig schaltbar", async ({ page }) => {
+  await page.goto("http://127.0.0.1:5192/");
+  await expect(page.getByRole("button", { name: "Mit Google anmelden" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Magic Link" })).toHaveCount(0);
+
+  await page.goto("http://127.0.0.1:5193/");
+  await expect(page.getByRole("button", { name: "Mit Google anmelden" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Magic Link" })).toBeVisible();
+});
+
 test("@beta-core @hosted-core Beta-Artefakt bietet nur E-Mail und Passwort an", async ({ page }) => {
+  test.skip(process.env.CORE_BETA_GATE !== "true" && !process.env.CORE_HOSTED_BASE_URL, "Nur der Beta- oder Hosted-Core-Konfiguration zugeordnet.");
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();

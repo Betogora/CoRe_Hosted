@@ -22,7 +22,6 @@ function normalizeLearningSourceType(sourceType: unknown, legacySource: DeckSour
     return sourceType as LearningItemSourceType;
   }
   if (legacySource === "anki-apkg") return "anki_import";
-  if (legacySource === "ai-assisted") return "ai_generated";
   if (legacySource === "text-import") return "text_import";
   if (legacySource === "csv-import" || legacySource === "spreadsheet-import") return "csv_import";
   if (legacySource === "json-import") return "json_import";
@@ -32,7 +31,6 @@ function normalizeLearningSourceType(sourceType: unknown, legacySource: DeckSour
 
 function legacySourceFromLearningSourceType(sourceType: LearningItemSourceType): DeckSource {
   if (sourceType === "anki_import") return "anki-apkg";
-  if (sourceType === "ai_generated") return "ai-assisted";
   if (sourceType === "text_import") return "text-import";
   if (sourceType === "csv_import") return "csv-import";
   if (sourceType === "json_import") return "json-import";
@@ -75,7 +73,7 @@ function normalizeGenerationSource(
   }
   if (isOriginal) return "original";
   if (sourceType === "anki_import" || sourceType === "mixed") return "imported";
-  if (sourceType === "ai_generated" || modelRunId) return "ai_generated";
+  if (modelRunId) return "ai_generated";
   return "user_edited";
 }
 

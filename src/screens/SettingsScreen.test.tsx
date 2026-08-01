@@ -10,16 +10,11 @@ function renderSettings() {
     displayName: "Ada",
     university: "TU Berlin",
     preferredLanguage: "de",
-    privacy: {
-      shareLearningProgress: true,
-      showOnlineStatus: true,
-      showStreaksToOthers: true,
-    },
   };
 
   return renderToStaticMarkup(
     <SettingsScreen
-      appState={{ profile, decks: [], communities: [], aiJobs: [], documents: [] }}
+      appState={{ profile, decks: [], documents: [] }}
       profile={profile}
       decks={[]}
       syncStatus={{ status: "idle" }}
@@ -60,7 +55,7 @@ test("settings disclose export limits and keep raw JSON in advanced", () => {
 
   assert.match(html, /Medienbytes/);
   assert.match(html, /Authdaten/);
-  assert.match(html, /Community- oder Serverrechte/);
+  assert.match(html, /serverseitige Sicherungskopien/);
   assert.match(html, /vollständiges DSGVO-Auskunftspaket nach Art\. 15/);
   assert.match(html, />Export herunterladen</);
   assert.match(html, />Roh-JSON anzeigen</);

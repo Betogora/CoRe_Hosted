@@ -1,6 +1,6 @@
 # CoRe TODO — Beta-Basis klassisches Karteikartenprodukt
 
-Stand: 2026-07-16
+Stand: 2026-08-01
 
 Dieses Dokument ist die einzige operative Roadmap für offene Arbeit.
 
@@ -26,11 +26,8 @@ Aktiver Scope:
 
 Nicht im aktiven Scope:
 
-- neue KI-Capabilities
-- neue Modellprovider
-- KI-Kartenerstellung oder KI-Varianten ausbauen
-- Graph-Ausbau
-- Community-Ausbau
+- Wiedereinführung der entfernten KI-, Graph-, Community- oder Labs-Flächen
+- serverseitiger APKG-Import oder Dateien über 250 MiB
 - neue Plattform- oder Infrastrukturfeatures ohne direkten Beta-Nutzen
 - neue Kartentypen
 - Mobile-/PWA-Ausbau
@@ -40,7 +37,7 @@ Nicht im aktiven Scope:
 
 1. Datenintegrität hat Vorrang vor LOC-Reduktion.
 2. Keine Compatibility-Oberfläche ohne nachgewiesene Migration entfernen.
-3. Keine Datenbankmigration, wenn das Paket mit bestehenden Formen lösbar ist.
+3. Keine Datenbankmigration, wenn das Paket mit bestehenden Formen lösbar ist; der beschlossene irreversible Labs-Rückbau ist die dokumentierte Ausnahme.
 4. `coreModel`, Scheduler, APKG, Sync, Medien, Cloudvalidierung und RLS
    bleiben geschützte tiefe Modulgrenzen.
 5. Neue Tests schützen konkrete Produkt-, Daten- oder Sicherheitsverträge.
@@ -65,9 +62,9 @@ Vor Merge jedes Arbeitspakets:
 - [ ] bestehende Unit-/Contracttests sind grün
 - [ ] Production-Build und Chunkbudget sind grün
 - [ ] `npm run test:beta` ist grün
-- [ ] keine neue KI-, Provider- oder Adapterarchitektur
+- [ ] keine Wiedereinführung ausgemusterter Labs-, KI- oder Groß-APKG-Pfade
 - [ ] keine nicht autorisierte Datenbankmigration
-- [ ] deutsche UI und Core/Labs-Trennung sind erhalten
+- [ ] deutsche UI und statische Core-Navigation sind erhalten
 
 # P0 — Vor begleiteter Beta
 
@@ -392,11 +389,8 @@ Vor Self-Service-Beta zusätzlich:
 
 # Geparkter Scope bis Beta-Basis
 
-- [ ] keine neue KI-Capability
-- [ ] kein neuer Provider
-- [ ] kein KI-Varianten-Ausbau
-- [ ] kein Graph-Ausbau
-- [ ] kein Community-Ausbau
+- [ ] keine Wiedereinführung ausgemusterter Labs-, KI-, Graph- oder Community-Flächen
+- [ ] kein serverseitiger APKG-Pfad und keine Anhebung über 250 MiB
 - [ ] keine neue generische Adapterarchitektur
 - [ ] keine neue Scheduleroption
 - [ ] kein neuer Kartentyp

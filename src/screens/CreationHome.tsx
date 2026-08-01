@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { FileSpreadsheet, PenLine, WandSparkles } from "lucide-react";
+import { FileSpreadsheet, PenLine } from "lucide-react";
 import type { CreationMethod } from "../useAppNavigation.ts";
 
 type SelectableCreationMethod = Exclude<CreationMethod, "">;
@@ -10,11 +10,10 @@ export interface CreationMethodDefinition {
   eyebrow: string;
   body: string;
   icon: LucideIcon;
-  color: "sky" | "teal" | "indigo";
+  color: "sky" | "teal";
 }
 
 export interface CreationHomeProps {
-  showAiDrafts: boolean;
   onSelect: (method: SelectableCreationMethod) => unknown;
 }
 
@@ -35,14 +34,6 @@ export const creationMethods: CreationMethodDefinition[] = [
     icon: FileSpreadsheet,
     color: "teal",
   },
-  {
-    id: "ai",
-    title: "Lokaler Entwurfsassistent",
-    eyebrow: "Labs · Entwürfe prüfen",
-    body: "Erzeuge lokal und deterministisch Entwürfe aus Quellentext. Es wird kein externes Modell aufgerufen.",
-    icon: WandSparkles,
-    color: "indigo",
-  },
 ];
 
 const methodThemes: Record<CreationMethodDefinition["color"], { eyebrow: string; icon: string; hover: string }> = {
@@ -55,11 +46,6 @@ const methodThemes: Record<CreationMethodDefinition["color"], { eyebrow: string;
     eyebrow: "text-teal-700",
     icon: "bg-teal-50 text-teal-700 shadow-[inset_0_-18px_42px_rgba(20,184,166,0.09)]",
     hover: "hover:border-teal-200 hover:shadow-[0_18px_42px_rgba(13,148,136,0.12)]",
-  },
-  indigo: {
-    eyebrow: "text-indigo-700",
-    icon: "bg-indigo-50 text-indigo-700 shadow-[inset_0_-18px_42px_rgba(79,70,229,0.08)]",
-    hover: "hover:border-indigo-200 hover:shadow-[0_18px_42px_rgba(79,70,229,0.12)]",
   },
 };
 
@@ -85,12 +71,10 @@ function CreationMethodButton({ method, onSelect }: { method: CreationMethodDefi
   );
 }
 
-export function CreationHome({ showAiDrafts, onSelect }: CreationHomeProps) {
-  const availableMethods = showAiDrafts ? creationMethods : creationMethods.filter((method) => method.id !== "ai");
-
+export function CreationHome({ onSelect }: CreationHomeProps) {
   return (
-    <section className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Erstellungsart">
-      {availableMethods.map((method) => (
+    <section className="grid items-stretch gap-4 md:grid-cols-2" aria-label="Erstellungsart">
+      {creationMethods.map((method) => (
         <CreationMethodButton key={method.id} method={method} onSelect={() => onSelect(method.id)} />
       ))}
     </section>

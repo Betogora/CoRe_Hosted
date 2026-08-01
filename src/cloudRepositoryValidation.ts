@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import type { Json, Tables, TablesInsert, TablesUpdate } from "./database.types.ts";
 
-export type AccountTable = "decks" | "cards" | "card_variants" | "review_events" | "source_documents" | "ai_jobs";
+export type AccountTable = "decks" | "cards" | "card_variants" | "review_events" | "source_documents";
 export type AccountRow = Tables<AccountTable>;
 export type AccountInsert = TablesInsert<AccountTable>;
 export type AccountUpdate = TablesUpdate<AccountTable>;
@@ -17,7 +17,6 @@ const accountRowSchemas: Record<AccountTable, v.BaseSchema<unknown, unknown, v.B
     hierarchy_path: v.optional(v.array(v.string())),
     import_meta: v.optional(jsonObjectSchema),
     deck_settings: v.optional(jsonObjectSchema),
-    community_refs: v.optional(v.array(v.unknown())),
     version_log: v.optional(v.array(v.unknown())),
   }),
   cards: v.looseObject({
@@ -50,36 +49,9 @@ const accountRowSchemas: Record<AccountTable, v.BaseSchema<unknown, unknown, v.B
     flags: v.optional(jsonObjectSchema),
   }),
   source_documents: v.looseObject({ ...accountRowBaseSchema, metadata: v.optional(jsonObjectSchema) }),
-  ai_jobs: v.looseObject({
-    ...accountRowBaseSchema,
-    contract_version: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(1))),
-    prompt_version: v.optional(v.nullable(v.string())),
-    schema_version: v.optional(v.nullable(v.string())),
-    idempotency_key: v.optional(v.nullable(v.string())),
-    request_fingerprint: v.optional(v.nullable(v.string())),
-    attempt_count: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))),
-    max_attempts: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
-    retryable: v.optional(v.boolean()),
-    next_retry_at: v.optional(v.nullable(v.string())),
-    provider: v.optional(v.nullable(v.string())),
-    model: v.optional(v.nullable(v.string())),
-    error_class: v.optional(v.nullable(v.string())),
-    error_code: v.optional(v.nullable(v.string())),
-    input_tokens: v.optional(v.nullable(v.pipe(v.number(), v.safeInteger(), v.minValue(0)))),
-    output_tokens: v.optional(v.nullable(v.pipe(v.number(), v.safeInteger(), v.minValue(0)))),
-    total_tokens: v.optional(v.nullable(v.pipe(v.number(), v.safeInteger(), v.minValue(0)))),
-    pricing_version: v.optional(v.nullable(v.string())),
-    cost_micros: v.optional(v.nullable(v.pipe(v.number(), v.safeInteger(), v.minValue(0)))),
-    cost_currency: v.optional(v.nullable(v.string())),
-    input_ref: v.optional(jsonObjectSchema),
-    policy: v.optional(jsonObjectSchema),
-    result_ref: v.optional(v.nullable(jsonObjectSchema)),
-    error: v.optional(v.nullable(jsonObjectSchema)),
-  }),
 };
 const profileRowSchema = v.looseObject({
   id: v.string(),
-  privacy: v.optional(jsonObjectSchema),
   scheduler_preferences: v.optional(jsonObjectSchema),
 });
 const mediaAssetRowSchema = v.looseObject({

@@ -1,6 +1,5 @@
 import * as v from "valibot";
 import type { Tables, TablesInsert } from "./database.types.ts";
-import { parseAiChatConsent } from "./aiChatContract.ts";
 
 const SESSION_MISSING_CODES = new Set(["AuthSessionMissingError", "session_not_found"]);
 
@@ -31,7 +30,6 @@ const profileRowSchema = v.looseObject({
   preferred_language: v.optional(v.string()),
   timezone: v.optional(v.string()),
   onboarding_complete: v.optional(v.boolean()),
-  privacy: v.optional(v.record(v.string(), v.unknown())),
   scheduler_preferences: v.optional(v.record(v.string(), v.unknown())),
   created_at: v.optional(v.string()),
   updated_at: v.optional(v.string()),
@@ -49,17 +47,6 @@ function nowIso() {
 
 function normalizeEmail(email: any) {
   return String(email ?? "").trim().toLowerCase();
-}
-
-function mergePrivacy(profile: any) {
-  const consent = parseAiChatConsent(profile?.privacy?.aiChatConsent);
-  return {
-    shareLearningProgress: false,
-    showOnlineStatus: false,
-    showStreaksToOthers: false,
-    ...(profile?.privacy ?? {}),
-    aiChatConsent: consent.success ? consent.output : null,
-  };
 }
 
 function accountFromUser(user: any, status: any = "signed-in", timestamp: any = nowIso()) {
@@ -186,7 +173,6 @@ export function createProfileRow(profile: any, user: any, timestamp: any = nowIs
     preferred_language: profile?.preferredLanguage ?? "de",
     timezone: profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
     onboarding_complete: Boolean(profile?.onboardingComplete ?? true),
-    privacy: mergePrivacy(profile),
     scheduler_preferences: profile?.schedulerPreferences ?? { profile: "standard" },
     updated_at: timestamp,
   };
@@ -206,12 +192,6 @@ export function createCloudProfile(row: any, user: any, fallback: any = {}, time
     preferredLanguage: validatedRow?.preferred_language ?? fallback?.preferredLanguage ?? "de",
     timezone: validatedRow?.timezone ?? fallback?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
     onboardingComplete: validatedRow?.onboarding_complete ?? fallback?.onboardingComplete ?? true,
-    privacy: mergePrivacy({
-      privacy: {
-        ...mergePrivacy(fallback),
-        ...((validatedRow?.privacy as Record<string, unknown> | undefined) ?? {}),
-      },
-    }),
     schedulerPreferences: validatedRow?.scheduler_preferences ?? fallback?.schedulerPreferences ?? { profile: "standard" },
     account: accountFromUser(user ?? { id: validatedRow?.id, email, created_at: validatedRow?.created_at }, "signed-in", timestamp),
   };

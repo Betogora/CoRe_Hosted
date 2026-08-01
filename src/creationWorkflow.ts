@@ -1,13 +1,10 @@
-import { generateCardsFromDocument } from "./aiOrchestrator.ts";
-import { acceptAiDraftDeck, createManualCoreDeck, createSourceDocument, normalizeTags, validateCardEditorValue } from "./coreModel.ts";
+import { createManualCoreDeck, createSourceDocument, normalizeTags, validateCardEditorValue } from "./coreModel.ts";
 import { createAnchorFromSelection, createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "./documentModel.ts";
 import { appendPlainTextToCardHtml } from "./richText.ts";
 import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
 import { createAccountMediaStore, type MediaSyncTask } from "./mediaStore.ts";
 import type { CardEditorValue, CardType, Deck, EditableCardType, LearningItem, SourceAnchor } from "./coreTypes.ts";
-import type { ApkgImportReportV1 } from "./apkgImport.ts";
-import { LOCAL_APKG_MAX_BYTES, SERVER_APKG_MAX_BYTES, type ApkgImportProgress } from "./serverApkgImportContract.ts";
-import type { ServerApkgImportClient } from "./serverApkgImport.ts";
+import { LOCAL_APKG_MAX_BYTES, type ApkgImportReportV1 } from "./apkgImport.ts";
 
 interface FileLike {
   name?: string;
@@ -31,15 +28,8 @@ interface ManualCreationInput {
   activeField?: string;
 }
 
-interface AiConfig {
-  cardTypes?: CardType[];
-  subject?: string;
-  [key: string]: unknown;
-}
-
 interface ApkgOptions {
   onStep?: (step: string) => void;
-  onProgress?: (progress: ApkgImportProgress) => void;
   existingDecks?: Deck[];
 }
 
@@ -62,17 +52,7 @@ export interface LocalApkgCreationPreview {
   importReport: ApkgReport;
 }
 
-export interface ServerApkgCreationPreview {
-  kind: "server";
-  jobId: string;
-  progress: ApkgImportProgress;
-  deckSummary: { name: string };
-  sampleCards: [];
-  warnings: string[];
-  importReport: ApkgReport;
-}
-
-export type ApkgCreationPreview = LocalApkgCreationPreview | ServerApkgCreationPreview;
+export type ApkgCreationPreview = LocalApkgCreationPreview;
 
 interface PasteImportInput {
   mode?: "text" | "csv" | "spreadsheet";
@@ -188,40 +168,15 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
   };
 }
 
-export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" }), persistImportedDecks = async (_decks: Deck[]) => {}, serverApkgImport = null }: { mediaStore?: AccountMediaStore; persistImportedDecks?: (decks: Deck[], options?: { mediaOnly?: boolean }) => Promise<unknown>; serverApkgImport?: ServerApkgImportClient | null } = {}) {
-  function serverPreview(progress: ApkgImportProgress, fallbackName = "Anki-Import"): ServerApkgCreationPreview {
-    const report = progress.report ?? {};
-    const apkg = report.apkg as ApkgImportReportV1 | undefined;
-    return {
-      kind: "server", jobId: progress.jobId, progress,
-      deckSummary: { name: apkg?.decks?.[0]?.path ?? fallbackName.replace(/\.apkg$/i, "") },
-      sampleCards: [], warnings: (report.warnings as string[] | undefined) ?? [], importReport: report,
-    };
-  }
-
+export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" }), persistImportedDecks = async (_decks: Deck[]) => {} }: { mediaStore?: AccountMediaStore; persistImportedDecks?: (decks: Deck[], options?: { mediaOnly?: boolean }) => Promise<unknown> } = {}) {
   return {
     readableSourceDocumentAccept: READABLE_SOURCE_DOCUMENT_ACCEPT,
     readableSourceDocumentLabel: READABLE_SOURCE_DOCUMENT_LABEL,
 
-    async parseApkgFile(file: FileLike, { onStep, onProgress, existingDecks = [] }: ApkgOptions = {}) {
+    async parseApkgFile(file: FileLike, { onStep, existingDecks = [] }: ApkgOptions = {}) {
       try {
-        if (Number(file.size ?? 0) > SERVER_APKG_MAX_BYTES) throw new Error("Die APKG-Datei ist größer als 1 GiB.");
         if (Number(file.size ?? 0) > LOCAL_APKG_MAX_BYTES) {
-          if (!serverApkgImport) throw new Error("Große APKG-Dateien benötigen eine aktive Cloud-Anmeldung.");
-          const progress = await serverApkgImport.analyze(file as unknown as File, (next) => {
-            onProgress?.(next);
-            onStep?.(next.phase);
-          });
-          const report = progress.report ?? {};
-          const failed = progress.status === "failed" || progress.status === "cancelled";
-          return {
-            preview: serverPreview(progress, file.name ?? "Anki-Import"),
-            mediaStatus: null,
-            job: createApkgJob(file, failed ? "error" : "preview", {
-              id: progress.jobId, progress, warnings: report.warnings ?? [],
-              errors: failed ? [progress.status === "cancelled" ? "Der APKG-Import wurde abgebrochen." : "Die APKG-Analyse ist fehlgeschlagen."] : report.errors ?? [],
-            }),
-          };
+          throw new Error("Die APKG-Datei ist größer als 250 MiB. Bitte wähle eine kleinere Datei aus.");
         }
         const { createApkgImportPreview } = await loadApkgImport();
         const result = await createApkgImportPreview(file, onStep, { existingDecks });
@@ -252,55 +207,7 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       }
     },
 
-    async resumeApkgPreview({ onProgress, existingDecks: _existingDecks = [] }: ApkgOptions = {}) {
-      const jobId = serverApkgImport?.getLastJobId();
-      if (!serverApkgImport || !jobId) return null;
-      const current = await serverApkgImport.get(jobId);
-      onProgress?.(current);
-      if (current.status === "uploading") return null;
-      const progress = ["ready", "failed", "cancelled", "succeeded"].includes(current.status)
-        ? current
-        : ["committing", "syncing_media"].includes(current.status)
-          ? await serverApkgImport.waitUntilFinished(jobId, onProgress)
-          : await serverApkgImport.waitUntilReady(jobId, onProgress);
-      const failed = progress.status === "failed" || progress.status === "cancelled";
-      const reportErrors = Array.isArray(progress.report?.errors) ? progress.report.errors.map(String) : [];
-      return {
-        preview: serverPreview(progress),
-        mediaStatus: null,
-        job: {
-          id: jobId,
-          status: failed ? "error" : progress.status === "succeeded" ? "done" : "preview",
-          progress,
-          warnings: progress.report?.warnings ?? [],
-          errors: failed
-            ? [...reportErrors, progress.status === "cancelled" ? "Der APKG-Import wurde abgebrochen." : "Die APKG-Analyse ist fehlgeschlagen."]
-            : reportErrors,
-        },
-      };
-    },
-
-    async retryApkgPreview(preview: ApkgCreationPreview, onProgress?: (progress: ApkgImportProgress) => void) {
-      if (preview.kind !== "server" || !serverApkgImport) return null;
-      const queued = await serverApkgImport.retry(preview.progress);
-      onProgress?.(queued);
-      const terminal = queued.status === "syncing_media"
-        ? await serverApkgImport.waitUntilFinished(preview.jobId, onProgress)
-        : await serverApkgImport.waitUntilReady(preview.jobId, onProgress);
-      const next = serverPreview(terminal, preview.deckSummary.name);
-      return terminal.report ? next : { ...next, warnings: preview.warnings, importReport: preview.importReport };
-    },
-
-    async cancelApkgPreview(preview: ApkgCreationPreview) {
-      if (preview.kind !== "server" || !serverApkgImport) return null;
-      return serverApkgImport.cancel(preview.progress);
-    },
-
-    async cancelApkgProgress(progress: ApkgImportProgress) {
-      return serverApkgImport?.cancel(progress) ?? null;
-    },
-
-    async commitApkgPreview(preview: ApkgCreationPreview | null, { existingDecks = [], onProgress }: ApkgOptions = {}) {
+    async commitApkgPreview(preview: ApkgCreationPreview | null, { existingDecks = [] }: ApkgOptions = {}) {
       if (!preview) {
         return {
           deck: null,
@@ -309,19 +216,6 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
             errors: ["Keine APKG-Vorschau zum Importieren vorhanden."],
           },
         };
-      }
-      if (preview.kind === "server") {
-        if (!serverApkgImport) throw new Error("Der Serverimport ist nicht verfügbar.");
-        const prepared = await serverApkgImport.prepareCommit(preview.progress);
-        const { createApkgPreviewFromNormalizedImport, commitApkgImport } = await loadApkgImport();
-        const refreshed = await createApkgPreviewFromNormalizedImport(prepared.artifact.normalizedDeck, prepared.artifact.warnings, { existingDecks });
-        if (!refreshed.preview) return { deck: null, decks: [], report: refreshed.report, mediaTask: null as MediaSyncTask | null };
-        const committed = await commitApkgImport(refreshed.preview, { existingDecks });
-        const decks = (committed.decks?.length ? committed.decks : committed.deck ? [committed.deck] : []) as Deck[];
-        if (committed.report.errors.length > 0 || decks.length === 0) return { ...committed, mediaTask: null as MediaSyncTask | null };
-        await persistImportedDecks(decks);
-        const progress = await serverApkgImport.finalize(prepared.progress, onProgress);
-        return { ...committed, serverProgress: progress, mediaTask: null as MediaSyncTask | null };
       }
       const { commitApkgImport } = await loadApkgImport();
       const committed = await commitApkgImport(preview, { existingDecks });
@@ -380,57 +274,5 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       return createManualCoreDeck(createManualDeckInput(input));
     },
 
-    createInitialAiDocument(overrides: Partial<ReturnType<typeof createSourceDocument>> = {}) {
-      return createSourceDocument({
-        fileName: "Textquelle",
-        text: "",
-        textExtractionStatus: "success",
-        ...overrides,
-      });
-    },
-
-    updateAiDocumentText(document: ReturnType<typeof createSourceDocument>, text: string) {
-      return {
-        ...document,
-        text,
-        textExtractionStatus: text ? "success" : document?.textExtractionStatus,
-      };
-    },
-
-    toggleAiCardType(config: AiConfig = {}, cardType: CardType) {
-      const currentTypes = Array.isArray(config.cardTypes) ? config.cardTypes : ["basic"];
-      const cardTypes = currentTypes.includes(cardType)
-        ? currentTypes.filter((value) => value !== cardType)
-        : [...currentTypes, cardType];
-      return { ...config, cardTypes: cardTypes.length ? cardTypes : ["basic"] };
-    },
-
-    generateAiDrafts({ document, config = {}, deckName = "" }: {
-      document?: ReturnType<typeof createSourceDocument>;
-      config?: AiConfig;
-      deckName?: string;
-    } = {}) {
-      const result = generateCardsFromDocument({
-        document,
-        config,
-        deckName: deckName || config.subject || "KI-Entwürfe",
-      });
-
-      return {
-        ...result,
-        statusMessage: result.validation.valid
-          ? `${result.draftDeck?.cards.length ?? 0} Entwürfe generiert.`
-          : result.validation.errors.join(" "),
-      };
-    },
-
-    updateDraftCard(cards: LearningItem[] = [], cardId: string, patch: Partial<LearningItem> = {}): LearningItem[] {
-      return cards.map((card) => (card.id === cardId ? { ...card, ...patch } : card));
-    },
-
-    acceptAiDrafts(draftDeck: Deck | null, draftCards: LearningItem[] = []): Deck | null {
-      if (!draftDeck || draftCards.length === 0) return null;
-      return acceptAiDraftDeck({ ...draftDeck, cards: draftCards });
-    },
   };
 }

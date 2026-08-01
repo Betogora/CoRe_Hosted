@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createCoreCard, createCoreDeck } from "./coreModel.ts";
 import {
-  createAiJobLedger,
   createDeckLibraryModel,
   createPerformanceStatisticsModel,
   createStudyHeatmapModel,
@@ -73,17 +72,6 @@ function createDeckWithInactiveCards() {
     hierarchyPath: ["Medizin", "Neuro", "Myelin"],
     deckSettings: { coreMode: "auto" },
     cards: [active, deleted, draft],
-    aiJobs: [
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-      {
-        id: "job_variants",
-        jobType: "variant_generation",
-        status: "succeeded",
-        deckId: "deck_neuro",
-        createdAt: "2026-07-01T08:00:00.000Z",
-        resultRef: { generatedVariantIds: ["variant_active", "variant_extra"] },
-      },
-    ],
   });
 }
 
@@ -107,7 +95,6 @@ test("library model hides reviewable-card filtering and deck selection fallback"
   assert.equal(library.selectedRow.cardRows.length, 1);
   assert.equal(library.selectedRow.cardRows[0].frontPreview, "Welche Funktion hat Myelin?");
 });
-
 test("library model keeps an explicitly selected deck even when filters hide it", () => {
   const deck = createDeckWithInactiveCards();
   const library = createDeckLibraryModel([deck], {
@@ -470,29 +457,4 @@ test("performance statistics summarize ratings, trends and weak decks", () => {
   assert.equal(statistics.deckRows[0].successPercent, 67);
   assert.equal(statistics.weakDeckRows[0].id, neuro.id);
   assert.equal(statistics.latestReview.id, "review_easy");
-});
-
-test("AI job ledger merges global and deck jobs with stable counts", () => {
-  const deck = createDeckWithInactiveCards();
-  const ledger = createAiJobLedger({
-    decks: [deck],
-    jobs: [
-      {
-        id: "job_global",
-        jobType: "card_generation",
-        status: "failed",
-        createdAt: "2026-07-01T09:00:00.000Z",
-        resultRef: { cardCount: 3 },
-      },
-    ],
-  });
-
-  assert.equal(ledger.total, 2);
-  assert.equal(ledger.succeeded, 1);
-  assert.equal(ledger.failed, 1);
-  assert.equal(ledger.jobs[0].id, "job_global");
-  assert.equal(ledger.jobs[0].scopeLabel, "global");
-  assert.equal(ledger.jobs[0].resultLabel, "3 Karten");
-  assert.equal(ledger.jobs[1].deckName, deck.name);
-  assert.equal(ledger.jobs[1].resultLabel, "2 Varianten");
 });

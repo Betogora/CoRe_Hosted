@@ -1,7 +1,7 @@
 # CoRe-Entscheidungen
 
 **Rolle:** einzige kanonische Quelle für dauerhafte Produkt- und Architekturentscheidungen.
-**Stand:** 2026-07-15
+**Stand:** 2026-08-01
 
 ## ADR-Format
 
@@ -22,13 +22,13 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 **Status:** angenommen
 **Kontext:** Der breite lokale MVP enthält klickbare Flächen mit sehr unterschiedlicher Produkt-, Betriebs- und Rechtsreife. Sichtbarkeit allein darf nicht als Freigabe gelten.
-**Entscheidung:** Jede Produktoberfläche hat genau einen Reifestatus. `Core` ist für normale Nutzer freigegeben und Teil des Kernversprechens. `Labs` ist sichtbar experimentell und nennt seine Grenze. `Disabled` ist technisch vorhanden, aber nicht erreichbar. Die Registry in `src/productSurfaces.ts` projiziert diese Entscheidung in die UI.
-**Konsequenzen:** Labs graduieren nur über ein eigenes Gate. Nicht reife Flächen dürfen verborgen oder zurückgebaut werden. Eine technisch vorhandene Route begründet keinen Produktanspruch.
+**Entscheidung:** `Core` ist für normale Nutzer freigegeben und Teil des Kernversprechens. Ausgemusterte oder nicht beauftragte Flächen werden vollständig entfernt; eine allgemeine Produktoberflächen-Registry wird nicht vorgehalten.
+**Konsequenzen:** Neue Flächen brauchen einen expliziten Core-Auftrag und eigene Abnahme. Eine frühere Route oder persistierte Legacy-Struktur begründet keinen Produktanspruch.
 **Datum:** 2026-07-15
 
 ## ADR-002 — Lernen und Stapelverwaltung trennen
 
-**Status:** angenommen
+**Status:** abgelöst
 **Kontext:** Lernstart und Strukturverwaltung konkurrierten in derselben Oberfläche; unsichtbare Drag-Gesten machten das Ziel einer Zeile unklar.
 **Entscheidung:** `Lernen` ist der schnelle Einstieg in eine Sitzung. `Kartenstapel` verwaltet Struktur, Karten, Versionen und erweiterte Optionen. Ein Klick auf eine Lernzeile startet Lernen. Strukturänderungen sind explizite, bestätigte Verwaltungsaktionen.
 **Konsequenzen:** Die Stapelverwaltung bleibt erreichbar, dominiert aber nicht den Lernstart. Strukturänderungen dürfen nicht erneut als versteckte Primärgeste auf Lernzeilen eingeführt werden.
@@ -54,14 +54,22 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 **Status:** angenommen
 **Kontext:** Lokale Community- und Graph-Demos zeigen technische Möglichkeiten, aber weder echte Mitgliedschaftsrechte noch nachgewiesenen Lernnutzen.
-**Entscheidung:** Community und Deck-Graph bleiben Labs. Community teilt keine privaten Review Events, Lernstände, Streaks oder Online-Status. Der Graph ist kein Kernnavigationsziel und darf Lernen nicht ersetzen.
-**Konsequenzen:** Echte Community-Rechte brauchen Membership-, RLS-, Datenschutz- und Hosted-Gates. Der Graph braucht einen belegten Nutzerzweck und Erfolgskriterium. Ohne diese Evidenz werden die Flächen nicht zu Core; ein späterer Rückbau ist zulässig.
+**Entscheidung:** Community und Deck-Graph waren Labs. Diese Zwischenentscheidung wird durch ADR-007 abgelöst.
+**Konsequenzen:** Es besteht kein Kompatibilitätsanspruch für die früheren Oberflächen oder Daten.
 **Datum:** 2026-07-15
 
 ## ADR-006 — Keine generische Anbieteradapter-Schicht
 
 **Status:** angenommen
-**Kontext:** Es gibt jeweils nur einen real betriebenen Pfad für Auth, Cloud-Persistenz und den ersten externen KI-Chat.
-**Entscheidung:** Konkrete tiefe Module kapseln Supabase und den Serverprovider. Eine generische Adapterebene entsteht erst, wenn mindestens zwei reale Implementierungen gleichzeitig unterstützt werden müssen.
+**Kontext:** Es gibt jeweils nur einen real betriebenen Pfad für Auth und Cloud-Persistenz.
+**Entscheidung:** Konkrete tiefe Module kapseln Supabase. Eine generische Adapterebene entsteht erst, wenn mindestens zwei reale Implementierungen gleichzeitig unterstützt werden müssen.
 **Konsequenzen:** React bleibt providerfrei, ohne hypothetische Interfaces und Konfigurationen einzuführen.
 **Datum:** 2026-07-13
+
+## ADR-007 — Labs und serverseitigen Groß-APKG-Pfad entfernen
+
+**Status:** angenommen
+**Kontext:** Labs-, KI-, Community- und Großdatei-Vorleistungen durchzogen UI, Domainmodell, APIs, Datenbank und Betrieb, ohne Teil des freigegebenen Kernprodukts zu sein.
+**Entscheidung:** Diese Funktionen werden vollständig entfernt. APKG bleibt bis einschließlich 250 MiB lokal. Stapel sind implizit privat. App-State v3 und Export v2 enthalten ausschließlich Core-Daten; V1-Exporte bleiben lesbar, wobei Labs-Inhalte verworfen werden. Die produktive Datenlöschung ist irreversibel und erfolgt erst nach App-Deployment und verifizierter CoRe-Projekt-Ref.
+**Konsequenzen:** Es gibt keinen Labs-Kompatibilitätspfad, keinen Server-APKG-Fallback und keine allgemeine Feature-Registry. `VariantGenerationSource: "ai_generated"` bleibt ausschließlich als Herkunftswert der Core-Variantenlogik bestehen. Google und Magic Link bleiben über getrennte Flags schaltbar.
+**Datum:** 2026-08-01

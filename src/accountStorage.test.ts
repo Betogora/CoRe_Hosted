@@ -22,12 +22,12 @@ test("account storage keeps identical app keys separated per Supabase user", () 
   const userA = createAccountStorage("user-a", storage);
   const userB = createAccountStorage("user-b", storage);
 
-  userA.setItem("core.appState.v2", JSON.stringify({ owner: "A" }));
-  userB.setItem("core.appState.v2", JSON.stringify({ owner: "B" }));
+  userA.setItem("core.appState.v3", JSON.stringify({ owner: "A" }));
+  userB.setItem("core.appState.v3", JSON.stringify({ owner: "B" }));
 
-  assert.equal(JSON.parse(userA.getItem("core.appState.v2")).owner, "A");
-  assert.equal(JSON.parse(userB.getItem("core.appState.v2")).owner, "B");
-  assert.notEqual(userA.accountKey("core.appState.v2"), userB.accountKey("core.appState.v2"));
+  assert.equal(JSON.parse(userA.getItem("core.appState.v3")).owner, "A");
+  assert.equal(JSON.parse(userB.getItem("core.appState.v3")).owner, "B");
+  assert.notEqual(userA.accountKey("core.appState.v3"), userB.accountKey("core.appState.v3"));
 });
 
 test("sync device IDs stay stable per browser storage", () => {

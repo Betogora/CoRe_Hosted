@@ -4,20 +4,12 @@ import type { ApkgCreationPreview, CreationWorkflow } from "../creationWorkflow.
 import type { Deck } from "../coreTypes.ts";
 import { projectImportUiState, type ImportUiState } from "../importUiState.ts";
 import type { AccountMediaStore, MediaSyncProgress, MediaSyncResult, MediaSyncStatus, MediaSyncTask } from "../mediaStore.ts";
-import { LOCAL_APKG_MAX_BYTES, type ApkgImportProgress } from "../serverApkgImportContract.ts";
+import { LOCAL_APKG_MAX_BYTES } from "../apkgImport.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { formatBytes, importSteps } from "./screenConstants.ts";
-import type { ApkgImportReportV1 } from "../apkgImport.ts";
 
-type ApkgWorkflow = Pick<
-  CreationWorkflow,
-  | "cancelApkgProgress"
-  | "commitApkgPreview"
-  | "parseApkgFile"
-  | "resumeApkgPreview"
-  | "retryApkgPreview"
->;
+type ApkgWorkflow = Pick<CreationWorkflow, "commitApkgPreview" | "parseApkgFile">;
 
 interface ApkgImportJob {
   fileName?: string;
@@ -25,45 +17,17 @@ interface ApkgImportJob {
   status: string;
   warnings: string[];
   errors: string[];
-  progress?: ApkgImportProgress;
 }
 
 export interface ApkgImportPanelProps {
   existingDecks: Deck[];
   workflow: ApkgWorkflow;
   mediaStore: AccountMediaStore | null;
-  serverApkgEnabled?: boolean;
-  resumeOnMount?: boolean;
   onCompleted: (deck: Deck) => unknown;
 }
 
 type CloudProgress = MediaSyncProgress & { status: MediaSyncStatus };
 type PreviewMediaStatus = { persisted: boolean; count: number; errors: string[] };
-
-const notetypeLabels: Record<ApkgImportReportV1["notetypes"][number]["classification"], string> = {
-  basic: "Einfach",
-  reverse: "Einfach + umgekehrt",
-  optional_reverse: "Optional umgekehrt",
-  cloze: "Lückentext",
-  custom: "Sicherer Fallback",
-};
-
-const serverPhaseLabels: Record<ApkgImportProgress["phase"], string> = {
-  upload: "Hochladen",
-  download: "Datei laden",
-  validate: "Sicherheitsprüfung",
-  parse: "Anki-Daten lesen",
-  preview: "Vorschau erstellen",
-  commit: "Import übernehmen",
-  media: "Medien synchronisieren",
-  cleanup: "Aufräumen",
-  done: "Abgeschlossen",
-};
-
-function formatServerProgress(progress: ApkgImportProgress): string {
-  if (progress.phase === "media" || progress.phase === "done") return `${progress.completed} / ${progress.total} Medien`;
-  return `${formatBytes(progress.completed)} / ${formatBytes(progress.total)}`;
-}
 
 function toStrings(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : [];
@@ -77,7 +41,6 @@ function toImportJob(value: unknown): ApkgImportJob {
     status: typeof job.status === "string" ? job.status : "error",
     warnings: toStrings(job.warnings),
     errors: toStrings(job.errors),
-    progress: job.progress as ApkgImportProgress | undefined,
   };
 }
 
@@ -96,12 +59,7 @@ function importStatusLabel(status: ImportUiState["status"]): string {
   }[status];
 }
 
-function nestedImportIdentity(value: unknown): unknown {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
-  return (value as Record<string, unknown>).ankiImportIdentityV1;
-}
-
-export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApkgEnabled = false, resumeOnMount = true, onCompleted }: ApkgImportPanelProps) {
+export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onCompleted }: ApkgImportPanelProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [job, setJob] = React.useState<ApkgImportJob | null>(null);
@@ -111,43 +69,23 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
   const [isParsing, setIsParsing] = React.useState(false);
   const [mediaTask, setMediaTask] = React.useState<MediaSyncTask | null>(null);
   const [cloudProgress, setCloudProgress] = React.useState<CloudProgress | null>(null);
-  const [serverProgress, setServerProgress] = React.useState<ApkgImportProgress | null>(null);
   const [completedDeck, setCompletedDeck] = React.useState<Deck | null>(null);
-  const resumedRef = React.useRef(false);
-  const localPreviewDeck = preview?.kind === "local" ? preview.deck : null;
-  const { urls: previewMediaUrls, missing: previewMissingMedia } = useDeckMediaUrls(localPreviewDeck, mediaStore);
-
-  function handleServerProgress(next: ApkgImportProgress) {
-    setServerProgress(next);
-    setPreview((current) => current?.kind === "server" ? { ...current, progress: next } : current);
-  }
-
-  React.useEffect(() => {
-    if (!resumeOnMount || resumedRef.current) return;
-    resumedRef.current = true;
-    void workflow.resumeApkgPreview({ existingDecks, onProgress: handleServerProgress }).then((result) => {
-      if (!result?.preview) return;
-      setPreview(result.preview);
-      setJob(toImportJob(result.job));
-      setServerProgress(result.preview.progress);
-    }).catch(() => undefined);
-  }, [existingDecks, resumeOnMount, workflow]);
+  const { urls: previewMediaUrls } = useDeckMediaUrls(preview?.deck ?? null, mediaStore);
 
   async function parseFile(file: File) {
     setSelectedFile(file);
     setPreview(null);
-    setServerProgress(null);
     setMediaStatus(null);
     setMediaTask(null);
     setCloudProgress(null);
     setCompletedDeck(null);
-    if (file.size > LOCAL_APKG_MAX_BYTES && !serverApkgEnabled) {
+    if (file.size > LOCAL_APKG_MAX_BYTES) {
       setJob({
         fileName: file.name,
         fileSize: file.size,
         status: "error",
         warnings: [],
-        errors: ["In dieser Umgebung sind APKG-Dateien bis 250 MiB freigegeben."],
+        errors: ["Die APKG-Datei ist größer als 250 MiB. Bitte wähle eine kleinere Datei aus."],
       });
       return;
     }
@@ -155,7 +93,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
     setIsParsing(true);
 
     try {
-      const result = await workflow.parseApkgFile(file as unknown as Parameters<ApkgWorkflow["parseApkgFile"]>[0], { onProgress: handleServerProgress, existingDecks });
+      const result = await workflow.parseApkgFile(file as unknown as Parameters<ApkgWorkflow["parseApkgFile"]>[0], { existingDecks });
       setMediaStatus(result.mediaStatus);
       setJob(toImportJob(result.job));
       setPreview(result.preview);
@@ -191,7 +129,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
     setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "committing" }));
     setIsParsing(true);
     try {
-      const result = await workflow.commitApkgPreview(preview, { existingDecks, onProgress: handleServerProgress });
+      const result = await workflow.commitApkgPreview(preview, { existingDecks });
       if (result.report.errors.length > 0 || !result.deck) {
         setJob((current) => ({
           ...(current ?? { warnings: [], errors: [] }),
@@ -202,12 +140,9 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
         setPreview((current) => current ? { ...current, importReport: result.report } as ApkgCreationPreview : current);
         return;
       }
-      if ("serverProgress" in result && result.serverProgress) handleServerProgress(result.serverProgress);
-      const serverResultProgress = "serverProgress" in result ? result.serverProgress : undefined;
       setJob((current) => ({
         ...(current ?? { warnings: [], errors: [] }),
-        status: serverResultProgress?.status ?? "done",
-        progress: serverResultProgress ?? current?.progress,
+        status: "done",
         warnings: [...new Set([...(current?.warnings ?? []), ...(result.report.warnings ?? [])])],
       }));
       setPreview((current) => current ? { ...current, importReport: result.report } as ApkgCreationPreview : current);
@@ -233,43 +168,12 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
     }
   }
 
-  async function handleCancelServerImport() {
-    if (!serverProgress) return;
-    const cancelled = await workflow.cancelApkgProgress(serverProgress);
-    if (!cancelled) return;
-    setServerProgress(cancelled);
-    setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "cancelled", progress: cancelled }));
-    setIsParsing(false);
-  }
-
-  async function handleRetryServerImport() {
-    if (!preview || preview.kind !== "server") return;
-    setIsParsing(true);
-    try {
-      const next = await workflow.retryApkgPreview(preview, handleServerProgress);
-      if (next) {
-        setPreview(next);
-        const status = next.progress.status === "ready" ? "preview" : next.progress.status === "succeeded" ? "done" : "error";
-        setJob((current) => ({
-          ...(current ?? { warnings: [], errors: [] }),
-          status,
-          progress: next.progress,
-          errors: ["ready", "succeeded"].includes(next.progress.status) ? [] : current?.errors ?? [],
-        }));
-      }
-    } finally {
-      setIsParsing(false);
-    }
-  }
-
   const report = preview?.importReport ?? null;
   const apkgReport = report?.apkg?.contractVersion === 1 ? report.apkg : null;
   const previewWarnings = [...new Set([...(preview?.warnings ?? []), ...(report?.warnings ?? [])])];
   const previewErrors = [...new Set([...(job?.errors ?? []), ...(report?.errors ?? [])])];
   const uiState = projectImportUiState({
     jobStatus: job?.status,
-    progressStatus: serverProgress?.status,
-    retryable: serverProgress?.retryable,
     mediaStatus: cloudProgress?.status,
     hasPreview: Boolean(preview),
     hasMediaTask: Boolean(mediaTask),
@@ -286,14 +190,6 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
     : 4;
   const previewVisible = Boolean(preview) && !["failed_retryable", "failed_terminal", "cancelled"].includes(uiState.status);
   const presentMediaCount = apkgReport?.media.detected ?? 0;
-  const cacheStatus = mediaStatus && "count" in mediaStatus ? mediaStatus : null;
-  const syncStatus = mediaStatus && "message" in mediaStatus ? mediaStatus : null;
-  const technicalIdentities = preview?.kind === "local"
-    ? preview.sampleCards.flatMap((card) => [
-        card.meta.ankiImportIdentityV1,
-        ...card.variants.map((variant) => variant.meta.ankiImportIdentityV1 ?? nestedImportIdentity(variant.meta.metadataJson)),
-      ]).filter(Boolean)
-    : [];
 
   return (
     <div className="grid gap-5">
@@ -320,7 +216,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
           <Upload className="mb-2 text-teal-700" size={26} aria-hidden="true" />
           <span className="text-base font-semibold text-[#17214f]">.apkg-Datei ablegen oder auswählen</span>
           <span className="mt-1 max-w-md text-sm leading-6 text-[#66709a]">Stapel, Karten und Medien werden vor dem Import geprüft.</span>
-          <span className="mt-1 max-w-md text-xs leading-5 text-[#66709a]">{serverApkgEnabled ? "Explizit freigegeben bis 1 GiB." : "Freigegebene Dateigröße: bis 250 MiB."}</span>
+          <span className="mt-1 max-w-md text-xs leading-5 text-[#66709a]">Freigegebene Dateigröße: bis 250 MiB.</span>
           <input ref={fileInputRef} className="sr-only" type="file" accept=".apkg" onChange={handleFileInput} />
         </label>
 
@@ -330,21 +226,6 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
               <p className="truncate text-sm font-semibold text-[#17214f]">{selectedFile.name}</p>
             </div>
             <p className="mt-1 text-sm text-[#66709a]">{formatBytes(selectedFile.size)} · {importStatusLabel(uiState.status)}</p>
-          </div>
-        ) : null}
-
-        {serverProgress ? (
-          <div className="mt-4 rounded-xl border border-[#e3e7f5] bg-white p-4">
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="font-semibold text-[#4e5b8c]">Serverimport: {serverPhaseLabels[serverProgress.phase]}</span>
-              <span className="text-[#66709a]">{formatServerProgress(serverProgress)}</span>
-            </div>
-            <progress className="mt-3 h-2 w-full accent-teal-700" max={Math.max(1, serverProgress.total)} value={serverProgress.completed} aria-label={`Serverimport: ${serverPhaseLabels[serverProgress.phase]}`} />
-            <div className="mt-3 flex flex-wrap gap-2">
-              {!['ready', 'succeeded', 'failed', 'cancelled'].includes(serverProgress.status) ? (
-                <button type="button" onClick={() => void handleCancelServerImport()} className="min-h-10 rounded-xl border border-red-200 px-3 text-sm font-semibold text-red-700">Import abbrechen</button>
-              ) : null}
-            </div>
           </div>
         ) : null}
 
@@ -386,8 +267,8 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
             {(job?.errors.length ? job.errors : ["Die APKG-Datei konnte nicht verarbeitet werden."]).map((error, index) => (
               <p key={`${error}-${index}`}>{error}</p>
             ))}
-            <button type="button" onClick={() => uiState.status === "failed_retryable" ? void handleRetryServerImport() : fileInputRef.current?.click()} className="mt-3 min-h-10 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white">
-              {uiState.status === "failed_retryable" ? "Erneut versuchen" : "Andere Datei auswählen"}
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-3 min-h-10 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white">
+              Andere Datei auswählen
             </button>
           </div>
         ) : null}
@@ -406,7 +287,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">Importvorschau</p>
-                  <h3 className="mt-1 text-2xl font-semibold text-[#17214f]">{preview.kind === "local" ? preview.deck.name : preview.deckSummary.name}</h3>
+                  <h3 className="mt-1 text-2xl font-semibold text-[#17214f]">{preview.deck.name}</h3>
                 </div>
                 {uiState.status === "preview" ? (
                   <button type="button" disabled={previewErrors.length > 0 || isParsing} onClick={() => void handleCommit()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white disabled:bg-slate-300">
@@ -464,61 +345,15 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, serverApk
                     </details>
                   ) : null}
 
-                  <details className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4">
-                    <summary className="cursor-pointer font-semibold text-[#17214f]">Technische Details</summary>
-                    <div className="mt-4 grid gap-4">
-                      <section className="rounded-xl bg-[#f8f9fe] p-4" aria-labelledby="apkg-notetypes-heading">
-                        <h4 id="apkg-notetypes-heading" className="font-semibold text-[#17214f]">Kartentypen und Felder</h4>
-                        <div className="mt-3 grid gap-3">
-                          {apkgReport.notetypes.map((notetype) => (
-                            <article key={notetype.id} className="rounded-lg bg-[#f8f9fe] p-3 text-sm">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <span className="font-semibold text-[#4e5b8c]">{notetype.name}</span>
-                                <span className="rounded-full bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">{notetypeLabels[notetype.classification]}</span>
-                              </div>
-                              <p className="mt-2 break-all font-mono text-xs text-[#66709a]">Notetype-ID: {notetype.id}</p>
-                              <p className="mt-2 text-[#66709a]">Templates: {notetype.templates.map((template) => `Ordinal ${template.ordinal}: ${template.name}`).join(", ") || "keine"}</p>
-                              <p className="mt-1 text-[#66709a]">Zugeordnet: {notetype.mappedFields.join(", ") || "keine"}</p>
-                              {notetype.unmappedFields.length > 0 ? <p className="mt-1 font-medium text-amber-800">Nicht zugeordnet: {notetype.unmappedFields.join(", ")}</p> : null}
-                            </article>
-                          ))}
-                        </div>
-                      </section>
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <section className="rounded-xl bg-[#f8f9fe] p-4" aria-labelledby="apkg-media-heading">
-                          <h4 id="apkg-media-heading" className="font-semibold text-[#17214f]">Medien</h4>
-                          <div className="mt-3 grid gap-2 text-sm text-[#66709a]">
-                            <p>Medien: {apkgReport.media.detected} erkannt · {apkgReport.media.referenced.length} referenziert · {apkgReport.media.missing.length} fehlend</p>
-                            <p>Format: {apkgReport.mediaFormat} · Paket: {apkgReport.packageFormat}</p>
-                            {cacheStatus ? <p>Lokaler Cache: {cacheStatus.persisted ? `${cacheStatus.count} Dateien persistent` : `${cacheStatus.count} Dateien nur temporär`}</p> : null}
-                            {cloudProgress ? <p>Cloud: {cloudProgress.completed}/{cloudProgress.total} · {cloudProgress.uploaded} hochgeladen · {cloudProgress.reused} wiederverwendet · Status: {cloudProgress.status}</p> : null}
-                            {syncStatus?.message ? <p>{syncStatus.message}</p> : null}
-                            {previewMissingMedia.length > 0 ? <p>{previewMissingMedia.length} Medien sind nur lokal verfügbar oder fehlen.</p> : null}
-                            {apkgReport.media.missing.length > 0 ? <p className="font-medium text-amber-800">Fehlend: {apkgReport.media.missing.join(", ")}</p> : null}
-                            {apkgReport.media.assets.map((asset) => <p key={`${asset.name}-${asset.sha1}`} className="break-all font-mono text-xs">{asset.name} · {formatBytes(asset.size)} · SHA-1 {asset.sha1}</p>)}
-                          </div>
-                        </section>
-
-                        <section className="rounded-xl bg-[#f8f9fe] p-4" aria-labelledby="apkg-reimport-heading">
-                          <h4 id="apkg-reimport-heading" className="font-semibold text-[#17214f]">Reimport</h4>
-                          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                            <div><dt className="text-[#66709a]">Neu</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.newItems}</dd></div>
-                            <div><dt className="text-[#66709a]">Wiedererkannt</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.matchedItems}</dd></div>
-                            <div><dt className="text-[#66709a]">Übersprungen</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.skippedItems}</dd></div>
-                            <div><dt className="text-[#66709a]">Lokale Änderungen geschützt</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.protectedLocalEdits}</dd></div>
-                          </dl>
-                          <p className="mt-3 text-sm text-[#66709a]">Lernfortschritt: {apkgReport.hasAnkiScheduling ? "Anki-Daten erkannt, nicht übernommen" : "neuer CoRe-FSRS-State"}</p>
-                        </section>
-                      </div>
-                      {technicalIdentities.length > 0 ? (
-                        <section className="rounded-xl bg-[#f8f9fe] p-4" aria-labelledby="apkg-identities-heading">
-                          <h4 id="apkg-identities-heading" className="font-semibold text-[#17214f]">Importidentitäten</h4>
-                          <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-all text-xs text-[#66709a]">{JSON.stringify(technicalIdentities, null, 2)}</pre>
-                        </section>
-                      ) : null}
-                    </div>
-                  </details>
+                  <section className="rounded-xl border border-[#e3e7f5] bg-white/70 p-4" aria-labelledby="apkg-reimport-heading">
+                    <h4 id="apkg-reimport-heading" className="font-semibold text-[#17214f]">Reimport-Schutz</h4>
+                    <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                      <div><dt className="text-[#66709a]">Neu</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.newItems}</dd></div>
+                      <div><dt className="text-[#66709a]">Wiedererkannt</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.matchedItems}</dd></div>
+                      <div><dt className="text-[#66709a]">Übersprungen</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.skippedItems}</dd></div>
+                      <div><dt className="text-[#66709a]">Lokale Änderungen geschützt</dt><dd className="font-semibold text-[#17214f]">{apkgReport.reimport.protectedLocalEdits}</dd></div>
+                    </dl>
+                  </section>
                 </div>
               ) : null}
               {mediaTask && cloudProgress?.status !== "cloud-ready" && cloudProgress?.status !== "cancelled" ? (

@@ -6,7 +6,7 @@ import { readZipArchive } from "./zipReader.ts";
 import { parseApkgWorkerResponse, type ApkgWorkerResult } from "./apkgImportWorkerProtocol.ts";
 import { decompress as decompressZstd } from "fzstd";
 
-const MAX_APKG_SIZE = 250 * 1024 * 1024;
+export const LOCAL_APKG_MAX_BYTES = 250 * 1024 * 1024;
 const COLLECTION_NAMES = ["collection.anki21b", "collection.anki21", "collection.anki2"];
 const FIELD_SEPARATOR = "\u001f";
 const SQLITE_SIGNATURE = "SQLite format 3\0";
@@ -577,7 +577,7 @@ export function validateApkgFile(file: any) {
     errors.push("Es werden nur Anki-Decks im .apkg-Format akzeptiert.");
   }
 
-  if (file && file.size > MAX_APKG_SIZE) {
+  if (file && file.size > LOCAL_APKG_MAX_BYTES) {
     errors.push("Die Datei ist größer als 250 MB und wird im MVP nicht direkt im Browser importiert.");
   }
 
@@ -2107,15 +2107,11 @@ export function mergeImportedDeck(importedDeck: any, existingDecks: any = []) {
     name: existingDeck.name || importedDeck.name,
     description: existingDeck.description ?? importedDeck.description,
     ownerId: existingDeck.ownerId ?? importedDeck.ownerId,
-    visibility: existingDeck.visibility ?? importedDeck.visibility,
     hierarchyPath: existingDeck.hierarchyPath ?? importedDeck.hierarchyPath,
     createdAt: existingDeck.createdAt ?? importedDeck.createdAt,
     updatedAt: now,
     deckSettings: existingDeck.deckSettings,
     reviewEvents: existingDeck.reviewEvents ?? [],
-    aiJobs: existingDeck.aiJobs ?? importedDeck.aiJobs,
-    graph: existingDeck.graph ?? importedDeck.graph,
-    communityRefs: existingDeck.communityRefs ?? [],
     versionLog: existingDeck.versionLog ?? importedDeck.versionLog,
     importMeta: {
       ...(existingDeck.importMeta ?? {}),

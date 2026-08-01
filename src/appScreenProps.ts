@@ -1,10 +1,8 @@
 import type { AppRoute, AppViewId, createViewRoute } from "./appNavigation.ts";
 import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
-import type { AiJob, CoreMode, Deck, LearningItem, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { CoreMode, Deck, LearningItem, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
-import type { ProductSurface } from "./productSurfaces.ts";
-import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
 
 type NavigateToView = (
@@ -16,34 +14,11 @@ type CreateDeckInput = Parameters<CoreWorkspace["createDeck"]>[0];
 type CardEditorValue = Parameters<CoreWorkspace["saveDeckCard"]>[2];
 type CardVariantInput = Parameters<CoreWorkspace["addDeckCardVariant"]>[2];
 type ManualCardInput = Parameters<CoreWorkspace["addManualCardToDeck"]>[1];
-type SupabaseBrowserClient = ReturnType<typeof createSupabaseBrowserClient>;
-
-export interface AssistantScreenProps {
-  decks: Deck[];
-  transcript: unknown[];
-  plans: unknown[];
-  profile: Profile;
-  getAccessToken: () => Promise<string | null>;
-  onAcceptAiChatConsent: () => Promise<unknown>;
-  onSaveChat: (exchange: unknown) => unknown;
-  onSavePlan: (plan: unknown) => unknown;
-}
-
-export interface AiJobsScreenProps { decks: Deck[]; jobs: AiJob[] }
-
-export interface CommunityScreenProps {
-  decks: Deck[];
-  communities: unknown[];
-  onSaveCommunity: (community: unknown) => unknown;
-  onSaveDeck: (deck: Deck | Deck[]) => unknown;
-}
 
 export interface CreationScreenProps {
   decks: Deck[];
   mediaStore: AccountMediaStore | null;
   persistImportedDecks: (decks: Deck[], options?: { mediaOnly?: boolean }) => Promise<unknown>;
-  supabase: SupabaseBrowserClient;
-  supabaseUrl: string;
   initialMethod: CreationMethod;
   initialTargetDeckId: string;
   completedDeckId: string;
@@ -55,10 +30,6 @@ export interface CreationScreenProps {
   onSessionCompleted: (deckId: string) => void;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onReviewDeck: (deckId?: string | null) => void;
-  onJob: (job: unknown) => unknown;
-  showAiDrafts: boolean;
-  aiDraftSurface: ProductSurface;
-  enableServerApkgImport: boolean;
 }
 
 export interface DashboardScreenProps {
@@ -66,7 +37,6 @@ export interface DashboardScreenProps {
   onNavigate: NavigateToView;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onCreateDemo: () => Promise<Deck[] | null>;
-  showAssistant: boolean;
 }
 
 export interface DeckSettingsScreenProps {
@@ -85,7 +55,6 @@ export interface DecksScreenProps {
   onUndoDeleteCard: (deckId: string, deletedCard: LearningItem) => unknown;
   onRestoreCard: (deckId: string, cardId: string, versionId: string) => unknown;
   onAddVariant: (deckId: string, cardId: string, variant: CardVariantInput) => unknown;
-  onApplyVariantJson: (deckId: string, cardId: string, response: unknown, options: Record<string, unknown>) => unknown;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   selectedDeckId: string | null;
   selectedCardId: string | null;
@@ -97,17 +66,6 @@ export interface DecksScreenProps {
   onMoveDeck: (deckId: string, parentDeckId?: string | null) => unknown;
   onOpenCardCreation: () => unknown;
   onPrepareSubdeckCreation: (parentDeckId?: string) => unknown;
-  onOpenGraph: (deck: Deck) => unknown;
-  onShareDeck: (deck: Deck) => unknown;
-  showGraph: boolean;
-  showCommunity: boolean;
-  showExternalVariantFlow: boolean;
-  externalVariantSurface: ProductSurface;
-}
-
-export interface GraphScreenProps {
-  decks: Deck[];
-  onUpdateDeck: (deckId: string, updater: (deck: Deck) => Deck) => unknown;
 }
 
 export interface LearnScreenProps {

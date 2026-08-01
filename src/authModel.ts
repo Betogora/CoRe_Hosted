@@ -32,12 +32,6 @@ export function createLocalAccount({
       createdAt: now,
       lastSignedInAt: now,
     },
-    privacy: {
-      shareLearningProgress: false,
-      showOnlineStatus: false,
-      showStreaksToOthers: false,
-      aiChatConsent: null,
-    },
   };
 }
 

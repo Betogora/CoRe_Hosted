@@ -15,7 +15,7 @@ function mediaAssetFromRow(row: MediaAssetRow) {
   };
 }
 
-const ACCOUNT_TABLES = ["decks", "cards", "card_variants", "review_events", "source_documents", "ai_jobs"];
+const ACCOUNT_TABLES = ["decks", "cards", "card_variants", "review_events", "source_documents"];
 const REVISIONED_TABLES = ["source_documents", "decks", "cards", "card_variants"];
 const REVISIONED_TABLE_SET = new Set(REVISIONED_TABLES);
 const TABLES_WITH_UPDATED_AT = new Set(["source_documents", "decks", "cards", "card_variants"]);
@@ -23,7 +23,7 @@ const CARD_MODEL_META_KEY = "__coreModel";
 const REVIEW_EVENT_META_KEY = "__coreReview";
 const DELETE_ORDER = ["review_events", "card_variants", "cards", "decks", "source_documents"];
 const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at", "revision", "updated_by_device_id"]);
-const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at", "started_at", "finished_at"]);
+const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at"]);
 const CLOUD_DELETE_BATCH_SIZE = 100;
 const CONFLICT_PROTECTED_FIELDS = new Set([
   ...ROW_IDENTITY_FIELDS,
@@ -49,13 +49,10 @@ const CONFLICT_FIELD_LABELS = Object.freeze({
   name: "Name",
   description: "Beschreibung",
   parent_deck_id: "Übergeordneter Stapel",
-  visibility: "Sichtbarkeit",
   hierarchy_path: "Stapelpfad",
   tags: "Tags",
   import_meta: "Importdaten",
   deck_settings: "Stapeleinstellungen",
-  graph: "Graph",
-  community_refs: "Community-Verknüpfungen",
   version_log: "Versionsverlauf",
   kind: "Kartentyp",
   draft_status: "Entwurfsstatus",
@@ -99,13 +96,6 @@ const CONFLICT_FIELD_LABELS = Object.freeze({
   storage_url: "Speicherreferenz",
   text_extraction_status: "Texterkennung",
   metadata: "Dokumentmetadaten",
-  job_type: "Aufgabentyp",
-  input_ref: "Eingabe",
-  policy: "Regeln",
-  result_ref: "Ergebnisreferenz",
-  error: "Fehler",
-  started_at: "Gestartet",
-  finished_at: "Beendet",
 });
 
 function nowIso() {
@@ -291,7 +281,7 @@ function formatConflictDisplayValue(value: any) {
 function conflictEntityTitle(row: any = {}) {
   const local = row.local_value ?? {};
   const remote = row.remote_value ?? {};
-  return local.name ?? remote.name ?? local.file_name ?? remote.file_name ?? local.original_front ?? remote.original_front ?? local.front ?? remote.front ?? local.job_type ?? remote.job_type ?? row.entity_id;
+  return local.name ?? remote.name ?? local.file_name ?? remote.file_name ?? local.original_front ?? remote.original_front ?? local.front ?? remote.front ?? row.entity_id;
 }
 
 function createConflictProjection(row: any = {}) {
@@ -524,14 +514,11 @@ export function deckToCloudRow(deck: any, userId: any) {
     description: deck.description ?? "",
     source: normalizeSource(deck.source),
     original_deck_id: deck.originalDeckId ?? null,
-    visibility: deck.visibility ?? "private",
     hierarchy_path: toArray(deck.hierarchyPath),
     card_count: deck.cards?.length ?? deck.cardCount ?? 0,
     tags: toArray(deck.tags),
     import_meta: toJson(deck.importMeta, {}),
     deck_settings: toJson(deck.deckSettings, {}),
-    graph: deck.graph ?? null,
-    community_refs: toJson(deck.communityRefs, []),
     version_log: toJson(deck.versionLog, []),
     created_at: deck.createdAt,
     updated_at: deck.updatedAt,
@@ -650,26 +637,6 @@ export function sourceDocumentToCloudRow(document: any, userId: any) {
   };
 }
 
-export function aiJobToCloudRow(job: any, userId: any, deckIds: any = new Set()) {
-  const deckId = job.deckId && deckIds.has(job.deckId) ? job.deckId : null;
-
-  return {
-    id: job.id,
-    user_id: userId,
-    deck_id: deckId,
-    job_type: job.jobType ?? "unknown",
-    status: job.status ?? "queued",
-    input_ref: toJson(job.inputRef, {}),
-    policy: toJson(job.policy, {}),
-    result_ref: job.resultRef ?? null,
-    error: job.error ?? null,
-    created_at: job.createdAt,
-    started_at: job.startedAt ?? null,
-    finished_at: job.finishedAt ?? null,
-    ...syncFields(job),
-  };
-}
-
 export function createCloudStateRows(state: any, userId: any, { deviceId = null }: any = {}) {
   const decks = toArray(state.decks);
 
@@ -681,7 +648,6 @@ export function createCloudStateRows(state: any, userId: any, { deviceId = null 
       decks.flatMap((deck: any) => toArray(deck.reviewEvents).map((event: any) => reviewEventToCloudRow(event, deck, userId, { deviceId })).filter((row: any) => row.id && row.rating)),
     ),
     source_documents: uniqueRowsById(toArray(state.documents).map((document: any) => sourceDocumentToCloudRow(document, userId))),
-    ai_jobs: [],
   };
 }
 
@@ -816,44 +782,6 @@ function sourceDocumentFromRow(row: any) {
     metadata: row.metadata,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    ...syncMetadataFromRow(row),
-  };
-}
-
-function aiJobFromRow(row: any) {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    deckId: row.deck_id,
-    jobType: row.job_type,
-    status: row.status,
-    contractVersion: row.contract_version ?? 0,
-    promptVersion: row.prompt_version ?? null,
-    schemaVersion: row.schema_version ?? null,
-    idempotencyKey: row.idempotency_key ?? null,
-    requestFingerprint: row.request_fingerprint ?? null,
-    attemptCount: row.attempt_count ?? 0,
-    maxAttempts: row.max_attempts ?? 3,
-    retryable: row.retryable ?? false,
-    nextRetryAt: row.next_retry_at ?? null,
-    provider: row.provider ?? null,
-    model: row.model ?? null,
-    errorClass: row.error_class ?? null,
-    errorCode: row.error_code ?? null,
-    inputTokens: row.input_tokens ?? null,
-    outputTokens: row.output_tokens ?? null,
-    totalTokens: row.total_tokens ?? null,
-    pricingVersion: row.pricing_version ?? null,
-    costMicros: row.cost_micros ?? null,
-    costCurrency: row.cost_currency ?? null,
-    inputRef: row.input_ref,
-    policy: row.policy,
-    resultRef: row.result_ref,
-    error: row.error,
-    createdAt: row.created_at,
-    startedAt: row.started_at,
-    finishedAt: row.finished_at,
-    updatedAt: row.updated_at ?? row.created_at,
     ...syncMetadataFromRow(row),
   };
 }
@@ -994,16 +922,7 @@ export function reconcileCloudStateMetadata(state: any, rowsByTable: any = {}) {
       const row = maps.source_documents.get(document.id);
       return row ? { ...document, ...syncMetadataFromRow(row), updatedAt: row.updated_at ?? document.updatedAt } : document;
     });
-  const localLegacyJobs = uniqueRowsById([
-    ...toArray(state.aiJobs),
-    ...toArray(state.decks).flatMap((deck: any) => toArray(deck.aiJobs)),
-  ]).filter((job: any) => Number(job.contractVersion ?? 0) === 0);
-  const serverJobs = toArray(rowsByTable.ai_jobs)
-    .filter((row: any) => !row.deleted_at)
-    .map(aiJobFromRow);
-  const aiJobs = uniqueRowsById([...localLegacyJobs, ...serverJobs]);
   const documentMap = metadataById(documents);
-  const aiJobMap = metadataById(aiJobs);
 
   const decks = toArray(state.decks)
     .filter((deck: any) => !deletedKeys.has(`decks:${deck.id}`))
@@ -1028,17 +947,12 @@ export function reconcileCloudStateMetadata(state: any, rowsByTable: any = {}) {
       const sourceDocuments = toArray(deck.sourceDocuments)
         .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
         .map((document: any) => documentMap.get(document.id) ?? document);
-      const deckAiJobs = toArray(deck.aiJobs)
-        .filter((job: any) => !deletedKeys.has(`ai_jobs:${job.id}`))
-        .map((job: any) => aiJobMap.get(job.id) ?? job);
-
       return {
         ...deck,
         ...(deckRow ? syncMetadataFromRow(deckRow) : {}),
         cards,
         reviewEvents,
         sourceDocuments,
-        aiJobs: deckAiJobs,
       };
     });
 
@@ -1046,7 +960,6 @@ export function reconcileCloudStateMetadata(state: any, rowsByTable: any = {}) {
     ...state,
     decks,
     documents,
-    aiJobs,
     cloudTombstones,
   };
 }
@@ -1055,7 +968,6 @@ export function mergeCloudSyncMetadata(state: any, acknowledgedState: any) {
   if (!acknowledgedState) return state;
   const acknowledgedDecks = metadataById(acknowledgedState.decks);
   const acknowledgedDocuments = metadataById(acknowledgedState.documents);
-  const acknowledgedAiJobs = metadataById(acknowledgedState.aiJobs);
   const cloudTombstones = toArray(acknowledgedState.cloudTombstones);
   const deletedKeys = tombstoneKeys(cloudTombstones);
 
@@ -1066,7 +978,6 @@ export function mergeCloudSyncMetadata(state: any, acknowledgedState: any) {
       const acknowledgedCards = metadataById(acknowledgedDeck?.cards);
       const acknowledgedEvents = metadataById(acknowledgedDeck?.reviewEvents);
       const acknowledgedDeckDocuments = metadataById(acknowledgedDeck?.sourceDocuments);
-      const acknowledgedDeckJobs = metadataById(acknowledgedDeck?.aiJobs);
       return {
         ...deck,
         ...(acknowledgedDeck
@@ -1109,9 +1020,6 @@ export function mergeCloudSyncMetadata(state: any, acknowledgedState: any) {
         sourceDocuments: toArray(deck.sourceDocuments)
           .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
           .map((document: any) => acknowledgedDeckDocuments.get(document.id) ?? acknowledgedDocuments.get(document.id) ?? document),
-        aiJobs: toArray(deck.aiJobs)
-          .filter((job: any) => !deletedKeys.has(`ai_jobs:${job.id}`))
-          .map((job: any) => acknowledgedDeckJobs.get(job.id) ?? acknowledgedAiJobs.get(job.id) ?? job),
       };
     });
 
@@ -1121,9 +1029,6 @@ export function mergeCloudSyncMetadata(state: any, acknowledgedState: any) {
     documents: toArray(state.documents)
       .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
       .map((document: any) => acknowledgedDocuments.get(document.id) ?? document),
-    aiJobs: toArray(state.aiJobs)
-      .filter((job: any) => !deletedKeys.has(`ai_jobs:${job.id}`))
-      .map((job: any) => acknowledgedAiJobs.get(job.id) ?? job),
     cloudTombstones,
   };
 }
@@ -1158,7 +1063,6 @@ function summarizeCloudRows(rows: any) {
     variants: rows.card_variants.length,
     reviewEvents: rows.review_events.length,
     documents: rows.source_documents.length,
-    aiJobs: rows.ai_jobs.length,
   };
 }
 
@@ -1545,14 +1449,13 @@ export async function upsertAccountCloudState(client: any, state: any, { deviceI
 
 export async function loadAccountCloudState(client: any, fallbackState: any = {}) {
   const user = await getAuthenticatedUser(client);
-  const [profileRows, deckRows, cardRows, variantRows, reviewRows, documentRows, aiJobRows, mediaResult] = await Promise.all([
+  const [profileRows, deckRows, cardRows, variantRows, reviewRows, documentRows, mediaResult] = await Promise.all([
     selectProfileRows(client, user.id),
     selectRows(client, "decks", user.id),
     selectRows(client, "cards", user.id),
     selectRows(client, "card_variants", user.id),
     selectRows(client, "review_events", user.id),
     selectRows(client, "source_documents", user.id),
-    selectRows(client, "ai_jobs", user.id),
     client.from("media_assets").select("*").eq("user_id", user.id),
   ]);
   if (mediaResult.error) throw mediaResult.error;
@@ -1563,19 +1466,12 @@ export async function loadAccountCloudState(client: any, fallbackState: any = {}
     card_variants: variantRows,
     review_events: reviewRows,
     source_documents: documentRows,
-    ai_jobs: aiJobRows,
   };
   const activeDeckIds = new Set(deckRows.filter((row: any) => !row.deleted_at).map((row: any) => row.id));
   const activeCardRows = cardRows.filter((row: any) => !row.deleted_at && activeDeckIds.has(row.deck_id));
   const activeCardIds = new Set(activeCardRows.map((row: any) => row.id));
   const activeVariantRows = variantRows.filter((row: any) => !row.deleted_at && activeCardIds.has(row.card_id));
   const documents = documentRows.filter((row: any) => !row.deleted_at).map(sourceDocumentFromRow);
-  const serverAiJobs = aiJobRows.filter((row: any) => !row.deleted_at).map(aiJobFromRow);
-  const fallbackLegacyJobs = uniqueRowsById([
-    ...toArray(fallbackState.aiJobs),
-    ...toArray(fallbackState.decks).flatMap((deck: any) => toArray(deck.aiJobs)),
-  ]).filter((job: any) => Number(job.contractVersion ?? 0) === 0);
-  const aiJobs = uniqueRowsById([...fallbackLegacyJobs, ...serverAiJobs]);
   const variantsByCardId = new Map();
   for (const variant of activeVariantRows.map(variantFromRow)) {
     variantsByCardId.set(variant.cardId, [...(variantsByCardId.get(variant.cardId) ?? []), variant]);
@@ -1590,11 +1486,6 @@ export async function loadAccountCloudState(client: any, fallbackState: any = {}
   const reviewEventsByDeckId = new Map();
   for (const event of reviewRows.map(reviewEventFromRow)) {
     reviewEventsByDeckId.set(event.deckId, [...(reviewEventsByDeckId.get(event.deckId) ?? []), event]);
-  }
-
-  const aiJobsByDeckId = new Map();
-  for (const job of aiJobs.filter((item: any) => item.deckId)) {
-    aiJobsByDeckId.set(job.deckId, [...(aiJobsByDeckId.get(job.deckId) ?? []), job]);
   }
 
   const mediaByDeckId = new Map<string, ReturnType<typeof mediaAssetFromRow>[]>();
@@ -1613,18 +1504,14 @@ export async function loadAccountCloudState(client: any, fallbackState: any = {}
       description: row.description,
       source: row.source,
       originalDeckId: row.original_deck_id,
-      visibility: row.visibility,
       hierarchyPath: row.hierarchy_path,
       cards,
       tags: row.tags,
       importMeta: row.import_meta,
       mediaAssets: mediaByDeckId.get(row.id) ?? [],
       deckSettings: row.deck_settings,
-      graph: row.graph,
-      communityRefs: row.community_refs,
       sourceDocuments: documentsForDeck(cards, documents),
       reviewEvents: reviewEventsByDeckId.get(row.id) ?? [],
-      aiJobs: aiJobsByDeckId.get(row.id) ?? [],
       versionLog: row.version_log,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -1637,7 +1524,6 @@ export async function loadAccountCloudState(client: any, fallbackState: any = {}
     profile: createCloudProfile(profileRows[0] ?? null, user, fallbackState.profile),
     decks,
     documents,
-    aiJobs,
     cloudTombstones: createCloudTombstones(rowsByTable),
     updatedAt: new Date().toISOString(),
   };

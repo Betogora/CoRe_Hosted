@@ -1,5 +1,5 @@
 import { normalizeLearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
-import type { CardType, CardVariantType, CoreMode, DeckAppearance, DeckSettings, DeckSource, DeckVisibility, LearningItemSourceType, MaturityBand, ReviewRating, TransformType, VariantGenerationSource, VariantQualityStatus } from "../coreTypes.ts";
+import type { CardType, CardVariantType, CoreMode, DeckAppearance, DeckSettings, DeckSource, LearningItemSourceType, MaturityBand, ReviewRating, TransformType, VariantGenerationSource, VariantQualityStatus } from "../coreTypes.ts";
 
 interface DeckSettingsInput extends LearningSettingsInput {
   appearance?: Partial<DeckAppearance>;
@@ -23,8 +23,6 @@ export const CORE_CARD_TYPES = [
 export const CORE_DECK_SOURCES = [
   "anki-apkg",
   "manual",
-  "ai-assisted",
-  "community",
   "text-import",
   "csv-import",
   "json-import",
@@ -68,11 +66,10 @@ export const DEFAULT_DECK_APPEARANCE = {
   iconKey: "book-open",
   iconColor: "#4f5eb1",
 };
-export const DECK_VISIBILITIES = ["private", "community", "unlisted", "public"] as const satisfies readonly DeckVisibility[];
 export const VARIANT_TRANSFORMS = ["original", "rephrase", "front_back_style_shift", "cloze_conversion"] as const satisfies readonly TransformType[];
 export const VARIANT_STATUSES = ["draft", "active", "rejected", "flagged", "disabled"] as const satisfies readonly VariantQualityStatus[];
 export const REVIEW_RATINGS = ["again", "hard", "good", "easy"] as const satisfies readonly ReviewRating[];
-export const LEARNING_ITEM_SOURCE_TYPES = ["manual", "text_import", "csv_import", "json_import", "anki_import", "ai_generated", "mixed"] as const satisfies readonly LearningItemSourceType[];
+export const LEARNING_ITEM_SOURCE_TYPES = ["manual", "text_import", "csv_import", "json_import", "anki_import", "mixed"] as const satisfies readonly LearningItemSourceType[];
 export const CARD_VARIANT_TYPES = ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"] as const satisfies readonly CardVariantType[];
 export const VARIANT_GENERATION_SOURCES = ["original", "ai_generated", "user_edited", "imported"] as const satisfies readonly VariantGenerationSource[];
 const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-reversed", "cloze", "multiple-choice"]);

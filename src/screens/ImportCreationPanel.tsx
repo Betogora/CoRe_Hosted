@@ -13,7 +13,6 @@ export interface ImportCreationPanelProps {
   decks: Deck[];
   workflow: CreationWorkflow;
   mediaStore: AccountMediaStore | null;
-  serverApkgEnabled?: boolean;
   onCreated: (deck: Deck) => unknown;
   onImportCompleted: (deck: Deck) => unknown;
 }
@@ -48,14 +47,12 @@ function TabButton({ icon: Icon, label, isActive, onClick }: TabButtonProps) {
   );
 }
 
-export function ImportCreationPanel({ decks, onCreated, onImportCompleted, workflow, mediaStore, serverApkgEnabled = false }: ImportCreationPanelProps) {
+export function ImportCreationPanel({ decks, onCreated, onImportCompleted, workflow, mediaStore }: ImportCreationPanelProps) {
   const [selectedImport, setSelectedImport] = React.useState<ImportMethod>("anki");
   const [sessionVersion, setSessionVersion] = React.useState(0);
-  const allowInitialApkgResumeRef = React.useRef(true);
 
   function selectImport(method: ImportMethod) {
     if (method === selectedImport) return;
-    allowInitialApkgResumeRef.current = false;
     setSelectedImport(method);
     setSessionVersion((version) => version + 1);
   }
@@ -68,7 +65,7 @@ export function ImportCreationPanel({ decks, onCreated, onImportCompleted, workf
         ))}
       </div>
       {selectedImport === "anki" ? (
-        <ApkgImportPanel key={`anki-${sessionVersion}`} existingDecks={decks} workflow={workflow} mediaStore={mediaStore} serverApkgEnabled={serverApkgEnabled} resumeOnMount={allowInitialApkgResumeRef.current} onCompleted={onImportCompleted} />
+        <ApkgImportPanel key={`anki-${sessionVersion}`} existingDecks={decks} workflow={workflow} mediaStore={mediaStore} onCompleted={onImportCompleted} />
       ) : (
         <TextTableImportPanel key={`${selectedImport}-${sessionVersion}`} initialMode={selectedImport} workflow={workflow} onImported={onCreated} onCompleted={onImportCompleted} />
       )}

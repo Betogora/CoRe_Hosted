@@ -506,26 +506,7 @@ export function createReviewSession(deck: Deck, options: ReviewServiceOptions = 
   const items = sessionCards.map((card) => choicesByCardId.get(card.id)).filter(Boolean);
 
   return {
-    deck: {
-      ...deck,
-      cards,
-      aiJobs:
-        generated.length > 0
-          ? [
-              ...(deck.aiJobs ?? []),
-              {
-                id: makeId("job"),
-                jobType: "variant_generation",
-                status: "succeeded",
-                deckId: deck.id,
-                resultRef: { generatedVariantIds: generated.map((variant) => variant.id) },
-                createdAt: now,
-                finishedAt: now,
-                policy: deck.deckSettings?.aiPolicy ?? {},
-              },
-            ]
-          : deck.aiJobs ?? [],
-    },
+    deck: { ...deck, cards },
     session: {
       id: makeId("session"),
       deckId: deck.id,

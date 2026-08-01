@@ -9,236 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      admin_audit_events: {
-        Row: {
-          action: string
-          actor_user_id: string | null
-          created_at: string
-          id: string
-          metadata: Json
-          target_user_id: string | null
-        }
-        Insert: {
-          action: string
-          actor_user_id?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          target_user_id?: string | null
-        }
-        Update: {
-          action?: string
-          actor_user_id?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          target_user_id?: string | null
-        }
-        Relationships: []
-      }
-      ai_jobs: {
-        Row: {
-          attempt_count: number
-          contract_version: number
-          cost_currency: string | null
-          cost_micros: number | null
-          created_at: string
-          deck_id: string | null
-          deleted_at: string | null
-          error: Json | null
-          error_class: string | null
-          error_code: string | null
-          finished_at: string | null
-          id: string
-          idempotency_key: string | null
-          input_ref: Json
-          input_tokens: number | null
-          job_type: string
-          max_attempts: number
-          model: string | null
-          next_retry_at: string | null
-          output_tokens: number | null
-          policy: Json
-          pricing_version: string | null
-          prompt_version: string | null
-          provider: string | null
-          request_fingerprint: string | null
-          result_ref: Json | null
-          retryable: boolean
-          revision: number
-          schema_version: string | null
-          started_at: string | null
-          status: string
-          total_tokens: number | null
-          updated_at: string
-          updated_by_device_id: string | null
-          user_id: string
-        }
-        Insert: {
-          attempt_count?: number
-          contract_version?: number
-          cost_currency?: string | null
-          cost_micros?: number | null
-          created_at?: string
-          deck_id?: string | null
-          deleted_at?: string | null
-          error?: Json | null
-          error_class?: string | null
-          error_code?: string | null
-          finished_at?: string | null
-          id: string
-          idempotency_key?: string | null
-          input_ref?: Json
-          input_tokens?: number | null
-          job_type: string
-          max_attempts?: number
-          model?: string | null
-          next_retry_at?: string | null
-          output_tokens?: number | null
-          policy?: Json
-          pricing_version?: string | null
-          prompt_version?: string | null
-          provider?: string | null
-          request_fingerprint?: string | null
-          result_ref?: Json | null
-          retryable?: boolean
-          revision?: number
-          schema_version?: string | null
-          started_at?: string | null
-          status?: string
-          total_tokens?: number | null
-          updated_at?: string
-          updated_by_device_id?: string | null
-          user_id: string
-        }
-        Update: {
-          attempt_count?: number
-          contract_version?: number
-          cost_currency?: string | null
-          cost_micros?: number | null
-          created_at?: string
-          deck_id?: string | null
-          deleted_at?: string | null
-          error?: Json | null
-          error_class?: string | null
-          error_code?: string | null
-          finished_at?: string | null
-          id?: string
-          idempotency_key?: string | null
-          input_ref?: Json
-          input_tokens?: number | null
-          job_type?: string
-          max_attempts?: number
-          model?: string | null
-          next_retry_at?: string | null
-          output_tokens?: number | null
-          policy?: Json
-          pricing_version?: string | null
-          prompt_version?: string | null
-          provider?: string | null
-          request_fingerprint?: string | null
-          result_ref?: Json | null
-          retryable?: boolean
-          revision?: number
-          schema_version?: string | null
-          started_at?: string | null
-          status?: string
-          total_tokens?: number | null
-          updated_at?: string
-          updated_by_device_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_jobs_deck_owner_fk"
-            columns: ["deck_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "decks"
-            referencedColumns: ["id", "user_id"]
-          },
-        ]
-      }
-      apkg_import_jobs: {
-        Row: {
-          attempt_count: number
-          cancel_requested_at: string | null
-          created_at: string
-          error_class: string | null
-          error_code: string | null
-          execution_ref: string | null
-          expires_at: string
-          file_name: string
-          file_size: number
-          finished_at: string | null
-          id: string
-          max_attempts: number
-          phase: string
-          progress_completed: number
-          progress_total: number
-          report: Json
-          result_path: string | null
-          retryable: boolean
-          revision: number
-          source_path: string
-          started_at: string | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          attempt_count?: number
-          cancel_requested_at?: string | null
-          created_at?: string
-          error_class?: string | null
-          error_code?: string | null
-          execution_ref?: string | null
-          expires_at?: string
-          file_name: string
-          file_size: number
-          finished_at?: string | null
-          id: string
-          max_attempts?: number
-          phase?: string
-          progress_completed?: number
-          progress_total?: number
-          report?: Json
-          result_path?: string | null
-          retryable?: boolean
-          revision?: number
-          source_path: string
-          started_at?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          attempt_count?: number
-          cancel_requested_at?: string | null
-          created_at?: string
-          error_class?: string | null
-          error_code?: string | null
-          execution_ref?: string | null
-          expires_at?: string
-          file_name?: string
-          file_size?: number
-          finished_at?: string | null
-          id?: string
-          max_attempts?: number
-          phase?: string
-          progress_completed?: number
-          progress_total?: number
-          report?: Json
-          result_path?: string | null
-          retryable?: boolean
-          revision?: number
-          source_path?: string
-          started_at?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       card_variants: {
         Row: {
           anchor_variant_id: string | null
@@ -465,45 +235,13 @@ export type Database = {
           },
         ]
       }
-      core_portable_exports: {
-        Row: {
-          content_hash: string | null
-          id: string
-          imported_at: string
-          owner_label: string | null
-          payload: Json
-          source_label: string
-          user_id: string | null
-        }
-        Insert: {
-          content_hash?: string | null
-          id?: string
-          imported_at?: string
-          owner_label?: string | null
-          payload: Json
-          source_label?: string
-          user_id?: string | null
-        }
-        Update: {
-          content_hash?: string | null
-          id?: string
-          imported_at?: string
-          owner_label?: string | null
-          payload?: Json
-          source_label?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       decks: {
         Row: {
           card_count: number
-          community_refs: Json
           created_at: string
           deck_settings: Json
           deleted_at: string | null
           description: string
-          graph: Json | null
           hierarchy_path: string[]
           id: string
           import_meta: Json
@@ -518,16 +256,13 @@ export type Database = {
           updated_by_device_id: string | null
           user_id: string
           version_log: Json
-          visibility: string
         }
         Insert: {
           card_count?: number
-          community_refs?: Json
           created_at?: string
           deck_settings?: Json
           deleted_at?: string | null
           description?: string
-          graph?: Json | null
           hierarchy_path?: string[]
           id: string
           import_meta?: Json
@@ -542,16 +277,13 @@ export type Database = {
           updated_by_device_id?: string | null
           user_id: string
           version_log?: Json
-          visibility?: string
         }
         Update: {
           card_count?: number
-          community_refs?: Json
           created_at?: string
           deck_settings?: Json
           deleted_at?: string | null
           description?: string
-          graph?: Json | null
           hierarchy_path?: string[]
           id?: string
           import_meta?: Json
@@ -566,7 +298,6 @@ export type Database = {
           updated_by_device_id?: string | null
           user_id?: string
           version_log?: Json
-          visibility?: string
         }
         Relationships: []
       }
@@ -648,7 +379,6 @@ export type Database = {
           id: string
           onboarding_complete: boolean
           preferred_language: string
-          privacy: Json
           scheduler_preferences: Json
           timezone: string
           university: string | null
@@ -662,7 +392,6 @@ export type Database = {
           id: string
           onboarding_complete?: boolean
           preferred_language?: string
-          privacy?: Json
           scheduler_preferences?: Json
           timezone?: string
           university?: string | null
@@ -676,7 +405,6 @@ export type Database = {
           id?: string
           onboarding_complete?: boolean
           preferred_language?: string
-          privacy?: Json
           scheduler_preferences?: Json
           timezone?: string
           university?: string | null

@@ -17,22 +17,19 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await expect(page.getByText("Karten", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Medien vorhanden", { exact: true })).toBeVisible();
   await expect(page.getByText("Medien fehlen", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Kartentypen und Felder" })).toBeHidden();
-  await page.getByText("Technische Details", { exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Kartentypen und Felder" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Medien" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Reimport" })).toBeVisible();
-  await expect(page.getByText("CoRe APKG Qualität::Sonderformat", { exact: true })).toBeVisible();
-  await expect(page.getByText("Nicht zugeordnet: Kontext")).toBeVisible();
-  await expect(page.getByText("Fehlend: missing.png")).toBeVisible();
-  await expect(page.getByText(/Mehrere Anki-Decks wurden erkannt/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Reimport-Schutz" })).toBeVisible();
+  const warnings = page.locator("details").filter({ hasText: /Warnung/ });
+  await expect(warnings.getByText(/Mehrere Anki-Decks wurden erkannt/)).toBeHidden();
+  await warnings.locator("summary").click();
+  await expect(warnings.getByText(/Mehrere Anki-Decks wurden erkannt/)).toBeVisible();
+  await expect(page.getByText(/Notetype|SHA-1|Importidentität/i)).toHaveCount(0);
 
   const after = await readActiveAccountState(page);
   expect(after.decks?.length ?? 0).toBe(beforeDeckCount);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Reimport" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Reimport-Schutz" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
@@ -49,5 +46,5 @@ test("defective APKG offers exactly one recommended recovery action", async ({ p
   const error = page.getByRole("alert");
   await expect(error).toBeVisible();
   await expect(error.getByRole("button")).toHaveCount(1);
-  await expect(error.getByRole("button", { name: "Erneut analysieren" })).toBeVisible();
+  await expect(error.getByRole("button", { name: "Andere Datei auswählen" })).toBeVisible();
 });

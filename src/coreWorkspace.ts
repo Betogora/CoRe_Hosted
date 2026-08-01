@@ -1,9 +1,6 @@
-import { createCommunity, shareDeckToCommunity } from "./communityModel.ts";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, restoreCardVersion, saveCardEditorValue } from "./coreModel.ts";
 import type { CardEditorValue } from "./coreTypes.ts";
 import { createCoreRepository } from "./coreRepository.ts";
-import { generateRephrasedVariantsForLearningItem } from "./coreVariantService.ts";
-import { buildDeckGraph } from "./deckGraph.ts";
 import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
 import {
   importCsvAsNormalizedDeck,
@@ -11,7 +8,7 @@ import {
   importNormalizedDeck,
   importTextAsNormalizedDeck,
 } from "./importService.ts";
-import type { AiJob, CardVariant, CoreMode, Deck, DeckSettings, LearningItem, Profile, SourceDocument } from "./coreTypes.ts";
+import type { CardVariant, CoreMode, Deck, DeckSettings, LearningItem, Profile, SourceDocument } from "./coreTypes.ts";
 
 interface CloudTombstone {
   entityTable: string;
@@ -25,11 +22,7 @@ export interface WorkspaceState {
   version?: number;
   profile: Profile;
   decks: Deck[];
-  communities: unknown[];
-  aiJobs: AiJob[];
   documents: SourceDocument[];
-  chatTranscript: unknown[];
-  learningPlans: unknown[];
   cloudTombstones: CloudTombstone[];
   updatedAt: string;
   [key: string]: unknown;
@@ -44,10 +37,6 @@ interface WorkspaceRepository {
   updateDeck(deckId: string, updater: (deck: Deck) => Deck): Deck | null;
   updateDeckSettings(deckId: string, settings: Partial<DeckSettings>): Deck | null;
   saveProfile(profile: unknown): unknown;
-  saveCommunity(community: unknown): unknown;
-  saveAiJob(job: unknown): unknown;
-  saveChatExchange(exchange: unknown): unknown;
-  saveLearningPlan(plan: unknown): unknown;
 }
 
 interface DeckMutationResult {
@@ -598,38 +587,8 @@ export function createCoreWorkspace(repository: WorkspaceRepository = createCore
         }),
       );
     },
-    applyVariantGenerationResponse(deckId: string, cardId: string, response: unknown, options: Record<string, unknown> = {}) {
-      let generationResult: ReturnType<typeof generateRephrasedVariantsForLearningItem> | null = null;
-      const updatedAt = new Date().toISOString();
-      const deck = repository.updateDeck(deckId, (currentDeck) => ({
-        ...currentDeck,
-        updatedAt,
-        cards: (currentDeck.cards ?? []).map((card) => {
-          if (card.id !== cardId) return card;
-          generationResult = generateRephrasedVariantsForLearningItem(card, {
-            ...options,
-            mockResponse: response,
-          });
-          return generationResult.learningItem;
-        }),
-      }));
-
-      return { deck, result: generationResult };
-    },
     saveProfile(profile: unknown) {
       return repository.saveProfile(profile);
-    },
-    saveCommunity(community: unknown) {
-      return repository.saveCommunity(community);
-    },
-    saveAiJob(job: unknown) {
-      return repository.saveAiJob(job);
-    },
-    saveChatExchange(exchange: unknown) {
-      return repository.saveChatExchange(exchange);
-    },
-    saveLearningPlan(plan: unknown) {
-      return repository.saveLearningPlan(plan);
     },
     updateAllDecks(updater: (deck: Deck) => Deck) {
       const state = repository.getState();
@@ -703,24 +662,6 @@ export function createCoreWorkspace(repository: WorkspaceRepository = createCore
         existingDecks: state.decks,
       });
       return saveImportDeckResult(repository, result);
-    },
-    ensureDeckGraph(deckId: string) {
-      const deck = repository.getDeck(deckId);
-      if (!deck) return null;
-      if (deck.graph || !deck.cards?.length) return deck;
-      return repository.updateDeck(deck.id, (current) => ({ ...current, graph: buildDeckGraph(current) }));
-    },
-    shareDeckToDefaultCommunity(deckId: string, { name = "CoRe Lerngruppe", permission = "copy" }: { name?: string; permission?: string } = {}) {
-      const state = repository.getState();
-      const deck = state.decks.find((item) => item.id === deckId);
-      if (!deck) return null;
-
-      const community = state.communities[0] ?? createCommunity({ name });
-      const result = shareDeckToCommunity(community, deck, { permission });
-      return {
-        ...result,
-        community: repository.saveCommunity(result.community),
-      };
     },
     createDemoDeck() {
       return repository.saveDeck(createDemoAnatomyDeck());

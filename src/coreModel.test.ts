@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  acceptAiDraftDeck,
   addRephrasedVariant,
-  createAiDraftDeck,
   createBasicLearningItem,
   createDefaultDeckSettings,
   createManualCoreDeck,
@@ -90,34 +88,6 @@ test("manual multiple-choice cards keep structured metadata and free-text falls 
   assert.ok(getOriginalVariant);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(getOriginalVariant(freeTextCard).expectedAnswerJson, freeTextCard.originalBack);
-});
-
-test("keeps AI generated cards as drafts until accepted", () => {
-  const draftDeck = createAiDraftDeck({
-    deckName: "AI Drafts",
-    config: {
-      language: "Deutsch",
-      cardCount: 1,
-      cardTypes: ["cloze"],
-    },
-    drafts: [
-      {
-        cardType: "cloze",
-        front: "{{c1::ATP}} stores energy.",
-        back: "ATP stores energy.",
-        tags: ["biology"],
-      },
-    ],
-  });
-
-  assert.equal(draftDeck.source, "ai-assisted");
-  assert.equal(draftDeck.importMeta.draftOnly, true);
-  assert.equal(draftDeck.cards[0].draftStatus, "draft");
-
-  const accepted = acceptAiDraftDeck(draftDeck);
-  assert.equal(accepted.importMeta.draftOnly, false);
-  assert.equal(accepted.cards[0].draftStatus, "accepted");
-  assert.equal(accepted.cards[0].immutableOriginal.front, "{{c1::ATP}} stores energy.");
 });
 
 test("normalizing edited decks preserves immutable originals and version history", () => {

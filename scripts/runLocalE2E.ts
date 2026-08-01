@@ -9,11 +9,11 @@ import {
   provisionLocalE2EAccounts,
 } from "./localE2EEnvironment.ts";
 import { synchronizeDatabaseTypes } from "./databaseTypes.ts";
+import { retireLabsStorage } from "./retireLabsStorage.ts";
 
 const SUPABASE_CLI_PATH = path.join(process.cwd(), "node_modules", "supabase", "dist", "supabase.js");
 const PLAYWRIGHT_CLI_PATH = path.join(process.cwd(), "node_modules", "@playwright", "test", "cli.js");
 const TSX_CLI_PATH = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
-const AI_JOB_RLS_TEST_NAME = "ai-job-ledger-smoke.test.ts";
 const OWNERSHIP_RLS_TEST_NAME = "ownership-smoke.test.ts";
 const GOLDEN_E2E_TAG = "@golden-e2e";
 const BETA_CORE_TAG = "@beta-core";
@@ -23,8 +23,7 @@ const ALL_RLS_TEST_PATHS = readdirSync(path.join(process.cwd(), "tests", "rls"))
   .filter((fileName) => fileName.endsWith(".test.ts"))
   .sort()
   .map((fileName) => path.join(process.cwd(), "tests", "rls", fileName));
-const AI_JOB_RLS_TEST_PATH = ALL_RLS_TEST_PATHS.find((filePath) => path.basename(filePath) === AI_JOB_RLS_TEST_NAME);
-const RLS_TEST_PATHS = ALL_RLS_TEST_PATHS.filter((filePath) => path.basename(filePath) !== AI_JOB_RLS_TEST_NAME);
+const RLS_TEST_PATHS = ALL_RLS_TEST_PATHS;
 
 interface CommandOptions {
   capture?: boolean;
@@ -133,6 +132,15 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
     const testEnvironment = createLocalE2ERuntimeEnvironment(statusEnvironment, process.env);
     const privilegedTestEnvironment = createLocalPrivilegedTestEnvironment(statusEnvironment, process.env);
 
+    console.log("Ausgemusterten lokalen Import-Bucket über die Storage-API entfernen …");
+    await retireLabsStorage({
+      supabaseUrl: String(privilegedTestEnvironment.SUPABASE_URL),
+      secretKey: String(privilegedTestEnvironment.SUPABASE_SECRET_KEY),
+      manifest: { projectRef: "local", retiredDeckIds: [], retiredCardIds: [], coreMediaPaths: [] },
+      confirmedProjectRef: "local",
+      allowLocal: true,
+    });
+
     console.log("Bestätigte lokale Auth-/RLS-Testaccounts provisionieren …");
     await provisionLocalE2EAccounts(privilegedTestEnvironment);
 
@@ -153,14 +161,6 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       await runCommand(process.execPath, [TSX_CLI_PATH, "--test", "--test-concurrency=1", ...rlsTestPaths], {
         env: { ...testEnvironment, CORE_RLS_GATE: runCoreRls ? "core" : "release" },
       });
-
-      if (runFullRls) {
-        if (!AI_JOB_RLS_TEST_PATH) throw new Error(`Der RLS-Smoke ${AI_JOB_RLS_TEST_NAME} fehlt.`);
-        console.log("Vertrag serverautoritatives Job-Ledger separat mit lokalem Secret prüfen …");
-        await runCommand(process.execPath, [TSX_CLI_PATH, "--test", "--test-concurrency=1", AI_JOB_RLS_TEST_PATH], {
-          env: createLocalPrivilegedTestEnvironment(statusEnvironment, process.env),
-        });
-      }
     }
 
     if (runGoldenE2E || runBetaE2E || runFullE2E) {

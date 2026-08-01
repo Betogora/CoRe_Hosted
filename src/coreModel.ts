@@ -6,7 +6,6 @@ export {
   CORE_MODES,
   DECK_ICON_KEYS,
   DEFAULT_DECK_APPEARANCE,
-  DECK_VISIBILITIES,
   LEARNING_ITEM_SOURCE_TYPES,
   MATURITY_BANDS,
   REVIEW_RATINGS,
@@ -56,9 +55,7 @@ export {
   validateCardEditorValue,
 } from "./coreModel/cardEditor.ts";
 export {
-  acceptAiDraftDeck,
   addRephrasedVariant,
-  createAiDraftDeck,
   createBasicLearningItem,
   createBasicReverseLearningItem,
   createClozeLearningItem,

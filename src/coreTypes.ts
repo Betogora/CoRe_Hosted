@@ -12,8 +12,6 @@ export type CardType =
 export type DeckSource =
   | "anki-apkg"
   | "manual"
-  | "ai-assisted"
-  | "community"
   | "text-import"
   | "csv-import"
   | "json-import"
@@ -24,9 +22,7 @@ export type LearningItemSourceType =
   | "csv_import"
   | "json_import"
   | "anki_import"
-  | "ai_generated"
   | "mixed";
-export type DeckVisibility = "private" | "community" | "unlisted" | "public";
 export type CardVariantType =
   | "basic"
   | "reverse"
@@ -67,19 +63,6 @@ export interface MediaAssetReference {
   deletedAt: string | null;
 }
 
-export interface AiChatConsent {
-  version: "google-gemma-chat-v1";
-  acceptedAt: string;
-  adultConfirmed: true;
-}
-
-export interface PrivacySettings {
-  shareLearningProgress: boolean;
-  showOnlineStatus: boolean;
-  showStreaksToOthers: boolean;
-  aiChatConsent?: AiChatConsent | null;
-}
-
 export interface Profile {
   userId: string;
   email: string;
@@ -89,7 +72,6 @@ export interface Profile {
   preferredLanguage: string;
   timezone: string;
   onboardingComplete: boolean;
-  privacy: PrivacySettings;
   schedulerPreferences: Record<string, unknown>;
 }
 
@@ -126,46 +108,6 @@ export interface ReviewEvent {
   flags: Record<string, unknown>;
   createdAt: string;
   createdByDeviceId?: string | null;
-}
-
-export type AiJobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
-
-export interface AiJob {
-  id: string;
-  jobType: string;
-  status: AiJobStatus;
-  contractVersion?: 0 | 1;
-  userId: string;
-  deckId: string | null;
-  promptVersion?: string | null;
-  schemaVersion?: string | null;
-  idempotencyKey?: string | null;
-  requestFingerprint?: string | null;
-  attemptCount?: number;
-  maxAttempts?: number;
-  retryable?: boolean;
-  nextRetryAt?: string | null;
-  provider?: string | null;
-  model?: string | null;
-  errorClass?: string | null;
-  errorCode?: string | null;
-  inputTokens?: number | null;
-  outputTokens?: number | null;
-  totalTokens?: number | null;
-  pricingVersion?: string | null;
-  costMicros?: number | null;
-  costCurrency?: string | null;
-  inputRef: Record<string, unknown>;
-  policy: Record<string, unknown>;
-  resultRef: Record<string, unknown> | null;
-  error: Record<string, unknown> | null;
-  createdAt: string;
-  startedAt: string | null;
-  finishedAt: string | null;
-  updatedAt?: string;
-  revision: number;
-  deletedAt: string | null;
-  updatedByDeviceId: string | null;
 }
 
 export interface CloudTombstone {
@@ -564,7 +506,6 @@ export interface Deck {
   description: string;
   source: DeckSource;
   originalDeckId: string | null;
-  visibility: DeckVisibility;
   hierarchyPath: string[];
   createdAt: string;
   updatedAt: string;
@@ -579,21 +520,14 @@ export interface Deck {
   sourceDocuments: SourceDocument[];
   cards: LearningItem[];
   reviewEvents: ReviewEvent[];
-  aiJobs: AiJob[];
-  graph: unknown;
-  communityRefs: unknown[];
   versionLog: VersionEntry[];
 }
 
 export interface AppState {
-  version: 2;
+  version: 3;
   profile: Profile;
   decks: Deck[];
-  communities: unknown[];
-  aiJobs: AiJob[];
   documents: SourceDocument[];
   cloudTombstones: CloudTombstone[];
-  chatTranscript: unknown[];
-  learningPlans: unknown[];
   updatedAt: string;
 }

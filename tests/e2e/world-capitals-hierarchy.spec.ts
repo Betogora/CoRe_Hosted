@@ -103,7 +103,7 @@ test("world capitals learn list is simple and has an explicit learning start", a
   }
   await expect(europeRow.getByRole("button", { name: "Europa lernen" })).toBeVisible();
   await expect(europeRow).not.toHaveAttribute("draggable", "true");
-  const europeSettingsButton = europeRow.getByRole("button", { name: "Stapeloptionen für Europa" });
+  const europeSettingsButton = europeRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Europa" });
   await europeSettingsButton.click();
   await expect(page.getByTestId(`deck-settings-${DECK_IDS.europe}`)).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.europe}$`));

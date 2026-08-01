@@ -31,7 +31,6 @@ test("cloud auth maps local profile fields into a Supabase profile row", () => {
       university: "Uni",
       fieldOfStudy: "Medizin",
       preferredLanguage: "de",
-      privacy: { showOnlineStatus: true },
       schedulerPreferences: { profile: "standard" },
     },
     user,
@@ -42,9 +41,6 @@ test("cloud auth maps local profile fields into a Supabase profile row", () => {
   assert.equal(row.email, "noemi@example.test");
   assert.equal(row.display_name, "Noemi");
   assert.equal(row.field_of_study, "Medizin");
-  assert.ok(row);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(row.privacy.showOnlineStatus, true);
   assert.equal(row.updated_at, "2026-07-09T07:30:00.000Z");
 });
 
@@ -55,7 +51,6 @@ test("cloud auth creates a password-free signed-in profile", () => {
       email: "noemi@example.test",
       display_name: "Noemi",
       preferred_language: "de",
-      privacy: { shareLearningProgress: false },
       scheduler_preferences: { profile: "standard" },
     },
     user,
@@ -69,27 +64,6 @@ test("cloud auth creates a password-free signed-in profile", () => {
   assert.equal(profile.account.status, "signed-in");
   assert.equal(profile.account.passwordVerifier, undefined);
   assert.equal(profile.displayName, "Noemi");
-});
-
-test("cloud auth preserves only the current versioned AI consent", () => {
-  const acceptedAt = "2026-07-14T10:00:00.000Z";
-  const current = createCloudProfile(
-    {
-      id: user.id,
-      privacy: { aiChatConsent: { version: "google-gemma-chat-v1", acceptedAt, adultConfirmed: true } },
-    },
-    user,
-  );
-  const outdated = createCloudProfile(
-    {
-      id: user.id,
-      privacy: { aiChatConsent: { version: "old-consent", acceptedAt, adultConfirmed: true } },
-    },
-    user,
-  );
-
-  assert.equal(current.privacy.aiChatConsent.acceptedAt, acceptedAt);
-  assert.equal(outdated.privacy.aiChatConsent, null);
 });
 
 test("cloud auth represents pending email confirmation and signed-out state", () => {

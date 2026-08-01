@@ -143,7 +143,7 @@ CoRe hat die entscheidende Richtung bereits eingeschlagen:
 - `src/htmlSafety.ts` und `src/richText.ts` kapseln HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung fuer Karteninhalt, Importvorschau und Review.
 - `src/reviewService.ts` schreibt Review-Events und aktualisiert Learning-Item- und Varianten-State.
 - `src/scheduler.ts` hält FSRS-like State mit Stability, Difficulty, Desired Retention, Retrievability, Variant-Kontext und Intervallvorschau fuer die vier Review-Buttons.
-- `supabase/core_schema_v1.sql` trennt bereits `decks`, `cards`, `card_variants`, `review_events`, `source_documents` und `ai_jobs`.
+- `supabase/core_schema_v1.sql` trennt `decks`, `cards`, `card_variants`, `review_events` und `source_documents`; Labs-Jobtabellen sind entfernt.
 
 Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzepte werden importiert und roh konserviert, aber noch nicht vollständig als explizite CoRe-Strukturen modelliert. Das ist für den MVP richtig, sollte aber in den nächsten Ausbaustufen gezielt geschlossen werden.
 
@@ -314,7 +314,6 @@ Für den aktuellen Vercel/Supabase-Pfad ist Elixir kein P0 und kein P1. Es ist e
 | Kleine API-Routen | Vercel Functions | - | eigener Service auf Verdacht |
 | Große APKGs | JS-Modul, Browsergrenzen, Messung | Worker, Rust/WASM, Importdienst | React-Caller mit ZIP/SQLite-Details |
 | Medienpersistenz | lokale Manifest-/URL-Auflösung | Supabase Storage/Object Storage | Base64 in Kartenfeldern |
-| KI-Proxy | Vercel `/api/ai/*` | Queue/Worker bei langer Laufzeit | Provider-Key im Browser |
 | Realtime-Jobs | lokale Job-Projektion | Queue, eventuell Elixir/Phoenix | Elixir für reine CPU-Hotpaths |
 
 ## Nächste Arbeitspakete

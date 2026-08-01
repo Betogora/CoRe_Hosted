@@ -1,5 +1,5 @@
 import React from "react";
-import { Activity, Bot, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileArchive, Layers, PenLine, Sparkles } from "lucide-react";
+import { Activity, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileArchive, Layers, PenLine, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.ts";
 import { DonutValue, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
@@ -178,7 +178,7 @@ function StudyHeatmap({ heatmap }: any) {
   );
 }
 
-export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo, showAssistant = false }: any) {
+export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }: any) {
   const library = createDeckLibraryModel(state.decks);
   const { totals, studyHeatmap } = library;
   const dashboardRows = library.dashboardRows;
@@ -235,15 +235,6 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo, 
         eyebrow="Heute"
         title="Willkommen bei CoRe"
       />
-
-      {showAssistant ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={() => onNavigate("assistent")} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
-            <Bot size={17} aria-hidden="true" />
-            Assistent öffnen
-          </button>
-        </div>
-      ) : null}
 
       <div className="grid gap-6 md:grid-cols-2">
         <StatTile icon={CalendarDays} label="Heute fällig" value={totals.dueCards} />

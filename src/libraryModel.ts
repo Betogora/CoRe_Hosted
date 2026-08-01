@@ -20,7 +20,6 @@ interface ReviewEventInput {
   variantLevel?: number;
   variantType?: string;
 }
-
 interface PerformanceEvent {
   id?: string;
   deckId: string;
@@ -45,16 +44,6 @@ interface HeatmapDay {
   isFuture: boolean;
   isOutsideDisplayYear: boolean;
   level?: number;
-}
-
-interface AiJobInput {
-  id?: string;
-  status?: string;
-  deckId?: string;
-  deckName?: string;
-  createdAt?: string;
-  resultRef?: { cardCount?: number; generatedVariantIds?: string[] };
-  [key: string]: unknown;
 }
 
 interface LibraryOptions {
@@ -261,12 +250,6 @@ function summarizeHeatmapDays(days: HeatmapDay[]) {
     currentStreak: currentStreakLength(days),
     longestStreak: longestStreakLength(days),
   };
-}
-
-function resultLabel(job: AiJobInput): string {
-  if (job.resultRef?.cardCount) return `${job.resultRef.cardCount} Karten`;
-  if (job.resultRef?.generatedVariantIds) return `${job.resultRef.generatedVariantIds.length} Varianten`;
-  return "";
 }
 
 function percentage(part: number, total: number): number {
@@ -731,35 +714,5 @@ export function createPerformanceStatisticsModel(decks: Deck[] = [], options: Li
     deckRows,
     weakDeckRows,
     latestReview: events[0] ?? null,
-  };
-}
-
-export function createAiJobLedger(
-  { decks = [], jobs = [] }: { decks?: Deck[]; jobs?: AiJobInput[] } = {},
-) {
-  const deckJobs = decks.flatMap((deck) =>
-    (deck.aiJobs ?? []).map((job) => ({
-      ...(job as unknown as AiJobInput),
-      deckName: deck.name,
-    })),
-  );
-  const ledgerJobs = [...jobs, ...deckJobs]
-    .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
-    .map((job) => ({
-      ...job,
-      scopeLabel: job.deckName ?? job.deckId ?? "global",
-      resultLabel: resultLabel(job),
-    }));
-  const statusCounts = ledgerJobs.reduce<Record<string, number>>((counts, job) => {
-    const status = String(job.status ?? "unknown");
-    return { ...counts, [status]: (counts[status] ?? 0) + 1 };
-  }, {});
-
-  return {
-    jobs: ledgerJobs,
-    total: ledgerJobs.length,
-    succeeded: statusCounts.succeeded ?? 0,
-    failed: statusCounts.failed ?? 0,
-    statusCounts,
   };
 }

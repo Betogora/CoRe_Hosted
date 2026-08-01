@@ -1,98 +1,47 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createDemoAnatomyDeck } from "../coreWorkspace.ts";
 import { createCoreDeck } from "../coreModel.ts";
+import { createDemoAnatomyDeck } from "../coreWorkspace.ts";
 import { CreationScreen } from "./CreationScreen.tsx";
+
+const callbacks = {
+  onMethodChange: () => undefined,
+  onCreated: () => undefined,
+  onAppendManualCard: () => undefined,
+  onStartDeck: () => undefined,
+  onReviewDeck: () => undefined,
+};
 
 test("completed first creation offers study and card-review actions", () => {
   const deck = createDemoAnatomyDeck();
-  const markup = renderToStaticMarkup(
-    <CreationScreen
-      decks={[deck]}
-      completedDeckId={deck.id}
-      onMethodChange={() => undefined}
-      onCreated={() => undefined}
-      onAppendManualCard={() => undefined}
-      onStartDeck={() => undefined}
-      onReviewDeck={() => undefined}
-    />,
-  );
+  const markup = renderToStaticMarkup(<CreationScreen decks={[deck]} completedDeckId={deck.id} {...callbacks} />);
 
   assert.match(markup, /Deine Karten sind bereit/);
   assert.match(markup, /Jetzt lernen/);
   assert.match(markup, /Karten prüfen/);
 });
 
-test("creation entry marks core and labs surfaces without external-model or cost claims", () => {
-  const markup = renderToStaticMarkup(
-    <CreationScreen
-      decks={[]}
-      onMethodChange={() => undefined}
-      onCreated={() => undefined}
-      onAppendManualCard={() => undefined}
-      onStartDeck={() => undefined}
-      onReviewDeck={() => undefined}
-      onJob={() => undefined}
-      showAiDrafts
-      aiDraftSurface={{
-        id: "local-ai-drafts",
-        maturity: "labs",
-        mainNavigation: false,
-        reason: "Die Entwürfe werden lokal deterministisch erzeugt; es wird kein externes Modell aufgerufen.",
-      }}
-    />,
-  );
+test("creation entry exposes only the two Core methods", () => {
+  const markup = renderToStaticMarkup(<CreationScreen decks={[]} {...callbacks} />);
 
   assert.match(markup, /Core · Manuell/);
   assert.match(markup, /Core · APKG/);
-  assert.match(markup, /Lokaler Entwurfsassistent/);
-  assert.match(markup, /kein externes Modell aufgerufen/);
-  assert.doesNotMatch(markup, /Kostenprofil|Quality-ready|Balanced/);
+  assert.doesNotMatch(markup, /Labs|Entwurfsassistent|KI/);
 });
 
-test("manual and local-draft pickers accept only readable source documents", () => {
-  const commonProps = {
-    decks: [],
-    onMethodChange: () => undefined,
-    onCreated: () => undefined,
-    onAppendManualCard: () => undefined,
-    onStartDeck: () => undefined,
-    onReviewDeck: () => undefined,
-    onJob: () => undefined,
-  };
-  const manualMarkup = renderToStaticMarkup(<CreationScreen {...commonProps} initialMethod="manual" />);
-  const draftMarkup = renderToStaticMarkup(
-    <CreationScreen
-      {...commonProps}
-      initialMethod="ai"
-      showAiDrafts
-      aiDraftSurface={{ id: "local-ai-drafts", maturity: "labs", mainNavigation: false }}
-    />,
-  );
+test("manual picker accepts only readable source documents", () => {
+  const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
-  for (const markup of [manualMarkup, draftMarkup]) {
-    assert.match(markup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
-    assert.doesNotMatch(markup, /\.docx/i);
-  }
+  assert.match(markup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
+  assert.doesNotMatch(markup, /\.docx/i);
 });
 
 test("manual target selection shows complete deck paths", () => {
   const parent = createCoreDeck({ id: "deck-parent", name: "Biologie", source: "manual", cards: [] });
   const child = createCoreDeck({ id: "deck-child", parentDeckId: parent.id, name: "Zelle", hierarchyPath: ["Biologie", "Zelle"], source: "manual", cards: [] });
-  const markup = renderToStaticMarkup(
-    <CreationScreen
-      decks={[parent, child]}
-      initialMethod="manual"
-      onMethodChange={() => undefined}
-      onCreated={() => undefined}
-      onAppendManualCard={() => undefined}
-      onStartDeck={() => undefined}
-      onReviewDeck={() => undefined}
-    />,
-  );
+  const markup = renderToStaticMarkup(<CreationScreen decks={[parent, child]} initialMethod="manual" {...callbacks} />);
 
   assert.match(markup, /Biologie \/ Zelle/);
   assert.match(markup, /Fertig/);
-  assert.match(markup, /Vorderseite: Nach Speichern leeren\. Zum Behalten anheften/);
 });

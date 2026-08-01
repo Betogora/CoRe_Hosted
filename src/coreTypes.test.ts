@@ -214,7 +214,6 @@ const deck = {
   description: "",
   source: "manual",
   originalDeckId: null,
-  visibility: "private",
   hierarchyPath: ["Beispiel"],
   createdAt: now,
   updatedAt: now,
@@ -229,9 +228,6 @@ const deck = {
   sourceDocuments: [],
   cards: [learningItem],
   reviewEvents: [],
-  aiJobs: [],
-  graph: null,
-  communityRefs: [],
   versionLog: [],
 } satisfies Deck;
 

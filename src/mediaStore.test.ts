@@ -107,3 +107,22 @@ test("Session-Fallback warnt ausdrücklich vor fehlender Reload-Fortsetzung", as
   assert.equal(result.persisted, false);
   assert.match(result.errors[0], /Reload.*nicht sicher fortgesetzt/);
 });
+
+test("Pending-Queue entfernt Einträge für ausgemusterte Stapel", async () => {
+  const indexedDB = new IDBFactory();
+  const store = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "retired-user", indexedDB });
+  await store.cachePreviewMedia(deck("retired-deck"), [file]);
+  await store.syncImportMedia([deck("retired-deck")]).result;
+
+  const lifecycle = store.startRetryLifecycle({
+    getDecks: () => [],
+    async ensureCloudParents() { assert.fail("Ohne aktiven Stapel darf kein Cloud-Sync starten."); },
+  });
+  await lifecycle.retry();
+  lifecycle.stop();
+
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  const records = await new Promise<any[]>((resolve, reject) => { const request = db.transaction("media_queue", "readonly").objectStore("media_queue").getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  db.close();
+  assert.deepEqual(records, []);
+});

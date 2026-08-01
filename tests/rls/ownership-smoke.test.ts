@@ -9,7 +9,6 @@ import { Upload } from "tus-js-client";
 
 const TABLES = [
   "profiles",
-  "core_portable_exports",
   "decks",
   "cards",
   "card_variants",
@@ -72,15 +71,7 @@ function createFixture(userId: any, prefix: string, marker: string) {
       display_name: `RLS ${marker}`,
       preferred_language: "de",
       timezone: "Europe/Berlin",
-      privacy: {},
       scheduler_preferences: {},
-    },
-    core_portable_exports: {
-      id: randomUUID(),
-      user_id: userId,
-      owner_label: marker,
-      source_label: "rls-smoke",
-      payload: { marker },
     },
     decks: {
       id: deckId,
@@ -124,13 +115,6 @@ function createFixture(userId: any, prefix: string, marker: string) {
       mime_type: "text/plain",
       text: marker,
     },
-    ai_jobs: {
-      id: `${prefix}_job_${marker}`,
-      user_id: userId,
-      deck_id: deckId,
-      job_type: "rls-smoke",
-      status: "queued",
-    },
     media_assets: {
       id: `${prefix}_media_${marker}`,
       user_id: userId,
@@ -165,7 +149,6 @@ const DELETE_ORDER = [...TABLES].reverse();
 
 const UPDATE_CASES = {
   profiles: { column: "university", value: "RLS Universität" },
-  core_portable_exports: { column: "owner_label", value: "aktualisiert" },
   decks: { column: "description", value: "aktualisiert" },
   cards: { column: "original_back", value: "aktualisiert" },
   card_variants: { column: "explanation", value: "aktualisiert" },
@@ -176,18 +159,16 @@ const UPDATE_CASES = {
   sync_conflicts: { column: "resolution", value: { verified: true } },
 };
 
-async function insertFixture(client: SupabaseClient<any,"public","public",any,any>, fixture: { [x: string]: any; profiles?: { id: any; email: string; display_name: string; preferred_language: string; timezone: string; privacy: {}; scheduler_preferences: {}; }; core_portable_exports?: { id: `${string}-${string}-${string}-${string}-${string}`; user_id: any; owner_label: any; source_label: string; payload: { marker: any; }; }; decks?: { id: string; user_id: any; name: string; source: string; }; cards?: { id: string; user_id: any; deck_id: string; source: string; kind: string; original_front: string; original_back: string; }; card_variants?: { id: string; user_id: any; card_id: string; source_card_id: string; front: string; back: string; generation_source: string; is_original: boolean; transform_type: string; }; review_events?: { id: string; user_id: any; deck_id: string; reviewable_type: string; reviewable_id: string; source_card_id: string; rating: string; }; source_documents?: { id: string; user_id: any; file_name: string; mime_type: string; text: any; }; ai_jobs?: { id: string; user_id: any; deck_id: string; job_type: string; status: string; }; media_assets?: { id: string; user_id: any; deck_id: string; card_id: string; sha1: string; original_name: string; storage_path: string; }; sync_devices?: { id: string; user_id: any; label: string; user_agent: string; }; sync_conflicts?: { id: string; user_id: any; entity_table: string; entity_id: string; base_revision: number; local_revision: number; remote_revision: number; local_value: { marker: any; }; remote_value: { marker: any; }; }; }) {
+async function insertFixture(client: SupabaseClient<any,"public","public",any,any>, fixture: Record<string, any>) {
   for (const table of INSERT_ORDER) {
     const request = table === "profiles"
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
       ? client.from(table).upsert(fixture[table], { onConflict: "id" }).select("*").single()
       : client.from(table).insert(fixture[table]).select("*").single();
     assertNoError(await request, `${table}: eigene Fixture anlegen`);
   }
 }
 
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-async function cleanupFixture(client: SupabaseClient<any,"public","public",any,any>, fixture: { [x: string]: { id: any; }; profiles?: { id: any; email: string; display_name: string; preferred_language: string; timezone: string; privacy: {}; scheduler_preferences: {}; }; core_portable_exports?: { id: `${string}-${string}-${string}-${string}-${string}`; user_id: any; owner_label: any; source_label: string; payload: { marker: any; }; }; decks?: { id: string; user_id: any; name: string; source: string; }; cards?: { id: string; user_id: any; deck_id: string; source: string; kind: string; original_front: string; original_back: string; }; card_variants?: { id: string; user_id: any; card_id: string; source_card_id: string; front: string; back: string; generation_source: string; is_original: boolean; transform_type: string; }; review_events?: { id: string; user_id: any; deck_id: string; reviewable_type: string; reviewable_id: string; source_card_id: string; rating: string; }; source_documents?: { id: string; user_id: any; file_name: string; mime_type: string; text: any; }; ai_jobs?: { id: string; user_id: any; deck_id: string; job_type: string; status: string; }; media_assets?: { id: string; user_id: any; deck_id: string; card_id: string; sha1: string; original_name: string; storage_path: string; }; sync_devices?: { id: string; user_id: any; label: string; user_agent: string; }; sync_conflicts?: { id: string; user_id: any; entity_table: string; entity_id: string; base_revision: number; local_revision: number; remote_revision: number; local_value: { marker: any; }; remote_value: { marker: any; }; }; }) {
+async function cleanupFixture(client: SupabaseClient<any,"public","public",any,any>, fixture: Record<string, any>) {
   for (const table of DELETE_ORDER) {
     const id = fixture[table]?.id;
     if (!id) continue;
@@ -199,7 +180,7 @@ function forgedRow(row: any, table: string, ownerId: any, prefix: string) {
   if (table === "profiles") return { ...row, id: ownerId, email: `forged-${prefix}@rls.local` };
   return {
     ...row,
-    id: table === "core_portable_exports" ? randomUUID() : `${prefix}_forged_${table}`,
+    id: `${prefix}_forged_${table}`,
     user_id: ownerId,
     ...(table === "media_assets" ? { storage_path: `${ownerId}/${prefix}/forged.png` } : {}),
   };
@@ -222,8 +203,8 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
   const clientB = createTestClient(supabaseUrl, publishableKey);
   const anonClient = createTestClient(supabaseUrl, publishableKey);
   const prefix = `rls_${Date.now().toString(36)}_${randomUUID().slice(0, 8)}`;
-  let fixtureA: { [x: string]: any; cards: any; card_variants: any; review_events: any; ai_jobs: any; media_assets: any; decks: any; profiles?: { id: any; email: string; display_name: string; preferred_language: string; timezone: string; privacy: {}; scheduler_preferences: {}; }; core_portable_exports?: { id: `${string}-${string}-${string}-${string}-${string}`; user_id: any; owner_label: any; source_label: string; payload: { marker: any; }; }; source_documents?: { id: string; user_id: any; file_name: string; mime_type: string; text: any; }; sync_devices?: { id: string; user_id: any; label: string; user_agent: string; }; sync_conflicts?: { id: string; user_id: any; entity_table: string; entity_id: string; base_revision: number; local_revision: number; remote_revision: number; local_value: { marker: any; }; remote_value: { marker: any; }; }; };
-  let fixtureB: { decks: any; cards: any; profiles?: { id: any; email: string; display_name: string; preferred_language: string; timezone: string; privacy: {}; scheduler_preferences: {}; }; core_portable_exports?: { id: `${string}-${string}-${string}-${string}-${string}`; user_id: any; owner_label: any; source_label: string; payload: { marker: any; }; }; card_variants?: { id: string; user_id: any; card_id: string; source_card_id: string; front: string; back: string; generation_source: string; is_original: boolean; transform_type: string; }; review_events?: { id: string; user_id: any; deck_id: string; reviewable_type: string; reviewable_id: string; source_card_id: string; rating: string; }; source_documents?: { id: string; user_id: any; file_name: string; mime_type: string; text: any; }; ai_jobs?: { id: string; user_id: any; deck_id: string; job_type: string; status: string; }; media_assets?: { id: string; user_id: any; deck_id: string; card_id: string; sha1: string; original_name: string; storage_path: string; }; sync_devices?: { id: string; user_id: any; label: string; user_agent: string; }; sync_conflicts?: { id: string; user_id: any; entity_table: string; entity_id: string; base_revision: number; local_revision: number; remote_revision: number; local_value: { marker: any; }; remote_value: { marker: any; }; }; };
+  let fixtureA: Record<string, any> = {};
+  let fixtureB: Record<string, any> = {};
 
   try {
     const userA = await ensureSignedIn(clientA, credentialsA.email, credentialsA.password);
@@ -519,9 +500,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assertNoError(await clientB.from("decks").delete().eq("id", sharedId), "Shared-ID B löschen");
     });
   } finally {
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
     if (fixtureA) await cleanupFixture(clientA, fixtureA);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
     if (fixtureB) await cleanupFixture(clientB, fixtureB);
     await clientA.auth.signOut({ scope: "local" }).catch(() => undefined);
     await clientB.auth.signOut({ scope: "local" }).catch(() => undefined);

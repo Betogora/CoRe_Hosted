@@ -214,7 +214,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>Medienbytes</li>
               <li>Authdaten</li>
-              <li>Community- oder Serverrechte</li>
+              <li>serverseitige Sicherungskopien</li>
               <li>vollständiges DSGVO-Auskunftspaket nach Art. 15</li>
             </ul>
           </div>

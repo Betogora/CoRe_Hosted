@@ -9,9 +9,6 @@ const CATEGORIES = ["unit", "contract", "integration"] as const;
 type TestCategory = (typeof CATEGORIES)[number];
 
 const CONTRACT_TESTS = new Set([
-  "src/aiChatContract.test.ts",
-  "src/aiChatRoute.test.ts",
-  "src/apkgArchiveSecurity.test.ts",
   "src/apkgImport.test.ts",
   "src/appNavigation.test.ts",
   "src/appRuntime.test.ts",
@@ -23,7 +20,6 @@ const CONTRACT_TESTS = new Set([
   "src/dataPortability.test.ts",
   "src/localE2EEnvironment.test.ts",
   "src/normalizedImport.test.ts",
-  "src/productSurfaces.test.ts",
 ]);
 
 const INTEGRATION_TESTS = new Set([

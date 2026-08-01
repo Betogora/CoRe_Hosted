@@ -2,7 +2,7 @@
 
 **Rolle:** einzige kanonische Quelle für Produktversprechen, Kernjourneys, funktionale Anforderungen und Produktabnahme.
 **Status:** Arbeitsfassung
-**Stand:** 2026-07-16
+**Stand:** 2026-08-01
 
 Diese Spezifikation beschreibt ausschließlich, was CoRe für Nutzer leisten soll. Aktuelle Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und offene Roadmap haben eigene Quellen in der [Dokumentenlandkarte](index.md).
 
@@ -12,13 +12,12 @@ Diese Spezifikation beschreibt ausschließlich, was CoRe für Nutzer leisten sol
 
 CoRe erweitert klassische Spaced Repetition um inhaltliche Wiederholung. Lernende sollen Inhalte auch bei veränderter Fragestellung abrufen, statt Layout, Wortlaut oder Lückenposition wiederzuerkennen.
 
-CoRe startet Anki-kompatibel, bleibt beim Lernen ruhig und fokussiert und macht Varianten durch Original- und Quellenanker überprüfbar. KI-Ausgaben werden nicht unsichtbar als verlässliche Lerninhalte behandelt.
+CoRe startet Anki-kompatibel, bleibt beim Lernen ruhig und fokussiert und macht Varianten durch Original- und Quellenanker überprüfbar.
 
 ### Zielgruppen
 
 - Studierende und Auszubildende mit großen, langfristig gepflegten Kartenbeständen;
 - Anki-Nutzer, die vorhandene Stapel weiterverwenden wollen;
-- Lerngruppen, die Inhalte teilen möchten, ohne private Lernstände offenzulegen.
 
 ### Kernnutzen
 
@@ -33,10 +32,9 @@ CoRe startet Anki-kompatibel, bleibt beim Lernen ruhig und fokussiert und macht 
 1. **Anki-kompatibel starten:** APKG-Import und bekannte Kartenformen senken die Einstiegshürde.
 2. **Originale bleiben Anker:** Jede Variante gehört zu genau einem Learning Item und dessen Original.
 3. **Review first:** Varianten sind vor der Antwort nicht als solche erkennbar.
-4. **KI ist überprüfbar:** Neue KI-Inhalte sind Entwürfe; Quellen, Validierung und Nutzerannahme bleiben sichtbar.
-5. **Lernen bleibt privat:** Community-Flächen zeigen keine fremden Lernstände, Streaks oder Online-Aktivität.
-6. **Stapelweise steuerbar:** Content Repetition kann pro Stapel aus, automatisch oder manuell sein.
-7. **Sparsam ausbauen:** Nicht jede Karte wird variiert; nicht reife Produktflächen bleiben Labs oder Disabled.
+4. **Lernen bleibt privat:** Stapel und Reviewdaten sind accountgebunden und werden nicht veröffentlicht.
+5. **Stapelweise steuerbar:** Content Repetition kann pro Stapel aus, automatisch oder manuell sein.
+6. **Sparsam ausbauen:** Nicht jede Karte wird variiert; neue Produktflächen brauchen einen belegten Core-Auftrag.
 
 ## 3. Produktreife
 
@@ -52,22 +50,14 @@ CoRe startet Anki-kompatibel, bleibt beim Lernen ruhig und fokussiert und macht 
 - accountgebundene Speicherung, Sync- und Konfliktstatus;
 - grundlegende Statistik und verständliche Einstellungen.
 
-### Labs
+### Entfernt
 
-- Chat-your-Deck und Lernplan;
-- lokaler deterministischer Kartenentwurf;
-- Deck-Graph;
-- lokale Community-Demo;
-- externer Varianten-JSON-Flow;
-- AI-Job-Historie;
-- erweiterte APKG-Diagnose.
+CoRe besitzt keine experimentellen Produktoberflächen. Frühere Labs-Routen fallen auf `Heute` zurück und begründen keinen Kompatibilitätsvertrag.
 
 ### Disabled
 
-- APKG über 250 MiB bis zur Hosted-Abnahme;
-- Google und Magic Link bis zum vollständigen Hosted-Roundtrip;
-- echte Community-Mitgliedschaften und Freigaberechte;
-- produktive externe Karten-, Varianten- und Graphgenerierung;
+- APKG über 250 MiB; solche Dateien werden lokal abgewiesen;
+- Google und Magic Link, wenn ihr jeweiliges eigenes Auth-Flag deaktiviert ist;
 - DOCX, OCR und Bildregionen;
 - vollständige Art.-15-Auskunft und Account-Löschung.
 
@@ -85,7 +75,6 @@ Die dauerhafte Entscheidung und ihre Konsequenzen stehen in [ADR-001](decisions.
 | Review Event | Unveränderliches Ereignis einer Bewertung |
 | Quellenanker | Stabile Fundstelle in Dokument oder Importquelle |
 | Reifegrad | Aus Reviewdaten abgeleitete Eignung für anspruchsvollere Varianten |
-| Community | Kleine, berechtigte Gruppe zum Teilen von Inhalten, nicht von Lernmetriken |
 
 Aktuelle Code- und Tabellennamen weichen teilweise aus Kompatibilitätsgründen ab. Diese technische Trennung steht ausschließlich in [`architecture.md`](architecture.md#4-heutiges-compatibility-modell).
 
@@ -104,7 +93,7 @@ Akzeptanz:
 
 ### 5.2 Stapel importieren oder manuell anlegen
 
-Nutzer wählen zuerst zwischen manueller Erstellung und Import. Labs-Entwürfe sind separat und als lokal beziehungsweise experimentell gekennzeichnet.
+Nutzer wählen zwischen manueller Erstellung und Import.
 
 Akzeptanz:
 
@@ -201,7 +190,8 @@ Akzeptanz:
 - Unbekannte Note Types werden sicher und transparent projiziert; beliebige Templates werden nicht ausgeführt.
 - Importfehler bleiben sichtbar und enthalten eine sinnvolle nächste Aktion.
 - Die sichtbare Importsteuerung unterscheidet `idle`, `analyzing`, `preview`, `committing`, `syncing_media`, `succeeded`, `partial`, `failed_retryable`, `failed_terminal` und `cancelled`.
-- Warnungen werden zunächst zusammengefasst und vollständig aufklappbar angeboten; technische IDs und Hashes bleiben unter Details.
+- Warnungen werden zunächst zusammengefasst und vollständig aufklappbar angeboten; Notetype-IDs, SHA-1-Listen und Importidentitäten erscheinen nicht in der Produktoberfläche.
+- APKG-Dateien bis einschließlich 250 MiB werden lokal verarbeitet. Größere Dateien enden sofort mit einer verständlichen Meldung und `Andere Datei auswählen`; es gibt keinen Serverjob oder Upload-Fallback.
 - Reimport erkennt stabile Anki-Identitäten vor heuristischen Fingerprints.
 - Review-Rohdaten können erhalten werden, ohne importierte Karten automatisch als gelernt zu markieren.
 - Medienreferenzen werden sicher aufgelöst; fehlende Medien werden im Bericht genannt.
@@ -229,42 +219,23 @@ Akzeptanz:
 - Nutzeränderungen erzeugen nachvollziehbare Versionen.
 - Restore ist explizit, auditierbar und überschreibt nicht still neuere Inhalte.
 - Ein unmittelbares Karten-Undo nimmt den bestehenden Soft-Delete-Tombstone revisionsgeprüft zurück; es erzeugt weder eine neue Karte noch einen zweiten Review State.
-- KI- oder Importfehler dürfen nicht zum Verlust des letzten verlässlichen Inhalts führen.
+- Importfehler dürfen nicht zum Verlust des letzten verlässlichen Inhalts führen.
 
 ### 6.7 Statistik
 
 - Statistik zeigt Lernaktivität, Erfolgsquote, Bewertungsverteilung, Streaks und schwache Bereiche aus eigenen Reviewdaten.
 - Sie zeigt keine fremden Lernmetriken und erfindet im leeren Zustand keine Aktivität.
 
-## 7. Labs-Verträge
+## 7. Zurückgebauter Produktscope
 
-### Chat-your-Deck
-
-Freie externe Antworten und quellengebundene Antworten bleiben klar unterscheidbar. Vor externem Transfer wird die erforderliche Einwilligung eingeholt. Quellengebundene Antworten verwenden nur eine kleine, bereinigte Evidenzmenge. Providerfehler zeigen einen deutschen Fehlerzustand; Secrets oder vollständige Prompts erscheinen nicht in UI oder Logs.
-
-### Lokaler Entwurfsassistent
-
-Der lokale Assistent ist deterministisch, verursacht keine externen Modellkosten und erzeugt überprüfbare Entwürfe. Entwürfe werden erst nach Nutzerannahme zu regulären Lerninhalten.
-
-### Community
-
-Die lokale Demo darf kleine Gruppen, Ordner und Deck-Kopien zeigen. Sie verspricht keine echten Mitgliedschaftsrechte. Geteilte Inhalte enthalten keine privaten Review Events oder Lernstände.
-
-### Deck-Graph
-
-Der Graph visualisiert Karten und Themen eines Stapels. Er ist ein Kontextwerkzeug, kein Ersatz für Lernstart, Statistik oder Deckverwaltung.
-
-### Lernplan
-
-Ein Lernplan kann Zieltermin, verfügbare Zeit, neue Karten, fällige Reviews und schwache Bereiche in Tagesquoten übersetzen. Er ist kein Kalender- oder Benachrichtigungsadapter.
+Chat-your-Deck, Lernplan, lokaler KI-Entwurf, Deck-Graph, Community-Demo, KI-Job-Historie, externer Varianten-JSON-Flow und serverseitiger APKG-Import sind entfernt. Es gibt dafür keine Navigation, Route, Persistenz, API oder zugesagte Importkompatibilität.
 
 ## 8. Nichtfunktionale Anforderungen
 
 ### Sicherheit und Datenschutz
 
 - Accountdaten und Inhalte sind durch RLS und Ownership geschützt.
-- Provider- und Service-Secrets bleiben serverseitig.
-- Community teilt keine privaten Lernmetriken.
+- Service-Secrets bleiben außerhalb des Browsers.
 - Exporte und Logs enthalten keine Secrets.
 - Unvalidierte externe Payloads werden nicht direkt persistiert.
 
@@ -296,7 +267,7 @@ Der Beta-Kern gilt als erfüllt, wenn:
 1. alle fünf Kernjourneys automatisiert und manuell bestehen;
 2. ein neuer Account, kleiner Import, manuelle Erstellung, Review und Reload ohne Entwicklerwissen bedienbar sind;
 3. eine Variante vor dem Reveal nicht erkennbar ist;
-4. keine normale Oberfläche lokale Demo-Logik als echte Community oder KI ausgibt;
+4. keine Labs-Navigation, Labs-Route oder ausgemusterte API ausgeliefert wird;
 5. keine sichtbare Einstellung eine nicht vorhandene Wirkung verspricht;
 6. die Zielviewports, Tastatur, Screenreader, Zoom, lange Inhalte und mindestens ein realistischer Fehlerfall abgenommen sind;
 7. keine Blocker oder ungeklärten hohen Reibungsverluste aus moderierten Tests verbleiben;
@@ -306,9 +277,9 @@ Offene Gates und Evidenz stehen ausschließlich in [`todo.md`](todo.md).
 
 ## 10. Nichtziele des Beta-Kerns
 
-- öffentliche Community, Rankings oder soziale Leistungsmetriken;
+- Community, Rankings oder soziale Leistungsmetriken;
 - generische Backend-, Auth- oder LLM-Adapter;
-- mehrere gleichzeitig unterstützte KI-Provider;
+- externe KI-Chat- oder Kartenerstellung;
 - vollständiges Admin-Portal, Zahlungen oder Abonnements;
 - native Apps, PWA-Offline-Kaltstart oder Push-Benachrichtigungen;
 - KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.

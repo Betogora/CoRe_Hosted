@@ -172,11 +172,7 @@ test("repository enriches an untouched persisted world-capitals seed with study 
       version: 2,
       profile: {},
       decks: oldSeedDecks,
-      communities: [],
-      aiJobs: [],
       documents: [],
-      chatTranscript: [],
-      learningPlans: [],
     }),
   );
 
@@ -305,7 +301,7 @@ test("repository falls back to a safe default for structurally damaged app state
 
   const state = createCoreRepository(storage, { seedDefaultDecks: false }).getState();
 
-  assert.equal(state.version, 2);
+  assert.equal(state.version, 3);
   assert.deepEqual(state.decks, []);
   assert.equal(state.profile.userId, "local-user");
 });
@@ -440,24 +436,6 @@ test("workspace appends a manual card to an existing deck with source document",
   assert.equal(workspace.getState().documents.some((item: { id: string; }) => item.id === document.id), true);
 });
 
-test("workspace graph and community commands hide app orchestration", () => {
-  const workspace = createTestWorkspace();
-  const demo = workspace.createDemoDeck();
-  const graphed = workspace.ensureDeckGraph(demo.id);
-  const shared = workspace.shareDeckToDefaultCommunity(demo.id);
-
-  assert.ok(graphed);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(graphed.graph.status, "ready");
-  assert.ok(shared);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(shared.community.sharedDecks.length, 1);
-  assert.ok(shared);
-  assert.equal(shared.sharedRef.deckId, demo.id);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(workspace.getState().communities[0].sharedDecks[0].deckName, demo.name);
-});
-
 test("workspace updates all decks without React callers looping over repository state", () => {
   const workspace = createTestWorkspace();
   workspace.createDemoDeck();
@@ -582,37 +560,4 @@ test("workspace variant commands support the UI editor without changing original
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(getOriginalVariant(manualCard).front, original.front);
 
-  const response = JSON.stringify({
-    variants: [
-      {
-        front: "Welche Funktion hat die Myelinscheide?",
-        back: "Sie isoliert Axone elektrisch und erhoeht die Leitungsgeschwindigkeit.",
-        variantType: "basic",
-        variantLevel: 2,
-        relationToOriginal: "same_card_rephrasing",
-        containsNewFacts: false,
-        abstractionLevel: 1,
-      },
-    ],
-  });
-  const generated = workspace.applyVariantGenerationResponse(deck.id, card.id, response, {
-    maxVariantLevel: 3,
-  });
-  assert.ok(generated);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  const generatedCard = generated.deck.cards.find((item) => item.id === card.id);
-  const aiVariant = getActiveVariants(generatedCard).find((variant) => variant.generationSource === "ai_generated");
-
-  assert.ok(generated);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(generated.result.createdVariants.length, 1);
-  assert.ok(original);
-  assert.ok(aiVariant);
-  assert.equal(aiVariant.anchorVariantId, original.id);
-  assert.ok(original);
-  assert.ok(getOriginalVariant);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(getOriginalVariant(generatedCard).front, original.front);
-  assert.ok(generatedCard);
-  assert.equal(generatedCard.reviewState.schedulerVersion, "fsrs_v1");
 });

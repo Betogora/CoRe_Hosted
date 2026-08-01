@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createCoreDeck, createLearningItemFromEditorValue, createManualCoreDeck, updateCardContent } from "../coreModel.ts";
 import { DecksScreen } from "./DecksScreen.tsx";
 
-test("deck management exposes explicit move, restore and collapsed Labs tools", () => {
+test("deck management exposes explicit move, restore and collapsed variant tools", () => {
   const originalDeck = createManualCoreDeck({
     deckName: "Biologie",
     card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
@@ -40,8 +40,8 @@ test("deck management exposes explicit move, restore and collapsed Labs tools", 
   assert.match(markup, /aria-label="Biologie lernen"/);
   assert.match(markup, /aria-label="Biologie mit Varianten lernen"/);
   assert.match(markup, /Version zum Wiederherstellen/);
-  assert.match(markup, /Labs \/ Erweitert: Varianten und technische Lernwerte/);
-  assert.match(markup, /<details[^>]*data-testid="card-labs-tools"/);
+  assert.match(markup, /Varianten und Lernwerte/);
+  assert.match(markup, /<details[^>]*data-testid="card-variant-tools"/);
   const inventoryMarkup = markup.slice(0, markup.indexOf(`data-testid="deck-card-list-${deck.id}"`));
   assert.match(inventoryMarkup, />Karten im Stapel</);
   assert.doesNotMatch(inventoryMarkup, />Fällig</);

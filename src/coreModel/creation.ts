@@ -3,7 +3,7 @@ import type { CardEditorValue, CardField, CardType, CardVariantType, Deck, DeckS
 import { CORE_CARD_TYPES, makeId, stableContentHash } from "./coreValues.ts";
 import { createLearningItemState, createSourceAnchor, createSourceDocument, createVersionEntry, type SourceAnchorInput, type SourceDocument } from "./reviewState.ts";
 import { createCardVariant, createCoreCard, getOriginalVariant, normalizeLearningItem } from "./learningItems.ts";
-import { createCoreDeck, normalizeCoreDeck } from "./decks.ts";
+import { createCoreDeck } from "./decks.ts";
 import { assertValidCardEditorValue, projectCardEditorContent, saveCardEditorValue } from "./cardEditor.ts";
 
 type StringMap = Record<string, unknown>;
@@ -14,15 +14,13 @@ interface ClozePart { groupId: number; text: string; hint: string; }
 interface ManualCardInput { editorValue?: CardEditorValue; cardType?: CardType; front?: string; back?: string; tags?: unknown; mediaRefs?: string[]; answerOptions?: unknown[]; correctAnswer?: unknown; expectedAnswer?: unknown; exactWordingRequired?: boolean; }
 interface ManualDocumentContext { sourceAnchor?: SourceAnchorInput; selection?: string; textQuote?: string; documentId?: string | null; fileName?: string; targetField?: string; pageNumber?: number | null; charStart?: number | null; charEnd?: number | null; document?: SourceDocument | null; mimeType?: string; documentText?: string; }
 interface ManualArtifactsInput { card?: ManualCardInput; documentContext?: ManualDocumentContext; createdAt?: string; }
-interface AiDraftInput { cardType?: CardType; type?: CardType; front?: string; back?: string; tags?: string[]; sourceAnchors?: SourceAnchorInput[]; confidence?: number; warnings?: unknown[]; }
-interface AiDraftDeckInput { deckName: string; config: unknown; drafts: AiDraftInput[]; sourceDocuments?: SourceDocument[]; }
 interface ManualDeckInput { deckName: string; card: ManualCardInput; documentContext?: ManualDocumentContext; }
 type CardContentPatch = Partial<Pick<LearningItem, "canonicalQuestion" | "canonicalAnswer" | "originalFront" | "originalBack" | "tags" | "originalTags" | "cardType" | "kind">> & { front?: string; back?: string };
 function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
 function normalizeVariantType(variantType: unknown, fallbackCardType: unknown = "basic"): CardVariantType { const mapped: Partial<Record<CardType, CardVariantType>> = { "basic-reversed": "reverse", "image-occlusion": "image_occlusion", "multiple-choice": "mcq", "case-vignette": "case", "free-text": "custom", "multi-field": "custom" }; if (typeof variantType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(variantType)) return variantType as CardVariantType; return mapped[fallbackCardType as CardType] ?? (typeof fallbackCardType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(fallbackCardType) ? fallbackCardType as CardVariantType : "basic"); }
 const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-reversed", "cloze", "multiple-choice"]);
 function normalizeCreatableCardType(cardType: unknown, fallback: CardType = "basic"): CardType { return typeof cardType === "string" && CREATABLE_CARD_TYPES.has(cardType as CardType) ? cardType as CardType : fallback; }
-function legacySourceFromLearningSourceType(sourceType: LearningItemSourceType): DeckSource { if (sourceType === "anki_import") return "anki-apkg"; if (sourceType === "ai_generated") return "ai-assisted"; if (sourceType === "text_import") return "text-import"; if (sourceType === "csv_import") return "csv-import"; if (sourceType === "json_import") return "json-import"; return "manual"; }
+function legacySourceFromLearningSourceType(sourceType: LearningItemSourceType): DeckSource { if (sourceType === "anki_import") return "anki-apkg"; if (sourceType === "text_import") return "text-import"; if (sourceType === "csv_import") return "csv-import"; if (sourceType === "json_import") return "json-import"; return "manual"; }
 function resolveLegacySource(sourceType: LearningItemSourceType, source?: DeckSource): DeckSource {
   return source ?? legacySourceFromLearningSourceType(sourceType);
 }
@@ -588,82 +586,6 @@ export function createManualCoreDeck({ deckName, card, documentContext }: Manual
       creationMethod: "manual",
       documentAssisted: Boolean(sourceAnchor),
     },
-  });
-}
-
-export function createAiDraftDeck({ deckName, config, drafts, sourceDocuments = [] }: AiDraftDeckInput): Deck {
-  const createdAt = new Date().toISOString();
-  const cards = drafts.map((draft) => {
-    const cardType = (draft.cardType ?? draft.type) === "cloze" ? "cloze" : "basic";
-    const sourceAnchors = (draft.sourceAnchors ?? []).map((anchor) =>
-      createSourceAnchor({
-        ...anchor,
-        documentName: anchor.documentName ?? sourceDocuments[0]?.fileName ?? "",
-        createdAt,
-      }),
-    );
-    const options: LearningItemOptions = {
-      source: "ai-assisted",
-      sourceType: "ai_generated",
-      cardType,
-      tags: draft.tags,
-      sourceAnchors,
-      draftStatus: "draft",
-      createdAt,
-      updatedAt: createdAt,
-      meta: {
-        aiConfig: config,
-        reviewRequired: true,
-        confidence: draft.confidence ?? 0.75,
-        warnings: draft.warnings ?? [],
-      },
-    };
-
-    return cardType === "cloze"
-      ? createClozeLearningItem("", draft.front ?? "", draft.back ?? "", options)
-      : createBasicLearningItem("", draft.front ?? "", draft.back ?? "", options);
-  });
-
-  return createCoreDeck({
-    name: deckName,
-    source: "ai-assisted",
-    cards,
-    sourceDocuments,
-    createdAt,
-    importMeta: {
-      creationMethod: "ai-assisted",
-      draftOnly: true,
-      config,
-    },
-  });
-}
-
-export function acceptAiDraftDeck(deck: Deck): Deck {
-  const acceptedAt = new Date().toISOString();
-  return normalizeCoreDeck({
-    ...deck,
-    cardCount: deck.cards.length,
-    updatedAt: acceptedAt,
-    importMeta: {
-      ...objectRecord(deck.importMeta),
-      draftOnly: false,
-      acceptedAt,
-    },
-    cards: deck.cards.map((card) => ({
-      ...card,
-      draftStatus: "accepted",
-      versionLog: [
-        ...(card.versionLog ?? []),
-        createVersionEntry({
-          objectType: "card",
-          objectId: card.id,
-          changeType: "ai_draft_accepted",
-          before: { draftStatus: card.draftStatus },
-          after: { draftStatus: "accepted" },
-          createdAt: acceptedAt,
-        }),
-      ],
-    })),
   });
 }
 

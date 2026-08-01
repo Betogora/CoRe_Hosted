@@ -42,21 +42,19 @@ Details zu Kategorien und Frequenzen stehen in [`test-portfolio.md`](test-portfo
 
 Der Beta-Kern umfasst Account, leeren Erstkontakt, Erstellen und Importieren, Kartenstapelverwaltung, Lernen mit vier Bewertungen und Content-Repetition, Statistik, Einstellungen sowie accountgebundene Speicherung und Syncstatus.
 
-Chat-your-Deck, Lernplan, lokaler Entwurfsassistent, Deck-Graph, Community-Demo, externer Varianten-JSON-Flow, AI-Job-Historie und erweiterte APKG-Diagnose sind Labs. Nicht abgenommene Hosted-, Großdatei-, Community-, KI- und Account-Lifecycle-Pfade bleiben deaktiviert.
+Labs-, KI-, Community- und Graph-Flächen sowie der serverseitige Groß-APKG-Pfad sind entfernt. APKG wird lokal bis einschließlich 250 MiB verarbeitet; Google und Magic Link bleiben getrennt schaltbar.
 
 Der verbindliche Umfang steht ausschließlich in [`specs.md`](specs.md), der aktuelle Implementierungsstand ausschließlich in [`status.md`](status.md).
 
 ## Projektstruktur
 
 ```text
-api/             Vercel-Serverrouten und serverseitige Verträge
 docs/            kanonische Dokumentation und Analysen
 fixtures/        deterministische Test- und Importdaten
 scripts/         Test-, Build-, Datenbank- und Benchmarkwerkzeuge
 src/             App-Shell, Screens, UI und Domänenmodule
 supabase/        Schemaanker, Migrationen, Policies und Verify-SQL
 tests/           E2E- und RLS-Szenarien
-trigger/         vorbereitete serverseitige APKG-Aufgaben
 ```
 
 Für Coding-Agenten gilt zuerst [`../AGENTS.md`](../AGENTS.md). Die UI-Landkarte liegt in [`../src/screens/README.md`](../src/screens/README.md).

@@ -33,8 +33,6 @@ function portableState(overrides = {}) {
         updatedByDeviceId: "device-deck",
       }),
     ],
-    communities: [],
-    aiJobs: [],
     documents: [],
     ...overrides,
   };
@@ -51,6 +49,9 @@ test("portable export redacts local password verifier", () => {
   assert.equal(validation.valid, true);
   assert.equal(exported.profile.account.passwordVerifier, undefined);
   assert.equal(exported.profile.account.status, "signed-in");
+  assert.equal(exported.schemaVersion, 2);
+  assert.equal("communities" in exported, false);
+  assert.equal("aiJobs" in exported, false);
   assert.equal(exported.decks[0].revision, undefined);
   assert.equal(exported.decks[0].updatedByDeviceId, undefined);
   assert.equal(exported.decks[0].cards[0].revision, undefined);
@@ -126,6 +127,65 @@ test("repository import roundtrip normalizes legacy cards into learning items", 
   assert.equal(original.isOriginal, true);
   assert.ok(original);
   assert.equal(original.front, "Was ist CoRe?");
+});
+
+test("v1 export discards Labs content and keeps Core decks", () => {
+  const legacyExport = {
+    schema: "core-portable-export",
+    schemaVersion: 1,
+    exportedAt: "2026-07-01T08:00:00.000Z",
+    profile: { displayName: "Ada", privacy: { showOnlineStatus: true } },
+    communities: [{ id: "community_1" }],
+    aiJobs: [{ id: "job_1" }],
+    documents: [],
+    decks: [
+      { id: "core", name: "Core", source: "manual", cards: [
+        { id: "core-card", source: "manual", originalFront: "Core", originalBack: "Bleibt" },
+        { id: "ai-card", source: "ai-assisted", sourceType: "ai_generated", originalFront: "Labs", originalBack: "Entfällt" },
+      ] },
+      { id: "ai-deck", name: "KI", source: "ai-assisted", cards: [] },
+      { id: "community-deck", name: "Community", source: "community", cards: [] },
+    ],
+  };
+
+  const validation = validatePortableExport(legacyExport);
+  assert.equal(validation.valid, true);
+  assert.equal(validation.payload?.schemaVersion, 2);
+  assert.deepEqual(validation.payload?.decks.map((deck) => deck.id), ["core"]);
+  assert.deepEqual(validation.payload?.decks[0].cards.map((card: { id: string }) => card.id), ["core-card"]);
+  assert.equal("privacy" in (validation.payload?.profile ?? {}), false);
+  assert.equal("communities" in (validation.payload ?? {}), false);
+  assert.equal("aiJobs" in (validation.payload ?? {}), false);
+});
+
+test("repository migrates v2 state once to Labs-free v3", () => {
+  const storage = createMemoryStorage();
+  storage.setItem("core.appState.v2", JSON.stringify({
+    version: 2,
+    profile: { displayName: "Ada", privacy: { showOnlineStatus: true } },
+    communities: [{ id: "community_1" }],
+    aiJobs: [{ id: "job_1" }],
+    chatTranscript: [{ id: "message_1" }],
+    learningPlans: [{ id: "plan_1" }],
+    documents: [],
+    decks: [
+      { id: "core", name: "Core", source: "manual", visibility: "community", graph: {}, communityRefs: [], aiJobs: [], cards: [
+        { id: "core-card", source: "manual", originalFront: "Core", originalBack: "Bleibt" },
+        { id: "generated-card", source: "manual", sourceType: "ai_generated", originalFront: "Labs", originalBack: "Entfällt" },
+      ] },
+      { id: "community-deck", name: "Community", source: "community", cards: [] },
+    ],
+  }));
+
+  const state = createCoreRepository(storage).getState();
+  const persisted = JSON.parse(storage.getItem("core.appState.v3"));
+  assert.equal(storage.getItem("core.appState.v2"), null);
+  assert.equal(state.version, 3);
+  assert.deepEqual(state.decks.map((deck: { id: string }) => deck.id), ["core"]);
+  assert.deepEqual(state.decks[0].cards.map((card: { id: string }) => card.id), ["core-card"]);
+  for (const key of ["communities", "aiJobs", "chatTranscript", "learningPlans"]) assert.equal(key in persisted, false);
+  for (const key of ["visibility", "graph", "communityRefs", "aiJobs"]) assert.equal(key in persisted.decks[0], false);
+  assert.equal("privacy" in persisted.profile, false);
 });
 
 test("portable export roundtrips structured card editor content", () => {
