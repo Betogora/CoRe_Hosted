@@ -147,8 +147,13 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Ungespeicherter Entwurf");
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toBeFocused();
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await expect(leaveDialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Ungespeicherter Entwurf");
+  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toBeFocused();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await leaveDialog.getByRole("button", { name: "Verwerfen und verlassen" }).click();
-  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeFocused();
 });
 
 test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und Auswirkungen bleiben sichtbar", async ({ page }) => {
@@ -158,10 +163,12 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   const targetState = await readActiveAccountState(page);
   const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
   await page.getByTestId(`deck-card-${existingCardId}`).click();
-  await page.getByRole("button", { name: "Löschen", exact: true }).click();
+  const deleteCardButton = page.getByRole("button", { name: "Löschen", exact: true });
+  await deleteCardButton.click();
   const cardDialog = page.getByRole("dialog", { name: "Karte löschen?" });
   await expect(cardDialog).toContainText("Bestehende Karte");
   await cardDialog.getByRole("button", { name: "Abbrechen" }).click();
+  await expect(deleteCardButton).toBeFocused();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
 
   await page.getByRole("button", { name: "Löschen", exact: true }).click();

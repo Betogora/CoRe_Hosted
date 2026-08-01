@@ -1221,10 +1221,10 @@ export function App() {
         confirmLabel="Verwerfen und verlassen"
         cancelLabel="Weiter bearbeiten"
         destructive
-        onCancel={() => {
-          setPendingNavigation(null);
-          window.setTimeout(() => creationDraftFocusRef.current?.(), 0);
+        restoreFocus={(reason) => {
+          if (reason === "cancel") creationDraftFocusRef.current?.();
         }}
+        onCancel={() => setPendingNavigation(null)}
         onConfirm={() => {
           const navigation = pendingNavigation;
           setPendingNavigation(null);

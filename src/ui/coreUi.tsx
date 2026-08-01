@@ -16,6 +16,7 @@ interface ActionDialogProps {
   cancelLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  restoreFocus?: (reason: "cancel" | "confirm") => void;
   destructive?: boolean;
 }
 
@@ -35,28 +36,45 @@ export function ActionDialog({
   cancelLabel,
   onConfirm,
   onCancel,
+  restoreFocus,
   destructive = false,
 }: ActionDialogProps) {
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
   const cancelRef = React.useRef<HTMLButtonElement | null>(null);
   const returnFocusRef = React.useRef<HTMLElement | null>(null);
+  const closeReasonRef = React.useRef<"cancel" | "confirm" | null>(null);
   const onCancelRef = React.useRef(onCancel);
+  const onConfirmRef = React.useRef(onConfirm);
+  const restoreFocusRef = React.useRef(restoreFocus);
   const titleId = React.useId();
   const descriptionId = React.useId();
 
   React.useEffect(() => {
     onCancelRef.current = onCancel;
-  }, [onCancel]);
+    onConfirmRef.current = onConfirm;
+    restoreFocusRef.current = restoreFocus;
+  }, [onCancel, onConfirm, restoreFocus]);
+
+  function cancelDialog() {
+    closeReasonRef.current = "cancel";
+    onCancelRef.current();
+  }
+
+  function confirmDialog() {
+    closeReasonRef.current = "confirm";
+    onConfirmRef.current();
+  }
 
   React.useEffect(() => {
     if (!open) return undefined;
+    closeReasonRef.current = null;
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const frame = window.requestAnimationFrame(() => cancelRef.current?.focus());
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onCancelRef.current();
+        cancelDialog();
         return;
       }
       if (event.key !== "Tab") return;
@@ -79,7 +97,15 @@ export function ActionDialog({
     return () => {
       window.cancelAnimationFrame(frame);
       document.removeEventListener("keydown", handleKeyDown);
-      window.requestAnimationFrame(() => returnFocusRef.current?.focus());
+      const closeReason = closeReasonRef.current;
+      const restoreFocus = restoreFocusRef.current;
+      window.requestAnimationFrame(() => {
+        if (closeReason && restoreFocus) {
+          restoreFocus(closeReason);
+          return;
+        }
+        returnFocusRef.current?.focus();
+      });
     };
   }, [open]);
 
@@ -98,12 +124,12 @@ export function ActionDialog({
         <h2 id={titleId} className="text-2xl font-semibold text-[#17214f]">{title}</h2>
         <div id={descriptionId} className="mt-3 text-sm leading-6 text-[#66709a]">{description}</div>
         <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <button ref={cancelRef} type="button" onClick={onCancel} className="min-h-11 rounded-xl border border-[#dfe4f5] bg-white px-4 text-sm font-semibold text-[#4f5eb1]">
+          <button ref={cancelRef} type="button" onClick={cancelDialog} className="min-h-11 rounded-xl border border-[#dfe4f5] bg-white px-4 text-sm font-semibold text-[#4f5eb1]">
             {cancelLabel}
           </button>
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={confirmDialog}
             className={`min-h-11 rounded-xl px-4 text-sm font-semibold text-white ${destructive ? "bg-red-700" : "bg-[#4f5eb1]"}`}
           >
             {confirmLabel}
