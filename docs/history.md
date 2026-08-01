@@ -10,7 +10,8 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Chat-your-Deck, Lernplan, Graph, Community-Demo, KI-Entwürfe/-Jobs, externer Varianten-JSON-Flow und technische APKG-Diagnose wurden aus UI, Domainmodell und Tests entfernt.
 - `/api/ai/*`, `/api/imports/apkg`, Trigger.dev-Aufgaben, Upstash-/Trigger-Abhängigkeiten und der Server-APKG-Benchmark wurden entfernt. APKG bleibt lokal bis einschließlich 250 MiB.
 - App-State v3 und Portable Export v2 enthalten nur Core-Daten; Legacy-Zustände und V1-Exporte werden beim Lesen bereinigt. Stapel sind implizit privat.
-- Die Migration `20260801103920_retire_labs_and_server_apkg.sql`, ein projekt-ref-gesichertes Storage-API-Werkzeug und die aktualisierte Schema-Verifikation bereiten den irreversiblen Produktionsrückbau vor. Das verbundene Fremdprojekt wurde nicht verändert.
+- Der Produktionsrückbau wurde gegen das über Vercel verifizierte Projekt `CoRe-Database` (`hirbiuiydczmnjqtoyqx`) ausgeführt. Sechs abgeschlossene KI-Jobzeilen sowie die pensionierten Tabellen und Spalten wurden entfernt; Labs-Decks, -Karten, Reviews, Konflikte und Medien waren nicht vorhanden.
+- Der Storage-API-Lauf bestätigte 0 zu löschende `core-media`-Objekte und einen bereits fehlenden Bucket `core-imports`. Die pensionierten Vercel-KI-Variablen wurden aus Development, Preview und Production entfernt. `smarter-nutrition` blieb verbunden und unverändert.
 - Lokal bestätigt: 346 Modul-/Integrationsprüfungen, Typecheck, Production-Build, Datenbanktypen, Beta-Core mit 22 Browserjourneys sowie Release mit vollständigem RLS/TUS, 51 Browserjourneys und lokalem 4.900-Karten-APKG-Benchmark. Die ausgemusterten Tabellen, Spalten und der Bucket `core-imports` fehlen im lokalen Zielzustand.
 
 ## 2026-07-16 — Stapel-IA und URL-Kontext

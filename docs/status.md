@@ -51,7 +51,6 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core
 - Hosted-Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.
 - Das ausführbare Beta-Core-Gate und der minimale Monitoring-/Alarmvertrag sind vorhanden; realer Alarmempfang sowie getrennte DB-/Storage-Restore-Proben fehlen noch.
 - Vollständiger Offline-Kaltstart/PWA und Medienexport fehlen.
-- Der irreversible Produktions-Daten- und Storage-Rückbau muss nach dem App-Deployment mit verifizierter CoRe-Projekt-Ref ausgeführt und protokolliert werden.
 
 ## Verifikation
 
