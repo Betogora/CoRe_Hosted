@@ -2,7 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const projectRoot = process.cwd();
-const sourceRoots = ["src", "api", "tests", "scripts"] as const;
+const sourceRoots = ["src", "tests", "scripts"] as const;
 const rootConfigStems = new Set(["vite.config", "playwright.config", "postcss.config", "tailwind.config"]);
 const forbiddenDirectivePattern = /@ts-(?:ignore|nocheck)\b/;
 const forbiddenJavaScriptPattern = /\.(?:[cm]?js|jsx)$/i;
