@@ -94,25 +94,25 @@ export function CreationScreen({
       <PageHeader eyebrow="Erstellen" title="Neue Karten" />
       {completedDeck ? (
         <SoftPanel className="mx-auto w-full max-w-3xl p-7 text-center sm:p-10">
-          <span className="mx-auto grid size-16 place-items-center rounded-full bg-teal-50 text-teal-700">
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-core-success-soft text-core-text">
             <CheckCircle2 size={34} aria-hidden="true" />
           </span>
-          <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-teal-700">Gespeichert</p>
-          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 text-3xl font-semibold text-[#17214f] outline-none">Deine Karten sind bereit</h2>
-          <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-[#66709a]">
+          <p className="mt-5 core-body font-semibold uppercase tracking-wide text-core-text">Gespeichert</p>
+          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 core-heading-2 font-semibold text-[var(--core-text)] outline-none">Deine Karten sind bereit</h2>
+          <p className="mx-auto mt-3 max-w-xl core-body-large leading-7 text-[var(--core-text-muted)]">
             {completedCount} {completedCount === 1 ? "Karte wurde" : "Karten wurden"} in „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ gespeichert.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={() => onStartDeck(completedDeck)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#4f5eb1] px-6 text-sm font-semibold text-white">
+            <button type="button" onClick={() => onStartDeck(completedDeck)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[var(--core-action-primary)] px-6 core-body font-semibold text-[var(--core-text-on-accent)]">
               Jetzt lernen
             </button>
-            <button type="button" onClick={() => onReviewDeck(completedDeck.id)} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#dfe4f5] bg-white px-6 text-sm font-semibold text-[#4f5eb1]">
+            <button type="button" onClick={() => onReviewDeck(completedDeck.id)} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface px-6 core-body font-semibold text-[var(--core-action-primary)]">
               Karten prüfen
             </button>
             <button type="button" onClick={() => {
               setSessionCompletion(null);
               onMethodChange("manual");
-            }} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#dfe4f5] bg-white px-6 text-sm font-semibold text-[#4f5eb1]">
+            }} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface px-6 core-body font-semibold text-[var(--core-action-primary)]">
               Weitere Karten erstellen
             </button>
           </div>
@@ -120,11 +120,11 @@ export function CreationScreen({
       ) : selectedMethod ? (
         <section className="grid min-h-[calc(100vh-16rem)] content-start gap-5" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/78 px-3 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
+            <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
               <ArrowLeft size={16} aria-hidden="true" />
               Auswahl
             </button>
-            {selectedMethodMeta ? <p className="text-sm font-semibold uppercase tracking-wide text-[#66709a]">{selectedMethodMeta.eyebrow}</p> : null}
+            {selectedMethodMeta ? <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">{selectedMethodMeta.eyebrow}</p> : null}
           </div>
           {renderSelectedMethod()}
         </section>

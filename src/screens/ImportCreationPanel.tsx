@@ -37,8 +37,8 @@ function TabButton({ icon: Icon, label, isActive, onClick }: TabButtonProps) {
       type="button"
       onClick={onClick}
       aria-pressed={isActive}
-      className={`inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
-        isActive ? "bg-[#4f5eb1] text-white shadow-sm" : "border border-[#dfe4f5] bg-white/76 text-[#4f5eb1] hover:bg-white"
+      className={`inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-xl px-4 core-body font-semibold transition ${
+        isActive ? "bg-[var(--core-action-primary)] text-[var(--core-text-on-accent)] shadow-sm" : "border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] hover:bg-core-surface"
       }`}
     >
       <Icon className="shrink-0" size={17} aria-hidden="true" />

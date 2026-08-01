@@ -38,14 +38,14 @@ export const creationMethods: CreationMethodDefinition[] = [
 
 const methodThemes: Record<CreationMethodDefinition["color"], { eyebrow: string; icon: string; hover: string }> = {
   sky: {
-    eyebrow: "text-sky-700",
-    icon: "bg-sky-50 text-sky-700 shadow-[inset_0_-18px_42px_rgba(14,165,233,0.08)]",
-    hover: "hover:border-sky-200 hover:shadow-[0_18px_42px_rgba(14,116,144,0.12)]",
+    eyebrow: "text-core-text",
+    icon: "bg-core-info-soft text-core-text shadow-[var(--core-shadow-soft)]",
+    hover: "hover:border-core-info hover:shadow-[var(--core-shadow-raised)]",
   },
   teal: {
-    eyebrow: "text-teal-700",
-    icon: "bg-teal-50 text-teal-700 shadow-[inset_0_-18px_42px_rgba(20,184,166,0.09)]",
-    hover: "hover:border-teal-200 hover:shadow-[0_18px_42px_rgba(13,148,136,0.12)]",
+    eyebrow: "text-core-text",
+    icon: "bg-core-success-soft text-core-text shadow-[var(--core-shadow-soft)]",
+    hover: "hover:border-core-success hover:shadow-[var(--core-shadow-raised)]",
   },
 };
 
@@ -58,15 +58,15 @@ function CreationMethodButton({ method, onSelect }: { method: CreationMethodDefi
       type="button"
       onClick={onSelect}
       aria-pressed={false}
-      className={`group grid min-h-60 content-start rounded-[18px] border border-[#dde3f4] bg-white/82 px-5 py-6 text-center shadow-[0_8px_22px_rgba(91,105,154,0.08)] transition duration-200 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8790d8] ${theme.hover}`}
+      className={`group grid min-h-60 content-start rounded-[18px] border border-[var(--core-border)] bg-core-surface px-5 py-6 text-center shadow-[var(--core-shadow-soft)] transition duration-200 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] ${theme.hover}`}
     >
       <span className={`mx-auto grid size-16 place-items-center rounded-full ${theme.icon}`}>
         <Icon size={28} strokeWidth={1.8} aria-hidden="true" />
       </span>
-      <span className={`mt-4 text-xs font-semibold uppercase ${theme.eyebrow}`}>{method.eyebrow}</span>
-      <span className="mx-auto mt-2 block max-w-[18rem] text-2xl font-semibold leading-tight text-[#17214f]">{method.title}</span>
-      <span className="mx-auto mt-4 block h-px w-full max-w-[18rem] bg-[#dfe4f5]" aria-hidden="true" />
-      <span className="mx-auto mt-3 block max-w-[19rem] text-left text-sm leading-6 text-[#66709a]">{method.body}</span>
+      <span className={`mt-4 core-caption font-semibold uppercase ${theme.eyebrow}`}>{method.eyebrow}</span>
+      <span className="mx-auto mt-2 block max-w-[18rem] core-heading-2 font-semibold leading-tight text-[var(--core-text)]">{method.title}</span>
+      <span className="mx-auto mt-4 block h-px w-full max-w-[18rem] bg-[var(--core-border)]" aria-hidden="true" />
+      <span className="mx-auto mt-3 block max-w-[19rem] text-left core-body leading-6 text-[var(--core-text-muted)]">{method.body}</span>
     </button>
   );
 }

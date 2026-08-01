@@ -115,7 +115,7 @@ function PdfPage({ entry, pdfjs, scale, scrollElement }: { entry: PdfPageEntry; 
           <div ref={textLayerRef} className="core-pdf-text-layer" />
         </>
       ) : (
-        <div className="grid h-full place-items-center text-sm text-[#66709a]">Seite {entry.pageNumber} wird vorbereitet.</div>
+        <div className="grid h-full place-items-center core-body text-[var(--core-text-muted)]">Seite {entry.pageNumber} wird vorbereitet.</div>
       )}
     </div>
   );
@@ -248,15 +248,15 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
   const pageCount = pages.length;
 
   return (
-    <div className="min-h-[40rem] overflow-hidden rounded-[16px] border border-[#e3e7f5] bg-[#f8f9fe]" data-testid="pdf-document-viewer">
-      <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-[#e8ecf8] bg-[#f8f9fe]/95 px-4 py-3">
+    <div className="min-h-[40rem] overflow-hidden rounded-[16px] border border-[var(--core-border)] bg-[var(--core-surface-muted)]" data-testid="pdf-document-viewer">
+      <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-[var(--core-border)] bg-[var(--core-surface-muted)] px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sky-50 text-sky-700">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-core-info-soft text-core-text">
             <FileText size={18} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[#17214f]">{document?.fileName ?? "PDF"}</p>
-            <p className="truncate text-xs font-medium text-[#66709a]" role="status" aria-live="polite">
+            <p className="truncate core-body font-semibold text-[var(--core-text)]">{document?.fileName ?? "PDF"}</p>
+            <p className="truncate core-caption font-medium text-[var(--core-text-muted)]" role="status" aria-live="polite">
               {status === "ready" ? `Seite ${currentPage} von ${pageCount}` : status === "loading" ? "PDF wird geladen." : "PDF nicht verfügbar."}
             </p>
           </div>
@@ -266,11 +266,11 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
           <button type="button" onClick={() => goToPage(currentPage - 1)} disabled={status !== "ready" || currentPage <= 1} className="core-pdf-control" aria-label="Vorherige PDF-Seite">
             <ChevronLeft size={17} aria-hidden="true" />
           </button>
-          <span className="min-w-16 text-center text-xs font-semibold text-[#4e5b8c]" aria-hidden="true">{pageCount ? `${currentPage}/${pageCount}` : "–"}</span>
+          <span className="min-w-16 text-center core-caption font-semibold text-[var(--core-text-secondary)]" aria-hidden="true">{pageCount ? `${currentPage}/${pageCount}` : "–"}</span>
           <button type="button" onClick={() => goToPage(currentPage + 1)} disabled={status !== "ready" || currentPage >= pageCount} className="core-pdf-control" aria-label="Nächste PDF-Seite">
             <ChevronRight size={17} aria-hidden="true" />
           </button>
-          <span className="mx-1 h-6 w-px bg-[#dfe4f5]" aria-hidden="true" />
+          <span className="mx-1 h-6 w-px bg-[var(--core-border)]" aria-hidden="true" />
           <button type="button" onClick={() => setZoom((value) => clampZoom(value - ZOOM_STEP))} disabled={status !== "ready" || zoom <= MIN_ZOOM} className="core-pdf-control" aria-label="PDF verkleinern">
             <Minus size={16} aria-hidden="true" />
           </button>
@@ -287,9 +287,9 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
       {status === "error" ? (
         <div className="grid min-h-[37rem] place-items-center px-6 text-center" role="alert">
           <div className="max-w-md">
-            <AlertCircle className="mx-auto text-red-600" size={28} aria-hidden="true" />
-            <p className="mt-3 font-semibold text-[#17214f]">{errorMessage}</p>
-            <p className="mt-1 text-sm text-[#66709a]">Du kannst die extrahierte Textquelle weiterhin für Karten verwenden.</p>
+            <AlertCircle className="mx-auto text-core-text" size={28} aria-hidden="true" />
+            <p className="mt-3 font-semibold text-[var(--core-text)]">{errorMessage}</p>
+            <p className="mt-1 core-body text-[var(--core-text-muted)]">Du kannst die extrahierte Textquelle weiterhin für Karten verwenden.</p>
           </div>
         </div>
       ) : (
@@ -302,7 +302,7 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
           aria-label="PDF-Dokument"
         >
           {status === "loading" ? (
-            <div className="grid min-h-[37rem] place-items-center text-sm font-medium text-[#66709a]">
+            <div className="grid min-h-[37rem] place-items-center core-body font-medium text-[var(--core-text-muted)]">
               <span className="inline-flex items-center gap-2"><Loader2 className="animate-spin" size={18} aria-hidden="true" />PDF wird geladen.</span>
             </div>
           ) : (

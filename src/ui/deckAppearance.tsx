@@ -130,7 +130,7 @@ interface DeckAppearanceIconProps extends HTMLAttributes<HTMLSpanElement> {
   iconSize?: number;
 }
 
-export function DeckAppearanceIcon({ deck, appearance, className = "size-10 rounded-xl bg-[#eef1fb]", iconSize = 18, ...props }: DeckAppearanceIconProps) {
+export function DeckAppearanceIcon({ deck, appearance, className = "size-10 rounded-xl bg-[var(--core-surface-muted)]", iconSize = 18, ...props }: DeckAppearanceIconProps) {
   const normalizedAppearance = getDeckAppearance(appearance ?? deck);
   const Icon = getDeckIcon(normalizedAppearance.iconKey);
 

@@ -1,6 +1,7 @@
 import React, { type HTMLAttributes, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import type { CoreMode } from "../coreTypes.ts";
+import { ActionButton } from "./actionUi.tsx";
 
 interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
   children?: ReactNode;
@@ -110,7 +111,7 @@ export function ActionDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#17214f]/45 p-4" role="presentation">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--core-backdrop)] p-4" role="presentation">
       <div
         ref={dialogRef}
         role="dialog"
@@ -119,26 +120,26 @@ export function ActionDialog({
         aria-describedby={descriptionId}
         className="core-surface-raised w-full max-w-lg rounded-[18px] p-6 shadow-2xl"
       >
-        <h2 id={titleId} className="text-2xl font-semibold text-[#17214f]">{title}</h2>
-        <div id={descriptionId} className="mt-3 text-sm leading-6 text-[#66709a]">{description}</div>
+        <h2 id={titleId} className="core-heading-2 text-core-text">{title}</h2>
+        <div id={descriptionId} className="core-body-large mt-3 text-core-secondary">{description}</div>
         <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <button ref={cancelRef} type="button" onClick={cancelDialog} className="min-h-11 rounded-xl border border-[#dfe4f5] bg-white px-4 text-sm font-semibold text-[#4f5eb1]">
+          <ActionButton ref={cancelRef} type="button" variant="secondary" onClick={cancelDialog}>
             {cancelLabel}
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="button"
+            variant={destructive ? "destructive" : "primary"}
             onClick={confirmDialog}
-            className={`min-h-11 rounded-xl px-4 text-sm font-semibold text-white ${destructive ? "bg-red-700" : "bg-[#4f5eb1]"}`}
           >
             {confirmLabel}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>
   );
 }
 
-export function OrbIcon({ icon: Icon, className = "bg-[#eceefd] text-[#6672bf]" }: { icon: LucideIcon; className?: string }) {
+export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-action" }: { icon: LucideIcon; className?: string }) {
   return (
     <div className={`grid size-12 shrink-0 place-items-center rounded-full ${className}`}>
       <Icon size={22} aria-hidden="true" />
@@ -148,8 +149,8 @@ export function OrbIcon({ icon: Icon, className = "bg-[#eceefd] text-[#6672bf]" 
 
 export function MiniProgress({ value = 0 }: { value?: number }) {
   return (
-    <div className="h-3 overflow-hidden rounded-full bg-[#e8ecf8]">
-      <div className="h-full rounded-full bg-gradient-to-r from-[#6fb7ae] via-[#7d89d9] to-[#596bc4]" style={{ width: `${Math.max(4, Math.min(100, value))}%` }} />
+    <div className="h-3 overflow-hidden rounded-full bg-core-subtle">
+      <div className="h-full rounded-full bg-core-action" style={{ width: `${Math.max(4, Math.min(100, value))}%` }} />
     </div>
   );
 }
@@ -158,10 +159,10 @@ export function DonutValue({ value }: { value: number }) {
   return (
     <div
       className="grid size-10 place-items-center rounded-full"
-      style={{ background: `conic-gradient(#6c78cf ${value * 3.6}deg, #e9edf8 0deg)` }}
+      style={{ background: `conic-gradient(var(--core-action-primary) ${value * 3.6}deg, var(--core-surface-muted) 0deg)` }}
       aria-label={`${value} Prozent`}
     >
-      <span className="block size-7 rounded-full bg-white" />
+      <span className="block size-7 rounded-full bg-core-surface" />
     </div>
   );
 }
@@ -174,13 +175,13 @@ interface StatTileProps {
   accent?: string;
 }
 
-export function StatTile({ icon: Icon, label, value, hint, accent = "text-[#6672bf]" }: StatTileProps) {
+export function StatTile({ icon: Icon, label, value, hint, accent = "text-core-action" }: StatTileProps) {
   return (
     <SoftPanel className="p-6">
-      {Icon ? <OrbIcon icon={Icon} className={`bg-[#eef1fb] ${accent}`} /> : null}
-      <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-[#66709a]">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-[#17214f]">{value}</p>
-      {hint ? <p className="mt-1 text-sm leading-6 text-[#66709a]">{hint}</p> : null}
+      {Icon ? <OrbIcon icon={Icon} className={`bg-core-subtle ${accent}`} /> : null}
+      <p className="core-status-label mt-5 uppercase tracking-wide text-core-muted">{label}</p>
+      <p className="core-heading-2 mt-2 text-core-text">{value}</p>
+      {hint ? <p className="core-body mt-1 text-core-muted">{hint}</p> : null}
     </SoftPanel>
   );
 }
@@ -188,8 +189,8 @@ export function StatTile({ icon: Icon, label, value, hint, accent = "text-[#6672
 export function PageHeader({ eyebrow, title }: { eyebrow: ReactNode; title: ReactNode }) {
   return (
     <header className="min-w-0">
-      <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">{eyebrow}</p>
-      <h2 className="mt-2 text-4xl font-semibold tracking-normal text-[#17214f] outline-none" data-screen-heading tabIndex={-1}>{title}</h2>
+      <p className="core-control-label uppercase tracking-wide text-core-action">{eyebrow}</p>
+      <h2 className="core-heading-1 mt-2 text-core-text outline-none" data-screen-heading tabIndex={-1}>{title}</h2>
     </header>
   );
 }
@@ -201,8 +202,8 @@ export function EmptyState({ icon: Icon, title, body, action }: { icon: LucideIc
         <div className="flex items-center gap-4">
           <OrbIcon icon={Icon} />
           <div>
-            <h3 className="text-xl font-semibold text-[#17214f]">{title}</h3>
-            {body ? <p className="mt-1 text-[#66709a]">{body}</p> : null}
+            <h3 className="core-heading-3 text-core-text">{title}</h3>
+            {body ? <p className="core-body-large mt-1 text-core-muted">{body}</p> : null}
           </div>
         </div>
         {action}
@@ -219,14 +220,14 @@ export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange
   ];
 
   return (
-    <div className="inline-grid min-h-10 grid-cols-3 overflow-hidden rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] text-xs font-semibold text-[#596489]">
+    <div className="core-status-label inline-grid min-h-10 grid-cols-3 overflow-hidden rounded-xl border border-core-border bg-core-subtle text-core-secondary">
       {modes.map((mode) => (
         <button
           key={mode.value}
           type="button"
           onClick={() => onChange(mode.value)}
           aria-pressed={value === mode.value}
-          className={`px-3 transition ${value === mode.value ? "bg-[#4f5eb1] text-white" : "hover:bg-white"}`}
+          className={`px-3 transition ${value === mode.value ? "bg-core-action text-[var(--core-text-on-accent)]" : "hover:bg-core-surface"}`}
         >
           {mode.label}
         </button>

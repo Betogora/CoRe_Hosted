@@ -4,7 +4,7 @@ Stand: 2026-08-01
 
 `src/App.tsx` owns app composition, account-scoped workspace state, workspace-command wiring, route selection and persistence callbacks. `authenticatedWorkspaceBoot.ts`, `useAppNavigation.ts`, `appSyncLifecycle.ts` and `appMediaLifecycle.ts` own the corresponding React lifecycle wiring. Auth phase and sync status wording live in `src/accountSession.ts`; cloud persistence and conflict behavior stay in `src/syncEngine.ts` and `src/cloudRepository.ts`.
 
-Each exported screen in this folder is a UI module with a small props interface. Keep screen-specific panels private in the same file when they are only used by that screen. Move shared presentational pieces to `src/ui/`; move domain behavior to the existing deep modules such as `coreWorkspace.ts`, `creationWorkflow.ts`, `reviewService.ts`, `coreVariantService.ts`, `apkgImport.ts`, and `mediaStore.ts`.
+Each exported screen in this folder is a UI module with a small props interface. Keep screen-specific panels private in the same file when they are only used by that screen. Move shared presentational pieces to `src/ui/`; its available modules and reuse decision are documented in [`../ui/README.md`](../ui/README.md). Move domain behavior to the existing deep modules such as `coreWorkspace.ts`, `creationWorkflow.ts`, `reviewService.ts`, `coreVariantService.ts`, `apkgImport.ts`, and `mediaStore.ts`.
 
 ## Screen Map
 
@@ -29,6 +29,7 @@ Each exported screen in this folder is a UI module with a small props interface.
 - Do not add backend, provider, or persistence adapters in screen files.
 - Do not spread APKG, media, scheduler, variant, or Learning Item invariants into React callers.
 - Keep new screen interfaces narrow: pass callbacks from `App.tsx`, let `coreWorkspace.ts` and the domain modules hide update details.
+- Check [`../ui/README.md`](../ui/README.md) before implementing new UI. Reuse a listed module when its interface preserves the feature semantics; otherwise keep the specialized control local and use the same semantic theme, typography, focus and disabled tokens.
 - Use `screenConstants.ts` for shared screen labels/options, `src/ui/RichTextEditor.tsx` for card editing, `src/ui/cardMedia.tsx` for resolved card media, and `src/ui/coreUi.tsx` for shared presentation primitives.
 - Keep main `PageHeader` usage compact: eyebrow plus title only. Do not add tab-level subtitles/third lines or decorative right-side header icons; place real actions as normal controls in the screen content.
 - Keep Rich Text, HTML sanitization, import normalization, learning-setting normalization, scheduler intervals and media URL behavior in `richText.ts`, `htmlSafety.ts`, `importService.ts`, `deckSettings.ts`, `scheduler.ts` and `mediaStore.ts`.

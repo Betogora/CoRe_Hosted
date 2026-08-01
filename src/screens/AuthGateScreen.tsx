@@ -65,52 +65,52 @@ export function AuthGateScreen({
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
-      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[#dce2f4] bg-white/52 px-5 py-10 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
+    <main className="min-h-screen bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
+      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[var(--core-border)] bg-core-surface px-5 py-10 shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
         <div className="w-full max-w-md">
           <div className="mb-8">
-            <h1 className="text-5xl font-semibold tracking-normal text-[#17214f]">CoRe</h1>
-            <p className="mt-2 text-base text-[#66709a]">Content Repetition</p>
+            <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
+            <p className="mt-2 core-body-large text-[var(--core-text-muted)]">Content Repetition</p>
           </div>
 
           <SoftPanel className="p-6">
             <div className="mb-6 flex items-center gap-3">
               <OrbIcon icon={Lock} />
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">Login</p>
-                <h2 className="text-2xl font-semibold text-[#17214f]">{title}</h2>
+                <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Login</p>
+                <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">{title}</h2>
               </div>
             </div>
 
             {!configured ? (
-              <p className="core-status-error text-sm font-semibold" role="alert">
+              <p className="core-status-error core-body font-semibold" role="alert">
                 Supabase ist für diese Umgebung noch nicht konfiguriert.
               </p>
             ) : null}
 
             <form ref={formRef} className="grid gap-4" onSubmit={submit} aria-busy={busy}>
               {isSignUp ? (
-                <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   Anzeigename
-                  <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" />
+                  <input className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" />
                 </label>
               ) : null}
 
               {needsEmail ? (
-                <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   E-Mail
-                  <span className="flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] px-3">
-                    <Mail size={17} className="text-[#66709a]" aria-hidden="true" />
+                  <span className="flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-3">
+                    <Mail size={17} className="text-[var(--core-text-muted)]" aria-hidden="true" />
                     <input className="min-w-0 flex-1 outline-none" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
                   </span>
                 </label>
               ) : null}
 
               {needsPassword ? (
-                <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   {isRecovery ? "Neues Passwort" : "Passwort"}
                   <input
-                    className="min-h-11 rounded-xl border border-[#dfe4f5] px-3"
+                    className="min-h-11 rounded-xl border border-[var(--core-border)] px-3"
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -122,10 +122,10 @@ export function AuthGateScreen({
               ) : null}
 
               {isRecovery ? (
-                <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+                <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   Passwort wiederholen
                   <input
-                    className="min-h-11 rounded-xl border border-[#dfe4f5] px-3"
+                    className="min-h-11 rounded-xl border border-[var(--core-border)] px-3"
                     type="password"
                     value={passwordRepeat}
                     onChange={(event) => setPasswordRepeat(event.target.value)}
@@ -136,7 +136,7 @@ export function AuthGateScreen({
                 </label>
               ) : null}
 
-              <button type="submit" disabled={!configured || busy} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#4f5eb1] px-5 text-sm font-semibold text-white disabled:bg-slate-300">
+              <button type="submit" disabled={!configured || busy} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)] disabled:bg-[var(--core-action-disabled-bg)]">
                 <PrimaryIcon size={17} aria-hidden="true" />
                 {busy ? `${primaryLabel} läuft` : primaryLabel}
               </button>
@@ -147,7 +147,7 @@ export function AuthGateScreen({
                 type="button"
                 onClick={onGoogleSignIn}
                 disabled={!configured || busy}
-                className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#24327a] disabled:text-slate-400"
+                className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--core-border)] px-4 core-body font-semibold text-[var(--core-text)] disabled:text-[var(--core-action-disabled-text)]"
               >
                 <Chrome size={17} aria-hidden="true" />
                 Mit Google anmelden
@@ -156,25 +156,25 @@ export function AuthGateScreen({
 
             {!isRecovery ? (
               <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" onClick={() => setMode("sign-in")} className="text-sm font-semibold text-[#4f5eb1]" aria-pressed={!isSignUp && !isReset && !isMagicLink}>
+                <button type="button" onClick={() => setMode("sign-in")} className="core-body font-semibold text-[var(--core-action-primary)]" aria-pressed={!isSignUp && !isReset && !isMagicLink}>
                   Anmelden
                 </button>
                 {showMagicLink ? (
-                  <button type="button" onClick={() => setMode("magic-link")} className="text-sm font-semibold text-[#4f5eb1]" aria-pressed={isMagicLink}>
+                  <button type="button" onClick={() => setMode("magic-link")} className="core-body font-semibold text-[var(--core-action-primary)]" aria-pressed={isMagicLink}>
                     Magic Link
                   </button>
                 ) : null}
-                <button type="button" onClick={() => setMode("sign-up")} className="text-sm font-semibold text-[#4f5eb1]" aria-pressed={isSignUp}>
+                <button type="button" onClick={() => setMode("sign-up")} className="core-body font-semibold text-[var(--core-action-primary)]" aria-pressed={isSignUp}>
                   Account erstellen
                 </button>
-                <button type="button" onClick={() => setMode("reset")} className="text-sm font-semibold text-[#4f5eb1]" aria-pressed={isReset}>
+                <button type="button" onClick={() => setMode("reset")} className="core-body font-semibold text-[var(--core-action-primary)]" aria-pressed={isReset}>
                   Passwort vergessen
                 </button>
               </div>
             ) : null}
 
             {message ? (
-              <p className={`mt-4 text-sm ${messageType === "alert" ? "core-status-error font-semibold" : "core-status-info"}`} role={messageType}>
+              <p className={`mt-4 core-body ${messageType === "alert" ? "core-status-error font-semibold" : "core-status-info"}`} role={messageType}>
                 {message}
               </p>
             ) : null}

@@ -230,7 +230,17 @@ Akzeptanz:
 
 Chat-your-Deck, Lernplan, lokaler KI-Entwurf, Deck-Graph, Community-Demo, KI-Job-Historie, externer Varianten-JSON-Flow und serverseitiger APKG-Import sind entfernt. Es gibt dafür keine Navigation, Route, Persistenz, API oder zugesagte Importkompatibilität.
 
-## 8. Nichtfunktionale Anforderungen
+## 8. Visueller Produktvertrag
+
+- Die produktive UI verwendet die CoRe-Palette Slate `#6F7E9E`, Mist `#A9B5C7`, Cloud `#DDE3EC`, Coral `#E28B68`, Lilac `#D6A3D2`, Marigold `#E4BF63` sowie die vorbereiteten Dark-Werte Midnight `#181D25`, Graphite `#262E3A`, Highlight `#8FA0BF`, Coral Glow `#F0A07E`, Lilac Glow `#E4B5E1` und Golden Glow `#F0CC77` ausschließlich über semantische Theme-Rollen.
+- Der Light Mode ist aktiv. Der vollständige Dark-Tokensatz liegt inaktiv unter `[data-core-theme="dark"]`; das Produkt bietet derzeit weder Umschalter noch Persistenz oder automatische Systemaktivierung.
+- Primäre, sekundäre, tertiäre und destruktive Actions sowie Info-, Erfolgs-, Warn- und Fehlerzustände besitzen produktweit einheitliche Hover-, Active-, Focus- und Disabled-Zustände. Bedeutung bleibt durch Text, Icon oder Zahl zusätzlich zur Farbe erkennbar.
+- Amulya definiert die visuellen Überschriftenstufen `36/44`, `28/36` und `22/30`; Synonym definiert Body Large `16/24`, Body und Controls `14/20` sowie Caption und Statuslabel `12/16`. Semantische HTML-Ebene und visuelle Stufe dürfen voneinander abweichen.
+- Bestehendes Karten-HTML und persistierte benutzerdefinierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate `#6F7E9E`; Rich-Text-Schnellfarben stammen aus der CoRe-Palette.
+
+Der auffindbare, nicht verpflichtende Wiederverwendungsvertrag für neue Features steht im [`src/ui`-Katalog](../src/ui/README.md). Vorhandene Module sollen verwendet werden, wenn ihre Schnittstelle die Fachsemantik erhält; fachlich abweichende Controls dürfen lokal bleiben und nutzen dennoch dieselben Theme-, Typografie-, Fokus- und Disabled-Rollen.
+
+## 9. Nichtfunktionale Anforderungen
 
 ### Sicherheit und Datenschutz
 
@@ -260,7 +270,7 @@ Chat-your-Deck, Lernplan, lokaler KI-Entwurf, Deck-Graph, Community-Demo, KI-Job
 - Pending- und Konfliktzustände überleben Reload accountgebunden.
 - Ein Produktrelease braucht die Betriebsfreigabe aus [`operations.md`](operations.md), ändert dadurch aber nicht diesen Produktvertrag.
 
-## 9. Beta-Abnahme
+## 10. Beta-Abnahme
 
 Der Beta-Kern gilt als erfüllt, wenn:
 

@@ -9,6 +9,7 @@ import {
 } from "../creationBatch.ts";
 import type { CreationWorkflow } from "../creationWorkflow.ts";
 import type { CardEditorFieldErrors, CardType, Deck, SourceDocument } from "../coreTypes.ts";
+import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
@@ -76,8 +77,8 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
       onClick={onToggle}
       className={`grid size-8 shrink-0 place-items-center rounded-lg border transition ${
         isPinned
-          ? "border-[#8c96dc] bg-[#eef1fb] text-[#4f5eb1] shadow-[0_0_0_2px_rgba(79,94,177,0.10)]"
-          : "border-[#dfe4f5] bg-white text-[#8a94bd] hover:border-[#8c96dc] hover:text-[#4f5eb1]"
+          ? "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-[0_0_0_2px_var(--core-focus-ring-soft)]"
+          : "border-[var(--core-border)] bg-core-surface text-[var(--core-border-interactive)] hover:border-[var(--core-border-interactive)] hover:text-[var(--core-action-primary)]"
       }`}
     >
       <Icon size={15} aria-hidden="true" />
@@ -301,9 +302,9 @@ export function ManualCreationPanel({
         <div className="grid gap-3">
           <div className="flex flex-wrap items-end gap-3">
             {!useNewDeck && decks.length > 0 ? (
-              <label className="grid min-w-[16rem] flex-1 gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <label className="grid min-w-[16rem] flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 Kartenstapel
-                <select className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={selectedDeckId} onChange={(event) => {
+                <select className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={selectedDeckId} onChange={(event) => {
                   onTargetDeckChange(event.target.value);
                   dispatchBatch({ type: "target-deck", deckId: event.target.value });
                 }}>
@@ -316,9 +317,9 @@ export function ManualCreationPanel({
                 </select>
               </label>
             ) : (
-              <label className="grid min-w-[16rem] flex-1 gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <label className="grid min-w-[16rem] flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 Neuer Kartenstapel
-                <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
+                <input className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
               </label>
             )}
             <button type="button" onClick={() => setUseNewDeck((value) => {
@@ -327,21 +328,21 @@ export function ManualCreationPanel({
               if (!next && nextDeckId !== initialTargetDeckId) onTargetDeckChange(nextDeckId);
               dispatchBatch({ type: "target-deck", deckId: nextDeckId });
               return next;
-            })} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1]">
+            })} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
               <Database size={16} aria-hidden="true" />
               {useNewDeck && decks.length > 0 ? "Stapel auswählen" : "Neuen Stapel erstellen"}
             </button>
           </div>
           {targetDeckMissing && !useNewDeck ? (
-            <p className="core-status-error text-sm" role="alert">
+            <p className="core-status-error core-body" role="alert">
               Zielstapel nicht gefunden oder nicht verfügbar. Wähle einen anderen Stapel oder erstelle einen neuen.
             </p>
           ) : null}
         </div>
 
-        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+        <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           Kartentyp
-          <select className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={cardType} onChange={(event) => dispatchBatch({ type: "draft", patch: { cardType: event.target.value as CardType } })}>
+          <select className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={cardType} onChange={(event) => dispatchBatch({ type: "draft", patch: { cardType: event.target.value as CardType } })}>
             {cardTypeOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -352,7 +353,7 @@ export function ManualCreationPanel({
       </div>
 
       <div className="grid min-w-0 gap-4">
-        <div data-manual-focus="front" className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+        <div data-manual-focus="front" className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           <div className="flex min-h-9 items-center justify-between gap-2">
             <span>{cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Frage" : "Vorderseite"}</span>
             <PinFieldButton isPinned={pinnedFields.front} label={cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Frage" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
@@ -361,10 +362,10 @@ export function ManualCreationPanel({
             dispatchBatch({ type: "draft", patch: { front: value } });
             setFieldErrors((current) => ({ ...current, front: undefined, question: undefined, textWithClozes: undefined }));
           }} isActive={frontFieldActive} minHeightClass="min-h-32" ariaLabel={cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Multiple-Choice-Frage" : "Vorderseite"} ariaInvalid={Boolean(fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes)} />
-          {cardType === "cloze" ? <p className="text-sm font-normal text-[#66709a]">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren.</p> : null}
-          {fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes ? <p className="text-sm font-medium text-red-700" role="alert">{fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes}</p> : null}
+          {cardType === "cloze" ? <p className="core-body font-normal text-[var(--core-text-muted)]">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren.</p> : null}
+          {fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes}</p> : null}
         </div>
-        <div data-manual-focus="back" className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+        <div data-manual-focus="back" className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           <div className="flex min-h-9 items-center justify-between gap-2">
             <span>{answerLabel}</span>
             <PinFieldButton isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
@@ -373,55 +374,52 @@ export function ManualCreationPanel({
             dispatchBatch({ type: "draft", patch: { back: value } });
             setFieldErrors((current) => ({ ...current, back: undefined }));
           }} isActive={backFieldActive} minHeightClass="min-h-32" ariaLabel={answerLabel} ariaInvalid={Boolean(fieldErrors.back)} />
-          {fieldErrors.back ? <p className="text-sm font-medium text-red-700" role="alert">{fieldErrors.back}</p> : null}
+          {fieldErrors.back ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.back}</p> : null}
         </div>
       </div>
 
       {cardType === "multiple-choice" ? (
-        <fieldset className="grid gap-3 rounded-xl border border-[#dfe4f5] p-4">
-          <legend className="px-1 text-sm font-semibold text-[#4e5b8c]">Antwortoptionen und richtige Antwort</legend>
+        <fieldset className="grid gap-3 rounded-xl border border-[var(--core-border)] p-4">
+          <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Antwortoptionen und richtige Antwort</legend>
           {answerOptions.map((option, index) => (
             <div key={index} className="flex min-w-0 items-center gap-2">
               <input type="radio" name="manual-correct-option" checked={correctOptionIndex === index} onChange={() => {
                 dispatchBatch({ type: "draft", patch: { correctOptionIndex: index } });
                 setFieldErrors((current) => ({ ...current, correctOptionIndex: undefined }));
               }} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex)} />
-              <input data-manual-focus={index === 0 ? "option-0" : undefined} className="min-h-11 min-w-0 flex-1 rounded-xl border border-[#dfe4f5] px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-              <button type="button" onClick={() => removeAnswerOption(index)} disabled={answerOptions.length <= 2} className="grid size-10 place-items-center rounded-xl border border-[#dfe4f5] text-[#66709a] disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
+              <input data-manual-focus={index === 0 ? "option-0" : undefined} className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border)] px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+              <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} size="compact" onClick={() => removeAnswerOption(index)} disabled={answerOptions.length <= 2} />
             </div>
           ))}
-          <button type="button" onClick={() => dispatchBatch({ type: "draft", patch: { answerOptions: [...answerOptions, ""] } })} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1]"><Plus size={16} aria-hidden="true" />Option hinzufügen</button>
-          {fieldErrors.options ? <p className="text-sm font-medium text-red-700" role="alert">{fieldErrors.options}</p> : null}
-          {fieldErrors.correctOptionIndex ? <p className="text-sm font-medium text-red-700" role="alert">{fieldErrors.correctOptionIndex}</p> : null}
+          <ActionButton type="button" variant="secondary" size="compact" icon={Plus} onClick={() => dispatchBatch({ type: "draft", patch: { answerOptions: [...answerOptions, ""] } })} className="w-fit">Option hinzufügen</ActionButton>
+          {fieldErrors.options ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.options}</p> : null}
+          {fieldErrors.correctOptionIndex ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.correctOptionIndex}</p> : null}
         </fieldset>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-        <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+        <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           Tags
-          <input className="min-h-11 rounded-xl border border-[#dfe4f5] px-3" value={tags} onChange={(event) => dispatchBatch({ type: "draft", patch: { tags: event.target.value } })} placeholder="biologie zelle prüfung" />
+          <input className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={tags} onChange={(event) => dispatchBatch({ type: "draft", patch: { tags: event.target.value } })} placeholder="biologie zelle prüfung" />
         </label>
         <div className="flex flex-wrap items-end gap-2">
-          <button type="button" onClick={() => void saveManualCard()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white">
-            <Database size={17} aria-hidden="true" />
-            Originalkarte speichern
-          </button>
-          <button
+          <ActionButton type="button" variant="primary" icon={Database} onClick={() => void saveManualCard()}>Originalkarte speichern</ActionButton>
+          <ActionButton
             type="button"
+            variant="secondary"
             disabled={batchState.createdCount === 0}
             onClick={() => onFinish({
               createdCount: batchState.createdCount,
               targetDeckId: batchState.targetDeckId,
               lastSavedCardId: batchState.lastSavedCardId,
             })}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400"
           >
             Fertig
-          </button>
+          </ActionButton>
         </div>
       </div>
-      <p className="text-sm font-medium text-[#66709a]">{batchState.createdCount} {batchState.createdCount === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.</p>
-      {status ? <p className={`text-sm ${statusType === "alert" ? "core-status-error" : "core-status-success"}`} role={statusType} aria-live="polite">{status}</p> : null}
+      <p className="core-body font-medium text-[var(--core-text-muted)]">{batchState.createdCount} {batchState.createdCount === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.</p>
+      {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : "core-status-success"}`} role={statusType} aria-live="polite">{status}</p> : null}
     </div>
   );
 
@@ -429,13 +427,13 @@ export function ManualCreationPanel({
     <SoftPanel className="min-h-[calc(100vh-15rem)] p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <OrbIcon icon={PenLine} className="bg-sky-50 text-sky-700" />
+          <OrbIcon icon={PenLine} className="bg-core-info-soft text-core-text" />
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">{panelEyebrow}</p>
-            <h2 className="text-2xl font-semibold text-[#17214f]">Karten manuell erstellen</h2>
+            <p className="core-body font-semibold uppercase tracking-wide text-core-text">{panelEyebrow}</p>
+            <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">Karten manuell erstellen</h2>
           </div>
         </div>
-        <button type="button" onClick={openSourcePicker} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-4 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
+        <button type="button" onClick={openSourcePicker} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
           <FileText size={17} aria-hidden="true" />
           {document ? "Quelle wechseln" : "PDF/Text anfügen"}
         </button>
@@ -445,25 +443,25 @@ export function ManualCreationPanel({
       {showDocumentMode ? (
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="grid content-start gap-4">
-            <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+            <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
               <span>Quelle ({workflow.readableSourceDocumentLabel})</span>
-              <button type="button" onClick={openSourcePicker} className="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[#cfd6ed] px-3 text-left text-[#66709a] hover:border-[#8c96dc] hover:bg-white">
+              <button type="button" onClick={openSourcePicker} className="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--core-border)] px-3 text-left text-[var(--core-text-muted)] hover:border-[var(--core-border-interactive)] hover:bg-core-surface">
                 <FileText className="shrink-0" size={17} aria-hidden="true" />
-                <span className="shrink-0 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#4f5eb1] shadow-sm">Datei auswählen</span>
-                <span className="min-w-0 truncate text-sm font-medium">{sourceFileName}</span>
+                <span className="shrink-0 rounded-lg bg-core-surface px-3 py-2 core-caption font-semibold text-[var(--core-action-primary)] shadow-sm">Datei auswählen</span>
+                <span className="min-w-0 truncate core-body font-medium">{sourceFileName}</span>
               </button>
             </div>
             {document && !shouldShowPdfViewer ? (
-              <div className="rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-3 text-sm text-[#66709a]">
-                <p className="font-semibold text-[#17214f]">{document.fileName}</p>
+              <div className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-3 core-body text-[var(--core-text-muted)]">
+                <p className="font-semibold text-[var(--core-text)]">{document.fileName}</p>
                 <p>{documentStatusMessage(document)}</p>
               </div>
             ) : null}
             {shouldShowPdfViewer && document ? (
               <PdfDocumentViewer document={document} src={documentObjectUrl} onSelection={applySelection} />
             ) : (
-              <div className="max-h-[40rem] min-h-[40rem] overflow-auto rounded-xl border border-[#dfe4f5] bg-white p-4 text-sm leading-6 text-[#17214f]" onMouseUp={captureSelection} onKeyUp={captureSelection} tabIndex={0}>
-                {documentText ? <pre className="whitespace-pre-wrap break-words font-sans">{documentText}</pre> : <p className="text-[#66709a]">Keine Textquelle geöffnet.</p>}
+              <div className="max-h-[40rem] min-h-[40rem] overflow-auto rounded-xl border border-[var(--core-border)] bg-core-surface p-4 core-body leading-6 text-[var(--core-text)]" onMouseUp={captureSelection} onKeyUp={captureSelection} tabIndex={0}>
+                {documentText ? <pre className="whitespace-pre-wrap break-words font-sans">{documentText}</pre> : <p className="text-[var(--core-text-muted)]">Keine Textquelle geöffnet.</p>}
               </div>
             )}
           </div>

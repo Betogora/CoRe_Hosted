@@ -30,5 +30,5 @@ export function useDeckMediaUrls(deck: Deck | null | undefined, mediaStore?: Acc
 
 export function CardHtml({ html, mediaUrls = {} }: { html?: string; mediaUrls?: Record<string, string> }) {
   const renderedHtml = React.useMemo(() => resolveCardHtmlMedia(html || "<span></span>", mediaUrls), [html, mediaUrls]);
-  return <div className="card-html min-w-0 max-w-full overflow-x-auto text-sm leading-6 text-inherit" dangerouslySetInnerHTML={{ __html: renderedHtml }} />;
+  return <div className="card-html min-w-0 max-w-full overflow-x-auto core-body leading-6 text-inherit" dangerouslySetInnerHTML={{ __html: renderedHtml }} />;
 }

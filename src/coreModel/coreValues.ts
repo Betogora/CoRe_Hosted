@@ -64,7 +64,7 @@ export const DECK_ICON_KEYS = [
 ];
 export const DEFAULT_DECK_APPEARANCE = {
   iconKey: "book-open",
-  iconColor: "#4f5eb1",
+  iconColor: "#6f7e9e",
 };
 export const VARIANT_TRANSFORMS = ["original", "rephrase", "front_back_style_shift", "cloze_conversion"] as const satisfies readonly TransformType[];
 export const VARIANT_STATUSES = ["draft", "active", "rejected", "flagged", "disabled"] as const satisfies readonly VariantQualityStatus[];

@@ -1,0 +1,23 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { renderToStaticMarkup } from "react-dom/server";
+import { StatusMessage } from "./feedbackUi.tsx";
+
+test("StatusMessage maps every tone and keeps color-independent visible content", () => {
+  for (const tone of ["info", "success", "warning", "error"] as const) {
+    const markup = renderToStaticMarkup(<StatusMessage tone={tone}>{tone} message</StatusMessage>);
+    assert.match(markup, new RegExp(`core-status-${tone}`));
+    assert.match(markup, new RegExp(`${tone} message`));
+    assert.match(markup, /aria-hidden="true"/);
+    assert.doesNotMatch(markup, /role=/);
+  }
+});
+
+test("StatusMessage owns polite and assertive announcement semantics", () => {
+  const polite = renderToStaticMarkup(<StatusMessage tone="info" announce="polite">Bereit</StatusMessage>);
+  const assertive = renderToStaticMarkup(<StatusMessage tone="error" announce="assertive">Fehler</StatusMessage>);
+  assert.match(polite, /role="status"/);
+  assert.match(polite, /aria-live="polite"/);
+  assert.match(assertive, /role="alert"/);
+  assert.doesNotMatch(assertive, /aria-live=/);
+});

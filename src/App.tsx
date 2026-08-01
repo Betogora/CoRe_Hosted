@@ -77,14 +77,14 @@ function getIcon(iconKey: string) {
 
 function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string }) {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
-      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[#dce2f4] bg-white/52 px-5 py-10 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
+    <main className="min-h-screen bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
+      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[var(--core-border)] bg-core-surface px-5 py-10 shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
         <SoftPanel className="w-full max-w-md p-6">
           <div className="flex items-center gap-3">
             <OrbIcon icon={Database} />
             <div>
-              <h1 className="text-2xl font-semibold text-[#17214f]">CoRe</h1>
-              <p className="mt-1 text-sm text-[#66709a]" role="status" aria-live="polite">
+              <h1 className="core-heading-2 font-semibold text-[var(--core-text)]">CoRe</h1>
+              <p className="mt-1 core-body text-[var(--core-text-muted)]" role="status" aria-live="polite">
                 {message}
               </p>
             </div>
@@ -98,8 +98,8 @@ function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string })
 function ScreenLoadingFallback() {
   return (
     <div className="grid min-h-[20rem] place-items-center" role="status" aria-live="polite">
-      <SoftPanel className="flex items-center gap-3 px-5 py-4 text-sm font-medium text-[#66709a]">
-        <span className="size-3 animate-pulse rounded-full bg-[#6672bf]" aria-hidden="true" />
+      <SoftPanel className="flex items-center gap-3 px-5 py-4 core-body font-medium text-[var(--core-text-muted)]">
+        <span className="size-3 animate-pulse rounded-full bg-[var(--core-action-secondary)]" aria-hidden="true" />
         Bereich wird geladen.
       </SoftPanel>
     </div>
@@ -119,30 +119,30 @@ function MigrationChoiceScreen({ legacyState, busy = false, message = "", onImpo
   const documentCount = legacyState?.documents?.length ?? 0;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
-      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[#dce2f4] bg-white/52 px-5 py-10 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
+    <main className="min-h-screen bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
+      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[var(--core-border)] bg-core-surface px-5 py-10 shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
         <SoftPanel className="w-full max-w-xl p-6">
           <div className="mb-6 flex items-center gap-3">
             <OrbIcon icon={Database} />
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">Lokale Daten gefunden</p>
-              <h1 className="text-2xl font-semibold text-[#17214f]">Daten in diesen Account übernehmen?</h1>
+              <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Lokale Daten gefunden</p>
+              <h1 className="core-heading-2 font-semibold text-[var(--core-text)]">Daten in diesen Account übernehmen?</h1>
             </div>
           </div>
-          <p className="text-sm leading-6 text-[#66709a]">
+          <p className="core-body leading-6 text-[var(--core-text-muted)]">
             In diesem Browser liegen noch lokale CoRe-Daten: {deckCount} Stapel und {documentCount} Dokumente. Du kannst sie in deinen angemeldeten Account übernehmen oder mit einem leeren Cloud-Stand weiterarbeiten.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" onClick={onImport} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white disabled:bg-slate-300">
+            <button type="button" onClick={onImport} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:bg-[var(--core-action-disabled-bg)]">
               <Database size={17} aria-hidden="true" />
               Lokale Daten übernehmen
             </button>
-            <button type="button" onClick={onSkip} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe4f5] px-4 text-sm font-semibold text-[#4f5eb1] disabled:text-slate-400">
+            <button type="button" onClick={onSkip} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:text-[var(--core-action-disabled-text)]">
               Leer starten
             </button>
           </div>
           {message ? (
-            <p className="mt-4 text-sm text-red-700" role="alert">
+            <p className="mt-4 core-body text-core-text" role="alert">
               {message}
             </p>
           ) : null}
@@ -824,10 +824,10 @@ export function App() {
           body="Die verlinkte Lernsitzung kann nicht geöffnet werden, weil der Stapel gelöscht wurde oder in diesem Account nicht verfügbar ist."
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <button type="button" onClick={() => openLearn(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+              <button type="button" onClick={() => openLearn(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[var(--core-surface-muted)] px-5 core-body font-semibold text-[var(--core-action-primary)]">
                 Zu Lernen
               </button>
-              <button type="button" onClick={() => openDecks(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[#dfe4f5] bg-white px-5 text-sm font-semibold text-[#4f5eb1]">
+              <button type="button" onClick={() => openDecks(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
                 Zur Kartenverwaltung
               </button>
             </div>
@@ -999,13 +999,13 @@ export function App() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#eef1ff,transparent_34%),linear-gradient(135deg,#f8f9ff_0%,#edf1fb_100%)] p-4 text-[#17214f] sm:p-8">
-      <div className="grid min-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[22px] border border-[#dce2f4] bg-white/52 shadow-[0_30px_90px_rgba(91,105,154,0.18)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] md:grid-cols-[13rem_minmax(0,1fr)]">
-        <aside className="border-b border-[#dce2f4] bg-white/42 md:border-b-0 md:border-r">
+    <main className="min-h-screen overflow-x-hidden bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
+      <div className="grid min-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[22px] border border-[var(--core-border)] bg-core-surface shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] md:grid-cols-[13rem_minmax(0,1fr)]">
+        <aside className="border-b border-[var(--core-border)] bg-core-surface md:border-b-0 md:border-r">
           <div className="flex flex-col px-5 py-6 sm:px-8 md:h-full md:px-4 md:py-8 lg:px-5 lg:py-10">
             <div>
-              <h1 className="text-4xl font-semibold tracking-normal text-[#17214f] md:text-5xl">CoRe</h1>
-              <p className="mt-2 text-base text-[#66709a]">Content Repetition</p>
+              <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
+              <p className="mt-2 core-body-large text-[var(--core-text-muted)]">Content Repetition</p>
             </div>
 
             <nav aria-label="Hauptmenü" className="mt-6 grid grid-cols-2 gap-2 md:mt-10 md:max-w-none md:grid-cols-1">
@@ -1018,8 +1018,8 @@ export function App() {
                     key={view.id}
                     type="button"
                     onClick={() => navigateToView(view.id)}
-                    className={`flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-sm font-medium transition md:min-h-12 md:text-base ${
-                      isActive ? "bg-[#e9ecfb] text-[#24327a] shadow-sm" : "text-[#4f5a86] hover:bg-white/70 hover:text-[#17214f]"
+                    className={`core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium transition md:min-h-12 ${
+                      isActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text-secondary)] hover:bg-core-surface hover:text-[var(--core-text)]"
                     }`}
                     aria-current={isActive ? "page" : undefined}
                   >
@@ -1030,21 +1030,21 @@ export function App() {
               })}
             </nav>
 
-            <div className="mt-5 border-t border-[#dce2f4] pt-5 md:mt-auto md:pt-6">
+            <div className="mt-5 border-t border-[var(--core-border)] pt-5 md:mt-auto md:pt-6">
               <button
                 type="button"
                 onClick={() => navigateToView("einstellungen")}
                 className={`flex min-h-12 w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left transition ${
-                  activeView === "einstellungen" ? "bg-[#e9ecfb] text-[#24327a] shadow-sm" : "text-[#24327a] hover:bg-white/70"
+                  activeView === "einstellungen" ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text)] hover:bg-core-surface"
                 }`}
                 aria-label="Einstellungen öffnen"
                 aria-current={activeView === "einstellungen" ? "page" : undefined}
               >
-                <span className="grid size-10 place-items-center rounded-full bg-[#dfe4fb] text-sm font-semibold">{(state.profile.displayName || "CO").slice(0, 2).toUpperCase()}</span>
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]">
+                <span className="grid size-10 place-items-center rounded-full bg-[var(--core-info-surface)] core-body font-semibold">{(state.profile.displayName || "CO").slice(0, 2).toUpperCase()}</span>
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)]">
                   <Settings size={18} aria-hidden="true" />
                 </span>
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold">{state.profile.displayName}</span>
+                <span className="min-w-0 flex-1 truncate core-body font-semibold">{state.profile.displayName}</span>
               </button>
             </div>
           </div>

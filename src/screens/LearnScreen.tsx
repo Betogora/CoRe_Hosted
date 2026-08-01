@@ -6,16 +6,16 @@ import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 const INTERACTIVE_ROW_SELECTOR = "button, a, input, textarea, select";
 const LEARN_DECK_GRID_COLUMNS = "md:grid-cols-[minmax(12rem,1fr)_6rem_6rem_6rem_7rem_3rem]";
 const LEARN_GROUP_STYLES = [
-  { backgroundColor: "#fbfcff", borderColor: "#edf1f7" },
-  { backgroundColor: "#f8f9fc", borderColor: "#e8edf5" },
-  { backgroundColor: "#f4f6fa", borderColor: "#e3e8f1" },
-  { backgroundColor: "#eef2f7", borderColor: "#dde5f0" },
+  { backgroundColor: "var(--core-group-depth-0)", borderColor: "var(--core-border)" },
+  { backgroundColor: "var(--core-group-depth-1)", borderColor: "var(--core-border)" },
+  { backgroundColor: "var(--core-group-depth-2)", borderColor: "var(--core-border)" },
+  { backgroundColor: "var(--core-group-depth-3)", borderColor: "var(--core-border)" },
 ];
 
 function CountCell({ label, metric, value }: any) {
   return (
     <div className="hidden text-right md:block" aria-label={`${label}: ${value}`} data-learn-count-cell={metric}>
-      <span aria-hidden="true" className="block text-lg font-semibold text-[#17214f]">
+      <span aria-hidden="true" className="block core-body-large font-semibold text-[var(--core-text)]">
         {value}
       </span>
     </div>
@@ -134,21 +134,21 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
         key={deck.id}
         data-testid={`learn-deck-group-${deck.id}`}
         data-learn-deck-group="true"
-        className={`grid gap-2 rounded-2xl border p-2 transition md:gap-3 md:px-0 md:py-3 ${isFocused ? "ring-2 ring-[#8c96dc]" : ""}`}
+        className={`grid gap-2 rounded-2xl border p-2 transition md:gap-3 md:px-0 md:py-3 ${isFocused ? "ring-2 ring-[var(--core-border-interactive)]" : ""}`}
         style={getLearnGroupStyle(row.depth)}
       >
         <div
           onClick={(event) => startDeckFromRow(event, deck)}
           data-testid={`learn-deck-row-${deck.id}`}
           data-learn-deck-row="true"
-          className={`relative grid min-w-0 cursor-pointer gap-3 rounded-xl px-1 py-4 transition duration-150 hover:bg-white/60 ${LEARN_DECK_GRID_COLUMNS} md:items-center md:gap-3 md:px-3`}
+          className={`relative grid min-w-0 cursor-pointer gap-3 rounded-xl px-1 py-4 transition duration-150 hover:bg-core-surface ${LEARN_DECK_GRID_COLUMNS} md:items-center md:gap-3 md:px-3`}
         >
           <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${Math.min(row.depth, 6) * 1.25}rem` }}>
             {row.hasChildren ? (
               <button
                 type="button"
                 onClick={() => toggleCollapsed(deck.id)}
-                className="grid size-8 shrink-0 place-items-center rounded-lg text-[#4f5eb1] hover:bg-[#eef1fb]"
+                className="grid size-8 shrink-0 place-items-center rounded-lg text-[var(--core-action-primary)] hover:bg-[var(--core-surface-muted)]"
                 aria-label={isCollapsed ? "Unterstapel anzeigen" : "Unterstapel ausblenden"}
                 aria-expanded={!isCollapsed}
               >
@@ -163,11 +163,11 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
                 onClick={() => onFocusDeck(deck.id)}
                 aria-pressed={isFocused}
                 aria-label={`${row.path} auswählen`}
-                className="block max-w-full truncate text-left text-lg font-semibold text-[#17214f]"
+                className="block max-w-full truncate text-left core-body-large font-semibold text-[var(--core-text)]"
               >
                 {deck.name}
               </button>
-              <span className="mt-1 block text-sm text-[#66709a] md:hidden">
+              <span className="mt-1 block core-body text-[var(--core-text-muted)] md:hidden">
                 {summary.newCards} neu · {summary.dueCards} fällig · {summary.totalCards} gesamt
               </span>
             </span>
@@ -177,7 +177,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
           <CountCell label="Fällig" metric="due" value={summary.dueCards} />
           <CountCell label="Gesamt" metric="total" value={summary.totalCards} />
 
-          <button type="button" onClick={() => onStartDeck(deck, false)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#4f5eb1] px-3 text-sm font-semibold text-white" aria-label={`${row.path} lernen`}>
+          <button type="button" onClick={() => onStartDeck(deck, false)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-3 core-body font-semibold text-[var(--core-text-on-accent)]" aria-label={`${row.path} lernen`}>
             <Play size={16} aria-hidden="true" />
             Lernen
           </button>
@@ -186,7 +186,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
             <button
               type="button"
               onClick={() => openDeckSettings(deck.id)}
-              className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1] hover:bg-white"
+              className="grid size-10 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] hover:bg-core-surface"
               aria-label={`Stapeloptionen für ${row.path}`}
               title={`Stapeloptionen für ${row.path}`}
             >
@@ -213,11 +213,11 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
 
       <div className="grid min-w-0 gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={() => onOpenDecks(focusedDeckId)} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
+          <button type="button" onClick={() => onOpenDecks(focusedDeckId)} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
             <Layers size={17} aria-hidden="true" />
             Karten verwalten
           </button>
-          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]">
+          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
             <PlusSquare size={17} aria-hidden="true" />
             Neue Karten
           </button>
@@ -227,7 +227,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
             onClick={() => {
               setIsDeckCreateOpen((current) => !current);
             }}
-            className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white/80 px-5 text-sm font-semibold text-[#4f5eb1]"
+            className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]"
             aria-expanded={isDeckCreateOpen}
             aria-controls="learn-deck-create-form"
             data-testid="learn-deck-create-toggle"
@@ -243,10 +243,10 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
             className="core-overlay grid min-w-0 gap-3 rounded-2xl p-3 sm:grid-cols-[minmax(11rem,1fr)_minmax(11rem,1fr)_auto]"
             data-testid="learn-deck-create-form"
           >
-          <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+          <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Stapelname
             <input
-              className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-medium text-[#17214f] outline-none"
+              className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-medium text-[var(--core-text)] outline-none"
               ref={deckNameRef}
               value={deckDraft.name}
               onChange={(event) => updateDeckDraft("name", event.target.value)}
@@ -256,10 +256,10 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
               data-testid="learn-deck-name-input"
             />
           </label>
-          <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+          <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Ebene
             <select
-              className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-medium text-[#17214f]"
+              className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-medium text-[var(--core-text)]"
               value={deckDraft.parentDeckId}
               onChange={(event) => updateDeckDraft("parentDeckId", event.target.value)}
               data-testid="learn-deck-parent-select"
@@ -272,14 +272,14 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
               ))}
             </select>
           </label>
-            <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1] hover:bg-white">
+            <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
             <FolderPlus size={17} aria-hidden="true" />
               Anlegen
           </button>
-            {deckStatus ? <p id="learn-deck-create-status" className={`text-sm font-semibold sm:col-span-3 ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
+            {deckStatus ? <p id="learn-deck-create-status" className={`core-body font-semibold sm:col-span-3 ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
           </form>
         ) : deckStatus ? (
-          <p id="learn-deck-create-status" className={`text-sm font-semibold ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p>
+          <p id="learn-deck-create-status" className={`core-body font-semibold ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p>
         ) : null}
       </div>
 
@@ -290,10 +290,10 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
           body="Der verlinkte Stapel wurde gelöscht oder steht in diesem Account nicht zur Verfügung."
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <button type="button" onClick={() => onFocusDeck(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+              <button type="button" onClick={() => onFocusDeck(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[var(--core-surface-muted)] px-5 core-body font-semibold text-[var(--core-action-primary)]">
                 Zu Lernen
               </button>
-              <button type="button" onClick={() => onOpenDecks(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[#dfe4f5] bg-white px-5 text-sm font-semibold text-[#4f5eb1]">
+              <button type="button" onClick={() => onOpenDecks(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
                 Zur Kartenverwaltung
               </button>
             </div>
@@ -305,14 +305,14 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
           title="Keine Karten"
           body="Erstelle oder importiere zuerst einen Stapel."
           action={
-            <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+            <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-5 core-body font-semibold text-[var(--core-action-primary)]">
               Erstellen <ChevronRight size={16} aria-hidden="true" />
             </button>
           }
         />
       ) : (
         <SoftPanel className="overflow-visible p-4 sm:p-5" data-testid="learn-deck-list">
-          <div className={`hidden items-center gap-3 border-b border-[#e3e7f5] px-3 pb-3 text-xs font-semibold uppercase tracking-wide text-[#66709a] md:grid ${LEARN_DECK_GRID_COLUMNS}`} data-testid="learn-deck-list-header">
+          <div className={`hidden items-center gap-3 border-b border-[var(--core-border)] px-3 pb-3 core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] md:grid ${LEARN_DECK_GRID_COLUMNS}`} data-testid="learn-deck-list-header">
             <span>Stapel</span>
             <span className="text-right" data-learn-column="new">Neu</span>
             <span className="text-right" data-learn-column="due">Fällig</span>

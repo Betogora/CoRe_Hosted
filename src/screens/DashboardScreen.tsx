@@ -5,11 +5,11 @@ import { DonutValue, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/core
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 
 const heatmapToneByLevel = [
-  "border-[#dfe5ec] bg-[#f3f6f8]",
-  "border-[#b7e5d7] bg-[#d3f4e7]",
-  "border-[#80d6c5] bg-[#8be3d2]",
-  "border-[#4aa9c7] bg-[#52b7d3]",
-  "border-[#265b8f] bg-[#2e6da3]",
+  "border-[var(--core-border)] bg-[var(--core-canvas)]",
+  "border-[var(--core-success)] bg-[var(--core-success-surface)]",
+  "border-[var(--core-success)] bg-[var(--core-success)]",
+  "border-[var(--core-info)] bg-[var(--core-info)]",
+  "border-[var(--core-text-secondary)] bg-[var(--core-info)]",
 ];
 
 function formatHeatmapDate(key: { split: (arg0: string) => [any,any,any]; }) {
@@ -33,15 +33,15 @@ function heatmapDayLabel(day: { key: { split: (arg0: string) => [any,any,any]; }
 function HeatmapMetric({ label, value }: any) {
   return (
     <div className="min-w-24">
-      <p className="text-sm font-semibold text-[#66709a]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-[#17214f]">{value}</p>
+      <p className="core-body font-semibold text-[var(--core-text-muted)]">{label}</p>
+      <p className="mt-1 core-heading-2 font-semibold text-[var(--core-text)]">{value}</p>
     </div>
   );
 }
 
 function HeatmapLegend() {
   return (
-    <div className="flex items-center gap-2 text-sm text-[#66709a]">
+    <div className="flex items-center gap-2 core-body text-[var(--core-text-muted)]">
       <span>Weniger</span>
       {[0, 1, 2, 3, 4].map((level) => (
         <span key={level} className={`block size-3 rounded-[4px] border ${heatmapToneByLevel[level]}`} />
@@ -100,9 +100,9 @@ function StudyHeatmap({ heatmap }: any) {
     <SoftPanel className="p-7">
       <div className="flex flex-wrap items-start gap-x-10 gap-y-4">
         <div className="flex gap-4">
-          <OrbIcon icon={Activity} className="bg-teal-50 text-teal-700" />
+          <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
           <div>
-            <h3 className="text-xl font-semibold text-[#17214f]">Lern-Heatmap</h3>
+            <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Lern-Heatmap</h3>
           </div>
         </div>
         <HeatmapMetric label="Aktive Tage" value={visibleHeatmap.activeDays} />
@@ -112,7 +112,7 @@ function StudyHeatmap({ heatmap }: any) {
               type="button"
               onClick={goToPreviousHeatmapWindow}
               disabled={!visibleHeatmap.canShowPrevious}
-              className="inline-flex size-9 items-center justify-center rounded-xl border border-[#dfe4f3] bg-white text-[#4f5eb1] transition hover:border-[#c7cee8] hover:bg-[#f7f9ff] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
               title="Frühere Wochen anzeigen"
               aria-label="Frühere Wochen anzeigen"
             >
@@ -122,7 +122,7 @@ function StudyHeatmap({ heatmap }: any) {
               type="button"
               onClick={goToNextHeatmapWindow}
               disabled={!visibleHeatmap.canShowNext}
-              className="inline-flex size-9 items-center justify-center rounded-xl border border-[#dfe4f3] bg-white text-[#4f5eb1] transition hover:border-[#c7cee8] hover:bg-[#f7f9ff] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
               title="Spätere Wochen anzeigen"
               aria-label="Spätere Wochen anzeigen"
             >
@@ -135,7 +135,7 @@ function StudyHeatmap({ heatmap }: any) {
 
       <div
         ref={heatmapViewportRef}
-        className="mt-4 min-w-0 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5361aa]/35"
+        className="mt-4 min-w-0 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus"
         tabIndex={0}
         onKeyDown={handleHeatmapKeyDown}
         role="group"
@@ -151,20 +151,20 @@ function StudyHeatmap({ heatmap }: any) {
         >
           <span aria-hidden="true" />
           {visibleHeatmap.monthLabels.map((label: string, index: number) => (
-            <span key={`${label}-${index}`} className="h-5 whitespace-nowrap text-left text-[0.68rem] font-semibold text-[#66709a]">
+            <span key={`${label}-${index}`} className="h-5 whitespace-nowrap text-left text-[0.68rem] font-semibold text-[var(--core-text-muted)]">
               {label}
             </span>
           ))}
 
           {visibleHeatmap.weekdayLabels.map((label: string, dayIndex: number) => (
             <React.Fragment key={label}>
-              <span className="flex min-h-4 items-center text-[0.68rem] font-semibold text-[#66709a]">{label}</span>
+              <span className="flex min-h-4 items-center text-[0.68rem] font-semibold text-[var(--core-text-muted)]">{label}</span>
               {visibleHeatmap.weeks.map((week: any[], weekIndex: number) => {
                 const day = week[dayIndex];
                 return (
                   <span
                     key={`${weekIndex}-${day.key}`}
-                    className={`block aspect-square w-full rounded-[4px] border transition-transform hover:scale-110 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-[#17214f]/35 ring-offset-1" : ""} ${day.isFuture ? "opacity-35" : ""} ${day.isOutsideDisplayYear ? "opacity-20" : ""}`}
+                    className={`block aspect-square w-full rounded-[4px] border transition-transform hover:scale-110 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-core-focus ring-offset-1" : ""} ${day.isFuture ? "opacity-35" : ""} ${day.isOutsideDisplayYear ? "opacity-20" : ""}`}
                     title={heatmapDayLabel(day)}
                     aria-label={heatmapDayLabel(day)}
                   />
@@ -190,36 +190,36 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }
 
         <SoftPanel className="overflow-hidden p-7 sm:p-9">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">Dein erster Lernerfolg</p>
-            <h2 className="mt-2 text-3xl font-semibold text-[#17214f]">Womit möchtest du starten?</h2>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-[#66709a]">Lege eigenes Lernmaterial an oder probiere CoRe bewusst mit Beispieldaten aus.</p>
+            <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Dein erster Lernerfolg</p>
+            <h2 className="mt-2 core-heading-2 font-semibold text-[var(--core-text)]">Womit möchtest du starten?</h2>
+            <p className="mt-3 max-w-2xl core-body-large leading-7 text-[var(--core-text-muted)]">Lege eigenes Lernmaterial an oder probiere CoRe bewusst mit Beispieldaten aus.</p>
           </div>
 
           <div className="mt-7 grid gap-4 lg:grid-cols-3">
-            <button type="button" onClick={() => onNavigate("neue-karten", { creationMethod: "manual" })} className="group rounded-2xl bg-[#4f5eb1] p-5 text-left text-white shadow-[0_14px_30px_rgba(79,94,177,0.2)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8790d8] focus-visible:ring-offset-2">
+            <button type="button" onClick={() => onNavigate("neue-karten", { creationMethod: "manual" })} className="group rounded-2xl bg-[var(--core-action-primary)] p-5 text-left text-[var(--core-text-on-accent)] shadow-[var(--core-shadow-raised)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2">
               <PenLine size={24} aria-hidden="true" />
-              <span className="mt-5 block text-lg font-semibold">Erste Karte erstellen</span>
-              <span className="mt-2 block text-sm leading-6 text-white/80">Frage und Antwort direkt eingeben.</span>
+              <span className="mt-5 block core-body-large font-semibold">Erste Karte erstellen</span>
+              <span className="core-body mt-2 block text-[var(--core-text-on-accent)]">Frage und Antwort direkt eingeben.</span>
             </button>
-            <button type="button" onClick={() => onNavigate("neue-karten", { creationMethod: "import" })} className="group rounded-2xl border border-[#dfe4f5] bg-white/80 p-5 text-left text-[#17214f] transition hover:-translate-y-0.5 hover:border-teal-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
-              <FileArchive size={24} className="text-teal-700" aria-hidden="true" />
-              <span className="mt-5 block text-lg font-semibold">Anki-Stapel importieren</span>
-              <span className="mt-2 block text-sm leading-6 text-[#66709a]">Eine vorhandene APKG-Datei übernehmen.</span>
+            <button type="button" onClick={() => onNavigate("neue-karten", { creationMethod: "import" })} className="group rounded-2xl border border-[var(--core-border)] bg-core-surface p-5 text-left text-[var(--core-text)] transition hover:-translate-y-0.5 hover:border-core-success focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2">
+              <FileArchive size={24} className="text-core-text" aria-hidden="true" />
+              <span className="mt-5 block core-body-large font-semibold">Anki-Stapel importieren</span>
+              <span className="mt-2 block core-body leading-6 text-[var(--core-text-muted)]">Eine vorhandene APKG-Datei übernehmen.</span>
             </button>
-            <button type="button" onClick={onCreateDemo} className="group rounded-2xl border border-dashed border-[#cfd6ed] bg-[#f8f9fe] p-5 text-left text-[#17214f] transition hover:-translate-y-0.5 hover:border-[#8790d8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8790d8] focus-visible:ring-offset-2">
-              <Sparkles size={24} className="text-[#6672bf]" aria-hidden="true" />
-              <span className="mt-5 block text-lg font-semibold">Demo ausprobieren</span>
-              <span className="mt-2 block text-sm leading-6 text-[#66709a]">Beispielstapel nur auf deinen Klick anlegen.</span>
+            <button type="button" onClick={onCreateDemo} className="group rounded-2xl border border-dashed border-[var(--core-border)] bg-[var(--core-surface-muted)] p-5 text-left text-[var(--core-text)] transition hover:-translate-y-0.5 hover:border-[var(--core-focus)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2">
+              <Sparkles size={24} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
+              <span className="mt-5 block core-body-large font-semibold">Demo ausprobieren</span>
+              <span className="mt-2 block core-body leading-6 text-[var(--core-text-muted)]">Beispielstapel nur auf deinen Klick anlegen.</span>
             </button>
           </div>
         </SoftPanel>
 
         <SoftPanel className="p-7">
-          <h2 className="text-xl font-semibold text-[#17214f]">Das macht CoRe</h2>
+          <h2 className="core-heading-3 font-semibold text-[var(--core-text)]">Das macht CoRe</h2>
           <ul className="mt-5 grid gap-3 md:grid-cols-3">
             {["Zeitlich passend wiederholen.", "Später anders formuliert prüfen.", "Original und Quelle bleiben sichtbar."].map((point) => (
-              <li key={point} className="flex gap-3 text-sm leading-6 text-[#4e5b8c]">
-                <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
+              <li key={point} className="flex gap-3 core-body leading-6 text-[var(--core-text-secondary)]">
+                <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-core-text" aria-hidden="true" />
                 {point}
               </li>
             ))}
@@ -238,15 +238,15 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }
 
       <div className="grid gap-6 md:grid-cols-2">
         <StatTile icon={CalendarDays} label="Heute fällig" value={totals.dueCards} />
-        <StatTile icon={Layers} label="Originalkarten" value={totals.totalCards} accent="text-teal-700" />
+        <StatTile icon={Layers} label="Originalkarten" value={totals.totalCards} accent="text-core-text" />
       </div>
 
       <StudyHeatmap heatmap={studyHeatmap} />
 
       <SoftPanel className="p-7">
         <div className="mb-6 flex items-center justify-between gap-4">
-          <h3 className="text-xl font-semibold text-[#17214f]">Aktive Stapel</h3>
-          <button type="button" onClick={() => onNavigate("lernen")} className="text-sm font-semibold text-[#4f5eb1]">
+          <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3>
+          <button type="button" onClick={() => onNavigate("lernen")} className="core-body font-semibold text-[var(--core-action-primary)]">
             Lernen öffnen
           </button>
         </div>
@@ -254,16 +254,16 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }
           {dashboardRows.map((row: any) => {
             const summary = row.summary;
             return (
-              <div key={row.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#e3e7f5] bg-white/72 px-5 py-4">
-                <DeckAppearanceIcon deck={row.deck} className="size-10 rounded-full bg-[#eef1fb]" iconSize={19} />
+              <div key={row.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--core-border)] bg-core-surface px-5 py-4">
+                <DeckAppearanceIcon deck={row.deck} className="size-10 rounded-full bg-[var(--core-surface-muted)]" iconSize={19} />
                 <div className="min-w-[12rem] flex-1">
-                  <p className="truncate text-base font-semibold text-[#17214f]">{row.name}</p>
-                  <p className="text-sm text-[#66709a]">
+                  <p className="truncate core-body-large font-semibold text-[var(--core-text)]">{row.name}</p>
+                  <p className="core-body text-[var(--core-text-muted)]">
                     {summary.totalCards} Karten · {summary.dueCards} fällig
                   </p>
                 </div>
                 <DonutValue value={row.progress} />
-                <button type="button" onClick={() => onStartDeck(row.deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1]">
+                <button type="button" onClick={() => onStartDeck(row.deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
                   Lernen <ChevronRight size={15} aria-hidden="true" />
                 </button>
               </div>

@@ -27,7 +27,7 @@ test("deck settings normalize appearance defaults and fallbacks", () => {
     },
   });
 
-  assert.deepEqual(defaults.appearance, { iconKey: "book-open", iconColor: "#4f5eb1" });
+  assert.deepEqual(defaults.appearance, { iconKey: "book-open", iconColor: "#6f7e9e" });
   assert.deepEqual(custom.appearance, { iconKey: "brain", iconColor: "#abcdef" });
   assert.deepEqual(fallback.appearance, defaults.appearance);
 });

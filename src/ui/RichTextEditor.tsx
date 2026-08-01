@@ -14,16 +14,16 @@ import {
   useStoredColorSlots,
 } from "./colorPicker.tsx";
 
-const colorStorageKeys = {
-  text: "core.richText.textColors",
-  highlight: "core.richText.highlightColors",
+export const richTextColorStorageKeys = {
+  text: "core.richText.textColors.v2",
+  highlight: "core.richText.highlightColors.v2",
 };
 
 function ToolbarButton({ label, icon: Icon, onRun }: { label: string; icon: LucideIcon; onRun: () => void }) {
   return (
     <button
       type="button"
-      className="grid size-9 place-items-center rounded-lg border border-[#dfe4f5] bg-white text-[#4f5eb1] transition hover:bg-[#f8f9fe]"
+      className="grid size-9 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)]"
       title={label}
       aria-label={label}
       onMouseDown={(event) => {
@@ -56,8 +56,8 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const isFocusedRef = React.useRef(false);
   const lastEmittedNormalizedHtmlRef = React.useRef("");
   const normalizedValue = React.useMemo(() => normalizeRichTextForEditor(value), [value]);
-  const [textColors, updateTextColorSlot] = useStoredColorSlots(colorStorageKeys.text, defaultTextColors);
-  const [highlightColors, updateHighlightColorSlot] = useStoredColorSlots(colorStorageKeys.highlight, defaultHighlightColors);
+  const [textColors, updateTextColorSlot] = useStoredColorSlots(richTextColorStorageKeys.text, defaultTextColors);
+  const [highlightColors, updateHighlightColorSlot] = useStoredColorSlots(richTextColorStorageKeys.highlight, defaultHighlightColors);
   const [openColorMenu, setOpenColorMenu] = React.useState<"text" | "highlight" | null>(null);
   const [selectedColorSlots, setSelectedColorSlots] = React.useState({ text: 0, highlight: 0 });
   const textColorMenuId = React.useId();
@@ -275,19 +275,19 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     emitChange();
   }
 
-  const fieldClass = `${minHeightClass} rich-text-field min-w-0 rounded-b-xl border border-t-0 p-4 text-base font-normal leading-7 text-[#17214f] outline-none transition ${
-    isActive ? "border-[#4f5eb1] bg-white shadow-[0_0_0_3px_rgba(79,94,177,0.13)]" : "border-[#dfe4f5] bg-white"
+  const fieldClass = `${minHeightClass} rich-text-field min-w-0 rounded-b-xl border border-t-0 p-4 core-body-large font-normal leading-7 text-[var(--core-text)] outline-none transition ${
+    isActive ? "border-[var(--core-action-primary)] bg-core-surface shadow-[0_0_0_3px_var(--core-focus-ring-soft)]" : "border-[var(--core-border)] bg-core-surface"
   }`;
   return (
     <div className="min-w-0">
-      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[#f8f9fe] p-2 ${isActive ? "border-[#4f5eb1]" : "border-[#dfe4f5]"}`}>
+      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[var(--core-surface-muted)] p-2 ${isActive ? "border-[var(--core-action-primary)]" : "border-[var(--core-border)]"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
         <ToolbarButton label="Unterstrichen" icon={Underline} onRun={() => runCommand("underline")} />
-        <span className="mx-1 h-7 w-px bg-[#dfe4f5]" aria-hidden="true" />
+        <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
         <ToolbarButton label="Stichpunkte" icon={List} onRun={() => runCommand("insertUnorderedList")} />
         <ToolbarButton label="Nummerierte Liste" icon={ListOrdered} onRun={() => runCommand("insertOrderedList")} />
-        <span className="mx-1 h-7 w-px bg-[#dfe4f5]" aria-hidden="true" />
+        <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
         <div className="relative">
           <ColorToolButton
             buttonRef={textColorButtonRef}
@@ -342,7 +342,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
             />
           ) : null}
         </div>
-        <span className="mx-1 h-7 w-px bg-[#dfe4f5]" aria-hidden="true" />
+        <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
         <ToolbarButton label="Formatierung löschen" icon={Eraser} onRun={() => runCommand("removeFormat")} />
       </div>
       <div

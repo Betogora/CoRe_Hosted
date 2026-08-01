@@ -55,7 +55,7 @@ const reviewState = {
 
 const deckSettings = {
   coreMode: "auto",
-  appearance: { iconKey: "book-open", iconColor: "#4f5eb1" },
+  appearance: { iconKey: "book-open", iconColor: "#6f7e9e" },
   newCardsPerDay: 20,
   maximumReviewsPerDay: 200,
   newReviewOrder: "reviews-first",

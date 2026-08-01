@@ -49,6 +49,10 @@ scope and gates.
 - `src/App.tsx` is the app shell and orchestrates the current UI screens.
   Product UI lives in `src/screens/`; domain logic belongs in focused modules
   rather than React callers.
+- Before adding product UI, inspect `src/ui/README.md` for available theme,
+  action, feedback, structure, form, progress, and specialized modules. Reuse
+  them when their interface preserves the feature semantics; otherwise keep
+  the feature local while still using the canonical semantic theme tokens.
 - `src/coreTypes.ts` is the canonical type source for normalized Deck, Learning
   Item, Card Variant, and Review State forms.
 - Keep unvalidated external payloads typed as `unknown` until the owning module

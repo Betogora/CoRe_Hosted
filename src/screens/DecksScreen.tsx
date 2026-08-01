@@ -13,7 +13,7 @@ import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardType,
 
 function FieldError({ errors, field }: { errors: CardEditorFieldErrors; field: CardEditorField }) {
   const message = errors[field];
-  return message ? <p className="text-sm font-medium text-red-700" role="alert">{message}</p> : null;
+  return message ? <p className="core-body font-medium text-core-text" role="alert">{message}</p> : null;
 }
 
 function versionContent(value: unknown, fallback: LearningItem) {
@@ -166,13 +166,13 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
     <SoftPanel className="p-5 sm:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">Karten-Detail</p>
-          <h3 className="mt-1 break-words text-xl font-semibold text-[#17214f]">Karte typgerecht bearbeiten</h3>
-          <p className="mt-1 text-sm text-[#66709a]">{cardTypeOptions.find((option) => option.value === card.cardType)?.label ?? card.cardType}</p>
+          <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Karten-Detail</p>
+          <h3 className="mt-1 break-words core-heading-3 font-semibold text-[var(--core-text)]">Karte typgerecht bearbeiten</h3>
+          <p className="mt-1 core-body text-[var(--core-text-muted)]">{cardTypeOptions.find((option) => option.value === card.cardType)?.label ?? card.cardType}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {form ? (
-            <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white disabled:opacity-60">
+            <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:opacity-60">
               <Save size={16} aria-hidden="true" />
               {isSaving ? "Speichert …" : "Speichern"}
             </button>
@@ -180,7 +180,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           <button
             type="button"
             onClick={() => onDeleteCard(card.id)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-4 core-body font-semibold text-core-text"
           >
             <Trash2 size={16} aria-hidden="true" />
             Löschen
@@ -191,12 +191,12 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
         <div className="grid min-w-0 gap-4">
           {form.cardType === "basic" || form.cardType === "basic-reversed" ? (
             <div className="grid min-w-0 gap-4 lg:grid-cols-2">
-              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 <span>Vorderseite</span>
                 <RichTextEditor value={form.front} onChange={(value) => update("front", value)} ariaLabel="Karten-Vorderseite" ariaInvalid={Boolean(fieldErrors.front)} minHeightClass="min-h-32" />
                 <FieldError errors={fieldErrors} field="front" />
               </div>
-              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 <span>Rückseite</span>
                 <RichTextEditor value={form.back} onChange={(value) => update("back", value)} ariaLabel="Karten-Rückseite" ariaInvalid={Boolean(fieldErrors.back)} minHeightClass="min-h-32" />
                 <FieldError errors={fieldErrors} field="back" />
@@ -205,13 +205,13 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           ) : null}
           {form.cardType === "cloze" ? (
             <div className="grid min-w-0 gap-4 lg:grid-cols-2">
-              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 <span>Cloze-Text</span>
                 <RichTextEditor value={form.textWithClozes} onChange={(value) => update("textWithClozes", value)} ariaLabel="Cloze-Text" ariaInvalid={Boolean(fieldErrors.textWithClozes)} minHeightClass="min-h-32" />
-                <p className="text-sm font-normal text-[#66709a]">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren. Gleiche Nummern gehören zu einer Reviewrichtung.</p>
+                <p className="core-body font-normal text-[var(--core-text-muted)]">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren. Gleiche Nummern gehören zu einer Reviewrichtung.</p>
                 <FieldError errors={fieldErrors} field="textWithClozes" />
               </div>
-              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 <span>Zusatzinfo</span>
                 <RichTextEditor value={form.extra} onChange={(value) => update("extra", value)} ariaLabel="Cloze-Zusatzinfo" minHeightClass="min-h-32" />
               </div>
@@ -219,80 +219,80 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           ) : null}
           {form.cardType === "multiple-choice" ? (
             <div className="grid min-w-0 gap-4">
-              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 <span>Frage</span>
                 <RichTextEditor value={form.question} onChange={(value) => update("question", value)} ariaLabel="Multiple-Choice-Frage" ariaInvalid={Boolean(fieldErrors.question)} minHeightClass="min-h-32" />
                 <FieldError errors={fieldErrors} field="question" />
               </div>
-              <fieldset className="grid gap-3 rounded-xl border border-[#dfe4f5] p-4">
-                <legend className="px-1 text-sm font-semibold text-[#4e5b8c]">Antwortoptionen und richtige Antwort</legend>
+              <fieldset className="grid gap-3 rounded-xl border border-[var(--core-border)] p-4">
+                <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Antwortoptionen und richtige Antwort</legend>
                 {form.options.map((option, index) => (
                   <div key={index} className="flex min-w-0 items-center gap-2">
                     <input type="radio" name={`correct-option-${card.id}`} checked={form.correctOptionIndex === index} onChange={() => update("correctOptionIndex", index)} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex)} />
-                    <input className="min-h-11 min-w-0 flex-1 rounded-xl border border-[#dfe4f5] px-3" value={option} onChange={(event) => updateMcOption(index, event.target.value)} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-                    <button type="button" onClick={() => removeMcOption(index)} disabled={form.options.length <= 2} className="grid size-10 place-items-center rounded-xl border border-[#dfe4f5] text-[#66709a] disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
+                    <input className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border)] px-3" value={option} onChange={(event) => updateMcOption(index, event.target.value)} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+                    <button type="button" onClick={() => removeMcOption(index)} disabled={form.options.length <= 2} className="grid size-10 place-items-center rounded-xl border border-[var(--core-border)] text-[var(--core-text-muted)] disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
                   </div>
                 ))}
-                <button type="button" onClick={addMcOption} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl border border-[#dfe4f5] px-3 text-sm font-semibold text-[#4f5eb1]"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button>
+                <button type="button" onClick={addMcOption} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl border border-[var(--core-border)] px-3 core-body font-semibold text-[var(--core-action-primary)]"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button>
                 <FieldError errors={fieldErrors} field="options" />
                 <FieldError errors={fieldErrors} field="correctOptionIndex" />
               </fieldset>
-              <div className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 <span>Erklärung (optional)</span>
                 <RichTextEditor value={form.explanation} onChange={(value) => update("explanation", value)} ariaLabel="Erklärung zur richtigen Antwort" minHeightClass="min-h-28" />
               </div>
             </div>
           ) : null}
-          <label className="grid gap-2 text-sm font-semibold text-[#4e5b8c]">
+          <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Tags
-            <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3" value={form.tags.join(" ")} onChange={(event) => update("tags", event.target.value.split(/\s+/).filter(Boolean))} />
+            <input className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3" value={form.tags.join(" ")} onChange={(event) => update("tags", event.target.value.split(/\s+/).filter(Boolean))} />
           </label>
           {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-success"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
         </div>
       ) : (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900" role="status">
+        <div className="rounded-xl border border-core-warning bg-core-warning-soft p-4 core-body font-medium text-core-text" role="status">
           Dieser importierte Kartentyp wird hier nur angezeigt. Typgerechtes Bearbeiten ist für Basic, Reverse, Cloze und Multiple Choice verfügbar.
         </div>
       )}
-      <details className="mt-5 min-w-0 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-[#4f5eb1]">Details, Herkunft und Versionen</summary>
+      <details className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
+        <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Details, Herkunft und Versionen</summary>
       <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))]">
-        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Initialer Anker</p>
+        <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
+          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Initialer Anker</p>
           <CardHtml html={card.immutableOriginal?.front} mediaUrls={mediaUrls} />
         </div>
-        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Quellenanker</p>
-          <p className="mt-2 break-words text-sm text-[#17214f]">{card.sourceAnchors?.[0]?.documentName || "Kein Dokumentanker"}</p>
-          <p className="mt-1 break-words text-sm text-[#66709a]">{card.sourceAnchors?.[0]?.textQuote || "Import- oder manuelle Originalkarte"}</p>
+        <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
+          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Quellenanker</p>
+          <p className="mt-2 break-words core-body text-[var(--core-text)]">{card.sourceAnchors?.[0]?.documentName || "Kein Dokumentanker"}</p>
+          <p className="mt-1 break-words core-body text-[var(--core-text-muted)]">{card.sourceAnchors?.[0]?.textQuote || "Import- oder manuelle Originalkarte"}</p>
         </div>
-        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Versionen</p>
-          <p className="mt-2 text-2xl font-semibold text-[#17214f]">{card.versionLog?.length ?? 0}</p>
-          <p className="mt-1 text-sm text-[#66709a]">Änderungslogeinträge</p>
+        <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
+          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Versionen</p>
+          <p className="mt-2 core-heading-2 font-semibold text-[var(--core-text)]">{card.versionLog?.length ?? 0}</p>
+          <p className="mt-1 core-body text-[var(--core-text-muted)]">Änderungslogeinträge</p>
         </div>
       </div>
       {card.originalFields.length > 0 ? (
-        <div className="mt-4 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Importierte Rohfelder (read-only)</p>
+        <div className="mt-4 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
+          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Importierte Rohfelder (read-only)</p>
           <dl className="mt-3 grid gap-3">
             {card.originalFields.map((field: { name: string; value: string }, index: number) => (
               <div key={`${field.name}-${index}`} className="grid gap-1">
-                <dt className="text-sm font-semibold text-[#4e5b8c]">{field.name}</dt>
-                <dd className="break-words text-sm text-[#66709a]"><CardHtml html={field.value} mediaUrls={mediaUrls} /></dd>
+                <dt className="core-body font-semibold text-[var(--core-text-secondary)]">{field.name}</dt>
+                <dd className="break-words core-body text-[var(--core-text-muted)]"><CardHtml html={field.value} mediaUrls={mediaUrls} /></dd>
               </div>
             ))}
           </dl>
         </div>
       ) : null}
-      <section className="mt-5 min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4" aria-labelledby={`version-restore-${card.id}`}>
+      <section className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4" aria-labelledby={`version-restore-${card.id}`}>
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <label className="grid min-w-0 flex-1 gap-2 text-sm font-semibold text-[#4e5b8c]" htmlFor={`version-select-${card.id}`}>
+          <label className="grid min-w-0 flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]" htmlFor={`version-select-${card.id}`}>
             <span id={`version-restore-${card.id}`}>Frühere Version wiederherstellen</span>
             <select
               ref={restoreSelectRef}
               id={`version-select-${card.id}`}
-              className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm text-[#17214f]"
+              className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text)]"
               value={restoreVersionId}
               onChange={(event) => {
                 setRestoreVersionId(event.target.value);
@@ -310,7 +310,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
             </select>
           </label>
           {selectedVersion && !confirmRestore ? (
-            <button ref={restoreConfirmRef} type="button" onClick={() => setConfirmRestore(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#eef1fb] px-4 text-sm font-semibold text-[#4f5eb1]">
+            <button ref={restoreConfirmRef} type="button" onClick={() => setConfirmRestore(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
               <RotateCcw size={16} aria-hidden="true" />
               Restore bestätigen
             </button>
@@ -318,105 +318,105 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
         </div>
         {restoredContent ? (
           <div className="mt-4 grid min-w-0 gap-3" data-testid="version-restore-summary">
-            <p className="text-sm text-[#66709a]">Vergleiche den aktuellen Inhalt mit dem Stand, der als neue Version übernommen wird.</p>
+            <p className="core-body text-[var(--core-text-muted)]">Vergleiche den aktuellen Inhalt mit dem Stand, der als neue Version übernommen wird.</p>
             {[
               ["Vorderseite", currentContent.front, restoredContent.front],
               ["Rückseite", currentContent.back, restoredContent.back],
               ["Tags", currentContent.tags.join(" "), restoredContent.tags.join(" ")],
               ["Kartentyp", currentContent.kind, restoredContent.kind],
             ].map(([label, current, restored]) => (
-              <div key={label} className="grid min-w-0 gap-2 rounded-xl border border-[#e3e7f5] p-3 md:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)]">
-                <span className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">{label}</span>
-                <span className="break-words text-sm text-[#17214f]"><span className="font-semibold">Aktuell:</span> {current || "—"}</span>
-                <span className="break-words text-sm text-[#17214f]"><span className="font-semibold">Nach Restore:</span> {restored || "—"}</span>
+              <div key={label} className="grid min-w-0 gap-2 rounded-xl border border-[var(--core-border)] p-3 md:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)]">
+                <span className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">{label}</span>
+                <span className="break-words core-body text-[var(--core-text)]"><span className="font-semibold">Aktuell:</span> {current || "—"}</span>
+                <span className="break-words core-body text-[var(--core-text)]"><span className="font-semibold">Nach Restore:</span> {restored || "—"}</span>
               </div>
             ))}
           </div>
         ) : null}
         {confirmRestore && selectedVersion ? (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4" role="group" aria-label="Restore endgültig bestätigen">
-            <p className="text-sm font-semibold text-amber-900">Der gezeigte Stand ersetzt den aktuellen Karteninhalt. Der aktuelle Stand bleibt im Versionsverlauf erhalten.</p>
+          <div className="mt-4 rounded-xl border border-core-warning bg-core-warning-soft p-4" role="group" aria-label="Restore endgültig bestätigen">
+            <p className="core-body font-semibold text-core-text">Der gezeigte Stand ersetzt den aktuellen Karteninhalt. Der aktuelle Stand bleibt im Versionsverlauf erhalten.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button ref={restoreActionRef} type="button" onClick={restoreSelectedVersion} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white">
+              <button ref={restoreActionRef} type="button" onClick={restoreSelectedVersion} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)]">
                 <RotateCcw size={16} aria-hidden="true" />
                 Wiederherstellen
               </button>
               <button type="button" onClick={() => {
                 setConfirmRestore(false);
                 window.requestAnimationFrame(() => restoreConfirmRef.current?.focus());
-              }} className="min-h-10 rounded-xl border border-[#dfe4f5] bg-white px-4 text-sm font-semibold text-[#4f5eb1]">
+              }} className="min-h-10 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)]">
                 Abbrechen
               </button>
             </div>
           </div>
         ) : null}
-        {restoreStatus ? <p className="core-status-success mt-3 text-sm font-semibold" role="status">{restoreStatus}</p> : null}
+        {restoreStatus ? <p className="core-status-success mt-3 core-body font-semibold" role="status">{restoreStatus}</p> : null}
       </section>
       </details>
-      <details className="mt-5 min-w-0 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] p-4" data-testid="card-variant-tools">
-        <summary className="cursor-pointer text-sm font-semibold text-[#4f5eb1]">Varianten und Lernwerte</summary>
+      <details className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" data-testid="card-variant-tools">
+        <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Varianten und Lernwerte</summary>
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
-        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Reifegrad</p>
-          <p className="mt-2 break-words text-lg font-semibold text-[#17214f]">{(maturityStageLabels as Record<string, string>)[maturity.stage] ?? maturity.label}</p>
-          <p className="mt-1 text-sm text-[#66709a]">Score {maturity.score} · {maturity.description}</p>
-          <p className="mt-2 text-xs text-[#66709a]">Stability {getStateValue(card.reviewState, "stability")} · Difficulty {getStateValue(card.reviewState, "difficulty")} · Reps {getStateValue(card.reviewState, "reps", getStateValue(card.reviewState, "repetitions"))}</p>
+        <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
+          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Reifegrad</p>
+          <p className="mt-2 break-words core-body-large font-semibold text-[var(--core-text)]">{(maturityStageLabels as Record<string, string>)[maturity.stage] ?? maturity.label}</p>
+          <p className="mt-1 core-body text-[var(--core-text-muted)]">Score {maturity.score} · {maturity.description}</p>
+          <p className="mt-2 core-caption text-[var(--core-text-muted)]">Stability {getStateValue(card.reviewState, "stability")} · Difficulty {getStateValue(card.reviewState, "difficulty")} · Reps {getStateValue(card.reviewState, "reps", getStateValue(card.reviewState, "repetitions"))}</p>
         </div>
-        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Variantenbereitschaft</p>
-          <p className="mt-2 break-words text-lg font-semibold text-[#17214f]">{formatLevelList(readiness.allowedLevels)}</p>
-          <p className="mt-1 break-words text-sm text-[#66709a]">Bevorzugt Level {readiness.preferredLevel}. {readiness.reason}</p>
+        <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
+          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Variantenbereitschaft</p>
+          <p className="mt-2 break-words core-body-large font-semibold text-[var(--core-text)]">{formatLevelList(readiness.allowedLevels)}</p>
+          <p className="mt-1 break-words core-body text-[var(--core-text-muted)]">Bevorzugt Level {readiness.preferredLevel}. {readiness.reason}</p>
         </div>
-        <div className="min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Variantenabdeckung</p>
-          <p className="mt-2 break-words text-lg font-semibold text-[#17214f]">{coverage.activeRephraseCount} nahe Varianten</p>
-          <p className="mt-1 break-words text-sm text-[#66709a]">{coverage.hasEnoughVariants ? "Genug Varianten vorhanden." : "Weitere nahe Umformulierungen möglich."}</p>
+        <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
+          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Variantenabdeckung</p>
+          <p className="mt-2 break-words core-body-large font-semibold text-[var(--core-text)]">{coverage.activeRephraseCount} nahe Varianten</p>
+          <p className="mt-1 break-words core-body text-[var(--core-text-muted)]">{coverage.hasEnoughVariants ? "Genug Varianten vorhanden." : "Weitere nahe Umformulierungen möglich."}</p>
         </div>
         </div>
-        <div className="mt-5 min-w-0 rounded-xl border border-[#e3e7f5] bg-white/80 p-4">
+        <div className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#66709a]">Varianten dieser Grundkarte</p>
-            <p className="mt-1 break-words text-sm text-[#66709a]">Varianten sind Umformulierungen derselben Wissenseinheit; der Hauptfortschritt bleibt auf der Grundkarte.</p>
+            <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Varianten dieser Grundkarte</p>
+            <p className="mt-1 break-words core-body text-[var(--core-text-muted)]">Varianten sind Umformulierungen derselben Wissenseinheit; der Hauptfortschritt bleibt auf der Grundkarte.</p>
           </div>
-          <span className="rounded-xl bg-[#eef1fb] px-3 py-1 text-xs font-semibold text-[#4f5eb1]">{variants.length} Formen</span>
+          <span className="rounded-xl bg-[var(--core-surface-muted)] px-3 py-1 core-caption font-semibold text-[var(--core-action-primary)]">{variants.length} Formen</span>
         </div>
         <div className="mt-4 grid gap-3">
           {variants.filter((variant: any): variant is CardVariant => variant != null).map((variant: CardVariant) => {
             const anchor = getVariantAnchor(card, variant);
             return (
-              <article key={variant.id} className={`min-w-0 rounded-xl border p-3 ${variant.isOriginal ? "border-[#8c96dc] bg-[#f3f5fd]" : variant.isActive === false || variant.qualityStatus !== "active" ? "border-slate-200 bg-slate-50" : "border-[#e3e7f5] bg-[#f8f9fe]"}`}>
-                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-[#66709a]">
-                  <span className="rounded-lg bg-white px-2 py-1">{variant.isOriginal ? "Original" : "Variante"}</span>
+              <article key={variant.id} className={`min-w-0 rounded-xl border p-3 ${variant.isOriginal ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)]" : variant.isActive === false || variant.qualityStatus !== "active" ? "border-core-border bg-core-subtle" : "border-[var(--core-border)] bg-[var(--core-surface-muted)]"}`}>
+                <div className="mb-2 flex flex-wrap items-center gap-2 core-caption font-semibold text-[var(--core-text-muted)]">
+                  <span className="rounded-lg bg-core-surface px-2 py-1">{variant.isOriginal ? "Original" : "Variante"}</span>
                   <span>{variant.variantType}</span>
                   <span>Level {variant.variantLevel}</span>
                   <span>{variant.generationSource}</span>
                   <span>{variant.isActive === false || variant.qualityStatus !== "active" ? "inaktiv" : "aktiv"}</span>
                 </div>
-                <p className="break-words text-sm font-semibold text-[#17214f]">{variant.front}</p>
-                <p className="mt-1 break-words text-sm text-[#66709a]">{variant.back}</p>
-                <p className="mt-2 text-xs text-[#66709a]">{variant.isOriginal ? "Originalanker dieser Grundkarte." : `Verankert an ${anchor?.id === originalVariant?.id ? "Originalkarte" : anchor?.id ?? "Originalkarte"}.`} Attempts {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
+                <p className="break-words core-body font-semibold text-[var(--core-text)]">{variant.front}</p>
+                <p className="mt-1 break-words core-body text-[var(--core-text-muted)]">{variant.back}</p>
+                <p className="mt-2 core-caption text-[var(--core-text-muted)]">{variant.isOriginal ? "Originalanker dieser Grundkarte." : `Verankert an ${anchor?.id === originalVariant?.id ? "Originalkarte" : anchor?.id ?? "Originalkarte"}.`} Attempts {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
               </article>
             );
           })}
         </div>
-        <div className="mt-4 grid gap-3 border-t border-[#e3e7f5] pt-4">
-          <p className="text-sm font-semibold text-[#17214f]">Nahe Umformulierung hinzufügen</p>
-          <p className="text-sm text-[#66709a]">Prüfe dieselbe Wissenseinheit. Keine neuen Fakten, keine neuen Konzepte.</p>
+        <div className="mt-4 grid gap-3 border-t border-[var(--core-border)] pt-4">
+          <p className="core-body font-semibold text-[var(--core-text)]">Nahe Umformulierung hinzufügen</p>
+          <p className="core-body text-[var(--core-text-muted)]">Prüfe dieselbe Wissenseinheit. Keine neuen Fakten, keine neuen Konzepte.</p>
           <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-            <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.front} onChange={(event) => updateVariantForm("front", event.target.value)} placeholder="Frage / Front" aria-label="Variantenfrage" />
-            <input className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.back} onChange={(event) => updateVariantForm("back", event.target.value)} placeholder="Antwort / Back" aria-label="Variantenantwort" />
-            <select className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] px-3 text-sm" value={variantForm.variantLevel} onChange={(event) => updateVariantForm("variantLevel", Number(event.target.value))} aria-label="Variantenlevel">
+            <input className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3 core-body" value={variantForm.front} onChange={(event) => updateVariantForm("front", event.target.value)} placeholder="Frage / Front" aria-label="Variantenfrage" />
+            <input className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3 core-body" value={variantForm.back} onChange={(event) => updateVariantForm("back", event.target.value)} placeholder="Antwort / Back" aria-label="Variantenantwort" />
+            <select className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3 core-body" value={variantForm.variantLevel} onChange={(event) => updateVariantForm("variantLevel", Number(event.target.value))} aria-label="Variantenlevel">
               {[1, 2, 3].map((level) => (
                 <option key={level} value={level}>Level {level}</option>
               ))}
             </select>
           </div>
-          <button type="button" onClick={addManualVariant} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl bg-[#4f5eb1] px-3 text-sm font-semibold text-white">
+          <button type="button" onClick={addManualVariant} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-3 core-body font-semibold text-[var(--core-text-on-accent)]">
             <PlusSquare size={16} aria-hidden="true" />
             Umformulierung hinzufügen
           </button>
-          {variantStatus ? <p className="text-sm text-[#66709a]" role="status" aria-live="polite">{variantStatus}</p> : null}
+          {variantStatus ? <p className="core-body text-[var(--core-text-muted)]" role="status" aria-live="polite">{variantStatus}</p> : null}
         </div>
         </div>
       </details>
@@ -611,26 +611,26 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
 
       <SoftPanel className="p-5">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm text-[#66709a]">
+          <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text-muted)]">
             <Search size={17} aria-hidden="true" />
             <input className="min-w-0 flex-1 bg-transparent outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Suchen" aria-label="Kartenstapel durchsuchen" />
           </label>
-          <select className="min-h-11 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#4f5eb1]" value={modeFilter} onChange={(event) => setModeFilter(event.target.value as CoreMode | "all")} aria-label="Kartenstapel nach CoRe-Modus filtern">
+          <select className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]" value={modeFilter} onChange={(event) => setModeFilter(event.target.value as CoreMode | "all")} aria-label="Kartenstapel nach CoRe-Modus filtern">
             <option value="all">Alle Modi</option>
             <option value="off">Aus</option>
             <option value="auto">Auto</option>
             <option value="manual">Manuell</option>
           </select>
-          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white">
+          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)]">
             <PlusSquare size={17} aria-hidden="true" />
             Neue Karten
           </button>
         </div>
-        {deckStatus ? <p className={`mt-3 text-sm font-semibold ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
+        {deckStatus ? <p className={`mt-3 core-body font-semibold ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
         {deletedCardUndo ? (
-          <div className="core-status-success mt-3 flex flex-wrap items-center justify-between gap-3 text-sm" role="status" aria-live="assertive">
+          <div className="core-status-success mt-3 flex flex-wrap items-center justify-between gap-3 core-body" role="status" aria-live="assertive">
             <span>Karte „{deletedCardUndo.description.slice(0, 90)}“ gelöscht.</span>
-            <button type="button" onClick={() => void undoCardDelete()} className="min-h-10 rounded-xl border border-teal-300 bg-white px-3 font-semibold text-teal-800">
+            <button type="button" onClick={() => void undoCardDelete()} className="min-h-10 rounded-xl border border-core-success bg-core-surface px-3 font-semibold text-core-text">
               Rückgängig
             </button>
           </div>
@@ -643,7 +643,7 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
           title="Noch keine passenden Stapel"
           body="Importiere oder erstelle Karten, damit die Bibliothek gefüllt wird."
           action={
-            <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+            <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-5 core-body font-semibold text-[var(--core-action-primary)]">
               Karten erstellen <ChevronRight size={16} aria-hidden="true" />
             </button>
           }
@@ -661,35 +661,35 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
               <SoftPanel
                 key={row.id}
                 data-testid={`deck-row-${deck.id}`}
-                className={`p-4 transition sm:p-5 ${isSelected ? "ring-2 ring-[#8c96dc]" : ""}`}
+                className={`p-4 transition sm:p-5 ${isSelected ? "ring-2 ring-[var(--core-border-interactive)]" : ""}`}
               >
                 <div className="flex min-w-0 flex-wrap items-center gap-4" style={{ paddingLeft: `${Math.min(row.depth, 4) * 1.1}rem` }}>
                   <div className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
-                    <DeckAppearanceIcon deck={deck} className="size-12 rounded-full bg-[#eef1fb]" iconSize={22} />
+                    <DeckAppearanceIcon deck={deck} className="size-12 rounded-full bg-[var(--core-surface-muted)]" iconSize={22} />
                     <div className="min-w-0 flex-1">
                       {isRenaming ? (
                         <form onSubmit={(event) => submitRename(event, deck)} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(10rem,1fr)_auto_auto]">
                           <label className="sr-only" htmlFor={`deck-rename-${deck.id}`}>Stapelname</label>
                           <input
                             id={`deck-rename-${deck.id}`}
-                            className="min-h-10 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#17214f] outline-none"
+                            className="min-h-10 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-text)] outline-none"
                             value={renameDraft}
                             onChange={(event) => setRenameDraft(event.target.value)}
                             autoFocus
                             data-testid={`deck-rename-input-${deck.id}`}
                           />
-                          <button type="submit" className="grid size-10 place-items-center rounded-xl bg-[#4f5eb1] text-white" aria-label="Stapelname speichern" data-testid={`deck-rename-save-${deck.id}`}>
+                          <button type="submit" className="grid size-10 place-items-center rounded-xl bg-[var(--core-action-primary)] text-[var(--core-text-on-accent)]" aria-label="Stapelname speichern" data-testid={`deck-rename-save-${deck.id}`}>
                             <Check size={17} aria-hidden="true" />
                           </button>
-                          <button type="button" onClick={cancelRename} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label="Umbenennen abbrechen">
+                          <button type="button" onClick={cancelRename} className="grid size-10 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)]" aria-label="Umbenennen abbrechen">
                             <X size={17} aria-hidden="true" />
                           </button>
                         </form>
                       ) : (
                         <button type="button" onClick={() => onSelectDeck(deck.id)} className="block min-w-0 text-left" data-testid={`deck-select-${deck.id}`}>
-                          <span className="block truncate text-lg font-semibold text-[#17214f]">{deck.name}</span>
-                          <span className="block truncate text-sm text-[#66709a]">{row.path}</span>
-                          {row.hasChildren ? <span className="mt-1 block text-xs font-semibold text-[#66709a]">{row.childrenCount} Unterstapel</span> : null}
+                          <span className="block truncate core-body-large font-semibold text-[var(--core-text)]">{deck.name}</span>
+                          <span className="block truncate core-body text-[var(--core-text-muted)]">{row.path}</span>
+                          {row.hasChildren ? <span className="mt-1 block core-caption font-semibold text-[var(--core-text-muted)]">{row.childrenCount} Unterstapel</span> : null}
                         </button>
                       )}
                     </div>
@@ -697,52 +697,52 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
                   <CoreModeControl value={deck.deckSettings.coreMode} onChange={(mode: any) => updateCoreMode(deck, mode)} />
                   <div className="flex flex-[1_1_14rem] flex-wrap items-center gap-4 sm:flex-none">
                     <div className="grid min-w-14 gap-1">
-                      <span className="text-xs font-semibold text-[#66709a]">Karten im Stapel</span>
-                      <span className="text-xl font-semibold text-[#17214f]">{summary.totalCards}</span>
+                      <span className="core-caption font-semibold text-[var(--core-text-muted)]">Karten im Stapel</span>
+                      <span className="core-heading-3 font-semibold text-[var(--core-text)]">{summary.totalCards}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => beginRename(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label={`${row.path} umbenennen`} data-testid={`deck-rename-button-${deck.id}`}>
+                    <button type="button" onClick={() => beginRename(deck)} className="grid size-10 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)]" aria-label={`${row.path} umbenennen`} data-testid={`deck-rename-button-${deck.id}`}>
                       <Pencil size={17} aria-hidden="true" />
                     </button>
-                    <button type="button" onClick={() => beginMove(deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#f8f9fe] px-3 text-sm font-semibold text-[#4f5eb1]" aria-label={`${row.path} verschieben`} data-testid={`deck-move-button-${deck.id}`}>
+                    <button type="button" onClick={() => beginMove(deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-3 core-body font-semibold text-[var(--core-action-primary)]" aria-label={`${row.path} verschieben`} data-testid={`deck-move-button-${deck.id}`}>
                       <MoveRight size={17} aria-hidden="true" />
                       Verschieben
                     </button>
-                    <button type="button" onClick={() => onStartDeck(deck, false)} className="grid size-10 place-items-center rounded-xl bg-[#eef1fb] text-[#4f5eb1]" aria-label={`${row.path} lernen`}>
+                    <button type="button" onClick={() => onStartDeck(deck, false)} className="grid size-10 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)]" aria-label={`${row.path} lernen`}>
                       <Play size={17} aria-hidden="true" />
                     </button>
-                    <button type="button" onClick={() => onStartDeck(deck, true)} className="grid size-10 place-items-center rounded-xl bg-amber-50 text-amber-700" aria-label={`${row.path} mit Varianten lernen`}>
+                    <button type="button" onClick={() => onStartDeck(deck, true)} className="grid size-10 place-items-center rounded-xl bg-core-warning-soft text-core-text" aria-label={`${row.path} mit Varianten lernen`}>
                       <Sparkles size={17} aria-hidden="true" />
                     </button>
-                    <button type="button" onClick={() => prepareSubdeck(deck)} className="grid size-10 place-items-center rounded-xl bg-[#f8f9fe] text-[#4f5eb1]" aria-label={`Unterstapel in ${row.path} anlegen`}>
+                    <button type="button" onClick={() => prepareSubdeck(deck)} className="grid size-10 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)]" aria-label={`Unterstapel in ${row.path} anlegen`}>
                       <FolderPlus size={17} aria-hidden="true" />
                     </button>
-                    <button type="button" onClick={() => deleteDeckTree(deck, row)} className="grid size-10 place-items-center rounded-xl bg-red-50 text-red-700" aria-label={`${row.path} löschen`}>
+                    <button type="button" onClick={() => deleteDeckTree(deck, row)} className="grid size-10 place-items-center rounded-xl bg-core-danger-soft text-core-text" aria-label={`${row.path} löschen`}>
                       <Trash2 size={17} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
                 {isMoving ? (
-                  <form onSubmit={(event) => submitMove(event, deck)} className="mt-4 grid min-w-0 gap-3 rounded-xl border border-[#dfe4f5] bg-[#f8f9fe] p-4" data-testid={`deck-move-form-${deck.id}`}>
-                    <label className="grid min-w-0 gap-2 text-sm font-semibold text-[#4e5b8c]">
+                  <form onSubmit={(event) => submitMove(event, deck)} className="mt-4 grid min-w-0 gap-3 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" data-testid={`deck-move-form-${deck.id}`}>
+                    <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                       Neuer Elternstapel für „{deck.name}“
-                      <select className="min-h-11 min-w-0 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm text-[#17214f]" value={moveTargetId} onChange={(event) => setMoveTargetId(event.target.value)} aria-label={`Ziel für ${deck.name}`} autoFocus>
+                      <select className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text)]" value={moveTargetId} onChange={(event) => setMoveTargetId(event.target.value)} aria-label={`Ziel für ${deck.name}`} autoFocus>
                         <option value="">Hauptebene</option>
                         {library.rows.filter((candidate) => !row.scopeDeckIds.includes(candidate.id)).map((candidate) => (
                           <option key={candidate.id} value={candidate.id}>{"— ".repeat(candidate.depth)}{candidate.path}</option>
                         ))}
                       </select>
                     </label>
-                    <p className="text-sm text-[#66709a]" data-testid={`deck-move-summary-${deck.id}`}>
+                    <p className="core-body text-[var(--core-text-muted)]" data-testid={`deck-move-summary-${deck.id}`}>
                       {moveTarget ? `„${deck.name}“ wird unter „${moveTarget.name}“ verschoben.` : `„${deck.name}“ wird auf die Hauptebene verschoben.`}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <button type="submit" className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#4f5eb1] px-4 text-sm font-semibold text-white">
+                      <button type="submit" className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)]">
                         <MoveRight size={16} aria-hidden="true" />
                         Verschieben bestätigen
                       </button>
-                      <button type="button" onClick={cancelMove} className="min-h-10 rounded-xl border border-[#dfe4f5] bg-white px-4 text-sm font-semibold text-[#4f5eb1]">Abbrechen</button>
+                      <button type="button" onClick={cancelMove} className="min-h-10 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)]">Abbrechen</button>
                     </div>
                   </form>
                 ) : null}
@@ -759,10 +759,10 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
           body="Der verlinkte Stapel wurde gelöscht oder steht in diesem Account nicht zur Verfügung."
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <button type="button" onClick={() => onOpenLearn(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+              <button type="button" onClick={() => onOpenLearn(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[var(--core-surface-muted)] px-5 core-body font-semibold text-[var(--core-action-primary)]">
                 Zu Lernen
               </button>
-              <button type="button" onClick={() => onSelectDeck(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[#dfe4f5] bg-white px-5 text-sm font-semibold text-[#4f5eb1]">
+              <button type="button" onClick={() => onSelectDeck(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
                 Zur Kartenverwaltung
               </button>
             </div>
@@ -773,8 +773,8 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
       {selectedDeck ? (
         <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,0.85fr)_minmax(22rem,1.15fr)]">
           <SoftPanel className="p-5 outline-none sm:p-6" data-testid={`deck-card-list-${selectedDeck.id}`} tabIndex={-1}>
-            <h3 className="break-words text-xl font-semibold text-[#17214f]">Karten in {selectedDeck.name}</h3>
-            {selectedDeckMissingMedia.length > 0 ? <p className="mt-2 text-sm text-amber-800" role="status">{selectedDeckMissingMedia[0].status}{selectedDeckMissingMedia.length > 1 ? ` (${selectedDeckMissingMedia.length} Medien)` : ""}</p> : null}
+            <h3 className="break-words core-heading-3 font-semibold text-[var(--core-text)]">Karten in {selectedDeck.name}</h3>
+            {selectedDeckMissingMedia.length > 0 ? <p className="mt-2 core-body text-core-text" role="status">{selectedDeckMissingMedia[0].status}{selectedDeckMissingMedia.length > 1 ? ` (${selectedDeckMissingMedia.length} Medien)` : ""}</p> : null}
             <div className="mt-5 grid max-h-[28rem] min-w-0 gap-3 overflow-y-auto overflow-x-hidden pr-1">
               {(selectedRow?.cardRows ?? []).map((cardRow) => {
                 const card = cardRow.card;
@@ -786,11 +786,11 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
                     onClick={() => onSelectCard(cardRow.id)}
                     aria-pressed={selectedCardId === cardRow.id}
                     className={`min-w-0 rounded-xl border px-4 py-3 text-left ${
-                      selectedCardId === cardRow.id ? "border-[#8c96dc] bg-[#f3f5fd]" : "border-[#e3e7f5] bg-white/70"
+                      selectedCardId === cardRow.id ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)]" : "border-[var(--core-border)] bg-core-surface"
                     }`}
                   >
-                    <span className="block truncate text-sm font-semibold text-[#17214f]">{cardRow.frontPreview}</span>
-                    <span className="mt-1 block text-xs uppercase tracking-wide text-[#66709a]">{card.kind} · {card.reviewState.maturityBand}</span>
+                    <span className="block truncate core-body font-semibold text-[var(--core-text)]">{cardRow.frontPreview}</span>
+                    <span className="mt-1 block core-caption uppercase tracking-wide text-[var(--core-text-muted)]">{card.kind} · {card.reviewState.maturityBand}</span>
                   </button>
                 );
               })}
@@ -803,10 +803,10 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
               body="Die verlinkte Karte wurde gelöscht oder gehört nicht zu diesem Stapel."
               action={
                 <div className="flex flex-wrap justify-center gap-3">
-                  <button type="button" onClick={() => clearCardSelection("deck")} className="inline-flex min-h-11 items-center rounded-xl bg-[#eef1fb] px-5 text-sm font-semibold text-[#4f5eb1]">
+                  <button type="button" onClick={() => clearCardSelection("deck")} className="inline-flex min-h-11 items-center rounded-xl bg-[var(--core-surface-muted)] px-5 core-body font-semibold text-[var(--core-action-primary)]">
                     Zum Stapel
                   </button>
-                  <button type="button" onClick={() => clearCardSelection("cards")} className="inline-flex min-h-11 items-center rounded-xl border border-[#dfe4f5] bg-white px-5 text-sm font-semibold text-[#4f5eb1]">
+                  <button type="button" onClick={() => clearCardSelection("cards")} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
                     Alle Karten
                   </button>
                 </div>

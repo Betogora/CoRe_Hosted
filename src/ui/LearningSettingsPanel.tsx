@@ -2,6 +2,7 @@ import React, { type ReactNode } from "react";
 import { Brain, Clock3, Gauge, Save, SlidersHorizontal } from "lucide-react";
 import { LEARNING_SETTING_PRESETS, applyLearningPreset, markLearningSettingsCustom, normalizeLearningSettings, type LearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
 import type { CoreMode } from "../coreTypes.ts";
+import { ActionButton } from "./actionUi.tsx";
 import { CoreModeControl, OrbIcon, SoftPanel } from "./coreUi.tsx";
 
 const learningStepOptions = [
@@ -46,13 +47,13 @@ interface RangeFieldProps {
 
 function RangeField({ label, hint, value, min, max, step = 1, suffix = "", onChange, testId }: RangeFieldProps) {
   return (
-    <label className="grid gap-3 rounded-2xl border border-[#e3e7f5] bg-white/75 p-4 text-sm font-semibold text-[#4e5b8c]">
+    <label className="grid gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)]">
       <span className="flex items-start justify-between gap-4">
         <span>
-          <span className="block text-[#26315f]">{label}</span>
-          {hint ? <span className="mt-1 block text-xs font-normal leading-5 text-[#66709a]">{hint}</span> : null}
+          <span className="block text-[var(--core-text-secondary)]">{label}</span>
+          {hint ? <span className="mt-1 block core-caption font-normal leading-5 text-[var(--core-text-muted)]">{hint}</span> : null}
         </span>
-        <span className="shrink-0 rounded-lg bg-[#eef1fb] px-2.5 py-1 text-[#4f5eb1]">{value}{suffix}</span>
+        <span className="shrink-0 rounded-lg bg-[var(--core-surface-muted)] px-2.5 py-1 text-[var(--core-action-primary)]">{value}{suffix}</span>
       </span>
       <span className="grid grid-cols-[minmax(0,1fr)_5.5rem] items-center gap-3">
         <input
@@ -62,7 +63,7 @@ function RangeField({ label, hint, value, min, max, step = 1, suffix = "", onCha
           step={step}
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
-          className="w-full accent-[#4f5eb1]"
+          className="w-full accent-[var(--core-action-primary)]"
           aria-label={label}
           data-testid={testId}
         />
@@ -73,7 +74,7 @@ function RangeField({ label, hint, value, min, max, step = 1, suffix = "", onCha
           step={step}
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
-          className="min-h-10 w-full rounded-xl border border-[#dfe4f5] bg-white px-3 text-right text-[#17214f] outline-none focus:border-[#8c96dc] focus:ring-2 focus:ring-[#dfe3ff]"
+          className="min-h-10 w-full rounded-xl border border-[var(--core-border)] bg-core-surface px-3 text-right text-[var(--core-text)] outline-none focus:border-[var(--core-border-interactive)] focus:ring-2 focus:ring-[var(--core-info-surface)]"
           aria-label={`${label} als Zahl`}
         />
       </span>
@@ -92,13 +93,13 @@ interface SelectFieldProps {
 
 function SelectField({ label, hint, value, onChange, children, testId }: SelectFieldProps) {
   return (
-    <label className="grid gap-2 rounded-2xl border border-[#e3e7f5] bg-white/75 p-4 text-sm font-semibold text-[#4e5b8c]">
-      <span className="text-[#26315f]">{label}</span>
-      {hint ? <span className="text-xs font-normal leading-5 text-[#66709a]">{hint}</span> : null}
+    <label className="grid gap-2 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)]">
+      <span className="text-[var(--core-text-secondary)]">{label}</span>
+      {hint ? <span className="core-caption font-normal leading-5 text-[var(--core-text-muted)]">{hint}</span> : null}
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 min-h-11 rounded-xl border border-[#dfe4f5] bg-white px-3 text-sm font-semibold text-[#17214f] outline-none focus:border-[#8c96dc] focus:ring-2 focus:ring-[#dfe3ff]"
+        className="mt-1 min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-text)] outline-none focus:border-[var(--core-border-interactive)] focus:ring-2 focus:ring-[var(--core-info-surface)]"
         data-testid={testId}
       >
         {children}
@@ -152,22 +153,22 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
 
   return (
     <SoftPanel className="overflow-hidden">
-      <div className="border-b border-[#e3e7f5] bg-[linear-gradient(135deg,rgba(238,241,251,0.9),rgba(255,255,255,0.72))] p-5 sm:p-6">
+      <div className="border-b border-[var(--core-border)] bg-core-subtle p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
             <OrbIcon icon={SlidersHorizontal} />
             <div className="min-w-0">
-              <p className="text-sm font-semibold uppercase tracking-wide text-[#6672bf]">Lernoptionen</p>
-              <h3 className="mt-1 text-2xl font-semibold text-[#17214f]">{scopeTitle}</h3>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#66709a]">{scopeDescription}</p>
+              <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Lernoptionen</p>
+              <h3 className="mt-1 core-heading-2 font-semibold text-[var(--core-text)]">{scopeTitle}</h3>
+              <p className="mt-2 max-w-3xl core-body leading-6 text-[var(--core-text-muted)]">{scopeDescription}</p>
             </div>
           </div>
-          <label className="grid min-w-52 gap-2 text-sm font-semibold text-[#4e5b8c]">
+          <label className="grid min-w-52 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Lernprofil
             <select
               value={draft.schedulerProfile.presetId}
               onChange={(event) => selectPreset(event.target.value)}
-              className="min-h-11 rounded-xl border border-[#dfe4f5] bg-white px-3 text-[#17214f] outline-none focus:border-[#8c96dc] focus:ring-2 focus:ring-[#dfe3ff]"
+              className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 text-[var(--core-text)] outline-none focus:border-[var(--core-border-interactive)] focus:ring-2 focus:ring-[var(--core-info-surface)]"
               data-testid="learning-settings-preset"
             >
               {LEARNING_SETTING_PRESETS.map((preset) => (
@@ -181,8 +182,8 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
 
       <div className="grid gap-6 p-5 sm:p-6">
         <fieldset className="grid gap-4">
-          <legend className="mb-1 flex items-center gap-2 text-lg font-semibold text-[#17214f]">
-            <Gauge size={19} className="text-[#6672bf]" aria-hidden="true" />
+          <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-[var(--core-text)]">
+            <Gauge size={19} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
             Tagespensum und Reihenfolge
           </legend>
           <div className="grid gap-4 lg:grid-cols-2">
@@ -216,17 +217,17 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
               <option value="mixed">Neue und fällige mischen</option>
               <option value="new-first">Neue Karten zuerst</option>
             </SelectField>
-            <div className="rounded-2xl border border-[#e3e7f5] bg-[#f8f9fe] p-4">
-              <p className="text-sm font-semibold text-[#26315f]">CoRe-Modus</p>
-              <p className="mb-3 mt-1 text-xs leading-5 text-[#66709a]">Steuert, ob und wie nahe Varianten in diesem Geltungsbereich eingesetzt werden.</p>
+            <div className="rounded-2xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
+              <p className="core-body font-semibold text-[var(--core-text-secondary)]">CoRe-Modus</p>
+              <p className="mb-3 mt-1 core-caption leading-5 text-[var(--core-text-muted)]">Steuert, ob und wie nahe Varianten in diesem Geltungsbereich eingesetzt werden.</p>
               <CoreModeControl value={draft.coreMode} onChange={(value: any) => setDraft((current) => ({ ...current, coreMode: value }))} />
             </div>
           </div>
         </fieldset>
 
-        <fieldset className="grid gap-4 border-t border-[#e3e7f5] pt-6">
-          <legend className="mb-1 flex items-center gap-2 text-lg font-semibold text-[#17214f]">
-            <Clock3 size={19} className="text-[#6672bf]" aria-hidden="true" />
+        <fieldset className="grid gap-4 border-t border-[var(--core-border)] pt-6">
+          <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-[var(--core-text)]">
+            <Clock3 size={19} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
             Lernschritte und Intervalle
           </legend>
           <div className="grid gap-4 lg:grid-cols-2">
@@ -269,25 +270,25 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
               onChange={(value: any) => updateSchedulerSetting("easyGraduatingIntervalDays", value)}
               testId="learning-settings-easy-graduating"
             />
-            <label className="flex min-h-20 items-start justify-between gap-4 rounded-2xl border border-[#e3e7f5] bg-white/75 p-4 text-sm font-semibold text-[#26315f] lg:col-span-2">
+            <label className="flex min-h-20 items-start justify-between gap-4 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)] lg:col-span-2">
               <span>
                 <span className="block">Weniger sehr kurze Intervalle</span>
-                <span className="mt-1 block text-xs font-normal leading-5 text-[#66709a]">Verdoppelt kurze Lern- und Wiederlern-Abstände. Das reduziert unmittelbare Wiedererkennung, verlängert aber die Lernrunde.</span>
+                <span className="mt-1 block core-caption font-normal leading-5 text-[var(--core-text-muted)]">Verdoppelt kurze Lern- und Wiederlern-Abstände. Das reduziert unmittelbare Wiedererkennung, verlängert aber die Lernrunde.</span>
               </span>
               <input
                 type="checkbox"
                 checked={draft.schedulerProfile.lessShortIntervalBias}
                 onChange={(event) => updateSchedulerSetting("lessShortIntervalBias", event.target.checked)}
-                className="mt-1 size-5 accent-[#4f5eb1]"
+                className="mt-1 size-5 accent-[var(--core-action-primary)]"
                 data-testid="learning-settings-short-bias"
               />
             </label>
           </div>
         </fieldset>
 
-        <fieldset className="grid gap-4 border-t border-[#e3e7f5] pt-6">
-          <legend className="mb-1 flex items-center gap-2 text-lg font-semibold text-[#17214f]">
-            <Brain size={19} className="text-[#6672bf]" aria-hidden="true" />
+        <fieldset className="grid gap-4 border-t border-[var(--core-border)] pt-6">
+          <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-[var(--core-text)]">
+            <Brain size={19} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
             Erinnerungsziel
           </legend>
           <div className="grid gap-4 lg:grid-cols-2">
@@ -313,18 +314,15 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
             </SelectField>
           </div>
           {draft.schedulerProfile.desiredRetention > 0.97 ? (
-            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900" role="alert">
+            <p className="rounded-xl border border-core-warning bg-core-warning-soft px-4 py-3 core-body leading-6 text-core-text" role="alert">
               Über 97 % steigt die tägliche Belastung meist sehr stark. Nutze diesen Bereich nur bewusst und beobachte dein Review-Pensum.
             </p>
           ) : null}
         </fieldset>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e3e7f5] pt-5">
-          <p className="text-sm text-[#66709a]" role="status" aria-live="polite">{status || "Änderungen werden erst mit dem Speichern übernommen."}</p>
-          <button type="button" onClick={save} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4f5eb1] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4352a4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8c96dc] focus-visible:ring-offset-2">
-            <Save size={17} aria-hidden="true" />
-            Änderungen speichern
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--core-border)] pt-5">
+          <p className="core-body text-[var(--core-text-muted)]" role="status" aria-live="polite">{status || "Änderungen werden erst mit dem Speichern übernommen."}</p>
+          <ActionButton type="button" variant="primary" icon={Save} onClick={save}>Änderungen speichern</ActionButton>
         </div>
       </div>
     </SoftPanel>

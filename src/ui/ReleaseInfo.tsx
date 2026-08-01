@@ -4,7 +4,7 @@ import type { AppRuntimeInfo } from "../appRuntime.ts";
 
 export function ReleaseInfo({ info = APP_RUNTIME_INFO, className = "" }: { info?: AppRuntimeInfo; className?: string }) {
   return (
-    <p className={`text-xs font-medium text-[#66709a] ${className}`.trim()} role="note" aria-label="Release-Information">
+    <p className={`core-caption font-medium text-[var(--core-text-muted)] ${className}`.trim()} role="note" aria-label="Release-Information">
       {formatAppRuntimeInfo(info)}
     </p>
   );
