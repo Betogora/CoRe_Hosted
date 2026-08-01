@@ -332,7 +332,7 @@ Für den aktuellen Vercel/Supabase-Pfad ist Elixir kein P0 und kein P1. Es ist e
 - **Ja:** Learning Items, Varianten, Review-Events, Medien und Importidentitäten als tiefe Module halten.
 - **Ja:** große Importarbeit Worker-fähig kapseln.
 - **Vielleicht:** Rust/WASM für gemessene Import-Hotpaths.
-- **Später:** separater Import-/Jobdienst für große Uploads, Medienpersistenz und lange KI-Jobs.
+- **Nicht im freigegebenen Core:** Ein separater Import-/Jobdienst für große Uploads oder KI-Jobs wurde entfernt und erfordert vor einer Neuaufnahme eine neue Produktentscheidung.
 - **Nein:** Anki-Dateiformat intern kopieren.
 - **Nein:** beliebige Anki-Templates ausführen.
 - **Nein:** Elixir als pauschale Performance-Lösung.

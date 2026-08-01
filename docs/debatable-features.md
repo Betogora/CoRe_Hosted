@@ -1,6 +1,6 @@
 # Evaluationsfragen für diskutierbare Features
 
-**Rolle:** Arbeitsmaterial für spätere Produktentscheidungen. Dieses Dokument ist weder Roadmap noch ADR und erteilt keine Löschfreigabe.
+**Rolle:** archiviertes Arbeitsmaterial früherer Produktentscheidungen. Dieses Dokument ist weder Roadmap noch ADR und erteilt keinen Implementierungsauftrag.
 
 Verbindliche Entscheidungen stehen ausschließlich in [`decisions.md`](decisions.md), offene Evaluationen in [`todo.md`](todo.md).
 
@@ -11,7 +11,7 @@ Verbindliche Entscheidungen stehen ausschließlich in [`decisions.md`](decisions
 - Welche Membership-, RLS-, Datenschutz- und Moderationsverträge wären für eine Graduierung nötig?
 - Wird die Fläche genutzt, ohne fremde Lernstände oder soziale Leistungsmetriken einzuführen?
 
-Aktuelle Entscheidung: [ADR-005](decisions.md#adr-005--community-und-graph-bleiben-labs).
+Abschließende Entscheidung: [ADR-007](decisions.md#adr-007--labs-und-serverseitigen-groß-apkg-pfad-entfernen).
 
 ## Deck-Graph
 
@@ -20,7 +20,7 @@ Aktuelle Entscheidung: [ADR-005](decisions.md#adr-005--community-und-graph-bleib
 - Welche messbare Nutzung rechtfertigt Layout-, Graph- und UI-Pflege?
 - Was wäre das Kill-Kriterium?
 
-Aktuelle Entscheidung: [ADR-005](decisions.md#adr-005--community-und-graph-bleiben-labs).
+Abschließende Entscheidung: [ADR-007](decisions.md#adr-007--labs-und-serverseitigen-groß-apkg-pfad-entfernen).
 
 ## AI-Job-Historie
 
