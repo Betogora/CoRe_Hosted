@@ -3,7 +3,7 @@ import { performance } from "node:perf_hooks";
 import { resolve } from "node:path";
 import { parseApkgToNormalizedImport } from "../src/apkgImport.ts";
 
-const fixturePath = resolve(process.argv[2] ?? "test-results/apkg/m3-large-media.apkg");
+const fixturePath = resolve(process.argv[2] ?? "test-results/apkg/core-local-benchmark.apkg");
 const fixtureStats = await stat(fixturePath);
 const phaseStarts = new Map<string, number>();
 const phases: Record<string, number> = {};
@@ -22,7 +22,7 @@ const bytes = await readFile(fixturePath);
 const heapBefore = process.memoryUsage().heapUsed;
 const startedAt = performance.now();
 const result = await parseApkgToNormalizedImport({
-  name: "m3-large-media.apkg",
+  name: "core-local-benchmark.apkg",
   size: fixtureStats.size,
   arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
 }, {

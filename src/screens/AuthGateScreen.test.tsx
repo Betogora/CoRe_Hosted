@@ -14,9 +14,12 @@ test("auth gate exposes named fields, a busy state and a non-duplicated alert re
   );
 
   assert.match(markup, /<form[^>]*aria-busy="true"/);
-  assert.match(markup, />E-Mail</);
+  assert.match(markup, />E-Mail-Adresse</);
   assert.match(markup, />Passwort</);
   assert.match(markup, /Anmelden läuft/);
+  assert.doesNotMatch(markup, /Bei CoRe anmelden/);
+  assert.match(markup, /Account erstellen/);
+  assert.match(markup, /Passwort vergessen/);
   assert.match(markup, /role="alert"/);
   assert.doesNotMatch(markup, /aria-live="assertive"/);
 });

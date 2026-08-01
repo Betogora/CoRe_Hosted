@@ -11,7 +11,7 @@ import {
   parseAppRouteFromUrl,
 } from "./appNavigation.ts";
 
-export type CreationMethod = "manual" | "import" | "ai" | "";
+export type CreationMethod = "manual" | "import" | "";
 
 export interface AppNavigationProjection {
   activeView: AppViewId;
@@ -34,7 +34,7 @@ interface BrowserHistoryTarget {
 const focusedDeckViewIds = new Set<AppViewId>(["lernen", "kartenstapel", "stapel-einstellungen"]);
 
 function asCreationMethod(value: string | undefined): CreationMethod {
-  return value === "manual" || value === "import" || value === "ai" ? value : "";
+  return value === "manual" || value === "import" ? value : "";
 }
 
 export function projectAppRoute(route: AppRoute): AppNavigationProjection {

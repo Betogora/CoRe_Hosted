@@ -1,16 +1,10 @@
-import { productSurfaces, type ProductSurfaceId, type ProductSurfaceRegistry } from "./productSurfaces.ts";
-
-type NavigationPlacement = "primary" | "labs" | "hidden";
+type NavigationPlacement = "primary" | "hidden";
 export type MenuViewId =
   | "uebersicht"
   | "kartenstapel"
   | "neue-karten"
   | "lernen"
   | "statistik"
-  | "assistent"
-  | "graph"
-  | "community"
-  | "ki-jobs"
   | "einstellungen";
 
 interface ViewStat {
@@ -23,7 +17,6 @@ interface MenuView {
   label: string;
   iconKey: string;
   navigation: NavigationPlacement;
-  productSurfaceId?: ProductSurfaceId;
   title: string;
   eyebrow: string;
   stats: ViewStat[];
@@ -35,7 +28,6 @@ const views: MenuView[] = [
     label: "Heute",
     iconKey: "home",
     navigation: "primary",
-    productSurfaceId: "today",
     title: "Heute lernen",
     eyebrow: "Dashboard",
     stats: [
@@ -54,7 +46,7 @@ const views: MenuView[] = [
     stats: [
       { label: "Decks", value: "0" },
       { label: "Varianten", value: "0" },
-      { label: "Geteilt", value: "0" },
+      { label: "Unterstapel", value: "0" },
     ],
   },
   {
@@ -62,13 +54,12 @@ const views: MenuView[] = [
     label: "Erstellen",
     iconKey: "plus",
     navigation: "primary",
-    productSurfaceId: "creation-manual-import",
     title: "Neue Karten",
     eyebrow: "Import und Erstellung",
     stats: [
       { label: "Anki", value: "APKG" },
       { label: "Manuell", value: "6 Typen" },
-      { label: "KI", value: "Labs" },
+      { label: "Tabelle", value: "Paste" },
     ],
   },
   {
@@ -76,7 +67,6 @@ const views: MenuView[] = [
     label: "Lernen",
     iconKey: "learn",
     navigation: "primary",
-    productSurfaceId: "learn",
     title: "Lernen",
     eyebrow: "Review",
     stats: [
@@ -90,7 +80,6 @@ const views: MenuView[] = [
     label: "Statistik",
     iconKey: "chart",
     navigation: "primary",
-    productSurfaceId: "statistics",
     title: "Statistik",
     eyebrow: "Leistung",
     stats: [
@@ -100,59 +89,10 @@ const views: MenuView[] = [
     ],
   },
   {
-    id: "assistent",
-    label: "Assistent",
-    iconKey: "assistant",
-    navigation: "labs",
-    productSurfaceId: "assistant-chat",
-    title: "Assistent",
-    eyebrow: "Chat und Lernplan",
-    stats: [],
-  },
-  {
-    id: "graph",
-    label: "Graph",
-    iconKey: "graph",
-    navigation: "labs",
-    productSurfaceId: "graph",
-    title: "Deck Graph",
-    eyebrow: "Mindmap",
-    stats: [
-      { label: "Knoten", value: "0" },
-      { label: "Kanten", value: "0" },
-      { label: "Status", value: "-" },
-    ],
-  },
-  {
-    id: "community",
-    label: "Community-Demo",
-    iconKey: "community",
-    navigation: "labs",
-    productSurfaceId: "community-demo",
-    title: "Communitys",
-    eyebrow: "Kleine Gruppen",
-    stats: [
-      { label: "Gruppen", value: "0" },
-      { label: "Geteilte Decks", value: "0" },
-      { label: "Privacy", value: "Privat" },
-    ],
-  },
-  {
-    id: "ki-jobs",
-    label: "KI-Job-Historie",
-    iconKey: "jobs",
-    navigation: "labs",
-    productSurfaceId: "ai-job-history",
-    title: "KI-Jobs",
-    eyebrow: "Orchestrierung",
-    stats: [],
-  },
-  {
     id: "einstellungen",
     label: "Einstellungen",
     iconKey: "settings",
     navigation: "hidden",
-    productSurfaceId: "settings",
     title: "Einstellungen",
     eyebrow: "Profil",
     stats: [
@@ -168,33 +108,26 @@ function navigationItem(view: MenuView) {
   return { id: view.id, label: view.label, iconKey: view.iconKey };
 }
 
-export function createMenuModel(surfaceRegistry: ProductSurfaceRegistry = productSurfaces) {
+export function createMenuModel() {
   const defaultViewId = views[0].id;
   const viewsById = new Map(views.map((view) => [view.id, view]));
-  const isAvailable = (view: MenuView) => !view.productSurfaceId || surfaceRegistry.isAvailable(view.productSurfaceId);
-
   return {
     defaultViewId,
     listNavigationItems() {
       return views
-        .filter((view) => view.navigation === "primary" && (!view.productSurfaceId || surfaceRegistry.isMainNavigationVisible(view.productSurfaceId)))
+        .filter((view) => view.navigation === "primary")
         .sort((left, right) => primaryNavigationOrder.indexOf(left.id) - primaryNavigationOrder.indexOf(right.id))
-        .map(navigationItem);
-    },
-    listLabsNavigationItems() {
-      return views
-        .filter((view) => view.navigation === "labs" && isAvailable(view))
         .map(navigationItem);
     },
     listViews() {
       return views.map((view) => ({ ...view, stats: [...view.stats] }));
     },
     listRoutableViewIds() {
-      return views.filter(isAvailable).map((view) => view.id);
+      return views.map((view) => view.id);
     },
     getView(viewId: string) {
       const view = viewsById.get(viewId as MenuViewId);
-      return view && isAvailable(view) ? view : viewsById.get(defaultViewId);
+      return view ?? viewsById.get(defaultViewId);
     },
   };
 }

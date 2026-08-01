@@ -1,5 +1,4 @@
 import { createMenuModel, type MenuViewId } from "./menuModel.ts";
-import { productSurfaces, type ProductSurfaceRegistry } from "./productSurfaces.ts";
 
 export const APP_HISTORY_STATE_KEY = "coreAppRoute";
 
@@ -24,7 +23,7 @@ export interface ViewRoute {
   focusedDeckId?: string;
   selectedCardId?: string;
   deckCreationParentId?: string;
-  creationMethod?: "manual" | "import" | "ai";
+  creationMethod?: "manual" | "import";
   creationDeckId?: string;
   completedDeckId?: string;
 }
@@ -41,7 +40,6 @@ export type AppRoute = ViewRoute | StudyRoute;
 
 interface RouteOptions {
   currentState?: unknown;
-  surfaceRegistry?: ProductSurfaceRegistry;
 }
 
 interface ViewRouteInput {
@@ -75,25 +73,22 @@ function cleanIdentifier(value: unknown): string {
   return String(value ?? "").trim();
 }
 
-function normalizeViewId(value: unknown, surfaceRegistry: ProductSurfaceRegistry): AppViewId {
+function normalizeViewId(value: unknown): AppViewId {
   const routableViewIds = new Set<AppViewId>([
-    ...createMenuModel(surfaceRegistry).listRoutableViewIds(),
+    ...createMenuModel().listRoutableViewIds(),
     ...extraRoutableViewIds,
   ]);
   const rawViewId = String(value ?? defaultViewId) as AppViewId;
   return routableViewIds.has(rawViewId) ? rawViewId : defaultViewId;
 }
 
-function normalizeViewRoute(
-  route: ViewRouteInput = {},
-  surfaceRegistry: ProductSurfaceRegistry = productSurfaces,
-): ViewRoute {
-  const viewId = normalizeViewId(route.viewId, surfaceRegistry);
+function normalizeViewRoute(route: ViewRouteInput = {}): ViewRoute {
+  const viewId = normalizeViewId(route.viewId);
   const focusedDeckId = cleanIdentifier(route.focusedDeckId);
   const selectedCardId = cleanIdentifier(route.selectedCardId);
   const deckCreationParentId = cleanIdentifier(route.deckCreationParentId);
-  const creationMethod = ["manual", "import", "ai"].includes(String(route.creationMethod))
-    ? route.creationMethod as "manual" | "import" | "ai"
+  const creationMethod = ["manual", "import"].includes(String(route.creationMethod))
+    ? route.creationMethod as "manual" | "import"
     : "";
   const creationDeckId = cleanIdentifier(route.creationDeckId);
   const completedDeckId = cleanIdentifier(route.completedDeckId);
@@ -167,7 +162,7 @@ export function createViewRoute(
   fields: Omit<ViewRouteInput, "viewId"> = {},
   options: RouteOptions = {},
 ): ViewRoute {
-  return normalizeViewRoute({ ...fields, mode: "view", viewId }, options.surfaceRegistry);
+  return normalizeViewRoute({ ...fields, mode: "view", viewId });
 }
 
 export function normalizeAppRoute(route: unknown = {}, options: RouteOptions = {}): AppRoute {
@@ -175,7 +170,7 @@ export function normalizeAppRoute(route: unknown = {}, options: RouteOptions = {
   if (routeInput?.mode === "study") {
     const studyRoute = routeInput as StudyRouteInput;
     const deckId = cleanIdentifier(studyRoute.deckId);
-    if (!deckId) return normalizeViewRoute({ viewId: studyFallbackViewId }, options.surfaceRegistry);
+    if (!deckId) return normalizeViewRoute({ viewId: studyFallbackViewId });
     const legacyReturnContext = studyRoute.returnRoute
       ? legacyViewRouteToReturnContext(studyRoute.returnRoute, deckId)
       : undefined;
@@ -189,7 +184,7 @@ export function normalizeAppRoute(route: unknown = {}, options: RouteOptions = {
       returnContext,
     };
   }
-  return normalizeViewRoute(routeInput ?? {}, options.surfaceRegistry);
+  return normalizeViewRoute(routeInput ?? {});
 }
 
 export function createStudyRoute(

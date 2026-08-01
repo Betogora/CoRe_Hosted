@@ -26,8 +26,6 @@ export default defineConfig({
       url: "http://127.0.0.1:5190/",
       env: {
         ...process.env,
-        VITE_ENABLE_LABS: betaCoreGate ? "false" : "true",
-        VITE_ENABLE_SERVER_APKG_IMPORT: process.env.CORE_TEST_SERVER_APKG_TERMINALS === "true" ? "true" : "",
         VITE_ENABLE_GOOGLE_AUTH: betaCoreGate ? "" : "true",
         VITE_ENABLE_MAGIC_LINK: betaCoreGate ? "" : "true",
       },

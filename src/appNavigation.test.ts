@@ -11,7 +11,6 @@ import {
   readAppRouteFromHistoryState,
   reviewReturnContextToViewRoute,
 } from "./appNavigation.ts";
-import { createProductSurfaceRegistry } from "./productSurfaces.ts";
 
 test("parses the default route from the root path", () => {
   assert.deepEqual(parseAppRouteFromUrl("/"), { mode: "view", viewId: "uebersicht" });
@@ -55,12 +54,11 @@ test("falls back to today for unknown paths and ignores unsupported query values
   assert.deepEqual(parseAppRouteFromUrl("/neue-karten?method=provider&card=ignored"), { mode: "view", viewId: "neue-karten" });
 });
 
-test("accepts labs routes only with an enabled product-surface registry", () => {
-  const labsRegistry = createProductSurfaceRegistry({ VITE_ENABLE_LABS: "true" });
-
+test("retired labs routes always fall back to today", () => {
   assert.deepEqual(parseAppRouteFromUrl("/graph"), { mode: "view", viewId: "uebersicht" });
-  assert.deepEqual(parseAppRouteFromUrl("/graph", { surfaceRegistry: labsRegistry }), { mode: "view", viewId: "graph" });
-  assert.equal(appRouteToUrl(createViewRoute("community", {}, { surfaceRegistry: labsRegistry }), { surfaceRegistry: labsRegistry }), "/community");
+  assert.deepEqual(parseAppRouteFromUrl("/community"), { mode: "view", viewId: "uebersicht" });
+  assert.deepEqual(parseAppRouteFromUrl("/assistent"), { mode: "view", viewId: "uebersicht" });
+  assert.deepEqual(parseAppRouteFromUrl("/ki-jobs"), { mode: "view", viewId: "uebersicht" });
 });
 
 test("roundtrips review deck, variant and allowlisted return context through the URL", () => {
@@ -128,11 +126,10 @@ test("keeps an unknown review deck id so the product can render a not-found fall
 });
 
 test("stores and reads app routes from browser history state without losing external state", () => {
-  const labsRegistry = createProductSurfaceRegistry({ DEV: true });
-  const route = createViewRoute("assistent", {}, { surfaceRegistry: labsRegistry });
-  const state = createAppHistoryState(route, { currentState: { external: "kept" }, surfaceRegistry: labsRegistry });
+  const route = createViewRoute("lernen", { focusedDeckId: "deck_a" });
+  const state = createAppHistoryState(route, { currentState: { external: "kept" } });
 
   assert.equal(state.external, "kept");
-  assert.deepEqual(readAppRouteFromHistoryState(state, { surfaceRegistry: labsRegistry }), route);
-  assert.equal(areAppRoutesEqual(state.coreAppRoute, route, { surfaceRegistry: labsRegistry }), true);
+  assert.deepEqual(readAppRouteFromHistoryState(state), route);
+  assert.equal(areAppRoutesEqual(state.coreAppRoute, route), true);
 });

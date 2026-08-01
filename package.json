@@ -25,15 +25,12 @@
     "db:types:generate": "tsx scripts/databaseTypes.ts --write",
     "db:types:check": "tsx scripts/databaseTypes.ts --check",
     "build": "vite build",
-    "benchmark:apkg": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/m3-large-media.apkg && tsx scripts/benchmarkServerApkg.ts && tsx scripts/benchmarkApkgImport.ts",
+    "benchmark:apkg": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/core-local-benchmark.apkg && tsx scripts/benchmarkApkgImport.ts test-results/apkg/core-local-benchmark.apkg",
     "postbuild": "tsx scripts/verifyBuildChunks.ts",
     "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.1",
-    "@trigger.dev/sdk": "4.5.4",
-    "@upstash/ratelimit": "2.0.8",
-    "@upstash/redis": "1.38.0",
     "@vitejs/plugin-react": "^5.0.0",
     "fzstd": "^0.1.1",
     "lucide-react": "^0.468.0",
