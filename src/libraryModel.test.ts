@@ -287,11 +287,11 @@ test("study heatmap window fits whole weeks to viewport width and navigates by a
     weeks: 53,
   });
 
-  assert.equal(getStudyHeatmapVisibleWeekCount(320, heatmap.weekCount), 22);
+  assert.equal(getStudyHeatmapVisibleWeekCount(320, heatmap.weekCount), 12);
 
   const latestWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 320 });
-  assert.equal(latestWindow.weeks.length, 22);
-  assert.equal(latestWindow.days.length, 154);
+  assert.equal(latestWindow.weeks.length, 12);
+  assert.equal(latestWindow.days.length, 84);
   assert.equal(latestWindow.endWeekIndex, heatmap.weekCount);
   assert.equal(latestWindow.canShowPrevious, true);
   assert.equal(latestWindow.canShowNext, false);
@@ -307,8 +307,8 @@ test("study heatmap window fits whole weeks to viewport width and navigates by a
     endWeekIndex: latestWindow.previousEndWeekIndex,
   });
 
-  assert.equal(previousWindow.weeks.length, 22);
-  assert.equal(previousWindow.days.length, 154);
+  assert.equal(previousWindow.weeks.length, 12);
+  assert.equal(previousWindow.days.length, 84);
   assert.equal(previousWindow.endWeekIndex, latestWindow.endWeekIndex - 4);
   assert.equal(previousWindow.canShowNext, true);
   assert.equal(previousWindow.weeks.every((week) => week.length === 7), true);
@@ -319,20 +319,40 @@ test("study heatmap calendar year shows the whole year when possible and anchors
     now: "2026-07-07T12:00:00.000Z",
   });
 
-  assert.equal(getStudyHeatmapVisibleWeekCount(900, heatmap.weekCount), heatmap.weekCount);
+  assert.equal(getStudyHeatmapVisibleWeekCount(320, heatmap.weekCount), 12);
+  assert.equal(getStudyHeatmapVisibleWeekCount(900, heatmap.weekCount), 37);
+  assert.equal(getStudyHeatmapVisibleWeekCount(1_255, heatmap.weekCount), heatmap.weekCount);
 
-  const fullYearWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 900 });
+  const fullYearWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 1_255 });
   assert.equal(fullYearWindow.weeks.length, heatmap.weekCount);
   assert.equal(fullYearWindow.canShowPrevious, false);
   assert.equal(fullYearWindow.canShowNext, false);
 
   const narrowWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 320 });
-  assert.equal(narrowWindow.weeks.length, 22);
+  assert.equal(narrowWindow.weeks.length, 12);
   assert.equal(narrowWindow.endWeekIndex, heatmap.defaultEndWeekIndex);
   assert.equal(narrowWindow.canShowPrevious, true);
   assert.equal(narrowWindow.canShowNext, true);
   assert.equal(narrowWindow.days.some((day) => day.key === "2026-07-07"), true);
   assert.equal(narrowWindow.days.some((day) => day.key === "2026-12-31"), false);
+});
+
+test("study heatmap hides month labels that cannot fit completely at window edges", () => {
+  const heatmap = createStudyHeatmapModel([], {
+    now: "2026-07-07T12:00:00.000Z",
+  });
+
+  const lateFebruaryWindow = createStudyHeatmapWindow(heatmap, {
+    viewportWidth: 128,
+    endWeekIndex: 11,
+  });
+  assert.deepEqual(lateFebruaryWindow.monthLabels, ["", "Mär", "", ""]);
+
+  const earlyAugustWindow = createStudyHeatmapWindow(heatmap, {
+    viewportWidth: 128,
+    endWeekIndex: 31,
+  });
+  assert.deepEqual(earlyAugustWindow.monthLabels, ["Jul", "", "", ""]);
 });
 
 test("performance statistics summarize ratings, trends and weak decks", () => {

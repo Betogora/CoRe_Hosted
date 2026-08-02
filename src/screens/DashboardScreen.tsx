@@ -30,15 +30,6 @@ function heatmapDayLabel(day: { key: { split: (arg0: string) => [any,any,any]; }
   return `${date}: ${formatCardCount(day.count)} gelernt`;
 }
 
-function HeatmapMetric({ label, value }: any) {
-  return (
-    <div className="min-w-24">
-      <p className="core-body font-semibold text-[var(--core-text-muted)]">{label}</p>
-      <p className="mt-1 core-heading-2 font-semibold text-[var(--core-text)]">{value}</p>
-    </div>
-  );
-}
-
 function HeatmapLegend() {
   return (
     <div className="flex items-center gap-2 core-body text-[var(--core-text-muted)]">
@@ -82,7 +73,7 @@ function StudyHeatmap({ heatmap }: any) {
     () => createStudyHeatmapWindow(heatmap, { viewportWidth: heatmapViewportWidth, endWeekIndex: heatmapEndWeekIndex }),
     [heatmap, heatmapEndWeekIndex, heatmapViewportWidth],
   );
-  const gridColumns = `2.25rem repeat(${visibleHeatmap.weeks.length}, minmax(0, 1fr))`;
+  const gridColumns = `2.25rem repeat(${visibleHeatmap.weeks.length}, 19px)`;
   const goToPreviousHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.previousEndWeekIndex);
   const goToNextHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.nextEndWeekIndex);
   const handleHeatmapKeyDown = (event: { key: string; preventDefault: () => void; }) => {
@@ -98,15 +89,17 @@ function StudyHeatmap({ heatmap }: any) {
 
   return (
     <SoftPanel className="p-7">
-      <div className="flex flex-wrap items-start gap-x-10 gap-y-4">
-        <div className="flex gap-4">
+      <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:gap-x-8" data-testid="study-heatmap-header">
+        <div className="flex items-center gap-4">
           <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
-          <div>
-            <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Lern-Heatmap</h3>
-          </div>
+          <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Lern-Heatmap</h3>
         </div>
-        <HeatmapMetric label="Aktive Tage" value={visibleHeatmap.activeDays} />
-        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-3">
+        <div className="justify-self-start lg:justify-self-center">
+          <p className="core-body whitespace-nowrap text-[var(--core-text-muted)]">
+            Aktive Tage <span className="font-semibold text-[var(--core-text)]">{visibleHeatmap.activeDays}</span>
+          </p>
+        </div>
+        <div className="flex min-w-0 flex-nowrap items-center justify-self-center gap-4 lg:justify-self-end">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -135,7 +128,7 @@ function StudyHeatmap({ heatmap }: any) {
 
       <div
         ref={heatmapViewportRef}
-        className="mt-4 min-w-0 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus"
+        className="mt-3 min-w-0 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus"
         tabIndex={0}
         onKeyDown={handleHeatmapKeyDown}
         role="group"
@@ -144,14 +137,19 @@ function StudyHeatmap({ heatmap }: any) {
       >
         <p id="study-heatmap-keyboard-help" className="sr-only">Mit der linken und rechten Pfeiltaste zwischen Zeiträumen wechseln.</p>
         <div
-          className="grid w-full max-w-full gap-1"
+          className="grid w-max max-w-full gap-1"
           style={{ gridTemplateColumns: gridColumns }}
           role="img"
+          data-testid="study-heatmap-grid"
           aria-label={`Lern-Heatmap von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}, ${visibleHeatmap.activeDays} aktive Tage`}
         >
           <span aria-hidden="true" />
           {visibleHeatmap.monthLabels.map((label: string, index: number) => (
-            <span key={`${label}-${index}`} className="h-5 whitespace-nowrap text-left text-[0.68rem] font-semibold text-[var(--core-text-muted)]">
+            <span
+              key={`${label}-${index}`}
+              className="h-5 whitespace-nowrap text-left text-[0.68rem] font-semibold text-[var(--core-text-muted)]"
+              data-month-label={label || undefined}
+            >
               {label}
             </span>
           ))}
@@ -159,14 +157,15 @@ function StudyHeatmap({ heatmap }: any) {
           {visibleHeatmap.weekdayLabels.map((label: string, dayIndex: number) => (
             <React.Fragment key={label}>
               <span className="flex min-h-4 items-center text-[0.68rem] font-semibold text-[var(--core-text-muted)]">{label}</span>
-              {visibleHeatmap.weeks.map((week: any[], weekIndex: number) => {
+              {visibleHeatmap.weeks.map((week: any[]) => {
                 const day = week[dayIndex];
+                const dayLabel = heatmapDayLabel(day);
                 return (
                   <span
-                    key={`${weekIndex}-${day.key}`}
-                    className={`block aspect-square w-full rounded-[4px] border transition-transform hover:scale-110 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-core-focus ring-offset-1" : ""} ${day.isFuture ? "opacity-35" : ""} ${day.isOutsideDisplayYear ? "opacity-20" : ""}`}
-                    title={heatmapDayLabel(day)}
-                    aria-label={heatmapDayLabel(day)}
+                    key={day.key}
+                    className={`block size-[19px] rounded-[4px] border transition-transform hover:scale-110 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-inset ring-core-focus" : ""} ${day.isFuture ? "opacity-35" : ""} ${day.isOutsideDisplayYear ? "opacity-20" : ""}`}
+                    title={dayLabel}
+                    aria-label={dayLabel}
                   />
                 );
               })}

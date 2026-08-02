@@ -70,9 +70,10 @@ interface HeatmapInput {
 const DEFAULT_HEATMAP_WEEK_COUNT = 53;
 const MIN_HEATMAP_WINDOW_WEEKS = 4;
 const HEATMAP_WEEKDAY_LABEL_WIDTH = 36;
-const HEATMAP_MIN_CELL_SIZE = 9;
+const HEATMAP_CELL_SIZE = 19;
 const HEATMAP_COLUMN_GAP = 4;
 const HEATMAP_NAVIGATION_STEP_WEEKS = 4;
+const HEATMAP_MONTH_LABELS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const PERFORMANCE_RECENT_DAY_COUNT = 14;
 const REVIEW_RATING_KEYS = ["again", "hard", "good", "easy"] as const satisfies readonly ReviewRating[];
 const REVIEW_RATING_LABELS: Record<ReviewRating, string> = {
@@ -171,14 +172,10 @@ function formatShortDayMonth(value: DateInput): string {
   return `${day}.${month}.`;
 }
 
-function monthShortLabel(value: DateInput): string {
-  return ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"][new Date(value).getMonth()];
-}
-
-function heatmapMonthLabel(value: DateInput, options: { includeYear?: boolean } = {}): string {
-  const date = new Date(value ?? 0);
-  const monthLabel = monthShortLabel(value);
-  return options.includeYear ? `${monthLabel} ${date.getFullYear()}` : monthLabel;
+function heatmapMonthLabel(day: HeatmapDay, includeYear = false): string {
+  const key = day.key ?? "";
+  const monthLabel = HEATMAP_MONTH_LABELS[Number(key.slice(5, 7)) - 1];
+  return includeYear ? `${monthLabel} ${key.slice(0, 4)}` : monthLabel;
 }
 
 function hasVisiblePreviousYearDay(day: HeatmapDay, weeks: HeatmapDay[][]): boolean {
@@ -187,19 +184,27 @@ function hasVisiblePreviousYearDay(day: HeatmapDay, weeks: HeatmapDay[][]): bool
 }
 
 function createHeatmapMonthLabels(weeks: HeatmapDay[][]): string[] {
-  return weeks.map((week, weekIndex) => {
-    const monthStart = week.find((day) => !day.isOutsideDisplayYear && new Date(day.date).getDate() === 1);
+  const labels = weeks.map((week, weekIndex) => {
+    const monthStart = week.find((day) => !day.isOutsideDisplayYear && day.dayOfMonth === 1);
     if (monthStart) {
-      const isJanuary = new Date(monthStart.date).getMonth() === 0;
+      const isJanuary = monthStart.key?.slice(5, 7) === "01";
       const isVisibleYearChange = isJanuary && (weekIndex === 0 || hasVisiblePreviousYearDay(monthStart, weeks));
-      return heatmapMonthLabel(monthStart.date, { includeYear: isVisibleYearChange });
+      return heatmapMonthLabel(monthStart, isVisibleYearChange);
     }
     if (weekIndex === 0) {
       const firstDisplayDay = week.find((day) => !day.isOutsideDisplayYear) ?? week[0];
-      return monthShortLabel(firstDisplayDay.date);
+      return heatmapMonthLabel(firstDisplayDay);
     }
     return "";
   });
+
+  for (let weekIndex = labels.length - 1, nextLabelWeekIndex = labels.length; weekIndex >= 0; weekIndex -= 1) {
+    const label = labels[weekIndex];
+    if (!label) continue;
+    if (nextLabelWeekIndex - weekIndex < (label.includes(" ") ? 3 : 2)) labels[weekIndex] = "";
+    nextLabelWeekIndex = weekIndex;
+  }
+  return labels;
 }
 
 function isHeatmapCountableDay(day: HeatmapDay): boolean {
@@ -485,7 +490,7 @@ export function getStudyHeatmapVisibleWeekCount(viewportWidth: unknown, totalWee
   if (!Number.isFinite(measuredWidth) || measuredWidth <= 0) return normalizedTotalWeeks;
 
   const usableWidth = Math.max(0, measuredWidth - HEATMAP_WEEKDAY_LABEL_WIDTH);
-  const weeksThatFit = Math.floor((usableWidth + HEATMAP_COLUMN_GAP) / (HEATMAP_MIN_CELL_SIZE + HEATMAP_COLUMN_GAP));
+  const weeksThatFit = Math.floor(usableWidth / (HEATMAP_CELL_SIZE + HEATMAP_COLUMN_GAP));
 
   return clampNumber(weeksThatFit, MIN_HEATMAP_WINDOW_WEEKS, normalizedTotalWeeks);
 }

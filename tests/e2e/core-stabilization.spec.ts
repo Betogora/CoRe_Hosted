@@ -83,6 +83,66 @@ test("dashboard deck rows start learning across their full surface and keep the 
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });
 
+test("dashboard heatmap keeps fixed cells and unclipped labels across responsive widths", async ({ page }: any) => {
+  await resetToFreshLocalState(page);
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 768, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const grid = page.getByTestId("study-heatmap-grid");
+    await expect(grid).toBeVisible();
+    await expect.poll(() => grid.locator("span[aria-label]").count()).toBeGreaterThan(0);
+
+    const layout = await grid.evaluate((element: HTMLElement) => {
+      const viewportElement = element.parentElement as HTMLElement;
+      const viewportRect = viewportElement.getBoundingClientRect();
+      const dayCells = [...element.querySelectorAll<HTMLElement>("span[aria-label]")];
+      const monthLabels = [...element.querySelectorAll<HTMLElement>("[data-month-label]")];
+      const firstDayStyle = window.getComputedStyle(dayCells[0]);
+      const firstDayRect = dayCells[0].getBoundingClientRect();
+      const todayStyle = window.getComputedStyle(element.querySelector<HTMLElement>(".ring-inset")!);
+      const header = document.querySelector<HTMLElement>("[data-testid='study-heatmap-header']")!;
+      const [title, metricContainer, controls] = [...header.children] as HTMLElement[];
+      const metric = metricContainer.querySelector<HTMLElement>("p")!;
+      const metricStyle = window.getComputedStyle(metric);
+      const metricRect = metric.getBoundingClientRect();
+      const labelBounds = monthLabels.map((label) => {
+        const rect = label.getBoundingClientRect();
+        return { left: rect.left, right: rect.left + label.scrollWidth };
+      });
+
+      return {
+        cellWidth: firstDayRect.width,
+        cellHeight: firstDayRect.height,
+        cellRadius: firstDayStyle.borderRadius,
+        todayShadow: todayStyle.boxShadow,
+        metricFontSize: metricStyle.fontSize,
+        metricIsSingleLine: metricRect.height <= Number.parseFloat(metricStyle.lineHeight) + 1,
+        headerAlignment: window.innerWidth >= 1024
+          ? Math.abs((metricRect.left + metricRect.width / 2) - (title.getBoundingClientRect().right + controls.getBoundingClientRect().left) / 2)
+          : Math.abs(metricRect.left - header.getBoundingClientRect().left),
+        labelsFitViewport: labelBounds.every(({ left, right }, index) =>
+          right <= viewportRect.right + 1
+          && (index === labelBounds.length - 1 || right <= labelBounds[index + 1].left)),
+        pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
+      };
+    });
+
+    expect(layout.cellWidth).toBe(19);
+    expect(layout.cellHeight).toBe(19);
+    expect(layout.cellRadius).toBe("4px");
+    expect(layout.todayShadow).toContain("inset");
+    expect(layout.metricFontSize).toBe("14px");
+    expect(layout.metricIsSingleLine).toBe(true);
+    expect(layout.headerAlignment).toBeLessThanOrEqual(1);
+    expect(layout.labelsFitViewport).toBe(true);
+    expect(layout.pageFitsViewport).toBe(true);
+  }
+});
+
 test("browser back returns from deck management to learning without reload", async ({ page }: any) => {
   const { authStorageKey } = await resetToFreshLocalState(page);
   expect(authStorageKey).toMatch(/^sb-.+-auth-token$/);

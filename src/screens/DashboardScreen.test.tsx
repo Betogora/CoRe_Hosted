@@ -53,4 +53,8 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /Lernen öffnen/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);
   assert.doesNotMatch(markup, />Lernen <svg/);
+  assert.match(markup, />Aktive Tage <span[^>]*>0<\/span>/);
+  assert.match(markup, /grid-template-columns:2\.25rem repeat\(53, 19px\)/);
+  assert.match(markup, /size-\[19px\] rounded-\[4px\]/);
+  assert.match(markup, /ring-2 ring-inset ring-core-focus/);
 });
