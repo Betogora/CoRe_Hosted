@@ -23,11 +23,12 @@ test("action dialog exposes an accessible modal contract and explicit actions", 
   assert.match(markup, /Weiter bearbeiten/);
 });
 
-test("theme toggle exposes its visible state as an accessible switch", () => {
+test("theme toggle exposes its icon state as an accessible switch", () => {
   const markup = renderToStaticMarkup(<ThemeToggle />);
 
   assert.match(markup, /role="switch"/);
   assert.match(markup, /aria-checked="false"/);
   assert.match(markup, /Dark Mode einschalten/);
-  assert.match(markup, />Aus</);
+  assert.match(markup, /lucide-sun/);
+  assert.doesNotMatch(markup, />Aus</);
 });
