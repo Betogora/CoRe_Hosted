@@ -429,42 +429,6 @@ function matchesDeckRow(row: DeckRow, query: string, coreMode: CoreMode | "all")
   return matchesQuery && matchesMode;
 }
 
-function summarizeDecks(decks: Deck[], now: DateInput) {
-  const summaries = decks.map((deck) => summarizeDeckReview(deck, now));
-  const totals = summaries.reduce(
-    (accumulator, row) => {
-      const summary = row;
-      accumulator.totalCards += summary.totalCards;
-      accumulator.dueCards += summary.dueCards;
-      accumulator.newCards += summary.newCards;
-      accumulator.matureCards += summary.matureCards;
-      accumulator.activeVariants += summary.activeVariants;
-      accumulator.weightedMaturityXp += summary.averageMaturityXp * summary.totalCards;
-      return accumulator;
-    },
-    {
-      deckCount: decks.length,
-      totalCards: 0,
-      dueCards: 0,
-      newCards: 0,
-      matureCards: 0,
-      activeVariants: 0,
-      weightedMaturityXp: 0,
-    },
-  );
-
-  return {
-    deckCount: totals.deckCount,
-    totalCards: totals.totalCards,
-    dueCards: totals.dueCards,
-    newCards: totals.newCards,
-    matureCards: totals.matureCards,
-    activeVariants: totals.activeVariants,
-    averageMaturityXp: totals.totalCards ? Math.round(totals.weightedMaturityXp / totals.totalCards) : 0,
-    completionPercent: totals.totalCards ? Math.round((totals.matureCards / totals.totalCards) * 100) : 0,
-  };
-}
-
 function buildChildrenByParent(decks: Deck[]): Map<string | null, Deck[]> {
   const deckIds = new Set(decks.map((deck) => deck.id));
   const childrenByParent = new Map<string | null, Deck[]>();
@@ -666,7 +630,7 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
     filteredRows,
     selectedRow,
     dashboardRows: rows.filter((row) => row.depth === 0).slice(0, 4),
-    totals: summarizeDecks(decks, now),
+    dueCards: rows.reduce((total, row) => total + row.directSummary.dueCards, 0),
     studyHeatmap: createStudyHeatmapModel(decks, { now }),
   };
 }

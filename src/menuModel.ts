@@ -32,7 +32,6 @@ const views: MenuView[] = [
     eyebrow: "Dashboard",
     stats: [
       { label: "Fällig", value: "0" },
-      { label: "Originalkarten", value: "0" },
       { label: "CoRe-ready", value: "0" },
     ],
   },

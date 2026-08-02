@@ -83,12 +83,7 @@ test("library model hides reviewable-card filtering and deck selection fallback"
     now: "2026-07-01T08:00:00.000Z",
   });
 
-  assert.equal(library.totals.deckCount, 1);
-  assert.equal(library.totals.totalCards, 1);
-  assert.equal(library.totals.dueCards, 1);
-  assert.equal(library.totals.matureCards, 1);
-  assert.equal(library.totals.activeVariants, 1);
-  assert.equal(library.totals.completionPercent, 100);
+  assert.equal(library.dueCards, 1);
   assert.equal(library.filteredRows.length, 1);
   assert.equal(library.selectedRow.id, deck.id);
   assert.equal(library.selectedRow.path, "Medizin / Neuro / Myelin");
@@ -140,7 +135,7 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
   assert.equal(parentRow.summary.newCards, 1);
   assert.ok(childRow);
   assert.equal(childRow.summary.totalCards, 1);
-  assert.equal(library.totals.totalCards, 1);
+  assert.equal(library.dueCards, 1);
   assert.deepEqual(library.dashboardRows.map((row) => row.id), [parent.id]);
   assert.equal(library.dashboardRows[0].summary.totalCards, 1);
 });

@@ -65,7 +65,6 @@ test("keeps stats as label and value pairs", () => {
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.deepStrictEqual(menu.getView("uebersicht").stats, [
     { label: "Fällig", value: "0" },
-    { label: "Originalkarten", value: "0" },
     { label: "CoRe-ready", value: "0" },
   ]);
 });
@@ -76,5 +75,5 @@ test("lists all view metadata without exposing internal array references", () =>
 
   views[0].stats.push({ label: "Mutation", value: "bad" });
 
-  assert.equal(menu.listViews()[0].stats.length, 3);
+  assert.equal(menu.listViews()[0].stats.length, 2);
 });

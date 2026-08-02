@@ -110,7 +110,7 @@ test("text, CSV and spreadsheet import create Core decks", () => {
   assert.equal(spreadsheetDeck.cards[0].meta.importFormat, "spreadsheet");
 });
 
-test("deck library model centralizes totals and filtering", () => {
+test("deck library model centralizes filtering", () => {
   const deck = createCoreDeck({
     name: "Neuro Deck",
     source: "manual",
@@ -137,7 +137,6 @@ test("deck library model centralizes totals and filtering", () => {
     now: "2026-07-01T08:00:00.000Z",
   });
   assert.equal(library.filteredRows.length, 1);
-  assert.equal(library.totals.totalCards, 1);
   assert.equal(library.selectedRow.cardRows.length, 1);
   assert.match(library.selectedRow.cardRows[0].frontPreview, /Myelinscheide/);
 });

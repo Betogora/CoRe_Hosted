@@ -1,5 +1,5 @@
 import React from "react";
-import { Activity, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileArchive, Layers, PenLine, Sparkles } from "lucide-react";
+import { Activity, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileArchive, PenLine, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.ts";
 import { DonutValue, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
@@ -180,7 +180,7 @@ function StudyHeatmap({ heatmap }: any) {
 
 export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }: any) {
   const library = createDeckLibraryModel(state.decks);
-  const { totals, studyHeatmap } = library;
+  const { dueCards, studyHeatmap } = library;
   const dashboardRows = library.dashboardRows;
 
   if (state.decks.length === 0) {
@@ -236,10 +236,7 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }
         title="Willkommen bei CoRe"
       />
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <StatTile icon={CalendarDays} label="Heute fällig" value={totals.dueCards} />
-        <StatTile icon={Layers} label="Originalkarten" value={totals.totalCards} accent="text-core-text" />
-      </div>
+      <StatTile icon={CalendarDays} label="Heute fällig" value={dueCards} />
 
       <StudyHeatmap heatmap={studyHeatmap} />
 
