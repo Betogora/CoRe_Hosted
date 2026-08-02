@@ -243,27 +243,34 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }
       <SoftPanel className="p-7">
         <div className="mb-6 flex items-center justify-between gap-4">
           <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3>
-          <button type="button" onClick={() => onNavigate("lernen")} className="core-body font-semibold text-[var(--core-action-primary)]">
-            Lernen öffnen
+          <button
+            type="button"
+            onClick={() => onNavigate("lernen")}
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2"
+          >
+            Lernen öffnen <ChevronRight size={15} aria-hidden="true" />
           </button>
         </div>
         <div className="grid gap-3">
           {dashboardRows.map((row: any) => {
             const summary = row.summary;
             return (
-              <div key={row.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--core-border)] bg-core-surface px-5 py-4">
+              <button
+                key={row.id}
+                type="button"
+                aria-label={`${row.name} lernen`}
+                onClick={() => onStartDeck(row.deck)}
+                className="flex cursor-pointer flex-wrap items-center gap-4 rounded-2xl border border-[var(--core-border)] bg-core-surface px-5 py-4 text-left transition hover:border-[var(--core-border-interactive)] hover:bg-[var(--core-surface-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2"
+              >
                 <DeckAppearanceIcon deck={row.deck} className="size-10 rounded-full bg-[var(--core-surface-muted)]" iconSize={19} />
-                <div className="min-w-[12rem] flex-1">
-                  <p className="truncate core-body-large font-semibold text-[var(--core-text)]">{row.name}</p>
-                  <p className="core-body text-[var(--core-text-muted)]">
+                <span className="min-w-[12rem] flex-1">
+                  <span className="block truncate core-body-large font-semibold text-[var(--core-text)]">{row.name}</span>
+                  <span className="block core-body text-[var(--core-text-muted)]">
                     {summary.totalCards} Karten · {summary.dueCards} fällig
-                  </p>
-                </div>
+                  </span>
+                </span>
                 <DonutValue value={row.progress} />
-                <button type="button" onClick={() => onStartDeck(row.deck)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
-                  Lernen <ChevronRight size={15} aria-hidden="true" />
-                </button>
-              </div>
+              </button>
             );
           })}
         </div>

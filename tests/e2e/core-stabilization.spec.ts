@@ -64,6 +64,25 @@ async function findOriginLeakBeforeReveal(page: Page) {
   });
 }
 
+test("dashboard deck rows start learning across their full surface and keep the learning overview separate", async ({ page }: any) => {
+  await resetToFreshLocalState(page);
+
+  const openLearn = page.getByRole("button", { name: "Lernen öffnen", exact: true });
+  await expect(openLearn).toHaveAccessibleName("Lernen öffnen");
+  await openLearn.click();
+  await expect(page).toHaveURL(/\/lernen$/);
+  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
+
+  await page.goBack();
+  const deckRow = page.getByRole("button", { name: "Welt-Hauptstädte lernen", exact: true });
+  await deckRow.click({ position: { x: 20, y: 20 } });
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+
+  await page.goBack();
+  await deckRow.press("Enter");
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+});
+
 test("browser back returns from deck management to learning without reload", async ({ page }: any) => {
   const { authStorageKey } = await resetToFreshLocalState(page);
   expect(authStorageKey).toMatch(/^sb-.+-auth-token$/);

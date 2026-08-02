@@ -159,13 +159,13 @@ export function MiniProgress({ value = 0 }: { value?: number }) {
 
 export function DonutValue({ value }: { value: number }) {
   return (
-    <div
+    <span
       className="grid size-10 place-items-center rounded-full"
       style={{ background: `conic-gradient(var(--core-action-primary) ${value * 3.6}deg, var(--core-surface-muted) 0deg)` }}
       aria-label={`${value} Prozent`}
     >
       <span className="block size-7 rounded-full bg-core-surface" />
-    </div>
+    </span>
   );
 }
 
