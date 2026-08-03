@@ -86,20 +86,12 @@ Dashboard, Lernen, Review und Summary verwenden dieselbe heutige Queue.
 
 ### Sessionmodell
 
-- [ ] Initiale Queue mit stabilem Ziel eindeutiger Karten erstellen.
-- [ ] Bewertete eindeutige Karten separat verfolgen.
-- [ ] `Again` in eine Repeat Queue aufnehmen.
 - [ ] Repeat-Due-Zeit berücksichtigen.
-- [ ] Wiederholung nach anderen Karten oder nach Wartezeit zeigen.
-- [ ] Session nicht endgültig abschließen, solange Repeat pending ist.
-- [ ] Bewusste Aktion `Session trotzdem beenden` anbieten.
-- [ ] Wiederholungen separat von eindeutigen Karten zählen.
 - [ ] Limitänderung erweitert eine Session nur nach expliziter Nutzeraktion.
 
 ### Summary und Empty States
 
 - [ ] Eindeutige Karten anzeigen.
-- [ ] Wiederholungen anzeigen.
 - [ ] Ratingverteilung anzeigen.
 - [ ] Verbleibende heutige Karten anzeigen.
 - [ ] Leere Queue bietet:
@@ -109,12 +101,10 @@ Dashboard, Lernen, Review und Summary verwenden dieselbe heutige Queue.
 
 ### Akzeptanzgates
 
-- [ ] Letzte Karte mit `Again` beendet die Session nicht sofort.
 - [ ] Dashboard, Lernen und Review zeigen dieselben Heute-Zahlen.
 - [ ] Neu/Fällig überschneiden sich nicht.
 - [ ] Intervallvorschau entspricht weiterhin dem angewandten Schedulerzustand.
 - [ ] Reviewevent wird genau einmal gespeichert.
-- [ ] Keine Änderung der Schedulerparameter.
 
 ### Tests
 

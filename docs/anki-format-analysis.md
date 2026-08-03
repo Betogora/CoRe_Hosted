@@ -142,7 +142,7 @@ CoRe hat die entscheidende Richtung bereits eingeschlagen:
 - `src/mediaStore.ts` kapselt accountgebundenen lokalen Cache, persistente Upload-Queue und Cloud-/Fallback-Auflösung; React konsumiert ausschließlich aufgelöste Medien-URLs und Status.
 - `src/htmlSafety.ts` und `src/richText.ts` kapseln HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung fuer Karteninhalt, Importvorschau und Review.
 - `src/reviewService.ts` schreibt Review-Events und aktualisiert Learning-Item- und Varianten-State.
-- `src/scheduler.ts` hält FSRS-like State mit Stability, Difficulty, Desired Retention, Retrievability, Variant-Kontext und Intervallvorschau fuer die vier Review-Buttons.
+- `src/scheduler.ts` kapselt FSRS-6 mit Stability, Difficulty, Desired Retention, Retrievability, Variant-Kontext und Intervallvorschau für die vier Review-Buttons.
 - `supabase/core_schema_v1.sql` trennt `decks`, `cards`, `card_variants`, `review_events` und `source_documents`; Labs-Jobtabellen sind entfernt.
 
 Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzepte werden importiert und roh konserviert, aber noch nicht vollständig als explizite CoRe-Strukturen modelliert. Das ist für den MVP richtig, sollte aber in den nächsten Ausbaustufen gezielt geschlossen werden.
@@ -159,7 +159,7 @@ Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzept
 | Deck-Hierarchie | Namen mit `::`, Cards referenzieren Deck-ID | Echte Parent-/Child-Decks aus APKG-Hierarchie | Parent-/Child-IDs bleiben kanonisch; `::` bleibt Import-/Exportdetail |
 | Filtered Decks | Temporäre Deck-Art mit Suche, Limits und Rescheduling-Optionen | Lernplan und Review-Queue lokal modelliert | Nicht als permanente Deck-Art übernehmen; als temporäre Session-/Plan-View abbilden |
 | Review-Verlauf | `revlog` append-only pro Card | lokale `reviewEvents`, Supabase-Tabelle `review_events` vorbereitet | Revlog-Import nur für Analytics/Migration, nicht automatisch als gelernter Zustand übernehmen |
-| Scheduler | Legacy-State plus FSRS-Felder | FSRS-like eigener Scheduler | CoRe-Scheduler bleibt eigenständig; Anki-Schedulerdaten als Quelle konservieren |
+| Scheduler | Legacy-State plus FSRS-Felder | FSRS-6 über `ts-fsrs` | CoRe-Scheduler bleibt die gekapselte Domänenschnittstelle; Anki-Schedulerdaten als Quelle konservieren |
 | Medien | Separater Medienordner, APKG-Medienliste, SHA-1, sichere Dateinamen | Manifest, accountgebundene IndexedDB/Queue, accountweite SHA-1-Objekte, getrennte `media_assets`-Referenzen, Standard-/TUS-Upload und Cloud-/Local-/Missing-Auflösung | Export-/Sharing-Regeln und administratives Orphan-GC ergänzen |
 | Importidentität | Notes via GUID, Cards via Note/Template, Notetypes via IDs | `sourceExternalId`, Importgruppe, Raw-Metadaten, Fingerprints | Explizites `import_identities`-Konzept für Note-ID, Card-ID, GUID, Notetype-ID, Template-Ord, Deck-Pfad und Medienchecksums |
 | Reimport | Update/Merge/Duplicate-Optionen | lokale Content-Edits bleiben bei Reimport erhalten | Feldschema-Änderungen, Template-Änderungen und lokale Edits deterministisch mergen |
@@ -232,7 +232,7 @@ Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzept
 - Filtered Decks als temporäre Session-/Planungsprojektionen.
 - Optional Reverse als Variantenregel.
 - Notetype-Wechsel als kontrollierten Import-/Edit-Vorgang, nicht als direkte Template-Operation im UI.
-- Scheduling als CoRe-eigene FSRS-like Projektion mit importierten Anki-Daten als Quelle.
+- Scheduling als gekapselte FSRS-6-Projektion mit importierten Anki-Daten als Quelle.
 
 ## Sprach- und Infrastrukturentscheidung
 

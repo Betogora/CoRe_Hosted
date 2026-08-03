@@ -216,7 +216,7 @@ function createHistoryEvent({ deckId, item, variant, eventIndex, rating, reviewe
     variantType: "basic",
     previousLearningItemStateJson: compactHistoryReviewState(previousState),
     nextLearningItemStateJson: compactHistoryReviewState(nextState),
-    schedulerVersion: nextState.schedulerVersion ?? "fsrs_v1",
+    schedulerVersion: nextState.schedulerVersion ?? "fsrs_6_v1",
     schedulerParamsJson: nextState.schedulerParamsJson ?? null,
     anchorVariantId: null,
     anchorSnapshotJson: null,
@@ -261,7 +261,7 @@ function createFinalReviewState({ profile, cardIndex, eventCount, firstReviewedA
     isGraduated: true,
     learningDayKey: null,
     schedulerParamsJson: {
-      schedulerVersion: "fsrs_v1",
+      schedulerVersion: "fsrs_6_v1",
       schedulerKind: "world_capitals_fixture_history",
       studyProfile: profile.label,
       studyHistoryVersion: WORLD_CAPITALS_STUDY_HISTORY.version,

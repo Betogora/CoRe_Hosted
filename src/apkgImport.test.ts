@@ -333,7 +333,7 @@ test("maps Basic Reverse notes to one LearningItem with anchored imported varian
   assert.equal(reverseVariant.anchorToOriginal, true);
   assert.equal(committed.deck.source, "anki-apkg");
   assert.equal(committed.deck.cards.length, 1);
-  assert.equal(imported.reviewState.schedulerVersion, "fsrs_v1");
+  assert.equal(imported.reviewState.schedulerVersion, "fsrs_6_v1");
   assert.equal(imported.reviewState.state, "new");
   assert.equal(getLearningItemMaturity(imported).stage, "new");
   assert.equal(getVariantGenerationRecommendation(imported).shouldSuggest, false);
@@ -637,7 +637,7 @@ test("APKG dry run reports scheduling and media without mutating or importing An
   assert.equal(dryRun.report.warnings.some((warning: string|string[]) => warning.includes("Anki-Lernfortschritt")), true);
   assert.equal(committed.deck.importMeta.mediaManifest.assets.length, 1);
   assert.deepEqual(imported.mediaRefs, ["cell.png"]);
-  assert.equal(imported.reviewState.schedulerVersion, "fsrs_v1");
+  assert.equal(imported.reviewState.schedulerVersion, "fsrs_6_v1");
   assert.equal(imported.reviewState.state, "new");
   assert.equal(imported.reviewState.reps, 0);
   assert.equal(imported.reviewState.lapses, 0);

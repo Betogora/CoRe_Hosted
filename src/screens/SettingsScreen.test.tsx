@@ -60,3 +60,12 @@ test("settings disclose export limits and keep raw JSON in advanced", () => {
   assert.match(html, />Export herunterladen</);
   assert.match(html, />Roh-JSON anzeigen</);
 });
+
+test("learning settings explain the mandatory second contact and hide legacy graduation controls", () => {
+  const html = renderSettings();
+
+  assert.match(html, /verpflichtenden zweiten Kontakt am selben Tag/);
+  assert.match(html, /Standard · 5 Min. → 15 Min./);
+  assert.doesNotMatch(html, /Erstes reguläres Intervall/);
+  assert.doesNotMatch(html, /Erstes Leicht-Intervall/);
+});

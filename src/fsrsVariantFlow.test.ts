@@ -20,7 +20,7 @@ import {
   flagVariant,
 } from "./coreVariantService.ts";
 import { answerVariant, getNextReviewItem } from "./reviewService.ts";
-import { calculateRetrievability, scheduleWithFsrsLikeModel } from "./scheduler.ts";
+import { calculateRetrievability, scheduleWithFsrs } from "./scheduler.ts";
 import type { LearningItem,CardVariant } from "./coreTypes.ts";
 
 function deckWith(item: CoreCardInput, reviewEvents = []) {
@@ -76,7 +76,7 @@ test("fsrs scheduler state tracks stability difficulty retention reps and conser
   const initial = createBasicLearningItem("deck_fsrs", "Was bedeutet MRSA?", "Methicillin-resistenter Staphylococcus aureus.").learningItemState;
   const baseReviewState = {
     schedulerVersion: "fsrs_v1",
-    state: "review",
+    state: "review" as const,
     reps: 3,
     repetitions: 3,
     lapses: 0,
@@ -87,16 +87,12 @@ test("fsrs scheduler state tracks stability difficulty retention reps and conser
     lastReviewedAt: "2026-07-01T10:00:00.000Z",
     preferredVariantLevel: 3,
   };
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  const hard = scheduleWithFsrsLikeModel(baseReviewState, "hard", { now: "2026-07-06T10:00:00.000Z" });
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  const good = scheduleWithFsrsLikeModel(baseReviewState, "good", { now: "2026-07-06T10:00:00.000Z" });
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  const easy = scheduleWithFsrsLikeModel(baseReviewState, "easy", { now: "2026-07-06T10:00:00.000Z" });
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  const again = scheduleWithFsrsLikeModel(baseReviewState, "again", { now: "2026-07-06T10:00:00.000Z" });
+  const hard = scheduleWithFsrs(baseReviewState, "hard", { now: "2026-07-06T10:00:00.000Z" });
+  const good = scheduleWithFsrs(baseReviewState, "good", { now: "2026-07-06T10:00:00.000Z" });
+  const easy = scheduleWithFsrs(baseReviewState, "easy", { now: "2026-07-06T10:00:00.000Z" });
+  const again = scheduleWithFsrs(baseReviewState, "again", { now: "2026-07-06T10:00:00.000Z" });
 
-  assert.equal(initial.schedulerVersion, "fsrs_v1");
+  assert.equal(initial.schedulerVersion, "fsrs_6_v1");
   assert.equal(typeof initial.stability, "number");
   assert.equal(typeof initial.difficulty, "number");
   assert.equal(initial.desiredRetention, 0.9);

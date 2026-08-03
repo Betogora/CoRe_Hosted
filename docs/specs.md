@@ -2,7 +2,7 @@
 
 **Rolle:** einzige kanonische Quelle für Produktversprechen, Kernjourneys, funktionale Anforderungen und Produktabnahme.
 **Status:** Arbeitsfassung
-**Stand:** 2026-08-01
+**Stand:** 2026-08-03
 
 Diese Spezifikation beschreibt ausschließlich, was CoRe für Nutzer leisten soll. Aktuelle Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und offene Roadmap haben eigene Quellen in der [Dokumentenlandkarte](index.md).
 
@@ -24,7 +24,7 @@ CoRe startet Anki-kompatibel, bleibt beim Lernen ruhig und fokussiert und macht 
 1. Bestehende und neue Lerninhalte schnell in ein gemeinsames Modell bringen.
 2. Eine ruhige, vorhersehbare Review-Sitzung mit vier Bewertungen anbieten.
 3. Geeignete reife Inhalte kontrolliert variieren.
-4. Nach der Antwort Original und Quelle als Vertrauensanker zeigen.
+4. Nach der Antwort einer Variante das Original und, wenn vorhanden, die Quelle als Vertrauensanker zeigen.
 5. Nutzerinhalte accountgebunden, nachvollziehbar und portabel halten.
 
 ## 2. Produktprinzipien
@@ -47,7 +47,7 @@ CoRe startet Anki-kompatibel, bleibt beim Lernen ruhig und fokussiert und macht 
 - Karten- und Stapelverwaltung;
 - Review mit vier Bewertungen und Content-Repetition;
 - direkt erreichbare Hilfe zu FSRS, CoRe und Kartenvarianten;
-- Original- und Quellenanker nach der Antwort;
+- Originalanker nach der Antwort einer Variante und Quellenanker, wenn vorhanden;
 - accountgebundene Speicherung, Sync- und Konfliktstatus;
 - grundlegende Statistik und verständliche Einstellungen.
 
@@ -170,19 +170,19 @@ Akzeptanz:
 
 - Nicht geeignete Inhalte wie sehr kurze Vokabelkarten können von Variation ausgeschlossen werden.
 - Jede Variante ist an genau ein Original gebunden.
-- Nach der Antwort ist der Originalanker genau einmal kompakt erreichbar; ein Quellenanker erscheint, wenn vorhanden.
+- Nach der Antwort einer Variante ist der Originalanker ausschließlich dort genau einmal kompakt über eine Aktion mit Ankersymbol erreichbar; ein Quellenanker erscheint, wenn vorhanden.
 - Fehlerhafte oder unklare Varianten können deaktiviert oder kontrolliert gemeldet werden.
 - Persönliche Reviewdaten gelangen nicht in geteilte Varianten oder Feedbackobjekte.
 - Bei fehlender oder fehlerhafter Variante bleibt das Original sicher lernbar.
 
 ### 5.6 Lernlogik verstehen
 
-Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite `/hilfe` im normalen App-Shell-Inhaltsbereich. Sie erklärt die FSRS-Grundbegriffe, grenzt CoRes FSRS-ähnlichen Scheduler transparent von unverändertem FSRS-6 ab und zeigt, wie Content Repetition dieselbe Wissenseinheit in einer anderen Form abfragen kann.
+Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite `/hilfe` im normalen App-Shell-Inhaltsbereich. Sie erklärt die FSRS-Grundbegriffe, CoRes Einsatz von FSRS-6 mit offiziellen Standardparametern und wie Content Repetition dieselbe Wissenseinheit in einer anderen Form abfragen kann.
 
 Akzeptanz:
 
 - Die Erklärung nennt Abrufwahrscheinlichkeit `R`, Stabilität `S`, Schwierigkeit `D`, Zielerinnerung, Intervall, Original und Variante in verständlicher deutscher Sprache. Sie erklärt `S` als die Zeit, in der `R` von 100 auf 90 Prozent fällt, und zeigt die Kette von Bewertung über Gedächtniszustand und Vergessensprognose zum nächsten Termin.
-- Die Hilfeseite erklärt, dass FSRS-6 alle Reviews berücksichtigt, 21 Modellparameter aus der persönlichen Historie optimiert und bei zu wenig Verlauf Standardparameter nutzt. Höhere Zielerinnerung wird transparent als mehr Reviews bei geringerem Vergessensrisiko beschrieben; CoRes eigener FSRS-ähnlicher Scheduler wird davon abgegrenzt.
+- Die Hilfeseite erklärt, dass FSRS-6 alle Reviews einschließlich mehrerer Abrufe am selben Tag berücksichtigt und 21 Modellparameter verwendet. CoRe nutzt die offiziellen Standardparameter; persönliche Optimierung ist noch nicht aktiviert. Höhere Zielerinnerung wird transparent als mehr Reviews bei geringerem Vergessensrisiko beschrieben.
 - CoRe erklärt Variantenbereitschaft als Reifeentscheidung aus erfolgreichen Abrufen, Stabilität, Intervall, Abrufwahrscheinlichkeit und Fehlerverlauf. Ausreichende Stabilität kann eine nahe Variante erlauben, aktuelle Fehler führen konservativ zum Original oder zu einer einfacheren Variante zurück; eine feste Reviewnummer wird nicht versprochen.
 - Eine eigenständige, als vereinfacht gekennzeichnete Lernkurve zeigt vier erfolgreiche Reviews, wachsende Intervalle und beispielhaft beim vierten Review eine nahe CoRe-Variante; daraus entsteht keine garantierte Scheduler- oder Variantenschwelle. Die durch zwei diagonale Striche unterbrochene Y-Achse kennzeichnet transparent, dass nur der Ausschnitt von 90 bis 100 Prozent gezeigt wird.
 - `R` ist an Kurven und Zielerinnerung, `S` an den wachsenden Intervallspannen und `D` als langsam veränderlicher Einfluss an den Reviewpunkten sichtbar. Die Darstellung bleibt qualitativ und erfindet keine scheinbar exakten Zustandswerte.
@@ -190,6 +190,18 @@ Akzeptanz:
 - Farbe ist nie der einzige Bedeutungsträger; Beschriftung, Strichstärke, Symbole, Fokuszustand und statische Textdefinitionen bleiben erhalten. Begriffe, Reviewübersicht und Bewertungen verwenden eine ruhige Textgliederung mit Trennlinien statt wiederholter Kartenflächen.
 - Die mobile Darstellung begrenzt horizontales Scrollen auf den Grafikbereich und erzeugt keinen Dokument-Overflow.
 - Die offizielle FSRS-Einführung ist als externer weiterführender Link gekennzeichnet.
+
+### 5.7 FSRS über simulierte Tage prüfen
+
+Der direkt verlinkbare `/testmodus` ist in der Sidebar bei Theme und Hilfe erreichbar. Er stellt einen eigenen FSRS-Teststapel bereit und lässt Lernende Tag 1, 2, 3 und weitere simulierte Tage auswählen, ohne die echte Accountzeit oder echte Lerninhalte zu verändern.
+
+Akzeptanz:
+
+- Teststapel, Reviews, Bewertungsverteilung und Schedulerzustände bleiben ausschließlich im transienten Testmodus und werden weder gespeichert noch synchronisiert oder in echte Statistiken übernommen.
+- Der Testmodus verwendet denselben FSRS-6-Scheduler und dieselbe Sitzungslogik wie das Produkt; es gibt keine vereinfachte Testformel.
+- Jeder simulierte Tag zeigt nur neue sowie bis zu diesem Tag fällige oder überfällige Testkarten. Tage ohne Karten erklären, dass FSRS keine Wiederholung geplant hat.
+- Tagesnavigation, Zurücksetzen und Bewertungen sind per Tastatur erreichbar. Eine laufende Testsitzung behandelt den verpflichtenden zweiten Kontakt und vorgezogene Wiederholungen genauso wie eine echte Sitzung.
+- Ein sichtbarer Simulationsverlauf nennt Bewertung, nächsten simulierten Tag, Zustand, Stabilität und Schwierigkeit, ohne interne Daten in den Account zu schreiben.
 
 ## 6. Funktionale Anforderungen
 
@@ -237,10 +249,14 @@ Akzeptanz:
 
 ### 6.5 Review und Scheduling
 
-- Review verwendet vier Bewertungen und einen FSRS-artigen, intern gekapselten Schedulervertrag.
+- Review verwendet vier Bewertungen und einen intern gekapselten FSRS-6-Schedulervertrag mit offiziellen Standardparametern.
+- Neue Karten bleiben unabhängig von der ersten Bewertung bis zu einem zweiten Kontakt am selben Tag in der Lernphase. Standardmäßig plant `Gut` und beim Erstkontakt auch `Leicht` diesen Kontakt nach 15 Minuten; `Nochmal` und `Schwer` verwenden kürzere Lernschritte.
+- Eine laufende Sitzung arbeitet zuerst ihre eindeutigen Karten ab und zeigt anschließend vorgemerkte Wiederholungen. Diese dürfen innerhalb der Sitzung vor ihrem gespeicherten Termin erscheinen und werden dann als vorgezogen gekennzeichnet.
+- Erst ein erfolgreicher Abschluss der Lernschritte wechselt eine neue Karte in den langfristigen FSRS-Reviewzustand; Fehler können zusätzliche Wiederholungen erzeugen.
 - Nutzer sehen verständliche Intervalle, nicht interne Schedulerzustände.
 - Varianten dürfen eigenen Review State tragen; Familieninformationen dürfen Auswahl und Fallback unterstützen.
 - Der Scheduler darf keine KI-Erzeugung im Antwortrequest auslösen.
+- Der isolierte Testmodus führt Bewertungen mit einer simulierten Uhr durch und darf niemals Workspace-, Cloud- oder Statistikzustand mutieren.
 
 ### 6.6 Vertrauen, Versionen und Undo
 

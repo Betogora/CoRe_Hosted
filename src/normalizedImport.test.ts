@@ -134,7 +134,7 @@ test("commit normalized import creates FSRS learning items and anchored imported
   assert.equal(deck.name, "Normalized Import");
   assert.equal(deck.source, "json-import");
   assert.equal(deck.cards.length, 2);
-  assert.equal(imported.reviewState.schedulerVersion, "fsrs_v1");
+  assert.equal(imported.reviewState.schedulerVersion, "fsrs_6_v1");
   assert.equal(imported.reviewState.state, "new");
   assert.equal(imported.reviewState.reps, 0);
   assert.equal(getLearningItemMaturity(imported).stage, "new");
@@ -272,7 +272,7 @@ test("workspace commit normalized import mutates state and dry run does not", ()
   assert.equal(committedDespiteDryRunOption.deck.cards.length, 2);
   assert.equal(commitWorkspace.getState().decks.length, 1);
   assert.equal(workspace.getState().decks.length, 1);
-  assert.equal(workspace.getState().decks[0].cards[0].reviewState.schedulerVersion, "fsrs_v1");
+  assert.equal(workspace.getState().decks[0].cards[0].reviewState.schedulerVersion, "fsrs_6_v1");
   assert.ok(getNextReviewItem);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(getNextReviewItem(workspace.getState().decks[0]).learningItemId, workspace.getState().decks[0].cards[0].id);

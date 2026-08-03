@@ -3,7 +3,15 @@ import test from "node:test";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getOriginalVariant, type CoreCardInput } from "./coreModel.ts";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
 import { importNormalizedDeck } from "./importService.ts";
-import { answerVariant, createDailyReviewQueue, getNextReviewItem, updateDeckNewCardLimitForDate } from "./reviewService.ts";
+import {
+  advanceDailyReviewSession,
+  answerVariant,
+  createDailyReviewQueue,
+  createDailyReviewSessionState,
+  getNextDailyReviewSessionItem,
+  getNextReviewItem,
+  updateDeckNewCardLimitForDate,
+} from "./reviewService.ts";
 import { formatIntervalLabel, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
 
 const NOW = "2026-07-07T10:00:00.000Z";
@@ -81,6 +89,7 @@ test("new cards use same-day learning steps before graduating", () => {
     rating: "easy",
     now: "2026-07-07T10:15:00.000Z",
   });
+  const schedulerParams = firstGood.nextReviewState.schedulerParamsJson as Record<string, unknown>;
 
   assert.equal(firstGood.nextState, "learning");
   assert.equal(firstGood.nextReviewState.reps, 1);
@@ -88,18 +97,21 @@ test("new cards use same-day learning steps before graduating", () => {
   assert.equal(firstGood.intervalLabel, "15 Min.");
   assert.equal(minutesBetween(NOW, firstGood.dueAt), 15);
   assert.equal(firstGood.nextMaturity.stage, "learning");
+  assert.equal(schedulerParams.implementation, "ts-fsrs@5.4.1");
+  assert.equal(schedulerParams.parameterSource, "official_default");
+  assert.equal((schedulerParams.weights as unknown[])?.length, 21);
   assert.equal(firstEasy.nextState, "learning");
   assert.equal(firstEasy.nextReviewState.learningSuccessCount, 1);
-  assert.equal(firstEasy.intervalLabel, "30 Min.");
-  assert.equal(minutesBetween(NOW, firstEasy.dueAt), 30);
+  assert.equal(firstEasy.intervalLabel, "15 Min.");
+  assert.equal(minutesBetween(NOW, firstEasy.dueAt), 15);
   assert.equal(secondGood.nextState, "review");
   assert.equal(secondGood.nextReviewState.learningSuccessCount, 2);
   assert.equal(secondGood.nextReviewState.isGraduated, true);
-  assert.equal(secondGood.intervalDays, 1);
-  assert.equal(secondGood.intervalLabel, "1 Tag");
+  assert.equal(secondGood.intervalDays, 2);
+  assert.equal(secondGood.intervalLabel, "2 Tage");
   assert.equal(secondGood.nextMaturity.stage, "early_review");
   assert.equal(goodThenEasy.nextState, "review");
-  assert.equal(goodThenEasy.intervalDays, 2);
+  assert.equal(goodThenEasy.intervalDays, 4);
 });
 
 test("again and hard in learning stay short and do not increase success count", () => {
@@ -118,7 +130,7 @@ test("again and hard in learning stay short and do not increase success count", 
   assert.equal(hard.intervalLabel, "10 Min.");
 });
 
-test("review cards produce monotone FSRS-like button intervals and short relearning on again", () => {
+test("review cards produce monotone FSRS-6 button intervals and short relearning on again", () => {
   const item = reviewItem();
   const original = getOriginalVariant(item);
   const options = getReviewButtonOptions(item, original, { now: NOW });
@@ -201,7 +213,7 @@ test("relearning good returns to review and clears fallback when fallback target
   assert.equal(state.state, "review");
   assert.equal(state.fallbackUntilCorrect, false);
   assert.equal(state.forcedVariantId, null);
-  assert.equal(daysBetween(NOW, state.dueAt), 1);
+  assert.equal(daysBetween(NOW, state.dueAt) > 0, true);
 });
 
 test("getNextReviewItem exposes ratingButtonOptions and preserves anchor/fallback view models", () => {
@@ -285,7 +297,7 @@ test("normalized imported cards start with learning-step button options", () => 
   const next = getNextReviewItem(imported.deck, { now: NOW });
 
   assert.ok(next);
-  assert.equal(next.reviewState.schedulerVersion, "fsrs_v1");
+  assert.equal(next.reviewState.schedulerVersion, "fsrs_6_v1");
   assert.ok(next);
   assert.equal(next.reviewState.state, "new");
   assert.ok(next);
@@ -293,7 +305,7 @@ test("normalized imported cards start with learning-step button options", () => 
   assert.equal(next.ratingButtonOptions.good.intervalLabel, "15 Min.");
   assert.ok(next);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(next.ratingButtonOptions.easy.intervalLabel, "30 Min.");
+  assert.equal(next.ratingButtonOptions.easy.intervalLabel, "15 Min.");
 });
 
 test("daily review queue includes currently due cards plus the per-deck new-card quota", () => {
@@ -446,7 +458,80 @@ test("daily review queue keeps answered learning cards out until their stored du
   assert.equal(atStoredDueAt.items[0].schedulerInfo.queueKind, "due");
 });
 
-test("deck learning settings control learning, relearning and graduation intervals", () => {
+test("daily review session finishes unique cards before pulling same-day repeats forward", () => {
+  const first = createBasicLearningItem("deck_session", "Erste Frage", "Erste Antwort", { id: "item_first" });
+  const second = createBasicLearningItem("deck_session", "Zweite Frage", "Zweite Antwort", { id: "item_second" });
+  let deck = createCoreDeck({
+    id: "deck_session",
+    name: "Session",
+    source: "manual",
+    cards: [first, second],
+    reviewEvents: [],
+  });
+  const queue = createDailyReviewQueue(deck, { now: NOW });
+  let session = createDailyReviewSessionState(queue.items);
+
+  const firstInitial = getNextDailyReviewSessionItem(deck, session, { now: NOW });
+  assert.ok(firstInitial);
+  assert.equal(firstInitial.learningItemId, "item_first");
+  assert.equal(firstInitial.sessionInfo.isRepeat, false);
+  const firstResult = answerVariant(deck, firstInitial.learningItemId, firstInitial.cardVariantId, "good", { now: NOW });
+  deck = firstResult.deck;
+  session = advanceDailyReviewSession(session, {
+    key: firstInitial.sessionInfo.key,
+    rating: "good",
+    nextReviewState: firstResult.updatedCard.reviewState,
+  });
+
+  const secondInitial = getNextDailyReviewSessionItem(deck, session, { now: "2026-07-07T10:01:00.000Z" });
+  assert.ok(secondInitial);
+  assert.equal(secondInitial.learningItemId, "item_second");
+  const secondResult = answerVariant(deck, secondInitial.learningItemId, secondInitial.cardVariantId, "easy", { now: "2026-07-07T10:01:00.000Z" });
+  deck = secondResult.deck;
+  session = advanceDailyReviewSession(session, {
+    key: secondInitial.sessionInfo.key,
+    rating: "easy",
+    nextReviewState: secondResult.updatedCard.reviewState,
+  });
+
+  const earlyRepeat = getNextDailyReviewSessionItem(deck, session, { now: "2026-07-07T10:02:00.000Z" });
+  assert.ok(earlyRepeat);
+  assert.equal(earlyRepeat.learningItemId, "item_first");
+  assert.equal(earlyRepeat.sessionInfo.isRepeat, true);
+  assert.equal(earlyRepeat.sessionInfo.isEarlyRepeat, true);
+  const repeated = answerVariant(deck, earlyRepeat.learningItemId, earlyRepeat.cardVariantId, "good", { now: "2026-07-07T10:02:00.000Z" });
+  session = advanceDailyReviewSession(session, {
+    key: earlyRepeat.sessionInfo.key,
+    rating: "good",
+    nextReviewState: repeated.updatedCard.reviewState,
+  });
+
+  assert.equal(repeated.updatedCard.reviewState.state, "review");
+  assert.equal(session.completedInitialKeys.length, 2);
+  assert.equal(session.repeatCount, 1);
+  assert.deepEqual(session.repeatKeys, ["deck_session:item_second"]);
+});
+
+test("failed session repeats return to the FIFO tail until they succeed", () => {
+  const session = createDailyReviewSessionState([{ deckId: "deck", learningItemId: "item" }]);
+  const afterInitial = advanceDailyReviewSession(session, {
+    key: "deck:item",
+    rating: "again",
+    nextReviewState: { ...newItem().reviewState, state: "learning" },
+  });
+  const afterRepeat = advanceDailyReviewSession(afterInitial, {
+    key: "deck:item",
+    rating: "hard",
+    nextReviewState: { ...newItem().reviewState, state: "learning" },
+  });
+
+  assert.deepEqual(afterInitial.repeatKeys, ["deck:item"]);
+  assert.deepEqual(afterRepeat.repeatKeys, ["deck:item"]);
+  assert.equal(afterRepeat.repeatCount, 1);
+  assert.deepEqual(afterRepeat.ratingCounts, { again: 1, hard: 1, good: 0, easy: 0 });
+});
+
+test("deck learning settings control short steps while FSRS determines graduation intervals", () => {
   const item = newItem();
   const original = getOriginalVariant(item);
   const deckSettings = {
@@ -466,11 +551,11 @@ test("deck learning settings control learning, relearning and graduation interva
   const reviewAgain = simulateRatingOutcome({ learningItem: reviewItem(), variant: original, rating: "again", now: NOW, deckSettings });
 
   assert.equal(firstGood.intervalLabel, "30 Min.");
-  assert.equal(secondGood.intervalDays, 3);
+  assert.equal(secondGood.intervalDays, 2);
   assert.equal(reviewAgain.intervalLabel, "12 Min.");
 });
 
-test("desired retention and maximum interval change the next FSRS-like interval", () => {
+test("desired retention and maximum interval change the next FSRS-6 interval", () => {
   const item = reviewItem({ stability: 40, intervalDays: 20 });
   const original = getOriginalVariant(item);
   const relaxed = simulateRatingOutcome({

@@ -24,6 +24,13 @@ test("roundtrips the help route without additional context", () => {
   assert.equal(appRouteToUrl(route), "/hilfe");
 });
 
+test("roundtrips the isolated scheduler test route without additional context", () => {
+  const route = parseAppRouteFromUrl("/testmodus");
+
+  assert.deepEqual(route, { mode: "view", viewId: "testmodus" });
+  assert.equal(appRouteToUrl(route), "/testmodus");
+});
+
 test("roundtrips deck, card and creation context without validating navigational ids away", () => {
   const learnRoute = parseAppRouteFromUrl("/lernen?deck=deck_deep&parent=deck_parent");
   const deckRoute = parseAppRouteFromUrl("/kartenstapel?deck=deck_a&card=card_b");

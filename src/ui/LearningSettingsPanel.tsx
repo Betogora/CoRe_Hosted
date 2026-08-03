@@ -233,7 +233,7 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
           <div className="grid gap-4 lg:grid-cols-2">
             <SelectField
               label="Lernschritte für neue Karten"
-              hint="Kurze Abstände, bevor eine Karte in den normalen Rhythmus wechselt."
+              hint="Der erste Wert gilt nach ‚Nochmal‘, der zweite für den verpflichtenden zweiten Kontakt am selben Tag. Auch ‚Leicht‘ überspringt ihn nicht."
               value={stepValue}
               onChange={(value: string) => updateSchedulerSetting("learningStepsMinutes", value.split(",").map(Number))}
               testId="learning-settings-steps"
@@ -250,26 +250,6 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
             >
               {[1, 3, 5, 10, 20, 30].map((minutes) => <option key={minutes} value={minutes}>{minutes} Min.</option>)}
             </SelectField>
-            <RangeField
-              label="Erstes reguläres Intervall"
-              hint="Abstand nach erfolgreichem Abschluss der Lernschritte."
-              value={draft.schedulerProfile.graduatingIntervalDays}
-              min={1}
-              max={7}
-              suffix=" T."
-              onChange={(value: any) => updateSchedulerSetting("graduatingIntervalDays", value)}
-              testId="learning-settings-graduating"
-            />
-            <RangeField
-              label="Erstes Leicht-Intervall"
-              hint="Größerer Startabstand, wenn eine neue Karte sehr leicht war."
-              value={draft.schedulerProfile.easyGraduatingIntervalDays}
-              min={1}
-              max={14}
-              suffix=" T."
-              onChange={(value: any) => updateSchedulerSetting("easyGraduatingIntervalDays", value)}
-              testId="learning-settings-easy-graduating"
-            />
             <label className="flex min-h-20 items-start justify-between gap-4 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)] lg:col-span-2">
               <span>
                 <span className="block">Weniger sehr kurze Intervalle</span>

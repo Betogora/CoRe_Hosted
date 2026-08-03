@@ -536,7 +536,10 @@ export function HelpScreen() {
           <div>
             <h2 className="core-heading-3 font-semibold text-core-text">Transparenz zum aktuellen Scheduler</h2>
             <p className="mt-2 core-body leading-6 text-core-secondary">
-              Echtes FSRS-6 schätzt für jede Karte R, S und D, berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag und passt 21 Modellparameter an die Reviewhistorie an; bei zu wenig Verlauf nutzt es erprobte Standardparameter. CoRe verwendet aktuell einen eigenen FSRS-ähnlichen Scheduler: Er führt dieselben Gedächtnisgrößen und eine Zielerinnerung, optimiert aber noch keine 21 persönlichen FSRS-Parameter aus deiner Historie.
+              CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern. Der Scheduler schätzt für jede Karte R, S und D und berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag. Eine persönliche Optimierung der Parameter aus deiner eigenen Reviewhistorie ist noch nicht aktiviert.
+            </p>
+            <p className="mt-2 core-body leading-6 text-core-secondary">
+              Neue Karten bleiben nach dem ersten Kontakt in der Lernphase und erscheinen am selben Tag erneut. Standardmäßig bedeutet „Gut“ einen zweiten Kontakt nach 15 Minuten; innerhalb einer laufenden Sitzung kann CoRe diese Wiederholung nach den übrigen Karten vorziehen.
             </p>
           </div>
         </div>

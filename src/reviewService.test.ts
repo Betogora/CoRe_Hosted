@@ -67,7 +67,7 @@ test("answerVariant updates central learning item state and writes a variant rev
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(event.nextLearningItemStateJson.repetitions, 3);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(event.schedulerVersion, "fsrs_v1");
+  assert.equal(event.schedulerVersion, "fsrs_6_v1");
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(event.anchorSnapshotJson.shouldShow, false);
 });
@@ -124,6 +124,34 @@ test("hard good and easy update due dates with increasing intervals", () => {
   assert.equal(new Date(easy.dueAt).getTime() > new Date(now).getTime(), true);
   assert.equal(hard.intervalDays < good.intervalDays, true);
   assert.equal(good.intervalDays < easy.intervalDays, true);
+});
+
+test("legacy scheduler state keeps its due date until the next review and then migrates once", () => {
+  const dueAt = "2026-07-10T08:00:00.000Z";
+  const item = createBasicLearningItem("deck_review", "Legacy", "Zustand", {
+    id: "item_legacy",
+    reviewState: {
+      schedulerVersion: "fsrs_v1",
+      state: "review",
+      reps: 4,
+      repetitions: 4,
+      stability: 6,
+      difficulty: 5,
+      intervalDays: 5,
+      lastReviewedAt: "2026-07-05T08:00:00.000Z",
+      dueAt,
+    },
+  });
+  const original = getOriginalVariant(item);
+  assert.ok(original);
+  assert.equal(item.reviewState.dueAt, dueAt);
+  assert.equal(item.reviewState.schedulerVersion, "fsrs_v1");
+
+  const result = answerVariant(createDeckWithItem(item), item.id, original.id, "good", { now: dueAt });
+  assert.equal(result.event.previousLearningItemStateJson.schedulerVersion, "fsrs_v1");
+  assert.equal(result.event.nextLearningItemStateJson.schedulerVersion, "fsrs_6_v1");
+  assert.equal(result.event.schedulerVersion, "fsrs_6_v1");
+  assert.equal((result.event.schedulerParamsJson as { implementation?: string }).implementation, "ts-fsrs@5.4.1");
 });
 
 test("answerVariant rejects foreign variants and suspended cards without writing events", () => {

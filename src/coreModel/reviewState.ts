@@ -20,7 +20,7 @@ export function createLearningItemState({
   reviewableType = "learning_item",
   reviewableId = learningItemId,
   userId = "local-user",
-  schedulerVersion = "fsrs_v1",
+  schedulerVersion = "fsrs_6_v1",
   state = null,
   dueAt = new Date().toISOString(),
   intervalDays = 0,

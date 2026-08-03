@@ -81,3 +81,19 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Entscheidung:** Alle drei Bereiche verwenden eine gemeinsame einklappbare Stapelkarte mit identischer Zeilenfolge: Icon, Name und Pfad, Teilbaum-Kennzahlen, Fortschrittsdonut und ganz rechts Stapeloptionen. Die neutrale Fläche startet in Dashboard und Lernen die Sitzung und öffnet in der Kartenverwaltung die Karten; dieselbe tatsächlich getroffene Fläche verarbeitet den Desktop-Drag über Pointer-Ereignisse. Dashboard, Lernen und Kartenverwaltung erlauben sichtbares direktes Drag-and-drop auf einen Stapel oder die Hauptebenen-Zone; ungültige und unveränderte Ziele sind No-ops und ein Drag löst keine Flächenaktion aus. Interaktive Strukturänderungen sind auf drei sichtbare Ebenen begrenzt. Tiefere APKG-Hierarchien bleiben beim Import erhalten und dürfen anschließend nur regelkonform oder flacher verschoben werden. Die Kartenverwaltung bündelt erweiterte Werkzeuge einmal beim ausgewählten Stapel und behält das bestätigte Verschieben als Tastatur-, Touch- und Accessibility-Fallback. Stapeloptionen tragen ihren Rückkehrkontext in der URL.
 **Konsequenzen:** Darstellung, Reihenfolge, Keyboard-Aktivierung, Collapse, Drag-Quelle und -Zustände, Tiefenfarben und Kennzahlsemantik besitzen eine kanonische UI-Implementierung. Die fachliche Workspace-Mutation prüft dieselbe Platzierungsregel wie die UI; das persistierte Deck-Schema bleibt unverändert. ADR-002 ist hinsichtlich des Verbots direkter Strukturierung abgelöst; die dort festgelegte Trennung von Lern- und Verwaltungsaufgabe bleibt erhalten.
 **Datum:** 2026-08-03
+
+## ADR-009 — FSRS-6 mit stabiler Tageslernphase
+
+**Status:** angenommen
+**Kontext:** Der bisherige Scheduler führte FSRS-Begriffe, verwendete aber eigene Formeln. Neue Karten konnten außerdem trotz gespeicherter Lernschritte am Ende einer Sitzung verschwinden.
+**Entscheidung:** `src/scheduler.ts` verwendet `ts-fsrs@5.4.1` mit FSRS-6, offiziellen 21 Standardparametern, deaktiviertem Fuzzing und stapelspezifischer Zielerinnerung sowie Lernschritten. Neue Karten benötigen einen zweiten Kontakt am selben Tag; auch `Leicht` darf ihn beim Erstkontakt nicht überspringen. Sitzungen zeigen zunächst eindeutige Karten und danach ihre Wiederholungen, nötigenfalls vor dem gespeicherten Termin. Persönliche Parameteroptimierung bleibt außerhalb dieses Pakets.
+**Konsequenzen:** Vorschau und Commit bleiben deterministisch. `fsrs_v1`-Zustände werden ohne Mass Rescheduling beim nächsten Review nach `fsrs_6_v1` überführt. Feste Start- und Leichtintervalle bleiben nur datenkompatibel erhalten und steuern die Oberfläche oder Langzeitplanung nicht mehr.
+**Datum:** 2026-08-03
+
+## ADR-010 — Scheduler-Testmodus bleibt transient und verwendet den Produktpfad
+
+**Status:** angenommen
+**Kontext:** Lernende sollen FSRS-Termine über simulierte Tage nachvollziehen können, ohne die Accountzeit zu verändern oder Testbewertungen mit echten Lern- und Syncdaten zu vermischen.
+**Entscheidung:** `/testmodus` besitzt einen eigenen transienten Teststapel und eine simulierte Uhr. Er verwendet für Queue, Bewertungen, Lernschritte und Langzeitintervalle unverändert `reviewService.ts` und `scheduler.ts`, erhält aber keine Workspace-, Repository- oder Sync-Callbacks.
+**Konsequenzen:** Die Simulation entspricht dem produktiven FSRS-Pfad und kann beliebig zurückgesetzt werden. Navigation oder Reload dürfen den Teststand verwerfen; eine spätere Persistenz wäre eine neue Produkt- und Datenschutzentscheidung.
+**Datum:** 2026-08-03

@@ -1,8 +1,17 @@
 import React from "react";
-import { Ban, CheckCircle2, Eye, Flag, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
+import { Anchor, Ban, CheckCircle2, Eye, Flag, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
 import { getLearningItemAnswer, getLearningItemQuestion } from "../coreModel.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
-import { answerVariant, createDailyReviewQueue, recordVariantFeedback, updateDeckNewCardLimitForDate } from "../reviewService.ts";
+import {
+  advanceDailyReviewSession,
+  answerVariant,
+  createDailyReviewQueue,
+  createDailyReviewSessionState,
+  getNextDailyReviewSessionItem,
+  recordVariantFeedback,
+  updateDeckNewCardLimitForDate,
+  type DailyReviewSessionState,
+} from "../reviewService.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
 import { MiniProgress } from "../ui/coreUi.tsx";
 import { ratingButtons } from "./screenConstants.ts";
@@ -33,9 +42,7 @@ function sameAnswer(left: string, right: string) {
 
 export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?.id, variantSession, mediaStore, onExit, onReturnToLearn = onExit, onDeckUpdated, onReviewEvent }: any) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
-  const [reviewedCount, setReviewedCount] = React.useState(0);
-  const [reviewedKeys, setReviewedKeys] = React.useState<any[]>([]);
-  const [sessionTargetCount, setSessionTargetCount] = React.useState<number | null>(null);
+  const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
   const [showAnchor, setShowAnchor] = React.useState(false);
   const [showSource, setShowSource] = React.useState(false);
@@ -55,14 +62,21 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
         deckId: rootDeck?.id,
         language: "de",
         variantSession,
-        excludeKeys: reviewedKeys,
       }),
-    [sessionDecks, rootDeck?.id, variantSession, reviewedKeys],
+    [sessionDecks, rootDeck?.id, variantSession],
   );
-  const current = sessionTargetCount !== null && reviewedCount >= sessionTargetCount ? null : queue.items[0] ?? null;
+  const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
+  const current = React.useMemo(
+    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, language: "de", variantSession }),
+    [sessionDecks, effectiveReviewSession, rootDeck?.id, variantSession],
+  );
   const currentDeck = sessionDecks.find((candidate: any) => candidate.id === current?.deckId) ?? rootDeck;
-  const sessionTotal = sessionTargetCount ?? queue.total;
-  const progress = sessionTotal ? (Math.min(reviewedCount + (current ? 1 : 0), sessionTotal) / sessionTotal) * 100 : 0;
+  const sessionTotal = effectiveReviewSession.initialKeys.length;
+  const completedInitialCount = effectiveReviewSession.completedInitialKeys.length;
+  const repeatCount = effectiveReviewSession.repeatCount;
+  const answeredCount = completedInitialCount + repeatCount;
+  const currentIsInitial = Boolean(current && !current.sessionInfo?.isRepeat);
+  const progress = sessionTotal ? (Math.min(completedInitialCount + (currentIsInitial ? 1 : 0), sessionTotal) / sessionTotal) * 100 : 0;
   const sourceCard = current?.learningItem ?? null;
   const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
   const sourceAnchor = current?.variant?.sourceAnchors?.[0] ?? sourceCard?.sourceAnchors?.[0] ?? null;
@@ -82,9 +96,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
 
   React.useEffect(() => {
     setSessionDecks(decks);
-    setReviewedCount(0);
-    setReviewedKeys([]);
-    setSessionTargetCount(null);
+    setReviewSession(null);
     setShowAnswer(false);
     setShowAnchor(false);
     setShowSource(false);
@@ -95,28 +107,24 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   }, [deckId, variantSession, decks.length]);
 
   React.useEffect(() => {
-    if (sessionTargetCount === null) setSessionTargetCount(queue.total);
-  }, [queue.total, sessionTargetCount]);
+    if (reviewSession === null) setReviewSession(createDailyReviewSessionState(queue.items));
+  }, [queue.items, reviewSession]);
 
   React.useEffect(() => {
     setSelectedChoice("");
   }, [current?.learningItemId, current?.variantId]);
 
-  function reviewItemKey(item = current) {
-    return item ? `${item.deckId}:${item.learningItemId}` : "";
-  }
-
   function replaceSessionDeck(updatedDeck: Deck, nextDecks = sessionDecks) {
     return nextDecks.map((candidate: any) => (candidate.id === updatedDeck.id ? updatedDeck : candidate));
   }
 
-  function finishOrNext(updatedDeck: Deck, nextCount: React.SetStateAction<number>, reviewedKey: string) {
+  function finishOrNext(updatedDeck: Deck, rating: ReviewRating, nextReviewState: any, reviewedKey: string) {
     const nextDecks = replaceSessionDeck(updatedDeck);
-    const nextReviewedKeys = [...reviewedKeys, reviewedKey].filter(Boolean);
     onDeckUpdated(updatedDeck);
     setSessionDecks(nextDecks);
-    setReviewedKeys(nextReviewedKeys);
-    setReviewedCount(nextCount);
+    setReviewSession((session) => session && reviewedKey
+      ? advanceDailyReviewSession(session, { key: reviewedKey, rating, nextReviewState })
+      : session);
     setShowAnswer(false);
     setShowAnchor(false);
     setShowSource(false);
@@ -137,7 +145,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
       now: new Date().toISOString(),
     });
     onReviewEvent?.(result.event);
-    finishOrNext(result.deck, reviewedCount + 1, reviewItemKey());
+    finishOrNext(result.deck, rating, result.updatedCard.reviewState, current.sessionInfo?.key ?? `${current.deckId}:${current.learningItemId}`);
   }
 
   function updateVariant(action: "disable" | "flag", feedbackType?: "fachlich_falsch" | "unklar_formuliert") {
@@ -170,10 +178,10 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       if (current) questionHeadingRef.current?.focus();
-      else if (reviewedCount > 0) completionHeadingRef.current?.focus();
+      else if (answeredCount > 0) completionHeadingRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [current?.learningItemId, current?.variantId, reviewedCount]);
+  }, [current?.learningItemId, current?.variantId, answeredCount]);
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -198,7 +206,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [current, showAnswer, showSettings, sessionDecks, reviewedCount, reviewedKeys]);
+  }, [current, showAnswer, showSettings, sessionDecks, reviewSession]);
 
   return (
     <main className="min-h-screen bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
@@ -210,7 +218,15 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
             </button>
             <div className="text-center">
               <p className="core-body font-semibold text-[var(--core-text-muted)]">{rootDeck?.name ?? deck?.name}</p>
-              <p className="mt-1 core-body text-[var(--core-text-muted)]">{current ? `${Math.min(reviewedCount + 1, sessionTotal)} / ${sessionTotal}` : reviewedCount ? `${reviewedCount} / ${reviewedCount}` : "0 / 0"}</p>
+              <p className="mt-1 core-body text-[var(--core-text-muted)]">
+                {current?.sessionInfo?.isRepeat
+                  ? `Wiederholung ${repeatCount + 1}`
+                  : current
+                    ? `${Math.min(completedInitialCount + 1, sessionTotal)} / ${sessionTotal}`
+                    : sessionTotal
+                      ? `${completedInitialCount} / ${sessionTotal}`
+                      : "0 / 0"}
+              </p>
             </div>
             <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-11 place-items-center rounded-full text-[var(--core-action-primary)]" aria-label="Lerneinstellungen" aria-expanded={showSettings} aria-controls="study-settings-panel">
               <SlidersHorizontal size={20} aria-hidden="true" />
@@ -250,6 +266,11 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
             {current ? (
               <>
                 <div className="w-full">
+                  {current.sessionInfo?.isRepeat ? (
+                    <p className="mb-4 core-body font-semibold text-[var(--core-action-secondary)]" role="status">
+                      {current.sessionInfo.isEarlyRepeat ? "Vorgezogene Wiederholung" : "Wiederholung"}
+                    </p>
+                  ) : null}
                   <p ref={questionHeadingRef} tabIndex={-1} className="mb-5 core-body font-semibold uppercase tracking-[0.18em] text-[var(--core-action-secondary)] outline-none">Frage</p>
                   <div className="core-heading-1 font-semibold leading-relaxed text-[var(--core-text)]">
                     <CardHtml html={current.front} mediaUrls={studyMediaUrls} />
@@ -308,10 +329,12 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                       ) : null}
                       <div className="mt-8 rounded-2xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
                         <div className="flex flex-wrap gap-2">
-                          <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
-                            <Eye size={16} aria-hidden="true" />
-                            {showAnchor ? "Original ausblenden" : "Original anzeigen"}
-                          </button>
+                          {isCurrentVariant ? (
+                            <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
+                              <Anchor size={16} aria-hidden="true" />
+                              {showAnchor ? "Original ausblenden" : "Original anzeigen"}
+                            </button>
+                          ) : null}
                           {sourceAnchor ? (
                             <button type="button" onClick={() => setShowSource((value) => !value)} aria-expanded={showSource} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
                               <Eye size={16} aria-hidden="true" />
@@ -339,7 +362,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                           </div>
                         ) : null}
                         {feedbackStatus ? <p className="mt-3 core-body font-semibold text-[var(--core-text-secondary)]" role="status">{feedbackStatus}</p> : null}
-                        {showAnchor && sourceCard ? (
+                        {isCurrentVariant && showAnchor && sourceCard ? (
                           <div className="mt-4 border-t border-[var(--core-border)] pt-4" data-testid="original-anchor">
                             <p className="core-body font-semibold text-[var(--core-text-muted)]">Originalkarte</p>
                             <div className="mt-3 grid gap-4 md:grid-cols-2">
@@ -371,11 +394,13 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                   )}
                 </div>
               </>
-            ) : reviewedCount > 0 ? (
+            ) : answeredCount > 0 ? (
               <div className="text-center">
                 <CheckCircle2 className="mx-auto text-core-text" size={44} aria-hidden="true" />
                 <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Sitzung abgeschlossen</h1>
-                <p className="mt-3 text-[var(--core-text-muted)]">{reviewedCount} {reviewedCount === 1 ? "Karte" : "Karten"} beantwortet.</p>
+                <p className="mt-3 text-[var(--core-text-muted)]">
+                  {completedInitialCount} {completedInitialCount === 1 ? "Karte" : "Karten"} · {repeatCount} {repeatCount === 1 ? "Wiederholung" : "Wiederholungen"}
+                </p>
                 <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-11 items-center rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)]">
                   Zurück zum Ausgangspunkt
                 </button>

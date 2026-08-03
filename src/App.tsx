@@ -3,7 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import type { AuthPhase } from "./accountSession.ts";
 import type { CoreMode, Deck, LearningItem, ReviewEvent, SyncStatus } from "./coreTypes.ts";
-import { BarChart3, BookOpen, CircleHelp, Database, Home, Layers, PlusSquare, Settings } from "lucide-react";
+import { BarChart3, BookOpen, CircleHelp, Database, FlaskConical, Home, Layers, PlusSquare, Settings } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type SettingsReturnContext } from "./appNavigation.ts";
 import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
@@ -40,6 +40,7 @@ const DeckSettingsScreen = React.lazy<React.ComponentType<DeckSettingsScreenProp
 const DecksScreen = React.lazy<React.ComponentType<DecksScreenProps>>(() => import("./screens/DecksScreen.tsx").then(({ DecksScreen }) => ({ default: DecksScreen })));
 const HelpScreen = React.lazy(() => import("./screens/HelpScreen.tsx").then(({ HelpScreen }) => ({ default: HelpScreen })));
 const LearnScreen = React.lazy<React.ComponentType<LearnScreenProps>>(() => import("./screens/LearnScreen.tsx").then(({ LearnScreen }) => ({ default: LearnScreen })));
+const SchedulerTestScreen = React.lazy(() => import("./screens/SchedulerTestScreen.tsx").then(({ SchedulerTestScreen }) => ({ default: SchedulerTestScreen })));
 const SettingsScreen = React.lazy<React.ComponentType<SettingsScreenProps>>(() => import("./screens/SettingsScreen.tsx").then(({ SettingsScreen }) => ({ default: SettingsScreen })));
 const StatisticsScreen = React.lazy<React.ComponentType<StatisticsScreenProps>>(() => import("./screens/StatisticsScreen.tsx").then(({ StatisticsScreen }) => ({ default: StatisticsScreen })));
 const StudyMode = React.lazy<React.ComponentType<StudyModeProps>>(() => import("./screens/StudyMode.tsx").then(({ StudyMode }) => ({ default: StudyMode })));
@@ -71,6 +72,7 @@ const iconByKey: Record<string, LucideIcon> = {
   learn: BookOpen,
   plus: PlusSquare,
   settings: Settings,
+  test: FlaskConical,
 };
 
 function getIcon(iconKey: string) {
@@ -930,6 +932,9 @@ export function App() {
     if (activeView === "statistik") {
       return <StatisticsScreen decks={state.decks} onNavigate={navigateToView} />;
     }
+    if (activeView === "testmodus") {
+      return <SchedulerTestScreen />;
+    }
     if (activeView === "hilfe") {
       return <HelpScreen />;
     }
@@ -1066,6 +1071,19 @@ export function App() {
                   <CircleHelp size={21} aria-hidden="true" />
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => navigateToView("testmodus")}
+                className={`mb-2 flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left core-body font-semibold transition ${
+                  activeView === "testmodus"
+                    ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm"
+                    : "text-[var(--core-text-secondary)] hover:bg-core-surface hover:text-[var(--core-text)]"
+                }`}
+                aria-current={activeView === "testmodus" ? "page" : undefined}
+              >
+                <FlaskConical size={20} aria-hidden="true" />
+                <span>FSRS-Testmodus</span>
+              </button>
               <button
                 type="button"
                 onClick={() => navigateToView("einstellungen")}

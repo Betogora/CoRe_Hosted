@@ -54,6 +54,8 @@ React-Caller kennen keine APKG-, SQLite-, Storage-, RLS-, Scheduler-, Provider- 
 
 `HelpScreen` besitzt die statische Produktaufklärung und den transienten Interaktionszustand der Lernkurve. Er liest oder mutiert keinen Workspace-State. Die Kurve ist lokale, semantisch beschriftete UI und kein Scheduler- oder Variantenvertrag.
 
+`SchedulerTestScreen` besitzt ausschließlich transienten Simulationszustand. `src/schedulerTestMode.ts` erzeugt den deterministischen Teststapel und projiziert ausgewählte Tage auf eine simulierte Uhr; Bewertung, Queue und Wiederholungen laufen weiterhin durch `reviewService.ts` und `scheduler.ts`. Der Testmodus erhält weder Workspace- noch Repository-Callbacks und kann deshalb keine Account-, Cloud- oder Statistikdaten verändern.
+
 ### 2.2 Navigation und URL-Kontext
 
 `LearnScreen` und `DecksScreen` bleiben getrennte Aufgabenoberflächen. Lernen ist der primäre Lernstart; die Kartenverwaltung ist eine sekundäre, direktlinkfähige Oberfläche. Beide erhalten Deck- und Kartenidentität ausschließlich aus dem von `src/appNavigation.ts` normalisierten AppRoute.
@@ -63,7 +65,7 @@ Der URL-Vertrag umfasst:
 - View sowie fokussiertes Deck für Lernen, Kartenverwaltung und Stapel-Einstellungen;
 - ausgewählte Karte ausschließlich in der Kartenverwaltung;
 - Erstellmethode, Zieldeck und Abschlussdeck im Erstellfluss;
-- die kontextfreie Hilfeseite `/hilfe`;
+- die kontextfreien Seiten `/hilfe` und `/testmodus`;
 - Reviewdeck, optionalen Variantenbezeichner und den diskriminierten Rückkontext `today | learn | decks`;
 - optionales Rückdeck und ausschließlich für `decks` eine optionale Rückkarte.
 
@@ -109,6 +111,10 @@ Das fachliche Zielmodell trennt:
 - `Source Document` und `Source Anchor`: Quelle und stabile Fundstelle;
 
 Dieses Zielmodell beschreibt die gewünschte fachliche Richtung, nicht bereits vorhandene Tabellennamen. Das Compatibility-Modell aus Abschnitt 4 bleibt die einzige Aussage über den aktuellen Persistenzvertrag.
+
+`src/scheduler.ts` kapselt die offizielle FSRS-6-Implementierung aus `ts-fsrs@5.4.1`. Review State wird ohne paralleles Persistenzmodell auf die FSRS-Karte projiziert; CoRe ergänzt ausschließlich Reife-XP, Variantenwahl und Fallback. Neue Zustände tragen `fsrs_6_v1`. Ältere `fsrs_v1`-Zustände behalten ihren Termin und werden erst beim nächsten Review auf den neuen Schedulerzustand projiziert. Fuzzing ist deaktiviert, damit Vorschau und Commit deterministisch bleiben. Die 21 offiziellen Standardparameter sind aktiv; persönliche Parameteroptimierung ist nicht implementiert.
+
+Die Tagesqueue begrenzt nur eindeutige initiale Karten. Der Sitzungszustand hält Wiederholungen separat und zieht sie nach der Anfangsqueue bei Bedarf vor; jede Bewertung bleibt trotzdem genau ein unveränderliches Review Event.
 
 ## 6. Persistenz, Sync und Medien
 

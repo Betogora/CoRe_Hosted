@@ -12,6 +12,9 @@ test("renders the truncated FSRS graph, interactive parameters and variant discl
   assert.match(markup, /So arbeitet ein Spaced-Repetition-Scheduler/);
   assert.match(markup, /alle Reviews einschließlich mehrerer Abrufe am selben Tag/);
   assert.match(markup, /21 Modellparameter/);
+  assert.match(markup, /offiziellen 21 Standardparametern/);
+  assert.match(markup, /persönliche Optimierung der Parameter[^.]+noch nicht aktiviert/);
+  assert.match(markup, /zweiten Kontakt nach 15 Minuten/);
   assert.match(markup, /höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/);
   assert.match(markup, /bereit für Varianten/);
   assert.match(markup, /keine garantierte Reviewnummer/);

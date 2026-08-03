@@ -215,7 +215,7 @@ test("workspace APKG commands dry-run and commit through normalized import", asy
   assert.equal(committed.deck.cards[0].sourceType, "anki_import");
   assert.ok(committed);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(committed.deck.cards[0].reviewState.schedulerVersion, "fsrs_v1");
+  assert.equal(committed.deck.cards[0].reviewState.schedulerVersion, "fsrs_6_v1");
   assert.equal(workspace.getState().decks.length, 1);
 });
 

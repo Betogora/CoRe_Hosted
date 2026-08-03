@@ -101,6 +101,15 @@ interface QueueEntry {
   key: string;
 }
 
+export interface DailyReviewSessionState {
+  initialKeys: string[];
+  remainingInitialKeys: string[];
+  completedInitialKeys: string[];
+  repeatKeys: string[];
+  repeatCount: number;
+  ratingCounts: Record<ReviewRating, number>;
+}
+
 interface CreateReviewEventInput {
   deck: Deck;
   item: LearningItem;
@@ -596,6 +605,78 @@ function createReviewItemViewModel(deck: Deck, selectedItem: LearningItem | null
       schedulerVersion: (selectedItem.learningItemState ?? selectedItem.reviewState)?.schedulerVersion ?? SCHEDULER_VERSION,
       selectedBy: options.selectedBy ?? "due_learning_item",
       queueKind: options.queueKind ?? null,
+    },
+  };
+}
+
+export function createDailyReviewSessionState(items: Array<{ deckId?: string; learningItemId?: string } | null | undefined> = []): DailyReviewSessionState {
+  const initialKeys = items
+    .map((item) => item?.deckId && item.learningItemId ? reviewKey(item.deckId, item.learningItemId) : "")
+    .filter((key, index, keys) => Boolean(key) && keys.indexOf(key) === index);
+  return {
+    initialKeys,
+    remainingInitialKeys: [...initialKeys],
+    completedInitialKeys: [],
+    repeatKeys: [],
+    repeatCount: 0,
+    ratingCounts: { again: 0, hard: 0, good: 0, easy: 0 },
+  };
+}
+
+export function advanceDailyReviewSession(
+  session: DailyReviewSessionState,
+  input: { key: string; rating: ReviewRating; nextReviewState: ReviewState },
+): DailyReviewSessionState {
+  const wasInitial = session.remainingInitialKeys.includes(input.key);
+  const wasRepeat = !wasInitial && session.repeatKeys.includes(input.key);
+  const remainingInitialKeys = session.remainingInitialKeys.filter((key) => key !== input.key);
+  const repeatKeys = session.repeatKeys.filter((key) => key !== input.key);
+  const needsRepeat = input.nextReviewState.state === "learning" || input.nextReviewState.state === "relearning";
+  if (needsRepeat) repeatKeys.push(input.key);
+
+  return {
+    ...session,
+    remainingInitialKeys,
+    completedInitialKeys: wasInitial && !session.completedInitialKeys.includes(input.key)
+      ? [...session.completedInitialKeys, input.key]
+      : session.completedInitialKeys,
+    repeatKeys,
+    repeatCount: session.repeatCount + (wasRepeat ? 1 : 0),
+    ratingCounts: {
+      ...session.ratingCounts,
+      [input.rating]: session.ratingCounts[input.rating] + 1,
+    },
+  };
+}
+
+export function getNextDailyReviewSessionItem(
+  decksOrDeck: Deck | Deck[],
+  session: DailyReviewSessionState,
+  options: ReviewServiceOptions = {},
+) {
+  const key = session.remainingInitialKeys[0] ?? session.repeatKeys[0] ?? null;
+  if (!key) return null;
+  const decks = asDeckArray(decksOrDeck);
+  const entry = decks
+    .flatMap((deck) => activeLearningItems(deck).map((learningItem) => ({ deck, learningItem, key: reviewKey(deck.id, learningItem.id) })))
+    .find((candidate) => candidate.key === key);
+  if (!entry) return null;
+
+  const isRepeat = session.repeatKeys.includes(key) && !session.remainingInitialKeys.includes(key);
+  const now = options.now ?? new Date().toISOString();
+  const item = createReviewItemViewModel(entry.deck, entry.learningItem, {
+    ...options,
+    now,
+    selectedBy: isRepeat ? "session_repeat" : "session_initial",
+    queueKind: isRepeat ? "repeat" : isNewLearningItem(entry.learningItem) ? "new" : "due",
+  });
+  if (!item) return null;
+  return {
+    ...item,
+    sessionInfo: {
+      key,
+      isRepeat,
+      isEarlyRepeat: isRepeat && !isDue(entry.learningItem.learningItemState ?? entry.learningItem.reviewState, now),
     },
   };
 }

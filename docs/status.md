@@ -23,8 +23,9 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Reverse-Richtungen, Cloze-Lückengruppen und Multiple-Choice-Lösung werden beim Speichern atomar in ihre reviewbaren Formen projiziert; Reimport, Cloud und Portabilität erhalten lokale strukturierte Änderungen.
 - APKG-, Text-, CSV- und Tabellenimport mit getrennten UI-Phasen und Terminalzuständen; Formatwechsel verwerfen alte Vorschau- und Commit-Zustände.
 - Accountgebundener Mediencache mit privaten Storage-Objekten, Standardupload bis 6 MiB, TUS darüber und URL-Fallback.
-- Review mit vier Bewertungen, Tastatursteuerung, Intervallvorschau und stabilem Sitzungsabschluss.
-- Direkt verlinkbare Hilfeseite zu FSRS, CoRes FSRS-ähnlichem Scheduler und Content Repetition mit zugänglicher interaktiver Lernkurve; Review 4 ist darin ausdrücklich ein vereinfachtes Variantenbeispiel.
+- Review mit vier Bewertungen, echtem FSRS-6 auf offiziellen Standardparametern, Tastatursteuerung und deterministischer Intervallvorschau. Neue Karten erhalten einen verpflichtenden zweiten Tageskontakt; Sitzungen arbeiten eindeutige Karten vor vorgezogenen Wiederholungen ab und zählen beide getrennt.
+- Isolierter, direkt verlinkbarer FSRS-Testmodus mit eigenem Fünf-Karten-Stapel, simulierter Tagesnavigation, echter Review- und Wiederholungslogik sowie sichtbarem Verlauf für nächsten Tag, Zustand, Stabilität und Schwierigkeit; keine Testbewertung gelangt in Workspace, Cloud oder echte Statistik.
+- Direkt verlinkbare Hilfeseite zu FSRS-6, der noch nicht aktivierten persönlichen Parameteroptimierung und Content Repetition mit zugänglicher interaktiver Lernkurve; Review 4 ist darin ausdrücklich ein vereinfachtes Variantenbeispiel.
 - Content-Repetition-Varianten mit genau einem Originalanker, Eligibility, Reife, Deaktivierung und kontrolliertem Fehlerfeedback.
 - Statistik, Sync-/Konfliktstatus und begrenzter JSON-Portabilitätsexport.
 - Lazy geladene Produktscreens, sicherer React-Fehlerfallback und sichtbare Release-Information.
