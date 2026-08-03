@@ -41,14 +41,6 @@ function createDeckTree(rows: DeckLibraryRow[]) {
   return { roots, nodesById };
 }
 
-function depthStyle(depth: number): React.CSSProperties {
-  const normalizedDepth = Math.min(Math.max(0, depth), 3);
-  return {
-    backgroundColor: `var(--core-group-depth-${normalizedDepth})`,
-    borderColor: "var(--core-border)",
-  };
-}
-
 function DeckCounts({ row }: { row: DeckLibraryRow }) {
   const counts = [
     { label: "Neu", value: row.summary.newCards, color: "var(--core-deck-new-text)", metric: "new" },
@@ -77,7 +69,7 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
   const lastDragEndAtRef = React.useRef(0);
   const { roots, nodesById } = React.useMemo(() => createDeckTree(rows), [rows]);
   const rowTestPrefix = mode === "manage" ? "deck" : `${mode}-deck`;
-  const dragEnabled = mode !== "manage" && Boolean(onMoveDeck);
+  const dragEnabled = Boolean(onMoveDeck);
 
   function toggleCollapsed(deckId: string) {
     setCollapsedDeckIds((current) => {
@@ -185,8 +177,9 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
         data-testid={`${rowTestPrefix}-group-${row.id}`}
         data-deck-group="true"
         data-deck-depth={row.depth}
-        className={`grid gap-2 rounded-2xl border p-2 transition sm:gap-3 ${isDragged ? "opacity-60" : ""}`}
-        style={depthStyle(row.depth)}
+        data-selected={isSelected || undefined}
+        data-drop-state={isDropTarget ? (dropIntent?.invalid ? "invalid" : "valid") : undefined}
+        className={`core-deck-group grid gap-2 rounded-2xl border border-[var(--core-border)] p-2 sm:gap-3 ${isDragged ? "opacity-60" : ""}`}
       >
         <div
           draggable={dragEnabled || undefined}
@@ -197,11 +190,7 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
           onDrop={(event) => dropDeck(event, rowDropIntent(event, row))}
           data-testid={`${rowTestPrefix}-row-${row.id}`}
           data-deck-row="true"
-          className={`relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-3 transition sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:px-3 ${
-            isSelected ? "ring-2 ring-[var(--core-border-interactive)]" : ""
-          } ${isDropTarget && !dropIntent?.invalid ? "bg-[var(--core-info-surface)] ring-2 ring-[var(--core-border-interactive)]" : ""} ${
-            isDropTarget && dropIntent?.invalid ? "bg-[var(--core-danger-surface)] ring-2 ring-[var(--core-danger)]" : ""
-          }`}
+          className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-3 sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:px-3"
         >
           <button
             type="button"
@@ -210,7 +199,7 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
             aria-pressed={mode === "manage" ? isSelected : undefined}
             data-testid={mode === "manage" ? `deck-select-${row.id}` : undefined}
             data-deck-row-activation="true"
-            className={`absolute inset-0 z-0 rounded-xl text-left transition hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2 ${dragEnabled ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
+            className={`absolute inset-0 z-0 rounded-xl text-left ${dragEnabled ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
           >
             <span className="sr-only">{activationLabel}</span>
           </button>
@@ -220,7 +209,7 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
               <button
                 type="button"
                 onClick={() => toggleCollapsed(row.id)}
-                className="pointer-events-auto grid size-9 shrink-0 place-items-center rounded-lg text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)]"
+                className="pointer-events-auto grid size-11 shrink-0 place-items-center rounded-lg text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)]"
                 aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
                 aria-expanded={!isCollapsed}
                 data-deck-row-control="true"
@@ -228,7 +217,7 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
                 {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
               </button>
             ) : (
-              <span className="size-9 shrink-0" aria-hidden="true" />
+              <span className="size-11 shrink-0" aria-hidden="true" />
             )}
             <DeckAppearanceIcon deck={row.deck} className="size-11 rounded-full bg-[var(--core-surface-muted)]" iconSize={20} />
             <span className="min-w-0">
@@ -250,7 +239,6 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
                   type="button"
                   label={`Stapeloptionen für ${row.path}`}
                   icon={Settings}
-                  size="compact"
                   onClick={() => onOpenSettings(row)}
                   data-deck-row-control="true"
                 />

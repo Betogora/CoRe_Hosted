@@ -1032,7 +1032,7 @@ export function App() {
                     key={view.id}
                     type="button"
                     onClick={() => navigateToView(view.id)}
-                    className={`core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium transition md:min-h-12 ${
+                    className={`core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium transition ${
                       isActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text-secondary)] hover:bg-core-surface hover:text-[var(--core-text)]"
                     }`}
                     aria-current={isActive ? "page" : undefined}
@@ -1065,7 +1065,7 @@ export function App() {
               <button
                 type="button"
                 onClick={() => navigateToView("einstellungen")}
-                className={`flex min-h-12 w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left transition ${
+                className={`flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition ${
                   activeView === "einstellungen" ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text)] hover:bg-core-surface"
                 }`}
                 aria-label="Einstellungen öffnen"

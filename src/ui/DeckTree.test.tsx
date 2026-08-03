@@ -33,6 +33,8 @@ test("deck tree keeps hierarchy, labels and all three semantic metrics in every 
   assert.match(markup, /var\(--core-deck-due-text\)/);
   assert.match(markup, /var\(--core-deck-total-text\)/);
   assert.match(markup, /draggable="true"/);
+  assert.match(markup, /data-deck-depth="0"[^>]*class="core-deck-group/);
+  assert.match(markup, /data-deck-depth="1"[^>]*class="core-deck-group/);
 });
 
 test("deck tree exposes only mode-specific row utilities", () => {
@@ -40,13 +42,14 @@ test("deck tree exposes only mode-specific row utilities", () => {
     <DeckTree rows={rows} mode="dashboard" onActivate={() => undefined} onMoveDeck={() => null} />,
   );
   const management = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="manage" selectedDeckId="child" onActivate={() => undefined} />,
+    <DeckTree rows={rows} mode="manage" selectedDeckId="child" onActivate={() => undefined} onMoveDeck={() => null} />,
   );
 
   assert.match(dashboard, /conic-gradient/);
   assert.doesNotMatch(dashboard, /Stapeloptionen/);
   assert.match(management, /aria-label="Bereich \/ Grundlagen öffnen"/);
   assert.match(management, /aria-pressed="true"/);
-  assert.doesNotMatch(management, /draggable=/);
+  assert.match(management, /data-selected="true"/);
+  assert.match(management, /draggable="true"/);
   assert.doesNotMatch(management, /conic-gradient|Stapeloptionen/);
 });

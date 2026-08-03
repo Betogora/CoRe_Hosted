@@ -19,7 +19,7 @@ Die teilbare visuelle Referenz liegt in `docs/ui-elements.html`. Nach Änderunge
 
 Direktimport: `import { ActionButton, IconButton } from "../ui/actionUi.tsx"`.
 
-`ActionButton` verlangt `variant="primary | secondary | tertiary | destructive"`; optional sind `size="compact | default | large"`, `icon` und `loading`. Das Modul besitzt Mindesthöhe, Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Der Aufrufer wählt Hierarchie, Label und Ereignis.
+`ActionButton` verlangt `variant="primary | secondary | tertiary | destructive"`; optional sind `icon` und `loading`. Das Modul besitzt die produktweite Standardhöhe von 44 px, Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Der Aufrufer wählt Hierarchie, Label und Ereignis.
 
 ```tsx
 <ActionButton variant="primary" icon={Save} loading={saving} onClick={save}>
@@ -29,7 +29,7 @@ Direktimport: `import { ActionButton, IconButton } from "../ui/actionUi.tsx"`.
 
 Nicht für Reviewratings, MCQ-Antworten, Tabs, Farbfelder, Navigationszeilen oder segmentierte Controls verwenden, deren Auswahlsemantik über einen normalen Action-Button hinausgeht.
 
-`IconButton` verlangt `label` und `icon`; Varianten sind `secondary`, `tertiary` (Standard) und `destructive`, Größen `compact` und `default`. Das Modul setzt das zugängliche Label, Icongröße und Touchziel. Für einen zusätzlichen sichtbaren Hinweis wird `CoreTooltip` verwendet; native `title`-Tooltips gehören nicht zur Produkt-UI.
+`IconButton` verlangt `label` und `icon`; Varianten sind `secondary`, `tertiary` (Standard) und `destructive`. Das Modul setzt das zugängliche Label, die feste Größe von 44 × 44 px und die Icongröße. Für einen zusätzlichen sichtbaren Hinweis wird `CoreTooltip` verwendet; native `title`-Tooltips gehören nicht zur Produkt-UI.
 
 ```tsx
 <IconButton label="Antwortoption entfernen" icon={X} onClick={removeOption} />
@@ -89,7 +89,7 @@ Für spezialisierte Strukturen stehen `core-status-info`, `core-status-success`,
 
 ## Spezialisierte Feature-Module
 
-- `DeckTree` aus `src/ui/DeckTree.tsx`: kanonische einklappbare Stapelkarte für Dashboard, Lernen und Kartenverwaltung; besitzt Hierarchie, Teilbaum-Kennzahlen, Keyboard-Aktivierung sowie das direkte Drag-and-drop in Dashboard und Lernen. Fachliche Mutationen bleiben in den übergebenen Callbacks.
+- `DeckTree` aus `src/ui/DeckTree.tsx`: kanonische einklappbare Stapelkarte für Dashboard, Lernen und Kartenverwaltung; besitzt Hierarchie, Teilbaum-Kennzahlen, Keyboard-Aktivierung sowie direktes Drag-and-drop in allen drei Ansichten. Fachliche Mutationen bleiben in den übergebenen Callbacks.
 - `RichTextEditor` aus `src/ui/RichTextEditor.tsx`: sanitisiertes Karten-HTML, Toolbar, Text- und Markerfarben.
 - `ColorPopover` und `ColorToolButton` aus `src/ui/colorPicker.tsx`: gespeicherte Farbfelder und technisches Farbspektrum.
 - `PdfDocumentViewer` aus `src/ui/PdfDocumentViewer.tsx`: PDF-Rendering, Zoom, Navigation und Textauswahl.

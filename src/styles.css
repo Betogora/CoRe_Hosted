@@ -148,6 +148,40 @@
     -webkit-backdrop-filter: blur(16px);
   }
 
+  .core-deck-group {
+    background-color: var(--core-group-depth-3);
+    transition: border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+  }
+
+  .core-deck-group[data-deck-depth="0"] { background-color: var(--core-group-depth-0); }
+  .core-deck-group[data-deck-depth="1"] { background-color: var(--core-group-depth-1); }
+  .core-deck-group[data-deck-depth="2"] { background-color: var(--core-group-depth-2); }
+
+  .core-deck-group:has(> [data-deck-row] > [data-deck-row-activation]:hover),
+  .core-deck-group[data-selected="true"],
+  .core-deck-group[data-drop-state="valid"] {
+    border-color: var(--core-border-interactive);
+  }
+
+  .core-deck-group[data-selected="true"],
+  .core-deck-group[data-drop-state="valid"] {
+    box-shadow: 0 0 0 2px var(--core-focus-ring-soft);
+  }
+
+  .core-deck-group:has(> [data-deck-row] > [data-deck-row-activation]:focus-visible) {
+    border-color: var(--core-focus);
+    box-shadow: 0 0 0 3px var(--core-focus-ring);
+  }
+
+  .core-deck-group[data-drop-state="invalid"] {
+    border-color: var(--core-danger);
+    box-shadow: 0 0 0 2px var(--core-danger);
+  }
+
+  [data-deck-row-activation]:focus-visible {
+    outline: none;
+  }
+
   .core-tooltip {
     position: fixed;
     z-index: 60;
@@ -530,12 +564,14 @@ summary {
 
 .core-hue-range {
   width: 100%;
-  height: 0.75rem;
+  height: 2.75rem;
   cursor: pointer;
   appearance: none;
-  border: 1px solid var(--core-border);
+  border: 0;
   border-radius: 999px;
-  background: linear-gradient(to right, #ef4444, #f59e0b, #fef08a, #22c55e, #06b6d4, #2563eb, #7c3aed, #ef4444);
+  background:
+    linear-gradient(to right, #ef4444, #f59e0b, #fef08a, #22c55e, #06b6d4, #2563eb, #7c3aed, #ef4444) center / calc(100% - 2px) 0.625rem no-repeat,
+    linear-gradient(var(--core-border), var(--core-border)) center / 100% 0.75rem no-repeat;
   outline: none;
 }
 
@@ -601,8 +637,8 @@ summary {
 
 .core-pdf-control {
   display: inline-flex;
-  min-width: 2.25rem;
-  min-height: 2.25rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   gap: 0.3rem;

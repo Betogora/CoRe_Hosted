@@ -222,7 +222,7 @@ export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange
   ];
 
   return (
-    <div className="core-status-label inline-grid min-h-10 grid-cols-3 overflow-hidden rounded-xl border border-core-border bg-core-subtle text-core-secondary">
+    <div className="core-status-label inline-grid min-h-11 grid-cols-3 overflow-hidden rounded-xl border border-core-border bg-core-subtle text-core-secondary">
       {modes.map((mode) => (
         <button
           key={mode.value}

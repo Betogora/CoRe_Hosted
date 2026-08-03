@@ -68,7 +68,7 @@ export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onBack, bac
           <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Iconfarbe
             <span className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--core-border)] bg-core-surface px-3">
-              <input type="color" className="size-8 cursor-pointer border-0 bg-transparent p-0" value={appearance.iconColor} onChange={(event) => setAppearance((current) => normalizeDeckAppearance({ ...current, iconColor: event.target.value }))} aria-label="Iconfarbe auswählen" />
+              <input type="color" className="size-11 cursor-pointer border-0 bg-transparent p-0" value={appearance.iconColor} onChange={(event) => setAppearance((current) => normalizeDeckAppearance({ ...current, iconColor: event.target.value }))} aria-label="Iconfarbe auswählen" />
               <span className="font-mono core-body uppercase">{appearance.iconColor}</span>
             </span>
           </label>

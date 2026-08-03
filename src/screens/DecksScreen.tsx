@@ -174,7 +174,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
         </div>
         <div className="flex flex-wrap gap-2">
           {form ? (
-            <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:opacity-60">
+            <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:opacity-60">
               <Save size={16} aria-hidden="true" />
               {isSaving ? "Speichert …" : "Speichern"}
             </button>
@@ -182,7 +182,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           <button
             type="button"
             onClick={() => onDeleteCard(card.id)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-4 core-body font-semibold text-core-text"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-4 core-body font-semibold text-core-text"
           >
             <Trash2 size={16} aria-hidden="true" />
             Löschen
@@ -232,10 +232,10 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
                   <div key={index} className="flex min-w-0 items-center gap-2">
                     <input type="radio" name={`correct-option-${card.id}`} checked={form.correctOptionIndex === index} onChange={() => update("correctOptionIndex", index)} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex)} />
                     <input className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border)] px-3" value={option} onChange={(event) => updateMcOption(index, event.target.value)} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-                    <button type="button" onClick={() => removeMcOption(index)} disabled={form.options.length <= 2} className="grid size-10 place-items-center rounded-xl border border-[var(--core-border)] text-[var(--core-text-muted)] disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
+                    <button type="button" onClick={() => removeMcOption(index)} disabled={form.options.length <= 2} className="grid size-11 place-items-center rounded-xl border border-[var(--core-border)] text-[var(--core-text-muted)] disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
                   </div>
                 ))}
-                <button type="button" onClick={addMcOption} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl border border-[var(--core-border)] px-3 core-body font-semibold text-[var(--core-action-primary)]"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button>
+                <button type="button" onClick={addMcOption} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl border border-[var(--core-border)] px-3 core-body font-semibold text-[var(--core-action-primary)]"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button>
                 <FieldError errors={fieldErrors} field="options" />
                 <FieldError errors={fieldErrors} field="correctOptionIndex" />
               </fieldset>
@@ -339,14 +339,14 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           <div className="mt-4 rounded-xl border border-core-warning bg-core-warning-soft p-4" role="group" aria-label="Restore endgültig bestätigen">
             <p className="core-body font-semibold text-core-text">Der gezeigte Stand ersetzt den aktuellen Karteninhalt. Der aktuelle Stand bleibt im Versionsverlauf erhalten.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button ref={restoreActionRef} type="button" onClick={restoreSelectedVersion} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)]">
+              <button ref={restoreActionRef} type="button" onClick={restoreSelectedVersion} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)]">
                 <RotateCcw size={16} aria-hidden="true" />
                 Wiederherstellen
               </button>
               <button type="button" onClick={() => {
                 setConfirmRestore(false);
                 window.requestAnimationFrame(() => restoreConfirmRef.current?.focus());
-              }} className="min-h-10 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)]">
+              }} className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)]">
                 Abbrechen
               </button>
             </div>
@@ -414,7 +414,7 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
               ))}
             </select>
           </div>
-          <button type="button" onClick={addManualVariant} className="inline-flex min-h-10 w-fit items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-3 core-body font-semibold text-[var(--core-text-on-accent)]">
+          <button type="button" onClick={addManualVariant} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-3 core-body font-semibold text-[var(--core-text-on-accent)]">
             <PlusSquare size={16} aria-hidden="true" />
             Umformulierung hinzufügen
           </button>
@@ -652,7 +652,7 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
         {deletedCardUndo ? (
           <div className="core-status-success mt-3 flex flex-wrap items-center justify-between gap-3 core-body" role="status" aria-live="assertive">
             <span>Karte „{deletedCardUndo.description.slice(0, 90)}“ gelöscht.</span>
-            <button type="button" onClick={() => void undoCardDelete()} className="min-h-10 rounded-xl border border-core-success bg-core-surface px-3 font-semibold text-core-text">
+            <button type="button" onClick={() => void undoCardDelete()} className="min-h-11 rounded-xl border border-core-success bg-core-surface px-3 font-semibold text-core-text">
               Rückgängig
             </button>
           </div>
@@ -677,6 +677,7 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
             mode="manage"
             selectedDeckId={selectedDeckId}
             onActivate={activateDeckRow}
+            onMoveDeck={onMoveDeck}
           />
         </SoftPanel>
       )}
@@ -717,19 +718,19 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
             <div className="grid gap-2">
               <span className="core-control-label text-[var(--core-text-muted)]">Stapel verwalten</span>
               <div className="flex flex-wrap gap-2">
-                <ActionButton type="button" variant="tertiary" size="compact" icon={Settings} onClick={() => onOpenDeckSettings(selectedDeck.id)}>
+                <ActionButton type="button" variant="tertiary" icon={Settings} onClick={() => onOpenDeckSettings(selectedDeck.id)}>
                   Einstellungen
                 </ActionButton>
-                <ActionButton type="button" variant="tertiary" size="compact" icon={Pencil} onClick={() => beginRename(selectedDeck)} data-testid={`deck-rename-button-${selectedDeck.id}`}>
+                <ActionButton type="button" variant="tertiary" icon={Pencil} onClick={() => beginRename(selectedDeck)} data-testid={`deck-rename-button-${selectedDeck.id}`}>
                   Umbenennen
                 </ActionButton>
-                <ActionButton type="button" variant="tertiary" size="compact" icon={MoveRight} onClick={() => beginMove(selectedDeck)} data-testid={`deck-move-button-${selectedDeck.id}`}>
+                <ActionButton type="button" variant="tertiary" icon={MoveRight} onClick={() => beginMove(selectedDeck)} data-testid={`deck-move-button-${selectedDeck.id}`}>
                   Verschieben
                 </ActionButton>
-                <ActionButton type="button" variant="tertiary" size="compact" icon={FolderPlus} onClick={() => prepareSubdeck(selectedDeck)}>
+                <ActionButton type="button" variant="tertiary" icon={FolderPlus} onClick={() => prepareSubdeck(selectedDeck)}>
                   Unterstapel
                 </ActionButton>
-                <ActionButton type="button" variant="destructive" size="compact" icon={Trash2} onClick={() => deleteDeckTree(selectedDeck, selectedRow)}>
+                <ActionButton type="button" variant="destructive" icon={Trash2} onClick={() => deleteDeckTree(selectedDeck, selectedRow)}>
                   Löschen
                 </ActionButton>
               </div>
@@ -737,10 +738,10 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
             <div className="grid gap-2">
               <span className="core-control-label text-[var(--core-text-muted)]">Lernen</span>
               <div className="flex flex-wrap gap-2">
-                <ActionButton type="button" variant="primary" size="compact" icon={Play} onClick={() => onStartDeck(selectedDeck, false)}>
+                <ActionButton type="button" variant="primary" icon={Play} onClick={() => onStartDeck(selectedDeck, false)}>
                   Lernen
                 </ActionButton>
-                <ActionButton type="button" variant="secondary" size="compact" icon={Sparkles} onClick={() => onStartDeck(selectedDeck, true)}>
+                <ActionButton type="button" variant="secondary" icon={Sparkles} onClick={() => onStartDeck(selectedDeck, true)}>
                   Mit Varianten lernen
                 </ActionButton>
               </div>
@@ -752,16 +753,16 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
               <label className="sr-only" htmlFor={`deck-rename-${selectedDeck.id}`}>Stapelname</label>
               <input
                 id={`deck-rename-${selectedDeck.id}`}
-                className="min-h-10 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-text)] outline-none focus:ring-2 focus:ring-[var(--core-focus)]"
+                className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-text)] outline-none focus:ring-2 focus:ring-[var(--core-focus)]"
                 value={renameDraft}
                 onChange={(event) => setRenameDraft(event.target.value)}
                 autoFocus
                 data-testid={`deck-rename-input-${selectedDeck.id}`}
               />
-              <button type="submit" className="grid size-10 place-items-center rounded-xl bg-[var(--core-action-primary)] text-[var(--core-text-on-accent)]" aria-label="Stapelname speichern" data-testid={`deck-rename-save-${selectedDeck.id}`}>
+              <button type="submit" className="grid size-11 place-items-center rounded-xl bg-[var(--core-action-primary)] text-[var(--core-text-on-accent)]" aria-label="Stapelname speichern" data-testid={`deck-rename-save-${selectedDeck.id}`}>
                 <Check size={17} aria-hidden="true" />
               </button>
-              <button type="button" onClick={cancelRename} className="grid size-10 place-items-center rounded-xl bg-core-surface text-[var(--core-action-primary)]" aria-label="Umbenennen abbrechen">
+              <button type="button" onClick={cancelRename} className="grid size-11 place-items-center rounded-xl bg-core-surface text-[var(--core-action-primary)]" aria-label="Umbenennen abbrechen">
                 <X size={17} aria-hidden="true" />
               </button>
             </form>
@@ -782,8 +783,8 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
                 {selectedMoveTarget ? `„${selectedDeck.name}“ wird unter „${selectedMoveTarget.name}“ verschoben.` : `„${selectedDeck.name}“ wird auf die Hauptebene verschoben.`}
               </p>
               <div className="flex flex-wrap gap-2">
-                <ActionButton type="submit" variant="primary" size="compact" icon={MoveRight}>Verschieben bestätigen</ActionButton>
-                <ActionButton type="button" variant="tertiary" size="compact" onClick={cancelMove}>Abbrechen</ActionButton>
+                <ActionButton type="submit" variant="primary" icon={MoveRight}>Verschieben bestätigen</ActionButton>
+                <ActionButton type="button" variant="tertiary" onClick={cancelMove}>Abbrechen</ActionButton>
               </div>
             </form>
           ) : null}

@@ -77,11 +77,11 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
 
       <div className="grid min-w-0 gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={() => onOpenDecks(focusedDeckId)} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
+          <button type="button" onClick={() => onOpenDecks(focusedDeckId)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
             <Layers size={17} aria-hidden="true" />
             Karten verwalten
           </button>
-          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
+          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
             <PlusSquare size={17} aria-hidden="true" />
             Neue Karten
           </button>
@@ -91,7 +91,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
             onClick={() => {
               setIsDeckCreateOpen((current) => !current);
             }}
-            className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]"
             aria-expanded={isDeckCreateOpen}
             aria-controls="learn-deck-create-form"
             data-testid="learn-deck-create-toggle"

@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createCoreDeck, createLearningItemFromEditorValue, createManualCoreDeck, updateCardContent } from "../coreModel.ts";
 import { DecksScreen } from "./DecksScreen.tsx";
 
-test("deck management centralizes selected-deck actions and keeps explicit move and variant tools", () => {
+test("deck management centralizes selected-deck actions and offers direct plus explicit move controls", () => {
   const originalDeck = createManualCoreDeck({
     deckName: "Biologie",
     card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
@@ -50,7 +50,7 @@ test("deck management centralizes selected-deck actions and keeps explicit move 
   assert.match(inventoryMarkup, /data-deck-count="new"/);
   assert.match(inventoryMarkup, /data-deck-count="due"/);
   assert.match(inventoryMarkup, /data-deck-count="total"/);
-  assert.doesNotMatch(markup, /draggable=/);
+  assert.match(markup, /draggable="true"/);
 });
 
 test("deck management shows safe fallbacks for unavailable deck and card links", () => {

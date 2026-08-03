@@ -352,7 +352,9 @@ test("workspace renames a deck tree without replacing imported metadata or child
 test("workspace moves deck trees, supports top-level drops and rejects descendant drops", () => {
   const workspace = createTestWorkspace();
   const root = workspace.createDeck({ name: "Medizin" });
-  const anatomy = workspace.createDeck({ name: "Anatomie", parentDeckId: root.id });
+  const anatomyBase = workspace.createDeck({ name: "Anatomie", parentDeckId: root.id });
+  const retainedCard = createDemoAnatomyDeck().cards[0];
+  const anatomy = workspace.saveDeck({ ...anatomyBase, cards: [retainedCard] });
   const head = workspace.createDeck({ name: "Kopf", parentDeckId: anatomy.id });
   const physio = workspace.createDeck({ name: "Physio", parentDeckId: root.id });
 
@@ -368,7 +370,7 @@ test("workspace moves deck trees, supports top-level drops and rejects descendan
   assert.equal(moved.ok, true);
   assert.ok(movedAnatomy);
   assert.equal(movedAnatomy.parentDeckId, physio.id);
-  assert.ok(movedAnatomy);
+  assert.equal(movedAnatomy.cards[0]?.id, retainedCard.id);
   assert.deepEqual(movedAnatomy.hierarchyPath, ["Medizin", "Physio", "Anatomie"]);
   assert.ok(movedHead);
   assert.deepEqual(movedHead.hierarchyPath, ["Medizin", "Physio", "Anatomie", "Kopf"]);
@@ -379,6 +381,7 @@ test("workspace moves deck trees, supports top-level drops and rejects descendan
   assert.equal(finalAnatomy.parentDeckId, null);
   assert.ok(finalAnatomy);
   assert.deepEqual(finalAnatomy.hierarchyPath, ["Anatomie"]);
+  assert.equal(finalAnatomy.cards[0]?.id, retainedCard.id);
 });
 
 test("workspace keeps sibling deck names unique on create and rename", () => {

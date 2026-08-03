@@ -237,7 +237,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                   <span>{queue.newCardsIntroducedToday} heute eingeführt</span>
                   <span>{queue.availableNewCards} neue Karten im Stapel verfügbar</span>
                 </div>
-                <button type="button" onClick={() => setTodayNewCardLimit(queue.newCardsPerDay + 10)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
+                <button type="button" onClick={() => setTodayNewCardLimit(queue.newCardsPerDay + 10)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
                   +10
                 </button>
               </div>
@@ -308,18 +308,18 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                       ) : null}
                       <div className="mt-8 rounded-2xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
                         <div className="flex flex-wrap gap-2">
-                          <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
+                          <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
                             <Eye size={16} aria-hidden="true" />
                             {showAnchor ? "Original ausblenden" : "Original anzeigen"}
                           </button>
                           {sourceAnchor ? (
-                            <button type="button" onClick={() => setShowSource((value) => !value)} aria-expanded={showSource} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
+                            <button type="button" onClick={() => setShowSource((value) => !value)} aria-expanded={showSource} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
                               <Eye size={16} aria-hidden="true" />
                               {showSource ? "Quelle ausblenden" : "Quelle anzeigen"}
                             </button>
                           ) : null}
                           {isCurrentVariant ? (
-                            <button type="button" onClick={() => updateVariant("disable")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-core-warning bg-core-warning-soft px-3 core-body font-semibold text-core-text">
+                            <button type="button" onClick={() => updateVariant("disable")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-warning bg-core-warning-soft px-3 core-body font-semibold text-core-text">
                               <Ban size={16} aria-hidden="true" />
                               Nicht mehr zeigen
                             </button>
@@ -328,11 +328,11 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                         {isCurrentVariant ? (
                           <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Problem melden">
                             <span className="core-body font-semibold text-[var(--core-text-muted)]">Problem melden:</span>
-                            <button type="button" onClick={() => updateVariant("flag", "fachlich_falsch")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
+                            <button type="button" onClick={() => updateVariant("flag", "fachlich_falsch")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
                               <Flag size={16} aria-hidden="true" />
                               Inhaltlich falsch
                             </button>
-                            <button type="button" onClick={() => updateVariant("flag", "unklar_formuliert")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
+                            <button type="button" onClick={() => updateVariant("flag", "unklar_formuliert")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
                               <Flag size={16} aria-hidden="true" />
                               Unklar formuliert
                             </button>
@@ -364,7 +364,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                       </div>
                     </>
                   ) : (
-                    <button type="button" onClick={() => setShowAnswer(true)} className="mx-auto mt-12 inline-flex min-h-12 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)]">
+                    <button type="button" onClick={() => setShowAnswer(true)} className="mx-auto mt-12 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)]">
                       <RotateCcw size={17} aria-hidden="true" />
                       Antwort anzeigen
                     </button>
@@ -376,7 +376,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                 <CheckCircle2 className="mx-auto text-core-text" size={44} aria-hidden="true" />
                 <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Sitzung abgeschlossen</h1>
                 <p className="mt-3 text-[var(--core-text-muted)]">{reviewedCount} {reviewedCount === 1 ? "Karte" : "Karten"} beantwortet.</p>
-                <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-12 items-center rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)]">
+                <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-11 items-center rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)]">
                   Zurück zum Ausgangspunkt
                 </button>
               </div>

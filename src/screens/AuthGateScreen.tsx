@@ -136,7 +136,7 @@ export function AuthGateScreen({
                 </label>
               ) : null}
 
-              <button type="submit" disabled={!configured || busy} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)] disabled:bg-[var(--core-action-disabled-bg)]">
+              <button type="submit" disabled={!configured || busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)] disabled:bg-[var(--core-action-disabled-bg)]">
                 <PrimaryIcon size={17} aria-hidden="true" />
                 {busy ? `${primaryLabel} läuft` : primaryLabel}
               </button>

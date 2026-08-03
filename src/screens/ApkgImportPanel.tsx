@@ -249,7 +249,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
         {uiState.status === "succeeded" && completedDeck ? (
           <div className="core-status-success mt-4 core-body" role="status" aria-live="polite">
             <p className="font-semibold">Import erfolgreich abgeschlossen.</p>
-            <ActionButton type="button" variant="primary" size="compact" onClick={() => onCompleted(completedDeck)} className="mt-3">Import abschließen</ActionButton>
+            <ActionButton type="button" variant="primary" onClick={() => onCompleted(completedDeck)} className="mt-3">Import abschließen</ActionButton>
           </div>
         ) : null}
 
@@ -257,8 +257,8 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
           <div className="core-status-warning mt-4 core-body" role="status">
             <p>Import teilweise abgeschlossen. Die Karten sind übernommen; Medien sind noch nicht vollständig synchronisiert.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {mediaTask ? <ActionButton type="button" variant="primary" size="compact" onClick={() => mediaTask.resume()}>Medien-Sync fortsetzen</ActionButton> : null}
-              {completedDeck ? <ActionButton type="button" variant="secondary" size="compact" onClick={() => onCompleted(completedDeck)}>Karten jetzt verwenden</ActionButton> : null}
+              {mediaTask ? <ActionButton type="button" variant="primary" onClick={() => mediaTask.resume()}>Medien-Sync fortsetzen</ActionButton> : null}
+              {completedDeck ? <ActionButton type="button" variant="secondary" onClick={() => onCompleted(completedDeck)}>Karten jetzt verwenden</ActionButton> : null}
             </div>
           </div>
         ) : null}
@@ -268,13 +268,13 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
             {(job?.errors.length ? job.errors : ["Die APKG-Datei konnte nicht verarbeitet werden."]).map((error, index) => (
               <p key={`${error}-${index}`}>{error}</p>
             ))}
-            <ActionButton type="button" variant="primary" size="compact" onClick={() => fileInputRef.current?.click()} className="mt-3">Andere Datei auswählen</ActionButton>
+            <ActionButton type="button" variant="primary" onClick={() => fileInputRef.current?.click()} className="mt-3">Andere Datei auswählen</ActionButton>
           </div>
         ) : null}
         {uiState.status === "cancelled" ? (
           <div className="core-status-info mt-5 core-body" role="status">
             <p>Import abgebrochen. Es wurden aus diesem Vorgang keine weiteren Karten übernommen.</p>
-            <ActionButton type="button" variant="secondary" size="compact" onClick={() => fileInputRef.current?.click()} className="mt-3">Andere Datei auswählen</ActionButton>
+            <ActionButton type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} className="mt-3">Andere Datei auswählen</ActionButton>
           </div>
         ) : null}
       </SoftPanel>
@@ -354,8 +354,8 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
               ) : null}
               {mediaTask && cloudProgress?.status !== "cloud-ready" && cloudProgress?.status !== "cancelled" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {cloudProgress?.status === "paused" ? <ActionButton type="button" variant="secondary" size="compact" onClick={() => mediaTask.resume()}>Fortsetzen</ActionButton> : <ActionButton type="button" variant="secondary" size="compact" onClick={() => void mediaTask.pause()}>Pausieren</ActionButton>}
-                  <ActionButton type="button" variant="destructive" size="compact" onClick={() => void mediaTask.cancel()}>Upload abbrechen</ActionButton>
+                  {cloudProgress?.status === "paused" ? <ActionButton type="button" variant="secondary" onClick={() => mediaTask.resume()}>Fortsetzen</ActionButton> : <ActionButton type="button" variant="secondary" onClick={() => void mediaTask.pause()}>Pausieren</ActionButton>}
+                  <ActionButton type="button" variant="destructive" onClick={() => void mediaTask.cancel()}>Upload abbrechen</ActionButton>
                 </div>
               ) : null}
             </SoftPanel>

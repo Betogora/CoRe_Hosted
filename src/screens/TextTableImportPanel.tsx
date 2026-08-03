@@ -85,7 +85,7 @@ export function TextTableImportPanel({ initialMode = "text", workflow, onImporte
           {uiState.status === "succeeded" && completedDeck ? (
             <StatusMessage tone="success" announce="polite">
               <p className="font-semibold">Import erfolgreich abgeschlossen.</p>
-              <ActionButton type="button" variant="primary" size="compact" onClick={() => onCompleted(completedDeck)} className="mt-3">Import abschließen</ActionButton>
+              <ActionButton type="button" variant="primary" onClick={() => onCompleted(completedDeck)} className="mt-3">Import abschließen</ActionButton>
             </StatusMessage>
           ) : null}
         </div>

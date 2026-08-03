@@ -186,7 +186,7 @@ export function StatisticsScreen({ decks, onNavigate }: any) {
           title="Noch keine Leistungsdaten"
           body="Sobald du Karten bewertest, zeigt CoRe hier Trefferquote, Serien und Stapel-Auswertungen."
           action={
-            <button type="button" onClick={() => onNavigate("lernen")} className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)]">
+            <button type="button" onClick={() => onNavigate("lernen")} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)]">
               Lernen öffnen
             </button>
           }

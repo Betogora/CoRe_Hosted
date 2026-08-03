@@ -76,7 +76,7 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
         aria-label={title}
         aria-pressed={isPinned}
         onClick={onToggle}
-        className={`grid size-8 shrink-0 place-items-center rounded-lg border transition ${
+        className={`grid size-11 shrink-0 place-items-center rounded-lg border transition ${
           isPinned
             ? "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-[0_0_0_2px_var(--core-focus-ring-soft)]"
             : "border-[var(--core-border)] bg-core-surface text-[var(--core-border-interactive)] hover:border-[var(--core-border-interactive)] hover:text-[var(--core-action-primary)]"
@@ -356,7 +356,7 @@ export function ManualCreationPanel({
 
       <div className="grid min-w-0 gap-4">
         <div data-manual-focus="front" className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-          <div className="flex min-h-9 items-center justify-between gap-2">
+          <div className="flex min-h-11 items-center justify-between gap-2">
             <span>{cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Frage" : "Vorderseite"}</span>
             <PinFieldButton isPinned={pinnedFields.front} label={cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Frage" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
           </div>
@@ -368,7 +368,7 @@ export function ManualCreationPanel({
           {fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes}</p> : null}
         </div>
         <div data-manual-focus="back" className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-          <div className="flex min-h-9 items-center justify-between gap-2">
+          <div className="flex min-h-11 items-center justify-between gap-2">
             <span>{answerLabel}</span>
             <PinFieldButton isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
           </div>
@@ -390,10 +390,10 @@ export function ManualCreationPanel({
                 setFieldErrors((current) => ({ ...current, correctOptionIndex: undefined }));
               }} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex)} />
               <input data-manual-focus={index === 0 ? "option-0" : undefined} className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border)] px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-              <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} size="compact" onClick={() => removeAnswerOption(index)} disabled={answerOptions.length <= 2} />
+              <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeAnswerOption(index)} disabled={answerOptions.length <= 2} />
             </div>
           ))}
-          <ActionButton type="button" variant="secondary" size="compact" icon={Plus} onClick={() => dispatchBatch({ type: "draft", patch: { answerOptions: [...answerOptions, ""] } })} className="w-fit">Option hinzufügen</ActionButton>
+          <ActionButton type="button" variant="secondary" icon={Plus} onClick={() => dispatchBatch({ type: "draft", patch: { answerOptions: [...answerOptions, ""] } })} className="w-fit">Option hinzufügen</ActionButton>
           {fieldErrors.options ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.options}</p> : null}
           {fieldErrors.correctOptionIndex ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.correctOptionIndex}</p> : null}
         </fieldset>

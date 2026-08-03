@@ -25,7 +25,7 @@ function ToolbarButton({ label, icon: Icon, onRun }: { label: string; icon: Luci
     <CoreTooltip label={label}>
       <button
         type="button"
-        className="grid size-9 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)]"
+        className="grid size-11 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)]"
         aria-label={label}
         onMouseDown={(event) => {
           event.preventDefault();

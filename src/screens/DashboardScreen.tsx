@@ -104,7 +104,7 @@ function StudyHeatmap({ heatmap }: any) {
                 type="button"
                 onClick={goToPreviousHeatmapWindow}
                 disabled={!visibleHeatmap.canShowPrevious}
-                className="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex size-11 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Frühere Wochen anzeigen"
               >
                 <ChevronLeft size={17} aria-hidden="true" />
@@ -115,7 +115,7 @@ function StudyHeatmap({ heatmap }: any) {
                 type="button"
                 onClick={goToNextHeatmapWindow}
                 disabled={!visibleHeatmap.canShowNext}
-                className="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex size-11 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Spätere Wochen anzeigen"
               >
                 <ChevronRight size={17} aria-hidden="true" />
@@ -248,7 +248,7 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo, 
           <button
             type="button"
             onClick={() => onNavigate("lernen")}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2"
           >
             Lernen öffnen <ChevronRight size={15} aria-hidden="true" />
           </button>

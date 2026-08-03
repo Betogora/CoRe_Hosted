@@ -103,16 +103,16 @@ export function CreationScreen({
             {completedCount} {completedCount === 1 ? "Karte wurde" : "Karten wurden"} in „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ gespeichert.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={() => onStartDeck(completedDeck)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[var(--core-action-primary)] px-6 core-body font-semibold text-[var(--core-text-on-accent)]">
+            <button type="button" onClick={() => onStartDeck(completedDeck)} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--core-action-primary)] px-6 core-body font-semibold text-[var(--core-text-on-accent)]">
               Jetzt lernen
             </button>
-            <button type="button" onClick={() => onReviewDeck(completedDeck.id)} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface px-6 core-body font-semibold text-[var(--core-action-primary)]">
+            <button type="button" onClick={() => onReviewDeck(completedDeck.id)} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface px-6 core-body font-semibold text-[var(--core-action-primary)]">
               Karten prüfen
             </button>
             <button type="button" onClick={() => {
               setSessionCompletion(null);
               onMethodChange("manual");
-            }} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface px-6 core-body font-semibold text-[var(--core-action-primary)]">
+            }} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface px-6 core-body font-semibold text-[var(--core-action-primary)]">
               Weitere Karten erstellen
             </button>
           </div>
@@ -120,7 +120,7 @@ export function CreationScreen({
       ) : selectedMethod ? (
         <section className="grid min-h-[calc(100vh-16rem)] content-start gap-5" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
+            <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
               <ArrowLeft size={16} aria-hidden="true" />
               Auswahl
             </button>

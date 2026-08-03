@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: b68a7375e6db8368 */
+/* Quellenstand: 1d76fd5a3a864819 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -543,6 +543,9 @@ video {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
+[data-deck-row-activation]:focus-visible {
+    outline: none;
+  }
 .core-tooltip {
     position: fixed;
     z-index: 60;
@@ -799,9 +802,6 @@ video {
 .h-px {
   height: 1px;
 }
-.min-h-10 {
-  min-height: 2.5rem;
-}
 .min-h-11 {
   min-height: 2.75rem;
 }
@@ -814,9 +814,6 @@ video {
 .min-h-28 {
   min-height: 7rem;
 }
-.min-h-9 {
-  min-height: 2.25rem;
-}
 .w-full {
   width: 100%;
 }
@@ -825,9 +822,6 @@ video {
 }
 .min-w-11 {
   min-width: 2.75rem;
-}
-.min-w-9 {
-  min-width: 2.25rem;
 }
 .flex-1 {
   flex: 1 1 0%;
@@ -1007,21 +1001,9 @@ video {
   padding-left: 1rem;
   padding-right: 1rem;
 }
-.px-5 {
-  padding-left: 1.25rem;
-  padding-right: 1.25rem;
-}
-.py-1\.5 {
-  padding-top: 0.375rem;
-  padding-bottom: 0.375rem;
-}
 .py-2\.5 {
   padding-top: 0.625rem;
   padding-bottom: 0.625rem;
-}
-.py-3 {
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
 }
 .text-left {
   text-align: left;
@@ -1421,14 +1403,16 @@ summary {
 
 .core-hue-range {
   width: 100%;
-  height: 0.75rem;
+  height: 2.75rem;
   cursor: pointer;
   -webkit-appearance: none;
      -moz-appearance: none;
           appearance: none;
-  border: 1px solid var(--core-border);
+  border: 0;
   border-radius: 999px;
-  background: linear-gradient(to right, #ef4444, #f59e0b, #fef08a, #22c55e, #06b6d4, #2563eb, #7c3aed, #ef4444);
+  background:
+    linear-gradient(to right, #ef4444, #f59e0b, #fef08a, #22c55e, #06b6d4, #2563eb, #7c3aed, #ef4444) center / calc(100% - 2px) 0.625rem no-repeat,
+    linear-gradient(var(--core-border), var(--core-border)) center / 100% 0.75rem no-repeat;
   outline: none;
 }
 
@@ -1495,8 +1479,8 @@ summary {
 
 .core-pdf-control {
   display: inline-flex;
-  min-width: 2.25rem;
-  min-height: 2.25rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
@@ -1649,16 +1633,16 @@ summary {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
+.hover\:border-core-action:hover {
+  border-color: var(--core-action-primary);
+}
+
 .hover\:border-core-focus:hover {
   border-color: var(--core-focus);
 }
 
 .hover\:border-core-success:hover {
   border-color: var(--core-success);
-}
-
-.hover\:bg-\[var\(--core-surface-hover\)\]:hover {
-  background-color: var(--core-surface-hover);
 }
 
 .hover\:bg-core-subtle:hover {
@@ -2190,8 +2174,8 @@ summary {
       }
 
       .catalog-color-swatch {
-        width: 2rem;
-        height: 2rem;
+        width: 2.75rem;
+        height: 2.75rem;
         border: 1px solid var(--core-border);
         border-radius: 0.5rem;
         box-shadow: inset 0 0 0 3px var(--core-surface);
@@ -2355,7 +2339,7 @@ summary {
               <span id="font-status" class="catalog-pill">Schriften werden geprüft …</span>
             </div>
           </div>
-          <button id="theme-toggle" type="button" role="switch" aria-checked="false" class="core-action-secondary min-h-12 px-5 py-3">
+          <button id="theme-toggle" type="button" role="switch" aria-checked="false" class="core-action-secondary min-h-11 px-4 py-2.5">
             <svg class="catalog-icon" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
             <span>Dark Mode einschalten</span>
           </button>
@@ -2487,7 +2471,7 @@ summary {
             <div class="catalog-section-head">
               <p class="catalog-kicker">04 · Interaktion</p>
               <h2 class="core-heading-2 text-core-text">Buttons und Aktionen</h2>
-              <p>Alle Varianten, Größen, Icons und Zustände. Hover, Active und Fokus sind an den interaktiven Beispielen direkt prüfbar.</p>
+              <p>Alle Varianten, die gemeinsame Standardhöhe, Icons und Zustände. Hover, Active und Fokus sind an den interaktiven Beispielen direkt prüfbar.</p>
             </div>
             <div class="catalog-section-body">
               <div class="catalog-subsection">
@@ -2500,11 +2484,9 @@ summary {
                 </div>
               </div>
               <div class="catalog-subsection">
-                <h3 class="catalog-subtitle">Größen</h3>
+                <h3 class="catalog-subtitle">Standardhöhe</h3>
                 <div class="catalog-row">
-                  <button type="button" class="core-action-primary min-h-9 px-3 py-1.5">Kompakt</button>
-                  <button type="button" class="core-action-primary min-h-11 px-4 py-2.5">Standard</button>
-                  <button type="button" class="core-action-primary min-h-12 px-5 py-3 core-body-large leading-6">Groß</button>
+                  <button type="button" class="core-action-primary min-h-11 px-4 py-2.5">44 px</button>
                 </div>
               </div>
               <div class="catalog-subsection">
@@ -2519,7 +2501,7 @@ summary {
               <div class="catalog-subsection">
                 <h3 class="catalog-subtitle">Icon-Aktionen</h3>
                 <div class="catalog-row">
-                  <button type="button" aria-label="Speichern" class="core-icon-action min-h-9 min-w-9 p-2"><svg class="catalog-icon"><use href="#icon-save"></use></svg></button>
+                  <button type="button" aria-label="Speichern" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-save"></use></svg></button>
                   <button type="button" aria-label="Hinzufügen" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-plus"></use></svg></button>
                   <button type="button" aria-label="Sekundäre Icon-Aktion" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-info"></use></svg></button>
                   <button type="button" aria-label="Entfernen" class="core-action-destructive min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-trash"></use></svg></button>
@@ -2580,19 +2562,19 @@ summary {
               <div class="catalog-grid catalog-grid-wide">
                 <div class="catalog-demo catalog-stack">
                   <span class="catalog-demo-label">Navigationszeilen</span>
-                  <button type="button" aria-current="page" class="flex min-h-12 w-full items-center gap-3 rounded-xl bg-core-subtle px-3 text-left text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-surface text-core-action"><svg class="catalog-icon"><use href="#icon-chart"></use></svg></span><span class="core-control-label">Übersicht</span></button>
-                  <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle hover:text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="core-control-label">Stapel</span></button>
-                  <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle hover:text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-sparkles"></use></svg></span><span class="core-control-label">Lernen</span></button>
+                  <button type="button" aria-current="page" class="flex min-h-11 w-full items-center gap-3 rounded-xl bg-core-subtle px-3 text-left text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-surface text-core-action"><svg class="catalog-icon"><use href="#icon-chart"></use></svg></span><span class="core-control-label">Übersicht</span></button>
+                  <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle hover:text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="core-control-label">Stapel</span></button>
+                  <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle hover:text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-sparkles"></use></svg></span><span class="core-control-label">Lernen</span></button>
                 </div>
                 <div class="catalog-demo catalog-stack">
                   <span class="catalog-demo-label">Core-Modus · segmentiertes Control</span>
-                  <div class="core-status-label inline-grid min-h-10 grid-cols-3 overflow-hidden rounded-xl border border-core-border bg-core-subtle text-core-secondary" role="group" aria-label="CoRe-Modus">
+                  <div class="core-status-label inline-grid min-h-11 grid-cols-3 overflow-hidden rounded-xl border border-core-border bg-core-subtle text-core-secondary" role="group" aria-label="CoRe-Modus">
                     <button type="button" aria-pressed="false" class="px-3 transition hover:bg-core-surface">Aus</button>
                     <button type="button" aria-pressed="true" class="bg-core-action px-3 text-[var(--core-text-on-accent)]">Auto</button>
                     <button type="button" aria-pressed="false" class="px-3 transition hover:bg-core-surface">Manuell</button>
                   </div>
                   <span class="catalog-demo-label mt-3">Theme-Switch</span>
-                  <button type="button" role="switch" aria-checked="true" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle">
+                  <button type="button" role="switch" aria-checked="true" class="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle">
                     <span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-sparkles"></use></svg></span>
                     <span class="min-w-0 flex-1"><span class="block core-control-label text-core-text">Dark Mode</span><span class="block core-caption text-core-muted">Explizite Auswahl</span></span>
                     <span class="catalog-switch-track"><span class="catalog-switch-thumb"></span></span>
@@ -2659,11 +2641,11 @@ summary {
                 </article>
                 <div class="overflow-hidden rounded-xl border border-core-border">
                   <div class="catalog-editor-toolbar" aria-label="Rich-Text-Werkzeuge">
-                    <button type="button" aria-label="Fett" class="core-icon-action min-h-9 min-w-9 p-2"><strong>B</strong></button>
-                    <button type="button" aria-label="Kursiv" class="core-icon-action min-h-9 min-w-9 p-2"><em>I</em></button>
-                    <button type="button" aria-label="Liste" class="core-icon-action min-h-9 min-w-9 p-2">•</button>
-                    <button type="button" aria-label="Textfarbe" class="core-icon-action min-h-9 min-w-9 p-2"><svg class="catalog-icon"><use href="#icon-type"></use></svg></button>
-                    <button type="button" aria-label="Markerfarbe" class="core-icon-action min-h-9 min-w-9 p-2"><svg class="catalog-icon"><use href="#icon-palette"></use></svg></button>
+                    <button type="button" aria-label="Fett" class="core-icon-action min-h-11 min-w-11 p-2.5"><strong>B</strong></button>
+                    <button type="button" aria-label="Kursiv" class="core-icon-action min-h-11 min-w-11 p-2.5"><em>I</em></button>
+                    <button type="button" aria-label="Liste" class="core-icon-action min-h-11 min-w-11 p-2.5">•</button>
+                    <button type="button" aria-label="Textfarbe" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-type"></use></svg></button>
+                    <button type="button" aria-label="Markerfarbe" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-palette"></use></svg></button>
                   </div>
                   <div class="catalog-editor-field rich-text-field" contenteditable="true" role="textbox" aria-label="Karteninhalt bearbeiten"><p><strong>Bearbeitbarer Karteninhalt</strong></p><p>Text, Listen, Markierungen und Medien verwenden dieselbe Inhaltsdarstellung wie Lernkarten.</p></div>
                 </div>
@@ -2734,13 +2716,13 @@ summary {
                   <div><p class="core-caption uppercase tracking-wide text-core-muted">Kanonische Stapelkarte</p><h3 class="core-heading-3 mt-1 text-core-text">Dashboard · Lernen · Kartenverwaltung</h3></div>
                   <span class="catalog-pill">Kontextabhängige Hauptaktion</span>
                 </div>
-                <div class="grid gap-3 rounded-2xl border border-core-border bg-[var(--core-group-depth-0)] p-2">
-                  <button type="button" class="grid min-h-20 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl px-3 text-left transition hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto]">
+                <div class="grid gap-3 rounded-2xl border border-core-border bg-[var(--core-group-depth-0)] p-2 transition hover:border-core-action">
+                  <button type="button" class="grid min-h-20 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl px-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto]">
                     <span class="flex min-w-0 items-center gap-3"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Welt-Hauptstädte</strong></span></span>
                     <span class="col-span-2 grid grid-cols-3 gap-5 sm:col-span-1"><span><small class="block core-caption uppercase text-core-muted">Neu</small><strong class="core-body-large" style="color:var(--core-deck-new-text)">12</strong></span><span><small class="block core-caption uppercase text-core-muted">Fällig</small><strong class="core-body-large" style="color:var(--core-deck-due-text)">8</strong></span><span><small class="block core-caption uppercase text-core-muted">Gesamt</small><strong class="core-body-large" style="color:var(--core-deck-total-text)">245</strong></span></span>
                     <span class="col-start-2 row-start-1 grid size-10 place-items-center justify-self-end rounded-full sm:col-start-auto sm:row-start-auto" role="img" aria-label="58 Prozent" style="background:conic-gradient(var(--core-action-primary) 58%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span>
                   </button>
-                  <button type="button" class="ml-4 grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-core-border bg-[var(--core-group-depth-1)] px-3 text-left transition hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto]">
+                  <button type="button" class="ml-4 grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-core-border bg-[var(--core-group-depth-1)] px-3 text-left transition hover:border-core-action focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto]">
                     <span class="flex min-w-0 items-center gap-3"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Europa</strong><small class="block truncate core-caption text-core-muted">Welt-Hauptstädte / Europa</small></span></span>
                     <span class="col-span-2 grid grid-cols-3 gap-5 sm:col-span-1"><span><small class="block core-caption uppercase text-core-muted">Neu</small><strong class="core-body-large" style="color:var(--core-deck-new-text)">3</strong></span><span><small class="block core-caption uppercase text-core-muted">Fällig</small><strong class="core-body-large" style="color:var(--core-deck-due-text)">2</strong></span><span><small class="block core-caption uppercase text-core-muted">Gesamt</small><strong class="core-body-large" style="color:var(--core-deck-total-text)">53</strong></span></span>
                   </button>
@@ -2751,7 +2733,7 @@ summary {
                   <div class="flex items-center justify-between gap-4"><div><p class="core-caption uppercase tracking-wide text-core-muted">Aktiver Stapel</p><h3 class="core-heading-3 mt-1 text-core-text">Weltwissen</h3></div><span class="grid size-10 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span></div>
                   <p class="core-body mt-4 text-core-muted">42 Karten · 8 fällig · 3 Varianten</p>
                   <div class="catalog-progress-track mt-4"><div class="catalog-progress-value" style="width:58%"></div></div>
-                  <button type="button" class="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl bg-core-subtle px-4 core-body font-semibold text-core-action">Jetzt lernen <svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></button>
+                  <button type="button" class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-core-subtle px-4 core-body font-semibold text-core-action">Jetzt lernen <svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></button>
                 </article>
                 <article class="core-surface-raised rounded-[18px] p-6">
                   <div class="flex items-center justify-between gap-4"><div><p class="core-caption uppercase tracking-wide text-core-muted">Lernaktivität</p><h3 class="core-heading-3 mt-1 text-core-text">Heatmap</h3></div><span class="catalog-pill">12 Monate</span></div>
@@ -2768,8 +2750,8 @@ summary {
                 <div class="catalog-steps mt-6"><div class="catalog-step" data-complete="true">Analysieren</div><div class="catalog-step" data-complete="true">Vorschau bereit</div><div class="catalog-step" data-complete="true">Übernehmen</div><div class="catalog-step">Medien synchronisieren</div><div class="catalog-step">Fertig</div></div>
               </div>
               <div class="catalog-grid catalog-grid-wide">
-                <article class="rounded-xl border border-core-border bg-core-surface p-5"><p class="core-caption font-semibold uppercase tracking-wide text-core-muted">Diese Fassung</p><p class="mt-2 core-body text-core-text">Lissabon ist die Hauptstadt Portugals.</p><button type="button" class="core-action-primary mt-4 min-h-10 px-4">Diese Fassung behalten</button></article>
-                <article class="rounded-xl border border-core-border bg-core-surface p-5"><p class="core-caption font-semibold uppercase tracking-wide text-core-muted">Andere Fassung</p><p class="mt-2 core-body text-core-text">Die Hauptstadt von Portugal heißt Lissabon.</p><button type="button" class="core-action-secondary mt-4 min-h-10 px-4">Andere Fassung behalten</button></article>
+                <article class="rounded-xl border border-core-border bg-core-surface p-5"><p class="core-caption font-semibold uppercase tracking-wide text-core-muted">Diese Fassung</p><p class="mt-2 core-body text-core-text">Lissabon ist die Hauptstadt Portugals.</p><button type="button" class="core-action-primary mt-4 min-h-11 px-4">Diese Fassung behalten</button></article>
+                <article class="rounded-xl border border-core-border bg-core-surface p-5"><p class="core-caption font-semibold uppercase tracking-wide text-core-muted">Andere Fassung</p><p class="mt-2 core-body text-core-text">Die Hauptstadt von Portugal heißt Lissabon.</p><button type="button" class="core-action-secondary mt-4 min-h-11 px-4">Andere Fassung behalten</button></article>
               </div>
               <div class="grid gap-4 lg:grid-cols-3">
                 <button type="button" class="group rounded-2xl bg-core-action p-5 text-left text-[var(--core-text-on-accent)] shadow-[var(--core-shadow-raised)] transition hover:-translate-y-0.5"><svg class="catalog-icon-lg"><use href="#icon-plus"></use></svg><span class="mt-5 block core-body-large font-semibold">Erste Karte erstellen</span><span class="mt-2 block core-body">Frage und Antwort direkt eingeben.</span></button>
