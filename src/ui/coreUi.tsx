@@ -188,11 +188,11 @@ export function StatTile({ icon: Icon, label, value, hint, accent = "text-core-a
   );
 }
 
-export function PageHeader({ eyebrow, title }: { eyebrow: ReactNode; title: ReactNode }) {
+export function PageHeader({ eyebrow, title }: { eyebrow?: ReactNode; title: ReactNode }) {
   return (
-    <header className="min-w-0">
-      <p className="core-control-label uppercase tracking-wide text-core-action">{eyebrow}</p>
-      <h2 className="core-heading-1 mt-2 text-core-text outline-none" data-screen-heading tabIndex={-1}>{title}</h2>
+    <header className="min-w-0 space-y-2">
+      {eyebrow ? <p className="core-control-label uppercase tracking-wide text-core-action">{eyebrow}</p> : null}
+      <h2 className="core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>{title}</h2>
     </header>
   );
 }

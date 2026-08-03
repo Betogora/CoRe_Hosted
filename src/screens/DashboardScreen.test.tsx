@@ -17,6 +17,7 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
   );
 
   assert.match(markup, /Willkommen bei CoRe/);
+  assert.doesNotMatch(markup, />Heute<\//);
   assert.match(markup, /Anki-Stapel importieren/);
   assert.match(markup, /Erste Karte erstellen/);
   assert.match(markup, /Demo ausprobieren/);
@@ -27,6 +28,7 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
 });
 
 test("populated dashboard keeps today's due count without the original-card statistic", () => {
+  const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
   const deck = createCoreDeck({
     name: "Biologie",
     source: "manual",
@@ -41,14 +43,21 @@ test("populated dashboard keeps today's due count without the original-card stat
   });
   const markup = renderToStaticMarkup(
     <DashboardScreen
-      state={{ decks: [deck] }}
+      state={{
+        ...baseState,
+        profile: { ...baseState.profile, displayName: "  Noemi  " },
+        decks: [deck],
+      }}
       onNavigate={() => undefined}
       onStartDeck={() => undefined}
       onCreateDemo={() => undefined}
     />,
   );
 
+  assert.match(markup, /Willkommen zurück, Noemi!/);
+  assert.doesNotMatch(markup, />Heute<\//);
   assert.match(markup, /Heute fällig/);
+  assert.match(markup, /Heute fällig:<\/span><span class="font-semibold">1<\/span>/);
   assert.doesNotMatch(markup, /Originalkarten/);
   assert.match(markup, /Lernen öffnen/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);

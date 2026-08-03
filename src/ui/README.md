@@ -40,7 +40,7 @@ Spezialisierte native Buttons dürfen direkt `core-action-primary`, `core-action
 Direktimport aus `src/ui/coreUi.tsx`:
 
 - `SoftPanel`: kanonische erhöhte Inhaltsfläche; Aufrufer besitzt Innenlayout und Heading-Semantik.
-- `PageHeader`: Screen-Eyebrow und sichtbare Heading-1-Stufe; keine dritte Textzeile oder dekorative Aktion ergänzen.
+- `PageHeader`: optionale Screen-Eyebrow und sichtbare Heading-1-Stufe; keine dritte Textzeile oder dekorative Aktion ergänzen.
 - `EmptyState`: Icon, Titel, optionaler Text und optionaler Action-Slot.
 - `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Cancel/Confirm und Fokuswiederherstellung; intern gemeinsame Actions.
 - `OrbIcon`: rein dekorativer Icon-Kreis; Bedeutung bleibt im umgebenden Text.

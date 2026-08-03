@@ -1,7 +1,7 @@
 import React from "react";
 import { Activity, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileArchive, PenLine, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.ts";
-import { DonutValue, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { DonutValue, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 
 const heatmapToneByLevel = [
@@ -176,11 +176,13 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }
   const library = createDeckLibraryModel(state.decks);
   const { dueCards, studyHeatmap } = library;
   const dashboardRows = library.dashboardRows;
+  const displayName = state.profile?.displayName?.trim();
+  const welcomeTitle = displayName ? `Willkommen zurück, ${displayName}!` : "Willkommen bei CoRe";
 
   if (state.decks.length === 0) {
     return (
       <div className="grid min-w-0 gap-7">
-        <PageHeader eyebrow="Heute" title="Willkommen bei CoRe" />
+        <PageHeader title={welcomeTitle} />
 
         <SoftPanel className="overflow-hidden p-7 sm:p-9">
           <div className="max-w-3xl">
@@ -225,12 +227,15 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }
 
   return (
     <div className="grid min-w-0 gap-7">
-      <PageHeader
-        eyebrow="Heute"
-        title="Willkommen bei CoRe"
-      />
+      <PageHeader title={welcomeTitle} />
 
-      <StatTile icon={CalendarDays} label="Heute fällig" value={dueCards} />
+      <SoftPanel className="flex items-center gap-4 px-6 py-4">
+        <OrbIcon icon={CalendarDays} />
+        <p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap core-body-large text-[var(--core-text)]">
+          <span>Heute fällig:</span>
+          <span className="font-semibold">{dueCards}</span>
+        </p>
+      </SoftPanel>
 
       <StudyHeatmap heatmap={studyHeatmap} />
 
