@@ -3,6 +3,7 @@ import { ArrowLeft, Save, SlidersHorizontal } from "lucide-react";
 import type { DeckSettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeDeckAppearance } from "../coreModel.ts";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
+import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
 import { DeckAppearanceIcon, deckIconOptions } from "../ui/deckAppearance.tsx";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 
@@ -43,7 +44,7 @@ export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onBack, bac
 
       <SoftPanel className="p-5 sm:p-6">
         <div className="flex items-center gap-3">
-          <DeckAppearanceIcon appearance={appearance} className="size-12 rounded-xl bg-[var(--core-surface-muted)]" />
+          <DeckAppearanceIcon appearance={appearance} className="size-12" />
           <div>
             <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Nur dieser Stapel</p>
             <p className="mt-1 core-body leading-6 text-[var(--core-text-muted)]">
@@ -67,10 +68,12 @@ export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onBack, bac
           </label>
           <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Iconfarbe
-            <span className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--core-border)] bg-core-surface px-3">
-              <input type="color" className="size-11 cursor-pointer border-0 bg-transparent p-0" value={appearance.iconColor} onChange={(event) => setAppearance((current) => normalizeDeckAppearance({ ...current, iconColor: event.target.value }))} aria-label="Iconfarbe auswählen" />
-              <span className="font-mono core-body uppercase">{appearance.iconColor}</span>
-            </span>
+            <ColorWheelPicker
+              value={appearance.iconColor}
+              ariaLabel="Iconfarbe auswählen"
+              className="justify-self-start"
+              onValueCommit={(iconColor) => setAppearance((current) => normalizeDeckAppearance({ ...current, iconColor }))}
+            />
           </label>
           <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
             <Save size={16} aria-hidden="true" />

@@ -91,7 +91,8 @@ Für spezialisierte Strukturen stehen `core-status-info`, `core-status-success`,
 
 - `DeckTree` aus `src/ui/DeckTree.tsx`: kanonische einklappbare Stapelkarte für Dashboard, Lernen und Kartenverwaltung; besitzt Hierarchie, Teilbaum-Kennzahlen, Keyboard-Aktivierung sowie direktes Drag-and-drop in allen drei Ansichten. Fachliche Mutationen bleiben in den übergebenen Callbacks.
 - `RichTextEditor` aus `src/ui/RichTextEditor.tsx`: sanitisiertes Karten-HTML, Toolbar, Text- und Markerfarben.
-- `ColorPopover` und `ColorToolButton` aus `src/ui/colorPicker.tsx`: gespeicherte Farbfelder und technisches Farbspektrum.
+- `ColorWheelPicker` aus `src/ui/ColorWheelPicker.tsx`: kompakter runder Farbkreis für kontrollierte Farbfelder.
+- `ColorPopover` und `ColorToolButton` aus `src/ui/colorPicker.tsx`: gespeicherte Rich-Text-Farbfelder und technisches Farbspektrum.
 - `PdfDocumentViewer` aus `src/ui/PdfDocumentViewer.tsx`: PDF-Rendering, Zoom, Navigation und Textauswahl.
 - `LearningSettingsPanel` aus `src/ui/LearningSettingsPanel.tsx`: fachliche Lernparameter und Presets.
 - `DeckAppearanceIcon` aus `src/ui/deckAppearance.tsx`: normalisierte, nutzerdefinierte Stapeldarstellung.

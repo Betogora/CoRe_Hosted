@@ -32,3 +32,17 @@ test("deck settings label the URL-derived return destination", () => {
   assert.doesNotMatch(decksOrigin, /Zurück zu Lernen/);
   assert.match(directLinkFallback, /Zurück zu Lernen/);
 });
+
+test("deck settings use the compact color wheel trigger instead of the native color field", () => {
+  const markup = renderToStaticMarkup(
+    <DeckSettingsScreen
+      deck={deck}
+      onSave={() => undefined}
+      onSaveAppearance={() => undefined}
+      onBack={() => undefined}
+    />,
+  );
+
+  assert.match(markup, /aria-label="Iconfarbe auswählen"/);
+  assert.doesNotMatch(markup, /type="color"|font-mono/);
+});

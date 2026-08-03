@@ -130,16 +130,18 @@ interface DeckAppearanceIconProps extends HTMLAttributes<HTMLSpanElement> {
   iconSize?: number;
 }
 
-export function DeckAppearanceIcon({ deck, appearance, className = "size-10 rounded-xl bg-[var(--core-surface-muted)]", iconSize = 18, ...props }: DeckAppearanceIconProps) {
+export function DeckAppearanceIcon({ deck, appearance, className = "size-10", iconSize = 18, ...props }: DeckAppearanceIconProps) {
   const normalizedAppearance = getDeckAppearance(appearance ?? deck);
   const Icon = getDeckIcon(normalizedAppearance.iconKey);
 
   return (
     <span
       {...props}
-      className={`grid shrink-0 place-items-center ${className}`}
+      className={`grid shrink-0 place-items-center rounded-full border-2 ${className}`}
       style={{
         color: normalizedAppearance.iconColor,
+        borderColor: normalizedAppearance.iconColor,
+        backgroundColor: `${normalizedAppearance.iconColor}1f`,
         ...(props.style ?? {}),
       }}
     >
