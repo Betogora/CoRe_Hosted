@@ -141,6 +141,53 @@ test("dashboard heatmap keeps its legend and navigation aligned across responsiv
   }
 });
 
+test("CoRe tooltips replace native hints for heatmap and icon actions", async ({ page }: any) => {
+  await resetToFreshLocalState(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  const grid = page.getByTestId("study-heatmap-grid");
+  const dayCells = grid.locator("span[aria-label]");
+  await expect.poll(() => dayCells.count()).toBeGreaterThan(1);
+  await expect(grid.locator("[title]")).toHaveCount(0);
+
+  const firstDay = dayCells.first();
+  const firstLabel = await firstDay.getAttribute("aria-label");
+  expect(firstLabel).toBeTruthy();
+  await firstDay.hover();
+
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toHaveText(firstLabel!);
+  await expect(tooltip).toHaveCount(1);
+
+  const bounds = await tooltip.evaluate((element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    return { bottom: rect.bottom, left: rect.left, right: rect.right, top: rect.top };
+  });
+  expect(bounds.left).toBeGreaterThanOrEqual(8);
+  expect(bounds.right).toBeLessThanOrEqual(382);
+  expect(bounds.top).toBeGreaterThanOrEqual(8);
+  expect(bounds.bottom).toBeLessThanOrEqual(836);
+
+  const secondDay = dayCells.nth(1);
+  const secondLabel = await secondDay.getAttribute("aria-label");
+  await secondDay.hover();
+  await expect(tooltip).toHaveText(secondLabel!);
+  await tooltip.hover();
+  await page.waitForTimeout(150);
+  await expect(tooltip).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(tooltip).toHaveCount(0);
+
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  const deckOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
+  await expect(deckOptions).not.toHaveAttribute("title");
+  await deckOptions.focus();
+  await expect(tooltip).toHaveText("Stapeloptionen für Welt-Hauptstädte / Afrika");
+  await page.keyboard.press("Escape");
+  await expect(tooltip).toHaveCount(0);
+});
+
 test("browser back returns from deck management to learning without reload", async ({ page }: any) => {
   const { authStorageKey } = await resetToFreshLocalState(page);
   expect(authStorageKey).toMatch(/^sb-.+-auth-token$/);

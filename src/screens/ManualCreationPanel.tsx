@@ -13,6 +13,7 @@ import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
+import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { cardTypeOptions } from "./screenConstants.ts";
 
 type ManualCreationWorkflow = Pick<
@@ -69,20 +70,21 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
     : `${label}: Nach Speichern leeren. Zum Behalten anheften`;
 
   return (
-    <button
-      type="button"
-      aria-label={title}
-      aria-pressed={isPinned}
-      title={title}
-      onClick={onToggle}
-      className={`grid size-8 shrink-0 place-items-center rounded-lg border transition ${
-        isPinned
-          ? "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-[0_0_0_2px_var(--core-focus-ring-soft)]"
-          : "border-[var(--core-border)] bg-core-surface text-[var(--core-border-interactive)] hover:border-[var(--core-border-interactive)] hover:text-[var(--core-action-primary)]"
-      }`}
-    >
-      <Icon size={15} aria-hidden="true" />
-    </button>
+    <CoreTooltip label={title}>
+      <button
+        type="button"
+        aria-label={title}
+        aria-pressed={isPinned}
+        onClick={onToggle}
+        className={`grid size-8 shrink-0 place-items-center rounded-lg border transition ${
+          isPinned
+            ? "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-[0_0_0_2px_var(--core-focus-ring-soft)]"
+            : "border-[var(--core-border)] bg-core-surface text-[var(--core-border-interactive)] hover:border-[var(--core-border-interactive)] hover:text-[var(--core-action-primary)]"
+        }`}
+      >
+        <Icon size={15} aria-hidden="true" />
+      </button>
+    </CoreTooltip>
   );
 }
 

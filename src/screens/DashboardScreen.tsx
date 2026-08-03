@@ -3,6 +3,7 @@ import { Activity, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileAr
 import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.ts";
 import { DonutValue, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
+import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
 const heatmapToneByLevel = [
   "border-[var(--core-border)] bg-[var(--core-canvas)]",
@@ -97,26 +98,28 @@ function StudyHeatmap({ heatmap }: any) {
         <div className="ml-auto flex min-w-0 items-center gap-4">
           <HeatmapLegend />
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={goToPreviousHeatmapWindow}
-              disabled={!visibleHeatmap.canShowPrevious}
-              className="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
-              title="Frühere Wochen anzeigen"
-              aria-label="Frühere Wochen anzeigen"
-            >
-              <ChevronLeft size={17} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={goToNextHeatmapWindow}
-              disabled={!visibleHeatmap.canShowNext}
-              className="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
-              title="Spätere Wochen anzeigen"
-              aria-label="Spätere Wochen anzeigen"
-            >
-              <ChevronRight size={17} aria-hidden="true" />
-            </button>
+            <CoreTooltip label="Frühere Wochen anzeigen">
+              <button
+                type="button"
+                onClick={goToPreviousHeatmapWindow}
+                disabled={!visibleHeatmap.canShowPrevious}
+                className="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Frühere Wochen anzeigen"
+              >
+                <ChevronLeft size={17} aria-hidden="true" />
+              </button>
+            </CoreTooltip>
+            <CoreTooltip label="Spätere Wochen anzeigen">
+              <button
+                type="button"
+                onClick={goToNextHeatmapWindow}
+                disabled={!visibleHeatmap.canShowNext}
+                className="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Spätere Wochen anzeigen"
+              >
+                <ChevronRight size={17} aria-hidden="true" />
+              </button>
+            </CoreTooltip>
           </div>
         </div>
       </div>
@@ -156,12 +159,12 @@ function StudyHeatmap({ heatmap }: any) {
                 const day = week[dayIndex];
                 const dayLabel = heatmapDayLabel(day);
                 return (
-                  <span
-                    key={day.key}
-                    className={`block size-[19px] rounded-[4px] border transition-transform hover:scale-110 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-inset ring-core-focus" : ""} ${day.isFuture ? "opacity-35" : ""} ${day.isOutsideDisplayYear ? "opacity-20" : ""}`}
-                    title={dayLabel}
-                    aria-label={dayLabel}
-                  />
+                  <CoreTooltip key={day.key} label={dayLabel}>
+                    <span
+                      className={`block size-[19px] rounded-[4px] border transition-transform hover:scale-110 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-inset ring-core-focus" : ""} ${day.isFuture ? "opacity-35" : ""} ${day.isOutsideDisplayYear ? "opacity-20" : ""}`}
+                      aria-label={dayLabel}
+                    />
+                  </CoreTooltip>
                 );
               })}
             </React.Fragment>

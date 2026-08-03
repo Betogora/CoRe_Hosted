@@ -27,13 +27,27 @@ Direktimport: `import { ActionButton, IconButton } from "../ui/actionUi.tsx"`.
 
 Nicht für Reviewratings, MCQ-Antworten, Tabs, Farbfelder, Navigationszeilen oder segmentierte Controls verwenden, deren Auswahlsemantik über einen normalen Action-Button hinausgeht.
 
-`IconButton` verlangt `label` und `icon`; Varianten sind `secondary`, `tertiary` (Standard) und `destructive`, Größen `compact` und `default`. Das Modul setzt das zugängliche Label, Icongröße und Touchziel. Der Aufrufer ergänzt nur dann `title`, wenn zusätzlich ein Browser-Tooltip sinnvoll ist.
+`IconButton` verlangt `label` und `icon`; Varianten sind `secondary`, `tertiary` (Standard) und `destructive`, Größen `compact` und `default`. Das Modul setzt das zugängliche Label, Icongröße und Touchziel. Für einen zusätzlichen sichtbaren Hinweis wird `CoreTooltip` verwendet; native `title`-Tooltips gehören nicht zur Produkt-UI.
 
 ```tsx
 <IconButton label="Antwortoption entfernen" icon={X} onClick={removeOption} />
 ```
 
 Spezialisierte native Buttons dürfen direkt `core-action-primary`, `core-action-secondary`, `core-action-tertiary`, `core-action-destructive` oder `core-icon-action` nutzen, wenn eine React-Abstraktion ihr Interface verschlechtern würde.
+
+## Tooltips
+
+Direktimport: `import { CoreTooltip } from "../ui/tooltipUi.tsx"`. `CoreTooltipProvider` wird einmal an der App-Wurzel eingebunden.
+
+`CoreTooltip` verlangt einen kurzen deutschen `label` und genau ein bestehendes React-Element. Es ergänzt kein Layout-Element, bewahrt vorhandene Ereignisse und zugängliche Beschreibungen und zeigt den Hinweis nach kurzem Maus-Hover beziehungsweise sofort bei Tastaturfokus. Positionierung, Viewport-Grenzen, Escape, Hover-Persistenz und Touch-Ausschluss gehören dem gemeinsamen Modul.
+
+```tsx
+<CoreTooltip label="Frühere Wochen anzeigen">
+  <button type="button" aria-label="Frühere Wochen anzeigen">…</button>
+</CoreTooltip>
+```
+
+Tooltips bleiben rein informativ und enthalten weder Aktionen noch frei formatierte Inhalte. Strukturelle Komponenten-Props namens `title` sind davon nicht betroffen.
 
 ## Oberflächen und Struktur
 

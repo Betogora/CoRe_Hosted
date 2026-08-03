@@ -2,6 +2,7 @@ import React from "react";
 import { ChevronDown, ChevronRight, FolderPlus, Layers, Play, PlusSquare, Settings } from "lucide-react";
 import { createDeckLibraryModel, createVisibleDeckRows } from "../libraryModel.ts";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
 const INTERACTIVE_ROW_SELECTOR = "button, a, input, textarea, select";
 const LEARN_DECK_GRID_COLUMNS = "md:grid-cols-[minmax(12rem,1fr)_6rem_6rem_6rem_7rem_3rem]";
@@ -183,15 +184,16 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
           </button>
 
           <div className="flex justify-start md:justify-end">
-            <button
-              type="button"
-              onClick={() => openDeckSettings(deck.id)}
-              className="grid size-10 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] hover:bg-core-surface"
-              aria-label={`Stapeloptionen für ${row.path}`}
-              title={`Stapeloptionen für ${row.path}`}
-            >
-              <Settings size={18} aria-hidden="true" />
-            </button>
+            <CoreTooltip label={`Stapeloptionen für ${row.path}`}>
+              <button
+                type="button"
+                onClick={() => openDeckSettings(deck.id)}
+                className="grid size-10 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] hover:bg-core-surface"
+                aria-label={`Stapeloptionen für ${row.path}`}
+              >
+                <Settings size={18} aria-hidden="true" />
+              </button>
+            </CoreTooltip>
           </div>
         </div>
 

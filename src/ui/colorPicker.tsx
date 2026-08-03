@@ -1,5 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
+import { CoreTooltip } from "./tooltipUi.tsx";
 
 export const defaultTextColors = ["#181d25", "#262e3a", "#667492"];
 export const defaultHighlightColors = ["#dde3ec", "#d6a3d2", "#e4bf63"];
@@ -139,23 +140,24 @@ interface ColorToolButtonProps {
 
 export function ColorToolButton({ label, icon: Icon, color, isOpen, menuId, onToggle, buttonRef }: ColorToolButtonProps) {
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      className="relative grid size-9 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)]"
-      title={label}
-      aria-label={label}
-      aria-haspopup="dialog"
-      aria-expanded={isOpen}
-      aria-controls={isOpen ? menuId : undefined}
-      onMouseDown={(event) => {
-        event.preventDefault();
-      }}
-      onClick={onToggle}
-    >
-      <Icon size={16} aria-hidden="true" />
-      <span className="absolute bottom-1 right-1 size-3 rounded-full border border-black/10" style={{ backgroundColor: color }} />
-    </button>
+    <CoreTooltip label={label}>
+      <button
+        ref={buttonRef}
+        type="button"
+        className="relative grid size-9 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)]"
+        aria-label={label}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
+        onClick={onToggle}
+      >
+        <Icon size={16} aria-hidden="true" />
+        <span className="absolute bottom-1 right-1 size-3 rounded-full border border-black/10" style={{ backgroundColor: color }} />
+      </button>
+    </CoreTooltip>
   );
 }
 
@@ -248,25 +250,25 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
       <p className="mb-2 core-caption font-semibold text-[var(--core-text-secondary)]">Gespeichert</p>
       <div className="grid grid-cols-3 gap-2">
         {colors.map((color: any, index: number) => (
-          <button
-            key={`${id}-${index}`}
-            type="button"
-            className={`grid min-h-10 place-items-center rounded-lg border bg-core-surface transition hover:bg-[var(--core-surface-muted)] ${
-              selectedSlot === index ? "border-[var(--core-action-primary)] shadow-[0_0_0_2px_var(--core-focus-ring-soft)]" : "border-[var(--core-border)]"
-            }`}
-            title={`${label} ${index + 1}`}
-            aria-label={`${label} ${index + 1}`}
-            onMouseDown={(event) => {
-              event.preventDefault();
-            }}
-            onClick={() => {
-              onSelectSlot(index);
-              onApply(color, false);
-              setCustomColor(color);
-            }}
-          >
-            <span className="size-5 rounded-full border border-black/10" style={{ backgroundColor: color }} />
-          </button>
+          <CoreTooltip key={`${id}-${index}`} label={`${label} ${index + 1}`}>
+            <button
+              type="button"
+              className={`grid min-h-10 place-items-center rounded-lg border bg-core-surface transition hover:bg-[var(--core-surface-muted)] ${
+                selectedSlot === index ? "border-[var(--core-action-primary)] shadow-[0_0_0_2px_var(--core-focus-ring-soft)]" : "border-[var(--core-border)]"
+              }`}
+              aria-label={`${label} ${index + 1}`}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              onClick={() => {
+                onSelectSlot(index);
+                onApply(color, false);
+                setCustomColor(color);
+              }}
+            >
+              <span className="size-5 rounded-full border border-black/10" style={{ backgroundColor: color }} />
+            </button>
+          </CoreTooltip>
         ))}
       </div>
       <div className="mt-3 border-t border-[var(--core-surface-muted)] pt-3">
@@ -330,42 +332,43 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
         <p className="mb-2 core-caption font-semibold text-[var(--core-text-secondary)]">Schnellfarben</p>
         <div className="grid grid-cols-6 gap-1.5">
           {paletteColors.map((color: string|undefined) => (
-            <button
-              key={`${id}-palette-${color}`}
-              type="button"
-              className={`grid size-6 place-items-center rounded-md border bg-core-surface transition hover:scale-105 ${
-                normalizeColor(color, selectedColor) === selectedColor ? "border-[var(--core-action-primary)]" : "border-[var(--core-border)]"
-              }`}
-              title={color}
-              aria-label={`${label} ${color}`}
-              onMouseDown={(event) => {
-                event.preventDefault();
-              }}
-              onClick={() => {
-                if (color) chooseColor(color);
-              }}
-            >
-              <span className="size-4 rounded-full border border-black/10" style={{ backgroundColor: color }} />
-            </button>
+            <CoreTooltip key={`${id}-palette-${color}`} label={color ?? label}>
+              <button
+                type="button"
+                className={`grid size-6 place-items-center rounded-md border bg-core-surface transition hover:scale-105 ${
+                  normalizeColor(color, selectedColor) === selectedColor ? "border-[var(--core-action-primary)]" : "border-[var(--core-border)]"
+                }`}
+                aria-label={`${label} ${color}`}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                }}
+                onClick={() => {
+                  if (color) chooseColor(color);
+                }}
+              >
+                <span className="size-4 rounded-full border border-black/10" style={{ backgroundColor: color }} />
+              </button>
+            </CoreTooltip>
           ))}
         </div>
       </div>
       <label className="mt-3 flex items-center gap-2 rounded-lg border border-[var(--core-surface-muted)] bg-[var(--core-surface-muted)] p-2 core-caption font-semibold text-[var(--core-text-muted)]">
         <span className="grid size-8 shrink-0 place-items-center rounded-md bg-core-surface text-[var(--core-action-primary)]">{selectedSlot + 1}</span>
         <span className="size-6 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: colorHexPattern.test(customColor) ? customColor : selectedColor }} />
-        <input
-          type="text"
-          inputMode="text"
-          spellCheck="false"
-          maxLength={7}
-          className="min-h-9 min-w-0 flex-1 rounded-md border border-[var(--core-border)] bg-core-surface px-2 font-mono core-body font-semibold uppercase text-[var(--core-text)] outline-none transition focus:border-[var(--core-action-primary)] focus:shadow-[0_0_0_3px_var(--core-focus-ring-soft)]"
-          title={`${label} als Hex-Farbe`}
-          aria-label={`${label} als Hex-Farbe`}
-          value={customColor}
-          onChange={(event) => {
-            handleCustomColorChange(event.target.value);
-          }}
-        />
+        <CoreTooltip label={`${label} als Hex-Farbe`}>
+          <input
+            type="text"
+            inputMode="text"
+            spellCheck="false"
+            maxLength={7}
+            className="min-h-9 min-w-0 flex-1 rounded-md border border-[var(--core-border)] bg-core-surface px-2 font-mono core-body font-semibold uppercase text-[var(--core-text)] outline-none transition focus:border-[var(--core-action-primary)] focus:shadow-[0_0_0_3px_var(--core-focus-ring-soft)]"
+            aria-label={`${label} als Hex-Farbe`}
+            value={customColor}
+            onChange={(event) => {
+              handleCustomColorChange(event.target.value);
+            }}
+          />
+        </CoreTooltip>
       </label>
     </div>
   );

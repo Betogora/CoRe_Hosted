@@ -3,6 +3,7 @@ import { Bold, Eraser, Highlighter, Italic, List, ListOrdered, Palette, PenLine,
 import type { LucideIcon } from "lucide-react";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
 import { normalizeRichTextForEditor, textToCardHtml } from "../richText.ts";
+import { CoreTooltip } from "./tooltipUi.tsx";
 import {
   ColorPopover,
   ColorToolButton,
@@ -21,18 +22,19 @@ export const richTextColorStorageKeys = {
 
 function ToolbarButton({ label, icon: Icon, onRun }: { label: string; icon: LucideIcon; onRun: () => void }) {
   return (
-    <button
-      type="button"
-      className="grid size-9 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)]"
-      title={label}
-      aria-label={label}
-      onMouseDown={(event) => {
-        event.preventDefault();
-        onRun();
-      }}
-    >
-      <Icon size={17} aria-hidden="true" />
-    </button>
+    <CoreTooltip label={label}>
+      <button
+        type="button"
+        className="grid size-9 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)]"
+        aria-label={label}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          onRun();
+        }}
+      >
+        <Icon size={17} aria-hidden="true" />
+      </button>
+    </CoreTooltip>
   );
 }
 

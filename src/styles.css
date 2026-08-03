@@ -142,6 +142,44 @@
     -webkit-backdrop-filter: blur(16px);
   }
 
+  .core-tooltip {
+    position: fixed;
+    z-index: 60;
+    width: max-content;
+    max-width: min(20rem, calc(100vw - 1rem));
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--core-text);
+    font-family: Synonym, ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1rem;
+    overflow-wrap: anywhere;
+    pointer-events: auto;
+  }
+
+  .core-tooltip::after {
+    position: absolute;
+    left: var(--core-tooltip-anchor-x);
+    width: 0.625rem;
+    height: 0.625rem;
+    border: solid var(--core-border);
+    background: var(--core-surface-raised);
+    content: "";
+  }
+
+  .core-tooltip[data-side="top"]::after {
+    bottom: -0.375rem;
+    border-width: 0 1px 1px 0;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  .core-tooltip[data-side="bottom"]::after {
+    top: -0.375rem;
+    border-width: 1px 0 0 1px;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
   .core-action-primary,
   .core-action-secondary,
   .core-action-tertiary,

@@ -2,6 +2,7 @@ import React from "react";
 import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, Flame, Layers, Target, TrendingUp } from "lucide-react";
 import { createPerformanceStatisticsModel } from "../libraryModel.ts";
 import { EmptyState, OrbIcon, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
 function formatPercent(value: number) {
   return `${value} %`;
@@ -59,17 +60,20 @@ function RecentTrend({ days }: any) {
       <div className="mt-7 grid h-44 items-end gap-2" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}>
         {days.map((day: { reviews: number; key: React.Key|null|undefined; label: string|any[]; successPercent: any; weakCount: number; successCount: number; }) => {
           const height = day.reviews > 0 ? Math.max(10, Math.round((day.reviews / maxReviews) * 100)) : 4;
+          const dayLabel = `${day.label}: ${day.reviews} Reviews, ${formatPercent(day.successPercent)} Trefferquote`;
           return (
-            <div key={day.key} className="flex h-full min-w-0 flex-col justify-end gap-2" title={`${day.label}: ${day.reviews} Reviews, ${formatPercent(day.successPercent)} Trefferquote`}>
-              <div className="flex h-full items-end rounded-full bg-[var(--core-surface-muted)]">
-                <div
-                  className={`w-full rounded-full ${day.weakCount > day.successCount ? "bg-core-warning" : "bg-[var(--core-success)]"}`}
-                  style={{ height: `${height}%` }}
-                  aria-label={`${day.label}: ${day.reviews} Reviews, ${formatPercent(day.successPercent)} Trefferquote`}
-                />
+            <CoreTooltip key={day.key} label={dayLabel}>
+              <div className="flex h-full min-w-0 flex-col justify-end gap-2">
+                <div className="flex h-full items-end rounded-full bg-[var(--core-surface-muted)]">
+                  <div
+                    className={`w-full rounded-full ${day.weakCount > day.successCount ? "bg-core-warning" : "bg-[var(--core-success)]"}`}
+                    style={{ height: `${height}%` }}
+                    aria-label={dayLabel}
+                  />
+                </div>
+                <span className="truncate text-center text-[0.68rem] font-semibold text-[var(--core-text-muted)]">{day.label.slice(0, 2)}</span>
               </div>
-              <span className="truncate text-center text-[0.68rem] font-semibold text-[var(--core-text-muted)]">{day.label.slice(0, 2)}</span>
-            </div>
+            </CoreTooltip>
           );
         })}
       </div>
