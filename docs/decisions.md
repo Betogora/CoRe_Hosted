@@ -1,7 +1,7 @@
 # CoRe-Entscheidungen
 
 **Rolle:** einzige kanonische Quelle für dauerhafte Produkt- und Architekturentscheidungen.
-**Stand:** 2026-08-01
+**Stand:** 2026-08-03
 
 ## ADR-Format
 
@@ -73,3 +73,11 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Entscheidung:** Diese Funktionen sind vollständig entfernt. APKG bleibt bis einschließlich 250 MiB lokal. Stapel sind implizit privat. App-State v3 und Export v2 enthalten ausschließlich Core-Daten; V1-Exporte bleiben lesbar, wobei Labs-Inhalte verworfen werden. Eine produktive Datenlöschung ist irreversibel und darf nur nach App-Deployment und verifizierter CoRe-Projekt-Ref erfolgen.
 **Konsequenzen:** Es gibt keinen Labs-Kompatibilitätspfad, keinen Server-APKG-Fallback und keine allgemeine Feature-Registry. `VariantGenerationSource: "ai_generated"` bleibt ausschließlich als Herkunftswert der Core-Variantenlogik bestehen. Google und Magic Link bleiben über getrennte Flags schaltbar.
 **Datum:** 2026-08-01
+
+## ADR-008 — Eine gemeinsame Stapelkarte mit kontextabhängiger Hauptaktion
+
+**Status:** angenommen
+**Kontext:** Dashboard, Lernen und Kartenverwaltung zeigten denselben Stapelbaum mit abweichenden Kennzahlen, Aktivierungsflächen und wiederholten Werkzeugen. Die frühere Trennung aus ADR-002 beseitigte zwar unklare Gesten, verhinderte aber auch die bereits bewährte direkte Strukturierung im sichtbaren Baum.
+**Entscheidung:** Alle drei Bereiche verwenden eine gemeinsame einklappbare Stapelkarte mit Teilbaum-Kennzahlen. Die neutrale Fläche startet in Dashboard und Lernen die Sitzung und öffnet in der Kartenverwaltung die Karten. Dashboard und Lernen erlauben sichtbares direktes Drag-and-drop auf einen Stapel oder die Hauptebenen-Zone; ungültige und unveränderte Ziele sind No-ops und ein Drag löst keinen Lernstart aus. Die Kartenverwaltung bündelt Werkzeuge einmal beim ausgewählten Stapel und behält das bestätigte Verschieben als Tastatur-, Touch- und Accessibility-Fallback. Stapeloptionen tragen ihren Rückkehrkontext in der URL.
+**Konsequenzen:** Darstellung, Keyboard-Aktivierung, Collapse, Drag-Zustände und Kennzahlsemantik besitzen eine kanonische UI-Implementierung. Die fachliche Workspace-Mutation und Persistenz bleiben unverändert. ADR-002 ist hinsichtlich des Verbots direkter Strukturierung abgelöst; die dort festgelegte Trennung von Lern- und Verwaltungsaufgabe bleibt erhalten.
+**Datum:** 2026-08-03

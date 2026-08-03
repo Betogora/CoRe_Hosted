@@ -5,25 +5,31 @@ import { createWorldCapitalsSeedDecks } from "../fixtures/worldCapitals.ts";
 import { createCoreDeck } from "../coreModel.ts";
 import { LearnScreen } from "./LearnScreen.tsx";
 
-test("learning rows expose only counts, an explicit start and secondary deck options", () => {
+test("learning rows expose shared counts, direct activation, settings and drag-and-drop", () => {
   const markup = renderToStaticMarkup(
     <LearnScreen
       decks={createWorldCapitalsSeedDecks()}
       onStartDeck={() => undefined}
-      onCreateDeck={() => undefined}
+      onCreateDeck={() => null}
+      focusedDeckId={null}
+      initialParentDeckId=""
+      onDeckCreationHandled={() => undefined}
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
       onOpenDeckSettings={() => undefined}
+      onMoveDeck={() => null}
     />,
   );
 
   assert.match(markup, /Welt-Hauptstädte lernen/);
   assert.match(markup, /Stapeloptionen für Welt-Hauptstädte/);
-  assert.match(markup, /data-learn-count-cell="new"/);
-  assert.match(markup, /data-learn-count-cell="due"/);
-  assert.match(markup, /data-learn-count-cell="total"/);
-  assert.doesNotMatch(markup, /draggable=/);
+  assert.match(markup, /data-deck-count="new"/);
+  assert.match(markup, /data-deck-count="due"/);
+  assert.match(markup, /data-deck-count="total"/);
+  assert.match(markup, /draggable="true"/);
+  assert.doesNotMatch(markup, /learn-deck-list-header/);
+  assert.doesNotMatch(markup, />Lernen<\/span><\/button>/);
   assert.doesNotMatch(markup, /Icon auswählen|Iconfarbe|CoRe aktiv/);
 });
 
@@ -33,11 +39,14 @@ test("quick deck creation asks only for a name and optional parent deck", () => 
       decks={createWorldCapitalsSeedDecks()}
       initialParentDeckId="deck_world_capitals"
       onStartDeck={() => undefined}
-      onCreateDeck={() => undefined}
+      onCreateDeck={() => null}
+      focusedDeckId={null}
+      onDeckCreationHandled={() => undefined}
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
       onOpenDeckSettings={() => undefined}
+      onMoveDeck={() => null}
     />,
   );
 
@@ -57,11 +66,15 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
     <LearnScreen
       decks={decks}
       onStartDeck={() => undefined}
-      onCreateDeck={() => undefined}
+      onCreateDeck={() => null}
+      focusedDeckId={null}
+      initialParentDeckId=""
+      onDeckCreationHandled={() => undefined}
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
       onOpenDeckSettings={() => undefined}
+      onMoveDeck={() => null}
     />,
   );
   const fallbackMarkup = renderToStaticMarkup(
@@ -69,16 +82,19 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
       decks={decks}
       focusedDeckId="missing-deck"
       onStartDeck={() => undefined}
-      onCreateDeck={() => undefined}
+      onCreateDeck={() => null}
+      initialParentDeckId=""
+      onDeckCreationHandled={() => undefined}
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
       onOpenDeckSettings={() => undefined}
+      onMoveDeck={() => null}
     />,
   );
 
-  assert.match(hierarchyMarkup, /aria-label="Bereich A \/ Gemeinsam auswählen"/);
-  assert.match(hierarchyMarkup, /aria-label="Bereich B \/ Gemeinsam auswählen"/);
+  assert.match(hierarchyMarkup, /aria-label="Bereich A \/ Gemeinsam lernen"/);
+  assert.match(hierarchyMarkup, /aria-label="Bereich B \/ Gemeinsam lernen"/);
   assert.match(fallbackMarkup, /Stapel nicht gefunden oder nicht verfügbar\./);
   assert.match(fallbackMarkup, /Zu Lernen/);
   assert.match(fallbackMarkup, /Zur Kartenverwaltung/);

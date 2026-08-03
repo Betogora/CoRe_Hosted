@@ -10,140 +10,143 @@ const DECK_IDS = {
 };
 
 function mainMenu(page: Page) {
-  return page.getByRole("navigation", { name: /Hauptmen/ });
+  return page.getByRole("navigation", { name: /Hauptmenü/ });
 }
 
 async function storedParentDeckId(page: Page, deckId: string) {
   const state = await readActiveAccountState(page);
-  return state.decks?.find((deck: { id: any; }) => deck.id === deckId)?.parentDeckId ?? null;
+  return state.decks?.find((deck: { id: string }) => deck.id === deckId)?.parentDeckId ?? null;
 }
 
-async function groupBackgroundColor(group: Locator) {
-  return group.evaluate((element: Element) => getComputedStyle(element).backgroundColor);
+async function dispatchDeckDrop(page: Page, source: Locator, target: Locator) {
+  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+  await source.dispatchEvent("dragstart", { dataTransfer });
+  await target.dispatchEvent("dragover", { dataTransfer });
+  await target.dispatchEvent("drop", { dataTransfer });
+  await source.dispatchEvent("dragend", { dataTransfer });
+  await dataTransfer.dispose();
 }
 
-function rgbLuminance(color: { match: (arg0: RegExp) => { (): any; new(): any; map: { (arg0: NumberConstructor): never[]; new(): any; }; }; }) {
-  const [red = 0, green = 0, blue = 0] = color.match(/\d+(\.\d+)?/g)?.map(Number) ?? [];
-  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+async function dispatchTopLevelDrop(page: Page, source: Locator, dropZoneTestId: string) {
+  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+  await source.dispatchEvent("dragstart", { dataTransfer });
+  const dropZone = page.getByTestId(dropZoneTestId);
+  await expect(dropZone).toBeVisible();
+  await dropZone.dispatchEvent("dragover", { dataTransfer });
+  await dropZone.dispatchEvent("drop", { dataTransfer });
+  await source.dispatchEvent("dragend", { dataTransfer });
+  await dataTransfer.dispose();
 }
 
-async function firstDirectChildGroupGap(rootGroup: Locator) {
-  return rootGroup.evaluate((root: { querySelector: (arg0: string) => any; }) => {
-    const childrenRoot = root.querySelector(':scope > [data-learn-deck-children="true"]');
-    const groups = [...(childrenRoot?.querySelectorAll(':scope > [data-learn-deck-group="true"]') ?? [])];
-    if (groups.length < 2) return 0;
-
-    const firstRect = groups[0].getBoundingClientRect();
-    const secondRect = groups[1].getBoundingClientRect();
-    return secondRect.top - firstRect.bottom;
-  });
+function metric(row: Locator, name: "new" | "due" | "total") {
+  return row.locator(`[data-deck-count="${name}"]`);
 }
 
-async function firstGroupHeaderGap(page: Page) {
-  return page.evaluate(() => {
-    const header = document.querySelector('[data-testid="learn-deck-list-header"]');
-    const firstGroup = document.querySelector('[data-testid="learn-deck-tree"] > [data-learn-deck-group="true"]');
-    if (!header || !firstGroup) return 0;
-
-    return firstGroup.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
-  });
-}
-
-async function visibleRowText(row: Locator) {
-// @ts-expect-error -- Das bestehende dynamische View-/Fixture-Modell wird an dieser lokalen Grenze bewusst eingeengt.
-  return row.evaluate((element: { innerText: string; }) => element.innerText.replace(/\s+/g, " ").trim());
-}
-
-async function countCellRightEdges(row: Locator) {
-  return row.evaluate((element: { querySelector: (arg0: string) => any; }) => {
-    const edges = {};
-    for (const metric of ["new", "due", "total"]) {
-      const cell = element.querySelector(`[data-learn-count-cell="${metric}"]`);
-// @ts-expect-error -- Das bestehende dynamische View-/Fixture-Modell wird an dieser lokalen Grenze bewusst eingeengt.
-      edges[metric] = cell?.getBoundingClientRect().right ?? 0;
-    }
-    return edges;
-  });
-}
-
-test("world capitals learn list is simple and has an explicit learning start", async ({ page }: any) => {
+test("dashboard shows the full shared tree, donut and direct drag-and-drop", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.root}`)).toContainText("Welt-Hauptstädte");
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.root}`)).toContainText("245");
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toContainText("Europa");
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toContainText("53");
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`)).toContainText("Südamerika");
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`)).toContainText("14");
+  const rootRow = page.getByTestId(`dashboard-deck-row-${DECK_IDS.root}`);
+  const europeRow = page.getByTestId(`dashboard-deck-row-${DECK_IDS.europe}`);
+  const southAmericaRow = page.getByTestId(`dashboard-deck-row-${DECK_IDS.southAmerica}`);
+  await expect(rootRow).toBeVisible();
+  await expect(europeRow).toBeVisible();
+  await expect(metric(rootRow, "new")).toContainText("Neu");
+  await expect(metric(rootRow, "due")).toContainText("Fällig");
+  await expect(metric(rootRow, "total")).toContainText("Gesamt");
+  await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
+  await expect(rootRow.getByRole("button", { name: /Stapeloptionen/ })).toHaveCount(0);
+  await expect(southAmericaRow).toHaveAttribute("draggable", "true");
 
-  const rootGroup = page.getByTestId(`learn-deck-group-${DECK_IDS.root}`);
-  const africaGroup = rootGroup.getByTestId(`learn-deck-group-${DECK_IDS.africa}`);
-  await expect(rootGroup).toBeVisible();
-  await expect(africaGroup).toBeVisible();
-  await expect(rootGroup.getByTestId(`learn-deck-group-${DECK_IDS.antarctica}`)).toBeVisible();
-// @ts-expect-error -- Das bestehende dynamische View-/Fixture-Modell wird an dieser lokalen Grenze bewusst eingeengt.
-  expect(rgbLuminance(await groupBackgroundColor(rootGroup))).toBeGreaterThan(rgbLuminance(await groupBackgroundColor(africaGroup)));
-  await expect.poll(() => firstDirectChildGroupGap(rootGroup)).toBeGreaterThan(0);
+  await dispatchDeckDrop(page, southAmericaRow, europeRow);
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
+
+  await europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" }).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+});
+
+test("learning rows activate directly while expand and settings remain independent", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
-  await expect(page.getByText("Originale und variantenfokussierte Sessions.")).toHaveCount(0);
-  await expect(page.getByTestId("learn-deck-list-header")).toContainText("Neu");
-  await expect(page.getByTestId("learn-deck-list-header")).toContainText("Fällig");
-  await expect(page.getByTestId("learn-deck-list-header")).toContainText("Gesamt");
-  await expect.poll(() => firstGroupHeaderGap(page)).toBeGreaterThanOrEqual(8);
-  expect(await visibleRowText(rootRow)).not.toMatch(/\b(Neu|Fällig|Gesamt)\b/);
-  expect(await visibleRowText(europeRow)).not.toMatch(/\b(Neu|Fällig|Gesamt)\b/);
-  const rootCountEdges = await countCellRightEdges(rootRow);
-  const europeCountEdges = await countCellRightEdges(europeRow);
-  for (const metric of ["new", "due", "total"]) {
-// @ts-expect-error -- Das bestehende dynamische View-/Fixture-Modell wird an dieser lokalen Grenze bewusst eingeengt.
-    expect(Math.abs(rootCountEdges[metric] - europeCountEdges[metric])).toBeLessThanOrEqual(2);
-  }
-  await expect(europeRow.getByRole("button", { name: "Europa lernen" })).toBeVisible();
-  await expect(europeRow).not.toHaveAttribute("draggable", "true");
-  const europeSettingsButton = europeRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Europa" });
-  await europeSettingsButton.click();
+  await expect(page.getByTestId("learn-deck-list-header")).toHaveCount(0);
+  await expect(metric(rootRow, "new")).toContainText("Neu");
+  await expect(metric(rootRow, "due")).toContainText("Fällig");
+  await expect(metric(rootRow, "total")).toContainText("Gesamt");
+  await expect(europeRow).toHaveAttribute("draggable", "true");
+  await expect(europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" })).toBeVisible();
+  await expect(europeRow.getByRole("button", { name: /^Lernen$/ })).toHaveCount(0);
+
+  await rootRow.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte ausblenden" }).click();
+  await expect(europeRow).toBeHidden();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
+  await rootRow.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte anzeigen" }).click();
+
+  await europeRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Europa" }).click();
   await expect(page.getByTestId(`deck-settings-${DECK_IDS.europe}`)).toBeVisible();
-  await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.europe}$`));
-  await expect(page.getByText("Nur dieser Stapel")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Europa", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.europe}&returnView=learn$`));
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
-});
+  await expect(europeRow).toBeVisible();
 
-test("world capitals learn rows start study mode directly", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
-
-  await europeRow.click();
+  await europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" }).press("Enter");
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
   await expect(europeRow).toBeVisible();
 });
 
-test("deck management moves decks through an explicit keyboard-accessible action", async ({ page }: any) => {
+test("learning drag-and-drop handles child, root, no-op and invalid targets without starting study", async ({ page }) => {
   await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
 
+  const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
+  const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
+  let southAmericaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`);
+  await expect(metric(europeRow, "total")).toContainText("53");
+
+  await dispatchDeckDrop(page, southAmericaRow, europeRow);
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
+  await expect(metric(europeRow, "total")).toContainText("67");
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
+
+  southAmericaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`);
+  await dispatchTopLevelDrop(page, southAmericaRow, "learn-top-drop-zone");
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(null);
+  await expect(metric(europeRow, "total")).toContainText("53");
+
+  southAmericaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`);
+  await dispatchTopLevelDrop(page, southAmericaRow, "learn-top-drop-zone");
+  await expect(page.getByRole("status")).toContainText("Stapel bleibt an dieser Stelle.");
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(null);
+
+  await dispatchDeckDrop(page, rootRow, europeRow);
+  await expect(page.getByRole("status")).toContainText("Stapel bleibt an dieser Stelle.");
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.root)).toBe(null);
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
+});
+
+test("deck management selects by row and preserves explicit keyboard move as fallback", async ({ page }) => {
+  await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();
 
-  await expect(page.getByTestId(`deck-row-${DECK_IDS.root}`)).toBeVisible();
+  const southAmericaRow = page.getByTestId(`deck-row-${DECK_IDS.southAmerica}`);
+  await expect(southAmericaRow).not.toHaveAttribute("draggable", "true");
+  await southAmericaRow.getByRole("button", { name: "Welt-Hauptstädte / Südamerika öffnen" }).press("Enter");
+  await expect(page.getByTestId(`deck-actions-${DECK_IDS.southAmerica}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-card-list-${DECK_IDS.southAmerica}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-card-list-${DECK_IDS.southAmerica}`)).toBeFocused();
+
   const moveButton = page.getByTestId(`deck-move-button-${DECK_IDS.southAmerica}`);
-  await moveButton.focus();
-  await page.keyboard.press("Enter");
-  const target = page.getByLabel("Ziel für Südamerika");
-  await target.selectOption(DECK_IDS.europe);
+  await moveButton.press("Enter");
+  await page.getByLabel("Ziel für Südamerika").selectOption(DECK_IDS.europe);
   await expect(page.getByTestId(`deck-move-summary-${DECK_IDS.southAmerica}`)).toContainText("unter „Europa“");
-  await page.getByRole("button", { name: "Verschieben bestätigen" }).focus();
-  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Verschieben bestätigen" }).press("Enter");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
 
-  await page.getByTestId(`deck-move-button-${DECK_IDS.southAmerica}`).click();
-  await page.getByLabel("Ziel für Südamerika").selectOption(DECK_IDS.root);
-  await page.getByRole("button", { name: "Verschieben bestätigen" }).click();
-  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.root);
+  await page.getByTestId(`deck-actions-${DECK_IDS.southAmerica}`).getByRole("button", { name: "Einstellungen" }).click();
+  await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.southAmerica}&returnView=decks$`));
+  await page.getByRole("button", { name: "Zurück zur Kartenverwaltung" }).press("Enter");
+  await expect(page.getByTestId(`deck-actions-${DECK_IDS.southAmerica}`)).toBeVisible();
 });

@@ -44,6 +44,9 @@
   --core-action-secondary: #667492;
   --core-action-disabled-bg: var(--core-palette-cloud);
   --core-action-disabled-text: #667492;
+  --core-deck-new-text: #975c92;
+  --core-deck-due-text: var(--core-action-primary);
+  --core-deck-total-text: #646a75;
   --core-info: var(--core-palette-slate);
   --core-success: var(--core-palette-lilac);
   --core-warning: var(--core-palette-marigold);
@@ -98,6 +101,9 @@
   --core-action-secondary: var(--core-palette-highlight);
   --core-action-disabled-bg: #394454;
   --core-action-disabled-text: #7d8ba4;
+  --core-deck-new-text: var(--core-palette-lilac-glow);
+  --core-deck-due-text: var(--core-palette-highlight);
+  --core-deck-total-text: #aeb5c0;
   --core-info: var(--core-palette-highlight);
   --core-success: var(--core-palette-lilac-glow);
   --core-warning: var(--core-palette-golden-glow);

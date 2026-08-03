@@ -56,6 +56,37 @@ test("roundtrips deck, card and creation context without validating navigational
   assert.equal(appRouteToUrl(creationRoute), "/neue-karten?method=manual&deck=deck_b&done=deck_new");
 });
 
+test("roundtrips the deck-settings origin and keeps direct links on the safe learning fallback", () => {
+  const decksOrigin = parseAppRouteFromUrl(
+    "/stapel-einstellungen?deck=deck_b&returnView=decks&returnCard=card_b",
+  );
+  const learnOrigin = parseAppRouteFromUrl(
+    "/stapel-einstellungen?deck=deck_b&returnView=learn",
+  );
+
+  assert.deepEqual(decksOrigin, {
+    mode: "view",
+    viewId: "stapel-einstellungen",
+    focusedDeckId: "deck_b",
+    settingsReturnContext: { view: "decks", cardId: "card_b" },
+  });
+  assert.deepEqual(learnOrigin, {
+    mode: "view",
+    viewId: "stapel-einstellungen",
+    focusedDeckId: "deck_b",
+    settingsReturnContext: { view: "learn" },
+  });
+  assert.equal(
+    appRouteToUrl(decksOrigin),
+    "/stapel-einstellungen?deck=deck_b&returnView=decks&returnCard=card_b",
+  );
+  assert.equal(appRouteToUrl(learnOrigin), "/stapel-einstellungen?deck=deck_b&returnView=learn");
+  assert.deepEqual(
+    parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b&returnView=external&returnCard=ignored"),
+    { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" },
+  );
+});
+
 test("falls back to today for unknown paths and ignores unsupported query values", () => {
   assert.deepEqual(parseAppRouteFromUrl("/does-not-exist?deck=deck_a&card=card_a"), { mode: "view", viewId: "uebersicht" });
   assert.deepEqual(parseAppRouteFromUrl("/neue-karten?method=provider&card=ignored"), { mode: "view", viewId: "neue-karten" });

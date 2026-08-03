@@ -6,7 +6,6 @@ import {
   createPerformanceStatisticsModel,
   createStudyHeatmapModel,
   createStudyHeatmapWindow,
-  createVisibleDeckRows,
   getStudyHeatmapVisibleWeekCount,
 } from "./libraryModel.ts";
 
@@ -136,30 +135,8 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
   assert.ok(childRow);
   assert.equal(childRow.summary.totalCards, 1);
   assert.equal(library.dueCards, 1);
-  assert.deepEqual(library.dashboardRows.map((row) => row.id), [parent.id]);
-  assert.equal(library.dashboardRows[0].summary.totalCards, 1);
-});
-
-test("visible deck rows hide descendants of collapsed parent decks", () => {
-  const { parent, child } = createDeckHierarchy();
-  const grandchild = createCoreDeck({
-    id: "deck_grandchild",
-    name: "Kopf",
-    source: "manual",
-    parentDeckId: child.id,
-    hierarchyPath: ["Medizin", "Anatomie", "Kopf"],
-    cards: [],
-  });
-  const library = createDeckLibraryModel([parent, child, grandchild], { now: "2026-07-01T08:00:00.000Z" });
-
-  assert.deepEqual(
-    createVisibleDeckRows(library.rows, new Set([parent.id])).map((row) => row.id),
-    [parent.id],
-  );
-  assert.deepEqual(
-    createVisibleDeckRows(library.rows, new Set([child.id])).map((row) => row.id),
-    [parent.id, child.id],
-  );
+  assert.deepEqual(library.rows.map((row) => row.id), [parent.id, child.id]);
+  assert.equal(library.rows[0].summary.totalCards, 1);
 });
 
 test("study heatmap counts learned cards by local day", () => {

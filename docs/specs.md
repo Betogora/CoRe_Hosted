@@ -116,12 +116,19 @@ Akzeptanz:
 
 Akzeptanz:
 
-- Ein Klick auf eine Lernzeile startet Lernen.
+- Dashboard, Lernen und Kartenverwaltung verwenden dieselbe einklappbare Stapelkarte mit Icon, Name, eindeutigem Hierarchiepfad bei Unterstapeln sowie den immer sichtbaren Teilbaum-Kennzahlen `Neu`, `Fällig` und `Gesamt`.
+- Das Dashboard zeigt den vollständigen Stapelbaum ohne feste Zeilenbegrenzung und ergänzt jede Stapelkarte um den Fortschrittsdonut; Stapeloptionen werden dort nicht angeboten.
+- In Dashboard und Lernen startet die neutrale Kartenfläche eine Sitzung. In der Kartenverwaltung wählt sie den Stapel und öffnet beziehungsweise fokussiert dessen Kartenliste und Editor.
+- Auf-/Zuklappen, Stapeloptionen und andere eigene Bedienelemente lösen die Flächenaktion nicht aus. Die Flächenaktion ist per Enter und Leertaste bedienbar und besitzt einen eindeutigen zugänglichen Namen.
+- Lernen besitzt keinen zusätzlichen Tabellenkopf oder separaten Lernen-Button; Stapeloptionen bleiben pro Stapel erreichbar.
+- Die Kartenverwaltung zeigt die Stapelwerkzeuge nicht in jeder Zeile, sondern einmal gruppiert beim ausgewählten Stapel: CoRe-Modus, Einstellungen, Umbenennen, bestätigtes Verschieben, Unterstapel, normales und variantenfokussiertes Lernen sowie getrenntes Löschen.
 - Das fokussierte Deck ist in Lernen und Kartenverwaltung derselbe URL-reproduzierbare Kontext, ohne parallele lokale Deckidentität.
 - Lernen-, Kartenverwaltungs- und Erstelllinks erhalten ihr Deck beziehungsweise ihre ausgewählte Karte über Reload und Direktlink.
+- Stapeloptionen merken sich ihren URL-reproduzierbaren Ursprung. Der Rückweg führt nach Lernen oder zum zuvor ausgewählten Stapel und optional zur Karte; Direktlinks ohne Ursprung fallen sicher auf Lernen zurück.
 - Gleichnamige Unterstapel werden in relevanten Links und Auswahlen durch ihren vollständigen Hierarchiepfad unterschieden.
-- Die Kartenverwaltung zeigt Inventarzahlen ausdrücklich als `im Stapel` und keine konkurrierende Projektion der heutigen Lernqueue.
-- Verschieben, Outdent und Löschen sind explizite, bestätigte Verwaltungsaktionen.
+- In Dashboard und Lernen verschiebt ein Drop auf eine Stapelkarte den gezogenen Baum unmittelbar als Unterstapel; ein Drop auf die sichtbare freie Hauptebenen-Zone entfernt die Elternzuordnung. Selbst-, Nachfahren- und unveränderte Ziele bleiben ohne Strukturänderung.
+- Ein beendeter Drag startet keine Sitzung. Erfolg, Fehler und No-op werden deutsch über eine Live-Region gemeldet; es gibt keine Bestätigung und kein Rückgängig-Angebot.
+- Die Kartenverwaltung behält das explizite bestätigte Verschieben als Tastatur-, Touch- und Accessibility-Fallback.
 - Kartenlöschung zeigt den betroffenen Inhalt, verwendet Soft Delete und bietet unmittelbar ein Undo, das denselben Datensatz samt Review State wiederherstellt.
 - Stapellöschung zeigt Stapelname, Unterstapelzahl und aktive Kartenanzahl; ein Abbruch verändert nichts.
 - Basic, Reverse, Cloze und Multiple Choice laufen durch dieselbe fachliche Erstellung.
@@ -196,8 +203,10 @@ Akzeptanz:
 
 - Decks können Eltern- und Unterstapel bilden.
 - Hierarchie bleibt beim unterstützten APKG-Import erhalten.
-- Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen Deckkontext.
+- Dashboard, Lernen und Kartenverwaltung projizieren denselben kanonischen, lokal einklappbaren Stapelbaum; Elternkennzahlen aggregieren sämtliche Unterstapel.
+- Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen Deckkontext und einer gemeinsamen Stapelkarten-Darstellung.
 - Lernen ist Teil der Hauptnavigation; die direktlinkfähige Kartenverwaltung wird sekundär aus Lernen geöffnet.
+- Dashboard und Lernen erlauben direktes Drag-and-drop für Parent-/Child-Zuordnung und Outdent zur Hauptebene. Die Kartenverwaltung bietet dieselbe fachliche Mutation über einen expliziten bestätigten Fallback an.
 - Suche und Filter helfen bei großen Bibliotheken.
 - Stapelname, Lernoptionen und Content-Repetition-Modus sind bearbeitbar.
 - Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.
@@ -253,6 +262,7 @@ Chat-your-Deck, Lernplan, lokaler KI-Entwurf, Deck-Graph, Community-Demo, KI-Job
 - Light und Dark Mode verwenden denselben vollständigen semantischen Tokensatz. Ein zugänglicher Schalter direkt oberhalb der Einstellungen unten in der Sidebar aktiviert den Dark Mode über `data-core-theme="dark"`; daneben öffnet ein zugänglicher Fragezeichen-Button die Hilfeseite. Die Theme-Auswahl bleibt lokal im Browser erhalten. Es gibt keine automatische Aktivierung über die Systempräferenz.
 - Dekorative Rahmenlinien sind bewusst heller und zurückhaltender als interaktive Feld-, Auswahl- und Fokusgrenzen.
 - Primäre, sekundäre, tertiäre und destruktive Actions sowie Info-, Erfolgs-, Warn- und Fehlerzustände besitzen produktweit einheitliche Hover-, Active-, Focus- und Disabled-Zustände. Bedeutung bleibt durch Text, Icon oder Zahl zusätzlich zur Farbe erkennbar.
+- Stapelkarten zeigen `Neu` in der semantischen Lilac-Textrolle, `Fällig` in Slate und `Gesamt` gedämpft. Die sichtbaren Labels bleiben in allen Themes und Breiten erhalten, sodass Farbe nie allein Bedeutung trägt.
 - Amulya definiert die visuellen Überschriftenstufen `36/44`, `28/36` und `22/30`; Synonym definiert Body Large `16/24`, Body und Controls `14/20` sowie Caption und Statuslabel `12/16`. Semantische HTML-Ebene und visuelle Stufe dürfen voneinander abweichen.
 - Bestehendes Karten-HTML und persistierte benutzerdefinierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate `#6F7E9E`; Rich-Text-Schnellfarben stammen aus der CoRe-Palette.
 

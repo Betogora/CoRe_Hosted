@@ -1,12 +1,14 @@
 # CoRe UI-Katalog
 
-Stand: 2026-08-01
+Stand: 2026-08-03
 
 Dieser Katalog ist die code-nahe Übersicht der verfügbaren UI-Bausteine. Neue Features prüfen diese Elemente vor einer eigenen Implementierung. Wiederverwendung ist empfohlen, aber nicht verpflichtend, wenn die vorhandene Schnittstelle die Fachsemantik verschlechtern würde. Ein neues gemeinsames Modul wird erst aus mindestens drei gleichartigen aktuellen Stellen oder aus zentralisierungswürdigem Accessibility-Verhalten gewonnen.
 
 ## Theme und Typografie
 
 `src/styles.css` besitzt die primitiven CoRe-Farben, alle semantischen Light-/Dark-Rollen und die Typostufen. Produktcode verwendet semantische Klassen beziehungsweise Variablen. Der Theme-Schalter in der Sidebar setzt ausschließlich `data-core-theme="light"` beziehungsweise `data-core-theme="dark"` am Dokumentelement; `src/coreTheme.ts` besitzt Validierung und lokale Persistenz der Auswahl. Eine automatische Systempräferenz gibt es bewusst nicht.
+
+Die teilbare visuelle Referenz liegt in `docs/ui-elements.html`. Nach Änderungen an Theme, Typografie, gemeinsamen Komponenten oder eigenständigen fachlichen UI-Mustern wird sie mit `npm run docs:ui-elements` neu erzeugt. `npm run typecheck` führt `npm run docs:ui-elements:check` aus und schlägt fehl, wenn die eingebetteten Styles nicht mehr den kanonischen Quellen entsprechen.
 
 - Überschriften: `core-heading-1`, `core-heading-2`, `core-heading-3`.
 - Fließtext: `core-body-large`, `core-body`, `core-caption`.
@@ -87,6 +89,7 @@ Für spezialisierte Strukturen stehen `core-status-info`, `core-status-success`,
 
 ## Spezialisierte Feature-Module
 
+- `DeckTree` aus `src/ui/DeckTree.tsx`: kanonische einklappbare Stapelkarte für Dashboard, Lernen und Kartenverwaltung; besitzt Hierarchie, Teilbaum-Kennzahlen, Keyboard-Aktivierung sowie das direkte Drag-and-drop in Dashboard und Lernen. Fachliche Mutationen bleiben in den übergebenen Callbacks.
 - `RichTextEditor` aus `src/ui/RichTextEditor.tsx`: sanitisiertes Karten-HTML, Toolbar, Text- und Markerfarben.
 - `ColorPopover` und `ColorToolButton` aus `src/ui/colorPicker.tsx`: gespeicherte Farbfelder und technisches Farbspektrum.
 - `PdfDocumentViewer` aus `src/ui/PdfDocumentViewer.tsx`: PDF-Rendering, Zoom, Navigation und Textauswahl.

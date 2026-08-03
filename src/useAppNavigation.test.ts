@@ -13,6 +13,7 @@ test("projects view and study routes into one exhaustive shell state", () => {
     creationMethod: "manual",
     creationDeckId: "deck-1",
     completedDeckId: "deck-1",
+    settingsReturnContext: null,
   });
 
   const studyRoute = createStudyRoute("deck-1", {
@@ -30,7 +31,16 @@ test("projects view and study routes into one exhaustive shell state", () => {
     creationMethod: "",
     creationDeckId: "",
     completedDeckId: "",
+    settingsReturnContext: null,
   });
+});
+
+test("projects the settings return context only on the settings route", () => {
+  assert.deepEqual(projectAppRoute(createViewRoute("stapel-einstellungen", {
+    focusedDeckId: "deck-1",
+    settingsReturnContext: { view: "decks", cardId: "card-2" },
+  })).settingsReturnContext, { view: "decks", cardId: "card-2" });
+  assert.equal(projectAppRoute(createViewRoute("lernen")).settingsReturnContext, null);
 });
 
 test("browser navigation cleanup removes the exact popstate listener", () => {

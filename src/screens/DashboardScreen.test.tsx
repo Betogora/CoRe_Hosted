@@ -3,6 +3,7 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createCoreCard, createCoreDeck } from "../coreModel.ts";
 import { createCoreRepository } from "../coreRepository.ts";
+import { createViewRoute } from "../appNavigation.ts";
 import { DashboardScreen } from "./DashboardScreen.tsx";
 
 test("empty dashboard offers only explicit first-learning paths without seeded statistics", () => {
@@ -10,9 +11,10 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
   const markup = renderToStaticMarkup(
     <DashboardScreen
       state={state}
-      onNavigate={() => undefined}
+      onNavigate={() => createViewRoute("uebersicht")}
       onStartDeck={() => undefined}
-      onCreateDemo={() => undefined}
+      onCreateDemo={async () => null}
+      onMoveDeck={() => null}
     />,
   );
 
@@ -48,9 +50,10 @@ test("populated dashboard keeps today's due count without the original-card stat
         profile: { ...baseState.profile, displayName: "  Noemi  " },
         decks: [deck],
       }}
-      onNavigate={() => undefined}
+      onNavigate={() => createViewRoute("uebersicht")}
       onStartDeck={() => undefined}
-      onCreateDemo={() => undefined}
+      onCreateDemo={async () => null}
+      onMoveDeck={() => null}
     />,
   );
 
@@ -62,6 +65,11 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /Lernen öffnen/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);
   assert.doesNotMatch(markup, />Lernen <svg/);
+  assert.match(markup, /data-deck-count="new"/);
+  assert.match(markup, /data-deck-count="due"/);
+  assert.match(markup, /data-deck-count="total"/);
+  assert.match(markup, /draggable="true"/);
+  assert.doesNotMatch(markup, /Stapeloptionen für Biologie/);
   assert.doesNotMatch(markup, /aktive Tage/i);
   assert.match(markup, /Weniger[\s\S]*Frühere Wochen anzeigen/);
   assert.match(markup, /grid-template-columns:2\.25rem repeat\(53, 19px\)/);

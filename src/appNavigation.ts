@@ -7,13 +7,20 @@ const defaultViewId = menu.defaultViewId;
 const studyFallbackViewId: AppViewId = "lernen";
 const extraRoutableViewIds = ["stapel-einstellungen"] as const;
 const reviewReturnViews = ["today", "learn", "decks"] as const;
+const settingsReturnViews = ["learn", "decks"] as const;
 
 export type AppViewId = MenuViewId | typeof extraRoutableViewIds[number];
 export type ReviewReturnView = typeof reviewReturnViews[number];
+export type SettingsReturnView = typeof settingsReturnViews[number];
 
 export interface ReviewReturnContext {
   view: ReviewReturnView;
   deckId?: string;
+  cardId?: string;
+}
+
+export interface SettingsReturnContext {
+  view: SettingsReturnView;
   cardId?: string;
 }
 
@@ -26,6 +33,7 @@ export interface ViewRoute {
   creationMethod?: "manual" | "import";
   creationDeckId?: string;
   completedDeckId?: string;
+  settingsReturnContext?: SettingsReturnContext;
 }
 
 export interface StudyRoute {
@@ -51,6 +59,10 @@ interface ViewRouteInput {
   creationMethod?: unknown;
   creationDeckId?: unknown;
   completedDeckId?: unknown;
+  settingsReturnContext?: {
+    view?: unknown;
+    cardId?: unknown;
+  };
 }
 
 interface ReviewReturnContextInput {
@@ -94,6 +106,10 @@ function normalizeViewRoute(
     : "";
   const creationDeckId = cleanIdentifier(route.creationDeckId);
   const completedDeckId = cleanIdentifier(route.completedDeckId);
+  const settingsReturnView = settingsReturnViews.includes(String(route.settingsReturnContext?.view) as SettingsReturnView)
+    ? String(route.settingsReturnContext?.view) as SettingsReturnView
+    : null;
+  const settingsReturnCardId = cleanIdentifier(route.settingsReturnContext?.cardId);
 
   return {
     mode: "view",
@@ -104,6 +120,12 @@ function normalizeViewRoute(
     ...(viewId === "neue-karten" && creationMethod ? { creationMethod } : {}),
     ...(viewId === "neue-karten" && creationDeckId ? { creationDeckId } : {}),
     ...(viewId === "neue-karten" && completedDeckId ? { completedDeckId } : {}),
+    ...(viewId === "stapel-einstellungen" && settingsReturnView ? {
+      settingsReturnContext: {
+        view: settingsReturnView,
+        ...(settingsReturnView === "decks" && settingsReturnCardId ? { cardId: settingsReturnCardId } : {}),
+      },
+    } : {}),
   };
 }
 
@@ -239,6 +261,10 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     creationMethod: url.searchParams.get("method") ?? undefined,
     creationDeckId: url.searchParams.get("deck") ?? undefined,
     completedDeckId: url.searchParams.get("done") ?? undefined,
+    settingsReturnContext: pathSegments[0] === "stapel-einstellungen" ? {
+      view: url.searchParams.get("returnView") ?? undefined,
+      cardId: url.searchParams.get("returnCard") ?? undefined,
+    } : undefined,
   }, options);
 }
 
@@ -263,6 +289,10 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   if (normalized.viewId === "neue-karten" && normalized.creationMethod) params.set("method", normalized.creationMethod);
   if (normalized.viewId === "neue-karten" && normalized.creationDeckId) params.set("deck", normalized.creationDeckId);
   if (normalized.viewId === "neue-karten" && normalized.completedDeckId) params.set("done", normalized.completedDeckId);
+  if (normalized.viewId === "stapel-einstellungen" && normalized.settingsReturnContext) {
+    params.set("returnView", normalized.settingsReturnContext.view);
+    if (normalized.settingsReturnContext.cardId) params.set("returnCard", normalized.settingsReturnContext.cardId);
+  }
   const search = params.toString();
   return `${path}${search ? `?${search}` : ""}`;
 }

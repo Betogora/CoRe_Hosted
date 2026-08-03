@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "typecheck": "tsc -p tsconfig.json && tsx scripts/verifyTypePolicy.ts",
+    "typecheck": "tsc -p tsconfig.json && tsx scripts/verifyTypePolicy.ts && npm run docs:ui-elements:check",
     "test": "tsx scripts/runModuleTests.ts unit contract integration",
     "test:unit": "tsx scripts/runModuleTests.ts unit",
     "test:contract": "tsx scripts/runModuleTests.ts contract",
@@ -24,6 +24,8 @@
     "test:rls:local": "tsx scripts/runLocalE2E.ts --gate=rls",
     "db:types:generate": "tsx scripts/databaseTypes.ts --write",
     "db:types:check": "tsx scripts/databaseTypes.ts --check",
+    "docs:ui-elements": "tsx scripts/generateUiElements.ts --write",
+    "docs:ui-elements:check": "tsx scripts/generateUiElements.ts --check",
     "storage:retire-labs": "tsx scripts/retireLabsStorage.ts",
     "build": "vite build",
     "benchmark:apkg": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/core-local-benchmark.apkg && tsx scripts/benchmarkApkgImport.ts test-results/apkg/core-local-benchmark.apkg",

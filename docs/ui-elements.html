@@ -1,0 +1,2961 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Visueller UI-Elementkatalog der aktuell in CoRe verwendeten Farben, Schriften, Komponenten und Zustände."
+    />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=amulya@500,700&amp;f[]=synonym@400,500,600&amp;display=swap"
+      rel="stylesheet"
+    />
+    <title>CoRe UI-Elementkatalog</title>
+    <style id="core-generated-styles">
+/* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
+/* Quellenstand: b68a7375e6db8368 */
+*, ::before, ::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}/*
+! tailwindcss v3.4.19 | MIT License | https://tailwindcss.com
+*//*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+*,
+::before,
+::after {
+  box-sizing: border-box; /* 1 */
+  border-width: 0; /* 2 */
+  border-style: solid; /* 2 */
+  border-color: #e5e7eb; /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+html,
+:host {
+  line-height: 1.5; /* 1 */
+  -webkit-text-size-adjust: 100%; /* 2 */
+  -moz-tab-size: 4; /* 3 */
+  -o-tab-size: 4;
+     tab-size: 4; /* 3 */
+  font-family: Synonym, ui-sans-serif, system-ui, sans-serif; /* 4 */
+  font-feature-settings: normal; /* 5 */
+  font-variation-settings: normal; /* 6 */
+  -webkit-tap-highlight-color: transparent; /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+body {
+  margin: 0; /* 1 */
+  line-height: inherit; /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+hr {
+  height: 0; /* 1 */
+  color: inherit; /* 2 */
+  border-top-width: 1px; /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+abbr:where([title]) {
+  -webkit-text-decoration: underline dotted;
+          text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+code,
+kbd,
+samp,
+pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; /* 1 */
+  font-feature-settings: normal; /* 2 */
+  font-variation-settings: normal; /* 3 */
+  font-size: 1em; /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+table {
+  text-indent: 0; /* 1 */
+  border-color: inherit; /* 2 */
+  border-collapse: collapse; /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit; /* 1 */
+  font-feature-settings: inherit; /* 1 */
+  font-variation-settings: inherit; /* 1 */
+  font-size: 100%; /* 1 */
+  font-weight: inherit; /* 1 */
+  line-height: inherit; /* 1 */
+  letter-spacing: inherit; /* 1 */
+  color: inherit; /* 1 */
+  margin: 0; /* 2 */
+  padding: 0; /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+button,
+select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+button,
+input:where([type='button']),
+input:where([type='reset']),
+input:where([type='submit']) {
+  -webkit-appearance: button; /* 1 */
+  background-color: transparent; /* 2 */
+  background-image: none; /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+:-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+[type='search'] {
+  -webkit-appearance: textfield; /* 1 */
+  outline-offset: -2px; /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button; /* 1 */
+  font: inherit; /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: 0;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+input::-moz-placeholder, textarea::-moz-placeholder {
+  opacity: 1; /* 1 */
+  color: #9ca3af; /* 2 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1; /* 1 */
+  color: #9ca3af; /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+:disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block; /* 1 */
+  vertical-align: middle; /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+[hidden]:where(:not([hidden="until-found"])) {
+  display: none;
+}
+.core-surface {
+    border: 1px solid var(--core-border);
+    background: var(--core-surface);
+    box-shadow: var(--core-shadow-soft);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+.core-surface-raised {
+    border: 1px solid var(--core-border);
+    background: var(--core-surface-raised);
+    box-shadow: var(--core-shadow-raised);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+.core-surface-muted {
+    border: 1px solid var(--core-border);
+    background: var(--core-surface-muted);
+  }
+.core-overlay {
+    border: 1px solid var(--core-border);
+    background: var(--core-surface-raised);
+    box-shadow: var(--core-shadow-raised);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+.core-tooltip {
+    position: fixed;
+    z-index: 60;
+    width: -moz-max-content;
+    width: max-content;
+    max-width: min(20rem, calc(100vw - 1rem));
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--core-text);
+    font-family: Synonym, ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1rem;
+    overflow-wrap: anywhere;
+    pointer-events: auto;
+  }
+.core-tooltip::after {
+    position: absolute;
+    left: var(--core-tooltip-anchor-x);
+    width: 0.625rem;
+    height: 0.625rem;
+    border: solid var(--core-border);
+    background: var(--core-surface-raised);
+    content: "";
+  }
+.core-tooltip[data-side="top"]::after {
+    bottom: -0.375rem;
+    border-width: 0 1px 1px 0;
+    transform: translateX(-50%) rotate(45deg);
+  }
+.core-tooltip[data-side="bottom"]::after {
+    top: -0.375rem;
+    border-width: 1px 0 0 1px;
+    transform: translateX(-50%) rotate(45deg);
+  }
+.core-action-primary,
+  .core-action-secondary,
+  .core-action-tertiary,
+  .core-action-destructive,
+  .core-icon-action {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    padding: 0.65rem 1rem;
+    font-family: Synonym, ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+  }
+.core-action-primary {
+    background: var(--core-action-primary);
+    color: var(--core-text-on-accent);
+  }
+.core-action-primary:not(:disabled):hover {
+    background: var(--core-action-primary-hover);
+  }
+.core-action-primary:not(:disabled):active {
+    background: var(--core-action-primary-active);
+  }
+.core-action-secondary {
+    border-color: var(--core-action-secondary);
+    background: var(--core-surface);
+    color: var(--core-action-secondary);
+  }
+.core-action-secondary:not(:disabled):hover,
+  .core-action-tertiary:not(:disabled):hover,
+  .core-icon-action:not(:disabled):hover {
+    background: var(--core-surface-hover);
+  }
+.core-action-tertiary,
+  .core-icon-action {
+    background: transparent;
+    color: var(--core-text-secondary);
+  }
+.core-action-destructive {
+    border-color: var(--core-danger);
+    background: var(--core-danger);
+    color: var(--core-palette-midnight);
+  }
+.core-action-destructive:not(:disabled):hover {
+    background: var(--core-palette-coral-glow);
+  }
+.core-action-primary:disabled,
+  .core-action-secondary:disabled,
+  .core-action-tertiary:disabled,
+  .core-action-destructive:disabled,
+  .core-icon-action:disabled {
+    cursor: not-allowed;
+    border-color: transparent;
+    background: var(--core-action-disabled-bg);
+    color: var(--core-action-disabled-text);
+  }
+.core-icon-action {
+    min-width: 2.75rem;
+    padding: 0.625rem;
+  }
+.core-field,
+  .core-field-group input,
+  .core-field-group select,
+  .core-field-group textarea {
+    width: 100%;
+    border: 1px solid var(--core-border-interactive);
+    border-radius: 0.75rem;
+    background: var(--core-surface);
+    color: var(--core-text);
+    font: 400 0.875rem/1.25rem Synonym, ui-sans-serif, system-ui, sans-serif;
+  }
+.core-field,
+  .core-field-group input,
+  .core-field-group select {
+    min-height: 2.75rem;
+    padding: 0.625rem 0.75rem;
+  }
+.core-field-group textarea {
+    padding: 0.625rem 0.75rem;
+  }
+.core-field:disabled,
+  .core-field-group :is(input, select, textarea):disabled {
+    cursor: not-allowed;
+    border-color: var(--core-border);
+    background: var(--core-action-disabled-bg);
+    color: var(--core-action-disabled-text);
+  }
+.core-field[aria-invalid="true"],
+  .core-field-group :is(input, select, textarea)[aria-invalid="true"] {
+    border-color: var(--core-danger);
+  }
+.core-field-label {
+    color: var(--core-text-secondary);
+    font: 500 0.875rem/1.25rem Synonym, ui-sans-serif, system-ui, sans-serif;
+  }
+.core-field-hint,
+  .core-field-error {
+    font: 400 0.75rem/1rem Synonym, ui-sans-serif, system-ui, sans-serif;
+  }
+.core-field-hint {
+    color: var(--core-text-muted);
+  }
+.core-field-error {
+    color: var(--core-text);
+  }
+.core-field-group {
+    display: grid;
+    gap: 0.375rem;
+  }
+.\!visible {
+  visibility: visible !important;
+}
+.visible {
+  visibility: visible;
+}
+.absolute {
+  position: absolute;
+}
+.relative {
+  position: relative;
+}
+.col-span-2 {
+  grid-column: span 2 / span 2;
+}
+.col-start-2 {
+  grid-column-start: 2;
+}
+.row-start-1 {
+  grid-row-start: 1;
+}
+.my-6 {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.mb-3 {
+  margin-bottom: 0.75rem;
+}
+.mb-4 {
+  margin-bottom: 1rem;
+}
+.ml-4 {
+  margin-left: 1rem;
+}
+.mt-0\.5 {
+  margin-top: 0.125rem;
+}
+.mt-1 {
+  margin-top: 0.25rem;
+}
+.mt-2 {
+  margin-top: 0.5rem;
+}
+.mt-3 {
+  margin-top: 0.75rem;
+}
+.mt-4 {
+  margin-top: 1rem;
+}
+.mt-5 {
+  margin-top: 1.25rem;
+}
+.mt-6 {
+  margin-top: 1.5rem;
+}
+.block {
+  display: block;
+}
+.flex {
+  display: flex;
+}
+.inline-flex {
+  display: inline-flex;
+}
+.grid {
+  display: grid;
+}
+.inline-grid {
+  display: inline-grid;
+}
+.hidden {
+  display: none;
+}
+.size-10 {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.size-11 {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+.size-12 {
+  width: 3rem;
+  height: 3rem;
+}
+.size-3 {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.size-7 {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+.size-9 {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+.h-16 {
+  height: 4rem;
+}
+.h-24 {
+  height: 6rem;
+}
+.h-px {
+  height: 1px;
+}
+.min-h-10 {
+  min-height: 2.5rem;
+}
+.min-h-11 {
+  min-height: 2.75rem;
+}
+.min-h-12 {
+  min-height: 3rem;
+}
+.min-h-20 {
+  min-height: 5rem;
+}
+.min-h-28 {
+  min-height: 7rem;
+}
+.min-h-9 {
+  min-height: 2.25rem;
+}
+.w-full {
+  width: 100%;
+}
+.min-w-0 {
+  min-width: 0px;
+}
+.min-w-11 {
+  min-width: 2.75rem;
+}
+.min-w-9 {
+  min-width: 2.25rem;
+}
+.flex-1 {
+  flex: 1 1 0%;
+}
+.shrink-0 {
+  flex-shrink: 0;
+}
+@keyframes spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
+  grid-template-columns: minmax(0,1fr) auto;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+.place-items-center {
+  place-items: center;
+}
+.items-start {
+  align-items: flex-start;
+}
+.items-center {
+  align-items: center;
+}
+.justify-end {
+  justify-content: flex-end;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-2 {
+  gap: 0.5rem;
+}
+.gap-3 {
+  gap: 0.75rem;
+}
+.gap-4 {
+  gap: 1rem;
+}
+.gap-5 {
+  gap: 1.25rem;
+}
+.justify-self-end {
+  justify-self: end;
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+.overflow-visible {
+  overflow: visible;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rounded {
+  border-radius: 0.25rem;
+}
+.rounded-2xl {
+  border-radius: 1rem;
+}
+.rounded-\[18px\] {
+  border-radius: 18px;
+}
+.rounded-\[4px\] {
+  border-radius: 4px;
+}
+.rounded-full {
+  border-radius: 9999px;
+}
+.rounded-xl {
+  border-radius: 0.75rem;
+}
+.border {
+  border-width: 1px;
+}
+.border-b {
+  border-bottom-width: 1px;
+}
+.border-dashed {
+  border-style: dashed;
+}
+.border-core-action {
+  border-color: var(--core-action-primary);
+}
+.border-core-border {
+  border-color: var(--core-border);
+}
+.border-core-danger {
+  border-color: var(--core-danger);
+}
+.border-core-info {
+  border-color: var(--core-info);
+}
+.border-core-success {
+  border-color: var(--core-success);
+}
+.border-core-warning {
+  border-color: var(--core-warning);
+}
+.bg-\[var\(--core-group-depth-0\)\] {
+  background-color: var(--core-group-depth-0);
+}
+.bg-\[var\(--core-group-depth-1\)\] {
+  background-color: var(--core-group-depth-1);
+}
+.bg-\[var\(--core-surface-muted\)\] {
+  background-color: var(--core-surface-muted);
+}
+.bg-core-action {
+  background-color: var(--core-action-primary);
+}
+.bg-core-danger-soft {
+  background-color: var(--core-danger-surface);
+}
+.bg-core-info-soft {
+  background-color: var(--core-info-surface);
+}
+.bg-core-subtle {
+  background-color: var(--core-surface-muted);
+}
+.bg-core-success {
+  background-color: var(--core-success);
+}
+.bg-core-success-soft {
+  background-color: var(--core-success-surface);
+}
+.bg-core-surface {
+  background-color: var(--core-surface);
+}
+.bg-core-warning-soft {
+  background-color: var(--core-warning-surface);
+}
+.p-2 {
+  padding: 0.5rem;
+}
+.p-2\.5 {
+  padding: 0.625rem;
+}
+.p-3 {
+  padding: 0.75rem;
+}
+.p-4 {
+  padding: 1rem;
+}
+.p-5 {
+  padding: 1.25rem;
+}
+.p-6 {
+  padding: 1.5rem;
+}
+.p-7 {
+  padding: 1.75rem;
+}
+.p-8 {
+  padding: 2rem;
+}
+.px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.px-5 {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+.py-1\.5 {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+.py-2\.5 {
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+.py-3 {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.text-left {
+  text-align: left;
+}
+.text-center {
+  text-align: center;
+}
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.font-semibold {
+  font-weight: 600;
+}
+.uppercase {
+  text-transform: uppercase;
+}
+.leading-6 {
+  line-height: 1.5rem;
+}
+.tracking-wide {
+  letter-spacing: 0.025em;
+}
+.text-\[var\(--core-text-muted\)\] {
+  color: var(--core-text-muted);
+}
+.text-\[var\(--core-text-on-accent\)\] {
+  color: var(--core-text-on-accent);
+}
+.text-core-action {
+  color: var(--core-action-primary);
+}
+.text-core-muted {
+  color: var(--core-text-muted);
+}
+.text-core-secondary {
+  color: var(--core-text-secondary);
+}
+.text-core-text {
+  color: var(--core-text);
+}
+.opacity-80 {
+  opacity: 0.8;
+}
+.shadow-\[0_0_0_2px_var\(--core-focus-ring-soft\)\] {
+  --tw-shadow: 0 0 0 2px var(--core-focus-ring-soft);
+  --tw-shadow-colored: 0 0 0 2px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-sm {
+  --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[var\(--core-shadow-raised\)\] {
+  --tw-shadow-color: var(--core-shadow-raised);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+.filter {
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.transition {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+:root {
+  color-scheme: light;
+
+  /* Primitive CoRe palette. Product UI consumes the semantic roles below. */
+  --core-palette-slate: #6f7e9e;
+  --core-palette-mist: #a9b5c7;
+  --core-palette-cloud: #dde3ec;
+  --core-palette-coral: #e28b68;
+  --core-palette-lilac: #d6a3d2;
+  --core-palette-marigold: #e4bf63;
+  --core-palette-midnight: #181d25;
+  --core-palette-graphite: #262e3a;
+  --core-palette-highlight: #8fa0bf;
+  --core-palette-coral-glow: #f0a07e;
+  --core-palette-lilac-glow: #e4b5e1;
+  --core-palette-golden-glow: #f0cc77;
+
+  /* Semantic light theme. */
+  --core-canvas: #f3f5f8;
+  --core-surface: #ffffff;
+  --core-surface-raised: #ffffff;
+  --core-surface-muted: #edf1f6;
+  --core-surface-hover: #e7ecf3;
+  --core-group-depth-0: #ffffff;
+  --core-group-depth-1: #f3f5f8;
+  --core-group-depth-2: #edf1f6;
+  --core-group-depth-3: var(--core-palette-cloud);
+  --core-text: var(--core-palette-midnight);
+  --core-text-secondary: var(--core-palette-graphite);
+  --core-text-muted: #667492;
+  --core-text-on-accent: #ffffff;
+  --core-border: #d5dbe5;
+  --core-border-interactive: var(--core-palette-slate);
+  --core-focus: var(--core-palette-slate);
+  --core-focus-ring: var(--core-focus);
+  --core-focus-ring-soft: rgba(111, 126, 158, 0.24);
+  --core-action-primary: #667492;
+  --core-action-primary-hover: #5e6b86;
+  --core-action-primary-active: #55617a;
+  --core-action-secondary: #667492;
+  --core-action-disabled-bg: var(--core-palette-cloud);
+  --core-action-disabled-text: #667492;
+  --core-deck-new-text: #975c92;
+  --core-deck-due-text: var(--core-action-primary);
+  --core-deck-total-text: #646a75;
+  --core-info: var(--core-palette-slate);
+  --core-success: var(--core-palette-lilac);
+  --core-warning: var(--core-palette-marigold);
+  --core-danger: var(--core-palette-coral);
+  --core-info-surface: var(--core-palette-cloud);
+  --core-success-surface: #f5e8f4;
+  --core-warning-surface: #f8efd8;
+  --core-danger-surface: #f8e2d9;
+  --core-backdrop: rgba(24, 29, 37, 0.48);
+  --core-shadow-soft: 0 1px 2px rgba(38, 46, 58, 0.08);
+  --core-shadow-raised: 0 14px 36px rgba(38, 46, 58, 0.13);
+  --core-selection: rgba(214, 163, 210, 0.46);
+
+  /* Compatibility aliases for existing status call sites. */
+  --core-status-info-border: var(--core-info);
+  --core-status-info-bg: var(--core-info-surface);
+  --core-status-info-text: var(--core-text);
+  --core-status-success-border: var(--core-success);
+  --core-status-success-bg: var(--core-success-surface);
+  --core-status-success-text: var(--core-text);
+  --core-status-warning-border: var(--core-warning);
+  --core-status-warning-bg: var(--core-warning-surface);
+  --core-status-warning-text: var(--core-text);
+  --core-status-error-border: var(--core-danger);
+  --core-status-error-bg: var(--core-danger-surface);
+  --core-status-error-text: var(--core-text);
+}
+
+[data-core-theme="dark"] {
+  color-scheme: dark;
+  --core-canvas: var(--core-palette-midnight);
+  --core-surface: var(--core-palette-graphite);
+  --core-surface-raised: #313947;
+  --core-surface-muted: #303947;
+  --core-surface-hover: #394454;
+  --core-group-depth-0: #394454;
+  --core-group-depth-1: #313947;
+  --core-group-depth-2: #303947;
+  --core-group-depth-3: var(--core-palette-graphite);
+  --core-text: var(--core-palette-cloud);
+  --core-text-secondary: var(--core-palette-highlight);
+  --core-text-muted: var(--core-palette-highlight);
+  --core-text-on-accent: var(--core-palette-midnight);
+  --core-border: #536078;
+  --core-border-interactive: var(--core-palette-highlight);
+  --core-focus: var(--core-palette-golden-glow);
+  --core-focus-ring: var(--core-focus);
+  --core-focus-ring-soft: rgba(240, 204, 119, 0.28);
+  --core-action-primary: var(--core-palette-highlight);
+  --core-action-primary-hover: #a3b1ca;
+  --core-action-primary-active: #7d8eae;
+  --core-action-secondary: var(--core-palette-highlight);
+  --core-action-disabled-bg: #394454;
+  --core-action-disabled-text: #7d8ba4;
+  --core-deck-new-text: var(--core-palette-lilac-glow);
+  --core-deck-due-text: var(--core-palette-highlight);
+  --core-deck-total-text: #aeb5c0;
+  --core-info: var(--core-palette-highlight);
+  --core-success: var(--core-palette-lilac-glow);
+  --core-warning: var(--core-palette-golden-glow);
+  --core-danger: var(--core-palette-coral-glow);
+  --core-info-surface: #354155;
+  --core-success-surface: #4c3b4e;
+  --core-warning-surface: #50472f;
+  --core-danger-surface: #503c35;
+  --core-backdrop: rgba(8, 11, 15, 0.7);
+  --core-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.22);
+  --core-shadow-raised: 0 18px 44px rgba(0, 0, 0, 0.34);
+  --core-selection: rgba(228, 181, 225, 0.42);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--core-canvas);
+  color: var(--core-text);
+  font: 400 0.875rem/1.25rem Synonym, ui-sans-serif, system-ui, sans-serif;
+}
+
+::-moz-selection {
+  background: var(--core-selection);
+  color: var(--core-text);
+}
+
+::selection {
+  background: var(--core-selection);
+  color: var(--core-text);
+}
+
+::-moz-placeholder {
+  color: var(--core-text-muted);
+  opacity: 1;
+}
+
+::placeholder {
+  color: var(--core-text-muted);
+  opacity: 1;
+}
+
+.core-heading-1 {
+  font: 700 2.25rem/2.75rem Amulya, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-heading-2 {
+  font: 700 1.75rem/2.25rem Amulya, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-heading-3 {
+  font: 500 1.375rem/1.875rem Amulya, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-body-large {
+  font: 400 1rem/1.5rem Synonym, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-body {
+  font: 400 0.875rem/1.25rem Synonym, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-caption {
+  font: 400 0.75rem/1rem Synonym, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-control-label {
+  font: 500 0.875rem/1.25rem Synonym, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-status-label {
+  font: 500 0.75rem/1rem Synonym, ui-sans-serif, system-ui, sans-serif;
+}
+
+strong,
+.core-emphasis {
+  font-weight: 600;
+}
+
+button {
+  font: inherit;
+  min-height: 2.75rem;
+}
+
+button[aria-label] {
+  min-width: 2.75rem;
+}
+
+summary {
+  min-height: 2.75rem;
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 3px solid var(--core-focus-ring);
+  outline-offset: 3px;
+}
+
+.core-status-info,
+.core-status-success,
+.core-status-warning,
+.core-status-error {
+  border: 1px solid;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font: 400 0.875rem/1.25rem Synonym, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-status-info {
+  border-color: var(--core-status-info-border);
+  background: var(--core-status-info-bg);
+  color: var(--core-status-info-text);
+}
+
+.core-status-success {
+  border-color: var(--core-status-success-border);
+  background: var(--core-status-success-bg);
+  color: var(--core-status-success-text);
+}
+
+.core-status-warning {
+  border-color: var(--core-status-warning-border);
+  background: var(--core-status-warning-bg);
+  color: var(--core-status-warning-text);
+}
+
+.core-status-error {
+  border-color: var(--core-status-error-border);
+  background: var(--core-status-error-bg);
+  color: var(--core-status-error-text);
+}
+
+.core-mcq-option {
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.core-mcq-option:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.core-mcq-option-correct {
+  animation: core-answer-pulse 360ms ease-out;
+}
+
+.core-mcq-option-wrong {
+  animation: core-answer-shake 240ms ease-in-out;
+}
+
+@keyframes core-answer-pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  45% {
+    transform: scale(1.015);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes core-answer-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  30% {
+    transform: translateX(-3px);
+  }
+
+  65% {
+    transform: translateX(3px);
+  }
+}
+
+.card-html {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.card-html p,
+.rich-text-field p {
+  margin: 0 0 0.65rem;
+}
+
+.card-html p:last-child,
+.rich-text-field p:last-child {
+  margin-bottom: 0;
+}
+
+.card-html ul,
+.rich-text-field ul {
+  margin: 0.45rem 0 0.65rem;
+  padding-left: 1.4rem;
+  list-style: disc;
+}
+
+.card-html ol,
+.rich-text-field ol {
+  margin: 0.45rem 0 0.65rem;
+  padding-left: 1.4rem;
+  list-style: decimal;
+}
+
+.card-html li,
+.rich-text-field li {
+  margin: 0.2rem 0;
+}
+
+.card-html mark,
+.rich-text-field mark {
+  border-radius: 0.2rem;
+  padding: 0.02rem 0.16rem;
+}
+
+.rich-text-field:empty::before {
+  content: attr(aria-label);
+  color: var(--core-text-muted);
+}
+
+.core-hue-range {
+  width: 100%;
+  height: 0.75rem;
+  cursor: pointer;
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+  border: 1px solid var(--core-border);
+  border-radius: 999px;
+  background: linear-gradient(to right, #ef4444, #f59e0b, #fef08a, #22c55e, #06b6d4, #2563eb, #7c3aed, #ef4444);
+  outline: none;
+}
+
+.core-hue-range::-webkit-slider-thumb {
+  width: 1rem;
+  height: 1rem;
+  -webkit-appearance: none;
+          appearance: none;
+  border: 2px solid var(--core-surface);
+  border-radius: 999px;
+  background: var(--core-action-primary);
+  box-shadow:
+    0 0 0 1px var(--core-focus-ring-soft),
+    var(--core-shadow-soft);
+}
+
+.core-hue-range::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--core-surface);
+  border-radius: 999px;
+  background: var(--core-action-primary);
+  box-shadow:
+    0 0 0 1px var(--core-focus-ring-soft),
+    var(--core-shadow-soft);
+}
+
+.card-html img,
+.rich-text-field img,
+.card-html video,
+.card-html canvas,
+.card-html svg,
+.card-html iframe {
+  max-width: 100%;
+}
+
+.card-html img,
+.rich-text-field img,
+.card-html video,
+.card-html canvas,
+.card-html svg {
+  height: auto;
+}
+
+.card-html img,
+.rich-text-field img {
+  max-height: 9rem;
+  border-radius: 0.75rem;
+}
+
+.card-html table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.card-html pre,
+.card-html code {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.core-pdf-control {
+  display: inline-flex;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border: 1px solid var(--core-border);
+  border-radius: 0.75rem;
+  background: var(--core-surface);
+  color: var(--core-action-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.core-pdf-control:not(:disabled):hover {
+  border-color: var(--core-border-interactive);
+  background: var(--core-surface-hover);
+  color: var(--core-text);
+}
+
+.core-pdf-control:focus-visible {
+  outline: 3px solid var(--core-focus-ring-soft);
+  outline-offset: 2px;
+}
+
+.core-pdf-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.core-pdf-scroll {
+  height: 37rem;
+  overflow: auto;
+  background: var(--core-surface-muted);
+  scroll-behavior: smooth;
+  scrollbar-color: var(--core-border) var(--core-surface-muted);
+}
+
+.core-pdf-scroll:focus-visible {
+  outline: 3px solid var(--core-focus-ring-soft);
+  outline-offset: -3px;
+}
+
+.core-pdf-pages {
+  display: grid;
+  width: -moz-max-content;
+  width: max-content;
+  min-width: 100%;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.core-pdf-page {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  border: 1px solid var(--core-border);
+  border-radius: 0.25rem;
+  background: var(--core-surface);
+  box-shadow: var(--core-shadow-raised);
+}
+
+.core-pdf-page canvas {
+  display: block;
+  margin: 0;
+}
+
+.core-pdf-text-layer {
+  --min-font-size: 1;
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: clip;
+  color-scheme: only light;
+  line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  transform-origin: 0 0;
+  caret-color: var(--core-palette-midnight);
+  forced-color-adjust: none;
+  text-align: initial;
+  -webkit-text-size-adjust: none;
+  -moz-text-size-adjust: none;
+  text-size-adjust: none;
+}
+
+.core-pdf-text-layer :is(span, br) {
+  position: absolute;
+  color: transparent;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0 0;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+       user-select: text;
+}
+
+.core-pdf-text-layer > :not(.markedContent),
+.core-pdf-text-layer .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  z-index: 1;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.core-pdf-text-layer .markedContent {
+  display: contents;
+}
+
+.core-pdf-text-layer ::-moz-selection {
+  background: var(--core-selection);
+  color: transparent;
+}
+
+.core-pdf-text-layer ::selection {
+  background: var(--core-selection);
+  color: transparent;
+}
+
+.core-pdf-text-layer .endOfContent {
+  position: absolute;
+  inset: 100% 0 0;
+  display: block;
+  z-index: 0;
+  cursor: default;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+       user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.hover\:-translate-y-0\.5:hover {
+  --tw-translate-y: -0.125rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.hover\:border-core-focus:hover {
+  border-color: var(--core-focus);
+}
+
+.hover\:border-core-success:hover {
+  border-color: var(--core-success);
+}
+
+.hover\:bg-\[var\(--core-surface-hover\)\]:hover {
+  background-color: var(--core-surface-hover);
+}
+
+.hover\:bg-core-subtle:hover {
+  background-color: var(--core-surface-muted);
+}
+
+.hover\:bg-core-surface:hover {
+  background-color: var(--core-surface);
+}
+
+.hover\:text-core-text:hover {
+  color: var(--core-text);
+}
+
+.focus\:outline-none:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.focus-visible\:ring-2:focus-visible {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.focus-visible\:ring-core-focus:focus-visible {
+  --tw-ring-color: var(--core-focus);
+}
+
+@media (min-width: 640px) {
+
+  .sm\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+
+  .sm\:col-start-auto {
+    grid-column-start: auto;
+  }
+
+  .sm\:row-start-auto {
+    grid-row-start: auto;
+  }
+
+  .sm\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sm\:grid-cols-\[minmax\(13rem\2c 1fr\)_minmax\(15rem\2c auto\)_auto\] {
+    grid-template-columns: minmax(13rem,1fr) minmax(15rem,auto) auto;
+  }
+}
+
+@media (min-width: 1024px) {
+
+  .lg\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+
+  .xl\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+</style>
+    <script>
+      window.coreCatalogTheme = (() => {
+        const storageKey = "core.theme.v1";
+        const resolve = (value) => value === "dark" ? "dark" : "light";
+        const readStored = () => {
+          try {
+            return resolve(localStorage.getItem(storageKey));
+          } catch {
+            return "light";
+          }
+        };
+        const apply = (theme) => document.documentElement.setAttribute("data-core-theme", theme);
+        let current = readStored();
+        const read = () => current;
+        const toggle = () => {
+          current = current === "dark" ? "light" : "dark";
+          apply(current);
+          try {
+            localStorage.setItem(storageKey, current);
+          } catch {
+            // Die Umschaltung funktioniert auch, wenn file://-Speicher blockiert ist.
+          }
+          return current;
+        };
+        apply(current);
+        return { read, toggle };
+      })();
+    </script>
+    <style>
+      /* Ausschließlich Layout und Beschriftung des Katalogs. Produktstile stehen im generierten Block darüber. */
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-width: 320px;
+      }
+
+      .catalog-shell {
+        min-height: 100vh;
+        background: var(--core-canvas);
+      }
+
+      .catalog-topbar {
+        position: relative;
+        overflow: hidden;
+        border-bottom: 1px solid var(--core-border);
+        background:
+          radial-gradient(circle at 12% 0%, var(--core-success-surface), transparent 34rem),
+          radial-gradient(circle at 88% 10%, var(--core-info-surface), transparent 32rem),
+          var(--core-surface);
+      }
+
+      .catalog-topbar-inner {
+        display: flex;
+        max-width: 92rem;
+        margin: 0 auto;
+        padding: 2.75rem clamp(1rem, 4vw, 3rem);
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 2rem;
+      }
+
+      .catalog-lede {
+        max-width: 48rem;
+      }
+
+      .catalog-kicker {
+        margin: 0 0 0.75rem;
+        color: var(--core-action-secondary);
+        font: 600 0.75rem/1rem Synonym, ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .catalog-description {
+        max-width: 44rem;
+        margin: 0.75rem 0 0;
+        color: var(--core-text-muted);
+        font: 400 1rem/1.6rem Synonym, ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .catalog-meta {
+        display: flex;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .catalog-pill {
+        display: inline-flex;
+        min-height: 1.75rem;
+        padding: 0.25rem 0.65rem;
+        align-items: center;
+        gap: 0.35rem;
+        border: 1px solid var(--core-border);
+        border-radius: 999px;
+        background: var(--core-surface);
+        color: var(--core-text-secondary);
+        font: 500 0.75rem/1rem Synonym, ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .catalog-layout {
+        display: grid;
+        max-width: 92rem;
+        margin: 0 auto;
+        padding: 2rem clamp(1rem, 4vw, 3rem) 5rem;
+        grid-template-columns: 15rem minmax(0, 1fr);
+        gap: clamp(1.5rem, 3vw, 3rem);
+      }
+
+      .catalog-nav {
+        position: sticky;
+        top: 1rem;
+        max-height: calc(100vh - 2rem);
+        align-self: start;
+        overflow: auto;
+        border: 1px solid var(--core-border);
+        border-radius: 1rem;
+        background: var(--core-surface);
+        box-shadow: var(--core-shadow-soft);
+      }
+
+      .catalog-nav-title {
+        margin: 0;
+        padding: 1rem 1rem 0.75rem;
+        color: var(--core-text-muted);
+        font: 600 0.75rem/1rem Synonym, ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .catalog-nav a {
+        display: block;
+        padding: 0.55rem 1rem;
+        border-left: 3px solid transparent;
+        color: var(--core-text-secondary);
+        font: 500 0.8125rem/1.2rem Synonym, ui-sans-serif, system-ui, sans-serif;
+        text-decoration: none;
+        transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+      }
+
+      .catalog-nav a:hover,
+      .catalog-nav a[aria-current="true"] {
+        border-left-color: var(--core-action-primary);
+        background: var(--core-surface-muted);
+        color: var(--core-text);
+      }
+
+      .catalog-main {
+        display: grid;
+        min-width: 0;
+        gap: 1.5rem;
+      }
+
+      .catalog-section {
+        min-width: 0;
+        scroll-margin-top: 1rem;
+        border: 1px solid var(--core-border);
+        border-radius: 1.125rem;
+        background: var(--core-surface-raised);
+        box-shadow: var(--core-shadow-soft);
+      }
+
+      .catalog-section-head {
+        padding: clamp(1.25rem, 3vw, 2rem);
+        border-bottom: 1px solid var(--core-border);
+      }
+
+      .catalog-section-head p {
+        max-width: 52rem;
+        margin: 0.5rem 0 0;
+        color: var(--core-text-muted);
+        line-height: 1.55;
+      }
+
+      .catalog-section-body {
+        display: grid;
+        padding: clamp(1.25rem, 3vw, 2rem);
+        gap: 2rem;
+      }
+
+      .catalog-subsection {
+        display: grid;
+        min-width: 0;
+        gap: 0.85rem;
+      }
+
+      .catalog-subtitle {
+        margin: 0;
+        color: var(--core-text-secondary);
+        font: 600 0.75rem/1rem Synonym, ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .catalog-note {
+        margin: 0;
+        color: var(--core-text-muted);
+        font: 400 0.75rem/1.2rem Synonym, ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .catalog-grid {
+        display: grid;
+        min-width: 0;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+        gap: 1rem;
+      }
+
+      .catalog-grid-wide {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+      }
+
+      .catalog-demo {
+        min-width: 0;
+        padding: 1rem;
+        border: 1px solid var(--core-border);
+        border-radius: 0.875rem;
+        background: var(--core-group-depth-1);
+      }
+
+      .catalog-demo-label {
+        display: block;
+        margin-bottom: 0.75rem;
+        color: var(--core-text-muted);
+        font: 600 0.6875rem/0.9rem Synonym, ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .catalog-row {
+        display: flex;
+        min-width: 0;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .catalog-stack {
+        display: grid;
+        min-width: 0;
+        gap: 0.75rem;
+      }
+
+      .catalog-token-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+        gap: 0.75rem;
+      }
+
+      .catalog-token {
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--core-border);
+        border-radius: 0.875rem;
+        background: var(--core-surface);
+      }
+
+      .catalog-token-color {
+        height: 5rem;
+        border-bottom: 1px solid var(--core-border);
+      }
+
+      .catalog-token-copy {
+        display: grid;
+        padding: 0.75rem;
+        gap: 0.25rem;
+      }
+
+      .catalog-token-copy code {
+        overflow-wrap: anywhere;
+        color: var(--core-text-secondary);
+        font: 600 0.7rem/1rem ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+
+      .catalog-token-value,
+      .catalog-token-role {
+        color: var(--core-text-muted);
+        font: 400 0.7rem/1rem Synonym, ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .catalog-surface-sample {
+        display: grid;
+        min-height: 8rem;
+        padding: 1rem;
+        align-content: space-between;
+        border-radius: 1rem;
+      }
+
+      .catalog-metric {
+        font: 600 0.7rem/1rem ui-monospace, SFMono-Regular, Consolas, monospace;
+        color: var(--core-text-muted);
+      }
+
+      .catalog-radius {
+        display: grid;
+        width: 7rem;
+        aspect-ratio: 1;
+        place-items: center;
+        border: 1px solid var(--core-border-interactive);
+        background: var(--core-surface-muted);
+        color: var(--core-text-secondary);
+        font: 600 0.75rem/1rem ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+
+      .catalog-spacing-bar {
+        height: 1.5rem;
+        border-radius: 0.25rem;
+        background: var(--core-action-primary);
+      }
+
+      .catalog-icon {
+        width: 1.125rem;
+        height: 1.125rem;
+        flex: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+
+      .catalog-icon-sm { width: 1rem; height: 1rem; }
+      .catalog-icon-lg { width: 1.5rem; height: 1.5rem; }
+
+      .catalog-field-icon {
+        display: flex;
+        min-height: 2.75rem;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid var(--core-border-interactive);
+        border-radius: 0.75rem;
+        background: var(--core-surface);
+        color: var(--core-text-muted);
+        padding: 0 0.75rem;
+      }
+
+      .catalog-field-icon input {
+        min-width: 0;
+        flex: 1;
+        border: 0;
+        background: transparent;
+        color: var(--core-text);
+        outline: 0;
+      }
+
+      .catalog-check {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        gap: 0.55rem;
+        color: var(--core-text-secondary);
+        font-weight: 500;
+      }
+
+      .catalog-check input {
+        width: 1rem;
+        height: 1rem;
+        accent-color: var(--core-action-primary);
+      }
+
+      .catalog-switch-track {
+        display: inline-flex;
+        width: 2.75rem;
+        height: 1.5rem;
+        padding: 0.1875rem;
+        align-items: center;
+        border-radius: 999px;
+        background: var(--core-action-primary);
+      }
+
+      .catalog-switch-thumb {
+        width: 1.125rem;
+        height: 1.125rem;
+        margin-left: auto;
+        border-radius: 999px;
+        background: var(--core-surface);
+        box-shadow: var(--core-shadow-soft);
+      }
+
+      .catalog-dialog-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: grid;
+        padding: 1rem;
+        place-items: center;
+        background: var(--core-backdrop);
+      }
+
+      .catalog-dialog-backdrop[hidden] {
+        display: none;
+      }
+
+      .catalog-dialog {
+        width: min(100%, 32rem);
+        padding: 1.5rem;
+        border-radius: 1.125rem;
+      }
+
+      .catalog-progress-track {
+        height: 0.75rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--core-surface-muted);
+      }
+
+      .catalog-progress-value {
+        width: 64%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--core-action-primary);
+      }
+
+      .catalog-donut {
+        display: grid;
+        width: 4.5rem;
+        height: 4.5rem;
+        place-items: center;
+        border-radius: 50%;
+        background: conic-gradient(var(--core-action-primary) 74%, var(--core-surface-muted) 0);
+      }
+
+      .catalog-donut::after {
+        display: grid;
+        width: 3.25rem;
+        height: 3.25rem;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--core-surface);
+        color: var(--core-text);
+        content: "74%";
+        font-weight: 600;
+      }
+
+      .catalog-skeleton {
+        height: 0.8rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--core-surface-muted), var(--core-surface-hover), var(--core-surface-muted));
+        background-size: 200% 100%;
+        animation: catalog-shimmer 1.6s linear infinite;
+      }
+
+      @keyframes catalog-shimmer {
+        to { background-position: -200% 0; }
+      }
+
+      .catalog-editor-toolbar {
+        display: flex;
+        padding: 0.5rem;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        border-bottom: 1px solid var(--core-border);
+        background: var(--core-surface-muted);
+      }
+
+      .catalog-editor-field {
+        min-height: 9rem;
+        padding: 1rem;
+        background: var(--core-surface);
+        color: var(--core-text);
+        outline: none;
+      }
+
+      .catalog-color-swatch {
+        width: 2rem;
+        height: 2rem;
+        border: 1px solid var(--core-border);
+        border-radius: 0.5rem;
+        box-shadow: inset 0 0 0 3px var(--core-surface);
+      }
+
+      .catalog-pdf-page {
+        display: grid;
+        min-height: 14rem;
+        padding: 1.5rem;
+        align-content: start;
+        gap: 0.7rem;
+        border: 1px solid var(--core-border);
+        border-radius: 0.25rem;
+        background: var(--core-surface);
+        box-shadow: var(--core-shadow-raised);
+      }
+
+      .catalog-pdf-line {
+        height: 0.45rem;
+        border-radius: 999px;
+        background: var(--core-border);
+      }
+
+      .catalog-heatmap {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 0.3rem;
+      }
+
+      .catalog-heatmap span {
+        aspect-ratio: 1;
+        border: 1px solid var(--core-border);
+        border-radius: 0.25rem;
+      }
+
+      .catalog-steps {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.5rem;
+      }
+
+      .catalog-step {
+        min-width: 0;
+        padding-top: 0.65rem;
+        border-top: 3px solid var(--core-border);
+        color: var(--core-text-muted);
+        font-size: 0.7rem;
+      }
+
+      .catalog-step[data-complete="true"] {
+        border-color: var(--core-action-primary);
+        color: var(--core-text);
+        font-weight: 600;
+      }
+
+      .catalog-focus-demo:focus-visible {
+        outline: 3px solid var(--core-focus-ring);
+        outline-offset: 3px;
+      }
+
+      @media (max-width: 62rem) {
+        .catalog-topbar-inner {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .catalog-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .catalog-nav {
+          position: static;
+          display: flex;
+          max-height: none;
+          overflow-x: auto;
+        }
+
+        .catalog-nav-title {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+        }
+
+        .catalog-nav a {
+          min-width: max-content;
+          border-bottom: 3px solid transparent;
+          border-left: 0;
+        }
+
+        .catalog-nav a:hover,
+        .catalog-nav a[aria-current="true"] {
+          border-bottom-color: var(--core-action-primary);
+          border-left-color: transparent;
+        }
+      }
+
+      @media (max-width: 35rem) {
+        .catalog-topbar-inner {
+          padding-top: 2rem;
+          padding-bottom: 2rem;
+        }
+
+        .catalog-grid,
+        .catalog-grid-wide,
+        .catalog-token-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .catalog-steps {
+          grid-template-columns: 1fr;
+        }
+
+        .catalog-step {
+          padding: 0 0 0 0.65rem;
+          border-top: 0;
+          border-left: 3px solid var(--core-border);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .catalog-skeleton {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg aria-hidden="true" width="0" height="0" style="position: absolute">
+      <symbol id="icon-sparkles" viewBox="0 0 24 24"><path d="m12 3-1.4 3.6L7 8l3.6 1.4L12 13l1.4-3.6L17 8l-3.6-1.4L12 3Z"/><path d="m5 14-.8 2.2L2 17l2.2.8L5 20l.8-2.2L8 17l-2.2-.8L5 14Z"/><path d="m19 13-1 2.5-2.5 1L18 17.5l1 2.5 1-2.5 2.5-1-2.5-1L19 13Z"/></symbol>
+      <symbol id="icon-save" viewBox="0 0 24 24"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>
+      <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/></symbol>
+      <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="icon-alert" viewBox="0 0 24 24"><path d="M10.3 3.7 2.4 18a2 2 0 0 0 1.8 3h15.6a2 2 0 0 0 1.8-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13Z"/><path d="M8 8h8M8 12h6"/></symbol>
+      <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+      <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 15v5h16v-5"/></symbol>
+      <symbol id="icon-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
+      <symbol id="icon-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18h1.5a1.5 1.5 0 0 0 0-3H12a2 2 0 0 1 0-4h4a5 5 0 0 0 5-5c0-3.3-4-6-9-6Z"/><path d="M7.5 10h.01M9.5 6.5h.01M14 6h.01M17.5 9h.01"/></symbol>
+      <symbol id="icon-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M8 10.5h5M10.5 8v5"/></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    </svg>
+
+    <div class="catalog-shell">
+      <header class="catalog-topbar">
+        <div class="catalog-topbar-inner">
+          <div class="catalog-lede">
+            <p class="catalog-kicker">CoRe Design-Arbeitsfläche</p>
+            <h1 class="core-heading-1 text-core-text">UI-Elementkatalog</h1>
+            <p class="catalog-description">
+              Teilbare Referenz aller aktuell unterschiedlichen Farben, Schriften, Oberflächen, Komponenten und Zustände.
+              Nach UI-Änderungen wird die eingebettete Einzeldatei mit <code>npm run docs:ui-elements</code> aktualisiert.
+            </p>
+            <div class="catalog-meta" aria-label="Quellen und Status">
+              <span class="catalog-pill">Quelle: src/styles.css</span>
+              <span class="catalog-pill">Eigenständig teilbar</span>
+              <span id="font-status" class="catalog-pill">Schriften werden geprüft …</span>
+            </div>
+          </div>
+          <button id="theme-toggle" type="button" role="switch" aria-checked="false" class="core-action-secondary min-h-12 px-5 py-3">
+            <svg class="catalog-icon" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
+            <span>Dark Mode einschalten</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="catalog-layout">
+        <nav class="catalog-nav" aria-label="Katalogbereiche">
+          <p class="catalog-nav-title">Inhalt</p>
+          <a href="#farben">Farben</a>
+          <a href="#typografie">Typografie</a>
+          <a href="#grundlagen">Oberflächen &amp; Maße</a>
+          <a href="#aktionen">Buttons &amp; Aktionen</a>
+          <a href="#formulare">Formulare</a>
+          <a href="#navigation">Navigation &amp; Dialog</a>
+          <a href="#feedback">Feedback &amp; Daten</a>
+          <a href="#content">Content &amp; Werkzeuge</a>
+          <a href="#lernen">Lernen &amp; Review</a>
+          <a href="#fachmuster">Fachliche Muster</a>
+          <a href="#icons">Icons</a>
+        </nav>
+
+        <main class="catalog-main">
+          <section id="farben" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">01 · Grundlagen</p>
+              <h2 class="core-heading-2 text-core-text">Farbpalette und semantische Rollen</h2>
+              <p>Die Werte werden direkt aus den CSS-Variablen gelesen. Semantische Rollen ändern sich mit dem globalen Theme.</p>
+            </div>
+            <div class="catalog-section-body">
+              <div class="catalog-subsection">
+                <h3 class="catalog-subtitle">Primitive CoRe-Palette</h3>
+                <div id="primitive-colors" class="catalog-token-grid"></div>
+              </div>
+              <div class="catalog-subsection">
+                <h3 class="catalog-subtitle">Semantische Theme-Rollen</h3>
+                <div id="semantic-colors" class="catalog-token-grid"></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="typografie" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">02 · Schrift</p>
+              <h2 class="core-heading-2 text-core-text">Typografie</h2>
+              <p>Amulya trägt die Überschriften, Synonym alle Texte, Labels und Bedienelemente.</p>
+            </div>
+            <div class="catalog-section-body">
+              <div class="catalog-demo catalog-stack">
+                <span class="catalog-demo-label">Amulya · Display</span>
+                <div><p class="catalog-metric">core-heading-1 · 36/44 · 700</p><p class="core-heading-1 text-core-text">Wissen bleibt beweglich.</p></div>
+                <div><p class="catalog-metric">core-heading-2 · 28/36 · 700</p><p class="core-heading-2 text-core-text">Karten anders erinnern</p></div>
+                <div><p class="catalog-metric">core-heading-3 · 22/30 · 500</p><p class="core-heading-3 text-core-text">Aktive Stapel</p></div>
+              </div>
+              <div class="catalog-demo catalog-stack">
+                <span class="catalog-demo-label">Synonym · Text und Labels</span>
+                <div><p class="catalog-metric">core-body-large · 16/24 · 400</p><p class="core-body-large text-core-text">Lerne Inhalte in wechselnden Formulierungen und verankere sie dauerhaft.</p></div>
+                <div><p class="catalog-metric">core-body · 14/20 · 400</p><p class="core-body text-core-secondary">Die nächste Wiederholung ist heute fällig.</p></div>
+                <div><p class="catalog-metric">core-caption · 12/16 · 400</p><p class="core-caption text-core-muted">Zuletzt synchronisiert vor 2 Minuten</p></div>
+                <div><p class="catalog-metric">core-control-label · 14/20 · 500</p><p class="core-control-label text-core-secondary">Antwortsprache</p></div>
+                <div><p class="catalog-metric">core-status-label · 12/16 · 500</p><p class="core-status-label uppercase tracking-wide text-core-action">Bereit zum Lernen</p></div>
+                <div><p class="catalog-metric">core-emphasis · 600</p><p class="core-body text-core-text">Eine <strong>hervorgehobene Aussage</strong> im Fließtext.</p></div>
+              </div>
+              <div class="catalog-grid">
+                <div class="catalog-demo"><span class="catalog-demo-label">Primärtext</span><p class="core-body-large text-core-text">var(--core-text)</p></div>
+                <div class="catalog-demo"><span class="catalog-demo-label">Sekundärtext</span><p class="core-body-large text-core-secondary">var(--core-text-secondary)</p></div>
+                <div class="catalog-demo"><span class="catalog-demo-label">Gedämpfter Text</span><p class="core-body-large text-core-muted">var(--core-text-muted)</p></div>
+                <div class="catalog-demo"><span class="catalog-demo-label">Monospace</span><code class="core-body text-core-text">core.theme.v1</code></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="grundlagen" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">03 · Struktur</p>
+              <h2 class="core-heading-2 text-core-text">Oberflächen, Tiefen, Maße und Fokus</h2>
+              <p>Gemeinsame Flächenklassen sowie wiederkehrende Rundungen, Abstände, Schatten und Interaktionsziele.</p>
+            </div>
+            <div class="catalog-section-body">
+              <div class="catalog-subsection">
+                <h3 class="catalog-subtitle">Oberflächen</h3>
+                <div class="catalog-grid">
+                  <div class="core-surface catalog-surface-sample"><strong>core-surface</strong><span class="catalog-note">Standardfläche · weicher Schatten</span></div>
+                  <div class="core-surface-raised catalog-surface-sample"><strong>core-surface-raised</strong><span class="catalog-note">Erhöhte Fläche · Dialoge und Panels</span></div>
+                  <div class="core-surface-muted catalog-surface-sample"><strong>core-surface-muted</strong><span class="catalog-note">Gruppierte oder ruhige Inhalte</span></div>
+                  <div class="core-overlay catalog-surface-sample"><strong>core-overlay</strong><span class="catalog-note">Popover und schwebende Werkzeuge</span></div>
+                </div>
+              </div>
+              <div class="catalog-subsection">
+                <h3 class="catalog-subtitle">Gruppentiefe</h3>
+                <div class="catalog-grid">
+                  <div class="catalog-surface-sample" style="background:var(--core-group-depth-0)"><strong>Depth 0</strong><span class="catalog-metric">--core-group-depth-0</span></div>
+                  <div class="catalog-surface-sample" style="background:var(--core-group-depth-1)"><strong>Depth 1</strong><span class="catalog-metric">--core-group-depth-1</span></div>
+                  <div class="catalog-surface-sample" style="background:var(--core-group-depth-2)"><strong>Depth 2</strong><span class="catalog-metric">--core-group-depth-2</span></div>
+                  <div class="catalog-surface-sample" style="background:var(--core-group-depth-3)"><strong>Depth 3</strong><span class="catalog-metric">--core-group-depth-3</span></div>
+                </div>
+              </div>
+              <div class="catalog-grid catalog-grid-wide">
+                <div class="catalog-demo">
+                  <span class="catalog-demo-label">Rundungen</span>
+                  <div class="catalog-row">
+                    <div class="catalog-radius" style="border-radius:.25rem">4 px</div>
+                    <div class="catalog-radius" style="border-radius:.5rem">8 px</div>
+                    <div class="catalog-radius" style="border-radius:.75rem">12 px</div>
+                    <div class="catalog-radius" style="border-radius:1.125rem">18 px</div>
+                    <div class="catalog-radius" style="border-radius:999px">voll</div>
+                  </div>
+                </div>
+                <div class="catalog-demo catalog-stack">
+                  <span class="catalog-demo-label">Wiederkehrende Abstände</span>
+                  <div class="catalog-row"><code class="catalog-metric">4 px</code><div class="catalog-spacing-bar" style="width:1rem"></div></div>
+                  <div class="catalog-row"><code class="catalog-metric">8 px</code><div class="catalog-spacing-bar" style="width:2rem"></div></div>
+                  <div class="catalog-row"><code class="catalog-metric">12 px</code><div class="catalog-spacing-bar" style="width:3rem"></div></div>
+                  <div class="catalog-row"><code class="catalog-metric">16 px</code><div class="catalog-spacing-bar" style="width:4rem"></div></div>
+                  <div class="catalog-row"><code class="catalog-metric">24 px</code><div class="catalog-spacing-bar" style="width:6rem"></div></div>
+                  <div class="catalog-row"><code class="catalog-metric">32 px</code><div class="catalog-spacing-bar" style="width:8rem"></div></div>
+                </div>
+              </div>
+              <div class="catalog-grid">
+                <div class="catalog-demo"><span class="catalog-demo-label">Soft Shadow</span><div class="core-surface h-24 rounded-xl"></div><code class="catalog-metric">--core-shadow-soft</code></div>
+                <div class="catalog-demo"><span class="catalog-demo-label">Raised Shadow</span><div class="core-surface-raised h-24 rounded-xl"></div><code class="catalog-metric">--core-shadow-raised</code></div>
+                <div class="catalog-demo"><span class="catalog-demo-label">Fokus</span><button type="button" class="catalog-focus-demo min-h-11 rounded-xl border border-core-border bg-core-surface px-4 text-core-text">Per Tab fokussieren</button></div>
+                <div class="catalog-demo"><span class="catalog-demo-label">Textauswahl</span><p class="core-body text-core-text">Markiere diesen Satz, um die globale Auswahlfarbe zu prüfen.</p></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="aktionen" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">04 · Interaktion</p>
+              <h2 class="core-heading-2 text-core-text">Buttons und Aktionen</h2>
+              <p>Alle Varianten, Größen, Icons und Zustände. Hover, Active und Fokus sind an den interaktiven Beispielen direkt prüfbar.</p>
+            </div>
+            <div class="catalog-section-body">
+              <div class="catalog-subsection">
+                <h3 class="catalog-subtitle">Action-Varianten</h3>
+                <div class="catalog-row">
+                  <button type="button" class="core-action-primary min-h-11 px-4 py-2.5"><svg class="catalog-icon"><use href="#icon-save"></use></svg><span>Primär</span></button>
+                  <button type="button" class="core-action-secondary min-h-11 px-4 py-2.5"><svg class="catalog-icon"><use href="#icon-upload"></use></svg><span>Sekundär</span></button>
+                  <button type="button" class="core-action-tertiary min-h-11 px-4 py-2.5">Tertiär</button>
+                  <button type="button" class="core-action-destructive min-h-11 px-4 py-2.5"><svg class="catalog-icon"><use href="#icon-trash"></use></svg><span>Löschen</span></button>
+                </div>
+              </div>
+              <div class="catalog-subsection">
+                <h3 class="catalog-subtitle">Größen</h3>
+                <div class="catalog-row">
+                  <button type="button" class="core-action-primary min-h-9 px-3 py-1.5">Kompakt</button>
+                  <button type="button" class="core-action-primary min-h-11 px-4 py-2.5">Standard</button>
+                  <button type="button" class="core-action-primary min-h-12 px-5 py-3 core-body-large leading-6">Groß</button>
+                </div>
+              </div>
+              <div class="catalog-subsection">
+                <h3 class="catalog-subtitle">Zustände</h3>
+                <div class="catalog-grid">
+                  <div class="catalog-demo"><span class="catalog-demo-label">Normal · Hover · Active · Fokus</span><button type="button" class="core-action-secondary min-h-11 px-4 py-2.5">Interaktiv prüfen</button></div>
+                  <div class="catalog-demo"><span class="catalog-demo-label">Disabled</span><button type="button" disabled class="core-action-primary min-h-11 px-4 py-2.5">Nicht verfügbar</button></div>
+                  <div class="catalog-demo"><span class="catalog-demo-label">Loading · aria-busy</span><button type="button" disabled aria-busy="true" class="core-action-primary min-h-11 px-4 py-2.5"><svg class="catalog-icon animate-spin"><use href="#icon-sparkles"></use></svg><span>Wird gespeichert</span></button></div>
+                  <div class="catalog-demo"><span class="catalog-demo-label">Pressed</span><button type="button" aria-pressed="true" class="min-h-11 rounded-xl bg-core-subtle px-4 core-body font-semibold text-core-text shadow-[0_0_0_2px_var(--core-focus-ring-soft)]">Ausgewählt</button></div>
+                </div>
+              </div>
+              <div class="catalog-subsection">
+                <h3 class="catalog-subtitle">Icon-Aktionen</h3>
+                <div class="catalog-row">
+                  <button type="button" aria-label="Speichern" class="core-icon-action min-h-9 min-w-9 p-2"><svg class="catalog-icon"><use href="#icon-save"></use></svg></button>
+                  <button type="button" aria-label="Hinzufügen" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-plus"></use></svg></button>
+                  <button type="button" aria-label="Sekundäre Icon-Aktion" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-info"></use></svg></button>
+                  <button type="button" aria-label="Entfernen" class="core-action-destructive min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-trash"></use></svg></button>
+                  <button type="button" disabled aria-label="Deaktivierte Icon-Aktion" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button>
+                </div>
+              </div>
+              <div class="catalog-subsection">
+                <h3 class="catalog-subtitle">Tooltip</h3>
+                <div class="catalog-demo relative min-h-28 overflow-visible">
+                  <span class="catalog-demo-label">CoRe-Hinweis statt nativem Browser-Tooltip</span>
+                  <button type="button" aria-label="Frühere Wochen anzeigen" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-info"></use></svg></button>
+                  <div role="tooltip" data-side="bottom" class="core-overlay core-tooltip" style="--core-tooltip-anchor-x: 2rem; position: absolute; left: 4.5rem; top: 3.2rem; visibility: visible;">Frühere Wochen anzeigen</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="formulare" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">05 · Eingabe</p>
+              <h2 class="core-heading-2 text-core-text">Formulare und Auswahlfelder</h2>
+              <p>Native Eingaben mit den gemeinsamen Feldklassen sowie die aktuell verwendeten spezialisierten Varianten.</p>
+            </div>
+            <div class="catalog-section-body">
+              <div class="catalog-grid catalog-grid-wide">
+                <label class="core-field-group"><span class="core-field-label">Textfeld</span><input class="core-field" type="text" placeholder="Stapelname eingeben" /><span class="core-field-hint">Ein hilfreicher kurzer Hinweis.</span></label>
+                <label class="core-field-group"><span class="core-field-label">Select</span><select class="core-field"><option>Automatisch</option><option>Manuell</option><option>Aus</option></select><span class="core-field-hint">Verwendet die native Auswahl.</span></label>
+                <label class="core-field-group"><span class="core-field-label">Textarea</span><textarea class="core-field" rows="4" placeholder="Antwort oder Beschreibung"></textarea><span class="core-field-hint">Mehrzeilige Inhalte.</span></label>
+                <label class="core-field-group"><span class="core-field-label">Ungültige Eingabe</span><input class="core-field" type="email" aria-invalid="true" aria-describedby="email-error" value="keine-mail" /><span id="email-error" class="core-field-error">Bitte gib eine gültige E-Mail-Adresse ein.</span></label>
+                <label class="core-field-group"><span class="core-field-label">Deaktiviert</span><input class="core-field" type="text" disabled value="Nicht bearbeitbar" /><span class="core-field-hint">Disabled-Farbe und Cursor.</span></label>
+                <label class="core-field-group"><span class="core-field-label">Nur lesen</span><input class="core-field bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]" type="text" readonly value="account@core.app" /><span class="core-field-hint">Login-E-Mail kann nicht geändert werden.</span></label>
+              </div>
+              <div class="catalog-grid catalog-grid-wide">
+                <label class="core-field-group"><span class="core-field-label">Feld mit Icon</span><span class="catalog-field-icon"><svg class="catalog-icon"><use href="#icon-book"></use></svg><input type="text" placeholder="Universität" /></span></label>
+                <label class="core-field-group"><span class="core-field-label">Passwort</span><span class="catalog-field-icon"><svg class="catalog-icon"><use href="#icon-info"></use></svg><input type="password" value="beispielpasswort" /></span></label>
+                <label class="core-field-group"><span class="core-field-label">Datei-Import</span><span class="catalog-field-icon"><svg class="catalog-icon"><use href="#icon-upload"></use></svg><input type="file" aria-label="APKG-Datei auswählen" /></span></label>
+                <label class="core-field-group"><span class="core-field-label">Farbton</span><input class="core-hue-range" type="range" min="0" max="360" value="235" aria-label="Farbton" /></label>
+              </div>
+              <div class="catalog-demo">
+                <span class="catalog-demo-label">Checkbox, Radio und fachliche Auswahl</span>
+                <div class="catalog-row">
+                  <label class="catalog-check"><input type="checkbox" checked /> Medien mitsynchronisieren</label>
+                  <label class="catalog-check"><input type="checkbox" /> Unterstapel einbeziehen</label>
+                  <label class="catalog-check"><input type="radio" name="source" checked /> Diese Fassung</label>
+                  <label class="catalog-check"><input type="radio" name="source" /> Andere Fassung</label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="navigation" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">06 · Orientierung</p>
+              <h2 class="core-heading-2 text-core-text">Navigation, Umschalter und Dialog</h2>
+              <p>App-Shell-Muster, segmentierte Fachsteuerung, Disclosure und modale Bestätigung.</p>
+            </div>
+            <div class="catalog-section-body">
+              <div class="catalog-grid catalog-grid-wide">
+                <div class="catalog-demo catalog-stack">
+                  <span class="catalog-demo-label">Navigationszeilen</span>
+                  <button type="button" aria-current="page" class="flex min-h-12 w-full items-center gap-3 rounded-xl bg-core-subtle px-3 text-left text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-surface text-core-action"><svg class="catalog-icon"><use href="#icon-chart"></use></svg></span><span class="core-control-label">Übersicht</span></button>
+                  <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle hover:text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="core-control-label">Stapel</span></button>
+                  <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle hover:text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-sparkles"></use></svg></span><span class="core-control-label">Lernen</span></button>
+                </div>
+                <div class="catalog-demo catalog-stack">
+                  <span class="catalog-demo-label">Core-Modus · segmentiertes Control</span>
+                  <div class="core-status-label inline-grid min-h-10 grid-cols-3 overflow-hidden rounded-xl border border-core-border bg-core-subtle text-core-secondary" role="group" aria-label="CoRe-Modus">
+                    <button type="button" aria-pressed="false" class="px-3 transition hover:bg-core-surface">Aus</button>
+                    <button type="button" aria-pressed="true" class="bg-core-action px-3 text-[var(--core-text-on-accent)]">Auto</button>
+                    <button type="button" aria-pressed="false" class="px-3 transition hover:bg-core-surface">Manuell</button>
+                  </div>
+                  <span class="catalog-demo-label mt-3">Theme-Switch</span>
+                  <button type="button" role="switch" aria-checked="true" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle">
+                    <span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-sparkles"></use></svg></span>
+                    <span class="min-w-0 flex-1"><span class="block core-control-label text-core-text">Dark Mode</span><span class="block core-caption text-core-muted">Explizite Auswahl</span></span>
+                    <span class="catalog-switch-track"><span class="catalog-switch-thumb"></span></span>
+                  </button>
+                </div>
+              </div>
+              <details class="rounded-2xl border border-core-border bg-core-subtle p-4">
+                <summary class="cursor-pointer core-body font-semibold text-core-secondary">Details und Warnungen anzeigen</summary>
+                <p class="mt-3 core-body leading-6 text-core-muted">Disclosure-Flächen werden bei Importberichten, technischen Details und zurückgestellten Konflikten verwendet.</p>
+              </details>
+              <div class="catalog-demo">
+                <span class="catalog-demo-label">Modaler Bestätigungsdialog</span>
+                <button id="open-dialog" type="button" class="core-action-destructive min-h-11 px-4 py-2.5">Dialog öffnen</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="feedback" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">07 · Rückmeldung</p>
+              <h2 class="core-heading-2 text-core-text">Status, Fortschritt und Daten</h2>
+              <p>Semantische Töne, Fortschrittsanzeigen, Kennzahlen, leere Zustände und Ladeflächen.</p>
+            </div>
+            <div class="catalog-section-body">
+              <div class="catalog-stack">
+                <div class="core-status-info flex items-start gap-3"><svg class="catalog-icon mt-0.5"><use href="#icon-info"></use></svg><div><strong>Information</strong><p class="mt-1">Die Änderungen werden beim nächsten Sync übertragen.</p></div></div>
+                <div class="core-status-success flex items-start gap-3"><svg class="catalog-icon mt-0.5"><use href="#icon-check"></use></svg><div><strong>Erfolgreich</strong><p class="mt-1">Der Import wurde abgeschlossen.</p></div></div>
+                <div class="core-status-warning flex items-start gap-3"><svg class="catalog-icon mt-0.5"><use href="#icon-alert"></use></svg><div><strong>Warnung</strong><p class="mt-1">Drei Medien konnten nicht zugeordnet werden.</p></div></div>
+                <div class="core-status-error flex items-start gap-3" role="alert"><svg class="catalog-icon mt-0.5"><use href="#icon-x"></use></svg><div><strong>Fehler</strong><p class="mt-1">Die Datei konnte nicht gelesen werden.</p></div></div>
+              </div>
+              <div class="catalog-row">
+                <span class="catalog-pill">Neutral</span>
+                <span class="catalog-pill border-core-info bg-core-info-soft text-core-text">Info</span>
+                <span class="catalog-pill border-core-success bg-core-success-soft text-core-text">Erfolg</span>
+                <span class="catalog-pill border-core-warning bg-core-warning-soft text-core-text">Warnung</span>
+                <span class="catalog-pill border-core-danger bg-core-danger-soft text-core-text">Fehler</span>
+              </div>
+              <div class="catalog-grid">
+                <div class="core-surface-raised rounded-[18px] p-6"><span class="grid size-12 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon-lg"><use href="#icon-chart"></use></svg></span><p class="core-status-label mt-5 uppercase tracking-wide text-core-muted">Heute fällig</p><p class="core-heading-2 mt-2 text-core-text">24</p><p class="core-body mt-1 text-core-muted">aus 186 Karten</p></div>
+                <div class="catalog-demo catalog-stack"><span class="catalog-demo-label">Mini-Fortschritt</span><div class="catalog-progress-track" role="progressbar" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100"><div class="catalog-progress-value"></div></div><span class="core-caption text-core-muted">64 Prozent abgeschlossen</span></div>
+                <div class="catalog-demo"><span class="catalog-demo-label">Donut</span><div class="catalog-donut" role="img" aria-label="74 Prozent"></div></div>
+                <div class="catalog-demo catalog-stack"><span class="catalog-demo-label">Loading Skeleton</span><div class="catalog-skeleton" style="width:55%"></div><div class="catalog-skeleton"></div><div class="catalog-skeleton" style="width:78%"></div></div>
+              </div>
+              <div class="core-surface-raised rounded-[18px] p-8">
+                <div class="flex flex-wrap items-center justify-between gap-5">
+                  <div class="flex items-center gap-4"><span class="grid size-12 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon-lg"><use href="#icon-book"></use></svg></span><div><h3 class="core-heading-3 text-core-text">Noch keine Stapel</h3><p class="core-body-large mt-1 text-core-muted">Erstelle deine erste Karte oder importiere vorhandenes Material.</p></div></div>
+                  <button type="button" class="core-action-primary min-h-11 px-4 py-2.5"><svg class="catalog-icon"><use href="#icon-plus"></use></svg><span>Stapel erstellen</span></button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="content" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">08 · Inhalte</p>
+              <h2 class="core-heading-2 text-core-text">Karten, Editor, Farben und PDF</h2>
+              <p>Fachliche Inhaltsflächen und Werkzeuge, die über normale Formulare hinausgehen.</p>
+            </div>
+            <div class="catalog-section-body">
+              <div class="catalog-grid catalog-grid-wide">
+                <article class="core-surface-raised rounded-[18px] p-6">
+                  <div class="flex items-center gap-3"><span class="grid size-10 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><div><p class="core-body-large font-semibold text-core-text">Biochemie</p><p class="core-caption uppercase tracking-wide text-core-muted">Basic · frühe Wiederholung</p></div></div>
+                  <div class="card-html mt-6 rounded-xl border border-core-border bg-core-surface p-5 core-body-large text-core-text"><p>Welches Molekül ist die wichtigste kurzfristige <mark style="background:var(--core-warning)">Energiequelle</mark> der Zelle?</p><ul><li>ATP</li><li>Glukose</li></ul></div>
+                </article>
+                <div class="overflow-hidden rounded-xl border border-core-border">
+                  <div class="catalog-editor-toolbar" aria-label="Rich-Text-Werkzeuge">
+                    <button type="button" aria-label="Fett" class="core-icon-action min-h-9 min-w-9 p-2"><strong>B</strong></button>
+                    <button type="button" aria-label="Kursiv" class="core-icon-action min-h-9 min-w-9 p-2"><em>I</em></button>
+                    <button type="button" aria-label="Liste" class="core-icon-action min-h-9 min-w-9 p-2">•</button>
+                    <button type="button" aria-label="Textfarbe" class="core-icon-action min-h-9 min-w-9 p-2"><svg class="catalog-icon"><use href="#icon-type"></use></svg></button>
+                    <button type="button" aria-label="Markerfarbe" class="core-icon-action min-h-9 min-w-9 p-2"><svg class="catalog-icon"><use href="#icon-palette"></use></svg></button>
+                  </div>
+                  <div class="catalog-editor-field rich-text-field" contenteditable="true" role="textbox" aria-label="Karteninhalt bearbeiten"><p><strong>Bearbeitbarer Karteninhalt</strong></p><p>Text, Listen, Markierungen und Medien verwenden dieselbe Inhaltsdarstellung wie Lernkarten.</p></div>
+                </div>
+              </div>
+              <div class="catalog-grid catalog-grid-wide">
+                <div class="core-overlay rounded-xl p-3">
+                  <p class="catalog-subtitle mb-3">Farbauswahl</p>
+                  <div class="catalog-row">
+                    <button type="button" aria-label="Slate" class="catalog-color-swatch" style="background:var(--core-palette-slate)"></button>
+                    <button type="button" aria-label="Cloud" class="catalog-color-swatch" style="background:var(--core-palette-cloud)"></button>
+                    <button type="button" aria-label="Coral" class="catalog-color-swatch" style="background:var(--core-palette-coral)"></button>
+                    <button type="button" aria-label="Lilac" class="catalog-color-swatch" style="background:var(--core-palette-lilac)"></button>
+                    <button type="button" aria-label="Marigold" class="catalog-color-swatch" style="background:var(--core-palette-marigold)"></button>
+                  </div>
+                  <label class="core-field-group mt-4"><span class="core-field-label">Hex-Farbe</span><input class="core-field font-mono uppercase" value="#6f7e9e" /></label>
+                </div>
+                <div class="overflow-hidden rounded-xl border border-core-border bg-core-subtle">
+                  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-core-border bg-core-surface p-2">
+                    <div class="catalog-row"><button type="button" class="core-pdf-control" aria-label="Vorherige Seite">‹</button><span class="core-caption text-core-muted">1 / 4</span><button type="button" class="core-pdf-control" aria-label="Nächste Seite">›</button></div>
+                    <div class="catalog-row"><button type="button" class="core-pdf-control" aria-label="Verkleinern">−</button><span class="core-caption text-core-muted">100%</span><button type="button" class="core-pdf-control" aria-label="Vergrößern"><svg class="catalog-icon-sm"><use href="#icon-zoom"></use></svg></button><button type="button" disabled class="core-pdf-control" aria-label="Deaktiviert">×</button></div>
+                  </div>
+                  <div class="p-5"><div class="catalog-pdf-page"><div class="catalog-pdf-line" style="width:42%"></div><div class="catalog-pdf-line"></div><div class="catalog-pdf-line" style="width:88%"></div><div class="catalog-pdf-line" style="width:72%"></div><div class="mt-3 h-16 rounded bg-core-subtle"></div></div></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="lernen" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">09 · Lernen</p>
+              <h2 class="core-heading-2 text-core-text">MCQ- und Review-Zustände</h2>
+              <p>Auswahl, richtige und falsche Antwort sowie die vier semantischen Review-Bewertungen.</p>
+            </div>
+            <div class="catalog-section-body">
+              <div class="catalog-grid catalog-grid-wide">
+                <div class="catalog-stack">
+                  <button type="button" class="core-mcq-option flex min-h-12 items-center justify-between gap-3 rounded-xl border border-core-border bg-core-surface px-4 text-left core-body font-semibold text-core-text"><span>A · Adenosintriphosphat</span><span class="catalog-pill">Neutral</span></button>
+                  <button type="button" aria-pressed="true" class="core-mcq-option flex min-h-12 items-center justify-between gap-3 rounded-xl border border-core-action bg-core-subtle px-4 text-left core-body font-semibold text-core-text shadow-[0_0_0_2px_var(--core-focus-ring-soft)]"><span>B · Adenosindiphosphat</span><span class="catalog-pill">Gewählt</span></button>
+                  <button type="button" disabled class="core-mcq-option core-mcq-option-correct flex min-h-12 items-center justify-between gap-3 rounded-xl border border-core-success bg-core-success-soft px-4 text-left core-body font-semibold text-core-text"><span>C · ATP</span><svg class="catalog-icon"><use href="#icon-check"></use></svg></button>
+                  <button type="button" disabled class="core-mcq-option core-mcq-option-wrong flex min-h-12 items-center justify-between gap-3 rounded-xl border border-core-danger bg-core-danger-soft px-4 text-left core-body font-semibold text-core-text"><span>D · DNA</span><svg class="catalog-icon"><use href="#icon-x"></use></svg></button>
+                </div>
+                <article class="core-surface-raised rounded-[18px] p-7 text-center">
+                  <p class="core-status-label uppercase tracking-wide text-core-muted">Frage</p>
+                  <h3 class="core-heading-2 mt-4 text-core-text">Was ist die Hauptstadt von Portugal?</h3>
+                  <div class="my-6 h-px bg-core-subtle"></div>
+                  <p class="core-status-label uppercase tracking-wide text-core-muted">Antwort</p>
+                  <p class="core-heading-3 mt-3 text-core-text">Lissabon</p>
+                </article>
+              </div>
+              <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <button type="button" class="min-h-20 rounded-2xl border border-core-danger bg-core-danger-soft text-center text-core-text shadow-sm transition hover:-translate-y-0.5"><span class="block core-heading-2 font-semibold">1</span><span class="mt-1 block core-body font-semibold">Nochmal</span><span class="mt-1 block core-caption font-semibold opacity-80">1 Min.</span></button>
+                <button type="button" class="min-h-20 rounded-2xl border border-core-warning bg-core-warning-soft text-center text-core-text shadow-sm transition hover:-translate-y-0.5"><span class="block core-heading-2 font-semibold">2</span><span class="mt-1 block core-body font-semibold">Schwer</span><span class="mt-1 block core-caption font-semibold opacity-80">6 Min.</span></button>
+                <button type="button" class="min-h-20 rounded-2xl border border-core-success bg-core-success-soft text-center text-core-text shadow-sm transition hover:-translate-y-0.5"><span class="block core-heading-2 font-semibold">3</span><span class="mt-1 block core-body font-semibold">Gut</span><span class="mt-1 block core-caption font-semibold opacity-80">10 Min.</span></button>
+                <button type="button" class="min-h-20 rounded-2xl border border-core-info bg-core-info-soft text-center text-core-text shadow-sm transition hover:-translate-y-0.5"><span class="block core-heading-2 font-semibold">4</span><span class="mt-1 block core-body font-semibold">Leicht</span><span class="mt-1 block core-caption font-semibold opacity-80">4 Tage</span></button>
+              </div>
+            </div>
+          </section>
+
+          <section id="fachmuster" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">10 · Produktmuster</p>
+              <h2 class="core-heading-2 text-core-text">Aktuelle fachliche Oberflächen</h2>
+              <p>Wiederkehrende Kombinationen aus Dashboard, Stapelverwaltung, Import und Synchronisierung.</p>
+            </div>
+            <div class="catalog-section-body">
+              <article class="core-surface-raised rounded-[18px] p-5">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div><p class="core-caption uppercase tracking-wide text-core-muted">Kanonische Stapelkarte</p><h3 class="core-heading-3 mt-1 text-core-text">Dashboard · Lernen · Kartenverwaltung</h3></div>
+                  <span class="catalog-pill">Kontextabhängige Hauptaktion</span>
+                </div>
+                <div class="grid gap-3 rounded-2xl border border-core-border bg-[var(--core-group-depth-0)] p-2">
+                  <button type="button" class="grid min-h-20 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl px-3 text-left transition hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto]">
+                    <span class="flex min-w-0 items-center gap-3"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Welt-Hauptstädte</strong></span></span>
+                    <span class="col-span-2 grid grid-cols-3 gap-5 sm:col-span-1"><span><small class="block core-caption uppercase text-core-muted">Neu</small><strong class="core-body-large" style="color:var(--core-deck-new-text)">12</strong></span><span><small class="block core-caption uppercase text-core-muted">Fällig</small><strong class="core-body-large" style="color:var(--core-deck-due-text)">8</strong></span><span><small class="block core-caption uppercase text-core-muted">Gesamt</small><strong class="core-body-large" style="color:var(--core-deck-total-text)">245</strong></span></span>
+                    <span class="col-start-2 row-start-1 grid size-10 place-items-center justify-self-end rounded-full sm:col-start-auto sm:row-start-auto" role="img" aria-label="58 Prozent" style="background:conic-gradient(var(--core-action-primary) 58%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span>
+                  </button>
+                  <button type="button" class="ml-4 grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-core-border bg-[var(--core-group-depth-1)] px-3 text-left transition hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto]">
+                    <span class="flex min-w-0 items-center gap-3"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Europa</strong><small class="block truncate core-caption text-core-muted">Welt-Hauptstädte / Europa</small></span></span>
+                    <span class="col-span-2 grid grid-cols-3 gap-5 sm:col-span-1"><span><small class="block core-caption uppercase text-core-muted">Neu</small><strong class="core-body-large" style="color:var(--core-deck-new-text)">3</strong></span><span><small class="block core-caption uppercase text-core-muted">Fällig</small><strong class="core-body-large" style="color:var(--core-deck-due-text)">2</strong></span><span><small class="block core-caption uppercase text-core-muted">Gesamt</small><strong class="core-body-large" style="color:var(--core-deck-total-text)">53</strong></span></span>
+                  </button>
+                </div>
+              </article>
+              <div class="catalog-grid catalog-grid-wide">
+                <article class="core-surface-raised rounded-[18px] p-6">
+                  <div class="flex items-center justify-between gap-4"><div><p class="core-caption uppercase tracking-wide text-core-muted">Aktiver Stapel</p><h3 class="core-heading-3 mt-1 text-core-text">Weltwissen</h3></div><span class="grid size-10 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span></div>
+                  <p class="core-body mt-4 text-core-muted">42 Karten · 8 fällig · 3 Varianten</p>
+                  <div class="catalog-progress-track mt-4"><div class="catalog-progress-value" style="width:58%"></div></div>
+                  <button type="button" class="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl bg-core-subtle px-4 core-body font-semibold text-core-action">Jetzt lernen <svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></button>
+                </article>
+                <article class="core-surface-raised rounded-[18px] p-6">
+                  <div class="flex items-center justify-between gap-4"><div><p class="core-caption uppercase tracking-wide text-core-muted">Lernaktivität</p><h3 class="core-heading-3 mt-1 text-core-text">Heatmap</h3></div><span class="catalog-pill">12 Monate</span></div>
+                  <div class="catalog-heatmap mt-5" aria-label="Beispiel einer Lern-Heatmap">
+                    <span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span>
+                    <span class="bg-core-subtle"></span><span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-info-soft"></span><span class="bg-core-subtle"></span><span class="bg-core-success"></span><span class="bg-core-success-soft"></span><span class="bg-core-subtle"></span><span class="bg-core-success"></span><span class="bg-core-info-soft"></span><span class="bg-core-subtle"></span>
+                    <span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span>
+                  </div>
+                  <div class="mt-4 flex items-center justify-end gap-2 core-caption text-core-muted"><span>Weniger</span><span class="size-3 rounded-[4px] border border-core-border bg-core-subtle"></span><span class="size-3 rounded-[4px] border border-core-border bg-core-success-soft"></span><span class="size-3 rounded-[4px] border border-core-border bg-core-success"></span><span>Mehr</span></div>
+                </article>
+              </div>
+              <div class="core-surface-raised rounded-[18px] p-6">
+                <div class="flex flex-wrap items-center justify-between gap-3"><div><p class="core-caption uppercase tracking-wide text-core-muted">APKG-Import</p><h3 class="core-heading-3 mt-1 text-core-text">Vorschau und Übernahme</h3></div><span class="catalog-pill border-core-warning bg-core-warning-soft text-core-text">1 Warnung</span></div>
+                <div class="catalog-steps mt-6"><div class="catalog-step" data-complete="true">Analysieren</div><div class="catalog-step" data-complete="true">Vorschau bereit</div><div class="catalog-step" data-complete="true">Übernehmen</div><div class="catalog-step">Medien synchronisieren</div><div class="catalog-step">Fertig</div></div>
+              </div>
+              <div class="catalog-grid catalog-grid-wide">
+                <article class="rounded-xl border border-core-border bg-core-surface p-5"><p class="core-caption font-semibold uppercase tracking-wide text-core-muted">Diese Fassung</p><p class="mt-2 core-body text-core-text">Lissabon ist die Hauptstadt Portugals.</p><button type="button" class="core-action-primary mt-4 min-h-10 px-4">Diese Fassung behalten</button></article>
+                <article class="rounded-xl border border-core-border bg-core-surface p-5"><p class="core-caption font-semibold uppercase tracking-wide text-core-muted">Andere Fassung</p><p class="mt-2 core-body text-core-text">Die Hauptstadt von Portugal heißt Lissabon.</p><button type="button" class="core-action-secondary mt-4 min-h-10 px-4">Andere Fassung behalten</button></article>
+              </div>
+              <div class="grid gap-4 lg:grid-cols-3">
+                <button type="button" class="group rounded-2xl bg-core-action p-5 text-left text-[var(--core-text-on-accent)] shadow-[var(--core-shadow-raised)] transition hover:-translate-y-0.5"><svg class="catalog-icon-lg"><use href="#icon-plus"></use></svg><span class="mt-5 block core-body-large font-semibold">Erste Karte erstellen</span><span class="mt-2 block core-body">Frage und Antwort direkt eingeben.</span></button>
+                <button type="button" class="group rounded-2xl border border-core-border bg-core-surface p-5 text-left text-core-text transition hover:-translate-y-0.5 hover:border-core-success"><svg class="catalog-icon-lg"><use href="#icon-upload"></use></svg><span class="mt-5 block core-body-large font-semibold">Anki-Stapel importieren</span><span class="mt-2 block core-body text-core-muted">Eine vorhandene APKG-Datei übernehmen.</span></button>
+                <button type="button" class="group rounded-2xl border border-dashed border-core-border bg-core-subtle p-5 text-left text-core-text transition hover:-translate-y-0.5 hover:border-core-focus"><svg class="catalog-icon-lg"><use href="#icon-sparkles"></use></svg><span class="mt-5 block core-body-large font-semibold">Demo ausprobieren</span><span class="mt-2 block core-body text-core-muted">Beispielstapel bewusst anlegen.</span></button>
+              </div>
+            </div>
+          </section>
+
+          <section id="icons" class="catalog-section">
+            <div class="catalog-section-head">
+              <p class="catalog-kicker">11 · Ikonografie</p>
+              <h2 class="core-heading-2 text-core-text">Icons, Größen und Träger</h2>
+              <p>Repräsentative Lucide-Strichicons in den aktuell verwendeten Größen; Bedeutung bleibt immer zusätzlich als Text oder zugängliches Label erhalten.</p>
+            </div>
+            <div class="catalog-section-body">
+              <div class="catalog-row">
+                <span class="catalog-demo"><span class="catalog-demo-label">16 px</span><svg class="catalog-icon-sm text-core-action"><use href="#icon-book"></use></svg></span>
+                <span class="catalog-demo"><span class="catalog-demo-label">18 px</span><svg class="catalog-icon text-core-action"><use href="#icon-chart"></use></svg></span>
+                <span class="catalog-demo"><span class="catalog-demo-label">20 px</span><svg class="catalog-icon text-core-action" style="width:1.25rem;height:1.25rem"><use href="#icon-save"></use></svg></span>
+                <span class="catalog-demo"><span class="catalog-demo-label">24 px</span><svg class="catalog-icon-lg text-core-action"><use href="#icon-sparkles"></use></svg></span>
+                <span class="catalog-demo"><span class="catalog-demo-label">OrbIcon · 48 px</span><span class="grid size-12 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon-lg"><use href="#icon-book"></use></svg></span></span>
+                <span class="catalog-demo"><span class="catalog-demo-label">Deck · 40 px</span><span class="grid size-10 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span></span>
+              </div>
+              <p class="catalog-note">Der Katalog zeigt jede gegenwärtige Größen- und Trägerform, nicht jedes einzelne Lucide-Glyph.</p>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="catalog-dialog-backdrop" class="catalog-dialog-backdrop" hidden>
+      <div id="catalog-dialog" class="core-surface-raised catalog-dialog" role="dialog" aria-modal="true" aria-labelledby="catalog-dialog-title" aria-describedby="catalog-dialog-description">
+        <h2 id="catalog-dialog-title" class="core-heading-2 text-core-text">Stapel löschen?</h2>
+        <p id="catalog-dialog-description" class="core-body-large mt-3 text-core-secondary">Der Stapel und seine Karten werden dauerhaft entfernt. Diese Aktion kann nicht rückgängig gemacht werden.</p>
+        <div class="mt-6 flex flex-wrap justify-end gap-3">
+          <button id="cancel-dialog" type="button" class="core-action-secondary min-h-11 px-4 py-2.5">Abbrechen</button>
+          <button id="confirm-dialog" type="button" class="core-action-destructive min-h-11 px-4 py-2.5">Stapel löschen</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const { read: readTheme, toggle: toggleTheme } = window.coreCatalogTheme;
+
+      const primitiveTokens = [
+        ["--core-palette-slate", "Slate"], ["--core-palette-mist", "Mist"],
+        ["--core-palette-cloud", "Cloud"], ["--core-palette-coral", "Coral"],
+        ["--core-palette-lilac", "Lilac"], ["--core-palette-marigold", "Marigold"],
+        ["--core-palette-midnight", "Midnight"], ["--core-palette-graphite", "Graphite"],
+        ["--core-palette-highlight", "Highlight"], ["--core-palette-coral-glow", "Coral Glow"],
+        ["--core-palette-lilac-glow", "Lilac Glow"], ["--core-palette-golden-glow", "Golden Glow"],
+      ];
+
+      const semanticTokens = [
+        ["--core-canvas", "Seitenhintergrund"], ["--core-surface", "Standardfläche"],
+        ["--core-surface-raised", "Erhöhte Fläche"], ["--core-surface-muted", "Gedämpfte Fläche"],
+        ["--core-surface-hover", "Hover-Fläche"], ["--core-group-depth-0", "Gruppentiefe 0"],
+        ["--core-group-depth-1", "Gruppentiefe 1"], ["--core-group-depth-2", "Gruppentiefe 2"],
+        ["--core-group-depth-3", "Gruppentiefe 3"], ["--core-text", "Primärtext"],
+        ["--core-text-secondary", "Sekundärtext"], ["--core-text-muted", "Gedämpfter Text"],
+        ["--core-text-on-accent", "Text auf Akzent"], ["--core-border", "Standardrahmen"],
+        ["--core-border-interactive", "Interaktiver Rahmen"], ["--core-focus", "Fokus"],
+        ["--core-focus-ring", "Fokusring"], ["--core-focus-ring-soft", "Weicher Fokusring"],
+        ["--core-action-primary", "Primäraktion"], ["--core-action-primary-hover", "Primäraktion Hover"],
+        ["--core-action-primary-active", "Primäraktion Active"], ["--core-action-secondary", "Sekundäraktion"],
+        ["--core-action-disabled-bg", "Disabled-Fläche"],
+        ["--core-action-disabled-text", "Disabled-Text"], ["--core-info", "Information"],
+        ["--core-success", "Erfolg"], ["--core-warning", "Warnung"],
+        ["--core-danger", "Gefahr"], ["--core-info-surface", "Info-Fläche"],
+        ["--core-success-surface", "Erfolgsfläche"], ["--core-warning-surface", "Warnfläche"],
+        ["--core-danger-surface", "Fehlerfläche"], ["--core-backdrop", "Modal-Backdrop"],
+        ["--core-selection", "Textauswahl"],
+      ];
+
+      const root = document.documentElement;
+      const themeToggle = document.getElementById("theme-toggle");
+      const probe = document.createElement("span");
+      probe.hidden = true;
+      document.body.append(probe);
+
+      function resolvedColor(token) {
+        probe.style.backgroundColor = `var(${token})`;
+        const color = getComputedStyle(probe).backgroundColor;
+        const match = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
+        if (!match) return color;
+        const alpha = match[4] === undefined ? 1 : Number(match[4]);
+        if (alpha !== 1) return color;
+        return `#${[match[1], match[2], match[3]].map((part) => Number(part).toString(16).padStart(2, "0")).join("")}`;
+      }
+
+      function renderTokens(targetId, tokens) {
+        const target = document.getElementById(targetId);
+        target.replaceChildren(...tokens.map(([token, role]) => {
+          const card = document.createElement("article");
+          card.className = "catalog-token";
+          const swatch = document.createElement("div");
+          swatch.className = "catalog-token-color";
+          swatch.style.background = `var(${token})`;
+          const copy = document.createElement("div");
+          copy.className = "catalog-token-copy";
+          const code = document.createElement("code");
+          code.textContent = token;
+          const value = document.createElement("span");
+          value.className = "catalog-token-value";
+          value.textContent = resolvedColor(token);
+          const roleLabel = document.createElement("span");
+          roleLabel.className = "catalog-token-role";
+          roleLabel.textContent = role;
+          copy.append(code, value, roleLabel);
+          card.append(swatch, copy);
+          return card;
+        }));
+      }
+
+      function updateThemeUi() {
+        const theme = readTheme();
+        const dark = theme === "dark";
+        themeToggle.setAttribute("aria-checked", String(dark));
+        themeToggle.querySelector("span").textContent = dark ? "Light Mode einschalten" : "Dark Mode einschalten";
+        renderTokens("primitive-colors", primitiveTokens);
+        renderTokens("semantic-colors", semanticTokens);
+      }
+
+      updateThemeUi();
+      themeToggle.addEventListener("click", () => {
+        toggleTheme();
+        updateThemeUi();
+      });
+
+      document.fonts.ready.then(() => {
+        const amulya = document.fonts.check('16px "Amulya"');
+        const synonym = document.fonts.check('16px "Synonym"');
+        document.getElementById("font-status").textContent = amulya && synonym
+          ? "Amulya & Synonym geladen"
+          : "Fallback-Schrift aktiv";
+      });
+
+      const backdrop = document.getElementById("catalog-dialog-backdrop");
+      const openDialog = document.getElementById("open-dialog");
+      const cancelDialog = document.getElementById("cancel-dialog");
+      const confirmDialog = document.getElementById("confirm-dialog");
+      let returnFocus = null;
+
+      function closeCatalogDialog() {
+        backdrop.hidden = true;
+        returnFocus?.focus();
+      }
+
+      openDialog.addEventListener("click", () => {
+        returnFocus = document.activeElement;
+        backdrop.hidden = false;
+        cancelDialog.focus();
+      });
+      cancelDialog.addEventListener("click", closeCatalogDialog);
+      confirmDialog.addEventListener("click", closeCatalogDialog);
+      backdrop.addEventListener("click", (event) => {
+        if (event.target === backdrop) closeCatalogDialog();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (backdrop.hidden) return;
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeCatalogDialog();
+          return;
+        }
+        if (event.key !== "Tab") return;
+        const first = cancelDialog;
+        const last = confirmDialog;
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      });
+
+      const sectionLinks = [...document.querySelectorAll(".catalog-nav a")];
+      const sections = sectionLinks.map((link) => document.querySelector(link.getAttribute("href")));
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (!visible) return;
+        sectionLinks.forEach((link) => link.setAttribute("aria-current", String(link.getAttribute("href") === `#${visible.target.id}`)));
+      }, { rootMargin: "-10% 0px -78% 0px" });
+      sections.forEach((section) => observer.observe(section));
+    </script>
+  </body>
+</html>

@@ -1,8 +1,9 @@
 import React from "react";
 import { Activity, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileArchive, PenLine, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.ts";
-import { DonutValue, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
-import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
+import type { DashboardScreenProps } from "../appScreenProps.ts";
+import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { DeckTree } from "../ui/DeckTree.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
 const heatmapToneByLevel = [
@@ -175,10 +176,9 @@ function StudyHeatmap({ heatmap }: any) {
   );
 }
 
-export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }: any) {
-  const library = createDeckLibraryModel(state.decks);
+export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo, onMoveDeck }: DashboardScreenProps) {
+  const library = React.useMemo(() => createDeckLibraryModel(state.decks), [state.decks]);
   const { dueCards, studyHeatmap } = library;
-  const dashboardRows = library.dashboardRows;
   const displayName = state.profile?.displayName?.trim();
   const welcomeTitle = displayName ? `Willkommen zurück, ${displayName}!` : "Willkommen bei CoRe";
 
@@ -253,29 +253,12 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo }
             Lernen öffnen <ChevronRight size={15} aria-hidden="true" />
           </button>
         </div>
-        <div className="grid gap-3">
-          {dashboardRows.map((row: any) => {
-            const summary = row.summary;
-            return (
-              <button
-                key={row.id}
-                type="button"
-                aria-label={`${row.name} lernen`}
-                onClick={() => onStartDeck(row.deck)}
-                className="flex cursor-pointer flex-wrap items-center gap-4 rounded-2xl border border-[var(--core-border)] bg-core-surface px-5 py-4 text-left transition hover:border-[var(--core-border-interactive)] hover:bg-[var(--core-surface-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2"
-              >
-                <DeckAppearanceIcon deck={row.deck} className="size-10 rounded-full bg-[var(--core-surface-muted)]" iconSize={19} />
-                <span className="min-w-[12rem] flex-1">
-                  <span className="block truncate core-body-large font-semibold text-[var(--core-text)]">{row.name}</span>
-                  <span className="block core-body text-[var(--core-text-muted)]">
-                    {summary.totalCards} Karten · {summary.dueCards} fällig
-                  </span>
-                </span>
-                <DonutValue value={row.progress} />
-              </button>
-            );
-          })}
-        </div>
+        <DeckTree
+          rows={library.rows}
+          mode="dashboard"
+          onActivate={(row) => onStartDeck(row.deck, false)}
+          onMoveDeck={onMoveDeck}
+        />
       </SoftPanel>
     </div>
   );

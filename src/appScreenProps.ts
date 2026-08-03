@@ -1,5 +1,5 @@
 import type { AppRoute, AppViewId, createViewRoute } from "./appNavigation.ts";
-import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
+import type { CoreWorkspace, DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CoreMode, Deck, LearningItem, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
@@ -37,6 +37,7 @@ export interface DashboardScreenProps {
   onNavigate: NavigateToView;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onCreateDemo: () => Promise<Deck[] | null>;
+  onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
 }
 
 export interface DeckSettingsScreenProps {
@@ -44,6 +45,7 @@ export interface DeckSettingsScreenProps {
   onSave: (deckId: string, settings: LearningSettingsInput) => unknown;
   onSaveAppearance: (deckId: string, appearance: Deck["deckSettings"]["appearance"]) => unknown;
   onBack: () => unknown;
+  backLabel?: string;
 }
 
 export interface DecksScreenProps {
@@ -51,8 +53,8 @@ export interface DecksScreenProps {
   mediaStore: AccountMediaStore | null;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onSaveCard: (deckId: string, cardId: string, value: CardEditorValue) => unknown;
-  onDeleteCard: (deckId: string, cardId: string) => unknown;
-  onUndoDeleteCard: (deckId: string, deletedCard: LearningItem) => unknown;
+  onDeleteCard: (deckId: string, cardId: string) => Promise<Deck | null>;
+  onUndoDeleteCard: (deckId: string, deletedCard: LearningItem) => Promise<Deck | null>;
   onRestoreCard: (deckId: string, cardId: string, versionId: string) => unknown;
   onAddVariant: (deckId: string, cardId: string, variant: CardVariantInput) => unknown;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
@@ -61,11 +63,12 @@ export interface DecksScreenProps {
   onSelectDeck: (deckId: string | null, cardId?: string | null) => unknown;
   onSelectCard: (cardId: string | null) => unknown;
   onOpenLearn: (deckId?: string | null) => unknown;
-  onDeleteDeck: (deckId: string) => unknown;
-  onRenameDeck: (deckId: string, name: string) => unknown;
-  onMoveDeck: (deckId: string, parentDeckId?: string | null) => unknown;
+  onDeleteDeck: (deckId: string) => Promise<ReturnType<CoreWorkspace["deleteDeckTree"]> | null>;
+  onRenameDeck: (deckId: string, name: string) => DeckMutationResult | null;
+  onMoveDeck: (deckId: string, parentDeckId?: string | null) => DeckMutationResult | null;
   onOpenCardCreation: () => unknown;
   onPrepareSubdeckCreation: (parentDeckId?: string) => unknown;
+  onOpenDeckSettings: (deckId: string) => unknown;
 }
 
 export interface LearnScreenProps {
@@ -79,6 +82,7 @@ export interface LearnScreenProps {
   onOpenCardCreation: () => unknown;
   onOpenDecks: (deckId?: string | null) => unknown;
   onOpenDeckSettings: (deckId: string) => unknown;
+  onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
 }
 
 export interface SettingsScreenProps {

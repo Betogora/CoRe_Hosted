@@ -39,7 +39,7 @@ interface WorkspaceRepository {
   saveProfile(profile: unknown): unknown;
 }
 
-interface DeckMutationResult {
+export interface DeckMutationResult {
   ok: boolean;
   error: string | null;
   deck: Deck | null;

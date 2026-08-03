@@ -5,7 +5,7 @@ import type { AuthPhase } from "./accountSession.ts";
 import type { CoreMode, Deck, LearningItem, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import { BarChart3, BookOpen, CircleHelp, Database, Home, Layers, PlusSquare, Settings } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
-import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute } from "./appNavigation.ts";
+import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type SettingsReturnContext } from "./appNavigation.ts";
 import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
 import type {
@@ -184,6 +184,7 @@ export function App() {
     creationMethod,
     creationDeckId,
     completedDeckId,
+    settingsReturnContext,
     navigateToRoute,
     navigateToView: navigateToViewNow,
     getStudyReturnRoute,
@@ -805,8 +806,8 @@ export function App() {
     });
   }
 
-  function openDeckSettings(deckId: string) {
-    navigateToView("stapel-einstellungen", { focusedDeckId: deckId });
+  function openDeckSettings(deckId: string, returnContext: SettingsReturnContext = { view: "learn" }) {
+    navigateToView("stapel-einstellungen", { focusedDeckId: deckId, settingsReturnContext: returnContext });
   }
 
   function openDeckCreation(parentDeckId = "") {
@@ -843,7 +844,10 @@ export function App() {
           deck={state.decks.find((deck) => deck.id === focusedDeckId) ?? null}
           onSave={saveDeckLearningSettings}
           onSaveAppearance={saveDeckAppearance}
-          onBack={() => openLearn(focusedDeckId)}
+          backLabel={settingsReturnContext?.view === "decks" ? "Zurück zur Kartenverwaltung" : "Zurück zu Lernen"}
+          onBack={() => settingsReturnContext?.view === "decks"
+            ? openDecks(focusedDeckId, settingsReturnContext.cardId ?? null)
+            : openLearn(focusedDeckId)}
         />
       );
     }
@@ -869,6 +873,10 @@ export function App() {
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onPrepareSubdeckCreation={openDeckCreation}
           onOpenLearn={openLearn}
+          onOpenDeckSettings={(deckId) => openDeckSettings(deckId, {
+            view: "decks",
+            ...(selectedCardId ? { cardId: selectedCardId } : {}),
+          })}
         />
       );
     }
@@ -910,7 +918,8 @@ export function App() {
           onFocusDeck={openLearn}
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onOpenDecks={openDecks}
-          onOpenDeckSettings={openDeckSettings}
+          onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "learn" })}
+          onMoveDeck={moveDeck}
         />
       );
     }
@@ -938,7 +947,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} />;
+    return <DashboardScreen state={state} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} onMoveDeck={moveDeck} />;
   }
 
   if (authPhase === "checking-session") {

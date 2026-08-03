@@ -1,11 +1,12 @@
 import React from "react";
 import { ArrowLeft, Save, SlidersHorizontal } from "lucide-react";
+import type { DeckSettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeDeckAppearance } from "../coreModel.ts";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { DeckAppearanceIcon, deckIconOptions } from "../ui/deckAppearance.tsx";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 
-export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onBack }: any) {
+export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
   const [appearance, setAppearance] = React.useState(() => normalizeDeckAppearance(deck?.deckSettings?.appearance));
   const [appearanceStatus, setAppearanceStatus] = React.useState("");
 
@@ -23,7 +24,7 @@ export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onBack }: a
         action={
           <button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
             <ArrowLeft size={17} aria-hidden="true" />
-            Zurück zu Lernen
+            {backLabel}
           </button>
         }
       />
@@ -36,7 +37,7 @@ export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onBack }: a
         <PageHeader eyebrow="Stapel-Einstellungen" title={deck.name} />
         <button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface">
           <ArrowLeft size={17} aria-hidden="true" />
-          Zurück zu Lernen
+          {backLabel}
         </button>
       </div>
 

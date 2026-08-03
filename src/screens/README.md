@@ -8,16 +8,16 @@ Each exported screen in this folder is a UI module with a small props interface.
 
 ## Screen Map
 
-- `DashboardScreen.tsx`: dashboard metrics, active decks and responsive keyboard-navigable study heatmap.
+- `DashboardScreen.tsx`: dashboard metrics, the complete shared deck tree with donut and direct reparenting, and the responsive keyboard-navigable study heatmap.
 - `AuthGateScreen.tsx`: required Supabase login, registration, Google start, Magic Link, reset-link request and password-recovery completion before the app shell opens.
-- `DecksScreen.tsx`: deck library, filtering, parent/child hierarchy, rename, subdeck creation handoff to Learn, drag-and-drop reparenting, CoRe mode controls, card editor and Core variant controls; opened from the Learn controls.
+- `DecksScreen.tsx`: shared selectable deck tree, filtering, one selected-deck action area with explicit confirmed reparenting, CoRe mode controls, card editor and Core variant controls; opened from the Learn controls.
 - `CreationScreen.tsx`: composition and completion state for the creation area; keeps the public screen props and creation workflow wiring stable.
   - `CreationHome.tsx`: manual and import entry cards.
   - `ManualCreationPanel.tsx`: manual cards, Rich Text fields and optional PDF/text source selection.
   - `ImportCreationPanel.tsx`: local import-format selection and composition of the two import panels.
   - `ApkgImportPanel.tsx`: APKG analysis, preview, commit status, media progress and import report presentation.
   - `TextTableImportPanel.tsx`: Text/CSV/table paste preview and import.
-- `LearnScreen.tsx`: collapsible deck tree, main/subdeck creation, subtree study entry points, direct row drag-and-drop reparenting, new/due/total counts and per-deck learning-settings entry points.
+- `LearnScreen.tsx`: shared collapsible deck tree, main/subdeck creation, whole-row subtree study entry, direct drag-and-drop reparenting, aggregated new/due/total counts and per-deck learning-settings entry points.
 - `DeckSettingsScreen.tsx`: isolated settings for exactly one deck, using the shared learning-settings panel without exposing the rest of the deck library.
 - `HelpScreen.tsx`: statische Produktaufklärung zu FSRS, CoRes FSRS-ähnlichem Scheduler und Varianten mit einer zugänglichen, transient interaktiven Lernkurve; keine Workspace- oder Scheduler-Mutation.
 - `StatisticsScreen.tsx`: performance statistics from local review events, including success rate, rating distribution, streaks, recent trend and deck-level weak spots.

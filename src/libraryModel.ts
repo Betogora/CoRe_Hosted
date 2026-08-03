@@ -415,9 +415,9 @@ function createDeckRow(
   };
 }
 
-type DeckRow = ReturnType<typeof createDeckRow>;
+export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
-function matchesDeckRow(row: DeckRow, query: string, coreMode: CoreMode | "all"): boolean {
+function matchesDeckRow(row: DeckLibraryRow, query: string, coreMode: CoreMode | "all"): boolean {
   const haystack = normalizeQuery(`${row.name} ${row.deck.tags?.join(" ") ?? ""} ${row.path}`);
   const matchesQuery = !query || haystack.includes(query);
   const matchesMode = coreMode === "all" || row.coreMode === coreMode;
@@ -442,9 +442,9 @@ function collectScopeDecks(deck: Deck, childrenByParent: Map<string | null, Deck
   return [deck, ...children.flatMap((child) => collectScopeDecks(child, childrenByParent))];
 }
 
-function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: number }): DeckRow[] {
+function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: number }): DeckLibraryRow[] {
   const childrenByParent = buildChildrenByParent(decks);
-  const rows: DeckRow[] = [];
+  const rows: DeckLibraryRow[] = [];
 
   function visit(deck: Deck, depth: number): void {
     const children = childrenByParent.get(deck.id) ?? [];
@@ -459,20 +459,6 @@ function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: nu
 
   (childrenByParent.get(null) ?? []).forEach((deck) => visit(deck, 0));
   return rows;
-}
-
-export function createVisibleDeckRows(rows: DeckRow[] = [], collapsedDeckIds: Set<string> | string[] = new Set()): DeckRow[] {
-  const collapsedIds = collapsedDeckIds instanceof Set ? collapsedDeckIds : new Set(collapsedDeckIds);
-  const rowById = new Map(rows.map((row) => [row.id, row]));
-
-  return rows.filter((row) => {
-    let parentId = row.parentDeckId;
-    while (parentId) {
-      if (collapsedIds.has(parentId)) return false;
-      parentId = rowById.get(parentId)?.parentDeckId ?? null;
-    }
-    return true;
-  });
 }
 
 export function getStudyHeatmapVisibleWeekCount(viewportWidth: unknown, totalWeeks = DEFAULT_HEATMAP_WEEK_COUNT): number {
@@ -625,7 +611,6 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
     rows,
     filteredRows,
     selectedRow,
-    dashboardRows: rows.filter((row) => row.depth === 0).slice(0, 4),
     dueCards: rows.reduce((total, row) => total + row.directSummary.dueCards, 0),
     studyHeatmap: createStudyHeatmapModel(decks, { now }),
   };

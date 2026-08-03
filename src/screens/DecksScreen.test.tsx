@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createCoreDeck, createLearningItemFromEditorValue, createManualCoreDeck, updateCardContent } from "../coreModel.ts";
 import { DecksScreen } from "./DecksScreen.tsx";
 
-test("deck management exposes explicit move, restore and collapsed variant tools", () => {
+test("deck management centralizes selected-deck actions and keeps explicit move and variant tools", () => {
   const originalDeck = createManualCoreDeck({
     deckName: "Biologie",
     card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
@@ -14,38 +14,42 @@ test("deck management exposes explicit move, restore and collapsed variant tools
   const markup = renderToStaticMarkup(
     <DecksScreen
       decks={[deck]}
+      mediaStore={null}
       selectedDeckId={deck.id}
       selectedCardId={deck.cards[0].id}
       onSelectDeck={() => undefined}
       onSelectCard={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onSaveCard={() => undefined}
-      onDeleteCard={() => undefined}
+      onDeleteCard={async () => null}
+      onUndoDeleteCard={async () => null}
       onRestoreCard={() => undefined}
       onAddVariant={() => undefined}
-      onApplyVariantJson={() => undefined}
       onStartDeck={() => undefined}
-      onDeleteDeck={() => undefined}
-      onRenameDeck={() => undefined}
-      onMoveDeck={() => undefined}
+      onDeleteDeck={async () => null}
+      onRenameDeck={() => null}
+      onMoveDeck={() => null}
       onOpenCardCreation={() => undefined}
       onPrepareSubdeckCreation={() => undefined}
       onOpenLearn={() => undefined}
+      onOpenDeckSettings={() => undefined}
     />,
   );
 
-  assert.match(markup, /Biologie verschieben/);
+  assert.match(markup, new RegExp(`data-testid="deck-move-button-${deck.id}"`));
   assert.match(markup, /aria-label="Kartenstapel durchsuchen"/);
   assert.match(markup, /aria-label="Kartenstapel nach CoRe-Modus filtern"/);
-  assert.match(markup, /aria-label="Biologie lernen"/);
-  assert.match(markup, /aria-label="Biologie mit Varianten lernen"/);
+  assert.match(markup, /Biologie öffnen/);
+  assert.match(markup, />Einstellungen</);
+  assert.match(markup, />Lernen</);
+  assert.match(markup, />Mit Varianten lernen</);
   assert.match(markup, /Version zum Wiederherstellen/);
   assert.match(markup, /Varianten und Lernwerte/);
   assert.match(markup, /<details[^>]*data-testid="card-variant-tools"/);
   const inventoryMarkup = markup.slice(0, markup.indexOf(`data-testid="deck-card-list-${deck.id}"`));
-  assert.match(inventoryMarkup, />Karten im Stapel</);
-  assert.doesNotMatch(inventoryMarkup, />Fällig</);
-  assert.doesNotMatch(inventoryMarkup, />Neu</);
+  assert.match(inventoryMarkup, /data-deck-count="new"/);
+  assert.match(inventoryMarkup, /data-deck-count="due"/);
+  assert.match(inventoryMarkup, /data-deck-count="total"/);
   assert.doesNotMatch(markup, /draggable=/);
 });
 
@@ -56,21 +60,24 @@ test("deck management shows safe fallbacks for unavailable deck and card links",
   });
   const sharedProps = {
     decks: [deck],
+    mediaStore: null,
     onSelectDeck: () => undefined,
     onSelectCard: () => undefined,
     onSetDeckCoreMode: () => undefined,
     onSaveCard: () => undefined,
-    onDeleteCard: () => undefined,
+    onDeleteCard: async () => null,
+    onUndoDeleteCard: async () => null,
     onRestoreCard: () => undefined,
     onAddVariant: () => undefined,
     onApplyVariantJson: () => undefined,
     onStartDeck: () => undefined,
-    onDeleteDeck: () => undefined,
-    onRenameDeck: () => undefined,
-    onMoveDeck: () => undefined,
+    onDeleteDeck: async () => null,
+    onRenameDeck: () => null,
+    onMoveDeck: () => null,
     onOpenCardCreation: () => undefined,
     onPrepareSubdeckCreation: () => undefined,
     onOpenLearn: () => undefined,
+    onOpenDeckSettings: () => undefined,
   };
 
   const missingDeckMarkup = renderToStaticMarkup(
@@ -95,23 +102,25 @@ function renderEditorFor(editorValue: Parameters<typeof createLearningItemFromEd
   return renderToStaticMarkup(
     <DecksScreen
       decks={[deck]}
+      mediaStore={null}
       selectedDeckId={deck.id}
       selectedCardId={card.id}
       onSelectDeck={() => undefined}
       onSelectCard={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onSaveCard={() => undefined}
-      onDeleteCard={() => undefined}
+      onDeleteCard={async () => null}
+      onUndoDeleteCard={async () => null}
       onRestoreCard={() => undefined}
       onAddVariant={() => undefined}
-      onApplyVariantJson={() => undefined}
       onStartDeck={() => undefined}
-      onDeleteDeck={() => undefined}
-      onRenameDeck={() => undefined}
-      onMoveDeck={() => undefined}
+      onDeleteDeck={async () => null}
+      onRenameDeck={() => null}
+      onMoveDeck={() => null}
       onOpenCardCreation={() => undefined}
       onPrepareSubdeckCreation={() => undefined}
       onOpenLearn={() => undefined}
+      onOpenDeckSettings={() => undefined}
     />,
   );
 }

@@ -404,7 +404,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await page.getByRole("button", { name: "Umformulierung hinzufügen" }).click();
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0).toBe(variantsBefore + 1);
 
-  await page.getByTestId(`deck-row-${DECK_IDS.africa}`).getByRole("button", { name: "Varianten" }).click();
+  await page.getByTestId(`deck-actions-${DECK_IDS.africa}`).getByRole("button", { name: "Mit Varianten lernen" }).click();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
 
