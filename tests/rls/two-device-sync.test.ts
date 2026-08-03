@@ -78,6 +78,7 @@ test("zwei Geräte schützen neueren Content, Offline-Reviews und Soft-Deletes",
   assert.ifError(staleConflictError);
 
   const deck = deviceA.workspace.createDeck({ name: "Zwei-Geräte-Ausgang" });
+  assert.ok(deck);
   const deckWithCard = deviceA.workspace.addManualCardToDeck(deck.id, {
     deckName: deck.name,
     card: {

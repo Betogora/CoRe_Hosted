@@ -7,11 +7,11 @@ const defaultViewId = menu.defaultViewId;
 const studyFallbackViewId: AppViewId = "lernen";
 const extraRoutableViewIds = ["stapel-einstellungen"] as const;
 const reviewReturnViews = ["today", "learn", "decks"] as const;
-const settingsReturnViews = ["learn", "decks"] as const;
+const settingsReturnViews = reviewReturnViews;
 
 export type AppViewId = MenuViewId | typeof extraRoutableViewIds[number];
 export type ReviewReturnView = typeof reviewReturnViews[number];
-export type SettingsReturnView = typeof settingsReturnViews[number];
+export type SettingsReturnView = ReviewReturnView;
 
 export interface ReviewReturnContext {
   view: ReviewReturnView;

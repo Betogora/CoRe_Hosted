@@ -50,6 +50,9 @@ export interface DeckMutationResult {
   movedToParentDeckId?: string | null;
 }
 
+export const MAX_INTERACTIVE_DECK_LEVELS = 3;
+export const DECK_DEPTH_ERROR = "Maximal drei Stapel-Ebenen sind möglich.";
+
 interface DeckPlacementInput {
   deckId: string;
   name?: string | null;
@@ -135,20 +138,68 @@ function mergeSourceDocuments(existingDocuments: SourceDocument[] = [], nextDocu
 }
 
 function collectDeckTreeIds(decks: Deck[] = [], rootDeckId: string): Set<string> {
-  const ids = new Set<string>([rootDeckId]);
-  let changed = true;
+  const childIdsByParentId = new Map<string, string[]>();
+  for (const deck of decks) {
+    if (!deck.parentDeckId) continue;
+    const childIds = childIdsByParentId.get(deck.parentDeckId) ?? [];
+    childIds.push(deck.id);
+    childIdsByParentId.set(deck.parentDeckId, childIds);
+  }
 
-  while (changed) {
-    changed = false;
-    for (const deck of decks) {
-      if (deck.parentDeckId && ids.has(deck.parentDeckId) && !ids.has(deck.id)) {
-        ids.add(deck.id);
-        changed = true;
-      }
+  const ids = new Set<string>([rootDeckId]);
+  const pendingIds = [rootDeckId];
+  for (let index = 0; index < pendingIds.length; index += 1) {
+    for (const childId of childIdsByParentId.get(pendingIds[index]) ?? []) {
+      if (ids.has(childId)) continue;
+      ids.add(childId);
+      pendingIds.push(childId);
     }
   }
 
   return ids;
+}
+
+function deckDepth(deckById: ReadonlyMap<string, Deck>, deckId: string): number {
+  const visited = new Set<string>();
+  let current = deckById.get(deckId) ?? null;
+  let depth = 0;
+
+  while (current?.parentDeckId && !visited.has(current.id)) {
+    visited.add(current.id);
+    const parent = deckById.get(current.parentDeckId) ?? null;
+    if (!parent) break;
+    depth += 1;
+    current = parent;
+  }
+
+  return depth;
+}
+
+export function createDeckPlacementValidator(decks: Deck[], deckId: string): (parentDeckId: string | null) => string | null {
+  const deckById = new Map(decks.map((deck) => [deck.id, deck]));
+  const deck = deckById.get(deckId) ?? null;
+  if (!deck) return () => "Stapel nicht gefunden.";
+
+  const movedTreeIds = collectDeckTreeIds(decks, deckId);
+  const sourceDepth = deckDepth(deckById, deckId);
+  const currentMaximumDepth = Math.max(...[...movedTreeIds].map((id) => deckDepth(deckById, id)));
+  const subtreeHeight = Math.max(0, currentMaximumDepth - sourceDepth);
+  const maximumInteractiveDepth = MAX_INTERACTIVE_DECK_LEVELS - 1;
+
+  return (parentDeckId) => {
+    const requestedParentId = parentDeckId || null;
+    const parent = requestedParentId ? deckById.get(requestedParentId) ?? null : null;
+    if (requestedParentId && !parent) return "Zielstapel nicht gefunden.";
+    if (requestedParentId && movedTreeIds.has(requestedParentId)) {
+      return "Ein Stapel kann nicht in sich selbst oder einen eigenen Unterstapel verschoben werden.";
+    }
+    if ((deck.parentDeckId ?? null) === requestedParentId) return null;
+
+    const nextMaximumDepth = (parent ? deckDepth(deckById, parent.id) + 1 : 0) + subtreeHeight;
+    return nextMaximumDepth > maximumInteractiveDepth && nextMaximumDepth >= currentMaximumDepth
+      ? DECK_DEPTH_ERROR
+      : null;
+  };
 }
 
 function hierarchyPathOf(deck: Deck): string[] {
@@ -271,9 +322,9 @@ function updateDeckTreePlacement(state: WorkspaceState, { deckId, name = null, p
   const requestedParentId = wantsParentChange ? parentDeckId || null : deck.parentDeckId ?? null;
   const parent = requestedParentId ? decks.find((item) => item.id === requestedParentId) ?? null : null;
 
-  if (requestedParentId && !parent) return createDeckMutationError("Zielstapel nicht gefunden.");
-  if (requestedParentId && movedTreeIds.has(requestedParentId)) {
-    return createDeckMutationError("Ein Stapel kann nicht in sich selbst oder einen eigenen Unterstapel verschoben werden.");
+  if (wantsParentChange) {
+    const placementError = createDeckPlacementValidator(decks, deckId)(requestedParentId);
+    if (placementError) return createDeckMutationError(placementError);
   }
 
   const nextName = makeUniqueSiblingDeckName(decks, {
@@ -418,6 +469,7 @@ export function createCoreWorkspace(repository: WorkspaceRepository = createCore
     } = {}) {
       const state = repository.getState();
       const validParentId = parentDeckId && state.decks.some((deck) => deck.id === parentDeckId) ? parentDeckId : null;
+      if (validParentId && deckDepth(new Map(state.decks.map((deck) => [deck.id, deck])), validParentId) + 1 >= MAX_INTERACTIVE_DECK_LEVELS) return null;
       const hierarchyPath = createHierarchyPathForDeck(state.decks, { name, parentDeckId: validParentId });
       const deck = createCoreDeck({
         name: hierarchyPath.at(-1) || "Neuer Stapel",

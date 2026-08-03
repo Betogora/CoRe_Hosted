@@ -27,6 +27,7 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, /data-deck-count="new"/);
   assert.match(markup, /data-deck-count="due"/);
   assert.match(markup, /data-deck-count="total"/);
+  assert.match(markup, /conic-gradient/);
   assert.match(markup, /draggable="true"/);
   assert.doesNotMatch(markup, /learn-deck-list-header/);
   assert.doesNotMatch(markup, />Lernen<\/span><\/button>/);

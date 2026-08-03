@@ -38,6 +38,7 @@ export interface DashboardScreenProps {
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onCreateDemo: () => Promise<Deck[] | null>;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
+  onOpenDeckSettings: (deckId: string) => unknown;
 }
 
 export interface DeckSettingsScreenProps {

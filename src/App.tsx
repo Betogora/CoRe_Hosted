@@ -839,15 +839,19 @@ export function App() {
       );
     }
     if (activeView === "stapel-einstellungen") {
+      const returnsToDashboard = settingsReturnContext?.view === "today";
+      const returnsToDecks = settingsReturnContext?.view === "decks";
       return (
         <DeckSettingsScreen
           deck={state.decks.find((deck) => deck.id === focusedDeckId) ?? null}
           onSave={saveDeckLearningSettings}
           onSaveAppearance={saveDeckAppearance}
-          backLabel={settingsReturnContext?.view === "decks" ? "Zurück zur Kartenverwaltung" : "Zurück zu Lernen"}
-          onBack={() => settingsReturnContext?.view === "decks"
-            ? openDecks(focusedDeckId, settingsReturnContext.cardId ?? null)
-            : openLearn(focusedDeckId)}
+          backLabel={returnsToDashboard ? "Zurück zur Übersicht" : returnsToDecks ? "Zurück zur Kartenverwaltung" : "Zurück zu Lernen"}
+          onBack={() => returnsToDashboard
+            ? navigateToView("uebersicht")
+            : returnsToDecks
+              ? openDecks(focusedDeckId, settingsReturnContext?.cardId ?? null)
+              : openLearn(focusedDeckId)}
         />
       );
     }
@@ -947,7 +951,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} onMoveDeck={moveDeck} />;
+    return <DashboardScreen state={state} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} />;
   }
 
   if (authPhase === "checking-session") {

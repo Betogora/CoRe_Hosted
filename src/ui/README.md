@@ -89,7 +89,7 @@ Für spezialisierte Strukturen stehen `core-status-info`, `core-status-success`,
 
 ## Spezialisierte Feature-Module
 
-- `DeckTree` aus `src/ui/DeckTree.tsx`: kanonische einklappbare Stapelkarte für Dashboard, Lernen und Kartenverwaltung; besitzt Hierarchie, Teilbaum-Kennzahlen, Keyboard-Aktivierung sowie direktes Drag-and-drop in allen drei Ansichten. Fachliche Mutationen bleiben in den übergebenen Callbacks.
+- `DeckTree` aus `src/ui/DeckTree.tsx`: kanonische einklappbare Stapelkarte für Dashboard, Lernen und Kartenverwaltung; besitzt in jeder Ansicht dieselbe Folge aus linkem Icon, Name und Pfad, Teilbaum-Kennzahlen, Donut und rechten Stapeloptionen. Die neutrale Keyboard-Aktivierungsfläche ist zugleich die stabile native Desktop-Drag-Quelle. Gruppentiefen 1 bis 3 entsprechen Hauptstapel, Unterstapel und Unter-Unterstapel; tiefere importierte Bäume verwenden weiterhin den Ton von Tiefe 3. Fachliche Mutationen bleiben in den übergebenen Callbacks.
 - `RichTextEditor` aus `src/ui/RichTextEditor.tsx`: sanitisiertes Karten-HTML, Toolbar, Text- und Markerfarben.
 - `ColorWheelPicker` aus `src/ui/ColorWheelPicker.tsx`: kompakter runder Farbkreis für kontrollierte Farbfelder.
 - `ColorPopover` und `ColorToolButton` aus `src/ui/colorPicker.tsx`: gespeicherte Rich-Text-Farbfelder und technisches Farbspektrum.

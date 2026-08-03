@@ -43,6 +43,7 @@ test("deck management centralizes selected-deck actions and offers direct plus e
   assert.match(markup, />Einstellungen</);
   assert.match(markup, />Lernen</);
   assert.match(markup, />Mit Varianten lernen</);
+  assert.match(markup, /class="core-action-destructive/);
   assert.match(markup, /Version zum Wiederherstellen/);
   assert.match(markup, /Varianten und Lernwerte/);
   assert.match(markup, /<details[^>]*data-testid="card-variant-tools"/);
@@ -50,6 +51,8 @@ test("deck management centralizes selected-deck actions and offers direct plus e
   assert.match(inventoryMarkup, /data-deck-count="new"/);
   assert.match(inventoryMarkup, /data-deck-count="due"/);
   assert.match(inventoryMarkup, /data-deck-count="total"/);
+  assert.match(inventoryMarkup, /conic-gradient/);
+  assert.match(inventoryMarkup, /Stapeloptionen für Biologie/);
   assert.match(markup, /draggable="true"/);
 });
 

@@ -63,6 +63,9 @@ test("roundtrips the deck-settings origin and keeps direct links on the safe lea
   const learnOrigin = parseAppRouteFromUrl(
     "/stapel-einstellungen?deck=deck_b&returnView=learn",
   );
+  const dashboardOrigin = parseAppRouteFromUrl(
+    "/stapel-einstellungen?deck=deck_b&returnView=today",
+  );
 
   assert.deepEqual(decksOrigin, {
     mode: "view",
@@ -76,11 +79,18 @@ test("roundtrips the deck-settings origin and keeps direct links on the safe lea
     focusedDeckId: "deck_b",
     settingsReturnContext: { view: "learn" },
   });
+  assert.deepEqual(dashboardOrigin, {
+    mode: "view",
+    viewId: "stapel-einstellungen",
+    focusedDeckId: "deck_b",
+    settingsReturnContext: { view: "today" },
+  });
   assert.equal(
     appRouteToUrl(decksOrigin),
     "/stapel-einstellungen?deck=deck_b&returnView=decks&returnCard=card_b",
   );
   assert.equal(appRouteToUrl(learnOrigin), "/stapel-einstellungen?deck=deck_b&returnView=learn");
+  assert.equal(appRouteToUrl(dashboardOrigin), "/stapel-einstellungen?deck=deck_b&returnView=today");
   assert.deepEqual(
     parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b&returnView=external&returnCard=ignored"),
     { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" },

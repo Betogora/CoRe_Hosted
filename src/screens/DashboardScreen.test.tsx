@@ -15,6 +15,7 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
       onStartDeck={() => undefined}
       onCreateDemo={async () => null}
       onMoveDeck={() => null}
+      onOpenDeckSettings={() => undefined}
     />,
   );
 
@@ -54,6 +55,7 @@ test("populated dashboard keeps today's due count without the original-card stat
       onStartDeck={() => undefined}
       onCreateDemo={async () => null}
       onMoveDeck={() => null}
+      onOpenDeckSettings={() => undefined}
     />,
   );
 
@@ -69,7 +71,8 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /data-deck-count="due"/);
   assert.match(markup, /data-deck-count="total"/);
   assert.match(markup, /draggable="true"/);
-  assert.doesNotMatch(markup, /Stapeloptionen für Biologie/);
+  assert.match(markup, /Stapeloptionen für Biologie/);
+  assert.match(markup, /conic-gradient/);
   assert.doesNotMatch(markup, /aktive Tage/i);
   assert.match(markup, /Weniger[\s\S]*Frühere Wochen anzeigen/);
   assert.match(markup, /grid-template-columns:2\.25rem repeat\(53, 19px\)/);

@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 1d76fd5a3a864819 */
+/* Quellenstand: 10bfe694ce56914b */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -631,7 +631,8 @@ video {
     color: var(--core-palette-midnight);
   }
 .core-action-destructive:not(:disabled):hover {
-    background: var(--core-palette-coral-glow);
+    border-color: var(--core-danger-hover);
+    background: var(--core-danger-hover);
   }
 .core-action-primary:disabled,
   .core-action-secondary:disabled,
@@ -829,6 +830,10 @@ video {
 .shrink-0 {
   flex-shrink: 0;
 }
+.rotate-90 {
+  --tw-rotate: 90deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
 @keyframes spin {
 
   to {
@@ -905,6 +910,9 @@ video {
 }
 .rounded-full {
   border-radius: 9999px;
+}
+.rounded-lg {
+  border-radius: 0.5rem;
 }
 .rounded-xl {
   border-radius: 0.75rem;
@@ -1119,6 +1127,7 @@ video {
   --core-success: var(--core-palette-lilac);
   --core-warning: var(--core-palette-marigold);
   --core-danger: var(--core-palette-coral);
+  --core-danger-hover: var(--core-palette-coral-glow);
   --core-info-surface: var(--core-palette-cloud);
   --core-success-surface: #f5e8f4;
   --core-warning-surface: #f8efd8;
@@ -1176,6 +1185,7 @@ video {
   --core-success: var(--core-palette-lilac-glow);
   --core-warning: var(--core-palette-golden-glow);
   --core-danger: var(--core-palette-coral-glow);
+  --core-danger-hover: var(--core-palette-coral);
   --core-info-surface: #354155;
   --core-success-surface: #4c3b4e;
   --core-warning-surface: #50472f;
@@ -1657,21 +1667,6 @@ summary {
   color: var(--core-text);
 }
 
-.focus\:outline-none:focus {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-}
-
-.focus-visible\:ring-2:focus-visible {
-  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
-}
-
-.focus-visible\:ring-core-focus:focus-visible {
-  --tw-ring-color: var(--core-focus);
-}
-
 @media (min-width: 640px) {
 
   .sm\:col-span-1 {
@@ -1692,6 +1687,11 @@ summary {
 
   .sm\:grid-cols-\[minmax\(13rem\2c 1fr\)_minmax\(15rem\2c auto\)_auto\] {
     grid-template-columns: minmax(13rem,1fr) minmax(15rem,auto) auto;
+  }
+
+  .sm\:gap-x-6 {
+    -moz-column-gap: 1.5rem;
+         column-gap: 1.5rem;
   }
 }
 
@@ -2316,6 +2316,7 @@ summary {
       <symbol id="icon-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13Z"/><path d="M8 8h8M8 12h6"/></symbol>
       <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
       <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+      <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></symbol>
       <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 15v5h16v-5"/></symbol>
       <symbol id="icon-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
       <symbol id="icon-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18h1.5a1.5 1.5 0 0 0 0-3H12a2 2 0 0 1 0-4h4a5 5 0 0 0 5-5c0-3.3-4-6-9-6Z"/><path d="M7.5 10h.01M9.5 6.5h.01M14 6h.01M17.5 9h.01"/></symbol>
@@ -2717,15 +2718,16 @@ summary {
                   <span class="catalog-pill">Kontextabhängige Hauptaktion</span>
                 </div>
                 <div class="grid gap-3 rounded-2xl border border-core-border bg-[var(--core-group-depth-0)] p-2 transition hover:border-core-action">
-                  <button type="button" class="grid min-h-20 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl px-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto]">
-                    <span class="flex min-w-0 items-center gap-3"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Welt-Hauptstädte</strong></span></span>
+                  <div class="grid min-h-20 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl px-3 text-left sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6">
+                    <span class="flex min-w-0 items-center gap-2"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><button type="button" class="grid size-11 shrink-0 place-items-center rounded-lg text-core-action" aria-label="Unterstapel ausblenden"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></button><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Welt-Hauptstädte</strong></span></span>
                     <span class="col-span-2 grid grid-cols-3 gap-5 sm:col-span-1"><span><small class="block core-caption uppercase text-core-muted">Neu</small><strong class="core-body-large" style="color:var(--core-deck-new-text)">12</strong></span><span><small class="block core-caption uppercase text-core-muted">Fällig</small><strong class="core-body-large" style="color:var(--core-deck-due-text)">8</strong></span><span><small class="block core-caption uppercase text-core-muted">Gesamt</small><strong class="core-body-large" style="color:var(--core-deck-total-text)">245</strong></span></span>
-                    <span class="col-start-2 row-start-1 grid size-10 place-items-center justify-self-end rounded-full sm:col-start-auto sm:row-start-auto" role="img" aria-label="58 Prozent" style="background:conic-gradient(var(--core-action-primary) 58%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span>
-                  </button>
-                  <button type="button" class="ml-4 grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-core-border bg-[var(--core-group-depth-1)] px-3 text-left transition hover:border-core-action focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto]">
+                    <span class="col-start-2 row-start-1 flex items-center justify-self-end gap-3 sm:col-start-auto sm:row-start-auto"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="58 Prozent" style="background:conic-gradient(var(--core-action-primary) 58%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-icon-action min-w-11 p-2.5" aria-label="Stapeloptionen"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button></span>
+                  </div>
+                  <div class="ml-4 grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-core-border bg-[var(--core-group-depth-1)] px-3 text-left transition hover:border-core-action sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6">
                     <span class="flex min-w-0 items-center gap-3"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Europa</strong><small class="block truncate core-caption text-core-muted">Welt-Hauptstädte / Europa</small></span></span>
                     <span class="col-span-2 grid grid-cols-3 gap-5 sm:col-span-1"><span><small class="block core-caption uppercase text-core-muted">Neu</small><strong class="core-body-large" style="color:var(--core-deck-new-text)">3</strong></span><span><small class="block core-caption uppercase text-core-muted">Fällig</small><strong class="core-body-large" style="color:var(--core-deck-due-text)">2</strong></span><span><small class="block core-caption uppercase text-core-muted">Gesamt</small><strong class="core-body-large" style="color:var(--core-deck-total-text)">53</strong></span></span>
-                  </button>
+                    <span class="col-start-2 row-start-1 flex items-center justify-self-end gap-3 sm:col-start-auto sm:row-start-auto"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="42 Prozent" style="background:conic-gradient(var(--core-action-primary) 42%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-icon-action min-w-11 p-2.5" aria-label="Stapeloptionen"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button></span>
+                  </div>
                 </div>
               </article>
               <div class="catalog-grid catalog-grid-wide">

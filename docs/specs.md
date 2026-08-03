@@ -116,17 +116,19 @@ Akzeptanz:
 
 Akzeptanz:
 
-- Dashboard, Lernen und Kartenverwaltung verwenden dieselbe einklappbare Stapelkarte mit Icon, Name, eindeutigem Hierarchiepfad bei Unterstapeln sowie den immer sichtbaren Teilbaum-Kennzahlen `Neu`, `Fällig` und `Gesamt`.
-- Das Dashboard zeigt den vollständigen Stapelbaum ohne feste Zeilenbegrenzung und ergänzt jede Stapelkarte um den Fortschrittsdonut; Stapeloptionen werden dort nicht angeboten.
+- Dashboard, Lernen und Kartenverwaltung verwenden dieselbe einklappbare Stapelkarte mit dem Icon als erstem Zeileninhalt, Name, eindeutigem Hierarchiepfad bei Unterstapeln sowie den immer sichtbaren Teilbaum-Kennzahlen `Neu`, `Fällig` und `Gesamt`.
+- Jede Stapelkarte zeigt rechts von den Kennzahlen den Fortschrittsdonut und ganz rechts die Stapeloptionen. Das Dashboard zeigt den vollständigen Stapelbaum ohne feste Zeilenbegrenzung.
 - In Dashboard und Lernen startet die neutrale Kartenfläche eine Sitzung. In der Kartenverwaltung wählt sie den Stapel und öffnet beziehungsweise fokussiert dessen Kartenliste und Editor.
 - Auf-/Zuklappen, Stapeloptionen und andere eigene Bedienelemente lösen die Flächenaktion nicht aus. Die Flächenaktion ist per Enter und Leertaste bedienbar und besitzt einen eindeutigen zugänglichen Namen.
-- Lernen besitzt keinen zusätzlichen Tabellenkopf oder separaten Lernen-Button; Stapeloptionen bleiben pro Stapel erreichbar.
-- Die Kartenverwaltung zeigt die Stapelwerkzeuge nicht in jeder Zeile, sondern einmal gruppiert beim ausgewählten Stapel: CoRe-Modus, Einstellungen, Umbenennen, bestätigtes Verschieben, Unterstapel, normales und variantenfokussiertes Lernen sowie getrenntes Löschen.
+- Lernen besitzt keinen zusätzlichen Tabellenkopf oder separaten Lernen-Button; Donut und Stapeloptionen bleiben pro Stapel erreichbar.
+- Die Kartenverwaltung zeigt Donut und Stapeloptionen in jeder Zeile. Die erweiterten Stapelwerkzeuge bleiben einmal gruppiert beim ausgewählten Stapel: CoRe-Modus, Einstellungen, Umbenennen, bestätigtes Verschieben, Unterstapel, normales und variantenfokussiertes Lernen sowie getrenntes Löschen.
 - Das fokussierte Deck ist in Lernen und Kartenverwaltung derselbe URL-reproduzierbare Kontext, ohne parallele lokale Deckidentität.
 - Lernen-, Kartenverwaltungs- und Erstelllinks erhalten ihr Deck beziehungsweise ihre ausgewählte Karte über Reload und Direktlink.
-- Stapeloptionen merken sich ihren URL-reproduzierbaren Ursprung. Der Rückweg führt nach Lernen oder zum zuvor ausgewählten Stapel und optional zur Karte; Direktlinks ohne Ursprung fallen sicher auf Lernen zurück.
+- Stapeloptionen merken sich ihren URL-reproduzierbaren Ursprung. Der Rückweg führt zum Dashboard, nach Lernen oder zum zuvor ausgewählten Stapel und optional zur Karte; Direktlinks ohne Ursprung fallen sicher auf Lernen zurück.
 - Gleichnamige Unterstapel werden in relevanten Links und Auswahlen durch ihren vollständigen Hierarchiepfad unterschieden.
-- In Dashboard, Lernen und Kartenverwaltung verschiebt ein Drop auf eine Stapelkarte den gezogenen Baum unmittelbar als Unterstapel; ein Drop auf die sichtbare freie Hauptebenen-Zone entfernt die Elternzuordnung. Selbst-, Nachfahren- und unveränderte Ziele bleiben ohne Strukturänderung.
+- In Dashboard, Lernen und Kartenverwaltung verschiebt ein Drop auf eine Stapelkarte den gezogenen Baum unmittelbar als Unterstapel; ein Drop auf die sichtbare freie Hauptebenen-Zone entfernt die Elternzuordnung. Die durchgehende neutrale Zeilenfläche ist zugleich die native Drag-Quelle, sodass kein langes Halten nötig ist. Selbst-, Nachfahren- und unveränderte Ziele bleiben ohne Strukturänderung.
+- Interaktiv angelegte oder verschobene Stapelbäume besitzen höchstens drei sichtbare Ebenen: Hauptstapel, Unterstapel und Unter-Unterstapel. Ein zu tiefes Ziel wird ohne Mutation mit `Maximal drei Stapel-Ebenen sind möglich.` abgelehnt.
+- Tiefere APKG-Hierarchien bleiben beim Import unverändert. Ihre Darstellung verwendet ab der dritten Ebene den tiefsten Gruppenton; spätere Moves müssen die Drei-Ebenen-Grenze einhalten oder den vorhandenen Baum nachweislich flacher machen.
 - Ein beendeter Drag startet keine Sitzung. Erfolg, Fehler und No-op werden deutsch über eine Live-Region gemeldet; es gibt keine Bestätigung und kein Rückgängig-Angebot.
 - Die Kartenverwaltung behält zusätzlich das explizite bestätigte Verschieben als Tastatur-, Touch- und Accessibility-Fallback.
 - Kartenlöschung zeigt den betroffenen Inhalt, verwendet Soft Delete und bietet unmittelbar ein Undo, das denselben Datensatz samt Review State wiederherstellt.
@@ -207,6 +209,7 @@ Akzeptanz:
 - Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen Deckkontext und einer gemeinsamen Stapelkarten-Darstellung.
 - Lernen ist Teil der Hauptnavigation; die direktlinkfähige Kartenverwaltung wird sekundär aus Lernen geöffnet.
 - Dashboard, Lernen und Kartenverwaltung erlauben direktes Drag-and-drop für Parent-/Child-Zuordnung und Outdent zur Hauptebene. Die Kartenverwaltung bietet dieselbe fachliche Mutation zusätzlich über einen expliziten bestätigten Fallback an.
+- Direktes Drag-and-drop ist eine Desktop-Interaktion für Maus und Trackpad. Touch, Tastatur und assistive Bedienung verwenden den bestätigten Fallback; manuelle Elternauswahlen und Verschiebeziele bieten keine vierte sichtbare Ebene an.
 - Suche und Filter helfen bei großen Bibliotheken.
 - Stapelname, Lernoptionen und Content-Repetition-Modus sind bearbeitbar.
 - Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.

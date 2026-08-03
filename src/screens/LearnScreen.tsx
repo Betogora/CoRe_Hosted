@@ -1,6 +1,7 @@
 import React from "react";
 import { ChevronRight, FolderPlus, Layers, PlusSquare } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
+import { DECK_DEPTH_ERROR, MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
@@ -21,19 +22,29 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
   const createToggleRef = React.useRef<HTMLButtonElement | null>(null);
   const deckNameRef = React.useRef<HTMLInputElement | null>(null);
   const focusedRow = library.rows.find((row) => row.id === focusedDeckId) ?? null;
+  const eligibleParentRows = library.rows.filter((row) => row.depth < MAX_INTERACTIVE_DECK_LEVELS - 1);
   const focusedDeckMissing = Boolean(focusedDeckId && !focusedRow);
 
   React.useEffect(() => {
     if (!initialParentDeckId) return;
-    const parentDeck = decks.find((deck: { id: string; }) => deck.id === initialParentDeckId);
-    if (!parentDeck) return;
+    const parentRow = library.rows.find((row) => row.id === initialParentDeckId);
+    if (!parentRow) return;
 
-    setDeckDraft(createDefaultDeckDraft(parentDeck.id));
+    if (parentRow.depth >= MAX_INTERACTIVE_DECK_LEVELS - 1) {
+      setDeckDraft(createDefaultDeckDraft());
+      setIsDeckCreateOpen(false);
+      setDeckStatus(DECK_DEPTH_ERROR);
+      setDeckStatusType("alert");
+      onDeckCreationHandled?.();
+      return;
+    }
+
+    setDeckDraft(createDefaultDeckDraft(parentRow.id));
     setIsDeckCreateOpen(true);
-    setDeckStatus(`Unterstapel unter "${parentDeck.name}" anlegen.`);
+    setDeckStatus(`Unterstapel unter "${parentRow.name}" anlegen.`);
     setDeckStatusType("status");
     onDeckCreationHandled?.();
-  }, [decks, initialParentDeckId, onDeckCreationHandled]);
+  }, [initialParentDeckId, library.rows, onDeckCreationHandled]);
 
   React.useEffect(() => {
     if (isDeckCreateOpen) deckNameRef.current?.focus();
@@ -129,7 +140,7 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
               data-testid="learn-deck-parent-select"
             >
               <option value="">Als Hauptstapel</option>
-              {library.rows.map((row) => (
+              {eligibleParentRows.map((row) => (
                 <option key={row.id} value={row.id}>
                   {"— ".repeat(row.depth)}{row.path}
                 </option>

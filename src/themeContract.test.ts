@@ -31,13 +31,15 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
     assert.match(styles, new RegExp(color, "i"));
   }
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  for (const role of ["canvas", "surface", "surface-raised", "surface-muted", "group-depth-0", "group-depth-1", "group-depth-2", "group-depth-3", "text", "text-secondary", "text-muted", "border", "border-interactive", "focus", "action-primary", "action-primary-hover", "action-primary-active", "info", "success", "warning", "danger", "info-surface", "success-surface", "warning-surface", "danger-surface"]) {
+  for (const role of ["canvas", "surface", "surface-raised", "surface-muted", "group-depth-0", "group-depth-1", "group-depth-2", "group-depth-3", "text", "text-secondary", "text-muted", "border", "border-interactive", "focus", "action-primary", "action-primary-hover", "action-primary-active", "info", "success", "warning", "danger", "danger-hover", "info-surface", "success-surface", "warning-surface", "danger-surface"]) {
     assert.match(dark, new RegExp(`--core-${role}:`), `missing dark role ${role}`);
   }
   assert.match(styles, /:root\s*\{[\s\S]*?color-scheme:\s*light/);
   assert.match(dark, /color-scheme:\s*dark/);
   assert.match(styles, /--core-border:\s*#d5dbe5/);
   assert.match(dark, /--core-border:\s*#536078/);
+  assert.match(styles, /--core-danger-hover:\s*var\(--core-palette-coral-glow\)/);
+  assert.match(dark, /--core-danger-hover:\s*var\(--core-palette-coral\)/);
 });
 
 test("theme exposes the six canonical typography levels and AA primary contrast", () => {

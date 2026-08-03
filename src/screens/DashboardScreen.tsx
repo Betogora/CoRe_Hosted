@@ -176,7 +176,7 @@ function StudyHeatmap({ heatmap }: any) {
   );
 }
 
-export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo, onMoveDeck }: DashboardScreenProps) {
+export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo, onMoveDeck, onOpenDeckSettings }: DashboardScreenProps) {
   const library = React.useMemo(() => createDeckLibraryModel(state.decks), [state.decks]);
   const { dueCards, studyHeatmap } = library;
   const displayName = state.profile?.displayName?.trim();
@@ -257,6 +257,7 @@ export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo, 
           rows={library.rows}
           mode="dashboard"
           onActivate={(row) => onStartDeck(row.deck, false)}
+          onOpenSettings={(row) => onOpenDeckSettings(row.id)}
           onMoveDeck={onMoveDeck}
         />
       </SoftPanel>

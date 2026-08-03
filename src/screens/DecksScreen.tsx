@@ -3,6 +3,7 @@ import { Check, ChevronRight, FolderPlus, Layers, MoveRight, Pencil, Play, PlusS
 import type { DecksScreenProps } from "../appScreenProps.ts";
 import { getCardEditorValue, getOriginalVariant, getVariantAnchor, validateCardEditorValue } from "../coreModel.ts";
 import { createVariantReviewModel } from "../coreVariantService.ts";
+import { createDeckPlacementValidator, MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { createDeckLibraryModel, type DeckLibraryRow } from "../libraryModel.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
@@ -447,6 +448,11 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
   const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedCard);
   const selectedMoveTarget = rowById.get(moveTargetId)?.deck ?? null;
+  const validMoveTargetRows = React.useMemo(() => {
+    if (!selectedRow || movingDeckId !== selectedRow.id) return [];
+    const validatePlacement = createDeckPlacementValidator(decks, selectedRow.id);
+    return library.rows.filter((candidate) => validatePlacement(candidate.id) === null);
+  }, [decks, library.rows, movingDeckId, selectedRow]);
   const { urls: selectedDeckMediaUrls, missing: selectedDeckMissingMedia } = useDeckMediaUrls(selectedDeck, mediaStore);
 
   React.useEffect(() => {
@@ -677,6 +683,7 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
             mode="manage"
             selectedDeckId={selectedDeckId}
             onActivate={activateDeckRow}
+            onOpenSettings={(row) => onOpenDeckSettings(row.id)}
             onMoveDeck={onMoveDeck}
           />
         </SoftPanel>
@@ -727,7 +734,14 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
                 <ActionButton type="button" variant="tertiary" icon={MoveRight} onClick={() => beginMove(selectedDeck)} data-testid={`deck-move-button-${selectedDeck.id}`}>
                   Verschieben
                 </ActionButton>
-                <ActionButton type="button" variant="tertiary" icon={FolderPlus} onClick={() => prepareSubdeck(selectedDeck)}>
+                <ActionButton
+                  type="button"
+                  variant="tertiary"
+                  icon={FolderPlus}
+                  onClick={() => prepareSubdeck(selectedDeck)}
+                  disabled={selectedRow.depth >= MAX_INTERACTIVE_DECK_LEVELS - 1}
+                  aria-label={selectedRow.depth >= MAX_INTERACTIVE_DECK_LEVELS - 1 ? "Unterstapel – maximale Stapeltiefe erreicht" : undefined}
+                >
                   Unterstapel
                 </ActionButton>
                 <ActionButton type="button" variant="destructive" icon={Trash2} onClick={() => deleteDeckTree(selectedDeck, selectedRow)}>
@@ -774,7 +788,7 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
                 Neuer Elternstapel für „{selectedDeck.name}“
                 <select className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text)]" value={moveTargetId} onChange={(event) => setMoveTargetId(event.target.value)} aria-label={`Ziel für ${selectedDeck.name}`} autoFocus>
                   <option value="">Hauptebene</option>
-                  {library.rows.filter((candidate) => !selectedRow.scopeDeckIds.includes(candidate.id)).map((candidate) => (
+                  {validMoveTargetRows.map((candidate) => (
                     <option key={candidate.id} value={candidate.id}>{"— ".repeat(candidate.depth)}{candidate.path}</option>
                   ))}
                 </select>
