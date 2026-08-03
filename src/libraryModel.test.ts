@@ -188,8 +188,8 @@ test("study heatmap counts learned cards by local day", () => {
   assert.equal(heatmap.weeks.length, 4);
   assert.equal(heatmap.weekCount, 4);
   assert.equal(heatmap.totalCount, 4);
-  assert.equal(heatmap.activeDays, 3);
-  assert.equal(heatmap.averagePerActiveDay, 1.3);
+  assert.equal("activeDays" in heatmap, false);
+  assert.equal("averagePerActiveDay" in heatmap, false);
   assert.equal(heatmap.currentStreak, 2);
   assert.equal(heatmap.longestStreak, 2);
   assert.ok(heatmap);
@@ -455,6 +455,8 @@ test("performance statistics summarize ratings, trends and weak decks", () => {
   assert.equal(statistics.totals.successPercent, 75);
   assert.equal(statistics.totals.strongPercent, 50);
   assert.equal(statistics.totals.averageResponseSeconds, 2);
+  assert.equal(statistics.totals.activeDays, 3);
+  assert.equal(statistics.totals.averagePerActiveDay, 1.3);
   assert.equal(statistics.totals.variantReviewCount, 1);
   assert.equal(statistics.totals.variantSuccessPercent, 0);
   assert.ok(statistics);

@@ -211,49 +211,40 @@ function isHeatmapCountableDay(day: HeatmapDay): boolean {
   return !day.isFuture && !day.isOutsideDisplayYear;
 }
 
-function currentStreakLength(days: HeatmapDay[]): number {
-  let streak = 0;
-  for (const day of [...days].reverse()) {
-    if (day.isFuture || day.isOutsideDisplayYear) continue;
-    if (day.count <= 0) break;
-    streak += 1;
-  }
-  return streak;
-}
-
-function longestStreakLength(days: HeatmapDay[]): number {
-  let longest = 0;
-  let current = 0;
-  for (const day of days) {
-    if (day.isFuture || day.isOutsideDisplayYear) continue;
-    current = day.count > 0 ? current + 1 : 0;
-    longest = Math.max(longest, current);
-  }
-  return longest;
-}
-
 function summarizeHeatmapDays(days: HeatmapDay[]) {
-  const visibleDays = days.filter(isHeatmapCountableDay);
-  const totalCount = visibleDays.reduce((sum, day) => sum + day.count, 0);
-  const activeDays = visibleDays.filter((day) => day.count > 0).length;
-  const bestDay = visibleDays.reduce<HeatmapDay | null>((best, day) => (day.count > (best?.count ?? 0) ? day : best), null);
-  const rangeStartDay = days.find((day) => !day.isOutsideDisplayYear) ?? days[0] ?? null;
-  const rangeEndDay =
-    [...days].reverse().find(isHeatmapCountableDay) ??
-    [...days].reverse().find((day) => !day.isOutsideDisplayYear) ??
-    days.at(-1) ??
-    null;
+  let totalCount = 0;
+  let bestDay: HeatmapDay | null = null;
+  let rangeStartDay: HeatmapDay | null = null;
+  let rangeEndDay: HeatmapDay | null = null;
+  let lastDisplayYearDay: HeatmapDay | null = null;
+  let currentStreak = 0;
+  let longestStreak = 0;
+
+  for (const day of days) {
+    if (!day.isOutsideDisplayYear) {
+      rangeStartDay ??= day;
+      lastDisplayYearDay = day;
+    }
+    if (!isHeatmapCountableDay(day)) continue;
+
+    totalCount += day.count;
+    if (day.count > (bestDay?.count ?? 0)) bestDay = day;
+    rangeEndDay = day;
+    currentStreak = day.count > 0 ? currentStreak + 1 : 0;
+    longestStreak = Math.max(longestStreak, currentStreak);
+  }
+
+  rangeStartDay ??= days[0] ?? null;
+  rangeEndDay ??= lastDisplayYearDay ?? days.at(-1) ?? null;
 
   return {
     totalCount,
-    activeDays,
-    averagePerActiveDay: activeDays ? Math.round((totalCount / activeDays) * 10) / 10 : 0,
     bestDay: bestDay && bestDay.count > 0 ? bestDay : null,
     rangeStartKey: rangeStartDay?.key ?? null,
     rangeEndKey: rangeEndDay?.key ?? null,
     rangeLabel: rangeStartDay && rangeEndDay ? `${formatShortDate(rangeStartDay.date)} - ${formatShortDate(rangeEndDay.date)}` : "",
-    currentStreak: currentStreakLength(days),
-    longestStreak: longestStreakLength(days),
+    currentStreak,
+    longestStreak,
   };
 }
 
@@ -652,6 +643,7 @@ export function createPerformanceStatisticsModel(decks: Deck[] = [], options: Li
     now,
     weeks: options.heatmapWeeks ?? DEFAULT_HEATMAP_WEEK_COUNT,
   });
+  const activeDays = heatmap.days.reduce((count, day) => count + Number(day.count > 0), 0);
   const deckRows = createDeckPerformanceRows(decks, events, now);
   const weakDeckRows = deckRows
     .filter((row) => row.reviewCount > 0 && row.weakCount > 0)
@@ -668,8 +660,8 @@ export function createPerformanceStatisticsModel(decks: Deck[] = [], options: Li
       strongCount,
       strongPercent: percentage(strongCount, events.length),
       averageResponseSeconds: Math.round(average(responseTimes) / 100) / 10,
-      activeDays: heatmap.activeDays,
-      averagePerActiveDay: heatmap.averagePerActiveDay,
+      activeDays,
+      averagePerActiveDay: activeDays ? Math.round((heatmap.totalCount / activeDays) * 10) / 10 : 0,
       currentStreak: heatmap.currentStreak,
       longestStreak: heatmap.longestStreak,
       variantReviewCount: variantEvents.length,

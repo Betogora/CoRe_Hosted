@@ -89,17 +89,13 @@ function StudyHeatmap({ heatmap }: any) {
 
   return (
     <SoftPanel className="p-7">
-      <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:gap-x-8" data-testid="study-heatmap-header">
+      <div className="flex flex-wrap items-center gap-4" data-testid="study-heatmap-header">
         <div className="flex items-center gap-4">
           <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
           <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Lern-Heatmap</h3>
         </div>
-        <div className="justify-self-start lg:justify-self-center">
-          <p className="core-body whitespace-nowrap text-[var(--core-text-muted)]">
-            Aktive Tage <span className="font-semibold text-[var(--core-text)]">{visibleHeatmap.activeDays}</span>
-          </p>
-        </div>
-        <div className="flex min-w-0 flex-nowrap items-center justify-self-center gap-4 lg:justify-self-end">
+        <div className="ml-auto flex min-w-0 items-center gap-4">
+          <HeatmapLegend />
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -122,7 +118,6 @@ function StudyHeatmap({ heatmap }: any) {
               <ChevronRight size={17} aria-hidden="true" />
             </button>
           </div>
-          <HeatmapLegend />
         </div>
       </div>
 
@@ -141,7 +136,7 @@ function StudyHeatmap({ heatmap }: any) {
           style={{ gridTemplateColumns: gridColumns }}
           role="img"
           data-testid="study-heatmap-grid"
-          aria-label={`Lern-Heatmap von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}, ${visibleHeatmap.activeDays} aktive Tage`}
+          aria-label={`Lern-Heatmap von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}`}
         >
           <span aria-hidden="true" />
           {visibleHeatmap.monthLabels.map((label: string, index: number) => (
