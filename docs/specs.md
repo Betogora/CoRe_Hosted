@@ -46,6 +46,7 @@ CoRe startet Anki-kompatibel, bleibt beim Lernen ruhig und fokussiert und macht 
 - manuelle Stapel- und Kartenerstellung;
 - Karten- und Stapelverwaltung;
 - Review mit vier Bewertungen und Content-Repetition;
+- direkt erreichbare Hilfe zu FSRS, CoRe und Kartenvarianten;
 - Original- und Quellenanker nach der Antwort;
 - accountgebundene Speicherung, Sync- und Konfliktstatus;
 - grundlegende Statistik und verständliche Einstellungen.
@@ -165,6 +166,19 @@ Akzeptanz:
 - Persönliche Reviewdaten gelangen nicht in geteilte Varianten oder Feedbackobjekte.
 - Bei fehlender oder fehlerhafter Variante bleibt das Original sicher lernbar.
 
+### 5.6 Lernlogik verstehen
+
+Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite `/hilfe` im normalen App-Shell-Inhaltsbereich. Sie erklärt die FSRS-Grundbegriffe, grenzt CoRes FSRS-ähnlichen Scheduler transparent von unverändertem FSRS-6 ab und zeigt, wie Content Repetition dieselbe Wissenseinheit in einer anderen Form abfragen kann.
+
+Akzeptanz:
+
+- Die Erklärung nennt Abrufwahrscheinlichkeit `R`, Stabilität `S`, Schwierigkeit `D`, Zielerinnerung, Intervall, Original und Variante in verständlicher deutscher Sprache.
+- Eine eigenständige, als vereinfacht gekennzeichnete Lernkurve zeigt vier erfolgreiche Reviews, wachsende Intervalle und beispielhaft beim vierten Review eine nahe CoRe-Variante; daraus entsteht keine garantierte Scheduler- oder Variantenschwelle.
+- Kurvenabschnitte reagieren auf Mausberührung, die vier Reviewpunkte sind per Maus, Touch und Tastatur auswählbar, und der aktive Abschnitt aktualisiert eine ausführliche Erklärung unterhalb der Grafik.
+- Farbe ist nie der einzige Bedeutungsträger; Beschriftung, Strichstärke, Symbole, Fokuszustand und statische Erklärkarten bleiben erhalten.
+- Die mobile Darstellung begrenzt horizontales Scrollen auf den Grafikbereich und erzeugt keinen Dokument-Overflow.
+- Die offizielle FSRS-Einführung ist als externer weiterführender Link gekennzeichnet.
+
 ## 6. Funktionale Anforderungen
 
 ### 6.1 Account und Einstellungen
@@ -233,7 +247,7 @@ Chat-your-Deck, Lernplan, lokaler KI-Entwurf, Deck-Graph, Community-Demo, KI-Job
 ## 8. Visueller Produktvertrag
 
 - Die produktive UI verwendet die CoRe-Palette Slate `#6F7E9E`, Mist `#A9B5C7`, Cloud `#DDE3EC`, Coral `#E28B68`, Lilac `#D6A3D2`, Marigold `#E4BF63` sowie die vorbereiteten Dark-Werte Midnight `#181D25`, Graphite `#262E3A`, Highlight `#8FA0BF`, Coral Glow `#F0A07E`, Lilac Glow `#E4B5E1` und Golden Glow `#F0CC77` ausschließlich über semantische Theme-Rollen.
-- Light und Dark Mode verwenden denselben vollständigen semantischen Tokensatz. Ein zugänglicher Schalter direkt oberhalb der Einstellungen unten in der Sidebar aktiviert den Dark Mode über `data-core-theme="dark"`; die Auswahl bleibt lokal im Browser erhalten. Es gibt keine automatische Aktivierung über die Systempräferenz.
+- Light und Dark Mode verwenden denselben vollständigen semantischen Tokensatz. Ein zugänglicher Schalter direkt oberhalb der Einstellungen unten in der Sidebar aktiviert den Dark Mode über `data-core-theme="dark"`; daneben öffnet ein zugänglicher Fragezeichen-Button die Hilfeseite. Die Theme-Auswahl bleibt lokal im Browser erhalten. Es gibt keine automatische Aktivierung über die Systempräferenz.
 - Dekorative Rahmenlinien sind bewusst heller und zurückhaltender als interaktive Feld-, Auswahl- und Fokusgrenzen.
 - Primäre, sekundäre, tertiäre und destruktive Actions sowie Info-, Erfolgs-, Warn- und Fehlerzustände besitzen produktweit einheitliche Hover-, Active-, Focus- und Disabled-Zustände. Bedeutung bleibt durch Text, Icon oder Zahl zusätzlich zur Farbe erkennbar.
 - Amulya definiert die visuellen Überschriftenstufen `36/44`, `28/36` und `22/30`; Synonym definiert Body Large `16/24`, Body und Controls `14/20` sowie Caption und Statuslabel `12/16`. Semantische HTML-Ebene und visuelle Stufe dürfen voneinander abweichen.

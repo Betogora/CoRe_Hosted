@@ -5,6 +5,7 @@ export type MenuViewId =
   | "neue-karten"
   | "lernen"
   | "statistik"
+  | "hilfe"
   | "einstellungen";
 
 interface ViewStat {
@@ -86,6 +87,15 @@ const views: MenuView[] = [
       { label: "Trefferquote", value: "-" },
       { label: "Serie", value: "0" },
     ],
+  },
+  {
+    id: "hilfe",
+    label: "Hilfe",
+    iconKey: "help",
+    navigation: "hidden",
+    title: "Wie CoRe und FSRS funktionieren",
+    eyebrow: "Hilfe",
+    stats: [],
   },
   {
     id: "einstellungen",

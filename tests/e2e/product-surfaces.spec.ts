@@ -46,6 +46,39 @@ test("dark mode can be toggled from the sidebar and persists across reloads", as
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "light");
 });
 
+test("help explains FSRS and CoRe with an accessible interactive learning curve", async ({ page }) => {
+  await resetToFreshLocalState(page);
+
+  const helpButton = page.getByRole("button", { name: "Hilfe öffnen" });
+  await expect(helpButton).toBeVisible();
+  await helpButton.click();
+  await expect(page).toHaveURL("/hilfe");
+  await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeFocused();
+  await expect(page.getByText("CoRe verwendet aktuell einen eigenen FSRS-ähnlichen Scheduler.", { exact: false })).toBeVisible();
+
+  await page.getByTestId("memory-curve-segment-2").hover();
+  await expect(page.getByRole("heading", { name: "Review 2 · Stabilität wächst" })).toBeVisible();
+
+  const fourthReview = page.getByTestId("memory-review-point-4");
+  await fourthReview.focus();
+  await expect(page.getByRole("heading", { name: "Review 4 · CoRe-Variante" })).toBeVisible();
+  await fourthReview.click();
+  await expect(fourthReview).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Nahe Kartenvariante", { exact: true })).toBeVisible();
+  await expect(page.getByText(/keine garantierte Produktionsschwelle/i)).toBeVisible();
+
+  await page.reload();
+  await expect(page).toHaveURL("/hilfe");
+  await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByTestId("memory-curve")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+
+  await page.getByRole("switch", { name: "Dark Mode einschalten" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
+});
+
 test("@beta-core @hosted-core Beta-Artefakt enthält weder Labs noch Großdatei-APKG", async ({ page }) => {
   await resetToFreshLocalState(page);
 

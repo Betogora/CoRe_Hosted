@@ -52,6 +52,8 @@ React-Caller kennen keine APKG-, SQLite-, Storage-, RLS-, Scheduler-, Provider- 
 
 `src/ui/coreUi.tsx` bleibt die Struktur-Seam, `src/ui/actionUi.tsx` besitzt normales Action- und Icon-Button-Verhalten und `src/ui/feedbackUi.tsx` besitzt Statusdarstellung und Live-Region-Semantik. Fachliche Controls wie Reviewratings, MCQ-Optionen, Tabs, Farbfelder und Drag-Ziele dürfen lokal bleiben, beziehen Farben, Typografie, Fokus und Disabled aber aus demselben Vertrag. Der auffindbare Nutzungsvertrag steht in [`../src/ui/README.md`](../src/ui/README.md); Wiederverwendung ist empfohlen, nicht erzwungen, wenn sie die Fachsemantik verschlechtern würde.
 
+`HelpScreen` besitzt die statische Produktaufklärung und den transienten Interaktionszustand der Lernkurve. Er liest oder mutiert keinen Workspace-State. Die Kurve ist lokale, semantisch beschriftete UI und kein Scheduler- oder Variantenvertrag.
+
 ### 2.2 Navigation und URL-Kontext
 
 `LearnScreen` und `DecksScreen` bleiben getrennte Aufgabenoberflächen. Lernen ist der primäre Lernstart; die Kartenverwaltung ist eine sekundäre, direktlinkfähige Oberfläche. Beide erhalten Deck- und Kartenidentität ausschließlich aus dem von `src/appNavigation.ts` normalisierten AppRoute.
@@ -61,6 +63,7 @@ Der URL-Vertrag umfasst:
 - View sowie fokussiertes Deck für Lernen, Kartenverwaltung und Stapel-Einstellungen;
 - ausgewählte Karte ausschließlich in der Kartenverwaltung;
 - Erstellmethode, Zieldeck und Abschlussdeck im Erstellfluss;
+- die kontextfreie Hilfeseite `/hilfe`;
 - Reviewdeck, optionalen Variantenbezeichner und den diskriminierten Rückkontext `today | learn | decks`;
 - optionales Rückdeck und ausschließlich für `decks` eine optionale Rückkarte.
 

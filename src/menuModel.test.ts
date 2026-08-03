@@ -37,17 +37,21 @@ test("returns new-card content by id", () => {
   });
 });
 
-test("keeps deck and settings views available outside the main navigation", () => {
+test("keeps deck, help and settings views available outside the main navigation", () => {
   const menu = createMenuModel();
 
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("kartenstapel").title, "Kartenstapel");
   assert.ok(menu);
+// @ts-expect-error -- Die Fixture prüft bewusst eine unvollständige, ungültige oder konfliktbehaftete Laufzeitform.
+  assert.equal(menu.getView("hilfe").title, "Wie CoRe und FSRS funktionieren");
+  assert.ok(menu);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("einstellungen").title, "Einstellungen");
   assert.equal(menu.listNavigationItems().some((item) => item.id === "kartenstapel"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "einstellungen"), false);
+  assert.equal(menu.listNavigationItems().some((item) => item.id === "hilfe"), false);
   assert.equal(menu.listNavigationItems().some((item) => String(item.id) === "ki"), false);
   assert.equal(menu.listNavigationItems().some((item) => String(item.id) === "assistent"), false);
 });

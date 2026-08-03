@@ -3,7 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import type { AuthPhase } from "./accountSession.ts";
 import type { CoreMode, Deck, LearningItem, ReviewEvent, SyncStatus } from "./coreTypes.ts";
-import { BarChart3, BookOpen, Database, Home, Layers, PlusSquare, Settings } from "lucide-react";
+import { BarChart3, BookOpen, CircleHelp, Database, Home, Layers, PlusSquare, Settings } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute } from "./appNavigation.ts";
 import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
@@ -38,6 +38,7 @@ const CreationScreen = React.lazy<React.ComponentType<CreationScreenProps>>(() =
 const DashboardScreen = React.lazy<React.ComponentType<DashboardScreenProps>>(() => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })));
 const DeckSettingsScreen = React.lazy<React.ComponentType<DeckSettingsScreenProps>>(() => import("./screens/DeckSettingsScreen.tsx").then(({ DeckSettingsScreen }) => ({ default: DeckSettingsScreen })));
 const DecksScreen = React.lazy<React.ComponentType<DecksScreenProps>>(() => import("./screens/DecksScreen.tsx").then(({ DecksScreen }) => ({ default: DecksScreen })));
+const HelpScreen = React.lazy(() => import("./screens/HelpScreen.tsx").then(({ HelpScreen }) => ({ default: HelpScreen })));
 const LearnScreen = React.lazy<React.ComponentType<LearnScreenProps>>(() => import("./screens/LearnScreen.tsx").then(({ LearnScreen }) => ({ default: LearnScreen })));
 const SettingsScreen = React.lazy<React.ComponentType<SettingsScreenProps>>(() => import("./screens/SettingsScreen.tsx").then(({ SettingsScreen }) => ({ default: SettingsScreen })));
 const StatisticsScreen = React.lazy<React.ComponentType<StatisticsScreenProps>>(() => import("./screens/StatisticsScreen.tsx").then(({ StatisticsScreen }) => ({ default: StatisticsScreen })));
@@ -65,6 +66,7 @@ function resolveCoreMode(value: unknown, fallback: CoreMode): CoreMode {
 const iconByKey: Record<string, LucideIcon> = {
   chart: BarChart3,
   home: Home,
+  help: CircleHelp,
   layers: Layers,
   learn: BookOpen,
   plus: PlusSquare,
@@ -915,6 +917,9 @@ export function App() {
     if (activeView === "statistik") {
       return <StatisticsScreen decks={state.decks} onNavigate={navigateToView} />;
     }
+    if (activeView === "hilfe") {
+      return <HelpScreen />;
+    }
     if (activeView === "einstellungen") {
       return (
         <SettingsScreen
@@ -1031,7 +1036,23 @@ export function App() {
             </nav>
 
             <div className="mt-5 border-t border-[var(--core-border)] pt-5 md:mt-auto md:pt-6">
-              <ThemeToggle className="mb-2" />
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <ThemeToggle />
+                <button
+                  type="button"
+                  onClick={() => navigateToView("hilfe")}
+                  className={`core-icon-action size-11 shrink-0 rounded-full border ${
+                    activeView === "hilfe"
+                      ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-sm"
+                      : "border-[var(--core-border)] bg-[var(--core-surface)] text-[var(--core-text-secondary)] hover:text-[var(--core-text)]"
+                  }`}
+                  aria-label="Hilfe öffnen"
+                  aria-current={activeView === "hilfe" ? "page" : undefined}
+                  title="Wie CoRe und FSRS funktionieren"
+                >
+                  <CircleHelp size={21} aria-hidden="true" />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => navigateToView("einstellungen")}
