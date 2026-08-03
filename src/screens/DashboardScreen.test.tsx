@@ -70,7 +70,7 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /data-deck-count="new"/);
   assert.match(markup, /data-deck-count="due"/);
   assert.match(markup, /data-deck-count="total"/);
-  assert.match(markup, /draggable="true"/);
+  assert.match(markup, /data-deck-drag-source="true"/);
   assert.match(markup, /Stapeloptionen für Biologie/);
   assert.match(markup, /conic-gradient/);
   assert.doesNotMatch(markup, /aktive Tage/i);

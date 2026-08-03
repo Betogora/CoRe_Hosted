@@ -32,13 +32,13 @@ test("deck tree keeps hierarchy, labels and all three semantic metrics in every 
   assert.match(markup, /var\(--core-deck-new-text\)/);
   assert.match(markup, /var\(--core-deck-due-text\)/);
   assert.match(markup, /var\(--core-deck-total-text\)/);
-  assert.match(markup, /draggable="true"/);
+  assert.match(markup, /data-deck-drag-source="true"/);
   assert.match(markup, /data-deck-depth="1"[^>]*class="core-deck-group/);
   assert.match(markup, /data-deck-depth="2"[^>]*class="core-deck-group/);
   assert.match(markup, /sm:gap-x-6/);
   assert.doesNotMatch(markup, /<span class="size-11 shrink-0"/);
   assert.ok(markup.indexOf('data-deck-icon="true"') < markup.indexOf("Unterstapel von Bereich ausblenden"));
-  assert.match(markup, /data-deck-row-activation="true"[^>]*data-deck-drag-source="true"[^>]*draggable="true"/);
+  assert.match(markup, /aria-hidden="true"[^>]*data-deck-drag-source="true"/);
 });
 
 test("deck tree maps three visible levels to group depths and clamps deeper imports", () => {
@@ -74,5 +74,5 @@ test("deck tree keeps donut and settings in the same order across all modes", ()
   assert.match(management, /aria-label="Bereich \/ Grundlagen öffnen"/);
   assert.match(management, /aria-pressed="true"/);
   assert.match(management, /data-selected="true"/);
-  assert.match(management, /draggable="true"/);
+  assert.match(management, /data-deck-drag-source="true"/);
 });

@@ -53,7 +53,7 @@ test("deck management centralizes selected-deck actions and offers direct plus e
   assert.match(inventoryMarkup, /data-deck-count="total"/);
   assert.match(inventoryMarkup, /conic-gradient/);
   assert.match(inventoryMarkup, /Stapeloptionen für Biologie/);
-  assert.match(markup, /draggable="true"/);
+  assert.match(markup, /data-deck-drag-source="true"/);
 });
 
 test("deck management shows safe fallbacks for unavailable deck and card links", () => {

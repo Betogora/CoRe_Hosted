@@ -23,20 +23,31 @@ async function storedIconColor(page: Page, deckId: string) {
   return state.decks?.find((deck: { id: string; deckSettings?: { appearance?: { iconColor?: string } } }) => deck.id === deckId)?.deckSettings?.appearance?.iconColor ?? null;
 }
 
-async function dispatchDeckDrop(source: Locator, target: Locator) {
-  await source.locator('[data-deck-drag-source="true"]').dragTo(target);
+async function dispatchDeckDrop(page: Page, source: Locator, target: Locator) {
+  const sourcePosition = await source.boundingBox();
+  const targetPosition = await target.boundingBox();
+  expect(sourcePosition).not.toBeNull();
+  expect(targetPosition).not.toBeNull();
+  await page.mouse.move(sourcePosition!.x + sourcePosition!.width / 2, sourcePosition!.y + sourcePosition!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetPosition!.x + targetPosition!.width / 2, targetPosition!.y + targetPosition!.height / 2, { steps: 8 });
+  await page.mouse.up();
 }
 
 async function dispatchTopLevelDrop(page: Page, source: Locator, dropZoneTestId: string) {
-  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
-  const dragSource = source.locator('[data-deck-drag-source="true"]');
-  await dragSource.dispatchEvent("dragstart", { dataTransfer });
+  const sourcePosition = await source.boundingBox();
+  expect(sourcePosition).not.toBeNull();
+  const sourceX = sourcePosition!.x + sourcePosition!.width / 2;
+  const sourceY = sourcePosition!.y + sourcePosition!.height / 2;
+  await page.mouse.move(sourceX, sourceY);
+  await page.mouse.down();
+  await page.mouse.move(sourceX, sourceY + 12, { steps: 3 });
   const dropZone = page.getByTestId(dropZoneTestId);
   await expect(dropZone).toBeVisible();
-  await dropZone.dispatchEvent("dragover", { dataTransfer });
-  await dropZone.dispatchEvent("drop", { dataTransfer });
-  await dragSource.dispatchEvent("dragend", { dataTransfer });
-  await dataTransfer.dispose();
+  const targetPosition = await dropZone.boundingBox();
+  expect(targetPosition).not.toBeNull();
+  await page.mouse.move(targetPosition!.x + targetPosition!.width / 2, targetPosition!.y + targetPosition!.height / 2, { steps: 8 });
+  await page.mouse.up();
 }
 
 function metric(row: Locator, name: "new" | "due" | "total") {
@@ -56,14 +67,14 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(metric(rootRow, "total")).toContainText("Gesamt");
   await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
   await expect(rootRow.getByRole("button", { name: /Stapeloptionen/ })).toBeVisible();
-  await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveAttribute("draggable", "true");
+  await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
 
   await rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" }).click();
   await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.root}&returnView=today$`));
   await page.getByRole("button", { name: "Zurück zur Übersicht" }).click();
   await expect(rootRow).toBeVisible();
 
-  await dispatchDeckDrop(southAmericaRow, europeRow);
+  await dispatchDeckDrop(page, southAmericaRow, europeRow);
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
 
@@ -82,7 +93,7 @@ test("learning rows activate directly while expand and settings remain independe
   await expect(metric(rootRow, "due")).toContainText("Fällig");
   await expect(metric(rootRow, "total")).toContainText("Gesamt");
   await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
-  await expect(europeRow.locator('[data-deck-drag-source="true"]')).toHaveAttribute("draggable", "true");
+  await expect(europeRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
   await expect(europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" })).toBeVisible();
   await expect(europeRow.getByRole("button", { name: /^Lernen$/ })).toHaveCount(0);
 
@@ -151,12 +162,12 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   const southAmericaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`);
   await expect(metric(europeRow, "total")).toContainText("53");
 
-  await dispatchDeckDrop(southAmericaRow, europeRow);
+  await dispatchDeckDrop(page, southAmericaRow, europeRow);
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
   await expect(metric(europeRow, "total")).toContainText("67");
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
 
-  await dispatchDeckDrop(africaRow, southAmericaRow);
+  await dispatchDeckDrop(page, africaRow, southAmericaRow);
   await expect(page.getByRole("status")).toContainText("Maximal drei Stapel-Ebenen sind möglich.");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.africa)).toBe(DECK_IDS.root);
 
@@ -168,7 +179,7 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   await expect(page.getByRole("status")).toContainText("Stapel bleibt an dieser Stelle.");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(null);
 
-  await dispatchDeckDrop(rootRow, europeRow);
+  await dispatchDeckDrop(page, rootRow, europeRow);
   await expect(page.getByRole("status")).toContainText("Stapel bleibt an dieser Stelle.");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.root)).toBe(null);
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
@@ -184,15 +195,15 @@ test("deck management reparents directly and preserves explicit keyboard move as
   const southAmericaRow = page.getByTestId(`deck-row-${DECK_IDS.southAmerica}`);
   await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
   await expect(rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" })).toBeVisible();
-  await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveAttribute("draggable", "true");
+  await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
 
-  await dispatchDeckDrop(southAmericaRow, europeRow);
+  await dispatchDeckDrop(page, southAmericaRow, europeRow);
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
 
   await southAmericaRow.getByRole("button", { name: "Welt-Hauptstädte / Europa / Südamerika öffnen" }).press("Enter");
   await expect(page.getByTestId(`deck-actions-${DECK_IDS.southAmerica}`).getByRole("button", { name: "Unterstapel – maximale Stapeltiefe erreicht" })).toBeDisabled();
 
-  await dispatchDeckDrop(southAmericaRow, rootRow);
+  await dispatchDeckDrop(page, southAmericaRow, rootRow);
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.root);
 
   await dispatchTopLevelDrop(page, southAmericaRow, "manage-top-drop-zone");

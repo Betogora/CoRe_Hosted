@@ -28,6 +28,16 @@ interface DropIntent {
   error: string | null;
 }
 
+interface PointerDrag {
+  pointerId: number;
+  deckId: string;
+  startX: number;
+  startY: number;
+  dragging: boolean;
+}
+
+const POINTER_DRAG_THRESHOLD = 6;
+
 const DECK_COUNT_DEFINITIONS = [
   { label: "Neu", valueKey: "newCards", color: "var(--core-deck-new-text)", metric: "new", weight: "font-semibold" },
   { label: "Fällig", valueKey: "dueCards", color: "var(--core-deck-due-text)", metric: "due", weight: "font-semibold" },
@@ -66,8 +76,10 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragStatus, setDragStatus] = React.useState("");
   const draggedDeckIdRef = React.useRef<string | null>(null);
+  const pointerDragRef = React.useRef<PointerDrag | null>(null);
   const placementValidatorRef = React.useRef<ReturnType<typeof createDeckPlacementValidator> | null>(null);
   const cachedDropIntentRef = React.useRef<DropIntent | null>(null);
+  const currentDropIntentRef = React.useRef<DropIntent | null>(null);
   const lastDragEndAtRef = React.useRef(0);
   const roots = React.useMemo(() => createDeckTree(rows), [rows]);
   const decks = React.useMemo(() => rows.map((row) => row.deck), [rows]);
@@ -82,72 +94,28 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
     });
   }
 
-  function readDraggedDeckId(event: React.DragEvent<HTMLElement>): string {
-    return event.dataTransfer.getData("text/plain") || draggedDeckIdRef.current || "";
-  }
-
   function clearDragState() {
     if (draggedDeckIdRef.current) lastDragEndAtRef.current = Date.now();
     draggedDeckIdRef.current = null;
+    pointerDragRef.current = null;
     placementValidatorRef.current = null;
     cachedDropIntentRef.current = null;
+    currentDropIntentRef.current = null;
     setDraggedDeckId(null);
     setDropIntent(null);
   }
 
-  function startDrag(event: React.DragEvent<HTMLButtonElement>, row: DeckLibraryRow) {
-    draggedDeckIdRef.current = row.id;
-    placementValidatorRef.current = createDeckPlacementValidator(decks, row.id);
-    cachedDropIntentRef.current = null;
-    setDraggedDeckId(row.id);
-    setDropIntent(null);
-    setDragStatus("");
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", row.id);
-  }
-
-  function deckDropIntent(event: React.DragEvent<HTMLElement>, targetDeckId: string | null): DropIntent {
-    const sourceDeckId = readDraggedDeckId(event);
+  function deckDropIntent(targetDeckId: string | null): DropIntent {
     const cachedIntent = cachedDropIntentRef.current;
     if (cachedIntent?.targetDeckId === targetDeckId) return cachedIntent;
-    const validatePlacement = placementValidatorRef.current ?? createDeckPlacementValidator(decks, sourceDeckId);
+    const validatePlacement = placementValidatorRef.current ?? createDeckPlacementValidator(decks, draggedDeckIdRef.current ?? "");
     const error = validatePlacement(targetDeckId);
     const intent = { targetDeckId, error };
     cachedDropIntentRef.current = intent;
     return intent;
   }
 
-  function allowRowDrop(event: React.DragEvent<HTMLDivElement>, row: DeckLibraryRow) {
-    event.preventDefault();
-    event.stopPropagation();
-    const intent = deckDropIntent(event, row.id);
-    event.dataTransfer.dropEffect = intent.error ? "none" : "move";
-    setDropIntent(intent);
-  }
-
-  function allowTopLevelDrop(event: React.DragEvent<HTMLDivElement>) {
-    if (!readDraggedDeckId(event)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const intent = deckDropIntent(event, null);
-    event.dataTransfer.dropEffect = intent.error ? "none" : "move";
-    setDropIntent(intent);
-  }
-
-  function leaveDropTarget(event: React.DragEvent<HTMLElement>) {
-    const nextTarget = event.relatedTarget;
-    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) return;
-    setDropIntent(null);
-  }
-
-  function dropDeck(event: React.DragEvent<HTMLElement>, intent: DropIntent) {
-    event.preventDefault();
-    event.stopPropagation();
-    const sourceDeckId = readDraggedDeckId(event);
-    if (!sourceDeckId) {
-      clearDragState();
-      return;
-    }
+  function finishDeckMove(sourceDeckId: string, intent: DropIntent) {
     if (intent.error) {
       setDragStatus(intent.error);
       clearDragState();
@@ -170,6 +138,62 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
       }
     }
     clearDragState();
+  }
+
+  function pointerDropIntent(clientX: number, clientY: number): DropIntent | null {
+    const target = document.elementFromPoint(clientX, clientY);
+    if (!(target instanceof Element)) return null;
+    if (target.closest("[data-deck-top-drop-zone='true']")) return deckDropIntent(null);
+    const row = target.closest<HTMLElement>("[data-deck-row='true']");
+    return row?.dataset.deckId ? deckDropIntent(row.dataset.deckId) : null;
+  }
+
+  function startPointer(event: React.PointerEvent<HTMLDivElement>, row: DeckLibraryRow) {
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+    pointerDragRef.current = {
+      pointerId: event.pointerId,
+      deckId: row.id,
+      startX: event.clientX,
+      startY: event.clientY,
+      dragging: false,
+    };
+  }
+
+  function movePointer(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = pointerDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (!drag.dragging) {
+      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < POINTER_DRAG_THRESHOLD) return;
+      drag.dragging = true;
+      draggedDeckIdRef.current = drag.deckId;
+      placementValidatorRef.current = createDeckPlacementValidator(decks, drag.deckId);
+      cachedDropIntentRef.current = null;
+      currentDropIntentRef.current = null;
+      setDraggedDeckId(drag.deckId);
+      setDragStatus("");
+    }
+    event.preventDefault();
+    const intent = pointerDropIntent(event.clientX, event.clientY);
+    if (intent?.targetDeckId === currentDropIntentRef.current?.targetDeckId && intent?.error === currentDropIntentRef.current?.error) return;
+    currentDropIntentRef.current = intent;
+    setDropIntent(intent);
+  }
+
+  function endPointer(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = pointerDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (!drag.dragging) {
+      pointerDragRef.current = null;
+      return;
+    }
+    event.preventDefault();
+    const intent = pointerDropIntent(event.clientX, event.clientY) ?? currentDropIntentRef.current;
+    if (intent) finishDeckMove(drag.deckId, intent);
+    else clearDragState();
+  }
+
+  function cancelPointer(event: React.PointerEvent<HTMLDivElement>) {
+    if (pointerDragRef.current?.pointerId === event.pointerId) clearDragState();
   }
 
   function activate(row: DeckLibraryRow) {
@@ -196,13 +220,18 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
         className={`core-deck-group grid gap-2 rounded-2xl border border-[var(--core-border)] p-2 sm:gap-3 ${isDragged ? "opacity-60" : ""}`}
       >
         <div
-          onDragOver={(event) => allowRowDrop(event, row)}
-          onDragLeave={leaveDropTarget}
-          onDrop={(event) => dropDeck(event, deckDropIntent(event, row.id))}
           data-testid={`${rowTestPrefix}-row-${row.id}`}
           data-deck-row="true"
+          data-deck-id={row.id}
           className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-3 sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6 sm:px-3"
         >
+          <div
+            aria-hidden="true"
+            data-deck-drag-source="true"
+            onClick={() => activate(row)}
+            onPointerDown={(event) => startPointer(event, row)}
+            className={`absolute inset-0 z-0 rounded-xl ${isDragged ? "cursor-grabbing" : "cursor-grab"}`}
+          />
           <button
             type="button"
             onClick={() => activate(row)}
@@ -210,11 +239,7 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
             aria-pressed={mode === "manage" ? isSelected : undefined}
             data-testid={mode === "manage" ? `deck-select-${row.id}` : undefined}
             data-deck-row-activation="true"
-            data-deck-drag-source="true"
-            draggable
-            onDragStart={(event) => startDrag(event, row)}
-            onDragEnd={clearDragState}
-            className="absolute inset-0 z-0 cursor-grab rounded-xl text-left active:cursor-grabbing"
+            className="pointer-events-none absolute inset-0 z-0 rounded-xl text-left"
           >
             <span className="sr-only">{activationLabel}</span>
           </button>
@@ -266,19 +291,15 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
     <div
       className="grid min-w-0 gap-3"
       data-testid={`${rowTestPrefix}-list`}
-      onDragOver={(event) => {
-        const target = event.target;
-        if (!(target instanceof Element) || target.closest("[data-deck-row='true']")) return;
-        allowTopLevelDrop(event);
-      }}
-      onDragLeave={leaveDropTarget}
-      onDrop={(event) => {
-        const target = event.target;
-        if (target instanceof Element && target.closest("[data-deck-row='true']")) return;
-        dropDeck(event, deckDropIntent(event, null));
+      onPointerMove={movePointer}
+      onPointerUp={endPointer}
+      onPointerCancel={cancelPointer}
+      onPointerLeave={(event) => {
+        if (pointerDragRef.current?.pointerId === event.pointerId) clearDragState();
       }}
     >
       <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
+      {roots.map(renderNode)}
       {draggedDeckId ? (
         <div
           className={`rounded-xl border border-dashed px-4 py-3 text-center core-body font-semibold transition ${
@@ -288,15 +309,12 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
                 ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-text)]"
                 : "border-[var(--core-border)] text-[var(--core-text-muted)]"
           }`}
-          onDragOver={allowTopLevelDrop}
-          onDragLeave={leaveDropTarget}
-          onDrop={(event) => dropDeck(event, deckDropIntent(event, null))}
+          data-deck-top-drop-zone="true"
           data-testid={`${mode}-top-drop-zone`}
         >
           Auf die Hauptebene verschieben
         </div>
       ) : null}
-      {roots.map(renderNode)}
     </div>
   );
 }
