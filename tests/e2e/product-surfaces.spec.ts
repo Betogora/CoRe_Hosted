@@ -46,7 +46,7 @@ test("dark mode can be toggled from the sidebar and persists across reloads", as
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "light");
 });
 
-test("help explains FSRS and CoRe with an accessible interactive learning curve", async ({ page }) => {
+test("help follows the sketch and uses the graph as accessible section navigation", async ({ page }) => {
   await resetToFreshLocalState(page);
 
   const helpButton = page.getByRole("button", { name: "Hilfe öffnen" });
@@ -54,56 +54,68 @@ test("help explains FSRS and CoRe with an accessible interactive learning curve"
   await helpButton.click();
   await expect(page).toHaveURL("/hilfe");
   await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeFocused();
-  await expect(page.getByText("CoRe verwendet aktuell einen eigenen FSRS-ähnlichen Scheduler.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Der Gedächtniszustand verständlich erklärt" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vier Antworten steuern das nächste Intervall" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
-  await expect(page.getByText(/höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/i)).toBeVisible();
-  await expect(page.getByText(/bestimmen gemeinsam, ob die Originalkarte als „bereit für Varianten“ gilt/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Gleiches Wissen, neue Fragestellung" })).toBeVisible();
 
-  await page.getByTestId("memory-curve-segment-2").hover();
-  await expect(page.getByRole("heading", { name: "Review 2 · Stabilität wächst" })).toBeVisible();
+  const ratingOne = page.getByTestId("memory-rating-curve-1");
+  const ratingTwo = page.getByTestId("memory-rating-curve-2");
+  const ratingThree = page.getByTestId("memory-rating-curve-3");
+  const ratingFour = page.getByTestId("memory-rating-curve-4");
 
-  await page.getByTestId("memory-curve-area-3").hover({ position: { x: 20, y: 200 } });
-  await expect(page.getByRole("heading", { name: "Review 3 · Robuster Abruf" })).toBeVisible();
+  await expect(ratingFour).toHaveAttribute("data-active", "true");
+  await expect(ratingOne).toHaveAttribute("data-active", "false");
+  await ratingTwo.locator("circle").hover();
+  await expect(ratingTwo).toHaveAttribute("data-active", "true");
+  await expect(ratingFour).toHaveAttribute("data-active", "false");
+  await page.getByRole("heading", { name: "Wie eine Bewertung das nächste Intervall verändert" }).hover();
+  await expect(ratingFour).toHaveAttribute("data-active", "true");
 
-  const secondReviewSummary = page.getByTestId("memory-review-summary-2");
-  await secondReviewSummary.focus();
-  await expect(page.getByRole("heading", { name: "Review 2 · Stabilität wächst" })).toBeVisible();
-  await secondReviewSummary.click();
-  await expect(secondReviewSummary).toHaveAttribute("aria-pressed", "true");
-
-  await page.getByTestId("memory-parameter-r").hover();
-  await expect(page.getByRole("heading", { name: "R · Abrufwahrscheinlichkeit" })).toBeVisible();
-  await expect(page.getByTestId("memory-visual-r")).toHaveAttribute("data-active", "true");
-
-  const stabilityParameter = page.getByTestId("memory-parameter-s");
-  await stabilityParameter.focus();
-  await expect(page.getByRole("heading", { name: "S · Stabilität" })).toBeVisible();
-  await stabilityParameter.click();
-  await expect(stabilityParameter).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("memory-visual-s")).toHaveAttribute("data-active", "true");
-
-  const difficultyTerm = page.getByTestId("memory-term-d");
-  await difficultyTerm.focus();
-  await expect(page.getByRole("heading", { name: "D · Schwierigkeit" })).toBeVisible();
-  await difficultyTerm.click();
-  await expect(difficultyTerm).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("memory-visual-d")).toHaveAttribute("data-active", "true");
+  await ratingThree.focus();
+  await expect(ratingThree).toHaveAttribute("data-active", "true");
+  await expect(ratingFour).toHaveAttribute("data-active", "false");
+  await page.getByTestId("memory-initial-curve-link").focus();
+  await expect(ratingFour).toHaveAttribute("data-active", "true");
 
   await expect(page.getByTestId("memory-y-axis-break")).toBeVisible();
-  await expect(page.getByText("Ausschnitt 90–100 %", { exact: true })).toBeVisible();
+  await expect(page.getByText("Ausschnitt 90-100 %", { exact: true })).toBeVisible();
 
-  const fourthReview = page.getByTestId("memory-review-point-4");
-  await fourthReview.focus();
-  await expect(page.getByRole("heading", { name: "Review 4 · CoRe-Variante" })).toBeVisible();
-  await fourthReview.click();
-  await expect(fourthReview).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("Nahe Kartenvariante", { exact: true })).toBeVisible();
-  await expect(page.getByText(/keine garantierte Produktionsschwelle/i)).toBeVisible();
-  await expect(page.getByText(/keine garantierte Reviewnummer/i)).toBeVisible();
+  const parameterR = page.getByTestId("memory-parameter-r");
+  const variantLink = page.getByTestId("memory-variant-link");
+  for (const target of [parameterR, variantLink]) {
+    const box = await target.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+  }
+
+  for (const parameter of ["r", "s", "d"]) {
+    await page.getByTestId(`memory-parameter-${parameter}`).click();
+    await expect(page).toHaveURL(/\/hilfe#grundbegriffe$/);
+    await expect(page.locator("#grundbegriffe")).toBeInViewport();
+  }
+
+  await page.getByTestId("memory-initial-curve-link").locator("circle").click();
+  await expect(page).toHaveURL(/\/hilfe#spaced-repetition$/);
+  await expect(page.locator("#spaced-repetition")).toBeInViewport();
+
+  for (const rating of [ratingOne, ratingTwo, ratingThree, ratingFour]) {
+    const visibleTarget = await rating.locator("circle").count() > 0
+      ? rating.locator("circle")
+      : rating.locator("text");
+    await visibleTarget.first().click();
+    await expect(page).toHaveURL(/\/hilfe#bewertungen$/);
+    await expect(page.locator("#bewertungen")).toBeInViewport();
+  }
+
+  await variantLink.click();
+  await expect(page).toHaveURL(/\/hilfe#content-repetition$/);
+  await expect(page.locator("#content-repetition")).toBeInViewport();
 
   await page.reload();
-  await expect(page).toHaveURL("/hilfe");
-  await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeVisible();
+  await expect(page).toHaveURL(/\/hilfe#content-repetition$/);
+  await expect(page.locator("#content-repetition")).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByTestId("memory-curve")).toBeVisible();

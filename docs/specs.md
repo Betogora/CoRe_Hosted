@@ -152,6 +152,8 @@ Akzeptanz:
 
 - `Again`, `Hard`, `Good` und `Easy` sind per Maus und Tastatur erreichbar.
 - Intervallvorschauen passen zur tatsächlich angewendeten Bewertung.
+- Der Reviewkopf zeigt statt eines Fortschrittsbalkens die aktuell eingeplanten Anzahlen für `Fällig` und `Neu`.
+- Frage und Antwort stehen ohne dekorative Trennlinie auf derselben Kartenfläche; die kompakten, dezent akzentuierten Bewertungsaktionen sind Teil dieser Fläche.
 - Vor dem Reveal erscheinen keine Herkunfts-, Varianten-, Reife- oder Schedulerhinweise.
 - Die geplante Sitzungsgröße bleibt während der Sitzung stabil.
 - Das Ende nennt die beantwortete Anzahl und führt gezielt zum URL-kodierten Ausgangspunkt zurück.
@@ -177,19 +179,18 @@ Akzeptanz:
 
 ### 5.6 Lernlogik verstehen
 
-Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite `/hilfe` im normalen App-Shell-Inhaltsbereich. Sie erklärt die FSRS-Grundbegriffe, CoRes Einsatz von FSRS-6 mit offiziellen Standardparametern und wie Content Repetition dieselbe Wissenseinheit in einer anderen Form abfragen kann.
+Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite `/hilfe` im normalen App-Shell-Inhaltsbereich. Die Seite folgt der festen Reihenfolge Einführung, Grundbegriffe, Entscheidungsgrafik, vier Bewertungen, Spaced Repetition und Content Repetition.
 
 Akzeptanz:
 
-- Die Erklärung nennt Abrufwahrscheinlichkeit `R`, Stabilität `S`, Schwierigkeit `D`, Zielerinnerung, Intervall, Original und Variante in verständlicher deutscher Sprache. Sie erklärt `S` als die Zeit, in der `R` von 100 auf 90 Prozent fällt, und zeigt die Kette von Bewertung über Gedächtniszustand und Vergessensprognose zum nächsten Termin.
-- Die Hilfeseite erklärt, dass FSRS-6 alle Reviews einschließlich mehrerer Abrufe am selben Tag berücksichtigt und 21 Modellparameter verwendet. CoRe nutzt die offiziellen Standardparameter; persönliche Optimierung ist noch nicht aktiviert. Höhere Zielerinnerung wird transparent als mehr Reviews bei geringerem Vergessensrisiko beschrieben.
-- CoRe erklärt Variantenbereitschaft als Reifeentscheidung aus erfolgreichen Abrufen, Stabilität, Intervall, Abrufwahrscheinlichkeit und Fehlerverlauf. Ausreichende Stabilität kann eine nahe Variante erlauben, aktuelle Fehler führen konservativ zum Original oder zu einer einfacheren Variante zurück; eine feste Reviewnummer wird nicht versprochen.
-- Eine eigenständige, als vereinfacht gekennzeichnete Lernkurve zeigt vier erfolgreiche Reviews, wachsende Intervalle und beispielhaft beim vierten Review eine nahe CoRe-Variante; daraus entsteht keine garantierte Scheduler- oder Variantenschwelle. Die durch zwei diagonale Striche unterbrochene Y-Achse kennzeichnet transparent, dass nur der Ausschnitt von 90 bis 100 Prozent gezeigt wird.
-- `R` ist an Kurven und Zielerinnerung, `S` an den wachsenden Intervallspannen und `D` als langsam veränderlicher Einfluss an den Reviewpunkten sichtbar. Die Darstellung bleibt qualitativ und erfindet keine scheinbar exakten Zustandswerte.
-- Kurvenabschnitte und ihre vollständigen Diagrammflächen reagieren auf Mausberührung. Die vier Reviewpunkte, die Review-Textübersicht sowie die `R`-, `S`- und `D`-Texte sind per Maus, Touch und Tastatur gekoppelt auswählbar und aktualisieren dieselbe ausführliche Erklärung unterhalb der Grafik.
-- Farbe ist nie der einzige Bedeutungsträger; Beschriftung, Strichstärke, Symbole, Fokuszustand und statische Textdefinitionen bleiben erhalten. Begriffe, Reviewübersicht und Bewertungen verwenden eine ruhige Textgliederung mit Trennlinien statt wiederholter Kartenflächen.
-- Die mobile Darstellung begrenzt horizontales Scrollen auf den Grafikbereich und erzeugt keinen Dokument-Overflow.
-- Die offizielle FSRS-Einführung ist als externer weiterführender Link gekennzeichnet.
+- Die Einführung erklärt knapp, dass CoRe Spaced Repetition für den Zeitpunkt mit Content Repetition für wechselnde Fragestellungen verbindet. Die Grundbegriffe enthalten ausschließlich Abrufwahrscheinlichkeit `R`, Stabilität `S` und Schwierigkeit `D` als ruhige Textdefinitionen; `S` ist die Zeit, in der `R` von 100 auf 90 Prozent fällt.
+- Die als vereinfacht gekennzeichnete Grafik zeigt eine erste Vergessenskurve bis zu einem Review und danach vier alternative Intervalle für `1 Nochmal`, `2 Schwer`, `3 Gut` und `4 Leicht`. `4 Leicht` ist standardmäßig deutlich hervorgehoben und endet an einem beschrifteten möglichen Variantenpunkt; dies ist weder eine feste Reviewnummer noch eine Scheduler- oder Variantenschwelle.
+- Die durch zwei diagonale Striche unterbrochene Y-Achse macht kenntlich, dass nur der Ausschnitt von 90 bis 100 Prozent Abrufwahrscheinlichkeit gezeigt wird. `R`, `S` und `D` bleiben qualitativ in der Grafik sichtbar; es werden keine scheinbar exakten Gedächtniswerte erfunden.
+- Mausberührung und Tastaturfokus heben die jeweilige Bewertungskurve vorübergehend durch Strichstärke und Opazität hervor. Nach Verlassen ist wieder `4 Leicht` aktiv. Nummer, Bewertungsname, Symbol und Text ergänzen die Farbe als Bedeutungsträger.
+- Die Grafik dient zugleich als Sprungnavigation: `R`, `S` und `D` führen zu `#grundbegriffe`, die erste Vergessenskurve zu `#spaced-repetition`, alle vier Bewertungskurven zu `#bewertungen` und der Variantenpunkt zu `#content-repetition`. Die Links besitzen verständliche Namen, sichtbare Fokuszustände und mindestens 44 px große Bedienflächen.
+- Der Spaced-Repetition-Abschnitt erklärt Gedächtniszustand, Vergessensprognose, Zielerinnerung und CoRes Einsatz von FSRS-6 mit den offiziellen 21 Standardparametern unter Einbeziehung aller Reviews. Persönliche Parameteroptimierung ist noch nicht aktiviert; eine höhere Zielerinnerung bedeutet mehr Reviews bei geringerem Vergessensrisiko.
+- Der Content-Repetition-Abschnitt begrenzt Varianten auf dieselbe Wissenseinheit ohne neue Fakten. Eine ausreichend stabile Originalkarte kann eine nahe Variante erhalten; das Original bleibt nach der Antwort erreichbar und Fehler führen zurück zum Original oder zu einer einfacheren Variante.
+- Bewertungen und Erklärungen verwenden typografische Textbereiche mit Trennlinien statt wiederholter Kartenflächen. Die mobile Darstellung begrenzt horizontales Scrollen auf den Grafikbereich, erzeugt keinen Dokument-Overflow und bleibt im Dark Mode sowie bei reduzierter Bewegung verständlich.
 
 ### 5.7 FSRS über simulierte Tage prüfen
 
