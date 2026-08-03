@@ -33,28 +33,31 @@ test("deck tree keeps hierarchy, labels and all three semantic metrics in every 
   assert.match(markup, /var\(--core-deck-due-text\)/);
   assert.match(markup, /var\(--core-deck-total-text\)/);
   assert.match(markup, /data-deck-drag-source="true"/);
+  assert.match(markup, /data-deck-depth="0"[^>]*class="core-deck-group/);
   assert.match(markup, /data-deck-depth="1"[^>]*class="core-deck-group/);
-  assert.match(markup, /data-deck-depth="2"[^>]*class="core-deck-group/);
+  assert.match(markup, /select-none/);
   assert.match(markup, /sm:gap-x-6/);
   assert.doesNotMatch(markup, /<span class="size-11 shrink-0"/);
   assert.ok(markup.indexOf('data-deck-icon="true"') < markup.indexOf("Unterstapel von Bereich ausblenden"));
   assert.match(markup, /aria-hidden="true"[^>]*data-deck-drag-source="true"/);
 });
 
-test("deck tree maps three visible levels to group depths and clamps deeper imports", () => {
+test("deck tree maps four visible levels to group depths and clamps deeper imports", () => {
   const deepDecks = [
     createCoreDeck({ id: "depth-root", name: "Ebene 1", hierarchyPath: ["Ebene 1"], source: "anki-apkg", cards: [] }),
     createCoreDeck({ id: "depth-child", parentDeckId: "depth-root", name: "Ebene 2", hierarchyPath: ["Ebene 1", "Ebene 2"], source: "anki-apkg", cards: [] }),
     createCoreDeck({ id: "depth-grandchild", parentDeckId: "depth-child", name: "Ebene 3", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3"], source: "anki-apkg", cards: [] }),
-    createCoreDeck({ id: "depth-import", parentDeckId: "depth-grandchild", name: "Importtiefe", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Importtiefe"], source: "anki-apkg", cards: [] }),
+    createCoreDeck({ id: "depth-great-grandchild", parentDeckId: "depth-grandchild", name: "Ebene 4", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4"], source: "anki-apkg", cards: [] }),
+    createCoreDeck({ id: "depth-import", parentDeckId: "depth-great-grandchild", name: "Importtiefe", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4", "Importtiefe"], source: "anki-apkg", cards: [] }),
   ];
   const markup = renderToStaticMarkup(
     <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="manage" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.match(markup, /data-testid="deck-group-depth-root"[^>]*data-deck-depth="1"/);
-  assert.match(markup, /data-testid="deck-group-depth-child"[^>]*data-deck-depth="2"/);
-  assert.match(markup, /data-testid="deck-group-depth-grandchild"[^>]*data-deck-depth="3"/);
+  assert.match(markup, /data-testid="deck-group-depth-root"[^>]*data-deck-depth="0"/);
+  assert.match(markup, /data-testid="deck-group-depth-child"[^>]*data-deck-depth="1"/);
+  assert.match(markup, /data-testid="deck-group-depth-grandchild"[^>]*data-deck-depth="2"/);
+  assert.match(markup, /data-testid="deck-group-depth-great-grandchild"[^>]*data-deck-depth="3"/);
   assert.match(markup, /data-testid="deck-group-depth-import"[^>]*data-deck-depth="3"/);
 });
 

@@ -158,6 +158,7 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const africaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.africa}`);
+  const antarcticaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.antarctica}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   const southAmericaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`);
   await expect(metric(europeRow, "total")).toContainText("53");
@@ -168,8 +169,11 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
 
   await dispatchDeckDrop(page, africaRow, southAmericaRow);
-  await expect(page.getByRole("status")).toContainText("Maximal drei Stapel-Ebenen sind möglich.");
-  await expect.poll(() => storedParentDeckId(page, DECK_IDS.africa)).toBe(DECK_IDS.root);
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.africa)).toBe(DECK_IDS.southAmerica);
+
+  await dispatchDeckDrop(page, antarcticaRow, africaRow);
+  await expect(page.getByRole("status")).toContainText("Maximal vier Stapel-Ebenen sind möglich.");
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.antarctica)).toBe(DECK_IDS.root);
 
   await dispatchTopLevelDrop(page, southAmericaRow, "learn-top-drop-zone");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(null);
@@ -180,7 +184,7 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(null);
 
   await dispatchDeckDrop(page, rootRow, europeRow);
-  await expect(page.getByRole("status")).toContainText("Stapel bleibt an dieser Stelle.");
+  await expect(page.getByRole("status")).toContainText("Ein Stapel kann nicht in sich selbst oder einen eigenen Unterstapel verschoben werden.");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.root)).toBe(null);
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
 });
@@ -201,7 +205,7 @@ test("deck management reparents directly and preserves explicit keyboard move as
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
 
   await southAmericaRow.getByRole("button", { name: "Welt-Hauptstädte / Europa / Südamerika öffnen" }).press("Enter");
-  await expect(page.getByTestId(`deck-actions-${DECK_IDS.southAmerica}`).getByRole("button", { name: "Unterstapel – maximale Stapeltiefe erreicht" })).toBeDisabled();
+  await expect(page.getByTestId(`deck-actions-${DECK_IDS.southAmerica}`).getByRole("button", { name: "Unterstapel", exact: true })).toBeEnabled();
 
   await dispatchDeckDrop(page, southAmericaRow, rootRow);
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.root);

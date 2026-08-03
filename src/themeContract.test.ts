@@ -38,6 +38,7 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
   assert.match(dark, /color-scheme:\s*dark/);
   assert.match(styles, /--core-border:\s*#d5dbe5/);
   assert.match(dark, /--core-border:\s*#536078/);
+  assert.equal((styles.match(/--core-group-depth-0:\s*var\(--core-surface\)/g) ?? []).length, 2);
   assert.match(styles, /--core-danger-hover:\s*var\(--core-palette-coral-glow\)/);
   assert.match(dark, /--core-danger-hover:\s*var\(--core-palette-coral\)/);
 });

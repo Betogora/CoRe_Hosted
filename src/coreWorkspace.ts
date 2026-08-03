@@ -50,8 +50,8 @@ export interface DeckMutationResult {
   movedToParentDeckId?: string | null;
 }
 
-export const MAX_INTERACTIVE_DECK_LEVELS = 3;
-export const DECK_DEPTH_ERROR = "Maximal drei Stapel-Ebenen sind möglich.";
+export const MAX_INTERACTIVE_DECK_LEVELS = 4;
+export const DECK_DEPTH_ERROR = "Maximal vier Stapel-Ebenen sind möglich.";
 
 interface DeckPlacementInput {
   deckId: string;

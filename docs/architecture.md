@@ -32,7 +32,7 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | `src/coreTheme.ts` | Einzige Browser-Seam für validierte Light-/Dark-Auswahl, Dokumentattribut und lokale Theme-Präferenz |
 | `src/coreTypes.ts` | Kanonische normalisierte Typen für Deck, Learning Item, Card Variant, Review State und diskriminierte Editorwerte |
 | `src/coreModel.ts` | Einzige öffentliche Seam für Erzeugung, Normalisierung, typgerechte Editorprojektion, Validierung und Speichern von Learning Items und Varianten |
-| `src/coreWorkspace.ts` | Anwendungsbefehle für Decks, gemeinsame Drei-Ebenen-Platzierungsprüfung, typgerechte Kartenwerte, Import und Variantenannahme |
+| `src/coreWorkspace.ts` | Anwendungsbefehle für Decks, gemeinsame Vier-Ebenen-Platzierungsprüfung, typgerechte Kartenwerte, Import und Variantenannahme |
 | `src/creationBatch.ts` | Reiner Batch-Session-State für Zähler, Zieldeck, aktuellen UI-Entwurf, Pins und deterministische Fokuswahl; keine zweite Kartenrepräsentation |
 | `src/importUiState.ts` | Diskriminierte Projektion sichtbarer Importphasen und Terminalzustände ohne Parser-, Protokoll- oder Medienverantwortung |
 | `src/coreRepository.ts` | Lokaler persistenter App-State und Legacy-Normalisierung |

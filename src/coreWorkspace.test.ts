@@ -278,16 +278,17 @@ test("workspace creates manual deck trees and deletes a selected subtree", () =>
   );
 });
 
-test("workspace limits interactive deck creation to three visible levels", () => {
+test("workspace limits interactive deck creation to four visible levels", () => {
   const workspace = createTestWorkspace();
   const root = createRequiredDeck(workspace, { name: "Medizin" });
   const child = createRequiredDeck(workspace, { name: "Anatomie", parentDeckId: root.id });
   const grandchild = createRequiredDeck(workspace, { name: "Kopf", parentDeckId: child.id });
+  const greatGrandchild = createRequiredDeck(workspace, { name: "Hirnnerven", parentDeckId: grandchild.id });
 
-  const rejected = workspace.createDeck({ name: "Hirnnerven", parentDeckId: grandchild.id });
+  const rejected = workspace.createDeck({ name: "Details", parentDeckId: greatGrandchild.id });
 
   assert.equal(rejected, null);
-  assert.equal(workspace.getState().decks.length, 3);
+  assert.equal(workspace.getState().decks.length, 4);
 });
 
 test("repository starts empty and neutral unless a fixture is explicitly requested", () => {
@@ -402,32 +403,35 @@ test("workspace moves deck trees, supports top-level drops and rejects descendan
   assert.equal(finalAnatomy.cards[0]?.id, retainedCard.id);
 });
 
-test("workspace rejects deeper moves but preserves imported trees that are moved shallower", () => {
+test("workspace allows four levels, rejects a fifth and preserves imported trees that are moved shallower", () => {
   const workspace = createTestWorkspace();
   const sourceRoot = createRequiredDeck(workspace, { name: "Quelle" });
   const sourceChild = createRequiredDeck(workspace, { name: "Teilbaum", parentDeckId: sourceRoot.id });
   const sourceLeaf = createRequiredDeck(workspace, { name: "Blatt", parentDeckId: sourceChild.id });
+  const sourceFourth = createRequiredDeck(workspace, { name: "Vierte Ebene", parentDeckId: sourceLeaf.id });
+  const rejectedCreate = workspace.createDeck({ name: "Fünfte Ebene", parentDeckId: sourceFourth.id });
   const targetRoot = createRequiredDeck(workspace, { name: "Ziel" });
   const targetChild = createRequiredDeck(workspace, { name: "Unterziel", parentDeckId: targetRoot.id });
 
   const rejected = workspace.moveDeck(sourceChild.id, targetChild.id);
+  assert.equal(rejectedCreate, null);
   assert.equal(rejected.ok, false);
-  assert.equal(rejected.error, "Maximal drei Stapel-Ebenen sind möglich.");
+  assert.equal(rejected.error, "Maximal vier Stapel-Ebenen sind möglich.");
   assert.equal(workspace.getState().decks.find((deck) => deck.id === sourceChild.id)?.parentDeckId, sourceRoot.id);
 
   const importedDeepLeaf = createCoreDeck({
     id: "imported-deep-leaf",
     name: "Importtiefe",
     source: "anki-apkg",
-    parentDeckId: sourceLeaf.id,
-    hierarchyPath: ["Quelle", "Teilbaum", "Blatt", "Importtiefe"],
+    parentDeckId: sourceFourth.id,
+    hierarchyPath: ["Quelle", "Teilbaum", "Blatt", "Vierte Ebene", "Importtiefe"],
     cards: [],
   });
   workspace.saveDeck(importedDeepLeaf);
 
   const shallower = workspace.moveDeck(sourceChild.id, null);
   assert.equal(shallower.ok, true);
-  assert.deepEqual(workspace.getState().decks.find((deck) => deck.id === importedDeepLeaf.id)?.hierarchyPath, ["Teilbaum", "Blatt", "Importtiefe"]);
+  assert.deepEqual(workspace.getState().decks.find((deck) => deck.id === importedDeepLeaf.id)?.hierarchyPath, ["Teilbaum", "Blatt", "Vierte Ebene", "Importtiefe"]);
 });
 
 test("workspace keeps sibling deck names unique on create and rename", () => {

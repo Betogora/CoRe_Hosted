@@ -165,6 +165,7 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
     if (!drag.dragging) {
       if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < POINTER_DRAG_THRESHOLD) return;
       drag.dragging = true;
+      window.getSelection()?.removeAllRanges();
       draggedDeckIdRef.current = drag.deckId;
       placementValidatorRef.current = createDeckPlacementValidator(decks, drag.deckId);
       cachedDropIntentRef.current = null;
@@ -214,7 +215,7 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
         key={row.id}
         data-testid={`${rowTestPrefix}-group-${row.id}`}
         data-deck-group="true"
-        data-deck-depth={Math.min(row.depth + 1, MAX_INTERACTIVE_DECK_LEVELS)}
+        data-deck-depth={Math.min(row.depth, MAX_INTERACTIVE_DECK_LEVELS - 1)}
         data-selected={isSelected || undefined}
         data-drop-state={isDropTarget ? (dropIntent?.error ? "invalid" : "valid") : undefined}
         className={`core-deck-group grid gap-2 rounded-2xl border border-[var(--core-border)] p-2 sm:gap-3 ${isDragged ? "opacity-60" : ""}`}
@@ -223,7 +224,7 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
           data-testid={`${rowTestPrefix}-row-${row.id}`}
           data-deck-row="true"
           data-deck-id={row.id}
-          className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-3 sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6 sm:px-3"
+          className="relative grid min-w-0 select-none grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-3 sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6 sm:px-3"
         >
           <div
             aria-hidden="true"
