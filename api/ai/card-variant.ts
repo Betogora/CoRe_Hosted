@@ -11,8 +11,8 @@ import {
   parseAiCardVariantSuccess,
   type AiCardVariantRequest,
   type AiCardVariantSuccess,
-} from "../../src/aiCardVariantContract";
-import type { Database } from "../../src/database.types";
+} from "../../src/aiCardVariantContract.js";
+import type { Database } from "../../src/database.types.js";
 
 export const OPENROUTER_CHAT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 export const OPENROUTER_MODELS_ENDPOINT = "https://openrouter.ai/api/v1/models";
