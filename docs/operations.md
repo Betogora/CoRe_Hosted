@@ -40,7 +40,7 @@ Browser-sichtbar erlaubt sind ausschließlich öffentliche Werte wie `VITE_SUPAB
 
 - Im OpenRouter-Account wird ein modellagnostischer Schlüssel namens `CoRe` mit Free-only-/Null-Kosten-Schutz angelegt. Ein globaler ZDR-Zwang bleibt aus, weil die Route ihren ausdrücklich sichtbaren kostenlosen Non-ZDR-Fallback selbst steuert.
 - In Vercel wird `OPENROUTER_API_KEY` für Production und Preview als sensitive Variable gesetzt. Vercel unterstützt Sensitive nicht für Development; dort wird derselbe Name separat als normal verschlüsselte, für berechtigte Projektmitglieder aber grundsätzlich einsehbare Variable hinterlegt oder lokal über eine ignorierte `.env.local` bereitgestellt. Der Wert wird nur direkt durch die berechtigte Person eingetragen, weder in Chat, Logs noch Nachweise kopiert.
-- Ein enges OpenRouter-Key-Limit darf als zusätzlicher Not-Aus dienen. Die eigentliche Free-only-Garantie bleibt die serverseitige Modellauswahl, die kostenpflichtige, nicht kostenlose Completion- und text-only-Modelle verwirft.
+- Ein enges OpenRouter-Key-Limit darf als zusätzlicher Not-Aus dienen. Die eigentliche Free-only-Garantie bleibt die serverseitige Modellauswahl, die kostenpflichtige Modelle und Modelle ohne Texteingabe oder Tool-Unterstützung verwirft.
 - Nach Anlage oder Rotation ist ein neues Deployment erforderlich. Geprüft werden nur Variablenname, Umgebungszuordnung und ein authentifizierter Funktionsaufruf mit einer freigegebenen Basic-Testkarte.
 - Bei Providerfehlern zuerst OpenRouter-Verfügbarkeit, Free-Limit und Modellauswahl prüfen. Karteninhalte, Bearer und Providerantworten dürfen nicht in Diagnoseausgaben übernommen werden.
 

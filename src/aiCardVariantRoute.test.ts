@@ -4,7 +4,7 @@ import {
   buildOpenRouterPayload,
   createCardVariantHandler,
   extractGeneratedVariant,
-  isEligibleFreeMultimodalToolModel,
+  isEligibleFreeTextToolModel,
   OPENROUTER_CHAT_ENDPOINT,
 } from "../api/ai/card-variant.ts";
 
@@ -52,11 +52,12 @@ function resultResponse() {
   };
 }
 
-test("model eligibility excludes paid, text-only and incomplete tool models", () => {
-  assert.equal(isEligibleFreeMultimodalToolModel(model("provider/good:free")), true);
-  assert.equal(isEligibleFreeMultimodalToolModel(model("provider/paid", { pricing: { prompt: "0.1", completion: "0", request: null } })), false);
-  assert.equal(isEligibleFreeMultimodalToolModel(model("provider/text:free", { architecture: { input_modalities: ["text"], output_modalities: ["text"] } })), false);
-  assert.equal(isEligibleFreeMultimodalToolModel(model("provider/no-tool-choice:free", { supported_parameters: ["tools", "max_tokens"] })), false);
+test("model eligibility accepts text-only models and excludes paid or incomplete tool models", () => {
+  assert.equal(isEligibleFreeTextToolModel(model("provider/good:free")), true);
+  assert.equal(isEligibleFreeTextToolModel(model("provider/text:free", { architecture: { input_modalities: ["text"], output_modalities: ["text"] } })), true);
+  assert.equal(isEligibleFreeTextToolModel(model("provider/paid", { pricing: { prompt: "0.1", completion: "0", request: null } })), false);
+  assert.equal(isEligibleFreeTextToolModel(model("provider/image-only:free", { architecture: { input_modalities: ["image"], output_modalities: ["text"] } })), false);
+  assert.equal(isEligibleFreeTextToolModel(model("provider/no-tool-choice:free", { supported_parameters: ["tools", "max_tokens"] })), false);
 });
 
 test("OpenRouter payload forces one compact tool call and privacy routing", () => {
@@ -101,7 +102,7 @@ test("route authenticates and creates a ZDR variant without exposing secrets", a
       calls.push({ url: String(url), init });
       return String(url) === OPENROUTER_CHAT_ENDPOINT
         ? response(completion())
-        : response({ data: [model("provider/model:free")] });
+        : response({ data: [model("provider/model:free", { architecture: { input_modalities: ["text"], output_modalities: ["text"] } })] });
     },
   });
   const res = resultResponse();
@@ -111,6 +112,8 @@ test("route authenticates and creates a ZDR variant without exposing secrets", a
   assert.equal(res.headers.get("cache-control"), "private, no-store");
   assert.equal(JSON.parse(res.body).privacyMode, "zdr");
   assert.equal(calls[0].url.includes("zdr=true"), true);
+  assert.equal(calls[0].url.includes("input_modalities=text"), true);
+  assert.equal(calls[0].url.includes("image"), false);
   assert.equal(JSON.stringify(JSON.parse(res.body)).includes("openrouter-secret"), false);
 });
 

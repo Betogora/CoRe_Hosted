@@ -148,7 +148,7 @@ Schemaanker, Migrationen, Policies und Verify-SQL unter `supabase/` sind die aus
 
 `POST /api/ai/card-variant` ist der einzige CoRe-Serverendpunkt. Er akzeptiert `{ source: { front, back } }`, verlangt Same Origin und einen gültigen Supabase-Bearer, begrenzt den Body auf 8 KiB sowie je Feld auf 1.200 Zeichen und antwortet immer mit `Cache-Control: no-store`. `OPENROUTER_API_KEY` wird ausschließlich aus `process.env` gelesen.
 
-Die Function wählt zur Laufzeit das meistgenutzte kostenlose, multimodale und Tool-Call-fähige OpenRouter-Modell. ZDR-Endpunkte werden bevorzugt; fehlt ein nutzbarer Kandidat, ist genau ein kostenloser Non-ZDR-Fallback mit verweigerter Datenweitergabe zulässig. Kostenpflichtige und text-only Modelle sind ausgeschlossen. Ein Verfügbarkeitsfehler darf einmal mit neu geladener Modellliste wiederholt werden. Prompt und Tool-Schema verlangen genau eine kompakte Basic-Variante; es gibt kein Streaming und keine zweite Modellrunde.
+Die Function wählt zur Laufzeit das meistgenutzte kostenlose, textfähige und Tool-Call-fähige OpenRouter-Modell. ZDR-Endpunkte werden bevorzugt; fehlt ein nutzbarer Kandidat, ist genau ein kostenloser Non-ZDR-Fallback mit verweigerter Datenweitergabe zulässig. Kostenpflichtige Modelle und Modelle ohne Texteingabe sind ausgeschlossen; Bildfähigkeit ist für diese bewusst textbasierte Route keine Voraussetzung. Ein Verfügbarkeitsfehler darf einmal mit neu geladener Modellliste wiederholt werden. Prompt und Tool-Schema verlangen genau eine kompakte Basic-Variante; es gibt kein Streaming und keine zweite Modellrunde.
 
 Andere `/api/ai/*`-Routen sowie `/api/imports/apkg` bleiben entfernt und liefern im Deployment `404`.
 

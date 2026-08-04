@@ -152,7 +152,7 @@ function isZeroPrice(value: string | null | undefined) {
   return value == null || Number(value) === 0;
 }
 
-export function isEligibleFreeMultimodalToolModel(model: ModelCandidate, excludedIds = new Set<string>()): boolean {
+export function isEligibleFreeTextToolModel(model: ModelCandidate, excludedIds = new Set<string>()): boolean {
   const parameters = new Set(model.supported_parameters);
   const inputs = new Set(model.architecture.input_modalities);
   return model.id.endsWith(":free")
@@ -161,14 +161,13 @@ export function isEligibleFreeMultimodalToolModel(model: ModelCandidate, exclude
     && isZeroPrice(model.pricing.completion)
     && isZeroPrice(model.pricing.request)
     && inputs.has("text")
-    && inputs.has("image")
     && model.architecture.output_modalities.includes("text")
     && ["tools", "tool_choice", "max_tokens"].every((parameter) => parameters.has(parameter));
 }
 
 function modelsUrl(zdr: boolean) {
   const query = new URLSearchParams({
-    input_modalities: "text,image",
+    input_modalities: "text",
     supported_parameters: "tools,tool_choice,max_tokens",
     sort: "most-popular",
     max_price: "0",
@@ -193,10 +192,10 @@ async function selectModel(fetchImpl: typeof fetch, apiKey: string, excludedIds 
     try { payload = await response.json(); } catch { throw new HttpError(502, "model_catalog_invalid", "Die kostenlose Modellauswahl hatte ein ungültiges Format."); }
     const parsed = v.safeParse(modelsResponseSchema, payload);
     if (!parsed.success) throw new HttpError(502, "model_catalog_invalid", "Die kostenlose Modellauswahl hatte ein ungültiges Format.");
-    const model = parsed.output.data.find((candidate) => isEligibleFreeMultimodalToolModel(candidate, excludedIds));
+    const model = parsed.output.data.find((candidate) => isEligibleFreeTextToolModel(candidate, excludedIds));
     if (model) return { model: model.id, privacyMode };
   }
-  throw new HttpError(503, "no_free_model", "Aktuell ist kein passendes kostenloses multimodales Modell verfügbar.");
+  throw new HttpError(503, "no_free_model", "Aktuell ist kein passendes kostenloses Tool-Modell verfügbar.");
 }
 
 export function buildOpenRouterPayload(input: AiCardVariantRequest, model: string, privacyMode: PrivacyMode) {
