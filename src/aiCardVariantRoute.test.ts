@@ -191,15 +191,23 @@ test("route reports provider errors and retries a timeout only once", async () =
   assert.equal(JSON.parse(timedOut.body).error.code, "provider_timeout");
   assert.equal(chatCalls, 2);
 
-  const providerErrorHandler = createCardVariantHandler({
-    env: { OPENROUTER_API_KEY: "secret" },
-    authenticate: async () => "user-id",
-    fetchImpl: async (url) => String(url) === OPENROUTER_CHAT_ENDPOINT
-      ? response({ error: "bad request" }, 400)
-      : response({ data: [model("provider/model:free")] }),
-  });
-  const providerError = resultResponse();
-  await providerErrorHandler(request(), providerError);
-  assert.equal(providerError.statusCode, 502);
-  assert.equal(JSON.parse(providerError.body).error.code, "provider_error");
+  for (const [providerStatus, expectedStatus, expectedCode] of [
+    [400, 502, "provider_request_rejected"],
+    [401, 502, "openrouter_auth_failed"],
+    [404, 503, "no_provider_endpoint"],
+  ] as const) {
+    let catalogCalls = 0;
+    const providerErrorHandler = createCardVariantHandler({
+      env: { OPENROUTER_API_KEY: "secret" },
+      authenticate: async () => "user-id",
+      fetchImpl: async (url) => String(url) === OPENROUTER_CHAT_ENDPOINT
+        ? response({ error: "provider details stay private" }, providerStatus)
+        : response({ data: [model(`provider/model-${catalogCalls++}:free`)] }),
+    });
+    const providerError = resultResponse();
+    await providerErrorHandler(request(), providerError);
+    assert.equal(providerError.statusCode, expectedStatus);
+    assert.equal(JSON.parse(providerError.body).error.code, expectedCode);
+    assert.doesNotMatch(providerError.body, /provider details/);
+  }
 });

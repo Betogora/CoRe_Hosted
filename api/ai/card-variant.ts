@@ -299,7 +299,19 @@ async function callOpenRouter(fetchImpl: typeof fetch, apiKey: string, input: Ai
   }
   if (!response.ok) {
     const retryable = [404, 429, 502, 503].includes(response.status);
-    throw new HttpError(response.status === 429 ? 429 : 502, response.status === 429 ? "rate_limited" : "provider_error", response.status === 429 ? "Das kostenlose Nutzungslimit ist momentan erreicht." : "Das Modell konnte keine Kartenvariante erstellen.", retryable);
+    if (response.status === 401 || response.status === 403) {
+      throw new HttpError(502, "openrouter_auth_failed", "Der OpenRouter-Schlüssel wurde abgelehnt. Bitte prüfe OPENROUTER_API_KEY in Vercel.");
+    }
+    if (response.status === 400) {
+      throw new HttpError(502, "provider_request_rejected", "OpenRouter hat die Kartenanfrage abgelehnt.");
+    }
+    if (response.status === 404) {
+      throw new HttpError(503, "no_provider_endpoint", "Aktuell erfüllt kein kostenloser Modellendpunkt die Datenschutz- und Werkzeuganforderungen.", true);
+    }
+    if (response.status === 429) {
+      throw new HttpError(429, "rate_limited", "Das kostenlose Nutzungslimit ist momentan erreicht.", true);
+    }
+    throw new HttpError(502, "provider_error", "Das Modell konnte keine Kartenvariante erstellen.", retryable);
   }
   let payload: unknown;
   try { payload = await response.json(); } catch { throw new HttpError(502, "invalid_provider_response", "Die Modellantwort konnte nicht gelesen werden."); }
