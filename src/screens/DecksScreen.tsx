@@ -39,7 +39,7 @@ function versionContent(value: unknown, fallback: LearningItem) {
   };
 }
 
-function DeckCardEditor({ deck, card, mediaUrls = {}, onSaveCard, onDuplicateCard, onDeleteCard, onRestoreCard, onAddVariant, onClose }: any) {
+function DeckCardEditor({ deck, card, mediaUrls = {}, onSaveCard, onDuplicateCard, onDeleteCard, onRestoreCard, onAddVariant, onGenerateVariant, onClose }: any) {
   const [form, setForm] = React.useState<CardEditorValue | null>(() => card ? getCardEditorValue(card) : null);
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
   const [saveStatus, setSaveStatus] = React.useState("");
@@ -49,6 +49,8 @@ function DeckCardEditor({ deck, card, mediaUrls = {}, onSaveCard, onDuplicateCar
   const [duplicateStatus, setDuplicateStatus] = React.useState("");
   const [variantForm, setVariantForm] = React.useState({ front: "", back: "", variantLevel: 2 });
   const [variantStatus, setVariantStatus] = React.useState("");
+  const [variantStatusWarning, setVariantStatusWarning] = React.useState(false);
+  const [isGeneratingVariant, setIsGeneratingVariant] = React.useState(false);
   const [restoreVersionId, setRestoreVersionId] = React.useState("");
   const [confirmRestore, setConfirmRestore] = React.useState(false);
   const [restoreStatus, setRestoreStatus] = React.useState("");
@@ -77,6 +79,7 @@ function DeckCardEditor({ deck, card, mediaUrls = {}, onSaveCard, onDuplicateCar
     setSaveError(false);
     setVariantForm({ front: "", back: "", variantLevel: 2 });
     setVariantStatus("");
+    setVariantStatusWarning(false);
   }, [card?.id, card?.updatedAt]);
 
   React.useEffect(() => {
@@ -185,6 +188,27 @@ function DeckCardEditor({ deck, card, mediaUrls = {}, onSaveCard, onDuplicateCar
     });
     setVariantForm({ front: "", back: "", variantLevel: 2 });
     setVariantStatus("Umformulierung gespeichert.");
+    setVariantStatusWarning(false);
+  }
+
+  async function generateVariant() {
+    if (card.cardType !== "basic" || isGeneratingVariant) return;
+    setIsGeneratingVariant(true);
+    setVariantStatusWarning(false);
+    setVariantStatus("KI-Variante wird erzeugt …");
+    try {
+      const result = await onGenerateVariant(card.id);
+      const usedFallback = result.privacyMode === "non_zdr";
+      setVariantStatusWarning(usedFallback);
+      setVariantStatus(usedFallback
+        ? "KI-Variante erstellt. Da kein passendes ZDR-Modell verfügbar war, wurde ein kostenloses Modell ohne Zero Data Retention verwendet."
+        : "KI-Variante erstellt und am Original verankert.");
+    } catch (error) {
+      setVariantStatusWarning(true);
+      setVariantStatus(error instanceof Error ? error.message : "Die KI-Variante konnte nicht erstellt werden.");
+    } finally {
+      setIsGeneratingVariant(false);
+    }
   }
 
   function restoreSelectedVersion() {
@@ -447,6 +471,23 @@ function DeckCardEditor({ deck, card, mediaUrls = {}, onSaveCard, onDuplicateCar
         <div className="mt-4 grid gap-3 border-t border-[var(--core-border)] pt-4">
           <p className="core-body font-semibold text-[var(--core-text)]">Nahe Umformulierung hinzufügen</p>
           <p className="core-body text-[var(--core-text-muted)]">Prüfe dieselbe Wissenseinheit. Keine neuen Fakten, keine neuen Konzepte.</p>
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-3">
+            <ActionButton
+              type="button"
+              variant="secondary"
+              icon={Sparkles}
+              loading={isGeneratingVariant}
+              disabled={card.cardType !== "basic" || isGeneratingVariant}
+              onClick={() => void generateVariant()}
+            >
+              KI-Variante erzeugen
+            </ActionButton>
+            <p className="min-w-0 flex-1 core-caption text-[var(--core-text-muted)]">
+              {card.cardType === "basic"
+                ? "Sendet ausschließlich den bereinigten Text von Vorder- und Rückseite an OpenRouter. ZDR wird bevorzugt; ein kostenloser Non-ZDR-Fallback ist möglich."
+                : "KI-Varianten sind derzeit nur für Basic-Karten verfügbar."}
+            </p>
+          </div>
           <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
             <input className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3 core-body" value={variantForm.front} onChange={(event) => updateVariantForm("front", event.target.value)} placeholder="Frage / Front" aria-label="Variantenfrage" />
             <input className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3 core-body" value={variantForm.back} onChange={(event) => updateVariantForm("back", event.target.value)} placeholder="Antwort / Back" aria-label="Variantenantwort" />
@@ -462,7 +503,7 @@ function DeckCardEditor({ deck, card, mediaUrls = {}, onSaveCard, onDuplicateCar
             <PlusSquare size={16} aria-hidden="true" />
             Umformulierung hinzufügen
           </button>
-          {variantStatus ? <p className="core-body text-[var(--core-text-muted)]" role="status" aria-live="polite">{variantStatus}</p> : null}
+          {variantStatus ? <p className={`core-body ${variantStatusWarning ? "text-core-warning" : "text-[var(--core-text-muted)]"}`} role="status" aria-live="polite">{variantStatus}</p> : null}
         </div>
         </div>
       </details>
@@ -541,6 +582,7 @@ export function DecksScreen({
   onUndoDeleteCard,
   onRestoreCard,
   onAddVariant,
+  onGenerateVariant,
   onStartDeck,
   onDeleteDeck,
   onRenameDeck,
@@ -833,6 +875,7 @@ export function DecksScreen({
             onDeleteCard={requestCardDelete}
             onRestoreCard={(cardId: string, versionId: string) => onRestoreCard(selectedDeck.id, cardId, versionId)}
             onAddVariant={(cardId: string, variant: any) => onAddVariant(selectedDeck.id, cardId, variant)}
+            onGenerateVariant={(cardId: string) => onGenerateVariant(selectedDeck.id, cardId)}
             onClose={closeDetail}
           />
         ) : null}

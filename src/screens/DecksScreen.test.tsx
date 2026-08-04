@@ -20,6 +20,12 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     onUndoDeleteCard: async () => null,
     onRestoreCard: () => undefined,
     onAddVariant: () => undefined,
+    onGenerateVariant: async () => ({
+      variant: { front: "Neue Frage", back: "Neue Antwort" },
+      model: "example/free:free",
+      privacyMode: "zdr",
+      usage: null,
+    }),
     onStartDeck: () => undefined,
     onDeleteDeck: async () => null,
     onRenameDeck: () => null,
@@ -71,6 +77,8 @@ test("card selection opens a non-modal detail aside with editor, copy and collap
   assert.match(markup, />Kopieren<\/button>/);
   assert.match(markup, /Version zum Wiederherstellen/);
   assert.match(markup, /<details[^>]*data-testid="card-variant-tools"/);
+  assert.match(markup, /KI-Variante erzeugen/);
+  assert.match(markup, /Sendet ausschließlich den bereinigten Text von Vorder- und Rückseite an OpenRouter/);
   assert.match(markup, /Detailansicht schließen/);
 });
 
@@ -98,6 +106,8 @@ test("detail editor renders all four supported field sets", () => {
   assert.match(reverseMarkup, /Umgekehrt/);
   assert.match(reverseMarkup, /aria-label="Karten-Vorderseite"/);
   assert.match(reverseMarkup, /aria-label="Karten-Rückseite"/);
+  assert.match(reverseMarkup, /disabled=""[^>]*>.*KI-Variante erzeugen/s);
+  assert.match(reverseMarkup, /KI-Varianten sind derzeit nur für Basic-Karten verfügbar/);
 
   const clozeMarkup = renderEditorFor({ cardType: "cloze", textWithClozes: "{{c1::ATP}}", extra: "Energie", tags: [] });
   assert.match(clozeMarkup, /aria-label="Cloze-Text"/);

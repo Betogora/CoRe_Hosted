@@ -182,6 +182,57 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 });
 
+test("[Vertrag: KI-Basic-Variante] @golden-e2e abgefangene Modellantwort wird sofort und reloadfest gespeichert", async ({ page }) => {
+  const deckName = "KI-Variante Basic";
+  await openManualCreation(page, deckName, "basic");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Welche Aufgabe hat ATP?");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("ATP überträgt chemische Energie.");
+  const deck = await finishManualCreation(page, deckName);
+  await openCreatedCardEditor(page, deck);
+
+  let releaseProvider!: () => void;
+  const providerGate = new Promise<void>((resolve) => { releaseProvider = resolve; });
+  await page.route("**/api/ai/card-variant", async (route) => {
+    expect(route.request().postDataJSON()).toEqual({
+      source: { front: "Welche Aufgabe hat ATP?", back: "ATP überträgt chemische Energie." },
+    });
+    expect(route.request().headers().authorization).toMatch(/^Bearer /);
+    await providerGate;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        variant: { front: "Wofür nutzt die Zelle ATP?", back: "ATP überträgt chemische Energie." },
+        model: "provider/model:free",
+        privacyMode: "zdr",
+        usage: { promptTokens: 100, completionTokens: 30, totalTokens: 130 },
+      }),
+    });
+  });
+
+  await page.getByTestId("card-variant-tools").locator("summary").click();
+  const generateButton = page.getByRole("button", { name: "KI-Variante erzeugen" });
+  await generateButton.click();
+  await expect(generateButton).toBeDisabled();
+  await expect(page.getByRole("status")).toContainText("KI-Variante wird erzeugt");
+  releaseProvider();
+  await expect(page.getByRole("status")).toContainText("KI-Variante erstellt und am Original verankert");
+
+  await expect.poll(async () => {
+    const state = await readActiveAccountState(page);
+    const card = state.decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards[0];
+    return card?.variants.find((variant: { generationSource: string }) => variant.generationSource === "ai_generated")?.front;
+  }).toBe("Wofür nutzt die Zelle ATP?");
+  await waitForCloudCard(deck.id, deck.cards[0].id, (card) => card.variants.some((variant: { generationSource: string }) => variant.generationSource === "ai_generated"));
+
+  await page.reload();
+  await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
+  const reloadedState = await readActiveAccountState(page);
+  const reloadedCard = reloadedState.decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards[0];
+  const generated = reloadedCard?.variants.find((variant: { generationSource: string }) => variant.generationSource === "ai_generated");
+  expect(generated).toMatchObject({ variantLevel: 2, isActive: true, anchorVariantId: reloadedCard.variants[0].id });
+});
+
 test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse hält beide Richtungen synchron und reviewbar", async ({ page }) => {
   const deckName = "Lebenszyklus Reverse";
   await openManualCreation(page, deckName, "basic-reversed");

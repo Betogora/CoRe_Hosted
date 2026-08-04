@@ -631,4 +631,23 @@ test("workspace variant commands support the UI editor without changing original
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(getOriginalVariant(manualCard).front, original.front);
 
+  const withAiVariant = workspace.addDeckCardVariant(deck.id, card.id, {
+    front: "Welche Rolle spielt Myelin für die Signalweiterleitung?",
+    back: "Myelin isoliert Axone elektrisch und beschleunigt die Erregungsleitung.",
+    variantLevel: 2,
+    generationSource: "ai_generated",
+    qualityStatus: "active",
+    isActive: true,
+    meta: { provider: "openrouter", model: "test/free:free" },
+  }, "KI-Umformulierung");
+  const aiCard = withAiVariant?.cards.find((item) => item.id === card.id);
+  const aiVariant = getActiveVariants(aiCard).find((variant) => variant.generationSource === "ai_generated");
+
+  assert.ok(aiVariant);
+  assert.ok(aiCard);
+  assert.equal(aiVariant.variantLevel, 2);
+  assert.equal(aiVariant.anchorVariantId, original.id);
+  assert.equal(aiVariant.parentVariantId, original.id);
+  assert.equal(getOriginalVariant(aiCard)?.front, original.front);
+
 });

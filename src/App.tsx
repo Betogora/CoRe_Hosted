@@ -5,6 +5,8 @@ import type { AuthPhase } from "./accountSession.ts";
 import type { CoreMode, Deck, LearningItem, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import { BarChart3, BookOpen, CircleHelp, Database, FlaskConical, Home, Layers, PlusSquare, Settings } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
+import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
+import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type SettingsReturnContext } from "./appNavigation.ts";
 import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
@@ -22,6 +24,7 @@ import { startAppAutosaveLifecycle, startAppSyncLifecycle } from "./appSyncLifec
 import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.ts";
+import { getCardContentPayload } from "./coreModel.ts";
 import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
 import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.ts";
 import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type LearningSettingsInput } from "./deckSettings.ts";
@@ -741,6 +744,20 @@ export function App() {
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.addDeckCardVariant(deckId, cardId, variant));
   }
 
+  async function generateDeckCardVariant(deckId: string, cardId: string) {
+    if (!workspace) throw new AiCardVariantContractError("workspace_unavailable", "Die Kartenverwaltung ist noch nicht bereit.");
+    const sourceCard = workspace.getState().decks.find((deck) => deck.id === deckId)?.cards.find((card) => card.id === cardId && !card.deletedAt);
+    const sourcePayload = sourceCard ? getCardContentPayload(sourceCard) : null;
+    if (!sourcePayload) throw new AiCardVariantContractError("card_not_found", "Die Ausgangskarte ist nicht mehr verfügbar.");
+    const generated = await requestAiCardVariant(sourcePayload, supabase);
+
+    const currentCard = workspace.getState().decks.find((deck) => deck.id === deckId)?.cards.find((card) => card.id === cardId && !card.deletedAt);
+    const draft = createAiGeneratedVariantDraft(sourcePayload, currentCard, generated);
+    const saved = await runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.addDeckCardVariant(deckId, cardId, draft, "KI-Umformulierung"));
+    if (!saved) throw new AiCardVariantContractError("save_failed", "Die KI-Variante konnte nicht gespeichert werden.");
+    return generated;
+  }
+
   function addManualCardToDeck(deckId: string, manualDeckInput: ManualCardInput) {
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.addManualCardToDeck(deckId, manualDeckInput));
   }
@@ -867,6 +884,7 @@ export function App() {
           onUndoDeleteCard={undoDeleteDeckCard}
           onRestoreCard={restoreDeckCard}
           onAddVariant={addDeckCardVariant}
+          onGenerateVariant={generateDeckCardVariant}
           onStartDeck={startDeck}
           selectedDeckId={focusedDeckId}
           selectedCardId={selectedCardId}

@@ -26,7 +26,7 @@ Aktiver Scope:
 
 Nicht im aktiven Scope:
 
-- Wiedereinführung der entfernten KI-, Graph-, Community- oder Labs-Flächen
+- Wiedereinführung der entfernten breiten KI-, Graph-, Community- oder Labs-Flächen; die freigegebene Basic-Variantenroute ist davon ausgenommen
 - serverseitiger APKG-Import oder Dateien über 250 MiB
 - neue Plattform- oder Infrastrukturfeatures ohne direkten Beta-Nutzen
 - neue Kartentypen
@@ -62,7 +62,7 @@ Vor Merge jedes Arbeitspakets:
 - [ ] bestehende Unit-/Contracttests sind grün
 - [ ] Production-Build und Chunkbudget sind grün
 - [ ] `npm run test:beta` ist grün
-- [ ] keine Wiedereinführung ausgemusterter Labs-, KI- oder Groß-APKG-Pfade
+- [ ] keine Wiedereinführung ausgemusterter Labs-, breiter KI- oder Groß-APKG-Pfade jenseits der freigegebenen Basic-Variantenroute
 - [ ] keine nicht autorisierte Datenbankmigration
 - [ ] deutsche UI und statische Core-Navigation sind erhalten
 
@@ -249,7 +249,7 @@ Akzeptanz:
 - [ ] Keine dauerhaft leere Kennzahl.
 - [ ] CTA öffnet den korrekten URL-Kontext.
 - [ ] Append-only Reviewevents bleiben einzige Ereignisquelle.
-- [ ] Keine neue Tracking- oder KI-Infrastruktur.
+- [ ] Keine neue Tracking- oder allgemeine KI-Infrastruktur jenseits der freigegebenen Basic-Variantenroute.
 
 Tests:
 
@@ -382,7 +382,7 @@ Vor Self-Service-Beta zusätzlich:
 
 # Geparkter Scope bis Beta-Basis
 
-- [ ] keine Wiedereinführung ausgemusterter Labs-, KI-, Graph- oder Community-Flächen
+- [ ] keine Wiedereinführung ausgemusterter Labs-, breiter KI-, Graph- oder Community-Flächen jenseits der freigegebenen Basic-Variantenroute
 - [ ] kein serverseitiger APKG-Pfad und keine Anhebung über 250 MiB
 - [ ] keine neue generische Adapterarchitektur
 - [ ] keine neue Scheduleroption

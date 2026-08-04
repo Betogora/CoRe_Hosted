@@ -19,7 +19,8 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Nichtleere Erstellungsentwürfe sind bei interner Navigation durch einen zugänglichen Dialog und bei Browser-Unload durch den Browser-Fallback geschützt.
 - Karten- und Stapellöschung verwenden produktspezifische Auswirkungsdialoge; Karten bieten ein revisionsgeprüftes unmittelbares Undo über denselben Datensatz.
 - `Karten` ist die fünfte Hauptseite: eine unbegrenzte, nach Stapelhierarchie gruppierte Gesamttabelle mit bereinigten Vorder-/Rückseitenvorschauen, Suche, CoRe-Filter, Gruppenaktionen und einem URL-gesteuerten rechten Detail-`aside`.
-- Basic, Reverse, Cloze und Multiple Choice lassen sich direkt hinter dem Original als unabhängiges Learning Item mit frischen Identitäten und Review State kopieren. Der öffentliche, validierte Karteninhalt-Vertrag umfasst nur typgerechte Editorfelder und stabile Medienreferenzen; eine Anbieter- oder OpenAI-Anbindung ist nicht enthalten.
+- Basic, Reverse, Cloze und Multiple Choice lassen sich direkt hinter dem Original als unabhängiges Learning Item mit frischen Identitäten und Review State kopieren. Der öffentliche, validierte Karteninhalt-Vertrag umfasst nur typgerechte Editorfelder und stabile Medienreferenzen.
+- Basic-Karten können zusätzlich über OpenRouter als sofort gespeicherte, am Original verankerte `ai_generated`-Variante umformuliert werden. Die serverseitige Route überträgt nur bereinigte Vorder-/Rückseitentexte, erzwingt einen validierten Tool Call, wählt ausschließlich kostenlose multimodale Tool-Modelle und bevorzugt ZDR; der manuelle Variantenweg bleibt erhalten.
 - Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen URL-Kontext für Deck, Karte, Erstellziel und allowlist-basierten Review-Rückweg; Reload, Direktlink sowie Browser-Zurück/-Vorwärts erhalten den semantischen Kontext.
 - Ungültige oder nicht verfügbare Deck-/Kartenlinks zeigen sichere deutsche Fallbacks und öffnen nicht still eine andere Karte.
 - Reverse-Richtungen, Cloze-Lückengruppen und Multiple-Choice-Lösung werden beim Speichern atomar in ihre reviewbaren Formen projiziert; Reimport, Cloud und Portabilität erhalten lokale strukturierte Änderungen.
@@ -32,7 +33,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Statistik, Sync-/Konfliktstatus und begrenzter JSON-Portabilitätsexport.
 - Lazy geladene Produktscreens, sicherer React-Fehlerfallback und sichtbare Release-Information.
 - Produktweites semantisches CoRe-Theme mit Light und Dark Mode, lokal persistiertem zugänglichem Sidebar-Schalter, hellen dekorativen Rahmenlinien, Amulya/Synonym-Typografie sowie dokumentierten wiederverwendbaren Action-, Feedback-, Struktur- und Formularbausteinen.
-- Es werden keine eigenen CoRe-Serverendpunkte ausgeliefert.
+- Außer der authentifizierten Basic-Variantenroute `/api/ai/card-variant` werden keine eigenen CoRe-Serverendpunkte ausgeliefert.
 - Das produktive CoRe-Schema entspricht dem Core-Zielzustand: pensionierte Labs-/Jobtabellen und -spalten sowie `core-imports` fehlen; das verifizierte Rückbaumanifest enthielt keine zu löschenden Labs-Pfade in `core-media`.
 
 ## Reifestatus

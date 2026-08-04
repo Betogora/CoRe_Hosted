@@ -148,6 +148,9 @@ Akzeptanz:
 - Strukturierte Kartenfelder überleben den accountgebundenen Cloud-Roundtrip und den Portabilitätsexport.
 - Basic, Reverse, Cloze und Multiple Choice können als eigenständiges Learning Item direkt hinter dem Ausgangselement kopiert werden. Nur die Vorderseitenrepräsentation erhält einmalig `(Kopie)`; Rückseite, Typ, strukturierte Felder, Tags und stabile Medienreferenzen bleiben erhalten. Karten-, Varianten-, Review-, Import-, Quellen- und Versionsidentitäten sowie Schedulerzustand werden neu erzeugt beziehungsweise nicht übernommen; die Ausgangskarte bleibt ausgewählt.
 - Der öffentliche Karteninhalt-Vertrag besteht ausschließlich aus `editorValue: CardEditorValue` und `mediaRefs: string[]`. Er ist laufzeitvalidiert und sanitisiert und enthält weder Deck-/Karten-/Varianten-/Review-/Quellen-/Versions-IDs noch Medienbytes oder Signed URLs.
+- In den progressiv offengelegten Variantenwerkzeugen kann eine Basic-Karte unmittelbar als KI-Variante umformuliert werden. Die erzeugte Form ist kein neues Learning Item, sondern eine aktive Variante auf Level 2 mit `generationSource: "ai_generated"` und demselben Originalanker; das manuelle Front-/Back-Formular bleibt erhalten.
+- An den Anbieter gelangen ausschließlich der bereinigte Text von Vorder- und Rückseite mit je höchstens 1.200 Zeichen. Tags, IDs, Quellen, Reviewdaten, Metadaten, Medienreferenzen und Medieninhalte werden nicht übertragen. Nicht-Basic-Karten erklären den deaktivierten KI-Zugang.
+- CoRe speichert die KI-Variante erst, wenn die Ausgangskarte während des Aufrufs unverändert blieb und dieselbe Front-/Back-Kombination noch nicht existiert. Fehler verändern das Learning Item nicht; während des Aufrufs ist die Aktion gesperrt. Bei einem kostenlosen Non-ZDR-Fallback erscheint nach Erfolg eine sichtbare Warnung.
 
 ### 5.4 Karte bewerten, neu laden und fortfahren
 
@@ -277,7 +280,7 @@ Akzeptanz:
 
 ## 7. Zurückgebauter Produktscope
 
-Chat-your-Deck, Lernplan, lokaler KI-Entwurf, Deck-Graph, Community-Demo, KI-Job-Historie, externer Varianten-JSON-Flow und serverseitiger APKG-Import sind entfernt. Es gibt dafür keine Navigation, Route, Persistenz, API oder zugesagte Importkompatibilität.
+Chat-your-Deck, Lernplan, lokaler KI-Entwurf, Deck-Graph, Community-Demo, KI-Job-Historie, allgemeiner externer Varianten-JSON-Flow und serverseitiger APKG-Import sind entfernt. Davon ausgenommen ist ausschließlich die authentifizierte, textbasierte Basic-Variantenroute `/api/ai/card-variant`; sie besitzt keine eigene Navigation, Jobhistorie oder Persistenz neben der bestehenden Variantenmutation.
 
 ## 8. Visueller Produktvertrag
 
@@ -343,7 +346,7 @@ Offene Gates und Evidenz stehen ausschließlich in [`todo.md`](todo.md).
 
 - Community, Rankings oder soziale Leistungsmetriken;
 - generische Backend-, Auth- oder LLM-Adapter;
-- externe KI-Chat- oder Kartenerstellung;
+- externe KI-Chat- oder breite beziehungsweise multimodale Kartenerstellung jenseits der Basic-Variantenroute;
 - vollständiges Admin-Portal, Zahlungen oder Abonnements;
 - native Apps, PWA-Offline-Kaltstart oder Push-Benachrichtigungen;
 - KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.

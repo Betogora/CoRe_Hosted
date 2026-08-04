@@ -1,13 +1,13 @@
 # CoRe-Architektur und Invarianten
 
 **Rolle:** einzige kanonische Quelle für aktuelle Architektur, Modulgrenzen, technische Invarianten sowie die Trennung von Ist- und Zielmodell.
-**Stand:** 2026-08-01
+**Stand:** 2026-08-04
 
 Produktverhalten steht in [`specs.md`](specs.md), der verifizierte Ist-Stand in [`status.md`](status.md), Betrieb in [`operations.md`](operations.md) und offene Arbeit in [`todo.md`](todo.md).
 
 ## 1. Systemkontext
 
-CoRe ist eine Vite-/React-Anwendung mit TypeScript. Der Browser nutzt Supabase Auth, Postgres und Storage über accountgebundene Module. Vercel liefert die SPA aus; CoRe besitzt derzeit keine eigenen Server-API-Routen.
+CoRe ist eine Vite-/React-Anwendung mit TypeScript. Der Browser nutzt Supabase Auth, Postgres und Storage über accountgebundene Module. Vercel liefert die SPA und genau eine schmale KI-Function für textbasierte Basic-Kartenvarianten aus.
 
 ```text
 React-Screens
@@ -15,6 +15,12 @@ React-Screens
   -> tiefe Domänenmodule
   -> lokaler accountgebundener Cache
   -> Supabase Auth/Postgres/Storage mit RLS
+
+Basic-Variantenwerkzeug
+  -> validierter Textvertrag und Supabase-Bearer
+  -> Vercel Function /api/ai/card-variant
+  -> OpenRouter Tool Call
+  -> bestehende Variantenmutation
 
 ```
 
@@ -33,6 +39,9 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | `src/coreTypes.ts` | Kanonische normalisierte Typen für Deck, Learning Item, Card Variant, Review State und diskriminierte Editorwerte |
 | `src/coreModel.ts` | Einzige öffentliche Seam für Erzeugung, Normalisierung, typgerechte Editorprojektion, Validierung, identitätsfreie Karteninhalt-Payloads und Speichern von Learning Items und Varianten |
 | `src/coreWorkspace.ts` | Anwendungsbefehle für Decks, gemeinsame Vier-Ebenen-Platzierungsprüfung, typgerechte Kartenwerte, unabhängige Kartenkopien, Import und Variantenannahme |
+| `src/aiCardVariantContract.ts` | Gemeinsamer Laufzeitvertrag, Größenlimits und reine Basic-Plaintextprojektion für KI-Varianten |
+| `src/aiCardVariant.ts` | Browseraufruf sowie Änderungs- und Duplikatprüfung vor der bestehenden Variantenmutation |
+| `api/ai/card-variant.ts` | Authentifizierte Vercel Function, kostenlose OpenRouter-Modellauswahl, ZDR-Präferenz und erzwungener Tool Call |
 | `src/libraryModel.ts` | Reine Projektionen für Stapelhierarchie, unbegrenzte gruppierte Kartentabelle, Suche, Heatmap und Statistik |
 | `src/creationBatch.ts` | Reiner Batch-Session-State für Zähler, Zieldeck, aktuellen UI-Entwurf, Pins und deterministische Fokuswahl; keine zweite Kartenrepräsentation |
 | `src/importUiState.ts` | Diskriminierte Projektion sichtbarer Importphasen und Terminalzustände ohne Parser-, Protokoll- oder Medienverantwortung |
@@ -81,6 +90,8 @@ Aufklappzustände, Tastaturfokus, lokale Suche, Dialoge und ungespeicherte Entw�
 - Jede weitere Variante verweist auf dasselbe Learning Item und bleibt am Original verankert.
 - Typgerechte Änderungen synchronisieren kanonischen Inhalt, Compatibility-Felder, strukturierte Options-/Lückenfelder und Originalvariante atomar.
 - `CardContentPayload` transportiert ausschließlich einen validierten `CardEditorValue` und stabile `mediaRefs`. Die Projektion enthält keine Karten-, Deck-, Varianten-, Review-, Quellen- oder Versionsidentität, keine Medienbytes und keine Signed URLs.
+- Der KI-Variantenvertrag akzeptiert ausschließlich Basic-Karten und projiziert daraus nur bereinigte Vorder- und Rückseitentexte. Providerantworten bleiben `unknown`, bis Toolname, Anzahl, Schema, Änderung und Größenlimits validiert sind.
+- KI-Ergebnisse laufen als `ai_generated` durch dieselbe Variantenmutation wie manuelle Formen und erzeugen kein zweites Learning Item. Eine zwischenzeitlich geänderte Quelle oder ein Inhaltsduplikat verhindert die Mutation.
 - Eine Kartenkopie wird über dieses Payload erneut durch die kanonische Learning-Item-Erstellung geführt. Dadurch entstehen frische Learning-Item-, Originalvarianten- und Review-Identitäten sowie ein neuer Schedulerzustand; Importanker, Quellenanker und Versionsverlauf werden nicht übernommen.
 - Reverse-Speichern hält genau eine aktive Rückrichtung aktuell; regulärer Review verwendet die Originalrichtung, expliziter Variantenreview die Rückrichtung.
 - Cloze-Speichern erhält passende Variantenidentitäten, erzeugt neue Lückengruppen und deaktiviert entfernte Gruppen.
@@ -135,7 +146,11 @@ Schemaanker, Migrationen, Policies und Verify-SQL unter `supabase/` sind die aus
 
 ### 7.1 Implementierte Endpunkte
 
-Es gibt derzeit keine CoRe-Serverendpunkte. Insbesondere `/api/ai/*` und `/api/imports/apkg` sind entfernt und liefern im Deployment `404`.
+`POST /api/ai/card-variant` ist der einzige CoRe-Serverendpunkt. Er akzeptiert `{ source: { front, back } }`, verlangt Same Origin und einen gültigen Supabase-Bearer, begrenzt den Body auf 8 KiB sowie je Feld auf 1.200 Zeichen und antwortet immer mit `Cache-Control: no-store`. `OPENROUTER_API_KEY` wird ausschließlich aus `process.env` gelesen.
+
+Die Function wählt zur Laufzeit das meistgenutzte kostenlose, multimodale und Tool-Call-fähige OpenRouter-Modell. ZDR-Endpunkte werden bevorzugt; fehlt ein nutzbarer Kandidat, ist genau ein kostenloser Non-ZDR-Fallback mit verweigerter Datenweitergabe zulässig. Kostenpflichtige und text-only Modelle sind ausgeschlossen. Ein Verfügbarkeitsfehler darf einmal mit neu geladener Modellliste wiederholt werden. Prompt und Tool-Schema verlangen genau eine kompakte Basic-Variante; es gibt kein Streaming und keine zweite Modellrunde.
+
+Andere `/api/ai/*`-Routen sowie `/api/imports/apkg` bleiben entfernt und liefern im Deployment `404`.
 
 Browserzugriffe auf Produktdaten erfolgen ansonsten direkt über die gekapselten Supabase-Repository-Module und RLS; sie sind keine CoRe-REST-Endpunkte.
 

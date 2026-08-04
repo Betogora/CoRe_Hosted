@@ -1,7 +1,7 @@
 # CoRe-Betrieb und Runbooks
 
 **Rolle:** einzige kanonische Quelle für lokale Betriebsabläufe, Release, Rollback, Wiederherstellung und operative Gates.
-**Stand:** 2026-08-01
+**Stand:** 2026-08-04
 
 Zeitgebundene Release-Nachweise stehen in [`history.md`](history.md). Produktanforderungen und Roadmap stehen nicht in diesem Dokument.
 
@@ -13,6 +13,7 @@ npm run dev
 ```
 
 Die lokale URL ist `http://127.0.0.1:5190/`.
+Der normale SPA-Weg bleibt `npm run dev`. Für einen lokalen Test der Vercel Function einschließlich serverseitiger Umgebungsvariablen wird stattdessen `vercel dev --listen 5190` verwendet.
 
 Fokussierte Prüfungen laufen zuerst. Die Standard-Gates sind:
 
@@ -33,7 +34,15 @@ Erlaubte Supabase-Redirects:
 - `https://*-bengt2.vercel.app/**` ausschließlich für Vercel-Previews
 - `http://127.0.0.1:5190/**` lokal
 
-Browser-sichtbar erlaubt sind ausschließlich öffentliche Werte wie `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_ENABLE_GOOGLE_AUTH` und `VITE_ENABLE_MAGIC_LINK`. Service-Role-Secrets bleiben außerhalb des Browsers. Nachweise enthalten keine Werte, Tokens, Passwörter, `.env`-Dateien oder Auth-Screenshots.
+Browser-sichtbar erlaubt sind ausschließlich öffentliche Werte wie `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_ENABLE_GOOGLE_AUTH` und `VITE_ENABLE_MAGIC_LINK`. Service-Role-Secrets und `OPENROUTER_API_KEY` bleiben außerhalb des Browsers. Nachweise enthalten keine Werte, Tokens, Passwörter, `.env`-Dateien oder Auth-Screenshots.
+
+### OpenRouter-Schlüssel für Basic-Varianten
+
+- Im OpenRouter-Account wird ein modellagnostischer Schlüssel namens `CoRe` mit Free-only-/Null-Kosten-Schutz angelegt. Ein globaler ZDR-Zwang bleibt aus, weil die Route ihren ausdrücklich sichtbaren kostenlosen Non-ZDR-Fallback selbst steuert.
+- In Vercel wird `OPENROUTER_API_KEY` für Production und Preview als sensitive Variable gesetzt. Vercel unterstützt Sensitive nicht für Development; dort wird derselbe Name separat als normal verschlüsselte, für berechtigte Projektmitglieder aber grundsätzlich einsehbare Variable hinterlegt oder lokal über eine ignorierte `.env.local` bereitgestellt. Der Wert wird nur direkt durch die berechtigte Person eingetragen, weder in Chat, Logs noch Nachweise kopiert.
+- Ein enges OpenRouter-Key-Limit darf als zusätzlicher Not-Aus dienen. Die eigentliche Free-only-Garantie bleibt die serverseitige Modellauswahl, die kostenpflichtige, nicht kostenlose Completion- und text-only-Modelle verwirft.
+- Nach Anlage oder Rotation ist ein neues Deployment erforderlich. Geprüft werden nur Variablenname, Umgebungszuordnung und ein authentifizierter Funktionsaufruf mit einer freigegebenen Basic-Testkarte.
+- Bei Providerfehlern zuerst OpenRouter-Verfügbarkeit, Free-Limit und Modellauswahl prüfen. Karteninhalte, Bearer und Providerantworten dürfen nicht in Diagnoseausgaben übernommen werden.
 
 ## 3. Preview- und Production-Freigabe
 
@@ -153,7 +162,7 @@ npm run test:e2e:local
 
 Dieser Ablauf darf ausschließlich gegen das verifizierte CoRe-Produktionsprojekt ausgeführt werden. Das aktuell anderweitig verbundene Projekt `smarter-nutrition` ist kein zulässiges Ziel.
 
-1. Zuerst die neue Anwendung deployen und prüfen, dass `/api/ai/*` sowie `/api/imports/apkg` `404` liefern und keine Labs-/Server-APKG-Schreibvorgänge mehr entstehen.
+1. Zuerst die neue Anwendung deployen und prüfen, dass ausgemusterte `/api/ai/*`-Routen außer `/api/ai/card-variant` sowie `/api/imports/apkg` `404` liefern und keine Labs-/Server-APKG-Schreibvorgänge mehr entstehen.
 2. Aktive Trigger- und APKG-Jobs ausschließen. Die CoRe-Projekt-Ref aus der verifizierten Vercel-Production-Konfiguration ermitteln und gegen die Supabase-URL prüfen.
 3. Vor der Migration ausschließlich IDs und Storage-Pfade der zu löschenden Daten in ein unversioniertes Manifest unter `test-results/` schreiben. Das Manifest enthält keine Nutzdaten oder Objektbytes und ist kein Backup.
 4. Löschzahlen und Projekt-Ref im Vier-Augen-Prinzip bestätigen, dann `20260801103920_retire_labs_and_server_apkg.sql` anwenden.

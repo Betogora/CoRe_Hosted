@@ -1,4 +1,5 @@
 import type { AppRoute, AppViewId, createViewRoute } from "./appNavigation.ts";
+import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { CoreWorkspace, DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CoreMode, Deck, LearningItem, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
@@ -60,6 +61,7 @@ export interface DecksScreenProps {
   onUndoDeleteCard: (deckId: string, deletedCard: LearningItem) => Promise<Deck | null>;
   onRestoreCard: (deckId: string, cardId: string, versionId: string) => unknown;
   onAddVariant: (deckId: string, cardId: string, variant: CardVariantInput) => unknown;
+  onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   selectedDeckId: string | null;
   selectedCardId: string | null;

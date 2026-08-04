@@ -1,7 +1,7 @@
 # CoRe-Entscheidungen
 
 **Rolle:** einzige kanonische Quelle für dauerhafte Produkt- und Architekturentscheidungen.
-**Stand:** 2026-08-03
+**Stand:** 2026-08-04
 
 ## ADR-Format
 
@@ -97,3 +97,11 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Entscheidung:** `/testmodus` besitzt einen eigenen transienten Teststapel und eine simulierte Uhr. Er verwendet für Queue, Bewertungen, Lernschritte und Langzeitintervalle unverändert `reviewService.ts` und `scheduler.ts`, erhält aber keine Workspace-, Repository- oder Sync-Callbacks.
 **Konsequenzen:** Die Simulation entspricht dem produktiven FSRS-Pfad und kann beliebig zurückgesetzt werden. Navigation oder Reload dürfen den Teststand verwerfen; eine spätere Persistenz wäre eine neue Produkt- und Datenschutzentscheidung.
 **Datum:** 2026-08-03
+
+## ADR-011 — Schmale OpenRouter-Route für Basic-Kartenvarianten
+
+**Status:** angenommen
+**Kontext:** Basic-Karten sollen auf ausdrückliche Aktion als nahe Kartenvariante umformuliert werden, ohne die entfernte breite KI-, Labs- oder Job-Infrastruktur zurückzubringen und ohne Provider-Schlüssel im Browser zu exponieren.
+**Entscheidung:** Genau `POST /api/ai/card-variant` ist als authentifizierte Vercel Function freigegeben. Sie überträgt ausschließlich begrenzte, bereinigte Vorder-/Rückseitentexte an OpenRouter, erzwingt einen einzelnen strukturierten Tool Call und wählt nur kostenlose multimodale Tool-Modelle. ZDR wird bevorzugt; ein sichtbarer kostenloser Non-ZDR-Fallback bleibt zulässig. Das Ergebnis wird nach Änderungs- und Duplikatprüfung als bestehende `ai_generated`-Variante am Original gespeichert.
+**Konsequenzen:** Es entstehen keine Datenbankmigration, Jobhistorie, Vorschau, Chatfläche, Anbieteradapter oder bezahlter beziehungsweise text-only Fallback. ADR-007 bleibt für die entfernten breiten KI-/Labs-Pfade bestehen; seine Aussage, `ai_generated` sei nur ein ungenutzter Herkunftswert, ist durch diese eng begrenzte Route abgelöst.
+**Datum:** 2026-08-04
