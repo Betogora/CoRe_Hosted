@@ -31,8 +31,9 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | `src/ui/` | Kanonische produktweite UI-Seam und [UI-Katalog](../src/ui/README.md): strukturelle Module in `coreUi.tsx`, Actions in `actionUi.tsx`, Feedback in `feedbackUi.tsx`, Auswahlfelder in `selectUi.tsx` und fachliche Spezialmodule |
 | `src/coreTheme.ts` | Einzige Browser-Seam für validierte Light-/Dark-Auswahl, Dokumentattribut und lokale Theme-Präferenz |
 | `src/coreTypes.ts` | Kanonische normalisierte Typen für Deck, Learning Item, Card Variant, Review State und diskriminierte Editorwerte |
-| `src/coreModel.ts` | Einzige öffentliche Seam für Erzeugung, Normalisierung, typgerechte Editorprojektion, Validierung und Speichern von Learning Items und Varianten |
-| `src/coreWorkspace.ts` | Anwendungsbefehle für Decks, gemeinsame Vier-Ebenen-Platzierungsprüfung, typgerechte Kartenwerte, Import und Variantenannahme |
+| `src/coreModel.ts` | Einzige öffentliche Seam für Erzeugung, Normalisierung, typgerechte Editorprojektion, Validierung, identitätsfreie Karteninhalt-Payloads und Speichern von Learning Items und Varianten |
+| `src/coreWorkspace.ts` | Anwendungsbefehle für Decks, gemeinsame Vier-Ebenen-Platzierungsprüfung, typgerechte Kartenwerte, unabhängige Kartenkopien, Import und Variantenannahme |
+| `src/libraryModel.ts` | Reine Projektionen für Stapelhierarchie, unbegrenzte gruppierte Kartentabelle, Suche, Heatmap und Statistik |
 | `src/creationBatch.ts` | Reiner Batch-Session-State für Zähler, Zieldeck, aktuellen UI-Entwurf, Pins und deterministische Fokuswahl; keine zweite Kartenrepräsentation |
 | `src/importUiState.ts` | Diskriminierte Projektion sichtbarer Importphasen und Terminalzustände ohne Parser-, Protokoll- oder Medienverantwortung |
 | `src/coreRepository.ts` | Lokaler persistenter App-State und Legacy-Normalisierung |
@@ -58,7 +59,7 @@ React-Caller kennen keine APKG-, SQLite-, Storage-, RLS-, Scheduler-, Provider- 
 
 ### 2.2 Navigation und URL-Kontext
 
-`LearnScreen` und `DecksScreen` bleiben getrennte Aufgabenoberflächen. Lernen ist der primäre Lernstart; die Kartenverwaltung ist eine sekundäre, direktlinkfähige Oberfläche. Beide erhalten Deck- und Kartenidentität ausschließlich aus dem von `src/appNavigation.ts` normalisierten AppRoute.
+`LearnScreen` und `DecksScreen` bleiben getrennte Aufgabenoberflächen und beide Teil der Hauptnavigation. Lernen ist der primäre Lernstart; Karten ist die direktlinkfähige, nach Stapelhierarchie gruppierte Gesamttabelle. Beide erhalten Deck- und Kartenidentität ausschließlich aus dem von `src/appNavigation.ts` normalisierten AppRoute; der Karten-Screen besitzt keine parallele Auswahlidentität.
 
 Der URL-Vertrag umfasst:
 
@@ -79,6 +80,8 @@ Aufklappzustände, Tastaturfokus, lokale Suche, Dialoge und ungespeicherte Entw�
 - Jedes Learning Item besitzt genau eine Originalvariante.
 - Jede weitere Variante verweist auf dasselbe Learning Item und bleibt am Original verankert.
 - Typgerechte Änderungen synchronisieren kanonischen Inhalt, Compatibility-Felder, strukturierte Options-/Lückenfelder und Originalvariante atomar.
+- `CardContentPayload` transportiert ausschließlich einen validierten `CardEditorValue` und stabile `mediaRefs`. Die Projektion enthält keine Karten-, Deck-, Varianten-, Review-, Quellen- oder Versionsidentität, keine Medienbytes und keine Signed URLs.
+- Eine Kartenkopie wird über dieses Payload erneut durch die kanonische Learning-Item-Erstellung geführt. Dadurch entstehen frische Learning-Item-, Originalvarianten- und Review-Identitäten sowie ein neuer Schedulerzustand; Importanker, Quellenanker und Versionsverlauf werden nicht übernommen.
 - Reverse-Speichern hält genau eine aktive Rückrichtung aktuell; regulärer Review verwendet die Originalrichtung, expliziter Variantenreview die Rückrichtung.
 - Cloze-Speichern erhält passende Variantenidentitäten, erzeugt neue Lückengruppen und deaktiviert entfernte Gruppen.
 - Importierte Rohfelder bleiben read-only und werden beim typgerechten Speichern nicht ersetzt.

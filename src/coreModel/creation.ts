@@ -1,10 +1,10 @@
-import { sanitizeCardHtml } from "../htmlSafety.ts";
-import type { CardEditorValue, CardField, CardType, CardVariantType, Deck, DeckSource, DraftStatus, LearningItem, LearningItemSourceType, LearningItemStatus, SourceAnchor, TransformType, VariantGenerationSource, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
+import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
+import type { CardContentPayload, CardEditorValue, CardField, CardType, CardVariantType, Deck, DeckSource, DraftStatus, LearningItem, LearningItemSourceType, LearningItemStatus, SourceAnchor, TransformType, VariantGenerationSource, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
 import { CORE_CARD_TYPES, makeId, stableContentHash } from "./coreValues.ts";
 import { createLearningItemState, createSourceAnchor, createSourceDocument, createVersionEntry, type SourceAnchorInput, type SourceDocument } from "./reviewState.ts";
 import { createCardVariant, createCoreCard, getOriginalVariant, normalizeLearningItem } from "./learningItems.ts";
 import { createCoreDeck } from "./decks.ts";
-import { assertValidCardEditorValue, projectCardEditorContent, saveCardEditorValue } from "./cardEditor.ts";
+import { assertValidCardEditorValue, getCardContentPayload, projectCardEditorContent, saveCardEditorValue, validateCardContentPayload } from "./cardEditor.ts";
 
 type StringMap = Record<string, unknown>;
 interface LearningItemOptions { id?: string; variantId?: string; title?: string; sourceType?: LearningItemSourceType; source?: DeckSource; sourceRefId?: string | null; sourceExternalId?: string | null; cardType?: CardType; meta?: StringMap; answerOptions?: unknown; expectedAnswer?: unknown; originalVariantId?: string; reverseVariantId?: string; sourceAnchors?: SourceAnchor[]; originalFields?: CardField[]; tags?: unknown; concepts?: string[]; mediaRefs?: string[]; draftStatus?: DraftStatus; status?: LearningItemStatus; learningItemState?: unknown; reviewState?: unknown; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; createdAt?: string; updatedAt?: string; variantType?: CardVariantType; variantLevel?: number; generationSource?: VariantGenerationSource; explanation?: string; hintsJson?: unknown; answerOptionsJson?: unknown; expectedAnswerJson?: unknown; transformType?: TransformType; qualityStatus?: VariantQualityStatus; isActive?: boolean; anchorVariantId?: string | null; parentVariantId?: string | null; modelRunId?: string | null; learningItem?: LearningItem; items?: LearningItem[]; deck?: Deck; }
@@ -334,6 +334,36 @@ export function createLearningItemFromEditorValue(deckId: string, editorInput: u
         },
       });
   }
+}
+
+export function createLearningItemFromCardContentPayload(deckId: string, payloadInput: unknown): LearningItem {
+  const validation = validateCardContentPayload(payloadInput);
+  if (!validation.ok) throw new Error(validation.error);
+  return createLearningItemFromEditorValue(deckId, validation.value.editorValue, {
+    sourceType: "manual",
+    source: "manual",
+    mediaRefs: validation.value.mediaRefs,
+  });
+}
+
+function appendCopyMarker(html: string): string {
+  if (stripHtml(html).trim().endsWith("(Kopie)")) return html;
+  return sanitizeCardHtml(`${html}<p>(Kopie)</p>`);
+}
+
+function copyMarkedPayload(payload: CardContentPayload): CardContentPayload {
+  const value = payload.editorValue;
+  const editorValue: CardEditorValue = value.cardType === "multiple-choice"
+    ? { ...value, question: appendCopyMarker(value.question), options: [...value.options], tags: [...value.tags] }
+    : value.cardType === "cloze"
+      ? { ...value, textWithClozes: appendCopyMarker(value.textWithClozes), tags: [...value.tags] }
+      : { ...value, front: appendCopyMarker(value.front), tags: [...value.tags] };
+  return { editorValue, mediaRefs: [...payload.mediaRefs] };
+}
+
+export function duplicateLearningItemContent(card: LearningItem): LearningItem | null {
+  const payload = getCardContentPayload(card);
+  return payload ? createLearningItemFromCardContentPayload(card.deckId, copyMarkedPayload(payload)) : null;
 }
 
 export function addRephrasedVariant(learningItemOrId: unknown, front: string, back: string, options: LearningItemOptions = {}): LearningItem {

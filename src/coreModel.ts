@@ -49,9 +49,11 @@ export type { CoreCardInput } from "./coreModel/learningItems.ts";
 export {
   CardEditorValidationError,
   assertValidCardEditorValue,
+  getCardContentPayload,
   getCardEditorValue,
   parseClozeGroups,
   saveCardEditorValue,
+  validateCardContentPayload,
   validateCardEditorValue,
 } from "./coreModel/cardEditor.ts";
 export {
@@ -59,9 +61,11 @@ export {
   createBasicLearningItem,
   createBasicReverseLearningItem,
   createClozeLearningItem,
+  createLearningItemFromCardContentPayload,
   createLearningItemFromEditorValue,
   createLearningItemsFromNormalizedInput,
   createManualCoreDeck,
+  duplicateLearningItemContent,
   restoreCardVersion,
   updateCardContent,
 } from "./coreModel/creation.ts";

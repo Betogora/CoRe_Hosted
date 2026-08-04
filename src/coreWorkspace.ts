@@ -1,4 +1,4 @@
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, restoreCardVersion, saveCardEditorValue } from "./coreModel.ts";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, duplicateLearningItemContent, restoreCardVersion, saveCardEditorValue } from "./coreModel.ts";
 import type { CardEditorValue } from "./coreTypes.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
@@ -540,6 +540,32 @@ export function createCoreWorkspace(repository: WorkspaceRepository = createCore
         ...deck,
         updatedAt,
         cards: (deck.cards ?? []).map((card) => (card.id === cardId ? saveCardEditorValue(card, value, reason) : card)),
+      }));
+    },
+    duplicateDeckCard(deckId: string, cardId: string) {
+      const deck = repository.getState().decks.find((candidate) => candidate.id === deckId);
+      const sourceCard = deck?.cards.find((candidate) => candidate.id === cardId && !candidate.deletedAt);
+      const copiedCard = sourceCard ? duplicateLearningItemContent(sourceCard) : null;
+      if (!deck || !sourceCard || !copiedCard) return null;
+      const updatedAt = new Date().toISOString();
+      const sourceIndex = deck.cards.findIndex((candidate) => candidate.id === cardId);
+      const cards = [...deck.cards];
+      cards.splice(sourceIndex + 1, 0, copiedCard);
+      return repository.updateDeck(deckId, (currentDeck) => ({
+        ...currentDeck,
+        cards,
+        updatedAt,
+        versionLog: [
+          ...currentDeck.versionLog,
+          createVersionEntry({
+            objectType: "deck",
+            objectId: deckId,
+            changeType: "manual_card_added",
+            after: { cardId: copiedCard.id, copiedFromCardId: sourceCard.id },
+            reason: "Kartenkopie hinzugefügt",
+            createdAt: updatedAt,
+          }),
+        ],
       }));
     },
     restoreDeckCardVersion(deckId: string, cardId: string, versionId: string) {

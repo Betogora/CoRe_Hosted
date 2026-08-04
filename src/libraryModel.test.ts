@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createCoreCard, createCoreDeck } from "./coreModel.ts";
+import type { LearningItem } from "./coreTypes.ts";
 import {
+  createCardTableModel,
   createDeckLibraryModel,
   createPerformanceStatisticsModel,
   createStudyHeatmapModel,
@@ -9,7 +11,7 @@ import {
   getStudyHeatmapVisibleWeekCount,
 } from "./libraryModel.ts";
 
-function createDeckHierarchy(cards = []) {
+function createDeckHierarchy(cards: LearningItem[] = []) {
   const parent = createCoreDeck({ id: "deck_parent", name: "Medizin", source: "manual", hierarchyPath: ["Medizin"], cards: [] });
   const child = createCoreDeck({
     id: "deck_child",
@@ -111,7 +113,6 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
       repetitions: 0,
     },
   });
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   const { parent, child } = createDeckHierarchy([childCard]);
   const library = createDeckLibraryModel([parent, child], { now: "2026-07-01T08:00:00.000Z" });
   const parentRow = library.rows.find((row) => row.id === parent.id);
@@ -137,6 +138,47 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
   assert.equal(library.dueCards, 1);
   assert.deepEqual(library.rows.map((row) => row.id), [parent.id, child.id]);
   assert.equal(library.rows[0].summary.totalCards, 1);
+});
+
+test("card table preserves hierarchy and card order while including empty decks", () => {
+  const cards = [
+    createCoreCard({ id: "card-first", source: "manual", originalFront: "<b>Erste</b> Frage", originalBack: "Erste Antwort", originalTags: ["alpha"] }),
+    createCoreCard({ id: "card-second", source: "manual", originalFront: "Zweite Frage", originalBack: "Gesuchte Rückseite", originalTags: ["beta"] }),
+  ];
+  const { parent, child } = createDeckHierarchy(cards);
+  const model = createCardTableModel([parent, child]);
+
+  assert.deepEqual(model.groups.map((group) => group.id), [parent.id, child.id]);
+  assert.equal(model.groups[0].cardRows.length, 0);
+  assert.deepEqual(model.groups[1].cardRows.map((row) => row.id), ["card-first", "card-second"]);
+  assert.equal(model.groups[1].cardRows[0].frontPreview, "Erste Frage");
+  assert.equal(model.groups[1].cardRows[1].backPreview, "Gesuchte Rückseite");
+
+  const cardSearch = createCardTableModel([parent, child], { query: "gesuchte rückseite" });
+  assert.deepEqual(cardSearch.groups.map((group) => group.id), [child.id]);
+  assert.deepEqual(cardSearch.groups[0].cardRows.map((row) => row.id), ["card-second"]);
+
+  const tagSearch = createCardTableModel([parent, child], { query: "beta" });
+  assert.deepEqual(tagSearch.groups[0].cardRows.map((row) => row.id), ["card-second"]);
+
+  const deckSearch = createCardTableModel([parent, child], { query: "medizin / anatomie" });
+  assert.deepEqual(deckSearch.groups[0].cardRows.map((row) => row.id), ["card-first", "card-second"]);
+});
+
+test("card table does not truncate large libraries", () => {
+  const cards = Array.from({ length: 4_900 }, (_, index) => createCoreCard({
+    id: "large-card-" + index,
+    source: "manual",
+    originalFront: "Frage " + index,
+    originalBack: "Antwort " + index,
+  }));
+  const deck = createCoreDeck({ id: "large-deck", name: "Groß", source: "manual", cards });
+  const model = createCardTableModel([deck]);
+
+  assert.equal(model.cardCount, 4_900);
+  assert.equal(model.groups[0].cardRows.length, 4_900);
+  assert.equal(model.groups[0].cardRows[80].id, "large-card-80");
+  assert.equal(model.groups[0].cardRows.at(-1)?.id, "large-card-4899");
 });
 
 test("study heatmap counts learned cards by local day", () => {

@@ -1,6 +1,8 @@
 import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
 import { escapeCardHtmlText, hasCardRichTextContent } from "../richText.ts";
 import type {
+  CardContentPayload,
+  CardContentPayloadValidationResult,
   CardEditorFieldErrors,
   CardEditorValidationResult,
   CardEditorValue,
@@ -242,6 +244,41 @@ export function getCardEditorValue(card: LearningItem): CardEditorValue | null {
       };
     }
   }
+}
+
+function cloneEditorValue(value: CardEditorValue): CardEditorValue {
+  if (value.cardType === "multiple-choice") {
+    return { ...value, options: [...value.options], tags: [...value.tags] };
+  }
+  return { ...value, tags: [...value.tags] };
+}
+
+export function getCardContentPayload(card: LearningItem): CardContentPayload | null {
+  const editorValue = getCardEditorValue(card);
+  if (!editorValue) return null;
+  return {
+    editorValue: cloneEditorValue(editorValue),
+    mediaRefs: [...card.mediaRefs],
+  };
+}
+
+export function validateCardContentPayload(value: unknown): CardContentPayloadValidationResult {
+  const input = objectRecord(value);
+  const editorValidation = validateCardEditorValue(input.editorValue);
+  if (!editorValidation.ok) {
+    return { ok: false, value: null, error: "Die Kartenfelder sind ungültig oder unvollständig." };
+  }
+  if (!Array.isArray(input.mediaRefs) || input.mediaRefs.some((mediaRef) => typeof mediaRef !== "string" || !mediaRef.trim())) {
+    return { ok: false, value: null, error: "Die Medienreferenzen sind ungültig." };
+  }
+  return {
+    ok: true,
+    value: {
+      editorValue: cloneEditorValue(editorValidation.value),
+      mediaRefs: [...new Set(input.mediaRefs.map((mediaRef) => mediaRef.trim()))],
+    },
+    error: null,
+  };
 }
 
 function updatedOriginalVariant(original: CardVariant, value: CardEditorValue, content: EditorContentProjection, updatedAt: string): CardVariant {

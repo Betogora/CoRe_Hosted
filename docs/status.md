@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-08-03
+**Stand:** 2026-08-04
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -18,6 +18,8 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Manuelle Batch-Erstellung bleibt nach jedem Save im Editor, erhält Pins und Zieldeck, setzt freie Felder und Fokus deterministisch zurück und endet erst über `Fertig`.
 - Nichtleere Erstellungsentwürfe sind bei interner Navigation durch einen zugänglichen Dialog und bei Browser-Unload durch den Browser-Fallback geschützt.
 - Karten- und Stapellöschung verwenden produktspezifische Auswirkungsdialoge; Karten bieten ein revisionsgeprüftes unmittelbares Undo über denselben Datensatz.
+- `Karten` ist die fünfte Hauptseite: eine unbegrenzte, nach Stapelhierarchie gruppierte Gesamttabelle mit bereinigten Vorder-/Rückseitenvorschauen, Suche, CoRe-Filter, Gruppenaktionen und einem URL-gesteuerten rechten Detail-`aside`.
+- Basic, Reverse, Cloze und Multiple Choice lassen sich direkt hinter dem Original als unabhängiges Learning Item mit frischen Identitäten und Review State kopieren. Der öffentliche, validierte Karteninhalt-Vertrag umfasst nur typgerechte Editorfelder und stabile Medienreferenzen; eine Anbieter- oder OpenAI-Anbindung ist nicht enthalten.
 - Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen URL-Kontext für Deck, Karte, Erstellziel und allowlist-basierten Review-Rückweg; Reload, Direktlink sowie Browser-Zurück/-Vorwärts erhalten den semantischen Kontext.
 - Ungültige oder nicht verfügbare Deck-/Kartenlinks zeigen sichere deutsche Fallbacks und öffnen nicht still eine andere Karte.
 - Reverse-Richtungen, Cloze-Lückengruppen und Multiple-Choice-Lösung werden beim Speichern atomar in ihre reviewbaren Formen projiziert; Reimport, Cloud und Portabilität erhalten lokale strukturierte Änderungen.
@@ -25,7 +27,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Accountgebundener Mediencache mit privaten Storage-Objekten, Standardupload bis 6 MiB, TUS darüber und URL-Fallback.
 - Review mit vier Bewertungen, echtem FSRS-6 auf offiziellen Standardparametern, Tastatursteuerung und deterministischer Intervallvorschau. Neue Karten erhalten einen verpflichtenden zweiten Tageskontakt; Sitzungen arbeiten eindeutige Karten vor vorgezogenen Wiederholungen ab und zählen beide getrennt.
 - Isolierter, direkt verlinkbarer FSRS-Testmodus mit eigenem Fünf-Karten-Stapel, simulierter Tagesnavigation, echter Review- und Wiederholungslogik sowie sichtbarem Verlauf für nächsten Tag, Zustand, Stabilität und Schwierigkeit; keine Testbewertung gelangt in Workspace, Cloud oder echte Statistik.
-- Direkt verlinkbare Hilfeseite in der Reihenfolge Einführung, `R`/`S`/`D`, Entscheidungsgrafik, Bewertungen, Spaced Repetition und Content Repetition. Die zugängliche Grafik verzweigt nach einem Review in vier mögliche Bewertungsintervalle, hebt `4 Leicht` didaktisch hervor und verlinkt ihre Bestandteile auf stabile Abschnittsanker; eine mögliche Variante am langen Intervall ist keine feste Freigabeschwelle.
+- Direkt verlinkbare Hilfeseite zu FSRS-6, der noch nicht aktivierten persönlichen Parameteroptimierung und Content Repetition mit zugänglicher interaktiver Lernkurve; Review 4 ist darin ausdrücklich ein vereinfachtes Variantenbeispiel.
 - Content-Repetition-Varianten mit genau einem Originalanker, Eligibility, Reife, Deaktivierung und kontrolliertem Fehlerfeedback.
 - Statistik, Sync-/Konfliktstatus und begrenzter JSON-Portabilitätsexport.
 - Lazy geladene Produktscreens, sicherer React-Fehlerfallback und sichtbare Release-Information.
@@ -37,7 +39,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 
 ### Core
 
-Account, Heute, Erstellen/Import, Lernen, Kartenstapelverwaltung, Statistik, Einstellungen, accountgebundene Persistenz und der freigegebene APKG-Pfad bilden den vorgesehenen Beta-Kern.
+Account, Heute, Erstellen/Import, Lernen, Karten, Statistik, Einstellungen, accountgebundene Persistenz und der freigegebene APKG-Pfad bilden den vorgesehenen Beta-Kern.
 
 ### Entfernt
 

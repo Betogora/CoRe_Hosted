@@ -112,21 +112,24 @@ Akzeptanz:
 
 ### 5.3 Karten bearbeiten und eine Sitzung starten
 
-`Lernen` ist der primäre schnelle Einstieg in eine Sitzung. `Kartenstapel` bleibt eine getrennte, sekundäre Verwaltungsoberfläche für Struktur, Inhalt, Versionen und erweiterte Optionen; sie ist aus Lernen über `Karten verwalten` erreichbar.
+`Lernen` ist der primäre schnelle Einstieg in eine Sitzung. `Karten` ist die fünfte Hauptseite und die direktlinkfähige Verwaltungsoberfläche für alle Karten, Stapelstruktur, Inhalt, Versionen und erweiterte Optionen. Die bestehende Route bleibt `/kartenstapel`.
 
 Akzeptanz:
 
-- Dashboard, Lernen und Kartenverwaltung verwenden dieselbe einklappbare Stapelkarte mit dem Icon als erstem Zeileninhalt, Name, eindeutigem Hierarchiepfad bei Unterstapeln sowie den immer sichtbaren Teilbaum-Kennzahlen `Neu`, `Fällig` und `Gesamt`.
-- Jede Stapelkarte zeigt rechts von den Kennzahlen den Fortschrittsdonut und ganz rechts die Stapeloptionen. Das Dashboard zeigt den vollständigen Stapelbaum ohne feste Zeilenbegrenzung.
-- In Dashboard und Lernen startet die neutrale Kartenfläche eine Sitzung. In der Kartenverwaltung wählt sie den Stapel und öffnet beziehungsweise fokussiert dessen Kartenliste und Editor.
+- Die Hauptnavigation lautet exakt `Heute`, `Lernen`, `Erstellen`, `Statistik`, `Karten`.
+- `Heute` und `Lernen` verwenden dieselbe einklappbare Stapelkarte mit Icon, eindeutigem Hierarchiepfad, Teilbaum-Kennzahlen und Fortschrittsdonut. Die Seite `Karten` projiziert stattdessen alle aktiven Karten ohne Tageslimit als semantische Tabelle, gruppiert nach derselben Stapelhierarchie.
+- Die Kartentabelle zeigt pro Karte ausschließlich bereinigte Textvorschauen für Vorder- und Rückseite. Innerhalb eines Stapels bleibt die gespeicherte Import- beziehungsweise Erstellreihenfolge erhalten; leere Stapel zeigen `Keine Karten`.
+- Suche berücksichtigt Stapelpfad, Vorderseite, Rückseite und Tags. Der CoRe-Modus-Filter bleibt erhalten.
 - Auf-/Zuklappen, Stapeloptionen und andere eigene Bedienelemente lösen die Flächenaktion nicht aus. Die Flächenaktion ist per Enter und Leertaste bedienbar und besitzt einen eindeutigen zugänglichen Namen.
 - Lernen besitzt keinen zusätzlichen Tabellenkopf oder separaten Lernen-Button; Donut und Stapeloptionen bleiben pro Stapel erreichbar.
-- Die Kartenverwaltung zeigt Donut und Stapeloptionen in jeder Zeile. Die erweiterten Stapelwerkzeuge bleiben einmal gruppiert beim ausgewählten Stapel: CoRe-Modus, Einstellungen, Umbenennen, bestätigtes Verschieben, Unterstapel, normales und variantenfokussiertes Lernen sowie getrenntes Löschen.
+- Jede Stapelgruppe der Kartentabelle besitzt ein kompaktes Optionsmenü mit CoRe-Modus, Einstellungen, Umbenennen, bestätigtem Verschieben, Unterstapel, normalem und variantenfokussiertem Lernen sowie Löschen.
+- Ein Kartenklick setzt Deck- und Karten-ID gemeinsam in die URL und öffnet rechts ein nicht-modales, unabhängig scrollendes Detail-`aside`. Ab 1024 px überlagert es die rechte Hälfte der Tabelle, darunter die volle Inhaltsbreite. Schließen, Escape, Reload sowie Browser-Zurück/-Vorwärts sind deterministisch und stellen den Zeilenfokus nach dem Schließen wieder her.
+- Der Detailbereich zeigt den typgerechten Editor, Speichern, Kopieren und Löschen primär; Varianten, Herkunft, Versionen und Restore bleiben progressiv offengelegt.
 - Das fokussierte Deck ist in Lernen und Kartenverwaltung derselbe URL-reproduzierbare Kontext, ohne parallele lokale Deckidentität.
 - Lernen-, Kartenverwaltungs- und Erstelllinks erhalten ihr Deck beziehungsweise ihre ausgewählte Karte über Reload und Direktlink.
 - Stapeloptionen merken sich ihren URL-reproduzierbaren Ursprung. Der Rückweg führt zum Dashboard, nach Lernen oder zum zuvor ausgewählten Stapel und optional zur Karte; Direktlinks ohne Ursprung fallen sicher auf Lernen zurück.
 - Gleichnamige Unterstapel werden in relevanten Links und Auswahlen durch ihren vollständigen Hierarchiepfad unterschieden.
-- In Dashboard, Lernen und Kartenverwaltung verschiebt ein Drop auf eine Stapelkarte den gezogenen Baum unmittelbar als Unterstapel; ein Drop auf die sichtbare freie Hauptebenen-Zone entfernt die Elternzuordnung. Die durchgehende neutrale Zeilenfläche reagiert nach einer kurzen Bewegungsschwelle direkt auf Maus- und Trackpad-Pointer, sodass kein langes Halten nötig ist. Selbst-, Nachfahren- und unveränderte Ziele bleiben ohne Strukturänderung.
+- In Dashboard und Lernen verschiebt ein Drop auf eine Stapelkarte den gezogenen Baum unmittelbar als Unterstapel; ein Drop auf die sichtbare freie Hauptebenen-Zone entfernt die Elternzuordnung. Die durchgehende neutrale Zeilenfläche reagiert nach einer kurzen Bewegungsschwelle direkt auf Maus- und Trackpad-Pointer, sodass kein langes Halten nötig ist. Selbst-, Nachfahren- und unveränderte Ziele bleiben ohne Strukturänderung.
 - Interaktiv angelegte oder verschobene Stapelbäume besitzen höchstens vier sichtbare Ebenen: Hauptstapel, Unterstapel, Unter-Unterstapel und Unter-Unter-Unterstapel. Ein zu tiefes Ziel wird ohne Mutation mit `Maximal vier Stapel-Ebenen sind möglich.` abgelehnt.
 - Tiefere APKG-Hierarchien bleiben beim Import unverändert. Ihre Darstellung verwendet ab der vierten Ebene den tiefsten Gruppenton; spätere Moves müssen die Vier-Ebenen-Grenze einhalten oder den vorhandenen Baum nachweislich flacher machen.
 - Ein beendeter Drag startet keine Sitzung. Erfolg, Fehler und No-op werden deutsch über eine Live-Region gemeldet; es gibt keine Bestätigung und kein Rückgängig-Angebot.
@@ -143,6 +146,8 @@ Akzeptanz:
 - Eine erfolgreiche Bearbeitung erzeugt einen auditierbaren Versionseintrag; Wiederherstellung umfasst auch strukturierte Cloze- und Multiple-Choice-Inhalte.
 - Lokale typgerechte Inhaltsänderungen werden bei APKG-Reimport nicht still überschrieben.
 - Strukturierte Kartenfelder überleben den accountgebundenen Cloud-Roundtrip und den Portabilitätsexport.
+- Basic, Reverse, Cloze und Multiple Choice können als eigenständiges Learning Item direkt hinter dem Ausgangselement kopiert werden. Nur die Vorderseitenrepräsentation erhält einmalig `(Kopie)`; Rückseite, Typ, strukturierte Felder, Tags und stabile Medienreferenzen bleiben erhalten. Karten-, Varianten-, Review-, Import-, Quellen- und Versionsidentitäten sowie Schedulerzustand werden neu erzeugt beziehungsweise nicht übernommen; die Ausgangskarte bleibt ausgewählt.
+- Der öffentliche Karteninhalt-Vertrag besteht ausschließlich aus `editorValue: CardEditorValue` und `mediaRefs: string[]`. Er ist laufzeitvalidiert und sanitisiert und enthält weder Deck-/Karten-/Varianten-/Review-/Quellen-/Versions-IDs noch Medienbytes oder Signed URLs.
 
 ### 5.4 Karte bewerten, neu laden und fortfahren
 
@@ -152,8 +157,6 @@ Akzeptanz:
 
 - `Again`, `Hard`, `Good` und `Easy` sind per Maus und Tastatur erreichbar.
 - Intervallvorschauen passen zur tatsächlich angewendeten Bewertung.
-- Der Reviewkopf zeigt statt eines Fortschrittsbalkens die aktuell eingeplanten Anzahlen für `Fällig` und `Neu`.
-- Frage und Antwort stehen ohne dekorative Trennlinie auf derselben Kartenfläche; die kompakten, dezent akzentuierten Bewertungsaktionen sind Teil dieser Fläche.
 - Vor dem Reveal erscheinen keine Herkunfts-, Varianten-, Reife- oder Schedulerhinweise.
 - Die geplante Sitzungsgröße bleibt während der Sitzung stabil.
 - Das Ende nennt die beantwortete Anzahl und führt gezielt zum URL-kodierten Ausgangspunkt zurück.
@@ -179,18 +182,19 @@ Akzeptanz:
 
 ### 5.6 Lernlogik verstehen
 
-Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite `/hilfe` im normalen App-Shell-Inhaltsbereich. Die Seite folgt der festen Reihenfolge Einführung, Grundbegriffe, Entscheidungsgrafik, vier Bewertungen, Spaced Repetition und Content Repetition.
+Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite `/hilfe` im normalen App-Shell-Inhaltsbereich. Sie erklärt die FSRS-Grundbegriffe, CoRes Einsatz von FSRS-6 mit offiziellen Standardparametern und wie Content Repetition dieselbe Wissenseinheit in einer anderen Form abfragen kann.
 
 Akzeptanz:
 
-- Die Einführung erklärt knapp, dass CoRe Spaced Repetition für den Zeitpunkt mit Content Repetition für wechselnde Fragestellungen verbindet. Die Grundbegriffe enthalten ausschließlich Abrufwahrscheinlichkeit `R`, Stabilität `S` und Schwierigkeit `D` als ruhige Textdefinitionen; `S` ist die Zeit, in der `R` von 100 auf 90 Prozent fällt.
-- Die als vereinfacht gekennzeichnete Grafik zeigt eine erste Vergessenskurve bis zu einem Review und danach vier alternative Intervalle für `1 Nochmal`, `2 Schwer`, `3 Gut` und `4 Leicht`. `4 Leicht` ist standardmäßig deutlich hervorgehoben und endet an einem beschrifteten möglichen Variantenpunkt; dies ist weder eine feste Reviewnummer noch eine Scheduler- oder Variantenschwelle.
-- Die durch zwei diagonale Striche unterbrochene Y-Achse macht kenntlich, dass nur der Ausschnitt von 90 bis 100 Prozent Abrufwahrscheinlichkeit gezeigt wird. `R`, `S` und `D` bleiben qualitativ in der Grafik sichtbar; es werden keine scheinbar exakten Gedächtniswerte erfunden.
-- Mausberührung und Tastaturfokus heben die jeweilige Bewertungskurve vorübergehend durch Strichstärke und Opazität hervor. Nach Verlassen ist wieder `4 Leicht` aktiv. Nummer, Bewertungsname, Symbol und Text ergänzen die Farbe als Bedeutungsträger.
-- Die Grafik dient zugleich als Sprungnavigation: `R`, `S` und `D` führen zu `#grundbegriffe`, die erste Vergessenskurve zu `#spaced-repetition`, alle vier Bewertungskurven zu `#bewertungen` und der Variantenpunkt zu `#content-repetition`. Die Links besitzen verständliche Namen, sichtbare Fokuszustände und mindestens 44 px große Bedienflächen.
-- Der Spaced-Repetition-Abschnitt erklärt Gedächtniszustand, Vergessensprognose, Zielerinnerung und CoRes Einsatz von FSRS-6 mit den offiziellen 21 Standardparametern unter Einbeziehung aller Reviews. Persönliche Parameteroptimierung ist noch nicht aktiviert; eine höhere Zielerinnerung bedeutet mehr Reviews bei geringerem Vergessensrisiko.
-- Der Content-Repetition-Abschnitt begrenzt Varianten auf dieselbe Wissenseinheit ohne neue Fakten. Eine ausreichend stabile Originalkarte kann eine nahe Variante erhalten; das Original bleibt nach der Antwort erreichbar und Fehler führen zurück zum Original oder zu einer einfacheren Variante.
-- Bewertungen und Erklärungen verwenden typografische Textbereiche mit Trennlinien statt wiederholter Kartenflächen. Die mobile Darstellung begrenzt horizontales Scrollen auf den Grafikbereich, erzeugt keinen Dokument-Overflow und bleibt im Dark Mode sowie bei reduzierter Bewegung verständlich.
+- Die Erklärung nennt Abrufwahrscheinlichkeit `R`, Stabilität `S`, Schwierigkeit `D`, Zielerinnerung, Intervall, Original und Variante in verständlicher deutscher Sprache. Sie erklärt `S` als die Zeit, in der `R` von 100 auf 90 Prozent fällt, und zeigt die Kette von Bewertung über Gedächtniszustand und Vergessensprognose zum nächsten Termin.
+- Die Hilfeseite erklärt, dass FSRS-6 alle Reviews einschließlich mehrerer Abrufe am selben Tag berücksichtigt und 21 Modellparameter verwendet. CoRe nutzt die offiziellen Standardparameter; persönliche Optimierung ist noch nicht aktiviert. Höhere Zielerinnerung wird transparent als mehr Reviews bei geringerem Vergessensrisiko beschrieben.
+- CoRe erklärt Variantenbereitschaft als Reifeentscheidung aus erfolgreichen Abrufen, Stabilität, Intervall, Abrufwahrscheinlichkeit und Fehlerverlauf. Ausreichende Stabilität kann eine nahe Variante erlauben, aktuelle Fehler führen konservativ zum Original oder zu einer einfacheren Variante zurück; eine feste Reviewnummer wird nicht versprochen.
+- Eine eigenständige, als vereinfacht gekennzeichnete Lernkurve zeigt vier erfolgreiche Reviews, wachsende Intervalle und beispielhaft beim vierten Review eine nahe CoRe-Variante; daraus entsteht keine garantierte Scheduler- oder Variantenschwelle. Die durch zwei diagonale Striche unterbrochene Y-Achse kennzeichnet transparent, dass nur der Ausschnitt von 90 bis 100 Prozent gezeigt wird.
+- `R` ist an Kurven und Zielerinnerung, `S` an den wachsenden Intervallspannen und `D` als langsam veränderlicher Einfluss an den Reviewpunkten sichtbar. Die Darstellung bleibt qualitativ und erfindet keine scheinbar exakten Zustandswerte.
+- Kurvenabschnitte und ihre vollständigen Diagrammflächen reagieren auf Mausberührung. Die vier Reviewpunkte, die Review-Textübersicht sowie die `R`-, `S`- und `D`-Texte sind per Maus, Touch und Tastatur gekoppelt auswählbar und aktualisieren dieselbe ausführliche Erklärung unterhalb der Grafik.
+- Farbe ist nie der einzige Bedeutungsträger; Beschriftung, Strichstärke, Symbole, Fokuszustand und statische Textdefinitionen bleiben erhalten. Begriffe, Reviewübersicht und Bewertungen verwenden eine ruhige Textgliederung mit Trennlinien statt wiederholter Kartenflächen.
+- Die mobile Darstellung begrenzt horizontales Scrollen auf den Grafikbereich und erzeugt keinen Dokument-Overflow.
+- Die offizielle FSRS-Einführung ist als externer weiterführender Link gekennzeichnet.
 
 ### 5.7 FSRS über simulierte Tage prüfen
 
@@ -218,10 +222,9 @@ Akzeptanz:
 
 - Decks können Eltern- und Unterstapel bilden.
 - Hierarchie bleibt beim unterstützten APKG-Import erhalten.
-- Dashboard, Lernen und Kartenverwaltung projizieren denselben kanonischen, lokal einklappbaren Stapelbaum; Elternkennzahlen aggregieren sämtliche Unterstapel.
-- Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen Deckkontext und einer gemeinsamen Stapelkarten-Darstellung.
-- Lernen ist Teil der Hauptnavigation; die direktlinkfähige Kartenverwaltung wird sekundär aus Lernen geöffnet.
-- Dashboard, Lernen und Kartenverwaltung erlauben direktes Drag-and-drop für Parent-/Child-Zuordnung und Outdent zur Hauptebene. Die Kartenverwaltung bietet dieselbe fachliche Mutation zusätzlich über einen expliziten bestätigten Fallback an.
+- Dashboard und Lernen projizieren denselben kanonischen, lokal einklappbaren Stapelbaum; Elternkennzahlen aggregieren sämtliche Unterstapel. Karten projiziert dieselbe Hierarchie als gruppierte Gesamttabelle.
+- Lernen und Karten bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen Deckkontext. Beide sind Teil der Hauptnavigation; Karten bleibt zusätzlich aus Lernen erreichbar.
+- Dashboard und Lernen erlauben direktes Drag-and-drop für Parent-/Child-Zuordnung und Outdent zur Hauptebene. Karten bietet dieselbe fachliche Mutation über einen expliziten bestätigten Ablauf an.
 - Direktes Drag-and-drop ist eine Desktop-Interaktion für Maus und Trackpad und markiert während der Geste keinen Zeilentext. Touch, Tastatur und assistive Bedienung verwenden den bestätigten Fallback; manuelle Elternauswahlen und Verschiebeziele bieten keine fünfte sichtbare Ebene an.
 - Suche und Filter helfen bei großen Bibliotheken.
 - Stapelname, Lernoptionen und Content-Repetition-Modus sind bearbeitbar.
@@ -287,7 +290,7 @@ Chat-your-Deck, Lernplan, lokaler KI-Entwurf, Deck-Graph, Community-Demo, KI-Job
 - Stapelgruppen verwenden dauerhaft die einfachen, gerahmten Flächen `--core-group-depth-0` bis `--core-group-depth-3`: Hauptstapel verwenden die ungefüllte Oberflächenfarbe von Depth 0 ohne Schatten, die drei Unterebenen jeweils Depth 1 bis 3. Tiefere Importe verwenden weiterhin Stufe 3. Hover, Auswahl, Fokus und Drop-Ziele reagieren am bestehenden Außenrand, ohne einen eingerückten Hover-Layer oder eine erhöhte Stapelfläche zu erzeugen.
 - Stapelkarten zeigen `Neu` in der semantischen Lilac-Textrolle, `Fällig` in Slate und `Gesamt` gedämpft. Die sichtbaren Labels bleiben in allen Themes und Breiten erhalten, sodass Farbe nie allein Bedeutung trägt.
 - Amulya definiert die visuellen Überschriftenstufen `36/44`, `28/36` und `22/30`; Synonym definiert Body Large `16/24`, Body und Controls `14/20` sowie Caption und Statuslabel `12/16`. Semantische HTML-Ebene und visuelle Stufe dürfen voneinander abweichen.
-- Bestehendes Karten-HTML und persistierte benutzerdefinierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate `#6F7E9E`. Stapel-Icons erscheinen produktweit rund mit Symbol und Rand in der gewählten Farbe sowie einer dezenten transparenten Flächentönung derselben Farbe; die Stapel-Einstellungen wählen diese Farbe über ein kompaktes Farbfeld und einen zugänglichen runden Farbkreis. Rich-Text-Schnellfarben stammen weiterhin aus der CoRe-Palette.
+- Bestehendes Karten-HTML und persistierte benutzerdefinierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate `#6F7E9E`. Stapel-Icons erscheinen produktweit rund mit Symbol und Rand in der gewählten Farbe sowie einer dezenten transparenten Flächentönung derselben Farbe. Die kompakte Kopfzeile der Stapel-Einstellungen bearbeitet Stapelname, Icon und Farbe gemeinsam: Ein zugängliches 5-mal-5-Raster bietet 25 repräsentative Lucide-Icons, der runde Farbkreis wählt die Farbe und ein gemeinsamer Speichervorgang übernimmt alle drei Entwürfe. Rich-Text-Schnellfarben stammen weiterhin aus der CoRe-Palette.
 
 Der auffindbare, nicht verpflichtende Wiederverwendungsvertrag für neue Features steht im [`src/ui`-Katalog](../src/ui/README.md). Vorhandene Module sollen verwendet werden, wenn ihre Schnittstelle die Fachsemantik erhält; fachlich abweichende Controls dürfen lokal bleiben und nutzen dennoch dieselben Theme-, Typografie-, Fokus- und Disabled-Rollen.
 

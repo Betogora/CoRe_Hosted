@@ -10,6 +10,7 @@ test("lists the navigation items in product order", () => {
     { id: "lernen", label: "Lernen", iconKey: "learn" },
     { id: "neue-karten", label: "Erstellen", iconKey: "plus" },
     { id: "statistik", label: "Statistik", iconKey: "chart" },
+    { id: "kartenstapel", label: "Karten", iconKey: "layers" },
   ]);
 });
 
@@ -37,12 +38,12 @@ test("returns new-card content by id", () => {
   });
 });
 
-test("keeps deck, test mode, help and settings views available outside the main navigation", () => {
+test("keeps cards in primary navigation and utility views outside it", () => {
   const menu = createMenuModel();
 
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(menu.getView("kartenstapel").title, "Kartenstapel");
+  assert.equal(menu.getView("kartenstapel").title, "Karten");
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture prüft bewusst eine unvollständige, ungültige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("hilfe").title, "Wie CoRe und FSRS funktionieren");
@@ -50,7 +51,7 @@ test("keeps deck, test mode, help and settings views available outside the main 
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("einstellungen").title, "Einstellungen");
-  assert.equal(menu.listNavigationItems().some((item) => item.id === "kartenstapel"), false);
+  assert.equal(menu.listNavigationItems().some((item) => item.id === "kartenstapel"), true);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "einstellungen"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "hilfe"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "testmodus"), false);

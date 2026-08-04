@@ -566,6 +566,25 @@ test("workspace card maintenance hides editing and delete invariants", () => {
   assert.equal(workspace.getState().cloudTombstones.some((tombstone) => tombstone.entityId === cardId), false);
 });
 
+test("workspace inserts an independent copy immediately after its source", () => {
+  const workspace = createTestWorkspace();
+  const deck = workspace.createDemoDeck();
+  const sourceIndex = 0;
+  const source = deck.cards[sourceIndex];
+  const updated = workspace.duplicateDeckCard(deck.id, source.id);
+
+  assert.ok(updated);
+  assert.equal(updated.cards.length, deck.cards.length + 1);
+  assert.equal(updated.cards[sourceIndex].id, source.id);
+  const copy = updated.cards[sourceIndex + 1];
+  assert.notEqual(copy.id, source.id);
+  assert.notEqual(copy.reviewState.id, source.reviewState.id);
+  assert.notEqual(getOriginalVariant(copy)?.id, getOriginalVariant(source)?.id);
+  assert.equal(copy.reviewState.repetitions, 0);
+  assert.equal((copy.originalFront.match(/\(Kopie\)/g) ?? []).length, 1);
+  assert.equal(workspace.duplicateDeckCard(deck.id, "missing-card"), null);
+});
+
 test("workspace restores a card version through the canonical repository mutation", () => {
   const workspace = createTestWorkspace();
   const deck = workspace.createDemoDeck();

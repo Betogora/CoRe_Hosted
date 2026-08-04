@@ -417,6 +417,19 @@ function createDeckRow(
 
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
+function createCardTableRow(card: LearningItem) {
+  return {
+    id: card.id,
+    card,
+    frontPreview: previewText(card.originalFront),
+    backPreview: previewText(card.originalBack),
+  };
+}
+
+export type CardTableRow = ReturnType<typeof createCardTableRow>;
+
+export type CardTableGroup = Omit<DeckLibraryRow, "cardRows"> & { cardRows: CardTableRow[] };
+
 function matchesDeckRow(row: DeckLibraryRow, query: string, coreMode: CoreMode | "all"): boolean {
   const haystack = normalizeQuery(`${row.name} ${row.deck.tags?.join(" ") ?? ""} ${row.path}`);
   const matchesQuery = !query || haystack.includes(query);
@@ -613,6 +626,36 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
     selectedRow,
     dueCards: rows.reduce((total, row) => total + row.directSummary.dueCards, 0),
     studyHeatmap: createStudyHeatmapModel(decks, { now }),
+  };
+}
+
+export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions = {}) {
+  const query = normalizeQuery(options.query);
+  const coreMode = options.coreMode ?? "all";
+  const now = options.now ?? new Date();
+  const rows = flattenDeckTree(decks, { now, cardLimit: 0 });
+  const allGroups: CardTableGroup[] = rows.map((row) => ({
+    ...row,
+    cardRows: row.activeCards.map(createCardTableRow),
+  }));
+  const groups = allGroups.flatMap((group) => {
+    if (coreMode !== "all" && group.coreMode !== coreMode) return [];
+    if (!query) return [group];
+
+    const deckMatches = normalizeQuery(group.path).includes(query);
+    const cardRows = deckMatches
+      ? group.cardRows
+      : group.cardRows.filter(({ card, frontPreview, backPreview }) => normalizeQuery(
+        `${frontPreview} ${backPreview} ${card.tags?.join(" ") ?? ""}`,
+      ).includes(query));
+
+    return deckMatches || cardRows.length ? [{ ...group, cardRows }] : [];
+  });
+
+  return {
+    allGroups,
+    groups,
+    cardCount: groups.reduce((total, group) => total + group.cardRows.length, 0),
   };
 }
 

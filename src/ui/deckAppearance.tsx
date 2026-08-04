@@ -101,7 +101,35 @@ const labelByKey: Record<string, string> = {
   wrench: "Werkzeug",
 };
 
-export const deckIconOptions = DECK_ICON_KEYS.map((key) => ({
+export const DECK_ICON_PICKER_KEYS = [
+  "folder",
+  "badge-dollar",
+  "book-open",
+  "graduation-cap",
+  "pen-line",
+  "braces",
+  "terminal",
+  "music",
+  "gift",
+  "scissors",
+  "stethoscope",
+  "asterisk",
+  "flower",
+  "briefcase",
+  "chart-column",
+  "dumbbell",
+  "notebook",
+  "scale",
+  "globe",
+  "plane",
+  "wrench",
+  "flask",
+  "brain",
+  "heart",
+  "shopping-bag",
+] as const satisfies readonly (typeof DECK_ICON_KEYS)[number][];
+
+export const deckIconOptions = DECK_ICON_PICKER_KEYS.map((key) => ({
   key,
   label: labelByKey[key] ?? key,
   icon: iconByKey[key] ?? BookOpen,

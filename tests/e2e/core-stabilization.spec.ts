@@ -395,7 +395,6 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await expect(page.getByRole("status")).toContainText("Stapel-Einstellungen gespeichert.");
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();
-  await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await page.getByTestId("card-variant-tools").getByText("Varianten und Lernwerte").click();
   const variantsBefore = (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0;
@@ -404,7 +403,8 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await page.getByRole("button", { name: "Umformulierung hinzufügen" }).click();
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0).toBe(variantsBefore + 1);
 
-  await page.getByTestId(`deck-actions-${DECK_IDS.africa}`).getByRole("button", { name: "Mit Varianten lernen" }).click();
+  await page.getByTestId(`deck-options-${DECK_IDS.africa}`).click();
+  await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Varianten lernen", exact: true }).click();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
 
@@ -430,7 +430,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
   await expect(page.getByText("1 Karte beantwortet.")).toBeVisible();
   await page.getByRole("button", { name: "Zurück zum Ausgangspunkt" }).click();
-  await expect(page.getByRole("heading", { name: "Karten in Afrika" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
 });
 
@@ -438,7 +438,6 @@ test("card version restore shows a comparison, requires confirmation and appends
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();
-  await page.getByTestId(`deck-select-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
 
   const state = await readAppState(page);

@@ -45,6 +45,7 @@ export interface DeckSettingsScreenProps {
   deck: Deck | null;
   onSave: (deckId: string, settings: LearningSettingsInput) => unknown;
   onSaveAppearance: (deckId: string, appearance: Deck["deckSettings"]["appearance"]) => unknown;
+  onRenameDeck: (deckId: string, name: string) => DeckMutationResult | null;
   onBack: () => unknown;
   backLabel?: string;
 }
@@ -54,6 +55,7 @@ export interface DecksScreenProps {
   mediaStore: AccountMediaStore | null;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onSaveCard: (deckId: string, cardId: string, value: CardEditorValue) => unknown;
+  onDuplicateCard: (deckId: string, cardId: string) => Promise<Deck | null>;
   onDeleteCard: (deckId: string, cardId: string) => Promise<Deck | null>;
   onUndoDeleteCard: (deckId: string, deletedCard: LearningItem) => Promise<Deck | null>;
   onRestoreCard: (deckId: string, cardId: string, versionId: string) => unknown;
@@ -62,7 +64,6 @@ export interface DecksScreenProps {
   selectedDeckId: string | null;
   selectedCardId: string | null;
   onSelectDeck: (deckId: string | null, cardId?: string | null) => unknown;
-  onSelectCard: (cardId: string | null) => unknown;
   onOpenLearn: (deckId?: string | null) => unknown;
   onDeleteDeck: (deckId: string) => Promise<ReturnType<CoreWorkspace["deleteDeckTree"]> | null>;
   onRenameDeck: (deckId: string, name: string) => DeckMutationResult | null;

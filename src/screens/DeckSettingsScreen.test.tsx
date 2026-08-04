@@ -15,6 +15,7 @@ test("deck settings label the URL-derived return destination", () => {
       deck={deck}
       onSave={() => undefined}
       onSaveAppearance={() => undefined}
+      onRenameDeck={() => null}
       onBack={() => undefined}
       backLabel="Zurück zur Kartenverwaltung"
     />,
@@ -24,6 +25,7 @@ test("deck settings label the URL-derived return destination", () => {
       deck={deck}
       onSave={() => undefined}
       onSaveAppearance={() => undefined}
+      onRenameDeck={() => null}
       onBack={() => undefined}
     />,
   );
@@ -33,16 +35,23 @@ test("deck settings label the URL-derived return destination", () => {
   assert.match(directLinkFallback, /Zurück zu Lernen/);
 });
 
-test("deck settings use the compact color wheel trigger instead of the native color field", () => {
+test("deck settings use the compact title toolbar and remove the explanatory appearance form", () => {
   const markup = renderToStaticMarkup(
     <DeckSettingsScreen
       deck={deck}
       onSave={() => undefined}
       onSaveAppearance={() => undefined}
+      onRenameDeck={() => null}
       onBack={() => undefined}
     />,
   );
 
-  assert.match(markup, /aria-label="Iconfarbe auswählen"/);
-  assert.doesNotMatch(markup, /type="color"|font-mono/);
+  assert.match(markup, /core-heading-3[^>]*>Biologie/);
+  assert.match(markup, /aria-label="Stapel umbenennen"/);
+  assert.match(markup, />Icon</);
+  assert.match(markup, /aria-label="Icon auswählen"/);
+  assert.match(markup, />Farbe</);
+  assert.match(markup, /aria-label="Farbe auswählen"/);
+  assert.match(markup, />Speichern</);
+  assert.doesNotMatch(markup, /Nur dieser Stapel|Andere Stapel behalten|Stapel-Icon|Iconfarbe|Darstellung speichern|type="color"/);
 });

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { loadAccountCloudState, replaceAccountCloudState } from "../../src/cloudRepository.ts";
 import { createCoreRepository } from "../../src/coreRepository.ts";
 import type { Deck } from "../../src/coreTypes.ts";
+import { cardTypeOptions } from "../../src/screens/screenConstants.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 
@@ -85,8 +86,16 @@ async function openManualCreation(page: Page, deckName: string, cardType: string
   await page.getByRole("button", { name: "Neuen Stapel erstellen" }).click();
   await page.getByRole("textbox", { name: "Neuer Kartenstapel" }).fill(deckName);
   const cardTypeSelect = page.getByRole("combobox", { name: "Kartentyp" });
-  await cardTypeSelect.click();
-  await page.getByRole("option", { name: cardType === "basic" ? "Basic" : cardType === "basic-reversed" ? "Umgekehrt" : cardType === "cloze" ? "Lückentext" : "Multiple Choice", exact: true }).click();
+  const optionLabel = cardTypeOptions.find((option) => option.value === cardType)?.label;
+  if (!optionLabel) throw new Error(`Unbekannter Kartentyp im Test: ${cardType}`);
+  if (cardType === "basic") {
+    await cardTypeSelect.press("Enter");
+    await page.keyboard.press("Escape");
+    await expect(cardTypeSelect).toBeFocused();
+  }
+  await cardTypeSelect.press("Enter");
+  await page.getByRole("option", { name: optionLabel, exact: true }).press("Enter");
+  await expect(cardTypeSelect).toContainText(optionLabel);
 }
 
 async function finishManualCreation(page: Page, deckName: string) {
@@ -103,8 +112,22 @@ async function finishManualCreation(page: Page, deckName: string) {
 
 async function openCreatedCardEditor(page: Page, deck: Deck) {
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await expect(page.getByRole("heading", { name: "Kartenstapel", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
+}
+
+async function startDeckFromCards(page: Page, deckId: string, variants = false) {
+  await page.getByTestId(`deck-options-${deckId}`).click();
+  await page.getByTestId(`deck-options-menu-${deckId}`).getByRole("button", { name: variants ? "Varianten lernen" : "Lernen", exact: true }).click();
+}
+
+async function finishCurrentReview(page: Page) {
+  for (let index = 0; index < 4; index += 1) {
+    if (await page.getByRole("heading", { name: "Sitzung abgeschlossen" }).isVisible().catch(() => false)) return;
+    await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+    await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+  }
+  await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
 }
 
 test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bearbeiten, speichern und reviewen", async ({ page }) => {
@@ -130,9 +153,24 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   expect(savedCard.originalBack).toBe("<p>Basic Antwort neu</p>");
   expect(savedCard.immutableOriginal).toEqual(immutableOriginal);
   expect(savedCard.versionLog.at(-1)?.changeType).toBe("content_updated");
+  const sourceUrl = page.url();
+  await page.getByRole("button", { name: "Kopieren", exact: true }).click();
+  await expect(page.getByText("Kopie direkt unter der Ausgangskarte erstellt.", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(sourceUrl);
+  const copiedState = await readActiveAccountState(page);
+  const copiedDeck = copiedState.decks.find((candidate: { id: string }) => candidate.id === deck.id);
+  expect(copiedDeck.cards).toHaveLength(2);
+  const copiedCard = copiedDeck.cards[1];
+  expect(copiedCard.id).not.toBe(savedCard.id);
+  expect(copiedCard.reviewState.id).not.toBe(savedCard.reviewState.id);
+  expect(copiedCard.originalFront).toContain("Basic Frage neu");
+  expect(copiedCard.originalFront.match(/\(Kopie\)/g)).toHaveLength(1);
+  expect(copiedCard.originalBack).toBe(savedCard.originalBack);
+  await expect(page.getByTestId(`deck-card-${copiedCard.id}`)).toBeAttached();
+  await waitForCloudCard(deck.id, copiedCard.id, (card) => card.originalFront.includes("(Kopie)"));
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Kartenstapel", exact: true })).toBeVisible();
-  await page.getByTestId(`deck-select-${deck.id}`).click();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByTestId(`deck-card-${copiedCard.id}`)).toBeAttached();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Basic Frage neu");
 
@@ -154,16 +192,18 @@ test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse hält beid
   expect(initialReverse).toBeTruthy();
 
   await openCreatedCardEditor(page, deck);
-  await page.getByRole("button", { name: `${deckName} lernen` }).click();
+  await startDeckFromCards(page, deck.id);
   await expect(page.getByText("Reverse vorne alt", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await expect(page.getByText("Reverse hinten alt", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
-  await page.getByRole("button", { name: `${deckName} mit Varianten lernen` }).click();
+  await startDeckFromCards(page, deck.id, true);
   await expect(page.getByText("Reverse hinten alt", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await expect(page.getByText("Reverse vorne alt", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
+
+  await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
 
   await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Reverse vorne neu");
   await page.getByRole("textbox", { name: "Karten-Rückseite", exact: true }).fill("Reverse hinten neu");
@@ -176,21 +216,20 @@ test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse hält beid
   expect(activeReverse).toHaveLength(1);
   expect(activeReverse[0]).toMatchObject({ id: initialReverse.id, front: "<p>Reverse hinten neu</p>", back: "<p>Reverse vorne neu</p>" });
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Kartenstapel", exact: true })).toBeVisible();
-  await page.getByTestId(`deck-select-${deck.id}`).click();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
-  await page.getByRole("button", { name: `${deckName} lernen` }).click();
+  await startDeckFromCards(page, deck.id);
   await expect(page.getByText("Reverse vorne neu", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await expect(page.getByText("Reverse hinten neu", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
 
-  await page.getByRole("button", { name: `${deckName} mit Varianten lernen` }).click();
+  await startDeckFromCards(page, deck.id, true);
   await expect(page.getByText("Reverse hinten neu", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await expect(page.getByText("Reverse vorne neu", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
-  await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
+  await finishCurrentReview(page);
 });
 
 test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core Cloze ergänzt eine aktive Lückengruppe ohne bestehende Identität zu verlieren", async ({ page }) => {
@@ -220,10 +259,9 @@ test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core Cloze ergänzt eine 
   expect(savedCard.variants.find((variant: { meta: { clozeGroup: number } }) => variant.meta.clozeGroup === 2)?.isActive).toBe(false);
   expect(activeGroups.find((variant: { meta: { clozeGroup: number } }) => variant.meta.clozeGroup === 3).expectedAnswerJson).toEqual(["ADP"]);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Kartenstapel", exact: true })).toBeVisible();
-  await page.getByTestId(`deck-select-${deck.id}`).click();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
-  await page.getByRole("button", { name: `${deckName} mit Varianten lernen` }).click();
+  await startDeckFromCards(page, deck.id, true);
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
@@ -260,8 +298,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   expect(original.expectedAnswerJson).toBe("Gamma neu");
   expect(original.explanation).toContain("Gamma neu ist nach der Bearbeitung richtig.");
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Kartenstapel", exact: true })).toBeVisible();
-  await page.getByTestId(`deck-select-${deck.id}`).click();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${deck.id}`).click();
@@ -290,7 +327,6 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport sch�
   const reviewStateBeforeReimport = importedCard.reviewState;
   const learningItemStateBeforeReimport = importedCard.learningItemState;
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await page.getByTestId(`deck-select-${importedDeck.id}`).click();
   await page.getByTestId(`deck-card-${importedCard.id}`).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Welches Organell erzeugt ATP");
   await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Welche Zellstruktur erzeugt lokal ATP?");

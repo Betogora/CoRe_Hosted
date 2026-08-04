@@ -93,18 +93,22 @@ async function completeReview(page: Page) {
   await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
 }
 
+async function startDeckFromCards(page: Page, deckId: string, variants = false) {
+  await page.getByTestId(`deck-options-${deckId}`).click();
+  await page.getByTestId(`deck-options-menu-${deckId}`).getByRole("button", { name: variants ? "Varianten lernen" : "Lernen", exact: true }).click();
+}
+
 test.beforeEach(async ({ page }) => {
   await seedAccount();
   await resetToFreshLocalState(page, { resetCloud: false });
 });
 
 test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg erhalten Stapel und Karte", async ({ page, context }) => {
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  const duplicateChild = page.getByRole("button", { name: "Bereich B / Gemeinsam auswählen" });
-  await duplicateChild.click();
-  await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.childB}`);
+  await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
+  await waitForApp(page);
+  await expect(page.getByTestId(`learn-deck-group-${DECK_IDS.childB}`)).toHaveAttribute("data-selected", "true");
   await page.reload();
-  await expect(page.getByRole("button", { name: "Bereich B / Gemeinsam auswählen" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId(`learn-deck-group-${DECK_IDS.childB}`)).toHaveAttribute("data-selected", "true");
 
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}`);
@@ -119,6 +123,13 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
   await directLinkPage.goto(cardUrl);
   await waitForApp(directLinkPage);
   await expect(directLinkPage.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
+  await directLinkPage.getByRole("button", { name: "Detailansicht schließen" }).click();
+  await expect(directLinkPage).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}`);
+  await directLinkPage.goBack();
+  await expect(directLinkPage.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
+  await directLinkPage.keyboard.press("Escape");
+  await expect(directLinkPage).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}`);
+  await expect(directLinkPage.getByTestId(`deck-card-${CARD_IDS.b2}`)).toBeFocused();
   await directLinkPage.close();
 
   await page.goto(`/neue-karten?method=manual&deck=${DECK_IDS.childB}`);
@@ -130,7 +141,7 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
 
   await page.goto(cardUrl);
   await waitForApp(page);
-  await page.getByRole("button", { name: "Bereich B / Gemeinsam lernen" }).click();
+  await startDeckFromCards(page, DECK_IDS.childB);
   await expect(page).toHaveURL(new RegExp(
     `/decks/${DECK_IDS.childB}/review\\?returnView=decks&returnDeck=${DECK_IDS.childB}&returnCard=${CARD_IDS.b2}$`,
   ));
@@ -140,9 +151,9 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
   await expect(page).toHaveURL(cardUrl);
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
 
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Bereich B / Gemeinsam auswählen" }).click();
-  await page.getByRole("button", { name: "Bereich B / Gemeinsam lernen" }).click();
+  await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
+  await waitForApp(page);
+  await page.getByRole("button", { name: "Bereich B / Gemeinsam lernen" }).press("Enter");
   await expect(page).toHaveURL(new RegExp(
     `/decks/${DECK_IDS.childB}/review\\?returnView=learn&returnDeck=${DECK_IDS.childB}$`,
   ));
@@ -160,7 +171,7 @@ test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorw�
   const secondCardUrl = `${deckUrl}&card=${CARD_IDS.b2}`;
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
-  await page.getByRole("button", { name: "Bereich B / Gemeinsam lernen" }).click();
+  await startDeckFromCards(page, DECK_IDS.childB);
 
   await page.goBack();
   await expect(page).toHaveURL(secondCardUrl);
@@ -170,7 +181,8 @@ test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorw�
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B1");
   await page.goBack();
   await expect(page).toHaveURL(deckUrl);
-  await expect(page.getByRole("heading", { name: "Karte auswählen" })).toBeVisible();
+  await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.childB}`);
 
@@ -191,9 +203,8 @@ test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorw�
 
   await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=missing-card`);
   await waitForApp(page);
-  await expect(page.getByText("Karte nicht gefunden oder nicht verfügbar.", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Zum Stapel" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Alle Karten" })).toBeVisible();
+  await expect(page.getByText("Die verlinkte Karte ist in diesem Stapel nicht mehr verfügbar.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zur Kartenliste" })).toBeVisible();
 
   await page.goto("/decks/missing-deck/review?returnView=decks&returnDeck=missing-deck&returnCard=missing-card");
   await waitForApp(page);

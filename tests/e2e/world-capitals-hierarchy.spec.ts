@@ -19,9 +19,17 @@ async function storedParentDeckId(page: Page, deckId: string) {
   return state.decks?.find((deck: { id: string }) => deck.id === deckId)?.parentDeckId ?? null;
 }
 
-async function storedIconColor(page: Page, deckId: string) {
+async function storedDeckPresentation(page: Page, deckId: string) {
   const state = await readActiveAccountState(page);
-  return state.decks?.find((deck: { id: string; deckSettings?: { appearance?: { iconColor?: string } } }) => deck.id === deckId)?.deckSettings?.appearance?.iconColor ?? null;
+  const deck = state.decks?.find((candidate: { id: string }) => candidate.id === deckId) as {
+    name?: string;
+    deckSettings?: { appearance?: { iconKey?: string; iconColor?: string } };
+  } | undefined;
+  return {
+    name: deck?.name ?? null,
+    iconKey: deck?.deckSettings?.appearance?.iconKey ?? null,
+    iconColor: deck?.deckSettings?.appearance?.iconColor ?? null,
+  };
 }
 
 async function dispatchDeckDrop(page: Page, source: Locator, target: Locator) {
@@ -115,15 +123,36 @@ test("learning rows activate directly while expand and settings remain independe
   await expect(europeRow).toBeVisible();
 });
 
-test("deck color wheel previews locally and persists only through the appearance form", async ({ page }) => {
+test("deck presentation toolbar saves name, icon and color together", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Europa" }).click();
 
-  const originalColor = await storedIconColor(page, DECK_IDS.europe);
-  const colorTrigger = page.getByRole("button", { name: "Iconfarbe auswählen" });
+  const original = await storedDeckPresentation(page, DECK_IDS.europe);
+  const iconTrigger = page.getByRole("button", { name: "Icon auswählen" });
+  const colorTrigger = page.getByRole("button", { name: "Farbe auswählen" });
+  await expect(iconTrigger).toHaveCSS("width", "44px");
+  await expect(iconTrigger).toHaveCSS("height", "44px");
   await expect(colorTrigger).toHaveCSS("width", "44px");
   await expect(colorTrigger).toHaveCSS("height", "44px");
+
+  await iconTrigger.click();
+  const iconGrid = page.getByTestId("deck-icon-grid");
+  await expect(iconGrid.locator("button[data-icon-key]")).toHaveCount(25);
+  await expect.poll(() => iconGrid.evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length)).toBe(5);
+  await iconGrid.getByRole("button", { name: "Gehirn" }).click();
+  expect((await storedDeckPresentation(page, DECK_IDS.europe)).iconKey).toBe(original.iconKey);
+
+  const renameButton = page.getByRole("button", { name: "Stapel umbenennen" });
+  await renameButton.click();
+  const nameInput = page.getByRole("textbox", { name: "Stapelname" });
+  await expect(nameInput).toHaveValue(original.name ?? "");
+  await nameInput.fill("Nicht speichern");
+  await nameInput.press("Escape");
+  await expect(nameInput).toBeHidden();
+  await renameButton.click();
+  await nameInput.fill("Europa kompakt");
+  expect((await storedDeckPresentation(page, DECK_IDS.europe)).name).toBe(original.name);
 
   await colorTrigger.click();
   const wheel = page.getByRole("slider", { name: /Farbkreis/ });
@@ -132,25 +161,26 @@ test("deck color wheel previews locally and persists only through the appearance
   const pointerPreview = await colorTrigger.locator("span").evaluate((swatch) => getComputedStyle(swatch).backgroundColor);
   await wheel.press("ArrowRight");
   await expect.poll(() => colorTrigger.locator("span").evaluate((swatch) => getComputedStyle(swatch).backgroundColor)).not.toBe(pointerPreview);
-  expect(await storedIconColor(page, DECK_IDS.europe)).toBe(originalColor);
+  expect((await storedDeckPresentation(page, DECK_IDS.europe)).iconColor).toBe(original.iconColor);
 
   await page.keyboard.press("Escape");
   await expect(wheel).toBeHidden();
-  await colorTrigger.click();
-  await expect(wheel).toBeVisible();
-  await page.getByText("Nur dieser Stapel").click();
-  await expect(wheel).toBeHidden();
-
-  await page.getByRole("button", { name: "Darstellung speichern" }).click();
-  await expect(page.getByRole("status")).toContainText("Stapeldarstellung gespeichert.");
-  await expect.poll(() => storedIconColor(page, DECK_IDS.europe)).not.toBe(originalColor);
-  const savedColor = await storedIconColor(page, DECK_IDS.europe);
+  await page.getByRole("button", { name: "Speichern" }).click();
+  await expect(page.getByRole("status")).toContainText("Stapeleinstellungen gespeichert.");
+  await expect.poll(() => storedDeckPresentation(page, DECK_IDS.europe)).toMatchObject({
+    name: "Europa kompakt",
+    iconKey: "brain",
+  });
+  const saved = await storedDeckPresentation(page, DECK_IDS.europe);
+  expect(saved.iconColor).not.toBe(original.iconColor);
 
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
-  await expect(europeRow.locator("span[style*='border-color']").first()).toHaveAttribute("style", new RegExp(`border-color:${savedColor}`));
+  await expect(europeRow).toContainText("Europa kompakt");
+  await expect(europeRow.locator("span[style*='border-color']").first()).toHaveAttribute("style", new RegExp(`border-color:${saved.iconColor}`));
   await page.reload();
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).locator("span[style*='border-color']").first()).toHaveAttribute("style", new RegExp(`border-color:${savedColor}`));
+  await expect.poll(() => storedDeckPresentation(page, DECK_IDS.europe)).toEqual(saved);
+  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toContainText("Europa kompakt");
 });
 
 test("learning drag-and-drop handles child, root, no-op and invalid targets without starting study", async ({ page }) => {

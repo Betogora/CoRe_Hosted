@@ -1,78 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { DecksScreenProps } from "../appScreenProps.ts";
 import { createCoreDeck, createLearningItemFromEditorValue, createManualCoreDeck, updateCardContent } from "../coreModel.ts";
+import type { CardEditorValue, Deck } from "../coreTypes.ts";
 import { DecksScreen } from "./DecksScreen.tsx";
 
-test("deck management centralizes selected-deck actions and offers direct plus explicit move controls", () => {
-  const originalDeck = createManualCoreDeck({
-    deckName: "Biologie",
-    card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
-  });
-  const editedCard = updateCardContent(originalDeck.cards[0], { originalFront: "Welche Funktion hat ATP?" });
-  const deck = { ...originalDeck, cards: [editedCard] };
-  const markup = renderToStaticMarkup(
-    <DecksScreen
-      decks={[deck]}
-      mediaStore={null}
-      selectedDeckId={deck.id}
-      selectedCardId={deck.cards[0].id}
-      onSelectDeck={() => undefined}
-      onSelectCard={() => undefined}
-      onSetDeckCoreMode={() => undefined}
-      onSaveCard={() => undefined}
-      onDeleteCard={async () => null}
-      onUndoDeleteCard={async () => null}
-      onRestoreCard={() => undefined}
-      onAddVariant={() => undefined}
-      onStartDeck={() => undefined}
-      onDeleteDeck={async () => null}
-      onRenameDeck={() => null}
-      onMoveDeck={() => null}
-      onOpenCardCreation={() => undefined}
-      onPrepareSubdeckCreation={() => undefined}
-      onOpenLearn={() => undefined}
-      onOpenDeckSettings={() => undefined}
-    />,
-  );
-
-  assert.match(markup, new RegExp(`data-testid="deck-move-button-${deck.id}"`));
-  assert.match(markup, /aria-label="Kartenstapel durchsuchen"/);
-  assert.match(markup, /aria-label="Kartenstapel nach CoRe-Modus filtern"/);
-  assert.match(markup, /Biologie öffnen/);
-  assert.match(markup, />Einstellungen</);
-  assert.match(markup, />Lernen</);
-  assert.match(markup, />Mit Varianten lernen</);
-  assert.match(markup, /class="core-action-destructive/);
-  assert.match(markup, /Version zum Wiederherstellen/);
-  assert.match(markup, /Varianten und Lernwerte/);
-  assert.match(markup, /<details[^>]*data-testid="card-variant-tools"/);
-  const inventoryMarkup = markup.slice(0, markup.indexOf(`data-testid="deck-card-list-${deck.id}"`));
-  assert.match(inventoryMarkup, /data-deck-count="new"/);
-  assert.match(inventoryMarkup, /data-deck-count="due"/);
-  assert.match(inventoryMarkup, /data-deck-count="total"/);
-  assert.match(inventoryMarkup, /conic-gradient/);
-  assert.match(inventoryMarkup, /Stapeloptionen für Biologie/);
-  assert.match(markup, /data-deck-drag-source="true"/);
-});
-
-test("deck management shows safe fallbacks for unavailable deck and card links", () => {
-  const deck = createManualCoreDeck({
-    deckName: "Biologie",
-    card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
-  });
-  const sharedProps = {
-    decks: [deck],
+function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) {
+  const props: DecksScreenProps = {
+    decks,
     mediaStore: null,
+    selectedDeckId: null,
+    selectedCardId: null,
     onSelectDeck: () => undefined,
-    onSelectCard: () => undefined,
     onSetDeckCoreMode: () => undefined,
     onSaveCard: () => undefined,
+    onDuplicateCard: async () => null,
     onDeleteCard: async () => null,
     onUndoDeleteCard: async () => null,
     onRestoreCard: () => undefined,
     onAddVariant: () => undefined,
-    onApplyVariantJson: () => undefined,
     onStartDeck: () => undefined,
     onDeleteDeck: async () => null,
     onRenameDeck: () => null,
@@ -81,54 +28,72 @@ test("deck management shows safe fallbacks for unavailable deck and card links",
     onPrepareSubdeckCreation: () => undefined,
     onOpenLearn: () => undefined,
     onOpenDeckSettings: () => undefined,
+    ...overrides,
   };
+  return renderToStaticMarkup(<DecksScreen {...props} />);
+}
 
-  const missingDeckMarkup = renderToStaticMarkup(
-    <DecksScreen {...sharedProps} selectedDeckId="missing-deck" selectedCardId={null} />,
-  );
-  assert.match(missingDeckMarkup, /Stapel nicht gefunden oder nicht verfügbar\./);
+test("cards page renders the grouped semantic table with compact deck actions", () => {
+  const originalDeck = createManualCoreDeck({
+    deckName: "Biologie",
+    card: { cardType: "basic", front: "<b>Was ist ATP?</b>", back: "Ein Energieträger." },
+  });
+  const child = createCoreDeck({ id: "deck-child", name: "Zellbiologie", source: "manual", parentDeckId: originalDeck.id, hierarchyPath: ["Biologie", "Zellbiologie"], cards: [] });
+  const markup = renderScreen([originalDeck, child]);
+
+  assert.match(markup, /<h2[^>]*>Karten<\/h2>/);
+  assert.match(markup, /data-testid="card-library-table"/);
+  assert.match(markup, /<th[^>]*>Vorderseite<\/th>/);
+  assert.match(markup, /<th[^>]*>Rückseite<\/th>/);
+  assert.match(markup, /Was ist ATP\?/);
+  assert.match(markup, /Ein Energieträger\./);
+  assert.match(markup, /Biologie \/ Zellbiologie/);
+  assert.match(markup, /Keine Karten/);
+  assert.match(markup, new RegExp('data-testid="deck-options-' + originalDeck.id + '"'));
+  assert.match(markup, /aria-label="Karten durchsuchen"/);
+  assert.match(markup, /aria-label="Karten nach CoRe-Modus filtern"/);
+  assert.doesNotMatch(markup, /data-deck-drag-source/);
+});
+
+test("card selection opens a non-modal detail aside with editor, copy and collapsed tools", () => {
+  const originalDeck = createManualCoreDeck({
+    deckName: "Biologie",
+    card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
+  });
+  const card = updateCardContent(originalDeck.cards[0], { originalFront: "Welche Funktion hat ATP?" });
+  const deck = { ...originalDeck, cards: [card] };
+  const markup = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: card.id });
+
+  assert.match(markup, /<aside[^>]*aria-label="Kartendetail"/);
+  assert.match(markup, /lg:w-1\/2/);
+  assert.match(markup, /Karte bearbeiten/);
+  assert.match(markup, /aria-label="Karten-Vorderseite"/);
+  assert.match(markup, />Kopieren<\/button>/);
+  assert.match(markup, /Version zum Wiederherstellen/);
+  assert.match(markup, /<details[^>]*data-testid="card-variant-tools"/);
+  assert.match(markup, /Detailansicht schließen/);
+});
+
+test("cards page shows safe deterministic fallbacks for unavailable URL targets", () => {
+  const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "ATP", back: "Energie" } });
+  const missingDeckMarkup = renderScreen([deck], { selectedDeckId: "missing-deck" });
+  assert.match(missingDeckMarkup, /Stapel nicht gefunden/);
   assert.match(missingDeckMarkup, /Zu Lernen/);
-  assert.match(missingDeckMarkup, /Zur Kartenverwaltung/);
+  assert.match(missingDeckMarkup, /Alle Karten/);
 
-  const missingCardMarkup = renderToStaticMarkup(
-    <DecksScreen {...sharedProps} selectedDeckId={deck.id} selectedCardId="missing-card" />,
-  );
-  assert.match(missingCardMarkup, /Karte nicht gefunden oder nicht verfügbar\./);
-  assert.match(missingCardMarkup, /Zum Stapel/);
-  assert.match(missingCardMarkup, /Alle Karten/);
+  const missingCardMarkup = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: "missing-card" });
+  assert.match(missingCardMarkup, /Karte nicht gefunden/);
+  assert.match(missingCardMarkup, /Zur Kartenliste/);
   assert.doesNotMatch(missingCardMarkup, /aria-label="Karten-Vorderseite"/);
 });
 
-function renderEditorFor(editorValue: Parameters<typeof createLearningItemFromEditorValue>[1]) {
+function renderEditorFor(editorValue: CardEditorValue) {
   const card = createLearningItemFromEditorValue("deck-editor", editorValue);
   const deck = createCoreDeck({ id: "deck-editor", name: "Editor", source: "manual", cards: [card] });
-  return renderToStaticMarkup(
-    <DecksScreen
-      decks={[deck]}
-      mediaStore={null}
-      selectedDeckId={deck.id}
-      selectedCardId={card.id}
-      onSelectDeck={() => undefined}
-      onSelectCard={() => undefined}
-      onSetDeckCoreMode={() => undefined}
-      onSaveCard={() => undefined}
-      onDeleteCard={async () => null}
-      onUndoDeleteCard={async () => null}
-      onRestoreCard={() => undefined}
-      onAddVariant={() => undefined}
-      onStartDeck={() => undefined}
-      onDeleteDeck={async () => null}
-      onRenameDeck={() => null}
-      onMoveDeck={() => null}
-      onOpenCardCreation={() => undefined}
-      onPrepareSubdeckCreation={() => undefined}
-      onOpenLearn={() => undefined}
-      onOpenDeckSettings={() => undefined}
-    />,
-  );
+  return renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: card.id });
 }
 
-test("deck editor renders type-specific reverse, cloze and multiple-choice controls", () => {
+test("detail editor renders all four supported field sets", () => {
   const reverseMarkup = renderEditorFor({ cardType: "basic-reversed", front: "Vorne", back: "Hinten", tags: [] });
   assert.match(reverseMarkup, /Umgekehrt/);
   assert.match(reverseMarkup, /aria-label="Karten-Vorderseite"/);
@@ -136,12 +101,21 @@ test("deck editor renders type-specific reverse, cloze and multiple-choice contr
 
   const clozeMarkup = renderEditorFor({ cardType: "cloze", textWithClozes: "{{c1::ATP}}", extra: "Energie", tags: [] });
   assert.match(clozeMarkup, /aria-label="Cloze-Text"/);
-  assert.match(clozeMarkup, /Lücken mit/);
   assert.match(clozeMarkup, /aria-label="Cloze-Zusatzinfo"/);
 
   const mcMarkup = renderEditorFor({ cardType: "multiple-choice", question: "Welche?", options: ["A", "B"], correctOptionIndex: 1, explanation: "Darum", tags: [] });
   assert.match(mcMarkup, /aria-label="Multiple-Choice-Frage"/);
   assert.match(mcMarkup, /Antwortoptionen und richtige Antwort/);
   assert.match(mcMarkup, /Option 2 als richtig markieren/);
-  assert.match(mcMarkup, /Erklärung \(optional\)/);
+});
+
+test("copy is disabled with a reason for read-only imported card types", () => {
+  const basic = createLearningItemFromEditorValue("deck-import", { cardType: "basic", front: "Bild", back: "Antwort", tags: [] });
+  const readOnlyCard = { ...basic, cardType: "image-occlusion" as const, kind: "image-occlusion" as const };
+  const deck = createCoreDeck({ id: "deck-import", name: "Import", source: "anki-apkg", cards: [readOnlyCard] });
+  const markup = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: readOnlyCard.id });
+
+  assert.match(markup, /title="Dieser importierte Kartentyp kann nicht kopiert werden\."/);
+  assert.match(markup, /disabled=""[^>]*>.*Kopieren/s);
+  assert.match(markup, /wird hier nur angezeigt und kann nicht kopiert werden/);
 });

@@ -39,11 +39,11 @@ const views: MenuView[] = [
   },
   {
     id: "kartenstapel",
-    label: "Kartenstapel",
+    label: "Karten",
     iconKey: "layers",
-    navigation: "hidden",
-    title: "Kartenstapel",
-    eyebrow: "Bibliothek",
+    navigation: "primary",
+    title: "Karten",
+    eyebrow: "",
     stats: [
       { label: "Decks", value: "0" },
       { label: "Varianten", value: "0" },
@@ -121,7 +121,7 @@ const views: MenuView[] = [
     ],
   },
 ];
-const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "neue-karten", "statistik"];
+const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "neue-karten", "statistik", "kartenstapel"];
 
 function navigationItem(view: MenuView) {
   return { id: view.id, label: view.label, iconKey: view.iconKey };

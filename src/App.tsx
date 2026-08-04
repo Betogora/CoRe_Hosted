@@ -725,6 +725,10 @@ export function App() {
     return runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckCard(deckId, cardId));
   }
 
+  function duplicateDeckCard(deckId: string, cardId: string) {
+    return runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.duplicateDeckCard(deckId, cardId));
+  }
+
   function undoDeleteDeckCard(deckId: string, deletedCard: LearningItem) {
     return runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.restoreDeletedDeckCard(deckId, deletedCard));
   }
@@ -794,13 +798,6 @@ export function App() {
     navigateToView("lernen", { focusedDeckId: deckId || null });
   }
 
-  function selectDeckCard(cardId: string | null) {
-    navigateToView("kartenstapel", {
-      focusedDeckId,
-      selectedCardId: focusedDeckId && cardId ? cardId : null,
-    });
-  }
-
   function openCardCreation(deckId: string | null = null) {
     navigateToView("neue-karten", {
       creationMethod: "manual",
@@ -848,6 +845,7 @@ export function App() {
           deck={state.decks.find((deck) => deck.id === focusedDeckId) ?? null}
           onSave={saveDeckLearningSettings}
           onSaveAppearance={saveDeckAppearance}
+          onRenameDeck={renameDeck}
           backLabel={returnsToDashboard ? "Zurück zur Übersicht" : returnsToDecks ? "Zurück zur Kartenverwaltung" : "Zurück zu Lernen"}
           onBack={() => returnsToDashboard
             ? navigateToView("uebersicht")
@@ -864,6 +862,7 @@ export function App() {
           mediaStore={mediaStore}
           onSetDeckCoreMode={setDeckCoreMode}
           onSaveCard={saveDeckCard}
+          onDuplicateCard={duplicateDeckCard}
           onDeleteCard={deleteDeckCard}
           onUndoDeleteCard={undoDeleteDeckCard}
           onRestoreCard={restoreDeckCard}
@@ -872,7 +871,6 @@ export function App() {
           selectedDeckId={focusedDeckId}
           selectedCardId={selectedCardId}
           onSelectDeck={openDecks}
-          onSelectCard={selectDeckCard}
           onDeleteDeck={deleteDeck}
           onRenameDeck={renameDeck}
           onMoveDeck={moveDeck}

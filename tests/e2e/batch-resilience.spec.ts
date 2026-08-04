@@ -110,7 +110,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   expect(state.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards).toHaveLength(6);
 
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await expect(page.getByRole("heading", { name: "Karten in Batch-Ziel" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   for (let index = 1; index <= 5; index += 1) {
     await expect(page.getByText(`Batch-Frage ${index}`, { exact: true })).toBeVisible();
   }
@@ -158,7 +158,6 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
 test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und Auswirkungen bleiben sichtbar", async ({ page }) => {
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();
-  await page.getByTestId(`deck-select-${DECK_IDS.target}`).click();
   const targetState = await readActiveAccountState(page);
   const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
   await page.getByTestId(`deck-card-${existingCardId}`).click();
@@ -177,18 +176,20 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await page.reload();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
 
-  await page.getByRole("button", { name: "Bereich A löschen" }).click();
+  await page.getByTestId(`deck-options-${DECK_IDS.rootA}`).click();
+  await page.getByTestId(`deck-options-menu-${DECK_IDS.rootA}`).getByRole("button", { name: "Löschen", exact: true }).click();
   const deckDialog = page.getByRole("dialog", { name: "Stapelbaum löschen?" });
   await expect(deckDialog).toContainText("Bereich A");
   await expect(deckDialog).toContainText("1 Unterstapel");
   await expect(deckDialog).toContainText("1 aktive Karte");
   await deckDialog.getByRole("button", { name: "Abbrechen" }).click();
-  await expect(page.getByTestId(`deck-row-${DECK_IDS.rootA}`)).toBeVisible();
-  await page.getByRole("button", { name: "Bereich A löschen" }).click();
+  await expect(page.getByTestId(`card-group-${DECK_IDS.rootA}`)).toBeVisible();
+  await page.getByTestId(`deck-options-${DECK_IDS.rootA}`).click();
+  await page.getByTestId(`deck-options-menu-${DECK_IDS.rootA}`).getByRole("button", { name: "Löschen", exact: true }).click();
   await deckDialog.getByRole("button", { name: "Stapelbaum löschen" }).click();
-  await expect(page.getByTestId(`deck-row-${DECK_IDS.rootA}`)).toHaveCount(0);
+  await expect(page.getByTestId(`card-group-${DECK_IDS.rootA}`)).toHaveCount(0);
   await page.reload();
-  await expect(page.getByTestId(`deck-row-${DECK_IDS.rootA}`)).toHaveCount(0);
+  await expect(page.getByTestId(`card-group-${DECK_IDS.rootA}`)).toHaveCount(0);
 });
 
 test("[Vertrag: Importformatwechsel und Terminalzustände] @beta-core alte Vorschauen werden vollständig verworfen", async ({ page }) => {

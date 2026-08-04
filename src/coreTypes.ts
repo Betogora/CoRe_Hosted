@@ -423,6 +423,15 @@ export type CardEditorValue =
   | ClozeCardEditorValue
   | MultipleChoiceCardEditorValue;
 
+export interface CardContentPayload {
+  editorValue: CardEditorValue;
+  mediaRefs: MediaRef[];
+}
+
+export type CardContentPayloadValidationResult =
+  | { ok: true; value: CardContentPayload; error: null }
+  | { ok: false; value: null; error: string };
+
 export type CardEditorField =
   | "front"
   | "back"

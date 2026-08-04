@@ -2,12 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   CardEditorValidationError,
+  createLearningItemFromCardContentPayload,
   createLearningItemFromEditorValue,
   createReviewState,
+  duplicateLearningItemContent,
+  getCardContentPayload,
   getCardEditorValue,
   getOriginalVariant,
   restoreCardVersion,
   saveCardEditorValue,
+  validateCardContentPayload,
   validateCardEditorValue,
 } from "../coreModel.ts";
 import type { CardVariant, LearningItem } from "../coreTypes.ts";
@@ -203,4 +207,68 @@ test("version restore restores the complete structured editor value", () => {
     tags: ["alt"],
   });
   assert.equal(restored.versionLog.at(-1)?.changeType, "version_restored");
+});
+
+test("card content payload round-trips all editable types without identity", () => {
+  const editorValues = [
+    { cardType: "basic", front: "Frage", back: "Antwort", tags: ["eins"] },
+    { cardType: "basic-reversed", front: "Vorne", back: "Hinten", tags: [] },
+    { cardType: "cloze", textWithClozes: "{{c1::ATP}}", extra: "Energie", tags: ["cloze"] },
+    { cardType: "multiple-choice", question: "Welche?", options: ["A", "B"], correctOptionIndex: 1, explanation: "Darum", tags: ["mc"] },
+  ] as const;
+
+  for (const editorValue of editorValues) {
+    const original = createLearningItemFromEditorValue("deck-source", editorValue, { mediaRefs: ["media-z", "media-a"] });
+    const payload = getCardContentPayload(original);
+    assert.ok(payload);
+    assert.deepEqual(Object.keys(payload).sort(), ["editorValue", "mediaRefs"]);
+    const recreated = createLearningItemFromCardContentPayload("deck-target", payload);
+
+    assert.deepEqual(getCardEditorValue(recreated), editorValue);
+    assert.deepEqual(recreated.mediaRefs, ["media-z", "media-a"]);
+    assert.equal(recreated.deckId, "deck-target");
+    assert.notEqual(recreated.id, original.id);
+    assert.notEqual(getOriginalVariant(recreated)?.id, getOriginalVariant(original)?.id);
+  }
+});
+
+test("card content payload sanitizes fields and rejects unknown card types", () => {
+  const sanitized = validateCardContentPayload({
+    editorValue: { cardType: "basic", front: '<p>Frage<script>alert(1)</script></p>', back: "Antwort", tags: [" tag "] },
+    mediaRefs: [" media-1 ", "media-1"],
+    cardId: "must-not-pass",
+  });
+  assert.equal(sanitized.ok, true);
+  if (sanitized.ok) {
+    assert.doesNotMatch(sanitized.value.editorValue.cardType === "basic" ? sanitized.value.editorValue.front : "", /script/i);
+    assert.deepEqual(sanitized.value.mediaRefs, ["media-1"]);
+    assert.equal("cardId" in sanitized.value, false);
+  }
+
+  assert.equal(validateCardContentPayload({ editorValue: { cardType: "image-occlusion" }, mediaRefs: [] }).ok, false);
+  assert.equal(validateCardContentPayload({ editorValue: { cardType: "basic", front: "F", back: "B", tags: [] }, mediaRefs: [""] }).ok, false);
+});
+
+test("content copy receives fresh identities and exactly one copy marker", () => {
+  const original = createLearningItemFromEditorValue("deck-copy", {
+    cardType: "basic-reversed",
+    front: "Vorderseite",
+    back: "Rückseite",
+    tags: ["tag"],
+  }, { mediaRefs: ["media-1"] });
+  const copy = duplicateLearningItemContent(original);
+  assert.ok(copy);
+  const secondCopy = duplicateLearningItemContent(copy);
+  assert.ok(secondCopy);
+
+  assert.notEqual(copy.id, original.id);
+  assert.notEqual(copy.reviewState.id, original.reviewState.id);
+  assert.notEqual(getOriginalVariant(copy)?.id, getOriginalVariant(original)?.id);
+  assert.equal(copy.reviewState.repetitions, 0);
+  assert.deepEqual(copy.mediaRefs, original.mediaRefs);
+  assert.deepEqual(copy.tags, original.tags);
+  assert.equal(copy.sourceRefId, null);
+  assert.deepEqual(copy.sourceAnchors, []);
+  assert.equal((copy.originalFront.match(/\(Kopie\)/g) ?? []).length, 1);
+  assert.equal((secondCopy.originalFront.match(/\(Kopie\)/g) ?? []).length, 1);
 });
