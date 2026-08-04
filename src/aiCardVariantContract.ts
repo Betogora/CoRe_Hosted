@@ -1,6 +1,6 @@
 import * as v from "valibot";
-import type { CardContentPayload } from "./coreTypes.ts";
-import { stripHtml } from "./htmlSafety.ts";
+import type { CardContentPayload } from "./coreTypes";
+import { stripHtml } from "./htmlSafety";
 
 export const AI_CARD_VARIANT_ENDPOINT = "/api/ai/card-variant";
 export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v1";
