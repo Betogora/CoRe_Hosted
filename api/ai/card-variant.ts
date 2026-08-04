@@ -162,13 +162,13 @@ export function isEligibleFreeTextToolModel(model: ModelCandidate, excludedIds =
     && isZeroPrice(model.pricing.request)
     && inputs.has("text")
     && model.architecture.output_modalities.includes("text")
-    && ["tools", "tool_choice", "max_tokens"].every((parameter) => parameters.has(parameter));
+    && ["tools", "tool_choice", "max_tokens", "reasoning"].every((parameter) => parameters.has(parameter));
 }
 
 function modelsUrl(zdr: boolean) {
   const query = new URLSearchParams({
     input_modalities: "text",
-    supported_parameters: "tools,tool_choice,max_tokens",
+    supported_parameters: "tools,tool_choice,max_tokens,reasoning",
     sort: "most-popular",
     max_price: "0",
     ...(zdr ? { zdr: "true" } : {}),
@@ -222,6 +222,7 @@ export function buildOpenRouterPayload(input: AiCardVariantRequest, model: strin
       },
     }],
     tool_choice: { type: "function", function: { name: "create_card_variant" } },
+    reasoning: { effort: "none" },
     max_tokens: MAX_AI_CARD_VARIANT_OUTPUT_TOKENS,
     stream: false,
     provider: {

@@ -15,7 +15,7 @@ function model(id: string, overrides: Record<string, unknown> = {}) {
     id,
     pricing: { prompt: "0", completion: "0", request: null },
     architecture: { input_modalities: ["text", "image"], output_modalities: ["text"] },
-    supported_parameters: ["tools", "tool_choice", "max_tokens"],
+    supported_parameters: ["tools", "tool_choice", "max_tokens", "reasoning"],
     ...overrides,
   };
 }
@@ -57,7 +57,8 @@ test("model eligibility accepts text-only models and excludes paid or incomplete
   assert.equal(isEligibleFreeTextToolModel(model("provider/text:free", { architecture: { input_modalities: ["text"], output_modalities: ["text"] } })), true);
   assert.equal(isEligibleFreeTextToolModel(model("provider/paid", { pricing: { prompt: "0.1", completion: "0", request: null } })), false);
   assert.equal(isEligibleFreeTextToolModel(model("provider/image-only:free", { architecture: { input_modalities: ["image"], output_modalities: ["text"] } })), false);
-  assert.equal(isEligibleFreeTextToolModel(model("provider/no-tool-choice:free", { supported_parameters: ["tools", "max_tokens"] })), false);
+  assert.equal(isEligibleFreeTextToolModel(model("provider/no-tool-choice:free", { supported_parameters: ["tools", "max_tokens", "reasoning"] })), false);
+  assert.equal(isEligibleFreeTextToolModel(model("provider/no-reasoning-control:free", { supported_parameters: ["tools", "tool_choice", "max_tokens"] })), false);
 });
 
 test("OpenRouter payload forces one compact tool call and privacy routing", () => {
@@ -65,6 +66,7 @@ test("OpenRouter payload forces one compact tool call and privacy routing", () =
   assert.equal(payload.max_tokens, 256);
   assert.equal(payload.stream, false);
   assert.deepEqual(payload.tool_choice, { type: "function", function: { name: "create_card_variant" } });
+  assert.deepEqual(payload.reasoning, { effort: "none" });
   assert.equal(payload.provider.zdr, true);
   assert.equal(payload.provider.data_collection, "deny");
   assert.equal(JSON.stringify(payload).includes("genau einmal create_card_variant"), true);
