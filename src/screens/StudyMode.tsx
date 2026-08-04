@@ -13,7 +13,6 @@ import {
   type DailyReviewSessionState,
 } from "../reviewService.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
-import { MiniProgress } from "../ui/coreUi.tsx";
 import { ratingButtons } from "./screenConstants.ts";
 import type { CardVariant, Deck, ReviewRating } from "../coreTypes.ts";
 
@@ -75,8 +74,6 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   const completedInitialCount = effectiveReviewSession.completedInitialKeys.length;
   const repeatCount = effectiveReviewSession.repeatCount;
   const answeredCount = completedInitialCount + repeatCount;
-  const currentIsInitial = Boolean(current && !current.sessionInfo?.isRepeat);
-  const progress = sessionTotal ? (Math.min(completedInitialCount + (currentIsInitial ? 1 : 0), sessionTotal) / sessionTotal) * 100 : 0;
   const sourceCard = current?.learningItem ?? null;
   const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
   const sourceAnchor = current?.variant?.sourceAnchors?.[0] ?? sourceCard?.sourceAnchors?.[0] ?? null;
@@ -232,7 +229,10 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
               <SlidersHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
-          <MiniProgress value={progress} />
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 core-body text-[var(--core-text-muted)]" aria-label="Verbleibende Karten" data-testid="study-queue-counts">
+            <span><strong className="font-semibold text-[var(--core-deck-due-text)]">{queue.dueCount}</strong> fällig</span>
+            <span><strong className="font-semibold text-[var(--core-deck-new-text)]">{queue.newCount}</strong> neu</span>
+          </div>
           {studyMissingMedia.length > 0 ? <p className="core-status-warning text-center core-body" role="status">{studyMissingMedia[0].status}{studyMissingMedia.length > 1 ? ` (${studyMissingMedia.length} Medien)` : ""}</p> : null}
           {showSettings ? (
             <div id="study-settings-panel" className="core-surface rounded-2xl p-4">
@@ -262,10 +262,11 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
         </header>
 
         <section className="grid flex-1 place-items-center py-8">
-          <div className="core-surface-raised flex min-h-[56vh] w-full flex-col justify-center rounded-[28px] p-8 sm:p-14">
+          <div className="core-surface-raised flex min-h-[56vh] w-full flex-col rounded-[28px] p-8 sm:p-14">
             {current ? (
               <>
-                <div className="w-full">
+                <div className="flex flex-1 items-center">
+                  <div className="w-full">
                   {current.sessionInfo?.isRepeat ? (
                     <p className="mb-4 core-body font-semibold text-[var(--core-action-secondary)]" role="status">
                       {current.sessionInfo.isEarlyRepeat ? "Vorgezogene Wiederholung" : "Wiederholung"}
@@ -315,8 +316,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                   ) : null}
                   {showAnswer ? (
                     <>
-                      <div className="my-8 h-px bg-[var(--core-border)]" />
-                      <p ref={answerHeadingRef} tabIndex={-1} className="mb-4 core-body font-semibold uppercase tracking-[0.18em] text-[var(--core-action-secondary)] outline-none">Antwort</p>
+                      <p ref={answerHeadingRef} tabIndex={-1} className="mb-4 mt-10 core-body font-semibold uppercase tracking-[0.18em] text-[var(--core-action-secondary)] outline-none">Antwort</p>
                       <div className="core-heading-2 font-semibold leading-relaxed text-[var(--core-text)]">
                         <CardHtml html={current.back} mediaUrls={studyMediaUrls} />
                       </div>
@@ -392,7 +392,22 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                       Antwort anzeigen
                     </button>
                   )}
+                  </div>
                 </div>
+                {showAnswer ? (
+                  <div className="mt-8 grid gap-2 rounded-2xl bg-[var(--core-surface-muted)] p-2 sm:grid-cols-4" aria-label="Karte bewerten" data-testid="study-rating-panel">
+                    {ratingButtons.map((rating) => {
+                      const ratingKey = rating.key as ReviewRating;
+                      return <button key={rating.key} type="button" onClick={() => grade(ratingKey)} disabled={!current} aria-label={`Bewertung ${rating.label}${current?.ratingButtonOptions?.[ratingKey]?.intervalLabel ? `: ${current.ratingButtonOptions[ratingKey].intervalLabel}` : ""}`} className={`min-h-16 rounded-xl border bg-[var(--core-surface-raised)] px-3 py-2 text-center transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-50 ${rating.className}`}>
+                        <span className="flex items-baseline justify-center gap-2">
+                          <span className={`core-body font-semibold ${rating.accentClassName}`}>{rating.number}</span>
+                          <span className="core-body font-semibold text-[var(--core-text-secondary)]">{rating.label}</span>
+                        </span>
+                        <span className="mt-1 block core-caption font-medium text-[var(--core-text-muted)]">{current?.ratingButtonOptions?.[ratingKey]?.intervalLabel ?? ""}</span>
+                      </button>;
+                    })}
+                  </div>
+                ) : null}
               </>
             ) : answeredCount > 0 ? (
               <div className="text-center">
@@ -414,18 +429,6 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
           </div>
         </section>
 
-        {showAnswer ? (
-          <footer className="grid gap-3 sm:grid-cols-4">
-            {ratingButtons.map((rating) => {
-              const ratingKey = rating.key as ReviewRating;
-              return <button key={rating.key} type="button" onClick={() => grade(ratingKey)} disabled={!current} aria-label={`Bewertung ${rating.label}${current?.ratingButtonOptions?.[ratingKey]?.intervalLabel ? `: ${current.ratingButtonOptions[ratingKey].intervalLabel}` : ""}`} className={`min-h-20 rounded-2xl border text-center shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${rating.className}`}>
-                <span className="block core-heading-2 font-semibold">{rating.number}</span>
-                <span className="mt-1 block core-body font-semibold">{rating.label}</span>
-                <span className="mt-1 block core-caption font-semibold opacity-80">{current?.ratingButtonOptions?.[ratingKey]?.intervalLabel ?? ""}</span>
-              </button>
-            })}
-          </footer>
-        ) : null}
       </div>
     </main>
   );

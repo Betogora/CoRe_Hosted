@@ -14,10 +14,10 @@ export const cardTypeOptions = [
 ];
 
 export const ratingButtons = [
-  { key: "again", number: "1", label: "Nochmal", className: "border-core-danger bg-core-danger-soft text-core-text" },
-  { key: "hard", number: "2", label: "Schwer", className: "border-core-warning bg-core-warning-soft text-core-text" },
-  { key: "good", number: "3", label: "Gut", className: "border-core-success bg-core-success-soft text-core-text" },
-  { key: "easy", number: "4", label: "Leicht", className: "border-core-info bg-core-info-soft text-core-text" },
+  { key: "again", number: "1", label: "Nochmal", className: "border-core-danger", accentClassName: "text-core-danger" },
+  { key: "hard", number: "2", label: "Schwer", className: "border-core-warning", accentClassName: "text-core-warning" },
+  { key: "good", number: "3", label: "Gut", className: "border-core-success", accentClassName: "text-core-success" },
+  { key: "easy", number: "4", label: "Leicht", className: "border-core-info", accentClassName: "text-core-info" },
 ];
 
 export const maturityStageLabels = {
