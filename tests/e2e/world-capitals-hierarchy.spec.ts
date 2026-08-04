@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 
 const DECK_IDS = {
   root: "deck_world_capitals",
@@ -220,7 +221,7 @@ test("deck management reparents directly and preserves explicit keyboard move as
 
   const moveButton = page.getByTestId(`deck-move-button-${DECK_IDS.southAmerica}`);
   await moveButton.press("Enter");
-  await page.getByLabel("Ziel für Südamerika").selectOption(DECK_IDS.europe);
+  await chooseCoreSelectOption(page, page.getByRole("combobox", { name: "Ziel für Südamerika" }), /Europa$/);
   await expect(page.getByTestId(`deck-move-summary-${DECK_IDS.southAmerica}`)).toContainText("unter „Europa“");
   await page.getByRole("button", { name: "Verschieben bestätigen" }).press("Enter");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);

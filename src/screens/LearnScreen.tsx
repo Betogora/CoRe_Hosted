@@ -5,6 +5,7 @@ import { DECK_DEPTH_ERROR, MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
+import { CoreSelect } from "../ui/selectUi.tsx";
 
 function createDefaultDeckDraft(parentDeckId = "") {
   return {
@@ -22,7 +23,12 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
   const createToggleRef = React.useRef<HTMLButtonElement | null>(null);
   const deckNameRef = React.useRef<HTMLInputElement | null>(null);
   const focusedRow = library.rows.find((row) => row.id === focusedDeckId) ?? null;
-  const eligibleParentRows = library.rows.filter((row) => row.depth < MAX_INTERACTIVE_DECK_LEVELS - 1);
+  const eligibleParentOptions = React.useMemo(() => [
+    { value: "", label: "Als Hauptstapel" },
+    ...library.rows
+      .filter((row) => row.depth < MAX_INTERACTIVE_DECK_LEVELS - 1)
+      .map((row) => ({ value: row.id, label: `${"— ".repeat(row.depth)}${row.path}` })),
+  ], [library.rows]);
   const focusedDeckMissing = Boolean(focusedDeckId && !focusedRow);
 
   React.useEffect(() => {
@@ -133,19 +139,14 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
           </label>
           <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Ebene
-            <select
-              className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-medium text-[var(--core-text)]"
+            <CoreSelect
+              ariaLabel="Ebene"
+              className="w-full font-medium"
               value={deckDraft.parentDeckId}
-              onChange={(event) => updateDeckDraft("parentDeckId", event.target.value)}
-              data-testid="learn-deck-parent-select"
-            >
-              <option value="">Als Hauptstapel</option>
-              {eligibleParentRows.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {"— ".repeat(row.depth)}{row.path}
-                </option>
-              ))}
-            </select>
+              options={eligibleParentOptions}
+              onValueChange={(parentDeckId) => updateDeckDraft("parentDeckId", parentDeckId)}
+              testId="learn-deck-parent-select"
+            />
           </label>
             <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
             <FolderPlus size={17} aria-hidden="true" />

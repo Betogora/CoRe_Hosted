@@ -18,6 +18,7 @@ const visualSourcePaths = [
   "src/ui/actionUi.tsx",
   "src/ui/coreUi.tsx",
   "src/ui/feedbackUi.tsx",
+  "src/ui/selectUi.tsx",
   "src/ui/tooltipUi.tsx",
   "src/ui/colorPicker.tsx",
   "src/ui/deckAppearance.tsx",

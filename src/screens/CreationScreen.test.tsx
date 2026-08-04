@@ -40,7 +40,9 @@ test("manual picker accepts only readable source documents", () => {
 test("manual target selection shows complete deck paths", () => {
   const parent = createCoreDeck({ id: "deck-parent", name: "Biologie", source: "manual", cards: [] });
   const child = createCoreDeck({ id: "deck-child", parentDeckId: parent.id, name: "Zelle", hierarchyPath: ["Biologie", "Zelle"], source: "manual", cards: [] });
-  const markup = renderToStaticMarkup(<CreationScreen decks={[parent, child]} initialMethod="manual" {...callbacks} />);
+  const markup = renderToStaticMarkup(
+    <CreationScreen decks={[parent, child]} initialMethod="manual" initialTargetDeckId={child.id} {...callbacks} />,
+  );
 
   assert.match(markup, /Biologie \/ Zelle/);
   assert.match(markup, /Fertig/);

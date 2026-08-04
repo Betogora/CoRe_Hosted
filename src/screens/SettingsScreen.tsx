@@ -6,7 +6,10 @@ import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.tsx";
+import { CoreSelect } from "../ui/selectUi.tsx";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
+
+const languageOptions = [{ value: "de", label: "Deutsch" }, { value: "en", label: "English" }];
 
 export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut }: any) {
   const [form, setForm] = React.useState(profile);
@@ -133,13 +136,14 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
               </label>
               <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 Sprache
-                <span className="flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-3">
-                  <Languages size={17} className="text-[var(--core-text-muted)]" aria-hidden="true" />
-                  <select className="min-w-0 flex-1 outline-none" value={form.preferredLanguage} onChange={(event) => update("preferredLanguage", event.target.value)}>
-                    <option value="de">Deutsch</option>
-                    <option value="en">English</option>
-                  </select>
-                </span>
+                <CoreSelect
+                  ariaLabel="Sprache"
+                  className="w-full"
+                  value={form.preferredLanguage}
+                  options={languageOptions}
+                  onValueChange={(preferredLanguage) => update("preferredLanguage", preferredLanguage)}
+                  leadingIcon={Languages}
+                />
               </label>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">

@@ -11,8 +11,17 @@ import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
 import { ActionDialog, CoreModeControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
+import { CoreSelect } from "../ui/selectUi.tsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
 import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardType, CardVariant, CoreMode, Deck, LearningItem, MaturityBand } from "../coreTypes.ts";
+
+const variantLevelOptions = [1, 2, 3].map((level) => ({ value: String(level), label: `Level ${level}` }));
+const coreModeFilterOptions = [
+  { value: "all", label: "Alle Modi" },
+  { value: "off", label: "Aus" },
+  { value: "auto", label: "Auto" },
+  { value: "manual", label: "Manuell" },
+];
 
 function FieldError({ errors, field }: { errors: CardEditorFieldErrors; field: CardEditorField }) {
   const message = errors[field];
@@ -41,9 +50,20 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   const [restoreVersionId, setRestoreVersionId] = React.useState("");
   const [confirmRestore, setConfirmRestore] = React.useState(false);
   const [restoreStatus, setRestoreStatus] = React.useState("");
-  const restoreSelectRef = React.useRef<HTMLSelectElement | null>(null);
+  const restoreSelectRef = React.useRef<HTMLButtonElement | null>(null);
   const restoreConfirmRef = React.useRef<HTMLButtonElement | null>(null);
   const restoreActionRef = React.useRef<HTMLButtonElement | null>(null);
+  const restorableVersions = React.useMemo(
+    () => [...(card?.versionLog ?? [])].reverse().filter((entry: any) => entry.before && typeof entry.before === "object"),
+    [card?.updatedAt, card?.versionLog],
+  );
+  const versionOptions = React.useMemo(() => [
+    { value: "", label: "Version auswählen" },
+    ...restorableVersions.map((entry: any) => ({
+      value: entry.id,
+      label: `Stand vor ${new Date(entry.createdAt).toLocaleString("de-DE")} · ${entry.reason || entry.changeType}`,
+    })),
+  ], [restorableVersions]);
 
   React.useEffect(() => {
     setForm(card ? getCardEditorValue(card) : null);
@@ -75,7 +95,6 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
   const { maturity, readiness, coverage } = variantReviewModel;
   const originalVariant = getOriginalVariant(card);
   const variants = card.variants ?? [];
-  const restorableVersions = [...(card.versionLog ?? [])].reverse().filter((entry: any) => entry.before && typeof entry.before === "object");
   const selectedVersion = restorableVersions.find((entry: any) => entry.id === restoreVersionId) ?? null;
   const currentContent = versionContent({
     originalFront: card.originalFront,
@@ -290,27 +309,21 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
       ) : null}
       <section className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4" aria-labelledby={`version-restore-${card.id}`}>
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <label className="grid min-w-0 flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]" htmlFor={`version-select-${card.id}`}>
+          <label className="grid min-w-0 flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             <span id={`version-restore-${card.id}`}>Frühere Version wiederherstellen</span>
-            <select
+            <CoreSelect
               ref={restoreSelectRef}
               id={`version-select-${card.id}`}
-              className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text)]"
+              ariaLabel="Version zum Wiederherstellen"
+              className="w-full"
               value={restoreVersionId}
-              onChange={(event) => {
-                setRestoreVersionId(event.target.value);
+              options={versionOptions}
+              onValueChange={(versionId) => {
+                setRestoreVersionId(versionId);
                 setConfirmRestore(false);
                 setRestoreStatus("");
               }}
-              aria-label="Version zum Wiederherstellen"
-            >
-              <option value="">Version auswählen</option>
-              {restorableVersions.map((entry: any) => (
-                <option key={entry.id} value={entry.id}>
-                  Stand vor {new Date(entry.createdAt).toLocaleString("de-DE")} · {entry.reason || entry.changeType}
-                </option>
-              ))}
-            </select>
+            />
           </label>
           {selectedVersion && !confirmRestore ? (
             <button ref={restoreConfirmRef} type="button" onClick={() => setConfirmRestore(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
@@ -409,11 +422,13 @@ function DeckCardEditor({ deck, cards = [], selectedCardId, mediaUrls = {}, onSa
           <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
             <input className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3 core-body" value={variantForm.front} onChange={(event) => updateVariantForm("front", event.target.value)} placeholder="Frage / Front" aria-label="Variantenfrage" />
             <input className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3 core-body" value={variantForm.back} onChange={(event) => updateVariantForm("back", event.target.value)} placeholder="Antwort / Back" aria-label="Variantenantwort" />
-            <select className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3 core-body" value={variantForm.variantLevel} onChange={(event) => updateVariantForm("variantLevel", Number(event.target.value))} aria-label="Variantenlevel">
-              {[1, 2, 3].map((level) => (
-                <option key={level} value={level}>Level {level}</option>
-              ))}
-            </select>
+            <CoreSelect
+              ariaLabel="Variantenlevel"
+              className="w-full"
+              value={String(variantForm.variantLevel)}
+              options={variantLevelOptions}
+              onValueChange={(variantLevel) => updateVariantForm("variantLevel", Number(variantLevel))}
+            />
           </div>
           <button type="button" onClick={addManualVariant} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-3 core-body font-semibold text-[var(--core-text-on-accent)]">
             <PlusSquare size={16} aria-hidden="true" />
@@ -448,10 +463,15 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
   const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedCard);
   const selectedMoveTarget = rowById.get(moveTargetId)?.deck ?? null;
-  const validMoveTargetRows = React.useMemo(() => {
+  const validMoveTargetOptions = React.useMemo(() => {
     if (!selectedRow || movingDeckId !== selectedRow.id) return [];
     const validatePlacement = createDeckPlacementValidator(decks, selectedRow.id);
-    return library.rows.filter((candidate) => validatePlacement(candidate.id) === null);
+    return [
+      { value: "", label: "Hauptebene" },
+      ...library.rows
+        .filter((candidate) => validatePlacement(candidate.id) === null)
+        .map((candidate) => ({ value: candidate.id, label: `${"— ".repeat(candidate.depth)}${candidate.path}` })),
+    ];
   }, [decks, library.rows, movingDeckId, selectedRow]);
   const { urls: selectedDeckMediaUrls, missing: selectedDeckMissingMedia } = useDeckMediaUrls(selectedDeck, mediaStore);
 
@@ -643,12 +663,13 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
             <Search size={17} aria-hidden="true" />
             <input className="min-w-0 flex-1 bg-transparent outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Suchen" aria-label="Kartenstapel durchsuchen" />
           </label>
-          <select className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]" value={modeFilter} onChange={(event) => setModeFilter(event.target.value as CoreMode | "all")} aria-label="Kartenstapel nach CoRe-Modus filtern">
-            <option value="all">Alle Modi</option>
-            <option value="off">Aus</option>
-            <option value="auto">Auto</option>
-            <option value="manual">Manuell</option>
-          </select>
+          <CoreSelect
+            ariaLabel="Kartenstapel nach CoRe-Modus filtern"
+            className="shrink-0 font-semibold text-[var(--core-action-primary)]"
+            value={modeFilter}
+            options={coreModeFilterOptions}
+            onValueChange={(coreMode) => setModeFilter(coreMode as CoreMode | "all")}
+          />
           <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)]">
             <PlusSquare size={17} aria-hidden="true" />
             Neue Karten
@@ -786,12 +807,14 @@ export function DecksScreen({ decks, mediaStore, selectedDeckId = null, selected
             <form onSubmit={(event) => submitMove(event, selectedDeck)} className="grid min-w-0 gap-3 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" data-testid={`deck-move-form-${selectedDeck.id}`}>
               <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 Neuer Elternstapel für „{selectedDeck.name}“
-                <select className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text)]" value={moveTargetId} onChange={(event) => setMoveTargetId(event.target.value)} aria-label={`Ziel für ${selectedDeck.name}`} autoFocus>
-                  <option value="">Hauptebene</option>
-                  {validMoveTargetRows.map((candidate) => (
-                    <option key={candidate.id} value={candidate.id}>{"— ".repeat(candidate.depth)}{candidate.path}</option>
-                  ))}
-                </select>
+                <CoreSelect
+                  ariaLabel={`Ziel für ${selectedDeck.name}`}
+                  className="w-full"
+                  value={moveTargetId}
+                  options={validMoveTargetOptions}
+                  onValueChange={setMoveTargetId}
+                  autoFocus
+                />
               </label>
               <p className="core-body text-[var(--core-text-muted)]" data-testid={`deck-move-summary-${selectedDeck.id}`}>
                 {selectedMoveTarget ? `„${selectedDeck.name}“ wird unter „${selectedMoveTarget.name}“ verschoben.` : `„${selectedDeck.name}“ wird auf die Hauptebene verschoben.`}

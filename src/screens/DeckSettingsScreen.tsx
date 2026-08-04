@@ -6,6 +6,9 @@ import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
 import { DeckAppearanceIcon, deckIconOptions } from "../ui/deckAppearance.tsx";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreSelect } from "../ui/selectUi.tsx";
+
+const deckIconSelectOptions = deckIconOptions.map(({ key, label }) => ({ value: key, label }));
 
 export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
   const [appearance, setAppearance] = React.useState(() => normalizeDeckAppearance(deck?.deckSettings?.appearance));
@@ -62,9 +65,13 @@ export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onBack, bac
         >
           <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Stapel-Icon
-            <select className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3" value={appearance.iconKey} onChange={(event) => setAppearance((current) => normalizeDeckAppearance({ ...current, iconKey: event.target.value }))}>
-              {deckIconOptions.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
-            </select>
+            <CoreSelect
+              ariaLabel="Stapel-Icon"
+              className="w-full"
+              value={appearance.iconKey}
+              options={deckIconSelectOptions}
+              onValueChange={(iconKey) => setAppearance((current) => normalizeDeckAppearance({ ...current, iconKey }))}
+            />
           </label>
           <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Iconfarbe

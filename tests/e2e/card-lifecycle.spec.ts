@@ -84,7 +84,9 @@ async function openManualCreation(page: Page, deckName: string, cardType: string
   await page.getByRole("button", { name: /Karten manuell erstellen/ }).click();
   await page.getByRole("button", { name: "Neuen Stapel erstellen" }).click();
   await page.getByRole("textbox", { name: "Neuer Kartenstapel" }).fill(deckName);
-  await page.getByLabel("Kartentyp").selectOption(cardType);
+  const cardTypeSelect = page.getByRole("combobox", { name: "Kartentyp" });
+  await cardTypeSelect.click();
+  await page.getByRole("option", { name: cardType === "basic" ? "Basic" : cardType === "basic-reversed" ? "Umgekehrt" : cardType === "cloze" ? "Lückentext" : "Multiple Choice", exact: true }).click();
 }
 
 async function finishManualCreation(page: Page, deckName: string) {

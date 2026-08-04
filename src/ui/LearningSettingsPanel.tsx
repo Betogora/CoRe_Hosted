@@ -1,9 +1,10 @@
-import React, { type ReactNode } from "react";
+import React from "react";
 import { Brain, Clock3, Gauge, Save, SlidersHorizontal } from "lucide-react";
 import { LEARNING_SETTING_PRESETS, applyLearningPreset, markLearningSettingsCustom, normalizeLearningSettings, type LearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton } from "./actionUi.tsx";
 import { CoreModeControl, OrbIcon, SoftPanel } from "./coreUi.tsx";
+import { CoreSelect, type CoreSelectOption } from "./selectUi.tsx";
 
 const learningStepOptions = [
   { value: "1,10", label: "Kompakt · 1 Min. → 10 Min." },
@@ -12,11 +13,25 @@ const learningStepOptions = [
 ];
 
 const maximumIntervalOptions = [
-  { value: 180, label: "6 Monate" },
-  { value: 365, label: "1 Jahr" },
-  { value: 1825, label: "5 Jahre" },
-  { value: 36500, label: "Praktisch unbegrenzt" },
+  { value: "180", label: "6 Monate" },
+  { value: "365", label: "1 Jahr" },
+  { value: "1825", label: "5 Jahre" },
+  { value: "36500", label: "Praktisch unbegrenzt" },
 ];
+
+const learningPresetOptions = [
+  ...LEARNING_SETTING_PRESETS.map((preset) => ({ value: preset.id, label: `${preset.label} · ${preset.description}` })),
+  { value: "custom", label: "Eigene Einstellungen" },
+];
+
+const reviewOrderOptions = [
+  { value: "reviews-first", label: "Fällige Karten zuerst" },
+  { value: "mixed", label: "Neue und fällige mischen" },
+  { value: "new-first", label: "Neue Karten zuerst" },
+];
+
+const relearningStepOptions = [1, 3, 5, 10, 20, 30]
+  .map((minutes) => ({ value: String(minutes), label: `${minutes} Min.` }));
 
 type LearningSettingsDraft = LearningSettings & { coreMode: CoreMode };
 
@@ -87,23 +102,23 @@ interface SelectFieldProps {
   hint?: string;
   value: string | number;
   onChange: (value: string) => void;
-  children: ReactNode;
+  options: readonly CoreSelectOption[];
   testId?: string;
 }
 
-function SelectField({ label, hint, value, onChange, children, testId }: SelectFieldProps) {
+function SelectField({ label, hint, value, onChange, options, testId }: SelectFieldProps) {
   return (
     <label className="grid gap-2 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)]">
       <span className="text-[var(--core-text-secondary)]">{label}</span>
       {hint ? <span className="core-caption font-normal leading-5 text-[var(--core-text-muted)]">{hint}</span> : null}
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-1 min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-text)] outline-none focus:border-[var(--core-border-interactive)] focus:ring-2 focus:ring-[var(--core-info-surface)]"
-        data-testid={testId}
-      >
-        {children}
-      </select>
+      <CoreSelect
+        ariaLabel={label}
+        className="mt-1 w-full font-semibold"
+        value={String(value)}
+        options={options}
+        onValueChange={onChange}
+        testId={testId}
+      />
     </label>
   );
 }
@@ -128,9 +143,18 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
 
   const stepValue = draft.schedulerProfile.learningStepsMinutes.join(",");
   const knownStepValue = learningStepOptions.some((option) => option.value === stepValue);
-  const knownMaximumInterval = maximumIntervalOptions.some((option) => option.value === draft.schedulerProfile.maximumIntervalDays);
+  const maximumIntervalValue = String(draft.schedulerProfile.maximumIntervalDays);
+  const knownMaximumInterval = maximumIntervalOptions.some((option) => option.value === maximumIntervalValue);
+  const stepOptions = knownStepValue ? learningStepOptions : [
+    { value: stepValue, label: `Eigene · ${draft.schedulerProfile.learningStepsMinutes[0]} Min. → ${draft.schedulerProfile.learningStepsMinutes[1]} Min.` },
+    ...learningStepOptions,
+  ];
+  const intervalOptions = knownMaximumInterval ? maximumIntervalOptions : [
+    { value: maximumIntervalValue, label: `Eigene · ${maximumIntervalValue} Tage` },
+    ...maximumIntervalOptions,
+  ];
 
-  function selectPreset(presetId: string|undefined) {
+  function selectPreset(presetId: string) {
     if (presetId === "custom") return;
     setDraft((current) => ({ ...applyLearningPreset(current, presetId), coreMode: current.coreMode }));
     setStatus("");
@@ -165,17 +189,14 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
           </div>
           <label className="grid min-w-52 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Lernprofil
-            <select
+            <CoreSelect
+              ariaLabel="Lernprofil"
+              className="w-full"
               value={draft.schedulerProfile.presetId}
-              onChange={(event) => selectPreset(event.target.value)}
-              className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 text-[var(--core-text)] outline-none focus:border-[var(--core-border-interactive)] focus:ring-2 focus:ring-[var(--core-info-surface)]"
-              data-testid="learning-settings-preset"
-            >
-              {LEARNING_SETTING_PRESETS.map((preset) => (
-                <option key={preset.id} value={preset.id}>{preset.label} · {preset.description}</option>
-              ))}
-              <option value="custom">Eigene Einstellungen</option>
-            </select>
+              options={learningPresetOptions}
+              onValueChange={selectPreset}
+              testId="learning-settings-preset"
+            />
           </label>
         </div>
       </div>
@@ -211,12 +232,9 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
               hint="Legt fest, wie neue und fällige Karten zusammengestellt werden."
               value={draft.newReviewOrder}
               onChange={(value: any) => updateSetting("newReviewOrder", value)}
+              options={reviewOrderOptions}
               testId="learning-settings-order"
-            >
-              <option value="reviews-first">Fällige Karten zuerst</option>
-              <option value="mixed">Neue und fällige mischen</option>
-              <option value="new-first">Neue Karten zuerst</option>
-            </SelectField>
+            />
             <div className="rounded-2xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
               <p className="core-body font-semibold text-[var(--core-text-secondary)]">CoRe-Modus</p>
               <p className="mb-3 mt-1 core-caption leading-5 text-[var(--core-text-muted)]">Steuert, ob und wie nahe Varianten in diesem Geltungsbereich eingesetzt werden.</p>
@@ -236,20 +254,17 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
               hint="Der erste Wert gilt nach ‚Nochmal‘, der zweite für den verpflichtenden zweiten Kontakt am selben Tag. Auch ‚Leicht‘ überspringt ihn nicht."
               value={stepValue}
               onChange={(value: string) => updateSchedulerSetting("learningStepsMinutes", value.split(",").map(Number))}
+              options={stepOptions}
               testId="learning-settings-steps"
-            >
-              {!knownStepValue ? <option value={stepValue}>Eigene · {draft.schedulerProfile.learningStepsMinutes[0]} Min. → {draft.schedulerProfile.learningStepsMinutes[1]} Min.</option> : null}
-              {learningStepOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </SelectField>
+            />
             <SelectField
               label="Wiederlern-Abstand nach Fehler"
               hint="Wann eine bereits gelernte Karte nach „Nochmal“ erneut erscheint."
               value={draft.schedulerProfile.relearningStepMinutes}
               onChange={(value: any) => updateSchedulerSetting("relearningStepMinutes", Number(value))}
+              options={relearningStepOptions}
               testId="learning-settings-relearning"
-            >
-              {[1, 3, 5, 10, 20, 30].map((minutes) => <option key={minutes} value={minutes}>{minutes} Min.</option>)}
-            </SelectField>
+            />
             <label className="flex min-h-20 items-start justify-between gap-4 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)] lg:col-span-2">
               <span>
                 <span className="block">Weniger sehr kurze Intervalle</span>
@@ -287,11 +302,9 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
               hint="Kein einzelner Abstand wird größer als diese Obergrenze."
               value={draft.schedulerProfile.maximumIntervalDays}
               onChange={(value: any) => updateSchedulerSetting("maximumIntervalDays", Number(value))}
+              options={intervalOptions}
               testId="learning-settings-maximum-interval"
-            >
-              {!knownMaximumInterval ? <option value={draft.schedulerProfile.maximumIntervalDays}>Eigene · {draft.schedulerProfile.maximumIntervalDays} Tage</option> : null}
-              {maximumIntervalOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </SelectField>
+            />
           </div>
           {draft.schedulerProfile.desiredRetention > 0.97 ? (
             <p className="rounded-xl border border-core-warning bg-core-warning-soft px-4 py-3 core-body leading-6 text-core-text" role="alert">

@@ -6,6 +6,7 @@ import { createCoreDeck, createLearningItemFromEditorValue } from "../../src/cor
 import { createCoreRepository } from "../../src/coreRepository.ts";
 import type { Deck } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 
 const DECK_IDS = {
@@ -86,10 +87,11 @@ test.beforeEach(async ({ page }) => {
 });
 test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten bleiben in einer sicheren Session", async ({ page }) => {
   await openManualCreation(page);
-  const targetSelect = page.getByLabel("Kartenstapel");
-  await expect(targetSelect.getByRole("option", { name: "Bereich A / Gemeinsam" })).toHaveCount(1);
-  await expect(targetSelect.getByRole("option", { name: "Bereich B / Gemeinsam" })).toHaveCount(1);
-  await targetSelect.selectOption(DECK_IDS.target);
+  const targetSelect = page.getByRole("combobox", { name: "Kartenstapel" });
+  await targetSelect.click();
+  await expect(page.getByRole("option", { name: "Bereich A / Gemeinsam", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("option", { name: "Bereich B / Gemeinsam", exact: true })).toHaveCount(1);
+  await page.getByRole("option", { name: "Batch-Ziel", exact: true }).click();
 
   for (let index = 1; index <= 5; index += 1) {
     await page.getByRole("textbox", { name: "Vorderseite" }).fill(`Batch-Frage ${index}`);
@@ -115,7 +117,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
 
   await resetToFreshLocalState(page, { resetCloud: false });
   await openManualCreation(page);
-  await targetSelect.selectOption(DECK_IDS.target);
+  await chooseCoreSelectOption(page, targetSelect, "Batch-Ziel");
   await page.getByRole("button", { name: /Vorderseite: Nach Speichern leeren/ }).click();
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Angeheftete Frage");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Einmalige Antwort");

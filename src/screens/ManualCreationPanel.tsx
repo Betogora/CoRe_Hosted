@@ -13,6 +13,7 @@ import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
+import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { cardTypeOptions } from "./screenConstants.ts";
 
@@ -117,6 +118,13 @@ export function ManualCreationPanel({
   const [status, setStatus] = React.useState("");
   const [statusType, setStatusType] = React.useState<"status" | "alert">("status");
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
+  const targetDeckOptions = React.useMemo(() => [
+    ...(targetDeckMissing ? [{ value: "", label: "Zielstapel nicht gefunden" }] : []),
+    ...decks.map((deck) => ({
+      value: deck.id,
+      label: (deck.hierarchyPath.length ? deck.hierarchyPath : [deck.name]).join(" / "),
+    })),
+  ], [decks, targetDeckMissing]);
 
   React.useEffect(() => {
     if (decks.length === 0) setUseNewDeck(true);
@@ -306,17 +314,16 @@ export function ManualCreationPanel({
             {!useNewDeck && decks.length > 0 ? (
               <label className="grid min-w-[16rem] flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 Kartenstapel
-                <select className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={selectedDeckId} onChange={(event) => {
-                  onTargetDeckChange(event.target.value);
-                  dispatchBatch({ type: "target-deck", deckId: event.target.value });
-                }}>
-                  {targetDeckMissing ? <option value="">Zielstapel nicht gefunden</option> : null}
-                  {decks.map((deck) => (
-                    <option key={deck.id} value={deck.id}>
-                      {(deck.hierarchyPath.length ? deck.hierarchyPath : [deck.name]).join(" / ")}
-                    </option>
-                  ))}
-                </select>
+                <CoreSelect
+                  ariaLabel="Kartenstapel"
+                  className="w-full"
+                  value={selectedDeckId}
+                  options={targetDeckOptions}
+                  onValueChange={(deckId) => {
+                    onTargetDeckChange(deckId);
+                    dispatchBatch({ type: "target-deck", deckId });
+                  }}
+                />
               </label>
             ) : (
               <label className="grid min-w-[16rem] flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
@@ -344,13 +351,13 @@ export function ManualCreationPanel({
 
         <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           Kartentyp
-          <select className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={cardType} onChange={(event) => dispatchBatch({ type: "draft", patch: { cardType: event.target.value as CardType } })}>
-            {cardTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <CoreSelect
+            ariaLabel="Kartentyp"
+            className="w-full"
+            value={cardType}
+            options={cardTypeOptions}
+            onValueChange={(nextCardType) => dispatchBatch({ type: "draft", patch: { cardType: nextCardType as CardType } })}
+          />
         </label>
       </div>
 

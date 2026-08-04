@@ -451,9 +451,11 @@ test("card version restore shows a comparison, requires confirmation and appends
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, resolvedCardId))?.originalFront).toBe("<p>Welche Stadt ist die Hauptstadt der Côte d'Ivoire?</p>");
 
   await page.locator("summary").filter({ hasText: "Details, Herkunft und Versionen" }).click();
-  const versionSelect = page.getByLabel("Version zum Wiederherstellen");
-  const versionId = await versionSelect.locator("option").nth(1).getAttribute("value");
-  await versionSelect.selectOption(versionId ?? "");
+  const versionSelect = page.getByRole("combobox", { name: "Version zum Wiederherstellen" });
+  await versionSelect.click();
+  const versionOptions = page.getByRole("option");
+  await expect(versionOptions).toHaveCount(originalVersionCount + 2);
+  await versionOptions.nth(1).click();
   await expect(page.getByTestId("version-restore-summary")).toContainText("Aktuell: <p>Welche Stadt ist die Hauptstadt der Côte d'Ivoire?</p>");
   await expect(page.getByTestId("version-restore-summary")).toContainText("Nach Restore: Was ist die Hauptstadt von Côte d'Ivoire?");
   await page.getByRole("button", { name: "Restore bestätigen" }).click();

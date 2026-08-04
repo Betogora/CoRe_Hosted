@@ -52,7 +52,8 @@ test("quick deck creation asks only for a name and optional parent deck", () => 
   );
 
   assert.match(markup, /Stapelname/);
-  assert.match(markup, /Als Hauptstapel/);
+  assert.match(markup, /role="combobox"[^>]*aria-label="Ebene"/);
+  assert.match(markup, />Welt-Hauptstädte</);
   assert.doesNotMatch(markup, /Iconfarbe|Icon auswählen/);
 });
 
