@@ -22,12 +22,13 @@ test("completed first creation offers study and card-review actions", () => {
   assert.match(markup, /Karten prüfen/);
 });
 
-test("creation entry exposes only the two Core methods", () => {
+test("creation entry presents the two concise creation methods", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} {...callbacks} />);
 
-  assert.match(markup, /Core · Manuell/);
-  assert.match(markup, /Core · APKG/);
-  assert.doesNotMatch(markup, /Labs|Entwurfsassistent|KI/);
+  assert.match(markup, /Karten selbst erstellen/);
+  assert.match(markup, /Schreibe Karten selbst oder mit einer PDF-Datei\./);
+  assert.match(markup, /Übernimm bestehende Stapel\./);
+  assert.doesNotMatch(markup, /Core ·|Karten manuell erstellen|Front\/Back-Listen/);
 });
 
 test("manual picker accepts only readable source documents", () => {

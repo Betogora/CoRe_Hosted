@@ -124,7 +124,6 @@ export function CreationScreen({
               <ArrowLeft size={16} aria-hidden="true" />
               Auswahl
             </button>
-            {selectedMethodMeta ? <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">{selectedMethodMeta.eyebrow}</p> : null}
           </div>
           {renderSelectedMethod()}
         </section>

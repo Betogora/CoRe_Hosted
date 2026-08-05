@@ -7,7 +7,6 @@ type SelectableCreationMethod = Exclude<CreationMethod, "">;
 export interface CreationMethodDefinition {
   id: SelectableCreationMethod;
   title: string;
-  eyebrow: string;
   body: string;
   icon: LucideIcon;
   color: "sky" | "teal";
@@ -20,30 +19,26 @@ export interface CreationHomeProps {
 export const creationMethods: CreationMethodDefinition[] = [
   {
     id: "manual",
-    title: "Karten manuell erstellen",
-    eyebrow: "Core · Manuell + PDF/Text",
-    body: "Schreibe Karten selbst und füge bei Bedarf eine PDF- oder Textquelle an.",
+    title: "Karten selbst erstellen",
+    body: "Schreibe Karten selbst oder mit einer PDF-Datei.",
     icon: PenLine,
     color: "sky",
   },
   {
     id: "import",
     title: "Import",
-    eyebrow: "Core · APKG, Text, Tabellen",
-    body: "Übernimm bestehende Stapel oder Front/Back-Listen aus Dateien und Tabellen.",
+    body: "Übernimm bestehende Stapel.",
     icon: FileSpreadsheet,
     color: "teal",
   },
 ];
 
-const methodThemes: Record<CreationMethodDefinition["color"], { eyebrow: string; icon: string; hover: string }> = {
+const methodThemes: Record<CreationMethodDefinition["color"], { icon: string; hover: string }> = {
   sky: {
-    eyebrow: "text-core-text",
     icon: "bg-core-info-soft text-core-text shadow-[var(--core-shadow-soft)]",
     hover: "hover:border-core-info hover:shadow-[var(--core-shadow-raised)]",
   },
   teal: {
-    eyebrow: "text-core-text",
     icon: "bg-core-success-soft text-core-text shadow-[var(--core-shadow-soft)]",
     hover: "hover:border-core-success hover:shadow-[var(--core-shadow-raised)]",
   },
@@ -63,10 +58,8 @@ function CreationMethodButton({ method, onSelect }: { method: CreationMethodDefi
       <span className={`mx-auto grid size-16 place-items-center rounded-full ${theme.icon}`}>
         <Icon size={28} strokeWidth={1.8} aria-hidden="true" />
       </span>
-      <span className={`mt-4 core-caption font-semibold uppercase ${theme.eyebrow}`}>{method.eyebrow}</span>
-      <span className="mx-auto mt-2 block max-w-[18rem] core-heading-2 font-semibold leading-tight text-[var(--core-text)]">{method.title}</span>
-      <span className="mx-auto mt-4 block h-px w-full max-w-[18rem] bg-[var(--core-border)]" aria-hidden="true" />
-      <span className="mx-auto mt-3 block max-w-[19rem] text-left core-body leading-6 text-[var(--core-text-muted)]">{method.body}</span>
+      <span className="mx-auto mt-4 block max-w-[18rem] core-heading-2 font-semibold leading-tight text-[var(--core-text)]">{method.title}</span>
+      <span className="mx-auto mt-3 block max-w-full core-body leading-6 text-[var(--core-text-muted)]">{method.body}</span>
     </button>
   );
 }
