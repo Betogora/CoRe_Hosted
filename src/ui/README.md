@@ -85,6 +85,8 @@ Für spezialisierte Strukturen stehen `core-status-info`, `core-status-success`,
 
 Auswahlfelder verwenden `CoreSelect` aus `src/ui/selectUi.tsx`. Die Komponente verlangt einen kontrollierten Stringwert, eine Liste aus `{ value, label }`, `onValueChange` und ein zugängliches `ariaLabel`. Sie besitzt den symmetrisch gepolsterten Trigger, das CoRe-Overlay, Auswahlmarkierung, Viewport-Kollisionen, Scrollen, Tastaturnavigation, Typeahead und Fokuswiederherstellung. Leere fachliche Werte bleiben nach außen unverändert; ihre technische Codierung ist privat.
 
+Wenn ein konkreter Stapel oder Elternstapel gewählt wird, verwendet Produktcode `DeckSelect` aus demselben Modul. Der geschlossene Trigger zeigt das individuelle Stapel-Icon und den vollständigen Pfad; das geöffnete Overlay projiziert alle erlaubten Stapel in kanonischer Baumreihenfolge als einzeilige, eingerückte und vertikal scrollbare Liste. Tiefen steuern ausschließlich die Einrückung und niemals eine Gruppenfarbe. Sonderziele wie Hauptstapel oder Hauptebene werden als eigene erste Option übergeben.
+
 ## Fortschritt und Datenvisualisierung
 
 `MiniProgress`, `DonutValue` und `StatTile` aus `src/ui/coreUi.tsx` decken kompakten Fortschritt, Prozentdonut und Kennzahlfläche ab. Aufrufer liefern Werte und verständliche Labels; Unterschiede dürfen nie nur über Farbe vermittelt werden.

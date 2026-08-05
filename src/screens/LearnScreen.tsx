@@ -5,7 +5,7 @@ import { DECK_DEPTH_ERROR, MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
-import { CoreSelect } from "../ui/selectUi.tsx";
+import { DeckSelect } from "../ui/selectUi.tsx";
 
 function createDefaultDeckDraft(parentDeckId = "") {
   return {
@@ -23,12 +23,10 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
   const createToggleRef = React.useRef<HTMLButtonElement | null>(null);
   const deckNameRef = React.useRef<HTMLInputElement | null>(null);
   const focusedRow = library.rows.find((row) => row.id === focusedDeckId) ?? null;
-  const eligibleParentOptions = React.useMemo(() => [
-    { value: "", label: "Als Hauptstapel" },
-    ...library.rows
-      .filter((row) => row.depth < MAX_INTERACTIVE_DECK_LEVELS - 1)
-      .map((row) => ({ value: row.id, label: `${"— ".repeat(row.depth)}${row.path}` })),
-  ], [library.rows]);
+  const eligibleParentDeckIds = React.useMemo(
+    () => library.rows.filter((row) => row.depth < MAX_INTERACTIVE_DECK_LEVELS - 1).map((row) => row.id),
+    [library.rows],
+  );
   const focusedDeckMissing = Boolean(focusedDeckId && !focusedRow);
 
   React.useEffect(() => {
@@ -139,11 +137,13 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
           </label>
           <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Ebene
-            <CoreSelect
+            <DeckSelect
               ariaLabel="Ebene"
               className="w-full font-medium"
               value={deckDraft.parentDeckId}
-              options={eligibleParentOptions}
+              decks={decks}
+              selectableDeckIds={eligibleParentDeckIds}
+              specialOption={{ value: "", label: "Als Hauptstapel", icon: Layers }}
               onValueChange={(parentDeckId) => updateDeckDraft("parentDeckId", parentDeckId)}
               testId="learn-deck-parent-select"
             />

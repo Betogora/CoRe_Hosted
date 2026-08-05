@@ -1,6 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
-import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 
 const DECK_IDS = {
   root: "deck_world_capitals",
@@ -105,6 +104,17 @@ test("learning rows activate directly while expand and settings remain independe
   await expect(europeRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
   await expect(europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" })).toBeVisible();
   await expect(europeRow.getByRole("button", { name: /^Lernen$/ })).toHaveCount(0);
+
+  await page.getByTestId("learn-deck-create-toggle").click();
+  const parentSelect = page.getByTestId("learn-deck-parent-select");
+  await parentSelect.click();
+  await expect(page.getByRole("option", { name: "Als Hauptstapel", exact: true })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Welt-Hauptstädte", exact: true }).locator('[data-deck-icon="true"]')).toHaveCount(1);
+  const europeParentOption = page.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
+  await expect(europeParentOption).toHaveAttribute("data-deck-depth", "1");
+  await europeParentOption.click();
+  await expect(parentSelect).toContainText("Welt-Hauptstädte / Europa");
+  await page.getByTestId("learn-deck-create-toggle").click();
 
   await rootRow.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte ausblenden" }).click();
   await expect(europeRow).toBeHidden();
@@ -251,7 +261,13 @@ test("deck management reparents directly and preserves explicit keyboard move as
 
   const moveButton = page.getByTestId(`deck-move-button-${DECK_IDS.southAmerica}`);
   await moveButton.press("Enter");
-  await chooseCoreSelectOption(page, page.getByRole("combobox", { name: "Ziel für Südamerika" }), /Europa$/);
+  const moveSelect = page.getByRole("combobox", { name: "Ziel für Südamerika" });
+  await moveSelect.click();
+  await expect(page.getByRole("option", { name: "Hauptebene", exact: true })).toBeVisible();
+  await expect(page.getByRole("option", { name: /Südamerika$/ })).toHaveCount(0);
+  const europeMoveOption = page.getByRole("option", { name: /Europa$/ });
+  await expect(europeMoveOption.locator('[data-deck-icon="true"]')).toHaveCount(1);
+  await europeMoveOption.click();
   await expect(page.getByTestId(`deck-move-summary-${DECK_IDS.southAmerica}`)).toContainText("unter „Europa“");
   await page.getByRole("button", { name: "Verschieben bestätigen" }).press("Enter");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);

@@ -13,7 +13,7 @@ import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
 import { ActionDialog, CoreModeControl, DonutValue, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
-import { CoreSelect } from "../ui/selectUi.tsx";
+import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
 import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardType, CardVariant, CoreMode, Deck, LearningItem } from "../coreTypes.ts";
 
@@ -680,15 +680,12 @@ export function DecksScreen({
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
   const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedCard);
   const detailOpen = Boolean(selectedCard || selectedDeckMissing || selectedCardMissing);
-  const validMoveTargetOptions = React.useMemo(() => {
+  const validMoveTargetDeckIds = React.useMemo(() => {
     if (!movingDeckId) return [];
     const validatePlacement = createDeckPlacementValidator(decks, movingDeckId);
-    return [
-      { value: "", label: "Hauptebene" },
-      ...tableModel.allGroups
-        .filter((candidate) => validatePlacement(candidate.id) === null)
-        .map((candidate) => ({ value: candidate.id, label: candidate.path })),
-    ];
+    return tableModel.allGroups
+      .filter((candidate) => validatePlacement(candidate.id) === null)
+      .map((candidate) => candidate.id);
   }, [decks, movingDeckId, tableModel.allGroups]);
   const { urls: selectedDeckMediaUrls } = useDeckMediaUrls(selectedDeck, mediaStore);
   const handleEditorDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
@@ -958,12 +955,14 @@ export function DecksScreen({
             <form className="grid gap-3" onSubmit={(event) => submitMove(event, group.deck)}>
               <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 Neuer übergeordneter Stapel
-                <CoreSelect
+                <DeckSelect
                   autoFocus
                   ariaLabel={`Ziel für ${group.deck.name}`}
                   className="w-full"
                   value={moveTargetId}
-                  options={validMoveTargetOptions}
+                  decks={decks}
+                  selectableDeckIds={validMoveTargetDeckIds}
+                  specialOption={{ value: "", label: "Hauptebene", icon: Layers }}
                   onValueChange={setMoveTargetId}
                 />
               </label>

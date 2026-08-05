@@ -1,5 +1,5 @@
 import React from "react";
-import { Database, FileText, PenLine, Pin, PinOff, Plus, X } from "lucide-react";
+import { CircleAlert, Database, FileText, PenLine, Pin, PinOff, Plus, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -13,7 +13,7 @@ import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
-import { CoreSelect } from "../ui/selectUi.tsx";
+import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { cardTypeOptions } from "./screenConstants.ts";
 
@@ -118,14 +118,6 @@ export function ManualCreationPanel({
   const [status, setStatus] = React.useState("");
   const [statusType, setStatusType] = React.useState<"status" | "alert">("status");
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
-  const targetDeckOptions = React.useMemo(() => [
-    ...(targetDeckMissing ? [{ value: "", label: "Zielstapel nicht gefunden" }] : []),
-    ...decks.map((deck) => ({
-      value: deck.id,
-      label: (deck.hierarchyPath.length ? deck.hierarchyPath : [deck.name]).join(" / "),
-    })),
-  ], [decks, targetDeckMissing]);
-
   React.useEffect(() => {
     if (decks.length === 0) setUseNewDeck(true);
   }, [decks.length]);
@@ -314,11 +306,17 @@ export function ManualCreationPanel({
             {!useNewDeck && decks.length > 0 ? (
               <label className="grid min-w-[16rem] flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 Kartenstapel
-                <CoreSelect
+                <DeckSelect
                   ariaLabel="Kartenstapel"
                   className="w-full"
                   value={selectedDeckId}
-                  options={targetDeckOptions}
+                  decks={decks}
+                  specialOption={targetDeckMissing ? {
+                    value: "",
+                    label: "Zielstapel nicht gefunden",
+                    icon: CircleAlert,
+                    tone: "danger",
+                  } : undefined}
                   onValueChange={(deckId) => {
                     onTargetDeckChange(deckId);
                     dispatchBatch({ type: "target-deck", deckId });

@@ -49,6 +49,13 @@ function seedDecks(): Deck[] {
       source: "manual",
       cards: [card(DECK_IDS.target, "Bestehende Karte", "Bestehende Antwort")],
     }),
+    ...Array.from({ length: 5 }, (_, index) => createCoreDeck({
+      id: `batch-scroll-${index + 1}`,
+      name: `Scroll-Stapel ${index + 1}`,
+      hierarchyPath: [`Scroll-Stapel ${index + 1}`],
+      source: "manual",
+      cards: [],
+    })),
   ];
 }
 
@@ -89,8 +96,29 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await openManualCreation(page);
   const targetSelect = page.getByRole("combobox", { name: "Kartenstapel" });
   await targetSelect.click();
-  await expect(page.getByRole("option", { name: "Bereich A / Gemeinsam", exact: true })).toHaveCount(1);
-  await expect(page.getByRole("option", { name: "Bereich B / Gemeinsam", exact: true })).toHaveCount(1);
+  const rootAOption = page.getByRole("option", { name: "Bereich A", exact: true });
+  const childAOption = page.getByRole("option", { name: "Bereich A / Gemeinsam", exact: true });
+  const rootBOption = page.getByRole("option", { name: "Bereich B", exact: true });
+  const childBOption = page.getByRole("option", { name: "Bereich B / Gemeinsam", exact: true });
+  await expect(childAOption).toHaveCount(1);
+  await expect(childBOption).toHaveCount(1);
+  await expect(childAOption.locator('[data-deck-icon="true"]')).toHaveCount(1);
+  const optionDeckIds = await page.locator("[data-deck-select-option]").evaluateAll((options) => options.map((option) => option.getAttribute("data-deck-select-option")));
+  expect(optionDeckIds.slice(0, 5)).toEqual([DECK_IDS.rootA, DECK_IDS.childA, DECK_IDS.rootB, DECK_IDS.childB, DECK_IDS.target]);
+  const [rootPadding, childPadding] = await Promise.all([
+    rootAOption.evaluate((option) => Number.parseFloat(getComputedStyle(option).paddingInlineStart)),
+    childAOption.evaluate((option) => Number.parseFloat(getComputedStyle(option).paddingInlineStart)),
+  ]);
+  expect(childPadding - rootPadding).toBe(16);
+  const [rootBackground, childBackground] = await Promise.all([
+    rootBOption.evaluate((option) => getComputedStyle(option).backgroundColor),
+    childBOption.evaluate((option) => getComputedStyle(option).backgroundColor),
+  ]);
+  expect(childBackground).toBe(rootBackground);
+  const selectContent = page.locator('[data-deck-select-content="true"]');
+  const selectViewport = page.locator('[data-deck-select-viewport="true"]');
+  expect((await selectContent.boundingBox())?.height).toBeLessThanOrEqual(320);
+  expect(await selectViewport.evaluate((viewport) => viewport.scrollHeight > viewport.clientHeight)).toBe(true);
   await page.getByRole("option", { name: "Batch-Ziel", exact: true }).click();
 
   for (let index = 1; index <= 5; index += 1) {

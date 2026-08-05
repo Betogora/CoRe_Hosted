@@ -46,5 +46,7 @@ test("manual target selection shows complete deck paths", () => {
   );
 
   assert.match(markup, /Biologie \/ Zelle/);
+  assert.match(markup, /data-deck-select-trigger="true"/);
+  assert.match(markup, /data-deck-icon="true"/);
   assert.match(markup, /Fertig/);
 });
