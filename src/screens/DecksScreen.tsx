@@ -721,6 +721,7 @@ export function DecksScreen({
     function handleOutsidePointer(event: PointerEvent) {
       const target = event.target;
       if (!(target instanceof Element) || detailRef.current?.contains(target)) return;
+      if (pendingCardDelete && target.closest('[data-testid="action-dialog-backdrop"]')) setPendingCardDelete(null);
       if (target.closest('[role="dialog"], [data-radix-popper-content-wrapper]')) return;
       if (target.closest('[data-app-navigation="true"]')) return;
       if (target.closest('[data-card-row="true"]')) return;
@@ -1181,10 +1182,11 @@ export function DecksScreen({
       />
       <ActionDialog
         open={Boolean(pendingCardDelete)}
-        title="Karte löschen?"
-        description={pendingCardDelete ? <p>„{(stripHtml(pendingCardDelete.card.originalFront).replace(/\s+/g, " ").trim() || "Karte ohne Vorderseitentext").slice(0, 180)}“ wird als gelöscht markiert. Du kannst die Löschung unmittelbar danach rückgängig machen.</p> : null}
-        confirmLabel="Karte löschen"
-        cancelLabel="Abbrechen"
+        title="Karte löschen"
+        description={null}
+        confirmLabel="Ja"
+        cancelLabel="Nein"
+        actionIcons={{ cancel: X, confirm: Check }}
         destructive
         onCancel={() => setPendingCardDelete(null)}
         onConfirm={() => void confirmCardDelete()}

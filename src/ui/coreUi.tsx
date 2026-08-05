@@ -18,6 +18,7 @@ interface ActionDialogProps {
   cancelLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  actionIcons?: { cancel: LucideIcon; confirm: LucideIcon };
   discardLabel?: string;
   onDiscard?: () => void;
   confirmLoading?: boolean;
@@ -41,6 +42,7 @@ export function ActionDialog({
   cancelLabel,
   onConfirm,
   onCancel,
+  actionIcons,
   discardLabel,
   onDiscard,
   confirmLoading = false,
@@ -125,19 +127,23 @@ export function ActionDialog({
   if (!open) return null;
 
   const dialog = (
-    <div className="fixed inset-0 z-[80] grid place-items-center bg-[var(--core-backdrop)] p-4" role="presentation">
+    <div
+      className="fixed inset-0 z-[80] grid place-items-center bg-[var(--core-backdrop)] p-4"
+      role="presentation"
+      data-testid="action-dialog-backdrop"
+    >
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        aria-describedby={descriptionId}
+        aria-describedby={description == null ? undefined : descriptionId}
         className="core-surface-raised w-full max-w-lg rounded-[18px] p-6 shadow-2xl"
       >
         <h2 id={titleId} className="core-heading-2 text-core-text">{title}</h2>
-        <div id={descriptionId} className="core-body-large mt-3 text-core-secondary">{description}</div>
+        {description == null ? null : <div id={descriptionId} className="core-body-large mt-3 text-core-secondary">{description}</div>}
         <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <ActionButton ref={cancelRef} type="button" variant="secondary" disabled={confirmLoading} onClick={cancelDialog}>
+          <ActionButton ref={cancelRef} type="button" variant="secondary" icon={actionIcons?.cancel} disabled={confirmLoading} onClick={cancelDialog}>
             {cancelLabel}
           </ActionButton>
           {discardLabel && onDiscard ? (
@@ -148,6 +154,7 @@ export function ActionDialog({
           <ActionButton
             type="button"
             variant={destructive ? "destructive" : "primary"}
+            icon={actionIcons?.confirm}
             loading={confirmLoading}
             disabled={confirmLoading}
             onClick={confirmDialog}

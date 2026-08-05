@@ -163,14 +163,22 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await page.getByTestId(`deck-card-${existingCardId}`).click();
   const deleteCardButton = page.getByRole("button", { name: "Löschen", exact: true });
   await deleteCardButton.click();
-  const cardDialog = page.getByRole("dialog", { name: "Karte löschen?" });
-  await expect(cardDialog).toContainText("Bestehende Karte");
-  await cardDialog.getByRole("button", { name: "Abbrechen" }).click();
-  await expect(deleteCardButton).toBeFocused();
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
+  const cardDialog = page.getByRole("dialog", { name: "Karte löschen" });
+  await expect(cardDialog).not.toContainText("Bestehende Karte");
+  await expect(cardDialog.getByRole("button", { name: "Nein" }).locator("svg.lucide-x")).toBeVisible();
+  await expect(cardDialog.getByRole("button", { name: "Ja" }).locator("svg.lucide-check")).toBeVisible();
+  await page.getByTestId("action-dialog-backdrop").click({ position: { x: 5, y: 5 } });
+  await expect(cardDialog).toBeHidden();
+  await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
+  await expect(page.getByTestId(`deck-card-${existingCardId}`)).toContainText("Bestehende Karte");
+  await expect(page.getByTestId(`deck-card-${existingCardId}`)).toBeFocused();
 
+  await page.getByTestId(`deck-card-${existingCardId}`).click();
   await page.getByRole("button", { name: "Löschen", exact: true }).click();
-  await cardDialog.getByRole("button", { name: "Karte löschen" }).click();
+  await cardDialog.getByRole("button", { name: "Nein" }).click();
+  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
+  await page.getByRole("button", { name: "Löschen", exact: true }).click();
+  await cardDialog.getByRole("button", { name: "Ja" }).click();
   await page.getByRole("button", { name: "Rückgängig" }).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
   await page.reload();

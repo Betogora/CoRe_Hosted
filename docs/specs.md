@@ -137,7 +137,7 @@ Akzeptanz:
 - Tiefere APKG-Hierarchien bleiben beim Import unverändert. Ihre Darstellung verwendet ab der vierten Ebene den tiefsten Gruppenton; spätere Moves müssen die Vier-Ebenen-Grenze einhalten oder den vorhandenen Baum nachweislich flacher machen.
 - Ein beendeter Drag startet keine Sitzung. Erfolg, Fehler und No-op werden deutsch über eine Live-Region gemeldet; es gibt keine Bestätigung und kein Rückgängig-Angebot.
 - Die Kartenverwaltung behält zusätzlich das explizite bestätigte Verschieben als Tastatur-, Touch- und Accessibility-Fallback.
-- Kartenlöschung zeigt den betroffenen Inhalt, verwendet Soft Delete und bietet unmittelbar ein Undo, das denselben Datensatz samt Review State wiederherstellt.
+- Kartenlöschung verwendet den kompakten Standarddialog `Karte löschen` mit `Nein` samt Kreuz und `Ja` samt Haken. `Nein`, Escape und ein Klick auf den abgedunkelten Bereich brechen ohne Löschung ab; der Außenklick schließt zusätzlich den Kartendetailbereich. `Ja` führt den Soft Delete aus und bietet unmittelbar ein Undo, das denselben Datensatz samt Review State wiederherstellt.
 - Stapellöschung zeigt Stapelname, Unterstapelzahl und aktive Kartenanzahl; ein Abbruch verändert nichts.
 - Basic, Reverse, Cloze und Multiple Choice laufen durch dieselbe fachliche Erstellung.
 - Basic und Reverse bearbeiten Vorder- und Rückseite als sanitisiertes Rich Text; Pflichtfelder werden direkt am Feld validiert.
