@@ -161,12 +161,10 @@
   .core-deck-group[data-deck-depth="3"] { background-color: var(--core-group-depth-3); }
 
   .core-deck-group:has(> [data-deck-row] > [data-deck-row-activation]:hover),
-  .core-deck-group[data-selected="true"],
   .core-deck-group[data-drop-state="valid"] {
     border-color: var(--core-border-interactive);
   }
 
-  .core-deck-group[data-selected="true"],
   .core-deck-group[data-drop-state="valid"] {
     box-shadow: 0 0 0 2px var(--core-focus-ring-soft);
   }

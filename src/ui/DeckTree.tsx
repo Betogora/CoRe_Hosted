@@ -12,7 +12,6 @@ export type DeckTreeMode = "dashboard" | "learn" | "manage";
 export interface DeckTreeProps {
   rows: DeckLibraryRow[];
   mode: DeckTreeMode;
-  selectedDeckId?: string | null;
   onActivate: (row: DeckLibraryRow) => void;
   onOpenSettings: (row: DeckLibraryRow) => void;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
@@ -70,7 +69,7 @@ const DeckCounts = React.memo(function DeckCounts({ row }: { row: DeckLibraryRow
   );
 });
 
-export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpenSettings, onMoveDeck }: DeckTreeProps) {
+export function DeckTree({ rows, mode, onActivate, onOpenSettings, onMoveDeck }: DeckTreeProps) {
   const [collapsedDeckIds, setCollapsedDeckIds] = React.useState<Set<string>>(() => new Set());
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
@@ -205,7 +204,6 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
   function renderNode(node: DeckTreeNode): React.ReactNode {
     const { row } = node;
     const isCollapsed = collapsedDeckIds.has(row.id);
-    const isSelected = selectedDeckId === row.id;
     const isDragged = draggedDeckId === row.id;
     const isDropTarget = dropIntent?.targetDeckId === row.id;
     const activationLabel = mode === "manage" ? `${row.path} öffnen` : `${row.path} lernen`;
@@ -216,7 +214,6 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
         data-testid={`${rowTestPrefix}-group-${row.id}`}
         data-deck-group="true"
         data-deck-depth={Math.min(row.depth, MAX_INTERACTIVE_DECK_LEVELS - 1)}
-        data-selected={isSelected || undefined}
         data-drop-state={isDropTarget ? (dropIntent?.error ? "invalid" : "valid") : undefined}
         className={`core-deck-group grid gap-2 rounded-2xl border border-[var(--core-border)] p-2 sm:gap-3 ${isDragged ? "opacity-60" : ""}`}
       >
@@ -237,7 +234,6 @@ export function DeckTree({ rows, mode, selectedDeckId = null, onActivate, onOpen
             type="button"
             onClick={() => activate(row)}
             aria-label={activationLabel}
-            aria-pressed={mode === "manage" ? isSelected : undefined}
             data-testid={mode === "manage" ? `deck-select-${row.id}` : undefined}
             data-deck-row-activation="true"
             className="pointer-events-none absolute inset-0 z-0 rounded-xl text-left"

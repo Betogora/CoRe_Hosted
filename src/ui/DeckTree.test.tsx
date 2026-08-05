@@ -66,7 +66,7 @@ test("deck tree keeps donut and settings in the same order across all modes", ()
     <DeckTree rows={rows} mode="dashboard" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
   );
   const management = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="manage" selectedDeckId="child" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="manage" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
   );
 
   for (const markup of [dashboard, management]) {
@@ -75,7 +75,6 @@ test("deck tree keeps donut and settings in the same order across all modes", ()
     assert.ok(markup.indexOf("conic-gradient") < markup.indexOf("Stapeloptionen für Bereich"));
   }
   assert.match(management, /aria-label="Bereich \/ Grundlagen öffnen"/);
-  assert.match(management, /aria-pressed="true"/);
-  assert.match(management, /data-selected="true"/);
+  assert.doesNotMatch(management, /aria-pressed=|data-selected=/);
   assert.match(management, /data-deck-drag-source="true"/);
 });

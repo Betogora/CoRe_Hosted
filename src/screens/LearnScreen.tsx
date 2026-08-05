@@ -191,7 +191,6 @@ export function LearnScreen({ decks, onStartDeck, onCreateDeck, focusedDeckId = 
           <DeckTree
             rows={library.rows}
             mode="learn"
-            selectedDeckId={focusedDeckId}
             onActivate={(row) => onStartDeck(row.deck, false)}
             onOpenSettings={(row) => onOpenDeckSettings(row.id)}
             onMoveDeck={onMoveDeck}
