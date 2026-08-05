@@ -40,7 +40,7 @@ function SortHeader({ field, label, width, sort, onChange }: {
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
 
   return (
-    <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`${width} px-4 py-3 text-left`}>
+    <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`${width} px-4 text-left`}>
       <button
         type="button"
         onClick={() => onChange(field)}
@@ -1072,7 +1072,7 @@ export function DecksScreen({
                     className="core-deck-group border-b border-t-2 border-[var(--core-border)]"
                     style={selectedDeckId === group.id ? { backgroundColor: "var(--core-info-surface)" } : undefined}
                   >
-                    <th scope="rowgroup" colSpan={3} className="relative px-3 py-2 text-left">
+                    <th scope="rowgroup" colSpan={3} className="relative px-3 text-left">
                       <button
                         type="button"
                         data-testid={"deck-toggle-" + group.id}
@@ -1082,28 +1082,28 @@ export function DecksScreen({
                         onClick={() => toggleDeckCards(group.id)}
                         className="absolute inset-0 z-0 cursor-pointer transition-colors hover:bg-[var(--core-focus-ring-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--core-focus)]"
                       />
-                      <div className="pointer-events-none relative z-[1] grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-2 py-2 sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6">
+                      <div className="pointer-events-none relative z-[1] grid min-w-0 grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] items-center gap-x-3 px-2">
                         <div className="flex min-w-0 items-center gap-2" style={{ paddingInlineStart: visibleDepth * 9 }}>
-                          <span className="grid size-11 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
+                          <span className="grid size-9 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
                             {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
                           </span>
-                          <DeckAppearanceIcon deck={group.deck} className="size-11 rounded-full bg-[var(--core-surface-muted)]" iconSize={20} />
+                          <DeckAppearanceIcon deck={group.deck} className="size-9 rounded-full bg-[var(--core-surface-muted)]" iconSize={18} />
                           <span className="min-w-0">
                             <span className="block truncate core-body-large font-semibold text-[var(--core-text)]">{group.deck.name}</span>
                             {group.depth > 0 ? <span className="mt-0.5 block truncate core-caption text-[var(--core-text-muted)]">{group.path}</span> : null}
                           </span>
                         </div>
 
-                        <dl className="col-span-2 grid grid-cols-3 gap-3 sm:col-span-1 sm:min-w-[15rem]" aria-label={`Lernstand für ${group.path}`}>
+                        <dl className="grid min-w-[15rem] grid-cols-3 gap-3" aria-label={`Lernstand für ${group.path}`}>
                           {deckCountDefinitions.map((count) => (
-                            <div key={count.valueKey} className="grid min-w-0 gap-0.5 text-left sm:text-right">
+                            <div key={count.valueKey} className="grid min-w-0 gap-0.5 text-right">
                               <dt className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">{count.label}</dt>
                               <dd className="core-body-large font-semibold" style={{ color: count.color }}>{group.directSummary[count.valueKey]}</dd>
                             </div>
                           ))}
                         </dl>
 
-                        <div className="col-start-2 row-start-1 flex items-center justify-end gap-3 sm:col-start-auto sm:row-start-auto">
+                        <div className="flex items-center justify-end gap-2">
                           <DonutValue value={directProgress} />
                         <DeckGroupMenu
                           group={group}
@@ -1128,12 +1128,12 @@ export function DecksScreen({
                       data-selected={selectedCardId === card.id ? "true" : undefined}
                       data-card-row="true"
                     >
-                      <td className="px-4 py-3 align-middle">
+                      <td className="px-4 py-1 align-middle">
                         <button
                           type="button"
                           data-testid={"deck-card-" + card.id}
                           aria-pressed={selectedCardId === card.id}
-                          className="line-clamp-2 min-h-11 w-full break-words text-left core-body font-semibold text-[var(--core-text)] focus-visible:rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
+                          className="block !min-h-0 w-full truncate text-left core-body font-semibold text-[var(--core-text)] focus-visible:rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
                           onClick={(event) => {
                             event.stopPropagation();
                             requestCardSelection(group.id, card.id);
@@ -1142,16 +1142,16 @@ export function DecksScreen({
                           {frontPreview}
                         </button>
                       </td>
-                      <td className="px-4 py-3 align-middle"><span className="core-body text-[var(--core-text-secondary)]">{dueLabel}</span></td>
-                      <td className="px-4 py-3 align-middle">
-                        <span className={`inline-flex rounded-full border px-3 py-1 core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
+                      <td className="whitespace-nowrap px-4 py-1 align-middle core-body text-[var(--core-text-secondary)]">{dueLabel}</td>
+                      <td className="px-4 py-1 align-middle">
+                        <span className={`inline-flex whitespace-nowrap rounded-full border px-2 core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
                           {variantsLabel}
                         </span>
                       </td>
                     </tr>
                   )) : expanded ? (
                     <tr className="border-b border-[var(--core-border)] bg-core-surface">
-                      <td colSpan={3} className="px-4 py-4 core-body text-[var(--core-text-muted)]">Keine Karten</td>
+                      <td colSpan={3} className="px-4 py-1 core-body text-[var(--core-text-muted)]">Keine Karten</td>
                     </tr>
                   ) : null}
                 </tbody>

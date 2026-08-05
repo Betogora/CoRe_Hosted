@@ -103,6 +103,47 @@ test.beforeEach(async ({ page }) => {
   await resetToFreshLocalState(page, { resetCloud: false });
 });
 
+test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schmalen Viewports kompakt", async ({ page }) => {
+  await page.goto("/kartenstapel");
+  await waitForApp(page);
+
+  await page.getByTestId(`deck-header-${DECK_IDS.childB}`).click();
+  const cardButton = page.getByTestId(`deck-card-${CARD_IDS.b1}`);
+  await expect(cardButton).toBeVisible();
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 420, height: 844 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+
+    const geometry = await page.evaluate(({ cardId, deckId }) => {
+      const cardSortField = document.querySelector<HTMLElement>(`[data-testid="deck-card-${cardId}"]`);
+      const cardRow = cardSortField?.closest<HTMLElement>("tr");
+      const deckHeader = document.querySelector<HTMLElement>(`[data-testid="deck-header-${deckId}"]`);
+      const tableScroll = document.querySelector<HTMLElement>('[data-testid="card-library-table"]')?.parentElement;
+      const sortFieldStyle = cardSortField ? window.getComputedStyle(cardSortField) : null;
+
+      return {
+        cardRowHeight: cardRow?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
+        deckHeaderHeight: deckHeader?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
+        documentFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
+        tableScrollsHorizontally: Boolean(tableScroll && tableScroll.scrollWidth > tableScroll.clientWidth),
+        sortFieldOverflow: sortFieldStyle?.textOverflow,
+        sortFieldWhiteSpace: sortFieldStyle?.whiteSpace,
+      };
+    }, { cardId: CARD_IDS.b1, deckId: DECK_IDS.childB });
+
+    expect(geometry.cardRowHeight).toBeLessThanOrEqual(30);
+    expect(geometry.deckHeaderHeight).toBeLessThanOrEqual(48);
+    expect(geometry.documentFitsViewport).toBe(true);
+    expect(geometry.sortFieldOverflow).toBe("ellipsis");
+    expect(geometry.sortFieldWhiteSpace).toBe("nowrap");
+    expect(geometry.tableScrollsHorizontally).toBe(viewport.width <= 420);
+  }
+});
+
 test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderungen bleiben kontrollierbar", async ({ page }) => {
   await page.goto("/kartenstapel");
   await waitForApp(page);
