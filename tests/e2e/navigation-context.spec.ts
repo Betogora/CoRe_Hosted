@@ -124,7 +124,21 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await dueHeader.getByRole("button").click();
   await expect(dueHeader).toHaveAttribute("aria-sort", "descending");
 
-  await page.getByTestId(`deck-toggle-${DECK_IDS.childB}`).click();
+  const deckActivation = page.getByTestId(`deck-toggle-${DECK_IDS.childB}`);
+  const deckHeader = page.getByTestId(`deck-header-${DECK_IDS.childB}`);
+  await expect(deckActivation).toHaveAttribute("aria-expanded", "false");
+
+  await page.getByTestId(`deck-options-${DECK_IDS.childB}`).click();
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  await deckHeader.click();
+  await expect(deckActivation).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
+  await deckHeader.click();
+  await expect(deckActivation).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
+  await deckHeader.click();
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
   const front = page.getByRole("textbox", { name: "Karten-Vorderseite" });
   const changesDialog = page.getByRole("dialog", { name: "Änderungen übernehmen?" });

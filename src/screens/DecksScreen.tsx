@@ -594,6 +594,7 @@ function DeckGroupMenu({
         <IconButton
           label={"Optionen für " + group.path}
           icon={MoreHorizontal}
+          className="pointer-events-auto"
           data-testid={"deck-options-" + group.id}
         />
       </Popover.Trigger>
@@ -1067,26 +1068,33 @@ export function DecksScreen({
               </thead>
               {tableModel.groups.map((group) => {
                 const expanded = searchExpandsGroups || expandedDeckIds.has(group.id);
+                const visibleDepth = Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS - 1);
                 const directProgress = group.directSummary.totalCards
                   ? Math.round((group.directSummary.matureCards / group.directSummary.totalCards) * 100)
                   : 0;
                 return (
                 <tbody key={group.id} id={"deck-card-list-" + group.id} data-testid={"card-group-" + group.id}>
-                  <tr className={"border-b border-[var(--core-border)] " + (selectedDeckId === group.id ? "bg-[var(--core-info-surface)]" : "bg-[var(--core-surface-muted)]")}>
-                    <th scope="rowgroup" colSpan={3} className="px-3 py-2 text-left">
-                      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-2 sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6">
-                        <div className="flex min-w-0 items-center gap-2" style={{ paddingInlineStart: Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS - 1) * 9 }}>
-                          <button
-                            type="button"
-                            data-testid={"deck-toggle-" + group.id}
-                            aria-expanded={expanded}
-                            aria-controls={"deck-card-list-" + group.id}
-                            aria-label={expanded ? `Karten von ${group.path} einklappen` : `Karten von ${group.path} aufklappen`}
-                            onClick={() => toggleDeckCards(group.id)}
-                            className="grid size-11 shrink-0 place-items-center rounded-lg text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
-                          >
+                  <tr
+                    data-testid={"deck-header-" + group.id}
+                    data-deck-depth={visibleDepth}
+                    className="core-deck-group border-b border-t-2 border-[var(--core-border)]"
+                    style={selectedDeckId === group.id ? { backgroundColor: "var(--core-info-surface)" } : undefined}
+                  >
+                    <th scope="rowgroup" colSpan={3} className="relative px-3 py-2 text-left">
+                      <button
+                        type="button"
+                        data-testid={"deck-toggle-" + group.id}
+                        aria-expanded={expanded}
+                        aria-controls={"deck-card-list-" + group.id}
+                        aria-label={expanded ? `Karten von ${group.path} einklappen` : `Karten von ${group.path} aufklappen`}
+                        onClick={() => toggleDeckCards(group.id)}
+                        className="absolute inset-0 z-0 cursor-pointer transition-colors hover:bg-[var(--core-focus-ring-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--core-focus)]"
+                      />
+                      <div className="pointer-events-none relative z-[1] grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-2 py-2 sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6">
+                        <div className="flex min-w-0 items-center gap-2" style={{ paddingInlineStart: visibleDepth * 9 }}>
+                          <span className="grid size-11 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
                             {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
-                          </button>
+                          </span>
                           <DeckAppearanceIcon deck={group.deck} className="size-11 rounded-full bg-[var(--core-surface-muted)]" iconSize={20} />
                           <span className="min-w-0">
                             <span className="block truncate core-body-large font-semibold text-[var(--core-text)]">{group.deck.name}</span>

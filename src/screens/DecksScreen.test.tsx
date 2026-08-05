@@ -46,7 +46,11 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
     card: { cardType: "basic", front: "<b>Was ist ATP?</b>", back: "Ein Energieträger." },
   });
   const child = createCoreDeck({ id: "deck-child", name: "Zellbiologie", source: "manual", parentDeckId: originalDeck.id, hierarchyPath: ["Biologie", "Zellbiologie"], cards: [] });
-  const markup = renderScreen([originalDeck, child]);
+  const grandchild = createCoreDeck({ id: "deck-grandchild", name: "Organellen", source: "manual", parentDeckId: child.id, hierarchyPath: ["Biologie", "Zellbiologie", "Organellen"], cards: [] });
+  const greatGrandchild = createCoreDeck({ id: "deck-great-grandchild", name: "Mitochondrien", source: "manual", parentDeckId: grandchild.id, hierarchyPath: ["Biologie", "Zellbiologie", "Organellen", "Mitochondrien"], cards: [] });
+  const deeperImport = createCoreDeck({ id: "deck-deeper-import", name: "Membran", source: "anki-apkg", parentDeckId: greatGrandchild.id, hierarchyPath: ["Biologie", "Zellbiologie", "Organellen", "Mitochondrien", "Membran"], cards: [] });
+  const decks = [originalDeck, child, grandchild, greatGrandchild, deeperImport];
+  const markup = renderScreen(decks);
 
   assert.match(markup, /<h2[^>]*>Kartenverwaltung<\/h2>/);
   assert.match(markup, /data-testid="card-library-table"/);
@@ -56,16 +60,32 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /aria-sort="ascending"/);
   assert.match(markup, /aria-label="Karten von Biologie aufklappen"/);
   assert.match(markup, /aria-expanded="false"/);
+  assert.match(markup, /aria-controls="deck-card-list-[^"]+"/);
+  assert.match(markup, /data-testid="deck-toggle-[^"]+"[^>]*class="absolute inset-0[^"]*focus-visible:ring-2/);
+  assert.match(markup, /class="core-deck-group border-b border-t-2 border-\[var\(--core-border\)\]"/);
   assert.match(markup, /aria-label="Lernstand für Biologie"/);
   assert.doesNotMatch(markup, /Was ist ATP\?/);
   assert.doesNotMatch(markup, /Ein Energieträger\./);
   assert.match(markup, /Biologie \/ Zellbiologie/);
-  assert.match(markup, new RegExp('data-testid="deck-options-' + originalDeck.id + '"'));
+  assert.match(markup, new RegExp('data-testid="deck-options-' + originalDeck.id + '"[^>]*class="[^"]*pointer-events-auto'));
   assert.match(markup, /aria-label="Karten durchsuchen"/);
   assert.ok(markup.includes("focus-within:border-[var(--core-border-interactive)]"));
   assert.match(markup, /focus-visible:outline-none/);
   assert.match(markup, /aria-label="Karten nach CoRe-Modus filtern"/);
   assert.doesNotMatch(markup, /data-deck-drag-source/);
+
+  for (const [deckId, depth] of [
+    [originalDeck.id, 0],
+    [child.id, 1],
+    [grandchild.id, 2],
+    [greatGrandchild.id, 3],
+    [deeperImport.id, 3],
+  ] as const) {
+    assert.match(markup, new RegExp(`data-testid="deck-header-${deckId}"[^>]*data-deck-depth="${depth}"[^>]*class="core-deck-group`));
+  }
+
+  const focusedMarkup = renderScreen(decks, { selectedDeckId: child.id });
+  assert.match(focusedMarkup, new RegExp(`data-testid="deck-header-${child.id}"[^>]*style="background-color:var\\(--core-info-surface\\)"`));
 });
 
 test("card selection opens a non-modal detail aside with editor, copy and collapsed tools", () => {
