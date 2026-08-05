@@ -1,4 +1,5 @@
 import React, { type HTMLAttributes, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Moon, Sun } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { readCoreTheme, toggleCoreTheme } from "../coreTheme.ts";
@@ -123,8 +124,8 @@ export function ActionDialog({
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--core-backdrop)] p-4" role="presentation">
+  const dialog = (
+    <div className="fixed inset-0 z-[80] grid place-items-center bg-[var(--core-backdrop)] p-4" role="presentation">
       <div
         ref={dialogRef}
         role="dialog"
@@ -157,6 +158,8 @@ export function ActionDialog({
       </div>
     </div>
   );
+
+  return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
 }
 
 export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-action" }: { icon: LucideIcon; className?: string }) {
