@@ -225,7 +225,7 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
 
   await page.goto(`/neue-karten?method=manual&deck=${DECK_IDS.childB}`);
   await waitForApp(page);
-  await expect(page.getByRole("heading", { name: "Karten manuell erstellen" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karte selbst erstellen" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Kartenstapel" })).toContainText("Bereich B / Gemeinsam");
   await page.reload();
   await expect(page.getByRole("combobox", { name: "Kartenstapel" })).toContainText("Bereich B / Gemeinsam");

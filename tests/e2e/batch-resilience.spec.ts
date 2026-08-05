@@ -85,7 +85,7 @@ function mainMenu(page: Page) {
 
 async function openManualCreation(page: Page) {
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /Karten manuell erstellen/ }).click();
+  await page.getByRole("button", { name: /Karte selbst erstellen/ }).click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -126,7 +126,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
     await page.getByRole("textbox", { name: "Rückseite" }).fill(`Batch-Antwort ${index}`);
     await page.getByRole("button", { name: "Originalkarte speichern" }).click();
     await expect(page.getByRole("status")).toContainText("Karte gespeichert");
-    await expect(page.getByRole("heading", { name: "Karten manuell erstellen" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Karte selbst erstellen" })).toBeVisible();
     await expect(page.getByText(`${index} ${index === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.`)).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Vorderseite" })).toBeFocused();
   }

@@ -82,7 +82,7 @@ function mainMenu(page: Page) {
 async function openManualCreation(page: Page, deckName: string, cardType: string) {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /Karten manuell erstellen/ }).click();
+  await page.getByRole("button", { name: /Karte selbst erstellen/ }).click();
   await page.getByRole("button", { name: "Neuen Stapel erstellen" }).click();
   await page.getByRole("textbox", { name: "Neuer Kartenstapel" }).fill(deckName);
   const cardTypeSelect = page.getByRole("combobox", { name: "Kartentyp" });

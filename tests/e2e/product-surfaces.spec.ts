@@ -16,7 +16,7 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   }
 
   await menu.getByRole("button", { name: "Erstellen" }).click();
-  await expect(page.getByRole("button", { name: /Karten manuell erstellen/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Karte selbst erstellen/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /APKG, Text, Tabellen/ })).toBeVisible();
   await expect(page.getByRole("region", { name: "Erstellungsart" }).getByRole("button")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Einstellungen öffnen" })).toBeVisible();

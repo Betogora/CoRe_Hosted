@@ -25,7 +25,8 @@ test("completed first creation offers study and card-review actions", () => {
 test("creation entry presents the two concise creation methods", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} {...callbacks} />);
 
-  assert.match(markup, /Karten selbst erstellen/);
+  assert.match(markup, /Neue Karte/);
+  assert.match(markup, /Karte selbst erstellen/);
   assert.match(markup, /Schreibe Karten selbst oder mit einer PDF-Datei\./);
   assert.match(markup, /Übernimm bestehende Stapel\./);
   assert.doesNotMatch(markup, /Core ·|Karten manuell erstellen|Front\/Back-Listen/);
@@ -35,6 +36,8 @@ test("manual picker accepts only readable source documents", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
   assert.match(markup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
+  assert.match(markup, /<h2[^>]*>Karte selbst erstellen<\/h2>/);
+  assert.doesNotMatch(markup, /Manuelle Erstellung|Karten manuell erstellen/);
   assert.doesNotMatch(markup, /\.docx/i);
 });
 

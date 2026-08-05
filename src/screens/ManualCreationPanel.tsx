@@ -295,7 +295,6 @@ export function ManualCreationPanel({
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = showDocumentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
-  const panelEyebrow = showDocumentMode ? "Manuelle Erstellung mit Quelle" : "Manuelle Erstellung";
   const sourceFileName = document?.fileName ?? "Keine Datei ausgewählt";
 
   const editor = (
@@ -435,10 +434,7 @@ export function ManualCreationPanel({
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <OrbIcon icon={PenLine} className="bg-core-info-soft text-core-text" />
-          <div>
-            <p className="core-body font-semibold uppercase tracking-wide text-core-text">{panelEyebrow}</p>
-            <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">Karten manuell erstellen</h2>
-          </div>
+          <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">Karte selbst erstellen</h2>
         </div>
         <button type="button" onClick={openSourcePicker} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
           <FileText size={17} aria-hidden="true" />

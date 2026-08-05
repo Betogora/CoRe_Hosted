@@ -71,7 +71,8 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /aria-label="Karten durchsuchen"/);
   assert.ok(markup.includes("focus-within:border-[var(--core-border-interactive)]"));
   assert.match(markup, /focus-visible:outline-none/);
-  assert.match(markup, /aria-label="Karten nach CoRe-Modus filtern"/);
+  assert.doesNotMatch(markup, /Karten nach CoRe-Modus filtern|Alle Modi/);
+  assert.match(markup, />Neue Karte<\/span><\/button>/);
   assert.doesNotMatch(markup, /data-deck-drag-source/);
 
   for (const [deckId, depth] of [

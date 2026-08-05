@@ -233,7 +233,7 @@ Akzeptanz:
 - Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen Deckkontext. Beide sind Teil der Hauptnavigation; die Kartenverwaltung bleibt zusätzlich aus Lernen erreichbar.
 - Dashboard und Lernen erlauben direktes Drag-and-drop für Parent-/Child-Zuordnung und Outdent zur Hauptebene. Karten bietet dieselbe fachliche Mutation über einen expliziten bestätigten Ablauf an.
 - Direktes Drag-and-drop ist eine Desktop-Interaktion für Maus und Trackpad und markiert während der Geste keinen Zeilentext. Touch, Tastatur und assistive Bedienung verwenden den bestätigten Fallback; manuelle Elternauswahlen und Verschiebeziele bieten keine fünfte sichtbare Ebene an.
-- Suche und Filter helfen bei großen Bibliotheken.
+- Die Suche hilft bei großen Bibliotheken; die Kartenverwaltung bietet keinen zusätzlichen Modusfilter.
 - Stapelname, Lernoptionen und Content-Repetition-Modus sind bearbeitbar.
 - Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.
 

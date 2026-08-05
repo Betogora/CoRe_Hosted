@@ -91,7 +91,7 @@ export function CreationScreen({
 
   return (
     <div className="grid min-h-[calc(100vh-10rem)] content-start gap-7">
-      <PageHeader eyebrow="Erstellen" title="Neue Karten" />
+      <PageHeader eyebrow="Erstellen" title="Neue Karte" />
       {completedDeck ? (
         <SoftPanel className="mx-auto w-full max-w-3xl p-7 text-center sm:p-10">
           <span className="mx-auto grid size-16 place-items-center rounded-full bg-core-success-soft text-core-text">

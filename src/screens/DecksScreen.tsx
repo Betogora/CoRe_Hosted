@@ -18,13 +18,6 @@ import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } 
 import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardType, CardVariant, CoreMode, Deck, LearningItem } from "../coreTypes.ts";
 
 const variantLevelOptions = [1, 2, 3].map((level) => ({ value: String(level), label: `Level ${level}` }));
-const coreModeFilterOptions = [
-  { value: "all", label: "Alle Modi" },
-  { value: "off", label: "Aus" },
-  { value: "auto", label: "Auto" },
-  { value: "manual", label: "Manuell" },
-];
-
 const deckCountDefinitions = [
   { label: "Neu", valueKey: "newCards", color: "var(--core-deck-new-text)" },
   { label: "Fällig", valueKey: "dueCards", color: "var(--core-deck-due-text)" },
@@ -651,7 +644,6 @@ export function DecksScreen({
   onDraftStateChange,
 }: DecksScreenProps) {
   const [query, setQuery] = React.useState("");
-  const [modeFilter, setModeFilter] = React.useState<CoreMode | "all">("all");
   const [cardSort, setCardSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
   const [expandedDeckIds, setExpandedDeckIds] = React.useState<Set<string>>(() => new Set());
   const [deckStatus, setDeckStatus] = React.useState("");
@@ -669,8 +661,8 @@ export function DecksScreen({
   const detailRef = React.useRef<HTMLElement | null>(null);
   const previouslySelectedCardId = React.useRef<string | null>(null);
   const tableModel = React.useMemo(
-    () => createCardTableModel(decks, { query, coreMode: modeFilter, cardSort }),
-    [cardSort, decks, modeFilter, query],
+    () => createCardTableModel(decks, { query, cardSort }),
+    [cardSort, decks, query],
   );
   const searchExpandsGroups = Boolean(query.trim());
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
@@ -1035,14 +1027,7 @@ export function DecksScreen({
             <Search size={17} aria-hidden="true" />
             <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
           </label>
-          <CoreSelect
-            ariaLabel="Karten nach CoRe-Modus filtern"
-            className="shrink-0 font-semibold text-[var(--core-action-primary)]"
-            value={modeFilter}
-            options={coreModeFilterOptions}
-            onValueChange={(coreMode) => setModeFilter(coreMode as CoreMode | "all")}
-          />
-          <ActionButton type="button" variant="primary" icon={PlusSquare} onClick={onOpenCardCreation}>Neue Karten</ActionButton>
+          <ActionButton type="button" variant="primary" icon={PlusSquare} onClick={onOpenCardCreation}>Neue Karte</ActionButton>
           <span className="core-caption font-semibold text-[var(--core-text-muted)]" aria-live="polite">{tableModel.cardCount} {tableModel.cardCount === 1 ? "Karte" : "Karten"}</span>
         </div>
         {deckStatus ? <p className={"mt-3 core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}

@@ -19,7 +19,7 @@ export interface CreationHomeProps {
 export const creationMethods: CreationMethodDefinition[] = [
   {
     id: "manual",
-    title: "Karten selbst erstellen",
+    title: "Karte selbst erstellen",
     body: "Schreibe Karten selbst oder mit einer PDF-Datei.",
     icon: PenLine,
     color: "sky",
