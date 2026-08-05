@@ -1072,9 +1072,9 @@ export function App() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
-      <div className="grid min-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[22px] border border-[var(--core-border)] bg-core-surface shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] md:grid-cols-[13rem_minmax(0,1fr)]">
-        <aside className="border-b border-[var(--core-border)] bg-core-surface md:border-b-0 md:border-r">
+    <main className="min-h-dvh overflow-x-clip bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
+      <div className="grid min-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[22px] border border-[var(--core-border)] bg-core-surface shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] md:h-[calc(100dvh-4rem)] md:min-h-0 md:grid-cols-[13rem_minmax(0,1fr)] md:grid-rows-1">
+        <aside className="border-b border-[var(--core-border)] bg-core-surface md:overflow-y-auto md:border-b-0 md:border-r">
           <div className="flex flex-col px-5 py-6 sm:px-8 md:h-full md:px-4 md:py-8 lg:px-5 lg:py-10">
             <div>
               <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
@@ -1156,7 +1156,7 @@ export function App() {
           </div>
         </aside>
 
-        <section ref={screenRegionRef} className="min-w-0 overflow-x-hidden px-5 py-8 outline-none sm:px-8 lg:px-12 lg:py-12" tabIndex={-1} aria-label="Seiteninhalt">
+        <section ref={screenRegionRef} className="min-w-0 overflow-x-hidden px-5 py-8 outline-none sm:px-8 md:overflow-y-auto lg:px-12 lg:py-12" tabIndex={-1} aria-label="Seiteninhalt">
           <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
         </section>
       </div>

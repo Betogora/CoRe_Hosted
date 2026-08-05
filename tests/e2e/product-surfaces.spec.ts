@@ -46,6 +46,27 @@ test("dark mode can be toggled from the sidebar and persists across reloads", as
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "light");
 });
 
+test("long desktop views scroll without moving the sidebar utilities below the viewport", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.getByRole("button", { name: "Hilfe öffnen" }).click();
+
+  const layout = await page.getByRole("region", { name: "Seiteninhalt" }).evaluate((screen) => {
+    const aside = screen.previousElementSibling as HTMLElement | null;
+    return {
+      pageScrolls: document.documentElement.scrollHeight > window.innerHeight + 1,
+      contentScrolls: screen.scrollHeight > screen.clientHeight,
+      contentOverflow: getComputedStyle(screen).overflowY,
+      asideBottom: aside?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
+    };
+  });
+
+  expect(layout.pageScrolls).toBe(false);
+  expect(layout.contentScrolls).toBe(true);
+  expect(layout.contentOverflow).toBe("auto");
+  expect(layout.asideBottom).toBeLessThanOrEqual(720);
+});
+
 test("help explains FSRS and CoRe with an accessible interactive learning curve", async ({ page }) => {
   await resetToFreshLocalState(page);
 
