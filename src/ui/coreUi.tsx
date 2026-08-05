@@ -126,9 +126,10 @@ export function ActionDialog({
 
   if (!open) return null;
 
+  const compact = description == null;
   const dialog = (
     <div
-      className="fixed inset-0 z-[80] grid place-items-center bg-[var(--core-backdrop)] p-4"
+      className={`fixed inset-0 z-[80] grid place-items-center bg-[var(--core-backdrop)] ${compact ? "p-2 sm:p-4" : "p-4"}`}
       role="presentation"
       data-testid="action-dialog-backdrop"
     >
@@ -138,11 +139,11 @@ export function ActionDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description == null ? undefined : descriptionId}
-        className="core-surface-raised w-full max-w-lg rounded-[18px] p-6 shadow-2xl"
+        className={`core-surface-raised w-full max-w-lg rounded-[18px] shadow-2xl ${compact ? "flex flex-wrap items-center gap-3 p-3 sm:gap-4 sm:p-6" : "p-6"}`}
       >
-        <h2 id={titleId} className="core-heading-2 text-core-text">{title}</h2>
+        <h2 id={titleId} className={`core-heading-2 text-core-text ${compact ? "min-w-0 flex-1 whitespace-nowrap !text-xl !leading-7 sm:!text-[1.75rem] sm:!leading-9" : ""}`}>{title}</h2>
         {description == null ? null : <div id={descriptionId} className="core-body-large mt-3 text-core-secondary">{description}</div>}
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
+        <div className={`${compact ? "shrink-0 gap-2 sm:gap-3" : "mt-6 gap-3"} flex flex-wrap justify-end`}>
           <ActionButton ref={cancelRef} type="button" variant="secondary" icon={actionIcons?.cancel} disabled={confirmLoading} onClick={cancelDialog}>
             {cancelLabel}
           </ActionButton>
@@ -153,7 +154,7 @@ export function ActionDialog({
           ) : null}
           <ActionButton
             type="button"
-            variant={destructive ? "destructive" : "primary"}
+            variant={destructive ? "destructive" : compact ? "secondary" : "primary"}
             icon={actionIcons?.confirm}
             loading={confirmLoading}
             disabled={confirmLoading}

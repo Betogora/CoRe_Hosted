@@ -1110,7 +1110,7 @@ export function App() {
                   type="button"
                   data-app-navigation="true"
                   onClick={() => navigateToView("hilfe")}
-                  className={`core-icon-action size-11 shrink-0 rounded-full border ${
+                  className={`core-action-secondary size-11 shrink-0 rounded-full p-0 ${
                     activeView === "hilfe"
                       ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-sm"
                       : "border-[var(--core-border)] bg-[var(--core-surface)] text-[var(--core-text-secondary)] hover:text-[var(--core-text)]"

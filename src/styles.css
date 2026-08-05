@@ -223,9 +223,7 @@
 
   .core-action-primary,
   .core-action-secondary,
-  .core-action-tertiary,
-  .core-action-destructive,
-  .core-icon-action {
+  .core-action-destructive {
     display: inline-flex;
     min-height: 2.75rem;
     align-items: center;
@@ -260,16 +258,8 @@
     color: var(--core-action-secondary);
   }
 
-  .core-action-secondary:not(:disabled):hover,
-  .core-action-tertiary:not(:disabled):hover,
-  .core-icon-action:not(:disabled):hover {
+  .core-action-secondary:not(:disabled):hover {
     background: var(--core-surface-hover);
-  }
-
-  .core-action-tertiary,
-  .core-icon-action {
-    background: transparent;
-    color: var(--core-text-secondary);
   }
 
   .core-action-destructive {
@@ -285,18 +275,11 @@
 
   .core-action-primary:disabled,
   .core-action-secondary:disabled,
-  .core-action-tertiary:disabled,
-  .core-action-destructive:disabled,
-  .core-icon-action:disabled {
+  .core-action-destructive:disabled {
     cursor: not-allowed;
     border-color: transparent;
     background: var(--core-action-disabled-bg);
     color: var(--core-action-disabled-text);
-  }
-
-  .core-icon-action {
-    min-width: 2.75rem;
-    padding: 0.625rem;
   }
 
   .core-field,

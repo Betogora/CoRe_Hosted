@@ -99,6 +99,7 @@ test("card selection opens a non-modal detail aside with editor, copy and collap
   const markup = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: card.id });
 
   assert.match(markup, /<aside[^>]*aria-label="Kartendetail"/);
+  assert.match(markup, /data-testid="card-detail-backdrop"/);
   assert.match(markup, /lg:w-1\/2/);
   assert.match(markup, /Karte bearbeiten/);
   assert.match(markup, /aria-label="Karten-Vorderseite"/);

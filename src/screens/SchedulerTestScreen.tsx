@@ -150,10 +150,10 @@ export function SchedulerTestScreen() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => selectDay(selectedDay - 1)} disabled={selectedDay === 1} className="core-icon-action grid size-11 place-items-center rounded-full border border-[var(--core-border)] disabled:opacity-40" aria-label="Vorheriger simulierter Tag">
+            <button type="button" onClick={() => selectDay(selectedDay - 1)} disabled={selectedDay === 1} className="core-action-secondary grid size-11 place-items-center rounded-full p-0 disabled:opacity-40" aria-label="Vorheriger simulierter Tag">
               <ChevronLeft size={20} aria-hidden="true" />
             </button>
-            <button type="button" onClick={() => selectDay(selectedDay + 1)} className="core-icon-action grid size-11 place-items-center rounded-full border border-[var(--core-border)]" aria-label="Nächster simulierter Tag">
+            <button type="button" onClick={() => selectDay(selectedDay + 1)} className="core-action-secondary grid size-11 place-items-center rounded-full p-0" aria-label="Nächster simulierter Tag">
               <ChevronRight size={20} aria-hidden="true" />
             </button>
           </div>

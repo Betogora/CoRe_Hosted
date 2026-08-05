@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 3e06d9b15b86458c */
+/* Quellenstand: f24f543067d9b5e8 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -583,9 +583,7 @@ video {
   }
 .core-action-primary,
   .core-action-secondary,
-  .core-action-tertiary,
-  .core-action-destructive,
-  .core-icon-action {
+  .core-action-destructive {
     display: inline-flex;
     min-height: 2.75rem;
     align-items: center;
@@ -615,15 +613,8 @@ video {
     background: var(--core-surface);
     color: var(--core-action-secondary);
   }
-.core-action-secondary:not(:disabled):hover,
-  .core-action-tertiary:not(:disabled):hover,
-  .core-icon-action:not(:disabled):hover {
+.core-action-secondary:not(:disabled):hover {
     background: var(--core-surface-hover);
-  }
-.core-action-tertiary,
-  .core-icon-action {
-    background: transparent;
-    color: var(--core-text-secondary);
   }
 .core-action-destructive {
     border-color: var(--core-danger);
@@ -636,17 +627,11 @@ video {
   }
 .core-action-primary:disabled,
   .core-action-secondary:disabled,
-  .core-action-tertiary:disabled,
-  .core-action-destructive:disabled,
-  .core-icon-action:disabled {
+  .core-action-destructive:disabled {
     cursor: not-allowed;
     border-color: transparent;
     background: var(--core-action-disabled-bg);
     color: var(--core-action-disabled-text);
-  }
-.core-icon-action {
-    min-width: 2.75rem;
-    padding: 0.625rem;
   }
 .core-field,
   .core-field-group input,
@@ -2545,7 +2530,6 @@ summary {
                 <div class="catalog-row">
                   <button type="button" class="core-action-primary min-h-11 px-4 py-2.5"><svg class="catalog-icon"><use href="#icon-save"></use></svg><span>Primär</span></button>
                   <button type="button" class="core-action-secondary min-h-11 px-4 py-2.5"><svg class="catalog-icon"><use href="#icon-upload"></use></svg><span>Sekundär</span></button>
-                  <button type="button" class="core-action-tertiary min-h-11 px-4 py-2.5">Tertiär</button>
                   <button type="button" class="core-action-destructive min-h-11 px-4 py-2.5"><svg class="catalog-icon"><use href="#icon-trash"></use></svg><span>Löschen</span></button>
                 </div>
               </div>
@@ -2567,18 +2551,18 @@ summary {
               <div class="catalog-subsection">
                 <h3 class="catalog-subtitle">Icon-Aktionen</h3>
                 <div class="catalog-row">
-                  <button type="button" aria-label="Speichern" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-save"></use></svg></button>
-                  <button type="button" aria-label="Hinzufügen" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-plus"></use></svg></button>
+                  <button type="button" aria-label="Speichern" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-save"></use></svg></button>
+                  <button type="button" aria-label="Hinzufügen" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-plus"></use></svg></button>
                   <button type="button" aria-label="Sekundäre Icon-Aktion" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-info"></use></svg></button>
                   <button type="button" aria-label="Entfernen" class="core-action-destructive min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-trash"></use></svg></button>
-                  <button type="button" disabled aria-label="Deaktivierte Icon-Aktion" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button>
+                  <button type="button" disabled aria-label="Deaktivierte Icon-Aktion" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button>
                 </div>
               </div>
               <div class="catalog-subsection">
                 <h3 class="catalog-subtitle">Tooltip</h3>
                 <div class="catalog-demo relative min-h-28 overflow-visible">
                   <span class="catalog-demo-label">CoRe-Hinweis statt nativem Browser-Tooltip</span>
-                  <button type="button" aria-label="Frühere Wochen anzeigen" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-info"></use></svg></button>
+                  <button type="button" aria-label="Frühere Wochen anzeigen" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-info"></use></svg></button>
                   <div role="tooltip" data-side="bottom" class="core-overlay core-tooltip" style="--core-tooltip-anchor-x: 2rem; position: absolute; left: 4.5rem; top: 3.2rem; visibility: visible;">Frühere Wochen anzeigen</div>
                 </div>
               </div>
@@ -2724,11 +2708,11 @@ summary {
                 </article>
                 <div class="overflow-hidden rounded-xl border border-core-border">
                   <div class="catalog-editor-toolbar" aria-label="Rich-Text-Werkzeuge">
-                    <button type="button" aria-label="Fett" class="core-icon-action min-h-11 min-w-11 p-2.5"><strong>B</strong></button>
-                    <button type="button" aria-label="Kursiv" class="core-icon-action min-h-11 min-w-11 p-2.5"><em>I</em></button>
-                    <button type="button" aria-label="Liste" class="core-icon-action min-h-11 min-w-11 p-2.5">•</button>
-                    <button type="button" aria-label="Textfarbe" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-type"></use></svg></button>
-                    <button type="button" aria-label="Markerfarbe" class="core-icon-action min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-palette"></use></svg></button>
+                    <button type="button" aria-label="Fett" class="core-action-secondary min-h-11 min-w-11 p-2.5"><strong>B</strong></button>
+                    <button type="button" aria-label="Kursiv" class="core-action-secondary min-h-11 min-w-11 p-2.5"><em>I</em></button>
+                    <button type="button" aria-label="Liste" class="core-action-secondary min-h-11 min-w-11 p-2.5">•</button>
+                    <button type="button" aria-label="Textfarbe" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-type"></use></svg></button>
+                    <button type="button" aria-label="Markerfarbe" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-palette"></use></svg></button>
                   </div>
                   <div class="catalog-editor-field rich-text-field" contenteditable="true" role="textbox" aria-label="Karteninhalt bearbeiten"><p><strong>Bearbeitbarer Karteninhalt</strong></p><p>Text, Listen, Markierungen und Medien verwenden dieselbe Inhaltsdarstellung wie Lernkarten.</p></div>
                 </div>
@@ -2803,12 +2787,12 @@ summary {
                   <div class="grid min-h-20 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl px-3 text-left sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6">
                     <span class="flex min-w-0 items-center gap-2"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><button type="button" class="grid size-11 shrink-0 place-items-center rounded-lg text-core-action" aria-label="Unterstapel ausblenden"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></button><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Welt-Hauptstädte</strong></span></span>
                     <span class="col-span-2 grid grid-cols-3 gap-5 sm:col-span-1"><span><small class="block core-caption uppercase text-core-muted">Neu</small><strong class="core-body-large" style="color:var(--core-deck-new-text)">12</strong></span><span><small class="block core-caption uppercase text-core-muted">Fällig</small><strong class="core-body-large" style="color:var(--core-deck-due-text)">8</strong></span><span><small class="block core-caption uppercase text-core-muted">Gesamt</small><strong class="core-body-large" style="color:var(--core-deck-total-text)">245</strong></span></span>
-                    <span class="col-start-2 row-start-1 flex items-center justify-self-end gap-3 sm:col-start-auto sm:row-start-auto"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="58 Prozent" style="background:conic-gradient(var(--core-action-primary) 58%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-icon-action min-w-11 p-2.5" aria-label="Stapeloptionen"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button></span>
+                    <span class="col-start-2 row-start-1 flex items-center justify-self-end gap-3 sm:col-start-auto sm:row-start-auto"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="58 Prozent" style="background:conic-gradient(var(--core-action-primary) 58%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-action-secondary min-w-11 p-2.5" aria-label="Stapeloptionen"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button></span>
                   </div>
                   <div class="ml-4 grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-core-border bg-[var(--core-group-depth-1)] px-3 text-left transition hover:border-core-action sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6">
                     <span class="flex min-w-0 items-center gap-3"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Europa</strong><small class="block truncate core-caption text-core-muted">Welt-Hauptstädte / Europa</small></span></span>
                     <span class="col-span-2 grid grid-cols-3 gap-5 sm:col-span-1"><span><small class="block core-caption uppercase text-core-muted">Neu</small><strong class="core-body-large" style="color:var(--core-deck-new-text)">3</strong></span><span><small class="block core-caption uppercase text-core-muted">Fällig</small><strong class="core-body-large" style="color:var(--core-deck-due-text)">2</strong></span><span><small class="block core-caption uppercase text-core-muted">Gesamt</small><strong class="core-body-large" style="color:var(--core-deck-total-text)">53</strong></span></span>
-                    <span class="col-start-2 row-start-1 flex items-center justify-self-end gap-3 sm:col-start-auto sm:row-start-auto"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="42 Prozent" style="background:conic-gradient(var(--core-action-primary) 42%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-icon-action min-w-11 p-2.5" aria-label="Stapeloptionen"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button></span>
+                    <span class="col-start-2 row-start-1 flex items-center justify-self-end gap-3 sm:col-start-auto sm:row-start-auto"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="42 Prozent" style="background:conic-gradient(var(--core-action-primary) 42%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-action-secondary min-w-11 p-2.5" aria-label="Stapeloptionen"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button></span>
                   </div>
                 </div>
               </article>

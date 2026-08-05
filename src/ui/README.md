@@ -19,7 +19,7 @@ Die teilbare visuelle Referenz liegt in `docs/ui-elements.html`. Nach Änderunge
 
 Direktimport: `import { ActionButton, IconButton } from "../ui/actionUi.tsx"`.
 
-`ActionButton` verlangt `variant="primary | secondary | tertiary | destructive"`; optional sind `icon` und `loading`. Das Modul besitzt die produktweite Standardhöhe von 44 px, Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Der Aufrufer wählt Hierarchie, Label und Ereignis.
+`ActionButton` verlangt `variant="primary | secondary | destructive"`; optional sind `icon` und `loading`. Das Modul besitzt die produktweite Standardhöhe von 44 px, Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Der Aufrufer wählt Hierarchie, Label und Ereignis. Für nachgeordnete Aktionen wird die umrandete Sekundärform verwendet; eine randlose Textbutton-Variante gibt es nicht.
 
 ```tsx
 <ActionButton variant="primary" icon={Save} loading={saving} onClick={save}>
@@ -29,13 +29,13 @@ Direktimport: `import { ActionButton, IconButton } from "../ui/actionUi.tsx"`.
 
 Nicht für Reviewratings, MCQ-Antworten, Tabs, Farbfelder, Navigationszeilen oder segmentierte Controls verwenden, deren Auswahlsemantik über einen normalen Action-Button hinausgeht.
 
-`IconButton` verlangt `label` und `icon`; Varianten sind `secondary`, `tertiary` (Standard) und `destructive`. Das Modul setzt das zugängliche Label, die feste Größe von 44 × 44 px und die Icongröße. Für einen zusätzlichen sichtbaren Hinweis wird `CoreTooltip` verwendet; native `title`-Tooltips gehören nicht zur Produkt-UI.
+`IconButton` verlangt `label` und `icon`; Varianten sind `secondary` (Standard) und `destructive`. Das Modul setzt das zugängliche Label, die feste Größe von 44 × 44 px und die Icongröße. Für einen zusätzlichen sichtbaren Hinweis wird `CoreTooltip` verwendet; native `title`-Tooltips gehören nicht zur Produkt-UI.
 
 ```tsx
 <IconButton label="Antwortoption entfernen" icon={X} onClick={removeOption} />
 ```
 
-Spezialisierte native Buttons dürfen direkt `core-action-primary`, `core-action-secondary`, `core-action-tertiary`, `core-action-destructive` oder `core-icon-action` nutzen, wenn eine React-Abstraktion ihr Interface verschlechtern würde.
+Spezialisierte native Buttons dürfen direkt `core-action-primary`, `core-action-secondary` oder `core-action-destructive` nutzen, wenn eine React-Abstraktion ihr Interface verschlechtern würde.
 
 ## Tooltips
 
@@ -58,7 +58,7 @@ Direktimport aus `src/ui/coreUi.tsx`:
 - `SoftPanel`: kanonische erhöhte Inhaltsfläche; Aufrufer besitzt Innenlayout und Heading-Semantik.
 - `PageHeader`: optionale Screen-Eyebrow und sichtbare Heading-1-Stufe; keine dritte Textzeile oder dekorative Aktion ergänzen.
 - `EmptyState`: Icon, Titel, optionaler Text und optionaler Action-Slot.
-- `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Cancel/Confirm, optionaler Verwerfen-Aktion, optionalen Aktionsicons, Ladezustand und Fokuswiederherstellung; intern gemeinsame Actions.
+- `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Cancel/Confirm, optionaler Verwerfen-Aktion, optionalen Aktionsicons, Ladezustand und Fokuswiederherstellung; ohne Beschreibung erscheint er kompakt in einer Zeile, explizit destruktive Bestätigungen behalten ihre Gefahrenform; intern gemeinsame Actions.
 - `OrbIcon`: rein dekorativer Icon-Kreis; Bedeutung bleibt im umgebenden Text.
 - `CoreModeControl`: fachliches Drei-Wege-Control für Aus/Auto/Manuell, kein allgemeiner Tab-Ersatz.
 - `ThemeToggle`: zugänglicher Light-/Dark-Schalter für die App-Shell; das Modul besitzt seinen lokalen Darstellungszustand und die Switch-Semantik, `src/coreTheme.ts` Dokumentattribut und Persistenz.

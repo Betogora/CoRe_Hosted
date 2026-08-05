@@ -2,7 +2,7 @@ import React from "react";
 import { LoaderCircle, type LucideIcon } from "lucide-react";
 
 export interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant: "primary" | "secondary" | "tertiary" | "destructive";
+  variant: "primary" | "secondary" | "destructive";
   icon?: LucideIcon;
   loading?: boolean;
 }
@@ -33,20 +33,19 @@ export interface IconButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
   label: string;
   icon: LucideIcon;
-  variant?: "secondary" | "tertiary" | "destructive";
+  variant?: "secondary" | "destructive";
 }
 
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { label, icon: Icon, variant = "tertiary", className = "", ...props },
+  { label, icon: Icon, variant = "secondary", className = "", ...props },
   ref,
 ) {
-  const variantClass = variant === "tertiary" ? "core-icon-action" : `core-action-${variant}`;
   return (
     <button
       {...props}
       ref={ref}
       aria-label={label}
-      className={`${variantClass} min-w-11 p-2.5 ${className}`}
+      className={`core-action-${variant} min-w-11 p-2.5 ${className}`}
     >
       <Icon size={20} aria-hidden="true" />
     </button>

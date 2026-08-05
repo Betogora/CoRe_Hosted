@@ -700,7 +700,12 @@ export function DecksScreen({
   React.useEffect(() => {
     if (!detailOpen) return;
     previouslySelectedCardId.current = selectedCardId;
-    window.requestAnimationFrame(() => detailRef.current?.focus());
+    const frame = window.requestAnimationFrame(() => detailRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [detailOpen, selectedCardId]);
+
+  React.useEffect(() => {
+    if (!detailOpen) return;
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== "Escape" || pendingDetailAction || pendingCardDelete || pendingDeckDelete) return;
@@ -934,7 +939,7 @@ export function DecksScreen({
                 <input autoFocus className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3" value={renameDraft} onChange={(event) => setRenameDraft(event.target.value)} />
               </label>
               <ActionButton type="submit" variant="primary" icon={Check}>Speichern</ActionButton>
-              <ActionButton type="button" variant="tertiary" onClick={() => cancelRename(group.id)}>Abbrechen</ActionButton>
+              <ActionButton type="button" variant="secondary" onClick={() => cancelRename(group.id)}>Abbrechen</ActionButton>
             </form>
           </td>
         </tr>
@@ -961,7 +966,7 @@ export function DecksScreen({
               <p className="core-caption text-[var(--core-text-muted)]">Maximal {MAX_INTERACTIVE_DECK_LEVELS} Ebenen. Ein Stapel kann nicht in sich selbst oder seine Unterstapel verschoben werden.</p>
               <div className="flex flex-wrap gap-2">
                 <ActionButton type="submit" variant="primary" icon={MoveRight}>Verschieben bestätigen</ActionButton>
-                <ActionButton type="button" variant="tertiary" onClick={() => cancelMove(group.id)}>Abbrechen</ActionButton>
+                <ActionButton type="button" variant="secondary" onClick={() => cancelMove(group.id)}>Abbrechen</ActionButton>
               </div>
             </form>
           </td>
@@ -971,22 +976,24 @@ export function DecksScreen({
     return null;
   }
 
-  function renderDetailAside() {
+  function renderDetailLayer() {
     return (
-      <aside
-        ref={detailRef}
-        tabIndex={-1}
-        aria-label="Kartendetail"
-        data-testid="card-detail-aside"
-        className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-[var(--core-border)] bg-core-surface shadow-2xl focus:outline-none lg:w-1/2"
-      >
+      <>
+        {!pendingDetailAction && !pendingCardDelete && !pendingDeckDelete ? <div className="fixed inset-0 z-40 bg-[var(--core-backdrop)]" aria-hidden="true" data-testid="card-detail-backdrop" /> : null}
+        <aside
+          ref={detailRef}
+          tabIndex={-1}
+          aria-label="Kartendetail"
+          data-testid="card-detail-aside"
+          className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-[var(--core-border)] bg-core-surface shadow-2xl focus:outline-none lg:w-1/2"
+        >
         {selectedDeckMissing ? (
           <div className="grid min-h-full place-items-center p-6">
             <EmptyState
               icon={Layers}
               title="Stapel nicht gefunden"
               body="Der verlinkte Stapel ist nicht mehr verfügbar."
-              action={<div className="flex flex-wrap justify-center gap-2"><ActionButton type="button" variant="primary" onClick={() => onOpenLearn(null)}>Zu Lernen</ActionButton><ActionButton type="button" variant="tertiary" onClick={() => onSelectDeck(null)}>Alle Karten</ActionButton></div>}
+              action={<div className="flex flex-wrap justify-center gap-2"><ActionButton type="button" variant="primary" onClick={() => onOpenLearn(null)}>Zu Lernen</ActionButton><ActionButton type="button" variant="secondary" onClick={() => onSelectDeck(null)}>Alle Karten</ActionButton></div>}
             />
           </div>
         ) : selectedCardMissing ? (
@@ -1013,7 +1020,8 @@ export function DecksScreen({
             onDraftStateChange={handleEditorDraftStateChange}
           />
         ) : null}
-      </aside>
+        </aside>
+      </>
     );
   }
 
@@ -1034,7 +1042,7 @@ export function DecksScreen({
         {deletedCardUndo ? (
           <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-3">
             <p className="min-w-0 flex-1 truncate core-body text-[var(--core-text)]">„{deletedCardUndo.description}“ gelöscht.</p>
-            <ActionButton type="button" variant="tertiary" icon={RotateCcw} onClick={() => void undoCardDelete()}>Rückgängig</ActionButton>
+            <ActionButton type="button" variant="secondary" icon={RotateCcw} onClick={() => void undoCardDelete()}>Rückgängig</ActionButton>
           </div>
         ) : null}
       </SoftPanel>
@@ -1155,7 +1163,7 @@ export function DecksScreen({
         <EmptyState icon={Layers} title="Keine Karten gefunden" body="Passe Suche oder CoRe-Modus an." />
       )}
 
-      {detailOpen ? (typeof document === "undefined" ? renderDetailAside() : createPortal(renderDetailAside(), document.body)) : null}
+      {detailOpen ? (typeof document === "undefined" ? renderDetailLayer() : createPortal(renderDetailLayer(), document.body)) : null}
 
       <ActionDialog
         open={Boolean(pendingDetailAction)}
@@ -1174,12 +1182,11 @@ export function DecksScreen({
       />
       <ActionDialog
         open={Boolean(pendingCardDelete)}
-        title="Karte löschen"
+        title="Karte löschen?"
         description={null}
         confirmLabel="Ja"
         cancelLabel="Nein"
         actionIcons={{ cancel: X, confirm: Check }}
-        destructive
         onCancel={() => setPendingCardDelete(null)}
         onConfirm={() => void confirmCardDelete()}
       />

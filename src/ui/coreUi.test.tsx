@@ -25,6 +25,23 @@ test("action dialog exposes its accessible three-action contract", () => {
   assert.match(markup, /Weiter bearbeiten/);
 });
 
+test("action dialog presents a prompt without description in one compact row", () => {
+  const markup = renderToStaticMarkup(
+    <ActionDialog
+      open
+      title="Karte löschen?"
+      description={null}
+      confirmLabel="Ja"
+      cancelLabel="Nein"
+      onConfirm={() => undefined}
+      onCancel={() => undefined}
+    />,
+  );
+
+  assert.match(markup, /flex flex-wrap items-center gap-3/);
+  assert.equal(markup.match(/core-action-secondary/g)?.length, 2);
+});
+
 test("theme toggle exposes its icon state as an accessible switch", () => {
   const markup = renderToStaticMarkup(<ThemeToggle />);
 

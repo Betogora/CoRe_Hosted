@@ -246,7 +246,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
         <SoftPanel className="p-6">
           <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Roh-JSON</h3>
           <p className="mt-2 core-body leading-6 text-[var(--core-text-muted)]">Für technische Prüfungen kannst du den Inhalt des Portabilitätsexports hier anzeigen.</p>
-          <ActionButton type="button" variant="tertiary" icon={Database} onClick={showRawExport} className="mt-4">Roh-JSON anzeigen</ActionButton>
+          <ActionButton type="button" variant="secondary" icon={Database} onClick={showRawExport} className="mt-4">Roh-JSON anzeigen</ActionButton>
           {exportText ? (
             <textarea
               className="mt-4 min-h-72 w-full rounded-xl border border-[var(--core-border)] p-3 font-mono core-caption leading-5"
