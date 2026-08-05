@@ -10,7 +10,7 @@ test("lists the navigation items in product order", () => {
     { id: "lernen", label: "Lernen", iconKey: "learn" },
     { id: "neue-karten", label: "Erstellen", iconKey: "plus" },
     { id: "statistik", label: "Statistik", iconKey: "chart" },
-    { id: "kartenstapel", label: "Karten", iconKey: "layers" },
+    { id: "kartenstapel", label: "Kartenverwaltung", iconKey: "layers" },
   ]);
 });
 
@@ -43,7 +43,7 @@ test("keeps cards in primary navigation and utility views outside it", () => {
 
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(menu.getView("kartenstapel").title, "Karten");
+  assert.equal(menu.getView("kartenstapel").title, "Kartenverwaltung");
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture prüft bewusst eine unvollständige, ungültige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("hilfe").title, "Wie CoRe und FSRS funktionieren");

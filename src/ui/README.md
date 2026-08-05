@@ -58,7 +58,7 @@ Direktimport aus `src/ui/coreUi.tsx`:
 - `SoftPanel`: kanonische erhöhte Inhaltsfläche; Aufrufer besitzt Innenlayout und Heading-Semantik.
 - `PageHeader`: optionale Screen-Eyebrow und sichtbare Heading-1-Stufe; keine dritte Textzeile oder dekorative Aktion ergänzen.
 - `EmptyState`: Icon, Titel, optionaler Text und optionaler Action-Slot.
-- `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Cancel/Confirm und Fokuswiederherstellung; intern gemeinsame Actions.
+- `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Cancel/Confirm, optionaler Verwerfen-Aktion, Ladezustand und Fokuswiederherstellung; intern gemeinsame Actions.
 - `OrbIcon`: rein dekorativer Icon-Kreis; Bedeutung bleibt im umgebenden Text.
 - `CoreModeControl`: fachliches Drei-Wege-Control für Aus/Auto/Manuell, kein allgemeiner Tab-Ersatz.
 - `ThemeToggle`: zugänglicher Light-/Dark-Schalter für die App-Shell; das Modul besitzt seinen lokalen Darstellungszustand und die Switch-Semantik, `src/coreTheme.ts` Dokumentattribut und Persistenz.
@@ -91,7 +91,7 @@ Auswahlfelder verwenden `CoreSelect` aus `src/ui/selectUi.tsx`. Die Komponente v
 
 ## Spezialisierte Feature-Module
 
-- `DeckTree` aus `src/ui/DeckTree.tsx`: kanonische einklappbare Stapelkarte für Dashboard, Lernen und Kartenverwaltung; besitzt in jeder Ansicht dieselbe Folge aus linkem Icon, Name und Pfad, Teilbaum-Kennzahlen, Donut und rechten Stapeloptionen. Die nicht selektierbare neutrale Fläche verarbeitet Desktop-Drag stabil über Pointer-Ereignisse, während der darüber abgebildete semantische Button Tastatur und Screenreader bedient. Gruppentiefen 0 bis 3 entsprechen Hauptstapel, Unterstapel, Unter-Unterstapel und Unter-Unter-Unterstapel; tiefere importierte Bäume verwenden weiterhin den Ton von Tiefe 3. Fachliche Mutationen bleiben in den übergebenen Callbacks.
+- `DeckTree` aus `src/ui/DeckTree.tsx`: kanonische einklappbare Stapelkarte für Dashboard und Lernen; besitzt dieselbe Folge aus linkem Icon, Name und Pfad, Teilbaum-Kennzahlen, Donut und rechten Stapeloptionen. Die Kartenverwaltung verwendet dieselben spezialisierten Erscheinungs- und Donut-Bausteine in unabhängigen Tabellenköpfen mit direkten Kennzahlen. Die nicht selektierbare neutrale Fläche des Baums verarbeitet Desktop-Drag stabil über Pointer-Ereignisse, während der darüber abgebildete semantische Button Tastatur und Screenreader bedient. Gruppentiefen 0 bis 3 entsprechen Hauptstapel, Unterstapel, Unter-Unterstapel und Unter-Unter-Unterstapel; tiefere importierte Bäume verwenden weiterhin den Ton von Tiefe 3. Fachliche Mutationen bleiben in den übergebenen Callbacks.
 - `RichTextEditor` aus `src/ui/RichTextEditor.tsx`: sanitisiertes Karten-HTML, Toolbar, Text- und Markerfarben.
 - `ColorWheelPicker` aus `src/ui/ColorWheelPicker.tsx`: kompakter runder Farbkreis für kontrollierte Farbfelder.
 - `ColorPopover` und `ColorToolButton` aus `src/ui/colorPicker.tsx`: gespeicherte Rich-Text-Farbfelder und technisches Farbspektrum.

@@ -59,7 +59,18 @@ interface LibraryOptions {
   viewportWidth?: number;
   endWeekIndex?: number | null;
   dayCount?: number;
+  cardSort?: CardTableSort;
 }
+
+export type CardTableSortField = "sortField" | "due" | "variants";
+export interface CardTableSort {
+  field: CardTableSortField;
+  direction: "asc" | "desc";
+}
+
+export const DEFAULT_CARD_TABLE_SORT: CardTableSort = { field: "sortField", direction: "asc" };
+const cardSortCollator = new Intl.Collator("de-DE", { sensitivity: "base" });
+const cardDueDateFormatter = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 interface HeatmapInput {
   weeks?: HeatmapDay[][];
@@ -418,17 +429,43 @@ function createDeckRow(
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
 function createCardTableRow(card: LearningItem) {
+  const isNew = card.reviewState?.state === "new";
+  const parsedDue = Date.parse(card.reviewState?.dueAt ?? "");
+  const dueTimestamp = !isNew && Number.isFinite(parsedDue) ? parsedDue : Number.POSITIVE_INFINITY;
+  const hasActiveVariants = (card.variants ?? []).some((variant) => (
+    !variant.isOriginal && variant.isActive !== false && variant.qualityStatus === "active"
+  ));
+
   return {
     id: card.id,
     card,
     frontPreview: previewText(card.originalFront),
     backPreview: previewText(card.originalBack),
+    dueTimestamp,
+    dueLabel: Number.isFinite(dueTimestamp) ? cardDueDateFormatter.format(dueTimestamp) : "Neu",
+    hasActiveVariants,
+    variantsLabel: hasActiveVariants ? "Mit Varianten" : "Ohne Varianten",
   };
 }
 
 export type CardTableRow = ReturnType<typeof createCardTableRow>;
 
 export type CardTableGroup = Omit<DeckLibraryRow, "cardRows"> & { cardRows: CardTableRow[] };
+
+function sortCardRows(rows: CardTableRow[], sort: CardTableSort): CardTableRow[] {
+  const direction = sort.direction === "desc" ? -1 : 1;
+  return [...rows].sort((left, right) => {
+    let comparison = 0;
+    if (sort.field === "sortField") {
+      comparison = cardSortCollator.compare(left.frontPreview, right.frontPreview);
+    } else if (sort.field === "due") {
+      comparison = left.dueTimestamp === right.dueTimestamp ? 0 : left.dueTimestamp - right.dueTimestamp;
+    } else {
+      comparison = Number(left.hasActiveVariants) - Number(right.hasActiveVariants);
+    }
+    return comparison * direction;
+  });
+}
 
 function matchesDeckRow(row: DeckLibraryRow, query: string, coreMode: CoreMode | "all"): boolean {
   const haystack = normalizeQuery(`${row.name} ${row.deck.tags?.join(" ") ?? ""} ${row.path}`);
@@ -632,11 +669,12 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
 export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions = {}) {
   const query = normalizeQuery(options.query);
   const coreMode = options.coreMode ?? "all";
+  const cardSort = options.cardSort ?? DEFAULT_CARD_TABLE_SORT;
   const now = options.now ?? new Date();
   const rows = flattenDeckTree(decks, { now, cardLimit: 0 });
   const allGroups: CardTableGroup[] = rows.map((row) => ({
     ...row,
-    cardRows: row.activeCards.map(createCardTableRow),
+    cardRows: sortCardRows(row.activeCards.map(createCardTableRow), cardSort),
   }));
   const groups = allGroups.flatMap((group) => {
     if (coreMode !== "all" && group.coreMode !== coreMode) return [];
@@ -656,6 +694,7 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
     allGroups,
     groups,
     cardCount: groups.reduce((total, group) => total + group.cardRows.length, 0),
+    cardSort,
   };
 }
 

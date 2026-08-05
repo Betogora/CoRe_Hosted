@@ -3,6 +3,7 @@ import test from "node:test";
 import { createCoreCard, createCoreDeck } from "./coreModel.ts";
 import type { LearningItem } from "./coreTypes.ts";
 import {
+  type CardTableSort,
   createCardTableModel,
   createDeckLibraryModel,
   createPerformanceStatisticsModel,
@@ -165,6 +166,44 @@ test("card table preserves hierarchy and card order while including empty decks"
   assert.deepEqual(deckSearch.groups[0].cardRows.map((row) => row.id), ["card-first", "card-second"]);
 });
 
+test("card table sorts all columns and projects due and variant labels", () => {
+  const newCard = createCoreCard({ id: "card-new", source: "manual", originalFront: "Äpfel", originalBack: "Neu" });
+  const laterBase = createCoreCard({ id: "card-later", source: "manual", originalFront: "Zebra", originalBack: "Später" });
+  const earlierBase = createCoreCard({
+    id: "card-earlier",
+    source: "manual",
+    originalFront: "Berlin",
+    originalBack: "Früher",
+    variants: [{
+      id: "variant-earlier",
+      sourceCardId: "card-earlier",
+      front: "Welche Stadt ist Berlin?",
+      back: "Eine Hauptstadt.",
+      qualityStatus: "active",
+    }],
+  });
+  const laterState = { ...laterBase.reviewState, state: "review" as const, dueAt: "2026-09-20T08:00:00.000Z", reps: 2, lastReviewedAt: "2026-08-01T08:00:00.000Z" };
+  const earlierState = { ...earlierBase.reviewState, state: "review" as const, dueAt: "2026-08-10T08:00:00.000Z", reps: 2, lastReviewedAt: "2026-08-01T08:00:00.000Z" };
+  const later = { ...laterBase, reviewState: laterState, learningItemState: laterState };
+  const earlier = { ...earlierBase, reviewState: earlierState, learningItemState: earlierState };
+  const deck = createCoreDeck({ id: "deck-sort", name: "Sortierung", source: "manual", cards: [later, newCard, earlier] });
+
+  const defaultRows = createCardTableModel([deck]).groups[0].cardRows;
+  assert.deepEqual(defaultRows.map((row) => row.id), ["card-new", "card-earlier", "card-later"]);
+  assert.deepEqual(defaultRows.map((row) => row.dueLabel), ["Neu", "10.08.2026", "20.09.2026"]);
+  assert.deepEqual(defaultRows.map((row) => row.variantsLabel), ["Ohne Varianten", "Mit Varianten", "Ohne Varianten"]);
+
+  for (const [cardSort, expected] of [
+    [{ field: "sortField", direction: "desc" }, ["card-later", "card-earlier", "card-new"]],
+    [{ field: "due", direction: "asc" }, ["card-earlier", "card-later", "card-new"]],
+    [{ field: "due", direction: "desc" }, ["card-new", "card-later", "card-earlier"]],
+    [{ field: "variants", direction: "asc" }, ["card-later", "card-new", "card-earlier"]],
+    [{ field: "variants", direction: "desc" }, ["card-earlier", "card-later", "card-new"]],
+  ] satisfies Array<[CardTableSort, string[]]>) {
+    assert.deepEqual(createCardTableModel([deck], { cardSort }).groups[0].cardRows.map((row) => row.id), expected);
+  }
+});
+
 test("card table does not truncate large libraries", () => {
   const cards = Array.from({ length: 4_900 }, (_, index) => createCoreCard({
     id: "large-card-" + index,
@@ -177,8 +216,7 @@ test("card table does not truncate large libraries", () => {
 
   assert.equal(model.cardCount, 4_900);
   assert.equal(model.groups[0].cardRows.length, 4_900);
-  assert.equal(model.groups[0].cardRows[80].id, "large-card-80");
-  assert.equal(model.groups[0].cardRows.at(-1)?.id, "large-card-4899");
+  assert.ok(model.groups[0].cardRows.some((row) => row.id === "large-card-4899"));
 });
 
 test("study heatmap counts learned cards by local day", () => {

@@ -112,18 +112,21 @@ Akzeptanz:
 
 ### 5.3 Karten bearbeiten und eine Sitzung starten
 
-`Lernen` ist der primäre schnelle Einstieg in eine Sitzung. `Karten` ist die fünfte Hauptseite und die direktlinkfähige Verwaltungsoberfläche für alle Karten, Stapelstruktur, Inhalt, Versionen und erweiterte Optionen. Die bestehende Route bleibt `/kartenstapel`.
+`Lernen` ist der primäre schnelle Einstieg in eine Sitzung. `Kartenverwaltung` ist die fünfte Hauptseite und die direktlinkfähige Verwaltungsoberfläche für alle Karten, Stapelstruktur, Inhalt, Versionen und erweiterte Optionen. Die bestehende Route bleibt `/kartenstapel`.
 
 Akzeptanz:
 
-- Die Hauptnavigation lautet exakt `Heute`, `Lernen`, `Erstellen`, `Statistik`, `Karten`.
-- `Heute` und `Lernen` verwenden dieselbe einklappbare Stapelkarte mit Icon, eindeutigem Hierarchiepfad, Teilbaum-Kennzahlen und Fortschrittsdonut. Die Seite `Karten` projiziert stattdessen alle aktiven Karten ohne Tageslimit als semantische Tabelle, gruppiert nach derselben Stapelhierarchie.
-- Die Kartentabelle zeigt pro Karte ausschließlich bereinigte Textvorschauen für Vorder- und Rückseite. Innerhalb eines Stapels bleibt die gespeicherte Import- beziehungsweise Erstellreihenfolge erhalten; leere Stapel zeigen `Keine Karten`.
-- Suche berücksichtigt Stapelpfad, Vorderseite, Rückseite und Tags. Der CoRe-Modus-Filter bleibt erhalten.
+- Die Hauptnavigation lautet exakt `Heute`, `Lernen`, `Erstellen`, `Statistik`, `Kartenverwaltung`.
+- `Heute` und `Lernen` verwenden dieselbe einklappbare Stapelkarte mit Icon, eindeutigem Hierarchiepfad, Teilbaum-Kennzahlen und Fortschrittsdonut. Die Kartenverwaltung verwendet dieselbe visuelle Stapelsprache für unabhängige Tabellensektionen; ihre Kennzahlen und der Donut beziehen sich ausschließlich auf die direkten Karten des jeweiligen Stapels.
+- Alle Stapelsektionen starten eingeklappt und behalten ihren Zustand nur für den aktuellen Seitenbesuch. Ein fokussierter Stapel beziehungsweise eine direkt verlinkte Karte öffnet die betroffene Sektion; Unterstapel bleiben unabhängig.
+- Die Kartentabelle zeigt pro Karte ausschließlich `Sortierfeld`, `Fällig` und `Varianten`. `Sortierfeld` ist die bereinigte Vorderseitenvorschau, `Fällig` zeigt für unbewertete Karten `Neu` und sonst `TT.MM.JJJJ`, `Varianten` unterscheidet zusätzliche aktive Varianten als `Mit Varianten` oder `Ohne Varianten`.
+- Alle drei Spalten sind auf- und absteigend sortierbar. Standard ist `Sortierfeld` A–Z; die gewählte Sortierung gilt einheitlich für alle Stapelsektionen und wird nicht persistiert. Leere aufgeklappte Stapel zeigen `Keine Karten`.
+- Suche berücksichtigt weiterhin Stapelpfad, Vorderseite, Rückseite und Tags und öffnet passende Sektionen nur für die Dauer der Suche. Der CoRe-Modus-Filter bleibt erhalten.
 - Auf-/Zuklappen, Stapeloptionen und andere eigene Bedienelemente lösen die Flächenaktion nicht aus. Die Flächenaktion ist per Enter und Leertaste bedienbar und besitzt einen eindeutigen zugänglichen Namen.
 - Lernen besitzt keinen zusätzlichen Tabellenkopf oder separaten Lernen-Button; Donut und Stapeloptionen bleiben pro Stapel erreichbar.
 - Jede Stapelgruppe der Kartentabelle besitzt ein kompaktes Optionsmenü mit CoRe-Modus, Einstellungen, Umbenennen, bestätigtem Verschieben, Unterstapel, normalem und variantenfokussiertem Lernen sowie Löschen.
-- Ein Kartenklick setzt Deck- und Karten-ID gemeinsam in die URL und öffnet rechts ein nicht-modales, unabhängig scrollendes Detail-`aside`. Ab 1024 px überlagert es die rechte Hälfte der Tabelle, darunter die volle Inhaltsbreite. Schließen, Escape, Reload sowie Browser-Zurück/-Vorwärts sind deterministisch und stellen den Zeilenfokus nach dem Schließen wieder her.
+- Ein Kartenklick setzt Deck- und Karten-ID gemeinsam in die URL und öffnet rechts ein nicht-modales, unabhängig scrollendes Detail-`aside`. Ab 1024 px überlagert es die rechte Hälfte der Tabelle, darunter die volle Inhaltsbreite. X, Escape und ein Außenklick schließen es; ein Außenklick auf eine andere Kartenzeile wechselt nach erfolgreicher Auflösung dorthin, andere Außenklicks schließen nur. Reload sowie Browser-Zurück/-Vorwärts bleiben deterministisch und der Zeilenfokus wird nach dem Schließen wiederhergestellt.
+- Änderungen an typgerechten Kartenfeldern und Tags werden gegen den letzten gespeicherten Stand geprüft. Beim Schließen, Kartenwechsel oder interner Navigation bietet ein modaler Dialog `Speichern`, `Verwerfen` und `Weiter bearbeiten`; nur erfolgreiches Speichern beziehungsweise bewusstes Verwerfen führt die vorgemerkte Aktion aus. Temporäre Varianten- und Restore-Eingaben bleiben davon unberührt.
 - Der Detailbereich zeigt den typgerechten Editor, Speichern, Kopieren und Löschen primär; Varianten, Herkunft, Versionen und Restore bleiben progressiv offengelegt.
 - Das fokussierte Deck ist in Lernen und Kartenverwaltung derselbe URL-reproduzierbare Kontext, ohne parallele lokale Deckidentität.
 - Lernen-, Kartenverwaltungs- und Erstelllinks erhalten ihr Deck beziehungsweise ihre ausgewählte Karte über Reload und Direktlink.
@@ -225,8 +228,8 @@ Akzeptanz:
 
 - Decks können Eltern- und Unterstapel bilden.
 - Hierarchie bleibt beim unterstützten APKG-Import erhalten.
-- Dashboard und Lernen projizieren denselben kanonischen, lokal einklappbaren Stapelbaum; Elternkennzahlen aggregieren sämtliche Unterstapel. Karten projiziert dieselbe Hierarchie als gruppierte Gesamttabelle.
-- Lernen und Karten bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen Deckkontext. Beide sind Teil der Hauptnavigation; Karten bleibt zusätzlich aus Lernen erreichbar.
+- Dashboard und Lernen projizieren denselben kanonischen, lokal einklappbaren Stapelbaum; Elternkennzahlen aggregieren sämtliche Unterstapel. Die Kartenverwaltung projiziert dieselbe Hierarchie als gruppierte Gesamttabelle.
+- Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen Deckkontext. Beide sind Teil der Hauptnavigation; die Kartenverwaltung bleibt zusätzlich aus Lernen erreichbar.
 - Dashboard und Lernen erlauben direktes Drag-and-drop für Parent-/Child-Zuordnung und Outdent zur Hauptebene. Karten bietet dieselbe fachliche Mutation über einen expliziten bestätigten Ablauf an.
 - Direktes Drag-and-drop ist eine Desktop-Interaktion für Maus und Trackpad und markiert während der Geste keinen Zeilentext. Touch, Tastatur und assistive Bedienung verwenden den bestätigten Fallback; manuelle Elternauswahlen und Verschiebeziele bieten keine fünfte sichtbare Ebene an.
 - Suche und Filter helfen bei großen Bibliotheken.

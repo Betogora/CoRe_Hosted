@@ -11,6 +11,7 @@ import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewRet
 import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
 import type {
+  CardDraftGuard,
   CreationScreenProps,
   DashboardScreenProps,
   DeckSettingsScreenProps,
@@ -61,7 +62,7 @@ type CreateDeckInput = Parameters<CoreWorkspace["createDeck"]>[0];
 type CardEditorValue = Parameters<CoreWorkspace["saveDeckCard"]>[2];
 type CardVariantInput = Parameters<CoreWorkspace["addDeckCardVariant"]>[2];
 type ManualCardInput = Parameters<CoreWorkspace["addManualCardToDeck"]>[1];
-type PendingNavigation = { run: () => void };
+type PendingNavigation = { run: () => void; source: "creation" | "card" };
 
 function resolveCoreMode(value: unknown, fallback: CoreMode): CoreMode {
   return value === "off" || value === "auto" || value === "manual" ? value : fallback;
@@ -178,7 +179,9 @@ export function App() {
   const [syncEngine, setSyncEngine] = React.useState<AccountSyncEngine | null>(null);
   const [creationDraftDirty, setCreationDraftDirty] = React.useState(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
+  const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
   const creationDraftFocusRef = React.useRef<(() => void) | null>(null);
+  const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
   const {
     activeView,
@@ -199,7 +202,11 @@ export function App() {
 
   const navigateToView = React.useCallback((...args: Parameters<typeof navigateToViewNow>) => {
     if (activeView === "neue-karten" && creationDraftDirty) {
-      setPendingNavigation({ run: () => { navigateToViewNow(...args); } });
+      setPendingNavigation({ source: "creation", run: () => { navigateToViewNow(...args); } });
+      return createViewRoute(activeView);
+    }
+    if (activeView === "kartenstapel" && cardDraftGuardRef.current) {
+      setPendingNavigation({ source: "card", run: () => { navigateToViewNow(...args); } });
       return createViewRoute(activeView);
     }
     return navigateToViewNow(...args);
@@ -209,6 +216,32 @@ export function App() {
     setCreationDraftDirty(dirty);
     creationDraftFocusRef.current = focusDraft;
   }, []);
+
+  const handleCardDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
+    cardDraftGuardRef.current = guard;
+  }, []);
+
+  const pendingCardNavigation = pendingNavigation?.source === "card";
+
+  function runPendingNavigation() {
+    const navigation = pendingNavigation;
+    setPendingNavigation(null);
+    navigation?.run();
+  }
+
+  async function confirmPendingNavigation() {
+    if (!pendingCardNavigation) {
+      setCreationDraftDirty(false);
+      runPendingNavigation();
+      return;
+    }
+    setSavingPendingNavigation(true);
+    try {
+      if (await cardDraftGuardRef.current?.save()) runPendingNavigation();
+    } finally {
+      setSavingPendingNavigation(false);
+    }
+  }
 
   React.useEffect(() => {
     let observer: MutationObserver | null = null;
@@ -895,6 +928,7 @@ export function App() {
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onPrepareSubdeckCreation={openDeckCreation}
           onOpenLearn={openLearn}
+          onDraftStateChange={handleCardDraftStateChange}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, {
             view: "decks",
             ...(selectedCardId ? { cardId: selectedCardId } : {}),
@@ -1047,7 +1081,7 @@ export function App() {
               <p className="mt-2 core-body-large text-[var(--core-text-muted)]">Content Repetition</p>
             </div>
 
-            <nav aria-label="Hauptmenü" className="mt-6 grid grid-cols-2 gap-2 md:mt-10 md:max-w-none md:grid-cols-1">
+            <nav aria-label="Hauptmenü" data-app-navigation="true" className="mt-6 grid grid-cols-2 gap-2 md:mt-10 md:max-w-none md:grid-cols-1">
               {navigationItems.map((view) => {
                 const NavIcon = getIcon(view.iconKey);
                 const isActive = view.id === activeView;
@@ -1074,6 +1108,7 @@ export function App() {
                 <ThemeToggle />
                 <button
                   type="button"
+                  data-app-navigation="true"
                   onClick={() => navigateToView("hilfe")}
                   className={`core-icon-action size-11 shrink-0 rounded-full border ${
                     activeView === "hilfe"
@@ -1089,6 +1124,7 @@ export function App() {
               </div>
               <button
                 type="button"
+                data-app-navigation="true"
                 onClick={() => navigateToView("testmodus")}
                 className={`mb-2 flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left core-body font-semibold transition ${
                   activeView === "testmodus"
@@ -1102,6 +1138,7 @@ export function App() {
               </button>
               <button
                 type="button"
+                data-app-navigation="true"
                 onClick={() => navigateToView("einstellungen")}
                 className={`flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition ${
                   activeView === "einstellungen" ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text)] hover:bg-core-surface"
@@ -1125,21 +1162,23 @@ export function App() {
       </div>
       <ActionDialog
         open={Boolean(pendingNavigation)}
-        title="Ungespeicherten Entwurf verlassen?"
-        description="Deine bereits gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte würden verworfen."
-        confirmLabel="Verwerfen und verlassen"
+        title={pendingCardNavigation ? "Änderungen übernehmen?" : "Ungespeicherten Entwurf verlassen?"}
+        description={pendingCardNavigation
+          ? "Du hast ungespeicherte Änderungen an dieser Karte. Speichere oder verwirf sie, bevor du die Kartenverwaltung verlässt."
+          : "Deine bereits gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte würden verworfen."}
+        confirmLabel={pendingCardNavigation ? "Speichern" : "Verwerfen und verlassen"}
         cancelLabel="Weiter bearbeiten"
-        destructive
+        discardLabel={pendingCardNavigation ? "Verwerfen" : undefined}
+        confirmLoading={savingPendingNavigation}
+        destructive={!pendingCardNavigation}
         restoreFocus={(reason) => {
-          if (reason === "cancel") creationDraftFocusRef.current?.();
+          if (reason !== "cancel") return;
+          if (pendingCardNavigation) cardDraftGuardRef.current?.focus();
+          else creationDraftFocusRef.current?.();
         }}
         onCancel={() => setPendingNavigation(null)}
-        onConfirm={() => {
-          const navigation = pendingNavigation;
-          setPendingNavigation(null);
-          setCreationDraftDirty(false);
-          navigation?.run();
-        }}
+        onDiscard={pendingCardNavigation ? runPendingNavigation : undefined}
+        onConfirm={() => void confirmPendingNavigation()}
       />
     </main>
   );

@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-08-04
+**Stand:** 2026-08-05
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -18,7 +18,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Manuelle Batch-Erstellung bleibt nach jedem Save im Editor, erhält Pins und Zieldeck, setzt freie Felder und Fokus deterministisch zurück und endet erst über `Fertig`.
 - Nichtleere Erstellungsentwürfe sind bei interner Navigation durch einen zugänglichen Dialog und bei Browser-Unload durch den Browser-Fallback geschützt.
 - Karten- und Stapellöschung verwenden produktspezifische Auswirkungsdialoge; Karten bieten ein revisionsgeprüftes unmittelbares Undo über denselben Datensatz.
-- `Karten` ist die fünfte Hauptseite: eine unbegrenzte, nach Stapelhierarchie gruppierte Gesamttabelle mit bereinigten Vorder-/Rückseitenvorschauen, Suche, CoRe-Filter, Gruppenaktionen und einem URL-gesteuerten rechten Detail-`aside`.
+- `Kartenverwaltung` ist die fünfte Hauptseite: eine unbegrenzte, nach Stapelhierarchie gruppierte Gesamttabelle mit standardmäßig eingeklappten Stapelköpfen, sortierbaren Spalten für Vorderseiten-Sortierfeld, Fälligkeit und Variantenstatus, Suche, CoRe-Filter, Gruppenaktionen und einem URL-gesteuerten rechten Detail-`aside`. Ungespeicherte Inhalts- und Tagänderungen sind beim Schließen, Kartenwechsel und interner Navigation geschützt.
 - Basic, Reverse, Cloze und Multiple Choice lassen sich direkt hinter dem Original als unabhängiges Learning Item mit frischen Identitäten und Review State kopieren. Der öffentliche, validierte Karteninhalt-Vertrag umfasst nur typgerechte Editorfelder und stabile Medienreferenzen.
 - Basic-Karten können zusätzlich über OpenRouter als sofort gespeicherte, am Original verankerte `ai_generated`-Variante umformuliert werden. Die serverseitige Route überträgt nur bereinigte Vorder-/Rückseitentexte, erzwingt einen validierten Tool Call, wählt ausschließlich kostenlose textfähige Tool-Modelle und bevorzugt ZDR; der manuelle Variantenweg bleibt erhalten.
 - Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen URL-Kontext für Deck, Karte, Erstellziel und allowlist-basierten Review-Rückweg; Reload, Direktlink sowie Browser-Zurück/-Vorwärts erhalten den semantischen Kontext.
@@ -40,7 +40,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 
 ### Core
 
-Account, Heute, Erstellen/Import, Lernen, Karten, Statistik, Einstellungen, accountgebundene Persistenz und der freigegebene APKG-Pfad bilden den vorgesehenen Beta-Kern.
+Account, Heute, Erstellen/Import, Lernen, Kartenverwaltung, Statistik, Einstellungen, accountgebundene Persistenz und der freigegebene APKG-Pfad bilden den vorgesehenen Beta-Kern.
 
 ### Entfernt
 

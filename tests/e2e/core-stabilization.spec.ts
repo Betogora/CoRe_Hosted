@@ -430,7 +430,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
   await expect(page.getByText("1 Karte beantwortet.")).toBeVisible();
   await page.getByRole("button", { name: "Zurück zum Ausgangspunkt" }).click();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
 });
 

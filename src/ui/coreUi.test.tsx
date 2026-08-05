@@ -3,23 +3,25 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ActionDialog, ThemeToggle } from "./coreUi.tsx";
 
-test("action dialog exposes an accessible modal contract and explicit actions", () => {
+test("action dialog exposes its accessible three-action contract", () => {
   const markup = renderToStaticMarkup(
     <ActionDialog
       open
-      title="Entwurf verlassen?"
-      description="Ungespeicherte Inhalte würden verworfen."
-      confirmLabel="Verwerfen und verlassen"
+      title="Änderungen übernehmen?"
+      description="Ungespeicherte Kartenänderungen."
+      confirmLabel="Speichern"
+      discardLabel="Verwerfen"
       cancelLabel="Weiter bearbeiten"
       onConfirm={() => undefined}
+      onDiscard={() => undefined}
       onCancel={() => undefined}
-      destructive
     />,
   );
 
   assert.match(markup, /role="dialog"/);
   assert.match(markup, /aria-modal="true"/);
-  assert.match(markup, /Verwerfen und verlassen/);
+  assert.match(markup, /Speichern/);
+  assert.match(markup, /Verwerfen/);
   assert.match(markup, /Weiter bearbeiten/);
 });
 

@@ -110,7 +110,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   expect(state.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards).toHaveLength(6);
 
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   for (let index = 1; index <= 5; index += 1) {
     await expect(page.getByText(`Batch-Frage ${index}`, { exact: true })).toBeVisible();
   }

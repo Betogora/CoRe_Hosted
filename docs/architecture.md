@@ -42,7 +42,7 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | `src/aiCardVariantContract.ts` | Gemeinsamer Laufzeitvertrag, Größenlimits und reine Basic-Plaintextprojektion für KI-Varianten |
 | `src/aiCardVariant.ts` | Browseraufruf sowie Änderungs- und Duplikatprüfung vor der bestehenden Variantenmutation |
 | `api/ai/card-variant.ts` | Authentifizierte Vercel Function, kostenlose OpenRouter-Modellauswahl, ZDR-Präferenz und erzwungener Tool Call |
-| `src/libraryModel.ts` | Reine Projektionen für Stapelhierarchie, unbegrenzte gruppierte Kartentabelle, Suche, Heatmap und Statistik |
+| `src/libraryModel.ts` | Reine Projektionen für Stapelhierarchie, unbegrenzte gruppierte Kartentabelle einschließlich Fälligkeits-/Variantenstatus und Sortierung, Suche, Heatmap und Statistik |
 | `src/creationBatch.ts` | Reiner Batch-Session-State für Zähler, Zieldeck, aktuellen UI-Entwurf, Pins und deterministische Fokuswahl; keine zweite Kartenrepräsentation |
 | `src/importUiState.ts` | Diskriminierte Projektion sichtbarer Importphasen und Terminalzustände ohne Parser-, Protokoll- oder Medienverantwortung |
 | `src/coreRepository.ts` | Lokaler persistenter App-State und Legacy-Normalisierung |

@@ -17,7 +17,10 @@ interface ActionDialogProps {
   cancelLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
-  restoreFocus?: (reason: "cancel" | "confirm") => void;
+  discardLabel?: string;
+  onDiscard?: () => void;
+  confirmLoading?: boolean;
+  restoreFocus?: (reason: "cancel" | "discard" | "confirm") => void;
   destructive?: boolean;
 }
 
@@ -37,13 +40,16 @@ export function ActionDialog({
   cancelLabel,
   onConfirm,
   onCancel,
+  discardLabel,
+  onDiscard,
+  confirmLoading = false,
   restoreFocus,
   destructive = false,
 }: ActionDialogProps) {
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
   const cancelRef = React.useRef<HTMLButtonElement | null>(null);
   const returnFocusRef = React.useRef<HTMLElement | null>(null);
-  const closeReasonRef = React.useRef<"cancel" | "confirm" | null>(null);
+  const closeReasonRef = React.useRef<"cancel" | "discard" | "confirm" | null>(null);
   const onCancelRef = React.useRef(onCancel);
   const onConfirmRef = React.useRef(onConfirm);
   const restoreFocusRef = React.useRef(restoreFocus);
@@ -64,6 +70,11 @@ export function ActionDialog({
   function confirmDialog() {
     closeReasonRef.current = "confirm";
     onConfirmRef.current();
+  }
+
+  function discardDialog() {
+    closeReasonRef.current = "discard";
+    onDiscard?.();
   }
 
   React.useEffect(() => {
@@ -125,12 +136,19 @@ export function ActionDialog({
         <h2 id={titleId} className="core-heading-2 text-core-text">{title}</h2>
         <div id={descriptionId} className="core-body-large mt-3 text-core-secondary">{description}</div>
         <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <ActionButton ref={cancelRef} type="button" variant="secondary" onClick={cancelDialog}>
+          <ActionButton ref={cancelRef} type="button" variant="secondary" disabled={confirmLoading} onClick={cancelDialog}>
             {cancelLabel}
           </ActionButton>
+          {discardLabel && onDiscard ? (
+            <ActionButton type="button" variant="destructive" disabled={confirmLoading} onClick={discardDialog}>
+              {discardLabel}
+            </ActionButton>
+          ) : null}
           <ActionButton
             type="button"
             variant={destructive ? "destructive" : "primary"}
+            loading={confirmLoading}
+            disabled={confirmLoading}
             onClick={confirmDialog}
           >
             {confirmLabel}

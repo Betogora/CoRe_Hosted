@@ -112,7 +112,7 @@ async function finishManualCreation(page: Page, deckName: string) {
 
 async function openCreatedCardEditor(page: Page, deck: Deck) {
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
 }
 
@@ -169,7 +169,7 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await expect(page.getByTestId(`deck-card-${copiedCard.id}`)).toBeAttached();
   await waitForCloudCard(deck.id, copiedCard.id, (card) => card.originalFront.includes("(Kopie)"));
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   await expect(page.getByTestId(`deck-card-${copiedCard.id}`)).toBeAttached();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Basic Frage neu");
@@ -267,7 +267,7 @@ test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse hält beid
   expect(activeReverse).toHaveLength(1);
   expect(activeReverse[0]).toMatchObject({ id: initialReverse.id, front: "<p>Reverse hinten neu</p>", back: "<p>Reverse vorne neu</p>" });
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await startDeckFromCards(page, deck.id);
   await expect(page.getByText("Reverse vorne neu", { exact: true })).toBeVisible();
@@ -310,7 +310,7 @@ test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core Cloze ergänzt eine 
   expect(savedCard.variants.find((variant: { meta: { clozeGroup: number } }) => variant.meta.clozeGroup === 2)?.isActive).toBe(false);
   expect(activeGroups.find((variant: { meta: { clozeGroup: number } }) => variant.meta.clozeGroup === 3).expectedAnswerJson).toEqual(["ADP"]);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await startDeckFromCards(page, deck.id, true);
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
@@ -349,7 +349,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   expect(original.expectedAnswerJson).toBe("Gamma neu");
   expect(original.explanation).toContain("Gamma neu ist nach der Bearbeitung richtig.");
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${deck.id}`).click();

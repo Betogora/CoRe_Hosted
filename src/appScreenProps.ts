@@ -16,6 +16,11 @@ type CardEditorValue = Parameters<CoreWorkspace["saveDeckCard"]>[2];
 type CardVariantInput = Parameters<CoreWorkspace["addDeckCardVariant"]>[2];
 type ManualCardInput = Parameters<CoreWorkspace["addManualCardToDeck"]>[1];
 
+export interface CardDraftGuard {
+  focus: () => void;
+  save: () => Promise<boolean>;
+}
+
 export interface CreationScreenProps {
   decks: Deck[];
   mediaStore: AccountMediaStore | null;
@@ -73,6 +78,7 @@ export interface DecksScreenProps {
   onOpenCardCreation: () => unknown;
   onPrepareSubdeckCreation: (parentDeckId?: string) => unknown;
   onOpenDeckSettings: (deckId: string) => unknown;
+  onDraftStateChange: (guard: CardDraftGuard | null) => void;
 }
 
 export interface LearnScreenProps {

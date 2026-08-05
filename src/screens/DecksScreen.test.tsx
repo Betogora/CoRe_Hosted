@@ -34,12 +34,13 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     onPrepareSubdeckCreation: () => undefined,
     onOpenLearn: () => undefined,
     onOpenDeckSettings: () => undefined,
+    onDraftStateChange: () => undefined,
     ...overrides,
   };
   return renderToStaticMarkup(<DecksScreen {...props} />);
 }
 
-test("cards page renders the grouped semantic table with compact deck actions", () => {
+test("cards page renders sortable collapsed deck sections with direct metrics", () => {
   const originalDeck = createManualCoreDeck({
     deckName: "Biologie",
     card: { cardType: "basic", front: "<b>Was ist ATP?</b>", back: "Ein Energieträger." },
@@ -47,14 +48,18 @@ test("cards page renders the grouped semantic table with compact deck actions", 
   const child = createCoreDeck({ id: "deck-child", name: "Zellbiologie", source: "manual", parentDeckId: originalDeck.id, hierarchyPath: ["Biologie", "Zellbiologie"], cards: [] });
   const markup = renderScreen([originalDeck, child]);
 
-  assert.match(markup, /<h2[^>]*>Karten<\/h2>/);
+  assert.match(markup, /<h2[^>]*>Kartenverwaltung<\/h2>/);
   assert.match(markup, /data-testid="card-library-table"/);
-  assert.match(markup, /<th[^>]*>Vorderseite<\/th>/);
-  assert.match(markup, /<th[^>]*>Rückseite<\/th>/);
-  assert.match(markup, /Was ist ATP\?/);
-  assert.match(markup, /Ein Energieträger\./);
+  assert.match(markup, /Sortierfeld/);
+  assert.match(markup, /Fällig/);
+  assert.match(markup, /Varianten/);
+  assert.match(markup, /aria-sort="ascending"/);
+  assert.match(markup, /aria-label="Karten von Biologie aufklappen"/);
+  assert.match(markup, /aria-expanded="false"/);
+  assert.match(markup, /aria-label="Lernstand für Biologie"/);
+  assert.doesNotMatch(markup, /Was ist ATP\?/);
+  assert.doesNotMatch(markup, /Ein Energieträger\./);
   assert.match(markup, /Biologie \/ Zellbiologie/);
-  assert.match(markup, /Keine Karten/);
   assert.match(markup, new RegExp('data-testid="deck-options-' + originalDeck.id + '"'));
   assert.match(markup, /aria-label="Karten durchsuchen"/);
   assert.match(markup, /aria-label="Karten nach CoRe-Modus filtern"/);
