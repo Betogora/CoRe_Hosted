@@ -1031,9 +1031,9 @@ export function DecksScreen({
 
       <SoftPanel className="p-4 sm:p-5">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text-muted)]">
+          <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text-muted)] transition focus-within:border-[var(--core-border-interactive)] focus-within:shadow-[inset_0_0_0_1px_var(--core-border-interactive)]">
             <Search size={17} aria-hidden="true" />
-            <input className="min-w-0 flex-1 bg-transparent outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
+            <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
           </label>
           <CoreSelect
             ariaLabel="Karten nach CoRe-Modus filtern"

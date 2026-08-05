@@ -110,6 +110,9 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
 
   const search = page.getByRole("textbox", { name: "Karten durchsuchen" });
+  await search.focus();
+  await expect.poll(() => search.evaluate((input) => getComputedStyle(input).outlineColor)).toBe("rgba(0, 0, 0, 0)");
+  await expect.poll(() => search.locator("..").evaluate((label) => getComputedStyle(label).boxShadow)).not.toBe("none");
   await search.fill("Karte B1");
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
   await search.fill("");

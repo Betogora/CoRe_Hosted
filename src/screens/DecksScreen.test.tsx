@@ -62,6 +62,8 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /Biologie \/ Zellbiologie/);
   assert.match(markup, new RegExp('data-testid="deck-options-' + originalDeck.id + '"'));
   assert.match(markup, /aria-label="Karten durchsuchen"/);
+  assert.ok(markup.includes("focus-within:border-[var(--core-border-interactive)]"));
+  assert.match(markup, /focus-visible:outline-none/);
   assert.match(markup, /aria-label="Karten nach CoRe-Modus filtern"/);
   assert.doesNotMatch(markup, /data-deck-drag-source/);
 });
