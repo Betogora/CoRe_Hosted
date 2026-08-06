@@ -75,7 +75,7 @@ test("dashboard deck rows start learning across their full surface and keep the 
 
   await page.goBack();
   const deckRow = page.getByRole("button", { name: "Welt-Hauptstädte lernen", exact: true });
-  await deckRow.click({ position: { x: 20, y: 20 } });
+  await deckRow.click({ position: { x: 120, y: 20 } });
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 
   await page.goBack();
@@ -195,7 +195,7 @@ test("browser back returns from deck management to learning without reload", asy
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
   await page.getByRole("button", { name: "Karten verwalten" }).click();
-  await expect(page.getByTestId(`deck-row-${DECK_IDS.europe}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-header-${DECK_IDS.europe}`)).toBeVisible();
 
   await page.goBack();
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();

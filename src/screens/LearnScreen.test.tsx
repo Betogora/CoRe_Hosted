@@ -29,6 +29,8 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, /data-deck-count="total"/);
   assert.match(markup, /conic-gradient/);
   assert.match(markup, /data-deck-drag-source="true"/);
+  assert.match(markup, /data-core-tooltip="Stapeloptionen für Welt-Hauptstädte"/);
+  assert.match(markup, /lucide-ellipsis/);
   assert.doesNotMatch(markup, /learn-deck-list-header/);
   assert.doesNotMatch(markup, />Lernen<\/span><\/button>/);
   assert.doesNotMatch(markup, /Icon auswählen|Iconfarbe|CoRe aktiv/);

@@ -32,6 +32,8 @@ async function storedDeckPresentation(page: Page, deckId: string) {
 }
 
 async function dispatchDeckDrop(page: Page, source: Locator, target: Locator) {
+  await source.scrollIntoViewIfNeeded();
+  await target.scrollIntoViewIfNeeded();
   const sourcePosition = await source.boundingBox();
   const targetPosition = await target.boundingBox();
   expect(sourcePosition).not.toBeNull();
@@ -43,6 +45,7 @@ async function dispatchDeckDrop(page: Page, source: Locator, target: Locator) {
 }
 
 async function dispatchTopLevelDrop(page: Page, source: Locator, dropZoneTestId: string) {
+  await source.scrollIntoViewIfNeeded();
   const sourcePosition = await source.boundingBox();
   expect(sourcePosition).not.toBeNull();
   const sourceX = sourcePosition!.x + sourcePosition!.width / 2;
@@ -230,36 +233,20 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
 });
 
-test("deck management reparents directly and preserves explicit keyboard move as fallback", async ({ page }) => {
+test("deck management disables direct drag and preserves explicit keyboard move", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();
 
-  const rootRow = page.getByTestId(`deck-row-${DECK_IDS.root}`);
-  const europeRow = page.getByTestId(`deck-row-${DECK_IDS.europe}`);
-  const southAmericaRow = page.getByTestId(`deck-row-${DECK_IDS.southAmerica}`);
+  const rootRow = page.getByTestId(`deck-header-${DECK_IDS.root}`);
+  const southAmericaRow = page.getByTestId(`deck-header-${DECK_IDS.southAmerica}`);
   await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
   await expect(rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" })).toBeVisible();
-  await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
+  await expect(page.locator('[data-deck-drag-source="true"]')).toHaveCount(0);
+  await expect(page.getByTestId("manage-top-drop-zone")).toHaveCount(0);
 
-  await dispatchDeckDrop(page, southAmericaRow, europeRow);
-  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
-
-  await southAmericaRow.getByRole("button", { name: "Welt-Hauptstädte / Europa / Südamerika öffnen" }).press("Enter");
-  await expect(page.getByTestId(`deck-actions-${DECK_IDS.southAmerica}`).getByRole("button", { name: "Unterstapel", exact: true })).toBeEnabled();
-
-  await dispatchDeckDrop(page, southAmericaRow, rootRow);
-  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.root);
-
-  await dispatchTopLevelDrop(page, southAmericaRow, "manage-top-drop-zone");
-  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(null);
-
-  await southAmericaRow.getByRole("button", { name: "Südamerika öffnen" }).press("Enter");
-  await expect(page.getByTestId(`deck-actions-${DECK_IDS.southAmerica}`)).toBeVisible();
-  await expect(page.getByTestId(`deck-card-list-${DECK_IDS.southAmerica}`)).toBeVisible();
-  await expect(page.getByTestId(`deck-card-list-${DECK_IDS.southAmerica}`)).toBeFocused();
-
-  const moveButton = page.getByTestId(`deck-move-button-${DECK_IDS.southAmerica}`);
+  await page.getByTestId(`deck-options-${DECK_IDS.southAmerica}`).press("Enter");
+  const moveButton = page.getByTestId(`deck-options-menu-${DECK_IDS.southAmerica}`).getByTestId(`deck-move-button-${DECK_IDS.southAmerica}`);
   await moveButton.press("Enter");
   const moveSelect = page.getByRole("combobox", { name: "Ziel für Südamerika" });
   await moveSelect.click();
@@ -268,12 +255,31 @@ test("deck management reparents directly and preserves explicit keyboard move as
   const europeMoveOption = page.getByRole("option", { name: /Europa$/ });
   await expect(europeMoveOption.locator('[data-deck-icon="true"]')).toHaveCount(1);
   await europeMoveOption.click();
-  await expect(page.getByTestId(`deck-move-summary-${DECK_IDS.southAmerica}`)).toContainText("unter „Europa“");
   await page.getByRole("button", { name: "Verschieben bestätigen" }).press("Enter");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
 
-  await page.getByTestId(`deck-actions-${DECK_IDS.southAmerica}`).getByRole("button", { name: "Einstellungen" }).click();
+  await page.getByTestId(`deck-options-${DECK_IDS.southAmerica}`).click();
+  await page.getByTestId(`deck-options-menu-${DECK_IDS.southAmerica}`).getByRole("button", { name: "Einstellungen" }).click();
   await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.southAmerica}&returnView=decks$`));
   await page.getByRole("button", { name: "Zurück zur Kartenverwaltung" }).press("Enter");
-  await expect(page.getByTestId(`deck-actions-${DECK_IDS.southAmerica}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-options-${DECK_IDS.southAmerica}`)).toBeVisible();
+});
+
+test("three-dot actions share the path tooltip across learning and deck management", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+
+  const tooltip = page.getByRole("tooltip");
+  const learningOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
+  await expect(learningOptions).not.toHaveAttribute("title");
+  await learningOptions.focus();
+  await expect(tooltip).toHaveText("Stapeloptionen für Welt-Hauptstädte / Afrika");
+  await page.keyboard.press("Escape");
+  await expect(tooltip).toHaveCount(0);
+
+  await mainMenu(page).getByRole("button", { name: "Kartenverwaltung" }).click();
+  const managementOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
+  await expect(managementOptions).not.toHaveAttribute("title");
+  await managementOptions.focus();
+  await expect(tooltip).toHaveText("Stapeloptionen für Welt-Hauptstädte / Afrika");
 });

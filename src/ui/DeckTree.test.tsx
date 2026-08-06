@@ -33,13 +33,14 @@ test("deck tree keeps hierarchy, labels and all three semantic metrics in every 
   assert.match(markup, /var\(--core-deck-due-text\)/);
   assert.match(markup, /var\(--core-deck-total-text\)/);
   assert.match(markup, /data-deck-drag-source="true"/);
-  assert.match(markup, /data-deck-depth="0"[^>]*class="core-deck-group/);
-  assert.match(markup, /data-deck-depth="1"[^>]*class="core-deck-group/);
+  assert.match(markup, /data-deck-depth="0"[^>]*class="core-deck-summary-row/);
+  assert.match(markup, /data-deck-depth="1"[^>]*class="core-deck-summary-row/);
   assert.match(markup, /select-none/);
-  assert.match(markup, /sm:gap-x-6/);
-  assert.doesNotMatch(markup, /<span class="size-11 shrink-0"/);
-  assert.ok(markup.indexOf('data-deck-icon="true"') < markup.indexOf("Unterstapel von Bereich ausblenden"));
-  assert.match(markup, /aria-hidden="true"[^>]*data-deck-drag-source="true"/);
+  assert.match(markup, /min-w-\[46rem\]/);
+  assert.ok(markup.indexOf("Unterstapel von Bereich ausblenden") < markup.indexOf('data-deck-icon="true"'));
+  assert.match(markup, /<button[^>]*data-deck-drag-source="true"[^>]*data-deck-row-activation="true"/);
+  assert.match(markup, /lucide-ellipsis/);
+  assert.match(markup, /data-core-tooltip="Stapeloptionen für Bereich"/);
 });
 
 test("deck tree maps four visible levels to group depths and clamps deeper imports", () => {
@@ -51,30 +52,30 @@ test("deck tree maps four visible levels to group depths and clamps deeper impor
     createCoreDeck({ id: "depth-import", parentDeckId: "depth-great-grandchild", name: "Importtiefe", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4", "Importtiefe"], source: "anki-apkg", cards: [] }),
   ];
   const markup = renderToStaticMarkup(
-    <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="manage" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.match(markup, /data-testid="deck-group-depth-root"[^>]*data-deck-depth="0"/);
-  assert.match(markup, /data-testid="deck-group-depth-child"[^>]*data-deck-depth="1"/);
-  assert.match(markup, /data-testid="deck-group-depth-grandchild"[^>]*data-deck-depth="2"/);
-  assert.match(markup, /data-testid="deck-group-depth-great-grandchild"[^>]*data-deck-depth="3"/);
-  assert.match(markup, /data-testid="deck-group-depth-import"[^>]*data-deck-depth="3"/);
+  assert.match(markup, /data-testid="learn-deck-row-depth-root"[^>]*data-deck-depth="0"/);
+  assert.match(markup, /data-testid="learn-deck-row-depth-child"[^>]*data-deck-depth="1"/);
+  assert.match(markup, /data-testid="learn-deck-row-depth-grandchild"[^>]*data-deck-depth="2"/);
+  assert.match(markup, /data-testid="learn-deck-row-depth-great-grandchild"[^>]*data-deck-depth="3"/);
+  assert.match(markup, /data-testid="learn-deck-row-depth-import"[^>]*data-deck-depth="3"/);
 });
 
-test("deck tree keeps donut and settings in the same order across all modes", () => {
+test("deck tree keeps the compact summary order across dashboard and learning", () => {
   const dashboard = renderToStaticMarkup(
     <DeckTree rows={rows} mode="dashboard" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
   );
-  const management = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="manage" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
+  const learning = renderToStaticMarkup(
+    <DeckTree rows={rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
   );
 
-  for (const markup of [dashboard, management]) {
+  for (const markup of [dashboard, learning]) {
     assert.match(markup, /conic-gradient/);
     assert.match(markup, /Stapeloptionen für Bereich/);
     assert.ok(markup.indexOf("conic-gradient") < markup.indexOf("Stapeloptionen für Bereich"));
+    assert.match(markup, /data-deck-drag-source="true"/);
   }
-  assert.match(management, /aria-label="Bereich \/ Grundlagen öffnen"/);
-  assert.doesNotMatch(management, /aria-pressed=|data-selected=/);
-  assert.match(management, /data-deck-drag-source="true"/);
+  assert.match(learning, /aria-label="Bereich \/ Grundlagen lernen"/);
+  assert.doesNotMatch(learning, /aria-pressed=|data-selected=/);
 });

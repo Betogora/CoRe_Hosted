@@ -62,12 +62,15 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /aria-expanded="false"/);
   assert.match(markup, /aria-controls="deck-card-list-[^"]+"/);
   assert.match(markup, /data-testid="deck-toggle-[^"]+"[^>]*class="absolute inset-0[^"]*focus-visible:ring-2/);
-  assert.match(markup, /class="core-deck-group border-b border-t-2 border-\[var\(--core-border\)\]"/);
+  assert.match(markup, /class="core-deck-summary-row border-b border-t-2 border-\[var\(--core-border\)\]"/);
   assert.match(markup, /aria-label="Lernstand für Biologie"/);
   assert.doesNotMatch(markup, /Was ist ATP\?/);
   assert.doesNotMatch(markup, /Ein Energieträger\./);
   assert.match(markup, /Biologie \/ Zellbiologie/);
   assert.match(markup, new RegExp('data-testid="deck-options-' + originalDeck.id + '"[^>]*class="[^"]*pointer-events-auto'));
+  assert.match(markup, /data-deck-summary-row-content="true"/);
+  assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
+  assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);
   assert.ok(markup.includes("focus-within:border-[var(--core-border-interactive)]"));
   assert.match(markup, /focus-visible:outline-none/);
@@ -82,7 +85,7 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
     [greatGrandchild.id, 3],
     [deeperImport.id, 3],
   ] as const) {
-    assert.match(markup, new RegExp(`data-testid="deck-header-${deckId}"[^>]*data-deck-depth="${depth}"[^>]*class="core-deck-group`));
+    assert.match(markup, new RegExp(`data-testid="deck-header-${deckId}"[^>]*data-deck-depth="${depth}"[^>]*class="core-deck-summary-row`));
   }
 
   const focusedMarkup = renderScreen(decks, { selectedDeckId: child.id });

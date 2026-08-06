@@ -234,13 +234,13 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
 test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg erhalten Stapel und Karte", async ({ page, context }) => {
   await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
   await waitForApp(page);
-  const linkedDeckGroup = page.getByTestId(`learn-deck-group-${DECK_IDS.childB}`);
-  await expect(linkedDeckGroup).toBeVisible();
-  await expect(linkedDeckGroup).not.toHaveAttribute("data-selected");
+  const linkedDeckRow = page.getByTestId(`learn-deck-row-${DECK_IDS.childB}`);
+  await expect(linkedDeckRow).toBeVisible();
+  await expect(linkedDeckRow).not.toHaveAttribute("data-selected");
   await page.reload();
   await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.childB}`);
-  await expect(linkedDeckGroup).toBeVisible();
-  await expect(linkedDeckGroup).not.toHaveAttribute("data-selected");
+  await expect(linkedDeckRow).toBeVisible();
+  await expect(linkedDeckRow).not.toHaveAttribute("data-selected");
 
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}`);

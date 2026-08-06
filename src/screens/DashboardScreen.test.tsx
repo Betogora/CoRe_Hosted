@@ -72,6 +72,8 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /data-deck-count="total"/);
   assert.match(markup, /data-deck-drag-source="true"/);
   assert.match(markup, /Stapeloptionen für Biologie/);
+  assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
+  assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /conic-gradient/);
   assert.doesNotMatch(markup, /aktive Tage/i);
   assert.match(markup, /Weniger[\s\S]*Frühere Wochen anzeigen/);

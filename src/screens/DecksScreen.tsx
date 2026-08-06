@@ -10,20 +10,15 @@ import { stripHtml } from "../htmlSafety.ts";
 import { createCardTableModel, DEFAULT_CARD_TABLE_SORT, type CardTableGroup, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
-import { ActionDialog, CoreModeControl, DonutValue, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
-import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
+import { ActionDialog, CoreModeControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
+import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
 import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardType, CardVariant, CoreMode, Deck, LearningItem } from "../coreTypes.ts";
 
 const variantLevelOptions = [1, 2, 3].map((level) => ({ value: String(level), label: `Level ${level}` }));
-const deckCountDefinitions = [
-  { label: "Neu", valueKey: "newCards", color: "var(--core-deck-new-text)" },
-  { label: "Fällig", valueKey: "dueCards", color: "var(--core-deck-due-text)" },
-  { label: "Gesamt", valueKey: "totalCards", color: "var(--core-deck-total-text)" },
-] as const;
-
 interface PendingDetailAction {
   run: () => void;
 }
@@ -583,14 +578,16 @@ function DeckGroupMenu({
 
   return (
     <Popover.Root>
-      <Popover.Trigger asChild>
-        <IconButton
-          label={"Optionen für " + group.path}
-          icon={MoreHorizontal}
-          className="pointer-events-auto"
-          data-testid={"deck-options-" + group.id}
-        />
-      </Popover.Trigger>
+      <CoreTooltip label={"Stapeloptionen für " + group.path}>
+        <Popover.Trigger asChild>
+          <IconButton
+            label={"Stapeloptionen für " + group.path}
+            icon={MoreHorizontal}
+            className="pointer-events-auto"
+            data-testid={"deck-options-" + group.id}
+          />
+        </Popover.Trigger>
+      </CoreTooltip>
       <Popover.Portal>
         <Popover.Content
           data-testid={"deck-options-menu-" + group.id}
@@ -1069,7 +1066,7 @@ export function DecksScreen({
                   <tr
                     data-testid={"deck-header-" + group.id}
                     data-deck-depth={visibleDepth}
-                    className="core-deck-group border-b border-t-2 border-[var(--core-border)]"
+                    className="core-deck-summary-row border-b border-t-2 border-[var(--core-border)]"
                     style={selectedDeckId === group.id ? { backgroundColor: "var(--core-info-surface)" } : undefined}
                   >
                     <th scope="rowgroup" colSpan={3} className="relative px-3 text-left">
@@ -1080,43 +1077,31 @@ export function DecksScreen({
                         aria-controls={"deck-card-list-" + group.id}
                         aria-label={expanded ? `Karten von ${group.path} einklappen` : `Karten von ${group.path} aufklappen`}
                         onClick={() => toggleDeckCards(group.id)}
+                        data-deck-row-activation="true"
                         className="absolute inset-0 z-0 cursor-pointer transition-colors hover:bg-[var(--core-focus-ring-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--core-focus)]"
                       />
-                      <div className="pointer-events-none relative z-[1] grid min-w-0 grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] items-center gap-x-3 px-2">
-                        <div className="flex min-w-0 items-center gap-2" style={{ paddingInlineStart: visibleDepth * 9 }}>
+                      <DeckSummaryRow
+                        row={group}
+                        summary={group.directSummary}
+                        progress={directProgress}
+                        leadingControl={
                           <span className="grid size-9 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
                             {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
                           </span>
-                          <DeckAppearanceIcon deck={group.deck} className="size-9 rounded-full bg-[var(--core-surface-muted)]" iconSize={18} />
-                          <span className="min-w-0">
-                            <span className="block truncate core-body-large font-semibold text-[var(--core-text)]">{group.deck.name}</span>
-                            {group.depth > 0 ? <span className="mt-0.5 block truncate core-caption text-[var(--core-text-muted)]">{group.path}</span> : null}
-                          </span>
-                        </div>
-
-                        <dl className="grid min-w-[15rem] grid-cols-3 gap-3" aria-label={`Lernstand für ${group.path}`}>
-                          {deckCountDefinitions.map((count) => (
-                            <div key={count.valueKey} className="grid min-w-0 gap-0.5 text-right">
-                              <dt className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">{count.label}</dt>
-                              <dd className="core-body-large font-semibold" style={{ color: count.color }}>{group.directSummary[count.valueKey]}</dd>
-                            </div>
-                          ))}
-                        </dl>
-
-                        <div className="flex items-center justify-end gap-2">
-                          <DonutValue value={directProgress} />
-                        <DeckGroupMenu
-                          group={group}
-                          onSetCoreMode={(mode) => onSetDeckCoreMode(group.id, mode)}
-                          onOpenSettings={() => onOpenDeckSettings(group.id)}
-                          onRename={() => beginRename(group.deck)}
-                          onMove={() => beginMove(group.deck)}
-                          onCreateSubdeck={() => onPrepareSubdeckCreation(group.id)}
-                          onLearn={(variants) => onStartDeck(group.deck, variants)}
-                          onDelete={() => setPendingDeckDelete({ deck: group.deck, row: group })}
-                        />
-                        </div>
-                      </div>
+                        }
+                        actions={
+                          <DeckGroupMenu
+                            group={group}
+                            onSetCoreMode={(mode) => onSetDeckCoreMode(group.id, mode)}
+                            onOpenSettings={() => onOpenDeckSettings(group.id)}
+                            onRename={() => beginRename(group.deck)}
+                            onMove={() => beginMove(group.deck)}
+                            onCreateSubdeck={() => onPrepareSubdeckCreation(group.id)}
+                            onLearn={(variants) => onStartDeck(group.deck, variants)}
+                            onDelete={() => setPendingDeckDelete({ deck: group.deck, row: group })}
+                          />
+                        }
+                      />
                     </th>
                   </tr>
                   {renderDeckEditRows(group)}
