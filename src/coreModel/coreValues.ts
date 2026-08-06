@@ -11,6 +11,7 @@ interface DeckSettingsInput extends LearningSettingsInput {
 }
 export const CORE_CARD_TYPES = [
   "basic",
+  "basic-with-images",
   "basic-reversed",
   "cloze",
   "image-occlusion",
@@ -72,7 +73,7 @@ export const REVIEW_RATINGS = ["again", "hard", "good", "easy"] as const satisfi
 export const LEARNING_ITEM_SOURCE_TYPES = ["manual", "text_import", "csv_import", "json_import", "anki_import", "mixed"] as const satisfies readonly LearningItemSourceType[];
 export const CARD_VARIANT_TYPES = ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"] as const satisfies readonly CardVariantType[];
 export const VARIANT_GENERATION_SOURCES = ["original", "ai_generated", "user_edited", "imported"] as const satisfies readonly VariantGenerationSource[];
-const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-reversed", "cloze", "multiple-choice"]);
+const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "multiple-choice"]);
 
 export const MATURITY_BANDS = [
   { id: "new", min: 0, max: 20, label: "Neu" },

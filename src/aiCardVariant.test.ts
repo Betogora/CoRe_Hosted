@@ -27,8 +27,11 @@ test("AI card request projects only normalized Basic front and back", () => {
 
 test("AI card request rejects non-Basic and oversized cards", () => {
   const reverse = getCardContentPayload(createBasicLearningItem("deck-1", "Vorne", "Hinten", { cardType: "basic-reversed" }));
+  const withImages = getCardContentPayload(createBasicLearningItem("deck-1", '<p>Vorne</p><img src="image-hash">', "Hinten", { cardType: "basic-with-images", mediaRefs: ["image-hash"] }));
   assert.ok(reverse);
+  assert.ok(withImages);
   assert.throws(() => createAiCardVariantRequest(reverse), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "unsupported_card_type");
+  assert.throws(() => createAiCardVariantRequest(withImages), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "unsupported_card_type");
 
   assert.equal(parseAiCardVariantRequest({ source: { front: "x".repeat(1_201), back: "Antwort" } }).success, false);
   assert.equal(parseAiCardVariantRequest({ source: { front: "x".repeat(1_200), back: "y".repeat(1_200) } }).success, true);

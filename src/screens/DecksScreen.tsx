@@ -327,7 +327,7 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
       </div>
       {form ? (
         <div className="grid min-w-0 gap-4">
-          {form.cardType === "basic" || form.cardType === "basic-reversed" ? (
+          {form.cardType === "basic" || form.cardType === "basic-with-images" || form.cardType === "basic-reversed" ? (
             <div className="grid min-w-0 gap-4">
               <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 <span>Vorderseite</span>
@@ -390,7 +390,7 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
         </div>
       ) : (
         <div id={"copy-disabled-" + card.id} className="rounded-xl border border-core-warning bg-core-warning-soft p-4 core-body font-medium text-core-text" role="status">
-          Dieser importierte Kartentyp wird hier nur angezeigt und kann nicht kopiert werden. Typgerechtes Bearbeiten und Kopieren ist für Basic, Reverse, Cloze und Multiple Choice verfügbar.
+          Dieser importierte Kartentyp wird hier nur angezeigt und kann nicht kopiert werden. Typgerechtes Bearbeiten und Kopieren ist für Basic, Basic + Bilder, Reverse, Cloze und Multiple Choice verfügbar.
         </div>
       )}
       <details className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">

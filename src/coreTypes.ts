@@ -2,6 +2,7 @@ export type CoreMode = "off" | "auto" | "manual";
 export type ReviewRating = "again" | "hard" | "good" | "easy";
 export type CardType =
   | "basic"
+  | "basic-with-images"
   | "basic-reversed"
   | "cloze"
   | "image-occlusion"
@@ -359,6 +360,12 @@ export interface BasicLearningItemCreationInput extends LearningItemCreationBase
   back: RichTextContent;
 }
 
+export interface BasicWithImagesLearningItemCreationInput extends LearningItemCreationBase {
+  cardType: "basic-with-images";
+  front: RichTextContent;
+  back: RichTextContent;
+}
+
 export interface ReverseLearningItemCreationInput extends LearningItemCreationBase {
   cardType: "basic-reversed";
   front: RichTextContent;
@@ -381,11 +388,12 @@ export interface MultipleChoiceLearningItemCreationInput extends LearningItemCre
 
 export type LearningItemCreationInput =
   | BasicLearningItemCreationInput
+  | BasicWithImagesLearningItemCreationInput
   | ReverseLearningItemCreationInput
   | ClozeLearningItemCreationInput
   | MultipleChoiceLearningItemCreationInput;
 
-export type EditableCardType = "basic" | "basic-reversed" | "cloze" | "multiple-choice";
+export type EditableCardType = "basic" | "basic-with-images" | "basic-reversed" | "cloze" | "multiple-choice";
 
 export interface CardEditorValueBase {
   tags: string[];
@@ -393,6 +401,12 @@ export interface CardEditorValueBase {
 
 export interface BasicCardEditorValue extends CardEditorValueBase {
   cardType: "basic";
+  front: RichTextContent;
+  back: RichTextContent;
+}
+
+export interface BasicWithImagesCardEditorValue extends CardEditorValueBase {
+  cardType: "basic-with-images";
   front: RichTextContent;
   back: RichTextContent;
 }
@@ -419,6 +433,7 @@ export interface MultipleChoiceCardEditorValue extends CardEditorValueBase {
 
 export type CardEditorValue =
   | BasicCardEditorValue
+  | BasicWithImagesCardEditorValue
   | ReverseCardEditorValue
   | ClozeCardEditorValue
   | MultipleChoiceCardEditorValue;

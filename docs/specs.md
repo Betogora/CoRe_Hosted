@@ -142,8 +142,9 @@ Akzeptanz:
 - Die Kartenverwaltung bietet kein direktes Drag-and-drop; alle drei Stapelansichten verwenden für Tastatur, Touch und assistive Bedienung denselben expliziten bestätigten Verschiebedialog.
 - Kartenlöschung verwendet den kompakten Standarddialog `Karte löschen` mit `Nein` samt Kreuz und `Ja` samt Haken. `Nein`, Escape und ein Klick auf den abgedunkelten Bereich brechen ohne Löschung ab; der Außenklick schließt zusätzlich den Kartendetailbereich. `Ja` führt den Soft Delete aus und bietet unmittelbar ein Undo, das denselben Datensatz samt Review State wiederherstellt.
 - Stapellöschung zeigt Stapelname, Unterstapelzahl und aktive Kartenanzahl; ein Abbruch verändert nichts.
-- Basic, Reverse, Cloze und Multiple Choice laufen durch dieselbe fachliche Erstellung.
-- Basic und Reverse bearbeiten Vorder- und Rückseite als sanitisiertes Rich Text; Pflichtfelder werden direkt am Feld validiert.
+- Basic, Basic + Bilder, Reverse, Cloze und Multiple Choice laufen durch dieselbe fachliche Erstellung. Die Kartentypauswahl zeigt für jeden Typ ein eigenes Icon links vom Namen.
+- Basic, Basic + Bilder und Reverse bearbeiten Vorder- und Rückseite als sanitisiertes Rich Text; Pflichtfelder werden direkt am Feld validiert.
+- Basic + Bilder ergänzt unter Vorder- und Rückseitentext je ein optionales Bildfeld. Jedes Feld akzeptiert genau ein Bild per Strg+V, Drag-and-drop oder Dateiauswahl, zeigt eine Vorschau und erlaubt Ersetzen oder Entfernen.
 - Reverse zeigt im normalen Review die Originalrichtung und im ausdrücklich gestarteten Variantenreview die atomar synchronisierte Rückrichtung.
 - Cloze bearbeitet den kanonischen Lückentext mit sichtbarer `{{c1::…}}`-Syntaxhilfe. Speichern ist nur mit gültigen Lücken möglich; aktive Reviewvarianten entsprechen danach exakt den vorhandenen Lückengruppen.
 - Multiple Choice bearbeitet Frage, mindestens zwei eindeutige Optionen, genau eine richtige Option und eine optionale Erklärung gemeinsam. Reviewanzeige und Bewertung verwenden dieselbe gespeicherte richtige Option.
@@ -152,7 +153,7 @@ Akzeptanz:
 - Eine erfolgreiche Bearbeitung erzeugt einen auditierbaren Versionseintrag; Wiederherstellung umfasst auch strukturierte Cloze- und Multiple-Choice-Inhalte.
 - Lokale typgerechte Inhaltsänderungen werden bei APKG-Reimport nicht still überschrieben.
 - Strukturierte Kartenfelder überleben den accountgebundenen Cloud-Roundtrip und den Portabilitätsexport.
-- Basic, Reverse, Cloze und Multiple Choice können als eigenständiges Learning Item direkt hinter dem Ausgangselement kopiert werden. Nur die Vorderseitenrepräsentation erhält einmalig `(Kopie)`; Rückseite, Typ, strukturierte Felder, Tags und stabile Medienreferenzen bleiben erhalten. Karten-, Varianten-, Review-, Import-, Quellen- und Versionsidentitäten sowie Schedulerzustand werden neu erzeugt beziehungsweise nicht übernommen; die Ausgangskarte bleibt ausgewählt.
+- Basic, Basic + Bilder, Reverse, Cloze und Multiple Choice können als eigenständiges Learning Item direkt hinter dem Ausgangselement kopiert werden. Nur die Vorderseitenrepräsentation erhält einmalig `(Kopie)`; Rückseite, Typ, strukturierte Felder, Tags und stabile Medienreferenzen bleiben erhalten. Karten-, Varianten-, Review-, Import-, Quellen- und Versionsidentitäten sowie Schedulerzustand werden neu erzeugt beziehungsweise nicht übernommen; die Ausgangskarte bleibt ausgewählt.
 - Der öffentliche Karteninhalt-Vertrag besteht ausschließlich aus `editorValue: CardEditorValue` und `mediaRefs: string[]`. Er ist laufzeitvalidiert und sanitisiert und enthält weder Deck-/Karten-/Varianten-/Review-/Quellen-/Versions-IDs noch Medienbytes oder Signed URLs.
 - In den progressiv offengelegten Variantenwerkzeugen kann eine Basic-Karte unmittelbar als KI-Variante umformuliert werden. Die erzeugte Form ist kein neues Learning Item, sondern eine aktive Variante auf Level 2 mit `generationSource: "ai_generated"` und demselben Originalanker; das manuelle Front-/Back-Formular bleibt erhalten.
 - An den Anbieter gelangen ausschließlich der bereinigte Text von Vorder- und Rückseite mit je höchstens 1.200 Zeichen. Tags, IDs, Quellen, Reviewdaten, Metadaten, Medienreferenzen und Medieninhalte werden nicht übertragen. Nicht-Basic-Karten erklären den deaktivierten KI-Zugang.
@@ -253,6 +254,7 @@ Akzeptanz:
 ### 6.4 Manuelle Erstellung und Quellen
 
 - Karten können ohne Dokumentquelle erstellt werden.
+- Basic + Bilder bietet neben den beiden Rich-Text-Feldern je ein optionales Bildfeld für Vorder- und Rückseite; Bild-Bytes bleiben im accountgebundenen Medienspeicher und die Karte persistiert nur stabile Referenzen.
 - Mehrere Karten nacheinander zu erstellen ist der Standardfluss; gespeicherte Karten bleiben bei einem später verworfenen Entwurf erhalten.
 - Pinning steuert ausschließlich den Reset nach erfolgreichem Speichern. Es gibt kein Cloud-Autosave für ungespeicherte Entwürfe.
 - Aus einem lesbaren Dokument kann Text in Vorder- oder Rückseite übernommen werden.

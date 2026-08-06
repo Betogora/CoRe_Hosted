@@ -131,7 +131,13 @@ function renderEditorFor(editorValue: CardEditorValue) {
   return renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: card.id });
 }
 
-test("detail editor renders all four supported field sets", () => {
+test("detail editor renders all five supported field sets", () => {
+  const imageMarkup = renderEditorFor({ cardType: "basic-with-images", front: '<p>Vorne</p><img src="front-image">', back: '<p>Hinten</p><img src="back-image">', tags: [] });
+  assert.match(imageMarkup, /Basic \+ Bilder/);
+  assert.match(imageMarkup, /aria-label="Karten-Vorderseite"/);
+  assert.match(imageMarkup, /aria-label="Karten-Rückseite"/);
+  assert.match(imageMarkup, /KI-Varianten sind derzeit nur für Basic-Karten verfügbar/);
+
   const reverseMarkup = renderEditorFor({ cardType: "basic-reversed", front: "Vorne", back: "Hinten", tags: [] });
   assert.match(reverseMarkup, /Umgekehrt/);
   assert.match(reverseMarkup, /aria-label="Karten-Vorderseite"/);

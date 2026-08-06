@@ -9,7 +9,8 @@ const LEGACY_STORE = "assets";
 const ASSET_STORE = "account_assets";
 const QUEUE_STORE = "media_queue";
 const CLEANUP_STORE = "media_cleanup";
-const sha1Schema = v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/));
+const SHA1_PATTERN = /^[a-f0-9]{40}$/;
+const sha1Schema = v.pipe(v.string(), v.regex(SHA1_PATTERN));
 const mediaFileSchema = v.looseObject({ sha1: sha1Schema, name: v.pipe(v.string(), v.minLength(1)), size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), mimeType: v.optional(v.string(), "application/octet-stream"), bytes: v.optional(v.instance(Uint8Array)), blob: v.optional(v.instance(Blob)), cardId: v.optional(v.nullable(v.string())) });
 const localAssetRecordSchema = v.looseObject({ key: v.string(), userId: v.string(), deckId: v.string(), sha1: sha1Schema, name: v.pipe(v.string(), v.minLength(1)), size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), mimeType: v.string(), blob: v.instance(Blob), cardId: v.nullable(v.string()), updatedAt: v.string() });
 const queueRecordSchema = v.looseObject({ id: v.string(), userId: v.string(), deckId: v.string(), sha1: sha1Schema, size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), name: v.string(), cardId: v.nullable(v.string()), queuedAt: v.string() });
@@ -62,20 +63,39 @@ function mediaUsageByName(deck: Deck) {
   for (const card of deck.cards ?? []) {
     for (const reference of card.mediaRefs ?? []) {
       const names = new Set([String(reference), normalizeRef(reference)].filter(Boolean));
-      for (const name of names) usage.set(name, new Set([...(usage.get(name) ?? []), card.id]));
+      for (const name of names) {
+        const cardIds = usage.get(name);
+        if (cardIds) cardIds.add(card.id);
+        else usage.set(name, new Set([card.id]));
+      }
     }
   }
   return usage;
 }
 
+function directHashMediaFiles(usage: ReturnType<typeof mediaUsageByName>, excludedHashes: Set<string>) {
+  return [...usage.entries()].flatMap(([reference, cardIds]) => {
+    const sha1 = reference.toLowerCase();
+    if (!SHA1_PATTERN.test(sha1) || excludedHashes.has(sha1)) return [];
+    return [{
+      sha1,
+      name: sha1,
+      size: 0,
+      mimeType: "application/octet-stream",
+      cardId: cardIds.size === 1 ? [...cardIds][0] : null,
+      metadata: {},
+    }];
+  });
+}
+
 export function planDeckMediaSync(deck: Deck, previousReferences: MediaAssetReference[] = deck.mediaAssets ?? []) {
   const usage = mediaUsageByName(deck);
   const usedReferenceKeys = new Set(usage.keys());
-  const files = assetManifest(deck).flatMap((item: any) => {
+  const manifestFiles = assetManifest(deck).flatMap((item: any) => {
     const sha1 = String(item?.sha1 ?? "").toLowerCase();
     const name = String(item?.name ?? sha1);
     const cardIds = usage.get(name) ?? usage.get(normalizeRef(name));
-    if (!cardIds?.size || !/^[a-f0-9]{40}$/.test(sha1)) return [];
+    if (!cardIds?.size || !SHA1_PATTERN.test(sha1)) return [];
     return [{
       sha1,
       name,
@@ -85,6 +105,8 @@ export function planDeckMediaSync(deck: Deck, previousReferences: MediaAssetRefe
       metadata: { zipEntryName: item?.zipEntryName ?? null },
     }];
   });
+  const manifestHashes = new Set(manifestFiles.map((file) => file.sha1));
+  const files = [...manifestFiles, ...directHashMediaFiles(usage, manifestHashes)];
   const retainedReferences = previousReferences.filter((reference) => usedReferenceKeys.has(reference.originalName) || usedReferenceKeys.has(normalizeRef(reference.originalName)) || usedReferenceKeys.has(reference.sha1));
   return { files, previousReferences, retainedReferences };
 }
@@ -225,7 +247,9 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     const cloud = client && deck.mediaAssets?.length ? await resolveReferences(client, deck.mediaAssets).catch(() => ({ urls: {}, missing: deck.mediaAssets, expiresAt: null })) : { urls: {}, missing: deck.mediaAssets ?? [], expiresAt: null };
     const urls: Record<string, string> = { ...cloud.urls };
     const missing: Array<{ name: string; status: string }> = [];
-    for (const item of assetManifest(deck)) {
+    const manifestItems = assetManifest(deck);
+    const manifestHashes = new Set(manifestItems.map((item: any) => String(item?.sha1 ?? "").toLowerCase()));
+    for (const item of [...manifestItems, ...directHashMediaFiles(mediaUsageByName(deck), manifestHashes)]) {
       const sha1 = String((item as any)?.sha1 ?? "").toLowerCase();
       const name = String((item as any)?.name ?? sha1);
       if (urls[sha1]) { urls[name] = urls[sha1]; continue; }

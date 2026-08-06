@@ -18,7 +18,7 @@ interface ManualDeckInput { deckName: string; card: ManualCardInput; documentCon
 type CardContentPatch = Partial<Pick<LearningItem, "canonicalQuestion" | "canonicalAnswer" | "originalFront" | "originalBack" | "tags" | "originalTags" | "cardType" | "kind">> & { front?: string; back?: string };
 function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
 function normalizeVariantType(variantType: unknown, fallbackCardType: unknown = "basic"): CardVariantType { const mapped: Partial<Record<CardType, CardVariantType>> = { "basic-reversed": "reverse", "image-occlusion": "image_occlusion", "multiple-choice": "mcq", "case-vignette": "case", "free-text": "custom", "multi-field": "custom" }; if (typeof variantType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(variantType)) return variantType as CardVariantType; return mapped[fallbackCardType as CardType] ?? (typeof fallbackCardType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(fallbackCardType) ? fallbackCardType as CardVariantType : "basic"); }
-const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-reversed", "cloze", "multiple-choice"]);
+const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "multiple-choice"]);
 function normalizeCreatableCardType(cardType: unknown, fallback: CardType = "basic"): CardType { return typeof cardType === "string" && CREATABLE_CARD_TYPES.has(cardType as CardType) ? cardType as CardType : fallback; }
 function legacySourceFromLearningSourceType(sourceType: LearningItemSourceType): DeckSource { if (sourceType === "anki_import") return "anki-apkg"; if (sourceType === "text_import") return "text-import"; if (sourceType === "csv_import") return "csv-import"; if (sourceType === "json_import") return "json-import"; return "manual"; }
 function resolveLegacySource(sourceType: LearningItemSourceType, source?: DeckSource): DeckSource {
@@ -308,6 +308,7 @@ export function createLearningItemFromEditorValue(deckId: string, editorInput: u
 
   switch (value.cardType) {
     case "basic":
+    case "basic-with-images":
       return createBasicLearningItem(deckId, value.front, value.back, commonOptions);
     case "basic-reversed":
       return createBasicReverseLearningItem(deckId, value.front, value.back, commonOptions);

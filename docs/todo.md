@@ -29,7 +29,6 @@ Nicht im aktiven Scope:
 - Wiedereinführung der entfernten breiten KI-, Graph-, Community- oder Labs-Flächen; die freigegebene Basic-Variantenroute ist davon ausgenommen
 - serverseitiger APKG-Import oder Dateien über 250 MiB
 - neue Plattform- oder Infrastrukturfeatures ohne direkten Beta-Nutzen
-- neue Kartentypen
 - Mobile-/PWA-Ausbau
 - neues Designsystem als eigenständiges Projekt
 
@@ -386,7 +385,6 @@ Vor Self-Service-Beta zusätzlich:
 - [ ] kein serverseitiger APKG-Pfad und keine Anhebung über 250 MiB
 - [ ] keine neue generische Adapterarchitektur
 - [ ] keine neue Scheduleroption
-- [ ] kein neuer Kartentyp
 - [ ] kein OCR-/DOCX-/Image-Occlusion-Ausbau
 - [ ] kein Mobile-/PWA-Ausbau
 - [ ] kein eigenständiges Designsystemprojekt

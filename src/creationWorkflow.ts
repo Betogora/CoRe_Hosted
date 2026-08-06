@@ -12,6 +12,15 @@ interface FileLike {
   [key: string]: unknown;
 }
 
+export interface ManualImageAttachment {
+  sha1: string;
+  name: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  blob: Blob;
+}
+
 interface ManualCreationInput {
   deckName?: string;
   cardType?: CardType;
@@ -26,6 +35,8 @@ interface ManualCreationInput {
   selection?: string;
   sourceAnchor?: SourceAnchor;
   activeField?: string;
+  frontImage?: ManualImageAttachment | null;
+  backImage?: ManualImageAttachment | null;
 }
 
 interface ApkgOptions {
@@ -124,7 +135,8 @@ function normalizeAnswerOptions(value: unknown): string[] {
     .map((option) => option.trim());
 }
 
-const SUPPORTED_MANUAL_CARD_TYPES = new Set<CardType>(["basic", "basic-reversed", "cloze", "multiple-choice"]);
+const SUPPORTED_MANUAL_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "multiple-choice"]);
+const SHA1_PATTERN = /^[a-f0-9]{40}$/;
 
 function normalizeManualCardType(cardType: unknown): EditableCardType {
   return typeof cardType === "string" && SUPPORTED_MANUAL_CARD_TYPES.has(cardType as CardType) ? cardType as EditableCardType : "basic";
@@ -138,22 +150,46 @@ function normalizeMultipleChoiceData(input: ManualCreationInput = {}, answerOpti
   };
 }
 
+function normalizeManualImageAttachment(value: unknown): ManualImageAttachment | null {
+  if (!value || typeof value !== "object") return null;
+  const input = value as Partial<ManualImageAttachment>;
+  const sha1 = String(input.sha1 ?? "").toLowerCase();
+  const mimeType = String(input.mimeType ?? "");
+  if (!SHA1_PATTERN.test(sha1) || !mimeType.startsWith("image/") || !(input.blob instanceof Blob) || input.blob.size !== input.size) return null;
+  return {
+    sha1,
+    name: sha1,
+    originalName: String(input.originalName ?? input.name ?? "Bild"),
+    size: input.blob.size,
+    mimeType,
+    blob: input.blob,
+  };
+}
+
+function appendManualImage(html: string, image: ManualImageAttachment | null, alt: string): string {
+  return image ? `${html}<p><img src="${image.sha1}" alt="${alt}"></p>` : html;
+}
+
 function createManualDeckInput(input: ManualCreationInput = {}) {
   const requestedCardType = normalizeManualCardType(input.cardType);
   const document = input.document ?? null;
   const mcq = normalizeMultipleChoiceData(input, normalizeAnswerOptions(input.answerOptions));
   const tags = normalizeTags(input.tags);
+  const frontImage = requestedCardType === "basic-with-images" ? normalizeManualImageAttachment(input.frontImage) : null;
+  const backImage = requestedCardType === "basic-with-images" ? normalizeManualImageAttachment(input.backImage) : null;
+  const front = appendManualImage(input.front ?? "", frontImage, "Bild zur Vorderseite");
+  const back = appendManualImage(input.back ?? "", backImage, "Bild zur Rückseite");
   const editorValue: CardEditorValue = requestedCardType === "cloze"
     ? { cardType: "cloze", textWithClozes: input.front ?? "", extra: input.back ?? "", tags }
     : requestedCardType === "multiple-choice"
       ? { cardType: "multiple-choice", question: input.front ?? "", options: mcq.answerOptions, correctOptionIndex: mcq.answerOptions.indexOf(mcq.correctAnswer), explanation: input.back ?? "", tags }
-      : { cardType: requestedCardType, front: input.front ?? "", back: input.back ?? "", tags };
+      : { cardType: requestedCardType, front, back, tags };
 
   return {
     deckName: input.deckName ?? "Neuer Kartenstapel",
     card: {
       editorValue,
-      mediaRefs: [],
+      mediaRefs: [frontImage?.sha1, backImage?.sha1].filter((reference): reference is string => Boolean(reference)),
     },
     documentContext: {
       document,
@@ -172,6 +208,52 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
   return {
     readableSourceDocumentAccept: READABLE_SOURCE_DOCUMENT_ACCEPT,
     readableSourceDocumentLabel: READABLE_SOURCE_DOCUMENT_LABEL,
+
+    async prepareManualImage(file: Blob & { name?: string }): Promise<ManualImageAttachment> {
+      if (!(file instanceof Blob) || !file.type.startsWith("image/")) {
+        throw new Error("Bitte füge eine Bilddatei ein.");
+      }
+      if (!globalThis.crypto?.subtle) {
+        throw new Error("Das Bild kann in diesem Browser nicht sicher verarbeitet werden.");
+      }
+      const digest = await globalThis.crypto.subtle.digest("SHA-1", await file.arrayBuffer());
+      const sha1 = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      return {
+        sha1,
+        name: sha1,
+        originalName: String(file.name ?? "Eingefügtes Bild"),
+        size: file.size,
+        mimeType: file.type,
+        blob: file,
+      };
+    },
+
+    async syncManualMedia(deck: Deck, attachments: Array<ManualImageAttachment | null | undefined>) {
+      const uniqueAttachments = [...new Map(
+        attachments
+          .map(normalizeManualImageAttachment)
+          .filter((attachment): attachment is ManualImageAttachment => Boolean(attachment))
+          .map((attachment) => [attachment.sha1, attachment]),
+      ).values()];
+      if (uniqueAttachments.length === 0) {
+        return { deck, status: "cloud-ready" as const, message: "", errors: [] as string[] };
+      }
+      try {
+        const cached = await mediaStore.cachePreviewMedia(deck, uniqueAttachments);
+        const result = await mediaStore.syncImportMedia([deck]).result;
+        const references = result.referencesByDeck.get(deck.id);
+        const updatedDeck = references ? { ...deck, mediaAssets: references } : deck;
+        if (references) await persistImportedDecks([updatedDeck], { mediaOnly: true });
+        return { deck: updatedDeck, status: result.status, message: result.message, errors: cached.errors };
+      } catch (error) {
+        return {
+          deck,
+          status: "blocked" as const,
+          message: "Die Karte wurde gespeichert, aber mindestens ein Bild konnte nicht im Medienspeicher abgelegt werden.",
+          errors: [describeError(error, "Bild konnte nicht gespeichert werden.")],
+        };
+      }
+    },
 
     async parseApkgFile(file: FileLike, { onStep, existingDecks = [] }: ApkgOptions = {}) {
       try {

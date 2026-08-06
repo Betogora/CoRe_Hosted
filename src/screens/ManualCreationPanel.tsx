@@ -1,5 +1,5 @@
 import React from "react";
-import { CircleAlert, Database, FileText, PenLine, Pin, PinOff, Plus, X } from "lucide-react";
+import { CircleAlert, Database, FileText, ImagePlus, PenLine, Pin, PinOff, Plus, Upload, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -7,7 +7,7 @@ import {
   reduceManualBatchSession,
   type ManualFocusTarget,
 } from "../creationBatch.ts";
-import type { CreationWorkflow } from "../creationWorkflow.ts";
+import type { CreationWorkflow, ManualImageAttachment } from "../creationWorkflow.ts";
 import type { CardEditorFieldErrors, CardType, Deck, SourceDocument } from "../coreTypes.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
@@ -16,7 +16,7 @@ import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
-import { cardTypeOptions } from "./screenConstants.ts";
+import { cardTypeOptions, formatBytes } from "./screenConstants.ts";
 
 type ManualCreationWorkflow = Pick<
   CreationWorkflow,
@@ -27,6 +27,8 @@ type ManualCreationWorkflow = Pick<
   | "readableSourceDocumentAccept"
   | "readableSourceDocumentLabel"
   | "readSourceDocument"
+  | "prepareManualImage"
+  | "syncManualMedia"
 >;
 type ManualCreationInput = NonNullable<Parameters<ManualCreationWorkflow["createManualDeck"]>[0]>;
 type ManualDeckInput = ReturnType<ManualCreationWorkflow["createManualDeckInput"]>;
@@ -49,6 +51,15 @@ interface PinFieldButtonProps {
   isPinned: boolean;
   label: string;
   onToggle: () => void;
+}
+
+interface ManualImageFieldProps {
+  label: string;
+  value: ManualImageAttachment | null;
+  busy: boolean;
+  error: string;
+  onFile: (file: File) => void;
+  onRemove: () => void;
 }
 
 function documentStatusMessage(document: SourceDocument | null): string {
@@ -90,6 +101,78 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
   );
 }
 
+function ManualImageField({ label, value, busy, error, onFile, onRemove }: ManualImageFieldProps) {
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [previewUrl, setPreviewUrl] = React.useState("");
+
+  React.useEffect(() => {
+    if (!value || typeof URL?.createObjectURL !== "function") {
+      setPreviewUrl("");
+      return undefined;
+    }
+    const url = URL.createObjectURL(value.blob);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [value]);
+
+  function useFirstFile(files: FileList | null | undefined) {
+    const file = files?.[0];
+    if (file) onFile(file);
+  }
+
+  return (
+    <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+      <span>{label}</span>
+      <div
+        tabIndex={0}
+        role="group"
+        aria-label={`${label}: Bild einfügen oder ablegen`}
+        aria-busy={busy || undefined}
+        onPaste={(event) => {
+          const file = [...event.clipboardData.files].find((candidate) => candidate.type.startsWith("image/"))
+            ?? [...event.clipboardData.items].find((item) => item.kind === "file" && item.type.startsWith("image/"))?.getAsFile();
+          if (!file) return;
+          event.preventDefault();
+          onFile(file);
+        }}
+        onDragEnter={(event) => { event.preventDefault(); setIsDragging(true); }}
+        onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; setIsDragging(true); }}
+        onDragLeave={(event) => {
+          if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setIsDragging(false);
+        }}
+        onDrop={(event) => { event.preventDefault(); setIsDragging(false); useFirstFile(event.dataTransfer.files); }}
+        className={`min-h-32 rounded-xl border-2 border-dashed p-4 outline-none transition ${isDragging ? "border-[var(--core-action-primary)] bg-[var(--core-info-surface)]" : "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)]"}`}
+      >
+        <input ref={inputRef} type="file" accept="image/*" hidden tabIndex={-1} onChange={(event) => { useFirstFile(event.target.files); event.target.value = ""; }} />
+        {value ? (
+          <div className="flex min-w-0 flex-col items-center gap-3 sm:flex-row">
+            {previewUrl ? <img src={previewUrl} alt="Vorschau des ausgewählten Bildes" className="h-28 w-full rounded-lg border border-[var(--core-border)] bg-core-surface object-contain sm:w-40" /> : null}
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <p className="truncate core-body font-semibold text-[var(--core-text)]">{value.originalName}</p>
+              <p className="mt-1 core-caption font-normal text-[var(--core-text-muted)]">{formatBytes(value.size)} · Strg+V oder Drop ersetzt das Bild</p>
+              <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
+                <ActionButton type="button" variant="secondary" icon={Upload} onClick={() => inputRef.current?.click()} disabled={busy}>Ersetzen</ActionButton>
+                <ActionButton type="button" variant="destructive" icon={X} onClick={onRemove} disabled={busy}>Entfernen</ActionButton>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid min-h-24 place-items-center text-center">
+            <div>
+              <ImagePlus className="mx-auto text-[var(--core-action-primary)]" size={26} aria-hidden="true" />
+              <p className="mt-2 core-body font-semibold text-[var(--core-text)]">Bild mit Strg+V einfügen oder hier ablegen</p>
+              <ActionButton type="button" variant="secondary" icon={Upload} className="mt-3" onClick={() => inputRef.current?.click()} disabled={busy}>Bild auswählen</ActionButton>
+            </div>
+          </div>
+        )}
+      </div>
+      {busy ? <p className="core-caption font-normal text-[var(--core-text-muted)]" role="status">Bild wird vorbereitet …</p> : null}
+      {error ? <p className="core-body font-medium text-core-text" role="alert">{error}</p> : null}
+    </div>
+  );
+}
+
 export function ManualCreationPanel({
   decks,
   workflow,
@@ -120,6 +203,10 @@ export function ManualCreationPanel({
   const [statusType, setStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
+  const [frontImage, setFrontImage] = React.useState<ManualImageAttachment | null>(null);
+  const [backImage, setBackImage] = React.useState<ManualImageAttachment | null>(null);
+  const [preparingImage, setPreparingImage] = React.useState<ActiveField | null>(null);
+  const [imageErrors, setImageErrors] = React.useState<Record<ActiveField, string>>({ front: "", back: "" });
   React.useEffect(() => {
     if (decks.length === 0) setUseNewDeck(true);
   }, [decks.length]);
@@ -147,7 +234,8 @@ export function ManualCreationPanel({
     focusable?.focus();
   }, [activeField]);
 
-  const draftDirty = !manualDraftsEqual(currentDraft, cleanDraftRef.current);
+  const textDraftDirty = React.useMemo(() => !manualDraftsEqual(currentDraft, cleanDraftRef.current), [currentDraft]);
+  const draftDirty = textDraftDirty || Boolean(frontImage || backImage);
 
   React.useEffect(() => {
     onDraftStateChange(draftDirty, () => focusField());
@@ -228,7 +316,23 @@ export function ManualCreationPanel({
       selection,
       sourceAnchor: sourceAnchor ?? undefined,
       activeField,
+      frontImage,
+      backImage,
     };
+  }
+
+  async function prepareImage(field: ActiveField, file: File) {
+    setPreparingImage(field);
+    setImageErrors((current) => ({ ...current, [field]: "" }));
+    try {
+      const image = await workflow.prepareManualImage(file);
+      if (field === "front") setFrontImage(image);
+      else setBackImage(image);
+    } catch (error) {
+      setImageErrors((current) => ({ ...current, [field]: error instanceof Error ? error.message : "Bild konnte nicht verarbeitet werden." }));
+    } finally {
+      setPreparingImage(null);
+    }
   }
 
   function togglePinnedField(field: ActiveField) {
@@ -251,16 +355,20 @@ export function ManualCreationPanel({
     setFieldErrors((current) => ({ ...current, options: undefined, correctOptionIndex: undefined }));
   }
 
-  function recordSavedCard(deck: Deck, previousCardIds: Set<string>) {
+  function recordSavedCard(deck: Deck, previousCardIds: Set<string>, mediaStatus?: { status: string; message: string; errors: string[] }) {
     const savedCard = (deck.cards ?? []).find((card) => !previousCardIds.has(card.id)) ?? deck.cards.at(-1);
     if (!savedCard) return;
     const nextState = reduceManualBatchSession(batchState, { type: "saved", cardId: savedCard.id, targetDeckId: deck.id });
     cleanDraftRef.current = nextState.currentDraft;
     dispatchBatch({ type: "saved", cardId: savedCard.id, targetDeckId: deck.id });
+    setFrontImage(null);
+    setBackImage(null);
+    setImageErrors({ front: "", back: "" });
     setFieldErrors({});
     const nextFocus = nextManualFocusTarget(nextState);
     setActiveField(nextFocus === "back" ? "back" : "front");
-    setStatus("");
+    setStatusType(mediaStatus?.status === "blocked" || mediaStatus?.status === "partial" ? "alert" : "status");
+    setStatus(mediaStatus?.message || mediaStatus?.errors[0] || "");
     setSuccessToast("Karte wurde erfolgreich gespeichert.");
     window.requestAnimationFrame(() => focusField(nextFocus));
   }
@@ -279,15 +387,20 @@ export function ManualCreationPanel({
       if (!useNewDeck && selectedDeckId) {
         const previousCardIds = new Set(decks.find((deck) => deck.id === selectedDeckId)?.cards.map((card) => card.id) ?? []);
         const updatedDeck = await onAppendManualCard(selectedDeckId, workflow.createManualDeckInput(input));
-        if (updatedDeck) recordSavedCard(updatedDeck, previousCardIds);
+        if (updatedDeck) {
+          const mediaResult = await workflow.syncManualMedia(updatedDeck, [frontImage, backImage]);
+          recordSavedCard(mediaResult.deck, previousCardIds, mediaResult);
+        }
         return;
       }
 
       const deck = workflow.createManualDeck(input);
-      await onCreated(deck);
+      const createdResult = await onCreated(deck);
+      const createdDeck = createdResult && typeof createdResult === "object" && "cards" in createdResult ? createdResult as Deck : deck;
+      const mediaResult = await workflow.syncManualMedia(createdDeck, [frontImage, backImage]);
       setUseNewDeck(false);
-      onTargetDeckChange(deck.id);
-      recordSavedCard(deck, new Set());
+      onTargetDeckChange(mediaResult.deck.id);
+      recordSavedCard(mediaResult.deck, new Set(), mediaResult);
     } catch (error) {
       setSuccessToast("");
       setStatusType("alert");
@@ -357,7 +470,14 @@ export function ManualCreationPanel({
             className="w-full"
             value={cardType}
             options={cardTypeOptions}
-            onValueChange={(nextCardType) => dispatchBatch({ type: "draft", patch: { cardType: nextCardType as CardType } })}
+            onValueChange={(nextCardType) => {
+              dispatchBatch({ type: "draft", patch: { cardType: nextCardType as CardType } });
+              if (nextCardType !== "basic-with-images") {
+                setFrontImage(null);
+                setBackImage(null);
+                setImageErrors({ front: "", back: "" });
+              }
+            }}
           />
         </label>
       </div>
@@ -375,6 +495,16 @@ export function ManualCreationPanel({
           {cardType === "cloze" ? <p className="core-body font-normal text-[var(--core-text-muted)]">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren.</p> : null}
           {fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes}</p> : null}
         </div>
+        {cardType === "basic-with-images" ? (
+          <ManualImageField
+            label="Bild zur Vorderseite (optional)"
+            value={frontImage}
+            busy={preparingImage === "front"}
+            error={imageErrors.front}
+            onFile={(file) => void prepareImage("front", file)}
+            onRemove={() => { setFrontImage(null); setImageErrors((current) => ({ ...current, front: "" })); }}
+          />
+        ) : null}
         <div data-manual-focus="back" className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           <div className="flex min-h-11 items-center justify-between gap-2">
             <span>{answerLabel}</span>
@@ -386,6 +516,16 @@ export function ManualCreationPanel({
           }} isActive={backFieldActive} minHeightClass="min-h-32" ariaLabel={answerLabel} ariaInvalid={Boolean(fieldErrors.back)} />
           {fieldErrors.back ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.back}</p> : null}
         </div>
+        {cardType === "basic-with-images" ? (
+          <ManualImageField
+            label="Bild zur Rückseite (optional)"
+            value={backImage}
+            busy={preparingImage === "back"}
+            error={imageErrors.back}
+            onFile={(file) => void prepareImage("back", file)}
+            onRemove={() => { setBackImage(null); setImageErrors((current) => ({ ...current, back: "" })); }}
+          />
+        ) : null}
       </div>
 
       {cardType === "multiple-choice" ? (
@@ -413,7 +553,7 @@ export function ManualCreationPanel({
           <input className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={tags} onChange={(event) => dispatchBatch({ type: "draft", patch: { tags: event.target.value } })} placeholder="biologie zelle prüfung" />
         </label>
         <div className="flex flex-wrap items-end gap-2">
-          <ActionButton type="button" variant="primary" icon={Database} onClick={() => void saveManualCard()}>Originalkarte speichern</ActionButton>
+          <ActionButton type="button" variant="primary" icon={Database} disabled={Boolean(preparingImage)} onClick={() => void saveManualCard()}>Originalkarte speichern</ActionButton>
           <ActionButton
             type="button"
             variant="secondary"

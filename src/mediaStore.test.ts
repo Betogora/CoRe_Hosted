@@ -27,6 +27,21 @@ test("accountgebundene Blobs überleben Schließen und Neueröffnen", async () =
   resolved.revoke();
 });
 
+test("direkte SHA-1-Referenzen benötigen kein APKG-Medienmanifest", async () => {
+  const indexedDB = new IDBFactory();
+  const directDeck: any = { id: "manual-deck", mediaAssets: [], cards: [{ id: "manual-card", mediaRefs: [HASH] }], importMeta: {} };
+  const store = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "manual-user", indexedDB });
+  await store.cachePreviewMedia(directDeck, [{ ...file, name: HASH }]);
+
+  const resolved = await store.resolveDeckMedia(directDeck);
+  assert.ok(resolved.urls[HASH]);
+  resolved.revoke();
+
+  const synced = await store.syncImportMedia([directDeck]).result;
+  assert.equal(synced.progress.total, 1);
+  assert.equal(synced.status, "local-pending");
+});
+
 test("Accountwechsel gibt fremde lokale Medien nicht frei", async () => {
   const indexedDB = new IDBFactory();
   await createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "account-a", indexedDB }).cachePreviewMedia(deck(), [file]);

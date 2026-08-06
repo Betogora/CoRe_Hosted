@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-08-06 — Basic + Bilder und Kartentyp-Icons
+
+- Die manuelle Erstellung unterstützt den neuen Kartentyp `Basic + Bilder`. Vorder- und Rückseite besitzen weiterhin Rich Text und zusätzlich je ein optionales Bildfeld mit Einfügen per Strg+V, Drag-and-drop, Dateiauswahl, Vorschau, Ersetzen und Entfernen.
+- Alle Kartentypen zeigen ein eigenes Icon links vom Namen. Bild-Bytes bleiben im accountgebundenen Mediencache und der bestehenden Upload-/Retry-Queue; Karten und Cloud-JSONB speichern ausschließlich SHA-1-Referenzen.
+- Der neue Typ durchläuft denselben validierten Front-/Back-, Kopier-, Persistenz- und Reviewvertrag wie Basic, bleibt aber bewusst von der textbasierten KI-Variantenroute ausgeschlossen. Es wurde keine Datenbankmigration und keine neue Abhängigkeit eingeführt.
+- Lokal bestätigt: 421 Modul-, Contract- und Integrationstests, Typecheck, Production-Build sowie Browserprüfung bei Desktop-, Zwischen- und Mobilbreite. Icons, Dateiauswahl, Strg+V, Vorschau, Reset nach Speichern und Offline-Medienstatus funktionierten ohne Konsolenwarnungen oder horizontalen Überlauf.
+
 ## 2026-08-06 — Gemeinsame Stapelübersicht und Stapelaktionen
 
 - Dashboard und Lernen verwenden dasselbe responsive „Aktive Stapel“-Panel; nur das Dashboard ergänzt die Aktion „Lernen öffnen“. Die während eines Drags sichtbare Hauptebenen-Dropzone bleibt dadurch außerhalb der Zeilen erreichbar.

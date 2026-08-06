@@ -35,7 +35,7 @@ interface EditorContentProjection {
   clozeGroups: ClozeGroup[];
 }
 
-const EDITABLE_CARD_TYPES = new Set<EditableCardType>(["basic", "basic-reversed", "cloze", "multiple-choice"]);
+const EDITABLE_CARD_TYPES = new Set<EditableCardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "multiple-choice"]);
 const CLOZE_PATTERN = /\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g;
 
 function objectRecord(value: unknown): Record<string, unknown> {
@@ -57,6 +57,7 @@ function normalizeEditorValue(value: unknown): CardEditorValue | null {
 
   switch (input.cardType) {
     case "basic":
+    case "basic-with-images":
     case "basic-reversed":
       return {
         cardType: input.cardType,
@@ -118,6 +119,7 @@ export function validateCardEditorValue(value: unknown): CardEditorValidationRes
   const errors: CardEditorFieldErrors = {};
   switch (normalized.cardType) {
     case "basic":
+    case "basic-with-images":
     case "basic-reversed":
       if (!hasCardRichTextContent(normalized.front)) errors.front = "Bitte eine Vorderseite eingeben.";
       if (!hasCardRichTextContent(normalized.back)) errors.back = "Bitte eine Rückseite eingeben.";
@@ -187,6 +189,7 @@ function renderMultipleChoiceAnswer(correctAnswer: string, explanation: string):
 export function projectCardEditorContent(value: CardEditorValue): EditorContentProjection {
   switch (value.cardType) {
     case "basic":
+    case "basic-with-images":
     case "basic-reversed":
       return { front: value.front, back: value.back, answerOptions: null, correctAnswer: null, explanation: "", clozeGroups: [] };
     case "cloze": {
@@ -222,6 +225,7 @@ export function getCardEditorValue(card: LearningItem): CardEditorValue | null {
 
   switch (cardType) {
     case "basic":
+    case "basic-with-images":
     case "basic-reversed":
       return { cardType, front: card.originalFront, back: card.originalBack, tags };
     case "cloze":
@@ -284,7 +288,7 @@ export function validateCardContentPayload(value: unknown): CardContentPayloadVa
 function updatedOriginalVariant(original: CardVariant, value: CardEditorValue, content: EditorContentProjection, updatedAt: string): CardVariant {
   return {
     ...original,
-    variantType: value.cardType === "basic-reversed" ? "basic" : value.cardType === "multiple-choice" ? "mcq" : value.cardType,
+    variantType: value.cardType === "basic-reversed" || value.cardType === "basic-with-images" ? "basic" : value.cardType === "multiple-choice" ? "mcq" : value.cardType,
     front: content.front,
     back: content.back,
     explanation: content.explanation,

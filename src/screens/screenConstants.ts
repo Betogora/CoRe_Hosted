@@ -1,3 +1,5 @@
+import { ArrowLeftRight, Braces, CreditCard, Images, ListChecks } from "lucide-react";
+
 export const importSteps = [
   { id: "analyze", label: "Analysieren" },
   { id: "preview", label: "Vorschau bereit" },
@@ -7,10 +9,11 @@ export const importSteps = [
 ];
 
 export const cardTypeOptions = [
-  { value: "basic", label: "Basic" },
-  { value: "basic-reversed", label: "Umgekehrt" },
-  { value: "cloze", label: "Lückentext" },
-  { value: "multiple-choice", label: "Multiple Choice" },
+  { value: "basic", label: "Basic", icon: CreditCard },
+  { value: "basic-with-images", label: "Basic + Bilder", icon: Images },
+  { value: "basic-reversed", label: "Umgekehrt", icon: ArrowLeftRight },
+  { value: "cloze", label: "Lückentext", icon: Braces },
+  { value: "multiple-choice", label: "Multiple Choice", icon: ListChecks },
 ];
 
 export const ratingButtons = [

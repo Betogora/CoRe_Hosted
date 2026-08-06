@@ -34,6 +34,35 @@ test("creation workflow preserves manual document anchors", () => {
   assert.equal(deck.cards[0].sourceAnchors[0].targetField, "back");
 });
 
+test("creation workflow prepares and assigns optional images to both Basic image sides", async () => {
+  const workflow = createCreationWorkflow();
+  const frontFile = Object.assign(new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" }), { name: "vorne.png" });
+  const backFile = Object.assign(new Blob([new Uint8Array([4, 5, 6])], { type: "image/jpeg" }), { name: "hinten.jpg" });
+  const frontImage = await workflow.prepareManualImage(frontFile);
+  const backImage = await workflow.prepareManualImage(backFile);
+  const deck = workflow.createManualDeck({
+    deckName: "Bilder",
+    cardType: "basic-with-images",
+    front: "Vorderseitentext",
+    back: "Rückseitentext",
+    frontImage,
+    backImage,
+  });
+  const card = deck.cards[0];
+
+  assert.equal(card.cardType, "basic-with-images");
+  assert.deepEqual(card.mediaRefs, [frontImage.sha1, backImage.sha1]);
+  assert.match(card.originalFront, new RegExp(`<img src="${frontImage.sha1}" alt="Bild zur Vorderseite">`));
+  assert.match(card.originalBack, new RegExp(`<img src="${backImage.sha1}" alt="Bild zur Rückseite">`));
+});
+
+test("creation workflow rejects non-image clipboard content", async () => {
+  const workflow = createCreationWorkflow();
+  const textFile = Object.assign(new Blob(["kein Bild"], { type: "text/plain" }), { name: "notiz.txt" });
+
+  await assert.rejects(() => workflow.prepareManualImage(textFile), /Bilddatei/);
+});
+
 test("creation workflow rejects broken APKG files with a file-selection error", async () => {
   const result = await createCreationWorkflow().parseApkgFile({ name: "broken.apkg", size: 12 });
 

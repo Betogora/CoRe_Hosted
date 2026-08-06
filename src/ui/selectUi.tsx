@@ -10,6 +10,7 @@ const MAX_DECK_SELECT_INDENT_LEVEL = 6;
 export interface CoreSelectOption {
   value: string;
   label: string;
+  icon?: LucideIcon;
 }
 
 export interface CoreSelectProps {
@@ -85,17 +86,21 @@ const SELECT_ITEM_INDICATOR = (
 );
 
 function CoreSelectOptions({ options }: Pick<CoreSelectProps, "options">) {
-  return options.map((option) => (
-    <Select.Item
-      key={option.value}
-      value={encodeValue(option.value)}
-      textValue={option.label}
-      className="relative flex min-h-11 cursor-default select-none items-center rounded-lg py-2 pl-3 pr-9 core-body leading-5 text-[var(--core-text)] outline-none data-[highlighted]:bg-[var(--core-surface-muted)] data-[state=checked]:bg-[var(--core-info-surface)]"
-    >
-      <Select.ItemText className="min-w-0 break-words">{option.label}</Select.ItemText>
-      {SELECT_ITEM_INDICATOR}
-    </Select.Item>
-  ));
+  return options.map((option) => {
+    const Icon = option.icon;
+    return (
+      <Select.Item
+        key={option.value}
+        value={encodeValue(option.value)}
+        textValue={option.label}
+        className="relative flex min-h-11 cursor-default select-none items-center gap-3 rounded-lg py-2 pl-3 pr-9 core-body leading-5 text-[var(--core-text)] outline-none data-[highlighted]:bg-[var(--core-surface-muted)] data-[state=checked]:bg-[var(--core-info-surface)]"
+      >
+        {Icon ? <Icon size={17} className="shrink-0 text-[var(--core-text-muted)]" aria-hidden="true" /> : null}
+        <Select.ItemText className="min-w-0 break-words">{option.label}</Select.ItemText>
+        {SELECT_ITEM_INDICATOR}
+      </Select.Item>
+    );
+  });
 }
 
 function SelectContent({ children, isDeckSelect = false }: { children: ReactNode; isDeckSelect?: boolean }) {
@@ -145,7 +150,9 @@ export const CoreSelect = forwardRef<HTMLButtonElement, CoreSelectProps>(functio
   autoFocus,
   leadingIcon: LeadingIcon,
 }, ref) {
-  const selectedLabel = options.find((option) => option.value === value)?.label ?? "";
+  const selectedOption = options.find((option) => option.value === value);
+  const selectedLabel = selectedOption?.label ?? "";
+  const TriggerIcon = LeadingIcon ?? selectedOption?.icon;
 
   return (
     <Select.Root value={encodeValue(value)} onValueChange={(nextValue) => onValueChange(decodeValue(nextValue))}>
@@ -157,7 +164,7 @@ export const CoreSelect = forwardRef<HTMLButtonElement, CoreSelectProps>(functio
         data-testid={testId}
         className={`group inline-flex min-h-11 min-w-0 items-center gap-3 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface px-4 text-left core-body text-[var(--core-text)] transition hover:border-[var(--core-action-primary)] data-[state=open]:border-[var(--core-action-primary)] data-[state=open]:shadow-[0_0_0_2px_var(--core-focus-ring-soft)] ${className}`}
       >
-        {LeadingIcon ? <LeadingIcon size={17} className="shrink-0 text-[var(--core-text-muted)]" aria-hidden="true" /> : null}
+        {TriggerIcon ? <TriggerIcon size={17} className="shrink-0 text-[var(--core-text-muted)]" aria-hidden="true" /> : null}
         <span className="min-w-0 flex-1 truncate">
           <Select.Value>{selectedLabel}</Select.Value>
         </span>

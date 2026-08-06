@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { CircleAlert, Languages } from "lucide-react";
 import { createCoreDeck } from "../coreModel.ts";
 import { CoreSelect, DeckSelect } from "./selectUi.tsx";
+import { cardTypeOptions } from "../screens/screenConstants.ts";
 
 test("CoreSelect renders the controlled value with an accessible combobox trigger", () => {
   const ref = React.createRef<HTMLButtonElement>();
@@ -44,6 +45,20 @@ test("CoreSelect accepts an empty external value without losing its label", () =
   );
 
   assert.match(markup, />Als Hauptstapel</);
+});
+
+test("CoreSelect shows the selected card type icon before its label", () => {
+  const markup = renderToStaticMarkup(
+    <CoreSelect
+      ariaLabel="Kartentyp"
+      value="basic-with-images"
+      options={cardTypeOptions}
+      onValueChange={() => undefined}
+    />,
+  );
+
+  assert.match(markup, /lucide-images/);
+  assert.match(markup, />Basic \+ Bilder</);
 });
 
 test("DeckSelect renders the selected deck icon and complete hierarchy path", () => {

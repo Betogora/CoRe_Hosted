@@ -20,8 +20,9 @@ function originalCount(card: LearningItem): number {
   return card.variants.filter((variant) => variant.isOriginal).length;
 }
 
-test("card editor validates the discriminated contract for all four card types", () => {
+test("card editor validates the discriminated contract for all five card types", () => {
   assert.equal(validateCardEditorValue({ cardType: "basic", front: "Frage", back: "Antwort", tags: [] }).ok, true);
+  assert.equal(validateCardEditorValue({ cardType: "basic-with-images", front: "Frage", back: "Antwort", tags: [] }).ok, true);
   assert.equal(validateCardEditorValue({ cardType: "basic-reversed", front: "Frage", back: "Antwort", tags: [] }).ok, true);
   assert.equal(validateCardEditorValue({ cardType: "cloze", textWithClozes: "{{c1::ATP}} liefert Energie.", extra: "", tags: [] }).ok, true);
   assert.equal(validateCardEditorValue({ cardType: "multiple-choice", question: "Frage", options: ["A", "B"], correctOptionIndex: 1, explanation: "", tags: [] }).ok, true);
@@ -212,6 +213,7 @@ test("version restore restores the complete structured editor value", () => {
 test("card content payload round-trips all editable types without identity", () => {
   const editorValues = [
     { cardType: "basic", front: "Frage", back: "Antwort", tags: ["eins"] },
+    { cardType: "basic-with-images", front: '<p>Frage</p><img src="media-z">', back: '<p>Antwort</p><img src="media-a">', tags: ["bilder"] },
     { cardType: "basic-reversed", front: "Vorne", back: "Hinten", tags: [] },
     { cardType: "cloze", textWithClozes: "{{c1::ATP}}", extra: "Energie", tags: ["cloze"] },
     { cardType: "multiple-choice", question: "Welche?", options: ["A", "B"], correctOptionIndex: 1, explanation: "Darum", tags: ["mc"] },

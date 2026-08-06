@@ -48,7 +48,7 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | `src/coreRepository.ts` | Lokaler persistenter App-State und Legacy-Normalisierung |
 | `src/cloudRepository.ts` | Accountgefiltertes Laden, revisionsgeprüfte Mutationen, Konflikte und Soft-Deletes |
 | `src/apkgImport.ts` | Öffentliche APKG-Normalisierungsgrenze; Worker, ZIP und SQLite bleiben privat |
-| `src/mediaStore.ts` | Öffentliche accountgebundene Mediengrenze für Cache, Queue und URL-Auflösung |
+| `src/mediaStore.ts` | Öffentliche accountgebundene Mediengrenze für Cache, Queue und URL-Auflösung; manuelle Bilder verwenden direkte SHA-1-Referenzen ohne APKG-Manifest |
 | `src/cloudMediaStore.ts` | Supabase Storage, Signed URLs und TUS |
 | `src/reviewService.ts` | Auswahl, Bewertung und Projektion des Review-Flows |
 | `src/coreVariantService.ts` | Eligibility, Reife, Variantenplanung und Fallback |
@@ -91,6 +91,7 @@ Aufklappzustände, Tastaturfokus, lokale Suche, Dialoge, ungespeicherte Entwürf
 - Jedes Learning Item besitzt genau eine Originalvariante.
 - Jede weitere Variante verweist auf dasselbe Learning Item und bleibt am Original verankert.
 - Typgerechte Änderungen synchronisieren kanonischen Inhalt, Compatibility-Felder, strukturierte Options-/Lückenfelder und Originalvariante atomar.
+- `basic-with-images` verwendet denselben Front-/Back-Vertrag wie Basic. Je Seite wird höchstens ein optionales Bild als SHA-1-Referenz im HTML und in `mediaRefs` verankert; die Bytes verbleiben hinter `mediaStore`.
 - `CardContentPayload` transportiert ausschließlich einen validierten `CardEditorValue` und stabile `mediaRefs`. Die Projektion enthält keine Karten-, Deck-, Varianten-, Review-, Quellen- oder Versionsidentität, keine Medienbytes und keine Signed URLs.
 - Der KI-Variantenvertrag akzeptiert ausschließlich Basic-Karten und projiziert daraus nur bereinigte Vorder- und Rückseitentexte. Providerantworten bleiben `unknown`, bis Toolname, Anzahl, Schema, Änderung und Größenlimits validiert sind.
 - KI-Ergebnisse laufen als `ai_generated` durch dieselbe Variantenmutation wie manuelle Formen und erzeugen kein zweites Learning Item. Eine zwischenzeitlich geänderte Quelle oder ein Inhaltsduplikat verhindert die Mutation.
