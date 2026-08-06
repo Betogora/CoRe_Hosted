@@ -21,6 +21,8 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
+      collapsedDeckIds={[]}
+      onSetDeckExpanded={() => undefined}
     />,
   );
 
@@ -56,6 +58,8 @@ test("quick deck creation asks only for a name and optional parent deck", () => 
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
+      collapsedDeckIds={[]}
+      onSetDeckExpanded={() => undefined}
     />,
   );
 
@@ -89,6 +93,8 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
+      collapsedDeckIds={[]}
+      onSetDeckExpanded={() => undefined}
     />,
   );
   const fallbackMarkup = renderToStaticMarkup(
@@ -106,6 +112,8 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
+      collapsedDeckIds={[]}
+      onSetDeckExpanded={() => undefined}
     />,
   );
 

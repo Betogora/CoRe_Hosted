@@ -56,6 +56,21 @@ interface AutosaveLifecycleOptions {
   clearTimer?: typeof globalThis.clearTimeout;
 }
 
+function haveSamePropertiesExcept(left: object, right: object, excludedKey: string): boolean {
+  const leftRecord = left as Record<string, unknown>;
+  const rightRecord = right as Record<string, unknown>;
+  const keys = new Set([...Object.keys(leftRecord), ...Object.keys(rightRecord)]);
+  keys.delete(excludedKey);
+  return [...keys].every((key) => Object.is(leftRecord[key], rightRecord[key]));
+}
+
+export function isUiPreferenceOnlyChange(state: WorkspaceState, previousState: WorkspaceState | null): boolean {
+  if (!previousState || state === previousState) return false;
+  return haveSamePropertiesExcept(state, previousState, "profile")
+    && haveSamePropertiesExcept(state.profile, previousState.profile, "uiPreferences")
+    && state.profile.uiPreferences !== previousState.profile.uiPreferences;
+}
+
 export function startAppAutosaveLifecycle({
   authPhase,
   syncEngine,
@@ -72,10 +87,13 @@ export function startAppAutosaveLifecycle({
   if (authPhase !== "ready" || !syncEngine || !state || state === lastAcknowledgedState) return () => {};
   let cancelled = false;
   const snapshot = state;
+  const profileOnly = isUiPreferenceOnlyChange(snapshot, lastAcknowledgedState);
   const timer = setTimer(async () => {
     try {
-      syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
-      const result = await syncEngine.flush() as SyncFlushProjection;
+      syncEngine.enqueueMutation(profileOnly
+        ? { type: SYNC_MUTATION_TYPES.profilePatch, payload: { profile: snapshot.profile } }
+        : { type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
+      const result = await syncEngine.flush(snapshot) as SyncFlushProjection;
       if (!cancelled) onAcknowledged(snapshot, result.saved?.state, runId);
     } catch (error) {
       if (!cancelled) onStatus(createSyncErrorStatus(formatError(error)));

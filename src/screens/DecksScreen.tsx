@@ -596,10 +596,11 @@ export function DecksScreen({
   onOpenLearn,
   onOpenDeckSettings,
   onDraftStateChange,
+  expandedDeckIds,
+  onSetDeckExpanded,
 }: DecksScreenProps) {
   const [query, setQuery] = React.useState("");
   const [cardSort, setCardSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
-  const [expandedDeckIds, setExpandedDeckIds] = React.useState<Set<string>>(() => new Set());
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();
@@ -616,6 +617,7 @@ export function DecksScreen({
     [cardSort, decks, now, query],
   );
   const searchExpandsGroups = Boolean(query.trim());
+  const expandedDeckIdSet = React.useMemo(() => new Set(expandedDeckIds), [expandedDeckIds]);
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
   const selectedGroup = selectedDeckId ? groupById.get(selectedDeckId) ?? null : null;
   const selectedDeck = selectedGroup?.deck ?? null;
@@ -630,9 +632,8 @@ export function DecksScreen({
   }, [onDraftStateChange]);
 
   React.useEffect(() => {
-    if (!selectedDeckId) return;
-    setExpandedDeckIds((current) => current.has(selectedDeckId) ? current : new Set([...current, selectedDeckId]));
-  }, [selectedDeckId]);
+    if (selectedDeckId && !expandedDeckIdSet.has(selectedDeckId)) onSetDeckExpanded("deck-manager", selectedDeckId, true);
+  }, [expandedDeckIdSet, onSetDeckExpanded, selectedDeckId]);
 
   React.useEffect(() => {
     if (!detailOpen) return;
@@ -732,12 +733,7 @@ export function DecksScreen({
   }
 
   function toggleDeckCards(deckId: string) {
-    setExpandedDeckIds((current) => {
-      const next = new Set(current);
-      if (next.has(deckId)) next.delete(deckId);
-      else next.add(deckId);
-      return next;
-    });
+    onSetDeckExpanded("deck-manager", deckId, !expandedDeckIdSet.has(deckId));
   }
 
   function saveCard(cardId: string, value: CardEditorValue) {
@@ -881,7 +877,7 @@ export function DecksScreen({
                 </tr>
               </thead>
               {tableModel.groups.map((group) => {
-                const expanded = searchExpandsGroups || expandedDeckIds.has(group.id);
+                const expanded = searchExpandsGroups || expandedDeckIdSet.has(group.id);
                 const visibleDepth = Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS);
                 const directProgress = group.directSummary.totalCards
                   ? Math.round((group.directSummary.matureCards / group.directSummary.totalCards) * 100)

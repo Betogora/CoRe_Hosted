@@ -176,7 +176,7 @@ function StudyHeatmap({ heatmap }: any) {
   );
 }
 
-export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings }: DashboardScreenProps) {
+export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded }: DashboardScreenProps) {
   const library = React.useMemo(() => createDeckLibraryModel(state.decks, { now }), [now, state.decks]);
   const { dueCards, studyHeatmap } = library;
   const displayName = state.profile?.displayName?.trim();
@@ -245,6 +245,8 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateD
       <DeckTree
         rows={library.rows}
         mode="dashboard"
+        collapsedDeckIds={state.profile.uiPreferences.dashboardCollapsedDeckIds}
+        onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("dashboard", deckId, expanded)}
         headerAction={(
           <button
             type="button"

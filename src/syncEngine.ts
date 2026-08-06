@@ -5,6 +5,7 @@ import {
   mergeCloudSyncMetadata,
   registerAccountSyncDevice,
   resolveAccountSyncConflict,
+  upsertAccountCloudProfile,
   upsertAccountCloudState,
 } from "./cloudRepository.ts";
 import {
@@ -88,6 +89,7 @@ function addMilliseconds(timestamp: any, milliseconds: any) {
 
 export const SYNC_MUTATION_TYPES = Object.freeze({
   statePatch: "state-patch",
+  profilePatch: "profile-patch",
   reviewEventAppend: "review-event-append",
 });
 
@@ -123,7 +125,10 @@ function createMutation(input: any = {}, now: any = nowIso, deviceId: any) {
     payload: input.payload ?? {},
     baseRevision: input.baseRevision ?? null,
     deviceId,
-    table: input.table ?? (input.type === SYNC_MUTATION_TYPES.reviewEventAppend ? "review_events" : null),
+    table: input.table
+      ?? (input.type === SYNC_MUTATION_TYPES.reviewEventAppend
+        ? "review_events"
+        : input.type === SYNC_MUTATION_TYPES.profilePatch ? "profiles" : null),
     entityId: input.entityId ?? input.payload?.event?.id ?? null,
     createdAt: input.createdAt ?? now(),
   };
@@ -155,16 +160,21 @@ function createDefaultAdapter(client: any) {
       const failedMutationIds: any[] = [];
       const failures: any[] = [];
       for (const mutation of mutations) {
-        if (mutation.type !== SYNC_MUTATION_TYPES.reviewEventAppend) {
+        if (![SYNC_MUTATION_TYPES.reviewEventAppend, SYNC_MUTATION_TYPES.profilePatch].includes(mutation.type)) {
           failedMutationIds.push(mutation.id);
           failures.push({ mutationId: mutation.id, error: createRetryableMutationError() });
           continue;
         }
         try {
-          const acknowledgement = await appendReviewEvent(client, mutation.payload?.event, {
-            mutationId: mutation.id,
-            deviceId: mutation.deviceId ?? context.deviceId,
-          });
+          const acknowledgement = mutation.type === SYNC_MUTATION_TYPES.profilePatch
+            ? await upsertAccountCloudProfile(client, mutation.payload?.profile, {
+                mutationId: mutation.id,
+                flushedAt: context.flushedAt,
+              })
+            : await appendReviewEvent(client, mutation.payload?.event, {
+                mutationId: mutation.id,
+                deviceId: mutation.deviceId ?? context.deviceId,
+              });
           if (acknowledgement?.acknowledgedMutationId === mutation.id) {
             acknowledgedMutationIds.push(mutation.id);
           } else {
@@ -230,6 +240,14 @@ export function createSyncEngine({
     if (status?.status !== "offline") lastOnlineStatus = status;
     statusListener?.(status);
     return status;
+  }
+
+  function enqueuePendingMutation(mutation: any) {
+    const queued = outbox.enqueue(mutation);
+    if (currentStatus.status !== "conflict") {
+      emitStatus(safelyIsOnline() ? createSyncPendingStatus() : createSyncOfflineStatus({ pendingCount: outbox.count() }));
+    }
+    return queued;
   }
 
   function clearRetryTimer() {
@@ -337,12 +355,18 @@ export function createSyncEngine({
 
     enqueueMutation(input: any = {}) {
       const mutation = createMutation(input, now, syncDevice.id);
-      if (mutation.type !== SYNC_MUTATION_TYPES.statePatch || !mutation.payload || typeof mutation.payload !== "object") {
-        const queued = outbox.enqueue(mutation);
-        if (currentStatus.status !== "conflict") {
-          emitStatus(safelyIsOnline() ? createSyncPendingStatus() : createSyncOfflineStatus({ pendingCount: outbox.count() }));
+      if (mutation.type === SYNC_MUTATION_TYPES.profilePatch) {
+        if (!mutation.payload?.profile || typeof mutation.payload.profile !== "object" || Array.isArray(mutation.payload.profile)) {
+          throw new Error("Profil-Mutation braucht ein vollständiges Profil.");
         }
-        return queued;
+        const staleProfilePatchIds = outbox.listPending()
+          .filter((pending: any) => pending.type === SYNC_MUTATION_TYPES.profilePatch)
+          .map((pending: any) => pending.id);
+        removeMutations(staleProfilePatchIds);
+        return enqueuePendingMutation(mutation);
+      }
+      if (mutation.type !== SYNC_MUTATION_TYPES.statePatch || !mutation.payload || typeof mutation.payload !== "object") {
+        return enqueuePendingMutation(mutation);
       }
 
       const { state, ...payload } = mutation.payload;
@@ -352,14 +376,13 @@ export function createSyncEngine({
       const staleStatePatchIds = outbox.listPending()
         .filter((pending: any) => pending.type === SYNC_MUTATION_TYPES.statePatch)
         .map((pending: any) => pending.id);
-      removeMutations(staleStatePatchIds);
+      const subsumedProfilePatchIds = outbox.listPending()
+        .filter((pending: any) => pending.type === SYNC_MUTATION_TYPES.profilePatch)
+        .map((pending: any) => pending.id);
+      removeMutations([...staleStatePatchIds, ...subsumedProfilePatchIds]);
       stateSnapshots.set(mutation.id, state);
       lastFallbackState = state;
-      const queued = outbox.enqueue({ ...mutation, payload });
-      if (currentStatus.status !== "conflict") {
-        emitStatus(safelyIsOnline() ? createSyncPendingStatus() : createSyncOfflineStatus({ pendingCount: outbox.count() }));
-      }
-      return queued;
+      return enqueuePendingMutation({ ...mutation, payload });
     },
 
     pendingCount() {
@@ -398,6 +421,7 @@ export function createSyncEngine({
           flushedAt: now(),
         };
         let batchFailure: any = null;
+        let acknowledgedBatchMutationIds: any[] = [];
 
         const remaining = batch.filter((mutation: any) => mutation.type !== SYNC_MUTATION_TYPES.statePatch);
         if (remaining.length > 0 && adapter.applyMutationBatch) {
@@ -406,6 +430,7 @@ export function createSyncEngine({
             result.conflicts = batchResult?.conflicts ?? [];
             const remainingIds = new Set(remaining.map((mutation: any) => mutation.id));
             const acknowledgedMutationIds = (batchResult?.acknowledgedMutationIds ?? []).filter((id: any) => remainingIds.has(id));
+            acknowledgedBatchMutationIds = acknowledgedMutationIds;
             const failedMutationIds = (batchResult?.failedMutationIds ?? []).filter((id: any) => remainingIds.has(id));
             outbox.markFlushed(acknowledgedMutationIds, result.flushedAt);
             removeMutations(acknowledgedMutationIds);
@@ -458,6 +483,13 @@ export function createSyncEngine({
             outbox.markFailed(statePatchIds, error);
             throw error;
           }
+        }
+
+        const profilePatchIds = remaining
+          .filter((mutation: any) => mutation.type === SYNC_MUTATION_TYPES.profilePatch)
+          .map((mutation: any) => mutation.id);
+        if (!latestStatePatch && profilePatchIds.length > 0 && profilePatchIds.every((id: any) => acknowledgedBatchMutationIds.includes(id))) {
+          result.saved = { state: lastFallbackState, acknowledgedMutationIds: profilePatchIds };
         }
 
         if (batchFailure) throw batchFailure;

@@ -5,6 +5,7 @@ import type { CoreMode, Deck, LearningItem, Profile, ReviewEvent, SyncStatus } f
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
+import type { DeckExpansionSurface } from "./uiPreferences.ts";
 
 type NavigateToView = (
   viewId: AppViewId | undefined,
@@ -47,6 +48,7 @@ export interface DashboardScreenProps {
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   onOpenDeckSettings: (deckId: string) => unknown;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
 }
 
 export interface DeckSettingsScreenProps {
@@ -82,6 +84,8 @@ export interface DecksScreenProps {
   onOpenCardCreation: () => unknown;
   onOpenDeckSettings: (deckId: string) => unknown;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
+  expandedDeckIds: string[];
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
 }
 
 export interface LearnScreenProps {
@@ -98,6 +102,8 @@ export interface LearnScreenProps {
   onOpenDeckSettings: (deckId: string) => unknown;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
+  collapsedDeckIds: string[];
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
 }
 
 export interface SettingsScreenProps {

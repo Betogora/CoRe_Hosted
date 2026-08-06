@@ -12,6 +12,7 @@ import {
   readCloudAuthRedirectOutcome,
   resetCloudPassword,
   signInWithGoogle,
+  signInCloudAccount,
   signInWithMagicLink,
   signUpCloudAccount,
   updateCloudPassword,
@@ -32,6 +33,7 @@ test("cloud auth maps local profile fields into a Supabase profile row", () => {
       fieldOfStudy: "Medizin",
       preferredLanguage: "de",
       schedulerPreferences: { profile: "standard" },
+      uiPreferences: { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"] },
     },
     user,
     "2026-07-09T07:30:00.000Z",
@@ -42,6 +44,7 @@ test("cloud auth maps local profile fields into a Supabase profile row", () => {
   assert.equal(row.display_name, "Noemi");
   assert.equal(row.field_of_study, "Medizin");
   assert.equal(row.updated_at, "2026-07-09T07:30:00.000Z");
+  assert.deepEqual(row.ui_preferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"] });
 });
 
 test("cloud auth creates a password-free signed-in profile", () => {
@@ -52,6 +55,7 @@ test("cloud auth creates a password-free signed-in profile", () => {
       display_name: "Noemi",
       preferred_language: "de",
       scheduler_preferences: { profile: "standard" },
+      ui_preferences: { dashboardCollapsedDeckIds: ["deck-a"], deckManagerExpandedDeckIds: ["deck-b"] },
     },
     user,
     {
@@ -64,6 +68,32 @@ test("cloud auth creates a password-free signed-in profile", () => {
   assert.equal(profile.account.status, "signed-in");
   assert.equal(profile.account.passwordVerifier, undefined);
   assert.equal(profile.displayName, "Noemi");
+  assert.deepEqual(profile.uiPreferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"] });
+});
+
+test("cloud sign-in creates a missing profile without overwriting an existing one", async () => {
+  const upserts: { row: Record<string, unknown>; options: Record<string, unknown> }[] = [];
+  const client = {
+    auth: {
+      async signInWithPassword() {
+        return { data: { user }, error: null };
+      },
+    },
+    from() {
+      return {
+        async upsert(row: Record<string, unknown>, options: Record<string, unknown>) {
+          upserts.push({ row, options });
+          return { data: null, error: null };
+        },
+      };
+    },
+  };
+
+  const profile = await signInCloudAccount(client, { email: user.email }, "supersecret");
+
+  assert.equal(profile.userId, user.id);
+  assert.deepEqual(upserts[0]?.options, { onConflict: "id", ignoreDuplicates: true });
+  assert.equal(upserts[0]?.row.id, user.id);
 });
 
 test("cloud auth represents pending email confirmation and signed-out state", () => {

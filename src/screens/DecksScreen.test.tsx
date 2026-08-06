@@ -32,6 +32,8 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     onOpenLearn: () => undefined,
     onOpenDeckSettings: () => undefined,
     onDraftStateChange: () => undefined,
+    expandedDeckIds: [],
+    onSetDeckExpanded: () => undefined,
     ...overrides,
   };
   return renderToStaticMarkup(<DecksScreen {...props} />);
@@ -95,6 +97,10 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
 
   const focusedMarkup = renderScreen(decks, { selectedDeckId: child.id });
   assert.match(focusedMarkup, new RegExp(`data-testid="deck-header-${child.id}"[^>]*style="background-color:var\\(--core-info-surface\\)"`));
+
+  const expandedMarkup = renderScreen(decks, { expandedDeckIds: [originalDeck.id] });
+  assert.match(expandedMarkup, /aria-label="Karten von Biologie einklappen"/);
+  assert.match(expandedMarkup, /Was ist ATP\?/);
 });
 
 test("card selection opens a non-modal detail aside with editor, copy and collapsed tools", () => {

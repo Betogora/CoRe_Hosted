@@ -141,6 +141,56 @@ test("state snapshots stay out of the persistent outbox and still flush in the c
   assert.equal(engine.pendingCount(), 0);
 });
 
+test("profile patches coalesce and acknowledge the durable fallback state", async () => {
+  const batches: any[] = [];
+  const fallbackState = { profile: { uiPreferences: { dashboardCollapsedDeckIds: ["deck-b"] } }, decks: [] };
+  const engine = createSyncEngine({
+    adapter: {
+      async applyMutationBatch(mutations: any[]) {
+        batches.push(mutations);
+        return { acknowledgedMutationIds: mutations.map((mutation: any) => mutation.id), failedMutationIds: [], conflicts: [] };
+      },
+    },
+    outbox: createTestOutbox(),
+    device: testDevice,
+  });
+
+  engine.enqueueMutation({ id: "profile-a", type: SYNC_MUTATION_TYPES.profilePatch, payload: { profile: { uiPreferences: {} } } });
+  engine.enqueueMutation({ id: "profile-b", type: SYNC_MUTATION_TYPES.profilePatch, payload: { profile: fallbackState.profile } });
+  const result = await engine.flush(fallbackState);
+
+  assert.equal(result.mutations, 1);
+  assert.deepEqual(batches[0].map((mutation: any) => mutation.id), ["profile-b"]);
+  assert.equal(result.saved.state, fallbackState);
+  assert.equal(engine.pendingCount(), 0);
+});
+
+test("a full state patch subsumes a pending profile patch", async () => {
+  let profileBatches = 0;
+  const state = { profile: { uiPreferences: { dashboardCollapsedDeckIds: ["deck-a"] } }, decks: [] };
+  const engine = createSyncEngine({
+    adapter: {
+      async applyMutationBatch() {
+        profileBatches += 1;
+        return { acknowledgedMutationIds: [], failedMutationIds: [], conflicts: [] };
+      },
+      async upsertState(snapshot: any, context: { mutationIds: string[] }) {
+        return { state: snapshot, acknowledgedMutationIds: context.mutationIds };
+      },
+    },
+    outbox: createTestOutbox(),
+    device: testDevice,
+  });
+
+  engine.enqueueMutation({ id: "profile-first", type: SYNC_MUTATION_TYPES.profilePatch, payload: { profile: state.profile } });
+  engine.enqueueMutation({ id: "state-latest", type: SYNC_MUTATION_TYPES.statePatch, payload: { state } });
+  const result = await engine.flush();
+
+  assert.equal(result.mutations, 1);
+  assert.equal(profileBatches, 0);
+  assert.equal(result.saved.state, state);
+});
+
 test("state markers coalesce while an active flush keeps its captured snapshot", async () => {
   let releaseFirstWrite;
   let signalFirstWrite: (value: unknown) => void;

@@ -18,6 +18,7 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
       onOpenDeckSettings={() => undefined}
+      onSetDeckExpanded={() => undefined}
     />,
   );
 
@@ -60,6 +61,7 @@ test("populated dashboard keeps today's due count without the original-card stat
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
       onOpenDeckSettings={() => undefined}
+      onSetDeckExpanded={() => undefined}
     />,
   );
 
@@ -110,6 +112,7 @@ test("dashboard projects future due cards through the supplied learning time", (
     onSetDeckCoreMode: () => undefined,
     onMoveDeck: () => null,
     onOpenDeckSettings: () => undefined,
+    onSetDeckExpanded: () => undefined,
   };
 
   const todayMarkup = renderToStaticMarkup(<DashboardScreen {...props} now="2026-08-06T10:00:00.000Z" />);

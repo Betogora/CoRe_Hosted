@@ -12,6 +12,7 @@ create table if not exists public.profiles (
   timezone text not null default 'Europe/Berlin',
   onboarding_complete boolean not null default false,
   scheduler_preferences jsonb not null default '{}'::jsonb,
+  ui_preferences jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

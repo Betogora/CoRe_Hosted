@@ -53,6 +53,7 @@ const accountRowSchemas: Record<AccountTable, v.BaseSchema<unknown, unknown, v.B
 const profileRowSchema = v.looseObject({
   id: v.string(),
   scheduler_preferences: v.optional(jsonObjectSchema),
+  ui_preferences: v.optional(jsonObjectSchema),
 });
 const mediaAssetRowSchema = v.looseObject({
   id: v.string(),

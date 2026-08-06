@@ -194,6 +194,36 @@ test("repository enriches an untouched persisted world-capitals seed with study 
   assert.equal(firstReviewedCard.reviewState.lastReviewedAt !== null, true);
 });
 
+test("repository persists UI preferences without rewriting the full app state", () => {
+  const storage = createMemoryStorage();
+  const repository = createCoreRepository(storage, { seedDefaultDecks: false });
+  repository.saveState(repository.getState());
+  const storedState = storage.getItem("core.appState.v3");
+
+  repository.saveProfile({
+    uiPreferences: {
+      dashboardCollapsedDeckIds: ["deck-a"],
+      learnCollapsedDeckIds: [],
+      deckManagerExpandedDeckIds: ["deck-b"],
+    },
+  });
+
+  assert.equal(storage.getItem("core.appState.v3"), storedState);
+  const restartedStorage = {
+    getItem: (key: string) => storage.getItem(key),
+    setItem: (key: string, value: string) => storage.setItem(key, value),
+    removeItem: (key: string) => storage.removeItem(key),
+  };
+  assert.deepEqual(
+    createCoreRepository(restartedStorage, { seedDefaultDecks: false }).getState().profile.uiPreferences,
+    {
+      dashboardCollapsedDeckIds: ["deck-a"],
+      learnCollapsedDeckIds: [],
+      deckManagerExpandedDeckIds: ["deck-b"],
+    },
+  );
+});
+
 test("workspace APKG commands dry-run and commit through normalized import", async () => {
   const workspace = createTestWorkspace();
   const dryRun = await workspace.dryRunApkgImport(parsedApkgFixture());

@@ -21,6 +21,7 @@ import {
   reviewEventToCloudRow,
   softDeleteEntity,
   SyncConflictChangedError,
+  upsertAccountCloudProfile,
   upsertAccountCloudState,
   variantToCloudRow,
 } from "./cloudRepository.ts";
@@ -1099,6 +1100,28 @@ test("single review event append is idempotent and stores the device id", async 
   assert.deepEqual(second, { eventId: event.id, acknowledgedMutationId: "mutation-1" });
 });
 
+test("profile patch updates only the account profile", async () => {
+  const fixture = createCloudFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const profile = {
+    ...fixture.state.profile,
+    uiPreferences: {
+      dashboardCollapsedDeckIds: ["deck-1"],
+      learnCollapsedDeckIds: [],
+      deckManagerExpandedDeckIds: [],
+    },
+  };
+
+  const result = await upsertAccountCloudProfile(client, profile, {
+    mutationId: "profile-1",
+    flushedAt: "2026-08-06T12:00:00.000Z",
+  });
+
+  assert.deepEqual(result, { acknowledgedMutationId: "profile-1" });
+  assert.deepEqual(client.tables.profiles[0].ui_preferences, profile.uiPreferences);
+  assert.equal(client.calls.filter((call) => call.operation === "upsert").every((call) => call.table === "profiles"), true);
+});
+
 test("review event append refuses to acknowledge a different persisted event with the same id", async () => {
   const fixture = createCloudFixture();
   const client = createMemorySupabaseClient(fixture.rows, fixture.user);
@@ -1147,6 +1170,7 @@ test("cloud mutation writes require explicit device and mutation identifiers", a
 
   await assert.rejects(() => appendReviewEvent(client, event, { mutationId: "mutation-1" }), /Geräte-ID fehlt/);
   await assert.rejects(() => appendReviewEvent(client, event, { deviceId: "device-b" }), /Mutation-ID fehlt/);
+  await assert.rejects(() => upsertAccountCloudProfile(client, fixture.state.profile), /Mutation-ID fehlt/);
   await assert.rejects(() => upsertAccountCloudState(client, fixture.state, { mutationIds: [] }), /Geräte-ID fehlt/);
   await assert.rejects(
     () => upsertAccountCloudState(client, fixture.state, { deviceId: "device-b", mutationIds: [""] }),

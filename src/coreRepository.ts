@@ -1,13 +1,16 @@
 import * as v from "valibot";
 import { createDefaultDeckSettings, normalizeCoreDeck } from "./coreModel.ts";
 import { createWorldCapitalsSeedDecks, ensureWorldCapitalsStudyHistory } from "./fixtures/worldCapitals.ts";
+import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences } from "./uiPreferences.ts";
 
 const LEGACY_DECKS_KEY = "core.importedDecks.v1";
 const LEGACY_APP_STATE_KEY = "core.appState.v2";
 const APP_STATE_KEY = "core.appState.v3";
+const UI_PREFERENCES_KEY = "core.uiPreferences.v1";
 const RETIRED_DECK_SOURCES = new Set(["ai-assisted", "community"]);
 
 let memoryState: any = null;
+const stateCache = new WeakMap<object, any>();
 
 const storedDeckSchema = v.looseObject({ id: v.string() });
 const appStateStorageSchema = v.looseObject({
@@ -31,6 +34,7 @@ function createDefaultProfile() {
     schedulerPreferences: {
       profile: "standard",
     },
+    uiPreferences: DEFAULT_UI_PREFERENCES,
   };
 }
 
@@ -97,6 +101,7 @@ function normalizeState(rawState: any) {
     profile: {
       ...fallback.profile,
       ...profile,
+      uiPreferences: normalizeUiPreferences(profile.uiPreferences),
     },
     decks,
     documents: Array.isArray(rawState?.documents) ? rawState.documents : [],
@@ -117,12 +122,22 @@ function hasRetiredState(rawState: any) {
 }
 
 function readState(storage: any, options: any = {}) {
+  const cached = stateCache.get(storage);
+  if (cached) return cached;
+
+  const withUiPreferences = (state: any) => {
+    const storedPreferences = parseJson(storage.getItem(UI_PREFERENCES_KEY), null);
+    const nextState = storedPreferences && typeof storedPreferences === "object" && !Array.isArray(storedPreferences)
+      ? { ...state, profile: { ...state.profile, uiPreferences: normalizeUiPreferences(storedPreferences) } }
+      : state;
+    stateCache.set(storage, nextState);
+    return nextState;
+  };
   const current = parseJson(storage.getItem(APP_STATE_KEY), null);
   const currentResult = v.safeParse(appStateStorageSchema, current);
   if (currentResult.success) {
     const normalized = normalizeState(currentResult.output);
-    if (hasRetiredState(currentResult.output)) writeState(storage, normalized);
-    return normalized;
+    return withUiPreferences(hasRetiredState(currentResult.output) ? writeState(storage, normalized) : normalized);
   }
 
   const legacyState = parseJson(storage.getItem(LEGACY_APP_STATE_KEY), null);
@@ -131,20 +146,29 @@ function readState(storage: any, options: any = {}) {
     const migrated = normalizeState(legacyResult.output);
     writeState(storage, migrated);
     storage.removeItem(LEGACY_APP_STATE_KEY);
-    return migrated;
+    return withUiPreferences(migrated);
   }
 
   const legacyDecks = parseJson(storage.getItem(LEGACY_DECKS_KEY), []);
   const legacyDeckResult = v.safeParse(v.array(storedDeckSchema), legacyDecks);
   if (legacyDeckResult.success && legacyDeckResult.output.length > 0) {
-    return normalizeState({ ...createDefaultState({ seedDefaultDecks: false }), decks: legacyDeckResult.output });
+    return withUiPreferences(normalizeState({ ...createDefaultState({ seedDefaultDecks: false }), decks: legacyDeckResult.output }));
   }
 
-  return createDefaultState(options);
+  return withUiPreferences(createDefaultState(options));
 }
 
 function writeState(storage: any, state: any) {
-  storage.setItem(APP_STATE_KEY, JSON.stringify({ ...state, updatedAt: new Date().toISOString() }));
+  const persistedState = { ...state, updatedAt: new Date().toISOString() };
+  storage.setItem(APP_STATE_KEY, JSON.stringify(persistedState));
+  stateCache.set(storage, persistedState);
+  return persistedState;
+}
+
+function writeUiPreferences(storage: any, value: any) {
+  const preferences = normalizeUiPreferences(value);
+  storage.setItem(UI_PREFERENCES_KEY, JSON.stringify(preferences));
+  return preferences;
 }
 
 function updateStoredState(storage: any, options: any, updater: any) {
@@ -190,8 +214,9 @@ export function createCoreRepository(storage: any = null, options: any = {}) {
     },
     saveState(nextState: any) {
       const normalized = normalizeState(nextState);
-      writeState(resolvedStorage, normalized);
-      return normalized;
+      const persistedState = writeState(resolvedStorage, normalized);
+      resolvedStorage.removeItem(UI_PREFERENCES_KEY);
+      return persistedState;
     },
     listDecks() {
       return readState(resolvedStorage, { seedDefaultDecks }).decks;
@@ -241,15 +266,28 @@ export function createCoreRepository(storage: any = null, options: any = {}) {
       return readState(resolvedStorage, { seedDefaultDecks }).profile;
     },
     saveProfile(profile: any) {
-      let nextProfile = null;
-      updateStoredState(resolvedStorage, { seedDefaultDecks }, (state: any) => {
-        nextProfile = { ...state.profile, ...profile };
-        return { ...state, profile: nextProfile };
-      });
+      const state = readState(resolvedStorage, { seedDefaultDecks });
+      const patch = profile && typeof profile === "object" ? profile : {};
+      const nextProfile = {
+        ...state.profile,
+        ...patch,
+        ...(Object.hasOwn(patch, "uiPreferences")
+          ? { uiPreferences: normalizeUiPreferences(patch.uiPreferences) }
+          : {}),
+      };
+      const nextState = { ...state, profile: nextProfile };
+      if (Object.keys(patch).length === 1 && Object.hasOwn(patch, "uiPreferences")) {
+        writeUiPreferences(resolvedStorage, nextProfile.uiPreferences);
+        stateCache.set(resolvedStorage, nextState);
+      } else {
+        writeState(resolvedStorage, nextState);
+        if (Object.hasOwn(patch, "uiPreferences")) resolvedStorage.removeItem(UI_PREFERENCES_KEY);
+      }
       return nextProfile;
     },
     clear() {
       writeState(resolvedStorage, createDefaultState({ seedDefaultDecks }));
+      resolvedStorage.removeItem(UI_PREFERENCES_KEY);
       resolvedStorage.removeItem(LEGACY_DECKS_KEY);
     },
   };

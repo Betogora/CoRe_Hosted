@@ -36,6 +36,7 @@ import { SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
 import { useAppNavigation } from "./useAppNavigation.ts";
+import { setDeckExpanded, type DeckExpansionSurface } from "./uiPreferences.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
 import { AppNavigation } from "./ui/AppNavigation.tsx";
 import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
@@ -276,6 +277,10 @@ export function App() {
     if (!acknowledgedState || !workspace || bootRunRef.current !== runId) return null;
     const currentState = latestStateRef.current;
     if (!currentState) return null;
+    if (currentState === snapshot && acknowledgedState === snapshot) {
+      lastAcknowledgedStateRef.current = snapshot;
+      return snapshot;
+    }
     const savedState = workspace.saveState(mergeCloudSyncMetadata(currentState, acknowledgedState));
     if (currentState === snapshot) lastAcknowledgedStateRef.current = savedState;
     setAppState(savedState);
@@ -838,6 +843,14 @@ export function App() {
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(profile));
   }
 
+  function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
+    if (!workspace) return null;
+    const profile = workspace.getState().profile;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile({
+      uiPreferences: setDeckExpanded(profile.uiPreferences, surface, deckId, expanded),
+    }));
+  }
+
   function saveState(nextState: WorkspaceState) {
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveState(nextState));
   }
@@ -953,6 +966,8 @@ export function App() {
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onOpenLearn={openLearn}
           onDraftStateChange={handleCardDraftStateChange}
+          expandedDeckIds={state.profile.uiPreferences.deckManagerExpandedDeckIds}
+          onSetDeckExpanded={saveDeckExpansion}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, {
             view: "decks",
             ...(selectedCardId ? { cardId: selectedCardId } : {}),
@@ -1002,6 +1017,8 @@ export function App() {
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "learn" })}
           onSetDeckCoreMode={setDeckCoreMode}
           onMoveDeck={moveDeck}
+          collapsedDeckIds={state.profile.uiPreferences.learnCollapsedDeckIds}
+          onSetDeckExpanded={saveDeckExpansion}
         />
       );
     }
@@ -1041,7 +1058,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} onSetDeckCoreMode={setDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} />;
+    return <DashboardScreen state={state} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} onSetDeckCoreMode={setDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} />;
   }
 
   if (authPhase === "checking-session") {

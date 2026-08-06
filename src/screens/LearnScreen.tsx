@@ -15,7 +15,7 @@ function createDefaultDeckDraft(parentDeckId = "") {
   };
 }
 
-export function LearnScreen({ decks, now, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck }: LearnScreenProps) {
+export function LearnScreen({ decks, now, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
   const library = React.useMemo(() => createDeckLibraryModel(decks, { now }), [decks, now]);
   const [isDeckCreateOpen, setIsDeckCreateOpen] = React.useState(Boolean(initialParentDeckId));
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
@@ -197,6 +197,8 @@ export function LearnScreen({ decks, now, onStartDeck, onCreateDeck, focusedDeck
         <DeckTree
           rows={library.rows}
           mode="learn"
+          collapsedDeckIds={collapsedDeckIds}
+          onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}
           onActivate={(row) => onStartDeck(row.deck, false)}
           onOpenSettings={onOpenDeckSettings}
           onSetDeckCoreMode={onSetDeckCoreMode}

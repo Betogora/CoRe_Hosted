@@ -20,7 +20,7 @@ const rows = createDeckLibraryModel(decks).rows;
 
 test("deck tree keeps hierarchy, labels and all three semantic metrics in every row", () => {
   const markup = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   assert.match(markup, /aria-label="Bereich lernen"/);
@@ -61,7 +61,7 @@ test("deck tree maps five visible levels to group depths and clamps deeper impor
     createCoreDeck({ id: "depth-deeper-import", parentDeckId: "depth-import", name: "Tiefere Importebene", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4", "Importtiefe", "Tiefere Importebene"], source: "anki-apkg", cards: [] }),
   ];
   const markup = renderToStaticMarkup(
-    <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   assert.match(markup, /data-testid="learn-deck-row-depth-root"[^>]*data-deck-depth="0"/);
@@ -74,10 +74,10 @@ test("deck tree maps five visible levels to group depths and clamps deeper impor
 
 test("deck tree keeps the compact summary order across dashboard and learning", () => {
   const dashboard = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="dashboard" onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="dashboard" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
   const learning = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   for (const markup of [dashboard, learning]) {
@@ -88,4 +88,13 @@ test("deck tree keeps the compact summary order across dashboard and learning", 
   }
   assert.match(learning, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(learning, /aria-pressed=|data-selected=/);
+});
+
+test("deck tree projects a persisted collapsed parent", () => {
+  const markup = renderToStaticMarkup(
+    <DeckTree rows={rows} mode="dashboard" collapsedDeckIds={["root"]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+  );
+
+  assert.match(markup, /Unterstapel von Bereich anzeigen/);
+  assert.doesNotMatch(markup, /dashboard-deck-row-child/);
 });

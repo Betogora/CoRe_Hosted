@@ -74,6 +74,13 @@ export interface Profile {
   timezone: string;
   onboardingComplete: boolean;
   schedulerPreferences: Record<string, unknown>;
+  uiPreferences: UiPreferences;
+}
+
+export interface UiPreferences {
+  dashboardCollapsedDeckIds: string[];
+  learnCollapsedDeckIds: string[];
+  deckManagerExpandedDeckIds: string[];
 }
 
 export interface SourceDocument {

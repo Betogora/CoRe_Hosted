@@ -15,6 +15,8 @@ export interface DeckTreeProps {
   onOpenSettings: (deckId: string) => void;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
+  collapsedDeckIds: string[];
+  onDeckExpansionChange: (deckId: string, expanded: boolean) => unknown;
 }
 
 interface DropIntent {
@@ -49,15 +51,15 @@ function getVisibleRows(rows: DeckLibraryRow[], collapsedDeckIds: Set<string>) {
   return visibleRows;
 }
 
-export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings, onSetDeckCoreMode, onMoveDeck }: DeckTreeProps) {
-  const [collapsedDeckIds, setCollapsedDeckIds] = React.useState<Set<string>>(() => new Set());
+export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragStatus, setDragStatus] = React.useState("");
   const pointerDragRef = React.useRef<PointerDrag | null>(null);
   const lastDragEndAtRef = React.useRef(0);
   const decks = React.useMemo(() => rows.map((row) => row.deck), [rows]);
-  const visibleRows = React.useMemo(() => getVisibleRows(rows, collapsedDeckIds), [collapsedDeckIds, rows]);
+  const collapsedDeckIdSet = React.useMemo(() => new Set(collapsedDeckIds), [collapsedDeckIds]);
+  const visibleRows = React.useMemo(() => getVisibleRows(rows, collapsedDeckIdSet), [collapsedDeckIdSet, rows]);
 
   React.useEffect(() => () => {
     const drag = pointerDragRef.current;
@@ -65,12 +67,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
   }, []);
 
   function toggleCollapsed(deckId: string) {
-    setCollapsedDeckIds((current) => {
-      const next = new Set(current);
-      if (next.has(deckId)) next.delete(deckId);
-      else next.add(deckId);
-      return next;
-    });
+    onDeckExpansionChange(deckId, collapsedDeckIdSet.has(deckId));
   }
 
   function clearDragState() {
@@ -104,14 +101,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
     else {
       setDragStatus(intent.targetDeckId ? "Stapel als Unterstapel verschoben." : "Stapel auf die Hauptebene verschoben.");
       const targetDeckId = intent.targetDeckId;
-      if (targetDeckId) {
-        setCollapsedDeckIds((current) => {
-          if (!current.has(targetDeckId)) return current;
-          const next = new Set(current);
-          next.delete(targetDeckId);
-          return next;
-        });
-      }
+      if (targetDeckId && collapsedDeckIdSet.has(targetDeckId)) onDeckExpansionChange(targetDeckId, true);
     }
     clearDragState();
   }
@@ -181,7 +171,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
   }
 
   function renderRow(row: DeckLibraryRow): React.ReactNode {
-    const isCollapsed = collapsedDeckIds.has(row.id);
+    const isCollapsed = collapsedDeckIdSet.has(row.id);
     const isDragged = draggedDeckId === row.id;
     const isDropTarget = dropIntent?.targetDeckId === row.id;
     const activationLabel = `${row.path} lernen`;

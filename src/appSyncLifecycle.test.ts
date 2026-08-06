@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import type { SyncStatus } from "./coreTypes.ts";
-import { startAppAutosaveLifecycle, startAppSyncLifecycle } from "./appSyncLifecycle.ts";
-import type { AccountSyncEngine } from "./syncEngine.ts";
+import { isUiPreferenceOnlyChange, startAppAutosaveLifecycle, startAppSyncLifecycle } from "./appSyncLifecycle.ts";
+import { SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
 
 const state = { decks: [] } as unknown as WorkspaceState;
 
@@ -103,4 +103,58 @@ test("autosave acknowledges only the active scheduled snapshot", async () => {
   const runScheduled = scheduled as () => void | Promise<void>;
   await runScheduled();
   assert.equal(acknowledgedRun, 11);
+});
+
+test("autosave sends a profile patch for an isolated UI preference change", async () => {
+  const previous = {
+    version: 3,
+    profile: { userId: "user-1", uiPreferences: { dashboardCollapsedDeckIds: [], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: [] } },
+    decks: [],
+    documents: [],
+    cloudTombstones: [],
+    updatedAt: "2026-08-06T12:00:00.000Z",
+  } as unknown as WorkspaceState;
+  const snapshot = {
+    ...previous,
+    profile: {
+      ...previous.profile,
+      uiPreferences: { ...previous.profile.uiPreferences, dashboardCollapsedDeckIds: ["deck-a"] },
+    },
+  };
+  let scheduled: (() => void | Promise<void>) | null = null;
+  let mutation: any = null;
+  let fallback: WorkspaceState | null = null;
+  let acknowledged: WorkspaceState | null = null;
+  const engine = {
+    enqueueMutation(input: any) { mutation = input; },
+    async flush(stateFallback: WorkspaceState) {
+      fallback = stateFallback;
+      return { saved: { state: stateFallback } };
+    },
+  } as unknown as AccountSyncEngine;
+
+  assert.equal(isUiPreferenceOnlyChange(snapshot, previous), true);
+  startAppAutosaveLifecycle({
+    authPhase: "ready",
+    syncEngine: engine,
+    state: snapshot,
+    lastAcknowledgedState: previous,
+    runId: 12,
+    delayMs: 900,
+    onAcknowledged(_snapshot, saved) { acknowledged = saved ?? null; },
+    onStatus() {},
+    formatError: () => "Synchronisierung fehlgeschlagen.",
+    setTimer: ((handler: TimerHandler) => {
+      if (typeof handler === "function") scheduled = handler as () => void | Promise<void>;
+      return 1;
+    }) as typeof globalThis.setTimeout,
+    clearTimer: (() => {}) as typeof globalThis.clearTimeout,
+  });
+
+  assert.ok(scheduled);
+  await (scheduled as () => void | Promise<void>)();
+  assert.equal(mutation.type, SYNC_MUTATION_TYPES.profilePatch);
+  assert.equal(mutation.payload.profile, snapshot.profile);
+  assert.equal(fallback, snapshot);
+  assert.equal(acknowledged, snapshot);
 });

@@ -1377,6 +1377,13 @@ export async function appendReviewEvent(client: any, event: any, { deviceId, mut
   return { eventId: row.id, acknowledgedMutationId: resolvedMutationId };
 }
 
+export async function upsertAccountCloudProfile(client: any, profile: any, { mutationId, flushedAt }: any = {}) {
+  const resolvedMutationId = requireNonEmptyString(mutationId, "Mutation-ID fehlt.");
+  const writeTimestamp = requireTimestamp(flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
+  await saveCloudProfile(client, profile, writeTimestamp);
+  return { acknowledgedMutationId: resolvedMutationId };
+}
+
 export async function replaceAccountCloudState(client: any, state: any, { deviceId }: any = {}) {
   const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
   const user = await getAuthenticatedUser(client);

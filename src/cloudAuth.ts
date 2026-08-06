@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import type { Tables, TablesInsert } from "./database.types.ts";
+import { normalizeUiPreferences } from "./uiPreferences.ts";
 
 const SESSION_MISSING_CODES = new Set(["AuthSessionMissingError", "session_not_found"]);
 
@@ -31,6 +32,7 @@ const profileRowSchema = v.looseObject({
   timezone: v.optional(v.string()),
   onboarding_complete: v.optional(v.boolean()),
   scheduler_preferences: v.optional(v.record(v.string(), v.unknown())),
+  ui_preferences: v.optional(v.record(v.string(), v.unknown())),
   created_at: v.optional(v.string()),
   updated_at: v.optional(v.string()),
 });
@@ -174,6 +176,7 @@ export function createProfileRow(profile: any, user: any, timestamp: any = nowIs
     timezone: profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
     onboarding_complete: Boolean(profile?.onboardingComplete ?? true),
     scheduler_preferences: profile?.schedulerPreferences ?? { profile: "standard" },
+    ui_preferences: { ...normalizeUiPreferences(profile?.uiPreferences) },
     updated_at: timestamp,
   };
 }
@@ -193,6 +196,7 @@ export function createCloudProfile(row: any, user: any, fallback: any = {}, time
     timezone: validatedRow?.timezone ?? fallback?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
     onboardingComplete: validatedRow?.onboarding_complete ?? fallback?.onboardingComplete ?? true,
     schedulerPreferences: validatedRow?.scheduler_preferences ?? fallback?.schedulerPreferences ?? { profile: "standard" },
+    uiPreferences: normalizeUiPreferences(validatedRow?.ui_preferences ?? fallback?.uiPreferences),
     account: accountFromUser(user ?? { id: validatedRow?.id, email, created_at: validatedRow?.created_at }, "signed-in", timestamp),
   };
 }
@@ -279,7 +283,13 @@ export async function signInCloudAccount(client: any, profile: any, password: an
   const { data, error } = await client.auth.signInWithPassword({ email, password });
   if (error) throw error;
 
-  return saveCloudProfile(client, createCloudProfile(null, data.user, profile, timestamp), timestamp);
+  const initialProfile = createCloudProfile(null, data.user, profile, timestamp);
+  const { error: profileError } = await client.from("profiles").upsert(
+    createProfileRow(initialProfile, data.user, timestamp),
+    { onConflict: "id", ignoreDuplicates: true },
+  );
+  if (profileError) throw profileError;
+  return initialProfile;
 }
 
 export async function signInWithMagicLink(client: any, email: any, redirectTo: any = getDefaultAuthRedirectTo()) {

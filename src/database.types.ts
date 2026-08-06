@@ -381,6 +381,7 @@ export type Database = {
           preferred_language: string
           scheduler_preferences: Json
           timezone: string
+          ui_preferences: Json
           university: string | null
           updated_at: string
         }
@@ -394,6 +395,7 @@ export type Database = {
           preferred_language?: string
           scheduler_preferences?: Json
           timezone?: string
+          ui_preferences?: Json
           university?: string | null
           updated_at?: string
         }
@@ -407,6 +409,7 @@ export type Database = {
           preferred_language?: string
           scheduler_preferences?: Json
           timezone?: string
+          ui_preferences?: Json
           university?: string | null
           updated_at?: string
         }
