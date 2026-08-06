@@ -272,7 +272,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
         <div className="col-start-2 row-start-1 justify-self-end lg:col-start-3">{headerAction}</div>
       </div>
       <div className="max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)] md:overflow-x-auto">
-        <div className="min-w-0 md:min-w-[46rem]">
+        <div className="core-deck-tree-rows min-w-0 md:min-w-[46rem]">
           {visibleRows.map(renderRow)}
         </div>
       </div>

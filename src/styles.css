@@ -152,7 +152,7 @@
 
   .core-deck-summary-row {
     background-color: var(--core-group-depth-3);
-    transition: border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease, transform 140ms ease;
+    transition: border-color 140ms ease, box-shadow 140ms ease, filter 140ms ease, opacity 140ms ease, transform 140ms ease;
   }
 
   .core-deck-summary-row[data-deck-depth="0"] { background-color: var(--core-group-depth-0); }
@@ -173,8 +173,18 @@
   .core-deck-summary-row[data-drag-state="active"] {
     z-index: 20;
     opacity: 0.96;
-    transform: translateY(-2px) scale(1.01);
+    transform: translateY(-2px) scaleY(1.03);
     box-shadow: var(--core-shadow-raised);
+  }
+
+  .core-deck-tree-rows:has(> .core-deck-summary-row[data-drag-state="active"])
+    > .core-deck-summary-row:not([data-drag-state="active"]) {
+    filter: brightness(0.82);
+  }
+
+  [data-core-theme="dark"] .core-deck-tree-rows:has(> .core-deck-summary-row[data-drag-state="active"])
+    > .core-deck-summary-row:not([data-drag-state="active"]) {
+    filter: brightness(1.2);
   }
 
   .core-deck-summary-row[data-drop-state="invalid"] {

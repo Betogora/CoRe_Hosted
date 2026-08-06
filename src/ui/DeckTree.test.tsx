@@ -42,6 +42,7 @@ test("deck tree keeps hierarchy, labels and all three semantic metrics in every 
   assert.match(markup, /data-deck-depth="1"[^>]*class="core-deck-summary-row/);
   assert.match(markup, /select-none/);
   assert.match(markup, /min-w-\[46rem\]/);
+  assert.match(markup, /core-deck-tree-rows min-w-0/);
   assert.ok(markup.indexOf("Unterstapel von Bereich ausblenden") < markup.indexOf('data-deck-icon="true"'));
   assert.match(markup, /<button[^>]*data-deck-drag-source="true"[^>]*data-deck-row-activation="true"/);
   assert.match(markup, /lucide-ellipsis/);
