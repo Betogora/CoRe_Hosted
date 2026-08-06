@@ -33,7 +33,7 @@ export interface IconButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
   label: string;
   icon: LucideIcon;
-  variant?: "secondary" | "destructive";
+  variant?: "secondary" | "destructive" | "ghost";
 }
 
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(

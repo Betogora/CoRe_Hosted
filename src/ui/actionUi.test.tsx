@@ -29,3 +29,9 @@ test("IconButton uses the outlined secondary action by default", () => {
   const markup = renderToStaticMarkup(<IconButton label="Speichern" icon={Save} />);
   assert.match(markup, /core-action-secondary/);
 });
+
+test("IconButton offers a borderless ghost action with the same square target", () => {
+  const markup = renderToStaticMarkup(<IconButton label="Optionen" icon={Save} variant="ghost" />);
+  assert.match(markup, /core-action-ghost/);
+  assert.match(markup, /min-w-11/);
+});

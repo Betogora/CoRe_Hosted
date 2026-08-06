@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { StatusMessage } from "./feedbackUi.tsx";
+import { StatusMessage, SuccessToast } from "./feedbackUi.tsx";
 
 test("StatusMessage maps every tone and keeps color-independent visible content", () => {
   for (const tone of ["info", "success", "warning", "error"] as const) {
@@ -20,4 +20,16 @@ test("StatusMessage owns polite and assertive announcement semantics", () => {
   assert.match(polite, /aria-live="polite"/);
   assert.match(assertive, /role="alert"/);
   assert.doesNotMatch(assertive, /aria-live=/);
+});
+
+test("SuccessToast renders a top-right success overlay with a dismiss action", () => {
+  const markup = renderToStaticMarkup(<SuccessToast onDismiss={() => undefined}>Stapel erfolgreich angelegt.</SuccessToast>);
+
+  assert.match(markup, /data-success-toast-region="true"/);
+  assert.match(markup, /fixed/);
+  assert.match(markup, /sm:right-8/);
+  assert.match(markup, /core-status-success/);
+  assert.match(markup, /role="status"/);
+  assert.match(markup, /aria-label="Erfolgsmeldung schließen"/);
+  assert.match(markup, /Stapel erfolgreich angelegt\./);
 });

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
 import { AppErrorBoundary } from "./AppErrorBoundary.tsx";
 import { initializeCoreTheme } from "./coreTheme.ts";
+import { SuccessToastProvider } from "./ui/feedbackUi.tsx";
 import { CoreTooltipProvider } from "./ui/tooltipUi.tsx";
 import "./styles.css";
 
@@ -22,7 +23,9 @@ if (!rootElement) throw new Error("CoRe-Rootelement fehlt.");
 createRoot(rootElement).render(
   <AppErrorBoundary>
     <CoreTooltipProvider>
-      <ApplicationRoot />
+      <SuccessToastProvider>
+        <ApplicationRoot />
+      </SuccessToastProvider>
     </CoreTooltipProvider>
   </AppErrorBoundary>,
 );
