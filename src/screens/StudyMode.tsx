@@ -272,7 +272,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
         </header>
 
         <section className="grid flex-1 place-items-center py-8">
-          <div className="core-surface-raised flex min-h-[56vh] w-full flex-col justify-center rounded-[28px] p-8 sm:p-14">
+          <div className="core-study-card core-surface-raised flex min-h-[56vh] w-full flex-col justify-center rounded-[28px] p-6 sm:p-14">
             {current ? (
               <>
                 <div className="w-full">
@@ -282,7 +282,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                     </p>
                   ) : null}
                   <p ref={questionHeadingRef} tabIndex={-1} className="mb-5 core-body font-semibold uppercase tracking-[0.18em] text-[var(--core-action-secondary)] outline-none">Frage</p>
-                  <div className="core-heading-1 font-semibold leading-relaxed text-[var(--core-text)]">
+                  <div className="core-study-card-front text-[var(--core-text)]">
                     <CardHtml html={current.front} mediaUrls={studyMediaUrls} />
                   </div>
                   {isMultipleChoice ? (
@@ -327,11 +327,11 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                     <>
                       <div className="my-8 h-px bg-[var(--core-border)]" />
                       <p ref={answerHeadingRef} tabIndex={-1} className="mb-4 core-body font-semibold uppercase tracking-[0.18em] text-[var(--core-action-secondary)] outline-none">Antwort</p>
-                      <div className="core-heading-2 font-semibold leading-relaxed text-[var(--core-text)]">
+                      <div className="core-study-card-back text-[var(--core-text)]">
                         <CardHtml html={current.back} mediaUrls={studyMediaUrls} />
                       </div>
                       {isMultipleChoice ? (
-                        <div className={`mt-5 rounded-2xl border p-4 core-body ${multipleChoiceFeedbackClass}`}>
+                        <div className={`core-mcq-feedback mt-5 rounded-2xl border p-4 ${multipleChoiceFeedbackClass}`}>
                           <p className="font-semibold">{selectedChoice ? (selectedChoiceIsCorrect ? "Richtig ausgewählt." : "Nicht ganz.") : "Lösung aufgedeckt."}</p>
                           <p className="mt-2">Richtige Antwort: {expectedAnswer}</p>
                           {selectedChoice ? <p className="mt-1">Deine Auswahl: {selectedChoice}</p> : null}

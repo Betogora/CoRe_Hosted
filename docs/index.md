@@ -26,7 +26,8 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 - [`debatable-features.md`](debatable-features.md): Evaluationsfragen für mögliche spätere Produktentscheidungen; keine Entscheidung oder Löschfreigabe.
 - [`p0-7-accessibility-audit.md`](p0-7-accessibility-audit.md): Arbeitsnachweis zur offenen Accessibility-Abnahme.
 - [`file-naming-conventions.md`](file-naming-conventions.md): Dateinamensregeln.
-- [`ui-elements.html`](ui-elements.html): teilbarer, aus den kanonischen UI-Quellen erzeugter visueller Elementkatalog.
+- [`ui-elements.html`](ui-elements.html): teilbarer, fachlich kuratierter und technisch mit den kanonischen UI-Quellen synchronisierter visueller Elementkatalog.
+- [`card-types.html`](card-types.html): responsive Referenz der Reviewansichten für Basic, Basic umgekehrt, Lückentext und Multiple Choice.
 
 ## Technische Einstiegspunkte
 

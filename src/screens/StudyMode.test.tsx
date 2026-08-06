@@ -48,6 +48,8 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
 
   assert.match(markup, /Nenne die Hauptstadt/);
   assert.match(markup, /Antwort anzeigen/);
+  assert.match(markup, /core-study-card/);
+  assert.match(markup, /core-study-card-front/);
   assert.doesNotMatch(markup, /Original|Variante|Level|fsrs|Reifegrad/i);
   assert.doesNotMatch(markup, /original-anchor|source-anchor|schedulerVersion|variantLevel|generationSource/i);
 });

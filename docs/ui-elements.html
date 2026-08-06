@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 0e71a542805a3366 */
+/* Quellenstand: 13b849367ca06156 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -543,8 +543,31 @@ video {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
-[data-deck-row-activation]:focus-visible {
-    outline: none;
+.core-deck-summary-row {
+    background-color: var(--core-group-depth-3);
+    transition: border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease, transform 140ms ease;
+  }
+.core-deck-summary-row[data-deck-depth="0"] { background-color: var(--core-group-depth-0); }
+.core-deck-summary-row[data-deck-depth="1"] { background-color: var(--core-group-depth-1); }
+.core-deck-summary-row[data-deck-depth="2"] { background-color: var(--core-group-depth-2); }
+.core-deck-summary-row[data-deck-depth="3"] { background-color: var(--core-group-depth-3); }
+.core-deck-summary-row:has([data-deck-row-activation]:hover),
+  .core-deck-summary-row[data-drop-state="valid"] {
+    border-color: var(--core-border-interactive);
+  }
+.core-deck-summary-row[data-drop-state="valid"] {
+    border-color: var(--core-warning);
+    box-shadow: inset 0 0 0 3px var(--core-warning);
+  }
+.core-deck-summary-row[data-drag-state="active"] {
+    z-index: 20;
+    opacity: 0.96;
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: var(--core-shadow-raised);
+  }
+.core-deck-summary-row[data-drop-state="invalid"] {
+    border-color: var(--core-danger);
+    box-shadow: 0 0 0 2px var(--core-danger);
   }
 .core-tooltip {
     position: fixed;
@@ -617,6 +640,21 @@ video {
 .core-action-secondary:not(:disabled):hover {
     background: var(--core-surface-hover);
   }
+.core-action-ghost {
+    border-color: transparent;
+    background: transparent;
+    color: var(--core-action-secondary);
+  }
+.core-action-ghost:not(:disabled):hover {
+    background: var(--core-surface-hover);
+  }
+.core-action-ghost:disabled {
+    cursor: not-allowed;
+    border-color: transparent;
+    background: transparent;
+    color: var(--core-action-disabled-text);
+    opacity: 0.56;
+  }
 .core-action-destructive {
     border-color: var(--core-danger);
     background: var(--core-danger);
@@ -683,6 +721,23 @@ video {
     display: grid;
     gap: 0.375rem;
   }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+.pointer-events-none {
+  pointer-events: none;
+}
+.pointer-events-auto {
+  pointer-events: auto;
+}
 .\!visible {
   visibility: visible !important;
 }
@@ -695,20 +750,20 @@ video {
 .relative {
   position: relative;
 }
+.inset-0 {
+  inset: 0px;
+}
 .right-3 {
   right: 0.75rem;
 }
+.z-0 {
+  z-index: 0;
+}
+.z-\[1\] {
+  z-index: 1;
+}
 .z-\[70\] {
   z-index: 70;
-}
-.col-span-2 {
-  grid-column: span 2 / span 2;
-}
-.col-start-2 {
-  grid-column-start: 2;
-}
-.row-start-1 {
-  grid-row-start: 1;
 }
 .my-6 {
   margin-top: 1.5rem;
@@ -717,11 +772,8 @@ video {
 .mb-3 {
   margin-bottom: 0.75rem;
 }
-.mb-4 {
-  margin-bottom: 1rem;
-}
-.ml-4 {
-  margin-left: 1rem;
+.mb-6 {
+  margin-bottom: 1.5rem;
 }
 .mt-0\.5 {
   margin-top: 0.125rem;
@@ -756,6 +808,9 @@ video {
 .inline-flex {
   display: inline-flex;
 }
+.table {
+  display: table;
+}
 .grid {
   display: grid;
 }
@@ -768,10 +823,6 @@ video {
 .size-10 {
   width: 2.5rem;
   height: 2.5rem;
-}
-.size-11 {
-  width: 2.75rem;
-  height: 2.75rem;
 }
 .size-12 {
   width: 3rem;
@@ -817,6 +868,19 @@ video {
 .min-h-28 {
   min-height: 7rem;
 }
+.w-\[18\%\] {
+  width: 18%;
+}
+.w-\[24\%\] {
+  width: 24%;
+}
+.w-\[58\%\] {
+  width: 58%;
+}
+.w-fit {
+  width: -moz-fit-content;
+  width: fit-content;
+}
 .w-full {
   width: 100%;
 }
@@ -826,6 +890,18 @@ video {
 .min-w-11 {
   min-width: 2.75rem;
 }
+.min-w-64 {
+  min-width: 16rem;
+}
+.min-w-\[15rem\] {
+  min-width: 15rem;
+}
+.min-w-\[46rem\] {
+  min-width: 46rem;
+}
+.max-w-full {
+  max-width: 100%;
+}
 .max-w-md {
   max-width: 28rem;
 }
@@ -834,6 +910,12 @@ video {
 }
 .shrink-0 {
   flex-shrink: 0;
+}
+.table-fixed {
+  table-layout: fixed;
+}
+.border-collapse {
+  border-collapse: collapse;
 }
 .-rotate-90 {
   --tw-rotate: -90deg;
@@ -855,11 +937,16 @@ video {
 .cursor-pointer {
   cursor: pointer;
 }
+.select-none {
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+}
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
-  grid-template-columns: minmax(0,1fr) auto;
+.grid-cols-\[minmax\(13rem\2c 1fr\)_minmax\(15rem\2c auto\)_auto\] {
+  grid-template-columns: minmax(13rem,1fr) minmax(15rem,auto) auto;
 }
 .flex-wrap {
   flex-wrap: wrap;
@@ -882,6 +969,9 @@ video {
 .gap-2 {
   gap: 0.5rem;
 }
+.gap-2\.5 {
+  gap: 0.625rem;
+}
 .gap-3 {
   gap: 0.75rem;
 }
@@ -891,14 +981,18 @@ video {
 .gap-5 {
   gap: 1.25rem;
 }
-.justify-self-end {
-  justify-self: end;
+.gap-x-3 {
+  -moz-column-gap: 0.75rem;
+       column-gap: 0.75rem;
 }
 .overflow-hidden {
   overflow: hidden;
 }
 .overflow-visible {
   overflow: visible;
+}
+.overflow-x-auto {
+  overflow-x: auto;
 }
 .overflow-y-auto {
   overflow-y: auto;
@@ -907,6 +1001,9 @@ video {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.break-words {
+  overflow-wrap: break-word;
 }
 .rounded {
   border-radius: 0.25rem;
@@ -938,6 +1035,9 @@ video {
 .border-b {
   border-bottom-width: 1px;
 }
+.border-t-2 {
+  border-top-width: 2px;
+}
 .border-dashed {
   border-style: dashed;
 }
@@ -964,12 +1064,6 @@ video {
 }
 .border-core-warning {
   border-color: var(--core-warning);
-}
-.bg-\[var\(--core-group-depth-0\)\] {
-  background-color: var(--core-group-depth-0);
-}
-.bg-\[var\(--core-group-depth-1\)\] {
-  background-color: var(--core-group-depth-1);
 }
 .bg-\[var\(--core-info-surface\)\] {
   background-color: var(--core-info-surface);
@@ -1028,6 +1122,10 @@ video {
 .p-8 {
   padding: 2rem;
 }
+.px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
 .px-3 {
   padding-left: 0.75rem;
   padding-right: 0.75rem;
@@ -1036,6 +1134,10 @@ video {
   padding-left: 1rem;
   padding-right: 1rem;
 }
+.py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
 .py-1\.5 {
   padding-top: 0.375rem;
   padding-bottom: 0.375rem;
@@ -1043,6 +1145,20 @@ video {
 .py-2\.5 {
   padding-top: 0.625rem;
   padding-bottom: 0.625rem;
+}
+.py-3 {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.pl-5 {
+  padding-left: 1.25rem;
+}
+.pr-2 {
+  padding-right: 0.5rem;
 }
 .pr-9 {
   padding-right: 2.25rem;
@@ -1053,8 +1169,14 @@ video {
 .text-center {
   text-align: center;
 }
+.text-right {
+  text-align: right;
+}
 .font-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.font-medium {
+  font-weight: 500;
 }
 .font-semibold {
   font-weight: 600;
@@ -1325,9 +1447,10 @@ summary {
   min-height: 2.75rem;
 }
 
-:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
-  outline: 3px solid var(--core-focus-ring);
-  outline-offset: 3px;
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus {
+  outline: none !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
 }
 
 .core-status-info,
@@ -1382,6 +1505,26 @@ summary {
 
 .core-mcq-option-wrong {
   animation: core-answer-shake 240ms ease-in-out;
+}
+
+.core-study-card .card-html {
+  overflow: visible;
+}
+
+.core-study-card .core-study-card-front .card-html {
+  font: 600 clamp(2rem, 3vw, 3rem)/1.25 Amulya, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-study-card .core-study-card-back .card-html {
+  font: 600 clamp(1.625rem, 2.4vw, 2.375rem)/1.3 Amulya, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-study-card .core-mcq-option {
+  font: 600 clamp(1.125rem, 1.4vw, 1.375rem)/1.4 Synonym, ui-sans-serif, system-ui, sans-serif;
+}
+
+.core-study-card .core-mcq-feedback {
+  font: 400 clamp(1rem, 1.15vw, 1.125rem)/1.5 Synonym, ui-sans-serif, system-ui, sans-serif;
 }
 
 @keyframes core-answer-pulse {
@@ -1559,11 +1702,6 @@ summary {
   color: var(--core-text);
 }
 
-.core-pdf-control:focus-visible {
-  outline: 3px solid var(--core-focus-ring-soft);
-  outline-offset: 2px;
-}
-
 .core-pdf-control:disabled {
   cursor: not-allowed;
   opacity: 0.42;
@@ -1575,11 +1713,6 @@ summary {
   background: var(--core-surface-muted);
   scroll-behavior: smooth;
   scrollbar-color: var(--core-border) var(--core-surface-muted);
-}
-
-.core-pdf-scroll:focus-visible {
-  outline: 3px solid var(--core-focus-ring-soft);
-  outline-offset: -3px;
 }
 
 .core-pdf-pages {
@@ -1694,10 +1827,6 @@ summary {
   border-color: var(--core-action-primary);
 }
 
-.hover\:border-core-action:hover {
-  border-color: var(--core-action-primary);
-}
-
 .hover\:border-core-focus:hover {
   border-color: var(--core-focus);
 }
@@ -1720,29 +1849,12 @@ summary {
 
 @media (min-width: 640px) {
 
-  .sm\:col-span-1 {
-    grid-column: span 1 / span 1;
-  }
-
-  .sm\:col-start-auto {
-    grid-column-start: auto;
-  }
-
-  .sm\:row-start-auto {
-    grid-row-start: auto;
-  }
-
   .sm\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .sm\:grid-cols-\[minmax\(13rem\2c 1fr\)_minmax\(15rem\2c auto\)_auto\] {
-    grid-template-columns: minmax(13rem,1fr) minmax(15rem,auto) auto;
-  }
-
-  .sm\:gap-x-6 {
-    -moz-column-gap: 1.5rem;
-         column-gap: 1.5rem;
+  .sm\:p-7 {
+    padding: 1.75rem;
   }
 }
 
@@ -2367,6 +2479,9 @@ summary {
       <symbol id="icon-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13Z"/><path d="M8 8h8M8 12h6"/></symbol>
       <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
       <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+      <symbol id="icon-home" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></symbol>
+      <symbol id="icon-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></symbol>
+      <symbol id="icon-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
       <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></symbol>
       <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 15v5h16v-5"/></symbol>
       <symbol id="icon-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
@@ -2383,7 +2498,7 @@ summary {
             <h1 class="core-heading-1 text-core-text">UI-Elementkatalog</h1>
             <p class="catalog-description">
               Teilbare Referenz aller aktuell unterschiedlichen Farben, Schriften, Oberflächen, Komponenten und Zustände.
-              Nach UI-Änderungen wird die eingebettete Einzeldatei mit <code>npm run docs:ui-elements</code> aktualisiert.
+              Die Beispiele werden fachlich gegen die Produktoberflächen geprüft; <code>npm run docs:ui-elements</code> synchronisiert danach eingebettete Styles und Quellenstand.
             </p>
             <div class="catalog-meta" aria-label="Quellen und Status">
               <span class="catalog-pill">Quelle: src/styles.css</span>
@@ -2555,6 +2670,7 @@ summary {
                   <button type="button" aria-label="Speichern" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-save"></use></svg></button>
                   <button type="button" aria-label="Hinzufügen" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-plus"></use></svg></button>
                   <button type="button" aria-label="Sekundäre Icon-Aktion" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-info"></use></svg></button>
+                  <button type="button" aria-label="Randlose Icon-Aktion" class="core-action-ghost min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button>
                   <button type="button" aria-label="Entfernen" class="core-action-destructive min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-trash"></use></svg></button>
                   <button type="button" disabled aria-label="Deaktivierte Icon-Aktion" class="core-action-secondary min-h-11 min-w-11 p-2.5"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button>
                 </div>
@@ -2629,10 +2745,12 @@ summary {
             <div class="catalog-section-body">
               <div class="catalog-grid catalog-grid-wide">
                 <div class="catalog-demo catalog-stack">
-                  <span class="catalog-demo-label">Navigationszeilen</span>
-                  <button type="button" aria-current="page" class="flex min-h-11 w-full items-center gap-3 rounded-xl bg-core-subtle px-3 text-left text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-surface text-core-action"><svg class="catalog-icon"><use href="#icon-chart"></use></svg></span><span class="core-control-label">Übersicht</span></button>
-                  <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle hover:text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="core-control-label">Stapel</span></button>
-                  <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle hover:text-core-text"><span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-sparkles"></use></svg></span><span class="core-control-label">Lernen</span></button>
+                  <span class="catalog-demo-label">Primäre Hauptnavigation</span>
+                  <button type="button" aria-current="page" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl bg-core-subtle px-3 text-left font-medium text-core-text shadow-sm"><svg class="catalog-icon shrink-0"><use href="#icon-home"></use></svg><span class="min-w-0 truncate">Heute</span></button>
+                  <button type="button" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-core-secondary transition hover:bg-core-surface hover:text-core-text"><svg class="catalog-icon shrink-0"><use href="#icon-sparkles"></use></svg><span class="min-w-0 truncate">Lernen</span></button>
+                  <button type="button" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-core-secondary transition hover:bg-core-surface hover:text-core-text"><svg class="catalog-icon shrink-0"><use href="#icon-plus"></use></svg><span class="min-w-0 truncate">Erstellen</span></button>
+                  <button type="button" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-core-secondary transition hover:bg-core-surface hover:text-core-text"><svg class="catalog-icon shrink-0"><use href="#icon-chart"></use></svg><span class="min-w-0 truncate">Statistik</span></button>
+                  <button type="button" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-core-secondary transition hover:bg-core-surface hover:text-core-text"><svg class="catalog-icon shrink-0"><use href="#icon-layers"></use></svg><span class="min-w-0 truncate">Kartenverwaltung</span></button>
                 </div>
                 <div class="catalog-demo catalog-stack">
                   <span class="catalog-demo-label">Core-Modus · segmentiertes Control</span>
@@ -2679,6 +2797,13 @@ summary {
                 <span class="catalog-pill border-core-success bg-core-success-soft text-core-text">Erfolg</span>
                 <span class="catalog-pill border-core-warning bg-core-warning-soft text-core-text">Warnung</span>
                 <span class="catalog-pill border-core-danger bg-core-danger-soft text-core-text">Fehler</span>
+              </div>
+              <div class="catalog-demo">
+                <span class="catalog-demo-label">Schließbarer Erfolgstoast</span>
+                <div class="core-status-success inline-flex w-fit max-w-full items-center gap-3 rounded-2xl py-4 pl-5 pr-2 shadow-[var(--core-shadow-raised)]" role="status" aria-live="polite">
+                  <svg class="catalog-icon shrink-0"><use href="#icon-check"></use></svg>
+                  <div class="flex min-w-0 items-center gap-3"><p class="min-w-0 flex-1 break-words core-body-large font-medium">Stapel „Welt-Hauptstädte“ wurde erfolgreich verschoben.</p><button type="button" class="core-action-ghost min-w-11 shrink-0 p-2.5" aria-label="Erfolgsmeldung schließen"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button></div>
+                </div>
               </div>
               <div class="catalog-grid">
                 <div class="core-surface-raised rounded-[18px] p-6"><span class="grid size-12 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon-lg"><use href="#icon-chart"></use></svg></span><p class="core-status-label mt-5 uppercase tracking-wide text-core-muted">Heute fällig</p><p class="core-heading-2 mt-2 text-core-text">24</p><p class="core-body mt-1 text-core-muted">aus 186 Karten</p></div>
@@ -2776,34 +2901,47 @@ summary {
             <div class="catalog-section-head">
               <p class="catalog-kicker">10 · Produktmuster</p>
               <h2 class="core-heading-2 text-core-text">Aktuelle fachliche Oberflächen</h2>
-              <p>Wiederkehrende Kombinationen aus Dashboard, Stapelverwaltung, Import und Synchronisierung.</p>
+              <p>Wiederkehrende Kombinationen aus Dashboard, Lernen, Kartenverwaltung, Import und Synchronisierung.</p>
             </div>
             <div class="catalog-section-body">
-              <article class="core-surface-raised rounded-[18px] p-5">
-                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <div><p class="core-caption uppercase tracking-wide text-core-muted">Kanonische Stapelkarte</p><h3 class="core-heading-3 mt-1 text-core-text">Dashboard · Lernen · Kartenverwaltung</h3></div>
-                  <span class="catalog-pill">Kontextabhängige Hauptaktion</span>
+              <article class="core-surface-raised min-w-0 rounded-[18px] p-4 sm:p-7">
+                <div class="mb-6 flex min-h-11 flex-wrap items-center justify-between gap-3">
+                  <div><p class="core-caption uppercase tracking-wide text-core-muted">Gemeinsame Baumprojektion</p><h3 class="core-heading-3 mt-1 font-semibold text-core-text">Aktive Stapel</h3></div>
+                  <div class="flex items-center gap-3"><span class="catalog-pill">Dashboard und Lernen</span><button type="button" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-core-subtle px-4 core-body font-semibold text-core-action">Lernen öffnen <svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></button></div>
                 </div>
-                <div class="grid gap-3 rounded-2xl border border-core-border bg-[var(--core-group-depth-0)] p-2 transition hover:border-core-action">
-                  <div class="grid min-h-20 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl px-3 text-left sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6">
-                    <span class="flex min-w-0 items-center gap-2"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><button type="button" class="grid size-11 shrink-0 place-items-center rounded-lg text-core-action" aria-label="Unterstapel ausblenden"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></button><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Welt-Hauptstädte</strong></span></span>
-                    <span class="col-span-2 grid grid-cols-3 gap-5 sm:col-span-1"><span><small class="block core-caption uppercase text-core-muted">Neu</small><strong class="core-body-large" style="color:var(--core-deck-new-text)">12</strong></span><span><small class="block core-caption uppercase text-core-muted">Fällig</small><strong class="core-body-large" style="color:var(--core-deck-due-text)">8</strong></span><span><small class="block core-caption uppercase text-core-muted">Gesamt</small><strong class="core-body-large" style="color:var(--core-deck-total-text)">245</strong></span></span>
-                    <span class="col-start-2 row-start-1 flex items-center justify-self-end gap-3 sm:col-start-auto sm:row-start-auto"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="58 Prozent" style="background:conic-gradient(var(--core-action-primary) 58%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-action-secondary min-w-11 p-2.5" aria-label="Stapeloptionen"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button></span>
-                  </div>
-                  <div class="ml-4 grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-core-border bg-[var(--core-group-depth-1)] px-3 text-left transition hover:border-core-action sm:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] sm:gap-x-6">
-                    <span class="flex min-w-0 items-center gap-3"><span class="grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large text-core-text">Europa</strong><small class="block truncate core-caption text-core-muted">Welt-Hauptstädte / Europa</small></span></span>
-                    <span class="col-span-2 grid grid-cols-3 gap-5 sm:col-span-1"><span><small class="block core-caption uppercase text-core-muted">Neu</small><strong class="core-body-large" style="color:var(--core-deck-new-text)">3</strong></span><span><small class="block core-caption uppercase text-core-muted">Fällig</small><strong class="core-body-large" style="color:var(--core-deck-due-text)">2</strong></span><span><small class="block core-caption uppercase text-core-muted">Gesamt</small><strong class="core-body-large" style="color:var(--core-deck-total-text)">53</strong></span></span>
-                    <span class="col-start-2 row-start-1 flex items-center justify-self-end gap-3 sm:col-start-auto sm:row-start-auto"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="42 Prozent" style="background:conic-gradient(var(--core-action-primary) 42%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-action-secondary min-w-11 p-2.5" aria-label="Stapeloptionen"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button></span>
+                <div class="max-w-full overflow-x-auto rounded-2xl border border-core-border">
+                  <div class="min-w-[46rem]">
+                    <div class="core-deck-summary-row relative min-w-0 select-none border-b border-core-border" data-deck-depth="0">
+                      <button type="button" data-deck-row-activation="true" class="absolute inset-0 z-0 text-left" aria-label="Welt-Hauptstädte lernen"><span class="sr-only">Welt-Hauptstädte lernen</span></button>
+                      <div class="pointer-events-none relative z-[1] grid min-h-11 min-w-0 grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] items-center gap-x-3 px-2">
+                        <div class="flex min-w-0 items-center gap-2"><button type="button" class="pointer-events-auto grid size-9 shrink-0 place-items-center rounded-lg text-core-action" aria-label="Unterstapel ausblenden"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></button><span class="grid size-9 shrink-0 place-items-center rounded-full border-2" style="color:#6f7e9e;border-color:#6f7e9e;background-color:#6f7e9e1f"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><strong class="block truncate core-body-large font-semibold text-core-text">Welt-Hauptstädte</strong></div>
+                        <dl class="grid min-w-[15rem] grid-cols-3 gap-3"><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Neu</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-new-text)">12</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Fällig</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-due-text)">8</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Gesamt</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-total-text)">245</dd></div></dl>
+                        <div class="pointer-events-auto flex items-center justify-end gap-2"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="58 Prozent" style="background:conic-gradient(var(--core-action-primary) 58%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Welt-Hauptstädte"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div>
+                      </div>
+                    </div>
+                    <div class="core-deck-summary-row relative min-w-0 select-none" data-deck-depth="1">
+                      <button type="button" data-deck-row-activation="true" class="absolute inset-0 z-0 text-left" aria-label="Welt-Hauptstädte / Europa lernen"><span class="sr-only">Welt-Hauptstädte / Europa lernen</span></button>
+                      <div class="pointer-events-none relative z-[1] grid min-h-11 min-w-0 grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] items-center gap-x-3 px-2">
+                        <div class="flex min-w-0 items-center gap-2" style="padding-inline-start:9px"><span class="size-9 shrink-0"></span><span class="grid size-9 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large font-semibold text-core-text">Europa</strong><small class="block truncate core-caption text-core-muted">Welt-Hauptstädte / Europa</small></span></div>
+                        <dl class="grid min-w-[15rem] grid-cols-3 gap-3"><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Neu</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-new-text)">3</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Fällig</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-due-text)">2</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Gesamt</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-total-text)">53</dd></div></dl>
+                        <div class="pointer-events-auto flex items-center justify-end gap-2"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="42 Prozent" style="background:conic-gradient(var(--core-action-primary) 42%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Welt-Hauptstädte / Europa"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </article>
-              <div class="catalog-grid catalog-grid-wide">
-                <article class="core-surface-raised rounded-[18px] p-6">
-                  <div class="flex items-center justify-between gap-4"><div><p class="core-caption uppercase tracking-wide text-core-muted">Aktiver Stapel</p><h3 class="core-heading-3 mt-1 text-core-text">Weltwissen</h3></div><span class="grid size-10 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span></div>
-                  <p class="core-body mt-4 text-core-muted">42 Karten · 8 fällig · 3 Varianten</p>
-                  <div class="catalog-progress-track mt-4"><div class="catalog-progress-value" style="width:58%"></div></div>
-                  <button type="button" class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-core-subtle px-4 core-body font-semibold text-core-action">Jetzt lernen <svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></button>
-                </article>
+              <article class="core-surface-raised min-w-0 overflow-hidden rounded-[18px]">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-core-border p-5"><div><p class="core-caption uppercase tracking-wide text-core-muted">Gruppierte Gesamttabelle</p><h3 class="core-heading-3 mt-1 text-core-text">Kartenverwaltung</h3></div><span class="catalog-pill">Direkte Stapelwerte</span></div>
+                <div class="flex flex-wrap items-center gap-3 border-b border-core-border p-4"><label class="flex min-h-11 min-w-64 flex-1 items-center rounded-xl border border-core-border bg-core-surface px-3 core-body text-core-muted">Stapel, Vorderseite, Rückseite oder Tags suchen</label><button type="button" class="core-action-primary min-h-11 px-4"><svg class="catalog-icon"><use href="#icon-plus"></use></svg>Neue Karte</button><span class="core-caption font-semibold text-core-muted">2 Karten</span></div>
+                <div class="max-w-full overflow-x-auto">
+                  <table class="w-full min-w-[46rem] table-fixed border-collapse">
+                    <thead class="bg-core-surface"><tr class="border-b border-core-border"><th class="w-[58%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Sortierfeld</th><th class="w-[18%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Fällig</th><th class="w-[24%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Varianten</th></tr></thead>
+                    <tbody><tr class="core-deck-summary-row border-b border-t-2 border-core-border" data-deck-depth="1"><th colspan="3" class="px-3 text-left"><div class="grid min-h-11 grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] items-center gap-x-3 px-2"><div class="flex min-w-0 items-center gap-2" style="padding-inline-start:9px"><span class="grid size-9 place-items-center text-core-action"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></span><span class="grid size-9 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large font-semibold text-core-text">Europa</strong><small class="block truncate core-caption text-core-muted">Welt-Hauptstädte / Europa</small></span></div><dl class="grid min-w-[15rem] grid-cols-3 gap-3"><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Neu</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-new-text)">1</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Fällig</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-due-text)">1</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Gesamt</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-total-text)">2</dd></div></dl><div class="flex items-center justify-end gap-2"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="50 Prozent" style="background:conic-gradient(var(--core-action-primary) 50%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Welt-Hauptstädte / Europa"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div></div></th></tr>
+                    <tr class="border-b border-core-border bg-core-surface"><td class="truncate px-4 py-1 core-body font-semibold text-core-text">Was ist die Hauptstadt von Portugal?</td><td class="px-4 py-1 core-body text-core-secondary">Neu</td><td class="px-4 py-1"><span class="inline-flex rounded-full border border-core-action bg-core-info-soft px-2 core-caption font-semibold text-core-action">Mit Varianten</span></td></tr>
+                    <tr class="border-b border-core-border bg-core-surface"><td class="truncate px-4 py-1 core-body font-semibold text-core-text">Madrid liegt in welchem Land?</td><td class="px-4 py-1 core-body text-core-secondary">12.08.2026</td><td class="px-4 py-1"><span class="inline-flex rounded-full border border-core-border bg-core-subtle px-2 core-caption font-semibold text-core-muted">Ohne Varianten</span></td></tr></tbody>
+                  </table>
+                </div>
+              </article>
                 <article class="core-surface-raised rounded-[18px] p-6">
                   <div class="flex items-center justify-between gap-4"><div><p class="core-caption uppercase tracking-wide text-core-muted">Lernaktivität</p><h3 class="core-heading-3 mt-1 text-core-text">Heatmap</h3></div><span class="catalog-pill">12 Monate</span></div>
                   <div class="catalog-heatmap mt-5" aria-label="Beispiel einer Lern-Heatmap">
@@ -2813,7 +2951,6 @@ summary {
                   </div>
                   <div class="mt-4 flex items-center justify-end gap-2 core-caption text-core-muted"><span>Weniger</span><span class="size-3 rounded-[4px] border border-core-border bg-core-subtle"></span><span class="size-3 rounded-[4px] border border-core-border bg-core-success-soft"></span><span class="size-3 rounded-[4px] border border-core-border bg-core-success"></span><span>Mehr</span></div>
                 </article>
-              </div>
               <div class="core-surface-raised rounded-[18px] p-6">
                 <div class="flex flex-wrap items-center justify-between gap-3"><div><p class="core-caption uppercase tracking-wide text-core-muted">APKG-Import</p><h3 class="core-heading-3 mt-1 text-core-text">Vorschau und Übernahme</h3></div><span class="catalog-pill border-core-warning bg-core-warning-soft text-core-text">1 Warnung</span></div>
                 <div class="catalog-steps mt-6"><div class="catalog-step" data-complete="true">Analysieren</div><div class="catalog-step" data-complete="true">Vorschau bereit</div><div class="catalog-step" data-complete="true">Übernehmen</div><div class="catalog-step">Medien synchronisieren</div><div class="catalog-step">Fertig</div></div>
@@ -2825,7 +2962,7 @@ summary {
               <div class="grid gap-4 lg:grid-cols-3">
                 <button type="button" class="group rounded-2xl bg-core-action p-5 text-left text-[var(--core-text-on-accent)] shadow-[var(--core-shadow-raised)] transition hover:-translate-y-0.5"><svg class="catalog-icon-lg"><use href="#icon-plus"></use></svg><span class="mt-5 block core-body-large font-semibold">Erste Karte erstellen</span><span class="mt-2 block core-body">Frage und Antwort direkt eingeben.</span></button>
                 <button type="button" class="group rounded-2xl border border-core-border bg-core-surface p-5 text-left text-core-text transition hover:-translate-y-0.5 hover:border-core-success"><svg class="catalog-icon-lg"><use href="#icon-upload"></use></svg><span class="mt-5 block core-body-large font-semibold">Anki-Stapel importieren</span><span class="mt-2 block core-body text-core-muted">Eine vorhandene APKG-Datei übernehmen.</span></button>
-                <button type="button" class="group rounded-2xl border border-dashed border-core-border bg-core-subtle p-5 text-left text-core-text transition hover:-translate-y-0.5 hover:border-core-focus"><svg class="catalog-icon-lg"><use href="#icon-sparkles"></use></svg><span class="mt-5 block core-body-large font-semibold">Demo ausprobieren</span><span class="mt-2 block core-body text-core-muted">Beispielstapel bewusst anlegen.</span></button>
+                <button type="button" class="group rounded-2xl border border-dashed border-core-border bg-core-subtle p-5 text-left text-core-text transition hover:-translate-y-0.5 hover:border-core-focus"><svg class="catalog-icon-lg"><use href="#icon-sparkles"></use></svg><span class="mt-5 block core-body-large font-semibold">Demo ausprobieren</span><span class="mt-2 block core-body text-core-muted">Beispielstapel nur auf deinen Klick anlegen.</span></button>
               </div>
             </div>
           </section>

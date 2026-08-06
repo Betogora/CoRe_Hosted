@@ -8,13 +8,17 @@ import tailwindcss from "tailwindcss";
 import tailwindConfig from "../tailwind.config.ts";
 
 const projectRoot = process.cwd();
-const catalogPath = path.join(projectRoot, "docs", "ui-elements.html");
+const catalogPaths = [
+  path.join(projectRoot, "docs", "ui-elements.html"),
+  path.join(projectRoot, "docs", "card-types.html"),
+] as const;
 const stylesPath = path.join(projectRoot, "src", "styles.css");
 const generatedStylePattern = /<style id="core-generated-styles">[\s\S]*?<\/style>/;
 const visualSourcePaths = [
   "tailwind.config.ts",
   "src/styles.css",
   "src/coreTheme.ts",
+  "src/menuModel.ts",
   "src/ui/actionUi.tsx",
   "src/ui/coreUi.tsx",
   "src/ui/feedbackUi.tsx",
@@ -22,21 +26,27 @@ const visualSourcePaths = [
   "src/ui/tooltipUi.tsx",
   "src/ui/colorPicker.tsx",
   "src/ui/deckAppearance.tsx",
+  "src/ui/DeckOptionsMenu.tsx",
+  "src/ui/DeckSummaryRow.tsx",
   "src/ui/DeckTree.tsx",
   "src/ui/RichTextEditor.tsx",
   "src/ui/PdfDocumentViewer.tsx",
   "src/screens/screenConstants.ts",
+  "src/screens/ApkgImportPanel.tsx",
   "src/screens/DashboardScreen.tsx",
+  "src/screens/DecksScreen.tsx",
+  "src/screens/LearnScreen.tsx",
   "src/screens/StudyMode.tsx",
+  "src/screens/SyncConflictPanel.tsx",
 ] as const;
 
 function normalizeText(value: string) {
   return `${value.replace(/\r\n/g, "\n").trimEnd()}\n`;
 }
 
-function replaceGeneratedStyles(html: string, css: string, sourceHash: string) {
+function replaceGeneratedStyles(html: string, css: string, sourceHash: string, catalogPath: string) {
   if (!generatedStylePattern.test(html)) {
-    throw new Error("Der Marker <style id=\"core-generated-styles\"> fehlt in docs/ui-elements.html.");
+    throw new Error(`Der Marker <style id="core-generated-styles"> fehlt in ${path.relative(projectRoot, catalogPath)}.`);
   }
 
   const generatedBlock = [
@@ -49,7 +59,7 @@ function replaceGeneratedStyles(html: string, css: string, sourceHash: string) {
   return normalizeText(html.replace(generatedStylePattern, generatedBlock));
 }
 
-async function createStandaloneCatalog() {
+async function createStandaloneCatalog(catalogPath: string) {
   const [catalog, sourceStyles, ...visualSources] = await Promise.all([
     readFile(catalogPath, "utf8"),
     readFile(stylesPath, "utf8"),
@@ -77,7 +87,7 @@ async function createStandaloneCatalog() {
 
   return {
     current: normalizedCatalog,
-    generated: replaceGeneratedStyles(normalizedCatalog, result.css, sourceHash),
+    generated: replaceGeneratedStyles(normalizedCatalog, result.css, sourceHash, catalogPath),
   };
 }
 
@@ -86,18 +96,26 @@ export async function synchronizeUiElements({ mode = "check" }: { mode?: "check"
     throw new Error(`Unbekannter UI-Katalog-Modus: ${mode}`);
   }
 
-  const { current, generated } = await createStandaloneCatalog();
+  const catalogs = await Promise.all(
+    catalogPaths.map(async (catalogPath) => ({
+      catalogPath,
+      ...await createStandaloneCatalog(catalogPath),
+    })),
+  );
   if (mode === "write") {
-    if (current !== generated) await writeFile(catalogPath, generated, "utf8");
-    console.log("Teilbarer UI-Elementkatalog ist aktuell: docs/ui-elements.html");
+    await Promise.all(
+      catalogs.map(({ catalogPath, current, generated }) => current === generated ? undefined : writeFile(catalogPath, generated, "utf8")),
+    );
+    console.log("Teilbare UI-Kataloge sind aktuell: docs/ui-elements.html, docs/card-types.html");
     return;
   }
 
-  if (current !== generated) {
-    throw new Error("docs/ui-elements.html ist veraltet. Führe npm run docs:ui-elements aus.");
+  const staleCatalogs = catalogs.filter(({ current, generated }) => current !== generated);
+  if (staleCatalogs.length > 0) {
+    throw new Error(`${staleCatalogs.map(({ catalogPath }) => path.relative(projectRoot, catalogPath)).join(", ")} ist veraltet. Führe npm run docs:ui-elements aus.`);
   }
 
-  console.log("Teilbarer UI-Elementkatalog stimmt mit den kanonischen Styles überein.");
+  console.log("Teilbare UI-Kataloge stimmen mit den kanonischen Styles überein.");
 }
 
 async function main() {
