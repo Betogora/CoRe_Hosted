@@ -58,7 +58,7 @@ Direktimport aus `src/ui/coreUi.tsx`:
 - `SoftPanel`: kanonische erhöhte Inhaltsfläche; Aufrufer besitzt Innenlayout und Heading-Semantik.
 - `PageHeader`: optionale Screen-Eyebrow und sichtbare Heading-1-Stufe; keine dritte Textzeile oder dekorative Aktion ergänzen.
 - `EmptyState`: Icon, Titel, optionaler Text und optionaler Action-Slot.
-- `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Cancel/Confirm, optionaler Verwerfen-Aktion, optionalen Aktionsicons, Ladezustand und Fokuswiederherstellung; ohne Beschreibung erscheint er kompakt in einer Zeile, explizit destruktive Bestätigungen behalten ihre Gefahrenform; intern gemeinsame Actions.
+- `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Außenklick als Cancel, Cancel/Confirm, optionaler Verwerfen-Aktion, optionalen Aktionsicons, Ladezustand und Fokuswiederherstellung; ohne Beschreibung erscheint er kompakt in einer Zeile, explizit destruktive Bestätigungen behalten ihre Gefahrenform; intern gemeinsame Actions.
 - `OrbIcon`: rein dekorativer Icon-Kreis; Bedeutung bleibt im umgebenden Text.
 - `CoreModeControl`: fachliches Drei-Wege-Control für Aus/Auto/Manuell, kein allgemeiner Tab-Ersatz.
 - `ThemeToggle`: zugänglicher Light-/Dark-Schalter für den Bereich `App und Bedienung` in den Einstellungen; das Modul besitzt seinen lokalen Darstellungszustand und die Switch-Semantik, `src/coreTheme.ts` Dokumentattribut und Persistenz.

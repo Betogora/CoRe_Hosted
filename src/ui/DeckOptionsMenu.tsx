@@ -1,7 +1,7 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
 import { Layers, MoreHorizontal, MoveRight, Settings } from "lucide-react";
-import { createDeckPlacementValidator, MAX_INTERACTIVE_DECK_LEVELS, type DeckMutationResult } from "../coreWorkspace.ts";
+import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
 import type { CoreMode, Deck } from "../coreTypes.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { IconButton } from "./actionUi.tsx";
@@ -111,25 +111,21 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
           open
           title="Stapel verschieben"
           description={(
-            <div className="grid gap-3">
-              <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-                Neuer übergeordneter Stapel
-                <DeckSelect
-                  ariaLabel={`Ziel für ${row.deck.name}`}
-                  className="w-full"
-                  value={moveTargetId}
-                  decks={decks}
-                  selectableDeckIds={validMoveTargetDeckIds}
-                  specialOption={{ value: "", label: "Hauptebene", icon: Layers }}
-                  onValueChange={(value) => {
-                    setMoveTargetId(value);
-                    setMoveError("");
-                  }}
-                />
-              </label>
-              <p className="core-caption text-[var(--core-text-muted)]">Maximal {MAX_INTERACTIVE_DECK_LEVELS} Ebenen. Ein Stapel kann nicht in sich selbst oder seine Unterstapel verschoben werden.</p>
-              {moveError ? <p className="core-body font-semibold text-[var(--core-status-error-text)]" role="alert">{moveError}</p> : null}
-            </div>
+            <>
+              <DeckSelect
+                ariaLabel={`Ziel für ${row.deck.name}`}
+                className="w-full"
+                value={moveTargetId}
+                decks={decks}
+                selectableDeckIds={validMoveTargetDeckIds}
+                specialOption={{ value: "", label: "Hauptebene", icon: Layers }}
+                onValueChange={(value) => {
+                  setMoveTargetId(value);
+                  setMoveError("");
+                }}
+              />
+              {moveError ? <p className="core-body mt-3 font-semibold text-[var(--core-status-error-text)]" role="alert">{moveError}</p> : null}
+            </>
           )}
           confirmLabel="Verschieben bestätigen"
           cancelLabel="Abbrechen"

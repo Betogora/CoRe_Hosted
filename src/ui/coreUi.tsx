@@ -132,6 +132,9 @@ export function ActionDialog({
       className={`fixed inset-0 z-[80] grid place-items-center bg-[var(--core-backdrop)] ${compact ? "p-2 sm:p-4" : "p-4"}`}
       role="presentation"
       data-testid="action-dialog-backdrop"
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) cancelDialog();
+      }}
     >
       <div
         ref={dialogRef}

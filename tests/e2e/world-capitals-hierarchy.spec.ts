@@ -324,14 +324,36 @@ test("deck management disables direct drag and shares the confirmed keyboard mov
   await expect(page.locator('[data-deck-drag-source="true"]')).toHaveCount(0);
   await expect(page.getByTestId("manage-top-drop-zone")).toHaveCount(0);
 
+  const originalParentDeckId = await storedParentDeckId(page, DECK_IDS.southAmerica);
+  await page.setViewportSize({ width: 390, height: 600 });
   await page.getByTestId(`deck-options-${DECK_IDS.southAmerica}`).press("Enter");
   const moveButton = page.getByTestId(`deck-options-menu-${DECK_IDS.southAmerica}`).getByTestId(`deck-move-button-${DECK_IDS.southAmerica}`);
   await moveButton.press("Enter");
+  const moveDialog = page.getByRole("dialog", { name: "Stapel verschieben" });
+  await expect(moveDialog).not.toContainText("Neuer übergeordneter Stapel");
+  await expect(moveDialog).not.toContainText("Maximal 4 Ebenen");
   const moveSelect = page.getByRole("combobox", { name: "Ziel für Südamerika" });
   await moveSelect.click();
   await expect(page.getByRole("option", { name: "Hauptebene", exact: true })).toBeVisible();
   await expect(page.getByRole("option", { name: /Südamerika$/ })).toHaveCount(0);
+  const selectContent = page.locator('[data-deck-select-content="true"]');
+  const selectViewport = page.locator('[data-deck-select-viewport="true"]');
+  const selectBounds = await selectContent.boundingBox();
+  expect(selectBounds).not.toBeNull();
+  expect(selectBounds!.y).toBeGreaterThanOrEqual(0);
+  expect(selectBounds!.y + selectBounds!.height).toBeLessThanOrEqual(601);
+  expect(await selectViewport.evaluate((viewport) => viewport.scrollHeight > viewport.clientHeight)).toBe(true);
   const europeMoveOption = page.getByRole("option", { name: /Europa$/ });
+  await europeMoveOption.click();
+  await page.getByTestId("action-dialog-backdrop").click({ position: { x: 5, y: 5 } });
+  await expect(moveDialog).toBeHidden();
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(originalParentDeckId);
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.getByTestId(`deck-options-${DECK_IDS.southAmerica}`).press("Enter");
+  await moveButton.press("Enter");
+  await moveSelect.click();
+  await europeMoveOption.scrollIntoViewIfNeeded();
   await expect(europeMoveOption.locator('[data-deck-icon="true"]')).toHaveCount(1);
   await expect.poll(() => europeMoveOption.evaluate((option) => {
     const bounds = option.getBoundingClientRect();
