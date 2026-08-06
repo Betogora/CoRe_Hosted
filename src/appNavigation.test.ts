@@ -24,11 +24,11 @@ test("roundtrips the help route without additional context", () => {
   assert.equal(appRouteToUrl(route), "/hilfe");
 });
 
-test("roundtrips the isolated scheduler test route without additional context", () => {
-  const route = parseAppRouteFromUrl("/testmodus");
+test("roundtrips the simulator route without additional context", () => {
+  const route = parseAppRouteFromUrl("/simulator");
 
-  assert.deepEqual(route, { mode: "view", viewId: "testmodus" });
-  assert.equal(appRouteToUrl(route), "/testmodus");
+  assert.deepEqual(route, { mode: "view", viewId: "simulator" });
+  assert.equal(appRouteToUrl(route), "/simulator");
 });
 
 test("roundtrips deck, card and creation context without validating navigational ids away", () => {
@@ -109,8 +109,8 @@ test("falls back to today for unknown paths and ignores unsupported query values
   assert.deepEqual(parseAppRouteFromUrl("/neue-karten?method=provider&card=ignored"), { mode: "view", viewId: "neue-karten" });
 });
 
-test("falls back to today for retired labs routes", () => {
-  for (const path of ["/graph", "/community", "/assistent", "/ki-jobs"]) {
+test("falls back to today for retired labs and test-mode routes", () => {
+  for (const path of ["/graph", "/community", "/assistent", "/ki-jobs", "/testmodus"]) {
     assert.deepEqual(parseAppRouteFromUrl(path), { mode: "view", viewId: "uebersicht" });
   }
 });

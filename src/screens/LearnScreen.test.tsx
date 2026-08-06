@@ -9,6 +9,7 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   const markup = renderToStaticMarkup(
     <LearnScreen
       decks={createWorldCapitalsSeedDecks()}
+      now="2026-08-06T10:00:00.000Z"
       onStartDeck={() => undefined}
       onCreateDeck={() => null}
       focusedDeckId={null}
@@ -40,6 +41,7 @@ test("quick deck creation asks only for a name and optional parent deck", () => 
   const markup = renderToStaticMarkup(
     <LearnScreen
       decks={createWorldCapitalsSeedDecks()}
+      now="2026-08-06T10:00:00.000Z"
       initialParentDeckId="deck_world_capitals"
       onStartDeck={() => undefined}
       onCreateDeck={() => null}
@@ -71,6 +73,7 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
   const hierarchyMarkup = renderToStaticMarkup(
     <LearnScreen
       decks={decks}
+      now="2026-08-06T10:00:00.000Z"
       onStartDeck={() => undefined}
       onCreateDeck={() => null}
       focusedDeckId={null}
@@ -86,6 +89,7 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
   const fallbackMarkup = renderToStaticMarkup(
     <LearnScreen
       decks={decks}
+      now="2026-08-06T10:00:00.000Z"
       focusedDeckId="missing-deck"
       onStartDeck={() => undefined}
       onCreateDeck={() => null}

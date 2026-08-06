@@ -9,6 +9,7 @@ import { DecksScreen } from "./DecksScreen.tsx";
 function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) {
   const props: DecksScreenProps = {
     decks,
+    now: "2026-08-06T10:00:00.000Z",
     mediaStore: null,
     selectedDeckId: null,
     selectedCardId: null,

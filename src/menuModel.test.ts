@@ -47,14 +47,14 @@ test("keeps cards in primary navigation and utility views outside it", () => {
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture prüft bewusst eine unvollständige, ungültige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("hilfe").title, "Wie CoRe und FSRS funktionieren");
-  assert.equal(menu.getView("testmodus")?.title, "FSRS-Testmodus");
+  assert.equal(menu.getView("simulator")?.title, "Simulator");
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("einstellungen").title, "Einstellungen");
   assert.equal(menu.listNavigationItems().some((item) => item.id === "kartenstapel"), true);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "einstellungen"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "hilfe"), false);
-  assert.equal(menu.listNavigationItems().some((item) => item.id === "testmodus"), false);
+  assert.equal(menu.listNavigationItems().some((item) => item.id === "simulator"), false);
   assert.equal(menu.listNavigationItems().some((item) => String(item.id) === "ki"), false);
   assert.equal(menu.listNavigationItems().some((item) => String(item.id) === "assistent"), false);
 });

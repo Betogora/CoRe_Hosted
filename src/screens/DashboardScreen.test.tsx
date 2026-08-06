@@ -11,6 +11,7 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
   const markup = renderToStaticMarkup(
     <DashboardScreen
       state={state}
+      now="2026-08-06T10:00:00.000Z"
       onNavigate={() => createViewRoute("uebersicht")}
       onStartDeck={() => undefined}
       onCreateDemo={async () => null}
@@ -51,6 +52,7 @@ test("populated dashboard keeps today's due count without the original-card stat
         profile: { ...baseState.profile, displayName: "  Noemi  " },
         decks: [deck],
       }}
+      now="2026-08-06T10:00:00.000Z"
       onNavigate={() => createViewRoute("uebersicht")}
       onStartDeck={() => undefined}
       onCreateDemo={async () => null}
@@ -80,4 +82,34 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /grid-template-columns:2\.25rem repeat\(53, 19px\)/);
   assert.match(markup, /size-\[19px\] rounded-\[4px\]/);
   assert.match(markup, /ring-2 ring-inset ring-core-focus/);
+});
+
+test("dashboard projects future due cards through the supplied learning time", () => {
+  const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const deck = createCoreDeck({
+    name: "Zukunft",
+    source: "manual",
+    cards: [
+      createCoreCard({
+        source: "manual",
+        originalFront: "Wann bin ich fällig?",
+        originalBack: "In drei Tagen.",
+        reviewState: { state: "review", dueAt: "2026-08-09T09:00:00.000Z", repetitions: 2 },
+      }),
+    ],
+  });
+  const props = {
+    state: { ...baseState, decks: [deck] },
+    onNavigate: () => createViewRoute("uebersicht"),
+    onStartDeck: () => undefined,
+    onCreateDemo: async () => null,
+    onMoveDeck: () => null,
+    onOpenDeckSettings: () => undefined,
+  };
+
+  const todayMarkup = renderToStaticMarkup(<DashboardScreen {...props} now="2026-08-06T10:00:00.000Z" />);
+  const futureMarkup = renderToStaticMarkup(<DashboardScreen {...props} now="2026-08-09T10:00:00.000Z" />);
+
+  assert.match(todayMarkup, /Heute fällig:<\/span><span class="font-semibold">0<\/span>/);
+  assert.match(futureMarkup, /Heute fällig:<\/span><span class="font-semibold">1<\/span>/);
 });

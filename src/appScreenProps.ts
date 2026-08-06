@@ -40,6 +40,7 @@ export interface CreationScreenProps {
 
 export interface DashboardScreenProps {
   state: WorkspaceState;
+  now: string;
   onNavigate: NavigateToView;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onCreateDemo: () => Promise<Deck[] | null>;
@@ -58,6 +59,7 @@ export interface DeckSettingsScreenProps {
 
 export interface DecksScreenProps {
   decks: Deck[];
+  now: string;
   mediaStore: AccountMediaStore | null;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onSaveCard: (deckId: string, cardId: string, value: CardEditorValue) => unknown;
@@ -83,6 +85,7 @@ export interface DecksScreenProps {
 
 export interface LearnScreenProps {
   decks: Deck[];
+  now: string;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onCreateDeck: (input: CreateDeckInput) => Deck | null;
   focusedDeckId: string | null;
@@ -110,7 +113,13 @@ export interface SettingsScreenProps {
   onSignOut: () => Promise<void>;
 }
 
-export interface StatisticsScreenProps { decks: Deck[]; onNavigate: NavigateToView }
+export interface StatisticsScreenProps { decks: Deck[]; now: string; onNavigate: NavigateToView }
+
+export interface SimulatorScreenProps {
+  systemNow: string;
+  dayOffset: number;
+  onDayOffsetChange: (dayOffset: number) => void;
+}
 
 export interface StudyModeProps {
   deck: Deck;
@@ -119,6 +128,8 @@ export interface StudyModeProps {
   variantSession: boolean;
   variantId?: string;
   mediaStore: AccountMediaStore | null;
+  getNow: () => string;
+  simulationDayOffset: number;
   onExit: () => void;
   onReturnToLearn: () => void;
   onDeckUpdated: (deck: Deck | Deck[]) => unknown;

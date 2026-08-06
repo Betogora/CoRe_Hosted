@@ -2,6 +2,7 @@ import React from "react";
 import { Anchor, Ban, CheckCircle2, Eye, Flag, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
 import { getLearningItemAnswer, getLearningItemQuestion } from "../coreModel.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
+import { formatSimulationDate } from "../simulationClock.ts";
 import {
   advanceDailyReviewSession,
   answerVariant,
@@ -40,7 +41,7 @@ function sameAnswer(left: string, right: string) {
   return String(left ?? "").trim().toLowerCase() === String(right ?? "").trim().toLowerCase();
 }
 
-export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?.id, variantSession, mediaStore, onExit, onReturnToLearn = onExit, onDeckUpdated, onReviewEvent }: any) {
+export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?.id, variantSession, mediaStore, getNow, simulationDayOffset, onExit, onReturnToLearn = onExit, onDeckUpdated, onReviewEvent }: any) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
@@ -60,15 +61,16 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
     () =>
       createDailyReviewQueue(sessionDecks, {
         deckId: rootDeck?.id,
+        now: getNow(),
         language: "de",
         variantSession,
       }),
-    [sessionDecks, rootDeck?.id, variantSession],
+    [getNow, sessionDecks, rootDeck?.id, variantSession],
   );
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
   const current = React.useMemo(
-    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, language: "de", variantSession }),
-    [sessionDecks, effectiveReviewSession, rootDeck?.id, variantSession],
+    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), language: "de", variantSession }),
+    [getNow, sessionDecks, effectiveReviewSession, rootDeck?.id, variantSession],
   );
   const currentDeck = sessionDecks.find((candidate: any) => candidate.id === current?.deckId) ?? rootDeck;
   const sessionTotal = effectiveReviewSession.initialKeys.length;
@@ -142,7 +144,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   function grade(rating: ReviewRating) {
     if (!current || !currentDeck) return;
     const result = answerVariant(feedbackDeckRef.current ?? currentDeck, current.learningItemId, current.cardVariantId, rating, {
-      now: new Date().toISOString(),
+      now: getNow(),
     });
     onReviewEvent?.(result.event);
     finishOrNext(result.deck, rating, result.updatedCard.reviewState, current.sessionInfo?.key ?? `${current.deckId}:${current.learningItemId}`);
@@ -162,7 +164,10 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
 
   function setTodayNewCardLimit(limit: unknown) {
     if (!rootDeck) return;
-    const updatedRootDeck = updateDeckNewCardLimitForDate(rootDeck, limit);
+    const updatedRootDeck = updateDeckNewCardLimitForDate(rootDeck, limit, {
+      now: getNow(),
+      updatedAt: new Date().toISOString(),
+    });
     onDeckUpdated(updatedRootDeck);
     setSessionDecks((currentDecks: any) => replaceSessionDeck(updatedRootDeck, currentDecks));
   }
@@ -232,6 +237,11 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
               <SlidersHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
+          {simulationDayOffset > 0 ? (
+            <p className="rounded-xl border border-core-warning bg-core-warning-soft px-4 py-3 text-center core-body font-semibold text-core-text" role="status">
+              Simulation aktiv · {formatSimulationDate(getNow())} · +{simulationDayOffset} Tage
+            </p>
+          ) : null}
           <MiniProgress value={progress} />
           {studyMissingMedia.length > 0 ? <p className="core-status-warning text-center core-body" role="status">{studyMissingMedia[0].status}{studyMissingMedia.length > 1 ? ` (${studyMissingMedia.length} Medien)` : ""}</p> : null}
           {showSettings ? (

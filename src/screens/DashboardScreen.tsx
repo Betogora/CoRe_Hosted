@@ -176,8 +176,8 @@ function StudyHeatmap({ heatmap }: any) {
   );
 }
 
-export function DashboardScreen({ state, onNavigate, onStartDeck, onCreateDemo, onMoveDeck, onOpenDeckSettings }: DashboardScreenProps) {
-  const library = React.useMemo(() => createDeckLibraryModel(state.decks), [state.decks]);
+export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateDemo, onMoveDeck, onOpenDeckSettings }: DashboardScreenProps) {
+  const library = React.useMemo(() => createDeckLibraryModel(state.decks, { now }), [now, state.decks]);
   const { dueCards, studyHeatmap } = library;
   const displayName = state.profile?.displayName?.trim();
   const welcomeTitle = displayName ? `Willkommen zurück, ${displayName}!` : "Willkommen bei CoRe";

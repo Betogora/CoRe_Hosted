@@ -204,17 +204,17 @@ Akzeptanz:
 - Die mobile Darstellung begrenzt horizontales Scrollen auf den Grafikbereich und erzeugt keinen Dokument-Overflow.
 - Die offizielle FSRS-Einführung ist als externer weiterführender Link gekennzeichnet.
 
-### 5.7 FSRS über simulierte Tage prüfen
+### 5.7 Lernfortschritt über simulierte Tage prüfen
 
-Der direkt verlinkbare `/testmodus` ist in der Sidebar bei Theme und Hilfe erreichbar. Er stellt einen eigenen FSRS-Teststapel bereit und lässt Lernende Tag 1, 2, 3 und weitere simulierte Tage auswählen, ohne die echte Accountzeit oder echte Lerninhalte zu verändern.
+Der direkt verlinkbare `/simulator` ist in der Sidebar bei Theme und Hilfe erreichbar. Er verschiebt die lernbezogene App-Zeit für die vorhandenen Accountkarten von „Heute“ aus um bis zu 3.650 Kalendertage in die Zukunft. Das Umstellen der Zeit verändert keine Karte; ein am simulierten Tag ausgeführtes Review ist dagegen ein echtes Review und wird mit diesem Zeitpunkt gespeichert und synchronisiert.
 
 Akzeptanz:
 
-- Teststapel, Reviews, Bewertungsverteilung und Schedulerzustände bleiben ausschließlich im transienten Testmodus und werden weder gespeichert noch synchronisiert oder in echte Statistiken übernommen.
-- Der Testmodus verwendet denselben FSRS-6-Scheduler und dieselbe Sitzungslogik wie das Produkt; es gibt keine vereinfachte Testformel.
-- Jeder simulierte Tag zeigt nur neue sowie bis zu diesem Tag fällige oder überfällige Testkarten. Tage ohne Karten erklären, dass FSRS keine Wiederholung geplant hat.
-- Tagesnavigation, Zurücksetzen und Bewertungen sind per Tastatur erreichbar. Eine laufende Testsitzung behandelt den verpflichtenden zweiten Kontakt und vorgezogene Wiederholungen genauso wie eine echte Sitzung.
-- Ein sichtbarer Simulationsverlauf nennt Bewertung, nächsten simulierten Tag, Zustand, Stabilität und Schwierigkeit, ohne interne Daten in den Account zu schreiben.
+- „Heute“, „Morgen“, `+3`, `+7`, `+14` und `+30 Tage`, einzelne Tagesschritte und ein begrenztes Datumsfeld sind per Tastatur erreichbar. Vergangene oder mehr als 3.650 Tage entfernte Werte werden auf den gültigen Bereich begrenzt.
+- Dashboard, Lernen, Kartenverwaltung, Statistik und Review verwenden denselben simulierten Lernzeitpunkt für Fälligkeit, Queue, Heatmaps, Variantenreife, Intervallvorschau und Bewertung.
+- Bei aktivem Zukunftstag bleibt der Zustand in der App-Shell und im Vollbild-Lernmodus sichtbar. Während einer laufenden Lernsitzung wird die Zeit nicht umgeschaltet.
+- Der Offset bleibt lokal und transient. Reload und Logout stellen „Heute“ wieder her; Sync-, Auth-, Medien-, Autosave- und normale Bearbeitungsmetadaten verwenden unverändert die echte Systemzeit.
+- Die Aktion „Heute“ setzt ausschließlich die simulierte Uhr zurück. Bereits gespeicherte Zukunftsreviews, Kartenfortschritt und daraus berechnete nächste Termine bleiben erhalten.
 
 ## 6. Funktionale Anforderungen
 
@@ -268,7 +268,7 @@ Akzeptanz:
 - Nutzer sehen verständliche Intervalle, nicht interne Schedulerzustände.
 - Varianten dürfen eigenen Review State tragen; Familieninformationen dürfen Auswahl und Fallback unterstützen.
 - Der Scheduler darf keine KI-Erzeugung im Antwortrequest auslösen.
-- Der isolierte Testmodus führt Bewertungen mit einer simulierten Uhr durch und darf niemals Workspace-, Cloud- oder Statistikzustand mutieren.
+- Die transiente Simulationsuhr darf durch bloßes Umstellen keinen Workspace-, Cloud- oder Kartenstatus verändern. Bewertungen im Zukunftsmodus verwenden jedoch absichtlich den simulierten Zeitpunkt und durchlaufen den normalen Workspace-, Statistik- und Sync-Pfad.
 
 ### 6.6 Vertrauen, Versionen und Undo
 

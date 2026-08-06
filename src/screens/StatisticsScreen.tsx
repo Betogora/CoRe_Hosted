@@ -162,8 +162,8 @@ function WeakDecks({ rows }: any) {
   );
 }
 
-export function StatisticsScreen({ decks, onNavigate }: any) {
-  const statistics = React.useMemo(() => createPerformanceStatisticsModel(decks), [decks]);
+export function StatisticsScreen({ decks, now, onNavigate }: any) {
+  const statistics = React.useMemo(() => createPerformanceStatisticsModel(decks, { now }), [decks, now]);
   const { totals } = statistics;
 
   return (

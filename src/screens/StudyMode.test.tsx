@@ -39,6 +39,8 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
       decks={[deck]}
       deckId={deck.id}
       variantSession
+      getNow={() => "2026-07-06T10:00:00.000Z"}
+      simulationDayOffset={0}
       onExit={() => undefined}
       onDeckUpdated={() => undefined}
     />,
@@ -48,4 +50,35 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
   assert.match(markup, /Antwort anzeigen/);
   assert.doesNotMatch(markup, /Original|Variante|Level|fsrs|Reifegrad/i);
   assert.doesNotMatch(markup, /original-anchor|source-anchor|schedulerVersion|variantLevel|generationSource/i);
+});
+
+test("StudyMode uses the simulated learning time for queue and visible status", () => {
+  const item = createBasicLearningItem("deck_future", "Zukunftsfrage", "Zukunftsantwort", {
+    reviewState: {
+      state: "review",
+      repetitions: 2,
+      dueAt: "2026-08-09T09:00:00.000Z",
+    },
+  });
+  const deck = createCoreDeck({ id: "deck_future", name: "Zukunft", source: "manual", cards: [item], reviewEvents: [] });
+  const commonProps = {
+    deck,
+    decks: [deck],
+    deckId: deck.id,
+    variantSession: false,
+    onExit: () => undefined,
+    onDeckUpdated: () => undefined,
+  };
+
+  const todayMarkup = renderToStaticMarkup(
+    <StudyMode {...commonProps} getNow={() => "2026-08-06T10:00:00.000Z"} simulationDayOffset={0} />,
+  );
+  const futureMarkup = renderToStaticMarkup(
+    <StudyMode {...commonProps} getNow={() => "2026-08-09T10:00:00.000Z"} simulationDayOffset={3} />,
+  );
+
+  assert.doesNotMatch(todayMarkup, /Zukunftsfrage/);
+  assert.match(futureMarkup, /Zukunftsfrage/);
+  assert.match(futureMarkup, /Simulation aktiv/);
+  assert.match(futureMarkup, /\+3 Tage/);
 });

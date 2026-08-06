@@ -1,9 +1,17 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-08-01
+**Stand:** 2026-08-06
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-08-06 — App-weite Lernzeitsimulation
+
+- Der isolierte FSRS-Testmodus, sein Fünf-Karten-Stapel, Verlauf und `/testmodus` wurden entfernt. `/simulator` steuert stattdessen eine transiente, kalenderbasierte Lernuhr für die vorhandenen Accountkarten.
+- Dashboard, Lernen, Kartenverwaltung, Statistik und Vollbildreview verwenden denselben simulierten Zeitpunkt. Reine Zeitwahl bleibt mutationsfrei; Zukunftsreviews werden über den bestehenden Scheduler-, Workspace- und Syncpfad dauerhaft gespeichert.
+- Der aktive Zukunftstag ist in App-Shell und Review sichtbar. Schnellziele, einzelne Tagesschritte und ein auf zehn Jahre begrenztes Datumsfeld sind tastaturbedienbar; Reload und Logout setzen den Offset auf „Heute“ zurück.
+- Es wurden keine Datenbankmigration, neue Abhängigkeit, Rollen-/Premiumlogik oder rücksetzbare Sandbox eingeführt.
+- Lokal bestätigt: 413 Modul- und Integrationstests, Typecheck und Production-Build. Der In-App-Browser startete `/simulator` ohne Konsolenfehler; die geschützte Simulatoransicht selbst blieb ohne vorhandene lokale Anmeldung hinter dem Auth-Gate.
 
 ## 2026-08-01 — Labs- und Groß-APKG-Vorleistungen zurückgebaut
 

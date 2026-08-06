@@ -5,7 +5,7 @@ export type MenuViewId =
   | "neue-karten"
   | "lernen"
   | "statistik"
-  | "testmodus"
+  | "simulator"
   | "hilfe"
   | "einstellungen";
 
@@ -90,11 +90,11 @@ const views: MenuView[] = [
     ],
   },
   {
-    id: "testmodus",
-    label: "FSRS-Testmodus",
-    iconKey: "test",
+    id: "simulator",
+    label: "Simulator",
+    iconKey: "simulator",
     navigation: "hidden",
-    title: "FSRS-Testmodus",
+    title: "Simulator",
     eyebrow: "Zeitsimulation",
     stats: [],
   },

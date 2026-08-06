@@ -64,7 +64,7 @@ React-Caller kennen keine APKG-, SQLite-, Storage-, RLS-, Scheduler-, Provider- 
 
 `HelpScreen` besitzt die statische Produktaufklärung und den transienten Interaktionszustand der Lernkurve. Er liest oder mutiert keinen Workspace-State. Die Kurve ist lokale, semantisch beschriftete UI und kein Scheduler- oder Variantenvertrag.
 
-`SchedulerTestScreen` besitzt ausschließlich transienten Simulationszustand. `src/schedulerTestMode.ts` erzeugt den deterministischen Teststapel und projiziert ausgewählte Tage auf eine simulierte Uhr; Bewertung, Queue und Wiederholungen laufen weiterhin durch `reviewService.ts` und `scheduler.ts`. Der Testmodus erhält weder Workspace- noch Repository-Callbacks und kann deshalb keine Account-, Cloud- oder Statistikdaten verändern.
+`src/simulationClock.ts` normalisiert den transienten Tagesoffset und projiziert die reale lokale Uhr kalenderbasiert auf einen simulierten Lernzeitpunkt. `App` besitzt den Offset ausschließlich im React-Zustand und reicht den effektiven Zeitpunkt an Dashboard, Lernen, Kartenverwaltung, Statistik und Review weiter. `SimulatorScreen` besitzt nur die Tagessteuerung; es gibt keinen parallelen Teststapel oder Schedulerpfad. Bloßes Umstellen mutiert keinen Workspace. Ein Review verwendet den simulierten Zeitpunkt im bestehenden `reviewService.ts`-Pfad und wird anschließend normal gespeichert und synchronisiert. Technische Auth-, Sync-, Medien-, Autosave- und Inhaltsmetadaten bleiben auf realer Systemzeit.
 
 ### 2.2 Navigation und URL-Kontext
 
@@ -75,13 +75,13 @@ Der URL-Vertrag umfasst:
 - View sowie fokussiertes Deck für Lernen, Kartenverwaltung und Stapel-Einstellungen;
 - ausgewählte Karte ausschließlich in der Kartenverwaltung;
 - Erstellmethode, Zieldeck und Abschlussdeck im Erstellfluss;
-- die kontextfreien Seiten `/hilfe` und `/testmodus`;
+- die kontextfreien Seiten `/hilfe` und `/simulator`;
 - Reviewdeck, optionalen Variantenbezeichner und den diskriminierten Rückkontext `today | learn | decks`;
 - optionales Rückdeck und ausschließlich für `decks` eine optionale Rückkarte.
 
 Freie Return-URLs werden nicht akzeptiert. Browser-History-State darf Zusatzdaten tragen, ist aber nie die einzige Quelle navigationsrelevanter Identität. `popstate`, Reload und Direktlinks werden aus der URL rekonstruiert. Unbekannte IDs bleiben bis zur zuständigen UI erhalten, damit diese einen sicheren deutschen Not-found-Zustand statt eines zufälligen Ersatzdecks oder einer zufälligen ersten Karte zeigt.
 
-Aufklappzustände, Tastaturfokus, lokale Suche, Dialoge und ungespeicherte Entwürfe bleiben transient. Es gibt keine Routerbibliothek und keine zweite Navigations- oder Persistenzebene.
+Aufklappzustände, Tastaturfokus, lokale Suche, Dialoge, ungespeicherte Entwürfe und der Simulationsoffset bleiben transient. `/testmodus` ist nicht mehr routbar und fällt wie andere unbekannte oder entfernte Seiten auf die Übersicht zurück. Es gibt keine Routerbibliothek und keine zweite Navigations- oder Persistenzebene.
 
 ## 3. Domäneninvarianten
 

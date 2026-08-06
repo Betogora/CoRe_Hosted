@@ -64,7 +64,7 @@ function versionContent(value: unknown, fallback: LearningItem) {
   };
 }
 
-function DeckCardEditor({ deck, card, mediaUrls = {}, onSaveCard, onDuplicateCard, onDeleteCard, onRestoreCard, onAddVariant, onGenerateVariant, onClose, onDraftStateChange }: any) {
+function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplicateCard, onDeleteCard, onRestoreCard, onAddVariant, onGenerateVariant, onClose, onDraftStateChange }: any) {
   const [form, setForm] = React.useState<CardEditorValue | null>(() => card ? getCardEditorValue(card) : null);
   const [savedForm, setSavedForm] = React.useState(() => JSON.stringify(form));
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
@@ -88,8 +88,8 @@ function DeckCardEditor({ deck, card, mediaUrls = {}, onSaveCard, onDuplicateCar
   const draftDirty = Boolean(form && JSON.stringify(form) !== savedForm);
   const focusDraft = React.useCallback(() => editorHeadingRef.current?.focus(), []);
   const variantReviewModel = React.useMemo(
-    () => card ? createVariantReviewModel(card, deck?.reviewEvents ?? []) : null,
-    [card, deck?.reviewEvents],
+    () => card ? createVariantReviewModel(card, deck?.reviewEvents ?? [], { now }) : null,
+    [card, deck?.reviewEvents, now],
   );
   const restorableVersions = React.useMemo(
     () => [...(card?.versionLog ?? [])].reverse().filter((entry: any) => entry.before && typeof entry.before === "object"),
@@ -618,6 +618,7 @@ function DeckGroupMenu({
 
 export function DecksScreen({
   decks,
+  now,
   mediaStore,
   selectedDeckId = null,
   selectedCardId = null,
@@ -658,8 +659,8 @@ export function DecksScreen({
   const detailRef = React.useRef<HTMLElement | null>(null);
   const previouslySelectedCardId = React.useRef<string | null>(null);
   const tableModel = React.useMemo(
-    () => createCardTableModel(decks, { query, cardSort }),
-    [cardSort, decks, query],
+    () => createCardTableModel(decks, { query, cardSort, now }),
+    [cardSort, decks, now, query],
   );
   const searchExpandsGroups = Boolean(query.trim());
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
@@ -1006,6 +1007,7 @@ export function DecksScreen({
           <DeckCardEditor
             deck={selectedDeck}
             card={selectedCard}
+            now={now}
             mediaUrls={selectedDeckMediaUrls}
             onSaveCard={saveCard}
             onDuplicateCard={(cardId: string) => onDuplicateCard(selectedDeck.id, cardId)}

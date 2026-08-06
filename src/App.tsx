@@ -3,7 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import type { AuthPhase } from "./accountSession.ts";
 import type { CoreMode, Deck, LearningItem, ReviewEvent, SyncStatus } from "./coreTypes.ts";
-import { BarChart3, BookOpen, CircleHelp, Database, FlaskConical, Home, Layers, PlusSquare, Settings } from "lucide-react";
+import { BarChart3, BookOpen, CalendarClock, CircleHelp, Database, Home, Layers, PlusSquare, Settings } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
@@ -18,6 +18,7 @@ import type {
   DecksScreenProps,
   LearnScreenProps,
   SettingsScreenProps,
+  SimulatorScreenProps,
   StatisticsScreenProps,
   StudyModeProps,
 } from "./appScreenProps.ts";
@@ -31,11 +32,13 @@ import { createPortableExport, mergePortableExportIntoState } from "./dataPortab
 import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type LearningSettingsInput } from "./deckSettings.ts";
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
+import { formatSimulationDate, getSimulatedNow, normalizeSimulationDayOffset } from "./simulationClock.ts";
 import { SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
 import { useAppNavigation } from "./useAppNavigation.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
+import { ActionButton } from "./ui/actionUi.tsx";
 import { ActionDialog, EmptyState, OrbIcon, SoftPanel, ThemeToggle } from "./ui/coreUi.tsx";
 
 const CreationScreen = React.lazy<React.ComponentType<CreationScreenProps>>(() => import("./screens/CreationScreen.tsx").then(({ CreationScreen }) => ({ default: CreationScreen })));
@@ -44,7 +47,7 @@ const DeckSettingsScreen = React.lazy<React.ComponentType<DeckSettingsScreenProp
 const DecksScreen = React.lazy<React.ComponentType<DecksScreenProps>>(() => import("./screens/DecksScreen.tsx").then(({ DecksScreen }) => ({ default: DecksScreen })));
 const HelpScreen = React.lazy(() => import("./screens/HelpScreen.tsx").then(({ HelpScreen }) => ({ default: HelpScreen })));
 const LearnScreen = React.lazy<React.ComponentType<LearnScreenProps>>(() => import("./screens/LearnScreen.tsx").then(({ LearnScreen }) => ({ default: LearnScreen })));
-const SchedulerTestScreen = React.lazy(() => import("./screens/SchedulerTestScreen.tsx").then(({ SchedulerTestScreen }) => ({ default: SchedulerTestScreen })));
+const SimulatorScreen = React.lazy<React.ComponentType<SimulatorScreenProps>>(() => import("./screens/SimulatorScreen.tsx").then(({ SimulatorScreen }) => ({ default: SimulatorScreen })));
 const SettingsScreen = React.lazy<React.ComponentType<SettingsScreenProps>>(() => import("./screens/SettingsScreen.tsx").then(({ SettingsScreen }) => ({ default: SettingsScreen })));
 const StatisticsScreen = React.lazy<React.ComponentType<StatisticsScreenProps>>(() => import("./screens/StatisticsScreen.tsx").then(({ StatisticsScreen }) => ({ default: StatisticsScreen })));
 const StudyMode = React.lazy<React.ComponentType<StudyModeProps>>(() => import("./screens/StudyMode.tsx").then(({ StudyMode }) => ({ default: StudyMode })));
@@ -76,7 +79,7 @@ const iconByKey: Record<string, LucideIcon> = {
   learn: BookOpen,
   plus: PlusSquare,
   settings: Settings,
-  test: FlaskConical,
+  simulator: CalendarClock,
 };
 
 function getIcon(iconKey: string) {
@@ -180,6 +183,7 @@ export function App() {
   const [creationDraftDirty, setCreationDraftDirty] = React.useState(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
+  const [simulationDayOffset, setSimulationDayOffset] = React.useState(0);
   const creationDraftFocusRef = React.useRef<(() => void) | null>(null);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
@@ -199,6 +203,15 @@ export function App() {
     resetBrowserRouteToDefault,
   } = useAppNavigation({ authPhase, defaultViewId: menu.defaultViewId });
   const mediaStore = React.useMemo(() => cloudUser ? createAccountMediaStore({ client: supabase, supabaseUrl: getSupabaseBrowserConfig().url, userId: cloudUser.id }) : null, [cloudUser, supabase]);
+  const getLearningNow = React.useCallback(
+    () => getSimulatedNow(new Date(), simulationDayOffset),
+    [simulationDayOffset],
+  );
+  const learningNow = React.useMemo(getLearningNow, [activeView, getLearningNow, state?.decks]);
+
+  const changeSimulationDayOffset = React.useCallback((value: number) => {
+    setSimulationDayOffset(normalizeSimulationDayOffset(value));
+  }, []);
 
   const navigateToView = React.useCallback((...args: Parameters<typeof navigateToViewNow>) => {
     if (activeView === "neue-karten" && creationDraftDirty) {
@@ -577,6 +590,7 @@ export function App() {
     }
     bootRunRef.current += 1;
     resetBrowserRouteToDefault();
+    setSimulationDayOffset(0);
     setWorkspace(null);
     setSyncEngine(null);
     lastAcknowledgedStateRef.current = null;
@@ -909,6 +923,7 @@ export function App() {
       return (
         <DecksScreen
           decks={state.decks}
+          now={learningNow}
           mediaStore={mediaStore}
           onSetDeckCoreMode={setDeckCoreMode}
           onSaveCard={saveDeckCard}
@@ -966,6 +981,7 @@ export function App() {
       return (
         <LearnScreen
           decks={state.decks}
+          now={learningNow}
           onStartDeck={startDeck}
           onCreateDeck={createDeck}
           focusedDeckId={focusedDeckId}
@@ -980,10 +996,16 @@ export function App() {
       );
     }
     if (activeView === "statistik") {
-      return <StatisticsScreen decks={state.decks} onNavigate={navigateToView} />;
+      return <StatisticsScreen decks={state.decks} now={learningNow} onNavigate={navigateToView} />;
     }
-    if (activeView === "testmodus") {
-      return <SchedulerTestScreen />;
+    if (activeView === "simulator") {
+      return (
+        <SimulatorScreen
+          systemNow={new Date().toISOString()}
+          dayOffset={simulationDayOffset}
+          onDayOffsetChange={changeSimulationDayOffset}
+        />
+      );
     }
     if (activeView === "hilfe") {
       return <HelpScreen />;
@@ -1006,7 +1028,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} />;
+    return <DashboardScreen state={state} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} />;
   }
 
   if (authPhase === "checking-session") {
@@ -1056,6 +1078,8 @@ export function App() {
           variantSession={studyRequest.variantSession}
           variantId={studyRequest.variantId}
           mediaStore={mediaStore}
+          getNow={getLearningNow}
+          simulationDayOffset={simulationDayOffset}
           onExit={() => {
             refresh();
             navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
@@ -1125,17 +1149,29 @@ export function App() {
               <button
                 type="button"
                 data-app-navigation="true"
-                onClick={() => navigateToView("testmodus")}
+                onClick={() => navigateToView("simulator")}
                 className={`mb-2 flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left core-body font-semibold transition ${
-                  activeView === "testmodus"
+                  activeView === "simulator"
                     ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm"
                     : "text-[var(--core-text-secondary)] hover:bg-core-surface hover:text-[var(--core-text)]"
                 }`}
-                aria-current={activeView === "testmodus" ? "page" : undefined}
+                aria-current={activeView === "simulator" ? "page" : undefined}
               >
-                <FlaskConical size={20} aria-hidden="true" />
-                <span>FSRS-Testmodus</span>
+                <CalendarClock size={20} aria-hidden="true" />
+                <span>Simulator</span>
               </button>
+              {simulationDayOffset > 0 ? (
+                <div className="mb-3 rounded-xl border border-core-warning bg-core-warning-soft p-3 text-core-text" role="status">
+                  <p className="flex items-center gap-2 core-body font-semibold">
+                    <CalendarClock size={17} aria-hidden="true" />
+                    Simulation aktiv
+                  </p>
+                  <p className="mt-1 core-caption">{formatSimulationDate(learningNow)} · +{simulationDayOffset} Tage</p>
+                  <ActionButton type="button" variant="secondary" className="mt-3 w-full justify-center" onClick={() => changeSimulationDayOffset(0)}>
+                    Heute
+                  </ActionButton>
+                </div>
+              ) : null}
               <button
                 type="button"
                 data-app-navigation="true"
