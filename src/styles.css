@@ -177,18 +177,9 @@
     box-shadow: var(--core-shadow-raised);
   }
 
-  .core-deck-summary-row:has([data-deck-row-activation]:focus-visible) {
-    border-color: var(--core-focus);
-    box-shadow: 0 0 0 3px var(--core-focus-ring);
-  }
-
   .core-deck-summary-row[data-drop-state="invalid"] {
     border-color: var(--core-danger);
     box-shadow: 0 0 0 2px var(--core-danger);
-  }
-
-  [data-deck-row-activation]:focus-visible {
-    outline: none;
   }
 
   .core-tooltip {
@@ -441,9 +432,10 @@ summary {
   min-height: 2.75rem;
 }
 
-:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
-  outline: 3px solid var(--core-focus-ring);
-  outline-offset: 3px;
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus {
+  outline: none !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
 }
 
 .core-status-info,
@@ -672,11 +664,6 @@ summary {
   color: var(--core-text);
 }
 
-.core-pdf-control:focus-visible {
-  outline: 3px solid var(--core-focus-ring-soft);
-  outline-offset: 2px;
-}
-
 .core-pdf-control:disabled {
   cursor: not-allowed;
   opacity: 0.42;
@@ -688,11 +675,6 @@ summary {
   background: var(--core-surface-muted);
   scroll-behavior: smooth;
   scrollbar-color: var(--core-border) var(--core-surface-muted);
-}
-
-.core-pdf-scroll:focus-visible {
-  outline: 3px solid var(--core-focus-ring-soft);
-  outline-offset: -3px;
 }
 
 .core-pdf-pages {

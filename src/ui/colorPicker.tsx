@@ -296,7 +296,7 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
             inputMode="text"
             spellCheck="false"
             maxLength={7}
-            className="min-h-11 min-w-0 flex-1 rounded-md border border-[var(--core-border)] bg-core-surface px-2 font-mono core-body font-semibold uppercase text-[var(--core-text)] outline-none transition focus:border-[var(--core-action-primary)] focus:shadow-[0_0_0_3px_var(--core-focus-ring-soft)]"
+            className="min-h-11 min-w-0 flex-1 rounded-md border border-[var(--core-border)] bg-core-surface px-2 font-mono core-body font-semibold uppercase text-[var(--core-text)] outline-none transition"
             aria-label={`${label} als Hex-Farbe`}
             value={customColor}
             onChange={(event) => {

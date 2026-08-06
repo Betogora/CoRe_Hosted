@@ -92,7 +92,7 @@ export function SimulatorScreen({ systemNow, dayOffset, onDayOffsetChange }: Sim
             max={maximumDate}
             value={selectedDate}
             onChange={(event) => selectOffset(getSimulationDayOffsetForDate(systemNow, event.target.value))}
-            className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 text-[var(--core-text)] outline-none focus:border-[var(--core-focus)] focus:ring-2 focus:ring-[var(--core-focus-ring)]"
+            className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 text-[var(--core-text)] outline-none"
           />
           <span className="core-caption font-normal text-[var(--core-text-muted)]">Bis zu zehn Jahre in die Zukunft.</span>
         </label>

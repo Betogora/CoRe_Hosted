@@ -90,7 +90,7 @@ function RangeField({ label, hint, value, min, max, step = 1, suffix = "", onCha
           step={step}
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
-          className="min-h-11 w-full rounded-xl border border-[var(--core-border)] bg-core-surface px-3 text-right text-[var(--core-text)] outline-none focus:border-[var(--core-border-interactive)] focus:ring-2 focus:ring-[var(--core-info-surface)]"
+          className="min-h-11 w-full rounded-xl border border-[var(--core-border)] bg-core-surface px-3 text-right text-[var(--core-text)] outline-none"
           aria-label={`${label} als Zahl`}
         />
       </span>

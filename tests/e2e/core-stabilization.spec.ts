@@ -221,7 +221,7 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
 
   const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen" });
   await learnNavigation.focus();
-  await expect.poll(() => hasVisibleOutline(learnNavigation)).toBe(true);
+  await expect.poll(() => hasVisibleOutline(learnNavigation)).toBe(false);
   await page.keyboard.press("Enter");
   const learnHeading = page.getByRole("heading", { name: "Lernen", exact: true });
   await expect(learnHeading).toBeFocused();

@@ -65,6 +65,16 @@ test("productive TSX does not reintroduce the replaced palette or named status u
   assert.doesNotMatch(source, /(?:bg|text|border|from|via|to|ring)-(?:red|green|amber|yellow|orange|teal|emerald|sky|blue|indigo|violet|purple|pink|rose)-\d+/);
 });
 
+test("interactive controls keep DOM focus without visible focus frames", () => {
+  const source = ["src/App.tsx", "src/AppErrorBoundary.tsx", ...productionFiles("src/screens"), ...productionFiles("src/ui")]
+    .map((path) => readFileSync(path, "utf8"))
+    .join("\n");
+  assert.match(styles, /:focus\s*\{[\s\S]*?outline:\s*none\s*!important;[\s\S]*?--tw-ring-shadow:\s*0 0 #0000\s*!important;/);
+  assert.doesNotMatch(styles, /core-deck-summary-row:has\([^)]*:focus-visible/);
+  assert.doesNotMatch(source, /focus-within:(?:border|outline|ring|shadow)/);
+  assert.doesNotMatch(source, /focus(?:-visible)?:(?:border|shadow)/);
+});
+
 test("the UI catalog lists every canonical shared export", () => {
   const catalog = readFileSync("src/ui/README.md", "utf8");
   for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "MiniProgress", "DonutValue", "CoreModeControl", "ThemeToggle", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {

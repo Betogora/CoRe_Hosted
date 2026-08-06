@@ -70,7 +70,7 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);
-  assert.ok(markup.includes("focus-within:border-[var(--core-border-interactive)]"));
+  assert.doesNotMatch(markup, /focus-within:/);
   assert.match(markup, /focus-visible:outline-none/);
   assert.doesNotMatch(markup, /Karten nach CoRe-Modus filtern|Alle Modi/);
   assert.match(markup, />Neue Karte<\/span><\/button>/);

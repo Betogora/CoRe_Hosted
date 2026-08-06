@@ -211,7 +211,7 @@ export function DeckSettingsScreen({ deck, decks, onSave, onSaveAppearance, onRe
                         value={nameDraft}
                         aria-label="Stapelname"
                         data-testid="deck-settings-name-input"
-                        className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface px-3 core-heading-1 text-[var(--core-text)] outline-none focus:ring-2 focus:ring-[var(--core-focus-ring)]"
+                        className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface px-3 core-heading-1 text-[var(--core-text)] outline-none"
                         onChange={(event) => {
                           setNameDraft(event.target.value);
                           setFeedback(null);
