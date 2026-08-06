@@ -57,10 +57,10 @@ export function SuccessToast({
       tone="success"
       announce="polite"
       data-success-toast-region="true"
-      className={`pointer-events-auto fixed inset-x-4 top-4 z-[75] rounded-2xl py-4 pl-5 pr-2 shadow-[var(--core-shadow-raised)] sm:left-auto sm:right-8 sm:top-8 sm:w-full sm:max-w-xl ${className}`}
+      className={`pointer-events-auto fixed right-4 top-4 z-[75] !w-fit max-w-[calc(100vw-2rem)] !items-center rounded-2xl py-4 pl-5 pr-2 shadow-[var(--core-shadow-raised)] [&>svg]:!mt-0 sm:right-8 sm:top-8 sm:max-w-[calc(100vw-4rem)] ${className}`}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="min-w-0 flex-1 core-body-large font-medium">{children}</div>
+        <div className="min-w-0 flex-1 break-words core-body-large font-medium">{children}</div>
         <IconButton label={dismissLabel} icon={X} variant="ghost" className="shrink-0" onClick={onDismiss} />
       </div>
     </StatusMessage>

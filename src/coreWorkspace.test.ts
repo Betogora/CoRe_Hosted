@@ -534,6 +534,8 @@ test("workspace card maintenance hides editing and delete invariants", () => {
   assert.equal(Boolean(deletedCard.deletedAt), true);
   assert.ok(deletedCard);
   assert.equal(deletedCard.versionLog.some((entry) => entry.changeType === "deleted"), true);
+  assert.equal(workspace.deleteDeckCard(deck.id, cardId), null);
+  assert.equal(workspace.deleteDeckCard(deck.id, "missing-card"), null);
 
   const deletedState = workspace.getState();
   workspace.saveState({

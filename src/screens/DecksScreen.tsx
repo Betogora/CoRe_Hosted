@@ -604,6 +604,7 @@ export function DecksScreen({
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();
   const [pendingCardDelete, setPendingCardDelete] = React.useState<{ deckId: string; card: LearningItem } | null>(null);
+  const [deletingCard, setDeletingCard] = React.useState(false);
   const [deletedCardUndo, setDeletedCardUndo] = React.useState<{ deckId: string; card: LearningItem; description: string } | null>(null);
   const [pendingDetailAction, setPendingDetailAction] = React.useState<PendingDetailAction | null>(null);
   const [savingPendingDraft, setSavingPendingDraft] = React.useState(false);
@@ -652,7 +653,14 @@ export function DecksScreen({
     function handleOutsidePointer(event: PointerEvent) {
       const target = event.target;
       if (!(target instanceof Element) || detailRef.current?.contains(target)) return;
-      if (pendingCardDelete && target.closest('[data-testid="action-dialog-backdrop"]')) setPendingCardDelete(null);
+      if (pendingCardDelete && target.closest('[data-testid="action-dialog-backdrop"]')) {
+        if (deletingCard) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+        setPendingCardDelete(null);
+      }
       if (target.closest('[role="dialog"], [data-radix-popper-content-wrapper]')) return;
       if (target.closest('[data-app-navigation="true"]')) return;
       if (target.closest('[data-card-row="true"]')) return;
@@ -667,7 +675,7 @@ export function DecksScreen({
       window.removeEventListener("keydown", handleEscape);
       document.removeEventListener("pointerdown", handleOutsidePointer, true);
     };
-  }, [detailOpen, pendingCardDelete, pendingDetailAction, selectedCardId, selectedDeckId]);
+  }, [deletingCard, detailOpen, pendingCardDelete, pendingDetailAction, selectedCardId, selectedDeckId]);
 
   function focusCardRow(cardId: string | null) {
     window.requestAnimationFrame(() => {
@@ -744,18 +752,26 @@ export function DecksScreen({
   }
 
   async function confirmCardDelete() {
-    if (!pendingCardDelete) return;
-    const description = stripHtml(pendingCardDelete.card.originalFront).replace(/\s+/g, " ").trim() || "Karte ohne Vorderseitentext";
+    if (!pendingCardDelete || deletingCard) return;
+    const deletion = pendingCardDelete;
+    const description = stripHtml(deletion.card.originalFront).replace(/\s+/g, " ").trim() || "Karte ohne Vorderseitentext";
+    setDeletingCard(true);
+    setDeckStatus("");
+    setSuccessToast("");
     try {
-      const result = await onDeleteCard(pendingCardDelete.deckId, pendingCardDelete.card.id);
-      const deletedCard = result?.cards.find((card: LearningItem) => card.id === pendingCardDelete.card.id);
-      if (deletedCard) setDeletedCardUndo({ deckId: pendingCardDelete.deckId, card: deletedCard, description });
+      const result = await onDeleteCard(deletion.deckId, deletion.card.id);
+      const deletedCard = result?.cards.find((card: LearningItem) => card.id === deletion.card.id && card.status === "deleted" && Boolean(card.deletedAt));
+      if (!deletedCard) throw new Error("Löschung fehlgeschlagen.");
+      setDeletedCardUndo({ deckId: deletion.deckId, card: deletedCard, description });
       setPendingCardDelete(null);
-      onSelectDeck(pendingCardDelete.deckId);
-      focusCardRow(pendingCardDelete.card.id);
+      onSelectDeck(deletion.deckId);
+      setSuccessToast("Karte wurde erfolgreich gelöscht.");
+      focusCardRow(null);
     } catch {
       setDeckStatus("Die Karte konnte nicht sicher gelöscht werden.");
       setDeckStatusType("alert");
+    } finally {
+      setDeletingCard(false);
     }
   }
 
@@ -833,7 +849,7 @@ export function DecksScreen({
 
       <SoftPanel className="p-4 sm:p-5">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text-muted)] transition focus-within:border-[var(--core-border-interactive)] focus-within:shadow-[inset_0_0_0_1px_var(--core-border-interactive)]">
+          <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text-muted)] transition">
             <Search size={17} aria-hidden="true" />
             <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
           </label>
@@ -973,7 +989,10 @@ export function DecksScreen({
         confirmLabel="Ja"
         cancelLabel="Nein"
         actionIcons={{ cancel: X, confirm: Check }}
-        onCancel={() => setPendingCardDelete(null)}
+        confirmLoading={deletingCard}
+        onCancel={() => {
+          if (!deletingCard) setPendingCardDelete(null);
+        }}
         onConfirm={() => void confirmCardDelete()}
       />
     </div>

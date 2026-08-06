@@ -771,8 +771,20 @@ export function App() {
     return result;
   }
 
-  function deleteDeckCard(deckId: string, cardId: string) {
-    return runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckCard(deckId, cardId));
+  async function deleteDeckCard(deckId: string, cardId: string) {
+    if (!workspace || !syncEngine) return null;
+    const result = workspace.deleteDeckCard(deckId, cardId);
+    const snapshot = refresh();
+    if (!result || !snapshot) return null;
+
+    const runId = bootRunRef.current;
+    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
+    void syncEngine.flush(undefined, { force: true }).then(({ saved }) => {
+      applyCloudAcknowledgement(snapshot, saved?.state, runId);
+    }).catch(() => {
+      // Die lokal persistierte Löschung bleibt in der Outbox; der Sync-Status zeigt den Fehler separat.
+    });
+    return result;
   }
 
   function duplicateDeckCard(deckId: string, cardId: string) {

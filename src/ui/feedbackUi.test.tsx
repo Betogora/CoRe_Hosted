@@ -27,7 +27,13 @@ test("SuccessToast renders a top-right success overlay with a dismiss action", (
 
   assert.match(markup, /data-success-toast-region="true"/);
   assert.match(markup, /fixed/);
+  assert.match(markup, /right-4/);
   assert.match(markup, /sm:right-8/);
+  assert.match(markup, /!w-fit/);
+  assert.match(markup, /max-w-\[calc\(100vw-2rem\)\]/);
+  assert.match(markup, /!items-center/);
+  assert.match(markup, /\[&amp;&gt;svg\]:!mt-0/);
+  assert.doesNotMatch(markup, /sm:max-w-xl|sm:w-full|inset-x-4/);
   assert.match(markup, /core-status-success/);
   assert.match(markup, /role="status"/);
   assert.match(markup, /aria-label="Erfolgsmeldung schließen"/);

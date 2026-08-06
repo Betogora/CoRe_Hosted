@@ -207,6 +207,13 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
   await page.getByRole("button", { name: "Löschen", exact: true }).click();
   await cardDialog.getByRole("button", { name: "Ja" }).click();
+  const deletionToast = page.locator('[data-success-toast-region="true"]');
+  await expect(deletionToast).toContainText("Karte wurde erfolgreich gelöscht.");
+  await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
+  await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Rückgängig" })).toBeVisible();
+  await deletionToast.getByRole("button", { name: "Erfolgsmeldung schließen" }).click();
+  await expect(deletionToast).toHaveCount(0);
   await page.getByRole("button", { name: "Rückgängig" }).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
   await page.reload();
@@ -226,6 +233,32 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await expect(page.getByTestId(`card-group-${DECK_IDS.rootA}`)).toHaveCount(0);
   await page.reload();
   await expect(page.getByTestId(`card-group-${DECK_IDS.rootA}`)).toHaveCount(0);
+});
+
+test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Reconnect nicht reaktiviert", async ({ page, context }) => {
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByRole("button", { name: "Karten verwalten" }).click();
+  const targetState = await readActiveAccountState(page);
+  const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
+
+  try {
+    await context.setOffline(true);
+    await page.getByTestId(`deck-card-${existingCardId}`).click();
+    await page.getByRole("button", { name: "Löschen", exact: true }).click();
+    await page.getByRole("dialog", { name: "Karte löschen" }).getByRole("button", { name: "Ja" }).click();
+
+    await expect(page.locator('[data-success-toast-region="true"]')).toContainText("Karte wurde erfolgreich gelöscht.");
+    await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
+    await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
+    await expect(page.getByText("Offline. Die Verbindung wird automatisch erneut geprüft.")).toBeVisible();
+  } finally {
+    await context.setOffline(false);
+  }
+
+  await expect(page.getByText(/Zuletzt synchronisiert:/)).toBeVisible({ timeout: 15_000 });
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
+  await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
 });
 
 test("[Vertrag: Importformatwechsel und Terminalzustände] @beta-core alte Vorschauen werden vollständig verworfen", async ({ page }) => {

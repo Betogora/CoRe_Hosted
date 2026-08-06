@@ -578,6 +578,8 @@ export function createCoreWorkspace(repository: WorkspaceRepository = createCore
       }));
     },
     deleteDeckCard(deckId: string, cardId: string) {
+      const card = repository.getDeck(deckId)?.cards.find((candidate) => candidate.id === cardId && candidate.status !== "deleted" && !candidate.deletedAt);
+      if (!card) return null;
       const deletedAt = new Date().toISOString();
 
       return repository.updateDeck(deckId, (deck) => ({
