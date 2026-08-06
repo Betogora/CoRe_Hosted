@@ -82,7 +82,7 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /conic-gradient/);
   assert.doesNotMatch(markup, /aktive Tage/i);
-  assert.match(markup, /Weniger[\s\S]*Frühere Wochen anzeigen/);
+  assert.match(markup, /Frühere Wochen anzeigen[\s\S]*data-testid="study-heatmap-grid"[\s\S]*data-testid="study-heatmap-legend"[\s\S]*Weniger/);
   assert.match(markup, /grid-template-columns:2\.25rem repeat\(53, 19px\)/);
   assert.match(markup, /size-\[19px\] rounded-\[4px\]/);
   assert.match(markup, /ring-2 ring-inset ring-core-focus/);

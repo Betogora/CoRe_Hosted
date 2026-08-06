@@ -112,19 +112,19 @@ Akzeptanz:
 
 ### 5.3 Karten bearbeiten und eine Sitzung starten
 
-`Lernen` ist der primäre schnelle Einstieg in eine Sitzung. `Kartenverwaltung` ist die fünfte Hauptseite und die direktlinkfähige Verwaltungsoberfläche für alle Karten, Stapelstruktur, Inhalt, Versionen und erweiterte Optionen. Die bestehende Route bleibt `/kartenstapel`.
+`Lernen` ist der primäre schnelle Einstieg in eine Sitzung. `Kartenverwaltung` ist die fünfte Hauptseite und die direktlinkfähige Verwaltungsoberfläche für alle Karten, Stapelstruktur, Inhalt, Versionen und erweiterte Optionen. Die bestehende Route bleibt `/kartenstapel`; in der mobilen Bottom Bar trägt ihr direkter Einstieg die kurze Bezeichnung `Mehr`.
 
 Akzeptanz:
 
 - Die Hauptnavigation lautet exakt `Heute`, `Lernen`, `Erstellen`, `Statistik`, `Kartenverwaltung`.
-- `Heute`, `Lernen` und `Kartenverwaltung` verwenden dieselbe kompakte Stapelzeile mit Tiefenfarbe, Chevron, Icon, eindeutigem Hierarchiepfad, Kennzahlen, Fortschrittsdonut und Drei-Punkte-Aktion. Dashboard und Lernen zeigen Teilbaum-Kennzahlen; in der Kartenverwaltung beziehen sich Kennzahlen und Donut ausschließlich auf die direkten Karten des jeweiligen Stapels.
+- `Heute`, `Lernen` und `Kartenverwaltung` verwenden dieselben Stapeldaten mit Tiefenfarbe, Chevron, Icon, Kennzahlen, Fortschrittsdonut und Drei-Punkte-Aktion. Ab 768 px zeigt die vollständige Zeile zusätzlich den Hierarchiepfad und sichtbare Kennzahllabel. Unter 768 px bleibt nur der einzeilige, bei Überlänge elliptisch gekürzte Stapelname mit den drei Zahlen sichtbar; der vollständige Pfad und die Kennzahlbedeutungen bleiben zugänglich. Dashboard und Lernen zeigen Teilbaum-Kennzahlen; in der Kartenverwaltung beziehen sich Kennzahlen und Donut ausschließlich auf die direkten Karten des jeweiligen Stapels.
 - Alle Stapelsektionen starten eingeklappt und behalten ihren Zustand nur für den aktuellen Seitenbesuch. Ein fokussierter Stapel beziehungsweise eine direkt verlinkte Karte öffnet die betroffene Sektion; Unterstapel bleiben unabhängig.
 - Die Kartentabelle zeigt pro Karte ausschließlich `Sortierfeld`, `Fällig` und `Varianten`. `Sortierfeld` ist die bereinigte Vorderseitenvorschau, `Fällig` zeigt für unbewertete Karten `Neu` und sonst `TT.MM.JJJJ`, `Varianten` unterscheidet zusätzliche aktive Varianten als `Mit Varianten` oder `Ohne Varianten`.
 - Normale Kartenzeilen bleiben einzeilig und ungefähr 28 px hoch; lange Sortierfelder werden visuell mit Ellipse gekürzt, bleiben aber zugänglich und im Kartendetail vollständig verfügbar. Stapelköpfe bleiben mit höchstens ungefähr 48 px einheitlich kompakt. Unter 640 px behält die Tabelle ihr internes Spaltenraster und scrollt ausschließlich innerhalb ihres Tabellenrahmens horizontal.
 - Alle drei Spalten sind auf- und absteigend sortierbar. Standard ist `Sortierfeld` A–Z; die gewählte Sortierung gilt einheitlich für alle Stapelsektionen und wird nicht persistiert. Leere aufgeklappte Stapel zeigen `Keine Karten`.
 - Suche berücksichtigt Stapelpfad, Vorderseite, Rückseite und Tags und öffnet passende Sektionen nur für die Dauer der Suche. Die Kartenverwaltung besitzt keinen zusätzlichen Modusfilter.
 - Auf-/Zuklappen, Stapeloptionen und andere eigene Bedienelemente lösen die Flächenaktion nicht aus. Die Flächenaktion ist per Enter und Leertaste bedienbar und besitzt einen eindeutigen zugänglichen Namen.
-- Dashboard und Lernen verwenden dasselbe Panel `Aktive Stapel`; nur das Dashboard zeigt darin `Lernen öffnen`. Während eines Drags erscheint die Hauptebenen-Zone im Panelkopf auf derselben vertikalen Achse wie diese Aktion.
+- Dashboard und Lernen verwenden dasselbe Panel `Aktive Stapel`; nur das Dashboard zeigt darin `Alle ansehen`. Während eines Drags erscheint die Hauptebenen-Zone im Panelkopf auf derselben vertikalen Achse wie diese Aktion.
 - Jede Stapelgruppe besitzt dasselbe kompakte Drei-Punkte-Menü mit individuellem Icon, vollständigem Pfad, CoRe-Modus, `Einstellungen` und bestätigtem `Verschieben`. Der randlose 44 × 44-px-Trigger übernimmt die jeweilige Zeilenfläche und trägt den Tooltip `Stapeloptionen für <vollständiger Pfad>`.
 - Umbenennen, Unterstapel anlegen, normales und variantenfokussiertes Lernen sowie Löschen sind ausschließlich in den Stapel-Einstellungen erreichbar. Nach einer von dort gestarteten Sitzung führt der Rückweg zum URL-reproduzierbaren Ursprung.
 - Ein Kartenklick setzt Deck- und Karten-ID gemeinsam in die URL und öffnet rechts ein nicht-modales, unabhängig scrollendes Detail-`aside`. Ab 1024 px überlagert es die rechte Hälfte der Tabelle, darunter die volle Inhaltsbreite. X, Escape und ein Außenklick schließen es; ein Außenklick auf eine andere Kartenzeile wechselt nach erfolgreicher Auflösung dorthin, andere Außenklicks schließen nur. Reload sowie Browser-Zurück/-Vorwärts bleiben deterministisch und der Zeilenfokus wird nach dem Schließen wiederhergestellt.
@@ -209,7 +209,7 @@ Akzeptanz:
 
 ### 5.7 Lernfortschritt über simulierte Tage prüfen
 
-Der direkt verlinkbare `/simulator` ist in der Sidebar bei Theme und Hilfe erreichbar. Er verschiebt die lernbezogene App-Zeit für die vorhandenen Accountkarten von „Heute“ aus um bis zu 3.650 Kalendertage in die Zukunft. Das Umstellen der Zeit verändert keine Karte; ein am simulierten Tag ausgeführtes Review ist dagegen ein echtes Review und wird mit diesem Zeitpunkt gespeichert und synchronisiert.
+Der direkt verlinkbare `/simulator` ist im Einstellungsbereich `App und Bedienung` neben Theme und Hilfe erreichbar. Er verschiebt die lernbezogene App-Zeit für die vorhandenen Accountkarten von „Heute“ aus um bis zu 3.650 Kalendertage in die Zukunft. Das Umstellen der Zeit verändert keine Karte; ein am simulierten Tag ausgeführtes Review ist dagegen ein echtes Review und wird mit diesem Zeitpunkt gespeichert und synchronisiert.
 
 Akzeptanz:
 
@@ -294,14 +294,15 @@ Chat-your-Deck, Lernplan, lokaler KI-Entwurf, Deck-Graph, Community-Demo, KI-Job
 ## 8. Visueller Produktvertrag
 
 - Die produktive UI verwendet die CoRe-Palette Slate `#6F7E9E`, Mist `#A9B5C7`, Cloud `#DDE3EC`, Coral `#E28B68`, Lilac `#D6A3D2`, Marigold `#E4BF63` sowie die vorbereiteten Dark-Werte Midnight `#181D25`, Graphite `#262E3A`, Highlight `#8FA0BF`, Coral Glow `#F0A07E`, Lilac Glow `#E4B5E1` und Golden Glow `#F0CC77` ausschließlich über semantische Theme-Rollen.
-- Light und Dark Mode verwenden denselben vollständigen semantischen Tokensatz. Ein zugänglicher Schalter direkt oberhalb der Einstellungen unten in der Sidebar aktiviert den Dark Mode über `data-core-theme="dark"`; daneben öffnet ein zugänglicher Fragezeichen-Button die Hilfeseite. Die Theme-Auswahl bleibt lokal im Browser erhalten. Es gibt keine automatische Aktivierung über die Systempräferenz.
+- Light und Dark Mode verwenden denselben vollständigen semantischen Tokensatz. Ein zugänglicher Schalter im Einstellungsbereich `App und Bedienung` aktiviert den Dark Mode über `data-core-theme="dark"`; derselbe Bereich öffnet Hilfe und Simulator. Die Theme-Auswahl bleibt lokal im Browser erhalten. Es gibt keine automatische Aktivierung über die Systempräferenz.
+- Unter 768 px ersetzt eine schwebende, Safe-Area-fähige Bottom Bar die Sidebar. Ihre fünf direkten Ziele sind `Heute`, `Lernen`, `Erstellen`, `Statistik` und `Mehr`; `Mehr` öffnet ohne Zwischenmenü die Kartenverwaltung. Ein kompakter Kopf zeigt `CoRe`, das Einstellungszahnrad und nur bei aktiver Simulation deren Status. Ab 768 px bleibt die Sidebar mit denselben fünf Hauptzielen und dem Einstellungszugang erhalten.
 - Dekorative Rahmenlinien sind bewusst heller und zurückhaltender als interaktive Feld-, Auswahl- und Fokusgrenzen.
 - Primäre, sekundäre, tertiäre und destruktive Actions sowie Info-, Erfolgs-, Warn- und Fehlerzustände besitzen produktweit einheitliche Hover-, Active-, Focus- und Disabled-Zustände. Bedeutung bleibt durch Text, Icon oder Zahl zusätzlich zur Farbe erkennbar.
 - Gewöhnliche einzeilige Buttons, Icon-Aktionen, Eingaben und Auswahlfelder verwenden produktweit eine Mindesthöhe beziehungsweise ein Touchziel von `44 × 44 px`. Fachliche Großflächen wie MCQ-Antworten und Reviewratings dürfen höher bleiben.
 - Auswahlfelder verwenden produktweit denselben symmetrisch gepolsterten Trigger und ein erhöhtes, abgerundetes CoRe-Overlay. Gewählte und fokussierte Optionen bleiben zusätzlich zur Farbe durch eine sichtbare Markierung und vollständige Tastaturbedienung erkennbar.
 - Kurze, abgeschlossene Erfolgsmeldungen erscheinen produktweit als schließbares Overlay oben rechts mit Erfolgsicon und zugänglicher Schließen-Aktion; auf schmalen Viewports halten sie den Seitenabstand ein und umbrechen ohne horizontales Hauptscrolling. Fehler, laufende Vorgänge sowie Ergebnisse mit Details oder Folgeaktionen bleiben im fachlichen Kontext sichtbar.
 - Stapelgruppen verwenden dauerhaft die einfachen, gerahmten Flächen `--core-group-depth-0` bis `--core-group-depth-3`: Hauptstapel verwenden die ungefüllte Oberflächenfarbe von Depth 0 ohne Schatten, die drei Unterebenen jeweils Depth 1 bis 3. Tiefere Importe verwenden weiterhin Stufe 3. Hover, Auswahl, Fokus und Drop-Ziele reagieren am bestehenden Außenrand, ohne einen eingerückten Hover-Layer oder eine erhöhte Stapelfläche zu erzeugen.
-- Stapelkarten zeigen `Neu` in der semantischen Lilac-Textrolle, `Fällig` in Slate und `Gesamt` gedämpft. Die sichtbaren Labels bleiben in allen Themes und Breiten erhalten, sodass Farbe nie allein Bedeutung trägt.
+- Stapelkarten zeigen `Neu` in der semantischen Lilac-Textrolle, `Fällig` in Slate und `Gesamt` gedämpft. Unter 768 px werden die drei sichtbaren Labels zugunsten der einzeiligen Kompaktform ausgeblendet; ihre feste Reihenfolge und zugänglichen Namen bleiben erhalten. Ab 768 px bleiben die Labels sichtbar.
 - Amulya definiert die visuellen Überschriftenstufen `36/44`, `28/36` und `22/30`; Synonym definiert Body Large `16/24`, Body und Controls `14/20` sowie Caption und Statuslabel `12/16`. Semantische HTML-Ebene und visuelle Stufe dürfen voneinander abweichen.
 - Bestehendes Karten-HTML und persistierte benutzerdefinierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate `#6F7E9E`. Stapel-Icons erscheinen produktweit rund mit Symbol und Rand in der gewählten Farbe sowie einer dezenten transparenten Flächentönung derselben Farbe. In den Stapel-Einstellungen zeigt der Seitentitel das aktuelle Icon in seiner Farbe, den Stapelnamen und eine randlose Stiftaktion für die Namensbearbeitung. Die darunterliegende Darstellungszeile enthält ein zugängliches 5-mal-5-Raster mit 25 repräsentativen Lucide-Icons, den runden Farbkreis und die gemeinsame Speicheraktion; Enter im Namensfeld übernimmt weiterhin Name, Icon und Farbe zusammen. Rich-Text-Schnellfarben stammen weiterhin aus der CoRe-Palette.
 
@@ -327,7 +328,7 @@ Der auffindbare, nicht verpflichtende Wiederverwendungsvertrag für neue Feature
 ### Viewports und Sprache
 
 - Primärer Zielviewport ist 1440 × 900 px, Desktop-Mindestziel 1280 × 720 px.
-- Unter 1024 px genügt vorerst eine lesbare responsive Fallback-Nutzung; Mobile ist kein eigener Produktfokus.
+- Unter 768 px besitzt CoRe den definierten mobilen App-Modus mit Kopf und Bottom Bar; ab 768 px gilt die Sidebar-Darstellung. Fachliche Spezialflächen behalten ihre jeweils dokumentierten internen Scrollbereiche.
 - Nutzertexte sind korrektes Deutsch mit Unicode-Schreibweise. Technische Bezeichnungen gelangen nicht ungefiltert in die UI.
 
 ### Zuverlässigkeit

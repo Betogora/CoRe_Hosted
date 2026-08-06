@@ -61,7 +61,7 @@ Direktimport aus `src/ui/coreUi.tsx`:
 - `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Cancel/Confirm, optionaler Verwerfen-Aktion, optionalen Aktionsicons, Ladezustand und Fokuswiederherstellung; ohne Beschreibung erscheint er kompakt in einer Zeile, explizit destruktive Bestätigungen behalten ihre Gefahrenform; intern gemeinsame Actions.
 - `OrbIcon`: rein dekorativer Icon-Kreis; Bedeutung bleibt im umgebenden Text.
 - `CoreModeControl`: fachliches Drei-Wege-Control für Aus/Auto/Manuell, kein allgemeiner Tab-Ersatz.
-- `ThemeToggle`: zugänglicher Light-/Dark-Schalter für die App-Shell; das Modul besitzt seinen lokalen Darstellungszustand und die Switch-Semantik, `src/coreTheme.ts` Dokumentattribut und Persistenz.
+- `ThemeToggle`: zugänglicher Light-/Dark-Schalter für den Bereich `App und Bedienung` in den Einstellungen; das Modul besitzt seinen lokalen Darstellungszustand und die Switch-Semantik, `src/coreTheme.ts` Dokumentattribut und Persistenz.
 
 CSS-Oberflächen: `core-surface`, `core-surface-raised`, `core-surface-muted`, `core-overlay`.
 
@@ -96,12 +96,14 @@ Wenn ein konkreter Stapel oder Elternstapel gewählt wird, verwendet Produktcode
 
 ## Fortschritt und Datenvisualisierung
 
-`MiniProgress`, `DonutValue` und `StatTile` aus `src/ui/coreUi.tsx` decken kompakten Fortschritt, Prozentdonut und Kennzahlfläche ab. Aufrufer liefern Werte und verständliche Labels; Unterschiede dürfen nie nur über Farbe vermittelt werden.
+`MiniProgress`, `DonutValue` und `StatTile` aus `src/ui/coreUi.tsx` decken kompakten Fortschritt, Prozentdonut und Kennzahlfläche ab. `DonutValue` besitzt neben der Standardgröße eine kompakte sowie eine intern responsive Größe für einzeilige mobile Stapelzeilen. Aufrufer liefern Werte und verständliche Labels; Unterschiede dürfen nie nur über Farbe vermittelt werden.
 
 ## Spezialisierte Feature-Module
 
-- `DeckSummaryRow` aus `src/ui/DeckSummaryRow.tsx`: kanonischer kompakter Zeileninhalt für Dashboard, Lernen und Kartenverwaltung mit Chevron-Slot, Stapel-Icon, Name und Pfad, drei Kennzahlen, Donut und Aktionsslot. Die Aufrufer bestimmen Kennzahlsemantik, Expansion und Aktion; die Kartenverwaltung liefert direkte Werte, alle drei Ansichten dasselbe reduzierte Stapelmenü.
+- `DeckSummaryRow` aus `src/ui/DeckSummaryRow.tsx`: kanonischer Zeilenrenderer für Dashboard, Lernen und Kartenverwaltung mit Chevron-Slot, Stapel-Icon, Name und Pfad, drei Kennzahlen, Donut und Aktionsslot. Seine responsive Dichte wechselt unter 768 px zur einzeiligen Kompaktform, ohne eine zweite Zeile oder ein zweites Menü zu mounten. Die Aufrufer bestimmen Kennzahlsemantik, Expansion und Aktion; die Kartenverwaltung liefert direkte Werte, alle drei Ansichten dasselbe reduzierte Stapelmenü.
+- `CompactDeckSummaryRow` aus `src/ui/CompactDeckSummaryRow.tsx`: feste kompakte UI-Elements-Projektion desselben Renderers ohne sichtbaren Herkunftspfad und ohne sichtbare Kennzahllabel. Name, drei zugänglich benannte Zahlen, kompakter Donut und Aktionen bleiben in einer Zeile; Tiefenfarbe und Collapse-Verhalten besitzt weiterhin der Aufrufer.
 - `DeckTree` aus `src/ui/DeckTree.tsx`: gemeinsames Panel `Aktive Stapel` und flache, lokal einklappbare Projektion des Stapelbaums für Dashboard und Lernen mit aggregierten Teilbaum-Kennzahlen. Der per Pointer-Capture gebundene Desktop-Drag bleibt beim Verlassen der Zeilenfläche aktiv und erreicht die Hauptebenen-Zone im Panelkopf; ein angehobener Quellzustand und verstärkte Zielmarkierung machen die Geste sichtbar. Gruppentiefen 0 bis 3 entsprechen Hauptstapel, Unterstapel, Unter-Unterstapel und Unter-Unter-Unterstapel; tiefere importierte Bäume verwenden weiterhin den Ton von Tiefe 3.
+- `AppNavigation` aus `src/ui/AppNavigation.tsx`: einzige responsive App-Navigation. Unter 768 px besitzt sie den kompakten CoRe-Kopf, Einstellungszahnrad und die schwebende Fünf-Tab-Bottom-Bar; ab 768 px die Sidebar. `Mehr` projiziert direkt die Kartenverwaltung, während Einstellungen, Hilfe und Simulator eine Utility-Gruppe bilden.
 - `DeckOptionsMenu` aus `src/ui/DeckOptionsMenu.tsx`: identisches randloses Drei-Punkte-Menü für Dashboard, Lernen und Kartenverwaltung mit Deck-Icon, vollständigem Pfad, CoRe-Modus, Einstellungen und gemeinsamem bestätigten Verschiebedialog. Weitere Stapelaktionen gehören in die Stapel-Einstellungen.
 - `RichTextEditor` aus `src/ui/RichTextEditor.tsx`: sanitisiertes Karten-HTML, Toolbar, Text- und Markerfarben.
 - `ColorWheelPicker` aus `src/ui/ColorWheelPicker.tsx`: kompakter runder Farbkreis für kontrollierte Farbfelder.

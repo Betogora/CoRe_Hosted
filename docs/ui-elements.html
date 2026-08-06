@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: ab3fc5acf16977fe */
+/* Quellenstand: fb675ddf0aa707cc */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -824,6 +824,10 @@ video {
   width: 2.5rem;
   height: 2.5rem;
 }
+.size-11 {
+  width: 2.75rem;
+  height: 2.75rem;
+}
 .size-12 {
   width: 3rem;
   height: 3rem;
@@ -844,6 +848,10 @@ video {
   width: 2.25rem;
   height: 2.25rem;
 }
+.size-\[1\.35rem\] {
+  width: 1.35rem;
+  height: 1.35rem;
+}
 .h-16 {
   height: 4rem;
 }
@@ -861,6 +869,9 @@ video {
 }
 .min-h-12 {
   min-height: 3rem;
+}
+.min-h-14 {
+  min-height: 3.5rem;
 }
 .min-h-20 {
   min-height: 5rem;
@@ -889,6 +900,9 @@ video {
 }
 .min-w-11 {
   min-width: 2.75rem;
+}
+.min-w-4 {
+  min-width: 1rem;
 }
 .min-w-64 {
   min-width: 16rem;
@@ -921,6 +935,10 @@ video {
   --tw-rotate: -90deg;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
+.rotate-180 {
+  --tw-rotate: 180deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
 .rotate-90 {
   --tw-rotate: 90deg;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
@@ -945,8 +963,17 @@ video {
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.grid-cols-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
 .grid-cols-\[minmax\(13rem\2c 1fr\)_minmax\(15rem\2c auto\)_auto\] {
   grid-template-columns: minmax(13rem,1fr) minmax(15rem,auto) auto;
+}
+.grid-cols-\[minmax\(5rem\2c 1fr\)_auto_auto\] {
+  grid-template-columns: minmax(5rem,1fr) auto auto;
+}
+.flex-col {
+  flex-direction: column;
 }
 .flex-wrap {
   flex-wrap: wrap;
@@ -963,8 +990,20 @@ video {
 .justify-end {
   justify-content: flex-end;
 }
+.justify-center {
+  justify-content: center;
+}
 .justify-between {
   justify-content: space-between;
+}
+.gap-0\.5 {
+  gap: 0.125rem;
+}
+.gap-1 {
+  gap: 0.25rem;
+}
+.gap-1\.5 {
+  gap: 0.375rem;
 }
 .gap-2 {
   gap: 0.5rem;
@@ -1002,6 +1041,9 @@ video {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.whitespace-nowrap {
+  white-space: nowrap;
+}
 .break-words {
   overflow-wrap: break-word;
 }
@@ -1013,6 +1055,9 @@ video {
 }
 .rounded-\[18px\] {
   border-radius: 18px;
+}
+.rounded-\[20px\] {
+  border-radius: 20px;
 }
 .rounded-\[4px\] {
   border-radius: 4px;
@@ -1098,6 +1143,9 @@ video {
 .p-1 {
   padding: 0.25rem;
 }
+.p-1\.5 {
+  padding: 0.375rem;
+}
 .p-2 {
   padding: 0.5rem;
 }
@@ -1121,6 +1169,10 @@ video {
 }
 .p-8 {
   padding: 2rem;
+}
+.px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 .px-2 {
   padding-left: 0.5rem;
@@ -1174,6 +1226,9 @@ video {
 }
 .font-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.text-\[0\.68rem\] {
+  font-size: 0.68rem;
 }
 .font-medium {
   font-weight: 500;
@@ -2753,13 +2808,24 @@ summary {
                   <button type="button" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-core-secondary transition hover:bg-core-surface hover:text-core-text"><svg class="catalog-icon shrink-0"><use href="#icon-layers"></use></svg><span class="min-w-0 truncate">Kartenverwaltung</span></button>
                 </div>
                 <div class="catalog-demo catalog-stack">
+                  <span class="catalog-demo-label">Mobile Bottom Bar · unter 768 px</span>
+                  <nav aria-label="Mobile Hauptnavigation" class="grid grid-cols-5 gap-1 rounded-[20px] border border-core-border bg-core-surface-raised p-1.5 shadow-[var(--core-shadow-raised)]">
+                    <button type="button" aria-current="page" class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-core-subtle px-1"><svg class="catalog-icon"><use href="#icon-home"></use></svg><span class="text-[0.68rem]">Heute</span></button>
+                    <button type="button" class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-core-muted"><svg class="catalog-icon"><use href="#icon-book"></use></svg><span class="text-[0.68rem]">Lernen</span></button>
+                    <button type="button" class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-core-muted"><svg class="catalog-icon"><use href="#icon-plus"></use></svg><span class="text-[0.68rem]">Erstellen</span></button>
+                    <button type="button" class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-core-muted"><svg class="catalog-icon"><use href="#icon-chart"></use></svg><span class="text-[0.68rem]">Statistik</span></button>
+                    <button type="button" aria-label="Kartenverwaltung öffnen" class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-core-muted"><svg class="catalog-icon"><use href="#icon-more"></use></svg><span class="text-[0.68rem]">Mehr</span></button>
+                  </nav>
+                  <p class="core-caption text-core-muted">Schwebend, Safe-Area-fähig und mit direktem Kartenverwaltungsziel.</p>
+                </div>
+                <div class="catalog-demo catalog-stack">
                   <span class="catalog-demo-label">Core-Modus · segmentiertes Control</span>
                   <div class="core-status-label inline-grid min-h-11 grid-cols-3 overflow-hidden rounded-xl border border-core-border bg-core-subtle text-core-secondary" role="group" aria-label="CoRe-Modus">
                     <button type="button" aria-pressed="false" class="px-3 transition hover:bg-core-surface">Aus</button>
                     <button type="button" aria-pressed="true" class="bg-core-action px-3 text-[var(--core-text-on-accent)]">Auto</button>
                     <button type="button" aria-pressed="false" class="px-3 transition hover:bg-core-surface">Manuell</button>
                   </div>
-                  <span class="catalog-demo-label mt-3">Theme-Switch</span>
+                  <span class="catalog-demo-label mt-3">App und Bedienung · Theme-Switch</span>
                   <button type="button" role="switch" aria-checked="true" class="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle">
                     <span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-sparkles"></use></svg></span>
                     <span class="min-w-0 flex-1"><span class="block core-control-label text-core-text">Dark Mode</span><span class="block core-caption text-core-muted">Explizite Auswahl</span></span>
@@ -2907,7 +2973,7 @@ summary {
               <article class="core-surface-raised min-w-0 rounded-[18px] p-4 sm:p-7">
                 <div class="mb-6 flex min-h-11 flex-wrap items-center justify-between gap-3">
                   <div><p class="core-caption uppercase tracking-wide text-core-muted">Gemeinsame Baumprojektion</p><h3 class="core-heading-3 mt-1 font-semibold text-core-text">Aktive Stapel</h3></div>
-                  <div class="flex items-center gap-3"><span class="catalog-pill">Dashboard und Lernen</span><button type="button" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-core-subtle px-4 core-body font-semibold text-core-action">Lernen öffnen <svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></button></div>
+                  <div class="flex items-center gap-3"><span class="catalog-pill">Dashboard und Lernen</span><button type="button" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-core-subtle px-4 core-body font-semibold text-core-action">Alle ansehen <svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></button></div>
                 </div>
                 <div class="max-w-full overflow-x-auto rounded-2xl border border-core-border">
                   <div class="min-w-[46rem]">
@@ -2929,6 +2995,16 @@ summary {
                     </div>
                   </div>
                 </div>
+                <div class="mt-4">
+                  <span class="catalog-demo-label">Mobile Kompaktzeile · unter 768 px</span>
+                  <div class="core-deck-summary-row mt-2 rounded-xl border border-core-border" data-deck-depth="1">
+                    <div class="grid min-h-11 min-w-0 grid-cols-[minmax(5rem,1fr)_auto_auto] items-center gap-1 px-1">
+                      <div class="flex min-w-0 items-center gap-1.5" style="padding-inline-start:9px"><span class="grid size-9 shrink-0 place-items-center text-core-action"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></span><span class="grid size-8 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><strong class="min-w-0 flex-1 truncate whitespace-nowrap core-body text-core-text">Ein sehr langer Unterstapelname</strong></div>
+                      <dl class="grid grid-cols-3 gap-1"><div class="min-w-4 text-center"><dt class="sr-only">Neu</dt><dd class="core-caption font-semibold" style="color:var(--core-deck-new-text)">3</dd></div><div class="min-w-4 text-center"><dt class="sr-only">Fällig</dt><dd class="core-caption font-semibold" style="color:var(--core-deck-due-text)">2</dd></div><div class="min-w-4 text-center"><dt class="sr-only">Gesamt</dt><dd class="core-caption font-semibold" style="color:var(--core-deck-total-text)">53</dd></div></dl>
+                      <div class="flex items-center gap-0.5"><span class="grid size-8 place-items-center rounded-full" aria-label="42 Prozent" style="background:conic-gradient(var(--core-action-primary) 42%,var(--core-surface-muted) 0)"><span class="size-[1.35rem] rounded-full bg-core-surface"></span></span><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div>
+                    </div>
+                  </div>
+                </div>
               </article>
               <article class="core-surface-raised min-w-0 overflow-hidden rounded-[18px]">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-core-border p-5"><div><p class="core-caption uppercase tracking-wide text-core-muted">Gruppierte Gesamttabelle</p><h3 class="core-heading-3 mt-1 text-core-text">Kartenverwaltung</h3></div><span class="catalog-pill">Direkte Stapelwerte</span></div>
@@ -2943,13 +3019,13 @@ summary {
                 </div>
               </article>
                 <article class="core-surface-raised rounded-[18px] p-6">
-                  <div class="flex items-center justify-between gap-4"><div><p class="core-caption uppercase tracking-wide text-core-muted">Lernaktivität</p><h3 class="core-heading-3 mt-1 text-core-text">Heatmap</h3></div><span class="catalog-pill">12 Monate</span></div>
+                  <div class="flex items-center justify-between gap-4"><div><p class="core-caption uppercase tracking-wide text-core-muted">Lernaktivität</p><h3 class="core-heading-3 mt-1 text-core-text">Heatmap</h3></div><div class="flex gap-2"><button type="button" class="grid size-11 place-items-center rounded-xl border border-core-border text-core-action" aria-label="Frühere Wochen anzeigen"><svg class="catalog-icon rotate-180"><use href="#icon-chevron"></use></svg></button><button type="button" class="grid size-11 place-items-center rounded-xl border border-core-border text-core-action" aria-label="Spätere Wochen anzeigen"><svg class="catalog-icon"><use href="#icon-chevron"></use></svg></button></div></div>
                   <div class="catalog-heatmap mt-5" aria-label="Beispiel einer Lern-Heatmap">
                     <span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span>
                     <span class="bg-core-subtle"></span><span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-info-soft"></span><span class="bg-core-subtle"></span><span class="bg-core-success"></span><span class="bg-core-success-soft"></span><span class="bg-core-subtle"></span><span class="bg-core-success"></span><span class="bg-core-info-soft"></span><span class="bg-core-subtle"></span>
                     <span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span>
                   </div>
-                  <div class="mt-4 flex items-center justify-end gap-2 core-caption text-core-muted"><span>Weniger</span><span class="size-3 rounded-[4px] border border-core-border bg-core-subtle"></span><span class="size-3 rounded-[4px] border border-core-border bg-core-success-soft"></span><span class="size-3 rounded-[4px] border border-core-border bg-core-success"></span><span>Mehr</span></div>
+                  <div class="mt-4 flex items-center justify-center gap-2 core-caption text-core-muted"><span>Weniger</span><span class="size-3 rounded-[4px] border border-core-border bg-core-subtle"></span><span class="size-3 rounded-[4px] border border-core-border bg-core-success-soft"></span><span class="size-3 rounded-[4px] border border-core-border bg-core-success"></span><span>Mehr</span></div>
                 </article>
               <div class="core-surface-raised rounded-[18px] p-6">
                 <div class="flex flex-wrap items-center justify-between gap-3"><div><p class="core-caption uppercase tracking-wide text-core-muted">APKG-Import</p><h3 class="core-heading-3 mt-1 text-core-text">Vorschau und Übernahme</h3></div><span class="catalog-pill border-core-warning bg-core-warning-soft text-core-text">1 Warnung</span></div>

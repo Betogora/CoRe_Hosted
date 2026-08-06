@@ -882,6 +882,20 @@ export function DecksScreen({
                 const directProgress = group.directSummary.totalCards
                   ? Math.round((group.directSummary.matureCards / group.directSummary.totalCards) * 100)
                   : 0;
+                const groupLeadingControl = (
+                  <span className="grid size-9 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
+                    {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
+                  </span>
+                );
+                const groupActions = (
+                  <DeckOptionsMenu
+                    row={group}
+                    decks={decks}
+                    onSetCoreMode={onSetDeckCoreMode}
+                    onOpenSettings={onOpenDeckSettings}
+                    onMoveDeck={onMoveDeck}
+                  />
+                );
                 return (
                 <tbody key={group.id} id={"deck-card-list-" + group.id} data-testid={"card-group-" + group.id}>
                   <tr
@@ -901,25 +915,16 @@ export function DecksScreen({
                         data-deck-row-activation="true"
                         className="absolute inset-0 z-0 cursor-pointer transition-colors hover:bg-[var(--core-focus-ring-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--core-focus)]"
                       />
-                      <DeckSummaryRow
-                        row={group}
-                        summary={group.directSummary}
-                        progress={directProgress}
-                        leadingControl={
-                          <span className="grid size-9 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
-                            {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
-                          </span>
-                        }
-                        actions={
-                          <DeckOptionsMenu
-                            row={group}
-                            decks={decks}
-                            onSetCoreMode={onSetDeckCoreMode}
-                            onOpenSettings={onOpenDeckSettings}
-                            onMoveDeck={onMoveDeck}
-                          />
-                        }
-                      />
+                      <div className="sticky left-0 w-[calc(100dvw-4.5rem)] sm:w-[calc(100dvw-8rem)] md:static md:w-auto">
+                        <DeckSummaryRow
+                          row={group}
+                          summary={group.directSummary}
+                          progress={directProgress}
+                          leadingControl={groupLeadingControl}
+                          actions={groupActions}
+                          density="responsive"
+                        />
+                      </div>
                     </th>
                   </tr>
                   {expanded && group.cardRows.length ? group.cardRows.map(({ card, frontPreview, dueLabel, variantsLabel, hasActiveVariants }) => (

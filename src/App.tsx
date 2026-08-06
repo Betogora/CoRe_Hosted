@@ -1,9 +1,8 @@
 import React from "react";
 import type { User } from "@supabase/supabase-js";
-import type { LucideIcon } from "lucide-react";
 import type { AuthPhase } from "./accountSession.ts";
 import type { CoreMode, Deck, LearningItem, ReviewEvent, SyncStatus } from "./coreTypes.ts";
-import { BarChart3, BookOpen, CalendarClock, CircleHelp, Database, Home, Layers, PlusSquare, Settings } from "lucide-react";
+import { Database, Layers } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
@@ -38,8 +37,8 @@ import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
 import { useAppNavigation } from "./useAppNavigation.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
-import { ActionButton } from "./ui/actionUi.tsx";
-import { ActionDialog, EmptyState, OrbIcon, SoftPanel, ThemeToggle } from "./ui/coreUi.tsx";
+import { AppNavigation } from "./ui/AppNavigation.tsx";
+import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 
 const CreationScreen = React.lazy<React.ComponentType<CreationScreenProps>>(() => import("./screens/CreationScreen.tsx").then(({ CreationScreen }) => ({ default: CreationScreen })));
 const DashboardScreen = React.lazy<React.ComponentType<DashboardScreenProps>>(() => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })));
@@ -69,21 +68,6 @@ type PendingNavigation = { run: () => void; source: "creation" | "card" };
 
 function resolveCoreMode(value: unknown, fallback: CoreMode): CoreMode {
   return value === "off" || value === "auto" || value === "manual" ? value : fallback;
-}
-
-const iconByKey: Record<string, LucideIcon> = {
-  chart: BarChart3,
-  home: Home,
-  help: CircleHelp,
-  layers: Layers,
-  learn: BookOpen,
-  plus: PlusSquare,
-  settings: Settings,
-  simulator: CalendarClock,
-};
-
-function getIcon(iconKey: string) {
-  return iconByKey[iconKey] ?? Home;
 }
 
 function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string }) {
@@ -1051,6 +1035,9 @@ export function App() {
           onListConflicts={listSyncConflicts}
           onResolveConflict={resolveSyncConflict}
           onSignOut={signOut}
+          onNavigate={navigateToView}
+          simulationDayOffset={simulationDayOffset}
+          simulationDateLabel={formatSimulationDate(learningNow)}
         />
       );
     }
@@ -1123,102 +1110,18 @@ export function App() {
 
   return (
     <main className="min-h-dvh overflow-x-clip bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
-      <div className="grid min-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[22px] border border-[var(--core-border)] bg-core-surface shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] md:h-[calc(100dvh-4rem)] md:min-h-0 md:grid-cols-[13rem_minmax(0,1fr)] md:grid-rows-1">
-        <aside className="border-b border-[var(--core-border)] bg-core-surface md:overflow-y-auto md:border-b-0 md:border-r">
-          <div className="flex flex-col px-5 py-6 sm:px-8 md:h-full md:px-4 md:py-8 lg:px-5 lg:py-10">
-            <div>
-              <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
-              <p className="mt-2 core-body-large text-[var(--core-text-muted)]">Content Repetition</p>
-            </div>
+      <div className="grid min-h-[calc(100vh-2rem)] w-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-[var(--core-border)] bg-core-surface shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] md:h-[calc(100dvh-4rem)] md:min-h-0 md:grid-cols-[13rem_minmax(0,1fr)] md:grid-rows-1">
+        <AppNavigation
+          navigationItems={navigationItems}
+          activeView={activeView}
+          displayName={state.profile.displayName}
+          simulationDayOffset={simulationDayOffset}
+          simulationDateLabel={formatSimulationDate(learningNow)}
+          onNavigate={navigateToView}
+          onResetSimulation={() => changeSimulationDayOffset(0)}
+        />
 
-            <nav aria-label="Hauptmenü" data-app-navigation="true" className="mt-6 grid grid-cols-2 gap-2 md:mt-10 md:max-w-none md:grid-cols-1">
-              {navigationItems.map((view) => {
-                const NavIcon = getIcon(view.iconKey);
-                const isActive = view.id === activeView;
-
-                return (
-                  <button
-                    key={view.id}
-                    type="button"
-                    onClick={() => navigateToView(view.id)}
-                    className={`core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium transition ${
-                      isActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text-secondary)] hover:bg-core-surface hover:text-[var(--core-text)]"
-                    }`}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    <NavIcon className="shrink-0" size={21} aria-hidden="true" />
-                    <span className="min-w-0 truncate">{view.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-
-            <div className="mt-5 border-t border-[var(--core-border)] pt-5 md:mt-auto md:pt-6">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <ThemeToggle />
-                <button
-                  type="button"
-                  data-app-navigation="true"
-                  onClick={() => navigateToView("hilfe")}
-                  className={`core-action-secondary size-11 shrink-0 rounded-full p-0 ${
-                    activeView === "hilfe"
-                      ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-sm"
-                      : "border-[var(--core-border)] bg-[var(--core-surface)] text-[var(--core-text-secondary)] hover:text-[var(--core-text)]"
-                  }`}
-                  aria-label="Hilfe öffnen"
-                  aria-current={activeView === "hilfe" ? "page" : undefined}
-                  title="Wie CoRe und FSRS funktionieren"
-                >
-                  <CircleHelp size={21} aria-hidden="true" />
-                </button>
-              </div>
-              <button
-                type="button"
-                data-app-navigation="true"
-                onClick={() => navigateToView("simulator")}
-                className={`mb-2 flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left core-body font-semibold transition ${
-                  activeView === "simulator"
-                    ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm"
-                    : "text-[var(--core-text-secondary)] hover:bg-core-surface hover:text-[var(--core-text)]"
-                }`}
-                aria-current={activeView === "simulator" ? "page" : undefined}
-              >
-                <CalendarClock size={20} aria-hidden="true" />
-                <span>Simulator</span>
-              </button>
-              {simulationDayOffset > 0 ? (
-                <div className="mb-3 rounded-xl border border-core-warning bg-core-warning-soft p-3 text-core-text" role="status">
-                  <p className="flex items-center gap-2 core-body font-semibold">
-                    <CalendarClock size={17} aria-hidden="true" />
-                    Simulation aktiv
-                  </p>
-                  <p className="mt-1 core-caption">{formatSimulationDate(learningNow)} · +{simulationDayOffset} Tage</p>
-                  <ActionButton type="button" variant="secondary" className="mt-3 w-full justify-center" onClick={() => changeSimulationDayOffset(0)}>
-                    Heute
-                  </ActionButton>
-                </div>
-              ) : null}
-              <button
-                type="button"
-                data-app-navigation="true"
-                onClick={() => navigateToView("einstellungen")}
-                className={`flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition ${
-                  activeView === "einstellungen" ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text)] hover:bg-core-surface"
-                }`}
-                aria-label="Einstellungen öffnen"
-                aria-current={activeView === "einstellungen" ? "page" : undefined}
-              >
-                <span className="grid size-10 place-items-center rounded-full bg-[var(--core-info-surface)] core-body font-semibold">{(state.profile.displayName || "CO").slice(0, 2).toUpperCase()}</span>
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)]">
-                  <Settings size={18} aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1 truncate core-body font-semibold">{state.profile.displayName}</span>
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        <section ref={screenRegionRef} className="min-w-0 overflow-x-hidden px-5 py-8 outline-none sm:px-8 md:overflow-y-auto lg:px-12 lg:py-12" tabIndex={-1} aria-label="Seiteninhalt">
+        <section ref={screenRegionRef} className="min-w-0 overflow-x-hidden px-5 pb-32 pt-8 outline-none sm:px-8 md:overflow-y-auto md:py-8 lg:px-12 lg:py-12" tabIndex={-1} aria-label="Seiteninhalt">
           <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
         </section>
       </div>

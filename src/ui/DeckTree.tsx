@@ -185,6 +185,26 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
     const isDragged = draggedDeckId === row.id;
     const isDropTarget = dropIntent?.targetDeckId === row.id;
     const activationLabel = `${row.path} lernen`;
+    const collapseControl = row.hasChildren ? (
+      <button
+        type="button"
+        onClick={() => toggleCollapsed(row.id)}
+        className="pointer-events-auto grid size-9 shrink-0 place-items-center rounded-lg text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)]"
+        aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
+        aria-expanded={!isCollapsed}
+      >
+        {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
+      </button>
+    ) : <span className="size-9 shrink-0" aria-hidden="true" />;
+    const optionsMenu = (
+      <DeckOptionsMenu
+        row={row}
+        decks={decks}
+        onSetCoreMode={onSetDeckCoreMode}
+        onOpenSettings={onOpenSettings}
+        onMoveDeck={onMoveDeck}
+      />
+    );
 
     return (
       <div
@@ -213,28 +233,9 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
           row={row}
           summary={row.summary}
           progress={row.progress}
-          leadingControl={
-            row.hasChildren ? (
-              <button
-                type="button"
-                onClick={() => toggleCollapsed(row.id)}
-                className="pointer-events-auto grid size-9 shrink-0 place-items-center rounded-lg text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)]"
-                aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
-                aria-expanded={!isCollapsed}
-              >
-                {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
-              </button>
-            ) : <span className="size-9 shrink-0" aria-hidden="true" />
-          }
-          actions={
-            <DeckOptionsMenu
-              row={row}
-              decks={decks}
-              onSetCoreMode={onSetDeckCoreMode}
-              onOpenSettings={onOpenSettings}
-              onMoveDeck={onMoveDeck}
-            />
-          }
+          leadingControl={collapseControl}
+          actions={optionsMenu}
+          density="responsive"
         />
       </div>
     );
@@ -270,8 +271,8 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
         ) : <span className="hidden lg:block" aria-hidden="true" />}
         <div className="col-start-2 row-start-1 justify-self-end lg:col-start-3">{headerAction}</div>
       </div>
-      <div className="max-w-full overflow-x-auto rounded-2xl border border-[var(--core-border)]">
-        <div className="min-w-[46rem]">
+      <div className="max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)] md:overflow-x-auto">
+        <div className="min-w-0 md:min-w-[46rem]">
           {visibleRows.map(renderRow)}
         </div>
       </div>

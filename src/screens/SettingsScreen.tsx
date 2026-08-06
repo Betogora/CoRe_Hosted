@@ -1,10 +1,11 @@
 import React from "react";
-import { Database, Download, GraduationCap, Languages, Lock, RefreshCw, Save, Upload, User, X } from "lucide-react";
+import { CalendarClock, ChevronRight, CircleHelp, Database, Download, GraduationCap, Languages, Lock, MonitorCog, RefreshCw, Save, Upload, User, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
+import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, stringifyPortableExport, validatePortableExport } from "../dataPortability.ts";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { OrbIcon, PageHeader, SoftPanel, ThemeToggle } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
@@ -12,7 +13,7 @@ import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 
 const languageOptions = [{ value: "de", label: "Deutsch" }, { value: "en", label: "English" }];
 
-export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut }: any) {
+export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationDayOffset, simulationDateLabel }: SettingsScreenProps) {
   const [form, setForm] = React.useState(profile);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
@@ -107,6 +108,52 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
   return (
     <div className="grid gap-8">
       <PageHeader eyebrow="Profil" title="Einstellungen" />
+
+      <section className="grid gap-4" aria-labelledby="settings-app-heading">
+        <h2 id="settings-app-heading" className="core-heading-2 font-semibold text-[var(--core-text)]">App und Bedienung</h2>
+        <SoftPanel className="overflow-hidden p-0">
+          <div className="flex min-h-[4.75rem] items-center gap-3 border-b border-[var(--core-border)] px-4 py-3 sm:px-6">
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--core-info-surface)] text-[var(--core-action-primary)]">
+              <MonitorCog size={20} aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block core-body-large font-semibold text-[var(--core-text)]">Darstellung</span>
+              <span className="block core-caption text-[var(--core-text-muted)]">Dark Mode für diesen Browser</span>
+            </span>
+            <ThemeToggle className="shrink-0" />
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate("simulator")}
+            className="flex min-h-[4.75rem] w-full items-center gap-3 border-b border-[var(--core-border)] px-4 py-3 text-left transition hover:bg-[var(--core-surface-hover)] sm:px-6"
+          >
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-core-warning-soft text-[var(--core-text)]">
+              <CalendarClock size={20} aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block core-body-large font-semibold text-[var(--core-text)]">Simulator</span>
+              <span className="block truncate core-caption text-[var(--core-text-muted)]">
+                {simulationDayOffset > 0 ? `Aktiv: ${simulationDateLabel} · +${simulationDayOffset} Tage` : "Lernfortschritt über simulierte Tage prüfen"}
+              </span>
+            </span>
+            <ChevronRight className="shrink-0 text-[var(--core-action-primary)]" size={18} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate("hilfe")}
+            className="flex min-h-[4.75rem] w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--core-surface-hover)] sm:px-6"
+          >
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-core-success-soft text-[var(--core-text)]">
+              <CircleHelp size={20} aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block core-body-large font-semibold text-[var(--core-text)]">Hilfe</span>
+              <span className="block truncate core-caption text-[var(--core-text-muted)]">Wie CoRe und FSRS funktionieren</span>
+            </span>
+            <ChevronRight className="shrink-0 text-[var(--core-action-primary)]" size={18} aria-hidden="true" />
+          </button>
+        </SoftPanel>
+      </section>
 
       <section className="grid gap-4" aria-labelledby="settings-account-heading">
         <h2 id="settings-account-heading" className="core-heading-2 font-semibold text-[var(--core-text)]">Account</h2>

@@ -113,6 +113,9 @@ export interface SettingsScreenProps {
   onListConflicts: () => Promise<unknown[]>;
   onResolveConflict: (conflictId: string, decision: Record<string, unknown>) => Promise<unknown>;
   onSignOut: () => Promise<void>;
+  onNavigate: NavigateToView;
+  simulationDayOffset: number;
+  simulationDateLabel: string;
 }
 
 export interface StatisticsScreenProps { decks: Deck[]; now: string; onNavigate: NavigateToView }

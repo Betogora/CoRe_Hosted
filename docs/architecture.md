@@ -30,7 +30,7 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 
 | Grenze | Verantwortung |
 | --- | --- |
-| `src/App.tsx` | App-Shell, Route-Auswahl und Screen-Komposition |
+| `src/App.tsx` | App-State, Route-Auswahl und Screen-Komposition |
 | `src/appNavigation.ts` | Kanonischer typisierter AppRoute-Vertrag, defensive URL-Parse-/Serialize-Naht und allowlist-basierter Review-Rückkontext |
 | `src/useAppNavigation.ts` | Einzige Browser-History-Anbindung; projiziert den kanonischen AppRoute ohne parallele Screen-Selektion |
 | `src/screens/` | Produktnahe UI; die Screen-Landkarte steht in [`../src/screens/README.md`](../src/screens/README.md) |
@@ -58,11 +58,13 @@ React-Caller kennen keine APKG-, SQLite-, Storage-, RLS-, Scheduler-, Provider- 
 
 ### 2.1 Theme- und UI-Vertrag
 
-`src/styles.css` besitzt die primitive CoRe-Palette, semantische Farbrollen, Typostufen und gemeinsame Zustandsklassen. Produktive TSX-Dateien verwenden diese semantischen Rollen statt eigener Theme-Paletten. `:root` definiert den Light Mode; `[data-core-theme="dark"]` überschreibt den vollständigen semantischen Satz. `src/coreTheme.ts` validiert die lokal gespeicherte Auswahl, setzt das Dokumentattribut vor dem ersten React-Render und persistiert explizite Umschaltungen. `ThemeToggle` kapselt seinen lokalen Darstellungszustand unmittelbar über dem Einstellungszugang, sodass eine Umschaltung keinen App-Shell-Render auslöst; eine Systempräferenz wird nicht ausgewertet.
+`src/styles.css` besitzt die primitive CoRe-Palette, semantische Farbrollen, Typostufen und gemeinsame Zustandsklassen. Produktive TSX-Dateien verwenden diese semantischen Rollen statt eigener Theme-Paletten. `:root` definiert den Light Mode; `[data-core-theme="dark"]` überschreibt den vollständigen semantischen Satz. `src/coreTheme.ts` validiert die lokal gespeicherte Auswahl, setzt das Dokumentattribut vor dem ersten React-Render und persistiert explizite Umschaltungen. `ThemeToggle` kapselt seinen lokalen Darstellungszustand im Einstellungsbereich `App und Bedienung`, sodass eine Umschaltung keinen App-Shell-Render auslöst; eine Systempräferenz wird nicht ausgewertet.
 
 `src/ui/coreUi.tsx` bleibt die Struktur-Seam, `src/ui/actionUi.tsx` besitzt normales Action- und Icon-Button-Verhalten, `src/ui/feedbackUi.tsx` besitzt Statusdarstellung und Live-Region-Semantik und `src/ui/selectUi.tsx` zentralisiert kontrollierte Auswahlfelder einschließlich Overlay, Tastatur- und Fokusverhalten. Fachliche Controls wie Reviewratings, MCQ-Optionen, Tabs, Farbfelder und Drag-Ziele dürfen lokal bleiben, beziehen Farben, Typografie, Fokus und Disabled aber aus demselben Vertrag. Der auffindbare Nutzungsvertrag steht in [`../src/ui/README.md`](../src/ui/README.md); Wiederverwendung ist empfohlen, nicht erzwungen, wenn sie die Fachsemantik verschlechtern würde.
 
-`DeckTree` besitzt das gemeinsame Panel `Aktive Stapel`, die flache Baumprojektion und den per Pointer-Capture stabilisierten Desktop-Drag für Dashboard und Lernen. `DeckOptionsMenu` besitzt in Dashboard, Lernen und Kartenverwaltung den identischen randlosen Trigger, die Erscheinungsbild-/Pfadkopfzeile, den CoRe-Modus und den bestätigten Verschiebedialog. Verwaltungs- und Lernaktionen jenseits von Verschieben liegen im `DeckSettingsScreen`; die Workspace-Platzierungsprüfung bleibt die einzige fachliche Validierung.
+`AppNavigation` besitzt die einzige responsive Shell-Navigation: CSS schaltet unter 768 px auf mobilen Kopf und schwebende Bottom Bar, ab 768 px auf die Sidebar. Beide Projektionen rufen denselben typisierten Navigationscallback auf; es gibt keine Geräteerkennung oder zweite Routebene. `Mehr` ist die mobile Bezeichnung der direkt geöffneten Kartenverwaltung. Einstellungen, Hilfe und Simulator bilden eine Utility-Gruppe, deren regulärer Einstieg das Einstellungszahnrad ist.
+
+`DeckTree` besitzt das gemeinsame Panel `Aktive Stapel`, die flache Baumprojektion und den per Pointer-Capture stabilisierten Desktop-Drag für Dashboard und Lernen. Es verwendet wie die Kartenverwaltung genau eine responsive `DeckSummaryRow`: unter 768 px ohne sichtbaren Herkunftspfad und Kennzahllabel, ab 768 px mit dem vollständigen Zeileninhalt. `CompactDeckSummaryRow` bleibt die feste kompakte UI-Elements-Projektion und teilt denselben Renderer. `DeckOptionsMenu` besitzt in Dashboard, Lernen und Kartenverwaltung den identischen randlosen Trigger, die Erscheinungsbild-/Pfadkopfzeile, den CoRe-Modus und den bestätigten Verschiebedialog; der Dialog wird erst beim Öffnen gemountet. Verwaltungs- und Lernaktionen jenseits von Verschieben liegen im `DeckSettingsScreen`; die Workspace-Platzierungsprüfung bleibt die einzige fachliche Validierung.
 
 `HelpScreen` besitzt die statische Produktaufklärung und den transienten Interaktionszustand der Lernkurve. Er liest oder mutiert keinen Workspace-State. Die Kurve ist lokale, semantisch beschriftete UI und kein Scheduler- oder Variantenvertrag.
 

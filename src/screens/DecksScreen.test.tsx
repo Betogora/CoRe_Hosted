@@ -66,7 +66,9 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /Biologie \/ Zellbiologie/);
   assert.match(markup, new RegExp('data-testid="deck-options-' + originalDeck.id + '"[^>]*class="[^"]*pointer-events-auto'));
   assert.match(markup, /core-action-ghost/);
-  assert.match(markup, /data-deck-summary-row-content="true"/);
+  assert.match(markup, /data-deck-summary-row-content="responsive"/);
+  assert.equal((markup.match(new RegExp(`data-testid="deck-options-${originalDeck.id}"`, "g")) ?? []).length, 1);
+  assert.match(markup, /sticky left-0 w-\[calc\(100dvw-4\.5rem\)\][^"\n]*md:static md:w-auto/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);

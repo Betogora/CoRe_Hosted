@@ -90,15 +90,13 @@ function StudyHeatmap({ heatmap }: any) {
   };
 
   return (
-    <SoftPanel className="p-7">
-      <div className="flex flex-wrap items-center gap-4" data-testid="study-heatmap-header">
+    <SoftPanel className="p-4 sm:p-7">
+      <div className="flex items-center gap-4" data-testid="study-heatmap-header">
         <div className="flex items-center gap-4">
           <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
           <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Lern-Heatmap</h3>
         </div>
-        <div className="ml-auto flex min-w-0 items-center gap-4">
-          <HeatmapLegend />
-          <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
             <CoreTooltip label="Frühere Wochen anzeigen">
               <button
                 type="button"
@@ -121,7 +119,6 @@ function StudyHeatmap({ heatmap }: any) {
                 <ChevronRight size={17} aria-hidden="true" />
               </button>
             </CoreTooltip>
-          </div>
         </div>
       </div>
 
@@ -171,6 +168,9 @@ function StudyHeatmap({ heatmap }: any) {
             </React.Fragment>
           ))}
         </div>
+      </div>
+      <div className="mt-3 flex justify-center" data-testid="study-heatmap-legend">
+        <HeatmapLegend />
       </div>
     </SoftPanel>
   );

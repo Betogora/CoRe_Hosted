@@ -28,7 +28,9 @@ const visualSourcePaths = [
   "src/ui/deckAppearance.tsx",
   "src/ui/DeckOptionsMenu.tsx",
   "src/ui/DeckSummaryRow.tsx",
+  "src/ui/CompactDeckSummaryRow.tsx",
   "src/ui/DeckTree.tsx",
+  "src/ui/AppNavigation.tsx",
   "src/ui/RichTextEditor.tsx",
   "src/ui/PdfDocumentViewer.tsx",
   "src/screens/screenConstants.ts",
@@ -36,6 +38,7 @@ const visualSourcePaths = [
   "src/screens/DashboardScreen.tsx",
   "src/screens/DecksScreen.tsx",
   "src/screens/LearnScreen.tsx",
+  "src/screens/SettingsScreen.tsx",
   "src/screens/StudyMode.tsx",
   "src/screens/SyncConflictPanel.tsx",
 ] as const;
