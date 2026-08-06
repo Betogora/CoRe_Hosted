@@ -26,7 +26,7 @@ export function DeckSummaryRow({ row, summary, progress, leadingControl, actions
 
   return (
     <div
-      className={`pointer-events-none relative z-[1] grid min-h-11 min-w-0 items-center ${compactAtBase ? "grid-cols-[minmax(5rem,1fr)_auto_auto] gap-1 px-1" : "grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] gap-x-3 px-2"} ${responsive ? "md:grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] md:gap-x-3 md:px-2" : ""} ${className}`}
+      className={`pointer-events-none relative z-[1] grid min-h-11 min-w-0 items-center ${compact ? "grid-cols-[minmax(5rem,1fr)_auto_auto] gap-1 px-1" : responsive ? "grid-cols-[minmax(0,1fr)_auto_auto] gap-1 px-1" : "grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] gap-x-3 px-2"} ${responsive ? "md:gap-x-2 md:px-2" : ""} ${className}`}
       data-deck-summary-row-content={density === "default" ? "true" : density}
     >
       <div className={`flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"} ${responsive ? "md:gap-2" : ""}`} style={{ paddingInlineStart: Math.min(row.depth, 6) * 9 }}>
@@ -43,7 +43,7 @@ export function DeckSummaryRow({ row, summary, progress, leadingControl, actions
         </span>
       </div>
 
-      <dl className={`grid grid-cols-3 ${compactAtBase ? "items-center gap-1" : "min-w-[15rem] gap-3"} ${responsive ? "md:min-w-[15rem] md:gap-3" : ""}`} aria-label={`Lernstand für ${row.path}`}>
+      <dl className={`grid grid-cols-3 ${compactAtBase ? "items-center gap-1" : "min-w-[15rem] gap-3"} ${responsive ? "md:gap-2" : ""}`} aria-label={`Lernstand für ${row.path}`}>
         {DECK_COUNT_DEFINITIONS.map((count) => (
           <div key={count.metric} className={`${compactAtBase ? "min-w-4 text-center" : "grid min-w-0 gap-0.5 text-right"} ${responsive ? "md:grid md:min-w-0 md:gap-0.5 md:text-right" : ""}`} data-deck-count={count.metric}>
             <dt className={compact ? "sr-only" : `core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] ${responsive ? "sr-only md:not-sr-only" : ""}`}>{count.label}</dt>
@@ -52,7 +52,7 @@ export function DeckSummaryRow({ row, summary, progress, leadingControl, actions
         ))}
       </dl>
 
-      <div className={`pointer-events-auto flex items-center justify-end ${compactAtBase ? "gap-0.5" : "gap-2"} ${responsive ? "md:gap-2" : ""}`}>
+      <div className={`flex items-center justify-end ${compactAtBase ? "gap-0.5" : "gap-2"} ${responsive ? "md:gap-2" : ""}`}>
         <DonutValue value={progress} size={density} />
         {actions}
       </div>

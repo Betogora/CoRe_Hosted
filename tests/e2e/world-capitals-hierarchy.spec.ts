@@ -101,6 +101,34 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });
 
+test("active deck rows fit every target width and toggle reliably on mobile", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+
+  const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
+  const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 768, height: 844 },
+    { width: 1024, height: 844 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const deckListFits = await page.getByTestId("learn-deck-list").evaluate((panel) => {
+      const rowViewport = panel.querySelector<HTMLElement>(".overflow-hidden.rounded-2xl");
+      return Boolean(rowViewport && rowViewport.scrollWidth <= rowViewport.clientWidth + 1)
+        && document.documentElement.scrollWidth <= window.innerWidth + 1;
+    });
+    expect(deckListFits).toBe(true);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await rootRow.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte ausblenden" }).click();
+  await expect(europeRow).toBeHidden();
+  await rootRow.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte anzeigen" }).click();
+  await expect(europeRow).toBeVisible();
+});
+
 test("learning rows activate directly while expand and settings remain independent", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();

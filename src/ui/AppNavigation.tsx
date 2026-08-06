@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { BarChart3, BookOpen, CalendarClock, Ellipsis, Home, Layers, PlusSquare, Settings } from "lucide-react";
+import { createPortal } from "react-dom";
 import type { MenuViewId } from "../menuModel.ts";
 import { ActionButton } from "./actionUi.tsx";
 
@@ -136,7 +137,7 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate }: App
       aria-label="Mobile Hauptnavigation"
       data-app-navigation="true"
       data-navigation-layout="bottom-bar"
-      className="fixed left-1/2 z-40 grid w-[calc(100%-2rem)] max-w-[34rem] -translate-x-1/2 grid-cols-5 gap-1 rounded-[20px] border border-[var(--core-border)] bg-core-surface-raised p-1.5 shadow-[var(--core-shadow-raised)] md:hidden"
+      className="fixed left-[50dvw] z-40 grid w-[calc(100dvw-4rem)] max-w-[34rem] -translate-x-1/2 grid-cols-5 gap-1 rounded-[20px] border border-[var(--core-border)] bg-core-surface-raised p-1.5 shadow-[var(--core-shadow-raised)] sm:w-[calc(100dvw-6rem)] md:hidden"
       style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
     >
       {navigationItems.map((view) => {
@@ -164,11 +165,13 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate }: App
 }
 
 export function AppNavigation(props: AppNavigationProps) {
+  const mobileBottomNavigation = <MobileBottomNavigation {...props} />;
+
   return (
     <>
       <DesktopNavigation {...props} />
       <MobileHeader {...props} />
-      <MobileBottomNavigation {...props} />
+      {typeof document === "undefined" ? mobileBottomNavigation : createPortal(mobileBottomNavigation, document.body)}
     </>
   );
 }

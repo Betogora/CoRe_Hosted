@@ -68,7 +68,12 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /core-action-ghost/);
   assert.match(markup, /data-deck-summary-row-content="responsive"/);
   assert.equal((markup.match(new RegExp(`data-testid="deck-options-${originalDeck.id}"`, "g")) ?? []).length, 1);
-  assert.match(markup, /sticky left-0 w-\[calc\(100dvw-4\.5rem\)\][^"\n]*md:static md:w-auto/);
+  assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto|sticky left-0 w-\[calc\(100dvw/);
+  assert.match(markup, /<col class="w-20 md:w-\[18%\]"\/>/);
+  assert.match(markup, /<col class="w-24 md:w-\[24%\]"\/>/);
+  assert.match(markup, /<span class="min-w-0 truncate">Sortierfeld<\/span>/);
+  assert.match(markup, /text-right/);
+  assert.match(markup, /justify-end/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);

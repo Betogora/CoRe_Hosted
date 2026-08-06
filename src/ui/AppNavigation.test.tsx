@@ -30,6 +30,9 @@ test("app navigation exposes a desktop sidebar and the five mobile tabs", () => 
   assert.match(markup, /md:hidden/);
   for (const label of ["Heute", "Lernen", "Erstellen", "Statistik", "Mehr"]) assert.match(markup, new RegExp(`>${label}<`));
   assert.match(markup, /aria-label="Kartenverwaltung öffnen"[^>]*aria-current="page"/);
+  assert.match(markup, /left-\[50dvw\]/);
+  assert.match(markup, /w-\[calc\(100dvw-4rem\)\]/);
+  assert.match(markup, /sm:w-\[calc\(100dvw-6rem\)\]/);
   assert.match(markup, /bottom:max\(0\.75rem, env\(safe-area-inset-bottom\)\)/);
 });
 

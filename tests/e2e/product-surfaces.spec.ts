@@ -67,6 +67,34 @@ test("long desktop views scroll without moving the sidebar utilities below the v
   expect(layout.asideBottom).toBeLessThanOrEqual(720);
 });
 
+test("mobile bottom navigation stays viewport-fixed and keeps its width on short and long pages", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/hilfe");
+  await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeVisible();
+
+  const bottomNavigation = page.getByRole("navigation", { name: "Mobile Hauptnavigation" });
+  await expect(bottomNavigation).toBeVisible();
+  const longPageTop = await bottomNavigation.boundingBox();
+  expect(longPageTop).not.toBeNull();
+  expect(longPageTop!.y + longPageTop!.height).toBeLessThanOrEqual(844);
+
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const longPageBottom = await bottomNavigation.boundingBox();
+  expect(longPageBottom).not.toBeNull();
+  expect(Math.abs(longPageBottom!.x - longPageTop!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(longPageBottom!.y - longPageTop!.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(longPageBottom!.width - longPageTop!.width)).toBeLessThanOrEqual(1);
+
+  await page.goto("/kartenstapel");
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
+  const shortPage = await bottomNavigation.boundingBox();
+  expect(shortPage).not.toBeNull();
+  expect(Math.abs(shortPage!.x - longPageTop!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(shortPage!.width - longPageTop!.width)).toBeLessThanOrEqual(1);
+  expect(shortPage!.y + shortPage!.height).toBeLessThanOrEqual(844);
+});
+
 test("help explains FSRS and CoRe with an accessible interactive learning curve", async ({ page }) => {
   await resetToFreshLocalState(page);
 

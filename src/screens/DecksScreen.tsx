@@ -24,27 +24,27 @@ interface PendingDetailAction {
   run: () => void;
 }
 
-function SortHeader({ field, label, width, sort, onChange }: {
+function SortHeader({ field, label, sort, onChange }: {
   field: CardTableSortField;
   label: string;
-  width: string;
   sort: CardTableSort;
   onChange: (field: CardTableSortField) => void;
 }) {
   const active = sort.field === field;
+  const rightAligned = field !== "sortField";
   const directionLabel = active && sort.direction === "desc" ? "absteigend" : "aufsteigend";
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
 
   return (
-    <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`${width} px-4 text-left`}>
+    <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 px-2 sm:px-3 md:px-4 ${rightAligned ? "text-right" : "text-left"}`}>
       <button
         type="button"
         onClick={() => onChange(field)}
-        className="inline-flex min-h-11 items-center gap-2 rounded-lg core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] hover:text-[var(--core-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
+        className={`flex min-h-11 w-full min-w-0 items-center gap-1 rounded-lg core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] hover:text-[var(--core-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] sm:gap-2 ${rightAligned ? "justify-end" : ""}`}
         aria-label={`${label} ${directionLabel} sortieren`}
       >
-        {label}
-        <SortIcon size={15} aria-hidden="true" className={active ? "opacity-100" : "opacity-35"} />
+        <span className="min-w-0 truncate">{label}</span>
+        <SortIcon size={15} aria-hidden="true" className={`shrink-0 ${active ? "opacity-100" : "opacity-35"}`} />
       </button>
     </th>
   );
@@ -867,13 +867,17 @@ export function DecksScreen({
 
       {tableModel.groups.length ? (
         <SoftPanel className="min-w-0 overflow-hidden p-0">
-          <div className="max-w-full overflow-x-auto">
-            <table className="w-full min-w-[46rem] table-fixed border-collapse" data-testid="card-library-table">
+          <table className="w-full table-fixed border-collapse" data-testid="card-library-table">
+              <colgroup>
+                <col />
+                <col className="w-20 md:w-[18%]" />
+                <col className="w-24 md:w-[24%]" />
+              </colgroup>
               <thead className="sticky top-0 z-10 bg-core-surface">
                 <tr className="border-b border-[var(--core-border)]">
-                  <SortHeader field="sortField" label="Sortierfeld" width="w-[58%]" sort={cardSort} onChange={changeSort} />
-                  <SortHeader field="due" label="Fällig" width="w-[18%]" sort={cardSort} onChange={changeSort} />
-                  <SortHeader field="variants" label="Varianten" width="w-[24%]" sort={cardSort} onChange={changeSort} />
+                  <SortHeader field="sortField" label="Sortierfeld" sort={cardSort} onChange={changeSort} />
+                  <SortHeader field="due" label="Fällig" sort={cardSort} onChange={changeSort} />
+                  <SortHeader field="variants" label="Varianten" sort={cardSort} onChange={changeSort} />
                 </tr>
               </thead>
               {tableModel.groups.map((group) => {
@@ -915,16 +919,14 @@ export function DecksScreen({
                         data-deck-row-activation="true"
                         className="absolute inset-0 z-0 cursor-pointer transition-colors hover:bg-[var(--core-focus-ring-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--core-focus)]"
                       />
-                      <div className="sticky left-0 w-[calc(100dvw-4.5rem)] sm:w-[calc(100dvw-8rem)] md:static md:w-auto">
-                        <DeckSummaryRow
-                          row={group}
-                          summary={group.directSummary}
-                          progress={directProgress}
-                          leadingControl={groupLeadingControl}
-                          actions={groupActions}
-                          density="responsive"
-                        />
-                      </div>
+                      <DeckSummaryRow
+                        row={group}
+                        summary={group.directSummary}
+                        progress={directProgress}
+                        leadingControl={groupLeadingControl}
+                        actions={groupActions}
+                        density="responsive"
+                      />
                     </th>
                   </tr>
                   {expanded && group.cardRows.length ? group.cardRows.map(({ card, frontPreview, dueLabel, variantsLabel, hasActiveVariants }) => (
@@ -935,7 +937,7 @@ export function DecksScreen({
                       data-selected={selectedCardId === card.id ? "true" : undefined}
                       data-card-row="true"
                     >
-                      <td className="px-4 py-1 align-middle">
+                      <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
                         <button
                           type="button"
                           data-testid={"deck-card-" + card.id}
@@ -949,9 +951,9 @@ export function DecksScreen({
                           {frontPreview}
                         </button>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-1 align-middle core-body text-[var(--core-text-secondary)]">{dueLabel}</td>
-                      <td className="px-4 py-1 align-middle">
-                        <span className={`inline-flex whitespace-nowrap rounded-full border px-2 core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
+                      <td className="min-w-0 truncate px-2 py-1 text-right align-middle core-body text-[var(--core-text-secondary)] sm:px-3 md:px-4">{dueLabel}</td>
+                      <td className="min-w-0 px-2 py-1 text-right align-middle sm:px-3 md:px-4">
+                        <span className={`inline-block max-w-full truncate rounded-full border px-2 align-middle core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
                           {variantsLabel}
                         </span>
                       </td>
@@ -963,8 +965,7 @@ export function DecksScreen({
                   ) : null}
                 </tbody>
               );})}
-            </table>
-          </div>
+          </table>
         </SoftPanel>
       ) : (
         <EmptyState icon={Layers} title="Keine Karten gefunden" body="Passe Suche oder CoRe-Modus an." />

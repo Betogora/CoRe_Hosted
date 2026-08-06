@@ -271,10 +271,8 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
         ) : <span className="hidden lg:block" aria-hidden="true" />}
         <div className="col-start-2 row-start-1 justify-self-end lg:col-start-3">{headerAction}</div>
       </div>
-      <div className="max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)] md:overflow-x-auto">
-        <div className="core-deck-tree-rows min-w-0 md:min-w-[46rem]">
-          {visibleRows.map(renderRow)}
-        </div>
+      <div className="core-deck-tree-rows min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)]">
+        {visibleRows.map(renderRow)}
       </div>
     </SoftPanel>
   );

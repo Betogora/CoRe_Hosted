@@ -114,6 +114,10 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
 
   for (const viewport of [
     { width: 1440, height: 900 },
+    { width: 1024, height: 844 },
+    { width: 768, height: 844 },
+    { width: 767, height: 844 },
+    { width: 484, height: 844 },
     { width: 420, height: 844 },
     { width: 390, height: 844 },
   ]) {
@@ -124,15 +128,26 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
       const cardRow = cardSortField?.closest<HTMLElement>("tr");
       const deckHeader = document.querySelector<HTMLElement>(`[data-testid="deck-header-${deckId}"]`);
       const tableScroll = document.querySelector<HTMLElement>('[data-testid="card-library-table"]')?.parentElement;
+      const table = document.querySelector<HTMLElement>('[data-testid="card-library-table"]');
+      const headers = [...document.querySelectorAll<HTMLElement>("thead th")];
+      const headerRects = headers.map((header) => header.getBoundingClientRect());
+      const sortHeaderLabel = headers[0]?.querySelector<HTMLElement>("span");
       const sortFieldStyle = cardSortField ? window.getComputedStyle(cardSortField) : null;
+      const sortHeaderLabelStyle = sortHeaderLabel ? window.getComputedStyle(sortHeaderLabel) : null;
 
       return {
         cardRowHeight: cardRow?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
         deckHeaderHeight: deckHeader?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
         documentFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
         tableScrollsHorizontally: Boolean(tableScroll && tableScroll.scrollWidth > tableScroll.clientWidth),
+        tableFitsContainer: Boolean(table && tableScroll && table.scrollWidth <= tableScroll.clientWidth + 1),
+        headersDoNotOverlap: headerRects.every((rect, index) => index === 0 || rect.left >= headerRects[index - 1].right - 1),
+        dueAlignment: headers[1] ? window.getComputedStyle(headers[1]).textAlign : null,
+        variantsAlignment: headers[2] ? window.getComputedStyle(headers[2]).textAlign : null,
         sortFieldOverflow: sortFieldStyle?.textOverflow,
         sortFieldWhiteSpace: sortFieldStyle?.whiteSpace,
+        sortHeaderOverflow: sortHeaderLabelStyle?.textOverflow,
+        sortHeaderWhiteSpace: sortHeaderLabelStyle?.whiteSpace,
       };
     }, { cardId: CARD_IDS.b1, deckId: DECK_IDS.childB });
 
@@ -141,8 +156,23 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
     expect(geometry.documentFitsViewport).toBe(true);
     expect(geometry.sortFieldOverflow).toBe("ellipsis");
     expect(geometry.sortFieldWhiteSpace).toBe("nowrap");
-    expect(geometry.tableScrollsHorizontally).toBe(viewport.width <= 420);
+    expect(geometry.sortHeaderOverflow).toBe("ellipsis");
+    expect(geometry.sortHeaderWhiteSpace).toBe("nowrap");
+    expect(geometry.dueAlignment).toBe("right");
+    expect(geometry.variantsAlignment).toBe("right");
+    expect(geometry.headersDoNotOverlap).toBe(true);
+    expect(geometry.tableFitsContainer).toBe(true);
+    expect(geometry.tableScrollsHorizontally).toBe(false);
   }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileDeckToggle = page.getByTestId(`deck-toggle-${DECK_IDS.childB}`);
+  await mobileDeckToggle.click();
+  await expect(mobileDeckToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(cardButton).toHaveCount(0);
+  await mobileDeckToggle.click();
+  await expect(mobileDeckToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(cardButton).toBeVisible();
 });
 
 test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderungen bleiben kontrollierbar", async ({ page }) => {
