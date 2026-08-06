@@ -70,7 +70,7 @@ So entsteht aus einem Stapel keine Sammlung isolierter Vorder- und Rückseiten, 
 
 CoRe ist ein **auf den Kartenlern-Kern reduzierter, aktiv entwickelter Web-MVP**. Der Beta-Kern konzentriert sich auf Account, Erstellen und Importieren, Kartenverwaltung, Lernen mit Content-Repetition, Statistik, Einstellungen und verlässliche accountgebundene Speicherung.
 
-Labs-, KI-, Community- und Graph-Flächen sowie der serverseitige Groß-APKG-Pfad wurden entfernt. APKG wird bis einschließlich 250 MiB lokal verarbeitet; Google und Magic Link bleiben getrennt schaltbar. Die offene Stabilisierung und ihre Abnahme stehen in der [Roadmap](docs/todo.md).
+Labs-, breite KI-, Community- und Graph-Flächen sowie der serverseitige Groß-APKG-Pfad wurden entfernt. Davon ausgenommen ist die schmale textbasierte Basic-Variantenroute `/api/ai/card-variant`. APKG wird bis einschließlich 250 MiB lokal verarbeitet; Google und Magic Link bleiben getrennt schaltbar. Die offene Stabilisierung und ihre Abnahme stehen in der [Roadmap](docs/todo.md).
 
 ## Gebaut mit
 

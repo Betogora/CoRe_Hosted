@@ -1,7 +1,7 @@
 # CoRe-Architektur und Invarianten
 
 **Rolle:** einzige kanonische Quelle für aktuelle Architektur, Modulgrenzen, technische Invarianten sowie die Trennung von Ist- und Zielmodell.
-**Stand:** 2026-08-04
+**Stand:** 2026-08-06
 
 Produktverhalten steht in [`specs.md`](specs.md), der verifizierte Ist-Stand in [`status.md`](status.md), Betrieb in [`operations.md`](operations.md) und offene Arbeit in [`todo.md`](todo.md).
 

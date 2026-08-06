@@ -2,7 +2,7 @@
 
 **Rolle:** einzige kanonische Quelle für Produktversprechen, Kernjourneys, funktionale Anforderungen und Produktabnahme.
 **Status:** Arbeitsfassung
-**Stand:** 2026-08-03
+**Stand:** 2026-08-06
 
 Diese Spezifikation beschreibt ausschließlich, was CoRe für Nutzer leisten soll. Aktuelle Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und offene Roadmap haben eigene Quellen in der [Dokumentenlandkarte](index.md).
 
@@ -122,7 +122,7 @@ Akzeptanz:
 - Die Kartentabelle zeigt pro Karte ausschließlich `Sortierfeld`, `Fällig` und `Varianten`. `Sortierfeld` ist die bereinigte Vorderseitenvorschau, `Fällig` zeigt für unbewertete Karten `Neu` und sonst `TT.MM.JJJJ`, `Varianten` unterscheidet zusätzliche aktive Varianten als `Mit Varianten` oder `Ohne Varianten`.
 - Normale Kartenzeilen bleiben einzeilig und ungefähr 28 px hoch; lange Sortierfelder werden visuell mit Ellipse gekürzt, bleiben aber zugänglich und im Kartendetail vollständig verfügbar. Stapelköpfe bleiben mit höchstens ungefähr 48 px einheitlich kompakt. Unter 640 px behält die Tabelle ihr internes Spaltenraster und scrollt ausschließlich innerhalb ihres Tabellenrahmens horizontal.
 - Alle drei Spalten sind auf- und absteigend sortierbar. Standard ist `Sortierfeld` A–Z; die gewählte Sortierung gilt einheitlich für alle Stapelsektionen und wird nicht persistiert. Leere aufgeklappte Stapel zeigen `Keine Karten`.
-- Suche berücksichtigt weiterhin Stapelpfad, Vorderseite, Rückseite und Tags und öffnet passende Sektionen nur für die Dauer der Suche. Der CoRe-Modus-Filter bleibt erhalten.
+- Suche berücksichtigt Stapelpfad, Vorderseite, Rückseite und Tags und öffnet passende Sektionen nur für die Dauer der Suche. Die Kartenverwaltung besitzt keinen zusätzlichen Modusfilter.
 - Auf-/Zuklappen, Stapeloptionen und andere eigene Bedienelemente lösen die Flächenaktion nicht aus. Die Flächenaktion ist per Enter und Leertaste bedienbar und besitzt einen eindeutigen zugänglichen Namen.
 - Dashboard und Lernen verwenden dasselbe Panel `Aktive Stapel`; nur das Dashboard zeigt darin `Lernen öffnen`. Während eines Drags erscheint die Hauptebenen-Zone im Panelkopf auf derselben vertikalen Achse wie diese Aktion.
 - Jede Stapelgruppe besitzt dasselbe kompakte Drei-Punkte-Menü mit individuellem Icon, vollständigem Pfad, CoRe-Modus, `Einstellungen` und bestätigtem `Verschieben`. Der randlose 44 × 44-px-Trigger übernimmt die jeweilige Zeilenfläche und trägt den Tooltip `Stapeloptionen für <vollständiger Pfad>`.
@@ -140,7 +140,8 @@ Akzeptanz:
 - Tiefere APKG-Hierarchien bleiben beim Import unverändert. Ihre Darstellung verwendet ab der vierten Ebene den tiefsten Gruppenton; spätere Moves müssen die Vier-Ebenen-Grenze einhalten oder den vorhandenen Baum nachweislich flacher machen.
 - Ein beendeter Drag startet keine Sitzung. Erfolg, Fehler und No-op werden deutsch über eine Live-Region gemeldet; es gibt keine Bestätigung und kein Rückgängig-Angebot.
 - Die Kartenverwaltung bietet kein direktes Drag-and-drop; alle drei Stapelansichten verwenden für Tastatur, Touch und assistive Bedienung denselben expliziten bestätigten Verschiebedialog.
-- Kartenlöschung verwendet den kompakten Standarddialog `Karte löschen` mit `Nein` samt Kreuz und `Ja` samt Haken. `Nein`, Escape und ein Klick auf den abgedunkelten Bereich brechen ohne Löschung ab; der Außenklick schließt zusätzlich den Kartendetailbereich. `Ja` führt den Soft Delete aus und bietet unmittelbar ein Undo, das denselben Datensatz samt Review State wiederherstellt.
+- Kartenlöschung verwendet den kompakten Standarddialog `Karte löschen` mit `Nein` samt Kreuz und `Ja` samt Haken. `Nein`, Escape und ein Klick auf den abgedunkelten Bereich brechen ohne Löschung ab; der Außenklick schließt zusätzlich den Kartendetailbereich. `Ja` führt den lokal persistenten Soft Delete aus, schließt Dialog und Detailbereich, zeigt oben rechts den schließbaren Erfolgsbanner `Karte wurde erfolgreich gelöscht.` und bietet unmittelbar ein Undo, das denselben Datensatz samt Review State wiederherstellt. Eine ausstehende Cloud-Synchronisierung bleibt in der Outbox und blockiert den sichtbaren Löschabschluss nicht.
+- Programmatische DOM-Fokusführung, Fokusfallen und Tastaturbedienung bleiben erhalten; sichtbare Fokusrahmen, Fokus-Rings und reine `focus-within`-Rahmen werden appweit nicht dargestellt. Fachliche Auswahlzustände bleiben davon unberührt.
 - Stapellöschung zeigt Stapelname, Unterstapelzahl und aktive Kartenanzahl; ein Abbruch verändert nichts.
 - Basic, Basic + Bilder, Reverse, Cloze und Multiple Choice laufen durch dieselbe fachliche Erstellung. Die Kartentypauswahl zeigt für jeden Typ ein eigenes Icon links vom Namen.
 - Basic, Basic + Bilder und Reverse bearbeiten Vorder- und Rückseite als sanitisiertes Rich Text; Pflichtfelder werden direkt am Feld validiert.

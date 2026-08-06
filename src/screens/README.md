@@ -10,7 +10,7 @@ Each exported screen in this folder is a UI module with a small props interface.
 
 - `DashboardScreen.tsx`: dashboard metrics, the complete shared deck tree with donut and direct reparenting, and the responsive keyboard-navigable study heatmap.
 - `AuthGateScreen.tsx`: required Supabase login, registration, Google start, Magic Link, reset-link request and password-recovery completion before the app shell opens.
-- `DecksScreen.tsx`: shared selectable deck tree, filtering, one selected-deck action area with explicit confirmed reparenting, CoRe mode controls, card editor and Core variant controls; opened from the Learn controls.
+- `DecksScreen.tsx`: direkt verlinkbare, durchsuchbare und sortierbare Gesamttabelle mit kompakten Stapelköpfen, einzeiligen Kartenzeilen, gemeinsamem Stapelmenü, bestätigt verschiebbaren Stapeln und URL-gesteuertem Detail-`aside` für Editor, Versionen und CoRe-Varianten; erreichbar aus Hauptnavigation und Lernen.
 - `CreationScreen.tsx`: composition and completion state for the creation area; keeps the public screen props and creation workflow wiring stable.
   - `CreationHome.tsx`: manual and import entry cards.
   - `ManualCreationPanel.tsx`: manual cards, Rich Text fields and optional PDF/text source selection.

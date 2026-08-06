@@ -20,7 +20,7 @@ Die lokale URL ist `http://127.0.0.1:5190/`.
 - Tailwind CSS
 - Node.js `node:test` und Playwright
 - Supabase Auth, Postgres und Storage
-- Vercel für die SPA; CoRe liefert derzeit keine eigenen Server-API-Routen aus
+- Vercel für die SPA und die einzige authentifizierte Basic-Variantenroute `/api/ai/card-variant`
 
 ## Wichtige Scripts
 
@@ -40,9 +40,9 @@ Details zu Kategorien und Frequenzen stehen in [`test-portfolio.md`](test-portfo
 
 ## Produkt in Kürze
 
-Der Beta-Kern umfasst Account, leeren Erstkontakt, Erstellen und Importieren, Kartenstapelverwaltung, Lernen mit vier Bewertungen und Content-Repetition, Statistik, Einstellungen sowie accountgebundene Speicherung und Syncstatus.
+Der Beta-Kern umfasst Account, leeren Erstkontakt, Erstellen und Importieren, Kartenverwaltung, Lernen mit vier Bewertungen und Content-Repetition, Statistik, Einstellungen sowie accountgebundene Speicherung und Syncstatus.
 
-Labs-, KI-, Community- und Graph-Flächen sowie der serverseitige Groß-APKG-Pfad sind entfernt. APKG wird lokal bis einschließlich 250 MiB verarbeitet; Google und Magic Link bleiben getrennt schaltbar.
+Labs-, breite KI-, Community- und Graph-Flächen sowie der serverseitige Groß-APKG-Pfad sind entfernt. Davon ausgenommen ist die schmale textbasierte Basic-Variantenroute. APKG wird lokal bis einschließlich 250 MiB verarbeitet; Google und Magic Link bleiben getrennt schaltbar.
 
 Der verbindliche Umfang steht ausschließlich in [`specs.md`](specs.md), der aktuelle Implementierungsstand ausschließlich in [`status.md`](status.md).
 

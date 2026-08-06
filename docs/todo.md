@@ -1,6 +1,6 @@
 # CoRe TODO — Beta-Basis klassisches Karteikartenprodukt
 
-Stand: 2026-08-01
+Stand: 2026-08-06
 
 Dieses Dokument ist die einzige operative Roadmap für offene Arbeit.
 

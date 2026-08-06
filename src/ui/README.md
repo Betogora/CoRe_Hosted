@@ -1,6 +1,6 @@
 # CoRe UI-Katalog
 
-Stand: 2026-08-03
+Stand: 2026-08-06
 
 Dieser Katalog ist die code-nahe Übersicht der verfügbaren UI-Bausteine. Neue Features prüfen diese Elemente vor einer eigenen Implementierung. Wiederverwendung ist empfohlen, aber nicht verpflichtend, wenn die vorhandene Schnittstelle die Fachsemantik verschlechtern würde. Ein neues gemeinsames Modul wird erst aus mindestens drei gleichartigen aktuellen Stellen oder aus zentralisierungswürdigem Accessibility-Verhalten gewonnen.
 
@@ -8,12 +8,12 @@ Dieser Katalog ist die code-nahe Übersicht der verfügbaren UI-Bausteine. Neue 
 
 `src/styles.css` besitzt die primitiven CoRe-Farben, alle semantischen Light-/Dark-Rollen und die Typostufen. Produktcode verwendet semantische Klassen beziehungsweise Variablen. Der Theme-Schalter in der Sidebar setzt ausschließlich `data-core-theme="light"` beziehungsweise `data-core-theme="dark"` am Dokumentelement; `src/coreTheme.ts` besitzt Validierung und lokale Persistenz der Auswahl. Eine automatische Systempräferenz gibt es bewusst nicht.
 
-Die teilbare visuelle Referenz liegt in `docs/ui-elements.html`. Nach Änderungen an Theme, Typografie, gemeinsamen Komponenten oder eigenständigen fachlichen UI-Mustern wird sie mit `npm run docs:ui-elements` neu erzeugt. `npm run typecheck` führt `npm run docs:ui-elements:check` aus und schlägt fehl, wenn die eingebetteten Styles nicht mehr den kanonischen Quellen entsprechen.
+Die teilbare visuelle Referenz liegt in `docs/ui-elements.html`. Nach Änderungen an Theme, Typografie, gemeinsamen Komponenten oder eigenständigen fachlichen UI-Mustern werden die betroffenen Beispiele manuell gegen die Produktoberflächen geprüft; `npm run docs:ui-elements` synchronisiert anschließend die eingebetteten Styles und den Quellenstand. `npm run typecheck` führt `npm run docs:ui-elements:check` aus und schlägt fehl, wenn dieser technische Stand abweicht. Der Check ersetzt nicht die fachliche Sichtprüfung der kuratierten Beispiele.
 
 - Überschriften: `core-heading-1`, `core-heading-2`, `core-heading-3`.
 - Fließtext: `core-body-large`, `core-body`, `core-caption`.
 - Labels: `core-control-label`, `core-status-label`, `core-emphasis`.
-- Fokus, Disabled, Placeholder und Auswahl werden global aus Theme-Tokens abgeleitet.
+- DOM-Fokus und Tastaturführung bleiben global erhalten, sichtbare Fokusrahmen und Fokus-Rings werden jedoch appweit unterdrückt. Disabled, Placeholder und fachliche Auswahl werden weiterhin aus Theme-Tokens abgeleitet.
 
 ## Actions
 
@@ -79,7 +79,7 @@ Direktimport: `import { StatusMessage, SuccessToast, SuccessToastProvider, useSu
 
 Für spezialisierte Strukturen stehen `core-status-info`, `core-status-success`, `core-status-warning` und `core-status-error` bereit.
 
-`SuccessToast` zeigt eine kurze, abgeschlossene Erfolgsmeldung als schließbares Overlay oben rechts. `SuccessToastProvider` besitzt produktweit den einzigen Toast-State und Portal-Host; `useSuccessToast` ersetzt die aktuelle Meldung, ohne den auslösenden Screen für die Darstellung erneut zu rendern. Kontextabhängige Ergebnisse, Ladehinweise, Warnungen und Fehler bleiben als `StatusMessage` beziehungsweise fachliche Struktur inline.
+`SuccessToast` zeigt eine kurze, abgeschlossene Erfolgsmeldung als schließbares Overlay oben rechts. Die Breite folgt dem Inhalt bis zur Viewport-Grenze; der feste Schließen-Slot bleibt rechts erhalten und Haken, Text sowie Schließen-Aktion sind vertikal ausgerichtet. `SuccessToastProvider` besitzt produktweit den einzigen Toast-State und Portal-Host; `useSuccessToast` ersetzt die aktuelle Meldung, ohne den auslösenden Screen für die Darstellung erneut zu rendern. Kontextabhängige Ergebnisse, Ladehinweise, Warnungen und Fehler bleiben als `StatusMessage` beziehungsweise fachliche Struktur inline.
 
 ```tsx
 const setSuccessToast = useSuccessToast();
@@ -100,7 +100,7 @@ Wenn ein konkreter Stapel oder Elternstapel gewählt wird, verwendet Produktcode
 
 ## Spezialisierte Feature-Module
 
-- `DeckSummaryRow` aus `src/ui/DeckSummaryRow.tsx`: kanonischer kompakter Zeileninhalt für Dashboard, Lernen und Kartenverwaltung mit Chevron-Slot, Stapel-Icon, Name und Pfad, drei Kennzahlen, Donut und Aktionsslot. Die Aufrufer bestimmen Kennzahlsemantik, Expansion und Aktion; die Kartenverwaltung liefert direkte Werte und ihr vollständiges Optionsmenü.
+- `DeckSummaryRow` aus `src/ui/DeckSummaryRow.tsx`: kanonischer kompakter Zeileninhalt für Dashboard, Lernen und Kartenverwaltung mit Chevron-Slot, Stapel-Icon, Name und Pfad, drei Kennzahlen, Donut und Aktionsslot. Die Aufrufer bestimmen Kennzahlsemantik, Expansion und Aktion; die Kartenverwaltung liefert direkte Werte, alle drei Ansichten dasselbe reduzierte Stapelmenü.
 - `DeckTree` aus `src/ui/DeckTree.tsx`: gemeinsames Panel `Aktive Stapel` und flache, lokal einklappbare Projektion des Stapelbaums für Dashboard und Lernen mit aggregierten Teilbaum-Kennzahlen. Der per Pointer-Capture gebundene Desktop-Drag bleibt beim Verlassen der Zeilenfläche aktiv und erreicht die Hauptebenen-Zone im Panelkopf; ein angehobener Quellzustand und verstärkte Zielmarkierung machen die Geste sichtbar. Gruppentiefen 0 bis 3 entsprechen Hauptstapel, Unterstapel, Unter-Unterstapel und Unter-Unter-Unterstapel; tiefere importierte Bäume verwenden weiterhin den Ton von Tiefe 3.
 - `DeckOptionsMenu` aus `src/ui/DeckOptionsMenu.tsx`: identisches randloses Drei-Punkte-Menü für Dashboard, Lernen und Kartenverwaltung mit Deck-Icon, vollständigem Pfad, CoRe-Modus, Einstellungen und gemeinsamem bestätigten Verschiebedialog. Weitere Stapelaktionen gehören in die Stapel-Einstellungen.
 - `RichTextEditor` aus `src/ui/RichTextEditor.tsx`: sanitisiertes Karten-HTML, Toolbar, Text- und Markerfarben.
