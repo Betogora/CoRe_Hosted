@@ -68,7 +68,7 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /Heute fällig/);
   assert.match(markup, /Heute fällig:<\/span><span class="font-semibold">1<\/span>/);
   assert.doesNotMatch(markup, /Originalkarten/);
-  assert.match(markup, /Lernen öffnen/);
+  assert.match(markup, /Alle ansehen/);
   assert.match(markup, /data-testid="dashboard-deck-list-header"/);
   assert.match(markup, /core-action-ghost/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);

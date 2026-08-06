@@ -305,6 +305,11 @@ test("deck management disables direct drag and shares the confirmed keyboard mov
   await expect(page.getByRole("option", { name: /Südamerika$/ })).toHaveCount(0);
   const europeMoveOption = page.getByRole("option", { name: /Europa$/ });
   await expect(europeMoveOption.locator('[data-deck-icon="true"]')).toHaveCount(1);
+  await expect.poll(() => europeMoveOption.evaluate((option) => {
+    const bounds = option.getBoundingClientRect();
+    const topElement = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
+    return topElement != null && option.contains(topElement);
+  })).toBe(true);
   await europeMoveOption.click();
   await page.getByRole("button", { name: "Verschieben bestätigen" }).press("Enter");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);

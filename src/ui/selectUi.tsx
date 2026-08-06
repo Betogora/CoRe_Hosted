@@ -112,7 +112,7 @@ function SelectContent({ children, isDeckSelect = false }: { children: ReactNode
         sideOffset={6}
         collisionPadding={12}
         data-deck-select-content={isDeckSelect ? "true" : undefined}
-        className="core-overlay z-[70] max-h-[min(20rem,var(--radix-select-content-available-height))] w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl outline-none"
+        className="core-overlay z-[90] max-h-[min(20rem,var(--radix-select-content-available-height))] w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl outline-none"
       >
         <Select.ScrollUpButton className="grid h-8 cursor-default place-items-center text-[var(--core-text-muted)]">
           <ChevronDown size={16} className="rotate-180" aria-hidden="true" />
