@@ -5,6 +5,7 @@ import { mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, stringifyPorta
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
@@ -14,12 +15,11 @@ const languageOptions = [{ value: "de", label: "Deutsch" }, { value: "en", label
 export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut }: any) {
   const [form, setForm] = React.useState(profile);
   const [accountMessage, setAccountMessage] = React.useState("");
-  const [accountMessageType, setAccountMessageType] = React.useState<"status" | "alert">("status");
   const [accountBusy, setAccountBusy] = React.useState(false);
+  const setSuccessToast = useSuccessToast();
   const [exportText, setExportText] = React.useState("");
   const [importText, setImportText] = React.useState("");
   const [portabilityMessage, setPortabilityMessage] = React.useState("");
-  const [portabilityMessageType, setPortabilityMessageType] = React.useState("status");
 
   React.useEffect(() => {
     setForm(profile);
@@ -31,17 +31,17 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
 
   function save() {
     onSaveProfile({ ...form, email: profile.email });
-    setAccountMessageType("status");
-    setAccountMessage("Profil gespeichert. Die Cloud-Synchronisierung läuft automatisch.");
+    setAccountMessage("");
+    setSuccessToast("Profil wurde erfolgreich gespeichert. Die Cloud-Synchronisierung läuft automatisch.");
   }
 
   async function syncNow() {
     setAccountBusy(true);
+    setSuccessToast("");
     try {
       await onSyncNow?.();
       setAccountMessage("");
     } catch (error) {
-      setAccountMessageType("alert");
       setAccountMessage(error instanceof Error ? error.message : "Synchronisierung fehlgeschlagen.");
     } finally {
       setAccountBusy(false);
@@ -53,7 +53,6 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
     try {
       await onSignOut?.();
     } catch (error) {
-      setAccountMessageType("alert");
       setAccountMessage(error instanceof Error ? error.message : "Abmeldung fehlgeschlagen.");
     } finally {
       setAccountBusy(false);
@@ -76,31 +75,31 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    setPortabilityMessageType("status");
-    setPortabilityMessage(`Export als ${PORTABLE_EXPORT_FILE_NAME} heruntergeladen.`);
+    setPortabilityMessage("");
+    setSuccessToast(`Export wurde erfolgreich als ${PORTABLE_EXPORT_FILE_NAME} heruntergeladen.`);
   }
 
   function showRawExport() {
     createExportText();
-    setPortabilityMessageType("status");
-    setPortabilityMessage("Roh-JSON wurde erstellt.");
+    setPortabilityMessage("");
+    setSuccessToast("Roh-JSON wurde erfolgreich erstellt.");
   }
 
   function importExport() {
     try {
       const validation = validatePortableExport(importText);
       if (!validation.valid) {
-        setPortabilityMessageType("alert");
+        setSuccessToast("");
         setPortabilityMessage(validation.errors.join(" "));
         return;
       }
       const nextState = mergePortableExportIntoState(appState, validation.payload);
       onSaveState(nextState);
       setImportText("");
-      setPortabilityMessageType("status");
-      setPortabilityMessage("Export validiert und in deine Bibliothek übernommen.");
+      setPortabilityMessage("");
+      setSuccessToast("Export wurde erfolgreich validiert und in deine Bibliothek übernommen.");
     } catch (error) {
-      setPortabilityMessageType("alert");
+      setSuccessToast("");
       setPortabilityMessage(error instanceof Error ? error.message : "Import konnte nicht gelesen werden.");
     }
   }
@@ -151,7 +150,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
               <ActionButton type="button" variant="destructive" icon={X} onClick={signOut} disabled={accountBusy}>Abmelden</ActionButton>
             </div>
             {accountMessage ? (
-              <p className={`mt-3 core-body ${accountMessageType === "alert" ? "core-status-error" : "core-status-info"}`} role={accountMessageType}>
+              <p className="core-status-error mt-3 core-body" role="alert">
                 {accountMessage}
               </p>
             ) : null}
@@ -234,7 +233,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
             </div>
           </div>
           {portabilityMessage ? (
-            <p className={`mt-3 core-body ${portabilityMessageType === "alert" ? "core-status-error" : "core-status-success"}`} role={portabilityMessageType}>
+            <p className="core-status-error mt-3 core-body" role="alert">
               {portabilityMessage}
             </p>
           ) : null}

@@ -4,6 +4,7 @@ import { LEARNING_SETTING_PRESETS, applyLearningPreset, markLearningSettingsCust
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton } from "./actionUi.tsx";
 import { CoreModeControl, OrbIcon, SoftPanel } from "./coreUi.tsx";
+import { useSuccessToast } from "./feedbackUi.tsx";
 import { CoreSelect, type CoreSelectOption } from "./selectUi.tsx";
 
 const learningStepOptions = [
@@ -134,7 +135,7 @@ interface LearningSettingsPanelProps {
 
 export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle, scopeDescription, affectedDeckCount = null, onSave }: LearningSettingsPanelProps) {
   const [draft, setDraft] = React.useState<LearningSettingsDraft>(() => ({ ...normalizeLearningSettings(settings), coreMode }));
-  const [status, setStatus] = React.useState("");
+  const setSuccessToast = useSuccessToast();
   const settingsSignature = JSON.stringify({ settings, coreMode });
 
   React.useEffect(() => {
@@ -157,22 +158,24 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
   function selectPreset(presetId: string) {
     if (presetId === "custom") return;
     setDraft((current) => ({ ...applyLearningPreset(current, presetId), coreMode: current.coreMode }));
-    setStatus("");
+    setSuccessToast("");
   }
 
   function updateSetting(key: string, value: any) {
     setDraft((current) => mergeCustomSettings(current, { [key]: value }));
-    setStatus("");
+    setSuccessToast("");
   }
 
   function updateSchedulerSetting(key: keyof LearningSettingsDraft["schedulerProfile"], value: unknown) {
     setDraft((current) => mergeCustomSettings(current, { schedulerProfile: { [key]: value } }));
-    setStatus("");
+    setSuccessToast("");
   }
 
   function save() {
     onSave?.({ ...normalizeLearningSettings(draft), coreMode: draft.coreMode });
-    setStatus(affectedDeckCount == null ? "Stapel-Einstellungen gespeichert." : `Globale Lernvorgaben für ${affectedDeckCount} Stapel gespeichert.`);
+    setSuccessToast(affectedDeckCount == null
+      ? "Stapel-Einstellungen wurden erfolgreich gespeichert."
+      : `Globale Lernvorgaben für ${affectedDeckCount} Stapel wurden erfolgreich gespeichert.`);
   }
 
   return (
@@ -314,7 +317,7 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
         </fieldset>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--core-border)] pt-5">
-          <p className="core-body text-[var(--core-text-muted)]" role="status" aria-live="polite">{status || "Änderungen werden erst mit dem Speichern übernommen."}</p>
+          <p className="core-body text-[var(--core-text-muted)]">Änderungen werden erst mit dem Speichern übernommen.</p>
           <ActionButton type="button" variant="primary" icon={Save} onClick={save}>Änderungen speichern</ActionButton>
         </div>
       </div>

@@ -11,6 +11,7 @@ import type { CreationWorkflow } from "../creationWorkflow.ts";
 import type { CardEditorFieldErrors, CardType, Deck, SourceDocument } from "../coreTypes.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
@@ -117,6 +118,7 @@ export function ManualCreationPanel({
   const [documentText, setDocumentText] = React.useState("");
   const [status, setStatus] = React.useState("");
   const [statusType, setStatusType] = React.useState<"status" | "alert">("status");
+  const setSuccessToast = useSuccessToast();
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
   React.useEffect(() => {
     if (decks.length === 0) setUseNewDeck(true);
@@ -258,14 +260,15 @@ export function ManualCreationPanel({
     setFieldErrors({});
     const nextFocus = nextManualFocusTarget(nextState);
     setActiveField(nextFocus === "back" ? "back" : "front");
-    setStatusType("status");
-    setStatus("Karte gespeichert.");
+    setStatus("");
+    setSuccessToast("Karte wurde erfolgreich gespeichert.");
     window.requestAnimationFrame(() => focusField(nextFocus));
   }
 
   async function saveManualCard() {
     const validation = workflow.validateManualCard(manualInput());
     if (!validation.ok) {
+      setSuccessToast("");
       setFieldErrors(validation.errors);
       setStatusType("alert");
       setStatus("Bitte die markierten Felder prüfen.");
@@ -286,6 +289,7 @@ export function ManualCreationPanel({
       onTargetDeckChange(deck.id);
       recordSavedCard(deck, new Set());
     } catch (error) {
+      setSuccessToast("");
       setStatusType("alert");
       setStatus(error instanceof Error ? error.message : "Karte konnte nicht gespeichert werden.");
     }
@@ -425,7 +429,7 @@ export function ManualCreationPanel({
         </div>
       </div>
       <p className="core-body font-medium text-[var(--core-text-muted)]">{batchState.createdCount} {batchState.createdCount === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.</p>
-      {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : "core-status-success"}`} role={statusType} aria-live="polite">{status}</p> : null}
+      {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : "core-status-info"}`} role={statusType} aria-live="polite">{status}</p> : null}
     </div>
   );
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertTriangle, GitMerge, RefreshCw, RotateCcw } from "lucide-react";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { useSuccessToast } from "../ui/feedbackUi.tsx";
 
 const FIELD_SOURCES = [["local", "Diese Fassung"], ["remote", "Andere Fassung"]];
 
@@ -17,7 +18,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
   const [loading, setLoading] = React.useState(true);
   const [busyId, setBusyId] = React.useState<any>(null);
   const [error, setError] = React.useState("");
-  const [message, setMessage] = React.useState("");
+  const setSuccessToast = useSuccessToast();
   const [mergeConflictId, setMergeConflictId] = React.useState<any>(null);
   const [fieldChoices, setFieldChoices] = React.useState<Record<string | number, Record<string | number, string>>>({});
 
@@ -48,13 +49,13 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
   async function decide(conflict: any, decision: { action: any; fieldChoices?: any; }) {
     setBusyId(conflict.id);
     setError("");
-    setMessage("");
+    setSuccessToast("");
     try {
       const result = await onResolveConflict?.(conflict.id, decision);
       setConflicts(result?.conflicts ?? await onListConflicts?.() ?? []);
       setMergeConflictId(null);
       setFieldChoices((current) => ({ ...current, [conflict.id]: {} }));
-      setMessage(decision.action === "ignore" ? "Konflikt wurde für später zurückgestellt." : decision.action === "reopen" ? "Konflikt wurde wieder aufgenommen." : "Konfliktentscheidung wurde synchronisiert.");
+      setSuccessToast(decision.action === "ignore" ? "Konflikt wurde für später zurückgestellt." : decision.action === "reopen" ? "Konflikt wurde wieder aufgenommen." : "Konfliktentscheidung wurde synchronisiert.");
       window.requestAnimationFrame(() => refreshButtonRef.current?.focus());
     } catch (decisionError) {
       setError(decisionError instanceof Error ? decisionError.message : "Konfliktentscheidung konnte nicht gespeichert werden.");
@@ -106,7 +107,6 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
 
       {loading ? <p className="mt-5 core-body text-[var(--core-text-muted)]" role="status">Konflikte werden geladen.</p> : null}
       {error ? <p className="core-status-error mt-4 core-body" role="alert">{error}</p> : null}
-      {message ? <p className="core-status-success mt-4 core-body" role="status">{message}</p> : null}
       {!loading && conflicts.length === 0 ? <p className="core-status-success mt-5 core-body">Keine offenen Synchronisierungskonflikte.</p> : null}
 
       <div className="mt-5 grid gap-4">
