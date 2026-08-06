@@ -15,6 +15,7 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
       onNavigate={() => createViewRoute("uebersicht")}
       onStartDeck={() => undefined}
       onCreateDemo={async () => null}
+      onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
       onOpenDeckSettings={() => undefined}
     />,
@@ -56,6 +57,7 @@ test("populated dashboard keeps today's due count without the original-card stat
       onNavigate={() => createViewRoute("uebersicht")}
       onStartDeck={() => undefined}
       onCreateDemo={async () => null}
+      onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
       onOpenDeckSettings={() => undefined}
     />,
@@ -67,6 +69,8 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /Heute fällig:<\/span><span class="font-semibold">1<\/span>/);
   assert.doesNotMatch(markup, /Originalkarten/);
   assert.match(markup, /Lernen öffnen/);
+  assert.match(markup, /data-testid="dashboard-deck-list-header"/);
+  assert.match(markup, /core-action-ghost/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);
   assert.doesNotMatch(markup, />Lernen <svg/);
   assert.match(markup, /data-deck-count="new"/);
@@ -103,6 +107,7 @@ test("dashboard projects future due cards through the supplied learning time", (
     onNavigate: () => createViewRoute("uebersicht"),
     onStartDeck: () => undefined,
     onCreateDemo: async () => null,
+    onSetDeckCoreMode: () => undefined,
     onMoveDeck: () => null,
     onOpenDeckSettings: () => undefined,
   };

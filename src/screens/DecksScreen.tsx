@@ -1,22 +1,23 @@
-import * as Popover from "@radix-ui/react-popover";
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Copy, FolderPlus, Layers, MoreHorizontal, MoveRight, Pencil, Play, PlusSquare, RotateCcw, Save, Search, Settings, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Copy, Layers, PlusSquare, RotateCcw, Save, Search, Sparkles, Trash2, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 import { getCardEditorValue, getOriginalVariant, getVariantAnchor, validateCardEditorValue } from "../coreModel.ts";
 import { createVariantReviewModel } from "../coreVariantService.ts";
-import { createDeckPlacementValidator, MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
+import { MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
 import { stripHtml } from "../htmlSafety.ts";
-import { createCardTableModel, DEFAULT_CARD_TABLE_SORT, type CardTableGroup, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import { createCardTableModel, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
-import { ActionDialog, CoreModeControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
+import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
-import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
+import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
-import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardType, CardVariant, CoreMode, Deck, LearningItem } from "../coreTypes.ts";
+import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardType, CardVariant, Deck, LearningItem } from "../coreTypes.ts";
 
 const variantLevelOptions = [1, 2, 3].map((level) => ({ value: String(level), label: `Level ${level}` }));
 interface PendingDetailAction {
@@ -70,9 +71,11 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
   const [saveStatus, setSaveStatus] = React.useState("");
   const [saveError, setSaveError] = React.useState(false);
+  const setSuccessToast = useSuccessToast();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isDuplicating, setIsDuplicating] = React.useState(false);
   const [duplicateStatus, setDuplicateStatus] = React.useState("");
+  const [duplicateError, setDuplicateError] = React.useState(false);
   const [variantForm, setVariantForm] = React.useState({ front: "", back: "", variantLevel: 2 });
   const [variantStatus, setVariantStatus] = React.useState("");
   const [variantStatusWarning, setVariantStatusWarning] = React.useState(false);
@@ -117,7 +120,9 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
   React.useEffect(() => {
     setSaveStatus("");
     setSaveError(false);
+    setSuccessToast("");
     setDuplicateStatus("");
+    setDuplicateError(false);
     setRestoreVersionId("");
     setConfirmRestore(false);
     setRestoreStatus("");
@@ -189,7 +194,8 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
       setForm(validation.value);
       setSavedForm(JSON.stringify(validation.value));
       setFieldErrors({});
-      setSaveStatus("Karte gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.");
+      setSaveStatus("");
+      setSuccessToast("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.");
       return true;
     } catch {
       setSaveError(true);
@@ -204,10 +210,18 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
     if (!form) return;
     setIsDuplicating(true);
     setDuplicateStatus("Kopie wird erstellt …");
+    setDuplicateError(false);
     try {
       const result = await onDuplicateCard(card.id);
-      setDuplicateStatus(result ? "Kopie direkt unter der Ausgangskarte erstellt." : "Die Karte konnte nicht kopiert werden.");
+      if (result) {
+        setDuplicateStatus("");
+        setSuccessToast("Kopie wurde erfolgreich direkt unter der Ausgangskarte erstellt.");
+      } else {
+        setDuplicateError(true);
+        setDuplicateStatus("Die Karte konnte nicht kopiert werden.");
+      }
     } catch {
+      setDuplicateError(true);
       setDuplicateStatus("Die Kopie ist lokal erstellt; die Cloud-Synchronisierung steht noch aus.");
     } finally {
       setIsDuplicating(false);
@@ -219,6 +233,7 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
   }
 
   function addManualVariant() {
+    setSuccessToast("");
     if (!variantForm.front.trim() || !variantForm.back.trim()) {
       setVariantStatus("Bitte Frage und Antwort für die Umformulierung ausfüllen.");
       return;
@@ -229,12 +244,14 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
       generationSource: "user_edited",
     });
     setVariantForm({ front: "", back: "", variantLevel: 2 });
-    setVariantStatus("Umformulierung gespeichert.");
+    setVariantStatus("");
     setVariantStatusWarning(false);
+    setSuccessToast("Umformulierung wurde erfolgreich gespeichert.");
   }
 
   async function generateVariant() {
     if (card.cardType !== "basic" || isGeneratingVariant) return;
+    setSuccessToast("");
     setIsGeneratingVariant(true);
     setVariantStatusWarning(false);
     setVariantStatus("KI-Variante wird erzeugt …");
@@ -242,9 +259,12 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
       const result = await onGenerateVariant(card.id);
       const usedFallback = result.privacyMode === "non_zdr";
       setVariantStatusWarning(usedFallback);
-      setVariantStatus(usedFallback
-        ? "KI-Variante erstellt. Da kein passendes ZDR-Modell verfügbar war, wurde ein kostenloses Modell ohne Zero Data Retention verwendet."
-        : "KI-Variante erstellt und am Original verankert.");
+      if (usedFallback) {
+        setVariantStatus("KI-Variante erstellt. Da kein passendes ZDR-Modell verfügbar war, wurde ein kostenloses Modell ohne Zero Data Retention verwendet.");
+      } else {
+        setVariantStatus("");
+        setSuccessToast("KI-Variante wurde erfolgreich erstellt und am Original verankert.");
+      }
     } catch (error) {
       setVariantStatusWarning(true);
       setVariantStatus(error instanceof Error ? error.message : "Die KI-Variante konnte nicht erstellt werden.");
@@ -262,7 +282,8 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
     }
     setConfirmRestore(false);
     setRestoreVersionId("");
-    setRestoreStatus("Version wiederhergestellt. Der Restore wurde als neuer Versionseintrag gespeichert.");
+    setRestoreStatus("");
+    setSuccessToast("Version wurde erfolgreich wiederhergestellt und als neuer Versionseintrag gespeichert.");
     window.requestAnimationFrame(() => restoreSelectRef.current?.focus());
   }
 
@@ -364,8 +385,8 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
             Tags
             <input className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3" value={form.tags.join(" ")} onChange={(event) => update("tags", event.target.value.split(/\s+/).filter(Boolean))} />
           </label>
-          {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-success"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
-          {duplicateStatus ? <p className="core-status-success" role="status">{duplicateStatus}</p> : null}
+          {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
+          {duplicateStatus ? <p className={duplicateError ? "core-status-error" : "core-status-info"} role={duplicateError ? "alert" : "status"}>{duplicateStatus}</p> : null}
         </div>
       ) : (
         <div id={"copy-disabled-" + card.id} className="rounded-xl border border-core-warning bg-core-warning-soft p-4 core-body font-medium text-core-text" role="status">
@@ -462,7 +483,7 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
             </div>
           </div>
         ) : null}
-        {restoreStatus ? <p className="core-status-success mt-3 core-body font-semibold" role="status">{restoreStatus}</p> : null}
+        {restoreStatus ? <p className="core-status-error mt-3 core-body font-semibold" role="alert">{restoreStatus}</p> : null}
       </section>
       </details>
       <details className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" data-testid="card-variant-tools">
@@ -555,67 +576,6 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
   );
 }
 
-function DeckGroupMenu({
-  group,
-  onSetCoreMode,
-  onOpenSettings,
-  onRename,
-  onMove,
-  onCreateSubdeck,
-  onLearn,
-  onDelete,
-}: {
-  group: CardTableGroup;
-  onSetCoreMode: (mode: CoreMode) => void;
-  onOpenSettings: () => void;
-  onRename: () => void;
-  onMove: () => void;
-  onCreateSubdeck: () => void;
-  onLearn: (variants: boolean) => void;
-  onDelete: () => void;
-}) {
-  const menuActionClass = "flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left core-body font-semibold text-[var(--core-text-secondary)] hover:bg-[var(--core-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]";
-
-  return (
-    <Popover.Root>
-      <CoreTooltip label={"Stapeloptionen für " + group.path}>
-        <Popover.Trigger asChild>
-          <IconButton
-            label={"Stapeloptionen für " + group.path}
-            icon={MoreHorizontal}
-            className="pointer-events-auto"
-            data-testid={"deck-options-" + group.id}
-          />
-        </Popover.Trigger>
-      </CoreTooltip>
-      <Popover.Portal>
-        <Popover.Content
-          data-testid={"deck-options-menu-" + group.id}
-          align="end"
-          sideOffset={8}
-          collisionPadding={16}
-          className="core-overlay z-[60] grid w-72 gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-3 shadow-xl"
-        >
-          <p className="truncate px-2 core-body font-semibold text-[var(--core-text)]">{group.path}</p>
-          <div className="grid gap-2 px-2">
-            <span className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">CoRe-Modus</span>
-            <CoreModeControl value={group.coreMode} onChange={onSetCoreMode} />
-          </div>
-          <div className="grid gap-1 border-t border-[var(--core-border)] pt-2">
-            <Popover.Close asChild><button type="button" className={menuActionClass} onClick={onOpenSettings}><Settings size={16} aria-hidden="true" />Einstellungen</button></Popover.Close>
-            <Popover.Close asChild><button type="button" className={menuActionClass} data-testid={"deck-rename-button-" + group.id} onClick={onRename}><Pencil size={16} aria-hidden="true" />Umbenennen</button></Popover.Close>
-            <Popover.Close asChild><button type="button" className={menuActionClass} data-testid={"deck-move-button-" + group.id} onClick={onMove}><MoveRight size={16} aria-hidden="true" />Verschieben</button></Popover.Close>
-            <Popover.Close asChild><button type="button" className={menuActionClass} onClick={onCreateSubdeck}><FolderPlus size={16} aria-hidden="true" />Unterstapel</button></Popover.Close>
-            <Popover.Close asChild><button type="button" className={menuActionClass} onClick={() => onLearn(false)}><Play size={16} aria-hidden="true" />Lernen</button></Popover.Close>
-            <Popover.Close asChild><button type="button" className={menuActionClass} onClick={() => onLearn(true)}><Sparkles size={16} aria-hidden="true" />Varianten lernen</button></Popover.Close>
-            <Popover.Close asChild><button type="button" className={menuActionClass + " text-core-danger"} onClick={onDelete}><Trash2 size={16} aria-hidden="true" />Löschen</button></Popover.Close>
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
-
 export function DecksScreen({
   decks,
   now,
@@ -631,12 +591,8 @@ export function DecksScreen({
   onRestoreCard,
   onAddVariant,
   onGenerateVariant,
-  onStartDeck,
-  onDeleteDeck,
-  onRenameDeck,
   onMoveDeck,
   onOpenCardCreation,
-  onPrepareSubdeckCreation,
   onOpenLearn,
   onOpenDeckSettings,
   onDraftStateChange,
@@ -646,13 +602,9 @@ export function DecksScreen({
   const [expandedDeckIds, setExpandedDeckIds] = React.useState<Set<string>>(() => new Set());
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
-  const [editingDeckId, setEditingDeckId] = React.useState<string | null>(null);
-  const [renameDraft, setRenameDraft] = React.useState("");
-  const [movingDeckId, setMovingDeckId] = React.useState<string | null>(null);
-  const [moveTargetId, setMoveTargetId] = React.useState("");
+  const setSuccessToast = useSuccessToast();
   const [pendingCardDelete, setPendingCardDelete] = React.useState<{ deckId: string; card: LearningItem } | null>(null);
   const [deletedCardUndo, setDeletedCardUndo] = React.useState<{ deckId: string; card: LearningItem; description: string } | null>(null);
-  const [pendingDeckDelete, setPendingDeckDelete] = React.useState<{ deck: Deck; row: CardTableGroup } | null>(null);
   const [pendingDetailAction, setPendingDetailAction] = React.useState<PendingDetailAction | null>(null);
   const [savingPendingDraft, setSavingPendingDraft] = React.useState(false);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
@@ -670,13 +622,6 @@ export function DecksScreen({
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
   const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedCard);
   const detailOpen = Boolean(selectedCard || selectedDeckMissing || selectedCardMissing);
-  const validMoveTargetDeckIds = React.useMemo(() => {
-    if (!movingDeckId) return [];
-    const validatePlacement = createDeckPlacementValidator(decks, movingDeckId);
-    return tableModel.allGroups
-      .filter((candidate) => validatePlacement(candidate.id) === null)
-      .map((candidate) => candidate.id);
-  }, [decks, movingDeckId, tableModel.allGroups]);
   const { urls: selectedDeckMediaUrls } = useDeckMediaUrls(selectedDeck, mediaStore);
   const handleEditorDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
     cardDraftGuardRef.current = guard;
@@ -686,13 +631,6 @@ export function DecksScreen({
   React.useEffect(() => {
     if (!selectedDeckId) return;
     setExpandedDeckIds((current) => current.has(selectedDeckId) ? current : new Set([...current, selectedDeckId]));
-  }, [selectedDeckId]);
-
-  React.useEffect(() => {
-    setEditingDeckId(null);
-    setRenameDraft("");
-    setMovingDeckId(null);
-    setMoveTargetId("");
   }, [selectedDeckId]);
 
   React.useEffect(() => {
@@ -706,7 +644,7 @@ export function DecksScreen({
     if (!detailOpen) return;
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape" || pendingDetailAction || pendingCardDelete || pendingDeckDelete) return;
+      if (event.key !== "Escape" || pendingDetailAction || pendingCardDelete) return;
       event.preventDefault();
       requestDetailAction(closeDetail);
     }
@@ -729,7 +667,7 @@ export function DecksScreen({
       window.removeEventListener("keydown", handleEscape);
       document.removeEventListener("pointerdown", handleOutsidePointer, true);
     };
-  }, [detailOpen, pendingCardDelete, pendingDeckDelete, pendingDetailAction, selectedCardId, selectedDeckId]);
+  }, [detailOpen, pendingCardDelete, pendingDetailAction, selectedCardId, selectedDeckId]);
 
   function focusCardRow(cardId: string | null) {
     window.requestAnimationFrame(() => {
@@ -827,8 +765,9 @@ export function DecksScreen({
       const result = await onUndoDeleteCard(deletedCardUndo.deckId, deletedCardUndo.card);
       if (!result) throw new Error("Undo fehlgeschlagen.");
       onSelectDeck(deletedCardUndo.deckId, deletedCardUndo.card.id);
-      setDeckStatus("Kartenlöschung rückgängig gemacht.");
+      setDeckStatus("");
       setDeckStatusType("status");
+      setSuccessToast("Kartenlöschung wurde erfolgreich rückgängig gemacht.");
       setDeletedCardUndo(null);
     } catch {
       onSelectDeck(deletedCardUndo.deckId, deletedCardUndo.card.id);
@@ -838,146 +777,10 @@ export function DecksScreen({
     }
   }
 
-  function beginRename(deck: Deck) {
-    setMovingDeckId(null);
-    setMoveTargetId("");
-    setEditingDeckId(deck.id);
-    setRenameDraft(deck.name);
-    setDeckStatus('"' + deck.name + '" umbenennen.');
-    setDeckStatusType("status");
-  }
-
-  function cancelRename(deckId: string) {
-    setEditingDeckId(null);
-    setRenameDraft("");
-    focusDeckAction(deckId, "rename");
-  }
-
-  function submitRename(event: React.SubmitEvent<HTMLFormElement>, deck: Deck) {
-    event.preventDefault();
-    const name = renameDraft.trim();
-    if (!name) {
-      setDeckStatus("Bitte gib einen Stapelnamen ein.");
-      setDeckStatusType("alert");
-      return;
-    }
-    const result = onRenameDeck(deck.id, name);
-    if (result?.error) {
-      setDeckStatus(result.error);
-      setDeckStatusType("alert");
-      return;
-    }
-    setEditingDeckId(null);
-    setRenameDraft("");
-    setDeckStatus('Stapel "' + (result?.deck?.name ?? deck.name) + '" umbenannt.');
-    setDeckStatusType("status");
-    focusDeckAction(deck.id, "options");
-  }
-
-  function beginMove(deck: Deck) {
-    setEditingDeckId(null);
-    setRenameDraft("");
-    setMovingDeckId(deck.id);
-    setMoveTargetId(deck.parentDeckId ?? "");
-    setDeckStatus('Ziel für "' + deck.name + '" auswählen.');
-    setDeckStatusType("status");
-  }
-
-  function cancelMove(deckId: string) {
-    setMovingDeckId(null);
-    setMoveTargetId("");
-    focusDeckAction(deckId, "move");
-  }
-
-  function submitMove(event: React.SubmitEvent<HTMLFormElement>, deck: Deck) {
-    event.preventDefault();
-    const result = onMoveDeck(deck.id, moveTargetId || null);
-    if (result?.error) {
-      setDeckStatus(result.error);
-      setDeckStatusType("alert");
-      return;
-    }
-    setMovingDeckId(null);
-    setMoveTargetId("");
-    const target = groupById.get(moveTargetId)?.deck ?? null;
-    setDeckStatus(result?.changedDeckIds?.length === 0
-      ? 'Stapel "' + deck.name + '" bleibt an der bisherigen Stelle.'
-      : target
-        ? 'Stapel "' + deck.name + '" unter "' + target.name + '" verschoben.'
-        : 'Stapel "' + deck.name + '" auf die Hauptebene verschoben.');
-    setDeckStatusType("status");
-    focusDeckAction(deck.id, "options");
-  }
-
-  function focusDeckAction(deckId: string, action: "rename" | "move" | "options") {
-    window.requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>('[data-testid="deck-' + action + '-button-' + deckId + '"], [data-testid="deck-options-' + deckId + '"]')?.focus();
-    });
-  }
-
-  async function confirmDeckDelete() {
-    if (!pendingDeckDelete) return;
-    const result = await onDeleteDeck(pendingDeckDelete.deck.id);
-    if (!result) return;
-    if (pendingDeckDelete.row.scopeDeckIds.includes(selectedDeckId ?? "")) onSelectDeck(null);
-    setDeckStatus(result.deletedDeckIds.length + " Stapel gelöscht.");
-    setDeckStatusType("status");
-    setPendingDeckDelete(null);
-    window.requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-screen-heading]")?.focus());
-  }
-
-  function renderDeckEditRows(group: CardTableGroup) {
-    if (editingDeckId === group.id) {
-      return (
-        <tr className="bg-[var(--core-surface-muted)]">
-          <td colSpan={3} className="p-4">
-            <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => submitRename(event, group.deck)}>
-              <label className="grid min-w-0 flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-                Stapelname
-                <input autoFocus className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3" value={renameDraft} onChange={(event) => setRenameDraft(event.target.value)} />
-              </label>
-              <ActionButton type="submit" variant="primary" icon={Check}>Speichern</ActionButton>
-              <ActionButton type="button" variant="secondary" onClick={() => cancelRename(group.id)}>Abbrechen</ActionButton>
-            </form>
-          </td>
-        </tr>
-      );
-    }
-    if (movingDeckId === group.id) {
-      return (
-        <tr className="bg-[var(--core-surface-muted)]">
-          <td colSpan={3} className="p-4">
-            <form className="grid gap-3" onSubmit={(event) => submitMove(event, group.deck)}>
-              <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-                Neuer übergeordneter Stapel
-                <DeckSelect
-                  autoFocus
-                  ariaLabel={`Ziel für ${group.deck.name}`}
-                  className="w-full"
-                  value={moveTargetId}
-                  decks={decks}
-                  selectableDeckIds={validMoveTargetDeckIds}
-                  specialOption={{ value: "", label: "Hauptebene", icon: Layers }}
-                  onValueChange={setMoveTargetId}
-                />
-              </label>
-              <p className="core-caption text-[var(--core-text-muted)]">Maximal {MAX_INTERACTIVE_DECK_LEVELS} Ebenen. Ein Stapel kann nicht in sich selbst oder seine Unterstapel verschoben werden.</p>
-              <div className="flex flex-wrap gap-2">
-                <ActionButton type="submit" variant="primary" icon={MoveRight}>Verschieben bestätigen</ActionButton>
-                <ActionButton type="button" variant="secondary" onClick={() => cancelMove(group.id)}>Abbrechen</ActionButton>
-              </div>
-            </form>
-          </td>
-        </tr>
-      );
-    }
-    return null;
-  }
-
   function renderDetailLayer() {
     return (
       <>
-        {!pendingDetailAction && !pendingCardDelete && !pendingDeckDelete ? <div className="fixed inset-0 z-40 bg-[var(--core-backdrop)]" aria-hidden="true" data-testid="card-detail-backdrop" /> : null}
+        {!pendingDetailAction && !pendingCardDelete ? <div className="fixed inset-0 z-40 bg-[var(--core-backdrop)]" aria-hidden="true" data-testid="card-detail-backdrop" /> : null}
         <aside
           ref={detailRef}
           tabIndex={-1}
@@ -1092,21 +895,17 @@ export function DecksScreen({
                           </span>
                         }
                         actions={
-                          <DeckGroupMenu
-                            group={group}
-                            onSetCoreMode={(mode) => onSetDeckCoreMode(group.id, mode)}
-                            onOpenSettings={() => onOpenDeckSettings(group.id)}
-                            onRename={() => beginRename(group.deck)}
-                            onMove={() => beginMove(group.deck)}
-                            onCreateSubdeck={() => onPrepareSubdeckCreation(group.id)}
-                            onLearn={(variants) => onStartDeck(group.deck, variants)}
-                            onDelete={() => setPendingDeckDelete({ deck: group.deck, row: group })}
+                          <DeckOptionsMenu
+                            row={group}
+                            decks={decks}
+                            onSetCoreMode={onSetDeckCoreMode}
+                            onOpenSettings={onOpenDeckSettings}
+                            onMoveDeck={onMoveDeck}
                           />
                         }
                       />
                     </th>
                   </tr>
-                  {renderDeckEditRows(group)}
                   {expanded && group.cardRows.length ? group.cardRows.map(({ card, frontPreview, dueLabel, variantsLabel, hasActiveVariants }) => (
                     <tr
                       key={card.id}
@@ -1176,24 +975,6 @@ export function DecksScreen({
         actionIcons={{ cancel: X, confirm: Check }}
         onCancel={() => setPendingCardDelete(null)}
         onConfirm={() => void confirmCardDelete()}
-      />
-      <ActionDialog
-        open={Boolean(pendingDeckDelete)}
-        title="Stapelbaum löschen?"
-        description={pendingDeckDelete ? (
-          <div className="grid gap-2">
-            <p>„{pendingDeckDelete.deck.name}“ und alle Inhalte dieses Stapelbaums werden als gelöscht markiert.</p>
-            <ul className="list-disc pl-5">
-              <li>{Math.max(0, pendingDeckDelete.row.scopeDeckIds.length - 1)} Unterstapel</li>
-              <li>{pendingDeckDelete.row.summary.totalCards} {pendingDeckDelete.row.summary.totalCards === 1 ? "aktive Karte" : "aktive Karten"}</li>
-            </ul>
-          </div>
-        ) : null}
-        confirmLabel="Stapelbaum löschen"
-        cancelLabel="Abbrechen"
-        destructive
-        onCancel={() => setPendingDeckDelete(null)}
-        onConfirm={() => void confirmDeckDelete()}
       />
     </div>
   );

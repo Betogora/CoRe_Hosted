@@ -1,13 +1,16 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
-import { ArrowLeft, Pencil, Save, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, FolderPlus, Pencil, Play, Save, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { DeckSettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeDeckAppearance } from "../coreModel.ts";
-import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { createDeckLibraryModel } from "../libraryModel.ts";
+import { ActionButton } from "../ui/actionUi.tsx";
 import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
-import { deckIconOptions, getDeckIcon } from "../ui/deckAppearance.tsx";
+import { DeckAppearanceIcon, deckIconOptions, getDeckIcon } from "../ui/deckAppearance.tsx";
+import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
-import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
 interface DeckIconPickerProps {
   value: string;
@@ -69,13 +72,17 @@ function DeckIconPicker({ value, color, onChange }: DeckIconPickerProps) {
   );
 }
 
-export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onRenameDeck, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
+export function DeckSettingsScreen({ deck, decks, onSave, onSaveAppearance, onRenameDeck, onCreateSubdeck, onStartDeck, onDeleteDeck, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
   const [appearance, setAppearance] = React.useState(() => normalizeDeckAppearance(deck?.deckSettings?.appearance));
   const [nameDraft, setNameDraft] = React.useState(deck?.name ?? "");
   const [editingName, setEditingName] = React.useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const [feedback, setFeedback] = React.useState<{ message: string; role: "alert" | "status" } | null>(null);
+  const setSuccessToast = useSuccessToast();
   const nameInputRef = React.useRef<HTMLInputElement>(null);
   const renameButtonRef = React.useRef<HTMLButtonElement>(null);
+  const deckRow = React.useMemo(() => deleteDialogOpen && deck ? createDeckLibraryModel(decks).rows.find((row) => row.id === deck.id) ?? null : null, [deck, decks, deleteDialogOpen]);
 
   React.useEffect(() => {
     setAppearance(normalizeDeckAppearance(deck?.deckSettings?.appearance));
@@ -84,6 +91,7 @@ export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onRenameDec
   React.useEffect(() => {
     setEditingName(false);
     setFeedback(null);
+    setSuccessToast("");
   }, [deck?.id]);
 
   React.useEffect(() => {
@@ -147,57 +155,95 @@ export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onRenameDec
     onSaveAppearance(activeDeck.id, appearance);
     setNameDraft(renameResult?.deck?.name ?? activeDeck.name);
     setEditingName(false);
-    setFeedback({ message: "Stapeleinstellungen gespeichert.", role: "status" });
+    setFeedback(null);
+    setSuccessToast("Stapeleinstellungen wurden erfolgreich gespeichert.");
   }
+
+  async function confirmDelete() {
+    setDeleting(true);
+    const result = await onDeleteDeck(activeDeck.id);
+    if (!result) {
+      setDeleting(false);
+      setFeedback({ message: "Der Stapel konnte nicht gelöscht werden.", role: "alert" });
+      return;
+    }
+    setDeleteDialogOpen(false);
+    setDeleting(false);
+  }
+
+  const renameButton = (
+    <CoreTooltip label="Stapel umbenennen">
+      <button
+        ref={renameButtonRef}
+        type="button"
+        aria-label="Stapel umbenennen"
+        aria-pressed={editingName}
+        className="inline-grid size-11 shrink-0 place-items-center rounded-xl border-0 bg-transparent p-0 text-[var(--core-action-primary)] transition-colors hover:bg-[var(--core-surface-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--core-canvas)]"
+        onClick={() => {
+          setEditingName(true);
+          setFeedback(null);
+        }}
+      >
+        <Pencil size={20} aria-hidden="true" />
+      </button>
+    </CoreTooltip>
+  );
 
   return (
     <div className="grid min-w-0 gap-7" data-testid={`deck-settings-${deck.id}`}>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeader eyebrow="Stapel-Einstellungen" title={deck.name} />
-        <button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface">
-          <ArrowLeft size={17} aria-hidden="true" />
-          {backLabel}
-        </button>
-      </div>
-
-      <SoftPanel className="p-4 sm:p-5">
-        <form className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" onSubmit={saveSettings}>
-          <div className="min-w-0 flex-1">
-            {editingName ? (
-              <input
-                ref={nameInputRef}
-                value={nameDraft}
-                aria-label="Stapelname"
-                data-testid="deck-settings-name-input"
-                className="h-11 w-full min-w-0 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface px-3 core-heading-3 text-[var(--core-text)] outline-none"
-                onChange={(event) => {
-                  setNameDraft(event.target.value);
-                  setFeedback(null);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Escape") return;
-                  event.preventDefault();
-                  cancelNameEdit();
-                }}
-              />
-            ) : (
-              <h2 className="break-words core-heading-3 font-semibold text-[var(--core-text)]">{deck.name}</h2>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-end gap-2">
-            <IconButton
-              ref={renameButtonRef}
-              type="button"
-              icon={Pencil}
-              label="Stapel umbenennen"
-              aria-pressed={editingName}
-              className="size-11 shrink-0"
-              onClick={() => {
-                setEditingName(true);
-                setFeedback(null);
-              }}
+      <form className="grid min-w-0 gap-7" onSubmit={saveSettings}>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0 flex-[1_1_28rem]">
+            <PageHeader
+              eyebrow="Stapel-Einstellungen"
+              title={(
+                <span className="flex min-w-0 items-center gap-2 sm:gap-3">
+                  <DeckAppearanceIcon
+                    appearance={appearance}
+                    className="size-11"
+                    iconSize={20}
+                    data-testid="deck-settings-title-icon"
+                  />
+                  {editingName ? (
+                    <>
+                      <input
+                        ref={nameInputRef}
+                        value={nameDraft}
+                        aria-label="Stapelname"
+                        data-testid="deck-settings-name-input"
+                        className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface px-3 core-heading-1 text-[var(--core-text)] outline-none focus:ring-2 focus:ring-[var(--core-focus-ring)]"
+                        onChange={(event) => {
+                          setNameDraft(event.target.value);
+                          setFeedback(null);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Escape") return;
+                          event.preventDefault();
+                          cancelNameEdit();
+                        }}
+                      />
+                      {renameButton}
+                    </>
+                  ) : (
+                    <span className="flex min-w-0 items-center gap-1">
+                      <span className="min-w-0 break-words" data-testid="deck-settings-title-name">
+                        {nameDraft}
+                      </span>
+                      {renameButton}
+                    </span>
+                  )}
+                </span>
+              )}
             />
+          </div>
+          <button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface">
+            <ArrowLeft size={17} aria-hidden="true" />
+            {backLabel}
+          </button>
+        </div>
+
+        <SoftPanel className="grid gap-4 p-4 sm:p-5">
+          <div className="flex flex-wrap items-end gap-2 sm:justify-end" data-testid="deck-settings-appearance-toolbar">
             <div className="grid gap-1 core-caption font-semibold text-[var(--core-text-secondary)]">
               <span>Icon</span>
               <DeckIconPicker
@@ -221,12 +267,12 @@ export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onRenameDec
           </div>
 
           {feedback ? (
-            <p className={`basis-full core-body font-semibold ${feedback.role === "alert" ? "text-[var(--core-status-error-text)]" : "text-[var(--core-text)]"}`} role={feedback.role} aria-live={feedback.role === "status" ? "polite" : undefined}>
+            <p className={`min-w-0 core-body font-semibold ${feedback.role === "alert" ? "text-[var(--core-status-error-text)]" : "text-[var(--core-text)]"}`} role={feedback.role} aria-live={feedback.role === "status" ? "polite" : undefined}>
               {feedback.message}
             </p>
           ) : null}
-        </form>
-      </SoftPanel>
+        </SoftPanel>
+      </form>
 
       <LearningSettingsPanel
         settings={deck.deckSettings}
@@ -234,6 +280,44 @@ export function DeckSettingsScreen({ deck, onSave, onSaveAppearance, onRenameDec
         scopeTitle={`Lernen mit „${deck.name}“`}
         scopeDescription="Passe Tagespensum, Kartenreihenfolge und Intervalle gezielt für diesen Stapel an. Die vorhandenen Lernstände bleiben erhalten; neue Einstellungen wirken bei den nächsten Einplanungen."
         onSave={(settings: any) => onSave(deck.id, settings)}
+      />
+
+      <SoftPanel className="p-4 sm:p-5">
+        <h2 className="core-heading-3 font-semibold text-[var(--core-text)]">Stapelaktionen</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <ActionButton type="button" variant="secondary" icon={FolderPlus} className="justify-start" onClick={() => onCreateSubdeck(activeDeck.id)}>
+            Unterstapel anlegen
+          </ActionButton>
+          <ActionButton type="button" variant="secondary" icon={Play} className="justify-start" onClick={() => onStartDeck(activeDeck, false)}>
+            Lernen
+          </ActionButton>
+          <ActionButton type="button" variant="secondary" icon={Sparkles} className="justify-start" onClick={() => onStartDeck(activeDeck, true)}>
+            Varianten lernen
+          </ActionButton>
+          <ActionButton type="button" variant="destructive" icon={Trash2} className="justify-start" onClick={() => setDeleteDialogOpen(true)}>
+            Löschen
+          </ActionButton>
+        </div>
+      </SoftPanel>
+
+      <ActionDialog
+        open={deleteDialogOpen}
+        title="Stapelbaum löschen?"
+        description={(
+          <div className="grid gap-2">
+            <p>„{activeDeck.name}“ und alle Inhalte dieses Stapelbaums werden als gelöscht markiert.</p>
+            <ul className="list-disc pl-5">
+              <li>{Math.max(0, (deckRow?.scopeDeckIds.length ?? 1) - 1)} Unterstapel</li>
+              <li>{deckRow?.summary.totalCards ?? 0} {(deckRow?.summary.totalCards ?? 0) === 1 ? "aktive Karte" : "aktive Karten"}</li>
+            </ul>
+          </div>
+        )}
+        confirmLabel="Stapelbaum löschen"
+        cancelLabel="Abbrechen"
+        confirmLoading={deleting}
+        destructive
+        onCancel={() => setDeleteDialogOpen(false)}
+        onConfirm={() => void confirmDelete()}
       />
     </div>
   );

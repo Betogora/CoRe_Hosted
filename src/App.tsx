@@ -827,6 +827,17 @@ export function App() {
     return decks;
   }
 
+  function deckSettingsReturnRoute(deckId: string | null, clearSelection = false) {
+    if (settingsReturnContext?.view === "today") return createViewRoute("uebersicht");
+    if (settingsReturnContext?.view === "decks") {
+      return createViewRoute("kartenstapel", clearSelection ? {} : {
+        focusedDeckId: deckId,
+        selectedCardId: deckId ? settingsReturnContext.cardId : null,
+      });
+    }
+    return createViewRoute("lernen", clearSelection ? {} : { focusedDeckId: deckId });
+  }
+
   function saveProfile(profile: unknown) {
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(profile));
   }
@@ -842,13 +853,15 @@ export function App() {
           focusedDeckId: focusedDeckId ?? deck.id,
           selectedCardId,
         })
-      : activeView === "lernen" || activeView === "stapel-einstellungen"
+      : activeView === "stapel-einstellungen"
+        ? deckSettingsReturnRoute(deck.id)
+        : activeView === "lernen"
         ? createViewRoute("lernen", { focusedDeckId: deck.id })
         : currentRoute;
     navigateToRoute(createStudyRoute(deck.id, {
       variantSession,
       returnContext: createReviewReturnContext(returnRoute, deck.id),
-    }));
+    }), { replace: activeView === "stapel-einstellungen" });
   }
 
   function openDecks(deckId: string | null = null, cardId: string | null = null) {
@@ -907,15 +920,19 @@ export function App() {
       return (
         <DeckSettingsScreen
           deck={state.decks.find((deck) => deck.id === focusedDeckId) ?? null}
+          decks={state.decks}
           onSave={saveDeckLearningSettings}
           onSaveAppearance={saveDeckAppearance}
           onRenameDeck={renameDeck}
+          onCreateSubdeck={openDeckCreation}
+          onStartDeck={startDeck}
+          onDeleteDeck={async (deckId) => {
+            const result = await deleteDeck(deckId);
+            if (result) navigateToRoute(deckSettingsReturnRoute(null, true));
+            return result;
+          }}
           backLabel={returnsToDashboard ? "Zurück zur Übersicht" : returnsToDecks ? "Zurück zur Kartenverwaltung" : "Zurück zu Lernen"}
-          onBack={() => returnsToDashboard
-            ? navigateToView("uebersicht")
-            : returnsToDecks
-              ? openDecks(focusedDeckId, settingsReturnContext?.cardId ?? null)
-              : openLearn(focusedDeckId)}
+          onBack={() => navigateToRoute(deckSettingsReturnRoute(focusedDeckId))}
         />
       );
     }
@@ -933,15 +950,11 @@ export function App() {
           onRestoreCard={restoreDeckCard}
           onAddVariant={addDeckCardVariant}
           onGenerateVariant={generateDeckCardVariant}
-          onStartDeck={startDeck}
           selectedDeckId={focusedDeckId}
           selectedCardId={selectedCardId}
           onSelectDeck={openDecks}
-          onDeleteDeck={deleteDeck}
-          onRenameDeck={renameDeck}
           onMoveDeck={moveDeck}
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
-          onPrepareSubdeckCreation={openDeckCreation}
           onOpenLearn={openLearn}
           onDraftStateChange={handleCardDraftStateChange}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, {
@@ -991,6 +1004,7 @@ export function App() {
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onOpenDecks={openDecks}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "learn" })}
+          onSetDeckCoreMode={setDeckCoreMode}
           onMoveDeck={moveDeck}
         />
       );
@@ -1028,7 +1042,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} />;
+    return <DashboardScreen state={state} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} onSetDeckCoreMode={setDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} />;
   }
 
   if (authPhase === "checking-session") {

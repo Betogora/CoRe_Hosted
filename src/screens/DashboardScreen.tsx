@@ -176,7 +176,7 @@ function StudyHeatmap({ heatmap }: any) {
   );
 }
 
-export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateDemo, onMoveDeck, onOpenDeckSettings }: DashboardScreenProps) {
+export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings }: DashboardScreenProps) {
   const library = React.useMemo(() => createDeckLibraryModel(state.decks, { now }), [now, state.decks]);
   const { dueCards, studyHeatmap } = library;
   const displayName = state.profile?.displayName?.trim();
@@ -242,9 +242,10 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateD
 
       <StudyHeatmap heatmap={studyHeatmap} />
 
-      <SoftPanel className="p-7">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3>
+      <DeckTree
+        rows={library.rows}
+        mode="dashboard"
+        headerAction={(
           <button
             type="button"
             onClick={() => onNavigate("lernen")}
@@ -252,15 +253,12 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateD
           >
             Lernen öffnen <ChevronRight size={15} aria-hidden="true" />
           </button>
-        </div>
-        <DeckTree
-          rows={library.rows}
-          mode="dashboard"
-          onActivate={(row) => onStartDeck(row.deck, false)}
-          onOpenSettings={(row) => onOpenDeckSettings(row.id)}
-          onMoveDeck={onMoveDeck}
-        />
-      </SoftPanel>
+        )}
+        onActivate={(row) => onStartDeck(row.deck, false)}
+        onOpenSettings={onOpenDeckSettings}
+        onSetDeckCoreMode={onSetDeckCoreMode}
+        onMoveDeck={onMoveDeck}
+      />
     </div>
   );
 }

@@ -389,6 +389,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" }).click();
+  await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen" }).click();
   await page.getByLabel("Neue Karten pro Tag als Zahl").fill("0");
   await page.getByLabel("Reviews pro Tag als Zahl").fill("1");
   await page.getByRole("button", { name: "Änderungen speichern" }).click();
@@ -404,7 +405,8 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0).toBe(variantsBefore + 1);
 
   await page.getByTestId(`deck-options-${DECK_IDS.africa}`).click();
-  await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Varianten lernen", exact: true }).click();
+  await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
+  await page.getByRole("button", { name: "Varianten lernen", exact: true }).click();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
 

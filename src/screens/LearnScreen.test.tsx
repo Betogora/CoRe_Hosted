@@ -19,6 +19,7 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
       onOpenDeckSettings={() => undefined}
+      onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
     />,
   );
@@ -32,8 +33,10 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, /data-deck-drag-source="true"/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Welt-Hauptstädte"/);
   assert.match(markup, /lucide-ellipsis/);
-  assert.doesNotMatch(markup, /learn-deck-list-header/);
-  assert.doesNotMatch(markup, />Lernen<\/span><\/button>/);
+  assert.match(markup, /data-testid="learn-deck-list-header"/);
+  assert.match(markup, />Aktive Stapel<\/h3>/);
+  assert.match(markup, /core-action-ghost/);
+  assert.doesNotMatch(markup, /Lernen öffnen/);
   assert.doesNotMatch(markup, /Icon auswählen|Iconfarbe|CoRe aktiv/);
 });
 
@@ -51,6 +54,7 @@ test("quick deck creation asks only for a name and optional parent deck", () => 
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
       onOpenDeckSettings={() => undefined}
+      onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
     />,
   );
@@ -83,6 +87,7 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
       onOpenDeckSettings={() => undefined}
+      onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
     />,
   );
@@ -99,6 +104,7 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
       onOpenDeckSettings={() => undefined}
+      onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
     />,
   );

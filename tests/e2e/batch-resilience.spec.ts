@@ -213,15 +213,15 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
 
   await page.getByTestId(`deck-options-${DECK_IDS.rootA}`).click();
-  await page.getByTestId(`deck-options-menu-${DECK_IDS.rootA}`).getByRole("button", { name: "Löschen", exact: true }).click();
+  await page.getByTestId(`deck-options-menu-${DECK_IDS.rootA}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
+  await page.getByRole("button", { name: "Löschen", exact: true }).click();
   const deckDialog = page.getByRole("dialog", { name: "Stapelbaum löschen?" });
   await expect(deckDialog).toContainText("Bereich A");
   await expect(deckDialog).toContainText("1 Unterstapel");
   await expect(deckDialog).toContainText("1 aktive Karte");
   await deckDialog.getByRole("button", { name: "Abbrechen" }).click();
-  await expect(page.getByTestId(`card-group-${DECK_IDS.rootA}`)).toBeVisible();
-  await page.getByTestId(`deck-options-${DECK_IDS.rootA}`).click();
-  await page.getByTestId(`deck-options-menu-${DECK_IDS.rootA}`).getByRole("button", { name: "Löschen", exact: true }).click();
+  await expect(page.getByTestId(`deck-settings-${DECK_IDS.rootA}`)).toBeVisible();
+  await page.getByRole("button", { name: "Löschen", exact: true }).click();
   await deckDialog.getByRole("button", { name: "Stapelbaum löschen" }).click();
   await expect(page.getByTestId(`card-group-${DECK_IDS.rootA}`)).toHaveCount(0);
   await page.reload();

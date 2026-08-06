@@ -41,6 +41,7 @@ async function dispatchDeckDrop(page: Page, source: Locator, target: Locator) {
   await page.mouse.move(sourcePosition!.x + sourcePosition!.width / 2, sourcePosition!.y + sourcePosition!.height / 2);
   await page.mouse.down();
   await page.mouse.move(targetPosition!.x + targetPosition!.width / 2, targetPosition!.y + targetPosition!.height / 2, { steps: 8 });
+  await expect(source).toHaveAttribute("data-drag-state", "active");
   await page.mouse.up();
 }
 
@@ -53,6 +54,7 @@ async function dispatchTopLevelDrop(page: Page, source: Locator, dropZoneTestId:
   await page.mouse.move(sourceX, sourceY);
   await page.mouse.down();
   await page.mouse.move(sourceX, sourceY + 12, { steps: 3 });
+  await expect(source).toHaveAttribute("data-drag-state", "active");
   const dropZone = page.getByTestId(dropZoneTestId);
   await expect(dropZone).toBeVisible();
   const targetPosition = await dropZone.boundingBox();
@@ -81,6 +83,12 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
 
   await rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" }).click();
+  const dashboardMenu = page.getByTestId(`deck-options-menu-${DECK_IDS.root}`);
+  await expect(dashboardMenu.locator('[data-deck-icon="true"]')).toBeVisible();
+  await expect(dashboardMenu.getByRole("button", { name: "Einstellungen" })).toBeVisible();
+  await expect(dashboardMenu.getByRole("button", { name: "Verschieben" })).toBeVisible();
+  await expect(dashboardMenu.getByRole("button", { name: /Umbenennen|Unterstapel|Lernen|Löschen/ })).toHaveCount(0);
+  await dashboardMenu.getByRole("button", { name: "Einstellungen" }).click();
   await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.root}&returnView=today$`));
   await page.getByRole("button", { name: "Zurück zur Übersicht" }).click();
   await expect(rootRow).toBeVisible();
@@ -99,7 +107,8 @@ test("learning rows activate directly while expand and settings remain independe
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
-  await expect(page.getByTestId("learn-deck-list-header")).toHaveCount(0);
+  await expect(page.getByTestId("learn-deck-list-header")).toContainText("Aktive Stapel");
+  await expect(page.getByRole("button", { name: "Lernen öffnen" })).toHaveCount(0);
   await expect(metric(rootRow, "new")).toContainText("Neu");
   await expect(metric(rootRow, "due")).toContainText("Fällig");
   await expect(metric(rootRow, "total")).toContainText("Gesamt");
@@ -125,6 +134,7 @@ test("learning rows activate directly while expand and settings remain independe
   await rootRow.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte anzeigen" }).click();
 
   await europeRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Europa" }).click();
+  await page.getByTestId(`deck-options-menu-${DECK_IDS.europe}`).getByRole("button", { name: "Einstellungen" }).click();
   await expect(page.getByTestId(`deck-settings-${DECK_IDS.europe}`)).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.europe}&returnView=learn$`));
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
@@ -140,31 +150,49 @@ test("deck presentation toolbar saves name, icon and color together", async ({ p
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Europa" }).click();
+  await page.getByTestId(`deck-options-menu-${DECK_IDS.europe}`).getByRole("button", { name: "Einstellungen" }).click();
 
   const original = await storedDeckPresentation(page, DECK_IDS.europe);
   const iconTrigger = page.getByRole("button", { name: "Icon auswählen" });
   const colorTrigger = page.getByRole("button", { name: "Farbe auswählen" });
+  const titleIcon = page.getByTestId("deck-settings-title-icon");
+  const renameButton = page.getByRole("button", { name: "Stapel umbenennen" });
   await expect(iconTrigger).toHaveCSS("width", "44px");
   await expect(iconTrigger).toHaveCSS("height", "44px");
   await expect(colorTrigger).toHaveCSS("width", "44px");
   await expect(colorTrigger).toHaveCSS("height", "44px");
+  await expect(titleIcon).toBeVisible();
+  await expect(renameButton).toHaveCSS("width", "44px");
+  await expect(renameButton).toHaveCSS("height", "44px");
+  await expect(renameButton).toHaveCSS("border-top-width", "0px");
 
   await iconTrigger.click();
   const iconGrid = page.getByTestId("deck-icon-grid");
   await expect(iconGrid.locator("button[data-icon-key]")).toHaveCount(25);
   await expect.poll(() => iconGrid.evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length)).toBe(5);
   await iconGrid.getByRole("button", { name: "Gehirn" }).click();
+  await expect(titleIcon.locator("svg")).toHaveClass(/lucide-brain/);
   expect((await storedDeckPresentation(page, DECK_IDS.europe)).iconKey).toBe(original.iconKey);
 
-  const renameButton = page.getByRole("button", { name: "Stapel umbenennen" });
   await renameButton.click();
   const nameInput = page.getByRole("textbox", { name: "Stapelname" });
   await expect(nameInput).toHaveValue(original.name ?? "");
   await nameInput.fill("Nicht speichern");
   await nameInput.press("Escape");
   await expect(nameInput).toBeHidden();
+  await expect(renameButton).toBeFocused();
   await renameButton.click();
+  await nameInput.fill("   ");
+  await nameInput.press("Enter");
+  const validationFeedback = page.getByRole("alert");
+  await expect(validationFeedback).toHaveText("Bitte gib einen Stapelnamen ein.");
+  const validationToolbarBox = await page.getByTestId("deck-settings-appearance-toolbar").boundingBox();
+  const validationFeedbackBox = await validationFeedback.boundingBox();
+  expect(validationToolbarBox).not.toBeNull();
+  expect(validationFeedbackBox).not.toBeNull();
+  expect(validationFeedbackBox!.y).toBeGreaterThanOrEqual(validationToolbarBox!.y + validationToolbarBox!.height);
   await nameInput.fill("Europa kompakt");
+  await expect(validationFeedback).toBeHidden();
   expect((await storedDeckPresentation(page, DECK_IDS.europe)).name).toBe(original.name);
 
   await colorTrigger.click();
@@ -174,12 +202,35 @@ test("deck presentation toolbar saves name, icon and color together", async ({ p
   const pointerPreview = await colorTrigger.locator("span").evaluate((swatch) => getComputedStyle(swatch).backgroundColor);
   await wheel.press("ArrowRight");
   await expect.poll(() => colorTrigger.locator("span").evaluate((swatch) => getComputedStyle(swatch).backgroundColor)).not.toBe(pointerPreview);
+  await expect.poll(async () => {
+    const [titleBorderColor, swatchColor] = await Promise.all([
+      titleIcon.evaluate((icon) => getComputedStyle(icon).borderColor),
+      colorTrigger.locator("span").evaluate((swatch) => getComputedStyle(swatch).backgroundColor),
+    ]);
+    return titleBorderColor === swatchColor;
+  }).toBe(true);
   expect((await storedDeckPresentation(page, DECK_IDS.europe)).iconColor).toBe(original.iconColor);
 
   await page.keyboard.press("Escape");
   await expect(wheel).toBeHidden();
-  await page.getByRole("button", { name: "Speichern" }).click();
-  await expect(page.getByRole("status")).toContainText("Stapeleinstellungen gespeichert.");
+  await nameInput.press("Enter");
+  await expect(nameInput).toBeHidden();
+  const successToast = page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden erfolgreich gespeichert." });
+  await expect(successToast).toContainText("Stapeleinstellungen wurden erfolgreich gespeichert.");
+  await expect(page.getByTestId("deck-settings-title-name")).toHaveText("Europa kompakt");
+  await expect(page.getByTestId("deck-settings-title-name")).toHaveCount(1);
+  for (const viewport of [
+    { width: 1280, height: 900 },
+    { width: 820, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(page.getByTestId("deck-settings-title-icon")).toBeVisible();
+    await expect(page.getByTestId("deck-settings-title-name")).toBeVisible();
+    await expect(renameButton).toBeVisible();
+    await expect(page.getByTestId("deck-settings-appearance-toolbar")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
   await expect.poll(() => storedDeckPresentation(page, DECK_IDS.europe)).toMatchObject({
     name: "Europa kompakt",
     iconKey: "brain",
@@ -233,7 +284,7 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
 });
 
-test("deck management disables direct drag and preserves explicit keyboard move", async ({ page }) => {
+test("deck management disables direct drag and shares the confirmed keyboard move", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();

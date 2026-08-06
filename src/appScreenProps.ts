@@ -44,15 +44,20 @@ export interface DashboardScreenProps {
   onNavigate: NavigateToView;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onCreateDemo: () => Promise<Deck[] | null>;
+  onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   onOpenDeckSettings: (deckId: string) => unknown;
 }
 
 export interface DeckSettingsScreenProps {
   deck: Deck | null;
+  decks: Deck[];
   onSave: (deckId: string, settings: LearningSettingsInput) => unknown;
   onSaveAppearance: (deckId: string, appearance: Deck["deckSettings"]["appearance"]) => unknown;
   onRenameDeck: (deckId: string, name: string) => DeckMutationResult | null;
+  onCreateSubdeck: (parentDeckId: string) => unknown;
+  onStartDeck: (deck: Deck, variantSession?: boolean) => void;
+  onDeleteDeck: (deckId: string) => Promise<ReturnType<CoreWorkspace["deleteDeckTree"]> | null>;
   onBack: () => unknown;
   backLabel?: string;
 }
@@ -69,16 +74,12 @@ export interface DecksScreenProps {
   onRestoreCard: (deckId: string, cardId: string, versionId: string) => unknown;
   onAddVariant: (deckId: string, cardId: string, variant: CardVariantInput) => unknown;
   onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
-  onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   selectedDeckId: string | null;
   selectedCardId: string | null;
   onSelectDeck: (deckId: string | null, cardId?: string | null) => unknown;
   onOpenLearn: (deckId?: string | null) => unknown;
-  onDeleteDeck: (deckId: string) => Promise<ReturnType<CoreWorkspace["deleteDeckTree"]> | null>;
-  onRenameDeck: (deckId: string, name: string) => DeckMutationResult | null;
   onMoveDeck: (deckId: string, parentDeckId?: string | null) => DeckMutationResult | null;
   onOpenCardCreation: () => unknown;
-  onPrepareSubdeckCreation: (parentDeckId?: string) => unknown;
   onOpenDeckSettings: (deckId: string) => unknown;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
 }
@@ -95,6 +96,7 @@ export interface LearnScreenProps {
   onOpenCardCreation: () => unknown;
   onOpenDecks: (deckId?: string | null) => unknown;
   onOpenDeckSettings: (deckId: string) => unknown;
+  onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
 }
 

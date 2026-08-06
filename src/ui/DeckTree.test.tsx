@@ -20,7 +20,7 @@ const rows = createDeckLibraryModel(decks).rows;
 
 test("deck tree keeps hierarchy, labels and all three semantic metrics in every row", () => {
   const markup = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   assert.match(markup, /aria-label="Bereich lernen"/);
@@ -52,7 +52,7 @@ test("deck tree maps four visible levels to group depths and clamps deeper impor
     createCoreDeck({ id: "depth-import", parentDeckId: "depth-great-grandchild", name: "Importtiefe", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4", "Importtiefe"], source: "anki-apkg", cards: [] }),
   ];
   const markup = renderToStaticMarkup(
-    <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   assert.match(markup, /data-testid="learn-deck-row-depth-root"[^>]*data-deck-depth="0"/);
@@ -64,10 +64,10 @@ test("deck tree maps four visible levels to group depths and clamps deeper impor
 
 test("deck tree keeps the compact summary order across dashboard and learning", () => {
   const dashboard = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="dashboard" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="dashboard" onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
   const learning = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   for (const markup of [dashboard, learning]) {

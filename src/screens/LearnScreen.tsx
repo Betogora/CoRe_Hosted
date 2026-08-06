@@ -3,8 +3,9 @@ import { ChevronRight, FolderPlus, Layers, PlusSquare } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
 import { DECK_DEPTH_ERROR, MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
-import { EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { EmptyState, PageHeader } from "../ui/coreUi.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
+import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 
 function createDefaultDeckDraft(parentDeckId = "") {
@@ -14,12 +15,13 @@ function createDefaultDeckDraft(parentDeckId = "") {
   };
 }
 
-export function LearnScreen({ decks, now, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckSettings, onMoveDeck }: LearnScreenProps) {
+export function LearnScreen({ decks, now, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck }: LearnScreenProps) {
   const library = React.useMemo(() => createDeckLibraryModel(decks, { now }), [decks, now]);
   const [isDeckCreateOpen, setIsDeckCreateOpen] = React.useState(Boolean(initialParentDeckId));
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
+  const setSuccessToast = useSuccessToast();
   const createToggleRef = React.useRef<HTMLButtonElement | null>(null);
   const deckNameRef = React.useRef<HTMLInputElement | null>(null);
   const focusedRow = library.rows.find((row) => row.id === focusedDeckId) ?? null;
@@ -62,6 +64,7 @@ export function LearnScreen({ decks, now, onStartDeck, onCreateDeck, focusedDeck
     event.preventDefault();
     const name = deckDraft.name.trim();
     if (!name) {
+      setSuccessToast("");
       setDeckStatus("Bitte gib einen Stapelnamen ein.");
       setDeckStatusType("alert");
       return;
@@ -72,14 +75,18 @@ export function LearnScreen({ decks, now, onStartDeck, onCreateDeck, focusedDeck
       parentDeckId: deckDraft.parentDeckId || null,
     });
     if (!created) {
+      setSuccessToast("");
       setDeckStatus("Der Stapel konnte nicht angelegt werden.");
       setDeckStatusType("alert");
       return;
     }
     setDeckDraft(createDefaultDeckDraft(created.parentDeckId ?? ""));
     setIsDeckCreateOpen(false);
-    setDeckStatus(created.parentDeckId ? `Unterstapel "${created.name}" angelegt.` : `Stapel "${created.name}" angelegt.`);
+    setDeckStatus("");
     setDeckStatusType("status");
+    setSuccessToast(created.parentDeckId
+      ? `Unterstapel „${created.name}“ wurde erfolgreich angelegt.`
+      : `Stapel „${created.name}“ wurde erfolgreich angelegt.`);
     window.requestAnimationFrame(() => createToggleRef.current?.focus());
   }
 
@@ -187,15 +194,14 @@ export function LearnScreen({ decks, now, onStartDeck, onCreateDeck, focusedDeck
           }
         />
       ) : (
-        <SoftPanel className="overflow-visible p-4 sm:p-5">
-          <DeckTree
-            rows={library.rows}
-            mode="learn"
-            onActivate={(row) => onStartDeck(row.deck, false)}
-            onOpenSettings={(row) => onOpenDeckSettings(row.id)}
-            onMoveDeck={onMoveDeck}
-          />
-        </SoftPanel>
+        <DeckTree
+          rows={library.rows}
+          mode="learn"
+          onActivate={(row) => onStartDeck(row.deck, false)}
+          onOpenSettings={onOpenDeckSettings}
+          onSetDeckCoreMode={onSetDeckCoreMode}
+          onMoveDeck={onMoveDeck}
+        />
       )}
     </div>
   );

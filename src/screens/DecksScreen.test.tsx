@@ -27,12 +27,8 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
       privacyMode: "zdr",
       usage: null,
     }),
-    onStartDeck: () => undefined,
-    onDeleteDeck: async () => null,
-    onRenameDeck: () => null,
     onMoveDeck: () => null,
     onOpenCardCreation: () => undefined,
-    onPrepareSubdeckCreation: () => undefined,
     onOpenLearn: () => undefined,
     onOpenDeckSettings: () => undefined,
     onDraftStateChange: () => undefined,
@@ -69,6 +65,7 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.doesNotMatch(markup, /Ein Energieträger\./);
   assert.match(markup, /Biologie \/ Zellbiologie/);
   assert.match(markup, new RegExp('data-testid="deck-options-' + originalDeck.id + '"[^>]*class="[^"]*pointer-events-auto'));
+  assert.match(markup, /core-action-ghost/);
   assert.match(markup, /data-deck-summary-row-content="true"/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
   assert.match(markup, /lucide-ellipsis/);

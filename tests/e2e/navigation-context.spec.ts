@@ -95,7 +95,8 @@ async function completeReview(page: Page) {
 
 async function startDeckFromCards(page: Page, deckId: string, variants = false) {
   await page.getByTestId(`deck-options-${deckId}`).click();
-  await page.getByTestId(`deck-options-menu-${deckId}`).getByRole("button", { name: variants ? "Varianten lernen" : "Lernen", exact: true }).click();
+  await page.getByTestId(`deck-options-menu-${deckId}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
+  await page.getByRole("button", { name: variants ? "Varianten lernen" : "Lernen", exact: true }).click();
 }
 
 test.beforeEach(async ({ page }) => {
