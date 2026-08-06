@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-08-06 — Gemeinsame Stapelübersicht und Stapelaktionen
+
+- Dashboard und Lernen verwenden dasselbe responsive „Aktive Stapel“-Panel; nur das Dashboard ergänzt die Aktion „Lernen öffnen“. Die während eines Drags sichtbare Hauptebenen-Dropzone bleibt dadurch außerhalb der Zeilen erreichbar.
+- Pointer-Capture hält den gegriffenen Stapel auch außerhalb der Liste aktiv. Lift-Zustand, verstärkter Einfügeindikator und bestehende Platzierungsvalidierung machen gültige und ungültige Ziele eindeutig.
+- Dashboard, Lernen und Kartenverwaltung verwenden dasselbe reduzierte Stapelmenü mit Erscheinungsbild, vollständigem Pfad, CoRe-Modus, Einstellungen und bestätigtem Verschieben. Umbenennen, Unterstapel, Lernen, Variantenlernen und Löschen liegen ausschließlich in den Stapel-Einstellungen.
+- Lokal bestätigt: 416 Modul-, Contract- und Integrationstests, Typecheck, Production-Build und Browserprüfung bei Desktop-, Zwischen- und Mobilbreite. Hauptebenen- und Unterstapel-Drops, Menü, Dialog und Zielvalidierung funktionierten ohne Konsolenfehler.
+
 ## 2026-08-06 — App-weite Lernzeitsimulation
 
 - Der isolierte FSRS-Testmodus, sein Fünf-Karten-Stapel, Verlauf und `/testmodus` wurden entfernt. `/simulator` steuert stattdessen eine transiente, kalenderbasierte Lernuhr für die vorhandenen Accountkarten.

@@ -67,7 +67,7 @@ test("productive TSX does not reintroduce the replaced palette or named status u
 
 test("the UI catalog lists every canonical shared export", () => {
   const catalog = readFileSync("src/ui/README.md", "utf8");
-  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "MiniProgress", "DonutValue", "CoreModeControl", "ThemeToggle", "ActionButton", "IconButton", "StatusMessage"]) {
+  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "MiniProgress", "DonutValue", "CoreModeControl", "ThemeToggle", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
     assert.match(catalog, new RegExp(`\\b${name}\\b`));
   }
 });

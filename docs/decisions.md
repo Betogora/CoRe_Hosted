@@ -108,7 +108,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-012 — Kompakte Stapelzeile mit kontextgebundenem Drag-and-drop
 
-**Status:** angenommen
+**Status:** teilweise abgelöst durch ADR-014
 **Kontext:** Die verschachtelten Stapelkarten in Dashboard und Lernen beanspruchten deutlich mehr Raum als die kompakten Stapelköpfe der Kartenverwaltung. Zugleich ist direktes Drag-and-drop in der inhaltsorientierten Kartentabelle leichter mit Aufklappen, Auswahl und Bearbeitung zu verwechseln.
 **Entscheidung:** Dashboard, Lernen und Kartenverwaltung verwenden denselben kompakten Zeileninhalt aus Chevron, Icon, Name und Pfad, Kennzahlen, Donut und Drei-Punkte-Aktion. Dashboard und Lernen projizieren die Hierarchie flach, behalten Teilbaum-Kennzahlen und erlauben direkten Desktop-Drag; ihre Drei-Punkte-Aktion öffnet direkt die Stapel-Einstellungen. Die Kartenverwaltung behält direkte Kennzahlen, ihr vollständiges Optionsmenü und ausschließlich den bestätigten Verschiebeablauf. Alle Drei-Punkte-Aktionen besitzen einen pfadspezifischen Tooltip.
 **Konsequenzen:** Darstellung und Reihenfolge besitzen eine kanonische UI-Implementierung, während Aktivierung, Kennzahlquelle und Aktionen vom jeweiligen Aufgabenbereich geliefert werden. ADR-008 ist hinsichtlich der verschachtelten Kartenform und des direkten Drag-and-drops in der Kartenverwaltung abgelöst. Workspace-Mutation, Vier-Ebenen-Regel und persistiertes Deck-Schema bleiben unverändert.
@@ -120,4 +120,12 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Kontext:** Schedulerintervalle sollen an den vorhandenen Karten über frei gewählte Zukunftstage nachvollziehbar sein. Ein isolierter Teststapel bildet weder den tatsächlichen Kartenfortschritt noch die Fälligkeitsprojektionen der normalen Produktoberflächen ab.
 **Entscheidung:** `/simulator` steuert einen ausschließlich im App-Prozess gehaltenen Tagesoffset von 0 bis 3.650 Tagen. Alle lernbezogenen Projektionen verwenden diesen Zeitpunkt; operative Systemzeiten bleiben real. Das Umstellen ist mutationsfrei. Eine im Zukunftsmodus ausgeführte Bewertung ist bewusst ein echtes, synchronisiertes Review mit simuliertem Bewertungszeitpunkt und normalem Scheduler-Commit.
 **Konsequenzen:** Die App kennzeichnet einen aktiven Zukunftstag in Shell und Vollbildreview. Reload, Logout oder „Heute“ setzen nur den Offset zurück und machen gespeicherte Reviews nicht rückgängig. Eine rücksetzbare Sandbox, Simulationskennzeichnung in Review-Events sowie Rollen- oder Premium-Gating bleiben eigenständige spätere Entscheidungen.
+**Datum:** 2026-08-06
+
+## ADR-014 — Einheitliches Stapelmenü und stabiler Panel-Drag
+
+**Status:** angenommen
+**Kontext:** Dashboard und Lernen verwendeten unterschiedliche Panelrahmen; die außerhalb der Liste liegende Hauptebenen-Zone verlor beim Verlassen der Zeilenfläche den Pointer-Griff. Zugleich führten identische Drei-Punkte-Trigger je nach Ansicht entweder direkt in die Einstellungen oder in ein umfangreiches Zwischenmenü.
+**Entscheidung:** Dashboard und Lernen teilen das vollständige Panel `Aktive Stapel`; dessen Kopf besitzt die sichtbare Hauptebenen-Zone und optional `Lernen öffnen`. Desktop-Drag hält den Pointer per Capture bis Drop oder Abbruch. Dashboard, Lernen und Kartenverwaltung verwenden dasselbe reduzierte Menü aus Deckdarstellung, Pfad, CoRe-Modus, Einstellungen und bestätigtem Verschieben. Umbenennen, Unterstapel, Lernen, Variantenlernen und Löschen liegen ausschließlich in den Stapel-Einstellungen.
+**Konsequenzen:** Es gibt nur einen Menü- und Verschiebedialogpfad. Reviewstart aus den Einstellungen kehrt zum reproduzierbaren Ursprung zurück. ADR-012 ist hinsichtlich direktem Einstellungsaufruf und des vollständigen Kartenverwaltungsmenüs abgelöst; Zeilenform, Kennzahlsemantik, Vier-Ebenen-Regel und persistiertes Schema bleiben unverändert.
 **Datum:** 2026-08-06

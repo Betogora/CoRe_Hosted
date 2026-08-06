@@ -29,7 +29,7 @@ Direktimport: `import { ActionButton, IconButton } from "../ui/actionUi.tsx"`.
 
 Nicht für Reviewratings, MCQ-Antworten, Tabs, Farbfelder, Navigationszeilen oder segmentierte Controls verwenden, deren Auswahlsemantik über einen normalen Action-Button hinausgeht.
 
-`IconButton` verlangt `label` und `icon`; Varianten sind `secondary` (Standard) und `destructive`. Das Modul setzt das zugängliche Label, die feste Größe von 44 × 44 px und die Icongröße. Für einen zusätzlichen sichtbaren Hinweis wird `CoreTooltip` verwendet; native `title`-Tooltips gehören nicht zur Produkt-UI.
+`IconButton` verlangt `label` und `icon`; Varianten sind `secondary` (Standard), `destructive` und `ghost`. `ghost` bleibt transparent und randlos, sodass fachliche Zeilenflächen sichtbar bleiben. Das Modul setzt das zugängliche Label, die feste Größe von 44 × 44 px und die Icongröße. Für einen zusätzlichen sichtbaren Hinweis wird `CoreTooltip` verwendet; native `title`-Tooltips gehören nicht zur Produkt-UI.
 
 ```tsx
 <IconButton label="Antwortoption entfernen" icon={X} onClick={removeOption} />
@@ -67,7 +67,7 @@ CSS-Oberflächen: `core-surface`, `core-surface-raised`, `core-surface-muted`, `
 
 ## Feedback und Status
 
-Direktimport: `import { StatusMessage } from "../ui/feedbackUi.tsx"`.
+Direktimport: `import { StatusMessage, SuccessToast, SuccessToastProvider, useSuccessToast } from "../ui/feedbackUi.tsx"`.
 
 `StatusMessage` verlangt `tone="info | success | warning | error"`. `announce="polite"` erzeugt eine Status-Live-Region, `announce="assertive"` einen Alert und der Standard `false` keine Live-Region. Farbe, Rand und Standardicon liegen im Modul; der Aufrufer entscheidet, ob eine Zustandsänderung angekündigt werden muss.
 
@@ -78,6 +78,13 @@ Direktimport: `import { StatusMessage } from "../ui/feedbackUi.tsx"`.
 ```
 
 Für spezialisierte Strukturen stehen `core-status-info`, `core-status-success`, `core-status-warning` und `core-status-error` bereit.
+
+`SuccessToast` zeigt eine kurze, abgeschlossene Erfolgsmeldung als schließbares Overlay oben rechts. `SuccessToastProvider` besitzt produktweit den einzigen Toast-State und Portal-Host; `useSuccessToast` ersetzt die aktuelle Meldung, ohne den auslösenden Screen für die Darstellung erneut zu rendern. Kontextabhängige Ergebnisse, Ladehinweise, Warnungen und Fehler bleiben als `StatusMessage` beziehungsweise fachliche Struktur inline.
+
+```tsx
+const setSuccessToast = useSuccessToast();
+setSuccessToast("Import erfolgreich abgeschlossen.");
+```
 
 ## Formular-Primitives
 
@@ -94,7 +101,8 @@ Wenn ein konkreter Stapel oder Elternstapel gewählt wird, verwendet Produktcode
 ## Spezialisierte Feature-Module
 
 - `DeckSummaryRow` aus `src/ui/DeckSummaryRow.tsx`: kanonischer kompakter Zeileninhalt für Dashboard, Lernen und Kartenverwaltung mit Chevron-Slot, Stapel-Icon, Name und Pfad, drei Kennzahlen, Donut und Aktionsslot. Die Aufrufer bestimmen Kennzahlsemantik, Expansion und Aktion; die Kartenverwaltung liefert direkte Werte und ihr vollständiges Optionsmenü.
-- `DeckTree` aus `src/ui/DeckTree.tsx`: flache, lokal einklappbare Projektion des Stapelbaums für Dashboard und Lernen mit aggregierten Teilbaum-Kennzahlen und direktem Desktop-Drag über die neutrale Zeilenfläche. Der darüber abgebildete semantische Button bedient Tastatur und Screenreader; ein Drei-Punkte-Button mit Tooltip öffnet direkt die Stapel-Einstellungen. Gruppentiefen 0 bis 3 entsprechen Hauptstapel, Unterstapel, Unter-Unterstapel und Unter-Unter-Unterstapel; tiefere importierte Bäume verwenden weiterhin den Ton von Tiefe 3. Die Kartenverwaltung verwendet keinen direkten Drag und behält ihren bestätigten Verschiebeablauf.
+- `DeckTree` aus `src/ui/DeckTree.tsx`: gemeinsames Panel `Aktive Stapel` und flache, lokal einklappbare Projektion des Stapelbaums für Dashboard und Lernen mit aggregierten Teilbaum-Kennzahlen. Der per Pointer-Capture gebundene Desktop-Drag bleibt beim Verlassen der Zeilenfläche aktiv und erreicht die Hauptebenen-Zone im Panelkopf; ein angehobener Quellzustand und verstärkte Zielmarkierung machen die Geste sichtbar. Gruppentiefen 0 bis 3 entsprechen Hauptstapel, Unterstapel, Unter-Unterstapel und Unter-Unter-Unterstapel; tiefere importierte Bäume verwenden weiterhin den Ton von Tiefe 3.
+- `DeckOptionsMenu` aus `src/ui/DeckOptionsMenu.tsx`: identisches randloses Drei-Punkte-Menü für Dashboard, Lernen und Kartenverwaltung mit Deck-Icon, vollständigem Pfad, CoRe-Modus, Einstellungen und gemeinsamem bestätigten Verschiebedialog. Weitere Stapelaktionen gehören in die Stapel-Einstellungen.
 - `RichTextEditor` aus `src/ui/RichTextEditor.tsx`: sanitisiertes Karten-HTML, Toolbar, Text- und Markerfarben.
 - `ColorWheelPicker` aus `src/ui/ColorWheelPicker.tsx`: kompakter runder Farbkreis für kontrollierte Farbfelder.
 - `ColorPopover` und `ColorToolButton` aus `src/ui/colorPicker.tsx`: gespeicherte Rich-Text-Farbfelder und technisches Farbspektrum.
