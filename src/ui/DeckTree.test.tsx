@@ -49,13 +49,14 @@ test("deck tree keeps hierarchy, labels and all three semantic metrics in every 
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Bereich"/);
 });
 
-test("deck tree maps four visible levels to group depths and clamps deeper imports", () => {
+test("deck tree maps five visible levels to group depths and clamps deeper imports", () => {
   const deepDecks = [
     createCoreDeck({ id: "depth-root", name: "Ebene 1", hierarchyPath: ["Ebene 1"], source: "anki-apkg", cards: [] }),
     createCoreDeck({ id: "depth-child", parentDeckId: "depth-root", name: "Ebene 2", hierarchyPath: ["Ebene 1", "Ebene 2"], source: "anki-apkg", cards: [] }),
     createCoreDeck({ id: "depth-grandchild", parentDeckId: "depth-child", name: "Ebene 3", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3"], source: "anki-apkg", cards: [] }),
     createCoreDeck({ id: "depth-great-grandchild", parentDeckId: "depth-grandchild", name: "Ebene 4", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4"], source: "anki-apkg", cards: [] }),
     createCoreDeck({ id: "depth-import", parentDeckId: "depth-great-grandchild", name: "Importtiefe", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4", "Importtiefe"], source: "anki-apkg", cards: [] }),
+    createCoreDeck({ id: "depth-deeper-import", parentDeckId: "depth-import", name: "Tiefere Importebene", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4", "Importtiefe", "Tiefere Importebene"], source: "anki-apkg", cards: [] }),
   ];
   const markup = renderToStaticMarkup(
     <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
@@ -65,7 +66,8 @@ test("deck tree maps four visible levels to group depths and clamps deeper impor
   assert.match(markup, /data-testid="learn-deck-row-depth-child"[^>]*data-deck-depth="1"/);
   assert.match(markup, /data-testid="learn-deck-row-depth-grandchild"[^>]*data-deck-depth="2"/);
   assert.match(markup, /data-testid="learn-deck-row-depth-great-grandchild"[^>]*data-deck-depth="3"/);
-  assert.match(markup, /data-testid="learn-deck-row-depth-import"[^>]*data-deck-depth="3"/);
+  assert.match(markup, /data-testid="learn-deck-row-depth-import"[^>]*data-deck-depth="4"/);
+  assert.match(markup, /data-testid="learn-deck-row-depth-deeper-import"[^>]*data-deck-depth="4"/);
 });
 
 test("deck tree keeps the compact summary order across dashboard and learning", () => {

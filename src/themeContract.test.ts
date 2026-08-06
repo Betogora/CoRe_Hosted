@@ -31,7 +31,7 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
     assert.match(styles, new RegExp(color, "i"));
   }
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  for (const role of ["canvas", "surface", "surface-raised", "surface-muted", "group-depth-0", "group-depth-1", "group-depth-2", "group-depth-3", "text", "text-secondary", "text-muted", "border", "border-interactive", "focus", "action-primary", "action-primary-hover", "action-primary-active", "info", "success", "warning", "danger", "danger-hover", "info-surface", "success-surface", "warning-surface", "danger-surface"]) {
+  for (const role of ["canvas", "surface", "surface-raised", "surface-muted", "group-depth-0", "group-depth-1", "group-depth-2", "group-depth-3", "group-depth-4", "text", "text-secondary", "text-muted", "border", "border-interactive", "focus", "action-primary", "action-primary-hover", "action-primary-active", "info", "success", "warning", "danger", "danger-hover", "info-surface", "success-surface", "warning-surface", "danger-surface"]) {
     assert.match(dark, new RegExp(`--core-${role}:`), `missing dark role ${role}`);
   }
   assert.match(styles, /:root\s*\{[\s\S]*?color-scheme:\s*light/);
@@ -41,6 +41,23 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
   assert.equal((styles.match(/--core-group-depth-0:\s*var\(--core-surface\)/g) ?? []).length, 2);
   assert.match(styles, /--core-danger-hover:\s*var\(--core-palette-coral-glow\)/);
   assert.match(dark, /--core-danger-hover:\s*var\(--core-palette-coral\)/);
+});
+
+test("group depths darken in light mode and lighten in dark mode", () => {
+  const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const lightDepths = ["ffffff", "f7f8fa", "f1f3f6", "e8edf3", "dde3ec"];
+  const darkDepths = ["262e3a", "2b3441", "303a48", "35404f", "3a4657"];
+
+  for (let depth = 1; depth <= 3; depth += 1) {
+    assert.match(styles, new RegExp(`--core-group-depth-${depth}:\\s*#${lightDepths[depth]}`));
+  }
+  for (let depth = 1; depth <= 4; depth += 1) {
+    assert.match(dark, new RegExp(`--core-group-depth-${depth}:\\s*#${darkDepths[depth]}`));
+  }
+  assert.match(styles, /--core-group-depth-4:\s*var\(--core-palette-cloud\)/);
+  assert.ok(lightDepths.every((color, index) => index === 0 || relativeLuminance(lightDepths[index - 1]) > relativeLuminance(color)));
+  assert.ok(darkDepths.every((color, index) => index === 0 || relativeLuminance(darkDepths[index - 1]) < relativeLuminance(color)));
+  assert.match(styles, /\.core-deck-summary-row\[data-deck-depth="4"\]\s*\{\s*background-color:\s*var\(--core-group-depth-4\)/);
 });
 
 test("theme exposes the six canonical typography levels and AA primary contrast", () => {

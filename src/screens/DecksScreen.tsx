@@ -878,7 +878,7 @@ export function DecksScreen({
               </thead>
               {tableModel.groups.map((group) => {
                 const expanded = searchExpandsGroups || expandedDeckIds.has(group.id);
-                const visibleDepth = Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS - 1);
+                const visibleDepth = Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS);
                 const directProgress = group.directSummary.totalCards
                   ? Math.round((group.directSummary.matureCards / group.directSummary.totalCards) * 100)
                   : 0;

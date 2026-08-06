@@ -212,7 +212,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
         data-testid={`${mode}-deck-row-${row.id}`}
         data-deck-row="true"
         data-deck-id={row.id}
-        data-deck-depth={Math.min(row.depth, MAX_INTERACTIVE_DECK_LEVELS - 1)}
+        data-deck-depth={Math.min(row.depth, MAX_INTERACTIVE_DECK_LEVELS)}
         data-drop-state={isDropTarget ? (dropIntent?.error ? "invalid" : "valid") : undefined}
         data-drag-state={isDragged ? "active" : undefined}
         className="core-deck-summary-row relative min-w-0 select-none border-b border-[var(--core-border)] last:border-b-0"

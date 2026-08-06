@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: f3e1d3ce0c468568 */
+/* Quellenstand: 82b04bac901f1519 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -544,13 +544,13 @@ video {
     -webkit-backdrop-filter: blur(16px);
   }
 .core-deck-summary-row {
-    background-color: var(--core-group-depth-3);
     transition: border-color 140ms ease, box-shadow 140ms ease, filter 140ms ease, opacity 140ms ease, transform 140ms ease;
   }
 .core-deck-summary-row[data-deck-depth="0"] { background-color: var(--core-group-depth-0); }
 .core-deck-summary-row[data-deck-depth="1"] { background-color: var(--core-group-depth-1); }
 .core-deck-summary-row[data-deck-depth="2"] { background-color: var(--core-group-depth-2); }
 .core-deck-summary-row[data-deck-depth="3"] { background-color: var(--core-group-depth-3); }
+.core-deck-summary-row[data-deck-depth="4"] { background-color: var(--core-group-depth-4); }
 .core-deck-summary-row:has([data-deck-row-activation]:hover),
   .core-deck-summary-row[data-drop-state="valid"] {
     border-color: var(--core-border-interactive);
@@ -1334,9 +1334,10 @@ video {
   --core-surface-muted: #edf1f6;
   --core-surface-hover: #e7ecf3;
   --core-group-depth-0: var(--core-surface);
-  --core-group-depth-1: #f3f5f8;
-  --core-group-depth-2: #edf1f6;
-  --core-group-depth-3: var(--core-palette-cloud);
+  --core-group-depth-1: #f7f8fa;
+  --core-group-depth-2: #f1f3f6;
+  --core-group-depth-3: #e8edf3;
+  --core-group-depth-4: var(--core-palette-cloud);
   --core-text: var(--core-palette-midnight);
   --core-text-secondary: var(--core-palette-graphite);
   --core-text-muted: #667492;
@@ -1392,9 +1393,10 @@ video {
   --core-surface-muted: #303947;
   --core-surface-hover: #394454;
   --core-group-depth-0: var(--core-surface);
-  --core-group-depth-1: #313947;
-  --core-group-depth-2: #303947;
-  --core-group-depth-3: var(--core-palette-graphite);
+  --core-group-depth-1: #2b3441;
+  --core-group-depth-2: #303a48;
+  --core-group-depth-3: #35404f;
+  --core-group-depth-4: #3a4657;
   --core-text: var(--core-palette-cloud);
   --core-text-secondary: var(--core-palette-highlight);
   --core-text-muted: var(--core-palette-highlight);
@@ -2665,6 +2667,7 @@ summary {
                   <div class="catalog-surface-sample" style="background:var(--core-group-depth-1)"><strong>Depth 1</strong><span class="catalog-metric">--core-group-depth-1</span></div>
                   <div class="catalog-surface-sample" style="background:var(--core-group-depth-2)"><strong>Depth 2</strong><span class="catalog-metric">--core-group-depth-2</span></div>
                   <div class="catalog-surface-sample" style="background:var(--core-group-depth-3)"><strong>Depth 3</strong><span class="catalog-metric">--core-group-depth-3</span></div>
+                  <div class="catalog-surface-sample" style="background:var(--core-group-depth-4)"><strong>Depth 4</strong><span class="catalog-metric">--core-group-depth-4</span></div>
                 </div>
               </div>
               <div class="catalog-grid catalog-grid-wide">
@@ -3101,7 +3104,8 @@ summary {
         ["--core-surface-raised", "Erhöhte Fläche"], ["--core-surface-muted", "Gedämpfte Fläche"],
         ["--core-surface-hover", "Hover-Fläche"], ["--core-group-depth-0", "Gruppentiefe 0"],
         ["--core-group-depth-1", "Gruppentiefe 1"], ["--core-group-depth-2", "Gruppentiefe 2"],
-        ["--core-group-depth-3", "Gruppentiefe 3"], ["--core-text", "Primärtext"],
+        ["--core-group-depth-3", "Gruppentiefe 3"], ["--core-group-depth-4", "Gruppentiefe 4"],
+        ["--core-text", "Primärtext"],
         ["--core-text-secondary", "Sekundärtext"], ["--core-text-muted", "Gedämpfter Text"],
         ["--core-text-on-accent", "Text auf Akzent"], ["--core-border", "Standardrahmen"],
         ["--core-border-interactive", "Interaktiver Rahmen"], ["--core-focus", "Fokus"],

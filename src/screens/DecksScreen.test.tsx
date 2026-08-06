@@ -83,7 +83,7 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
     [child.id, 1],
     [grandchild.id, 2],
     [greatGrandchild.id, 3],
-    [deeperImport.id, 3],
+    [deeperImport.id, 4],
   ] as const) {
     assert.match(markup, new RegExp(`data-testid="deck-header-${deckId}"[^>]*data-deck-depth="${depth}"[^>]*class="core-deck-summary-row`));
   }
