@@ -508,6 +508,7 @@ test("APKG preview worker transfers input, reports progress and always terminate
               warnings: direct.warnings,
               errors: direct.errors,
               mediaFiles: direct.mediaFiles,
+              reviewHistory: direct.reviewHistory,
               parsedPackage: null,
             },
           },

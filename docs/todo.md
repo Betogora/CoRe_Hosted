@@ -215,49 +215,6 @@ Tests:
 - [ ] 1.000-Karten-Browserjourney.
 - [ ] Fokus und Tastatur durch Resultate.
 
-## P1.3 Statistik und handlungsorientierte Rückschau
-
-Abhängigkeit: P0.4
-
-Ziel:
-Statistik zeigt wenige, konsistente und nutzbare Kennzahlen.
-
-- [ ] Standardzeitraum 30 Tage.
-- [ ] Zeiträume 7, 30, 90 Tage und Gesamt.
-- [ ] Periodenfilter auf alle Periodenmetriken anwenden.
-- [ ] Aktuelle Queue separat von Rückschau anzeigen.
-- [ ] Beta-Kennzahlen:
-  - [ ] Reviews
-  - [ ] aktive Tage
-  - [ ] Erfolgsquote
-  - [ ] Ratingverteilung
-  - [ ] Again-Rate
-  - [ ] täglicher Trend
-  - [ ] schwache Decks
-  - [ ] schwache Karten, sofern stabil ableitbar
-- [ ] Antwortzeit entfernen, solange sie nicht zuverlässig erhoben wird.
-- [ ] Variantenmetriken aus Beta-Core entfernen.
-- [ ] Grammatik für Singular und Plural korrigieren.
-- [ ] Schwaches Deck direkt zu Lernen öffnen.
-- [ ] Schwache Karte direkt im Kartenbrowser öffnen.
-- [ ] Empty State für zu wenige Daten.
-
-Akzeptanz:
-
-- [ ] Zeitraumwechsel aktualisiert alle betroffenen Kennzahlen.
-- [ ] Keine dauerhaft leere Kennzahl.
-- [ ] CTA öffnet den korrekten URL-Kontext.
-- [ ] Append-only Reviewevents bleiben einzige Ereignisquelle.
-- [ ] Keine neue Tracking- oder allgemeine KI-Infrastruktur jenseits der freigegebenen Basic-Variantenroute.
-
-Tests:
-
-- [ ] Zeitfenstergrenzen.
-- [ ] Singular/Plural.
-- [ ] Rating- und Again-Auswertung.
-- [ ] direkte Navigation.
-- [ ] Empty State.
-
 # P2 — Bereinigung nach stabiler Beta-Basis
 
 ## P2.1 Historische APIs, Testportfolio und UI-Konsolidierung
@@ -375,7 +332,6 @@ Vor Self-Service-Beta zusätzlich:
 - [ ] Karteninhalt deckübergreifend durchsuchbar.
 - [ ] 1.000-Karten-Fixture vollständig verwaltbar.
 - [ ] globale Settings überschreiben keine Decks implizit.
-- [ ] Statistik verwendet konsistente Zeiträume.
 - [ ] Empty-, Error- und Partial-States besitzen sichere Folgeaktionen.
 - [ ] vollständige Kernjourney-Abnahme auf Freigabe-SHA.
 

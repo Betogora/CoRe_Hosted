@@ -249,7 +249,7 @@ Akzeptanz:
 - Warnungen werden zunächst zusammengefasst und vollständig aufklappbar angeboten; Notetype-IDs, SHA-1-Listen und Importidentitäten erscheinen nicht in der Produktoberfläche.
 - APKG-Dateien bis einschließlich 250 MiB werden lokal verarbeitet. Größere Dateien enden sofort mit einer verständlichen Meldung und `Andere Datei auswählen`; es gibt keinen Serverjob oder Upload-Fallback.
 - Reimport erkennt stabile Anki-Identitäten vor heuristischen Fingerprints.
-- Review-Rohdaten können erhalten werden, ohne importierte Karten automatisch als gelernt zu markieren.
+- APKG-`revlog` wird als append-only Analysehistorie übernommen, soweit eine Anki-Karte eindeutig einer CoRe-Variante zugeordnet werden kann. Wiederimport dedupliziert deterministisch; die Historie verändert niemals aktuellen Review State, Fälligkeit oder FSRS-Planung.
 - Medienreferenzen werden sicher aufgelöst; fehlende Medien werden im Bericht genannt.
 
 ### 6.4 Manuelle Erstellung und Quellen
@@ -272,6 +272,7 @@ Akzeptanz:
 - Nutzer sehen verständliche Intervalle, nicht interne Schedulerzustände.
 - Varianten dürfen eigenen Review State tragen; Familieninformationen dürfen Auswahl und Fallback unterstützen.
 - Der Scheduler darf keine KI-Erzeugung im Antwortrequest auslösen.
+- Der Reviewmodus misst die reale Zeit von der Kartendarstellung bis zur Bewertung monoton und auf höchstens 60 Sekunden begrenzt im vorhandenen Review Event. Simulierte Lernzeitpunkte verändern diese Dauer nicht.
 - Die transiente Simulationsuhr darf durch bloßes Umstellen keinen Workspace-, Cloud- oder Kartenstatus verändern. Bewertungen im Zukunftsmodus verwenden jedoch absichtlich den simulierten Zeitpunkt und durchlaufen den normalen Workspace-, Statistik- und Sync-Pfad.
 
 ### 6.6 Vertrauen, Versionen und Undo
@@ -284,8 +285,12 @@ Akzeptanz:
 
 ### 6.7 Statistik
 
-- Statistik zeigt Lernaktivität, Erfolgsquote, Bewertungsverteilung, Streaks und schwache Bereiche aus eigenen Reviewdaten.
-- Sie zeigt keine fremden Lernmetriken und erfindet im leeren Zustand keine Aktivität.
+- Eine einzige globale Filterleiste steuert alle Bereiche: `30 Tage`, `90 Tage`, `1 Jahr` oder `Gesamt` sowie gesamte Sammlung, einen Stapel oder mehrere Stapel. Standard ist `Gesamte Sammlung · 1 Jahr`; ausgewählte Oberstapel schließen Unterstapel dedupliziert ein.
+- Historische Bereiche zeigen Übersicht, gestapelte Wiederholungen, gemessene Lernzeit mit Abdeckung, hinzugefügte Karten, Lernkalender, Antwortzeitpunkt, Antwortknöpfe, wahre Erinnerungsquote, Stapelvergleich und schwierige Karten. Die wahre Erinnerungsquote verwendet nur die erste geeignete Wiederholung einer Variante je lokalem Tag und verlangt ein vorheriges Intervall von mindestens einem Tag.
+- Planung zeigt Rückstand, künftige Fälligkeiten, kumulierten Verlauf und geschätztes tägliches Arbeitspensum. Der globale Zeitraum ist ihr Zukunftshorizont.
+- Status, FSRS-Schwierigkeit, Stabilität und aktuelle Abrufwahrscheinlichkeit sind vollständige Momentaufnahmen der ausgewählten Stapel und tragen `Stand heute`. Der Zeitraum begrenzt bei Intervallen nur den sichtbaren Bereich.
+- Historische Kategorien werden aus dem Schedulerzustand vor der Antwort als Lernen, Wiederlernen, Jung oder Reif bestimmt; Reif beginnt bei 21 Tagen. Klassische Anki-Leichtigkeit wird nicht als aktuelle CoRe-Metrik ausgegeben.
+- Diagramme verwenden begrenzte, adaptive Zeitgruppen, zugängliche Textlegenden und strukturierte Details für Maus, Touch und Tastatur. Fehlende Historie, Zeitmessung oder Stichprobe wird erklärt; die Oberfläche erfindet keine Nullwerte oder Aktivität.
 
 ## 7. Zurückgebauter Produktscope
 

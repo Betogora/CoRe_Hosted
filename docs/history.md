@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-08-06 — Anki-inspirierte Statistik im CoRe-Design
+
+- Der bisherige Statistikpfad wurde durch ein einziges indexiertes Projektionsmodell und einen lazy geladenen CoRe-Screen ersetzt. Eine globale Auswahl steuert 30 Tage, 90 Tage, ein Jahr oder den Gesamtverlauf sowie Sammlung, Oberstapel und deduplizierte Mehrfachauswahl. Aktivität, Lernzeit, Kalender, Planung, Bestand, Intervalle, FSRS, Antwortverhalten, wahre Erinnerungsquote, Stapelvergleich und schwierige Karten verwenden dieselbe Projektion und höchstens 240 aggregierte Punkte je Reihe.
+- Reviewantwortzeiten werden von der sichtbaren Karte bis zur Bewertung monoton gemessen, bei 60 Sekunden gedeckelt und optional im bestehenden Review-Event gespeichert. Der APKG-Pfad übernimmt zuordenbare Anki-Revlog-Ereignisse deterministisch und duplikatfrei ausschließlich für Analysen; aktuelle Fälligkeit und FSRS-State bleiben neutral.
+- Neu sind ausschließlich `recharts@3.10.1` und das dazu passende direkte `react-is@19.2.7`. Der Production-Build hielt das feste Chunkbudget mit einem 477,2-kB-Statistikchunk ein.
+- Lokal bestätigt: 447 Modul-/Integrationsprüfungen, Typecheck, Production-Build sowie ein reproduzierbarer Lauf mit 250.000 synthetischen Review-Ereignissen. Nach der featurekonstanten Projektionsoptimierung benötigte der abschließende Lauf 68 ms für den Index, 311 ms für den kalten Standardzeitraum, 8–29 ms für anschließende Wechsel zwischen 30 Tagen, 90 Tagen und einem Jahr sowie 327 ms für den Gesamtverlauf; Diagrammreihen blieben bei höchstens 115 Punkten und der tägliche Jahreskalender bei 365 Zellen. Es gilt bewusst kein geräteabhängiges CI-Zeitlimit. Die manuelle Browserabnahme in Light und Dark bei Desktop-, Tablet- und 390-px-Mobilbreite bestätigte globale Filter, Maus-/Touch-/Tastaturdetails und keinen horizontalen Hauptscroll.
+- Der vollständige Modullauf war mit 441 Tests grün. Das lokale Release-Gate bestätigte Datenbanktypen und alle 11 RLS-/Storage-/Zwei-Geräte-Prüfungen; nur die anschließende vollständige Playwright-Suite blieb offen, weil ein parallel gestarteter fremder Dev-Server den vorgeschriebenen Port 5190 belegte.
+
 ## 2026-08-06 — Basic + Bilder und Kartentyp-Icons
 
 - Die manuelle Erstellung unterstützt den neuen Kartentyp `Basic + Bilder`. Vorder- und Rückseite besitzen weiterhin Rich Text und zusätzlich je ein optionales Bildfeld mit Einfügen per Strg+V, Drag-and-drop, Dateiauswahl, Vorschau, Ersetzen und Entfernen.

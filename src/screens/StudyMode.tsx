@@ -2,6 +2,7 @@ import React from "react";
 import { Anchor, Ban, CheckCircle2, Eye, Flag, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
 import { getLearningItemAnswer, getLearningItemQuestion } from "../coreModel.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
+import { createReviewResponseTimer } from "../reviewTiming.ts";
 import { formatSimulationDate } from "../simulationClock.ts";
 import {
   advanceDailyReviewSession,
@@ -56,6 +57,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   const settingsButtonRef = React.useRef<HTMLButtonElement>(null);
   const settingsInputRef = React.useRef<HTMLInputElement>(null);
   const feedbackDeckRef = React.useRef<Deck | null>(null);
+  const responseTimer = React.useMemo(() => createReviewResponseTimer(), []);
   const rootDeck = sessionDecks.find((candidate: any) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
   const queue = React.useMemo(
     () =>
@@ -114,7 +116,10 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
 
   React.useEffect(() => {
     setSelectedChoice("");
-  }, [current?.learningItemId, current?.variantId]);
+    if (current) responseTimer.start();
+    else responseTimer.reset();
+    return () => responseTimer.reset();
+  }, [answeredCount, current?.learningItemId, current?.variantId, responseTimer]);
 
   function replaceSessionDeck(updatedDeck: Deck, nextDecks = sessionDecks) {
     return nextDecks.map((candidate: any) => (candidate.id === updatedDeck.id ? updatedDeck : candidate));
@@ -143,8 +148,10 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
 
   function grade(rating: ReviewRating) {
     if (!current || !currentDeck) return;
+    const responseTimeMs = responseTimer.stop();
     const result = answerVariant(feedbackDeckRef.current ?? currentDeck, current.learningItemId, current.cardVariantId, rating, {
       now: getNow(),
+      responseTimeMs,
     });
     onReviewEvent?.(result.event);
     finishOrNext(result.deck, rating, result.updatedCard.reviewState, current.sessionInfo?.key ?? `${current.deckId}:${current.learningItemId}`);

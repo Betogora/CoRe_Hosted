@@ -124,7 +124,14 @@ export interface SettingsScreenProps {
   simulationDateLabel: string;
 }
 
-export interface StatisticsScreenProps { decks: Deck[]; now: string; onNavigate: NavigateToView }
+export interface StatisticsScreenProps {
+  decks: Deck[];
+  now: string;
+  timeZone: string;
+  onNavigate: NavigateToView;
+  onStartDeck: (deckId: string) => unknown;
+  onOpenCard: (deckId: string, learningItemId: string) => unknown;
+}
 
 export interface SimulatorScreenProps {
   systemNow: string;

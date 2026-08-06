@@ -1,4 +1,5 @@
 import { createCoreCard, createCoreDeck, createReviewState, makeId, stableContentHash } from "./coreModel.ts";
+import type { Deck, ReviewEvent, ReviewRating, ReviewSchedulerState } from "./coreTypes.ts";
 import { stripHtml } from "./htmlSafety.ts";
 import { finalizeImportReport, findDuplicateLearningItem, importNormalizedDeck } from "./importService.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
@@ -57,6 +58,106 @@ export interface ApkgImportReportV1 {
   missingMediaCount: number;
   mediaManifest: { format: string; assets: unknown[]; missingAssets: unknown[]; [key: string]: unknown };
   [key: string]: unknown;
+}
+
+export interface AnkiReviewHistoryEntry {
+  reviewId: string;
+  cardId: string;
+  rating: ReviewRating;
+  answeredAt: string;
+  responseTimeMs: number | null;
+  reviewType: number;
+  beforeState: ReviewSchedulerState;
+  afterState: ReviewSchedulerState;
+  beforeIntervalDays: number;
+  beforeIntervalMinutes: number | null;
+  afterIntervalDays: number;
+  afterIntervalMinutes: number | null;
+  ease: number;
+}
+
+export interface AnkiReviewHistoryPayload {
+  entries: AnkiReviewHistoryEntry[];
+  totalRows: number;
+  skippedRows: number;
+}
+
+interface AnkiReviewHistoryImportSummary {
+  detected: number;
+  imported: number;
+  duplicates: number;
+  skipped: number;
+  unmapped: number;
+}
+
+const EMPTY_ANKI_REVIEW_HISTORY: AnkiReviewHistoryPayload = { entries: [], totalRows: 0, skippedRows: 0 };
+const ANKI_RATING_BY_EASE: Record<number, ReviewRating> = { 1: "again", 2: "hard", 3: "good", 4: "easy" };
+
+function intervalFromAnki(value: unknown): { days: number; minutes: number | null } {
+  const interval = Number(value);
+  if (!Number.isFinite(interval)) return { days: 0, minutes: null };
+  if (interval < 0) return { days: 0, minutes: Math.max(1, Math.ceil(Math.abs(interval) / 60)) };
+  return { days: Math.max(0, Math.round(interval)), minutes: null };
+}
+
+function reviewStateFromAnkiType(type: number, interval: { days: number; minutes: number | null }): ReviewSchedulerState {
+  if (type === 0) return "learning";
+  if (type === 2) return "relearning";
+  if (type === 3 && interval.days === 0) return "learning";
+  return "review";
+}
+
+export function normalizeAnkiReviewHistory(rows: unknown): AnkiReviewHistoryPayload {
+  if (!Array.isArray(rows)) return EMPTY_ANKI_REVIEW_HISTORY;
+  const entries: AnkiReviewHistoryEntry[] = [];
+  let skippedRows = 0;
+
+  for (const candidate of rows) {
+    const row = candidate != null && typeof candidate === "object" ? candidate as Record<string, unknown> : {};
+    const reviewId = String(row.id ?? "").trim();
+    const cardId = String(row.cid ?? row.cardId ?? "").trim();
+    const ease = Number(row.ease);
+    const rating = ANKI_RATING_BY_EASE[ease];
+    const answeredAtMs = Number(reviewId);
+    const reviewType = Number(row.type);
+    if (!reviewId || !cardId || !rating || !Number.isFinite(answeredAtMs) || answeredAtMs <= 0 || !Number.isInteger(reviewType) || reviewType < 0 || reviewType > 3) {
+      skippedRows += 1;
+      continue;
+    }
+    const before = intervalFromAnki(row.lastIvl ?? row.last_ivl);
+    const after = intervalFromAnki(row.ivl);
+    const responseTime = Number(row.time);
+    entries.push({
+      reviewId,
+      cardId,
+      rating,
+      answeredAt: new Date(answeredAtMs).toISOString(),
+      responseTimeMs: Number.isFinite(responseTime) && responseTime >= 0 ? Math.min(60_000, Math.round(responseTime)) : null,
+      reviewType,
+      beforeState: reviewStateFromAnkiType(reviewType, before),
+      afterState: reviewStateFromAnkiType(reviewType, after),
+      beforeIntervalDays: before.days,
+      beforeIntervalMinutes: before.minutes,
+      afterIntervalDays: after.days,
+      afterIntervalMinutes: after.minutes,
+      ease: Number.isFinite(Number(row.factor)) && Number(row.factor) > 0 ? Number(row.factor) / 1000 : 2.5,
+    });
+  }
+
+  entries.sort((left, right) => left.answeredAt.localeCompare(right.answeredAt));
+  return { entries, totalRows: rows.length, skippedRows };
+}
+
+function normalizeAnkiReviewHistoryPayload(value: unknown): AnkiReviewHistoryPayload {
+  const record = value != null && typeof value === "object" ? value as Partial<AnkiReviewHistoryPayload> : {};
+  if (Array.isArray(record.entries)) {
+    return {
+      entries: record.entries,
+      totalRows: Number.isFinite(Number(record.totalRows)) ? Number(record.totalRows) : record.entries.length,
+      skippedRows: Number.isFinite(Number(record.skippedRows)) ? Number(record.skippedRows) : 0,
+    };
+  }
+  return normalizeAnkiReviewHistory(value);
 }
 
 function parseJson(value: any, fallback: any) {
@@ -682,6 +783,10 @@ export function parseAnkiCards(database: any) {
   return database.readTable("cards");
 }
 
+export function parseAnkiReviewHistory(database: { readTable(tableName: string): unknown }) {
+  return normalizeAnkiReviewHistory(database.readTable("revlog"));
+}
+
 export function parsePackageMetadataBytes(bytes: any) {
   const metadata: { version: string; rawVersion?: number } = {
     version: "unknown",
@@ -1296,6 +1401,7 @@ async function readApkgPackage(file: any, onStep: any = () => {}) {
   const decks = parseAnkiDecks(database);
   const notes = parseAnkiNotes(database);
   const cards = parseAnkiCards(database);
+  const reviewHistory = parseAnkiReviewHistory(database);
   const models = getModelsFromDatabase(database, colRows);
   const mediaBundle = await parseAnkiMedia(archive);
 
@@ -1307,6 +1413,7 @@ async function readApkgPackage(file: any, onStep: any = () => {}) {
     decks,
     notes,
     cards,
+    reviewHistory,
     models,
     mediaBundle,
   };
@@ -1366,6 +1473,7 @@ export function parseAnkiDatabasePackage(database: any, file: any, mediaBundle: 
     decks: parseAnkiDecks(database),
     notes: parseAnkiNotes(database),
     cards: parseAnkiCards(database),
+    reviewHistory: parseAnkiReviewHistory(database),
     models: getModelsFromDatabase(database, colRows),
     mediaBundle: mediaBundle ?? createEmptyMediaBundle(),
   };
@@ -1472,6 +1580,13 @@ function createApkgReportDetails(parsed: any, normalizedDeck: any, existingDecks
     duplicateCount: 0,
     hasAnkiScheduling,
     schedulingImported: false,
+    reviewHistory: {
+      detected: Number(parsed?.reviewHistory?.totalRows ?? 0),
+      imported: 0,
+      duplicates: 0,
+      skipped: Number(parsed?.reviewHistory?.skippedRows ?? 0),
+      unmapped: 0,
+    },
     mediaCount: metadata.mediaCount ?? getMediaAssetCount(parsed?.mediaBundle?.mediaMap, mediaManifest),
     hasMedia: Boolean(metadata.hasMedia ?? getMediaAssetCount(parsed?.mediaBundle?.mediaMap, mediaManifest) > 0),
     missingMediaCount: missing.length,
@@ -1561,6 +1676,115 @@ function commitNormalizedApkgHierarchy(normalizedDeck: any, options: any = {}) {
   };
 }
 
+function createImportedReviewEvent(
+  entry: AnkiReviewHistoryEntry,
+  deck: Deck,
+  item: Deck["cards"][number],
+  variant: Deck["cards"][number]["variants"][number],
+): ReviewEvent {
+  const eventId = stableContentHash({ source: "anki_revlog", reviewId: entry.reviewId, cardId: entry.cardId }, "review_anki");
+  const beforeCard = {
+    state: entry.beforeState,
+    intervalDays: entry.beforeIntervalDays,
+    intervalMinutes: entry.beforeIntervalMinutes,
+    ease: entry.ease,
+  };
+  const afterCard = {
+    state: entry.afterState,
+    intervalDays: entry.afterIntervalDays,
+    intervalMinutes: entry.afterIntervalMinutes,
+    ease: entry.ease,
+  };
+  return {
+    id: eventId,
+    userId: deck.ownerId,
+    deckId: deck.id,
+    learningItemId: item.id,
+    variantId: variant.id,
+    reviewableType: "variant",
+    reviewableId: variant.id,
+    sourceCardId: item.sourceCardId ?? item.id,
+    rating: entry.rating,
+    answeredAt: entry.answeredAt,
+    responseTimeMs: entry.responseTimeMs,
+    schedulerBefore: { card: beforeCard },
+    schedulerAfter: { card: afterCard },
+    flags: {
+      source: "anki_revlog",
+      ankiReviewId: entry.reviewId,
+      ankiCardId: entry.cardId,
+      ankiReviewType: entry.reviewType,
+      filteredDeckReview: entry.reviewType === 3,
+    },
+    createdAt: entry.answeredAt,
+  };
+}
+
+export function applyAnkiReviewHistory(decks: Deck[], payload: AnkiReviewHistoryPayload) {
+  const targetByAnkiCardId = new Map<string, { deck: Deck; item: Deck["cards"][number]; variant: Deck["cards"][number]["variants"][number] }>();
+  for (const deck of decks) {
+    for (const item of deck.cards) {
+      for (const variant of item.variants) {
+        const cardId = getAnkiVariantIdentity(variant)?.cardId;
+        if (cardId) targetByAnkiCardId.set(cardId, { deck, item, variant });
+      }
+    }
+  }
+
+  const existingIds = new Set(decks.flatMap((deck) => deck.reviewEvents.map((event) => event.id)));
+  const additionsByDeckId = new Map<string, ReviewEvent[]>();
+  let imported = 0;
+  let duplicates = 0;
+  let unmapped = 0;
+  for (const entry of payload.entries) {
+    const target = targetByAnkiCardId.get(entry.cardId);
+    if (!target) { unmapped += 1; continue; }
+    const event = createImportedReviewEvent(entry, target.deck, target.item, target.variant);
+    if (existingIds.has(event.id)) { duplicates += 1; continue; }
+    existingIds.add(event.id);
+    const additions = additionsByDeckId.get(target.deck.id);
+    if (additions) additions.push(event);
+    else additionsByDeckId.set(target.deck.id, [event]);
+    imported += 1;
+  }
+
+  const updatedDecks = decks.map((deck) => {
+    const additions = additionsByDeckId.get(deck.id) ?? [];
+    if (additions.length === 0) return deck;
+    return {
+      ...deck,
+      reviewEvents: [...deck.reviewEvents, ...additions].sort((left, right) => left.answeredAt.localeCompare(right.answeredAt)),
+    };
+  });
+  const summary: AnkiReviewHistoryImportSummary = {
+    detected: payload.totalRows,
+    imported,
+    duplicates,
+    skipped: payload.skippedRows,
+    unmapped,
+  };
+  return { decks: updatedDecks, summary };
+}
+
+function mapParsedApkgPackage(parsedPackage: any) {
+  const mapped = mapAnkiApkgToNormalizedDeck({
+    file: parsedPackage.file,
+    decks: parsedPackage.decks,
+    notes: parsedPackage.notes,
+    cards: parsedPackage.cards,
+    colRows: parsedPackage.colRows,
+    models: parsedPackage.models,
+    mediaMap: parsedPackage.mediaBundle.mediaMap,
+    mediaManifest: parsedPackage.mediaBundle.manifest,
+  });
+  return {
+    ...mapped,
+    mediaFiles: parsedPackage.mediaBundle.mediaFiles ?? [],
+    reviewHistory: parsedPackage.reviewHistory,
+    parsedPackage,
+  };
+}
+
 export async function parseApkgToNormalizedImport(fileOrParsed: any, options: any = {}) {
   if (isApkgPreview(fileOrParsed)) {
     const preview = fileOrParsed.preview ?? fileOrParsed;
@@ -1569,6 +1793,7 @@ export async function parseApkgToNormalizedImport(fileOrParsed: any, options: an
       warnings: preview.warnings ?? [],
       errors: [],
       mediaFiles: preview.mediaFiles ?? [],
+      reviewHistory: normalizeAnkiReviewHistoryPayload(preview.reviewHistory),
       parsedPackage: null,
     };
   }
@@ -1578,6 +1803,7 @@ export async function parseApkgToNormalizedImport(fileOrParsed: any, options: an
       ...fileOrParsed,
       file: fileOrParsed.file ?? { name: "anki.apkg", size: 0 },
       colRows: fileOrParsed.colRows ?? [],
+      reviewHistory: normalizeAnkiReviewHistoryPayload(fileOrParsed.reviewHistory ?? fileOrParsed.revlog ?? []),
       mediaBundle: fileOrParsed.mediaBundle ?? {
         mediaMap: fileOrParsed.mediaMap ?? {},
         mediaFiles: fileOrParsed.mediaFiles ?? [],
@@ -1588,22 +1814,7 @@ export async function parseApkgToNormalizedImport(fileOrParsed: any, options: an
         },
       },
     };
-    const mapped = mapAnkiApkgToNormalizedDeck({
-      file: parsedPackage.file,
-      decks: parsedPackage.decks,
-      notes: parsedPackage.notes,
-      cards: parsedPackage.cards,
-      colRows: parsedPackage.colRows,
-      models: parsedPackage.models,
-      mediaMap: parsedPackage.mediaBundle.mediaMap,
-      mediaManifest: parsedPackage.mediaBundle.manifest,
-    });
-
-    return {
-      ...mapped,
-      mediaFiles: parsedPackage.mediaBundle.mediaFiles ?? [],
-      parsedPackage,
-    };
+    return mapParsedApkgPackage(parsedPackage);
   }
 
   const file = fileOrParsed;
@@ -1614,35 +1825,22 @@ export async function parseApkgToNormalizedImport(fileOrParsed: any, options: an
       warnings: [],
       errors: validation.errors,
       mediaFiles: [],
+      reviewHistory: EMPTY_ANKI_REVIEW_HISTORY,
       parsedPackage: null,
     };
   }
 
   try {
     const parsedPackage = await readApkgPackage(file, options.onStep ?? (() => {}));
-    const mapped = mapAnkiApkgToNormalizedDeck({
-      file,
-      decks: parsedPackage.decks,
-      notes: parsedPackage.notes,
-      cards: parsedPackage.cards,
-      colRows: parsedPackage.colRows,
-      models: parsedPackage.models,
-      mediaMap: parsedPackage.mediaBundle.mediaMap,
-      mediaManifest: parsedPackage.mediaBundle.manifest,
-    });
     options.onStep?.("preview");
-
-    return {
-      ...mapped,
-      mediaFiles: parsedPackage.mediaBundle.mediaFiles,
-      parsedPackage,
-    };
+    return mapParsedApkgPackage(parsedPackage);
   } catch (error) {
     return {
       normalizedDeck: emptyNormalizedApkgDeck(file),
       warnings: [],
       errors: [error instanceof Error ? error.message : "APKG konnte nicht gelesen werden."],
       mediaFiles: [],
+      reviewHistory: EMPTY_ANKI_REVIEW_HISTORY,
       parsedPackage: null,
     };
   }
@@ -1685,8 +1883,13 @@ export async function commitApkgImport(fileOrParsed: any, options: any = {}) {
   }
 
   const result: any = commitNormalizedApkgHierarchy(parsed.normalizedDeck, options);
+  const history = applyAnkiReviewHistory(result.decks ?? [], parsed.reviewHistory);
+  result.decks = history.decks;
+  result.deck = result.deck ? history.decks.find((deck) => deck.id === result.deck.id) ?? result.deck : null;
   result.mediaFiles = parsed.mediaFiles;
-  return attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors, options);
+  const attached = attachApkgReportDetails(result, parsed.parsedPackage, parsed.warnings, parsed.errors, options);
+  attached.report.apkg.reviewHistory = history.summary;
+  return attached;
 }
 
 export async function importApkgDeck(fileOrParsed: any, options: any = {}) {
@@ -1816,6 +2019,13 @@ export async function createApkgImportPreview(file: any, onStep: any = () => {},
     ? await parseApkgInWorker(file, onStep, options.signal)
     : await parseApkgToNormalizedImport(file, { onStep });
   const details = createApkgReportDetails(parsed.parsedPackage, parsed.normalizedDeck, options.existingDecks ?? []);
+  details.reviewHistory = {
+    detected: parsed.reviewHistory.totalRows,
+    imported: 0,
+    duplicates: 0,
+    skipped: parsed.reviewHistory.skippedRows,
+    unmapped: 0,
+  };
   const job = {
     id: makeId("import"),
     fileName: file?.name ?? "",
@@ -1841,6 +2051,7 @@ export async function createApkgImportPreview(file: any, onStep: any = () => {},
   });
   normalizedPreview.mediaFiles = parsed.mediaFiles;
   attachApkgReportDetails(normalizedPreview, parsed.parsedPackage, parsed.warnings, parsed.errors, options);
+  normalizedPreview.report.apkg.reviewHistory = details.reviewHistory;
   normalizedPreview.report.dryRun = true;
 
   if (!normalizedPreview.deck || normalizedPreview.report.errors.length > 0) {
@@ -1880,6 +2091,7 @@ export async function createApkgImportPreview(file: any, onStep: any = () => {},
     preview: {
       ...createImportPreview(previewDeck, normalizedPreview.report.warnings, parsed.mediaFiles),
       normalizedDeck: parsed.normalizedDeck,
+      reviewHistory: parsed.reviewHistory,
       importReport: normalizedPreview.report,
     },
   };
@@ -1941,6 +2153,7 @@ export async function createApkgPreviewFromNormalizedImport(normalizedDeck: any,
     preview: {
       ...createImportPreview(normalizedPreview.deck, normalizedPreview.report.warnings, []),
       normalizedDeck,
+      reviewHistory: EMPTY_ANKI_REVIEW_HISTORY,
       importReport: normalizedPreview.report,
     },
   };

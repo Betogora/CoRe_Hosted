@@ -66,6 +66,7 @@ workerScope.onmessage = async (event) => {
       warnings: parsed.warnings,
       errors: parsed.errors,
       mediaFiles: parsed.mediaFiles,
+      reviewHistory: parsed.reviewHistory,
       parsedPackage: serializablePackage(parsed.parsedPackage),
     };
     workerScope.postMessage({ type: "result", requestId, result }, transferableMediaBuffers(result));

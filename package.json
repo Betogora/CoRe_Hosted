@@ -29,6 +29,7 @@
     "storage:retire-labs": "tsx scripts/retireLabsStorage.ts",
     "build": "vite build",
     "benchmark:apkg": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/core-local-benchmark.apkg && tsx scripts/benchmarkApkgImport.ts test-results/apkg/core-local-benchmark.apkg",
+    "benchmark:statistics": "tsx scripts/benchmarkStatistics.ts",
     "postbuild": "tsx scripts/verifyBuildChunks.ts",
     "preview": "vite preview"
   },
@@ -42,6 +43,8 @@
     "pdfjs-dist": "^6.1.200",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-is": "19.2.7",
+    "recharts": "3.10.1",
     "ts-fsrs": "5.4.1",
     "tus-js-client": "4.3.1",
     "valibot": "1.4.2",

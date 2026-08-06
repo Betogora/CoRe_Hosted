@@ -116,6 +116,8 @@ Anki speichert Review-Ereignisse in `revlog`. Das Legacy-Schema hält pro Ereign
 
 Rigorose CoRe-Folgerung: CoRe sollte aktuellen Zustand und Ereignisverlauf strikt trennen. `review_events` bleiben append-only. Der aktuelle Queue-/Scheduler-Zustand gehört in einen eigenen State pro Learning Item und pro Variante.
 
+Der APKG-Leser setzt diese Trennung um: zuordenbare, nicht manuelle `revlog`-Zeilen werden als kompakte Analysehistorie durch Preview und Worker transportiert, anhand der bestehenden Anki-Kartenidentität auf finale CoRe-Varianten abgebildet und per deterministischer Ereignis-ID vereinigt. Bewertung, Zeitstempel, Antwortzeit, Intervall und Herkunft werden normalisiert; beschädigte oder nicht zuordenbare Zeilen werden gezählt und übersprungen. Der importierte Verlauf mutiert weder aktuellen Review State noch Fälligkeit oder FSRS-Planung.
+
 ### APKG, Collection und Medien
 
 Anki speichert lokale Profilinhalte in `collection.anki2`; Medien liegen separat in `collection.media`. APKG-Dateien bündeln Collection, Medien und Metadaten.
@@ -138,7 +140,7 @@ CoRe hat die entscheidende Richtung bereits eingeschlagen:
 
 - `src/coreModel.ts` erzeugt Learning Items, Original-Varianten, Reverse-Varianten, Cloze-Varianten und Review-State.
 - `src/importService.ts` normalisiert Text-, CSV-, JSON- und Tabellen-Importdaten in Learning Items mit Varianten, Parent-/Hierarchy-Feldern, stabilen Fingerprints und Duplicate-Erkennung.
-- `src/apkgImport.ts` liest APKG-Container, erkennt `collection.anki2`, `collection.anki21`, `collection.anki21b`, extrahiert Notes/Cards/Decks/Media, erzeugt echte Unterstapel und speichert Raw-Fallbacks.
+- `src/apkgImport.ts` liest APKG-Container, erkennt `collection.anki2`, `collection.anki21`, `collection.anki21b`, extrahiert Notes/Cards/Decks/Media sowie die analytische Revlog-Historie, erzeugt echte Unterstapel und speichert Raw-Fallbacks.
 - `src/mediaStore.ts` kapselt accountgebundenen lokalen Cache, persistente Upload-Queue und Cloud-/Fallback-Auflösung; React konsumiert ausschließlich aufgelöste Medien-URLs und Status.
 - `src/htmlSafety.ts` und `src/richText.ts` kapseln HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung fuer Karteninhalt, Importvorschau und Review.
 - `src/reviewService.ts` schreibt Review-Events und aktualisiert Learning-Item- und Varianten-State.
@@ -158,7 +160,7 @@ Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzept
 | Cloze | Eigener Notetype, Cloze-Nummern, generierte Cards | Cloze wird erkannt und als Variantenfamilie teilweise erzeugt | Cloze-Gruppen, Ordnungen und Review-UI explizit modellieren |
 | Deck-Hierarchie | Namen mit `::`, Cards referenzieren Deck-ID | Echte Parent-/Child-Decks aus APKG-Hierarchie | Parent-/Child-IDs bleiben kanonisch; `::` bleibt Import-/Exportdetail |
 | Filtered Decks | Temporäre Deck-Art mit Suche, Limits und Rescheduling-Optionen | Lernplan und Review-Queue lokal modelliert | Nicht als permanente Deck-Art übernehmen; als temporäre Session-/Plan-View abbilden |
-| Review-Verlauf | `revlog` append-only pro Card | lokale `reviewEvents`, Supabase-Tabelle `review_events` vorbereitet | Revlog-Import nur für Analytics/Migration, nicht automatisch als gelernter Zustand übernehmen |
+| Review-Verlauf | `revlog` append-only pro Card | lokale `reviewEvents`; APKG-Revlog wird analytisch importiert und ändert keinen Scheduler-State | Analytics-Verlauf append-only halten; kein Anki-Lernstand als aktueller CoRe-Zustand |
 | Scheduler | Legacy-State plus FSRS-Felder | FSRS-6 über `ts-fsrs` | CoRe-Scheduler bleibt die gekapselte Domänenschnittstelle; Anki-Schedulerdaten als Quelle konservieren |
 | Medien | Separater Medienordner, APKG-Medienliste, SHA-1, sichere Dateinamen | Manifest, accountgebundene IndexedDB/Queue, accountweite SHA-1-Objekte, getrennte `media_assets`-Referenzen, Standard-/TUS-Upload und Cloud-/Local-/Missing-Auflösung | Export-/Sharing-Regeln und administratives Orphan-GC ergänzen |
 | Importidentität | Notes via GUID, Cards via Note/Template, Notetypes via IDs | `sourceExternalId`, Importgruppe, Raw-Metadaten, Fingerprints | Explizites `import_identities`-Konzept für Note-ID, Card-ID, GUID, Notetype-ID, Template-Ord, Deck-Pfad und Medienchecksums |

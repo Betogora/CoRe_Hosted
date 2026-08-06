@@ -1023,7 +1023,19 @@ export function App() {
       );
     }
     if (activeView === "statistik") {
-      return <StatisticsScreen decks={state.decks} now={learningNow} onNavigate={navigateToView} />;
+      return (
+        <StatisticsScreen
+          decks={state.decks}
+          now={learningNow}
+          timeZone={state.profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"}
+          onNavigate={navigateToView}
+          onStartDeck={(deckId) => {
+            const deck = state.decks.find((candidate) => candidate.id === deckId);
+            if (deck) startDeck(deck);
+          }}
+          onOpenCard={openDecks}
+        />
+      );
     }
     if (activeView === "simulator") {
       return (

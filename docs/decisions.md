@@ -1,7 +1,7 @@
 # CoRe-Entscheidungen
 
 **Rolle:** einzige kanonische Quelle für dauerhafte Produkt- und Architekturentscheidungen.
-**Stand:** 2026-08-04
+**Stand:** 2026-08-06
 
 ## ADR-Format
 
@@ -128,4 +128,12 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Kontext:** Dashboard und Lernen verwendeten unterschiedliche Panelrahmen; die außerhalb der Liste liegende Hauptebenen-Zone verlor beim Verlassen der Zeilenfläche den Pointer-Griff. Zugleich führten identische Drei-Punkte-Trigger je nach Ansicht entweder direkt in die Einstellungen oder in ein umfangreiches Zwischenmenü.
 **Entscheidung:** Dashboard und Lernen teilen das vollständige Panel `Aktive Stapel`; dessen Kopf besitzt die sichtbare Hauptebenen-Zone und optional `Lernen öffnen`. Desktop-Drag hält den Pointer per Capture bis Drop oder Abbruch. Dashboard, Lernen und Kartenverwaltung verwenden dasselbe reduzierte Menü aus Deckdarstellung, Pfad, CoRe-Modus, Einstellungen und bestätigtem Verschieben. Umbenennen, Unterstapel, Lernen, Variantenlernen und Löschen liegen ausschließlich in den Stapel-Einstellungen.
 **Konsequenzen:** Es gibt nur einen Menü- und Verschiebedialogpfad. Reviewstart aus den Einstellungen kehrt zum reproduzierbaren Ursprung zurück. ADR-012 ist hinsichtlich direktem Einstellungsaufruf und des vollständigen Kartenverwaltungsmenüs abgelöst; Zeilenform, Kennzahlsemantik, Vier-Ebenen-Regel und persistiertes Schema bleiben unverändert.
+**Datum:** 2026-08-06
+
+## ADR-015 — Globale FSRS-Statistik und analytische Anki-Historie
+
+**Status:** angenommen
+**Kontext:** Die bisherige Statistik projizierte wenige unverbundene Kennzahlen ohne gemeinsamen Zeitraum oder Mehrfach-Stapelauswahl. Zugleich enthält APKG häufig wertvolle Reviewhistorie, deren Übernahme den aktuellen CoRe-Schedulerzustand aber nicht verfälschen darf.
+**Entscheidung:** Statistik besitzt genau eine globale Zeitraum- und Stapelauswahl und wird aus append-only Review Events sowie aktuellen Varianten-Snapshots durch `statisticsModel.ts` projiziert. Aktuelle Gedächtnisverteilungen verwenden FSRS-Schwierigkeit, Stabilität und Abrufwahrscheinlichkeit statt klassischer Ease. APKG-`revlog` wird ausschließlich als deterministisch deduplizierte Analysehistorie importiert; aktueller Review State und Fälligkeit bleiben neutral. Neue CoRe-Reviews messen reale Antwortzeit bis maximal 60 Sekunden im bestehenden Ereignisfeld.
+**Konsequenzen:** Es gibt keine parallele Statistikprojektion, keine serverseitige Aggregationstabelle und keine Schedulermigration. Historische Antwortzeiten bleiben optional. Diagramme arbeiten mit begrenzten Aggregaten; Rohereignisse verbleiben hinter dem Statistikmodell. Reimport kann neue historische Ereignisse ergänzen, aber weder vorhandene Ereignisse überschreiben noch Karten als gelernt markieren.
 **Datum:** 2026-08-06

@@ -42,7 +42,8 @@ Eine allgemeine Backend-, Auth- oder Provider-Adapterebene ist nicht Teil der Ar
 | `src/aiCardVariantContract.ts` | Gemeinsamer Laufzeitvertrag, Größenlimits und reine Basic-Plaintextprojektion für KI-Varianten |
 | `src/aiCardVariant.ts` | Browseraufruf sowie Änderungs- und Duplikatprüfung vor der bestehenden Variantenmutation |
 | `api/ai/card-variant.ts` | Authentifizierte Vercel Function, kostenlose OpenRouter-Modellauswahl, ZDR-Präferenz und erzwungener Tool Call |
-| `src/libraryModel.ts` | Reine Projektionen für Stapelhierarchie, unbegrenzte gruppierte Kartentabelle einschließlich Fälligkeits-/Variantenstatus und Sortierung, Suche, Heatmap und Statistik |
+| `src/libraryModel.ts` | Reine Projektionen für Stapelhierarchie, unbegrenzte gruppierte Kartentabelle einschließlich Fälligkeits-/Variantenstatus und Sortierung, Suche und bestehende Dashboard-Heatmap |
+| `src/statisticsModel.ts` | Einzige typisierte Statistikprojektion: einmaliger Index je Deckzustand, globale Zeitraum-/Stapelauflösung und begrenzte Diagramm-, Tabellen- und FSRS-Reihen |
 | `src/creationBatch.ts` | Reiner Batch-Session-State für Zähler, Zieldeck, aktuellen UI-Entwurf, Pins und deterministische Fokuswahl; keine zweite Kartenrepräsentation |
 | `src/importUiState.ts` | Diskriminierte Projektion sichtbarer Importphasen und Terminalzustände ohne Parser-, Protokoll- oder Medienverantwortung |
 | `src/coreRepository.ts` | Lokal gecachter persistenter App-State, kompakte UI-Präferenzen und Legacy-Normalisierung |
@@ -67,6 +68,8 @@ React-Caller kennen keine APKG-, SQLite-, Storage-, RLS-, Scheduler-, Provider- 
 `DeckTree` besitzt das gemeinsame Panel `Aktive Stapel`, die flache Baumprojektion und den per Pointer-Capture stabilisierten Desktop-Drag für Dashboard und Lernen. `App` kontrolliert dessen Auf-/Zuklappzustand sowie die geöffneten Stapelgruppen der Kartenverwaltung über `Profile.uiPreferences`; `src/uiPreferences.ts` normalisiert und aktualisiert die drei voneinander unabhängigen Projektionen. `coreRepository` hält den normalisierten Zustand pro Workspace im Speicher und persistiert reine UI-Präferenzänderungen kompakt unter `core.uiPreferences.v1`. Das Autosave koalesziert sie als persistente `profile-patch`-Mutation, die ausschließlich die Profilzeile aktualisiert; ein ohnehin nötiger vollständiger `state-patch` ersetzt eine wartende Profilmutation. Eine Suche klappt Treffer nur temporär auf. `DeckTree` verwendet wie die Kartenverwaltung genau eine responsive `DeckSummaryRow`: unter 768 px ohne sichtbaren Herkunftspfad und Kennzahllabel, ab 768 px mit dem vollständigen Zeileninhalt. Flexible Namens- und Tabellenbereiche dürfen bis auf null schrumpfen und werden elliptisch gekürzt; Kennzahlen, Donut, Chevron und Stapelaktion bleiben sichtbar, ohne einen horizontalen Scrollpfad zu erzeugen. `CompactDeckSummaryRow` bleibt die feste kompakte UI-Elements-Projektion und teilt denselben Renderer. `DeckOptionsMenu` besitzt in Dashboard, Lernen und Kartenverwaltung den identischen randlosen Trigger, die Erscheinungsbild-/Pfadkopfzeile, den CoRe-Modus und den bestätigten Verschiebedialog; der Dialog wird erst beim Öffnen gemountet. Verwaltungs- und Lernaktionen jenseits von Verschieben liegen im `DeckSettingsScreen`; die Workspace-Platzierungsprüfung bleibt die einzige fachliche Validierung.
 
 `HelpScreen` besitzt die statische Produktaufklärung und den transienten Interaktionszustand der Lernkurve. Er liest oder mutiert keinen Workspace-State. Die Kurve ist lokale, semantisch beschriftete UI und kein Scheduler- oder Variantenvertrag.
+
+`StatisticsScreen` bleibt lazy geladen und kennt nur die aggregierten Ergebnisse aus `src/statisticsModel.ts`. Das Modell indexiert Review Events und aktuelle Karten-/Varianten-Snapshots einmal je Deckreferenz. Pro Index hält es höchstens eine ersetzbare, zeitzonen- und stapelbereichsbezogene Ableitung für Kartenanlage und wahre Erinnerungsquote; sie wächst nicht mit Filterwechseln und wird mit dem Index freigegeben. Zeiträume werden je sortierter Stapelreihe über binäre Grenzen ausgeschnitten und anschließend in einem gemeinsamen Durchlauf aggregiert. Diagramme erhalten höchstens 240 voraggregierte Punkte; der tägliche Kalender darf für ein Jahr 365 Zellen enthalten. Der lokale strukturierte Statistiktooltip verbreitert den kurzen produktweiten `CoreTooltip` nicht.
 
 `src/simulationClock.ts` normalisiert den transienten Tagesoffset und projiziert die reale lokale Uhr kalenderbasiert auf einen simulierten Lernzeitpunkt. `App` besitzt den Offset ausschließlich im React-Zustand und reicht den effektiven Zeitpunkt an Dashboard, Lernen, Kartenverwaltung, Statistik und Review weiter. `SimulatorScreen` besitzt nur die Tagessteuerung; es gibt keinen parallelen Teststapel oder Schedulerpfad. Bloßes Umstellen mutiert keinen Workspace. Ein Review verwendet den simulierten Zeitpunkt im bestehenden `reviewService.ts`-Pfad und wird anschließend normal gespeichert und synchronisiert. Technische Auth-, Sync-, Medien-, Autosave- und Inhaltsmetadaten bleiben auf realer Systemzeit.
 
@@ -102,7 +105,8 @@ Tastaturfokus, lokale Suche, Dialoge, ungespeicherte Entwürfe und der Simulatio
 - Cloze-Speichern erhält passende Variantenidentitäten, erzeugt neue Lückengruppen und deaktiviert entfernte Gruppen.
 - Importierte Rohfelder bleiben read-only und werden beim typgerechten Speichern nicht ersetzt.
 - Reimport überschreibt keine lokal bearbeiteten typgerechten Inhalte. Er darf Importmetadaten und Medienreferenzen aktualisieren.
-- Review Events sind append-only und accountgebunden. Stapel sind implizit privat.
+- Review Events sind append-only und accountgebunden. Reale Antwortdauer wird monoton bis höchstens 60 Sekunden im vorhandenen `responseTimeMs` erfasst. Stapel sind implizit privat.
+- APKG-`revlog` darf ausschließlich als deterministisch deduplizierte Reviewhistorie importiert werden; diese Ereignisse mutieren keinen aktuellen Schedulerzustand.
 - Parserfehler eines aktiven APKG-Workers bleiben sichtbar; es gibt keinen stillen Direktparser-Retry.
 - Fremdpayloads bleiben `unknown`, bis das besitzende Modul sie validiert oder normalisiert.
 - RLS ist auf nutzerdatenhaltenden Tabellen aktiv. Ownership entsteht nicht aus veränderbaren User-Metadaten.
@@ -176,6 +180,7 @@ Neue Endpunkte brauchen einen expliziten Roadmap-Auftrag, Laufzeitvalidierung, A
 - `src/importUiState.ts` projiziert die gemeinsamen sichtbaren Phasen; APKG-Worker, ZIP/SQLite, Reimport und Medienqueue bleiben in ihren bestehenden Eigentümermodulen.
 - Dateien bis einschließlich 250 MiB laufen im Browser-Worker. Größere Dateien werden ohne Upload oder Serverfallback abgewiesen.
 - Importidentität bevorzugt stabile Anki-IDs vor Fingerprints.
+- `revlog` wird im Worker als kompakte, separate Reviewhistorie transportiert, nach dem Erzeugen der finalen CoRe-Identitäten Varianten zugeordnet und per stabiler Quellereignis-ID vereinigt. Nicht zuordenbare, manuelle oder ungültige Zeilen werden gezählt und übersprungen; Anki-Schedulingzustände werden nicht übernommen.
 - Unknown Note Types bleiben als sichere Rohprojektion erhalten; beliebige Anki-Templates werden nicht ausgeführt.
 - Der Hauptbericht zeigt nutzerrelevante Ergebnisse; Notetype-IDs, SHA-1-Listen und Importidentitäten werden nicht dargestellt.
 

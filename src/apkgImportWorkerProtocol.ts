@@ -25,6 +25,7 @@ const resultPayloadSchema = v.looseObject({
   warnings: v.array(v.string()),
   errors: v.array(v.string()),
   mediaFiles: v.array(v.unknown()),
+  reviewHistory: v.unknown(),
   parsedPackage: v.nullable(v.unknown()),
 });
 

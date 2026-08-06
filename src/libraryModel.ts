@@ -20,21 +20,6 @@ interface ReviewEventInput {
   variantLevel?: number;
   variantType?: string;
 }
-interface PerformanceEvent {
-  id?: string;
-  deckId: string;
-  deckName: string;
-  learningItemId: string | null;
-  variantId: string | null;
-  rating: ReviewRating;
-  reviewedAt: string;
-  dateKey: string | null;
-  responseTimeMs: number | null;
-  isPositive: boolean;
-  isStrong: boolean;
-  isVariant: boolean;
-}
-
 interface HeatmapDay {
   key: string | null;
   date: string;
@@ -61,13 +46,11 @@ interface LibraryOptions {
   dayCount?: number;
   cardSort?: CardTableSort;
 }
-
 export type CardTableSortField = "sortField" | "due" | "variants";
 export interface CardTableSort {
   field: CardTableSortField;
   direction: "asc" | "desc";
 }
-
 export const DEFAULT_CARD_TABLE_SORT: CardTableSort = { field: "sortField", direction: "asc" };
 const cardSortCollator = new Intl.Collator("de-DE", { sensitivity: "base" });
 const cardDueDateFormatter = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -85,14 +68,6 @@ const HEATMAP_CELL_SIZE = 19;
 const HEATMAP_COLUMN_GAP = 4;
 const HEATMAP_NAVIGATION_STEP_WEEKS = 4;
 const HEATMAP_MONTH_LABELS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
-const PERFORMANCE_RECENT_DAY_COUNT = 14;
-const REVIEW_RATING_KEYS = ["again", "hard", "good", "easy"] as const satisfies readonly ReviewRating[];
-const REVIEW_RATING_LABELS: Record<ReviewRating, string> = {
-  again: "Wiederholen",
-  hard: "Schwer",
-  good: "Gut",
-  easy: "Leicht",
-};
 
 function normalizeQuery(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
@@ -259,134 +234,6 @@ function summarizeHeatmapDays(days: HeatmapDay[]) {
   };
 }
 
-function percentage(part: number, total: number): number {
-  return total > 0 ? Math.round((part / total) * 100) : 0;
-}
-
-function average(values: number[]): number {
-  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
-}
-
-function normalizeRating(rating: unknown): ReviewRating | null {
-  return typeof rating === "string" && REVIEW_RATING_KEYS.includes(rating as ReviewRating) ? rating as ReviewRating : null;
-}
-
-function isPositiveRating(rating: ReviewRating): boolean {
-  return rating === "hard" || rating === "good" || rating === "easy";
-}
-
-function isStrongRating(rating: ReviewRating): boolean {
-  return rating === "good" || rating === "easy";
-}
-
-function isVariantReviewEvent(event: ReviewEventInput): boolean {
-  return event.reviewableType === "variant" || Number(event.variantLevel ?? 0) > 1 || event.variantType === "rephrase";
-}
-
-function createPerformanceEvent(deck: Deck, event: ReviewEventInput): PerformanceEvent | null {
-  const rating = normalizeRating(event?.rating);
-  const rawDate = reviewEventDate(event);
-  const date = rawDate ? new Date(rawDate) : null;
-
-  if (!rating || !date || Number.isNaN(date.getTime())) return null;
-
-  const responseTimeMs = Number(event.responseTimeMs);
-
-  return {
-    id: event.id,
-    deckId: deck.id,
-    deckName: deck.name,
-    learningItemId: event.learningItemId ?? event.cardId ?? null,
-    variantId: event.variantId ?? event.cardVariantId ?? null,
-    rating,
-    reviewedAt: date.toISOString(),
-    dateKey: localDateKey(date),
-    responseTimeMs: Number.isFinite(responseTimeMs) && responseTimeMs > 0 ? responseTimeMs : null,
-    isPositive: isPositiveRating(rating),
-    isStrong: isStrongRating(rating),
-    isVariant: isVariantReviewEvent(event),
-  };
-}
-
-function collectPerformanceEvents(decks: Deck[] = []): PerformanceEvent[] {
-  return decks
-    .flatMap((deck) => (deck.reviewEvents ?? []).map((event) => createPerformanceEvent(deck, event as ReviewEventInput)).filter((event): event is PerformanceEvent => Boolean(event)))
-    .sort((left, right) => String(right.reviewedAt).localeCompare(String(left.reviewedAt)));
-}
-
-function createRatingBreakdown(events: PerformanceEvent[]) {
-  return REVIEW_RATING_KEYS.map((rating) => {
-    const count = events.filter((event) => event.rating === rating).length;
-
-    return {
-      rating,
-      label: REVIEW_RATING_LABELS[rating],
-      count,
-      percent: percentage(count, events.length),
-    };
-  });
-}
-
-function createRecentPerformanceDays(events: PerformanceEvent[], options: LibraryOptions = {}) {
-  const dayCount = Math.max(1, Math.round(Number(options.dayCount ?? PERFORMANCE_RECENT_DAY_COUNT) || PERFORMANCE_RECENT_DAY_COUNT));
-  const end = startOfLocalDay(options.now ?? new Date());
-  const start = addLocalDays(end, -(dayCount - 1));
-  const eventsByDate = new Map<string | null, PerformanceEvent[]>();
-
-  for (const event of events) {
-    eventsByDate.set(event.dateKey, [...(eventsByDate.get(event.dateKey) ?? []), event]);
-  }
-
-  return Array.from({ length: dayCount }, (_, index) => {
-    const date = addLocalDays(start, index);
-    const key = localDateKey(date);
-    const dayEvents = eventsByDate.get(key) ?? [];
-    const successCount = dayEvents.filter((event) => event.isPositive).length;
-
-    return {
-      key,
-      label: formatShortDayMonth(date),
-      reviews: dayEvents.length,
-      successCount,
-      successPercent: percentage(successCount, dayEvents.length),
-      weakCount: dayEvents.filter((event) => event.rating === "again" || event.rating === "hard").length,
-    };
-  });
-}
-
-function createDeckPerformanceRows(decks: Deck[] = [], events: PerformanceEvent[] = [], now: DateInput = new Date()) {
-  const eventsByDeckId = new Map<string, PerformanceEvent[]>();
-  for (const event of events) {
-    eventsByDeckId.set(event.deckId, [...(eventsByDeckId.get(event.deckId) ?? []), event]);
-  }
-
-  return decks
-    .map((deck) => {
-      const deckEvents = eventsByDeckId.get(deck.id) ?? [];
-      const summary = summarizeDeckReview(deck, now);
-      const successCount = deckEvents.filter((event) => event.isPositive).length;
-      const weakCount = deckEvents.filter((event) => event.rating === "again" || event.rating === "hard").length;
-      const variantReviewCount = deckEvents.filter((event) => event.isVariant).length;
-
-      return {
-        id: deck.id,
-        name: deckPath(deck),
-        deckName: deck.name,
-        reviewCount: deckEvents.length,
-        successCount,
-        successPercent: percentage(successCount, deckEvents.length),
-        weakCount,
-        weakPercent: percentage(weakCount, deckEvents.length),
-        variantReviewCount,
-        averageResponseSeconds: Math.round(average(deckEvents.map((event) => event.responseTimeMs).filter((value): value is number => value != null)) / 100) / 10,
-        dueCards: summary.dueCards,
-        totalCards: summary.totalCards,
-        matureCards: summary.matureCards,
-      };
-    })
-    .sort((left, right) => right.reviewCount - left.reviewCount || right.weakCount - left.weakCount || left.name.localeCompare(right.name));
-}
-
 function createDeckRow(
   deck: Deck,
   { now, cardLimit, scopeDecks = [deck], depth = 0, childrenCount = 0 }: {
@@ -447,7 +294,6 @@ function createCardTableRow(card: LearningItem) {
     variantsLabel: hasActiveVariants ? "Mit Varianten" : "Ohne Varianten",
   };
 }
-
 export type CardTableRow = ReturnType<typeof createCardTableRow>;
 
 export type CardTableGroup = Omit<DeckLibraryRow, "cardRows"> & { cardRows: CardTableRow[] };
@@ -695,52 +541,5 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
     groups,
     cardCount: groups.reduce((total, group) => total + group.cardRows.length, 0),
     cardSort,
-  };
-}
-
-export function createPerformanceStatisticsModel(decks: Deck[] = [], options: LibraryOptions = {}) {
-  const now = options.now ?? new Date();
-  const events = collectPerformanceEvents(decks);
-  const successCount = events.filter((event) => event.isPositive).length;
-  const strongCount = events.filter((event) => event.isStrong).length;
-  const variantEvents = events.filter((event) => event.isVariant);
-  const variantSuccessCount = variantEvents.filter((event) => event.isPositive).length;
-  const responseTimes = events.map((event) => event.responseTimeMs).filter((value): value is number => value != null);
-  const heatmap = createStudyHeatmapModel(decks, {
-    now,
-    weeks: options.heatmapWeeks ?? DEFAULT_HEATMAP_WEEK_COUNT,
-  });
-  const activeDays = heatmap.days.reduce((count, day) => count + Number(day.count > 0), 0);
-  const deckRows = createDeckPerformanceRows(decks, events, now);
-  const weakDeckRows = deckRows
-    .filter((row) => row.reviewCount > 0 && row.weakCount > 0)
-    .sort((left, right) => right.weakPercent - left.weakPercent || right.weakCount - left.weakCount || right.reviewCount - left.reviewCount)
-    .slice(0, 5);
-
-  return {
-    hasReviewEvents: events.length > 0,
-    events,
-    totals: {
-      reviewCount: events.length,
-      successCount,
-      successPercent: percentage(successCount, events.length),
-      strongCount,
-      strongPercent: percentage(strongCount, events.length),
-      averageResponseSeconds: Math.round(average(responseTimes) / 100) / 10,
-      activeDays,
-      averagePerActiveDay: activeDays ? Math.round((heatmap.totalCount / activeDays) * 10) / 10 : 0,
-      currentStreak: heatmap.currentStreak,
-      longestStreak: heatmap.longestStreak,
-      variantReviewCount: variantEvents.length,
-      variantSuccessPercent: percentage(variantSuccessCount, variantEvents.length),
-    },
-    ratingBreakdown: createRatingBreakdown(events),
-    recentDays: createRecentPerformanceDays(events, {
-      now,
-      dayCount: options.recentDayCount ?? PERFORMANCE_RECENT_DAY_COUNT,
-    }),
-    deckRows,
-    weakDeckRows,
-    latestReview: events[0] ?? null,
   };
 }

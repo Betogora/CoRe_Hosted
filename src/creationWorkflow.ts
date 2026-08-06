@@ -4,7 +4,7 @@ import { appendPlainTextToCardHtml } from "./richText.ts";
 import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
 import { createAccountMediaStore, type MediaSyncTask } from "./mediaStore.ts";
 import type { CardEditorValue, CardType, Deck, EditableCardType, LearningItem, SourceAnchor } from "./coreTypes.ts";
-import { LOCAL_APKG_MAX_BYTES, type ApkgImportReportV1 } from "./apkgImport.ts";
+import { LOCAL_APKG_MAX_BYTES, type AnkiReviewHistoryPayload, type ApkgImportReportV1 } from "./apkgImport.ts";
 
 interface FileLike {
   name?: string;
@@ -60,6 +60,7 @@ export interface LocalApkgCreationPreview {
   warnings: string[];
   normalizedDeck: unknown;
   mediaFiles: unknown[];
+  reviewHistory: AnkiReviewHistoryPayload;
   importReport: ApkgReport;
 }
 
