@@ -31,6 +31,7 @@ const visualSourcePaths = [
   "src/ui/CompactDeckSummaryRow.tsx",
   "src/ui/DeckTree.tsx",
   "src/ui/AppNavigation.tsx",
+  "src/ui/StudySettingsOverlay.tsx",
   "src/ui/RichTextEditor.tsx",
   "src/ui/PdfDocumentViewer.tsx",
   "src/screens/screenConstants.ts",

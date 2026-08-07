@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: c3c8de8801dc8354 */
+/* Quellenstand: e8b950654c6e1429 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -786,6 +786,10 @@ video {
 .z-\[1\] {
   z-index: 1;
 }
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
 .my-2 {
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
@@ -793,6 +797,9 @@ video {
 .my-6 {
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
+}
+.mb-2 {
+  margin-bottom: 0.5rem;
 }
 .mb-3 {
   margin-bottom: 0.75rem;
@@ -861,10 +868,6 @@ video {
   width: 0.75rem;
   height: 0.75rem;
 }
-.size-5 {
-  width: 1.25rem;
-  height: 1.25rem;
-}
 .size-7 {
   width: 1.75rem;
   height: 1.75rem;
@@ -880,6 +883,9 @@ video {
 .size-\[1\.35rem\] {
   width: 1.35rem;
   height: 1.35rem;
+}
+.h-1 {
+  height: 0.25rem;
 }
 .h-16 {
   height: 4rem;
@@ -905,11 +911,20 @@ video {
 .min-h-14 {
   min-height: 3.5rem;
 }
+.min-h-16 {
+  min-height: 4rem;
+}
 .min-h-20 {
   min-height: 5rem;
 }
 .min-h-28 {
   min-height: 7rem;
+}
+.min-h-\[42rem\] {
+  min-height: 42rem;
+}
+.w-10 {
+  width: 2.5rem;
 }
 .w-\[18\%\] {
   width: 18%;
@@ -930,6 +945,9 @@ video {
 .min-w-0 {
   min-width: 0px;
 }
+.min-w-10 {
+  min-width: 2.5rem;
+}
 .min-w-11 {
   min-width: 2.75rem;
 }
@@ -939,6 +957,9 @@ video {
 .min-w-64 {
   min-width: 16rem;
 }
+.min-w-8 {
+  min-width: 2rem;
+}
 .min-w-\[15rem\] {
   min-width: 15rem;
 }
@@ -947,6 +968,12 @@ video {
 }
 .max-w-full {
   max-width: 100%;
+}
+.max-w-sm {
+  max-width: 24rem;
+}
+.max-w-xl {
+  max-width: 36rem;
 }
 .flex-1 {
   flex: 1 1 0%;
@@ -1056,6 +1083,14 @@ video {
   -moz-column-gap: 0.75rem;
        column-gap: 0.75rem;
 }
+.divide-y > :not([hidden]) ~ :not([hidden]) {
+  --tw-divide-y-reverse: 0;
+  border-top-width: calc(1px * calc(1 - var(--tw-divide-y-reverse)));
+  border-bottom-width: calc(1px * var(--tw-divide-y-reverse));
+}
+.divide-core-border > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--core-border);
+}
 .overflow-hidden {
   overflow: hidden;
 }
@@ -1065,8 +1100,8 @@ video {
 .overflow-x-auto {
   overflow-x: auto;
 }
-.overflow-y-scroll {
-  overflow-y: scroll;
+.overflow-y-auto {
+  overflow-y: auto;
 }
 .truncate {
   overflow: hidden;
@@ -1091,6 +1126,9 @@ video {
 .rounded-\[20px\] {
   border-radius: 20px;
 }
+.rounded-\[24px\] {
+  border-radius: 24px;
+}
 .rounded-\[4px\] {
   border-radius: 4px;
 }
@@ -1103,6 +1141,10 @@ video {
 .rounded-xl {
   border-radius: 0.75rem;
 }
+.rounded-t-\[28px\] {
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+}
 .border {
   border-width: 1px;
 }
@@ -1111,6 +1153,9 @@ video {
 }
 .border-b {
   border-bottom-width: 1px;
+}
+.border-b-0 {
+  border-bottom-width: 0px;
 }
 .border-t {
   border-top-width: 1px;
@@ -1156,6 +1201,12 @@ video {
 }
 .bg-core-action {
   background-color: var(--core-action-primary);
+}
+.bg-core-border {
+  background-color: var(--core-border);
+}
+.bg-core-canvas {
+  background-color: var(--core-canvas);
 }
 .bg-core-danger-soft {
   background-color: var(--core-danger-surface);
@@ -1218,6 +1269,10 @@ video {
   padding-left: 1rem;
   padding-right: 1rem;
 }
+.px-5 {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
 .py-1 {
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
@@ -1238,23 +1293,23 @@ video {
   padding-top: 1rem;
   padding-bottom: 1rem;
 }
+.pb-4 {
+  padding-bottom: 1rem;
+}
 .pl-3 {
   padding-left: 0.75rem;
 }
 .pl-5 {
   padding-left: 1.25rem;
 }
-.pr-1 {
-  padding-right: 0.25rem;
-}
 .pr-2 {
   padding-right: 0.5rem;
 }
-.pr-3 {
-  padding-right: 0.75rem;
-}
 .pr-9 {
   padding-right: 2.25rem;
+}
+.pt-5 {
+  padding-top: 1.25rem;
 }
 .text-left {
   text-align: left;
@@ -1270,6 +1325,10 @@ video {
 }
 .text-\[0\.68rem\] {
   font-size: 0.68rem;
+}
+.text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
 }
 .font-medium {
   font-weight: 500;
@@ -1310,9 +1369,6 @@ video {
 .text-core-text {
   color: var(--core-text);
 }
-.opacity-65 {
-  opacity: 0.65;
-}
 .opacity-80 {
   opacity: 0.8;
 }
@@ -1341,9 +1397,6 @@ video {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
-}
-.\[scrollbar-gutter\:stable\] {
-  scrollbar-gutter: stable;
 }
 
 :root {
@@ -1654,6 +1707,36 @@ summary {
 
   65% {
     transform: translateX(3px);
+  }
+}
+
+@keyframes core-study-settings-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes core-study-settings-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes core-study-settings-dialog-in {
+  from { opacity: 0; transform: translateY(0.75rem) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.core-study-settings-backdrop {
+  animation: core-study-settings-backdrop-in 160ms ease-out;
+}
+
+.core-study-settings-overlay {
+  animation: core-study-settings-sheet-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-width: 768px) {
+  .core-study-settings-overlay {
+    animation-name: core-study-settings-dialog-in;
+    animation-duration: 180ms;
   }
 }
 
@@ -2815,7 +2898,7 @@ summary {
                   </button>
                   <div class="core-overlay mt-1.5 grid max-h-[25rem] grid-rows-[auto_minmax(0,1fr)] gap-3 overflow-hidden rounded-2xl p-3 outline-none">
                     <div class="flex items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-subtle px-3"><svg class="catalog-icon-sm shrink-0 text-core-muted"><use href="#icon-search"></use></svg><span class="flex min-h-11 min-w-0 flex-1 items-center core-body text-core-muted">Stapel suchen</span></div>
-                    <div role="listbox" class="max-h-80 overflow-y-scroll pr-1 [scrollbar-gutter:stable]">
+                    <div role="listbox" class="max-h-80 overflow-y-auto">
                       <div role="option" aria-selected="true" class="relative flex min-h-11 items-center gap-3 rounded-xl bg-[var(--core-info-surface)] py-2 pl-3 pr-9 core-body text-core-text"><span class="grid size-7 shrink-0 place-items-center rounded-full border border-core-border bg-core-subtle text-core-muted"><svg class="catalog-icon-sm"><use href="#icon-layers"></use></svg></span><span class="min-w-0 flex-1 truncate">Als Hauptstapel</span><svg class="catalog-icon-sm absolute right-3 text-core-action"><use href="#icon-check"></use></svg></div>
                       <div role="option" aria-selected="false" class="relative flex min-h-11 items-center gap-3 rounded-xl py-2 pr-9 core-body text-core-text" style="padding-left:.75rem"><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#7c3aed;border-color:#7c3aed;background-color:#7c3aed1f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Demo</span></div>
                       <div role="option" aria-selected="false" class="relative flex min-h-11 items-center gap-3 rounded-xl py-2 pr-9 core-body text-core-text" style="padding-left:1.75rem"><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Anatomie</span></div>
@@ -2832,18 +2915,19 @@ summary {
                   <button type="button" role="combobox" aria-label="Stapel filtern" aria-expanded="true" data-state="open" class="group inline-flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl border border-[var(--core-action-primary)] bg-core-surface px-3 text-left core-body text-[var(--core-text)] shadow-[0_0_0_2px_var(--core-focus-ring-soft)]"><svg class="catalog-icon-sm shrink-0 text-core-action"><use href="#icon-layers"></use></svg><span class="min-w-0 flex-1 truncate font-semibold">Demo</span><span class="grid shrink-0 place-items-center text-[var(--core-action-primary)]"><svg class="catalog-icon-sm -rotate-90"><use href="#icon-chevron"></use></svg></span></button>
                   <div class="core-overlay mt-1.5 grid max-h-[25rem] grid-rows-[auto_minmax(0,1fr)] gap-3 overflow-hidden rounded-2xl p-3 outline-none">
                     <div class="flex items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-subtle px-3"><svg class="catalog-icon-sm shrink-0 text-core-muted"><use href="#icon-search"></use></svg><span class="flex min-h-11 min-w-0 flex-1 items-center core-body text-core-muted">Stapel suchen</span></div>
-                    <div role="listbox" aria-multiselectable="true" class="max-h-80 overflow-y-scroll pr-1 [scrollbar-gutter:stable]">
-                      <div role="option" aria-selected="false" class="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 core-body text-core-text"><span class="size-5 shrink-0 rounded border border-core-border"></span><svg class="catalog-icon-sm shrink-0 text-core-action"><use href="#icon-layers"></use></svg><span class="truncate">Gesamte Sammlung</span></div>
+                    <div role="listbox" aria-multiselectable="true" class="max-h-80 overflow-y-auto">
+                      <div class="mb-2 border-t border-core-border"></div>
+                      <div role="option" aria-selected="false" class="relative flex min-h-11 items-center gap-3 rounded-xl py-2 pl-3 pr-9 core-body text-core-text"><svg class="catalog-icon-sm shrink-0 text-core-action"><use href="#icon-layers"></use></svg><span class="truncate">Gesamte Sammlung</span></div>
                       <div class="my-2 border-t border-core-border"></div>
-                      <div role="option" aria-selected="true" class="flex min-h-11 items-center gap-3 rounded-xl py-2 pr-3 core-body text-core-text" style="padding-left:.75rem"><span class="grid size-5 shrink-0 place-items-center rounded border border-[var(--core-action-primary)] bg-core-action text-[var(--core-text-on-accent)]"><svg class="catalog-icon-sm"><use href="#icon-check"></use></svg></span><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#7c3aed;border-color:#7c3aed;background-color:#7c3aed1f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Demo</span></div>
-                      <div role="option" aria-selected="true" aria-disabled="true" class="flex min-h-11 items-center gap-3 rounded-xl py-2 pr-3 core-body text-core-text opacity-65" style="padding-left:1.75rem"><span class="grid size-5 shrink-0 place-items-center rounded border border-[var(--core-action-primary)] bg-core-action text-[var(--core-text-on-accent)]"><svg class="catalog-icon-sm"><use href="#icon-check"></use></svg></span><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Anatomie</span></div>
-                      <div role="option" aria-selected="true" aria-disabled="true" class="flex min-h-11 items-center gap-3 rounded-xl py-2 pr-3 core-body text-core-text opacity-65" style="padding-left:2.75rem"><span class="grid size-5 shrink-0 place-items-center rounded border border-[var(--core-action-primary)] bg-core-action text-[var(--core-text-on-accent)]"><svg class="catalog-icon-sm"><use href="#icon-check"></use></svg></span><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#2563eb;border-color:#2563eb;background-color:#2563eb1f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Test 2</span></div>
-                      <div role="option" aria-selected="false" class="flex min-h-11 items-center gap-3 rounded-xl py-2 pr-3 core-body text-core-text" style="padding-left:.75rem"><span class="size-5 shrink-0 rounded border border-core-border"></span><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#db2777;border-color:#db2777;background-color:#db27771f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Manueller Kartenstapel</span></div>
-                      <div role="option" aria-selected="false" class="flex min-h-11 items-center gap-3 rounded-xl py-2 pr-3 core-body text-core-text" style="padding-left:.75rem"><span class="size-5 shrink-0 rounded border border-core-border"></span><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#b45309;border-color:#b45309;background-color:#b453091f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Anatomie 2</span></div>
-                      <div role="option" aria-selected="false" class="flex min-h-11 items-center gap-3 rounded-xl py-2 pr-3 core-body text-core-text" style="padding-left:.75rem"><span class="size-5 shrink-0 rounded border border-core-border"></span><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#64748b;border-color:#64748b;background-color:#64748b1f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Teststapel Geografie</span></div>
+                      <div role="option" aria-selected="true" class="relative flex min-h-11 items-center gap-3 rounded-xl bg-[var(--core-info-surface)] py-2 pr-9 core-body text-core-text" style="padding-left:.75rem"><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#7c3aed;border-color:#7c3aed;background-color:#7c3aed1f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Demo</span><svg class="catalog-icon-sm absolute right-3 text-core-action"><use href="#icon-check"></use></svg></div>
+                      <div role="option" aria-selected="true" aria-disabled="true" class="relative flex min-h-11 items-center gap-3 rounded-xl bg-[var(--core-info-surface)] py-2 pr-9 core-body text-core-text" style="padding-left:1.75rem"><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Anatomie</span><svg class="catalog-icon-sm absolute right-3 text-core-action"><use href="#icon-check"></use></svg></div>
+                      <div role="option" aria-selected="true" aria-disabled="true" class="relative flex min-h-11 items-center gap-3 rounded-xl bg-[var(--core-info-surface)] py-2 pr-9 core-body text-core-text" style="padding-left:2.75rem"><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#2563eb;border-color:#2563eb;background-color:#2563eb1f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Test 2</span><svg class="catalog-icon-sm absolute right-3 text-core-action"><use href="#icon-check"></use></svg></div>
+                      <div role="option" aria-selected="false" class="relative flex min-h-11 items-center gap-3 rounded-xl py-2 pr-9 core-body text-core-text" style="padding-left:.75rem"><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#db2777;border-color:#db2777;background-color:#db27771f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Manueller Kartenstapel</span></div>
+                      <div role="option" aria-selected="false" class="relative flex min-h-11 items-center gap-3 rounded-xl py-2 pr-9 core-body text-core-text" style="padding-left:.75rem"><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#b45309;border-color:#b45309;background-color:#b453091f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Anatomie 2</span></div>
+                      <div role="option" aria-selected="false" class="relative flex min-h-11 items-center gap-3 rounded-xl py-2 pr-9 core-body text-core-text" style="padding-left:.75rem"><span class="grid size-7 shrink-0 place-items-center rounded-full border-2" style="color:#64748b;border-color:#64748b;background-color:#64748b1f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><span class="truncate">Teststapel Geografie</span></div>
                     </div>
                   </div>
-                  <span class="core-field-hint">Checkboxen links; eingeschlossene Unterstapel bleiben einzeilig angehakt.</span>
+                  <span class="core-field-hint">Auswahlflächen und Haken rechts; eingeschlossene Unterstapel bleiben einzeilig markiert.</span>
                 </div>
               </div>
               <div class="catalog-grid catalog-grid-wide">
@@ -3008,8 +3092,8 @@ summary {
           <section id="lernen" class="catalog-section">
             <div class="catalog-section-head">
               <p class="catalog-kicker">09 · Lernen</p>
-              <h2 class="core-heading-2 text-core-text">MCQ- und Review-Zustände</h2>
-              <p>Auswahl, richtige und falsche Antwort sowie die vier semantischen Review-Bewertungen.</p>
+              <h2 class="core-heading-2 text-core-text">MCQ-, Review- und Einstellungszustände</h2>
+              <p>Antwortauswahl, semantische Review-Bewertungen und dieselben responsiven Lerneinstellungen für Desktop und Mobile.</p>
             </div>
             <div class="catalog-section-body">
               <div class="catalog-grid catalog-grid-wide">
@@ -3032,6 +3116,31 @@ summary {
                 <button type="button" class="min-h-20 rounded-2xl border border-core-warning bg-core-warning-soft text-center text-core-text shadow-sm transition hover:-translate-y-0.5"><span class="block core-heading-2 font-semibold">2</span><span class="mt-1 block core-body font-semibold">Schwer</span><span class="mt-1 block core-caption font-semibold opacity-80">6 Min.</span></button>
                 <button type="button" class="min-h-20 rounded-2xl border border-core-success bg-core-success-soft text-center text-core-text shadow-sm transition hover:-translate-y-0.5"><span class="block core-heading-2 font-semibold">3</span><span class="mt-1 block core-body font-semibold">Gut</span><span class="mt-1 block core-caption font-semibold opacity-80">10 Min.</span></button>
                 <button type="button" class="min-h-20 rounded-2xl border border-core-info bg-core-info-soft text-center text-core-text shadow-sm transition hover:-translate-y-0.5"><span class="block core-heading-2 font-semibold">4</span><span class="mt-1 block core-body font-semibold">Leicht</span><span class="mt-1 block core-caption font-semibold opacity-80">4 Tage</span></button>
+              </div>
+              <div class="catalog-grid catalog-grid-wide">
+                <article class="rounded-[18px] bg-core-canvas p-4">
+                  <p class="catalog-subtitle mb-3">Desktop · zentriertes Overlay</p>
+                  <div class="core-overlay mx-auto max-w-xl overflow-hidden rounded-[24px]">
+                    <div class="flex min-h-16 items-center justify-between border-b border-core-border px-4"><span class="size-11"></span><h3 class="core-heading-3 text-core-text">Lerneinstellungen</h3><button type="button" class="core-action-ghost min-h-11 min-w-11 p-2.5" aria-label="Lerneinstellungen schließen"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button></div>
+                    <div class="px-5 pb-4">
+                      <section class="py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Karte</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between core-body font-semibold text-core-text"><span>Karte bearbeiten</span><svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></div><div class="flex min-h-12 items-center justify-between gap-3 core-body text-core-muted"><span>Flagge</span><span class="flex gap-1 text-lg" aria-label="Flaggenfarben – noch nicht verfügbar"><span style="color:#ef4444">⚑</span><span style="color:#f97316">⚑</span><span style="color:#eab308">⚑</span><span style="color:#22c55e">⚑</span><span style="color:#3b82f6">⚑</span><span style="color:#a855f7">⚑</span><span style="color:#94a3b8">⚑</span></span></div><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Markieren</span><span>Noch nicht verfügbar</span></div><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Aussetzen</span><span>Noch nicht verfügbar</span></div></div></section>
+                      <section class="border-t border-core-border py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Sitzung</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Pomodoro</span><span>25 Min.</span></div><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Kartenreihenfolge</span><span>Noch nicht verfügbar</span></div></div></section>
+                      <section class="border-t border-core-border py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Stapel</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between gap-3 core-body font-semibold text-core-text"><span>Neue Karten pro Tag</span><span class="flex items-center rounded-xl border border-core-border"><button type="button" class="min-h-11 min-w-11">−</button><output class="min-w-10 text-center">20</output><button type="button" class="min-h-11 min-w-11">+</button></span></div><div class="flex min-h-12 items-center justify-between gap-3 core-body font-semibold text-core-text"><span>Max. Wiederholungen</span><span class="flex items-center rounded-xl border border-core-border"><button type="button" class="min-h-11 min-w-11">−</button><output class="min-w-10 text-center">200</output><button type="button" class="min-h-11 min-w-11">+</button></span></div></div></section>
+                    </div>
+                  </div>
+                </article>
+                <article class="flex min-h-[42rem] flex-col justify-end rounded-[18px] bg-core-canvas pt-5">
+                  <p class="catalog-subtitle mb-3 px-4">Mobile · Bottom Sheet</p>
+                  <div class="core-overlay mx-auto w-full max-w-sm overflow-hidden rounded-t-[28px] border-b-0">
+                    <div class="mx-auto mt-2 h-1 w-10 rounded-full bg-core-border"></div>
+                    <div class="flex min-h-16 items-center justify-between border-b border-core-border px-4"><span class="size-11"></span><h3 class="core-heading-3 text-core-text">Lerneinstellungen</h3><button type="button" class="core-action-ghost min-h-11 min-w-11 p-2.5" aria-label="Lerneinstellungen schließen"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button></div>
+                    <div class="px-4 pb-4">
+                      <section class="py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Karte</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between core-body font-semibold text-core-text"><span>Karte bearbeiten</span><svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></div><div class="flex min-h-12 items-center justify-between gap-2 core-body text-core-muted"><span>Flagge</span><span class="flex flex-wrap justify-end gap-1 text-lg" aria-label="Flaggenfarben – noch nicht verfügbar"><span style="color:#ef4444">⚑</span><span style="color:#f97316">⚑</span><span style="color:#eab308">⚑</span><span style="color:#22c55e">⚑</span><span style="color:#3b82f6">⚑</span><span style="color:#a855f7">⚑</span><span style="color:#94a3b8">⚑</span></span></div><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Markieren</span><span class="core-caption">Noch nicht verfügbar</span></div><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Aussetzen</span><span class="core-caption">Noch nicht verfügbar</span></div></div></section>
+                      <section class="border-t border-core-border py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Sitzung</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Pomodoro</span><span>25 Min.</span></div><div class="flex min-h-12 items-center justify-between gap-2 core-body text-core-muted"><span>Kartenreihenfolge</span><span class="core-caption">Noch nicht verfügbar</span></div></div></section>
+                      <section class="border-t border-core-border py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Stapel</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between gap-2 core-body font-semibold text-core-text"><span>Neue Karten pro Tag</span><span class="flex items-center rounded-xl border border-core-border"><button type="button" class="min-h-11 min-w-11">−</button><output class="min-w-8 text-center">20</output><button type="button" class="min-h-11 min-w-11">+</button></span></div><div class="flex min-h-12 items-center justify-between gap-2 core-body font-semibold text-core-text"><span>Max. Wiederholungen</span><span class="flex items-center rounded-xl border border-core-border"><button type="button" class="min-h-11 min-w-11">−</button><output class="min-w-8 text-center">200</output><button type="button" class="min-h-11 min-w-11">+</button></span></div></div></section>
+                    </div>
+                  </div>
+                </article>
               </div>
             </div>
           </section>
