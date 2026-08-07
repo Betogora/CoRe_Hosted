@@ -67,6 +67,15 @@ function metric(row: Locator, name: "new" | "due" | "total") {
   return row.locator(`[data-deck-count="${name}"]`);
 }
 
+async function expectDeckOptionUsesFullWidth(option: Locator) {
+  expect(await option.evaluate((element) => {
+    const viewport = element.parentElement;
+    return viewport != null
+      && viewport.scrollHeight <= viewport.clientHeight
+      && Math.abs(viewport.getBoundingClientRect().right - element.getBoundingClientRect().right) < 0.5;
+  })).toBe(true);
+}
+
 test("dashboard shows the full shared tree, donut and direct drag-and-drop", async ({ page }) => {
   await resetToFreshLocalState(page);
 
@@ -101,7 +110,7 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });
 
-test("statistics deck filter shares search and scrollbar styling while keeping multiple selection", async ({ page }) => {
+test("statistics deck filter uses full-width selection rows while keeping multiple selection", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Statistik" }).click();
 
@@ -112,18 +121,42 @@ test("statistics deck filter shares search and scrollbar styling while keeping m
   await expect(search).toBeFocused();
   const viewport = page.locator('[data-deck-select-viewport="true"]');
   await expect.poll(() => viewport.evaluate((element) => getComputedStyle(element).overflowY)).toBe("auto");
+  await expect(viewport.locator(':scope > div[aria-hidden="true"]')).toHaveCount(2);
+  await expect(viewport.locator('input[type="checkbox"], [role="checkbox"]')).toHaveCount(0);
+  const allOption = page.getByRole("option", { name: "Gesamte Sammlung", exact: true });
+  await expect(allOption).toHaveAttribute("aria-selected", "true");
+  await expect(allOption.locator(".lucide-check")).toHaveCount(1);
+  const selectedBackground = await allOption.evaluate((option) => getComputedStyle(option).backgroundColor);
 
   await search.fill("Europa");
   const europeOption = page.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
   await expect(europeOption).toBeVisible();
   await expect(page.getByRole("option", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
+  await expectDeckOptionUsesFullWidth(europeOption);
   await page.getByRole("button", { name: "Suche leeren" }).click();
 
   const rootOption = page.getByRole("option", { name: "Welt-Hauptstädte", exact: true });
   await rootOption.click();
+  await expect(allOption).toHaveAttribute("aria-selected", "false");
+  await expect(rootOption.locator(".lucide-check")).toHaveCount(1);
   await expect(europeOption).toHaveAttribute("aria-selected", "true");
   await expect(europeOption).toBeDisabled();
+  await expect(europeOption.locator(".lucide-check")).toHaveCount(1);
+  expect(await rootOption.evaluate((option) => getComputedStyle(option).backgroundColor)).toBe(selectedBackground);
+  expect(await europeOption.evaluate((option) => getComputedStyle(option).backgroundColor)).toBe(selectedBackground);
+  expect(await europeOption.evaluate((option) => getComputedStyle(option).opacity)).toBe("1");
   await expect(viewport).not.toContainText("Durch Oberstapel eingeschlossen");
+
+  await rootOption.click();
+  await expect(allOption).toHaveAttribute("aria-selected", "true");
+  await europeOption.click();
+  const southAmericaOption = page.getByRole("option", { name: "Welt-Hauptstädte / Südamerika", exact: true });
+  await southAmericaOption.click();
+  await expect(europeOption).toHaveAttribute("aria-selected", "true");
+  await expect(southAmericaOption).toHaveAttribute("aria-selected", "true");
+  await expect(trigger).toContainText("2 Stapel ausgewählt");
+  await allOption.click();
+  await expect(allOption).toHaveAttribute("aria-selected", "true");
 
   await page.keyboard.press("Escape");
   await trigger.click();
@@ -181,6 +214,7 @@ test("learning rows activate directly while expand and settings remain independe
   await expect(parentSearch).toBeVisible();
   await expect(parentSearch).toBeFocused();
   await parentSearch.fill("Europa");
+  await expectDeckOptionUsesFullWidth(page.getByRole("option", { name: "Als Hauptstapel", exact: true }));
   await expect(page.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true })).toBeVisible();
   await expect(page.getByRole("option", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Suche leeren" }).click();

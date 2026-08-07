@@ -265,7 +265,7 @@ function DeckPickerContent({
           role="listbox"
           aria-multiselectable={multiple || undefined}
           data-deck-select-viewport="true"
-          className="min-h-0 max-h-80 overflow-y-auto pr-1 [scrollbar-gutter:stable]"
+          className="min-h-0 max-h-80 overflow-y-auto"
           onKeyDown={(event) => handleDeckOptionKeyDown(event, listboxId)}
         >
           {children}
@@ -274,14 +274,6 @@ function DeckPickerContent({
         <Popover.Arrow className="fill-[var(--core-border)]" />
       </Popover.Content>
     </Popover.Portal>
-  );
-}
-
-function SelectionBox({ checked }: { checked: boolean }) {
-  return (
-    <span aria-hidden="true" className={`grid size-5 shrink-0 place-items-center rounded border ${checked ? "border-[var(--core-action-primary)] bg-core-action text-[var(--core-text-on-accent)]" : "border-[var(--core-border)]"}`}>
-      {checked ? <Check size={14} aria-hidden="true" /> : null}
-    </span>
   );
 }
 
@@ -409,7 +401,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
             data-deck-picker-option="true"
             data-deck-select-special-option="true"
             onClick={() => selectValue(specialOption.value)}
-            className={`relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle ${specialOption.value === value ? "bg-[var(--core-info-surface)]" : ""}`}
+            className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)]"
           >
             <SpecialOptionIcon option={specialOption} />
             <span className="min-w-0 flex-1 truncate">{specialOption.label}</span>
@@ -430,7 +422,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
               data-deck-select-option={row.deck.id}
               data-deck-depth={visibleDepth}
               onClick={() => selectValue(row.deck.id)}
-              className={`relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle ${selected ? "bg-[var(--core-info-surface)]" : ""}`}
+              className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)]"
               style={{ paddingInlineStart: `${0.75 + visibleDepth}rem` }}
             >
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
@@ -498,6 +490,7 @@ export function DeckMultiSelect({ decks, value, scopeLabel, onValueChange }: Dec
         widthClassName="w-[min(24rem,calc(100vw-2rem))]"
         onQueryChange={setQuery}
       >
+        {showSearch ? <div aria-hidden="true" className="mb-2 border-t border-[var(--core-border)]" /> : null}
         <button
           type="button"
           role="option"
@@ -505,13 +498,13 @@ export function DeckMultiSelect({ decks, value, scopeLabel, onValueChange }: Dec
           aria-selected={value === "all"}
           data-deck-picker-option="true"
           onClick={() => onValueChange("all")}
-          className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left core-body text-core-text hover:bg-core-subtle"
+          className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)]"
         >
-          <SelectionBox checked={value === "all"} />
           <FolderTree size={18} className="shrink-0 text-core-action" aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate">Gesamte Sammlung</span>
+          {value === "all" ? <Check size={15} className="absolute right-3 text-core-action" aria-hidden="true" /> : null}
         </button>
-        <div className="my-2 border-t border-[var(--core-border)]" />
+        <div aria-hidden="true" className="my-2 border-t border-[var(--core-border)]" />
         {visibleRows.map((row) => {
           const inherited = hasDeckAncestor(parentByDeckId, row.deck.id, selectedDeckIds);
           const checked = selectedDeckIds.has(row.deck.id) || inherited;
@@ -528,12 +521,12 @@ export function DeckMultiSelect({ decks, value, scopeLabel, onValueChange }: Dec
               data-deck-select-option={row.deck.id}
               data-deck-depth={visibleDepth}
               onClick={() => toggle(row.deck.id)}
-              className="flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pr-3 text-left core-body text-core-text hover:bg-core-subtle disabled:cursor-default disabled:opacity-65"
+              className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)] disabled:cursor-default"
               style={{ paddingInlineStart: `${0.75 + visibleDepth}rem` }}
             >
-              <SelectionBox checked={checked} />
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
               <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>
+              {checked ? <Check size={15} className="absolute right-3 text-core-action" aria-hidden="true" /> : null}
             </button>
           );
         })}
