@@ -4,7 +4,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CircleAlert, Languages } from "lucide-react";
 import { createCoreDeck } from "../coreModel.ts";
-import { CoreSelect, DeckSelect } from "./selectUi.tsx";
+import { CoreSelect, DeckMultiSelect, DeckSelect } from "./selectUi.tsx";
 import { cardTypeOptions } from "../screens/screenConstants.ts";
 
 test("CoreSelect renders the controlled value with an accessible combobox trigger", () => {
@@ -106,4 +106,46 @@ test("DeckSelect keeps an empty special value visible with its warning icon", ()
   assert.match(markup, />Zielstapel nicht gefunden</);
   assert.match(markup, /lucide-circle-alert/);
   assert.match(markup, /var\(--core-danger-surface\)/);
+});
+
+test("DeckSelect shows search from five selectable decks and excludes special options from the threshold", () => {
+  const decks = Array.from({ length: 5 }, (_, index) => createCoreDeck({
+    id: `deck-search-${index}`,
+    name: `Stapel ${index + 1}`,
+    source: "manual",
+    cards: [],
+  }));
+  const fiveDeckMarkup = renderToStaticMarkup(
+    <DeckSelect ariaLabel="Kartenstapel" value={decks[0].id} decks={decks} onValueChange={() => undefined} />,
+  );
+  const fourDeckMarkup = renderToStaticMarkup(
+    <DeckSelect
+      ariaLabel="Ebene"
+      value=""
+      decks={decks}
+      selectableDeckIds={decks.slice(0, 4).map((deck) => deck.id)}
+      specialOption={{ value: "", label: "Als Hauptstapel", icon: Languages }}
+      onValueChange={() => undefined}
+    />,
+  );
+
+  assert.match(fiveDeckMarkup, /data-deck-select-searchable="true"/);
+  assert.match(fourDeckMarkup, /data-deck-select-searchable="false"/);
+});
+
+test("DeckMultiSelect exposes the shared searchable combobox trigger", () => {
+  const decks = Array.from({ length: 5 }, (_, index) => createCoreDeck({
+    id: `deck-multi-${index}`,
+    name: `Stapel ${index + 1}`,
+    source: "manual",
+    cards: [],
+  }));
+  const markup = renderToStaticMarkup(
+    <DeckMultiSelect decks={decks} value="all" scopeLabel="Gesamte Sammlung" onValueChange={() => undefined} />,
+  );
+
+  assert.match(markup, /role="combobox"/);
+  assert.match(markup, /data-deck-multi-select-trigger="true"/);
+  assert.match(markup, /data-deck-select-searchable="true"/);
+  assert.match(markup, />Gesamte Sammlung</);
 });

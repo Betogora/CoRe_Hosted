@@ -101,6 +101,35 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });
 
+test("statistics deck filter shares search and scrollbar styling while keeping multiple selection", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Statistik" }).click();
+
+  const trigger = page.getByRole("combobox", { name: /Stapel filtern/ });
+  await trigger.click();
+  const search = page.getByRole("textbox", { name: "Stapel suchen" });
+  await expect(search).toBeVisible();
+  await expect(search).toBeFocused();
+  const viewport = page.locator('[data-deck-select-viewport="true"]');
+  await expect.poll(() => viewport.evaluate((element) => getComputedStyle(element).overflowY)).toBe("auto");
+
+  await search.fill("Europa");
+  const europeOption = page.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
+  await expect(europeOption).toBeVisible();
+  await expect(page.getByRole("option", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Suche leeren" }).click();
+
+  const rootOption = page.getByRole("option", { name: "Welt-Hauptstädte", exact: true });
+  await rootOption.click();
+  await expect(europeOption).toHaveAttribute("aria-selected", "true");
+  await expect(europeOption).toBeDisabled();
+  await expect(viewport).not.toContainText("Durch Oberstapel eingeschlossen");
+
+  await page.keyboard.press("Escape");
+  await trigger.click();
+  await expect(page.getByRole("textbox", { name: "Stapel suchen" })).toHaveValue("");
+});
+
 test("active deck rows fit every target width and toggle reliably on mobile", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
@@ -148,6 +177,13 @@ test("learning rows activate directly while expand and settings remain independe
   await page.getByTestId("learn-deck-create-toggle").click();
   const parentSelect = page.getByTestId("learn-deck-parent-select");
   await parentSelect.click();
+  const parentSearch = page.getByRole("textbox", { name: "Stapel suchen" });
+  await expect(parentSearch).toBeVisible();
+  await expect(parentSearch).toBeFocused();
+  await parentSearch.fill("Europa");
+  await expect(page.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Suche leeren" }).click();
   await expect(page.getByRole("option", { name: "Als Hauptstapel", exact: true })).toBeVisible();
   await expect(page.getByRole("option", { name: "Welt-Hauptstädte", exact: true }).locator('[data-deck-icon="true"]')).toHaveCount(1);
   const europeParentOption = page.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
@@ -343,6 +379,8 @@ test("deck management disables direct drag and shares the confirmed keyboard mov
   expect(selectBounds!.y).toBeGreaterThanOrEqual(0);
   expect(selectBounds!.y + selectBounds!.height).toBeLessThanOrEqual(601);
   expect(await selectViewport.evaluate((viewport) => viewport.scrollHeight > viewport.clientHeight)).toBe(true);
+  await expect.poll(() => selectViewport.evaluate((viewport) => getComputedStyle(viewport).overflowY)).toBe("auto");
+  await expect(page.getByRole("textbox", { name: "Stapel suchen" })).toHaveCount(0);
   const europeMoveOption = page.getByRole("option", { name: /Europa$/ });
   await europeMoveOption.click();
   await page.getByTestId("action-dialog-backdrop").click({ position: { x: 5, y: 5 } });
