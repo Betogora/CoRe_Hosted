@@ -240,28 +240,16 @@ test("study heatmap counts learned cards by local day", () => {
     now: "2026-07-07T12:00:00.000Z",
     weeks: 4,
   });
+  const window = createStudyHeatmapWindow(heatmap);
 
-  assert.equal(heatmap.weeks.length, 4);
-  assert.equal(heatmap.weekCount, 4);
-  assert.equal(heatmap.totalCount, 4);
+  assert.equal(heatmap.totalWeekCount, 4);
+  assert.equal([...heatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), 4);
   assert.equal("activeDays" in heatmap, false);
   assert.equal("averagePerActiveDay" in heatmap, false);
-  assert.equal(heatmap.currentStreak, 2);
-  assert.equal(heatmap.longestStreak, 2);
-  assert.ok(heatmap);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(heatmap.bestDay.key, "2026-07-07");
-  assert.ok(heatmap);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(heatmap.bestDay.count, 2);
-  assert.equal(heatmap.rangeLabel, "15.06.2026 - 07.07.2026");
-  assert.ok(heatmap.monthLabels.includes("Jul"));
-  assert.ok(heatmap);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(heatmap.days.find((day) => day.key === "2026-07-07").count, 2);
-  assert.ok(heatmap);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(heatmap.days.find((day) => day.key === "2026-07-07").level, 4);
+  assert.equal("longestStreak" in heatmap, false);
+  assert.ok(window.monthLabels.includes("Jul"));
+  assert.equal(window.days.find((day) => day.key === "2026-07-07")?.count, 2);
+  assert.equal(window.days.find((day) => day.key === "2026-07-07")?.level, 4);
 });
 
 test("study heatmap labels the visible year change on January", () => {
@@ -269,7 +257,7 @@ test("study heatmap labels the visible year change on January", () => {
     now: "2026-02-10T12:00:00.000Z",
     weeks: 12,
   });
-  const monthLabels = heatmap.monthLabels.filter(Boolean);
+  const monthLabels = createStudyHeatmapWindow(heatmap).monthLabels.filter(Boolean);
 
   assert.ok(monthLabels.includes("Dez"));
   assert.ok(monthLabels.includes("Jan 2026"));
@@ -298,29 +286,20 @@ test("study heatmap defaults to the current calendar year and pads whole weeks",
   const heatmap = createStudyHeatmapModel([deck], {
     now: "2026-07-07T12:00:00.000Z",
   });
+  const window = createStudyHeatmapWindow(heatmap);
 
-  assert.equal(heatmap.isCalendarYear, true);
-  assert.equal(heatmap.displayYear, 2026);
-  assert.equal(heatmap.calendarStartKey, "2026-01-01");
-  assert.equal(heatmap.calendarEndKey, "2026-12-31");
-  assert.equal(heatmap.weeks.length, 53);
-  assert.equal(heatmap.days[0].key, "2025-12-29");
-  assert.equal(heatmap.days[0].isOutsideDisplayYear, true);
-  assert.ok(heatmap);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(heatmap.days.at(-1).key, "2027-01-03");
-  assert.ok(heatmap);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(heatmap.days.at(-1).isOutsideDisplayYear, true);
-  assert.equal(heatmap.totalCount, 2);
-  assert.ok(heatmap);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(heatmap.days.find((day) => day.key === "2025-12-31").count, 0);
-  assert.ok(heatmap);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(heatmap.days.find((day) => day.key === "2026-01-02").count, 1);
-  assert.equal(heatmap.monthLabels.filter(Boolean)[0], "Jan 2026");
-  assert.ok(heatmap.monthLabels.includes("Dez"));
+  assert.equal(heatmap.rangeStartKey, "2026-01-01");
+  assert.equal(heatmap.rangeEndKey, "2026-12-31");
+  assert.equal(heatmap.totalWeekCount, 53);
+  assert.equal(window.days[0].key, "2025-12-29");
+  assert.equal(window.days[0].isOutsideRange, true);
+  assert.equal(window.days.at(-1)?.key, "2027-01-03");
+  assert.equal(window.days.at(-1)?.isOutsideRange, true);
+  assert.equal([...heatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), 2);
+  assert.equal(window.days.find((day) => day.key === "2025-12-31")?.count, 0);
+  assert.equal(window.days.find((day) => day.key === "2026-01-02")?.count, 1);
+  assert.equal(window.monthLabels.filter(Boolean)[0], "Jan 2026");
+  assert.ok(window.monthLabels.includes("Dez"));
 });
 
 test("study heatmap window fits whole weeks to viewport width and navigates by arrows", () => {
@@ -343,20 +322,20 @@ test("study heatmap window fits whole weeks to viewport width and navigates by a
     weeks: 53,
   });
 
-  assert.equal(getStudyHeatmapVisibleWeekCount(320, heatmap.weekCount), 12);
+  assert.equal(getStudyHeatmapVisibleWeekCount(320, heatmap.totalWeekCount), 12);
 
   const latestWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 320 });
   assert.equal(latestWindow.weeks.length, 12);
   assert.equal(latestWindow.days.length, 84);
-  assert.equal(latestWindow.endWeekIndex, heatmap.weekCount);
+  assert.equal(latestWindow.endWeekIndex, heatmap.totalWeekCount);
   assert.equal(latestWindow.canShowPrevious, true);
   assert.equal(latestWindow.canShowNext, false);
-  assert.equal(latestWindow.totalCount, 2);
-  assert.equal(latestWindow.rangeEndKey, "2026-07-07");
+  assert.equal(latestWindow.days.reduce((sum, day) => sum + day.count, 0), 2);
+  assert.equal(latestWindow.visibleRangeEndKey, "2026-07-12");
 
   const explicitDefaultWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 320, endWeekIndex: null });
-  assert.equal(explicitDefaultWindow.endWeekIndex, heatmap.weekCount);
-  assert.equal(explicitDefaultWindow.rangeEndKey, "2026-07-07");
+  assert.equal(explicitDefaultWindow.endWeekIndex, heatmap.totalWeekCount);
+  assert.equal(explicitDefaultWindow.visibleRangeEndKey, "2026-07-12");
 
   const previousWindow = createStudyHeatmapWindow(heatmap, {
     viewportWidth: 320,
@@ -375,12 +354,12 @@ test("study heatmap calendar year shows the whole year when possible and anchors
     now: "2026-07-07T12:00:00.000Z",
   });
 
-  assert.equal(getStudyHeatmapVisibleWeekCount(320, heatmap.weekCount), 12);
-  assert.equal(getStudyHeatmapVisibleWeekCount(900, heatmap.weekCount), 37);
-  assert.equal(getStudyHeatmapVisibleWeekCount(1_255, heatmap.weekCount), heatmap.weekCount);
+  assert.equal(getStudyHeatmapVisibleWeekCount(320, heatmap.totalWeekCount), 12);
+  assert.equal(getStudyHeatmapVisibleWeekCount(900, heatmap.totalWeekCount), 37);
+  assert.equal(getStudyHeatmapVisibleWeekCount(1_255, heatmap.totalWeekCount), heatmap.totalWeekCount);
 
   const fullYearWindow = createStudyHeatmapWindow(heatmap, { viewportWidth: 1_255 });
-  assert.equal(fullYearWindow.weeks.length, heatmap.weekCount);
+  assert.equal(fullYearWindow.weeks.length, heatmap.totalWeekCount);
   assert.equal(fullYearWindow.canShowPrevious, false);
   assert.equal(fullYearWindow.canShowNext, false);
 

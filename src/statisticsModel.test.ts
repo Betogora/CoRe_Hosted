@@ -3,6 +3,7 @@ import test from "node:test";
 import { createCoreCard, createCoreDeck } from "./coreModel.ts";
 import type { ReviewEvent, ReviewRating } from "./coreTypes.ts";
 import { createStatisticsIndex, projectStatistics, resolveStatisticsDeckScope, type StatisticsPeriod } from "./statisticsModel.ts";
+import { createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
 
 function reviewEvent({
   id,
@@ -100,7 +101,7 @@ test("statistics resolve parent scopes and aggregate the Anki-style categories o
   assert.equal(statistics.summary.reviewCount, 4);
   assert.equal(statistics.summary.successPercent, 75);
   assert.equal(statistics.summary.timedCount, 3);
-  assert.equal(statistics.summary.timingCoveragePercent, 75);
+  assert.equal("timingCoveragePercent" in statistics.summary, false);
   assert.equal(statistics.summary.totalDurationMs, 6_000);
   assert.equal(statistics.activity.reduce((sum, point) => sum + point.learning, 0), 1);
   assert.equal(statistics.activity.reduce((sum, point) => sum + point.relearning, 0), 1);
@@ -113,28 +114,35 @@ test("statistics resolve parent scopes and aggregate the Anki-style categories o
   assert.equal(statistics.difficultCards[0]?.learningItemId, "card_stats");
 });
 
-test("all global periods use their shared calendar and bounded chart ranges", () => {
+test("all global periods use their shared sparse daily heatmap and bounded chart ranges", () => {
   const { parent, child } = statisticsFixture();
   const index = createStatisticsIndex([parent, child]);
-  const expectations: Array<[StatisticsPeriod, string, number | null]> = [
-    ["30d", "30 Tage", 30],
-    ["90d", "90 Tage", 90],
-    ["365d", "1 Jahr", 365],
-    ["all", "Gesamt", null],
+  const expectations: Array<[StatisticsPeriod, number | null]> = [
+    ["30d", 30],
+    ["90d", 90],
+    ["365d", 365],
+    ["all", null],
   ];
 
-  for (const [period, periodLabel, calendarLength] of expectations) {
+  for (const [period, expectedDayCount] of expectations) {
     const statistics = projectStatistics(index, {
       period,
       deckIds: "all",
       now: "2026-07-07T12:00:00.000Z",
       timeZone: "Europe/Berlin",
     });
-    assert.equal(statistics.periodLabel, periodLabel);
     assert.equal(statistics.summary.reviewCount, 4);
     assert.ok(statistics.activity.length <= 240);
-    assert.ok(statistics.calendar.length <= 365);
-    if (calendarLength != null) assert.equal(statistics.calendar.length, calendarLength);
+    assert.equal([...statistics.studyHeatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), 4);
+    assert.equal("days" in statistics.studyHeatmap, false);
+    const heatmapWindow = createStudyHeatmapWindow(statistics.studyHeatmap, { viewportWidth: 320 });
+    assert.equal(heatmapWindow.weeks.length <= 12, true);
+    if (expectedDayCount != null) {
+      const actualDayCount = Math.floor((Date.parse(`${statistics.studyHeatmap.rangeEndKey}T12:00:00Z`) - Date.parse(`${statistics.studyHeatmap.rangeStartKey}T12:00:00Z`)) / 86_400_000) + 1;
+      assert.equal(actualDayCount, expectedDayCount);
+    } else {
+      assert.equal(statistics.studyHeatmap.rangeStartKey, "2026-06-01");
+    }
   }
 });
 
@@ -184,8 +192,8 @@ test("local calendar boundaries use the profile timezone", () => {
     timeZone: "Europe/Berlin",
   });
 
-  assert.equal(statistics.calendar.find((point) => point.key === "2026-03-28")?.reviews, 1);
-  assert.equal(statistics.calendar.find((point) => point.key === "2026-03-29")?.reviews, 1);
+  assert.equal(statistics.studyHeatmap.countsByDay.get("2026-03-28"), 1);
+  assert.equal(statistics.studyHeatmap.countsByDay.get("2026-03-29"), 1);
 });
 
 test("bounded projections exclude distant events and invalidate the one-entry scope cache", () => {
@@ -229,6 +237,7 @@ test("total-history series remain bounded and current snapshots survive empty hi
   assert.equal(statistics.summary.reviewCount, 0);
   assert.equal(statistics.status.activeVariants, 1);
   assert.ok(statistics.activity.length <= 240);
-  assert.ok(statistics.calendar.length <= 240);
-  assert.equal(statistics.calendarMode, "month");
+  assert.equal(statistics.studyHeatmap.countsByDay.size, 0);
+  assert.equal("days" in statistics.studyHeatmap, false);
+  assert.equal(createStudyHeatmapWindow(statistics.studyHeatmap, { viewportWidth: 320 }).days.length, 84);
 });

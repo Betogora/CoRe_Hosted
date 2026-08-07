@@ -72,7 +72,7 @@ function measureProjection(period: StatisticsPeriod) {
       projection.planning.points.length,
       projection.intervals.points.length,
     ),
-    calendarPoints: projection.calendar.length,
+    heatmapStoredDays: projection.studyHeatmap.countsByDay.size,
   };
 }
 
@@ -80,7 +80,7 @@ const coldStart = measureProjection("365d");
 const periodSwitches = (["30d", "90d", "365d", "all"] satisfies StatisticsPeriod[]).map(measureProjection);
 const allProjection = periodSwitches.at(-1)!;
 const maximumSeriesPoints = Math.max(coldStart.maximumSeriesPoints, ...periodSwitches.map((result) => result.maximumSeriesPoints));
-const maximumCalendarPoints = Math.max(coldStart.calendarPoints, ...periodSwitches.map((result) => result.calendarPoints));
+const maximumHeatmapStoredDays = Math.max(coldStart.heatmapStoredDays, ...periodSwitches.map((result) => result.heatmapStoredDays));
 
 console.log(JSON.stringify({
   events: eventCount,
@@ -88,7 +88,7 @@ console.log(JSON.stringify({
   projectionMs: allProjection.projectionMs,
   reviewsProjected: allProjection.reviewsProjected,
   maximumSeriesPoints,
-  maximumCalendarPoints,
+  maximumHeatmapStoredDays,
   coldStart,
   periodSwitches,
 }, null, 2));
@@ -96,6 +96,6 @@ console.log(JSON.stringify({
 if (maximumSeriesPoints > 240) {
   throw new Error(`Statistikreihe überschreitet das Limit: ${maximumSeriesPoints}`);
 }
-if (maximumCalendarPoints > 365) {
-  throw new Error(`Statistikkalender überschreitet das Limit: ${maximumCalendarPoints}`);
+if (periodSwitches.some((result) => result.heatmapStoredDays > result.reviewsProjected)) {
+  throw new Error("Die dünne Heatmap speichert mehr Tage als projizierte Reviews.");
 }

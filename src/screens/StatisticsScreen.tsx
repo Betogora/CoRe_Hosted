@@ -1,21 +1,14 @@
-import * as Popover from "@radix-ui/react-popover";
 import React from "react";
 import {
   Activity,
   BarChart3,
   BrainCircuit,
   CalendarDays,
-  Check,
-  ChevronDown,
   Clock3,
   Flame,
-  FolderTree,
-  Layers3,
-  Search,
   Target,
   Timer,
   TrendingUp,
-  X,
 } from "lucide-react";
 import {
   Area,
@@ -33,18 +26,18 @@ import {
   YAxis,
 } from "recharts";
 import type { StatisticsScreenProps } from "../appScreenProps.ts";
-import type { Deck } from "../coreTypes.ts";
 import {
   createStatisticsIndex,
   projectStatistics,
-  type StatisticsCalendarPoint,
   type StatisticsDeckSelection,
   type StatisticsPeriod,
   type StatisticsProjection,
 } from "../statisticsModel.ts";
+import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { DeckMultiSelect } from "../ui/selectUi.tsx";
+import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 
 const PERIOD_OPTIONS: Array<{ value: StatisticsPeriod; label: string }> = [
   { value: "30d", label: "30 Tage" },
@@ -103,6 +96,20 @@ function formatDate(value: string | null, timeZone: string) {
   return new Intl.DateTimeFormat("de-DE", { timeZone, day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
 }
 
+function formatHeatmapDate(key: string) {
+  const [year, month, day] = key.split("-");
+  return `${day}.${month}.${year}`;
+}
+
+function statisticsHeatmapDayLabel(day: StudyHeatmapDay) {
+  const date = formatHeatmapDate(day.key);
+  if (day.isOutsideRange) return `${date}: außerhalb des gewählten Zeitraums`;
+  if (day.isFuture) return `${date}: noch offen`;
+  if (day.count === 0) return `${date}: keine Wiederholungen`;
+  if (day.count === 1) return `${date}: 1 Wiederholung`;
+  return `${date}: ${formatNumber(day.count)} Wiederholungen`;
+}
+
 function StatisticsTooltip({
   active,
   payload,
@@ -146,13 +153,10 @@ function StatisticsTooltip({
   );
 }
 
-function PanelHeader({ title, description, snapshot = false }: { title: string; description: string; snapshot?: boolean }) {
+function PanelHeader({ title, snapshot = false }: { title: string; snapshot?: boolean }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--core-border)] pb-4">
-      <div>
-        <h3 className="core-heading-3 text-core-text">{title}</h3>
-        <p className="core-body mt-1 text-core-muted">{description}</p>
-      </div>
+      <h3 className="core-heading-3 text-core-text">{title}</h3>
       {snapshot ? <span className="core-status-label rounded-full bg-core-subtle px-3 py-1.5 text-core-secondary">Stand heute</span> : null}
     </div>
   );
@@ -160,20 +164,18 @@ function PanelHeader({ title, description, snapshot = false }: { title: string; 
 
 function ChartPanel({
   title,
-  description,
   children,
   snapshot,
   className = "",
 }: {
   title: string;
-  description: string;
   children: React.ReactNode;
   snapshot?: boolean;
   className?: string;
 }) {
   return (
     <SoftPanel className={`p-5 sm:p-6 ${className}`}>
-      <PanelHeader title={title} description={description} snapshot={snapshot} />
+      <PanelHeader title={title} snapshot={snapshot} />
       <div className="mt-5 min-w-0">{children}</div>
     </SoftPanel>
   );
@@ -275,83 +277,6 @@ function AddedCardsChart({ points }: { points: StatisticsProjection["addedCards"
   );
 }
 
-function CalendarHeatmap({ points, mode }: { points: StatisticsCalendarPoint[]; mode: "day" | "month" }) {
-  const [activeIndex, setActiveIndex] = React.useState(0);
-  const [detailIndex, setDetailIndex] = React.useState<number | null>(null);
-  const max = Math.max(1, ...points.map((point) => point.reviews));
-  React.useEffect(() => {
-    if (activeIndex >= points.length) setActiveIndex(Math.max(0, points.length - 1));
-  }, [activeIndex, points.length]);
-  const detail = detailIndex == null ? null : points[detailIndex];
-  function moveFocus(index: number) {
-    const normalized = Math.min(points.length - 1, Math.max(0, index));
-    setActiveIndex(normalized);
-    setDetailIndex(normalized);
-    document.querySelector<HTMLButtonElement>(`[data-calendar-index="${normalized}"]`)?.focus();
-  }
-  function renderCell(point: StatisticsCalendarPoint, index: number) {
-    const intensity = point.reviews / max;
-    const opacity = point.reviews === 0 ? 0.08 : 0.2 + intensity * 0.8;
-    const label = `${point.label}: ${formatNumber(point.reviews)} Wiederholungen, ${formatDuration(point.durationMs)}, ${formatPercent(point.successPercent)} Erfolgsquote`;
-    const verticalStep = mode === "month" ? 12 : 7;
-    return (
-      <button
-        key={point.key}
-        type="button"
-        role="gridcell"
-        data-calendar-index={index}
-        tabIndex={index === activeIndex ? 0 : -1}
-        aria-label={label}
-        onFocus={() => { setActiveIndex(index); setDetailIndex(index); }}
-        onMouseEnter={() => setDetailIndex(index)}
-        onMouseLeave={() => setDetailIndex(null)}
-        onClick={() => setDetailIndex(index)}
-        onKeyDown={(event) => {
-          const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : event.key === "ArrowDown" ? verticalStep : event.key === "ArrowUp" ? -verticalStep : 0;
-          if (!step) return;
-          event.preventDefault();
-          moveFocus(index + step);
-        }}
-        className={mode === "month" ? "min-h-11 rounded-lg border border-[var(--core-border)] px-2 core-caption font-semibold text-core-secondary" : "size-3.5 rounded-[3px] border border-[var(--core-border)]"}
-        style={{ backgroundColor: `color-mix(in srgb, var(--core-action-primary) ${Math.round(opacity * 100)}%, var(--core-surface-muted))` }}
-      >
-        {mode === "month" ? point.shortLabel : <span className="sr-only">{point.label}</span>}
-      </button>
-    );
-  }
-  const monthGroups = mode === "month"
-    ? points.reduce<Array<{ year: string; entries: Array<{ point: StatisticsCalendarPoint; index: number }> }>>((groups, point, index) => {
-        const year = point.key.slice(0, 4);
-        const current = groups.at(-1);
-        if (current?.year === year) current.entries.push({ point, index });
-        else groups.push({ year, entries: [{ point, index }] });
-        return groups;
-      }, [])
-    : [];
-  return (
-    <div>
-      <div
-        role="grid"
-        aria-label={mode === "month" ? "Monatliche Lernaktivität" : "Tägliche Lernaktivität"}
-        className={mode === "month" ? "grid gap-4" : "overflow-x-auto pb-2"}
-      >
-        {mode === "month" ? monthGroups.map((group) => (
-          <div key={group.year} role="row" className="grid gap-2 sm:grid-cols-[4rem_minmax(0,1fr)] sm:items-center">
-            <span role="rowheader" className="core-body font-semibold text-core-secondary">{group.year}</span>
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-12">{group.entries.map(({ point, index }) => renderCell(point, index))}</div>
-          </div>
-        )) : <div className="grid min-w-max grid-flow-col grid-rows-7 gap-1">{points.map(renderCell)}</div>}
-      </div>
-      <div role="tooltip" aria-live="polite" className="mt-4 min-h-14 rounded-xl bg-core-subtle px-4 py-3 core-body text-core-secondary">
-        {detail ? (
-          <span><strong className="text-core-text">{detail.label}:</strong> {formatNumber(detail.reviews)} Wiederholungen · {formatDuration(detail.durationMs)} · {formatPercent(detail.successPercent)} erfolgreich</span>
-        ) : "Zelle mit Maus, Touch oder Tastatur auswählen, um Details anzuzeigen."
-        }
-      </div>
-    </div>
-  );
-}
-
 function PlanningChart({ planning }: { planning: StatisticsProjection["planning"] }) {
   if (!planning.points.some((point) => point.total > 0)) return <NoChartData>Für den gewählten Horizont sind keine Wiederholungen eingeplant.</NoChartData>;
   return (
@@ -447,85 +372,6 @@ function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
   );
 }
 
-function isDescendant(parentByDeckId: Map<string, string | null>, candidateId: string, ancestorId: string) {
-  let parentId = parentByDeckId.get(candidateId) ?? null;
-  while (parentId) {
-    if (parentId === ancestorId) return true;
-    parentId = parentByDeckId.get(parentId) ?? null;
-  }
-  return false;
-}
-
-function DeckMultiSelect({
-  decks,
-  value,
-  scopeLabel,
-  onChange,
-}: {
-  decks: Deck[];
-  value: StatisticsDeckSelection;
-  scopeLabel: string;
-  onChange: (value: StatisticsDeckSelection) => void;
-}) {
-  const [query, setQuery] = React.useState("");
-  const deferredQuery = React.useDeferredValue(query);
-  const selected = value === "all" ? [] : value;
-  const ordered = React.useMemo(() => [...decks].sort((left, right) => left.hierarchyPath.join("/").localeCompare(right.hierarchyPath.join("/"), "de")), [decks]);
-  const parentByDeckId = React.useMemo(() => new Map(decks.map((deck) => [deck.id, deck.parentDeckId])), [decks]);
-  const visible = ordered.filter((deck) => deck.hierarchyPath.join(" / ").toLocaleLowerCase("de-DE").includes(deferredQuery.trim().toLocaleLowerCase("de-DE")));
-  function toggle(deckId: string) {
-    const inherited = selected.some((selectedId) => selectedId !== deckId && isDescendant(parentByDeckId, deckId, selectedId));
-    if (inherited) return;
-    if (selected.includes(deckId)) {
-      const next = selected.filter((id) => id !== deckId);
-      onChange(next.length > 0 ? next : "all");
-      return;
-    }
-    const next = [...selected.filter((id) => !isDescendant(parentByDeckId, id, deckId)), deckId];
-    onChange(next);
-  }
-  return (
-    <Popover.Root onOpenChange={(open) => { if (!open) setQuery(""); }}>
-      <Popover.Trigger asChild>
-        <button type="button" className="core-field flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 text-left sm:w-72" aria-label={`Stapel filtern. Aktuell: ${scopeLabel}`}>
-          <span className="flex min-w-0 items-center gap-2"><Layers3 size={18} className="shrink-0 text-core-action" aria-hidden="true" /><span className="truncate core-body font-semibold text-core-text">{scopeLabel}</span></span>
-          <ChevronDown size={17} className="shrink-0 text-core-muted" aria-hidden="true" />
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="core-overlay z-[70] grid w-[min(24rem,calc(100vw-2rem))] gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-3 shadow-xl">
-          <div className="flex items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-subtle px-3">
-            <Search size={17} className="text-core-muted" aria-hidden="true" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Stapel suchen" aria-label="Stapel suchen" className="min-h-11 min-w-0 flex-1 bg-transparent core-body text-core-text placeholder:text-core-muted" />
-            {query ? <button type="button" onClick={() => setQuery("")} aria-label="Suche leeren" className="grid size-8 place-items-center text-core-muted"><X size={16} /></button> : null}
-          </div>
-          <div className="max-h-80 overflow-y-auto pr-1">
-            <button type="button" onClick={() => onChange("all")} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left hover:bg-core-subtle" aria-pressed={value === "all"}>
-              <span className={`grid size-5 place-items-center rounded border ${value === "all" ? "border-[var(--core-action-primary)] bg-core-action text-[var(--core-text-on-accent)]" : "border-[var(--core-border)]"}`}>{value === "all" ? <Check size={14} /> : null}</span>
-              <FolderTree size={18} className="text-core-action" aria-hidden="true" />
-              <span className="core-body font-semibold text-core-text">Gesamte Sammlung</span>
-            </button>
-            <div className="my-2 border-t border-[var(--core-border)]" />
-            {visible.map((deck) => {
-              const inherited = selected.some((selectedId) => selectedId !== deck.id && isDescendant(parentByDeckId, deck.id, selectedId));
-              const checked = selected.includes(deck.id) || inherited;
-              return (
-                <button key={deck.id} type="button" onClick={() => toggle(deck.id)} disabled={inherited} aria-pressed={checked} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left hover:bg-core-subtle disabled:cursor-default disabled:opacity-65" style={{ paddingLeft: `${12 + Math.max(0, deck.hierarchyPath.length - 1) * 16}px` }}>
-                  <span className={`grid size-5 shrink-0 place-items-center rounded border ${checked ? "border-[var(--core-action-primary)] bg-core-action text-[var(--core-text-on-accent)]" : "border-[var(--core-border)]"}`}>{checked ? <Check size={14} /> : null}</span>
-                  <DeckAppearanceIcon deck={deck} className="size-7 shrink-0" iconSize={14} />
-                  <span className="min-w-0 flex-1"><span className="block truncate core-body font-semibold text-core-text">{deck.name}</span>{inherited ? <span className="block core-caption text-core-muted">Durch Oberstapel eingeschlossen</span> : null}</span>
-                </button>
-              );
-            })}
-            {visible.length === 0 ? <p className="p-4 text-center core-body text-core-muted">Kein passender Stapel.</p> : null}
-          </div>
-          <Popover.Arrow className="fill-[var(--core-border)]" />
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
-
 function RetentionTable({ rows }: { rows: StatisticsProjection["retention"] }) {
   return (
     <div className="overflow-x-auto">
@@ -568,7 +414,7 @@ export function StatisticsScreen({ decks, now, timeZone, onNavigate, onStartDeck
   }
 
   return (
-    <div className="min-w-0 max-w-full space-y-8 overflow-x-hidden" aria-busy={isPending || undefined}>
+    <div className="min-w-0 max-w-full space-y-8" aria-busy={isPending || undefined}>
       <div className="flex flex-wrap items-end justify-between gap-5">
         <PageHeader eyebrow="Lernanalyse" title="Statistik" />
         <p className="core-body text-core-muted">{statistics.dateRangeLabel}</p>
@@ -586,56 +432,54 @@ export function StatisticsScreen({ decks, now, timeZone, onNavigate, onStartDeck
           </div>
           <div className="min-w-0">
             <p className="core-control-label text-core-muted">Stapel</p>
-            <div className="mt-2"><DeckMultiSelect decks={decks} value={deckSelection} scopeLabel={statistics.scopeLabel} onChange={changeDecks} /></div>
+            <div className="mt-2"><DeckMultiSelect decks={decks} value={deckSelection} scopeLabel={statistics.scopeLabel} onValueChange={changeDecks} /></div>
           </div>
         </div>
-        <p className="core-caption mt-3 text-core-muted">Alle historischen Diagramme verwenden denselben Zeitraum und dieselbe Stapelauswahl. Unterstapel sind automatisch eingeschlossen.</p>
       </SoftPanel>
 
       <section aria-labelledby="statistics-overview-title">
         <div className="mb-4 flex items-center gap-3"><Activity size={20} className="text-core-action" aria-hidden="true" /><h2 id="statistics-overview-title" className="core-heading-2 text-core-text">Überblick</h2></div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatTile icon={Activity} label="Wiederholungen" value={formatNumber(statistics.summary.reviewCount)} hint={`${formatNumber(statistics.summary.averagePerActiveDay, 1)} pro aktivem Tag`} />
-          <StatTile icon={Target} label="Erfolgsquote" value={formatPercent(statistics.summary.successPercent)} hint="Schwer, Gut oder Einfach" accent="text-core-success" />
-          <StatTile icon={BrainCircuit} label="Wahre Erinnerungsquote" value={statistics.summary.trueRetentionSample > 0 ? formatPercent(statistics.summary.trueRetentionPercent) : "–"} hint={`${formatNumber(statistics.summary.trueRetentionSample)} geeignete Reviews`} accent="text-core-warning" />
-          <StatTile icon={Timer} label="Gemessene Lernzeit" value={formatDuration(statistics.summary.totalDurationMs)} hint={statistics.summary.timedCount > 0 ? `${formatPercent(statistics.summary.timingCoveragePercent)} Zeitabdeckung` : "Messung beginnt mit der nächsten Wiederholung"} />
-          <StatTile icon={Clock3} label="Zeit pro Antwort" value={statistics.summary.timedCount > 0 ? formatDuration(statistics.summary.averageResponseMs) : "–"} hint={`${formatNumber(statistics.summary.timedCount)} gemessene Antworten`} />
-          <StatTile icon={CalendarDays} label="Aktive Lerntage" value={formatNumber(statistics.summary.activeDays)} hint={statistics.periodLabel} />
-          <StatTile icon={Flame} label="Aktuelle Serie" value={`${formatNumber(statistics.summary.currentStreak)} Tage`} hint={`Längste: ${formatNumber(statistics.summary.longestStreak)} Tage`} accent="text-core-warning" />
-          <StatTile icon={Layers3} label="Auswertung" value={statistics.scopeLabel} hint={statistics.periodLabel} />
+          <StatTile icon={Activity} label="Wiederholungen" value={formatNumber(statistics.summary.reviewCount)} />
+          <StatTile icon={Target} label="Erfolgsquote" value={formatPercent(statistics.summary.successPercent)} accent="text-core-success" />
+          <StatTile icon={BrainCircuit} label="Wahre Erinnerungsquote" value={statistics.summary.trueRetentionSample > 0 ? formatPercent(statistics.summary.trueRetentionPercent) : "–"} accent="text-core-warning" />
+          <StatTile icon={Timer} label="Gemessene Lernzeit" value={formatDuration(statistics.summary.totalDurationMs)} />
+          <StatTile icon={Clock3} label="Zeit pro Antwort" value={statistics.summary.timedCount > 0 ? formatDuration(statistics.summary.averageResponseMs) : "–"} />
+          <StatTile icon={CalendarDays} label="Aktive Lerntage" value={formatNumber(statistics.summary.activeDays)} />
+          <StatTile icon={Flame} label="Aktuelle Serie" value={`${formatNumber(statistics.summary.currentStreak)} Tage`} accent="text-core-warning" />
         </div>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2" aria-label="Lernaktivität">
-        <ChartPanel title="Wiederholungen" description="Durchgeführte Reviews nach Zustand vor der Antwort, einschließlich kumuliertem Verlauf." className="xl:col-span-2"><ActivityChart points={statistics.activity} /></ChartPanel>
-        <ChartPanel title="Lernzeit" description={`Gemessene Antwortzeit; verfügbar für ${formatPercent(statistics.summary.timingCoveragePercent)} der Reviews.`}><ActivityChart points={statistics.activity} duration /></ChartPanel>
-        <ChartPanel title="Hinzugefügte Karten" description="Neue Learning Items und kumulierter Bestand im gewählten Zeitraum."><AddedCardsChart points={statistics.addedCards} /></ChartPanel>
-        <ChartPanel title="Lernkalender" description={statistics.calendarMode === "month" ? "Monatliche Aktivität über den gesamten Verlauf." : "Tägliche Aktivität; Details per Maus, Touch oder Tastatur."} className="xl:col-span-2"><CalendarHeatmap points={statistics.calendar} mode={statistics.calendarMode} /></ChartPanel>
+        <ChartPanel title="Wiederholungen" className="xl:col-span-2"><ActivityChart points={statistics.activity} /></ChartPanel>
+        <ChartPanel title="Lernzeit"><ActivityChart points={statistics.activity} duration /></ChartPanel>
+        <ChartPanel title="Hinzugefügte Karten"><AddedCardsChart points={statistics.addedCards} /></ChartPanel>
+        <StudyHeatmap heatmap={statistics.studyHeatmap} formatDayLabel={statisticsHeatmapDayLabel} className="xl:col-span-2" />
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2" aria-label="Planung und Kartenbestand">
-        <ChartPanel title="Zeitplanung" description={`Fälligkeiten für ${statistics.periodLabel}; Rückstand ist im ersten Balken enthalten.`} className="xl:col-span-2"><PlanningChart planning={statistics.planning} /></ChartPanel>
-        <ChartPanel title="Status" description="Aktuelle Verteilung aller planbaren Varianten der ausgewählten Stapel." snapshot><StatusChart status={statistics.status} /></ChartPanel>
-        <ChartPanel title="Wiederholungsintervalle" description="Aktuelle Intervalle mit kumuliertem Anteil; der globale Zeitraum begrenzt die Anzeige." snapshot>
+        <ChartPanel title="Zeitplanung" className="xl:col-span-2"><PlanningChart planning={statistics.planning} /></ChartPanel>
+        <ChartPanel title="Status" snapshot><StatusChart status={statistics.status} /></ChartPanel>
+        <ChartPanel title="Wiederholungsintervalle" snapshot>
           <DistributionChart points={statistics.intervals.points} countLabel="Varianten" />
           <div className="mt-4 grid grid-cols-3 gap-3 text-center core-caption text-core-muted"><span>Mittelwert<br /><strong className="core-body text-core-text">{formatNumber(statistics.intervals.averageDays, 1)} Tage</strong></span><span>Median<br /><strong className="core-body text-core-text">{formatNumber(statistics.intervals.medianDays)} Tage</strong></span><span>95. Perzentil<br /><strong className="core-body text-core-text">{formatNumber(statistics.intervals.percentile95Days)} Tage</strong></span></div>
         </ChartPanel>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-3" aria-label="FSRS-Gedächtnismodell">
-        <ChartPanel title="FSRS-Schwierigkeit" description="Aktuelle Verteilung von 1 (leicht) bis 10 (schwer)." snapshot><DistributionChart points={statistics.fsrs.difficulty} countLabel="Varianten" /></ChartPanel>
-        <ChartPanel title="FSRS-Stabilität" description="Geschätzte Gedächtnisstabilität in Tagen." snapshot><DistributionChart points={statistics.fsrs.stability} countLabel="Varianten" /></ChartPanel>
-        <ChartPanel title="Abrufwahrscheinlichkeit" description={`${formatNumber(statistics.fsrs.estimatedRetainedKnowledge, 1)} geschätzte erinnerte Varianten von ${formatNumber(statistics.fsrs.eligibleVariants)} geeigneten.`} snapshot><DistributionChart points={statistics.fsrs.retrievability} countLabel="Varianten" /></ChartPanel>
+        <ChartPanel title="FSRS-Schwierigkeit" snapshot><DistributionChart points={statistics.fsrs.difficulty} countLabel="Varianten" /></ChartPanel>
+        <ChartPanel title="FSRS-Stabilität" snapshot><DistributionChart points={statistics.fsrs.stability} countLabel="Varianten" /></ChartPanel>
+        <ChartPanel title="Abrufwahrscheinlichkeit" snapshot><DistributionChart points={statistics.fsrs.retrievability} countLabel="Varianten" /></ChartPanel>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2" aria-label="Antwortverhalten">
-        <ChartPanel title="Nach Uhrzeit" description="Wiederholungen und Erfolgsquote je lokaler Stunde."><HourlyChart points={statistics.hourly} /></ChartPanel>
-        <ChartPanel title="Antwortknöpfe" description="Nochmal, Schwer, Gut und Einfach nach Lernzustand."><RatingChart points={statistics.ratings} /></ChartPanel>
-        <ChartPanel title="Wahre Erinnerungsquote" description="Erste geeignete Wiederholung jeder Variante pro Tag; mindestens ein Tag vorheriges Intervall." className="xl:col-span-2"><RetentionTable rows={statistics.retention} /></ChartPanel>
+        <ChartPanel title="Nach Uhrzeit"><HourlyChart points={statistics.hourly} /></ChartPanel>
+        <ChartPanel title="Antwortknöpfe"><RatingChart points={statistics.ratings} /></ChartPanel>
+        <ChartPanel title="Wahre Erinnerungsquote" className="xl:col-span-2"><RetentionTable rows={statistics.retention} /></ChartPanel>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2" aria-label="Detailauswertung">
-        {showDeckComparison ? <ChartPanel title="Stapelvergleich" description="Direkter Vergleich innerhalb der globalen Auswahl." className="xl:col-span-2">
+        {showDeckComparison ? <ChartPanel title="Stapelvergleich" className="xl:col-span-2">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[58rem] border-collapse text-left core-body">
               <thead><tr className="border-b border-[var(--core-border)] text-core-muted"><th className="px-3 py-3">Stapel</th><th className="px-3 py-3 text-right">Reviews</th><th className="px-3 py-3 text-right">Erfolg</th><th className="px-3 py-3 text-right">Nochmal</th><th className="px-3 py-3 text-right">Erinnerung</th><th className="px-3 py-3 text-right">Ø Intervall</th><th className="px-3 py-3 text-right">Nächste Fälligkeit</th></tr></thead>
@@ -644,7 +488,7 @@ export function StatisticsScreen({ decks, now, timeZone, onNavigate, onStartDeck
           </div>
         </ChartPanel> : null}
 
-        <ChartPanel title="Schwierige Karten" description="Mindestens drei Reviews; sortiert nach Nochmal-/Schwer-Anteil." className="xl:col-span-2">
+        <ChartPanel title="Schwierige Karten" className="xl:col-span-2">
           {statistics.difficultCards.length === 0 ? <NoChartData>Für eine belastbare Rangliste sind noch nicht genügend Wiederholungen vorhanden.</NoChartData> : (
             <div className="grid gap-3 md:grid-cols-2">
               {statistics.difficultCards.map((card) => (
@@ -659,7 +503,6 @@ export function StatisticsScreen({ decks, now, timeZone, onNavigate, onStartDeck
         </ChartPanel>
       </section>
 
-      <p className="core-caption text-center text-core-muted">FSRS-Kennzahlen und aktuelle Bestandsverteilungen beziehen sich auf {statistics.scopeLabel} · Stand {formatDate(now, timeZone)}.</p>
     </div>
   );
 }

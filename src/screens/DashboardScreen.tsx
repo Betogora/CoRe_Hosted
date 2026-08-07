@@ -1,20 +1,13 @@
 import React from "react";
-import { Activity, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileArchive, PenLine, Sparkles } from "lucide-react";
-import { createDeckLibraryModel, createStudyHeatmapWindow } from "../libraryModel.ts";
+import { CalendarDays, CheckCircle2, ChevronRight, FileArchive, PenLine, Sparkles } from "lucide-react";
+import { createDeckLibraryModel } from "../libraryModel.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
+import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
-import { CoreTooltip } from "../ui/tooltipUi.tsx";
+import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 
-const heatmapToneByLevel = [
-  "core-heatmap-level-0",
-  "core-heatmap-level-1",
-  "core-heatmap-level-2",
-  "core-heatmap-level-3",
-  "core-heatmap-level-4",
-];
-
-function formatHeatmapDate(key: { split: (arg0: string) => [any,any,any]; }) {
+function formatHeatmapDate(key: string) {
   const [year, month, date] = key.split("-");
   return `${date}.${month}.${year}`;
 }
@@ -24,156 +17,12 @@ function formatCardCount(count: number) {
   return `${count} Karten`;
 }
 
-function heatmapDayLabel(day: { key: { split: (arg0: string) => [any,any,any]; }; isOutsideDisplayYear: any; isFuture: any; count: number; }) {
+function heatmapDayLabel(day: StudyHeatmapDay) {
   const date = formatHeatmapDate(day.key);
-  if (day.isOutsideDisplayYear) return `${date}: außerhalb des Kalenderjahres`;
+  if (day.isOutsideRange) return `${date}: außerhalb des Kalenderjahres`;
   if (day.isFuture) return `${date}: noch offen`;
   if (day.count === 0) return `${date}: keine Karten gelernt`;
   return `${date}: ${formatCardCount(day.count)} gelernt`;
-}
-
-function HeatmapLegend() {
-  return (
-    <div className="flex items-center gap-2 core-body text-[var(--core-text-muted)]">
-      <span>Weniger</span>
-      {[0, 1, 2, 3, 4].map((level) => (
-        <span key={level} className={`block size-3 rounded-[4px] border ${heatmapToneByLevel[level]}`} />
-      ))}
-      <span>Mehr</span>
-    </div>
-  );
-}
-
-function useElementWidth() {
-  const elementRef = React.useRef<any>(null);
-  const [width, setWidth] = React.useState<any>(null);
-
-  React.useLayoutEffect(() => {
-    const element = elementRef.current;
-    if (!element) return undefined;
-
-    const updateWidth = () => setWidth(element.getBoundingClientRect().width);
-    updateWidth();
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", updateWidth);
-      return () => window.removeEventListener("resize", updateWidth);
-    }
-
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  return [elementRef, width];
-}
-
-function StudyHeatmap({ heatmap }: any) {
-  const [heatmapViewportRef, heatmapViewportWidth] = useElementWidth();
-  const [heatmapEndWeekIndex, setHeatmapEndWeekIndex] = React.useState<any>(null);
-  const visibleHeatmap: any = React.useMemo(
-    () => createStudyHeatmapWindow(heatmap, { viewportWidth: heatmapViewportWidth, endWeekIndex: heatmapEndWeekIndex }),
-    [heatmap, heatmapEndWeekIndex, heatmapViewportWidth],
-  );
-  const gridColumns = `2.25rem repeat(${visibleHeatmap.weeks.length}, 19px)`;
-  const goToPreviousHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.previousEndWeekIndex);
-  const goToNextHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.nextEndWeekIndex);
-  const handleHeatmapKeyDown = (event: { key: string; preventDefault: () => void; }) => {
-    if (event.key === "ArrowLeft" && visibleHeatmap.canShowPrevious) {
-      event.preventDefault();
-      goToPreviousHeatmapWindow();
-    }
-    if (event.key === "ArrowRight" && visibleHeatmap.canShowNext) {
-      event.preventDefault();
-      goToNextHeatmapWindow();
-    }
-  };
-
-  return (
-    <SoftPanel className="p-4 sm:p-7">
-      <div className="flex items-center gap-4" data-testid="study-heatmap-header">
-        <div className="flex items-center gap-4">
-          <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
-          <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Lern-Heatmap</h3>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-            <CoreTooltip label="Frühere Wochen anzeigen">
-              <button
-                type="button"
-                onClick={goToPreviousHeatmapWindow}
-                disabled={!visibleHeatmap.canShowPrevious}
-                className="inline-flex size-11 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Frühere Wochen anzeigen"
-              >
-                <ChevronLeft size={17} aria-hidden="true" />
-              </button>
-            </CoreTooltip>
-            <CoreTooltip label="Spätere Wochen anzeigen">
-              <button
-                type="button"
-                onClick={goToNextHeatmapWindow}
-                disabled={!visibleHeatmap.canShowNext}
-                className="inline-flex size-11 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Spätere Wochen anzeigen"
-              >
-                <ChevronRight size={17} aria-hidden="true" />
-              </button>
-            </CoreTooltip>
-        </div>
-      </div>
-
-      <div
-        ref={heatmapViewportRef}
-        className="mt-3 min-w-0 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus"
-        tabIndex={0}
-        onKeyDown={handleHeatmapKeyDown}
-        role="group"
-        aria-label={`Lern-Heatmap-Ausschnitt von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}`}
-        aria-describedby="study-heatmap-keyboard-help"
-      >
-        <p id="study-heatmap-keyboard-help" className="sr-only">Mit der linken und rechten Pfeiltaste zwischen Zeiträumen wechseln.</p>
-        <div
-          className="grid w-max max-w-full gap-1"
-          style={{ gridTemplateColumns: gridColumns }}
-          role="img"
-          data-testid="study-heatmap-grid"
-          aria-label={`Lern-Heatmap von ${visibleHeatmap.rangeStartKey} bis ${visibleHeatmap.rangeEndKey}`}
-        >
-          <span aria-hidden="true" />
-          {visibleHeatmap.monthLabels.map((label: string, index: number) => (
-            <span
-              key={`${label}-${index}`}
-              className="h-5 whitespace-nowrap text-left text-[0.68rem] font-semibold text-[var(--core-text-muted)]"
-              data-month-label={label || undefined}
-            >
-              {label}
-            </span>
-          ))}
-
-          {visibleHeatmap.weekdayLabels.map((label: string, dayIndex: number) => (
-            <React.Fragment key={label}>
-              <span className="flex min-h-4 items-center text-[0.68rem] font-semibold text-[var(--core-text-muted)]">{label}</span>
-              {visibleHeatmap.weeks.map((week: any[]) => {
-                const day = week[dayIndex];
-                const dayLabel = heatmapDayLabel(day);
-                return (
-                  <CoreTooltip key={day.key} label={dayLabel}>
-                    <span
-                      className={`block size-[19px] rounded-[4px] border transition-transform hover:scale-110 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-inset ring-core-focus" : ""} ${day.isFuture ? "opacity-35" : ""} ${day.isOutsideDisplayYear ? "opacity-20" : ""}`}
-                      aria-label={dayLabel}
-                    />
-                  </CoreTooltip>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-      <div className="mt-3 flex justify-center" data-testid="study-heatmap-legend">
-        <HeatmapLegend />
-      </div>
-    </SoftPanel>
-  );
 }
 
 export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded }: DashboardScreenProps) {
@@ -240,7 +89,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateD
         </p>
       </SoftPanel>
 
-      <StudyHeatmap heatmap={studyHeatmap} />
+      <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />
 
       <DeckTree
         rows={library.rows}

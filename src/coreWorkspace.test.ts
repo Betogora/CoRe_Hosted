@@ -161,7 +161,7 @@ test("workspace can seed the world capitals deck for an empty local tester accou
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(root.importMeta.studyHistory.version, "study-history-v1");
   assert.equal(reviewEventCount, 1952);
-  assert.equal(heatmap.totalCount, reviewEventCount);
+  assert.equal([...heatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), reviewEventCount);
   assert.equal(matureCards.length, 148);
   assert.equal(dueCards.length, 26);
   assert.equal(stubbornCards.length, 19);

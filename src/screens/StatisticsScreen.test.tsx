@@ -41,5 +41,22 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(markup, /FSRS-Schwierigkeit/);
   assert.match(markup, /Wahre Erinnerungsquote/);
   assert.match(markup, /Stapelvergleich/);
+  assert.match(markup, /Lern-Heatmap/);
+  assert.match(markup, /data-testid="study-heatmap-grid"/);
+  assert.doesNotMatch(markup, /overflow-x-hidden/);
+  for (const removedText of [
+    "Alle historischen Diagramme",
+    "pro aktivem Tag",
+    "Schwer, Gut oder Einfach",
+    "geeignete Reviews",
+    "Messung beginnt mit der nächsten Wiederholung",
+    "gemessene Antworten",
+    "Längste:",
+    "Auswertung",
+    "Durchgeführte Reviews nach Zustand",
+    "Neue Learning Items und kumulierter Bestand",
+    "Direkter Vergleich innerhalb der globalen Auswahl",
+    "FSRS-Kennzahlen und aktuelle Bestandsverteilungen",
+  ]) assert.doesNotMatch(markup, new RegExp(removedText));
   assert.doesNotMatch(markup, /Letzte 14 Tage/);
 });

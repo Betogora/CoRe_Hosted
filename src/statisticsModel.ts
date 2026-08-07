@@ -1,5 +1,6 @@
 import type { Deck, LearningItem, ReviewEvent, ReviewRating, ReviewState } from "./coreTypes.ts";
 import { calculateRetrievability } from "./scheduler.ts";
+import { createStudyHeatmapModelFromCounts, type StudyHeatmapModel } from "./studyHeatmapModel.ts";
 
 export type StatisticsPeriod = "30d" | "90d" | "365d" | "all";
 export type StatisticsDeckSelection = "all" | string[];
@@ -58,15 +59,6 @@ export interface StatisticsSeriesPoint {
   timedCount: number;
 }
 
-export interface StatisticsCalendarPoint {
-  key: string;
-  label: string;
-  shortLabel: string;
-  reviews: number;
-  durationMs: number;
-  successPercent: number;
-}
-
 export interface StatisticsDistributionPoint {
   key: string;
   label: string;
@@ -103,26 +95,21 @@ export interface StatisticsProjection {
   selection: StatisticsSelection;
   scopeDeckIds: string[];
   scopeLabel: string;
-  periodLabel: string;
   dateRangeLabel: string;
   summary: {
     reviewCount: number;
     activeDays: number;
-    averagePerActiveDay: number;
     successPercent: number;
     trueRetentionPercent: number;
     trueRetentionSample: number;
     totalDurationMs: number;
     averageResponseMs: number;
     timedCount: number;
-    timingCoveragePercent: number;
     currentStreak: number;
-    longestStreak: number;
   };
   activity: StatisticsSeriesPoint[];
   addedCards: Array<{ key: string; label: string; rangeLabel: string; count: number; cumulative: number }>;
-  calendar: StatisticsCalendarPoint[];
-  calendarMode: "day" | "month";
+  studyHeatmap: StudyHeatmapModel;
   planning: {
     points: StatisticsSeriesPoint[];
     overdue: number;
@@ -147,8 +134,6 @@ export interface StatisticsProjection {
     difficulty: StatisticsDistributionPoint[];
     stability: StatisticsDistributionPoint[];
     retrievability: StatisticsDistributionPoint[];
-    estimatedRetainedKnowledge: number;
-    eligibleVariants: number;
   };
   hourly: Array<{ hour: number; label: string; reviews: number; successPercent: number }>;
   ratings: StatisticsRatingPoint[];
@@ -188,14 +173,18 @@ const CATEGORY_LABELS: Record<StatisticsReviewCategory, string> = {
   mature: "Reif",
 };
 const RATING_KEYS: ReviewRating[] = ["again", "hard", "good", "easy"];
+const DURATION_KEY_BY_CATEGORY = {
+  learning: "durationLearningMs",
+  relearning: "durationRelearningMs",
+  young: "durationYoungMs",
+  mature: "durationMatureMs",
+} as const;
 const DAY_MS = 86_400_000;
 const SHORT_DAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "short", timeZone: "UTC" });
 const LONG_DAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
 const RANGE_DAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
-const MONTH_FORMATTER = new Intl.DateTimeFormat("de-DE", { month: "short", year: "numeric", timeZone: "UTC" });
 
-interface LocalReviewTime {
-  dayKey: string;
+interface CachedReviewTime {
   dayIndex: number;
   hour: number;
 }
@@ -207,17 +196,23 @@ interface LocalizedCard extends IndexedCard {
 
 interface LocalizedReview {
   indexed: IndexedReview;
-  localTime: LocalReviewTime;
+  dayIndex: number;
+}
+
+interface LocalizedReviewSeries {
+  reviews: IndexedReview[];
+  dayIndexes: Int32Array;
+  hours: Uint8Array;
 }
 
 interface StatisticsScopeCache {
   key: string;
   timeZone: string;
-  eventSeries: IndexedReview[][];
+  eventSeries: LocalizedReviewSeries[];
   cards: LocalizedCard[];
   retentionEvents: LocalizedReview[];
-  earliestEventKey: string | null;
-  earliestCardKey: string | null;
+  earliestEventDayIndex: number | null;
+  earliestCardDayIndex: number | null;
 }
 
 interface RetentionAggregate {
@@ -228,6 +223,7 @@ interface RetentionAggregate {
 }
 
 const scopeCacheByIndex = new WeakMap<StatisticsIndex, StatisticsScopeCache>();
+const UNRESOLVED_DAY_INDEX = -2_147_483_648;
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value != null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -292,14 +288,14 @@ function createLocalReviewTimeResolver(timeZone: string) {
     dayOffsetCache.set(index, offset);
     return offset;
   }
-  return (timestamp: number): LocalReviewTime => {
+  return (timestamp: number): CachedReviewTime => {
     const utcDayIndex = Math.floor(timestamp / DAY_MS);
     const startOffset = offsetAtUtcDayStart(utcDayIndex);
     const nextOffset = offsetAtUtcDayStart(utcDayIndex + 1);
     const offset = startOffset === nextOffset ? startOffset : exactOffset(timestamp);
     const localDate = new Date(timestamp + offset);
     const localDayIndex = Math.floor((timestamp + offset) / DAY_MS);
-    return { dayKey: keyFromDayIndex(localDayIndex), dayIndex: localDayIndex, hour: localDate.getUTCHours() };
+    return { dayIndex: localDayIndex, hour: localDate.getUTCHours() };
   };
 }
 
@@ -316,16 +312,8 @@ function shiftDayKey(key: string, days: number): string {
   return keyFromDayIndex(dayIndex(key) + days);
 }
 
-function monthKey(key: string): string {
-  return key.slice(0, 7);
-}
-
 function formatDayLabel(key: string): string {
   return SHORT_DAY_FORMATTER.format(new Date(`${key}T12:00:00Z`));
-}
-
-function formatMonthLabel(key: string): string {
-  return MONTH_FORMATTER.format(new Date(`${key}-15T12:00:00Z`));
 }
 
 function formatRangeLabel(startKey: string, endKey: string): string {
@@ -530,33 +518,20 @@ function retentionRow(key: StatisticsRetentionRow["key"], label: string, aggrega
   };
 }
 
-function buildStreaks(activeDayKeys: Set<string>, nowKey: string): { current: number; longest: number } {
-  const sorted = [...activeDayKeys].sort();
-  let longest = 0;
-  let running = 0;
-  let previous = "";
-  for (const key of sorted) {
-    running = previous && dayIndex(key) - dayIndex(previous) === 1 ? running + 1 : 1;
-    longest = Math.max(longest, running);
-    previous = key;
-  }
+function buildCurrentStreak(reviewsByDay: ReadonlyMap<number, number>, nowDayIndex: number): number {
   let current = 0;
-  let cursor = activeDayKeys.has(nowKey) ? nowKey : shiftDayKey(nowKey, -1);
-  while (activeDayKeys.has(cursor)) {
+  let cursor = reviewsByDay.has(nowDayIndex) ? nowDayIndex : nowDayIndex - 1;
+  while (reviewsByDay.has(cursor)) {
     current += 1;
-    cursor = shiftDayKey(cursor, -1);
+    cursor -= 1;
   }
-  return { current, longest };
+  return current;
 }
 
 function scopeDescription(index: StatisticsIndex, requested: StatisticsDeckSelection, scopeDeckIds: string[]): string {
   if (requested === "all") return "Gesamte Sammlung";
   if (requested.length === 1) return index.deckById.get(requested[0])?.name ?? "Ausgewählter Stapel";
   return `${Math.min(requested.length, scopeDeckIds.length)} Stapel ausgewählt`;
-}
-
-function periodDescription(period: StatisticsPeriod): string {
-  return ({ "30d": "30 Tage", "90d": "90 Tage", "365d": "1 Jahr", all: "Gesamt" } as const)[period];
 }
 
 function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[], timeZone: string): StatisticsScopeCache {
@@ -566,27 +541,33 @@ function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[],
 
   const resolveLocalTime = createLocalReviewTimeResolver(timeZone);
   const firstRetentionByVariantDay = new Map<string, LocalizedReview>();
-  const eventSeries: IndexedReview[][] = [];
+  const eventSeries: LocalizedReviewSeries[] = [];
   const cards: LocalizedCard[] = [];
-  let earliestEventKey: string | null = null;
-  let earliestCardKey: string | null = null;
+  let earliestEventDayIndex: number | null = null;
+  let earliestCardDayIndex: number | null = null;
 
   for (const deckId of scopeDeckIds) {
     const events = index.eventsByDeckId.get(deckId) ?? [];
-    eventSeries.push(events);
-    const firstEvent = events[0];
-    if (firstEvent) {
-      const firstKey = resolveLocalTime(firstEvent.answeredAtMs).dayKey;
-      if (earliestEventKey == null || firstKey < earliestEventKey) earliestEventKey = firstKey;
+    const series = {
+      reviews: events,
+      dayIndexes: new Int32Array(events.length),
+      hours: new Uint8Array(events.length),
+    };
+    series.dayIndexes.fill(UNRESOLVED_DAY_INDEX);
+    eventSeries.push(series);
+    if (events.length > 0) {
+      const firstDayIndex = localReviewDayIndexAt(series, 0, resolveLocalTime);
+      if (earliestEventDayIndex == null || firstDayIndex < earliestEventDayIndex) earliestEventDayIndex = firstDayIndex;
     }
-    for (const indexed of events) {
+    for (let eventIndex = 0; eventIndex < events.length; eventIndex += 1) {
+      const indexed = events[eventIndex];
       if (indexed.before.intervalDays < 1) continue;
-      const localTime = resolveLocalTime(indexed.answeredAtMs);
+      const dayIndex = localReviewDayIndexAt(series, eventIndex, resolveLocalTime);
       const reviewableId = indexed.event.reviewableId || indexed.event.variantId || indexed.event.learningItemId;
-      const retentionKey = `${reviewableId}\u0000${localTime.dayKey}`;
+      const retentionKey = `${reviewableId}\u0000${dayIndex}`;
       const previous = firstRetentionByVariantDay.get(retentionKey);
       if (!previous || indexed.answeredAtMs < previous.indexed.answeredAtMs) {
-        firstRetentionByVariantDay.set(retentionKey, { indexed, localTime });
+        firstRetentionByVariantDay.set(retentionKey, { indexed, dayIndex });
       }
     }
 
@@ -595,10 +576,10 @@ function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[],
       const localTime = Number.isFinite(createdAtMs) ? resolveLocalTime(createdAtMs) : null;
       cards.push({
         ...indexedCard,
-        createdDayKey: localTime?.dayKey ?? null,
+        createdDayKey: localTime ? keyFromDayIndex(localTime.dayIndex) : null,
         createdDayIndex: localTime?.dayIndex ?? null,
       });
-      if (localTime && (earliestCardKey == null || localTime.dayKey < earliestCardKey)) earliestCardKey = localTime.dayKey;
+      if (localTime && (earliestCardDayIndex == null || localTime.dayIndex < earliestCardDayIndex)) earliestCardDayIndex = localTime.dayIndex;
     }
   }
 
@@ -608,20 +589,33 @@ function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[],
     eventSeries,
     cards,
     retentionEvents: [...firstRetentionByVariantDay.values()],
-    earliestEventKey,
-    earliestCardKey,
+    earliestEventDayIndex,
+    earliestCardDayIndex,
   } satisfies StatisticsScopeCache;
   scopeCacheByIndex.set(index, result);
   return result;
 }
 
-function localDayBound(events: IndexedReview[], targetKey: string, resolveLocalTime: (timestamp: number) => LocalReviewTime, upper: boolean): number {
+function localReviewDayIndexAt(
+  series: LocalizedReviewSeries,
+  index: number,
+  resolveLocalTime: (timestamp: number) => CachedReviewTime,
+): number {
+  const cachedDayIndex = series.dayIndexes[index];
+  if (cachedDayIndex !== UNRESOLVED_DAY_INDEX) return cachedDayIndex;
+  const localTime = resolveLocalTime(series.reviews[index].answeredAtMs);
+  series.dayIndexes[index] = localTime.dayIndex;
+  series.hours[index] = localTime.hour;
+  return localTime.dayIndex;
+}
+
+function localDayBound(series: LocalizedReviewSeries, targetDayIndex: number, resolveLocalTime: (timestamp: number) => CachedReviewTime, upper: boolean): number {
   let low = 0;
-  let high = events.length;
+  let high = series.reviews.length;
   while (low < high) {
     const middle = Math.floor((low + high) / 2);
-    const key = resolveLocalTime(events[middle].answeredAtMs).dayKey;
-    if (key < targetKey || (upper && key === targetKey)) low = middle + 1;
+    const currentDayIndex = localReviewDayIndexAt(series, middle, resolveLocalTime);
+    if (currentDayIndex < targetDayIndex || (upper && currentDayIndex === targetDayIndex)) low = middle + 1;
     else high = middle;
   }
   return low;
@@ -634,22 +628,20 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
   const safeNow = Number.isFinite(now.getTime()) ? now : new Date();
   const resolveLocalTime = createLocalReviewTimeResolver(timeZone);
   const nowLocalTime = resolveLocalTime(safeNow.getTime());
-  const nowKey = nowLocalTime.dayKey;
+  const nowKey = keyFromDayIndex(nowLocalTime.dayIndex);
   const scopeDeckIds = resolveStatisticsDeckScope(index, input.deckIds);
   const scope = getStatisticsScopeCache(index, scopeDeckIds, timeZone);
-  const earliestEventKey = scope.earliestEventKey ?? nowKey;
-  const earliestCardKey = scope.earliestCardKey ?? nowKey;
-  const startKey = input.period === "all"
-    ? (earliestEventKey < earliestCardKey ? earliestEventKey : earliestCardKey)
-    : shiftDayKey(nowKey, -(PERIOD_DAYS[input.period] - 1));
-  const previousStartKey = input.period === "all" ? null : shiftDayKey(startKey, -PERIOD_DAYS[input.period]);
-  const previousEndKey = input.period === "all" ? null : shiftDayKey(startKey, -1);
-  const inSelectedRange = (key: string) => key >= startKey && key <= nowKey;
+  const startDayIndex = input.period === "all"
+    ? Math.min(scope.earliestEventDayIndex ?? nowLocalTime.dayIndex, scope.earliestCardDayIndex ?? nowLocalTime.dayIndex)
+    : nowLocalTime.dayIndex - PERIOD_DAYS[input.period] + 1;
+  const startKey = keyFromDayIndex(startDayIndex);
+  const previousStartDayIndex = input.period === "all" ? null : startDayIndex - PERIOD_DAYS[input.period];
+  const previousEndDayIndex = input.period === "all" ? null : startDayIndex - 1;
+  const inSelectedRange = (value: number) => value >= startDayIndex && value <= nowLocalTime.dayIndex;
 
   const buckets = createBuckets(startKey, nowKey, input.period);
   const activity = emptySeries(buckets);
-  const calendarMode = input.period === "all" ? "month" as const : "day" as const;
-  const calendarMap = new Map<string, { reviews: number; durationMs: number; success: number }>();
+  const reviewsByDay = new Map<number, number>();
   const hourRows = Array.from({ length: 24 }, (_, hour) => ({ hour, label: `${String(hour).padStart(2, "0")}:00`, reviews: 0, success: 0 }));
   const ratingRows = new Map<StatisticsReviewCategory, StatisticsRatingPoint>(
     (Object.keys(CATEGORY_LABELS) as StatisticsReviewCategory[]).map((category) => [category, {
@@ -663,7 +655,6 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
       successPercent: 0,
     }]),
   );
-  const activeDayKeys = new Set<string>();
   const difficult = new Map<string, { deckId: string; itemId: string; reviewCount: number; weakCount: number; lastReviewedAt: string }>();
   const deckReviewAggregates = new Map<string, { reviewCount: number; positive: number; again: number }>();
   let reviewCount = 0;
@@ -671,30 +662,25 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
   let timedCount = 0;
   let totalDurationMs = 0;
 
-  for (const events of scope.eventSeries) {
-    const rangeStart = localDayBound(events, startKey, resolveLocalTime, false);
-    const rangeEnd = localDayBound(events, nowKey, resolveLocalTime, true);
+  for (const series of scope.eventSeries) {
+    const rangeStart = localDayBound(series, startDayIndex, resolveLocalTime, false);
+    const rangeEnd = localDayBound(series, nowLocalTime.dayIndex, resolveLocalTime, true);
     for (let index = rangeStart; index < rangeEnd; index += 1) {
-      const indexed = events[index];
-      const localTime = resolveLocalTime(indexed.answeredAtMs);
-      if (!inSelectedRange(localTime.dayKey)) continue;
+      const indexed = series.reviews[index];
+      const localDayIndex = localReviewDayIndexAt(series, index, resolveLocalTime);
+      const positive = Number(isPositive(indexed.event.rating));
       reviewCount += 1;
-      successCount += Number(isPositive(indexed.event.rating));
-      activeDayKeys.add(localTime.dayKey);
+      successCount += positive;
+      reviewsByDay.set(localDayIndex, (reviewsByDay.get(localDayIndex) ?? 0) + 1);
 
-      const bucketIndex = bucketIndexFor(buckets, localTime.dayIndex);
+      const bucketIndex = bucketIndexFor(buckets, localDayIndex);
       const point = activity[bucketIndex];
       if (point) {
         point[indexed.category] += 1;
         point.total += 1;
         if (indexed.event.responseTimeMs != null && Number.isFinite(indexed.event.responseTimeMs) && indexed.event.responseTimeMs >= 0) {
           const duration = Math.min(60_000, indexed.event.responseTimeMs);
-          const durationKey = ({
-            learning: "durationLearningMs",
-            relearning: "durationRelearningMs",
-            young: "durationYoungMs",
-            mature: "durationMatureMs",
-          } as const)[indexed.category];
+          const durationKey = DURATION_KEY_BY_CATEGORY[indexed.category];
           point.durationMs += duration;
           point[durationKey] += duration;
           point.timedCount += 1;
@@ -703,17 +689,10 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
         }
       }
 
-      const calendarKey = calendarMode === "month" ? monthKey(localTime.dayKey) : localTime.dayKey;
-      const calendarValue = calendarMap.get(calendarKey) ?? { reviews: 0, durationMs: 0, success: 0 };
-      calendarValue.reviews += 1;
-      calendarValue.success += Number(isPositive(indexed.event.rating));
-      calendarValue.durationMs += indexed.event.responseTimeMs == null ? 0 : Math.min(60_000, Math.max(0, indexed.event.responseTimeMs));
-      calendarMap.set(calendarKey, calendarValue);
-
-      const hour = hourRows[localTime.hour];
+      const hour = hourRows[series.hours[index]];
       if (hour) {
         hour.reviews += 1;
-        hour.success += Number(isPositive(indexed.event.rating));
+        hour.success += positive;
       }
       const rating = ratingRows.get(indexed.category);
       if (rating) {
@@ -723,7 +702,7 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
 
       const deckAggregate = deckReviewAggregates.get(indexed.event.deckId) ?? { reviewCount: 0, positive: 0, again: 0 };
       deckAggregate.reviewCount += 1;
-      deckAggregate.positive += Number(isPositive(indexed.event.rating));
+      deckAggregate.positive += positive;
       deckAggregate.again += Number(indexed.event.rating === "again");
       deckReviewAggregates.set(indexed.event.deckId, deckAggregate);
 
@@ -746,45 +725,13 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
   const ratings = [...ratingRows.values()].map((row) => ({ ...row, successPercent: percentage(row.total - row.again, row.total) }));
 
   const addedCards = buckets.map((bucket) => ({ key: bucket.key, label: bucket.label, rangeLabel: bucket.rangeLabel, count: 0, cumulative: 0 }));
-  const calendarKeys = calendarMode === "month"
-    ? (() => {
-        const keys: string[] = [];
-        let cursor = `${startKey.slice(0, 7)}-01`;
-        while (cursor.slice(0, 7) <= nowKey.slice(0, 7)) {
-          keys.push(cursor.slice(0, 7));
-          const date = new Date(`${cursor}T12:00:00Z`);
-          date.setUTCMonth(date.getUTCMonth() + 1);
-          cursor = date.toISOString().slice(0, 10);
-        }
-        return keys;
-      })()
-    : Array.from({ length: dayIndex(nowKey) - dayIndex(startKey) + 1 }, (_, offset) => shiftDayKey(startKey, offset));
-  const calendarGroupSize = calendarMode === "month" ? Math.max(1, Math.ceil(calendarKeys.length / 240)) : 1;
-  const calendarGroups = Array.from({ length: Math.ceil(calendarKeys.length / calendarGroupSize) }, (_, index) => {
-    const keys = calendarKeys.slice(index * calendarGroupSize, (index + 1) * calendarGroupSize);
-    return keys;
-  });
-  const calendar = calendarGroups.map((keys) => {
-    const key = keys[0];
-    const lastKey = keys.at(-1) ?? key;
-    const value = keys.reduce((total, currentKey) => {
-      const current = calendarMap.get(currentKey);
-      if (!current) return total;
-      total.reviews += current.reviews;
-      total.durationMs += current.durationMs;
-      total.success += current.success;
-      return total;
-    }, { reviews: 0, durationMs: 0, success: 0 });
-    return {
-      key,
-      label: calendarMode === "month"
-        ? (key === lastKey ? formatMonthLabel(key) : `${formatMonthLabel(key)} – ${formatMonthLabel(lastKey)}`)
-        : formatRangeLabel(key, key),
-      shortLabel: calendarMode === "month" ? key.slice(5) : formatDayLabel(key),
-      reviews: value.reviews,
-      durationMs: value.durationMs,
-      successPercent: percentage(value.success, value.reviews),
-    };
+  const heatmapCountsByDay = new Map<string, number>();
+  for (const [index, count] of reviewsByDay) heatmapCountsByDay.set(keyFromDayIndex(index), count);
+  const studyHeatmap = createStudyHeatmapModelFromCounts({
+    rangeStartKey: startKey,
+    rangeEndKey: nowKey,
+    todayKey: nowKey,
+    countsByDay: heatmapCountsByDay,
   });
 
   const statusCounts = new Map<string, number>([["new", 0], ["learning", 0], ["relearning", 0], ["young", 0], ["mature", 0]]);
@@ -802,7 +749,6 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
   let addedCumulative = 0;
   let difficultyEligible = 0;
   let retrievabilityEligible = 0;
-  let estimatedRetainedKnowledge = 0;
   let latestDueKey = nowKey;
   let dailyWorkload = 0;
 
@@ -851,13 +797,13 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
       if (Number.isFinite(retrievability) && retrievability >= 0 && retrievability <= 1) {
         retrievabilityCounts[Math.min(19, Math.floor(retrievability * 20))] += 1;
         retrievabilityEligible += 1;
-        estimatedRetainedKnowledge += retrievability;
       }
       const dueAtMs = Date.parse(state.dueAt);
       if (Number.isFinite(dueAtMs)) {
         const dueLocalTime = resolveLocalTime(dueAtMs);
-        futureStates.push({ state, dueKey: dueLocalTime.dayKey, dueDayIndex: dueLocalTime.dayIndex });
-        if (dueLocalTime.dayKey > latestDueKey) latestDueKey = dueLocalTime.dayKey;
+        const dueKey = keyFromDayIndex(dueLocalTime.dayIndex);
+        futureStates.push({ state, dueKey, dueDayIndex: dueLocalTime.dayIndex });
+        if (dueKey > latestDueKey) latestDueKey = dueKey;
         dailyWorkload += 1 / Math.max(1, finiteNumber(state.intervalDays, 1));
       }
     }
@@ -894,14 +840,14 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
   const previousRetention = emptyRetentionAggregate();
   const allRetention = emptyRetentionAggregate();
   const selectedRetentionByDeck = new Map<string, RetentionAggregate>();
-  for (const { indexed, localTime } of scope.retentionEvents) {
+  for (const { indexed, dayIndex } of scope.retentionEvents) {
     addRetention(allRetention, indexed);
-    if (inSelectedRange(localTime.dayKey)) {
+    if (inSelectedRange(dayIndex)) {
       addRetention(selectedRetention, indexed);
       const deckRetention = selectedRetentionByDeck.get(indexed.event.deckId) ?? emptyRetentionAggregate();
       addRetention(deckRetention, indexed);
       selectedRetentionByDeck.set(indexed.event.deckId, deckRetention);
-    } else if (previousStartKey && previousEndKey && localTime.dayKey >= previousStartKey && localTime.dayKey <= previousEndKey) {
+    } else if (previousStartDayIndex != null && previousEndDayIndex != null && dayIndex >= previousStartDayIndex && dayIndex <= previousEndDayIndex) {
       addRetention(previousRetention, indexed);
     }
   }
@@ -973,7 +919,7 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
     .sort((left, right) => right.weakPercent - left.weakPercent || right.reviewCount - left.reviewCount || right.lastReviewedAt.localeCompare(left.lastReviewedAt))
     .slice(0, 12);
 
-  const streaks = buildStreaks(activeDayKeys, nowKey);
+  const currentStreak = buildCurrentStreak(reviewsByDay, nowLocalTime.dayIndex);
   const selectedRetentionCell = retentionCell(
     selectedRetention.youngRemembered + selectedRetention.matureRemembered,
     selectedRetention.youngTotal + selectedRetention.matureTotal,
@@ -982,26 +928,21 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
     selection,
     scopeDeckIds,
     scopeLabel: scopeDescription(index, input.deckIds, scopeDeckIds),
-    periodLabel: periodDescription(input.period),
     dateRangeLabel: formatRangeLabel(startKey, nowKey),
     summary: {
       reviewCount,
-      activeDays: activeDayKeys.size,
-      averagePerActiveDay: activeDayKeys.size > 0 ? Math.round((reviewCount / activeDayKeys.size) * 10) / 10 : 0,
+      activeDays: reviewsByDay.size,
       successPercent: percentage(successCount, reviewCount),
       trueRetentionPercent: selectedRetentionCell.percent,
       trueRetentionSample: selectedRetentionCell.total,
       totalDurationMs,
       averageResponseMs: timedCount > 0 ? Math.round(totalDurationMs / timedCount) : 0,
       timedCount,
-      timingCoveragePercent: percentage(timedCount, reviewCount),
-      currentStreak: streaks.current,
-      longestStreak: streaks.longest,
+      currentStreak,
     },
     activity: finalizedActivity,
     addedCards,
-    calendar,
-    calendarMode,
+    studyHeatmap,
     planning: {
       points: finalizedPlanning,
       overdue,
@@ -1026,8 +967,6 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
       difficulty,
       stability,
       retrievability,
-      estimatedRetainedKnowledge: Math.round(estimatedRetainedKnowledge * 10) / 10,
-      eligibleVariants: retrievabilityEligible,
     },
     hourly,
     ratings,

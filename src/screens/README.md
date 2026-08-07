@@ -8,7 +8,7 @@ Each exported screen in this folder is a UI module with a small props interface.
 
 ## Screen Map
 
-- `DashboardScreen.tsx`: dashboard metrics, the complete shared deck tree with donut and direct reparenting, and the responsive keyboard-navigable study heatmap.
+- `DashboardScreen.tsx`: dashboard metrics, the complete shared deck tree with donut and direct reparenting, and the shared responsive keyboard-navigable study heatmap.
 - `AuthGateScreen.tsx`: required Supabase login, registration, Google start, Magic Link, reset-link request and password-recovery completion before the app shell opens.
 - `DecksScreen.tsx`: direkt verlinkbare, durchsuchbare und sortierbare Gesamttabelle mit kompakten Stapelköpfen, einzeiligen Kartenzeilen, gemeinsamem Stapelmenü, bestätigt verschiebbaren Stapeln und URL-gesteuertem Detail-`aside` für Editor, Versionen und CoRe-Varianten; erreichbar aus Hauptnavigation und Lernen.
 - `CreationScreen.tsx`: composition and completion state for the creation area; keeps the public screen props and creation workflow wiring stable.
@@ -21,7 +21,7 @@ Each exported screen in this folder is a UI module with a small props interface.
 - `DeckSettingsScreen.tsx`: isolated settings for exactly one deck, using the shared learning-settings panel without exposing the rest of the deck library.
 - `HelpScreen.tsx`: statische Produktaufklärung zu CoRes FSRS-6-Scheduler auf offiziellen Standardparametern und Varianten mit einer zugänglichen, transient interaktiven Lernkurve; keine Workspace- oder Scheduler-Mutation.
 - `SimulatorScreen.tsx`: reduzierte Tagessteuerung für die app-weite, transiente Lernuhr; enthält keinen eigenen Stapel und mutiert selbst weder Workspace noch Synczustand.
-- `StatisticsScreen.tsx`: performance statistics from local review events, including success rate, rating distribution, streaks, recent trend and deck-level weak spots.
+- `StatisticsScreen.tsx`: global period/deck-filtered analysis from local review events, including overview metrics, charts, the shared sparse study heatmap, FSRS distributions, retention and deck-level weak spots.
 - `StudyMode.tsx`: fullscreen review, daily queue, new-card limit, shortcut handling, interval previews, grading, anchor display and variant feedback; verwendet bei aktiver Simulation denselben sichtbaren Lernzeitpunkt wie die App-Shell.
 - `SettingsScreen.tsx`: task-based App und Bedienung, Account, Lernen, Daten und Sync und Erweitert sections with Theme, Simulator- und Hilfezugang, a read-only login email, truthful privacy information, global learning defaults, sync controls, portable JSON download/import, and optional raw JSON diagnostics.
 - `SyncConflictPanel.tsx`: accountgebundene Konfliktprojektionen, verständliche Fassungsentscheidung, sicherer Feld-Merge sowie Zurückstellen und Wiederaufnahme ohne Tabellen-, Revisions- oder Gerätedetails in React.

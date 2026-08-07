@@ -141,6 +141,62 @@ test("dashboard heatmap keeps its legend and navigation aligned across responsiv
   }
 });
 
+test("statistics uses the shared filtered heatmap without clipped shadows or retired subtitles", async ({ page }: any) => {
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Statistik" }).click();
+
+  await expect(page.getByRole("heading", { name: "Lern-Heatmap" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
+  await expect(page.locator('section[aria-labelledby="statistics-overview-title"] > div.grid > section')).toHaveCount(7);
+  for (const removedText of [
+    "Alle historischen Diagramme",
+    "pro aktivem Tag",
+    "Schwer, Gut oder Einfach",
+    "geeignete Reviews",
+    "Messung beginnt mit der nächsten Wiederholung",
+    "gemessene Antworten",
+    "Längste:",
+    "FSRS-Kennzahlen und aktuelle Bestandsverteilungen",
+  ]) await expect(page.getByText(removedText, { exact: false })).toHaveCount(0);
+
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate((value: string) => { document.documentElement.dataset.coreTheme = value; }, theme);
+    const cellBackground = await page.getByTestId("study-heatmap-grid").locator("span[aria-label]").first().evaluate((cell: HTMLElement) => getComputedStyle(cell).backgroundColor);
+    expect(cellBackground).not.toBe("rgba(0, 0, 0, 0)");
+  }
+  await page.evaluate(() => { document.documentElement.dataset.coreTheme = "light"; });
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 768, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const grid = page.getByTestId("study-heatmap-grid");
+    await expect(grid).toBeVisible();
+    const layout = await page.getByRole("heading", { name: "Statistik" }).evaluate((heading: HTMLElement) => {
+      const screenRoot = heading.closest("header")?.parentElement?.parentElement as HTMLElement;
+      return {
+        overflowX: getComputedStyle(screenRoot).overflowX,
+        pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
+      };
+    });
+    expect(layout.overflowX).toBe("visible");
+    expect(layout.pageFitsViewport).toBe(true);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const heatmapGroup = page.getByRole("group", { name: /Lern-Heatmap-Ausschnitt/ });
+  const initialRange = await heatmapGroup.getAttribute("aria-label");
+  await expect(page.getByRole("button", { name: "Frühere Wochen anzeigen" })).toBeEnabled();
+  await heatmapGroup.press("ArrowLeft");
+  await expect(heatmapGroup).not.toHaveAttribute("aria-label", initialRange!);
+
+  await page.getByRole("button", { name: "30 Tage" }).click();
+  await expect(page.getByRole("button", { name: "30 Tage" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("study-heatmap-grid")).toBeVisible();
+});
+
 test("CoRe tooltips replace native hints for heatmap and icon actions", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 390, height: 844 });
