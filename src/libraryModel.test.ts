@@ -190,7 +190,7 @@ test("card table sorts all columns and projects due and variant labels", () => {
   const defaultRows = createCardTableModel([deck]).groups[0].cardRows;
   assert.deepEqual(defaultRows.map((row) => row.id), ["card-new", "card-earlier", "card-later"]);
   assert.deepEqual(defaultRows.map((row) => row.dueLabel), ["Neu", "10.08.2026", "20.09.2026"]);
-  assert.deepEqual(defaultRows.map((row) => row.variantsLabel), ["Ohne Varianten", "Mit Varianten", "Ohne Varianten"]);
+  assert.deepEqual(defaultRows.map((row) => row.variantsLabel), ["Nein", "Ja", "Nein"]);
 
   for (const [cardSort, expected] of [
     [{ field: "sortField", direction: "desc" }, ["card-later", "card-earlier", "card-new"]],

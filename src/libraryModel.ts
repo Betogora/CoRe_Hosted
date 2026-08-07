@@ -141,7 +141,7 @@ function createCardTableRow(card: LearningItem) {
     dueTimestamp,
     dueLabel: Number.isFinite(dueTimestamp) ? cardDueDateFormatter.format(dueTimestamp) : "Neu",
     hasActiveVariants,
-    variantsLabel: hasActiveVariants ? "Mit Varianten" : "Ohne Varianten",
+    variantsLabel: hasActiveVariants ? "Ja" : "Nein",
   };
 }
 export type CardTableRow = ReturnType<typeof createCardTableRow>;

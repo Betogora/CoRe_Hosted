@@ -55,7 +55,8 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /data-testid="card-library-table"/);
   assert.match(markup, /Sortierfeld/);
   assert.match(markup, /Fällig/);
-  assert.match(markup, /Varianten/);
+  assert.match(markup, /aria-label="Variante aufsteigend sortieren"/);
+  assert.doesNotMatch(markup, /aria-label="Varianten aufsteigend sortieren"/);
   assert.match(markup, /aria-sort="ascending"/);
   assert.match(markup, /aria-label="Karten von Biologie aufklappen"/);
   assert.match(markup, /aria-expanded="false"/);
@@ -71,9 +72,8 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /data-deck-summary-row-content="responsive"/);
   assert.equal((markup.match(new RegExp(`data-testid="deck-options-${originalDeck.id}"`, "g")) ?? []).length, 1);
   assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto|sticky left-0 w-\[calc\(100dvw/);
-  assert.match(markup, /<col class="w-20 md:w-\[18%\]"\/>/);
-  assert.match(markup, /<col class="w-24 md:w-\[24%\]"\/>/);
-  assert.match(markup, /<span class="min-w-0 truncate">Sortierfeld<\/span>/);
+  assert.match(markup, /<col span="2" class="w-\[5\.75rem\]"\/>/);
+  assert.match(markup, /<span class="whitespace-nowrap">Sortierfeld<\/span>/);
   assert.match(markup, /text-right/);
   assert.match(markup, /justify-end/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
@@ -101,6 +101,9 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   const expandedMarkup = renderScreen(decks, { expandedDeckIds: [originalDeck.id] });
   assert.match(expandedMarkup, /aria-label="Karten von Biologie einklappen"/);
   assert.match(expandedMarkup, /Was ist ATP\?/);
+  assert.match(expandedMarkup, />Nein<\/span>/);
+  assert.doesNotMatch(expandedMarkup, /Mit Varianten|Ohne Varianten/);
+  assert.match(expandedMarkup, /inline-block whitespace-nowrap rounded-full/);
 });
 
 test("card selection opens a non-modal detail aside with editor, copy and collapsed tools", () => {

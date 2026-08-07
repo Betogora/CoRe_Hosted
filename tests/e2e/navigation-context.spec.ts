@@ -20,13 +20,21 @@ const CARD_IDS = {
   b2: "navigation-card-b-2",
 };
 
-function card(id: string, deckId: string, front: string, back: string) {
+function card(id: string, deckId: string, front: string, back: string, options: { dueAt?: string; hasActiveVariant?: boolean } = {}) {
   return createCoreCard({
     id,
     deckId,
     source: "manual",
     originalFront: `<p>${front}</p>`,
     originalBack: `<p>${back}</p>`,
+    reviewState: options.dueAt ? { state: "review", dueAt: options.dueAt, repetitions: 1 } : null,
+    variants: options.hasActiveVariant ? [{
+      id: `${id}-variant`,
+      sourceCardId: id,
+      front: `${front} Variante`,
+      back,
+      qualityStatus: "active",
+    }] : [],
   });
 }
 
@@ -49,8 +57,8 @@ function seedDecks(): Deck[] {
       hierarchyPath: ["Bereich B", "Gemeinsam"],
       source: "manual",
       cards: [
-        card(CARD_IDS.b1, DECK_IDS.childB, "Karte B1", "Antwort B1"),
-        card(CARD_IDS.b2, DECK_IDS.childB, "Karte B2", "Antwort B2"),
+        card(CARD_IDS.b1, DECK_IDS.childB, "Karte B1", "Antwort B1", { dueAt: "2026-08-23T12:00:00.000Z" }),
+        card(CARD_IDS.b2, DECK_IDS.childB, "Karte B2", "Antwort B2", { hasActiveVariant: true }),
       ],
     }),
   ];
@@ -129,11 +137,22 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
       const deckHeader = document.querySelector<HTMLElement>(`[data-testid="deck-header-${deckId}"]`);
       const tableScroll = document.querySelector<HTMLElement>('[data-testid="card-library-table"]')?.parentElement;
       const table = document.querySelector<HTMLElement>('[data-testid="card-library-table"]');
-      const headers = [...document.querySelectorAll<HTMLElement>("thead th")];
+      const headers = [...document.querySelectorAll<HTMLElement>('[data-testid="card-library-table"] thead th')];
       const headerRects = headers.map((header) => header.getBoundingClientRect());
-      const sortHeaderLabel = headers[0]?.querySelector<HTMLElement>("span");
+      const headerLabels = headers.map((header) => header.querySelector<HTMLElement>("span"));
+      const cardRows = [...document.querySelectorAll<HTMLElement>('[data-card-row="true"]')];
+      const dueCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[1]);
+      const variantCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[2]);
+      const variantTags = variantCells.map((cell) => cell?.firstElementChild as HTMLElement | null);
       const sortFieldStyle = cardSortField ? window.getComputedStyle(cardSortField) : null;
-      const sortHeaderLabelStyle = sortHeaderLabel ? window.getComputedStyle(sortHeaderLabel) : null;
+      const fitsWithin = (element: HTMLElement | null | undefined, container = element) => {
+        if (!element || !container) return false;
+        const elementRect = element.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        return element.scrollWidth <= element.clientWidth + 1
+          && elementRect.left >= containerRect.left - 1
+          && elementRect.right <= containerRect.right + 1;
+      };
 
       return {
         cardRowHeight: cardRow?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
@@ -142,12 +161,17 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
         tableScrollsHorizontally: Boolean(tableScroll && tableScroll.scrollWidth > tableScroll.clientWidth),
         tableFitsContainer: Boolean(table && tableScroll && table.scrollWidth <= tableScroll.clientWidth + 1),
         headersDoNotOverlap: headerRects.every((rect, index) => index === 0 || rect.left >= headerRects[index - 1].right - 1),
+        headerLabels: headerLabels.map((label) => label?.textContent?.trim()),
+        headerLabelsFit: headerLabels.every((label, index) => fitsWithin(label, headers[index]))
+          && headers.every((header) => header.scrollWidth <= header.clientWidth + 1),
+        dueLabels: dueCells.map((cell) => cell?.textContent?.trim()),
+        dueLabelsFit: dueCells.every((cell) => fitsWithin(cell)),
+        variantLabels: variantTags.map((tag) => tag?.textContent?.trim()),
+        variantTagsFit: variantTags.every((tag, index) => fitsWithin(tag, variantCells[index])),
         dueAlignment: headers[1] ? window.getComputedStyle(headers[1]).textAlign : null,
         variantsAlignment: headers[2] ? window.getComputedStyle(headers[2]).textAlign : null,
         sortFieldOverflow: sortFieldStyle?.textOverflow,
         sortFieldWhiteSpace: sortFieldStyle?.whiteSpace,
-        sortHeaderOverflow: sortHeaderLabelStyle?.textOverflow,
-        sortHeaderWhiteSpace: sortHeaderLabelStyle?.whiteSpace,
       };
     }, { cardId: CARD_IDS.b1, deckId: DECK_IDS.childB });
 
@@ -156,8 +180,12 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
     expect(geometry.documentFitsViewport).toBe(true);
     expect(geometry.sortFieldOverflow).toBe("ellipsis");
     expect(geometry.sortFieldWhiteSpace).toBe("nowrap");
-    expect(geometry.sortHeaderOverflow).toBe("ellipsis");
-    expect(geometry.sortHeaderWhiteSpace).toBe("nowrap");
+    expect(geometry.headerLabels).toEqual(["Sortierfeld", "Fällig", "Variante"]);
+    expect(geometry.headerLabelsFit).toBe(true);
+    expect(geometry.dueLabels).toEqual(["23.08.2026", "Neu"]);
+    expect(geometry.dueLabelsFit).toBe(true);
+    expect(geometry.variantLabels).toEqual(["Nein", "Ja"]);
+    expect(geometry.variantTagsFit).toBe(true);
     expect(geometry.dueAlignment).toBe("right");
     expect(geometry.variantsAlignment).toBe("right");
     expect(geometry.headersDoNotOverlap).toBe(true);

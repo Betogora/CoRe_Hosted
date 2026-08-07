@@ -32,19 +32,21 @@ function SortHeader({ field, label, sort, onChange }: {
 }) {
   const active = sort.field === field;
   const rightAligned = field !== "sortField";
+  const headerPadding = rightAligned ? "px-1" : "px-1 sm:px-3 md:px-4";
+  const headerGap = rightAligned ? "gap-0.5" : "gap-1 sm:gap-2";
   const directionLabel = active && sort.direction === "desc" ? "absteigend" : "aufsteigend";
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
 
   return (
-    <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 px-2 sm:px-3 md:px-4 ${rightAligned ? "text-right" : "text-left"}`}>
+    <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 ${headerPadding} ${rightAligned ? "text-right" : "text-left"}`}>
       <button
         type="button"
         onClick={() => onChange(field)}
-        className={`flex min-h-11 w-full min-w-0 items-center gap-1 rounded-lg core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] hover:text-[var(--core-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] sm:gap-2 ${rightAligned ? "justify-end" : ""}`}
+        className={`flex min-h-11 w-full min-w-0 items-center ${headerGap} rounded-lg core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] hover:text-[var(--core-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
         aria-label={`${label} ${directionLabel} sortieren`}
       >
-        <span className="min-w-0 truncate">{label}</span>
-        <SortIcon size={15} aria-hidden="true" className={`shrink-0 ${active ? "opacity-100" : "opacity-35"}`} />
+        <span className="whitespace-nowrap">{label}</span>
+        <SortIcon size={14} aria-hidden="true" className={`shrink-0 ${active ? "opacity-100" : "opacity-35"}`} />
       </button>
     </th>
   );
@@ -866,14 +868,13 @@ export function DecksScreen({
           <table className="w-full table-fixed border-collapse" data-testid="card-library-table">
               <colgroup>
                 <col />
-                <col className="w-20 md:w-[18%]" />
-                <col className="w-24 md:w-[24%]" />
+                <col span={2} className="w-[5.75rem]" />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-core-surface">
                 <tr className="border-b border-[var(--core-border)]">
                   <SortHeader field="sortField" label="Sortierfeld" sort={cardSort} onChange={changeSort} />
                   <SortHeader field="due" label="Fällig" sort={cardSort} onChange={changeSort} />
-                  <SortHeader field="variants" label="Varianten" sort={cardSort} onChange={changeSort} />
+                  <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
                 </tr>
               </thead>
               {tableModel.groups.map((group) => {
@@ -947,9 +948,9 @@ export function DecksScreen({
                           {frontPreview}
                         </button>
                       </td>
-                      <td className="min-w-0 truncate px-2 py-1 text-right align-middle core-body text-[var(--core-text-secondary)] sm:px-3 md:px-4">{dueLabel}</td>
-                      <td className="min-w-0 px-2 py-1 text-right align-middle sm:px-3 md:px-4">
-                        <span className={`inline-block max-w-full truncate rounded-full border px-2 align-middle core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
+                      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-[var(--core-text-secondary)]">{dueLabel}</td>
+                      <td className="min-w-0 px-1 py-1 text-right align-middle">
+                        <span className={`inline-block whitespace-nowrap rounded-full border px-2 align-middle core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
                           {variantsLabel}
                         </span>
                       </td>
