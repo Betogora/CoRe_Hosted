@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: f16bb7c711c6df1f */
+/* Quellenstand: ce7c712a402f7d4c */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -518,6 +518,22 @@ video {
 [hidden]:where(:not([hidden="until-found"])) {
   display: none;
 }
+.core-heatmap-level-0,
+  .core-heatmap-level-1,
+  .core-heatmap-level-2,
+  .core-heatmap-level-3,
+  .core-heatmap-level-4 {
+    border-color: var(--core-heatmap-tone);
+    background: var(--core-heatmap-tone);
+  }
+.core-heatmap-level-0 {
+    --core-heatmap-tone: var(--core-surface);
+    border-color: var(--core-border);
+  }
+.core-heatmap-level-1 { --core-heatmap-tone: var(--core-success-surface); }
+.core-heatmap-level-2 { --core-heatmap-tone: color-mix(in srgb, var(--core-success-surface) 55%, var(--core-success)); }
+.core-heatmap-level-3 { --core-heatmap-tone: var(--core-palette-lilac); }
+.core-heatmap-level-4 { --core-heatmap-tone: var(--core-deck-new-text); }
 .core-surface {
     border: 1px solid var(--core-border);
     background: var(--core-surface);
@@ -1135,9 +1151,6 @@ video {
 }
 .bg-core-subtle {
   background-color: var(--core-surface-muted);
-}
-.bg-core-success {
-  background-color: var(--core-success);
 }
 .bg-core-success-soft {
   background-color: var(--core-success-surface);
@@ -3032,11 +3045,11 @@ summary {
                 <article class="core-surface-raised rounded-[18px] p-6">
                   <div class="flex items-center justify-between gap-4"><div><p class="core-caption uppercase tracking-wide text-core-muted">Lernaktivität</p><h3 class="core-heading-3 mt-1 text-core-text">Heatmap</h3></div><div class="flex gap-2"><button type="button" class="grid size-11 place-items-center rounded-xl border border-core-border text-core-action" aria-label="Frühere Wochen anzeigen"><svg class="catalog-icon rotate-180"><use href="#icon-chevron"></use></svg></button><button type="button" class="grid size-11 place-items-center rounded-xl border border-core-border text-core-action" aria-label="Spätere Wochen anzeigen"><svg class="catalog-icon"><use href="#icon-chevron"></use></svg></button></div></div>
                   <div class="catalog-heatmap mt-5" aria-label="Beispiel einer Lern-Heatmap">
-                    <span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span>
-                    <span class="bg-core-subtle"></span><span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-info-soft"></span><span class="bg-core-subtle"></span><span class="bg-core-success"></span><span class="bg-core-success-soft"></span><span class="bg-core-subtle"></span><span class="bg-core-success"></span><span class="bg-core-info-soft"></span><span class="bg-core-subtle"></span>
-                    <span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-success-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span><span class="bg-core-info-soft"></span><span class="bg-core-success"></span><span class="bg-core-subtle"></span>
+                    <span class="core-heatmap-level-0"></span><span class="core-heatmap-level-1"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-2"></span><span class="core-heatmap-level-4"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-1"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-2"></span><span class="core-heatmap-level-4"></span>
+                    <span class="core-heatmap-level-0"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-1"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-4"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-2"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-4"></span><span class="core-heatmap-level-0"></span>
+                    <span class="core-heatmap-level-1"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-4"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-1"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-2"></span><span class="core-heatmap-level-4"></span><span class="core-heatmap-level-0"></span>
                   </div>
-                  <div class="mt-4 flex items-center justify-center gap-2 core-caption text-core-muted"><span>Weniger</span><span class="size-3 rounded-[4px] border border-core-border bg-core-subtle"></span><span class="size-3 rounded-[4px] border border-core-border bg-core-success-soft"></span><span class="size-3 rounded-[4px] border border-core-border bg-core-success"></span><span>Mehr</span></div>
+                  <div class="mt-4 flex items-center justify-center gap-2 core-caption text-core-muted"><span>Weniger</span><span class="core-heatmap-level-0 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-1 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-2 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-3 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-4 size-3 rounded-[4px] border"></span><span>Mehr</span></div>
                 </article>
               <div class="core-surface-raised rounded-[18px] p-6">
                 <div class="flex flex-wrap items-center justify-between gap-3"><div><p class="core-caption uppercase tracking-wide text-core-muted">APKG-Import</p><h3 class="core-heading-3 mt-1 text-core-text">Vorschau und Übernahme</h3></div><span class="catalog-pill border-core-warning bg-core-warning-soft text-core-text">1 Warnung</span></div>

@@ -88,6 +88,7 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /grid-template-columns:2\.25rem repeat\(53, 19px\)/);
   assert.match(markup, /size-\[19px\] rounded-\[4px\]/);
   assert.match(markup, /ring-2 ring-inset ring-core-focus/);
+  for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));
 });
 
 test("dashboard projects future due cards through the supplied learning time", () => {

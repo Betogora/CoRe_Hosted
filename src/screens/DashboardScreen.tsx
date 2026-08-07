@@ -7,11 +7,11 @@ import { DeckTree } from "../ui/DeckTree.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
 const heatmapToneByLevel = [
-  "border-[var(--core-border)] bg-[var(--core-canvas)]",
-  "border-[var(--core-success)] bg-[var(--core-success-surface)]",
-  "border-[var(--core-success)] bg-[var(--core-success)]",
-  "border-[var(--core-info)] bg-[var(--core-info)]",
-  "border-[var(--core-text-secondary)] bg-[var(--core-info)]",
+  "core-heatmap-level-0",
+  "core-heatmap-level-1",
+  "core-heatmap-level-2",
+  "core-heatmap-level-3",
+  "core-heatmap-level-4",
 ];
 
 function formatHeatmapDate(key: { split: (arg0: string) => [any,any,any]; }) {

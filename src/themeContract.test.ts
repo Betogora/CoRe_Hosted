@@ -43,6 +43,18 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
   assert.match(dark, /--core-danger-hover:\s*var\(--core-palette-coral\)/);
 });
 
+test("heatmap intensity stays pink and reverses its brightness direction between themes", () => {
+  const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const heatmapRules = styles.match(/\.core-heatmap-level-0,[\s\S]*?\.core-surface\s*\{/)?.[0] ?? "";
+
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-surface\)/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-success-surface\)/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-palette-lilac\)/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-deck-new-text\)/);
+  assert.match(dark, /--core-deck-new-text:\s*var\(--core-palette-lilac-glow\)/);
+  assert.doesNotMatch(heatmapRules, /core-info/);
+});
+
 test("group depths darken in light mode and lighten in dark mode", () => {
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
   const lightDepths = ["ffffff", "f7f8fa", "f1f3f6", "e8edf3", "dde3ec"];
