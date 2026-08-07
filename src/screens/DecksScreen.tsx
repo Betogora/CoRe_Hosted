@@ -585,6 +585,7 @@ export function DecksScreen({
   selectedDeckId = null,
   selectedCardId = null,
   onSelectDeck,
+  onCloseSelectedCard,
   onSetDeckCoreMode,
   onSaveCard,
   onDuplicateCard,
@@ -689,6 +690,10 @@ export function DecksScreen({
 
   function closeDetail() {
     const cardId = previouslySelectedCardId.current ?? selectedCardId;
+    if (onCloseSelectedCard) {
+      onCloseSelectedCard();
+      return;
+    }
     onSelectDeck(selectedDeckId);
     focusCardRow(cardId);
   }

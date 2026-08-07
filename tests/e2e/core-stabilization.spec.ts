@@ -302,7 +302,13 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   const settings = page.getByRole("button", { name: "Lerneinstellungen" });
   await settings.focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByLabel("Neue Karten heute")).toBeFocused();
+  const settingsDialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
+  await expect(settingsDialog).toBeVisible();
+  await expect(settingsDialog.getByRole("button", { name: "Lerneinstellungen schließen" })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(settingsDialog.getByRole("button", { name: "Max. Wiederholungen erhöhen" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(settingsDialog.getByRole("button", { name: "Lerneinstellungen schließen" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(settings).toBeFocused();
 
@@ -313,6 +319,58 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   await expect.poll(() => hasVisibleOutline(answerHeading)).toBe(false);
   await page.keyboard.press("3");
   await expect.poll(() => page.evaluate(() => document.activeElement?.textContent?.trim().startsWith("Frage") || document.activeElement?.textContent?.includes("Sitzung abgeschlossen"))).toBe(true);
+});
+
+test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentriertem Overlay", async ({ page }: any) => {
+  await page.setViewportSize({ width: 767, height: 640 });
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ }).click();
+
+  const settings = page.getByRole("button", { name: "Lerneinstellungen" });
+  await settings.click();
+  const dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Karte", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Sitzung", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Stapel", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Reset", { exact: true })).toHaveCount(0);
+  await expect(dialog.getByText("Mischen", { exact: true })).toHaveCount(0);
+  await expect(dialog.getByText("Nur normale Karten", { exact: true })).toHaveCount(0);
+
+  const mobileGeometry = await dialog.evaluate((element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    return { left: rect.left, right: rect.right, bottom: rect.bottom, height: rect.height, viewportHeight: window.innerHeight };
+  });
+  expect(mobileGeometry.left).toBeLessThanOrEqual(1);
+  expect(Math.abs(mobileGeometry.right - 767)).toBeLessThanOrEqual(1);
+  expect(Math.abs(mobileGeometry.bottom - mobileGeometry.viewportHeight)).toBeLessThanOrEqual(1);
+  expect(mobileGeometry.height).toBeLessThanOrEqual(mobileGeometry.viewportHeight * 0.88 + 1);
+
+  const newCardsOutput = dialog.getByLabel("Neue Karten pro Tag");
+  const previousLimit = Number(await newCardsOutput.textContent());
+  await dialog.getByRole("button", { name: "Neue Karten pro Tag verringern" }).click();
+  await expect(newCardsOutput).toHaveText(String(previousLimit - 1));
+  await expect.poll(async () => {
+    const state = await readAppState(page);
+    const settings = state.decks.find((deck: { id: string }) => deck.id === DECK_IDS.europe)?.deckSettings;
+    return { limit: settings?.newCardsPerDay, override: settings?.newCardsTodayOverride ?? null };
+  }).toEqual({ limit: previousLimit - 1, override: null });
+
+  await page.setViewportSize({ width: 768, height: 640 });
+  const desktopGeometry = await dialog.evaluate((element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight };
+  });
+  expect(desktopGeometry.left).toBeGreaterThan(1);
+  expect(desktopGeometry.right).toBeLessThan(desktopGeometry.viewportWidth - 1);
+  expect(Math.abs((desktopGeometry.left + desktopGeometry.right) / 2 - desktopGeometry.viewportWidth / 2)).toBeLessThanOrEqual(1);
+  expect(Math.abs((desktopGeometry.top + desktopGeometry.bottom) / 2 - desktopGeometry.viewportHeight / 2)).toBeLessThanOrEqual(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+
+  await page.mouse.click(2, 2);
+  await expect(dialog).toHaveCount(0);
+  await expect(settings).toBeFocused();
 });
 
 test("core actions stay usable in a 200 percent effective viewport", async ({ page }: any) => {

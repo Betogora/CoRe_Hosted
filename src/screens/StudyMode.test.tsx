@@ -39,10 +39,15 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
       decks={[deck]}
       deckId={deck.id}
       variantSession
+      mediaStore={null}
       getNow={() => "2026-07-06T10:00:00.000Z"}
       simulationDayOffset={0}
       onExit={() => undefined}
+      onReturnToLearn={() => undefined}
+      onEditCard={() => undefined}
+      onSaveDeckDailyLimits={() => deck}
       onDeckUpdated={() => undefined}
+      onReviewEvent={() => undefined}
     />,
   );
 
@@ -68,8 +73,13 @@ test("StudyMode uses the simulated learning time for queue and visible status", 
     decks: [deck],
     deckId: deck.id,
     variantSession: false,
+    mediaStore: null,
     onExit: () => undefined,
+    onReturnToLearn: () => undefined,
+    onEditCard: () => undefined,
+    onSaveDeckDailyLimits: () => deck,
     onDeckUpdated: () => undefined,
+    onReviewEvent: () => undefined,
   };
 
   const todayMarkup = renderToStaticMarkup(
@@ -83,4 +93,31 @@ test("StudyMode uses the simulated learning time for queue and visible status", 
   assert.match(futureMarkup, /Zukunftsfrage/);
   assert.match(futureMarkup, /Simulation aktiv/);
   assert.match(futureMarkup, /\+3 Tage/);
+});
+
+test("StudyMode exposes labeled learning and placeholder Pomodoro progress without the former inline limit", () => {
+  const item = createBasicLearningItem("deck_progress", "Frage", "Antwort");
+  const deck = createCoreDeck({ id: "deck_progress", name: "Fortschritt", source: "manual", cards: [item], reviewEvents: [] });
+  const markup = renderToStaticMarkup(
+    <StudyMode
+      deck={deck}
+      decks={[deck]}
+      deckId={deck.id}
+      variantSession={false}
+      mediaStore={null}
+      getNow={() => "2026-08-06T10:00:00.000Z"}
+      simulationDayOffset={0}
+      onExit={() => undefined}
+      onReturnToLearn={() => undefined}
+      onEditCard={() => undefined}
+      onSaveDeckDailyLimits={() => deck}
+      onDeckUpdated={() => undefined}
+      onReviewEvent={() => undefined}
+    />,
+  );
+
+  assert.match(markup, /Lernfortschritt/);
+  assert.match(markup, /Pomodoro · 25 Min\./);
+  assert.match(markup, /study-pomodoro-progress/);
+  assert.doesNotMatch(markup, /Neue Karten heute|heute eingeführt|\+10/);
 });

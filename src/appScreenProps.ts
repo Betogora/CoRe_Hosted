@@ -79,6 +79,7 @@ export interface DecksScreenProps {
   selectedDeckId: string | null;
   selectedCardId: string | null;
   onSelectDeck: (deckId: string | null, cardId?: string | null) => unknown;
+  onCloseSelectedCard?: () => unknown;
   onOpenLearn: (deckId?: string | null) => unknown;
   onMoveDeck: (deckId: string, parentDeckId?: string | null) => DeckMutationResult | null;
   onOpenCardCreation: () => unknown;
@@ -150,6 +151,8 @@ export interface StudyModeProps {
   simulationDayOffset: number;
   onExit: () => void;
   onReturnToLearn: () => void;
+  onEditCard: (deckId: string, cardId: string) => unknown;
+  onSaveDeckDailyLimits: (deckId: string, limits: { newCardsPerDay?: number; maximumReviewsPerDay?: number }) => Deck | null;
   onDeckUpdated: (deck: Deck | Deck[]) => unknown;
   onReviewEvent: (event: ReviewEvent) => void;
 }

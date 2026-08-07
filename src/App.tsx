@@ -182,6 +182,7 @@ export function App() {
     creationDeckId,
     completedDeckId,
     settingsReturnContext,
+    cardEditorReturnContext,
     navigateToRoute,
     navigateToView: navigateToViewNow,
     getStudyReturnRoute,
@@ -691,16 +692,27 @@ export function App() {
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.setDeckCoreMode(deckId, coreMode));
   }
 
-  function saveDeckLearningSettings(deckId: string, settings: LearningSettingsInput = {}) {
+  function saveDeckLearningSettings(
+    deckId: string,
+    settings: LearningSettingsInput = {},
+    { clearTodayNewCardOverride = false }: { clearTodayNewCardOverride?: boolean } = {},
+  ) {
     return updateDeck(deckId, (deck) => ({
       ...deck,
       deckSettings: {
         ...deck.deckSettings,
         ...applyLearningSettingsToDeckSettings({ ...deck.deckSettings }, settings),
         coreMode: resolveCoreMode(settings.coreMode, deck.deckSettings.coreMode),
+        ...(clearTodayNewCardOverride ? { newCardsTodayOverride: null } : {}),
       },
       updatedAt: new Date().toISOString(),
     }));
+  }
+
+  function saveDeckDailyLimits(deckId: string, limits: { newCardsPerDay?: number; maximumReviewsPerDay?: number }) {
+    return saveDeckLearningSettings(deckId, limits, {
+      clearTodayNewCardOverride: limits.newCardsPerDay !== undefined,
+    });
   }
 
   function saveDeckAppearance(deckId: string, appearance: Deck["deckSettings"]["appearance"]) {
@@ -962,6 +974,14 @@ export function App() {
           selectedDeckId={focusedDeckId}
           selectedCardId={selectedCardId}
           onSelectDeck={openDecks}
+          onCloseSelectedCard={cardEditorReturnContext ? () => navigateToRoute(createStudyRoute(
+            cardEditorReturnContext.deckId,
+            {
+              variantSession: cardEditorReturnContext.variantSession,
+              variantId: cardEditorReturnContext.variantId,
+              returnContext: cardEditorReturnContext.returnContext,
+            },
+          ), { replace: true }) : undefined}
           onMoveDeck={moveDeck}
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onOpenLearn={openLearn}
@@ -1130,6 +1150,17 @@ export function App() {
             refresh();
             navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
           }}
+          onEditCard={(currentDeckId, cardId) => navigateToViewNow("kartenstapel", {
+            focusedDeckId: currentDeckId,
+            selectedCardId: cardId,
+            cardEditorReturnContext: {
+              deckId: studyRequest.deckId,
+              variantSession: studyRequest.variantSession,
+              variantId: studyRequest.variantId,
+              returnContext: studyRequest.returnContext,
+            },
+          })}
+          onSaveDeckDailyLimits={saveDeckDailyLimits}
           onDeckUpdated={saveDeck}
           onReviewEvent={enqueueReviewEvent}
         />

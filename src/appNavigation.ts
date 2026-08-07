@@ -24,6 +24,8 @@ export interface SettingsReturnContext {
   cardId?: string;
 }
 
+export type CardEditorReturnContext = Omit<StudyRoute, "mode">;
+
 export interface ViewRoute {
   mode: "view";
   viewId: AppViewId;
@@ -34,6 +36,7 @@ export interface ViewRoute {
   creationDeckId?: string;
   completedDeckId?: string;
   settingsReturnContext?: SettingsReturnContext;
+  cardEditorReturnContext?: CardEditorReturnContext;
 }
 
 export interface StudyRoute {
@@ -50,6 +53,19 @@ interface RouteOptions {
   currentState?: unknown;
 }
 
+interface ReviewReturnContextInput {
+  view?: unknown;
+  deckId?: unknown;
+  cardId?: unknown;
+}
+
+interface CardEditorReturnContextInput {
+  deckId?: unknown;
+  variantSession?: unknown;
+  variantId?: unknown;
+  returnContext?: ReviewReturnContextInput;
+}
+
 interface ViewRouteInput {
   mode?: unknown;
   viewId?: unknown;
@@ -63,12 +79,7 @@ interface ViewRouteInput {
     view?: unknown;
     cardId?: unknown;
   };
-}
-
-interface ReviewReturnContextInput {
-  view?: unknown;
-  deckId?: unknown;
-  cardId?: unknown;
+  cardEditorReturnContext?: CardEditorReturnContextInput;
 }
 
 type StudyRouteInput = {
@@ -110,6 +121,7 @@ function normalizeViewRoute(
     ? String(route.settingsReturnContext?.view) as SettingsReturnView
     : null;
   const settingsReturnCardId = cleanIdentifier(route.settingsReturnContext?.cardId);
+  const cardEditorReturnContext = normalizeCardEditorReturnContext(route.cardEditorReturnContext);
 
   return {
     mode: "view",
@@ -126,6 +138,9 @@ function normalizeViewRoute(
         ...(settingsReturnView === "decks" && settingsReturnCardId ? { cardId: settingsReturnCardId } : {}),
       },
     } : {}),
+    ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId && cardEditorReturnContext
+      ? { cardEditorReturnContext }
+      : {}),
   };
 }
 
@@ -160,6 +175,24 @@ function normalizeReviewReturnContext(
     view,
     ...(view !== "today" && deckId ? { deckId } : {}),
     ...(view === "decks" && deckId && cardId ? { cardId } : {}),
+  };
+}
+
+function normalizeCardEditorReturnContext(
+  context: CardEditorReturnContextInput | undefined,
+): CardEditorReturnContext | null {
+  const deckId = cleanIdentifier(context?.deckId);
+  if (
+    !deckId
+    || typeof context?.variantSession !== "boolean"
+    || !reviewReturnViews.includes(String(context.returnContext?.view) as ReviewReturnView)
+  ) return null;
+  const variantId = cleanIdentifier(context?.variantId);
+  return {
+    deckId,
+    variantSession: context?.variantSession === true || Boolean(variantId),
+    ...(variantId ? { variantId } : {}),
+    returnContext: normalizeReviewReturnContext(context?.returnContext, deckId),
   };
 }
 
@@ -252,6 +285,14 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
       },
     }, options);
   }
+  const reviewReturnValue = url.searchParams.get("reviewReturn");
+  const reviewReturnRoute = reviewReturnValue ? parseAppRouteFromUrl(reviewReturnValue, options) : null;
+  const cardEditorReturnContext = reviewReturnRoute?.mode === "study" ? {
+    deckId: reviewReturnRoute.deckId,
+    variantSession: reviewReturnRoute.variantSession,
+    variantId: reviewReturnRoute.variantId,
+    returnContext: reviewReturnRoute.returnContext,
+  } : undefined;
   return normalizeAppRoute({
     mode: "view",
     viewId: pathSegments[0],
@@ -265,6 +306,7 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
       view: url.searchParams.get("returnView") ?? undefined,
       cardId: url.searchParams.get("returnCard") ?? undefined,
     } : undefined,
+    cardEditorReturnContext,
   }, options);
 }
 
@@ -292,6 +334,12 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   if (normalized.viewId === "stapel-einstellungen" && normalized.settingsReturnContext) {
     params.set("returnView", normalized.settingsReturnContext.view);
     if (normalized.settingsReturnContext.cardId) params.set("returnCard", normalized.settingsReturnContext.cardId);
+  }
+  if (normalized.viewId === "kartenstapel" && normalized.cardEditorReturnContext) {
+    params.set("reviewReturn", appRouteToUrl({
+      mode: "study",
+      ...normalized.cardEditorReturnContext,
+    }));
   }
   const search = params.toString();
   return `${path}${search ? `?${search}` : ""}`;

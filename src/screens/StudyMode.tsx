@@ -1,5 +1,6 @@
 import React from "react";
 import { Anchor, Ban, CheckCircle2, Eye, Flag, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
+import type { StudyModeProps } from "../appScreenProps.ts";
 import { getLearningItemAnswer, getLearningItemQuestion } from "../coreModel.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
 import { createReviewResponseTimer } from "../reviewTiming.ts";
@@ -10,14 +11,15 @@ import {
   createDailyReviewQueue,
   createDailyReviewSessionState,
   getNextDailyReviewSessionItem,
+  reconcileDailyReviewSessionState,
   recordVariantFeedback,
-  updateDeckNewCardLimitForDate,
   type DailyReviewSessionState,
 } from "../reviewService.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
 import { MiniProgress } from "../ui/coreUi.tsx";
+import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { ratingButtons } from "./screenConstants.ts";
-import type { CardVariant, Deck, ReviewRating } from "../coreTypes.ts";
+import type { CardVariant, Deck, ReviewRating, ReviewState } from "../coreTypes.ts";
 
 function normalizeReviewCardType(cardType: string, variant: CardVariant|undefined) {
   if (variant?.variantType === "reverse") return "basic-reversed";
@@ -42,7 +44,7 @@ function sameAnswer(left: string, right: string) {
   return String(left ?? "").trim().toLowerCase() === String(right ?? "").trim().toLowerCase();
 }
 
-export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?.id, variantSession, mediaStore, getNow, simulationDayOffset, onExit, onReturnToLearn = onExit, onDeckUpdated, onReviewEvent }: any) {
+export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationDayOffset, onExit, onReturnToLearn, onEditCard, onSaveDeckDailyLimits, onDeckUpdated, onReviewEvent }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
@@ -55,10 +57,9 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   const questionHeadingRef = React.useRef<HTMLParagraphElement>(null);
   const completionHeadingRef = React.useRef<HTMLHeadingElement>(null);
   const settingsButtonRef = React.useRef<HTMLButtonElement>(null);
-  const settingsInputRef = React.useRef<HTMLInputElement>(null);
   const feedbackDeckRef = React.useRef<Deck | null>(null);
   const responseTimer = React.useMemo(() => createReviewResponseTimer(), []);
-  const rootDeck = sessionDecks.find((candidate: any) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
+  const rootDeck = sessionDecks.find((candidate) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
   const queue = React.useMemo(
     () =>
       createDailyReviewQueue(sessionDecks, {
@@ -74,7 +75,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
     () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), language: "de", variantSession }),
     [getNow, sessionDecks, effectiveReviewSession, rootDeck?.id, variantSession],
   );
-  const currentDeck = sessionDecks.find((candidate: any) => candidate.id === current?.deckId) ?? rootDeck;
+  const currentDeck = sessionDecks.find((candidate) => candidate.id === current?.deckId) ?? rootDeck;
   const sessionTotal = effectiveReviewSession.initialKeys.length;
   const completedInitialCount = effectiveReviewSession.completedInitialKeys.length;
   const repeatCount = effectiveReviewSession.repeatCount;
@@ -122,10 +123,10 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
   }, [answeredCount, current?.learningItemId, current?.variantId, responseTimer]);
 
   function replaceSessionDeck(updatedDeck: Deck, nextDecks = sessionDecks) {
-    return nextDecks.map((candidate: any) => (candidate.id === updatedDeck.id ? updatedDeck : candidate));
+    return nextDecks.map((candidate) => (candidate.id === updatedDeck.id ? updatedDeck : candidate));
   }
 
-  function finishOrNext(updatedDeck: Deck, rating: ReviewRating, nextReviewState: any, reviewedKey: string) {
+  function finishOrNext(updatedDeck: Deck, rating: ReviewRating, nextReviewState: ReviewState, reviewedKey: string) {
     const nextDecks = replaceSessionDeck(updatedDeck);
     onDeckUpdated(updatedDeck);
     setSessionDecks(nextDecks);
@@ -169,23 +170,26 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
     setFeedbackStatus(action === "disable" ? "Diese Abfrage wird künftig nicht mehr gezeigt." : "Danke. Der ausgewählte Grund wurde gespeichert.");
   }
 
-  function setTodayNewCardLimit(limit: unknown) {
+  function updateDailyLimits(limits: { newCardsPerDay?: number; maximumReviewsPerDay?: number }) {
     if (!rootDeck) return;
-    const updatedRootDeck = updateDeckNewCardLimitForDate(rootDeck, limit, {
+    const updatedRootDeck = onSaveDeckDailyLimits(rootDeck.id, limits);
+    if (!updatedRootDeck) return;
+    const nextDecks = replaceSessionDeck(updatedRootDeck);
+    const nextQueue = createDailyReviewQueue(nextDecks, {
+      deckId: updatedRootDeck.id,
       now: getNow(),
-      updatedAt: new Date().toISOString(),
+      language: "de",
+      variantSession,
     });
-    onDeckUpdated(updatedRootDeck);
-    setSessionDecks((currentDecks: any) => replaceSessionDeck(updatedRootDeck, currentDecks));
+    setSessionDecks(nextDecks);
+    setReviewSession((session) => reconcileDailyReviewSessionState(session ?? effectiveReviewSession, nextQueue.items, {
+      preserveInitialKey: currentIsInitial ? current?.sessionInfo?.key : undefined,
+    }));
   }
 
   React.useEffect(() => {
     if (showAnswer) answerHeadingRef.current?.focus();
   }, [showAnswer]);
-
-  React.useEffect(() => {
-    if (showSettings) settingsInputRef.current?.focus();
-  }, [showSettings]);
 
   React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -197,12 +201,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && showSettings) {
-        event.preventDefault();
-        setShowSettings(false);
-        window.requestAnimationFrame(() => settingsButtonRef.current?.focus());
-        return;
-      }
+      if (showSettings) return;
       const action = resolveReviewShortcut(event, { hasCurrent: Boolean(current), showAnswer });
       if (!action) return;
 
@@ -240,7 +239,7 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
                       : "0 / 0"}
               </p>
             </div>
-            <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-11 place-items-center rounded-full text-[var(--core-action-primary)]" aria-label="Lerneinstellungen" aria-expanded={showSettings} aria-controls="study-settings-panel">
+            <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-11 place-items-center rounded-full text-[var(--core-action-primary)]" aria-label="Lerneinstellungen" aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay">
               <SlidersHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
@@ -249,34 +248,37 @@ export function StudyMode({ deck, decks = [deck].filter(Boolean), deckId = deck?
               Simulation aktiv · {formatSimulationDate(getNow())} · +{simulationDayOffset} Tage
             </p>
           ) : null}
-          <MiniProgress value={progress} />
-          {studyMissingMedia.length > 0 ? <p className="core-status-warning text-center core-body" role="status">{studyMissingMedia[0].status}{studyMissingMedia.length > 1 ? ` (${studyMissingMedia.length} Medien)` : ""}</p> : null}
-          {showSettings ? (
-            <div id="study-settings-panel" className="core-surface rounded-2xl p-4">
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="grid gap-1 core-body font-semibold text-[var(--core-text-secondary)]">
-                  Neue Karten heute
-                  <input
-                    ref={settingsInputRef}
-                    className="min-h-11 w-32 rounded-xl border border-[var(--core-border)] px-3 text-[var(--core-text)]"
-                    type="number"
-                    min="0"
-                    max="500"
-                    value={queue.newCardsPerDay}
-                    onChange={(event) => setTodayNewCardLimit(event.target.value)}
-                  />
-                </label>
-                <div className="grid gap-1 core-body text-[var(--core-text-muted)]">
-                  <span>{queue.newCardsIntroducedToday} heute eingeführt</span>
-                  <span>{queue.availableNewCards} neue Karten im Stapel verfügbar</span>
-                </div>
-                <button type="button" onClick={() => setTodayNewCardLimit(queue.newCardsPerDay + 10)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
-                  +10
-                </button>
-              </div>
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-[var(--core-text-muted)]">
+              <span>Lernfortschritt</span>
+              <span>{Math.min(completedInitialCount + (currentIsInitial ? 1 : 0), sessionTotal)} / {sessionTotal} Karten</span>
             </div>
-          ) : null}
+            <MiniProgress value={progress} />
+          </div>
+          <div className="grid gap-2" aria-label="Pomodoro: 25 Minuten – noch nicht verfügbar">
+            <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-[var(--core-text-muted)]">
+              <span>Pomodoro · 25 Min.</span>
+              <span>Noch nicht verfügbar</span>
+            </div>
+            <div className="h-3 overflow-hidden rounded-full bg-core-subtle" data-testid="study-pomodoro-progress" aria-hidden="true">
+              <div className="h-full w-full rounded-full bg-core-action" />
+            </div>
+          </div>
+          {studyMissingMedia.length > 0 ? <p className="core-status-warning text-center core-body" role="status">{studyMissingMedia[0].status}{studyMissingMedia.length > 1 ? ` (${studyMissingMedia.length} Medien)` : ""}</p> : null}
         </header>
+
+        <StudySettingsOverlay
+          open={showSettings}
+          canEditCard={Boolean(current?.deckId && current.learningItemId)}
+          newCardsPerDay={rootDeck?.deckSettings.newCardsPerDay ?? queue.newCardsPerDay}
+          maximumReviewsPerDay={rootDeck?.deckSettings.maximumReviewsPerDay ?? queue.maximumReviewsPerDay}
+          onOpenChange={setShowSettings}
+          onEditCard={() => {
+            if (current?.deckId && current.learningItemId) onEditCard(current.deckId, current.learningItemId);
+          }}
+          onNewCardsPerDayChange={(value) => updateDailyLimits({ newCardsPerDay: value })}
+          onMaximumReviewsPerDayChange={(value) => updateDailyLimits({ maximumReviewsPerDay: value })}
+        />
 
         <section className="grid flex-1 place-items-center py-8">
           <div className="core-study-card core-surface-raised flex min-h-[56vh] w-full flex-col justify-center rounded-[28px] p-6 sm:p-14">

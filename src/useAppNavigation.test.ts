@@ -14,6 +14,7 @@ test("projects view and study routes into one exhaustive shell state", () => {
     creationDeckId: "deck-1",
     completedDeckId: "deck-1",
     settingsReturnContext: null,
+    cardEditorReturnContext: null,
   });
 
   const studyRoute = createStudyRoute("deck-1", {
@@ -32,6 +33,7 @@ test("projects view and study routes into one exhaustive shell state", () => {
     creationDeckId: "",
     completedDeckId: "",
     settingsReturnContext: null,
+    cardEditorReturnContext: null,
   });
 });
 

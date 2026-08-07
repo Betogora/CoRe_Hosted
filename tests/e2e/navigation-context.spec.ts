@@ -353,6 +353,37 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
   await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.childB}`);
 });
 
+test("[Vertrag: Review-Karteneditor] Bearbeiten und Schließen kehren reload-fähig zur Sitzung zurück", async ({ page }) => {
+  await page.goto(`/lernen?deck=${DECK_IDS.childA}`);
+  await waitForApp(page);
+  await page.getByRole("button", { name: "Bereich A / Gemeinsam lernen" }).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Lerneinstellungen" }).click();
+  await page.getByRole("dialog", { name: "Lerneinstellungen" }).getByRole("button", { name: "Karte bearbeiten" }).click();
+  await expect(page).toHaveURL(new RegExp(
+    `/kartenstapel\\?deck=${DECK_IDS.childA}&card=${CARD_IDS.a}&reviewReturn=`,
+  ));
+  await page.reload();
+
+  const front = page.getByRole("textbox", { name: "Karten-Vorderseite" });
+  await expect(front).toContainText("Karte A");
+  await front.fill("Karte A bearbeitet");
+  await page.getByRole("button", { name: "Speichern", exact: true }).click();
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
+
+  await expect(page).toHaveURL(new RegExp(
+    `/decks/${DECK_IDS.childA}/review\\?returnView=learn&returnDeck=${DECK_IDS.childA}$`,
+  ));
+  await expect(page.getByText("Karte A bearbeitet", { exact: true })).toBeVisible();
+
+  const invalidReturn = encodeURIComponent(`/lernen?deck=${DECK_IDS.childA}`);
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.childA}&card=${CARD_IDS.a}&reviewReturn=${invalidReturn}`);
+  await waitForApp(page);
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
+  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childA}`);
+});
+
 test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorwärts und ungültige IDs bleiben deterministisch", async ({ page }) => {
   await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
   await waitForApp(page);

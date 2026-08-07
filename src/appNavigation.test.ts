@@ -7,6 +7,7 @@ import {
   createReviewReturnContext,
   createStudyRoute,
   createViewRoute,
+  normalizeAppRoute,
   parseAppRouteFromUrl,
   readAppRouteFromHistoryState,
   reviewReturnContextToViewRoute,
@@ -101,6 +102,37 @@ test("roundtrips the deck-settings origin and keeps direct links on the safe lea
   assert.deepEqual(
     parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b&returnView=external&returnCard=ignored"),
     { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" },
+  );
+});
+
+test("roundtrips an allowlisted review return from the selected card editor", () => {
+  const editorRoute = createViewRoute("kartenstapel", {
+    focusedDeckId: "deck_child",
+    selectedCardId: "card_current",
+    cardEditorReturnContext: {
+      deckId: "deck_root",
+      variantSession: true,
+      variantId: "variant_current",
+      returnContext: { view: "learn", deckId: "deck_root" },
+    },
+  });
+  const url = appRouteToUrl(editorRoute);
+
+  assert.match(url, /^\/kartenstapel\?deck=deck_child&card=card_current&reviewReturn=/);
+  assert.deepEqual(parseAppRouteFromUrl(url), editorRoute);
+  assert.deepEqual(
+    parseAppRouteFromUrl("/kartenstapel?deck=deck_child&card=card_current&reviewReturn=https%3A%2F%2Fevil.example"),
+    { mode: "view", viewId: "kartenstapel", focusedDeckId: "deck_child", selectedCardId: "card_current" },
+  );
+  assert.deepEqual(
+    normalizeAppRoute({
+      mode: "view",
+      viewId: "kartenstapel",
+      focusedDeckId: "deck_child",
+      selectedCardId: "card_current",
+      cardEditorReturnContext: { deckId: "deck_child" },
+    }),
+    { mode: "view", viewId: "kartenstapel", focusedDeckId: "deck_child", selectedCardId: "card_current" },
   );
 });
 

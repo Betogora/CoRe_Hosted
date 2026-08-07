@@ -260,21 +260,27 @@ export function updateDeckNewCardLimitForDate(deck: Deck, limit: unknown, option
   };
 }
 
-export function countNewCardsIntroducedToday(decksOrDeck: Deck | Deck[], options: ReviewServiceOptions = {}): number {
-  const now = options.now ?? new Date();
-  const dateKey = options.dateKey ?? localDateKey(now);
-  const scopeDecks = collectDeckScope(decksOrDeck, options.deckId);
-  const introduced = new Set();
-
+function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput) {
+  const dateKey = localDateKey(now);
+  const byDeckId = new Map<string, { introduced: number; reviewed: number }>();
+  let introducedTotal = 0;
+  let reviewedTotal = 0;
   for (const deck of scopeDecks) {
+    const introduced = new Set<string>();
+    const reviewed = new Set<string>();
     for (const event of (deck.reviewEvents ?? []) as LegacyReviewEvent[]) {
       if (localDateKey(reviewEventDate(event) ?? now) !== dateKey) continue;
-      if (!wasNewBeforeReview(event)) continue;
-      introduced.add(reviewKey(deck.id, event.learningItemId ?? event.cardId));
+      const key = reviewKey(deck.id, event.learningItemId ?? event.cardId);
+      if (wasNewBeforeReview(event)) introduced.add(key);
+      else reviewed.add(key);
     }
+    for (const key of introduced) reviewed.delete(key);
+    const consumption = { introduced: introduced.size, reviewed: reviewed.size };
+    byDeckId.set(deck.id, consumption);
+    introducedTotal += consumption.introduced;
+    reviewedTotal += consumption.reviewed;
   }
-
-  return introduced.size;
+  return { byDeckId, introducedTotal, reviewedTotal };
 }
 
 function updateCoreStateFromReview(card: LearningItem, reviewState: ReviewState, updatedAt = new Date().toISOString()): LearningItem {
@@ -623,6 +629,27 @@ export function createDailyReviewSessionState(items: Array<{ deckId?: string; le
   };
 }
 
+export function reconcileDailyReviewSessionState(
+  session: DailyReviewSessionState,
+  items: Array<{ deckId?: string; learningItemId?: string } | null | undefined> = [],
+  options: { preserveInitialKey?: string } = {},
+): DailyReviewSessionState {
+  const completed = new Set(session.completedInitialKeys);
+  const repeats = new Set(session.repeatKeys);
+  const remainingInitialKeys = new Set(session.remainingInitialKeys.filter((key) => key === options.preserveInitialKey));
+  for (const item of items) {
+    if (item?.deckId && item.learningItemId) remainingInitialKeys.add(reviewKey(item.deckId, item.learningItemId));
+  }
+  for (const key of completed) remainingInitialKeys.delete(key);
+  for (const key of repeats) remainingInitialKeys.delete(key);
+
+  return {
+    ...session,
+    initialKeys: [...session.completedInitialKeys, ...remainingInitialKeys],
+    remainingInitialKeys: [...remainingInitialKeys],
+  };
+}
+
 export function advanceDailyReviewSession(
   session: DailyReviewSessionState,
   input: { key: string; rating: ReviewRating; nextReviewState: ReviewState },
@@ -726,21 +753,27 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
 
   const rootSettings = createDefaultDeckSettings(rootDeck?.deckSettings ?? {});
   const newLimit = getEffectiveNewCardsPerDay(rootDeck, { now });
-  const introducedToday = countNewCardsIntroducedToday(scopeDecks, { now });
+  const dailyConsumption = summarizeDailyCardConsumption(scopeDecks, now);
+  const introducedToday = dailyConsumption.introducedTotal;
+  const reviewsCompletedToday = dailyConsumption.reviewedTotal;
   const remainingNewCards = Math.max(0, newLimit - introducedToday);
+  const remainingReviews = Math.max(0, rootSettings.maximumReviewsPerDay - reviewsCompletedToday);
+  const remainingByDeckId = new Map(scopeDecks.map((deck) => {
+    const consumption = dailyConsumption.byDeckId.get(deck.id);
+    return [deck.id, {
+      newCards: Math.max(0, getEffectiveNewCardsPerDay(deck, { now }) - (consumption?.introduced ?? 0)),
+      reviews: Math.max(0, createDefaultDeckSettings(deck.deckSettings).maximumReviewsPerDay - (consumption?.reviewed ?? 0)),
+    }];
+  }));
   const dueEntriesWithinDeckLimits = limitEntriesPerDeck(
     dueEntries,
-    (deck) => createDefaultDeckSettings(deck.deckSettings).maximumReviewsPerDay,
+    (deck) => remainingByDeckId.get(deck.id)?.reviews ?? 0,
   );
-  const remainingNewCardsByDeckId = new Map(scopeDecks.map((deck) => [
-    deck.id,
-    Math.max(0, getEffectiveNewCardsPerDay(deck, { now }) - countNewCardsIntroducedToday(deck, { now })),
-  ]));
   const newEntriesWithinDeckLimits = limitEntriesPerDeck(
     newEntries,
-    (deck) => remainingNewCardsByDeckId.get(deck.id) ?? 0,
+    (deck) => remainingByDeckId.get(deck.id)?.newCards ?? 0,
   );
-  const selectedDueEntries = dueEntriesWithinDeckLimits.slice(0, rootSettings.maximumReviewsPerDay);
+  const selectedDueEntries = dueEntriesWithinDeckLimits.slice(0, remainingReviews);
   const selectedNewEntries = newEntriesWithinDeckLimits.slice(0, remainingNewCards);
   const selectedEntries = orderDailyQueueEntries(selectedDueEntries, selectedNewEntries, rootSettings.newReviewOrder);
   const items = selectedEntries
@@ -763,6 +796,8 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
     dueCount: selectedDueEntries.length,
     availableDueCards: dueEntries.length,
     maximumReviewsPerDay: rootSettings.maximumReviewsPerDay,
+    reviewsCompletedToday,
+    remainingReviews,
     newReviewOrder: rootSettings.newReviewOrder,
     newCount: selectedNewEntries.length,
     availableNewCards: newEntries.length,

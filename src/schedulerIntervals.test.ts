@@ -10,6 +10,7 @@ import {
   createDailyReviewSessionState,
   getNextDailyReviewSessionItem,
   getNextReviewItem,
+  reconcileDailyReviewSessionState,
   updateDeckNewCardLimitForDate,
 } from "./reviewService.ts";
 import { formatIntervalLabel, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
@@ -387,6 +388,72 @@ test("daily review queue subtracts new cards introduced today and honors today's
   assert.equal(queue.newCardsIntroducedToday, 1);
   assert.equal(queue.newCount, 6);
   assert.equal(queue.total, 6);
+
+  const cappedQueue = createDailyReviewQueue({
+    ...deck,
+    deckSettings: { ...deck.deckSettings, newCardsPerDay: 0, newCardsTodayOverride: null },
+  }, { now: NOW });
+  assert.equal(cappedQueue.newCardsPerDay, 0);
+  assert.equal(cappedQueue.remainingNewCards, 0);
+  assert.equal(cappedQueue.newCount, 0);
+});
+
+test("daily review queue subtracts unique due cards already completed today", () => {
+  const dueCards = Array.from({ length: 3 }, (_value, index) => reviewItem({
+    id: `remaining_due_${index + 1}`,
+    dueAt: "2026-07-07T09:00:00.000Z",
+  }));
+  const deck = createCoreDeck({
+    id: "deck_scheduler_intervals",
+    name: "Queue",
+    source: "manual",
+    deckSettings: { maximumReviewsPerDay: 2 },
+    cards: dueCards,
+    reviewEvents: [
+      {
+        id: "completed_due",
+        deckId: "deck_scheduler_intervals",
+        learningItemId: "completed_due_item",
+        answeredAt: "2026-07-07T08:00:00.000Z",
+        schedulerBefore: { card: { state: "review", reps: 4 } },
+      },
+      {
+        id: "completed_due_repeat",
+        deckId: "deck_scheduler_intervals",
+        learningItemId: "completed_due_item",
+        answeredAt: "2026-07-07T08:10:00.000Z",
+        schedulerBefore: { card: { state: "relearning", reps: 5 } },
+      },
+      {
+        id: "new_today",
+        deckId: "deck_scheduler_intervals",
+        learningItemId: "introduced_today_item",
+        answeredAt: "2026-07-07T08:20:00.000Z",
+        schedulerBefore: { card: { state: "new", reps: 0 } },
+      },
+      {
+        id: "new_today_repeat",
+        deckId: "deck_scheduler_intervals",
+        learningItemId: "introduced_today_item",
+        answeredAt: "2026-07-07T08:30:00.000Z",
+        schedulerBefore: { card: { state: "learning", reps: 1 } },
+      },
+    ] as any,
+  });
+
+  const queue = createDailyReviewQueue(deck, { now: NOW });
+
+  assert.equal(queue.reviewsCompletedToday, 1);
+  assert.equal(queue.remainingReviews, 1);
+  assert.equal(queue.dueCount, 1);
+
+  const cappedQueue = createDailyReviewQueue({
+    ...deck,
+    deckSettings: { ...deck.deckSettings, maximumReviewsPerDay: 0 },
+  }, { now: NOW });
+  assert.equal(cappedQueue.maximumReviewsPerDay, 0);
+  assert.equal(cappedQueue.remainingReviews, 0);
+  assert.equal(cappedQueue.dueCount, 0);
 });
 
 test("daily new-card limit updates through the review interface", () => {
@@ -510,6 +577,29 @@ test("daily review session finishes unique cards before pulling same-day repeats
   assert.equal(session.completedInitialKeys.length, 2);
   assert.equal(session.repeatCount, 1);
   assert.deepEqual(session.repeatKeys, ["deck_session:item_second"]);
+});
+
+test("session reconciliation replaces only unfinished initial cards and keeps progress and repeats", () => {
+  const initial = createDailyReviewSessionState([
+    { deckId: "deck", learningItemId: "first" },
+    { deckId: "deck", learningItemId: "second" },
+    { deckId: "deck", learningItemId: "third" },
+  ]);
+  const afterFirst = advanceDailyReviewSession(initial, {
+    key: "deck:first",
+    rating: "again",
+    nextReviewState: { ...newItem().reviewState, state: "learning" },
+  });
+
+  const reconciled = reconcileDailyReviewSessionState(afterFirst, [
+    { deckId: "deck", learningItemId: "fourth" },
+  ], { preserveInitialKey: "deck:second" });
+
+  assert.deepEqual(reconciled.initialKeys, ["deck:first", "deck:second", "deck:fourth"]);
+  assert.deepEqual(reconciled.completedInitialKeys, ["deck:first"]);
+  assert.deepEqual(reconciled.remainingInitialKeys, ["deck:second", "deck:fourth"]);
+  assert.deepEqual(reconciled.repeatKeys, ["deck:first"]);
+  assert.deepEqual(reconciled.ratingCounts, { again: 1, hard: 0, good: 0, easy: 0 });
 });
 
 test("failed session repeats return to the FIFO tail until they succeed", () => {
