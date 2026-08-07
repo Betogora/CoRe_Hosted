@@ -155,7 +155,7 @@ function StatisticsTooltip({
 
 function PanelHeader({ title, snapshot = false }: { title: string; snapshot?: boolean }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--core-border)] pb-4">
+    <div className="flex flex-wrap items-start justify-between gap-3">
       <h3 className="core-heading-3 text-core-text">{title}</h3>
       {snapshot ? <span className="core-status-label rounded-full bg-core-subtle px-3 py-1.5 text-core-secondary">Stand heute</span> : null}
     </div>
@@ -420,7 +420,7 @@ export function StatisticsScreen({ decks, now, timeZone, onNavigate, onStartDeck
         <p className="core-body text-core-muted">{statistics.dateRangeLabel}</p>
       </div>
 
-      <SoftPanel className="sticky top-3 z-30 p-4 shadow-sm sm:p-5">
+      <SoftPanel className="p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="core-control-label text-core-muted">Globaler Zeitraum</p>

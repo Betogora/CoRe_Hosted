@@ -44,6 +44,8 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(markup, /Lern-Heatmap/);
   assert.match(markup, /data-testid="study-heatmap-grid"/);
   assert.doesNotMatch(markup, /overflow-x-hidden/);
+  assert.doesNotMatch(markup, /sticky top-3 z-30 p-4/);
+  assert.doesNotMatch(markup, /items-start justify-between gap-3 border-b/);
   for (const removedText of [
     "Alle historischen Diagramme",
     "pro aktivem Tag",
