@@ -45,7 +45,7 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
       onExit={() => undefined}
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}
-      onSaveDeckDailyLimits={() => deck}
+      onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
       onDeckUpdated={() => undefined}
       onReviewEvent={() => undefined}
@@ -78,7 +78,7 @@ test("StudyMode uses the simulated learning time for queue and visible status", 
     onExit: () => undefined,
     onReturnToLearn: () => undefined,
     onEditCard: () => undefined,
-    onSaveDeckDailyLimits: () => deck,
+    onEditDeck: () => undefined,
     onSetCardStudyState: () => deck,
     onDeckUpdated: () => undefined,
     onReviewEvent: () => undefined,
@@ -112,7 +112,7 @@ test("StudyMode exposes labeled learning and placeholder Pomodoro progress witho
       onExit={() => undefined}
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}
-      onSaveDeckDailyLimits={() => deck}
+      onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
       onDeckUpdated={() => undefined}
       onReviewEvent={() => undefined}
@@ -178,7 +178,7 @@ test("StudyMode renders the four daily progress segments in the canonical order 
       onExit={() => undefined}
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}
-      onSaveDeckDailyLimits={() => deck}
+      onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
       onDeckUpdated={() => undefined}
       onReviewEvent={() => undefined}

@@ -7,11 +7,11 @@ const defaultViewId = menu.defaultViewId;
 const studyFallbackViewId: AppViewId = "lernen";
 const extraRoutableViewIds = ["stapel-einstellungen"] as const;
 const reviewReturnViews = ["today", "learn", "decks"] as const;
-const settingsReturnViews = reviewReturnViews;
+const settingsReturnViews = [...reviewReturnViews, "review"] as const;
 
 export type AppViewId = MenuViewId | typeof extraRoutableViewIds[number];
 export type ReviewReturnView = typeof reviewReturnViews[number];
-export type SettingsReturnView = ReviewReturnView;
+export type SettingsReturnView = typeof settingsReturnViews[number];
 
 export interface ReviewReturnContext {
   view: ReviewReturnView;
@@ -19,12 +19,12 @@ export interface ReviewReturnContext {
   cardId?: string;
 }
 
-export interface SettingsReturnContext {
-  view: SettingsReturnView;
-  cardId?: string;
-}
+export type ReviewResumeContext = Omit<StudyRoute, "mode">;
 
-export type CardEditorReturnContext = Omit<StudyRoute, "mode">;
+export type SettingsReturnContext =
+  | { view: "today" | "learn" }
+  | { view: "decks"; cardId?: string }
+  | { view: "review"; reviewReturnContext: ReviewResumeContext };
 
 export interface ViewRoute {
   mode: "view";
@@ -36,7 +36,7 @@ export interface ViewRoute {
   creationDeckId?: string;
   completedDeckId?: string;
   settingsReturnContext?: SettingsReturnContext;
-  cardEditorReturnContext?: CardEditorReturnContext;
+  cardEditorReturnContext?: ReviewResumeContext;
 }
 
 export interface StudyRoute {
@@ -59,7 +59,7 @@ interface ReviewReturnContextInput {
   cardId?: unknown;
 }
 
-interface CardEditorReturnContextInput {
+interface ReviewResumeContextInput {
   deckId?: unknown;
   variantSession?: unknown;
   variantId?: unknown;
@@ -78,8 +78,9 @@ interface ViewRouteInput {
   settingsReturnContext?: {
     view?: unknown;
     cardId?: unknown;
+    reviewReturnContext?: ReviewResumeContextInput;
   };
-  cardEditorReturnContext?: CardEditorReturnContextInput;
+  cardEditorReturnContext?: ReviewResumeContextInput;
 }
 
 type StudyRouteInput = {
@@ -121,7 +122,17 @@ function normalizeViewRoute(
     ? String(route.settingsReturnContext?.view) as SettingsReturnView
     : null;
   const settingsReturnCardId = cleanIdentifier(route.settingsReturnContext?.cardId);
-  const cardEditorReturnContext = normalizeCardEditorReturnContext(route.cardEditorReturnContext);
+  const settingsReviewReturnContext = normalizeReviewResumeContext(route.settingsReturnContext?.reviewReturnContext);
+  const cardEditorReturnContext = normalizeReviewResumeContext(route.cardEditorReturnContext);
+  const settingsReturnContext: SettingsReturnContext | null = settingsReturnView === "review"
+    ? settingsReviewReturnContext
+      ? { view: "review", reviewReturnContext: settingsReviewReturnContext }
+      : null
+    : settingsReturnView === "decks"
+      ? { view: "decks", ...(settingsReturnCardId ? { cardId: settingsReturnCardId } : {}) }
+      : settingsReturnView
+        ? { view: settingsReturnView }
+        : null;
 
   return {
     mode: "view",
@@ -132,12 +143,7 @@ function normalizeViewRoute(
     ...(viewId === "neue-karten" && creationMethod ? { creationMethod } : {}),
     ...(viewId === "neue-karten" && creationDeckId ? { creationDeckId } : {}),
     ...(viewId === "neue-karten" && completedDeckId ? { completedDeckId } : {}),
-    ...(viewId === "stapel-einstellungen" && settingsReturnView ? {
-      settingsReturnContext: {
-        view: settingsReturnView,
-        ...(settingsReturnView === "decks" && settingsReturnCardId ? { cardId: settingsReturnCardId } : {}),
-      },
-    } : {}),
+    ...(viewId === "stapel-einstellungen" && settingsReturnContext ? { settingsReturnContext } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId && cardEditorReturnContext
       ? { cardEditorReturnContext }
       : {}),
@@ -178,9 +184,9 @@ function normalizeReviewReturnContext(
   };
 }
 
-function normalizeCardEditorReturnContext(
-  context: CardEditorReturnContextInput | undefined,
-): CardEditorReturnContext | null {
+function normalizeReviewResumeContext(
+  context: ReviewResumeContextInput | undefined,
+): ReviewResumeContext | null {
   const deckId = cleanIdentifier(context?.deckId);
   if (
     !deckId
@@ -303,8 +309,9 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     creationDeckId: url.searchParams.get("deck") ?? undefined,
     completedDeckId: url.searchParams.get("done") ?? undefined,
     settingsReturnContext: pathSegments[0] === "stapel-einstellungen" ? {
-      view: url.searchParams.get("returnView") ?? undefined,
+      view: reviewReturnRoute?.mode === "study" ? "review" : url.searchParams.get("returnView") ?? undefined,
       cardId: url.searchParams.get("returnCard") ?? undefined,
+      reviewReturnContext: reviewReturnRoute?.mode === "study" ? cardEditorReturnContext : undefined,
     } : undefined,
     cardEditorReturnContext,
   }, options);
@@ -333,7 +340,15 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   if (normalized.viewId === "neue-karten" && normalized.completedDeckId) params.set("done", normalized.completedDeckId);
   if (normalized.viewId === "stapel-einstellungen" && normalized.settingsReturnContext) {
     params.set("returnView", normalized.settingsReturnContext.view);
-    if (normalized.settingsReturnContext.cardId) params.set("returnCard", normalized.settingsReturnContext.cardId);
+    if (normalized.settingsReturnContext.view === "decks" && normalized.settingsReturnContext.cardId) {
+      params.set("returnCard", normalized.settingsReturnContext.cardId);
+    }
+    if (normalized.settingsReturnContext.view === "review") {
+      params.set("reviewReturn", appRouteToUrl({
+        mode: "study",
+        ...normalized.settingsReturnContext.reviewReturnContext,
+      }));
+    }
   }
   if (normalized.viewId === "kartenstapel" && normalized.cardEditorReturnContext) {
     params.set("reviewReturn", appRouteToUrl({

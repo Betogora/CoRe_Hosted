@@ -153,7 +153,7 @@ export interface StudyModeProps {
   onExit: () => void;
   onReturnToLearn: () => void;
   onEditCard: (deckId: string, cardId: string) => unknown;
-  onSaveDeckDailyLimits: (deckId: string, limits: { newCardsPerDay?: number; maximumReviewsPerDay?: number }) => Deck | null;
+  onEditDeck: (deckId: string) => unknown;
   onSetCardStudyState: (deckId: string, cardId: string, patch: LearningItemStudyStatePatch) => Deck | null;
   onDeckUpdated: (deck: Deck | Deck[]) => unknown;
   onReviewEvent: (event: ReviewEvent) => void;

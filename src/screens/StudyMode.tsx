@@ -11,7 +11,6 @@ import {
   createDailyReviewQueue,
   createDailyReviewSessionState,
   getNextDailyReviewSessionItem,
-  reconcileDailyReviewSessionState,
   removeDailyReviewSessionItem,
   recordVariantFeedback,
   type DailyReviewProgressSummary,
@@ -83,7 +82,7 @@ function DailyReviewProgress({ progress }: { progress: DailyReviewProgressSummar
   );
 }
 
-export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationDayOffset, onExit, onReturnToLearn, onEditCard, onSaveDeckDailyLimits, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
+export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationDayOffset, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
@@ -120,7 +119,6 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   const completedInitialCount = effectiveReviewSession.completedInitialKeys.length;
   const repeatCount = effectiveReviewSession.repeatCount;
   const answeredCount = completedInitialCount + repeatCount;
-  const currentIsInitial = Boolean(current && !current.sessionInfo?.isRepeat);
   const sourceCard = current?.learningItem ?? null;
   const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
   const sourceAnchor = current?.variant?.sourceAnchors?.[0] ?? sourceCard?.sourceAnchors?.[0] ?? null;
@@ -207,23 +205,6 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
     feedbackDeckRef.current = result.deck;
     onDeckUpdated(result.deck);
     setFeedbackStatus(action === "disable" ? "Diese Abfrage wird künftig nicht mehr gezeigt." : "Danke. Der ausgewählte Grund wurde gespeichert.");
-  }
-
-  function updateDailyLimits(limits: { newCardsPerDay?: number; maximumReviewsPerDay?: number }) {
-    if (!rootDeck) return;
-    const updatedRootDeck = onSaveDeckDailyLimits(rootDeck.id, limits);
-    if (!updatedRootDeck) return;
-    const nextDecks = replaceSessionDeck(updatedRootDeck);
-    const nextQueue = createDailyReviewQueue(nextDecks, {
-      deckId: updatedRootDeck.id,
-      now: getNow(),
-      language: "de",
-      variantSession,
-    });
-    setSessionDecks(nextDecks);
-    setReviewSession((session) => reconcileDailyReviewSessionState(session ?? effectiveReviewSession, nextQueue.items, {
-      preserveInitialKey: currentIsInitial ? current?.sessionInfo?.key : undefined,
-    }));
   }
 
   function updateCurrentStudyState(patch: LearningItemStudyStatePatch) {
@@ -329,18 +310,17 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
         <StudySettingsOverlay
           open={showSettings}
           canEditCard={Boolean(current?.deckId && current.learningItemId)}
-          newCardsPerDay={rootDeck?.deckSettings.newCardsPerDay ?? queue.newCardsPerDay}
-          maximumReviewsPerDay={rootDeck?.deckSettings.maximumReviewsPerDay ?? queue.maximumReviewsPerDay}
           marked={isLearningItemMarked(sourceCard)}
           suspended={sourceCard?.status === "suspended"}
           onOpenChange={setShowSettings}
           onEditCard={() => {
             if (current?.deckId && current.learningItemId) onEditCard(current.deckId, current.learningItemId);
           }}
+          onEditDeck={() => {
+            if (rootDeck) onEditDeck(rootDeck.id);
+          }}
           onMarkedChange={(marked) => updateCurrentStudyState({ marked })}
           onSuspendedChange={(suspended) => updateCurrentStudyState({ suspended })}
-          onNewCardsPerDayChange={(value) => updateDailyLimits({ newCardsPerDay: value })}
-          onMaximumReviewsPerDayChange={(value) => updateDailyLimits({ maximumReviewsPerDay: value })}
         />
 
         <section className="grid flex-1 place-items-center py-8">

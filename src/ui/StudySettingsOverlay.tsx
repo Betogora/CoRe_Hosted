@@ -4,10 +4,8 @@ import {
   Ban,
   ChevronRight,
   ListOrdered,
-  Minus,
   Pencil,
-  Plus,
-  RefreshCw,
+  Settings,
   Star,
   Timer,
   X,
@@ -15,61 +13,37 @@ import {
 import { IconButton } from "./actionUi.tsx";
 import { CardMarkButton, CoreSwitch } from "./coreUi.tsx";
 
-interface NumberStepperProps {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (value: number) => void;
-}
-
 export interface StudySettingsOverlayProps {
   open: boolean;
   canEditCard: boolean;
-  newCardsPerDay: number;
-  maximumReviewsPerDay: number;
   marked: boolean;
   suspended: boolean;
   onOpenChange: (open: boolean) => void;
   onEditCard: () => void;
+  onEditDeck: () => void;
   onMarkedChange: (marked: boolean) => void;
   onSuspendedChange: (suspended: boolean) => void;
-  onNewCardsPerDayChange: (value: number) => void;
-  onMaximumReviewsPerDayChange: (value: number) => void;
 }
 
-function NumberStepper({ label, value, min, max, step, onChange }: NumberStepperProps) {
-  const decrease = Math.max(min, value - step);
-  const increase = Math.min(max, value + step);
-  const Icon = label === "Neue Karten pro Tag" ? ListOrdered : RefreshCw;
-
+function EditMenuRow({ icon: Icon, label, disabled = false, onClick }: {
+  icon: typeof Pencil;
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--core-border)] py-2 last:border-b-0">
-      <span className="flex min-w-0 items-center gap-3 core-body font-semibold text-[var(--core-text-secondary)]">
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="flex min-h-12 w-full items-center justify-between gap-3 py-2 text-left core-body font-semibold text-[var(--core-text-secondary)] transition hover:text-[var(--core-text)] disabled:cursor-not-allowed disabled:text-[var(--core-text-muted)]"
+    >
+      <span className="flex min-w-0 items-center gap-3">
         <Icon className="shrink-0 text-[var(--core-action-secondary)]" size={18} aria-hidden="true" />
-        <span>{label}</span>
+        {label}
       </span>
-      <span className="flex shrink-0 items-center gap-1 rounded-xl border border-[var(--core-border)] bg-core-surface p-0.5">
-        <IconButton
-          label={`${label} verringern`}
-          icon={Minus}
-          variant="ghost"
-          disabled={value <= min}
-          onClick={() => onChange(decrease)}
-        />
-        <output className="min-w-10 text-center core-body font-semibold text-[var(--core-text)]" aria-label={label}>
-          {value}
-        </output>
-        <IconButton
-          label={`${label} erhöhen`}
-          icon={Plus}
-          variant="ghost"
-          disabled={value >= max}
-          onClick={() => onChange(increase)}
-        />
-      </span>
-    </div>
+      <ChevronRight size={17} aria-hidden="true" />
+    </button>
   );
 }
 
@@ -80,7 +54,7 @@ function StudyStateRow({ icon: Icon, label, children, disabled = false }: {
   disabled?: boolean;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--core-border)] py-2 last:border-b-0" aria-disabled={disabled || undefined}>
+    <div className="flex min-h-12 items-center justify-between gap-3 py-2" aria-disabled={disabled || undefined}>
       <span className={`flex min-w-0 items-center gap-3 core-body font-semibold ${disabled ? "text-[var(--core-text-muted)]" : "text-[var(--core-text-secondary)]"}`}>
         <Icon className="shrink-0" size={18} aria-hidden="true" />
         <span>{label}</span>
@@ -100,7 +74,7 @@ function DisabledMenuRow({ icon: Icon, label, value }: { icon: typeof Timer; lab
           ? `${label} – noch nicht verfügbar`
           : `${label}: ${value} – noch nicht verfügbar`
       }
-      className="flex min-h-12 w-full items-center justify-between gap-3 border-b border-[var(--core-border)] py-2 text-left last:border-b-0 disabled:cursor-not-allowed"
+      className="flex min-h-12 w-full items-center justify-between gap-3 py-2 text-left disabled:cursor-not-allowed"
     >
       <span className="flex min-w-0 items-center gap-3 core-body font-semibold text-[var(--core-text-muted)]">
         <Icon className="shrink-0" size={18} aria-hidden="true" />
@@ -117,16 +91,13 @@ function DisabledMenuRow({ icon: Icon, label, value }: { icon: typeof Timer; lab
 export function StudySettingsOverlay({
   open,
   canEditCard,
-  newCardsPerDay,
-  maximumReviewsPerDay,
   marked,
   suspended,
   onOpenChange,
   onEditCard,
+  onEditDeck,
   onMarkedChange,
   onSuspendedChange,
-  onNewCardsPerDayChange,
-  onMaximumReviewsPerDayChange,
 }: StudySettingsOverlayProps) {
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
   const closeButtonRef = React.useRef<HTMLButtonElement | null>(null);
@@ -201,21 +172,23 @@ export function StudySettingsOverlay({
           <section className="py-4" aria-labelledby={`${titleId}-card`}>
             <h3 id={`${titleId}-card`} className="core-status-label uppercase tracking-wide text-[var(--core-action-secondary)]">Karte</h3>
             <div className="mt-2">
-              <button
-                type="button"
+              <EditMenuRow
+                icon={Pencil}
+                label="Karte bearbeiten"
                 disabled={!canEditCard}
                 onClick={() => {
                   onOpenChange(false);
                   onEditCard();
                 }}
-                className="flex min-h-12 w-full items-center justify-between gap-3 border-b border-[var(--core-border)] py-2 text-left core-body font-semibold text-[var(--core-text-secondary)] transition hover:text-[var(--core-text)] disabled:cursor-not-allowed disabled:text-[var(--core-text-muted)]"
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <Pencil className="shrink-0 text-[var(--core-action-secondary)]" size={18} aria-hidden="true" />
-                  Karte bearbeiten
-                </span>
-                <ChevronRight size={17} aria-hidden="true" />
-              </button>
+              />
+              <EditMenuRow
+                icon={Settings}
+                label="Stapel bearbeiten"
+                onClick={() => {
+                  onOpenChange(false);
+                  onEditDeck();
+                }}
+              />
               <StudyStateRow icon={Star} label="Markieren" disabled={!canEditCard}>
                 <CardMarkButton marked={marked} disabled={!canEditCard} onMarkedChange={onMarkedChange} />
               </StudyStateRow>
@@ -230,7 +203,7 @@ export function StudySettingsOverlay({
             </div>
           </section>
 
-          <section className="border-t border-[var(--core-border)] py-4" aria-labelledby={`${titleId}-session`}>
+          <section className="py-4" aria-labelledby={`${titleId}-session`}>
             <h3 id={`${titleId}-session`} className="core-status-label uppercase tracking-wide text-[var(--core-action-secondary)]">Sitzung</h3>
             <div className="mt-2">
               <DisabledMenuRow icon={Timer} label="Pomodoro" value="25 Min." />
@@ -238,13 +211,6 @@ export function StudySettingsOverlay({
             </div>
           </section>
 
-          <section className="border-t border-[var(--core-border)] py-4" aria-labelledby={`${titleId}-deck`}>
-            <h3 id={`${titleId}-deck`} className="core-status-label uppercase tracking-wide text-[var(--core-action-secondary)]">Stapel</h3>
-            <div className="mt-2">
-              <NumberStepper label="Neue Karten pro Tag" value={newCardsPerDay} min={0} max={100} step={1} onChange={onNewCardsPerDayChange} />
-              <NumberStepper label="Max. Wiederholungen" value={maximumReviewsPerDay} min={0} max={500} step={10} onChange={onMaximumReviewsPerDayChange} />
-            </div>
-          </section>
         </div>
       </div>
     </div>

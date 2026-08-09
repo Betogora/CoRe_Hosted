@@ -43,6 +43,16 @@ test("projects the settings return context only on the settings route", () => {
     settingsReturnContext: { view: "decks", cardId: "card-2" },
   })).settingsReturnContext, { view: "decks", cardId: "card-2" });
   assert.equal(projectAppRoute(createViewRoute("lernen")).settingsReturnContext, null);
+
+  const reviewReturnContext = {
+    deckId: "deck-1",
+    variantSession: false,
+    returnContext: { view: "learn" as const, deckId: "deck-1" },
+  };
+  assert.deepEqual(projectAppRoute(createViewRoute("stapel-einstellungen", {
+    focusedDeckId: "deck-1",
+    settingsReturnContext: { view: "review", reviewReturnContext },
+  })).settingsReturnContext, { view: "review", reviewReturnContext });
 });
 
 test("browser navigation cleanup removes the exact popstate listener", () => {

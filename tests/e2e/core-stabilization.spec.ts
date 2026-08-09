@@ -306,7 +306,7 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   await expect(settingsDialog).toBeVisible();
   await expect(settingsDialog.getByRole("button", { name: "Lerneinstellungen schließen" })).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(settingsDialog.getByRole("button", { name: "Max. Wiederholungen erhöhen" })).toBeFocused();
+  await expect(settingsDialog.getByRole("switch", { name: "Karte aussetzen" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(settingsDialog.getByRole("button", { name: "Lerneinstellungen schließen" })).toBeFocused();
   await page.keyboard.press("Escape");
@@ -333,7 +333,10 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Karte", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Sitzung", { exact: true })).toBeVisible();
-  await expect(dialog.getByText("Stapel", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Stapel bearbeiten" })).toBeVisible();
+  await expect(dialog.getByText("Stapel", { exact: true })).toHaveCount(0);
+  await expect(dialog.getByText("Neue Karten pro Tag", { exact: true })).toHaveCount(0);
+  await expect(dialog.getByText("Max. Wiederholungen", { exact: true })).toHaveCount(0);
   await expect(dialog.getByText("Reset", { exact: true })).toHaveCount(0);
   await expect(dialog.getByText("Mischen", { exact: true })).toHaveCount(0);
   await expect(dialog.getByText("Nur normale Karten", { exact: true })).toHaveCount(0);
@@ -347,15 +350,11 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   expect(Math.abs(mobileGeometry.bottom - mobileGeometry.viewportHeight)).toBeLessThanOrEqual(1);
   expect(mobileGeometry.height).toBeLessThanOrEqual(mobileGeometry.viewportHeight * 0.88 + 1);
 
-  const newCardsOutput = dialog.getByLabel("Neue Karten pro Tag");
-  const previousLimit = Number(await newCardsOutput.textContent());
-  await dialog.getByRole("button", { name: "Neue Karten pro Tag verringern" }).click();
-  await expect(newCardsOutput).toHaveText(String(previousLimit - 1));
-  await expect.poll(async () => {
-    const state = await readAppState(page);
-    const settings = state.decks.find((deck: { id: string }) => deck.id === DECK_IDS.europe)?.deckSettings;
-    return { limit: settings?.newCardsPerDay, override: settings?.newCardsTodayOverride ?? null };
-  }).toEqual({ limit: previousLimit - 1, override: null });
+  const contentBorders = await dialog.locator("section, section > div > *").evaluateAll((elements: Element[]) => elements.map((element: Element) => {
+    const style = window.getComputedStyle(element);
+    return { top: style.borderTopWidth, bottom: style.borderBottomWidth };
+  }));
+  expect(contentBorders.every((border: { top: string; bottom: string }) => border.top === "0px" && border.bottom === "0px")).toBe(true);
 
   await page.setViewportSize({ width: 768, height: 640 });
   const desktopGeometry = await dialog.evaluate((element: HTMLElement) => {

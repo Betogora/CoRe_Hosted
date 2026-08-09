@@ -136,6 +136,38 @@ test("roundtrips an allowlisted review return from the selected card editor", ()
   );
 });
 
+test("roundtrips an allowlisted review return from deck settings", () => {
+  const settingsRoute = createViewRoute("stapel-einstellungen", {
+    focusedDeckId: "deck_root",
+    settingsReturnContext: {
+      view: "review",
+      reviewReturnContext: {
+        deckId: "deck_root",
+        variantSession: true,
+        variantId: "variant_current",
+        returnContext: { view: "decks", deckId: "deck_child", cardId: "card_current" },
+      },
+    },
+  });
+  const url = appRouteToUrl(settingsRoute);
+
+  assert.match(url, /^\/stapel-einstellungen\?deck=deck_root&returnView=review&reviewReturn=/);
+  assert.deepEqual(parseAppRouteFromUrl(url), settingsRoute);
+  assert.deepEqual(
+    parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_root&returnView=review&reviewReturn=https%3A%2F%2Fevil.example"),
+    { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_root" },
+  );
+  assert.deepEqual(
+    normalizeAppRoute({
+      mode: "view",
+      viewId: "stapel-einstellungen",
+      focusedDeckId: "deck_root",
+      settingsReturnContext: { view: "review", reviewReturnContext: { deckId: "deck_root" } },
+    }),
+    { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_root" },
+  );
+});
+
 test("falls back to today for unknown paths and ignores unsupported query values", () => {
   assert.deepEqual(parseAppRouteFromUrl("/does-not-exist?deck=deck_a&card=card_a"), { mode: "view", viewId: "uebersicht" });
   assert.deepEqual(parseAppRouteFromUrl("/neue-karten?method=provider&card=ignored"), { mode: "view", viewId: "neue-karten" });

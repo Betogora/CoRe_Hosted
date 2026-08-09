@@ -9,49 +9,48 @@ function renderOverlay(overrides: Partial<React.ComponentProps<typeof StudySetti
     <StudySettingsOverlay
       open
       canEditCard
-      newCardsPerDay={20}
-      maximumReviewsPerDay={200}
       marked={false}
       suspended={false}
       onOpenChange={() => undefined}
       onEditCard={() => undefined}
+      onEditDeck={() => undefined}
       onMarkedChange={() => undefined}
       onSuspendedChange={() => undefined}
-      onNewCardsPerDayChange={() => undefined}
-      onMaximumReviewsPerDayChange={() => undefined}
       {...overrides}
     />,
   );
 }
 
-test("StudySettingsOverlay renders one responsive dialog with the canonical sections", () => {
+test("StudySettingsOverlay renders one responsive dialog with the canonical sections and edit links", () => {
   const markup = renderOverlay();
 
   assert.match(markup, /role="dialog"/);
   assert.match(markup, /core-study-settings-overlay/);
   assert.match(markup, />Karte</);
   assert.match(markup, />Sitzung</);
-  assert.match(markup, />Stapel</);
   assert.match(markup, /Karte bearbeiten/);
+  assert.match(markup, /Stapel bearbeiten/);
   assert.doesNotMatch(markup, /Flagge|Flaggenfarben/);
   assert.match(markup, /Markieren/);
   assert.match(markup, /Aussetzen/);
   assert.match(markup, /Pomodoro/);
   assert.match(markup, /Kartenreihenfolge/);
-  assert.match(markup, /Neue Karten pro Tag/);
-  assert.match(markup, /Max\. Wiederholungen/);
+  assert.doesNotMatch(markup, />Stapel</);
+  assert.doesNotMatch(markup, /Neue Karten pro Tag|Max\. Wiederholungen/);
+  assert.doesNotMatch(markup, /<section class="[^"]*border/);
   assert.doesNotMatch(markup, /Kartenverwaltung öffnen|Reset|Mischen|Nur normale Karten|Ansicht/);
 });
 
-test("StudySettingsOverlay exposes active card state controls and bounded steppers", () => {
-  const markup = renderOverlay({ canEditCard: false, newCardsPerDay: 0, maximumReviewsPerDay: 500 });
+test("StudySettingsOverlay keeps deck editing available when card actions are disabled", () => {
+  const markup = renderOverlay({ canEditCard: false });
+  const deckEditButton = markup.match(/<button[^>]*>(?:(?!<\/button>)[\s\S])*Stapel bearbeiten(?:(?!<\/button>)[\s\S])*<\/button>/)?.[0];
 
   assert.match(markup, /aria-label="Karte bearbeiten"|>Karte bearbeiten</);
+  assert.ok(deckEditButton);
+  assert.doesNotMatch(deckEditButton.match(/^<button[^>]*>/)?.[0] ?? "", /\sdisabled=""/);
   assert.match(markup, /aria-label="Karte markieren"[^>]*disabled/);
   assert.match(markup, /role="switch"[^>]*aria-checked="false"[^>]*aria-label="Karte aussetzen"[^>]*disabled/);
   assert.match(markup, /aria-label="Pomodoro: 25 Min\. – noch nicht verfügbar"[^>]*disabled/);
-  assert.match(markup, /disabled="" aria-label="Neue Karten pro Tag verringern"/);
-  assert.match(markup, /disabled="" aria-label="Max\. Wiederholungen erhöhen"/);
 });
 
 test("StudySettingsOverlay renders selected mark and suspended states", () => {

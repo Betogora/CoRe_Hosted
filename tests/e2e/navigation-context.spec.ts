@@ -392,6 +392,33 @@ test("[Vertrag: Review-Karteneditor] Bearbeiten und Schließen kehren reload-fä
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childA}`);
 });
 
+test("[Vertrag: Review-Stapeleinstellungen] Sitzungsstapel und Rückweg bleiben reload-fähig", async ({ page }) => {
+  await page.goto(`/lernen?deck=${DECK_IDS.rootA}`);
+  await waitForApp(page);
+  await page.getByRole("button", { name: "Bereich A lernen" }).click();
+  await expect(page.getByText("Karte A", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Lerneinstellungen" }).click();
+  await page.getByRole("dialog", { name: "Lerneinstellungen" }).getByRole("button", { name: "Stapel bearbeiten" }).click();
+  await expect(page).toHaveURL(new RegExp(
+    `/stapel-einstellungen\\?deck=${DECK_IDS.rootA}&returnView=review&reviewReturn=`,
+  ));
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Bereich A" })).toBeVisible();
+  await page.getByRole("button", { name: "Zurück zur Sitzung" }).click();
+
+  await expect(page).toHaveURL(new RegExp(
+    `/decks/${DECK_IDS.rootA}/review\\?returnView=learn&returnDeck=${DECK_IDS.rootA}$`,
+  ));
+  await expect(page.getByText("Karte A", { exact: true })).toBeVisible();
+
+  const invalidReturn = encodeURIComponent(`/lernen?deck=${DECK_IDS.rootA}`);
+  await page.goto(`/stapel-einstellungen?deck=${DECK_IDS.rootA}&returnView=review&reviewReturn=${invalidReturn}`);
+  await waitForApp(page);
+  await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
+  await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.rootA}`);
+});
+
 test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorwärts und ungültige IDs bleiben deterministisch", async ({ page }) => {
   await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
   await waitForApp(page);

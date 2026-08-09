@@ -1,7 +1,7 @@
 import React from "react";
 import type { AuthPhase } from "./accountSession.ts";
 import { shouldShowAppShell } from "./accountSession.ts";
-import type { AppRoute, AppViewId, CardEditorReturnContext, SettingsReturnContext, StudyRoute, ViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, ReviewResumeContext, SettingsReturnContext, StudyRoute, ViewRoute } from "./appNavigation.ts";
 import {
   appRouteToUrl,
   areAppRoutesEqual,
@@ -23,7 +23,7 @@ export interface AppNavigationProjection {
   creationDeckId: string;
   completedDeckId: string;
   settingsReturnContext: SettingsReturnContext | null;
-  cardEditorReturnContext: CardEditorReturnContext | null;
+  cardEditorReturnContext: ReviewResumeContext | null;
 }
 
 interface BrowserHistoryTarget {

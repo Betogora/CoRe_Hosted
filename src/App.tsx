@@ -695,7 +695,6 @@ export function App() {
   function saveDeckLearningSettings(
     deckId: string,
     settings: LearningSettingsInput = {},
-    { clearTodayNewCardOverride = false }: { clearTodayNewCardOverride?: boolean } = {},
   ) {
     return updateDeck(deckId, (deck) => ({
       ...deck,
@@ -703,16 +702,12 @@ export function App() {
         ...deck.deckSettings,
         ...applyLearningSettingsToDeckSettings({ ...deck.deckSettings }, settings),
         coreMode: resolveCoreMode(settings.coreMode, deck.deckSettings.coreMode),
-        ...(clearTodayNewCardOverride ? { newCardsTodayOverride: null } : {}),
+        ...(settings.newCardsPerDay !== undefined && settings.newCardsPerDay !== deck.deckSettings.newCardsPerDay
+          ? { newCardsTodayOverride: null }
+          : {}),
       },
       updatedAt: new Date().toISOString(),
     }));
-  }
-
-  function saveDeckDailyLimits(deckId: string, limits: { newCardsPerDay?: number; maximumReviewsPerDay?: number }) {
-    return saveDeckLearningSettings(deckId, limits, {
-      clearTodayNewCardOverride: limits.newCardsPerDay !== undefined,
-    });
   }
 
   function setCardStudyState(deckId: string, cardId: string, patch: LearningItemStudyStatePatch) {
@@ -844,7 +839,7 @@ export function App() {
     return decks;
   }
 
-  function deckSettingsReturnRoute(deckId: string | null, clearSelection = false) {
+  function deckSettingsSourceViewRoute(deckId: string | null, clearSelection = false) {
     if (settingsReturnContext?.view === "today") return createViewRoute("uebersicht");
     if (settingsReturnContext?.view === "decks") {
       return createViewRoute("kartenstapel", clearSelection ? {} : {
@@ -853,6 +848,18 @@ export function App() {
       });
     }
     return createViewRoute("lernen", clearSelection ? {} : { focusedDeckId: deckId });
+  }
+
+  function deckSettingsReturnRoute(deckId: string | null, clearSelection = false) {
+    if (settingsReturnContext?.view !== "review") {
+      return deckSettingsSourceViewRoute(deckId, clearSelection);
+    }
+    if (clearSelection) return createViewRoute("lernen");
+    return createStudyRoute(settingsReturnContext.reviewReturnContext.deckId, {
+      variantSession: settingsReturnContext.reviewReturnContext.variantSession,
+      variantId: settingsReturnContext.reviewReturnContext.variantId,
+      returnContext: settingsReturnContext.reviewReturnContext.returnContext,
+    });
   }
 
   function saveProfile(profile: unknown) {
@@ -879,7 +886,9 @@ export function App() {
           selectedCardId,
         })
       : activeView === "stapel-einstellungen"
-        ? deckSettingsReturnRoute(deck.id)
+        ? settingsReturnContext?.view === "review"
+          ? reviewReturnContextToViewRoute(settingsReturnContext.reviewReturnContext.returnContext)
+          : deckSettingsSourceViewRoute(deck.id)
         : activeView === "lernen"
         ? createViewRoute("lernen", { focusedDeckId: deck.id })
         : currentRoute;
@@ -940,6 +949,7 @@ export function App() {
       );
     }
     if (activeView === "stapel-einstellungen") {
+      const returnsToReview = settingsReturnContext?.view === "review";
       const returnsToDashboard = settingsReturnContext?.view === "today";
       const returnsToDecks = settingsReturnContext?.view === "decks";
       return (
@@ -956,7 +966,7 @@ export function App() {
             if (result) navigateToRoute(deckSettingsReturnRoute(null, true));
             return result;
           }}
-          backLabel={returnsToDashboard ? "Zurück zur Übersicht" : returnsToDecks ? "Zurück zur Kartenverwaltung" : "Zurück zu Lernen"}
+          backLabel={returnsToReview ? "Zurück zur Sitzung" : returnsToDashboard ? "Zurück zur Übersicht" : returnsToDecks ? "Zurück zur Kartenverwaltung" : "Zurück zu Lernen"}
           onBack={() => navigateToRoute(deckSettingsReturnRoute(focusedDeckId))}
         />
       );
@@ -1165,7 +1175,18 @@ export function App() {
               returnContext: studyRequest.returnContext,
             },
           })}
-          onSaveDeckDailyLimits={saveDeckDailyLimits}
+          onEditDeck={(currentDeckId) => navigateToViewNow("stapel-einstellungen", {
+            focusedDeckId: currentDeckId,
+            settingsReturnContext: {
+              view: "review",
+              reviewReturnContext: {
+                deckId: studyRequest.deckId,
+                variantSession: studyRequest.variantSession,
+                variantId: studyRequest.variantId,
+                returnContext: studyRequest.returnContext,
+              },
+            },
+          })}
           onSetCardStudyState={setCardStudyState}
           onDeckUpdated={saveDeck}
           onReviewEvent={enqueueReviewEvent}
