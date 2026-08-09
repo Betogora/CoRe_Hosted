@@ -988,7 +988,9 @@ export function DecksScreen({
                           <span className={`inline-block whitespace-nowrap rounded-full border px-2 align-middle core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
                             {variantsLabel}
                           </span>
-                          {marked ? <Star size={18} fill="currentColor" className="shrink-0 text-[var(--core-warning)]" role="img" aria-label="Markiert" /> : null}
+                          <span className="grid size-[1.125rem] place-items-center">
+                            {marked ? <Star size={18} fill="currentColor" className="text-[var(--core-warning)]" role="img" aria-label="Markiert" /> : null}
+                          </span>
                         </span>
                       </td>
                     </tr>

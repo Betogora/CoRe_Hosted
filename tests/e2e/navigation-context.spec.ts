@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { replaceAccountCloudState } from "../../src/cloudRepository.ts";
-import { createCoreCard, createCoreDeck } from "../../src/coreModel.ts";
+import { createCoreCard, createCoreDeck, updateLearningItemStudyState } from "../../src/coreModel.ts";
 import { createCoreRepository } from "../../src/coreRepository.ts";
 import type { Deck } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
@@ -20,8 +20,8 @@ const CARD_IDS = {
   b2: "navigation-card-b-2",
 };
 
-function card(id: string, deckId: string, front: string, back: string, options: { dueAt?: string; hasActiveVariant?: boolean } = {}) {
-  return createCoreCard({
+function card(id: string, deckId: string, front: string, back: string, options: { dueAt?: string; hasActiveVariant?: boolean; marked?: boolean } = {}) {
+  const learningItem = createCoreCard({
     id,
     deckId,
     source: "manual",
@@ -36,6 +36,7 @@ function card(id: string, deckId: string, front: string, back: string, options: 
       qualityStatus: "active",
     }] : [],
   });
+  return options.marked ? updateLearningItemStudyState(learningItem, { marked: true }) : learningItem;
 }
 
 function seedDecks(): Deck[] {
@@ -57,7 +58,7 @@ function seedDecks(): Deck[] {
       hierarchyPath: ["Bereich B", "Gemeinsam"],
       source: "manual",
       cards: [
-        card(CARD_IDS.b1, DECK_IDS.childB, "Karte B1", "Antwort B1", { dueAt: "2026-08-23T12:00:00.000Z" }),
+        card(CARD_IDS.b1, DECK_IDS.childB, "Karte B1", "Antwort B1", { dueAt: "2026-08-23T12:00:00.000Z", marked: true }),
         card(CARD_IDS.b2, DECK_IDS.childB, "Karte B2", "Antwort B2", { hasActiveVariant: true }),
       ],
     }),
@@ -143,7 +144,10 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
       const cardRows = [...document.querySelectorAll<HTMLElement>('[data-card-row="true"]')];
       const dueCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[1]);
       const variantCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[2]);
-      const variantTags = variantCells.map((cell) => cell?.firstElementChild as HTMLElement | null);
+      const variantLayouts = variantCells.map((cell) => cell?.firstElementChild as HTMLElement | null);
+      const variantTags = variantLayouts.map((layout) => layout?.firstElementChild as HTMLElement | null);
+      const markSlots = variantLayouts.map((layout) => layout?.lastElementChild as HTMLElement | null);
+      const variantTagRightEdges = variantTags.map((tag) => tag?.getBoundingClientRect().right ?? Number.NaN);
       const sortFieldStyle = cardSortField ? window.getComputedStyle(cardSortField) : null;
       const fitsWithin = (element: HTMLElement | null | undefined, container = element) => {
         if (!element || !container) return false;
@@ -168,6 +172,8 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
         dueLabelsFit: dueCells.every((cell) => fitsWithin(cell)),
         variantLabels: variantTags.map((tag) => tag?.textContent?.trim()),
         variantTagsFit: variantTags.every((tag, index) => fitsWithin(tag, variantCells[index])),
+        variantTagsAligned: variantTagRightEdges.every((right) => Math.abs(right - variantTagRightEdges[0]) <= 1),
+        markSlotWidths: markSlots.map((slot) => slot?.getBoundingClientRect().width ?? 0),
         dueAlignment: headers[1] ? window.getComputedStyle(headers[1]).textAlign : null,
         variantsAlignment: headers[2] ? window.getComputedStyle(headers[2]).textAlign : null,
         sortFieldOverflow: sortFieldStyle?.textOverflow,
@@ -186,6 +192,8 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
     expect(geometry.dueLabelsFit).toBe(true);
     expect(geometry.variantLabels).toEqual(["Nein", "Ja"]);
     expect(geometry.variantTagsFit).toBe(true);
+    expect(geometry.variantTagsAligned).toBe(true);
+    expect(geometry.markSlotWidths).toEqual([18, 18]);
     expect(geometry.dueAlignment).toBe("right");
     expect(geometry.variantsAlignment).toBe("right");
     expect(geometry.headersDoNotOverlap).toBe(true);

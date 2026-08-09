@@ -105,6 +105,7 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(expandedMarkup, />Nein<\/span>/);
   assert.doesNotMatch(expandedMarkup, /Mit Varianten|Ohne Varianten/);
   assert.match(expandedMarkup, /inline-block whitespace-nowrap rounded-full/);
+  assert.match(expandedMarkup, />Nein<\/span><span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
 });
 
 test("card selection opens a non-modal detail aside with editor, copy and collapsed tools", () => {
@@ -142,7 +143,7 @@ test("cards page shows suspended rows and marked stars beside the variants badge
 
   assert.match(markup, /data-suspended="true"/);
   assert.match(markup, /bg-\[var\(--core-warning-surface\)\]/);
-  assert.match(markup, />Nein<\/span><svg[^>]*aria-label="Markiert"/);
+  assert.match(markup, />Nein<\/span><span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
   assert.match(markup, /aria-label="Markierung entfernen"/);
   assert.match(markup, /role="switch"[^>]*aria-checked="true"[^>]*aria-label="Karte reaktivieren"/);
 });
