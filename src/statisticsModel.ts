@@ -209,6 +209,7 @@ interface StatisticsScopeCache {
   key: string;
   timeZone: string;
   eventSeries: LocalizedReviewSeries[];
+  heatmapCountsByDay: ReadonlyMap<string, number>;
   cards: LocalizedCard[];
   retentionEvents: LocalizedReview[];
   earliestEventDayIndex: number | null;
@@ -518,16 +519,6 @@ function retentionRow(key: StatisticsRetentionRow["key"], label: string, aggrega
   };
 }
 
-function buildCurrentStreak(reviewsByDay: ReadonlyMap<number, number>, nowDayIndex: number): number {
-  let current = 0;
-  let cursor = reviewsByDay.has(nowDayIndex) ? nowDayIndex : nowDayIndex - 1;
-  while (reviewsByDay.has(cursor)) {
-    current += 1;
-    cursor -= 1;
-  }
-  return current;
-}
-
 function scopeDescription(index: StatisticsIndex, requested: StatisticsDeckSelection, scopeDeckIds: string[]): string {
   if (requested === "all") return "Gesamte Sammlung";
   if (requested.length === 1) return index.deckById.get(requested[0])?.name ?? "Ausgewählter Stapel";
@@ -542,6 +533,7 @@ function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[],
   const resolveLocalTime = createLocalReviewTimeResolver(timeZone);
   const firstRetentionByVariantDay = new Map<string, LocalizedReview>();
   const eventSeries: LocalizedReviewSeries[] = [];
+  const heatmapCountsByDay = new Map<string, number>();
   const cards: LocalizedCard[] = [];
   let earliestEventDayIndex: number | null = null;
   let earliestCardDayIndex: number | null = null;
@@ -561,8 +553,10 @@ function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[],
     }
     for (let eventIndex = 0; eventIndex < events.length; eventIndex += 1) {
       const indexed = events[eventIndex];
-      if (indexed.before.intervalDays < 1) continue;
       const dayIndex = localReviewDayIndexAt(series, eventIndex, resolveLocalTime);
+      const dayKey = keyFromDayIndex(dayIndex);
+      heatmapCountsByDay.set(dayKey, (heatmapCountsByDay.get(dayKey) ?? 0) + 1);
+      if (indexed.before.intervalDays < 1) continue;
       const reviewableId = indexed.event.reviewableId || indexed.event.variantId || indexed.event.learningItemId;
       const retentionKey = `${reviewableId}\u0000${dayIndex}`;
       const previous = firstRetentionByVariantDay.get(retentionKey);
@@ -587,6 +581,7 @@ function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[],
     key,
     timeZone,
     eventSeries,
+    heatmapCountsByDay,
     cards,
     retentionEvents: [...firstRetentionByVariantDay.values()],
     earliestEventDayIndex,
@@ -725,13 +720,9 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
   const ratings = [...ratingRows.values()].map((row) => ({ ...row, successPercent: percentage(row.total - row.again, row.total) }));
 
   const addedCards = buckets.map((bucket) => ({ key: bucket.key, label: bucket.label, rangeLabel: bucket.rangeLabel, count: 0, cumulative: 0 }));
-  const heatmapCountsByDay = new Map<string, number>();
-  for (const [index, count] of reviewsByDay) heatmapCountsByDay.set(keyFromDayIndex(index), count);
   const studyHeatmap = createStudyHeatmapModelFromCounts({
-    rangeStartKey: startKey,
-    rangeEndKey: nowKey,
     todayKey: nowKey,
-    countsByDay: heatmapCountsByDay,
+    countsByDay: scope.heatmapCountsByDay,
   });
 
   const statusCounts = new Map<string, number>([["new", 0], ["learning", 0], ["relearning", 0], ["young", 0], ["mature", 0]]);
@@ -919,7 +910,6 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
     .sort((left, right) => right.weakPercent - left.weakPercent || right.reviewCount - left.reviewCount || right.lastReviewedAt.localeCompare(left.lastReviewedAt))
     .slice(0, 12);
 
-  const currentStreak = buildCurrentStreak(reviewsByDay, nowLocalTime.dayIndex);
   const selectedRetentionCell = retentionCell(
     selectedRetention.youngRemembered + selectedRetention.matureRemembered,
     selectedRetention.youngTotal + selectedRetention.matureTotal,
@@ -938,7 +928,7 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
       totalDurationMs,
       averageResponseMs: timedCount > 0 ? Math.round(totalDurationMs / timedCount) : 0,
       timedCount,
-      currentStreak,
+      currentStreak: studyHeatmap.currentStreak,
     },
     activity: finalizedActivity,
     addedCards,

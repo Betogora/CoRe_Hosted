@@ -84,9 +84,11 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /conic-gradient/);
   assert.doesNotMatch(markup, /aktive Tage/i);
-  assert.match(markup, /Frühere Wochen anzeigen[\s\S]*data-testid="study-heatmap-grid"[\s\S]*data-testid="study-heatmap-legend"[\s\S]*Weniger/);
-  assert.match(markup, /grid-template-columns:2\.25rem repeat\(53, 19px\)/);
-  assert.match(markup, /size-\[19px\] rounded-\[4px\]/);
+  assert.match(markup, /0 Tage Streak/);
+  assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
+  assert.match(markup, /Frühere sieben Tage anzeigen[\s\S]*data-testid="study-heatmap-grid"[\s\S]*data-testid="study-heatmap-legend"[\s\S]*Weniger/);
+  assert.equal((markup.match(/data-heatmap-day=/g) ?? []).length, 7);
+  assert.match(markup, /aspect-square w-full max-w-\[4\.5rem\] rounded-xl/);
   assert.match(markup, /ring-2 ring-inset ring-core-focus/);
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));
 });

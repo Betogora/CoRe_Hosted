@@ -1,21 +1,16 @@
 const DAY_MS = 86_400_000;
-const DEFAULT_HEATMAP_WEEK_COUNT = 53;
-const MIN_HEATMAP_WINDOW_WEEKS = 4;
-const HEATMAP_WEEKDAY_LABEL_WIDTH = 36;
-const HEATMAP_CELL_SIZE = 19;
-const HEATMAP_COLUMN_GAP = 4;
-const HEATMAP_NAVIGATION_STEP_WEEKS = 4;
 const HEATMAP_MONTH_LABELS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+const HEATMAP_WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+type DateInput = string | number | Date;
+
+export type StudyHeatmapPeriod = "week" | "month" | "year";
 
 export interface StudyHeatmapModel {
-  rangeStartKey: string;
-  rangeEndKey: string;
   todayKey: string;
+  firstActivityKey: string | null;
   countsByDay: ReadonlyMap<string, number>;
-  maxCount: number;
-  firstWeekStartKey: string;
-  totalWeekCount: number;
-  defaultEndWeekIndex: number;
+  currentStreak: number;
 }
 
 export interface StudyHeatmapDay {
@@ -29,23 +24,21 @@ export interface StudyHeatmapDay {
 }
 
 export interface StudyHeatmapWindow {
+  period: StudyHeatmapPeriod;
+  anchorKey: string;
+  rangeStartKey: string;
+  rangeEndKey: string;
   days: StudyHeatmapDay[];
   weeks: StudyHeatmapDay[][];
   monthLabels: string[];
   weekdayLabels: string[];
-  visibleWeekCount: number;
-  startWeekIndex: number;
-  endWeekIndex: number;
+  maxCount: number;
   canShowPrevious: boolean;
   canShowNext: boolean;
-  previousEndWeekIndex: number;
-  nextEndWeekIndex: number;
+  previousAnchorKey: string;
+  nextAnchorKey: string;
   visibleRangeStartKey: string;
   visibleRangeEndKey: string;
-}
-
-function clampNumber(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
 
 function dayIndex(key: string): number {
@@ -55,6 +48,12 @@ function dayIndex(key: string): number {
 
 function keyFromDayIndex(index: number): string {
   return new Date(index * DAY_MS).toISOString().slice(0, 10);
+}
+
+function isDayKey(value: unknown): value is string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value ?? ""))) return false;
+  const key = String(value);
+  return keyFromDayIndex(dayIndex(key)) === key;
 }
 
 function shiftDayKey(key: string, days: number): string {
@@ -68,6 +67,34 @@ function startOfWeekKey(key: string): string {
 
 function endOfWeekKey(key: string): string {
   return shiftDayKey(startOfWeekKey(key), 6);
+}
+
+function startOfMonthKey(key: string): string {
+  return `${key.slice(0, 7)}-01`;
+}
+
+function endOfMonthKey(key: string): string {
+  const year = Number(key.slice(0, 4));
+  const month = Number(key.slice(5, 7));
+  return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+}
+
+function shiftMonthKey(key: string, months: number): string {
+  const year = Number(key.slice(0, 4));
+  const monthIndex = Number(key.slice(5, 7)) - 1;
+  return new Date(Date.UTC(year, monthIndex + months, 1)).toISOString().slice(0, 10);
+}
+
+function startOfYearKey(key: string): string {
+  return `${key.slice(0, 4)}-01-01`;
+}
+
+function endOfYearKey(key: string): string {
+  return `${key.slice(0, 4)}-12-31`;
+}
+
+function shiftYearKey(key: string, years: number): string {
+  return `${String(Number(key.slice(0, 4)) + years).padStart(4, "0")}-01-01`;
 }
 
 function heatmapLevel(count: number, maxCount: number): number {
@@ -107,94 +134,149 @@ function createHeatmapMonthLabels(weeks: StudyHeatmapDay[][]): string[] {
   return labels;
 }
 
+function periodAnchor(period: StudyHeatmapPeriod, key: string): string {
+  if (period === "month") return startOfMonthKey(key);
+  if (period === "year") return startOfYearKey(key);
+  return key;
+}
+
+function shiftPeriodAnchor(period: StudyHeatmapPeriod, key: string, amount: number): string {
+  if (period === "month") return shiftMonthKey(key, amount);
+  if (period === "year") return shiftYearKey(key, amount);
+  return shiftDayKey(key, amount * 7);
+}
+
+function periodRange(period: StudyHeatmapPeriod, anchorKey: string): { startKey: string; endKey: string } {
+  if (period === "month") return { startKey: startOfMonthKey(anchorKey), endKey: endOfMonthKey(anchorKey) };
+  if (period === "year") return { startKey: startOfYearKey(anchorKey), endKey: endOfYearKey(anchorKey) };
+  return { startKey: shiftDayKey(anchorKey, -6), endKey: anchorKey };
+}
+
+function firstPeriodAnchor(period: StudyHeatmapPeriod, firstActivityKey: string, todayKey: string): string {
+  if (period !== "week") return periodAnchor(period, firstActivityKey);
+  const completedWindows = Math.floor((dayIndex(todayKey) - dayIndex(firstActivityKey)) / 7);
+  return shiftDayKey(todayKey, -completedWindows * 7);
+}
+
+function normalizePeriodAnchor(
+  heatmap: StudyHeatmapModel,
+  period: StudyHeatmapPeriod,
+  requestedAnchor: unknown,
+): string {
+  const currentAnchor = periodAnchor(period, heatmap.todayKey);
+  if (!heatmap.firstActivityKey) return currentAnchor;
+
+  const requestedKey = isDayKey(requestedAnchor) ? requestedAnchor : currentAnchor;
+  let anchorKey = periodAnchor(period, requestedKey);
+  if (anchorKey > currentAnchor) anchorKey = currentAnchor;
+  if (periodRange(period, anchorKey).endKey < heatmap.firstActivityKey) {
+    anchorKey = firstPeriodAnchor(period, heatmap.firstActivityKey, heatmap.todayKey);
+  }
+  return anchorKey;
+}
+
+function calculateCurrentStreak(countsByDay: ReadonlyMap<string, number>, todayKey: string): number {
+  let cursor = (countsByDay.get(todayKey) ?? 0) > 0 ? todayKey : shiftDayKey(todayKey, -1);
+  let streak = 0;
+  while ((countsByDay.get(cursor) ?? 0) > 0) {
+    streak += 1;
+    cursor = shiftDayKey(cursor, -1);
+  }
+  return streak;
+}
+
+export function getStudyHeatmapDayKey(value: DateInput | null | undefined, timeZone?: string): string | null {
+  const date = new Date(value ?? Number.NaN);
+  if (Number.isNaN(date.getTime())) return null;
+
+  let formatter: Intl.DateTimeFormat;
+  try {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timeZone || undefined,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  } catch {
+    formatter = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" });
+  }
+  const parts = new Map(formatter.formatToParts(date).map((part) => [part.type, part.value]));
+  return `${parts.get("year")}-${parts.get("month")}-${parts.get("day")}`;
+}
+
 export function createStudyHeatmapModelFromCounts({
-  rangeStartKey,
-  rangeEndKey,
   todayKey,
   countsByDay,
 }: {
-  rangeStartKey: string;
-  rangeEndKey: string;
   todayKey: string;
   countsByDay: ReadonlyMap<string, number>;
 }): StudyHeatmapModel {
-  const firstWeekStartKey = startOfWeekKey(rangeStartKey);
-  const lastWeekEndKey = endOfWeekKey(rangeEndKey);
-  const totalWeekCount = Math.max(1, Math.round((dayIndex(lastWeekEndKey) - dayIndex(firstWeekStartKey) + 1) / 7));
-  const todayWeekIndex = Math.floor((dayIndex(todayKey) - dayIndex(firstWeekStartKey)) / 7);
-  const defaultEndWeekIndex = todayKey < rangeStartKey
-    ? Math.min(MIN_HEATMAP_WINDOW_WEEKS, totalWeekCount)
-    : todayKey <= rangeEndKey
-      ? clampNumber(todayWeekIndex + 1, 1, totalWeekCount)
-      : totalWeekCount;
-  let maxCount = 0;
-  for (const [key, count] of countsByDay) {
-    if (key >= rangeStartKey && key <= rangeEndKey && key <= todayKey) maxCount = Math.max(maxCount, count);
+  const safeTodayKey = isDayKey(todayKey) ? todayKey : getStudyHeatmapDayKey(new Date(), "UTC") as string;
+  const normalizedCounts = new Map<string, number>();
+  let firstActivityKey: string | null = null;
+
+  for (const [key, rawCount] of countsByDay) {
+    const count = Math.max(0, Math.round(Number(rawCount) || 0));
+    if (!isDayKey(key) || key > safeTodayKey || count === 0) continue;
+    normalizedCounts.set(key, count);
+    if (firstActivityKey == null || key < firstActivityKey) firstActivityKey = key;
   }
 
   return {
-    rangeStartKey,
-    rangeEndKey,
-    todayKey,
-    countsByDay,
-    maxCount,
-    firstWeekStartKey,
-    totalWeekCount,
-    defaultEndWeekIndex,
+    todayKey: safeTodayKey,
+    firstActivityKey,
+    countsByDay: normalizedCounts,
+    currentStreak: calculateCurrentStreak(normalizedCounts, safeTodayKey),
   };
-}
-
-export function getStudyHeatmapVisibleWeekCount(viewportWidth: unknown, totalWeeks = DEFAULT_HEATMAP_WEEK_COUNT): number {
-  const normalizedTotalWeeks = Math.max(1, Math.round(Number(totalWeeks) || DEFAULT_HEATMAP_WEEK_COUNT));
-  const measuredWidth = Number(viewportWidth);
-  if (!Number.isFinite(measuredWidth) || measuredWidth <= 0) return normalizedTotalWeeks;
-
-  const usableWidth = Math.max(0, measuredWidth - HEATMAP_WEEKDAY_LABEL_WIDTH);
-  const weeksThatFit = Math.floor(usableWidth / (HEATMAP_CELL_SIZE + HEATMAP_COLUMN_GAP));
-  return clampNumber(weeksThatFit, Math.min(MIN_HEATMAP_WINDOW_WEEKS, normalizedTotalWeeks), normalizedTotalWeeks);
 }
 
 export function createStudyHeatmapWindow(
   heatmap: StudyHeatmapModel,
-  options: { viewportWidth?: number | null; endWeekIndex?: number | null } = {},
+  options: { period?: StudyHeatmapPeriod; anchorKey?: string | null } = {},
 ): StudyHeatmapWindow {
-  const visibleWeekCount = getStudyHeatmapVisibleWeekCount(options.viewportWidth, heatmap.totalWeekCount);
-  const requestedEndWeekIndex = options.endWeekIndex == null ? heatmap.defaultEndWeekIndex : Math.round(options.endWeekIndex);
-  const endWeekIndex = clampNumber(requestedEndWeekIndex, visibleWeekCount, heatmap.totalWeekCount);
-  const startWeekIndex = endWeekIndex - visibleWeekCount;
-  const firstVisibleDayIndex = dayIndex(heatmap.firstWeekStartKey) + startWeekIndex * 7;
-  const days = Array.from({ length: visibleWeekCount * 7 }, (_, offset): StudyHeatmapDay => {
-    const key = keyFromDayIndex(firstVisibleDayIndex + offset);
-    const isOutsideRange = key < heatmap.rangeStartKey || key > heatmap.rangeEndKey;
-    const isFuture = key > heatmap.todayKey;
-    const count = isOutsideRange || isFuture ? 0 : heatmap.countsByDay.get(key) ?? 0;
-    return {
-      key,
-      dayOfMonth: Number(key.slice(8, 10)),
-      count,
-      level: heatmapLevel(count, heatmap.maxCount),
-      isToday: key === heatmap.todayKey,
-      isFuture,
-      isOutsideRange,
-    };
-  });
-  const weeks = Array.from({ length: visibleWeekCount }, (_, index) => days.slice(index * 7, index * 7 + 7));
-  const visibleRangeDays = days.filter((day) => !day.isOutsideRange);
-  const navigationStep = Math.min(visibleWeekCount, HEATMAP_NAVIGATION_STEP_WEEKS);
+  const period = options.period ?? "week";
+  const anchorKey = normalizePeriodAnchor(heatmap, period, options.anchorKey);
+  const { startKey: rangeStartKey, endKey: rangeEndKey } = periodRange(period, anchorKey);
+  const paddedStartKey = period === "week" ? rangeStartKey : startOfWeekKey(rangeStartKey);
+  const paddedEndKey = period === "week" ? rangeEndKey : endOfWeekKey(rangeEndKey);
+  const rawDays = Array.from(
+    { length: dayIndex(paddedEndKey) - dayIndex(paddedStartKey) + 1 },
+    (_, offset) => {
+      const key = shiftDayKey(paddedStartKey, offset);
+      const isOutsideRange = key < rangeStartKey || key > rangeEndKey;
+      const isFuture = key > heatmap.todayKey;
+      const count = isOutsideRange || isFuture ? 0 : heatmap.countsByDay.get(key) ?? 0;
+      return { key, dayOfMonth: Number(key.slice(8, 10)), count, isOutsideRange, isFuture };
+    },
+  );
+  const maxCount = rawDays.reduce((maximum, day) => Math.max(maximum, day.count), 0);
+  const days = rawDays.map((day): StudyHeatmapDay => ({
+    ...day,
+    level: heatmapLevel(day.count, maxCount),
+    isToday: day.key === heatmap.todayKey,
+  }));
+  const weeks = Array.from({ length: days.length / 7 }, (_, index) => days.slice(index * 7, index * 7 + 7));
+  const previousAnchorKey = shiftPeriodAnchor(period, anchorKey, -1);
+  const nextCandidate = shiftPeriodAnchor(period, anchorKey, 1);
+  const currentAnchor = periodAnchor(period, heatmap.todayKey);
+  const nextAnchorKey = nextCandidate > currentAnchor ? currentAnchor : nextCandidate;
+  const previousRange = periodRange(period, previousAnchorKey);
 
   return {
+    period,
+    anchorKey,
+    rangeStartKey,
+    rangeEndKey,
     days,
     weeks,
     monthLabels: createHeatmapMonthLabels(weeks),
-    weekdayLabels: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
-    visibleWeekCount,
-    startWeekIndex,
-    endWeekIndex,
-    canShowPrevious: startWeekIndex > 0,
-    canShowNext: endWeekIndex < heatmap.totalWeekCount,
-    previousEndWeekIndex: Math.max(visibleWeekCount, endWeekIndex - navigationStep),
-    nextEndWeekIndex: Math.min(heatmap.totalWeekCount, endWeekIndex + navigationStep),
-    visibleRangeStartKey: visibleRangeDays[0]?.key ?? heatmap.rangeStartKey,
-    visibleRangeEndKey: visibleRangeDays.at(-1)?.key ?? heatmap.rangeEndKey,
+    weekdayLabels: [...HEATMAP_WEEKDAY_LABELS],
+    maxCount,
+    canShowPrevious: heatmap.firstActivityKey != null && previousRange.endKey >= heatmap.firstActivityKey,
+    canShowNext: anchorKey < currentAnchor,
+    previousAnchorKey,
+    nextAnchorKey,
+    visibleRangeStartKey: rangeStartKey,
+    visibleRangeEndKey: rangeEndKey,
   };
 }

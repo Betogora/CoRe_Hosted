@@ -114,35 +114,36 @@ test("statistics resolve parent scopes and aggregate the Anki-style categories o
   assert.equal(statistics.difficultCards[0]?.learningItemId, "card_stats");
 });
 
-test("all global periods use their shared sparse daily heatmap and bounded chart ranges", () => {
+test("all global periods share the all-time sparse heatmap while keeping bounded chart ranges", () => {
   const { parent, child } = statisticsFixture();
+  child.reviewEvents.push(
+    reviewEvent({ id: "older", deckId: child.id, learningItemId: child.cards[0].id, rating: "good", answeredAt: "2026-05-01T08:00:00.000Z", state: "review", intervalDays: 30 }),
+  );
   const index = createStatisticsIndex([parent, child]);
-  const expectations: Array<[StatisticsPeriod, number | null]> = [
-    ["30d", 30],
-    ["90d", 90],
-    ["365d", 365],
-    ["all", null],
+  const expectations: Array<[StatisticsPeriod, number]> = [
+    ["30d", 4],
+    ["90d", 5],
+    ["365d", 5],
+    ["all", 5],
   ];
 
-  for (const [period, expectedDayCount] of expectations) {
+  for (const [period, expectedReviewCount] of expectations) {
     const statistics = projectStatistics(index, {
       period,
       deckIds: "all",
       now: "2026-07-07T12:00:00.000Z",
       timeZone: "Europe/Berlin",
     });
-    assert.equal(statistics.summary.reviewCount, 4);
+    assert.equal(statistics.summary.reviewCount, expectedReviewCount);
     assert.ok(statistics.activity.length <= 240);
-    assert.equal([...statistics.studyHeatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), 4);
+    assert.equal([...statistics.studyHeatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), 5);
+    assert.equal(statistics.studyHeatmap.firstActivityKey, "2026-05-01");
+    assert.equal(statistics.studyHeatmap.currentStreak, 4);
+    assert.equal(statistics.summary.currentStreak, 4);
     assert.equal("days" in statistics.studyHeatmap, false);
-    const heatmapWindow = createStudyHeatmapWindow(statistics.studyHeatmap, { viewportWidth: 320 });
-    assert.equal(heatmapWindow.weeks.length <= 12, true);
-    if (expectedDayCount != null) {
-      const actualDayCount = Math.floor((Date.parse(`${statistics.studyHeatmap.rangeEndKey}T12:00:00Z`) - Date.parse(`${statistics.studyHeatmap.rangeStartKey}T12:00:00Z`)) / 86_400_000) + 1;
-      assert.equal(actualDayCount, expectedDayCount);
-    } else {
-      assert.equal(statistics.studyHeatmap.rangeStartKey, "2026-06-01");
-    }
+    const heatmapWindow = createStudyHeatmapWindow(statistics.studyHeatmap, { period: "week" });
+    assert.equal(heatmapWindow.days.length, 7);
+    assert.equal(heatmapWindow.rangeEndKey, "2026-07-07");
   }
 });
 
@@ -194,6 +195,8 @@ test("local calendar boundaries use the profile timezone", () => {
 
   assert.equal(statistics.studyHeatmap.countsByDay.get("2026-03-28"), 1);
   assert.equal(statistics.studyHeatmap.countsByDay.get("2026-03-29"), 1);
+  assert.equal(statistics.studyHeatmap.currentStreak, 2);
+  assert.equal(statistics.summary.currentStreak, 2);
 });
 
 test("bounded projections exclude distant events and invalidate the one-entry scope cache", () => {
@@ -212,9 +215,15 @@ test("bounded projections exclude distant events and invalidate the one-entry sc
   const index = createStatisticsIndex([child, sibling]);
   const selection = { period: "30d" as const, now: "2026-07-07T12:00:00.000Z", timeZone: "Europe/Berlin" };
 
-  assert.equal(projectStatistics(index, { ...selection, deckIds: [child.id] }).summary.reviewCount, 4);
-  assert.equal(projectStatistics(index, { ...selection, deckIds: "all" }).summary.reviewCount, 5);
-  assert.equal(projectStatistics(index, { ...selection, deckIds: [child.id] }).summary.reviewCount, 4);
+  const childStatistics = projectStatistics(index, { ...selection, deckIds: [child.id] });
+  const allStatistics = projectStatistics(index, { ...selection, deckIds: "all" });
+  const childStatisticsAgain = projectStatistics(index, { ...selection, deckIds: [child.id] });
+  assert.equal(childStatistics.summary.reviewCount, 4);
+  assert.equal([...childStatistics.studyHeatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), 5);
+  assert.equal(allStatistics.summary.reviewCount, 5);
+  assert.equal([...allStatistics.studyHeatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), 6);
+  assert.equal(childStatisticsAgain.summary.reviewCount, 4);
+  assert.equal([...childStatisticsAgain.studyHeatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), 5);
 });
 
 test("total-history series remain bounded and current snapshots survive empty history", () => {
@@ -239,5 +248,5 @@ test("total-history series remain bounded and current snapshots survive empty hi
   assert.ok(statistics.activity.length <= 240);
   assert.equal(statistics.studyHeatmap.countsByDay.size, 0);
   assert.equal("days" in statistics.studyHeatmap, false);
-  assert.equal(createStudyHeatmapWindow(statistics.studyHeatmap, { viewportWidth: 320 }).days.length, 84);
+  assert.equal(createStudyHeatmapWindow(statistics.studyHeatmap).days.length, 7);
 });

@@ -4,6 +4,8 @@ import {
   createStudyHeatmapWindow,
   type StudyHeatmapDay,
   type StudyHeatmapModel,
+  type StudyHeatmapPeriod,
+  type StudyHeatmapWindow,
 } from "../studyHeatmapModel.ts";
 import { OrbIcon, SoftPanel } from "./coreUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
@@ -15,6 +17,46 @@ const heatmapToneByLevel = [
   "core-heatmap-level-3",
   "core-heatmap-level-4",
 ];
+const PERIOD_OPTIONS: Array<{ value: StudyHeatmapPeriod; label: string }> = [
+  { value: "week", label: "Woche" },
+  { value: "month", label: "Monat" },
+  { value: "year", label: "Jahr" },
+];
+const PERIOD_NAVIGATION_LABELS: Record<StudyHeatmapPeriod, { previous: string; next: string }> = {
+  week: { previous: "Frühere sieben Tage anzeigen", next: "Spätere sieben Tage anzeigen" },
+  month: { previous: "Vorherigen Monat anzeigen", next: "Nächsten Monat anzeigen" },
+  year: { previous: "Vorheriges Jahr anzeigen", next: "Nächstes Jahr anzeigen" },
+};
+const UTC_WEEKDAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { weekday: "short", timeZone: "UTC" });
+const UTC_MONTH_FORMATTER = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
+
+function dateFromKey(key: string) {
+  return new Date(`${key}T12:00:00Z`);
+}
+
+function compactDate(key: string) {
+  return `${key.slice(8, 10)}.${key.slice(5, 7)}.`;
+}
+
+function longDate(key: string) {
+  return `${compactDate(key)}${key.slice(0, 4)}`;
+}
+
+function weekdayLabel(key: string) {
+  return UTC_WEEKDAY_FORMATTER.format(dateFromKey(key)).replace(".", "");
+}
+
+function formatRangeLabel(window: StudyHeatmapWindow) {
+  if (window.period === "month") return UTC_MONTH_FORMATTER.format(dateFromKey(window.rangeStartKey));
+  if (window.period === "year") return window.rangeStartKey.slice(0, 4);
+  const startYear = window.rangeStartKey.slice(0, 4);
+  const start = startYear === window.rangeEndKey.slice(0, 4) ? compactDate(window.rangeStartKey) : longDate(window.rangeStartKey);
+  return `${start}–${longDate(window.rangeEndKey)}`;
+}
+
+function formatStudyHeatmapTitle(currentStreak: number) {
+  return currentStreak === 1 ? "1 Tag Streak" : `${currentStreak} Tage Streak`;
+}
 
 function HeatmapLegend() {
   return (
@@ -28,28 +70,130 @@ function HeatmapLegend() {
   );
 }
 
-function useElementWidth() {
-  const elementRef = React.useRef<HTMLDivElement | null>(null);
-  const [width, setWidth] = React.useState<number | null>(null);
+function HeatmapDayCell({
+  day,
+  label,
+  className,
+  children,
+}: {
+  day: StudyHeatmapDay;
+  label: string;
+  className: string;
+  children?: React.ReactNode;
+}) {
+  if (day.isOutsideRange) return <span aria-hidden="true" className={`invisible ${className}`} />;
+  return (
+    <CoreTooltip label={label}>
+      <span
+        className={`grid place-items-center border transition-transform hover:scale-105 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-inset ring-core-focus" : ""} ${day.isFuture ? "opacity-35" : ""} ${className}`}
+        aria-label={label}
+        data-heatmap-day={day.key}
+      >
+        {children}
+      </span>
+    </CoreTooltip>
+  );
+}
 
-  React.useLayoutEffect(() => {
-    const element = elementRef.current;
-    if (!element) return undefined;
+function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; formatDayLabel: (day: StudyHeatmapDay) => string }) {
+  return (
+    <div
+      className="grid grid-cols-7 gap-1.5 sm:gap-3"
+      role="img"
+      data-testid="study-heatmap-grid"
+      data-heatmap-period="week"
+      aria-label={`Lern-Heatmap von ${window.rangeStartKey} bis ${window.rangeEndKey}`}
+    >
+      {window.days.map((day) => (
+        <div key={day.key} className="grid min-w-0 justify-items-center gap-1.5">
+          <span className="text-center text-[0.68rem] font-semibold text-core-muted">
+            <span className="block">{weekdayLabel(day.key)}</span>
+            <span className="block font-normal">{compactDate(day.key)}</span>
+          </span>
+          <HeatmapDayCell day={day} label={formatDayLabel(day)} className="aspect-square w-full max-w-[4.5rem] rounded-xl" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
-    const updateWidth = () => setWidth(element.getBoundingClientRect().width);
-    updateWidth();
+function MonthHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; formatDayLabel: (day: StudyHeatmapDay) => string }) {
+  return (
+    <div
+      role="img"
+      data-testid="study-heatmap-grid"
+      data-heatmap-period="month"
+      aria-label={`Lern-Heatmap für ${formatRangeLabel(window)}`}
+    >
+      <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2" aria-hidden="true">
+        {window.weekdayLabels.map((label) => <span key={label} className="text-center text-[0.68rem] font-semibold text-core-muted">{label}</span>)}
+      </div>
+      <div className="grid grid-cols-7 justify-items-center gap-1.5 sm:gap-2">
+        {window.days.map((day) => (
+          <HeatmapDayCell key={day.key} day={day} label={formatDayLabel(day)} className="aspect-square w-full max-w-14 rounded-lg">
+            <span className="core-caption font-semibold text-core-text">{day.dayOfMonth}</span>
+          </HeatmapDayCell>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", updateWidth);
-      return () => window.removeEventListener("resize", updateWidth);
-    }
-
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  return [elementRef, width] as const;
+function YearHeatmap({
+  window,
+  formatDayLabel,
+  scrollerRef,
+}: {
+  window: StudyHeatmapWindow;
+  formatDayLabel: (day: StudyHeatmapDay) => string;
+  scrollerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const gridColumns = `2.25rem repeat(${window.weeks.length}, 19px)`;
+  return (
+    <div
+      ref={scrollerRef}
+      className="min-w-0 overflow-x-auto rounded-xl pb-2 [scrollbar-gutter:stable]"
+      tabIndex={0}
+      role="group"
+      aria-label={`Horizontal scrollbare Lern-Heatmap für das Jahr ${window.rangeStartKey.slice(0, 4)}`}
+    >
+      <div
+        className="grid w-max gap-1"
+        style={{ gridTemplateColumns: gridColumns }}
+        role="img"
+        data-testid="study-heatmap-grid"
+        data-heatmap-period="year"
+        aria-label={`Lern-Heatmap von ${window.rangeStartKey} bis ${window.rangeEndKey}`}
+      >
+        <span aria-hidden="true" />
+        {window.monthLabels.map((label, index) => (
+          <span
+            key={`${label}-${index}`}
+            className="h-5 whitespace-nowrap text-left text-[0.68rem] font-semibold text-core-muted"
+            data-month-label={label || undefined}
+          >
+            {label}
+          </span>
+        ))}
+        {window.weekdayLabels.map((label, dayIndex) => (
+          <React.Fragment key={label}>
+            <span className="flex min-h-4 items-center text-[0.68rem] font-semibold text-core-muted">{label}</span>
+            {window.weeks.map((week) => {
+              const day = week[dayIndex];
+              return (
+                <HeatmapDayCell
+                  key={day.key}
+                  day={day}
+                  label={formatDayLabel(day)}
+                  className="size-[19px] rounded-[4px]"
+                />
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function StudyHeatmap({
@@ -61,111 +205,89 @@ export function StudyHeatmap({
   formatDayLabel: (day: StudyHeatmapDay) => string;
   className?: string;
 }) {
-  const [heatmapViewportRef, heatmapViewportWidth] = useElementWidth();
-  const [heatmapEndWeekIndex, setHeatmapEndWeekIndex] = React.useState<number | null>(null);
-  const keyboardHelpId = React.useId();
+  const [period, setPeriod] = React.useState<StudyHeatmapPeriod>("week");
+  const [anchorKey, setAnchorKey] = React.useState<string | null>(null);
+  const yearScrollerRef = React.useRef<HTMLDivElement | null>(null);
   const visibleHeatmap = React.useMemo(
-    () => createStudyHeatmapWindow(heatmap, { viewportWidth: heatmapViewportWidth, endWeekIndex: heatmapEndWeekIndex }),
-    [heatmap, heatmapEndWeekIndex, heatmapViewportWidth],
+    () => createStudyHeatmapWindow(heatmap, { period, anchorKey }),
+    [anchorKey, heatmap, period],
   );
+  const navigationLabels = PERIOD_NAVIGATION_LABELS[period];
 
-  React.useEffect(() => setHeatmapEndWeekIndex(null), [heatmap]);
+  React.useEffect(() => setAnchorKey(null), [heatmap.todayKey]);
+  React.useLayoutEffect(() => {
+    const scroller = yearScrollerRef.current;
+    if (period !== "year" || !scroller) return;
+    const isCurrentYear = visibleHeatmap.rangeStartKey.slice(0, 4) === heatmap.todayKey.slice(0, 4);
+    const targetKey = isCurrentYear ? heatmap.todayKey : visibleHeatmap.rangeEndKey;
+    const target = scroller.querySelector<HTMLElement>(`[data-heatmap-day="${targetKey}"]`);
+    if (target) scroller.scrollLeft = Math.max(0, target.offsetLeft - scroller.clientWidth + target.offsetWidth);
+  }, [heatmap.todayKey, period, visibleHeatmap.anchorKey, visibleHeatmap.rangeEndKey, visibleHeatmap.rangeStartKey]);
 
-  const gridColumns = `2.25rem repeat(${visibleHeatmap.weeks.length}, 19px)`;
-  const goToPreviousHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.previousEndWeekIndex);
-  const goToNextHeatmapWindow = () => setHeatmapEndWeekIndex(visibleHeatmap.nextEndWeekIndex);
-  const handleHeatmapKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "ArrowLeft" && visibleHeatmap.canShowPrevious) {
-      event.preventDefault();
-      goToPreviousHeatmapWindow();
-    }
-    if (event.key === "ArrowRight" && visibleHeatmap.canShowNext) {
-      event.preventDefault();
-      goToNextHeatmapWindow();
-    }
+  const selectPeriod = (nextPeriod: StudyHeatmapPeriod) => {
+    setPeriod(nextPeriod);
+    setAnchorKey(null);
   };
 
   return (
     <SoftPanel className={`p-4 sm:p-7 ${className}`}>
-      <div className="flex items-center gap-4" data-testid="study-heatmap-header">
+      <div className="flex flex-wrap items-center gap-4" data-testid="study-heatmap-header">
         <div className="flex items-center gap-4">
           <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
-          <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Lern-Heatmap</h3>
+          <h3 className="core-heading-3 font-semibold text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <CoreTooltip label="Frühere Wochen anzeigen">
+        <div className="ml-auto flex w-full items-center justify-end gap-2 sm:w-auto">
+          <div
+            role="group"
+            className="grid h-9 grid-cols-3 overflow-hidden rounded-lg border border-core-border bg-core-subtle"
+            aria-label="Heatmap-Zeitraum"
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={period === option.value}
+                onClick={() => selectPeriod(option.value)}
+                className={`h-9 min-h-9 min-w-0 px-2.5 core-status-label transition-colors ${period === option.value ? "bg-core-action text-[var(--core-text-on-accent)]" : "text-core-secondary hover:bg-core-surface"}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <CoreTooltip label={navigationLabels.previous}>
             <button
               type="button"
-              onClick={goToPreviousHeatmapWindow}
+              onClick={() => setAnchorKey(visibleHeatmap.previousAnchorKey)}
               disabled={!visibleHeatmap.canShowPrevious}
-              className="inline-flex size-11 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Frühere Wochen anzeigen"
+              className="inline-flex size-9 min-h-9 shrink-0 items-center justify-center rounded-lg border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={navigationLabels.previous}
             >
-              <ChevronLeft size={17} aria-hidden="true" />
+              <ChevronLeft size={16} aria-hidden="true" />
             </button>
           </CoreTooltip>
-          <CoreTooltip label="Spätere Wochen anzeigen">
+          <CoreTooltip label={navigationLabels.next}>
             <button
               type="button"
-              onClick={goToNextHeatmapWindow}
+              onClick={() => setAnchorKey(visibleHeatmap.nextAnchorKey)}
               disabled={!visibleHeatmap.canShowNext}
-              className="inline-flex size-11 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:border-[var(--core-border)] hover:bg-[var(--core-surface)] disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Spätere Wochen anzeigen"
+              className="inline-flex size-9 min-h-9 shrink-0 items-center justify-center rounded-lg border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={navigationLabels.next}
             >
-              <ChevronRight size={17} aria-hidden="true" />
+              <ChevronRight size={16} aria-hidden="true" />
             </button>
           </CoreTooltip>
         </div>
       </div>
 
-      <div
-        ref={heatmapViewportRef}
-        className="mt-3 min-w-0 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus"
-        tabIndex={0}
-        onKeyDown={handleHeatmapKeyDown}
-        role="group"
-        aria-label={`Lern-Heatmap-Ausschnitt von ${visibleHeatmap.visibleRangeStartKey} bis ${visibleHeatmap.visibleRangeEndKey}`}
-        aria-describedby={keyboardHelpId}
-      >
-        <p id={keyboardHelpId} className="sr-only">Mit der linken und rechten Pfeiltaste zwischen Zeiträumen wechseln.</p>
-        <div
-          className="grid w-max max-w-full gap-1"
-          style={{ gridTemplateColumns: gridColumns }}
-          role="img"
-          data-testid="study-heatmap-grid"
-          aria-label={`Lern-Heatmap von ${visibleHeatmap.visibleRangeStartKey} bis ${visibleHeatmap.visibleRangeEndKey}`}
-        >
-          <span aria-hidden="true" />
-          {visibleHeatmap.monthLabels.map((label, index) => (
-            <span
-              key={`${label}-${index}`}
-              className="h-5 whitespace-nowrap text-left text-[0.68rem] font-semibold text-[var(--core-text-muted)]"
-              data-month-label={label || undefined}
-            >
-              {label}
-            </span>
-          ))}
-
-          {visibleHeatmap.weekdayLabels.map((label, dayIndex) => (
-            <React.Fragment key={label}>
-              <span className="flex min-h-4 items-center text-[0.68rem] font-semibold text-[var(--core-text-muted)]">{label}</span>
-              {visibleHeatmap.weeks.map((week) => {
-                const day = week[dayIndex];
-                const dayLabel = formatDayLabel(day);
-                return (
-                  <CoreTooltip key={day.key} label={dayLabel}>
-                    <span
-                      className={`block size-[19px] rounded-[4px] border transition-transform hover:scale-110 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-inset ring-core-focus" : ""} ${day.isFuture ? "opacity-35" : ""} ${day.isOutsideRange ? "opacity-20" : ""}`}
-                      aria-label={dayLabel}
-                    />
-                  </CoreTooltip>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </div>
+      <p className="mt-4 text-center core-caption font-semibold text-core-muted" data-testid="study-heatmap-range-label">
+        {formatRangeLabel(visibleHeatmap)}
+      </p>
+      <div className="mt-3 min-w-0">
+        {period === "week" ? <WeekHeatmap window={visibleHeatmap} formatDayLabel={formatDayLabel} /> : null}
+        {period === "month" ? <MonthHeatmap window={visibleHeatmap} formatDayLabel={formatDayLabel} /> : null}
+        {period === "year" ? <YearHeatmap window={visibleHeatmap} formatDayLabel={formatDayLabel} scrollerRef={yearScrollerRef} /> : null}
       </div>
-      <div className="mt-3 flex justify-center" data-testid="study-heatmap-legend">
+      <div className="mt-4 flex justify-center" data-testid="study-heatmap-legend">
         <HeatmapLegend />
       </div>
     </SoftPanel>

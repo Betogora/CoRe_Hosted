@@ -41,7 +41,8 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(markup, /FSRS-Schwierigkeit/);
   assert.match(markup, /Wahre Erinnerungsquote/);
   assert.match(markup, /Stapelvergleich/);
-  assert.match(markup, /Lern-Heatmap/);
+  assert.match(markup, /0 Tage Streak/);
+  assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
   assert.match(markup, /data-testid="study-heatmap-grid"/);
   assert.doesNotMatch(markup, /overflow-x-hidden/);
   assert.doesNotMatch(markup, /sticky top-3 z-30 p-4/);

@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: ff9062e25ab15ec5 */
+/* Quellenstand: 389e216bcd6144f5 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -813,6 +813,9 @@ video {
 .mb-6 {
   margin-bottom: 1.5rem;
 }
+.ml-auto {
+  margin-left: auto;
+}
 .mt-0\.5 {
   margin-top: 0.125rem;
 }
@@ -906,6 +909,9 @@ video {
 .h-6 {
   height: 1.5rem;
 }
+.h-9 {
+  height: 2.25rem;
+}
 .h-px {
   height: 1px;
 }
@@ -932,6 +938,9 @@ video {
 }
 .min-h-28 {
   min-height: 7rem;
+}
+.min-h-9 {
+  min-height: 2.25rem;
 }
 .min-h-\[42rem\] {
   min-height: 42rem;
@@ -1283,6 +1292,10 @@ video {
 .px-2 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
+}
+.px-2\.5 {
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
 }
 .px-3 {
   padding-left: 0.75rem;
@@ -2053,7 +2066,15 @@ summary {
   color: var(--core-text);
 }
 
+.disabled\:opacity-40:disabled {
+  opacity: 0.4;
+}
+
 @media (min-width: 640px) {
+
+  .sm\:w-auto {
+    width: auto;
+  }
 
   .sm\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2571,14 +2592,31 @@ summary {
 
       .catalog-heatmap {
         display: grid;
-        grid-template-columns: repeat(12, minmax(0, 1fr));
-        gap: 0.3rem;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 0.5rem;
       }
 
-      .catalog-heatmap span {
+      .catalog-heatmap-day {
+        display: grid;
+        min-width: 0;
+        justify-items: center;
+        gap: 0.35rem;
+        color: var(--core-text-muted);
+        font-size: 0.68rem;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .catalog-heatmap-cell {
+        width: min(100%, 4.5rem);
         aspect-ratio: 1;
         border: 1px solid var(--core-border);
-        border-radius: 0.25rem;
+        border-radius: 0.75rem;
+      }
+
+      @media (max-width: 560px) {
+        .catalog-heatmap { gap: 0.25rem; }
+        .catalog-heatmap-day { font-size: 0.6rem; }
       }
 
       .catalog-steps {
@@ -3224,11 +3262,22 @@ summary {
                 </div>
               </article>
                 <article class="core-surface-raised rounded-[18px] p-6">
-                  <div class="flex items-center justify-between gap-4"><div><p class="core-caption uppercase tracking-wide text-core-muted">Lernaktivität</p><h3 class="core-heading-3 mt-1 text-core-text">Heatmap</h3></div><div class="flex gap-2"><button type="button" class="grid size-11 place-items-center rounded-xl border border-core-border text-core-action" aria-label="Frühere Wochen anzeigen"><svg class="catalog-icon rotate-180"><use href="#icon-chevron"></use></svg></button><button type="button" class="grid size-11 place-items-center rounded-xl border border-core-border text-core-action" aria-label="Spätere Wochen anzeigen"><svg class="catalog-icon"><use href="#icon-chevron"></use></svg></button></div></div>
-                  <div class="catalog-heatmap mt-5" aria-label="Beispiel einer Lern-Heatmap">
-                    <span class="core-heatmap-level-0"></span><span class="core-heatmap-level-1"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-2"></span><span class="core-heatmap-level-4"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-1"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-2"></span><span class="core-heatmap-level-4"></span>
-                    <span class="core-heatmap-level-0"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-1"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-4"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-2"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-4"></span><span class="core-heatmap-level-0"></span>
-                    <span class="core-heatmap-level-1"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-4"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-1"></span><span class="core-heatmap-level-3"></span><span class="core-heatmap-level-0"></span><span class="core-heatmap-level-2"></span><span class="core-heatmap-level-4"></span><span class="core-heatmap-level-0"></span>
+                  <div class="flex flex-wrap items-center gap-4">
+                    <div><p class="core-caption uppercase tracking-wide text-core-muted">Lernaktivität</p><h3 class="core-heading-3 mt-1 text-core-text">12 Tage Streak</h3></div>
+                    <div class="ml-auto flex w-full items-center justify-end gap-2 sm:w-auto">
+                      <div class="grid h-9 grid-cols-3 overflow-hidden rounded-lg border border-core-border bg-core-subtle" role="group" aria-label="Heatmap-Zeitraum"><button type="button" class="h-9 min-h-9 bg-core-action px-2.5 core-status-label text-[var(--core-text-on-accent)]" aria-pressed="true">Woche</button><button type="button" class="h-9 min-h-9 px-2.5 core-status-label text-core-secondary" aria-pressed="false">Monat</button><button type="button" class="h-9 min-h-9 px-2.5 core-status-label text-core-secondary" aria-pressed="false">Jahr</button></div>
+                      <button type="button" class="grid size-9 min-h-9 place-items-center rounded-lg border border-core-border text-core-action" aria-label="Frühere sieben Tage anzeigen"><svg class="catalog-icon rotate-180"><use href="#icon-chevron"></use></svg></button><button type="button" class="grid size-9 min-h-9 place-items-center rounded-lg border border-core-border text-core-action disabled:opacity-40" aria-label="Spätere sieben Tage anzeigen" disabled><svg class="catalog-icon"><use href="#icon-chevron"></use></svg></button>
+                    </div>
+                  </div>
+                  <p class="mt-4 text-center core-caption font-semibold text-core-muted">03.08.–09.08.2026</p>
+                  <div class="catalog-heatmap mt-3" aria-label="Beispiel der letzten sieben Tage einer Lern-Heatmap">
+                    <span class="catalog-heatmap-day">Mo<span>03.08.</span><span class="catalog-heatmap-cell core-heatmap-level-1"></span></span>
+                    <span class="catalog-heatmap-day">Di<span>04.08.</span><span class="catalog-heatmap-cell core-heatmap-level-3"></span></span>
+                    <span class="catalog-heatmap-day">Mi<span>05.08.</span><span class="catalog-heatmap-cell core-heatmap-level-0"></span></span>
+                    <span class="catalog-heatmap-day">Do<span>06.08.</span><span class="catalog-heatmap-cell core-heatmap-level-2"></span></span>
+                    <span class="catalog-heatmap-day">Fr<span>07.08.</span><span class="catalog-heatmap-cell core-heatmap-level-4"></span></span>
+                    <span class="catalog-heatmap-day">Sa<span>08.08.</span><span class="catalog-heatmap-cell core-heatmap-level-3"></span></span>
+                    <span class="catalog-heatmap-day">So<span>09.08.</span><span class="catalog-heatmap-cell core-heatmap-level-4"></span></span>
                   </div>
                   <div class="mt-4 flex items-center justify-center gap-2 core-caption text-core-muted"><span>Weniger</span><span class="core-heatmap-level-0 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-1 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-2 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-3 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-4 size-3 rounded-[4px] border"></span><span>Mehr</span></div>
                 </article>

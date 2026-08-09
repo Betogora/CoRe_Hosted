@@ -1,10 +1,10 @@
 import { stripHtml } from "./htmlSafety.ts";
 import { listReviewableCards, summarizeDeckReview } from "./scheduler.ts";
-import { createStudyHeatmapModelFromCounts } from "./studyHeatmapModel.ts";
+import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
 import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { CoreMode, Deck, LearningItem } from "./coreTypes.ts";
 
-export { createStudyHeatmapWindow, getStudyHeatmapVisibleWeekCount } from "./studyHeatmapModel.ts";
+export { createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
 
 type DateInput = string | number | Date;
 
@@ -13,9 +13,8 @@ interface LibraryOptions {
   coreMode?: CoreMode | "all";
   cardLimit?: number;
   now?: DateInput;
+  timeZone?: string;
   selectedDeckId?: string;
-  weeks?: number | null;
-  year?: number;
   cardSort?: CardTableSort;
 }
 export type CardTableSortField = "sortField" | "due" | "variants";
@@ -27,7 +26,7 @@ export const DEFAULT_CARD_TABLE_SORT: CardTableSort = { field: "sortField", dire
 const cardSortCollator = new Intl.Collator("de-DE", { sensitivity: "base" });
 const cardDueDateFormatter = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-const DEFAULT_HEATMAP_WEEK_COUNT = 53;
+const REVIEW_RATINGS = new Set(["again", "hard", "good", "easy"]);
 
 function normalizeQuery(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
@@ -43,46 +42,6 @@ function progressPercent(summary: ReturnType<typeof summarizeDeckReview>): numbe
 
 function previewText(value: unknown): string {
   return stripHtml(value).replace(/\s+/g, " ").trim() || "Leere Karte";
-}
-
-function startOfLocalDay(value: DateInput): Date {
-  const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
-
-function addLocalDays(value: DateInput, days: number): Date {
-  const date = new Date(value);
-  date.setDate(date.getDate() + days);
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
-
-function localDateKey(value: DateInput | null | undefined): string | null {
-  const date = new Date(value ?? 0);
-  if (Number.isNaN(date.getTime())) return null;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function startOfWeek(value: DateInput): Date {
-  const date = startOfLocalDay(value);
-  return addLocalDays(date, -((date.getDay() + 6) % 7));
-}
-
-function startOfYear(year: number): Date {
-  return startOfLocalDay(new Date(year, 0, 1));
-}
-
-function endOfYear(year: number): Date {
-  return startOfLocalDay(new Date(year, 11, 31));
-}
-
-function normalizeCalendarYear(value: unknown, fallbackYear: number): number {
-  const year = Math.round(Number(value));
-  return Number.isFinite(year) && year >= 1900 && year <= 9999 ? year : fallbackYear;
 }
 
 function createDeckRow(
@@ -197,30 +156,21 @@ function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: nu
 }
 
 export function createStudyHeatmapModel(decks: Deck[] = [], options: LibraryOptions = {}) {
-  const today = startOfLocalDay(options.now ?? new Date());
-  const useCalendarYear = options.weeks === null || options.weeks === undefined;
-  const displayYear = useCalendarYear ? normalizeCalendarYear(options.year, today.getFullYear()) : null;
-  const calendarStartDay = useCalendarYear ? startOfYear(displayYear as number) : null;
-  const calendarEndDay = useCalendarYear ? endOfYear(displayYear as number) : null;
-  const requestedWeekCount = Math.max(1, Math.round(Number(options.weeks ?? DEFAULT_HEATMAP_WEEK_COUNT) || DEFAULT_HEATMAP_WEEK_COUNT));
-  const todayKey = localDateKey(today) as string;
-  const currentWeekStart = startOfWeek(today);
-  const rangeStartKey = useCalendarYear
-    ? localDateKey(calendarStartDay) as string
-    : localDateKey(addLocalDays(currentWeekStart, -(requestedWeekCount - 1) * 7)) as string;
-  const rangeEndKey = useCalendarYear ? localDateKey(calendarEndDay) as string : localDateKey(addLocalDays(currentWeekStart, 6)) as string;
+  const todayKey = getStudyHeatmapDayKey(options.now ?? new Date(), options.timeZone)
+    ?? getStudyHeatmapDayKey(new Date(), options.timeZone) as string;
   const countsByDate = new Map<string, number>();
 
   for (const deck of decks) {
     for (const event of deck.reviewEvents ?? []) {
+      if (!REVIEW_RATINGS.has(event.rating)) continue;
       const reviewedAt = (event as typeof event & { reviewedAt?: string }).reviewedAt;
-      const key = localDateKey(reviewedAt ?? event.answeredAt ?? event.createdAt);
-      if (!key || key < rangeStartKey || key > rangeEndKey) continue;
+      const key = getStudyHeatmapDayKey(event.answeredAt || reviewedAt || event.createdAt, options.timeZone);
+      if (!key) continue;
       countsByDate.set(key, (countsByDate.get(key) ?? 0) + 1);
     }
   }
 
-  return createStudyHeatmapModelFromCounts({ rangeStartKey, rangeEndKey, todayKey, countsByDay: countsByDate });
+  return createStudyHeatmapModelFromCounts({ todayKey, countsByDay: countsByDate });
 }
 
 export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptions = {}) {
@@ -237,7 +187,7 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
     filteredRows,
     selectedRow,
     dueCards: rows.reduce((total, row) => total + row.directSummary.dueCards, 0),
-    studyHeatmap: createStudyHeatmapModel(decks, { now }),
+    studyHeatmap: createStudyHeatmapModel(decks, { now, timeZone: options.timeZone }),
   };
 }
 

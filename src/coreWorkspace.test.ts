@@ -144,7 +144,7 @@ test("workspace can seed the world capitals deck for an empty local tester accou
   const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.reviewState?.maturityBand));
   const dueCards = cards.filter((card) => new Date(card.reviewState?.dueAt ?? 0).getTime() <= new Date("2026-07-07T12:00:00.000Z").getTime());
   const stubbornCards = cards.filter((card) => card.meta?.studyProfile === "hartnäckig-aber-stabil");
-  const heatmap = createStudyHeatmapModel(state.decks, { now: "2026-07-07T12:00:00.000Z", weeks: 14 });
+  const heatmap = createStudyHeatmapModel(state.decks, { now: "2026-07-07T12:00:00.000Z" });
 
   assert.equal(state.decks.length, 8);
   assert.ok(root);

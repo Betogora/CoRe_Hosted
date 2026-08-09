@@ -19,14 +19,17 @@ function formatCardCount(count: number) {
 
 function heatmapDayLabel(day: StudyHeatmapDay) {
   const date = formatHeatmapDate(day.key);
-  if (day.isOutsideRange) return `${date}: außerhalb des Kalenderjahres`;
+  if (day.isOutsideRange) return `${date}: außerhalb des gewählten Zeitraums`;
   if (day.isFuture) return `${date}: noch offen`;
   if (day.count === 0) return `${date}: keine Karten gelernt`;
   return `${date}: ${formatCardCount(day.count)} gelernt`;
 }
 
 export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded }: DashboardScreenProps) {
-  const library = React.useMemo(() => createDeckLibraryModel(state.decks, { now }), [now, state.decks]);
+  const library = React.useMemo(
+    () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined }),
+    [now, state.decks, state.profile.timezone],
+  );
   const { dueCards, studyHeatmap } = library;
   const displayName = state.profile?.displayName?.trim();
   const welcomeTitle = displayName ? `Willkommen zurück, ${displayName}!` : "Willkommen bei CoRe";
