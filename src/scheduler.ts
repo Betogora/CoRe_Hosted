@@ -558,17 +558,28 @@ export function listReviewableCards(deck: Deck): LearningItem[] {
 export function summarizeDeckReview(deck: Deck, now: DateInput = new Date()) {
   const cards = listReviewableCards(deck);
   const nowTime = new Date(now).getTime();
-  const dueCards = cards.filter((card) => new Date(card.reviewState?.dueAt ?? 0).getTime() <= nowTime);
+  let dueCards = 0;
+  let newCards = 0;
+  let inProgressCards = 0;
+  for (const card of cards) {
+    const state = getSchedulerStateForItem(card);
+    if (state.state === "new") {
+      newCards += 1;
+    } else if (state.state === "learning" || state.state === "relearning") {
+      inProgressCards += 1;
+    } else if (state.state === "review" && new Date(state.dueAt).getTime() <= nowTime) {
+      dueCards += 1;
+    }
+  }
   const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.reviewState?.maturityBand));
   const activeVariants = cards
     .flatMap((card) => card.variants ?? [])
     .filter((variant) => variant.qualityStatus === "active" && variant.isActive !== false && !variant.isOriginal);
-  const newCards = cards.filter((card) => Number(card.reviewState?.repetitions ?? 0) === 0);
-
   return {
     totalCards: cards.length,
-    dueCards: dueCards.length,
-    newCards: newCards.length,
+    dueCards,
+    newCards,
+    inProgressCards,
     matureCards: matureCards.length,
     activeVariants: activeVariants.length,
     averageMaturityXp: cards.length

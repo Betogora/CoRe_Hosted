@@ -32,3 +32,17 @@ test("CoreTooltip preserves child semantics and replaces native title hints", ()
   assert.doesNotMatch(markup, /<span/);
   assert.equal(focused, false);
 });
+
+test("CoreTooltip projects an optional statistics-style swatch and value", () => {
+  const tooltipChild = CoreTooltip({
+    label: "Neu",
+    swatchColor: "var(--core-learning-status-new)",
+    value: "5 Karten",
+    children: <span aria-hidden="true" />,
+  });
+  const markup = renderToStaticMarkup(tooltipChild);
+
+  assert.match(markup, /data-core-tooltip="Neu"/);
+  assert.match(markup, /data-core-tooltip-swatch="var\(--core-learning-status-new\)"/);
+  assert.match(markup, /data-core-tooltip-value="5 Karten"/);
+});

@@ -349,7 +349,6 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   expect(Math.abs(mobileGeometry.right - 767)).toBeLessThanOrEqual(1);
   expect(Math.abs(mobileGeometry.bottom - mobileGeometry.viewportHeight)).toBeLessThanOrEqual(1);
   expect(mobileGeometry.height).toBeLessThanOrEqual(mobileGeometry.viewportHeight * 0.88 + 1);
-
   const contentBorders = await dialog.locator("section, section > div > *").evaluateAll((elements: Element[]) => elements.map((element: Element) => {
     const style = window.getComputedStyle(element);
     return { top: style.borderTopWidth, bottom: style.borderBottomWidth };

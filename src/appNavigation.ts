@@ -338,15 +338,16 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   if (normalized.viewId === "neue-karten" && normalized.creationMethod) params.set("method", normalized.creationMethod);
   if (normalized.viewId === "neue-karten" && normalized.creationDeckId) params.set("deck", normalized.creationDeckId);
   if (normalized.viewId === "neue-karten" && normalized.completedDeckId) params.set("done", normalized.completedDeckId);
-  if (normalized.viewId === "stapel-einstellungen" && normalized.settingsReturnContext) {
-    params.set("returnView", normalized.settingsReturnContext.view);
-    if (normalized.settingsReturnContext.view === "decks" && normalized.settingsReturnContext.cardId) {
-      params.set("returnCard", normalized.settingsReturnContext.cardId);
+  const settingsReturnContext = normalized.settingsReturnContext;
+  if (normalized.viewId === "stapel-einstellungen" && settingsReturnContext) {
+    params.set("returnView", settingsReturnContext.view);
+    if (settingsReturnContext.view === "decks" && settingsReturnContext.cardId) {
+      params.set("returnCard", settingsReturnContext.cardId);
     }
-    if (normalized.settingsReturnContext.view === "review") {
+    if (settingsReturnContext.view === "review" && settingsReturnContext.reviewReturnContext) {
       params.set("reviewReturn", appRouteToUrl({
         mode: "study",
-        ...normalized.settingsReturnContext.reviewReturnContext,
+        ...settingsReturnContext.reviewReturnContext,
       }));
     }
   }

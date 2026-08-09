@@ -41,6 +41,14 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
   assert.equal((styles.match(/--core-group-depth-0:\s*var\(--core-surface\)/g) ?? []).length, 2);
   assert.match(styles, /--core-danger-hover:\s*var\(--core-palette-coral-glow\)/);
   assert.match(dark, /--core-danger-hover:\s*var\(--core-palette-coral\)/);
+  for (const [status, role] of [
+    ["learned", "warning"],
+    ["new", "deck-new-text"],
+    ["in-progress", "danger"],
+    ["due", "deck-due-text"],
+  ]) {
+    assert.equal((styles.match(new RegExp(`--core-learning-status-${status}:\\s*var\\(--core-${role}\\)`, "g")) ?? []).length, 2);
+  }
 });
 
 test("heatmap intensity stays pink and reverses its brightness direction between themes", () => {

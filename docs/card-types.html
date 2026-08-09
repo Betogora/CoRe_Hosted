@@ -7,7 +7,7 @@
     <title>CoRe Kartentypen · Reviewreferenz</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 6f9aed92e547e447 */
+/* Quellenstand: 389e72c518df8ff2 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -737,7 +737,6 @@ video {
   --core-action-disabled-text: #667492;
   --core-deck-new-text: #975c92;
   --core-deck-due-text: var(--core-action-primary);
-  --core-deck-total-text: #646a75;
   --core-info: var(--core-palette-slate);
   --core-success: var(--core-palette-lilac);
   --core-warning: var(--core-palette-marigold);
@@ -751,6 +750,10 @@ video {
   --core-shadow-soft: 0 1px 2px rgba(38, 46, 58, 0.08);
   --core-shadow-raised: 0 14px 36px rgba(38, 46, 58, 0.13);
   --core-selection: rgba(214, 163, 210, 0.46);
+  --core-learning-status-learned: var(--core-warning);
+  --core-learning-status-new: var(--core-deck-new-text);
+  --core-learning-status-in-progress: var(--core-danger);
+  --core-learning-status-due: var(--core-deck-due-text);
 
   /* Compatibility aliases for existing status call sites. */
   --core-status-info-border: var(--core-info);
@@ -796,7 +799,6 @@ video {
   --core-action-disabled-text: #7d8ba4;
   --core-deck-new-text: var(--core-palette-lilac-glow);
   --core-deck-due-text: var(--core-palette-highlight);
-  --core-deck-total-text: #aeb5c0;
   --core-info: var(--core-palette-highlight);
   --core-success: var(--core-palette-lilac-glow);
   --core-warning: var(--core-palette-golden-glow);
@@ -810,6 +812,10 @@ video {
   --core-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.22);
   --core-shadow-raised: 0 18px 44px rgba(0, 0, 0, 0.34);
   --core-selection: rgba(228, 181, 225, 0.42);
+  --core-learning-status-learned: var(--core-warning);
+  --core-learning-status-new: var(--core-deck-new-text);
+  --core-learning-status-in-progress: var(--core-danger);
+  --core-learning-status-due: var(--core-deck-due-text);
 }
 
 * {

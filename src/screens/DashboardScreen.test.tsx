@@ -68,7 +68,7 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /Willkommen zurück, Noemi!/);
   assert.doesNotMatch(markup, />Heute<\//);
   assert.match(markup, /Heute fällig/);
-  assert.match(markup, /Heute fällig:<\/span><span class="font-semibold">1<\/span>/);
+  assert.match(markup, /Heute fällig:<\/span><span class="font-semibold">0<\/span>/);
   assert.doesNotMatch(markup, /Originalkarten/);
   assert.match(markup, /Alle ansehen/);
   assert.match(markup, /data-testid="dashboard-deck-list-header"/);
@@ -76,8 +76,9 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);
   assert.doesNotMatch(markup, />Lernen <svg/);
   assert.match(markup, /data-deck-count="new"/);
+  assert.match(markup, /data-deck-count="in-progress"/);
   assert.match(markup, /data-deck-count="due"/);
-  assert.match(markup, /data-deck-count="total"/);
+  assert.doesNotMatch(markup, /data-deck-count="total"/);
   assert.match(markup, /data-deck-drag-source="true"/);
   assert.match(markup, /Stapeloptionen für Biologie/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);

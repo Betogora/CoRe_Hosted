@@ -120,6 +120,7 @@ test("StudyMode exposes labeled learning and placeholder Pomodoro progress witho
   );
 
   assert.match(markup, /Lernfortschritt/);
+  assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, In Arbeit: 0 Karten, Fällig: 0 Karten"/);
   assert.match(markup, /Pomodoro · 25 Min\./);
   assert.match(markup, /study-pomodoro-progress/);
   assert.doesNotMatch(markup, /Neue Karten heute|heute eingeführt|\+10/);
@@ -186,11 +187,21 @@ test("StudyMode renders the four daily progress segments in the canonical order 
   );
 
   assert.match(markup, />1 \/ 10 Karten</);
-  assert.match(markup, /aria-valuetext="1 für heute gelernt, 3 neu, 1 in Arbeit, 5 fällig"/);
-  assert.match(markup, /data-study-progress-segment="learned"[^>]*background-color:var\(--core-warning\)[^>]*flex-grow:1/);
-  assert.match(markup, /data-study-progress-segment="new"[^>]*background-color:var\(--core-deck-new-text\)[^>]*flex-grow:3/);
-  assert.match(markup, /data-study-progress-segment="in-progress"[^>]*background-color:var\(--core-danger\)[^>]*flex-grow:1/);
-  assert.match(markup, /data-study-progress-segment="due"[^>]*background-color:var\(--core-deck-due-text\)[^>]*flex-grow:5/);
+  assert.match(markup, /aria-valuetext="Gelernt: 1 Karte, Neu: 3 Karten, In Arbeit: 1 Karte, Fällig: 5 Karten"/);
+  assert.match(markup, /data-study-progress-segment="learned"[^>]*background-color:var\(--core-learning-status-learned\)[^>]*flex-grow:1/);
+  assert.match(markup, /data-study-progress-segment="new"[^>]*background-color:var\(--core-learning-status-new\)[^>]*flex-grow:3/);
+  assert.match(markup, /data-study-progress-segment="in-progress"[^>]*background-color:var\(--core-learning-status-in-progress\)[^>]*flex-grow:1/);
+  assert.match(markup, /data-study-progress-segment="due"[^>]*background-color:var\(--core-learning-status-due\)[^>]*flex-grow:5/);
+  for (const [label, color, value] of [
+    ["Gelernt", "learned", "1 Karte"],
+    ["Neu", "new", "3 Karten"],
+    ["In Arbeit", "in-progress", "1 Karte"],
+    ["Fällig", "due", "5 Karten"],
+  ]) {
+    assert.match(markup, new RegExp(`data-core-tooltip="${label}"`));
+    assert.match(markup, new RegExp(`data-core-tooltip-swatch="var\\(--core-learning-status-${color}\\)"`));
+    assert.match(markup, new RegExp(`data-core-tooltip-value="${value}"`));
+  }
   assert.ok(markup.indexOf('data-study-progress-segment="learned"') < markup.indexOf('data-study-progress-segment="new"'));
   assert.ok(markup.indexOf('data-study-progress-segment="new"') < markup.indexOf('data-study-progress-segment="in-progress"'));
   assert.ok(markup.indexOf('data-study-progress-segment="in-progress"') < markup.indexOf('data-study-progress-segment="due"'));

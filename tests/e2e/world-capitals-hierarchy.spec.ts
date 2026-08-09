@@ -63,8 +63,12 @@ async function dispatchTopLevelDrop(page: Page, source: Locator, dropZoneTestId:
   await page.mouse.up();
 }
 
-function metric(row: Locator, name: "new" | "due" | "total") {
+function metric(row: Locator, name: "new" | "in-progress" | "due") {
   return row.locator(`[data-deck-count="${name}"]`);
+}
+
+async function metricValue(row: Locator, name: "new" | "in-progress" | "due") {
+  return Number(await metric(row, name).locator("dd").innerText());
 }
 
 async function expectDeckOptionUsesFullWidth(option: Locator) {
@@ -85,8 +89,8 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(rootRow).toBeVisible();
   await expect(europeRow).toBeVisible();
   await expect(metric(rootRow, "new")).toContainText("Neu");
+  await expect(metric(rootRow, "in-progress")).toContainText("In Arbeit");
   await expect(metric(rootRow, "due")).toContainText("Fällig");
-  await expect(metric(rootRow, "total")).toContainText("Gesamt");
   await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
   await expect(rootRow.getByRole("button", { name: /Stapeloptionen/ })).toBeVisible();
   await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
@@ -200,8 +204,8 @@ test("learning rows activate directly while expand and settings remain independe
   await expect(page.getByTestId("learn-deck-list-header")).toContainText("Aktive Stapel");
   await expect(page.getByRole("button", { name: "Lernen öffnen" })).toHaveCount(0);
   await expect(metric(rootRow, "new")).toContainText("Neu");
+  await expect(metric(rootRow, "in-progress")).toContainText("In Arbeit");
   await expect(metric(rootRow, "due")).toContainText("Fällig");
-  await expect(metric(rootRow, "total")).toContainText("Gesamt");
   await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
   await expect(europeRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
   await expect(europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" })).toBeVisible();
@@ -354,11 +358,12 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   const antarcticaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.antarctica}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   const southAmericaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`);
-  await expect(metric(europeRow, "total")).toContainText("53");
+  const europeDueBefore = await metricValue(europeRow, "due");
+  const southAmericaDueBefore = await metricValue(southAmericaRow, "due");
 
   await dispatchDeckDrop(page, southAmericaRow, europeRow);
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
-  await expect(metric(europeRow, "total")).toContainText("67");
+  await expect.poll(() => metricValue(europeRow, "due")).toBe(europeDueBefore + southAmericaDueBefore);
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
 
   await dispatchDeckDrop(page, africaRow, southAmericaRow);
@@ -370,7 +375,7 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
 
   await dispatchTopLevelDrop(page, southAmericaRow, "learn-top-drop-zone");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(null);
-  await expect(metric(europeRow, "total")).toContainText("53");
+  await expect.poll(() => metricValue(europeRow, "due")).toBe(europeDueBefore);
 
   await dispatchTopLevelDrop(page, southAmericaRow, "learn-top-drop-zone");
   await expect(page.getByRole("status")).toContainText("Stapel bleibt an dieser Stelle.");

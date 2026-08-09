@@ -135,9 +135,70 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
   assert.equal(parentRow.summary.newCards, 1);
   assert.ok(childRow);
   assert.equal(childRow.summary.totalCards, 1);
-  assert.equal(library.dueCards, 1);
+  assert.equal(library.dueCards, 0);
   assert.deepEqual(library.rows.map((row) => row.id), [parent.id, child.id]);
   assert.equal(library.rows[0].summary.totalCards, 1);
+});
+
+test("library model keeps new, in-progress and due deck counts disjoint", () => {
+  const card = (id: string, state: "new" | "learning" | "review" | "relearning", dueAt: string, reps: number) => createCoreCard({
+    id,
+    source: "manual",
+    originalFront: id,
+    originalBack: "Antwort",
+    reviewState: { state, dueAt, reps },
+  });
+  const parent = createCoreDeck({
+    id: "status_parent",
+    name: "Status",
+    source: "manual",
+    cards: [card("learning", "learning", "2026-07-01T07:00:00.000Z", 1)],
+  });
+  const child = createCoreDeck({
+    id: "status_child",
+    parentDeckId: parent.id,
+    name: "Unterstatus",
+    source: "manual",
+    cards: [
+      card("new", "new", "2026-07-01T07:00:00.000Z", 0),
+      card("relearning", "relearning", "2026-07-01T07:00:00.000Z", 3),
+      card("due", "review", "2026-07-01T07:00:00.000Z", 3),
+      card("future", "review", "2026-07-02T07:00:00.000Z", 3),
+    ],
+  });
+
+  const library = createDeckLibraryModel([parent, child], { now: "2026-07-01T08:00:00.000Z" });
+  const parentRow = library.rows.find((row) => row.id === parent.id);
+  const childRow = library.rows.find((row) => row.id === child.id);
+
+  assert.ok(parentRow);
+  assert.deepEqual(
+    {
+      newCards: parentRow.summary.newCards,
+      inProgressCards: parentRow.summary.inProgressCards,
+      dueCards: parentRow.summary.dueCards,
+      totalCards: parentRow.summary.totalCards,
+    },
+    { newCards: 1, inProgressCards: 2, dueCards: 1, totalCards: 5 },
+  );
+  assert.deepEqual(
+    {
+      newCards: parentRow.directSummary.newCards,
+      inProgressCards: parentRow.directSummary.inProgressCards,
+      dueCards: parentRow.directSummary.dueCards,
+    },
+    { newCards: 0, inProgressCards: 1, dueCards: 0 },
+  );
+  assert.ok(childRow);
+  assert.deepEqual(
+    {
+      newCards: childRow.directSummary.newCards,
+      inProgressCards: childRow.directSummary.inProgressCards,
+      dueCards: childRow.directSummary.dueCards,
+    },
+    { newCards: 1, inProgressCards: 1, dueCards: 1 },
+  );
+  assert.equal(library.dueCards, 1);
 });
 
 test("library model sorts every deck level alphabetically like Anki", () => {

@@ -29,8 +29,9 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, /Welt-Hauptstädte lernen/);
   assert.match(markup, /Stapeloptionen für Welt-Hauptstädte/);
   assert.match(markup, /data-deck-count="new"/);
+  assert.match(markup, /data-deck-count="in-progress"/);
   assert.match(markup, /data-deck-count="due"/);
-  assert.match(markup, /data-deck-count="total"/);
+  assert.doesNotMatch(markup, /data-deck-count="total"/);
   assert.match(markup, /conic-gradient/);
   assert.match(markup, /data-deck-drag-source="true"/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Welt-Hauptstädte"/);

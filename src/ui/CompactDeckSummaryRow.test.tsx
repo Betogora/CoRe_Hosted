@@ -22,8 +22,9 @@ test("compact deck row keeps one-line identity, accessible metrics and compact p
   assert.match(markup, /data-deck-summary-row-content="compact"/);
   assert.match(markup, /truncate whitespace-nowrap/);
   assert.doesNotMatch(markup, />Herkunft \/ Ein sehr langer Unterstapelname</);
-  for (const metric of ["new", "due", "total"]) assert.match(markup, new RegExp(`data-deck-count="${metric}"`));
-  for (const label of ["Neu", "Fällig", "Gesamt"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
+  for (const metric of ["new", "in-progress", "due"]) assert.match(markup, new RegExp(`data-deck-count="${metric}"`));
+  for (const label of ["Neu", "In Arbeit", "Fällig"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
+  assert.doesNotMatch(markup, /data-deck-count="total"|>Gesamt</);
   assert.match(markup, /size-8/);
   assert.match(markup, /aria-label="0 Prozent"/);
   assert.match(markup, /aria-label="Stapeloptionen"/);

@@ -2,11 +2,12 @@ import type { ReactNode } from "react";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { DonutValue } from "./coreUi.tsx";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
+import { LEARNING_STATUS_UI } from "./learningStatusUi.ts";
 
 const DECK_COUNT_DEFINITIONS = [
-  { label: "Neu", valueKey: "newCards", color: "var(--core-deck-new-text)", metric: "new" },
-  { label: "Fällig", valueKey: "dueCards", color: "var(--core-deck-due-text)", metric: "due" },
-  { label: "Gesamt", valueKey: "totalCards", color: "var(--core-deck-total-text)", metric: "total" },
+  { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new" },
+  { ...LEARNING_STATUS_UI.inProgress, valueKey: "inProgressCards", metric: "in-progress" },
+  { ...LEARNING_STATUS_UI.due, valueKey: "dueCards", metric: "due" },
 ] as const;
 
 export interface DeckSummaryRowProps {

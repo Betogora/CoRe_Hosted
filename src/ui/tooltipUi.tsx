@@ -12,8 +12,10 @@ type TooltipSource = "focus" | "pointer";
 
 interface ActiveTooltip {
   label: string;
+  swatchColor?: string;
   source: TooltipSource;
   trigger: HTMLElement;
+  value?: string;
 }
 
 interface TooltipPosition {
@@ -113,7 +115,12 @@ export function CoreTooltipProvider({ children }: { children: React.ReactNode })
       if (event.defaultPrevented) return null;
       const trigger = findTooltipTrigger(event.target);
       const label = trigger?.dataset.coreTooltip;
-      return trigger && label ? { label, trigger } : null;
+      return trigger && label ? {
+        label,
+        swatchColor: trigger.dataset.coreTooltipSwatch,
+        trigger,
+        value: trigger.dataset.coreTooltipValue,
+      } : null;
     };
     const handlePointerOver = (event: PointerEvent) => {
       const tooltip = event.pointerType === "touch" ? null : readTrigger(event);
@@ -203,7 +210,17 @@ export function CoreTooltipProvider({ children }: { children: React.ReactNode })
               onPointerEnter={() => clearTimer(timerRef)}
               onPointerLeave={close}
             >
-              {activeTooltip.label}
+              {activeTooltip.swatchColor || activeTooltip.value ? (
+                <span className="flex items-center justify-between gap-5 core-caption">
+                  <span className="flex items-center gap-2 text-core-secondary">
+                    {activeTooltip.swatchColor ? (
+                      <span className="size-2.5 rounded-sm" style={{ backgroundColor: activeTooltip.swatchColor }} aria-hidden="true" />
+                    ) : null}
+                    {activeTooltip.label}
+                  </span>
+                  {activeTooltip.value ? <span className="font-semibold text-core-text">{activeTooltip.value}</span> : null}
+                </span>
+              ) : activeTooltip.label}
             </div>,
             document.body,
           )
@@ -214,15 +231,24 @@ export function CoreTooltipProvider({ children }: { children: React.ReactNode })
 
 type TooltipChildProps = React.HTMLAttributes<HTMLElement> & {
   "data-core-tooltip"?: string;
+  "data-core-tooltip-swatch"?: string;
+  "data-core-tooltip-value"?: string;
   "aria-describedby"?: string;
   title?: string;
 };
 
-export function CoreTooltip({ label, children }: { label: string; children: React.ReactElement<TooltipChildProps> }) {
+export function CoreTooltip({ label, swatchColor, value, children }: {
+  label: string;
+  swatchColor?: string;
+  value?: string;
+  children: React.ReactElement<TooltipChildProps>;
+}) {
   const child = React.Children.only(children);
   return React.cloneElement(child, {
     "aria-describedby": [child.props["aria-describedby"], TOOLTIP_ID].filter(Boolean).join(" "),
     "data-core-tooltip": label,
+    "data-core-tooltip-swatch": swatchColor,
+    "data-core-tooltip-value": value,
     title: undefined,
   });
 }
