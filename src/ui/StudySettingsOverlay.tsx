@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import {
   Ban,
   ChevronRight,
-  Flag,
   ListOrdered,
   Minus,
   Pencil,
@@ -14,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { IconButton } from "./actionUi.tsx";
+import { CardMarkButton, CoreSwitch } from "./coreUi.tsx";
 
 interface NumberStepperProps {
   label: string;
@@ -29,13 +29,15 @@ export interface StudySettingsOverlayProps {
   canEditCard: boolean;
   newCardsPerDay: number;
   maximumReviewsPerDay: number;
+  marked: boolean;
+  suspended: boolean;
   onOpenChange: (open: boolean) => void;
   onEditCard: () => void;
+  onMarkedChange: (marked: boolean) => void;
+  onSuspendedChange: (suspended: boolean) => void;
   onNewCardsPerDayChange: (value: number) => void;
   onMaximumReviewsPerDayChange: (value: number) => void;
 }
-
-const flagColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#a855f7", "#94a3b8"];
 
 function NumberStepper({ label, value, min, max, step, onChange }: NumberStepperProps) {
   const decrease = Math.max(min, value - step);
@@ -71,26 +73,19 @@ function NumberStepper({ label, value, min, max, step, onChange }: NumberStepper
   );
 }
 
-function DisabledSwitchRow({ icon: Icon, label }: { icon: typeof Star; label: string }) {
+function StudyStateRow({ icon: Icon, label, children, disabled = false }: {
+  icon: typeof Star;
+  label: string;
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--core-border)] py-2 last:border-b-0" aria-disabled="true">
-      <span className="flex min-w-0 items-center gap-3 core-body font-semibold text-[var(--core-text-muted)]">
+    <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--core-border)] py-2 last:border-b-0" aria-disabled={disabled || undefined}>
+      <span className={`flex min-w-0 items-center gap-3 core-body font-semibold ${disabled ? "text-[var(--core-text-muted)]" : "text-[var(--core-text-secondary)]"}`}>
         <Icon className="shrink-0" size={18} aria-hidden="true" />
         <span>{label}</span>
       </span>
-      <span className="flex shrink-0 items-center gap-2">
-        <span className="hidden core-caption text-[var(--core-text-muted)] sm:inline">Noch nicht verfügbar</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked="false"
-          aria-label={`${label} – noch nicht verfügbar`}
-          disabled
-          className="relative h-6 w-11 rounded-full bg-[var(--core-surface-muted)] opacity-70"
-        >
-          <span className="absolute left-1 top-1 size-4 rounded-full border border-[var(--core-border)] bg-core-surface" />
-        </button>
-      </span>
+      {children}
     </div>
   );
 }
@@ -124,8 +119,12 @@ export function StudySettingsOverlay({
   canEditCard,
   newCardsPerDay,
   maximumReviewsPerDay,
+  marked,
+  suspended,
   onOpenChange,
   onEditCard,
+  onMarkedChange,
+  onSuspendedChange,
   onNewCardsPerDayChange,
   onMaximumReviewsPerDayChange,
 }: StudySettingsOverlayProps) {
@@ -217,17 +216,17 @@ export function StudySettingsOverlay({
                 </span>
                 <ChevronRight size={17} aria-hidden="true" />
               </button>
-              <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--core-border)] py-2" aria-disabled="true">
-                <span className="flex min-w-0 items-center gap-3 core-body font-semibold text-[var(--core-text-muted)]">
-                  <Flag className="shrink-0" size={18} aria-hidden="true" />
-                  Flagge
-                </span>
-                <span className="flex shrink-0 flex-wrap items-center justify-end gap-1" aria-label="Flaggenfarben – noch nicht verfügbar">
-                  {flagColors.map((color) => <Flag key={color} size={18} style={{ color }} aria-hidden="true" />)}
-                </span>
-              </div>
-              <DisabledSwitchRow icon={Star} label="Markieren" />
-              <DisabledSwitchRow icon={Ban} label="Aussetzen" />
+              <StudyStateRow icon={Star} label="Markieren" disabled={!canEditCard}>
+                <CardMarkButton marked={marked} disabled={!canEditCard} onMarkedChange={onMarkedChange} />
+              </StudyStateRow>
+              <StudyStateRow icon={Ban} label="Aussetzen" disabled={!canEditCard}>
+                <CoreSwitch
+                  checked={suspended}
+                  ariaLabel={suspended ? "Karte reaktivieren" : "Karte aussetzen"}
+                  disabled={!canEditCard}
+                  onCheckedChange={onSuspendedChange}
+                />
+              </StudyStateRow>
             </div>
           </section>
 

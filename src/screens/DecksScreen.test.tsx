@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { DecksScreenProps } from "../appScreenProps.ts";
-import { createCoreDeck, createLearningItemFromEditorValue, createManualCoreDeck, updateCardContent } from "../coreModel.ts";
+import { createCoreDeck, createLearningItemFromEditorValue, createManualCoreDeck, updateCardContent, updateLearningItemStudyState } from "../coreModel.ts";
 import type { CardEditorValue, Deck } from "../coreTypes.ts";
 import { DecksScreen } from "./DecksScreen.tsx";
 
@@ -16,6 +16,7 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     onSelectDeck: () => undefined,
     onSetDeckCoreMode: () => undefined,
     onSaveCard: () => undefined,
+    onSetCardStudyState: () => null,
     onDuplicateCard: async () => null,
     onDeleteCard: async () => null,
     onUndoDeleteCard: async () => null,
@@ -119,6 +120,8 @@ test("card selection opens a non-modal detail aside with editor, copy and collap
   assert.match(markup, /data-testid="card-detail-backdrop"/);
   assert.match(markup, /lg:w-1\/2/);
   assert.match(markup, /Karte bearbeiten/);
+  assert.match(markup, /aria-label="Karte markieren"/);
+  assert.match(markup, /role="switch"[^>]*aria-label="Karte aussetzen"/);
   assert.match(markup, /aria-label="Karten-Vorderseite"/);
   assert.match(markup, />Kopieren<\/button>/);
   assert.match(markup, /Version zum Wiederherstellen/);
@@ -126,6 +129,22 @@ test("card selection opens a non-modal detail aside with editor, copy and collap
   assert.match(markup, /KI-Variante erzeugen/);
   assert.match(markup, /Sendet ausschließlich den bereinigten Text von Vorder- und Rückseite an OpenRouter/);
   assert.match(markup, /Detailansicht schließen/);
+});
+
+test("cards page shows suspended rows and marked stars beside the variants badge", () => {
+  const originalDeck = createManualCoreDeck({
+    deckName: "Biologie",
+    card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
+  });
+  const card = updateLearningItemStudyState(originalDeck.cards[0], { marked: true, suspended: true });
+  const deck = { ...originalDeck, cards: [card] };
+  const markup = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: card.id });
+
+  assert.match(markup, /data-suspended="true"/);
+  assert.match(markup, /bg-\[var\(--core-warning-surface\)\]/);
+  assert.match(markup, />Nein<\/span><svg[^>]*aria-label="Markiert"/);
+  assert.match(markup, /aria-label="Markierung entfernen"/);
+  assert.match(markup, /role="switch"[^>]*aria-checked="true"[^>]*aria-label="Karte reaktivieren"/);
 });
 
 test("cards page shows safe deterministic fallbacks for unavailable URL targets", () => {

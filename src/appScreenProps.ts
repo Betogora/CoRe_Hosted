@@ -1,7 +1,7 @@
 import type { AppRoute, AppViewId, createViewRoute } from "./appNavigation.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { CoreWorkspace, DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
-import type { CoreMode, Deck, LearningItem, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { CoreMode, Deck, LearningItem, LearningItemStudyStatePatch, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
@@ -70,6 +70,7 @@ export interface DecksScreenProps {
   mediaStore: AccountMediaStore | null;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onSaveCard: (deckId: string, cardId: string, value: CardEditorValue) => unknown;
+  onSetCardStudyState: (deckId: string, cardId: string, patch: LearningItemStudyStatePatch) => Deck | null;
   onDuplicateCard: (deckId: string, cardId: string) => Promise<Deck | null>;
   onDeleteCard: (deckId: string, cardId: string) => Promise<Deck | null>;
   onUndoDeleteCard: (deckId: string, deletedCard: LearningItem) => Promise<Deck | null>;
@@ -153,6 +154,7 @@ export interface StudyModeProps {
   onReturnToLearn: () => void;
   onEditCard: (deckId: string, cardId: string) => unknown;
   onSaveDeckDailyLimits: (deckId: string, limits: { newCardsPerDay?: number; maximumReviewsPerDay?: number }) => Deck | null;
+  onSetCardStudyState: (deckId: string, cardId: string, patch: LearningItemStudyStatePatch) => Deck | null;
   onDeckUpdated: (deck: Deck | Deck[]) => unknown;
   onReviewEvent: (event: ReviewEvent) => void;
 }

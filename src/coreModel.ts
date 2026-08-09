@@ -42,8 +42,10 @@ export {
   getLearningItemQuestion,
   getOriginalVariant,
   getVariantAnchor,
+  isLearningItemMarked,
   normalizeCardVariant,
   normalizeLearningItem,
+  updateLearningItemStudyState,
 } from "./coreModel/learningItems.ts";
 export type { CoreCardInput } from "./coreModel/learningItems.ts";
 export {

@@ -1,7 +1,7 @@
 import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AuthPhase } from "./accountSession.ts";
-import type { CoreMode, Deck, LearningItem, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { CoreMode, Deck, LearningItem, LearningItemStudyStatePatch, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import { Database, Layers } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
@@ -715,6 +715,10 @@ export function App() {
     });
   }
 
+  function setCardStudyState(deckId: string, cardId: string, patch: LearningItemStudyStatePatch) {
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.setDeckCardStudyState(deckId, cardId, patch));
+  }
+
   function saveDeckAppearance(deckId: string, appearance: Deck["deckSettings"]["appearance"]) {
     return updateDeck(deckId, (deck: Deck) => ({
       ...deck,
@@ -965,6 +969,7 @@ export function App() {
           mediaStore={mediaStore}
           onSetDeckCoreMode={setDeckCoreMode}
           onSaveCard={saveDeckCard}
+          onSetCardStudyState={setCardStudyState}
           onDuplicateCard={duplicateDeckCard}
           onDeleteCard={deleteDeckCard}
           onUndoDeleteCard={undoDeleteDeckCard}
@@ -1161,6 +1166,7 @@ export function App() {
             },
           })}
           onSaveDeckDailyLimits={saveDeckDailyLimits}
+          onSetCardStudyState={setCardStudyState}
           onDeckUpdated={saveDeck}
           onReviewEvent={enqueueReviewEvent}
         />

@@ -40,6 +40,10 @@ export type VariantQualityStatus = "draft" | "active" | "rejected" | "flagged" |
 export type MaturityBand = "new" | "learning" | "young" | "mature" | "variant_ready" | "mastered";
 export type ReviewSchedulerState = "new" | "learning" | "review" | "relearning";
 export type LearningItemStatus = "active" | "suspended" | "deleted";
+export interface LearningItemStudyStatePatch {
+  marked?: boolean;
+  suspended?: boolean;
+}
 export type DraftStatus = "draft" | "accepted";
 export type NewReviewOrder = "reviews-first" | "new-first" | "mixed";
 export type SchedulerPreset = "standard" | "intensive" | "relaxed" | "custom";

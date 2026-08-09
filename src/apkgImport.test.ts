@@ -16,7 +16,7 @@ import {
   parsePackageMetadataBytes,
   validateApkgFile,
 } from "./apkgImport.ts";
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createLearningItemFromEditorValue, getActiveVariants, getAnswerSideAnchorMiniCard, getCardEditorValue, getOriginalVariant, saveCardEditorValue, type CoreCardInput } from "./coreModel.ts";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createLearningItemFromEditorValue, getActiveVariants, getAnswerSideAnchorMiniCard, getCardEditorValue, getOriginalVariant, saveCardEditorValue, updateLearningItemStudyState, type CoreCardInput } from "./coreModel.ts";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
 import { answerVariant, getNextReviewItem } from "./reviewService.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
@@ -274,13 +274,16 @@ test("maps Anki notes and cards to immutable CoRe originals", () => {
   assert.equal(deck.cards[0].coreState.repetitionLevel, 0);
 });
 
-test("maps Basic APKG parser output to a normalized import deck", () => {
-  const mapped = mapAnkiApkgToNormalizedDeck(parsedApkgFixture({
+test("maps Basic APKG parser output and preserves card flags as opaque metadata", async () => {
+  const parsed = parsedApkgFixture({
     noteFields: "What is ATP?\u001fEnergy carrier",
     noteTags: "cell exam",
-  }));
+    cards: [{ id: 20, nid: 10, did: 1, ord: 0, flags: 5 }],
+  });
+  const mapped = mapAnkiApkgToNormalizedDeck(parsed);
   const item = mapped.normalizedDeck.items[0];
   const variant = item.variants[0];
+  const committed = await commitApkgImport(parsed, { existingDecks: [] });
 
   assert.equal(mapped.errors.length, 0);
   assert.equal(mapped.normalizedDeck.title, "Fixture Deck");
@@ -295,6 +298,8 @@ test("maps Basic APKG parser output to a normalized import deck", () => {
   assert.equal(variant.isOriginal, true);
   assert.equal(variant.anchorToOriginal, false);
   assert.equal(variant.metadataJson.ankiNoteId, undefined);
+  assert.equal(variant.metadataJson.ankiCardFlagsRaw, 5);
+  assert.equal(committed.deck.cards[0].variants[0].meta.ankiCardFlagsRaw, 5);
   assert.equal(item.metadataJson.ankiNoteId, "10");
 });
 
@@ -759,6 +764,33 @@ test("commitImport preserves structured multiple-choice edits across reimport", 
   });
   assert.deepEqual(merged.cards[0].mediaRefs, ["neu.png"]);
   assert.equal(merged.cards[0].meta.preservedLocalContent, true);
+});
+
+test("commitImport preserves local marked and suspended state across reimport", async () => {
+  const existingBase = createBasicLearningItem("", "Alte Frage", "Alte Antwort", {
+      id: "card_existing_state",
+      sourceType: "anki_import",
+      sourceRefId: "note_state",
+    });
+  const existingCard = updateLearningItemStudyState(
+    { ...existingBase, variants: existingBase.variants.map((variant) => ({ ...variant, meta: { ...variant.meta, ankiCardFlagsRaw: 3 } })) },
+    { marked: true, suspended: true },
+  );
+  const incomingBase = createBasicLearningItem("", "Neue Frage", "Neue Antwort", {
+    id: "card_incoming_state",
+    sourceType: "anki_import",
+    sourceRefId: "note_state",
+  });
+  const incomingCard = { ...incomingBase, variants: incomingBase.variants.map((variant) => ({ ...variant, meta: { ...variant.meta, ankiCardFlagsRaw: 5 } })) };
+  const existingDeck = createReimportDeck(existingCard, { existing: true, withImportMeta: true });
+  const incomingDeck = createReimportDeck(incomingCard, { withImportMeta: true });
+
+  const merged = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
+
+  assert.equal(merged.cards[0].status, "suspended");
+  assert.equal(merged.cards[0].meta.marked, true);
+  assert.equal(merged.cards[0].canonicalQuestion, "Neue Frage");
+  assert.equal(merged.cards[0].variants[0].meta.ankiCardFlagsRaw, 5);
 });
 
 test("commitImport matches imported variants by stable source id across repeated reimports", async () => {

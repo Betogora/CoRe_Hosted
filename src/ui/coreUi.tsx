@@ -1,6 +1,6 @@
 import React, { type HTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Star, Sun } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { readCoreTheme, toggleCoreTheme } from "../coreTheme.ts";
 import type { CoreMode } from "../coreTypes.ts";
@@ -272,25 +272,67 @@ export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange
   );
 }
 
+export interface CoreSwitchProps {
+  checked: boolean;
+  ariaLabel: string;
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
+  thumb?: ReactNode;
+}
+
+export function CoreSwitch({ checked, ariaLabel, onCheckedChange, disabled = false, className = "", thumb = null }: CoreSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+      className={`grid size-11 shrink-0 place-items-center rounded-xl transition hover:bg-[var(--core-surface-muted)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+    >
+      <span className={`relative h-6 w-11 rounded-full border transition-colors ${checked ? "border-[var(--core-warning)] bg-[var(--core-warning)]" : "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)]"}`} aria-hidden="true">
+        <span className={`absolute left-0.5 top-0.5 grid size-5 place-items-center rounded-full bg-core-surface text-[var(--core-action-primary)] shadow-sm transition-transform ${checked ? "translate-x-5" : "translate-x-0"}`}>
+          {thumb}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+export function CardMarkButton({ marked, onMarkedChange, disabled = false, className = "" }: {
+  marked: boolean;
+  onMarkedChange: (marked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={marked}
+      aria-label={marked ? "Markierung entfernen" : "Karte markieren"}
+      disabled={disabled}
+      onClick={() => onMarkedChange(!marked)}
+      className={`grid size-11 shrink-0 place-items-center rounded-xl transition hover:bg-[var(--core-surface-muted)] disabled:cursor-not-allowed disabled:opacity-60 ${marked ? "text-[var(--core-warning)]" : "text-[var(--core-action-secondary)]"} ${className}`}
+    >
+      <Star size={22} fill={marked ? "currentColor" : "none"} aria-hidden="true" />
+    </button>
+  );
+}
+
 export function ThemeToggle({ className = "" }: { className?: string }) {
   const [theme, setTheme] = React.useState(readCoreTheme);
   const darkModeActive = theme === "dark";
   const ThemeIcon = darkModeActive ? Moon : Sun;
 
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={darkModeActive}
-      aria-label={`Dark Mode ${darkModeActive ? "ausschalten" : "einschalten"}`}
-      onClick={() => setTheme(toggleCoreTheme(theme))}
-      className={`flex h-11 w-[4.75rem] items-center rounded-full border border-core-border-strong bg-core-subtle p-1 shadow-sm transition-colors hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--core-surface)] ${className}`}
-    >
-      <ThemeIcon
-        aria-hidden="true"
-        size={36}
-        className={`rounded-full bg-core-surface p-2 shadow-sm transition-transform ${darkModeActive ? "translate-x-0 text-core-action" : "translate-x-8 text-[var(--core-warning)]"}`}
-      />
-    </button>
+    <CoreSwitch
+      checked={darkModeActive}
+      ariaLabel={`Dark Mode ${darkModeActive ? "ausschalten" : "einschalten"}`}
+      onCheckedChange={() => setTheme(toggleCoreTheme(theme))}
+      className={className}
+      thumb={<ThemeIcon size={12} />}
+    />
   );
 }

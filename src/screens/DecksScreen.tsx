@@ -1,15 +1,15 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Copy, Layers, PlusSquare, RotateCcw, Save, Search, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Ban, Check, ChevronDown, ChevronRight, Copy, Layers, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
-import { getCardEditorValue, getOriginalVariant, getVariantAnchor, validateCardEditorValue } from "../coreModel.ts";
+import { getCardEditorValue, getOriginalVariant, getVariantAnchor, isLearningItemMarked, validateCardEditorValue } from "../coreModel.ts";
 import { createVariantReviewModel } from "../coreVariantService.ts";
 import { MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { createCardTableModel, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
-import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreSwitch, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -67,9 +67,13 @@ function versionContent(value: unknown, fallback: LearningItem) {
   };
 }
 
-function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplicateCard, onDeleteCard, onRestoreCard, onAddVariant, onGenerateVariant, onClose, onDraftStateChange }: any) {
-  const [form, setForm] = React.useState<CardEditorValue | null>(() => card ? getCardEditorValue(card) : null);
-  const [savedForm, setSavedForm] = React.useState(() => JSON.stringify(form));
+function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStudyState, onDuplicateCard, onDeleteCard, onRestoreCard, onAddVariant, onGenerateVariant, onClose, onDraftStateChange }: any) {
+  const [cardEditorValue, cardContentKey] = React.useMemo(() => {
+    const value = card ? getCardEditorValue(card) : null;
+    return [value, JSON.stringify(value)] as const;
+  }, [card]);
+  const [form, setForm] = React.useState<CardEditorValue | null>(cardEditorValue);
+  const [savedForm, setSavedForm] = React.useState(cardContentKey);
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
   const [saveStatus, setSaveStatus] = React.useState("");
   const [saveError, setSaveError] = React.useState(false);
@@ -90,7 +94,8 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
   const restoreActionRef = React.useRef<HTMLButtonElement | null>(null);
   const editorHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const saveDraftRef = React.useRef<() => Promise<boolean>>(async () => false);
-  const draftDirty = Boolean(form && JSON.stringify(form) !== savedForm);
+  const serializedForm = React.useMemo(() => JSON.stringify(form), [form]);
+  const draftDirty = Boolean(form && serializedForm !== savedForm);
   const focusDraft = React.useCallback(() => editorHeadingRef.current?.focus(), []);
   const variantReviewModel = React.useMemo(
     () => card ? createVariantReviewModel(card, deck?.reviewEvents ?? [], { now }) : null,
@@ -109,15 +114,14 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
   ], [restorableVersions]);
 
   React.useEffect(() => {
-    const nextForm = card ? getCardEditorValue(card) : null;
-    setForm(nextForm);
-    setSavedForm(JSON.stringify(nextForm));
+    setForm(cardEditorValue);
+    setSavedForm(cardContentKey);
     setFieldErrors({});
     setSaveError(false);
     setVariantForm({ front: "", back: "", variantLevel: 2 });
     setVariantStatus("");
     setVariantStatusWarning(false);
-  }, [card?.id, card?.updatedAt]);
+  }, [card?.id, cardContentKey]);
 
   React.useEffect(() => {
     setSaveStatus("");
@@ -326,6 +330,24 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onDuplica
             Löschen
           </button>
         </div>
+      </div>
+      <div className="mb-5 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] px-3">
+        <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--core-border)] py-1">
+          <span className="core-body font-semibold text-[var(--core-text-secondary)]">Markieren</span>
+          <CardMarkButton marked={isLearningItemMarked(card)} onMarkedChange={(marked) => onSetStudyState(card.id, { marked })} />
+        </div>
+        <div className="flex min-h-12 items-center justify-between gap-3 py-1">
+          <span className="flex min-w-0 items-center gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+            <Ban size={18} aria-hidden="true" />
+            <span>Aussetzen</span>
+          </span>
+          <CoreSwitch
+            checked={card.status === "suspended"}
+            ariaLabel={card.status === "suspended" ? "Karte reaktivieren" : "Karte aussetzen"}
+            onCheckedChange={(suspended) => onSetStudyState(card.id, { suspended })}
+          />
+        </div>
+        <p className="pb-3 core-caption text-[var(--core-text-muted)]">Aussetzen pausiert alle Varianten. Der Lernstand bleibt erhalten.</p>
       </div>
       {form ? (
         <div className="grid min-w-0 gap-4">
@@ -588,6 +610,7 @@ export function DecksScreen({
   onCloseSelectedCard,
   onSetDeckCoreMode,
   onSaveCard,
+  onSetCardStudyState,
   onDuplicateCard,
   onDeleteCard,
   onUndoDeleteCard,
@@ -832,6 +855,7 @@ export function DecksScreen({
             now={now}
             mediaUrls={selectedDeckMediaUrls}
             onSaveCard={saveCard}
+            onSetStudyState={(cardId: string, patch: Parameters<DecksScreenProps["onSetCardStudyState"]>[2]) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
             onDuplicateCard={(cardId: string) => onDuplicateCard(selectedDeck.id, cardId)}
             onDeleteCard={requestCardDelete}
             onRestoreCard={(cardId: string, versionId: string) => onRestoreCard(selectedDeck.id, cardId, versionId)}
@@ -931,12 +955,17 @@ export function DecksScreen({
                       />
                     </th>
                   </tr>
-                  {expanded && group.cardRows.length ? group.cardRows.map(({ card, frontPreview, dueLabel, variantsLabel, hasActiveVariants }) => (
+                  {expanded && group.cardRows.length ? group.cardRows.map(({ card, frontPreview, dueLabel, variantsLabel, hasActiveVariants }) => {
+                    const suspended = card.status === "suspended";
+                    const marked = isLearningItemMarked(card);
+                    const selected = selectedCardId === card.id;
+                    return (
                     <tr
                       key={card.id}
                       onClick={() => requestCardSelection(group.id, card.id)}
-                      className={"cursor-pointer border-b border-[var(--core-border)] transition hover:bg-[var(--core-surface-muted)] " + (selectedCardId === card.id ? "bg-[var(--core-info-surface)]" : "bg-core-surface")}
-                      data-selected={selectedCardId === card.id ? "true" : undefined}
+                      className={`cursor-pointer border-b border-[var(--core-border)] transition ${suspended ? "bg-[var(--core-warning-surface)] hover:bg-[var(--core-warning-surface)]" : selected ? "bg-[var(--core-info-surface)] hover:bg-[var(--core-surface-muted)]" : "bg-core-surface hover:bg-[var(--core-surface-muted)]"} ${selected ? "shadow-[inset_3px_0_0_var(--core-action-primary)]" : ""}`}
+                      data-selected={selected ? "true" : undefined}
+                      data-suspended={suspended ? "true" : undefined}
                       data-card-row="true"
                     >
                       <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
@@ -955,12 +984,16 @@ export function DecksScreen({
                       </td>
                       <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-[var(--core-text-secondary)]">{dueLabel}</td>
                       <td className="min-w-0 px-1 py-1 text-right align-middle">
-                        <span className={`inline-block whitespace-nowrap rounded-full border px-2 align-middle core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
-                          {variantsLabel}
+                        <span className="inline-flex items-center justify-end gap-1 align-middle">
+                          <span className={`inline-block whitespace-nowrap rounded-full border px-2 align-middle core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
+                            {variantsLabel}
+                          </span>
+                          {marked ? <Star size={18} fill="currentColor" className="shrink-0 text-[var(--core-warning)]" role="img" aria-label="Markiert" /> : null}
                         </span>
                       </td>
                     </tr>
-                  )) : expanded ? (
+                    );
+                  }) : expanded ? (
                     <tr className="border-b border-[var(--core-border)] bg-core-surface">
                       <td colSpan={3} className="px-4 py-1 core-body text-[var(--core-text-muted)]">Keine Karten</td>
                     </tr>

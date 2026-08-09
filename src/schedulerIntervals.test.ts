@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getOriginalVariant, type CoreCardInput } from "./coreModel.ts";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, getActiveVariants, getOriginalVariant, updateLearningItemStudyState, type CoreCardInput } from "./coreModel.ts";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
 import { importNormalizedDeck } from "./importService.ts";
 import {
@@ -11,6 +11,7 @@ import {
   getNextDailyReviewSessionItem,
   getNextReviewItem,
   reconcileDailyReviewSessionState,
+  removeDailyReviewSessionItem,
   updateDeckNewCardLimitForDate,
 } from "./reviewService.ts";
 import { formatIntervalLabel, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
@@ -600,6 +601,42 @@ test("session reconciliation replaces only unfinished initial cards and keeps pr
   assert.deepEqual(reconciled.remainingInitialKeys, ["deck:second", "deck:fourth"]);
   assert.deepEqual(reconciled.repeatKeys, ["deck:first"]);
   assert.deepEqual(reconciled.ratingCounts, { again: 1, hard: 0, good: 0, easy: 0 });
+});
+
+test("removing a suspended session item does not record review progress", () => {
+  const initial = createDailyReviewSessionState([
+    { deckId: "deck", learningItemId: "first" },
+    { deckId: "deck", learningItemId: "second" },
+  ]);
+  const withoutFirst = removeDailyReviewSessionItem(initial, "deck:first");
+
+  assert.deepEqual(withoutFirst.initialKeys, ["deck:second"]);
+  assert.deepEqual(withoutFirst.remainingInitialKeys, ["deck:second"]);
+  assert.deepEqual(withoutFirst.completedInitialKeys, []);
+  assert.deepEqual(withoutFirst.ratingCounts, initial.ratingCounts);
+
+  const repeated = {
+    ...withoutFirst,
+    completedInitialKeys: ["deck:second"],
+    repeatKeys: ["deck:second"],
+  };
+  const withoutRepeat = removeDailyReviewSessionItem(repeated, "deck:second");
+  assert.deepEqual(withoutRepeat.repeatKeys, []);
+  assert.deepEqual(withoutRepeat.completedInitialKeys, ["deck:second"]);
+});
+
+test("suspension removes a card from future queues and reactivation restores it", () => {
+  const item = newItem();
+  const suspended = updateLearningItemStudyState(item, { suspended: true });
+  const suspendedQueue = createDailyReviewQueue(deckWith(suspended), { now: NOW });
+  const active = updateLearningItemStudyState(suspended, { suspended: false });
+  const activeQueue = createDailyReviewQueue(deckWith(active), { now: NOW });
+  const queuedItem = activeQueue.items[0];
+
+  assert.equal(suspendedQueue.total, 0);
+  assert.equal(activeQueue.total, 1);
+  assert.ok(queuedItem);
+  assert.equal(queuedItem.learningItemId, item.id);
 });
 
 test("failed session repeats return to the FIFO tail until they succeed", () => {

@@ -1,4 +1,4 @@
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, duplicateLearningItemContent, restoreCardVersion, saveCardEditorValue } from "./coreModel.ts";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, duplicateLearningItemContent, restoreCardVersion, saveCardEditorValue, updateLearningItemStudyState } from "./coreModel.ts";
 import type { CardEditorValue } from "./coreTypes.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
@@ -8,7 +8,7 @@ import {
   importNormalizedDeck,
   importTextAsNormalizedDeck,
 } from "./importService.ts";
-import type { CardVariant, CoreMode, Deck, DeckSettings, LearningItem, Profile, SourceDocument } from "./coreTypes.ts";
+import type { CardVariant, CoreMode, Deck, DeckSettings, LearningItem, LearningItemStudyStatePatch, Profile, SourceDocument } from "./coreTypes.ts";
 
 interface CloudTombstone {
   entityTable: string;
@@ -566,6 +566,17 @@ export function createCoreWorkspace(repository: WorkspaceRepository = createCore
             createdAt: updatedAt,
           }),
         ],
+      }));
+    },
+    setDeckCardStudyState(deckId: string, cardId: string, patch: LearningItemStudyStatePatch) {
+      const updatedAt = new Date().toISOString();
+
+      return repository.updateDeck(deckId, (deck) => ({
+        ...deck,
+        updatedAt,
+        cards: (deck.cards ?? []).map((card) => (
+          card.id === cardId ? updateLearningItemStudyState(card, patch, updatedAt) : card
+        )),
       }));
     },
     restoreDeckCardVersion(deckId: string, cardId: string, versionId: string) {

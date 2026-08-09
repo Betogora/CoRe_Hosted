@@ -1239,6 +1239,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
           ankiDeckName: sourceDeck.name ?? null,
           schedulingImported: false,
           hasAnkiScheduling: cardHasAnkiSchedulingData(card),
+          ankiCardFlagsRaw: card.flags ?? null,
         },
       });
     });
@@ -2239,7 +2240,10 @@ function mergeImportedVariants(incomingCard: any, existingCard: any, preserveCon
 }
 
 function mergeImportedCardMeta(incomingMeta: any, existingMeta: any, preserveContent: boolean) {
-  if (!preserveContent) return { ...(incomingMeta ?? {}), preservedLocalContent: false };
+  const preservedStudyMeta = Object.hasOwn(existingMeta ?? {}, "marked")
+    ? { marked: existingMeta.marked === true }
+    : {};
+  if (!preserveContent) return { ...(incomingMeta ?? {}), ...preservedStudyMeta, preservedLocalContent: false };
   const editorMetaKeys = ["answerOptions", "correctAnswer", "expectedAnswer", "explanation", "clozeGroupCount"];
   const preservedEditorMeta = Object.fromEntries(
     editorMetaKeys
@@ -2248,6 +2252,7 @@ function mergeImportedCardMeta(incomingMeta: any, existingMeta: any, preserveCon
   );
   return {
     ...(incomingMeta ?? {}),
+    ...preservedStudyMeta,
     ...preservedEditorMeta,
     preservedLocalContent: true,
   };
@@ -2284,6 +2289,7 @@ function mergeImportedCard(incomingCard: any, existingCard: any) {
     noteId: existingCard.noteId ?? incomingCard.noteId,
     createdAt: existingCard.createdAt ?? incomingCard.createdAt,
     updatedAt: new Date().toISOString(),
+    status: existingCard.status === "suspended" ? "suspended" : incomingCard.status,
     reviewState: existingCard.reviewState ?? incomingCard.reviewState,
     learningItemState: existingCard.learningItemState ?? incomingCard.learningItemState,
     variants: mergeImportedVariants(incomingCard, existingCard, preserveContent),

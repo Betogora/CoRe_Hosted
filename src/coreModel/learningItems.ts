@@ -1,5 +1,5 @@
 import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
-import type { CardField, CardType, CardVariant, CardVariantBase, CardVariantType, DeckSource, DraftStatus, LearningItem, LearningItemSourceType, LearningItemStatus, SourceAnchor, TransformType, VariantGenerationSource, VariantPerformance, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
+import type { CardField, CardType, CardVariant, CardVariantBase, CardVariantType, DeckSource, DraftStatus, LearningItem, LearningItemSourceType, LearningItemStatus, LearningItemStudyStatePatch, SourceAnchor, TransformType, VariantGenerationSource, VariantPerformance, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
 import { CARD_VARIANT_TYPES, CORE_CARD_TYPES, CORE_DECK_SOURCES, LEARNING_ITEM_SOURCE_TYPES, VARIANT_GENERATION_SOURCES, VARIANT_STATUSES, VARIANT_TRANSFORMS, makeId, normalizeTags, stableContentHash, unique } from "./coreValues.ts";
 import { createReviewState, createVariantPerformance, createVersionEntry, normalizeLearningItemState, normalizeVersionLog } from "./reviewState.ts";
 
@@ -275,6 +275,43 @@ export function createCoreCard({
     deletedAt,
     updatedByDeviceId,
     meta,
+  };
+}
+
+export function isLearningItemMarked(item: Pick<LearningItem, "meta"> | null | undefined): boolean {
+  return item?.meta?.marked === true;
+}
+
+export function updateLearningItemStudyState(
+  item: LearningItem,
+  patch: LearningItemStudyStatePatch,
+  updatedAt = new Date().toISOString(),
+): LearningItem {
+  const wasMarked = isLearningItemMarked(item);
+  const wasSuspended = item.status === "suspended";
+  const marked = patch.marked ?? wasMarked;
+  const suspended = patch.suspended ?? wasSuspended;
+  const status = item.status === "deleted" ? "deleted" : suspended ? "suspended" : "active";
+  if (marked === wasMarked && status === item.status) return item;
+
+  return {
+    ...item,
+    status,
+    meta: { ...item.meta, marked },
+    updatedAt,
+    revision: item.revision + 1,
+    versionLog: [
+      ...item.versionLog,
+      createVersionEntry({
+        objectType: "card",
+        objectId: item.id,
+        changeType: "study_state_updated",
+        before: { marked: wasMarked, suspended: wasSuspended },
+        after: { marked, suspended: status === "suspended" },
+        reason: "Lernstatus geändert",
+        createdAt: updatedAt,
+      }),
+    ],
   };
 }
 

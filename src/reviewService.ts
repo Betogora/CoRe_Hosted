@@ -650,6 +650,16 @@ export function reconcileDailyReviewSessionState(
   };
 }
 
+export function removeDailyReviewSessionItem(session: DailyReviewSessionState, key: string): DailyReviewSessionState {
+  const completed = session.completedInitialKeys.includes(key);
+  return {
+    ...session,
+    initialKeys: completed ? session.initialKeys : session.initialKeys.filter((candidate) => candidate !== key),
+    remainingInitialKeys: session.remainingInitialKeys.filter((candidate) => candidate !== key),
+    repeatKeys: session.repeatKeys.filter((candidate) => candidate !== key),
+  };
+}
+
 export function advanceDailyReviewSession(
   session: DailyReviewSessionState,
   input: { key: string; rating: ReviewRating; nextReviewState: ReviewState },

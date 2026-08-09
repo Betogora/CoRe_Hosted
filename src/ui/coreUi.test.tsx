@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActionDialog, ThemeToggle } from "./coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreSwitch, ThemeToggle } from "./coreUi.tsx";
 
 test("action dialog exposes its accessible three-action contract", () => {
   const markup = renderToStaticMarkup(
@@ -50,4 +50,19 @@ test("theme toggle exposes its icon state as an accessible switch", () => {
   assert.match(markup, /Dark Mode einschalten/);
   assert.match(markup, /lucide-sun/);
   assert.doesNotMatch(markup, />Aus</);
+});
+
+test("shared study-state controls expose switch and pressed semantics", () => {
+  const markup = renderToStaticMarkup(
+    <>
+      <CoreSwitch checked ariaLabel="Karte reaktivieren" onCheckedChange={() => undefined} />
+      <CardMarkButton marked onMarkedChange={() => undefined} />
+    </>,
+  );
+
+  assert.match(markup, /role="switch"/);
+  assert.match(markup, /aria-checked="true"/);
+  assert.match(markup, /aria-pressed="true"/);
+  assert.match(markup, /aria-label="Markierung entfernen"/);
+  assert.match(markup, /fill="currentColor"/);
 });

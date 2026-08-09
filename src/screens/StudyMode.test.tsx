@@ -46,6 +46,7 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}
       onSaveDeckDailyLimits={() => deck}
+      onSetCardStudyState={() => deck}
       onDeckUpdated={() => undefined}
       onReviewEvent={() => undefined}
     />,
@@ -78,6 +79,7 @@ test("StudyMode uses the simulated learning time for queue and visible status", 
     onReturnToLearn: () => undefined,
     onEditCard: () => undefined,
     onSaveDeckDailyLimits: () => deck,
+    onSetCardStudyState: () => deck,
     onDeckUpdated: () => undefined,
     onReviewEvent: () => undefined,
   };
@@ -111,6 +113,7 @@ test("StudyMode exposes labeled learning and placeholder Pomodoro progress witho
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}
       onSaveDeckDailyLimits={() => deck}
+      onSetCardStudyState={() => deck}
       onDeckUpdated={() => undefined}
       onReviewEvent={() => undefined}
     />,

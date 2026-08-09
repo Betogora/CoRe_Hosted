@@ -1,7 +1,7 @@
 import React from "react";
-import { Anchor, Ban, CheckCircle2, Eye, Flag, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
+import { Anchor, Ban, CheckCircle2, CircleAlert, Eye, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
 import type { StudyModeProps } from "../appScreenProps.ts";
-import { getLearningItemAnswer, getLearningItemQuestion } from "../coreModel.ts";
+import { getLearningItemAnswer, getLearningItemQuestion, isLearningItemMarked } from "../coreModel.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
 import { createReviewResponseTimer } from "../reviewTiming.ts";
 import { formatSimulationDate } from "../simulationClock.ts";
@@ -12,14 +12,16 @@ import {
   createDailyReviewSessionState,
   getNextDailyReviewSessionItem,
   reconcileDailyReviewSessionState,
+  removeDailyReviewSessionItem,
   recordVariantFeedback,
   type DailyReviewSessionState,
 } from "../reviewService.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
 import { MiniProgress } from "../ui/coreUi.tsx";
+import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { ratingButtons } from "./screenConstants.ts";
-import type { CardVariant, Deck, ReviewRating, ReviewState } from "../coreTypes.ts";
+import type { CardVariant, Deck, LearningItemStudyStatePatch, ReviewRating, ReviewState } from "../coreTypes.ts";
 
 function normalizeReviewCardType(cardType: string, variant: CardVariant|undefined) {
   if (variant?.variantType === "reverse") return "basic-reversed";
@@ -44,7 +46,7 @@ function sameAnswer(left: string, right: string) {
   return String(left ?? "").trim().toLowerCase() === String(right ?? "").trim().toLowerCase();
 }
 
-export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationDayOffset, onExit, onReturnToLearn, onEditCard, onSaveDeckDailyLimits, onDeckUpdated, onReviewEvent }: StudyModeProps) {
+export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationDayOffset, onExit, onReturnToLearn, onEditCard, onSaveDeckDailyLimits, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
@@ -58,6 +60,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   const completionHeadingRef = React.useRef<HTMLHeadingElement>(null);
   const settingsButtonRef = React.useRef<HTMLButtonElement>(null);
   const feedbackDeckRef = React.useRef<Deck | null>(null);
+  const setSuccessToast = useSuccessToast();
   const responseTimer = React.useMemo(() => createReviewResponseTimer(), []);
   const rootDeck = sessionDecks.find((candidate) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
   const queue = React.useMemo(
@@ -187,6 +190,26 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
     }));
   }
 
+  function updateCurrentStudyState(patch: LearningItemStudyStatePatch) {
+    if (!current) return;
+    const updatedDeck = onSetCardStudyState(current.deckId, current.learningItemId, patch);
+    if (!updatedDeck) return;
+    const nextDecks = replaceSessionDeck(updatedDeck);
+    setSessionDecks(nextDecks);
+
+    if (patch.suspended !== true) return;
+    const currentKey = current.sessionInfo?.key ?? `${current.deckId}:${current.learningItemId}`;
+    setShowSettings(false);
+    setReviewSession((session) => removeDailyReviewSessionItem(session ?? effectiveReviewSession, currentKey));
+    setShowAnswer(false);
+    setShowAnchor(false);
+    setShowSource(false);
+    setSelectedChoice("");
+    setFeedbackStatus("");
+    feedbackDeckRef.current = null;
+    setSuccessToast("Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.");
+  }
+
   React.useEffect(() => {
     if (showAnswer) answerHeadingRef.current?.focus();
   }, [showAnswer]);
@@ -272,10 +295,14 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
           canEditCard={Boolean(current?.deckId && current.learningItemId)}
           newCardsPerDay={rootDeck?.deckSettings.newCardsPerDay ?? queue.newCardsPerDay}
           maximumReviewsPerDay={rootDeck?.deckSettings.maximumReviewsPerDay ?? queue.maximumReviewsPerDay}
+          marked={isLearningItemMarked(sourceCard)}
+          suspended={sourceCard?.status === "suspended"}
           onOpenChange={setShowSettings}
           onEditCard={() => {
             if (current?.deckId && current.learningItemId) onEditCard(current.deckId, current.learningItemId);
           }}
+          onMarkedChange={(marked) => updateCurrentStudyState({ marked })}
+          onSuspendedChange={(suspended) => updateCurrentStudyState({ suspended })}
           onNewCardsPerDayChange={(value) => updateDailyLimits({ newCardsPerDay: value })}
           onMaximumReviewsPerDayChange={(value) => updateDailyLimits({ maximumReviewsPerDay: value })}
         />
@@ -371,11 +398,11 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
                           <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Problem melden">
                             <span className="core-body font-semibold text-[var(--core-text-muted)]">Problem melden:</span>
                             <button type="button" onClick={() => updateVariant("flag", "fachlich_falsch")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
-                              <Flag size={16} aria-hidden="true" />
+                              <CircleAlert size={16} aria-hidden="true" />
                               Inhaltlich falsch
                             </button>
                             <button type="button" onClick={() => updateVariant("flag", "unklar_formuliert")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
-                              <Flag size={16} aria-hidden="true" />
+                              <CircleAlert size={16} aria-hidden="true" />
                               Unklar formuliert
                             </button>
                           </div>

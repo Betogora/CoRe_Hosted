@@ -532,6 +532,40 @@ test("workspace updates all decks without React callers looping over repository 
   assert.equal(workspace.getState().decks.every((deck) => deck.deckSettings.coreMode === "off"), true);
 });
 
+test("workspace persists marking and suspension without changing the learning state", () => {
+  const workspace = createTestWorkspace();
+  const deck = workspace.createDemoDeck();
+  const card = deck.cards[0];
+  const reviewState = structuredClone(card.reviewState);
+  const learningItemState = card.learningItemState
+    ? structuredClone(card.learningItemState)
+    : undefined;
+
+  const suspendedDeck = workspace.setDeckCardStudyState(deck.id, card.id, {
+    marked: true,
+    suspended: true,
+  });
+  const suspendedCard = suspendedDeck?.cards.find((candidate) => candidate.id === card.id);
+
+  assert.ok(suspendedCard);
+  assert.equal(suspendedCard.meta.marked, true);
+  assert.equal(suspendedCard.status, "suspended");
+  assert.deepEqual(suspendedCard.reviewState, reviewState);
+  assert.deepEqual(suspendedCard.learningItemState, learningItemState);
+  assert.equal(suspendedCard.revision, card.revision + 1);
+  assert.equal(suspendedCard.versionLog.at(-1)?.changeType, "study_state_updated");
+
+  const activeDeck = workspace.setDeckCardStudyState(deck.id, card.id, { suspended: false });
+  const activeCard = activeDeck?.cards.find((candidate) => candidate.id === card.id);
+
+  assert.ok(activeCard);
+  assert.equal(activeCard.status, "active");
+  assert.equal(activeCard.meta.marked, true);
+  assert.deepEqual(activeCard.reviewState, reviewState);
+  assert.deepEqual(activeCard.learningItemState, learningItemState);
+  assert.equal(activeCard.revision, card.revision + 2);
+});
+
 test("workspace card maintenance hides editing and delete invariants", () => {
   const workspace = createTestWorkspace();
   const deck = workspace.createDemoDeck();

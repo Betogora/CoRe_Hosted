@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: e8b950654c6e1429 */
+/* Quellenstand: 05e157b70c5298de */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -777,8 +777,14 @@ video {
 .inset-0 {
   inset: 0px;
 }
+.left-0\.5 {
+  left: 0.125rem;
+}
 .right-3 {
   right: 0.75rem;
+}
+.top-0\.5 {
+  top: 0.125rem;
 }
 .z-0 {
   z-index: 0;
@@ -868,6 +874,10 @@ video {
   width: 0.75rem;
   height: 0.75rem;
 }
+.size-5 {
+  width: 1.25rem;
+  height: 1.25rem;
+}
 .size-7 {
   width: 1.75rem;
   height: 1.75rem;
@@ -892,6 +902,9 @@ video {
 }
 .h-24 {
   height: 6rem;
+}
+.h-6 {
+  height: 1.5rem;
 }
 .h-px {
   height: 1px;
@@ -925,6 +938,9 @@ video {
 }
 .w-10 {
   width: 2.5rem;
+}
+.w-11 {
+  width: 2.75rem;
 }
 .w-\[18\%\] {
   width: 18%;
@@ -986,6 +1002,10 @@ video {
 }
 .border-collapse {
   border-collapse: collapse;
+}
+.translate-x-5 {
+  --tw-translate-x: 1.25rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 .-rotate-90 {
   --tw-rotate: -90deg;
@@ -1223,6 +1243,9 @@ video {
 .bg-core-surface {
   background-color: var(--core-surface);
 }
+.bg-core-warning {
+  background-color: var(--core-warning);
+}
 .bg-core-warning-soft {
   background-color: var(--core-warning-surface);
 }
@@ -1326,10 +1349,6 @@ video {
 .text-\[0\.68rem\] {
   font-size: 0.68rem;
 }
-.text-lg {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-}
 .font-medium {
   font-weight: 500;
 }
@@ -1368,6 +1387,9 @@ video {
 }
 .text-core-text {
   color: var(--core-text);
+}
+.text-core-warning {
+  color: var(--core-warning);
 }
 .opacity-80 {
   opacity: 0.8;
@@ -2674,6 +2696,7 @@ summary {
       <symbol id="icon-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18h1.5a1.5 1.5 0 0 0 0-3H12a2 2 0 0 1 0-4h4a5 5 0 0 0 5-5c0-3.3-4-6-9-6Z"/><path d="M7.5 10h.01M9.5 6.5h.01M14 6h.01M17.5 9h.01"/></symbol>
       <symbol id="icon-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M8 10.5h5M10.5 8v5"/></symbol>
       <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="icon-star" viewBox="0 0 24 24"><path d="m12 2.8 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3-5.6-3-5.6 3 1.1-6.3-4.6-4.5 6.3-.9L12 2.8Z"/></symbol>
     </svg>
 
     <div class="catalog-shell">
@@ -3123,7 +3146,7 @@ summary {
                   <div class="core-overlay mx-auto max-w-xl overflow-hidden rounded-[24px]">
                     <div class="flex min-h-16 items-center justify-between border-b border-core-border px-4"><span class="size-11"></span><h3 class="core-heading-3 text-core-text">Lerneinstellungen</h3><button type="button" class="core-action-ghost min-h-11 min-w-11 p-2.5" aria-label="Lerneinstellungen schließen"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button></div>
                     <div class="px-5 pb-4">
-                      <section class="py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Karte</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between core-body font-semibold text-core-text"><span>Karte bearbeiten</span><svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></div><div class="flex min-h-12 items-center justify-between gap-3 core-body text-core-muted"><span>Flagge</span><span class="flex gap-1 text-lg" aria-label="Flaggenfarben – noch nicht verfügbar"><span style="color:#ef4444">⚑</span><span style="color:#f97316">⚑</span><span style="color:#eab308">⚑</span><span style="color:#22c55e">⚑</span><span style="color:#3b82f6">⚑</span><span style="color:#a855f7">⚑</span><span style="color:#94a3b8">⚑</span></span></div><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Markieren</span><span>Noch nicht verfügbar</span></div><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Aussetzen</span><span>Noch nicht verfügbar</span></div></div></section>
+                      <section class="py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Karte</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between core-body font-semibold text-core-text"><span>Karte bearbeiten</span><svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></div><div class="flex min-h-12 items-center justify-between core-body font-semibold text-core-text"><span>Markieren</span><button type="button" aria-pressed="true" aria-label="Markierung entfernen" class="grid size-11 place-items-center rounded-xl text-core-warning"><svg class="catalog-icon" style="fill:currentColor"><use href="#icon-star"></use></svg></button></div><div class="flex min-h-12 items-center justify-between core-body font-semibold text-core-text"><span>Aussetzen</span><button type="button" role="switch" aria-checked="true" aria-label="Karte reaktivieren" class="grid size-11 place-items-center rounded-xl"><span class="relative h-6 w-11 rounded-full border border-core-warning bg-core-warning" aria-hidden="true"><span class="absolute left-0.5 top-0.5 size-5 translate-x-5 rounded-full bg-core-surface shadow-sm"></span></span></button></div></div></section>
                       <section class="border-t border-core-border py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Sitzung</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Pomodoro</span><span>25 Min.</span></div><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Kartenreihenfolge</span><span>Noch nicht verfügbar</span></div></div></section>
                       <section class="border-t border-core-border py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Stapel</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between gap-3 core-body font-semibold text-core-text"><span>Neue Karten pro Tag</span><span class="flex items-center rounded-xl border border-core-border"><button type="button" class="min-h-11 min-w-11">−</button><output class="min-w-10 text-center">20</output><button type="button" class="min-h-11 min-w-11">+</button></span></div><div class="flex min-h-12 items-center justify-between gap-3 core-body font-semibold text-core-text"><span>Max. Wiederholungen</span><span class="flex items-center rounded-xl border border-core-border"><button type="button" class="min-h-11 min-w-11">−</button><output class="min-w-10 text-center">200</output><button type="button" class="min-h-11 min-w-11">+</button></span></div></div></section>
                     </div>
@@ -3135,7 +3158,7 @@ summary {
                     <div class="mx-auto mt-2 h-1 w-10 rounded-full bg-core-border"></div>
                     <div class="flex min-h-16 items-center justify-between border-b border-core-border px-4"><span class="size-11"></span><h3 class="core-heading-3 text-core-text">Lerneinstellungen</h3><button type="button" class="core-action-ghost min-h-11 min-w-11 p-2.5" aria-label="Lerneinstellungen schließen"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button></div>
                     <div class="px-4 pb-4">
-                      <section class="py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Karte</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between core-body font-semibold text-core-text"><span>Karte bearbeiten</span><svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></div><div class="flex min-h-12 items-center justify-between gap-2 core-body text-core-muted"><span>Flagge</span><span class="flex flex-wrap justify-end gap-1 text-lg" aria-label="Flaggenfarben – noch nicht verfügbar"><span style="color:#ef4444">⚑</span><span style="color:#f97316">⚑</span><span style="color:#eab308">⚑</span><span style="color:#22c55e">⚑</span><span style="color:#3b82f6">⚑</span><span style="color:#a855f7">⚑</span><span style="color:#94a3b8">⚑</span></span></div><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Markieren</span><span class="core-caption">Noch nicht verfügbar</span></div><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Aussetzen</span><span class="core-caption">Noch nicht verfügbar</span></div></div></section>
+                      <section class="py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Karte</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between core-body font-semibold text-core-text"><span>Karte bearbeiten</span><svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></div><div class="flex min-h-12 items-center justify-between core-body font-semibold text-core-text"><span>Markieren</span><button type="button" aria-pressed="true" aria-label="Markierung entfernen" class="grid size-11 place-items-center rounded-xl text-core-warning"><svg class="catalog-icon" style="fill:currentColor"><use href="#icon-star"></use></svg></button></div><div class="flex min-h-12 items-center justify-between core-body font-semibold text-core-text"><span>Aussetzen</span><button type="button" role="switch" aria-checked="true" aria-label="Karte reaktivieren" class="grid size-11 place-items-center rounded-xl"><span class="relative h-6 w-11 rounded-full border border-core-warning bg-core-warning" aria-hidden="true"><span class="absolute left-0.5 top-0.5 size-5 translate-x-5 rounded-full bg-core-surface shadow-sm"></span></span></button></div></div></section>
                       <section class="border-t border-core-border py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Sitzung</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between core-body text-core-muted"><span>Pomodoro</span><span>25 Min.</span></div><div class="flex min-h-12 items-center justify-between gap-2 core-body text-core-muted"><span>Kartenreihenfolge</span><span class="core-caption">Noch nicht verfügbar</span></div></div></section>
                       <section class="border-t border-core-border py-4"><p class="core-status-label uppercase tracking-wide text-core-action">Stapel</p><div class="mt-2 divide-y divide-core-border"><div class="flex min-h-12 items-center justify-between gap-2 core-body font-semibold text-core-text"><span>Neue Karten pro Tag</span><span class="flex items-center rounded-xl border border-core-border"><button type="button" class="min-h-11 min-w-11">−</button><output class="min-w-8 text-center">20</output><button type="button" class="min-h-11 min-w-11">+</button></span></div><div class="flex min-h-12 items-center justify-between gap-2 core-body font-semibold text-core-text"><span>Max. Wiederholungen</span><span class="flex items-center rounded-xl border border-core-border"><button type="button" class="min-h-11 min-w-11">−</button><output class="min-w-8 text-center">200</output><button type="button" class="min-h-11 min-w-11">+</button></span></div></div></section>
                     </div>
@@ -3195,8 +3218,8 @@ summary {
                   <table class="w-full min-w-[46rem] table-fixed border-collapse">
                     <thead class="bg-core-surface"><tr class="border-b border-core-border"><th class="w-[58%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Sortierfeld</th><th class="w-[18%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Fällig</th><th class="w-[24%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Varianten</th></tr></thead>
                     <tbody><tr class="core-deck-summary-row border-b border-t-2 border-core-border" data-deck-depth="1"><th colspan="3" class="px-3 text-left"><div class="grid min-h-11 grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] items-center gap-x-3 px-2"><div class="flex min-w-0 items-center gap-2" style="padding-inline-start:9px"><span class="grid size-9 place-items-center text-core-action"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></span><span class="grid size-9 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large font-semibold text-core-text">Europa</strong><small class="block truncate core-caption text-core-muted">Welt-Hauptstädte / Europa</small></span></div><dl class="grid min-w-[15rem] grid-cols-3 gap-3"><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Neu</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-new-text)">1</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Fällig</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-due-text)">1</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Gesamt</dt><dd class="core-body-large font-semibold" style="color:var(--core-deck-total-text)">2</dd></div></dl><div class="flex items-center justify-end gap-2"><span class="grid size-10 place-items-center rounded-full" role="img" aria-label="50 Prozent" style="background:conic-gradient(var(--core-action-primary) 50%,var(--core-surface-muted) 0)"><span class="size-7 rounded-full bg-core-surface"></span></span><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Welt-Hauptstädte / Europa"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div></div></th></tr>
-                    <tr class="border-b border-core-border bg-core-surface"><td class="truncate px-4 py-1 core-body font-semibold text-core-text">Was ist die Hauptstadt von Portugal?</td><td class="px-4 py-1 core-body text-core-secondary">Neu</td><td class="px-4 py-1"><span class="inline-flex rounded-full border border-core-action bg-core-info-soft px-2 core-caption font-semibold text-core-action">Mit Varianten</span></td></tr>
-                    <tr class="border-b border-core-border bg-core-surface"><td class="truncate px-4 py-1 core-body font-semibold text-core-text">Madrid liegt in welchem Land?</td><td class="px-4 py-1 core-body text-core-secondary">12.08.2026</td><td class="px-4 py-1"><span class="inline-flex rounded-full border border-core-border bg-core-subtle px-2 core-caption font-semibold text-core-muted">Ohne Varianten</span></td></tr></tbody>
+                    <tr class="border-b border-core-border bg-core-surface"><td class="truncate px-4 py-1 core-body font-semibold text-core-text">Was ist die Hauptstadt von Portugal?</td><td class="px-4 py-1 core-body text-core-secondary">Neu</td><td class="px-4 py-1"><span class="inline-flex items-center gap-1"><span class="rounded-full border border-core-action bg-core-info-soft px-2 core-caption font-semibold text-core-action">Ja</span><svg class="catalog-icon-sm text-core-warning" style="fill:currentColor" role="img" aria-label="Markiert"><use href="#icon-star"></use></svg></span></td></tr>
+                    <tr class="border-b border-core-border bg-core-warning-soft"><td class="truncate px-4 py-1 core-body font-semibold text-core-text">Madrid liegt in welchem Land?</td><td class="px-4 py-1 core-body text-core-secondary">12.08.2026</td><td class="px-4 py-1"><span class="inline-flex items-center gap-1"><span class="rounded-full border border-core-border bg-core-subtle px-2 core-caption font-semibold text-core-muted">Nein</span><svg class="catalog-icon-sm text-core-warning" style="fill:currentColor" role="img" aria-label="Markiert"><use href="#icon-star"></use></svg></span></td></tr></tbody>
                   </table>
                 </div>
               </article>
