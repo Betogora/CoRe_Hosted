@@ -25,14 +25,14 @@ test("deck tree keeps hierarchy, labels and all three semantic metrics in every 
 
   assert.match(markup, /aria-label="Bereich lernen"/);
   assert.match(markup, /aria-label="Bereich \/ Grundlagen lernen"/);
-  assert.match(markup, />Bereich \/ Grundlagen</);
+  assert.doesNotMatch(markup, />Bereich \/ Grundlagen</);
   assert.equal((markup.match(/data-deck-count="new"/g) ?? []).length, 2);
   assert.equal((markup.match(/data-deck-count="due"/g) ?? []).length, 2);
   assert.equal((markup.match(/data-deck-count="total"/g) ?? []).length, 2);
   assert.equal((markup.match(/data-deck-summary-row-content="responsive"/g) ?? []).length, 2);
   assert.equal((markup.match(/data-testid="deck-options-/g) ?? []).length, 2);
   assert.match(markup, /sr-only md:not-sr-only/);
-  assert.match(markup, /hidden md:block/);
+  assert.doesNotMatch(markup, /hidden md:block/);
   assert.match(markup, /size-8 md:size-10/);
   assert.match(markup, /var\(--core-deck-new-text\)/);
   assert.match(markup, /var\(--core-deck-due-text\)/);

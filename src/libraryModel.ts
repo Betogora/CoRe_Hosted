@@ -1,6 +1,7 @@
 import { stripHtml } from "./htmlSafety.ts";
 import { listReviewableCards, summarizeDeckReview } from "./scheduler.ts";
 import { createStudyHeatmapModelFromCounts } from "./studyHeatmapModel.ts";
+import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { CoreMode, Deck, LearningItem } from "./coreTypes.ts";
 
 export { createStudyHeatmapWindow, getStudyHeatmapVisibleWeekCount } from "./studyHeatmapModel.ts";
@@ -171,25 +172,13 @@ function matchesDeckRow(row: DeckLibraryRow, query: string, coreMode: CoreMode |
   return matchesQuery && matchesMode;
 }
 
-function buildChildrenByParent(decks: Deck[]): Map<string | null, Deck[]> {
-  const deckIds = new Set(decks.map((deck) => deck.id));
-  const childrenByParent = new Map<string | null, Deck[]>();
-
-  for (const deck of decks) {
-    const parentId = deck.parentDeckId && deckIds.has(deck.parentDeckId) ? deck.parentDeckId : null;
-    childrenByParent.set(parentId, [...(childrenByParent.get(parentId) ?? []), deck]);
-  }
-
-  return childrenByParent;
-}
-
 function collectScopeDecks(deck: Deck, childrenByParent: Map<string | null, Deck[]>): Deck[] {
   const children = childrenByParent.get(deck.id) ?? [];
   return [deck, ...children.flatMap((child) => collectScopeDecks(child, childrenByParent))];
 }
 
 function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: number }): DeckLibraryRow[] {
-  const childrenByParent = buildChildrenByParent(decks);
+  const childrenByParent = buildSortedDeckChildren(decks);
   const rows: DeckLibraryRow[] = [];
 
   function visit(deck: Deck, depth: number): void {

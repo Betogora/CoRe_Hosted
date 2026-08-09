@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Check, ChevronDown, FolderTree, Layers3, Search, X, type LucideIcon } from "lucide-react";
 import type { Deck } from "../coreTypes.ts";
+import { buildSortedDeckChildren } from "../deckOrdering.ts";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 
 const SELECT_VALUE_PREFIX = "core-select:";
@@ -82,15 +83,7 @@ function decodeValue(value: string) {
 }
 
 function createDeckSelectRows(decks: readonly Deck[]): DeckSelectRow[] {
-  const deckById = new Map(decks.map((deck) => [deck.id, deck]));
-  const childrenByParentId = new Map<string | null, Deck[]>();
-
-  for (const deck of decks) {
-    const parentId = deck.parentDeckId && deckById.has(deck.parentDeckId) ? deck.parentDeckId : null;
-    const siblings = childrenByParentId.get(parentId);
-    if (siblings) siblings.push(deck);
-    else childrenByParentId.set(parentId, [deck]);
-  }
+  const childrenByParentId = buildSortedDeckChildren(decks);
 
   const rows: DeckSelectRow[] = [];
   const visitedDeckIds = new Set<string>();
@@ -440,7 +433,7 @@ export function DeckMultiSelect({ decks, value, scopeLabel, onValueChange }: Dec
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const listboxId = useId();
-  const rows = useMemo(() => createDeckSelectRows([...decks].sort((left, right) => left.hierarchyPath.join("/").localeCompare(right.hierarchyPath.join("/"), "de"))), [decks]);
+  const rows = useMemo(() => createDeckSelectRows(decks), [decks]);
   const parentByDeckId = useMemo(() => new Map(decks.map((deck) => [deck.id, deck.parentDeckId])), [decks]);
   const selected = value === "all" ? [] : value;
   const selectedDeckIds = useMemo(() => new Set(value === "all" ? [] : value), [value]);

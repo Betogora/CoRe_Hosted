@@ -39,7 +39,6 @@ export function DeckSummaryRow({ row, summary, progress, leadingControl, actions
         />
         <span className="min-w-0 flex-1">
           <span className={`block truncate whitespace-nowrap font-semibold text-[var(--core-text)] ${compactAtBase ? "core-body" : "core-body-large"} ${responsive ? "md:text-base md:leading-6" : ""}`}>{row.name}</span>
-          {!compact && row.depth > 0 ? <span className={`mt-0.5 truncate core-caption text-[var(--core-text-muted)] ${responsive ? "hidden md:block" : "block"}`}>{row.path}</span> : null}
         </span>
       </div>
 

@@ -140,6 +140,26 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
   assert.equal(library.rows[0].summary.totalCards, 1);
 });
 
+test("library model sorts every deck level alphabetically like Anki", () => {
+  const root05 = createCoreDeck({ id: "root-05", name: "05", source: "manual", cards: [] });
+  const root10 = createCoreDeck({ id: "root-10", name: "Stapel 10", source: "manual", cards: [] });
+  const root9 = createCoreDeck({ id: "root-9", name: "Stapel 9", source: "manual", cards: [] });
+  const child3 = createCoreDeck({ id: "child-3", parentDeckId: root05.id, name: "05.3", hierarchyPath: ["05", "05.3"], source: "manual", cards: [] });
+  const child1 = createCoreDeck({ id: "child-1", parentDeckId: root05.id, name: "05.1", hierarchyPath: ["05", "05.1"], source: "manual", cards: [] });
+  const child2 = createCoreDeck({ id: "child-2", parentDeckId: root05.id, name: "05.2", hierarchyPath: ["05", "05.2"], source: "manual", cards: [] });
+
+  const library = createDeckLibraryModel([root9, child3, root05, child1, root10, child2]);
+
+  assert.deepEqual(library.rows.map((row) => row.id), [
+    root05.id,
+    child1.id,
+    child2.id,
+    child3.id,
+    root10.id,
+    root9.id,
+  ]);
+});
+
 test("card table preserves hierarchy and card order while including empty decks", () => {
   const cards = [
     createCoreCard({ id: "card-first", source: "manual", originalFront: "<b>Erste</b> Frage", originalBack: "Erste Antwort", originalTags: ["alpha"] }),

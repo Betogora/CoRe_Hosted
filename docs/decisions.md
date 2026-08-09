@@ -1,7 +1,7 @@
 # CoRe-Entscheidungen
 
 **Rolle:** einzige kanonische Quelle für dauerhafte Produkt- und Architekturentscheidungen.
-**Stand:** 2026-08-06
+**Stand:** 2026-08-09
 
 ## ADR-Format
 
@@ -76,7 +76,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-008 — Eine gemeinsame Stapelkarte mit kontextabhängiger Hauptaktion
 
-**Status:** teilweise abgelöst durch ADR-012
+**Status:** teilweise abgelöst durch ADR-012 und ADR-016
 **Kontext:** Dashboard, Lernen und Kartenverwaltung zeigten denselben Stapelbaum mit abweichenden Kennzahlen, Aktivierungsflächen und wiederholten Werkzeugen. Die frühere Trennung aus ADR-002 beseitigte zwar unklare Gesten, verhinderte aber auch die bereits bewährte direkte Strukturierung im sichtbaren Baum.
 **Entscheidung:** Alle drei Bereiche verwenden eine gemeinsame einklappbare Stapelkarte mit identischer Zeilenfolge: Icon, Name und Pfad, Teilbaum-Kennzahlen, Fortschrittsdonut und ganz rechts Stapeloptionen. Die neutrale Fläche startet in Dashboard und Lernen die Sitzung und öffnet in der Kartenverwaltung die Karten; dieselbe tatsächlich getroffene Fläche verarbeitet den Desktop-Drag über Pointer-Ereignisse, ohne dabei Zeilentext zu selektieren. Dashboard, Lernen und Kartenverwaltung erlauben sichtbares direktes Drag-and-drop auf einen Stapel oder die Hauptebenen-Zone; ungültige und unveränderte Ziele sind No-ops und ein Drag löst keine Flächenaktion aus. Interaktive Strukturänderungen sind auf vier sichtbare Ebenen begrenzt. Tiefere APKG-Hierarchien bleiben beim Import erhalten und dürfen anschließend nur regelkonform oder flacher verschoben werden. Die Kartenverwaltung bündelt erweiterte Werkzeuge einmal beim ausgewählten Stapel und behält das bestätigte Verschieben als Tastatur-, Touch- und Accessibility-Fallback. Stapeloptionen tragen ihren Rückkehrkontext in der URL.
 **Konsequenzen:** Darstellung, Reihenfolge, Keyboard-Aktivierung, Collapse, Drag-Quelle und -Zustände, Tiefenfarben und Kennzahlsemantik besitzen eine kanonische UI-Implementierung. Die fachliche Workspace-Mutation prüft dieselbe Platzierungsregel wie die UI; das persistierte Deck-Schema bleibt unverändert. ADR-002 ist hinsichtlich des Verbots direkter Strukturierung abgelöst; die dort festgelegte Trennung von Lern- und Verwaltungsaufgabe bleibt erhalten.
@@ -108,7 +108,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-012 — Kompakte Stapelzeile mit kontextgebundenem Drag-and-drop
 
-**Status:** teilweise abgelöst durch ADR-014
+**Status:** teilweise abgelöst durch ADR-014 und ADR-016
 **Kontext:** Die verschachtelten Stapelkarten in Dashboard und Lernen beanspruchten deutlich mehr Raum als die kompakten Stapelköpfe der Kartenverwaltung. Zugleich ist direktes Drag-and-drop in der inhaltsorientierten Kartentabelle leichter mit Aufklappen, Auswahl und Bearbeitung zu verwechseln.
 **Entscheidung:** Dashboard, Lernen und Kartenverwaltung verwenden denselben kompakten Zeileninhalt aus Chevron, Icon, Name und Pfad, Kennzahlen, Donut und Drei-Punkte-Aktion. Dashboard und Lernen projizieren die Hierarchie flach, behalten Teilbaum-Kennzahlen und erlauben direkten Desktop-Drag; ihre Drei-Punkte-Aktion öffnet direkt die Stapel-Einstellungen. Die Kartenverwaltung behält direkte Kennzahlen, ihr vollständiges Optionsmenü und ausschließlich den bestätigten Verschiebeablauf. Alle Drei-Punkte-Aktionen besitzen einen pfadspezifischen Tooltip.
 **Konsequenzen:** Darstellung und Reihenfolge besitzen eine kanonische UI-Implementierung, während Aktivierung, Kennzahlquelle und Aktionen vom jeweiligen Aufgabenbereich geliefert werden. ADR-008 ist hinsichtlich der verschachtelten Kartenform und des direkten Drag-and-drops in der Kartenverwaltung abgelöst. Workspace-Mutation, Vier-Ebenen-Regel und persistiertes Deck-Schema bleiben unverändert.
@@ -137,3 +137,11 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Entscheidung:** Statistik besitzt genau eine globale Zeitraum- und Stapelauswahl und wird aus append-only Review Events sowie aktuellen Varianten-Snapshots durch `statisticsModel.ts` projiziert. Aktuelle Gedächtnisverteilungen verwenden FSRS-Schwierigkeit, Stabilität und Abrufwahrscheinlichkeit statt klassischer Ease. APKG-`revlog` wird ausschließlich als deterministisch deduplizierte Analysehistorie importiert; aktueller Review State und Fälligkeit bleiben neutral. Neue CoRe-Reviews messen reale Antwortzeit bis maximal 60 Sekunden im bestehenden Ereignisfeld.
 **Konsequenzen:** Es gibt keine parallele Statistikprojektion, keine serverseitige Aggregationstabelle und keine Schedulermigration. Historische Antwortzeiten bleiben optional. Diagramme arbeiten mit begrenzten Aggregaten; Rohereignisse verbleiben hinter dem Statistikmodell. Reimport kann neue historische Ereignisse ergänzen, aber weder vorhandene Ereignisse überschreiben noch Karten als gelernt markieren.
 **Datum:** 2026-08-06
+
+## ADR-016 — Einzeilige, alphabetisch sortierte Stapelbäume
+
+**Status:** angenommen
+**Kontext:** Der sichtbare Hierarchiepfad wiederholte in Desktop-Zeilen die bereits durch Einrückung und Auf-/Zuklappen eindeutige Baumstruktur. Zugleich übernahmen Stapelbäume teilweise die Import- oder Speicherreihenfolge und wichen damit von Ankis alphabetischer Stapelliste ab.
+**Entscheidung:** Dashboard, Lernen und Kartenverwaltung zeigen bei jeder Breite ausschließlich den lokalen Stapelnamen ohne sichtbaren Hierarchiepfad. Stapelbäume und Stapelauswahlen sortieren Hauptstapel sowie jede Unterebene separat alphabetisch nach dem lokalen Namen und ohne numerische Sonderbehandlung. Vollständige Pfade bleiben für zugängliche Namen, Tooltips, Menüs, Suche und geschlossene Auswahlfelder erhalten.
+**Konsequenzen:** Stapelnamen stehen vertikal mittig in einer einzeiligen Zeile. Persistierte Deckreihenfolge und Hierarchie bleiben unverändert; nur ihre Projektion wird sortiert. ADR-008 und ADR-012 sind hinsichtlich des sichtbaren Pfads in der gemeinsamen Stapelzeile abgelöst.
+**Datum:** 2026-08-09
