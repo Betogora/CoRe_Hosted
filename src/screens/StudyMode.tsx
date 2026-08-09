@@ -14,10 +14,10 @@ import {
   reconcileDailyReviewSessionState,
   removeDailyReviewSessionItem,
   recordVariantFeedback,
+  type DailyReviewProgressSummary,
   type DailyReviewSessionState,
 } from "../reviewService.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
-import { MiniProgress } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { ratingButtons } from "./screenConstants.ts";
@@ -44,6 +44,43 @@ function normalizeExpectedAnswer(value: unknown) {
 
 function sameAnswer(left: string, right: string) {
   return String(left ?? "").trim().toLowerCase() === String(right ?? "").trim().toLowerCase();
+}
+
+const studyProgressSegments = [
+  { key: "learned", countKey: "learnedTodayCount", color: "var(--core-warning)" },
+  { key: "new", countKey: "newCount", color: "var(--core-deck-new-text)" },
+  { key: "in-progress", countKey: "inProgressCount", color: "var(--core-danger)" },
+  { key: "due", countKey: "dueCount", color: "var(--core-deck-due-text)" },
+] as const;
+
+function DailyReviewProgress({ progress }: { progress: DailyReviewProgressSummary }) {
+  const valueText = `${progress.learnedTodayCount} für heute gelernt, ${progress.newCount} neu, ${progress.inProgressCount} in Arbeit, ${progress.dueCount} fällig`;
+
+  return (
+    <div
+      className="flex h-3 overflow-hidden rounded-full bg-core-subtle"
+      role="progressbar"
+      aria-label="Lernfortschritt"
+      aria-valuemin={0}
+      aria-valuemax={Math.max(1, progress.total)}
+      aria-valuenow={progress.learnedTodayCount}
+      aria-valuetext={valueText}
+      data-testid="study-daily-progress"
+    >
+      {studyProgressSegments.map((segment) => {
+        const count = progress[segment.countKey];
+        return count > 0 ? (
+          <span
+            key={segment.key}
+            aria-hidden="true"
+            data-study-progress-segment={segment.key}
+            className="h-full"
+            style={{ backgroundColor: segment.color, flexBasis: 0, flexGrow: count }}
+          />
+        ) : null;
+      })}
+    </div>
+  );
 }
 
 export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationDayOffset, onExit, onReturnToLearn, onEditCard, onSaveDeckDailyLimits, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
@@ -84,7 +121,6 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   const repeatCount = effectiveReviewSession.repeatCount;
   const answeredCount = completedInitialCount + repeatCount;
   const currentIsInitial = Boolean(current && !current.sessionInfo?.isRepeat);
-  const progress = sessionTotal ? (Math.min(completedInitialCount + (currentIsInitial ? 1 : 0), sessionTotal) / sessionTotal) * 100 : 0;
   const sourceCard = current?.learningItem ?? null;
   const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
   const sourceAnchor = current?.variant?.sourceAnchors?.[0] ?? sourceCard?.sourceAnchors?.[0] ?? null;
@@ -274,9 +310,9 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
           <div className="grid gap-2">
             <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-[var(--core-text-muted)]">
               <span>Lernfortschritt</span>
-              <span>{Math.min(completedInitialCount + (currentIsInitial ? 1 : 0), sessionTotal)} / {sessionTotal} Karten</span>
+              <span>{queue.dailyProgress.learnedTodayCount} / {queue.dailyProgress.total} Karten</span>
             </div>
-            <MiniProgress value={progress} />
+            <DailyReviewProgress progress={queue.dailyProgress} />
           </div>
           <div className="grid gap-2" aria-label="Pomodoro: 25 Minuten – noch nicht verfügbar">
             <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-[var(--core-text-muted)]">

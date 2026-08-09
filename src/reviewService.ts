@@ -101,6 +101,14 @@ interface QueueEntry {
   key: string;
 }
 
+export interface DailyReviewProgressSummary {
+  learnedTodayCount: number;
+  newCount: number;
+  inProgressCount: number;
+  dueCount: number;
+  total: number;
+}
+
 export interface DailyReviewSessionState {
   initialKeys: string[];
   remainingInitialKeys: string[];
@@ -263,6 +271,7 @@ export function updateDeckNewCardLimitForDate(deck: Deck, limit: unknown, option
 function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput) {
   const dateKey = localDateKey(now);
   const byDeckId = new Map<string, { introduced: number; reviewed: number }>();
+  const reviewedTodayKeys = new Set<string>();
   let introducedTotal = 0;
   let reviewedTotal = 0;
   for (const deck of scopeDecks) {
@@ -270,7 +279,9 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput) {
     const reviewed = new Set<string>();
     for (const event of (deck.reviewEvents ?? []) as LegacyReviewEvent[]) {
       if (localDateKey(reviewEventDate(event) ?? now) !== dateKey) continue;
-      const key = reviewKey(deck.id, event.learningItemId ?? event.cardId);
+      const learningItemId = event.learningItemId ?? event.cardId;
+      const key = reviewKey(deck.id, learningItemId);
+      if (learningItemId) reviewedTodayKeys.add(key);
       if (wasNewBeforeReview(event)) introduced.add(key);
       else reviewed.add(key);
     }
@@ -280,7 +291,37 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput) {
     introducedTotal += consumption.introduced;
     reviewedTotal += consumption.reviewed;
   }
-  return { byDeckId, introducedTotal, reviewedTotal };
+  return { byDeckId, introducedTotal, reviewedTotal, reviewedTodayKeys };
+}
+
+function summarizeDailyReviewProgress(
+  reviewedEntries: Map<string, QueueEntry>,
+  selectedEntries: QueueEntry[],
+  reviewedTodayKeys: Set<string>,
+): DailyReviewProgressSummary {
+  const relevantEntries = new Map(reviewedEntries);
+  for (const entry of selectedEntries) relevantEntries.set(entry.key, entry);
+
+  const summary: DailyReviewProgressSummary = {
+    learnedTodayCount: 0,
+    newCount: 0,
+    inProgressCount: 0,
+    dueCount: 0,
+    total: relevantEntries.size,
+  };
+
+  for (const [key, entry] of relevantEntries) {
+    const state = (entry.learningItem.learningItemState ?? entry.learningItem.reviewState)?.state;
+    const inProgress = state === "learning" || state === "relearning";
+    const reviewedToday = reviewedTodayKeys.has(key);
+
+    if (reviewedToday && !inProgress) summary.learnedTodayCount += 1;
+    else if (!reviewedToday && isNewLearningItem(entry.learningItem)) summary.newCount += 1;
+    else if (inProgress) summary.inProgressCount += 1;
+    else summary.dueCount += 1;
+  }
+
+  return summary;
 }
 
 function updateCoreStateFromReview(card: LearningItem, reviewState: ReviewState, updatedAt = new Date().toISOString()): LearningItem {
@@ -739,21 +780,25 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const rootDeck = allDecks.find((deck) => deck.id === rootDeckId) ?? allDecks[0] ?? null;
   const scopeDecks = collectDeckScope(decksOrDeck, rootDeckId);
   const excludeKeys = new Set(options.excludeKeys ?? []);
+  const dailyConsumption = summarizeDailyCardConsumption(scopeDecks, now);
+  const reviewedEntries = new Map<string, QueueEntry>();
   const dueEntries: QueueEntry[] = [];
   const newEntries: QueueEntry[] = [];
 
   for (const deck of scopeDecks) {
     for (const learningItem of activeLearningItems(deck)) {
       const key = reviewKey(deck.id, learningItem.id);
+      const entry = { deck, learningItem, key };
+      if (dailyConsumption.reviewedTodayKeys.has(key)) reviewedEntries.set(key, entry);
       if (excludeKeys.has(key)) continue;
 
       if (isNewLearningItem(learningItem)) {
-        newEntries.push({ deck, learningItem, key });
+        newEntries.push(entry);
         continue;
       }
 
       if (isDue(learningItem.learningItemState ?? learningItem.reviewState, now)) {
-        dueEntries.push({ deck, learningItem, key });
+        dueEntries.push(entry);
       }
     }
   }
@@ -763,7 +808,6 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
 
   const rootSettings = createDefaultDeckSettings(rootDeck?.deckSettings ?? {});
   const newLimit = getEffectiveNewCardsPerDay(rootDeck, { now });
-  const dailyConsumption = summarizeDailyCardConsumption(scopeDecks, now);
   const introducedToday = dailyConsumption.introducedTotal;
   const reviewsCompletedToday = dailyConsumption.reviewedTotal;
   const remainingNewCards = Math.max(0, newLimit - introducedToday);
@@ -786,6 +830,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const selectedDueEntries = dueEntriesWithinDeckLimits.slice(0, remainingReviews);
   const selectedNewEntries = newEntriesWithinDeckLimits.slice(0, remainingNewCards);
   const selectedEntries = orderDailyQueueEntries(selectedDueEntries, selectedNewEntries, rootSettings.newReviewOrder);
+  const dailyProgress = summarizeDailyReviewProgress(reviewedEntries, selectedEntries, dailyConsumption.reviewedTodayKeys);
   const items = selectedEntries
     .map((entry) =>
       createReviewItemViewModel(entry.deck, entry.learningItem, {
@@ -803,6 +848,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
     scopeDeckIds: scopeDecks.map((deck) => deck.id),
     items,
     total: items.length,
+    dailyProgress,
     dueCount: selectedDueEntries.length,
     availableDueCards: dueEntries.length,
     maximumReviewsPerDay: rootSettings.maximumReviewsPerDay,

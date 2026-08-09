@@ -181,14 +181,6 @@ export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-acti
   );
 }
 
-export function MiniProgress({ value = 0 }: { value?: number }) {
-  return (
-    <div className="h-3 overflow-hidden rounded-full bg-core-subtle">
-      <div className="h-full rounded-full bg-core-action" style={{ width: `${Math.max(4, Math.min(100, value))}%` }} />
-    </div>
-  );
-}
-
 export function DonutValue({ value, size = "default" }: { value: number; size?: "default" | "compact" | "responsive" }) {
   const compact = size === "compact";
   const responsive = size === "responsive";

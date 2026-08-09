@@ -173,7 +173,8 @@ Akzeptanz:
 - `Again`, `Hard`, `Good` und `Easy` sind per Maus und Tastatur erreichbar.
 - Intervallvorschauen passen zur tatsächlich angewendeten Bewertung.
 - Vor dem Reveal erscheinen keine Herkunfts-, Varianten-, Reife- oder Schedulerhinweise.
-- Oberhalb der Lernkarte stehen ein beschrifteter Lernfortschritt und ein vollständig gefüllter Pomodoro-Platzhalter ohne Timer- oder Pausenfunktion.
+- Oberhalb der Lernkarte steht ein beschrifteter, vollständig gefüllter Tagesfortschritt. Seine vier proportionalen Segmente zeigen von links nach rechts `Für heute gelernt` in Marigold, `Neu` in Lilac, `In Arbeit` für Learning und Relearning in Coral sowie `Fällig` in Slate. Der sichtbare Zähler nennt gelernte und insgesamt heute relevante Learning Items; ein zugänglicher Text nennt zusätzlich alle vier Werte. Daneben bleibt der vollständig gefüllte Pomodoro-Platzhalter ohne Timer- oder Pausenfunktion.
+- Die dynamische Tagesgesamtmenge vereinigt die nach aktuellen Stapel- und Tageslimits ausgewählte Queue mit den am lokalen beziehungsweise simulierten Lerntag bereits bearbeiteten, weiterhin reviewbaren Learning Items. Später erstmals fällige Karten dürfen die Gesamtmenge vergrößern; Varianten und Wiederholungen zählen dasselbe Learning Item nicht mehrfach.
 - Die Lerneinstellungen erscheinen unter 768 px als Bottom Sheet und ab 768 px als zentriertes modales Overlay. Beide Projektionen verwenden dieselbe Reihenfolge `Karte`, `Sitzung`, `Stapel`, schließen per Escape oder Außenklick, halten den Fokus im geöffneten Dialog und stellen ihn danach wieder her.
 - `Karte bearbeiten` öffnet den Einzelkarten-Editor. Eine Anki-Flaggenauswahl wird appweit weder angeboten noch dargestellt. `Markieren` ist ein zugänglicher Stern-Button mit `aria-pressed`; der aktive Zustand ist gelb gefüllt und verändert die Lern-Queue nicht. `Aussetzen` ist ein zugänglicher Switch und pausiert das gesamte Learning Item einschließlich aller Varianten, ohne Lernzustand, Fälligkeit, FSRS-Werte oder Reviewhistorie zu verändern.
 - Wird die aktuelle Karte ausgesetzt, verschwindet sie ohne Bewertung und ohne Fortschrittsgewinn aus allen offenen Initial- und Wiederholungspositionen der Sitzung. Das Overlay schließt, die nächste Karte beziehungsweise der Abschluss erhält den Fokus und der dauerhaft schließbare Erfolgstoast lautet `Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.` Reaktivieren setzt die Karte mit ihrem eingefrorenen Lernstand wieder auf aktiv.
@@ -185,7 +186,7 @@ Akzeptanz:
 - Review aus der Kartenverwaltung kehrt zu demselben Deck und derselben Karte zurück, Review aus Lernen zu demselben Lern-Deckkontext.
 - Browser-Zurück und -Vorwärts rekonstruieren View, Deck, Karte und Reviewkontext ohne zusätzliche History-Schleifen.
 - Unbekannte oder nicht verfügbare Deck- und Karten-IDs zeigen verständliche deutsche Folgeaktionen und öffnen niemals still eine andere Karte.
-- Nach erfolgreichem Save und Reload bleibt der Lernfortschritt erhalten.
+- Nach erfolgreichem Save, Verlassen des Stapels, Reload und Sync wird der Lernfortschritt ohne separaten Sitzungssnapshot aus den gespeicherten Review-Events und Review States rekonstruiert.
 - Offline- oder Konfliktzustände werden sichtbar und niemals als gespeichert ausgegeben, solange Änderungen ausstehen.
 
 ### 5.5 CoRe-Variante lernen und Ursprung prüfen

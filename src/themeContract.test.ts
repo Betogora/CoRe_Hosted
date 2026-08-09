@@ -114,7 +114,7 @@ test("dragged deck rows lift vertically while their surroundings adapt to the th
 
 test("the UI catalog lists every canonical shared export", () => {
   const catalog = readFileSync("src/ui/README.md", "utf8");
-  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "MiniProgress", "DonutValue", "CoreModeControl", "ThemeToggle", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
+  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "DonutValue", "CoreModeControl", "ThemeToggle", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
     assert.match(catalog, new RegExp(`\\b${name}\\b`));
   }
 });
