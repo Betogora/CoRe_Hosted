@@ -54,6 +54,7 @@ test("settings expose task-based sections and a read-only login email", () => {
 test("settings group theme, simulator, Pomodoro timer and help as app controls", () => {
   const html = renderSettings();
 
+  assert.match(html, /<label[^>]*>.*role="switch".*<\/label>/);
   assert.match(html, /role="switch"/);
   assert.match(html, />Simulator</);
   assert.match(html, /Aktiv: Sonntag, 9\. August 2026 · \+3 Tage/);

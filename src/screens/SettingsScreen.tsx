@@ -114,7 +114,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
       <section className="grid gap-4" aria-labelledby="settings-app-heading">
         <h2 id="settings-app-heading" className="core-heading-2 font-semibold text-[var(--core-text)]">App und Bedienung</h2>
         <SoftPanel className="overflow-hidden p-0">
-          <div className="flex min-h-[4.75rem] items-center gap-3 border-b border-[var(--core-border)] px-4 py-3 sm:px-6">
+          <label className="flex min-h-[4.75rem] cursor-pointer items-center gap-3 border-b border-[var(--core-border)] px-4 py-3 transition hover:bg-[var(--core-surface-hover)] sm:px-6">
             <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--core-info-surface)] text-[var(--core-action-primary)]">
               <MonitorCog size={20} aria-hidden="true" />
             </span>
@@ -123,7 +123,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
               <span className="block core-caption text-[var(--core-text-muted)]">Dark Mode für diesen Browser</span>
             </span>
             <ThemeToggle className="shrink-0" />
-          </div>
+          </label>
           <button
             type="button"
             onClick={() => onNavigate("simulator")}
