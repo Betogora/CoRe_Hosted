@@ -931,7 +931,7 @@ export function DecksScreen({
                   <tr
                     data-testid={"deck-header-" + group.id}
                     data-deck-depth={visibleDepth}
-                    className="core-deck-summary-row border-b border-t-2 border-[var(--core-border)]"
+                    className="core-deck-summary-row border-b border-t-2 !border-[var(--core-border)]"
                     style={selectedDeckId === group.id ? { backgroundColor: "var(--core-info-surface)" } : undefined}
                   >
                     <th scope="rowgroup" colSpan={3} className="relative px-3 text-left">
