@@ -3,33 +3,42 @@ import test from "node:test";
 import { createBasicLearningItem, createCoreDeck, getOriginalVariant } from "./coreModel.ts";
 import { answerVariant } from "./reviewService.ts";
 import {
-  MAX_SIMULATION_DAY_OFFSET,
+  MAX_SIMULATION_OFFSET_MINUTES,
+  SIMULATION_MINUTES_PER_DAY,
+  formatSimulationDuration,
   getLocalDateInputValue,
   getSimulatedNow,
-  getSimulationDayOffsetForDate,
-  normalizeSimulationDayOffset,
+  getSimulationOffsetMinutesForDate,
+  normalizeSimulationOffsetMinutes,
 } from "./simulationClock.ts";
 
 test("simulation clock normalizes the supported future horizon", () => {
-  assert.equal(normalizeSimulationDayOffset(-2), 0);
-  assert.equal(normalizeSimulationDayOffset(3.4), 3);
-  assert.equal(normalizeSimulationDayOffset("invalid"), 0);
-  assert.equal(normalizeSimulationDayOffset(9000), MAX_SIMULATION_DAY_OFFSET);
+  assert.equal(normalizeSimulationOffsetMinutes(-2), 0);
+  assert.equal(normalizeSimulationOffsetMinutes(3.4), 3);
+  assert.equal(normalizeSimulationOffsetMinutes("invalid"), 0);
+  assert.equal(normalizeSimulationOffsetMinutes(MAX_SIMULATION_OFFSET_MINUTES + 1), MAX_SIMULATION_OFFSET_MINUTES);
 });
 
-test("simulation clock maps local calendar dates to bounded day offsets", () => {
+test("simulation clock maps local calendar dates to bounded minute offsets", () => {
   const now = new Date(2026, 7, 6, 18, 30, 0);
 
-  assert.equal(getSimulationDayOffsetForDate(now, "2026-08-06"), 0);
-  assert.equal(getSimulationDayOffsetForDate(now, "2026-08-09"), 3);
-  assert.equal(getSimulationDayOffsetForDate(now, "2026-08-05"), 0);
-  assert.equal(getSimulationDayOffsetForDate(now, "not-a-date"), 0);
-  assert.equal(getSimulationDayOffsetForDate(now, "2038-01-01"), MAX_SIMULATION_DAY_OFFSET);
+  assert.equal(getSimulationOffsetMinutesForDate(now, "2026-08-06"), 0);
+  assert.equal(getSimulationOffsetMinutesForDate(now, "2026-08-09"), 3 * SIMULATION_MINUTES_PER_DAY);
+  assert.equal(getSimulationOffsetMinutesForDate(now, "2026-08-05"), 0);
+  assert.equal(getSimulationOffsetMinutesForDate(now, "not-a-date"), 0);
+  assert.equal(getSimulationOffsetMinutesForDate(now, "2038-01-01"), MAX_SIMULATION_OFFSET_MINUTES);
+});
+
+test("simulation clock supports and labels jumps within the same day", () => {
+  assert.equal(getSimulatedNow("2026-08-06T10:00:00.000Z", 10), "2026-08-06T10:10:00.000Z");
+  assert.equal(formatSimulationDuration(10), "10 Minuten");
+  assert.equal(formatSimulationDuration(60), "1 Stunde");
+  assert.equal(formatSimulationDuration(3 * SIMULATION_MINUTES_PER_DAY), "3 Tage");
 });
 
 test("simulation clock preserves local wall time across a daylight-saving boundary", () => {
   const beforeChange = new Date(2026, 2, 28, 10, 15, 30);
-  const simulated = new Date(getSimulatedNow(beforeChange, 1));
+  const simulated = new Date(getSimulatedNow(beforeChange, SIMULATION_MINUTES_PER_DAY));
 
   assert.equal(simulated.getFullYear(), 2026);
   assert.equal(simulated.getMonth(), 2);
@@ -41,7 +50,7 @@ test("simulation clock preserves local wall time across a daylight-saving bounda
 
 test("a future review is committed at simulated time and is not undone by resetting the clock", () => {
   const realNow = "2026-08-06T10:00:00.000Z";
-  const simulatedNow = getSimulatedNow(realNow, 3);
+  const simulatedNow = getSimulatedNow(realNow, 3 * SIMULATION_MINUTES_PER_DAY);
   const item = createBasicLearningItem("deck_simulation", "Frage", "Antwort", {
     reviewState: { state: "review", repetitions: 2, dueAt: simulatedNow },
   });

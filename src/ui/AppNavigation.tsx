@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { BarChart3, BookOpen, CalendarClock, Ellipsis, Home, Layers, PlusSquare, Settings } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { MenuViewId } from "../menuModel.ts";
+import { formatSimulationDuration } from "../simulationClock.ts";
 import { ActionButton } from "./actionUi.tsx";
 
 export interface AppNavigationItem {
@@ -14,7 +15,7 @@ export interface AppNavigationProps {
   navigationItems: AppNavigationItem[];
   activeView: string;
   displayName: string;
-  simulationDayOffset: number;
+  simulationOffsetMinutes: number;
   simulationDateLabel: string;
   onNavigate: (viewId: MenuViewId) => unknown;
   onResetSimulation: () => unknown;
@@ -34,7 +35,7 @@ function getIcon(iconKey: string) {
   return iconByKey[iconKey] ?? Home;
 }
 
-function DesktopNavigation({ navigationItems, activeView, displayName, simulationDayOffset, simulationDateLabel, onNavigate, onResetSimulation }: AppNavigationProps) {
+function DesktopNavigation({ navigationItems, activeView, displayName, simulationOffsetMinutes, simulationDateLabel, onNavigate, onResetSimulation }: AppNavigationProps) {
   const settingsActive = utilityViews.has(activeView);
 
   return (
@@ -68,13 +69,13 @@ function DesktopNavigation({ navigationItems, activeView, displayName, simulatio
         </nav>
 
         <div className="mt-auto border-t border-[var(--core-border)] pt-6">
-          {simulationDayOffset > 0 ? (
+          {simulationOffsetMinutes > 0 ? (
             <div className="mb-3 rounded-xl border border-core-warning bg-core-warning-soft p-3 text-core-text" role="status">
               <p className="flex items-center gap-2 core-body font-semibold">
                 <CalendarClock size={17} aria-hidden="true" />
                 Simulation aktiv
               </p>
-              <p className="mt-1 core-caption">{simulationDateLabel} · +{simulationDayOffset} Tage</p>
+              <p className="mt-1 core-caption">{simulationDateLabel} · +{formatSimulationDuration(simulationOffsetMinutes)}</p>
               <ActionButton type="button" variant="secondary" className="mt-3 w-full justify-center" data-reset-simulation="true" onClick={onResetSimulation}>
                 Heute
               </ActionButton>
@@ -102,7 +103,7 @@ function DesktopNavigation({ navigationItems, activeView, displayName, simulatio
   );
 }
 
-function MobileHeader({ activeView, simulationDayOffset, simulationDateLabel, onNavigate, onResetSimulation }: AppNavigationProps) {
+function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, onNavigate, onResetSimulation }: AppNavigationProps) {
   const settingsActive = utilityViews.has(activeView);
 
   return (
@@ -120,10 +121,10 @@ function MobileHeader({ activeView, simulationDayOffset, simulationDateLabel, on
           <Settings size={20} aria-hidden="true" />
         </button>
       </div>
-      {simulationDayOffset > 0 ? (
+      {simulationOffsetMinutes > 0 ? (
         <div className="mt-2 flex min-h-11 items-center gap-3 rounded-xl border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">
           <CalendarClock className="shrink-0" size={17} aria-hidden="true" />
-          <span className="min-w-0 flex-1 truncate core-caption font-semibold">Simulation · {simulationDateLabel} · +{simulationDayOffset} Tage</span>
+          <span className="min-w-0 flex-1 truncate core-caption font-semibold">Simulation · {simulationDateLabel} · +{formatSimulationDuration(simulationOffsetMinutes)}</span>
           <button type="button" data-reset-simulation="true" className="min-h-11 shrink-0 px-2 core-body font-semibold text-[var(--core-action-primary)]" onClick={onResetSimulation}>Heute</button>
         </div>
       ) : null}

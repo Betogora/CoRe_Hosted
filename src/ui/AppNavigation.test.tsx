@@ -6,13 +6,13 @@ import { AppNavigation } from "./AppNavigation.tsx";
 
 const navigationItems = createMenuModel().listNavigationItems();
 
-function renderNavigation(activeView = "uebersicht", simulationDayOffset = 0) {
+function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0) {
   return renderToStaticMarkup(
     <AppNavigation
       navigationItems={navigationItems}
       activeView={activeView}
       displayName="Ada"
-      simulationDayOffset={simulationDayOffset}
+      simulationOffsetMinutes={simulationOffsetMinutes}
       simulationDateLabel="Sonntag, 9. August 2026"
       onNavigate={() => undefined}
       onResetSimulation={() => undefined}
@@ -46,9 +46,12 @@ test("settings, help and simulator share the active utility entry", () => {
 });
 
 test("active simulation remains visible in both navigation layouts", () => {
-  const markup = renderNavigation("uebersicht", 3);
+  const markup = renderNavigation("uebersicht", 3 * 24 * 60);
 
   assert.match(markup, /Simulation aktiv/);
   assert.match(markup, /Simulation · Sonntag, 9\. August 2026 · \+3 Tage/);
   assert.equal((markup.match(/data-reset-simulation="true"/g) ?? []).length, 2);
+
+  const minuteMarkup = renderNavigation("uebersicht", 10);
+  assert.match(minuteMarkup, /\+10 Minuten/);
 });

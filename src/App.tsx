@@ -31,7 +31,7 @@ import { createPortableExport, mergePortableExportIntoState } from "./dataPortab
 import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type LearningSettingsInput } from "./deckSettings.ts";
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
-import { formatSimulationDate, getSimulatedNow, normalizeSimulationDayOffset } from "./simulationClock.ts";
+import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
 import { SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
@@ -168,7 +168,7 @@ export function App() {
   const [creationDraftDirty, setCreationDraftDirty] = React.useState(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
-  const [simulationDayOffset, setSimulationDayOffset] = React.useState(0);
+  const [simulationOffsetMinutes, setSimulationOffsetMinutes] = React.useState(0);
   const creationDraftFocusRef = React.useRef<(() => void) | null>(null);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
@@ -190,13 +190,13 @@ export function App() {
   } = useAppNavigation({ authPhase, defaultViewId: menu.defaultViewId });
   const mediaStore = React.useMemo(() => cloudUser ? createAccountMediaStore({ client: supabase, supabaseUrl: getSupabaseBrowserConfig().url, userId: cloudUser.id }) : null, [cloudUser, supabase]);
   const getLearningNow = React.useCallback(
-    () => getSimulatedNow(new Date(), simulationDayOffset),
-    [simulationDayOffset],
+    () => getSimulatedNow(new Date(), simulationOffsetMinutes),
+    [simulationOffsetMinutes],
   );
   const learningNow = React.useMemo(getLearningNow, [activeView, getLearningNow, state?.decks]);
 
-  const changeSimulationDayOffset = React.useCallback((value: number) => {
-    setSimulationDayOffset(normalizeSimulationDayOffset(value));
+  const changeSimulationOffset = React.useCallback((value: number) => {
+    setSimulationOffsetMinutes(normalizeSimulationOffsetMinutes(value));
   }, []);
 
   const navigateToView = React.useCallback((...args: Parameters<typeof navigateToViewNow>) => {
@@ -580,7 +580,7 @@ export function App() {
     }
     bootRunRef.current += 1;
     resetBrowserRouteToDefault();
-    setSimulationDayOffset(0);
+    setSimulationOffsetMinutes(0);
     setWorkspace(null);
     setSyncEngine(null);
     lastAcknowledgedStateRef.current = null;
@@ -1076,8 +1076,8 @@ export function App() {
       return (
         <SimulatorScreen
           systemNow={new Date().toISOString()}
-          dayOffset={simulationDayOffset}
-          onDayOffsetChange={changeSimulationDayOffset}
+          offsetMinutes={simulationOffsetMinutes}
+          onOffsetChange={changeSimulationOffset}
         />
       );
     }
@@ -1100,7 +1100,7 @@ export function App() {
           onResolveConflict={resolveSyncConflict}
           onSignOut={signOut}
           onNavigate={navigateToView}
-          simulationDayOffset={simulationDayOffset}
+          simulationOffsetMinutes={simulationOffsetMinutes}
           simulationDateLabel={formatSimulationDate(learningNow)}
         />
       );
@@ -1156,7 +1156,7 @@ export function App() {
           variantId={studyRequest.variantId}
           mediaStore={mediaStore}
           getNow={getLearningNow}
-          simulationDayOffset={simulationDayOffset}
+          simulationOffsetMinutes={simulationOffsetMinutes}
           onExit={() => {
             refresh();
             navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
@@ -1202,10 +1202,10 @@ export function App() {
           navigationItems={navigationItems}
           activeView={activeView}
           displayName={state.profile.displayName}
-          simulationDayOffset={simulationDayOffset}
+          simulationOffsetMinutes={simulationOffsetMinutes}
           simulationDateLabel={formatSimulationDate(learningNow)}
           onNavigate={navigateToView}
-          onResetSimulation={() => changeSimulationDayOffset(0)}
+          onResetSimulation={() => changeSimulationOffset(0)}
         />
 
         <section ref={screenRegionRef} className="min-w-0 overflow-x-hidden px-5 pb-32 pt-8 outline-none sm:px-8 lg:px-12 xl:overflow-y-auto xl:py-12" tabIndex={-1} aria-label="Seiteninhalt">

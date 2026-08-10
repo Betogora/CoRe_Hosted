@@ -122,7 +122,7 @@ export interface SettingsScreenProps {
   onResolveConflict: (conflictId: string, decision: Record<string, unknown>) => Promise<unknown>;
   onSignOut: () => Promise<void>;
   onNavigate: NavigateToView;
-  simulationDayOffset: number;
+  simulationOffsetMinutes: number;
   simulationDateLabel: string;
 }
 
@@ -137,8 +137,8 @@ export interface StatisticsScreenProps {
 
 export interface SimulatorScreenProps {
   systemNow: string;
-  dayOffset: number;
-  onDayOffsetChange: (dayOffset: number) => void;
+  offsetMinutes: number;
+  onOffsetChange: (offsetMinutes: number) => void;
 }
 
 export interface StudyModeProps {
@@ -149,7 +149,7 @@ export interface StudyModeProps {
   variantId?: string;
   mediaStore: AccountMediaStore | null;
   getNow: () => string;
-  simulationDayOffset: number;
+  simulationOffsetMinutes: number;
   onExit: () => void;
   onReturnToLearn: () => void;
   onEditCard: (deckId: string, cardId: string) => unknown;

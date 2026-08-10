@@ -56,7 +56,7 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
       variantSession
       mediaStore={null}
       getNow={() => "2026-07-06T10:00:00.000Z"}
-      simulationDayOffset={0}
+      simulationOffsetMinutes={0}
       onExit={() => undefined}
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}
@@ -75,12 +75,12 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
   assert.doesNotMatch(markup, /original-anchor|source-anchor|schedulerVersion|variantLevel|generationSource/i);
 });
 
-test("StudyMode uses the simulated learning time for queue and visible status", () => {
+test("StudyMode uses a simulated same-day minute offset for queue and visible status", () => {
   const item = createBasicLearningItem("deck_future", "Zukunftsfrage", "Zukunftsantwort", {
     reviewState: {
       state: "review",
       repetitions: 2,
-      dueAt: "2026-08-09T09:00:00.000Z",
+      dueAt: "2026-08-06T10:10:00.000Z",
     },
   });
   const deck = createCoreDeck({ id: "deck_future", name: "Zukunft", source: "manual", cards: [item], reviewEvents: [] });
@@ -100,16 +100,16 @@ test("StudyMode uses the simulated learning time for queue and visible status", 
   };
 
   const todayMarkup = renderToStaticMarkup(
-    <StudyMode {...commonProps} getNow={() => "2026-08-06T10:00:00.000Z"} simulationDayOffset={0} />,
+    <StudyMode {...commonProps} getNow={() => "2026-08-06T10:00:00.000Z"} simulationOffsetMinutes={0} />,
   );
   const futureMarkup = renderToStaticMarkup(
-    <StudyMode {...commonProps} getNow={() => "2026-08-09T10:00:00.000Z"} simulationDayOffset={3} />,
+    <StudyMode {...commonProps} getNow={() => "2026-08-06T10:10:00.000Z"} simulationOffsetMinutes={10} />,
   );
 
   assert.doesNotMatch(todayMarkup, /Zukunftsfrage/);
   assert.match(futureMarkup, /Zukunftsfrage/);
   assert.match(futureMarkup, /Simulation aktiv/);
-  assert.match(futureMarkup, /\+3 Tage/);
+  assert.match(futureMarkup, /\+10 Minuten/);
 });
 
 test("StudyMode exposes labeled learning and placeholder Pomodoro progress without the former inline limit", () => {
@@ -123,7 +123,7 @@ test("StudyMode exposes labeled learning and placeholder Pomodoro progress witho
       variantSession={false}
       mediaStore={null}
       getNow={() => "2026-08-06T10:00:00.000Z"}
-      simulationDayOffset={0}
+      simulationOffsetMinutes={0}
       onExit={() => undefined}
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}
@@ -190,7 +190,7 @@ test("StudyMode renders the four daily progress segments in the canonical order 
       variantSession={false}
       mediaStore={null}
       getNow={() => "2026-08-09T10:00:00.000Z"}
-      simulationDayOffset={0}
+      simulationOffsetMinutes={0}
       onExit={() => undefined}
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}

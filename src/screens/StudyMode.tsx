@@ -4,7 +4,7 @@ import type { StudyModeProps } from "../appScreenProps.ts";
 import { getLearningItemAnswer, getLearningItemQuestion, isLearningItemMarked } from "../coreModel.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
 import { createReviewResponseTimer } from "../reviewTiming.ts";
-import { formatSimulationDate } from "../simulationClock.ts";
+import { formatSimulationDate, formatSimulationDuration } from "../simulationClock.ts";
 import {
   advanceDailyReviewSession,
   answerVariant,
@@ -87,7 +87,7 @@ function DailyReviewProgress({ progress }: { progress: DailyReviewProgressSummar
   );
 }
 
-export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationDayOffset, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
+export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationOffsetMinutes, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
@@ -289,9 +289,9 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
               <SlidersHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
-          {simulationDayOffset > 0 ? (
+          {simulationOffsetMinutes > 0 ? (
             <p className="rounded-xl border border-core-warning bg-core-warning-soft px-4 py-3 text-center core-body font-semibold text-core-text" role="status">
-              Simulation aktiv · {formatSimulationDate(getNow())} · +{simulationDayOffset} Tage
+              Simulation aktiv · {formatSimulationDate(getNow())} · +{formatSimulationDuration(simulationOffsetMinutes)}
             </p>
           ) : null}
           <div className="grid gap-2">

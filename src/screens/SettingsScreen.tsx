@@ -3,6 +3,7 @@ import { CalendarClock, ChevronRight, CircleHelp, Database, Download, Graduation
 import { formatSyncStatusText } from "../accountSession.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, stringifyPortableExport, validatePortableExport } from "../dataPortability.ts";
+import { formatSimulationDuration } from "../simulationClock.ts";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { OrbIcon, PageHeader, SoftPanel, ThemeToggle } from "../ui/coreUi.tsx";
@@ -13,7 +14,7 @@ import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 
 const languageOptions = [{ value: "de", label: "Deutsch" }, { value: "en", label: "English" }];
 
-export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationDayOffset, simulationDateLabel }: SettingsScreenProps) {
+export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel }: SettingsScreenProps) {
   const [form, setForm] = React.useState(profile);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
@@ -133,7 +134,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
             <span className="min-w-0 flex-1">
               <span className="block core-body-large font-semibold text-[var(--core-text)]">Simulator</span>
               <span className="block truncate core-caption text-[var(--core-text-muted)]">
-                {simulationDayOffset > 0 ? `Aktiv: ${simulationDateLabel} · +${simulationDayOffset} Tage` : "Lernfortschritt über simulierte Tage prüfen"}
+                {simulationOffsetMinutes > 0 ? `Aktiv: ${simulationDateLabel} · +${formatSimulationDuration(simulationOffsetMinutes)}` : "Lernfortschritt über simulierte Zeitpunkte prüfen"}
               </span>
             </span>
             <ChevronRight className="shrink-0 text-[var(--core-action-primary)]" size={18} aria-hidden="true" />

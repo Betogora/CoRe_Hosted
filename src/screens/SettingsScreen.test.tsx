@@ -32,7 +32,7 @@ function renderSettings() {
       onResolveConflict={async () => undefined}
       onSignOut={async () => undefined}
       onNavigate={() => createViewRoute("uebersicht")}
-      simulationDayOffset={3}
+      simulationOffsetMinutes={3 * 24 * 60}
       simulationDateLabel="Sonntag, 9. August 2026"
     />,
   );

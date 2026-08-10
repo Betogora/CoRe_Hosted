@@ -221,13 +221,13 @@ Akzeptanz:
 
 ### 5.7 Lernfortschritt über simulierte Tage prüfen
 
-Der direkt verlinkbare `/simulator` ist im Einstellungsbereich `App und Bedienung` neben Theme und Hilfe erreichbar. Er verschiebt die lernbezogene App-Zeit für die vorhandenen Accountkarten von „Heute“ aus um bis zu 3.650 Kalendertage in die Zukunft. Das Umstellen der Zeit verändert keine Karte; ein am simulierten Tag ausgeführtes Review ist dagegen ein echtes Review und wird mit diesem Zeitpunkt gespeichert und synchronisiert.
+Der direkt verlinkbare `/simulator` ist im Einstellungsbereich `App und Bedienung` neben Theme und Hilfe erreichbar. Er verschiebt die lernbezogene App-Zeit für die vorhandenen Accountkarten von „Heute“ aus minuten- oder tageweise um bis zu 3.650 Kalendertage in die Zukunft. Das Umstellen der Zeit verändert keine Karte; ein am simulierten Zeitpunkt ausgeführtes Review ist dagegen ein echtes Review und wird mit diesem Zeitpunkt gespeichert und synchronisiert.
 
 Akzeptanz:
 
-- „Heute“, „Morgen“, `+3`, `+7`, `+14` und `+30 Tage`, einzelne Tagesschritte und ein begrenztes Datumsfeld sind per Tastatur erreichbar. Vergangene oder mehr als 3.650 Tage entfernte Werte werden auf den gültigen Bereich begrenzt.
+- „Heute“, `+10`, `+15` und `+30 Minuten`, `+1`, `+2` und `+4 Stunden`, „Morgen“, `+3`, `+7`, `+14` und `+30 Tage`, einzelne Tagesschritte und ein begrenztes Datumsfeld sind per Tastatur erreichbar. Die simulierte lokale Uhrzeit bleibt sichtbar. Vergangene oder mehr als 3.650 Tage entfernte Werte werden auf den gültigen Bereich begrenzt.
 - Dashboard, Lernen, Kartenverwaltung, Statistik und Review verwenden denselben simulierten Lernzeitpunkt für Fälligkeit, Queue, Heatmaps, Variantenreife, Intervallvorschau und Bewertung.
-- Bei aktivem Zukunftstag bleibt der Zustand in der App-Shell und im Vollbild-Lernmodus sichtbar. Während einer laufenden Lernsitzung wird die Zeit nicht umgeschaltet.
+- Bei aktivem Zukunftszeitpunkt bleibt der Zustand in der App-Shell und im Vollbild-Lernmodus sichtbar. Während einer laufenden Lernsitzung wird die Zeit nicht umgeschaltet.
 - Der Offset bleibt lokal und transient. Reload und Logout stellen „Heute“ wieder her; Sync-, Auth-, Medien-, Autosave- und normale Bearbeitungsmetadaten verwenden unverändert die echte Systemzeit.
 - Die Aktion „Heute“ setzt ausschließlich die simulierte Uhr zurück. Bereits gespeicherte Zukunftsreviews, Kartenfortschritt und daraus berechnete nächste Termine bleiben erhalten.
 

@@ -2,32 +2,50 @@ import React from "react";
 import { CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
 import type { SimulatorScreenProps } from "../appScreenProps.ts";
 import {
-  MAX_SIMULATION_DAY_OFFSET,
+  MAX_SIMULATION_OFFSET_MINUTES,
+  SIMULATION_MINUTES_PER_DAY,
   formatSimulationDate,
+  formatSimulationDuration,
+  formatSimulationTime,
   getLocalDateInputValue,
   getSimulatedNow,
-  getSimulationDayOffsetForDate,
+  getSimulationOffsetMinutesForDate,
 } from "../simulationClock.ts";
 import { IconButton } from "../ui/actionUi.tsx";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 
-const quickOffsets = [0, 1, 3, 7, 14, 30] as const;
+const quickOffsets = [
+  { minutes: 0, label: "Heute" },
+  { minutes: 10, label: "+10 Min." },
+  { minutes: 15, label: "+15 Min." },
+  { minutes: 30, label: "+30 Min." },
+  { minutes: 60, label: "+1 Std." },
+  { minutes: 120, label: "+2 Std." },
+  { minutes: 240, label: "+4 Std." },
+  { minutes: SIMULATION_MINUTES_PER_DAY, label: "Morgen" },
+  { minutes: 3 * SIMULATION_MINUTES_PER_DAY, label: "+3 Tage" },
+  { minutes: 7 * SIMULATION_MINUTES_PER_DAY, label: "+7 Tage" },
+  { minutes: 14 * SIMULATION_MINUTES_PER_DAY, label: "+14 Tage" },
+  { minutes: 30 * SIMULATION_MINUTES_PER_DAY, label: "+30 Tage" },
+] as const;
 
-function quickLabel(dayOffset: number): string {
-  if (dayOffset === 0) return "Heute";
-  if (dayOffset === 1) return "Morgen";
-  return `+${dayOffset} Tage`;
+function formatSimulationHeading(offsetMinutes: number): string {
+  const days = Math.floor(offsetMinutes / SIMULATION_MINUTES_PER_DAY);
+  const remainingMinutes = offsetMinutes % SIMULATION_MINUTES_PER_DAY;
+  if (days === 0) return `In ${formatSimulationDuration(remainingMinutes)}`;
+  if (remainingMinutes === 0) return days === 1 ? "Morgen" : `In ${days} Tagen`;
+  return `In ${days === 1 ? "einem Tag" : `${days} Tagen`} und ${formatSimulationDuration(remainingMinutes)}`;
 }
 
-export function SimulatorScreen({ systemNow, dayOffset, onDayOffsetChange }: SimulatorScreenProps) {
-  const simulatedNow = getSimulatedNow(systemNow, dayOffset);
+export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: SimulatorScreenProps) {
+  const simulatedNow = getSimulatedNow(systemNow, offsetMinutes);
   const selectedDate = getLocalDateInputValue(simulatedNow);
   const minimumDate = getLocalDateInputValue(systemNow);
-  const maximumDate = getLocalDateInputValue(getSimulatedNow(systemNow, MAX_SIMULATION_DAY_OFFSET));
+  const maximumDate = getLocalDateInputValue(getSimulatedNow(systemNow, MAX_SIMULATION_OFFSET_MINUTES));
 
   function selectOffset(value: number) {
-    onDayOffsetChange(value);
+    onOffsetChange(value);
   }
 
   return (
@@ -46,23 +64,23 @@ export function SimulatorScreen({ systemNow, dayOffset, onDayOffsetChange }: Sim
             </span>
             <div className="min-w-0">
               <p className="core-heading-3 font-semibold text-[var(--core-text)]">
-                {dayOffset === 0 ? "Heute" : `In ${dayOffset} ${dayOffset === 1 ? "Tag" : "Tagen"}`}
+                {offsetMinutes === 0 ? "Heute" : formatSimulationHeading(offsetMinutes)}
               </p>
-              <p className="core-body text-[var(--core-text-muted)]">{formatSimulationDate(simulatedNow)} · lokale Uhrzeit bleibt erhalten</p>
+              <p className="core-body text-[var(--core-text-muted)]">{formatSimulationDate(simulatedNow)} · {formatSimulationTime(simulatedNow)} Uhr</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <IconButton
               label="Einen simulierten Tag zurück"
               icon={ChevronLeft}
-              disabled={dayOffset === 0}
-              onClick={() => selectOffset(dayOffset - 1)}
+              disabled={offsetMinutes === 0}
+              onClick={() => selectOffset(offsetMinutes - SIMULATION_MINUTES_PER_DAY)}
             />
             <IconButton
               label="Einen simulierten Tag weiter"
               icon={ChevronRight}
-              disabled={dayOffset === MAX_SIMULATION_DAY_OFFSET}
-              onClick={() => selectOffset(dayOffset + 1)}
+              disabled={offsetMinutes === MAX_SIMULATION_OFFSET_MINUTES}
+              onClick={() => selectOffset(offsetMinutes + SIMULATION_MINUTES_PER_DAY)}
             />
           </div>
         </div>
@@ -70,15 +88,15 @@ export function SimulatorScreen({ systemNow, dayOffset, onDayOffsetChange }: Sim
         <fieldset className="mt-6">
           <legend className="core-control-label font-semibold text-[var(--core-text-secondary)]">Schnellauswahl</legend>
           <div className="mt-2 flex flex-wrap gap-2">
-            {quickOffsets.map((offset) => (
+            {quickOffsets.map((option) => (
               <button
-                key={offset}
+                key={option.minutes}
                 type="button"
-                aria-pressed={dayOffset === offset}
-                onClick={() => selectOffset(offset)}
-                className={`min-h-11 rounded-xl px-4 core-body font-semibold transition ${dayOffset === offset ? "bg-[var(--core-action-primary)] text-[var(--core-text-on-accent)]" : "border border-[var(--core-border)] bg-core-surface text-[var(--core-text-secondary)] hover:border-[var(--core-border-interactive)] hover:bg-[var(--core-surface-muted)]"}`}
+                aria-pressed={offsetMinutes === option.minutes}
+                onClick={() => selectOffset(option.minutes)}
+                className={`min-h-11 rounded-xl px-4 core-body font-semibold transition ${offsetMinutes === option.minutes ? "bg-[var(--core-action-primary)] text-[var(--core-text-on-accent)]" : "border border-[var(--core-border)] bg-core-surface text-[var(--core-text-secondary)] hover:border-[var(--core-border-interactive)] hover:bg-[var(--core-surface-muted)]"}`}
               >
-                {quickLabel(offset)}
+                {option.label}
               </button>
             ))}
           </div>
@@ -91,7 +109,7 @@ export function SimulatorScreen({ systemNow, dayOffset, onDayOffsetChange }: Sim
             min={minimumDate}
             max={maximumDate}
             value={selectedDate}
-            onChange={(event) => selectOffset(getSimulationDayOffsetForDate(systemNow, event.target.value))}
+            onChange={(event) => selectOffset(getSimulationOffsetMinutesForDate(systemNow, event.target.value))}
             className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 text-[var(--core-text)] outline-none"
           />
           <span className="core-caption font-normal text-[var(--core-text-muted)]">Bis zu zehn Jahre in die Zukunft.</span>
