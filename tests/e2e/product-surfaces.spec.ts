@@ -33,35 +33,69 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
   await expect(sidebar).toBeHidden();
   await expect(mobileHeader).toBeVisible();
   await expect(bottomNavigation).toBeVisible();
+  const mobileUtilities = mobileHeader.locator('[data-navigation-utilities="true"]');
+  const mobileSettingsButton = mobileUtilities.locator('[data-navigation-utility="settings"]');
+  const mobileThemeButton = mobileUtilities.locator('[data-navigation-utility="theme"]');
+  await expect(mobileSettingsButton).toBeVisible();
+  await expect(mobileThemeButton).toBeVisible();
+  const mobileSettingsBox = await mobileSettingsButton.boundingBox();
+  const mobileThemeBox = await mobileThemeButton.boundingBox();
+  expect(mobileSettingsBox).not.toBeNull();
+  expect(mobileThemeBox).not.toBeNull();
+  expect(mobileSettingsBox!.x).toBeLessThan(mobileThemeBox!.x);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+
+  await mobileSettingsButton.click();
+  await expect(page).toHaveURL(/\/einstellungen$/);
+  await expect(mobileSettingsButton).toHaveAttribute("aria-current", "page");
+  await expect(page.getByText("Darstellung", { exact: true })).toHaveCount(0);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(sidebar).toBeVisible();
   await expect(mobileHeader).toBeHidden();
   await expect(bottomNavigation).toBeHidden();
+  const desktopUtilities = sidebar.locator('[data-navigation-utilities="true"]');
+  const desktopSettingsButton = desktopUtilities.locator('[data-navigation-utility="settings"]');
+  const desktopThemeButton = desktopUtilities.locator('[data-navigation-utility="theme"]');
+  await expect(desktopSettingsButton).toBeVisible();
+  await expect(desktopThemeButton).toBeVisible();
+  await expect(desktopSettingsButton).toHaveAttribute("aria-current", "page");
+  const desktopSettingsBox = await desktopSettingsButton.boundingBox();
+  const desktopThemeBox = await desktopThemeButton.boundingBox();
+  expect(desktopSettingsBox).not.toBeNull();
+  expect(desktopThemeBox).not.toBeNull();
+  expect(desktopSettingsBox!.x).toBeLessThan(desktopThemeBox!.x);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
-test("dark mode can be toggled from the sidebar and persists across reloads", async ({ page }) => {
+test("dark mode can be toggled from both responsive navigation layouts and persists across reloads", async ({ page }) => {
   await resetToFreshLocalState(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
 
-  const toggle = page.getByRole("switch", { name: "Dark Mode einschalten" });
-  await expect(toggle).toBeVisible();
-  await expect(toggle).not.toBeChecked();
-  await toggle.click();
+  const sidebar = page.locator('[data-navigation-layout="sidebar"]');
+  const desktopThemeButton = sidebar.getByRole("button", { name: "Dark Mode einschalten" });
+  await expect(desktopThemeButton).toBeVisible();
+  await expect(desktopThemeButton.locator("svg")).toHaveClass(/lucide-sun/);
+  await desktopThemeButton.click();
 
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
-  await expect(page.getByRole("switch", { name: "Dark Mode ausschalten" })).toBeChecked();
+  await expect(sidebar.getByRole("button", { name: "Light Mode einschalten" }).locator("svg")).toHaveClass(/lucide-moon/);
   expect(await page.evaluate((key) => localStorage.getItem(key), CORE_THEME_STORAGE_KEY)).toBe("dark");
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
-  await expect(page.getByRole("switch", { name: "Dark Mode ausschalten" })).toBeChecked();
+  await expect(sidebar.getByRole("button", { name: "Light Mode einschalten" })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("switch", { name: "Dark Mode ausschalten" })).toBeVisible();
+  const mobileHeader = page.locator('[data-navigation-layout="mobile-header"]');
+  const mobileThemeButton = mobileHeader.getByRole("button", { name: "Light Mode einschalten" });
+  await expect(mobileThemeButton).toBeVisible();
+  await expect(mobileThemeButton.locator("svg")).toHaveClass(/lucide-moon/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
-  await page.getByRole("switch", { name: "Dark Mode ausschalten" }).click();
+  await mobileThemeButton.click();
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "light");
+  await expect(mobileHeader.getByRole("button", { name: "Dark Mode einschalten" }).locator("svg")).toHaveClass(/lucide-sun/);
 });
 
 test("Pomodoro timer starts globally, persists and stays synchronized between tabs", async ({ page, context }) => {
@@ -234,7 +268,7 @@ test("help explains FSRS and CoRe with an accessible interactive learning curve"
   await expect(page.getByTestId("memory-curve")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
-  await page.getByRole("switch", { name: "Dark Mode einschalten" }).click();
+  await page.locator('[data-navigation-layout="mobile-header"]').getByRole("button", { name: "Dark Mode einschalten" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
 });
 

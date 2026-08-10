@@ -1,12 +1,12 @@
 import React from "react";
-import { CalendarClock, ChevronRight, CircleHelp, Database, Download, GraduationCap, Languages, Lock, MonitorCog, RefreshCw, Save, Upload, User, X } from "lucide-react";
+import { CalendarClock, ChevronRight, CircleHelp, Database, Download, GraduationCap, Languages, Lock, RefreshCw, Save, Upload, User, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, stringifyPortableExport, validatePortableExport } from "../dataPortability.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { OrbIcon, PageHeader, SoftPanel, ThemeToggle } from "../ui/coreUi.tsx";
+import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.tsx";
@@ -114,16 +114,6 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
       <section className="grid gap-4" aria-labelledby="settings-app-heading">
         <h2 id="settings-app-heading" className="core-heading-2 font-semibold text-[var(--core-text)]">App und Bedienung</h2>
         <SoftPanel className="overflow-hidden p-0">
-          <label className="flex min-h-[4.75rem] cursor-pointer items-center gap-3 border-b border-[var(--core-border)] px-4 py-3 transition hover:bg-[var(--core-surface-hover)] sm:px-6">
-            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--core-info-surface)] text-[var(--core-action-primary)]">
-              <MonitorCog size={20} aria-hidden="true" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block core-body-large font-semibold text-[var(--core-text)]">Darstellung</span>
-              <span className="block core-caption text-[var(--core-text-muted)]">Dark Mode für diesen Browser</span>
-            </span>
-            <ThemeToggle className="shrink-0" />
-          </label>
           <button
             type="button"
             onClick={() => onNavigate("simulator")}

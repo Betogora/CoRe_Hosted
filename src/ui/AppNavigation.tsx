@@ -1,10 +1,12 @@
+import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, BookOpen, CalendarClock, Ellipsis, Home, Layers, PlusSquare, Settings } from "lucide-react";
+import { BarChart3, BookOpen, CalendarClock, Ellipsis, Home, Layers, Moon, PlusSquare, Settings, Sun } from "lucide-react";
 import { createPortal } from "react-dom";
+import { readCoreTheme, toggleCoreTheme, type CoreTheme } from "../coreTheme.ts";
 import type { MenuViewId } from "../menuModel.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
-import { ActionButton } from "./actionUi.tsx";
+import { ActionButton, IconButton } from "./actionUi.tsx";
 import { PomodoroProgress } from "./pomodoroTimerUi.tsx";
 
 export interface AppNavigationItem {
@@ -16,7 +18,6 @@ export interface AppNavigationItem {
 export interface AppNavigationProps {
   navigationItems: AppNavigationItem[];
   activeView: string;
-  displayName: string;
   simulationOffsetMinutes: number;
   simulationDateLabel: string;
   pomodoroTimer: PomodoroTimer | null;
@@ -38,9 +39,42 @@ function getIcon(iconKey: string) {
   return iconByKey[iconKey] ?? Home;
 }
 
-function DesktopNavigation({ navigationItems, activeView, displayName, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation }: AppNavigationProps) {
-  const settingsActive = utilityViews.has(activeView);
+interface ResponsiveNavigationProps extends AppNavigationProps {
+  theme: CoreTheme;
+  onToggleTheme: () => void;
+}
 
+function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme, className = "" }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onToggleTheme"> & { className?: string }) {
+  const settingsActive = utilityViews.has(activeView);
+  const darkModeActive = theme === "dark";
+  const ThemeIcon = darkModeActive ? Moon : Sun;
+
+  return (
+    <div className={`flex items-center gap-2 ${className}`} data-navigation-utilities="true">
+      <IconButton
+        type="button"
+        data-app-navigation="true"
+        data-navigation-utility="settings"
+        label="Einstellungen öffnen"
+        icon={Settings}
+        onClick={() => onNavigate("einstellungen")}
+        className={`size-11 shrink-0 rounded-full ${settingsActive ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-sm" : ""}`}
+        aria-current={settingsActive ? "page" : undefined}
+      />
+      <IconButton
+        type="button"
+        data-navigation-utility="theme"
+        label={darkModeActive ? "Light Mode einschalten" : "Dark Mode einschalten"}
+        icon={ThemeIcon}
+        variant="ghost"
+        onClick={onToggleTheme}
+        className="size-11 shrink-0 rounded-full"
+      />
+    </div>
+  );
+}
+
+function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme }: ResponsiveNavigationProps) {
   return (
     <aside className="hidden border-r border-[var(--core-border)] bg-core-surface xl:block xl:overflow-y-auto" data-navigation-layout="sidebar">
       <div className="flex h-full flex-col px-4 py-8 lg:px-5 lg:py-10">
@@ -86,22 +120,7 @@ function DesktopNavigation({ navigationItems, activeView, displayName, simulatio
           ) : null}
           <PomodoroProgress timer={pomodoroTimer} variant="sidebar" />
           <div className={`border-t border-[var(--core-border)] pt-6 ${simulationOffsetMinutes > 0 || pomodoroTimer ? "mt-3" : ""}`}>
-            <button
-              type="button"
-              data-app-navigation="true"
-              onClick={() => onNavigate("einstellungen")}
-              className={`flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition ${
-                settingsActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text)] hover:bg-core-surface"
-              }`}
-              aria-label="Einstellungen öffnen"
-              aria-current={settingsActive ? "page" : undefined}
-            >
-              <span className="grid size-10 place-items-center rounded-full bg-[var(--core-info-surface)] core-body font-semibold">{(displayName || "CO").slice(0, 2).toUpperCase()}</span>
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)]">
-                <Settings size={18} aria-hidden="true" />
-              </span>
-              <span className="min-w-0 flex-1 truncate core-body font-semibold">{displayName}</span>
-            </button>
+            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} className="justify-end" />
           </div>
         </div>
       </div>
@@ -109,24 +128,13 @@ function DesktopNavigation({ navigationItems, activeView, displayName, simulatio
   );
 }
 
-function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation }: AppNavigationProps) {
-  const settingsActive = utilityViews.has(activeView);
-
+function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme }: ResponsiveNavigationProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--core-border)] bg-core-surface px-5 py-3 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex min-h-11 items-center justify-between gap-3">
         <h1 className="shrink-0 core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
-        <button
-          type="button"
-          data-app-navigation="true"
-          onClick={() => onNavigate("einstellungen")}
-          className={`core-action-secondary grid size-11 shrink-0 place-items-center rounded-full p-0 ${settingsActive ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-sm" : "text-[var(--core-text-secondary)]"}`}
-          aria-label="Einstellungen öffnen"
-          aria-current={settingsActive ? "page" : undefined}
-        >
-          <Settings size={20} aria-hidden="true" />
-        </button>
+        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} className="shrink-0" />
       </div>
       {simulationOffsetMinutes > 0 ? (
         <div className="mt-2 flex min-h-11 items-center gap-3 rounded-xl border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">
@@ -173,12 +181,18 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate }: App
 }
 
 export function AppNavigation(props: AppNavigationProps) {
+  const [theme, setTheme] = React.useState(readCoreTheme);
   const mobileBottomNavigation = <MobileBottomNavigation {...props} />;
+  const responsiveProps = {
+    ...props,
+    theme,
+    onToggleTheme: () => setTheme(toggleCoreTheme),
+  };
 
   return (
     <>
-      <DesktopNavigation {...props} />
-      <MobileHeader {...props} />
+      <DesktopNavigation {...responsiveProps} />
+      <MobileHeader {...responsiveProps} />
       {typeof document === "undefined" ? mobileBottomNavigation : createPortal(mobileBottomNavigation, document.body)}
     </>
   );

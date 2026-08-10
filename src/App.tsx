@@ -1305,7 +1305,6 @@ export function App() {
         <AppNavigation
           navigationItems={navigationItems}
           activeView={activeView}
-          displayName={state.profile.displayName}
           simulationOffsetMinutes={simulationOffsetMinutes}
           simulationDateLabel={formatSimulationDate(learningNow)}
           pomodoroTimer={pomodoroTimer}

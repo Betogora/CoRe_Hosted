@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 50581f2fb7f308fb */
+/* Quellenstand: 60ab7d2bb4fe8743 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1281,6 +1281,9 @@ video {
 .bg-core-warning-soft {
   background-color: var(--core-warning-surface);
 }
+.p-0 {
+  padding: 0px;
+}
 .p-1\.5 {
   padding: 0.375rem;
 }
@@ -2272,10 +2275,6 @@ summary {
   border-color: var(--core-success);
 }
 
-.hover\:bg-core-subtle:hover {
-  background-color: var(--core-surface-muted);
-}
-
 .hover\:bg-core-surface:hover {
   background-color: var(--core-surface);
 }
@@ -2679,25 +2678,6 @@ summary {
         accent-color: var(--core-action-primary);
       }
 
-      .catalog-switch-track {
-        display: inline-flex;
-        width: 2.75rem;
-        height: 1.5rem;
-        padding: 0.1875rem;
-        align-items: center;
-        border-radius: 999px;
-        background: var(--core-action-primary);
-      }
-
-      .catalog-switch-thumb {
-        width: 1.125rem;
-        height: 1.125rem;
-        margin-left: auto;
-        border-radius: 999px;
-        background: var(--core-surface);
-        box-shadow: var(--core-shadow-soft);
-      }
-
       .catalog-dialog-backdrop {
         position: fixed;
         inset: 0;
@@ -2941,6 +2921,8 @@ summary {
       <symbol id="icon-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></symbol>
       <symbol id="icon-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
       <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></symbol>
+      <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+      <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
       <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 15v5h16v-5"/></symbol>
       <symbol id="icon-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
       <symbol id="icon-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18h1.5a1.5 1.5 0 0 0 0-3H12a2 2 0 0 1 0-4h4a5 5 0 0 0 5-5c0-3.3-4-6-9-6Z"/><path d="M7.5 10h.01M9.5 6.5h.01M14 6h.01M17.5 9h.01"/></symbol>
@@ -2965,9 +2947,8 @@ summary {
               <span id="font-status" class="catalog-pill">Schriften werden geprüft …</span>
             </div>
           </div>
-          <button id="theme-toggle" type="button" role="switch" aria-checked="false" class="core-action-secondary min-h-11 px-4 py-2.5">
-            <svg class="catalog-icon" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
-            <span>Dark Mode einschalten</span>
+          <button id="theme-toggle" type="button" aria-label="Dark Mode einschalten" class="core-action-ghost size-11 shrink-0 rounded-full p-0">
+            <svg class="catalog-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>
           </button>
         </div>
       </header>
@@ -3225,7 +3206,7 @@ summary {
           <section id="navigation" class="catalog-section">
             <div class="catalog-section-head">
               <p class="catalog-kicker">06 · Orientierung</p>
-              <h2 class="core-heading-2 text-core-text">Navigation, Umschalter und Dialog</h2>
+              <h2 class="core-heading-2 text-core-text">Navigation, Auswahl und Dialog</h2>
               <p>App-Shell-Muster, segmentierte Fachsteuerung, Disclosure und modale Bestätigung.</p>
             </div>
             <div class="catalog-section-body">
@@ -3257,11 +3238,11 @@ summary {
                     <button type="button" aria-pressed="false" class="core-segmented-control-option">Manuell</button>
                   </div>
                   <span class="catalog-demo-label mt-3">App und Bedienung · Theme-Switch</span>
-                  <button type="button" role="switch" aria-checked="true" class="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-core-secondary transition hover:bg-core-subtle">
-                    <span class="grid size-9 place-items-center rounded-xl bg-core-subtle text-core-action"><svg class="catalog-icon"><use href="#icon-sparkles"></use></svg></span>
-                    <span class="min-w-0 flex-1"><span class="block core-control-label text-core-text">Dark Mode</span><span class="block core-caption text-core-muted">Explizite Auswahl</span></span>
-                    <span class="catalog-switch-track"><span class="catalog-switch-thumb"></span></span>
-                  </button>
+                  <span class="catalog-demo-label mt-3">Shell-Utilitygruppe · Einstellungen und Theme</span>
+                  <div class="flex items-center justify-end gap-2">
+                    <button type="button" aria-label="Einstellungen öffnen" class="core-action-secondary size-11 shrink-0 rounded-full p-0"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button>
+                    <button type="button" aria-label="Dark Mode einschalten" class="core-action-ghost size-11 shrink-0 rounded-full p-0"><svg class="catalog-icon"><use href="#icon-sun"></use></svg></button>
+                  </div>
                 </div>
               </div>
               <details class="rounded-2xl border border-core-border bg-core-subtle p-4">
@@ -3618,8 +3599,8 @@ summary {
       function updateThemeUi() {
         const theme = readTheme();
         const dark = theme === "dark";
-        themeToggle.setAttribute("aria-checked", String(dark));
-        themeToggle.querySelector("span").textContent = dark ? "Light Mode einschalten" : "Dark Mode einschalten";
+        themeToggle.setAttribute("aria-label", dark ? "Light Mode einschalten" : "Dark Mode einschalten");
+        themeToggle.querySelector("use").setAttribute("href", dark ? "#icon-moon" : "#icon-sun");
         renderTokens("primitive-colors", primitiveTokens);
         renderTokens("semantic-colors", semanticTokens);
       }

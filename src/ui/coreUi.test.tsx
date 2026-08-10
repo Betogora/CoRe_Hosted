@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, CoreSwitch, SegmentedDonut, ThemeToggle } from "./coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, CoreSwitch, SegmentedDonut } from "./coreUi.tsx";
 
 test("action dialog exposes its accessible three-action contract", () => {
   const markup = renderToStaticMarkup(
@@ -40,16 +40,6 @@ test("action dialog presents a prompt without description in one compact row", (
 
   assert.match(markup, /flex flex-wrap items-center gap-3/);
   assert.equal(markup.match(/core-action-secondary/g)?.length, 2);
-});
-
-test("theme toggle exposes its icon state as an accessible switch", () => {
-  const markup = renderToStaticMarkup(<ThemeToggle />);
-
-  assert.match(markup, /role="switch"/);
-  assert.match(markup, /aria-checked="false"/);
-  assert.match(markup, /Dark Mode einschalten/);
-  assert.match(markup, /lucide-sun/);
-  assert.doesNotMatch(markup, />Aus</);
 });
 
 test("shared study-state controls expose switch and pressed semantics", () => {

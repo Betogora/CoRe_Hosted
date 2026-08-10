@@ -51,11 +51,10 @@ test("settings expose task-based sections and a read-only login email", () => {
   assert.match(html, /Eine Änderung der Login-E-Mail wird derzeit nicht in CoRe angeboten\./);
 });
 
-test("settings group theme, simulator, Pomodoro timer and help as app controls", () => {
+test("settings group simulator, Pomodoro timer and help without a duplicate theme control", () => {
   const html = renderSettings();
 
-  assert.match(html, /<label[^>]*>.*role="switch".*<\/label>/);
-  assert.match(html, /role="switch"/);
+  assert.doesNotMatch(html, />Darstellung<|Dark Mode für diesen Browser/);
   assert.match(html, />Simulator</);
   assert.match(html, /Aktiv: Sonntag, 9\. August 2026 · \+3 Tage/);
   assert.match(html, /Pomodoro-Timer/);

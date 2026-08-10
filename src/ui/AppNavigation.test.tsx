@@ -12,7 +12,6 @@ function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0
     <AppNavigation
       navigationItems={navigationItems}
       activeView={activeView}
-      displayName="Ada"
       simulationOffsetMinutes={simulationOffsetMinutes}
       simulationDateLabel="Sonntag, 9. August 2026"
       pomodoroTimer={pomodoroTimer}
@@ -43,8 +42,19 @@ test("app navigation exposes a desktop sidebar and the five mobile tabs", () => 
 test("settings, help and simulator share the active utility entry", () => {
   for (const view of ["einstellungen", "hilfe", "simulator"]) {
     const markup = renderNavigation(view);
-    assert.equal((markup.match(/aria-label="Einstellungen öffnen"[^>]*aria-current="page"/g) ?? []).length, 2);
+    assert.equal((markup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 2);
   }
+});
+
+test("responsive navigation shares compact settings and theme actions without a profile preview", () => {
+  const markup = renderNavigation();
+
+  assert.equal((markup.match(/data-navigation-utilities="true"/g) ?? []).length, 2);
+  assert.equal((markup.match(/aria-label="Einstellungen öffnen"/g) ?? []).length, 2);
+  assert.equal((markup.match(/aria-label="Dark Mode einschalten"/g) ?? []).length, 2);
+  assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
+  assert.doesNotMatch(markup, /role="switch"|aria-checked=/);
+  assert.doesNotMatch(markup, />Ada<|>AD</);
 });
 
 test("active simulation remains visible in both navigation layouts", () => {

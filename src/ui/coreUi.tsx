@@ -1,15 +1,13 @@
 import React, { type HTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Moon, Star, Sun } from "lucide-react";
+import { Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { readCoreTheme, toggleCoreTheme } from "../coreTheme.ts";
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton } from "./actionUi.tsx";
 
 interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
   children?: ReactNode;
 }
-
 interface ActionDialogProps {
   open: boolean;
   title: string;
@@ -33,7 +31,6 @@ export function SoftPanel({ children, className = "", ...props }: SoftPanelProps
     </section>
   );
 }
-
 export function ActionDialog({
   open,
   title,
@@ -430,21 +427,5 @@ export function CardMarkButton({ marked, onMarkedChange, disabled = false, class
     >
       <Star size={22} fill={marked ? "currentColor" : "none"} aria-hidden="true" />
     </button>
-  );
-}
-
-export function ThemeToggle({ className = "" }: { className?: string }) {
-  const [theme, setTheme] = React.useState(readCoreTheme);
-  const darkModeActive = theme === "dark";
-  const ThemeIcon = darkModeActive ? Moon : Sun;
-
-  return (
-    <CoreSwitch
-      checked={darkModeActive}
-      ariaLabel={`Dark Mode ${darkModeActive ? "ausschalten" : "einschalten"}`}
-      onCheckedChange={() => setTheme(toggleCoreTheme(theme))}
-      className={className}
-      thumb={<ThemeIcon size={12} />}
-    />
   );
 }
