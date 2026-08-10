@@ -135,7 +135,7 @@ test("StudyMode exposes labeled learning and placeholder Pomodoro progress witho
   );
 
   assert.match(markup, /Lernfortschritt/);
-  assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, In Arbeit: 0 Karten, Fällig: 0 Karten"/);
+  assert.match(markup, /aria-valuetext="Heute geschafft: 0 Karten, Neu: 1 Karte, In Arbeit: 0 Karten, Fällig: 0 Karten"/);
   assert.match(markup, /Pomodoro · 25 Min\./);
   assert.match(markup, /study-pomodoro-progress/);
   assert.doesNotMatch(markup, /Neue Karten heute|heute eingeführt|\+10/);
@@ -202,13 +202,13 @@ test("StudyMode renders the four daily progress segments in the canonical order 
   );
 
   assert.match(markup, />1 \/ 10 Karten</);
-  assert.match(markup, /aria-valuetext="Gelernt: 1 Karte, Neu: 3 Karten, In Arbeit: 1 Karte, Fällig: 5 Karten"/);
+  assert.match(markup, /aria-valuetext="Heute geschafft: 1 Karte, Neu: 3 Karten, In Arbeit: 1 Karte, Fällig: 5 Karten"/);
   assert.match(markup, /data-study-progress-segment="learned"[^>]*background-color:var\(--core-learning-status-learned\)[^>]*flex-grow:1/);
   assert.match(markup, /data-study-progress-segment="new"[^>]*background-color:var\(--core-learning-status-new\)[^>]*flex-grow:3/);
   assert.match(markup, /data-study-progress-segment="in-progress"[^>]*background-color:var\(--core-learning-status-in-progress\)[^>]*flex-grow:1/);
   assert.match(markup, /data-study-progress-segment="due"[^>]*background-color:var\(--core-learning-status-due\)[^>]*flex-grow:5/);
   for (const [label, color, value] of [
-    ["Gelernt", "learned", "1 Karte"],
+    ["Heute geschafft", "learned", "1 Karte"],
     ["Neu", "new", "3 Karten"],
     ["In Arbeit", "in-progress", "1 Karte"],
     ["Fällig", "due", "5 Karten"],
@@ -220,4 +220,39 @@ test("StudyMode renders the four daily progress segments in the canonical order 
   assert.ok(markup.indexOf('data-study-progress-segment="learned"') < markup.indexOf('data-study-progress-segment="new"'));
   assert.ok(markup.indexOf('data-study-progress-segment="new"') < markup.indexOf('data-study-progress-segment="in-progress"'));
   assert.ok(markup.indexOf('data-study-progress-segment="in-progress"') < markup.indexOf('data-study-progress-segment="due"'));
+});
+
+test("StudyMode says Für jetzt geschafft while same-day learning steps are still waiting", () => {
+  const item = createBasicLearningItem("deck_waiting", "Später", "Antwort", {
+    reviewState: { state: "learning", reps: 1, dueAt: "2026-08-09T10:30:00.000Z" },
+  });
+  const deck = createCoreDeck({
+    id: "deck_waiting",
+    name: "Wartend",
+    source: "manual",
+    deckSettings: { learnAheadMinutes: 20 },
+    cards: [item],
+  });
+  const markup = renderToStaticMarkup(
+    <StudyMode
+      deck={deck}
+      decks={[deck]}
+      deckId={deck.id}
+      variantSession={false}
+      mediaStore={null}
+      getNow={() => "2026-08-09T10:00:00.000Z"}
+      simulationOffsetMinutes={0}
+      onExit={() => undefined}
+      onReturnToLearn={() => undefined}
+      onEditCard={() => undefined}
+      onEditDeck={() => undefined}
+      onSetCardStudyState={() => deck}
+      onDeckUpdated={() => undefined}
+      onReviewEvent={() => undefined}
+    />,
+  );
+
+  assert.match(markup, /Für jetzt geschafft/);
+  assert.match(markup, /bleiben „In Arbeit“/);
+  assert.doesNotMatch(markup, /Später/);
 });

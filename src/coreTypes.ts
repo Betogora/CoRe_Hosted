@@ -161,6 +161,7 @@ export interface DeckSettings {
   appearance: DeckAppearance;
   newCardsPerDay: number;
   maximumReviewsPerDay: number;
+  learnAheadMinutes: number;
   newReviewOrder: NewReviewOrder;
   newCardsTodayOverride: {
     date: string;

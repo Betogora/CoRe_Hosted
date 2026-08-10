@@ -43,6 +43,7 @@ export {
   getOriginalVariant,
   getVariantAnchor,
   isLearningItemMarked,
+  isLearningItemReviewBlocked,
   normalizeCardVariant,
   normalizeLearningItem,
   updateLearningItemStudyState,

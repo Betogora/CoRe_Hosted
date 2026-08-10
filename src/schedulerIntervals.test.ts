@@ -106,10 +106,10 @@ test("new cards use same-day learning steps before graduating", () => {
   assert.equal(schedulerParams.implementation, "ts-fsrs@5.4.1");
   assert.equal(schedulerParams.parameterSource, "official_default");
   assert.equal((schedulerParams.weights as unknown[])?.length, 21);
-  assert.equal(firstEasy.nextState, "learning");
-  assert.equal(firstEasy.nextReviewState.learningSuccessCount, 1);
-  assert.equal(firstEasy.intervalLabel, "15 Min.");
-  assert.equal(minutesBetween(NOW, firstEasy.dueAt), 15);
+  assert.equal(firstEasy.nextState, "review");
+  assert.equal(firstEasy.nextReviewState.learningSuccessCount, 2);
+  assert.equal(firstEasy.nextReviewState.isGraduated, true);
+  assert.equal(firstEasy.intervalDays > 0, true);
   assert.equal(secondGood.nextState, "review");
   assert.equal(secondGood.nextReviewState.learningSuccessCount, 2);
   assert.equal(secondGood.nextReviewState.isGraduated, true);
@@ -311,7 +311,7 @@ test("normalized imported cards start with learning-step button options", () => 
   assert.equal(next.ratingButtonOptions.good.intervalLabel, "15 Min.");
   assert.ok(next);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(next.ratingButtonOptions.easy.intervalLabel, "15 Min.");
+  assert.equal(next.ratingButtonOptions.easy.intervalLabel, "8 Tage");
 });
 
 test("daily review queue includes currently due cards plus the per-deck new-card quota", () => {
@@ -376,7 +376,7 @@ test("daily progress reconstructs learned, new, in-progress and due cards from s
   });
 
   assert.deepEqual(createDailyReviewQueue(deck, { now: NOW }).dailyProgress, {
-    learnedTodayCount: 0,
+    completedTodayCount: 0,
     newCount: 3,
     inProgressCount: 0,
     dueCount: 7,
@@ -389,7 +389,7 @@ test("daily progress reconstructs learned, new, in-progress and due cards from s
   assert.ok(failedDueVariant);
   deck = answerVariant(deck, failedDue.id, failedDueVariant.id, "again", { now: NOW }).deck;
   assert.deepEqual(createDailyReviewQueue(deck, { now: "2026-07-07T10:01:00.000Z" }).dailyProgress, {
-    learnedTodayCount: 0,
+    completedTodayCount: 0,
     newCount: 3,
     inProgressCount: 1,
     dueCount: 6,
@@ -402,7 +402,7 @@ test("daily progress reconstructs learned, new, in-progress and due cards from s
   assert.ok(completedDueVariant);
   deck = answerVariant(deck, completedDue.id, completedDueVariant.id, "good", { now: "2026-07-07T10:01:00.000Z" }).deck;
   assert.deepEqual(createDailyReviewQueue(deck, { now: "2026-07-07T10:02:00.000Z" }).dailyProgress, {
-    learnedTodayCount: 1,
+    completedTodayCount: 1,
     newCount: 3,
     inProgressCount: 1,
     dueCount: 5,
@@ -410,7 +410,7 @@ test("daily progress reconstructs learned, new, in-progress and due cards from s
   });
 });
 
-test("daily progress keeps a new card in progress until its second successful contact", () => {
+test("daily progress keeps a new card in progress until its final Good learning step", () => {
   const deckId = "deck_new_progress";
   const item = dailyProgressItem(deckId, "new_progress", { state: "new", reps: 0, dueAt: NOW });
   let deck = createCoreDeck({
@@ -427,9 +427,9 @@ test("daily progress keeps a new card in progress until its second successful co
   const first = answerVariant(deck, item.id, originalVariant.id, "good", { now: NOW });
   deck = first.deck;
   const restarted = createDailyReviewQueue(deck, { now: "2026-07-07T10:01:00.000Z" });
-  assert.equal(restarted.total, 0);
+  assert.equal(restarted.total, 1);
   assert.deepEqual(restarted.dailyProgress, {
-    learnedTodayCount: 0,
+    completedTodayCount: 0,
     newCount: 0,
     inProgressCount: 1,
     dueCount: 0,
@@ -442,14 +442,14 @@ test("daily progress keeps a new card in progress until its second successful co
   assert.ok(repeatedVariant);
   deck = answerVariant(deck, repeatedItem.id, repeatedVariant.id, "good", { now: first.updatedCard.reviewState.dueAt }).deck;
   assert.deepEqual(createDailyReviewQueue(deck, { now: first.updatedCard.reviewState.dueAt }).dailyProgress, {
-    learnedTodayCount: 1,
+    completedTodayCount: 1,
     newCount: 0,
     inProgressCount: 0,
     dueCount: 0,
     total: 1,
   });
 
-  assert.equal(createDailyReviewQueue(deck, { now: "2026-07-08T10:00:00.000Z" }).dailyProgress.learnedTodayCount, 0);
+  assert.equal(createDailyReviewQueue(deck, { now: "2026-07-08T10:00:00.000Z" }).dailyProgress.completedTodayCount, 0);
 });
 
 test("daily progress grows when another card becomes due later on the same day", () => {
@@ -465,7 +465,7 @@ test("daily progress grows when another card becomes due later on the same day",
   });
 
   assert.deepEqual(createDailyReviewQueue(deck, { now: NOW }).dailyProgress, {
-    learnedTodayCount: 0,
+    completedTodayCount: 0,
     newCount: 0,
     inProgressCount: 0,
     dueCount: 1,
@@ -631,7 +631,7 @@ test("daily review queue carries rating interval labels for the UI buttons", () 
   assert.equal(current.ratingButtonOptions.good.dueAt, committed.updatedCard.reviewState.dueAt);
 });
 
-test("daily review queue keeps answered learning cards out until their stored dueAt", () => {
+test("daily review queue uses the configured learn-ahead window after reopening", () => {
   const item = newItem();
   assert.ok(getOriginalVariant);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
@@ -644,9 +644,9 @@ test("daily review queue keeps answered learning cards out until their stored du
   const immediatelyRestarted = createDailyReviewQueue(committed.deck, { now: "2026-07-07T10:01:00.000Z" });
   const atStoredDueAt = createDailyReviewQueue(committed.deck, { now: nextDueAt });
 
-  assert.equal(immediatelyRestarted.total, 0);
+  assert.equal(immediatelyRestarted.total, 1);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(immediatelyRestarted.items.some((queueItem) => queueItem.learningItemId === item.id), false);
+  assert.equal(immediatelyRestarted.items.some((queueItem) => queueItem.learningItemId === item.id), true);
   assert.equal(atStoredDueAt.total, 1);
   assert.ok(atStoredDueAt);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
@@ -707,7 +707,7 @@ test("daily review session finishes unique cards before pulling same-day repeats
   assert.equal(repeated.updatedCard.reviewState.state, "review");
   assert.equal(session.completedInitialKeys.length, 2);
   assert.equal(session.repeatCount, 1);
-  assert.deepEqual(session.repeatKeys, ["deck_session:item_second"]);
+  assert.deepEqual(session.repeatKeys, []);
 });
 
 test("session reconciliation replaces only unfinished initial cards and keeps progress and repeats", () => {
@@ -767,6 +767,131 @@ test("suspension removes a card from future queues and reactivation restores it"
   assert.equal(activeQueue.total, 1);
   assert.ok(queuedItem);
   assert.equal(queuedItem.learningItemId, item.id);
+});
+
+test("suspension preserves state and due date for every scheduler phase", () => {
+  const states = [
+    { state: "new", reps: 0, dueAt: "2026-07-07T09:00:00.000Z" },
+    { state: "learning", reps: 1, dueAt: "2026-07-07T09:00:00.000Z" },
+    { state: "relearning", reps: 4, dueAt: "2026-07-07T10:10:00.000Z" },
+    { state: "review", reps: 4, dueAt: "2026-07-07T09:00:00.000Z" },
+    { state: "review", reps: 4, dueAt: "2026-07-08T09:00:00.000Z" },
+  ] as const;
+  const cards = states.map((state, index) => dailyProgressItem("deck_suspension_matrix", `state_${index}`, state));
+  const suspendedCards = cards.map((card) => updateLearningItemStudyState(card, { suspended: true }));
+  const suspendedDeck = createCoreDeck({
+    id: "deck_suspension_matrix",
+    name: "Aussetzen",
+    source: "manual",
+    cards: suspendedCards,
+  });
+
+  assert.deepEqual(createDailyReviewQueue(suspendedDeck, { now: NOW }).dailyProgress, {
+    completedTodayCount: 0,
+    newCount: 0,
+    inProgressCount: 0,
+    dueCount: 0,
+    total: 0,
+  });
+
+  const reactivatedCards = suspendedCards.map((card, index) => {
+    const reactivated = updateLearningItemStudyState(card, { suspended: false });
+    assert.deepEqual(reactivated.reviewState, cards[index].reviewState);
+    assert.deepEqual(reactivated.learningItemState, cards[index].learningItemState);
+    return reactivated;
+  });
+  const reactivatedQueue = createDailyReviewQueue({ ...suspendedDeck, cards: reactivatedCards }, { now: NOW });
+
+  assert.equal(reactivatedQueue.dailyProgress.newCount, 1);
+  assert.equal(reactivatedQueue.dailyProgress.inProgressCount, 2);
+  assert.equal(reactivatedQueue.dailyProgress.dueCount, 1);
+});
+
+test("learn-ahead respects zero, its strict boundary, and the local day boundary", () => {
+  const deckId = "deck_learn_ahead";
+  const learningCard = (id: string, dueAt: string) => dailyProgressItem(deckId, id, {
+    state: "learning",
+    reps: 1,
+    learningStepIndex: 0,
+    dueAt,
+  });
+  const now = new Date(2026, 6, 7, 12, 0, 0);
+  const at = (minutes: number) => new Date(now.getTime() + minutes * 60_000).toISOString();
+  const deck = createCoreDeck({
+    id: deckId,
+    name: "Vorziehen",
+    source: "manual",
+    deckSettings: { learnAheadMinutes: 20 },
+    cards: [learningCard("inside", at(19)), learningCard("boundary", at(20)), learningCard("outside", at(21))],
+  });
+  const queue = createDailyReviewQueue(deck, { now });
+
+  assert.deepEqual(queue.items.map((item) => item?.learningItemId), ["inside"]);
+  assert.equal(queue.dailyProgress.inProgressCount, 3);
+  assert.equal(createDailyReviewQueue({ ...deck, deckSettings: { ...deck.deckSettings, learnAheadMinutes: 0 } }, { now }).total, 0);
+
+  const beforeMidnight = new Date(2026, 6, 7, 23, 50, 0);
+  const acrossMidnight = learningCard("tomorrow", new Date(beforeMidnight.getTime() + 10 * 60_000).toISOString());
+  const dayBoundaryQueue = createDailyReviewQueue({ ...deck, cards: [acrossMidnight] }, { now: beforeMidnight });
+  assert.equal(dayBoundaryQueue.total, 0);
+  assert.equal(dayBoundaryQueue.dailyProgress.inProgressCount, 0);
+});
+
+test("the started root deck controls learn-ahead for its whole subtree", () => {
+  const root = createCoreDeck({
+    id: "deck_ahead_root",
+    name: "Root",
+    source: "manual",
+    deckSettings: { learnAheadMinutes: 20 },
+    cards: [],
+  });
+  const childCard = dailyProgressItem("deck_ahead_child", "child_learning", {
+    state: "learning",
+    reps: 1,
+    dueAt: "2026-07-07T10:10:00.000Z",
+  });
+  const child = createCoreDeck({
+    id: "deck_ahead_child",
+    parentDeckId: root.id,
+    name: "Child",
+    source: "manual",
+    deckSettings: { learnAheadMinutes: 0 },
+    cards: [childCard],
+  });
+
+  assert.equal(createDailyReviewQueue([root, child], { deckId: root.id, now: NOW }).total, 1);
+  assert.equal(createDailyReviewQueue([root, child], { deckId: child.id, now: NOW }).total, 0);
+});
+
+test("an ineligible FIFO repeat does not block a later eligible repeat", () => {
+  const deckId = "deck_repeat_scan";
+  const later = dailyProgressItem(deckId, "later", { state: "learning", reps: 1, dueAt: "2026-07-07T10:30:00.000Z" });
+  const eligible = dailyProgressItem(deckId, "eligible", { state: "learning", reps: 1, dueAt: "2026-07-07T10:10:00.000Z" });
+  const deck = createCoreDeck({ id: deckId, name: "FIFO", source: "manual", cards: [later, eligible] });
+  const session = {
+    ...createDailyReviewSessionState(),
+    repeatKeys: [`${deckId}:later`, `${deckId}:eligible`],
+  };
+  const next = getNextDailyReviewSessionItem(deck, session, { deckId, now: NOW });
+
+  assert.ok(next);
+  assert.equal(next.learningItemId, "eligible");
+  assert.equal(next.sessionInfo.isEarlyRepeat, true);
+});
+
+test("a next-day learning step counts as completed today and returns to In Arbeit tomorrow", () => {
+  const deckId = "deck_next_day_progress";
+  const now = new Date(2026, 6, 7, 23, 50, 0);
+  const item = dailyProgressItem(deckId, "next_day", { state: "new", reps: 0, dueAt: now.toISOString() });
+  const deck = deckWith(item);
+  const original = getOriginalVariant(item);
+  assert.ok(original);
+  const answered = answerVariant({ ...deck, id: deckId, cards: [{ ...item, deckId }] }, item.id, original.id, "good", { now }).deck;
+  const today = createDailyReviewQueue(answered, { now: new Date(now.getTime() + 60_000) }).dailyProgress;
+  const tomorrow = createDailyReviewQueue(answered, { now: new Date(2026, 6, 8, 0, 1, 0) }).dailyProgress;
+
+  assert.deepEqual(today, { completedTodayCount: 1, newCount: 0, inProgressCount: 0, dueCount: 0, total: 1 });
+  assert.deepEqual(tomorrow, { completedTodayCount: 0, newCount: 0, inProgressCount: 1, dueCount: 0, total: 1 });
 });
 
 test("failed session repeats return to the FIFO tail until they succeed", () => {
@@ -859,7 +984,7 @@ test("daily queue applies review caps and the selected new-card order", () => {
   assert.equal(queue.items[0].schedulerInfo.queueKind, "new");
 });
 
-test("parent review sessions respect both root and subdeck review limits", () => {
+test("parent review sessions apply the root review limit across the subtree", () => {
   const root = createCoreDeck({
     id: "deck_limit_root",
     name: "Root",
@@ -872,7 +997,7 @@ test("parent review sessions respect both root and subdeck review limits", () =>
     parentDeckId: root.id,
     name: "Child",
     source: "manual",
-    deckSettings: { maximumReviewsPerDay: 1 },
+    deckSettings: { maximumReviewsPerDay: 0 },
     cards: [reviewItem({ dueAt: "2026-07-07T08:10:00.000Z" }), reviewItem({ dueAt: "2026-07-07T08:15:00.000Z" })],
   });
   const queue = createDailyReviewQueue([root, child], { deckId: root.id, now: NOW });
@@ -880,7 +1005,7 @@ test("parent review sessions respect both root and subdeck review limits", () =>
   assert.equal(queue.availableDueCards, 4);
   assert.equal(queue.dueCount, 3);
   assert.deepEqual(queue.dailyProgress, {
-    learnedTodayCount: 0,
+    completedTodayCount: 0,
     newCount: 0,
     inProgressCount: 0,
     dueCount: 3,

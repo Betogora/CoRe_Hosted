@@ -269,7 +269,7 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
             <Gauge size={19} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
             Tagespensum und Reihenfolge
           </legend>
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
             <RangeField
               label="Neue Karten pro Tag"
               value={draft.newCardsPerDay}
@@ -286,6 +286,16 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
               step={10}
               onChange={(value: any) => updateSetting("maximumReviewsPerDay", value)}
               testId="learning-settings-max-reviews"
+            />
+            <RangeField
+              label="Lernkarten vorziehen"
+              hint="Zeigt vorgemerkte Lernwiederholungen am Sitzungsende bis zu diesem Zeitraum früher. 0 Min. wartet bis zum gespeicherten Termin."
+              value={draft.learnAheadMinutes}
+              min={0}
+              max={720}
+              suffix=" Min."
+              onChange={(value: any) => updateSetting("learnAheadMinutes", value)}
+              testId="learning-settings-learn-ahead"
             />
             <SelectField
               label="Reihenfolge in der Tagesrunde"
@@ -305,7 +315,7 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
           <div className="grid gap-4 lg:grid-cols-2">
             <SelectField
               label="Lernschritte für neue Karten"
-              hint="Der erste Wert gilt nach ‚Nochmal‘, der zweite für den verpflichtenden zweiten Kontakt am selben Tag. Auch ‚Leicht‘ überspringt ihn nicht."
+              hint="Der erste Wert gilt nach „Nochmal“, mit „Gut“ geht es zum nächsten Schritt. „Leicht“ beendet die Lernphase sofort."
               value={stepValue}
               onChange={(value: string) => updateSchedulerSetting("learningStepsMinutes", value.split(",").map(Number))}
               options={stepOptions}

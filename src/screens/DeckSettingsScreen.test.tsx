@@ -65,12 +65,16 @@ test("deck learning options use concise copy, full limits, and deck-only CoRe pa
   assert.match(markup, /Steuert, ob Varianten automatisch/);
   assert.match(markup, /max="500"[^>]*data-testid="learning-settings-new-cards"/);
   assert.match(markup, /max="2000"[^>]*data-testid="learning-settings-max-reviews"/);
+  assert.match(markup, /max="720"[^>]*data-testid="learning-settings-learn-ahead"[^>]*value="20"/);
+  assert.match(markup, />Lernkarten vorziehen</);
+  assert.match(markup, /Zeigt vorgemerkte Lernwiederholungen am Sitzungsende bis zu diesem Zeitraum früher/);
   assert.match(markup, />Wiederholungen pro Tag</);
   assert.match(markup, />Nach einem Fehler erneut zeigen</);
   assert.match(markup, />Kurze Abstände verdoppeln</);
   assert.match(markup, />Gewünschte Erinnerungsrate</);
   assert.match(markup, />Content Repetition</);
-  assert.equal(markup.match(/lg:grid-cols-2 xl:grid-cols-3/g)?.length, 2);
+  assert.match(markup, /lg:grid-cols-2 xl:grid-cols-4/);
+  assert.match(markup, /lg:grid-cols-2 xl:grid-cols-3/);
   assert.match(markup, />Varianten einsetzen ab Lernstufe</);
   assert.match(markup, />Aktive Varianten pro Karte</);
   assert.match(markup, />CoRe-ready · Standard</);

@@ -20,6 +20,7 @@ test("learning settings migrate the previously unused legacy step defaults", () 
 
   assert.equal(settings.newCardsPerDay, 12);
   assert.equal(settings.maximumReviewsPerDay, 200);
+  assert.equal(settings.learnAheadMinutes, 20);
   assert.deepEqual(settings.schedulerProfile.learningStepsMinutes, [5, 15]);
   assert.equal(settings.schedulerProfile.settingsVersion, 2);
   assert.equal(settings.schedulerProfile.desiredRetention, 0.9);
@@ -43,6 +44,13 @@ test("learning settings keep compatible starting intervals and clamp visible dai
   assert.equal(settings.schedulerProfile.easyIntervalDays, 8);
 });
 
+test("learn-ahead defaults to 20 minutes and clamps persisted values", () => {
+  assert.equal(normalizeLearningSettings({}).learnAheadMinutes, 20);
+  assert.equal(normalizeLearningSettings({ learnAheadMinutes: -1 }).learnAheadMinutes, 0);
+  assert.equal(normalizeLearningSettings({ learnAheadMinutes: 721.4 }).learnAheadMinutes, 720);
+  assert.equal(normalizeLearningSettings({ learnAheadMinutes: 19.6 }).learnAheadMinutes, 20);
+});
+
 test("learning presets stay shallow for the UI and become custom after edits", () => {
   const intensive = applyLearningPreset({}, "intensive");
   const custom = markLearningSettingsCustom({
@@ -52,6 +60,7 @@ test("learning presets stay shallow for the UI and become custom after edits", (
 
   assert.equal(intensive.schedulerProfile.presetId, "intensive");
   assert.equal(intensive.schedulerProfile.desiredRetention, 0.94);
+  assert.equal(intensive.learnAheadMinutes, 20);
   assert.equal(custom.schedulerProfile.presetId, "custom");
   assert.equal(custom.maximumReviewsPerDay, 90);
 });
@@ -67,6 +76,7 @@ test("global deck settings roundtrip through cloud-backed profile preferences", 
   assert.equal(savedProfile.schedulerPreferences.keep, "value");
   assert.equal(restored.schedulerProfile.presetId, "relaxed");
   assert.equal(restored.newCardsPerDay, 10);
+  assert.equal(restored.learnAheadMinutes, 20);
   assert.equal(restored.coreMode, "manual");
 });
 
@@ -88,4 +98,5 @@ test("applying learning settings preserves deck-only appearance and daily overri
   assert.equal(next.variantThresholdXp, 132.5);
   assert.equal(next.maxActiveVariantsPerCard, 3);
   assert.equal(next.newCardsPerDay, 15);
+  assert.equal(next.learnAheadMinutes, 20);
 });

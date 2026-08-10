@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCoreCard, createCoreDeck } from "./coreModel.ts";
+import { createCoreCard, createCoreDeck, updateLearningItemStudyState } from "./coreModel.ts";
 import type { LearningItem } from "./coreTypes.ts";
 import {
   type CardTableSort,
@@ -199,6 +199,54 @@ test("library model keeps new, in-progress and due deck counts disjoint", () => 
     { newCards: 1, inProgressCards: 1, dueCards: 1 },
   );
   assert.equal(library.dueCards, 1);
+});
+
+test("deck counters and donut exclude suspended cards while the card table keeps them", () => {
+  const card = (id: string, state: "new" | "learning" | "review", dueAt: string, reps: number) => createCoreCard({
+    id,
+    source: "manual",
+    originalFront: id,
+    originalBack: "Antwort",
+    reviewState: { state, dueAt, reps },
+  });
+  const activeNew = card("active_new", "new", "2026-07-01T07:00:00.000Z", 0);
+  const activeDue = card("active_due", "review", "2026-07-01T07:00:00.000Z", 3);
+  const suspendedLearning = updateLearningItemStudyState(
+    card("suspended_learning", "learning", "2026-07-01T07:00:00.000Z", 1),
+    { suspended: true },
+  );
+  const suspendedDue = updateLearningItemStudyState(
+    card("suspended_due", "review", "2026-07-01T07:00:00.000Z", 3),
+    { suspended: true },
+  );
+  const deck = createCoreDeck({
+    id: "deck_suspended_counts",
+    name: "Ausgesetzt",
+    source: "manual",
+    deckSettings: { newCardsPerDay: 1, maximumReviewsPerDay: 1 },
+    cards: [activeNew, activeDue, suspendedLearning, suspendedDue],
+  });
+  const library = createDeckLibraryModel([deck], { now: "2026-07-01T08:00:00.000Z" });
+  const row = library.rows[0];
+  const table = createCardTableModel([deck], { now: "2026-07-01T08:00:00.000Z" });
+
+  assert.deepEqual(
+    {
+      newCards: row.summary.newCards,
+      inProgressCards: row.summary.inProgressCards,
+      dueCards: row.summary.dueCards,
+      totalCards: row.summary.totalCards,
+    },
+    { newCards: 1, inProgressCards: 0, dueCards: 1, totalCards: 2 },
+  );
+  assert.equal(row.progress, 0);
+  assert.deepEqual(table.groups[0].cardRows.map((cardRow) => cardRow.id), [
+    "active_due",
+    "active_new",
+    "suspended_due",
+    "suspended_learning",
+  ]);
+  assert.equal(table.groups[0].cardRows.find((cardRow) => cardRow.id === "suspended_due")?.nextStudyLabel, "01.07.2026");
 });
 
 test("library model sorts every deck level alphabetically like Anki", () => {

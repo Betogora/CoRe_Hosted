@@ -148,6 +148,7 @@ test("cards page shows suspended rows and marked stars beside the variants badge
   const markup = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: card.id });
 
   assert.match(markup, /data-suspended="true"/);
+  assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
   assert.match(markup, /bg-\[var\(--core-warning-surface\)\]/);
   assert.match(markup, />Nein<\/span><span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
   assert.match(markup, /aria-label="Markierung entfernen"/);

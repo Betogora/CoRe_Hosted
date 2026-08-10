@@ -1,4 +1,5 @@
 import type { LearningItem } from "./coreTypes.ts";
+import { isLearningItemReviewBlocked } from "./coreModel.ts";
 
 const DAY_MS = 86_400_000;
 export const STUDY_HEATMAP_FORECAST_DAYS = 365;
@@ -233,15 +234,11 @@ export function createStudyHeatmapForecastCounts(
   const countsByDay = new Map<string, number>();
 
   for (const item of items) {
-    const status = String(item.status);
     if (
       item.deletedAt
       || item.draftStatus === "draft"
-      || status === "deleted"
-      || status === "suspended"
-      || status === "buried"
-      || Boolean(item.meta?.suspended)
-      || Boolean(item.meta?.buried)
+      || item.status === "deleted"
+      || isLearningItemReviewBlocked(item)
     ) continue;
 
     const dueAt = (item.learningItemState ?? item.reviewState)?.dueAt;

@@ -16,6 +16,7 @@ import {
   getLearningItemAnswer,
   getLearningItemQuestion,
   getOriginalVariant,
+  isLearningItemReviewBlocked,
   makeId,
   normalizeLearningItem,
   updateVariantPerformance,
@@ -102,7 +103,7 @@ interface QueueEntry {
 }
 
 export interface DailyReviewProgressSummary {
-  learnedTodayCount: number;
+  completedTodayCount: number;
   newCount: number;
   inProgressCount: number;
   dueCount: number;
@@ -142,6 +143,10 @@ function isDue(reviewState: Partial<ReviewState> | null | undefined, now: DateIn
   return new Date(reviewState?.dueAt ?? 0).getTime() <= new Date(now).getTime();
 }
 
+function isLearningState(reviewState: Partial<ReviewState> | null | undefined): boolean {
+  return reviewState?.state === "learning" || reviewState?.state === "relearning";
+}
+
 function localDateKey(value: DateInput = new Date()): string {
   const date = new Date(value);
   const year = date.getFullYear();
@@ -155,13 +160,32 @@ function stateReps(state: Partial<ReviewState> = {}): number {
 }
 
 function isNewLearningItem(item: LearningItem): boolean {
-  return stateReps(item?.learningItemState ?? item?.reviewState) === 0;
+  const state = item?.learningItemState ?? item?.reviewState;
+  return state?.state === "new" && stateReps(state) === 0;
+}
+
+function isLearningDueByToday(item: LearningItem, now: DateInput): boolean {
+  const state = item.learningItemState ?? item.reviewState;
+  const dueTime = new Date(state?.dueAt ?? "").getTime();
+  return isLearningState(state) && Number.isFinite(dueTime) && localDateKey(dueTime) <= localDateKey(now);
+}
+
+function isLearningAvailable(item: LearningItem, now: DateInput, learnAheadMinutes: number): boolean {
+  const state = item.learningItemState ?? item.reviewState;
+  if (!isLearningState(state)) return false;
+
+  const nowTime = new Date(now).getTime();
+  const dueTime = new Date(state?.dueAt ?? "").getTime();
+  if (!Number.isFinite(dueTime) || !Number.isFinite(nowTime)) return false;
+  if (dueTime <= nowTime) return true;
+  if (learnAheadMinutes <= 0 || localDateKey(dueTime) !== localDateKey(nowTime)) return false;
+  return dueTime - nowTime < learnAheadMinutes * 60 * 1000;
 }
 
 function activeLearningItems(deck: Deck): LearningItem[] {
   return (deck?.cards ?? [])
     .map((card) => normalizeLearningItem(card))
-    .filter((item) => item.status !== "deleted" && item.draftStatus !== "draft" && !isReviewBlocked(item));
+    .filter((item) => item.status !== "deleted" && item.draftStatus !== "draft" && !isLearningItemReviewBlocked(item));
 }
 
 function asDeckArray(decksOrDeck: Deck | Deck[]): Deck[] {
@@ -239,17 +263,6 @@ function orderDailyQueueEntries(dueEntries: QueueEntry[], newEntries: QueueEntry
   return mixed;
 }
 
-function limitEntriesPerDeck(entries: QueueEntry[], limitForDeck: (deck: Deck) => number): QueueEntry[] {
-  const counts = new Map<string, number>();
-  return entries.filter((entry) => {
-    const count = counts.get(entry.deck.id) ?? 0;
-    const limit = Math.max(0, Number(limitForDeck(entry.deck)) || 0);
-    if (count >= limit) return false;
-    counts.set(entry.deck.id, count + 1);
-    return true;
-  });
-}
-
 export function updateDeckNewCardLimitForDate(deck: Deck, limit: unknown, options: ReviewServiceOptions = {}): Deck {
   const now = options.now ?? new Date();
   const updatedAt = options.updatedAt ?? new Date(now).toISOString();
@@ -298,12 +311,13 @@ function summarizeDailyReviewProgress(
   reviewedEntries: Map<string, QueueEntry>,
   selectedEntries: QueueEntry[],
   reviewedTodayKeys: Set<string>,
+  now: DateInput,
 ): DailyReviewProgressSummary {
   const relevantEntries = new Map(reviewedEntries);
   for (const entry of selectedEntries) relevantEntries.set(entry.key, entry);
 
   const summary: DailyReviewProgressSummary = {
-    learnedTodayCount: 0,
+    completedTodayCount: 0,
     newCount: 0,
     inProgressCount: 0,
     dueCount: 0,
@@ -314,8 +328,9 @@ function summarizeDailyReviewProgress(
     const state = (entry.learningItem.learningItemState ?? entry.learningItem.reviewState)?.state;
     const inProgress = state === "learning" || state === "relearning";
     const reviewedToday = reviewedTodayKeys.has(key);
+    const dueOnFutureDay = localDateKey((entry.learningItem.learningItemState ?? entry.learningItem.reviewState)?.dueAt ?? now) > localDateKey(now);
 
-    if (reviewedToday && !inProgress) summary.learnedTodayCount += 1;
+    if (reviewedToday && (!inProgress || dueOnFutureDay)) summary.completedTodayCount += 1;
     else if (!reviewedToday && isNewLearningItem(entry.learningItem)) summary.newCount += 1;
     else if (inProgress) summary.inProgressCount += 1;
     else summary.dueCount += 1;
@@ -342,13 +357,9 @@ function updateCoreStateFromReview(card: LearningItem, reviewState: ReviewState,
   };
 }
 
-function isReviewBlocked(item: LearningItem): boolean {
-  return item.status === "suspended" || String(item.status) === "buried" || Boolean(item.meta?.suspended) || Boolean(item.meta?.buried);
-}
-
 function assertReviewable(item: LearningItem): void {
-  if (isReviewBlocked(item)) {
-    throw new Error("Diese Grundkarte ist suspended oder buried und kann nicht reviewed werden.");
+  if (isLearningItemReviewBlocked(item)) {
+    throw new Error("Diese Grundkarte ist ausgesetzt oder vergraben und kann nicht gelernt werden.");
   }
   if (item.status === "deleted" || item.draftStatus === "draft") {
     throw new Error("Diese Grundkarte ist aktuell nicht reviewbar.");
@@ -541,7 +552,7 @@ export function answerVariant(
 
 export function createReviewSession(deck: Deck, options: ReviewServiceOptions = {}) {
   const now = new Date(options.now ?? new Date()).toISOString();
-  const activeCards = (deck.cards ?? []).filter((card) => card.status !== "deleted" && card.draftStatus !== "draft");
+  const activeCards = activeLearningItems(deck);
   const dueCards = activeCards.filter((card) => isDue(card.reviewState, now));
   const sessionCards = dueCards.length > 0 ? dueCards : activeCards.slice(0, Math.min(12, activeCards.length));
   const generated: CardVariant[] = [];
@@ -732,16 +743,25 @@ export function getNextDailyReviewSessionItem(
   session: DailyReviewSessionState,
   options: ReviewServiceOptions = {},
 ) {
-  const key = session.remainingInitialKeys[0] ?? session.repeatKeys[0] ?? null;
-  if (!key) return null;
   const decks = asDeckArray(decksOrDeck);
-  const entry = decks
-    .flatMap((deck) => activeLearningItems(deck).map((learningItem) => ({ deck, learningItem, key: reviewKey(deck.id, learningItem.id) })))
-    .find((candidate) => candidate.key === key);
+  const entries = decks
+    .flatMap((deck) => activeLearningItems(deck).map((learningItem) => ({ deck, learningItem, key: reviewKey(deck.id, learningItem.id) })));
+  const entriesByKey = new Map(entries.map((entry) => [entry.key, entry]));
+  const now = options.now ?? new Date().toISOString();
+  const rootDeckId = options.deckId ?? decks[0]?.id ?? null;
+  const rootDeck = decks.find((deck) => deck.id === rootDeckId) ?? decks[0] ?? null;
+  const learnAheadMinutes = createDefaultDeckSettings(rootDeck?.deckSettings ?? {}).learnAheadMinutes;
+  const initialKey = session.remainingInitialKeys.find((candidate) => entriesByKey.has(candidate)) ?? null;
+  const repeatKey = initialKey ? null : session.repeatKeys.find((candidate) => {
+    const candidateEntry = entriesByKey.get(candidate);
+    return candidateEntry ? isLearningAvailable(candidateEntry.learningItem, now, learnAheadMinutes) : false;
+  }) ?? null;
+  const key = initialKey ?? repeatKey;
+  if (!key) return null;
+  const entry = entriesByKey.get(key);
   if (!entry) return null;
 
   const isRepeat = session.repeatKeys.includes(key) && !session.remainingInitialKeys.includes(key);
-  const now = options.now ?? new Date().toISOString();
   const item = createReviewItemViewModel(entry.deck, entry.learningItem, {
     ...options,
     now,
@@ -779,10 +799,13 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const allDecks = asDeckArray(decksOrDeck);
   const rootDeck = allDecks.find((deck) => deck.id === rootDeckId) ?? allDecks[0] ?? null;
   const scopeDecks = collectDeckScope(decksOrDeck, rootDeckId);
+  const rootSettings = createDefaultDeckSettings(rootDeck?.deckSettings ?? {});
   const excludeKeys = new Set(options.excludeKeys ?? []);
   const dailyConsumption = summarizeDailyCardConsumption(scopeDecks, now);
   const reviewedEntries = new Map<string, QueueEntry>();
-  const dueEntries: QueueEntry[] = [];
+  const learningEntries: QueueEntry[] = [];
+  const availableLearningEntries: QueueEntry[] = [];
+  const reviewEntries: QueueEntry[] = [];
   const newEntries: QueueEntry[] = [];
 
   for (const deck of scopeDecks) {
@@ -797,40 +820,32 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
         continue;
       }
 
-      if (isDue(learningItem.learningItemState ?? learningItem.reviewState, now)) {
-        dueEntries.push(entry);
+      const state = learningItem.learningItemState ?? learningItem.reviewState;
+      if (isLearningState(state)) {
+        if (isLearningDueByToday(learningItem, now)) learningEntries.push(entry);
+        if (isLearningAvailable(learningItem, now, rootSettings.learnAheadMinutes)) availableLearningEntries.push(entry);
+      } else if (state?.state === "review" && isDue(state, now)) {
+        reviewEntries.push(entry);
       }
     }
   }
 
-  dueEntries.sort(compareQueueEntries);
+  learningEntries.sort(compareQueueEntries);
+  availableLearningEntries.sort(compareQueueEntries);
+  reviewEntries.sort(compareQueueEntries);
   newEntries.sort(compareQueueEntries);
 
-  const rootSettings = createDefaultDeckSettings(rootDeck?.deckSettings ?? {});
   const newLimit = getEffectiveNewCardsPerDay(rootDeck, { now });
   const introducedToday = dailyConsumption.introducedTotal;
   const reviewsCompletedToday = dailyConsumption.reviewedTotal;
   const remainingNewCards = Math.max(0, newLimit - introducedToday);
   const remainingReviews = Math.max(0, rootSettings.maximumReviewsPerDay - reviewsCompletedToday);
-  const remainingByDeckId = new Map(scopeDecks.map((deck) => {
-    const consumption = dailyConsumption.byDeckId.get(deck.id);
-    return [deck.id, {
-      newCards: Math.max(0, getEffectiveNewCardsPerDay(deck, { now }) - (consumption?.introduced ?? 0)),
-      reviews: Math.max(0, createDefaultDeckSettings(deck.deckSettings).maximumReviewsPerDay - (consumption?.reviewed ?? 0)),
-    }];
-  }));
-  const dueEntriesWithinDeckLimits = limitEntriesPerDeck(
-    dueEntries,
-    (deck) => remainingByDeckId.get(deck.id)?.reviews ?? 0,
-  );
-  const newEntriesWithinDeckLimits = limitEntriesPerDeck(
-    newEntries,
-    (deck) => remainingByDeckId.get(deck.id)?.newCards ?? 0,
-  );
-  const selectedDueEntries = dueEntriesWithinDeckLimits.slice(0, remainingReviews);
-  const selectedNewEntries = newEntriesWithinDeckLimits.slice(0, remainingNewCards);
+  const selectedReviewEntries = reviewEntries.slice(0, remainingReviews);
+  const selectedNewEntries = newEntries.slice(0, remainingNewCards);
+  const selectedDueEntries = [...availableLearningEntries, ...selectedReviewEntries].sort(compareQueueEntries);
   const selectedEntries = orderDailyQueueEntries(selectedDueEntries, selectedNewEntries, rootSettings.newReviewOrder);
-  const dailyProgress = summarizeDailyReviewProgress(reviewedEntries, selectedEntries, dailyConsumption.reviewedTodayKeys);
+  const dailyProgressEntries = [...learningEntries, ...selectedReviewEntries, ...selectedNewEntries];
+  const dailyProgress = summarizeDailyReviewProgress(reviewedEntries, dailyProgressEntries, dailyConsumption.reviewedTodayKeys, now);
   const items = selectedEntries
     .map((entry) =>
       createReviewItemViewModel(entry.deck, entry.learningItem, {
@@ -849,8 +864,10 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
     items,
     total: items.length,
     dailyProgress,
-    dueCount: selectedDueEntries.length,
-    availableDueCards: dueEntries.length,
+    dueCount: selectedReviewEntries.length,
+    availableDueCards: reviewEntries.length,
+    inProgressCount: dailyProgress.inProgressCount,
+    availableLearningCards: learningEntries.length,
     maximumReviewsPerDay: rootSettings.maximumReviewsPerDay,
     reviewsCompletedToday,
     remainingReviews,

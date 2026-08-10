@@ -1,16 +1,13 @@
 import {
-  BasicLearningStepsStrategy,
   Rating,
   State,
-  StrategyMode,
   default_w,
   fsrs,
   type Card as FsrsCard,
   type Grade,
   type StepUnit,
-  type TLearningStepsStrategy,
 } from "ts-fsrs";
-import { REVIEW_RATINGS, createReviewState, getMaturityBand } from "./coreModel.ts";
+import { REVIEW_RATINGS, createReviewState, getMaturityBand, isLearningItemReviewBlocked } from "./coreModel.ts";
 import { normalizeLearningSettings } from "./deckSettings.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import type {
@@ -242,15 +239,6 @@ function toFsrsCard(state: ReviewState, now: Date): FsrsCard {
   };
 }
 
-const mandatorySecondContactStrategy: TLearningStepsStrategy = (parameters, state, currentStep) => {
-  const result = BasicLearningStepsStrategy(parameters, state, currentStep);
-  if (state !== State.New || currentStep !== 0 || !result[Rating.Good]) return result;
-  return {
-    ...result,
-    [Rating.Easy]: { ...result[Rating.Good] },
-  };
-};
-
 function createFsrsScheduler(deckSettings: LearningSettingsInput | null | undefined, state: ReviewStateInput) {
   const profile = getSchedulerProfile(deckSettings ?? {});
   const intervals = getLearningIntervals(deckSettings ?? {});
@@ -266,7 +254,6 @@ function createFsrsScheduler(deckSettings: LearningSettingsInput | null | undefi
     learning_steps: learningSteps,
     relearning_steps: relearningSteps,
   });
-  scheduler.useStrategy(StrategyMode.LEARNING_STEPS, mandatorySecondContactStrategy);
   return { scheduler, profile, requestRetention, learningSteps, relearningSteps };
 }
 
@@ -556,7 +543,7 @@ export function listReviewableCards(deck: Deck): LearningItem[] {
 }
 
 export function summarizeDeckReview(deck: Deck, now: DateInput = new Date()) {
-  const cards = listReviewableCards(deck);
+  const cards = listReviewableCards(deck).filter((card) => !isLearningItemReviewBlocked(card));
   const nowTime = new Date(now).getTime();
   let dueCards = 0;
   let newCards = 0;

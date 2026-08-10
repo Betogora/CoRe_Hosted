@@ -573,7 +573,9 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
   const initialState = await readAppState(page);
   const initialDeck = initialState.decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa);
   const initialNewCards = initialDeck.deckSettings.newCardsPerDay;
+  const initialLearnAhead = initialDeck.deckSettings.learnAheadMinutes ?? 20;
   const nextNewCards = initialNewCards === 17 ? 18 : 17;
+  const nextLearnAhead = initialLearnAhead === 37 ? 38 : 37;
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" }).click();
@@ -587,6 +589,7 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
   ]) {
     await page.setViewportSize(viewport);
     await expect(page.getByTestId("deck-settings-appearance-toolbar")).toBeVisible();
+    await expect(page.getByLabel("Lernkarten vorziehen als Zahl")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     const targetSizes = await page.getByTestId("deck-settings-appearance-toolbar").getByRole("button").evaluateAll(
       (buttons: HTMLElement[]) => buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height })),
@@ -616,9 +619,14 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByLabel("Neue Karten pro Tag als Zahl").fill(String(nextNewCards));
+  const learnAheadInput = page.getByLabel("Lernkarten vorziehen als Zahl");
+  await learnAheadInput.fill(String(nextLearnAhead - 1));
+  await learnAheadInput.press("ArrowUp");
+  await expect(learnAheadInput).toHaveValue(String(nextLearnAhead));
   await page.getByRole("button", { name: "Name und Darstellung speichern" }).click();
   await expect(page.getByRole("status")).toContainText("Name und Darstellung wurden gespeichert.");
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.newCardsPerDay).toBe(initialNewCards);
+  expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.learnAheadMinutes).toBe(initialLearnAhead);
 
   await page.getByLabel("Varianten einsetzen ab Lernstufe").click();
   await page.getByRole("option", { name: "Sicher · später" }).click();
@@ -631,13 +639,15 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
     const deck = (await readAppState(page)).decks.find((candidate: { id: string }) => candidate.id === DECK_IDS.africa);
     return {
       newCardsPerDay: deck.deckSettings.newCardsPerDay,
+      learnAheadMinutes: deck.deckSettings.learnAheadMinutes,
       variantThresholdXp: deck.deckSettings.variantThresholdXp,
       maxActiveVariantsPerCard: deck.deckSettings.maxActiveVariantsPerCard,
     };
-  }).toEqual({ newCardsPerDay: nextNewCards, variantThresholdXp: 181, maxActiveVariantsPerCard: 3 });
+  }).toEqual({ newCardsPerDay: nextNewCards, learnAheadMinutes: nextLearnAhead, variantThresholdXp: 181, maxActiveVariantsPerCard: 3 });
 
   await page.reload();
   await expect(page.getByLabel("Neue Karten pro Tag als Zahl")).toHaveValue(String(nextNewCards));
+  await expect(page.getByLabel("Lernkarten vorziehen als Zahl")).toHaveValue(String(nextLearnAhead));
   await expect(page.getByLabel("Varianten einsetzen ab Lernstufe")).toContainText("Sicher · später");
   await expect(page.getByLabel("Aktive Varianten pro Karte")).toContainText("3 Varianten");
   const unexpectedRuntimeErrors = runtimeErrors.filter((error) => !(
