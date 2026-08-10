@@ -106,7 +106,7 @@ function HeatmapDayCell({
   return (
     <CoreTooltip label={label}>
       <span
-        className={`grid place-items-center border transition-transform hover:scale-105 ${toneClass} ${day.isToday ? "ring-2 ring-inset ring-core-action" : ""} ${unavailableClass} ${className}`}
+        className={`grid place-items-center border transition-transform hover:scale-105 ${toneClass} ${day.isToday ? "ring-[3px] ring-core-action" : ""} ${unavailableClass} ${className}`}
         aria-label={label}
         data-heatmap-day={day.key}
         data-heatmap-kind={day.isForecastAvailable ? "forecast" : day.isFuture ? "unavailable" : "history"}
