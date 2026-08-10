@@ -9,11 +9,11 @@ const deck = createManualCoreDeck({
   card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
 });
 
-function renderScreen(backLabel?: string) {
+function renderScreen(backLabel?: string, currentDeck = deck) {
   return renderToStaticMarkup(
     <DeckSettingsScreen
-      deck={deck}
-      decks={[deck]}
+      deck={currentDeck}
+      decks={[currentDeck]}
       onSave={() => undefined}
       onSaveAppearance={() => undefined}
       onRenameDeck={() => null}
@@ -37,6 +37,7 @@ test("deck settings label the URL-derived return destination", () => {
 
 test("deck settings show appearance and the borderless rename action in the page title", () => {
   const markup = renderScreen();
+  const headerForm = markup.match(/<form[^>]*>([\s\S]*?)<\/form>/)?.[1] ?? "";
 
   assert.equal(markup.match(/data-testid="deck-settings-title-name"/g)?.length, 1);
   assert.match(markup, /data-testid="deck-settings-title-name"[^>]*>Biologie/);
@@ -48,8 +49,48 @@ test("deck settings show appearance and the borderless rename action in the page
   assert.match(markup, /aria-label="Icon auswählen"/);
   assert.match(markup, />Farbe</);
   assert.match(markup, /aria-label="Farbe auswählen"/);
-  assert.match(markup, />Speichern</);
-  assert.doesNotMatch(markup, /Nur dieser Stapel|Andere Stapel behalten|Stapel-Icon|Iconfarbe|Darstellung speichern|type="color"/);
+  assert.match(markup, />Name und Darstellung speichern</);
+  assert.doesNotMatch(headerForm, /core-surface-raised/);
+  assert.doesNotMatch(markup, /Nur dieser Stapel|Andere Stapel behalten|Stapel-Icon|Iconfarbe|type="color"/);
+});
+
+test("deck learning options use concise copy, full limits, and deck-only CoRe parameters", () => {
+  const markup = renderScreen();
+
+  assert.equal(markup.match(/>Lernoptionen</g)?.length, 1);
+  assert.doesNotMatch(markup, /Lernen mit|Begrenzt, wie viele|Deckelt fällige|Legt fest, wie neue|Wann eine bereits gelernte|Kein einzelner Abstand|Änderungen werden erst/);
+  assert.match(markup, /Der erste Wert gilt nach/);
+  assert.match(markup, /Verdoppelt kurze Lern- und Wiederlern-Abstände/);
+  assert.match(markup, /Höhere Werte erzeugen kürzere Intervalle/);
+  assert.match(markup, /Steuert, ob Varianten automatisch/);
+  assert.match(markup, /max="500"[^>]*data-testid="learning-settings-new-cards"/);
+  assert.match(markup, /max="2000"[^>]*data-testid="learning-settings-max-reviews"/);
+  assert.match(markup, />Wiederholungen pro Tag</);
+  assert.match(markup, />Nach einem Fehler erneut zeigen</);
+  assert.match(markup, />Kurze Abstände verdoppeln</);
+  assert.match(markup, />Gewünschte Erinnerungsrate</);
+  assert.match(markup, />Content Repetition</);
+  assert.equal(markup.match(/lg:grid-cols-2 xl:grid-cols-3/g)?.length, 2);
+  assert.match(markup, />Varianten einsetzen ab Lernstufe</);
+  assert.match(markup, />Aktive Varianten pro Karte</);
+  assert.match(markup, />CoRe-ready · Standard</);
+  assert.match(markup, />2 Varianten</);
+  assert.match(markup, />Lernoptionen speichern</);
+});
+
+test("deck learning options retain imported custom CoRe values", () => {
+  const customDeck = {
+    ...deck,
+    deckSettings: {
+      ...deck.deckSettings,
+      variantThresholdXp: 132.5,
+      maxActiveVariantsPerCard: 4,
+    },
+  };
+  const markup = renderScreen(undefined, customDeck);
+
+  assert.match(markup, />Eigener Wert · 132.5 XP</);
+  assert.match(markup, />Eigener Wert · 4</);
 });
 
 test("deck settings own the administrative and learning actions", () => {

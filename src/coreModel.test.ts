@@ -32,6 +32,20 @@ test("deck settings normalize appearance defaults and fallbacks", () => {
   assert.deepEqual(fallback.appearance, defaults.appearance);
 });
 
+test("deck settings discard obsolete policy fields while preserving active exclusions", () => {
+  const settings = createDefaultDeckSettings({
+    aiPolicy: { allowExternalModels: true },
+    blacklist: {
+      tags: ["intern"],
+      variantIds: ["unused_variant"],
+    },
+  } as unknown as Parameters<typeof createDefaultDeckSettings>[0]);
+
+  assert.equal("aiPolicy" in settings, false);
+  assert.deepEqual(settings.blacklist.tags, ["intern"]);
+  assert.equal("variantIds" in settings.blacklist, false);
+});
+
 test("creates manual cards as immutable accepted originals", () => {
   const deck = createManualCoreDeck({
     deckName: "Manual Biology",

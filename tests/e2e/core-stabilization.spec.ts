@@ -562,6 +562,90 @@ test("review flow records a rating through accessible controls", async ({ page }
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
 });
 
+test("deck settings keep appearance and learning saves separate and persist CoRe values", async ({ page }: any) => {
+  const runtimeErrors: string[] = [];
+  page.on("pageerror", (error: Error) => runtimeErrors.push(error.message));
+  page.on("console", (message: { type: () => string; text: () => string }) => {
+    if (message.type() === "error") runtimeErrors.push(message.text());
+  });
+
+  await resetToFreshLocalState(page);
+  const initialState = await readAppState(page);
+  const initialDeck = initialState.decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa);
+  const initialNewCards = initialDeck.deckSettings.newCardsPerDay;
+  const nextNewCards = initialNewCards === 17 ? 18 : 17;
+
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" }).click();
+  await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen" }).click();
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 1280, height: 720 },
+    { width: 768, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(page.getByTestId("deck-settings-appearance-toolbar")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    const targetSizes = await page.getByTestId("deck-settings-appearance-toolbar").getByRole("button").evaluateAll(
+      (buttons: HTMLElement[]) => buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height })),
+    );
+    expect(targetSizes.every(({ width, height }: { width: number; height: number }) => width >= 44 && height >= 44)).toBe(true);
+  }
+
+  const iconButton = page.getByRole("button", { name: "Icon auswählen" });
+  await iconButton.click();
+  await expect(page.getByTestId("deck-icon-grid")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(iconButton).toBeFocused();
+
+  const colorButton = page.getByRole("button", { name: "Farbe auswählen" });
+  await colorButton.click();
+  await expect(page.getByRole("slider", { name: /Farbkreis/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(colorButton).toBeFocused();
+
+  const shortIntervalSwitch = page.getByRole("switch", { name: "Kurze Abstände verdoppeln" });
+  const initialSwitchState = await shortIntervalSwitch.getAttribute("aria-checked");
+  await shortIntervalSwitch.focus();
+  await shortIntervalSwitch.press("Space");
+  await expect(shortIntervalSwitch).toHaveAttribute("aria-checked", initialSwitchState === "true" ? "false" : "true");
+  await shortIntervalSwitch.press("Space");
+  await expect(shortIntervalSwitch).toHaveAttribute("aria-checked", initialSwitchState ?? "false");
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByLabel("Neue Karten pro Tag als Zahl").fill(String(nextNewCards));
+  await page.getByRole("button", { name: "Name und Darstellung speichern" }).click();
+  await expect(page.getByRole("status")).toContainText("Name und Darstellung wurden gespeichert.");
+  expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.newCardsPerDay).toBe(initialNewCards);
+
+  await page.getByLabel("Varianten einsetzen ab Lernstufe").click();
+  await page.getByRole("option", { name: "Sicher · später" }).click();
+  await page.getByLabel("Aktive Varianten pro Karte").click();
+  await page.getByRole("option", { name: "3 Varianten" }).click();
+  await page.getByRole("button", { name: "Lernoptionen speichern" }).click();
+  await expect(page.getByRole("status")).toContainText("Lernoptionen wurden gespeichert.");
+
+  await expect.poll(async () => {
+    const deck = (await readAppState(page)).decks.find((candidate: { id: string }) => candidate.id === DECK_IDS.africa);
+    return {
+      newCardsPerDay: deck.deckSettings.newCardsPerDay,
+      variantThresholdXp: deck.deckSettings.variantThresholdXp,
+      maxActiveVariantsPerCard: deck.deckSettings.maxActiveVariantsPerCard,
+    };
+  }).toEqual({ newCardsPerDay: nextNewCards, variantThresholdXp: 181, maxActiveVariantsPerCard: 3 });
+
+  await page.reload();
+  await expect(page.getByLabel("Neue Karten pro Tag als Zahl")).toHaveValue(String(nextNewCards));
+  await expect(page.getByLabel("Varianten einsetzen ab Lernstufe")).toContainText("Sicher · später");
+  await expect(page.getByLabel("Aktive Varianten pro Karte")).toContainText("3 Varianten");
+  const unexpectedRuntimeErrors = runtimeErrors.filter((error) => !(
+    error.includes("Failed to fetch") && error.includes("@supabase_supabase-js")
+  ));
+  expect(unexpectedRuntimeErrors).toEqual([]);
+});
+
 test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-core @hosted-core Variantenfeedback bleibt kontrolliert und reviewbar", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   const variantEventsBefore = await variantReviewEventCount(page, DECK_IDS.africa);
@@ -570,9 +654,9 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" }).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen" }).click();
   await page.getByLabel("Neue Karten pro Tag als Zahl").fill("0");
-  await page.getByLabel("Reviews pro Tag als Zahl").fill("1");
-  await page.getByRole("button", { name: "Änderungen speichern" }).click();
-  await expect(page.getByRole("status")).toContainText("Stapel-Einstellungen gespeichert.");
+  await page.getByLabel("Wiederholungen pro Tag als Zahl").fill("1");
+  await page.getByRole("button", { name: "Lernoptionen speichern" }).click();
+  await expect(page.getByRole("status")).toContainText("Lernoptionen wurden gespeichert.");
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();

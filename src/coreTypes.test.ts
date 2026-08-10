@@ -75,20 +75,11 @@ const deckSettings = {
     maximumIntervalDays: 36_500,
     lessShortIntervalBias: false,
   },
-  aiPolicy: {
-    costTier: "balanced",
-    allowLocalModels: true,
-    allowExternalModels: false,
-    maxCostPerJob: 0,
-    requireSourceAnchors: true,
-    requireHumanApprovalForNewCards: true,
-  },
   blacklist: {
     cardTypes: ["image-occlusion"],
     tags: [],
     transforms: [],
     cardIds: [],
-    variantIds: [],
   },
 } satisfies DeckSettings;
 

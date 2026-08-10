@@ -1,9 +1,9 @@
 import React from "react";
-import { Brain, Clock3, Gauge, Save, SlidersHorizontal } from "lucide-react";
+import { Brain, Clock3, Gauge, Save, Sparkles } from "lucide-react";
 import { LEARNING_SETTING_PRESETS, applyLearningPreset, markLearningSettingsCustom, normalizeLearningSettings, type LearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton } from "./actionUi.tsx";
-import { CoreModeControl, OrbIcon, SoftPanel } from "./coreUi.tsx";
+import { CoreModeControl, CoreSwitch, SoftPanel } from "./coreUi.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
 import { CoreSelect, type CoreSelectOption } from "./selectUi.tsx";
 
@@ -34,7 +34,37 @@ const reviewOrderOptions = [
 const relearningStepOptions = [1, 3, 5, 10, 20, 30]
   .map((minutes) => ({ value: String(minutes), label: `${minutes} Min.` }));
 
-type LearningSettingsDraft = LearningSettings & { coreMode: CoreMode };
+const variantThresholdOptions = [
+  { value: "81", label: "Stabil · früher" },
+  { value: "121", label: "CoRe-ready · Standard" },
+  { value: "181", label: "Sicher · später" },
+];
+
+const activeVariantOptions = [1, 2, 3]
+  .map((count) => ({ value: String(count), label: `${count} ${count === 1 ? "Variante" : "Varianten"}` }));
+
+type LearningSettingsDraft = LearningSettings & {
+  coreMode: CoreMode;
+  variantThresholdXp?: number;
+  maxActiveVariantsPerCard?: number;
+};
+
+function optionalFiniteNumber(value: unknown) {
+  const parsed = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function createLearningSettingsDraft(settings: LearningSettingsInput | undefined, coreMode: CoreMode): LearningSettingsDraft {
+  const variantThresholdXp = optionalFiniteNumber(settings?.variantThresholdXp);
+  const maxActiveVariantsPerCard = optionalFiniteNumber(settings?.maxActiveVariantsPerCard);
+
+  return {
+    ...normalizeLearningSettings(settings),
+    coreMode,
+    ...(variantThresholdXp !== undefined ? { variantThresholdXp } : {}),
+    ...(maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard } : {}),
+  };
+}
 
 function mergeCustomSettings(current: LearningSettingsDraft, patch: LearningSettingsInput): LearningSettingsDraft {
   const next = markLearningSettingsCustom({
@@ -46,7 +76,12 @@ function mergeCustomSettings(current: LearningSettingsDraft, patch: LearningSett
     },
   });
 
-  return { ...next, coreMode: current.coreMode };
+  return {
+    ...next,
+    coreMode: current.coreMode,
+    ...(current.variantThresholdXp !== undefined ? { variantThresholdXp: current.variantThresholdXp } : {}),
+    ...(current.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: current.maxActiveVariantsPerCard } : {}),
+  };
 }
 
 interface RangeFieldProps {
@@ -64,14 +99,11 @@ interface RangeFieldProps {
 function RangeField({ label, hint, value, min, max, step = 1, suffix = "", onChange, testId }: RangeFieldProps) {
   return (
     <label className="grid gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)]">
-      <span className="flex items-start justify-between gap-4">
-        <span>
-          <span className="block text-[var(--core-text-secondary)]">{label}</span>
-          {hint ? <span className="mt-1 block core-caption font-normal leading-5 text-[var(--core-text-muted)]">{hint}</span> : null}
-        </span>
-        <span className="shrink-0 rounded-lg bg-[var(--core-surface-muted)] px-2.5 py-1 text-[var(--core-action-primary)]">{value}{suffix}</span>
+      <span>
+        <span className="block text-[var(--core-text-secondary)]">{label}</span>
+        {hint ? <span className="mt-1 block core-caption font-normal leading-5 text-[var(--core-text-muted)]">{hint}</span> : null}
       </span>
-      <span className="grid grid-cols-[minmax(0,1fr)_5.5rem] items-center gap-3">
+      <span className="grid grid-cols-[minmax(0,1fr)_6.5rem] items-center gap-3">
         <input
           type="range"
           min={min}
@@ -83,16 +115,19 @@ function RangeField({ label, hint, value, min, max, step = 1, suffix = "", onCha
           aria-label={label}
           data-testid={testId}
         />
-        <input
-          type="number"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(event) => onChange(Number(event.target.value))}
-          className="min-h-11 w-full rounded-xl border border-[var(--core-border)] bg-core-surface px-3 text-right text-[var(--core-text)] outline-none"
-          aria-label={`${label} als Zahl`}
-        />
+        <span className="flex min-w-0 items-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-text)]">
+          <input
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(event) => onChange(Number(event.target.value))}
+            className="min-h-11 min-w-0 flex-1 border-0 bg-transparent px-3 text-right text-[var(--core-text)] outline-none"
+            aria-label={`${label} als Zahl`}
+          />
+          {suffix ? <span className="shrink-0 pr-3 font-normal" aria-hidden="true">{suffix.trim()}</span> : null}
+        </span>
       </span>
     </label>
   );
@@ -114,7 +149,7 @@ function SelectField({ label, hint, value, onChange, options, testId }: SelectFi
       {hint ? <span className="core-caption font-normal leading-5 text-[var(--core-text-muted)]">{hint}</span> : null}
       <CoreSelect
         ariaLabel={label}
-        className="mt-1 w-full font-semibold"
+        className="w-full font-semibold"
         value={String(value)}
         options={options}
         onValueChange={onChange}
@@ -134,12 +169,12 @@ interface LearningSettingsPanelProps {
 }
 
 export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle, scopeDescription, affectedDeckCount = null, onSave }: LearningSettingsPanelProps) {
-  const [draft, setDraft] = React.useState<LearningSettingsDraft>(() => ({ ...normalizeLearningSettings(settings), coreMode }));
+  const [draft, setDraft] = React.useState<LearningSettingsDraft>(() => createLearningSettingsDraft(settings, coreMode));
   const setSuccessToast = useSuccessToast();
   const settingsSignature = JSON.stringify({ settings, coreMode });
 
   React.useEffect(() => {
-    setDraft({ ...normalizeLearningSettings(settings), coreMode });
+    setDraft(createLearningSettingsDraft(settings, coreMode));
   }, [settingsSignature]);
 
   const stepValue = draft.schedulerProfile.learningStepsMinutes.join(",");
@@ -154,10 +189,28 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
     { value: maximumIntervalValue, label: `Eigene · ${maximumIntervalValue} Tage` },
     ...maximumIntervalOptions,
   ];
+  const showCoreParameters = draft.variantThresholdXp !== undefined && draft.maxActiveVariantsPerCard !== undefined;
+  const variantThresholdValue = String(draft.variantThresholdXp ?? 121);
+  const knownVariantThreshold = variantThresholdOptions.some((option) => option.value === variantThresholdValue);
+  const visibleVariantThresholdOptions = knownVariantThreshold ? variantThresholdOptions : [
+    { value: variantThresholdValue, label: `Eigener Wert · ${variantThresholdValue} XP` },
+    ...variantThresholdOptions,
+  ];
+  const activeVariantValue = String(draft.maxActiveVariantsPerCard ?? 2);
+  const knownActiveVariantCount = activeVariantOptions.some((option) => option.value === activeVariantValue);
+  const visibleActiveVariantOptions = knownActiveVariantCount ? activeVariantOptions : [
+    { value: activeVariantValue, label: `Eigener Wert · ${activeVariantValue}` },
+    ...activeVariantOptions,
+  ];
 
   function selectPreset(presetId: string) {
     if (presetId === "custom") return;
-    setDraft((current) => ({ ...applyLearningPreset(current, presetId), coreMode: current.coreMode }));
+    setDraft((current) => ({
+      ...applyLearningPreset(current, presetId),
+      coreMode: current.coreMode,
+      ...(current.variantThresholdXp !== undefined ? { variantThresholdXp: current.variantThresholdXp } : {}),
+      ...(current.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: current.maxActiveVariantsPerCard } : {}),
+    }));
     setSuccessToast("");
   }
 
@@ -171,24 +224,30 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
     setSuccessToast("");
   }
 
+  function updateCoreSetting(key: "variantThresholdXp" | "maxActiveVariantsPerCard", value: number) {
+    setDraft((current) => ({ ...current, [key]: value }));
+    setSuccessToast("");
+  }
+
   function save() {
-    onSave?.({ ...normalizeLearningSettings(draft), coreMode: draft.coreMode });
+    onSave?.({
+      ...normalizeLearningSettings(draft),
+      coreMode: draft.coreMode,
+      ...(draft.variantThresholdXp !== undefined ? { variantThresholdXp: draft.variantThresholdXp } : {}),
+      ...(draft.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: draft.maxActiveVariantsPerCard } : {}),
+    });
     setSuccessToast(affectedDeckCount == null
-      ? "Stapel-Einstellungen wurden erfolgreich gespeichert."
+      ? "Lernoptionen wurden gespeichert."
       : `Globale Lernvorgaben für ${affectedDeckCount} Stapel wurden erfolgreich gespeichert.`);
   }
 
   return (
     <SoftPanel className="overflow-hidden">
-      <div className="border-b border-[var(--core-border)] bg-core-subtle p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-3">
-            <OrbIcon icon={SlidersHorizontal} />
-            <div className="min-w-0">
-              <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Lernoptionen</p>
-              <h3 className="mt-1 core-heading-2 font-semibold text-[var(--core-text)]">{scopeTitle}</h3>
-              <p className="mt-2 max-w-3xl core-body leading-6 text-[var(--core-text-muted)]">{scopeDescription}</p>
-            </div>
+      <div className="border-b border-[var(--core-border)] bg-core-subtle p-4 sm:p-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0 flex-[1_1_28rem]">
+            <h3 className="core-heading-2 font-semibold text-[var(--core-text)]">{scopeTitle}</h3>
+            <p className="mt-1 max-w-3xl core-body leading-6 text-[var(--core-text-muted)]">{scopeDescription}</p>
           </div>
           <label className="grid min-w-52 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
             Lernprofil
@@ -204,45 +263,37 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
         </div>
       </div>
 
-      <div className="grid gap-6 p-5 sm:p-6">
+      <div className="grid gap-5 p-4 sm:p-5">
         <fieldset className="grid gap-4">
           <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-[var(--core-text)]">
             <Gauge size={19} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
             Tagespensum und Reihenfolge
           </legend>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             <RangeField
               label="Neue Karten pro Tag"
-              hint="Begrenzt, wie viele bisher ungesehene Karten in die Tagesrunde kommen."
               value={draft.newCardsPerDay}
               min={0}
-              max={100}
+              max={500}
               onChange={(value: any) => updateSetting("newCardsPerDay", value)}
               testId="learning-settings-new-cards"
             />
             <RangeField
-              label="Reviews pro Tag"
-              hint="Deckelt fällige Wiederholungen und glättet Belastungsspitzen."
+              label="Wiederholungen pro Tag"
               value={draft.maximumReviewsPerDay}
               min={0}
-              max={500}
+              max={2000}
               step={10}
               onChange={(value: any) => updateSetting("maximumReviewsPerDay", value)}
               testId="learning-settings-max-reviews"
             />
             <SelectField
               label="Reihenfolge in der Tagesrunde"
-              hint="Legt fest, wie neue und fällige Karten zusammengestellt werden."
               value={draft.newReviewOrder}
               onChange={(value: any) => updateSetting("newReviewOrder", value)}
               options={reviewOrderOptions}
               testId="learning-settings-order"
             />
-            <div className="rounded-2xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
-              <p className="core-body font-semibold text-[var(--core-text-secondary)]">CoRe-Modus</p>
-              <p className="mb-3 mt-1 core-caption leading-5 text-[var(--core-text-muted)]">Steuert, ob und wie nahe Varianten in diesem Geltungsbereich eingesetzt werden.</p>
-              <CoreModeControl value={draft.coreMode} onChange={(value: any) => setDraft((current) => ({ ...current, coreMode: value }))} />
-            </div>
           </div>
         </fieldset>
 
@@ -261,8 +312,7 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
               testId="learning-settings-steps"
             />
             <SelectField
-              label="Wiederlern-Abstand nach Fehler"
-              hint="Wann eine bereits gelernte Karte nach „Nochmal“ erneut erscheint."
+              label="Nach einem Fehler erneut zeigen"
               value={draft.schedulerProfile.relearningStepMinutes}
               onChange={(value: any) => updateSchedulerSetting("relearningStepMinutes", Number(value))}
               options={relearningStepOptions}
@@ -270,16 +320,16 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
             />
             <label className="flex min-h-20 items-start justify-between gap-4 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)] lg:col-span-2">
               <span>
-                <span className="block">Weniger sehr kurze Intervalle</span>
+                <span className="block">Kurze Abstände verdoppeln</span>
                 <span className="mt-1 block core-caption font-normal leading-5 text-[var(--core-text-muted)]">Verdoppelt kurze Lern- und Wiederlern-Abstände. Das reduziert unmittelbare Wiedererkennung, verlängert aber die Lernrunde.</span>
               </span>
-              <input
-                type="checkbox"
-                checked={draft.schedulerProfile.lessShortIntervalBias}
-                onChange={(event) => updateSchedulerSetting("lessShortIntervalBias", event.target.checked)}
-                className="mt-1 size-5 accent-[var(--core-action-primary)]"
-                data-testid="learning-settings-short-bias"
-              />
+              <span data-testid="learning-settings-short-bias">
+                <CoreSwitch
+                  checked={draft.schedulerProfile.lessShortIntervalBias}
+                  ariaLabel="Kurze Abstände verdoppeln"
+                  onCheckedChange={(checked) => updateSchedulerSetting("lessShortIntervalBias", checked)}
+                />
+              </span>
             </label>
           </div>
         </fieldset>
@@ -291,8 +341,8 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
           </legend>
           <div className="grid gap-4 lg:grid-cols-2">
             <RangeField
-              label="Zielerinnerung"
-              hint="Höhere Werte erzeugen kürzere Intervalle und mehr tägliche Reviews. 90 % ist ein ausgewogener Startpunkt."
+              label="Gewünschte Erinnerungsrate"
+              hint="Höhere Werte erzeugen kürzere Intervalle und mehr tägliche Wiederholungen. 90 % ist ein ausgewogener Startpunkt."
               value={Math.round(draft.schedulerProfile.desiredRetention * 100)}
               min={70}
               max={99}
@@ -302,7 +352,6 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
             />
             <SelectField
               label="Maximales Intervall"
-              hint="Kein einzelner Abstand wird größer als diese Obergrenze."
               value={draft.schedulerProfile.maximumIntervalDays}
               onChange={(value: any) => updateSchedulerSetting("maximumIntervalDays", Number(value))}
               options={intervalOptions}
@@ -311,14 +360,45 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
           </div>
           {draft.schedulerProfile.desiredRetention > 0.97 ? (
             <p className="rounded-xl border border-core-warning bg-core-warning-soft px-4 py-3 core-body leading-6 text-core-text" role="alert">
-              Über 97 % steigt die tägliche Belastung meist sehr stark. Nutze diesen Bereich nur bewusst und beobachte dein Review-Pensum.
+              Über 97 % steigt die tägliche Belastung meist sehr stark. Nutze diesen Bereich nur bewusst und beobachte dein Wiederholungspensum.
             </p>
           ) : null}
         </fieldset>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--core-border)] pt-5">
-          <p className="core-body text-[var(--core-text-muted)]">Änderungen werden erst mit dem Speichern übernommen.</p>
-          <ActionButton type="button" variant="primary" icon={Save} onClick={save}>Änderungen speichern</ActionButton>
+        <fieldset className="grid gap-4 border-t border-[var(--core-border)] pt-5">
+          <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-[var(--core-text)]">
+            <Sparkles size={19} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
+            Content Repetition
+          </legend>
+          <div className={`grid gap-4 ${showCoreParameters ? "lg:grid-cols-2 xl:grid-cols-3" : ""}`}>
+            <div className="rounded-2xl border border-[var(--core-border)] bg-core-surface p-4">
+              <p className="core-body font-semibold text-[var(--core-text-secondary)]">CoRe-Modus</p>
+              <p className="mb-3 mt-1 core-caption leading-5 text-[var(--core-text-muted)]">Steuert, ob Varianten automatisch, nur gezielt oder gar nicht eingesetzt werden.</p>
+              <CoreModeControl value={draft.coreMode} onChange={(value: any) => setDraft((current) => ({ ...current, coreMode: value }))} />
+            </div>
+            {showCoreParameters ? (
+              <>
+                <SelectField
+                  label="Varianten einsetzen ab Lernstufe"
+                  value={variantThresholdValue}
+                  onChange={(value) => updateCoreSetting("variantThresholdXp", Number(value))}
+                  options={visibleVariantThresholdOptions}
+                  testId="learning-settings-variant-threshold"
+                />
+                <SelectField
+                  label="Aktive Varianten pro Karte"
+                  value={activeVariantValue}
+                  onChange={(value) => updateCoreSetting("maxActiveVariantsPerCard", Number(value))}
+                  options={visibleActiveVariantOptions}
+                  testId="learning-settings-active-variants"
+                />
+              </>
+            ) : null}
+          </div>
+        </fieldset>
+
+        <div className="flex justify-end border-t border-[var(--core-border)] pt-5">
+          <ActionButton type="button" variant="primary" icon={Save} onClick={save}>Lernoptionen speichern</ActionButton>
         </div>
       </div>
     </SoftPanel>

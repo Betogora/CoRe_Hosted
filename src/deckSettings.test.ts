@@ -25,6 +25,24 @@ test("learning settings migrate the previously unused legacy step defaults", () 
   assert.equal(settings.schedulerProfile.desiredRetention, 0.9);
 });
 
+test("learning settings keep compatible starting intervals and clamp visible daily limits", () => {
+  const settings = normalizeLearningSettings({
+    newCardsPerDay: 900,
+    maximumReviewsPerDay: 9000,
+    schedulerProfile: {
+      graduatingIntervalDays: 3,
+      easyGraduatingIntervalDays: 5,
+      easyIntervalDays: 8,
+    },
+  });
+
+  assert.equal(settings.newCardsPerDay, 500);
+  assert.equal(settings.maximumReviewsPerDay, 2000);
+  assert.equal(settings.schedulerProfile.graduatingIntervalDays, 3);
+  assert.equal(settings.schedulerProfile.easyGraduatingIntervalDays, 5);
+  assert.equal(settings.schedulerProfile.easyIntervalDays, 8);
+});
+
 test("learning presets stay shallow for the UI and become custom after edits", () => {
   const intensive = applyLearningPreset({}, "intensive");
   const custom = markLearningSettingsCustom({
@@ -58,6 +76,8 @@ test("applying learning settings preserves deck-only appearance and daily overri
       coreMode: "off",
       appearance: { iconKey: "brain", iconColor: "#123456" },
       newCardsTodayOverride: { date: "2026-07-10", limit: 4 },
+      variantThresholdXp: 132.5,
+      maxActiveVariantsPerCard: 3,
     },
     applyLearningPreset({}, "intensive"),
   );
@@ -65,5 +85,7 @@ test("applying learning settings preserves deck-only appearance and daily overri
   assert.deepEqual(next.appearance, { iconKey: "brain", iconColor: "#123456" });
   assert.deepEqual(next.newCardsTodayOverride, { date: "2026-07-10", limit: 4 });
   assert.equal(next.coreMode, "off");
+  assert.equal(next.variantThresholdXp, 132.5);
+  assert.equal(next.maxActiveVariantsPerCard, 3);
   assert.equal(next.newCardsPerDay, 15);
 });

@@ -149,21 +149,11 @@ export interface SchedulerProfile {
   lessShortIntervalBias: boolean;
 }
 
-export interface AIPolicy {
-  costTier: "low" | "balanced" | "quality";
-  allowLocalModels: boolean;
-  allowExternalModels: boolean;
-  maxCostPerJob: number;
-  requireSourceAnchors: boolean;
-  requireHumanApprovalForNewCards: boolean;
-}
-
 export interface VariantBlacklist {
   cardTypes: CardType[];
   tags: string[];
   transforms: TransformType[];
   cardIds: string[];
-  variantIds: string[];
 }
 
 export interface DeckSettings {
@@ -179,7 +169,6 @@ export interface DeckSettings {
   variantThresholdXp: number;
   maxActiveVariantsPerCard: number;
   schedulerProfile: SchedulerProfile;
-  aiPolicy: AIPolicy;
   blacklist: VariantBlacklist;
 }
 

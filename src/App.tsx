@@ -25,7 +25,7 @@ import { startAppAutosaveLifecycle, startAppSyncLifecycle } from "./appSyncLifec
 import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.ts";
-import { getCardContentPayload } from "./coreModel.ts";
+import { createDefaultDeckSettings, getCardContentPayload } from "./coreModel.ts";
 import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
 import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.ts";
 import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type LearningSettingsInput } from "./deckSettings.ts";
@@ -696,18 +696,25 @@ export function App() {
     deckId: string,
     settings: LearningSettingsInput = {},
   ) {
-    return updateDeck(deckId, (deck) => ({
-      ...deck,
-      deckSettings: {
-        ...deck.deckSettings,
+    return updateDeck(deckId, (deck) => {
+      const variantThresholdXp = settings.variantThresholdXp == null ? undefined : Number(settings.variantThresholdXp);
+      const maxActiveVariantsPerCard = settings.maxActiveVariantsPerCard == null ? undefined : Number(settings.maxActiveVariantsPerCard);
+      const nextDeckSettings = createDefaultDeckSettings({
         ...applyLearningSettingsToDeckSettings({ ...deck.deckSettings }, settings),
         coreMode: resolveCoreMode(settings.coreMode, deck.deckSettings.coreMode),
+        ...(Number.isFinite(variantThresholdXp) ? { variantThresholdXp } : {}),
+        ...(Number.isFinite(maxActiveVariantsPerCard) ? { maxActiveVariantsPerCard } : {}),
         ...(settings.newCardsPerDay !== undefined && settings.newCardsPerDay !== deck.deckSettings.newCardsPerDay
           ? { newCardsTodayOverride: null }
           : {}),
-      },
-      updatedAt: new Date().toISOString(),
-    }));
+      });
+
+      return {
+        ...deck,
+        deckSettings: nextDeckSettings,
+        updatedAt: new Date().toISOString(),
+      };
+    });
   }
 
   function setCardStudyState(deckId: string, cardId: string, patch: LearningItemStudyStatePatch) {

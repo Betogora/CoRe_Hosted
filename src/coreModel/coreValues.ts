@@ -6,7 +6,6 @@ interface DeckSettingsInput extends LearningSettingsInput {
   newCardsTodayOverride?: { date?: unknown; limit?: unknown } | null;
   variantThresholdXp?: number;
   maxActiveVariantsPerCard?: number;
-  aiPolicy?: Partial<DeckSettings["aiPolicy"]>;
   blacklist?: Partial<DeckSettings["blacklist"]>;
 }
 export const CORE_CARD_TYPES = [
@@ -160,20 +159,11 @@ export function createDefaultDeckSettings(settings: DeckSettingsInput = {}): Dec
     newCardsTodayOverride,
     variantThresholdXp: typeof settings.variantThresholdXp === "number" && Number.isFinite(settings.variantThresholdXp) ? settings.variantThresholdXp : 121,
     maxActiveVariantsPerCard: typeof settings.maxActiveVariantsPerCard === "number" && Number.isFinite(settings.maxActiveVariantsPerCard) ? settings.maxActiveVariantsPerCard : 2,
-    aiPolicy: {
-      costTier: settings.aiPolicy?.costTier ?? "balanced",
-      allowLocalModels: settings.aiPolicy?.allowLocalModels ?? true,
-      allowExternalModels: settings.aiPolicy?.allowExternalModels ?? false,
-      maxCostPerJob: settings.aiPolicy?.maxCostPerJob ?? 0,
-      requireSourceAnchors: settings.aiPolicy?.requireSourceAnchors ?? true,
-      requireHumanApprovalForNewCards: settings.aiPolicy?.requireHumanApprovalForNewCards ?? true,
-    },
     blacklist: {
       cardTypes: settings.blacklist?.cardTypes ?? ["image-occlusion"],
       tags: settings.blacklist?.tags ?? [],
       transforms: settings.blacklist?.transforms ?? [],
       cardIds: settings.blacklist?.cardIds ?? [],
-      variantIds: settings.blacklist?.variantIds ?? [],
     },
   };
 }

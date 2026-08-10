@@ -12,6 +12,8 @@ export interface LearningSettingsInput {
   maximumReviewsPerDay?: unknown;
   newReviewOrder?: unknown;
   coreMode?: unknown;
+  variantThresholdXp?: unknown;
+  maxActiveVariantsPerCard?: unknown;
   schedulerProfile?: Partial<SchedulerProfile> & {
     settingsVersion?: number;
     presetId?: unknown;

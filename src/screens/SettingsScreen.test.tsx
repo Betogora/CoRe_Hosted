@@ -83,6 +83,7 @@ test("learning settings explain the mandatory second contact and hide legacy gra
   const html = renderSettings();
 
   assert.match(html, /verpflichtenden zweiten Kontakt am selben Tag/);
+  assert.doesNotMatch(html, /Varianten einsetzen ab Lernstufe|Aktive Varianten pro Karte/);
   assert.match(html, /Standard · 5 Min. → 15 Min./);
   assert.doesNotMatch(html, /Erstes reguläres Intervall/);
   assert.doesNotMatch(html, /Erstes Leicht-Intervall/);

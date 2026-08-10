@@ -156,7 +156,7 @@ export function DeckSettingsScreen({ deck, decks, onSave, onSaveAppearance, onRe
     setNameDraft(renameResult?.deck?.name ?? activeDeck.name);
     setEditingName(false);
     setFeedback(null);
-    setSuccessToast("Stapeleinstellungen wurden erfolgreich gespeichert.");
+    setSuccessToast("Name und Darstellung wurden gespeichert.");
   }
 
   async function confirmDelete() {
@@ -190,8 +190,8 @@ export function DeckSettingsScreen({ deck, decks, onSave, onSaveAppearance, onRe
   );
 
   return (
-    <div className="grid min-w-0 gap-7" data-testid={`deck-settings-${deck.id}`}>
-      <form className="grid min-w-0 gap-7" onSubmit={saveSettings}>
+    <div className="grid min-w-0 gap-5" data-testid={`deck-settings-${deck.id}`}>
+      <form className="grid min-w-0 gap-3" onSubmit={saveSettings}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0 flex-[1_1_28rem]">
             <PageHeader
@@ -236,50 +236,49 @@ export function DeckSettingsScreen({ deck, decks, onSave, onSaveAppearance, onRe
               )}
             />
           </div>
-          <button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface">
-            <ArrowLeft size={17} aria-hidden="true" />
-            {backLabel}
-          </button>
+          <div className="flex flex-wrap items-end gap-3 sm:justify-end">
+            <div className="flex flex-wrap items-end gap-2" data-testid="deck-settings-appearance-toolbar">
+              <div className="grid gap-1 core-caption font-semibold text-[var(--core-text-secondary)]">
+                <span>Icon</span>
+                <DeckIconPicker
+                  value={appearance.iconKey}
+                  color={appearance.iconColor}
+                  onChange={(iconKey) => updateAppearance({ iconKey })}
+                />
+              </div>
+              <div className="grid gap-1 core-caption font-semibold text-[var(--core-text-secondary)]">
+                <span>Farbe</span>
+                <ColorWheelPicker
+                  value={appearance.iconColor}
+                  ariaLabel="Farbe auswählen"
+                  className="justify-self-start"
+                  onValueCommit={(iconColor) => updateAppearance({ iconColor })}
+                />
+              </div>
+              <ActionButton type="submit" variant="primary" icon={Save} className="shrink-0">
+                Name und Darstellung speichern
+              </ActionButton>
+            </div>
+            <button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface">
+              <ArrowLeft size={17} aria-hidden="true" />
+              {backLabel}
+            </button>
+          </div>
         </div>
 
-        <SoftPanel className="grid gap-4 p-4 sm:p-5">
-          <div className="flex flex-wrap items-end gap-2 sm:justify-end" data-testid="deck-settings-appearance-toolbar">
-            <div className="grid gap-1 core-caption font-semibold text-[var(--core-text-secondary)]">
-              <span>Icon</span>
-              <DeckIconPicker
-                value={appearance.iconKey}
-                color={appearance.iconColor}
-                onChange={(iconKey) => updateAppearance({ iconKey })}
-              />
-            </div>
-            <div className="grid gap-1 core-caption font-semibold text-[var(--core-text-secondary)]">
-              <span>Farbe</span>
-              <ColorWheelPicker
-                value={appearance.iconColor}
-                ariaLabel="Farbe auswählen"
-                className="justify-self-start"
-                onValueCommit={(iconColor) => updateAppearance({ iconColor })}
-              />
-            </div>
-            <ActionButton type="submit" variant="primary" icon={Save} className="shrink-0">
-              Speichern
-            </ActionButton>
-          </div>
-
-          {feedback ? (
-            <p className={`min-w-0 core-body font-semibold ${feedback.role === "alert" ? "text-[var(--core-status-error-text)]" : "text-[var(--core-text)]"}`} role={feedback.role} aria-live={feedback.role === "status" ? "polite" : undefined}>
-              {feedback.message}
-            </p>
-          ) : null}
-        </SoftPanel>
+        {feedback ? (
+          <p className={`min-w-0 core-body font-semibold ${feedback.role === "alert" ? "text-[var(--core-status-error-text)]" : "text-[var(--core-text)]"}`} role={feedback.role} aria-live={feedback.role === "status" ? "polite" : undefined}>
+            {feedback.message}
+          </p>
+        ) : null}
       </form>
 
       <LearningSettingsPanel
         settings={deck.deckSettings}
         coreMode={deck.deckSettings?.coreMode}
-        scopeTitle={`Lernen mit „${deck.name}“`}
-        scopeDescription="Passe Tagespensum, Kartenreihenfolge und Intervalle gezielt für diesen Stapel an. Die vorhandenen Lernstände bleiben erhalten; neue Einstellungen wirken bei den nächsten Einplanungen."
-        onSave={(settings: any) => onSave(deck.id, settings)}
+        scopeTitle="Lernoptionen"
+        scopeDescription="Vorhandene Lernstände bleiben erhalten; Änderungen wirken bei den nächsten Einplanungen."
+        onSave={(settings) => onSave(deck.id, settings)}
       />
 
       <SoftPanel className="p-4 sm:p-5">
