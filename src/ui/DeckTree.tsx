@@ -235,18 +235,19 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
 
   return (
     <SoftPanel
-      className="overflow-visible p-4 sm:p-7"
+      className="core-deck-tree-container overflow-visible p-4 sm:p-7"
       data-testid={`${mode}-deck-list`}
       onPointerMove={movePointer}
       onPointerUp={endPointer}
       onPointerCancel={cancelPointer}
     >
       <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
-      <div className="mb-6 grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,28rem)_minmax(0,1fr)] lg:gap-4" data-testid={`${mode}-deck-list-header`}>
-        <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3>
+      <div className="core-deck-tree-header mb-6 grid min-h-11 items-center gap-3" data-testid={`${mode}-deck-list-header`}>
+        <h3 className="core-deck-tree-title whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3>
+        {headerAction ? <div className="core-deck-tree-header-action justify-self-end whitespace-nowrap">{headerAction}</div> : null}
         {draggedDeckId ? (
           <div
-            className={`col-span-2 row-start-2 grid min-h-11 w-full place-items-center rounded-xl border-2 border-dashed px-4 text-center core-body font-semibold transition lg:col-span-1 lg:col-start-2 lg:row-start-1 ${
+            className={`core-deck-tree-drop-zone grid min-h-11 w-full place-items-center rounded-xl border-2 border-dashed px-4 text-center core-body font-semibold transition ${
               topDropActive && dropIntent?.error
                 ? "border-[var(--core-danger)] bg-[var(--core-danger-surface)] text-[var(--core-danger)]"
                 : topDropActive
@@ -258,8 +259,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
           >
             Auf die Hauptebene verschieben
           </div>
-        ) : <span className="hidden lg:block" aria-hidden="true" />}
-        <div className="col-start-2 row-start-1 justify-self-end lg:col-start-3">{headerAction}</div>
+        ) : <span className="core-deck-tree-drop-spacer" aria-hidden="true" />}
       </div>
       <div className="core-deck-tree-rows min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)]">
         {visibleRows.map(renderRow)}

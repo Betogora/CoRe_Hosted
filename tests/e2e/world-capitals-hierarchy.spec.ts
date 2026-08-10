@@ -167,25 +167,63 @@ test("statistics deck filter uses full-width selection rows while keeping multip
   await expect(page.getByRole("textbox", { name: "Stapel suchen" })).toHaveValue("");
 });
 
+test("dashboard deck header keeps its labels intact while changing rows at most once", async ({ page }) => {
+  await resetToFreshLocalState(page);
+
+  const widths = [1440, 1280, 1279, 1152, 1024, 900, 768, 700, 640, 639, 390, 320];
+  let stackedHeaderSeen = false;
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 });
+    const layout = await page.getByTestId("dashboard-deck-list-header").evaluate((header: HTMLElement) => {
+      const centerY = (rect: DOMRect) => rect.top + rect.height / 2;
+      const title = header.querySelector<HTMLElement>("h3")!;
+      const action = header.querySelector<HTMLElement>("button")!;
+      const titleRect = title.getBoundingClientRect();
+      const actionRect = action.getBoundingClientRect();
+      return {
+        sameRow: Math.abs(centerY(titleRect) - centerY(actionRect)) <= 1,
+        titleSingleLine: title.scrollHeight <= title.clientHeight + 1,
+        actionSingleLine: action.scrollHeight <= action.clientHeight + 1,
+        pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
+      };
+    });
+
+    if (!layout.sameRow) stackedHeaderSeen = true;
+    else expect(stackedHeaderSeen).toBe(false);
+    expect(layout.titleSingleLine).toBe(true);
+    expect(layout.actionSingleLine).toBe(true);
+    expect(layout.pageFitsViewport).toBe(true);
+  }
+});
+
 test("active deck rows fit every target width and toggle reliably on mobile", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
-  for (const viewport of [
-    { width: 390, height: 844 },
-    { width: 768, height: 844 },
-    { width: 1024, height: 844 },
-    { width: 1440, height: 900 },
-  ]) {
-    await page.setViewportSize(viewport);
-    const deckListFits = await page.getByTestId("learn-deck-list").evaluate((panel) => {
+  const widths = [1440, 1280, 1279, 1152, 1024, 900, 820, 768, 700, 640, 639, 390, 320];
+  let compactRowsSeen = false;
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 });
+    const layout = await page.getByTestId("learn-deck-list").evaluate((panel) => {
       const rowViewport = panel.querySelector<HTMLElement>(".overflow-hidden.rounded-2xl");
-      return Boolean(rowViewport && rowViewport.scrollWidth <= rowViewport.clientWidth + 1)
-        && document.documentElement.scrollWidth <= window.innerWidth + 1;
+      const name = panel.querySelector<HTMLElement>(".core-deck-summary-name")!;
+      const icon = panel.querySelector<HTMLElement>(".core-deck-summary-icon")!;
+      const metricLabel = panel.querySelector<HTMLElement>(".core-deck-summary-count-label")!;
+      return {
+        fits: Boolean(rowViewport && rowViewport.scrollWidth <= rowViewport.clientWidth + 1)
+          && document.documentElement.scrollWidth <= window.innerWidth + 1,
+        labelsVisible: getComputedStyle(metricLabel).position !== "absolute",
+        nameWidth: name.getBoundingClientRect().width,
+        iconWidth: icon.getBoundingClientRect().width,
+      };
     });
-    expect(deckListFits).toBe(true);
+
+    if (!layout.labelsVisible) compactRowsSeen = true;
+    else expect(compactRowsSeen).toBe(false);
+    expect(layout.fits).toBe(true);
+    if (width >= 700) expect(layout.nameWidth).toBeGreaterThanOrEqual(layout.iconWidth);
   }
 
   await page.setViewportSize({ width: 390, height: 844 });

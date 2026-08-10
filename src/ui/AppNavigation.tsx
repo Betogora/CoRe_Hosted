@@ -38,7 +38,7 @@ function DesktopNavigation({ navigationItems, activeView, displayName, simulatio
   const settingsActive = utilityViews.has(activeView);
 
   return (
-    <aside className="hidden border-r border-[var(--core-border)] bg-core-surface md:block md:overflow-y-auto" data-navigation-layout="sidebar">
+    <aside className="hidden border-r border-[var(--core-border)] bg-core-surface xl:block xl:overflow-y-auto" data-navigation-layout="sidebar">
       <div className="flex h-full flex-col px-4 py-8 lg:px-5 lg:py-10">
         <div>
           <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
@@ -106,7 +106,7 @@ function MobileHeader({ activeView, simulationDayOffset, simulationDateLabel, on
   const settingsActive = utilityViews.has(activeView);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--core-border)] bg-core-surface px-5 py-3 md:hidden" data-navigation-layout="mobile-header">
+    <header className="sticky top-0 z-30 border-b border-[var(--core-border)] bg-core-surface px-5 py-3 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex min-h-11 items-center justify-between gap-3">
         <h1 className="core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
         <button
@@ -137,7 +137,7 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate }: App
       aria-label="Mobile Hauptnavigation"
       data-app-navigation="true"
       data-navigation-layout="bottom-bar"
-      className="fixed left-[50dvw] z-40 grid w-[calc(100dvw-4rem)] max-w-[34rem] -translate-x-1/2 grid-cols-5 gap-1 rounded-[20px] border border-[var(--core-border)] bg-core-raised p-1.5 shadow-[var(--core-shadow-raised)] sm:w-[calc(100dvw-6rem)] md:hidden"
+      className="fixed left-[50dvw] z-40 grid w-[calc(100dvw-4rem)] max-w-[34rem] -translate-x-1/2 grid-cols-5 gap-1 rounded-[20px] border border-[var(--core-border)] bg-core-raised p-1.5 shadow-[var(--core-shadow-raised)] sm:w-[calc(100dvw-6rem)] xl:hidden"
       style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
     >
       {navigationItems.map((view) => {

@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 389e72c518df8ff2 */
+/* Quellenstand: ba36892e36e48438 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1626,6 +1626,159 @@ button {
 
 button[aria-label] {
   min-width: 2.75rem;
+}
+
+.core-study-heatmap-container {
+  container: core-study-heatmap / inline-size;
+}
+
+.core-study-heatmap-header {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.core-study-heatmap-controls {
+  justify-self: end;
+}
+
+.core-study-heatmap-period-option {
+  padding-inline: 0.125rem;
+}
+
+.core-deck-tree-container {
+  container: core-deck-tree / inline-size;
+}
+
+.core-deck-tree-header {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.core-deck-tree-drop-spacer {
+  display: none;
+}
+
+.core-deck-summary-container {
+  container: core-deck-summary / inline-size;
+}
+
+@container core-study-heatmap (min-width: 17rem) {
+  .core-study-heatmap-period-option {
+    padding-inline: 0.5rem;
+  }
+}
+
+@container core-study-heatmap (min-width: 34rem) {
+  .core-study-heatmap-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .core-study-heatmap-period-option {
+    padding-inline: 0.625rem;
+  }
+}
+
+@container core-deck-tree (min-width: 17rem) {
+  .core-deck-tree-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .core-deck-tree-title {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .core-deck-tree-header-action {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .core-deck-tree-drop-zone {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@container core-deck-tree (min-width: 44rem) {
+  .core-deck-tree-header {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 28rem) minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .core-deck-tree-header-action {
+    grid-column: 3;
+  }
+
+  .core-deck-tree-drop-zone,
+  .core-deck-tree-drop-spacer {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .core-deck-tree-drop-spacer {
+    display: block;
+  }
+}
+
+@container core-deck-summary (min-width: 44rem) {
+  .core-deck-summary-responsive {
+    -moz-column-gap: 0.5rem;
+         column-gap: 0.5rem;
+    padding-inline: 0.5rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-leading,
+  .core-deck-summary-responsive .core-deck-summary-actions,
+  .core-deck-summary-responsive .core-deck-summary-counts {
+    gap: 0.5rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-icon > svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-name,
+  .core-deck-summary-responsive .core-deck-summary-count-value {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-count {
+    display: grid;
+    min-width: 0;
+    gap: 0.125rem;
+    text-align: right;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-count-label {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-count-value {
+    font-variant-numeric: normal;
+  }
+
+  .core-deck-summary-responsive .core-donut-responsive {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .core-deck-summary-responsive .core-donut-responsive-center {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
 }
 
 summary {

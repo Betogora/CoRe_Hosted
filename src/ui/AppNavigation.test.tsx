@@ -26,8 +26,9 @@ test("app navigation exposes a desktop sidebar and the five mobile tabs", () => 
   assert.match(markup, /data-navigation-layout="sidebar"/);
   assert.match(markup, /data-navigation-layout="mobile-header"/);
   assert.match(markup, /data-navigation-layout="bottom-bar"/);
-  assert.match(markup, /hidden border-r[^\"]*md:block/);
-  assert.match(markup, /md:hidden/);
+  assert.match(markup, /hidden border-r[^\"]*xl:block/);
+  assert.match(markup, /xl:hidden/);
+  assert.doesNotMatch(markup, /md:block|md:hidden/);
   for (const label of ["Heute", "Lernen", "Erstellen", "Statistik", "Mehr"]) assert.match(markup, new RegExp(`>${label}<`));
   assert.match(markup, /aria-label="Kartenverwaltung öffnen"[^>]*aria-current="page"/);
   assert.match(markup, /left-\[50dvw\]/);

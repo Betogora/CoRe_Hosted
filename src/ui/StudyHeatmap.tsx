@@ -230,16 +230,16 @@ export function StudyHeatmap({
   };
 
   return (
-    <SoftPanel className={`p-4 sm:p-7 ${className}`}>
-      <div className="flex flex-wrap items-center gap-4" data-testid="study-heatmap-header">
-        <div className="flex items-center gap-4">
+    <SoftPanel className={`core-study-heatmap-container p-4 sm:p-7 ${className}`}>
+      <div className="core-study-heatmap-header grid items-center gap-4" data-testid="study-heatmap-header">
+        <div className="flex min-w-0 items-center gap-4">
           <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
-          <h3 className="core-heading-3 font-semibold text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
+          <h3 className="whitespace-nowrap core-heading-3 font-semibold text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
         </div>
-        <div className="ml-auto flex w-full items-center justify-end gap-2 sm:w-auto">
+        <div className="core-study-heatmap-controls flex max-w-full items-center justify-end gap-2 whitespace-nowrap">
           <div
             role="group"
-            className="grid h-9 grid-cols-3 overflow-hidden rounded-lg border border-core-border bg-core-subtle"
+            className="grid h-9 shrink-0 grid-cols-3 overflow-hidden rounded-lg border border-core-border bg-core-subtle"
             aria-label="Heatmap-Zeitraum"
           >
             {PERIOD_OPTIONS.map((option) => (
@@ -248,7 +248,7 @@ export function StudyHeatmap({
                 type="button"
                 aria-pressed={period === option.value}
                 onClick={() => selectPeriod(option.value)}
-                className={`h-9 min-h-9 min-w-0 px-2.5 core-status-label transition-colors ${period === option.value ? "bg-core-action text-[var(--core-text-on-accent)]" : "text-core-secondary hover:bg-core-surface"}`}
+                className={`core-study-heatmap-period-option h-9 min-h-9 min-w-0 whitespace-nowrap core-status-label transition-colors ${period === option.value ? "bg-core-action text-[var(--core-text-on-accent)]" : "text-core-secondary hover:bg-core-surface"}`}
               >
                 {option.label}
               </button>

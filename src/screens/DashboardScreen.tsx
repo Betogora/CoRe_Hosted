@@ -103,7 +103,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateD
           <button
             type="button"
             onClick={() => onNavigate("lernen")}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2"
           >
             Alle ansehen <ChevronRight size={15} aria-hidden="true" />
           </button>

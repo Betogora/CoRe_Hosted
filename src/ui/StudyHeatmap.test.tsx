@@ -18,6 +18,10 @@ test("shared study heatmap defaults to seven days with the streak title and segm
   );
 
   assert.match(markup, /1 Tag Streak/);
+  assert.match(markup, /core-study-heatmap-container/);
+  assert.match(markup, /core-study-heatmap-header/);
+  assert.match(markup, /core-study-heatmap-controls/);
+  assert.doesNotMatch(markup, /sm:w-auto/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
   assert.match(markup, /aria-pressed="true"[^>]*>Woche</);
   assert.match(markup, />Monat</);

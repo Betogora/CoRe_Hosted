@@ -31,10 +31,12 @@ test("deck tree keeps hierarchy, labels and all three semantic metrics in every 
   assert.equal((markup.match(/data-deck-count="due"/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /data-deck-count="total"|>Gesamt</);
   assert.equal((markup.match(/data-deck-summary-row-content="responsive"/g) ?? []).length, 2);
+  assert.equal((markup.match(/core-deck-summary-container/g) ?? []).length, 2);
   assert.equal((markup.match(/data-testid="deck-options-/g) ?? []).length, 2);
-  assert.match(markup, /sr-only md:not-sr-only/);
+  assert.match(markup, /core-deck-summary-count-label sr-only/);
   assert.doesNotMatch(markup, /hidden md:block/);
-  assert.match(markup, /size-8 md:size-10/);
+  assert.match(markup, /core-donut-responsive/);
+  assert.doesNotMatch(markup, /md:not-sr-only|md:size-10|md:text-base/);
   assert.match(markup, /var\(--core-learning-status-new\)/);
   assert.match(markup, /var\(--core-learning-status-in-progress\)/);
   assert.match(markup, /var\(--core-learning-status-due\)/);
@@ -45,6 +47,8 @@ test("deck tree keeps hierarchy, labels and all three semantic metrics in every 
   assert.match(markup, /grid-cols-\[minmax\(0,1fr\)_auto_auto\]/);
   assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto/);
   assert.match(markup, /core-deck-tree-rows min-w-0/);
+  assert.match(markup, /core-deck-tree-container/);
+  assert.match(markup, /core-deck-tree-header/);
   assert.doesNotMatch(markup, /pointer-events-auto flex items-center justify-end/);
   assert.ok(markup.indexOf("Unterstapel von Bereich ausblenden") < markup.indexOf('data-deck-icon="true"'));
   assert.match(markup, /<button[^>]*data-deck-drag-source="true"[^>]*data-deck-row-activation="true"/);

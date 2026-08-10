@@ -83,7 +83,58 @@ test("dashboard deck rows start learning across their full surface and keep the 
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });
 
-test("dashboard heatmap keeps its legend and navigation aligned across responsive widths", async ({ page }: any) => {
+test("dashboard heatmap changes its header layout only once across responsive widths", async ({ page }: any) => {
+  await resetToFreshLocalState(page);
+
+  const viewports = [1440, 1280, 1279, 1152, 1024, 900, 768, 700, 640, 639, 390, 320];
+  for (const period of [
+    { label: "Woche", value: "week" },
+    { label: "Monat", value: "month" },
+    { label: "Jahr", value: "year" },
+  ]) {
+    await page.getByRole("button", { name: period.label, exact: true }).click();
+    let stackedHeaderSeen = false;
+
+    for (const width of viewports) {
+      await page.setViewportSize({ width, height: 900 });
+      const grid = page.getByTestId("study-heatmap-grid");
+      await expect(grid).toBeVisible();
+      await expect(grid).toHaveAttribute("data-heatmap-period", period.value);
+      await expect.poll(() => grid.locator("span[aria-label]").count()).toBeGreaterThan(0);
+
+      const layout = await page.getByTestId("study-heatmap-header").evaluate((header: HTMLElement) => {
+        const centerY = (rect: DOMRect) => rect.top + rect.height / 2;
+        const titleGroup = header.firstElementChild as HTMLElement;
+        const controls = header.lastElementChild as HTMLElement;
+        const title = titleGroup.querySelector<HTMLElement>("h3")!;
+        const titleRect = titleGroup.getBoundingClientRect();
+        const controlsRect = controls.getBoundingClientRect();
+        const controlRects = [...controls.children].map((control) => control.getBoundingClientRect());
+        const panel = header.closest<HTMLElement>(".core-study-heatmap-container")!;
+        const yearScroller = panel.querySelector<HTMLElement>("[aria-label^='Horizontal scrollbare Lern-Heatmap']");
+
+        return {
+          sameRow: Math.abs(centerY(titleRect) - centerY(controlsRect)) <= 1,
+          controlsSingleRow: controlRects.every((rect) => Math.abs(rect.top - controlRects[0].top) <= 1),
+          controlsRightAligned: Math.abs(controlsRect.right - header.getBoundingClientRect().right) <= 1,
+          titleSingleLine: title.scrollHeight <= title.clientHeight + 1,
+          pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
+          yearScrollIsLocal: !yearScroller || (getComputedStyle(yearScroller).overflowX === "auto" && yearScroller.scrollWidth >= yearScroller.clientWidth),
+        };
+      });
+
+      if (!layout.sameRow) stackedHeaderSeen = true;
+      else expect(stackedHeaderSeen).toBe(false);
+      expect(layout.controlsSingleRow).toBe(true);
+      expect(layout.controlsRightAligned).toBe(true);
+      expect(layout.titleSingleLine).toBe(true);
+      expect(layout.pageFitsViewport).toBe(true);
+      expect(layout.yearScrollIsLocal).toBe(true);
+    }
+  }
+});
+
+test("dashboard heatmap preserves its cells, today marker and label alignment", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
   for (const viewport of [
@@ -106,10 +157,10 @@ test("dashboard heatmap keeps its legend and navigation aligned across responsiv
       const todayStyle = window.getComputedStyle(element.querySelector<HTMLElement>(".ring-inset")!);
       const header = document.querySelector<HTMLElement>("[data-testid='study-heatmap-header']")!;
       const controls = header.lastElementChild as HTMLElement;
-      const [legend, navigation] = [...controls.children] as HTMLElement[];
+      const [periodSelector, navigation] = [...controls.children] as HTMLElement[];
       const headerRect = header.getBoundingClientRect();
       const controlsRect = controls.getBoundingClientRect();
-      const legendRect = legend.getBoundingClientRect();
+      const periodSelectorRect = periodSelector.getBoundingClientRect();
       const navigationRect = navigation.getBoundingClientRect();
       const labelBounds = monthLabels.map((label) => {
         const rect = label.getBoundingClientRect();
@@ -121,7 +172,7 @@ test("dashboard heatmap keeps its legend and navigation aligned across responsiv
         cellHeight: firstDayRect.height,
         cellRadius: firstDayStyle.borderRadius,
         todayShadow: todayStyle.boxShadow,
-        legendBeforeNavigation: legendRect.right <= navigationRect.left,
+        selectorBeforeNavigation: periodSelectorRect.right <= navigationRect.left,
         controlsRightAligned: Math.abs(controlsRect.right - headerRect.right),
         labelsFitViewport: labelBounds.every(({ left, right }, index) =>
           right <= viewportRect.right + 1
@@ -134,7 +185,7 @@ test("dashboard heatmap keeps its legend and navigation aligned across responsiv
     expect(layout.cellHeight).toBe(19);
     expect(layout.cellRadius).toBe("4px");
     expect(layout.todayShadow).toContain("inset");
-    expect(layout.legendBeforeNavigation).toBe(true);
+    expect(layout.selectorBeforeNavigation).toBe(true);
     expect(layout.controlsRightAligned).toBeLessThanOrEqual(1);
     expect(layout.labelsFitViewport).toBe(true);
     expect(layout.pageFitsViewport).toBe(true);

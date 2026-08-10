@@ -22,6 +22,24 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   await expect(page.getByRole("button", { name: "Einstellungen öffnen" })).toBeVisible();
 });
 
+test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async ({ page }) => {
+  await resetToFreshLocalState(page);
+
+  const sidebar = page.locator('[data-navigation-layout="sidebar"]');
+  const mobileHeader = page.locator('[data-navigation-layout="mobile-header"]');
+  const bottomNavigation = page.locator('[data-navigation-layout="bottom-bar"]');
+
+  await page.setViewportSize({ width: 1279, height: 900 });
+  await expect(sidebar).toBeHidden();
+  await expect(mobileHeader).toBeVisible();
+  await expect(bottomNavigation).toBeVisible();
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(sidebar).toBeVisible();
+  await expect(mobileHeader).toBeHidden();
+  await expect(bottomNavigation).toBeHidden();
+});
+
 test("dark mode can be toggled from the sidebar and persists across reloads", async ({ page }) => {
   await resetToFreshLocalState(page);
 

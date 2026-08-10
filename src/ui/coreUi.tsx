@@ -186,11 +186,11 @@ export function DonutValue({ value, size = "default" }: { value: number; size?: 
   const responsive = size === "responsive";
   return (
     <span
-      className={`grid place-items-center rounded-full ${compact || responsive ? "size-8" : "size-10"} ${responsive ? "md:size-10" : ""}`}
+      className={`grid place-items-center rounded-full ${compact || responsive ? "size-8" : "size-10"} ${responsive ? "core-donut-responsive" : ""}`}
       style={{ background: `conic-gradient(var(--core-action-primary) ${value * 3.6}deg, var(--core-surface-muted) 0deg)` }}
       aria-label={`${value} Prozent`}
     >
-      <span className={`block rounded-full bg-core-surface ${compact || responsive ? "size-[1.35rem]" : "size-7"} ${responsive ? "md:size-7" : ""}`} />
+      <span className={`block rounded-full bg-core-surface ${compact || responsive ? "size-[1.35rem]" : "size-7"} ${responsive ? "core-donut-responsive-center" : ""}`} />
     </span>
   );
 }
