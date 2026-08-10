@@ -21,7 +21,7 @@ import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { formatLearningCardCount, LEARNING_STATUS_UI } from "../ui/learningStatusUi.ts";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
-import { ratingButtons } from "./screenConstants.ts";
+import { formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
 import type { CardVariant, Deck, LearningItemStudyStatePatch, ReviewRating, ReviewState } from "../coreTypes.ts";
 
 function normalizeReviewCardType(cardType: string, variant: CardVariant|undefined) {
@@ -127,6 +127,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   const sourceCard = current?.learningItem ?? null;
   const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
   const sourceAnchor = current?.variant?.sourceAnchors?.[0] ?? sourceCard?.sourceAnchors?.[0] ?? null;
+  const hasAnswerTools = isCurrentVariant || Boolean(sourceAnchor);
   const { urls: studyMediaUrls, missing: studyMissingMedia } = useDeckMediaUrls(currentDeck, mediaStore);
   const rawCardType = String(sourceCard?.kind ?? sourceCard?.cardType ?? current?.variant?.meta?.cardType ?? "basic");
   const cardType = normalizeReviewCardType(rawCardType, current?.variant);
@@ -394,64 +395,66 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
                           {selectedChoice ? <p className="mt-1">Deine Auswahl: {selectedChoice}</p> : null}
                         </div>
                       ) : null}
-                      <div className="mt-8 rounded-2xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
-                        <div className="flex flex-wrap gap-2">
-                          {isCurrentVariant ? (
-                            <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
-                              <Anchor size={16} aria-hidden="true" />
-                              {showAnchor ? "Original ausblenden" : "Original anzeigen"}
-                            </button>
-                          ) : null}
-                          {sourceAnchor ? (
-                            <button type="button" onClick={() => setShowSource((value) => !value)} aria-expanded={showSource} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
-                              <Eye size={16} aria-hidden="true" />
-                              {showSource ? "Quelle ausblenden" : "Quelle anzeigen"}
-                            </button>
-                          ) : null}
-                          {isCurrentVariant ? (
-                            <button type="button" onClick={() => updateVariant("disable")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-warning bg-core-warning-soft px-3 core-body font-semibold text-core-text">
-                              <Ban size={16} aria-hidden="true" />
-                              Nicht mehr zeigen
-                            </button>
-                          ) : null}
-                        </div>
-                        {isCurrentVariant ? (
-                          <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Problem melden">
-                            <span className="core-body font-semibold text-[var(--core-text-muted)]">Problem melden:</span>
-                            <button type="button" onClick={() => updateVariant("flag", "fachlich_falsch")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
-                              <CircleAlert size={16} aria-hidden="true" />
-                              Inhaltlich falsch
-                            </button>
-                            <button type="button" onClick={() => updateVariant("flag", "unklar_formuliert")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
-                              <CircleAlert size={16} aria-hidden="true" />
-                              Unklar formuliert
-                            </button>
+                      {hasAnswerTools ? (
+                        <div className="mt-8 rounded-2xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" data-testid="review-answer-tools">
+                          <div className="flex flex-wrap gap-2">
+                            {isCurrentVariant ? (
+                              <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
+                                <Anchor size={16} aria-hidden="true" />
+                                {showAnchor ? "Original ausblenden" : "Original anzeigen"}
+                              </button>
+                            ) : null}
+                            {sourceAnchor ? (
+                              <button type="button" onClick={() => setShowSource((value) => !value)} aria-expanded={showSource} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
+                                <Eye size={16} aria-hidden="true" />
+                                {showSource ? "Quelle ausblenden" : "Quelle anzeigen"}
+                              </button>
+                            ) : null}
+                            {isCurrentVariant ? (
+                              <button type="button" onClick={() => updateVariant("disable")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-warning bg-core-warning-soft px-3 core-body font-semibold text-core-text">
+                                <Ban size={16} aria-hidden="true" />
+                                Nicht mehr zeigen
+                              </button>
+                            ) : null}
                           </div>
-                        ) : null}
-                        {feedbackStatus ? <p className="mt-3 core-body font-semibold text-[var(--core-text-secondary)]" role="status">{feedbackStatus}</p> : null}
-                        {isCurrentVariant && showAnchor && sourceCard ? (
-                          <div className="mt-4 border-t border-[var(--core-border)] pt-4" data-testid="original-anchor">
-                            <p className="core-body font-semibold text-[var(--core-text-muted)]">Originalkarte</p>
-                            <div className="mt-3 grid gap-4 md:grid-cols-2">
-                              <div>
-                                <p className="mb-1 core-caption font-semibold text-[var(--core-text-muted)]">Vorderseite</p>
-                                <CardHtml html={getLearningItemQuestion(sourceCard)} mediaUrls={studyMediaUrls} />
-                              </div>
-                              <div>
-                                <p className="mb-1 core-caption font-semibold text-[var(--core-text-muted)]">Rückseite</p>
-                                <CardHtml html={getLearningItemAnswer(sourceCard)} mediaUrls={studyMediaUrls} />
+                          {isCurrentVariant ? (
+                            <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Problem melden">
+                              <span className="core-body font-semibold text-[var(--core-text-muted)]">Problem melden:</span>
+                              <button type="button" onClick={() => updateVariant("flag", "fachlich_falsch")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
+                                <CircleAlert size={16} aria-hidden="true" />
+                                Inhaltlich falsch
+                              </button>
+                              <button type="button" onClick={() => updateVariant("flag", "unklar_formuliert")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
+                                <CircleAlert size={16} aria-hidden="true" />
+                                Unklar formuliert
+                              </button>
+                            </div>
+                          ) : null}
+                          {feedbackStatus ? <p className="mt-3 core-body font-semibold text-[var(--core-text-secondary)]" role="status">{feedbackStatus}</p> : null}
+                          {isCurrentVariant && showAnchor && sourceCard ? (
+                            <div className="mt-4 border-t border-[var(--core-border)] pt-4" data-testid="original-anchor">
+                              <p className="core-body font-semibold text-[var(--core-text-muted)]">Originalkarte</p>
+                              <div className="mt-3 grid gap-4 md:grid-cols-2">
+                                <div>
+                                  <p className="mb-1 core-caption font-semibold text-[var(--core-text-muted)]">Vorderseite</p>
+                                  <CardHtml html={getLearningItemQuestion(sourceCard)} mediaUrls={studyMediaUrls} />
+                                </div>
+                                <div>
+                                  <p className="mb-1 core-caption font-semibold text-[var(--core-text-muted)]">Rückseite</p>
+                                  <CardHtml html={getLearningItemAnswer(sourceCard)} mediaUrls={studyMediaUrls} />
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ) : null}
-                        {showSource && sourceAnchor ? (
-                          <div className="mt-4 border-t border-[var(--core-border)] pt-4" data-testid="source-anchor">
-                            <p className="core-body font-semibold text-[var(--core-text-muted)]">Quelle</p>
-                            <p className="mt-2 core-body text-[var(--core-text-secondary)]">{sourceAnchor.documentName}{sourceAnchor.pageNumber ? `, Seite ${sourceAnchor.pageNumber}` : ""}</p>
-                            {sourceAnchor.textQuote ? <blockquote className="mt-2 border-l-2 border-[var(--core-border)] pl-3 core-body text-[var(--core-text-muted)]">{sourceAnchor.textQuote}</blockquote> : null}
-                          </div>
-                        ) : null}
-                      </div>
+                          ) : null}
+                          {showSource && sourceAnchor ? (
+                            <div className="mt-4 border-t border-[var(--core-border)] pt-4" data-testid="source-anchor">
+                              <p className="core-body font-semibold text-[var(--core-text-muted)]">Quelle</p>
+                              <p className="mt-2 core-body text-[var(--core-text-secondary)]">{sourceAnchor.documentName}{sourceAnchor.pageNumber ? `, Seite ${sourceAnchor.pageNumber}` : ""}</p>
+                              {sourceAnchor.textQuote ? <blockquote className="mt-2 border-l-2 border-[var(--core-border)] pl-3 core-body text-[var(--core-text-muted)]">{sourceAnchor.textQuote}</blockquote> : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </>
                   ) : (
                     <button type="button" onClick={() => setShowAnswer(true)} className="mx-auto mt-12 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)]">
@@ -485,11 +488,13 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
           <footer className="grid gap-3 sm:grid-cols-4">
             {ratingButtons.map((rating) => {
               const ratingKey = rating.key as ReviewRating;
-              return <button key={rating.key} type="button" onClick={() => grade(ratingKey)} disabled={!current} aria-label={`Bewertung ${rating.label}${current?.ratingButtonOptions?.[ratingKey]?.intervalLabel ? `: ${current.ratingButtonOptions[ratingKey].intervalLabel}` : ""}`} className={`min-h-20 rounded-2xl border text-center shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${rating.className}`}>
-                <span className="block core-heading-2 font-semibold">{rating.number}</span>
-                <span className="mt-1 block core-body font-semibold">{rating.label}</span>
-                <span className="mt-1 block core-caption font-semibold opacity-80">{current?.ratingButtonOptions?.[ratingKey]?.intervalLabel ?? ""}</span>
-              </button>
+              const intervalLabel = formatReviewIntervalLabel(current?.ratingButtonOptions?.[ratingKey]?.intervalLabel ?? "");
+              return <CoreTooltip key={rating.key} label={`Taste ${rating.shortcutKey}`}>
+                <button type="button" onClick={() => grade(ratingKey)} disabled={!current} aria-label={`Bewertung ${rating.label}${intervalLabel ? `: ${intervalLabel}` : ""}`} className={`min-h-16 rounded-2xl border text-center shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${rating.className}`}>
+                  <span className="block core-heading-2 font-semibold">{rating.label}</span>
+                  <span className="mt-1 block core-body font-semibold opacity-80">{intervalLabel}</span>
+                </button>
+              </CoreTooltip>
             })}
           </footer>
         ) : null}

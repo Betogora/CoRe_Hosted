@@ -1,4 +1,5 @@
 import { ArrowLeftRight, Braces, CreditCard, Images, ListChecks } from "lucide-react";
+import { RATING_SHORTCUT_KEYS } from "../reviewShortcuts.ts";
 
 export const importSteps = [
   { id: "analyze", label: "Analysieren" },
@@ -17,11 +18,15 @@ export const cardTypeOptions = [
 ];
 
 export const ratingButtons = [
-  { key: "again", number: "1", label: "Nochmal", className: "border-core-danger bg-core-danger-soft text-core-text" },
-  { key: "hard", number: "2", label: "Schwer", className: "border-core-warning bg-core-warning-soft text-core-text" },
-  { key: "good", number: "3", label: "Gut", className: "border-core-success bg-core-success-soft text-core-text" },
-  { key: "easy", number: "4", label: "Leicht", className: "border-core-info bg-core-info-soft text-core-text" },
+  { key: "again", shortcutKey: RATING_SHORTCUT_KEYS.again, label: "Nochmal", className: "border-core-danger bg-core-danger-soft text-core-text" },
+  { key: "hard", shortcutKey: RATING_SHORTCUT_KEYS.hard, label: "Schwer", className: "border-core-warning bg-core-warning-soft text-core-text" },
+  { key: "good", shortcutKey: RATING_SHORTCUT_KEYS.good, label: "Gut", className: "border-core-success bg-core-success-soft text-core-text" },
+  { key: "easy", shortcutKey: RATING_SHORTCUT_KEYS.easy, label: "Leicht", className: "border-core-info bg-core-info-soft text-core-text" },
 ];
+
+export function formatReviewIntervalLabel(label: string) {
+  return label.replace(/ Min\.$/, " min");
+}
 
 export const maturityStageLabels = {
   new: "Neu",

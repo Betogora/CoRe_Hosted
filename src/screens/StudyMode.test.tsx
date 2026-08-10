@@ -4,10 +4,25 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { addRephrasedVariant, createBasicLearningItem, createCoreDeck } from "../coreModel.ts";
 import { StudyMode } from "./StudyMode.tsx";
-import { ratingButtons } from "./screenConstants.ts";
+import { formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
 
-test("review ratings use clear German accessible labels", () => {
-  assert.deepEqual(ratingButtons.map(({ number, label }) => `${number} ${label}`), ["1 Nochmal", "2 Schwer", "3 Gut", "4 Leicht"]);
+test("review ratings keep their German labels, shortcuts and canonical color order", () => {
+  assert.deepEqual(
+    ratingButtons.map(({ shortcutKey, label, className }) => ({ shortcutKey, label, className })),
+    [
+      { shortcutKey: "1", label: "Nochmal", className: "border-core-danger bg-core-danger-soft text-core-text" },
+      { shortcutKey: "2", label: "Schwer", className: "border-core-warning bg-core-warning-soft text-core-text" },
+      { shortcutKey: "3", label: "Gut", className: "border-core-success bg-core-success-soft text-core-text" },
+      { shortcutKey: "4", label: "Leicht", className: "border-core-info bg-core-info-soft text-core-text" },
+    ],
+  );
+});
+
+test("review intervals abbreviate only minutes with lowercase min", () => {
+  assert.equal(formatReviewIntervalLabel("5 Min."), "5 min");
+  assert.equal(formatReviewIntervalLabel("15 Min."), "15 min");
+  assert.equal(formatReviewIntervalLabel("1 Tag"), "1 Tag");
+  assert.equal(formatReviewIntervalLabel("7 Tage"), "7 Tage");
 });
 
 test("StudyMode exposes no origin or scheduler hints before reveal", () => {

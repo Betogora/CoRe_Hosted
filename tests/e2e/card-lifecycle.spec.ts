@@ -180,7 +180,15 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await expect(page.getByText("Basic Frage neu", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await expect(page.getByText("Basic Antwort neu", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+  await expect(page.getByTestId("review-answer-tools")).toHaveCount(0);
+  const ratingButtons = page.getByRole("button", { name: /Bewertung (Nochmal|Schwer|Gut|Leicht)/ });
+  await expect(ratingButtons).toHaveCount(4);
+  await expect(ratingButtons.nth(0).locator("span").first()).toHaveText("Nochmal");
+  await expect(ratingButtons.nth(0)).toHaveAttribute("data-core-tooltip", "Taste 1");
+  await expect(ratingButtons.nth(0)).toContainText("5 min");
+  await ratingButtons.nth(0).hover();
+  await expect(page.getByRole("tooltip")).toHaveText("Taste 1");
+  await page.keyboard.press("3");
 });
 
 test("[Vertrag: KI-Basic-Variante] @golden-e2e abgefangene Modellantwort wird sofort und reloadfest gespeichert", async ({ page }) => {

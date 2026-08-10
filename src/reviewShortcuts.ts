@@ -1,11 +1,18 @@
+export const RATING_SHORTCUT_KEYS = {
+  again: "1",
+  hard: "2",
+  good: "3",
+  easy: "4",
+} as const;
+
 const RATING_KEY_MAP: Record<string, "again" | "hard" | "good" | "easy"> = {
-  1: "again",
+  [RATING_SHORTCUT_KEYS.again]: "again",
   a: "again",
-  2: "hard",
+  [RATING_SHORTCUT_KEYS.hard]: "hard",
   h: "hard",
-  3: "good",
+  [RATING_SHORTCUT_KEYS.good]: "good",
   g: "good",
-  4: "easy",
+  [RATING_SHORTCUT_KEYS.easy]: "easy",
   e: "easy",
 };
 
