@@ -1,6 +1,10 @@
 import type { Deck, LearningItem, ReviewEvent, ReviewRating, ReviewState } from "./coreTypes.ts";
 import { calculateRetrievability } from "./scheduler.ts";
-import { createStudyHeatmapModelFromCounts, type StudyHeatmapModel } from "./studyHeatmapModel.ts";
+import {
+  createStudyHeatmapForecastCounts,
+  createStudyHeatmapModelFromCounts,
+  type StudyHeatmapModel,
+} from "./studyHeatmapModel.ts";
 
 export type StatisticsPeriod = "30d" | "90d" | "365d" | "all";
 export type StatisticsDeckSelection = "all" | string[];
@@ -720,9 +724,14 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
   const ratings = [...ratingRows.values()].map((row) => ({ ...row, successPercent: percentage(row.total - row.again, row.total) }));
 
   const addedCards = buckets.map((bucket) => ({ key: bucket.key, label: bucket.label, rangeLabel: bucket.rangeLabel, count: 0, cumulative: 0 }));
+  const forecastCountsByDay = createStudyHeatmapForecastCounts(
+    scope.cards.map(({ item }) => item),
+    { todayKey: nowKey, timeZone },
+  );
   const studyHeatmap = createStudyHeatmapModelFromCounts({
     todayKey: nowKey,
     countsByDay: scope.heatmapCountsByDay,
+    forecastCountsByDay,
   });
 
   const statusCounts = new Map<string, number>([["new", 0], ["learning", 0], ["relearning", 0], ["young", 0], ["mature", 0]]);

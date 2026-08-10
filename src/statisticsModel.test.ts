@@ -111,7 +111,34 @@ test("statistics resolve parent scopes and aggregate the Anki-style categories o
   assert.equal(statistics.status.activeVariants, 1);
   assert.equal(statistics.status.rows.find((row) => row.key === "mature")?.count, 1);
   assert.equal(statistics.planning.dueTomorrow, 1);
+  assert.equal(statistics.studyHeatmap.forecastCountsByDay.get("2026-07-08"), 1);
   assert.equal(statistics.difficultCards[0]?.learningItemId, "card_stats");
+});
+
+test("statistics heatmap forecast follows the selected deck scope without counting variants twice", () => {
+  const selectedCard = createCoreCard({
+    id: "card_selected_forecast",
+    source: "manual",
+    reviewState: { state: "review", dueAt: "2026-07-08T08:00:00.000Z", repetitions: 2 },
+    variants: [
+      { id: "variant_selected_forecast", sourceCardId: "card_selected_forecast", front: "Variante", back: "Antwort", qualityStatus: "active" },
+    ],
+  });
+  const otherCard = createCoreCard({
+    id: "card_other_forecast",
+    source: "manual",
+    reviewState: { state: "review", dueAt: "2026-07-08T09:00:00.000Z", repetitions: 2 },
+  });
+  const selectedDeck = createCoreDeck({ id: "deck_selected_forecast", name: "Ausgewählt", source: "manual", cards: [selectedCard] });
+  const otherDeck = createCoreDeck({ id: "deck_other_forecast", name: "Andere", source: "manual", cards: [otherCard] });
+  const index = createStatisticsIndex([selectedDeck, otherDeck]);
+  const selection = { period: "30d" as const, now: "2026-07-07T12:00:00.000Z", timeZone: "Europe/Berlin" };
+
+  const selected = projectStatistics(index, { ...selection, deckIds: [selectedDeck.id] });
+  const all = projectStatistics(index, { ...selection, deckIds: "all" });
+
+  assert.equal(selected.studyHeatmap.forecastCountsByDay.get("2026-07-08"), 1);
+  assert.equal(all.studyHeatmap.forecastCountsByDay.get("2026-07-08"), 2);
 });
 
 test("all global periods share the all-time sparse heatmap while keeping bounded chart ranges", () => {

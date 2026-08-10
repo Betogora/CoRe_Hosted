@@ -17,6 +17,13 @@ const heatmapToneByLevel = [
   "core-heatmap-level-3",
   "core-heatmap-level-4",
 ];
+const forecastToneByLevel = [
+  "core-heatmap-forecast-level-0",
+  "core-heatmap-forecast-level-1",
+  "core-heatmap-forecast-level-2",
+  "core-heatmap-forecast-level-3",
+  "core-heatmap-forecast-level-4",
+];
 const PERIOD_OPTIONS: Array<{ value: StudyHeatmapPeriod; label: string }> = [
   { value: "week", label: "Woche" },
   { value: "month", label: "Monat" },
@@ -40,6 +47,18 @@ function compactDate(key: string) {
 
 function longDate(key: string) {
   return `${compactDate(key)}${key.slice(0, 4)}`;
+}
+
+function forecastDayLabel(day: StudyHeatmapDay) {
+  const date = longDate(day.key);
+  if (!day.isForecastAvailable) return `${date}: außerhalb der 365-Tage-Prognose`;
+  if (day.forecastCount === 0) return `${date}: voraussichtlich keine Karten fällig`;
+  if (day.forecastCount === 1) return `${date}: voraussichtlich 1 Karte fällig`;
+  return `${date}: voraussichtlich ${day.forecastCount.toLocaleString("de-DE")} Karten fällig`;
+}
+
+function heatmapDayLabel(day: StudyHeatmapDay, formatHistoricalDayLabel: (day: StudyHeatmapDay) => string) {
+  return day.isFuture ? forecastDayLabel(day) : formatHistoricalDayLabel(day);
 }
 
 function weekdayLabel(key: string) {
@@ -82,12 +101,15 @@ function HeatmapDayCell({
   children?: React.ReactNode;
 }) {
   if (day.isOutsideRange) return <span aria-hidden="true" className={`invisible ${className}`} />;
+  const toneClass = day.isForecastAvailable ? forecastToneByLevel[day.forecastLevel] : heatmapToneByLevel[day.level];
+  const unavailableClass = day.isFuture && !day.isForecastAvailable ? "opacity-35" : "";
   return (
     <CoreTooltip label={label}>
       <span
-        className={`grid place-items-center border transition-transform hover:scale-105 ${heatmapToneByLevel[day.level]} ${day.isToday ? "ring-2 ring-inset ring-core-focus" : ""} ${day.isFuture ? "opacity-35" : ""} ${className}`}
+        className={`grid place-items-center border transition-transform hover:scale-105 ${toneClass} ${day.isToday ? "ring-2 ring-inset ring-core-action" : ""} ${unavailableClass} ${className}`}
         aria-label={label}
         data-heatmap-day={day.key}
+        data-heatmap-kind={day.isForecastAvailable ? "forecast" : day.isFuture ? "unavailable" : "history"}
       >
         {children}
       </span>
@@ -110,7 +132,7 @@ function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; f
             <span className="block">{weekdayLabel(day.key)}</span>
             <span className="block font-normal">{compactDate(day.key)}</span>
           </span>
-          <HeatmapDayCell day={day} label={formatDayLabel(day)} className="aspect-square w-full max-w-[4.5rem] rounded-xl" />
+          <HeatmapDayCell day={day} label={heatmapDayLabel(day, formatDayLabel)} className="aspect-square w-full max-w-[4.5rem] rounded-xl" />
         </div>
       ))}
     </div>
@@ -130,7 +152,7 @@ function MonthHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; 
       </div>
       <div className="grid grid-cols-7 justify-items-center gap-1.5 sm:gap-2">
         {window.days.map((day) => (
-          <HeatmapDayCell key={day.key} day={day} label={formatDayLabel(day)} className="aspect-square w-full max-w-14 rounded-lg">
+          <HeatmapDayCell key={day.key} day={day} label={heatmapDayLabel(day, formatDayLabel)} className="aspect-square w-full max-w-14 rounded-lg">
             <span className="core-caption font-semibold text-core-text">{day.dayOfMonth}</span>
           </HeatmapDayCell>
         ))}
@@ -184,7 +206,7 @@ function YearHeatmap({
                 <HeatmapDayCell
                   key={day.key}
                   day={day}
-                  label={formatDayLabel(day)}
+                  label={heatmapDayLabel(day, formatDayLabel)}
                   className="size-[19px] rounded-[4px]"
                 />
               );
@@ -219,10 +241,11 @@ export function StudyHeatmap({
     const scroller = yearScrollerRef.current;
     if (period !== "year" || !scroller) return;
     const isCurrentYear = visibleHeatmap.rangeStartKey.slice(0, 4) === heatmap.todayKey.slice(0, 4);
-    const targetKey = isCurrentYear ? heatmap.todayKey : visibleHeatmap.rangeEndKey;
+    const isForecastEndYear = visibleHeatmap.rangeStartKey.slice(0, 4) === heatmap.forecastEndKey.slice(0, 4);
+    const targetKey = isCurrentYear ? heatmap.todayKey : isForecastEndYear ? heatmap.forecastEndKey : visibleHeatmap.rangeEndKey;
     const target = scroller.querySelector<HTMLElement>(`[data-heatmap-day="${targetKey}"]`);
     if (target) scroller.scrollLeft = Math.max(0, target.offsetLeft - scroller.clientWidth + target.offsetWidth);
-  }, [heatmap.todayKey, period, visibleHeatmap.anchorKey, visibleHeatmap.rangeEndKey, visibleHeatmap.rangeStartKey]);
+  }, [heatmap.forecastEndKey, heatmap.todayKey, period, visibleHeatmap.anchorKey, visibleHeatmap.rangeEndKey, visibleHeatmap.rangeStartKey]);
 
   const selectPeriod = (nextPeriod: StudyHeatmapPeriod) => {
     setPeriod(nextPeriod);

@@ -338,6 +338,35 @@ test("study heatmap counts only rated reviews by profile day and derives the cur
   assert.equal(heatmap.countsByDay.has("2026-07-08"), false);
 });
 
+test("study heatmap forecasts each active learning item once by its next due day", () => {
+  const forecastCard = createCoreCard({
+    id: "card_forecast",
+    source: "manual",
+    originalFront: "Wann bin ich fällig?",
+    originalBack: "Übermorgen.",
+    reviewState: { state: "review", dueAt: "2026-08-07T22:30:00.000Z", repetitions: 2 },
+    variants: [
+      { id: "variant_forecast", sourceCardId: "card_forecast", front: "Variante", back: "Antwort", qualityStatus: "active" },
+    ],
+  });
+  const excludedCards = [
+    createCoreCard({ id: "card_deleted_forecast", source: "manual", status: "deleted", reviewState: { dueAt: "2026-08-08T08:00:00.000Z" } }),
+    createCoreCard({ id: "card_suspended_forecast", source: "manual", status: "suspended", reviewState: { dueAt: "2026-08-08T08:00:00.000Z" } }),
+    createCoreCard({ id: "card_draft_forecast", source: "manual", draftStatus: "draft", reviewState: { dueAt: "2026-08-08T08:00:00.000Z" } }),
+    createCoreCard({ id: "card_buried_forecast", source: "manual", meta: { buried: true }, reviewState: { dueAt: "2026-08-08T08:00:00.000Z" } }),
+    createCoreCard({ id: "card_too_late_forecast", source: "manual", reviewState: { dueAt: "2027-08-08T08:00:00.000Z" } }),
+  ];
+  const deck = createCoreDeck({ name: "Prognose", source: "manual", cards: [forecastCard, ...excludedCards] });
+
+  const heatmap = createStudyHeatmapModel([deck], {
+    now: "2026-08-06T10:00:00.000Z",
+    timeZone: "Europe/Berlin",
+  });
+
+  assert.equal(heatmap.forecastEndKey, "2027-08-06");
+  assert.deepEqual([...heatmap.forecastCountsByDay], [["2026-08-08", 1]]);
+});
+
 test("study heatmap defaults to the rolling last seven calendar days", () => {
   const heatmap = createStudyHeatmapModelFromCounts({
     todayKey: "2026-08-12",
@@ -353,7 +382,7 @@ test("study heatmap defaults to the rolling last seven calendar days", () => {
   assert.equal(window.days.at(-1)?.key, "2026-08-12");
   assert.equal(window.days.every((day) => !day.isOutsideRange), true);
   assert.equal(window.canShowPrevious, true);
-  assert.equal(window.canShowNext, false);
+  assert.equal(window.canShowNext, true);
 });
 
 test("study heatmap projects complete calendar months and 53 or 54 week years", () => {
@@ -383,7 +412,7 @@ test("study heatmap projects complete calendar months and 53 or 54 week years", 
   assert.equal(longLeapYear.weeks.length, 54);
 });
 
-test("study heatmap navigation moves whole selected periods within activity bounds", () => {
+test("study heatmap navigation moves whole periods across history and the 365-day forecast", () => {
   const heatmap = createStudyHeatmapModelFromCounts({
     todayKey: "2026-07-07",
     countsByDay: new Map([["2026-06-11", 1], ["2026-07-07", 1]]),
@@ -399,11 +428,41 @@ test("study heatmap navigation moves whole selected periods within activity boun
   assert.equal(previousMonth.rangeStartKey, "2026-06-01");
   assert.equal(previousMonth.canShowPrevious, false);
   assert.equal(previousMonth.canShowNext, true);
-  assert.equal(currentMonth.canShowNext, false);
+  assert.equal(currentMonth.canShowNext, true);
 
   const currentYear = createStudyHeatmapWindow(heatmap, { period: "year" });
   assert.equal(currentYear.canShowPrevious, false);
-  assert.equal(currentYear.canShowNext, false);
+  assert.equal(currentYear.canShowNext, true);
+});
+
+test("study heatmap keeps forecast intensity separate and marks the final partial week", () => {
+  const heatmap = createStudyHeatmapModelFromCounts({
+    todayKey: "2026-08-12",
+    countsByDay: new Map([["2026-08-12", 100]]),
+    forecastCountsByDay: new Map([
+      ["2026-08-13", 1],
+      ["2026-08-14", 4],
+      ["2027-08-12", 2],
+      ["2027-08-13", 8],
+    ]),
+  });
+  const nextWeek = createStudyHeatmapWindow(heatmap, { period: "week", anchorKey: "2026-08-19" });
+
+  assert.equal(nextWeek.maxCount, 0);
+  assert.equal(nextWeek.maxForecastCount, 4);
+  assert.equal(nextWeek.days.find((day) => day.key === "2026-08-13")?.forecastLevel, 2);
+  assert.equal(nextWeek.days.find((day) => day.key === "2026-08-14")?.forecastLevel, 4);
+  assert.equal(nextWeek.canShowPrevious, true);
+
+  let finalWeek = createStudyHeatmapWindow(heatmap);
+  while (finalWeek.canShowNext) {
+    finalWeek = createStudyHeatmapWindow(heatmap, { period: "week", anchorKey: finalWeek.nextAnchorKey });
+  }
+  assert.equal(finalWeek.rangeStartKey, heatmap.forecastEndKey);
+  assert.equal(finalWeek.days[0].isForecastAvailable, true);
+  assert.equal(finalWeek.days[0].forecastCount, 2);
+  assert.equal(finalWeek.days[1].isForecastAvailable, false);
+  assert.equal(finalWeek.canShowPrevious, true);
 });
 
 test("study heatmap keeps yesterday's unbroken streak until the current day ends", () => {

@@ -148,6 +148,25 @@
   .core-heatmap-level-3 { --core-heatmap-tone: var(--core-palette-lilac); }
   .core-heatmap-level-4 { --core-heatmap-tone: var(--core-deck-new-text); }
 
+  .core-heatmap-forecast-level-0,
+  .core-heatmap-forecast-level-1,
+  .core-heatmap-forecast-level-2,
+  .core-heatmap-forecast-level-3,
+  .core-heatmap-forecast-level-4 {
+    border-color: var(--core-heatmap-forecast-tone);
+    background: var(--core-heatmap-forecast-tone);
+  }
+
+  .core-heatmap-forecast-level-0 {
+    --core-heatmap-forecast-tone: var(--core-surface);
+    border-color: var(--core-border);
+  }
+
+  .core-heatmap-forecast-level-1 { --core-heatmap-forecast-tone: color-mix(in srgb, var(--core-surface) 90%, var(--core-text)); }
+  .core-heatmap-forecast-level-2 { --core-heatmap-forecast-tone: color-mix(in srgb, var(--core-surface) 82%, var(--core-text)); }
+  .core-heatmap-forecast-level-3 { --core-heatmap-forecast-tone: color-mix(in srgb, var(--core-surface) 72%, var(--core-text)); }
+  .core-heatmap-forecast-level-4 { --core-heatmap-forecast-tone: color-mix(in srgb, var(--core-surface) 60%, var(--core-text)); }
+
   .core-surface {
     border: 1px solid var(--core-border);
     background: var(--core-surface);

@@ -5,6 +5,31 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createStudyHeatmapModelFromCounts } from "../studyHeatmapModel.ts";
 import { StudyHeatmap } from "./StudyHeatmap.tsx";
 
+function renderHeatmapWeekAt(anchorKey: string, forecastCountsByDay: ReadonlyMap<string, number> = new Map()) {
+  const originalUseState = React.useState;
+  let stateIndex = 0;
+  React.useState = (() => {
+    const value = stateIndex === 0 ? "week" : anchorKey;
+    stateIndex += 1;
+    return [value, () => undefined];
+  }) as typeof React.useState;
+
+  try {
+    return renderToStaticMarkup(
+      <StudyHeatmap
+        heatmap={createStudyHeatmapModelFromCounts({
+          todayKey: "2026-08-10",
+          countsByDay: new Map([["2026-08-10", 2]]),
+          forecastCountsByDay,
+        })}
+        formatDayLabel={(day) => `${day.key}: ${day.count} Wiederholungen`}
+      />,
+    );
+  } finally {
+    React.useState = originalUseState;
+  }
+}
+
 test("shared study heatmap defaults to seven days with the streak title and segmented period control", () => {
   const heatmap = createStudyHeatmapModelFromCounts({
     todayKey: "2026-07-07",
@@ -54,4 +79,30 @@ test("shared study heatmap uses the plural streak title for zero and multiple da
     />,
   );
   assert.match(streakMarkup, /3 Tage Streak/);
+});
+
+test("shared study heatmap renders forecast copy and gray levels without changing the historical legend", () => {
+  const markup = renderHeatmapWeekAt("2026-08-16", new Map([
+    ["2026-08-12", 1],
+    ["2026-08-13", 1_200],
+  ]));
+
+  assert.match(markup, /11\.08\.2026: voraussichtlich keine Karten fällig/);
+  assert.match(markup, /12\.08\.2026: voraussichtlich 1 Karte fällig/);
+  assert.match(markup, /13\.08\.2026: voraussichtlich 1\.200 Karten fällig/);
+  assert.match(markup, /core-heatmap-forecast-level-0/);
+  assert.match(markup, /core-heatmap-forecast-level-1/);
+  assert.match(markup, /core-heatmap-forecast-level-4/);
+  assert.match(markup, /data-heatmap-kind="forecast"/);
+  const legend = markup.match(/data-testid="study-heatmap-legend"[\s\S]*?<\/section>/)?.[0] ?? "";
+  assert.match(legend, /core-heatmap-level-4/);
+  assert.doesNotMatch(legend, /core-heatmap-forecast-level/);
+});
+
+test("shared study heatmap labels days beyond the forecast boundary", () => {
+  const markup = renderHeatmapWeekAt("2027-08-16", new Map([["2027-08-10", 2]]));
+
+  assert.match(markup, /10\.08\.2027: voraussichtlich 2 Karten fällig/);
+  assert.match(markup, /11\.08\.2027: außerhalb der 365-Tage-Prognose/);
+  assert.match(markup, /data-heatmap-kind="unavailable"/);
 });

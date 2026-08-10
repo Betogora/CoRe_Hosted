@@ -104,7 +104,6 @@ function formatHeatmapDate(key: string) {
 function statisticsHeatmapDayLabel(day: StudyHeatmapDay) {
   const date = formatHeatmapDate(day.key);
   if (day.isOutsideRange) return `${date}: außerhalb des gewählten Zeitraums`;
-  if (day.isFuture) return `${date}: noch offen`;
   if (day.count === 0) return `${date}: keine Wiederholungen`;
   if (day.count === 1) return `${date}: 1 Wiederholung`;
   return `${date}: ${formatNumber(day.count)} Wiederholungen`;

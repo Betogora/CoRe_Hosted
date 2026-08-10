@@ -20,7 +20,6 @@ function formatCardCount(count: number) {
 function heatmapDayLabel(day: StudyHeatmapDay) {
   const date = formatHeatmapDate(day.key);
   if (day.isOutsideRange) return `${date}: außerhalb des gewählten Zeitraums`;
-  if (day.isFuture) return `${date}: noch offen`;
   if (day.count === 0) return `${date}: keine Karten gelernt`;
   return `${date}: ${formatCardCount(day.count)} gelernt`;
 }

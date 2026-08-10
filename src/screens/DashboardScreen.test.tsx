@@ -91,7 +91,7 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /Frühere sieben Tage anzeigen[\s\S]*data-testid="study-heatmap-grid"[\s\S]*data-testid="study-heatmap-legend"[\s\S]*Weniger/);
   assert.equal((markup.match(/data-heatmap-day=/g) ?? []).length, 7);
   assert.match(markup, /aspect-square w-full max-w-\[4\.5rem\] rounded-xl/);
-  assert.match(markup, /ring-2 ring-inset ring-core-focus/);
+  assert.match(markup, /ring-2 ring-inset ring-core-action/);
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));
 });
 

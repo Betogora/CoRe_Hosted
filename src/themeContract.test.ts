@@ -51,7 +51,7 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
   }
 });
 
-test("heatmap intensity stays pink and reverses its brightness direction between themes", () => {
+test("heatmap keeps historical lilac and uses a theme-adaptive gray forecast scale", () => {
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
   const heatmapRules = styles.match(/\.core-heatmap-level-0,[\s\S]*?\.core-surface\s*\{/)?.[0] ?? "";
 
@@ -61,6 +61,11 @@ test("heatmap intensity stays pink and reverses its brightness direction between
   assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-deck-new-text\)/);
   assert.match(dark, /--core-deck-new-text:\s*var\(--core-palette-lilac-glow\)/);
   assert.doesNotMatch(heatmapRules, /core-info/);
+  assert.match(heatmapRules, /--core-heatmap-forecast-tone:\s*var\(--core-surface\)/);
+  for (const surfacePercent of [90, 82, 72, 60]) {
+    assert.match(heatmapRules, new RegExp(`color-mix\\(in srgb, var\\(--core-surface\\) ${surfacePercent}%, var\\(--core-text\\)\\)`));
+  }
+  assert.doesNotMatch(heatmapRules.match(/\.core-heatmap-forecast-level-0,[\s\S]*$/)?.[0] ?? "", /lilac|success|info/);
 });
 
 test("group depths darken in light mode and lighten in dark mode", () => {

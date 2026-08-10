@@ -1,6 +1,10 @@
 import { stripHtml } from "./htmlSafety.ts";
 import { listReviewableCards, summarizeDeckReview } from "./scheduler.ts";
-import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
+import {
+  createStudyHeatmapForecastCounts,
+  createStudyHeatmapModelFromCounts,
+  getStudyHeatmapDayKey,
+} from "./studyHeatmapModel.ts";
 import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { CoreMode, Deck, LearningItem } from "./coreTypes.ts";
 
@@ -170,7 +174,11 @@ export function createStudyHeatmapModel(decks: Deck[] = [], options: LibraryOpti
     }
   }
 
-  return createStudyHeatmapModelFromCounts({ todayKey, countsByDay: countsByDate });
+  const forecastCountsByDay = createStudyHeatmapForecastCounts(
+    decks.flatMap((deck) => deck.cards ?? []),
+    { todayKey, timeZone: options.timeZone },
+  );
+  return createStudyHeatmapModelFromCounts({ todayKey, countsByDay: countsByDate, forecastCountsByDay });
 }
 
 export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptions = {}) {
