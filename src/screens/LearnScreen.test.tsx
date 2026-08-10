@@ -32,7 +32,9 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, /data-deck-count="in-progress"/);
   assert.match(markup, /data-deck-count="due"/);
   assert.doesNotMatch(markup, /data-deck-count="total"/);
-  assert.match(markup, /conic-gradient/);
+  assert.match(markup, /data-donut-segment="due"/);
+  assert.match(markup, /data-donut-segment="learned"/);
+  assert.match(markup, /Gesamtfortschritt für Welt-Hauptstädte:/);
   assert.match(markup, /data-deck-drag-source="true"/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Welt-Hauptstädte"/);
   assert.match(markup, /lucide-ellipsis/);

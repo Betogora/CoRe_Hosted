@@ -13,7 +13,7 @@ test("compact deck row keeps one-line identity, accessible metrics and compact p
     <CompactDeckSummaryRow
       row={row}
       summary={row.summary}
-      progress={row.progress}
+      statusDistribution={row.statusDistribution}
       leadingControl={<button type="button" aria-label="Unterstapel einklappen" />}
       actions={<button type="button" aria-label="Stapeloptionen" />}
     />,
@@ -26,6 +26,7 @@ test("compact deck row keeps one-line identity, accessible metrics and compact p
   for (const label of ["Neu", "In Arbeit", "Fällig"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
   assert.doesNotMatch(markup, /data-deck-count="total"|>Gesamt</);
   assert.match(markup, /size-8/);
-  assert.match(markup, /aria-label="0 Prozent"/);
+  assert.match(markup, /aria-label="Keine aktiven Karten für Herkunft \/ Ein sehr langer Unterstapelname\."/);
+  assert.match(markup, /data-donut-empty="true"/);
   assert.match(markup, /aria-label="Stapeloptionen"/);
 });

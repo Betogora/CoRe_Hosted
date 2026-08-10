@@ -86,7 +86,8 @@ test("populated dashboard keeps today's due count without the original-card stat
   assert.match(markup, /Stapeloptionen für Biologie/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
   assert.match(markup, /lucide-ellipsis/);
-  assert.match(markup, /conic-gradient/);
+  assert.match(markup, /data-donut-segment="new"/);
+  assert.match(markup, /Gesamtfortschritt für Biologie:/);
   assert.doesNotMatch(markup, /aktive Tage/i);
   assert.match(markup, /0 Tage Streak/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);

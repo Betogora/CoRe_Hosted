@@ -45,6 +45,7 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.match(markup, /var\(--core-learning-status-new\)/);
   assert.match(markup, /var\(--core-learning-status-in-progress\)/);
   assert.match(markup, /var\(--core-learning-status-due\)/);
+  assert.equal((markup.match(/data-donut-empty="true"/g) ?? []).length, 2);
   assert.match(markup, /data-deck-drag-source="true"/);
   assert.match(markup, /data-deck-depth="0"[^>]*class="core-deck-summary-row/);
   assert.match(markup, /data-deck-depth="1"[^>]*class="core-deck-summary-row/);
@@ -93,9 +94,9 @@ test("deck tree keeps the compact summary order across dashboard and learning", 
   );
 
   for (const markup of [dashboard, learning]) {
-    assert.match(markup, /conic-gradient/);
+    assert.match(markup, /data-donut-empty="true"/);
     assert.match(markup, /Stapeloptionen für Bereich/);
-    assert.ok(markup.indexOf("conic-gradient") < markup.indexOf("Stapeloptionen für Bereich"));
+    assert.ok(markup.indexOf('data-donut-empty="true"') < markup.indexOf("Stapeloptionen für Bereich"));
     assert.match(markup, /data-deck-drag-source="true"/);
   }
   assert.match(learning, /aria-label="Bereich \/ Grundlagen lernen"/);

@@ -181,16 +181,98 @@ export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-acti
   );
 }
 
-export function DonutValue({ value, size = "default" }: { value: number; size?: "default" | "compact" | "responsive" }) {
+export interface SegmentedDonutSegment {
+  key: string;
+  value: number;
+  color: string;
+}
+
+interface SegmentedDonutProps {
+  segments: SegmentedDonutSegment[];
+  ariaLabel: string;
+  size?: "default" | "compact" | "responsive";
+}
+
+const DONUT_CENTER = 20;
+const DONUT_OUTER_RADIUS = 19;
+const DONUT_INNER_RADIUS = 13.5;
+const FULL_DONUT_PATH = [
+  `M ${DONUT_CENTER} ${DONUT_CENTER - DONUT_OUTER_RADIUS}`,
+  `A ${DONUT_OUTER_RADIUS} ${DONUT_OUTER_RADIUS} 0 1 1 ${DONUT_CENTER} ${DONUT_CENTER + DONUT_OUTER_RADIUS}`,
+  `A ${DONUT_OUTER_RADIUS} ${DONUT_OUTER_RADIUS} 0 1 1 ${DONUT_CENTER} ${DONUT_CENTER - DONUT_OUTER_RADIUS}`,
+  "Z",
+  `M ${DONUT_CENTER} ${DONUT_CENTER - DONUT_INNER_RADIUS}`,
+  `A ${DONUT_INNER_RADIUS} ${DONUT_INNER_RADIUS} 0 1 1 ${DONUT_CENTER} ${DONUT_CENTER + DONUT_INNER_RADIUS}`,
+  `A ${DONUT_INNER_RADIUS} ${DONUT_INNER_RADIUS} 0 1 1 ${DONUT_CENTER} ${DONUT_CENTER - DONUT_INNER_RADIUS}`,
+  "Z",
+].join(" ");
+
+function donutPoint(radius: number, angle: number): [number, number] {
+  const radians = (angle - 90) * Math.PI / 180;
+  return [
+    DONUT_CENTER + radius * Math.cos(radians),
+    DONUT_CENTER + radius * Math.sin(radians),
+  ];
+}
+
+function donutSegmentPath(startAngle: number, endAngle: number): string {
+  if (endAngle - startAngle >= 360) return FULL_DONUT_PATH;
+  const [outerStartX, outerStartY] = donutPoint(DONUT_OUTER_RADIUS, startAngle);
+  const [outerEndX, outerEndY] = donutPoint(DONUT_OUTER_RADIUS, endAngle);
+  const [innerEndX, innerEndY] = donutPoint(DONUT_INNER_RADIUS, endAngle);
+  const [innerStartX, innerStartY] = donutPoint(DONUT_INNER_RADIUS, startAngle);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+
+  return [
+    `M ${outerStartX} ${outerStartY}`,
+    `A ${DONUT_OUTER_RADIUS} ${DONUT_OUTER_RADIUS} 0 ${largeArc} 1 ${outerEndX} ${outerEndY}`,
+    `L ${innerEndX} ${innerEndY}`,
+    `A ${DONUT_INNER_RADIUS} ${DONUT_INNER_RADIUS} 0 ${largeArc} 0 ${innerStartX} ${innerStartY}`,
+    "Z",
+  ].join(" ");
+}
+
+export function SegmentedDonut({ segments, ariaLabel, size = "default" }: SegmentedDonutProps) {
   const compact = size === "compact";
   const responsive = size === "responsive";
+  const visibleSegments = segments.filter((segment) => segment.value > 0);
+  const total = visibleSegments.reduce((sum, segment) => sum + segment.value, 0);
+  let angle = 0;
+
   return (
     <span
-      className={`grid place-items-center rounded-full ${compact || responsive ? "size-8" : "size-10"} ${responsive ? "core-donut-responsive" : ""}`}
-      style={{ background: `conic-gradient(var(--core-action-primary) ${value * 3.6}deg, var(--core-surface-muted) 0deg)` }}
-      aria-label={`${value} Prozent`}
+      className={`block shrink-0 ${compact || responsive ? "size-8" : "size-10"} ${responsive ? "core-donut-responsive" : ""}`}
     >
-      <span className={`block rounded-full bg-core-surface ${compact || responsive ? "size-[1.35rem]" : "size-7"} ${responsive ? "core-donut-responsive-center" : ""}`} />
+      <svg viewBox="0 0 40 40" className="block size-full overflow-visible" role="img" aria-label={ariaLabel}>
+        {total === 0 ? (
+          <path
+            d={FULL_DONUT_PATH}
+            fill="var(--core-surface-muted)"
+            fillRule="evenodd"
+            stroke="var(--core-border)"
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+            data-donut-empty="true"
+          />
+        ) : visibleSegments.map((segment) => {
+          const startAngle = angle;
+          angle += segment.value / total * 360;
+          return (
+            <path
+              key={segment.key}
+              d={donutSegmentPath(startAngle, angle)}
+              fill={segment.color}
+              fillRule="evenodd"
+              stroke="var(--core-border)"
+              strokeWidth="1"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              data-donut-segment={segment.key}
+              data-donut-value={segment.value}
+            />
+          );
+        })}
+      </svg>
     </span>
   );
 }

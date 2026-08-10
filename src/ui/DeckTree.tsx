@@ -222,7 +222,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
         <DeckSummaryRow
           row={row}
           summary={row.summary}
-          progress={row.progress}
+          statusDistribution={row.statusDistribution}
           leadingControl={collapseControl}
           actions={optionsMenu}
           density="responsive"

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import type { DeckLibraryRow } from "../libraryModel.ts";
-import { DonutValue } from "./coreUi.tsx";
+import type { DeckLibraryRow, DeckStatusDistribution } from "../libraryModel.ts";
+import { SegmentedDonut, type SegmentedDonutSegment } from "./coreUi.tsx";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
-import { LEARNING_STATUS_UI } from "./learningStatusUi.ts";
+import { formatLearningCardCount, LEARNING_STATUS_UI } from "./learningStatusUi.ts";
 
 const DECK_COUNT_DEFINITIONS = [
   { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new", shortLabel: "N" },
@@ -10,10 +10,17 @@ const DECK_COUNT_DEFINITIONS = [
   { ...LEARNING_STATUS_UI.due, valueKey: "dueCards", metric: "due", shortLabel: "F" },
 ] as const;
 
+const DECK_STATUS_DEFINITIONS = [
+  { color: LEARNING_STATUS_UI.new.color, valueKey: "newCards", key: "new" },
+  { color: LEARNING_STATUS_UI.inProgress.color, valueKey: "inProgressCards", key: "in-progress" },
+  { color: LEARNING_STATUS_UI.due.color, valueKey: "dueCards", key: "due" },
+  { color: LEARNING_STATUS_UI.learned.color, valueKey: "learnedCards", key: "learned" },
+] as const;
+
 export interface DeckSummaryRowProps {
   row: Pick<DeckLibraryRow, "deck" | "name" | "path" | "depth">;
   summary: DeckLibraryRow["summary"];
-  progress: number;
+  statusDistribution: DeckStatusDistribution;
   leadingControl: ReactNode;
   actions: ReactNode;
   density?: "default" | "compact" | "responsive";
@@ -43,10 +50,19 @@ export function DeckSummaryHeader() {
   );
 }
 
-export function DeckSummaryRow({ row, summary, progress, leadingControl, actions, density = "default", metricLabels = "responsive", className = "" }: DeckSummaryRowProps) {
+export function DeckSummaryRow({ row, summary, statusDistribution, leadingControl, actions, density = "default", metricLabels = "responsive", className = "" }: DeckSummaryRowProps) {
   const compact = density === "compact";
   const responsive = density === "responsive";
   const compactAtBase = compact || responsive;
+  const statusSegments: SegmentedDonutSegment[] = DECK_STATUS_DEFINITIONS.map((status) => ({
+    key: status.key,
+    value: statusDistribution[status.valueKey],
+    color: status.color,
+  }));
+  const totalCards = statusSegments.reduce((total, segment) => total + segment.value, 0);
+  const statusLabel = totalCards > 0
+    ? `Gesamtfortschritt für ${row.path}: ${statusDistribution.learnedCards} von ${formatLearningCardCount(totalCards)} gelernt; ${statusDistribution.newCards} neu, ${statusDistribution.inProgressCards} in Arbeit und ${statusDistribution.dueCards} fällig.`
+    : `Keine aktiven Karten für ${row.path}.`;
 
   return (
     <div className={responsive ? "core-deck-summary-container min-w-0" : "min-w-0"}>
@@ -77,7 +93,7 @@ export function DeckSummaryRow({ row, summary, progress, leadingControl, actions
         </dl>
 
         <div className={`core-deck-summary-actions flex items-center justify-end ${compactAtBase ? "gap-0.5" : "gap-2"}`}>
-          <DonutValue value={progress} size={density} />
+          <SegmentedDonut segments={statusSegments} ariaLabel={statusLabel} size={density} />
           {actions}
         </div>
       </div>

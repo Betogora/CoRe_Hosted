@@ -201,8 +201,8 @@ test("library model keeps new, in-progress and due deck counts disjoint", () => 
   assert.equal(library.dueCards, 1);
 });
 
-test("deck counters and donut exclude suspended cards while the card table keeps them", () => {
-  const card = (id: string, state: "new" | "learning" | "review", dueAt: string, reps: number) => createCoreCard({
+test("deck counters and overall status distribution exclude blocked cards while the card table keeps them", () => {
+  const card = (id: string, state: "new" | "learning" | "review" | "relearning", dueAt: string, reps: number) => createCoreCard({
     id,
     source: "manual",
     originalFront: id,
@@ -210,7 +210,11 @@ test("deck counters and donut exclude suspended cards while the card table keeps
     reviewState: { state, dueAt, reps },
   });
   const activeNew = card("active_new", "new", "2026-07-01T07:00:00.000Z", 0);
+  const activeLearning = card("active_learning", "learning", "2026-07-01T10:00:00.000Z", 1);
+  const activeRelearning = card("active_relearning", "relearning", "2026-07-02T10:00:00.000Z", 3);
   const activeDue = card("active_due", "review", "2026-07-01T07:00:00.000Z", 3);
+  const activeDueAtNow = card("active_due_at_now", "review", "2026-07-01T08:00:00.000Z", 3);
+  const activeLearned = card("active_learned", "review", "2026-07-02T08:00:00.000Z", 3);
   const suspendedLearning = updateLearningItemStudyState(
     card("suspended_learning", "learning", "2026-07-01T07:00:00.000Z", 1),
     { suspended: true },
@@ -219,12 +223,36 @@ test("deck counters and donut exclude suspended cards while the card table keeps
     card("suspended_due", "review", "2026-07-01T07:00:00.000Z", 3),
     { suspended: true },
   );
+  const buriedDue = createCoreCard({
+    ...card("buried_due", "review", "2026-07-01T07:00:00.000Z", 3),
+    meta: { buried: true },
+  });
+  const deletedDue = createCoreCard({
+    ...card("deleted_due", "review", "2026-07-01T07:00:00.000Z", 3),
+    status: "deleted",
+  });
+  const draftDue = createCoreCard({
+    ...card("draft_due", "review", "2026-07-01T07:00:00.000Z", 3),
+    draftStatus: "draft",
+  });
   const deck = createCoreDeck({
     id: "deck_suspended_counts",
     name: "Ausgesetzt",
     source: "manual",
     deckSettings: { newCardsPerDay: 1, maximumReviewsPerDay: 1 },
-    cards: [activeNew, activeDue, suspendedLearning, suspendedDue],
+    cards: [
+      activeNew,
+      activeLearning,
+      activeRelearning,
+      activeDue,
+      activeDueAtNow,
+      activeLearned,
+      suspendedLearning,
+      suspendedDue,
+      buriedDue,
+      deletedDue,
+      draftDue,
+    ],
   });
   const library = createDeckLibraryModel([deck], { now: "2026-07-01T08:00:00.000Z" });
   const row = library.rows[0];
@@ -237,16 +265,61 @@ test("deck counters and donut exclude suspended cards while the card table keeps
       dueCards: row.summary.dueCards,
       totalCards: row.summary.totalCards,
     },
-    { newCards: 1, inProgressCards: 0, dueCards: 1, totalCards: 2 },
+    { newCards: 1, inProgressCards: 1, dueCards: 1, totalCards: 6 },
   );
-  assert.equal(row.progress, 0);
-  assert.deepEqual(table.groups[0].cardRows.map((cardRow) => cardRow.id), [
+  assert.deepEqual(row.statusDistribution, {
+    newCards: 1,
+    inProgressCards: 2,
+    dueCards: 2,
+    learnedCards: 1,
+  });
+  assert.deepEqual(row.directStatusDistribution, row.statusDistribution);
+  assert.deepEqual(new Set(table.groups[0].cardRows.map((cardRow) => cardRow.id)), new Set([
     "active_due",
+    "active_due_at_now",
+    "active_learned",
+    "active_learning",
     "active_new",
+    "active_relearning",
+    "buried_due",
     "suspended_due",
     "suspended_learning",
-  ]);
+  ]));
   assert.equal(table.groups[0].cardRows.find((cardRow) => cardRow.id === "suspended_due")?.nextStudyLabel, "01.07.2026");
+});
+
+test("overall status distribution aggregates descendants while preserving direct deck values", () => {
+  const parent = createCoreDeck({
+    id: "distribution_parent",
+    name: "Eltern",
+    source: "manual",
+    cards: [createCoreCard({ id: "parent_new", source: "manual", reviewState: { state: "new", reps: 0 } })],
+  });
+  const child = createCoreDeck({
+    id: "distribution_child",
+    parentDeckId: parent.id,
+    name: "Kind",
+    source: "manual",
+    cards: [createCoreCard({
+      id: "child_learned",
+      source: "manual",
+      reviewState: { state: "review", dueAt: "2026-07-02T08:00:00.000Z", reps: 3 },
+    })],
+  });
+  const parentRow = createDeckLibraryModel([parent, child], { now: "2026-07-01T08:00:00.000Z" }).rows[0];
+
+  assert.deepEqual(parentRow.directStatusDistribution, {
+    newCards: 1,
+    inProgressCards: 0,
+    dueCards: 0,
+    learnedCards: 0,
+  });
+  assert.deepEqual(parentRow.statusDistribution, {
+    newCards: 1,
+    inProgressCards: 0,
+    dueCards: 0,
+    learnedCards: 1,
+  });
 });
 
 test("library model sorts every deck level alphabetically like Anki", () => {

@@ -909,9 +909,6 @@ export function DecksScreen({
               {tableModel.groups.map((group) => {
                 const expanded = searchExpandsGroups || expandedDeckIdSet.has(group.id);
                 const visibleDepth = Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS);
-                const directProgress = group.directSummary.totalCards
-                  ? Math.round((group.directSummary.matureCards / group.directSummary.totalCards) * 100)
-                  : 0;
                 const groupLeadingControl = (
                   <span className="grid size-9 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
                     {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
@@ -948,7 +945,7 @@ export function DecksScreen({
                       <DeckSummaryRow
                         row={group}
                         summary={group.directSummary}
-                        progress={directProgress}
+                        statusDistribution={group.directStatusDistribution}
                         leadingControl={groupLeadingControl}
                         actions={groupActions}
                         density="responsive"

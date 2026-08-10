@@ -22,6 +22,12 @@ interface LibraryOptions {
   selectedDeckId?: string;
   cardSort?: CardTableSort;
 }
+export interface DeckStatusDistribution {
+  newCards: number;
+  inProgressCards: number;
+  dueCards: number;
+  learnedCards: number;
+}
 export type CardTableSortField = "sortField" | "nextStudyDate" | "variants";
 export interface CardTableSort {
   field: CardTableSortField;
@@ -41,8 +47,13 @@ function deckPath(deck: Deck): string {
   return (deck.hierarchyPath ?? [deck.name]).join(" / ");
 }
 
-function progressPercent(summary: ReturnType<typeof summarizeDeckReview>): number {
-  return summary.totalCards ? Math.round((summary.matureCards / summary.totalCards) * 100) : 0;
+function createDeckStatusDistribution(summary: ReturnType<typeof summarizeDeckReview>): DeckStatusDistribution {
+  return {
+    newCards: summary.newCards,
+    inProgressCards: summary.inProgressCards,
+    dueCards: summary.dueCards,
+    learnedCards: Math.max(0, summary.totalCards - summary.newCards - summary.inProgressCards - summary.dueCards),
+  };
 }
 
 function previewText(value: unknown): string {
@@ -95,7 +106,8 @@ function createDeckRow(
     coreMode: deck.deckSettings?.coreMode ?? "auto",
     summary,
     directSummary,
-    progress: progressPercent(summary),
+    statusDistribution: createDeckStatusDistribution(inventory),
+    directStatusDistribution: createDeckStatusDistribution(directInventory),
     activeCards,
     cardRows: activeCards.slice(0, cardLimit).map((card) => ({
       id: card.id,

@@ -66,6 +66,8 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /data-testid="deck-toggle-[^"]+"[^>]*class="absolute inset-0[^"]*focus-visible:ring-2/);
   assert.match(markup, /class="core-deck-summary-row border-b border-t-2 !border-\[var\(--core-border\)\]"/);
   assert.match(markup, /aria-label="Lernstand für Biologie"/);
+  assert.match(markup, /aria-label="Gesamtfortschritt für Biologie:/);
+  assert.match(markup, /data-donut-segment="new" data-donut-value="1"/);
   assert.doesNotMatch(markup, /Was ist ATP\?/);
   assert.doesNotMatch(markup, /Ein Energieträger\./);
   assert.match(markup, /Biologie \/ Zellbiologie/);
