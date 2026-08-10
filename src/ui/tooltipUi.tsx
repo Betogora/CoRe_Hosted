@@ -1,5 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
+import type { DeckAppearance } from "../coreTypes.ts";
+import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 
 const TOOLTIP_ID = "core-tooltip";
 const TOOLTIP_SELECTOR = "[data-core-tooltip]";
@@ -11,6 +13,7 @@ const VIEWPORT_GUTTER_PX = 8;
 type TooltipSource = "focus" | "pointer";
 
 interface ActiveTooltip {
+  deckAppearance?: DeckAppearance;
   label: string;
   swatchColor?: string;
   source: TooltipSource;
@@ -115,7 +118,10 @@ export function CoreTooltipProvider({ children }: { children: React.ReactNode })
       if (event.defaultPrevented) return null;
       const trigger = findTooltipTrigger(event.target);
       const label = trigger?.dataset.coreTooltip;
+      const deckIconKey = trigger?.dataset.coreTooltipDeckIconKey;
+      const deckIconColor = trigger?.dataset.coreTooltipDeckIconColor;
       return trigger && label ? {
+        deckAppearance: deckIconKey && deckIconColor ? { iconKey: deckIconKey, iconColor: deckIconColor } : undefined,
         label,
         swatchColor: trigger.dataset.coreTooltipSwatch,
         trigger,
@@ -210,7 +216,17 @@ export function CoreTooltipProvider({ children }: { children: React.ReactNode })
               onPointerEnter={() => clearTimer(timerRef)}
               onPointerLeave={close}
             >
-              {activeTooltip.swatchColor || activeTooltip.value ? (
+              {activeTooltip.deckAppearance ? (
+                <span className="flex items-center gap-1.5">
+                  <DeckAppearanceIcon
+                    appearance={activeTooltip.deckAppearance}
+                    className="size-4"
+                    iconSize={8}
+                    data-core-tooltip-deck-appearance="true"
+                  />
+                  <span>{activeTooltip.label}</span>
+                </span>
+              ) : activeTooltip.swatchColor || activeTooltip.value ? (
                 <span className="flex items-center justify-between gap-5 core-caption">
                   <span className="flex items-center gap-2 text-core-secondary">
                     {activeTooltip.swatchColor ? (
@@ -231,13 +247,16 @@ export function CoreTooltipProvider({ children }: { children: React.ReactNode })
 
 type TooltipChildProps = React.HTMLAttributes<HTMLElement> & {
   "data-core-tooltip"?: string;
+  "data-core-tooltip-deck-icon-color"?: string;
+  "data-core-tooltip-deck-icon-key"?: string;
   "data-core-tooltip-swatch"?: string;
   "data-core-tooltip-value"?: string;
   "aria-describedby"?: string;
   title?: string;
 };
 
-export function CoreTooltip({ label, swatchColor, value, children }: {
+export function CoreTooltip({ label, deckAppearance, swatchColor, value, children }: {
+  deckAppearance?: DeckAppearance;
   label: string;
   swatchColor?: string;
   value?: string;
@@ -247,6 +266,8 @@ export function CoreTooltip({ label, swatchColor, value, children }: {
   return React.cloneElement(child, {
     "aria-describedby": [child.props["aria-describedby"], TOOLTIP_ID].filter(Boolean).join(" "),
     "data-core-tooltip": label,
+    "data-core-tooltip-deck-icon-color": deckAppearance?.iconColor,
+    "data-core-tooltip-deck-icon-key": deckAppearance?.iconKey,
     "data-core-tooltip-swatch": swatchColor,
     "data-core-tooltip-value": value,
     title: undefined,

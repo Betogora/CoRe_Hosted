@@ -290,7 +290,23 @@ test("CoRe tooltips replace native hints for heatmap and icon actions", async ({
   const deckOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
   await expect(deckOptions).not.toHaveAttribute("title");
   await deckOptions.focus();
-  await expect(tooltip).toHaveText("Stapeloptionen für Welt-Hauptstädte / Afrika");
+  await expect(tooltip).toHaveText("Stapeloptionen für Afrika");
+  const deckTooltipIcon = tooltip.locator('[data-core-tooltip-deck-appearance="true"]');
+  await expect(deckTooltipIcon).toBeVisible();
+  const [deckTooltipLayout, rowIconColor] = await Promise.all([
+    tooltip.evaluate((element: HTMLElement) => {
+      const icon = element.querySelector<HTMLElement>('[data-core-tooltip-deck-appearance="true"]')!;
+      const iconRect = icon.getBoundingClientRect();
+      return {
+        height: element.getBoundingClientRect().height,
+        iconColor: getComputedStyle(icon).color,
+        iconHeight: iconRect.height,
+        iconWidth: iconRect.width,
+      };
+    }),
+    page.getByTestId(`learn-deck-row-${DECK_IDS.africa}`).locator('[data-deck-icon="true"]').evaluate((icon: HTMLElement) => getComputedStyle(icon).color),
+  ]);
+  expect(deckTooltipLayout).toEqual({ height: 34, iconColor: rowIconColor, iconHeight: 16, iconWidth: 16 });
   await page.keyboard.press("Escape");
   await expect(tooltip).toHaveCount(0);
 });

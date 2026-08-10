@@ -46,3 +46,18 @@ test("CoreTooltip projects an optional statistics-style swatch and value", () =>
   assert.match(markup, /data-core-tooltip-swatch="var\(--core-learning-status-new\)"/);
   assert.match(markup, /data-core-tooltip-value="5 Karten"/);
 });
+
+test("CoreTooltip projects optional deck appearance without adding a wrapper", () => {
+  const tooltipChild = CoreTooltip({
+    label: "Stapeloptionen für Musik",
+    deckAppearance: { iconKey: "music", iconColor: "#047857" },
+    children: <button type="button">Öffnen</button>,
+  });
+  const markup = renderToStaticMarkup(tooltipChild);
+
+  assert.match(markup, /^<button/);
+  assert.match(markup, /data-core-tooltip="Stapeloptionen für Musik"/);
+  assert.match(markup, /data-core-tooltip-deck-icon-key="music"/);
+  assert.match(markup, /data-core-tooltip-deck-icon-color="#047857"/);
+  assert.doesNotMatch(markup, /^<span/);
+});

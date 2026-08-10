@@ -108,7 +108,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-012 — Kompakte Stapelzeile mit kontextgebundenem Drag-and-drop
 
-**Status:** teilweise abgelöst durch ADR-014 und ADR-016
+**Status:** teilweise abgelöst durch ADR-014, ADR-016 und ADR-017
 **Kontext:** Die verschachtelten Stapelkarten in Dashboard und Lernen beanspruchten deutlich mehr Raum als die kompakten Stapelköpfe der Kartenverwaltung. Zugleich ist direktes Drag-and-drop in der inhaltsorientierten Kartentabelle leichter mit Aufklappen, Auswahl und Bearbeitung zu verwechseln.
 **Entscheidung:** Dashboard, Lernen und Kartenverwaltung verwenden denselben kompakten Zeileninhalt aus Chevron, Icon, Name und Pfad, Kennzahlen, Donut und Drei-Punkte-Aktion. Dashboard und Lernen projizieren die Hierarchie flach, behalten Teilbaum-Kennzahlen und erlauben direkten Desktop-Drag; ihre Drei-Punkte-Aktion öffnet direkt die Stapel-Einstellungen. Die Kartenverwaltung behält direkte Kennzahlen, ihr vollständiges Optionsmenü und ausschließlich den bestätigten Verschiebeablauf. Alle Drei-Punkte-Aktionen besitzen einen pfadspezifischen Tooltip.
 **Konsequenzen:** Darstellung und Reihenfolge besitzen eine kanonische UI-Implementierung, während Aktivierung, Kennzahlquelle und Aktionen vom jeweiligen Aufgabenbereich geliefert werden. ADR-008 ist hinsichtlich der verschachtelten Kartenform und des direkten Drag-and-drops in der Kartenverwaltung abgelöst. Workspace-Mutation, Vier-Ebenen-Regel und persistiertes Deck-Schema bleiben unverändert.
@@ -124,7 +124,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-014 — Einheitliches Stapelmenü und stabiler Panel-Drag
 
-**Status:** angenommen
+**Status:** teilweise abgelöst durch ADR-017
 **Kontext:** Dashboard und Lernen verwendeten unterschiedliche Panelrahmen; die außerhalb der Liste liegende Hauptebenen-Zone verlor beim Verlassen der Zeilenfläche den Pointer-Griff. Zugleich führten identische Drei-Punkte-Trigger je nach Ansicht entweder direkt in die Einstellungen oder in ein umfangreiches Zwischenmenü.
 **Entscheidung:** Dashboard und Lernen teilen das vollständige Panel `Aktive Stapel`; dessen Kopf besitzt die sichtbare Hauptebenen-Zone und optional `Lernen öffnen`. Desktop-Drag hält den Pointer per Capture bis Drop oder Abbruch. Dashboard, Lernen und Kartenverwaltung verwenden dasselbe reduzierte Menü aus Deckdarstellung, Pfad, CoRe-Modus, Einstellungen und bestätigtem Verschieben. Umbenennen, Unterstapel, Lernen, Variantenlernen und Löschen liegen ausschließlich in den Stapel-Einstellungen.
 **Konsequenzen:** Es gibt nur einen Menü- und Verschiebedialogpfad. Reviewstart aus den Einstellungen kehrt zum reproduzierbaren Ursprung zurück. ADR-012 ist hinsichtlich direktem Einstellungsaufruf und des vollständigen Kartenverwaltungsmenüs abgelöst; Zeilenform, Kennzahlsemantik, Vier-Ebenen-Regel und persistiertes Schema bleiben unverändert.
@@ -140,8 +140,16 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-016 — Einzeilige, alphabetisch sortierte Stapelbäume
 
-**Status:** angenommen
+**Status:** teilweise abgelöst durch ADR-017
 **Kontext:** Der sichtbare Hierarchiepfad wiederholte in Desktop-Zeilen die bereits durch Einrückung und Auf-/Zuklappen eindeutige Baumstruktur. Zugleich übernahmen Stapelbäume teilweise die Import- oder Speicherreihenfolge und wichen damit von Ankis alphabetischer Stapelliste ab.
 **Entscheidung:** Dashboard, Lernen und Kartenverwaltung zeigen bei jeder Breite ausschließlich den lokalen Stapelnamen ohne sichtbaren Hierarchiepfad. Stapelbäume und Stapelauswahlen sortieren Hauptstapel sowie jede Unterebene separat alphabetisch nach dem lokalen Namen und ohne numerische Sonderbehandlung. Vollständige Pfade bleiben für zugängliche Namen, Tooltips, Menüs, Suche und geschlossene Auswahlfelder erhalten.
 **Konsequenzen:** Stapelnamen stehen vertikal mittig in einer einzeiligen Zeile. Persistierte Deckreihenfolge und Hierarchie bleiben unverändert; nur ihre Projektion wird sortiert. ADR-008 und ADR-012 sind hinsichtlich des sichtbaren Pfads in der gemeinsamen Stapelzeile abgelöst.
 **Datum:** 2026-08-09
+
+## ADR-017 — Lokale Namen und Stapel-Icons in Stapeloptionen
+
+**Status:** angenommen
+**Kontext:** Nach wiederholtem Verschachteln oder Verschieben wiederholt ein vollständiger Hierarchiepfad im Tooltip und im geöffneten Stapelmenü bereits sichtbare Baumstruktur und kann dadurch unnötig lang werden. Gleichnamige Unterstapel müssen für assistive Technik dennoch unterscheidbar bleiben.
+**Entscheidung:** Dashboard, Lernen und Kartenverwaltung zeigen im Drei-Punkte-Tooltip und im Kopf des gemeinsamen Stapelmenüs ausschließlich den lokalen Stapelnamen. Der Tooltip ergänzt das aktuelle farbige Stapel-Icon mit 16 × 16 px innerhalb der bestehenden Einzeilerhöhe; auch `Stapel umbenennen` verwendet dieses Icon. Der zugängliche Name des Drei-Punkte-Triggers behält den vollständigen Hierarchiepfad.
+**Konsequenzen:** Auswahlfelder, Suche, Hierarchie, Persistenz und andere Pfadverwendungen bleiben unverändert. ADR-012, ADR-014 und ADR-016 sind hinsichtlich sichtbarer vollständiger Pfade in Stapeloptionen abgelöst.
+**Datum:** 2026-08-10

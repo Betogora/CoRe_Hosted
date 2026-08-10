@@ -317,6 +317,15 @@ test("deck presentation toolbar saves name, icon and color together", async ({ p
   await expect(renameButton).toHaveCSS("width", "44px");
   await expect(renameButton).toHaveCSS("height", "44px");
   await expect(renameButton).toHaveCSS("border-top-width", "0px");
+  await renameButton.focus();
+  const renameTooltip = page.getByRole("tooltip");
+  await expect(renameTooltip).toHaveText("Stapel umbenennen");
+  const renameTooltipIcon = renameTooltip.locator('[data-core-tooltip-deck-appearance="true"]');
+  await expect(renameTooltipIcon).toHaveCSS("width", "16px");
+  await expect(renameTooltipIcon).toHaveCSS("height", "16px");
+  await expect.poll(async () => renameTooltipIcon.evaluate((icon) => getComputedStyle(icon).color))
+    .toBe(await titleIcon.evaluate((icon) => getComputedStyle(icon).color));
+  await page.keyboard.press("Escape");
 
   await iconTrigger.click();
   const iconGrid = page.getByTestId("deck-icon-grid");
@@ -498,21 +507,37 @@ test("deck management disables direct drag and shares the confirmed keyboard mov
   await expect(page.getByTestId(`deck-options-${DECK_IDS.southAmerica}`)).toBeVisible();
 });
 
-test("three-dot actions share the path tooltip across learning and deck management", async ({ page }) => {
+test("three-dot actions share the local-name tooltip across dashboard, learning and deck management", async ({ page }) => {
   await resetToFreshLocalState(page);
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
 
   const tooltip = page.getByRole("tooltip");
+  const dashboardOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
+  await dashboardOptions.focus();
+  await expect(tooltip).toHaveText("Stapeloptionen für Afrika");
+  await expect(tooltip.locator('[data-core-tooltip-deck-appearance="true"]')).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   const learningOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
   await expect(learningOptions).not.toHaveAttribute("title");
   await learningOptions.focus();
-  await expect(tooltip).toHaveText("Stapeloptionen für Welt-Hauptstädte / Afrika");
+  await expect(tooltip).toHaveText("Stapeloptionen für Afrika");
   await page.keyboard.press("Escape");
   await expect(tooltip).toHaveCount(0);
+  await learningOptions.click();
+  const learningMenu = page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`);
+  await expect(learningMenu.getByText("Afrika", { exact: true })).toBeVisible();
+  await expect(learningMenu).not.toContainText("Welt-Hauptstädte / Afrika");
+  await page.keyboard.press("Escape");
 
   await mainMenu(page).getByRole("button", { name: "Kartenverwaltung" }).click();
   const managementOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
   await expect(managementOptions).not.toHaveAttribute("title");
   await managementOptions.focus();
-  await expect(tooltip).toHaveText("Stapeloptionen für Welt-Hauptstädte / Afrika");
+  await expect(tooltip).toHaveText("Stapeloptionen für Afrika");
+  await page.keyboard.press("Escape");
+  await managementOptions.click();
+  const managementMenu = page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`);
+  await expect(managementMenu.getByText("Afrika", { exact: true })).toBeVisible();
+  await expect(managementMenu).not.toContainText("Welt-Hauptstädte / Afrika");
 });

@@ -172,7 +172,7 @@ export function DeckSettingsScreen({ deck, decks, onSave, onSaveAppearance, onRe
   }
 
   const renameButton = (
-    <CoreTooltip label="Stapel umbenennen">
+    <CoreTooltip label="Stapel umbenennen" deckAppearance={appearance}>
       <button
         ref={renameButtonRef}
         type="button"

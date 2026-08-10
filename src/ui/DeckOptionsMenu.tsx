@@ -6,7 +6,7 @@ import type { CoreMode, Deck } from "../coreTypes.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { IconButton } from "./actionUi.tsx";
 import { ActionDialog, CoreModeControl } from "./coreUi.tsx";
-import { DeckAppearanceIcon } from "./deckAppearance.tsx";
+import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
 import { DeckSelect } from "./selectUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
@@ -28,6 +28,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
   const [moveTargetId, setMoveTargetId] = React.useState(row.deck.parentDeckId ?? "");
   const [moveError, setMoveError] = React.useState("");
   const setSuccessToast = useSuccessToast();
+  const deckAppearance = getDeckAppearance(row.deck);
   const validMoveTargetDeckIds = React.useMemo(() => {
     if (!moveDialogOpen) return [];
     const validatePlacement = createDeckPlacementValidator(decks, row.id);
@@ -63,7 +64,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
   return (
     <>
       <Popover.Root>
-        <CoreTooltip label={`Stapeloptionen für ${row.path}`}>
+        <CoreTooltip label={`Stapeloptionen für ${row.deck.name}`} deckAppearance={deckAppearance}>
           <Popover.Trigger asChild>
             <IconButton
               label={`Stapeloptionen für ${row.path}`}
@@ -83,8 +84,8 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
             className="core-overlay z-[60] grid w-72 gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-3 shadow-xl"
           >
             <div className="flex min-w-0 items-center gap-3 px-2">
-              <DeckAppearanceIcon deck={row.deck} className="size-9" iconSize={17} data-deck-icon="true" />
-              <p className="min-w-0 break-words core-body font-semibold text-[var(--core-text)]">{row.path}</p>
+              <DeckAppearanceIcon appearance={deckAppearance} className="size-9" iconSize={17} data-deck-icon="true" />
+              <p className="min-w-0 break-words core-body font-semibold text-[var(--core-text)]">{row.deck.name}</p>
             </div>
             <div className="grid gap-2 px-2">
               <span className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">CoRe-Modus</span>

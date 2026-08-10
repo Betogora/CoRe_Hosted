@@ -59,6 +59,8 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.match(markup, /<button[^>]*data-deck-drag-source="true"[^>]*data-deck-row-activation="true"/);
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Bereich"/);
+  assert.match(markup, /<button(?=[^>]*aria-label="Stapeloptionen für Bereich \/ Grundlagen")(?=[^>]*data-core-tooltip="Stapeloptionen für Grundlagen")(?=[^>]*data-core-tooltip-deck-icon-key="[^"]+")(?=[^>]*data-core-tooltip-deck-icon-color="#[0-9A-Fa-f]{6}")/);
+  assert.doesNotMatch(markup, /data-core-tooltip="Stapeloptionen für Bereich \/ Grundlagen"/);
 });
 
 test("deck tree maps five visible levels to group depths and clamps deeper imports", () => {

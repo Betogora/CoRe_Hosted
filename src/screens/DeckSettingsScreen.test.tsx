@@ -41,7 +41,7 @@ test("deck settings show appearance and the borderless rename action in the page
   assert.equal(markup.match(/data-testid="deck-settings-title-name"/g)?.length, 1);
   assert.match(markup, /data-testid="deck-settings-title-name"[^>]*>Biologie/);
   assert.match(markup, /data-testid="deck-settings-title-icon"[^>]*style="color:#[^;]+;border-color:#[^;]+;/);
-  assert.match(markup, /<button(?=[^>]*aria-label="Stapel umbenennen")(?=[^>]*class="[^"]*border-0)(?=[^>]*data-core-tooltip="Stapel umbenennen")/);
+  assert.match(markup, /<button(?=[^>]*aria-label="Stapel umbenennen")(?=[^>]*class="[^"]*border-0)(?=[^>]*data-core-tooltip="Stapel umbenennen")(?=[^>]*data-core-tooltip-deck-icon-key="[^"]+")(?=[^>]*data-core-tooltip-deck-icon-color="#[0-9A-Fa-f]{6}")/);
   assert.doesNotMatch(markup, /core-heading-3[^>]*>Biologie/);
   assert.match(markup, /data-testid="deck-settings-appearance-toolbar"/);
   assert.match(markup, />Icon</);
