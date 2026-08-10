@@ -282,6 +282,15 @@ export function isLearningItemMarked(item: Pick<LearningItem, "meta"> | null | u
   return item?.meta?.marked === true;
 }
 
+export function isLearningItemReviewBlocked(
+  item: Pick<LearningItem, "status" | "meta"> | null | undefined,
+): boolean {
+  return item?.status === "suspended"
+    || String(item?.status) === "buried"
+    || item?.meta?.suspended === true
+    || item?.meta?.buried === true;
+}
+
 export function updateLearningItemStudyState(
   item: LearningItem,
   patch: LearningItemStudyStatePatch,

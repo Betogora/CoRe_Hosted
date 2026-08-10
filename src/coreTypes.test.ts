@@ -58,6 +58,7 @@ const deckSettings = {
   appearance: { iconKey: "book-open", iconColor: "#6f7e9e" },
   newCardsPerDay: 20,
   maximumReviewsPerDay: 200,
+  learnAheadMinutes: 20,
   newReviewOrder: "reviews-first",
   newCardsTodayOverride: null,
   variantThresholdXp: 121,

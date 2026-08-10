@@ -48,7 +48,7 @@ function sameAnswer(left: string, right: string) {
 }
 
 const studyProgressSegments = [
-  { key: "learned", countKey: "learnedTodayCount", ...LEARNING_STATUS_UI.learned },
+  { key: "learned", countKey: "completedTodayCount", ...LEARNING_STATUS_UI.learned },
   { key: "new", countKey: "newCount", ...LEARNING_STATUS_UI.new },
   { key: "in-progress", countKey: "inProgressCount", ...LEARNING_STATUS_UI.inProgress },
   { key: "due", countKey: "dueCount", ...LEARNING_STATUS_UI.due },
@@ -66,7 +66,7 @@ function DailyReviewProgress({ progress }: { progress: DailyReviewProgressSummar
       aria-label="Lernfortschritt"
       aria-valuemin={0}
       aria-valuemax={Math.max(1, progress.total)}
-      aria-valuenow={progress.learnedTodayCount}
+      aria-valuenow={progress.completedTodayCount}
       aria-valuetext={valueText}
       data-testid="study-daily-progress"
     >
@@ -124,6 +124,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   const completedInitialCount = effectiveReviewSession.completedInitialKeys.length;
   const repeatCount = effectiveReviewSession.repeatCount;
   const answeredCount = completedInitialCount + repeatCount;
+  const hasWaitingLearningCards = !current && queue.dailyProgress.inProgressCount > 0;
   const sourceCard = current?.learningItem ?? null;
   const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
   const sourceAnchor = current?.variant?.sourceAnchors?.[0] ?? sourceCard?.sourceAnchors?.[0] ?? null;
@@ -240,10 +241,10 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       if (current) questionHeadingRef.current?.focus();
-      else if (answeredCount > 0) completionHeadingRef.current?.focus();
+      else if (answeredCount > 0 || hasWaitingLearningCards) completionHeadingRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [current?.learningItemId, current?.variantId, answeredCount]);
+  }, [current?.learningItemId, current?.variantId, answeredCount, hasWaitingLearningCards]);
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -297,7 +298,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
           <div className="grid gap-2">
             <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-[var(--core-text-muted)]">
               <span>Lernfortschritt</span>
-              <span>{queue.dailyProgress.learnedTodayCount} / {queue.dailyProgress.total} Karten</span>
+              <span>{queue.dailyProgress.completedTodayCount} / {queue.dailyProgress.total} Karten</span>
             </div>
             <DailyReviewProgress progress={queue.dailyProgress} />
           </div>
@@ -464,6 +465,15 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
                   )}
                 </div>
               </>
+            ) : hasWaitingLearningCards ? (
+              <div className="text-center">
+                <CheckCircle2 className="mx-auto text-core-text" size={44} aria-hidden="true" />
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Für jetzt geschafft</h1>
+                <p className="mt-3 text-[var(--core-text-muted)]">Die restlichen Lernkarten sind vorgemerkt und bleiben „In Arbeit“.</p>
+                <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-11 items-center rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)]">
+                  Zurück zum Ausgangspunkt
+                </button>
+              </div>
             ) : answeredCount > 0 ? (
               <div className="text-center">
                 <CheckCircle2 className="mx-auto text-core-text" size={44} aria-hidden="true" />

@@ -178,7 +178,7 @@ test("answerVariant rejects foreign variants and suspended cards without writing
   assert.throws(
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
     () => answerVariant(deck, suspended.id, getOriginalVariant(suspended).id, "good"),
-    /suspended oder buried/,
+    /ausgesetzt oder vergraben/,
   );
   assert.equal(deck.reviewEvents.length, 0);
 });

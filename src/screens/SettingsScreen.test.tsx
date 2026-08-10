@@ -79,10 +79,12 @@ test("settings disclose export limits and keep raw JSON in advanced", () => {
   assert.match(html, />Roh-JSON anzeigen</);
 });
 
-test("learning settings explain the mandatory second contact and hide legacy graduation controls", () => {
+test("learning settings explain Good and Easy learning-step behavior and hide legacy graduation controls", () => {
   const html = renderSettings();
 
-  assert.match(html, /verpflichtenden zweiten Kontakt am selben Tag/);
+  assert.match(html, /mit „Gut“ geht es zum nächsten Schritt/);
+  assert.match(html, /„Leicht“ beendet die Lernphase sofort/);
+  assert.match(html, /Lernkarten vorziehen/);
   assert.doesNotMatch(html, /Varianten einsetzen ab Lernstufe|Aktive Varianten pro Karte/);
   assert.match(html, /Standard · 5 Min. → 15 Min./);
   assert.doesNotMatch(html, /Erstes reguläres Intervall/);

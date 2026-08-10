@@ -982,7 +982,10 @@ export function DecksScreen({
                           {frontPreview}
                         </button>
                       </td>
-                      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-[var(--core-text-secondary)]">{nextStudyLabel}</td>
+                      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-[var(--core-text-secondary)]">
+                        {nextStudyLabel}
+                        {suspended ? <span className="sr-only"> · Ausgesetzt</span> : null}
+                      </td>
                       <td className="min-w-0 px-1 py-1 text-right align-middle">
                         <span className="inline-flex items-center justify-end gap-1 align-middle">
                           <span className={`inline-block whitespace-nowrap rounded-full border px-2 align-middle core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>

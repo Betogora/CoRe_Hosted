@@ -3,6 +3,7 @@ import type { CoreMode, NewReviewOrder, SchedulerPreset, SchedulerProfile } from
 export interface LearningSettings {
   newCardsPerDay: number;
   maximumReviewsPerDay: number;
+  learnAheadMinutes: number;
   newReviewOrder: NewReviewOrder;
   schedulerProfile: SchedulerProfile;
 }
@@ -10,6 +11,7 @@ export interface LearningSettings {
 export interface LearningSettingsInput {
   newCardsPerDay?: unknown;
   maximumReviewsPerDay?: unknown;
+  learnAheadMinutes?: unknown;
   newReviewOrder?: unknown;
   coreMode?: unknown;
   variantThresholdXp?: unknown;
@@ -39,6 +41,7 @@ interface PresetDefinition {
   description: string;
   newCardsPerDay: number;
   maximumReviewsPerDay: number;
+  learnAheadMinutes: number;
   newReviewOrder: NewReviewOrder;
   schedulerProfile: Omit<SchedulerProfile, "settingsVersion" | "presetId" | "name">;
 }
@@ -81,6 +84,7 @@ const presetDefinitions = {
     description: "Ausgewogen für kontinuierliches Lernen.",
     newCardsPerDay: 20,
     maximumReviewsPerDay: 200,
+    learnAheadMinutes: 20,
     newReviewOrder: "reviews-first",
     schedulerProfile: {
       desiredRetention: 0.9,
@@ -99,6 +103,7 @@ const presetDefinitions = {
     description: "Höhere Zielerinnerung und engere Wiederholungen.",
     newCardsPerDay: 15,
     maximumReviewsPerDay: 250,
+    learnAheadMinutes: 20,
     newReviewOrder: "mixed",
     schedulerProfile: {
       desiredRetention: 0.94,
@@ -117,6 +122,7 @@ const presetDefinitions = {
     description: "Weniger neue Karten und längere Abstände.",
     newCardsPerDay: 10,
     maximumReviewsPerDay: 120,
+    learnAheadMinutes: 20,
     newReviewOrder: "reviews-first",
     schedulerProfile: {
       desiredRetention: 0.85,
@@ -146,6 +152,7 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
   return {
     newCardsPerDay: wholeNumber(sourceSettings.newCardsPerDay, 20, 0, 500),
     maximumReviewsPerDay: wholeNumber(sourceSettings.maximumReviewsPerDay, 200, 0, 2000),
+    learnAheadMinutes: wholeNumber(sourceSettings.learnAheadMinutes, 20, 0, 720),
     newReviewOrder: typeof sourceSettings.newReviewOrder === "string" && reviewOrders.has(sourceSettings.newReviewOrder as NewReviewOrder)
       ? sourceSettings.newReviewOrder as NewReviewOrder
       : "reviews-first",
@@ -173,6 +180,7 @@ export function applyLearningPreset(settings: LearningSettingsInput = {}, preset
     ...settings,
     newCardsPerDay: preset.newCardsPerDay,
     maximumReviewsPerDay: preset.maximumReviewsPerDay,
+    learnAheadMinutes: preset.learnAheadMinutes,
     newReviewOrder: preset.newReviewOrder,
     schedulerProfile: {
       ...(settings.schedulerProfile ?? {}),

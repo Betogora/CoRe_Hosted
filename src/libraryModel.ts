@@ -1,5 +1,6 @@
 import { stripHtml } from "./htmlSafety.ts";
 import { listReviewableCards, summarizeDeckReview } from "./scheduler.ts";
+import { createDailyReviewQueue } from "./reviewService.ts";
 import {
   createStudyHeatmapForecastCounts,
   createStudyHeatmapModelFromCounts,
@@ -59,8 +60,27 @@ function createDeckRow(
   },
 ) {
   const activeCards = listReviewableCards(deck);
-  const directSummary = summarizeDeckReview(deck, now);
-  const summary = summarizeDeckReview({ ...deck, cards: scopeDecks.flatMap((scopeDeck) => scopeDeck.cards ?? []) }, now);
+  const directInventory = summarizeDeckReview(deck, now);
+  const directDaily = createDailyReviewQueue(deck, { deckId: deck.id, now }).dailyProgress;
+  const isLeafScope = scopeDecks.length === 1 && scopeDecks[0]?.id === deck.id;
+  const inventory = isLeafScope
+    ? directInventory
+    : summarizeDeckReview({ ...deck, cards: scopeDecks.flatMap((scopeDeck) => scopeDeck.cards ?? []) }, now);
+  const daily = isLeafScope
+    ? directDaily
+    : createDailyReviewQueue(scopeDecks, { deckId: deck.id, now }).dailyProgress;
+  const directSummary = {
+    ...directInventory,
+    newCards: directDaily.newCount,
+    inProgressCards: directDaily.inProgressCount,
+    dueCards: directDaily.dueCount,
+  };
+  const summary = {
+    ...inventory,
+    newCards: daily.newCount,
+    inProgressCards: daily.inProgressCount,
+    dueCards: daily.dueCount,
+  };
 
   return {
     id: deck.id,
