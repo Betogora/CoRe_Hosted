@@ -265,15 +265,15 @@ export function StudyHeatmap({
             options={PERIOD_OPTIONS}
             value={period}
             onValueChange={selectPeriod}
-            size="compact"
-            className="core-study-heatmap-period-control shrink-0"
+            size="regular"
+            className="shrink-0"
           />
           <CoreTooltip label={navigationLabels.previous}>
             <button
               type="button"
               onClick={() => setAnchorKey(visibleHeatmap.previousAnchorKey)}
               disabled={!visibleHeatmap.canShowPrevious}
-              className="inline-flex size-9 min-h-9 shrink-0 items-center justify-center rounded-lg border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={navigationLabels.previous}
             >
               <ChevronLeft size={16} aria-hidden="true" />
@@ -284,7 +284,7 @@ export function StudyHeatmap({
               type="button"
               onClick={() => setAnchorKey(visibleHeatmap.nextAnchorKey)}
               disabled={!visibleHeatmap.canShowNext}
-              className="inline-flex size-9 min-h-9 shrink-0 items-center justify-center rounded-lg border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={navigationLabels.next}
             >
               <ChevronRight size={16} aria-hidden="true" />

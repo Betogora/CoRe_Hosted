@@ -615,19 +615,9 @@ button[aria-label] {
   }
 }
 
-@container core-study-heatmap (min-width: 17rem) {
-  .core-study-heatmap-period-control .core-segmented-control-option {
-    padding-inline: 0.5rem;
-  }
-}
-
 @container core-study-heatmap (min-width: 34rem) {
   .core-study-heatmap-header {
     grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .core-study-heatmap-period-control .core-segmented-control-option {
-    padding-inline: 0.625rem;
   }
 }
 

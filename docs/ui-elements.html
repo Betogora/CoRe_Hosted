@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: ac6788c21b4e1397 */
+/* Quellenstand: 770d59557c77ddb5 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -977,9 +977,6 @@ video {
 .min-h-20 {
   min-height: 5rem;
 }
-.min-h-9 {
-  min-height: 2.25rem;
-}
 .min-h-\[42rem\] {
   min-height: 42rem;
 }
@@ -1738,19 +1735,9 @@ button[aria-label] {
   }
 }
 
-@container core-study-heatmap (min-width: 17rem) {
-  .core-study-heatmap-period-control .core-segmented-control-option {
-    padding-inline: 0.5rem;
-  }
-}
-
 @container core-study-heatmap (min-width: 34rem) {
   .core-study-heatmap-header {
     grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .core-study-heatmap-period-control .core-segmented-control-option {
-    padding-inline: 0.625rem;
   }
 }
 
@@ -3500,8 +3487,8 @@ summary {
                   <div class="flex flex-wrap items-center gap-4">
                     <div><p class="core-caption uppercase tracking-wide text-core-muted">Lernaktivität</p><h3 class="core-heading-3 mt-1 text-core-text">12 Tage Streak</h3></div>
                     <div class="ml-auto flex w-full items-center justify-end gap-2 sm:w-auto">
-                      <div class="core-segmented-control core-study-heatmap-period-control core-status-label" role="group" aria-label="Heatmap-Zeitraum" data-size="compact"><button type="button" class="core-segmented-control-option" aria-pressed="true">Woche</button><button type="button" class="core-segmented-control-option" aria-pressed="false">Monat</button><button type="button" class="core-segmented-control-option" aria-pressed="false">Jahr</button></div>
-                      <button type="button" class="grid size-9 min-h-9 place-items-center rounded-lg border border-core-border text-core-action" aria-label="Frühere sieben Tage anzeigen"><svg class="catalog-icon rotate-180"><use href="#icon-chevron"></use></svg></button><button type="button" class="grid size-9 min-h-9 place-items-center rounded-lg border border-core-border text-core-action disabled:opacity-40" aria-label="Spätere sieben Tage anzeigen" disabled><svg class="catalog-icon"><use href="#icon-chevron"></use></svg></button>
+                      <div class="core-segmented-control core-status-label" role="group" aria-label="Heatmap-Zeitraum" data-size="regular"><button type="button" class="core-segmented-control-option" aria-pressed="true">Woche</button><button type="button" class="core-segmented-control-option" aria-pressed="false">Monat</button><button type="button" class="core-segmented-control-option" aria-pressed="false">Jahr</button></div>
+                      <button type="button" class="grid size-11 place-items-center rounded-xl border border-core-border text-core-action" aria-label="Frühere sieben Tage anzeigen"><svg class="catalog-icon rotate-180"><use href="#icon-chevron"></use></svg></button><button type="button" class="grid size-11 place-items-center rounded-xl border border-core-border text-core-action disabled:opacity-40" aria-label="Spätere sieben Tage anzeigen" disabled><svg class="catalog-icon"><use href="#icon-chevron"></use></svg></button>
                     </div>
                   </div>
                   <p class="mt-4 text-center core-caption font-semibold text-core-muted">03.08.–09.08.2026</p>
