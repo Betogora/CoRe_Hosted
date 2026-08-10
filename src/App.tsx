@@ -31,6 +31,7 @@ import { createPortableExport, mergePortableExportIntoState } from "./dataPortab
 import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type LearningSettingsInput } from "./deckSettings.ts";
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
+import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
 import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
 import { SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
@@ -40,6 +41,7 @@ import { setDeckExpanded, type DeckExpansionSurface } from "./uiPreferences.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
 import { AppNavigation } from "./ui/AppNavigation.tsx";
 import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
+import { useSuccessToast } from "./ui/feedbackUi.tsx";
 
 const CreationScreen = React.lazy<React.ComponentType<CreationScreenProps>>(() => import("./screens/CreationScreen.tsx").then(({ CreationScreen }) => ({ default: CreationScreen })));
 const DashboardScreen = React.lazy<React.ComponentType<DashboardScreenProps>>(() => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })));
@@ -151,6 +153,7 @@ function MigrationChoiceScreen({ legacyState, busy = false, message = "", onImpo
 export function App() {
   const supabase = React.useMemo(() => createSupabaseBrowserClient(), []);
   const navigationItems = React.useMemo(() => menu.listNavigationItems(), []);
+  const setSuccessToast = useSuccessToast();
   const bootRunRef = React.useRef(0);
   const latestStateRef = React.useRef<WorkspaceState | null>(null);
   const lastAcknowledgedStateRef = React.useRef<WorkspaceState | null>(null);
@@ -169,6 +172,8 @@ export function App() {
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
   const [simulationOffsetMinutes, setSimulationOffsetMinutes] = React.useState(0);
+  const [pomodoroTimer, setPomodoroTimer] = React.useState<PomodoroTimer | null>(null);
+  const pomodoroTimerRef = React.useRef<PomodoroTimer | null>(null);
   const creationDraftFocusRef = React.useRef<(() => void) | null>(null);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
@@ -198,6 +203,94 @@ export function App() {
   const changeSimulationOffset = React.useCallback((value: number) => {
     setSimulationOffsetMinutes(normalizeSimulationOffsetMinutes(value));
   }, []);
+
+  const startPomodoro = React.useCallback((minutes: number) => {
+    if (!cloudUser?.id) return;
+    const timer = createPomodoroTimer(minutes);
+    if (!timer) return;
+    pomodoroTimerRef.current = timer;
+    setPomodoroTimer(timer);
+    writePomodoroTimer(cloudUser.id, timer);
+  }, [cloudUser?.id]);
+
+  React.useEffect(() => {
+    const userId = cloudUser?.id;
+    if (!userId) {
+      pomodoroTimerRef.current = null;
+      setPomodoroTimer(null);
+      return;
+    }
+
+    const storedTimer = readPomodoroTimer(userId);
+    if (storedTimer && storedTimer.endsAt <= Date.now()) {
+      const removed = clearPomodoroTimer(userId, storedTimer.id);
+      pomodoroTimerRef.current = null;
+      setPomodoroTimer(null);
+      if (removed) setSuccessToast("Timer abgelaufen.");
+      return;
+    }
+    pomodoroTimerRef.current = storedTimer;
+    setPomodoroTimer(storedTimer);
+  }, [cloudUser?.id, setSuccessToast]);
+
+  React.useEffect(() => {
+    const userId = cloudUser?.id;
+    if (!userId || typeof window === "undefined") return undefined;
+    const accountUserId = userId;
+    let storageKey = "";
+    try {
+      storageKey = getPomodoroTimerStorageKey(accountUserId);
+    } catch {
+      return undefined;
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== storageKey) return;
+      const nextTimer = readPomodoroTimer(accountUserId);
+      if (nextTimer && nextTimer.endsAt <= Date.now()) {
+        const removed = clearPomodoroTimer(accountUserId, nextTimer.id);
+        pomodoroTimerRef.current = null;
+        setPomodoroTimer(null);
+        if (removed) setSuccessToast("Timer abgelaufen.");
+        return;
+      }
+      pomodoroTimerRef.current = nextTimer;
+      setPomodoroTimer(nextTimer);
+    }
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [cloudUser?.id, setSuccessToast]);
+
+  React.useEffect(() => {
+    const userId = cloudUser?.id;
+    const timer = pomodoroTimer;
+    if (!userId || !timer) return undefined;
+    const accountUserId = userId;
+    const activeTimer = timer;
+    let timeoutId = 0;
+    let cancelled = false;
+
+    function checkExpiry() {
+      if (cancelled || pomodoroTimerRef.current?.id !== activeTimer.id) return;
+      const remainingMilliseconds = activeTimer.endsAt - Date.now();
+      if (remainingMilliseconds > 0) {
+        timeoutId = window.setTimeout(checkExpiry, Math.min(remainingMilliseconds, 60_000));
+        return;
+      }
+
+      clearPomodoroTimer(accountUserId, activeTimer.id);
+      pomodoroTimerRef.current = null;
+      setPomodoroTimer(null);
+      setSuccessToast("Timer abgelaufen.");
+    }
+
+    checkExpiry();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [cloudUser?.id, pomodoroTimer, setSuccessToast]);
 
   const navigateToView = React.useCallback((...args: Parameters<typeof navigateToViewNow>) => {
     if (activeView === "neue-karten" && creationDraftDirty) {
@@ -1109,6 +1202,8 @@ export function App() {
           onNavigate={navigateToView}
           simulationOffsetMinutes={simulationOffsetMinutes}
           simulationDateLabel={formatSimulationDate(learningNow)}
+          pomodoroTimer={pomodoroTimer}
+          onStartPomodoro={startPomodoro}
         />
       );
     }
@@ -1164,6 +1259,8 @@ export function App() {
           mediaStore={mediaStore}
           getNow={getLearningNow}
           simulationOffsetMinutes={simulationOffsetMinutes}
+          pomodoroTimer={pomodoroTimer}
+          onStartPomodoro={startPomodoro}
           onExit={() => {
             refresh();
             navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
@@ -1211,6 +1308,7 @@ export function App() {
           displayName={state.profile.displayName}
           simulationOffsetMinutes={simulationOffsetMinutes}
           simulationDateLabel={formatSimulationDate(learningNow)}
+          pomodoroTimer={pomodoroTimer}
           onNavigate={navigateToView}
           onResetSimulation={() => changeSimulationOffset(0)}
         />

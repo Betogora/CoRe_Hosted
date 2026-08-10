@@ -11,11 +11,13 @@ function renderOverlay(overrides: Partial<React.ComponentProps<typeof StudySetti
       canEditCard
       marked={false}
       suspended={false}
+      pomodoroTimer={null}
       onOpenChange={() => undefined}
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onMarkedChange={() => undefined}
       onSuspendedChange={() => undefined}
+      onStartPomodoro={() => undefined}
       {...overrides}
     />,
   );
@@ -33,7 +35,7 @@ test("StudySettingsOverlay renders one responsive dialog with the canonical sect
   assert.doesNotMatch(markup, /Flagge|Flaggenfarben/);
   assert.match(markup, /Markieren/);
   assert.match(markup, /Aussetzen/);
-  assert.match(markup, /Pomodoro/);
+  assert.match(markup, /Pomodoro-Timer/);
   assert.match(markup, /Kartenreihenfolge/);
   assert.doesNotMatch(markup, />Stapel</);
   assert.doesNotMatch(markup, /Neue Karten pro Tag|Max\. Wiederholungen/);
@@ -50,7 +52,9 @@ test("StudySettingsOverlay keeps deck editing available when card actions are di
   assert.doesNotMatch(deckEditButton.match(/^<button[^>]*>/)?.[0] ?? "", /\sdisabled=""/);
   assert.match(markup, /aria-label="Karte markieren"[^>]*disabled/);
   assert.match(markup, /role="switch"[^>]*aria-checked="false"[^>]*aria-label="Karte aussetzen"[^>]*disabled/);
-  assert.match(markup, /aria-label="Pomodoro: 25 Min\. – noch nicht verfügbar"[^>]*disabled/);
+  assert.match(markup, /Pomodoro-Timer/);
+  assert.match(markup, /aria-expanded="false"/);
+  assert.doesNotMatch(markup, /Pomodoro[^<]*noch nicht verfügbar/i);
 });
 
 test("StudySettingsOverlay renders selected mark and suspended states", () => {

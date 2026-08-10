@@ -64,6 +64,64 @@ test("dark mode can be toggled from the sidebar and persists across reloads", as
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "light");
 });
 
+test("Pomodoro timer starts globally, persists and stays synchronized between tabs", async ({ page, context }) => {
+  await resetToFreshLocalState(page);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+
+  const control = page.locator('[data-pomodoro-control="settings"]');
+  await control.locator("button").first().click();
+  const minutes = control.getByLabel("Dauer in Minuten");
+  await minutes.fill("1.5");
+  await control.getByRole("button", { name: "Start", exact: true }).click();
+  await expect(control.getByText("Bitte gib eine positive ganze Minutenzahl ein.")).toBeVisible();
+
+  const secondPage = await context.newPage();
+  await secondPage.goto("/");
+  await secondPage.getByRole("navigation", { name: /Hauptmen/ }).waitFor({ state: "visible" });
+
+  await minutes.fill("25");
+  await control.getByRole("button", { name: "Start", exact: true }).click();
+  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("Noch 25 Min.");
+  await expect(secondPage.locator('[data-pomodoro-progress="sidebar"]')).toContainText("Noch 25 Min.");
+
+  await page.reload();
+  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("Noch 25 Min.");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('[data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  await secondPage.close();
+});
+
+test("Pomodoro timer expiration clears the global indicator and shows the canonical toast", async ({ page, context }) => {
+  await resetToFreshLocalState(page);
+  const secondPage = await context.newPage();
+  await secondPage.goto("/");
+  await secondPage.getByRole("navigation", { name: /Hauptmen/ }).waitFor({ state: "visible" });
+
+  const timerKey = await page.evaluate(() => {
+    const appStateKey = Object.keys(localStorage).find((key) => key.endsWith(".core.appState.v3"));
+    if (!appStateKey) throw new Error("Accountgebundener E2E-State fehlt.");
+    return appStateKey.replace(/\.core\.appState\.v3$/, ".core.pomodoroTimer.v1");
+  });
+  await secondPage.evaluate((key) => {
+    const endsAt = Date.now() + 1_500;
+    localStorage.setItem(key, JSON.stringify({
+      id: "pomodoro_e2e_expiry",
+      durationMinutes: 1,
+      startedAt: endsAt - 60_000,
+      endsAt,
+    }));
+  }, timerKey);
+
+  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toBeVisible();
+  await expect(page.getByText("Timer abgelaufen.", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toHaveCount(0);
+  await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), timerKey)).toBeNull();
+  await secondPage.close();
+});
+
 test("long desktop views scroll without moving the sidebar utilities below the viewport", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });

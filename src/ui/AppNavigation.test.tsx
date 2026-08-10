@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMenuModel } from "../menuModel.ts";
+import { createPomodoroTimer, type PomodoroTimer } from "../pomodoroTimer.ts";
 import { AppNavigation } from "./AppNavigation.tsx";
 
 const navigationItems = createMenuModel().listNavigationItems();
 
-function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0) {
+function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null) {
   return renderToStaticMarkup(
     <AppNavigation
       navigationItems={navigationItems}
@@ -14,6 +15,7 @@ function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0
       displayName="Ada"
       simulationOffsetMinutes={simulationOffsetMinutes}
       simulationDateLabel="Sonntag, 9. August 2026"
+      pomodoroTimer={pomodoroTimer}
       onNavigate={() => undefined}
       onResetSimulation={() => undefined}
     />,
@@ -54,4 +56,15 @@ test("active simulation remains visible in both navigation layouts", () => {
 
   const minuteMarkup = renderNavigation("uebersicht", 10);
   assert.match(minuteMarkup, /\+10 Minuten/);
+});
+
+test("active Pomodoro timer appears in the desktop sidebar and mobile header", () => {
+  const timer = createPomodoroTimer(25, Date.now(), "pomodoro_navigation");
+  assert.ok(timer);
+  const markup = renderNavigation("uebersicht", 0, timer);
+
+  assert.equal((markup.match(/data-pomodoro-progress=/g) ?? []).length, 2);
+  assert.match(markup, /data-pomodoro-progress="sidebar"/);
+  assert.match(markup, /data-pomodoro-progress="header"/);
+  assert.match(markup, /Noch 25 Min\./);
 });

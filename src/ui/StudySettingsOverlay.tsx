@@ -7,22 +7,25 @@ import {
   Pencil,
   Settings,
   Star,
-  Timer,
   X,
 } from "lucide-react";
+import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import { IconButton } from "./actionUi.tsx";
 import { CardMarkButton, CoreSwitch } from "./coreUi.tsx";
+import { PomodoroTimerControl } from "./pomodoroTimerUi.tsx";
 
 export interface StudySettingsOverlayProps {
   open: boolean;
   canEditCard: boolean;
   marked: boolean;
   suspended: boolean;
+  pomodoroTimer: PomodoroTimer | null;
   onOpenChange: (open: boolean) => void;
   onEditCard: () => void;
   onEditDeck: () => void;
   onMarkedChange: (marked: boolean) => void;
   onSuspendedChange: (suspended: boolean) => void;
+  onStartPomodoro: (minutes: number) => void;
 }
 
 function EditMenuRow({ icon: Icon, label, disabled = false, onClick }: {
@@ -64,7 +67,7 @@ function StudyStateRow({ icon: Icon, label, children, disabled = false }: {
   );
 }
 
-function DisabledMenuRow({ icon: Icon, label, value }: { icon: typeof Timer; label: string; value: string }) {
+function DisabledMenuRow({ icon: Icon, label, value }: { icon: typeof ListOrdered; label: string; value: string }) {
   return (
     <button
       type="button"
@@ -93,11 +96,13 @@ export function StudySettingsOverlay({
   canEditCard,
   marked,
   suspended,
+  pomodoroTimer,
   onOpenChange,
   onEditCard,
   onEditDeck,
   onMarkedChange,
   onSuspendedChange,
+  onStartPomodoro,
 }: StudySettingsOverlayProps) {
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
   const closeButtonRef = React.useRef<HTMLButtonElement | null>(null);
@@ -206,7 +211,7 @@ export function StudySettingsOverlay({
           <section className="py-4" aria-labelledby={`${titleId}-session`}>
             <h3 id={`${titleId}-session`} className="core-status-label uppercase tracking-wide text-[var(--core-action-secondary)]">Sitzung</h3>
             <div className="mt-2">
-              <DisabledMenuRow icon={Timer} label="Pomodoro" value="25 Min." />
+              <PomodoroTimerControl timer={pomodoroTimer} variant="study" onStart={onStartPomodoro} />
               <DisabledMenuRow icon={ListOrdered} label="Kartenreihenfolge" value="Noch nicht verfügbar" />
             </div>
           </section>

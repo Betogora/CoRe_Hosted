@@ -373,7 +373,9 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   await expect(settingsDialog).toBeVisible();
   await expect(settingsDialog.getByRole("button", { name: "Lerneinstellungen schließen" })).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(settingsDialog.getByRole("switch", { name: "Karte aussetzen" })).toBeFocused();
+  await expect(
+    settingsDialog.locator('[data-pomodoro-control="study"] > button'),
+  ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(settingsDialog.getByRole("button", { name: "Lerneinstellungen schließen" })).toBeFocused();
   await page.keyboard.press("Escape");
@@ -436,6 +438,26 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   await page.mouse.click(2, 2);
   await expect(dialog).toHaveCount(0);
   await expect(settings).toBeFocused();
+});
+
+test("Pomodoro timer started in the learning settings remains global after leaving review", async ({ page }: any) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ }).click();
+
+  await page.getByRole("button", { name: "Lerneinstellungen" }).click();
+  const dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
+  const control = dialog.locator('[data-pomodoro-control="study"]');
+  await control.locator("button").first().click();
+  await control.getByLabel("Dauer in Minuten").fill("10");
+  await control.getByRole("button", { name: "Start", exact: true }).click();
+  await expect(control).toContainText("10 Min.");
+  await dialog.getByRole("button", { name: "Lerneinstellungen schließen" }).click();
+  await expect(page.getByTestId("study-pomodoro-progress")).toHaveAttribute("aria-valuetext", "Noch 10 Min.");
+
+  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
+  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("Noch 10 Min.");
 });
 
 test("core actions stay usable in a 200 percent effective viewport", async ({ page }: any) => {

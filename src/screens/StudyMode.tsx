@@ -19,6 +19,7 @@ import {
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { formatLearningCardCount, LEARNING_STATUS_UI } from "../ui/learningStatusUi.ts";
+import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
@@ -87,7 +88,7 @@ function DailyReviewProgress({ progress }: { progress: DailyReviewProgressSummar
   );
 }
 
-export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationOffsetMinutes, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
+export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
@@ -302,15 +303,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
             </div>
             <DailyReviewProgress progress={queue.dailyProgress} />
           </div>
-          <div className="grid gap-2" aria-label="Pomodoro: 25 Minuten – noch nicht verfügbar">
-            <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-[var(--core-text-muted)]">
-              <span>Pomodoro · 25 Min.</span>
-              <span>Noch nicht verfügbar</span>
-            </div>
-            <div className="h-3 overflow-hidden rounded-full bg-core-subtle" data-testid="study-pomodoro-progress" aria-hidden="true">
-              <div className="h-full w-full rounded-full bg-core-action" />
-            </div>
-          </div>
+          <PomodoroProgress timer={pomodoroTimer} variant="study" />
           {studyMissingMedia.length > 0 ? <p className="core-status-warning text-center core-body" role="status">{studyMissingMedia[0].status}{studyMissingMedia.length > 1 ? ` (${studyMissingMedia.length} Medien)` : ""}</p> : null}
         </header>
 
@@ -319,6 +312,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
           canEditCard={Boolean(current?.deckId && current.learningItemId)}
           marked={isLearningItemMarked(sourceCard)}
           suspended={sourceCard?.status === "suspended"}
+          pomodoroTimer={pomodoroTimer}
           onOpenChange={setShowSettings}
           onEditCard={() => {
             if (current?.deckId && current.learningItemId) onEditCard(current.deckId, current.learningItemId);
@@ -328,6 +322,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
           }}
           onMarkedChange={(marked) => updateCurrentStudyState({ marked })}
           onSuspendedChange={(suspended) => updateCurrentStudyState({ suspended })}
+          onStartPomodoro={onStartPomodoro}
         />
 
         <section className="grid flex-1 place-items-center py-8">

@@ -8,13 +8,14 @@ import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { OrbIcon, PageHeader, SoftPanel, ThemeToggle } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 
 const languageOptions = [{ value: "de", label: "Deutsch" }, { value: "en", label: "English" }];
 
-export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel }: SettingsScreenProps) {
+export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
   const [form, setForm] = React.useState(profile);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
@@ -139,6 +140,7 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
             </span>
             <ChevronRight className="shrink-0 text-[var(--core-action-primary)]" size={18} aria-hidden="true" />
           </button>
+          <PomodoroTimerControl timer={pomodoroTimer} variant="settings" onStart={onStartPomodoro} />
           <button
             type="button"
             onClick={() => onNavigate("hilfe")}

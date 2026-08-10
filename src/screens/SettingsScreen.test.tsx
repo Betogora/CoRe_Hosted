@@ -34,6 +34,8 @@ function renderSettings() {
       onNavigate={() => createViewRoute("uebersicht")}
       simulationOffsetMinutes={3 * 24 * 60}
       simulationDateLabel="Sonntag, 9. August 2026"
+      pomodoroTimer={null}
+      onStartPomodoro={() => undefined}
     />,
   );
 }
@@ -49,12 +51,16 @@ test("settings expose task-based sections and a read-only login email", () => {
   assert.match(html, /Eine Änderung der Login-E-Mail wird derzeit nicht in CoRe angeboten\./);
 });
 
-test("settings group theme, simulator and help as app controls", () => {
+test("settings group theme, simulator, Pomodoro timer and help as app controls", () => {
   const html = renderSettings();
 
   assert.match(html, /role="switch"/);
   assert.match(html, />Simulator</);
   assert.match(html, /Aktiv: Sonntag, 9\. August 2026 · \+3 Tage/);
+  assert.match(html, /Pomodoro-Timer/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.ok(html.indexOf("Simulator") < html.indexOf("Pomodoro-Timer"));
+  assert.ok(html.indexOf("Pomodoro-Timer") < html.indexOf("Hilfe"));
   assert.match(html, />Hilfe</);
   assert.match(html, /Wie CoRe und FSRS funktionieren/);
 });

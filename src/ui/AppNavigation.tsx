@@ -2,8 +2,10 @@ import type { LucideIcon } from "lucide-react";
 import { BarChart3, BookOpen, CalendarClock, Ellipsis, Home, Layers, PlusSquare, Settings } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { MenuViewId } from "../menuModel.ts";
+import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { ActionButton } from "./actionUi.tsx";
+import { PomodoroProgress } from "./pomodoroTimerUi.tsx";
 
 export interface AppNavigationItem {
   id: MenuViewId;
@@ -17,6 +19,7 @@ export interface AppNavigationProps {
   displayName: string;
   simulationOffsetMinutes: number;
   simulationDateLabel: string;
+  pomodoroTimer: PomodoroTimer | null;
   onNavigate: (viewId: MenuViewId) => unknown;
   onResetSimulation: () => unknown;
 }
@@ -35,7 +38,7 @@ function getIcon(iconKey: string) {
   return iconByKey[iconKey] ?? Home;
 }
 
-function DesktopNavigation({ navigationItems, activeView, displayName, simulationOffsetMinutes, simulationDateLabel, onNavigate, onResetSimulation }: AppNavigationProps) {
+function DesktopNavigation({ navigationItems, activeView, displayName, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation }: AppNavigationProps) {
   const settingsActive = utilityViews.has(activeView);
 
   return (
@@ -68,7 +71,7 @@ function DesktopNavigation({ navigationItems, activeView, displayName, simulatio
           })}
         </nav>
 
-        <div className="mt-auto border-t border-[var(--core-border)] pt-6">
+        <div className="mt-auto">
           {simulationOffsetMinutes > 0 ? (
             <div className="mb-3 rounded-xl border border-core-warning bg-core-warning-soft p-3 text-core-text" role="status">
               <p className="flex items-center gap-2 core-body font-semibold">
@@ -81,35 +84,39 @@ function DesktopNavigation({ navigationItems, activeView, displayName, simulatio
               </ActionButton>
             </div>
           ) : null}
-          <button
-            type="button"
-            data-app-navigation="true"
-            onClick={() => onNavigate("einstellungen")}
-            className={`flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition ${
-              settingsActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text)] hover:bg-core-surface"
-            }`}
-            aria-label="Einstellungen öffnen"
-            aria-current={settingsActive ? "page" : undefined}
-          >
-            <span className="grid size-10 place-items-center rounded-full bg-[var(--core-info-surface)] core-body font-semibold">{(displayName || "CO").slice(0, 2).toUpperCase()}</span>
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)]">
-              <Settings size={18} aria-hidden="true" />
-            </span>
-            <span className="min-w-0 flex-1 truncate core-body font-semibold">{displayName}</span>
-          </button>
+          <PomodoroProgress timer={pomodoroTimer} variant="sidebar" />
+          <div className={`border-t border-[var(--core-border)] pt-6 ${simulationOffsetMinutes > 0 || pomodoroTimer ? "mt-3" : ""}`}>
+            <button
+              type="button"
+              data-app-navigation="true"
+              onClick={() => onNavigate("einstellungen")}
+              className={`flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition ${
+                settingsActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text)] hover:bg-core-surface"
+              }`}
+              aria-label="Einstellungen öffnen"
+              aria-current={settingsActive ? "page" : undefined}
+            >
+              <span className="grid size-10 place-items-center rounded-full bg-[var(--core-info-surface)] core-body font-semibold">{(displayName || "CO").slice(0, 2).toUpperCase()}</span>
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--core-surface-muted)] text-[var(--core-action-primary)]">
+                <Settings size={18} aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1 truncate core-body font-semibold">{displayName}</span>
+            </button>
+          </div>
         </div>
       </div>
     </aside>
   );
 }
 
-function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, onNavigate, onResetSimulation }: AppNavigationProps) {
+function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation }: AppNavigationProps) {
   const settingsActive = utilityViews.has(activeView);
 
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--core-border)] bg-core-surface px-5 py-3 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex min-h-11 items-center justify-between gap-3">
-        <h1 className="core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
+        <h1 className="shrink-0 core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
+        <PomodoroProgress timer={pomodoroTimer} variant="header" />
         <button
           type="button"
           data-app-navigation="true"

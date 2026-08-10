@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-08-10 — Globaler Pomodoro-Timer
+
+- Ein einziger accountgebundener, browserlokaler Timer wird aus globalen Einstellungen oder Lerneinstellungen gestartet. Er speichert Start, Ende und Dauer statt heruntergezählter Zwischenstände, ersetzt einen laufenden Timer sofort und bleibt dadurch über Hintergrunddrosselung, Navigation, Reload und weitere Tabs driftfrei.
+- Der laufende Timer erscheint im Review, in der Desktop-Sidebar und unterhalb von 1.280 px als 22 px hohe Projektion in der Kopfleiste. Der Lernbalken behält ohne Timer den Zustand `Nicht gestartet`; globale Projektionen verschwinden nach dem Ablauf. Der vorhandene schließbare Toast meldet exakt `Timer abgelaufen.`.
+- Lokal bestätigt: 27 fokussierte Timer-/UI-Tests, die vollständige Modulsuite mit 505 Tests, Typecheck und Production-Build. Das lokale Datenbankgate bestätigte 11 RLS-/Storage-/Zwei-Geräte-Prüfungen. Playwright bestätigte automatisiert den Start aus den Lerneinstellungen sowie Ablauf, Entfernung und Toast; der interaktive In-App-Browser bestätigte zusätzlich Ganzzahlfehler und ARIA-Zustand, globalen Start, sofortigen Ersatz, Navigation, Reload und Tab-Synchronisierung. Die visuelle Prüfung bei 390, 767, 768, 1.279 und 1.280 px ergab keinen horizontalen Überlauf, den vorgesehenen Navigationswechsel und keine Konsolenwarnungen oder -fehler.
+
 ## 2026-08-06 — Anki-inspirierte Statistik im CoRe-Design
 
 - Der bisherige Statistikpfad wurde durch ein einziges indexiertes Projektionsmodell und einen lazy geladenen CoRe-Screen ersetzt. Eine globale Auswahl steuert 30 Tage, 90 Tage, ein Jahr oder den Gesamtverlauf sowie Sammlung, Oberstapel und deduplizierte Mehrfachauswahl. Aktivität, Lernzeit, Kalender, Planung, Bestand, Intervalle, FSRS, Antwortverhalten, wahre Erinnerungsquote, Stapelvergleich und schwierige Karten verwenden dieselbe Projektion und höchstens 240 aggregierte Punkte je Reihe.

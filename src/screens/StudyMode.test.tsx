@@ -57,6 +57,8 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
       mediaStore={null}
       getNow={() => "2026-07-06T10:00:00.000Z"}
       simulationOffsetMinutes={0}
+      pomodoroTimer={null}
+      onStartPomodoro={() => undefined}
       onExit={() => undefined}
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}
@@ -90,6 +92,8 @@ test("StudyMode uses a simulated same-day minute offset for queue and visible st
     deckId: deck.id,
     variantSession: false,
     mediaStore: null,
+    pomodoroTimer: null,
+    onStartPomodoro: () => undefined,
     onExit: () => undefined,
     onReturnToLearn: () => undefined,
     onEditCard: () => undefined,
@@ -112,7 +116,7 @@ test("StudyMode uses a simulated same-day minute offset for queue and visible st
   assert.match(futureMarkup, /\+10 Minuten/);
 });
 
-test("StudyMode exposes labeled learning and placeholder Pomodoro progress without the former inline limit", () => {
+test("StudyMode exposes labeled learning and the global Pomodoro progress without the former inline limit", () => {
   const item = createBasicLearningItem("deck_progress", "Frage", "Antwort");
   const deck = createCoreDeck({ id: "deck_progress", name: "Fortschritt", source: "manual", cards: [item], reviewEvents: [] });
   const markup = renderToStaticMarkup(
@@ -124,6 +128,8 @@ test("StudyMode exposes labeled learning and placeholder Pomodoro progress witho
       mediaStore={null}
       getNow={() => "2026-08-06T10:00:00.000Z"}
       simulationOffsetMinutes={0}
+      pomodoroTimer={null}
+      onStartPomodoro={() => undefined}
       onExit={() => undefined}
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}
@@ -136,7 +142,8 @@ test("StudyMode exposes labeled learning and placeholder Pomodoro progress witho
 
   assert.match(markup, /Lernfortschritt/);
   assert.match(markup, /aria-valuetext="Heute geschafft: 0 Karten, Neu: 1 Karte, In Arbeit: 0 Karten, Fällig: 0 Karten"/);
-  assert.match(markup, /Pomodoro · 25 Min\./);
+  assert.match(markup, /Pomodoro-Timer/);
+  assert.match(markup, /Nicht gestartet/);
   assert.match(markup, /study-pomodoro-progress/);
   assert.doesNotMatch(markup, /Neue Karten heute|heute eingeführt|\+10/);
 });
@@ -191,6 +198,8 @@ test("StudyMode renders the four daily progress segments in the canonical order 
       mediaStore={null}
       getNow={() => "2026-08-09T10:00:00.000Z"}
       simulationOffsetMinutes={0}
+      pomodoroTimer={null}
+      onStartPomodoro={() => undefined}
       onExit={() => undefined}
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}
@@ -242,6 +251,8 @@ test("StudyMode says Für jetzt geschafft while same-day learning steps are stil
       mediaStore={null}
       getNow={() => "2026-08-09T10:00:00.000Z"}
       simulationOffsetMinutes={0}
+      pomodoroTimer={null}
+      onStartPomodoro={() => undefined}
       onExit={() => undefined}
       onReturnToLearn={() => undefined}
       onEditCard={() => undefined}

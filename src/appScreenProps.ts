@@ -4,6 +4,7 @@ import type { CoreWorkspace, DeckMutationResult, WorkspaceState } from "./coreWo
 import type { CoreMode, Deck, LearningItem, LearningItemStudyStatePatch, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
+import type { PomodoroTimer } from "./pomodoroTimer.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
 
@@ -124,6 +125,8 @@ export interface SettingsScreenProps {
   onNavigate: NavigateToView;
   simulationOffsetMinutes: number;
   simulationDateLabel: string;
+  pomodoroTimer: PomodoroTimer | null;
+  onStartPomodoro: (minutes: number) => void;
 }
 
 export interface StatisticsScreenProps {
@@ -150,6 +153,8 @@ export interface StudyModeProps {
   mediaStore: AccountMediaStore | null;
   getNow: () => string;
   simulationOffsetMinutes: number;
+  pomodoroTimer: PomodoroTimer | null;
+  onStartPomodoro: (minutes: number) => void;
   onExit: () => void;
   onReturnToLearn: () => void;
   onEditCard: (deckId: string, cardId: string) => unknown;
