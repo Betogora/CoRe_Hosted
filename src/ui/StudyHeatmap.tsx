@@ -7,7 +7,7 @@ import {
   type StudyHeatmapPeriod,
   type StudyHeatmapWindow,
 } from "../studyHeatmapModel.ts";
-import { OrbIcon, SoftPanel } from "./coreUi.tsx";
+import { CoreSegmentedControl, OrbIcon, SoftPanel } from "./coreUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
 const heatmapToneByLevel = [
@@ -260,23 +260,14 @@ export function StudyHeatmap({
           <h3 className="whitespace-nowrap core-heading-3 font-semibold text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
         </div>
         <div className="core-study-heatmap-controls flex max-w-full items-center justify-end gap-2 whitespace-nowrap">
-          <div
-            role="group"
-            className="grid h-9 shrink-0 grid-cols-3 overflow-hidden rounded-lg border border-core-border bg-core-subtle"
-            aria-label="Heatmap-Zeitraum"
-          >
-            {PERIOD_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={period === option.value}
-                onClick={() => selectPeriod(option.value)}
-                className={`core-study-heatmap-period-option h-9 min-h-9 min-w-0 whitespace-nowrap core-status-label transition-colors ${period === option.value ? "bg-core-action text-[var(--core-text-on-accent)]" : "text-core-secondary hover:bg-core-surface"}`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          <CoreSegmentedControl
+            ariaLabel="Heatmap-Zeitraum"
+            options={PERIOD_OPTIONS}
+            value={period}
+            onValueChange={selectPeriod}
+            size="compact"
+            className="core-study-heatmap-period-control shrink-0"
+          />
           <CoreTooltip label={navigationLabels.previous}>
             <button
               type="button"

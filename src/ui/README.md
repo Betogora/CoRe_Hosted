@@ -60,7 +60,8 @@ Direktimport aus `src/ui/coreUi.tsx`:
 - `EmptyState`: Icon, Titel, optionaler Text und optionaler Action-Slot.
 - `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Außenklick als Cancel, Cancel/Confirm, optionaler Verwerfen-Aktion, optionalen Aktionsicons, Ladezustand und Fokuswiederherstellung; ohne Beschreibung erscheint er kompakt in einer Zeile, explizit destruktive Bestätigungen behalten ihre Gefahrenform; intern gemeinsame Actions.
 - `OrbIcon`: rein dekorativer Icon-Kreis; Bedeutung bleibt im umgebenden Text.
-- `CoreModeControl`: fachliches Drei-Wege-Control für Aus/Auto/Manuell, kein allgemeiner Tab-Ersatz.
+- `CoreSegmentedControl`: iconfreie gemeinsame Auswahlgruppe mit einzeln gerundeten Bricks, neutraler aktiver Fläche und `aria-pressed`; `regular` besitzt 44 px Höhe, `compact` 36 px. Aktuelle Verbraucher sind Statistikzeitraum, Heatmap-Zeitraum und CoRe-Modus.
+- `CoreModeControl`: fachliches Drei-Wege-Control für Aus/Auto/Manuell auf Basis des regulären `CoreSegmentedControl`, kein allgemeiner Tab-Ersatz.
 - `CoreSwitch`: kontrollierte gemeinsame Switch-Basis mit `checked`, `disabled`, `ariaLabel` und `onCheckedChange`; Aufrufer besitzen den fachlichen Zustand.
 - `CardMarkButton`: kontrollierter zugänglicher Stern-Button mit `aria-pressed`, leerem Normalzustand und gelb gefülltem Markierungszustand.
 - `ThemeToggle`: zugänglicher Light-/Dark-Schalter für den Bereich `App und Bedienung` in den Einstellungen; er komponiert `CoreSwitch`, besitzt seinen lokalen Darstellungszustand und überlässt `src/coreTheme.ts` Dokumentattribut und Persistenz.

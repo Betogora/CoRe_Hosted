@@ -35,7 +35,7 @@ import {
 } from "../statisticsModel.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { DeckMultiSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 
@@ -423,11 +423,14 @@ export function StatisticsScreen({ decks, now, timeZone, onNavigate, onStartDeck
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="core-control-label text-core-muted">Globaler Zeitraum</p>
-            <div role="group" className="mt-2 grid min-h-11 grid-cols-4 overflow-hidden rounded-xl border border-[var(--core-border)] bg-core-subtle" aria-label="Statistikzeitraum">
-              {PERIOD_OPTIONS.map((option) => (
-                <button key={option.value} type="button" aria-pressed={period === option.value} onClick={() => changePeriod(option.value)} className={`min-w-0 px-3 core-status-label transition-colors ${period === option.value ? "bg-core-action text-[var(--core-text-on-accent)]" : "text-core-secondary hover:bg-core-surface"}`}>{option.label}</button>
-              ))}
-            </div>
+            <CoreSegmentedControl
+              ariaLabel="Statistikzeitraum"
+              options={PERIOD_OPTIONS}
+              value={period}
+              onValueChange={changePeriod}
+              size="regular"
+              className="mt-2"
+            />
           </div>
           <div className="min-w-0">
             <p className="core-control-label text-core-muted">Stapel</p>

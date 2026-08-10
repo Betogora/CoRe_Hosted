@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActionDialog, CardMarkButton, CoreSwitch, DonutValue, ThemeToggle } from "./coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, CoreSwitch, DonutValue, ThemeToggle } from "./coreUi.tsx";
 
 test("action dialog exposes its accessible three-action contract", () => {
   const markup = renderToStaticMarkup(
@@ -65,6 +65,32 @@ test("shared study-state controls expose switch and pressed semantics", () => {
   assert.match(markup, /aria-pressed="true"/);
   assert.match(markup, /aria-label="Markierung entfernen"/);
   assert.match(markup, /fill="currentColor"/);
+});
+
+test("segmented controls expose one icon-free pressed brick in both densities", () => {
+  const markup = renderToStaticMarkup(
+    <>
+      <CoreSegmentedControl
+        ariaLabel="Zeitraum"
+        options={[
+          { value: "week", label: "Woche" },
+          { value: "month", label: "Monat" },
+          { value: "year", label: "Jahr" },
+        ]}
+        value="month"
+        onValueChange={() => undefined}
+        size="compact"
+      />
+      <CoreModeControl value="auto" onChange={() => undefined} />
+    </>,
+  );
+
+  assert.equal((markup.match(/role="group"/g) ?? []).length, 2);
+  assert.match(markup, /aria-label="Zeitraum"[^>]*data-size="compact"[^>]*core-segmented-control/);
+  assert.match(markup, /aria-label="CoRe-Modus"[^>]*data-size="regular"[^>]*core-segmented-control/);
+  assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 2);
+  assert.equal((markup.match(/core-segmented-control-option/g) ?? []).length, 6);
+  assert.doesNotMatch(markup, /<svg/);
 });
 
 test("responsive donut delegates its size to the deck-row container", () => {

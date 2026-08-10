@@ -35,6 +35,7 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   );
 
   assert.equal((markup.match(/Globaler Zeitraum/g) ?? []).length, 1);
+  assert.match(markup, /aria-label="Statistikzeitraum"[^>]*data-size="regular"[^>]*core-segmented-control/);
   assert.match(markup, /Gesamte Sammlung/);
   assert.match(markup, /Wiederholungen/);
   assert.match(markup, /Zeitplanung/);

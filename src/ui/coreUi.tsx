@@ -240,27 +240,65 @@ export function EmptyState({ icon: Icon, title, body, action }: { icon: LucideIc
   );
 }
 
-export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange: (value: CoreMode) => void }) {
-  const modes: Array<{ value: CoreMode; label: string }> = [
-    { value: "off", label: "Aus" },
-    { value: "auto", label: "Auto" },
-    { value: "manual", label: "Manuell" },
-  ];
+export interface CoreSegmentedControlOption<T extends string> {
+  value: T;
+  label: string;
+}
 
+export interface CoreSegmentedControlProps<T extends string> {
+  ariaLabel: string;
+  options: ReadonlyArray<CoreSegmentedControlOption<T>>;
+  value: T;
+  onValueChange: (value: T) => void;
+  size?: "regular" | "compact";
+  className?: string;
+}
+
+const CORE_MODE_OPTIONS: ReadonlyArray<CoreSegmentedControlOption<CoreMode>> = [
+  { value: "off", label: "Aus" },
+  { value: "auto", label: "Auto" },
+  { value: "manual", label: "Manuell" },
+];
+
+export function CoreSegmentedControl<T extends string>({
+  ariaLabel,
+  options,
+  value,
+  onValueChange,
+  size = "regular",
+  className = "",
+}: CoreSegmentedControlProps<T>) {
   return (
-    <div className="core-status-label inline-grid min-h-11 grid-cols-3 overflow-hidden rounded-xl border border-core-border bg-core-subtle text-core-secondary">
-      {modes.map((mode) => (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      data-size={size}
+      className={`core-segmented-control core-status-label ${className}`}
+    >
+      {options.map((option) => (
         <button
-          key={mode.value}
+          key={option.value}
           type="button"
-          onClick={() => onChange(mode.value)}
-          aria-pressed={value === mode.value}
-          className={`px-3 transition ${value === mode.value ? "bg-core-action text-[var(--core-text-on-accent)]" : "hover:bg-core-surface"}`}
+          aria-pressed={value === option.value}
+          onClick={() => onValueChange(option.value)}
+          className="core-segmented-control-option"
         >
-          {mode.label}
+          {option.label}
         </button>
       ))}
     </div>
+  );
+}
+
+export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange: (value: CoreMode) => void }) {
+  return (
+    <CoreSegmentedControl
+      ariaLabel="CoRe-Modus"
+      options={CORE_MODE_OPTIONS}
+      value={value}
+      onValueChange={onChange}
+      size="regular"
+    />
   );
 }
 
