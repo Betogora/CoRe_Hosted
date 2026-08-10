@@ -138,6 +138,7 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
       const deckHeader = document.querySelector<HTMLElement>(`[data-testid="deck-header-${deckId}"]`);
       const tableScroll = document.querySelector<HTMLElement>('[data-testid="card-library-table"]')?.parentElement;
       const table = document.querySelector<HTMLElement>('[data-testid="card-library-table"]');
+      const tableHeader = table?.querySelector<HTMLElement>("thead tr");
       const headers = [...document.querySelectorAll<HTMLElement>('[data-testid="card-library-table"] thead th')];
       const headerRects = headers.map((header) => header.getBoundingClientRect());
       const headerLabels = headers.map((header) => header.querySelector<HTMLElement>("span"));
@@ -160,6 +161,7 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
 
       return {
         cardRowHeight: cardRow?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
+        tableHeaderHeight: tableHeader?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
         deckHeaderHeight: deckHeader?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
         documentFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
         tableScrollsHorizontally: Boolean(tableScroll && tableScroll.scrollWidth > tableScroll.clientWidth),
@@ -182,11 +184,12 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
     }, { cardId: CARD_IDS.b1, deckId: DECK_IDS.childB });
 
     expect(geometry.cardRowHeight).toBeLessThanOrEqual(30);
+    expect(geometry.tableHeaderHeight).toBeLessThanOrEqual(30);
     expect(geometry.deckHeaderHeight).toBeLessThanOrEqual(48);
     expect(geometry.documentFitsViewport).toBe(true);
     expect(geometry.sortFieldOverflow).toBe("ellipsis");
     expect(geometry.sortFieldWhiteSpace).toBe("nowrap");
-    expect(geometry.headerLabels).toEqual(["Sortierfeld", "Fällig", "Variante"]);
+    expect(geometry.headerLabels).toEqual(["Sortierfeld", "Datum", "Variante"]);
     expect(geometry.headerLabelsFit).toBe(true);
     expect(geometry.dueLabels).toEqual(["23.08.2026", "Neu"]);
     expect(geometry.dueLabelsFit).toBe(true);
@@ -226,7 +229,7 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await search.fill("");
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
 
-  const dueHeader = page.getByRole("columnheader", { name: /Fällig/ });
+  const dueHeader = page.getByRole("columnheader", { name: /Datum/ });
   await dueHeader.getByRole("button").click();
   await expect(dueHeader).toHaveAttribute("aria-sort", "ascending");
   await dueHeader.getByRole("button").click();

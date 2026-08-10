@@ -200,6 +200,16 @@
     transition: border-color 140ms ease, box-shadow 140ms ease, filter 140ms ease, opacity 140ms ease, transform 140ms ease;
   }
 
+  .core-table-header-row {
+    height: 1.75rem;
+    min-height: 1.75rem;
+  }
+
+  .core-table-header-control {
+    height: 100%;
+    min-height: 0;
+  }
+
   .core-deck-summary-row[data-deck-depth="0"] { background-color: var(--core-group-depth-0); }
   .core-deck-summary-row[data-deck-depth="1"] { background-color: var(--core-group-depth-1); }
   .core-deck-summary-row[data-deck-depth="2"] { background-color: var(--core-group-depth-2); }
@@ -516,6 +526,49 @@ button[aria-label] {
   container: core-deck-summary / inline-size;
 }
 
+.core-deck-summary-responsive {
+  column-gap: 0.125rem;
+  padding-inline: 0.25rem;
+}
+
+.core-deck-summary-metrics {
+  grid-template-columns: 1.5rem 3.5rem 2.25rem;
+  width: 7.25rem;
+  column-gap: 0;
+}
+
+.core-deck-summary-metric-label-short {
+  display: none;
+}
+
+@container core-deck-summary (max-width: 18rem) {
+  .core-deck-summary-responsive {
+    column-gap: 0;
+    padding-inline: 0;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-leading {
+    gap: 0.25rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-actions {
+    gap: 0;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-metrics {
+    grid-template-columns: repeat(3, 1.25rem);
+    width: 3.75rem;
+  }
+
+  .core-deck-summary-metric-label-full {
+    display: none;
+  }
+
+  .core-deck-summary-metric-label-short {
+    display: inline;
+  }
+}
+
 @container core-study-heatmap (min-width: 17rem) {
   .core-study-heatmap-period-option {
     padding-inline: 0.5rem;
@@ -609,6 +662,11 @@ button[aria-label] {
     text-align: right;
   }
 
+  .core-deck-summary-responsive .core-deck-summary-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 15rem;
+  }
+
   .core-deck-summary-responsive .core-deck-summary-count-label {
     position: static;
     width: auto;
@@ -628,6 +686,10 @@ button[aria-label] {
   .core-deck-summary-responsive .core-donut-responsive {
     width: 2.5rem;
     height: 2.5rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-header-donut {
+    width: 2.5rem;
   }
 
   .core-deck-summary-responsive .core-donut-responsive-center {

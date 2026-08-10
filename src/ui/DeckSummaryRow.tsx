@@ -5,9 +5,9 @@ import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 import { LEARNING_STATUS_UI } from "./learningStatusUi.ts";
 
 const DECK_COUNT_DEFINITIONS = [
-  { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new" },
-  { ...LEARNING_STATUS_UI.inProgress, valueKey: "inProgressCards", metric: "in-progress" },
-  { ...LEARNING_STATUS_UI.due, valueKey: "dueCards", metric: "due" },
+  { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new", shortLabel: "N" },
+  { ...LEARNING_STATUS_UI.inProgress, valueKey: "inProgressCards", metric: "in-progress", shortLabel: "IA" },
+  { ...LEARNING_STATUS_UI.due, valueKey: "dueCards", metric: "due", shortLabel: "F" },
 ] as const;
 
 export interface DeckSummaryRowProps {
@@ -17,10 +17,33 @@ export interface DeckSummaryRowProps {
   leadingControl: ReactNode;
   actions: ReactNode;
   density?: "default" | "compact" | "responsive";
+  metricLabels?: "responsive" | "sr-only";
   className?: string;
 }
 
-export function DeckSummaryRow({ row, summary, progress, leadingControl, actions, density = "default", className = "" }: DeckSummaryRowProps) {
+export function DeckSummaryHeader() {
+  return (
+    <div className="core-deck-summary-container min-w-0" data-testid="deck-summary-header" aria-hidden="true">
+      <div className="core-deck-summary-responsive core-table-header-row grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 border-b border-[var(--core-border)] px-1 core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">
+        <span className="min-w-0 truncate whitespace-nowrap">Stapel</span>
+        <div className="core-deck-summary-counts core-deck-summary-metrics grid items-center text-center">
+          {DECK_COUNT_DEFINITIONS.map((count) => (
+            <span key={count.metric} className="core-deck-summary-count min-w-0">
+              <span className="core-deck-summary-metric-label-full">{count.label}</span>
+              <span className="core-deck-summary-metric-label-short">{count.shortLabel}</span>
+            </span>
+          ))}
+        </div>
+        <span className="core-deck-summary-actions flex items-center justify-end gap-0.5">
+          <span className="core-deck-summary-header-donut h-0 w-8 shrink-0" />
+          <span className="h-0 w-11 shrink-0" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function DeckSummaryRow({ row, summary, progress, leadingControl, actions, density = "default", metricLabels = "responsive", className = "" }: DeckSummaryRowProps) {
   const compact = density === "compact";
   const responsive = density === "responsive";
   const compactAtBase = compact || responsive;
@@ -44,10 +67,10 @@ export function DeckSummaryRow({ row, summary, progress, leadingControl, actions
           </span>
         </div>
 
-        <dl className={`core-deck-summary-counts grid grid-cols-3 ${compactAtBase ? "items-center gap-1" : "min-w-[15rem] gap-3"}`} aria-label={`Lernstand für ${row.path}`}>
+        <dl className={`core-deck-summary-counts grid grid-cols-3 ${compactAtBase ? "items-center gap-1" : "min-w-[15rem] gap-3"} ${responsive ? "core-deck-summary-metrics" : ""}`} aria-label={`Lernstand für ${row.path}`}>
           {DECK_COUNT_DEFINITIONS.map((count) => (
             <div key={count.metric} className={`core-deck-summary-count ${compactAtBase ? "min-w-4 text-center" : "grid min-w-0 gap-0.5 text-right"}`} data-deck-count={count.metric}>
-              <dt className={compact ? "sr-only" : `core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] ${responsive ? "core-deck-summary-count-label sr-only" : ""}`}>{count.label}</dt>
+              <dt className={compact || metricLabels === "sr-only" ? "sr-only" : `core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] ${responsive ? "core-deck-summary-count-label sr-only" : ""}`}>{count.label}</dt>
               <dd className={`core-deck-summary-count-value ${compactAtBase ? "core-caption tabular-nums" : "core-body-large"} font-semibold`} style={{ color: count.color }}>{summary[count.valueKey]}</dd>
             </div>
           ))}

@@ -38,6 +38,8 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /data-testid="learn-deck-list-header"/);
   assert.match(markup, />Aktive Stapel<\/h3>/);
+  assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"/);
+  assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>In Arbeit<[\s\S]*>Fällig</);
   assert.match(markup, /core-action-ghost/);
   assert.doesNotMatch(markup, /Lernen öffnen/);
   assert.doesNotMatch(markup, /Icon auswählen|Iconfarbe|CoRe aktiv/);

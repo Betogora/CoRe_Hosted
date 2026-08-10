@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: fe15557d13a15f8b */
+/* Quellenstand: be812e56b86f2261 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1660,6 +1660,52 @@ button[aria-label] {
   container: core-deck-summary / inline-size;
 }
 
+.core-deck-summary-responsive {
+  -moz-column-gap: 0.125rem;
+       column-gap: 0.125rem;
+  padding-inline: 0.25rem;
+}
+
+.core-deck-summary-metrics {
+  grid-template-columns: 1.5rem 3.5rem 2.25rem;
+  width: 7.25rem;
+  -moz-column-gap: 0;
+       column-gap: 0;
+}
+
+.core-deck-summary-metric-label-short {
+  display: none;
+}
+
+@container core-deck-summary (max-width: 18rem) {
+  .core-deck-summary-responsive {
+    -moz-column-gap: 0;
+         column-gap: 0;
+    padding-inline: 0;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-leading {
+    gap: 0.25rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-actions {
+    gap: 0;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-metrics {
+    grid-template-columns: repeat(3, 1.25rem);
+    width: 3.75rem;
+  }
+
+  .core-deck-summary-metric-label-full {
+    display: none;
+  }
+
+  .core-deck-summary-metric-label-short {
+    display: inline;
+  }
+}
+
 @container core-study-heatmap (min-width: 17rem) {
   .core-study-heatmap-period-option {
     padding-inline: 0.5rem;
@@ -1754,6 +1800,11 @@ button[aria-label] {
     text-align: right;
   }
 
+  .core-deck-summary-responsive .core-deck-summary-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 15rem;
+  }
+
   .core-deck-summary-responsive .core-deck-summary-count-label {
     position: static;
     width: auto;
@@ -1773,6 +1824,10 @@ button[aria-label] {
   .core-deck-summary-responsive .core-donut-responsive {
     width: 2.5rem;
     height: 2.5rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-header-donut {
+    width: 2.5rem;
   }
 
   .core-deck-summary-responsive .core-donut-responsive-center {

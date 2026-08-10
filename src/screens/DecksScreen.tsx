@@ -42,7 +42,7 @@ function SortHeader({ field, label, sort, onChange }: {
       <button
         type="button"
         onClick={() => onChange(field)}
-        className={`flex min-h-11 w-full min-w-0 items-center ${headerGap} rounded-lg core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] hover:text-[var(--core-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
+        className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-lg core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] hover:text-[var(--core-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
         aria-label={`${label} ${directionLabel} sortieren`}
       >
         <span className="whitespace-nowrap">{label}</span>
@@ -900,9 +900,9 @@ export function DecksScreen({
                 <col span={2} className="w-[5.75rem]" />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-core-surface">
-                <tr className="border-b border-[var(--core-border)]">
+                <tr className="core-table-header-row border-b border-[var(--core-border)]">
                   <SortHeader field="sortField" label="Sortierfeld" sort={cardSort} onChange={changeSort} />
-                  <SortHeader field="due" label="Fällig" sort={cardSort} onChange={changeSort} />
+                  <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
                   <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
                 </tr>
               </thead>
@@ -955,7 +955,7 @@ export function DecksScreen({
                       />
                     </th>
                   </tr>
-                  {expanded && group.cardRows.length ? group.cardRows.map(({ card, frontPreview, dueLabel, variantsLabel, hasActiveVariants }) => {
+                  {expanded && group.cardRows.length ? group.cardRows.map(({ card, frontPreview, nextStudyLabel, variantsLabel, hasActiveVariants }) => {
                     const suspended = card.status === "suspended";
                     const marked = isLearningItemMarked(card);
                     const selected = selectedCardId === card.id;
@@ -982,7 +982,7 @@ export function DecksScreen({
                           {frontPreview}
                         </button>
                       </td>
-                      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-[var(--core-text-secondary)]">{dueLabel}</td>
+                      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-[var(--core-text-secondary)]">{nextStudyLabel}</td>
                       <td className="min-w-0 px-1 py-1 text-right align-middle">
                         <span className="inline-flex items-center justify-end gap-1 align-middle">
                           <span className={`inline-block whitespace-nowrap rounded-full border px-2 align-middle core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>

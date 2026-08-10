@@ -246,7 +246,7 @@ test("card table preserves hierarchy and card order while including empty decks"
   assert.deepEqual(deckSearch.groups[0].cardRows.map((row) => row.id), ["card-first", "card-second"]);
 });
 
-test("card table sorts all columns and projects due and variant labels", () => {
+test("card table sorts all columns and projects next-study and variant labels", () => {
   const newCard = createCoreCard({ id: "card-new", source: "manual", originalFront: "Äpfel", originalBack: "Neu" });
   const laterBase = createCoreCard({ id: "card-later", source: "manual", originalFront: "Zebra", originalBack: "Später" });
   const earlierBase = createCoreCard({
@@ -270,13 +270,13 @@ test("card table sorts all columns and projects due and variant labels", () => {
 
   const defaultRows = createCardTableModel([deck]).groups[0].cardRows;
   assert.deepEqual(defaultRows.map((row) => row.id), ["card-new", "card-earlier", "card-later"]);
-  assert.deepEqual(defaultRows.map((row) => row.dueLabel), ["Neu", "10.08.2026", "20.09.2026"]);
+  assert.deepEqual(defaultRows.map((row) => row.nextStudyLabel), ["Neu", "10.08.2026", "20.09.2026"]);
   assert.deepEqual(defaultRows.map((row) => row.variantsLabel), ["Nein", "Ja", "Nein"]);
 
   for (const [cardSort, expected] of [
     [{ field: "sortField", direction: "desc" }, ["card-later", "card-earlier", "card-new"]],
-    [{ field: "due", direction: "asc" }, ["card-earlier", "card-later", "card-new"]],
-    [{ field: "due", direction: "desc" }, ["card-new", "card-later", "card-earlier"]],
+    [{ field: "nextStudyDate", direction: "asc" }, ["card-earlier", "card-later", "card-new"]],
+    [{ field: "nextStudyDate", direction: "desc" }, ["card-new", "card-later", "card-earlier"]],
     [{ field: "variants", direction: "asc" }, ["card-later", "card-new", "card-earlier"]],
     [{ field: "variants", direction: "desc" }, ["card-earlier", "card-later", "card-new"]],
   ] satisfies Array<[CardTableSort, string[]]>) {

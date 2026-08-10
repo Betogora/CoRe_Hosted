@@ -5,7 +5,7 @@ import type { CoreMode } from "../coreTypes.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { SoftPanel } from "./coreUi.tsx";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
-import { DeckSummaryRow } from "./DeckSummaryRow.tsx";
+import { DeckSummaryHeader, DeckSummaryRow } from "./DeckSummaryRow.tsx";
 
 export interface DeckTreeProps {
   rows: DeckLibraryRow[];
@@ -226,6 +226,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
           leadingControl={collapseControl}
           actions={optionsMenu}
           density="responsive"
+          metricLabels="sr-only"
         />
       </div>
     );
@@ -262,6 +263,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
         ) : <span className="core-deck-tree-drop-spacer" aria-hidden="true" />}
       </div>
       <div className="core-deck-tree-rows min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)]">
+        <DeckSummaryHeader />
         {visibleRows.map(renderRow)}
       </div>
     </SoftPanel>

@@ -55,7 +55,8 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /<h2[^>]*>Kartenverwaltung<\/h2>/);
   assert.match(markup, /data-testid="card-library-table"/);
   assert.match(markup, /Sortierfeld/);
-  assert.match(markup, /Fällig/);
+  assert.match(markup, /Datum/);
+  assert.match(markup, /aria-label="Datum aufsteigend sortieren"/);
   assert.match(markup, /aria-label="Variante aufsteigend sortieren"/);
   assert.doesNotMatch(markup, /aria-label="Varianten aufsteigend sortieren"/);
   assert.match(markup, /aria-sort="ascending"/);
@@ -75,6 +76,8 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto|sticky left-0 w-\[calc\(100dvw/);
   assert.match(markup, /<col span="2" class="w-\[5\.75rem\]"\/>/);
   assert.match(markup, /<span class="whitespace-nowrap">Sortierfeld<\/span>/);
+  assert.match(markup, /core-table-header-row/);
+  assert.match(markup, /core-table-header-control/);
   assert.match(markup, /text-right/);
   assert.match(markup, /justify-end/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
@@ -102,6 +105,9 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   const expandedMarkup = renderScreen(decks, { expandedDeckIds: [originalDeck.id] });
   assert.match(expandedMarkup, /aria-label="Karten von Biologie einklappen"/);
   assert.match(expandedMarkup, /Was ist ATP\?/);
+  assert.match(expandedMarkup, /<dt class="core-caption[^>]*>Neu<\/dt>/);
+  assert.match(expandedMarkup, /<dt class="core-caption[^>]*>In Arbeit<\/dt>/);
+  assert.match(expandedMarkup, /<dt class="core-caption[^>]*>Fällig<\/dt>/);
   assert.match(expandedMarkup, />Nein<\/span>/);
   assert.doesNotMatch(expandedMarkup, /Mit Varianten|Ohne Varianten/);
   assert.match(expandedMarkup, /inline-block whitespace-nowrap rounded-full/);

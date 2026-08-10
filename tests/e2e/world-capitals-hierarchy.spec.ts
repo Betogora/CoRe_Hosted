@@ -196,33 +196,44 @@ test("dashboard deck header keeps its labels intact while changing rows at most 
   }
 });
 
-test("active deck rows fit every target width and toggle reliably on mobile", async ({ page }) => {
+test("active deck header and rows fit every target width and toggle reliably on mobile", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   const widths = [1440, 1280, 1279, 1152, 1024, 900, 820, 768, 700, 640, 639, 390, 320];
-  let compactRowsSeen = false;
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     const layout = await page.getByTestId("learn-deck-list").evaluate((panel) => {
       const rowViewport = panel.querySelector<HTMLElement>(".overflow-hidden.rounded-2xl");
+      const tableHeader = panel.querySelector<HTMLElement>('[data-testid="deck-summary-header"] > div')!;
+      const headerLabels = [
+        tableHeader.firstElementChild as HTMLElement,
+        ...tableHeader.querySelectorAll<HTMLElement>(".core-deck-summary-count"),
+      ];
       const name = panel.querySelector<HTMLElement>(".core-deck-summary-name")!;
       const icon = panel.querySelector<HTMLElement>(".core-deck-summary-icon")!;
-      const metricLabel = panel.querySelector<HTMLElement>(".core-deck-summary-count-label")!;
+      const rowMetricLabels = [...panel.querySelectorAll<HTMLElement>("[data-deck-count] dt")];
       return {
         fits: Boolean(rowViewport && rowViewport.scrollWidth <= rowViewport.clientWidth + 1)
           && document.documentElement.scrollWidth <= window.innerWidth + 1,
-        labelsVisible: getComputedStyle(metricLabel).position !== "absolute",
+        headerHeight: tableHeader.getBoundingClientRect().height,
+        headerLabels: headerLabels.map((label) => label.innerText.trim()),
+        headerLabelsFit: headerLabels.every((label) => label.scrollWidth <= label.clientWidth + 1),
+        rowLabelsHidden: rowMetricLabels.every((label) => getComputedStyle(label).position === "absolute"),
         nameWidth: name.getBoundingClientRect().width,
         iconWidth: icon.getBoundingClientRect().width,
       };
     });
 
-    if (!layout.labelsVisible) compactRowsSeen = true;
-    else expect(compactRowsSeen).toBe(false);
     expect(layout.fits).toBe(true);
+    expect(layout.headerHeight).toBeLessThanOrEqual(30);
+    expect(layout.headerLabels).toEqual(width <= 390
+      ? ["Stapel", "N", "IA", "F"]
+      : ["Stapel", "Neu", "In Arbeit", "Fällig"]);
+    expect(layout.headerLabelsFit).toBe(true);
+    expect(layout.rowLabelsHidden).toBe(true);
     if (width >= 700) expect(layout.nameWidth).toBeGreaterThanOrEqual(layout.iconWidth);
   }
 
@@ -241,9 +252,10 @@ test("learning rows activate directly while expand and settings remain independe
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   await expect(page.getByTestId("learn-deck-list-header")).toContainText("Aktive Stapel");
   await expect(page.getByRole("button", { name: "Lernen öffnen" })).toHaveCount(0);
-  await expect(metric(rootRow, "new")).toContainText("Neu");
-  await expect(metric(rootRow, "in-progress")).toContainText("In Arbeit");
-  await expect(metric(rootRow, "due")).toContainText("Fällig");
+  await expect(page.getByTestId("deck-summary-header")).toContainText("StapelNeuIn ArbeitFällig");
+  await expect(metric(rootRow, "new").locator("dt")).toHaveClass(/sr-only/);
+  await expect(metric(rootRow, "in-progress").locator("dt")).toHaveClass(/sr-only/);
+  await expect(metric(rootRow, "due").locator("dt")).toHaveClass(/sr-only/);
   await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
   await expect(europeRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
   await expect(europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" })).toBeVisible();

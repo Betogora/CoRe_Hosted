@@ -21,7 +21,7 @@ interface LibraryOptions {
   selectedDeckId?: string;
   cardSort?: CardTableSort;
 }
-export type CardTableSortField = "sortField" | "due" | "variants";
+export type CardTableSortField = "sortField" | "nextStudyDate" | "variants";
 export interface CardTableSort {
   field: CardTableSortField;
   direction: "asc" | "desc";
@@ -92,7 +92,7 @@ export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 function createCardTableRow(card: LearningItem) {
   const isNew = card.reviewState?.state === "new";
   const parsedDue = Date.parse(card.reviewState?.dueAt ?? "");
-  const dueTimestamp = !isNew && Number.isFinite(parsedDue) ? parsedDue : Number.POSITIVE_INFINITY;
+  const nextStudyTimestamp = !isNew && Number.isFinite(parsedDue) ? parsedDue : Number.POSITIVE_INFINITY;
   const hasActiveVariants = (card.variants ?? []).some((variant) => (
     !variant.isOriginal && variant.isActive !== false && variant.qualityStatus === "active"
   ));
@@ -102,8 +102,8 @@ function createCardTableRow(card: LearningItem) {
     card,
     frontPreview: previewText(card.originalFront),
     backPreview: previewText(card.originalBack),
-    dueTimestamp,
-    dueLabel: Number.isFinite(dueTimestamp) ? cardDueDateFormatter.format(dueTimestamp) : "Neu",
+    nextStudyTimestamp,
+    nextStudyLabel: Number.isFinite(nextStudyTimestamp) ? cardDueDateFormatter.format(nextStudyTimestamp) : "Neu",
     hasActiveVariants,
     variantsLabel: hasActiveVariants ? "Ja" : "Nein",
   };
@@ -118,8 +118,8 @@ function sortCardRows(rows: CardTableRow[], sort: CardTableSort): CardTableRow[]
     let comparison = 0;
     if (sort.field === "sortField") {
       comparison = cardSortCollator.compare(left.frontPreview, right.frontPreview);
-    } else if (sort.field === "due") {
-      comparison = left.dueTimestamp === right.dueTimestamp ? 0 : left.dueTimestamp - right.dueTimestamp;
+    } else if (sort.field === "nextStudyDate") {
+      comparison = left.nextStudyTimestamp === right.nextStudyTimestamp ? 0 : left.nextStudyTimestamp - right.nextStudyTimestamp;
     } else {
       comparison = Number(left.hasActiveVariants) - Number(right.hasActiveVariants);
     }
