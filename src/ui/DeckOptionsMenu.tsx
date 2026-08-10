@@ -91,7 +91,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
               <span className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">CoRe-Modus</span>
               <CoreModeControl value={row.coreMode} onChange={(mode) => onSetCoreMode(row.id, mode)} />
             </div>
-            <div className="grid gap-1 border-t border-[var(--core-border)] pt-2">
+            <div className="grid gap-1 pt-2">
               <Popover.Close asChild>
                 <button type="button" className={menuActionClass} onClick={() => onOpenSettings(row.id)}>
                   <Settings size={16} aria-hidden="true" />Einstellungen
