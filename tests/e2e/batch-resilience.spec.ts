@@ -138,7 +138,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   expect(state.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards).toHaveLength(6);
 
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   for (let index = 1; index <= 5; index += 1) {
     await expect(page.getByText(`Batch-Frage ${index}`, { exact: true })).toBeVisible();
   }
@@ -257,7 +257,7 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
 
   await expect(page.getByText(/Zuletzt synchronisiert:/)).toBeVisible({ timeout: 15_000 });
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
 });
 

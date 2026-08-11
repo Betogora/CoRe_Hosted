@@ -5,6 +5,7 @@ import {
   createStudyHeatmapModelFromCounts,
   type StudyHeatmapModel,
 } from "./studyHeatmapModel.ts";
+import { learningDayIndexFromLocalTime, normalizeDayStartHour } from "./learningDay.ts";
 
 export type StatisticsPeriod = "30d" | "90d" | "365d" | "all";
 export type StatisticsDeckSelection = "all" | string[];
@@ -15,6 +16,7 @@ export interface StatisticsSelection {
   deckIds: StatisticsDeckSelection;
   now: string;
   timeZone: string;
+  dayStartHour?: number;
 }
 
 interface SchedulerSnapshot {
@@ -212,6 +214,7 @@ interface LocalizedReviewSeries {
 interface StatisticsScopeCache {
   key: string;
   timeZone: string;
+  dayStartHour: number;
   eventSeries: LocalizedReviewSeries[];
   heatmapCountsByDay: ReadonlyMap<string, number>;
   cards: LocalizedCard[];
@@ -268,7 +271,7 @@ function normalizeTimeZone(timeZone: string): string {
   }
 }
 
-function createLocalReviewTimeResolver(timeZone: string) {
+function createLocalReviewTimeResolver(timeZone: string, dayStartHour = 0) {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",
@@ -300,7 +303,8 @@ function createLocalReviewTimeResolver(timeZone: string) {
     const offset = startOffset === nextOffset ? startOffset : exactOffset(timestamp);
     const localDate = new Date(timestamp + offset);
     const localDayIndex = Math.floor((timestamp + offset) / DAY_MS);
-    return { dayIndex: localDayIndex, hour: localDate.getUTCHours() };
+    const hour = localDate.getUTCHours();
+    return { dayIndex: learningDayIndexFromLocalTime(localDayIndex, hour, dayStartHour), hour };
   };
 }
 
@@ -529,12 +533,12 @@ function scopeDescription(index: StatisticsIndex, requested: StatisticsDeckSelec
   return `${Math.min(requested.length, scopeDeckIds.length)} Stapel ausgewählt`;
 }
 
-function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[], timeZone: string): StatisticsScopeCache {
+function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[], timeZone: string, dayStartHour: number): StatisticsScopeCache {
   const key = [...scopeDeckIds].sort().join("\u0000");
   const cached = scopeCacheByIndex.get(index);
-  if (cached?.key === key && cached.timeZone === timeZone) return cached;
+  if (cached?.key === key && cached.timeZone === timeZone && cached.dayStartHour === dayStartHour) return cached;
 
-  const resolveLocalTime = createLocalReviewTimeResolver(timeZone);
+  const resolveLocalTime = createLocalReviewTimeResolver(timeZone, dayStartHour);
   const firstRetentionByVariantDay = new Map<string, LocalizedReview>();
   const eventSeries: LocalizedReviewSeries[] = [];
   const heatmapCountsByDay = new Map<string, number>();
@@ -584,6 +588,7 @@ function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[],
   const result = {
     key,
     timeZone,
+    dayStartHour,
     eventSeries,
     heatmapCountsByDay,
     cards,
@@ -622,14 +627,15 @@ function localDayBound(series: LocalizedReviewSeries, targetDayIndex: number, re
 
 export function projectStatistics(index: StatisticsIndex, input: StatisticsSelection): StatisticsProjection {
   const timeZone = normalizeTimeZone(input.timeZone);
-  const selection = { ...input, timeZone };
+  const dayStartHour = normalizeDayStartHour(input.dayStartHour);
+  const selection = { ...input, timeZone, dayStartHour };
   const now = new Date(input.now);
   const safeNow = Number.isFinite(now.getTime()) ? now : new Date();
-  const resolveLocalTime = createLocalReviewTimeResolver(timeZone);
+  const resolveLocalTime = createLocalReviewTimeResolver(timeZone, dayStartHour);
   const nowLocalTime = resolveLocalTime(safeNow.getTime());
   const nowKey = keyFromDayIndex(nowLocalTime.dayIndex);
   const scopeDeckIds = resolveStatisticsDeckScope(index, input.deckIds);
-  const scope = getStatisticsScopeCache(index, scopeDeckIds, timeZone);
+  const scope = getStatisticsScopeCache(index, scopeDeckIds, timeZone, dayStartHour);
   const startDayIndex = input.period === "all"
     ? Math.min(scope.earliestEventDayIndex ?? nowLocalTime.dayIndex, scope.earliestCardDayIndex ?? nowLocalTime.dayIndex)
     : nowLocalTime.dayIndex - PERIOD_DAYS[input.period] + 1;
@@ -726,7 +732,7 @@ export function projectStatistics(index: StatisticsIndex, input: StatisticsSelec
   const addedCards = buckets.map((bucket) => ({ key: bucket.key, label: bucket.label, rangeLabel: bucket.rangeLabel, count: 0, cumulative: 0 }));
   const forecastCountsByDay = createStudyHeatmapForecastCounts(
     scope.cards.map(({ item }) => item),
-    { todayKey: nowKey, timeZone },
+    { todayKey: nowKey, timeZone, dayStartHour },
   );
   const studyHeatmap = createStudyHeatmapModelFromCounts({
     todayKey: nowKey,

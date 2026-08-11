@@ -2,6 +2,7 @@ import React from "react";
 import { Brain, Clock3, Flame, Gauge, Leaf, Save, Scale, SlidersHorizontal, Sparkles } from "lucide-react";
 import { LEARNING_SETTING_PRESETS, applyLearningPreset, markLearningSettingsCustom, normalizeLearningSettings, type LearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
 import type { CoreMode } from "../coreTypes.ts";
+import { normalizeDayStartHour } from "../learningDay.ts";
 import { ActionButton } from "./actionUi.tsx";
 import { CoreModeControl, CoreSwitch, SoftPanel } from "./coreUi.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
@@ -42,6 +43,7 @@ const activeVariantOptions = [1, 2, 3]
 
 type LearningSettingsDraft = LearningSettings & {
   coreMode: CoreMode;
+  dayStartHour?: number;
   variantThresholdXp?: number;
   maxActiveVariantsPerCard?: number;
 };
@@ -51,13 +53,14 @@ function optionalFiniteNumber(value: unknown) {
   return value !== null && value !== undefined && Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function createLearningSettingsDraft(settings: LearningSettingsInput | undefined, coreMode: CoreMode): LearningSettingsDraft {
+function createLearningSettingsDraft(settings: LearningSettingsInput | undefined, coreMode: CoreMode, dayStartHour?: number): LearningSettingsDraft {
   const variantThresholdXp = optionalFiniteNumber(settings?.variantThresholdXp);
   const maxActiveVariantsPerCard = optionalFiniteNumber(settings?.maxActiveVariantsPerCard);
 
   return {
     ...normalizeLearningSettings(settings),
     coreMode,
+    ...(dayStartHour !== undefined ? { dayStartHour: normalizeDayStartHour(dayStartHour) } : {}),
     ...(variantThresholdXp !== undefined ? { variantThresholdXp } : {}),
     ...(maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard } : {}),
   };
@@ -76,6 +79,7 @@ function mergeCustomSettings(current: LearningSettingsDraft, patch: LearningSett
   return {
     ...next,
     coreMode: current.coreMode,
+    ...(current.dayStartHour !== undefined ? { dayStartHour: current.dayStartHour } : {}),
     ...(current.variantThresholdXp !== undefined ? { variantThresholdXp: current.variantThresholdXp } : {}),
     ...(current.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: current.maxActiveVariantsPerCard } : {}),
   };
@@ -217,19 +221,20 @@ interface LearningSettingsPanelProps {
   settings?: LearningSettingsInput;
   customSettings?: LearningSettingsInput;
   coreMode?: CoreMode;
+  dayStartHour?: number;
   scopeTitle: string;
   scopeDescription: string;
   autoSave?: boolean;
   onSave?: (settings: LearningSettingsDraft) => void;
 }
 
-export function LearningSettingsPanel({ settings, customSettings, coreMode = "auto", scopeTitle, scopeDescription, autoSave = false, onSave }: LearningSettingsPanelProps) {
-  const [draft, setDraft] = React.useState<LearningSettingsDraft>(() => createLearningSettingsDraft(settings, coreMode));
+export function LearningSettingsPanel({ settings, customSettings, coreMode = "auto", dayStartHour, scopeTitle, scopeDescription, autoSave = false, onSave }: LearningSettingsPanelProps) {
+  const [draft, setDraft] = React.useState<LearningSettingsDraft>(() => createLearningSettingsDraft(settings, coreMode, dayStartHour));
   const setSuccessToast = useSuccessToast();
-  const settingsSignature = JSON.stringify({ settings, coreMode });
+  const settingsSignature = JSON.stringify({ settings, coreMode, dayStartHour });
 
   React.useEffect(() => {
-    setDraft(createLearningSettingsDraft(settings, coreMode));
+    setDraft(createLearningSettingsDraft(settings, coreMode, dayStartHour));
   }, [settingsSignature]);
 
   const stepValue = draft.schedulerProfile.learningStepsMinutes.join(",");
@@ -256,6 +261,7 @@ export function LearningSettingsPanel({ settings, customSettings, coreMode = "au
     return {
       ...normalizeLearningSettings(nextDraft),
       coreMode: nextDraft.coreMode,
+      ...(nextDraft.dayStartHour !== undefined ? { dayStartHour: nextDraft.dayStartHour } : {}),
       ...(nextDraft.variantThresholdXp !== undefined ? { variantThresholdXp: nextDraft.variantThresholdXp } : {}),
       ...(nextDraft.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: nextDraft.maxActiveVariantsPerCard } : {}),
     };
@@ -270,10 +276,11 @@ export function LearningSettingsPanel({ settings, customSettings, coreMode = "au
   function selectPreset(presetId: string) {
     if (presetId === "custom") {
       changeDraft(customSettings
-        ? createLearningSettingsDraft(customSettings, draft.coreMode)
+        ? createLearningSettingsDraft(customSettings, draft.coreMode, draft.dayStartHour)
         : {
             ...markLearningSettingsCustom(draft),
             coreMode: draft.coreMode,
+            ...(draft.dayStartHour !== undefined ? { dayStartHour: draft.dayStartHour } : {}),
             ...(draft.variantThresholdXp !== undefined ? { variantThresholdXp: draft.variantThresholdXp } : {}),
             ...(draft.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: draft.maxActiveVariantsPerCard } : {}),
           });
@@ -282,6 +289,7 @@ export function LearningSettingsPanel({ settings, customSettings, coreMode = "au
     changeDraft({
       ...applyLearningPreset(draft, presetId),
       coreMode: draft.coreMode,
+      ...(draft.dayStartHour !== undefined ? { dayStartHour: draft.dayStartHour } : {}),
       ...(draft.variantThresholdXp !== undefined ? { variantThresholdXp: draft.variantThresholdXp } : {}),
       ...(draft.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: draft.maxActiveVariantsPerCard } : {}),
     });
@@ -367,6 +375,28 @@ export function LearningSettingsPanel({ settings, customSettings, coreMode = "au
               testId="learning-settings-order"
             />
           </div>
+          {draft.dayStartHour !== undefined ? (
+            <label className="flex min-h-20 flex-col justify-center gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)] sm:flex-row sm:items-center sm:justify-between">
+              <span>Neuer Tag beginnt um</span>
+              <span className="flex flex-wrap items-center gap-3 font-normal text-[var(--core-text)]">
+                <span className="flex min-h-11 w-24 items-center rounded-xl border border-[var(--core-border)] bg-core-surface">
+                  <input
+                    type="number"
+                    min={0}
+                    max={23}
+                    step={1}
+                    inputMode="numeric"
+                    value={draft.dayStartHour}
+                    onChange={(event) => changeDraft({ ...draft, dayStartHour: normalizeDayStartHour(event.target.value) })}
+                    className="min-h-11 min-w-0 w-full border-0 bg-transparent px-3 text-right text-[var(--core-text)] outline-none"
+                    aria-label="Neuer Tag beginnt um, Stunden nach Mitternacht"
+                    data-testid="learning-settings-day-start-hour"
+                  />
+                </span>
+                <span>Stunden nach Mitternacht</span>
+              </span>
+            </label>
+          ) : null}
         </fieldset>
 
         <fieldset className="grid gap-4 border-t border-[var(--core-border)] pt-6">

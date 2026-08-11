@@ -19,6 +19,7 @@ interface LibraryOptions {
   cardLimit?: number;
   now?: DateInput;
   timeZone?: string;
+  dayStartHour?: number;
   selectedDeckId?: string;
   cardSort?: CardTableSort;
 }
@@ -35,7 +36,7 @@ export interface CardTableSort {
 }
 export const DEFAULT_CARD_TABLE_SORT: CardTableSort = { field: "sortField", direction: "asc" };
 const cardSortCollator = new Intl.Collator("de-DE", { sensitivity: "base" });
-const cardDueDateFormatter = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+const cardDueDateFormatter = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 
 const REVIEW_RATINGS = new Set(["again", "hard", "good", "easy"]);
 
@@ -62,24 +63,27 @@ function previewText(value: unknown): string {
 
 function createDeckRow(
   deck: Deck,
-  { now, cardLimit, scopeDecks = [deck], depth = 0, childrenCount = 0 }: {
+  { now, cardLimit, scopeDecks = [deck], depth = 0, childrenCount = 0, dayStartHour = 0, timeZone }: {
     now: DateInput;
     cardLimit: number;
+    dayStartHour?: number;
+    timeZone?: string;
     scopeDecks?: Deck[];
     depth?: number;
     childrenCount?: number;
   },
 ) {
   const activeCards = listReviewableCards(deck);
-  const directInventory = summarizeDeckReview(deck, now);
-  const directDaily = createDailyReviewQueue(deck, { deckId: deck.id, now }).dailyProgress;
+  const dayOptions = { dayStartHour, timeZone };
+  const directInventory = summarizeDeckReview(deck, now, dayOptions);
+  const directDaily = createDailyReviewQueue(deck, { deckId: deck.id, now, ...dayOptions }).dailyProgress;
   const isLeafScope = scopeDecks.length === 1 && scopeDecks[0]?.id === deck.id;
   const inventory = isLeafScope
     ? directInventory
-    : summarizeDeckReview({ ...deck, cards: scopeDecks.flatMap((scopeDeck) => scopeDeck.cards ?? []) }, now);
+    : summarizeDeckReview({ ...deck, cards: scopeDecks.flatMap((scopeDeck) => scopeDeck.cards ?? []) }, now, dayOptions);
   const daily = isLeafScope
     ? directDaily
-    : createDailyReviewQueue(scopeDecks, { deckId: deck.id, now }).dailyProgress;
+    : createDailyReviewQueue(scopeDecks, { deckId: deck.id, now, ...dayOptions }).dailyProgress;
   const directSummary = {
     ...directInventory,
     newCards: directDaily.newCount,
@@ -121,10 +125,13 @@ function createDeckRow(
 
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
-function createCardTableRow(card: LearningItem) {
+function createCardTableRow(card: LearningItem, options: Pick<LibraryOptions, "dayStartHour" | "timeZone"> = {}) {
   const isNew = card.reviewState?.state === "new";
   const parsedDue = Date.parse(card.reviewState?.dueAt ?? "");
-  const nextStudyTimestamp = !isNew && Number.isFinite(parsedDue) ? parsedDue : Number.POSITIVE_INFINITY;
+  const dueDayKey = !isNew && Number.isFinite(parsedDue)
+    ? getStudyHeatmapDayKey(parsedDue, options.timeZone, options.dayStartHour)
+    : null;
+  const nextStudyTimestamp = dueDayKey ? Date.parse(`${dueDayKey}T12:00:00.000Z`) : Number.POSITIVE_INFINITY;
   const hasActiveVariants = (card.variants ?? []).some((variant) => (
     !variant.isOriginal && variant.isActive !== false && variant.qualityStatus === "active"
   ));
@@ -172,7 +179,7 @@ function collectScopeDecks(deck: Deck, childrenByParent: Map<string | null, Deck
   return [deck, ...children.flatMap((child) => collectScopeDecks(child, childrenByParent))];
 }
 
-function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: number }): DeckLibraryRow[] {
+function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: number; dayStartHour?: number; timeZone?: string }): DeckLibraryRow[] {
   const childrenByParent = buildSortedDeckChildren(decks);
   const rows: DeckLibraryRow[] = [];
 
@@ -192,15 +199,15 @@ function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: nu
 }
 
 export function createStudyHeatmapModel(decks: Deck[] = [], options: LibraryOptions = {}) {
-  const todayKey = getStudyHeatmapDayKey(options.now ?? new Date(), options.timeZone)
-    ?? getStudyHeatmapDayKey(new Date(), options.timeZone) as string;
+  const todayKey = getStudyHeatmapDayKey(options.now ?? new Date(), options.timeZone, options.dayStartHour)
+    ?? getStudyHeatmapDayKey(new Date(), options.timeZone, options.dayStartHour) as string;
   const countsByDate = new Map<string, number>();
 
   for (const deck of decks) {
     for (const event of deck.reviewEvents ?? []) {
       if (!REVIEW_RATINGS.has(event.rating)) continue;
       const reviewedAt = (event as typeof event & { reviewedAt?: string }).reviewedAt;
-      const key = getStudyHeatmapDayKey(event.answeredAt || reviewedAt || event.createdAt, options.timeZone);
+      const key = getStudyHeatmapDayKey(event.answeredAt || reviewedAt || event.createdAt, options.timeZone, options.dayStartHour);
       if (!key) continue;
       countsByDate.set(key, (countsByDate.get(key) ?? 0) + 1);
     }
@@ -208,7 +215,7 @@ export function createStudyHeatmapModel(decks: Deck[] = [], options: LibraryOpti
 
   const forecastCountsByDay = createStudyHeatmapForecastCounts(
     decks.flatMap((deck) => deck.cards ?? []),
-    { todayKey, timeZone: options.timeZone },
+    { todayKey, timeZone: options.timeZone, dayStartHour: options.dayStartHour },
   );
   return createStudyHeatmapModelFromCounts({ todayKey, countsByDay: countsByDate, forecastCountsByDay });
 }
@@ -218,7 +225,7 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
   const coreMode = options.coreMode ?? "all";
   const cardLimit = options.cardLimit ?? 80;
   const now = options.now ?? new Date();
-  const rows = flattenDeckTree(decks, { now, cardLimit });
+  const rows = flattenDeckTree(decks, { now, cardLimit, dayStartHour: options.dayStartHour, timeZone: options.timeZone });
   const filteredRows = rows.filter((row) => matchesDeckRow(row, query, coreMode));
   const selectedRow = rows.find((row) => row.id === options.selectedDeckId) ?? filteredRows[0] ?? null;
 
@@ -227,7 +234,7 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
     filteredRows,
     selectedRow,
     dueCards: rows.reduce((total, row) => total + row.directSummary.dueCards, 0),
-    studyHeatmap: createStudyHeatmapModel(decks, { now, timeZone: options.timeZone }),
+    studyHeatmap: createStudyHeatmapModel(decks, { now, timeZone: options.timeZone, dayStartHour: options.dayStartHour }),
   };
 }
 
@@ -236,10 +243,10 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
   const coreMode = options.coreMode ?? "all";
   const cardSort = options.cardSort ?? DEFAULT_CARD_TABLE_SORT;
   const now = options.now ?? new Date();
-  const rows = flattenDeckTree(decks, { now, cardLimit: 0 });
+  const rows = flattenDeckTree(decks, { now, cardLimit: 0, dayStartHour: options.dayStartHour, timeZone: options.timeZone });
   const allGroups: CardTableGroup[] = rows.map((row) => ({
     ...row,
-    cardRows: sortCardRows(row.activeCards.map(createCardTableRow), cardSort),
+    cardRows: sortCardRows(row.activeCards.map((card) => createCardTableRow(card, options)), cardSort),
   }));
   const groups = allGroups.flatMap((group) => {
     if (coreMode !== "all" && group.coreMode !== coreMode) return [];

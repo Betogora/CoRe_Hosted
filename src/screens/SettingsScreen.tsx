@@ -215,7 +215,8 @@ export function SettingsScreen({ appState, profile, syncStatus, globalDeckSettin
           settings={globalDeckSettings}
           customSettings={getCustomGlobalDeckSettings(profile)}
           coreMode={globalDeckSettings?.coreMode}
-          scopeTitle="Globale Voreinstellungen"
+          dayStartHour={globalDeckSettings?.dayStartHour}
+          scopeTitle="Globale Lernvorgaben"
           scopeDescription="Je Stapel noch änderbar."
           autoSave
           onSave={onSaveGlobalLearningSettings}

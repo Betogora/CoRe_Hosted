@@ -129,6 +129,7 @@ test("global deck settings roundtrip through cloud-backed profile preferences", 
   const savedProfile = withGlobalDeckSettings(profile, {
     ...applyLearningPreset({}, "relaxed"),
     coreMode: "manual",
+    dayStartHour: 3,
   });
   const restored = getGlobalDeckSettings(savedProfile);
 
@@ -139,6 +140,15 @@ test("global deck settings roundtrip through cloud-backed profile preferences", 
   assert.equal(restored.schedulerProfile.maximumIntervalDays, 2000);
   assert.equal(restored.learnAheadMinutes, 20);
   assert.equal(restored.coreMode, "manual");
+  assert.equal(restored.dayStartHour, 3);
+  assert.equal("dayStartHour" in savedProfile.schedulerPreferences.deckSettings!, false);
+});
+
+test("global day-start settings default and clamp without becoming deck settings", () => {
+  assert.equal(getGlobalDeckSettings({}).dayStartHour, 0);
+  assert.equal(getGlobalDeckSettings({ schedulerPreferences: { dayStartHour: "invalid" } }).dayStartHour, 0);
+  assert.equal(withGlobalDeckSettings({}, { dayStartHour: 29 }).schedulerPreferences.dayStartHour, 23);
+  assert.equal(withGlobalDeckSettings({}, { dayStartHour: -4 }).schedulerPreferences.dayStartHour, 0);
 });
 
 test("global profile switches retain the automatically stored custom settings", () => {
@@ -151,16 +161,17 @@ test("global profile switches retain the automatically stored custom settings", 
       desiredRetention: 0.93,
     },
   });
-  const customProfile = withGlobalDeckSettings({ schedulerPreferences: { profile: "standard" } }, customSettings);
-  const relaxedProfile = withGlobalDeckSettings(customProfile, applyLearningPreset(customSettings, "relaxed"));
+  const customProfile = withGlobalDeckSettings({ schedulerPreferences: { profile: "standard" } }, { ...customSettings, dayStartHour: 4 });
+  const relaxedProfile = withGlobalDeckSettings(customProfile, { ...applyLearningPreset(customSettings, "relaxed"), dayStartHour: 4 });
 
   assert.equal(getGlobalDeckSettings(relaxedProfile).schedulerProfile.presetId, "relaxed");
   assert.equal(getGlobalDeckSettings(relaxedProfile).newCardsPerDay, 10);
+  assert.equal(getGlobalDeckSettings(relaxedProfile).dayStartHour, 4);
   assert.equal(getCustomGlobalDeckSettings(relaxedProfile).schedulerProfile.presetId, "custom");
   assert.equal(getCustomGlobalDeckSettings(relaxedProfile).newCardsPerDay, 37);
   assert.equal(getCustomGlobalDeckSettings(relaxedProfile).schedulerProfile.desiredRetention, 0.93);
 
-  const restoredCustomProfile = withGlobalDeckSettings(relaxedProfile, getCustomGlobalDeckSettings(relaxedProfile));
+  const restoredCustomProfile = withGlobalDeckSettings(relaxedProfile, { ...getCustomGlobalDeckSettings(relaxedProfile), dayStartHour: 4 });
   assert.equal(getGlobalDeckSettings(restoredCustomProfile).schedulerProfile.presetId, "custom");
   assert.equal(getGlobalDeckSettings(restoredCustomProfile).newCardsPerDay, 37);
   assert.equal(getGlobalDeckSettings(restoredCustomProfile).schedulerProfile.desiredRetention, 0.93);

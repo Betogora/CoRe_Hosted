@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import { stableContentHash } from "./coreModel.ts";
+import { normalizeDayStartHour } from "./learningDay.ts";
 
 const EXPORT_SCHEMA_VERSION = 2;
 export const PORTABLE_EXPORT_FILE_NAME = "core-portable-export.json";
@@ -149,9 +150,22 @@ export function mergePortableExportIntoState(state: any, exportPayload: any) {
   const payload = validation.payload;
   const existingDeckIds = new Set((state.decks ?? []).map((deck: any) => deck.id));
   const incomingDecks = payload.decks.filter((deck: any) => !existingDeckIds.has(deck.id));
+  const importedSchedulerPreferences = payload.profile?.schedulerPreferences;
+  const importsDayStartHour = importedSchedulerPreferences
+    && typeof importedSchedulerPreferences === "object"
+    && Object.prototype.hasOwnProperty.call(importedSchedulerPreferences, "dayStartHour");
 
   return {
     ...state,
+    profile: importsDayStartHour
+      ? {
+          ...state.profile,
+          schedulerPreferences: {
+            ...(state.profile?.schedulerPreferences ?? {}),
+            dayStartHour: normalizeDayStartHour(importedSchedulerPreferences.dayStartHour),
+          },
+        }
+      : state.profile,
     decks: [...incomingDecks, ...(state.decks ?? [])],
     documents: [...(payload.documents ?? []), ...(state.documents ?? [])],
     updatedAt: new Date().toISOString(),

@@ -28,7 +28,8 @@ import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudReposit
 import { createDefaultDeckSettings, getCardContentPayload } from "./coreModel.ts";
 import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
 import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.ts";
-import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type LearningSettingsInput } from "./deckSettings.ts";
+import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type GlobalLearningSettingsInput, type LearningSettingsInput } from "./deckSettings.ts";
+import { getLearningDayKey, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
 import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
@@ -172,6 +173,7 @@ export function App() {
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
   const [simulationOffsetMinutes, setSimulationOffsetMinutes] = React.useState(0);
+  const [learningDayRevision, setLearningDayRevision] = React.useState(0);
   const [pomodoroTimer, setPomodoroTimer] = React.useState<PomodoroTimer | null>(null);
   const pomodoroTimerRef = React.useRef<PomodoroTimer | null>(null);
   const creationDraftFocusRef = React.useRef<(() => void) | null>(null);
@@ -198,7 +200,23 @@ export function App() {
     () => getSimulatedNow(new Date(), simulationOffsetMinutes),
     [simulationOffsetMinutes],
   );
-  const learningNow = React.useMemo(getLearningNow, [activeView, getLearningNow, state?.decks]);
+  const globalLearningSettings = getGlobalDeckSettings(state?.profile);
+  const learningTimeZone = state?.profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const learningNow = React.useMemo(getLearningNow, [activeView, getLearningNow, learningDayRevision, state?.decks]);
+  const learningDayKey = getLearningDayKey(learningNow, {
+    dayStartHour: globalLearningSettings.dayStartHour,
+    timeZone: learningTimeZone,
+  }) ?? learningNow.slice(0, 10);
+
+  React.useEffect(() => {
+    const delay = getNextLearningDayBoundaryDelay(getLearningNow(), {
+      dayStartHour: globalLearningSettings.dayStartHour,
+      timeZone: learningTimeZone,
+    });
+    if (delay == null) return undefined;
+    const timerId = window.setTimeout(() => setLearningDayRevision((revision) => revision + 1), delay + 25);
+    return () => window.clearTimeout(timerId);
+  }, [getLearningNow, globalLearningSettings.dayStartHour, learningDayRevision, learningTimeZone]);
 
   const changeSimulationOffset = React.useCallback((value: number) => {
     setSimulationOffsetMinutes(normalizeSimulationOffsetMinutes(value));
@@ -822,7 +840,7 @@ export function App() {
     }));
   }
 
-  function saveGlobalLearningSettings(settings: LearningSettingsInput = {}) {
+  function saveGlobalLearningSettings(settings: GlobalLearningSettingsInput = {}) {
     if (!state) return null;
     return runWorkspaceMutation((currentWorkspace) => {
       currentWorkspace.saveProfile(withGlobalDeckSettings(state.profile, settings));
@@ -1076,6 +1094,8 @@ export function App() {
         <DecksScreen
           decks={state.decks}
           now={learningNow}
+          dayStartHour={globalLearningSettings.dayStartHour}
+          timeZone={learningTimeZone}
           mediaStore={mediaStore}
           onSetDeckCoreMode={setDeckCoreMode}
           onSaveCard={saveDeckCard}
@@ -1141,6 +1161,8 @@ export function App() {
         <LearnScreen
           decks={state.decks}
           now={learningNow}
+          dayStartHour={globalLearningSettings.dayStartHour}
+          timeZone={learningTimeZone}
           onStartDeck={startDeck}
           onCreateDeck={createDeck}
           focusedDeckId={focusedDeckId}
@@ -1162,7 +1184,8 @@ export function App() {
         <StatisticsScreen
           decks={state.decks}
           now={learningNow}
-          timeZone={state.profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"}
+          timeZone={learningTimeZone}
+          dayStartHour={globalLearningSettings.dayStartHour}
           onNavigate={navigateToView}
           onStartDeck={(deckId) => {
             const deck = state.decks.find((candidate) => candidate.id === deckId);
@@ -1191,7 +1214,7 @@ export function App() {
           profile={state.profile}
           syncStatus={syncStatus}
           onSaveProfile={saveProfile}
-          globalDeckSettings={getGlobalDeckSettings(state.profile)}
+          globalDeckSettings={globalLearningSettings}
           onSaveGlobalLearningSettings={saveGlobalLearningSettings}
           onSaveState={saveState}
           onSyncNow={syncNow}
@@ -1257,6 +1280,9 @@ export function App() {
           variantId={studyRequest.variantId}
           mediaStore={mediaStore}
           getNow={getLearningNow}
+          learningDayKey={learningDayKey}
+          dayStartHour={globalLearningSettings.dayStartHour}
+          timeZone={learningTimeZone}
           simulationOffsetMinutes={simulationOffsetMinutes}
           pomodoroTimer={pomodoroTimer}
           onStartPomodoro={startPomodoro}

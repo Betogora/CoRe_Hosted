@@ -2,7 +2,7 @@ import type { AppRoute, AppViewId, createViewRoute } from "./appNavigation.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { CoreWorkspace, DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CoreMode, Deck, LearningItem, LearningItemStudyStatePatch, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
-import type { LearningSettingsInput } from "./deckSettings.ts";
+import type { GlobalLearningSettingsInput, LearningSettingsInput } from "./deckSettings.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
@@ -68,6 +68,8 @@ export interface DeckSettingsScreenProps {
 export interface DecksScreenProps {
   decks: Deck[];
   now: string;
+  dayStartHour?: number;
+  timeZone?: string;
   mediaStore: AccountMediaStore | null;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onSaveCard: (deckId: string, cardId: string, value: CardEditorValue) => unknown;
@@ -94,6 +96,8 @@ export interface DecksScreenProps {
 export interface LearnScreenProps {
   decks: Deck[];
   now: string;
+  dayStartHour?: number;
+  timeZone?: string;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onCreateDeck: (input: CreateDeckInput) => Deck | null;
   focusedDeckId: string | null;
@@ -115,7 +119,7 @@ export interface SettingsScreenProps {
   syncStatus: SyncStatus;
   globalDeckSettings: ReturnType<typeof import("./deckSettings.ts").getGlobalDeckSettings>;
   onSaveProfile: (profile: Profile) => unknown;
-  onSaveGlobalLearningSettings: (settings: LearningSettingsInput) => unknown;
+  onSaveGlobalLearningSettings: (settings: GlobalLearningSettingsInput) => unknown;
   onSaveState: (state: WorkspaceState) => unknown;
   onSyncNow: () => Promise<unknown>;
   onListConflicts: () => Promise<unknown[]>;
@@ -132,6 +136,7 @@ export interface StatisticsScreenProps {
   decks: Deck[];
   now: string;
   timeZone: string;
+  dayStartHour?: number;
   onNavigate: NavigateToView;
   onStartDeck: (deckId: string) => unknown;
   onOpenCard: (deckId: string, learningItemId: string) => unknown;
@@ -151,6 +156,9 @@ export interface StudyModeProps {
   variantId?: string;
   mediaStore: AccountMediaStore | null;
   getNow: () => string;
+  learningDayKey?: string;
+  dayStartHour?: number;
+  timeZone?: string;
   simulationOffsetMinutes: number;
   pomodoroTimer: PomodoroTimer | null;
   onStartPomodoro: (minutes: number) => void;

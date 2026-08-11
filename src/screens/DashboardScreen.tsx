@@ -1,6 +1,7 @@
 import React from "react";
 import { CalendarDays, CheckCircle2, ChevronRight, FileArchive, PenLine, Sparkles } from "lucide-react";
 import { createDeckLibraryModel } from "../libraryModel.ts";
+import { getGlobalDeckSettings } from "../deckSettings.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
@@ -25,9 +26,10 @@ function heatmapDayLabel(day: StudyHeatmapDay) {
 }
 
 export function DashboardScreen({ state, now, onNavigate, onStartDeck, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded }: DashboardScreenProps) {
+  const globalSettings = getGlobalDeckSettings(state.profile);
   const library = React.useMemo(
-    () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined }),
-    [now, state.decks, state.profile.timezone],
+    () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined, dayStartHour: globalSettings.dayStartHour }),
+    [globalSettings.dayStartHour, now, state.decks, state.profile.timezone],
   );
   const { dueCards, studyHeatmap } = library;
   const displayName = state.profile?.displayName?.trim();

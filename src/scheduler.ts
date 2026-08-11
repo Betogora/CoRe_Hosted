@@ -10,6 +10,7 @@ import {
 import { REVIEW_RATINGS, createReviewState, getMaturityBand, isLearningItemReviewBlocked } from "./coreModel.ts";
 import { normalizeLearningSettings } from "./deckSettings.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
+import { getLearningDayKey } from "./learningDay.ts";
 import type {
   CardVariant,
   CardVariantType,
@@ -31,6 +32,8 @@ interface IntervalInput {
 
 interface SchedulerContext {
   now?: DateInput;
+  dayStartHour?: number;
+  timeZone?: string;
   isVariant?: boolean;
   variantId?: string | null;
   variantIsOriginal?: boolean;
@@ -327,7 +330,7 @@ function deriveOutcomeMaturity(state: ReviewStateInput): { stage: string; label:
   return { stage: "new", label: "Neu" };
 }
 
-function learningProgress(previousState: ReviewState, nextPhase: ReviewSchedulerState, rating: ReviewRating, nextStep: number, now: Date) {
+function learningProgress(previousState: ReviewState, nextPhase: ReviewSchedulerState, rating: ReviewRating, nextStep: number, now: Date, context: SchedulerContext) {
   const previousPhase = phaseForState(previousState);
   const isLearningFlow = previousPhase === "new" || previousPhase === "learning";
   const previousSuccess = Math.max(0, Number(previousState.learningSuccessCount ?? previousState.sameDaySuccessCount ?? 0) || 0);
@@ -356,7 +359,7 @@ function learningProgress(previousState: ReviewState, nextPhase: ReviewScheduler
     learningStepIndex: nextStep,
     learningSuccessCount: successCount,
     sameDaySuccessCount: successCount,
-    learningDayKey: now.toISOString().slice(0, 10),
+    learningDayKey: getLearningDayKey(now, context) ?? now.toISOString().slice(0, 10),
     firstLearningAt: previousState.firstLearningAt ?? now.toISOString(),
     lastLearningStepAt: now.toISOString(),
     isGraduated: graduated || previousState.isGraduated,
@@ -379,7 +382,7 @@ function projectFsrsResult(
   const maturityXp = updateMaturityXp(previousState.maturityXp, rating, Boolean(context.isVariant));
   const fallback = fallbackStateForRating(previousState, rating, context);
   const retrievabilityBefore = calculateRetrievability(previousState, now);
-  const progress = learningProgress(previousState, nextPhase, rating, nextCard.learning_steps, now);
+  const progress = learningProgress(previousState, nextPhase, rating, nextCard.learning_steps, now, context);
 
   return createReviewState({
     ...previousState,
@@ -506,6 +509,8 @@ export function getReviewButtonOptions(
       now,
       reviewEvents: events,
       deckSettings: options.deckSettings,
+      dayStartHour: options.dayStartHour,
+      timeZone: options.timeZone,
       fallbackVariantId,
     });
     result[rating] = {
@@ -542,9 +547,9 @@ export function listReviewableCards(deck: Deck): LearningItem[] {
   return (deck.cards ?? []).filter((card) => card.status !== "deleted" && card.draftStatus !== "draft");
 }
 
-export function summarizeDeckReview(deck: Deck, now: DateInput = new Date()) {
+export function summarizeDeckReview(deck: Deck, now: DateInput = new Date(), dayOptions: { dayStartHour?: number; timeZone?: string } = {}) {
   const cards = listReviewableCards(deck).filter((card) => !isLearningItemReviewBlocked(card));
-  const nowTime = new Date(now).getTime();
+  const currentDayKey = getLearningDayKey(now, dayOptions);
   let dueCards = 0;
   let newCards = 0;
   let inProgressCards = 0;
@@ -554,8 +559,11 @@ export function summarizeDeckReview(deck: Deck, now: DateInput = new Date()) {
       newCards += 1;
     } else if (state.state === "learning" || state.state === "relearning") {
       inProgressCards += 1;
-    } else if (state.state === "review" && new Date(state.dueAt).getTime() <= nowTime) {
-      dueCards += 1;
+    } else if (state.state === "review" && currentDayKey) {
+      const dueDayKey = getLearningDayKey(state.dueAt, dayOptions);
+      if (dueDayKey && dueDayKey <= currentDayKey) {
+        dueCards += 1;
+      }
     }
   }
   const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.reviewState?.maturityBand));

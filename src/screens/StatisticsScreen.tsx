@@ -26,6 +26,7 @@ import {
   YAxis,
 } from "recharts";
 import type { StatisticsScreenProps } from "../appScreenProps.ts";
+import { getLearningDayKey } from "../learningDay.ts";
 import {
   createStatisticsIndex,
   projectStatistics,
@@ -89,11 +90,11 @@ function formatDuration(milliseconds: number) {
   return `${formatNumber(minutes / 60, 1)} Std.`;
 }
 
-function formatDate(value: string | null, timeZone: string) {
+function formatDate(value: string | null, timeZone: string, dayStartHour = 0) {
   if (!value) return "–";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "–";
-  return new Intl.DateTimeFormat("de-DE", { timeZone, day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+  const dayKey = getLearningDayKey(value, { timeZone, dayStartHour });
+  if (!dayKey) return "–";
+  return new Intl.DateTimeFormat("de-DE", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(`${dayKey}T12:00:00.000Z`));
 }
 
 function formatHeatmapDate(key: string) {
@@ -382,12 +383,12 @@ function RetentionTable({ rows }: { rows: StatisticsProjection["retention"] }) {
   );
 }
 
-export function StatisticsScreen({ decks, now, timeZone, onNavigate, onStartDeck, onOpenCard }: StatisticsScreenProps) {
+export function StatisticsScreen({ decks, now, timeZone, dayStartHour = 0, onNavigate, onStartDeck, onOpenCard }: StatisticsScreenProps) {
   const [period, setPeriod] = React.useState<StatisticsPeriod>("365d");
   const [deckSelection, setDeckSelection] = React.useState<StatisticsDeckSelection>("all");
   const [isPending, startTransition] = React.useTransition();
   const index = React.useMemo(() => createStatisticsIndex(decks), [decks]);
-  const statistics = React.useMemo(() => projectStatistics(index, { period, deckIds: deckSelection, now, timeZone }), [deckSelection, index, now, period, timeZone]);
+  const statistics = React.useMemo(() => projectStatistics(index, { period, deckIds: deckSelection, now, timeZone, dayStartHour }), [dayStartHour, deckSelection, index, now, period, timeZone]);
   const showDeckComparison = deckSelection === "all" || statistics.scopeDeckIds.length > 1;
 
   React.useEffect(() => {
@@ -485,7 +486,7 @@ export function StatisticsScreen({ decks, now, timeZone, onNavigate, onStartDeck
           <div className="overflow-x-auto">
             <table className="w-full min-w-[58rem] border-collapse text-left core-body">
               <thead><tr className="border-b border-[var(--core-border)] text-core-muted"><th className="px-3 py-3">Stapel</th><th className="px-3 py-3 text-right">Reviews</th><th className="px-3 py-3 text-right">Erfolg</th><th className="px-3 py-3 text-right">Nochmal</th><th className="px-3 py-3 text-right">Erinnerung</th><th className="px-3 py-3 text-right">Ø Intervall</th><th className="px-3 py-3 text-right">Nächste Fälligkeit</th></tr></thead>
-              <tbody>{statistics.deckRows.map((row) => <tr key={row.id} className="border-b border-[var(--core-border)] last:border-0"><th className="px-3 py-3 font-semibold text-core-text"><span className="block">{row.name}</span><span className="core-caption font-normal text-core-muted">{row.path}</span></th><td className="px-3 py-3 text-right text-core-secondary">{formatNumber(row.reviewCount)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.successPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.againPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.trueRetentionPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatNumber(row.averageIntervalDays, 1)} T.</td><td className="px-3 py-3 text-right text-core-secondary">{formatDate(row.nextDueAt, timeZone)}</td></tr>)}</tbody>
+              <tbody>{statistics.deckRows.map((row) => <tr key={row.id} className="border-b border-[var(--core-border)] last:border-0"><th className="px-3 py-3 font-semibold text-core-text"><span className="block">{row.name}</span><span className="core-caption font-normal text-core-muted">{row.path}</span></th><td className="px-3 py-3 text-right text-core-secondary">{formatNumber(row.reviewCount)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.successPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.againPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.trueRetentionPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatNumber(row.averageIntervalDays, 1)} T.</td><td className="px-3 py-3 text-right text-core-secondary">{formatDate(row.nextDueAt, timeZone, dayStartHour)}</td></tr>)}</tbody>
             </table>
           </div>
         </ChartPanel> : null}
@@ -496,7 +497,7 @@ export function StatisticsScreen({ decks, now, timeZone, onNavigate, onStartDeck
               {statistics.difficultCards.map((card) => (
                 <article key={card.learningItemId} className="rounded-xl border border-[var(--core-border)] bg-core-subtle p-4">
                   <div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="core-caption text-core-muted">{card.deckName}</p><h4 className="core-body mt-1 line-clamp-2 font-semibold text-core-text">{card.title}</h4></div><span className="shrink-0 rounded-full bg-core-warning-soft px-2.5 py-1 core-status-label text-core-text">{formatPercent(card.weakPercent)}</span></div>
-                  <p className="core-caption mt-3 text-core-muted">{formatNumber(card.weakCount)} von {formatNumber(card.reviewCount)} Antworten · zuletzt {formatDate(card.lastReviewedAt, timeZone)}</p>
+                  <p className="core-caption mt-3 text-core-muted">{formatNumber(card.weakCount)} von {formatNumber(card.reviewCount)} Antworten · zuletzt {formatDate(card.lastReviewedAt, timeZone, dayStartHour)}</p>
                   <div className="mt-4 flex flex-wrap gap-2"><ActionButton variant="secondary" onClick={() => onStartDeck(card.deckId)}>Stapel lernen</ActionButton><ActionButton variant="secondary" onClick={() => onOpenCard(card.deckId, card.learningItemId)}>Karte öffnen</ActionButton></div>
                 </article>
               ))}

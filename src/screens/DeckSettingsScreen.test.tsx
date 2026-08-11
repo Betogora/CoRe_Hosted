@@ -70,6 +70,7 @@ test("deck learning options use concise copy, full limits, and deck-only CoRe pa
   assert.match(markup, /max="720"[^>]*data-testid="learning-settings-learn-ahead"[^>]*value="20"/);
   assert.match(markup, /type="range"[^>]*data-testid="learning-settings-retention"/);
   assert.match(markup, />Lernkarten vorziehen</);
+  assert.doesNotMatch(markup, /Neuer Tag beginnt um|Stunden nach Mitternacht/);
   assert.match(markup, /Zeigt vorgemerkte Lernwiederholungen am Sitzungsende bis zu diesem Zeitraum früher/);
   assert.match(markup, />Wiederholungen pro Tag</);
   assert.match(markup, />Nach einem Fehler erneut zeigen</);

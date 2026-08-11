@@ -617,3 +617,43 @@ test("study heatmap streak crosses calendar years and intensity follows the disp
   assert.equal(historicalMonth.maxCount, 100);
   assert.equal(historicalMonth.days.find((day) => day.key === "2025-06-01")?.level, 4);
 });
+
+test("library metrics, card dates and heatmap share the configured learning day", () => {
+  const card = createCoreCard({
+    id: "card_shifted_day",
+    source: "manual",
+    originalFront: "Frühe Karte",
+    originalBack: "Antwort",
+    reviewState: {
+      state: "review",
+      reps: 4,
+      dueAt: "2026-07-11T00:30:00.000Z",
+    },
+  });
+  const deck = createCoreDeck({
+    id: "deck_shifted_day",
+    name: "Verschobener Tag",
+    source: "manual",
+    cards: [card],
+    reviewEvents: [{
+      id: "event_shifted_day",
+      deckId: "deck_shifted_day",
+      learningItemId: card.id,
+      answeredAt: "2026-07-11T00:30:00.000Z",
+      rating: "good",
+    }] as any,
+  });
+  const options = {
+    now: "2026-07-11T00:45:00.000Z",
+    timeZone: "Europe/Berlin",
+    dayStartHour: 3,
+  };
+
+  const library = createDeckLibraryModel([deck], options);
+  const table = createCardTableModel([deck], options);
+
+  assert.equal(library.rows[0].statusDistribution.dueCards, 1);
+  assert.equal(library.studyHeatmap.todayKey, "2026-07-10");
+  assert.equal(library.studyHeatmap.countsByDay.get("2026-07-10"), 1);
+  assert.equal(table.groups[0].cardRows[0].nextStudyLabel, "10.07.2026");
+});

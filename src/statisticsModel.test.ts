@@ -226,6 +226,40 @@ test("local calendar boundaries use the profile timezone", () => {
   assert.equal(statistics.summary.currentStreak, 2);
 });
 
+test("statistics regroup early-morning reviews into the configured learning day", () => {
+  const card = createCoreCard({ id: "card_shifted_day", source: "manual", originalFront: "Früh", originalBack: "Vortag" });
+  const deck = createCoreDeck({
+    id: "deck_shifted_day",
+    name: "Verschobener Lerntag",
+    source: "manual",
+    cards: [card],
+    reviewEvents: [
+      reviewEvent({
+        id: "early-morning",
+        deckId: "deck_shifted_day",
+        learningItemId: card.id,
+        rating: "good",
+        answeredAt: "2026-07-11T00:30:00.000Z",
+        state: "review",
+        intervalDays: 3,
+      }),
+    ],
+  });
+
+  const statistics = projectStatistics(createStatisticsIndex([deck]), {
+    period: "30d",
+    deckIds: "all",
+    now: "2026-07-11T03:00:00.000Z",
+    timeZone: "Europe/Berlin",
+    dayStartHour: 3,
+  });
+
+  assert.equal(statistics.studyHeatmap.countsByDay.get("2026-07-10"), 1);
+  assert.equal(statistics.studyHeatmap.countsByDay.has("2026-07-11"), false);
+  assert.equal(statistics.activity.find((point) => point.key === "2026-07-10")?.total, 1);
+  assert.equal(statistics.summary.currentStreak, 1);
+});
+
 test("bounded projections exclude distant events and invalidate the one-entry scope cache", () => {
   const { child } = statisticsFixture();
   child.reviewEvents.push(

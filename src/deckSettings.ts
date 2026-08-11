@@ -1,4 +1,5 @@
 import type { CoreMode, NewReviewOrder, SchedulerPreset, SchedulerProfile } from "./coreTypes.ts";
+import { normalizeDayStartHour } from "./learningDay.ts";
 
 export interface LearningSettings {
   newCardsPerDay: number;
@@ -24,9 +25,19 @@ export interface LearningSettingsInput {
   };
 }
 
+export interface GlobalLearningSettingsInput extends LearningSettingsInput {
+  dayStartHour?: unknown;
+}
+
+export interface GlobalLearningSettings extends LearningSettings {
+  coreMode: CoreMode;
+  dayStartHour: number;
+}
+
 interface SchedulerPreferences {
   profile?: string;
   coreMode?: unknown;
+  dayStartHour?: unknown;
   deckSettings?: LearningSettingsInput;
   [key: string]: unknown;
 }
@@ -219,7 +230,7 @@ export function applyLearningSettingsToDeckSettings<T extends Record<string, unk
   };
 }
 
-export function getGlobalDeckSettings(profile: ProfileWithSchedulerPreferences = {}): LearningSettings & { coreMode: CoreMode } {
+export function getGlobalDeckSettings(profile: ProfileWithSchedulerPreferences = {}): GlobalLearningSettings {
   const preferences = (profile.schedulerPreferences ?? {}) as SchedulerPreferences;
   const storedSettings = preferences.deckSettings;
   const requestedPreset = typeof preferences.profile === "string" && presetIds.has(preferences.profile as SchedulerPreset)
@@ -233,6 +244,7 @@ export function getGlobalDeckSettings(profile: ProfileWithSchedulerPreferences =
 
   return {
     ...learningSettings,
+    dayStartHour: normalizeDayStartHour(preferences.dayStartHour),
     coreMode: typeof preferences.coreMode === "string" && coreModes.has(preferences.coreMode as CoreMode)
       ? preferences.coreMode as CoreMode
       : "auto",
@@ -246,7 +258,7 @@ export function getCustomGlobalDeckSettings(profile: ProfileWithSchedulerPrefere
 
 export function withGlobalDeckSettings<T extends ProfileWithSchedulerPreferences>(
   profile: T = {} as T,
-  settings: LearningSettingsInput = {},
+  settings: GlobalLearningSettingsInput = {},
 ): T & { schedulerPreferences: SchedulerPreferences } {
   const learningSettings = normalizeLearningSettings(settings);
   const coreMode: CoreMode = typeof settings.coreMode === "string" && coreModes.has(settings.coreMode as CoreMode)
@@ -262,6 +274,7 @@ export function withGlobalDeckSettings<T extends ProfileWithSchedulerPreferences
       ...(profile.schedulerPreferences ?? {}),
       profile: learningSettings.schedulerProfile.presetId,
       coreMode,
+      dayStartHour: normalizeDayStartHour(settings.dayStartHour),
       deckSettings: customSettings,
     },
   };

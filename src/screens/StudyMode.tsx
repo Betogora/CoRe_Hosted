@@ -1,6 +1,7 @@
 import React from "react";
 import { Anchor, Ban, CheckCircle2, CircleAlert, Eye, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
 import type { StudyModeProps } from "../appScreenProps.ts";
+import { getLearningDayKey } from "../learningDay.ts";
 import { getLearningItemAnswer, getLearningItemQuestion, isLearningItemMarked } from "../coreModel.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
 import { createReviewResponseTimer } from "../reviewTiming.ts";
@@ -88,7 +89,7 @@ function DailyReviewProgress({ progress }: { progress: DailyReviewProgressSummar
   );
 }
 
-export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
+export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
@@ -102,6 +103,8 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   const completionHeadingRef = React.useRef<HTMLHeadingElement>(null);
   const settingsButtonRef = React.useRef<HTMLButtonElement>(null);
   const feedbackDeckRef = React.useRef<Deck | null>(null);
+  const effectiveLearningDayKey = learningDayKey || getLearningDayKey(getNow(), { dayStartHour, timeZone }) || "";
+  const previousLearningDayKeyRef = React.useRef(effectiveLearningDayKey);
   const setSuccessToast = useSuccessToast();
   const responseTimer = React.useMemo(() => createReviewResponseTimer(), []);
   const rootDeck = sessionDecks.find((candidate) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
@@ -110,15 +113,17 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
       createDailyReviewQueue(sessionDecks, {
         deckId: rootDeck?.id,
         now: getNow(),
+        dayStartHour,
+        timeZone,
         language: "de",
         variantSession,
       }),
-    [getNow, sessionDecks, rootDeck?.id, variantSession],
+    [dayStartHour, effectiveLearningDayKey, getNow, sessionDecks, rootDeck?.id, timeZone, variantSession],
   );
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
   const current = React.useMemo(
-    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), language: "de", variantSession }),
-    [getNow, sessionDecks, effectiveReviewSession, rootDeck?.id, variantSession],
+    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), dayStartHour, timeZone, language: "de", variantSession }),
+    [dayStartHour, effectiveLearningDayKey, getNow, sessionDecks, effectiveReviewSession, rootDeck?.id, timeZone, variantSession],
   );
   const currentDeck = sessionDecks.find((candidate) => candidate.id === current?.deckId) ?? rootDeck;
   const sessionTotal = effectiveReviewSession.initialKeys.length;
@@ -161,6 +166,15 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   }, [queue.items, reviewSession]);
 
   React.useEffect(() => {
+    if (previousLearningDayKeyRef.current === effectiveLearningDayKey) return;
+    previousLearningDayKeyRef.current = effectiveLearningDayKey;
+    setReviewSession(createDailyReviewSessionState([
+      current ? { deckId: current.deckId, learningItemId: current.learningItemId } : null,
+      ...queue.items,
+    ]));
+  }, [current, effectiveLearningDayKey, queue.items]);
+
+  React.useEffect(() => {
     setSelectedChoice("");
     if (current) responseTimer.start();
     else responseTimer.reset();
@@ -197,6 +211,8 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
     const responseTimeMs = responseTimer.stop();
     const result = answerVariant(feedbackDeckRef.current ?? currentDeck, current.learningItemId, current.cardVariantId, rating, {
       now: getNow(),
+      dayStartHour,
+      timeZone,
       responseTimeMs,
     });
     onReviewEvent?.(result.event);

@@ -314,7 +314,7 @@ test("normalized imported cards start with learning-step button options", () => 
   assert.equal(next.ratingButtonOptions.easy.intervalLabel, "8 Tage");
 });
 
-test("daily review queue includes currently due cards plus the per-deck new-card quota", () => {
+test("daily review queue includes all review cards due on the learning day plus the per-deck new-card quota", () => {
   const due = reviewItem({ dueAt: "2026-07-07T09:00:00.000Z" });
   const laterToday = reviewItem({ dueAt: "2026-07-07T18:00:00.000Z" });
   const newCards = Array.from({ length: 30 }, (_value, index) =>
@@ -336,14 +336,14 @@ test("daily review queue includes currently due cards plus the per-deck new-card
   });
   const queue = createDailyReviewQueue(deck, { now: NOW });
 
-  assert.equal(queue.dueCount, 1);
+  assert.equal(queue.dueCount, 2);
   assert.equal(queue.newCount, 20);
-  assert.equal(queue.total, 21);
+  assert.equal(queue.total, 22);
   assert.ok(queue);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(queue.items[0].learningItemId, due.id);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(queue.items.some((item) => item.learningItemId === laterToday.id), false);
+  assert.equal(queue.items.some((item) => item.learningItemId === laterToday.id), true);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(queue.items.filter((item) => item.schedulerInfo.queueKind === "new").length, 20);
 });
@@ -452,7 +452,7 @@ test("daily progress keeps a new card in progress until its final Good learning 
   assert.equal(createDailyReviewQueue(deck, { now: "2026-07-08T10:00:00.000Z" }).dailyProgress.completedTodayCount, 0);
 });
 
-test("daily progress grows when another card becomes due later on the same day", () => {
+test("daily progress treats review cards as due for their whole learning day", () => {
   const deckId = "deck_dynamic_progress";
   const deck = createCoreDeck({
     id: deckId,
@@ -468,8 +468,8 @@ test("daily progress grows when another card becomes due later on the same day",
     completedTodayCount: 0,
     newCount: 0,
     inProgressCount: 0,
-    dueCount: 1,
-    total: 1,
+    dueCount: 2,
+    total: 2,
   });
   assert.equal(createDailyReviewQueue(deck, { now: "2026-07-07T18:00:00.000Z" }).dailyProgress.total, 2);
 });
@@ -835,6 +835,74 @@ test("learn-ahead respects zero, its strict boundary, and the local day boundary
   const dayBoundaryQueue = createDailyReviewQueue({ ...deck, cards: [acrossMidnight] }, { now: beforeMidnight });
   assert.equal(dayBoundaryQueue.total, 0);
   assert.equal(dayBoundaryQueue.dailyProgress.inProgressCount, 0);
+});
+
+test("a configured rollover controls review due days, daily accounting and learn-ahead", () => {
+  const deckId = "deck_shifted_day";
+  const options = { dayStartHour: 3, timeZone: "Europe/Berlin" };
+  const duePreviousDay = dailyProgressItem(deckId, "due_previous", {
+    state: "review",
+    reps: 4,
+    dueAt: "2026-07-10T20:00:00.000Z",
+  });
+  const dueNewDay = dailyProgressItem(deckId, "due_new", {
+    state: "review",
+    reps: 4,
+    dueAt: "2026-07-11T08:00:00.000Z",
+  });
+  const crossingLearningStep = dailyProgressItem(deckId, "learning_new_day", {
+    state: "learning",
+    reps: 1,
+    dueAt: "2026-07-11T01:05:00.000Z",
+  });
+  const deck = createCoreDeck({
+    id: deckId,
+    name: "Verschobener Tag",
+    source: "manual",
+    deckSettings: { learnAheadMinutes: 20 },
+    cards: [duePreviousDay, dueNewDay, crossingLearningStep],
+    reviewEvents: [{
+      id: "review_early_morning",
+      deckId,
+      learningItemId: duePreviousDay.id,
+      answeredAt: "2026-07-11T00:30:00.000Z",
+      schedulerBefore: { card: { state: "review", reps: 3 } },
+    }] as any,
+  });
+
+  const beforeRollover = createDailyReviewQueue(deck, { ...options, now: "2026-07-11T00:50:00.000Z" });
+  assert.equal(beforeRollover.dateKey, "2026-07-10");
+  assert.deepEqual(beforeRollover.items.map((item) => item?.learningItemId), [duePreviousDay.id]);
+  assert.equal(beforeRollover.dailyProgress.completedTodayCount, 1);
+  assert.equal(beforeRollover.dailyProgress.inProgressCount, 0);
+
+  const atRollover = createDailyReviewQueue(deck, { ...options, now: "2026-07-11T01:00:00.000Z" });
+  assert.equal(atRollover.dateKey, "2026-07-11");
+  assert.deepEqual(new Set(atRollover.items.map((item) => item?.learningItemId)), new Set([duePreviousDay.id, dueNewDay.id, crossingLearningStep.id]));
+  assert.equal(atRollover.dailyProgress.completedTodayCount, 0);
+
+  const updated = updateDeckNewCardLimitForDate(deck, 7, { ...options, now: "2026-07-11T00:30:00.000Z" });
+  assert.equal(updated.deckSettings.newCardsTodayOverride?.date, "2026-07-10");
+});
+
+test("scheduler preview and commit record the configured learning day", () => {
+  const item = newItem();
+  const original = getOriginalVariant(item);
+  assert.ok(original);
+  const context = {
+    learningItem: item,
+    variant: original,
+    rating: "good" as const,
+    now: "2026-07-11T00:30:00.000Z",
+    dayStartHour: 3,
+    timeZone: "Europe/Berlin",
+  };
+  const preview = simulateRatingOutcome(context);
+  const committed = answerVariant(deckWith(item), item.id, original.id, "good", context);
+
+  assert.equal(preview.nextReviewState.learningDayKey, "2026-07-10");
+  assert.equal(committed.updatedCard.reviewState.learningDayKey, "2026-07-10");
+  assert.equal(committed.updatedCard.reviewState.dueAt, preview.nextReviewState.dueAt);
 });
 
 test("the started root deck controls learn-ahead for its whole subtree", () => {

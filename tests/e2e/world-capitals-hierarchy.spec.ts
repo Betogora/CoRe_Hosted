@@ -530,7 +530,7 @@ test("three-dot actions share the local-name tooltip across dashboard, learning 
   await expect(learningMenu).not.toContainText("Welt-Hauptstädte / Afrika");
   await page.keyboard.press("Escape");
 
-  await mainMenu(page).getByRole("button", { name: "Kartenverwaltung" }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
   const managementOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
   await expect(managementOptions).not.toHaveAttribute("title");
   await managementOptions.focus();

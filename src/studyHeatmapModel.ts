@@ -1,11 +1,11 @@
 import type { LearningItem } from "./coreTypes.ts";
 import { isLearningItemReviewBlocked } from "./coreModel.ts";
+import { getLearningDayKey } from "./learningDay.ts";
 
 const DAY_MS = 86_400_000;
 export const STUDY_HEATMAP_FORECAST_DAYS = 365;
 const HEATMAP_MONTH_LABELS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const HEATMAP_WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-const HEATMAP_DAY_FORMATTERS = new Map<string, Intl.DateTimeFormat>();
 
 type DateInput = string | number | Date;
 
@@ -203,32 +203,13 @@ function calculateCurrentStreak(countsByDay: ReadonlyMap<string, number>, todayK
   return streak;
 }
 
-export function getStudyHeatmapDayKey(value: DateInput | null | undefined, timeZone?: string): string | null {
-  const date = new Date(value ?? Number.NaN);
-  if (Number.isNaN(date.getTime())) return null;
-
-  const formatterKey = timeZone || "";
-  let formatter = HEATMAP_DAY_FORMATTERS.get(formatterKey);
-  if (!formatter) {
-    try {
-      formatter = new Intl.DateTimeFormat("en-CA", {
-        timeZone: timeZone || undefined,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
-    } catch {
-      formatter = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" });
-    }
-    HEATMAP_DAY_FORMATTERS.set(formatterKey, formatter);
-  }
-  const parts = new Map(formatter.formatToParts(date).map((part) => [part.type, part.value]));
-  return `${parts.get("year")}-${parts.get("month")}-${parts.get("day")}`;
+export function getStudyHeatmapDayKey(value: DateInput | null | undefined, timeZone?: string, dayStartHour = 0): string | null {
+  return getLearningDayKey(value ?? Number.NaN, { timeZone, dayStartHour });
 }
 
 export function createStudyHeatmapForecastCounts(
   items: Iterable<LearningItem>,
-  { todayKey, timeZone }: { todayKey: string; timeZone?: string },
+  { todayKey, timeZone, dayStartHour = 0 }: { todayKey: string; timeZone?: string; dayStartHour?: number },
 ): Map<string, number> {
   const forecastEndKey = shiftDayKey(todayKey, STUDY_HEATMAP_FORECAST_DAYS);
   const countsByDay = new Map<string, number>();
@@ -242,7 +223,7 @@ export function createStudyHeatmapForecastCounts(
     ) continue;
 
     const dueAt = (item.learningItemState ?? item.reviewState)?.dueAt;
-    const dueKey = getStudyHeatmapDayKey(dueAt, timeZone);
+    const dueKey = getStudyHeatmapDayKey(dueAt, timeZone, dayStartHour);
     if (!dueKey || dueKey <= todayKey || dueKey > forecastEndKey) continue;
     countsByDay.set(dueKey, (countsByDay.get(dueKey) ?? 0) + 1);
   }

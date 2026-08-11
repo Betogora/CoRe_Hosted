@@ -87,7 +87,7 @@ test("settings disclose export limits and keep raw JSON in advanced", () => {
 test("learning settings explain Good and Easy learning-step behavior and hide legacy graduation controls", () => {
   const html = renderSettings();
 
-  assert.match(html, /Globale Voreinstellungen/);
+  assert.match(html, /Globale Lernvorgaben/);
   assert.match(html, /Je Stapel noch änderbar\./);
   assert.doesNotMatch(html, /Diese Werte werden auf alle vorhandenen Stapel angewendet/);
   assert.doesNotMatch(html, /Lernoptionen speichern/);
@@ -95,6 +95,9 @@ test("learning settings explain Good and Easy learning-step behavior and hide le
   assert.match(html, /mit „Gut“ geht es zum nächsten Schritt/);
   assert.match(html, /„Leicht“ beendet die Lernphase sofort/);
   assert.match(html, /Lernkarten vorziehen/);
+  assert.match(html, /Neuer Tag beginnt um/);
+  assert.match(html, /type="number" min="0" max="23" step="1"[^>]*data-testid="learning-settings-day-start-hour"/);
+  assert.match(html, /<\/span><span>Stunden nach Mitternacht<\/span>/);
   assert.doesNotMatch(html, /Varianten einsetzen ab Lernstufe|Aktive Varianten pro Karte/);
   assert.match(html, /Standard · 5 Min. → 15 Min./);
   assert.doesNotMatch(html, /Erstes reguläres Intervall/);

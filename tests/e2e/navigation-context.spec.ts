@@ -217,7 +217,7 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
 test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderungen bleiben kontrollierbar", async ({ page }) => {
   await page.goto("/kartenstapel");
   await waitForApp(page);
-  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
 
   const search = page.getByRole("textbox", { name: "Karten durchsuchen" });
@@ -262,7 +262,7 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await changesDialog.getByRole("button", { name: "Weiter bearbeiten" }).click();
 
   await front.fill("Ungespeicherte Karte B1");
-  await page.getByRole("heading", { name: "Kartenverwaltung", exact: true }).click();
+  await page.getByRole("heading", { name: "Karten", exact: true }).click();
   await expect(changesDialog).toBeVisible();
   await changesDialog.getByRole("button", { name: "Weiter bearbeiten" }).click();
   await expect(front).toContainText("Ungespeicherte Karte B1");
@@ -277,7 +277,7 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
       ?.find((candidate: { id: string }) => candidate.id === CARD_IDS.b1)?.originalFront;
   }).toContain("Ungespeicherte Karte B1");
 
-  await page.getByRole("heading", { name: "Kartenverwaltung", exact: true }).click();
+  await page.getByRole("heading", { name: "Karten", exact: true }).click();
   await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
 
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();

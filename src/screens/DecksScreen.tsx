@@ -603,6 +603,8 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
 export function DecksScreen({
   decks,
   now,
+  dayStartHour,
+  timeZone,
   mediaStore,
   selectedDeckId = null,
   selectedCardId = null,
@@ -639,8 +641,8 @@ export function DecksScreen({
   const detailRef = React.useRef<HTMLElement | null>(null);
   const previouslySelectedCardId = React.useRef<string | null>(null);
   const tableModel = React.useMemo(
-    () => createCardTableModel(decks, { query, cardSort, now }),
-    [cardSort, decks, now, query],
+    () => createCardTableModel(decks, { query, cardSort, now, dayStartHour, timeZone }),
+    [cardSort, dayStartHour, decks, now, query, timeZone],
   );
   const searchExpandsGroups = Boolean(query.trim());
   const expandedDeckIdSet = React.useMemo(() => new Set(expandedDeckIds), [expandedDeckIds]);

@@ -58,6 +58,26 @@ test("portable export redacts local password verifier", () => {
   assert.equal(exported.decks[0].cards[0].updatedByDeviceId, undefined);
 });
 
+test("portable export and import transport the account-wide learning-day start", () => {
+  const sourceBase = portableState();
+  const source = portableState({
+    profile: { ...sourceBase.profile, schedulerPreferences: { dayStartHour: 3 } },
+  });
+  const exported = createPortableExport(source, "2026-07-01T08:00:00.000Z");
+  const target = portableState({
+    profile: {
+      ...portableState().profile,
+      schedulerPreferences: { dayStartHour: 0, profile: "standard" },
+    },
+  });
+
+  const merged = mergePortableExportIntoState(target, exported);
+
+  assert.equal(exported.profile.schedulerPreferences.dayStartHour, 3);
+  assert.equal(merged.profile.schedulerPreferences.dayStartHour, 3);
+  assert.equal(merged.profile.schedulerPreferences.profile, "standard");
+});
+
 test("portable export validation reports malformed json without throwing", () => {
   const validation = validatePortableExport("{not-json");
 
