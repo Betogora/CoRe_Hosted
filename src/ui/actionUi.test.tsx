@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Save, Trash2 } from "lucide-react";
-import { ActionButton, IconButton } from "./actionUi.tsx";
+import { ActionButton, CrossLinkButton, IconButton } from "./actionUi.tsx";
 
 test("ActionButton centralizes variants and the labeled loading contract", () => {
   const variants = ["primary", "secondary", "destructive"] as const;
@@ -34,4 +34,17 @@ test("IconButton offers a borderless ghost action with the same square target", 
   const markup = renderToStaticMarkup(<IconButton label="Optionen" icon={Save} variant="ghost" />);
   assert.match(markup, /core-action-ghost/);
   assert.match(markup, /min-w-11/);
+});
+
+test("CrossLinkButton centralizes the compact cross-link style for buttons and anchors", () => {
+  const markup = renderToStaticMarkup(
+    <>
+      <CrossLinkButton onSelect={() => undefined}>Alle ansehen</CrossLinkButton>
+      <CrossLinkButton href="#global">Globale Einstellungen</CrossLinkButton>
+    </>,
+  );
+
+  assert.match(markup, /<button type="button"[^>]*min-h-11[^>]*>Alle ansehen/);
+  assert.match(markup, /<a href="#global"[^>]*min-h-11[^>]*>Globale Einstellungen/);
+  assert.equal(markup.match(/lucide-chevron-right/g)?.length, 2);
 });

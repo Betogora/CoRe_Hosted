@@ -8,12 +8,12 @@ import type { EasyDayLevel, EasyDays } from "../coreTypes.ts";
 import { mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, stringifyPortableExport, validatePortableExport } from "../dataPortability.ts";
 import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
-import { ActionButton } from "../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.tsx";
-import { SettingsCrossLinkButton, SettingsSectionNavigation } from "../ui/settingsNavigation.tsx";
+import { SettingsSectionNavigation } from "../ui/settingsNavigation.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 
@@ -152,9 +152,9 @@ export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerP
     <div className="grid min-w-0 gap-7">
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <PageHeader eyebrow="Profil" title="Globale Einstellungen" />
-        <SettingsCrossLinkButton onSelect={() => onNavigate("stapel-einstellungen", { focusedDeckId: null })}>
+        <CrossLinkButton onSelect={() => onNavigate("stapel-einstellungen", { focusedDeckId: null })}>
           Stapeleinstellungen
-        </SettingsCrossLinkButton>
+        </CrossLinkButton>
       </div>
 
       <SettingsSectionNavigation ariaLabel="Bereiche der globalen Einstellungen" items={sectionItems} />

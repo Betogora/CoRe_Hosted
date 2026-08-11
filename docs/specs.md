@@ -91,6 +91,9 @@ Akzeptanz:
 - Datenschutztexte versprechen nur technisch wirksames Verhalten.
 - Sync-, Offline- und Konfliktstatus sind ohne Tabellen-, Revisions- oder Geräteterminologie verständlich.
 - Demo-Daten entstehen nur durch eine ausdrückliche Nutzeraktion oder klaren Entwicklungs-/Testmodus.
+- Ein befülltes Dashboard ersetzt den bloßen Fälligkeitszähler durch genau eine Tageslernfläche. Sie aggregiert die alphabetisch sortierten Hauptstapel-Sessions einschließlich ihrer Unterstapel ohne Doppelzählung und zeigt `Heute geschafft`, `Neu`, `In Arbeit` und `Fällig` mit denselben Farben und derselben vollständig gefüllten Segmentreihenfolge wie der Review. `X / Y Karten` zählt eindeutige heute relevante Learning Items; Untertitel, Zeitprognose, Konfetti und ein zusätzliches graues Segment existieren nicht.
+- Die Tageslernfläche unterscheidet `Dein Lernen heute`, den deaktivierten Zwischenzustand `Später weiterlernen` für heute vorgemerkte, aktuell noch nicht verfügbare Lernschritte und den grün hervorgehobenen Abschluss `Tagesziel erreicht`. Auch `0 / 0 Karten` ist abgeschlossen. `Jetzt lernen` startet die erste aktuell verfügbare Hauptstapel-Session; die deaktivierten Aktionen `Plan ansehen` und `Plan für morgen ansehen` bleiben sichtbare Vorschauen ohne Ereignisbehandlung.
+- Nach erreichtem Ziel öffnet `Zusätzliche Karten lernen` nur dann einen Dialog, wenn jenseits des heutigen Neulimits weitere neue Karten existieren. Nutzende wählen einen Hauptstapel und eine auf den tatsächlichen Rest begrenzte Menge aus `+5`, `+10` oder `+20`; die Auswahl erhöht ausschließlich dessen `newCardsTodayOverride` für den aktuellen fachlichen Lerntag und startet anschließend diese Session. Fällige oder künftige Wiederholungen werden nicht vorgezogen. Eine bei Bestätigung veraltete Auswahl mutiert nichts und meldet den Fehler verständlich.
 
 ### 5.2 Stapel importieren oder manuell anlegen
 

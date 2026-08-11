@@ -15,12 +15,11 @@ import {
   getNextDailyReviewSessionItem,
   removeDailyReviewSessionItem,
   recordVariantFeedback,
-  type DailyReviewProgressSummary,
   type DailyReviewSessionState,
 } from "../reviewService.ts";
 import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
+import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
-import { formatLearningCardCount, LEARNING_STATUS_UI } from "../ui/learningStatusUi.ts";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
@@ -56,46 +55,6 @@ function formatLimitSummary(hiddenDueCount: number, hiddenNewCount: number) {
     hiddenNewCount > 0 ? `${hiddenNewCount} ${hiddenNewCount === 1 ? "neue Karte" : "neue Karten"}` : "",
   ].filter(Boolean);
   return `${parts.join(" und ")} ${parts.length === 1 ? "bleibt" : "bleiben"} wegen deiner Tageslimits für später vorgemerkt.`;
-}
-
-const studyProgressSegments = [
-  { key: "learned", countKey: "completedTodayCount", ...LEARNING_STATUS_UI.learned },
-  { key: "new", countKey: "newCount", ...LEARNING_STATUS_UI.new },
-  { key: "in-progress", countKey: "inProgressCount", ...LEARNING_STATUS_UI.inProgress },
-  { key: "due", countKey: "dueCount", ...LEARNING_STATUS_UI.due },
-] as const;
-
-function DailyReviewProgress({ progress }: { progress: DailyReviewProgressSummary }) {
-  const valueText = studyProgressSegments
-    .map((segment) => `${segment.label}: ${formatLearningCardCount(progress[segment.countKey])}`)
-    .join(", ");
-
-  return (
-    <div
-      className="flex h-3 overflow-hidden rounded-full bg-core-subtle"
-      role="progressbar"
-      aria-label="Lernfortschritt"
-      aria-valuemin={0}
-      aria-valuemax={Math.max(1, progress.total)}
-      aria-valuenow={progress.completedTodayCount}
-      aria-valuetext={valueText}
-      data-testid="study-daily-progress"
-    >
-      {studyProgressSegments.map((segment) => {
-        const count = progress[segment.countKey];
-        return count > 0 ? (
-          <CoreTooltip key={segment.key} label={segment.label} swatchColor={segment.color} value={formatLearningCardCount(count)}>
-            <span
-              aria-hidden="true"
-              data-study-progress-segment={segment.key}
-              className="h-full"
-              style={{ backgroundColor: segment.color, flexBasis: 0, flexGrow: count }}
-            />
-          </CoreTooltip>
-        ) : null;
-      })}
-    </div>
-  );
 }
 
 export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {

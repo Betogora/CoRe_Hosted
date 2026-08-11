@@ -6,19 +6,24 @@ import { createCoreRepository } from "../coreRepository.ts";
 import { createViewRoute } from "../appNavigation.ts";
 import { DashboardScreen } from "./DashboardScreen.tsx";
 
+const dashboardCallbacks = {
+  onNavigate: () => createViewRoute("uebersicht"),
+  onStartDeck: () => undefined,
+  onStartAdditionalCards: () => ({ ok: true }),
+  onCreateDemo: async () => null,
+  onSetDeckCoreMode: () => undefined,
+  onMoveDeck: () => null,
+  onOpenDeckSettings: () => undefined,
+  onSetDeckExpanded: () => undefined,
+};
+
 test("empty dashboard offers only explicit first-learning paths without seeded statistics", () => {
   const state = createCoreRepository(null, { seedDefaultDecks: false }).getState();
   const markup = renderToStaticMarkup(
     <DashboardScreen
       state={state}
       now="2026-08-06T10:00:00.000Z"
-      onNavigate={() => createViewRoute("uebersicht")}
-      onStartDeck={() => undefined}
-      onCreateDemo={async () => null}
-      onSetDeckCoreMode={() => undefined}
-      onMoveDeck={() => null}
-      onOpenDeckSettings={() => undefined}
-      onSetDeckExpanded={() => undefined}
+      {...dashboardCallbacks}
     />,
   );
 
@@ -33,7 +38,7 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
   assert.doesNotMatch(markup, /Noemi|Guten Morgen|Lern-Heatmap|Aktive Stapel/);
 });
 
-test("populated dashboard keeps today's due count without the original-card statistic", () => {
+test("populated dashboard shows the aggregated open daily learning overview", () => {
   const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
   const deck = createCoreDeck({
     name: "Biologie",
@@ -55,22 +60,23 @@ test("populated dashboard keeps today's due count without the original-card stat
         decks: [deck],
       }}
       now="2026-08-06T10:00:00.000Z"
-      onNavigate={() => createViewRoute("uebersicht")}
-      onStartDeck={() => undefined}
-      onCreateDemo={async () => null}
-      onSetDeckCoreMode={() => undefined}
-      onMoveDeck={() => null}
-      onOpenDeckSettings={() => undefined}
-      onSetDeckExpanded={() => undefined}
+      {...dashboardCallbacks}
     />,
   );
 
   assert.match(markup, /Willkommen zurück, Noemi!/);
   assert.doesNotMatch(markup, />Heute<\//);
-  assert.match(markup, /Heute fällig/);
+  assert.match(markup, /data-testid="daily-learning-overview" data-status="open"/);
+  assert.match(markup, /Dein Lernen heute/);
+  assert.match(markup, /data-testid="daily-learning-total">0 \/ 1 Karten/);
+  assert.match(markup, /data-testid="dashboard-daily-progress"/);
+  assert.match(markup, /aria-valuetext="Heute geschafft: 0 Karten, Neu: 1 Karte, In Arbeit: 0 Karten, Fällig: 0 Karten"/);
+  assert.match(markup, />Jetzt lernen<\//);
+  assert.match(markup, /<button[^>]*disabled=""[^>]*>[\s\S]*Plan ansehen/);
+  for (const metric of ["learned", "new", "in-progress", "due"]) assert.match(markup, new RegExp(`data-daily-learning-metric="${metric}"`));
+  assert.doesNotMatch(markup, /geschätzte Dauer|Dranbleiben lohnt sich|Für heute alles geschafft/);
   assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"/);
   assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>In Arbeit<[\s\S]*>Fällig</);
-  assert.match(markup, /Heute fällig:<\/span><span class="font-semibold">0<\/span>/);
   assert.doesNotMatch(markup, /Originalkarten/);
   assert.match(markup, /Alle ansehen/);
   assert.match(markup, /whitespace-nowrap[^\"]*rounded-xl[^>]*>Alle ansehen/);
@@ -115,18 +121,105 @@ test("dashboard projects future due cards through the supplied learning time", (
   });
   const props = {
     state: { ...baseState, decks: [deck] },
-    onNavigate: () => createViewRoute("uebersicht"),
-    onStartDeck: () => undefined,
-    onCreateDemo: async () => null,
-    onSetDeckCoreMode: () => undefined,
-    onMoveDeck: () => null,
-    onOpenDeckSettings: () => undefined,
-    onSetDeckExpanded: () => undefined,
+    ...dashboardCallbacks,
   };
 
   const todayMarkup = renderToStaticMarkup(<DashboardScreen {...props} now="2026-08-06T10:00:00.000Z" />);
   const futureMarkup = renderToStaticMarkup(<DashboardScreen {...props} now="2026-08-09T10:00:00.000Z" />);
 
-  assert.match(todayMarkup, /Heute fällig:<\/span><span class="font-semibold">0<\/span>/);
-  assert.match(futureMarkup, /Heute fällig:<\/span><span class="font-semibold">1<\/span>/);
+  assert.match(todayMarkup, /data-status="achieved"/);
+  assert.match(todayMarkup, /data-testid="daily-learning-total">0 \/ 0 Karten/);
+  assert.match(todayMarkup, /data-study-progress-segment="achieved"/);
+  assert.match(futureMarkup, /data-status="open"/);
+  assert.match(futureMarkup, /data-testid="daily-learning-total">0 \/ 1 Karten/);
+  assert.match(futureMarkup, /Fällig:[^,\"]*1 Karte/);
+});
+
+test("achieved dashboard keeps today's completed cards in the total and success bar", () => {
+  const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const completedCard = createCoreCard({
+    id: "completed-today",
+    source: "manual",
+    reviewState: {
+      state: "review",
+      dueAt: "2026-08-07T10:00:00.000Z",
+      lastReviewedAt: "2026-08-06T09:00:00.000Z",
+      repetitions: 2,
+    },
+  });
+  const deck = createCoreDeck({
+    id: "completed-root",
+    name: "Erledigt",
+    source: "manual",
+    cards: [completedCard],
+    reviewEvents: [{
+      id: "completed-event",
+      deckId: "completed-root",
+      learningItemId: completedCard.id,
+      rating: "good",
+      answeredAt: "2026-08-06T09:00:00.000Z",
+      schedulerBefore: { card: { state: "review" } },
+    }] as any,
+  });
+
+  const markup = renderToStaticMarkup(
+    <DashboardScreen state={{ ...baseState, decks: [deck] }} now="2026-08-06T10:00:00.000Z" {...dashboardCallbacks} />,
+  );
+
+  assert.match(markup, /data-status="achieved"/);
+  assert.match(markup, /data-testid="daily-learning-total">1 \/ 1 Karten/);
+  assert.match(markup, /data-daily-learning-metric="learned"[\s\S]*?<dd[^>]*>1<\/dd>/);
+  assert.match(markup, /data-study-progress-segment="achieved"/);
+  assert.doesNotMatch(markup, /Keine Karten mehr fällig|Für heute alles geschafft|benötigte Zeit/);
+});
+
+test("dashboard keeps later same-day learning steps in a disabled waiting state", () => {
+  const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const deck = createCoreDeck({
+    id: "waiting",
+    name: "Warten",
+    source: "manual",
+    cards: [createCoreCard({
+      id: "waiting-card",
+      source: "manual",
+      reviewState: { state: "learning", dueAt: "2026-08-06T12:00:00.000Z", reps: 1 },
+    })],
+  });
+  const markup = renderToStaticMarkup(
+    <DashboardScreen
+      state={{ ...baseState, decks: [deck] }}
+      now="2026-08-06T10:00:00.000Z"
+      {...dashboardCallbacks}
+    />,
+  );
+
+  assert.match(markup, /data-status="waiting"/);
+  assert.match(markup, /In Arbeit: 1 Karte/);
+  assert.match(markup, /<button[^>]*disabled=""[^>]*>[\s\S]*Später weiterlernen/);
+  assert.doesNotMatch(markup, /Tagesziel erreicht/);
+});
+
+test("achieved dashboard offers additional new cards only when stock remains beyond the daily limit", () => {
+  const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const extraDeck = createCoreDeck({
+    id: "extra",
+    name: "Zusatz",
+    source: "manual",
+    deckSettings: { newCardsPerDay: 0 },
+    cards: [createCoreCard({ id: "extra-card", source: "manual", reviewState: { state: "new", reps: 0 } })],
+  });
+  const noExtraDeck = createCoreDeck({
+    id: "no-extra",
+    name: "Ohne Zusatz",
+    source: "manual",
+    deckSettings: { newCardsPerDay: 0 },
+    cards: [],
+  });
+  const extraMarkup = renderToStaticMarkup(<DashboardScreen state={{ ...baseState, decks: [extraDeck] }} now="2026-08-06T10:00:00.000Z" {...dashboardCallbacks} />);
+  const noExtraMarkup = renderToStaticMarkup(<DashboardScreen state={{ ...baseState, decks: [noExtraDeck] }} now="2026-08-06T10:00:00.000Z" {...dashboardCallbacks} />);
+
+  assert.match(extraMarkup, /Tagesziel erreicht/);
+  assert.match(extraMarkup, /<button(?![^>]*disabled)[^>]*>[\s\S]*Zusätzliche Karten lernen/);
+  assert.match(extraMarkup, /Plan für morgen ansehen/);
+  assert.match(noExtraMarkup, /<button[^>]*disabled=""[^>]*>[\s\S]*Zusätzliche Karten lernen/);
 });

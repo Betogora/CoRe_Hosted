@@ -45,6 +45,7 @@ export interface DashboardScreenProps {
   now: string;
   onNavigate: NavigateToView;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
+  onStartAdditionalCards: (deckId: string, additionalCount: number) => { ok: boolean; message?: string };
   onCreateDemo: () => Promise<Deck[] | null>;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;

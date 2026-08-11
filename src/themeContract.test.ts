@@ -49,6 +49,8 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
   ]) {
     assert.equal((styles.match(new RegExp(`--core-learning-status-${status}:\\s*var\\(--core-${role}\\)`, "g")) ?? []).length, 2);
   }
+  assert.match(styles, /--core-learning-goal-achieved:\s*#2f7d68/);
+  assert.match(dark, /--core-learning-goal-achieved:\s*#72d6b5/);
 });
 
 test("heatmap keeps historical lilac and uses a theme-adaptive gray forecast scale", () => {
@@ -127,7 +129,7 @@ test("dragged deck rows lift vertically while their surroundings adapt to the th
 
 test("the UI catalog lists every canonical shared export", () => {
   const catalog = readFileSync("src/ui/README.md", "utf8");
-  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "SegmentedDonut", "CoreModeControl", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
+  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "SegmentedDonut", "DailyReviewProgress", "CoreModeControl", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
     assert.match(catalog, new RegExp(`\\b${name}\\b`));
   }
 });

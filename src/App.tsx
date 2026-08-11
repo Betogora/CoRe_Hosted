@@ -30,9 +30,11 @@ import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
 import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.ts";
 import { getGlobalSchedulerPreferences, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
 import { getLearningDayKey, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
+import { createDeckLibraryModel } from "./libraryModel.ts";
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
 import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
+import { updateDeckNewCardLimitForDate } from "./reviewService.ts";
 import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
 import { SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
@@ -989,6 +991,40 @@ export function App() {
     }), { replace: activeView === "stapel-einstellungen" });
   }
 
+  function startAdditionalCards(deckId: string, requestedCount: number): { ok: boolean; message?: string } {
+    if (!workspace) return { ok: false, message: "Die zusätzlichen Karten konnten nicht vorbereitet werden." };
+    const currentState = workspace.getState();
+    const currentPreferences = getGlobalSchedulerPreferences(currentState.profile);
+    const currentTimeZone = currentState.profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    const currentPlan = createDeckLibraryModel(currentState.decks, {
+      now: getLearningNow(),
+      dayStartHour: currentPreferences.dayStartHour,
+      learnAheadMinutes: currentPreferences.learnAheadMinutes,
+      timeZone: currentTimeZone,
+    }).dailyLearningPlan;
+    const session = currentPlan.sessions.find((candidate) => candidate.deckId === deckId) ?? null;
+    const additionalCount = Math.min(
+      Math.max(0, Math.floor(Number(requestedCount) || 0)),
+      session?.additionalNewCount ?? 0,
+    );
+
+    if (currentPlan.status !== "achieved" || !session || additionalCount === 0) {
+      return { ok: false, message: "Für diesen Stapel sind keine zusätzlichen neuen Karten verfügbar." };
+    }
+
+    const updatedDeck = runWorkspaceMutation((currentWorkspace) => currentWorkspace.updateDeck(deckId, (deck) => (
+      updateDeckNewCardLimitForDate(
+        deck,
+        Math.max(session.effectiveNewLimit, session.introducedTodayCount) + additionalCount,
+        { dateKey: currentPlan.dateKey, updatedAt: new Date().toISOString() },
+      )
+    )));
+    if (!updatedDeck) return { ok: false, message: "Die zusätzlichen Karten konnten nicht gespeichert werden." };
+
+    startDeck(updatedDeck);
+    return { ok: true };
+  }
+
   function openDecks(deckId: string | null = null, cardId: string | null = null) {
     navigateToView("kartenstapel", {
       focusedDeckId: deckId || null,
@@ -1208,7 +1244,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onCreateDemo={createDemo} onSetDeckCoreMode={setDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} />;
+    return <DashboardScreen state={state} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={setDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} />;
   }
 
   if (authPhase === "checking-session") {

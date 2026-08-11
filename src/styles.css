@@ -64,6 +64,7 @@
   --core-learning-status-new: var(--core-deck-new-text);
   --core-learning-status-in-progress: var(--core-danger);
   --core-learning-status-due: var(--core-deck-due-text);
+  --core-learning-goal-achieved: #2f7d68;
 
   /* Compatibility aliases for existing status call sites. */
   --core-status-info-border: var(--core-info);
@@ -126,6 +127,7 @@
   --core-learning-status-new: var(--core-deck-new-text);
   --core-learning-status-in-progress: var(--core-danger);
   --core-learning-status-due: var(--core-deck-due-text);
+  --core-learning-goal-achieved: #72d6b5;
 }
 
 @layer components {

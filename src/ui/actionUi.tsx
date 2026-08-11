@@ -1,5 +1,12 @@
 import React from "react";
-import { LoaderCircle, type LucideIcon } from "lucide-react";
+import { ChevronRight, LoaderCircle, type LucideIcon } from "lucide-react";
+
+const ACTION_VARIANT_CLASS = {
+  primary: "core-action-primary",
+  secondary: "core-action-secondary",
+  destructive: "core-action-destructive",
+  ghost: "core-action-ghost",
+} as const;
 
 export interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant: "primary" | "secondary" | "destructive";
@@ -17,7 +24,7 @@ export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProp
       ref={ref}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`core-action-${variant} ${className}`}
+      className={`${ACTION_VARIANT_CLASS[variant]} ${className}`}
     >
       {loading ? (
         <LoaderCircle className="animate-spin" size={18} aria-hidden="true" />
@@ -45,9 +52,37 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
       {...props}
       ref={ref}
       aria-label={label}
-      className={`core-action-${variant} min-w-11 p-2.5 ${className}`}
+      className={`${ACTION_VARIANT_CLASS[variant]} min-w-11 p-2.5 ${className}`}
     >
       <Icon size={20} aria-hidden="true" />
     </button>
   );
 });
+
+interface CrossLinkBaseProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export type CrossLinkButtonProps = CrossLinkBaseProps & (
+  | { href: string; onSelect?: never }
+  | { href?: never; onSelect: () => void }
+);
+
+const CROSS_LINK_CLASS = "inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2";
+
+export function CrossLinkButton({ children, className = "", ...action }: CrossLinkButtonProps) {
+  const content = (
+    <>
+      {children}
+      <ChevronRight size={15} aria-hidden="true" />
+    </>
+  );
+  const resolvedClassName = `${CROSS_LINK_CLASS} ${className}`;
+
+  return action.href ? (
+    <a href={action.href} className={resolvedClassName}>{content}</a>
+  ) : (
+    <button type="button" onClick={action.onSelect} className={resolvedClassName}>{content}</button>
+  );
+}

@@ -1,6 +1,6 @@
 import { stripHtml } from "./htmlSafety.ts";
 import { listReviewableCards, summarizeDeckReview } from "./scheduler.ts";
-import { createDailyReviewQueue } from "./reviewService.ts";
+import { createDailyReviewQueue, type DailyReviewProgressSummary } from "./reviewService.ts";
 import {
   createStudyHeatmapForecastCounts,
   createStudyHeatmapModelFromCounts,
@@ -29,6 +29,21 @@ export interface DeckStatusDistribution {
   inProgressCards: number;
   dueCards: number;
   learnedCards: number;
+}
+export interface DailyLearningSession {
+  deckId: string;
+  progress: DailyReviewProgressSummary;
+  startableCount: number;
+  additionalNewCount: number;
+  effectiveNewLimit: number;
+  introducedTodayCount: number;
+}
+export interface DailyLearningPlan {
+  dateKey: string;
+  status: "open" | "waiting" | "achieved";
+  progress: DailyReviewProgressSummary;
+  sessions: DailyLearningSession[];
+  firstStartableDeckId: string | null;
 }
 export type CardTableSortField = "sortField" | "nextStudyDate" | "variants";
 export interface CardTableSort {
@@ -78,14 +93,16 @@ function createDeckRow(
   const activeCards = listReviewableCards(deck);
   const dayOptions = { dayStartHour, learnAheadMinutes, timeZone };
   const directInventory = summarizeDeckReview(deck, now, dayOptions);
-  const directDaily = createDailyReviewQueue(deck, { deckId: deck.id, now, ...dayOptions }).dailyProgress;
+  const directQueue = createDailyReviewQueue(deck, { deckId: deck.id, now, ...dayOptions });
+  const directDaily = directQueue.dailyProgress;
   const isLeafScope = scopeDecks.length === 1 && scopeDecks[0]?.id === deck.id;
   const inventory = isLeafScope
     ? directInventory
     : summarizeDeckReview({ ...deck, cards: scopeDecks.flatMap((scopeDeck) => scopeDeck.cards ?? []) }, now, dayOptions);
-  const daily = isLeafScope
-    ? directDaily
-    : createDailyReviewQueue(scopeDecks, { deckId: deck.id, now, ...dayOptions }).dailyProgress;
+  const scopeQueue = isLeafScope
+    ? directQueue
+    : createDailyReviewQueue(scopeDecks, { deckId: deck.id, now, ...dayOptions });
+  const daily = scopeQueue.dailyProgress;
   const directSummary = {
     ...directInventory,
     newCards: directDaily.newCount,
@@ -114,6 +131,15 @@ function createDeckRow(
     directSummary,
     statusDistribution: createDeckStatusDistribution(inventory),
     directStatusDistribution: createDeckStatusDistribution(directInventory),
+    dailyLearningSession: {
+      deckId: deck.id,
+      progress: daily,
+      startableCount: scopeQueue.total,
+      additionalNewCount: Math.max(0, scopeQueue.availableNewCards - scopeQueue.newCount),
+      effectiveNewLimit: scopeQueue.newCardsPerDay,
+      introducedTodayCount: scopeQueue.newCardsIntroducedToday,
+    } satisfies DailyLearningSession,
+    dailyLearningDateKey: scopeQueue.dateKey,
     activeCards,
     cardRows: activeCards.slice(0, cardLimit).map((card) => ({
       id: card.id,
@@ -152,6 +178,16 @@ function createCardTableRow(card: LearningItem, options: Pick<LibraryOptions, "d
 export type CardTableRow = ReturnType<typeof createCardTableRow>;
 
 export type CardTableGroup = Omit<DeckLibraryRow, "cardRows"> & { cardRows: CardTableRow[] };
+
+function combineDailyProgress(progressValues: DailyReviewProgressSummary[]): DailyReviewProgressSummary {
+  return progressValues.reduce<DailyReviewProgressSummary>((summary, progress) => ({
+    completedTodayCount: summary.completedTodayCount + progress.completedTodayCount,
+    newCount: summary.newCount + progress.newCount,
+    inProgressCount: summary.inProgressCount + progress.inProgressCount,
+    dueCount: summary.dueCount + progress.dueCount,
+    total: summary.total + progress.total,
+  }), { completedTodayCount: 0, newCount: 0, inProgressCount: 0, dueCount: 0, total: 0 });
+}
 
 function sortCardRows(rows: CardTableRow[], sort: CardTableSort): CardTableRow[] {
   const direction = sort.direction === "desc" ? -1 : 1;
@@ -230,12 +266,28 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
   const rows = flattenDeckTree(decks, { now, cardLimit, dayStartHour: options.dayStartHour, learnAheadMinutes: options.learnAheadMinutes, timeZone: options.timeZone });
   const filteredRows = rows.filter((row) => matchesDeckRow(row, query, coreMode));
   const selectedRow = rows.find((row) => row.id === options.selectedDeckId) ?? filteredRows[0] ?? null;
+  const sessions = rows
+    .filter((row) => row.depth === 0)
+    .map((row) => row.dailyLearningSession);
+  const progress = combineDailyProgress(sessions.map((session) => session.progress));
+  const firstStartableDeckId = sessions.find((session) => session.startableCount > 0)?.deckId ?? null;
+  const remainingCount = progress.newCount + progress.inProgressCount + progress.dueCount;
+  const dailyLearningPlan: DailyLearningPlan = {
+    dateKey: rows.find((row) => row.depth === 0)?.dailyLearningDateKey
+      ?? getStudyHeatmapDayKey(now, options.timeZone, options.dayStartHour)
+      ?? new Date(now).toISOString().slice(0, 10),
+    status: remainingCount === 0 ? "achieved" : firstStartableDeckId ? "open" : "waiting",
+    progress,
+    sessions,
+    firstStartableDeckId,
+  };
 
   return {
     rows,
     filteredRows,
     selectedRow,
     dueCards: rows.reduce((total, row) => total + row.directSummary.dueCards, 0),
+    dailyLearningPlan,
     studyHeatmap: createStudyHeatmapModel(decks, { now, timeZone: options.timeZone, dayStartHour: options.dayStartHour }),
   };
 }

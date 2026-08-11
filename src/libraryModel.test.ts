@@ -201,6 +201,91 @@ test("library model keeps new, in-progress and due deck counts disjoint", () => 
   assert.equal(library.dueCards, 1);
 });
 
+test("daily learning plan aggregates sorted root sessions without counting descendants twice", () => {
+  const parent = createCoreDeck({
+    id: "root-alpha",
+    name: "Alpha",
+    source: "manual",
+    deckSettings: { newCardsPerDay: 2, maximumReviewsPerDay: 2 },
+    cards: [],
+  });
+  const child = createCoreDeck({
+    id: "child-alpha",
+    parentDeckId: parent.id,
+    name: "Kind",
+    source: "manual",
+    cards: [createCoreCard({ id: "new-child", source: "manual", reviewState: { state: "new", reps: 0 } })],
+  });
+  const secondRoot = createCoreDeck({
+    id: "root-beta",
+    name: "Beta",
+    source: "manual",
+    cards: [createCoreCard({
+      id: "due-root",
+      source: "manual",
+      reviewState: { state: "review", dueAt: "2026-07-01T07:00:00.000Z", reps: 3 },
+    })],
+  });
+
+  const plan = createDeckLibraryModel([secondRoot, child, parent], { now: "2026-07-01T08:00:00.000Z" }).dailyLearningPlan;
+
+  assert.deepEqual(plan.sessions.map((session) => session.deckId), [parent.id, secondRoot.id]);
+  assert.deepEqual(plan.progress, {
+    completedTodayCount: 0,
+    newCount: 1,
+    inProgressCount: 0,
+    dueCount: 1,
+    total: 2,
+  });
+  assert.equal(plan.firstStartableDeckId, parent.id);
+  assert.equal(plan.status, "open");
+});
+
+test("daily learning plan separates future same-day learning from currently startable cards", () => {
+  const deck = createCoreDeck({
+    id: "root-waiting",
+    name: "Warten",
+    source: "manual",
+    cards: [createCoreCard({
+      id: "waiting-item",
+      source: "manual",
+      reviewState: { state: "learning", dueAt: "2026-07-01T10:00:00.000Z", reps: 1 },
+    })],
+  });
+
+  const plan = createDeckLibraryModel([deck], {
+    now: "2026-07-01T08:00:00.000Z",
+    learnAheadMinutes: 20,
+  }).dailyLearningPlan;
+
+  assert.equal(plan.status, "waiting");
+  assert.equal(plan.firstStartableDeckId, null);
+  assert.equal(plan.progress.inProgressCount, 1);
+  assert.equal(plan.sessions[0].startableCount, 0);
+});
+
+test("daily learning sessions expose only new cards beyond the selected daily limit as additional stock", () => {
+  const deck = createCoreDeck({
+    id: "root-extra",
+    name: "Zusatz",
+    source: "manual",
+    deckSettings: { newCardsPerDay: 1 },
+    cards: [1, 2, 3].map((number) => createCoreCard({
+      id: `new-${number}`,
+      source: "manual",
+      reviewState: { state: "new", reps: 0 },
+    })),
+  });
+
+  const session = createDeckLibraryModel([deck], { now: "2026-07-01T08:00:00.000Z" }).dailyLearningPlan.sessions[0];
+
+  assert.equal(session.progress.newCount, 1);
+  assert.equal(session.startableCount, 1);
+  assert.equal(session.additionalNewCount, 2);
+  assert.equal(session.effectiveNewLimit, 1);
+  assert.equal(session.introducedTodayCount, 0);
+});
+
 test("deck counters and overall status distribution exclude blocked cards while the card table keeps them", () => {
   const card = (id: string, state: "new" | "learning" | "review" | "relearning", dueAt: string, reps: number) => createCoreCard({
     id,

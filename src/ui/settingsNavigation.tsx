@@ -1,4 +1,3 @@
-import React, { type ReactNode } from "react";
 import { ChevronRight, type LucideIcon } from "lucide-react";
 
 export type SettingsSectionTone = "info" | "success" | "warning";
@@ -69,33 +68,5 @@ export function SettingsSectionNavigation({ ariaLabel, items, className = "" }: 
         })}
       </ul>
     </nav>
-  );
-}
-
-interface SettingsCrossLinkBaseProps {
-  children: ReactNode;
-  className?: string;
-}
-
-export type SettingsCrossLinkButtonProps = SettingsCrossLinkBaseProps & (
-  | { href: string; onSelect?: never }
-  | { href?: never; onSelect: () => void }
-);
-
-const crossLinkClassName = "inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2";
-
-export function SettingsCrossLinkButton({ children, className = "", ...action }: SettingsCrossLinkButtonProps) {
-  const content = (
-    <>
-      {children}
-      <ChevronRight size={15} aria-hidden="true" />
-    </>
-  );
-  const resolvedClassName = `${crossLinkClassName} ${className}`;
-
-  return action.href ? (
-    <a href={action.href} className={resolvedClassName}>{content}</a>
-  ) : (
-    <button type="button" onClick={action.onSelect} className={resolvedClassName}>{content}</button>
   );
 }

@@ -5,14 +5,14 @@ import type { DeckSettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeDeckAppearance } from "../coreModel.ts";
 import { getLearningProfileTemplate } from "../deckSettings.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
-import { ActionButton } from "../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
 import { DeckAppearanceIcon, deckIconOptions, getDeckIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
-import { SettingsCrossLinkButton, SettingsSectionNavigation } from "../ui/settingsNavigation.tsx";
+import { SettingsSectionNavigation } from "../ui/settingsNavigation.tsx";
 
 function DeckIconPicker({ value, color, onChange }: { value: string; color: string; onChange: (iconKey: string) => void }) {
   const SelectedIcon = getDeckIcon(value);
@@ -66,7 +66,7 @@ export function DeckSettingsScreen({ deck, decks, learningProfiles, onSave, onSa
   if (!deck) {
     return (
       <div className="grid min-w-0 gap-6">
-        <div className="flex flex-wrap items-end justify-between gap-4"><PageHeader eyebrow="Stapel" title="Stapeleinstellungen" /><SettingsCrossLinkButton onSelect={onOpenGlobalSettings}>Globale Einstellungen</SettingsCrossLinkButton></div>
+        <div className="flex flex-wrap items-end justify-between gap-4"><PageHeader eyebrow="Stapel" title="Stapeleinstellungen" /><CrossLinkButton onSelect={onOpenGlobalSettings}>Globale Einstellungen</CrossLinkButton></div>
         {decks.length > 0 ? (
           <SoftPanel className="p-6 sm:p-8">
             <div className="mx-auto grid max-w-xl gap-4 text-center">
@@ -131,7 +131,7 @@ export function DeckSettingsScreen({ deck, decks, learningProfiles, onSave, onSa
     <div className="grid min-w-0 gap-7" data-testid={`deck-settings-${deck.id}`}>
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <PageHeader eyebrow="Stapel-Einstellungen" title={<span className="flex min-w-0 items-center gap-3"><DeckAppearanceIcon appearance={appearance} className="size-11" iconSize={20} data-testid="deck-settings-title-icon" /><span className="min-w-0 break-words" data-testid="deck-settings-title-name">{deck.name}</span></span>} />
-        <div className="flex flex-wrap gap-2"><SettingsCrossLinkButton onSelect={onOpenGlobalSettings}>Globale Einstellungen</SettingsCrossLinkButton><button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action"><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button></div>
+        <div className="flex flex-wrap gap-2"><CrossLinkButton onSelect={onOpenGlobalSettings}>Globale Einstellungen</CrossLinkButton><button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action"><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button></div>
       </div>
 
       <SettingsSectionNavigation ariaLabel="Bereiche der Stapeleinstellungen" items={sectionItems} />
