@@ -83,7 +83,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
 function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme }: ResponsiveNavigationProps) {
   return (
     <aside className="hidden border-r border-[var(--core-border)] bg-core-surface xl:block xl:overflow-y-auto" data-navigation-layout="sidebar">
-      <div className="flex h-full flex-col px-4 py-8 lg:px-5 lg:py-10">
+      <div className="flex h-full flex-col px-4 py-8 lg:px-5 lg:pt-10 lg:pb-5">
         <div>
           <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
           <p className="mt-2 core-body-large text-[var(--core-text-muted)]">Content Repetition</p>

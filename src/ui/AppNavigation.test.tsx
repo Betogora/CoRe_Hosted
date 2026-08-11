@@ -60,6 +60,7 @@ test("responsive navigation shares compact settings and theme actions without a 
   assert.equal((markup.match(/aria-label="Dark Mode einschalten"/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
   assert.match(sidebarMarkup, /class="[^"]*justify-start" data-navigation-utilities="true"/);
+  assert.match(sidebarMarkup, /lg:pt-10 lg:pb-5/);
   assert.doesNotMatch(sidebarMarkup, /border-t/);
   assert.ok(sidebarMarkup.indexOf('data-navigation-utility="settings"') < sidebarMarkup.indexOf('data-navigation-utility="theme"'));
   assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="theme"') < mobileHeaderMarkup.indexOf('data-navigation-utility="settings"'));
