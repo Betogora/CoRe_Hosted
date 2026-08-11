@@ -341,8 +341,9 @@ test("repository starts empty and neutral unless a fixture is explicitly request
   assert.equal(state.decks.length, 0);
   assert.equal(state.profile.displayName, "");
   assert.equal(state.profile.email, "");
-  assert.equal(state.profile.university, "");
-  assert.equal(state.profile.fieldOfStudy, "");
+  assert.equal(Object.hasOwn(state.profile, "university"), false);
+  assert.equal(Object.hasOwn(state.profile, "fieldOfStudy"), false);
+  assert.equal(Object.hasOwn(state.profile, "preferredLanguage"), false);
 });
 
 test("workspace creates the world-capitals fixture only through the explicit demo action", () => {

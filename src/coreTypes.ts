@@ -72,9 +72,6 @@ export interface Profile {
   userId: string;
   email: string;
   displayName: string;
-  university: string;
-  fieldOfStudy: string;
-  preferredLanguage: string;
   timezone: string;
   onboardingComplete: boolean;
   schedulerPreferences: Record<string, unknown>;

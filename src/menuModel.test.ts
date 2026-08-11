@@ -51,6 +51,7 @@ test("keeps cards in primary navigation and utility views outside it", () => {
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("einstellungen").title, "Einstellungen");
+  assert.deepStrictEqual(menu.getView("einstellungen")?.stats, []);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "kartenstapel"), true);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "einstellungen"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "hilfe"), false);

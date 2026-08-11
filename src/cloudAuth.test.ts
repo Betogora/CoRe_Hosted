@@ -24,7 +24,7 @@ const user = {
   created_at: "2026-07-09T07:00:00.000Z",
 };
 
-test("cloud auth maps local profile fields into a Supabase profile row", () => {
+test("cloud auth maps only active local profile fields into a Supabase profile row", () => {
   const row = createProfileRow(
     {
       displayName: "Noemi",
@@ -42,7 +42,9 @@ test("cloud auth maps local profile fields into a Supabase profile row", () => {
   assert.equal(row.id, user.id);
   assert.equal(row.email, "noemi@example.test");
   assert.equal(row.display_name, "Noemi");
-  assert.equal(row.field_of_study, "Medizin");
+  assert.equal(Object.hasOwn(row, "university"), false);
+  assert.equal(Object.hasOwn(row, "field_of_study"), false);
+  assert.equal(Object.hasOwn(row, "preferred_language"), false);
   assert.equal(row.updated_at, "2026-07-09T07:30:00.000Z");
   assert.deepEqual(row.scheduler_preferences, { settingsVersion: 1, dayStartHour: 3, learnAheadMinutes: 20, learningProfiles: [] });
   assert.deepEqual(row.ui_preferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"] });
@@ -54,6 +56,8 @@ test("cloud auth creates a password-free signed-in profile", () => {
       id: user.id,
       email: "noemi@example.test",
       display_name: "Noemi",
+      university: "Legacy Uni",
+      field_of_study: "Legacy-Fach",
       preferred_language: "de",
       scheduler_preferences: { profile: "standard", dayStartHour: 3 },
       ui_preferences: { dashboardCollapsedDeckIds: ["deck-a"], deckManagerExpandedDeckIds: ["deck-b"] },
@@ -69,6 +73,9 @@ test("cloud auth creates a password-free signed-in profile", () => {
   assert.equal(profile.account.status, "signed-in");
   assert.equal(profile.account.passwordVerifier, undefined);
   assert.equal(profile.displayName, "Noemi");
+  assert.equal(Object.hasOwn(profile, "university"), false);
+  assert.equal(Object.hasOwn(profile, "fieldOfStudy"), false);
+  assert.equal(Object.hasOwn(profile, "preferredLanguage"), false);
   assert.deepEqual(profile.schedulerPreferences, { settingsVersion: 1, dayStartHour: 3, learnAheadMinutes: 20, learningProfiles: [] });
   assert.deepEqual(profile.uiPreferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"] });
 });

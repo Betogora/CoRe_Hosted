@@ -160,6 +160,7 @@ Die Tagesqueue projiziert New, Learning/Relearning und Review getrennt. New und 
 ## 6. Persistenz, Sync und Medien
 
 - `src/accountStorage.ts` trennt lokale Cache-Keys pro Account.
+- Das aktive `Profile`-Modell führt neben Accountstatus und UI-/Scheduler-Präferenzen nur Anzeigename, Login-E-Mail und Zeitzone. Hochschule, Fachgebiet und bevorzugte Sprache werden weder normalisiert noch synchronisiert oder exportiert. Die bereits ausgerollten gleichnamigen Spalten der `profiles`-Tabelle bleiben als inaktive Persistenz-Kompatibilität bestehen.
 - `Profile.schedulerPreferences` transportiert Tagesbeginn, Vorziehfenster und eigene Lernprofil-Vorlagen durch den bestehenden Last-write-wins-Profil-Sync sowie Workspace-Export und -Import. Gleiche Vorlagen-IDs werden beim Import dedupliziert; Inhaltskollisionen erhalten eine neue ID und einen eindeutigen Namen, auf den die Herkunft neu importierter Stapel umgebogen wird. Fehlende globale Felder eines Legacy-Imports lassen vorhandene lokale Werte unverändert. `deck_settings` bleibt revisioniert, konfliktfähig und enthält ausschließlich materialisierte Werte plus Herkunft. Es ist keine Schemamigration erforderlich.
 - Revisionierte Entitäten tragen Revision, Soft-Delete-Zeitpunkt und Geräte-ID.
 - Mutationen werden nur gegen die erwartete Basisrevision bestätigt. Abweichungen erzeugen accountgebundene Konflikte statt stiller Merges.

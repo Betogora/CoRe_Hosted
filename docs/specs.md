@@ -238,10 +238,9 @@ Akzeptanz:
 ### 6.1 Account und Einstellungen
 
 - E-Mail-/Passwort ist die freigegebene Kernanmeldung.
-- Hochschule und Fachgebiet sind optionale Profildaten und blockieren keinen Lernstart.
-- Globale Einstellungen sind in `Konto & Datenschutz`, `Lerntag & Fokus` und `Daten & Synchronisierung` gegliedert. Stapeleinstellungen verwenden `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`. Beide Seiten besitzen drei responsive Bereichskarten und einen direkten Querlink.
+- Das sichtbare und aktive Profil enthält Anzeigename und Login-E-Mail. Hochschule, Fachgebiet und eine Spracheinstellung sind nicht Teil des aktiven Profilmodells; die Oberfläche bleibt global deutsch. Solange die Community-Funktion deaktiviert ist, erscheint kein separater Privatsphäre-Bereich.
+- Globale Einstellungen sind in `Konto`, `Lerntag & Fokus` und `Daten & Synchronisierung` gegliedert. Stapeleinstellungen verwenden `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`. Beide Seiten besitzen drei responsive Bereichskarten und einen direkten Querlink.
 - Tagesbeginn und Vorziehfenster sind accountweite Scheduler-Präferenzen und werden über Profil-Sync sowie Export und Import transportiert. Tageslimits, Reihenfolge, Schedulerwerte, CoRe-Modus und Variantenparameter existieren nicht in den globalen Einstellungen.
-- Sprache erscheint ehrlich als read-only `Deutsch (Beta)`; ein wirkungsloser englischer UI-Modus wird nicht angeboten.
 - Der Portabilitätsexport nennt vor dem Download seine Grenzen: keine Medienbytes, Authdaten, Serverrechte oder vollständige Art.-15-Auskunft.
 - Sicherheitskritische Aktionen sind klar von Profil- und Lernoptionen getrennt.
 

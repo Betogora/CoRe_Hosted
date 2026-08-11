@@ -4,9 +4,6 @@ export function createLocalAccount({
   displayName = "",
   email = "",
   password = "",
-  university = "",
-  fieldOfStudy = "",
-  preferredLanguage = "de",
   now = new Date().toISOString(),
 }: any = {}) {
   const normalizedEmail = String(email).trim().toLowerCase();
@@ -21,9 +18,6 @@ export function createLocalAccount({
     userId: stableContentHash({ normalizedEmail }, "user"),
     email: normalizedEmail,
     displayName: displayName.trim() || normalizedEmail.split("@")[0],
-    university,
-    fieldOfStudy,
-    preferredLanguage,
     onboardingComplete: true,
     account: {
       status: "signed-in",

@@ -239,7 +239,7 @@ test("v1 export discards Labs content and keeps Core decks", () => {
     schema: "core-portable-export",
     schemaVersion: 1,
     exportedAt: "2026-07-01T08:00:00.000Z",
-    profile: { displayName: "Ada", privacy: { showOnlineStatus: true } },
+    profile: { displayName: "Ada", university: "Legacy Uni", fieldOfStudy: "Legacy-Fach", preferredLanguage: "en", privacy: { showOnlineStatus: true } },
     communities: [{ id: "community_1" }],
     aiJobs: [{ id: "job_1" }],
     documents: [],
@@ -258,7 +258,7 @@ test("v1 export discards Labs content and keeps Core decks", () => {
   assert.equal(validation.payload?.schemaVersion, 2);
   assert.deepEqual(validation.payload?.decks.map((deck) => deck.id), ["core"]);
   assert.deepEqual(validation.payload?.decks[0].cards.map((card: { id: string }) => card.id), ["core-card"]);
-  assert.equal("privacy" in (validation.payload?.profile ?? {}), false);
+  for (const key of ["privacy", "university", "fieldOfStudy", "preferredLanguage"]) assert.equal(key in (validation.payload?.profile ?? {}), false);
   assert.equal("communities" in (validation.payload ?? {}), false);
   assert.equal("aiJobs" in (validation.payload ?? {}), false);
 });
@@ -267,7 +267,7 @@ test("repository migrates v2 state once to Labs-free v3", () => {
   const storage = createMemoryStorage();
   storage.setItem("core.appState.v2", JSON.stringify({
     version: 2,
-    profile: { displayName: "Ada", privacy: { showOnlineStatus: true } },
+    profile: { displayName: "Ada", university: "Legacy Uni", fieldOfStudy: "Legacy-Fach", preferredLanguage: "en", privacy: { showOnlineStatus: true } },
     communities: [{ id: "community_1" }],
     aiJobs: [{ id: "job_1" }],
     chatTranscript: [{ id: "message_1" }],
@@ -290,7 +290,7 @@ test("repository migrates v2 state once to Labs-free v3", () => {
   assert.deepEqual(state.decks[0].cards.map((card: { id: string }) => card.id), ["core-card"]);
   for (const key of ["communities", "aiJobs", "chatTranscript", "learningPlans"]) assert.equal(key in persisted, false);
   for (const key of ["visibility", "graph", "communityRefs", "aiJobs"]) assert.equal(key in persisted.decks[0], false);
-  assert.equal("privacy" in persisted.profile, false);
+  for (const key of ["privacy", "university", "fieldOfStudy", "preferredLanguage"]) assert.equal(key in persisted.profile, false);
 });
 
 test("portable export roundtrips structured card editor content", () => {

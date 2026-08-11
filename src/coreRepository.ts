@@ -27,9 +27,6 @@ function createDefaultProfile() {
     userId: "local-user",
     email: "",
     displayName: "",
-    university: "",
-    fieldOfStudy: "",
-    preferredLanguage: "de",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Berlin",
     onboardingComplete: false,
     schedulerPreferences: withGlobalSchedulerPreferences({}).schedulerPreferences,
@@ -94,7 +91,13 @@ function normalizeState(rawState: any) {
   const fallback = createDefaultState({ seedDefaultDecks: false });
   const decks = ensureWorldCapitalsStudyHistory(normalizeStoredDecks(rawState?.decks));
 
-  const { privacy: _privacy, ...profile } = rawState?.profile ?? {};
+  const {
+    privacy: _privacy,
+    university: _university,
+    fieldOfStudy: _fieldOfStudy,
+    preferredLanguage: _preferredLanguage,
+    ...profile
+  } = rawState?.profile ?? {};
   return {
     version: 3,
     profile: withGlobalSchedulerPreferences({
@@ -112,7 +115,7 @@ function normalizeState(rawState: any) {
 function hasRetiredState(rawState: any) {
   if (!rawState || typeof rawState !== "object") return false;
   if (rawState.version !== 3 || ["communities", "aiJobs", "chatTranscript", "learningPlans"].some((key) => key in rawState)) return true;
-  if (rawState.profile && typeof rawState.profile === "object" && "privacy" in rawState.profile) return true;
+  if (rawState.profile && typeof rawState.profile === "object" && ["privacy", "university", "fieldOfStudy", "preferredLanguage"].some((key) => key in rawState.profile)) return true;
   return (rawState.decks ?? []).some((deck: any) =>
     RETIRED_DECK_SOURCES.has(deck?.source)
     || ["aiJobs", "graph", "communityRefs", "visibility"].some((key) => key in (deck ?? {}))
@@ -266,7 +269,13 @@ export function createCoreRepository(storage: any = null, options: any = {}) {
     },
     saveProfile(profile: any) {
       const state = readState(resolvedStorage, { seedDefaultDecks });
-      const patch = profile && typeof profile === "object" ? profile : {};
+      const rawPatch = profile && typeof profile === "object" ? profile : {};
+      const {
+        university: _university,
+        fieldOfStudy: _fieldOfStudy,
+        preferredLanguage: _preferredLanguage,
+        ...patch
+      } = rawPatch;
       const nextProfile = withGlobalSchedulerPreferences({
         ...state.profile,
         ...patch,

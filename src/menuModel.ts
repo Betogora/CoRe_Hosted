@@ -114,11 +114,7 @@ const views: MenuView[] = [
     navigation: "hidden",
     title: "Einstellungen",
     eyebrow: "Profil",
-    stats: [
-      { label: "Sprache", value: "de" },
-      { label: "CoRe", value: "Auto" },
-      { label: "Privacy", value: "Privat" },
-    ],
+    stats: [],
   },
 ];
 const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "neue-karten", "statistik", "kartenstapel"];

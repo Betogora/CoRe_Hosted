@@ -26,7 +26,14 @@ const portableExportV1Schema = v.looseObject({
 const CORE_DECK_SOURCES = new Set(["anki-apkg", "manual", "text-import", "csv-import", "json-import", "spreadsheet-import"]);
 
 function redactProfile(profile: any) {
-  const { account, privacy: _privacy, ...publicProfile } = profile ?? {};
+  const {
+    account,
+    privacy: _privacy,
+    university: _university,
+    fieldOfStudy: _fieldOfStudy,
+    preferredLanguage: _preferredLanguage,
+    ...publicProfile
+  } = profile ?? {};
   return {
     ...publicProfile,
     account: account

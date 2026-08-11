@@ -27,9 +27,6 @@ const profileRowSchema = v.looseObject({
   id: v.string(),
   email: v.optional(v.string()),
   display_name: v.optional(v.string()),
-  university: v.optional(v.nullable(v.string())),
-  field_of_study: v.optional(v.nullable(v.string())),
-  preferred_language: v.optional(v.string()),
   timezone: v.optional(v.string()),
   onboarding_complete: v.optional(v.boolean()),
   scheduler_preferences: v.optional(v.record(v.string(), v.unknown())),
@@ -171,9 +168,6 @@ export function createProfileRow(profile: any, user: any, timestamp: any = nowIs
     id: user.id,
     email,
     display_name: String(profile?.displayName ?? "").trim() || email.split("@")[0] || "",
-    university: profile?.university ?? "",
-    field_of_study: profile?.fieldOfStudy ?? "",
-    preferred_language: profile?.preferredLanguage ?? "de",
     timezone: profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
     onboarding_complete: Boolean(profile?.onboardingComplete ?? true),
     scheduler_preferences: withGlobalSchedulerPreferences(profile ?? {}).schedulerPreferences,
@@ -185,31 +179,40 @@ export function createProfileRow(profile: any, user: any, timestamp: any = nowIs
 export function createCloudProfile(row: any, user: any, fallback: any = {}, timestamp: any = nowIso()) {
   const validatedRow = row == null ? null : validateProfileRow(row);
   const email = normalizeEmail(validatedRow?.email ?? user?.email ?? fallback?.email);
+  const {
+    university: _university,
+    fieldOfStudy: _fieldOfStudy,
+    preferredLanguage: _preferredLanguage,
+    ...activeFallback
+  } = fallback ?? {};
 
   return withGlobalSchedulerPreferences({
-    ...fallback,
-    userId: user?.id ?? validatedRow?.id ?? fallback?.userId ?? "local-user",
+    ...activeFallback,
+    userId: user?.id ?? validatedRow?.id ?? activeFallback?.userId ?? "local-user",
     email,
-    displayName: validatedRow?.display_name ?? fallback?.displayName ?? email.split("@")[0] ?? "",
-    university: validatedRow?.university ?? fallback?.university ?? "",
-    fieldOfStudy: validatedRow?.field_of_study ?? fallback?.fieldOfStudy ?? "",
-    preferredLanguage: validatedRow?.preferred_language ?? fallback?.preferredLanguage ?? "de",
-    timezone: validatedRow?.timezone ?? fallback?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
-    onboardingComplete: validatedRow?.onboarding_complete ?? fallback?.onboardingComplete ?? true,
-    schedulerPreferences: validatedRow?.scheduler_preferences ?? fallback?.schedulerPreferences,
-    uiPreferences: normalizeUiPreferences(validatedRow?.ui_preferences ?? fallback?.uiPreferences),
+    displayName: validatedRow?.display_name ?? activeFallback?.displayName ?? email.split("@")[0] ?? "",
+    timezone: validatedRow?.timezone ?? activeFallback?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
+    onboardingComplete: validatedRow?.onboarding_complete ?? activeFallback?.onboardingComplete ?? true,
+    schedulerPreferences: validatedRow?.scheduler_preferences ?? activeFallback?.schedulerPreferences,
+    uiPreferences: normalizeUiPreferences(validatedRow?.ui_preferences ?? activeFallback?.uiPreferences),
     account: accountFromUser(user ?? { id: validatedRow?.id, email, created_at: validatedRow?.created_at }, "signed-in", timestamp),
   });
 }
 
 export function createPendingCloudProfile(profile: any, user: any, timestamp: any = nowIso()) {
   const email = normalizeEmail(user?.email ?? profile?.email);
+  const {
+    university: _university,
+    fieldOfStudy: _fieldOfStudy,
+    preferredLanguage: _preferredLanguage,
+    ...activeProfile
+  } = profile ?? {};
 
   return {
-    ...profile,
-    userId: user?.id ?? profile?.userId ?? "local-user",
+    ...activeProfile,
+    userId: user?.id ?? activeProfile?.userId ?? "local-user",
     email,
-    displayName: profile?.displayName || email.split("@")[0] || "",
+    displayName: activeProfile?.displayName || email.split("@")[0] || "",
     account: accountFromUser(user, "pending-email-confirmation", timestamp),
   };
 }

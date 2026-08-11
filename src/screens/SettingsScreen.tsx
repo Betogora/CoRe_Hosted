@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarClock, CircleHelp, Database, Download, Languages, Lock, RefreshCw, Save, ShieldCheck, Upload, User, X } from "lucide-react";
+import { CalendarClock, CircleHelp, Database, Download, RefreshCw, Save, ShieldCheck, Upload, User, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
@@ -15,13 +15,13 @@ import { SettingsCrossLinkButton, SettingsSectionNavigation } from "../ui/settin
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 
 const sectionIds = {
-  account: "settings-account-privacy",
+  account: "settings-account",
   focus: "settings-learning-day",
   data: "settings-data-sync",
 } as const;
 
 export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerPreferences, onSaveProfile, onSaveGlobalSchedulerPreferences, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
-  const [form, setForm] = React.useState(profile);
+  const [displayName, setDisplayName] = React.useState(profile.displayName);
   const [dayStartHour, setDayStartHour] = React.useState(globalSchedulerPreferences.dayStartHour);
   const [learnAheadMinutes, setLearnAheadMinutes] = React.useState(globalSchedulerPreferences.learnAheadMinutes);
   const [accountMessage, setAccountMessage] = React.useState("");
@@ -31,7 +31,7 @@ export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerP
   const [portabilityMessage, setPortabilityMessage] = React.useState("");
   const setSuccessToast = useSuccessToast();
 
-  React.useEffect(() => setForm(profile), [profile]);
+  React.useEffect(() => setDisplayName(profile.displayName), [profile.displayName]);
   React.useEffect(() => {
     setDayStartHour(globalSchedulerPreferences.dayStartHour);
     setLearnAheadMinutes(globalSchedulerPreferences.learnAheadMinutes);
@@ -41,12 +41,8 @@ export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerP
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function update(key: "displayName" | "university" | "fieldOfStudy", value: string) {
-    setForm((current) => ({ ...current, [key]: value }));
-  }
-
   function saveProfile() {
-    onSaveProfile({ ...form, email: profile.email, preferredLanguage: "de" });
+    onSaveProfile({ ...profile, displayName });
     setAccountMessage("");
     setSuccessToast("Profil wurde gespeichert. Die Cloud-Synchronisierung läuft automatisch.");
   }
@@ -119,7 +115,7 @@ export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerP
   }
 
   const sectionItems = [
-    { id: "account", title: "Konto & Datenschutz", status: profile.displayName || profile.email, icon: User, tone: "success" as const, onSelect: () => scrollToSection(sectionIds.account) },
+    { id: "account", title: "Konto", status: profile.displayName || profile.email, icon: User, tone: "success" as const, onSelect: () => scrollToSection(sectionIds.account) },
     { id: "focus", title: "Lerntag & Fokus", status: `Neuer Tag ab ${globalSchedulerPreferences.dayStartHour}:00 Uhr`, icon: CalendarClock, tone: "info" as const, onSelect: () => scrollToSection(sectionIds.focus) },
     { id: "data", title: "Daten & Synchronisierung", status: formatSyncStatusText(syncStatus), icon: Database, tone: "warning" as const, onSelect: () => scrollToSection(sectionIds.data) },
   ];
@@ -136,55 +132,29 @@ export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerP
       <SettingsSectionNavigation ariaLabel="Bereiche der globalen Einstellungen" items={sectionItems} />
 
       <section id={sectionIds.account} className="scroll-mt-6 grid gap-4" aria-labelledby="settings-account-heading">
-        <h2 id="settings-account-heading" className="core-heading-2 font-semibold text-core-text">Konto & Datenschutz</h2>
-        <div className="grid gap-4 xl:grid-cols-[1fr_0.8fr]">
-          <SoftPanel className="p-5 sm:p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <OrbIcon icon={User} />
-              <h3 className="core-heading-3 font-semibold text-core-text">Profil</h3>
-            </div>
-            <div className="grid min-w-0 gap-4 md:grid-cols-2">
-              <label className="grid gap-2 core-body font-semibold text-core-muted">
-                Anzeigename
-                <input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={form.displayName} onChange={(event) => update("displayName", event.target.value)} />
-              </label>
-              <label className="grid gap-2 core-body font-semibold text-core-muted">
-                Login-E-Mail
-                <input className="min-h-11 min-w-0 rounded-xl border border-core-border bg-core-subtle px-3 text-core-muted" value={profile.email} readOnly aria-describedby="login-email-help" />
-                <span id="login-email-help" className="font-normal leading-5">Die Login-E-Mail kann derzeit nicht in CoRe geändert werden.</span>
-              </label>
-              <label className="grid gap-2 core-body font-semibold text-core-muted">
-                Hochschule
-                <input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={form.university} onChange={(event) => update("university", event.target.value)} />
-              </label>
-              <label className="grid gap-2 core-body font-semibold text-core-muted">
-                Fachgebiet
-                <input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={form.fieldOfStudy} onChange={(event) => update("fieldOfStudy", event.target.value)} />
-              </label>
-              <label className="grid gap-2 core-body font-semibold text-core-muted md:col-span-2">
-                Sprache
-                <span className="flex min-h-11 items-center gap-2 rounded-xl border border-core-border bg-core-subtle px-3 text-core-text" aria-label="Sprache Deutsch Beta">
-                  <Languages size={17} aria-hidden="true" /> Deutsch (Beta)
-                </span>
-              </label>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <ActionButton type="button" variant="primary" icon={Save} onClick={saveProfile} disabled={accountBusy}>Profil speichern</ActionButton>
-              <ActionButton type="button" variant="destructive" icon={X} onClick={() => void signOut()} disabled={accountBusy}>Abmelden</ActionButton>
-            </div>
-            {accountMessage ? <p className="core-status-error mt-3 core-body" role="alert">{accountMessage}</p> : null}
-          </SoftPanel>
-
-          <SoftPanel className="p-5 sm:p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <OrbIcon icon={Lock} className="bg-core-success-soft text-core-text" />
-              <h3 className="core-heading-3 font-semibold text-core-text">Privatsphäre</h3>
-            </div>
-            <p className="rounded-xl border border-core-success bg-core-success-soft px-4 py-4 core-body leading-6 text-core-text">
-              Dein Lernstand, dein Online-Status und deine Streaks werden derzeit nicht mit anderen Nutzern geteilt.
-            </p>
-          </SoftPanel>
-        </div>
+        <h2 id="settings-account-heading" className="core-heading-2 font-semibold text-core-text">Konto</h2>
+        <SoftPanel className="p-5 sm:p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <OrbIcon icon={User} />
+            <h3 className="core-heading-3 font-semibold text-core-text">Profil</h3>
+          </div>
+          <div className="grid min-w-0 gap-4 md:grid-cols-2">
+            <label className="grid gap-2 core-body font-semibold text-core-muted">
+              Anzeigename
+              <input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+            </label>
+            <label className="grid gap-2 core-body font-semibold text-core-muted">
+              Login-E-Mail
+              <input className="min-h-11 min-w-0 rounded-xl border border-core-border bg-core-subtle px-3 text-core-muted" value={profile.email} readOnly aria-describedby="login-email-help" />
+              <span id="login-email-help" className="font-normal leading-5">Die Login-E-Mail kann derzeit nicht in CoRe geändert werden.</span>
+            </label>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <ActionButton type="button" variant="primary" icon={Save} onClick={saveProfile} disabled={accountBusy}>Profil speichern</ActionButton>
+            <ActionButton type="button" variant="destructive" icon={X} onClick={() => void signOut()} disabled={accountBusy}>Abmelden</ActionButton>
+          </div>
+          {accountMessage ? <p className="core-status-error mt-3 core-body" role="alert">{accountMessage}</p> : null}
+        </SoftPanel>
       </section>
 
       <section id={sectionIds.focus} className="scroll-mt-6 grid gap-4" aria-labelledby="settings-focus-heading">

@@ -9,7 +9,7 @@ import { SettingsScreen } from "./SettingsScreen.tsx";
 
 function renderSettings() {
   const state = createCoreRepository(null, { seedDefaultDecks: false }).getState();
-  const profile = { ...state.profile, email: "login@example.test", displayName: "Ada", university: "TU Berlin", fieldOfStudy: "Medizin", preferredLanguage: "en", timezone: "Europe/Berlin" };
+  const profile = { ...state.profile, email: "login@example.test", displayName: "Ada", timezone: "Europe/Berlin" };
   return renderToStaticMarkup(
     <SettingsScreen
       appState={{ ...state, profile }}
@@ -34,21 +34,18 @@ function renderSettings() {
 
 test("global settings expose three task-based sections and cross-navigation", () => {
   const html = renderSettings();
-  for (const heading of ["Konto &amp; Datenschutz", "Lerntag &amp; Fokus", "Daten &amp; Synchronisierung"]) assert.match(html, new RegExp(`>${heading}<`));
+  for (const heading of ["Konto", "Lerntag &amp; Fokus", "Daten &amp; Synchronisierung"]) assert.match(html, new RegExp(`>${heading}<`));
   assert.match(html, /aria-label="Bereiche der globalen Einstellungen"/);
   assert.match(html, /md:grid-cols-3/);
   assert.match(html, />Stapeleinstellungen</);
 });
 
-test("account settings expose persisted profile fields and truthful language", () => {
+test("account settings expose only active profile fields in one wide panel", () => {
   const html = renderSettings();
   assert.match(html, /Login-E-Mail/);
   assert.match(html, /readOnly=""[^>]*value="login@example\.test"/);
-  assert.match(html, />Fachgebiet</);
-  assert.match(html, /value="Medizin"/);
-  assert.match(html, /Deutsch \(Beta\)/);
-  assert.doesNotMatch(html, /English/);
-  assert.match(html, /Lernstand, dein Online-Status und deine Streaks werden derzeit nicht mit anderen Nutzern geteilt/);
+  assert.doesNotMatch(html, /Hochschule|Fachgebiet|Sprache|Deutsch \(Beta\)|Privatsphäre|Online-Status|Streaks/);
+  assert.doesNotMatch(html, /xl:grid-cols-\[1fr_0\.8fr\]/);
 });
 
 test("learning-day settings contain only global scheduler context", () => {
