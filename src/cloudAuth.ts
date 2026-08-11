@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import type { Tables, TablesInsert } from "./database.types.ts";
+import { withGlobalSchedulerPreferences } from "./deckSettings.ts";
 import { normalizeUiPreferences } from "./uiPreferences.ts";
 
 const SESSION_MISSING_CODES = new Set(["AuthSessionMissingError", "session_not_found"]);
@@ -175,7 +176,7 @@ export function createProfileRow(profile: any, user: any, timestamp: any = nowIs
     preferred_language: profile?.preferredLanguage ?? "de",
     timezone: profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
     onboarding_complete: Boolean(profile?.onboardingComplete ?? true),
-    scheduler_preferences: profile?.schedulerPreferences ?? { profile: "standard" },
+    scheduler_preferences: withGlobalSchedulerPreferences(profile ?? {}).schedulerPreferences,
     ui_preferences: { ...normalizeUiPreferences(profile?.uiPreferences) },
     updated_at: timestamp,
   };
@@ -185,7 +186,7 @@ export function createCloudProfile(row: any, user: any, fallback: any = {}, time
   const validatedRow = row == null ? null : validateProfileRow(row);
   const email = normalizeEmail(validatedRow?.email ?? user?.email ?? fallback?.email);
 
-  return {
+  return withGlobalSchedulerPreferences({
     ...fallback,
     userId: user?.id ?? validatedRow?.id ?? fallback?.userId ?? "local-user",
     email,
@@ -195,10 +196,10 @@ export function createCloudProfile(row: any, user: any, fallback: any = {}, time
     preferredLanguage: validatedRow?.preferred_language ?? fallback?.preferredLanguage ?? "de",
     timezone: validatedRow?.timezone ?? fallback?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
     onboardingComplete: validatedRow?.onboarding_complete ?? fallback?.onboardingComplete ?? true,
-    schedulerPreferences: validatedRow?.scheduler_preferences ?? fallback?.schedulerPreferences ?? { profile: "standard" },
+    schedulerPreferences: validatedRow?.scheduler_preferences ?? fallback?.schedulerPreferences,
     uiPreferences: normalizeUiPreferences(validatedRow?.ui_preferences ?? fallback?.uiPreferences),
     account: accountFromUser(user ?? { id: validatedRow?.id, email, created_at: validatedRow?.created_at }, "signed-in", timestamp),
-  };
+  });
 }
 
 export function createPendingCloudProfile(profile: any, user: any, timestamp: any = nowIso()) {

@@ -1,7 +1,7 @@
 import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AuthPhase } from "./accountSession.ts";
-import type { CoreMode, Deck, LearningItem, LearningItemStudyStatePatch, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { CoreMode, Deck, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import { Database, Layers } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
@@ -28,7 +28,7 @@ import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudReposit
 import { createDefaultDeckSettings, getCardContentPayload } from "./coreModel.ts";
 import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
 import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.ts";
-import { applyLearningSettingsToDeckSettings, getGlobalDeckSettings, withGlobalDeckSettings, type GlobalLearningSettingsInput, type LearningSettingsInput } from "./deckSettings.ts";
+import { getGlobalSchedulerPreferences, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
 import { getLearningDayKey, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
@@ -69,10 +69,6 @@ type CardEditorValue = Parameters<CoreWorkspace["saveDeckCard"]>[2];
 type CardVariantInput = Parameters<CoreWorkspace["addDeckCardVariant"]>[2];
 type ManualCardInput = Parameters<CoreWorkspace["addManualCardToDeck"]>[1];
 type PendingNavigation = { run: () => void; source: "creation" | "card" };
-
-function resolveCoreMode(value: unknown, fallback: CoreMode): CoreMode {
-  return value === "off" || value === "auto" || value === "manual" ? value : fallback;
-}
 
 function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string }) {
   return (
@@ -200,23 +196,23 @@ export function App() {
     () => getSimulatedNow(new Date(), simulationOffsetMinutes),
     [simulationOffsetMinutes],
   );
-  const globalLearningSettings = getGlobalDeckSettings(state?.profile);
+  const globalSchedulerPreferences = getGlobalSchedulerPreferences(state?.profile);
   const learningTimeZone = state?.profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   const learningNow = React.useMemo(getLearningNow, [activeView, getLearningNow, learningDayRevision, state?.decks]);
   const learningDayKey = getLearningDayKey(learningNow, {
-    dayStartHour: globalLearningSettings.dayStartHour,
+    dayStartHour: globalSchedulerPreferences.dayStartHour,
     timeZone: learningTimeZone,
   }) ?? learningNow.slice(0, 10);
 
   React.useEffect(() => {
     const delay = getNextLearningDayBoundaryDelay(getLearningNow(), {
-      dayStartHour: globalLearningSettings.dayStartHour,
+      dayStartHour: globalSchedulerPreferences.dayStartHour,
       timeZone: learningTimeZone,
     });
     if (delay == null) return undefined;
     const timerId = window.setTimeout(() => setLearningDayRevision((revision) => revision + 1), delay + 25);
     return () => window.clearTimeout(timerId);
-  }, [getLearningNow, globalLearningSettings.dayStartHour, learningDayRevision, learningTimeZone]);
+  }, [getLearningNow, globalSchedulerPreferences.dayStartHour, learningDayRevision, learningTimeZone]);
 
   const changeSimulationOffset = React.useCallback((value: number) => {
     setSimulationOffsetMinutes(normalizeSimulationOffsetMinutes(value));
@@ -719,20 +715,8 @@ export function App() {
   }
 
   function saveDeck(deck: Deck | Deck[]) {
-    const existingDeckIds = new Set(state?.decks.map((item) => item.id) ?? []);
-    const globalSettings = getGlobalDeckSettings(state?.profile);
-    const applyDefaults = (item: Deck): Deck => existingDeckIds.has(item.id)
-      ? item
-      : {
-          ...item,
-          deckSettings: {
-            ...item.deckSettings,
-            ...applyLearningSettingsToDeckSettings({ ...item.deckSettings }, globalSettings),
-            coreMode: globalSettings.coreMode,
-          },
-        };
-    const nextDeck = Array.isArray(deck) ? deck.map(applyDefaults) : applyDefaults(deck);
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDecks(nextDeck));
+    const nextDecks = Array.isArray(deck) ? deck : [deck];
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDecks(nextDecks));
   }
 
   async function persistImportedDecks(decks: Deck[], { mediaOnly = false }: { mediaOnly?: boolean } = {}) {
@@ -763,15 +747,7 @@ export function App() {
   }
 
   function createDeck(input: CreateDeckInput = {}) {
-    const globalSettings = getGlobalDeckSettings(state?.profile);
-    const saved = runWorkspaceMutation((currentWorkspace) => currentWorkspace.createDeck({
-      ...input,
-      deckSettings: {
-        ...input.deckSettings,
-        ...applyLearningSettingsToDeckSettings({ ...input.deckSettings }, globalSettings),
-        coreMode: resolveCoreMode(input.deckSettings?.coreMode, globalSettings.coreMode),
-      },
-    }));
+    const saved = runWorkspaceMutation((currentWorkspace) => currentWorkspace.createDeck(input));
     if (!saved) return null;
     navigateToViewNow("lernen", { focusedDeckId: saved.id }, { replace: true });
     return saved;
@@ -808,11 +784,14 @@ export function App() {
     settings: LearningSettingsInput = {},
   ) {
     return updateDeck(deckId, (deck) => {
+      const normalized = normalizeLearningSettings(settings);
       const variantThresholdXp = settings.variantThresholdXp == null ? undefined : Number(settings.variantThresholdXp);
       const maxActiveVariantsPerCard = settings.maxActiveVariantsPerCard == null ? undefined : Number(settings.maxActiveVariantsPerCard);
       const nextDeckSettings = createDefaultDeckSettings({
-        ...applyLearningSettingsToDeckSettings({ ...deck.deckSettings }, settings),
-        coreMode: resolveCoreMode(settings.coreMode, deck.deckSettings.coreMode),
+        ...deck.deckSettings,
+        ...normalized,
+        learningProfileSource: normalizeLearningProfileSource(settings.learningProfileSource),
+        coreMode: settings.coreMode === "off" || settings.coreMode === "auto" || settings.coreMode === "manual" ? settings.coreMode : deck.deckSettings.coreMode,
         ...(Number.isFinite(variantThresholdXp) ? { variantThresholdXp } : {}),
         ...(Number.isFinite(maxActiveVariantsPerCard) ? { maxActiveVariantsPerCard } : {}),
         ...(settings.newCardsPerDay !== undefined && settings.newCardsPerDay !== deck.deckSettings.newCardsPerDay
@@ -840,20 +819,14 @@ export function App() {
     }));
   }
 
-  function saveGlobalLearningSettings(settings: GlobalLearningSettingsInput = {}) {
+  function saveGlobalSchedulerPreferences(settings: { dayStartHour: number; learnAheadMinutes: number }) {
     if (!state) return null;
-    return runWorkspaceMutation((currentWorkspace) => {
-      currentWorkspace.saveProfile(withGlobalDeckSettings(state.profile, settings));
-      return currentWorkspace.updateAllDecks((deck) => ({
-        ...deck,
-        deckSettings: {
-          ...deck.deckSettings,
-          ...applyLearningSettingsToDeckSettings({ ...deck.deckSettings }, settings),
-          coreMode: resolveCoreMode(settings.coreMode, deck.deckSettings.coreMode),
-        },
-        updatedAt: new Date().toISOString(),
-      }));
-    });
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(withGlobalSchedulerPreferences(state.profile, settings)));
+  }
+
+  function saveLearningProfiles(learningProfiles: LearningProfileTemplate[]) {
+    if (!state) return null;
+    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(withGlobalSchedulerPreferences(state.profile, { learningProfiles })));
   }
 
   async function saveDeckCard(deckId: string, cardId: string, value: CardEditorValue) {
@@ -1074,7 +1047,9 @@ export function App() {
         <DeckSettingsScreen
           deck={state.decks.find((deck) => deck.id === focusedDeckId) ?? null}
           decks={state.decks}
+          learningProfiles={globalSchedulerPreferences.learningProfiles}
           onSave={saveDeckLearningSettings}
+          onSaveLearningProfiles={saveLearningProfiles}
           onSaveAppearance={saveDeckAppearance}
           onRenameDeck={renameDeck}
           onCreateSubdeck={openDeckCreation}
@@ -1084,6 +1059,8 @@ export function App() {
             if (result) navigateToRoute(deckSettingsReturnRoute(null, true));
             return result;
           }}
+          onSelectDeck={(deckId) => navigateToViewNow("stapel-einstellungen", { focusedDeckId: deckId }, { replace: true })}
+          onOpenGlobalSettings={() => navigateToView("einstellungen")}
           backLabel={returnsToReview ? "Zurück zur Sitzung" : returnsToDashboard ? "Zurück zur Übersicht" : returnsToDecks ? "Zurück zur Kartenverwaltung" : "Zurück zu Lernen"}
           onBack={() => navigateToRoute(deckSettingsReturnRoute(focusedDeckId))}
         />
@@ -1094,7 +1071,8 @@ export function App() {
         <DecksScreen
           decks={state.decks}
           now={learningNow}
-          dayStartHour={globalLearningSettings.dayStartHour}
+          dayStartHour={globalSchedulerPreferences.dayStartHour}
+          learnAheadMinutes={globalSchedulerPreferences.learnAheadMinutes}
           timeZone={learningTimeZone}
           mediaStore={mediaStore}
           onSetDeckCoreMode={setDeckCoreMode}
@@ -1161,7 +1139,8 @@ export function App() {
         <LearnScreen
           decks={state.decks}
           now={learningNow}
-          dayStartHour={globalLearningSettings.dayStartHour}
+          dayStartHour={globalSchedulerPreferences.dayStartHour}
+          learnAheadMinutes={globalSchedulerPreferences.learnAheadMinutes}
           timeZone={learningTimeZone}
           onStartDeck={startDeck}
           onCreateDeck={createDeck}
@@ -1185,7 +1164,7 @@ export function App() {
           decks={state.decks}
           now={learningNow}
           timeZone={learningTimeZone}
-          dayStartHour={globalLearningSettings.dayStartHour}
+          dayStartHour={globalSchedulerPreferences.dayStartHour}
           onNavigate={navigateToView}
           onStartDeck={(deckId) => {
             const deck = state.decks.find((candidate) => candidate.id === deckId);
@@ -1214,8 +1193,8 @@ export function App() {
           profile={state.profile}
           syncStatus={syncStatus}
           onSaveProfile={saveProfile}
-          globalDeckSettings={globalLearningSettings}
-          onSaveGlobalLearningSettings={saveGlobalLearningSettings}
+          globalSchedulerPreferences={globalSchedulerPreferences}
+          onSaveGlobalSchedulerPreferences={saveGlobalSchedulerPreferences}
           onSaveState={saveState}
           onSyncNow={syncNow}
           onListConflicts={listSyncConflicts}
@@ -1281,7 +1260,8 @@ export function App() {
           mediaStore={mediaStore}
           getNow={getLearningNow}
           learningDayKey={learningDayKey}
-          dayStartHour={globalLearningSettings.dayStartHour}
+          dayStartHour={globalSchedulerPreferences.dayStartHour}
+          learnAheadMinutes={globalSchedulerPreferences.learnAheadMinutes}
           timeZone={learningTimeZone}
           simulationOffsetMinutes={simulationOffsetMinutes}
           pomodoroTimer={pomodoroTimer}

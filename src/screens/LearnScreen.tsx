@@ -15,8 +15,8 @@ function createDefaultDeckDraft(parentDeckId = "") {
   };
 }
 
-export function LearnScreen({ decks, now, dayStartHour, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
-  const library = React.useMemo(() => createDeckLibraryModel(decks, { now, dayStartHour, timeZone }), [dayStartHour, decks, now, timeZone]);
+export function LearnScreen({ decks, now, dayStartHour, learnAheadMinutes, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
+  const library = React.useMemo(() => createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone }), [dayStartHour, decks, learnAheadMinutes, now, timeZone]);
   const [isDeckCreateOpen, setIsDeckCreateOpen] = React.useState(Boolean(initialParentDeckId));
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
   const [deckStatus, setDeckStatus] = React.useState("");

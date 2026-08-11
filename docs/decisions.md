@@ -1,7 +1,7 @@
 # CoRe-Entscheidungen
 
 **Rolle:** einzige kanonische Quelle für dauerhafte Produkt- und Architekturentscheidungen.
-**Stand:** 2026-08-09
+**Stand:** 2026-08-11
 
 ## ADR-Format
 
@@ -153,3 +153,11 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Entscheidung:** Dashboard, Lernen und Kartenverwaltung zeigen im Drei-Punkte-Tooltip und im Kopf des gemeinsamen Stapelmenüs ausschließlich den lokalen Stapelnamen. Der Tooltip ergänzt das aktuelle farbige Stapel-Icon mit 16 × 16 px innerhalb der bestehenden Einzeilerhöhe; auch `Stapel umbenennen` verwendet dieses Icon. Der zugängliche Name des Drei-Punkte-Triggers behält den vollständigen Hierarchiepfad.
 **Konsequenzen:** Auswahlfelder, Suche, Hierarchie, Persistenz und andere Pfadverwendungen bleiben unverändert. ADR-012, ADR-014 und ADR-016 sind hinsichtlich sichtbarer vollständiger Pfade in Stapeloptionen abgelöst.
 **Datum:** 2026-08-10
+
+## ADR-018 — Lernprofile als Copy-on-apply-Vorlagen
+
+**Status:** angenommen
+**Kontext:** Globale Lernvorgaben überschrieben bisher beim Autosave alle Stapel, obwohl Scheduler und Queue ausschließlich materialisierte Stapelwerte lesen. Eine Profil-ID mit gleichzeitig duplizierten Stapelwerten hätte eine zweite, konfliktanfällige Wahrheitsquelle geschaffen.
+**Entscheidung:** Globale Scheduler-Präferenzen enthalten nur Tagesbeginn, Vorziehfenster und eine konto-weite Bibliothek eigener Lernprofil-Vorlagen. Vorlagen werden ausschließlich in den Stapeleinstellungen verwaltet. Anwenden kopiert die normalisierten Lernwerte und eine Herkunftsversion in genau einen Stapel; es gibt keine Live-Auflösung und keine globalen Stapel-Defaults. CoRe-Modus, Variantenparameter, Darstellung, technische Ausschlüsse und Tagesoverride bleiben außerhalb der Vorlage. Cloud-Sync nutzt das vorhandene Profil-JSONB mit Last-write-wins; Stapelwerte bleiben revisioniert.
+**Konsequenzen:** Globale Änderungen können keinen Stapel mehr mutieren. Umbenennen, Aktualisieren und Löschen einer Vorlage verändert bereits kopierte Werte nicht; ältere Kopien können bewusst erneut angewandt werden. Alte globale Felder werden beim Normalisieren zurückgewonnen und danach nicht mehr geschrieben. Es entstehen weder Supabase-Schemamigration noch Resolver- oder Override-Graph.
+**Datum:** 2026-08-11

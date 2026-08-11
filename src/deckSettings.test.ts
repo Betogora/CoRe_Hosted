@@ -3,199 +3,167 @@ import test from "node:test";
 import {
   applyLearningPreset,
   applyLearningSettingsToDeckSettings,
-  getCustomGlobalDeckSettings,
-  getGlobalDeckSettings,
+  getGlobalSchedulerPreferences,
   markLearningSettingsCustom,
+  normalizeLearnAheadMinutes,
   normalizeLearningSettings,
-  withGlobalDeckSettings,
+  withGlobalSchedulerPreferences,
 } from "./deckSettings.ts";
 
-test("new profiles use the standard learning profile by default", () => {
-  const settings = getGlobalDeckSettings({});
-
-  assert.equal(settings.schedulerProfile.presetId, "standard");
-  assert.equal(settings.newCardsPerDay, 20);
-  assert.equal(settings.schedulerProfile.desiredRetention, 0.9);
-});
-
-test("learning settings migrate the previously unused legacy step defaults", () => {
+test("deck learning settings exclude account-wide learn-ahead and retired scheduler fields", () => {
   const settings = normalizeLearningSettings({
     newCardsPerDay: 12,
+    learnAheadMinutes: 45,
     schedulerProfile: {
-      name: "standard",
+      name: "custom",
       learningStepsMinutes: [10, 60],
-    },
-  });
-
-  assert.equal(settings.newCardsPerDay, 20);
-  assert.equal(settings.maximumReviewsPerDay, 200);
-  assert.equal(settings.learnAheadMinutes, 20);
-  assert.deepEqual(settings.schedulerProfile.learningStepsMinutes, [5, 15]);
-  assert.equal(settings.schedulerProfile.settingsVersion, 2);
-  assert.equal(settings.schedulerProfile.desiredRetention, 0.9);
-});
-
-test("learning settings keep compatible starting intervals and clamp visible daily limits", () => {
-  const settings = normalizeLearningSettings({
-    newCardsPerDay: 900,
-    maximumReviewsPerDay: 9000,
-    schedulerProfile: {
       graduatingIntervalDays: 3,
       easyGraduatingIntervalDays: 5,
       easyIntervalDays: 8,
     },
   });
 
-  assert.equal(settings.newCardsPerDay, 500);
-  assert.equal(settings.maximumReviewsPerDay, 2000);
-  assert.equal(settings.schedulerProfile.graduatingIntervalDays, 3);
-  assert.equal(settings.schedulerProfile.easyGraduatingIntervalDays, 5);
-  assert.equal(settings.schedulerProfile.easyIntervalDays, 8);
+  assert.equal(settings.newCardsPerDay, 12);
+  assert.equal("learnAheadMinutes" in settings, false);
+  assert.deepEqual(settings.schedulerProfile.learningStepsMinutes, [5, 15]);
+  assert.equal("name" in settings.schedulerProfile, false);
+  assert.equal("graduatingIntervalDays" in settings.schedulerProfile, false);
+  assert.equal("easyGraduatingIntervalDays" in settings.schedulerProfile, false);
+  assert.equal("easyIntervalDays" in settings.schedulerProfile, false);
 });
 
-test("learn-ahead defaults to 20 minutes and clamps persisted values", () => {
-  assert.equal(normalizeLearningSettings({}).learnAheadMinutes, 20);
-  assert.equal(normalizeLearningSettings({ learnAheadMinutes: -1 }).learnAheadMinutes, 0);
-  assert.equal(normalizeLearningSettings({ learnAheadMinutes: 721.4 }).learnAheadMinutes, 720);
-  assert.equal(normalizeLearningSettings({ learnAheadMinutes: 19.6 }).learnAheadMinutes, 20);
-});
-
-test("learning presets stay shallow for the UI and become custom after edits", () => {
+test("built-in presets remain canonical and custom edits preserve normalized values", () => {
   const intensive = applyLearningPreset({}, "intensive");
-  const custom = markLearningSettingsCustom({
-    ...intensive,
-    maximumReviewsPerDay: 90,
-  });
+  const custom = markLearningSettingsCustom({ ...intensive, maximumReviewsPerDay: 90 });
 
   assert.equal(intensive.schedulerProfile.presetId, "intensive");
   assert.equal(intensive.newCardsPerDay, 30);
   assert.equal(intensive.maximumReviewsPerDay, 300);
   assert.equal(intensive.schedulerProfile.maximumIntervalDays, 365);
   assert.equal(intensive.schedulerProfile.desiredRetention, 0.94);
-  assert.equal(intensive.learnAheadMinutes, 20);
   assert.equal(custom.schedulerProfile.presetId, "custom");
   assert.equal(custom.maximumReviewsPerDay, 90);
 });
 
-test("learning presets expose the requested daily limits and maximum intervals", () => {
-  const standard = applyLearningPreset({}, "standard");
-  const intensive = applyLearningPreset({}, "intensive");
-  const relaxed = applyLearningPreset({}, "relaxed");
-  const custom = normalizeLearningSettings({ schedulerProfile: { presetId: "custom" } });
-
-  assert.deepEqual(
-    [standard, intensive, relaxed, custom].map((settings) => ({
-      newCardsPerDay: settings.newCardsPerDay,
-      maximumReviewsPerDay: settings.maximumReviewsPerDay,
-      maximumIntervalDays: settings.schedulerProfile.maximumIntervalDays,
-    })),
-    [
-      { newCardsPerDay: 20, maximumReviewsPerDay: 200, maximumIntervalDays: 1000 },
-      { newCardsPerDay: 30, maximumReviewsPerDay: 300, maximumIntervalDays: 365 },
-      { newCardsPerDay: 10, maximumReviewsPerDay: 100, maximumIntervalDays: 2000 },
-      { newCardsPerDay: 20, maximumReviewsPerDay: 200, maximumIntervalDays: 1000 },
-    ],
-  );
-});
-
-test("normalization refreshes named presets and preserves stored custom values", () => {
-  const named = normalizeLearningSettings({
-    newCardsPerDay: 15,
-    maximumReviewsPerDay: 250,
-    schedulerProfile: {
-      presetId: "intensive",
-      maximumIntervalDays: 3650,
-    },
-  });
-  const custom = normalizeLearningSettings({
-    newCardsPerDay: 37,
-    maximumReviewsPerDay: 730,
+test("visible learning values clamp at their canonical domain limits", () => {
+  const settings = normalizeLearningSettings({
+    newCardsPerDay: 900,
+    maximumReviewsPerDay: 9000,
     schedulerProfile: {
       presetId: "custom",
-      maximumIntervalDays: 4321,
+      desiredRetention: 2,
+      maximumIntervalDays: 20,
     },
   });
 
-  assert.equal(named.newCardsPerDay, 30);
-  assert.equal(named.maximumReviewsPerDay, 300);
-  assert.equal(named.schedulerProfile.maximumIntervalDays, 365);
-  assert.equal(custom.newCardsPerDay, 37);
-  assert.equal(custom.maximumReviewsPerDay, 730);
-  assert.equal(custom.schedulerProfile.maximumIntervalDays, 4321);
+  assert.equal(settings.newCardsPerDay, 500);
+  assert.equal(settings.maximumReviewsPerDay, 2000);
+  assert.equal(settings.schedulerProfile.desiredRetention, 0.99);
+  assert.equal(settings.schedulerProfile.maximumIntervalDays, 30);
 });
 
-test("global deck settings roundtrip through cloud-backed profile preferences", () => {
-  const profile = { schedulerPreferences: { profile: "standard", keep: "value" } };
-  const savedProfile = withGlobalDeckSettings(profile, {
-    ...applyLearningPreset({}, "relaxed"),
-    coreMode: "manual",
-    dayStartHour: 3,
+test("global scheduler preferences own day start, learn-ahead and custom templates", () => {
+  const defaults = getGlobalSchedulerPreferences({});
+  const saved = withGlobalSchedulerPreferences({}, {
+    dayStartHour: 29,
+    learnAheadMinutes: 721,
+    learningProfiles: [{
+      id: "profile-1",
+      name: "Prüfung",
+      contentVersion: 2,
+      settings: markLearningSettingsCustom({ newCardsPerDay: 40 }),
+    }],
   });
-  const restored = getGlobalDeckSettings(savedProfile);
 
-  assert.equal(savedProfile.schedulerPreferences.keep, "value");
-  assert.equal(restored.schedulerProfile.presetId, "relaxed");
-  assert.equal(restored.newCardsPerDay, 10);
-  assert.equal(restored.maximumReviewsPerDay, 100);
-  assert.equal(restored.schedulerProfile.maximumIntervalDays, 2000);
-  assert.equal(restored.learnAheadMinutes, 20);
-  assert.equal(restored.coreMode, "manual");
-  assert.equal(restored.dayStartHour, 3);
-  assert.equal("dayStartHour" in savedProfile.schedulerPreferences.deckSettings!, false);
+  assert.deepEqual(defaults, {
+    settingsVersion: 1,
+    dayStartHour: 0,
+    learnAheadMinutes: 20,
+    learningProfiles: [],
+  });
+  assert.equal(saved.schedulerPreferences.dayStartHour, 23);
+  assert.equal(saved.schedulerPreferences.learnAheadMinutes, 720);
+  assert.equal(saved.schedulerPreferences.learningProfiles[0].name, "Prüfung");
+  assert.equal(normalizeLearnAheadMinutes(-1), 0);
+  assert.equal(normalizeLearnAheadMinutes("invalid"), 20);
 });
 
-test("global day-start settings default and clamp without becoming deck settings", () => {
-  assert.equal(getGlobalDeckSettings({}).dayStartHour, 0);
-  assert.equal(getGlobalDeckSettings({ schedulerPreferences: { dayStartHour: "invalid" } }).dayStartHour, 0);
-  assert.equal(withGlobalDeckSettings({}, { dayStartHour: 29 }).schedulerPreferences.dayStartHour, 23);
-  assert.equal(withGlobalDeckSettings({}, { dayStartHour: -4 }).schedulerPreferences.dayStartHour, 0);
+test("legacy global custom settings backfill once and move learn-ahead account-wide", () => {
+  const legacy = {
+    schedulerPreferences: {
+      profile: "custom",
+      coreMode: "manual",
+      dayStartHour: 3,
+      deckSettings: {
+        newCardsPerDay: 37,
+        maximumReviewsPerDay: 730,
+        learnAheadMinutes: 35,
+        schedulerProfile: { presetId: "custom", desiredRetention: 0.93 },
+      },
+    },
+  };
+  const normalized = getGlobalSchedulerPreferences(legacy);
+  const persisted = withGlobalSchedulerPreferences(legacy, {});
+
+  assert.equal(normalized.dayStartHour, 3);
+  assert.equal(normalized.learnAheadMinutes, 35);
+  assert.equal(normalized.learningProfiles.length, 1);
+  assert.equal(normalized.learningProfiles[0].id, "legacy:global-learning-settings");
+  assert.equal(normalized.learningProfiles[0].settings.newCardsPerDay, 37);
+  assert.equal("learnAheadMinutes" in normalized.learningProfiles[0].settings, false);
+  assert.equal("profile" in persisted.schedulerPreferences, false);
+  assert.equal("coreMode" in persisted.schedulerPreferences, false);
+  assert.equal("deckSettings" in persisted.schedulerPreferences, false);
 });
 
-test("global profile switches retain the automatically stored custom settings", () => {
-  const standard = applyLearningPreset({}, "standard");
-  const customSettings = markLearningSettingsCustom({
-    ...standard,
-    newCardsPerDay: 37,
-    schedulerProfile: {
-      ...standard.schedulerProfile,
-      desiredRetention: 0.93,
+test("legacy settings equal to a built-in do not create a redundant profile", () => {
+  const normalized = getGlobalSchedulerPreferences({
+    schedulerPreferences: {
+      profile: "custom",
+      deckSettings: {
+        ...applyLearningPreset({}, "standard"),
+        schedulerProfile: { ...applyLearningPreset({}, "standard").schedulerProfile, presetId: "custom" },
+      },
     },
   });
-  const customProfile = withGlobalDeckSettings({ schedulerPreferences: { profile: "standard" } }, { ...customSettings, dayStartHour: 4 });
-  const relaxedProfile = withGlobalDeckSettings(customProfile, { ...applyLearningPreset(customSettings, "relaxed"), dayStartHour: 4 });
 
-  assert.equal(getGlobalDeckSettings(relaxedProfile).schedulerProfile.presetId, "relaxed");
-  assert.equal(getGlobalDeckSettings(relaxedProfile).newCardsPerDay, 10);
-  assert.equal(getGlobalDeckSettings(relaxedProfile).dayStartHour, 4);
-  assert.equal(getCustomGlobalDeckSettings(relaxedProfile).schedulerProfile.presetId, "custom");
-  assert.equal(getCustomGlobalDeckSettings(relaxedProfile).newCardsPerDay, 37);
-  assert.equal(getCustomGlobalDeckSettings(relaxedProfile).schedulerProfile.desiredRetention, 0.93);
-
-  const restoredCustomProfile = withGlobalDeckSettings(relaxedProfile, { ...getCustomGlobalDeckSettings(relaxedProfile), dayStartHour: 4 });
-  assert.equal(getGlobalDeckSettings(restoredCustomProfile).schedulerProfile.presetId, "custom");
-  assert.equal(getGlobalDeckSettings(restoredCustomProfile).newCardsPerDay, 37);
-  assert.equal(getGlobalDeckSettings(restoredCustomProfile).schedulerProfile.desiredRetention, 0.93);
+  assert.deepEqual(normalized.learningProfiles, []);
 });
 
-test("applying learning settings preserves deck-only appearance and daily overrides", () => {
+test("legacy custom drafts survive even when a built-in profile was selected", () => {
+  const normalized = getGlobalSchedulerPreferences({
+    schedulerPreferences: {
+      profile: "standard",
+      deckSettings: {
+        newCardsPerDay: 47,
+        maximumReviewsPerDay: 333,
+        newReviewOrder: "mixed",
+        schedulerProfile: { presetId: "custom", desiredRetention: 0.96 },
+      },
+    },
+  });
+
+  assert.equal(normalized.learningProfiles.length, 1);
+  assert.equal(normalized.learningProfiles[0].name, "Bisherige globale Lernvorgabe");
+  assert.equal(normalized.learningProfiles[0].settings.newCardsPerDay, 47);
+  assert.equal(normalized.learningProfiles[0].settings.maximumReviewsPerDay, 333);
+  assert.equal(normalized.learningProfiles[0].settings.schedulerProfile.desiredRetention, 0.96);
+});
+
+test("direct deck edits clear copied-profile provenance and preserve deck-only fields", () => {
   const next = applyLearningSettingsToDeckSettings(
     {
       coreMode: "off",
       appearance: { iconKey: "brain", iconColor: "#123456" },
+      learningProfileSource: { id: "profile-1", contentVersion: 3 },
       newCardsTodayOverride: { date: "2026-07-10", limit: 4 },
-      variantThresholdXp: 132.5,
-      maxActiveVariantsPerCard: 3,
     },
-    applyLearningPreset({}, "intensive"),
+    markLearningSettingsCustom({ newCardsPerDay: 30 }),
   );
 
   assert.deepEqual(next.appearance, { iconKey: "brain", iconColor: "#123456" });
   assert.deepEqual(next.newCardsTodayOverride, { date: "2026-07-10", limit: 4 });
   assert.equal(next.coreMode, "off");
-  assert.equal(next.variantThresholdXp, 132.5);
-  assert.equal(next.maxActiveVariantsPerCard, 3);
+  assert.equal(next.learningProfileSource, null);
   assert.equal(next.newCardsPerDay, 30);
-  assert.equal(next.maximumReviewsPerDay, 300);
-  assert.equal(next.schedulerProfile.maximumIntervalDays, 365);
-  assert.equal(next.learnAheadMinutes, 20);
 });

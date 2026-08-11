@@ -44,7 +44,7 @@ test("cloud auth maps local profile fields into a Supabase profile row", () => {
   assert.equal(row.display_name, "Noemi");
   assert.equal(row.field_of_study, "Medizin");
   assert.equal(row.updated_at, "2026-07-09T07:30:00.000Z");
-  assert.deepEqual(row.scheduler_preferences, { profile: "standard", dayStartHour: 3 });
+  assert.deepEqual(row.scheduler_preferences, { settingsVersion: 1, dayStartHour: 3, learnAheadMinutes: 20, learningProfiles: [] });
   assert.deepEqual(row.ui_preferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"] });
 });
 
@@ -69,7 +69,7 @@ test("cloud auth creates a password-free signed-in profile", () => {
   assert.equal(profile.account.status, "signed-in");
   assert.equal(profile.account.passwordVerifier, undefined);
   assert.equal(profile.displayName, "Noemi");
-  assert.deepEqual(profile.schedulerPreferences, { profile: "standard", dayStartHour: 3 });
+  assert.deepEqual(profile.schedulerPreferences, { settingsVersion: 1, dayStartHour: 3, learnAheadMinutes: 20, learningProfiles: [] });
   assert.deepEqual(profile.uiPreferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"] });
 });
 

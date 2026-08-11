@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import { createDefaultDeckSettings, normalizeCoreDeck } from "./coreModel.ts";
+import { withGlobalSchedulerPreferences } from "./deckSettings.ts";
 import { createWorldCapitalsSeedDecks, ensureWorldCapitalsStudyHistory } from "./fixtures/worldCapitals.ts";
 import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences } from "./uiPreferences.ts";
 
@@ -31,9 +32,7 @@ function createDefaultProfile() {
     preferredLanguage: "de",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Berlin",
     onboardingComplete: false,
-    schedulerPreferences: {
-      profile: "standard",
-    },
+    schedulerPreferences: withGlobalSchedulerPreferences({}).schedulerPreferences,
     uiPreferences: DEFAULT_UI_PREFERENCES,
   };
 }
@@ -98,11 +97,11 @@ function normalizeState(rawState: any) {
   const { privacy: _privacy, ...profile } = rawState?.profile ?? {};
   return {
     version: 3,
-    profile: {
+    profile: withGlobalSchedulerPreferences({
       ...fallback.profile,
       ...profile,
       uiPreferences: normalizeUiPreferences(profile.uiPreferences),
-    },
+    }),
     decks,
     documents: Array.isArray(rawState?.documents) ? rawState.documents : [],
     cloudTombstones: Array.isArray(rawState?.cloudTombstones) ? rawState.cloudTombstones : [],
@@ -268,13 +267,13 @@ export function createCoreRepository(storage: any = null, options: any = {}) {
     saveProfile(profile: any) {
       const state = readState(resolvedStorage, { seedDefaultDecks });
       const patch = profile && typeof profile === "object" ? profile : {};
-      const nextProfile = {
+      const nextProfile = withGlobalSchedulerPreferences({
         ...state.profile,
         ...patch,
         ...(Object.hasOwn(patch, "uiPreferences")
           ? { uiPreferences: normalizeUiPreferences(patch.uiPreferences) }
           : {}),
-      };
+      });
       const nextState = { ...state, profile: nextProfile };
       if (Object.keys(patch).length === 1 && Object.hasOwn(patch, "uiPreferences")) {
         writeUiPreferences(resolvedStorage, nextProfile.uiPreferences);

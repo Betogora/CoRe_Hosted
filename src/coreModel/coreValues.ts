@@ -1,4 +1,4 @@
-import { normalizeLearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
+import { normalizeLearningProfileSource, normalizeLearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
 import type { CardType, CardVariantType, CoreMode, DeckAppearance, DeckSettings, DeckSource, LearningItemSourceType, MaturityBand, ReviewRating, TransformType, VariantGenerationSource, VariantQualityStatus } from "../coreTypes.ts";
 
 interface DeckSettingsInput extends LearningSettingsInput {
@@ -156,6 +156,10 @@ export function createDefaultDeckSettings(settings: DeckSettingsInput = {}): Dec
     ...learningSettings,
     coreMode,
     appearance: normalizeDeckAppearance(settings.appearance),
+    learningProfileSource: normalizeLearningProfileSource(settings.learningProfileSource)
+      ?? (learningSettings.schedulerProfile.presetId === "custom"
+        ? null
+        : { id: `builtin:${learningSettings.schedulerProfile.presetId}`, contentVersion: 1 }),
     newCardsTodayOverride,
     variantThresholdXp: typeof settings.variantThresholdXp === "number" && Number.isFinite(settings.variantThresholdXp) ? settings.variantThresholdXp : 121,
     maxActiveVariantsPerCard: typeof settings.maxActiveVariantsPerCard === "number" && Number.isFinite(settings.maxActiveVariantsPerCard) ? settings.maxActiveVariantsPerCard : 2,

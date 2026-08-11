@@ -1,9 +1,16 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-08-06
+**Stand:** 2026-08-11
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-08-11 — Getrennte globale und stapelspezifische Einstellungen
+
+- Globale Stapel-Defaults und die fehlerhafte Bulk-Mutation wurden entfernt. Tagesbeginn und Vorziehfenster werden accountweit an Queue und Sitzung übergeben; Tageslimits, Scheduler und CoRe bleiben materialisierte Stapelwerte.
+- Eigene benannte Lernprofile sind konto-weite, versionierte Copy-on-apply-Vorlagen. Cloud- und lokale Normalisierung sowie Portabilität transportieren die Bibliothek ohne Datenbankmigration; Import-ID-Kollisionen werden sicher getrennt.
+- Beide Einstellungsseiten besitzen drei responsive CoRe-Bereichskarten, direkte Quernavigation und mobil stabile Seitenköpfe. Die decklose Route bietet eine Stapelauswahl; Sprache ist ehrlich als `Deutsch (Beta)` gekennzeichnet.
+- Lokal bestätigt: 525 Modul-, Contract- und Integrationstests, Typecheck, Production-Build sowie Browserabnahme in Light und Dark bei 390, 768 und 1.440 px. Die Profiljourney Anlegen, Anwenden, lokal Ändern und Speichern funktionierte ohne horizontalen Überlauf; zwei nachgelagerte Agentenaudits fanden und verifizierten die Legacy-, Import- und Vereinfachungskorrekturen.
 
 ## 2026-08-10 — Globaler Pomodoro-Timer
 

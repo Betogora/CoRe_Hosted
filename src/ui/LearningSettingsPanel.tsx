@@ -1,511 +1,247 @@
 import React from "react";
-import { Brain, Clock3, Flame, Gauge, Leaf, Save, Scale, SlidersHorizontal, Sparkles } from "lucide-react";
-import { LEARNING_SETTING_PRESETS, applyLearningPreset, markLearningSettingsCustom, normalizeLearningSettings, type LearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
-import type { CoreMode } from "../coreTypes.ts";
-import { normalizeDayStartHour } from "../learningDay.ts";
+import { Brain, CopyCheck, Flame, Leaf, Pencil, Plus, Save, Scale, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
+import type { DeckSettings, LearningProfileSource, LearningProfileTemplate } from "../coreTypes.ts";
+import {
+  applyLearningProfileTemplateToDeckSettings,
+  BUILT_IN_LEARNING_PROFILE_TEMPLATES,
+  createLearningProfileTemplate,
+  deleteLearningProfileTemplate,
+  markLearningSettingsCustom,
+  normalizeLearningProfileSource,
+  normalizeLearningSettings,
+  renameLearningProfileTemplate,
+  updateLearningProfileTemplate,
+  type LearningSettingsInput,
+} from "../deckSettings.ts";
 import { ActionButton } from "./actionUi.tsx";
-import { CoreModeControl, CoreSwitch, SoftPanel } from "./coreUi.tsx";
+import { ActionDialog, CoreModeControl, CoreSwitch, SoftPanel } from "./coreUi.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
-import { CoreSelect, type CoreSelectOption } from "./selectUi.tsx";
+import { CoreSelect } from "./selectUi.tsx";
 
 const learningStepOptions = [
   { value: "1,10", label: "Kompakt · 1 Min. → 10 Min." },
   { value: "5,15", label: "Standard · 5 Min. → 15 Min." },
   { value: "10,30", label: "Ruhig · 10 Min. → 30 Min." },
 ];
-
-const learningPresetOptions = [
-  ...LEARNING_SETTING_PRESETS.map((preset) => ({
-    value: preset.id,
-    label: preset.label,
-    icon: preset.id === "standard" ? Scale : preset.id === "intensive" ? Flame : Leaf,
-  })),
-  { value: "custom", label: "Eigene Einstellungen", icon: SlidersHorizontal },
-];
-
 const reviewOrderOptions = [
   { value: "reviews-first", label: "Fällige Karten zuerst" },
   { value: "mixed", label: "Neue und fällige mischen" },
   { value: "new-first", label: "Neue Karten zuerst" },
 ];
-
-const relearningStepOptions = [1, 3, 5, 10, 20, 30]
-  .map((minutes) => ({ value: String(minutes), label: `${minutes} Min.` }));
-
+const relearningStepOptions = [1, 3, 5, 10, 20, 30].map((minutes) => ({ value: String(minutes), label: `${minutes} Min.` }));
 const variantThresholdOptions = [
   { value: "81", label: "Stabil · früher" },
   { value: "121", label: "CoRe-ready · Standard" },
   { value: "181", label: "Sicher · später" },
 ];
+const activeVariantOptions = [1, 2, 3].map((count) => ({ value: String(count), label: `${count} ${count === 1 ? "Variante" : "Varianten"}` }));
 
-const activeVariantOptions = [1, 2, 3]
-  .map((count) => ({ value: String(count), label: `${count} ${count === 1 ? "Variante" : "Varianten"}` }));
-
-type LearningSettingsDraft = LearningSettings & {
-  coreMode: CoreMode;
-  dayStartHour?: number;
-  variantThresholdXp?: number;
-  maxActiveVariantsPerCard?: number;
+type DeckLearningDraft = ReturnType<typeof normalizeLearningSettings> & {
+  coreMode: DeckSettings["coreMode"];
+  variantThresholdXp: number;
+  maxActiveVariantsPerCard: number;
+  learningProfileSource: LearningProfileSource | null;
 };
 
-function optionalFiniteNumber(value: unknown) {
-  const parsed = Number(value);
-  return value !== null && value !== undefined && Number.isFinite(parsed) ? parsed : undefined;
+interface LearningSettingsPanelProps {
+  settings: DeckSettings;
+  profiles: LearningProfileTemplate[];
+  defaultProfileName: string;
+  onProfilesChange: (profiles: LearningProfileTemplate[]) => unknown;
+  onSave: (settings: LearningSettingsInput) => unknown;
 }
 
-function createLearningSettingsDraft(settings: LearningSettingsInput | undefined, coreMode: CoreMode, dayStartHour?: number): LearningSettingsDraft {
-  const variantThresholdXp = optionalFiniteNumber(settings?.variantThresholdXp);
-  const maxActiveVariantsPerCard = optionalFiniteNumber(settings?.maxActiveVariantsPerCard);
-
+function createDraft(settings: LearningSettingsInput & Pick<DeckLearningDraft, "coreMode" | "variantThresholdXp" | "maxActiveVariantsPerCard" | "learningProfileSource">): DeckLearningDraft {
   return {
     ...normalizeLearningSettings(settings),
-    coreMode,
-    ...(dayStartHour !== undefined ? { dayStartHour: normalizeDayStartHour(dayStartHour) } : {}),
-    ...(variantThresholdXp !== undefined ? { variantThresholdXp } : {}),
-    ...(maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard } : {}),
+    coreMode: settings.coreMode,
+    variantThresholdXp: Number.isFinite(Number(settings.variantThresholdXp)) ? Number(settings.variantThresholdXp) : 121,
+    maxActiveVariantsPerCard: Number.isFinite(Number(settings.maxActiveVariantsPerCard)) ? Number(settings.maxActiveVariantsPerCard) : 2,
+    learningProfileSource: normalizeLearningProfileSource(settings.learningProfileSource),
   };
 }
 
-function mergeCustomSettings(current: LearningSettingsDraft, patch: LearningSettingsInput): LearningSettingsDraft {
-  const next = markLearningSettingsCustom({
-    ...current,
-    ...patch,
-    schedulerProfile: {
-      ...current.schedulerProfile,
-      ...(patch.schedulerProfile ?? {}),
-    },
-  });
-
-  return {
-    ...next,
-    coreMode: current.coreMode,
-    ...(current.dayStartHour !== undefined ? { dayStartHour: current.dayStartHour } : {}),
-    ...(current.variantThresholdXp !== undefined ? { variantThresholdXp: current.variantThresholdXp } : {}),
-    ...(current.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: current.maxActiveVariantsPerCard } : {}),
-  };
-}
-
-interface RangeFieldProps {
-  label: string;
-  hint?: string;
-  value: number;
-  min: number;
-  max: number;
-  step?: number;
-  suffix?: string;
-  onChange: (value: number) => void;
-  testId?: string;
-}
-
-function RangeField({ label, hint, value, min, max, step = 1, suffix = "", onChange, testId }: RangeFieldProps) {
+function NumberField({ label, value, min, max, testId, onChange }: { label: string; value: number; min: number; max: number; testId: string; onChange: (value: number) => void }) {
   return (
-    <label className="grid gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)]">
-      <span>
-        <span className="block text-[var(--core-text-secondary)]">{label}</span>
-        {hint ? <span className="mt-1 block core-caption font-normal leading-5 text-[var(--core-text-muted)]">{hint}</span> : null}
-      </span>
-      <span className="grid grid-cols-[minmax(0,1fr)_6.5rem] items-center gap-3">
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(event) => onChange(Number(event.target.value))}
-          className="w-full accent-[var(--core-action-primary)]"
-          aria-label={label}
-          data-testid={testId}
-        />
-        <span className="flex min-w-0 items-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-text)]">
-          <input
-            type="number"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={(event) => onChange(Number(event.target.value))}
-            className="min-h-11 min-w-0 flex-1 border-0 bg-transparent px-3 text-right text-[var(--core-text)] outline-none"
-            aria-label={`${label} als Zahl`}
-          />
-          {suffix ? <span className="shrink-0 pr-3 font-normal" aria-hidden="true">{suffix.trim()}</span> : null}
-        </span>
-      </span>
+    <label className="grid gap-2 core-body font-semibold text-core-muted">
+      {label}
+      <input type="number" min={min} max={max} step="1" value={value} data-testid={testId} className="min-h-11 rounded-xl border border-core-border px-3 text-core-text" onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
 }
 
-interface NumberFieldProps {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
-  testId?: string;
-}
-
-function NumberField({ label, value, min, max, onChange, testId }: NumberFieldProps) {
-  const [inputValue, setInputValue] = React.useState(String(value));
-  const editingRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (!editingRef.current) setInputValue(String(value));
-  }, [value]);
-
-  function commit() {
-    editingRef.current = false;
-    const rawValue = inputValue.trim();
-    const parsed = Number(rawValue);
-    if (!rawValue || !Number.isFinite(parsed)) {
-      setInputValue(String(value));
-      return;
-    }
-
-    const normalized = Math.min(max, Math.max(min, Math.round(parsed)));
-    setInputValue(String(normalized));
-    if (normalized !== value) onChange(normalized);
-  }
-
+function SelectField({ label, value, options, testId, onChange }: { label: string; value: string | number; options: Array<{ value: string; label: string }>; testId: string; onChange: (value: string) => void }) {
   return (
-    <label className="grid min-h-20 gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)] sm:grid-cols-[minmax(0,1fr)_5.5rem] sm:items-center">
-      <span className="min-w-0 text-[var(--core-text-secondary)]">{label}</span>
-      <span className="flex min-h-11 min-w-0 items-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-text)] sm:w-[5.5rem]">
-        <input
-          type="number"
-          min={min}
-          max={max}
-          step={1}
-          inputMode="numeric"
-          value={inputValue}
-          onFocus={() => { editingRef.current = true; }}
-          onChange={(event) => setInputValue(event.currentTarget.value)}
-          onBlur={commit}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") event.currentTarget.blur();
-          }}
-          className="min-h-11 min-w-0 w-full border-0 bg-transparent px-3 text-right text-[var(--core-text)] outline-none"
-          aria-label={`${label} als Zahl`}
-          data-testid={testId}
-        />
-      </span>
+    <label className="grid gap-2 core-body font-semibold text-core-muted">
+      {label}
+      <CoreSelect ariaLabel={label} value={String(value)} options={options} testId={testId} onValueChange={onChange} />
     </label>
   );
 }
 
-interface SelectFieldProps {
-  label: string;
-  hint?: string;
-  value: string | number;
-  onChange: (value: string) => void;
-  options: readonly CoreSelectOption[];
-  testId?: string;
-}
-
-function SelectField({ label, hint, value, onChange, options, testId }: SelectFieldProps) {
-  return (
-    <label className="grid gap-2 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)]">
-      <span className="text-[var(--core-text-secondary)]">{label}</span>
-      {hint ? <span className="core-caption font-normal leading-5 text-[var(--core-text-muted)]">{hint}</span> : null}
-      <CoreSelect
-        ariaLabel={label}
-        className="w-full font-semibold"
-        value={String(value)}
-        options={options}
-        onValueChange={onChange}
-        testId={testId}
-      />
-    </label>
-  );
-}
-
-interface LearningSettingsPanelProps {
-  settings?: LearningSettingsInput;
-  customSettings?: LearningSettingsInput;
-  coreMode?: CoreMode;
-  dayStartHour?: number;
-  scopeTitle: string;
-  scopeDescription: string;
-  autoSave?: boolean;
-  onSave?: (settings: LearningSettingsDraft) => void;
-}
-
-export function LearningSettingsPanel({ settings, customSettings, coreMode = "auto", dayStartHour, scopeTitle, scopeDescription, autoSave = false, onSave }: LearningSettingsPanelProps) {
-  const [draft, setDraft] = React.useState<LearningSettingsDraft>(() => createLearningSettingsDraft(settings, coreMode, dayStartHour));
+export function LearningSettingsPanel({ settings, profiles, defaultProfileName, onProfilesChange, onSave }: LearningSettingsPanelProps) {
+  const [draft, setDraft] = React.useState(() => createDraft(settings));
+  const [selectedProfileId, setSelectedProfileId] = React.useState(draft.learningProfileSource?.id ?? "custom");
+  const [profileName, setProfileName] = React.useState(defaultProfileName);
+  const [deleteProfileId, setDeleteProfileId] = React.useState<string | null>(null);
   const setSuccessToast = useSuccessToast();
-  const settingsSignature = JSON.stringify({ settings, coreMode, dayStartHour });
 
   React.useEffect(() => {
-    setDraft(createLearningSettingsDraft(settings, coreMode, dayStartHour));
-  }, [settingsSignature]);
-
-  const stepValue = draft.schedulerProfile.learningStepsMinutes.join(",");
-  const knownStepValue = learningStepOptions.some((option) => option.value === stepValue);
-  const stepOptions = knownStepValue ? learningStepOptions : [
-    { value: stepValue, label: `Eigene · ${draft.schedulerProfile.learningStepsMinutes[0]} Min. → ${draft.schedulerProfile.learningStepsMinutes[1]} Min.` },
-    ...learningStepOptions,
-  ];
-  const showCoreParameters = draft.variantThresholdXp !== undefined && draft.maxActiveVariantsPerCard !== undefined;
-  const variantThresholdValue = String(draft.variantThresholdXp ?? 121);
-  const knownVariantThreshold = variantThresholdOptions.some((option) => option.value === variantThresholdValue);
-  const visibleVariantThresholdOptions = knownVariantThreshold ? variantThresholdOptions : [
-    { value: variantThresholdValue, label: `Eigener Wert · ${variantThresholdValue} XP` },
-    ...variantThresholdOptions,
-  ];
-  const activeVariantValue = String(draft.maxActiveVariantsPerCard ?? 2);
-  const knownActiveVariantCount = activeVariantOptions.some((option) => option.value === activeVariantValue);
-  const visibleActiveVariantOptions = knownActiveVariantCount ? activeVariantOptions : [
-    { value: activeVariantValue, label: `Eigener Wert · ${activeVariantValue}` },
-    ...activeVariantOptions,
-  ];
-
-  function savableSettings(nextDraft: LearningSettingsDraft): LearningSettingsDraft {
-    return {
-      ...normalizeLearningSettings(nextDraft),
-      coreMode: nextDraft.coreMode,
-      ...(nextDraft.dayStartHour !== undefined ? { dayStartHour: nextDraft.dayStartHour } : {}),
-      ...(nextDraft.variantThresholdXp !== undefined ? { variantThresholdXp: nextDraft.variantThresholdXp } : {}),
-      ...(nextDraft.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: nextDraft.maxActiveVariantsPerCard } : {}),
-    };
-  }
-
-  function changeDraft(nextDraft: LearningSettingsDraft) {
+    const nextDraft = createDraft(settings);
     setDraft(nextDraft);
-    setSuccessToast("");
-    if (autoSave) onSave?.(savableSettings(nextDraft));
+    setSelectedProfileId(nextDraft.learningProfileSource?.id ?? "custom");
+  }, [settings]);
+
+  React.useEffect(() => setProfileName(defaultProfileName), [defaultProfileName]);
+
+  const allProfiles = [...BUILT_IN_LEARNING_PROFILE_TEMPLATES, ...profiles];
+  const selectedProfile = allProfiles.find((profile) => profile.id === selectedProfileId) ?? null;
+  const selectedCustomProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? null;
+  const appliedProfile = draft.learningProfileSource ? allProfiles.find((profile) => profile.id === draft.learningProfileSource?.id) ?? null : null;
+  const appliedProfileIsStale = Boolean(appliedProfile && draft.learningProfileSource && appliedProfile.contentVersion > draft.learningProfileSource.contentVersion);
+  const profileOptions = [
+    ...allProfiles.map((profile) => ({ value: profile.id, label: profile.name, icon: profile.id === "builtin:standard" ? Scale : profile.id === "builtin:intensive" ? Flame : profile.id === "builtin:relaxed" ? Leaf : Pencil })),
+    { value: "custom", label: "Eigene Einstellungen", icon: SlidersHorizontal },
+  ];
+
+  function editLearning(patch: LearningSettingsInput) {
+    setDraft((current) => ({
+      ...current,
+      ...markLearningSettingsCustom({
+        ...current,
+        ...patch,
+        schedulerProfile: { ...current.schedulerProfile, ...(patch.schedulerProfile ?? {}) },
+      }),
+      learningProfileSource: null,
+    }));
+    setSelectedProfileId("custom");
   }
 
-  function selectPreset(presetId: string) {
-    if (presetId === "custom") {
-      changeDraft(customSettings
-        ? createLearningSettingsDraft(customSettings, draft.coreMode, draft.dayStartHour)
-        : {
-            ...markLearningSettingsCustom(draft),
-            coreMode: draft.coreMode,
-            ...(draft.dayStartHour !== undefined ? { dayStartHour: draft.dayStartHour } : {}),
-            ...(draft.variantThresholdXp !== undefined ? { variantThresholdXp: draft.variantThresholdXp } : {}),
-            ...(draft.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: draft.maxActiveVariantsPerCard } : {}),
-          });
-      return;
-    }
-    changeDraft({
-      ...applyLearningPreset(draft, presetId),
-      coreMode: draft.coreMode,
-      ...(draft.dayStartHour !== undefined ? { dayStartHour: draft.dayStartHour } : {}),
-      ...(draft.variantThresholdXp !== undefined ? { variantThresholdXp: draft.variantThresholdXp } : {}),
-      ...(draft.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: draft.maxActiveVariantsPerCard } : {}),
-    });
+  function editCore(patch: Partial<Pick<DeckLearningDraft, "coreMode" | "variantThresholdXp" | "maxActiveVariantsPerCard">>) {
+    setDraft((current) => ({ ...current, ...patch }));
   }
 
-  function updateSetting(key: string, value: any) {
-    changeDraft(mergeCustomSettings(draft, { [key]: value }));
+  function applySelectedProfile() {
+    if (!selectedProfile) return;
+    const next = applyLearningProfileTemplateToDeckSettings({ ...draft }, selectedProfile);
+    const nextDraft = createDraft(next);
+    setDraft(nextDraft);
+    setSelectedProfileId(selectedProfile.id);
+    onSave(nextDraft);
+    setSuccessToast(`Lernprofil „${selectedProfile.name}“ wurde auf diesen Stapel angewandt.`);
   }
 
-  function updateSchedulerSetting(key: keyof LearningSettingsDraft["schedulerProfile"], value: unknown) {
-    changeDraft(mergeCustomSettings(draft, { schedulerProfile: { [key]: value } }));
+  function createProfile() {
+    const result = createLearningProfileTemplate(profiles, { name: profileName, defaultName: defaultProfileName, settings: draft });
+    onProfilesChange(result.profiles);
+    setSelectedProfileId(result.template.id);
+    setProfileName(result.template.name);
+    setSuccessToast(`Lernprofil „${result.template.name}“ wurde angelegt.`);
   }
 
-  function updateCoreSetting(key: "variantThresholdXp" | "maxActiveVariantsPerCard", value: number) {
-    changeDraft({ ...draft, [key]: value });
+  function renameProfile() {
+    if (!selectedCustomProfile) return;
+    const next = renameLearningProfileTemplate(profiles, selectedCustomProfile.id, profileName);
+    onProfilesChange(next);
+    setProfileName(next.find((profile) => profile.id === selectedCustomProfile.id)?.name ?? profileName);
+    setSuccessToast("Lernprofil wurde umbenannt.");
+  }
+
+  function updateProfile() {
+    if (!selectedCustomProfile) return;
+    onProfilesChange(updateLearningProfileTemplate(profiles, selectedCustomProfile.id, draft));
+    setSuccessToast("Lernprofil wurde mit den aktuellen Stapelwerten aktualisiert. Andere Stapel bleiben unverändert.");
+  }
+
+  function confirmDeleteProfile() {
+    if (!deleteProfileId) return;
+    onProfilesChange(deleteLearningProfileTemplate(profiles, deleteProfileId));
+    setSelectedProfileId("custom");
+    setDeleteProfileId(null);
+    setSuccessToast("Lernprofil wurde gelöscht. Bereits kopierte Stapelwerte bleiben erhalten.");
   }
 
   function save() {
-    onSave?.(savableSettings(draft));
-    setSuccessToast("Lernoptionen wurden gespeichert.");
+    onSave(draft);
+    setSuccessToast("Stapeleinstellungen wurden gespeichert.");
   }
 
   return (
-    <SoftPanel className="overflow-hidden">
-      <div className="border-b border-[var(--core-border)] bg-core-subtle p-4 sm:p-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0 flex-[1_1_28rem]">
-            <h3 className="core-heading-2 font-semibold text-[var(--core-text)]">{scopeTitle}</h3>
-            <p className="mt-1 max-w-3xl core-body leading-6 text-[var(--core-text-muted)]">{scopeDescription}</p>
+    <>
+      <section id="deck-daily-profiles" className="scroll-mt-6 grid gap-4" aria-labelledby="deck-daily-heading">
+        <h2 id="deck-daily-heading" className="core-heading-2 font-semibold text-core-text">Tagesrunde & Lernprofile</h2>
+        <SoftPanel className="p-5 sm:p-6">
+          <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <SelectField label="Lernprofil-Vorlage" value={selectedProfileId} options={profileOptions} testId="learning-profile-select" onChange={(value) => { setSelectedProfileId(value); setProfileName(profiles.find((profile) => profile.id === value)?.name ?? defaultProfileName); }} />
+            <ActionButton type="button" variant="primary" icon={CopyCheck} disabled={!selectedProfile} onClick={applySelectedProfile}>Auf diesen Stapel anwenden</ActionButton>
           </div>
-          <label className="grid min-w-52 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-            Lernprofil
-            <CoreSelect
-              ariaLabel="Lernprofil"
-              className="w-full"
-              value={draft.schedulerProfile.presetId}
-              options={learningPresetOptions}
-              onValueChange={selectPreset}
-              testId="learning-settings-preset"
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="grid gap-5 p-4 sm:p-5">
-        <fieldset className="grid gap-4">
-          <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-[var(--core-text)]">
-            <Gauge size={19} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
-            Tagespensum und Reihenfolge
-          </legend>
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-            <NumberField
-              label="Neue Karten pro Tag"
-              value={draft.newCardsPerDay}
-              min={0}
-              max={500}
-              onChange={(value) => updateSetting("newCardsPerDay", value)}
-              testId="learning-settings-new-cards"
-            />
-            <NumberField
-              label="Wiederholungen pro Tag"
-              value={draft.maximumReviewsPerDay}
-              min={0}
-              max={2000}
-              onChange={(value) => updateSetting("maximumReviewsPerDay", value)}
-              testId="learning-settings-max-reviews"
-            />
-            <RangeField
-              label="Lernkarten vorziehen"
-              hint="Zeigt vorgemerkte Lernwiederholungen am Sitzungsende bis zu diesem Zeitraum früher. 0 Min. wartet bis zum gespeicherten Termin."
-              value={draft.learnAheadMinutes}
-              min={0}
-              max={720}
-              suffix=" Min."
-              onChange={(value: any) => updateSetting("learnAheadMinutes", value)}
-              testId="learning-settings-learn-ahead"
-            />
-            <SelectField
-              label="Reihenfolge in der Tagesrunde"
-              value={draft.newReviewOrder}
-              onChange={(value: any) => updateSetting("newReviewOrder", value)}
-              options={reviewOrderOptions}
-              testId="learning-settings-order"
-            />
-          </div>
-          {draft.dayStartHour !== undefined ? (
-            <label className="flex min-h-20 flex-col justify-center gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)] sm:flex-row sm:items-center sm:justify-between">
-              <span>Neuer Tag beginnt um</span>
-              <span className="flex flex-wrap items-center gap-3 font-normal text-[var(--core-text)]">
-                <span className="flex min-h-11 w-24 items-center rounded-xl border border-[var(--core-border)] bg-core-surface">
-                  <input
-                    type="number"
-                    min={0}
-                    max={23}
-                    step={1}
-                    inputMode="numeric"
-                    value={draft.dayStartHour}
-                    onChange={(event) => changeDraft({ ...draft, dayStartHour: normalizeDayStartHour(event.target.value) })}
-                    className="min-h-11 min-w-0 w-full border-0 bg-transparent px-3 text-right text-[var(--core-text)] outline-none"
-                    aria-label="Neuer Tag beginnt um, Stunden nach Mitternacht"
-                    data-testid="learning-settings-day-start-hour"
-                  />
-                </span>
-                <span>Stunden nach Mitternacht</span>
-              </span>
-            </label>
-          ) : null}
-        </fieldset>
-
-        <fieldset className="grid gap-4 border-t border-[var(--core-border)] pt-6">
-          <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-[var(--core-text)]">
-            <Clock3 size={19} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
-            Lernschritte und Intervalle
-          </legend>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <SelectField
-              label="Lernschritte für neue Karten"
-              hint="Der erste Wert gilt nach „Nochmal“, mit „Gut“ geht es zum nächsten Schritt. „Leicht“ beendet die Lernphase sofort."
-              value={stepValue}
-              onChange={(value: string) => updateSchedulerSetting("learningStepsMinutes", value.split(",").map(Number))}
-              options={stepOptions}
-              testId="learning-settings-steps"
-            />
-            <SelectField
-              label="Nach einem Fehler erneut zeigen"
-              value={draft.schedulerProfile.relearningStepMinutes}
-              onChange={(value: any) => updateSchedulerSetting("relearningStepMinutes", Number(value))}
-              options={relearningStepOptions}
-              testId="learning-settings-relearning"
-            />
-            <label className="flex min-h-20 items-start justify-between gap-4 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)] lg:col-span-2">
-              <span>
-                <span className="block">Kurze Abstände verdoppeln</span>
-                <span className="mt-1 block core-caption font-normal leading-5 text-[var(--core-text-muted)]">Verdoppelt kurze Lern- und Wiederlern-Abstände. Das reduziert unmittelbare Wiedererkennung, verlängert aber die Lernrunde.</span>
-              </span>
-              <span data-testid="learning-settings-short-bias">
-                <CoreSwitch
-                  checked={draft.schedulerProfile.lessShortIntervalBias}
-                  ariaLabel="Kurze Abstände verdoppeln"
-                  onCheckedChange={(checked) => updateSchedulerSetting("lessShortIntervalBias", checked)}
-                />
-              </span>
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset className="grid gap-4 border-t border-[var(--core-border)] pt-6">
-          <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-[var(--core-text)]">
-            <Brain size={19} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
-            Erinnerungsziel
-          </legend>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <RangeField
-              label="Gewünschte Erinnerungsrate"
-              hint="Höhere Werte erzeugen kürzere Intervalle und mehr tägliche Wiederholungen. 90 % ist ein ausgewogener Startpunkt."
-              value={Math.round(draft.schedulerProfile.desiredRetention * 100)}
-              min={70}
-              max={99}
-              suffix=" %"
-              onChange={(value: number) => updateSchedulerSetting("desiredRetention", value / 100)}
-              testId="learning-settings-retention"
-            />
-            <NumberField
-              label="Maximales Intervall in Tagen"
-              value={draft.schedulerProfile.maximumIntervalDays}
-              min={30}
-              max={36500}
-              onChange={(value: number) => updateSchedulerSetting("maximumIntervalDays", value)}
-              testId="learning-settings-maximum-interval"
-            />
-          </div>
-          {draft.schedulerProfile.desiredRetention > 0.97 ? (
-            <p className="rounded-xl border border-core-warning bg-core-warning-soft px-4 py-3 core-body leading-6 text-core-text" role="alert">
-              Über 97 % steigt die tägliche Belastung meist sehr stark. Nutze diesen Bereich nur bewusst und beobachte dein Wiederholungspensum.
+          <p className="mt-3 core-caption leading-5 text-core-muted">
+            Das Anwenden kopiert die Werte nur in diesen Stapel. Spätere Änderungen an der Vorlage wirken nicht automatisch weiter.
+          </p>
+          {draft.learningProfileSource ? (
+            <p className={`mt-3 rounded-xl border px-4 py-3 core-body ${appliedProfileIsStale ? "border-core-warning bg-core-warning-soft" : "border-core-info bg-core-info-soft"}`} role={appliedProfileIsStale ? "status" : undefined}>
+              Herkunft: {appliedProfile?.name ?? "Gelöschtes Lernprofil"} · Version {draft.learningProfileSource.contentVersion}{appliedProfileIsStale ? " · Neuere Vorlage verfügbar" : ""}
             </p>
           ) : null}
-        </fieldset>
 
-        <fieldset className="grid gap-4 border-t border-[var(--core-border)] pt-5">
-          <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-[var(--core-text)]">
-            <Sparkles size={19} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
-            Content Repetition
-          </legend>
-          <div className={`grid gap-4 ${showCoreParameters ? "lg:grid-cols-2 xl:grid-cols-3" : ""}`}>
-            <div className="rounded-2xl border border-[var(--core-border)] bg-core-surface p-4">
-              <p className="core-body font-semibold text-[var(--core-text-secondary)]">CoRe-Modus</p>
-              <p className="mb-3 mt-1 core-caption leading-5 text-[var(--core-text-muted)]">Steuert, ob Varianten automatisch, nur gezielt oder gar nicht eingesetzt werden.</p>
-              <CoreModeControl value={draft.coreMode} onChange={(value: any) => changeDraft({ ...draft, coreMode: value })} />
+          <div className="mt-5 grid min-w-0 gap-3 border-t border-core-border pt-5 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-end">
+            <label className="grid gap-2 core-body font-semibold text-core-muted">Name des eigenen Lernprofils<input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={profileName} onChange={(event) => setProfileName(event.target.value)} /></label>
+            <ActionButton type="button" variant="secondary" icon={Plus} onClick={createProfile}>Anlegen</ActionButton>
+            <ActionButton type="button" variant="secondary" icon={Pencil} disabled={!selectedCustomProfile} onClick={renameProfile}>Umbenennen</ActionButton>
+            <ActionButton type="button" variant="destructive" icon={Trash2} disabled={!selectedCustomProfile} onClick={() => setDeleteProfileId(selectedCustomProfile?.id ?? null)}>Löschen</ActionButton>
+          </div>
+          <ActionButton type="button" variant="secondary" icon={Save} className="mt-3" disabled={!selectedCustomProfile} onClick={updateProfile}>Vorlage mit aktuellen Werten aktualisieren</ActionButton>
+
+          <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-5">
+            <legend className="mb-1 core-body-large font-semibold text-core-text">Tagespensum und Reihenfolge</legend>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <NumberField label="Neue Karten pro Tag" value={draft.newCardsPerDay} min={0} max={500} testId="learning-settings-new-cards" onChange={(value) => editLearning({ newCardsPerDay: value })} />
+              <NumberField label="Wiederholungen pro Tag" value={draft.maximumReviewsPerDay} min={0} max={2000} testId="learning-settings-max-reviews" onChange={(value) => editLearning({ maximumReviewsPerDay: value })} />
+              <SelectField label="Reihenfolge" value={draft.newReviewOrder} options={reviewOrderOptions} testId="learning-settings-order" onChange={(value) => editLearning({ newReviewOrder: value })} />
             </div>
-            {showCoreParameters ? (
-              <>
-                <SelectField
-                  label="Varianten einsetzen ab Lernstufe"
-                  value={variantThresholdValue}
-                  onChange={(value) => updateCoreSetting("variantThresholdXp", Number(value))}
-                  options={visibleVariantThresholdOptions}
-                  testId="learning-settings-variant-threshold"
-                />
-                <SelectField
-                  label="Aktive Varianten pro Karte"
-                  value={activeVariantValue}
-                  onChange={(value) => updateCoreSetting("maxActiveVariantsPerCard", Number(value))}
-                  options={visibleActiveVariantOptions}
-                  testId="learning-settings-active-variants"
-                />
-              </>
-            ) : null}
-          </div>
-        </fieldset>
+          </fieldset>
+        </SoftPanel>
+      </section>
 
-        {autoSave ? null : (
-          <div className="flex justify-end border-t border-[var(--core-border)] pt-5">
-            <ActionButton type="button" variant="primary" icon={Save} onClick={save}>Lernoptionen speichern</ActionButton>
-          </div>
-        )}
-      </div>
-    </SoftPanel>
+      <section id="deck-scheduler-core" className="scroll-mt-6 grid gap-4" aria-labelledby="deck-scheduler-heading">
+        <h2 id="deck-scheduler-heading" className="core-heading-2 font-semibold text-core-text">Scheduler & CoRe</h2>
+        <SoftPanel className="p-5 sm:p-6">
+          <fieldset className="grid gap-4">
+            <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Brain size={19} aria-hidden="true" />Lernablauf</legend>
+            <div className="grid gap-4 md:grid-cols-2">
+              <SelectField label="Lernschritte" value={draft.schedulerProfile.learningStepsMinutes.join(",")} options={learningStepOptions} testId="learning-settings-steps" onChange={(value) => editLearning({ schedulerProfile: { learningStepsMinutes: value.split(",").map(Number) } })} />
+              <SelectField label="Nach einem Fehler erneut zeigen" value={draft.schedulerProfile.relearningStepMinutes} options={relearningStepOptions} testId="learning-settings-relearning" onChange={(value) => editLearning({ schedulerProfile: { relearningStepMinutes: Number(value) } })} />
+              <label className="flex min-h-20 items-start justify-between gap-4 rounded-2xl border border-core-border bg-core-surface p-4 core-body font-semibold text-core-muted md:col-span-2">
+                <span><span className="block">Kurze Abstände verdoppeln</span><span className="mt-1 block core-caption font-normal leading-5">Reduziert unmittelbare Wiedererkennung, verlängert aber die Lernrunde.</span></span>
+                <CoreSwitch checked={draft.schedulerProfile.lessShortIntervalBias} ariaLabel="Kurze Abstände verdoppeln" onCheckedChange={(checked) => editLearning({ schedulerProfile: { lessShortIntervalBias: checked } })} />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-5">
+            <legend className="mb-1 core-body-large font-semibold text-core-text">Erinnerungsziel</legend>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-2 core-body font-semibold text-core-muted">Gewünschte Erinnerungsrate<span className="flex items-center gap-3"><input type="range" min="70" max="99" value={Math.round(draft.schedulerProfile.desiredRetention * 100)} data-testid="learning-settings-retention" className="min-w-0 flex-1" onChange={(event) => editLearning({ schedulerProfile: { desiredRetention: Number(event.target.value) / 100 } })} /><output>{Math.round(draft.schedulerProfile.desiredRetention * 100)} %</output></span></label>
+              <NumberField label="Maximales Intervall in Tagen" value={draft.schedulerProfile.maximumIntervalDays} min={30} max={36500} testId="learning-settings-maximum-interval" onChange={(value) => editLearning({ schedulerProfile: { maximumIntervalDays: value } })} />
+            </div>
+            {draft.schedulerProfile.desiredRetention > 0.97 ? <p className="rounded-xl border border-core-warning bg-core-warning-soft px-4 py-3 core-body" role="alert">Über 97 % steigt die tägliche Belastung meist sehr stark.</p> : null}
+          </fieldset>
+
+          <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-5">
+            <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Sparkles size={19} aria-hidden="true" />Content Repetition</legend>
+            <p className="core-caption leading-5 text-core-muted">Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert.</p>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-2xl border border-core-border bg-core-surface p-4"><p className="mb-3 core-body font-semibold text-core-muted">CoRe-Modus</p><CoreModeControl value={draft.coreMode} onChange={(value) => editCore({ coreMode: value })} /></div>
+              <SelectField label="Varianten einsetzen ab Lernstufe" value={draft.variantThresholdXp} options={variantThresholdOptions} testId="learning-settings-variant-threshold" onChange={(value) => editCore({ variantThresholdXp: Number(value) })} />
+              <SelectField label="Aktive Varianten pro Karte" value={draft.maxActiveVariantsPerCard} options={activeVariantOptions} testId="learning-settings-active-variants" onChange={(value) => editCore({ maxActiveVariantsPerCard: Number(value) })} />
+            </div>
+          </fieldset>
+
+          <div className="mt-6 flex justify-end border-t border-core-border pt-5"><ActionButton type="button" variant="primary" icon={Save} onClick={save}>Stapeleinstellungen speichern</ActionButton></div>
+        </SoftPanel>
+      </section>
+
+      <ActionDialog open={Boolean(deleteProfileId)} title="Lernprofil löschen?" description="Bereits kopierte Stapelwerte bleiben unverändert. Nur die wiederverwendbare Vorlage wird gelöscht." confirmLabel="Lernprofil löschen" cancelLabel="Abbrechen" destructive onCancel={() => setDeleteProfileId(null)} onConfirm={confirmDeleteProfile} />
+    </>
   );
 }

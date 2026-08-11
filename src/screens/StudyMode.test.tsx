@@ -85,12 +85,13 @@ test("StudyMode uses a simulated same-day minute offset for queue and visible st
       dueAt: "2026-08-06T10:10:00.000Z",
     },
   });
-  const deck = createCoreDeck({ id: "deck_future", name: "Zukunft", source: "manual", deckSettings: { learnAheadMinutes: 0 }, cards: [item], reviewEvents: [] });
+  const deck = createCoreDeck({ id: "deck_future", name: "Zukunft", source: "manual", cards: [item], reviewEvents: [] });
   const commonProps = {
     deck,
     decks: [deck],
     deckId: deck.id,
     variantSession: false,
+    learnAheadMinutes: 0,
     mediaStore: null,
     pomodoroTimer: null,
     onStartPomodoro: () => undefined,

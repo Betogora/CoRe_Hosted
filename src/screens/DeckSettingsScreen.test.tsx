@@ -2,113 +2,69 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createManualCoreDeck } from "../coreModel.ts";
+import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
+import type { Deck } from "../coreTypes.ts";
 import { DeckSettingsScreen } from "./DeckSettingsScreen.tsx";
 
-const deck = createManualCoreDeck({
-  deckName: "Biologie",
-  card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
-});
+const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." } });
 
-function renderScreen(backLabel?: string, currentDeck = deck) {
+function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck]) {
   return renderToStaticMarkup(
     <DeckSettingsScreen
       deck={currentDeck}
-      decks={[currentDeck]}
+      decks={decks}
+      learningProfiles={getGlobalSchedulerPreferences({}).learningProfiles}
       onSave={() => undefined}
+      onSaveLearningProfiles={() => undefined}
       onSaveAppearance={() => undefined}
       onRenameDeck={() => null}
       onCreateSubdeck={() => undefined}
       onStartDeck={() => undefined}
       onDeleteDeck={async () => null}
+      onSelectDeck={() => undefined}
+      onOpenGlobalSettings={() => undefined}
       onBack={() => undefined}
-      backLabel={backLabel}
+      backLabel="Zurück zur Kartenverwaltung"
     />,
   );
 }
 
-test("deck settings label the URL-derived return destination", () => {
-  const decksOrigin = renderScreen("Zurück zur Kartenverwaltung");
-  const directLinkFallback = renderScreen();
-
-  assert.match(decksOrigin, /Zurück zur Kartenverwaltung/);
-  assert.doesNotMatch(decksOrigin, /Zurück zu Lernen/);
-  assert.match(directLinkFallback, /Zurück zu Lernen/);
+test("deck settings expose three responsive areas and both navigation paths", () => {
+  const html = renderScreen();
+  for (const heading of ["Stapel", "Tagesrunde &amp; Lernprofile", "Scheduler &amp; CoRe"]) assert.match(html, new RegExp(`>${heading}<`));
+  assert.match(html, /aria-label="Bereiche der Stapeleinstellungen"/);
+  assert.match(html, /md:grid-cols-3/);
+  assert.match(html, />Globale Einstellungen</);
+  assert.match(html, />Zurück zur Kartenverwaltung</);
+  assert.match(html, /CoRe Automatisch/);
+  assert.doesNotMatch(html, /CoRe auto/);
 });
 
-test("deck settings show appearance and the borderless rename action in the page title", () => {
-  const markup = renderScreen();
-  const headerForm = markup.match(/<form[^>]*>([\s\S]*?)<\/form>/)?.[1] ?? "";
-
-  assert.equal(markup.match(/data-testid="deck-settings-title-name"/g)?.length, 1);
-  assert.match(markup, /data-testid="deck-settings-title-name"[^>]*>Biologie/);
-  assert.match(markup, /data-testid="deck-settings-title-icon"[^>]*style="color:#[^;]+;border-color:#[^;]+;/);
-  assert.match(markup, /<button(?=[^>]*aria-label="Stapel umbenennen")(?=[^>]*class="[^"]*border-0)(?=[^>]*data-core-tooltip="Stapel umbenennen")(?=[^>]*data-core-tooltip-deck-icon-key="[^"]+")(?=[^>]*data-core-tooltip-deck-icon-color="#[0-9A-Fa-f]{6}")/);
-  assert.doesNotMatch(markup, /core-heading-3[^>]*>Biologie/);
-  assert.match(markup, /data-testid="deck-settings-appearance-toolbar"/);
-  assert.match(markup, />Icon</);
-  assert.match(markup, /aria-label="Icon auswählen"/);
-  assert.match(markup, />Farbe</);
-  assert.match(markup, /aria-label="Farbe auswählen"/);
-  assert.match(markup, />Name und Darstellung speichern</);
-  assert.doesNotMatch(headerForm, /core-surface-raised/);
-  assert.doesNotMatch(markup, /Nur dieser Stapel|Andere Stapel behalten|Stapel-Icon|Iconfarbe|type="color"/);
+test("deck appearance controls live in the Stack section instead of the page header", () => {
+  const html = renderScreen();
+  assert.match(html, /data-testid="deck-settings-title-name"[^>]*>Biologie/);
+  assert.match(html, /data-testid="deck-settings-name-input"/);
+  assert.match(html, /aria-label="Icon auswählen"/);
+  assert.match(html, /aria-label="Farbe auswählen"/);
+  assert.match(html, />Name und Darstellung speichern</);
+  assert.doesNotMatch(html, /deck-settings-appearance-toolbar/);
 });
 
-test("deck learning options use concise copy, full limits, and deck-only CoRe parameters", () => {
-  const markup = renderScreen();
-
-  assert.equal(markup.match(/>Lernoptionen</g)?.length, 1);
-  assert.doesNotMatch(markup, /Lernen mit|Begrenzt, wie viele|Deckelt fällige|Legt fest, wie neue|Wann eine bereits gelernte|Kein einzelner Abstand|Änderungen werden erst/);
-  assert.match(markup, /Der erste Wert gilt nach/);
-  assert.match(markup, /Verdoppelt kurze Lern- und Wiederlern-Abstände/);
-  assert.match(markup, /Höhere Werte erzeugen kürzere Intervalle/);
-  assert.match(markup, /Steuert, ob Varianten automatisch/);
-  assert.match(markup, /<input(?=[^>]*type="number")(?=[^>]*min="0")(?=[^>]*max="500")(?=[^>]*value="20")(?=[^>]*data-testid="learning-settings-new-cards")/);
-  assert.match(markup, /<input(?=[^>]*type="number")(?=[^>]*min="0")(?=[^>]*max="2000")(?=[^>]*value="200")(?=[^>]*data-testid="learning-settings-max-reviews")/);
-  assert.match(markup, /<input(?=[^>]*type="number")(?=[^>]*min="30")(?=[^>]*max="36500")(?=[^>]*value="1000")(?=[^>]*data-testid="learning-settings-maximum-interval")/);
-  assert.doesNotMatch(markup, /<input(?=[^>]*type="range")(?=[^>]*data-testid="learning-settings-(?:new-cards|max-reviews)")/);
-  assert.match(markup, /max="720"[^>]*data-testid="learning-settings-learn-ahead"[^>]*value="20"/);
-  assert.match(markup, /type="range"[^>]*data-testid="learning-settings-retention"/);
-  assert.match(markup, />Lernkarten vorziehen</);
-  assert.doesNotMatch(markup, /Neuer Tag beginnt um|Stunden nach Mitternacht/);
-  assert.match(markup, /Zeigt vorgemerkte Lernwiederholungen am Sitzungsende bis zu diesem Zeitraum früher/);
-  assert.match(markup, />Wiederholungen pro Tag</);
-  assert.match(markup, />Nach einem Fehler erneut zeigen</);
-  assert.match(markup, />Kurze Abstände verdoppeln</);
-  assert.match(markup, />Gewünschte Erinnerungsrate</);
-  assert.match(markup, />Maximales Intervall in Tagen</);
-  assert.doesNotMatch(markup, /Praktisch unbegrenzt|6 Monate|5 Jahre/);
-  assert.match(markup, />Content Repetition</);
-  assert.match(markup, /lg:grid-cols-2 xl:grid-cols-4/);
-  assert.match(markup, /lg:grid-cols-2 xl:grid-cols-3/);
-  assert.match(markup, />Varianten einsetzen ab Lernstufe</);
-  assert.match(markup, />Aktive Varianten pro Karte</);
-  assert.match(markup, />CoRe-ready · Standard</);
-  assert.match(markup, />2 Varianten</);
-  assert.match(markup, />Lernoptionen speichern</);
+test("deck profiles are copy-on-apply and global learn-ahead is absent", () => {
+  const html = renderScreen();
+  assert.match(html, />Lernprofil-Vorlage</);
+  assert.match(html, />Auf diesen Stapel anwenden</);
+  assert.match(html, /Spätere Änderungen an der Vorlage wirken nicht automatisch weiter/);
+  assert.match(html, />Neue Karten pro Tag</);
+  assert.match(html, />Wiederholungen pro Tag</);
+  assert.match(html, />Gewünschte Erinnerungsrate</);
+  assert.match(html, />Content Repetition</);
+  assert.doesNotMatch(html, /Lernkarten vorziehen|Neuer Tag beginnt/);
 });
 
-test("deck learning options retain imported custom CoRe values", () => {
-  const customDeck = {
-    ...deck,
-    deckSettings: {
-      ...deck.deckSettings,
-      variantThresholdXp: 132.5,
-      maxActiveVariantsPerCard: 4,
-    },
-  };
-  const markup = renderScreen(undefined, customDeck);
-
-  assert.match(markup, />Eigener Wert · 132.5 XP</);
-  assert.match(markup, />Eigener Wert · 4</);
-});
-
-test("deck settings own the administrative and learning actions", () => {
-  const markup = renderScreen();
-
-  assert.match(markup, />Stapelaktionen<\/h2>/);
-  assert.match(markup, />Unterstapel anlegen<\/span>/);
-  assert.match(markup, />Lernen<\/span>/);
-  assert.match(markup, />Varianten lernen<\/span>/);
-  assert.match(markup, />Löschen<\/span>/);
+test("deckless settings route offers a real searchable deck selector", () => {
+  const html = renderScreen(null, [deck]);
+  assert.match(html, />Stapel auswählen</);
+  assert.match(html, /data-testid="deck-settings-select"/);
+  assert.doesNotMatch(html, /Stapel nicht gefunden/);
 });

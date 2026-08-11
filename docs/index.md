@@ -23,6 +23,7 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 - [`test-portfolio.md`](test-portfolio.md): ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.
 - [`anki-format-analysis.md`](anki-format-analysis.md): Detailanalyse von Anki/APKG, Templates, Medien und Learning Items.
 - [`anki-ecosystem-feature-radar.md`](anki-ecosystem-feature-radar.md): zeitgebundene externe Produktrecherche.
+- [`mini-feature-roadmap-settings.md`](mini-feature-roadmap-settings.md): nicht autorisierende Recherche- und Priorisierungshilfe für mögliche spätere Settings-Erweiterungen.
 - [`debatable-features.md`](debatable-features.md): Evaluationsfragen für mögliche spätere Produktentscheidungen; keine Entscheidung oder Löschfreigabe.
 - [`p0-7-accessibility-audit.md`](p0-7-accessibility-audit.md): Arbeitsnachweis zur offenen Accessibility-Abnahme.
 - [`file-naming-conventions.md`](file-naming-conventions.md): Dateinamensregeln.

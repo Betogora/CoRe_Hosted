@@ -31,6 +31,7 @@ import type {
   VariantFeedbackType,
 } from "./coreTypes.ts";
 import { getLearningDayKey } from "./learningDay.ts";
+import { normalizeLearnAheadMinutes } from "./learningProfiles.ts";
 
 type DateInput = string | number | Date;
 
@@ -72,6 +73,7 @@ type LegacyReviewEvent = Omit<Partial<ReviewEventRecord>, "previousLearningItemS
 interface ReviewServiceOptions {
   now?: DateInput;
   dayStartHour?: number;
+  learnAheadMinutes?: number;
   timeZone?: string;
   updatedAt?: string;
   dateKey?: string;
@@ -765,7 +767,7 @@ export function getNextDailyReviewSessionItem(
   const now = options.now ?? new Date().toISOString();
   const rootDeckId = options.deckId ?? decks[0]?.id ?? null;
   const rootDeck = decks.find((deck) => deck.id === rootDeckId) ?? decks[0] ?? null;
-  const learnAheadMinutes = createDefaultDeckSettings(rootDeck?.deckSettings ?? {}).learnAheadMinutes;
+  const learnAheadMinutes = normalizeLearnAheadMinutes(options.learnAheadMinutes);
   const initialKey = session.remainingInitialKeys.find((candidate) => entriesByKey.has(candidate)) ?? null;
   const repeatKey = initialKey ? null : session.repeatKeys.find((candidate) => {
     const candidateEntry = entriesByKey.get(candidate);
@@ -825,6 +827,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const availableLearningEntries: QueueEntry[] = [];
   const reviewEntries: QueueEntry[] = [];
   const newEntries: QueueEntry[] = [];
+  const learnAheadMinutes = normalizeLearnAheadMinutes(options.learnAheadMinutes);
 
   for (const deck of scopeDecks) {
     for (const learningItem of activeLearningItems(deck)) {
@@ -841,7 +844,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
       const state = learningItem.learningItemState ?? learningItem.reviewState;
       if (isLearningState(state)) {
         if (isLearningDueByToday(learningItem, now, options)) learningEntries.push(entry);
-        if (isLearningAvailable(learningItem, now, rootSettings.learnAheadMinutes, options)) availableLearningEntries.push(entry);
+        if (isLearningAvailable(learningItem, now, learnAheadMinutes, options)) availableLearningEntries.push(entry);
       } else if (state?.state === "review" && isReviewDueByLearningDay(state, now, options)) {
         reviewEntries.push(entry);
       }

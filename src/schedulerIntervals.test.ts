@@ -821,14 +821,13 @@ test("learn-ahead respects zero, its strict boundary, and the local day boundary
     id: deckId,
     name: "Vorziehen",
     source: "manual",
-    deckSettings: { learnAheadMinutes: 20 },
     cards: [learningCard("inside", at(19)), learningCard("boundary", at(20)), learningCard("outside", at(21))],
   });
-  const queue = createDailyReviewQueue(deck, { now });
+  const queue = createDailyReviewQueue(deck, { now, learnAheadMinutes: 20 });
 
   assert.deepEqual(queue.items.map((item) => item?.learningItemId), ["inside"]);
   assert.equal(queue.dailyProgress.inProgressCount, 3);
-  assert.equal(createDailyReviewQueue({ ...deck, deckSettings: { ...deck.deckSettings, learnAheadMinutes: 0 } }, { now }).total, 0);
+  assert.equal(createDailyReviewQueue(deck, { now, learnAheadMinutes: 0 }).total, 0);
 
   const beforeMidnight = new Date(2026, 6, 7, 23, 50, 0);
   const acrossMidnight = learningCard("tomorrow", new Date(beforeMidnight.getTime() + 10 * 60_000).toISOString());
@@ -905,12 +904,11 @@ test("scheduler preview and commit record the configured learning day", () => {
   assert.equal(committed.updatedCard.reviewState.dueAt, preview.nextReviewState.dueAt);
 });
 
-test("the started root deck controls learn-ahead for its whole subtree", () => {
+test("the global learn-ahead option controls the whole started subtree", () => {
   const root = createCoreDeck({
     id: "deck_ahead_root",
     name: "Root",
     source: "manual",
-    deckSettings: { learnAheadMinutes: 20 },
     cards: [],
   });
   const childCard = dailyProgressItem("deck_ahead_child", "child_learning", {
@@ -923,12 +921,12 @@ test("the started root deck controls learn-ahead for its whole subtree", () => {
     parentDeckId: root.id,
     name: "Child",
     source: "manual",
-    deckSettings: { learnAheadMinutes: 0 },
     cards: [childCard],
   });
 
-  assert.equal(createDailyReviewQueue([root, child], { deckId: root.id, now: NOW }).total, 1);
-  assert.equal(createDailyReviewQueue([root, child], { deckId: child.id, now: NOW }).total, 0);
+  assert.equal(createDailyReviewQueue([root, child], { deckId: root.id, now: NOW, learnAheadMinutes: 20 }).total, 1);
+  assert.equal(createDailyReviewQueue([root, child], { deckId: child.id, now: NOW, learnAheadMinutes: 20 }).total, 1);
+  assert.equal(createDailyReviewQueue([root, child], { deckId: root.id, now: NOW, learnAheadMinutes: 0 }).total, 0);
 });
 
 test("an ineligible FIFO repeat does not block a later eligible repeat", () => {
@@ -993,11 +991,8 @@ test("deck learning settings control short steps while FSRS determines graduatio
       easyGraduatingIntervalDays: 5,
     },
   };
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   const firstGood = simulateRatingOutcome({ learningItem: item, variant: original, rating: "good", now: NOW, deckSettings });
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   const secondGood = simulateRatingOutcome({ previousState: firstGood.nextReviewState, variant: original, rating: "good", now: "2026-07-07T10:30:00.000Z", deckSettings });
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   const reviewAgain = simulateRatingOutcome({ learningItem: reviewItem(), variant: original, rating: "again", now: NOW, deckSettings });
 
   assert.equal(firstGood.intervalLabel, "30 Min.");

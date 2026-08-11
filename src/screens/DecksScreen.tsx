@@ -604,6 +604,7 @@ export function DecksScreen({
   decks,
   now,
   dayStartHour,
+  learnAheadMinutes,
   timeZone,
   mediaStore,
   selectedDeckId = null,
@@ -641,8 +642,8 @@ export function DecksScreen({
   const detailRef = React.useRef<HTMLElement | null>(null);
   const previouslySelectedCardId = React.useRef<string | null>(null);
   const tableModel = React.useMemo(
-    () => createCardTableModel(decks, { query, cardSort, now, dayStartHour, timeZone }),
-    [cardSort, dayStartHour, decks, now, query, timeZone],
+    () => createCardTableModel(decks, { query, cardSort, now, dayStartHour, learnAheadMinutes, timeZone }),
+    [cardSort, dayStartHour, decks, learnAheadMinutes, now, query, timeZone],
   );
   const searchExpandsGroups = Boolean(query.trim());
   const expandedDeckIdSet = React.useMemo(() => new Set(expandedDeckIds), [expandedDeckIds]);

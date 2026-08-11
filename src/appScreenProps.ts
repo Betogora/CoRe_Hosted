@@ -1,8 +1,8 @@
 import type { AppRoute, AppViewId, createViewRoute } from "./appNavigation.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { CoreWorkspace, DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
-import type { CoreMode, Deck, LearningItem, LearningItemStudyStatePatch, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
-import type { GlobalLearningSettingsInput, LearningSettingsInput } from "./deckSettings.ts";
+import type { CoreMode, Deck, GlobalSchedulerPreferences, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { LearningSettingsInput } from "./deckSettings.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
@@ -55,12 +55,16 @@ export interface DashboardScreenProps {
 export interface DeckSettingsScreenProps {
   deck: Deck | null;
   decks: Deck[];
+  learningProfiles: LearningProfileTemplate[];
   onSave: (deckId: string, settings: LearningSettingsInput) => unknown;
+  onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
   onSaveAppearance: (deckId: string, appearance: Deck["deckSettings"]["appearance"]) => unknown;
   onRenameDeck: (deckId: string, name: string) => DeckMutationResult | null;
   onCreateSubdeck: (parentDeckId: string) => unknown;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onDeleteDeck: (deckId: string) => Promise<ReturnType<CoreWorkspace["deleteDeckTree"]> | null>;
+  onSelectDeck: (deckId: string) => unknown;
+  onOpenGlobalSettings: () => unknown;
   onBack: () => unknown;
   backLabel?: string;
 }
@@ -69,6 +73,7 @@ export interface DecksScreenProps {
   decks: Deck[];
   now: string;
   dayStartHour?: number;
+  learnAheadMinutes?: number;
   timeZone?: string;
   mediaStore: AccountMediaStore | null;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
@@ -97,6 +102,7 @@ export interface LearnScreenProps {
   decks: Deck[];
   now: string;
   dayStartHour?: number;
+  learnAheadMinutes?: number;
   timeZone?: string;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onCreateDeck: (input: CreateDeckInput) => Deck | null;
@@ -117,9 +123,9 @@ export interface SettingsScreenProps {
   appState: WorkspaceState;
   profile: Profile;
   syncStatus: SyncStatus;
-  globalDeckSettings: ReturnType<typeof import("./deckSettings.ts").getGlobalDeckSettings>;
+  globalSchedulerPreferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes">;
   onSaveProfile: (profile: Profile) => unknown;
-  onSaveGlobalLearningSettings: (settings: GlobalLearningSettingsInput) => unknown;
+  onSaveGlobalSchedulerPreferences: (preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes">) => unknown;
   onSaveState: (state: WorkspaceState) => unknown;
   onSyncNow: () => Promise<unknown>;
   onListConflicts: () => Promise<unknown[]>;
@@ -158,6 +164,7 @@ export interface StudyModeProps {
   getNow: () => string;
   learningDayKey?: string;
   dayStartHour?: number;
+  learnAheadMinutes?: number;
   timeZone?: string;
   simulationOffsetMinutes: number;
   pomodoroTimer: PomodoroTimer | null;

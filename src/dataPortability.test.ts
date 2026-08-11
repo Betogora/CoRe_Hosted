@@ -75,7 +75,92 @@ test("portable export and import transport the account-wide learning-day start",
 
   assert.equal(exported.profile.schedulerPreferences.dayStartHour, 3);
   assert.equal(merged.profile.schedulerPreferences.dayStartHour, 3);
-  assert.equal(merged.profile.schedulerPreferences.profile, "standard");
+  assert.equal(merged.profile.schedulerPreferences.learnAheadMinutes, 20);
+  assert.deepEqual(merged.profile.schedulerPreferences.learningProfiles, []);
+});
+
+test("partial legacy scheduler imports preserve missing local global values", () => {
+  const target = portableState({
+    profile: {
+      ...portableState().profile,
+      schedulerPreferences: { dayStartHour: 0, learnAheadMinutes: 60 },
+    },
+  });
+  const imported = createPortableExport(portableState({
+    profile: {
+      ...portableState().profile,
+      schedulerPreferences: { dayStartHour: 3 },
+    },
+    decks: [],
+  }));
+
+  const merged = mergePortableExportIntoState(target, imported);
+
+  assert.equal(merged.profile.schedulerPreferences.dayStartHour, 3);
+  assert.equal(merged.profile.schedulerPreferences.learnAheadMinutes, 60);
+});
+
+test("portable import deduplicates equal profile ids and forks content collisions", () => {
+  const shared = {
+    id: "learning-profile:shared",
+    name: "Prüfung",
+    contentVersion: 2,
+    settings: {
+      newCardsPerDay: 30,
+      maximumReviewsPerDay: 300,
+      newReviewOrder: "mixed",
+      schedulerProfile: { settingsVersion: 2, presetId: "custom", learningStepsMinutes: [3, 10], relearningStepMinutes: 3, desiredRetention: 0.94, maximumIntervalDays: 365, lessShortIntervalBias: false },
+    },
+  };
+  const source = portableState({ profile: { ...portableState().profile, schedulerPreferences: { learningProfiles: [shared] } }, decks: [] });
+  const equalTarget = portableState({ profile: { ...portableState().profile, schedulerPreferences: { learningProfiles: [shared] } }, decks: [] });
+  const equalMerged = mergePortableExportIntoState(equalTarget, createPortableExport(source));
+  assert.equal(equalMerged.profile.schedulerPreferences.learningProfiles.length, 1);
+
+  const localCollision = { ...shared, settings: { ...shared.settings, newCardsPerDay: 12 } };
+  const collisionTarget = portableState({ profile: { ...portableState().profile, schedulerPreferences: { learningProfiles: [localCollision] } }, decks: [] });
+  const collisionMerged = mergePortableExportIntoState(collisionTarget, createPortableExport(source));
+  const profiles = collisionMerged.profile.schedulerPreferences.learningProfiles;
+  assert.equal(profiles.length, 2);
+  assert.equal(profiles.find((profile: { id: string }) => profile.id === shared.id).settings.newCardsPerDay, 12);
+  assert.equal(profiles.some((profile: { id: string; settings: { newCardsPerDay: number } }) => profile.id !== shared.id && profile.settings.newCardsPerDay === 30), true);
+});
+
+test("portable profile collisions remap imported deck provenance to the fork", () => {
+  const shared = {
+    id: "learning-profile:shared",
+    name: "Prüfung",
+    contentVersion: 2,
+    settings: {
+      newCardsPerDay: 30,
+      maximumReviewsPerDay: 300,
+      newReviewOrder: "mixed",
+      schedulerProfile: { settingsVersion: 2, presetId: "custom", learningStepsMinutes: [3, 10], relearningStepMinutes: 3, desiredRetention: 0.94, maximumIntervalDays: 365, lessShortIntervalBias: false },
+    },
+  };
+  const importedDeck = createCoreDeck({
+    id: "deck_profile_import",
+    name: "Importierter Stapel",
+    source: "manual",
+    cards: [],
+    deckSettings: { learningProfileSource: { id: shared.id, contentVersion: shared.contentVersion } },
+  });
+  const source = portableState({
+    profile: { ...portableState().profile, schedulerPreferences: { learningProfiles: [shared] } },
+    decks: [importedDeck],
+  });
+  const localCollision = { ...shared, settings: { ...shared.settings, newCardsPerDay: 12 } };
+  const target = portableState({
+    profile: { ...portableState().profile, schedulerPreferences: { learningProfiles: [localCollision] } },
+    decks: [],
+  });
+
+  const merged = mergePortableExportIntoState(target, createPortableExport(source));
+  const forked = merged.profile.schedulerPreferences.learningProfiles.find((profile: { id: string }) => profile.id !== shared.id);
+  const imported = merged.decks.find((deck: { id: string }) => deck.id === importedDeck.id);
+
+  assert.ok(forked);
+  assert.deepEqual(imported.deckSettings.learningProfileSource, { id: forked.id, contentVersion: forked.contentVersion });
 });
 
 test("portable export validation reports malformed json without throwing", () => {

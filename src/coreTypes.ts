@@ -138,15 +138,37 @@ export interface DeckAppearance {
 export interface SchedulerProfile {
   settingsVersion: 2;
   presetId: SchedulerPreset;
-  name: SchedulerPreset;
   learningStepsMinutes: number[];
   relearningStepMinutes: number;
-  graduatingIntervalDays: number;
-  easyGraduatingIntervalDays: number;
-  easyIntervalDays: number;
   desiredRetention: number;
   maximumIntervalDays: number;
   lessShortIntervalBias: boolean;
+}
+
+export interface LearningSettings {
+  newCardsPerDay: number;
+  maximumReviewsPerDay: number;
+  newReviewOrder: NewReviewOrder;
+  schedulerProfile: SchedulerProfile;
+}
+
+export interface LearningProfileTemplate {
+  id: string;
+  name: string;
+  contentVersion: number;
+  settings: LearningSettings;
+}
+
+export interface LearningProfileSource {
+  id: string;
+  contentVersion: number;
+}
+
+export interface GlobalSchedulerPreferences {
+  settingsVersion: 1;
+  dayStartHour: number;
+  learnAheadMinutes: number;
+  learningProfiles: LearningProfileTemplate[];
 }
 
 export interface VariantBlacklist {
@@ -161,8 +183,8 @@ export interface DeckSettings {
   appearance: DeckAppearance;
   newCardsPerDay: number;
   maximumReviewsPerDay: number;
-  learnAheadMinutes: number;
   newReviewOrder: NewReviewOrder;
+  learningProfileSource: LearningProfileSource | null;
   newCardsTodayOverride: {
     date: string;
     limit: number;

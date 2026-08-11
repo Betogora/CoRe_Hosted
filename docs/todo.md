@@ -1,6 +1,6 @@
 # CoRe TODO — Beta-Basis klassisches Karteikartenprodukt
 
-Stand: 2026-08-06
+Stand: 2026-08-11
 
 Dieses Dokument ist die einzige operative Roadmap für offene Arbeit.
 
@@ -116,58 +116,6 @@ Dashboard, Lernen, Review und Summary verwenden dieselbe heutige Queue.
 - [ ] Tastaturjourney vollständig.
 
 # P1 — Vor unbegleiteter Self-Service-Beta
-
-## P1.1 Globales und stapelspezifisches Settingsmodell
-
-Abhängigkeit: P0.4
-
-Ziel:
-Globale Werte sind Defaults für neue und importierte Decks.
-Bestehende Decks ändern sich nur über eine explizite Bulk-Aktion.
-
-- [ ] Globales Speichern darf bestehende Decks nicht ändern.
-- [ ] Defaults weiterhin im Profil persistieren.
-- [ ] Neue manuelle Decks erhalten aktuelle Defaults.
-- [ ] Neue importierte Decks erhalten aktuelle Defaults.
-- [ ] Separate Aktion `Auf alle Stapel anwenden`.
-- [ ] Bulk-Dialog zeigt:
-  - [ ] Anzahl betroffener Decks
-  - [ ] überschreibbare Werte
-  - [ ] Hinweis auf individuelle Deckeinstellungen
-- [ ] Bulk-Abbruch verändert nichts.
-- [ ] Jedes Deck behält vollständige explizite Einstellungen.
-- [ ] Keine Live-Vererbung oder Override-Graph einführen.
-- [ ] Standardbereich:
-  - [ ] Preset
-  - [ ] neue Karten pro Tag
-  - [ ] Reviews pro Tag
-  - [ ] Reihenfolge
-- [ ] Erweitert:
-  - [ ] Lernschritte
-  - [ ] Wiederlernschritte
-  - [ ] Anfangsintervalle
-  - [ ] Maximalintervall
-  - [ ] Retention
-  - [ ] CoRe-Parameter
-- [ ] Sprache als `Deutsch (Beta)` read-only darstellen
-      oder aus normalem UI entfernen.
-- [ ] Gespeichertes Sprachfeld kompatibel erhalten.
-
-Akzeptanz:
-
-- [ ] Individueller Deckwert überlebt globales Save und Reload.
-- [ ] Neues Deck erhält neuen Default.
-- [ ] Bulk ändert alle Decks genau einmal nach Bestätigung.
-- [ ] Sync-Konflikte bleiben fachlich auflösbar.
-- [ ] Keine Datenbankmigration.
-
-Tests:
-
-- [ ] Profile-/Deck-Roundtrip.
-- [ ] Neuer Deck- und Import-Default.
-- [ ] Bulk-Abbruch und Bulk-Erfolg.
-- [ ] Konflikt- und Reloadtest.
-- [ ] Screenreaderlabels für Standard und Erweitert.
 
 ## P1.2 Kartenbrowser-Skalierung und globale Suche
 

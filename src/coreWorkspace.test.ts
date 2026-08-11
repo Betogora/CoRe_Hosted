@@ -5,6 +5,7 @@ import { createCoreRepository } from "./coreRepository.ts";
 import { createCoreWorkspace, createDemoAnatomyDeck } from "./coreWorkspace.ts";
 import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
 import { createStudyHeatmapModel } from "./libraryModel.ts";
+import { withGlobalSchedulerPreferences } from "./deckSettings.ts";
 
 function createMemoryStorage() {
   const store = new Map();
@@ -222,6 +223,18 @@ test("repository persists UI preferences without rewriting the full app state", 
       deckManagerExpandedDeckIds: ["deck-b"],
     },
   );
+});
+
+test("saving global scheduler preferences never changes deck settings", () => {
+  const workspace = createTestWorkspace();
+  const deck = createRequiredDeck(workspace, { name: "Individuell", deckSettings: { newCardsPerDay: 47, coreMode: "manual" } });
+  const before = structuredClone(deck.deckSettings);
+
+  workspace.saveProfile(withGlobalSchedulerPreferences(workspace.getState().profile, { dayStartHour: 4, learnAheadMinutes: 35 }));
+
+  assert.deepEqual(workspace.getState().decks.find((candidate) => candidate.id === deck.id)?.deckSettings, before);
+  assert.equal(workspace.getState().profile.schedulerPreferences.dayStartHour, 4);
+  assert.equal(workspace.getState().profile.schedulerPreferences.learnAheadMinutes, 35);
 });
 
 test("workspace APKG commands dry-run and commit through normalized import", async () => {

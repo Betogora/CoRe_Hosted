@@ -89,7 +89,7 @@ function DailyReviewProgress({ progress }: { progress: DailyReviewProgressSummar
   );
 }
 
-export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
+export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
@@ -114,16 +114,17 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
         deckId: rootDeck?.id,
         now: getNow(),
         dayStartHour,
+        learnAheadMinutes,
         timeZone,
         language: "de",
         variantSession,
       }),
-    [dayStartHour, effectiveLearningDayKey, getNow, sessionDecks, rootDeck?.id, timeZone, variantSession],
+    [dayStartHour, effectiveLearningDayKey, getNow, learnAheadMinutes, sessionDecks, rootDeck?.id, timeZone, variantSession],
   );
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
   const current = React.useMemo(
-    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), dayStartHour, timeZone, language: "de", variantSession }),
-    [dayStartHour, effectiveLearningDayKey, getNow, sessionDecks, effectiveReviewSession, rootDeck?.id, timeZone, variantSession],
+    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), dayStartHour, learnAheadMinutes, timeZone, language: "de", variantSession }),
+    [dayStartHour, effectiveLearningDayKey, getNow, learnAheadMinutes, sessionDecks, effectiveReviewSession, rootDeck?.id, timeZone, variantSession],
   );
   const currentDeck = sessionDecks.find((candidate) => candidate.id === current?.deckId) ?? rootDeck;
   const sessionTotal = effectiveReviewSession.initialKeys.length;

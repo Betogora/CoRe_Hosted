@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { stableContentHash } from "./coreModel.ts";
-import { normalizeDayStartHour } from "./learningDay.ts";
+import { createLearningProfileTemplate, getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "./deckSettings.ts";
 
 const EXPORT_SCHEMA_VERSION = 2;
 export const PORTABLE_EXPORT_FILE_NAME = "core-portable-export.json";
@@ -151,22 +151,60 @@ export function mergePortableExportIntoState(state: any, exportPayload: any) {
   const existingDeckIds = new Set((state.decks ?? []).map((deck: any) => deck.id));
   const incomingDecks = payload.decks.filter((deck: any) => !existingDeckIds.has(deck.id));
   const importedSchedulerPreferences = payload.profile?.schedulerPreferences;
-  const importsDayStartHour = importedSchedulerPreferences
-    && typeof importedSchedulerPreferences === "object"
-    && Object.prototype.hasOwnProperty.call(importedSchedulerPreferences, "dayStartHour");
+  const importsSchedulerPreferences = importedSchedulerPreferences && typeof importedSchedulerPreferences === "object";
+  const importedPreferenceRecord = importsSchedulerPreferences
+    ? importedSchedulerPreferences as Record<string, unknown>
+    : {};
+  const importedLegacyDeckSettings = importedPreferenceRecord.deckSettings && typeof importedPreferenceRecord.deckSettings === "object"
+    ? importedPreferenceRecord.deckSettings as Record<string, unknown>
+    : {};
+  const localPreferences = getGlobalSchedulerPreferences(state.profile);
+  const importedPreferences = getGlobalSchedulerPreferences({ schedulerPreferences: importedSchedulerPreferences });
+  let mergedLearningProfiles = localPreferences.learningProfiles;
+  const remappedProfileIds = new Map<string, { id: string; contentVersion: number }>();
+  for (const importedProfile of importedPreferences.learningProfiles) {
+    const localProfile = mergedLearningProfiles.find((profile) => profile.id === importedProfile.id);
+    if (!localProfile) {
+      mergedLearningProfiles = [...mergedLearningProfiles, importedProfile];
+    } else if (JSON.stringify(localProfile) !== JSON.stringify(importedProfile)) {
+      const forked = createLearningProfileTemplate(mergedLearningProfiles, {
+        name: importedProfile.name,
+        settings: importedProfile.settings,
+      });
+      mergedLearningProfiles = forked.profiles;
+      remappedProfileIds.set(importedProfile.id, {
+        id: forked.template.id,
+        contentVersion: forked.template.contentVersion,
+      });
+    }
+  }
+
+  const remappedIncomingDecks = incomingDecks.map((deck: any) => {
+    const source = deck.deckSettings?.learningProfileSource;
+    const remappedSource = source && typeof source.id === "string" ? remappedProfileIds.get(source.id) : null;
+    if (!remappedSource) return deck;
+    return {
+      ...deck,
+      deckSettings: { ...deck.deckSettings, learningProfileSource: remappedSource },
+    };
+  });
+
+  const importedGlobalPatch = {
+    learningProfiles: mergedLearningProfiles,
+    ...(Object.hasOwn(importedPreferenceRecord, "dayStartHour")
+      ? { dayStartHour: importedPreferences.dayStartHour }
+      : {}),
+    ...(Object.hasOwn(importedPreferenceRecord, "learnAheadMinutes") || Object.hasOwn(importedLegacyDeckSettings, "learnAheadMinutes")
+      ? { learnAheadMinutes: importedPreferences.learnAheadMinutes }
+      : {}),
+  };
 
   return {
     ...state,
-    profile: importsDayStartHour
-      ? {
-          ...state.profile,
-          schedulerPreferences: {
-            ...(state.profile?.schedulerPreferences ?? {}),
-            dayStartHour: normalizeDayStartHour(importedSchedulerPreferences.dayStartHour),
-          },
-        }
+    profile: importsSchedulerPreferences
+      ? withGlobalSchedulerPreferences(state.profile, importedGlobalPatch)
       : state.profile,
-    decks: [...incomingDecks, ...(state.decks ?? [])],
+    decks: [...remappedIncomingDecks, ...(state.decks ?? [])],
     documents: [...(payload.documents ?? []), ...(state.documents ?? [])],
     updatedAt: new Date().toISOString(),
   };
