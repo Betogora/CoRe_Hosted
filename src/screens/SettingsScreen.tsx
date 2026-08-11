@@ -3,6 +3,7 @@ import { CalendarClock, ChevronRight, CircleHelp, Database, Download, Graduation
 import { formatSyncStatusText } from "../accountSession.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, stringifyPortableExport, validatePortableExport } from "../dataPortability.ts";
+import { getCustomGlobalDeckSettings } from "../deckSettings.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ActionButton } from "../ui/actionUi.tsx";
@@ -15,7 +16,7 @@ import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 
 const languageOptions = [{ value: "de", label: "Deutsch" }, { value: "en", label: "English" }];
 
-export function SettingsScreen({ appState, profile, decks, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
+export function SettingsScreen({ appState, profile, syncStatus, globalDeckSettings, onSaveProfile, onSaveGlobalLearningSettings, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
   const [form, setForm] = React.useState(profile);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
@@ -212,10 +213,11 @@ export function SettingsScreen({ appState, profile, decks, syncStatus, globalDec
         <h2 id="settings-learning-heading" className="core-heading-2 font-semibold text-[var(--core-text)]">Lernen</h2>
         <LearningSettingsPanel
           settings={globalDeckSettings}
+          customSettings={getCustomGlobalDeckSettings(profile)}
           coreMode={globalDeckSettings?.coreMode}
-          scopeTitle="Globale Lernvorgaben"
-          scopeDescription="Diese Werte werden auf alle vorhandenen Stapel angewendet und dienen als Vorgabe für neue oder importierte Stapel. Einzelne Stapel kannst du danach weiterhin über das Zahnrad im Lernen-Menü abweichend einstellen."
-          affectedDeckCount={decks.length}
+          scopeTitle="Globale Voreinstellungen"
+          scopeDescription="Je Stapel noch änderbar."
+          autoSave
           onSave={onSaveGlobalLearningSettings}
         />
       </section>

@@ -252,7 +252,7 @@ Akzeptanz:
 - Die Suche hilft bei großen Bibliotheken; die Kartenverwaltung bietet keinen zusätzlichen Modusfilter.
 - Stapelname, Icon und Farbe sind im Seitenkopf bearbeitbar und werden ausschließlich über `Name und Darstellung speichern` übernommen. Der separate Zurück-Button bleibt davon unabhängig.
 - Die Stapel-Lernoptionen besitzen die eigenständige Aktion `Lernoptionen speichern`. Sie übernimmt Tagespensum, Schedulerwerte, CoRe-Modus, `Varianten einsetzen ab Lernstufe` mit den festen Stufen 81, 121 und 181 XP sowie `Aktive Varianten pro Karte` mit 1, 2 oder 3 Varianten. Persistierte abweichende Werte bleiben als eigener Wert sichtbar, bis sie bewusst geändert werden. Der Darstellungs-Speicher übernimmt keinen offenen Lernentwurf.
-- Das gemeinsam verwendete globale Lernpanel folgt denselben kompakten Feld- und Hinweisregeln, zeigt die beiden stapelspezifischen Variantenparameter aber nicht.
+- Das globale Lernpanel heißt „Globale Voreinstellungen“ und trägt den kurzen Hinweis „Je Stapel noch änderbar.“. Änderungen werden ohne manuelles Speichern sofort übernommen. Die Profilauswahl zeigt die vier kurzen, mit Icons gekennzeichneten Namen „Standard“, „Intensiv“, „Entspannt“ und „Eigene Einstellungen“; neue Accounts starten mit „Standard“. Eigene Einstellungen werden als separater Entwurf gespeichert und bleiben erhalten, wenn zwischen einem vorgegebenen Profil und den eigenen Einstellungen gewechselt oder die App neu geladen wird. Das Panel folgt denselben kompakten Feld- und Hinweisregeln wie die stapelspezifischen Lernoptionen, zeigt deren beide Variantenparameter aber nicht.
 - Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.
 
 ### 6.3 Import

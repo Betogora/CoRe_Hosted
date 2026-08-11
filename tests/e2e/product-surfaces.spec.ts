@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
-import { resetToFreshLocalState } from "./support/appState.ts";
+import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 
 function mainMenu(page: Page) {
   return page.getByRole("navigation", { name: "Hauptmenü" });
@@ -96,6 +97,58 @@ test("dark mode can be toggled from both responsive navigation layouts and persi
   await mobileThemeButton.click();
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "light");
   await expect(mobileHeader.getByRole("button", { name: "Dark Mode einschalten" }).locator("svg")).toHaveClass(/lucide-sun/);
+});
+
+test("global learning profiles auto-save and preserve custom settings across preset changes", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+
+  await expect(page.getByRole("heading", { name: "Globale Voreinstellungen" })).toBeVisible();
+  await expect(page.getByText("Je Stapel noch änderbar.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Lernoptionen speichern" })).toHaveCount(0);
+
+  const profileSelect = page.getByTestId("learning-settings-preset");
+  await expect(profileSelect).toContainText("Standard");
+  await profileSelect.click();
+  const options = page.getByRole("option");
+  await expect(options).toHaveText(["Standard", "Intensiv", "Entspannt", "Eigene Einstellungen"]);
+  await expect(page.getByRole("option", { name: "Standard" }).locator("svg").first()).toHaveClass(/lucide-scale/);
+  await expect(page.getByRole("option", { name: "Intensiv" }).locator("svg").first()).toHaveClass(/lucide-flame/);
+  await expect(page.getByRole("option", { name: "Entspannt" }).locator("svg").first()).toHaveClass(/lucide-leaf/);
+  await expect(page.getByRole("option", { name: "Eigene Einstellungen" }).locator("svg").first()).toHaveClass(/lucide-sliders-horizontal/);
+  await page.keyboard.press("Escape");
+
+  await chooseCoreSelectOption(page, profileSelect, "Eigene Einstellungen");
+  const newCardsInput = page.getByLabel("Neue Karten pro Tag als Zahl");
+  await newCardsInput.fill("37");
+  await expect.poll(async () => {
+    const state = await readActiveAccountState(page);
+    return {
+      profile: state.profile.schedulerPreferences.profile,
+      newCardsPerDay: state.profile.schedulerPreferences.deckSettings.newCardsPerDay,
+    };
+  }).toEqual({ profile: "custom", newCardsPerDay: 37 });
+
+  await chooseCoreSelectOption(page, profileSelect, "Entspannt");
+  await expect(newCardsInput).toHaveValue("10");
+  await expect.poll(async () => {
+    const state = await readActiveAccountState(page);
+    return {
+      profile: state.profile.schedulerPreferences.profile,
+      customNewCardsPerDay: state.profile.schedulerPreferences.deckSettings.newCardsPerDay,
+    };
+  }).toEqual({ profile: "relaxed", customNewCardsPerDay: 37 });
+
+  await chooseCoreSelectOption(page, profileSelect, "Eigene Einstellungen");
+  await expect(newCardsInput).toHaveValue("37");
+  await page.reload();
+  await expect(profileSelect).toContainText("Eigene Einstellungen");
+  await expect(newCardsInput).toHaveValue("37");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("heading", { name: "Globale Voreinstellungen" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
 test("Pomodoro timer starts globally, persists and stays synchronized between tabs", async ({ page, context }) => {

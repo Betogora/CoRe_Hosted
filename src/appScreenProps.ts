@@ -112,7 +112,6 @@ export interface LearnScreenProps {
 export interface SettingsScreenProps {
   appState: WorkspaceState;
   profile: Profile;
-  decks: Deck[];
   syncStatus: SyncStatus;
   globalDeckSettings: ReturnType<typeof import("./deckSettings.ts").getGlobalDeckSettings>;
   onSaveProfile: (profile: Profile) => unknown;

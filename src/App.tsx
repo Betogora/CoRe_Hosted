@@ -1189,7 +1189,6 @@ export function App() {
         <SettingsScreen
           appState={state}
           profile={state.profile}
-          decks={state.decks}
           syncStatus={syncStatus}
           onSaveProfile={saveProfile}
           globalDeckSettings={getGlobalDeckSettings(state.profile)}

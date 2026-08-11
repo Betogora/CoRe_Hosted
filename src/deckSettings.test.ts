@@ -3,11 +3,20 @@ import test from "node:test";
 import {
   applyLearningPreset,
   applyLearningSettingsToDeckSettings,
+  getCustomGlobalDeckSettings,
   getGlobalDeckSettings,
   markLearningSettingsCustom,
   normalizeLearningSettings,
   withGlobalDeckSettings,
 } from "./deckSettings.ts";
+
+test("new profiles use the standard learning profile by default", () => {
+  const settings = getGlobalDeckSettings({});
+
+  assert.equal(settings.schedulerProfile.presetId, "standard");
+  assert.equal(settings.newCardsPerDay, 20);
+  assert.equal(settings.schedulerProfile.desiredRetention, 0.9);
+});
 
 test("learning settings migrate the previously unused legacy step defaults", () => {
   const settings = normalizeLearningSettings({
@@ -78,6 +87,31 @@ test("global deck settings roundtrip through cloud-backed profile preferences", 
   assert.equal(restored.newCardsPerDay, 10);
   assert.equal(restored.learnAheadMinutes, 20);
   assert.equal(restored.coreMode, "manual");
+});
+
+test("global profile switches retain the automatically stored custom settings", () => {
+  const standard = applyLearningPreset({}, "standard");
+  const customSettings = markLearningSettingsCustom({
+    ...standard,
+    newCardsPerDay: 37,
+    schedulerProfile: {
+      ...standard.schedulerProfile,
+      desiredRetention: 0.93,
+    },
+  });
+  const customProfile = withGlobalDeckSettings({ schedulerPreferences: { profile: "standard" } }, customSettings);
+  const relaxedProfile = withGlobalDeckSettings(customProfile, applyLearningPreset(customSettings, "relaxed"));
+
+  assert.equal(getGlobalDeckSettings(relaxedProfile).schedulerProfile.presetId, "relaxed");
+  assert.equal(getGlobalDeckSettings(relaxedProfile).newCardsPerDay, 10);
+  assert.equal(getCustomGlobalDeckSettings(relaxedProfile).schedulerProfile.presetId, "custom");
+  assert.equal(getCustomGlobalDeckSettings(relaxedProfile).newCardsPerDay, 37);
+  assert.equal(getCustomGlobalDeckSettings(relaxedProfile).schedulerProfile.desiredRetention, 0.93);
+
+  const restoredCustomProfile = withGlobalDeckSettings(relaxedProfile, getCustomGlobalDeckSettings(relaxedProfile));
+  assert.equal(getGlobalDeckSettings(restoredCustomProfile).schedulerProfile.presetId, "custom");
+  assert.equal(getGlobalDeckSettings(restoredCustomProfile).newCardsPerDay, 37);
+  assert.equal(getGlobalDeckSettings(restoredCustomProfile).schedulerProfile.desiredRetention, 0.93);
 });
 
 test("applying learning settings preserves deck-only appearance and daily overrides", () => {

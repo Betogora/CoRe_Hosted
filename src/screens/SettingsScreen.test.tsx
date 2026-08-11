@@ -21,7 +21,6 @@ function renderSettings() {
     <SettingsScreen
       appState={{ ...state, profile }}
       profile={profile}
-      decks={[]}
       syncStatus={{ status: "idle" }}
       globalDeckSettings={getGlobalDeckSettings(profile)}
       onSaveProfile={() => undefined}
@@ -88,6 +87,11 @@ test("settings disclose export limits and keep raw JSON in advanced", () => {
 test("learning settings explain Good and Easy learning-step behavior and hide legacy graduation controls", () => {
   const html = renderSettings();
 
+  assert.match(html, /Globale Voreinstellungen/);
+  assert.match(html, /Je Stapel noch änderbar\./);
+  assert.doesNotMatch(html, /Diese Werte werden auf alle vorhandenen Stapel angewendet/);
+  assert.doesNotMatch(html, /Lernoptionen speichern/);
+  assert.match(html, /lucide-scale/);
   assert.match(html, /mit „Gut“ geht es zum nächsten Schritt/);
   assert.match(html, /„Leicht“ beendet die Lernphase sofort/);
   assert.match(html, /Lernkarten vorziehen/);

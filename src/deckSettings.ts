@@ -222,12 +222,14 @@ export function applyLearningSettingsToDeckSettings<T extends Record<string, unk
 export function getGlobalDeckSettings(profile: ProfileWithSchedulerPreferences = {}): LearningSettings & { coreMode: CoreMode } {
   const preferences = (profile.schedulerPreferences ?? {}) as SchedulerPreferences;
   const storedSettings = preferences.deckSettings;
-  const requestedPreset = typeof preferences.profile === "string" && preferences.profile in presetDefinitions
-    ? preferences.profile
-    : "standard";
-  const learningSettings = storedSettings
-    ? normalizeLearningSettings(storedSettings)
-    : applyLearningPreset({}, requestedPreset);
+  const requestedPreset = typeof preferences.profile === "string" && presetIds.has(preferences.profile as SchedulerPreset)
+    ? preferences.profile as SchedulerPreset
+    : storedSettings
+      ? normalizeLearningSettings(storedSettings).schedulerProfile.presetId
+      : "standard";
+  const learningSettings = requestedPreset === "custom"
+    ? getCustomGlobalDeckSettings(profile)
+    : applyLearningPreset(storedSettings, requestedPreset);
 
   return {
     ...learningSettings,
@@ -235,6 +237,11 @@ export function getGlobalDeckSettings(profile: ProfileWithSchedulerPreferences =
       ? preferences.coreMode as CoreMode
       : "auto",
   };
+}
+
+export function getCustomGlobalDeckSettings(profile: ProfileWithSchedulerPreferences = {}): LearningSettings {
+  const preferences = (profile.schedulerPreferences ?? {}) as SchedulerPreferences;
+  return markLearningSettingsCustom(preferences.deckSettings ?? applyLearningPreset({}, "standard"));
 }
 
 export function withGlobalDeckSettings<T extends ProfileWithSchedulerPreferences>(
@@ -245,6 +252,9 @@ export function withGlobalDeckSettings<T extends ProfileWithSchedulerPreferences
   const coreMode: CoreMode = typeof settings.coreMode === "string" && coreModes.has(settings.coreMode as CoreMode)
     ? settings.coreMode as CoreMode
     : "auto";
+  const customSettings = learningSettings.schedulerProfile.presetId === "custom"
+    ? learningSettings
+    : getCustomGlobalDeckSettings(profile);
 
   return {
     ...profile,
@@ -252,7 +262,7 @@ export function withGlobalDeckSettings<T extends ProfileWithSchedulerPreferences
       ...(profile.schedulerPreferences ?? {}),
       profile: learningSettings.schedulerProfile.presetId,
       coreMode,
-      deckSettings: learningSettings,
+      deckSettings: customSettings,
     },
   };
 }

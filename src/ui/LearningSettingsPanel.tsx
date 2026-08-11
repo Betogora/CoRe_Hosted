@@ -1,5 +1,5 @@
 import React from "react";
-import { Brain, Clock3, Gauge, Save, Sparkles } from "lucide-react";
+import { Brain, Clock3, Flame, Gauge, Leaf, Save, Scale, SlidersHorizontal, Sparkles } from "lucide-react";
 import { LEARNING_SETTING_PRESETS, applyLearningPreset, markLearningSettingsCustom, normalizeLearningSettings, type LearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton } from "./actionUi.tsx";
@@ -21,8 +21,12 @@ const maximumIntervalOptions = [
 ];
 
 const learningPresetOptions = [
-  ...LEARNING_SETTING_PRESETS.map((preset) => ({ value: preset.id, label: `${preset.label} · ${preset.description}` })),
-  { value: "custom", label: "Eigene Einstellungen" },
+  ...LEARNING_SETTING_PRESETS.map((preset) => ({
+    value: preset.id,
+    label: preset.label,
+    icon: preset.id === "standard" ? Scale : preset.id === "intensive" ? Flame : Leaf,
+  })),
+  { value: "custom", label: "Eigene Einstellungen", icon: SlidersHorizontal },
 ];
 
 const reviewOrderOptions = [
@@ -161,14 +165,15 @@ function SelectField({ label, hint, value, onChange, options, testId }: SelectFi
 
 interface LearningSettingsPanelProps {
   settings?: LearningSettingsInput;
+  customSettings?: LearningSettingsInput;
   coreMode?: CoreMode;
   scopeTitle: string;
   scopeDescription: string;
-  affectedDeckCount?: number | null;
+  autoSave?: boolean;
   onSave?: (settings: LearningSettingsDraft) => void;
 }
 
-export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle, scopeDescription, affectedDeckCount = null, onSave }: LearningSettingsPanelProps) {
+export function LearningSettingsPanel({ settings, customSettings, coreMode = "auto", scopeTitle, scopeDescription, autoSave = false, onSave }: LearningSettingsPanelProps) {
   const [draft, setDraft] = React.useState<LearningSettingsDraft>(() => createLearningSettingsDraft(settings, coreMode));
   const setSuccessToast = useSuccessToast();
   const settingsSignature = JSON.stringify({ settings, coreMode });
@@ -203,42 +208,56 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
     ...activeVariantOptions,
   ];
 
+  function savableSettings(nextDraft: LearningSettingsDraft): LearningSettingsDraft {
+    return {
+      ...normalizeLearningSettings(nextDraft),
+      coreMode: nextDraft.coreMode,
+      ...(nextDraft.variantThresholdXp !== undefined ? { variantThresholdXp: nextDraft.variantThresholdXp } : {}),
+      ...(nextDraft.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: nextDraft.maxActiveVariantsPerCard } : {}),
+    };
+  }
+
+  function changeDraft(nextDraft: LearningSettingsDraft) {
+    setDraft(nextDraft);
+    setSuccessToast("");
+    if (autoSave) onSave?.(savableSettings(nextDraft));
+  }
+
   function selectPreset(presetId: string) {
-    if (presetId === "custom") return;
-    setDraft((current) => ({
-      ...applyLearningPreset(current, presetId),
-      coreMode: current.coreMode,
-      ...(current.variantThresholdXp !== undefined ? { variantThresholdXp: current.variantThresholdXp } : {}),
-      ...(current.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: current.maxActiveVariantsPerCard } : {}),
-    }));
-    setSuccessToast("");
-  }
-
-  function updateSetting(key: string, value: any) {
-    setDraft((current) => mergeCustomSettings(current, { [key]: value }));
-    setSuccessToast("");
-  }
-
-  function updateSchedulerSetting(key: keyof LearningSettingsDraft["schedulerProfile"], value: unknown) {
-    setDraft((current) => mergeCustomSettings(current, { schedulerProfile: { [key]: value } }));
-    setSuccessToast("");
-  }
-
-  function updateCoreSetting(key: "variantThresholdXp" | "maxActiveVariantsPerCard", value: number) {
-    setDraft((current) => ({ ...current, [key]: value }));
-    setSuccessToast("");
-  }
-
-  function save() {
-    onSave?.({
-      ...normalizeLearningSettings(draft),
+    if (presetId === "custom") {
+      changeDraft(customSettings
+        ? createLearningSettingsDraft(customSettings, draft.coreMode)
+        : {
+            ...markLearningSettingsCustom(draft),
+            coreMode: draft.coreMode,
+            ...(draft.variantThresholdXp !== undefined ? { variantThresholdXp: draft.variantThresholdXp } : {}),
+            ...(draft.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: draft.maxActiveVariantsPerCard } : {}),
+          });
+      return;
+    }
+    changeDraft({
+      ...applyLearningPreset(draft, presetId),
       coreMode: draft.coreMode,
       ...(draft.variantThresholdXp !== undefined ? { variantThresholdXp: draft.variantThresholdXp } : {}),
       ...(draft.maxActiveVariantsPerCard !== undefined ? { maxActiveVariantsPerCard: draft.maxActiveVariantsPerCard } : {}),
     });
-    setSuccessToast(affectedDeckCount == null
-      ? "Lernoptionen wurden gespeichert."
-      : `Globale Lernvorgaben für ${affectedDeckCount} Stapel wurden erfolgreich gespeichert.`);
+  }
+
+  function updateSetting(key: string, value: any) {
+    changeDraft(mergeCustomSettings(draft, { [key]: value }));
+  }
+
+  function updateSchedulerSetting(key: keyof LearningSettingsDraft["schedulerProfile"], value: unknown) {
+    changeDraft(mergeCustomSettings(draft, { schedulerProfile: { [key]: value } }));
+  }
+
+  function updateCoreSetting(key: "variantThresholdXp" | "maxActiveVariantsPerCard", value: number) {
+    changeDraft({ ...draft, [key]: value });
+  }
+
+  function save() {
+    onSave?.(savableSettings(draft));
+    setSuccessToast("Lernoptionen wurden gespeichert.");
   }
 
   return (
@@ -384,7 +403,7 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
             <div className="rounded-2xl border border-[var(--core-border)] bg-core-surface p-4">
               <p className="core-body font-semibold text-[var(--core-text-secondary)]">CoRe-Modus</p>
               <p className="mb-3 mt-1 core-caption leading-5 text-[var(--core-text-muted)]">Steuert, ob Varianten automatisch, nur gezielt oder gar nicht eingesetzt werden.</p>
-              <CoreModeControl value={draft.coreMode} onChange={(value: any) => setDraft((current) => ({ ...current, coreMode: value }))} />
+              <CoreModeControl value={draft.coreMode} onChange={(value: any) => changeDraft({ ...draft, coreMode: value })} />
             </div>
             {showCoreParameters ? (
               <>
@@ -407,9 +426,11 @@ export function LearningSettingsPanel({ settings, coreMode = "auto", scopeTitle,
           </div>
         </fieldset>
 
-        <div className="flex justify-end border-t border-[var(--core-border)] pt-5">
-          <ActionButton type="button" variant="primary" icon={Save} onClick={save}>Lernoptionen speichern</ActionButton>
-        </div>
+        {autoSave ? null : (
+          <div className="flex justify-end border-t border-[var(--core-border)] pt-5">
+            <ActionButton type="button" variant="primary" icon={Save} onClick={save}>Lernoptionen speichern</ActionButton>
+          </div>
+        )}
       </div>
     </SoftPanel>
   );
