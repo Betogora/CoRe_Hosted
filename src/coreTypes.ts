@@ -46,6 +46,18 @@ export interface LearningItemStudyStatePatch {
 }
 export type DraftStatus = "draft" | "accepted";
 export type NewReviewOrder = "reviews-first" | "new-first" | "mixed";
+export type NewCardSortOrder = "oldest-first" | "random";
+export type ReviewCardSortOrder = "most-overdue" | "lowest-retrievability";
+export type EasyDayLevel = "normal" | "reduced" | "minimum";
+export interface EasyDays {
+  monday: EasyDayLevel;
+  tuesday: EasyDayLevel;
+  wednesday: EasyDayLevel;
+  thursday: EasyDayLevel;
+  friday: EasyDayLevel;
+  saturday: EasyDayLevel;
+  sunday: EasyDayLevel;
+}
 export type SchedulerPreset = "standard" | "intensive" | "relaxed" | "custom";
 export type RichTextContent = string;
 export type MediaRef = string;
@@ -146,6 +158,8 @@ export interface LearningSettings {
   newCardsPerDay: number;
   maximumReviewsPerDay: number;
   newReviewOrder: NewReviewOrder;
+  newCardSortOrder: NewCardSortOrder;
+  reviewCardSortOrder: ReviewCardSortOrder;
   schedulerProfile: SchedulerProfile;
 }
 
@@ -162,9 +176,10 @@ export interface LearningProfileSource {
 }
 
 export interface GlobalSchedulerPreferences {
-  settingsVersion: 1;
+  settingsVersion: 2;
   dayStartHour: number;
   learnAheadMinutes: number;
+  easyDays: EasyDays;
   learningProfiles: LearningProfileTemplate[];
 }
 
@@ -181,6 +196,8 @@ export interface DeckSettings {
   newCardsPerDay: number;
   maximumReviewsPerDay: number;
   newReviewOrder: NewReviewOrder;
+  newCardSortOrder: NewCardSortOrder;
+  reviewCardSortOrder: ReviewCardSortOrder;
   learningProfileSource: LearningProfileSource | null;
   newCardsTodayOverride: {
     date: string;

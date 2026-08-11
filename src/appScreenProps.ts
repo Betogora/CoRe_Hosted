@@ -123,9 +123,9 @@ export interface SettingsScreenProps {
   appState: WorkspaceState;
   profile: Profile;
   syncStatus: SyncStatus;
-  globalSchedulerPreferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes">;
+  globalSchedulerPreferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">;
   onSaveProfile: (profile: Profile) => unknown;
-  onSaveGlobalSchedulerPreferences: (preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes">) => unknown;
+  onSaveGlobalSchedulerPreferences: (preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">) => unknown;
   onSaveState: (state: WorkspaceState) => unknown;
   onSyncNow: () => Promise<unknown>;
   onListConflicts: () => Promise<unknown[]>;
@@ -165,6 +165,7 @@ export interface StudyModeProps {
   learningDayKey?: string;
   dayStartHour?: number;
   learnAheadMinutes?: number;
+  easyDays?: GlobalSchedulerPreferences["easyDays"];
   timeZone?: string;
   simulationOffsetMinutes: number;
   pomodoroTimer: PomodoroTimer | null;

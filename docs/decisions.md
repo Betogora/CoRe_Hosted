@@ -161,3 +161,11 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Entscheidung:** Globale Scheduler-Präferenzen enthalten nur Tagesbeginn, Vorziehfenster und eine konto-weite Bibliothek eigener Lernprofil-Vorlagen. Vorlagen werden ausschließlich in den Stapeleinstellungen verwaltet. Anwenden kopiert die normalisierten Lernwerte und eine Herkunftsversion in genau einen Stapel; es gibt keine Live-Auflösung und keine globalen Stapel-Defaults. CoRe-Modus, Variantenparameter, Darstellung, technische Ausschlüsse und Tagesoverride bleiben außerhalb der Vorlage. Cloud-Sync nutzt das vorhandene Profil-JSONB mit Last-write-wins; Stapelwerte bleiben revisioniert.
 **Konsequenzen:** Globale Änderungen können keinen Stapel mehr mutieren. Umbenennen, Aktualisieren und Löschen einer Vorlage verändert bereits kopierte Werte nicht; ältere Kopien können bewusst erneut angewandt werden. Alte globale Felder werden beim Normalisieren zurückgewonnen und danach nicht mehr geschrieben. Es entstehen weder Supabase-Schemamigration noch Resolver- oder Override-Graph.
 **Datum:** 2026-08-11
+
+## ADR-019 — Easy Days als globale Wochenverfügbarkeit
+
+**Status:** angenommen
+**Kontext:** Anki speichert Easy Days je Deck-Preset. In CoRe beschreibt der Wochenrhythmus jedoch die persönliche, stapelübergreifende Verfügbarkeit und soll nicht beim Wechsel einer Copy-on-apply-Lernvorlage überraschend wechseln.
+**Entscheidung:** Easy Days liegt accountweit in `Profile.schedulerPreferences`. Die sieben Wochentage besitzen `Normal`, `Weniger` oder `Minimal`. Nur neu berechnete Review-Tagesintervalle von 3 bis 90 Tagen werden innerhalb des offiziellen FSRS-Fuzz-Fensters anhand der Last aller aktiven Stapel verschoben. Vorschau und Commit verwenden denselben Kontext; Geschwisterverteilung und rückwirkendes Rescheduling bleiben außerhalb.
+**Konsequenzen:** Profil-Sync und Portabilität transportieren die Einstellung ohne Datenbankmigration. Gleiche Tagesstufen sind neutral. Nur `dueAt` und das tatsächliche Intervall ändern sich; Stabilität, Schwierigkeit und Zielerinnerung bleiben unverändert.
+**Datum:** 2026-08-11

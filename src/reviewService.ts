@@ -1,4 +1,4 @@
-import { SCHEDULER_VERSION, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
+import { SCHEDULER_VERSION, calculateRetrievability, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
 import {
   chooseReviewCard,
   createVariantReviewModel,
@@ -19,6 +19,7 @@ import {
   isLearningItemReviewBlocked,
   makeId,
   normalizeLearningItem,
+  stableContentHash,
   updateVariantPerformance,
 } from "./coreModel.ts";
 import type {
@@ -32,6 +33,7 @@ import type {
 } from "./coreTypes.ts";
 import { getLearningDayKey } from "./learningDay.ts";
 import { normalizeLearnAheadMinutes } from "./learningProfiles.ts";
+import type { EasyDaysSchedulingContext } from "./easyDays.ts";
 
 type DateInput = string | number | Date;
 
@@ -91,6 +93,7 @@ interface ReviewServiceOptions {
   feedbackType?: VariantFeedbackType;
   note?: string;
   reviewEvents?: unknown[];
+  easyDaysContext?: EasyDaysSchedulingContext | null;
 }
 
 interface ReviewableItem {
@@ -247,6 +250,26 @@ export function getLocalReviewDateKey(now: DateInput = new Date(), options: Revi
   return learningDayKey(now, options) ?? new Date(now).toISOString().slice(0, 10);
 }
 
+function compareNewQueueEntries(left: QueueEntry, right: QueueEntry, randomKeys: ReadonlyMap<string, string> | null): number {
+  if (randomKeys) {
+    const leftHash = randomKeys.get(left.key) ?? "";
+    const rightHash = randomKeys.get(right.key) ?? "";
+    return leftHash.localeCompare(rightHash) || left.learningItem.id.localeCompare(right.learningItem.id);
+  }
+  const createdComparison = String(left.learningItem.createdAt ?? "").localeCompare(String(right.learningItem.createdAt ?? ""));
+  return createdComparison || left.learningItem.id.localeCompare(right.learningItem.id);
+}
+
+function compareReviewQueueEntries(left: QueueEntry, right: QueueEntry, retrievabilityByKey: ReadonlyMap<string, number> | null): number {
+  if (retrievabilityByKey) {
+    const retrievabilityComparison = (retrievabilityByKey.get(left.key) ?? 1) - (retrievabilityByKey.get(right.key) ?? 1);
+    if (retrievabilityComparison) return retrievabilityComparison;
+  }
+  const dueComparison = new Date((left.learningItem.learningItemState ?? left.learningItem.reviewState)?.dueAt ?? 0).getTime()
+    - new Date((right.learningItem.learningItemState ?? right.learningItem.reviewState)?.dueAt ?? 0).getTime();
+  return dueComparison || left.learningItem.id.localeCompare(right.learningItem.id);
+}
+
 export function getEffectiveNewCardsPerDay(deck: Deck | null, options: ReviewServiceOptions = {}): number {
   const settings = createDefaultDeckSettings(deck?.deckSettings ?? {});
   const dateKey = options.dateKey ?? getLocalReviewDateKey(options.now ?? new Date(), options);
@@ -314,6 +337,68 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput, optio
     reviewedTotal += consumption.reviewed;
   }
   return { byDeckId, introducedTotal, reviewedTotal, reviewedTodayKeys };
+}
+
+function isIntradayLearning(item: LearningItem, now: DateInput, options: ReviewServiceOptions): boolean {
+  const state = item.learningItemState ?? item.reviewState;
+  const currentKey = learningDayKey(now, options);
+  const dueKey = learningDayKey(state?.dueAt ?? Number.NaN, options);
+  const storedLearningDayKey = typeof state?.learningDayKey === "string" ? state.learningDayKey : null;
+  if (storedLearningDayKey) return storedLearningDayKey === currentKey && dueKey === currentKey;
+
+  const dueTime = new Date(state?.dueAt ?? Number.NaN).getTime();
+  const nowTime = new Date(now).getTime();
+  if (Number.isFinite(dueTime) && Number.isFinite(nowTime) && dueTime > nowTime) return dueKey === currentKey;
+  return Boolean(
+    currentKey
+    && dueKey === currentKey
+    && learningDayKey(state?.lastReviewedAt ?? Number.NaN, options) === currentKey,
+  );
+}
+
+interface RemainingDeckLimits {
+  newCards: number;
+  reviews: number;
+}
+
+function createDeckPaths(scopeDecks: Deck[], rootDeckId: string | null): Map<string, string[]> {
+  const deckById = new Map(scopeDecks.map((deck) => [deck.id, deck]));
+  const paths = new Map<string, string[]>();
+  for (const deck of scopeDecks) {
+    const path: string[] = [];
+    let current: Deck | undefined = deck;
+    while (current) {
+      path.push(current.id);
+      if (current.id === rootDeckId) break;
+      current = current.parentDeckId ? deckById.get(current.parentDeckId) : undefined;
+    }
+    paths.set(deck.id, path);
+  }
+  return paths;
+}
+
+function takeWithinDeckLimits(
+  entries: QueueEntry[],
+  paths: Map<string, string[]>,
+  limits: Map<string, RemainingDeckLimits>,
+  kind: "review" | "new",
+): QueueEntry[] {
+  const selected: QueueEntry[] = [];
+  for (const entry of entries) {
+    const path = paths.get(entry.deck.id) ?? [entry.deck.id];
+    if (!path.every((deckId) => {
+      const remaining = limits.get(deckId);
+      return Boolean(remaining && remaining.reviews > 0 && (kind === "review" || remaining.newCards > 0));
+    })) continue;
+    selected.push(entry);
+    for (const deckId of path) {
+      const remaining = limits.get(deckId);
+      if (!remaining) continue;
+      remaining.reviews -= 1;
+      if (kind === "new") remaining.newCards -= 1;
+    }
+  }
+  return selected;
 }
 
 function summarizeDailyReviewProgress(
@@ -485,6 +570,7 @@ export function answerVariant(
       deckSettings: deck.deckSettings,
       dayStartHour: options.dayStartHour,
       timeZone: options.timeZone,
+      easyDaysContext: options.easyDaysContext,
       isVariant: !variant.isOriginal,
       variantId: variant.id,
       variantIsOriginal: Boolean(variant.isOriginal),
@@ -651,6 +737,7 @@ function createReviewItemViewModel(deck: Deck, selectedItem: LearningItem | null
     deckSettings: deck.deckSettings,
     dayStartHour: options.dayStartHour,
     timeZone: options.timeZone,
+    easyDaysContext: options.easyDaysContext,
     fallbackVariantId: fallbackTarget?.fallbackVariantId ?? null,
   });
 
@@ -822,9 +909,11 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const rootSettings = createDefaultDeckSettings(rootDeck?.deckSettings ?? {});
   const excludeKeys = new Set(options.excludeKeys ?? []);
   const dailyConsumption = summarizeDailyCardConsumption(scopeDecks, now, options);
+  const deckPaths = createDeckPaths(scopeDecks, rootDeck?.id ?? null);
   const reviewedEntries = new Map<string, QueueEntry>();
   const learningEntries: QueueEntry[] = [];
-  const availableLearningEntries: QueueEntry[] = [];
+  const intradayLearningEntries: QueueEntry[] = [];
+  const interdayLearningEntries: QueueEntry[] = [];
   const reviewEntries: QueueEntry[] = [];
   const newEntries: QueueEntry[] = [];
   const learnAheadMinutes = normalizeLearnAheadMinutes(options.learnAheadMinutes);
@@ -844,26 +933,64 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
       const state = learningItem.learningItemState ?? learningItem.reviewState;
       if (isLearningState(state)) {
         if (isLearningDueByToday(learningItem, now, options)) learningEntries.push(entry);
-        if (isLearningAvailable(learningItem, now, learnAheadMinutes, options)) availableLearningEntries.push(entry);
+        if (isIntradayLearning(learningItem, now, options)) {
+          if (isLearningAvailable(learningItem, now, learnAheadMinutes, options)) intradayLearningEntries.push(entry);
+        } else if (isLearningDueByToday(learningItem, now, options)) {
+          interdayLearningEntries.push(entry);
+        }
       } else if (state?.state === "review" && isReviewDueByLearningDay(state, now, options)) {
         reviewEntries.push(entry);
       }
     }
   }
 
-  learningEntries.sort(compareQueueEntries);
-  availableLearningEntries.sort(compareQueueEntries);
-  reviewEntries.sort(compareQueueEntries);
-  newEntries.sort(compareQueueEntries);
+  intradayLearningEntries.sort(compareQueueEntries);
+  interdayLearningEntries.sort(compareQueueEntries);
+  const retrievabilityByKey = rootSettings.reviewCardSortOrder === "lowest-retrievability"
+    ? new Map(reviewEntries.map((entry) => [
+      entry.key,
+      calculateRetrievability(entry.learningItem.learningItemState ?? entry.learningItem.reviewState, now),
+    ]))
+    : null;
+  reviewEntries.sort((left, right) => compareReviewQueueEntries(left, right, retrievabilityByKey));
+  const randomSeed = rootSettings.newCardSortOrder === "random"
+    ? `${getLocalReviewDateKey(now, options)}:${rootDeck?.id ?? ""}`
+    : null;
+  const randomKeys = randomSeed
+    ? new Map(newEntries.map((entry) => [entry.key, stableContentHash([randomSeed, entry.learningItem.id], "queue")]))
+    : null;
+  newEntries.sort((left, right) => compareNewQueueEntries(left, right, randomKeys));
 
+  const limits = new Map<string, RemainingDeckLimits>();
+  const subtreeConsumption = new Map(scopeDecks.map((deck) => [deck.id, { introduced: 0, reviewed: 0 }]));
+  for (const deck of scopeDecks) {
+    const direct = dailyConsumption.byDeckId.get(deck.id);
+    for (const ancestorId of deckPaths.get(deck.id) ?? [deck.id]) {
+      const aggregate = subtreeConsumption.get(ancestorId);
+      if (!aggregate) continue;
+      aggregate.introduced += direct?.introduced ?? 0;
+      aggregate.reviewed += direct?.reviewed ?? 0;
+    }
+  }
+  for (const deck of scopeDecks) {
+    const consumption = subtreeConsumption.get(deck.id) ?? { introduced: 0, reviewed: 0 };
+    const settings = createDefaultDeckSettings(deck.deckSettings ?? {});
+    limits.set(deck.id, {
+      newCards: Math.max(0, getEffectiveNewCardsPerDay(deck, { ...options, now }) - consumption.introduced),
+      reviews: Math.max(0, settings.maximumReviewsPerDay - consumption.introduced - consumption.reviewed),
+    });
+  }
+
+  const rootLimits = limits.get(rootDeck?.id ?? "") ?? { newCards: 0, reviews: 0 };
   const newLimit = getEffectiveNewCardsPerDay(rootDeck, { ...options, now });
   const introducedToday = dailyConsumption.introducedTotal;
   const reviewsCompletedToday = dailyConsumption.reviewedTotal;
-  const remainingNewCards = Math.max(0, newLimit - introducedToday);
-  const remainingReviews = Math.max(0, rootSettings.maximumReviewsPerDay - reviewsCompletedToday);
-  const selectedReviewEntries = reviewEntries.slice(0, remainingReviews);
-  const selectedNewEntries = newEntries.slice(0, remainingNewCards);
-  const selectedDueEntries = [...availableLearningEntries, ...selectedReviewEntries].sort(compareQueueEntries);
+  const remainingNewCards = rootLimits.newCards;
+  const remainingReviews = rootLimits.reviews;
+  const reviewCandidates = [...interdayLearningEntries, ...reviewEntries];
+  const selectedReviewEntries = takeWithinDeckLimits(reviewCandidates, deckPaths, limits, "review");
+  const selectedNewEntries = takeWithinDeckLimits(newEntries, deckPaths, limits, "new");
+  const selectedDueEntries = [...intradayLearningEntries, ...selectedReviewEntries];
   const selectedEntries = orderDailyQueueEntries(selectedDueEntries, selectedNewEntries, rootSettings.newReviewOrder);
   const dailyProgressEntries = [...learningEntries, ...selectedReviewEntries, ...selectedNewEntries];
   const dailyProgress = summarizeDailyReviewProgress(reviewedEntries, dailyProgressEntries, dailyConsumption.reviewedTodayKeys, now, options);
@@ -886,7 +1013,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
     total: items.length,
     dailyProgress,
     dueCount: selectedReviewEntries.length,
-    availableDueCards: reviewEntries.length,
+    availableDueCards: reviewCandidates.length,
     inProgressCount: dailyProgress.inProgressCount,
     availableLearningCards: learningEntries.length,
     maximumReviewsPerDay: rootSettings.maximumReviewsPerDay,
@@ -898,6 +1025,11 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
     newCardsPerDay: newLimit,
     newCardsIntroducedToday: introducedToday,
     remainingNewCards,
+    limitSummary: {
+      hiddenDueCount: reviewCandidates.length - selectedReviewEntries.length,
+      hiddenNewCount: newEntries.length - selectedNewEntries.length,
+      reached: reviewCandidates.length > selectedReviewEntries.length || newEntries.length > selectedNewEntries.length,
+    },
     dateKey: getLocalReviewDateKey(now, options),
   };
 }

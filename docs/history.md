@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-08-11 — Tageslimits, Sortierung und globale Easy Days
+
+- Eltern-, Kind- und Enkelbudgets begrenzen Baumrunden gemeinsam; direkte Unterstapelstarts ignorieren äußere Vorfahren. Reviews reservieren das gemeinsame Budget vor neuen Karten, Intraday-Schritte umgehen Limits und Interday-Schritte verbrauchen Reviewbudget.
+- Lernprofile und materialisierte Stapeleinstellungen enthalten die Sortierung neuer und fälliger Karten. Der gestartete Stapel bestimmt die ganze Teilbaumrunde; stabile Tageszufallswerte und tatsächliche FSRS-Abrufwahrscheinlichkeit werden vor der Auswahl berechnet.
+- Der globale Wochenrhythmus verteilt neu berechnete Reviewintervalle von 3 bis 90 Tagen innerhalb des offiziellen FSRS-Fuzz-Fensters anhand der accountweiten Last. Vorschau und Commit verwenden dieselbe DST-sichere Lastmomentaufnahme. Es entstand weder eine neue Produktionsabhängigkeit noch eine Datenbankmigration.
+- Fokussierte Queue-, Scheduler-, DST-, Settings- und Portabilitätstests sowie Typecheck und Production-Build wurden für den isolierten Feature-Commit ausgeführt.
+
 ## 2026-08-11 — Getrennte globale und stapelspezifische Einstellungen
 
 - Globale Stapel-Defaults und die fehlerhafte Bulk-Mutation wurden entfernt. Tagesbeginn und Vorziehfenster werden accountweit an Queue und Sitzung übergeben; Tageslimits, Scheduler und CoRe bleiben materialisierte Stapelwerte.

@@ -58,10 +58,10 @@ test("portable export redacts local password verifier", () => {
   assert.equal(exported.decks[0].cards[0].updatedByDeviceId, undefined);
 });
 
-test("portable export and import transport the account-wide learning-day start", () => {
+test("portable export and import transport global learning-day and Easy-Days settings", () => {
   const sourceBase = portableState();
   const source = portableState({
-    profile: { ...sourceBase.profile, schedulerPreferences: { dayStartHour: 3 } },
+    profile: { ...sourceBase.profile, schedulerPreferences: { dayStartHour: 3, easyDays: { friday: "minimum", saturday: "reduced" } } },
   });
   const exported = createPortableExport(source, "2026-07-01T08:00:00.000Z");
   const target = portableState({
@@ -76,6 +76,9 @@ test("portable export and import transport the account-wide learning-day start",
   assert.equal(exported.profile.schedulerPreferences.dayStartHour, 3);
   assert.equal(merged.profile.schedulerPreferences.dayStartHour, 3);
   assert.equal(merged.profile.schedulerPreferences.learnAheadMinutes, 20);
+  assert.equal(exported.profile.schedulerPreferences.easyDays.friday, "minimum");
+  assert.equal(merged.profile.schedulerPreferences.easyDays.friday, "minimum");
+  assert.equal(merged.profile.schedulerPreferences.easyDays.saturday, "reduced");
   assert.deepEqual(merged.profile.schedulerPreferences.learningProfiles, []);
 });
 
@@ -83,7 +86,7 @@ test("partial legacy scheduler imports preserve missing local global values", ()
   const target = portableState({
     profile: {
       ...portableState().profile,
-      schedulerPreferences: { dayStartHour: 0, learnAheadMinutes: 60 },
+      schedulerPreferences: { dayStartHour: 0, learnAheadMinutes: 60, easyDays: { sunday: "minimum" } },
     },
   });
   const imported = createPortableExport(portableState({
@@ -98,6 +101,7 @@ test("partial legacy scheduler imports preserve missing local global values", ()
 
   assert.equal(merged.profile.schedulerPreferences.dayStartHour, 3);
   assert.equal(merged.profile.schedulerPreferences.learnAheadMinutes, 60);
+  assert.equal(merged.profile.schedulerPreferences.easyDays.sunday, "minimum");
 });
 
 test("portable import deduplicates equal profile ids and forks content collisions", () => {

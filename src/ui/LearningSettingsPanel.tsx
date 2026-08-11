@@ -28,6 +28,14 @@ const reviewOrderOptions = [
   { value: "mixed", label: "Neue und fällige mischen" },
   { value: "new-first", label: "Neue Karten zuerst" },
 ];
+const newCardSortOptions = [
+  { value: "oldest-first", label: "Älteste zuerst" },
+  { value: "random", label: "Zufällig" },
+];
+const reviewCardSortOptions = [
+  { value: "most-overdue", label: "Längst fällig zuerst" },
+  { value: "lowest-retrievability", label: "Wahrscheinlich vergessen zuerst" },
+];
 const relearningStepOptions = [1, 3, 5, 10, 20, 30].map((minutes) => ({ value: String(minutes), label: `${minutes} Min.` }));
 const variantThresholdOptions = [
   { value: "81", label: "Stabil · früher" },
@@ -194,11 +202,17 @@ export function LearningSettingsPanel({ settings, profiles, defaultProfileName, 
 
           <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-5">
             <legend className="mb-1 core-body-large font-semibold text-core-text">Tagespensum und Reihenfolge</legend>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <NumberField label="Neue Karten pro Tag" value={draft.newCardsPerDay} min={0} max={500} testId="learning-settings-new-cards" onChange={(value) => editLearning({ newCardsPerDay: value })} />
               <NumberField label="Wiederholungen pro Tag" value={draft.maximumReviewsPerDay} min={0} max={2000} testId="learning-settings-max-reviews" onChange={(value) => editLearning({ maximumReviewsPerDay: value })} />
-              <SelectField label="Reihenfolge" value={draft.newReviewOrder} options={reviewOrderOptions} testId="learning-settings-order" onChange={(value) => editLearning({ newReviewOrder: value })} />
             </div>
+            <p className="core-caption leading-5 text-core-muted">Umfasst fällige, tagesübergreifende Lern- und neue Karten. Wiederholungen haben Vorrang.</p>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <SelectField label="Neue und fällige Karten" value={draft.newReviewOrder} options={reviewOrderOptions} testId="learning-settings-order" onChange={(value) => editLearning({ newReviewOrder: value })} />
+              <SelectField label="Neue Karten sortieren" value={draft.newCardSortOrder} options={newCardSortOptions} testId="learning-settings-new-sort" onChange={(value) => editLearning({ newCardSortOrder: value })} />
+              <SelectField label="Fällige Karten sortieren" value={draft.reviewCardSortOrder} options={reviewCardSortOptions} testId="learning-settings-review-sort" onChange={(value) => editLearning({ reviewCardSortOrder: value })} />
+            </div>
+            {draft.reviewCardSortOrder === "lowest-retrievability" ? <p className="core-caption leading-5 text-core-muted">Zeigt zuerst Karten, die du wahrscheinlich eher vergessen hast.</p> : null}
           </fieldset>
         </SoftPanel>
       </section>

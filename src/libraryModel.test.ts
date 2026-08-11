@@ -265,7 +265,7 @@ test("deck counters and overall status distribution exclude blocked cards while 
       dueCards: row.summary.dueCards,
       totalCards: row.summary.totalCards,
     },
-    { newCards: 1, inProgressCards: 1, dueCards: 1, totalCards: 6 },
+    { newCards: 0, inProgressCards: 1, dueCards: 1, totalCards: 6 },
   );
   assert.deepEqual(row.statusDistribution, {
     newCards: 1,

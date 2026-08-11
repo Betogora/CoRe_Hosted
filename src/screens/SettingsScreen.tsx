@@ -3,6 +3,8 @@ import { CalendarClock, CircleHelp, Database, Download, RefreshCw, Save, ShieldC
 import { formatSyncStatusText } from "../accountSession.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
+import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
+import type { EasyDayLevel, EasyDays } from "../coreTypes.ts";
 import { mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, stringifyPortableExport, validatePortableExport } from "../dataPortability.ts";
 import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
@@ -12,6 +14,7 @@ import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.tsx";
 import { SettingsCrossLinkButton, SettingsSectionNavigation } from "../ui/settingsNavigation.tsx";
+import { CoreSelect } from "../ui/selectUi.tsx";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 
 const sectionIds = {
@@ -20,22 +23,45 @@ const sectionIds = {
   data: "settings-data-sync",
 } as const;
 
+const easyDayOptions = [
+  { value: "normal", label: "Normal" },
+  { value: "reduced", label: "Weniger" },
+  { value: "minimum", label: "Minimal" },
+];
+const weekdayLabels: Record<keyof EasyDays, string> = {
+  monday: "Montag",
+  tuesday: "Dienstag",
+  wednesday: "Mittwoch",
+  thursday: "Donnerstag",
+  friday: "Freitag",
+  saturday: "Samstag",
+  sunday: "Sonntag",
+};
+const easyDayToneClasses: Record<EasyDayLevel, string> = {
+  normal: "border-core-border bg-core-subtle",
+  reduced: "border-core-warning bg-core-warning-soft",
+  minimum: "border-core-info bg-core-info-soft",
+};
+
 export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerPreferences, onSaveProfile, onSaveGlobalSchedulerPreferences, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
   const [displayName, setDisplayName] = React.useState(profile.displayName);
   const [dayStartHour, setDayStartHour] = React.useState(globalSchedulerPreferences.dayStartHour);
   const [learnAheadMinutes, setLearnAheadMinutes] = React.useState(globalSchedulerPreferences.learnAheadMinutes);
+  const [easyDays, setEasyDays] = React.useState(globalSchedulerPreferences.easyDays);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
   const [exportText, setExportText] = React.useState("");
   const [importText, setImportText] = React.useState("");
   const [portabilityMessage, setPortabilityMessage] = React.useState("");
   const setSuccessToast = useSuccessToast();
+  const easyDaysDependency = EASY_DAY_KEYS.map((key) => globalSchedulerPreferences.easyDays[key]).join("|");
 
   React.useEffect(() => setDisplayName(profile.displayName), [profile.displayName]);
   React.useEffect(() => {
     setDayStartHour(globalSchedulerPreferences.dayStartHour);
     setLearnAheadMinutes(globalSchedulerPreferences.learnAheadMinutes);
-  }, [globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes]);
+    setEasyDays(globalSchedulerPreferences.easyDays);
+  }, [easyDaysDependency, globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes]);
 
   function scrollToSection(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -51,11 +77,13 @@ export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerP
     const next = {
       dayStartHour: normalizeDayStartHour(dayStartHour),
       learnAheadMinutes: normalizeLearnAheadMinutes(learnAheadMinutes),
+      easyDays: normalizeEasyDays(easyDays),
     };
     setDayStartHour(next.dayStartHour);
     setLearnAheadMinutes(next.learnAheadMinutes);
+    setEasyDays(next.easyDays);
     onSaveGlobalSchedulerPreferences(next);
-    setSuccessToast("Lerntag und Vorziehfenster wurden gespeichert.");
+    setSuccessToast("Lerntag, Vorziehfenster und Wochenrhythmus wurden gespeichert.");
   }
 
   async function syncNow() {
@@ -181,6 +209,24 @@ export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerP
             </div>
           </div>
           <p className="mt-3 core-caption leading-5 text-core-muted">Tagesbeginn und Vorziehfenster gelten für alle Stapel. Lernprofile und CoRe-Parameter bleiben stapelspezifisch.</p>
+          <fieldset className="mt-6 border-t border-core-border pt-5">
+            <legend className="core-body-large font-semibold text-core-text">Wochenrhythmus</legend>
+            <p className="mt-2 core-caption leading-5 text-core-muted">CoRe verteilt neu berechnete Wiederholungen möglichst auf passendere Tage. Sind alle Tage gleich, bleibt die Planung unverändert.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {EASY_DAY_KEYS.map((key) => (
+                <label key={key} className={`grid min-w-0 gap-2 rounded-2xl border p-4 core-body font-semibold text-core-text ${easyDayToneClasses[easyDays[key]]}`}>
+                  {weekdayLabels[key]}
+                  <CoreSelect
+                    ariaLabel={`${weekdayLabels[key]} im Wochenrhythmus`}
+                    value={easyDays[key]}
+                    options={easyDayOptions}
+                    testId={`settings-easy-day-${key}`}
+                    onValueChange={(value) => setEasyDays((current) => ({ ...current, [key]: value as EasyDayLevel }))}
+                  />
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <ActionButton type="button" variant="primary" icon={Save} className="mt-4" onClick={saveLearningDay}>Lerntag speichern</ActionButton>
         </SoftPanel>
 

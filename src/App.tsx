@@ -1,7 +1,7 @@
 import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AuthPhase } from "./accountSession.ts";
-import type { CoreMode, Deck, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { CoreMode, Deck, GlobalSchedulerPreferences, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import { Database, Layers } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
@@ -819,7 +819,7 @@ export function App() {
     }));
   }
 
-  function saveGlobalSchedulerPreferences(settings: { dayStartHour: number; learnAheadMinutes: number }) {
+  function saveGlobalSchedulerPreferences(settings: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">) {
     if (!state) return null;
     return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(withGlobalSchedulerPreferences(state.profile, settings)));
   }
@@ -1262,6 +1262,7 @@ export function App() {
           learningDayKey={learningDayKey}
           dayStartHour={globalSchedulerPreferences.dayStartHour}
           learnAheadMinutes={globalSchedulerPreferences.learnAheadMinutes}
+          easyDays={globalSchedulerPreferences.easyDays}
           timeZone={learningTimeZone}
           simulationOffsetMinutes={simulationOffsetMinutes}
           pomodoroTimer={pomodoroTimer}

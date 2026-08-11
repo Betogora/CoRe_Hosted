@@ -211,15 +211,14 @@ test("StudyMode renders the four daily progress segments in the canonical order 
     />,
   );
 
-  assert.match(markup, />1 \/ 10 Karten</);
-  assert.match(markup, /aria-valuetext="Heute geschafft: 1 Karte, Neu: 3 Karten, In Arbeit: 1 Karte, Fällig: 5 Karten"/);
+  assert.match(markup, />1 \/ 7 Karten</);
+  assert.match(markup, /aria-valuetext="Heute geschafft: 1 Karte, Neu: 0 Karten, In Arbeit: 1 Karte, Fällig: 5 Karten"/);
   assert.match(markup, /data-study-progress-segment="learned"[^>]*background-color:var\(--core-learning-status-learned\)[^>]*flex-grow:1/);
-  assert.match(markup, /data-study-progress-segment="new"[^>]*background-color:var\(--core-learning-status-new\)[^>]*flex-grow:3/);
+  assert.doesNotMatch(markup, /data-study-progress-segment="new"/);
   assert.match(markup, /data-study-progress-segment="in-progress"[^>]*background-color:var\(--core-learning-status-in-progress\)[^>]*flex-grow:1/);
   assert.match(markup, /data-study-progress-segment="due"[^>]*background-color:var\(--core-learning-status-due\)[^>]*flex-grow:5/);
   for (const [label, color, value] of [
     ["Heute geschafft", "learned", "1 Karte"],
-    ["Neu", "new", "3 Karten"],
     ["In Arbeit", "in-progress", "1 Karte"],
     ["Fällig", "due", "5 Karten"],
   ]) {
@@ -227,8 +226,7 @@ test("StudyMode renders the four daily progress segments in the canonical order 
     assert.match(markup, new RegExp(`data-core-tooltip-swatch="var\\(--core-learning-status-${color}\\)"`));
     assert.match(markup, new RegExp(`data-core-tooltip-value="${value}"`));
   }
-  assert.ok(markup.indexOf('data-study-progress-segment="learned"') < markup.indexOf('data-study-progress-segment="new"'));
-  assert.ok(markup.indexOf('data-study-progress-segment="new"') < markup.indexOf('data-study-progress-segment="in-progress"'));
+  assert.ok(markup.indexOf('data-study-progress-segment="learned"') < markup.indexOf('data-study-progress-segment="in-progress"'));
   assert.ok(markup.indexOf('data-study-progress-segment="in-progress"') < markup.indexOf('data-study-progress-segment="due"'));
 });
 
@@ -267,4 +265,41 @@ test("StudyMode says Für jetzt geschafft while same-day learning steps are stil
   assert.match(markup, /Für jetzt geschafft/);
   assert.match(markup, /bleiben „In Arbeit“/);
   assert.doesNotMatch(markup, /Später/);
+});
+
+test("StudyMode explains when every due card is hidden by the daily limit", () => {
+  const item = createBasicLearningItem("deck_limited", "Begrenzt", "Antwort", {
+    reviewState: { state: "review", reps: 4, dueAt: "2026-08-09T09:00:00.000Z" },
+  });
+  const deck = createCoreDeck({
+    id: "deck_limited",
+    name: "Begrenzt",
+    source: "manual",
+    deckSettings: { maximumReviewsPerDay: 0 },
+    cards: [item],
+  });
+  const markup = renderToStaticMarkup(
+    <StudyMode
+      deck={deck}
+      decks={[deck]}
+      deckId={deck.id}
+      variantSession={false}
+      mediaStore={null}
+      getNow={() => "2026-08-09T10:00:00.000Z"}
+      simulationOffsetMinutes={0}
+      pomodoroTimer={null}
+      onStartPomodoro={() => undefined}
+      onExit={() => undefined}
+      onReturnToLearn={() => undefined}
+      onEditCard={() => undefined}
+      onEditDeck={() => undefined}
+      onSetCardStudyState={() => deck}
+      onDeckUpdated={() => undefined}
+      onReviewEvent={() => undefined}
+    />,
+  );
+
+  assert.match(markup, /Tageslimit erreicht/);
+  assert.match(markup, /1 fällige Karte bleibt wegen deiner Tageslimits/);
+  assert.doesNotMatch(markup, /Keine fälligen Karten/);
 });

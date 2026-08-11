@@ -15,6 +15,8 @@ import {
   updateDeckNewCardLimitForDate,
 } from "./reviewService.ts";
 import { formatIntervalLabel, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
+import { DEFAULT_EASY_DAYS, EASY_DAY_KEYS } from "./easyDays.ts";
+import { getLearningDayKey } from "./learningDay.ts";
 
 const NOW = "2026-07-07T10:00:00.000Z";
 
@@ -377,10 +379,10 @@ test("daily progress reconstructs learned, new, in-progress and due cards from s
 
   assert.deepEqual(createDailyReviewQueue(deck, { now: NOW }).dailyProgress, {
     completedTodayCount: 0,
-    newCount: 3,
+    newCount: 0,
     inProgressCount: 0,
     dueCount: 7,
-    total: 10,
+    total: 7,
   });
 
   const failedDue = deck.cards.find((item) => item.id === "due_1");
@@ -390,10 +392,10 @@ test("daily progress reconstructs learned, new, in-progress and due cards from s
   deck = answerVariant(deck, failedDue.id, failedDueVariant.id, "again", { now: NOW }).deck;
   assert.deepEqual(createDailyReviewQueue(deck, { now: "2026-07-07T10:01:00.000Z" }).dailyProgress, {
     completedTodayCount: 0,
-    newCount: 3,
+    newCount: 0,
     inProgressCount: 1,
     dueCount: 6,
-    total: 10,
+    total: 7,
   });
 
   const completedDue = deck.cards.find((item) => item.id === "due_2");
@@ -403,10 +405,10 @@ test("daily progress reconstructs learned, new, in-progress and due cards from s
   deck = answerVariant(deck, completedDue.id, completedDueVariant.id, "good", { now: "2026-07-07T10:01:00.000Z" }).deck;
   assert.deepEqual(createDailyReviewQueue(deck, { now: "2026-07-07T10:02:00.000Z" }).dailyProgress, {
     completedTodayCount: 1,
-    newCount: 3,
+    newCount: 0,
     inProgressCount: 1,
     dueCount: 5,
-    total: 10,
+    total: 7,
   });
 });
 
@@ -575,8 +577,8 @@ test("daily review queue subtracts unique due cards already completed today", ()
   const queue = createDailyReviewQueue(deck, { now: NOW });
 
   assert.equal(queue.reviewsCompletedToday, 1);
-  assert.equal(queue.remainingReviews, 1);
-  assert.equal(queue.dueCount, 1);
+  assert.equal(queue.remainingReviews, 0);
+  assert.equal(queue.dueCount, 0);
 
   const cappedQueue = createDailyReviewQueue({
     ...deck,
@@ -1023,6 +1025,30 @@ test("desired retention and maximum interval change the next FSRS-6 interval", (
   assert.equal(intensive.nextReviewState.desiredRetention, 0.96);
 });
 
+test("Easy Days adjusts review previews and commits identically without changing FSRS memory state", () => {
+  const item = reviewItem({ stability: 6, intervalDays: 4 });
+  const original = getOriginalVariant(item);
+  const raw = simulateRatingOutcome({ learningItem: item, variant: original, rating: "good", now: NOW });
+  const rawDayKey = getLearningDayKey(raw.dueAt, { timeZone: "Europe/Berlin", dayStartHour: 3 });
+  assert.ok(rawDayKey);
+  const weekday = EASY_DAY_KEYS[(new Date(`${rawDayKey}T12:00:00.000Z`).getUTCDay() + 6) % 7];
+  const easyDaysContext = {
+    easyDays: { ...DEFAULT_EASY_DAYS, [weekday]: "minimum" as const },
+    dueCountsByDay: new Map<string, number>(),
+    timeZone: "Europe/Berlin",
+    dayStartHour: 3,
+  };
+  const adjusted = simulateRatingOutcome({ learningItem: item, variant: original, rating: "good", now: NOW, easyDaysContext });
+  const committed = answerVariant(deckWith(item), item.id, original!.id, "good", { now: NOW, easyDaysContext });
+
+  assert.notEqual(adjusted.intervalDays, raw.intervalDays);
+  assert.equal(adjusted.dueAt, committed.updatedCard.reviewState.dueAt);
+  assert.equal(adjusted.intervalDays, committed.updatedCard.reviewState.intervalDays);
+  assert.equal(adjusted.nextReviewState.stability, raw.nextReviewState.stability);
+  assert.equal(adjusted.nextReviewState.difficulty, raw.nextReviewState.difficulty);
+  assert.equal(adjusted.nextReviewState.desiredRetention, raw.nextReviewState.desiredRetention);
+});
+
 test("daily queue applies review caps and the selected new-card order", () => {
   const dueCards = Array.from({ length: 3 }, (_value, index) => reviewItem({ id: `due_${index}`, dueAt: "2026-07-07T09:00:00.000Z" }));
   const newCards = Array.from({ length: 2 }, (_value, index) => createBasicLearningItem("deck_scheduler_intervals", `Neu ${index}?`, "Antwort", {
@@ -1040,11 +1066,11 @@ test("daily queue applies review caps and the selected new-card order", () => {
 
   assert.equal(queue.availableDueCards, 3);
   assert.equal(queue.dueCount, 2);
-  assert.equal(queue.newCount, 2);
-  assert.equal(queue.total, 4);
+  assert.equal(queue.newCount, 0);
+  assert.equal(queue.total, 2);
   assert.ok(queue);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(queue.items[0].schedulerInfo.queueKind, "new");
+  assert.equal(queue.items[0].schedulerInfo.queueKind, "due");
 });
 
 test("parent review sessions apply the root review limit across the subtree", () => {
@@ -1066,14 +1092,80 @@ test("parent review sessions apply the root review limit across the subtree", ()
   const queue = createDailyReviewQueue([root, child], { deckId: root.id, now: NOW });
 
   assert.equal(queue.availableDueCards, 4);
-  assert.equal(queue.dueCount, 3);
+  assert.equal(queue.dueCount, 2);
   assert.deepEqual(queue.dailyProgress, {
     completedTodayCount: 0,
     newCount: 0,
     inProgressCount: 0,
-    dueCount: 3,
-    total: 3,
+    dueCount: 2,
+    total: 2,
   });
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(queue.items.filter((item) => item.deckId === child.id).length, 1);
+  assert.equal(queue.items.filter((item) => item.deckId === child.id).length, 0);
+  assert.deepEqual(queue.limitSummary, { hiddenDueCount: 2, hiddenNewCount: 0, reached: true });
+});
+
+test("root, child and grandchild limits all constrain the active subtree path", () => {
+  const due = (deckId: string, id: string, dueAt: string) => dailyProgressItem(deckId, id, {
+    state: "review", reps: 4, stability: 6, difficulty: 5, dueAt, lastReviewedAt: "2026-07-01T10:00:00.000Z",
+  });
+  const root = createCoreDeck({ id: "limit_tree_root", name: "Root", source: "manual", deckSettings: { maximumReviewsPerDay: 4 }, cards: [due("limit_tree_root", "root_1", "2026-07-07T08:00:00.000Z"), due("limit_tree_root", "root_2", "2026-07-07T08:30:00.000Z")] });
+  const child = createCoreDeck({ id: "limit_tree_child", parentDeckId: root.id, name: "Child", source: "manual", deckSettings: { maximumReviewsPerDay: 2 }, cards: [due("limit_tree_child", "child_1", "2026-07-07T08:20:00.000Z"), due("limit_tree_child", "child_2", "2026-07-07T08:40:00.000Z")] });
+  const grandchild = createCoreDeck({ id: "limit_tree_grandchild", parentDeckId: child.id, name: "Grandchild", source: "manual", deckSettings: { maximumReviewsPerDay: 1 }, cards: [due("limit_tree_grandchild", "grandchild_1", "2026-07-07T08:10:00.000Z"), due("limit_tree_grandchild", "grandchild_2", "2026-07-07T08:15:00.000Z")] });
+
+  const queue = createDailyReviewQueue([root, child, grandchild], { deckId: root.id, now: NOW });
+  assert.deepEqual(queue.items.map((item) => item?.learningItemId), ["root_1", "grandchild_1", "child_1", "root_2"]);
+  assert.deepEqual(queue.limitSummary, { hiddenDueCount: 2, hiddenNewCount: 0, reached: true });
+});
+
+test("directly starting a child ignores inactive parent limits", () => {
+  const root = createCoreDeck({ id: "direct_root", name: "Root", source: "manual", deckSettings: { maximumReviewsPerDay: 0 }, cards: [] });
+  const child = createCoreDeck({ id: "direct_child", parentDeckId: root.id, name: "Child", source: "manual", deckSettings: { maximumReviewsPerDay: 2 }, cards: [dailyProgressItem("direct_child", "direct_due_1", { state: "review", reps: 4, dueAt: NOW })] });
+  const grandchild = createCoreDeck({ id: "direct_grandchild", parentDeckId: child.id, name: "Grandchild", source: "manual", deckSettings: { maximumReviewsPerDay: 1 }, cards: [dailyProgressItem("direct_grandchild", "direct_due_2", { state: "review", reps: 4, dueAt: NOW })] });
+
+  assert.equal(createDailyReviewQueue([root, child, grandchild], { deckId: root.id, now: NOW }).total, 0);
+  assert.equal(createDailyReviewQueue([root, child, grandchild], { deckId: child.id, now: NOW }).total, 2);
+});
+
+test("reviews reserve the shared review budget before new cards", () => {
+  const dueCards = Array.from({ length: 15 }, (_value, index) => dailyProgressItem("shared_budget", `shared_due_${index}`, { state: "review", reps: 4, stability: 6, difficulty: 5, dueAt: NOW }));
+  const newCards = Array.from({ length: 10 }, (_value, index) => dailyProgressItem("shared_budget", `shared_new_${index}`, { state: "new", reps: 0, dueAt: NOW }));
+  const deck = createCoreDeck({ id: "shared_budget", name: "Gemeinsames Budget", source: "manual", deckSettings: { newCardsPerDay: 10, maximumReviewsPerDay: 20, newReviewOrder: "new-first" }, cards: [...dueCards, ...newCards] });
+
+  const queue = createDailyReviewQueue(deck, { now: NOW });
+  assert.equal(queue.dueCount, 15);
+  assert.equal(queue.newCount, 5);
+  assert.equal(queue.total, 20);
+  assert.deepEqual(queue.limitSummary, { hiddenDueCount: 0, hiddenNewCount: 5, reached: true });
+});
+
+test("intraday learning bypasses limits while interday learning consumes review budget", () => {
+  const deck = createCoreDeck({
+    id: "learning_limit_kinds", name: "Lernschritte", source: "manual", deckSettings: { maximumReviewsPerDay: 0 },
+    cards: [
+      dailyProgressItem("learning_limit_kinds", "intraday", { state: "learning", reps: 1, dueAt: "2026-07-07T09:55:00.000Z", lastReviewedAt: "2026-07-07T09:45:00.000Z", learningDayKey: "2026-07-07" }),
+      dailyProgressItem("learning_limit_kinds", "interday", { state: "learning", reps: 1, dueAt: "2026-07-07T09:50:00.000Z", lastReviewedAt: "2026-07-06T09:50:00.000Z", learningDayKey: "2026-07-06" }),
+    ],
+  });
+
+  const queue = createDailyReviewQueue(deck, { now: NOW });
+  assert.deepEqual(queue.items.map((item) => item?.learningItemId), ["intraday"]);
+  assert.deepEqual(queue.limitSummary, { hiddenDueCount: 1, hiddenNewCount: 0, reached: true });
+});
+
+test("new and review sorting use the configured priorities", () => {
+  const newCards = Array.from({ length: 8 }, (_value, index) => createBasicLearningItem("new_sort", `Neu ${index}`, "Antwort", { id: `new_sort_${index}`, createdAt: index < 2 ? "2026-07-01T10:00:00.000Z" : `2026-07-0${index + 1}T10:00:00.000Z`, reviewState: { state: "new", reps: 0, dueAt: NOW } }));
+  const baseNewDeck = createCoreDeck({ id: "new_sort", name: "Neue Sortierung", source: "manual", deckSettings: { newCardsPerDay: 8, maximumReviewsPerDay: 8 }, cards: [...newCards].reverse() });
+  const oldest = createDailyReviewQueue(baseNewDeck, { now: NOW }).items.map((item) => item?.learningItemId);
+  const randomDeck = { ...baseNewDeck, deckSettings: { ...baseNewDeck.deckSettings, newCardSortOrder: "random" as const } };
+  const randomToday = createDailyReviewQueue(randomDeck, { now: NOW }).items.map((item) => item?.learningItemId);
+  assert.deepEqual(oldest.slice(0, 2), ["new_sort_0", "new_sort_1"]);
+  assert.deepEqual(createDailyReviewQueue(randomDeck, { now: NOW }).items.map((item) => item?.learningItemId), randomToday);
+  assert.notDeepEqual(createDailyReviewQueue(randomDeck, { now: "2026-07-08T10:00:00.000Z" }).items.map((item) => item?.learningItemId), randomToday);
+
+  const oldestDue = dailyProgressItem("review_sort", "oldest_due", { state: "review", reps: 4, stability: 20, difficulty: 5, dueAt: "2026-07-05T10:00:00.000Z", lastReviewedAt: "2026-06-20T10:00:00.000Z" });
+  const likelyForgotten = dailyProgressItem("review_sort", "likely_forgotten", { state: "review", reps: 4, stability: 1, difficulty: 5, dueAt: "2026-07-06T10:00:00.000Z", lastReviewedAt: "2026-07-05T10:00:00.000Z" });
+  const reviewDeck = createCoreDeck({ id: "review_sort", name: "Review-Sortierung", source: "manual", deckSettings: { maximumReviewsPerDay: 2 }, cards: [likelyForgotten, oldestDue] });
+  assert.equal(createDailyReviewQueue(reviewDeck, { now: NOW }).items[0]?.learningItemId, "oldest_due");
+  assert.equal(createDailyReviewQueue({ ...reviewDeck, deckSettings: { ...reviewDeck.deckSettings, reviewCardSortOrder: "lowest-retrievability" } }, { now: NOW }).items[0]?.learningItemId, "likely_forgotten");
 });

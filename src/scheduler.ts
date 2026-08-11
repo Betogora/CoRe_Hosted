@@ -10,7 +10,8 @@ import {
 import { REVIEW_RATINGS, createReviewState, getMaturityBand, isLearningItemReviewBlocked } from "./coreModel.ts";
 import { normalizeLearningSettings } from "./deckSettings.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
-import { getLearningDayKey } from "./learningDay.ts";
+import { hasEasyDayDifferences, selectEasyDayInterval, type EasyDaysSchedulingContext } from "./easyDays.ts";
+import { addLearningDays, getLearningDayKey } from "./learningDay.ts";
 import type {
   CardVariant,
   CardVariantType,
@@ -42,6 +43,7 @@ interface SchedulerContext {
   fallbackVariantId?: string | null;
   deckSettings?: LearningSettingsInput | null;
   reviewEvents?: unknown[];
+  easyDaysContext?: EasyDaysSchedulingContext | null;
   [key: string]: unknown;
 }
 
@@ -374,11 +376,31 @@ function projectFsrsResult(
   now: Date,
   context: SchedulerContext,
   schedulerMeta: ReturnType<typeof createFsrsScheduler>,
+  fsrsInputCard: FsrsCard,
 ): ReviewState {
   const nextPhase = FROM_FSRS_STATE[nextCard.state];
-  const dueAt = nextCard.due.toISOString();
-  const intervalMs = Math.max(0, nextCard.due.getTime() - now.getTime());
-  const intervalMinutes = nextCard.scheduled_days === 0 ? Math.round(intervalMs / MINUTE_MS) : null;
+  const rawIntervalDays = nextCard.scheduled_days;
+  const intervalDays = phaseForState(previousState) === "review" && nextPhase === "review"
+    ? selectEasyDayInterval({
+      rawIntervalDays,
+      elapsedDays: fsrsInputCard.elapsed_days,
+      maximumIntervalDays: schedulerMeta.profile.maximumIntervalDays,
+      now,
+      context: context.easyDaysContext,
+    })
+    : rawIntervalDays;
+  const usesEasyDayCalendar = Boolean(
+    context.easyDaysContext
+    && rawIntervalDays >= 3
+    && rawIntervalDays <= 90
+    && hasEasyDayDifferences(context.easyDaysContext.easyDays),
+  );
+  const adjustedDueAt = usesEasyDayCalendar
+    ? addLearningDays(now, intervalDays, context.easyDaysContext ?? undefined)
+    : nextCard.due;
+  const dueAt = (adjustedDueAt ?? nextCard.due).toISOString();
+  const intervalMs = Math.max(0, new Date(dueAt).getTime() - now.getTime());
+  const intervalMinutes = intervalDays === 0 ? Math.round(intervalMs / MINUTE_MS) : null;
   const maturityXp = updateMaturityXp(previousState.maturityXp, rating, Boolean(context.isVariant));
   const fallback = fallbackStateForRating(previousState, rating, context);
   const retrievabilityBefore = calculateRetrievability(previousState, now);
@@ -391,7 +413,7 @@ function projectFsrsResult(
     schedulerVersion: FSRS_SCHEDULER_VERSION,
     state: nextPhase,
     dueAt,
-    intervalDays: nextCard.scheduled_days,
+    intervalDays,
     intervalMinutes,
     difficulty: nextCard.difficulty,
     stability: nextCard.stability,
@@ -420,6 +442,11 @@ function projectFsrsResult(
       variantLevel: context.variantLevel ?? null,
       variantType: context.variantType ?? null,
       fallbackVariantId: fallback.forcedVariantId,
+      easyDays: {
+        applied: intervalDays !== rawIntervalDays,
+        rawIntervalDays,
+        selectedIntervalDays: intervalDays,
+      },
     },
   });
 }
@@ -454,8 +481,9 @@ export function simulateRatingOutcome({
     variantType: context.variantType ?? variant?.variantType ?? "basic",
   };
   const schedulerMeta = createFsrsScheduler(deckSettings, state);
-  const result = schedulerMeta.scheduler.next(toFsrsCard(state, nowDate), nowDate, FSRS_RATINGS[rating]);
-  const nextReviewState = projectFsrsResult(state, result.card, rating, nowDate, variantContext, schedulerMeta);
+  const fsrsInputCard = toFsrsCard(state, nowDate);
+  const result = schedulerMeta.scheduler.next(fsrsInputCard, nowDate, FSRS_RATINGS[rating]);
+  const nextReviewState = projectFsrsResult(state, result.card, rating, nowDate, variantContext, schedulerMeta, fsrsInputCard);
   const interval = intervalParts({
     intervalMinutes: nextReviewState.intervalMinutes,
     intervalDays: nextReviewState.intervalMinutes == null ? nextReviewState.intervalDays : null,
@@ -511,6 +539,7 @@ export function getReviewButtonOptions(
       deckSettings: options.deckSettings,
       dayStartHour: options.dayStartHour,
       timeZone: options.timeZone,
+      easyDaysContext: options.easyDaysContext,
       fallbackVariantId,
     });
     result[rating] = {

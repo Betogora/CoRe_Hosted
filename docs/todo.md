@@ -108,7 +108,6 @@ Dashboard, Lernen, Review und Summary verwenden dieselbe heutige Queue.
 ### Tests
 
 - [ ] Queue-Projektion mit gemischten neuen und fälligen Karten.
-- [ ] Unterdeck- und Rootlimits.
 - [ ] Again als erste, mittlere und letzte Karte.
 - [ ] Reload mit bestätigten Reviews.
 - [ ] Offline-/Reconnect-Reviewevent.
@@ -288,7 +287,7 @@ Vor Self-Service-Beta zusätzlich:
 - [ ] keine Wiedereinführung ausgemusterter Labs-, breiter KI-, Graph- oder Community-Flächen jenseits der freigegebenen Basic-Variantenroute
 - [ ] kein serverseitiger APKG-Pfad und keine Anhebung über 250 MiB
 - [ ] keine neue generische Adapterarchitektur
-- [ ] keine neue Scheduleroption
+- [ ] keine weiteren Scheduleroptionen
 - [ ] kein OCR-/DOCX-/Image-Occlusion-Ausbau
 - [ ] kein Mobile-/PWA-Ausbau
 - [ ] kein eigenständiges Designsystemprojekt

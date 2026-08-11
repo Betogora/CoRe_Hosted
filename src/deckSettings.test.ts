@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { DEFAULT_EASY_DAYS } from "./easyDays.ts";
 import {
   applyLearningPreset,
   applyLearningSettingsToDeckSettings,
@@ -24,6 +25,8 @@ test("deck learning settings exclude account-wide learn-ahead and retired schedu
   });
 
   assert.equal(settings.newCardsPerDay, 12);
+  assert.equal(settings.newCardSortOrder, "oldest-first");
+  assert.equal(settings.reviewCardSortOrder, "most-overdue");
   assert.equal("learnAheadMinutes" in settings, false);
   assert.deepEqual(settings.schedulerProfile.learningStepsMinutes, [5, 15]);
   assert.equal("name" in settings.schedulerProfile, false);
@@ -39,10 +42,20 @@ test("built-in presets remain canonical and custom edits preserve normalized val
   assert.equal(intensive.schedulerProfile.presetId, "intensive");
   assert.equal(intensive.newCardsPerDay, 30);
   assert.equal(intensive.maximumReviewsPerDay, 300);
+  assert.equal(intensive.newCardSortOrder, "oldest-first");
+  assert.equal(intensive.reviewCardSortOrder, "most-overdue");
   assert.equal(intensive.schedulerProfile.maximumIntervalDays, 365);
   assert.equal(intensive.schedulerProfile.desiredRetention, 0.94);
   assert.equal(custom.schedulerProfile.presetId, "custom");
   assert.equal(custom.maximumReviewsPerDay, 90);
+
+  const customSorting = markLearningSettingsCustom({
+    ...intensive,
+    newCardSortOrder: "random",
+    reviewCardSortOrder: "lowest-retrievability",
+  });
+  assert.equal(customSorting.newCardSortOrder, "random");
+  assert.equal(customSorting.reviewCardSortOrder, "lowest-retrievability");
 });
 
 test("visible learning values clamp at their canonical domain limits", () => {
@@ -76,9 +89,10 @@ test("global scheduler preferences own day start, learn-ahead and custom templat
   });
 
   assert.deepEqual(defaults, {
-    settingsVersion: 1,
+    settingsVersion: 2,
     dayStartHour: 0,
     learnAheadMinutes: 20,
+    easyDays: DEFAULT_EASY_DAYS,
     learningProfiles: [],
   });
   assert.equal(saved.schedulerPreferences.dayStartHour, 23);

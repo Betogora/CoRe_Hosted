@@ -204,6 +204,9 @@ export function mergePortableExportIntoState(state: any, exportPayload: any) {
     ...(Object.hasOwn(importedPreferenceRecord, "learnAheadMinutes") || Object.hasOwn(importedLegacyDeckSettings, "learnAheadMinutes")
       ? { learnAheadMinutes: importedPreferences.learnAheadMinutes }
       : {}),
+    ...(Object.hasOwn(importedPreferenceRecord, "easyDays")
+      ? { easyDays: importedPreferences.easyDays }
+      : {}),
   };
 
   return {

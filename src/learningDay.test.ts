@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  addLearningDays,
   getLearningDayKey,
   getNextLearningDayBoundaryDelay,
   learningDayIndexFromLocalTime,
@@ -32,4 +33,15 @@ test("learning-day boundaries remain correct when daylight saving skips the conf
 test("pre-localized day indexes use the same rollover rule", () => {
   assert.equal(learningDayIndexFromLocalTime(100, 2, 3), 99);
   assert.equal(learningDayIndexFromLocalTime(100, 3, 3), 100);
+});
+
+test("calendar addition preserves Berlin wall time across both DST changes", () => {
+  const options = { dayStartHour: 3, timeZone: "Europe/Berlin" };
+  const spring = addLearningDays("2026-03-28T11:30:00.000Z", 1, options);
+  const autumn = addLearningDays("2026-10-24T10:30:00.000Z", 1, options);
+
+  assert.equal(spring?.toISOString(), "2026-03-29T10:30:00.000Z");
+  assert.equal(autumn?.toISOString(), "2026-10-25T11:30:00.000Z");
+  assert.equal(getLearningDayKey(spring ?? 0, options), "2026-03-29");
+  assert.equal(getLearningDayKey(autumn ?? 0, options), "2026-10-25");
 });

@@ -1,5 +1,7 @@
 import type {
   GlobalSchedulerPreferences,
+  NewCardSortOrder,
+  ReviewCardSortOrder,
   LearningProfileSource,
   LearningProfileTemplate,
   LearningSettings,
@@ -7,6 +9,7 @@ import type {
   SchedulerPreset,
   SchedulerProfile,
 } from "./coreTypes.ts";
+import { normalizeEasyDays } from "./easyDays.ts";
 import { normalizeDayStartHour } from "./learningDay.ts";
 
 export interface LearningSettingsInput {
@@ -14,6 +17,8 @@ export interface LearningSettingsInput {
   maximumReviewsPerDay?: unknown;
   learnAheadMinutes?: unknown;
   newReviewOrder?: unknown;
+  newCardSortOrder?: unknown;
+  reviewCardSortOrder?: unknown;
   coreMode?: unknown;
   variantThresholdXp?: unknown;
   maxActiveVariantsPerCard?: unknown;
@@ -37,6 +42,7 @@ export interface LearningSettingsInput {
 export interface GlobalSchedulerPreferencesInput {
   dayStartHour?: unknown;
   learnAheadMinutes?: unknown;
+  easyDays?: unknown;
   learningProfiles?: unknown;
 }
 
@@ -53,6 +59,8 @@ interface PresetDefinition {
 
 const presetIds = new Set<SchedulerPreset>(["standard", "intensive", "relaxed", "custom"]);
 const reviewOrders = new Set<NewReviewOrder>(["reviews-first", "new-first", "mixed"]);
+const newCardSortOrders = new Set<NewCardSortOrder>(["oldest-first", "random"]);
+const reviewCardSortOrders = new Set<ReviewCardSortOrder>(["most-overdue", "lowest-retrievability"]);
 const LEGACY_PROFILE_ID = "legacy:global-learning-settings";
 const DEFAULT_PROFILE_NAME = "Eigenes Lernprofil";
 
@@ -96,6 +104,8 @@ const presetDefinitions = {
       newCardsPerDay: 20,
       maximumReviewsPerDay: 200,
       newReviewOrder: "reviews-first",
+      newCardSortOrder: "oldest-first",
+      reviewCardSortOrder: "most-overdue",
       schedulerProfile: {
         settingsVersion: 2,
         presetId: "standard",
@@ -115,6 +125,8 @@ const presetDefinitions = {
       newCardsPerDay: 30,
       maximumReviewsPerDay: 300,
       newReviewOrder: "mixed",
+      newCardSortOrder: "oldest-first",
+      reviewCardSortOrder: "most-overdue",
       schedulerProfile: {
         settingsVersion: 2,
         presetId: "intensive",
@@ -134,6 +146,8 @@ const presetDefinitions = {
       newCardsPerDay: 10,
       maximumReviewsPerDay: 100,
       newReviewOrder: "reviews-first",
+      newCardSortOrder: "oldest-first",
+      reviewCardSortOrder: "most-overdue",
       schedulerProfile: {
         settingsVersion: 2,
         presetId: "relaxed",
@@ -165,6 +179,8 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
   const hasExplicitSettings = settings.newCardsPerDay !== undefined
     || settings.maximumReviewsPerDay !== undefined
     || settings.newReviewOrder !== undefined
+    || settings.newCardSortOrder !== undefined
+    || settings.reviewCardSortOrder !== undefined
     || Object.keys(profile).length > 0;
   const requestedPreset = typeof profile.presetId === "string" && presetIds.has(profile.presetId as SchedulerPreset)
     ? profile.presetId as SchedulerPreset
@@ -180,6 +196,14 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
       ?? (typeof settings.newReviewOrder === "string" && reviewOrders.has(settings.newReviewOrder as NewReviewOrder)
         ? settings.newReviewOrder as NewReviewOrder
         : "reviews-first"),
+    newCardSortOrder: preset?.settings.newCardSortOrder
+      ?? (typeof settings.newCardSortOrder === "string" && newCardSortOrders.has(settings.newCardSortOrder as NewCardSortOrder)
+        ? settings.newCardSortOrder as NewCardSortOrder
+        : "oldest-first"),
+    reviewCardSortOrder: preset?.settings.reviewCardSortOrder
+      ?? (typeof settings.reviewCardSortOrder === "string" && reviewCardSortOrders.has(settings.reviewCardSortOrder as ReviewCardSortOrder)
+        ? settings.reviewCardSortOrder as ReviewCardSortOrder
+        : "most-overdue"),
     schedulerProfile: {
       settingsVersion: 2,
       presetId: requestedPreset,
@@ -344,6 +368,8 @@ function comparableLearningSettings(settings: LearningSettings) {
     newCardsPerDay: settings.newCardsPerDay,
     maximumReviewsPerDay: settings.maximumReviewsPerDay,
     newReviewOrder: settings.newReviewOrder,
+    newCardSortOrder: settings.newCardSortOrder,
+    reviewCardSortOrder: settings.reviewCardSortOrder,
     schedulerProfile: {
       learningStepsMinutes: settings.schedulerProfile.learningStepsMinutes,
       relearningStepMinutes: settings.schedulerProfile.relearningStepMinutes,
@@ -386,11 +412,12 @@ export function getGlobalSchedulerPreferences(profile: ProfileWithSchedulerPrefe
     preferences,
   );
   return {
-    settingsVersion: 1,
+    settingsVersion: 2,
     dayStartHour: normalizeDayStartHour(preferences.dayStartHour),
     learnAheadMinutes: normalizeLearnAheadMinutes(
       Object.hasOwn(preferences, "learnAheadMinutes") ? preferences.learnAheadMinutes : legacyDeckSettings.learnAheadMinutes,
     ),
+    easyDays: normalizeEasyDays(preferences.easyDays),
     learningProfiles: profiles,
   };
 }
@@ -403,9 +430,10 @@ export function withGlobalSchedulerPreferences<T extends ProfileWithSchedulerPre
   return {
     ...profile,
     schedulerPreferences: {
-      settingsVersion: 1,
+      settingsVersion: 2,
       dayStartHour: normalizeDayStartHour(Object.hasOwn(patch, "dayStartHour") ? patch.dayStartHour : current.dayStartHour),
       learnAheadMinutes: normalizeLearnAheadMinutes(Object.hasOwn(patch, "learnAheadMinutes") ? patch.learnAheadMinutes : current.learnAheadMinutes),
+      easyDays: normalizeEasyDays(Object.hasOwn(patch, "easyDays") ? patch.easyDays : current.easyDays),
       learningProfiles: Object.hasOwn(patch, "learningProfiles")
         ? normalizeLearningProfileTemplates(patch.learningProfiles)
         : current.learningProfiles,

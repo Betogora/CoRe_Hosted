@@ -52,6 +52,10 @@ test("learning-day settings contain only global scheduler context", () => {
   const html = renderSettings();
   assert.match(html, /data-testid="settings-day-start-hour"/);
   assert.match(html, /data-testid="settings-learn-ahead"/);
+  assert.match(html, />Wochenrhythmus</);
+  for (const weekday of ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]) assert.match(html, new RegExp(`>${weekday}<`));
+  assert.match(html, /sm:grid-cols-2 lg:grid-cols-4/);
+  assert.match(html, /data-testid="settings-easy-day-monday"/);
   assert.match(html, /Europe\/Berlin/);
   assert.match(html, />Simulator</);
   assert.match(html, />Pomodoro-Timer</);

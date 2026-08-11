@@ -6,13 +6,13 @@ Offene Arbeit, Prioritäten, Abnahmegates und erforderliche Nachweise stehen aus
 
 **Recherchebasis:** aktuelles offizielles Anki-Handbuch und relevante Anki-Schedulerquellen, geprüft am 11. August 2026. Die Planung berücksichtigt außerdem den aktuellen CoRe-Daten- und UI-Pfad in `coreTypes.ts`, `learningProfiles.ts`, `reviewService.ts`, `scheduler.ts`, `LearningSettingsPanel.tsx` und `SettingsScreen.tsx`.
 
-## Planungsstand für #1, #2 und #4
+## Umsetzungsstand für #1, #2 und #4
 
-Die drei Punkte sind fachlich geplant, aber noch nicht zur Implementierung freigegeben. Empfohlene Reihenfolge:
+Die drei ausdrücklich freigegebenen Punkte wurden am 11. August 2026 umgesetzt:
 
-1. Tageslimits und Sortierung gemeinsam in einem Queue-Paket umsetzen. Beide Funktionen entscheiden, welche Karten in welcher Reihenfolge in dieselbe Tagesrunde gelangen.
-2. Easy Days danach als getrenntes Scheduler-Paket umsetzen. Es verändert ausschließlich neu berechnete zukünftige Fälligkeiten.
-3. Nach jedem Paket fokussierte Tests, Typecheck und Build ausführen; eine neue breite E2E-Suite ist nicht vorgesehen.
+1. Das Queue-Paket besitzt hierarchische Tageslimits, ein gemeinsames Reviewbudget und die getrennte Sortierung neuer und fälliger Karten.
+2. Das Scheduler-Paket besitzt globale Easy Days mit accountweiter 90-Tage-Last, FSRS-Fuzz-Grenzen und DST-sicherer Kalenderaddition.
+3. Die Settings-UI, Profil-/Cloud-/Portabilitätsnormalisierung, fokussierten Tests und kanonischen Verträge wurden entsprechend aktualisiert.
 
 Es wird weder eine neue Produktionsabhängigkeit noch eine Supabase-Schemamigration benötigt. Stapelwerte liegen weiterhin im revisionierten `deckSettings`-JSONB, globale Easy-Days-Werte in den bestehenden Profilpräferenzen.
 
@@ -30,7 +30,7 @@ Es wird weder eine neue Produktionsabhängigkeit noch eine Supabase-Schemamigrat
 - Einstellungen des zum Lernen ausgewählten Stapels bestimmen die Sortierung für dessen gesamte Unterstapelrunde. Tageslimits jedes enthaltenen Unterstapels bleiben dagegen zusätzlich wirksam.
 - Farbe ist in keiner UI der einzige Bedeutungsträger. Alle Zustände erhalten sichtbare deutsche Bezeichnungen und zugängliche Form-Controls.
 
-## 1. Tageslimits über Stapelbäume korrekt anwenden
+## 1. Tageslimits über Stapelbäume korrekt anwenden — umgesetzt
 
 ### Recherche und heutige Lücke
 
@@ -90,7 +90,7 @@ Die Limitlogik bleibt als interne, reine Hilfslogik im Queue-Modul. Eine öffent
 - Bereits heute verbrauchte Budgets werden pro Stapel und Teilbaum korrekt abgezogen.
 - Intraday-Lernen bleibt erreichbar; Interday-Lernen verbraucht Wiederholungsbudget.
 
-## 2. Kompakte Sortierung anbieten
+## 2. Kompakte Sortierung anbieten — umgesetzt
 
 ### Recherche und heutige Lücke
 
@@ -159,7 +159,7 @@ Referenz: [Anki-Handbuch – Leeches](https://docs.ankiweb.net/leeches.html).
 
 Dieser Punkt ist weiterhin nur recherchiert und wurde in diesem Plan nicht vertieft.
 
-## 4. Easy Days global abbilden
+## 4. Easy Days global abbilden — umgesetzt
 
 ### Recherche und bewusste CoRe-Abweichung
 

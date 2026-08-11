@@ -59,6 +59,8 @@ const deckSettings = {
   newCardsPerDay: 20,
   maximumReviewsPerDay: 200,
   newReviewOrder: "reviews-first",
+  newCardSortOrder: "oldest-first",
+  reviewCardSortOrder: "most-overdue",
   learningProfileSource: { id: "builtin:standard", contentVersion: 1 },
   newCardsTodayOverride: null,
   variantThresholdXp: 121,

@@ -57,6 +57,19 @@ test("deck profiles are copy-on-apply and global learn-ahead is absent", () => {
   assert.match(html, /Spätere Änderungen an der Vorlage wirken nicht automatisch weiter/);
   assert.match(html, />Neue Karten pro Tag</);
   assert.match(html, />Wiederholungen pro Tag</);
+  assert.match(html, />Neue und fällige Karten</);
+  assert.match(html, />Neue Karten sortieren</);
+  assert.match(html, />Fällige Karten sortieren</);
+  const forgottenFirstDeck = {
+    ...deck,
+    deckSettings: {
+      ...deck.deckSettings,
+      reviewCardSortOrder: "lowest-retrievability" as const,
+      schedulerProfile: { ...deck.deckSettings.schedulerProfile, presetId: "custom" as const },
+    },
+  };
+  assert.match(renderScreen(forgottenFirstDeck, [forgottenFirstDeck]), /Wahrscheinlich vergessen zuerst/);
+  assert.match(html, /Wiederholungen haben Vorrang/);
   assert.match(html, />Gewünschte Erinnerungsrate</);
   assert.match(html, />Content Repetition</);
   assert.doesNotMatch(html, /Lernkarten vorziehen|Neuer Tag beginnt/);
