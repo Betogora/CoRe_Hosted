@@ -13,13 +13,6 @@ const learningStepOptions = [
   { value: "10,30", label: "Ruhig · 10 Min. → 30 Min." },
 ];
 
-const maximumIntervalOptions = [
-  { value: "180", label: "6 Monate" },
-  { value: "365", label: "1 Jahr" },
-  { value: "1825", label: "5 Jahre" },
-  { value: "36500", label: "Praktisch unbegrenzt" },
-];
-
 const learningPresetOptions = [
   ...LEARNING_SETTING_PRESETS.map((preset) => ({
     value: preset.id,
@@ -137,6 +130,63 @@ function RangeField({ label, hint, value, min, max, step = 1, suffix = "", onCha
   );
 }
 
+interface NumberFieldProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+  testId?: string;
+}
+
+function NumberField({ label, value, min, max, onChange, testId }: NumberFieldProps) {
+  const [inputValue, setInputValue] = React.useState(String(value));
+  const editingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!editingRef.current) setInputValue(String(value));
+  }, [value]);
+
+  function commit() {
+    editingRef.current = false;
+    const rawValue = inputValue.trim();
+    const parsed = Number(rawValue);
+    if (!rawValue || !Number.isFinite(parsed)) {
+      setInputValue(String(value));
+      return;
+    }
+
+    const normalized = Math.min(max, Math.max(min, Math.round(parsed)));
+    setInputValue(String(normalized));
+    if (normalized !== value) onChange(normalized);
+  }
+
+  return (
+    <label className="grid min-h-20 gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-4 core-body font-semibold text-[var(--core-text-secondary)] sm:grid-cols-[minmax(0,1fr)_5.5rem] sm:items-center">
+      <span className="min-w-0 text-[var(--core-text-secondary)]">{label}</span>
+      <span className="flex min-h-11 min-w-0 items-center rounded-xl border border-[var(--core-border)] bg-core-surface text-[var(--core-text)] sm:w-[5.5rem]">
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={1}
+          inputMode="numeric"
+          value={inputValue}
+          onFocus={() => { editingRef.current = true; }}
+          onChange={(event) => setInputValue(event.currentTarget.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+          }}
+          className="min-h-11 min-w-0 w-full border-0 bg-transparent px-3 text-right text-[var(--core-text)] outline-none"
+          aria-label={`${label} als Zahl`}
+          data-testid={testId}
+        />
+      </span>
+    </label>
+  );
+}
+
 interface SelectFieldProps {
   label: string;
   hint?: string;
@@ -184,15 +234,9 @@ export function LearningSettingsPanel({ settings, customSettings, coreMode = "au
 
   const stepValue = draft.schedulerProfile.learningStepsMinutes.join(",");
   const knownStepValue = learningStepOptions.some((option) => option.value === stepValue);
-  const maximumIntervalValue = String(draft.schedulerProfile.maximumIntervalDays);
-  const knownMaximumInterval = maximumIntervalOptions.some((option) => option.value === maximumIntervalValue);
   const stepOptions = knownStepValue ? learningStepOptions : [
     { value: stepValue, label: `Eigene · ${draft.schedulerProfile.learningStepsMinutes[0]} Min. → ${draft.schedulerProfile.learningStepsMinutes[1]} Min.` },
     ...learningStepOptions,
-  ];
-  const intervalOptions = knownMaximumInterval ? maximumIntervalOptions : [
-    { value: maximumIntervalValue, label: `Eigene · ${maximumIntervalValue} Tage` },
-    ...maximumIntervalOptions,
   ];
   const showCoreParameters = draft.variantThresholdXp !== undefined && draft.maxActiveVariantsPerCard !== undefined;
   const variantThresholdValue = String(draft.variantThresholdXp ?? 121);
@@ -289,21 +333,20 @@ export function LearningSettingsPanel({ settings, customSettings, coreMode = "au
             Tagespensum und Reihenfolge
           </legend>
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-            <RangeField
+            <NumberField
               label="Neue Karten pro Tag"
               value={draft.newCardsPerDay}
               min={0}
               max={500}
-              onChange={(value: any) => updateSetting("newCardsPerDay", value)}
+              onChange={(value) => updateSetting("newCardsPerDay", value)}
               testId="learning-settings-new-cards"
             />
-            <RangeField
+            <NumberField
               label="Wiederholungen pro Tag"
               value={draft.maximumReviewsPerDay}
               min={0}
               max={2000}
-              step={10}
-              onChange={(value: any) => updateSetting("maximumReviewsPerDay", value)}
+              onChange={(value) => updateSetting("maximumReviewsPerDay", value)}
               testId="learning-settings-max-reviews"
             />
             <RangeField
@@ -379,11 +422,12 @@ export function LearningSettingsPanel({ settings, customSettings, coreMode = "au
               onChange={(value: number) => updateSchedulerSetting("desiredRetention", value / 100)}
               testId="learning-settings-retention"
             />
-            <SelectField
-              label="Maximales Intervall"
+            <NumberField
+              label="Maximales Intervall in Tagen"
               value={draft.schedulerProfile.maximumIntervalDays}
-              onChange={(value: any) => updateSchedulerSetting("maximumIntervalDays", Number(value))}
-              options={intervalOptions}
+              min={30}
+              max={36500}
+              onChange={(value: number) => updateSchedulerSetting("maximumIntervalDays", value)}
               testId="learning-settings-maximum-interval"
             />
           </div>

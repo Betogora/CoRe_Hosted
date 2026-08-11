@@ -93,7 +93,7 @@ const presetDefinitions = {
       graduatingIntervalDays: 1,
       easyGraduatingIntervalDays: 2,
       easyIntervalDays: 4,
-      maximumIntervalDays: 36500,
+      maximumIntervalDays: 1000,
       lessShortIntervalBias: false,
     },
   },
@@ -101,8 +101,8 @@ const presetDefinitions = {
     id: "intensive",
     label: "Intensiv",
     description: "Höhere Zielerinnerung und engere Wiederholungen.",
-    newCardsPerDay: 15,
-    maximumReviewsPerDay: 250,
+    newCardsPerDay: 30,
+    maximumReviewsPerDay: 300,
     learnAheadMinutes: 20,
     newReviewOrder: "mixed",
     schedulerProfile: {
@@ -112,7 +112,7 @@ const presetDefinitions = {
       graduatingIntervalDays: 1,
       easyGraduatingIntervalDays: 2,
       easyIntervalDays: 3,
-      maximumIntervalDays: 3650,
+      maximumIntervalDays: 365,
       lessShortIntervalBias: false,
     },
   },
@@ -121,7 +121,7 @@ const presetDefinitions = {
     label: "Entspannt",
     description: "Weniger neue Karten und längere Abstände.",
     newCardsPerDay: 10,
-    maximumReviewsPerDay: 120,
+    maximumReviewsPerDay: 100,
     learnAheadMinutes: 20,
     newReviewOrder: "reviews-first",
     schedulerProfile: {
@@ -131,7 +131,7 @@ const presetDefinitions = {
       graduatingIntervalDays: 2,
       easyGraduatingIntervalDays: 4,
       easyIntervalDays: 6,
-      maximumIntervalDays: 36500,
+      maximumIntervalDays: 2000,
       lessShortIntervalBias: true,
     },
   },
@@ -147,11 +147,12 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
     : typeof profile.name === "string" && presetIds.has(profile.name as SchedulerPreset)
       ? profile.name as SchedulerPreset
       : "custom";
+  const canonicalPreset = presetId === "custom" ? null : presetDefinitions[presetId];
   const graduatingIntervalDays = wholeNumber(profile.graduatingIntervalDays, 1, 1, 30);
 
   return {
-    newCardsPerDay: wholeNumber(sourceSettings.newCardsPerDay, 20, 0, 500),
-    maximumReviewsPerDay: wholeNumber(sourceSettings.maximumReviewsPerDay, 200, 0, 2000),
+    newCardsPerDay: wholeNumber(canonicalPreset?.newCardsPerDay ?? sourceSettings.newCardsPerDay, 20, 0, 500),
+    maximumReviewsPerDay: wholeNumber(canonicalPreset?.maximumReviewsPerDay ?? sourceSettings.maximumReviewsPerDay, 200, 0, 2000),
     learnAheadMinutes: wholeNumber(sourceSettings.learnAheadMinutes, 20, 0, 720),
     newReviewOrder: typeof sourceSettings.newReviewOrder === "string" && reviewOrders.has(sourceSettings.newReviewOrder as NewReviewOrder)
       ? sourceSettings.newReviewOrder as NewReviewOrder
@@ -166,7 +167,7 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
       easyGraduatingIntervalDays: wholeNumber(profile.easyGraduatingIntervalDays, 2, graduatingIntervalDays, 60),
       easyIntervalDays: wholeNumber(profile.easyIntervalDays, 4, 1, 60),
       desiredRetention: decimal(profile.desiredRetention, 0.9, 0.7, 0.99),
-      maximumIntervalDays: wholeNumber(profile.maximumIntervalDays, 36500, 30, 36500),
+      maximumIntervalDays: wholeNumber(canonicalPreset?.schedulerProfile.maximumIntervalDays ?? profile.maximumIntervalDays, 1000, 30, 36500),
       lessShortIntervalBias: Boolean(profile.lessShortIntervalBias),
     },
   };
@@ -193,15 +194,14 @@ export function applyLearningPreset(settings: LearningSettingsInput = {}, preset
 }
 
 export function markLearningSettingsCustom(settings: LearningSettingsInput = {}): LearningSettings {
-  const normalized = normalizeLearningSettings(settings);
-  return {
-    ...normalized,
+  return normalizeLearningSettings({
+    ...settings,
     schedulerProfile: {
-      ...normalized.schedulerProfile,
+      ...(settings.schedulerProfile ?? {}),
       presetId: "custom",
       name: "custom",
     },
-  };
+  });
 }
 
 export function applyLearningSettingsToDeckSettings<T extends Record<string, unknown>>(
