@@ -675,6 +675,10 @@ button[aria-label] {
     gap: 0.5rem;
   }
 
+  .core-deck-summary-responsive .core-deck-summary-actions {
+    margin-inline-start: 0.5rem;
+  }
+
   .core-deck-summary-responsive .core-deck-summary-icon {
     width: 2.25rem;
     height: 2.25rem;
