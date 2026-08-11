@@ -872,7 +872,7 @@ export function DecksScreen({
 
   return (
     <div className="relative grid min-w-0 gap-7">
-      <PageHeader title="Kartenverwaltung" />
+      <PageHeader title="Karten" />
 
       <SoftPanel className="p-4 sm:p-5">
         <div className="flex min-w-0 flex-wrap items-center gap-3">

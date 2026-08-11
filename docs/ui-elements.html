@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 60ab7d2bb4fe8743 */
+/* Quellenstand: 1fdfdf917f0f7edc */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1103,6 +1103,9 @@ video {
 .items-center {
   align-items: center;
 }
+.justify-start {
+  justify-content: flex-start;
+}
 .justify-end {
   justify-content: flex-end;
 }
@@ -1796,6 +1799,10 @@ button[aria-label] {
   .core-deck-summary-responsive .core-deck-summary-actions,
   .core-deck-summary-responsive .core-deck-summary-counts {
     gap: 0.5rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-actions {
+    margin-inline-start: 0.5rem;
   }
 
   .core-deck-summary-responsive .core-deck-summary-icon {
@@ -3217,7 +3224,7 @@ summary {
                   <button type="button" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-core-secondary transition hover:bg-core-surface hover:text-core-text"><svg class="catalog-icon shrink-0"><use href="#icon-sparkles"></use></svg><span class="min-w-0 truncate">Lernen</span></button>
                   <button type="button" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-core-secondary transition hover:bg-core-surface hover:text-core-text"><svg class="catalog-icon shrink-0"><use href="#icon-plus"></use></svg><span class="min-w-0 truncate">Erstellen</span></button>
                   <button type="button" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-core-secondary transition hover:bg-core-surface hover:text-core-text"><svg class="catalog-icon shrink-0"><use href="#icon-chart"></use></svg><span class="min-w-0 truncate">Statistik</span></button>
-                  <button type="button" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-core-secondary transition hover:bg-core-surface hover:text-core-text"><svg class="catalog-icon shrink-0"><use href="#icon-layers"></use></svg><span class="min-w-0 truncate">Kartenverwaltung</span></button>
+                  <button type="button" class="core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-core-secondary transition hover:bg-core-surface hover:text-core-text"><svg class="catalog-icon shrink-0"><use href="#icon-layers"></use></svg><span class="min-w-0 truncate">Karten</span></button>
                 </div>
                 <div class="catalog-demo catalog-stack">
                   <span class="catalog-demo-label">Mobile Bottom Bar · unter 768 px</span>
@@ -3226,9 +3233,9 @@ summary {
                     <button type="button" class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-core-muted"><svg class="catalog-icon"><use href="#icon-book"></use></svg><span class="text-[0.68rem]">Lernen</span></button>
                     <button type="button" class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-core-muted"><svg class="catalog-icon"><use href="#icon-plus"></use></svg><span class="text-[0.68rem]">Erstellen</span></button>
                     <button type="button" class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-core-muted"><svg class="catalog-icon"><use href="#icon-chart"></use></svg><span class="text-[0.68rem]">Statistik</span></button>
-                    <button type="button" aria-label="Kartenverwaltung öffnen" class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-core-muted"><svg class="catalog-icon"><use href="#icon-more"></use></svg><span class="text-[0.68rem]">Mehr</span></button>
+                    <button type="button" class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-core-muted"><svg class="catalog-icon"><use href="#icon-layers"></use></svg><span class="text-[0.68rem]">Karten</span></button>
                   </nav>
-                  <p class="core-caption text-core-muted">Schwebend, Safe-Area-fähig und mit direktem Kartenverwaltungsziel.</p>
+                  <p class="core-caption text-core-muted">Schwebend, Safe-Area-fähig und mit direktem Kartenziel.</p>
                 </div>
                 <div class="catalog-demo catalog-stack">
                   <span class="catalog-demo-label">Core-Modus · segmentiertes Control</span>
@@ -3237,9 +3244,8 @@ summary {
                     <button type="button" aria-pressed="true" class="core-segmented-control-option">Auto</button>
                     <button type="button" aria-pressed="false" class="core-segmented-control-option">Manuell</button>
                   </div>
-                  <span class="catalog-demo-label mt-3">App und Bedienung · Theme-Switch</span>
                   <span class="catalog-demo-label mt-3">Shell-Utilitygruppe · Einstellungen und Theme</span>
-                  <div class="flex items-center justify-end gap-2">
+                  <div class="flex items-center justify-start gap-2">
                     <button type="button" aria-label="Einstellungen öffnen" class="core-action-secondary size-11 shrink-0 rounded-full p-0"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button>
                     <button type="button" aria-label="Dark Mode einschalten" class="core-action-ghost size-11 shrink-0 rounded-full p-0"><svg class="catalog-icon"><use href="#icon-sun"></use></svg></button>
                   </div>

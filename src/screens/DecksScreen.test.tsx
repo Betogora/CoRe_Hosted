@@ -52,7 +52,7 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   const decks = [originalDeck, child, grandchild, greatGrandchild, deeperImport];
   const markup = renderScreen(decks);
 
-  assert.match(markup, /<h2[^>]*>Kartenverwaltung<\/h2>/);
+  assert.match(markup, /<h2[^>]*>Karten<\/h2>/);
   assert.match(markup, /data-testid="card-library-table"/);
   assert.match(markup, /Sortierfeld/);
   assert.match(markup, /Datum/);

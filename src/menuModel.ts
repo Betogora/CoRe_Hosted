@@ -39,10 +39,10 @@ const views: MenuView[] = [
   },
   {
     id: "kartenstapel",
-    label: "Kartenverwaltung",
+    label: "Karten",
     iconKey: "layers",
     navigation: "primary",
-    title: "Kartenverwaltung",
+    title: "Karten",
     eyebrow: "",
     stats: [
       { label: "Decks", value: "0" },

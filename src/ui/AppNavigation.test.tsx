@@ -30,8 +30,12 @@ test("app navigation exposes a desktop sidebar and the five mobile tabs", () => 
   assert.match(markup, /hidden border-r[^\"]*xl:block/);
   assert.match(markup, /xl:hidden/);
   assert.doesNotMatch(markup, /md:block|md:hidden/);
-  for (const label of ["Heute", "Lernen", "Erstellen", "Statistik", "Mehr"]) assert.match(markup, new RegExp(`>${label}<`));
-  assert.match(markup, /aria-label="Kartenverwaltung öffnen"[^>]*aria-current="page"/);
+  for (const label of ["Heute", "Lernen", "Erstellen", "Statistik", "Karten"]) assert.match(markup, new RegExp(`>${label}<`));
+  const bottomBarMarkup = markup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
+  assert.match(bottomBarMarkup, /lucide-layers/);
+  assert.match(bottomBarMarkup, />Karten<\/span>/);
+  assert.doesNotMatch(bottomBarMarkup, />Mehr<\/span>/);
+  assert.match(bottomBarMarkup, /aria-current="page"/);
   assert.match(markup, /left-\[50dvw\]/);
   assert.match(markup, /w-\[calc\(100dvw-4rem\)\]/);
   assert.match(markup, /sm:w-\[calc\(100dvw-6rem\)\]/);
@@ -48,11 +52,17 @@ test("settings, help and simulator share the active utility entry", () => {
 
 test("responsive navigation shares compact settings and theme actions without a profile preview", () => {
   const markup = renderNavigation();
+  const sidebarMarkup = markup.match(/<aside[^>]*data-navigation-layout="sidebar"[\s\S]*?<\/aside>/)?.[0] ?? "";
+  const mobileHeaderMarkup = markup.match(/<header[^>]*data-navigation-layout="mobile-header"[\s\S]*?<\/header>/)?.[0] ?? "";
 
   assert.equal((markup.match(/data-navigation-utilities="true"/g) ?? []).length, 2);
   assert.equal((markup.match(/aria-label="Einstellungen öffnen"/g) ?? []).length, 2);
   assert.equal((markup.match(/aria-label="Dark Mode einschalten"/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
+  assert.match(sidebarMarkup, /class="[^"]*justify-start" data-navigation-utilities="true"/);
+  assert.doesNotMatch(sidebarMarkup, /border-t/);
+  assert.ok(sidebarMarkup.indexOf('data-navigation-utility="settings"') < sidebarMarkup.indexOf('data-navigation-utility="theme"'));
+  assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="theme"') < mobileHeaderMarkup.indexOf('data-navigation-utility="settings"'));
   assert.doesNotMatch(markup, /role="switch"|aria-checked=/);
   assert.doesNotMatch(markup, />Ada<|>AD</);
 });

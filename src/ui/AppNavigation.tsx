@@ -1,6 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, BookOpen, CalendarClock, Ellipsis, Home, Layers, Moon, PlusSquare, Settings, Sun } from "lucide-react";
+import { BarChart3, BookOpen, CalendarClock, Home, Layers, Moon, PlusSquare, Settings, Sun } from "lucide-react";
 import { createPortal } from "react-dom";
 import { readCoreTheme, toggleCoreTheme, type CoreTheme } from "../coreTheme.ts";
 import type { MenuViewId } from "../menuModel.ts";
@@ -44,32 +44,38 @@ interface ResponsiveNavigationProps extends AppNavigationProps {
   onToggleTheme: () => void;
 }
 
-function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme, className = "" }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onToggleTheme"> & { className?: string }) {
+function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme, className = "", themeFirst = false }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onToggleTheme"> & { className?: string; themeFirst?: boolean }) {
   const settingsActive = utilityViews.has(activeView);
   const darkModeActive = theme === "dark";
   const ThemeIcon = darkModeActive ? Moon : Sun;
+  const settingsButton = (
+    <IconButton
+      type="button"
+      data-app-navigation="true"
+      data-navigation-utility="settings"
+      label="Einstellungen öffnen"
+      icon={Settings}
+      onClick={() => onNavigate("einstellungen")}
+      className={`size-11 shrink-0 rounded-full ${settingsActive ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-sm" : ""}`}
+      aria-current={settingsActive ? "page" : undefined}
+    />
+  );
+  const themeButton = (
+    <IconButton
+      type="button"
+      data-navigation-utility="theme"
+      label={darkModeActive ? "Light Mode einschalten" : "Dark Mode einschalten"}
+      icon={ThemeIcon}
+      variant="ghost"
+      onClick={onToggleTheme}
+      className="size-11 shrink-0 rounded-full"
+    />
+  );
 
   return (
     <div className={`flex items-center gap-2 ${className}`} data-navigation-utilities="true">
-      <IconButton
-        type="button"
-        data-app-navigation="true"
-        data-navigation-utility="settings"
-        label="Einstellungen öffnen"
-        icon={Settings}
-        onClick={() => onNavigate("einstellungen")}
-        className={`size-11 shrink-0 rounded-full ${settingsActive ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-sm" : ""}`}
-        aria-current={settingsActive ? "page" : undefined}
-      />
-      <IconButton
-        type="button"
-        data-navigation-utility="theme"
-        label={darkModeActive ? "Light Mode einschalten" : "Dark Mode einschalten"}
-        icon={ThemeIcon}
-        variant="ghost"
-        onClick={onToggleTheme}
-        className="size-11 shrink-0 rounded-full"
-      />
+      {themeFirst ? themeButton : settingsButton}
+      {themeFirst ? settingsButton : themeButton}
     </div>
   );
 }
@@ -119,8 +125,8 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
             </div>
           ) : null}
           <PomodoroProgress timer={pomodoroTimer} variant="sidebar" />
-          <div className={`border-t border-[var(--core-border)] pt-6 ${simulationOffsetMinutes > 0 || pomodoroTimer ? "mt-3" : ""}`}>
-            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} className="justify-end" />
+          <div className={`pt-6 ${simulationOffsetMinutes > 0 || pomodoroTimer ? "mt-3" : ""}`}>
+            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} className="justify-start" />
           </div>
         </div>
       </div>
@@ -134,7 +140,7 @@ function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel
       <div className="flex min-h-11 items-center justify-between gap-3">
         <h1 className="shrink-0 core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
-        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} className="shrink-0" />
+        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} className="shrink-0" themeFirst />
       </div>
       {simulationOffsetMinutes > 0 ? (
         <div className="mt-2 flex min-h-11 items-center gap-3 rounded-xl border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">
@@ -157,10 +163,8 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate }: App
       style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
     >
       {navigationItems.map((view) => {
-        const isMore = view.id === "kartenstapel";
-        const NavIcon = isMore ? Ellipsis : getIcon(view.iconKey);
+        const NavIcon = getIcon(view.iconKey);
         const isActive = view.id === activeView;
-        const visibleLabel = isMore ? "Mehr" : view.label;
 
         return (
           <button
@@ -168,11 +172,10 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate }: App
             type="button"
             onClick={() => onNavigate(view.id)}
             className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 transition ${isActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)]" : "text-[var(--core-text-muted)] hover:bg-[var(--core-surface-hover)] hover:text-[var(--core-text)]"}`}
-            aria-label={isMore ? "Kartenverwaltung öffnen" : undefined}
             aria-current={isActive ? "page" : undefined}
           >
             <NavIcon size={20} aria-hidden="true" />
-            <span className="w-full truncate text-center text-[0.68rem] font-medium leading-4">{visibleLabel}</span>
+            <span className="w-full truncate text-center text-[0.68rem] font-medium leading-4">{view.label}</span>
           </button>
         );
       })}

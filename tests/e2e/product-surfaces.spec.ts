@@ -42,7 +42,7 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
   const mobileThemeBox = await mobileThemeButton.boundingBox();
   expect(mobileSettingsBox).not.toBeNull();
   expect(mobileThemeBox).not.toBeNull();
-  expect(mobileSettingsBox!.x).toBeLessThan(mobileThemeBox!.x);
+  expect(mobileSettingsBox!.x).toBeGreaterThan(mobileThemeBox!.x);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
   await mobileSettingsButton.click();
@@ -197,7 +197,7 @@ test("mobile bottom navigation stays viewport-fixed and keeps its width on short
   expect(Math.abs(longPageBottom!.width - longPageTop!.width)).toBeLessThanOrEqual(1);
 
   await page.goto("/kartenstapel");
-  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   const shortPage = await bottomNavigation.boundingBox();
   expect(shortPage).not.toBeNull();
   expect(Math.abs(shortPage!.x - longPageTop!.x)).toBeLessThanOrEqual(1);
