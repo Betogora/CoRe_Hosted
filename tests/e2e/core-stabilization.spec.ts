@@ -575,9 +575,8 @@ test("review flow records a rating through accessible controls", async ({ page }
   await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(1);
-  await page.getByRole("button", { name: "Original anzeigen" }).click();
-  await expect(page.getByTestId("original-anchor")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
+  await expect(page.getByTestId("original-anchor")).toHaveCount(0);
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 
   await expect.poll(() => deckReviewEventCount(page, DECK_IDS.europe)).toBeGreaterThan(before);
