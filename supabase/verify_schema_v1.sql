@@ -1,7 +1,7 @@
 do $$
 declare
   missing_tables text[];
-  missing_dynamic_columns text[];
+  missing_required_columns text[];
   missing_dynamic_constraints text[];
   missing_sync_triggers text[];
   missing_data_api_grants text[];
@@ -23,8 +23,9 @@ begin
   end if;
 
   select array_agg(format('%s.%s', expected.table_name, expected.column_name) order by expected.table_name, expected.column_name)
-  into missing_dynamic_columns
+  into missing_required_columns
   from (values
+    ('profiles', 'ui_preferences'),
     ('cards', 'note_type_definition_id'),
     ('cards', 'content_document'),
     ('cards', 'latest_source_snapshot_id'),
@@ -54,8 +55,8 @@ begin
    and columns.table_name = expected.table_name
    and columns.column_name = expected.column_name
   where columns.column_name is null;
-  if missing_dynamic_columns is not null then
-    raise exception 'Dynamische Karten-Spalten fehlen: %', missing_dynamic_columns;
+  if missing_required_columns is not null then
+    raise exception 'Erforderliche Spalten fehlen: %', missing_required_columns;
   end if;
 
   select array_agg(expected.name order by expected.name)
