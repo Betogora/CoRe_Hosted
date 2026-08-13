@@ -1,10 +1,10 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, Ban, Check, ChevronDown, ChevronRight, Copy, Layers, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Ban, Check, ChevronDown, ChevronRight, Copy, Eye, Layers, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
-import { createCoreNoteTypeDefinition, getCardEditorValue, getOriginalVariant, getVariantAnchor, isLearningItemMarked, validateCardEditorValue } from "../coreModel.ts";
+import { createCoreNoteTypeDefinition, getCardEditorValue, getOriginalVariant, getVariantAnchor, isLearningItemMarked, projectCardPreviewDraft, validateCardEditorValue } from "../coreModel.ts";
 import { createVariantReviewModel } from "../coreVariantService.ts";
 import { MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
 import { stripHtml } from "../htmlSafety.ts";
@@ -12,6 +12,7 @@ import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, DEFAULT
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CardHtml, useCardMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
+import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { ActionDialog, CardMarkButton, CoreSwitch, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
@@ -103,6 +104,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
   const [saveStatus, setSaveStatus] = React.useState("");
   const [saveError, setSaveError] = React.useState(false);
+  const [previewOpen, setPreviewOpen] = React.useState(false);
   const setSuccessToast = useSuccessToast();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isDuplicating, setIsDuplicating] = React.useState(false);
@@ -129,6 +131,21 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
     () => card ? createVariantReviewModel(card, deck?.reviewEvents ?? [], { now }) : null,
     [card, deck?.reviewEvents, now],
   );
+  const previewBundle = React.useMemo(() => {
+    if (!card || !definition) return null;
+    if (form) {
+      return projectCardPreviewDraft({ item: card, definition, draft: { kind: "editor", value: form } });
+    }
+    if (dynamicDocumentMode) {
+      return projectCardPreviewDraft({
+        item: card,
+        definition,
+        draft: { kind: "document", fields: documentFields, tags: card.tags },
+      });
+    }
+    const variant = getOriginalVariant(card);
+    return variant ? { item: card, variant, definition } : null;
+  }, [card, definition, documentFields, dynamicDocumentMode, form]);
   const restorableVersions = React.useMemo(
     () => [...(card?.versionLog ?? [])].reverse().filter((entry: any) => entry.before && typeof entry.before === "object"),
     [card?.updatedAt, card?.versionLog],
@@ -154,6 +171,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
   }, [card?.id, cardContentKey, documentContentKey]);
 
   React.useEffect(() => {
+    setPreviewOpen(false);
     setSaveStatus("");
     setSaveError(false);
     setDuplicateStatus("");
@@ -358,6 +376,15 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
               {isSaving ? "Speichert …" : "Speichern"}
             </button>
           ) : null}
+          <ActionButton
+            type="button"
+            variant="secondary"
+            icon={Eye}
+            disabled={!previewBundle}
+            onClick={() => setPreviewOpen(true)}
+          >
+            Vorschau
+          </ActionButton>
           <button
             type="button"
             onClick={() => void duplicateCard()}
@@ -509,15 +536,6 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
           Dieser importierte Kartentyp wird hier nur angezeigt und kann nicht kopiert werden. Typgerechtes Bearbeiten und Kopieren ist für Basic, Basic + Bilder, Reverse, Cloze und Multiple Choice verfügbar.
         </div>
       )}
-      {definition && originalVariant ? (
-        <details className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" open>
-          <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Sichere Karten-Vorschau</summary>
-          <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-2">
-            <CardPresentationSurface item={card} variant={originalVariant} definition={definition} side="question" surface="card-management" title="Vorschau der Vorderseite" mediaUrls={mediaUrls} />
-            <CardPresentationSurface item={card} variant={originalVariant} definition={definition} side="answer" surface="card-management" title="Vorschau der Rückseite" mediaUrls={mediaUrls} />
-          </div>
-        </details>
-      ) : null}
       <details className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
         <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Details, Herkunft und Versionen</summary>
       <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))]">
@@ -697,6 +715,14 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
         </div>
         </div>
       </details>
+      <CardPreviewDialog
+        open={previewOpen}
+        item={previewBundle?.item}
+        variant={previewBundle?.variant}
+        definition={previewBundle?.definition}
+        mediaUrls={mediaUrls}
+        onOpenChange={setPreviewOpen}
+      />
     </SoftPanel>
   );
 }
@@ -884,6 +910,7 @@ export function DecksScreen({
     function handleOutsidePointer(event: PointerEvent) {
       const target = event.target;
       if (!(target instanceof Element) || detailRef.current?.contains(target)) return;
+      if (target.closest('[data-card-preview-overlay="true"]')) return;
       if (pendingCardDelete && target.matches('[data-testid="action-dialog-backdrop"]')) {
         if (deletingCard) {
           event.preventDefault();

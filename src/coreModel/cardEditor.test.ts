@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  applyLearningItemContent,
+  createCoreNoteTypeDefinition,
   createLearningItemFromEditorValue,
   createReviewState,
   duplicateLearningItemContent,
   getCardContentPayload,
   getCardEditorValue,
   getOriginalVariant,
+  projectCardPreviewDraft,
   restoreCardVersion,
   saveCardEditorValue,
   validateCardEditorValue,
@@ -66,6 +69,64 @@ test("basic editor save preserves anchors, media, immutable original and review 
   assert.deepEqual(saved.immutableOriginal, original.immutableOriginal);
   assert.equal(originalCount(saved), 1);
   assert.equal(saved.versionLog.at(-1)?.changeType, "content_updated");
+});
+
+test("Anki FrontSide stays out of the raw back editor while preview and save use the structured answer", () => {
+  const created = createLearningItemFromEditorValue("deck-1", {
+    cardType: "basic",
+    front: "<p>Ursprungsfrage</p>",
+    back: "<p>Ursprungsantwort</p>",
+    tags: ["anki"],
+  });
+  const coreDefinition = createCoreNoteTypeDefinition({ document: created.contentDocument });
+  const ankiDefinition = {
+    ...coreDefinition,
+    origin: "anki" as const,
+    recipes: coreDefinition.recipes.map((recipe) => ({
+      ...recipe,
+      front: { schemaVersion: 1 as const, source: "{{Front}}", nodes: [] },
+      back: { schemaVersion: 1 as const, source: "{{FrontSide}}<hr>{{Back}}", nodes: [] },
+    })),
+  };
+  const imported = applyLearningItemContent({
+    previous: created,
+    document: created.contentDocument,
+    definition: ankiDefinition,
+    reason: "edit",
+  }).item;
+
+  assert.deepEqual(getCardEditorValue(imported), {
+    cardType: "basic",
+    front: "<p>Ursprungsfrage</p>",
+    back: "<p>Ursprungsantwort</p>",
+    tags: ["anki"],
+  });
+
+  const preview = projectCardPreviewDraft({
+    item: imported,
+    definition: ankiDefinition,
+    draft: {
+      kind: "editor",
+      value: { cardType: "basic", front: "<p>Neue Frage</p>", back: "<p>Neue Antwort</p>", tags: ["entwurf"] },
+    },
+  });
+  assert.ok(preview);
+  assert.equal(preview.item.revision, imported.revision);
+  assert.equal(preview.item.versionLog.length, imported.versionLog.length);
+  assert.equal(preview.item.contentDocument.fields.find((field) => field.semanticRole === "answer")?.value, "<p>Neue Antwort</p>");
+  assert.equal(preview.variant.front.match(/Neue Frage/g)?.length, 1);
+  assert.equal(preview.variant.back.match(/Neue Frage/g)?.length, 1);
+  assert.equal(preview.variant.back.match(/Neue Antwort/g)?.length, 1);
+
+  const saved = saveCardEditorValue(imported, {
+    cardType: "basic",
+    front: "<p>Gespeicherte Frage</p>",
+    back: "<p>Gespeicherte Antwort</p>",
+    tags: ["anki"],
+  }, ankiDefinition);
+  assert.equal(saved.contentDocument.fields.find((field) => field.semanticRole === "answer")?.value, "<p>Gespeicherte Antwort</p>");
+  const savedEditorValue = getCardEditorValue(saved);
+  assert.equal(savedEditorValue?.cardType === "basic" ? savedEditorValue.back : null, "<p>Gespeicherte Antwort</p>");
 });
 
 test("reverse editor save updates one active reverse direction and preserves its review identity", () => {

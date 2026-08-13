@@ -50,7 +50,7 @@ test("renders front and back from the same safe template path with a locked-down
     front: { schemaVersion: 1 as const, source: '<div>{{Begriff}}</div><img src="figure.png" alt="Abbildung">', nodes: [] },
     back: { schemaVersion: 1 as const, source: "{{FrontSide}}<hr>{{Funktion}}", nodes: [] },
   };
-  const importedDefinition = { ...definition, recipes: [recipe], css: ".card{font-weight:700;background:url(bg.png)}" };
+  const importedDefinition = { ...definition, origin: "anki" as const, recipes: [recipe], css: ".card{font-weight:700;background:url(bg.png)}" };
   const question = await renderLearningItemPresentation({ item, variant, definition: importedDefinition, side: "question", surface: "review", theme: "dark" });
   const answer = await renderLearningItemPresentation({ item, variant, definition: importedDefinition, side: "answer", surface: "review", theme: "dark" });
 
@@ -60,23 +60,50 @@ test("renders front and back from the same safe template path with a locked-down
   assert.match(question.srcdoc, /Mitochondrium/);
   assert.match(answer.srcdoc, /Mitochondrium/);
   assert.match(answer.srcdoc, /ATP-Synthese/);
+  assert.equal(answer.accessibleText.match(/Mitochondrium/g)?.length, 1);
+  assert.equal(answer.accessibleText.match(/ATP-Synthese/g)?.length, 1);
   assert.deepEqual(question.mediaReferences.sort(), ["bg.png", "figure.png"]);
   const hydrated = resolvePresentationMedia(question.srcdoc, { "figure.png": "blob:https://core.local/image" });
   assert.match(hydrated, /src="blob:https:\/\/core.local\/image"/);
 });
 
-test("projects Anki sound markers through the same blob-only media path", async () => {
-  const { definition, item, variant } = fixture();
-  const audioItem = {
-    ...item,
-    mediaRefs: [...item.mediaRefs, "answer.mp3"],
-    contentDocument: {
-      ...item.contentDocument,
-      mediaRefs: [...item.contentDocument.mediaRefs, "answer.mp3"],
-      fields: item.contentDocument.fields.map((field) => field.id === "answer" ? { ...field, value: "[sound:answer.mp3]" } : field),
-    },
+test("composes CoRe answers exactly once with rich text, separator and embedded Synonym fonts", async () => {
+  const { document, definition } = fixture();
+  const richDocument = {
+    ...document,
+    fields: document.fields.map((field) => field.id === "prompt"
+      ? { ...field, value: "<p>Welche Funktion?</p>" }
+      : field.id === "answer"
+        ? { ...field, value: "<p><strong>ATP</strong></p><ul><li>Energie</li><li>Stoffwechsel</li></ul>" }
+        : field),
   };
-  const result = await renderLearningItemPresentation({ item: audioItem, variant, definition, side: "answer", surface: "review", theme: "light" });
+  const item = applyLearningItemContent({ previous: null, document: richDocument, definition, reason: "create" }).item;
+  const variant = item.variants[0];
+  const fontFaceCss = '@font-face{font-family:"Synonym";src:url(data:font/woff2;base64,AA==) format("woff2");font-weight:400}';
+
+  const question = await renderLearningItemPresentation({ item, variant, definition, side: "question", surface: "review", theme: "light", fontFaceCss });
+  const answer = await renderLearningItemPresentation({ item, variant, definition, side: "answer", surface: "review", theme: "light", fontFaceCss });
+
+  assert.equal(question.accessibleText, "Welche Funktion? Zelle");
+  assert.equal(answer.accessibleText.match(/Welche Funktion\?/g)?.length, 1);
+  assert.equal(answer.accessibleText.match(/ATP/g)?.length, 1);
+  assert.match(answer.srcdoc, /core-card-answer-separator/);
+  assert.match(answer.srcdoc, /<strong>ATP<\/strong>/);
+  assert.match(answer.srcdoc, /<ul><li>Energie<\/li><li>Stoffwechsel<\/li><\/ul>/);
+  assert.match(answer.srcdoc, /font-family:Synonym,ui-sans-serif/);
+  assert.match(answer.srcdoc, /data:font\/woff2;base64,AA==/);
+  assert.match(answer.srcdoc, /font-src data: blob:/);
+});
+
+test("projects Anki sound markers through the same blob-only media path", async () => {
+  const { definition, item } = fixture();
+  const audioDocument = {
+    ...item.contentDocument,
+    mediaRefs: [...item.contentDocument.mediaRefs, "answer.mp3"],
+    fields: item.contentDocument.fields.map((field) => field.id === "answer" ? { ...field, value: "[sound:answer.mp3]" } : field),
+  };
+  const audioItem = applyLearningItemContent({ previous: item, document: audioDocument, definition, reason: "edit" }).item;
+  const result = await renderLearningItemPresentation({ item: audioItem, variant: audioItem.variants[0], definition, side: "answer", surface: "review", theme: "light" });
   const hydrated = resolvePresentationMedia(result.srcdoc, { "answer.mp3": "blob:https://core.local/audio" });
 
   assert.deepEqual(result.interactions, ["audio"]);
@@ -88,6 +115,7 @@ test("uses the ordered field fallback for scripts and custom filters", async () 
   const { definition, item, variant } = fixture();
   const unsafeDefinition = {
     ...definition,
+    origin: "anki" as const,
     recipes: [{
       ...definition.recipes[0],
       front: { schemaVersion: 1 as const, source: '<script>parent.postMessage("x", "*")</script>{{custom:Begriff}}', nodes: [] },
@@ -121,6 +149,7 @@ test("removes external HTML and CSS resources without silently claiming equivale
   const { definition, item, variant } = fixture();
   const networkDefinition = {
     ...definition,
+    origin: "anki" as const,
     css: '@import "https://tracker.example/a.css";body{background:url(https://tracker.example/pixel)}',
     recipes: [{
       ...definition.recipes[0],

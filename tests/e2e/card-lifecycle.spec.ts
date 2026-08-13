@@ -213,6 +213,72 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await page.keyboard.press("3");
 });
 
+test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen den ungespeicherten Entwurf zugänglich und responsiv", async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  const deckName = "Vorschau-Dialog";
+  await openManualCreation(page, deckName, "basic");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Ungespeicherte Erstellungsfrage");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Ungespeicherte Erstellungsantwort");
+  await expect(page.getByText("Live-Vorschau", { exact: true })).toBeVisible();
+
+  const creationPreviewButton = page.getByRole("button", { name: "Vorschau", exact: true });
+  await creationPreviewButton.click();
+  const dialog = page.getByRole("dialog", { name: "Kartenvorschau" });
+  await expect(dialog).toBeVisible();
+  await expect(page.getByRole("button", { name: "Kartenvorschau schließen" })).toBeFocused();
+  await expect(dialog.getByRole("button", { name: "Vorderseite" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.frameLocator('iframe[title="Kartenvorschau der Vorderseite"]').locator("body")).toContainText("Ungespeicherte Erstellungsfrage");
+  await expect(page.frameLocator('iframe[title="Kartenvorschau der Vorderseite"]').locator("body")).not.toContainText("Ungespeicherte Erstellungsantwort");
+
+  await dialog.getByRole("button", { name: "Rückseite" }).click();
+  const creationAnswerBody = page.frameLocator('iframe[title="Kartenvorschau der Rückseite"]').locator("body");
+  await expect(creationAnswerBody).toContainText("Ungespeicherte Erstellungsfrage");
+  await expect(creationAnswerBody).toContainText("Ungespeicherte Erstellungsantwort");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(creationPreviewButton).toBeFocused();
+
+  await creationPreviewButton.click();
+  await expect(dialog.getByRole("button", { name: "Vorderseite" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("card-preview-backdrop").click({ position: { x: 4, y: 4 } });
+  await expect(dialog).toHaveCount(0);
+
+  const deck = await finishManualCreation(page, deckName);
+  await openCreatedCardEditor(page, deck);
+  await expect(page.getByText("Sichere Karten-Vorschau", { exact: true })).toHaveCount(0);
+  await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Ungespeicherte Editorfrage");
+  await page.getByRole("textbox", { name: "Karten-Rückseite", exact: true }).fill("Ungespeicherte Editorantwort");
+
+  const editorPreviewButton = page.getByTestId("card-detail-aside").getByRole("button", { name: "Vorschau", exact: true });
+  await editorPreviewButton.click();
+  const editorFrontBody = page.frameLocator('iframe[title="Kartenvorschau der Vorderseite"]').locator("body");
+  await expect(editorFrontBody).toContainText("Ungespeicherte Editorfrage");
+  await expect(editorFrontBody).not.toContainText("Ungespeicherte Editorantwort");
+  await dialog.getByRole("button", { name: "Rückseite" }).click();
+  const editorAnswerBody = page.frameLocator('iframe[title="Kartenvorschau der Rückseite"]').locator("body");
+  await expect(editorAnswerBody).toContainText("Ungespeicherte Editorfrage");
+  await expect(editorAnswerBody).toContainText("Ungespeicherte Editorantwort");
+  expect((await editorAnswerBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
+  expect((await editorAnswerBody.innerText()).match(/Ungespeicherte Editorantwort/g)).toHaveLength(1);
+  await page.getByRole("button", { name: "Kartenvorschau schließen" }).click();
+  await expect(editorPreviewButton).toBeFocused();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await editorPreviewButton.click();
+  const mobileBox = await dialog.boundingBox();
+  expect(mobileBox).not.toBeNull();
+  expect(mobileBox!.x).toBe(0);
+  expect(mobileBox!.y).toBe(0);
+  expect(mobileBox!.width).toBe(390);
+  expect(mobileBox!.height).toBe(844);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  await page.keyboard.press("Escape");
+  expect(consoleErrors).toEqual([]);
+});
+
 test("[Vertrag: KI-Basic-Variante] @golden-e2e abgefangene Modellantwort wird sofort und reloadfest gespeichert", async ({ page }) => {
   const deckName = "KI-Variante Basic";
   await openManualCreation(page, deckName, "basic");

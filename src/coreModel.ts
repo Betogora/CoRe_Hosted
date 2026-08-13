@@ -43,9 +43,11 @@ export type { CoreCardInput } from "./coreModel/learningItems.ts";
 export {
   getCardContentPayload,
   getCardEditorValue,
+  projectCardPreviewDraft,
   saveCardEditorValue,
   validateCardEditorValue,
 } from "./coreModel/cardEditor.ts";
+export type { CardPreviewDraft, CardPreviewProjection } from "./coreModel/cardEditor.ts";
 export {
   addRephrasedVariant,
   createBasicLearningItem,

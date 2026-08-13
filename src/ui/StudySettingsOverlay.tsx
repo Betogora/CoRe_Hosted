@@ -13,6 +13,7 @@ import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import { IconButton } from "./actionUi.tsx";
 import { CardMarkButton, CoreSwitch } from "./coreUi.tsx";
 import { PomodoroTimerControl } from "./pomodoroTimerUi.tsx";
+import { useModalDialog } from "./useModalDialog.ts";
 
 export interface StudySettingsOverlayProps {
   open: boolean;
@@ -104,48 +105,9 @@ export function StudySettingsOverlay({
   onSuspendedChange,
   onStartPomodoro,
 }: StudySettingsOverlayProps) {
-  const dialogRef = React.useRef<HTMLDivElement | null>(null);
-  const closeButtonRef = React.useRef<HTMLButtonElement | null>(null);
-  const returnFocusRef = React.useRef<HTMLElement | null>(null);
   const titleId = React.useId();
-
-  React.useEffect(() => {
-    if (!open) return undefined;
-    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const frame = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onOpenChange(false);
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-      if (!focusable?.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", handleKeyDown);
-      window.requestAnimationFrame(() => returnFocusRef.current?.focus());
-    };
-  }, [onOpenChange, open]);
+  const closeDialog = React.useCallback(() => onOpenChange(false), [onOpenChange]);
+  const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({ open, onClose: closeDialog });
 
   if (!open) return null;
 

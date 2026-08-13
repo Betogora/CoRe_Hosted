@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowUp, CircleAlert, Database, FileText, ImagePlus, PenLine, Pin, PinOff, Plus, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, PenLine, Pin, PinOff, Plus, Upload, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -16,6 +16,7 @@ import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
+import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatBytes } from "./screenConstants.ts";
@@ -199,6 +200,7 @@ export function ManualCreationPanel({
   const targetDeckMissing = Boolean(initialTargetDeckId && !decks.some((deck) => deck.id === initialTargetDeckId));
   const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
+  const [previewOpen, setPreviewOpen] = React.useState(false);
   const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
   const cleanDraftRef = React.useRef(batchState.currentDraft);
   const { currentDraft, pinnedFields } = batchState;
@@ -526,6 +528,12 @@ export function ManualCreationPanel({
           ) : null}
         </div>
 
+        <div className="flex justify-end">
+          <ActionButton type="button" variant="secondary" icon={Eye} onClick={() => setPreviewOpen(true)}>
+            Vorschau
+          </ActionButton>
+        </div>
+
         <fieldset className="grid gap-2 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
           <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Weitere Optionen</legend>
           <div className="flex min-h-12 items-center justify-between gap-3">
@@ -678,7 +686,6 @@ export function ManualCreationPanel({
 
       <details className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" open>
         <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Live-Vorschau</summary>
-        <p className="mt-2 core-body text-[var(--core-text-muted)]">Diese sichere Darstellung wird auch in Kartenansicht und Review verwendet.</p>
         <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-2">
           <div className="grid min-w-0 content-start gap-3">
             <CardPresentationSurface item={previewBundle.item} variant={previewBundle.variant} definition={previewBundle.definition} side="question" surface="editor-preview" title="Vorschau der Vorderseite" showCompatibility={false} />
@@ -728,6 +735,13 @@ export function ManualCreationPanel({
       </div>
       <p className="core-body font-medium text-[var(--core-text-muted)]">{batchState.createdCount} {batchState.createdCount === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.</p>
       {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : "core-status-info"}`} role={statusType} aria-live="polite">{status}</p> : null}
+      <CardPreviewDialog
+        open={previewOpen}
+        item={previewBundle.item}
+        variant={previewBundle.variant}
+        definition={previewBundle.definition}
+        onOpenChange={setPreviewOpen}
+      />
     </div>
   );
 

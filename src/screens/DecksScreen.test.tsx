@@ -170,7 +170,9 @@ test("card selection opens a non-modal detail aside with editor, copy and collap
   assert.match(markup, /aria-label="Karte markieren"/);
   assert.match(markup, /role="switch"[^>]*aria-label="Karte aussetzen"/);
   assert.match(markup, /aria-label="Karten-Vorderseite"/);
+  assert.match(markup, /Vorschau<\/span><\/button>/);
   assert.match(markup, />Kopieren<\/button>/);
+  assert.doesNotMatch(markup, /Sichere Karten-Vorschau/);
   assert.match(markup, /Version zum Wiederherstellen/);
   assert.match(markup, /<details[^>]*data-testid="card-variant-tools"/);
   assert.match(markup, /KI-Variante erzeugen/);

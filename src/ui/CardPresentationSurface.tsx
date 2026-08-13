@@ -10,6 +10,43 @@ const COMPATIBILITY_COPY: Record<PresentationResult["compatibility"], string> = 
   "preserved-only": "Originaldaten erhalten; Darstellung aus Sicherheitsgründen vereinfacht.",
 };
 
+const PRESENTATION_FONT_SOURCES = [
+  { path: "/fonts/synonym-400.woff2", weight: 400 },
+  { path: "/fonts/synonym-500.woff2", weight: 500 },
+  { path: "/fonts/synonym-600.woff2", weight: 600 },
+] as const;
+
+let cachedPresentationFontCss = "";
+let presentationFontCssPromise: Promise<string> | null = null;
+
+function blobDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(typeof reader.result === "string" ? reader.result : ""), { once: true });
+    reader.addEventListener("error", () => reject(reader.error), { once: true });
+    reader.readAsDataURL(blob);
+  });
+}
+
+function loadPresentationFontCss(): Promise<string> {
+  if (cachedPresentationFontCss) return Promise.resolve(cachedPresentationFontCss);
+  presentationFontCssPromise ??= Promise.all(PRESENTATION_FONT_SOURCES.map(async ({ path, weight }) => {
+    const response = await fetch(path);
+    if (!response.ok) throw new Error(`Kartenschrift konnte nicht geladen werden: ${response.status}`);
+    const dataUrl = await blobDataUrl(await response.blob());
+    return `@font-face{font-family:Synonym;src:url(${dataUrl}) format('woff2');font-style:normal;font-weight:${weight};font-display:swap}`;
+  })).then((rules) => {
+    cachedPresentationFontCss = rules.join("");
+    return cachedPresentationFontCss;
+  }).catch(() => "");
+  return presentationFontCssPromise;
+}
+
+function readPresentationTheme(): "light" | "dark" {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.dataset.coreTheme === "dark" ? "dark" : "light";
+}
+
 export interface CardPresentationSurfaceProps {
   item?: LearningItem | null;
   variant?: CardVariant | null;
@@ -35,12 +72,28 @@ export function CardPresentationSurface({
   showCompatibility = true,
   className = "",
 }: CardPresentationSurfaceProps) {
+  const [theme, setTheme] = React.useState<"light" | "dark">(readPresentationTheme);
+  const [fontFaceCss, setFontFaceCss] = React.useState(cachedPresentationFontCss);
+
+  React.useEffect(() => {
+    let active = true;
+    void loadPresentationFontCss().then((css) => {
+      if (active) setFontFaceCss(css);
+    });
+    return () => { active = false; };
+  }, []);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => setTheme(readPresentationTheme()));
+    observer.observe(root, { attributes: true, attributeFilter: ["data-core-theme"] });
+    return () => observer.disconnect();
+  }, []);
+
   const effectivePresentation = React.useMemo(() => {
     if (!item || !variant || !definition) return null;
-    const root = typeof document === "undefined" ? null : document.documentElement;
-    const theme = root?.dataset.theme === "dark" || root?.classList.contains("dark") ? "dark" : "light";
-    return renderLearningItemPresentation({ item, variant, definition, side, surface, theme });
-  }, [definition, item, side, surface, variant]);
+    return renderLearningItemPresentation({ item, variant, definition, side, surface, theme, fontFaceCss });
+  }, [definition, fontFaceCss, item, side, surface, theme, variant]);
   const srcdoc = React.useMemo(
     () => effectivePresentation ? resolvePresentationMedia(effectivePresentation.srcdoc, mediaUrls) : "",
     [effectivePresentation, mediaUrls],

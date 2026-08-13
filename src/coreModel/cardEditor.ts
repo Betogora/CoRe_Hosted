@@ -8,6 +8,7 @@ import type {
   CardEditorValue,
   EditableCardType,
   LearningItem,
+  LearningItemDocumentV1,
   NoteTypeDefinitionV1,
 } from "../coreTypes.ts";
 import { normalizeTags } from "./coreValues.ts";
@@ -32,6 +33,16 @@ interface EditorContentProjection {
   correctAnswer: string | null;
   explanation: string;
   clozeGroups: ClozeGroup[];
+}
+
+export type CardPreviewDraft =
+  | { kind: "editor"; value: CardEditorValue }
+  | { kind: "document"; fields: Array<{ id: string; value: string }>; tags: string[] };
+
+export interface CardPreviewProjection {
+  item: LearningItem;
+  variant: NonNullable<ReturnType<typeof getOriginalVariant>>;
+  definition: NoteTypeDefinitionV1;
 }
 
 const EDITABLE_CARD_TYPES = new Set<EditableCardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "multiple-choice"]);
@@ -81,6 +92,38 @@ function normalizeEditorValue(value: unknown): CardEditorValue | null {
         tags,
       };
   }
+}
+
+function primaryEditorFields(document: LearningItemDocumentV1) {
+  const front = document.fields.find((field) => field.semanticRole === "prompt")
+    ?? document.fields.find((field) => field.placement === "front")
+    ?? document.fields[0]
+    ?? null;
+  const back = document.fields.find((field) => field.semanticRole === "answer")
+    ?? document.fields.find((field) => field.placement === "back" && field.id !== front?.id)
+    ?? document.fields.find((field) => field.id !== front?.id)
+    ?? null;
+  return { front, back };
+}
+
+function documentForEditorValue(card: LearningItem, value: CardEditorValue): LearningItemDocumentV1 {
+  const projected = projectCardEditorContent(value);
+  const fields = primaryEditorFields(card.contentDocument);
+  return {
+    ...card.contentDocument,
+    tags: value.tags,
+    fields: card.contentDocument.fields.map((field) => ({
+      ...field,
+      value: field.id === fields.front?.id
+        ? projected.front
+        : field.id === fields.back?.id
+          ? value.cardType === "cloze" || value.cardType === "multiple-choice" ? projected.explanation : projected.back
+          : field.value,
+    })),
+    ...(value.cardType === "multiple-choice"
+      ? { interaction: { choice: { options: value.options, correctAnswer: projected.correctAnswer ?? "", explanation: value.explanation } } }
+      : {}),
+  };
 }
 
 export function parseClozeGroups(textWithClozes: string): ClozeGroup[] {
@@ -218,8 +261,15 @@ export function getCardEditorValue(card: LearningItem): CardEditorValue | null {
   switch (cardType) {
     case "basic":
     case "basic-with-images":
-    case "basic-reversed":
-      return { cardType, front: card.originalFront, back: card.originalBack, tags };
+    case "basic-reversed": {
+      const fields = primaryEditorFields(card.contentDocument);
+      return {
+        cardType,
+        front: fields.front?.value ?? card.originalFront,
+        back: fields.back?.value ?? card.originalBack,
+        tags,
+      };
+    }
     case "cloze":
       return {
         cardType: "cloze",
@@ -285,26 +335,7 @@ export function saveCardEditorValue(cardInput: LearningItem, editorInput: unknow
   }
   const currentValue = getCardEditorValue(card);
   if (!currentValue) throw new CardEditorValidationError({ front: "Dieser Kartentyp kann hier nicht typgerecht bearbeitet werden." });
-  const content = projectCardEditorContent(value);
-  const documentFor = (editorValue: CardEditorValue) => {
-    const projected = projectCardEditorContent(editorValue);
-    return {
-      ...card.contentDocument,
-      tags: editorValue.tags,
-      fields: card.contentDocument.fields.map((field, index) => ({
-      ...field,
-      value: index === 0
-        ? projected.front
-        : index === 1
-          ? editorValue.cardType === "cloze" || editorValue.cardType === "multiple-choice" ? projected.explanation : projected.back
-          : field.value,
-      })),
-      ...(editorValue.cardType === "multiple-choice"
-        ? { interaction: { choice: { options: editorValue.options, correctAnswer: projected.correctAnswer!, explanation: editorValue.explanation } } }
-        : {}),
-    };
-  };
-  const document = documentFor(value);
+  const document = documentForEditorValue(card, value);
   const definition = storedDefinition ?? createCoreNoteTypeDefinition({
     document,
     kind: value.cardType === "cloze" ? "cloze" : "normal",
@@ -312,6 +343,46 @@ export function saveCardEditorValue(cardInput: LearningItem, editorInput: unknow
     reverse: value.cardType === "basic-reversed",
     createdAt: card.createdAt,
   });
-  const previous = { ...card, contentDocument: documentFor(currentValue) };
+  const previous = { ...card, contentDocument: documentForEditorValue(card, currentValue) };
   return applyLearningItemContent({ previous, document, definition, reason: "edit" }).item;
+}
+
+export function projectCardPreviewDraft(input: {
+  item: LearningItem;
+  definition: NoteTypeDefinitionV1;
+  draft: CardPreviewDraft;
+}): CardPreviewProjection | null {
+  const draft = input.draft;
+  let document: LearningItemDocumentV1 | null;
+  if (draft.kind === "editor") {
+    const value = normalizeEditorValue(draft.value);
+    document = value ? documentForEditorValue(input.item, value) : null;
+  } else {
+    const fieldValues = new Map(draft.fields.map((field) => [field.id, field.value]));
+    document = {
+      ...input.item.contentDocument,
+      tags: normalizeTags(draft.tags),
+      fields: input.item.contentDocument.fields.map((field) => ({
+        ...field,
+        value: fieldValues.get(field.id) ?? field.value,
+      })),
+    };
+  }
+  if (!document) return null;
+
+  const projected = applyLearningItemContent({
+    previous: input.item,
+    document,
+    definition: input.definition,
+    reason: "edit",
+  }).item;
+  const item = {
+    ...projected,
+    revision: input.item.revision,
+    contentRevision: input.item.contentRevision,
+    updatedAt: input.item.updatedAt,
+    versionLog: input.item.versionLog,
+  };
+  const variant = getOriginalVariant(item);
+  return variant ? { item, variant, definition: input.definition } : null;
 }
