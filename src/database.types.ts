@@ -33,12 +33,17 @@ export type Database = {
           model_run_id: string | null
           parent_variant_id: string | null
           performance: Json
+          projection: Json
           quality_status: string
+          render_revision: number
           review_state: Json
           revision: number
+          scheduling_mode: string
           semantic_delta: string | null
           source_anchors: Json
           source_card_id: string
+          study_deck_id: string | null
+          sync_change_id: number
           transform_profile: Json
           transform_type: string
           updated_at: string
@@ -71,12 +76,17 @@ export type Database = {
           model_run_id?: string | null
           parent_variant_id?: string | null
           performance?: Json
+          projection?: Json
           quality_status?: string
+          render_revision?: number
           review_state?: Json
           revision?: number
+          scheduling_mode?: string
           semantic_delta?: string | null
           source_anchors?: Json
           source_card_id: string
+          study_deck_id?: string | null
+          sync_change_id?: number
           transform_profile?: Json
           transform_type: string
           updated_at?: string
@@ -109,12 +119,17 @@ export type Database = {
           model_run_id?: string | null
           parent_variant_id?: string | null
           performance?: Json
+          projection?: Json
           quality_status?: string
+          render_revision?: number
           review_state?: Json
           revision?: number
+          scheduling_mode?: string
           semantic_delta?: string | null
           source_anchors?: Json
           source_card_id?: string
+          study_deck_id?: string | null
+          sync_change_id?: number
           transform_profile?: Json
           transform_type?: string
           updated_at?: string
@@ -132,11 +147,20 @@ export type Database = {
             referencedRelation: "cards"
             referencedColumns: ["id", "user_id"]
           },
+          {
+            foreignKeyName: "card_variants_study_deck_owner_fk"
+            columns: ["study_deck_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id", "user_id"]
+          },
         ]
       }
       cards: {
         Row: {
+          content_document: Json
           content_hash: string | null
+          content_revision: number
           core_state: Json
           created_at: string
           deck_id: string
@@ -145,9 +169,11 @@ export type Database = {
           id: string
           immutable_original: Json
           kind: string
+          latest_source_snapshot_id: string | null
           media_refs: string[]
           meta: Json
           note_id: string | null
+          note_type_definition_id: string | null
           original_back: string
           original_fields: Json
           original_front: string
@@ -160,13 +186,16 @@ export type Database = {
           source_card_id: string | null
           source_note_id: string | null
           status: string
+          sync_change_id: number
           updated_at: string
           updated_by_device_id: string | null
           user_id: string
           version_log: Json
         }
         Insert: {
+          content_document?: Json
           content_hash?: string | null
+          content_revision?: number
           core_state?: Json
           created_at?: string
           deck_id: string
@@ -175,9 +204,11 @@ export type Database = {
           id: string
           immutable_original?: Json
           kind: string
+          latest_source_snapshot_id?: string | null
           media_refs?: string[]
           meta?: Json
           note_id?: string | null
+          note_type_definition_id?: string | null
           original_back?: string
           original_fields?: Json
           original_front?: string
@@ -190,13 +221,16 @@ export type Database = {
           source_card_id?: string | null
           source_note_id?: string | null
           status?: string
+          sync_change_id?: number
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
           version_log?: Json
         }
         Update: {
+          content_document?: Json
           content_hash?: string | null
+          content_revision?: number
           core_state?: Json
           created_at?: string
           deck_id?: string
@@ -205,9 +239,11 @@ export type Database = {
           id?: string
           immutable_original?: Json
           kind?: string
+          latest_source_snapshot_id?: string | null
           media_refs?: string[]
           meta?: Json
           note_id?: string | null
+          note_type_definition_id?: string | null
           original_back?: string
           original_fields?: Json
           original_front?: string
@@ -220,6 +256,7 @@ export type Database = {
           source_card_id?: string | null
           source_note_id?: string | null
           status?: string
+          sync_change_id?: number
           updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string
@@ -231,6 +268,20 @@ export type Database = {
             columns: ["deck_id", "user_id"]
             isOneToOne: false
             referencedRelation: "decks"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "cards_latest_source_snapshot_owner_fk"
+            columns: ["id", "user_id", "latest_source_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "learning_item_source_snapshots"
+            referencedColumns: ["card_id", "user_id", "id"]
+          },
+          {
+            foreignKeyName: "cards_note_type_definition_owner_fk"
+            columns: ["note_type_definition_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "note_type_definitions"
             referencedColumns: ["id", "user_id"]
           },
         ]
@@ -251,6 +302,7 @@ export type Database = {
           parent_deck_id: string | null
           revision: number
           source: string
+          sync_change_id: number
           tags: string[]
           updated_at: string
           updated_by_device_id: string | null
@@ -272,6 +324,7 @@ export type Database = {
           parent_deck_id?: string | null
           revision?: number
           source: string
+          sync_change_id?: number
           tags?: string[]
           updated_at?: string
           updated_by_device_id?: string | null
@@ -293,6 +346,7 @@ export type Database = {
           parent_deck_id?: string | null
           revision?: number
           source?: string
+          sync_change_id?: number
           tags?: string[]
           updated_at?: string
           updated_by_device_id?: string | null
@@ -300,6 +354,70 @@ export type Database = {
           version_log?: Json
         }
         Relationships: []
+      }
+      learning_item_source_snapshots: {
+        Row: {
+          card_id: string
+          created_at: string
+          id: string
+          import_fingerprint: string
+          note_type_definition_id: string | null
+          previous_snapshot_id: string | null
+          schema_version: number
+          source_kind: string
+          source_payload: Json
+          sync_change_id: number
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          id: string
+          import_fingerprint: string
+          note_type_definition_id?: string | null
+          previous_snapshot_id?: string | null
+          schema_version?: number
+          source_kind: string
+          source_payload?: Json
+          sync_change_id?: number
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          id?: string
+          import_fingerprint?: string
+          note_type_definition_id?: string | null
+          previous_snapshot_id?: string | null
+          schema_version?: number
+          source_kind?: string
+          source_payload?: Json
+          sync_change_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_item_source_snapshots_card_owner_fk"
+            columns: ["card_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "learning_item_source_snapshots_note_type_owner_fk"
+            columns: ["note_type_definition_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "note_type_definitions"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "learning_item_source_snapshots_previous_owner_fk"
+            columns: ["card_id", "user_id", "previous_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "learning_item_source_snapshots"
+            referencedColumns: ["card_id", "user_id", "id"]
+          },
+        ]
       }
       media_assets: {
         Row: {
@@ -370,6 +488,45 @@ export type Database = {
           },
         ]
       }
+      note_type_definitions: {
+        Row: {
+          created_at: string
+          definition: Json
+          deleted_at: string | null
+          id: string
+          name: string
+          revision: number
+          sync_change_id: number
+          updated_at: string
+          updated_by_device_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          definition?: Json
+          deleted_at?: string | null
+          id: string
+          name: string
+          revision?: number
+          sync_change_id?: number
+          updated_at?: string
+          updated_by_device_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          definition?: Json
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          revision?: number
+          sync_change_id?: number
+          updated_at?: string
+          updated_by_device_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -430,6 +587,7 @@ export type Database = {
           scheduler_after: Json | null
           scheduler_before: Json | null
           source_card_id: string | null
+          sync_change_id: number
           user_id: string
         }
         Insert: {
@@ -446,6 +604,7 @@ export type Database = {
           scheduler_after?: Json | null
           scheduler_before?: Json | null
           source_card_id?: string | null
+          sync_change_id?: number
           user_id: string
         }
         Update: {
@@ -462,6 +621,7 @@ export type Database = {
           scheduler_after?: Json | null
           scheduler_before?: Json | null
           source_card_id?: string | null
+          sync_change_id?: number
           user_id?: string
         }
         Relationships: [
@@ -485,6 +645,7 @@ export type Database = {
           mime_type: string
           revision: number
           storage_url: string
+          sync_change_id: number
           text: string
           text_extraction_status: string
           updated_at: string
@@ -501,6 +662,7 @@ export type Database = {
           mime_type?: string
           revision?: number
           storage_url?: string
+          sync_change_id?: number
           text?: string
           text_extraction_status?: string
           updated_at?: string
@@ -517,6 +679,7 @@ export type Database = {
           mime_type?: string
           revision?: number
           storage_url?: string
+          sync_change_id?: number
           text?: string
           text_extraction_status?: string
           updated_at?: string
@@ -608,7 +771,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      record_review_atomic: {
+        Args: {
+          p_card_base_revision: number
+          p_card_core_state: Json
+          p_card_id: string
+          p_card_review_state: Json
+          p_card_updated_at: string
+          p_deck_base_revision: number
+          p_deck_id: string
+          p_device_id: string
+          p_event: Json
+          p_variant_base_revision: number
+          p_variant_id: string
+          p_variant_performance: Json
+          p_variant_review_state: Json
+          p_variant_updated_at: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

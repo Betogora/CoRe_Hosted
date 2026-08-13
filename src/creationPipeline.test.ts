@@ -3,13 +3,12 @@ import test from "node:test";
 import {
   addRephrasedVariant,
   createBasicLearningItem,
-  createBasicReverseLearningItem,
-  createClozeLearningItem,
   createLearningItemsFromNormalizedInput,
   getActiveVariants,
   getAnswerSideAnchorMiniCard,
   getOriginalVariant,
 } from "./coreModel.ts";
+import { createBasicReverseLearningItem, createClozeLearningItem } from "./coreModel/creation.ts";
 
 test("createBasicLearningItem creates a learning item with exactly one original variant", () => {
   const item = createBasicLearningItem("deck_1", "Was ist ATP?", "Ein kurzfristiger Energietraeger.", {

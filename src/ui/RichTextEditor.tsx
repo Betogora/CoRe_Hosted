@@ -1,5 +1,5 @@
 import React from "react";
-import { Bold, Eraser, Highlighter, Italic, List, ListOrdered, Palette, PenLine, Underline } from "lucide-react";
+import { Bold, Braces, Eraser, Highlighter, Italic, List, ListOrdered, Palette, PenLine, Underline, Unlink } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
 import { normalizeRichTextForEditor, textToCardHtml } from "../richText.ts";
@@ -20,6 +20,51 @@ export const richTextColorStorageKeys = {
   highlight: "core.richText.highlightColors.v2",
 };
 
+interface TextSelectionOffsets {
+  start: number;
+  end: number;
+}
+
+export interface RichTextClozeSpan {
+  start: number;
+  end: number;
+  contentStart: number;
+  contentEnd: number;
+}
+
+const clozePattern = /\{\{c(\d+)::((?:(?!::|\}\})[\s\S])*)(?:::((?:(?!\}\})[\s\S])*))?\}\}/g;
+
+function normalizeClozeGroupId(groupId: number | undefined) {
+  return Number.isFinite(groupId) ? Math.max(1, Math.floor(groupId ?? 1)) : 1;
+}
+
+function getRichTextClozeSpans(text: string): RichTextClozeSpan[] {
+  return Array.from(text.matchAll(clozePattern), (match) => {
+    const start = match.index;
+    const contentStart = start + `{{c${match[1]}::`.length;
+    const contentEnd = contentStart + match[2].length;
+    return { start, end: start + match[0].length, contentStart, contentEnd };
+  });
+}
+
+export function findRichTextClozeSpan(text: string, selection: TextSelectionOffsets): RichTextClozeSpan | null {
+  const isCollapsed = selection.start === selection.end;
+  const matches = getRichTextClozeSpans(text).filter((span) =>
+    isCollapsed
+      ? selection.start >= span.start && selection.start <= span.end
+      : selection.start >= span.start && selection.end <= span.end,
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+
+export function selectionOverlapsRichTextCloze(text: string, selection: TextSelectionOffsets): boolean {
+  return getRichTextClozeSpans(text).some((span) =>
+    selection.start === selection.end
+      ? selection.start >= span.start && selection.start <= span.end
+      : selection.start < span.end && selection.end > span.start,
+  );
+}
+
 function ToolbarButton({ label, icon: Icon, onRun }: { label: string; icon: LucideIcon; onRun: () => void }) {
   return (
     <CoreTooltip label={label}>
@@ -29,8 +74,8 @@ function ToolbarButton({ label, icon: Icon, onRun }: { label: string; icon: Luci
         aria-label={label}
         onMouseDown={(event) => {
           event.preventDefault();
-          onRun();
         }}
+        onClick={onRun}
       >
         <Icon size={17} aria-hidden="true" />
       </button>
@@ -47,9 +92,12 @@ interface RichTextEditorProps {
   ariaLabel: string;
   ariaInvalid?: boolean;
   ariaDescribedBy?: string;
+  clozeActions?: {
+    groupId: number;
+  };
 }
 
-export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy }: RichTextEditorProps) {
+export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   const textColorButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -62,8 +110,10 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const [highlightColors, updateHighlightColorSlot] = useStoredColorSlots(richTextColorStorageKeys.highlight, defaultHighlightColors);
   const [openColorMenu, setOpenColorMenu] = React.useState<"text" | "highlight" | null>(null);
   const [selectedColorSlots, setSelectedColorSlots] = React.useState({ text: 0, highlight: 0 });
+  const [clozeStatus, setClozeStatus] = React.useState("");
   const textColorMenuId = React.useId();
   const highlightColorMenuId = React.useId();
+  const clozeStatusId = React.useId();
 
   React.useLayoutEffect(() => {
     const editor = editorRef.current;
@@ -204,6 +254,18 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     selection?.addRange(range);
   }
 
+  function getRestoredEditorRange() {
+    const editor = editorRef.current;
+    if (!editor || typeof window === "undefined") return null;
+
+    restoreSelection();
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return null;
+
+    const range = selection.getRangeAt(0);
+    return editor.contains(range.startContainer) && editor.contains(range.endContainer) ? range : null;
+  }
+
   function selectEditorContents() {
     const editor = editorRef.current;
     if (!editor || typeof document === "undefined" || typeof window === "undefined") return;
@@ -226,15 +288,86 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     onChange?.(lastEmittedNormalizedHtmlRef.current);
   }
 
+  function addCloze() {
+    const editor = editorRef.current;
+    const range = getRestoredEditorRange();
+    const selectionOffsets = captureTextSelection();
+    if (!editor || !range || !selectionOffsets || range.collapsed || !range.toString().trim()) {
+      setClozeStatus("Markiere zuerst Text, um eine Lücke zu erstellen.");
+      return;
+    }
+
+    if (selectionOverlapsRichTextCloze(editor.textContent ?? "", selectionOffsets)) {
+      setClozeStatus("Die Auswahl liegt bereits in einer Lücke.");
+      return;
+    }
+
+    const groupId = normalizeClozeGroupId(clozeActions?.groupId);
+    const prefix = `{{c${groupId}::`;
+    const selectedContent = range.extractContents();
+    const replacement = document.createDocumentFragment();
+    replacement.append(document.createTextNode(prefix), selectedContent, document.createTextNode("}}"));
+    range.insertNode(replacement);
+    restoreTextSelection({
+      start: selectionOffsets.start + prefix.length,
+      end: selectionOffsets.end + prefix.length,
+    });
+    emitChange();
+    setClozeStatus(`Lücke c${groupId} erstellt.`);
+  }
+
+  function deleteTextRange(startOffset: number, endOffset: number) {
+    const editor = editorRef.current;
+    if (!editor || startOffset >= endOffset || typeof document === "undefined") return;
+
+    const start = findTextPosition(editor, startOffset);
+    const end = findTextPosition(editor, endOffset);
+    const range = document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset);
+    range.deleteContents();
+  }
+
+  function removeCloze() {
+    const editor = editorRef.current;
+    const range = getRestoredEditorRange();
+    const selectionOffsets = captureTextSelection();
+    if (!editor || !range || !selectionOffsets) {
+      setClozeStatus("Markiere eine vorhandene Lücke oder setze den Cursor hinein.");
+      return;
+    }
+
+    const span = findRichTextClozeSpan(editor.textContent ?? "", selectionOffsets);
+    if (!span) {
+      setClozeStatus("Markiere eine vorhandene Lücke oder setze den Cursor hinein.");
+      return;
+    }
+
+    const contentLength = span.contentEnd - span.contentStart;
+    const relativeStart = Math.min(contentLength, Math.max(0, selectionOffsets.start - span.contentStart));
+    const relativeEnd = Math.min(contentLength, Math.max(relativeStart, selectionOffsets.end - span.contentStart));
+    deleteTextRange(span.contentEnd, span.end);
+    deleteTextRange(span.start, span.contentStart);
+    restoreTextSelection({
+      start: span.start + relativeStart,
+      end: span.start + relativeEnd,
+    });
+    emitChange();
+    setClozeStatus("Lücke entfernt.");
+  }
+
   function handleBlur() {
     const editor = editorRef.current;
     if (!editor) return;
 
+    const selectionOffsets = captureTextSelection();
+    saveSelection();
     isFocusedRef.current = false;
     const normalizedHtml = normalizeRichTextForEditor(editor.innerHTML);
     lastEmittedNormalizedHtmlRef.current = normalizedHtml;
     if (editor.innerHTML !== normalizedHtml) {
       editor.innerHTML = normalizedHtml;
+      restoreTextSelection(selectionOffsets);
     }
     onChange?.(normalizedHtml);
   }
@@ -280,6 +413,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const fieldClass = `${minHeightClass} rich-text-field min-w-0 rounded-b-xl border border-t-0 p-4 core-body-large font-normal leading-7 text-[var(--core-text)] outline-none transition ${
     isActive ? "border-[var(--core-action-primary)] bg-core-surface shadow-[0_0_0_3px_var(--core-focus-ring-soft)]" : "border-[var(--core-border)] bg-core-surface"
   }`;
+  const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null].filter(Boolean).join(" ") || undefined;
   return (
     <div className="min-w-0">
       <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[var(--core-surface-muted)] p-2 ${isActive ? "border-[var(--core-action-primary)]" : "border-[var(--core-border)]"}`}>
@@ -346,6 +480,13 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         </div>
         <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
         <ToolbarButton label="Formatierung löschen" icon={Eraser} onRun={() => runCommand("removeFormat")} />
+        {clozeActions ? (
+          <>
+            <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
+            <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} />
+            <ToolbarButton label="Lücke entfernen" icon={Unlink} onRun={removeCloze} />
+          </>
+        ) : null}
       </div>
       <div
         ref={editorRef}
@@ -355,14 +496,17 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         aria-label={ariaLabel}
         aria-multiline="true"
         aria-invalid={ariaInvalid || undefined}
-        aria-describedby={ariaDescribedBy}
+        aria-describedby={editorDescribedBy}
         suppressContentEditableWarning
         onFocus={(event) => {
           isFocusedRef.current = true;
           onFocus?.(event);
           saveSelection();
         }}
-        onInput={emitChange}
+        onInput={() => {
+          setClozeStatus("");
+          emitChange();
+        }}
         onKeyDown={(event) => {
           if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
             event.preventDefault();
@@ -371,9 +515,17 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         }}
         onBlur={handleBlur}
         onKeyUp={saveSelection}
-        onMouseUp={saveSelection}
+        onMouseUp={() => {
+          setClozeStatus("");
+          saveSelection();
+        }}
         onPaste={handlePaste}
       />
+      {clozeActions && clozeStatus ? (
+        <p id={clozeStatusId} role="status" className="mt-2 core-caption font-medium text-[var(--core-text-muted)]">
+          {clozeStatus}
+        </p>
+      ) : null}
     </div>
   );
 }

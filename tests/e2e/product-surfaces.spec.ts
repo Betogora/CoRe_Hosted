@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
-import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 
 function mainMenu(page: Page) {
   return page.getByRole("navigation", { name: "Hauptmenü" });
@@ -18,7 +17,7 @@ test("core navigation exposes only the reliable product areas", async ({ page })
 
   await menu.getByRole("button", { name: "Erstellen" }).click();
   await expect(page.getByRole("button", { name: /Karte selbst erstellen/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /APKG, Text, Tabellen/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Import\b/ })).toBeVisible();
   await expect(page.getByRole("region", { name: "Erstellungsart" }).getByRole("button")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Einstellungen öffnen" })).toBeVisible();
 });
@@ -99,55 +98,30 @@ test("dark mode can be toggled from both responsive navigation layouts and persi
   await expect(mobileHeader.getByRole("button", { name: "Dark Mode einschalten" }).locator("svg")).toHaveClass(/lucide-sun/);
 });
 
-test("global learning profiles auto-save and preserve custom settings across preset changes", async ({ page }) => {
+test("global learning-day settings save explicitly and persist across reloads", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
 
-  await expect(page.getByRole("heading", { name: "Globale Voreinstellungen" })).toBeVisible();
-  await expect(page.getByText("Je Stapel noch änderbar.", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Lernoptionen speichern" })).toHaveCount(0);
-
-  const profileSelect = page.getByTestId("learning-settings-preset");
-  await expect(profileSelect).toContainText("Standard");
-  await profileSelect.click();
-  const options = page.getByRole("option");
-  await expect(options).toHaveText(["Standard", "Intensiv", "Entspannt", "Eigene Einstellungen"]);
-  await expect(page.getByRole("option", { name: "Standard" }).locator("svg").first()).toHaveClass(/lucide-scale/);
-  await expect(page.getByRole("option", { name: "Intensiv" }).locator("svg").first()).toHaveClass(/lucide-flame/);
-  await expect(page.getByRole("option", { name: "Entspannt" }).locator("svg").first()).toHaveClass(/lucide-leaf/);
-  await expect(page.getByRole("option", { name: "Eigene Einstellungen" }).locator("svg").first()).toHaveClass(/lucide-sliders-horizontal/);
-  await page.keyboard.press("Escape");
-
-  await chooseCoreSelectOption(page, profileSelect, "Eigene Einstellungen");
-  const newCardsInput = page.getByLabel("Neue Karten pro Tag als Zahl");
-  await newCardsInput.fill("37");
+  await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
+  await page.getByRole("button", { name: /Lerntag & Fokus/ }).click();
+  await page.getByTestId("settings-day-start-hour").fill("3");
+  await page.getByTestId("settings-learn-ahead").fill("45");
+  await page.getByRole("button", { name: "Lerntag speichern" }).click();
   await expect.poll(async () => {
     const state = await readActiveAccountState(page);
     return {
-      profile: state.profile.schedulerPreferences.profile,
-      newCardsPerDay: state.profile.schedulerPreferences.deckSettings.newCardsPerDay,
+      dayStartHour: state.profile.schedulerPreferences.dayStartHour,
+      learnAheadMinutes: state.profile.schedulerPreferences.learnAheadMinutes,
     };
-  }).toEqual({ profile: "custom", newCardsPerDay: 37 });
+  }).toEqual({ dayStartHour: 3, learnAheadMinutes: 45 });
 
-  await chooseCoreSelectOption(page, profileSelect, "Entspannt");
-  await expect(newCardsInput).toHaveValue("10");
-  await expect.poll(async () => {
-    const state = await readActiveAccountState(page);
-    return {
-      profile: state.profile.schedulerPreferences.profile,
-      customNewCardsPerDay: state.profile.schedulerPreferences.deckSettings.newCardsPerDay,
-    };
-  }).toEqual({ profile: "relaxed", customNewCardsPerDay: 37 });
-
-  await chooseCoreSelectOption(page, profileSelect, "Eigene Einstellungen");
-  await expect(newCardsInput).toHaveValue("37");
   await page.reload();
-  await expect(profileSelect).toContainText("Eigene Einstellungen");
-  await expect(newCardsInput).toHaveValue("37");
+  await expect(page.getByTestId("settings-day-start-hour")).toHaveValue("3");
+  await expect(page.getByTestId("settings-learn-ahead")).toHaveValue("45");
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("heading", { name: "Globale Voreinstellungen" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
@@ -187,10 +161,11 @@ test("Pomodoro timer expiration clears the global indicator and shows the canoni
   await secondPage.goto("/");
   await secondPage.getByRole("navigation", { name: /Hauptmen/ }).waitFor({ state: "visible" });
 
-  const timerKey = await page.evaluate(() => {
-    const appStateKey = Object.keys(localStorage).find((key) => key.endsWith(".core.appState.v3"));
-    if (!appStateKey) throw new Error("Accountgebundener E2E-State fehlt.");
-    return appStateKey.replace(/\.core\.appState\.v3$/, ".core.pomodoroTimer.v1");
+  const timerKey = await page.evaluate(async () => {
+    const database = (await indexedDB.databases()).find(({ name }) => name?.startsWith("core.workspace.entities.v1."));
+    const userId = database?.name?.slice("core.workspace.entities.v1.".length);
+    if (!userId) throw new Error("Accountgebundene E2E-Datenbank fehlt.");
+    return `core.accountState.v1.${encodeURIComponent(userId)}.core.pomodoroTimer.v1`;
   });
   await secondPage.evaluate((key) => {
     const endsAt = Date.now() + 1_500;
@@ -212,7 +187,8 @@ test("Pomodoro timer expiration clears the global indicator and shows the canoni
 test("long desktop views scroll without moving the sidebar utilities below the viewport", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.getByRole("button", { name: "Hilfe öffnen" }).click();
+  await page.goto("/hilfe");
+  await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeVisible();
 
   const layout = await page.getByRole("region", { name: "Seiteninhalt" }).evaluate((screen) => {
     const aside = screen.previousElementSibling as HTMLElement | null;
@@ -261,17 +237,18 @@ test("mobile bottom navigation stays viewport-fixed and keeps its width on short
 test("help explains FSRS and CoRe with an accessible interactive learning curve", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  const helpButton = page.getByRole("button", { name: "Hilfe öffnen" });
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  const helpButton = page.getByRole("button", { name: /^Hilfe Wie CoRe/ });
   await expect(helpButton).toBeVisible();
   await helpButton.click();
   await expect(page).toHaveURL("/hilfe");
   await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeFocused();
-  await expect(page.getByText("CoRe verwendet aktuell einen eigenen FSRS-ähnlichen Scheduler.", { exact: false })).toBeVisible();
+  await expect(page.getByText(/CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
   await expect(page.getByText(/höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/i)).toBeVisible();
   await expect(page.getByText(/bestimmen gemeinsam, ob die Originalkarte als „bereit für Varianten“ gilt/i)).toBeVisible();
 
-  await page.getByTestId("memory-curve-segment-2").hover();
+  await page.getByTestId("memory-curve-area-2").hover({ position: { x: 20, y: 120 } });
   await expect(page.getByRole("heading", { name: "Review 2 · Stabilität wächst" })).toBeVisible();
 
   await page.getByTestId("memory-curve-area-3").hover({ position: { x: 20, y: 200 } });
@@ -330,7 +307,7 @@ test("@beta-core @hosted-core Beta-Artefakt enthält weder Labs noch Großdatei-
 
   await expect(page.locator("summary").filter({ hasText: "Labs" })).toHaveCount(0);
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /APKG, Text, Tabellen/ }).click();
+  await page.getByRole("button", { name: /^Import\b/ }).click();
   await expect(page.getByText("Freigegebene Dateigröße: bis 250 MiB.")).toBeVisible();
   await expect(page.getByText(/1 GiB|Server-Import|Upload fortsetzen/)).toHaveCount(0);
 });
@@ -356,7 +333,7 @@ test("creation choices stay compact in both desktop target viewports", async ({ 
 test("retired Labs URLs always fall back to Today", async ({ page }) => {
   for (const path of ["/graph", "/community", "/assistent", "/ki-jobs", "/lernplan"]) {
     await page.goto(path);
-    await expect(page.getByRole("heading", { name: "Willkommen bei CoRe" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Willkommen (?:bei CoRe|zurück,)/ })).toBeVisible();
     await expect(page).not.toHaveURL(new RegExp(`${path}$`));
   }
 });

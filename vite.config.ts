@@ -9,6 +9,8 @@ export function manualChunkForModule(moduleId = "") {
   const id = String(moduleId).replaceAll("\\", "/");
   if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react-vendor";
   if (id.includes("/node_modules/@supabase/")) return "supabase-vendor";
+  if (id.includes("/node_modules/ts-fsrs/")) return "scheduler-vendor";
+  if (id.includes("/node_modules/xss/")) return "html-safety-vendor";
   return undefined;
 }
 
@@ -34,6 +36,7 @@ export function resolveReleaseInfo({ mode = "development", env = process.env, ve
 }
 
 export default defineConfig(({ mode }) => ({
+  cacheDir: process.env.CORE_VITE_CACHE_DIR || undefined,
   build: {
     manifest: true,
     rollupOptions: {
@@ -46,6 +49,9 @@ export default defineConfig(({ mode }) => ({
     __CORE_RELEASE_INFO__: JSON.stringify(resolveReleaseInfo({ mode })),
   },
   plugins: [react()],
+  worker: {
+    format: "es",
+  },
   server: {
     host: "127.0.0.1",
     port: 5190,

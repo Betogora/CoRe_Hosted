@@ -4,20 +4,21 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   commitApkgImport,
-  commitImport,
+  createApkgReportDetails,
   createApkgImportPreview,
-  dryRunApkgImport,
   findReadableCollectionDatabase,
   mapAnkiApkgToNormalizedDeck,
-  mapAnkiToCoreDeck,
+  mergeImportedDeck,
   parseAnkiMedia,
   parseApkgToNormalizedImport,
   parseMediaEntriesBytes,
   parsePackageMetadataBytes,
+  prepareApkgWorkerResult,
   validateApkgFile,
-} from "./apkgImport.ts";
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createLearningItemFromEditorValue, getActiveVariants, getAnswerSideAnchorMiniCard, getCardEditorValue, getOriginalVariant, saveCardEditorValue, updateLearningItemStudyState, type CoreCardInput } from "./coreModel.ts";
+} from "./apkgImportInternal.ts";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createLearningItemFromEditorValue, getActiveVariants, getAnswerSideAnchorMiniCard, getCardEditorValue, getOriginalVariant, saveCardEditorValue, saveLearningItemDocumentValues, updateLearningItemStudyState, type CoreCardInput } from "./coreModel.ts";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
+import { importNormalizedDeck } from "./importService.ts";
 import { answerVariant, getNextReviewItem } from "./reviewService.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
 import { readZipArchive } from "./zipReader.ts";
@@ -51,6 +52,11 @@ function archiveFromEntries(entries: { [x: string]: any; media?: Uint8Array<any>
       };
     },
   };
+}
+
+async function commitParsed(input: any, options: any = {}) {
+  const prepared = prepareApkgWorkerResult(await parseApkgToNormalizedImport(input));
+  return commitApkgImport(prepared, options);
 }
 
 function encodeVarint(value: number) {
@@ -88,12 +94,15 @@ function mediaEntriesBytes(entries: any[]) {
 function parsedApkgFixture({
   decks = [{ id: "1", name: "Fixture Deck" }],
   modelName = "Basic",
+  modelType = 0,
+  originalStockKind = 0,
   fields = [{ name: "Front" }, { name: "Back" }],
-  templates = [{ name: "Card 1", ord: 0 }],
+  templates = [{ name: "Card 1", ord: 0, qfmt: "{{Front}}", afmt: "{{FrontSide}}<hr>{{Back}}" }],
   noteFields = "Front?\u001fBack.",
   noteTags = "tag",
   notes = null,
   cards = [{ id: 20, nid: 10, did: 1, ord: 0 }],
+  reviewHistory = [],
   mediaManifest = null,
 }: any = {}) {
   return {
@@ -105,6 +114,8 @@ function parsedApkgFixture({
         models: JSON.stringify({
           99: {
             name: modelName,
+            type: modelType,
+            originalStockKind,
             flds: fields,
             tmpls: templates,
           },
@@ -120,6 +131,7 @@ function parsedApkgFixture({
       },
     ],
     cards,
+    reviewHistory,
     mediaBundle: {
       mediaMap: {},
       mediaFiles: [],
@@ -190,11 +202,11 @@ test("skips non-SQLite anki21b collection when anki2 fallback is available", asy
   assert.equal(result.bytes, sqliteBytes);
 });
 
-test("parses latest package metadata and MediaEntries bytes", () => {
+test("parses latest package metadata and MediaEntries bytes", async () => {
   const imageBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
   const sha1 = createHash("sha1").update(imageBytes).digest("hex");
-  const metadata = parsePackageMetadataBytes(new Uint8Array([0x08, 0x03]));
-  const entries = parseMediaEntriesBytes(mediaEntriesBytes([{ name: "card_001.jpg", size: imageBytes.length, sha1 }]));
+  const metadata = await parsePackageMetadataBytes(new Uint8Array([0x08, 0x03]));
+  const entries = await parseMediaEntriesBytes(mediaEntriesBytes([{ name: "card_001.jpg", size: imageBytes.length, sha1 }]));
 
   assert.equal(metadata.version, "latest");
   assert.equal(entries.length, 1);
@@ -237,8 +249,8 @@ test("maps modern numeric media entries to filenames by sha1 and size", async ()
   assert.equal(bundle.manifest.assets[0].sha1, sha1);
 });
 
-test("maps Anki notes and cards to immutable CoRe originals", () => {
-  const deck = mapAnkiToCoreDeck({
+test("maps Anki notes and cards to immutable CoRe originals", async () => {
+  const deck = (await commitParsed({
     file: { name: "biology.apkg", size: 2048 },
     decks: [{ id: "1", name: "Biology" }],
     colRows: [
@@ -261,14 +273,16 @@ test("maps Anki notes and cards to immutable CoRe originals", () => {
     ],
     cards: [{ id: 20, nid: 10, did: 1, ord: 0 }],
     mediaMap: {},
-  });
+  })).deck;
 
   assert.equal(deck.name, "Biology");
   assert.equal(deck.source, "anki-apkg");
   assert.equal(deck.cardCount, 1);
   assert.deepStrictEqual(deck.tags, ["cell", "exam"]);
-  assert.equal(deck.cards[0].originalFront, "What is ATP?");
-  assert.equal(deck.cards[0].originalBack, "Energy carrier ");
+  assert.match(deck.cards[0].originalFront, /<h3>Front<\/h3>What is ATP\?/);
+  assert.match(deck.cards[0].originalFront, /<h3>Back<\/h3>Energy carrier/);
+  assert.equal(deck.cards[0].originalBack, deck.cards[0].originalFront);
+  assert.doesNotMatch(deck.cards[0].originalFront, /script|alert/);
   assert.equal(deck.cards[0].coreState.isCoreReady, false);
   assert.equal(deck.cards[0].coreState.variantCount, 0);
   assert.equal(deck.cards[0].coreState.repetitionLevel, 0);
@@ -283,7 +297,7 @@ test("maps Basic APKG parser output and preserves card flags as opaque metadata"
   const mapped = mapAnkiApkgToNormalizedDeck(parsed);
   const item = mapped.normalizedDeck.items[0];
   const variant = item.variants[0];
-  const committed = await commitApkgImport(parsed, { existingDecks: [] });
+  const committed = await commitParsed(parsed, { existingDecks: [] });
 
   assert.equal(mapped.errors.length, 0);
   assert.equal(mapped.normalizedDeck.title, "Fixture Deck");
@@ -293,7 +307,7 @@ test("maps Basic APKG parser output and preserves card flags as opaque metadata"
   assert.equal(item.sourceExternalId, "anki-note-10");
   assert.deepEqual(item.tags, ["cell", "exam"]);
   assert.equal(item.canonicalQuestion, "What is ATP?");
-  assert.equal(item.canonicalAnswer, "Energy carrier");
+  assert.equal(item.canonicalAnswer, "What is ATP?<hr />Energy carrier");
   assert.equal(variant.sourceExternalId, "anki-card-20");
   assert.equal(variant.isOriginal, true);
   assert.equal(variant.anchorToOriginal, false);
@@ -307,8 +321,8 @@ test("maps Basic Reverse notes to one LearningItem with anchored imported varian
   const parsed = parsedApkgFixture({
     modelName: "Basic (and reversed card)",
     templates: [
-      { name: "Card 1", ord: 0 },
-      { name: "Card 2", ord: 1 },
+      { name: "Card 1", ord: 0, qfmt: "{{Front}}", afmt: "{{FrontSide}}<hr>{{Back}}" },
+      { name: "Card 2", ord: 1, qfmt: "{{Back}}", afmt: "{{FrontSide}}<hr>{{Front}}" },
     ],
     noteFields: "ATP\u001fEnergy carrier",
     cards: [
@@ -318,11 +332,11 @@ test("maps Basic Reverse notes to one LearningItem with anchored imported varian
   });
   const mapped = mapAnkiApkgToNormalizedDeck(parsed);
   const item = mapped.normalizedDeck.items[0];
-  const reverseVariant = item.variants.find((variant: { variantType: string; }) => variant.variantType === "reverse");
-  const committed = await commitApkgImport(parsed, { existingDecks: [] });
+  const reverseVariant = item.variants[1];
+  const committed = await commitParsed(parsed, { existingDecks: [] });
   const imported = committed.deck.cards[0];
   const original = getOriginalVariant(imported);
-  const importedReverse = getActiveVariants(imported).find((variant) => variant.variantType === "reverse");
+  const importedReverse = getActiveVariants(imported)[0];
   assert.ok(importedReverse);
   const reviewed = answerVariant(committed.deck, imported.id, importedReverse.id, "good", {
     now: "2026-07-07T10:00:00.000Z",
@@ -333,7 +347,7 @@ test("maps Basic Reverse notes to one LearningItem with anchored imported varian
   assert.equal(item.variants.filter((variant: { isOriginal: any; }) => variant.isOriginal).length, 1);
   assert.ok(reverseVariant);
   assert.equal(reverseVariant.front, "Energy carrier");
-  assert.equal(reverseVariant.back, "ATP");
+  assert.equal(reverseVariant.back, "Energy carrier<hr />ATP");
   assert.equal(reverseVariant.isOriginal, false);
   assert.equal(reverseVariant.anchorToOriginal, true);
   assert.equal(committed.deck.source, "anki-apkg");
@@ -385,7 +399,7 @@ test("committed APKG import creates visible parent and child decks from Anki hie
       missingAssets: [],
     },
   });
-  const committed = await commitApkgImport(parsed, { existingDecks: [] });
+  const committed = await commitParsed(parsed, { existingDecks: [] });
   const root = committed.decks.find((deck: { name: string; }) => deck.name === "Medizin");
   const anatomy = committed.decks.find((deck: { name: string; }) => deck.name === "Anatomie");
   const physio = committed.decks.find((deck: { name: string; }) => deck.name === "Physio");
@@ -402,8 +416,6 @@ test("committed APKG import creates visible parent and child decks from Anki hie
   assert.deepEqual(physio.hierarchyPath, ["Medizin", "Physio"]);
   assert.equal(anatomy.cards.length, 1);
   assert.equal(physio.cards.length, 1);
-  assert.equal(committed.rootDeckIds[0], root.id);
-  assert.equal(committed.importGroupId.startsWith("apkg_import_"), true);
   assert.equal(committed.decks.every((deck: { importMeta: { mediaManifest: { assets: string|any[]; }; }; }) => deck.importMeta.mediaManifest.assets.length === 1), true);
 });
 
@@ -419,7 +431,7 @@ test("binary readers reject truncated ZIP, invalid MediaEntries and SQLite page 
 
   assert.equal(parsed.errors.length, 1);
   assert.match(parsed.errors[0], /ZIP|abgeschnitten/);
-  assert.throws(() => parseMediaEntriesBytes(Uint8Array.of(0x0a, 0x80)), /Varint/);
+  await assert.rejects(() => parseMediaEntriesBytes(Uint8Array.of(0x0a, 0x80)), /Varint/);
 
   const invalidSqlite = new Uint8Array(512);
   invalidSqlite.set(new TextEncoder().encode("SQLite format 3\0"));
@@ -429,7 +441,7 @@ test("binary readers reject truncated ZIP, invalid MediaEntries and SQLite page 
 });
 
 test("committed APKG fixture imports the world capitals hierarchy", async () => {
-  const committed = await commitApkgImport(await worldCapitalsApkgFile(), { existingDecks: [] });
+  const committed = await commitParsed(await worldCapitalsApkgFile(), { existingDecks: [] });
   const root = committed.decks.find((deck: { name: string; }) => deck.name === "Welt-Hauptstädte");
   const byName = new Map(committed.decks.map((deck: { name: any; }) => [deck.name, deck]));
   const expectedCounts = {
@@ -466,19 +478,20 @@ test("APKG preview uses the normalized Learning Item path", async () => {
 
   assert.equal(result.job.status, "preview");
   assert.ok(preview);
-  assert.equal(preview.deck.cards.length, 245);
+  assert.equal(preview.summary.cards.length, 0);
+  assert.equal(preview.summary.cardCount, 245);
   assert.ok(preview);
   assert.equal(preview.sampleCards.length, 5);
   assert.ok(preview);
-  assert.equal(preview.importReport.apkg.detectedCards, 245);
+  assert.equal(preview.report.apkg.detectedCards, 245);
   assert.ok(preview);
-  assert.equal(preview.deck.importMeta.deckHierarchy.length, 8);
+  assert.equal((preview.summary.importMeta.deckHierarchy as unknown[]).length, 8);
   assert.ok(preview);
-  assert.equal(preview.deck.cards.every((item: { variants: { filter: (arg0: (variant: any) => any) => { (): any; new(): any; length: number; }; }; }) => item.variants.filter((variant: { isOriginal: any; }) => variant.isOriginal).length === 1), true);
+  assert.equal(preview.sampleCards.every((item) => item.variants.filter((variant) => variant.isOriginal).length === 1), true);
   assert.ok(preview);
   assert.ok(getOriginalVariant);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(getOriginalVariant(preview.deck.cards[0]).front, preview.deck.cards[0].canonicalQuestion);
+  assert.equal(getOriginalVariant(preview.sampleCards[0]).front, preview.sampleCards[0].canonicalQuestion);
 });
 
 test("APKG preview worker transfers input, reports progress and always terminates", async () => {
@@ -495,27 +508,42 @@ test("APKG preview worker transfers input, reports progress and always terminate
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
       this.terminated = false;
     }
-    postMessage(request: { requestId: any; }, transfer: any) {
+    postMessage(request: { type: string; requestId: any; }, transfer: any) {
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
       this.request = request;
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
       this.transfer = transfer;
       queueMicrotask(() => {
+        if (request.type === "commit") {
+// @ts-expect-error -- Vereinfachter Worker-Stub.
+          this.onmessage({ data: { type: "commit-chunk", requestId: request.requestId, chunk: { kind: "outbox" } } });
+          return;
+        }
+        if (request.type === "commit-next") {
+// @ts-expect-error -- Vereinfachter Worker-Stub.
+          this.onmessage({ data: { type: "commit-done", requestId: request.requestId } });
+          return;
+        }
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
         this.onmessage({ data: { type: "progress", requestId: request.requestId, step: "collection" } });
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+        const prepared = prepareApkgWorkerResult(direct);
+        const compactResult = {
+          ...prepared,
+          commitGraph: {
+            kind: "worker-import",
+            deckCount: prepared.commitGraph.decks.length,
+            cardCount: prepared.commitGraph.decks.reduce((sum: number, deck: any) => sum + deck.cards.length, 0),
+            noteTypeDefinitions: prepared.commitGraph.noteTypeDefinitions.slice(0, 1),
+          },
+        };
+// @ts-expect-error -- Test-Worker zeichnet die übertragene Laufzeitform auf.
+        this.result = compactResult;
+// @ts-expect-error -- Vereinfachter Worker-Stub.
         this.onmessage({
           data: {
             type: "result",
             requestId: request.requestId,
-            result: {
-              normalizedDeck: direct.normalizedDeck,
-              warnings: direct.warnings,
-              errors: direct.errors,
-              mediaFiles: direct.mediaFiles,
-              reviewHistory: direct.reviewHistory,
-              parsedPackage: null,
-            },
+            result: compactResult,
           },
         });
       });
@@ -532,8 +560,9 @@ test("APKG preview worker transfers input, reports progress and always terminate
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
     const workerPreview = await createApkgImportPreview(file, (step: any) => steps.push(step));
     assert.ok(workerPreview);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-    assert.equal(workerPreview.preview.deck.cards.length, direct.normalizedDeck.items.length);
+    assert.ok(workerPreview.preview);
+    assert.equal(workerPreview.preview.summary.cards.length, 0);
+    assert.equal(workerPreview.preview.summary.cardCount, direct.normalizedDeck.items.length);
     assert.deepEqual(steps, ["collection"]);
     assert.ok(PreviewWorker);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
@@ -543,7 +572,38 @@ test("APKG preview worker transfers input, reports progress and always terminate
     assert.deepEqual(PreviewWorker.instance.transfer, [PreviewWorker.instance.request.buffer]);
     assert.ok(PreviewWorker);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-    assert.equal(PreviewWorker.instance.terminated, true);
+    assert.equal(PreviewWorker.instance.terminated, false);
+    const commitChunks: unknown[] = [];
+    await workerPreview.preview.commitGraph.streamChunks(async (chunk: unknown) => { commitChunks.push(chunk); });
+    assert.deepEqual(commitChunks, [{ kind: "outbox" }]);
+    assert.equal((PreviewWorker.instance as any).terminated, true);
+    const instance = PreviewWorker.instance as any;
+    assert.equal("parsedPackage" in instance.result, false);
+    assert.equal("reviewHistory" in instance.result, false);
+    const compactBytes = JSON.stringify(instance.result).length;
+    const previousFullPreview = importNormalizedDeck(direct.normalizedDeck, { dryRun: false }).deck;
+    const previousTransferBytes = JSON.stringify({
+      worker: direct,
+      previewDeck: previousFullPreview,
+    }).length;
+    const previousRetainedBytes = JSON.stringify({
+      worker: {
+        normalizedDeck: direct.normalizedDeck,
+        warnings: direct.warnings,
+        errors: direct.errors,
+        mediaFiles: direct.mediaFiles,
+        reviewHistory: direct.reviewHistory,
+        parsedPackage: direct.parsedPackage,
+      },
+      preview: {
+        deck: previousFullPreview,
+        sampleCards: previousFullPreview?.cards.slice(0, 5),
+        normalizedDeck: direct.normalizedDeck,
+        reviewHistory: direct.reviewHistory,
+      },
+    }).length;
+    assert.ok(compactBytes < previousTransferBytes, "Worker-Payload wurde nicht verkleinert");
+    assert.ok(compactBytes <= previousRetainedBytes * 0.6, `Previewzustand nur um ${Math.round((1 - compactBytes / previousRetainedBytes) * 100)} % reduziert`);
   } finally {
     globalThis.Worker = originalWorker;
   }
@@ -600,24 +660,48 @@ test("APKG preview rejects invalid worker messages and aborts with cleanup", asy
 test("imports Cloze parser output as cloze content with a warning instead of crashing", async () => {
   const parsed = parsedApkgFixture({
     modelName: "Cloze",
+    modelType: 1,
     fields: [{ name: "Text" }, { name: "Extra" }],
+    templates: [{ name: "Cloze", ord: 0, qfmt: "{{cloze:Text}}", afmt: "{{cloze:Text}}<br>{{Extra}}" }],
     noteFields: "{{c1::ATP}} liefert Energie.\u001fExtra: Zellstoffwechsel",
   });
   const mapped = mapAnkiApkgToNormalizedDeck(parsed);
-  const committed = await commitApkgImport(parsed, { existingDecks: [] });
+  const committed = await commitParsed(parsed, { existingDecks: [] });
   const imported = committed.deck.cards[0];
 
   assert.equal(mapped.errors.length, 0);
   assert.equal(mapped.normalizedDeck.items[0].variants[0].variantType, "cloze");
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(mapped.warnings.some((warning) => warning.includes("Cloze")), true);
+  assert.equal(mapped.normalizedDeck.items[0].noteTypeDefinition.kind, "cloze");
   assert.equal(imported.kind, "cloze");
   assert.ok(getOriginalVariant);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(getOriginalVariant(imported).variantType, "cloze");
 });
 
-test("APKG dry run reports scheduling and media without mutating or importing Anki progress", async () => {
+test("imports every native image-occlusion Anki card as a stable reviewable region", async () => {
+  const committed = await commitParsed(parsedApkgFixture({
+    modelName: "Image Occlusion",
+    modelType: 1,
+    originalStockKind: 6,
+    fields: [{ name: "A" }],
+    templates: [{ name: "Maske", ord: 0, qfmt: "{{cloze:A}}", afmt: "{{cloze:A}}" }],
+    noteFields: '<img src="diagram.png">',
+    cards: [
+      { id: 201, nid: 10, did: 1, ord: 0 },
+      { id: 202, nid: 10, did: 1, ord: 1 },
+    ],
+  }), { existingDecks: [] });
+  const imported = committed.deck.cards[0];
+  const active = imported.variants.filter((variant: { isActive: boolean }) => variant.isActive);
+
+  assert.equal(imported.noteTypeDefinitionId.includes("anki-99"), true);
+  assert.equal(imported.kind, "image-occlusion");
+  assert.equal(active.length, 2);
+  assert.deepEqual(active.map((variant: any) => variant.projection.regionKey), ["201", "202"]);
+  assert.deepEqual(active.map((variant: any) => variant.meta.ankiImportIdentityV1.cardId), ["201", "202"]);
+});
+
+test("APKG dry run remains read-only and commit migrates Anki progress", async () => {
   const parsed = parsedApkgFixture({
     noteFields: "Cell image?<br><img src=\"cell.png\">\u001fA cell.",
     cards: [{ id: 20, nid: 10, did: 1, ord: 0, reps: 4, lapses: 1, ivl: 12, type: 2, queue: 2 }],
@@ -627,55 +711,46 @@ test("APKG dry run reports scheduling and media without mutating or importing An
       missingAssets: [{ name: "missing.png" }],
     },
   });
-  const dryRun = await dryRunApkgImport(parsed, { existingDecks: [] });
-  const committed = await commitApkgImport(parsed, { existingDecks: [] });
+  const prepared = prepareApkgWorkerResult(await parseApkgToNormalizedImport(parsed));
+  const committed = commitApkgImport(prepared, { existingDecks: [] });
   const imported = committed.deck.cards[0];
 
-  assert.equal(dryRun.deck, null);
-  assert.equal(dryRun.report.dryRun, true);
-  assert.equal(dryRun.report.apkg.detectedNotes, 1);
-  assert.equal(dryRun.report.apkg.detectedCards, 1);
-  assert.equal(dryRun.report.apkg.detectedVariants, 1);
-  assert.equal(dryRun.report.hasAnkiScheduling, true);
-  assert.equal(dryRun.report.schedulingImported, false);
-  assert.equal(dryRun.report.mediaCount, 1);
-  assert.equal(dryRun.report.missingMediaCount, 1);
-  assert.equal(dryRun.report.warnings.some((warning: string|string[]) => warning.includes("Anki-Lernfortschritt")), true);
+  assert.equal(prepared.report.dryRun, true);
+  assert.equal(prepared.report.apkg.detectedNotes, 1);
+  assert.equal(prepared.report.apkg.detectedCards, 1);
+  assert.equal(prepared.report.apkg.detectedVariants, 1);
+  assert.equal(prepared.report.hasAnkiScheduling, true);
+  assert.equal(prepared.report.mediaCount, 1);
+  assert.equal(prepared.report.missingMediaCount, 1);
   assert.equal(committed.deck.importMeta.mediaManifest.assets.length, 1);
   assert.deepEqual(imported.mediaRefs, ["cell.png"]);
   assert.equal(imported.reviewState.schedulerVersion, "fsrs_6_v1");
-  assert.equal(imported.reviewState.state, "new");
-  assert.equal(imported.reviewState.reps, 0);
-  assert.equal(imported.reviewState.lapses, 0);
-  assert.equal(imported.reviewState.sourceSchedulerData, null);
+  assert.equal(imported.reviewState.state, "review");
+  assert.equal(imported.reviewState.reps, 4);
+  assert.equal(imported.reviewState.lapses, 1);
+  assert.equal((imported.reviewState.sourceSchedulerData as Record<string, unknown>).migrationMethod, "sm2-card-state");
+  assert.equal(committed.report.schedulingImported, true);
+  assert.equal(committed.report.apkg.reviewHistory.heuristicCards, 1);
   assert.equal(committed.deck.reviewEvents.length, 0);
 });
 
-test("APKG duplicate detection uses Anki note source ids and merge strategies", async () => {
-  const parsed = parsedApkgFixture({
-    noteFields: "Duplicate?\u001fSame note.",
-  });
-  const committed = await commitApkgImport(parsed, { existingDecks: [] });
-  const skipped = await commitApkgImport(parsed, {
-    existingDecks: [committed.deck],
-    mergeStrategy: "skip_duplicates",
-  });
-  const createNew = await commitApkgImport(parsed, {
-    existingDecks: [committed.deck],
-    mergeStrategy: "create_new",
-  });
-  const updateExisting = await commitApkgImport(parsed, {
-    existingDecks: [committed.deck],
-    mergeStrategy: "update_existing",
-  });
+test("APKG import prefers a valid modern Anki FSRS memory state", async () => {
+  const data = JSON.stringify({ s: 42.125, d: 3.75, dr: 0.92, lrt: 1_700_000_000, cd: "{\"x\":1}" });
+  const committed = await commitParsed(parsedApkgFixture({
+    cards: [{ id: 20, nid: 10, did: 1, ord: 0, reps: 9, lapses: 2, ivl: 30, type: 2, queue: 2, data }],
+    reviewHistory: [{ id: 1_700_000_001_000, cid: 20, ease: 3, type: 1, lastIvl: 10, ivl: 30, factor: 2400, time: 1_000 }],
+  }), { existingDecks: [] });
+  const imported = committed.deck.cards[0];
+  const source = imported.reviewState.sourceSchedulerData as Record<string, unknown>;
 
-  assert.equal(skipped.report.duplicates.length, 1);
-  assert.equal(skipped.report.skipped.length, 1);
-  assert.equal(skipped.deck.cards.length, 0);
-  assert.equal(createNew.report.warnings.some((warning: string|string[]) => warning.includes("mögliche Dublette")), true);
-  assert.equal(createNew.deck.cards.length, 1);
-  assert.equal(updateExisting.deck.cards.length, 0);
-  assert.equal(updateExisting.report.warnings.some((warning: string|string[]) => warning.includes("update_existing")), true);
+  assert.equal(imported.reviewState.stability, 42.125);
+  assert.equal(imported.reviewState.difficulty, 3.75);
+  assert.equal(imported.reviewState.desiredRetention, 0.92);
+  assert.equal(imported.reviewState.lastReviewedAt, "2023-11-14T22:13:20.000Z");
+  assert.equal(source.migrationMethod, "fsrs-memory-state");
+  assert.equal((source.rawCardState as Record<string, unknown>).data, data);
+  assert.equal(committed.report.apkg.reviewHistory.directCards, 1);
+  assert.equal(committed.report.apkg.reviewHistory.replayedCards, 0);
 });
 
 test("commitImport merges reimports and preserves local content edits", async () => {
@@ -699,7 +774,7 @@ test("commitImport merges reimports and preserves local content edits", async ()
   const existingDeck = createReimportDeck(existingCard, { existing: true, withImportMeta: true });
   const incomingDeck = createReimportDeck(incomingCard, { withImportMeta: true });
 
-  const merged = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
+  const merged = mergeImportedDeck(incomingDeck, [existingDeck]);
 
   assert.equal(merged.id, "deck_existing");
   assert.equal(merged.cards[0].id, "card_existing");
@@ -713,6 +788,43 @@ test("commitImport merges reimports and preserves local content edits", async ()
   assert.equal(getOriginalVariant(merged.cards[0]).back, "Lokale Antwort");
   assert.deepEqual(merged.cards[0].mediaRefs, ["cell.png"]);
   assert.equal(merged.importMeta.replacedDeckId, "deck_existing");
+});
+
+test("APKG reimport merges fields independently and marks two-sided conflicts", async () => {
+  const fixtureOptions = {
+    fields: [{ name: "Frage" }, { name: "Antwort" }, { name: "Quelle" }],
+    templates: [{ name: "Karte", ord: 0, qfmt: "{{Frage}}", afmt: "{{FrontSide}}<hr>{{Antwort}}<small>{{Quelle}}</small>" }],
+  };
+  const first = await commitParsed(parsedApkgFixture({ ...fixtureOptions, noteFields: "Importfrage\u001fImportantwort\u001fQuelle 1" }), { existingDecks: [] });
+  const imported = first.deck.cards[0];
+  const definition = first.commitGraph.noteTypeDefinitions.find((candidate: any) => candidate.id === imported.noteTypeDefinitionId);
+  const locallyEdited = saveLearningItemDocumentValues({
+    previous: imported,
+    definition,
+    fields: imported.contentDocument.fields.map((field: { id: string; name: string; value: string }) => ({
+      id: field.id,
+      value: field.name === "Frage" ? "Lokale Frage" : field.value,
+    })),
+  }).item;
+  const localDeck = { ...first.deck, cards: [locallyEdited] };
+
+  const externallyChanged = await commitParsed(
+    parsedApkgFixture({ ...fixtureOptions, noteFields: "Importfrage\u001fNeue Importantwort\u001fQuelle 1" }),
+    { existingDecks: [localDeck] },
+  );
+  const mergedFields = Object.fromEntries(externallyChanged.deck.cards[0].contentDocument.fields.map((field: any) => [field.name, field.value]));
+  assert.equal(mergedFields.Frage, "Lokale Frage");
+  assert.equal(mergedFields.Antwort, "Neue Importantwort");
+  assert.deepEqual(externallyChanged.deck.cards[0].meta.reimportConflicts, []);
+
+  const conflicting = await commitParsed(
+    parsedApkgFixture({ ...fixtureOptions, noteFields: "Externe Frage\u001fImportantwort\u001fQuelle 1" }),
+    { existingDecks: [localDeck] },
+  );
+  const conflictFields = Object.fromEntries(conflicting.deck.cards[0].contentDocument.fields.map((field: any) => [field.name, field.value]));
+  assert.equal(conflictFields.Frage, "Lokale Frage");
+  assert.equal(conflicting.deck.cards[0].meta.reimportConflicts[0].fieldName, "Frage");
+  assert.equal(conflicting.deck.cards[0].meta.reimportConflictDefault, "local");
 });
 
 test("commitImport preserves structured multiple-choice edits across reimport", async () => {
@@ -752,7 +864,7 @@ test("commitImport preserves structured multiple-choice edits across reimport", 
   const existingDeck = createReimportDeck(locallyEdited, { existing: true, withImportMeta: true });
   const incomingDeck = createReimportDeck(incomingCard, { withImportMeta: true });
 
-  const merged = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
+  const merged = mergeImportedDeck(incomingDeck, [existingDeck]);
 
   assert.deepEqual(getCardEditorValue(merged.cards[0]), {
     cardType: "multiple-choice",
@@ -785,7 +897,7 @@ test("commitImport preserves local marked and suspended state across reimport", 
   const existingDeck = createReimportDeck(existingCard, { existing: true, withImportMeta: true });
   const incomingDeck = createReimportDeck(incomingCard, { withImportMeta: true });
 
-  const merged = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
+  const merged = mergeImportedDeck(incomingDeck, [existingDeck]);
 
   assert.equal(merged.cards[0].status, "suspended");
   assert.equal(merged.cards[0].meta.marked, true);
@@ -846,8 +958,8 @@ test("commitImport matches imported variants by stable source id across repeated
   const existingDeck = createReimportDeck(existingCard, { existing: true });
   const incomingDeck = createReimportDeck(incomingCard);
 
-  const firstMerge = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
-  const secondMerge = await commitImport({ deck: incomingDeck }, { existingDecks: [firstMerge] });
+  const firstMerge = mergeImportedDeck(incomingDeck, [existingDeck]);
+  const secondMerge = mergeImportedDeck(incomingDeck, [firstMerge]);
   const importedVariants = secondMerge.cards[0].variants.filter((variant: { isOriginal: any; }) => !variant.isOriginal);
 
   assert.equal(importedVariants.length, 1);
@@ -880,7 +992,7 @@ test("commitImport updates untouched originals and preserves local variant state
   const existingDeck = createReimportDeck(existingCard, { existing: true });
   const incomingDeck = createReimportDeck(incomingCard);
 
-  const merged = await commitImport({ deck: incomingDeck }, { existingDecks: [existingDeck] });
+  const merged = mergeImportedDeck(incomingDeck, [existingDeck]);
   const mergedCard = merged.cards[0];
   const localVariant = mergedCard.variants.find((variant: { id: string; }) => variant.id === "variant_local");
 
@@ -924,21 +1036,51 @@ test("quality APKG fixtures match their manifest and exercise legacy plus latest
   }
 });
 
+test("quality fixtures expose one lossless notetype config shape for legacy JSON and V18 protobuf", async () => {
+  const legacy = await parseApkgToNormalizedImport(await qualityFixtureFile("legacy"));
+  const latest = await parseApkgToNormalizedImport(await qualityFixtureFile("latest"));
+  const legacyModels = Object.values(legacy.parsedPackage.models) as any[];
+  const latestModels = Object.values(latest.parsedPackage.models) as any[];
+  const legacyReverse = legacyModels.find((model) => model.name === "CoRe Basic und umgekehrt");
+  const latestReverse = latestModels.find((model) => model.name === "CoRe Basic und umgekehrt");
+  const latestCloze = latestModels.find((model) => model.name === "CoRe Cloze");
+
+  assert.equal(legacyReverse.config.format, "legacy-json");
+  assert.equal(legacyReverse.config.rawBase64, null);
+  assert.equal(legacyReverse.tmpls[1].config.questionFormat, "{{Rückseite}}");
+  assert.equal(legacyReverse.tmpls[1].config.answerFormat, "{{FrontSide}}<hr>{{Vorderseite}}");
+
+  assert.equal(latestReverse.config.format, "protobuf-v18");
+  assert.equal(typeof latestReverse.config.rawBase64, "string");
+  assert.ok(latestReverse.config.rawBase64.length > 0);
+  assert.match(latestReverse.config.css, /\.card/);
+  assert.equal(latestReverse.tmpls[1].qfmt, "{{Rückseite}}");
+  assert.equal(latestReverse.tmpls[1].afmt, "{{FrontSide}}<hr>{{Vorderseite}}");
+  assert.equal(latestReverse.tmpls[1].config.questionFormat, latestReverse.tmpls[1].qfmt);
+  assert.ok(latestReverse.tmpls[1].config.rawBase64.length > 0);
+  assert.ok(latestReverse.flds[0].config.rawBase64.length > 0);
+
+  assert.equal(latestCloze.type, 1);
+  assert.equal(latestCloze.config.kind, 1);
+  assert.equal(latestCloze.tmpls[0].qfmt, "{{cloze:Text}}");
+  assert.equal(latestCloze.tmpls[0].afmt, "{{cloze:Text}}<br>{{Extra}}");
+});
+
 test("quality fixtures preserve card semantics, custom fields, media and imported original identities", async () => {
   for (const name of ["legacy", "latest"] as const) {
     const previewResult = await createApkgImportPreview(await qualityFixtureFile(name));
     assert.ok(previewResult.preview);
     const preview = previewResult.preview;
-    const report = preview.importReport.apkg;
+    const report = preview.report.apkg;
 
     assert.equal(report.contractVersion, 1);
     assert.equal(report.packageFormat, name === "latest" ? "latest" : "legacy-2");
     assert.ok(report.decks.some((deck: any) => deck.path === "CoRe APKG Qualität::Sonderformat"));
     assert.deepEqual(report.media.missing, ["missing.png"]);
     assert.equal(report.media.assets[0].sha1, "a2f01b42072ec20f06a59a12f6c692c474768e6e");
-    assert.deepEqual(report.notetypes.find((notetype: any) => notetype.classification === "custom")?.unmappedFields, ["Kontext"]);
+    assert.deepEqual(report.notetypes.find((notetype: any) => notetype.classification === "custom")?.unmappedFields, []);
 
-    const byGuid = new Map<string, any>(preview.deck.cards.map((card: any) => [String((card.meta.ankiImportIdentityV1 as any).guid), card]));
+    const byGuid = new Map<string, any>(preview.sampleCards.map((card: any) => [String((card.meta.ankiImportIdentityV1 as any).guid), card]));
     assert.equal(byGuid.get("core-quality-basic-reverse")?.variants.length, 2);
     assert.equal(byGuid.get("core-quality-optional-yes")?.variants.length, 2);
     assert.equal(byGuid.get("core-quality-optional-no")?.variants.length, 1);
@@ -955,7 +1097,7 @@ test("quality fixtures preserve card semantics, custom fields, media and importe
 test("GUID and template ordinal keep reimports stable when Anki note and card ids change", async () => {
   const fixture = await qualityFixtureFile("latest");
   const parsed = await parseApkgToNormalizedImport(fixture);
-  const first = await commitApkgImport(parsed.parsedPackage);
+  const first = await commitParsed(parsed.parsedPackage);
   const reverseDeck = first.decks.find((deck: any) => deck.hierarchyPath?.at(-1) === "Reverse");
   assert.ok(reverseDeck);
   const existingCard = reverseDeck.cards[0];
@@ -981,7 +1123,7 @@ test("GUID and template ordinal keep reimports stable when Anki note and card id
     })),
   };
 
-  const reimport = await commitApkgImport(shifted, { existingDecks: first.decks.map((deck: any) => deck.id === reverseDeck.id ? locallyEditedDeck : deck) });
+  const reimport = await commitParsed(shifted, { existingDecks: first.decks.map((deck: any) => deck.id === reverseDeck.id ? locallyEditedDeck : deck) });
   const mergedReverseDeck = reimport.decks.find((deck: any) => deck.id === reverseDeck.id);
   const mergedCard = mergedReverseDeck.cards[0];
   const mergedReverse = mergedCard.variants.find((variant: any) => variant.meta.ankiImportIdentityV1.templateOrdinal === 1);

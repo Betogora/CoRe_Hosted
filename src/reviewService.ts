@@ -31,7 +31,7 @@ import type {
   ReviewState,
   VariantFeedbackType,
 } from "./coreTypes.ts";
-import { getLearningDayKey } from "./learningDay.ts";
+import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { normalizeLearnAheadMinutes } from "./learningProfiles.ts";
 import type { EasyDaysSchedulingContext } from "./easyDays.ts";
 
@@ -54,8 +54,6 @@ interface ReviewEventRecord {
   responseTimeMs: number | null;
   variantLevel: number;
   variantType: string;
-  previousLearningItemStateJson: ReviewState;
-  nextLearningItemStateJson: ReviewState;
   schedulerVersion: string;
   schedulerParamsJson: unknown;
   anchorVariantId: string | null;
@@ -94,6 +92,7 @@ interface ReviewServiceOptions {
   note?: string;
   reviewEvents?: unknown[];
   easyDaysContext?: EasyDaysSchedulingContext | null;
+  sessionIndex?: DailyReviewSessionIndex;
 }
 
 interface ReviewableItem {
@@ -108,6 +107,23 @@ interface QueueEntry {
   deck: Deck;
   learningItem: LearningItem;
   key: string;
+}
+
+export interface DailyReviewQueueEntry {
+  deckId: string;
+  learningItemId: string;
+  key: string;
+  queueKind: "new" | "due";
+}
+
+interface DailyReviewSessionIndexEntry {
+  deck: Deck;
+  learningItem: LearningItem;
+}
+
+export interface DailyReviewSessionIndex {
+  entriesByKey: Map<string, DailyReviewSessionIndexEntry>;
+  reviewEventsByKey: Map<string, LegacyReviewEvent[]>;
 }
 
 export interface DailyReviewProgressSummary {
@@ -196,8 +212,25 @@ function isLearningAvailable(item: LearningItem, now: DateInput, learnAheadMinut
 
 function activeLearningItems(deck: Deck): LearningItem[] {
   return (deck?.cards ?? [])
-    .map((card) => normalizeLearningItem(card))
-    .filter((item) => item.status !== "deleted" && item.draftStatus !== "draft" && !isLearningItemReviewBlocked(item));
+    .map((card) => isCanonicalLearningItem(card) ? card : normalizeLearningItem(card))
+    .filter(isActiveLearningItem);
+}
+
+function isCanonicalLearningItem(value: unknown): value is LearningItem {
+  const item = value as Partial<LearningItem> | null;
+  return Boolean(
+    item
+      && typeof item.id === "string"
+      && item.contentDocument?.schemaVersion === 1
+      && typeof item.noteTypeDefinitionId === "string"
+      && Array.isArray(item.variants)
+      && item.learningItemState
+      && item.reviewState,
+  );
+}
+
+function isActiveLearningItem(item: LearningItem): boolean {
+  return item.status !== "deleted" && item.draftStatus !== "draft" && !isLearningItemReviewBlocked(item);
 }
 
 function asDeckArray(decksOrDeck: Deck | Deck[]): Deck[] {
@@ -212,18 +245,21 @@ function collectDeckScope(decksOrDeck: Deck | Deck[], deckId: string | null = nu
   const selected = decks.find((deck) => deck.id === deckId) ?? null;
   if (!selected) return decks;
 
-  const scopedIds = new Set([selected.id]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const deck of decks) {
-      if (deck.parentDeckId && scopedIds.has(deck.parentDeckId) && !scopedIds.has(deck.id)) {
-        scopedIds.add(deck.id);
-        changed = true;
-      }
-    }
+  const childrenByParent = new Map<string, Deck[]>();
+  for (const deck of decks) {
+    if (!deck.parentDeckId) continue;
+    const children = childrenByParent.get(deck.parentDeckId);
+    if (children) children.push(deck);
+    else childrenByParent.set(deck.parentDeckId, [deck]);
   }
-
+  const scopedIds = new Set<string>();
+  const pending = [selected];
+  while (pending.length > 0) {
+    const deck = pending.pop() as Deck;
+    if (scopedIds.has(deck.id)) continue;
+    scopedIds.add(deck.id);
+    pending.push(...(childrenByParent.get(deck.id) ?? []));
+  }
   return decks.filter((deck) => scopedIds.has(deck.id));
 }
 
@@ -238,6 +274,48 @@ function wasNewBeforeReview(event: LegacyReviewEvent): boolean {
 
 function reviewKey(deckId: string, learningItemId: string | undefined): string {
   return `${deckId}:${learningItemId}`;
+}
+
+function reviewEventLearningItemId(event: LegacyReviewEvent): string | null {
+  return event.learningItemId ?? event.sourceCardId ?? event.cardId ?? null;
+}
+
+export function createDailyReviewSessionIndex(decksOrDeck: Deck | Deck[]): DailyReviewSessionIndex {
+  const entriesByKey = new Map<string, DailyReviewSessionIndexEntry>();
+  const reviewEventsByKey = new Map<string, LegacyReviewEvent[]>();
+  for (const deck of asDeckArray(decksOrDeck)) {
+    for (const learningItem of activeLearningItems(deck)) {
+      entriesByKey.set(reviewKey(deck.id, learningItem.id), { deck, learningItem });
+    }
+    for (const event of (deck.reviewEvents ?? []) as LegacyReviewEvent[]) {
+      const learningItemId = reviewEventLearningItemId(event);
+      if (!learningItemId) continue;
+      const key = reviewKey(deck.id, learningItemId);
+      const events = reviewEventsByKey.get(key);
+      if (events) events.push(event);
+      else reviewEventsByKey.set(key, [event]);
+    }
+  }
+  return { entriesByKey, reviewEventsByKey };
+}
+
+export function updateDailyReviewSessionIndex(
+  index: DailyReviewSessionIndex,
+  updatedDeck: Deck,
+  updatedLearningItem: LearningItem,
+): DailyReviewSessionIndex {
+  const key = reviewKey(updatedDeck.id, updatedLearningItem.id);
+  const normalized = normalizeLearningItem(updatedLearningItem);
+  if (isActiveLearningItem(normalized)) index.entriesByKey.set(key, { deck: updatedDeck, learningItem: normalized });
+  else index.entriesByKey.delete(key);
+
+  const latestEvent = ((updatedDeck.reviewEvents ?? []) as LegacyReviewEvent[])
+    .find((event) => reviewEventLearningItemId(event) === updatedLearningItem.id);
+  if (latestEvent) {
+    const events = index.reviewEventsByKey.get(key) ?? [];
+    if (!events.some((event) => event.id === latestEvent.id)) index.reviewEventsByKey.set(key, [latestEvent, ...events]);
+  }
+  return index;
 }
 
 function compareQueueEntries(left: QueueEntry, right: QueueEntry): number {
@@ -262,7 +340,9 @@ function compareNewQueueEntries(left: QueueEntry, right: QueueEntry, randomKeys:
 
 function compareReviewQueueEntries(left: QueueEntry, right: QueueEntry, retrievabilityByKey: ReadonlyMap<string, number> | null): number {
   if (retrievabilityByKey) {
-    const retrievabilityComparison = (retrievabilityByKey.get(left.key) ?? 1) - (retrievabilityByKey.get(right.key) ?? 1);
+    const leftRetrievability = retrievabilityByKey.get(left.key) ?? 1;
+    const rightRetrievability = retrievabilityByKey.get(right.key) ?? 1;
+    const retrievabilityComparison = leftRetrievability - rightRetrievability;
     if (retrievabilityComparison) return retrievabilityComparison;
   }
   const dueComparison = new Date((left.learningItem.learningItemState ?? left.learningItem.reviewState)?.dueAt ?? 0).getTime()
@@ -315,6 +395,7 @@ export function updateDeckNewCardLimitForDate(deck: Deck, limit: unknown, option
 
 function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput, options: ReviewServiceOptions = {}) {
   const dateKey = getLocalReviewDateKey(now, options);
+  const dayRange = getLearningDayRange(now, { dayStartHour: options.dayStartHour, timeZone: options.timeZone });
   const byDeckId = new Map<string, { introduced: number; reviewed: number }>();
   const reviewedTodayKeys = new Set<string>();
   let introducedTotal = 0;
@@ -323,7 +404,11 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput, optio
     const introduced = new Set<string>();
     const reviewed = new Set<string>();
     for (const event of (deck.reviewEvents ?? []) as LegacyReviewEvent[]) {
-      if (learningDayKey(reviewEventDate(event) ?? now, options) !== dateKey) continue;
+      const eventDate = reviewEventDate(event) ?? now;
+      const eventTime = new Date(eventDate).getTime();
+      if (dayRange
+        ? !Number.isFinite(eventTime) || eventTime < dayRange.start || eventTime >= dayRange.end
+        : learningDayKey(eventDate, options) !== dateKey) continue;
       const learningItemId = event.learningItemId ?? event.cardId;
       const key = reviewKey(deck.id, learningItemId);
       if (learningItemId) reviewedTodayKeys.add(key);
@@ -348,7 +433,9 @@ function isIntradayLearning(item: LearningItem, now: DateInput, options: ReviewS
 
   const dueTime = new Date(state?.dueAt ?? Number.NaN).getTime();
   const nowTime = new Date(now).getTime();
-  if (Number.isFinite(dueTime) && Number.isFinite(nowTime) && dueTime > nowTime) return dueKey === currentKey;
+  if (Number.isFinite(dueTime) && Number.isFinite(nowTime) && dueTime > nowTime) {
+    return dueKey === currentKey;
+  }
   return Boolean(
     currentKey
     && dueKey === currentKey
@@ -386,10 +473,11 @@ function takeWithinDeckLimits(
   const selected: QueueEntry[] = [];
   for (const entry of entries) {
     const path = paths.get(entry.deck.id) ?? [entry.deck.id];
-    if (!path.every((deckId) => {
+    const fits = path.every((deckId) => {
       const remaining = limits.get(deckId);
       return Boolean(remaining && remaining.reviews > 0 && (kind === "review" || remaining.newCards > 0));
-    })) continue;
+    });
+    if (!fits) continue;
     selected.push(entry);
     for (const deckId of path) {
       const remaining = limits.get(deckId);
@@ -518,8 +606,6 @@ function createReviewEvent({ deck, item, variant, rating, responseTimeMs, now, p
     responseTimeMs,
     variantLevel: variant.variantLevel ?? 1,
     variantType: variant.variantType ?? "basic",
-    previousLearningItemStateJson: previousState,
-    nextLearningItemStateJson: nextState,
     schedulerVersion: SCHEDULER_VERSION,
     schedulerParamsJson: nextState.schedulerParamsJson ?? null,
     anchorVariantId: variant.anchorVariantId ?? null,
@@ -629,16 +715,6 @@ export function answerVariant(
       ...deck,
       cards,
       reviewEvents: [committedEvent, ...(deck.reviewEvents ?? [])],
-      versionLog: [
-        ...(deck.versionLog ?? []),
-        createVersionEntry({
-          objectType: "deck",
-          objectId: deck.id,
-          changeType: "review_event_recorded",
-          after: { eventId: committedEvent.id, rating, learningItemId: committedCard.id, variantId: committedEvent.variantId },
-          createdAt: now,
-        }),
-      ],
       updatedAt: now,
     },
     event: committedEvent,
@@ -721,7 +797,7 @@ function createReviewItemViewModel(deck: Deck, selectedItem: LearningItem | null
   if (!selectedItem) return null;
 
   const now = options.now ?? new Date().toISOString();
-  const reviewEvents = (deck.reviewEvents ?? []) as LegacyReviewEvent[];
+  const reviewEvents = (options.reviewEvents ?? deck.reviewEvents ?? []) as LegacyReviewEvent[];
   const variantReviewModel = createVariantReviewModel(selectedItem, reviewEvents, {
     now,
     autoGenerateAllowed: options.autoGenerateAllowed,
@@ -784,6 +860,8 @@ export function createDailyReviewSessionState(items: Array<{ deckId?: string; le
     ratingCounts: { again: 0, hard: 0, good: 0, easy: 0 },
   };
 }
+
+export type ReviewAnswerResult = ReturnType<typeof answerVariant>;
 
 export function reconcileDailyReviewSessionState(
   session: DailyReviewSessionState,
@@ -848,12 +926,9 @@ export function getNextDailyReviewSessionItem(
   options: ReviewServiceOptions = {},
 ) {
   const decks = asDeckArray(decksOrDeck);
-  const entries = decks
-    .flatMap((deck) => activeLearningItems(deck).map((learningItem) => ({ deck, learningItem, key: reviewKey(deck.id, learningItem.id) })));
-  const entriesByKey = new Map(entries.map((entry) => [entry.key, entry]));
+  const sessionIndex = options.sessionIndex ?? createDailyReviewSessionIndex(decks);
+  const entriesByKey = sessionIndex.entriesByKey;
   const now = options.now ?? new Date().toISOString();
-  const rootDeckId = options.deckId ?? decks[0]?.id ?? null;
-  const rootDeck = decks.find((deck) => deck.id === rootDeckId) ?? decks[0] ?? null;
   const learnAheadMinutes = normalizeLearnAheadMinutes(options.learnAheadMinutes);
   const initialKey = session.remainingInitialKeys.find((candidate) => entriesByKey.has(candidate)) ?? null;
   const repeatKey = initialKey ? null : session.repeatKeys.find((candidate) => {
@@ -869,6 +944,7 @@ export function getNextDailyReviewSessionItem(
   const item = createReviewItemViewModel(entry.deck, entry.learningItem, {
     ...options,
     now,
+    reviewEvents: sessionIndex.reviewEventsByKey.get(key) ?? [],
     selectedBy: isRepeat ? "session_repeat" : "session_initial",
     queueKind: isRepeat ? "repeat" : isNewLearningItem(entry.learningItem) ? "new" : "due",
   });
@@ -994,16 +1070,12 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const selectedEntries = orderDailyQueueEntries(selectedDueEntries, selectedNewEntries, rootSettings.newReviewOrder);
   const dailyProgressEntries = [...learningEntries, ...selectedReviewEntries, ...selectedNewEntries];
   const dailyProgress = summarizeDailyReviewProgress(reviewedEntries, dailyProgressEntries, dailyConsumption.reviewedTodayKeys, now, options);
-  const items = selectedEntries
-    .map((entry) =>
-      createReviewItemViewModel(entry.deck, entry.learningItem, {
-        ...options,
-        now,
-        selectedBy: entry.learningItem.reviewState?.reps === 0 || entry.learningItem.reviewState?.repetitions === 0 ? "new_learning_item" : "due_learning_item",
-        queueKind: isNewLearningItem(entry.learningItem) ? "new" : "due",
-      }),
-    )
-    .filter(Boolean);
+  const items: DailyReviewQueueEntry[] = selectedEntries.map((entry) => ({
+    deckId: entry.deck.id,
+    learningItemId: entry.learningItem.id,
+    key: entry.key,
+    queueKind: isNewLearningItem(entry.learningItem) ? "new" : "due",
+  }));
 
   return {
     deckId: rootDeck?.id ?? null,

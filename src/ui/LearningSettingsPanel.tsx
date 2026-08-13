@@ -93,12 +93,13 @@ export function LearningSettingsPanel({ settings, profiles, defaultProfileName, 
   const [profileName, setProfileName] = React.useState(defaultProfileName);
   const [deleteProfileId, setDeleteProfileId] = React.useState<string | null>(null);
   const setSuccessToast = useSuccessToast();
+  const settingsDraftKey = JSON.stringify(createDraft(settings));
 
   React.useEffect(() => {
     const nextDraft = createDraft(settings);
     setDraft(nextDraft);
     setSelectedProfileId(nextDraft.learningProfileSource?.id ?? "custom");
-  }, [settings]);
+  }, [settingsDraftKey]);
 
   React.useEffect(() => setProfileName(defaultProfileName), [defaultProfileName]);
 

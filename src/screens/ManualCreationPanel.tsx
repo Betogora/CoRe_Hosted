@@ -1,5 +1,5 @@
 import React from "react";
-import { CircleAlert, Database, FileText, ImagePlus, PenLine, Pin, PinOff, Plus, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Database, FileText, ImagePlus, PenLine, Pin, PinOff, Plus, Upload, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -7,16 +7,18 @@ import {
   reduceManualBatchSession,
   type ManualFocusTarget,
 } from "../creationBatch.ts";
+import { applyLearningItemContent, createCoreNoteTypeDefinition, createLearningItemDocumentFromLegacy } from "../coreModel.ts";
 import type { CreationWorkflow, ManualImageAttachment } from "../creationWorkflow.ts";
-import type { CardEditorFieldErrors, CardType, Deck, SourceDocument } from "../coreTypes.ts";
+import type { CardEditorFieldErrors, Deck, SourceDocument } from "../coreTypes.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreSwitch, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
+import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
-import { cardTypeOptions, formatBytes } from "./screenConstants.ts";
+import { formatBytes } from "./screenConstants.ts";
 
 type ManualCreationWorkflow = Pick<
   CreationWorkflow,
@@ -34,6 +36,13 @@ type ManualCreationInput = NonNullable<Parameters<ManualCreationWorkflow["create
 type ManualDeckInput = ReturnType<ManualCreationWorkflow["createManualDeckInput"]>;
 type PdfSelectionOptions = Parameters<NonNullable<React.ComponentProps<typeof PdfDocumentViewer>["onSelection"]>>[1];
 type ActiveField = "front" | "back";
+type AdditionalField = { id: string; name: string; value: string; placement: "front" | "back" | "both" | "metadata" };
+const FIELD_PLACEMENT_OPTIONS = [
+  { value: "front", label: "Vorderseite" },
+  { value: "back", label: "Rückseite" },
+  { value: "both", label: "Beide Seiten" },
+  { value: "metadata", label: "Nur Metadaten" },
+] as const;
 
 export interface ManualCreationPanelProps {
   decks: Deck[];
@@ -207,6 +216,8 @@ export function ManualCreationPanel({
   const [backImage, setBackImage] = React.useState<ManualImageAttachment | null>(null);
   const [preparingImage, setPreparingImage] = React.useState<ActiveField | null>(null);
   const [imageErrors, setImageErrors] = React.useState<Record<ActiveField, string>>({ front: "", back: "" });
+  const [additionalFields, setAdditionalFields] = React.useState<AdditionalField[]>([]);
+  const [invalidAdditionalFieldIds, setInvalidAdditionalFieldIds] = React.useState<string[]>([]);
   React.useEffect(() => {
     if (decks.length === 0) setUseNewDeck(true);
   }, [decks.length]);
@@ -235,7 +246,7 @@ export function ManualCreationPanel({
   }, [activeField]);
 
   const textDraftDirty = React.useMemo(() => !manualDraftsEqual(currentDraft, cleanDraftRef.current), [currentDraft]);
-  const draftDirty = textDraftDirty || Boolean(frontImage || backImage);
+  const draftDirty = textDraftDirty || Boolean(frontImage || backImage || additionalFields.length);
 
   React.useEffect(() => {
     onDraftStateChange(draftDirty, () => focusField());
@@ -318,6 +329,7 @@ export function ManualCreationPanel({
       activeField,
       frontImage,
       backImage,
+      additionalFields,
     };
   }
 
@@ -363,6 +375,8 @@ export function ManualCreationPanel({
     dispatchBatch({ type: "saved", cardId: savedCard.id, targetDeckId: deck.id });
     setFrontImage(null);
     setBackImage(null);
+    setAdditionalFields([]);
+    setInvalidAdditionalFieldIds([]);
     setImageErrors({ front: "", back: "" });
     setFieldErrors({});
     const nextFocus = nextManualFocusTarget(nextState);
@@ -374,12 +388,32 @@ export function ManualCreationPanel({
   }
 
   async function saveManualCard() {
+    const normalizedFieldNames = additionalFields.map((field) => field.name.trim().toLocaleLowerCase("de-DE"));
+    const invalidFieldIds = additionalFields
+      .filter((field, index) => !normalizedFieldNames[index] || normalizedFieldNames.filter((name) => name === normalizedFieldNames[index]).length > 1)
+      .map((field) => field.id);
+    if (invalidFieldIds.length) {
+      setSuccessToast("");
+      setInvalidAdditionalFieldIds(invalidFieldIds);
+      setStatusType("alert");
+      setStatus("Zusatzfelder benötigen eindeutige Namen.");
+      window.requestAnimationFrame(() => editorRootRef.current?.querySelector<HTMLElement>(`[data-additional-field-name="${invalidFieldIds[0]}"]`)?.focus());
+      return;
+    }
+    setInvalidAdditionalFieldIds([]);
     const validation = workflow.validateManualCard(manualInput());
     if (!validation.ok) {
       setSuccessToast("");
       setFieldErrors(validation.errors);
       setStatusType("alert");
       setStatus("Bitte die markierten Felder prüfen.");
+      const firstInvalidTarget: ManualFocusTarget = validation.errors.front || validation.errors.question || validation.errors.textWithClozes
+        ? "front"
+        : validation.errors.options || validation.errors.correctOptionIndex
+          ? "option-0"
+          : "back";
+      setActiveField(firstInvalidTarget === "front" ? "front" : "back");
+      window.requestAnimationFrame(() => focusField(firstInvalidTarget));
       return;
     }
     try {
@@ -409,18 +443,47 @@ export function ManualCreationPanel({
   }
 
   const answerLabel = cardType === "cloze" ? "Zusatzinfo" : cardType === "multiple-choice" ? "Erklärung (optional)" : "Rückseite";
+  const isMultipleChoice = cardType === "multiple-choice";
+  const isCloze = cardType === "cloze";
+  const isReverse = cardType === "basic-reversed";
+  const nextClozeGroup = Math.max(0, ...Array.from(front.matchAll(/\{\{c(\d+)::/gi), (match) => Number(match[1]) || 0)) + 1;
+  const previewBundle = React.useMemo(() => {
+    const document = createLearningItemDocumentFromLegacy({
+      definitionVersionId: "manual-editor-preview",
+      fields: [
+        { name: "Vorderseite", value: front },
+        { name: "Rückseite", value: back },
+        ...additionalFields.map((field) => ({ name: field.name || "Zusatzfeld", value: field.value })),
+      ],
+      tags,
+    });
+    document.fields = document.fields.map((field, index) => index < 2 ? field : {
+      ...field,
+      id: additionalFields[index - 2].id,
+      placement: additionalFields[index - 2].placement,
+    });
+    if (isMultipleChoice) document.interaction = { choice: { options: answerOptions, correctAnswer: answerOptions[correctOptionIndex] ?? "", explanation: back } };
+    const definition = createCoreNoteTypeDefinition({
+      document,
+      kind: isCloze ? "cloze" : "normal",
+      interaction: isMultipleChoice ? "choice" : isCloze ? "cloze" : "reveal",
+      reverse: isReverse,
+    });
+    const result = applyLearningItemContent({ previous: null, document, definition, reason: "create" });
+    return { item: result.item, definition, variant: result.item.variants[0] };
+  }, [additionalFields, answerOptions, back, correctOptionIndex, front, isCloze, isMultipleChoice, isReverse, tags]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = showDocumentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
   const sourceFileName = document?.fileName ?? "Keine Datei ausgewählt";
 
   const editor = (
-    <div ref={editorRootRef} className="grid gap-4">
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="grid gap-3">
+    <div ref={editorRootRef} className="grid min-w-0 gap-4">
+      <div className="grid min-w-0 gap-4">
+        <div className="grid min-w-0 gap-3">
           <div className="flex flex-wrap items-end gap-3">
             {!useNewDeck && decks.length > 0 ? (
-              <label className="grid min-w-[16rem] flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              <label className="grid min-w-0 flex-[1_1_16rem] gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 Kartenstapel
                 <DeckSelect
                   ariaLabel="Kartenstapel"
@@ -440,9 +503,9 @@ export function ManualCreationPanel({
                 />
               </label>
             ) : (
-              <label className="grid min-w-[16rem] flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              <label className="grid min-w-0 flex-[1_1_16rem] gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 Neuer Kartenstapel
-                <input className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
+                <input className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
               </label>
             )}
             <button type="button" onClick={() => setUseNewDeck((value) => {
@@ -451,7 +514,7 @@ export function ManualCreationPanel({
               if (!next && nextDeckId !== initialTargetDeckId) onTargetDeckChange(nextDeckId);
               dispatchBatch({ type: "target-deck", deckId: nextDeckId });
               return next;
-            })} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
+            })} className="inline-flex min-h-11 min-w-0 max-w-full items-center gap-2 rounded-xl border border-[var(--core-border)] px-4 core-body font-semibold text-[var(--core-action-primary)]">
               <Database size={16} aria-hidden="true" />
               {useNewDeck && decks.length > 0 ? "Stapel auswählen" : "Neuen Stapel erstellen"}
             </button>
@@ -463,23 +526,23 @@ export function ManualCreationPanel({
           ) : null}
         </div>
 
-        <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-          Kartentyp
-          <CoreSelect
-            ariaLabel="Kartentyp"
-            className="w-full"
-            value={cardType}
-            options={cardTypeOptions}
-            onValueChange={(nextCardType) => {
-              dispatchBatch({ type: "draft", patch: { cardType: nextCardType as CardType } });
-              if (nextCardType !== "basic-with-images") {
-                setFrontImage(null);
-                setBackImage(null);
-                setImageErrors({ front: "", back: "" });
-              }
-            }}
-          />
-        </label>
+        <fieldset className="grid gap-2 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
+          <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Weitere Optionen</legend>
+          <div className="flex min-h-12 items-center justify-between gap-3">
+            <span>
+              <span className="block core-body font-semibold text-[var(--core-text)]">Multiple Choice</span>
+              <span className="block core-caption font-normal text-[var(--core-text-muted)]">Antwortoptionen statt freier Antwort verwenden.</span>
+            </span>
+            <CoreSwitch checked={isMultipleChoice} ariaLabel="Multiple Choice verwenden" onCheckedChange={(checked) => dispatchBatch({ type: "draft", patch: { cardType: checked ? "multiple-choice" : "basic" } })} />
+          </div>
+          <div className="flex min-h-12 items-center justify-between gap-3 border-t border-[var(--core-border)] pt-2">
+            <span>
+              <span className="block core-body font-semibold text-[var(--core-text)]">Rückrichtung erstellen</span>
+              <span className="block core-caption font-normal text-[var(--core-text-muted)]">Vorder- und Rückseite zusätzlich umgekehrt abfragen.</span>
+            </span>
+            <CoreSwitch checked={isReverse} disabled={isMultipleChoice || isCloze} ariaLabel="Rückrichtung erstellen" onCheckedChange={(checked) => dispatchBatch({ type: "draft", patch: { cardType: checked ? "basic-reversed" : "basic" } })} />
+          </div>
+        </fieldset>
       </div>
 
       <div className="grid min-w-0 gap-4">
@@ -489,22 +552,32 @@ export function ManualCreationPanel({
             <PinFieldButton isPinned={pinnedFields.front} label={cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Frage" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
           </div>
           <RichTextEditor value={front} onFocus={() => setActiveField("front")} onChange={(value) => {
-            dispatchBatch({ type: "draft", patch: { front: value } });
+            const hasClozeMarkup = /\{\{c\d+::/i.test(value);
+            dispatchBatch({
+              type: "draft",
+              patch: {
+                front: value,
+                ...(!isMultipleChoice ? { cardType: hasClozeMarkup ? "cloze" : cardType === "cloze" ? "basic" : cardType } : {}),
+              },
+            });
             setFieldErrors((current) => ({ ...current, front: undefined, question: undefined, textWithClozes: undefined }));
-          }} isActive={frontFieldActive} minHeightClass="min-h-32" ariaLabel={cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Multiple-Choice-Frage" : "Vorderseite"} ariaInvalid={Boolean(fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes)} />
-          {cardType === "cloze" ? <p className="core-body font-normal text-[var(--core-text-muted)]">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren.</p> : null}
+          }} clozeActions={isMultipleChoice ? undefined : { groupId: nextClozeGroup }} isActive={frontFieldActive} minHeightClass="min-h-32" ariaLabel={cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Multiple-Choice-Frage" : "Vorderseite"} ariaInvalid={Boolean(fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes)} />
+          {!isMultipleChoice ? <p className="core-body font-normal text-[var(--core-text-muted)]">Markiere Text und wähle in der Toolbar „Lücke“. CoRe erzeugt die Lückengruppe automatisch.</p> : null}
           {fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes}</p> : null}
         </div>
-        {cardType === "basic-with-images" ? (
-          <ManualImageField
-            label="Bild zur Vorderseite (optional)"
-            value={frontImage}
-            busy={preparingImage === "front"}
-            error={imageErrors.front}
-            onFile={(file) => void prepareImage("front", file)}
-            onRemove={() => { setFrontImage(null); setImageErrors((current) => ({ ...current, front: "" })); }}
-          />
-        ) : null}
+        <details className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
+          <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Bild zur Vorderseite einfügen (optional)</summary>
+          <div className="mt-3">
+            <ManualImageField
+              label="Bild zur Vorderseite (optional)"
+              value={frontImage}
+              busy={preparingImage === "front"}
+              error={imageErrors.front}
+              onFile={(file) => void prepareImage("front", file)}
+              onRemove={() => { setFrontImage(null); setImageErrors((current) => ({ ...current, front: "" })); }}
+            />
+          </div>
+        </details>
         <div data-manual-focus="back" className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           <div className="flex min-h-11 items-center justify-between gap-2">
             <span>{answerLabel}</span>
@@ -516,27 +589,83 @@ export function ManualCreationPanel({
           }} isActive={backFieldActive} minHeightClass="min-h-32" ariaLabel={answerLabel} ariaInvalid={Boolean(fieldErrors.back)} />
           {fieldErrors.back ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.back}</p> : null}
         </div>
-        {cardType === "basic-with-images" ? (
-          <ManualImageField
-            label="Bild zur Rückseite (optional)"
-            value={backImage}
-            busy={preparingImage === "back"}
-            error={imageErrors.back}
-            onFile={(file) => void prepareImage("back", file)}
-            onRemove={() => { setBackImage(null); setImageErrors((current) => ({ ...current, back: "" })); }}
-          />
-        ) : null}
+        <details className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
+          <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Bild zur Rückseite einfügen (optional)</summary>
+          <div className="mt-3">
+            <ManualImageField
+              label="Bild zur Rückseite (optional)"
+              value={backImage}
+              busy={preparingImage === "back"}
+              error={imageErrors.back}
+              onFile={(file) => void prepareImage("back", file)}
+              onRemove={() => { setBackImage(null); setImageErrors((current) => ({ ...current, back: "" })); }}
+            />
+          </div>
+        </details>
       </div>
+
+      <details className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
+        <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Weitere Felder ({additionalFields.length})</summary>
+        <div className="mt-4 grid gap-4">
+          {additionalFields.map((field, index) => (
+            <div key={field.id} className="grid min-w-0 gap-3 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
+              <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
+                <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+                  Feldname
+                  <input
+                    className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3"
+                    value={field.name}
+                    data-additional-field-name={field.id}
+                    aria-invalid={invalidAdditionalFieldIds.includes(field.id) || undefined}
+                    aria-describedby={invalidAdditionalFieldIds.includes(field.id) ? `additional-field-error-${field.id}` : undefined}
+                    onChange={(event) => {
+                      setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, name: event.target.value } : candidate));
+                      setInvalidAdditionalFieldIds((current) => current.filter((id) => id !== field.id));
+                    }}
+                  />
+                  {invalidAdditionalFieldIds.includes(field.id) ? <span id={`additional-field-error-${field.id}`} className="core-caption font-medium text-core-text" role="alert">Bitte einen eindeutigen Feldnamen eingeben.</span> : null}
+                </label>
+                <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+                  Platzierung
+                  <CoreSelect ariaLabel={`Platzierung von ${field.name || `Feld ${index + 1}`}`} value={field.placement} options={FIELD_PLACEMENT_OPTIONS} onValueChange={(placement) => setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, placement: placement as AdditionalField["placement"] } : candidate))} />
+                </label>
+                <div className="flex items-end gap-1">
+                  <IconButton type="button" icon={ArrowUp} label={`${field.name || `Feld ${index + 1}`} nach oben`} disabled={index === 0} onClick={() => setAdditionalFields((current) => {
+                    const next = [...current];
+                    [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                    return next;
+                  })} />
+                  <IconButton type="button" icon={ArrowDown} label={`${field.name || `Feld ${index + 1}`} nach unten`} disabled={index === additionalFields.length - 1} onClick={() => setAdditionalFields((current) => {
+                    const next = [...current];
+                    [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                    return next;
+                  })} />
+                  <IconButton type="button" icon={X} label={`${field.name || `Feld ${index + 1}`} entfernen`} onClick={() => setAdditionalFields((current) => current.filter((candidate) => candidate.id !== field.id))} />
+                </div>
+              </div>
+              <RichTextEditor value={field.value} onChange={(value) => setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, value } : candidate))} ariaLabel={`Inhalt von ${field.name || `Feld ${index + 1}`}`} minHeightClass="min-h-24" />
+            </div>
+          ))}
+          <ActionButton type="button" variant="secondary" icon={Plus} className="w-fit" onClick={() => setAdditionalFields((current) => [...current, {
+            id: `manual-field-${Date.now()}-${current.length}`,
+            name: `Zusatzfeld ${current.length + 1}`,
+            value: "",
+            placement: "metadata",
+          }])}>Feld hinzufügen</ActionButton>
+        </div>
+      </details>
 
       {cardType === "multiple-choice" ? (
         <fieldset className="grid gap-3 rounded-xl border border-[var(--core-border)] p-4">
           <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Antwortoptionen und richtige Antwort</legend>
           {answerOptions.map((option, index) => (
             <div key={index} className="flex min-w-0 items-center gap-2">
-              <input type="radio" name="manual-correct-option" checked={correctOptionIndex === index} onChange={() => {
-                dispatchBatch({ type: "draft", patch: { correctOptionIndex: index } });
-                setFieldErrors((current) => ({ ...current, correctOptionIndex: undefined }));
-              }} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex)} />
+              <label className="grid size-11 shrink-0 place-items-center">
+                <input className="size-5" type="radio" name="manual-correct-option" checked={correctOptionIndex === index} onChange={() => {
+                  dispatchBatch({ type: "draft", patch: { correctOptionIndex: index } });
+                  setFieldErrors((current) => ({ ...current, correctOptionIndex: undefined }));
+                }} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex)} />
+              </label>
               <input data-manual-focus={index === 0 ? "option-0" : undefined} className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border)] px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
               <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeAnswerOption(index)} disabled={answerOptions.length <= 2} />
             </div>
@@ -546,6 +675,35 @@ export function ManualCreationPanel({
           {fieldErrors.correctOptionIndex ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.correctOptionIndex}</p> : null}
         </fieldset>
       ) : null}
+
+      <details className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" open>
+        <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Live-Vorschau</summary>
+        <p className="mt-2 core-body text-[var(--core-text-muted)]">Diese sichere Darstellung wird auch in Kartenansicht und Review verwendet.</p>
+        <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-2">
+          <div className="grid min-w-0 content-start gap-3">
+            <CardPresentationSurface item={previewBundle.item} variant={previewBundle.variant} definition={previewBundle.definition} side="question" surface="editor-preview" title="Vorschau der Vorderseite" showCompatibility={false} />
+            {cardType === "multiple-choice" ? (
+              <div className="grid gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface p-3" aria-label="Vorschau der Antwortoptionen">
+                {answerOptions.map((option, index) => (
+                  <div key={index} className="flex min-w-0 items-center gap-2 core-body text-[var(--core-text-secondary)]">
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full border border-[var(--core-border)] font-semibold" aria-hidden="true">{index + 1}</span>
+                    <span className="min-w-0 break-words">{option || `Option ${index + 1}`}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <div className="grid min-w-0 content-start gap-3">
+            <CardPresentationSurface item={previewBundle.item} variant={previewBundle.variant} definition={previewBundle.definition} side="answer" surface="editor-preview" title="Vorschau der Rückseite" showCompatibility={false} />
+            {cardType === "multiple-choice" ? (
+              <div className="rounded-xl border border-[var(--core-border)] bg-core-surface p-3 core-body text-[var(--core-text-secondary)]">
+                <span className="block core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Richtige Antwort</span>
+                <span className="mt-1 block break-words font-semibold text-[var(--core-text)]">{answerOptions[correctOptionIndex] || "Noch nicht ausgewählt"}</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </details>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
         <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
@@ -574,7 +732,7 @@ export function ManualCreationPanel({
   );
 
   return (
-    <SoftPanel className="min-h-[calc(100vh-15rem)] p-6">
+    <SoftPanel className="core-responsive-panel-padding min-h-[calc(100vh-15rem)] p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <OrbIcon icon={PenLine} className="bg-core-info-soft text-core-text" />

@@ -67,8 +67,19 @@ async function readEntry(bytes: Uint8Array, entry: ZipEntryDescriptor) {
     throw new Error(`ZIP-Eintrag "${entry.name}" hat einen ungültigen lokalen Header.`);
   }
 
+  const flags = readUint16(view, localOffset + 6);
+  if ((flags & 0x0001) !== 0) throw new Error(`ZIP-Eintrag "${entry.name}" ist verschlüsselt und wird nicht unterstützt.`);
+  if (readUint16(view, localOffset + 8) !== entry.compressionMethod) throw new Error(`ZIP-Eintrag "${entry.name}" widerspricht dem zentralen Kompressionsverfahren.`);
   const fileNameLength = readUint16(view, localOffset + 26);
   const extraLength = readUint16(view, localOffset + 28);
+  const localName = getName(bytes, localOffset + 30, fileNameLength);
+  if (localName !== entry.name) throw new Error(`ZIP-Eintrag "${entry.name}" widerspricht dem lokalen Dateinamen.`);
+  if ((flags & 0x0008) === 0) {
+    if (readUint32(view, localOffset + 18) !== entry.compressedSize || readUint32(view, localOffset + 22) !== entry.uncompressedSize) {
+      throw new Error(`ZIP-Eintrag "${entry.name}" enthält widersprüchliche Größenangaben.`);
+    }
+  }
+  if (entry.compressedSize === 0 && entry.uncompressedSize > 0) throw new Error(`ZIP-Eintrag "${entry.name}" enthält eine ungültige deklarierte Größe.`);
   const dataStart = localOffset + 30 + fileNameLength + extraLength;
   assertRange(bytes.length, dataStart, entry.compressedSize, `Daten von "${entry.name}"`);
   const compressed = bytes.slice(dataStart, dataStart + entry.compressedSize);
@@ -106,6 +117,7 @@ export async function readZipArchive(file: { arrayBuffer(): Promise<ArrayBuffer>
     }
 
     const compressionMethod = readUint16(view, offset + 10);
+    const flags = readUint16(view, offset + 8);
     const compressedSize = readUint32(view, offset + 20);
     const uncompressedSize = readUint32(view, offset + 24);
     const fileNameLength = readUint16(view, offset + 28);
@@ -117,6 +129,8 @@ export async function readZipArchive(file: { arrayBuffer(): Promise<ArrayBuffer>
     if ([compressedSize, uncompressedSize, localHeaderOffset].includes(0xffffffff)) {
       throw new Error("ZIP64-APKG-Dateien werden nicht unterstützt.");
     }
+    if ((flags & 0x0001) !== 0) throw new Error("Verschlüsselte ZIP-Einträge werden nicht unterstützt.");
+    if (compressionMethod !== 0 && compressionMethod !== 8) throw new Error(`ZIP-Kompression ${compressionMethod} wird im MVP noch nicht unterstützt.`);
     const name = getName(bytes, offset + 46, fileNameLength);
     if (!name || entries.has(name)) throw new Error("Das ZIP-Verzeichnis enthält ungültige oder doppelte Dateinamen.");
 

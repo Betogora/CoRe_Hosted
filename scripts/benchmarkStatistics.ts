@@ -1,9 +1,10 @@
 import { performance } from "node:perf_hooks";
 import { createCoreCard, createCoreDeck } from "../src/coreModel.ts";
 import type { ReviewEvent, ReviewRating } from "../src/coreTypes.ts";
-import { createStatisticsIndex, projectStatistics, type StatisticsPeriod } from "../src/statisticsModel.ts";
+import { projectStatistics, type StatisticsPeriod } from "../src/statisticsModel.ts";
 
 const eventCount = 250_000;
+const runs = 3;
 const now = "2026-08-06T12:00:00.000Z";
 const card = createCoreCard({
   id: "statistics-benchmark-card",
@@ -55,16 +56,33 @@ const deck = createCoreDeck({
   reviewEvents,
 });
 
-const indexStartedAt = performance.now();
-const index = createStatisticsIndex([deck]);
-const indexMs = performance.now() - indexStartedAt;
+function median(values: number[]) {
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.floor(sorted.length / 2)] ?? 0;
+}
+
+function measure<T>(action: () => T) {
+  const values: number[] = [];
+  let result!: T;
+  for (let run = 0; run < runs; run += 1) {
+    const startedAt = performance.now();
+    result = action();
+    values.push(performance.now() - startedAt);
+  }
+  return {
+    result,
+    medianMs: Math.round(median(values)),
+    runsMs: values.map((value) => Math.round(value)),
+  };
+}
 
 function measureProjection(period: StatisticsPeriod) {
-  const startedAt = performance.now();
-  const projection = projectStatistics(index, { period, deckIds: "all", now, timeZone: "Europe/Berlin" });
+  const measurement = measure(() => projectStatistics([deck], { period, deckIds: "all", now, timeZone: "Europe/Berlin" }));
+  const projection = measurement.result;
   return {
     period,
-    projectionMs: Math.round(performance.now() - startedAt),
+    projectionMs: measurement.medianMs,
+    runsMs: measurement.runsMs,
     reviewsProjected: projection.summary.reviewCount,
     maximumSeriesPoints: Math.max(
       projection.activity.length,
@@ -84,7 +102,7 @@ const maximumHeatmapStoredDays = Math.max(coldStart.heatmapStoredDays, ...period
 
 console.log(JSON.stringify({
   events: eventCount,
-  indexMs: Math.round(indexMs),
+  runs,
   projectionMs: allProjection.projectionMs,
   reviewsProjected: allProjection.reviewsProjected,
   maximumSeriesPoints,
@@ -96,6 +114,9 @@ console.log(JSON.stringify({
 if (maximumSeriesPoints > 240) {
   throw new Error(`Statistikreihe überschreitet das Limit: ${maximumSeriesPoints}`);
 }
-if (periodSwitches.some((result) => result.heatmapStoredDays > result.reviewsProjected)) {
-  throw new Error("Die dünne Heatmap speichert mehr Tage als projizierte Reviews.");
+if (maximumHeatmapStoredDays > eventCount) {
+  throw new Error("Die dünne Heatmap speichert mehr Tage als vorhandene Review-Ereignisse.");
+}
+if (periodSwitches.some((result) => result.heatmapStoredDays !== maximumHeatmapStoredDays)) {
+  throw new Error("Die allzeitliche Heatmap darf sich beim Wechsel des Statistikzeitraums nicht verändern.");
 }

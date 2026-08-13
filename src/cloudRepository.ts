@@ -1,9 +1,8 @@
-import { createCloudProfile, createProfileRow, saveCloudProfile } from "./cloudAuth.ts";
+import { createCloudProfile, saveCloudProfile } from "./cloudAuth.ts";
 import { createCoreDeck } from "./coreModel.ts";
-import type { Tables } from "./database.types.ts";
 import { validateAccountRows, validateIdRows, validateMediaAssetRows, validateProfileRows, type AccountTable, type MediaAssetRow } from "./cloudRepositoryValidation.ts";
 
-export const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
+const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
 
 function mediaAssetFromRow(row: MediaAssetRow) {
   return {
@@ -15,20 +14,29 @@ function mediaAssetFromRow(row: MediaAssetRow) {
   };
 }
 
-const ACCOUNT_TABLES = ["decks", "cards", "card_variants", "review_events", "source_documents"];
-const REVISIONED_TABLES = ["source_documents", "decks", "cards", "card_variants"];
+const ACCOUNT_TABLES = ["decks", "note_type_definitions", "cards", "card_variants", "learning_item_source_snapshots", "review_events", "source_documents"];
+const REVISIONED_TABLES = ["source_documents", "decks", "note_type_definitions", "cards", "card_variants"];
 const REVISIONED_TABLE_SET = new Set(REVISIONED_TABLES);
-const TABLES_WITH_UPDATED_AT = new Set(["source_documents", "decks", "cards", "card_variants"]);
+const TABLES_WITH_UPDATED_AT = new Set(["source_documents", "decks", "note_type_definitions", "cards", "card_variants"]);
 const CARD_MODEL_META_KEY = "__coreModel";
 const REVIEW_EVENT_META_KEY = "__coreReview";
-const DELETE_ORDER = ["review_events", "card_variants", "cards", "decks", "source_documents"];
-const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at", "revision", "updated_by_device_id"]);
+const DELETE_ORDER = ["review_events", "card_variants", "learning_item_source_snapshots", "cards", "decks", "note_type_definitions", "source_documents"];
+const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at", "sync_change_id", "revision", "updated_by_device_id"]);
 const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at"]);
 const CLOUD_DELETE_BATCH_SIZE = 100;
+const CLOUD_PAGE_SIZE = 500;
+const CLOUD_WRITE_ROW_LIMIT = 250;
+const CLOUD_WRITE_BYTE_LIMIT = 1024 * 1024;
+const CLOUD_WRITE_CONCURRENCY = 4;
+const DELTA_CURSOR_COLUMN = "sync_change_id";
+const EMPTY_DELTA_CURSOR_VALUE = "0";
 const CONFLICT_PROTECTED_FIELDS = new Set([
   ...ROW_IDENTITY_FIELDS,
   "deck_id",
   "card_id",
+  "note_type_definition_id",
+  "latest_source_snapshot_id",
+  "study_deck_id",
   "source_card_id",
   "local_owner_id",
   "parent_deck_id",
@@ -41,6 +49,7 @@ const CONFLICT_PROTECTED_FIELDS = new Set([
 const CONFLICT_ACTIONS = new Set(["keep-local", "keep-remote", "merge-fields", "ignore", "reopen"]);
 const CONFLICT_ENTITY_LABELS = Object.freeze({
   decks: "Stapel",
+  note_type_definitions: "Notiztyp",
   cards: "Karte",
   card_variants: "Variante",
   source_documents: "Dokument",
@@ -53,8 +62,13 @@ const CONFLICT_FIELD_LABELS = Object.freeze({
   tags: "Tags",
   import_meta: "Importdaten",
   deck_settings: "Stapeleinstellungen",
+  definition: "Notiztypdefinition",
   version_log: "Versionsverlauf",
   kind: "Kartentyp",
+  note_type_definition_id: "Notiztyp",
+  content_document: "Inhaltsdokument",
+  latest_source_snapshot_id: "Quell-Snapshot",
+  content_revision: "Inhaltsrevision",
   draft_status: "Entwurfsstatus",
   status: "Status",
   original_front: "Vorderseite",
@@ -88,6 +102,10 @@ const CONFLICT_FIELD_LABELS = Object.freeze({
   semantic_delta: "Semantische Abweichung",
   changed_recognition_cues: "Geänderte Erkennungshinweise",
   quality_status: "Qualitätsstatus",
+  projection: "Variantenprojektion",
+  scheduling_mode: "Planungsmodus",
+  study_deck_id: "Lernstapel",
+  render_revision: "Darstellungsrevision",
   performance: "Leistungsdaten",
   feedback: "Feedback",
   file_name: "Dateiname",
@@ -102,7 +120,7 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-export class CloudRevisionConflictError extends Error {
+class CloudRevisionConflictError extends Error {
   readonly code = "cloud_revision_conflict";
   readonly entityTable: string;
   readonly entityId: string;
@@ -319,15 +337,6 @@ function conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision }: 
   return ["sync-conflict", entityTable, entityId, baseRevision ?? "new", remoteRevision ?? "missing"].map((value: any) => encodeURIComponent(String(value))).join(":");
 }
 
-function profileHasSameContent(profile: any, user: any, remoteRow: any) {
-  if (!remoteRow) return false;
-  const candidate = createProfileRow(profile, user, remoteRow.updated_at);
-  const keys = Object.keys(candidate).filter((key: any) => key !== "updated_at");
-  const left = Object.fromEntries(keys.map((key: any) => [key, (candidate as Record<string, unknown>)[key]]));
-  const right = Object.fromEntries(keys.map((key: any) => [key, remoteRow[key]]));
-  return JSON.stringify(stableValue(left)) === JSON.stringify(stableValue(right));
-}
-
 function uniqueRowsById(rows: any) {
   const byId = new Map();
   for (const row of rows) {
@@ -368,26 +377,203 @@ function requireTimestamp(value: any, fallback: any, message: any) {
   return timestamp;
 }
 
-function requireMutationIds(mutationIds: any) {
-  if (!Array.isArray(mutationIds)) throw new Error("Mutation-IDs müssen als Liste übergeben werden.");
-  return mutationIds.map((mutationId: any) => requireNonEmptyString(mutationId, "Mutation-ID fehlt."));
+function serializedBytes(value: unknown) {
+  const serialized = JSON.stringify(value);
+  return typeof TextEncoder === "undefined" ? serialized.length : new TextEncoder().encode(serialized).byteLength;
 }
 
-async function upsertRows(client: any, table: any, rows: any) {
-  if (!rows.length) return;
-  const { error } = await client.from(table).upsert(rows, { onConflict: ACCOUNT_UPSERT_CONFLICT });
-  if (error) throw error;
-}
-
-async function selectRows<T extends AccountTable>(client: any, table: T, userId: string): Promise<Tables<T>[]>;
-async function selectRows(client: any, table: AccountTable, userId: string, columns: string): Promise<Array<Record<string, unknown>>>;
-async function selectRows(client: any, table: AccountTable, userId: string, columns: string = "*"): Promise<any[]> {
-  const { data, error } = await client.from(table).select(columns).eq("user_id", userId);
-  if (error) throw error;
-  if (columns !== "*") {
-    return validateIdRows(data ?? [], table);
+function chunkRows(rows: any[] = []) {
+  const chunks: any[][] = [];
+  let chunk: any[] = [];
+  let chunkBytes = 2;
+  for (const row of rows) {
+    const rowBytes = serializedBytes(row) + (chunk.length > 0 ? 1 : 0);
+    if (rowBytes + 2 > CLOUD_WRITE_BYTE_LIMIT) {
+      throw new Error("Eine einzelne Cloud-Zeile überschreitet das maximale Schreib-Payload von 1 MiB.");
+    }
+    if (chunk.length > 0 && (chunk.length >= CLOUD_WRITE_ROW_LIMIT || chunkBytes + rowBytes > CLOUD_WRITE_BYTE_LIMIT)) {
+      chunks.push(chunk);
+      chunk = [];
+      chunkBytes = 2;
+    }
+    chunk.push(row);
+    chunkBytes += rowBytes;
   }
-  return validateAccountRows(table as AccountTable, data ?? []);
+  if (chunk.length > 0) chunks.push(chunk);
+  return chunks;
+}
+
+async function mapWithConcurrency<T, R>(items: T[], worker: (item: T) => Promise<R>, concurrency = CLOUD_WRITE_CONCURRENCY) {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await worker(items[index]);
+    }
+  }));
+  return results;
+}
+
+async function upsertRows(client: any, table: any, rows: any[], options: any = {}) {
+  for (const chunk of chunkRows(rows)) {
+    const { error } = await client.from(table).upsert(chunk, { onConflict: ACCOUNT_UPSERT_CONFLICT, ...options });
+    if (error) throw error;
+  }
+}
+
+async function selectKeysetRows(client: any, table: string, userId: string, columns = "*", { optional = false }: any = {}) {
+  const rows: any[] = [];
+  let cursor: string | null = null;
+  while (true) {
+    let query = client.from(table).select(columns).eq("user_id", userId).order("id", { ascending: true }).limit(CLOUD_PAGE_SIZE);
+    if (cursor) query = query.gt("id", cursor);
+    const { data, error } = await query;
+    if (error) {
+      if (optional && (String(error?.code ?? "") === "42P01" || /does not exist|not exist/i.test(error?.message ?? ""))) return [];
+      throw error;
+    }
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < CLOUD_PAGE_SIZE) break;
+    const nextCursor = String(page.at(-1)?.id ?? "");
+    if (!nextCursor || nextCursor === cursor) throw new Error(`Cloud-Pagination für ${table} konnte nicht fortgesetzt werden.`);
+    cursor = nextCursor;
+  }
+  return rows;
+}
+
+async function selectRows(client: any, table: AccountTable, userId: string, columns: string = "*"): Promise<any[]> {
+  const data = await selectKeysetRows(client, table, userId, columns);
+  if (columns !== "*") {
+    return validateIdRows(data, table);
+  }
+  return validateAccountRows(table as AccountTable, data);
+}
+
+async function selectRowsByField(client: any, table: AccountTable, userId: string, field: string, values: string[]) {
+  const uniqueValues = [...new Set(values.filter(Boolean))];
+  const rows: any[] = [];
+  for (let offset = 0; offset < uniqueValues.length; offset += 100) {
+    const batch = uniqueValues.slice(offset, offset + 100);
+    let cursor: string | null = null;
+    while (true) {
+      let query = client
+        .from(table)
+        .select("*")
+        .eq("user_id", userId)
+        .in(field, batch)
+        .order("id", { ascending: true })
+        .limit(CLOUD_PAGE_SIZE);
+      if (cursor) query = query.gt("id", cursor);
+      const { data, error } = await query;
+      if (error) throw error;
+      const page = validateAccountRows(table, data ?? []);
+      rows.push(...page);
+      if (page.length < CLOUD_PAGE_SIZE) break;
+      const nextCursor = String(page.at(-1)?.id ?? "");
+      if (!nextCursor || nextCursor === cursor) throw new Error(`Cloud-Pagination für ${table} konnte nicht fortgesetzt werden.`);
+      cursor = nextCursor;
+    }
+  }
+  return uniqueRowsById(rows);
+}
+
+export interface CloudDeltaCursor {
+  value: string;
+  id: string;
+}
+
+export type CloudDeltaCursors = Record<string, CloudDeltaCursor>;
+
+function normalizeDeltaCursor(value: unknown): CloudDeltaCursor | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Record<string, unknown>;
+  const cursorValue = typeof candidate.value === "string" ? candidate.value : "";
+  const id = typeof candidate.id === "string" ? candidate.id : "";
+  const sequence = Number(cursorValue);
+  if (!/^\d+$/.test(cursorValue) || /[,()]/.test(id) || !Number.isSafeInteger(sequence) || sequence < 0) return null;
+  return { value: String(sequence), id };
+}
+
+function lastDeltaCursor(rows: any[], column: string, fallback: CloudDeltaCursor | null): CloudDeltaCursor {
+  const row = rows.at(-1);
+  return row
+    ? { value: String(row[column] ?? EMPTY_DELTA_CURSOR_VALUE), id: String(row.id ?? "") }
+    : fallback ?? { value: EMPTY_DELTA_CURSOR_VALUE, id: "" };
+}
+
+async function streamAccountTable(client: any, table: AccountTable, userId: string, cursorValue: unknown, onPage: (page: CloudEntityPage) => Promise<void>) {
+  const cursor = normalizeDeltaCursor(cursorValue);
+  if (!cursor) {
+    let idCursor = "";
+    let maximum: CloudDeltaCursor = { value: EMPTY_DELTA_CURSOR_VALUE, id: "" };
+    let first = true;
+    while (true) {
+      let query = client.from(table).select("*").eq("user_id", userId).order("id", { ascending: true }).limit(CLOUD_PAGE_SIZE);
+      if (idCursor) query = query.gt("id", idCursor);
+      const { data, error } = await query;
+      if (error) throw error;
+      const rows = validateAccountRows(table, data ?? []);
+      for (const row of rows) {
+        const value = String((row as any)[DELTA_CURSOR_COLUMN] ?? EMPTY_DELTA_CURSOR_VALUE);
+        if (Number(value) > Number(maximum.value) || value === maximum.value && String((row as any).id) > maximum.id) {
+          maximum = { value, id: String((row as any).id) };
+        }
+      }
+      await onPage({ table, entities: projectCloudEntities(table, rows), reset: first });
+      first = false;
+      if (rows.length < CLOUD_PAGE_SIZE) break;
+      const next = String((rows.at(-1) as any)?.id ?? "");
+      if (!next || next === idCursor) throw new Error(`Cloud-Pagination für ${table} konnte nicht fortgesetzt werden.`);
+      idCursor = next;
+    }
+    await onPage({ table, entities: [], reset: first, cursor: maximum });
+    return maximum;
+  }
+
+  let pageCursor = cursor;
+  while (true) {
+    let query = client.from(table).select("*").eq("user_id", userId)
+      .order(DELTA_CURSOR_COLUMN, { ascending: true }).order("id", { ascending: true }).limit(CLOUD_PAGE_SIZE);
+    query = query.or(pageCursor.id
+      ? `${DELTA_CURSOR_COLUMN}.gt.${pageCursor.value},and(${DELTA_CURSOR_COLUMN}.eq.${pageCursor.value},id.gt.${pageCursor.id})`
+      : `${DELTA_CURSOR_COLUMN}.gt.${pageCursor.value}`);
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = validateAccountRows(table, data ?? []);
+    const next = lastDeltaCursor(rows, DELTA_CURSOR_COLUMN, pageCursor);
+    await onPage({ table, entities: projectCloudEntities(table, rows), reset: false, cursor: next });
+    pageCursor = next;
+    if (rows.length < CLOUD_PAGE_SIZE) break;
+  }
+  return pageCursor;
+}
+
+export async function streamAccountCloudChanges(client: any, cursors: CloudDeltaCursors, onPage: (page: CloudEntityPage) => Promise<void>) {
+  const user = await getAuthenticatedUser(client);
+  const profileRows = await selectProfileRows(client, user.id);
+  const nextCursors: CloudDeltaCursors = {};
+  for (const table of ACCOUNT_TABLES as AccountTable[]) {
+    nextCursors[table] = await streamAccountTable(client, table, user.id, cursors[table], onPage);
+  }
+  let mediaCursor = "";
+  let first = true;
+  while (true) {
+    let query = client.from("media_assets").select("*").eq("user_id", user.id).order("id", { ascending: true }).limit(100);
+    if (mediaCursor) query = query.gt("id", mediaCursor);
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = validateMediaAssetRows(data ?? []);
+    await onPage({ table: "media_assets", entities: projectCloudEntities("media_assets", rows), reset: first });
+    first = false;
+    if (rows.length < 100) break;
+    const next = String(rows.at(-1)?.id ?? "");
+    if (!next || next === mediaCursor) throw new Error("Cloud-Pagination für Medien konnte nicht fortgesetzt werden.");
+    mediaCursor = next;
+  }
+  return { profile: createCloudProfile(profileRows[0] ?? null, user), cursors: nextCursors };
 }
 
 async function selectProfileRows(client: any, userId: any) {
@@ -397,12 +583,11 @@ async function selectProfileRows(client: any, userId: any) {
 }
 
 async function selectOptionalRows(client: any, table: any, userId: any, columns: any = "*") {
-  const { data, error } = await client.from(table).select(columns).eq("user_id", userId);
-  if (error) {
-    if (String(error?.code ?? "") === "42P01" || /does not exist|not exist/i.test(error?.message ?? "")) return [];
-    throw error;
-  }
-  return data ?? [];
+  return selectKeysetRows(client, table, userId, columns, { optional: true });
+}
+
+async function selectMediaRows(client: any, userId: string) {
+  return validateMediaAssetRows(await selectKeysetRows(client, "media_assets", userId));
 }
 
 async function selectRowById(client: any, table: any, userId: any, entityId: any, columns: any = "*") {
@@ -485,9 +670,35 @@ async function deleteRowsById(client: any, table: any, userId: any, ids: any) {
   }
 }
 
+function sourceSnapshotDeletionOrder(rows: any[]) {
+  const missingIds = new Set(rows.map((row: any) => row.id));
+  const childrenByParent = new Map<string, string[]>();
+  for (const row of rows) {
+    if (!row.previous_snapshot_id || !missingIds.has(row.previous_snapshot_id)) continue;
+    const children = childrenByParent.get(row.previous_snapshot_id) ?? [];
+    children.push(row.id);
+    childrenByParent.set(row.previous_snapshot_id, children);
+  }
+  const ordered: string[] = [];
+  const visited = new Set<string>();
+  function visit(id: string) {
+    if (visited.has(id)) return;
+    visited.add(id);
+    for (const childId of childrenByParent.get(id) ?? []) visit(childId);
+    ordered.push(id);
+  }
+  for (const row of rows) visit(row.id);
+  return ordered;
+}
+
 async function deleteRowsMissingFromState(client: any, table: any, userId: any, keepRows: any, { protectedIds = new Set(), deletedAt, deviceId }: any = {}) {
   const keepIds = new Set(keepRows.map((row: any) => row.id));
-  const existingRows = await selectRows(client, table, userId, protectedIds.size > 0 ? "id, revision, deleted_at" : "id");
+  const columns = table === "learning_item_source_snapshots"
+    ? "id, previous_snapshot_id"
+    : protectedIds.size > 0
+      ? "id, revision, deleted_at"
+      : "id";
+  const existingRows = await selectRows(client, table, userId, columns);
   const missingRows = existingRows.filter((row: any) => !keepIds.has(row.id));
   const protectedRows = missingRows.filter((row: any) => protectedIds.has(row.id));
   for (const row of protectedRows) {
@@ -501,7 +712,11 @@ async function deleteRowsMissingFromState(client: any, table: any, userId: any, 
     }).eq("user_id", userId).eq("id", row.id);
     if (error) throw error;
   }
-  await deleteRowsById(client, table, userId, missingRows.filter((row: any) => !protectedIds.has(row.id)).map((row: any) => row.id));
+  const removableRows = missingRows.filter((row: any) => !protectedIds.has(row.id));
+  const removableIds = table === "learning_item_source_snapshots"
+    ? sourceSnapshotDeletionOrder(removableRows)
+    : removableRows.map((row: any) => row.id);
+  await deleteRowsById(client, table, userId, removableIds);
 }
 
 export function deckToCloudRow(deck: any, userId: any) {
@@ -526,7 +741,7 @@ export function deckToCloudRow(deck: any, userId: any) {
   };
 }
 
-export function cardToCloudRow(card: any, deck: any, userId: any) {
+function cardToCloudRow(card: any, deck: any, userId: any) {
   return {
     id: card.id,
     user_id: userId,
@@ -536,6 +751,10 @@ export function cardToCloudRow(card: any, deck: any, userId: any) {
     source_card_id: card.sourceCardId ?? null,
     source_note_id: card.sourceNoteId ?? null,
     kind: card.kind ?? card.cardType ?? "basic",
+    note_type_definition_id: card.noteTypeDefinitionId ?? null,
+    content_document: toJson(card.contentDocument, {}),
+    latest_source_snapshot_id: card.latestSourceSnapshotId ?? null,
+    content_revision: normalizeRevision(card.contentRevision),
     draft_status: card.draftStatus ?? "accepted",
     status: card.status ?? "active",
     original_front: card.originalFront ?? card.canonicalQuestion ?? "",
@@ -557,7 +776,7 @@ export function cardToCloudRow(card: any, deck: any, userId: any) {
   };
 }
 
-export function variantToCloudRow(variant: any, card: any, userId: any) {
+function variantToCloudRow(variant: any, card: any, userId: any) {
   return {
     id: variant.id,
     user_id: userId,
@@ -589,6 +808,10 @@ export function variantToCloudRow(variant: any, card: any, userId: any) {
     performance: toJson(variant.performance, {}),
     feedback: toJson(variant.feedback, []),
     version_log: toJson(variant.versionLog, []),
+    projection: toJson(variant.projection, {}),
+    scheduling_mode: variant.schedulingMode === "adaptive-presentation" ? "adaptive-presentation" : "independent-card",
+    study_deck_id: variant.studyDeckId ?? null,
+    render_revision: normalizeRevision(variant.renderRevision),
     meta: toJson(variant.meta, {}),
     created_at: variant.createdAt,
     updated_at: variant.updatedAt,
@@ -620,7 +843,7 @@ export function reviewEventToCloudRow(event: any, deck: any, userId: any, { devi
   };
 }
 
-export function sourceDocumentToCloudRow(document: any, userId: any) {
+function sourceDocumentToCloudRow(document: any, userId: any) {
   return {
     id: document.id,
     user_id: userId,
@@ -637,13 +860,82 @@ export function sourceDocumentToCloudRow(document: any, userId: any) {
   };
 }
 
+function noteTypeDefinitionToCloudRow(definition: any, userId: any) {
+  const {
+    id,
+    name,
+    revision,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    updatedByDeviceId,
+    ...content
+  } = toObject(definition);
+  return {
+    id,
+    user_id: userId,
+    name: String(name ?? "Notiztyp"),
+    definition: content,
+    created_at: createdAt,
+    updated_at: updatedAt ?? createdAt,
+    revision: normalizeRevision(revision),
+    deleted_at: deletedAt ?? null,
+    updated_by_device_id: updatedByDeviceId ?? null,
+  };
+}
+
+function learningItemSourceSnapshotToCloudRow(snapshot: any, cardId: any, userId: any) {
+  return {
+    id: snapshot.id,
+    user_id: userId,
+    card_id: cardId,
+    schema_version: 1,
+    source_kind: snapshot.sourceKind,
+    import_fingerprint: snapshot.importFingerprint ?? "",
+    previous_snapshot_id: snapshot.previousSnapshotId ?? null,
+    note_type_definition_id: snapshot.definitionVersionId ?? null,
+    source_payload: toJson(snapshot.sourcePayload, {}),
+    created_at: snapshot.createdAt,
+  };
+}
+
+function snapshotCardIds(decks: any[], snapshots: any[]) {
+  const snapshotsById = new Map(snapshots.map((snapshot: any) => [snapshot.id, snapshot]));
+  const cardIdsBySnapshotId = new Map<string, string>();
+  for (const deck of decks) {
+    for (const card of toArray(deck.cards)) {
+      let snapshotId = typeof card.latestSourceSnapshotId === "string" ? card.latestSourceSnapshotId : null;
+      const chain = new Set<string>();
+      while (snapshotId) {
+        if (chain.has(snapshotId)) throw new Error(`Quell-Snapshot-Kette für Learning Item ${card.id} ist zyklisch.`);
+        chain.add(snapshotId);
+        const snapshot = snapshotsById.get(snapshotId);
+        if (!snapshot) throw new Error(`Quell-Snapshot ${snapshotId} für Learning Item ${card.id} fehlt.`);
+        const assignedCardId = cardIdsBySnapshotId.get(snapshotId);
+        if (assignedCardId && assignedCardId !== card.id) {
+          throw new Error(`Quell-Snapshot ${snapshotId} ist mehreren Learning Items zugeordnet.`);
+        }
+        cardIdsBySnapshotId.set(snapshotId, card.id);
+        snapshotId = typeof snapshot.previousSnapshotId === "string" ? snapshot.previousSnapshotId : null;
+      }
+    }
+  }
+  const orphan = snapshots.find((snapshot: any) => !cardIdsBySnapshotId.has(snapshot.id));
+  if (orphan) throw new Error(`Quell-Snapshot ${orphan.id} ist keinem Learning Item zugeordnet.`);
+  return cardIdsBySnapshotId;
+}
+
 export function createCloudStateRows(state: any, userId: any, { deviceId = null }: any = {}) {
   const decks = toArray(state.decks);
+  const snapshots = toArray(state.learningItemSourceSnapshots);
+  const cardIdsBySnapshotId = snapshotCardIds(decks, snapshots);
 
   return {
     decks: uniqueRowsById(decks.map((deck: any) => deckToCloudRow(deck, userId))),
+    note_type_definitions: uniqueRowsById(toArray(state.noteTypeDefinitions).map((definition: any) => noteTypeDefinitionToCloudRow(definition, userId))),
     cards: uniqueRowsById(decks.flatMap((deck: any) => toArray(deck.cards).map((card: any) => cardToCloudRow(card, deck, userId)))),
     card_variants: uniqueRowsById(decks.flatMap((deck: any) => toArray(deck.cards).flatMap((card: any) => toArray(card.variants).map((variant: any) => variantToCloudRow(variant, card, userId))))),
+    learning_item_source_snapshots: uniqueRowsById(snapshots.map((snapshot: any) => learningItemSourceSnapshotToCloudRow(snapshot, cardIdsBySnapshotId.get(snapshot.id), userId))),
     review_events: uniqueRowsById(
       decks.flatMap((deck: any) => toArray(deck.reviewEvents).map((event: any) => reviewEventToCloudRow(event, deck, userId, { deviceId })).filter((row: any) => row.id && row.rating)),
     ),
@@ -683,6 +975,10 @@ function variantFromRow(row: any) {
     performance: row.performance,
     feedback: row.feedback,
     versionLog: row.version_log,
+    projection: row.projection,
+    schedulingMode: row.scheduling_mode,
+    studyDeckId: row.study_deck_id,
+    renderRevision: row.render_revision,
     meta: row.meta,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -709,6 +1005,10 @@ function cardFromRow(row: any, variants: any) {
     sourceRefId: model.sourceRefId ?? row.source_card_id ?? row.source_note_id ?? null,
     cardType: row.kind,
     kind: row.kind,
+    noteTypeDefinitionId: row.note_type_definition_id,
+    contentDocument: row.content_document,
+    latestSourceSnapshotId: row.latest_source_snapshot_id,
+    contentRevision: row.content_revision,
     draftStatus: row.draft_status,
     status: row.status,
     originalFront: row.original_front,
@@ -729,6 +1029,58 @@ function cardFromRow(row: any, variants: any) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     ...syncMetadataFromRow(row),
+  };
+}
+
+function deckFromRow(row: any) {
+  return {
+    ...createCoreDeck({
+      id: row.id,
+      ownerId: row.user_id,
+      parentDeckId: row.parent_deck_id,
+      name: row.name,
+      description: row.description,
+      source: row.source,
+      originalDeckId: row.original_deck_id,
+      hierarchyPath: row.hierarchy_path,
+      cards: [],
+      tags: row.tags,
+      importMeta: row.import_meta,
+      mediaAssets: [],
+      deckSettings: row.deck_settings,
+      sourceDocuments: [],
+      reviewEvents: [],
+      versionLog: row.version_log,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      ...syncMetadataFromRow(row),
+    }),
+    cardCount: Number(row.card_count ?? 0),
+  };
+}
+
+function noteTypeDefinitionFromRow(row: any) {
+  return {
+    ...toObject(row.definition),
+    id: row.id,
+    name: row.name,
+    revision: normalizeRevision(row.revision),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    deletedAt: row.deleted_at ?? null,
+  };
+}
+
+function learningItemSourceSnapshotFromRow(row: any) {
+  return {
+    id: row.id,
+    schemaVersion: 1,
+    sourceKind: row.source_kind,
+    importFingerprint: row.import_fingerprint,
+    previousSnapshotId: row.previous_snapshot_id,
+    definitionVersionId: row.note_type_definition_id,
+    sourcePayload: row.source_payload,
+    createdAt: row.created_at,
   };
 }
 
@@ -786,253 +1138,6 @@ function sourceDocumentFromRow(row: any) {
   };
 }
 
-function withoutConflictTombstone(state: any, entityTable: any, entityId: any) {
-  return toArray(state.cloudTombstones).filter((item: any) => item.entityTable !== entityTable || item.entityId !== entityId);
-}
-
-function replaceOrAppendById(items: any, nextItem: any) {
-  if (!nextItem) return items;
-  return items.some((item: any) => item.id === nextItem.id)
-    ? items.map((item: any) => item.id === nextItem.id ? nextItem : item)
-    : [...items, nextItem];
-}
-
-function projectResolvedCloudEntity(state: any, cloudState: any, entityTable: any, entityId: any) {
-  if (!state) return state;
-  const remoteTombstone = toArray(cloudState.cloudTombstones).find((item: any) => item.entityTable === entityTable && item.entityId === entityId);
-  const cloudTombstones = remoteTombstone
-    ? [...withoutConflictTombstone(state, entityTable, entityId), remoteTombstone]
-    : withoutConflictTombstone(state, entityTable, entityId);
-
-  if (entityTable === "decks") {
-    const remoteDeck = toArray(cloudState.decks).find((deck: any) => deck.id === entityId);
-    return {
-      ...state,
-      decks: remoteDeck ? replaceOrAppendById(toArray(state.decks), remoteDeck) : toArray(state.decks).filter((deck: any) => deck.id !== entityId),
-      cloudTombstones,
-    };
-  }
-
-  if (entityTable === "cards") {
-    const remoteDeck = toArray(cloudState.decks).find((deck: any) => toArray(deck.cards).some((card: any) => card.id === entityId));
-    const remoteCard = remoteDeck?.cards.find((card: any) => card.id === entityId) ?? null;
-    return {
-      ...state,
-      decks: toArray(state.decks).map((deck: any) => ({
-        ...deck,
-        cards: remoteCard && deck.id === remoteDeck.id
-          ? replaceOrAppendById(toArray(deck.cards), remoteCard)
-          : toArray(deck.cards).filter((card: any) => card.id !== entityId),
-      })),
-      cloudTombstones,
-    };
-  }
-
-  if (entityTable === "card_variants") {
-    let remoteVariant = null;
-    let remoteCardId = null;
-    for (const deck of toArray(cloudState.decks)) {
-      for (const card of toArray(deck.cards)) {
-        const candidate = toArray(card.variants).find((variant: any) => variant.id === entityId);
-        if (candidate) {
-          remoteVariant = candidate;
-          remoteCardId = card.id;
-          break;
-        }
-      }
-      if (remoteVariant) break;
-    }
-    return {
-      ...state,
-      decks: toArray(state.decks).map((deck: any) => ({
-        ...deck,
-        cards: toArray(deck.cards).map((card: any) => ({
-          ...card,
-          variants: remoteVariant && card.id === remoteCardId
-            ? replaceOrAppendById(toArray(card.variants), remoteVariant)
-            : toArray(card.variants).filter((variant: any) => variant.id !== entityId),
-        })),
-      })),
-      cloudTombstones,
-    };
-  }
-
-  if (entityTable === "source_documents") {
-    const remoteDocument = toArray(cloudState.documents).find((document: any) => document.id === entityId) ?? null;
-    const remoteDecks = new Map(toArray(cloudState.decks).map((deck: any) => [deck.id, deck]));
-    return {
-      ...state,
-      documents: remoteDocument
-        ? replaceOrAppendById(toArray(state.documents), remoteDocument)
-        : toArray(state.documents).filter((document: any) => document.id !== entityId),
-      decks: toArray(state.decks).map((deck: any) => {
-        const remoteDeckDocument = toArray(remoteDecks.get(deck.id)?.sourceDocuments).find((document: any) => document.id === entityId) ?? null;
-        return {
-          ...deck,
-          sourceDocuments: remoteDeckDocument
-            ? replaceOrAppendById(toArray(deck.sourceDocuments), remoteDeckDocument)
-            : toArray(deck.sourceDocuments).filter((document: any) => document.id !== entityId),
-        };
-      }),
-      cloudTombstones,
-    };
-  }
-
-  throw new Error(`Konfliktauflösung ist für ${entityTable} nicht unterstützt.`);
-}
-
-function documentsForDeck(deckCards: any, documents: any) {
-  const documentIds = new Set(deckCards.flatMap((card: any) => toArray(card.sourceAnchors).map((anchor: any) => anchor.documentId)).filter(Boolean));
-  return documents.filter((document: any) => documentIds.has(document.id));
-}
-
-function rowMaps(rowsByTable: any = {}) {
-  return Object.fromEntries(ACCOUNT_TABLES.map((table: any) => [table, new Map(toArray(rowsByTable[table]).map((row: any) => [row.id, row]))]));
-}
-
-function createCloudTombstones(rowsByTable: any = {}) {
-  return REVISIONED_TABLES.flatMap((entityTable: any) =>
-    toArray(rowsByTable[entityTable])
-      .filter((row: any) => row.deleted_at)
-      .map((row: any) => ({
-        entityTable,
-        entityId: row.id,
-        revision: normalizeRevision(row.revision),
-        deletedAt: row.deleted_at,
-        updatedByDeviceId: row.updated_by_device_id ?? null,
-      })),
-  );
-}
-
-function metadataById(items: any = []): Map<any, any> {
-  return new Map<any, any>(toArray(items).map((item: any) => [item.id, item]));
-}
-
-function tombstoneKeys(tombstones: any = []) {
-  return new Set(tombstones.map((tombstone: any) => `${tombstone.entityTable}:${tombstone.entityId}`));
-}
-
-export function reconcileCloudStateMetadata(state: any, rowsByTable: any = {}) {
-  const maps = rowMaps(rowsByTable);
-  const cloudTombstones = createCloudTombstones(rowsByTable);
-  const deletedKeys = tombstoneKeys(cloudTombstones);
-  const documents = toArray(state.documents)
-    .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
-    .map((document: any) => {
-      const row = maps.source_documents.get(document.id);
-      return row ? { ...document, ...syncMetadataFromRow(row), updatedAt: row.updated_at ?? document.updatedAt } : document;
-    });
-  const documentMap = metadataById(documents);
-
-  const decks = toArray(state.decks)
-    .filter((deck: any) => !deletedKeys.has(`decks:${deck.id}`))
-    .map((deck: any) => {
-      const deckRow = maps.decks.get(deck.id);
-      const cards = toArray(deck.cards)
-        .filter((card: any) => !deletedKeys.has(`cards:${card.id}`))
-        .map((card: any) => {
-          const cardRow = maps.cards.get(card.id);
-          const variants = toArray(card.variants)
-            .filter((variant: any) => !deletedKeys.has(`card_variants:${variant.id}`))
-            .map((variant: any) => {
-              const variantRow = maps.card_variants.get(variant.id);
-              return variantRow ? { ...variant, ...syncMetadataFromRow(variantRow) } : variant;
-            });
-          return cardRow ? { ...card, ...syncMetadataFromRow(cardRow), variants } : { ...card, variants };
-        });
-      const reviewEvents = toArray(deck.reviewEvents).map((event: any) => {
-        const row = maps.review_events.get(event.id);
-        return row ? reviewEventFromRow(row) : event;
-      });
-      const sourceDocuments = toArray(deck.sourceDocuments)
-        .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
-        .map((document: any) => documentMap.get(document.id) ?? document);
-      return {
-        ...deck,
-        ...(deckRow ? syncMetadataFromRow(deckRow) : {}),
-        cards,
-        reviewEvents,
-        sourceDocuments,
-      };
-    });
-
-  return {
-    ...state,
-    decks,
-    documents,
-    cloudTombstones,
-  };
-}
-
-export function mergeCloudSyncMetadata(state: any, acknowledgedState: any) {
-  if (!acknowledgedState) return state;
-  const acknowledgedDecks = metadataById(acknowledgedState.decks);
-  const acknowledgedDocuments = metadataById(acknowledgedState.documents);
-  const cloudTombstones = toArray(acknowledgedState.cloudTombstones);
-  const deletedKeys = tombstoneKeys(cloudTombstones);
-
-  const decks = toArray(state.decks)
-    .filter((deck: any) => !deletedKeys.has(`decks:${deck.id}`))
-    .map((deck: any) => {
-      const acknowledgedDeck = acknowledgedDecks.get(deck.id);
-      const acknowledgedCards = metadataById(acknowledgedDeck?.cards);
-      const acknowledgedEvents = metadataById(acknowledgedDeck?.reviewEvents);
-      const acknowledgedDeckDocuments = metadataById(acknowledgedDeck?.sourceDocuments);
-      return {
-        ...deck,
-        ...(acknowledgedDeck
-          ? {
-              revision: acknowledgedDeck.revision,
-              deletedAt: acknowledgedDeck.deletedAt,
-              updatedByDeviceId: acknowledgedDeck.updatedByDeviceId,
-            }
-          : {}),
-        cards: toArray(deck.cards)
-          .filter((card: any) => !deletedKeys.has(`cards:${card.id}`))
-          .map((card: any) => {
-            const acknowledgedCard = acknowledgedCards.get(card.id);
-            const acknowledgedVariants = metadataById(acknowledgedCard?.variants);
-            return {
-              ...card,
-              ...(acknowledgedCard
-                ? {
-                    revision: acknowledgedCard.revision,
-                    deletedAt: acknowledgedCard.deletedAt,
-                    updatedByDeviceId: acknowledgedCard.updatedByDeviceId,
-                  }
-                : {}),
-              variants: toArray(card.variants)
-                .filter((variant: any) => !deletedKeys.has(`card_variants:${variant.id}`))
-                .map((variant: any) => {
-                  const acknowledgedVariant = acknowledgedVariants.get(variant.id);
-                  return acknowledgedVariant
-                    ? {
-                        ...variant,
-                        revision: acknowledgedVariant.revision,
-                        deletedAt: acknowledgedVariant.deletedAt,
-                        updatedByDeviceId: acknowledgedVariant.updatedByDeviceId,
-                      }
-                    : variant;
-                }),
-            };
-          }),
-        reviewEvents: toArray(deck.reviewEvents).map((event: any) => acknowledgedEvents.get(event.id) ?? event),
-        sourceDocuments: toArray(deck.sourceDocuments)
-          .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
-          .map((document: any) => acknowledgedDeckDocuments.get(document.id) ?? acknowledgedDocuments.get(document.id) ?? document),
-      };
-    });
-
-  return {
-    ...state,
-    decks,
-    documents: toArray(state.documents)
-      .filter((document: any) => !deletedKeys.has(`source_documents:${document.id}`))
-      .map((document: any) => acknowledgedDocuments.get(document.id) ?? document),
-    cloudTombstones,
-  };
-}
-
 export async function registerAccountSyncDevice(client: any, device: any, { lastSeenAt }: any = {}) {
   const id = requireNonEmptyString(device?.id, "Geräte-ID fehlt.");
   const label = requireNonEmptyString(device?.label, "Gerätebezeichnung fehlt.");
@@ -1059,8 +1164,10 @@ export async function registerAccountSyncDevice(client: any, device: any, { last
 function summarizeCloudRows(rows: any) {
   return {
     decks: rows.decks.length,
+    noteTypeDefinitions: rows.note_type_definitions.length,
     cards: rows.cards.length,
     variants: rows.card_variants.length,
+    learningItemSourceSnapshots: rows.learning_item_source_snapshots.length,
     reviewEvents: rows.review_events.length,
     documents: rows.source_documents.length,
   };
@@ -1071,48 +1178,11 @@ async function loadAccountRows(client: any, userId: any) {
   return Object.fromEntries(ACCOUNT_TABLES.map((table: any, index: any) => [table, values[index]]));
 }
 
-function createRevisionWritePlans(desiredRows: any, remoteRows: any, tombstones: any = []) {
-  const plans: Record<string, any> = {};
-
-  for (const table of REVISIONED_TABLES) {
-    const remoteById = new Map(toArray(remoteRows[table]).map((row: any) => [row.id, row]));
-    plans[table] = toArray(desiredRows[table]).map((row: any) => {
-      const remoteRow = remoteById.get(row.id);
-      if (!remoteRow) return row.deleted_at ? { type: "unchanged", row } : { type: "insert", row: { ...row, revision: 1 }, baseRevision: null, remoteRow: null };
-      if (row.deleted_at && remoteRow.deleted_at) return { type: "unchanged", row: remoteRow };
-      if (rowsHaveSameContent(row, remoteRow)) return { type: "unchanged", row: remoteRow };
-      const localRevision = normalizeRevision(row.revision);
-      if (row.deleted_at) {
-        return { type: "delete", row, baseRevision: localRevision, deletedAt: row.deleted_at, remoteRow };
-      }
-      return { type: "update", row, baseRevision: localRevision, remoteRow };
-    });
-
-    const plannedIds = new Set(plans[table].map((plan: any) => plan.row?.id).filter(Boolean));
-    for (const tombstone of toArray(tombstones).filter((item: any) => item?.entityTable === table && item?.entityId && !plannedIds.has(item.entityId))) {
-      const remoteRow = remoteById.get(tombstone.entityId) ?? null;
-      if (!remoteRow || remoteRow.deleted_at) {
-        plans[table].push({ type: "unchanged", row: remoteRow ?? { id: tombstone.entityId } });
-        continue;
-      }
-      plans[table].push({
-        type: "delete",
-        row: { id: tombstone.entityId },
-        baseRevision: normalizeRevision(tombstone.revision),
-        deletedAt: tombstone.deletedAt,
-        remoteRow,
-      });
-    }
-  }
-
-  return plans;
-}
-
 function updatePayload(row: any, { revision, deviceId, now }: any) {
   const payload = Object.fromEntries(Object.entries(row).filter(([key]: any) => !["id", "user_id", "created_at"].includes(key)));
   payload.revision = revision;
   payload.updated_by_device_id = deviceId ?? row.updated_by_device_id ?? null;
-  if (Object.hasOwn(payload, "updated_at") && !payload.updated_at) payload.updated_at = now();
+  if (Object.hasOwn(payload, "updated_at")) payload.updated_at = now();
   return payload;
 }
 
@@ -1123,6 +1193,7 @@ function revisionMutationResult(entityTable: any, row: any, { applied = false, i
     revision: row?.revision == null ? null : normalizeRevision(row.revision),
     deletedAt: row?.deleted_at ?? null,
     updatedByDeviceId: row?.updated_by_device_id ?? null,
+    persistedRow: row?.id ? row : null,
     applied,
     idempotent,
   };
@@ -1139,7 +1210,7 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
   const row = { ...desiredRow, id: entityId, user_id: user.id };
   let remoteRow = Object.hasOwn(options, "remoteRow") ? options.remoteRow : await selectRowById(client, entityTable, user.id, entityId);
 
-  if (remoteRow && rowsHaveSameContent(row, remoteRow)) {
+  if (remoteRow && rowsHaveSameContent(row, remoteRow) && options.forceWrite !== true) {
     return revisionMutationResult(entityTable, remoteRow, { idempotent: true });
   }
 
@@ -1159,6 +1230,7 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
       ...row,
       revision: 1,
       updated_by_device_id: deviceId,
+      ...(TABLES_WITH_UPDATED_AT.has(entityTable) ? { updated_at: flushedAt } : {}),
     };
     const { data, error } = await client.from(entityTable).insert(candidate).select("*");
     if (!error && data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });
@@ -1178,7 +1250,8 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
     });
   }
 
-  if (baseRevision === null || remoteRow.deleted_at || normalizeRevision(remoteRow.revision) !== baseRevision) {
+  const restoresTombstone = Boolean(remoteRow.deleted_at) && row.deleted_at == null;
+  if (baseRevision === null || normalizeRevision(remoteRow.revision) !== baseRevision || (remoteRow.deleted_at && !restoresTombstone)) {
     return throwRevisionConflict(client, user, {
       entityTable,
       entityId,
@@ -1215,17 +1288,6 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
     deviceId,
     createdAt: flushedAt,
   });
-}
-
-export async function applyDeckMutation(client: any, deck: any, options: any = {}) {
-  const user = await getAuthenticatedUser(client);
-  return applyRevisionedRowMutation(client, user, "decks", deckToCloudRow(deck, user.id), options);
-}
-
-export async function applyCardMutation(client: any, card: any, options: any = {}) {
-  const user = await getAuthenticatedUser(client);
-  const deckId = requireNonEmptyString(options.deckId ?? card?.deckId, "Deck-ID der Karte fehlt.");
-  return applyRevisionedRowMutation(client, user, "cards", cardToCloudRow(card, { id: deckId, source: card?.source }, user.id), options);
 }
 
 async function softDeleteEntityForUser(client: any, user: any, input: any = {}, options: any = {}) {
@@ -1280,101 +1342,269 @@ async function softDeleteEntityForUser(client: any, user: any, input: any = {}, 
   });
 }
 
-export async function softDeleteEntity(client: any, input: any, options: any = {}) {
-  const user = await getAuthenticatedUser(client);
-  return softDeleteEntityForUser(client, user, input, options);
-}
-
 export async function markConflict(client: any, input: any, options: any = {}) {
   const user = await getAuthenticatedUser(client);
   return markConflictForUser(client, user, input, options);
 }
 
 async function insertRowsReturning(client: any, table: any, rows: any) {
-  if (!rows.length) return [];
-  const { data, error } = await client.from(table).insert(rows).select("*");
-  if (error) throw error;
-  return data ?? [];
-}
-
-async function applyRevisionWritePlans(client: any, user: any, plans: any, { deviceId, flushedAt }: any) {
-  for (const table of REVISIONED_TABLES) {
-    const inserts = plans[table]
-      .filter((plan: any) => plan.type === "insert")
-      .map((plan: any) => ({
-        ...plan.row,
-        revision: 1,
-        updated_by_device_id: deviceId ?? plan.row.updated_by_device_id ?? null,
-      }));
-    if (inserts.length) {
-      try {
-        await insertRowsReturning(client, table, inserts);
-      } catch (error) {
-        const databaseError = error as { code?: unknown; message?: unknown };
-        if (String(databaseError.code ?? "") !== "23505" && !/duplicate/i.test(String(databaseError.message ?? ""))) throw error;
-        for (const plan of plans[table].filter((item: any) => item.type === "insert")) {
-          await applyRevisionedRowMutation(client, user, table, plan.row, {
-            deviceId,
-            baseRevision: null,
-            flushedAt,
-          });
-        }
-      }
-    }
-
-    for (const plan of plans[table].filter((item: any) => item.type === "update")) {
-      await applyRevisionedRowMutation(client, user, table, plan.row, {
-        deviceId,
-        baseRevision: plan.baseRevision,
-        flushedAt,
-        remoteRow: plan.remoteRow,
-      });
-    }
-
-    for (const plan of plans[table].filter((item: any) => item.type === "delete")) {
-      await softDeleteEntityForUser(client, user, {
-        entityTable: table,
-        entityId: plan.row.id,
-        baseRevision: plan.baseRevision,
-        deletedAt: plan.deletedAt,
-      }, {
-        deviceId,
-        flushedAt,
-        remoteRow: plan.remoteRow,
-      });
-    }
+  const inserted = [];
+  for (const chunk of chunkRows(rows)) {
+    const { data, error } = await client.from(table).insert(chunk).select("*");
+    if (error) throw error;
+    inserted.push(...(data ?? []));
   }
+  return inserted;
 }
 
-async function appendMissingReviewEvents(client: any, desiredRows: any, remoteRows: any, { deviceId }: any) {
-  const remoteIds = new Set(toArray(remoteRows).map((row: any) => row.id));
-  const inserts = toArray(desiredRows)
-    .filter((row: any) => !remoteIds.has(row.id))
-    .map((row: any) => ({ ...row, created_by_device_id: row.created_by_device_id ?? deviceId ?? null }));
-  if (!inserts.length) return;
-  const { error } = await client.from("review_events").upsert(inserts, { onConflict: ACCOUNT_UPSERT_CONFLICT, ignoreDuplicates: true });
-  if (error) throw error;
+export async function softDeleteEntity(client: any, input: any, options: any = {}) {
+  return softDeleteEntityForUser(client, await getAuthenticatedUser(client), input, options);
 }
 
-export async function appendReviewEvent(client: any, event: any, { deviceId, mutationId }: any = {}) {
-  const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
-  const resolvedMutationId = requireNonEmptyString(mutationId, "Mutation-ID fehlt.");
-  const deckId = event?.deckId;
-  if (!event?.id || !deckId || !event?.rating) throw new Error("Review-Event ist unvollständig.");
+export interface CloudEntityPage {
+  table: AccountTable | "media_assets";
+  entities: any[];
+  reset: boolean;
+  cursor?: CloudDeltaCursor;
+}
+
+function projectCloudEntities(table: AccountTable | "media_assets", rows: any[]) {
+  if (table === "decks") return rows.map(deckFromRow);
+  if (table === "cards") return rows.map((row) => cardFromRow(row, []));
+  if (table === "card_variants") return rows.map(variantFromRow);
+  if (table === "review_events") return rows.map(reviewEventFromRow);
+  if (table === "source_documents") return rows.map(sourceDocumentFromRow);
+  if (table === "note_type_definitions") return rows.map(noteTypeDefinitionFromRow);
+  if (table === "learning_item_source_snapshots") return rows.map(learningItemSourceSnapshotFromRow);
+  return rows.map(mediaAssetFromRow);
+}
+
+export async function applyEntityMutation(client: any, mutation: any, options: any = {}): Promise<any> {
   const user = await getAuthenticatedUser(client);
-  const row = reviewEventToCloudRow(event, { id: deckId }, user.id, { deviceId: resolvedDeviceId });
-  const { error } = await client.from("review_events").upsert([row], {
-    onConflict: ACCOUNT_UPSERT_CONFLICT,
-    ignoreDuplicates: true,
-  });
-  if (error) throw error;
-  const persisted = await selectRowById(client, "review_events", user.id, row.id);
-  if (!persisted || !rowsHaveSameContent(row, persisted)) {
-    const mismatch = new Error("Das Review-Event konnte nicht unverändert in der Cloud bestätigt werden.") as Error & { code: string };
-    mismatch.code = "review_event_confirmation_failed";
-    throw mismatch;
+  const entityTable = requireNonEmptyString(mutation?.table, "Tabelle der Entity-Mutation fehlt.");
+  if (mutation?.tombstone) {
+    return softDeleteEntityForUser(client, user, {
+      entityTable,
+      entityId: mutation.entityId,
+      baseRevision: mutation.baseRevision,
+      deletedAt: mutation.deletedAt,
+    }, options);
   }
-  return { eventId: row.id, acknowledgedMutationId: resolvedMutationId };
+  const entity = mutation?.entity;
+  if (entityTable === "learning_item_source_snapshots") {
+    const cardId = requireNonEmptyString(mutation?.cardId, "Karten-ID des Quell-Snapshots fehlt.");
+    const desired = learningItemSourceSnapshotToCloudRow(entity, cardId, user.id);
+    const remote = await selectSourceSnapshotsById(client, user.id, [desired.id]);
+    const persisted = (await appendMissingSourceSnapshots(client, user.id, [desired], remote)).find((row: any) => row.id === desired.id);
+    if (mutation.attachToCard) {
+      const { error } = await client.from("cards").update({ latest_source_snapshot_id: desired.id }).eq("user_id", user.id).eq("id", cardId);
+      if (error) throw error;
+    }
+    return { persistedRow: persisted };
+  }
+  if (entityTable === "review_events") {
+    const desired = reviewEventToCloudRow(entity, { id: mutation.deckId ?? entity?.deckId }, user.id, options);
+    const remote = await selectRowsByField(client, "review_events", user.id, "id", [desired.id]);
+    if (remote.length) return { persistedRow: remote[0], idempotent: true };
+    const [persisted] = await insertRowsReturning(client, "review_events", [desired]);
+    return { persistedRow: validateAccountRows("review_events", [persisted])[0] };
+  }
+  const row = entityTable === "decks"
+    ? deckToCloudRow(entity, user.id)
+    : entityTable === "cards"
+      ? cardToCloudRow(entity, { id: mutation.deckId ?? entity?.deckId, source: entity?.source }, user.id)
+      : entityTable === "card_variants"
+        ? variantToCloudRow(entity, { id: mutation.cardId ?? entity?.learningItemId }, user.id)
+        : entityTable === "source_documents"
+          ? sourceDocumentToCloudRow(entity, user.id)
+          : entityTable === "note_type_definitions"
+            ? noteTypeDefinitionToCloudRow(entity, user.id)
+            : null;
+  if (!row) throw new Error(`Entity-Mutation wird für ${entityTable} nicht unterstützt.`);
+  return applyRevisionedRowMutation(client, user, entityTable, row, {
+    ...options,
+    baseRevision: mutation.baseRevision,
+  });
+}
+
+function entityMutationRow(entityTable: string, mutation: any, userId: string) {
+  const entity = mutation?.entity;
+  return entityTable === "decks"
+    ? deckToCloudRow(entity, userId)
+    : entityTable === "cards"
+      ? cardToCloudRow(entity, { id: mutation.deckId ?? entity?.deckId, source: entity?.source }, userId)
+      : entityTable === "card_variants"
+        ? variantToCloudRow(entity, { id: mutation.cardId ?? entity?.learningItemId }, userId)
+        : entityTable === "source_documents"
+          ? sourceDocumentToCloudRow(entity, userId)
+          : entityTable === "note_type_definitions"
+            ? noteTypeDefinitionToCloudRow(entity, userId)
+            : null;
+}
+
+export async function applyEntityMutationBatch(client: any, mutations: any[], options: any = {}) {
+  if (!mutations.length) return [];
+  const user = await getAuthenticatedUser(client);
+  const entityTable = requireNonEmptyString(mutations[0]?.table, "Tabelle der Entity-Mutation fehlt.");
+  if (mutations.some((mutation) => mutation.table !== entityTable || mutation.tombstone || ["learning_item_source_snapshots", "review_events"].includes(entityTable))) {
+    return mapWithConcurrency(mutations, (mutation) => applyEntityMutation(client, mutation, options));
+  }
+  const rows = mutations.map((mutation) => entityMutationRow(entityTable, mutation, user.id));
+  if (rows.some((row) => !row)) throw new Error(`Entity-Mutation wird für ${entityTable} nicht unterstützt.`);
+  const validRows = rows as any[];
+  const remoteRows = await selectRowsByField(client, entityTable as AccountTable, user.id, "id", validRows.map((row) => row.id));
+  const remoteById = new Map(remoteRows.map((row: any) => [row.id, row]));
+  const results = new Array(mutations.length);
+  const inserts = mutations.flatMap((mutation, index) => mutation.baseRevision == null && !remoteById.has(validRows[index].id) ? [{ mutation, index }] : []);
+  if (inserts.length) {
+    const flushedAt = requireTimestamp(options.flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
+    const deviceId = requireNonEmptyString(options.deviceId, "Geräte-ID fehlt.");
+    const candidates = inserts.map(({ index }) => ({
+      ...validRows[index],
+      revision: 1,
+      updated_by_device_id: deviceId,
+      ...(TABLES_WITH_UPDATED_AT.has(entityTable) ? { updated_at: flushedAt } : {}),
+    }));
+    try {
+      const persisted = await insertRowsReturning(client, entityTable, candidates);
+      const persistedById = new Map(persisted.map((row: any) => [row.id, row]));
+      for (const { index } of inserts) results[index] = revisionMutationResult(entityTable, persistedById.get(validRows[index].id), { applied: true });
+    } catch {
+      await mapWithConcurrency(inserts, async ({ mutation, index }) => {
+        results[index] = await applyRevisionedRowMutation(client, user, entityTable, validRows[index], { ...options, baseRevision: mutation.baseRevision });
+      });
+    }
+  }
+  const remaining = mutations.flatMap((mutation, index) => results[index] ? [] : [{ mutation, index }]);
+  await mapWithConcurrency(remaining, async ({ mutation, index }) => {
+    results[index] = await applyRevisionedRowMutation(client, user, entityTable, validRows[index], {
+      ...options,
+      baseRevision: mutation.baseRevision,
+      remoteRow: remoteById.get(validRows[index].id) ?? null,
+    });
+  });
+  return results;
+}
+
+export async function recordAtomicReview(client: any, input: any, { deviceId, mutationId }: any = {}) {
+  const user = await getAuthenticatedUser(client);
+  const deck = input?.deck;
+  const card = input?.card;
+  const variant = input?.variant;
+  const event = input?.event;
+  const eventRow = reviewEventToCloudRow(event, deck, user.id, { deviceId });
+  const { data, error } = await client.rpc("record_review_atomic", {
+    p_deck_id: deck?.id,
+    p_deck_base_revision: Number(input?.baseRevisions?.deck ?? deck?.revision ?? 1),
+    p_card_id: card?.id,
+    p_card_base_revision: Number(input?.baseRevisions?.card ?? card?.revision ?? 1),
+    p_card_review_state: toJson(card?.learningItemState ?? card?.reviewState, {}),
+    p_card_core_state: toJson(card?.coreState, {}),
+    p_card_updated_at: card?.updatedAt ?? event?.answeredAt,
+    p_variant_id: variant?.id ?? null,
+    p_variant_base_revision: variant ? Number(input?.baseRevisions?.variant ?? variant.revision ?? 1) : null,
+    p_variant_review_state: variant ? toJson(variant.reviewState, {}) : null,
+    p_variant_performance: variant ? toJson(variant.performance, {}) : null,
+    p_variant_updated_at: variant?.updatedAt ?? event?.answeredAt ?? null,
+    p_event: eventRow,
+    p_device_id: deviceId,
+  });
+  if (error) {
+    const code = String(error.code ?? "");
+    if (code === "PGRST202" || code === "42883" || /record_review_atomic|function.*does not exist/i.test(String(error.message ?? ""))) {
+      const unavailable = new Error("Die atomare Review-Synchronisierung ist auf dem Server noch nicht verfügbar. Die lokale Änderung bleibt vorgemerkt.") as Error & { code: string };
+      unavailable.code = "review_rpc_unavailable";
+      throw unavailable;
+    }
+    throw error;
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("Die atomare Review-Antwort hatte ein ungültiges Format.");
+  }
+  const response = data as Record<string, unknown>;
+  const rows = {
+    deck: validateAccountRows("decks", [response.deck])[0],
+    card: validateAccountRows("cards", [response.card])[0],
+    variant: response.variant == null ? null : validateAccountRows("card_variants", [response.variant])[0],
+    event: validateAccountRows("review_events", [response.event])[0],
+  };
+  return { acknowledgedMutationId: mutationId, rows };
+}
+
+function sourceSnapshotRowsEqual(left: any, right: any) {
+  return rowsHaveSameContent(left, right);
+}
+
+function orderMissingSourceSnapshots(rows: any[], remoteRows: any[]) {
+  const remoteIds = new Set(toArray(remoteRows).map((row: any) => row.id));
+  const missingById = new Map(rows.map((row: any) => [row.id, row]));
+  const ordered: any[] = [];
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+
+  function visit(row: any) {
+    if (visited.has(row.id)) return;
+    if (visiting.has(row.id)) throw new Error(`Quell-Snapshot-Kette bei ${row.id} ist zyklisch.`);
+    visiting.add(row.id);
+    const previousId = row.previous_snapshot_id;
+    if (previousId && !remoteIds.has(previousId)) {
+      const previous = missingById.get(previousId);
+      if (!previous) throw new Error(`Vorgänger-Snapshot ${previousId} für ${row.id} fehlt.`);
+      visit(previous);
+    }
+    visiting.delete(row.id);
+    visited.add(row.id);
+    ordered.push(row);
+  }
+
+  for (const row of rows) visit(row);
+  return ordered;
+}
+
+async function selectSourceSnapshotsById(client: any, userId: string, ids: string[]) {
+  const rows: any[] = [];
+  for (let offset = 0; offset < ids.length; offset += CLOUD_WRITE_ROW_LIMIT) {
+    const batch = ids.slice(offset, offset + CLOUD_WRITE_ROW_LIMIT);
+    const { data, error } = await client
+      .from("learning_item_source_snapshots")
+      .select("*")
+      .eq("user_id", userId)
+      .in("id", batch);
+    if (error) throw error;
+    rows.push(...validateAccountRows("learning_item_source_snapshots", data ?? []));
+  }
+  return rows;
+}
+
+async function appendMissingSourceSnapshots(client: any, userId: string, desiredRows: any[], remoteRows: any[]) {
+  const remoteById = new Map(toArray(remoteRows).map((row: any) => [row.id, row]));
+  for (const desired of desiredRows) {
+    const remote = remoteById.get(desired.id);
+    if (remote && !sourceSnapshotRowsEqual(desired, remote)) {
+      const conflict = new Error(`Quell-Snapshot ${desired.id} ist in der Cloud bereits mit anderem Inhalt vorhanden.`) as Error & { code: string };
+      conflict.code = "source_snapshot_immutable_conflict";
+      throw conflict;
+    }
+  }
+
+  const missing = orderMissingSourceSnapshots(
+    desiredRows.filter((row: any) => !remoteById.has(row.id)),
+    remoteRows,
+  );
+  if (!missing.length) return validateAccountRows("learning_item_source_snapshots", remoteRows);
+  await upsertRows(client, "learning_item_source_snapshots", missing, { ignoreDuplicates: true });
+
+  const confirmed = await selectSourceSnapshotsById(client, userId, missing.map((row: any) => row.id));
+  const confirmedById = new Map(confirmed.map((row: any) => [row.id, row]));
+  for (const desired of missing) {
+    const persisted = confirmedById.get(desired.id);
+    if (!persisted || !sourceSnapshotRowsEqual(desired, persisted)) {
+      const mismatch = new Error(`Quell-Snapshot ${desired.id} konnte nicht unverändert in der Cloud bestätigt werden.`) as Error & { code: string };
+      mismatch.code = "source_snapshot_confirmation_failed";
+      throw mismatch;
+    }
+  }
+  return validateAccountRows("learning_item_source_snapshots", uniqueRowsById([...remoteRows, ...confirmed]));
 }
 
 export async function upsertAccountCloudProfile(client: any, profile: any, { mutationId, flushedAt }: any = {}) {
@@ -1384,20 +1614,51 @@ export async function upsertAccountCloudProfile(client: any, profile: any, { mut
   return { acknowledgedMutationId: resolvedMutationId };
 }
 
+function acknowledgeRestoreState(state: any, rows: Record<string, any[]>) {
+  const byId = (table: string) => new Map(rows[table].map((row: any) => [row.id, row]));
+  const decks = byId("decks");
+  const cards = byId("cards");
+  const variants = byId("card_variants");
+  const documents = byId("source_documents");
+  const definitions = byId("note_type_definitions");
+  return {
+    ...state,
+    decks: toArray(state.decks).map((deck: any) => ({
+      ...deck,
+      ...syncMetadataFromRow(decks.get(deck.id)),
+      cards: toArray(deck.cards).map((card: any) => ({
+        ...card,
+        ...syncMetadataFromRow(cards.get(card.id)),
+        variants: toArray(card.variants).map((variant: any) => ({ ...variant, ...syncMetadataFromRow(variants.get(variant.id)) })),
+      })),
+      sourceDocuments: toArray(deck.sourceDocuments).map((document: any) => ({ ...document, ...syncMetadataFromRow(documents.get(document.id)) })),
+    })),
+    documents: toArray(state.documents).map((document: any) => ({ ...document, ...syncMetadataFromRow(documents.get(document.id)) })),
+    noteTypeDefinitions: toArray(state.noteTypeDefinitions).map((definition: any) => ({ ...definition, ...syncMetadataFromRow(definitions.get(definition.id)) })),
+    cloudTombstones: [],
+  };
+}
+
 export async function replaceAccountCloudState(client: any, state: any, { deviceId }: any = {}) {
   const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
   const user = await getAuthenticatedUser(client);
   const [remoteRows, mediaResult] = await Promise.all([
     loadAccountRows(client, user.id),
-    client.from("media_assets").select("*").eq("user_id", user.id),
+    selectMediaRows(client, user.id),
   ]);
-  if (mediaResult.error) throw mediaResult.error;
-  const mediaRows = validateMediaAssetRows(mediaResult.data ?? []);
+  const mediaRows = mediaResult;
   const mediaParentIds = {
     decks: new Set(mediaRows.map((row) => row.deck_id).filter(Boolean)),
     cards: new Set(mediaRows.map((row) => row.card_id).filter(Boolean)),
   };
   const rows: Record<string, any[]> = createCloudStateRows(state, user.id, { deviceId: resolvedDeviceId });
+  const desiredCardIds = new Set(rows.cards.map((row: any) => row.id));
+  const mediaReferencedNoteTypeDefinitionIds = new Set(
+    toArray(remoteRows.cards)
+      .filter((row: any) => mediaParentIds.cards.has(row.id) && !desiredCardIds.has(row.id))
+      .map((row: any) => row.note_type_definition_id)
+      .filter(Boolean),
+  );
 
   for (const table of REVISIONED_TABLES) {
     const remoteById = new Map(toArray(remoteRows[table]).map((row: any) => [row.id, row]));
@@ -1411,6 +1672,14 @@ export async function replaceAccountCloudState(client: any, state: any, { device
   await saveCloudProfile(client, state.profile ?? {});
   await upsertRows(client, "source_documents", rows.source_documents);
   await upsertRows(client, "decks", rows.decks);
+  await upsertRows(client, "note_type_definitions", rows.note_type_definitions);
+  const remoteCardsById = new Map(toArray(remoteRows.cards).map((row: any) => [row.id, row]));
+  const initialCardRows = rows.cards.map((row: any) => ({
+    ...row,
+    latest_source_snapshot_id: remoteCardsById.get(row.id)?.latest_source_snapshot_id ?? null,
+  }));
+  await upsertRows(client, "cards", initialCardRows);
+  await appendMissingSourceSnapshots(client, user.id, rows.learning_item_source_snapshots, remoteRows.learning_item_source_snapshots);
   await upsertRows(client, "cards", rows.cards);
   await upsertRows(client, "card_variants", rows.card_variants);
   await upsertRows(client, "review_events", rows.review_events);
@@ -1418,125 +1687,25 @@ export async function replaceAccountCloudState(client: any, state: any, { device
   const deletedAt = nowIso();
   for (const table of DELETE_ORDER) {
     await deleteRowsMissingFromState(client, table, user.id, rows[table], {
-      protectedIds: table === "decks" ? mediaParentIds.decks : table === "cards" ? mediaParentIds.cards : new Set(),
+      protectedIds: table === "decks"
+        ? mediaParentIds.decks
+        : table === "cards"
+          ? mediaParentIds.cards
+          : table === "note_type_definitions"
+            ? mediaReferencedNoteTypeDefinitionIds
+            : new Set(),
       deletedAt,
       deviceId: resolvedDeviceId,
     });
   }
 
-  const persistedRows = await loadAccountRows(client, user.id);
   return {
-    state: reconcileCloudStateMetadata(state, persistedRows),
+    state: acknowledgeRestoreState(state, rows),
     summary: summarizeCloudRows(rows),
   };
 }
 
-export async function upsertAccountCloudState(client: any, state: any, { deviceId, mutationIds = [], flushedAt }: any = {}) {
-  const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
-  const acknowledgedMutationIds = requireMutationIds(mutationIds);
-  const writeTimestamp = requireTimestamp(flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
-  const user = await getAuthenticatedUser(client);
-  const desiredRows = createCloudStateRows(state, user.id, { deviceId: resolvedDeviceId });
-  const [remoteRows, profileRows] = await Promise.all([loadAccountRows(client, user.id), selectProfileRows(client, user.id)]);
-  const plans = createRevisionWritePlans(desiredRows, remoteRows, state.cloudTombstones);
-
-  await applyRevisionWritePlans(client, user, plans, { deviceId: resolvedDeviceId, flushedAt: writeTimestamp });
-  await appendMissingReviewEvents(client, desiredRows.review_events, remoteRows.review_events, { deviceId: resolvedDeviceId });
-  if (!profileHasSameContent(state.profile ?? {}, user, profileRows[0] ?? null)) {
-    await saveCloudProfile(client, state.profile ?? {});
-  }
-
-  const persistedRows = await loadAccountRows(client, user.id);
-  return {
-    state: reconcileCloudStateMetadata(state, persistedRows),
-    summary: summarizeCloudRows(desiredRows),
-    acknowledgedMutationIds,
-  };
-}
-
-export async function loadAccountCloudState(client: any, fallbackState: any = {}) {
-  const user = await getAuthenticatedUser(client);
-  const [profileRows, deckRows, cardRows, variantRows, reviewRows, documentRows, mediaResult] = await Promise.all([
-    selectProfileRows(client, user.id),
-    selectRows(client, "decks", user.id),
-    selectRows(client, "cards", user.id),
-    selectRows(client, "card_variants", user.id),
-    selectRows(client, "review_events", user.id),
-    selectRows(client, "source_documents", user.id),
-    client.from("media_assets").select("*").eq("user_id", user.id),
-  ]);
-  if (mediaResult.error) throw mediaResult.error;
-  const mediaRows = validateMediaAssetRows(mediaResult.data ?? []).filter((row) => !row.deleted_at);
-  const rowsByTable = {
-    decks: deckRows,
-    cards: cardRows,
-    card_variants: variantRows,
-    review_events: reviewRows,
-    source_documents: documentRows,
-  };
-  const activeDeckIds = new Set(deckRows.filter((row: any) => !row.deleted_at).map((row: any) => row.id));
-  const activeCardRows = cardRows.filter((row: any) => !row.deleted_at && activeDeckIds.has(row.deck_id));
-  const activeCardIds = new Set(activeCardRows.map((row: any) => row.id));
-  const activeVariantRows = variantRows.filter((row: any) => !row.deleted_at && activeCardIds.has(row.card_id));
-  const documents = documentRows.filter((row: any) => !row.deleted_at).map(sourceDocumentFromRow);
-  const variantsByCardId = new Map();
-  for (const variant of activeVariantRows.map(variantFromRow)) {
-    variantsByCardId.set(variant.cardId, [...(variantsByCardId.get(variant.cardId) ?? []), variant]);
-  }
-
-  const cardsByDeckId = new Map();
-  for (const row of activeCardRows) {
-    const card = cardFromRow(row, variantsByCardId.get(row.id) ?? []);
-    cardsByDeckId.set(row.deck_id, [...(cardsByDeckId.get(row.deck_id) ?? []), card]);
-  }
-
-  const reviewEventsByDeckId = new Map();
-  for (const event of reviewRows.map(reviewEventFromRow)) {
-    reviewEventsByDeckId.set(event.deckId, [...(reviewEventsByDeckId.get(event.deckId) ?? []), event]);
-  }
-
-  const mediaByDeckId = new Map<string, ReturnType<typeof mediaAssetFromRow>[]>();
-  for (const media of mediaRows.map(mediaAssetFromRow)) {
-    if (!activeDeckIds.has(media.deckId) || (media.cardId && !activeCardIds.has(media.cardId))) continue;
-    mediaByDeckId.set(media.deckId, [...(mediaByDeckId.get(media.deckId) ?? []), media]);
-  }
-
-  const decks = deckRows.filter((row: any) => !row.deleted_at).map((row: any) => {
-    const cards = cardsByDeckId.get(row.id) ?? [];
-    return createCoreDeck({
-      id: row.id,
-      ownerId: row.user_id,
-      parentDeckId: row.parent_deck_id,
-      name: row.name,
-      description: row.description,
-      source: row.source,
-      originalDeckId: row.original_deck_id,
-      hierarchyPath: row.hierarchy_path,
-      cards,
-      tags: row.tags,
-      importMeta: row.import_meta,
-      mediaAssets: mediaByDeckId.get(row.id) ?? [],
-      deckSettings: row.deck_settings,
-      sourceDocuments: documentsForDeck(cards, documents),
-      reviewEvents: reviewEventsByDeckId.get(row.id) ?? [],
-      versionLog: row.version_log,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      ...syncMetadataFromRow(row),
-    });
-  });
-
-  return {
-    ...fallbackState,
-    profile: createCloudProfile(profileRows[0] ?? null, user, fallbackState.profile),
-    decks,
-    documents,
-    cloudTombstones: createCloudTombstones(rowsByTable),
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-export function syncConflictFromRow(row: any) {
+function syncConflictFromRow(row: any) {
   return createConflictProjection(row);
 }
 
@@ -1660,27 +1829,25 @@ export async function resolveAccountSyncConflict(client: any, conflictId: any, d
   const normalized = normalizeConflictDecision(decision, conflictRow);
 
   if (conflictRow.status === "resolved") {
-    const cloudState = await loadAccountCloudState(client, options.currentState ?? {});
     return {
       conflict: syncConflictFromRow(conflictRow),
-      nextState: projectResolvedCloudEntity(options.currentState, cloudState, conflictRow.entity_table, conflictRow.entity_id),
+      resolvedPage: null,
       resolved: true,
     };
   }
   if (normalized.action === "reopen" && conflictRow.status !== "ignored") throw new Error("Nur zurückgestellte Konflikte können wieder aufgenommen werden.");
 
-  if (!["ignore", "reopen"].includes(normalized.action)) {
-    await persistConflictChoice(client, user, conflictRow, normalized, { deviceId, resolvedAt });
-  }
+  const persisted = !["ignore", "reopen"].includes(normalized.action)
+    ? await persistConflictChoice(client, user, conflictRow, normalized, { deviceId, resolvedAt })
+    : null;
   const updatedConflict = await updateConflictResolution(client, user, conflictRow, normalized, { deviceId, resolvedAt });
-  const cloudState = ["ignore", "reopen"].includes(normalized.action)
-    ? null
-    : await loadAccountCloudState(client, options.currentState ?? {});
   return {
     conflict: syncConflictFromRow(updatedConflict),
-    nextState: ["ignore", "reopen"].includes(normalized.action)
-      ? options.currentState
-      : projectResolvedCloudEntity(options.currentState, cloudState, conflictRow.entity_table, conflictRow.entity_id),
+    resolvedPage: persisted ? {
+      table: conflictRow.entity_table,
+      entities: projectCloudEntities(conflictRow.entity_table, [persisted]),
+      reset: false,
+    } : null,
     resolved: !["ignore", "reopen"].includes(normalized.action),
   };
 }

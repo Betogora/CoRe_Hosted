@@ -1,12 +1,11 @@
 import {
-  appendReviewEvent,
+  applyEntityMutation,
+  applyEntityMutationBatch,
   listAccountSyncConflicts,
-  loadAccountCloudState,
-  mergeCloudSyncMetadata,
   registerAccountSyncDevice,
+  recordAtomicReview,
   resolveAccountSyncConflict,
   upsertAccountCloudProfile,
-  upsertAccountCloudState,
 } from "./cloudRepository.ts";
 import {
   createSyncConflictStatus,
@@ -17,8 +16,6 @@ import {
   createSyncSavedStatus,
   createSyncSavingStatus,
 } from "./accountSession.ts";
-import { createSyncOutbox } from "./syncOutbox.ts";
-
 const DEFAULT_RETRY_BASE_DELAY_MS = 1_000;
 const DEFAULT_RETRY_MAX_DELAY_MS = 30_000;
 const RETRYABLE_HTTP_STATUSES = new Set([408, 429]);
@@ -87,11 +84,53 @@ function addMilliseconds(timestamp: any, milliseconds: any) {
   return new Date((Number.isFinite(parsed) ? parsed : Date.now()) + milliseconds).toISOString();
 }
 
+const ENTITY_UPSERT_ORDER: Record<string, number> = {
+  source_documents: 0,
+  note_type_definitions: 0,
+  decks: 1,
+  cards: 2,
+  learning_item_source_snapshots: 3,
+  card_variants: 4,
+  review_events: 5,
+};
+
+function orderMutationBatch(mutations: any[]) {
+  return mutations
+    .map((mutation, index) => ({ mutation, index }))
+    .sort((left, right) => {
+      const priority = (entry: { mutation: any }) => {
+        const mutation = entry.mutation;
+        if (mutation.type === SYNC_MUTATION_TYPES.profilePatch) return -10;
+        if (mutation.type !== SYNC_MUTATION_TYPES.entityMutation) return 20;
+        const table = mutation.payload?.table ?? mutation.table;
+        const tableOrder = ENTITY_UPSERT_ORDER[table] ?? 10;
+        return mutation.payload?.tombstone ? 10 - tableOrder : tableOrder;
+      };
+      return priority(left) - priority(right) || left.index - right.index;
+    })
+    .map(({ mutation }) => mutation);
+}
+
 export const SYNC_MUTATION_TYPES = Object.freeze({
-  statePatch: "state-patch",
   profilePatch: "profile-patch",
-  reviewEventAppend: "review-event-append",
+  entityMutation: "entity-mutation",
+  reviewAtomic: "review-atomic",
 });
+
+export interface SyncOutboxMutation {
+  id: string;
+  userId: string;
+  deviceId: string | null;
+  type: string;
+  table: string | null;
+  entityId: string | null;
+  baseRevision: number | null;
+  payload: unknown;
+  createdAt: string;
+  flushedAt: string | null;
+  retryCount: number;
+  lastError?: string | null;
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -121,14 +160,11 @@ function createDeviceRegistrationError(error: any) {
 function createMutation(input: any = {}, now: any = nowIso, deviceId: any) {
   return {
     id: input.id ?? makeId("mutation"),
-    type: input.type ?? SYNC_MUTATION_TYPES.statePatch,
+    type: input.type,
     payload: input.payload ?? {},
     baseRevision: input.baseRevision ?? null,
     deviceId,
-    table: input.table
-      ?? (input.type === SYNC_MUTATION_TYPES.reviewEventAppend
-        ? "review_events"
-        : input.type === SYNC_MUTATION_TYPES.profilePatch ? "profiles" : null),
+    table: input.table ?? (input.type === SYNC_MUTATION_TYPES.profilePatch ? "profiles" : null),
     entityId: input.entityId ?? input.payload?.event?.id ?? null,
     createdAt: input.createdAt ?? now(),
   };
@@ -138,16 +174,6 @@ function createDefaultAdapter(client: any) {
   return {
     registerDevice(device: any, context: any = {}) {
       return registerAccountSyncDevice(client, device, { lastSeenAt: context.lastSeenAt });
-    },
-    loadSnapshot(fallbackState: any) {
-      return loadAccountCloudState(client, fallbackState);
-    },
-    upsertState(state: any, context: any = {}) {
-      return upsertAccountCloudState(client, state, {
-        deviceId: context.deviceId,
-        mutationIds: context.mutationIds,
-        flushedAt: context.flushedAt,
-      });
     },
     listConflicts() {
       return listAccountSyncConflicts(client);
@@ -159,8 +185,35 @@ function createDefaultAdapter(client: any) {
       const acknowledgedMutationIds: any[] = [];
       const failedMutationIds: any[] = [];
       const failures: any[] = [];
-      for (const mutation of mutations) {
-        if (![SYNC_MUTATION_TYPES.reviewEventAppend, SYNC_MUTATION_TYPES.profilePatch].includes(mutation.type)) {
+      const persistedRows: any[] = [];
+      for (let mutationIndex = 0; mutationIndex < mutations.length;) {
+        const mutation = mutations[mutationIndex];
+        if (mutation.type === SYNC_MUTATION_TYPES.entityMutation && !mutation.payload?.tombstone && !["learning_item_source_snapshots", "review_events"].includes(mutation.payload?.table)) {
+          let groupEnd = mutationIndex + 1;
+          while (
+            groupEnd < mutations.length
+            && mutations[groupEnd].type === SYNC_MUTATION_TYPES.entityMutation
+            && !mutations[groupEnd].payload?.tombstone
+            && mutations[groupEnd].payload?.table === mutation.payload?.table
+          ) groupEnd += 1;
+          const group = mutations.slice(mutationIndex, groupEnd);
+          try {
+            const acknowledgements = await applyEntityMutationBatch(client, group.map((item: any) => item.payload), {
+              deviceId: mutation.deviceId ?? context.deviceId,
+              flushedAt: context.flushedAt,
+            });
+            group.forEach((item: any, index: number) => {
+              acknowledgedMutationIds.push(item.id);
+              if (acknowledgements[index]?.persistedRow) persistedRows.push({ table: item.payload.table, row: acknowledgements[index].persistedRow });
+            });
+          } catch (error) {
+            group.forEach((item: any) => { failedMutationIds.push(item.id); failures.push({ mutationId: item.id, error }); });
+          }
+          mutationIndex = groupEnd;
+          continue;
+        }
+        mutationIndex += 1;
+        if (![SYNC_MUTATION_TYPES.profilePatch, SYNC_MUTATION_TYPES.entityMutation, SYNC_MUTATION_TYPES.reviewAtomic].includes(mutation.type)) {
           failedMutationIds.push(mutation.id);
           failures.push({ mutationId: mutation.id, error: createRetryableMutationError() });
           continue;
@@ -171,12 +224,23 @@ function createDefaultAdapter(client: any) {
                 mutationId: mutation.id,
                 flushedAt: context.flushedAt,
               })
-            : await appendReviewEvent(client, mutation.payload?.event, {
-                mutationId: mutation.id,
-                deviceId: mutation.deviceId ?? context.deviceId,
-              });
-          if (acknowledgement?.acknowledgedMutationId === mutation.id) {
+            : mutation.type === SYNC_MUTATION_TYPES.entityMutation
+              ? { ...(await applyEntityMutation(client, mutation.payload, {
+                  deviceId: mutation.deviceId ?? context.deviceId,
+                  flushedAt: context.flushedAt,
+                })), acknowledgedMutationId: mutation.id }
+              : await recordAtomicReview(client, mutation.payload, {
+                    mutationId: mutation.id,
+                    deviceId: mutation.deviceId ?? context.deviceId,
+                  });
+          const acknowledged = acknowledgement as any;
+          if (acknowledged?.acknowledgedMutationId === mutation.id) {
             acknowledgedMutationIds.push(mutation.id);
+            if (acknowledged.persistedRow) persistedRows.push({ table: mutation.payload?.table ?? mutation.table, row: acknowledged.persistedRow });
+            const atomicRows = acknowledged.rows && !Array.isArray(acknowledged.rows) ? acknowledged.rows : null;
+            if (atomicRows?.deck) persistedRows.push({ table: "decks", row: atomicRows.deck });
+            if (atomicRows?.card) persistedRows.push({ table: "cards", row: atomicRows.card });
+            if (atomicRows?.variant) persistedRows.push({ table: "card_variants", row: atomicRows.variant });
           } else {
             failedMutationIds.push(mutation.id);
           }
@@ -185,7 +249,7 @@ function createDefaultAdapter(client: any) {
           failures.push({ mutationId: mutation.id, error });
         }
       }
-      return { acknowledgedMutationIds, failedMutationIds, failures, conflicts: [] };
+      return { acknowledgedMutationIds, failedMutationIds, failures, conflicts: [], persistedRows };
     },
   };
 }
@@ -195,7 +259,10 @@ export function createSyncEngine({
   device,
   now = nowIso,
   outbox,
-  persistSnapshot,
+  beforeFlush,
+  persistMutationAcknowledgements,
+  persistResolvedPage,
+  initialize,
   networkTarget = getDefaultNetworkTarget(),
   isOnline = () => networkTarget?.navigator?.onLine !== false,
   setTimer = (callback: any, delay: any) => setTimeout(callback, delay),
@@ -209,7 +276,6 @@ export function createSyncEngine({
   const syncDevice = normalizeDevice(device);
   let lastFlush: any = null;
   let activeFlush: any = null;
-  let lastFallbackState: any = null;
   let retryTimer: any = null;
   let retryAttempt = 0;
   let lastRetryableError: any = null;
@@ -220,11 +286,9 @@ export function createSyncEngine({
   let lifecycleCleanup: any = null;
   let currentStatus = createSyncIdleStatus();
   let lastOnlineStatus = currentStatus;
-  const stateSnapshots = new Map();
 
   function removeMutations(ids: any = []) {
     outbox.remove(ids);
-    ids.forEach((id: any) => stateSnapshots.delete(id));
   }
 
   function safelyIsOnline() {
@@ -275,7 +339,7 @@ export function createSyncEngine({
 
   function flushForActiveLifecycle() {
     const version = lifecycleVersion;
-    void api.flush(lastFallbackState, { force: true })
+    void api.flush({ force: true })
       .then((result: any) => {
         if (lifecycleActive && lifecycleVersion === version) flushListener?.(result);
       })
@@ -332,29 +396,19 @@ export function createSyncEngine({
   }
 
   const api = {
-    async loadSnapshot(fallbackState: any = {}) {
-      lastFallbackState = fallbackState;
+    async initialize() {
       if (!adapter.registerDevice) throw new Error("Sync-Adapter kann kein Gerät registrieren.");
       try {
         await adapter.registerDevice(syncDevice, { lastSeenAt: now() });
       } catch (error) {
         throw createDeviceRegistrationError(error);
       }
-      if (outbox.count() > 0) {
-        try {
-          const replay = await api.flush(fallbackState, { force: true });
-          if (replay?.paused || outbox.count() > 0) return fallbackState;
-        } catch {
-          return fallbackState;
-        }
-      }
-      const snapshot = await adapter.loadSnapshot(fallbackState);
-      emitStatus(createSyncSavedStatus("Cloud geladen.", now));
-      return snapshot;
+      await initialize?.();
+      emitStatus(outbox.count() > 0 ? createSyncPendingStatus() : createSyncSavedStatus("Cloud geladen.", now));
     },
-
     enqueueMutation(input: any = {}) {
       const mutation = createMutation(input, now, syncDevice.id);
+      if (!mutation.type) throw new Error("Sync-Mutation braucht einen Typ.");
       if (mutation.type === SYNC_MUTATION_TYPES.profilePatch) {
         if (!mutation.payload?.profile || typeof mutation.payload.profile !== "object" || Array.isArray(mutation.payload.profile)) {
           throw new Error("Profil-Mutation braucht ein vollständiges Profil.");
@@ -365,34 +419,26 @@ export function createSyncEngine({
         removeMutations(staleProfilePatchIds);
         return enqueuePendingMutation(mutation);
       }
-      if (mutation.type !== SYNC_MUTATION_TYPES.statePatch || !mutation.payload || typeof mutation.payload !== "object") {
+      if (mutation.type === SYNC_MUTATION_TYPES.entityMutation) {
+        const table = mutation.payload?.table ?? mutation.table;
+        const entityId = mutation.entityId ?? mutation.payload?.entity?.id ?? mutation.payload?.entityId;
+        if (!table || !entityId) throw new Error("Entity-Mutation braucht Tabelle und ID.");
+        const staleEntityMutationIds = outbox.listPending()
+          .filter((pending: any) => pending.type === SYNC_MUTATION_TYPES.entityMutation
+            && (pending.payload?.table ?? pending.table) === table
+            && (pending.entityId ?? pending.payload?.entity?.id ?? pending.payload?.entityId) === entityId)
+          .map((pending: any) => pending.id);
+        removeMutations(staleEntityMutationIds);
         return enqueuePendingMutation(mutation);
       }
-
-      const { state, ...payload } = mutation.payload;
-      if (!state || typeof state !== "object" || Array.isArray(state)) {
-        throw new Error("Snapshot-Mutation braucht einen vollständigen Zustand.");
-      }
-      const staleStatePatchIds = outbox.listPending()
-        .filter((pending: any) => pending.type === SYNC_MUTATION_TYPES.statePatch)
-        .map((pending: any) => pending.id);
-      const subsumedProfilePatchIds = outbox.listPending()
-        .filter((pending: any) => pending.type === SYNC_MUTATION_TYPES.profilePatch)
-        .map((pending: any) => pending.id);
-      removeMutations([...staleStatePatchIds, ...subsumedProfilePatchIds]);
-      stateSnapshots.set(mutation.id, state);
-      lastFallbackState = state;
-      return enqueuePendingMutation({ ...mutation, payload });
+      return enqueuePendingMutation(mutation);
     },
 
     pendingCount() {
       return outbox.count();
     },
 
-    async flush(fallbackState: any = undefined, { force = false }: any = {}) {
-      if (fallbackState && typeof fallbackState === "object" && !Array.isArray(fallbackState)) {
-        lastFallbackState = fallbackState;
-      }
+    async flush({ force = false }: any = {}) {
       if (activeFlush) return activeFlush;
       if (retryTimer !== null && !force) return deferredResult({ retryScheduled: true });
       if (!force && !safelyIsOnline()) {
@@ -402,6 +448,8 @@ export function createSyncEngine({
       if (force) clearRetryTimer();
 
       activeFlush = (async () => {
+        await beforeFlush?.();
+        await outbox.flushPersistence?.();
         const batch = outbox.listPending();
         if (batch.length === 0) {
           resetRetry();
@@ -409,10 +457,6 @@ export function createSyncEngine({
           return lastFlush ?? { mutations: 0, conflicts: [], saved: null, syncStatus };
         }
         emitStatus(createSyncSavingStatus());
-        const latestStatePatch = [...batch].reverse().find((mutation: any) => mutation.type === SYNC_MUTATION_TYPES.statePatch);
-        const latestStateSnapshot = latestStatePatch
-          ? (stateSnapshots.has(latestStatePatch.id) ? stateSnapshots.get(latestStatePatch.id) : (fallbackState ?? lastFallbackState))
-          : undefined;
         const result: any = {
           mutations: batch.length,
           conflicts: [],
@@ -421,16 +465,16 @@ export function createSyncEngine({
           flushedAt: now(),
         };
         let batchFailure: any = null;
-        let acknowledgedBatchMutationIds: any[] = [];
-
-        const remaining = batch.filter((mutation: any) => mutation.type !== SYNC_MUTATION_TYPES.statePatch);
+        const remaining = orderMutationBatch(batch);
         if (remaining.length > 0 && adapter.applyMutationBatch) {
           try {
             const batchResult = await adapter.applyMutationBatch(remaining, { deviceId: syncDevice.id, flushedAt: result.flushedAt });
             result.conflicts = batchResult?.conflicts ?? [];
             const remainingIds = new Set(remaining.map((mutation: any) => mutation.id));
             const acknowledgedMutationIds = (batchResult?.acknowledgedMutationIds ?? []).filter((id: any) => remainingIds.has(id));
-            acknowledgedBatchMutationIds = acknowledgedMutationIds;
+            if (acknowledgedMutationIds.length > 0 && batchResult?.persistedRows?.length > 0) {
+              await persistMutationAcknowledgements?.(batchResult.persistedRows);
+            }
             const failedMutationIds = (batchResult?.failedMutationIds ?? []).filter((id: any) => remainingIds.has(id));
             outbox.markFlushed(acknowledgedMutationIds, result.flushedAt);
             removeMutations(acknowledgedMutationIds);
@@ -452,49 +496,10 @@ export function createSyncEngine({
           outbox.markFailed(remaining.map((mutation: any) => mutation.id), batchFailure);
         }
 
-        if (latestStatePatch) {
-          const blockingConflicts = adapter.listConflicts ? await adapter.listConflicts() : [];
-          if (blockingConflicts.length > 0) {
-            result.conflicts = blockingConflicts;
-            result.paused = true;
-            resetRetry();
-            result.syncStatus = emitStatus(createSyncConflictStatus(blockingConflicts.length));
-            lastFlush = result;
-            return result;
-          }
-          const statePatchIds = batch.filter((mutation: any) => mutation.type === SYNC_MUTATION_TYPES.statePatch).map((mutation: any) => mutation.id);
-          try {
-            if (!latestStateSnapshot || typeof latestStateSnapshot !== "object") {
-              throw new Error("Persistierter Sync-Snapshot konnte nicht wiederhergestellt werden.");
-            }
-            result.saved = await adapter.upsertState(latestStateSnapshot, {
-              deviceId: syncDevice.id,
-              mutationIds: statePatchIds,
-              flushedAt: result.flushedAt,
-            });
-            const acknowledgedStatePatchIds = statePatchIds.filter((id: any) => result.saved?.acknowledgedMutationIds?.includes(id));
-            const missingAcknowledgements = statePatchIds.filter((id: any) => !acknowledgedStatePatchIds.includes(id));
-            outbox.markFlushed(acknowledgedStatePatchIds, result.flushedAt);
-            removeMutations(acknowledgedStatePatchIds);
-            if (missingAcknowledgements.length > 0) {
-              throw new Error("Cloud-Repository hat nicht alle Snapshot-Mutationen bestätigt.");
-            }
-          } catch (error) {
-            outbox.markFailed(statePatchIds, error);
-            throw error;
-          }
-        }
-
-        const profilePatchIds = remaining
-          .filter((mutation: any) => mutation.type === SYNC_MUTATION_TYPES.profilePatch)
-          .map((mutation: any) => mutation.id);
-        if (!latestStatePatch && profilePatchIds.length > 0 && profilePatchIds.every((id: any) => acknowledgedBatchMutationIds.includes(id))) {
-          result.saved = { state: lastFallbackState, acknowledgedMutationIds: profilePatchIds };
-        }
-
         if (batchFailure) throw batchFailure;
         if (outbox.count() > 0) throw createRetryableMutationError();
 
+        await outbox.flushPersistence?.();
         resetRetry();
         result.syncStatus = emitStatus(createSyncSavedStatus("Synchronisiert.", now));
         lastFlush = result;
@@ -583,44 +588,24 @@ export function createSyncEngine({
       return adapter.listConflicts();
     },
 
-    async resolveConflict(conflictId: any, decision: any, currentState: any) {
+    async resolveConflict(conflictId: any, decision: any) {
       if (!adapter.resolveConflict) throw new Error("Dieser Sync-Adapter kann Konflikte nicht auflösen.");
       emitStatus(createSyncSavingStatus());
       const resolvedAt = now();
       const repositoryResult = await adapter.resolveConflict(conflictId, decision, {
         deviceId: syncDevice.id,
         resolvedAt,
-        currentState,
       });
-      let nextState = repositoryResult?.nextState ?? currentState;
-      let flushResult: any = null;
-
-      if (repositoryResult?.resolved) {
-        if (persistSnapshot) nextState = await persistSnapshot(nextState) ?? nextState;
-        const staleStatePatchIds = outbox.listPending()
-          .filter((mutation: any) => mutation.type === SYNC_MUTATION_TYPES.statePatch)
-          .map((mutation: any) => mutation.id);
-        removeMutations(staleStatePatchIds);
-        api.enqueueMutation({
-          type: SYNC_MUTATION_TYPES.statePatch,
-          payload: { state: nextState },
-        });
-        flushResult = await api.flush();
-        nextState = mergeCloudSyncMetadata(nextState, flushResult.saved?.state);
-      }
+      if (repositoryResult?.resolvedPage) await persistResolvedPage?.(repositoryResult.resolvedPage);
 
       const conflicts = adapter.listConflicts ? await adapter.listConflicts() : [];
-      const syncStatus = flushResult?.syncStatus?.status === "offline" || flushResult?.syncStatus?.status === "pending"
-        ? flushResult.syncStatus
-        : conflicts.length > 0
-          ? createSyncConflictStatus(conflicts.length)
-          : createSyncSavedStatus("Konfliktentscheidung synchronisiert.", () => resolvedAt);
+      const syncStatus = conflicts.length > 0
+        ? createSyncConflictStatus(conflicts.length)
+        : createSyncSavedStatus("Konfliktentscheidung synchronisiert.", () => resolvedAt);
       emitStatus(syncStatus);
       return {
         conflict: repositoryResult?.conflict ?? null,
-        nextState,
         conflicts,
-        flushResult,
         syncStatus,
       };
     },
@@ -630,13 +615,12 @@ export function createSyncEngine({
 }
 
 export function createAccountSyncEngine(client: any, options: any = {}) {
-  if (!options.userId || !options.storage || !options.device) {
+  if (!options.userId || !options.device || !options.outbox) {
     throw new Error("Account-Sync braucht Nutzer-ID, accountgebundenen Speicher und Gerätedaten.");
   }
   return createSyncEngine({
     ...options,
     adapter: options.adapter ?? createDefaultAdapter(client),
-    outbox: options.outbox ?? createSyncOutbox({ userId: options.userId, storage: options.storage, now: options.now }),
   });
 }
 

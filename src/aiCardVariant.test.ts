@@ -6,7 +6,7 @@ import {
   createAiCardVariantRequest,
   parseAiCardVariantRequest,
 } from "./aiCardVariantContract.ts";
-import { addRephrasedVariant, createBasicLearningItem, getCardContentPayload, updateCardContent } from "./coreModel.ts";
+import { addRephrasedVariant, createBasicLearningItem, getCardContentPayload, saveCardEditorValue } from "./coreModel.ts";
 
 test("AI card request projects only normalized Basic front and back", () => {
   const card = createBasicLearningItem("deck-1", "<p>  Was ist <b>ATP</b>? </p>", "<p>Ein Energie&shy;träger.</p>", {
@@ -75,7 +75,7 @@ test("generated draft rejects changed sources and duplicate variants", () => {
   assert.equal(draft.generationSource, "ai_generated");
   assert.equal(draft.meta.promptVersion, "card-variant-v1");
 
-  const changed = updateCardContent(original, { originalFront: "Inzwischen geändert" });
+  const changed = saveCardEditorValue(original, { cardType: "basic", front: "Inzwischen geändert", back: "Antwort", tags: [] });
   assert.throws(() => createAiGeneratedVariantDraft(payload, changed, generated), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "source_changed");
 
   const withDuplicate = addRephrasedVariant(original, "Anders gefragt", "Gleiche Antwort");

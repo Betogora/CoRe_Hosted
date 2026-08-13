@@ -490,8 +490,8 @@ test("card table sorts all columns and projects next-study and variant labels", 
   }
 });
 
-test("card table does not truncate large libraries", () => {
-  const cards = Array.from({ length: 4_900 }, (_, index) => createCoreCard({
+test("card table pages large libraries and finds late cards deterministically", () => {
+  const cards = Array.from({ length: 10_000 }, (_, index) => createCoreCard({
     id: "large-card-" + index,
     source: "manual",
     originalFront: "Frage " + index,
@@ -500,9 +500,13 @@ test("card table does not truncate large libraries", () => {
   const deck = createCoreDeck({ id: "large-deck", name: "Groß", source: "manual", cards });
   const model = createCardTableModel([deck]);
 
-  assert.equal(model.cardCount, 4_900);
-  assert.equal(model.groups[0].cardRows.length, 4_900);
-  assert.ok(model.groups[0].cardRows.some((row) => row.id === "large-card-4899"));
+  assert.equal(model.cardCount, 10_000);
+  assert.equal(model.groups[0].cardRows.length, 100);
+  assert.equal(model.groups[0].pageCount, 100);
+
+  const lateMatch = createCardTableModel([deck], { query: "Frage 9999" });
+  assert.equal(lateMatch.cardCount, 1);
+  assert.deepEqual(lateMatch.groups[0].cardRows.map((row) => row.id), ["large-card-9999"]);
 });
 
 test("study heatmap counts only rated reviews by profile day and derives the current streak", () => {

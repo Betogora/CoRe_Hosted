@@ -6,14 +6,13 @@ import type {
   CardEditorFieldErrors,
   CardEditorValidationResult,
   CardEditorValue,
-  CardVariant,
-  DerivedCardVariant,
   EditableCardType,
   LearningItem,
+  NoteTypeDefinitionV1,
 } from "../coreTypes.ts";
-import { normalizeTags, stableContentHash } from "./coreValues.ts";
-import { createCardVariant, createCoreCard, getOriginalVariant, normalizeLearningItem } from "./learningItems.ts";
-import { createVersionEntry } from "./reviewState.ts";
+import { normalizeTags } from "./coreValues.ts";
+import { getOriginalVariant, normalizeLearningItem } from "./learningItems.ts";
+import { applyLearningItemContent, createCoreNoteTypeDefinition } from "./learningItemContent.ts";
 
 interface ClozePart {
   groupId: number;
@@ -174,13 +173,6 @@ function revealClozeText(text: string): string {
   return text.replace(CLOZE_PATTERN, "$2");
 }
 
-function renderClozeFront(text: string, groupId: number): string {
-  CLOZE_PATTERN.lastIndex = 0;
-  return text.replace(CLOZE_PATTERN, (_match, candidateGroup: string, value: string, hint: string | undefined) =>
-    Number(candidateGroup) === groupId ? (hint ? `[...] (${hint})` : "[...]") : value,
-  );
-}
-
 function renderMultipleChoiceAnswer(correctAnswer: string, explanation: string): string {
   const answer = `<p><strong>Richtige Antwort:</strong> ${escapeCardHtmlText(correctAnswer)}</p>`;
   return sanitizeCardHtml(explanation ? `${answer}${explanation}` : answer);
@@ -232,18 +224,18 @@ export function getCardEditorValue(card: LearningItem): CardEditorValue | null {
       return {
         cardType: "cloze",
         textWithClozes: card.originalFront,
-        extra: String(original?.explanation ?? card.meta?.explanation ?? ""),
+        extra: card.contentDocument.fields[1]?.value ?? String(original?.explanation ?? card.meta?.explanation ?? ""),
         tags,
       };
     case "multiple-choice": {
-      const options = normalizeOptions(original?.answerOptionsJson ?? card.meta?.answerOptions);
-      const correctAnswer = String(original?.expectedAnswerJson ?? card.meta?.correctAnswer ?? "");
+      const options = normalizeOptions(card.contentDocument.interaction?.choice?.options ?? original?.answerOptionsJson ?? card.meta?.answerOptions);
+      const correctAnswer = String(card.contentDocument.interaction?.choice?.correctAnswer ?? original?.expectedAnswerJson ?? card.meta?.correctAnswer ?? "");
       return {
         cardType: "multiple-choice",
         question: card.originalFront,
         options,
         correctOptionIndex: options.indexOf(correctAnswer),
-        explanation: String(original?.explanation ?? card.meta?.explanation ?? ""),
+        explanation: card.contentDocument.interaction?.choice?.explanation ?? String(original?.explanation ?? card.meta?.explanation ?? ""),
         tags,
       };
     }
@@ -285,137 +277,7 @@ export function validateCardContentPayload(value: unknown): CardContentPayloadVa
   };
 }
 
-function updatedOriginalVariant(original: CardVariant, value: CardEditorValue, content: EditorContentProjection, updatedAt: string): CardVariant {
-  return {
-    ...original,
-    variantType: value.cardType === "basic-reversed" || value.cardType === "basic-with-images" ? "basic" : value.cardType === "multiple-choice" ? "mcq" : value.cardType,
-    front: content.front,
-    back: content.back,
-    explanation: content.explanation,
-    answerOptionsJson: content.answerOptions,
-    expectedAnswerJson: content.correctAnswer,
-    updatedAt,
-    meta: { ...original.meta, cardType: value.cardType },
-  };
-}
-
-function regenerateReverseVariants(card: LearningItem, original: CardVariant, content: EditorContentProjection, updatedAt: string): CardVariant[] {
-  const derivedVariants = card.variants.filter((variant): variant is DerivedCardVariant => !variant.isOriginal);
-  const reverseVariants = derivedVariants.filter((variant) => variant.variantType === "reverse" || variant.transformType === "front_back_style_shift");
-  const retained = reverseVariants.find((variant) => variant.isActive) ?? reverseVariants[0];
-  const reverse = retained
-    ? {
-        ...retained,
-        front: content.back,
-        back: content.front,
-        isActive: true,
-        qualityStatus: "active" as const,
-        anchorVariantId: original.id,
-        parentVariantId: original.id,
-        updatedAt,
-        meta: { ...retained.meta, cardType: "basic-reversed" },
-      }
-    : createCardVariant({
-        id: stableContentHash({ learningItemId: card.id, direction: "reverse" }, "variant"),
-        learningItemId: card.id,
-        cardId: card.id,
-        sourceCardId: card.id,
-        variantType: "reverse",
-        variantLevel: 2,
-        front: content.back,
-        back: content.front,
-        generationSource: "user_edited",
-        transformType: "front_back_style_shift",
-        qualityStatus: "active",
-        isOriginal: false,
-        isActive: true,
-        anchorVariantId: original.id,
-        parentVariantId: original.id,
-        sourceAnchors: card.sourceAnchors,
-        createdAt: updatedAt,
-        updatedAt,
-        meta: { cardType: "basic-reversed", sourceType: card.sourceType },
-      });
-
-  return derivedVariants
-    .map((variant) => {
-      if (retained && variant.id === retained.id) return reverse;
-      if (reverseVariants.some((candidate) => candidate.id === variant.id)) {
-        return { ...variant, isActive: false, qualityStatus: "disabled" as const, updatedAt };
-      }
-      return variant;
-    })
-    .concat(retained ? [] : [reverse]);
-}
-
-function regenerateClozeVariants(card: LearningItem, original: CardVariant, content: EditorContentProjection, updatedAt: string): CardVariant[] {
-  const derivedVariants = card.variants.filter((variant): variant is DerivedCardVariant => !variant.isOriginal);
-  const existingByGroup = new Map<number, DerivedCardVariant>();
-  for (const variant of derivedVariants) {
-    const group = Number(variant.meta?.clozeGroup);
-    if (!variant.isOriginal && Number.isInteger(group) && group > 0 && !existingByGroup.has(group)) existingByGroup.set(group, variant);
-  }
-  const activeGroupIds = new Set(content.clozeGroups.map((group) => group.groupId));
-  const retained = card.variants
-    .filter((variant): variant is DerivedCardVariant => !variant.isOriginal && !Number.isInteger(Number(variant.meta?.clozeGroup)))
-    .concat(
-      [...existingByGroup.entries()]
-        .filter(([groupId]) => !activeGroupIds.has(groupId))
-        .map(([, variant]) => ({ ...variant, isActive: false, qualityStatus: "disabled" as const, updatedAt })),
-    );
-
-  const active = content.clozeGroups.map(({ groupId, clozes }) => {
-    const existing = existingByGroup.get(groupId);
-    const common = {
-      front: renderClozeFront(content.front, groupId),
-      back: content.back,
-      explanation: content.explanation,
-      hintsJson: clozes.map((cloze) => cloze.hint).filter(Boolean),
-      expectedAnswerJson: clozes.map((cloze) => cloze.text),
-      isActive: true,
-      qualityStatus: "active" as const,
-      anchorVariantId: original.id,
-      parentVariantId: original.id,
-      updatedAt,
-      meta: { ...(existing?.meta ?? {}), clozeGroup: groupId, cardType: "cloze", sourceType: card.sourceType },
-    };
-    return existing
-      ? { ...existing, ...common }
-      : createCardVariant({
-          id: stableContentHash({ learningItemId: card.id, clozeGroup: groupId }, "variant"),
-          learningItemId: card.id,
-          cardId: card.id,
-          sourceCardId: card.id,
-          variantType: "cloze",
-          variantLevel: 2,
-          generationSource: "user_edited",
-          transformType: "cloze_conversion",
-          isOriginal: false,
-          sourceAnchors: card.sourceAnchors,
-          createdAt: updatedAt,
-          ...common,
-        });
-  });
-
-  return [...retained, ...active];
-}
-
-function synchronizeMultipleChoiceVariants(card: LearningItem, content: EditorContentProjection, updatedAt: string): CardVariant[] {
-  return card.variants
-    .filter((variant) => !variant.isOriginal)
-    .map((variant) => variant.variantType === "mcq"
-      ? {
-          ...variant,
-          back: content.back,
-          explanation: content.explanation,
-          answerOptionsJson: content.answerOptions,
-          expectedAnswerJson: content.correctAnswer,
-          updatedAt,
-        }
-      : variant);
-}
-
-export function saveCardEditorValue(cardInput: LearningItem, editorInput: unknown, reason = "Manuelle Bearbeitung"): LearningItem {
+export function saveCardEditorValue(cardInput: LearningItem, editorInput: unknown, storedDefinition?: NoteTypeDefinitionV1): LearningItem {
   const card = normalizeLearningItem(cardInput);
   const value = assertValidCardEditorValue(editorInput);
   if (value.cardType !== card.cardType && value.cardType !== card.kind) {
@@ -423,56 +285,33 @@ export function saveCardEditorValue(cardInput: LearningItem, editorInput: unknow
   }
   const currentValue = getCardEditorValue(card);
   if (!currentValue) throw new CardEditorValidationError({ front: "Dieser Kartentyp kann hier nicht typgerecht bearbeitet werden." });
-
-  const updatedAt = new Date().toISOString();
   const content = projectCardEditorContent(value);
-  const currentOriginal = getOriginalVariant(card);
-  if (!currentOriginal) throw new Error("Die Originalvariante der Karte fehlt.");
-  const original = updatedOriginalVariant(currentOriginal, value, content, updatedAt);
-  const derivedVariants = value.cardType === "basic-reversed"
-    ? regenerateReverseVariants(card, original, content, updatedAt)
-    : value.cardType === "cloze"
-      ? regenerateClozeVariants(card, original, content, updatedAt)
-      : value.cardType === "multiple-choice"
-        ? synchronizeMultipleChoiceVariants(card, content, updatedAt)
-        : card.variants.filter((variant) => !variant.isOriginal);
-  const meta = {
-    ...card.meta,
-    ...(value.cardType === "multiple-choice"
-      ? { answerOptions: content.answerOptions, correctAnswer: content.correctAnswer, expectedAnswer: content.correctAnswer, explanation: content.explanation }
-      : {}),
-    ...(value.cardType === "cloze" ? { clozeGroupCount: content.clozeGroups.length, explanation: content.explanation } : {}),
+  const documentFor = (editorValue: CardEditorValue) => {
+    const projected = projectCardEditorContent(editorValue);
+    return {
+      ...card.contentDocument,
+      tags: editorValue.tags,
+      fields: card.contentDocument.fields.map((field, index) => ({
+      ...field,
+      value: index === 0
+        ? projected.front
+        : index === 1
+          ? editorValue.cardType === "cloze" || editorValue.cardType === "multiple-choice" ? projected.explanation : projected.back
+          : field.value,
+      })),
+      ...(editorValue.cardType === "multiple-choice"
+        ? { interaction: { choice: { options: editorValue.options, correctAnswer: projected.correctAnswer!, explanation: editorValue.explanation } } }
+        : {}),
+    };
   };
-  const updated = createCoreCard({
-    ...card,
-    cardType: value.cardType,
-    canonicalQuestion: content.front,
-    canonicalAnswer: content.back,
-    originalFront: content.front,
-    originalBack: content.back,
-    originalTags: value.tags,
-    tags: value.tags,
-    variants: [original, ...derivedVariants],
-    immutableOriginal: card.immutableOriginal,
+  const document = documentFor(value);
+  const definition = storedDefinition ?? createCoreNoteTypeDefinition({
+    document,
+    kind: value.cardType === "cloze" ? "cloze" : "normal",
+    interaction: value.cardType === "multiple-choice" ? "choice" : value.cardType === "cloze" ? "cloze" : "reveal",
+    reverse: value.cardType === "basic-reversed",
     createdAt: card.createdAt,
-    updatedAt,
-    meta,
   });
-
-  return {
-    ...updated,
-    immutableOriginal: card.immutableOriginal,
-    versionLog: [
-      ...card.versionLog,
-      createVersionEntry({
-        objectType: "card",
-        objectId: card.id,
-        changeType: "content_updated",
-        before: { originalFront: card.originalFront, originalBack: card.originalBack, originalTags: card.originalTags, kind: card.kind, editorValue: currentValue },
-        after: { originalFront: updated.originalFront, originalBack: updated.originalBack, originalTags: updated.originalTags, kind: updated.kind, editorValue: value },
-        reason,
-        createdAt: updatedAt,
-      }),
-    ],
-  };
+  const previous = { ...card, contentDocument: documentFor(currentValue) };
+  return applyLearningItemContent({ previous, document, definition, reason: "edit" }).item;
 }

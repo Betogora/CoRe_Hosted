@@ -3,7 +3,8 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createCoreCard, createCoreDeck } from "../coreModel.ts";
-import { StatisticsScreen } from "./StatisticsScreen.tsx";
+import { StatisticsScreen, StatisticsScreenContent } from "./StatisticsScreen.tsx";
+import { projectStatistics } from "../statisticsModel.ts";
 
 test("statistics screen exposes one global filter and the complete CoRe analysis sections", () => {
   const card = createCoreCard({
@@ -23,9 +24,10 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
     },
   });
   const deck = createCoreDeck({ id: "deck_statistics_screen", name: "Biologie", source: "manual", cards: [card] });
+  const selection = { period: "365d" as const, deckIds: "all" as const, now: "2026-08-06T12:00:00.000Z", timeZone: "Europe/Berlin" };
   const markup = renderToStaticMarkup(
-    <StatisticsScreen
-      decks={[deck]}
+    <StatisticsScreenContent
+      dataset={{ decks: [deck], projection: projectStatistics([deck], selection) }}
       now="2026-08-06T12:00:00.000Z"
       timeZone="Europe/Berlin"
       onNavigate={() => { throw new Error("navigation is not expected during server rendering"); }}
@@ -63,4 +65,22 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
     "FSRS-Kennzahlen und aktuelle Bestandsverteilungen",
   ]) assert.doesNotMatch(markup, new RegExp(removedText));
   assert.doesNotMatch(markup, /Letzte 14 Tage/);
+});
+
+test("statistics screen loads its dataset only after mounting", () => {
+  const markup = renderToStaticMarkup(
+    <StatisticsScreen
+      decks={[]}
+      queryStatistics={async (selection) => projectStatistics([], { ...selection, now: "2026-08-06T12:00:00.000Z", timeZone: "Europe/Berlin" })}
+      now="2026-08-06T12:00:00.000Z"
+      timeZone="Europe/Berlin"
+      onNavigate={() => undefined}
+      onStartDeck={() => undefined}
+      onOpenCard={() => undefined}
+    />,
+  );
+
+  assert.match(markup, /aria-busy="true"/);
+  assert.match(markup, /Statistik wird geladen/);
+  assert.doesNotMatch(markup, /Globaler Zeitraum/);
 });

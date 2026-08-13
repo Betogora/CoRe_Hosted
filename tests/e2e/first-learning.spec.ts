@@ -31,7 +31,7 @@ async function resetAccountToEmpty() {
 async function openEmptyDashboard(page: any) {
   await resetAccountToEmpty();
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Willkommen bei CoRe" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: /Willkommen (?:bei CoRe|zurück,)/ })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("button", { name: /Erste Karte erstellen/ })).toBeVisible();
   const state = await readActiveAccountState(page);
   expect(state.decks).toEqual([]);
@@ -88,7 +88,7 @@ test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core le
 test("Demo-Daten werden erst nach dem ausdrücklichen Klick angelegt", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Willkommen bei CoRe" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: /Willkommen (?:bei CoRe|zurück,)/ })).toBeVisible({ timeout: 30_000 });
   expect((await readActiveAccountState(page)).decks).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   await expect(page.getByRole("button", { name: /Anki-Stapel importieren/ })).toBeVisible();

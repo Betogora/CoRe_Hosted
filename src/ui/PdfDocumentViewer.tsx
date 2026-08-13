@@ -13,10 +13,16 @@ function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(value * 10) / 10));
 }
 
+export function getPdfPageWindow(pageCount: number, currentPage: number) {
+  const firstPage = Math.max(1, currentPage - 2);
+  const lastPage = Math.min(pageCount, currentPage + 2);
+  return { firstPage, lastPage };
+}
+
 interface PdfPageEntry {
-  page: any;
+  page: any | null;
   pageNumber: number;
-  baseViewport: { width: number };
+  baseViewport: { width: number; height: number };
 }
 
 type PdfRuntime = Awaited<ReturnType<typeof loadPdfJs>>;
@@ -34,33 +40,13 @@ function pdfErrorMessage(error: { name?: string } | null) {
   return "Das PDF konnte nicht angezeigt werden.";
 }
 
-function PdfPage({ entry, pdfjs, scale, scrollElement }: { entry: PdfPageEntry; pdfjs: PdfRuntime; scale: number; scrollElement: HTMLDivElement | null }) {
+function PdfPage({ entry, pdfjs, scale }: { entry: PdfPageEntry & { page: any }; pdfjs: PdfRuntime; scale: number }) {
   const shellRef = React.useRef<HTMLDivElement>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const textLayerRef = React.useRef<HTMLDivElement>(null);
-  const [shouldRender, setShouldRender] = React.useState(false);
   const viewport = React.useMemo(() => entry.page.getViewport({ scale }), [entry.page, scale]);
 
   React.useEffect(() => {
-    const element = shellRef.current;
-    if (!element || !scrollElement || typeof IntersectionObserver === "undefined") {
-      setShouldRender(true);
-      return undefined;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((item) => item.isIntersecting)) setShouldRender(true);
-      },
-      { root: scrollElement, rootMargin: "900px 0px" },
-    );
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [scrollElement]);
-
-  React.useEffect(() => {
-    if (!shouldRender) return undefined;
-
     const canvas = canvasRef.current;
     const textLayerElement = textLayerRef.current;
     if (!canvas || !textLayerElement) return undefined;
@@ -98,8 +84,11 @@ function PdfPage({ entry, pdfjs, scale, scrollElement }: { entry: PdfPageEntry; 
       disposed = true;
       renderTask?.cancel?.();
       textLayer?.cancel?.();
+      canvas.width = 0;
+      canvas.height = 0;
+      textLayerElement.replaceChildren();
     };
-  }, [entry.page, pdfjs, shouldRender, viewport]);
+  }, [entry.page, pdfjs, viewport]);
 
   return (
     <div
@@ -109,14 +98,8 @@ function PdfPage({ entry, pdfjs, scale, scrollElement }: { entry: PdfPageEntry; 
       style={{ width: `${viewport.width}px`, height: `${viewport.height}px` }}
       aria-label={`PDF-Seite ${entry.pageNumber}`}
     >
-      {shouldRender ? (
-        <>
-          <canvas ref={canvasRef} aria-hidden="true" />
-          <div ref={textLayerRef} className="core-pdf-text-layer" />
-        </>
-      ) : (
-        <div className="grid h-full place-items-center core-body text-[var(--core-text-muted)]">Seite {entry.pageNumber} wird vorbereitet.</div>
-      )}
+      <canvas ref={canvasRef} aria-hidden="true" />
+      <div ref={textLayerRef} className="core-pdf-text-layer" />
     </div>
   );
 }
@@ -132,6 +115,7 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
   const onSelectionRef = React.useRef(onSelection);
   const [scrollElement, setScrollElement] = React.useState<HTMLDivElement | null>(null);
   const [pdfjs, setPdfjs] = React.useState<PdfRuntime | null>(null);
+  const [pdfDocument, setPdfDocument] = React.useState<any | null>(null);
   const [pages, setPages] = React.useState<PdfPageEntry[]>([]);
   const [containerWidth, setContainerWidth] = React.useState(640);
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -160,6 +144,7 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
     setStatus("loading");
     setErrorMessage("");
     setPages([]);
+    setPdfDocument(null);
     setCurrentPage(1);
 
     async function loadDocument() {
@@ -168,13 +153,16 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
       setPdfjs(runtime);
       loadingTask = runtime.getDocument({ url: src });
       const pdf = await loadingTask!.promise;
-      const nextPages: PdfPageEntry[] = [];
-      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-        const page = await pdf.getPage(pageNumber);
-        if (disposed) return;
-        nextPages.push({ page, pageNumber, baseViewport: page.getViewport({ scale: 1 }) });
-      }
+      const firstPage = await pdf.getPage(1);
+      if (disposed) return;
+      const firstViewport = firstPage.getViewport({ scale: 1 });
+      const nextPages: PdfPageEntry[] = Array.from({ length: pdf.numPages }, (_value, index) => ({
+        page: index === 0 ? firstPage : null,
+        pageNumber: index + 1,
+        baseViewport: { width: firstViewport.width, height: firstViewport.height },
+      }));
       if (!disposed) {
+        setPdfDocument(pdf);
         setPages(nextPages);
         setStatus("ready");
       }
@@ -192,6 +180,35 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
       void loadingTask?.destroy?.();
     };
   }, [src]);
+
+  React.useEffect(() => {
+    if (!pdfDocument || pages.length === 0) return undefined;
+    let disposed = false;
+    const { firstPage, lastPage } = getPdfPageWindow(pages.length, currentPage);
+    const missingPageNumbers = pages
+      .filter((entry) => entry.pageNumber >= firstPage && entry.pageNumber <= lastPage && !entry.page)
+      .map((entry) => entry.pageNumber);
+
+    void Promise.all(missingPageNumbers.map(async (pageNumber) => {
+      const page = await pdfDocument.getPage(pageNumber);
+      return { pageNumber, page, baseViewport: page.getViewport({ scale: 1 }) };
+    })).then((loaded) => {
+      if (disposed) { loaded.forEach(({ page }) => page.cleanup?.()); return; }
+      const byPageNumber = new Map(loaded.map((entry) => [entry.pageNumber, entry]));
+      setPages((current) => current.map((entry) => {
+        const next = byPageNumber.get(entry.pageNumber);
+        if (next) return next;
+        if (entry.page && (entry.pageNumber < firstPage || entry.pageNumber > lastPage)) {
+          entry.page.cleanup?.();
+          return { ...entry, page: null };
+        }
+        return entry;
+      }));
+    }).catch((error) => {
+      if (!disposed) console.error("PDF-Seitenfenster konnte nicht geladen werden.", error);
+    });
+    return () => { disposed = true; };
+  }, [currentPage, pdfDocument, pages.length]);
 
   React.useEffect(() => {
     if (!scrollElement || pages.length === 0) return undefined;
@@ -237,7 +254,7 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
 
     const pageNumber = Number(pageElement.dataset.pdfPageNumber);
     const pageEntry = pages[pageNumber - 1];
-    if (!pageEntry) return;
+    if (!pageEntry?.page) return;
     const pageRect = pageElement.getBoundingClientRect();
     const selectionRect = firstSelectionRectOnPage(Array.from(range.getClientRects()), pageRect) ?? range.getBoundingClientRect();
     const scale = pageScale(pageEntry, containerWidth, zoom);
@@ -307,9 +324,21 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
             </div>
           ) : (
             <div ref={viewerRef} className="core-pdf-pages">
-              {pages.map((entry) => (
-                pdfjs ? <PdfPage key={entry.pageNumber} entry={entry} pdfjs={pdfjs} scale={pageScale(entry, containerWidth, zoom)} scrollElement={scrollElement} /> : null
-              ))}
+              {pages.map((entry) => {
+                const scale = pageScale(entry, containerWidth, zoom);
+                if (pdfjs && entry.page) return <PdfPage key={entry.pageNumber} entry={entry as PdfPageEntry & { page: any }} pdfjs={pdfjs} scale={scale} />;
+                return (
+                  <div
+                    key={entry.pageNumber}
+                    className="core-pdf-page grid place-items-center core-body text-[var(--core-text-muted)]"
+                    data-pdf-page-number={entry.pageNumber}
+                    style={{ width: `${entry.baseViewport.width * scale}px`, height: `${entry.baseViewport.height * scale}px` }}
+                    aria-label={`PDF-Seite ${entry.pageNumber}`}
+                  >
+                    Seite {entry.pageNumber} wird bei Bedarf geladen.
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

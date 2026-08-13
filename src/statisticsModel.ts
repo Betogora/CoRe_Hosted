@@ -1,11 +1,7 @@
-import type { Deck, LearningItem, ReviewEvent, ReviewRating, ReviewState } from "./coreTypes.ts";
-import { calculateRetrievability } from "./scheduler.ts";
-import {
-  createStudyHeatmapForecastCounts,
-  createStudyHeatmapModelFromCounts,
-  type StudyHeatmapModel,
-} from "./studyHeatmapModel.ts";
+import type { CardVariant, Deck, LearningItem, ReviewEvent, ReviewRating, ReviewState } from "./coreTypes.ts";
 import { learningDayIndexFromLocalTime, normalizeDayStartHour } from "./learningDay.ts";
+import { calculateRetrievability } from "./scheduler.ts";
+import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey, type StudyHeatmapModel } from "./studyHeatmapModel.ts";
 
 export type StatisticsPeriod = "30d" | "90d" | "365d" | "all";
 export type StatisticsDeckSelection = "all" | string[];
@@ -17,34 +13,6 @@ export interface StatisticsSelection {
   now: string;
   timeZone: string;
   dayStartHour?: number;
-}
-
-interface SchedulerSnapshot {
-  state: ReviewState["state"] | null;
-  intervalDays: number;
-  intervalMinutes: number | null;
-  difficulty: number;
-  stability: number;
-}
-
-interface IndexedReview {
-  event: ReviewEvent;
-  answeredAtMs: number;
-  before: SchedulerSnapshot;
-  category: StatisticsReviewCategory;
-}
-
-interface IndexedCard {
-  deckId: string;
-  item: LearningItem;
-}
-
-export interface StatisticsIndex {
-  decks: Deck[];
-  deckById: Map<string, Deck>;
-  childDeckIds: Map<string, string[]>;
-  eventsByDeckId: Map<string, IndexedReview[]>;
-  cardsByDeckId: Map<string, IndexedCard[]>;
 }
 
 export interface StatisticsSeriesPoint {
@@ -98,7 +66,7 @@ export interface StatisticsRetentionRow {
 }
 
 export interface StatisticsProjection {
-  selection: StatisticsSelection;
+  selection: Required<StatisticsSelection>;
   scopeDeckIds: string[];
   scopeLabel: string;
   dateRangeLabel: string;
@@ -130,17 +98,8 @@ export interface StatisticsProjection {
     deletedItems: number;
     rows: Array<{ key: string; label: string; count: number; percent: number }>;
   };
-  intervals: {
-    points: StatisticsDistributionPoint[];
-    averageDays: number;
-    medianDays: number;
-    percentile95Days: number;
-  };
-  fsrs: {
-    difficulty: StatisticsDistributionPoint[];
-    stability: StatisticsDistributionPoint[];
-    retrievability: StatisticsDistributionPoint[];
-  };
+  intervals: { points: StatisticsDistributionPoint[]; averageDays: number; medianDays: number; percentile95Days: number };
+  fsrs: { difficulty: StatisticsDistributionPoint[]; stability: StatisticsDistributionPoint[]; retrievability: StatisticsDistributionPoint[] };
   hourly: Array<{ hour: number; label: string; reviews: number; successPercent: number }>;
   ratings: StatisticsRatingPoint[];
   retention: StatisticsRetentionRow[];
@@ -167,102 +126,57 @@ export interface StatisticsProjection {
   }>;
 }
 
-const PERIOD_DAYS: Record<Exclude<StatisticsPeriod, "all">, number> = {
-  "30d": 30,
-  "90d": 90,
-  "365d": 365,
-};
-const CATEGORY_LABELS: Record<StatisticsReviewCategory, string> = {
-  learning: "Lernen",
-  relearning: "Wiederlernen",
-  young: "Jung",
-  mature: "Reif",
-};
-const RATING_KEYS: ReviewRating[] = ["again", "hard", "good", "easy"];
-const DURATION_KEY_BY_CATEGORY = {
-  learning: "durationLearningMs",
-  relearning: "durationRelearningMs",
-  young: "durationYoungMs",
-  mature: "durationMatureMs",
-} as const;
+export interface StatisticsDataset {
+  decks: Deck[];
+  projection: StatisticsProjection;
+}
+
+type SchedulerSnapshot = Pick<ReviewState, "state" | "intervalDays" | "difficulty" | "stability">;
+type CategoryCounts = Record<StatisticsReviewCategory, number>;
+type RetentionAggregate = { youngRemembered: number; youngTotal: number; matureRemembered: number; matureTotal: number };
+type Histogram = { counts: Map<number, number>; total: number; sum: number; max: number };
+
 const DAY_MS = 86_400_000;
+const PERIOD_DAYS = { "30d": 30, "90d": 90, "365d": 365 } as const;
+const CATEGORY_LABELS: Record<StatisticsReviewCategory, string> = { learning: "Lernen", relearning: "Wiederlernen", young: "Jung", mature: "Reif" };
+const CATEGORIES = Object.keys(CATEGORY_LABELS) as StatisticsReviewCategory[];
+const RATINGS: ReviewRating[] = ["again", "hard", "good", "easy"];
 const SHORT_DAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "short", timeZone: "UTC" });
 const LONG_DAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
 const RANGE_DAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 
-interface CachedReviewTime {
-  dayIndex: number;
-  hour: number;
-}
-
-interface LocalizedCard extends IndexedCard {
-  createdDayKey: string | null;
-  createdDayIndex: number | null;
-}
-
-interface LocalizedReview {
-  indexed: IndexedReview;
-  dayIndex: number;
-}
-
-interface LocalizedReviewSeries {
-  reviews: IndexedReview[];
-  dayIndexes: Int32Array;
-  hours: Uint8Array;
-}
-
-interface StatisticsScopeCache {
-  key: string;
-  timeZone: string;
-  dayStartHour: number;
-  eventSeries: LocalizedReviewSeries[];
-  heatmapCountsByDay: ReadonlyMap<string, number>;
-  cards: LocalizedCard[];
-  retentionEvents: LocalizedReview[];
-  earliestEventDayIndex: number | null;
-  earliestCardDayIndex: number | null;
-}
-
-interface RetentionAggregate {
-  youngRemembered: number;
-  youngTotal: number;
-  matureRemembered: number;
-  matureTotal: number;
-}
-
-const scopeCacheByIndex = new WeakMap<StatisticsIndex, StatisticsScopeCache>();
-const UNRESOLVED_DAY_INDEX = -2_147_483_648;
-
-function asRecord(value: unknown): Record<string, unknown> {
+function record(value: unknown): Record<string, unknown> {
   return value != null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function finiteNumber(value: unknown, fallback = 0): number {
+function finite(value: unknown, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 }
 
-function percentage(count: number, total: number): number {
-  return total > 0 ? Math.round((count / total) * 1000) / 10 : 0;
+function percentage(count: number, total: number) {
+  return total > 0 ? Math.round((count / total) * 1_000) / 10 : 0;
 }
 
-function average(values: number[]): number {
-  return values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+function dayIndex(key: string) {
+  const [year, month, day] = key.split("-").map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
 }
 
-function maximum(values: number[], fallback = 0): number {
-  let result = fallback;
-  for (const value of values) result = Math.max(result, value);
-  return result;
+function keyFromDayIndex(index: number) {
+  return new Date(index * DAY_MS).toISOString().slice(0, 10);
 }
 
-function percentile(sortedValues: number[], ratio: number): number {
-  if (sortedValues.length === 0) return 0;
-  const index = Math.min(sortedValues.length - 1, Math.max(0, Math.ceil(sortedValues.length * ratio) - 1));
-  return sortedValues[index];
+function shiftDayKey(key: string, days: number) {
+  return keyFromDayIndex(dayIndex(key) + days);
 }
 
-function normalizeTimeZone(timeZone: string): string {
+function formatRangeLabel(startKey: string, endKey: string) {
+  if (startKey === endKey) return LONG_DAY_FORMATTER.format(new Date(`${startKey}T12:00:00Z`));
+  return `${RANGE_DAY_FORMATTER.format(new Date(`${startKey}T12:00:00Z`))} – ${RANGE_DAY_FORMATTER.format(new Date(`${endKey}T12:00:00Z`))}`;
+}
+
+function normalizeTimeZone(timeZone: string) {
   try {
     new Intl.DateTimeFormat("de-DE", { timeZone }).format(new Date());
     return timeZone;
@@ -271,7 +185,7 @@ function normalizeTimeZone(timeZone: string): string {
   }
 }
 
-function createLocalReviewTimeResolver(timeZone: string, dayStartHour = 0) {
+function localTimeResolver(timeZone: string, dayStartHour: number) {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",
@@ -282,233 +196,123 @@ function createLocalReviewTimeResolver(timeZone: string, dayStartHour = 0) {
     second: "2-digit",
     hourCycle: "h23",
   });
-  const dayOffsetCache = new Map<number, number>();
-  function exactOffset(timestamp: number): number {
-    const parts = formatter.formatToParts(new Date(timestamp));
-    const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    const representedUtc = Date.UTC(Number(value.year), Number(value.month) - 1, Number(value.day), Number(value.hour), Number(value.minute), Number(value.second));
-    return representedUtc - Math.floor(timestamp / 1_000) * 1_000;
-  }
-  function offsetAtUtcDayStart(index: number): number {
-    const cached = dayOffsetCache.get(index);
-    if (cached != null) return cached;
-    const offset = exactOffset(index * DAY_MS);
-    dayOffsetCache.set(index, offset);
-    return offset;
-  }
-  return (timestamp: number): CachedReviewTime => {
-    const utcDayIndex = Math.floor(timestamp / DAY_MS);
-    const startOffset = offsetAtUtcDayStart(utcDayIndex);
-    const nextOffset = offsetAtUtcDayStart(utcDayIndex + 1);
-    const offset = startOffset === nextOffset ? startOffset : exactOffset(timestamp);
-    const localDate = new Date(timestamp + offset);
-    const localDayIndex = Math.floor((timestamp + offset) / DAY_MS);
-    const hour = localDate.getUTCHours();
+  return (timestamp: number) => {
+    const values = Object.fromEntries(formatter.formatToParts(new Date(timestamp)).map((part) => [part.type, part.value]));
+    const localTimestamp = Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day), Number(values.hour), Number(values.minute), Number(values.second));
+    const localDayIndex = Math.floor(localTimestamp / DAY_MS);
+    const hour = Number(values.hour);
     return { dayIndex: learningDayIndexFromLocalTime(localDayIndex, hour, dayStartHour), hour };
   };
 }
 
-function dayIndex(key: string): number {
-  const [year, month, day] = key.split("-").map(Number);
-  return Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
-}
-
-function keyFromDayIndex(index: number): string {
-  return new Date(index * DAY_MS).toISOString().slice(0, 10);
-}
-
-function shiftDayKey(key: string, days: number): string {
-  return keyFromDayIndex(dayIndex(key) + days);
-}
-
-function formatDayLabel(key: string): string {
-  return SHORT_DAY_FORMATTER.format(new Date(`${key}T12:00:00Z`));
-}
-
-function formatRangeLabel(startKey: string, endKey: string): string {
-  if (startKey === endKey) return LONG_DAY_FORMATTER.format(new Date(`${startKey}T12:00:00Z`));
-  return `${RANGE_DAY_FORMATTER.format(new Date(`${startKey}T12:00:00Z`))} – ${RANGE_DAY_FORMATTER.format(new Date(`${endKey}T12:00:00Z`))}`;
-}
-
-function normalizeSnapshot(value: unknown): SchedulerSnapshot {
-  const outer = asRecord(value);
-  const raw = Object.keys(asRecord(outer.card)).length > 0 ? asRecord(outer.card) : outer;
-  const stateValue = String(raw.state ?? "");
-  const state = stateValue === "new" || stateValue === "learning" || stateValue === "review" || stateValue === "relearning"
-    ? stateValue
-    : null;
-  const intervalMinutes = raw.intervalMinutes == null ? null : Math.max(0, finiteNumber(raw.intervalMinutes));
+function snapshot(value: unknown): SchedulerSnapshot {
+  const outer = record(value);
+  const raw = Object.keys(record(outer.card)).length ? record(outer.card) : outer;
+  const rawState = String(raw.state ?? "");
+  const state = ["new", "learning", "review", "relearning"].includes(rawState) ? rawState as ReviewState["state"] : "new";
   return {
     state,
-    intervalDays: Math.max(0, finiteNumber(raw.intervalDays)),
-    intervalMinutes,
-    difficulty: Math.max(0, finiteNumber(raw.difficulty)),
-    stability: Math.max(0, finiteNumber(raw.stability)),
+    intervalDays: Math.max(0, finite(raw.intervalDays)),
+    difficulty: Math.max(0, finite(raw.difficulty)),
+    stability: Math.max(0, finite(raw.stability)),
   };
 }
 
-function categoryForSnapshot(snapshot: SchedulerSnapshot): StatisticsReviewCategory {
-  if (snapshot.state === "new" || snapshot.state === "learning") return "learning";
-  if (snapshot.state === "relearning") return "relearning";
-  return snapshot.intervalDays >= 21 ? "mature" : "young";
+function category(state: Pick<ReviewState, "state" | "intervalDays">): StatisticsReviewCategory {
+  if (state.state === "new" || state.state === "learning") return "learning";
+  if (state.state === "relearning") return "relearning";
+  return finite(state.intervalDays) >= 21 ? "mature" : "young";
 }
 
-function eventTimestamp(event: ReviewEvent): number {
-  const legacy = asRecord(event).reviewedAt;
-  const value = Date.parse(String(event.answeredAt || legacy || event.createdAt || ""));
-  return Number.isFinite(value) ? value : Number.NaN;
+function emptyCategories(): CategoryCounts {
+  return { learning: 0, relearning: 0, young: 0, mature: 0 };
 }
 
-function isPositive(rating: ReviewRating): boolean {
-  return rating !== "again";
-}
-
-function stripMarkup(value: string): string {
-  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
-
-export function createStatisticsIndex(decks: Deck[] = []): StatisticsIndex {
-  const deckById = new Map(decks.map((deck) => [deck.id, deck]));
-  const childDeckIds = new Map<string, string[]>();
-  const eventsByDeckId = new Map<string, IndexedReview[]>();
-  const cardsByDeckId = new Map<string, IndexedCard[]>();
-
-  for (const deck of decks) {
-    if (deck.parentDeckId && deckById.has(deck.parentDeckId)) {
-      const childIds = childDeckIds.get(deck.parentDeckId);
-      if (childIds) childIds.push(deck.id);
-      else childDeckIds.set(deck.parentDeckId, [deck.id]);
-    }
-    const events = (deck.reviewEvents ?? [])
-      .map((event) => {
-        const answeredAtMs = eventTimestamp(event);
-        if (!Number.isFinite(answeredAtMs) || !RATING_KEYS.includes(event.rating)) return null;
-        const before = normalizeSnapshot(event.schedulerBefore);
-        return { event, answeredAtMs, before, category: categoryForSnapshot(before) } satisfies IndexedReview;
-      })
-      .filter((event): event is IndexedReview => event != null)
-      .sort((left, right) => left.answeredAtMs - right.answeredAtMs);
-    eventsByDeckId.set(deck.id, events);
-    cardsByDeckId.set(deck.id, (deck.cards ?? []).map((item) => ({ deckId: deck.id, item })));
-  }
-
-  return { decks, deckById, childDeckIds, eventsByDeckId, cardsByDeckId };
-}
-
-export function resolveStatisticsDeckScope(index: StatisticsIndex, selection: StatisticsDeckSelection): string[] {
-  if (selection === "all" || selection.length === 0) return index.decks.map((deck) => deck.id);
-  const result = new Set<string>();
-  const visit = (deckId: string) => {
-    if (result.has(deckId) || !index.deckById.has(deckId)) return;
-    result.add(deckId);
-    for (const childId of index.childDeckIds.get(deckId) ?? []) visit(childId);
+function emptySeriesPoint(key: string, label: string, rangeLabel: string): StatisticsSeriesPoint {
+  return {
+    key, label, rangeLabel, ...emptyCategories(), total: 0, cumulative: 0,
+    durationMs: 0, durationLearningMs: 0, durationRelearningMs: 0,
+    durationYoungMs: 0, durationMatureMs: 0, timedCount: 0,
   };
-  selection.forEach(visit);
-  return result.size > 0 ? [...result] : index.decks.map((deck) => deck.id);
 }
 
-interface TimeBucket {
-  key: string;
-  label: string;
-  rangeLabel: string;
-  startIndex: number;
-  endIndex: number;
-}
-
-function bucketSizeFor(period: StatisticsPeriod, spanDays: number): number {
+function bucketSize(period: StatisticsPeriod, spanDays: number) {
   if (period === "30d" || period === "90d") return 1;
   if (period === "365d") return 7;
   const minimum = Math.max(1, Math.ceil(spanDays / 180));
-  return [1, 7, 14, 30, 91, 183, 365].find((size) => size >= minimum) ?? Math.ceil(spanDays / 180);
+  return [1, 7, 14, 30, 91, 183, 365].find((size) => size >= minimum) ?? minimum;
 }
 
-function createBuckets(startKey: string, endKey: string, period: StatisticsPeriod): TimeBucket[] {
-  const startIndex = dayIndex(startKey);
-  const endIndex = Math.max(startIndex, dayIndex(endKey));
-  const size = bucketSizeFor(period, endIndex - startIndex + 1);
-  const result: TimeBucket[] = [];
+function createBuckets(startIndex: number, endIndex: number, period: StatisticsPeriod) {
+  const size = bucketSize(period, endIndex - startIndex + 1);
+  const buckets: Array<{ start: number; end: number; point: StatisticsSeriesPoint }> = [];
   for (let index = startIndex; index <= endIndex; index += size) {
-    const bucketEnd = Math.min(endIndex, index + size - 1);
-    const bucketStartKey = keyFromDayIndex(index);
-    const bucketEndKey = keyFromDayIndex(bucketEnd);
-    result.push({
-      key: bucketStartKey,
-      label: formatDayLabel(bucketStartKey),
-      rangeLabel: formatRangeLabel(bucketStartKey, bucketEndKey),
-      startIndex: index,
-      endIndex: bucketEnd,
-    });
+    const end = Math.min(endIndex, index + size - 1);
+    const startKey = keyFromDayIndex(index);
+    const endKey = keyFromDayIndex(end);
+    buckets.push({ start: index, end, point: emptySeriesPoint(startKey, SHORT_DAY_FORMATTER.format(new Date(`${startKey}T12:00:00Z`)), formatRangeLabel(startKey, endKey)) });
   }
-  return result;
+  return buckets;
 }
 
-function bucketIndexFor(buckets: TimeBucket[], target: number): number {
+function bucketFor(buckets: ReturnType<typeof createBuckets>, target: number) {
   const first = buckets[0];
-  const last = buckets.at(-1);
-  if (!first || !last || target < first.startIndex || target > last.endIndex) return -1;
-  const width = first.endIndex - first.startIndex + 1;
-  return Math.min(buckets.length - 1, Math.floor((target - first.startIndex) / width));
+  if (!first || target < first.start || target > buckets.at(-1)!.end) return null;
+  return buckets[Math.min(buckets.length - 1, Math.floor((target - first.start) / (first.end - first.start + 1)))] ?? null;
 }
 
-function emptySeries(buckets: TimeBucket[]): StatisticsSeriesPoint[] {
-  return buckets.map((bucket) => ({
-    key: bucket.key,
-    label: bucket.label,
-    rangeLabel: bucket.rangeLabel,
-    learning: 0,
-    relearning: 0,
-    young: 0,
-    mature: 0,
-    total: 0,
-    cumulative: 0,
-    durationMs: 0,
-    durationLearningMs: 0,
-    durationRelearningMs: 0,
-    durationYoungMs: 0,
-    durationMatureMs: 0,
-    timedCount: 0,
-  }));
-}
-
-function finalizeSeries(points: StatisticsSeriesPoint[]): StatisticsSeriesPoint[] {
+function finalizeSeries(buckets: ReturnType<typeof createBuckets>) {
   let cumulative = 0;
-  return points.map((point) => {
-    cumulative += point.total;
-    return { ...point, cumulative };
-  });
+  return buckets.map(({ point }) => ({ ...point, cumulative: cumulative += point.total }));
 }
 
-function createDistribution(values: number[], maxValue: number, bucketCount: number, suffix: string): StatisticsDistributionPoint[] {
-  if (values.length === 0 || maxValue <= 0) return [];
+function histogram() : Histogram {
+  return { counts: new Map(), total: 0, sum: 0, max: 0 };
+}
+
+function addHistogram(target: Histogram, value: number) {
+  const normalized = Math.max(0, Math.round(value * 10) / 10);
+  target.counts.set(normalized, (target.counts.get(normalized) ?? 0) + 1);
+  target.total += 1;
+  target.sum += normalized;
+  target.max = Math.max(target.max, normalized);
+}
+
+function percentile(target: Histogram, ratio: number) {
+  if (!target.total) return 0;
+  const threshold = Math.ceil(target.total * ratio);
+  let cumulative = 0;
+  for (const [value, count] of [...target.counts].sort(([left], [right]) => left - right)) {
+    cumulative += count;
+    if (cumulative >= threshold) return value;
+  }
+  return target.max;
+}
+
+function distribution(target: Histogram, maxValue: number, bucketCount: number, suffix: string): StatisticsDistributionPoint[] {
+  if (!target.total || maxValue <= 0) return [];
   const width = Math.max(1, Math.ceil(maxValue / bucketCount));
-  const counts = Array.from({ length: Math.ceil(maxValue / width) }, () => 0);
-  for (const value of values) {
-    if (value < 0 || value > maxValue) continue;
-    const index = Math.min(counts.length - 1, Math.floor(value / width));
-    counts[index] += 1;
+  const counts = Array.from({ length: Math.max(1, Math.ceil(maxValue / width)) }, () => 0);
+  for (const [value, count] of target.counts) {
+    if (value <= maxValue) counts[Math.min(counts.length - 1, Math.floor(value / width))] += count;
   }
   let cumulative = 0;
   return counts.map((count, index) => {
     cumulative += count;
     const start = index * width;
     const end = Math.min(maxValue, (index + 1) * width);
-    return {
-      key: `${start}-${end}`,
-      label: `${start}–${end} ${suffix}`.trim(),
-      count,
-      cumulativePercent: percentage(cumulative, values.length),
-    };
+    return { key: `${start}-${end}`, label: `${start}–${end} ${suffix}`.trim(), count, cumulativePercent: percentage(cumulative, target.total) };
   });
 }
 
-function emptyRetentionAggregate(): RetentionAggregate {
+function retentionAggregate(): RetentionAggregate {
   return { youngRemembered: 0, youngTotal: 0, matureRemembered: 0, matureTotal: 0 };
 }
 
-function addRetention(aggregate: RetentionAggregate, event: IndexedReview): void {
-  const prefix = event.before.intervalDays >= 21 ? "mature" : "young";
-  aggregate[`${prefix}Total`] += 1;
-  aggregate[`${prefix}Remembered`] += Number(isPositive(event.event.rating));
+function addRetention(target: RetentionAggregate, before: SchedulerSnapshot, rating: ReviewRating) {
+  const prefix = before.intervalDays >= 21 ? "mature" : "young";
+  target[`${prefix}Total`] += 1;
+  target[`${prefix}Remembered`] += Number(rating !== "again");
 }
 
 function retentionCell(remembered: number, total: number): StatisticsRetentionCell {
@@ -518,465 +322,323 @@ function retentionCell(remembered: number, total: number): StatisticsRetentionCe
 function retentionRow(key: StatisticsRetentionRow["key"], label: string, aggregate: RetentionAggregate): StatisticsRetentionRow {
   const young = retentionCell(aggregate.youngRemembered, aggregate.youngTotal);
   const mature = retentionCell(aggregate.matureRemembered, aggregate.matureTotal);
-  return {
-    key,
-    label,
-    young,
-    mature,
-    total: retentionCell(young.remembered + mature.remembered, young.total + mature.total),
+  return { key, label, young, mature, total: retentionCell(young.remembered + mature.remembered, young.total + mature.total) };
+}
+
+function deckScope(decks: Deck[], selection: StatisticsDeckSelection) {
+  if (selection === "all" || selection.length === 0) return decks.map((deck) => deck.id);
+  const children = new Map<string, string[]>();
+  for (const deck of decks) if (deck.parentDeckId) children.set(deck.parentDeckId, [...(children.get(deck.parentDeckId) ?? []), deck.id]);
+  const result = new Set<string>();
+  const visit = (id: string) => {
+    if (result.has(id) || !decks.some((deck) => deck.id === id)) return;
+    result.add(id);
+    (children.get(id) ?? []).forEach(visit);
   };
+  selection.forEach(visit);
+  return result.size ? [...result] : decks.map((deck) => deck.id);
 }
 
-function scopeDescription(index: StatisticsIndex, requested: StatisticsDeckSelection, scopeDeckIds: string[]): string {
-  if (requested === "all") return "Gesamte Sammlung";
-  if (requested.length === 1) return index.deckById.get(requested[0])?.name ?? "Ausgewählter Stapel";
-  return `${Math.min(requested.length, scopeDeckIds.length)} Stapel ausgewählt`;
-}
-
-function getStatisticsScopeCache(index: StatisticsIndex, scopeDeckIds: string[], timeZone: string, dayStartHour: number): StatisticsScopeCache {
-  const key = [...scopeDeckIds].sort().join("\u0000");
-  const cached = scopeCacheByIndex.get(index);
-  if (cached?.key === key && cached.timeZone === timeZone && cached.dayStartHour === dayStartHour) return cached;
-
-  const resolveLocalTime = createLocalReviewTimeResolver(timeZone, dayStartHour);
-  const firstRetentionByVariantDay = new Map<string, LocalizedReview>();
-  const eventSeries: LocalizedReviewSeries[] = [];
-  const heatmapCountsByDay = new Map<string, number>();
-  const cards: LocalizedCard[] = [];
-  let earliestEventDayIndex: number | null = null;
-  let earliestCardDayIndex: number | null = null;
-
-  for (const deckId of scopeDeckIds) {
-    const events = index.eventsByDeckId.get(deckId) ?? [];
-    const series = {
-      reviews: events,
-      dayIndexes: new Int32Array(events.length),
-      hours: new Uint8Array(events.length),
-    };
-    series.dayIndexes.fill(UNRESOLVED_DAY_INDEX);
-    eventSeries.push(series);
-    if (events.length > 0) {
-      const firstDayIndex = localReviewDayIndexAt(series, 0, resolveLocalTime);
-      if (earliestEventDayIndex == null || firstDayIndex < earliestEventDayIndex) earliestEventDayIndex = firstDayIndex;
-    }
-    for (let eventIndex = 0; eventIndex < events.length; eventIndex += 1) {
-      const indexed = events[eventIndex];
-      const dayIndex = localReviewDayIndexAt(series, eventIndex, resolveLocalTime);
-      const dayKey = keyFromDayIndex(dayIndex);
-      heatmapCountsByDay.set(dayKey, (heatmapCountsByDay.get(dayKey) ?? 0) + 1);
-      if (indexed.before.intervalDays < 1) continue;
-      const reviewableId = indexed.event.reviewableId || indexed.event.variantId || indexed.event.learningItemId;
-      const retentionKey = `${reviewableId}\u0000${dayIndex}`;
-      const previous = firstRetentionByVariantDay.get(retentionKey);
-      if (!previous || indexed.answeredAtMs < previous.indexed.answeredAtMs) {
-        firstRetentionByVariantDay.set(retentionKey, { indexed, dayIndex });
-      }
-    }
-
-    for (const indexedCard of index.cardsByDeckId.get(deckId) ?? []) {
-      const createdAtMs = Date.parse(indexedCard.item.createdAt);
-      const localTime = Number.isFinite(createdAtMs) ? resolveLocalTime(createdAtMs) : null;
-      cards.push({
-        ...indexedCard,
-        createdDayKey: localTime ? keyFromDayIndex(localTime.dayIndex) : null,
-        createdDayIndex: localTime?.dayIndex ?? null,
-      });
-      if (localTime && (earliestCardDayIndex == null || localTime.dayIndex < earliestCardDayIndex)) earliestCardDayIndex = localTime.dayIndex;
-    }
-  }
-
-  const result = {
-    key,
-    timeZone,
-    dayStartHour,
-    eventSeries,
-    heatmapCountsByDay,
-    cards,
-    retentionEvents: [...firstRetentionByVariantDay.values()],
-    earliestEventDayIndex,
-    earliestCardDayIndex,
-  } satisfies StatisticsScopeCache;
-  scopeCacheByIndex.set(index, result);
-  return result;
-}
-
-function localReviewDayIndexAt(
-  series: LocalizedReviewSeries,
-  index: number,
-  resolveLocalTime: (timestamp: number) => CachedReviewTime,
-): number {
-  const cachedDayIndex = series.dayIndexes[index];
-  if (cachedDayIndex !== UNRESOLVED_DAY_INDEX) return cachedDayIndex;
-  const localTime = resolveLocalTime(series.reviews[index].answeredAtMs);
-  series.dayIndexes[index] = localTime.dayIndex;
-  series.hours[index] = localTime.hour;
-  return localTime.dayIndex;
-}
-
-function localDayBound(series: LocalizedReviewSeries, targetDayIndex: number, resolveLocalTime: (timestamp: number) => CachedReviewTime, upper: boolean): number {
-  let low = 0;
-  let high = series.reviews.length;
-  while (low < high) {
-    const middle = Math.floor((low + high) / 2);
-    const currentDayIndex = localReviewDayIndexAt(series, middle, resolveLocalTime);
-    if (currentDayIndex < targetDayIndex || (upper && currentDayIndex === targetDayIndex)) low = middle + 1;
-    else high = middle;
-  }
-  return low;
-}
-
-export function projectStatistics(index: StatisticsIndex, input: StatisticsSelection): StatisticsProjection {
+export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSelection) {
   const timeZone = normalizeTimeZone(input.timeZone);
   const dayStartHour = normalizeDayStartHour(input.dayStartHour);
-  const selection = { ...input, timeZone, dayStartHour };
-  const now = new Date(input.now);
-  const safeNow = Number.isFinite(now.getTime()) ? now : new Date();
-  const resolveLocalTime = createLocalReviewTimeResolver(timeZone, dayStartHour);
-  const nowLocalTime = resolveLocalTime(safeNow.getTime());
-  const nowKey = keyFromDayIndex(nowLocalTime.dayIndex);
-  const scopeDeckIds = resolveStatisticsDeckScope(index, input.deckIds);
-  const scope = getStatisticsScopeCache(index, scopeDeckIds, timeZone, dayStartHour);
-  const startDayIndex = input.period === "all"
-    ? Math.min(scope.earliestEventDayIndex ?? nowLocalTime.dayIndex, scope.earliestCardDayIndex ?? nowLocalTime.dayIndex)
-    : nowLocalTime.dayIndex - PERIOD_DAYS[input.period] + 1;
-  const startKey = keyFromDayIndex(startDayIndex);
-  const previousStartDayIndex = input.period === "all" ? null : startDayIndex - PERIOD_DAYS[input.period];
-  const previousEndDayIndex = input.period === "all" ? null : startDayIndex - 1;
-  const inSelectedRange = (value: number) => value >= startDayIndex && value <= nowLocalTime.dayIndex;
-
-  const buckets = createBuckets(startKey, nowKey, input.period);
-  const activity = emptySeries(buckets);
-  const reviewsByDay = new Map<number, number>();
-  const hourRows = Array.from({ length: 24 }, (_, hour) => ({ hour, label: `${String(hour).padStart(2, "0")}:00`, reviews: 0, success: 0 }));
-  const ratingRows = new Map<StatisticsReviewCategory, StatisticsRatingPoint>(
-    (Object.keys(CATEGORY_LABELS) as StatisticsReviewCategory[]).map((category) => [category, {
-      category,
-      label: CATEGORY_LABELS[category],
-      again: 0,
-      hard: 0,
-      good: 0,
-      easy: 0,
-      total: 0,
-      successPercent: 0,
-    }]),
-  );
-  const difficult = new Map<string, { deckId: string; itemId: string; reviewCount: number; weakCount: number; lastReviewedAt: string }>();
-  const deckReviewAggregates = new Map<string, { reviewCount: number; positive: number; again: number }>();
+  const selection = { ...input, timeZone, dayStartHour } as Required<StatisticsSelection>;
+  const safeNow = Number.isFinite(Date.parse(input.now)) ? new Date(input.now) : new Date();
+  const resolveLocalTime = localTimeResolver(timeZone, dayStartHour);
+  const nowLocal = resolveLocalTime(safeNow.getTime());
+  const fixedStart = input.period === "all" ? null : nowLocal.dayIndex - PERIOD_DAYS[input.period] + 1;
+  const previousStart = fixedStart == null ? null : fixedStart - PERIOD_DAYS[input.period as Exclude<StatisticsPeriod, "all">];
+  const scopeDeckIds = deckScope(decks, input.deckIds);
+  const scopeIds = new Set(scopeDeckIds);
+  const deckById = new Map(decks.map((deck) => [deck.id, deck]));
+  const activityByDay = new Map<number, StatisticsSeriesPoint>();
+  const addedByDay = new Map<number, number>();
+  const heatmapCounts = new Map<string, number>();
+  const forecastCounts = new Map<string, number>();
+  const ratings = new Map(CATEGORIES.map((key) => [key, { category: key, label: CATEGORY_LABELS[key], again: 0, hard: 0, good: 0, easy: 0, total: 0, successPercent: 0 } satisfies StatisticsRatingPoint]));
+  const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, label: `${String(hour).padStart(2, "0")}:00`, reviews: 0, success: 0 }));
+  const deckReviews = new Map<string, { reviewCount: number; positive: number; again: number }>();
+  const deckCurrent = new Map<string, { intervalTotal: number; intervalCount: number; nextDueAt: string | null }>();
+  const difficult = new Map<string, { deckId: string; itemId: string; title: string; reviewCount: number; weakCount: number; lastReviewedAt: string }>();
+  const selectedRetention = retentionAggregate();
+  const previousRetention = retentionAggregate();
+  const allRetention = retentionAggregate();
+  const retentionByDeck = new Map<string, RetentionAggregate>();
+  const status = new Map<string, number>([["new", 0], ["learning", 0], ["relearning", 0], ["young", 0], ["mature", 0]]);
+  const intervals = histogram();
+  const stability = histogram();
+  const difficultyCounts = Array.from({ length: 10 }, () => 0);
+  const retrievabilityCounts = Array.from({ length: 20 }, () => 0);
+  const dueByDay = new Map<number, CategoryCounts>();
+  let earliestDay = nowLocal.dayIndex;
   let reviewCount = 0;
   let successCount = 0;
   let timedCount = 0;
   let totalDurationMs = 0;
-
-  for (const series of scope.eventSeries) {
-    const rangeStart = localDayBound(series, startDayIndex, resolveLocalTime, false);
-    const rangeEnd = localDayBound(series, nowLocalTime.dayIndex, resolveLocalTime, true);
-    for (let index = rangeStart; index < rangeEnd; index += 1) {
-      const indexed = series.reviews[index];
-      const localDayIndex = localReviewDayIndexAt(series, index, resolveLocalTime);
-      const positive = Number(isPositive(indexed.event.rating));
-      reviewCount += 1;
-      successCount += positive;
-      reviewsByDay.set(localDayIndex, (reviewsByDay.get(localDayIndex) ?? 0) + 1);
-
-      const bucketIndex = bucketIndexFor(buckets, localDayIndex);
-      const point = activity[bucketIndex];
-      if (point) {
-        point[indexed.category] += 1;
-        point.total += 1;
-        if (indexed.event.responseTimeMs != null && Number.isFinite(indexed.event.responseTimeMs) && indexed.event.responseTimeMs >= 0) {
-          const duration = Math.min(60_000, indexed.event.responseTimeMs);
-          const durationKey = DURATION_KEY_BY_CATEGORY[indexed.category];
-          point.durationMs += duration;
-          point[durationKey] += duration;
-          point.timedCount += 1;
-          timedCount += 1;
-          totalDurationMs += duration;
-        }
-      }
-
-      const hour = hourRows[series.hours[index]];
-      if (hour) {
-        hour.reviews += 1;
-        hour.success += positive;
-      }
-      const rating = ratingRows.get(indexed.category);
-      if (rating) {
-        rating[indexed.event.rating] += 1;
-        rating.total += 1;
-      }
-
-      const deckAggregate = deckReviewAggregates.get(indexed.event.deckId) ?? { reviewCount: 0, positive: 0, again: 0 };
-      deckAggregate.reviewCount += 1;
-      deckAggregate.positive += positive;
-      deckAggregate.again += Number(indexed.event.rating === "again");
-      deckReviewAggregates.set(indexed.event.deckId, deckAggregate);
-
-      const difficultKey = indexed.event.learningItemId;
-      const difficultValue = difficult.get(difficultKey) ?? {
-        deckId: indexed.event.deckId,
-        itemId: indexed.event.learningItemId,
-        reviewCount: 0,
-        weakCount: 0,
-        lastReviewedAt: indexed.event.answeredAt,
-      };
-      difficultValue.reviewCount += 1;
-      difficultValue.weakCount += Number(indexed.event.rating === "again" || indexed.event.rating === "hard");
-      if (indexed.event.answeredAt > difficultValue.lastReviewedAt) difficultValue.lastReviewedAt = indexed.event.answeredAt;
-      difficult.set(difficultKey, difficultValue);
-    }
-  }
-  const finalizedActivity = finalizeSeries(activity);
-  const hourly = hourRows.map(({ success, ...row }) => ({ ...row, successPercent: percentage(success, row.reviews) }));
-  const ratings = [...ratingRows.values()].map((row) => ({ ...row, successPercent: percentage(row.total - row.again, row.total) }));
-
-  const addedCards = buckets.map((bucket) => ({ key: bucket.key, label: bucket.label, rangeLabel: bucket.rangeLabel, count: 0, cumulative: 0 }));
-  const forecastCountsByDay = createStudyHeatmapForecastCounts(
-    scope.cards.map(({ item }) => item),
-    { todayKey: nowKey, timeZone, dayStartHour },
-  );
-  const studyHeatmap = createStudyHeatmapModelFromCounts({
-    todayKey: nowKey,
-    countsByDay: scope.heatmapCountsByDay,
-    forecastCountsByDay,
-  });
-
-  const statusCounts = new Map<string, number>([["new", 0], ["learning", 0], ["relearning", 0], ["young", 0], ["mature", 0]]);
-  const periodLimit = input.period === "all" ? Number.POSITIVE_INFINITY : PERIOD_DAYS[input.period];
-  const intervalValues: number[] = [];
-  const difficultyCounts = Array.from({ length: 10 }, () => 0);
-  const stabilityValues: number[] = [];
-  const retrievabilityCounts = Array.from({ length: 20 }, () => 0);
-  const futureStates: Array<{ state: ReviewState; dueKey: string; dueDayIndex: number }> = [];
-  const deckCurrentAggregates = new Map<string, { intervalTotal: number; intervalCount: number; nextDueAt: string | null }>();
-  const itemById = new Map<string, LearningItem>();
+  let learningItems = 0;
   let suspendedItems = 0;
   let deletedItems = 0;
   let activeVariants = 0;
-  let addedCumulative = 0;
   let difficultyEligible = 0;
   let retrievabilityEligible = 0;
-  let latestDueKey = nowKey;
   let dailyWorkload = 0;
+  let lastRetentionKey = "";
 
-  for (const { deckId, item, createdDayKey, createdDayIndex } of scope.cards) {
-    itemById.set(item.id, item);
-    if (createdDayKey != null && createdDayIndex != null) {
-      if (createdDayKey < startKey) addedCumulative += 1;
-      else if (createdDayKey <= nowKey) {
-        const bucketIndex = bucketIndexFor(buckets, createdDayIndex);
-        if (bucketIndex >= 0) addedCards[bucketIndex].count += 1;
-      }
+  function addCurrentState(deckId: string, state: ReviewState) {
+    activeVariants += 1;
+    status.set(category(state), (status.get(category(state)) ?? 0) + 1);
+    const interval = Math.max(0, finite(state.intervalDays));
+    if (input.period === "all" || interval <= PERIOD_DAYS[input.period]) addHistogram(intervals, interval);
+    const difficulty = finite(state.difficulty);
+    if (difficulty > 0 && difficulty <= 10) {
+      difficultyCounts[Math.min(9, Math.max(0, Math.ceil(difficulty) - 1))] += 1;
+      difficultyEligible += 1;
     }
-
-    const deckCurrent = deckCurrentAggregates.get(deckId) ?? { intervalTotal: 0, intervalCount: 0, nextDueAt: null };
-    for (const variant of item.variants ?? []) {
-      const comparisonState = variant.reviewState ?? item.learningItemState;
-      if (comparisonState) {
-        deckCurrent.intervalTotal += finiteNumber(comparisonState.intervalDays);
-        deckCurrent.intervalCount += 1;
-      }
-      const dueAt = variant.reviewState?.dueAt ?? item.learningItemState?.dueAt;
-      if (dueAt && (deckCurrent.nextDueAt == null || dueAt < deckCurrent.nextDueAt)) deckCurrent.nextDueAt = dueAt;
+    const stable = finite(state.stability);
+    if (stable > 0) addHistogram(stability, stable);
+    const retrievability = calculateRetrievability(state, safeNow);
+    if (Number.isFinite(retrievability) && retrievability >= 0 && retrievability <= 1) {
+      retrievabilityCounts[Math.min(19, Math.floor(retrievability * 20))] += 1;
+      retrievabilityEligible += 1;
     }
-    deckCurrentAggregates.set(deckId, deckCurrent);
-
-    if (item.status === "suspended") { suspendedItems += 1; continue; }
-    if (item.status === "deleted") { deletedItems += 1; continue; }
-    for (const variant of item.variants ?? []) {
-      if (!variant.isActive || variant.deletedAt || variant.qualityStatus === "disabled") continue;
-      const state = variant.reviewState ?? item.learningItemState ?? item.reviewState;
-      if (!state) continue;
-      activeVariants += 1;
-      const key = state.state === "review" ? (state.intervalDays >= 21 ? "mature" : "young") : state.state;
-      statusCounts.set(key, (statusCounts.get(key) ?? 0) + 1);
-
-      const interval = Math.max(0, finiteNumber(state.intervalDays));
-      if (interval <= periodLimit) intervalValues.push(interval);
-      const difficulty = finiteNumber(state.difficulty);
-      if (difficulty > 0 && difficulty <= 10) {
-        difficultyCounts[Math.min(9, Math.max(0, Math.ceil(difficulty) - 1))] += 1;
-        difficultyEligible += 1;
-      }
-      const stability = finiteNumber(state.stability);
-      if (stability > 0) stabilityValues.push(stability);
-      const retrievability = calculateRetrievability(state, safeNow);
-      if (Number.isFinite(retrievability) && retrievability >= 0 && retrievability <= 1) {
-        retrievabilityCounts[Math.min(19, Math.floor(retrievability * 20))] += 1;
-        retrievabilityEligible += 1;
-      }
-      const dueAtMs = Date.parse(state.dueAt);
-      if (Number.isFinite(dueAtMs)) {
-        const dueLocalTime = resolveLocalTime(dueAtMs);
-        const dueKey = keyFromDayIndex(dueLocalTime.dayIndex);
-        futureStates.push({ state, dueKey, dueDayIndex: dueLocalTime.dayIndex });
-        if (dueKey > latestDueKey) latestDueKey = dueKey;
-        dailyWorkload += 1 / Math.max(1, finiteNumber(state.intervalDays, 1));
-      }
+    const deck = deckCurrent.get(deckId) ?? { intervalTotal: 0, intervalCount: 0, nextDueAt: null };
+    deck.intervalTotal += interval;
+    deck.intervalCount += 1;
+    if (state.dueAt && (deck.nextDueAt == null || state.dueAt < deck.nextDueAt)) deck.nextDueAt = state.dueAt;
+    deckCurrent.set(deckId, deck);
+    const dueTimestamp = Date.parse(state.dueAt);
+    if (Number.isFinite(dueTimestamp)) {
+      const dueDay = resolveLocalTime(dueTimestamp).dayIndex;
+      const counts = dueByDay.get(dueDay) ?? emptyCategories();
+      counts[category(state)] += 1;
+      dueByDay.set(dueDay, counts);
+      dailyWorkload += 1 / Math.max(1, interval);
     }
   }
-  for (const point of addedCards) {
-    addedCumulative += point.count;
-    point.cumulative = addedCumulative;
+
+  function eventDetails(event: ReviewEvent) {
+    const timestamp = Date.parse(String(event.answeredAt || event.createdAt || ""));
+    if (!Number.isFinite(timestamp) || !RATINGS.includes(event.rating)) return null;
+    const local = resolveLocalTime(timestamp);
+    return { timestamp, local, before: snapshot(event.schedulerBefore), event };
   }
-  const statusLabels: Record<string, string> = { new: "Neu", learning: "Lernen", relearning: "Wiederlernen", young: "Jung", mature: "Reif" };
-  const statusRows = [...statusCounts].map(([key, count]) => ({ key, label: statusLabels[key], count, percent: percentage(count, activeVariants) }));
 
-  intervalValues.sort((left, right) => left - right);
-  const intervalMax = input.period === "all" ? maximum(intervalValues, 1) : PERIOD_DAYS[input.period];
-  const intervalPoints = createDistribution(intervalValues, intervalMax, 60, "Tage");
-
-  let difficultyCumulative = 0;
-  const difficulty = difficultyCounts.map((count, index) => {
-    difficultyCumulative += count;
-    return { key: String(index + 1), label: String(index + 1), count, cumulativePercent: percentage(difficultyCumulative, difficultyEligible) };
-  });
-  const stability = createDistribution(stabilityValues, maximum(stabilityValues, 1), 40, "Tage");
-  let retrievabilityCumulative = 0;
-  const retrievability = retrievabilityCounts.map((count, index) => {
-    retrievabilityCumulative += count;
-    return {
-      key: `${index * 5}-${(index + 1) * 5}`,
-      label: `${index * 5}–${(index + 1) * 5} %`,
-      count,
-      cumulativePercent: percentage(retrievabilityCumulative, retrievabilityEligible),
-    };
-  });
-
-  const selectedRetention = emptyRetentionAggregate();
-  const previousRetention = emptyRetentionAggregate();
-  const allRetention = emptyRetentionAggregate();
-  const selectedRetentionByDeck = new Map<string, RetentionAggregate>();
-  for (const { indexed, dayIndex } of scope.retentionEvents) {
-    addRetention(allRetention, indexed);
-    if (inSelectedRange(dayIndex)) {
-      addRetention(selectedRetention, indexed);
-      const deckRetention = selectedRetentionByDeck.get(indexed.event.deckId) ?? emptyRetentionAggregate();
-      addRetention(deckRetention, indexed);
-      selectedRetentionByDeck.set(indexed.event.deckId, deckRetention);
-    } else if (previousStartDayIndex != null && previousEndDayIndex != null && dayIndex >= previousStartDayIndex && dayIndex <= previousEndDayIndex) {
-      addRetention(previousRetention, indexed);
-    }
-  }
-  const retention = [
-    retentionRow("selected", "Gewählter Zeitraum", selectedRetention),
-    ...(input.period === "all" ? [] : [retentionRow("previous", "Vorheriger Zeitraum", previousRetention)]),
-    retentionRow("all", "Gesamter Verlauf", allRetention),
-  ];
-
-  const futureEndKey = input.period === "all" ? (latestDueKey > nowKey ? latestDueKey : nowKey) : shiftDayKey(nowKey, PERIOD_DAYS[input.period] - 1);
-  const planningBuckets = createBuckets(nowKey, futureEndKey, input.period);
-  const planningPoints = emptySeries(planningBuckets);
-  let overdue = 0;
-  let dueTomorrow = 0;
-  const dueTomorrowKey = shiftDayKey(nowKey, 1);
-  for (const { state, dueKey, dueDayIndex } of futureStates) {
-    if (dueKey < nowKey) { overdue += 1; continue; }
-    if (dueKey === dueTomorrowKey) dueTomorrow += 1;
-    if (dueKey > futureEndKey) continue;
-    const bucketIndex = bucketIndexFor(planningBuckets, dueDayIndex);
-    if (bucketIndex < 0) continue;
-    const point = planningPoints[bucketIndex];
-    const category = state.state === "review" ? (state.intervalDays >= 21 ? "mature" : "young") : state.state === "new" || state.state === "learning" ? "learning" : "relearning";
-    point[category] += 1;
-    point.total += 1;
-  }
-  if (planningPoints.length > 0 && overdue > 0) {
-    planningPoints[0].relearning += overdue;
-    planningPoints[0].total += overdue;
-    planningPoints[0].rangeLabel = `${planningPoints[0].rangeLabel} einschließlich Rückstand`;
-  }
-  const finalizedPlanning = finalizeSeries(planningPoints);
-
-  const deckRows = scopeDeckIds.map((deckId) => {
-    const deck = index.deckById.get(deckId);
-    const reviews = deckReviewAggregates.get(deckId) ?? { reviewCount: 0, positive: 0, again: 0 };
-    const retained = selectedRetentionByDeck.get(deckId) ?? emptyRetentionAggregate();
-    const current = deckCurrentAggregates.get(deckId) ?? { intervalTotal: 0, intervalCount: 0, nextDueAt: null };
-    const retainedTotal = retained.youngTotal + retained.matureTotal;
-    const retainedRemembered = retained.youngRemembered + retained.matureRemembered;
-    return {
-      id: deckId,
-      name: deck?.name ?? "Unbekannter Stapel",
-      path: deck?.hierarchyPath?.join(" / ") || deck?.name || "Unbekannter Stapel",
-      reviewCount: reviews.reviewCount,
-      successPercent: percentage(reviews.positive, reviews.reviewCount),
-      againPercent: percentage(reviews.again, reviews.reviewCount),
-      trueRetentionPercent: percentage(retainedRemembered, retainedTotal),
-      averageIntervalDays: current.intervalCount > 0 ? Math.round((current.intervalTotal / current.intervalCount) * 10) / 10 : 0,
-      nextDueAt: current.nextDueAt,
-    };
-  }).sort((left, right) => right.reviewCount - left.reviewCount || left.path.localeCompare(right.path, "de"));
-
-  const difficultCards = [...difficult.values()]
-    .filter((row) => row.reviewCount >= 3)
-    .map((row) => {
-      const item = itemById.get(row.itemId);
-      return {
-        deckId: row.deckId,
-        deckName: index.deckById.get(row.deckId)?.name ?? "Unbekannter Stapel",
-        learningItemId: row.itemId,
-        title: stripMarkup(item?.title || item?.canonicalQuestion || item?.originalFront || "Unbenannte Karte").slice(0, 120),
-        reviewCount: row.reviewCount,
-        weakCount: row.weakCount,
-        weakPercent: percentage(row.weakCount, row.reviewCount),
-        lastReviewedAt: row.lastReviewedAt,
-      };
-    })
-    .sort((left, right) => right.weakPercent - left.weakPercent || right.reviewCount - left.reviewCount || right.lastReviewedAt.localeCompare(left.lastReviewedAt))
-    .slice(0, 12);
-
-  const selectedRetentionCell = retentionCell(
-    selectedRetention.youngRemembered + selectedRetention.matureRemembered,
-    selectedRetention.youngTotal + selectedRetention.matureTotal,
-  );
   return {
-    selection,
     scopeDeckIds,
-    scopeLabel: scopeDescription(index, input.deckIds, scopeDeckIds),
-    dateRangeLabel: formatRangeLabel(startKey, nowKey),
-    summary: {
-      reviewCount,
-      activeDays: reviewsByDay.size,
-      successPercent: percentage(successCount, reviewCount),
-      trueRetentionPercent: selectedRetentionCell.percent,
-      trueRetentionSample: selectedRetentionCell.total,
-      totalDurationMs,
-      averageResponseMs: timedCount > 0 ? Math.round(totalDurationMs / timedCount) : 0,
-      timedCount,
-      currentStreak: studyHeatmap.currentStreak,
+    addReview(event: ReviewEvent) {
+      if (!scopeIds.has(event.deckId)) return;
+      const details = eventDetails(event);
+      if (!details || details.local.dayIndex > nowLocal.dayIndex) return;
+      earliestDay = Math.min(earliestDay, details.local.dayIndex);
+      const heatmapKey = keyFromDayIndex(details.local.dayIndex);
+      heatmapCounts.set(heatmapKey, (heatmapCounts.get(heatmapKey) ?? 0) + 1);
+      if (fixedStart != null && details.local.dayIndex < fixedStart) return;
+      const eventCategory = category(details.before);
+      const point = activityByDay.get(details.local.dayIndex) ?? emptySeriesPoint(heatmapKey, heatmapKey, heatmapKey);
+      point[eventCategory] += 1;
+      point.total += 1;
+      const duration = event.responseTimeMs != null ? Math.min(60_000, Math.max(0, finite(event.responseTimeMs))) : null;
+      if (duration != null) {
+        point.durationMs += duration;
+        point[`duration${eventCategory[0].toUpperCase()}${eventCategory.slice(1)}Ms` as "durationLearningMs"] += duration;
+        point.timedCount += 1;
+        timedCount += 1;
+        totalDurationMs += duration;
+      }
+      activityByDay.set(details.local.dayIndex, point);
+      reviewCount += 1;
+      const positive = Number(event.rating !== "again");
+      successCount += positive;
+      hours[details.local.hour].reviews += 1;
+      hours[details.local.hour].success += positive;
+      const rating = ratings.get(eventCategory)!;
+      rating[event.rating] += 1;
+      rating.total += 1;
+      const deck = deckReviews.get(event.deckId) ?? { reviewCount: 0, positive: 0, again: 0 };
+      deck.reviewCount += 1;
+      deck.positive += positive;
+      deck.again += Number(event.rating === "again");
+      deckReviews.set(event.deckId, deck);
+      const difficultItem = difficult.get(event.learningItemId) ?? { deckId: event.deckId, itemId: event.learningItemId, title: "", reviewCount: 0, weakCount: 0, lastReviewedAt: event.answeredAt };
+      difficultItem.reviewCount += 1;
+      difficultItem.weakCount += Number(event.rating === "again" || event.rating === "hard");
+      if (event.answeredAt > difficultItem.lastReviewedAt) difficultItem.lastReviewedAt = event.answeredAt;
+      difficult.set(event.learningItemId, difficultItem);
     },
-    activity: finalizedActivity,
-    addedCards,
-    studyHeatmap,
-    planning: {
-      points: finalizedPlanning,
-      overdue,
-      dueTomorrow,
-      dueInHorizon: finalizedPlanning.reduce((sum, point) => sum + point.total, 0),
-      dailyWorkload: Math.round(dailyWorkload * 10) / 10,
+    addRetentionReview(event: ReviewEvent) {
+      if (!scopeIds.has(event.deckId)) return;
+      const details = eventDetails(event);
+      if (!details || details.before.intervalDays < 1 || details.local.dayIndex > nowLocal.dayIndex) return;
+      const reviewableId = event.reviewableId || event.variantId || event.learningItemId;
+      const key = `${reviewableId}\0${details.local.dayIndex}`;
+      if (key === lastRetentionKey) return;
+      lastRetentionKey = key;
+      addRetention(allRetention, details.before, event.rating);
+      if (fixedStart == null || details.local.dayIndex >= fixedStart) {
+        addRetention(selectedRetention, details.before, event.rating);
+        const deck = retentionByDeck.get(event.deckId) ?? retentionAggregate();
+        addRetention(deck, details.before, event.rating);
+        retentionByDeck.set(event.deckId, deck);
+      } else if (previousStart != null && details.local.dayIndex >= previousStart) {
+        addRetention(previousRetention, details.before, event.rating);
+      }
     },
-    status: {
-      activeVariants,
-      learningItems: scope.cards.length,
-      suspendedItems,
-      deletedItems,
-      rows: statusRows,
+    addCard(deckId: string, item: LearningItem) {
+      if (!scopeIds.has(deckId)) return;
+      learningItems += 1;
+      if (item.status === "suspended") suspendedItems += 1;
+      if (item.status === "deleted") deletedItems += 1;
+      const created = Date.parse(item.createdAt);
+      if (Number.isFinite(created)) {
+        const createdDay = resolveLocalTime(created).dayIndex;
+        earliestDay = Math.min(earliestDay, createdDay);
+        addedByDay.set(createdDay, (addedByDay.get(createdDay) ?? 0) + 1);
+      }
+      const difficultItem = difficult.get(item.id);
+      if (difficultItem) difficultItem.title = String(item.title || item.canonicalQuestion || item.originalFront || "Unbenannte Karte").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+      const state = item.learningItemState ?? item.reviewState;
+      if (item.status !== "deleted" && item.status !== "suspended" && item.draftStatus !== "draft" && state) addCurrentState(deckId, state);
+      const dueKey = getStudyHeatmapDayKey(state?.dueAt, timeZone, dayStartHour);
+      const nowKey = keyFromDayIndex(nowLocal.dayIndex);
+      if (dueKey && dueKey > nowKey && dueKey <= shiftDayKey(nowKey, 365) && item.status !== "deleted" && item.draftStatus !== "draft") {
+        forecastCounts.set(dueKey, (forecastCounts.get(dueKey) ?? 0) + 1);
+      }
     },
-    intervals: {
-      points: intervalPoints,
-      averageDays: Math.round(average(intervalValues) * 10) / 10,
-      medianDays: percentile(intervalValues, 0.5),
-      percentile95Days: percentile(intervalValues, 0.95),
+    addVariant(deckId: string, variant: CardVariant) {
+      if (!scopeIds.has(deckId) || variant.isOriginal || variant.isActive === false || variant.deletedAt || variant.qualityStatus === "disabled") return;
+      const state = variant.reviewState;
+      if (!state) return;
+      addCurrentState(deckId, state);
     },
-    fsrs: {
-      difficulty,
-      stability,
-      retrievability,
+    finish(): StatisticsProjection {
+      const startDay = fixedStart ?? earliestDay;
+      const nowKey = keyFromDayIndex(nowLocal.dayIndex);
+      const startKey = keyFromDayIndex(startDay);
+      const activityBuckets = createBuckets(startDay, nowLocal.dayIndex, input.period);
+      for (const [index, raw] of activityByDay) {
+        const bucket = bucketFor(activityBuckets, index);
+        if (!bucket) continue;
+        for (const key of CATEGORIES) bucket.point[key] += raw[key];
+        bucket.point.total += raw.total;
+        bucket.point.durationMs += raw.durationMs;
+        bucket.point.durationLearningMs += raw.durationLearningMs;
+        bucket.point.durationRelearningMs += raw.durationRelearningMs;
+        bucket.point.durationYoungMs += raw.durationYoungMs;
+        bucket.point.durationMatureMs += raw.durationMatureMs;
+        bucket.point.timedCount += raw.timedCount;
+      }
+      const addedCards = activityBuckets.map(({ start, end, point }) => ({ key: point.key, label: point.label, rangeLabel: point.rangeLabel, count: 0, cumulative: 0, start, end }));
+      let addedCumulative = 0;
+      for (const [index, count] of addedByDay) {
+        if (index < startDay) addedCumulative += count;
+        else {
+          const bucket = addedCards.find((candidate) => index >= candidate.start && index <= candidate.end);
+          if (bucket) bucket.count += count;
+        }
+      }
+      const added = addedCards.map(({ start: _start, end: _end, ...point }) => ({ ...point, cumulative: addedCumulative += point.count }));
+      const latestDueDay = Math.max(nowLocal.dayIndex, ...dueByDay.keys());
+      const futureEnd = input.period === "all" ? latestDueDay : nowLocal.dayIndex + PERIOD_DAYS[input.period] - 1;
+      const planningBuckets = createBuckets(nowLocal.dayIndex, futureEnd, input.period);
+      let overdue = 0;
+      let dueTomorrow = 0;
+      for (const [index, counts] of dueByDay) {
+        if (index < nowLocal.dayIndex) { overdue += Object.values(counts).reduce((sum, count) => sum + count, 0); continue; }
+        if (index === nowLocal.dayIndex + 1) dueTomorrow += Object.values(counts).reduce((sum, count) => sum + count, 0);
+        const bucket = bucketFor(planningBuckets, index);
+        if (!bucket) continue;
+        for (const key of CATEGORIES) bucket.point[key] += counts[key];
+        bucket.point.total += Object.values(counts).reduce((sum, count) => sum + count, 0);
+      }
+      if (overdue && planningBuckets[0]) {
+        planningBuckets[0].point.relearning += overdue;
+        planningBuckets[0].point.total += overdue;
+        planningBuckets[0].point.rangeLabel += " einschließlich Rückstand";
+      }
+      const planning = finalizeSeries(planningBuckets);
+      const studyHeatmap = createStudyHeatmapModelFromCounts({ todayKey: nowKey, countsByDay: heatmapCounts, forecastCountsByDay: forecastCounts });
+      let difficultyCumulative = 0;
+      const difficulty = difficultyCounts.map((count, index) => ({ key: String(index + 1), label: String(index + 1), count, cumulativePercent: percentage(difficultyCumulative += count, difficultyEligible) }));
+      let retrievabilityCumulative = 0;
+      const retrievability = retrievabilityCounts.map((count, index) => ({ key: `${index * 5}-${(index + 1) * 5}`, label: `${index * 5}–${(index + 1) * 5} %`, count, cumulativePercent: percentage(retrievabilityCumulative += count, retrievabilityEligible) }));
+      const selectedCell = retentionCell(selectedRetention.youngRemembered + selectedRetention.matureRemembered, selectedRetention.youngTotal + selectedRetention.matureTotal);
+      const statusLabels: Record<string, string> = { new: "Neu", learning: "Lernen", relearning: "Wiederlernen", young: "Jung", mature: "Reif" };
+      const deckRows = scopeDeckIds.map((id) => {
+        const review = deckReviews.get(id) ?? { reviewCount: 0, positive: 0, again: 0 };
+        const retained = retentionByDeck.get(id) ?? retentionAggregate();
+        const current = deckCurrent.get(id) ?? { intervalTotal: 0, intervalCount: 0, nextDueAt: null };
+        const definition = deckById.get(id);
+        return {
+          id,
+          name: definition?.name ?? "Unbekannter Stapel",
+          path: definition?.hierarchyPath?.join(" / ") || definition?.name || "Unbekannter Stapel",
+          reviewCount: review.reviewCount,
+          successPercent: percentage(review.positive, review.reviewCount),
+          againPercent: percentage(review.again, review.reviewCount),
+          trueRetentionPercent: percentage(retained.youngRemembered + retained.matureRemembered, retained.youngTotal + retained.matureTotal),
+          averageIntervalDays: current.intervalCount ? Math.round((current.intervalTotal / current.intervalCount) * 10) / 10 : 0,
+          nextDueAt: current.nextDueAt,
+        };
+      }).sort((left, right) => right.reviewCount - left.reviewCount || left.path.localeCompare(right.path, "de"));
+      const difficultCards = [...difficult.values()]
+        .filter((item) => item.reviewCount >= 3)
+        .map((item) => ({
+          deckId: item.deckId,
+          deckName: deckById.get(item.deckId)?.name ?? "Unbekannter Stapel",
+          learningItemId: item.itemId,
+          title: item.title || "Unbenannte Karte",
+          reviewCount: item.reviewCount,
+          weakCount: item.weakCount,
+          weakPercent: percentage(item.weakCount, item.reviewCount),
+          lastReviewedAt: item.lastReviewedAt,
+        }))
+        .sort((left, right) => right.weakPercent - left.weakPercent || right.reviewCount - left.reviewCount || right.lastReviewedAt.localeCompare(left.lastReviewedAt))
+        .slice(0, 12);
+      return {
+        selection,
+        scopeDeckIds,
+        scopeLabel: input.deckIds === "all" ? "Gesamte Sammlung" : input.deckIds.length === 1 ? deckById.get(input.deckIds[0])?.name ?? "Ausgewählter Stapel" : `${Math.min(input.deckIds.length, scopeDeckIds.length)} Stapel ausgewählt`,
+        dateRangeLabel: formatRangeLabel(startKey, nowKey),
+        summary: {
+          reviewCount,
+          activeDays: [...activityByDay.keys()].filter((day) => day >= startDay && day <= nowLocal.dayIndex).length,
+          successPercent: percentage(successCount, reviewCount),
+          trueRetentionPercent: selectedCell.percent,
+          trueRetentionSample: selectedCell.total,
+          totalDurationMs,
+          averageResponseMs: timedCount ? Math.round(totalDurationMs / timedCount) : 0,
+          timedCount,
+          currentStreak: studyHeatmap.currentStreak,
+        },
+        activity: finalizeSeries(activityBuckets),
+        addedCards: added,
+        studyHeatmap,
+        planning: { points: planning, overdue, dueTomorrow, dueInHorizon: planning.reduce((sum, point) => sum + point.total, 0), dailyWorkload: Math.round(dailyWorkload * 10) / 10 },
+        status: { activeVariants, learningItems, suspendedItems, deletedItems, rows: [...status].map(([key, count]) => ({ key, label: statusLabels[key], count, percent: percentage(count, activeVariants) })) },
+        intervals: { points: distribution(intervals, input.period === "all" ? Math.max(1, intervals.max) : PERIOD_DAYS[input.period], 60, "Tage"), averageDays: intervals.total ? Math.round((intervals.sum / intervals.total) * 10) / 10 : 0, medianDays: percentile(intervals, 0.5), percentile95Days: percentile(intervals, 0.95) },
+        fsrs: { difficulty, stability: distribution(stability, Math.max(1, stability.max), 40, "Tage"), retrievability },
+        hourly: hours.map(({ success, ...row }) => ({ ...row, successPercent: percentage(success, row.reviews) })),
+        ratings: [...ratings.values()].map((row) => ({ ...row, successPercent: percentage(row.total - row.again, row.total) })),
+        retention: [retentionRow("selected", "Gewählter Zeitraum", selectedRetention), ...(input.period === "all" ? [] : [retentionRow("previous", "Vorheriger Zeitraum", previousRetention)]), retentionRow("all", "Gesamter Verlauf", allRetention)],
+        deckRows,
+        difficultCards,
+      };
     },
-    hourly,
-    ratings,
-    retention,
-    deckRows,
-    difficultCards,
   };
+}
+
+export function projectStatistics(decks: Deck[], input: StatisticsSelection): StatisticsProjection {
+  const accumulator = createStatisticsAccumulator(decks, input);
+  const events = decks.flatMap((deck) => deck.reviewEvents ?? []);
+  for (const event of events) accumulator.addReview(event);
+  for (const event of [...events].sort((left, right) => {
+    const leftId = left.reviewableId || left.variantId || left.learningItemId;
+    const rightId = right.reviewableId || right.variantId || right.learningItemId;
+    return leftId.localeCompare(rightId) || left.answeredAt.localeCompare(right.answeredAt) || left.id.localeCompare(right.id);
+  })) accumulator.addRetentionReview(event);
+  for (const deck of decks) for (const item of deck.cards ?? []) {
+    accumulator.addCard(deck.id, item);
+    for (const variant of item.variants ?? []) accumulator.addVariant(deck.id, variant);
+  }
+  return accumulator.finish();
 }

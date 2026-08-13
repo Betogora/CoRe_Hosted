@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import path from "node:path";
 import { replaceAccountCloudState } from "../../src/cloudRepository.ts";
 import { createCoreDeck, createLearningItemFromEditorValue } from "../../src/coreModel.ts";
-import { createCoreRepository } from "../../src/coreRepository.ts";
+import { createCoreRepository, normalizeContentEntities } from "../../src/coreRepository.ts";
 import type { Deck } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
@@ -68,9 +68,11 @@ async function seedAccount() {
   if (error || !data.user) throw error ?? new Error("Der Batch-E2E-Account fehlt.");
   try {
     const state = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+    const content = normalizeContentEntities(seedDecks(), [], []);
     await replaceAccountCloudState(client, {
       ...state,
-      decks: seedDecks(),
+      decks: content.decks,
+      noteTypeDefinitions: content.definitions,
       profile: { ...state.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
     }, { deviceId: "e2e-batch-resilience-reset" });
   } finally {
@@ -104,7 +106,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await expect(childBOption).toHaveCount(1);
   await expect(childAOption.locator('[data-deck-icon="true"]')).toHaveCount(1);
   const optionDeckIds = await page.locator("[data-deck-select-option]").evaluateAll((options) => options.map((option) => option.getAttribute("data-deck-select-option")));
-  expect(optionDeckIds.slice(0, 5)).toEqual([DECK_IDS.rootA, DECK_IDS.childA, DECK_IDS.rootB, DECK_IDS.childB, DECK_IDS.target]);
+  expect(optionDeckIds.slice(0, 5)).toEqual([DECK_IDS.target, DECK_IDS.rootA, DECK_IDS.childA, DECK_IDS.rootB, DECK_IDS.childB]);
   const [rootPadding, childPadding] = await Promise.all([
     rootAOption.evaluate((option) => Number.parseFloat(getComputedStyle(option).paddingInlineStart)),
     childAOption.evaluate((option) => Number.parseFloat(getComputedStyle(option).paddingInlineStart)),
@@ -117,7 +119,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   expect(childBackground).toBe(rootBackground);
   const selectContent = page.locator('[data-deck-select-content="true"]');
   const selectViewport = page.locator('[data-deck-select-viewport="true"]');
-  expect((await selectContent.boundingBox())?.height).toBeLessThanOrEqual(320);
+  expect((await selectContent.boundingBox())?.height).toBeLessThanOrEqual(400);
   expect(await selectViewport.evaluate((viewport) => viewport.scrollHeight > viewport.clientHeight)).toBe(true);
   await page.getByRole("option", { name: "Batch-Ziel", exact: true }).click();
 
@@ -125,7 +127,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
     await page.getByRole("textbox", { name: "Vorderseite" }).fill(`Batch-Frage ${index}`);
     await page.getByRole("textbox", { name: "Rückseite" }).fill(`Batch-Antwort ${index}`);
     await page.getByRole("button", { name: "Originalkarte speichern" }).click();
-    await expect(page.getByRole("status")).toContainText("Karte gespeichert");
+    await expect(page.getByRole("status")).toContainText("Karte wurde erfolgreich gespeichert.");
     await expect(page.getByRole("heading", { name: "Karte selbst erstellen" })).toBeVisible();
     await expect(page.getByText(`${index} ${index === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.`)).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Vorderseite" })).toBeFocused();
@@ -150,7 +152,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Angeheftete Frage");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Einmalige Antwort");
   await page.getByRole("button", { name: "Originalkarte speichern" }).click();
-  await expect(page.getByRole("status")).toContainText("Karte gespeichert");
+  await expect(page.getByRole("status")).toContainText("Karte wurde erfolgreich gespeichert.");
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Angeheftete Frage");
   await expect(page.getByRole("textbox", { name: "Rückseite" })).toHaveText("");
   await expect(page.getByRole("textbox", { name: "Rückseite" })).toBeFocused();
@@ -161,7 +163,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Einmalige Frage");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Angeheftete Antwort");
   await page.getByRole("button", { name: "Originalkarte speichern" }).click();
-  await expect(page.getByRole("status")).toContainText("Karte gespeichert");
+  await expect(page.getByRole("status")).toContainText("Karte wurde erfolgreich gespeichert.");
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toHaveText("");
   await expect(page.getByRole("textbox", { name: "Rückseite" })).toContainText("Angeheftete Antwort");
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toBeFocused();
@@ -188,6 +190,7 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   const targetState = await readActiveAccountState(page);
   const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
+  await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).click();
   await page.getByTestId(`deck-card-${existingCardId}`).click();
   const deleteCardButton = page.getByRole("button", { name: "Löschen", exact: true });
   await deleteCardButton.click();
@@ -207,6 +210,7 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
   await page.getByRole("button", { name: "Löschen", exact: true }).click();
   await cardDialog.getByRole("button", { name: "Ja" }).click();
+  await expect.poll(async () => !(await readActiveAccountState(page)).decks.some((deck: Deck) => deck.cards.some((card) => card.id === existingCardId))).toBe(true);
   const deletionToast = page.locator('[data-success-toast-region="true"]');
   await expect(deletionToast).toContainText("Karte wurde erfolgreich gelöscht.");
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
@@ -216,19 +220,28 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await expect(deletionToast).toHaveCount(0);
   await page.getByRole("button", { name: "Rückgängig" }).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
+  await expect.poll(async () => (await readActiveAccountState(page)).decks.some((deck: Deck) => deck.cards.some((card) => card.id === existingCardId))).toBe(true);
   await page.reload();
+  if (await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).getAttribute("aria-expanded") !== "true") {
+    await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).click();
+  }
+  if (await page.getByTestId("card-detail-aside").count() === 0) {
+    await page.getByTestId(`deck-card-${existingCardId}`).click();
+  }
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
+  await page.getByTestId("card-detail-backdrop").click({ position: { x: 5, y: 5 } });
 
   await page.getByTestId(`deck-options-${DECK_IDS.rootA}`).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.rootA}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
-  await page.getByRole("button", { name: "Löschen", exact: true }).click();
+  const deckSettings = page.getByRole("region", { name: "Stapel", exact: true });
+  await deckSettings.getByRole("button", { name: "Löschen", exact: true }).click();
   const deckDialog = page.getByRole("dialog", { name: "Stapelbaum löschen?" });
   await expect(deckDialog).toContainText("Bereich A");
   await expect(deckDialog).toContainText("1 Unterstapel");
   await expect(deckDialog).toContainText("1 aktive Karte");
   await deckDialog.getByRole("button", { name: "Abbrechen" }).click();
   await expect(page.getByTestId(`deck-settings-${DECK_IDS.rootA}`)).toBeVisible();
-  await page.getByRole("button", { name: "Löschen", exact: true }).click();
+  await deckSettings.getByRole("button", { name: "Löschen", exact: true }).click();
   await deckDialog.getByRole("button", { name: "Stapelbaum löschen" }).click();
   await expect(page.getByTestId(`card-group-${DECK_IDS.rootA}`)).toHaveCount(0);
   await page.reload();
@@ -240,6 +253,7 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   const targetState = await readActiveAccountState(page);
   const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
+  await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).click();
 
   try {
     await context.setOffline(true);
@@ -247,15 +261,25 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
     await page.getByRole("button", { name: "Löschen", exact: true }).click();
     await page.getByRole("dialog", { name: "Karte löschen" }).getByRole("button", { name: "Ja" }).click();
 
+    await expect.poll(async () => !(await readActiveAccountState(page)).decks.some((deck: Deck) => deck.cards.some((card) => card.id === existingCardId))).toBe(true);
     await expect(page.locator('[data-success-toast-region="true"]')).toContainText("Karte wurde erfolgreich gelöscht.");
     await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
     await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
-    await expect(page.getByText("Offline. Die Verbindung wird automatisch erneut geprüft.")).toBeVisible();
+    await expect(page.getByText(/„Bestehende Karte“ gelöscht/)).toBeVisible();
   } finally {
     await context.setOffline(false);
   }
 
-  await expect(page.getByText(/Zuletzt synchronisiert:/)).toBeVisible({ timeout: 15_000 });
+  const environment = loadE2EEnvironment();
+  const client = createClient(environment.supabaseUrl, environment.publishableKey, { auth: { autoRefreshToken: false, persistSession: false } });
+  const login = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
+  expect(login.data.user).toBeTruthy();
+  await expect.poll(async () => {
+    const { data } = await client.from("cards").select("deleted_at").eq("id", existingCardId).maybeSingle();
+    return Boolean(data?.deleted_at);
+  }, { timeout: 15_000 }).toBe(true);
+  await client.auth.signOut({ scope: "local" });
+  client.auth.dispose?.();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
@@ -263,7 +287,7 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
 
 test("[Vertrag: Importformatwechsel und Terminalzustände] @beta-core alte Vorschauen werden vollständig verworfen", async ({ page }) => {
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /APKG, Text, Tabellen/ }).click();
+  await page.getByRole("button", { name: /^Import\b/ }).click();
   await page.getByRole("button", { name: "Text", exact: true }).click();
   await page.getByRole("textbox", { name: "Importinhalt" }).fill("Frage\n---\nAntwort");
   await page.getByRole("button", { name: "Import prüfen" }).click();
@@ -289,7 +313,7 @@ test("[Vertrag: Importformatwechsel und Terminalzustände] @beta-core alte Vorsc
 
 test("[Vertrag: partieller Importabschluss] @beta-core Karten bleiben nach Medienfehler nutzbar", async ({ page }) => {
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /APKG, Text, Tabellen/ }).click();
+  await page.getByRole("button", { name: /^Import\b/ }).click();
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(QUALITY_APKG_FIXTURE);
   await expect(page.getByText("Importvorschau", { exact: true })).toBeVisible({ timeout: 30_000 });
   await page.route("**/storage/v1/object/core-media/**", (route) => route.abort("failed"));

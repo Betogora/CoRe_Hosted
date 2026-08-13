@@ -1,16 +1,15 @@
 import type {
   GlobalSchedulerPreferences,
-  NewCardSortOrder,
-  ReviewCardSortOrder,
   LearningProfileSource,
   LearningProfileTemplate,
   LearningSettings,
+  NewCardSortOrder,
   NewReviewOrder,
+  ReviewCardSortOrder,
   SchedulerPreset,
-  SchedulerProfile,
 } from "./coreTypes.ts";
-import { normalizeEasyDays } from "./easyDays.ts";
 import { normalizeDayStartHour } from "./learningDay.ts";
+import { normalizeEasyDays } from "./easyDays.ts";
 
 export interface LearningSettingsInput {
   newCardsPerDay?: unknown;

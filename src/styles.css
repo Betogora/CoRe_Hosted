@@ -2,6 +2,113 @@
 @tailwind components;
 @tailwind utilities;
 
+@media (max-width: 18.75rem) {
+  .core-app-shell {
+    padding: 0;
+  }
+
+  .core-app-frame {
+    border-inline: 0;
+    border-radius: 0;
+  }
+
+  .core-mobile-header {
+    padding-inline: 0.25rem;
+  }
+
+  .core-mobile-header > div {
+    gap: 0.125rem;
+  }
+
+  .core-mobile-brand {
+    font-size: 0;
+  }
+
+  .core-mobile-brand::first-letter {
+    font-size: 1rem;
+  }
+
+  .core-mobile-header [data-navigation-utilities="true"] {
+    gap: 0;
+  }
+
+  .core-mobile-bottom-navigation {
+    width: calc(100dvw - 0.5rem);
+    grid-template-columns: repeat(3, minmax(2.75rem, 1fr));
+    gap: 0;
+    padding-inline: 0.125rem;
+  }
+
+  .core-mobile-bottom-navigation span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .core-auth-shell {
+    padding: 0;
+  }
+
+  .core-auth-frame {
+    border-inline: 0;
+    border-radius: 0;
+    padding: 0.25rem;
+  }
+
+  .core-auth-panel {
+    padding: 0.5rem;
+  }
+
+  .core-auth-panel button {
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: 0.25rem;
+    overflow-wrap: anywhere;
+  }
+
+  .core-auth-heading {
+    gap: 0.25rem;
+  }
+
+  .core-auth-heading-icon {
+    display: none;
+  }
+
+  .core-auth-heading h2 {
+    overflow-wrap: anywhere;
+  }
+
+  .core-screen-region {
+    padding: 0.5rem 0 5rem;
+  }
+
+  .core-responsive-panel-padding {
+    padding: 0.25rem;
+  }
+
+  .core-responsive-panel-padding :is(.core-action-primary, .core-action-secondary, .core-action-destructive) {
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: 0.5rem;
+    white-space: normal;
+  }
+
+  .core-responsive-panel-padding .rich-text-field {
+    padding: 0.5rem;
+  }
+
+  .core-responsive-panel-padding [role="toolbar"] {
+    gap: 0;
+    padding: 0.125rem;
+  }
+}
+
 :root {
   color-scheme: light;
 
@@ -484,7 +591,7 @@
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   background: var(--core-canvas);
   color: var(--core-text);
   font: 400 0.875rem/1.25rem Synonym, ui-sans-serif, system-ui, sans-serif;

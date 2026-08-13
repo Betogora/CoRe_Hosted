@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createCoreRepository } from "./coreRepository.ts";
+import { createVariantReviewEvent } from "./coreModel/reviewState.ts";
 import {
-  createCoreLearningItem,
-  createVariantReviewEvent,
   getActiveVariants,
   getAnswerSideAnchorMiniCard,
   getLearningItemAnswer,
@@ -11,6 +10,7 @@ import {
   getOriginalVariant,
   normalizeLearningItem,
 } from "./coreModel.ts";
+import { createCoreLearningItem } from "./coreModel/learningItems.ts";
 
 function createMemoryStorage() {
   const store = new Map();

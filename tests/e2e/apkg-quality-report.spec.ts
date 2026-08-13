@@ -10,7 +10,7 @@ test("latest APKG preview shows the complete quality report without mutating acc
   const beforeDeckCount = before.decks?.length ?? 0;
 
   await page.getByRole("navigation", { name: /Hauptmenü/ }).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button").filter({ hasText: "APKG, Text, Tabellen" }).click();
+  await page.getByRole("button", { name: /^Import\b/ }).click();
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(LATEST_APKG_FIXTURE);
 
   await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
@@ -36,7 +36,7 @@ test("latest APKG preview shows the complete quality report without mutating acc
 test("defective APKG offers exactly one recommended recovery action", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.getByRole("navigation", { name: /Hauptmenü/ }).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button").filter({ hasText: "APKG, Text, Tabellen" }).click();
+  await page.getByRole("button", { name: /^Import\b/ }).click();
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles({
     name: "defekt.apkg",
     mimeType: "application/octet-stream",

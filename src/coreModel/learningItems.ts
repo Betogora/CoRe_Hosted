@@ -1,16 +1,16 @@
 import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
-import type { CardField, CardType, CardVariant, CardVariantBase, CardVariantType, DeckSource, DraftStatus, LearningItem, LearningItemSourceType, LearningItemStatus, LearningItemStudyStatePatch, SourceAnchor, TransformType, VariantGenerationSource, VariantPerformance, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
-import { CARD_VARIANT_TYPES, CORE_CARD_TYPES, CORE_DECK_SOURCES, LEARNING_ITEM_SOURCE_TYPES, VARIANT_GENERATION_SOURCES, VARIANT_STATUSES, VARIANT_TRANSFORMS, makeId, normalizeTags, stableContentHash, unique } from "./coreValues.ts";
+import type { CardField, CardType, CardVariant, CardVariantBase, CardVariantType, DeckSource, DraftStatus, LearningItem, LearningItemDocumentV1, LearningItemSourceType, LearningItemStatus, LearningItemStudyStatePatch, ReviewState, SourceAnchor, VariantGenerationSource, VariantPerformance, VariantProjection, VersionEntry } from "../coreTypes.ts";
+import { CARD_VARIANT_TYPES, CORE_CARD_TYPES, CORE_DECK_SOURCES, LEARNING_ITEM_SOURCE_TYPES, VARIANT_GENERATION_SOURCES, VARIANT_STATUSES, VARIANT_TRANSFORMS, makeId, normalizeTags, stableContentHash } from "./coreValues.ts";
+import { normalizeLearningItemDocument, projectDocumentSide } from "./learningItemDocument.ts";
 import { createReviewState, createVariantPerformance, createVersionEntry, normalizeLearningItemState, normalizeVersionLog } from "./reviewState.ts";
 
 type StringMap = Record<string, unknown>;
 interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "ratingCounts" | "attempts">> { id?: string | null; ratingCounts?: Partial<Record<"again" | "hard" | "good" | "easy", number>>; attempts?: number | null; }
 interface ImmutableOriginalInput { front?: string; back?: string; fields?: CardField[]; html?: string; capturedAt?: string; source?: DeckSource; contentHash?: string; }
-interface CardVariantInput extends Partial<Omit<CardVariantBase, "learningItemId" | "cardId" | "sourceCardId" | "variantType" | "variantLevel" | "generationSource" | "isOriginal" | "isActive" | "parentVariantId" | "anchorVariantId" | "reviewState" | "performance">> { sourceCardId?: string | null; learningItemId?: string | null; cardId?: string | null; variantType?: CardVariantType | null; variantLevel?: number | null; generationSource?: VariantGenerationSource | null; parentVariantId?: string | null; anchorVariantId?: string | null; isOriginal?: boolean; isActive?: boolean | null; performance?: VariantPerformanceInput | null; reviewState?: unknown; meta?: StringMap; }
-export interface CoreCardInput { id?: string; noteId?: string | null; deckId?: string; title?: string; cardType?: CardType; kind?: CardType; source?: DeckSource; sourceType?: LearningItemSourceType | null; sourceRefId?: string | null; sourceCardId?: string | null; sourceNoteId?: string | null; canonicalQuestion?: string | null; canonicalAnswer?: string | null; originalFront?: string; originalBack?: string; originalFields?: CardField[]; originalTags?: unknown; tags?: unknown; concepts?: unknown; originalHtml?: string; mediaRefs?: string[]; sourceAnchors?: SourceAnchor[]; variants?: CardVariantInput[]; draftStatus?: DraftStatus; status?: LearningItemStatus; reviewState?: unknown; learningItemState?: unknown; createdAt?: string; updatedAt?: string; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; immutableOriginal?: ImmutableOriginalInput | null; versionLog?: VersionEntry[]; meta?: StringMap; }
+interface CardVariantInput extends Partial<Omit<CardVariantBase, "learningItemId" | "cardId" | "sourceCardId" | "variantType" | "variantLevel" | "generationSource" | "isOriginal" | "isActive" | "parentVariantId" | "anchorVariantId" | "reviewState" | "performance">> { sourceCardId?: string | null; learningItemId?: string | null; cardId?: string | null; variantType?: CardVariantType | null; variantLevel?: number | null; generationSource?: VariantGenerationSource | null; parentVariantId?: string | null; anchorVariantId?: string | null; isOriginal?: boolean; isActive?: boolean | null; performance?: VariantPerformanceInput | null; reviewState?: ReviewState | null; meta?: StringMap; }
+export interface CoreCardInput { id?: string; noteId?: string | null; deckId?: string; title?: string; cardType?: CardType; kind?: CardType; source?: DeckSource; sourceType?: LearningItemSourceType | null; sourceRefId?: string | null; sourceCardId?: string | null; sourceNoteId?: string | null; canonicalQuestion?: string | null; canonicalAnswer?: string | null; originalFront?: string; originalBack?: string; originalFields?: CardField[]; originalTags?: unknown; tags?: unknown; concepts?: unknown; originalHtml?: string; mediaRefs?: string[]; sourceAnchors?: SourceAnchor[]; variants?: CardVariantInput[]; draftStatus?: DraftStatus; status?: LearningItemStatus; reviewState?: unknown; learningItemState?: unknown; createdAt?: string; updatedAt?: string; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; immutableOriginal?: ImmutableOriginalInput | null; versionLog?: VersionEntry[]; meta?: StringMap; noteTypeDefinitionId?: string; contentDocument?: LearningItemDocumentV1 | null; latestSourceSnapshotId?: string | null; contentRevision?: number; }
 interface OriginalVariantSeed { id: string; cardType: CardType; sourceType: LearningItemSourceType; canonicalQuestion: string; canonicalAnswer: string; sourceAnchors?: SourceAnchor[]; createdAt: string; updatedAt: string; }
 function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
-const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "multiple-choice"]);
 function normalizeCardSource(source: unknown): DeckSource {
   return typeof source === "string" && CORE_DECK_SOURCES.includes(source as DeckSource)
     ? source as DeckSource
@@ -54,10 +54,6 @@ function normalizeVariantType(variantType: unknown, fallbackCardType: unknown = 
   return typeof fallbackCardType === "string" && CARD_VARIANT_TYPES.includes(fallbackCardType as CardVariantType)
     ? fallbackCardType as CardVariantType
     : "basic";
-}
-
-function normalizeCreatableCardType(cardType: unknown, fallback: CardType = "basic"): CardType {
-  return typeof cardType === "string" && CREATABLE_CARD_TYPES.has(cardType as CardType) ? cardType as CardType : fallback;
 }
 
 function normalizeGenerationSource(
@@ -161,21 +157,34 @@ export function createCoreCard({
   immutableOriginal = null,
   versionLog = [],
   meta = {},
+  noteTypeDefinitionId = "",
+  contentDocument = null,
+  latestSourceSnapshotId = null,
+  contentRevision = 1,
 }: CoreCardInput): LearningItem {
   if (!CORE_CARD_TYPES.includes(cardType)) {
     throw new Error(`Unbekannter Kartentyp: ${cardType}`);
   }
 
-  const sanitizedFront = sanitizeCardHtml(originalFront || canonicalQuestion || "");
-  const sanitizedBack = sanitizeCardHtml(originalBack || canonicalAnswer || "");
+  const normalizedTags = normalizeTags(tags ?? originalTags);
+  const normalizedDefinitionId = noteTypeDefinitionId || contentDocument?.definitionVersionId || `core-${cardType}-v1`;
+  const normalizedDocument = normalizeLearningItemDocument(contentDocument, {
+    definitionVersionId: normalizedDefinitionId,
+    fields: originalFields,
+    front: originalFront || canonicalQuestion || "",
+    back: originalBack || canonicalAnswer || "",
+    tags: normalizedTags,
+    mediaRefs,
+  });
+  const canonicalTags = normalizedDocument.tags;
+  const projectedFront = projectDocumentSide(normalizedDocument, "front");
+  const projectedBack = projectDocumentSide(normalizedDocument, "back");
+  const sanitizedFront = sanitizeCardHtml(originalFront || canonicalQuestion || projectedFront);
+  const sanitizedBack = sanitizeCardHtml(originalBack || canonicalAnswer || projectedBack);
   const normalizedCanonicalQuestion = sanitizeCardHtml(canonicalQuestion ?? sanitizedFront);
   const normalizedCanonicalAnswer = sanitizeCardHtml(canonicalAnswer ?? sanitizedBack);
-  const fields = originalFields.map((field) => ({
-    name: field.name,
-    value: sanitizeCardHtml(field.value),
-  }));
+  const fields = normalizedDocument.fields.map((field) => ({ name: field.name, value: field.value }));
   const html = sanitizeCardHtml(originalHtml ?? [sanitizedFront, sanitizedBack].filter(Boolean).join("<hr>"));
-  const normalizedTags = normalizeTags(tags ?? originalTags);
   const cardSource = normalizeCardSource(source);
   const normalizedSourceType = normalizeLearningSourceType(sourceType, cardSource);
   const contentHash = stableContentHash(
@@ -183,7 +192,8 @@ export function createCoreCard({
       front: stripHtml(normalizedCanonicalQuestion).trim().toLowerCase(),
       back: stripHtml(normalizedCanonicalAnswer).trim().toLowerCase(),
       type: cardType,
-      tags: normalizedTags,
+      tags: canonicalTags,
+      fields: normalizedDocument.fields.map((field) => ({ id: field.id, value: stripHtml(field.value).trim() })),
     },
     "card",
   );
@@ -236,7 +246,7 @@ export function createCoreCard({
     title,
     canonicalQuestion: normalizedCanonicalQuestion,
     canonicalAnswer: normalizedCanonicalAnswer,
-    tags: normalizedTags,
+    tags: canonicalTags,
     concepts: normalizeTags(concepts),
     sourceType: normalizedSourceType,
     sourceRefId: sourceRefId ?? sourceCardId ?? sourceNoteId ?? null,
@@ -246,10 +256,10 @@ export function createCoreCard({
     originalFront: sanitizedFront,
     originalBack: sanitizedBack,
     originalFields: fields,
-    originalTags: normalizedTags,
+    originalTags: canonicalTags,
     originalHtml: html,
     immutableOriginal: normalizeImmutableOriginal(immutableOriginal, fallbackImmutableOriginal),
-    mediaRefs: unique(mediaRefs),
+    mediaRefs: normalizedDocument.mediaRefs,
     sourceAnchors,
     kind: cardType,
     cardType,
@@ -275,6 +285,32 @@ export function createCoreCard({
     deletedAt,
     updatedByDeviceId,
     meta,
+    noteTypeDefinitionId: normalizedDefinitionId,
+    contentDocument: normalizedDocument,
+    latestSourceSnapshotId,
+    contentRevision: Number.isFinite(Number(contentRevision)) && Number(contentRevision) > 0
+      ? Math.floor(Number(contentRevision))
+      : 1,
+  };
+}
+
+function normalizeVariantProjection(
+  value: unknown,
+  fallback: { variantType: CardVariantType; variantId: string; meta: StringMap },
+): VariantProjection {
+  const input = objectRecord(value);
+  const recipeId = String(input.recipeId ?? fallback.meta.recipeId ?? `core-${fallback.variantType}`);
+  if (input.kind === "cloze") {
+    const ordinal = Number(input.clozeOrdinal ?? fallback.meta.clozeGroup ?? 1);
+    return { kind: "cloze", recipeId, clozeOrdinal: Number.isFinite(ordinal) && ordinal > 0 ? Math.floor(ordinal) : 1 };
+  }
+  if (input.kind === "image-occlusion") {
+    return { kind: "image-occlusion", recipeId, regionKey: String(input.regionKey ?? fallback.meta.regionKey ?? fallback.variantId) };
+  }
+  return {
+    kind: "template",
+    recipeId,
+    instanceKey: String(input.instanceKey ?? fallback.meta.instanceKey ?? fallback.variantId),
   };
 }
 
@@ -372,6 +408,10 @@ export function createCardVariant({
   updatedByDeviceId = null,
   versionLog = [],
   meta = {},
+  projection,
+  studyDeckId = null,
+  schedulingMode = "independent-card",
+  renderRevision = 1,
 }: CardVariantInput): CardVariant {
   const normalizedLearningItemId = learningItemId ?? cardId ?? sourceCardId;
   if (!normalizedLearningItemId) {
@@ -453,6 +493,14 @@ export function createCardVariant({
     deletedAt,
     updatedByDeviceId,
     meta,
+    projection: normalizeVariantProjection(projection, {
+      variantType: normalizedVariantType,
+      variantId: id,
+      meta,
+    }),
+    studyDeckId: typeof studyDeckId === "string" && studyDeckId ? studyDeckId : null,
+    schedulingMode: schedulingMode === "adaptive-presentation" ? "adaptive-presentation" : "independent-card",
+    renderRevision: Number.isFinite(Number(renderRevision)) && Number(renderRevision) > 0 ? Math.floor(Number(renderRevision)) : 1,
   } as CardVariant;
 }
 

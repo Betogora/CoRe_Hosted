@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  CardEditorValidationError,
-  createLearningItemFromCardContentPayload,
   createLearningItemFromEditorValue,
   createReviewState,
   duplicateLearningItemContent,
@@ -11,9 +9,10 @@ import {
   getOriginalVariant,
   restoreCardVersion,
   saveCardEditorValue,
-  validateCardContentPayload,
   validateCardEditorValue,
 } from "../coreModel.ts";
+import { CardEditorValidationError, validateCardContentPayload } from "./cardEditor.ts";
+import { createLearningItemFromCardContentPayload } from "./creation.ts";
 import type { CardVariant, LearningItem } from "../coreTypes.ts";
 
 function originalCount(card: LearningItem): number {
@@ -117,7 +116,7 @@ test("cloze editor save keeps compatible groups, disables removed gaps and adds 
     tags: [],
   });
   const activeGroups = saved.variants
-    .filter((variant) => !variant.isOriginal && variant.isActive)
+    .filter((variant) => variant.isActive)
     .map((variant) => Number(variant.meta.clozeGroup))
     .sort();
   const nextC1 = saved.variants.find((variant) => Number(variant.meta.clozeGroup) === 1);
@@ -213,7 +212,7 @@ test("version restore restores the complete structured editor value", () => {
 test("card content payload round-trips all editable types without identity", () => {
   const editorValues = [
     { cardType: "basic", front: "Frage", back: "Antwort", tags: ["eins"] },
-    { cardType: "basic-with-images", front: '<p>Frage</p><img src="media-z">', back: '<p>Antwort</p><img src="media-a">', tags: ["bilder"] },
+    { cardType: "basic-with-images", front: '<p>Frage</p><img src="media-z" />', back: '<p>Antwort</p><img src="media-a" />', tags: ["bilder"] },
     { cardType: "basic-reversed", front: "Vorne", back: "Hinten", tags: [] },
     { cardType: "cloze", textWithClozes: "{{c1::ATP}}", extra: "Energie", tags: ["cloze"] },
     { cardType: "multiple-choice", question: "Welche?", options: ["A", "B"], correctOptionIndex: 1, explanation: "Darum", tags: ["mc"] },

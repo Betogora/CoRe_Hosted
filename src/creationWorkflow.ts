@@ -1,10 +1,19 @@
-import { createManualCoreDeck, createSourceDocument, normalizeTags, validateCardEditorValue } from "./coreModel.ts";
+import {
+  createCoreNoteTypeDefinition,
+  createLearningItemDocumentFromLegacy,
+  createManualCoreDeck,
+  createSourceDocument,
+  normalizeTags,
+  stableContentHash,
+  validateCardEditorValue,
+} from "./coreModel.ts";
 import { createAnchorFromSelection, createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "./documentModel.ts";
 import { appendPlainTextToCardHtml } from "./richText.ts";
-import { importCsvAsNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
+import { importCsvAsNormalizedDeck, importNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
+import type { CsvFieldProjection } from "./csvFieldMapping.ts";
 import { createAccountMediaStore, type MediaSyncTask } from "./mediaStore.ts";
-import type { CardEditorValue, CardType, Deck, EditableCardType, LearningItem, SourceAnchor } from "./coreTypes.ts";
-import { LOCAL_APKG_MAX_BYTES, type AnkiReviewHistoryPayload, type ApkgImportReportV1 } from "./apkgImport.ts";
+import type { CardEditorValue, CardType, Deck, EditableCardType, ImportCommitGraph, LearningItem, SourceAnchor } from "./coreTypes.ts";
+import { LOCAL_APKG_MAX_BYTES, type ApkgImportReportV1 } from "./apkgImport.ts";
 
 interface FileLike {
   name?: string;
@@ -37,6 +46,12 @@ interface ManualCreationInput {
   activeField?: string;
   frontImage?: ManualImageAttachment | null;
   backImage?: ManualImageAttachment | null;
+  additionalFields?: Array<{
+    id?: string;
+    name?: string;
+    value?: string;
+    placement?: "front" | "back" | "both" | "metadata";
+  }>;
 }
 
 interface ApkgOptions {
@@ -55,13 +70,11 @@ interface ApkgReport {
 
 export interface LocalApkgCreationPreview {
   kind: "local";
-  deck: Deck;
+  summary: Deck;
   sampleCards: LearningItem[];
-  warnings: string[];
-  normalizedDeck: unknown;
+  report: ApkgReport;
+  commitGraph: ImportCommitGraph;
   mediaFiles: unknown[];
-  reviewHistory: AnkiReviewHistoryPayload;
-  importReport: ApkgReport;
 }
 
 export type ApkgCreationPreview = LocalApkgCreationPreview;
@@ -70,6 +83,12 @@ interface PasteImportInput {
   mode?: "text" | "csv" | "spreadsheet";
   deckName?: string;
   content?: string;
+  dryRun?: boolean;
+}
+
+interface MappedCsvImportInput {
+  deckName?: string;
+  records?: CsvFieldProjection[];
   dryRun?: boolean;
 }
 
@@ -115,6 +134,41 @@ function createApkgJob(file: FileLike, status: string, overrides: Record<string,
 
 function normalizePasteMode(mode: unknown): "text" | "csv" | "spreadsheet" {
   return mode === "csv" || mode === "spreadsheet" ? mode : "text";
+}
+
+function createWorkerMediaDecks(graph: ImportCommitGraph, persistedDecks: Deck[], summary: Deck): Deck[] {
+  if (graph.kind !== "worker-import" || graph.mediaTargets.length === 0) return graph.kind === "worker-import" ? [] : persistedDecks;
+  const persistedByIncomingId = new Map<string, Deck>();
+  for (const identity of graph.deckIdentities) {
+    const persisted = persistedDecks.find((deck) => deck.id === identity.id)
+      ?? persistedDecks.find((deck) => identity.originalDeckId && deck.originalDeckId === identity.originalDeckId);
+    if (persisted) persistedByIncomingId.set(identity.id, persisted);
+  }
+  const namesByDeckId = new Map<string, Set<string>>();
+  for (const target of graph.mediaTargets) {
+    const persisted = persistedByIncomingId.get(target.deckId);
+    if (!persisted) continue;
+    const names = namesByDeckId.get(persisted.id);
+    if (names) names.add(target.name);
+    else namesByDeckId.set(persisted.id, new Set([target.name]));
+  }
+  const manifest = summary.importMeta?.mediaManifest as { assets?: Array<{ name?: string }> } | undefined;
+  return persistedDecks.flatMap((deck) => {
+    const names = namesByDeckId.get(deck.id);
+    if (!names?.size) return [];
+    return [{
+      ...deck,
+      cards: [],
+      cardCount: Math.max(1, deck.cardCount),
+      importMeta: {
+        ...deck.importMeta,
+        mediaManifest: {
+          ...(manifest ?? {}),
+          assets: (manifest?.assets ?? []).filter((asset) => names.has(String(asset.name ?? ""))),
+        },
+      },
+    }];
+  });
 }
 
 function createPasteImportInput({ mode, deckName, content }: { mode: unknown; deckName: string; content: string }) {
@@ -167,6 +221,47 @@ function normalizeManualImageAttachment(value: unknown): ManualImageAttachment |
   };
 }
 
+function createMappedCsvDeckInput(deckName: string, records: CsvFieldProjection[]) {
+  const extraFieldNames = [...new Set(records.flatMap((record) => record.fields.map((field) => field.name)))];
+  const definitionVersionId = stableContentHash(
+    { source: "csv-mapping", fields: ["Vorderseite", "Rückseite", ...extraFieldNames] },
+    "note-type",
+  );
+  return {
+    title: deckName,
+    sourceType: "csv_import",
+    metadataJson: { parser: "csv-field-mapping", mappedFieldNames: extraFieldNames },
+    items: records.map((record) => {
+      const valueByName = new Map(record.fields.map((field) => [field.name, field.value]));
+      const document = createLearningItemDocumentFromLegacy({
+        definitionVersionId,
+        fields: [
+          { name: "Vorderseite", value: record.front },
+          { name: "Rückseite", value: record.back },
+          ...extraFieldNames.map((name) => ({ name, value: valueByName.get(name) ?? "" })),
+        ],
+        tags: record.tags,
+      });
+      return {
+        title: record.front,
+        canonicalQuestion: record.front,
+        canonicalAnswer: record.back,
+        tags: record.tags,
+        sourceType: "csv_import",
+        sourceExternalId: record.guid,
+        originalFields: document.fields.map((field) => ({ name: field.name, value: field.value })),
+        contentDocument: document,
+        noteTypeDefinition: createCoreNoteTypeDefinition({ document, name: "CSV-Feldschema" }),
+        metadataJson: {
+          importFormat: "csv-mapping",
+          sourceLine: record.sourceLine,
+          requestedDeck: record.deck,
+        },
+      };
+    }),
+  };
+}
+
 function appendManualImage(html: string, image: ManualImageAttachment | null, alt: string): string {
   return image ? `${html}<p><img src="${image.sha1}" alt="${alt}"></p>` : html;
 }
@@ -176,21 +271,57 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
   const document = input.document ?? null;
   const mcq = normalizeMultipleChoiceData(input, normalizeAnswerOptions(input.answerOptions));
   const tags = normalizeTags(input.tags);
-  const frontImage = requestedCardType === "basic-with-images" ? normalizeManualImageAttachment(input.frontImage) : null;
-  const backImage = requestedCardType === "basic-with-images" ? normalizeManualImageAttachment(input.backImage) : null;
+  const frontImage = normalizeManualImageAttachment(input.frontImage);
+  const backImage = normalizeManualImageAttachment(input.backImage);
   const front = appendManualImage(input.front ?? "", frontImage, "Bild zur Vorderseite");
   const back = appendManualImage(input.back ?? "", backImage, "Bild zur Rückseite");
   const editorValue: CardEditorValue = requestedCardType === "cloze"
-    ? { cardType: "cloze", textWithClozes: input.front ?? "", extra: input.back ?? "", tags }
+    ? { cardType: "cloze", textWithClozes: front, extra: back, tags }
     : requestedCardType === "multiple-choice"
-      ? { cardType: "multiple-choice", question: input.front ?? "", options: mcq.answerOptions, correctOptionIndex: mcq.answerOptions.indexOf(mcq.correctAnswer), explanation: input.back ?? "", tags }
+      ? { cardType: "multiple-choice", question: front, options: mcq.answerOptions, correctOptionIndex: mcq.answerOptions.indexOf(mcq.correctAnswer), explanation: back, tags }
       : { cardType: requestedCardType, front, back, tags };
+  const additionalFields = Array.isArray(input.additionalFields)
+    ? input.additionalFields.filter((field) => String(field.name ?? "").trim())
+    : [];
+  const definitionVersionId = stableContentHash({
+    source: "manual-dynamic",
+    fields: ["Vorderseite", "Rückseite", ...additionalFields.map((field) => [field.id, field.name, field.placement])],
+    cardType: requestedCardType,
+  }, "note-type");
+  const baseDocument = createLearningItemDocumentFromLegacy({
+    definitionVersionId,
+    fields: [
+      { name: "Vorderseite", value: front },
+      { name: "Rückseite", value: back },
+      ...additionalFields.map((field) => ({ name: String(field.name), value: String(field.value ?? "") })),
+    ],
+    tags,
+    mediaRefs: [frontImage?.sha1, backImage?.sha1].filter((reference): reference is string => Boolean(reference)),
+  });
+  const contentDocument = {
+    ...baseDocument,
+    fields: baseDocument.fields.map((field, index) => index < 2 ? field : {
+      ...field,
+      id: additionalFields[index - 2]?.id || field.id,
+      placement: additionalFields[index - 2]?.placement ?? "metadata",
+      semanticRole: "unclassified" as const,
+    }),
+    ...(requestedCardType === "multiple-choice" ? { interaction: { choice: { options: mcq.answerOptions, correctAnswer: mcq.correctAnswer, explanation: back } } } : {}),
+  };
+  const noteTypeDefinition = createCoreNoteTypeDefinition({
+    document: contentDocument,
+    kind: requestedCardType === "cloze" ? "cloze" : "normal",
+    interaction: requestedCardType === "multiple-choice" ? "choice" : requestedCardType === "cloze" ? "cloze" : "reveal",
+    reverse: requestedCardType === "basic-reversed",
+  });
 
   return {
     deckName: input.deckName ?? "Neuer Kartenstapel",
     card: {
       editorValue,
-      mediaRefs: [frontImage?.sha1, backImage?.sha1].filter((reference): reference is string => Boolean(reference)),
+      mediaRefs: contentDocument.mediaRefs,
+      contentDocument,
+      noteTypeDefinition,
     },
     documentContext: {
       document,
@@ -205,7 +336,7 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
   };
 }
 
-export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" }), persistImportedDecks = async (_decks: Deck[]) => {} }: { mediaStore?: AccountMediaStore; persistImportedDecks?: (decks: Deck[], options?: { mediaOnly?: boolean }) => Promise<unknown> } = {}) {
+export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" }), persistImportedDecks = async (decks: Deck[]) => decks }: { mediaStore?: AccountMediaStore; persistImportedDecks?: (decks: Deck[], options?: { mediaOnly?: boolean; commitGraph?: ImportCommitGraph }) => Promise<Deck[]> } = {}) {
   return {
     readableSourceDocumentAccept: READABLE_SOURCE_DOCUMENT_ACCEPT,
     readableSourceDocumentLabel: READABLE_SOURCE_DOCUMENT_LABEL,
@@ -264,10 +395,10 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
         const { createApkgImportPreview } = await loadApkgImport();
         const result = await createApkgImportPreview(file, onStep, { existingDecks });
         const preview = result.preview ? { ...result.preview, kind: "local" as const } : null;
-        const mediaStatus = preview ? await mediaStore.cachePreviewMedia(preview.deck, preview.mediaFiles) : null;
+        const mediaStatus = preview ? await mediaStore.cachePreviewMedia(preview.summary, preview.mediaFiles) : null;
         const mediaErrors = mediaStatus?.errors ?? [];
-        const reportWarnings = result.preview?.importReport?.warnings ?? [];
-        const reportErrors = result.preview?.importReport?.errors ?? [];
+        const reportWarnings = result.preview?.report?.warnings ?? [];
+        const reportErrors = result.preview?.report?.errors ?? [];
 
         return {
           preview,
@@ -294,6 +425,10 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       if (!preview) {
         return {
           deck: null,
+          decks: [] as Deck[],
+          commitGraph: null,
+          mediaFiles: [],
+          mediaTask: null as MediaSyncTask | null,
           report: {
             warnings: [],
             errors: ["Keine APKG-Vorschau zum Importieren vorhanden."],
@@ -304,14 +439,29 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       const committed = await commitApkgImport(preview, { existingDecks });
       const decks = (committed.decks?.length ? committed.decks : committed.deck ? [committed.deck] : []) as Deck[];
       if (committed.report.errors.length > 0 || decks.length === 0) return { ...committed, mediaTask: null as MediaSyncTask | null };
-      await persistImportedDecks(decks);
-      const mediaTask = mediaStore.syncImportMedia(decks);
-      void mediaTask.result.then(async (mediaResult) => {
-        if (mediaResult.status !== "cloud-ready") return;
-        const withReferences = decks.map((deck) => ({ ...deck, mediaAssets: mediaResult.referencesByDeck.get(deck.id) ?? deck.mediaAssets ?? [] }));
-        await persistImportedDecks(withReferences, { mediaOnly: true });
-      });
-      return { ...committed, mediaTask };
+      const persistedDecks = await persistImportedDecks(decks, { commitGraph: committed.commitGraph });
+      const persistedDeck = persistedDecks.find((deck) => deck.id === committed.deck?.id)
+        ?? persistedDecks.find((deck) => deck.originalDeckId && deck.originalDeckId === committed.deck?.originalDeckId)
+        ?? persistedDecks.find((deck) => deck.cardCount > 0)
+        ?? persistedDecks[0]
+        ?? committed.deck;
+      const mediaDecks = createWorkerMediaDecks(committed.commitGraph, persistedDecks, preview.summary);
+      const rawMediaTask = mediaStore.syncImportMedia(mediaDecks.length ? mediaDecks : decks);
+      const mediaTask: MediaSyncTask = {
+        get progress() { return rawMediaTask.progress; },
+        pause: rawMediaTask.pause,
+        resume: rawMediaTask.resume,
+        cancel: rawMediaTask.cancel,
+        subscribe: rawMediaTask.subscribe,
+        result: rawMediaTask.result.then(async (mediaResult) => {
+          if (mediaResult.status === "cloud-ready") {
+            const withReferences = persistedDecks.map((deck) => ({ ...deck, mediaAssets: mediaResult.referencesByDeck.get(deck.id) ?? deck.mediaAssets ?? [] }));
+            await persistImportedDecks(withReferences, { mediaOnly: true });
+          }
+          return mediaResult;
+        }),
+      };
+      return { ...committed, deck: persistedDeck, decks: persistedDecks.length ? persistedDecks : decks, mediaTask };
     },
 
     importPastedDeck({ mode = "text", deckName = "Importierter Stapel", content = "", dryRun = false }: PasteImportInput = {}) {
@@ -321,6 +471,10 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       return normalizedMode === "text"
         ? importTextAsNormalizedDeck(input, { dryRun })
         : importCsvAsNormalizedDeck(input, { dryRun });
+    },
+
+    importMappedCsvDeck({ deckName = "Importierter Stapel", records = [], dryRun = false }: MappedCsvImportInput = {}) {
+      return importNormalizedDeck(createMappedCsvDeckInput(deckName, records), { dryRun });
     },
 
     async readSourceDocument(file: FileLike) {

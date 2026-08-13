@@ -104,6 +104,27 @@ export function getLearningDayKey(value: DateInput, options: LearningDayOptions 
   return dayIndex == null ? null : new Date(dayIndex * 86_400_000).toISOString().slice(0, 10);
 }
 
+function learningDayBoundary(dayIndex: number, options: LearningDayOptions): number {
+  let lower = dayIndex * DAY_MS - 2 * DAY_MS;
+  let upper = dayIndex * DAY_MS + 2 * DAY_MS;
+  while (lower < upper) {
+    const middle = lower + Math.floor((upper - lower) / 2);
+    const middleDayIndex = getLearningDayIndex(middle, options);
+    if (middleDayIndex != null && middleDayIndex >= dayIndex) upper = middle;
+    else lower = middle + 1;
+  }
+  return lower;
+}
+
+export function getLearningDayRange(value: DateInput, options: LearningDayOptions = {}): { start: number; end: number } | null {
+  const dayIndex = getLearningDayIndex(value, options);
+  if (dayIndex == null) return null;
+  return {
+    start: learningDayBoundary(dayIndex, options),
+    end: learningDayBoundary(dayIndex + 1, options),
+  };
+}
+
 function zonedDateTimeToUtc(parts: LocalDateTimeParts, timeZone: string): Date {
   const desiredWallTime = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second, parts.millisecond);
   let candidateTime = desiredWallTime;
@@ -133,7 +154,7 @@ export function addLearningDays(value: DateInput, days: number, options: Learnin
     day: shiftedDate.getUTCDate(),
     dayIndex: Math.floor(Date.UTC(shiftedDate.getUTCFullYear(), shiftedDate.getUTCMonth(), shiftedDate.getUTCDate()) / DAY_MS),
   };
-  const candidate = options.timeZone
+  let candidate = options.timeZone
     ? zonedDateTimeToUtc(shiftedParts, options.timeZone)
     : new Date(local.year, local.month - 1, local.day + wholeDays, local.hour, local.minute, local.second, local.millisecond);
   const targetIndex = currentIndex + wholeDays;

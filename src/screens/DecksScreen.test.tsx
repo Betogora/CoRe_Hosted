@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { DecksScreenProps } from "../appScreenProps.ts";
-import { createCoreDeck, createLearningItemFromEditorValue, createManualCoreDeck, updateCardContent, updateLearningItemStudyState } from "../coreModel.ts";
+import { applyLearningItemContent, createCoreDeck, createCoreNoteTypeDefinition, createLearningItemDocumentFromLegacy, createLearningItemFromEditorValue, createManualCoreDeck, saveCardEditorValue, updateLearningItemStudyState } from "../coreModel.ts";
 import type { CardEditorValue, Deck } from "../coreTypes.ts";
-import { DecksScreen } from "./DecksScreen.tsx";
+import { DecksScreen, type DecksScreenCardPageProps } from "./DecksScreen.tsx";
 
-function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) {
-  const props: DecksScreenProps = {
+function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps & DecksScreenCardPageProps> = {}) {
+  const props: DecksScreenProps & DecksScreenCardPageProps = {
     decks,
     now: "2026-08-06T10:00:00.000Z",
     mediaStore: null,
@@ -16,7 +16,7 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     onSelectDeck: () => undefined,
     onSetDeckCoreMode: () => undefined,
     onSaveCard: () => undefined,
-    onSetCardStudyState: () => null,
+    onSetCardStudyState: async () => null,
     onDuplicateCard: async () => null,
     onDeleteCard: async () => null,
     onUndoDeleteCard: async () => null,
@@ -39,6 +39,44 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
   };
   return renderToStaticMarkup(<DecksScreen {...props} />);
 }
+
+test("cards page consumes a direct query page and projects at most 100 items", () => {
+  const pageCards = Array.from({ length: 101 }, (_, index) => createLearningItemFromEditorValue(
+    "deck-paged",
+    { cardType: "basic", front: `Seitenkarte ${index}`, back: `Antwort ${index}`, tags: [] },
+    { id: `paged-card-${String(index).padStart(3, "0")}` },
+  ));
+  const directCard = createLearningItemFromEditorValue(
+    "deck-paged",
+    { cardType: "basic", front: "Direkt geladene Karte", back: "Direkte Antwort", tags: [] },
+    { id: "direct-card" },
+  );
+  const deck = createCoreDeck({ id: "deck-paged", name: "Abfragestapel", source: "manual", cards: [] });
+  const markup = renderScreen([deck], {
+    selectedDeckId: deck.id,
+    selectedCardId: directCard.id,
+    expandedDeckIds: [deck.id],
+    cardPages: {
+      [deck.id]: {
+        deckId: deck.id,
+        items: pageCards,
+        page: 4,
+        pageSize: 100,
+        totalCount: 501,
+        query: "",
+        sort: { field: "sortField", direction: "asc" },
+        selectedCard: directCard,
+      },
+    },
+  });
+
+  assert.equal((markup.match(/data-card-row="true"/g) ?? []).length, 100);
+  assert.match(markup, /Seitenkarte 99/);
+  assert.doesNotMatch(markup, /Seitenkarte 100/);
+  assert.match(markup, /Seite 5 von 6/);
+  assert.match(markup, /data-testid="deck-card-paged-card-099"/);
+  assert.match(markup, /Direkt geladene Karte/);
+});
 
 test("cards page renders sortable collapsed deck sections with direct metrics", () => {
   const originalDeck = createManualCoreDeck({
@@ -121,7 +159,7 @@ test("card selection opens a non-modal detail aside with editor, copy and collap
     deckName: "Biologie",
     card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
   });
-  const card = updateCardContent(originalDeck.cards[0], { originalFront: "Welche Funktion hat ATP?" });
+  const card = saveCardEditorValue(originalDeck.cards[0], { cardType: "basic", front: "Welche Funktion hat ATP?", back: "Ein Energieträger.", tags: [] });
   const deck = { ...originalDeck, cards: [card] };
   const markup = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: card.id });
 
@@ -202,7 +240,13 @@ test("detail editor renders all five supported field sets", () => {
 
 test("copy is disabled with a reason for read-only imported card types", () => {
   const basic = createLearningItemFromEditorValue("deck-import", { cardType: "basic", front: "Bild", back: "Antwort", tags: [] });
-  const readOnlyCard = { ...basic, cardType: "image-occlusion" as const, kind: "image-occlusion" as const };
+  const document = createLearningItemDocumentFromLegacy({
+    definitionVersionId: "definition-image-occlusion",
+    front: "Bild",
+    back: "Antwort",
+  });
+  const definition = createCoreNoteTypeDefinition({ document, kind: "image-occlusion", interaction: "image-occlusion" });
+  const readOnlyCard = applyLearningItemContent({ previous: basic, document, definition, reason: "migration" }).item;
   const deck = createCoreDeck({ id: "deck-import", name: "Import", source: "anki-apkg", cards: [readOnlyCard] });
   const markup = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: readOnlyCard.id });
 

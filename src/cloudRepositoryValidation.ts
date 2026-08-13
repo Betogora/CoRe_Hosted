@@ -1,15 +1,20 @@
 import * as v from "valibot";
 import type { Json, Tables, TablesInsert, TablesUpdate } from "./database.types.ts";
 
-export type AccountTable = "decks" | "cards" | "card_variants" | "review_events" | "source_documents";
-export type AccountRow = Tables<AccountTable>;
-export type AccountInsert = TablesInsert<AccountTable>;
-export type AccountUpdate = TablesUpdate<AccountTable>;
+type GeneratedAccountTable = "decks" | "cards" | "card_variants" | "review_events" | "source_documents";
+export type AccountTable = GeneratedAccountTable | "note_type_definitions" | "learning_item_source_snapshots";
+export type AccountRow = Tables<GeneratedAccountTable> | Record<string, unknown>;
+export type AccountInsert = TablesInsert<GeneratedAccountTable> | Record<string, unknown>;
+export type AccountUpdate = TablesUpdate<GeneratedAccountTable> | Record<string, unknown>;
 export type CloudJson = Json;
 export type MediaAssetRow = Tables<"media_assets">;
 
 const jsonObjectSchema = v.record(v.string(), v.unknown());
-const accountRowBaseSchema = { id: v.string(), user_id: v.string() };
+const accountRowBaseSchema = {
+  id: v.string(),
+  user_id: v.string(),
+  sync_change_id: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+};
 const accountRowSchemas: Record<AccountTable, v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>> = {
   decks: v.looseObject({
     ...accountRowBaseSchema,
@@ -21,6 +26,10 @@ const accountRowSchemas: Record<AccountTable, v.BaseSchema<unknown, unknown, v.B
   }),
   cards: v.looseObject({
     ...accountRowBaseSchema,
+    note_type_definition_id: v.nullable(v.string()),
+    content_document: jsonObjectSchema,
+    latest_source_snapshot_id: v.nullable(v.string()),
+    content_revision: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
     original_fields: v.optional(v.array(v.unknown())),
     original_tags: v.optional(v.array(v.string())),
     immutable_original: v.optional(jsonObjectSchema),
@@ -33,6 +42,10 @@ const accountRowSchemas: Record<AccountTable, v.BaseSchema<unknown, unknown, v.B
   }),
   card_variants: v.looseObject({
     ...accountRowBaseSchema,
+    projection: jsonObjectSchema,
+    scheduling_mode: v.picklist(["independent-card", "adaptive-presentation"]),
+    study_deck_id: v.nullable(v.string()),
+    render_revision: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
     transform_profile: v.optional(jsonObjectSchema),
     changed_recognition_cues: v.optional(v.array(v.string())),
     source_anchors: v.optional(v.array(v.unknown())),
@@ -49,6 +62,24 @@ const accountRowSchemas: Record<AccountTable, v.BaseSchema<unknown, unknown, v.B
     flags: v.optional(jsonObjectSchema),
   }),
   source_documents: v.looseObject({ ...accountRowBaseSchema, metadata: v.optional(jsonObjectSchema) }),
+  note_type_definitions: v.looseObject({
+    ...accountRowBaseSchema,
+    name: v.string(),
+    definition: jsonObjectSchema,
+    revision: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+    deleted_at: v.optional(v.nullable(v.string())),
+  }),
+  learning_item_source_snapshots: v.looseObject({
+    ...accountRowBaseSchema,
+    card_id: v.string(),
+    schema_version: v.literal(1),
+    source_kind: v.picklist(["anki-apkg", "csv", "legacy-projection"]),
+    import_fingerprint: v.string(),
+    previous_snapshot_id: v.nullable(v.string()),
+    note_type_definition_id: v.nullable(v.string()),
+    source_payload: jsonObjectSchema,
+    created_at: v.string(),
+  }),
 };
 const profileRowSchema = v.looseObject({
   id: v.string(),

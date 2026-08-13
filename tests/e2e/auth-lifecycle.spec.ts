@@ -27,7 +27,7 @@ test.describe("lokaler Auth-Lifecycle", () => {
     });
     await page.goto(extractAuthConfirmationUrl(message));
     await expectAuthenticated(page);
-    await expect(page.getByRole("heading", { name: "Willkommen bei CoRe" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Willkommen zurück,/ })).toBeVisible();
     await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
     await page.getByRole("textbox", { name: "Vorderseite" }).fill("Was schützt dieses Golden-E2E?");
     await page.getByRole("textbox", { name: "Rückseite" }).fill("Den ersten Lernerfolg eines neuen Accounts.");
@@ -35,8 +35,10 @@ test.describe("lokaler Auth-Lifecycle", () => {
     await page.getByRole("button", { name: "Fertig" }).click();
     await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible();
     await page.getByRole("button", { name: "Jetzt lernen" }).click();
-    await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-    await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+    for (let step = 0; step < 4 && !await page.getByRole("heading", { name: "Sitzung abgeschlossen" }).isVisible().catch(() => false); step += 1) {
+      await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+      await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+    }
     await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
   });
 

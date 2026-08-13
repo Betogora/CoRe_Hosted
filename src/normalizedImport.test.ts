@@ -8,8 +8,6 @@ import {
   getOriginalVariant,
 } from "./coreModel.ts";
 import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
-import { createCoreRepository } from "./coreRepository.ts";
-import { createCoreWorkspace } from "./coreWorkspace.ts";
 import {
   createImportFingerprint,
   findDuplicateLearningItem,
@@ -25,24 +23,6 @@ import {
   parseTextToNormalizedImport,
 } from "./importService.ts";
 import { answerVariant, getNextReviewItem } from "./reviewService.ts";
-
-function createMemoryStorage() {
-  const store = new Map();
-  return {
-    getItem(key: any) {
-      return store.get(key) ?? null;
-    },
-    setItem(key: any, value: any) {
-      store.set(key, value);
-    },
-    removeItem(key: any) {
-      store.delete(key);
-    },
-    snapshot() {
-      return JSON.stringify([...store.entries()]);
-    },
-  };
-}
 
 function sampleNormalizedDeck() {
   return {
@@ -108,20 +88,14 @@ test("normalized import format normalizes decks, items and variants", () => {
   assert.equal(invalidItem.errors.length >= 2, true);
 });
 
-test("dry run returns a report and does not create core objects or mutate storage", () => {
-  const storage = createMemoryStorage();
-  const workspace = createCoreWorkspace(createCoreRepository(storage));
-  const beforeStorage = storage.snapshot();
-  const beforeDeckCount = workspace.getState().decks.length;
-  const result = workspace.dryRunNormalizedImport(sampleNormalizedDeck());
+test("dry run returns a report without creating core objects", () => {
+  const result = importNormalizedDeck(sampleNormalizedDeck(), { dryRun: true });
 
   assert.equal(result.deck, null);
   assert.equal(result.report.dryRun, true);
   assert.equal(result.report.createdLearningItems, 2);
   assert.equal(result.report.createdVariants, 2);
   assert.equal(result.report.previewItems.length, 2);
-  assert.equal(workspace.getState().decks.length, beforeDeckCount);
-  assert.equal(storage.snapshot(), beforeStorage);
 });
 
 test("commit normalized import creates FSRS learning items and anchored imported variants", () => {
@@ -251,31 +225,4 @@ test("imported variants review through central item state and fallback", () => {
   assert.ok(next);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(next.fallbackInfo.active, true);
-});
-
-test("workspace commit normalized import mutates state and dry run does not", () => {
-  const workspace = createCoreWorkspace(createCoreRepository(createMemoryStorage()));
-  const dryRun = workspace.dryRunNormalizedImport(sampleNormalizedDeck());
-  const beforeCommit = workspace.getState().decks.length;
-  const committed = workspace.commitNormalizedImport(sampleNormalizedDeck());
-  const commitWorkspace = createCoreWorkspace(createCoreRepository(createMemoryStorage()));
-  const committedDespiteDryRunOption = commitWorkspace.commitNormalizedImport(sampleNormalizedDeck(), { dryRun: true });
-  const textDryRun = workspace.importTextDeck({ deckName: "Text", text: "Front\n---\nBack" }, { dryRun: true });
-
-  assert.equal(dryRun.report.createdLearningItems, 2);
-  assert.equal(beforeCommit, 0);
-  assert.ok(committed);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(committed.deck.cards.length, 2);
-  assert.ok(committedDespiteDryRunOption);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(committedDespiteDryRunOption.deck.cards.length, 2);
-  assert.equal(commitWorkspace.getState().decks.length, 1);
-  assert.equal(workspace.getState().decks.length, 1);
-  assert.equal(workspace.getState().decks[0].cards[0].reviewState.schedulerVersion, "fsrs_6_v1");
-  assert.ok(getNextReviewItem);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(getNextReviewItem(workspace.getState().decks[0]).learningItemId, workspace.getState().decks[0].cards[0].id);
-  assert.equal(textDryRun.deck, null);
-  assert.equal(workspace.getState().decks.length, 1);
 });

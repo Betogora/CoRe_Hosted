@@ -12,13 +12,13 @@ function renderSettings() {
   const profile = { ...state.profile, email: "login@example.test", displayName: "Ada", timezone: "Europe/Berlin" };
   return renderToStaticMarkup(
     <SettingsScreen
-      appState={{ ...state, profile }}
       profile={profile}
       syncStatus={{ status: "idle" }}
       globalSchedulerPreferences={getGlobalSchedulerPreferences(profile)}
       onSaveProfile={() => undefined}
       onSaveGlobalSchedulerPreferences={() => undefined}
-      onSaveState={() => undefined}
+      onCreateExport={async () => "{}"}
+      onImportExport={async () => undefined}
       onSyncNow={async () => undefined}
       onListConflicts={async () => []}
       onResolveConflict={async () => undefined}

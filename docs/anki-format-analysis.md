@@ -19,13 +19,16 @@ CoRe sollte diese Trennung übernehmen, aber Ankis gewachsene Speicherformen nic
 
 - `decks`
 - `learning_items`
+- `note_type_definitions`
+- `learning_item_source_snapshots`
 - `card_variants`
 - `variant_scheduler_state`
 - `review_events`
 - `media_assets`
 - `source_anchors`
 - `import_identities`
-- `template_snapshots`
+
+Templates und ihre Rohkonfiguration gehören damit in versionierte Notetype-Definitionen statt in eine zweite Darstellungswahrheit.
 
 Kernaussage: Anki ist für CoRe Vorbild an der Modellgrenze, aber nicht das interne Datenformat.
 
@@ -108,7 +111,7 @@ Offizielle Stock-Notetypes umfassen unter anderem:
 - Cloze
 - Image Occlusion
 
-Rigorose CoRe-Folgerung: CoRe sollte Template-Snapshots konservieren, aber nicht beliebige Template-Ausführung als Produktkern übernehmen. Templates sind für Import, Reimport, Debugging und späteren Export wertvoll. Für den Review-Kern sollten sie in explizite CoRe-Varianten übersetzt werden.
+Rigorose CoRe-Folgerung: CoRe konserviert vollständige Template-Snapshots und übersetzt dokumentierte statische Semantik in einen eigenen sicheren Renderer. Script, externe Ressourcen und Add-on-Filter werden nicht ausgeführt; die Definition bleibt für Reimport, Debugging und späteren Export unverändert erhalten.
 
 ### Review und Revlog
 
@@ -116,7 +119,7 @@ Anki speichert Review-Ereignisse in `revlog`. Das Legacy-Schema hält pro Ereign
 
 Rigorose CoRe-Folgerung: CoRe sollte aktuellen Zustand und Ereignisverlauf strikt trennen. `review_events` bleiben append-only. Der aktuelle Queue-/Scheduler-Zustand gehört in einen eigenen State pro Learning Item und pro Variante.
 
-Der APKG-Leser setzt diese Trennung um: zuordenbare, nicht manuelle `revlog`-Zeilen werden als kompakte Analysehistorie durch Preview und Worker transportiert, anhand der bestehenden Anki-Kartenidentität auf finale CoRe-Varianten abgebildet und per deterministischer Ereignis-ID vereinigt. Bewertung, Zeitstempel, Antwortzeit, Intervall und Herkunft werden normalisiert; beschädigte oder nicht zuordenbare Zeilen werden gezählt und übersprungen. Der importierte Verlauf mutiert weder aktuellen Review State noch Fälligkeit oder FSRS-Planung.
+Der APKG-Leser setzt diese Trennung um: zuordenbare, nicht manuelle `revlog`-Zeilen werden als kompakte Analysehistorie durch Preview und Worker transportiert, anhand der bestehenden Anki-Kartenidentität auf finale CoRe-Varianten abgebildet und per deterministischer Ereignis-ID vereinigt. Bewertung, Zeitstempel, Antwortzeit, Intervall und Herkunft werden normalisiert; beschädigte oder nicht zuordenbare Zeilen werden gezählt und übersprungen. Getrennt davon wird der anfängliche aktuelle Zustand pro Card versioniert angenähert: gültiger moderner FSRS-Memory-State, sonst chronologisches Revlog-Replay, sonst klassischer Kartenstatus und schließlich eine neue Karte. Nach dem ersten CoRe-Review übernimmt ausschließlich FSRS-6.
 
 ### APKG, Collection und Medien
 
@@ -128,7 +131,7 @@ Aktuelle Paketvarianten laut Anki-Code und verifizierter CoRe-Fixture:
 - Legacy 2: `collection.anki21`, Schema V11
 - Latest: `collection.anki21b`, Schema V18, Zstd-komprimiert
 
-CoRe liest den modernen V18-Pfad ohne Anki-Runtime: `decks` und `notetypes` liegen in normalen Tabellen, `fields` und `templates` in `WITHOUT ROWID`-Index-B-Bäumen. Diese vier Tabellen werden hinter `src/apkgImport.ts` in dieselbe private Model-Form wie Legacy-`col.models` normalisiert. Ankis nativer Deck-Trenner `U+001F` wird erst an dieser Importgrenze in `::` übersetzt. Die eingecheckte Latest-Qualitätsfixture wurde ausschließlich als Referenzartefakt mit `anki==26.5` erzeugt; App, Tests und CI übernehmen daraus keine Runtime-Abhängigkeit.
+CoRe liest den modernen V18-Pfad ohne Anki-Runtime: `decks` und `notetypes` liegen in normalen Tabellen, `fields` und `templates` in `WITHOUT ROWID`-Index-B-Bäumen. Diese vier Tabellen werden hinter `src/apkgImport.ts` in dieselbe private Model-Form wie Legacy-`col.models` normalisiert. Die bekannten Notetype-, Field- und Template-Konfigurationen werden mit einem bounds-sicheren Protobuf-Wire-Reader dekodiert; vollständige Raw-Bytes, 64-Bit-Werte und unbekannte Felder bleiben zusätzlich verlustfrei erhalten. Ankis nativer Deck-Trenner `U+001F` wird erst an dieser Importgrenze in `::` übersetzt. Die eingecheckte Latest-Qualitätsfixture wurde ausschließlich als Referenzartefakt mit `anki==26.5` erzeugt; App, Tests und CI übernehmen daraus keine Runtime-Abhängigkeit.
 
 Bei modernen Paketen ist die Medienliste Protobuf-basiert; Legacy-Medien nutzen eine JSON-Hashmap wie `{"0": "bild.png"}`. Der Import normalisiert Dateinamen, prüft Sicherheit, nutzt SHA-1/Größe, dekomprimiert bei Bedarf und kopiert Medien getrennt von den Karteninhalten.
 
@@ -138,34 +141,35 @@ Rigorose CoRe-Folgerung: APKG ist Austauschformat, nicht Persistenzformat. ZIP, 
 
 CoRe hat die entscheidende Richtung bereits eingeschlagen:
 
-- `src/coreModel.ts` erzeugt Learning Items, Original-Varianten, Reverse-Varianten, Cloze-Varianten und Review-State.
-- `src/importService.ts` normalisiert Text-, CSV-, JSON- und Tabellen-Importdaten in Learning Items mit Varianten, Parent-/Hierarchy-Feldern, stabilen Fingerprints und Duplicate-Erkennung.
-- `src/apkgImport.ts` liest APKG-Container, erkennt `collection.anki2`, `collection.anki21`, `collection.anki21b`, extrahiert Notes/Cards/Decks/Media sowie die analytische Revlog-Historie, erzeugt echte Unterstapel und speichert Raw-Fallbacks.
+- `src/coreModel.ts` ist die einzige öffentliche Seam für `LearningItemDocumentV1`, unveränderliche Notetype-Definitionen, Variantenprojektion, Review-State und Compatibility-Felder.
+- `src/csvFieldMapping.ts` und `src/importService.ts` normalisieren Text-, CSV-, JSON- und Tabellen-Importdaten in dynamische Learning Items mit sichtbarer Spaltenzuordnung, Parent-/Hierarchy-Feldern, stabilen Fingerprints und Duplicate-Erkennung.
+- `src/apkgImport.ts` liest APKG-Container, erkennt `collection.anki2`, `collection.anki21`, `collection.anki21b`, extrahiert Notes/Cards/Decks/Media, Definitionen, Quellsnapshots, Schedulerrohzustand und Revlog-Historie, erzeugt echte Unterstapel und speichert Raw-Fallbacks.
+- `src/cardPresentation.ts` kompiliert dokumentierte statische Templates einmal pro Definitionshash und rendert dieselbe sichere Präsentation für Vorschau, Kartenverwaltung und Review.
 - `src/mediaStore.ts` kapselt accountgebundenen lokalen Cache, persistente Upload-Queue und Cloud-/Fallback-Auflösung; React konsumiert ausschließlich aufgelöste Medien-URLs und Status.
-- `src/htmlSafety.ts` und `src/richText.ts` kapseln HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung fuer Karteninhalt, Importvorschau und Review.
+- `src/htmlSafety.ts` und `src/richText.ts` kapseln allowlist-basierte HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung für Karteninhalt, Importvorschau und Review.
 - `src/reviewService.ts` schreibt Review-Events und aktualisiert Learning-Item- und Varianten-State.
 - `src/scheduler.ts` kapselt FSRS-6 mit Stability, Difficulty, Desired Retention, Retrievability, Variant-Kontext und Intervallvorschau für die vier Review-Buttons.
-- `supabase/core_schema_v1.sql` trennt `decks`, `cards`, `card_variants`, `review_events` und `source_documents`; Labs-Jobtabellen sind entfernt.
+- `supabase/core_schema_v1.sql` trennt `decks`, `cards`, `note_type_definitions`, `learning_item_source_snapshots`, `card_variants`, `review_events` und `source_documents`; Labs-Jobtabellen sind entfernt.
 
-Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzepte werden importiert und roh konserviert, aber noch nicht vollständig als explizite CoRe-Strukturen modelliert. Das ist für den MVP richtig, sollte aber in den nächsten Ausbaustufen gezielt geschlossen werden.
+Die verbleibende Kompatibilitätsgrenze ist bewusst: Template-JavaScript, Add-on-/Custom-Filter, externe Ressourcen, native LaTeX-Toolchains und nicht browserfähige Codecs werden erhalten, aber nicht ausgeführt. APKG-Export und ein manueller Image-Occlusion-Maskeneditor folgen nicht in diesem Ausbau.
 
 ## Differentialanalyse
 
 | Thema | Anki-Ist | CoRe-Ist | CoRe-Soll |
 |---|---|---|---|
-| Fachlicher Inhalt | `Note` mit Feldern, Tags, GUID und Notetype | `Learning Item` in `deck.cards[]` als Compatibility Collection | Learning Item als kanonischer fachlicher Inhalt, unabhängig von Deck-UI und Review-Variante |
-| Review-Einheit | `Card` pro Note/Template mit eigenem Scheduler | Original-, Reverse-, Cloze- und CoRe-Varianten mit teils eigenem State | Jede reviewbare Variante bekommt eigenen Scheduler-/Performance-State und bleibt an genau einem Original verankert |
+| Fachlicher Inhalt | `Note` mit Feldern, Tags, GUID und Notetype | `LearningItemDocumentV1` in `deck.cards[]` als Compatibility Collection | Dynamisches Dokument bleibt kanonisch, unabhängig von Deck-UI und Review-Variante |
+| Review-Einheit | `Card` pro Note/Template mit eigenem Scheduler | stabile Template-, Cloze- und Image-Occlusion-Projektionen mit eigenem State | Jede Anki-Card bleibt separat reviewbar und am Original verankert |
 | Original | Implizit über Note plus Template | `immutableOriginal` und genau eine `isOriginal`-Variante | Unveränderlicher Originalanker bleibt P0-Invariante für Import, KI und Reimport |
-| Templates | HTML/CSS plus Feldersetzung und Card-Requirements | Einfache Front/Back-Auflösung, Raw-Fallbacks, Metadaten | Template-Snapshot konservieren, aber Ausführung nur kontrolliert und nicht als Review-Kern |
-| Cloze | Eigener Notetype, Cloze-Nummern, generierte Cards | Cloze wird erkannt und als Variantenfamilie teilweise erzeugt | Cloze-Gruppen, Ordnungen und Review-UI explizit modellieren |
+| Templates | HTML/CSS plus Feldersetzung und Card-Requirements | unveränderliche Definition, vollständiger Snapshot und sicherer statischer Renderer | Tier-1-Semantik gemeinsam rendern; unsichere Funktionen preserved-only |
+| Cloze | Eigener Notetype, Cloze-Nummern, generierte Cards | Cloze-Gruppen und Ordinale als stabile Variantenprojektionen | Editoraktion und Importprojektion bleiben dieselbe Domänensemantik |
 | Deck-Hierarchie | Namen mit `::`, Cards referenzieren Deck-ID | Echte Parent-/Child-Decks aus APKG-Hierarchie | Parent-/Child-IDs bleiben kanonisch; `::` bleibt Import-/Exportdetail |
 | Filtered Decks | Temporäre Deck-Art mit Suche, Limits und Rescheduling-Optionen | Lernplan und Review-Queue lokal modelliert | Nicht als permanente Deck-Art übernehmen; als temporäre Session-/Plan-View abbilden |
-| Review-Verlauf | `revlog` append-only pro Card | lokale `reviewEvents`; APKG-Revlog wird analytisch importiert und ändert keinen Scheduler-State | Analytics-Verlauf append-only halten; kein Anki-Lernstand als aktueller CoRe-Zustand |
-| Scheduler | Legacy-State plus FSRS-Felder | FSRS-6 über `ts-fsrs` | CoRe-Scheduler bleibt die gekapselte Domänenschnittstelle; Anki-Schedulerdaten als Quelle konservieren |
+| Review-Verlauf | `revlog` append-only pro Card | lokale `reviewEvents`; APKG-Revlog wird analytisch dedupliziert | Analytics-Verlauf append-only halten und getrennt vom aktuellen State behandeln |
+| Scheduler | Legacy-State plus FSRS-Felder | versionierte Initialmigration, danach FSRS-6 über `ts-fsrs` | direktes FSRS, Revlog-Replay und SM-2-Fallback diagnostizieren; Rohquelle erhalten |
 | Medien | Separater Medienordner, APKG-Medienliste, SHA-1, sichere Dateinamen | Manifest, accountgebundene IndexedDB/Queue, accountweite SHA-1-Objekte, getrennte `media_assets`-Referenzen, Standard-/TUS-Upload und Cloud-/Local-/Missing-Auflösung | Export-/Sharing-Regeln und administratives Orphan-GC ergänzen |
 | Importidentität | Notes via GUID, Cards via Note/Template, Notetypes via IDs | `sourceExternalId`, Importgruppe, Raw-Metadaten, Fingerprints | Explizites `import_identities`-Konzept für Note-ID, Card-ID, GUID, Notetype-ID, Template-Ord, Deck-Pfad und Medienchecksums |
-| Reimport | Update/Merge/Duplicate-Optionen | lokale Content-Edits bleiben bei Reimport erhalten | Feldschema-Änderungen, Template-Änderungen und lokale Edits deterministisch mergen |
-| Stock-Formate | Basic, Reverse, Optional Reverse, Typing, Cloze, Image Occlusion | Basic, Reverse, Cloze, Multiple Choice, Free Text, Import-Fallbacks | Nur lernwirksame Formate übernehmen; Image Occlusion erst nach eigenem Bildregionen-/Medienkonzept |
+| Reimport | Update/Merge/Duplicate-Optionen | Dreiwege-Feldmerge mit expliziten Konflikten und unveränderlichen Snapshots | lokale Edits und Reviewidentität weiter schützen |
+| Stock-Formate | Basic, Reverse, Optional Reverse, Typing, Cloze, Image Occlusion | dynamische Felder, Review-Rezepte und importierte IO-Projektionen | manuellen IO-Maskeneditor separat ausbauen |
 | Add-ons/Interna | Add-on-Ökosystem, Sync-Interna, `graves` | Nicht vorhanden | Nicht übernehmen; würde CoRe-Komplexität erhöhen ohne Kernnutzen |
 
 ## Differenzanalyse
@@ -182,10 +186,8 @@ Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzept
 
 ### P1: Nächste Ausbaustufe
 
-- **Cloze wirklich modellieren:** Cloze-Nummern, Cloze-Gruppen und generierte Card-Ords sollten als Variantenfamilie gespeichert werden. Der Review sollte pro Cloze-Gruppe sauber schedulen.
-- **Notetype-/Template-Snapshots:** Feldnamen, Feldreihenfolge, Template-Namen, Template-Reihenfolge, Front-/Back-HTML, CSS, Card-Requirements und optionales Zieldeck sollten als Snapshot erhalten bleiben.
-- **Reimport-Feldschema:** Wenn ein importierter Notetype neue Felder, geänderte Templates oder andere Ordnungen hat, muss CoRe lokale Edits erhalten und neue Importdaten kontrolliert ergänzen.
-- **Revlog-Import für Analytics:** Anki-Fortschritt sollte nicht ungeprüft den CoRe-Scheduler initialisieren, aber Revlog ist wertvoll für Heatmap, Retention, Migrationsdiagnose und Vertrauen.
+- **Kompatibilitätskorpus verbreitern:** Weitere reale Notetypes, Filterketten, MathJax-, Font-, Audio-/Video- und Image-Occlusion-Fixtures gegen eine gepinnte offizielle Anki-Version differenziell prüfen.
+- **Konflikt- und Diagnosen-UI vertiefen:** Große Definitionen, entfernte extern bearbeitete Felder und mehrere gleichzeitige Reimportkonflikte kompakt und vollständig auflösen lassen.
 - **Produktive Medienpersistenz:** Cloud-first mit lokalem reloadfestem Pending-Fallback ist umgesetzt. Offen bleiben Medienexport/-sharing sowie globales administratives Orphan-GC.
 - **Importbericht schärfen:** Der Nutzer sollte sehen, welche Decks, Notetypes, Templates, Medien, Cloze-Gruppen und Scheduling-Daten erkannt, übernommen, konserviert oder bewusst ignoriert wurden.
 
@@ -199,12 +201,12 @@ Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzept
 
 ### Nicht implementieren
 
-- **Beliebige Anki-Template-Ausführung mit JS/CSS:** Zu riskant für Sicherheit, Performance und Produktklarheit. CoRe sollte nur sichere HTML-/CSS-Snapshots konservieren und kontrolliert rendern.
+- **Beliebige Anki-Template-Ausführung mit JavaScript:** Zu riskant für Sicherheit, Performance und Produktklarheit. Sicheres statisches HTML/CSS wird kontrolliert gerendert; Script bleibt preserved-only.
 - **Legacy-Scheduler-Modi:** CoRe braucht keinen vollständigen historischen Scheduler-Zoo. Importierte Schedulerdaten bleiben Quelle, nicht Systemkern.
 - **Add-on-Kompatibilität:** Würde CoRe an Ankis Erweiterungsmodell fesseln, ohne CoRes Kernproblem zu lösen.
 - **`graves` und Sync-Interna:** Für Anki-Sync wichtig, für CoRe-Persistenz und Supabase/RLS nicht der richtige Abstraktionskern.
 - **APKG als interne Persistenzform:** APKG ist ein Austauschpaket. CoRe braucht echte Tabellen, Assets, Events und Jobs.
-- **Image Occlusion sofort:** Erst sinnvoll nach eigenem Bildregionenmodell, produktivem Medienmodell und klarer Review-UI.
+- **Manueller Image-Occlusion-Maskeneditor:** Import und Review vorhandener Masken sind getrennt davon möglich; das Erstellen und freie Bearbeiten benötigt später ein eigenes Bildregionenmodell.
 - **Alle historischen Deck-Options-Schalter:** Power-User-Flexibilität darf nicht das MVP-Interface dominieren.
 
 ## Karten- und Stapelformate für CoRe
@@ -213,7 +215,7 @@ Die Hauptlücke ist weniger die Richtung als die Präzision: Einige Anki-Konzept
 
 - **Basic:** Der kleinste, stabile Kern für manuelle Erstellung, CSV/Text-Import, KI-Drafts und APKG-Fallbacks.
 - **Reverse:** Als nicht-originale Variante mit eigenem Scheduler-State, nicht als zweite unabhängige Kopie.
-- **Cloze:** Als eigener Typ mit Cloze-Gruppen und Variantenfamilie. Das ist für Medizin, Jura und Definitionen zu wichtig, um nur HTML-Fallback zu bleiben.
+- **Cloze:** Als Editoraktion und Variantenfamilie mit stabilen Gruppen, nicht als nötige vorgeschaltete Kartentypwahl.
 - **Multiple Choice und Free Text:** Produktseitig sinnvoll, aber weiterhin selbstbewertet mit dem normalen Again/Hard/Good/Easy-Scheduler.
 - **Case Vignette / kontextualisierte Variante:** CoRe-spezifisch und langfristig wertvoll, aber erst nach stabiler Variantengenerierung und Quellenankern.
 - **Multi-field Import Item:** Für Anki-Kompatibilität wichtig, intern aber als Learning Item mit Feldschema-Snapshot und reviewbaren Varianten.
@@ -320,12 +322,10 @@ Für den aktuellen Vercel/Supabase-Pfad ist Elixir kein P0 und kein P1. Es ist e
 
 ## Nächste Arbeitspakete
 
-1. **Cloze-Familien weiter modellieren:** Importierte `c1`/`c2`-Cards sind ordinalgetrennt und duplikatfrei verankert; als Nächstes Review-UI und Scheduler-Projektion pro Cloze-Gruppe weiter schärfen.
-2. **Template-Snapshots ausbauen:** Feld- und Template-Namen/-Ordnungen sind lesbar und im Bericht; Front-/Back-HTML, CSS und Requirements weiterhin nur konservieren, nicht beliebig ausführen.
+1. **Golden Corpus verbreitern:** Weitere Legacy-/V18-Pakete, Notetypes, Filter, Medien, Fonts, MathJax und Image Occlusion differenziell gegen eine gepinnte Anki-Version prüfen.
+2. **Kompatibilitätsdiagnosen schärfen:** Preserved-only-Funktionen und Scheduler-Migrationsmethoden nach Notetype und Variante vollständig im Importbericht bündeln.
 3. **Medienmodell weiterführen:** Export, Community-Sharing und administratives Orphan-GC auf dem vorhandenen accountweiten Storage-/Referenzmodell definieren.
-4. **Revlog-Import als Analytics-Spike:** Anki-Reviewverlauf lesbar machen, aber nicht ungeprüft als CoRe-Lernzustand übernehmen; Heatmap/Retention-Projektionen in `libraryModel` koennen spaeter davon profitieren.
-5. **Benchmark-Dokument anlegen:** Deckgröße, Medienanzahl, Importdauer, Speicherverbrauch, UI-Hänger und Abbruchverhalten messen.
-6. **Rust/WASM-Spike nur nach Messung:** Erst reale Engpässe nachweisen, dann ein enges Import-Hotpath-Modul bauen.
+4. **APKG-Export und Image-Occlusion-Editor getrennt entscheiden:** Beide können auf Definitionen und Snapshots aufsetzen, gehören aber nicht zum aktuellen Import-/Review-Ausbau.
 
 ## Architekturentscheidung
 
@@ -336,5 +336,5 @@ Für den aktuellen Vercel/Supabase-Pfad ist Elixir kein P0 und kein P1. Es ist e
 - **Vielleicht:** Rust/WASM für gemessene Import-Hotpaths.
 - **Nicht im freigegebenen Core:** Ein separater Import-/Jobdienst für große Uploads oder KI-Jobs wurde entfernt und erfordert vor einer Neuaufnahme eine neue Produktentscheidung.
 - **Nein:** Anki-Dateiformat intern kopieren.
-- **Nein:** beliebige Anki-Templates ausführen.
+- **Nein:** Template-JavaScript oder Add-on-Runtime ausführen; dokumentierte statische Templates laufen ausschließlich im sicheren Renderer.
 - **Nein:** Elixir als pauschale Performance-Lösung.

@@ -138,6 +138,10 @@ const originalVariant = {
   deletedAt: null,
   updatedByDeviceId: null,
   meta: {},
+  projection: { kind: "template", recipeId: "core-basic", instanceKey: "variant-1" },
+  studyDeckId: null,
+  schedulingMode: "independent-card",
+  renderRevision: 1,
 } satisfies CardVariant;
 
 const learningItem = {
@@ -194,6 +198,19 @@ const learningItem = {
   deletedAt: null,
   updatedByDeviceId: null,
   meta: {},
+  noteTypeDefinitionId: "core-basic-v1",
+  contentDocument: {
+    schemaVersion: 1,
+    definitionVersionId: "core-basic-v1",
+    fields: [
+      { id: "front", sourceFieldId: null, name: "Vorderseite", value: "Frage", placement: "front", semanticRole: "prompt" },
+      { id: "back", sourceFieldId: null, name: "Rückseite", value: "Antwort", placement: "back", semanticRole: "answer" },
+    ],
+    tags: [],
+    mediaRefs: [],
+  },
+  latestSourceSnapshotId: null,
+  contentRevision: 1,
 } satisfies LearningItem;
 
 const deck = {

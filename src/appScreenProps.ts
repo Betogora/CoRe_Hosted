@@ -1,10 +1,16 @@
 import type { AppRoute, AppViewId, createViewRoute } from "./appNavigation.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
-import type { CoreWorkspace, DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
-import type { CoreMode, Deck, GlobalSchedulerPreferences, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
+import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NoteTypeDefinitionV1, Profile, SyncStatus } from "./coreTypes.ts";
+import type { createManualCoreDeck } from "./coreModel.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
+import type { CardTableSort } from "./libraryModel.ts";
+import type { DeckLibrarySummary } from "./libraryModel.ts";
+import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
+import type { StatisticsDeckSelection, StatisticsPeriod, StatisticsProjection } from "./statisticsModel.ts";
+import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
 
@@ -13,10 +19,10 @@ type NavigateToView = (
   fields?: Parameters<typeof createViewRoute>[1],
   options?: { replace?: boolean },
 ) => AppRoute;
-type CreateDeckInput = Parameters<CoreWorkspace["createDeck"]>[0];
-type CardEditorValue = Parameters<CoreWorkspace["saveDeckCard"]>[2];
-type CardVariantInput = Parameters<CoreWorkspace["addDeckCardVariant"]>[2];
-type ManualCardInput = Parameters<CoreWorkspace["addManualCardToDeck"]>[1];
+type CreateDeckInput = { name?: string; parentDeckId?: string | null; description?: string; deckSettings?: Partial<Deck["deckSettings"]> };
+type CardDocumentValue = { fields: Array<{ id: string; value: string }>; tags?: string[] };
+type CardVariantInput = { front: string; back: string; variantLevel?: number; generationSource?: "original" | "ai_generated" | "user_edited" | "imported"; qualityStatus?: "draft" | "active" | "rejected" | "flagged" | "disabled"; isActive?: boolean; meta?: Record<string, unknown> };
+type ManualCardInput = Parameters<typeof createManualCoreDeck>[0];
 
 export interface CardDraftGuard {
   focus: () => void;
@@ -26,7 +32,7 @@ export interface CardDraftGuard {
 export interface CreationScreenProps {
   decks: Deck[];
   mediaStore: AccountMediaStore | null;
-  persistImportedDecks: (decks: Deck[], options?: { mediaOnly?: boolean }) => Promise<unknown>;
+  persistImportedDecks: (decks: Deck[], options?: { mediaOnly?: boolean; commitGraph?: ImportCommitGraph }) => Promise<Deck[]>;
   initialMethod: CreationMethod;
   initialTargetDeckId: string;
   completedDeckId: string;
@@ -42,6 +48,8 @@ export interface CreationScreenProps {
 
 export interface DashboardScreenProps {
   state: WorkspaceState;
+  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
+  studyHeatmap?: StudyHeatmapModel;
   now: string;
   onNavigate: NavigateToView;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
@@ -56,6 +64,7 @@ export interface DashboardScreenProps {
 export interface DeckSettingsScreenProps {
   deck: Deck | null;
   decks: Deck[];
+  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   learningProfiles: LearningProfileTemplate[];
   onSave: (deckId: string, settings: LearningSettingsInput) => unknown;
   onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
@@ -63,7 +72,7 @@ export interface DeckSettingsScreenProps {
   onRenameDeck: (deckId: string, name: string) => DeckMutationResult | null;
   onCreateSubdeck: (parentDeckId: string) => unknown;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
-  onDeleteDeck: (deckId: string) => Promise<ReturnType<CoreWorkspace["deleteDeckTree"]> | null>;
+  onDeleteDeck: (deckId: string) => Promise<{ deletedDeckIds: string[]; deletedDecks: Deck[]; nextSelectedDeckId: string | null } | null>;
   onSelectDeck: (deckId: string) => unknown;
   onOpenGlobalSettings: () => unknown;
   onBack: () => unknown;
@@ -72,6 +81,7 @@ export interface DeckSettingsScreenProps {
 
 export interface DecksScreenProps {
   decks: Deck[];
+  noteTypeDefinitions?: NoteTypeDefinitionV1[];
   now: string;
   dayStartHour?: number;
   learnAheadMinutes?: number;
@@ -79,10 +89,11 @@ export interface DecksScreenProps {
   mediaStore: AccountMediaStore | null;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onSaveCard: (deckId: string, cardId: string, value: CardEditorValue) => unknown;
-  onSetCardStudyState: (deckId: string, cardId: string, patch: LearningItemStudyStatePatch) => Deck | null;
-  onDuplicateCard: (deckId: string, cardId: string) => Promise<Deck | null>;
-  onDeleteCard: (deckId: string, cardId: string) => Promise<Deck | null>;
-  onUndoDeleteCard: (deckId: string, deletedCard: LearningItem) => Promise<Deck | null>;
+  onSaveCardDocument?: (deckId: string, cardId: string, value: CardDocumentValue) => unknown;
+  onSetCardStudyState: (deckId: string, cardId: string, patch: LearningItemStudyStatePatch) => Promise<LearningItem | null>;
+  onDuplicateCard: (deckId: string, cardId: string) => Promise<LearningItem | null>;
+  onDeleteCard: (deckId: string, cardId: string) => Promise<LearningItem | null>;
+  onUndoDeleteCard: (deckId: string, deletedCard: LearningItem) => Promise<LearningItem | null>;
   onRestoreCard: (deckId: string, cardId: string, versionId: string) => unknown;
   onAddVariant: (deckId: string, cardId: string, variant: CardVariantInput) => unknown;
   onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
@@ -97,10 +108,34 @@ export interface DecksScreenProps {
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
   expandedDeckIds: string[];
   onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+  cardPages?: Readonly<Record<string, DecksCardPage | undefined>>;
+  onRequestCardPage?: (request: DecksCardPageRequest) => unknown;
+}
+
+export interface DecksCardPageRequest {
+  deckId: string;
+  page: number;
+  pageSize: 100;
+  query: string;
+  sort: CardTableSort;
+  selectedCardId: string | null;
+}
+
+export interface DecksCardPage {
+  deckId: string;
+  items: LearningItem[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  hasMore?: boolean;
+  query: string;
+  sort: CardTableSort;
+  selectedCard?: LearningItem | null;
 }
 
 export interface LearnScreenProps {
   decks: Deck[];
+  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   now: string;
   dayStartHour?: number;
   learnAheadMinutes?: number;
@@ -121,13 +156,13 @@ export interface LearnScreenProps {
 }
 
 export interface SettingsScreenProps {
-  appState: WorkspaceState;
   profile: Profile;
   syncStatus: SyncStatus;
   globalSchedulerPreferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">;
   onSaveProfile: (profile: Profile) => unknown;
   onSaveGlobalSchedulerPreferences: (preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">) => unknown;
-  onSaveState: (state: WorkspaceState) => unknown;
+  onCreateExport: () => Promise<string>;
+  onImportExport: (value: string) => Promise<unknown>;
   onSyncNow: () => Promise<unknown>;
   onListConflicts: () => Promise<unknown[]>;
   onResolveConflict: (conflictId: string, decision: Record<string, unknown>) => Promise<unknown>;
@@ -141,6 +176,7 @@ export interface SettingsScreenProps {
 
 export interface StatisticsScreenProps {
   decks: Deck[];
+  queryStatistics: (selection: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection }) => Promise<StatisticsProjection>;
   now: string;
   timeZone: string;
   dayStartHour?: number;
@@ -158,6 +194,7 @@ export interface SimulatorScreenProps {
 export interface StudyModeProps {
   deck: Deck;
   decks: Deck[];
+  noteTypeDefinitions?: NoteTypeDefinitionV1[];
   deckId: string;
   variantSession: boolean;
   variantId?: string;
@@ -176,6 +213,6 @@ export interface StudyModeProps {
   onEditCard: (deckId: string, cardId: string) => unknown;
   onEditDeck: (deckId: string) => unknown;
   onSetCardStudyState: (deckId: string, cardId: string, patch: LearningItemStudyStatePatch) => Deck | null;
-  onDeckUpdated: (deck: Deck | Deck[]) => unknown;
-  onReviewEvent: (event: ReviewEvent) => void;
+  onCardUpdated: (deckId: string, card: LearningItem) => unknown;
+  onReview: (result: ReviewAnswerResult) => unknown;
 }

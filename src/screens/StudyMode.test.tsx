@@ -64,8 +64,8 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
-      onDeckUpdated={() => undefined}
-      onReviewEvent={() => undefined}
+      onCardUpdated={() => undefined}
+      onReview={() => undefined}
     />,
   );
 
@@ -100,8 +100,8 @@ test("StudyMode uses a simulated same-day minute offset for queue and visible st
     onEditCard: () => undefined,
     onEditDeck: () => undefined,
     onSetCardStudyState: () => deck,
-    onDeckUpdated: () => undefined,
-    onReviewEvent: () => undefined,
+    onCardUpdated: () => undefined,
+    onReview: () => undefined,
   };
 
   const todayMarkup = renderToStaticMarkup(
@@ -136,8 +136,8 @@ test("StudyMode exposes labeled learning and the global Pomodoro progress withou
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
-      onDeckUpdated={() => undefined}
-      onReviewEvent={() => undefined}
+      onCardUpdated={() => undefined}
+      onReview={() => undefined}
     />,
   );
 
@@ -171,7 +171,7 @@ test("StudyMode renders the four daily progress segments in the canonical order 
     id: deckId,
     name: "Segmentierter Fortschritt",
     source: "manual",
-    deckSettings: { newCardsPerDay: 3, maximumReviewsPerDay: 7 },
+    deckSettings: { newCardsPerDay: 3, maximumReviewsPerDay: 10 },
     cards: [learned, inProgress, ...newCards, ...dueCards],
     reviewEvents: [
       {
@@ -206,19 +206,20 @@ test("StudyMode renders the four daily progress segments in the canonical order 
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
-      onDeckUpdated={() => undefined}
-      onReviewEvent={() => undefined}
+      onCardUpdated={() => undefined}
+      onReview={() => undefined}
     />,
   );
 
-  assert.match(markup, />1 \/ 7 Karten</);
-  assert.match(markup, /aria-valuetext="Heute geschafft: 1 Karte, Neu: 0 Karten, In Arbeit: 1 Karte, Fällig: 5 Karten"/);
+  assert.match(markup, />1 \/ 10 Karten</);
+  assert.match(markup, /aria-valuetext="Heute geschafft: 1 Karte, Neu: 3 Karten, In Arbeit: 1 Karte, Fällig: 5 Karten"/);
   assert.match(markup, /data-study-progress-segment="learned"[^>]*background-color:var\(--core-learning-status-learned\)[^>]*flex-grow:1/);
-  assert.doesNotMatch(markup, /data-study-progress-segment="new"/);
+  assert.match(markup, /data-study-progress-segment="new"[^>]*background-color:var\(--core-learning-status-new\)[^>]*flex-grow:3/);
   assert.match(markup, /data-study-progress-segment="in-progress"[^>]*background-color:var\(--core-learning-status-in-progress\)[^>]*flex-grow:1/);
   assert.match(markup, /data-study-progress-segment="due"[^>]*background-color:var\(--core-learning-status-due\)[^>]*flex-grow:5/);
   for (const [label, color, value] of [
     ["Heute geschafft", "learned", "1 Karte"],
+    ["Neu", "new", "3 Karten"],
     ["In Arbeit", "in-progress", "1 Karte"],
     ["Fällig", "due", "5 Karten"],
   ]) {
@@ -226,7 +227,8 @@ test("StudyMode renders the four daily progress segments in the canonical order 
     assert.match(markup, new RegExp(`data-core-tooltip-swatch="var\\(--core-learning-status-${color}\\)"`));
     assert.match(markup, new RegExp(`data-core-tooltip-value="${value}"`));
   }
-  assert.ok(markup.indexOf('data-study-progress-segment="learned"') < markup.indexOf('data-study-progress-segment="in-progress"'));
+  assert.ok(markup.indexOf('data-study-progress-segment="learned"') < markup.indexOf('data-study-progress-segment="new"'));
+  assert.ok(markup.indexOf('data-study-progress-segment="new"') < markup.indexOf('data-study-progress-segment="in-progress"'));
   assert.ok(markup.indexOf('data-study-progress-segment="in-progress"') < markup.indexOf('data-study-progress-segment="due"'));
 });
 
@@ -257,8 +259,8 @@ test("StudyMode says Für jetzt geschafft while same-day learning steps are stil
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
-      onDeckUpdated={() => undefined}
-      onReviewEvent={() => undefined}
+      onCardUpdated={() => undefined}
+      onReview={() => undefined}
     />,
   );
 
@@ -294,8 +296,8 @@ test("StudyMode explains when every due card is hidden by the daily limit", () =
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
-      onDeckUpdated={() => undefined}
-      onReviewEvent={() => undefined}
+      onCardUpdated={() => undefined}
+      onReview={() => undefined}
     />,
   );
 

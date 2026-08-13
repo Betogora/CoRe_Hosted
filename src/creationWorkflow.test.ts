@@ -34,7 +34,29 @@ test("creation workflow preserves manual document anchors", () => {
   assert.equal(deck.cards[0].sourceAnchors[0].targetField, "back");
 });
 
-test("creation workflow prepares and assigns optional images to both Basic image sides", async () => {
+test("creation workflow imports mapped CSV columns into one dynamic field schema", () => {
+  const workflow = createCreationWorkflow();
+  const result = workflow.importMappedCsvDeck({
+    deckName: "Dynamisch",
+    records: [{
+      sourceLine: 2,
+      front: "Was ist ATP?",
+      back: "Ein Energieträger.",
+      tags: ["biologie"],
+      deck: "Biologie::Zelle",
+      guid: "note-atp",
+      fields: [{ name: "Quelle", value: "Lehrbuch S. 12" }],
+    }],
+  });
+
+  assert.equal(result.report.errors.length, 0);
+  assert.equal(result.deck.cards.length, 1);
+  assert.deepEqual(result.deck.cards[0].contentDocument.fields.map((field: { name: string }) => field.name), ["Vorderseite", "Rückseite", "Quelle"]);
+  assert.equal(result.deck.cards[0].noteTypeDefinitionId, result.deck.cards[0].contentDocument.definitionVersionId);
+  assert.equal(result.deck.cards[0].meta.requestedDeck, "Biologie::Zelle");
+});
+
+test("creation workflow treats images as optional media on an ordinary dynamic card", async () => {
   const workflow = createCreationWorkflow();
   const frontFile = Object.assign(new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" }), { name: "vorne.png" });
   const backFile = Object.assign(new Blob([new Uint8Array([4, 5, 6])], { type: "image/jpeg" }), { name: "hinten.jpg" });
@@ -50,10 +72,10 @@ test("creation workflow prepares and assigns optional images to both Basic image
   });
   const card = deck.cards[0];
 
-  assert.equal(card.cardType, "basic-with-images");
+  assert.equal(card.cardType, "basic");
   assert.deepEqual(card.mediaRefs, [frontImage.sha1, backImage.sha1]);
-  assert.match(card.originalFront, new RegExp(`<img src="${frontImage.sha1}" alt="Bild zur Vorderseite">`));
-  assert.match(card.originalBack, new RegExp(`<img src="${backImage.sha1}" alt="Bild zur Rückseite">`));
+  assert.match(card.originalFront, new RegExp(`<img src="${frontImage.sha1}" alt="Bild zur Vorderseite" ?/?>`));
+  assert.match(card.originalBack, new RegExp(`<img src="${backImage.sha1}" alt="Bild zur Rückseite" ?/?>`));
 });
 
 test("creation workflow rejects non-image clipboard content", async () => {
@@ -93,7 +115,8 @@ test("creation workflow previews and commits a local APKG", async () => {
   const committed = await workflow.commitApkgPreview(parsed.preview);
 
   assert.equal(parsed.job.status, "preview");
-  assert.equal(parsed.preview?.deck.cards.length, 245);
+  assert.equal(parsed.preview?.summary.cards.length, 0);
+  assert.equal(parsed.preview?.summary.cardCount, 245);
   assert.equal(committed.decks.length, 8);
   assert.equal(committed.report.errors.length, 0);
 });

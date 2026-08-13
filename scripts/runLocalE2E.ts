@@ -92,6 +92,28 @@ async function stopLocalSupabase() {
   }
 }
 
+async function stopOrphanedLocalViteServers() {
+  if (process.platform !== "win32") return;
+  const script = [
+    "$workspace = [IO.Path]::GetFullPath($env:CORE_E2E_WORKSPACE).TrimEnd('\\')",
+    "$ports = 5190,5191,5192,5193",
+    "$owners = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -in $ports } | Select-Object -ExpandProperty OwningProcess -Unique",
+    "foreach ($ownerPid in $owners) {",
+    "  $process = Get-CimInstance Win32_Process -Filter \"ProcessId = $ownerPid\" -ErrorAction SilentlyContinue",
+    "  if (-not $process) { continue }",
+    "  $command = [string]$process.CommandLine",
+    "  if (-not $command.Contains($workspace) -or $command -notmatch 'node_modules[\\\\/].*(?:vite[\\\\/]bin[\\\\/]vite\\.js|[\\\\/]vite(?:\\.cmd)?(?:\\s|$))') { continue }",
+    "  $children = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.ParentProcessId -eq $ownerPid }",
+    "  foreach ($child in $children) { Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue }",
+    "  Stop-Process -Id $ownerPid -Force -ErrorAction SilentlyContinue",
+    "}",
+  ].join("; ");
+  await runCommand("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
+    env: { ...process.env, CORE_E2E_WORKSPACE: process.cwd() },
+    timeoutMs: 10_000,
+  });
+}
+
 export async function runLocalE2E(playwrightArguments: string[] = []) {
   const legacyRlsOnly = playwrightArguments.includes("--rls-only");
   const gateArgument = playwrightArguments.find((argument) => argument.startsWith("--gate="));
@@ -178,6 +200,7 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       const selectedArguments = runGoldenE2E || runBetaE2E
         ? ["--grep", selectedTag, "--no-deps", ...forwardedPlaywrightArguments]
         : forwardedPlaywrightArguments;
+      await stopOrphanedLocalViteServers();
       await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", ...selectedArguments], {
         env: { ...testEnvironment, CORE_BETA_GATE: runBetaE2E ? "true" : "" },
       });

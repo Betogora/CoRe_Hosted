@@ -18,7 +18,7 @@ export interface CreationScreenViewProps extends Omit<Partial<CreationScreenProp
 export function CreationScreen({
   decks = [],
   mediaStore = null,
-  persistImportedDecks = async () => undefined,
+  persistImportedDecks = async (decks) => decks,
   initialMethod = "",
   initialTargetDeckId = "",
   completedDeckId = "",
@@ -62,7 +62,7 @@ export function CreationScreen({
           decks={decks}
           onCreated={onCreated}
           onImportCompleted={(deck) => {
-            completeSession(deck.id, deck.cards.filter((card) => card.status !== "deleted").length);
+            completeSession(deck.id, deck.cardCount ?? deck.cards.filter((card) => card.status !== "deleted").length);
           }}
           workflow={accountWorkflow}
           mediaStore={mediaStore}
@@ -90,7 +90,7 @@ export function CreationScreen({
   }
 
   return (
-    <div className="grid min-h-[calc(100vh-10rem)] content-start gap-7">
+    <div className="grid min-w-0 min-h-[calc(100vh-10rem)] content-start gap-7">
       <PageHeader eyebrow="Erstellen" title="Neue Karte" />
       {completedDeck ? (
         <SoftPanel className="mx-auto w-full max-w-3xl p-7 text-center sm:p-10">
@@ -118,7 +118,7 @@ export function CreationScreen({
           </div>
         </SoftPanel>
       ) : selectedMethod ? (
-        <section className="grid min-h-[calc(100vh-16rem)] content-start gap-5" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
+        <section className="grid min-w-0 min-h-[calc(100vh-16rem)] content-start gap-5" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
               <ArrowLeft size={16} aria-hidden="true" />

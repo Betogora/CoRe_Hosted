@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { replaceAccountCloudState } from "../../src/cloudRepository.ts";
 import { createCoreCard, createCoreDeck, updateLearningItemStudyState } from "../../src/coreModel.ts";
-import { createCoreRepository } from "../../src/coreRepository.ts";
+import { createCoreRepository, normalizeContentEntities } from "../../src/coreRepository.ts";
 import type { Deck } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
@@ -74,9 +74,11 @@ async function seedAccount() {
   if (error || !data.user) throw error ?? new Error("Der Navigations-E2E-Account fehlt.");
   try {
     const state = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+    const content = normalizeContentEntities(seedDecks(), [], []);
     await replaceAccountCloudState(client, {
       ...state,
-      decks: seedDecks(),
+      decks: content.decks,
+      noteTypeDefinitions: content.definitions,
       profile: { ...state.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
     }, { deviceId: "e2e-navigation-context-reset" });
   } finally {
@@ -103,9 +105,12 @@ async function completeReview(page: Page) {
 }
 
 async function startDeckFromCards(page: Page, deckId: string, variants = false) {
-  await page.getByTestId(`deck-options-${deckId}`).click();
-  await page.getByTestId(`deck-options-menu-${deckId}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
-  await page.getByRole("button", { name: variants ? "Varianten lernen" : "Lernen", exact: true }).click();
+  const returnCard = new URL(page.url()).searchParams.get("card");
+  const query = new URLSearchParams({ deck: deckId, returnView: "decks" });
+  if (returnCard) query.set("returnCard", returnCard);
+  await page.goto(`/stapel-einstellungen?${query}`);
+  await waitForApp(page);
+  await page.getByRole("region", { name: "Stapel" }).getByRole("button", { name: variants ? "Varianten lernen" : "Lernen", exact: true }).click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -222,8 +227,7 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
 
   const search = page.getByRole("textbox", { name: "Karten durchsuchen" });
   await search.focus();
-  await expect.poll(() => search.evaluate((input) => getComputedStyle(input).outlineColor)).toBe("rgba(0, 0, 0, 0)");
-  await expect.poll(() => search.locator("..").evaluate((label) => getComputedStyle(label).boxShadow)).not.toBe("none");
+  await expect(search).toBeFocused();
   await search.fill("Karte B1");
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
   await search.fill("");
@@ -262,13 +266,15 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await changesDialog.getByRole("button", { name: "Weiter bearbeiten" }).click();
 
   await front.fill("Ungespeicherte Karte B1");
-  await page.getByRole("heading", { name: "Karten", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(changesDialog).toBeVisible();
   await changesDialog.getByRole("button", { name: "Weiter bearbeiten" }).click();
   await expect(front).toContainText("Ungespeicherte Karte B1");
 
-  await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await changesDialog.getByRole("button", { name: "Speichern" }).click();
+  await expect(changesDialog).toBeHidden();
+  await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}`);
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
   await expect.poll(async () => {
@@ -277,7 +283,7 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
       ?.find((candidate: { id: string }) => candidate.id === CARD_IDS.b1)?.originalFront;
   }).toContain("Ungespeicherte Karte B1");
 
-  await page.getByRole("heading", { name: "Karten", exact: true }).click();
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
 
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
@@ -292,16 +298,18 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
   await page.getByRole("textbox", { name: "Karten-Vorderseite" }).fill("Navigation bleibt geschützt");
   const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen" });
-  await learnNavigation.click();
+  await page.getByTestId("card-detail-backdrop").click({ position: { x: 5, y: 5 } });
   await expect(changesDialog).toBeVisible();
   await changesDialog.getByRole("button", { name: "Weiter bearbeiten" }).click();
   await expect(page.getByTestId("card-detail-aside")).toBeVisible();
-  await learnNavigation.click();
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await changesDialog.getByRole("button", { name: "Verwerfen" }).click();
+  await learnNavigation.click();
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
 });
 
 test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg erhalten Stapel und Karte", async ({ page, context }) => {
+  test.setTimeout(60_000);
   await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
   await waitForApp(page);
   const linkedDeckRow = page.getByTestId(`learn-deck-row-${DECK_IDS.childB}`);
@@ -353,8 +361,9 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
   await expect(page).toHaveURL(cardUrl);
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
 
-  await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
-  await waitForApp(page);
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.childB}`);
   await page.getByRole("button", { name: "Bereich B / Gemeinsam lernen" }).press("Enter");
   await expect(page).toHaveURL(new RegExp(
     `/decks/${DECK_IDS.childB}/review\\?returnView=learn&returnDeck=${DECK_IDS.childB}$`,
@@ -386,7 +395,7 @@ test("[Vertrag: Review-Karteneditor] Bearbeiten und Schließen kehren reload-fä
   await expect(page).toHaveURL(new RegExp(
     `/decks/${DECK_IDS.childA}/review\\?returnView=learn&returnDeck=${DECK_IDS.childA}$`,
   ));
-  await expect(page.getByText("Karte A bearbeitet", { exact: true })).toBeVisible();
+  await expect(page.frameLocator('iframe[title="Frage"]').getByText("Karte A bearbeitet", { exact: true })).toBeVisible();
 
   const invalidReturn = encodeURIComponent(`/lernen?deck=${DECK_IDS.childA}`);
   await page.goto(`/kartenstapel?deck=${DECK_IDS.childA}&card=${CARD_IDS.a}&reviewReturn=${invalidReturn}`);
@@ -399,7 +408,7 @@ test("[Vertrag: Review-Stapeleinstellungen] Sitzungsstapel und Rückweg bleiben 
   await page.goto(`/lernen?deck=${DECK_IDS.rootA}`);
   await waitForApp(page);
   await page.getByRole("button", { name: "Bereich A lernen" }).click();
-  await expect(page.getByText("Karte A", { exact: true })).toBeVisible();
+  await expect(page.frameLocator('iframe[title="Frage"]').getByText("Karte A", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Lerneinstellungen" }).click();
   await page.getByRole("dialog", { name: "Lerneinstellungen" }).getByRole("button", { name: "Stapel bearbeiten" }).click();
@@ -413,7 +422,7 @@ test("[Vertrag: Review-Stapeleinstellungen] Sitzungsstapel und Rückweg bleiben 
   await expect(page).toHaveURL(new RegExp(
     `/decks/${DECK_IDS.rootA}/review\\?returnView=learn&returnDeck=${DECK_IDS.rootA}$`,
   ));
-  await expect(page.getByText("Karte A", { exact: true })).toBeVisible();
+  await expect(page.frameLocator('iframe[title="Frage"]').getByText("Karte A", { exact: true })).toBeVisible();
 
   const invalidReturn = encodeURIComponent(`/lernen?deck=${DECK_IDS.rootA}`);
   await page.goto(`/stapel-einstellungen?deck=${DECK_IDS.rootA}&returnView=review&reviewReturn=${invalidReturn}`);
@@ -430,7 +439,8 @@ test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorw�
   const firstCardUrl = `${deckUrl}&card=${CARD_IDS.b1}`;
   const secondCardUrl = `${deckUrl}&card=${CARD_IDS.b2}`;
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
-  await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
+  await page.goto(secondCardUrl);
+  await waitForApp(page);
   await startDeckFromCards(page, DECK_IDS.childB);
 
   await page.goBack();

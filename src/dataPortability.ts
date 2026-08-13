@@ -2,12 +2,23 @@ import * as v from "valibot";
 import { stableContentHash } from "./coreModel.ts";
 import { createLearningProfileTemplate, getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "./deckSettings.ts";
 
-const EXPORT_SCHEMA_VERSION = 2;
+const EXPORT_SCHEMA_VERSION = 3;
 export const PORTABLE_EXPORT_FILE_NAME = "core-portable-export.json";
 const portableEntitySchema = v.looseObject({ id: v.string() });
-const portableExportV2Schema = v.looseObject({
+const portableExportV3Schema = v.looseObject({
   schema: v.literal("core-portable-export"),
   schemaVersion: v.literal(EXPORT_SCHEMA_VERSION),
+  exportedAt: v.string(),
+  profile: v.nullable(v.record(v.string(), v.unknown())),
+  decks: v.array(portableEntitySchema),
+  documents: v.array(portableEntitySchema),
+  noteTypeDefinitions: v.array(portableEntitySchema),
+  learningItemSourceSnapshots: v.array(portableEntitySchema),
+  contentHash: v.optional(v.string()),
+});
+const portableExportV2Schema = v.looseObject({
+  schema: v.literal("core-portable-export"),
+  schemaVersion: v.literal(2),
   exportedAt: v.string(),
   profile: v.nullable(v.record(v.string(), v.unknown())),
   decks: v.array(portableEntitySchema),
@@ -88,6 +99,8 @@ export function createPortableExport(state: any, now: any = new Date().toISOStri
     profile: redactProfile(state.profile),
     decks: coreDecks(state.decks),
     documents: (state.documents ?? []).map(portableDocument),
+    noteTypeDefinitions: (state.noteTypeDefinitions ?? []).map(stripSyncMetadata),
+    learningItemSourceSnapshots: (state.learningItemSourceSnapshots ?? []).map(stripSyncMetadata),
   };
 
   return {
@@ -120,8 +133,10 @@ export function validatePortableExport(value: any) {
   if (rawPayload?.schema !== "core-portable-export") errors.push("Unbekanntes Export-Schema.");
   const parsed = rawPayload?.schemaVersion === 1
     ? v.safeParse(portableExportV1Schema, payload)
-    : v.safeParse(portableExportV2Schema, payload);
-  if (rawPayload?.schemaVersion !== 1 && rawPayload?.schemaVersion !== EXPORT_SCHEMA_VERSION) errors.push("Nicht unterstützte Export-Version.");
+    : rawPayload?.schemaVersion === 2
+      ? v.safeParse(portableExportV2Schema, payload)
+      : v.safeParse(portableExportV3Schema, payload);
+  if (![1, 2, EXPORT_SCHEMA_VERSION].includes(Number(rawPayload?.schemaVersion))) errors.push("Nicht unterstützte Export-Version.");
   if (!parsed.success) {
     if (errors.length === 0) errors.push("Export entspricht nicht dem unterstützten Schema oder der Version.");
   }
@@ -133,6 +148,12 @@ export function validatePortableExport(value: any) {
         profile: redactProfile(parsed.output.profile),
         decks: coreDecks(parsed.output.decks),
         documents: parsed.output.documents ?? [],
+        noteTypeDefinitions: "noteTypeDefinitions" in parsed.output && Array.isArray(parsed.output.noteTypeDefinitions)
+          ? parsed.output.noteTypeDefinitions
+          : [],
+        learningItemSourceSnapshots: "learningItemSourceSnapshots" in parsed.output && Array.isArray(parsed.output.learningItemSourceSnapshots)
+          ? parsed.output.learningItemSourceSnapshots
+          : [],
         ...(parsed.output.contentHash ? { contentHash: parsed.output.contentHash } : {}),
       }
     : null;
@@ -157,6 +178,12 @@ export function mergePortableExportIntoState(state: any, exportPayload: any) {
   const payload = validation.payload;
   const existingDeckIds = new Set((state.decks ?? []).map((deck: any) => deck.id));
   const incomingDecks = payload.decks.filter((deck: any) => !existingDeckIds.has(deck.id));
+  const existingDefinitionIds = new Set((state.noteTypeDefinitions ?? []).map((definition: any) => definition.id));
+  const payloadDefinitions = Array.isArray(payload.noteTypeDefinitions) ? payload.noteTypeDefinitions : [];
+  const incomingDefinitions = payloadDefinitions.filter((definition: any) => !existingDefinitionIds.has(definition.id));
+  const existingSnapshotIds = new Set((state.learningItemSourceSnapshots ?? []).map((snapshot: any) => snapshot.id));
+  const payloadSnapshots = Array.isArray(payload.learningItemSourceSnapshots) ? payload.learningItemSourceSnapshots : [];
+  const incomingSnapshots = payloadSnapshots.filter((snapshot: any) => !existingSnapshotIds.has(snapshot.id));
   const importedSchedulerPreferences = payload.profile?.schedulerPreferences;
   const importsSchedulerPreferences = importedSchedulerPreferences && typeof importedSchedulerPreferences === "object";
   const importedPreferenceRecord = importsSchedulerPreferences
@@ -216,6 +243,8 @@ export function mergePortableExportIntoState(state: any, exportPayload: any) {
       : state.profile,
     decks: [...remappedIncomingDecks, ...(state.decks ?? [])],
     documents: [...(payload.documents ?? []), ...(state.documents ?? [])],
+    noteTypeDefinitions: [...incomingDefinitions, ...(state.noteTypeDefinitions ?? [])],
+    learningItemSourceSnapshots: [...incomingSnapshots, ...(state.learningItemSourceSnapshots ?? [])],
     updatedAt: new Date().toISOString(),
   };
 }

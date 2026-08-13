@@ -5,7 +5,6 @@ import {
   createCoreDeck,
   createLearningItemsFromNormalizedInput,
   getActiveVariants,
-  getOriginalVariant,
   normalizeCoreDeck,
   normalizeTags,
   stableContentHash,
@@ -266,6 +265,7 @@ export function normalizeImportVariant(input: any = {}, options: any = {}) {
       isOriginal,
       anchorToOriginal: input.anchorToOriginal ?? !isOriginal,
       isActive: input.isActive ?? true,
+      projection: input.projection && typeof input.projection === "object" ? input.projection : null,
       abstractionLevel: input.abstractionLevel == null ? null : Number(input.abstractionLevel),
       semanticDistanceEstimate: input.semanticDistanceEstimate == null ? null : Number(input.semanticDistanceEstimate),
       metadataJson: metadata(input.metadataJson ?? input.meta),
@@ -366,6 +366,9 @@ export function normalizeImportItem(input: any = {}, options: any = {}) {
       cardType: input.cardType ?? null,
       mediaRefs: normalizeStringList(input.mediaRefs),
       originalFields: Array.isArray(input.originalFields) ? input.originalFields.map((field: any) => ({ ...field })) : [],
+      contentDocument: input.contentDocument && typeof input.contentDocument === "object" ? input.contentDocument : undefined,
+      noteTypeDefinition: input.noteTypeDefinition && typeof input.noteTypeDefinition === "object" ? input.noteTypeDefinition : undefined,
+      sourceSnapshot: input.sourceSnapshot && typeof input.sourceSnapshot === "object" ? input.sourceSnapshot : undefined,
       metadataJson: metadata(input.metadataJson ?? input.meta),
     },
     warnings,
@@ -493,35 +496,27 @@ function getExistingSourceExternalIds(card: any) {
   ].filter(Boolean).map(String);
 }
 
-export function findDuplicateLearningItem(existingDecksOrDeck: any, normalizedItem: any) {
-  const decks = asDeckList(existingDecksOrDeck);
-  const sourceExternalId = normalizedItem?.sourceExternalId ? String(normalizedItem.sourceExternalId) : null;
-  const fingerprint = createImportFingerprint(normalizedItem);
-
-  for (const deck of decks) {
+export function createLearningItemDuplicateIndex(existingDecksOrDeck: any) {
+  const bySourceExternalId = new Map<string, { deckId: string; card: any }>();
+  const byFingerprint = new Map<string, { deckId: string; card: any }>();
+  for (const deck of asDeckList(existingDecksOrDeck)) {
     for (const card of deck.cards ?? []) {
-      if (sourceExternalId && getExistingSourceExternalIds(card).includes(sourceExternalId)) {
-        return {
-          duplicate: true,
-          reason: "sourceExternalId",
-          deckId: deck.id,
-          learningItemId: card.id,
-          fingerprint,
-        };
-      }
-
-      const existingFingerprint = card.meta?.importFingerprint ?? createImportFingerprint(card);
-      if (existingFingerprint === fingerprint) {
-        return {
-          duplicate: true,
-          reason: "fingerprint",
-          deckId: deck.id,
-          learningItemId: card.id,
-          fingerprint,
-        };
-      }
+      const entry = { deckId: deck.id, card };
+      for (const sourceExternalId of getExistingSourceExternalIds(card)) if (!bySourceExternalId.has(sourceExternalId)) bySourceExternalId.set(sourceExternalId, entry);
+      const fingerprint = card.meta?.importFingerprint ?? createImportFingerprint(card);
+      if (!byFingerprint.has(fingerprint)) byFingerprint.set(fingerprint, entry);
     }
   }
+  return { bySourceExternalId, byFingerprint };
+}
+
+export function findDuplicateLearningItem(existingDecksOrDeck: any, normalizedItem: any, existingIndex = createLearningItemDuplicateIndex(existingDecksOrDeck)) {
+  const sourceExternalId = normalizedItem?.sourceExternalId ? String(normalizedItem.sourceExternalId) : null;
+  const fingerprint = createImportFingerprint(normalizedItem);
+  const sourceMatch = sourceExternalId ? existingIndex.bySourceExternalId.get(sourceExternalId) : null;
+  if (sourceMatch) return { duplicate: true, reason: "sourceExternalId", deckId: sourceMatch.deckId, learningItemId: sourceMatch.card.id, fingerprint };
+  const fingerprintMatch = existingIndex.byFingerprint.get(fingerprint);
+  if (fingerprintMatch) return { duplicate: true, reason: "fingerprint", deckId: fingerprintMatch.deckId, learningItemId: fingerprintMatch.card.id, fingerprint };
 
   return { duplicate: false, fingerprint };
 }
@@ -537,6 +532,7 @@ function toPipelineVariant(variant: any) {
     isOriginal: Boolean(variant.isOriginal),
     isActive: variant.isActive ?? true,
     transformType: variant.isOriginal ? "original" : (TRANSFORM_BY_VARIANT_TYPE as Record<string, string>)[variant.variantType] ?? "rephrase",
+    projection: variant.projection,
     meta: {
       ...(variant.metadataJson ?? {}),
       sourceExternalId: variant.sourceExternalId ?? null,
@@ -566,6 +562,9 @@ function toPipelineItem(item: any, options: any = {}) {
     cardType: item.cardType ?? undefined,
     mediaRefs: item.mediaRefs ?? [],
     originalFields: item.originalFields ?? [],
+    contentDocument: item.contentDocument,
+    noteTypeDefinition: item.noteTypeDefinition,
+    sourceSnapshot: item.sourceSnapshot,
     meta: {
       ...(item.metadataJson ?? {}),
       importFingerprint,
@@ -626,17 +625,18 @@ export function importNormalizedDeck(input: any = {}, options: any = {}): any {
     ? normalizedOptions.existingDecks.find((deck: any) => deck.id === normalizedOptions.targetDeckId) ?? null
     : null;
   const duplicateScope = targetDeck ?? normalizedOptions.existingDecks;
+  const duplicateIndex = createLearningItemDuplicateIndex(duplicateScope);
   const importableItems: any[] = [];
   const seenImportFingerprints = new Map();
 
   normalizedDeck.items.forEach((item: any, index: any) => {
-    const duplicateInfo = findDuplicateLearningItem(duplicateScope, item);
+    const duplicateInfo = findDuplicateLearningItem(duplicateScope, item, duplicateIndex);
     const itemFingerprint = duplicateInfo.fingerprint ?? createImportFingerprint(item);
     if (!duplicateInfo.duplicate && seenImportFingerprints.has(itemFingerprint)) {
       duplicateInfo.duplicate = true;
       duplicateInfo.reason = "payload_fingerprint";
-      duplicateInfo.learningItemId = null;
-      duplicateInfo.deckId = null;
+      duplicateInfo.learningItemId = undefined;
+      duplicateInfo.deckId = undefined;
       duplicateInfo.fingerprint = itemFingerprint;
     }
     if (duplicateInfo.duplicate) {
@@ -753,6 +753,11 @@ export function importNormalizedDeck(input: any = {}, options: any = {}): any {
 
   return {
     deck,
+    commitGraph: {
+      decks: [deck],
+      noteTypeDefinitions: creation.definitions,
+      sourceSnapshots: creation.sourceSnapshots,
+    },
     normalizedDeck,
     report: finalizeImportReport(report),
   };

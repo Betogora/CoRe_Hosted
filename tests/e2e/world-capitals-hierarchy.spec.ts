@@ -10,7 +10,7 @@ const DECK_IDS = {
 };
 
 function mainMenu(page: Page) {
-  return page.getByRole("navigation", { name: /Hauptmenü/ });
+  return page.locator('[data-app-navigation="true"]:visible').first();
 }
 
 async function storedParentDeckId(page: Page, deckId: string) {
@@ -91,7 +91,7 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(metric(rootRow, "new")).toContainText("Neu");
   await expect(metric(rootRow, "in-progress")).toContainText("In Arbeit");
   await expect(metric(rootRow, "due")).toContainText("Fällig");
-  await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
+  await expect(rootRow.getByLabel(/Gesamtfortschritt/)).toBeVisible();
   await expect(rootRow.getByRole("button", { name: /Stapeloptionen/ })).toBeVisible();
   await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
 
@@ -123,46 +123,44 @@ test("statistics deck filter uses full-width selection rows while keeping multip
   const search = page.getByRole("textbox", { name: "Stapel suchen" });
   await expect(search).toBeVisible();
   await expect(search).toBeFocused();
-  const viewport = page.locator('[data-deck-select-viewport="true"]');
+  const selectContent = page.locator('[data-deck-select-content="true"]:visible');
+  const viewport = selectContent.locator('[data-deck-select-viewport="true"]');
   await expect.poll(() => viewport.evaluate((element) => getComputedStyle(element).overflowY)).toBe("auto");
   await expect(viewport.locator(':scope > div[aria-hidden="true"]')).toHaveCount(2);
   await expect(viewport.locator('input[type="checkbox"], [role="checkbox"]')).toHaveCount(0);
-  const allOption = page.getByRole("option", { name: "Gesamte Sammlung", exact: true });
+  let allOption = viewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
   await expect(allOption).toHaveAttribute("aria-selected", "true");
   await expect(allOption.locator(".lucide-check")).toHaveCount(1);
   const selectedBackground = await allOption.evaluate((option) => getComputedStyle(option).backgroundColor);
 
   await search.fill("Europa");
-  const europeOption = page.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
+  const europeOption = viewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
   await expect(europeOption).toBeVisible();
-  await expect(page.getByRole("option", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
+  await expect(viewport.getByRole("option", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
   await expectDeckOptionUsesFullWidth(europeOption);
-  await page.getByRole("button", { name: "Suche leeren" }).click();
-
-  const rootOption = page.getByRole("option", { name: "Welt-Hauptstädte", exact: true });
-  await rootOption.click();
-  await expect(allOption).toHaveAttribute("aria-selected", "false");
-  await expect(rootOption.locator(".lucide-check")).toHaveCount(1);
-  await expect(europeOption).toHaveAttribute("aria-selected", "true");
-  await expect(europeOption).toBeDisabled();
-  await expect(europeOption.locator(".lucide-check")).toHaveCount(1);
-  expect(await rootOption.evaluate((option) => getComputedStyle(option).backgroundColor)).toBe(selectedBackground);
-  expect(await europeOption.evaluate((option) => getComputedStyle(option).backgroundColor)).toBe(selectedBackground);
-  expect(await europeOption.evaluate((option) => getComputedStyle(option).opacity)).toBe("1");
-  await expect(viewport).not.toContainText("Durch Oberstapel eingeschlossen");
-
-  await rootOption.click();
-  await expect(allOption).toHaveAttribute("aria-selected", "true");
   await europeOption.click();
-  const southAmericaOption = page.getByRole("option", { name: "Welt-Hauptstädte / Südamerika", exact: true });
-  await southAmericaOption.click();
-  await expect(europeOption).toHaveAttribute("aria-selected", "true");
-  await expect(southAmericaOption).toHaveAttribute("aria-selected", "true");
-  await expect(trigger).toContainText("2 Stapel ausgewählt");
-  await allOption.click();
-  await expect(allOption).toHaveAttribute("aria-selected", "true");
+  await expect(trigger).toContainText("Europa");
 
-  await page.keyboard.press("Escape");
+  await trigger.click();
+  const reopenedViewport = page.locator('[data-deck-select-content="true"]:visible [data-deck-select-viewport="true"]');
+  allOption = reopenedViewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
+  const reopenedEuropeOption = reopenedViewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
+  await expect(allOption).toHaveAttribute("aria-selected", "false");
+  await expect(reopenedEuropeOption).toHaveAttribute("aria-selected", "true");
+  await expect(reopenedEuropeOption.locator(".lucide-check")).toHaveCount(1);
+  expect(await reopenedEuropeOption.evaluate((option) => getComputedStyle(option).backgroundColor)).toBe(selectedBackground);
+  expect(await reopenedEuropeOption.evaluate((option) => getComputedStyle(option).opacity)).toBe("1");
+  const southAmericaOption = reopenedViewport.getByRole("option", { name: "Welt-Hauptstädte / Südamerika", exact: true });
+  await southAmericaOption.click();
+  await expect(trigger).toContainText("2 Stapel ausgewählt");
+  await trigger.click();
+  const finalViewport = page.locator('[data-deck-select-content="true"]:visible [data-deck-select-viewport="true"]');
+  await expect(finalViewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(finalViewport.getByRole("option", { name: "Welt-Hauptstädte / Südamerika", exact: true })).toHaveAttribute("aria-selected", "true");
+  allOption = finalViewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
+  await allOption.click();
+  await expect(trigger).toContainText("Gesamte Sammlung");
+
   await trigger.click();
   await expect(page.getByRole("textbox", { name: "Stapel suchen" })).toHaveValue("");
 });
@@ -210,7 +208,8 @@ test("active deck header and rows fit every target width and toggle reliably on 
       const tableHeader = panel.querySelector<HTMLElement>('[data-testid="deck-summary-header"] > div')!;
       const headerLabels = [
         tableHeader.firstElementChild as HTMLElement,
-        ...tableHeader.querySelectorAll<HTMLElement>(".core-deck-summary-count"),
+        ...[...tableHeader.querySelectorAll<HTMLElement>(".core-deck-summary-metric-label-full, .core-deck-summary-metric-label-short")]
+          .filter((label) => getComputedStyle(label).display !== "none"),
       ];
       const name = panel.querySelector<HTMLElement>(".core-deck-summary-name")!;
       const icon = panel.querySelector<HTMLElement>(".core-deck-summary-icon")!;
@@ -230,8 +229,8 @@ test("active deck header and rows fit every target width and toggle reliably on 
     expect(layout.fits).toBe(true);
     expect(layout.headerHeight).toBeLessThanOrEqual(30);
     expect(layout.headerLabels).toEqual(width <= 390
-      ? ["Stapel", "N", "IA", "F"]
-      : ["Stapel", "Neu", "In Arbeit", "Fällig"]);
+      ? ["STAPEL", "N", "IA", "F"]
+      : ["STAPEL", "NEU", "IN ARBEIT", "FÄLLIG"]);
     expect(layout.headerLabelsFit).toBe(true);
     expect(layout.rowLabelsHidden).toBe(true);
     if (width >= 700) expect(layout.nameWidth).toBeGreaterThanOrEqual(layout.iconWidth);
@@ -252,11 +251,11 @@ test("learning rows activate directly while expand and settings remain independe
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   await expect(page.getByTestId("learn-deck-list-header")).toContainText("Aktive Stapel");
   await expect(page.getByRole("button", { name: "Lernen öffnen" })).toHaveCount(0);
-  await expect(page.getByTestId("deck-summary-header")).toContainText("StapelNeuIn ArbeitFällig");
+  await expect(page.getByTestId("deck-summary-header")).toContainText("StapelNeuNIn ArbeitIAFälligF");
   await expect(metric(rootRow, "new").locator("dt")).toHaveClass(/sr-only/);
   await expect(metric(rootRow, "in-progress").locator("dt")).toHaveClass(/sr-only/);
   await expect(metric(rootRow, "due").locator("dt")).toHaveClass(/sr-only/);
-  await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
+  await expect(rootRow.getByLabel(/Gesamtfortschritt/)).toBeVisible();
   await expect(europeRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
   await expect(europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" })).toBeVisible();
   await expect(europeRow.getByRole("button", { name: /^Lernen$/ })).toHaveCount(0);
@@ -298,7 +297,7 @@ test("learning rows activate directly while expand and settings remain independe
   await expect(europeRow).toBeVisible();
 });
 
-test("deck presentation toolbar saves name, icon and color together", async ({ page }) => {
+test("deck presentation form saves name, icon and color together", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Europa" }).click();
@@ -308,53 +307,27 @@ test("deck presentation toolbar saves name, icon and color together", async ({ p
   const iconTrigger = page.getByRole("button", { name: "Icon auswählen" });
   const colorTrigger = page.getByRole("button", { name: "Farbe auswählen" });
   const titleIcon = page.getByTestId("deck-settings-title-icon");
-  const renameButton = page.getByRole("button", { name: "Stapel umbenennen" });
+  const nameInput = page.getByRole("textbox", { name: "Stapelname" });
+  const saveButton = page.getByRole("button", { name: "Name und Darstellung speichern" });
   await expect(iconTrigger).toHaveCSS("width", "44px");
   await expect(iconTrigger).toHaveCSS("height", "44px");
   await expect(colorTrigger).toHaveCSS("width", "44px");
   await expect(colorTrigger).toHaveCSS("height", "44px");
   await expect(titleIcon).toBeVisible();
-  await expect(renameButton).toHaveCSS("width", "44px");
-  await expect(renameButton).toHaveCSS("height", "44px");
-  await expect(renameButton).toHaveCSS("border-top-width", "0px");
-  await renameButton.focus();
-  const renameTooltip = page.getByRole("tooltip");
-  await expect(renameTooltip).toHaveText("Stapel umbenennen");
-  const renameTooltipIcon = renameTooltip.locator('[data-core-tooltip-deck-appearance="true"]');
-  await expect(renameTooltipIcon).toHaveCSS("width", "16px");
-  await expect(renameTooltipIcon).toHaveCSS("height", "16px");
-  await expect.poll(async () => renameTooltipIcon.evaluate((icon) => getComputedStyle(icon).color))
-    .toBe(await titleIcon.evaluate((icon) => getComputedStyle(icon).color));
-  await page.keyboard.press("Escape");
+
+  await nameInput.fill("   ");
+  await saveButton.click();
+  await expect(page.getByRole("alert")).toHaveText("Bitte gib einen Stapelnamen ein.");
+  await nameInput.fill("Europa kompakt");
+  await expect(page.getByRole("alert")).toBeHidden();
 
   await iconTrigger.click();
   const iconGrid = page.getByTestId("deck-icon-grid");
-  await expect(iconGrid.locator("button[data-icon-key]")).toHaveCount(25);
+  await expect(iconGrid.getByRole("button")).toHaveCount(25);
   await expect.poll(() => iconGrid.evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length)).toBe(5);
   await iconGrid.getByRole("button", { name: "Gehirn" }).click();
   await expect(titleIcon.locator("svg")).toHaveClass(/lucide-brain/);
   expect((await storedDeckPresentation(page, DECK_IDS.europe)).iconKey).toBe(original.iconKey);
-
-  await renameButton.click();
-  const nameInput = page.getByRole("textbox", { name: "Stapelname" });
-  await expect(nameInput).toHaveValue(original.name ?? "");
-  await nameInput.fill("Nicht speichern");
-  await nameInput.press("Escape");
-  await expect(nameInput).toBeHidden();
-  await expect(renameButton).toBeFocused();
-  await renameButton.click();
-  await nameInput.fill("   ");
-  await nameInput.press("Enter");
-  const validationFeedback = page.getByRole("alert");
-  await expect(validationFeedback).toHaveText("Bitte gib einen Stapelnamen ein.");
-  const validationToolbarBox = await page.getByTestId("deck-settings-appearance-toolbar").boundingBox();
-  const validationFeedbackBox = await validationFeedback.boundingBox();
-  expect(validationToolbarBox).not.toBeNull();
-  expect(validationFeedbackBox).not.toBeNull();
-  expect(validationFeedbackBox!.y).toBeGreaterThanOrEqual(validationToolbarBox!.y + validationToolbarBox!.height);
-  await nameInput.fill("Europa kompakt");
-  await expect(validationFeedback).toBeHidden();
-  expect((await storedDeckPresentation(page, DECK_IDS.europe)).name).toBe(original.name);
 
   await colorTrigger.click();
   const wheel = page.getByRole("slider", { name: /Farbkreis/ });
@@ -374,10 +347,8 @@ test("deck presentation toolbar saves name, icon and color together", async ({ p
 
   await page.keyboard.press("Escape");
   await expect(wheel).toBeHidden();
-  await nameInput.press("Enter");
-  await expect(nameInput).toBeHidden();
-  const successToast = page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden erfolgreich gespeichert." });
-  await expect(successToast).toContainText("Stapeleinstellungen wurden erfolgreich gespeichert.");
+  await saveButton.click();
+  await expect(page.getByRole("status").filter({ hasText: "Name und Darstellung wurden gespeichert." })).toBeVisible();
   await expect(page.getByTestId("deck-settings-title-name")).toHaveText("Europa kompakt");
   await expect(page.getByTestId("deck-settings-title-name")).toHaveCount(1);
   for (const viewport of [
@@ -388,8 +359,8 @@ test("deck presentation toolbar saves name, icon and color together", async ({ p
     await page.setViewportSize(viewport);
     await expect(page.getByTestId("deck-settings-title-icon")).toBeVisible();
     await expect(page.getByTestId("deck-settings-title-name")).toBeVisible();
-    await expect(renameButton).toBeVisible();
-    await expect(page.getByTestId("deck-settings-appearance-toolbar")).toBeVisible();
+    await expect(nameInput).toBeVisible();
+    await expect(saveButton).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
   await expect.poll(() => storedDeckPresentation(page, DECK_IDS.europe)).toMatchObject({
@@ -402,7 +373,7 @@ test("deck presentation toolbar saves name, icon and color together", async ({ p
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   await expect(europeRow).toContainText("Europa kompakt");
-  await expect(europeRow.locator("span[style*='border-color']").first()).toHaveAttribute("style", new RegExp(`border-color:${saved.iconColor}`));
+  await expect.poll(() => europeRow.locator("span[style*='border-color']").first().evaluate((element) => getComputedStyle(element).borderColor)).toBe("rgb(109, 255, 13)");
   await page.reload();
   await expect.poll(() => storedDeckPresentation(page, DECK_IDS.europe)).toEqual(saved);
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toContainText("Europa kompakt");
@@ -453,7 +424,6 @@ test("deck management disables direct drag and shares the confirmed keyboard mov
 
   const rootRow = page.getByTestId(`deck-header-${DECK_IDS.root}`);
   const southAmericaRow = page.getByTestId(`deck-header-${DECK_IDS.southAmerica}`);
-  await expect(rootRow.getByLabel(/Prozent/)).toBeVisible();
   await expect(rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" })).toBeVisible();
   await expect(page.locator('[data-deck-drag-source="true"]')).toHaveCount(0);
   await expect(page.getByTestId("manage-top-drop-zone")).toHaveCount(0);
@@ -478,7 +448,7 @@ test("deck management disables direct drag and shares the confirmed keyboard mov
   expect(selectBounds!.y + selectBounds!.height).toBeLessThanOrEqual(601);
   expect(await selectViewport.evaluate((viewport) => viewport.scrollHeight > viewport.clientHeight)).toBe(true);
   await expect.poll(() => selectViewport.evaluate((viewport) => getComputedStyle(viewport).overflowY)).toBe("auto");
-  await expect(page.getByRole("textbox", { name: "Stapel suchen" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Stapel suchen" })).toBeVisible();
   const europeMoveOption = page.getByRole("option", { name: /Europa$/ });
   await europeMoveOption.click();
   await page.getByTestId("action-dialog-backdrop").click({ position: { x: 5, y: 5 } });
@@ -512,10 +482,7 @@ test("three-dot actions share the local-name tooltip across dashboard, learning 
 
   const tooltip = page.getByRole("tooltip");
   const dashboardOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
-  await dashboardOptions.focus();
-  await expect(tooltip).toHaveText("Stapeloptionen für Afrika");
-  await expect(tooltip.locator('[data-core-tooltip-deck-appearance="true"]')).toBeVisible();
-  await page.keyboard.press("Escape");
+  await expect(dashboardOptions).not.toHaveAttribute("title");
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   const learningOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });

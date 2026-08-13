@@ -2,9 +2,11 @@ import type { User } from "@supabase/supabase-js";
 import { createAccountStorage, hasPendingLocalMigration, readLegacyLocalState } from "./accountStorage.ts";
 import { clearCloudAuthRedirectParams, getCloudUser, readCloudAuthRedirectOutcome } from "./cloudAuth.ts";
 import { createCoreRepository } from "./coreRepository.ts";
-import { createCoreWorkspace, type CoreWorkspace, type WorkspaceState } from "./coreWorkspace.ts";
+import type { WorkspaceState } from "./coreWorkspace.ts";
+import { createIndexedDbCoreRepository, type IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { createAccountSyncEngine, type AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
+import { streamAccountCloudChanges } from "./cloudRepository.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 
 type SupabaseBrowserClient = NonNullable<ReturnType<typeof createSupabaseBrowserClient>>;
@@ -21,7 +23,7 @@ interface AuthenticatedWorkspaceSessionLifecycleOptions {
 }
 
 export interface AuthenticatedWorkspaceBootResult {
-  workspace: CoreWorkspace;
+  repository: IndexedDbCoreRepository;
   syncEngine: AccountSyncEngine;
   state: WorkspaceState;
   conflictCount: number;
@@ -34,16 +36,40 @@ export async function bootAuthenticatedWorkspace(
   user: User,
 ): Promise<AuthenticatedWorkspaceBootResult> {
   const accountStorage = createAccountStorage(user.id);
-  const workspace = createCoreWorkspace(createCoreRepository(accountStorage, { seedDefaultDecks: false }));
+  const legacyRepository = createCoreRepository(accountStorage, { seedDefaultDecks: false });
+  const repository = await createIndexedDbCoreRepository({
+    userId: user.id,
+    initialState: legacyRepository.getState(),
+    legacyStorage: accountStorage,
+  });
   const syncEngine = createAccountSyncEngine(supabase, {
     userId: user.id,
-    storage: accountStorage,
     device: createBrowserSyncDevice(),
-    persistSnapshot: (nextState: WorkspaceState) => workspace.saveState(nextState),
+    outbox: repository.outbox,
+    beforeFlush: repository.flush,
+    persistResolvedPage: repository.applyCloudPage,
+    persistMutationAcknowledgements: repository.persistMutationAcknowledgements,
+    initialize: async () => {
+      const cursors = repository.getCloudDeltaCursors();
+      const cloud = await streamAccountCloudChanges(supabase, cursors, repository.applyCloudPage);
+      if (!repository.outbox.listPending().some((mutation) => mutation.type === "profile-patch")) {
+        await repository.applyCloudProfile(cloud.profile);
+      }
+    },
   });
-  const fallbackState = workspace.getState();
-  const cloudState = await syncEngine.loadSnapshot(fallbackState);
-  const state = workspace.saveState(cloudState);
+  await syncEngine.initialize();
+  await repository.flush();
+  const shell = await repository.loadShell();
+  const state = {
+    version: 4,
+    profile: shell.profile,
+    decks: shell.decks.map((deck) => ({ ...deck, cards: [], reviewEvents: [] })),
+    documents: [],
+    noteTypeDefinitions: [],
+    learningItemSourceSnapshots: [],
+    cloudTombstones: shell.cloudTombstones,
+    updatedAt: shell.updatedAt,
+  } as WorkspaceState;
   let conflicts: unknown[] = [];
 
   try {
@@ -53,8 +79,9 @@ export async function bootAuthenticatedWorkspace(
   }
 
   const legacyState = hasPendingLocalMigration(user.id) ? readLegacyLocalState() : null;
+  if (syncEngine.pendingCount() === 0) repository.confirmCloudSync();
   return {
-    workspace,
+    repository,
     syncEngine,
     state,
     conflictCount: conflicts.length,

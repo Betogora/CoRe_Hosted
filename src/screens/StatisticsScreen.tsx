@@ -8,7 +8,6 @@ import {
   Flame,
   Target,
   Timer,
-  TrendingUp,
 } from "lucide-react";
 import {
   Area,
@@ -25,11 +24,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { StatisticsScreenProps } from "../appScreenProps.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import {
-  createStatisticsIndex,
-  projectStatistics,
+  type StatisticsDataset,
   type StatisticsDeckSelection,
   type StatisticsPeriod,
   type StatisticsProjection,
@@ -39,6 +36,22 @@ import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { DeckMultiSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
+
+export interface StatisticsScreenProps {
+  decks: StatisticsDataset["decks"];
+  queryStatistics: (selection: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection }) => Promise<StatisticsProjection>;
+  now: string;
+  timeZone: string;
+  dayStartHour?: number;
+  onNavigate: (viewId: "neue-karten") => unknown;
+  onStartDeck: (deckId: string) => unknown;
+  onOpenCard: (deckId: string, learningItemId: string) => unknown;
+}
+
+export interface StatisticsScreenContentProps extends Omit<StatisticsScreenProps, "queryStatistics" | "decks"> {
+  dataset: StatisticsDataset;
+  onSelectionChange?: (selection: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection }) => unknown;
+}
 
 const PERIOD_OPTIONS: Array<{ value: StatisticsPeriod; label: string }> = [
   { value: "30d", label: "30 Tage" },
@@ -383,25 +396,16 @@ function RetentionTable({ rows }: { rows: StatisticsProjection["retention"] }) {
   );
 }
 
-export function StatisticsScreen({ decks, now, timeZone, dayStartHour = 0, onNavigate, onStartDeck, onOpenCard }: StatisticsScreenProps) {
-  const [period, setPeriod] = React.useState<StatisticsPeriod>("365d");
-  const [deckSelection, setDeckSelection] = React.useState<StatisticsDeckSelection>("all");
+export function StatisticsScreenContent({ dataset: { decks, projection: statistics }, onSelectionChange, onNavigate, onStartDeck, onOpenCard, timeZone, dayStartHour = 0 }: StatisticsScreenContentProps) {
   const [isPending, startTransition] = React.useTransition();
-  const index = React.useMemo(() => createStatisticsIndex(decks), [decks]);
-  const statistics = React.useMemo(() => projectStatistics(index, { period, deckIds: deckSelection, now, timeZone, dayStartHour }), [dayStartHour, deckSelection, index, now, period, timeZone]);
+  const { period, deckIds: deckSelection } = statistics.selection;
   const showDeckComparison = deckSelection === "all" || statistics.scopeDeckIds.length > 1;
 
-  React.useEffect(() => {
-    if (deckSelection === "all") return;
-    const existing = deckSelection.filter((id) => index.deckById.has(id));
-    if (existing.length !== deckSelection.length) setDeckSelection(existing.length > 0 ? existing : "all");
-  }, [deckSelection, index]);
-
   function changePeriod(value: StatisticsPeriod) {
-    startTransition(() => setPeriod(value));
+    startTransition(() => { onSelectionChange?.({ period: value, deckIds: deckSelection }); });
   }
   function changeDecks(value: StatisticsDeckSelection) {
-    startTransition(() => setDeckSelection(value));
+    startTransition(() => { onSelectionChange?.({ period, deckIds: value }); });
   }
 
   if (decks.length === 0) {
@@ -506,6 +510,56 @@ export function StatisticsScreen({ decks, now, timeZone, dayStartHour = 0, onNav
         </ChartPanel>
       </section>
 
+    </div>
+  );
+}
+
+type StatisticsLoadState =
+  | { status: "loading"; dataset: null }
+  | { status: "ready"; dataset: StatisticsDataset }
+  | { status: "error"; dataset: null };
+
+export function StatisticsScreen({ decks, queryStatistics, now, timeZone, dayStartHour = 0, ...contentProps }: StatisticsScreenProps) {
+  const [attempt, setAttempt] = React.useState(0);
+  const [loadState, setLoadState] = React.useState<StatisticsLoadState>({ status: "loading", dataset: null });
+  const [selection, setSelection] = React.useState<{ period: StatisticsPeriod; deckIds: StatisticsDeckSelection }>({ period: "365d", deckIds: "all" });
+
+  React.useEffect(() => {
+    let active = true;
+    setLoadState({ status: "loading", dataset: null });
+    void Promise.resolve()
+      .then(() => queryStatistics(selection))
+      .then((projection) => {
+        if (active) setLoadState({ status: "ready", dataset: { decks, projection } });
+      })
+      .catch(() => {
+        if (active) setLoadState({ status: "error", dataset: null });
+      });
+    return () => { active = false; };
+  }, [attempt, decks, queryStatistics, selection]);
+
+  if (loadState.status === "ready") {
+    return <StatisticsScreenContent {...contentProps} now={now} timeZone={timeZone} dayStartHour={dayStartHour} dataset={loadState.dataset} onSelectionChange={setSelection} />;
+  }
+  if (loadState.status === "error") {
+    return (
+      <div className="space-y-8">
+        <PageHeader eyebrow="Lernanalyse" title="Statistik" />
+        <EmptyState
+          icon={BarChart3}
+          title="Statistik konnte nicht geladen werden"
+          body="Die lokalen Statistikdaten sind derzeit nicht verfügbar. Versuche es erneut."
+          action={<ActionButton variant="primary" onClick={() => setAttempt((value) => value + 1)}>Erneut versuchen</ActionButton>}
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-8" aria-busy="true">
+      <PageHeader eyebrow="Lernanalyse" title="Statistik" />
+      <SoftPanel className="p-6" role="status" aria-live="polite">
+        <p className="core-body text-core-muted">Statistik wird geladen …</p>
+      </SoftPanel>
     </div>
   );
 }

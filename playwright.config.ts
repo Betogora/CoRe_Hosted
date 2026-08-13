@@ -26,6 +26,7 @@ export default defineConfig({
       url: "http://127.0.0.1:5190/",
       env: {
         ...process.env,
+        CORE_VITE_CACHE_DIR: "node_modules/.vite/e2e-configured",
         VITE_ENABLE_LABS: "true",
         VITE_ENABLE_SERVER_APKG_IMPORT: "true",
         VITE_ENABLE_GOOGLE_AUTH: betaCoreGate ? "" : "true",
@@ -40,6 +41,7 @@ export default defineConfig({
       url: "http://127.0.0.1:5191/",
       env: {
         ...process.env,
+        CORE_VITE_CACHE_DIR: "node_modules/.vite/e2e-unconfigured",
         VITE_SUPABASE_URL: "",
         VITE_SUPABASE_PUBLISHABLE_KEY: "",
         VITE_ENABLE_GOOGLE_AUTH: "",
@@ -52,7 +54,7 @@ export default defineConfig({
       name: "google-only-auth-app",
       command: "npm run dev -- --mode e2e --port 5192",
       url: "http://127.0.0.1:5192/",
-      env: { ...process.env, VITE_ENABLE_GOOGLE_AUTH: "true", VITE_ENABLE_MAGIC_LINK: "" },
+      env: { ...process.env, CORE_VITE_CACHE_DIR: "node_modules/.vite/e2e-google", VITE_ENABLE_GOOGLE_AUTH: "true", VITE_ENABLE_MAGIC_LINK: "" },
       reuseExistingServer: false,
       timeout: 60_000,
     },
@@ -60,7 +62,7 @@ export default defineConfig({
       name: "magic-only-auth-app",
       command: "npm run dev -- --mode e2e --port 5193",
       url: "http://127.0.0.1:5193/",
-      env: { ...process.env, VITE_ENABLE_GOOGLE_AUTH: "", VITE_ENABLE_MAGIC_LINK: "true" },
+      env: { ...process.env, CORE_VITE_CACHE_DIR: "node_modules/.vite/e2e-magic", VITE_ENABLE_GOOGLE_AUTH: "", VITE_ENABLE_MAGIC_LINK: "true" },
       reuseExistingServer: false,
       timeout: 60_000,
     },

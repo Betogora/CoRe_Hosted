@@ -1,7 +1,7 @@
 import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AuthPhase } from "./accountSession.ts";
-import type { CoreMode, Deck, GlobalSchedulerPreferences, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, SyncStatus } from "./coreTypes.ts";
 import { Database, Layers } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
@@ -14,6 +14,8 @@ import type {
   CreationScreenProps,
   DashboardScreenProps,
   DeckSettingsScreenProps,
+  DecksCardPage,
+  DecksCardPageRequest,
   DecksScreenProps,
   LearnScreenProps,
   SettingsScreenProps,
@@ -21,22 +23,27 @@ import type {
   StatisticsScreenProps,
   StudyModeProps,
 } from "./appScreenProps.ts";
-import { startAppAutosaveLifecycle, startAppSyncLifecycle } from "./appSyncLifecycle.ts";
+import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
-import { mergeCloudSyncMetadata, replaceAccountCloudState } from "./cloudRepository.ts";
-import { createDefaultDeckSettings, getCardContentPayload } from "./coreModel.ts";
-import type { CoreWorkspace, WorkspaceState } from "./coreWorkspace.ts";
-import { createPortableExport, mergePortableExportIntoState } from "./dataPortability.ts";
+import { replaceAccountCloudState } from "./cloudRepository.ts";
+import { addRephrasedVariant, createDefaultDeckSettings, createManualCoreDeck, duplicateLearningItemContent, getCardContentPayload, restoreCardVersion, saveCardEditorValue, saveLearningItemDocumentValues, updateLearningItemStudyState } from "./coreModel.ts";
+import { createWorkspaceDeck, restoreSoftDeletedCard, softDeleteCard, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
+import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
+import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
+import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport } from "./dataPortability.ts";
 import { getGlobalSchedulerPreferences, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
 import { getLearningDayKey, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
 import { createDeckLibraryModel } from "./libraryModel.ts";
+import type { DeckLibrarySummary } from "./libraryModel.ts";
+import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
+import type { StatisticsDeckSelection, StatisticsPeriod } from "./statisticsModel.ts";
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
 import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
-import { updateDeckNewCardLimitForDate } from "./reviewService.ts";
+import { updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
 import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
-import { SYNC_MUTATION_TYPES, type AccountSyncEngine } from "./syncEngine.ts";
+import type { AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
 import { useAppNavigation } from "./useAppNavigation.ts";
@@ -58,7 +65,6 @@ const StatisticsScreen = React.lazy<React.ComponentType<StatisticsScreenProps>>(
 const StudyMode = React.lazy<React.ComponentType<StudyModeProps>>(() => import("./screens/StudyMode.tsx").then(({ StudyMode }) => ({ default: StudyMode })));
 
 const menu = createMenuModel();
-const AUTOSAVE_DELAY_MS = 900;
 const googleAuthEnabled = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
 const magicLinkEnabled = import.meta.env.VITE_ENABLE_MAGIC_LINK === "true";
 
@@ -66,10 +72,10 @@ interface SignInInput { email: string; password: string }
 interface SignUpInput extends SignInInput { displayName: string }
 interface EmailInput { email: string }
 interface PasswordUpdateInput { password: string; passwordRepeat: string }
-type CreateDeckInput = Parameters<CoreWorkspace["createDeck"]>[0];
-type CardEditorValue = Parameters<CoreWorkspace["saveDeckCard"]>[2];
-type CardVariantInput = Parameters<CoreWorkspace["addDeckCardVariant"]>[2];
-type ManualCardInput = Parameters<CoreWorkspace["addManualCardToDeck"]>[1];
+type CreateDeckInput = Parameters<typeof createWorkspaceDeck>[1];
+type CardDocumentValue = { fields: Array<{ id: string; value: string }>; tags?: string[] };
+type CardVariantInput = { front: string; back: string; variantLevel?: number; generationSource?: "original" | "ai_generated" | "user_edited" | "imported"; qualityStatus?: "draft" | "active" | "rejected" | "flagged" | "disabled"; isActive?: boolean; meta?: Record<string, unknown> };
+type ManualCardInput = Parameters<typeof createManualCoreDeck>[0];
 type PendingNavigation = { run: () => void; source: "creation" | "card" };
 
 function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string }) {
@@ -161,13 +167,20 @@ export function App() {
   const [authMessage, setAuthMessage] = React.useState("");
   const [authMessageType, setAuthMessageType] = React.useState<"status" | "alert">("status");
   const [migrationMessage, setMigrationMessage] = React.useState("");
-  const [workspace, setWorkspace] = React.useState<CoreWorkspace | null>(null);
+  const [workspaceRepository, setWorkspaceRepository] = React.useState<IndexedDbCoreRepository | null>(null);
   const [state, setState] = React.useState<WorkspaceState | null>(null);
+  const [cardPages, setCardPages] = React.useState<Record<string, DecksCardPage | undefined>>({});
+  const [deckSummaries, setDeckSummaries] = React.useState<ReadonlyMap<string, DeckLibrarySummary>>(new Map());
+  const [studyHeatmap, setStudyHeatmap] = React.useState<StudyHeatmapModel | undefined>();
+  const [studyDecks, setStudyDecks] = React.useState<Deck[] | null>(null);
+  const [studyDefinitions, setStudyDefinitions] = React.useState(state?.noteTypeDefinitions ?? []);
+  const [visibleDefinitions, setVisibleDefinitions] = React.useState(state?.noteTypeDefinitions ?? []);
+  const cardPageRequestRef = React.useRef(new Map<string, string>());
   const [cloudUser, setCloudUser] = React.useState<User | null>(null);
   const [legacyState, setLegacyState] = React.useState<NonNullable<ReturnType<typeof readLegacyLocalState>> | null>(null);
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
   const [syncEngine, setSyncEngine] = React.useState<AccountSyncEngine | null>(null);
-  const [creationDraftDirty, setCreationDraftDirty] = React.useState(false);
+  const creationDraftDirtyRef = React.useRef(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
   const [simulationOffsetMinutes, setSimulationOffsetMinutes] = React.useState(0);
@@ -309,7 +322,7 @@ export function App() {
   }, [cloudUser?.id, pomodoroTimer, setSuccessToast]);
 
   const navigateToView = React.useCallback((...args: Parameters<typeof navigateToViewNow>) => {
-    if (activeView === "neue-karten" && creationDraftDirty) {
+    if (activeView === "neue-karten" && creationDraftDirtyRef.current) {
       setPendingNavigation({ source: "creation", run: () => { navigateToViewNow(...args); } });
       return createViewRoute(activeView);
     }
@@ -318,10 +331,10 @@ export function App() {
       return createViewRoute(activeView);
     }
     return navigateToViewNow(...args);
-  }, [activeView, creationDraftDirty, navigateToViewNow]);
+  }, [activeView, navigateToViewNow]);
 
   const handleCreationDraftStateChange = React.useCallback((dirty: boolean, focusDraft: (() => void) | null) => {
-    setCreationDraftDirty(dirty);
+    creationDraftDirtyRef.current = dirty;
     creationDraftFocusRef.current = focusDraft;
   }, []);
 
@@ -339,7 +352,7 @@ export function App() {
 
   async function confirmPendingNavigation() {
     if (!pendingCardNavigation) {
-      setCreationDraftDirty(false);
+      creationDraftDirtyRef.current = false;
       runPendingNavigation();
       return;
     }
@@ -381,21 +394,100 @@ export function App() {
   function setAppState(nextState: WorkspaceState | null) {
     latestStateRef.current = nextState;
     setState(nextState);
+    cardPageRequestRef.current.clear();
+    setCardPages({});
   }
 
-  function applyCloudAcknowledgement(snapshot: WorkspaceState | null, acknowledgedState: WorkspaceState | null | undefined, runId = bootRunRef.current) {
-    if (!acknowledgedState || !workspace || bootRunRef.current !== runId) return null;
-    const currentState = latestStateRef.current;
-    if (!currentState) return null;
-    if (currentState === snapshot && acknowledgedState === snapshot) {
-      lastAcknowledgedStateRef.current = snapshot;
-      return snapshot;
+  const requestCardPage = React.useCallback(async (request: DecksCardPageRequest) => {
+    if (!workspaceRepository) return;
+    const runId = bootRunRef.current;
+    const requestKey = JSON.stringify(request);
+    cardPageRequestRef.current.set(request.deckId, requestKey);
+    const page = await workspaceRepository.listCardPage(request.deckId, request);
+    if (bootRunRef.current !== runId || cardPageRequestRef.current.get(request.deckId) !== requestKey) return;
+    const definitionIds = [page.selectedCard, ...page.items].flatMap((card) => card?.noteTypeDefinitionId ? [card.noteTypeDefinitionId] : []);
+    const definitions = await workspaceRepository.loadNoteTypeDefinitions(definitionIds);
+    if (bootRunRef.current !== runId || cardPageRequestRef.current.get(request.deckId) !== requestKey) return;
+    setVisibleDefinitions((current) => [...new Map([...current, ...definitions].map((definition) => [definition.id, definition])).values()]);
+    setCardPages((current) => ({
+      ...current,
+      [request.deckId]: { ...page, deckId: request.deckId, query: request.query, sort: request.sort },
+    }));
+  }, [workspaceRepository]);
+
+  const queryStatistics = React.useCallback(
+    ({ period, deckIds }: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection }) => {
+      if (!workspaceRepository) throw new Error("Die lokale Statistik ist noch nicht bereit.");
+      return workspaceRepository.queryStatistics({ period, deckIds, now: learningNow, timeZone: learningTimeZone, dayStartHour: globalSchedulerPreferences.dayStartHour });
+    },
+    [globalSchedulerPreferences.dayStartHour, learningNow, learningTimeZone, workspaceRepository],
+  );
+
+  React.useEffect(() => {
+    if (!workspaceRepository || !state) return;
+    let active = true;
+    void workspaceRepository.listDeckSummaries({
+      now: learningNow,
+      dayStartHour: globalSchedulerPreferences.dayStartHour,
+      learnAheadMinutes: globalSchedulerPreferences.learnAheadMinutes,
+      timeZone: learningTimeZone,
+    }).then((result) => {
+      if (!active) return;
+      setDeckSummaries(result.summaries);
+      setStudyHeatmap(result.studyHeatmap);
+    });
+    return () => { active = false; };
+  }, [globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes, learningNow, learningTimeZone, state?.updatedAt, workspaceRepository]);
+
+  React.useEffect(() => {
+    if (!workspaceRepository || !state || !studyRequest) {
+      setStudyDecks(null);
+      return;
     }
-    const savedState = workspace.saveState(mergeCloudSyncMetadata(currentState, acknowledgedState));
-    if (currentState === snapshot) lastAcknowledgedStateRef.current = savedState;
-    setAppState(savedState);
-    return savedState;
-  }
+    let active = true;
+    const scopeIds = new Set<string>([studyRequest.deckId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const deck of state.decks) {
+        if (deck.parentDeckId && scopeIds.has(deck.parentDeckId) && !scopeIds.has(deck.id)) {
+          scopeIds.add(deck.id);
+          changed = true;
+        }
+      }
+    }
+    const ids = [...scopeIds];
+    void workspaceRepository.loadReviewSession(ids, {
+      now: learningNow,
+      dayStartHour: globalSchedulerPreferences.dayStartHour,
+      timeZone: learningTimeZone,
+    }).then(async (session) => {
+      if (!active) return;
+      const cardsByDeck = new Map<string, LearningItem[]>();
+      for (const { deckId, item } of session.cards) {
+        const bucket = cardsByDeck.get(deckId);
+        if (bucket) bucket.push(item);
+        else cardsByDeck.set(deckId, [item]);
+      }
+      const eventsByDeck = new Map<string, typeof session.reviewEvents>();
+      for (const event of session.reviewEvents) {
+        const bucket = eventsByDeck.get(event.deckId);
+        if (bucket) bucket.push(event);
+        else eventsByDeck.set(event.deckId, [event]);
+      }
+      const decks = ids.flatMap((id) => {
+        const summary = state.decks.find((deck) => deck.id === id);
+        if (!summary) return [];
+        return [{ ...summary, cards: cardsByDeck.get(id) ?? [], reviewEvents: eventsByDeck.get(id) ?? [] } as Deck];
+      });
+      const definitionIds = decks.flatMap((deck) => deck.cards.map((card) => card.noteTypeDefinitionId));
+      const definitions = await workspaceRepository.loadNoteTypeDefinitions(definitionIds);
+      if (!active) return;
+      setStudyDecks(decks);
+      setStudyDefinitions(definitions);
+    });
+    return () => { active = false; };
+  }, [globalSchedulerPreferences.dayStartHour, learningNow, learningTimeZone, state?.decks, studyRequest, workspaceRepository]);
 
   async function bootAuthenticatedUser(user: User) {
     const runId = bootRunRef.current + 1;
@@ -409,7 +501,8 @@ export function App() {
 
     if (bootRunRef.current !== runId) return;
 
-    setWorkspace(boot.workspace);
+    setWorkspaceRepository(boot.repository);
+    setCardPages({});
     setSyncEngine(boot.syncEngine);
     lastAcknowledgedStateRef.current = boot.state;
     setAppState(boot.state);
@@ -436,7 +529,8 @@ export function App() {
     const recoverPassword = (user: User) => {
       bootRunRef.current += 1;
       setCloudUser(user);
-      setWorkspace(null);
+      setWorkspaceRepository(null);
+      setCardPages({});
       lastAcknowledgedStateRef.current = null;
       setAppState(null);
       setLegacyState(null);
@@ -477,36 +571,19 @@ export function App() {
     return startAppSyncLifecycle({
       authPhase,
       syncEngine,
-      getLatestState: () => latestStateRef.current,
-      getRunId: () => bootRunRef.current,
       onStatus: setSyncStatus,
-      onAcknowledged: applyCloudAcknowledgement,
     });
-  }, [authPhase, syncEngine, workspace]);
+  }, [authPhase, syncEngine]);
 
   React.useEffect(() => {
-    if (authPhase !== "ready" || !mediaStore || !syncEngine || !workspace) return undefined;
+    if (authPhase !== "ready" || !mediaStore || !syncEngine || !workspaceRepository) return undefined;
     return startAppMediaRetryLifecycle({
       mediaStore,
       getState: () => latestStateRef.current,
       ensureCloudParents: async () => { await syncNow(); },
       persistMediaDecks: (decks) => persistImportedDecks(decks, { mediaOnly: true }),
     });
-  }, [authPhase, mediaStore, syncEngine, workspace]);
-
-  React.useEffect(() => {
-    return startAppAutosaveLifecycle({
-      authPhase,
-      syncEngine,
-      state,
-      lastAcknowledgedState: lastAcknowledgedStateRef.current,
-      runId: bootRunRef.current,
-      delayMs: AUTOSAVE_DELAY_MS,
-      onAcknowledged: applyCloudAcknowledgement,
-      onStatus: setSyncStatus,
-      formatError: (error) => formatCloudAuthError(error, "Synchronisierung fehlgeschlagen."),
-    });
-  }, [authPhase, state, syncEngine, workspace]);
+  }, [authPhase, mediaStore, syncEngine, workspaceRepository]);
 
   async function handleSignIn({ email, password }: SignInInput) {
     if (!supabase) return;
@@ -621,15 +698,15 @@ export function App() {
   }
 
   async function importLegacyLocalState() {
-    if (!workspace || !state || !cloudUser || !legacyState) return;
+    if (!workspaceRepository || !state || !cloudUser || !legacyState) return;
     setAuthBusy(true);
     setMigrationMessage("");
     try {
       const nextState = mergePortableExportIntoState(state, createPortableExport(legacyState));
-      const savedState = workspace.saveState(nextState);
+      const savedState = workspaceRepository.replaceFullState(nextState);
       setAppState(savedState);
       const result = await replaceAccountCloudState(supabase, savedState, { deviceId: createBrowserSyncDevice().id });
-      const acknowledgedState = workspace.saveState(result.state);
+      const acknowledgedState = workspaceRepository.replaceFullState(result.state);
       lastAcknowledgedStateRef.current = acknowledgedState;
       setAppState(acknowledgedState);
       markLocalMigrationHandled(cloudUser.id, "imported");
@@ -650,14 +727,9 @@ export function App() {
   }
 
   async function syncNow() {
-    if (!syncEngine || !state) return;
-    const snapshot = state;
-    const runId = bootRunRef.current;
+    if (!syncEngine) return;
     try {
-      syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
-      const result = await syncEngine.flush(undefined, { force: true });
-      applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
-      return result;
+      return await syncEngine.flush({ force: true });
     } catch (error) {
       setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Synchronisierung fehlgeschlagen.")));
       throw error;
@@ -669,15 +741,13 @@ export function App() {
   }, [syncEngine]);
 
   async function resolveSyncConflict(conflictId: string, decision: Record<string, unknown>) {
-    if (!syncEngine || !workspace || !latestStateRef.current) throw new Error("Synchronisierung ist noch nicht bereit.");
+    if (!syncEngine || !workspaceRepository) throw new Error("Synchronisierung ist noch nicht bereit.");
     try {
-      const result = await syncEngine.resolveConflict(conflictId, decision, latestStateRef.current);
-      const savedState = workspace.saveState(result.nextState);
-      lastAcknowledgedStateRef.current = savedState;
-      setAppState(savedState);
+      const result = await syncEngine.resolveConflict(conflictId, decision);
+      setAppState(workspaceRepository.getShellState());
       return result;
     } catch (error) {
-      setAppState(workspace.getState());
+      if (workspaceRepository) setAppState(workspaceRepository.getShellState());
       setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Konfliktentscheidung konnte nicht gespeichert werden.")));
       throw error;
     }
@@ -690,7 +760,8 @@ export function App() {
     bootRunRef.current += 1;
     resetBrowserRouteToDefault();
     setSimulationOffsetMinutes(0);
-    setWorkspace(null);
+    setWorkspaceRepository(null);
+    setCardPages({});
     setSyncEngine(null);
     lastAcknowledgedStateRef.current = null;
     setAppState(null);
@@ -703,82 +774,104 @@ export function App() {
   }
 
   function refresh() {
-    if (!workspace) return null;
-    const nextState = workspace.getState();
+    if (!workspaceRepository) return null;
+    const nextState = workspaceRepository.getShellState();
     setAppState(nextState);
     return nextState;
   }
 
-  function runWorkspaceMutation<T>(mutation: (currentWorkspace: CoreWorkspace) => T): T | null {
-    if (!workspace) return null;
-    const result = mutation(workspace);
+  function runRepositoryMutation<T>(mutation: (repository: IndexedDbCoreRepository) => T): T | null {
+    if (!workspaceRepository) return null;
+    const result = mutation(workspaceRepository);
     refresh();
+    if (workspaceRepository && syncEngine) {
+      queueMicrotask(() => {
+        void workspaceRepository.flush()
+          .then(() => syncEngine.flush({ force: true }))
+          .catch((error) => setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Die Änderung bleibt lokal gespeichert und wird später erneut synchronisiert."))));
+      });
+    }
     return result;
   }
 
-  function saveDeck(deck: Deck | Deck[]) {
-    const nextDecks = Array.isArray(deck) ? deck : [deck];
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveDecks(nextDecks));
+  async function persistImportedDecks(decks: Deck[], { mediaOnly = false, commitGraph }: { mediaOnly?: boolean; commitGraph?: ImportCommitGraph } = {}) {
+    if (!workspaceRepository || !syncEngine) throw new Error("Die Cloud-Synchronisierung ist noch nicht bereit.");
+    const nextDecks = decks;
+    if (mediaOnly) {
+      workspaceRepository.saveDeckMetadata(nextDecks);
+      refresh();
+      await workspaceRepository.flush();
+      await syncEngine.flush({ force: true });
+      return nextDecks;
+    }
+    let importedDecks: Array<{ id: string }>;
+    if (commitGraph && !mediaOnly) {
+      importedDecks = await workspaceRepository.commitImportGraph(commitGraph.kind === "worker-import" ? commitGraph : { ...commitGraph, decks: nextDecks });
+    } else {
+      importedDecks = await workspaceRepository.commitImportGraph({
+        decks: nextDecks,
+        noteTypeDefinitions: [],
+        sourceSnapshots: [],
+      });
+    }
+    const nextState = refresh();
+    await workspaceRepository.flush();
+    await syncEngine.flush({ force: true });
+    const importedIds = new Set(importedDecks.map((deck) => deck.id));
+    return nextState?.decks.filter((deck) => importedIds.has(deck.id)) ?? nextDecks;
   }
 
-  async function persistImportedDecks(decks: Deck[], { mediaOnly = false }: { mediaOnly?: boolean } = {}) {
-    if (!workspace || !syncEngine) throw new Error("Die Cloud-Synchronisierung ist noch nicht bereit.");
-    const currentDecks = workspace.getState().decks;
-    const nextDecks = mediaOnly ? decks.map((deck) => {
-      const current = currentDecks.find((candidate) => candidate.id === deck.id);
-      return current ? { ...current, mediaAssets: deck.mediaAssets } : deck;
-    }) : decks;
-    saveDeck(nextDecks);
-    const snapshot = workspace.getState();
-    const runId = bootRunRef.current;
-    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
-    const result = await syncEngine.flush(undefined, { force: true });
-    applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
-    return result;
-  }
-
-  function enqueueReviewEvent(event: ReviewEvent) {
-    if (!syncEngine || !event?.id) return;
-    syncEngine.enqueueMutation({
-      id: `review_${event.id}`,
-      type: SYNC_MUTATION_TYPES.reviewEventAppend,
-      table: "review_events",
-      entityId: event.id,
-      payload: { event },
+  function recordReview(result: ReviewAnswerResult) {
+    if (!workspaceRepository || !syncEngine) return;
+    workspaceRepository.recordReview(result);
+    queueMicrotask(() => {
+      void syncEngine.flush({ force: true })
+        .catch((error) => setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Review konnte noch nicht synchronisiert werden."))));
     });
   }
 
   function createDeck(input: CreateDeckInput = {}) {
-    const saved = runWorkspaceMutation((currentWorkspace) => currentWorkspace.createDeck(input));
+    const created = state ? createWorkspaceDeck(state.decks, input) : null;
+    const saved = created ? runRepositoryMutation((repository) => repository.saveDeckMetadata([created])[0] ?? null) : null;
     if (!saved) return null;
     navigateToViewNow("lernen", { focusedDeckId: saved.id }, { replace: true });
     return saved;
   }
 
   function updateDeck(deckId: string, updater: (deck: Deck) => Deck) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.updateDeck(deckId, updater));
+    if (!state) return null;
+    const deck = latestStateRef.current?.decks.find((candidate) => candidate.id === deckId);
+    return deck ? runRepositoryMutation((repository) => repository.saveDeckMetadata([updater(deck)])[0] ?? null) : null;
   }
 
   async function deleteDeck(deckId: string) {
-    const result = await runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.deleteDeckTree(deckId));
+    if (!workspaceRepository || !syncEngine) return null;
+    const result = await workspaceRepository.deleteDeckTree(deckId);
     if (!result) return null;
+    refresh();
+    await workspaceRepository.flush();
+    await syncEngine.flush({ force: true });
     return result;
   }
 
   function renameDeck(deckId: string, name: string) {
-    const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.renameDeck(deckId, name));
+    if (!state) return null;
+    const result = updateDeckTreePlacement(state, { deckId, name, changeType: "deck_renamed", reason: "Stapel umbenannt" });
     if (!result) return null;
+    if (result.ok && result.updatedDecks.length) runRepositoryMutation((repository) => repository.saveDeckMetadata(result.updatedDecks));
     return result;
   }
 
   function moveDeck(deckId: string, parentDeckId: string | null = null) {
-    const result = runWorkspaceMutation((currentWorkspace) => currentWorkspace.moveDeck(deckId, parentDeckId));
+    if (!state) return null;
+    const result = updateDeckTreePlacement(state, { deckId, parentDeckId, changeType: "deck_moved", reason: parentDeckId ? "Stapel als Unterstapel verschoben" : "Stapel auf Hauptebene verschoben" });
     if (!result) return null;
+    if (result.ok && result.updatedDecks.length) runRepositoryMutation((repository) => repository.saveDeckMetadata(result.updatedDecks));
     return result;
   }
 
   function setDeckCoreMode(deckId: string, coreMode: CoreMode) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.setDeckCoreMode(deckId, coreMode));
+    return runRepositoryMutation((repository) => repository.updateDeckSettings(deckId, { coreMode }));
   }
 
   function saveDeckLearningSettings(
@@ -810,7 +903,17 @@ export function App() {
   }
 
   function setCardStudyState(deckId: string, cardId: string, patch: LearningItemStudyStatePatch) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.setDeckCardStudyState(deckId, cardId, patch));
+    return runCardCommand(deckId, workspaceRepository?.updateCard(deckId, cardId, (card) => updateLearningItemStudyState(card, patch, new Date().toISOString())) ?? Promise.resolve(null));
+  }
+
+  function setStudyCardStudyState(deckId: string, cardId: string, patch: LearningItemStudyStatePatch) {
+    const deck = studyDecks?.find((candidate) => candidate.id === deckId);
+    if (!deck) return null;
+    const updatedAt = new Date().toISOString();
+    const updated = { ...deck, updatedAt, cards: deck.cards.map((card) => card.id === cardId ? updateLearningItemStudyState(card, patch, updatedAt) : card) };
+    setStudyDecks((current) => current?.map((candidate) => candidate.id === deckId ? updated : candidate) ?? current);
+    void setCardStudyState(deckId, cardId, patch);
+    return updated;
   }
 
   function saveDeckAppearance(deckId: string, appearance: Deck["deckSettings"]["appearance"]) {
@@ -823,111 +926,133 @@ export function App() {
 
   function saveGlobalSchedulerPreferences(settings: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">) {
     if (!state) return null;
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(withGlobalSchedulerPreferences(state.profile, settings)));
+    return runRepositoryMutation((repository) => repository.saveProfile(withGlobalSchedulerPreferences(state.profile, settings)));
   }
 
   function saveLearningProfiles(learningProfiles: LearningProfileTemplate[]) {
     if (!state) return null;
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(withGlobalSchedulerPreferences(state.profile, { learningProfiles })));
+    return runRepositoryMutation((repository) => repository.saveProfile(withGlobalSchedulerPreferences(state.profile, { learningProfiles })));
+  }
+
+  async function runCardCommand(deckId: string, command: Promise<LearningItem | null>, refreshPage = false) {
+    if (!workspaceRepository || !syncEngine) throw new Error("Die Cloud-Synchronisierung ist noch nicht bereit.");
+    const card = await command;
+    if (!card) return null;
+    refresh();
+    if (refreshPage) setCardPages((current) => ({ ...current, [deckId]: undefined }));
+    queueMicrotask(() => {
+      void syncEngine.flush({ force: true })
+        .then(() => syncEngine.pendingCount() > 0 ? syncEngine.flush({ force: true }) : undefined)
+        .catch((error) => setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Die Änderung bleibt lokal gespeichert und wird später erneut synchronisiert."))));
+    });
+    return card;
+  }
+
+  async function runCardDeletion(deckId: string, cardId: string) {
+    if (!workspaceRepository || !syncEngine) throw new Error("Die Cloud-Synchronisierung ist noch nicht bereit.");
+    const deleted = await workspaceRepository.updateCard(
+      deckId,
+      cardId,
+      (current) => softDeleteCard(current, new Date().toISOString()),
+    );
+    if (!deleted) return null;
+    refresh();
+    setCardPages((pages) => ({ ...pages, [deckId]: undefined }));
+    queueMicrotask(() => {
+      void syncEngine.flush({ force: true })
+        .then(() => syncEngine.pendingCount() > 0 ? syncEngine.flush({ force: true }) : undefined)
+        .catch((error) => setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Die Löschung bleibt lokal gespeichert und wird später erneut synchronisiert."))));
+    });
+    return deleted;
   }
 
   async function saveDeckCard(deckId: string, cardId: string, value: CardEditorValue) {
-    if (!workspace || !syncEngine) throw new Error("Die Cloud-Synchronisierung ist noch nicht bereit.");
-    const runId = bootRunRef.current;
-    const currentSnapshot = workspace.getState();
-    try {
-      const pendingResult = await syncEngine.flush(currentSnapshot, { force: true });
-      applyCloudAcknowledgement(currentSnapshot, pendingResult.saved?.state, runId);
-    } catch {
-      // Der definitive Snapshot nach der lokalen Kartenmutation versucht die Synchronisierung erneut.
-    }
-    const savedCard = workspace.saveDeckCard(deckId, cardId, value);
-    const snapshot = workspace.getState();
-    setAppState(snapshot);
-    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
-    const result = await syncEngine.flush(undefined, { force: true });
-    const acknowledged = applyCloudAcknowledgement(snapshot, result.saved?.state, runId);
-    if (!acknowledged) throw new Error("Die Kartenänderung wurde nicht von der Cloud bestätigt.");
-    return savedCard;
+    if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const card = await workspaceRepository.loadCard(cardId);
+    if (!card) return null;
+    const [definition] = await workspaceRepository.loadNoteTypeDefinitions([card.noteTypeDefinitionId]);
+    return runCardCommand(deckId, workspaceRepository.updateCard(deckId, cardId, (current) => saveCardEditorValue(current, value, definition)));
   }
 
-  async function runSyncedWorkspaceMutation<T>(mutation: (currentWorkspace: CoreWorkspace) => T): Promise<T | null> {
-    if (!workspace || !syncEngine) return null;
-    const result = runWorkspaceMutation(mutation);
-    if (result == null) return null;
-    const snapshot = workspace.getState();
-    const runId = bootRunRef.current;
-    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
-    const syncResult = await syncEngine.flush(undefined, { force: true });
-    const acknowledged = applyCloudAcknowledgement(snapshot, syncResult.saved?.state, runId);
-    if (!acknowledged) throw new Error("Die Änderung wurde nicht von der Cloud bestätigt.");
-    return result;
+  async function saveDeckCardDocument(
+    deckId: string,
+    cardId: string,
+    value: CardDocumentValue,
+  ) {
+    if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const current = await workspaceRepository.loadCard(cardId);
+    if (!current) return null;
+    const [definition] = await workspaceRepository.loadNoteTypeDefinitions([current.noteTypeDefinitionId]);
+    if (!definition) throw new Error("Die Notetype-Definition der Karte fehlt.");
+    return runCardCommand(deckId, workspaceRepository.updateCard(deckId, cardId, (card) => saveLearningItemDocumentValues({ previous: card, definition, ...value }).item));
   }
 
   async function deleteDeckCard(deckId: string, cardId: string) {
-    if (!workspace || !syncEngine) return null;
-    const result = workspace.deleteDeckCard(deckId, cardId);
-    const snapshot = refresh();
-    if (!result || !snapshot) return null;
-
-    const runId = bootRunRef.current;
-    syncEngine.enqueueMutation({ type: SYNC_MUTATION_TYPES.statePatch, payload: { state: snapshot } });
-    void syncEngine.flush(undefined, { force: true }).then(({ saved }) => {
-      applyCloudAcknowledgement(snapshot, saved?.state, runId);
-    }).catch(() => {
-      // Die lokal persistierte Löschung bleibt in der Outbox; der Sync-Status zeigt den Fehler separat.
-    });
-    return result;
+    return runCardDeletion(deckId, cardId);
   }
 
-  function duplicateDeckCard(deckId: string, cardId: string) {
-    return runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.duplicateDeckCard(deckId, cardId));
+  async function duplicateDeckCard(deckId: string, cardId: string) {
+    if (!workspaceRepository) return null;
+    const source = await workspaceRepository.loadCard(cardId);
+    const copy = source ? duplicateLearningItemContent(source) : null;
+    return copy ? runCardCommand(deckId, workspaceRepository.insertCard(deckId, copy), true) : null;
   }
 
   function undoDeleteDeckCard(deckId: string, deletedCard: LearningItem) {
-    return runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.restoreDeletedDeckCard(deckId, deletedCard));
+    const tombstone = workspaceRepository?.getCloudTombstones().find((candidate) => candidate.entityTable === "cards" && candidate.entityId === deletedCard.id);
+    const restored = restoreSoftDeletedCard({ ...deletedCard, revision: tombstone?.revision ?? deletedCard.revision, updatedByDeviceId: tombstone?.updatedByDeviceId ?? deletedCard.updatedByDeviceId }, new Date().toISOString());
+    workspaceRepository?.removeCloudTombstone("cards", restored.id);
+    return runCardCommand(deckId, workspaceRepository?.insertCard(deckId, restored) ?? Promise.resolve(null), true);
   }
 
-  function restoreDeckCard(deckId: string, cardId: string, versionId: string) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.restoreDeckCardVersion(deckId, cardId, versionId));
+  async function restoreDeckCard(deckId: string, cardId: string, versionId: string) {
+    if (!workspaceRepository) return null;
+    const card = await workspaceRepository.loadCard(cardId);
+    if (!card) return null;
+    const [definition] = await workspaceRepository.loadNoteTypeDefinitions([card.noteTypeDefinitionId]);
+    return runCardCommand(deckId, workspaceRepository.updateCard(deckId, cardId, (current) => restoreCardVersion(current, versionId, definition)));
   }
 
   function addDeckCardVariant(deckId: string, cardId: string, variant: CardVariantInput) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.addDeckCardVariant(deckId, cardId, variant));
+    return runCardCommand(deckId, workspaceRepository?.updateCard(deckId, cardId, (card) => addRephrasedVariant(card, variant.front, variant.back, {
+      ...variant,
+      generationSource: variant.generationSource ?? "user_edited",
+      meta: { source: "deck-card-editor", ...(variant.meta ?? {}) },
+    })) ?? Promise.resolve(null));
   }
 
   async function generateDeckCardVariant(deckId: string, cardId: string) {
-    if (!workspace) throw new AiCardVariantContractError("workspace_unavailable", "Die Kartenverwaltung ist noch nicht bereit.");
-    const sourceCard = workspace.getState().decks.find((deck) => deck.id === deckId)?.cards.find((card) => card.id === cardId && !card.deletedAt);
+    if (!workspaceRepository) throw new AiCardVariantContractError("workspace_unavailable", "Die Kartenverwaltung ist noch nicht bereit.");
+    const sourceCard = await workspaceRepository.loadCard(cardId);
     const sourcePayload = sourceCard ? getCardContentPayload(sourceCard) : null;
     if (!sourcePayload) throw new AiCardVariantContractError("card_not_found", "Die Ausgangskarte ist nicht mehr verfügbar.");
     const generated = await requestAiCardVariant(sourcePayload, supabase);
 
-    const currentCard = workspace.getState().decks.find((deck) => deck.id === deckId)?.cards.find((card) => card.id === cardId && !card.deletedAt);
+    const currentCard = await workspaceRepository.loadCard(cardId);
     const draft = createAiGeneratedVariantDraft(sourcePayload, currentCard, generated);
-    const saved = await runSyncedWorkspaceMutation((currentWorkspace) => currentWorkspace.addDeckCardVariant(deckId, cardId, draft, "KI-Umformulierung"));
+    const saved = await addDeckCardVariant(deckId, cardId, { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } });
     if (!saved) throw new AiCardVariantContractError("save_failed", "Die KI-Variante konnte nicht gespeichert werden.");
     return generated;
   }
 
-  function addManualCardToDeck(deckId: string, manualDeckInput: ManualCardInput) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.addManualCardToDeck(deckId, manualDeckInput));
-  }
-
   async function completeCreatedDeck(deck: Deck) {
     await persistImportedDecks([deck]);
-    return workspace?.getState().decks.find((candidate) => candidate.id === deck.id) ?? null;
+    return state?.decks.find((candidate) => candidate.id === deck.id) ?? deck;
   }
 
   async function completeManualCard(deckId: string, manualDeckInput: ManualCardInput) {
-    const deck = addManualCardToDeck(deckId, manualDeckInput);
-    if (deck) await persistImportedDecks([deck]);
-    return deck;
+    if (!workspaceRepository) return null;
+    const manualDeck = createManualCoreDeck(manualDeckInput);
+    const card = manualDeck.cards[0];
+    const summary = state?.decks.find((deck) => deck.id === deckId);
+    if (!card || !summary) return null;
+    const saved = await runCardCommand(deckId, workspaceRepository.insertCard(deckId, card, manualDeck.sourceDocuments ?? []), true);
+    return saved ? { ...summary, cards: [saved], reviewEvents: [], sourceDocuments: manualDeck.sourceDocuments ?? [], updatedAt: saved.updatedAt } : null;
   }
 
   async function createDemo() {
-    const decks = runWorkspaceMutation((currentWorkspace: { createWorldCapitalsDemo: () => Deck[] }) => currentWorkspace.createWorldCapitalsDemo());
-    if (decks?.length) await persistImportedDecks(decks);
+    const decks = createWorldCapitalsSeedDecks().map((deck) => ({ ...deck, reviewEvents: [] }));
+    await persistImportedDecks(decks);
     navigateToView("lernen");
     return decks;
   }
@@ -956,19 +1081,33 @@ export function App() {
   }
 
   function saveProfile(profile: unknown) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile(profile));
+    return runRepositoryMutation((repository) => repository.saveProfile(profile));
   }
 
   function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
-    if (!workspace) return null;
-    const profile = workspace.getState().profile;
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveProfile({
+    if (!workspaceRepository || !state) return null;
+    const profile = state.profile;
+    return runRepositoryMutation((repository) => repository.saveProfile({
       uiPreferences: setDeckExpanded(profile.uiPreferences, surface, deckId, expanded),
     }));
   }
 
-  function saveState(nextState: WorkspaceState) {
-    return runWorkspaceMutation((currentWorkspace) => currentWorkspace.saveState(nextState));
+  async function createPortableExportText() {
+    if (!workspaceRepository) throw new Error("Der Export ist noch nicht bereit.");
+    return stringifyPortableExport(await workspaceRepository.materializeFullState());
+  }
+
+  async function importPortableExport(value: string) {
+    if (!workspaceRepository || !syncEngine || !supabase) throw new Error("Der Import ist noch nicht bereit.");
+    const current = await workspaceRepository.materializeFullState();
+    const nextState = mergePortableExportIntoState(current, value);
+    workspaceRepository.replaceFullState(nextState);
+    await workspaceRepository.flush();
+    const result = await replaceAccountCloudState(supabase, nextState, { deviceId: createBrowserSyncDevice().id });
+    workspaceRepository.replaceFullState(result.state, workspaceRepository.getCloudDeltaCursors());
+    await workspaceRepository.flush();
+    refresh();
+    return syncEngine.flush({ force: true });
   }
 
   function startDeck(deck: { id: string; }, variantSession = false) {
@@ -992,8 +1131,8 @@ export function App() {
   }
 
   function startAdditionalCards(deckId: string, requestedCount: number): { ok: boolean; message?: string } {
-    if (!workspace) return { ok: false, message: "Die zusätzlichen Karten konnten nicht vorbereitet werden." };
-    const currentState = workspace.getState();
+    if (!workspaceRepository) return { ok: false, message: "Die zusätzlichen Karten konnten nicht vorbereitet werden." };
+    const currentState = state!;
     const currentPreferences = getGlobalSchedulerPreferences(currentState.profile);
     const currentTimeZone = currentState.profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     const currentPlan = createDeckLibraryModel(currentState.decks, {
@@ -1001,6 +1140,7 @@ export function App() {
       dayStartHour: currentPreferences.dayStartHour,
       learnAheadMinutes: currentPreferences.learnAheadMinutes,
       timeZone: currentTimeZone,
+      deckSummaries,
     }).dailyLearningPlan;
     const session = currentPlan.sessions.find((candidate) => candidate.deckId === deckId) ?? null;
     const additionalCount = Math.min(
@@ -1012,13 +1152,12 @@ export function App() {
       return { ok: false, message: "Für diesen Stapel sind keine zusätzlichen neuen Karten verfügbar." };
     }
 
-    const updatedDeck = runWorkspaceMutation((currentWorkspace) => currentWorkspace.updateDeck(deckId, (deck) => (
-      updateDeckNewCardLimitForDate(
-        deck,
-        Math.max(session.effectiveNewLimit, session.introducedTodayCount) + additionalCount,
-        { dateKey: currentPlan.dateKey, updatedAt: new Date().toISOString() },
-      )
-    )));
+    const deck = latestStateRef.current?.decks.find((candidate) => candidate.id === deckId);
+    const updatedDeck = deck ? updateDeck(deckId, (current) => updateDeckNewCardLimitForDate(
+      current,
+      Math.max(session.effectiveNewLimit, session.introducedTodayCount) + additionalCount,
+      { dateKey: currentPlan.dateKey, updatedAt: new Date().toISOString() },
+    )) : null;
     if (!updatedDeck) return { ok: false, message: "Die zusätzlichen Karten konnten nicht gespeichert werden." };
 
     startDeck(updatedDeck);
@@ -1026,7 +1165,7 @@ export function App() {
   }
 
   function openDecks(deckId: string | null = null, cardId: string | null = null) {
-    navigateToView("kartenstapel", {
+    navigateToViewNow("kartenstapel", {
       focusedDeckId: deckId || null,
       selectedCardId: deckId && cardId ? cardId : null,
     });
@@ -1083,6 +1222,7 @@ export function App() {
         <DeckSettingsScreen
           deck={state.decks.find((deck) => deck.id === focusedDeckId) ?? null}
           decks={state.decks}
+          deckSummaries={deckSummaries}
           learningProfiles={globalSchedulerPreferences.learningProfiles}
           onSave={saveDeckLearningSettings}
           onSaveLearningProfiles={saveLearningProfiles}
@@ -1106,6 +1246,9 @@ export function App() {
       return (
         <DecksScreen
           decks={state.decks}
+          cardPages={workspaceRepository ? cardPages : undefined}
+          onRequestCardPage={workspaceRepository ? requestCardPage : undefined}
+          noteTypeDefinitions={visibleDefinitions}
           now={learningNow}
           dayStartHour={globalSchedulerPreferences.dayStartHour}
           learnAheadMinutes={globalSchedulerPreferences.learnAheadMinutes}
@@ -1113,6 +1256,7 @@ export function App() {
           mediaStore={mediaStore}
           onSetDeckCoreMode={setDeckCoreMode}
           onSaveCard={saveDeckCard}
+          onSaveCardDocument={saveDeckCardDocument}
           onSetCardStudyState={setCardStudyState}
           onDuplicateCard={duplicateDeckCard}
           onDeleteCard={deleteDeckCard}
@@ -1174,6 +1318,7 @@ export function App() {
       return (
         <LearnScreen
           decks={state.decks}
+          deckSummaries={deckSummaries}
           now={learningNow}
           dayStartHour={globalSchedulerPreferences.dayStartHour}
           learnAheadMinutes={globalSchedulerPreferences.learnAheadMinutes}
@@ -1198,6 +1343,7 @@ export function App() {
       return (
         <StatisticsScreen
           decks={state.decks}
+          queryStatistics={queryStatistics}
           now={learningNow}
           timeZone={learningTimeZone}
           dayStartHour={globalSchedulerPreferences.dayStartHour}
@@ -1225,13 +1371,13 @@ export function App() {
     if (activeView === "einstellungen") {
       return (
         <SettingsScreen
-          appState={state}
           profile={state.profile}
           syncStatus={syncStatus}
           onSaveProfile={saveProfile}
           globalSchedulerPreferences={globalSchedulerPreferences}
           onSaveGlobalSchedulerPreferences={saveGlobalSchedulerPreferences}
-          onSaveState={saveState}
+          onCreateExport={createPortableExportText}
+          onImportExport={importPortableExport}
           onSyncNow={syncNow}
           onListConflicts={listSyncConflicts}
           onResolveConflict={resolveSyncConflict}
@@ -1244,7 +1390,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={setDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} />;
+    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={setDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} />;
   }
 
   if (authPhase === "checking-session") {
@@ -1279,17 +1425,19 @@ export function App() {
     return <MigrationChoiceScreen legacyState={legacyState} busy={authBusy} message={migrationMessage} onImport={importLegacyLocalState} onSkip={skipLegacyLocalState} />;
   }
 
-  if (!shouldShowAppShell(authPhase) || !workspace || !state) {
+  if (!shouldShowAppShell(authPhase) || !workspaceRepository || !state) {
     return <LoadingScreen />;
   }
 
-  const studyDeck = studyRequest ? state.decks.find((deck) => deck.id === studyRequest.deckId) : null;
+  const studyDeck = studyRequest ? studyDecks?.find((deck) => deck.id === studyRequest.deckId) ?? null : null;
+  if (studyRequest && !studyDecks) return <LoadingScreen message="Lernsitzung wird vorbereitet." />;
   if (studyRequest && studyDeck) {
     return (
       <React.Suspense fallback={<LoadingScreen message="Lernmodus wird geladen." />}>
         <StudyMode
           deck={studyDeck}
-          decks={state.decks}
+          decks={studyDecks ?? [studyDeck]}
+          noteTypeDefinitions={studyDefinitions}
           deckId={studyDeck.id}
           variantSession={studyRequest.variantSession}
           variantId={studyRequest.variantId}
@@ -1333,28 +1481,28 @@ export function App() {
               },
             },
           })}
-          onSetCardStudyState={setCardStudyState}
-          onDeckUpdated={saveDeck}
-          onReviewEvent={enqueueReviewEvent}
+          onSetCardStudyState={setStudyCardStudyState}
+          onCardUpdated={(deckId, card) => { void runCardCommand(deckId, workspaceRepository.updateCard(deckId, card.id, () => card)); }}
+          onReview={recordReview}
         />
       </React.Suspense>
     );
   }
 
   return (
-    <main className="min-h-dvh overflow-x-clip bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
-      <div className="grid min-h-[calc(100vh-2rem)] w-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-[var(--core-border)] bg-core-surface shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] xl:h-[calc(100dvh-4rem)] xl:min-h-0 xl:grid-cols-[13rem_minmax(0,1fr)] xl:grid-rows-1">
+    <main className="core-app-shell min-h-dvh overflow-x-clip bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
+      <div className="core-app-frame grid min-h-[calc(100vh-2rem)] min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-[var(--core-border)] bg-core-surface shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] xl:h-[calc(100dvh-4rem)] xl:min-h-0 xl:grid-cols-[13rem_minmax(0,1fr)] xl:grid-rows-1">
         <AppNavigation
           navigationItems={navigationItems}
           activeView={activeView}
           simulationOffsetMinutes={simulationOffsetMinutes}
           simulationDateLabel={formatSimulationDate(learningNow)}
           pomodoroTimer={pomodoroTimer}
-          onNavigate={navigateToView}
+          onNavigate={(viewId) => viewId === "lernen" ? openLearn(focusedDeckId) : navigateToView(viewId)}
           onResetSimulation={() => changeSimulationOffset(0)}
         />
 
-        <section ref={screenRegionRef} className="min-w-0 overflow-x-hidden px-5 pb-32 pt-8 outline-none sm:px-8 lg:px-12 xl:overflow-y-auto xl:py-12" tabIndex={-1} aria-label="Seiteninhalt">
+        <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-hidden px-5 pb-32 pt-8 outline-none sm:px-8 lg:px-12 xl:overflow-y-auto xl:py-12" tabIndex={-1} aria-label="Seiteninhalt">
           <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
         </section>
       </div>

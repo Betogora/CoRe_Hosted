@@ -65,20 +65,20 @@ export function AuthGateScreen({
   }
 
   return (
-    <main className="min-h-screen bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
-      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[var(--core-border)] bg-core-surface px-5 py-10 shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
-        <div className="w-full max-w-md">
+    <main className="core-auth-shell min-h-screen min-w-0 bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
+      <div className="core-auth-frame grid min-w-0 min-h-[calc(100vh-2rem)] grid-cols-[minmax(0,1fr)] place-items-center rounded-[22px] border border-[var(--core-border)] bg-core-surface px-5 py-10 shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
+        <div className="min-w-0 w-full max-w-md">
           <div className="mb-8">
             <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
             <p className="mt-2 core-body-large text-[var(--core-text-muted)]">Content Repetition</p>
           </div>
 
-          <SoftPanel className="p-6">
-            <div className="mb-6 flex items-center gap-3">
-              <OrbIcon icon={Lock} />
-              <div>
+          <SoftPanel className="core-auth-panel p-6">
+            <div className="core-auth-heading mb-6 flex min-w-0 items-center gap-3">
+              <OrbIcon icon={Lock} className="core-auth-heading-icon" />
+              <div className="min-w-0">
                 <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Login</p>
-                <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">{title}</h2>
+                <h2 className="core-heading-2 break-words font-semibold text-[var(--core-text)]">{title}</h2>
               </div>
             </div>
 
@@ -88,18 +88,18 @@ export function AuthGateScreen({
               </p>
             ) : null}
 
-            <form ref={formRef} className="grid gap-4" onSubmit={submit} aria-busy={busy}>
+            <form ref={formRef} className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4" onSubmit={submit} aria-busy={busy}>
               {isSignUp ? (
-                <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   Anzeigename
-                  <input className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" />
+                  <input className="min-h-11 min-w-0 w-full max-w-full rounded-xl border border-[var(--core-border)] px-3" value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" />
                 </label>
               ) : null}
 
               {needsEmail ? (
-                <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   E-Mail
-                  <span className="flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-3">
+                  <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--core-border)] px-3">
                     <Mail size={17} className="text-[var(--core-text-muted)]" aria-hidden="true" />
                     <input className="min-w-0 flex-1 outline-none" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
                   </span>
@@ -107,10 +107,10 @@ export function AuthGateScreen({
               ) : null}
 
               {needsPassword ? (
-                <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   {isRecovery ? "Neues Passwort" : "Passwort"}
                   <input
-                    className="min-h-11 rounded-xl border border-[var(--core-border)] px-3"
+                    className="min-h-11 min-w-0 w-full max-w-full rounded-xl border border-[var(--core-border)] px-3"
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -122,10 +122,10 @@ export function AuthGateScreen({
               ) : null}
 
               {isRecovery ? (
-                <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   Passwort wiederholen
                   <input
-                    className="min-h-11 rounded-xl border border-[var(--core-border)] px-3"
+                    className="min-h-11 min-w-0 w-full max-w-full rounded-xl border border-[var(--core-border)] px-3"
                     type="password"
                     value={passwordRepeat}
                     onChange={(event) => setPasswordRepeat(event.target.value)}

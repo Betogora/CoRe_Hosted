@@ -48,14 +48,14 @@ function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-export function DeckSettingsScreen({ deck, decks, learningProfiles, onSave, onSaveLearningProfiles, onSaveAppearance, onRenameDeck, onCreateSubdeck, onStartDeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
+export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, onSave, onSaveLearningProfiles, onSaveAppearance, onRenameDeck, onCreateSubdeck, onStartDeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
   const [appearance, setAppearance] = React.useState(() => normalizeDeckAppearance(deck?.deckSettings?.appearance));
   const [nameDraft, setNameDraft] = React.useState(deck?.name ?? "");
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [feedback, setFeedback] = React.useState("");
   const setSuccessToast = useSuccessToast();
-  const deckRow = React.useMemo(() => deleteDialogOpen && deck ? createDeckLibraryModel(decks).rows.find((row) => row.id === deck.id) ?? null : null, [deck, decks, deleteDialogOpen]);
+  const deckRow = React.useMemo(() => deleteDialogOpen && deck ? createDeckLibraryModel(decks, { deckSummaries }).rows.find((row) => row.id === deck.id) ?? null : null, [deck, decks, deckSummaries, deleteDialogOpen]);
 
   React.useEffect(() => {
     setAppearance(normalizeDeckAppearance(deck?.deckSettings?.appearance));

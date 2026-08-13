@@ -14,6 +14,18 @@ const parseRequestSchema = v.object({
   buffer: v.instance(ArrayBuffer),
 });
 
+const commitRequestSchema = v.object({
+  type: v.literal("commit"),
+  requestId: v.string(),
+});
+
+const commitNextRequestSchema = v.object({
+  type: v.literal("commit-next"),
+  requestId: v.string(),
+});
+
+const workerRequestSchema = v.union([parseRequestSchema, commitRequestSchema, commitNextRequestSchema]);
+
 const progressResponseSchema = v.object({
   type: v.literal("progress"),
   requestId: v.string(),
@@ -21,12 +33,11 @@ const progressResponseSchema = v.object({
 });
 
 const resultPayloadSchema = v.looseObject({
-  normalizedDeck: v.unknown(),
-  warnings: v.array(v.string()),
-  errors: v.array(v.string()),
+  summary: v.unknown(),
+  sampleCards: v.array(v.unknown()),
+  report: v.unknown(),
+  commitGraph: v.unknown(),
   mediaFiles: v.array(v.unknown()),
-  reviewHistory: v.unknown(),
-  parsedPackage: v.nullable(v.unknown()),
 });
 
 const resultResponseSchema = v.object({
@@ -41,14 +52,25 @@ const errorResponseSchema = v.object({
   message: v.string(),
 });
 
-const workerResponseSchema = v.union([progressResponseSchema, resultResponseSchema, errorResponseSchema]);
+const commitChunkResponseSchema = v.object({
+  type: v.literal("commit-chunk"),
+  requestId: v.string(),
+  chunk: v.unknown(),
+});
 
-export type ApkgWorkerRequest = v.InferOutput<typeof parseRequestSchema>;
+const commitDoneResponseSchema = v.object({
+  type: v.literal("commit-done"),
+  requestId: v.string(),
+});
+
+const workerResponseSchema = v.union([progressResponseSchema, resultResponseSchema, errorResponseSchema, commitChunkResponseSchema, commitDoneResponseSchema]);
+
+export type ApkgWorkerRequest = v.InferOutput<typeof workerRequestSchema>;
 export type ApkgWorkerResponse = v.InferOutput<typeof workerResponseSchema>;
 export type ApkgWorkerResult = v.InferOutput<typeof resultPayloadSchema>;
 
 export function parseApkgWorkerRequest(input: unknown) {
-  return v.safeParse(parseRequestSchema, input);
+  return v.safeParse(workerRequestSchema, input);
 }
 
 export function parseApkgWorkerResponse(input: unknown) {

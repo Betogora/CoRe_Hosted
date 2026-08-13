@@ -1,14 +1,5 @@
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createManualCoreDeck, createVersionEntry, duplicateLearningItemContent, restoreCardVersion, saveCardEditorValue, updateLearningItemStudyState } from "./coreModel.ts";
-import type { CardEditorValue } from "./coreTypes.ts";
-import { createCoreRepository } from "./coreRepository.ts";
-import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
-import {
-  importCsvAsNormalizedDeck,
-  importJsonAsNormalizedDeck,
-  importNormalizedDeck,
-  importTextAsNormalizedDeck,
-} from "./importService.ts";
-import type { CardVariant, CoreMode, Deck, DeckSettings, LearningItem, LearningItemStudyStatePatch, Profile, SourceDocument } from "./coreTypes.ts";
+import { createBasicLearningItem, createCoreDeck, createVersionEntry } from "./coreModel.ts";
+import type { Deck, DeckSettings, ForeignNoteSnapshot, LearningItem, NoteTypeDefinitionV1, Profile, SourceDocument } from "./coreTypes.ts";
 
 interface CloudTombstone {
   entityTable: string;
@@ -23,20 +14,11 @@ export interface WorkspaceState {
   profile: Profile;
   decks: Deck[];
   documents: SourceDocument[];
+  noteTypeDefinitions: NoteTypeDefinitionV1[];
+  learningItemSourceSnapshots: ForeignNoteSnapshot[];
   cloudTombstones: CloudTombstone[];
   updatedAt: string;
   [key: string]: unknown;
-}
-
-interface WorkspaceRepository {
-  getState(): WorkspaceState;
-  saveState(state: WorkspaceState): WorkspaceState;
-  getDeck(deckId: string): Deck | null;
-  saveDeck(deck: Deck): Deck;
-  saveDecks(decks: Deck[]): Deck[];
-  updateDeck(deckId: string, updater: (deck: Deck) => Deck): Deck | null;
-  updateDeckSettings(deckId: string, settings: Partial<DeckSettings>): Deck | null;
-  saveProfile(profile: unknown): unknown;
 }
 
 export interface DeckMutationResult {
@@ -61,36 +43,6 @@ interface DeckPlacementInput {
   reason: string;
 }
 
-interface ImportOptions {
-  dryRun?: boolean;
-  [key: string]: unknown;
-}
-
-interface ImportResult {
-  deck?: Deck | null;
-  decks?: Deck[];
-  [key: string]: unknown;
-}
-
-interface VariantDraft {
-  front: string;
-  back: string;
-  variantLevel?: number;
-  generationSource?: "original" | "ai_generated" | "user_edited" | "imported";
-  qualityStatus?: "draft" | "active" | "rejected" | "flagged" | "disabled";
-  isActive?: boolean;
-  meta?: Record<string, unknown>;
-}
-
-export type CoreWorkspace = ReturnType<typeof createCoreWorkspace>;
-
-let apkgImportModulePromise: Promise<typeof import("./apkgImport.ts")> | null = null;
-
-function loadApkgImportModule(): Promise<typeof import("./apkgImport.ts")> {
-  apkgImportModulePromise ??= import("./apkgImport.ts");
-  return apkgImportModulePromise;
-}
-
 export function createDemoAnatomyDeck(): Deck {
   return createCoreDeck({
     name: "Demo / Anatomie",
@@ -108,7 +60,7 @@ export function createDemoAnatomyDeck(): Deck {
   });
 }
 
-function softDeleteCard(card: LearningItem, deletedAt: string): LearningItem {
+export function softDeleteCard(card: LearningItem, deletedAt: string): LearningItem {
   if (card.status === "deleted") return card;
 
   return {
@@ -129,12 +81,6 @@ function softDeleteCard(card: LearningItem, deletedAt: string): LearningItem {
       }),
     ],
   };
-}
-
-function mergeSourceDocuments(existingDocuments: SourceDocument[] = [], nextDocuments: SourceDocument[] = []): SourceDocument[] {
-  const documentId = (document: SourceDocument) => document.id;
-  const nextIds = new Set(nextDocuments.map(documentId));
-  return [...nextDocuments, ...existingDocuments.filter((document) => !nextIds.has(documentId(document)))];
 }
 
 function collectDeckTreeIds(decks: Deck[] = [], rootDeckId: string): Set<string> {
@@ -250,7 +196,7 @@ function createDeckMutationError(error: string): DeckMutationResult {
   };
 }
 
-function restoreSoftDeletedCard(card: LearningItem, restoredAt: string): LearningItem {
+export function restoreSoftDeletedCard(card: LearningItem, restoredAt: string): LearningItem {
   if (card.status !== "deleted") return card;
   const deletedVersion = [...(card.versionLog ?? [])].reverse().find((entry) => entry.changeType === "deleted");
   const previousStatus = deletedVersion?.before && typeof deletedVersion.before === "object"
@@ -278,41 +224,7 @@ function restoreSoftDeletedCard(card: LearningItem, restoredAt: string): Learnin
   };
 }
 
-function mergeCloudTombstones(existing: CloudTombstone[] = [], next: CloudTombstone[] = []): CloudTombstone[] {
-  const byEntity = new Map<string, CloudTombstone>(existing.map((tombstone) => [`${tombstone.entityTable}:${tombstone.entityId}`, tombstone]));
-  for (const tombstone of next) byEntity.set(`${tombstone.entityTable}:${tombstone.entityId}`, tombstone);
-  return [...byEntity.values()];
-}
-
-function createDeckTreeTombstones(decks: Deck[], deletedAt: string): CloudTombstone[] {
-  return decks.flatMap((deck) => [
-    {
-      entityTable: "decks",
-      entityId: deck.id,
-      revision: deck.revision ?? 1,
-      deletedAt,
-      updatedByDeviceId: deck.updatedByDeviceId ?? null,
-    },
-    ...(deck.cards ?? []).flatMap((card) => [
-      {
-        entityTable: "cards",
-        entityId: card.id,
-        revision: card.revision ?? 1,
-        deletedAt,
-        updatedByDeviceId: card.updatedByDeviceId ?? null,
-      },
-      ...(card.variants ?? []).map((variant) => ({
-        entityTable: "card_variants",
-        entityId: variant.id,
-        revision: variant.revision ?? 1,
-        deletedAt,
-        updatedByDeviceId: variant.updatedByDeviceId ?? null,
-      })),
-    ]),
-  ]);
-}
-
-function updateDeckTreePlacement(state: WorkspaceState, { deckId, name = null, parentDeckId = undefined, changeType, reason }: DeckPlacementInput): DeckMutationResult {
+export function updateDeckTreePlacement(state: Pick<WorkspaceState, "decks">, { deckId, name = null, parentDeckId = undefined, changeType, reason }: DeckPlacementInput): DeckMutationResult {
   const decks = state.decks ?? [];
   const deck = decks.find((item) => item.id === deckId);
   if (!deck) return createDeckMutationError("Stapel nicht gefunden.");
@@ -406,359 +318,22 @@ function updateDeckTreePlacement(state: WorkspaceState, { deckId, name = null, p
   };
 }
 
-function commitDeckTreePlacement(repository: WorkspaceRepository, deckId: string, mutation: Omit<DeckPlacementInput, "deckId">): DeckMutationResult {
-  const state = repository.getState();
-  const result = updateDeckTreePlacement(state, { deckId, ...mutation });
-  if (!result.ok || !result.nextDecks) return result;
-
-  const saved = repository.saveState({
-    ...state,
-    decks: result.nextDecks,
+export function createWorkspaceDeck(decks: Deck[], { name = "Neuer Stapel", parentDeckId = null, description = "", deckSettings = {} }: {
+  name?: string;
+  parentDeckId?: string | null;
+  description?: string;
+  deckSettings?: Partial<DeckSettings>;
+} = {}): Deck | null {
+  const validParentId = parentDeckId && decks.some((deck) => deck.id === parentDeckId) ? parentDeckId : null;
+  if (validParentId && deckDepth(new Map(decks.map((deck) => [deck.id, deck])), validParentId) + 1 >= MAX_INTERACTIVE_DECK_LEVELS) return null;
+  const hierarchyPath = createHierarchyPathForDeck(decks, { name, parentDeckId: validParentId });
+  return createCoreDeck({
+    name: hierarchyPath.at(-1) || "Neuer Stapel",
+    description,
+    source: "manual",
+    parentDeckId: validParentId,
+    hierarchyPath,
+    deckSettings,
+    cards: [],
   });
-  const changedIds = new Set(result.changedDeckIds);
-  return {
-    ...result,
-    deck: saved.decks.find((deck) => deck.id === deckId) ?? null,
-    updatedDecks: saved.decks.filter((deck) => changedIds.has(deck.id)),
-  };
-}
-
-function toDeckArray(deckOrDecks: Deck | Deck[] | null | undefined): Deck[] {
-  if (Array.isArray(deckOrDecks)) return deckOrDecks.filter(Boolean);
-  return deckOrDecks ? [deckOrDecks] : [];
-}
-
-function saveDeckCollection(repository: WorkspaceRepository, deckOrDecks: Deck | Deck[]): Deck | Deck[] | null {
-  const savedDecks = repository.saveDecks(toDeckArray(deckOrDecks));
-  return Array.isArray(deckOrDecks) ? savedDecks : savedDecks[0] ?? null;
-}
-
-function saveImportDeckResult(repository: WorkspaceRepository, result: ImportResult, options: ImportOptions = {}): ImportResult {
-  if (options.dryRun) return result;
-
-  const decks = result?.decks?.length ? result.decks : toDeckArray(result?.deck);
-  if (!decks.length) return result;
-
-  const savedDecks = repository.saveDecks(decks);
-  return {
-    ...result,
-    deck: savedDecks[0] ?? null,
-    decks: savedDecks,
-  };
-}
-
-export function createCoreWorkspace(repository: WorkspaceRepository = createCoreRepository() as WorkspaceRepository) {
-  return {
-    getState() {
-      return repository.getState();
-    },
-    saveState(nextState: WorkspaceState) {
-      return repository.saveState(nextState);
-    },
-    saveDeck(deck: Deck) {
-      return repository.saveDeck(deck);
-    },
-    saveDecks(deckOrDecks: Deck | Deck[]) {
-      return saveDeckCollection(repository, deckOrDecks);
-    },
-    createDeck({ name = "Neuer Stapel", parentDeckId = null, description = "", deckSettings = {} }: {
-      name?: string;
-      parentDeckId?: string | null;
-      description?: string;
-      deckSettings?: Partial<DeckSettings>;
-    } = {}) {
-      const state = repository.getState();
-      const validParentId = parentDeckId && state.decks.some((deck) => deck.id === parentDeckId) ? parentDeckId : null;
-      if (validParentId && deckDepth(new Map(state.decks.map((deck) => [deck.id, deck])), validParentId) + 1 >= MAX_INTERACTIVE_DECK_LEVELS) return null;
-      const hierarchyPath = createHierarchyPathForDeck(state.decks, { name, parentDeckId: validParentId });
-      const deck = createCoreDeck({
-        name: hierarchyPath.at(-1) || "Neuer Stapel",
-        description,
-        source: "manual",
-        parentDeckId: validParentId,
-        hierarchyPath,
-        deckSettings,
-        cards: [],
-      });
-
-      return repository.saveDeck(deck);
-    },
-    renameDeck(deckId: string, name: string): DeckMutationResult {
-      const trimmedName = normalizeDeckName(name);
-      if (!trimmedName) return createDeckMutationError("Bitte gib einen Stapelnamen ein.");
-
-      return commitDeckTreePlacement(repository, deckId, {
-        name: trimmedName,
-        changeType: "deck_renamed",
-        reason: "Stapel umbenannt",
-      });
-    },
-    moveDeck(deckId: string, parentDeckId: string | null = null): DeckMutationResult {
-      return commitDeckTreePlacement(repository, deckId, {
-        parentDeckId,
-        changeType: "deck_moved",
-        reason: parentDeckId ? "Stapel als Unterstapel verschoben" : "Stapel auf Hauptebene verschoben",
-      });
-    },
-    updateDeck(deckId: string, updater: (deck: Deck) => Deck) {
-      return repository.updateDeck(deckId, updater);
-    },
-    deleteDeckTree(deckId: string) {
-      const state = repository.getState();
-      const deck = state.decks.find((item) => item.id === deckId);
-      if (!deck) {
-        return {
-          deletedDeckIds: [],
-          deletedDecks: [],
-          nextSelectedDeckId: state.decks[0]?.id ?? null,
-        };
-      }
-
-      const deletedIds = collectDeckTreeIds(state.decks, deckId);
-      const deletedDecks = state.decks.filter((item) => deletedIds.has(item.id));
-      const remainingDecks = state.decks.filter((item) => !deletedIds.has(item.id));
-      const deletedAt = new Date().toISOString();
-      repository.saveState({
-        ...state,
-        decks: remainingDecks,
-        cloudTombstones: mergeCloudTombstones(state.cloudTombstones, createDeckTreeTombstones(deletedDecks, deletedAt)),
-      });
-
-      return {
-        deletedDeckIds: [...deletedIds],
-        deletedDecks,
-        nextSelectedDeckId: remainingDecks[0]?.id ?? null,
-      };
-    },
-    setDeckCoreMode(deckId: string, coreMode: CoreMode) {
-      return repository.updateDeckSettings(deckId, { coreMode });
-    },
-    saveDeckCard(deckId: string, cardId: string, value: CardEditorValue, reason = "Manuelle Bearbeitung") {
-      const updatedAt = new Date().toISOString();
-
-      return repository.updateDeck(deckId, (deck) => ({
-        ...deck,
-        updatedAt,
-        cards: (deck.cards ?? []).map((card) => (card.id === cardId ? saveCardEditorValue(card, value, reason) : card)),
-      }));
-    },
-    duplicateDeckCard(deckId: string, cardId: string) {
-      const deck = repository.getState().decks.find((candidate) => candidate.id === deckId);
-      const sourceCard = deck?.cards.find((candidate) => candidate.id === cardId && !candidate.deletedAt);
-      const copiedCard = sourceCard ? duplicateLearningItemContent(sourceCard) : null;
-      if (!deck || !sourceCard || !copiedCard) return null;
-      const updatedAt = new Date().toISOString();
-      const sourceIndex = deck.cards.findIndex((candidate) => candidate.id === cardId);
-      const cards = [...deck.cards];
-      cards.splice(sourceIndex + 1, 0, copiedCard);
-      return repository.updateDeck(deckId, (currentDeck) => ({
-        ...currentDeck,
-        cards,
-        updatedAt,
-        versionLog: [
-          ...currentDeck.versionLog,
-          createVersionEntry({
-            objectType: "deck",
-            objectId: deckId,
-            changeType: "manual_card_added",
-            after: { cardId: copiedCard.id, copiedFromCardId: sourceCard.id },
-            reason: "Kartenkopie hinzugefügt",
-            createdAt: updatedAt,
-          }),
-        ],
-      }));
-    },
-    setDeckCardStudyState(deckId: string, cardId: string, patch: LearningItemStudyStatePatch) {
-      const updatedAt = new Date().toISOString();
-
-      return repository.updateDeck(deckId, (deck) => ({
-        ...deck,
-        updatedAt,
-        cards: (deck.cards ?? []).map((card) => (
-          card.id === cardId ? updateLearningItemStudyState(card, patch, updatedAt) : card
-        )),
-      }));
-    },
-    restoreDeckCardVersion(deckId: string, cardId: string, versionId: string) {
-      const updatedAt = new Date().toISOString();
-
-      return repository.updateDeck(deckId, (deck) => ({
-        ...deck,
-        updatedAt,
-        cards: (deck.cards ?? []).map((card) => (card.id === cardId ? restoreCardVersion(card, versionId) : card)),
-      }));
-    },
-    deleteDeckCard(deckId: string, cardId: string) {
-      const card = repository.getDeck(deckId)?.cards.find((candidate) => candidate.id === cardId && candidate.status !== "deleted" && !candidate.deletedAt);
-      if (!card) return null;
-      const deletedAt = new Date().toISOString();
-
-      return repository.updateDeck(deckId, (deck) => ({
-        ...deck,
-        updatedAt: deletedAt,
-        cards: (deck.cards ?? []).map((card) => (card.id === cardId ? softDeleteCard(card, deletedAt) : card)),
-      }));
-    },
-    restoreDeletedDeckCard(deckId: string, deletedCard: LearningItem) {
-      const restoredAt = new Date().toISOString();
-      const state = repository.getState();
-      const deck = state.decks.find((candidate) => candidate.id === deckId);
-      if (!deck) return null;
-      const tombstone = state.cloudTombstones.find(
-        (candidate) => candidate.entityTable === "cards" && candidate.entityId === deletedCard.id,
-      );
-      const restoredCard = restoreSoftDeletedCard({
-        ...deletedCard,
-        revision: tombstone?.revision ?? deletedCard.revision,
-        updatedByDeviceId: tombstone?.updatedByDeviceId ?? deletedCard.updatedByDeviceId,
-      }, restoredAt);
-      const cards = deck.cards.some((card) => card.id === restoredCard.id)
-        ? deck.cards.map((card) => (card.id === restoredCard.id ? restoredCard : card))
-        : [...deck.cards, restoredCard];
-      const restoredDeck = { ...deck, updatedAt: restoredAt, cards };
-      const savedState = repository.saveState({
-        ...state,
-        decks: state.decks.map((candidate) => (candidate.id === deckId ? restoredDeck : candidate)),
-        cloudTombstones: state.cloudTombstones.filter(
-          (candidate) => candidate.entityTable !== "cards" || candidate.entityId !== restoredCard.id,
-        ),
-      });
-      return savedState.decks.find((candidate) => candidate.id === deckId) ?? null;
-    },
-    addDeckCardVariant(deckId: string, cardId: string, variant: VariantDraft, reason = "Manuelle Umformulierung") {
-      const updatedAt = new Date().toISOString();
-
-      return repository.updateDeck(deckId, (deck) => ({
-        ...deck,
-        updatedAt,
-        cards: (deck.cards ?? []).map((card) =>
-          card.id === cardId
-            ? addRephrasedVariant(card, variant.front, variant.back, {
-                variantLevel: variant.variantLevel ?? 2,
-                generationSource: variant.generationSource ?? "user_edited",
-                qualityStatus: variant.qualityStatus ?? "active",
-                isActive: variant.isActive ?? true,
-                updatedAt,
-                meta: {
-                  source: "deck-card-editor",
-                  reason,
-                  ...(variant.meta ?? {}),
-                },
-              })
-            : card,
-        ),
-      }));
-    },
-    addManualCardToDeck(deckId: string, manualDeckInput: Parameters<typeof createManualCoreDeck>[0]) {
-      const createdAt = new Date().toISOString();
-      const manualDeck = createManualCoreDeck({
-        ...manualDeckInput,
-        deckName: manualDeckInput?.deckName ?? "Manuelle Karte",
-      });
-      const manualCard = manualDeck.cards[0];
-      if (!manualCard) return null;
-
-      return repository.updateDeck(deckId, (deck) =>
-        createCoreDeck({
-          ...deck,
-          cards: [...(deck.cards ?? []), manualCard],
-          sourceDocuments: mergeSourceDocuments(deck.sourceDocuments ?? [], manualDeck.sourceDocuments ?? []),
-          updatedAt: createdAt,
-          versionLog: [
-            ...(deck.versionLog ?? []),
-            createVersionEntry({
-              objectType: "deck",
-              objectId: deck.id,
-              changeType: "manual_card_added",
-              after: { cardId: manualCard.id },
-              reason: "Manuelle Karte hinzugefügt",
-              createdAt,
-            }),
-          ],
-        }),
-      );
-    },
-    saveProfile(profile: unknown) {
-      return repository.saveProfile(profile);
-    },
-    updateAllDecks(updater: (deck: Deck) => Deck) {
-      const state = repository.getState();
-      return repository.saveDecks(state.decks.map(updater));
-    },
-    dryRunNormalizedImport(payload: unknown, options: ImportOptions = {}) {
-      const state = repository.getState();
-      return importNormalizedDeck(payload !== null && typeof payload === "object" ? payload : {}, {
-        ...options,
-        dryRun: true,
-        existingDecks: state.decks,
-      });
-    },
-    commitNormalizedImport(payload: unknown, options: ImportOptions = {}) {
-      const state = repository.getState();
-      const result = importNormalizedDeck(payload !== null && typeof payload === "object" ? payload : {}, {
-        ...options,
-        dryRun: false,
-        existingDecks: state.decks,
-      });
-      return saveImportDeckResult(repository, result);
-    },
-    importTextDeck(input: string | Record<string, unknown> = {}, options: ImportOptions = {}) {
-      const state = repository.getState();
-      const payload = typeof input === "string" ? { text: input } : input;
-      const result = importTextAsNormalizedDeck(payload, {
-        ...options,
-        existingDecks: state.decks,
-      });
-      return saveImportDeckResult(repository, result, options);
-    },
-    importCsvDeck(input: string | Record<string, unknown> = {}, options: ImportOptions = {}) {
-      const state = repository.getState();
-      const payload = typeof input === "string" ? { csv: input } : input;
-      const result = importCsvAsNormalizedDeck(payload, {
-        ...options,
-        existingDecks: state.decks,
-      });
-      return saveImportDeckResult(repository, result, options);
-    },
-    importJsonDeck(input: unknown = {}, options: ImportOptions = {}) {
-      const state = repository.getState();
-      const result = importJsonAsNormalizedDeck(input, {
-        ...options,
-        existingDecks: state.decks,
-      });
-      return saveImportDeckResult(repository, result, options);
-    },
-    async dryRunApkgImport(input: unknown, options: ImportOptions = {}) {
-      const state = repository.getState();
-      const { dryRunApkgImport } = await loadApkgImportModule();
-      return dryRunApkgImport(input, {
-        ...options,
-        existingDecks: state.decks,
-      });
-    },
-    async commitApkgImport(input: unknown, options: ImportOptions = {}) {
-      const state = repository.getState();
-      const { commitApkgImport } = await loadApkgImportModule();
-      const result = await commitApkgImport(input, {
-        ...options,
-        existingDecks: state.decks,
-      });
-      return saveImportDeckResult(repository, result);
-    },
-    async importApkgDeck(input: unknown, options: ImportOptions = {}) {
-      const state = repository.getState();
-      const { importApkgDeck } = await loadApkgImportModule();
-      const result = await importApkgDeck(input, {
-        ...options,
-        existingDecks: state.decks,
-      });
-      return saveImportDeckResult(repository, result);
-    },
-    createDemoDeck() {
-      return repository.saveDeck(createDemoAnatomyDeck());
-    },
-    createWorldCapitalsDemo() {
-      return repository.saveDecks(createWorldCapitalsSeedDecks().map((deck) => ({ ...deck, reviewEvents: [] })));
-    },
-  };
 }

@@ -1,12 +1,14 @@
 import React from "react";
 import { AlertCircle, CheckCircle2, Database, FileArchive, Loader2, Upload } from "lucide-react";
 import type { ApkgCreationPreview, CreationWorkflow } from "../creationWorkflow.ts";
-import type { Deck } from "../coreTypes.ts";
+import { getOriginalVariant } from "../coreModel.ts";
+import type { Deck, LearningItem, NoteTypeDefinitionV1 } from "../coreTypes.ts";
 import { projectImportUiState, type ImportUiState } from "../importUiState.ts";
 import type { AccountMediaStore, MediaSyncProgress, MediaSyncResult, MediaSyncStatus, MediaSyncTask } from "../mediaStore.ts";
 import { LOCAL_APKG_MAX_BYTES } from "../apkgImport.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
+import { useCardMediaUrls } from "../ui/cardMedia.tsx";
+import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { formatBytes, importSteps } from "./screenConstants.ts";
 
@@ -60,6 +62,24 @@ function importStatusLabel(status: ImportUiState["status"]): string {
   }[status];
 }
 
+function ApkgCardSample({ deck, card, definition, mediaStore }: { deck: Deck; card: LearningItem; definition: NoteTypeDefinitionV1 | null; mediaStore: AccountMediaStore | null }) {
+  const { urls: mediaUrls } = useCardMediaUrls({ ...deck, cards: [card] }, card.id, mediaStore);
+  const variant = getOriginalVariant(card);
+  if (!variant || !definition) return null;
+  return (
+    <article className="core-surface-raised rounded-[18px] p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <span className="rounded-xl bg-core-success-soft px-3 py-1 core-caption font-semibold text-core-text">Originalkarte</span>
+        <span className="core-caption font-medium uppercase tracking-wide text-[var(--core-text-muted)]">{definition.name}</span>
+      </div>
+      <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+        <CardPresentationSurface item={card} variant={variant} definition={definition} side="question" surface="editor-preview" title="APKG-Vorschau der Vorderseite" mediaUrls={mediaUrls} />
+        <CardPresentationSurface item={card} variant={variant} definition={definition} side="answer" surface="editor-preview" title="APKG-Vorschau der Rückseite" mediaUrls={mediaUrls} />
+      </div>
+    </article>
+  );
+}
+
 export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onCompleted }: ApkgImportPanelProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
@@ -71,7 +91,10 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
   const [mediaTask, setMediaTask] = React.useState<MediaSyncTask | null>(null);
   const [cloudProgress, setCloudProgress] = React.useState<CloudProgress | null>(null);
   const [completedDeck, setCompletedDeck] = React.useState<Deck | null>(null);
-  const { urls: previewMediaUrls } = useDeckMediaUrls(preview?.deck ?? null, mediaStore);
+
+  React.useEffect(() => () => {
+    if (preview?.commitGraph.kind === "worker-import") preview.commitGraph.dispose();
+  }, [preview]);
 
   async function parseFile(file: File) {
     setSelectedFile(file);
@@ -138,7 +161,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
           warnings: [...new Set([...(current?.warnings ?? []), ...(result.report.warnings ?? [])])],
           errors: [...new Set([...(current?.errors ?? []), ...(result.report.errors ?? [])])],
         }));
-        setPreview((current) => current ? { ...current, importReport: result.report } as ApkgCreationPreview : current);
+        setPreview((current) => current ? { ...current, report: result.report } as ApkgCreationPreview : current);
         return;
       }
       setJob((current) => ({
@@ -146,7 +169,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
         status: "done",
         warnings: [...new Set([...(current?.warnings ?? []), ...(result.report.warnings ?? [])])],
       }));
-      setPreview((current) => current ? { ...current, importReport: result.report } as ApkgCreationPreview : current);
+      setPreview((current) => current ? { ...current, report: result.report } as ApkgCreationPreview : current);
       setCompletedDeck(result.deck);
       if (result.mediaTask) {
         setMediaTask(result.mediaTask);
@@ -169,9 +192,9 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
     }
   }
 
-  const report = preview?.importReport ?? null;
+  const report = preview?.report ?? null;
   const apkgReport = report?.apkg?.contractVersion === 1 ? report.apkg : null;
-  const previewWarnings = [...new Set([...(preview?.warnings ?? []), ...(report?.warnings ?? [])])];
+  const previewWarnings = [...new Set(report?.warnings ?? [])];
   const previewErrors = [...new Set([...(job?.errors ?? []), ...(report?.errors ?? [])])];
   const uiState = projectImportUiState({
     jobStatus: job?.status,
@@ -191,6 +214,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
     : 4;
   const previewVisible = Boolean(preview) && !["failed_retryable", "failed_terminal", "cancelled"].includes(uiState.status);
   const presentMediaCount = apkgReport?.media.detected ?? 0;
+  const previewDefinitions = new Map(preview?.commitGraph.noteTypeDefinitions.map((definition) => [definition.id, definition]) ?? []);
 
   return (
     <div className="grid gap-5">
@@ -286,7 +310,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="core-body font-semibold uppercase tracking-wide text-core-text">Importvorschau</p>
-                  <h3 className="mt-1 core-heading-2 font-semibold text-[var(--core-text)]">{preview.deck.name}</h3>
+                  <h3 className="mt-1 core-heading-2 font-semibold text-[var(--core-text)]">{preview.summary.name}</h3>
                 </div>
                 {uiState.status === "preview" ? (
                   <ActionButton type="button" variant="primary" icon={Database} loading={isParsing} disabled={previewErrors.length > 0} onClick={() => void handleCommit()}>Import übernehmen</ActionButton>
@@ -364,24 +388,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
               <details className="core-surface-raised rounded-[18px] p-5">
                 <summary className="cursor-pointer font-semibold text-[var(--core-text)]">Kartenbeispiele</summary>
                 <div className="mt-4 grid gap-4">
-                  {preview.sampleCards.map((card) => (
-                    <article key={card.id} className="core-surface-raised rounded-[18px] p-5">
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <span className="rounded-xl bg-core-success-soft px-3 py-1 core-caption font-semibold text-core-text">Originalkarte</span>
-                        <span className="core-caption font-medium uppercase tracking-wide text-[var(--core-text-muted)]">{card.kind}</span>
-                      </div>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                          <p className="mb-2 core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Front</p>
-                          <CardHtml html={card.originalFront} mediaUrls={previewMediaUrls} />
-                        </div>
-                        <div>
-                          <p className="mb-2 core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Back</p>
-                          <CardHtml html={card.originalBack} mediaUrls={previewMediaUrls} />
-                        </div>
-                      </div>
-                    </article>
-                  ))}
+                  {preview.sampleCards.map((card) => <ApkgCardSample key={card.id} deck={preview.summary} card={card} definition={previewDefinitions.get(card.noteTypeDefinitionId) ?? null} mediaStore={mediaStore} />)}
                 </div>
               </details>
             ) : null}

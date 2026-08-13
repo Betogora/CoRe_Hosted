@@ -1,9 +1,10 @@
 import React from "react";
 import { Anchor, Ban, CheckCircle2, CircleAlert, Eye, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
 import type { StudyModeProps } from "../appScreenProps.ts";
-import { DEFAULT_EASY_DAYS, EASY_DAY_KEYS, createEasyDaysDueCounts } from "../easyDays.ts";
+import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts } from "../easyDays.ts";
 import { getLearningDayKey } from "../learningDay.ts";
-import { getLearningItemAnswer, getLearningItemQuestion, isLearningItemMarked } from "../coreModel.ts";
+import { createCoreNoteTypeDefinition, isLearningItemMarked } from "../coreModel.ts";
+import { stripHtml } from "../htmlSafety.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
 import { createReviewResponseTimer } from "../reviewTiming.ts";
 import { formatSimulationDate, formatSimulationDuration } from "../simulationClock.ts";
@@ -11,20 +12,23 @@ import {
   advanceDailyReviewSession,
   answerVariant,
   createDailyReviewQueue,
+  createDailyReviewSessionIndex,
   createDailyReviewSessionState,
   getNextDailyReviewSessionItem,
   removeDailyReviewSessionItem,
   recordVariantFeedback,
   type DailyReviewSessionState,
+  updateDailyReviewSessionIndex,
 } from "../reviewService.ts";
-import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
-import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
+import { useCardMediaUrls } from "../ui/cardMedia.tsx";
+import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
-import type { CardVariant, Deck, LearningItemStudyStatePatch, ReviewRating, ReviewState } from "../coreTypes.ts";
+import type { CardVariant, Deck, LearningItemStudyStatePatch, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
 
 function normalizeReviewCardType(cardType: string, variant: CardVariant|undefined) {
   if (variant?.variantType === "reverse") return "basic-reversed";
@@ -57,8 +61,24 @@ function formatLimitSummary(hiddenDueCount: number, hiddenNewCount: number) {
   return `${parts.join(" und ")} ${parts.length === 1 ? "bleibt" : "bleiben"} wegen deiner Tageslimits für später vorgemerkt.`;
 }
 
-export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onDeckUpdated, onReviewEvent }: StudyModeProps) {
+function createEasyDaysContext(decks: Deck[], easyDays: typeof DEFAULT_EASY_DAYS, now: string | number | Date, dayStartHour: number, timeZone?: string) {
+  return {
+    easyDays,
+    dueCountsByDay: createEasyDaysDueCounts(decks.flatMap((candidate) => candidate.cards ?? []), now, { dayStartHour, timeZone }),
+    dayStartHour,
+    timeZone,
+  };
+}
+
+export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onCardUpdated, onReview }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
+  const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
+  sessionIndexRef.current ??= createDailyReviewSessionIndex(decks);
+  const queuePlanRef = React.useRef<{
+    key: string;
+    easyDaysContext: ReturnType<typeof createEasyDaysContext>;
+    queue: ReturnType<typeof createDailyReviewQueue>;
+  } | null>(null);
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
   const [showAnchor, setShowAnchor] = React.useState(false);
@@ -76,18 +96,28 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   const setSuccessToast = useSuccessToast();
   const responseTimer = React.useMemo(() => createReviewResponseTimer(), []);
   const rootDeck = sessionDecks.find((candidate) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
-  const easyDaysKey = EASY_DAY_KEYS.map((key) => easyDays[key]).join("|");
-  const easyDaysContext = React.useMemo(() => ({
-    easyDays,
-    dueCountsByDay: createEasyDaysDueCounts(sessionDecks.flatMap((candidate) => candidate.cards ?? []), getNow(), { dayStartHour, timeZone }),
+  const queuePlanKey = JSON.stringify([
+    rootDeck?.id ?? null,
+    effectiveLearningDayKey,
     dayStartHour,
-    timeZone,
-  }), [dayStartHour, easyDaysKey, effectiveLearningDayKey, getNow, sessionDecks, timeZone]);
-  const queue = React.useMemo(
-    () =>
-      createDailyReviewQueue(sessionDecks, {
+    learnAheadMinutes,
+    timeZone ?? null,
+    variantSession,
+    easyDays,
+    rootDeck?.deckSettings ?? null,
+  ]);
+  if (
+    !queuePlanRef.current
+    || queuePlanRef.current.key !== queuePlanKey
+  ) {
+    const planNow = getNow();
+    const easyDaysContext = createEasyDaysContext(sessionDecks, easyDays, planNow, dayStartHour, timeZone);
+    queuePlanRef.current = {
+      key: queuePlanKey,
+      easyDaysContext,
+      queue: createDailyReviewQueue(sessionDecks, {
         deckId: rootDeck?.id,
-        now: getNow(),
+        now: planNow,
         dayStartHour,
         learnAheadMinutes,
         timeZone,
@@ -95,11 +125,12 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
         language: "de",
         variantSession,
       }),
-    [dayStartHour, easyDaysContext, effectiveLearningDayKey, getNow, learnAheadMinutes, sessionDecks, rootDeck?.id, timeZone, variantSession],
-  );
+    };
+  }
+  const { queue, easyDaysContext } = queuePlanRef.current;
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
   const current = React.useMemo(
-    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), dayStartHour, learnAheadMinutes, timeZone, easyDaysContext, language: "de", variantSession }),
+    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), dayStartHour, learnAheadMinutes, timeZone, easyDaysContext, language: "de", variantSession, sessionIndex: sessionIndexRef.current! }),
     [dayStartHour, easyDaysContext, effectiveLearningDayKey, getNow, learnAheadMinutes, sessionDecks, effectiveReviewSession, rootDeck?.id, timeZone, variantSession],
   );
   const currentDeck = sessionDecks.find((candidate) => candidate.id === current?.deckId) ?? rootDeck;
@@ -107,14 +138,28 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   const completedInitialCount = effectiveReviewSession.completedInitialKeys.length;
   const repeatCount = effectiveReviewSession.repeatCount;
   const answeredCount = completedInitialCount + repeatCount;
+  const sessionDailyProgress = {
+    ...queue.dailyProgress,
+    completedTodayCount: Math.min(queue.dailyProgress.total, queue.dailyProgress.completedTodayCount + completedInitialCount),
+  };
   const hasWaitingLearningCards = !current && queue.dailyProgress.inProgressCount > 0;
   const limitReachedAtStart = !current && answeredCount === 0 && queue.total === 0 && queue.limitSummary.reached;
   const limitSummaryText = formatLimitSummary(queue.limitSummary.hiddenDueCount, queue.limitSummary.hiddenNewCount);
   const sourceCard = current?.learningItem ?? null;
+  const presentationDefinition = React.useMemo(() => {
+    if (!sourceCard) return null;
+    return noteTypeDefinitions.find((definition) => definition.id === sourceCard.noteTypeDefinitionId)
+      ?? createCoreNoteTypeDefinition({
+        document: sourceCard.contentDocument,
+        kind: sourceCard.kind === "cloze" ? "cloze" : "normal",
+        interaction: sourceCard.kind === "multiple-choice" ? "choice" : undefined,
+      });
+  }, [noteTypeDefinitions, sourceCard]);
+  const originalPresentationVariant = sourceCard?.variants.find((variant) => variant.isOriginal) ?? sourceCard?.variants[0] ?? null;
   const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
   const sourceAnchor = current?.variant?.sourceAnchors?.[0] ?? sourceCard?.sourceAnchors?.[0] ?? null;
   const hasAnswerTools = isCurrentVariant || Boolean(sourceAnchor);
-  const { urls: studyMediaUrls, missing: studyMissingMedia } = useDeckMediaUrls(currentDeck, mediaStore);
+  const { urls: studyMediaUrls, missing: studyMissingMedia } = useCardMediaUrls(currentDeck, current?.learningItemId, mediaStore);
   const rawCardType = String(sourceCard?.kind ?? sourceCard?.cardType ?? current?.variant?.meta?.cardType ?? "basic");
   const cardType = normalizeReviewCardType(rawCardType, current?.variant);
   const answerOptions = normalizeChoiceOptions(current?.variant?.answerOptionsJson ?? sourceCard?.meta?.answerOptions ?? []);
@@ -130,6 +175,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
 
   React.useEffect(() => {
     setSessionDecks(decks);
+    sessionIndexRef.current = createDailyReviewSessionIndex(decks);
     setReviewSession(null);
     setShowAnswer(false);
     setShowAnchor(false);
@@ -164,10 +210,8 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
     return nextDecks.map((candidate) => (candidate.id === updatedDeck.id ? updatedDeck : candidate));
   }
 
-  function finishOrNext(updatedDeck: Deck, rating: ReviewRating, nextReviewState: ReviewState, reviewedKey: string) {
-    const nextDecks = replaceSessionDeck(updatedDeck);
-    onDeckUpdated(updatedDeck);
-    setSessionDecks(nextDecks);
+  function finishOrNext(updatedDeck: Deck, updatedLearningItem: typeof sourceCard, rating: ReviewRating, nextReviewState: ReviewState, reviewedKey: string) {
+    if (updatedLearningItem) updateDailyReviewSessionIndex(sessionIndexRef.current!, updatedDeck, updatedLearningItem);
     setReviewSession((session) => session && reviewedKey
       ? advanceDailyReviewSession(session, { key: reviewedKey, rating, nextReviewState })
       : session);
@@ -188,15 +232,21 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   function grade(rating: ReviewRating) {
     if (!current || !currentDeck) return;
     const responseTimeMs = responseTimer.stop();
-    const result = answerVariant(feedbackDeckRef.current ?? currentDeck, current.learningItemId, current.cardVariantId, rating, {
+    const reviewEvents = (sessionIndexRef.current?.reviewEventsByKey.get(current.sessionInfo?.key ?? `${current.deckId}:${current.learningItemId}`) ?? [])
+      .filter((event) => Boolean(event.id)) as ReviewEvent[];
+    const result = answerVariant({
+      ...(feedbackDeckRef.current ?? currentDeck),
+      cards: [current.learningItem],
+      reviewEvents,
+    }, current.learningItemId, current.cardVariantId, rating, {
       now: getNow(),
       dayStartHour,
       timeZone,
       easyDaysContext,
       responseTimeMs,
     });
-    onReviewEvent?.(result.event);
-    finishOrNext(result.deck, rating, result.updatedCard.reviewState, current.sessionInfo?.key ?? `${current.deckId}:${current.learningItemId}`);
+    onReview(result);
+    finishOrNext(result.deck, result.updatedCard, rating, result.updatedCard.reviewState, current.sessionInfo?.key ?? `${current.deckId}:${current.learningItemId}`);
   }
 
   function updateVariant(action: "disable" | "flag", feedbackType?: "fachlich_falsch" | "unklar_formuliert") {
@@ -207,7 +257,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
       isVariant: true,
     }, { action, feedbackType });
     feedbackDeckRef.current = result.deck;
-    onDeckUpdated(result.deck);
+    if (result.updatedCard) onCardUpdated(result.deck.id, result.updatedCard);
     setFeedbackStatus(action === "disable" ? "Diese Abfrage wird künftig nicht mehr gezeigt." : "Danke. Der ausgewählte Grund wurde gespeichert.");
   }
 
@@ -216,6 +266,8 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
     const updatedDeck = onSetCardStudyState(current.deckId, current.learningItemId, patch);
     if (!updatedDeck) return;
     const nextDecks = replaceSessionDeck(updatedDeck);
+    const updatedLearningItem = (updatedDeck.cards ?? []).find((card) => card.id === current.learningItemId);
+    if (updatedLearningItem) updateDailyReviewSessionIndex(sessionIndexRef.current!, updatedDeck, updatedLearningItem);
     setSessionDecks(nextDecks);
 
     if (patch.suspended !== true) return;
@@ -238,10 +290,10 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
   React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       if (current) questionHeadingRef.current?.focus();
-      else if (answeredCount > 0 || hasWaitingLearningCards) completionHeadingRef.current?.focus();
+      else if (answeredCount > 0 || hasWaitingLearningCards || limitReachedAtStart) completionHeadingRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [current?.learningItemId, current?.variantId, answeredCount, hasWaitingLearningCards]);
+  }, [current?.learningItemId, current?.variantId, answeredCount, hasWaitingLearningCards, limitReachedAtStart]);
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -295,9 +347,9 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
           <div className="grid gap-2">
             <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-[var(--core-text-muted)]">
               <span>Lernfortschritt</span>
-              <span>{queue.dailyProgress.completedTodayCount} / {queue.dailyProgress.total} Karten</span>
+              <span>{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total} Karten</span>
             </div>
-            <DailyReviewProgress progress={queue.dailyProgress} />
+            <DailyReviewProgress progress={sessionDailyProgress} />
           </div>
           <PomodoroProgress timer={pomodoroTimer} variant="study" />
           {studyMissingMedia.length > 0 ? <p className="core-status-warning text-center core-body" role="status">{studyMissingMedia[0].status}{studyMissingMedia.length > 1 ? ` (${studyMissingMedia.length} Medien)` : ""}</p> : null}
@@ -333,7 +385,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
                   ) : null}
                   <p ref={questionHeadingRef} tabIndex={-1} className="mb-5 core-body font-semibold uppercase tracking-[0.18em] text-[var(--core-action-secondary)] outline-none">Frage</p>
                   <div className="core-study-card-front text-[var(--core-text)]">
-                    <CardHtml html={current.front} mediaUrls={studyMediaUrls} />
+                    <CardPresentationSurface item={sourceCard} variant={current.variant} definition={presentationDefinition} side="question" surface="review" title="Frage" loadingLabel={stripHtml(current.front)} mediaUrls={studyMediaUrls} showCompatibility={false} />
                   </div>
                   {isMultipleChoice ? (
                     <div className="mt-6 grid gap-3">
@@ -378,7 +430,7 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
                       <div className="my-8 h-px bg-[var(--core-border)]" />
                       <p ref={answerHeadingRef} tabIndex={-1} className="mb-4 core-body font-semibold uppercase tracking-[0.18em] text-[var(--core-action-secondary)] outline-none">Antwort</p>
                       <div className="core-study-card-back text-[var(--core-text)]">
-                        <CardHtml html={current.back} mediaUrls={studyMediaUrls} />
+                        <CardPresentationSurface item={sourceCard} variant={current.variant} definition={presentationDefinition} side="answer" surface="review" title="Antwort" loadingLabel={stripHtml(current.back)} mediaUrls={studyMediaUrls} showCompatibility={false} />
                       </div>
                       {isMultipleChoice ? (
                         <div className={`core-mcq-feedback mt-5 rounded-2xl border p-4 ${multipleChoiceFeedbackClass}`}>
@@ -429,11 +481,11 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
                               <div className="mt-3 grid gap-4 md:grid-cols-2">
                                 <div>
                                   <p className="mb-1 core-caption font-semibold text-[var(--core-text-muted)]">Vorderseite</p>
-                                  <CardHtml html={getLearningItemQuestion(sourceCard)} mediaUrls={studyMediaUrls} />
+                                  <CardPresentationSurface item={sourceCard} variant={originalPresentationVariant} definition={presentationDefinition} side="question" surface="review" title="Originalfrage" mediaUrls={studyMediaUrls} showCompatibility={false} />
                                 </div>
                                 <div>
                                   <p className="mb-1 core-caption font-semibold text-[var(--core-text-muted)]">Rückseite</p>
-                                  <CardHtml html={getLearningItemAnswer(sourceCard)} mediaUrls={studyMediaUrls} />
+                                  <CardPresentationSurface item={sourceCard} variant={originalPresentationVariant} definition={presentationDefinition} side="answer" surface="review" title="Originalantwort" mediaUrls={studyMediaUrls} showCompatibility={false} />
                                 </div>
                               </div>
                             </div>
@@ -458,8 +510,12 @@ export function StudyMode({ deck, decks, deckId, variantSession, mediaStore, get
               </>
             ) : limitReachedAtStart ? (
               <div className="text-center">
-                <h1 className="core-heading-2 font-semibold">Tageslimit erreicht</h1>
+                <CircleAlert className="mx-auto text-core-warning" size={44} aria-hidden="true" />
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Tageslimit erreicht</h1>
                 <p className="mt-3 text-[var(--core-text-muted)]">{limitSummaryText}</p>
+                <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-11 items-center rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)]">
+                  Zurück zum Ausgangspunkt
+                </button>
               </div>
             ) : hasWaitingLearningCards ? (
               <div className="text-center">

@@ -1,16 +1,38 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-08-11
+**Stand:** 2026-08-13
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
-## 2026-08-11 — Tageslimits, Sortierung und globale Easy Days
+## 2026-08-13 — Dependency-Sicherheitsgate geschlossen
 
-- Eltern-, Kind- und Enkelbudgets begrenzen Baumrunden gemeinsam; direkte Unterstapelstarts ignorieren äußere Vorfahren. Reviews reservieren das gemeinsame Budget vor neuen Karten, Intraday-Schritte umgehen Limits und Interday-Schritte verbrauchen Reviewbudget.
-- Lernprofile und materialisierte Stapeleinstellungen enthalten die Sortierung neuer und fälliger Karten. Der gestartete Stapel bestimmt die ganze Teilbaumrunde; stabile Tageszufallswerte und tatsächliche FSRS-Abrufwahrscheinlichkeit werden vor der Auswahl berechnet.
-- Der globale Wochenrhythmus verteilt neu berechnete Reviewintervalle von 3 bis 90 Tagen innerhalb des offiziellen FSRS-Fuzz-Fensters anhand der accountweiten Last. Vorschau und Commit verwenden dieselbe DST-sichere Lastmomentaufnahme. Es entstand weder eine neue Produktionsabhängigkeit noch eine Datenbankmigration.
-- Fokussierte Queue-, Scheduler-, DST-, Settings- und Portabilitätstests sowie Typecheck und Production-Build wurden für den isolierten Feature-Commit ausgeführt.
+- `pdfjs-dist` wurde gezielt auf 6.2.108 und `postcss` auf 8.5.26 angehoben. PostCSS besitzt weiterhin die transitive Abhängigkeit auf `nanoid`, die das Lockfile ohne direkte Projektabhängigkeit auf 3.3.18 auflöst; weitere Dependency-Upgrades gehörten nicht zu diesem Sicherheitspaket.
+- Ein sauberes `npm ci` reproduzierte den Lockfile-Stand, und `npm audit --omit=dev` endete mit null Schwachstellen. Sieben PDF-/Worker-Fokustests, 542/542 Modul-, Contract- und Integrationstests, Typecheck, Production-Build und Bundlebudgets blieben grün.
+- Das lokale Beta-Gate bestand mit 22/22 Browserfällen einschließlich Beta-Login und PDF-Quellenanker. Das Release-Gate bestätigte Datenbanktypdrift, 12/12 RLS-Prüfungen sowie 79 bestandene und einen erwartbar übersprungenen Browserfall.
+
+## 2026-08-13 — Dynamische Karten- und Skalierungshärtung
+
+- Karteninhalt besitzt mit `LearningItemDocumentV1` und deduplizierten Notetype-Definitionen eine Schreibwahrheit; vollständige Definitionen und Quellsnapshots werden nicht mehr über Kartenmetadaten dupliziert. Renderer und Templatecache sind synchron und von der initialen Core-Seam getrennt. Die öffentlichen Exporte sanken gegenüber dem Freeze in `coreModel` von 66 auf 52, in `apkgImport` von 32 auf 4 und in `cloudRepository` von 24 auf 18.
+- APKG erzeugt Commitgraph, Bericht und höchstens fünf Samples genau einmal im Worker und streamt den Graphen in IndexedDB-Chunks. Der produktive Browserpfad besitzt keinen Direktparser-Fallback; die Protobuf-Dekoder werden als eigener Lazy-Chunk geladen, wodurch der Main-Thread-APKG-Chunk von 96,9 auf 87,3 kB sank. Boot, Kartenbrowser, Review und Statistik verwenden begrenzte Entityabfragen; eine Reviewantwort schreibt lokal eine Transaktion und synchronisiert genau einen atomaren RPC. Cloudlisten verwenden 500er-ID-Keyset-Seiten, begrenzte Writes und keinen vollständigen Readback.
+- Gegen die eingefrorene Basis von 7.017 zusätzlichen handgeschriebenen Produktionszeilen verbleiben nach demselben Filter 5.564 Zeilen, also 20,7 Prozent weniger. Der Production-Build hält die komprimierten Budgets; der initiale Hauptchunk misst 478,5 kB roh statt rund 492 kB am Freeze.
+- Lokal bestätigt: 542/542 Modul-, Contract- und Integrationstests, Typecheck einschließlich UI-Katalog, Production-Build, Datenbank-Reset über beide neuen Migrationen, Typgenerierung und Typdrift, Schema-Verifikation, 12/12 RLS sowie der vollständige Release-E2E-Lauf mit 79 bestandenen und einem im normalen Release-Modus erwartbar übersprungenen Beta-Artefakt-Test. Das Golden-Gate bestand separat mit Auth-Setup und sechs Kernjourneys.
+- Der abschließende 25.000-Karten-/1.000-Medien-APKG-Median lag bei 15,01 Sekunden Gesamt- und 14,68 Sekunden Workerzeit, rund 688 MiB Workerheap, 25,73 ms maximaler Main-Thread-Verzögerung und 0,41 ms Ergebnisübergabe. Das überschreitet die frühere optionale Rust-Spike-Schwelle, Rust/WASM bleibt aber bewusst außerhalb dieses Pakets. `npm audit --omit=dev` meldet drei bekannte Findings im unverändert eingefrorenen PDF.js-/PostCSS-Stand und transitivem `nanoid`; die frühere Aussage „ohne Production-Vulnerability“ ist damit nicht mehr aktuell und wird nicht als Gate dieser Härtung behauptet.
+
+## 2026-08-12 — Dynamische Karteninhalte und erhaltender Anki-Import
+
+- Das kanonische Inhaltsmodell ist feldzentriert: `LearningItemDocumentV1`, unveränderliche Notetype-Definitionen und stabile Variantenprojektionen ersetzen feste Kartentypen als fachliche Wahrheit. Die manuelle Erstellung beginnt mit Vorder- und Rückseite und ergänzt Bilder, Lücken, Rückrichtung, Multiple Choice und weitere Felder als kombinierbare Aktionen beziehungsweise Rezepte.
+- Legacy- und V18-APKG erhalten bekannte und unbekannte Notetype-, Feld- und Template-Konfigurationen einschließlich Roh-Protobuf, CSS, IDs, Medien- und Schedulerquellen. Dreiwege-Reimport schützt lokale Feldänderungen; jede Anki-Card bleibt eine separat reviewbare Variante. Ein gemeinsamer CSP-/Sandbox-Renderer versorgt Importvorschau, Kartenverwaltung und Review und zeigt bei nicht sicher ausführbaren Funktionen eine diagnostizierte Feldansicht.
+- CSV- und Tabellenimporte besitzen eine bestätigungspflichtige, ausschließlich deterministische Spaltenzuordnung; der APKG-Integritätspfad bleibt davon getrennt.
+- Zwei agentische Browserrunden prüften Erstellung, CSV-Mapping, importierte Felder und gemeinsame Präsentationen in Light/Dark, Reduced Motion, per Tastatur sowie von 320 bis 1.920 px und an den tatsächlichen Breakpoints. Gefundene P1-Befunde zu Cloze-Auswahl, Dirty-State, Statusmeldungen und Reflow wurden behoben; die zweite Runde fand in den erneut geprüften Kernpfaden keine offenen P0/P1. Die isolierte Auth-Oberfläche bestand zusätzlich bei exakt 160 CSS-Pixeln ohne Clipping, Konsolen- oder Seitenfehler.
+- Der damalige Zwischenstand bestätigte 624 Modul-, Contract- und Integrationstests, Typecheck einschließlich UI-Katalog, Production-Build mit einem größten Hauptchunk von 491,9 kB, Datenbanktypdrift, Schema-Verifikation, die vollständige 12-Test-RLS-Suite und den 25.000-Karten-/1.000-Medien-APKG-Benchmark. Persistierte Playwright-Durchstiche bestanden für den kompletten Basic-Lebenszyklus sowie die Latest-APKG-Analyse; die nachfolgende gemeinsame Skalierungshärtung und ihr geschlossener Release-Lauf sind im Eintrag vom 13. August dokumentiert.
+
+## 2026-08-11 — Hierarchische Tageslimits, Sortierung und Easy Days
+
+- Eine gestartete Baumrunde berücksichtigt Neu- und Reviewbudgets jedes enthaltenen Stapels und seiner aktiven Vorfahren. Reviews sowie tagesübergreifende Lernschritte reservieren Reviewbudget vor neuen Karten; Intraday-Schritte umgehen Limits. Durch Limits verborgene fällige und neue Karten werden am Start und Abschluss verständlich ausgewiesen.
+- Lernprofile und materialisierte Stapeleinstellungen führen getrennte Sortierungen für neue Karten und fällige Reviews. Alter, stabiler Lerntagszufall, Überfälligkeit und tatsächliche FSRS-Abrufwahrscheinlichkeit bestimmen die Auswahl vor dem bestehenden Modus `Neue zuerst / Gemischt / Wiederholungen zuerst`.
+- Der globale Wochenrhythmus führt je Wochentag `Normal`, `Weniger` oder `Minimal`. Easy Days verteilt ausschließlich neue Review-Tagesintervalle von 3 bis 90 Tagen innerhalb des offiziellen FSRS-Fensters anhand der Last aller aktiven Stapel; Vorschau und Commit teilen denselben DST-sicheren Kontext. Profil-JSONB und Portabilität wurden ohne Schemaänderung erweitert.
+- Die fokussierte Abnahme war unmittelbar nach beiden Paketen mit 102 Prüfungen grün; der nachgelagerte Vereinfachungsaudit bestand mit 70 betroffenen Queue-/Scheduler-/Bibliotheksprüfungen sowie sechs Easy-Days-Grenzfällen. Die Browserabnahme bestätigte Light und Dark bei 390, 768 und 1.440 px, Tastaturauswahl und fehlenden horizontalen Überlauf. Die Paket-Builds waren grün. Im abschließenden gemeinsamen Arbeitsbaum wurden `typecheck`, `build`, `npm test` und `test:beta` zusätzlich ausgeführt, blieben aber ausschließlich an parallel entstehenden, sachfremden APKG-/HTML-Sicherheitsänderungen hängen; das lokale Supabase-Browsergate war bereits ohne laufendes Docker Desktop extern blockiert.
 
 ## 2026-08-11 — Getrennte globale und stapelspezifische Einstellungen
 

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { IDBFactory } from "fake-indexeddb";
-import { createAccountMediaStore, resolveCardHtmlMedia } from "./mediaStore.ts";
+import { resolvePresentationMedia } from "./cardPresentation.ts";
+import { createAccountMediaStore, planDeckMediaSync, resolveCardHtmlMedia } from "./mediaStore.ts";
 
 const HASH = "0123456789abcdef0123456789abcdef01234567";
 const OTHER_HASH = "89abcdef0123456789abcdef0123456789abcdef";
@@ -25,6 +26,101 @@ test("accountgebundene Blobs überleben Schließen und Neueröffnen", async () =
   assert.ok(resolved.urls[HASH]);
   assert.equal(resolved.missing[0].status, "Nur lokal verfügbar; Cloud-Upload ausstehend.");
   resolved.revoke();
+});
+
+test("erfolgreich persistierte Blobs bleiben nicht zusätzlich im Sessioncache", async () => {
+  const indexedDB = new IDBFactory();
+  const store = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "no-session-copy", indexedDB });
+  await store.cachePreviewMedia(deck(), [file]);
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  await new Promise<void>((resolve, reject) => { const tx = db.transaction("account_assets", "readwrite"); tx.objectStore("account_assets").delete(`no-session-copy\u0000${HASH}`); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); });
+  db.close();
+  const resolved = await store.resolveDeckMedia(deck());
+  assert.deepEqual(resolved.urls, {});
+});
+
+test("kartenbezogene Auflösung signiert nur aktuelle Medien und nutzt den TTL-Cache", async () => {
+  const signedPaths: string[][] = [];
+  const client = { storage: { from() { return { async createSignedUrls(paths: string[]) { signedPaths.push(paths); return { data: paths.map((path) => ({ path, signedUrl: `https://signed.test/${path}` })), error: null }; } }; } } };
+  const assets = Array.from({ length: 1_000 }, (_, index) => {
+    const sha1 = index.toString(16).padStart(40, "0");
+    return { id: `media-${index}`, userId: "media-user", deckId: "deck-many", cardId: `card-${index}`, sha1, size: 4, mimeType: "image/png", originalName: `image-${index}.png`, storageBucket: "core-media", storagePath: `media-user/objects/${sha1}`, source: "apkg-media", metadata: {}, createdAt: "2026-07-14T08:00:00.000Z", updatedAt: "2026-07-14T08:00:00.000Z", deletedAt: null };
+  });
+  const manyDeck: any = {
+    id: "deck-many",
+    mediaAssets: assets,
+    cards: assets.map((asset, index) => ({ id: `card-${index}`, mediaRefs: [asset.originalName] })),
+    importMeta: { mediaManifest: { assets: assets.map((asset) => ({ sha1: asset.sha1, name: asset.originalName, size: asset.size, mimeType: asset.mimeType })) } },
+  };
+  const store = createAccountMediaStore({ client, supabaseUrl: "http://127.0.0.1", userId: "media-user", indexedDB: null });
+  await store.resolveCardMedia(manyDeck, "card-7");
+  await store.resolveCardMedia(manyDeck, "card-7");
+  assert.equal(signedPaths.length, 1);
+  assert.equal(signedPaths[0].length, 1);
+  assert.equal(signedPaths[0][0], assets[7].storagePath);
+});
+
+test("kompakte Import-Summaries planen ihre Manifestmedien ohne Kartenmaterialisierung", () => {
+  const compact = { ...deck(), cards: [], cardCount: 1 };
+  const plan = planDeckMediaSync(compact);
+  assert.deepEqual(plan.files.map(({ sha1, name, cardId }) => ({ sha1, name, cardId })), [
+    { sha1: HASH, name: "card.png", cardId: null },
+  ]);
+});
+
+test("Cloud-Bilder und -Audio werden vor der Sandbox als Blob-URLs materialisiert", async () => {
+  const audioHash = "123456789abcdef0123456789abcdef012345678";
+  const assets = [
+    { id: "image", sha1: HASH, originalName: "card.png", size: 4, mimeType: "image/png", storagePath: `media-user/objects/${HASH}` },
+    { id: "audio", sha1: audioHash, originalName: "answer.mp3", size: 3, mimeType: "audio/mpeg", storagePath: `media-user/objects/${audioHash}` },
+  ].map((asset) => ({ ...asset, userId: "media-user", deckId: "cloud-deck", cardId: "cloud-card", storageBucket: "core-media", source: "apkg-media", metadata: {}, createdAt: "2026-07-14T08:00:00.000Z", updatedAt: "2026-07-14T08:00:00.000Z", deletedAt: null }));
+  const cloudDeck: any = {
+    id: "cloud-deck",
+    mediaAssets: assets,
+    cards: [{ id: "cloud-card", mediaRefs: ["card.png", "answer.mp3"] }],
+    importMeta: { mediaManifest: { assets: assets.map(({ sha1, originalName: name, size, mimeType }) => ({ sha1, name, size, mimeType })) } },
+  };
+  const requests: Array<{ url: string; init?: RequestInit }> = [];
+  const client = { storage: { from() { return { async createSignedUrls(paths: string[]) { return { data: paths.map((path) => ({ path, signedUrl: `https://core.test/storage/v1/object/sign/core-media/${path}?token=secret` })), error: null }; } }; } } };
+  const store = createAccountMediaStore({
+    client,
+    supabaseUrl: "https://core.test",
+    userId: "media-user",
+    indexedDB: null,
+    fetchImpl: async (input, init) => {
+      const url = String(input);
+      requests.push({ url, init });
+      const isAudio = url.includes(audioHash);
+      return new Response(new Blob([new Uint8Array(isAudio ? 3 : 4)], { type: isAudio ? "audio/mpeg" : "image/png" }));
+    },
+  });
+
+  const resolved = await store.resolveCardMedia(cloudDeck, "cloud-card");
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every(({ url }) => url.startsWith("https://core.test/storage/v1/object/sign/") && url.includes("token=secret")));
+  assert.ok(requests.every(({ init }) => init?.credentials === "omit" && init.redirect === "error" && init.referrerPolicy === "no-referrer"));
+  assert.match(resolved.urls["card.png"], /^blob:/);
+  assert.match(resolved.urls["answer.mp3"], /^blob:/);
+  const srcdoc = resolvePresentationMedia('<img src="card.png"><audio controls src="answer.mp3"></audio>', resolved.urls);
+  assert.equal(srcdoc.includes("https://core.test"), false);
+  assert.match(srcdoc, /<img src="blob:/);
+  assert.match(srcdoc, /<audio controls src="blob:/);
+  resolved.revoke();
+});
+
+test("fremde Signed-URL-Ursprünge werden weder geladen noch an den Renderer gegeben", async () => {
+  let fetched = false;
+  const cloudDeck: any = {
+    ...deck("foreign-url"),
+    mediaAssets: [{ id: "foreign", userId: "media-user", deckId: "foreign-url", cardId: "foreign-url-card", sha1: HASH, size: 4, mimeType: "image/png", originalName: "card.png", storageBucket: "core-media", storagePath: `media-user/objects/${HASH}`, source: "apkg-media", metadata: {}, createdAt: "2026-07-14T08:00:00.000Z", updatedAt: "2026-07-14T08:00:00.000Z", deletedAt: null }],
+  };
+  const client = { storage: { from() { return { async createSignedUrls(paths: string[]) { return { data: paths.map((path) => ({ path, signedUrl: `https://tracker.example/storage/v1/object/sign/core-media/${path}` })), error: null }; } }; } } };
+  const store = createAccountMediaStore({ client, supabaseUrl: "https://core.test", userId: "media-user", indexedDB: null, fetchImpl: async () => { fetched = true; return new Response(new Blob([new Uint8Array(4)])); } });
+
+  const resolved = await store.resolveCardMedia(cloudDeck, "foreign-url-card");
+  assert.equal(fetched, false);
+  assert.deepEqual(resolved.urls, {});
+  assert.equal(resolved.missing[0].status, "Medium fehlt lokal und in der Cloud.");
 });
 
 test("direkte SHA-1-Referenzen benötigen kein APKG-Medienmanifest", async () => {

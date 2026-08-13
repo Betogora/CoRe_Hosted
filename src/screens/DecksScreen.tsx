@@ -2,26 +2,36 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, Ban, Check, ChevronDown, ChevronRight, Copy, Layers, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
-import { getCardEditorValue, getOriginalVariant, getVariantAnchor, isLearningItemMarked, validateCardEditorValue } from "../coreModel.ts";
+export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
+export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
+import { createCoreNoteTypeDefinition, getCardEditorValue, getOriginalVariant, getVariantAnchor, isLearningItemMarked, validateCardEditorValue } from "../coreModel.ts";
 import { createVariantReviewModel } from "../coreVariantService.ts";
 import { MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
 import { stripHtml } from "../htmlSafety.ts";
-import { createCardTableModel, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { CardHtml, useDeckMediaUrls } from "../ui/cardMedia.tsx";
+import { CardHtml, useCardMediaUrls } from "../ui/cardMedia.tsx";
+import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { ActionDialog, CardMarkButton, CoreSwitch, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
-import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
-import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardType, CardVariant, Deck, LearningItem } from "../coreTypes.ts";
+import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardVariant, LearningItem } from "../coreTypes.ts";
 
 const variantLevelOptions = [1, 2, 3].map((level) => ({ value: String(level), label: `Level ${level}` }));
 interface PendingDetailAction {
   run: () => void;
+}
+
+function sameSort(left: CardTableSort, right: CardTableSort) {
+  return left.field === right.field && left.direction === right.direction;
+}
+
+function normalizeCardQuery(value: string) {
+  return value.trim().toLocaleLowerCase("de");
 }
 
 function SortHeader({ field, label, sort, onChange }: {
@@ -59,21 +69,37 @@ function FieldError({ errors, field }: { errors: CardEditorFieldErrors; field: C
 
 function versionContent(value: unknown, fallback: LearningItem) {
   const snapshot = value !== null && typeof value === "object" ? value as Record<string, unknown> : {};
+  const fields = snapshot.schemaVersion === 1 && Array.isArray(snapshot.fields)
+    ? snapshot.fields.filter((field): field is Record<string, unknown> => Boolean(field && typeof field === "object"))
+    : [];
+  const fieldValue = (role: string, placement: string) => {
+    const field = fields.find((candidate) => candidate.semanticRole === role)
+      ?? fields.find((candidate) => candidate.placement === placement || candidate.placement === "both");
+    return typeof field?.value === "string" ? field.value : null;
+  };
   return {
-    front: typeof snapshot.originalFront === "string" ? snapshot.originalFront : fallback.originalFront,
-    back: typeof snapshot.originalBack === "string" ? snapshot.originalBack : fallback.originalBack,
-    tags: Array.isArray(snapshot.originalTags) ? snapshot.originalTags.map(String) : fallback.originalTags,
+    front: typeof snapshot.originalFront === "string" ? snapshot.originalFront : fieldValue("prompt", "front") ?? fallback.originalFront,
+    back: typeof snapshot.originalBack === "string" ? snapshot.originalBack : fieldValue("answer", "back") ?? fallback.originalBack,
+    tags: Array.isArray(snapshot.originalTags) ? snapshot.originalTags.map(String) : Array.isArray(snapshot.tags) ? snapshot.tags.map(String) : fallback.originalTags,
     kind: typeof snapshot.kind === "string" ? snapshot.kind : fallback.kind,
   };
 }
 
-function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStudyState, onDuplicateCard, onDeleteCard, onRestoreCard, onAddVariant, onGenerateVariant, onClose, onDraftStateChange }: any) {
+function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCard, onSaveCardDocument, onSetStudyState, onDuplicateCard, onDeleteCard, onRestoreCard, onAddVariant, onGenerateVariant, onClose, onDraftStateChange }: any) {
   const [cardEditorValue, cardContentKey] = React.useMemo(() => {
     const value = card ? getCardEditorValue(card) : null;
     return [value, JSON.stringify(value)] as const;
   }, [card]);
   const [form, setForm] = React.useState<CardEditorValue | null>(cardEditorValue);
   const [savedForm, setSavedForm] = React.useState(cardContentKey);
+  const documentContentKey = React.useMemo(
+    () => JSON.stringify(card?.contentDocument?.fields?.map((field: any) => ({ id: field.id, value: field.value })) ?? []),
+    [card?.contentDocument?.fields],
+  );
+  const [documentFields, setDocumentFields] = React.useState<Array<{ id: string; value: string }>>(
+    () => card?.contentDocument?.fields?.map((field: any) => ({ id: field.id, value: field.value })) ?? [],
+  );
+  const [savedDocumentFields, setSavedDocumentFields] = React.useState(documentContentKey);
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
   const [saveStatus, setSaveStatus] = React.useState("");
   const [saveError, setSaveError] = React.useState(false);
@@ -95,7 +121,9 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
   const editorHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const saveDraftRef = React.useRef<() => Promise<boolean>>(async () => false);
   const serializedForm = React.useMemo(() => JSON.stringify(form), [form]);
-  const draftDirty = Boolean(form && serializedForm !== savedForm);
+  const dynamicDocumentMode = !form && Boolean(definition && onSaveCardDocument);
+  const serializedDocumentFields = React.useMemo(() => JSON.stringify(documentFields), [documentFields]);
+  const draftDirty = form ? serializedForm !== savedForm : dynamicDocumentMode && serializedDocumentFields !== savedDocumentFields;
   const focusDraft = React.useCallback(() => editorHeadingRef.current?.focus(), []);
   const variantReviewModel = React.useMemo(
     () => card ? createVariantReviewModel(card, deck?.reviewEvents ?? [], { now }) : null,
@@ -113,20 +141,21 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
     })),
   ], [restorableVersions]);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     setForm(cardEditorValue);
     setSavedForm(cardContentKey);
+    setDocumentFields(card?.contentDocument?.fields?.map((field: any) => ({ id: field.id, value: field.value })) ?? []);
+    setSavedDocumentFields(documentContentKey);
     setFieldErrors({});
     setSaveError(false);
     setVariantForm({ front: "", back: "", variantLevel: 2 });
     setVariantStatus("");
     setVariantStatusWarning(false);
-  }, [card?.id, cardContentKey]);
+  }, [card?.id, cardContentKey, documentContentKey]);
 
   React.useEffect(() => {
     setSaveStatus("");
     setSaveError(false);
-    setSuccessToast("");
     setDuplicateStatus("");
     setDuplicateError(false);
     setRestoreVersionId("");
@@ -163,6 +192,7 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
     setFieldErrors((current) => ({ ...current, [key]: undefined }));
     setSaveStatus("");
     setSaveError(false);
+    setSuccessToast("");
   }
 
   function updateMcOption(index: number, option: string) {
@@ -184,7 +214,26 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
   }
 
   async function saveEditorValue(): Promise<boolean> {
-    if (!form) return false;
+    if (!form && !dynamicDocumentMode) return false;
+    if (!form) {
+      setIsSaving(true);
+      setSaveError(false);
+      setSuccessToast("");
+      setSaveStatus("Karte wird gespeichert …");
+      try {
+        await onSaveCardDocument(card.id, { fields: documentFields, tags: card.tags });
+        setSavedDocumentFields(JSON.stringify(documentFields));
+        setSaveStatus("");
+        setSuccessToast("Feldwerte wurden gespeichert. Alle Kartenvarianten verwenden die aktualisierte Darstellung.");
+        return true;
+      } catch {
+        setSaveError(true);
+        setSaveStatus("Die Feldwerte konnten nicht vollständig synchronisiert werden. Bitte später erneut versuchen.");
+        return false;
+      } finally {
+        setIsSaving(false);
+      }
+    }
     const validation = validateCardEditorValue(form);
     if (!validation.ok) {
       setFieldErrors(validation.errors);
@@ -213,7 +262,6 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
   }
 
   async function duplicateCard() {
-    if (!form) return;
     setIsDuplicating(true);
     setDuplicateStatus("Kopie wird erstellt …");
     setDuplicateError(false);
@@ -304,7 +352,7 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
         </div>
         <div className="flex flex-wrap gap-2">
           <IconButton label="Detailansicht schließen" icon={X} onClick={onClose} />
-          {form ? (
+          {form || dynamicDocumentMode ? (
             <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:opacity-60">
               <Save size={16} aria-hidden="true" />
               {isSaving ? "Speichert …" : "Speichern"}
@@ -313,9 +361,9 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
           <button
             type="button"
             onClick={() => void duplicateCard()}
-            disabled={!form || isDuplicating}
-            title={form ? "Eigenständige Kopie direkt unter dieser Karte erstellen" : "Dieser importierte Kartentyp kann nicht kopiert werden."}
-            aria-describedby={!form ? "copy-disabled-" + card.id : undefined}
+            disabled={(!form && !dynamicDocumentMode) || isDuplicating}
+            title={form || dynamicDocumentMode ? "Eigenständige Kopie direkt unter dieser Karte erstellen" : "Dieser importierte Kartentyp kann nicht kopiert werden."}
+            aria-describedby={!form && !dynamicDocumentMode ? "copy-disabled-" + card.id : undefined}
             className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Copy size={16} aria-hidden="true" />
@@ -349,6 +397,23 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
         </div>
         <p className="pb-3 core-caption text-[var(--core-text-muted)]">Aussetzen pausiert alle Varianten. Der Lernstand bleibt erhalten.</p>
       </div>
+      {Array.isArray(card.meta.reimportConflicts) && card.meta.reimportConflicts.length > 0 ? (
+        <div className="mb-5 rounded-xl border border-core-warning bg-core-warning-soft p-4 core-body text-core-text" role="alert">
+          <p className="font-semibold">{card.meta.reimportConflicts.length} Reimport-Konflikt{card.meta.reimportConflicts.length === 1 ? "" : "e"}</p>
+          <p className="mt-1">CoRe hat nicht-destruktiv die lokale Version behalten. Prüfe die betroffenen Felder und speichere deine Entscheidung.</p>
+          <div className="mt-3 grid gap-3">
+            {card.meta.reimportConflicts.map((conflict: any) => (
+              <div key={`${conflict.fieldId}:${conflict.kind}`} className="rounded-xl border border-[var(--core-border)] bg-core-surface p-3">
+                <p className="font-semibold">{conflict.fieldName}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <ActionButton type="button" variant="secondary" onClick={() => setDocumentFields((current) => current.map((field) => field.id === conflict.fieldId ? { ...field, value: conflict.localValue } : field))}>Lokal behalten</ActionButton>
+                  <ActionButton type="button" variant="secondary" onClick={() => setDocumentFields((current) => current.map((field) => field.id === conflict.fieldId ? { ...field, value: conflict.incomingValue } : field))}>Anki-Version übernehmen</ActionButton>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {form ? (
         <div className="grid min-w-0 gap-4">
           {form.cardType === "basic" || form.cardType === "basic-with-images" || form.cardType === "basic-reversed" ? (
@@ -412,11 +477,47 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
           {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
           {duplicateStatus ? <p className={duplicateError ? "core-status-error" : "core-status-info"} role={duplicateError ? "alert" : "status"}>{duplicateStatus}</p> : null}
         </div>
+      ) : dynamicDocumentMode ? (
+        <div className="grid min-w-0 gap-4">
+          <div className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
+            <p className="core-body font-semibold text-[var(--core-text)]">{definition.name}</p>
+            <p className="mt-1 core-body text-[var(--core-text-muted)]">Feldnamen, Reihenfolge und Templates stammen aus dem Import und bleiben schreibgeschützt. Du bearbeitest nur die Werte.</p>
+          </div>
+          {card.contentDocument.fields.map((field: any) => {
+            const value = documentFields.find((candidate) => candidate.id === field.id)?.value ?? "";
+            return (
+              <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+                <span>{field.name}</span>
+                <RichTextEditor
+                  value={value}
+                  onChange={(nextValue) => {
+                    setDocumentFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, value: nextValue } : candidate));
+                    setSaveStatus("");
+                    setSaveError(false);
+                    setSuccessToast("");
+                  }}
+                  ariaLabel={`Feld ${field.name}`}
+                  minHeightClass="min-h-28"
+                />
+              </div>
+            );
+          })}
+          {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
+        </div>
       ) : (
         <div id={"copy-disabled-" + card.id} className="rounded-xl border border-core-warning bg-core-warning-soft p-4 core-body font-medium text-core-text" role="status">
           Dieser importierte Kartentyp wird hier nur angezeigt und kann nicht kopiert werden. Typgerechtes Bearbeiten und Kopieren ist für Basic, Basic + Bilder, Reverse, Cloze und Multiple Choice verfügbar.
         </div>
       )}
+      {definition && originalVariant ? (
+        <details className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" open>
+          <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Sichere Karten-Vorschau</summary>
+          <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-2">
+            <CardPresentationSurface item={card} variant={originalVariant} definition={definition} side="question" surface="card-management" title="Vorschau der Vorderseite" mediaUrls={mediaUrls} />
+            <CardPresentationSurface item={card} variant={originalVariant} definition={definition} side="answer" surface="card-management" title="Vorschau der Rückseite" mediaUrls={mediaUrls} />
+          </div>
+        </details>
+      ) : null}
       <details className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
         <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Details, Herkunft und Versionen</summary>
       <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))]">
@@ -602,6 +703,7 @@ function DeckCardEditor({ deck, card, now, mediaUrls = {}, onSaveCard, onSetStud
 
 export function DecksScreen({
   decks,
+  noteTypeDefinitions = [],
   now,
   dayStartHour,
   learnAheadMinutes,
@@ -613,6 +715,7 @@ export function DecksScreen({
   onCloseSelectedCard,
   onSetDeckCoreMode,
   onSaveCard,
+  onSaveCardDocument,
   onSetCardStudyState,
   onDuplicateCard,
   onDeleteCard,
@@ -627,13 +730,18 @@ export function DecksScreen({
   onDraftStateChange,
   expandedDeckIds,
   onSetDeckExpanded,
+  cardPages,
+  onRequestCardPage,
 }: DecksScreenProps) {
   const [query, setQuery] = React.useState("");
+  const deferredQuery = React.useDeferredValue(query);
+  const [cardPageByDeckId, setCardPageByDeckId] = React.useState<Record<string, number>>({});
   const [cardSort, setCardSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();
   const [pendingCardDelete, setPendingCardDelete] = React.useState<{ deckId: string; card: LearningItem } | null>(null);
+  const preserveToastForSelectionChange = React.useRef(false);
   const [deletingCard, setDeletingCard] = React.useState(false);
   const [deletedCardUndo, setDeletedCardUndo] = React.useState<{ deckId: string; card: LearningItem; description: string } | null>(null);
   const [pendingDetailAction, setPendingDetailAction] = React.useState<PendingDetailAction | null>(null);
@@ -641,24 +749,117 @@ export function DecksScreen({
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
   const detailRef = React.useRef<HTMLElement | null>(null);
   const previouslySelectedCardId = React.useRef<string | null>(null);
-  const tableModel = React.useMemo(
-    () => createCardTableModel(decks, { query, cardSort, now, dayStartHour, learnAheadMinutes, timeZone }),
-    [cardSort, dayStartHour, decks, learnAheadMinutes, now, query, timeZone],
-  );
-  const searchExpandsGroups = Boolean(query.trim());
+  const usesCardPages = cardPages !== undefined || Boolean(onRequestCardPage);
+  const tableModel = React.useMemo(() => {
+    if (!usesCardPages) {
+      return createCardTableModel(decks, { query: deferredQuery, cardSort, cardPageByDeckId, now, dayStartHour, learnAheadMinutes, timeZone });
+    }
+    const originalDecks = new Map(decks.map((deck) => [deck.id, deck]));
+    const baseModel = createCardTableModel(
+      decks.map((deck) => ({ ...deck, cards: [] })),
+      { now, dayStartHour, learnAheadMinutes, timeZone },
+    );
+    const normalizedQuery = normalizeCardQuery(deferredQuery);
+    const allGroups = baseModel.allGroups.map((group) => {
+      const candidate = cardPages?.[group.id];
+      const page = candidate && candidate.query === deferredQuery && sameSort(candidate.sort, cardSort) ? candidate : undefined;
+      const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(page?.pageSize ?? CARD_TABLE_PAGE_SIZE)));
+      const items = (page?.items ?? []).slice(0, pageSize);
+      const totalCardCount = Math.max(items.length, Math.floor(page?.totalCount ?? (normalizedQuery ? 0 : group.deck.cardCount ?? 0)));
+      const pageCount = Math.max(1, Math.ceil(totalCardCount / pageSize));
+      const currentPage = Math.min(Math.max(0, Math.floor(page?.page ?? cardPageByDeckId[group.id] ?? 0)), pageCount - 1);
+      const deckMatches = Boolean(normalizedQuery) && normalizeCardQuery(`${group.path} ${group.deck.tags?.join(" ") ?? ""}`).includes(normalizedQuery);
+      return {
+        ...group,
+        deck: originalDecks.get(group.id) ?? group.deck,
+        activeCards: items,
+        cardRows: items.map((card) => createCardTableRow(card, { dayStartHour, timeZone })),
+        totalCardCount,
+        page: currentPage,
+        pageCount,
+        pageSize,
+        deckMatches,
+      };
+    });
+    const groups = allGroups.filter((group) => (
+      !normalizedQuery
+      || group.deckMatches
+      || group.totalCardCount > 0
+      || Boolean(onRequestCardPage && !cardPages?.[group.id])
+    ));
+    return {
+      allGroups,
+      groups,
+      cardCount: groups.reduce((total, group) => total + group.totalCardCount, 0),
+      cardSort,
+    };
+  }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, decks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
+  const searchExpandsGroups = Boolean(deferredQuery.trim());
   const expandedDeckIdSet = React.useMemo(() => new Set(expandedDeckIds), [expandedDeckIds]);
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
   const selectedGroup = selectedDeckId ? groupById.get(selectedDeckId) ?? null : null;
   const selectedDeck = selectedGroup?.deck ?? null;
-  const selectedCard = selectedGroup?.activeCards.find((card) => card.id === selectedCardId) ?? null;
+  const selectedPage = selectedDeckId ? cardPages?.[selectedDeckId] : undefined;
+  const selectedCard = (selectedPage?.selectedCard?.id === selectedCardId ? selectedPage.selectedCard : null)
+    ?? selectedGroup?.activeCards.find((card) => card.id === selectedCardId)
+    ?? null;
+  const selectedDefinition = React.useMemo(() => {
+    if (!selectedCard) return null;
+    return noteTypeDefinitions.find((definition) => definition.id === selectedCard.noteTypeDefinitionId)
+      ?? createCoreNoteTypeDefinition({
+        document: selectedCard.contentDocument,
+        kind: selectedCard.kind === "cloze" ? "cloze" : "normal",
+        interaction: selectedCard.kind === "multiple-choice" ? "choice" : undefined,
+      });
+  }, [noteTypeDefinitions, selectedCard]);
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
   const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedCard);
   const detailOpen = Boolean(selectedCard || selectedDeckMissing || selectedCardMissing);
-  const { urls: selectedDeckMediaUrls } = useDeckMediaUrls(selectedDeck, mediaStore);
+  const selectedMediaDeck = React.useMemo(
+    () => selectedDeck && selectedCard ? { ...selectedDeck, cards: [selectedCard] } : selectedDeck,
+    [selectedCard, selectedDeck],
+  );
+  const { urls: selectedDeckMediaUrls } = useCardMediaUrls(selectedMediaDeck, selectedCard?.id, mediaStore);
   const handleEditorDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
     cardDraftGuardRef.current = guard;
     onDraftStateChange(guard);
   }, [onDraftStateChange]);
+
+  React.useEffect(() => {
+    if (preserveToastForSelectionChange.current) {
+      preserveToastForSelectionChange.current = false;
+      return;
+    }
+    setSuccessToast("");
+  }, [selectedCardId, setSuccessToast]);
+
+  React.useEffect(() => {
+    if (!onRequestCardPage) return;
+    const requestedGroups = tableModel.allGroups.filter((group) => (
+      searchExpandsGroups || expandedDeckIdSet.has(group.id) || selectedDeckId === group.id
+    ));
+    for (const group of requestedGroups) {
+      const page = Math.max(0, cardPageByDeckId[group.id] ?? cardPages?.[group.id]?.page ?? 0);
+      const selectedCardForDeck = selectedDeckId === group.id ? selectedCardId : null;
+      const current = cardPages?.[group.id];
+      const hasSelectedCard = !selectedCardForDeck
+        || current?.selectedCard?.id === selectedCardForDeck
+        || current?.items.some((card) => card.id === selectedCardForDeck);
+      if (current
+        && current.page === page
+        && current.query === deferredQuery
+        && sameSort(current.sort, cardSort)
+        && hasSelectedCard) continue;
+      void onRequestCardPage({
+        deckId: group.id,
+        page,
+        pageSize: CARD_TABLE_PAGE_SIZE,
+        query: deferredQuery,
+        sort: cardSort,
+        selectedCardId: selectedCardForDeck,
+      });
+    }
+  }, [cardPageByDeckId, cardPages, cardSort, deferredQuery, expandedDeckIdSet, onRequestCardPage, searchExpandsGroups, selectedCardId, selectedDeckId, tableModel.allGroups]);
 
   React.useEffect(() => {
     if (selectedDeckId && !expandedDeckIdSet.has(selectedDeckId)) onSetDeckExpanded("deck-manager", selectedDeckId, true);
@@ -683,7 +884,7 @@ export function DecksScreen({
     function handleOutsidePointer(event: PointerEvent) {
       const target = event.target;
       if (!(target instanceof Element) || detailRef.current?.contains(target)) return;
-      if (pendingCardDelete && target.closest('[data-testid="action-dialog-backdrop"]')) {
+      if (pendingCardDelete && target.matches('[data-testid="action-dialog-backdrop"]')) {
         if (deletingCard) {
           event.preventDefault();
           event.stopPropagation();
@@ -760,6 +961,7 @@ export function DecksScreen({
   }
 
   function changeSort(field: CardTableSortField) {
+    setCardPageByDeckId({});
     setCardSort((current) => current.field === field
       ? { field, direction: current.direction === "asc" ? "desc" : "asc" }
       : { field, direction: "asc" });
@@ -774,9 +976,15 @@ export function DecksScreen({
     return onSaveCard(selectedDeck.id, cardId, value);
   }
 
+  function saveCardDocument(cardId: string, value: { fields: Array<{ id: string; value: string }>; tags?: string[] }) {
+    if (!selectedDeck || !onSaveCardDocument) return;
+    return onSaveCardDocument(selectedDeck.id, cardId, value);
+  }
+
   function requestCardDelete(cardId: string) {
     if (!selectedDeck) return;
-    const card = selectedDeck.cards.find((candidate) => candidate.id === cardId);
+    const card = selectedDeck.cards.find((candidate) => candidate.id === cardId)
+      ?? (selectedCard?.id === cardId ? selectedCard : null);
     if (card) setPendingCardDelete({ deckId: selectedDeck.id, card });
   }
 
@@ -789,15 +997,16 @@ export function DecksScreen({
     setSuccessToast("");
     try {
       const result = await onDeleteCard(deletion.deckId, deletion.card.id);
-      const deletedCard = result?.cards.find((card: LearningItem) => card.id === deletion.card.id && card.status === "deleted" && Boolean(card.deletedAt));
+      const deletedCard = result?.id === deletion.card.id && result.status === "deleted" && result.deletedAt ? result : null;
       if (!deletedCard) throw new Error("Löschung fehlgeschlagen.");
       setDeletedCardUndo({ deckId: deletion.deckId, card: deletedCard, description });
       setPendingCardDelete(null);
+      preserveToastForSelectionChange.current = true;
       onSelectDeck(deletion.deckId);
       setSuccessToast("Karte wurde erfolgreich gelöscht.");
       focusCardRow(null);
-    } catch {
-      setDeckStatus("Die Karte konnte nicht sicher gelöscht werden.");
+    } catch (error) {
+      setDeckStatus(error instanceof Error ? `Die Karte konnte nicht sicher gelöscht werden: ${error.message}` : "Die Karte konnte nicht sicher gelöscht werden.");
       setDeckStatusType("alert");
     } finally {
       setDeletingCard(false);
@@ -855,9 +1064,11 @@ export function DecksScreen({
           <DeckCardEditor
             deck={selectedDeck}
             card={selectedCard}
+            definition={selectedDefinition}
             now={now}
             mediaUrls={selectedDeckMediaUrls}
             onSaveCard={saveCard}
+            onSaveCardDocument={onSaveCardDocument ? saveCardDocument : undefined}
             onSetStudyState={(cardId: string, patch: Parameters<DecksScreenProps["onSetCardStudyState"]>[2]) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
             onDuplicateCard={(cardId: string) => onDuplicateCard(selectedDeck.id, cardId)}
             onDeleteCard={requestCardDelete}
@@ -881,7 +1092,7 @@ export function DecksScreen({
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text-muted)] transition">
             <Search size={17} aria-hidden="true" />
-            <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
+            <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
           </label>
           <ActionButton type="button" variant="primary" icon={PlusSquare} onClick={onOpenCardCreation}>Neue Karte</ActionButton>
           <span className="core-caption font-semibold text-[var(--core-text-muted)]" aria-live="polite">{tableModel.cardCount} {tableModel.cardCount === 1 ? "Karte" : "Karten"}</span>
@@ -955,7 +1166,7 @@ export function DecksScreen({
                       />
                     </th>
                   </tr>
-                  {expanded && group.cardRows.length ? group.cardRows.map(({ card, frontPreview, nextStudyLabel, variantsLabel, hasActiveVariants }) => {
+                  {expanded && group.cardRows.length ? <>{group.cardRows.map(({ card, frontPreview, nextStudyLabel, variantsLabel, hasActiveVariants }) => {
                     const suspended = card.status === "suspended";
                     const marked = isLearningItemMarked(card);
                     const selected = selectedCardId === card.id;
@@ -998,7 +1209,17 @@ export function DecksScreen({
                       </td>
                     </tr>
                     );
-                  }) : expanded ? (
+                  })}{group.pageCount > 1 ? (
+                    <tr className="border-b border-[var(--core-border)] bg-core-surface" data-testid={`card-page-${group.id}`}>
+                      <td colSpan={3} className="px-3 py-2">
+                        <div className="flex items-center justify-end gap-2">
+                          <ActionButton type="button" variant="secondary" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))}>Zurück</ActionButton>
+                          <span className="core-caption text-[var(--core-text-muted)]">Seite {group.page + 1} von {group.pageCount}</span>
+                          <ActionButton type="button" variant="secondary" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))}>Weiter</ActionButton>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}</> : expanded ? (
                     <tr className="border-b border-[var(--core-border)] bg-core-surface">
                       <td colSpan={3} className="px-4 py-1 core-body text-[var(--core-text-muted)]">Keine Karten</td>
                     </tr>

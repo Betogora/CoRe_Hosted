@@ -1,21 +1,21 @@
 import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
-import type { CardContentPayload, CardEditorValue, CardField, CardType, CardVariantType, Deck, DeckSource, DraftStatus, LearningItem, LearningItemSourceType, LearningItemStatus, SourceAnchor, TransformType, VariantGenerationSource, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
-import { CORE_CARD_TYPES, makeId, stableContentHash } from "./coreValues.ts";
+import type { CardContentPayload, CardEditorValue, CardField, CardType, CardVariantType, Deck, DeckSource, DraftStatus, ForeignNoteSnapshot, LearningItem, LearningItemDocumentV1, LearningItemSourceType, LearningItemStatus, NoteTypeDefinitionV1, SourceAnchor, TransformType, VariantGenerationSource, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
+import { makeId, stableContentHash } from "./coreValues.ts";
 import { createLearningItemState, createSourceAnchor, createSourceDocument, createVersionEntry, type SourceAnchorInput, type SourceDocument } from "./reviewState.ts";
 import { createCardVariant, createCoreCard, getOriginalVariant, normalizeLearningItem } from "./learningItems.ts";
 import { createCoreDeck } from "./decks.ts";
-import { assertValidCardEditorValue, getCardContentPayload, projectCardEditorContent, saveCardEditorValue, validateCardContentPayload } from "./cardEditor.ts";
+import { assertValidCardEditorValue, getCardContentPayload, getCardEditorValue, projectCardEditorContent, saveCardEditorValue, validateCardContentPayload } from "./cardEditor.ts";
+import { applyLearningItemContent, createCoreNoteTypeDefinition } from "./learningItemContent.ts";
 
 type StringMap = Record<string, unknown>;
 interface LearningItemOptions { id?: string; variantId?: string; title?: string; sourceType?: LearningItemSourceType; source?: DeckSource; sourceRefId?: string | null; sourceExternalId?: string | null; cardType?: CardType; meta?: StringMap; answerOptions?: unknown; expectedAnswer?: unknown; originalVariantId?: string; reverseVariantId?: string; sourceAnchors?: SourceAnchor[]; originalFields?: CardField[]; tags?: unknown; concepts?: string[]; mediaRefs?: string[]; draftStatus?: DraftStatus; status?: LearningItemStatus; learningItemState?: unknown; reviewState?: unknown; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; createdAt?: string; updatedAt?: string; variantType?: CardVariantType; variantLevel?: number; generationSource?: VariantGenerationSource; explanation?: string; hintsJson?: unknown; answerOptionsJson?: unknown; expectedAnswerJson?: unknown; transformType?: TransformType; qualityStatus?: VariantQualityStatus; isActive?: boolean; anchorVariantId?: string | null; parentVariantId?: string | null; modelRunId?: string | null; learningItem?: LearningItem; items?: LearningItem[]; deck?: Deck; }
 interface NormalizedVariantInput extends LearningItemOptions { front?: string; back?: string; isOriginal?: boolean; }
-interface NormalizedLearningItemInput extends LearningItemOptions { canonicalQuestion?: string; canonicalAnswer?: string; front?: string; back?: string; variants?: unknown; }
+interface NormalizedLearningItemInput extends LearningItemOptions { canonicalQuestion?: string; canonicalAnswer?: string; front?: string; back?: string; variants?: unknown; contentDocument?: LearningItemDocumentV1; noteTypeDefinition?: NoteTypeDefinitionV1; sourceSnapshot?: ForeignNoteSnapshot; }
 interface ClozePart { groupId: number; text: string; hint: string; }
-interface ManualCardInput { editorValue?: CardEditorValue; cardType?: CardType; front?: string; back?: string; tags?: unknown; mediaRefs?: string[]; answerOptions?: unknown[]; correctAnswer?: unknown; expectedAnswer?: unknown; exactWordingRequired?: boolean; }
+interface ManualCardInput { editorValue?: CardEditorValue; cardType?: CardType; front?: string; back?: string; tags?: unknown; mediaRefs?: string[]; answerOptions?: unknown[]; correctAnswer?: unknown; expectedAnswer?: unknown; exactWordingRequired?: boolean; contentDocument?: LearningItemDocumentV1; noteTypeDefinition?: NoteTypeDefinitionV1; }
 interface ManualDocumentContext { sourceAnchor?: SourceAnchorInput; selection?: string; textQuote?: string; documentId?: string | null; fileName?: string; targetField?: string; pageNumber?: number | null; charStart?: number | null; charEnd?: number | null; document?: SourceDocument | null; mimeType?: string; documentText?: string; }
 interface ManualArtifactsInput { card?: ManualCardInput; documentContext?: ManualDocumentContext; createdAt?: string; }
 interface ManualDeckInput { deckName: string; card: ManualCardInput; documentContext?: ManualDocumentContext; }
-type CardContentPatch = Partial<Pick<LearningItem, "canonicalQuestion" | "canonicalAnswer" | "originalFront" | "originalBack" | "tags" | "originalTags" | "cardType" | "kind">> & { front?: string; back?: string };
 function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
 function normalizeVariantType(variantType: unknown, fallbackCardType: unknown = "basic"): CardVariantType { const mapped: Partial<Record<CardType, CardVariantType>> = { "basic-reversed": "reverse", "image-occlusion": "image_occlusion", "multiple-choice": "mcq", "case-vignette": "case", "free-text": "custom", "multi-field": "custom" }; if (typeof variantType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(variantType)) return variantType as CardVariantType; return mapped[fallbackCardType as CardType] ?? (typeof fallbackCardType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(fallbackCardType) ? fallbackCardType as CardVariantType : "basic"); }
 const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "multiple-choice"]);
@@ -33,10 +33,6 @@ function normalizeExtraText(extra: unknown): string {
 
 function revealClozeText(text: unknown): string {
   return String(text ?? "").replace(/\{\{c\d+::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, "$1");
-}
-
-function hasClozeSyntax(text: unknown): boolean {
-  return /\{\{c\d+::[\s\S]+?\}\}/.test(String(text ?? ""));
 }
 
 function extractClozeGroups(text: unknown): Array<{ groupId: number; clozes: ClozePart[] }> {
@@ -416,8 +412,16 @@ export function createLearningItemsFromNormalizedInput(
   deckId: string,
   normalizedItems: unknown = [],
   options: LearningItemOptions = {},
-): { createdItems: LearningItem[]; warnings: string[]; skipped: Array<{ index: number; reason: string }> } {
+): {
+  createdItems: LearningItem[];
+  definitions: NoteTypeDefinitionV1[];
+  sourceSnapshots: ForeignNoteSnapshot[];
+  warnings: string[];
+  skipped: Array<{ index: number; reason: string }>;
+} {
   const createdItems: LearningItem[] = [];
+  const definitions = new Map<string, NoteTypeDefinitionV1>();
+  const sourceSnapshots = new Map<string, ForeignNoteSnapshot>();
   const warnings: string[] = [];
   const skipped: Array<{ index: number; reason: string }> = [];
 
@@ -426,6 +430,8 @@ export function createLearningItemsFromNormalizedInput(
       createdItems,
       warnings: ["normalizedItems muss ein Array sein."],
       skipped,
+      definitions: [],
+      sourceSnapshots: [],
     };
   }
 
@@ -433,6 +439,80 @@ export function createLearningItemsFromNormalizedInput(
     try {
       const input = objectRecord(candidate) as NormalizedLearningItemInput;
       const variants = normalizeNormalizedItemVariants(input.variants);
+      if (input.contentDocument && input.noteTypeDefinition) {
+        const applied = applyLearningItemContent({
+          previous: null,
+          document: input.contentDocument,
+          definition: input.noteTypeDefinition,
+          sourceSnapshot: input.sourceSnapshot ?? null,
+          reason: input.sourceType === "anki_import" ? "import" : "create",
+        });
+        definitions.set(applied.definition.id, applied.definition);
+        if (applied.sourceSnapshot) sourceSnapshots.set(applied.sourceSnapshot.id, applied.sourceSnapshot);
+        const sourceByProjection = new Map(variants
+          .filter((variant: any) => variant.projection)
+          .map((variant: any) => [JSON.stringify(variant.projection), variant]));
+        const appliedByProjection = new Map(applied.item.variants.map((variant) => [JSON.stringify(variant.projection), variant]));
+        const baseImageOcclusionVariant = applied.item.variants.find((variant) => variant.projection.kind === "image-occlusion") ?? null;
+        const enrichedVariants = sourceByProjection.size
+          ? variants.flatMap((sourceVariant: NormalizedVariantInput & { metadataJson?: Record<string, unknown>; projection?: any }, variantIndex) => {
+              const projectionKey = JSON.stringify(sourceVariant.projection);
+              const exactVariant = appliedByProjection.get(projectionKey);
+              const variant = exactVariant ?? (sourceVariant.projection?.kind === "image-occlusion" ? baseImageOcclusionVariant : null);
+              if (!variant) return [];
+              return [{
+                ...variant,
+                ...(!exactVariant ? {
+                  id: stableContentHash({ learningItemId: applied.item.id, projection: sourceVariant.projection }, "variant"),
+                  projection: sourceVariant.projection,
+                } : {}),
+                front: sourceVariant.front ?? variant.front,
+                back: sourceVariant.back ?? variant.back,
+                variantType: sourceVariant.variantType ?? variant.variantType,
+                variantLevel: sourceVariant.variantLevel ?? variant.variantLevel,
+                isOriginal: variantIndex === 0,
+                generationSource: variantIndex === 0 ? "original" : sourceVariant.generationSource ?? "imported",
+                meta: {
+                  ...variant.meta,
+                  ...(sourceVariant.meta ?? sourceVariant.metadataJson ?? {}),
+                  sourceExternalId: sourceVariant.sourceExternalId ?? null,
+                },
+              }];
+            })
+          : applied.item.variants.map((variant, variantIndex) => {
+              const sourceVariant = variants[variantIndex] as (NormalizedVariantInput & { metadataJson?: Record<string, unknown> }) | undefined;
+              return {
+                ...variant,
+                meta: {
+                  ...variant.meta,
+                  ...(sourceVariant?.meta ?? sourceVariant?.metadataJson ?? {}),
+                  sourceExternalId: sourceVariant?.sourceExternalId ?? null,
+                },
+              };
+            });
+        const anchoredVariants = enrichedVariants.map((variant, variantIndex) => ({
+          ...variant,
+          isOriginal: variantIndex === 0,
+          parentVariantId: variantIndex === 0 ? null : enrichedVariants[0]?.id ?? null,
+          anchorVariantId: variantIndex === 0 ? null : enrichedVariants[0]?.id ?? null,
+        }));
+        createdItems.push(normalizeLearningItem({
+          ...applied.item,
+          deckId,
+          title: input.title ?? applied.item.title,
+          source: input.source ?? (input.sourceType === "anki_import" ? "anki-apkg" : applied.item.source),
+          sourceType: input.sourceType ?? applied.item.sourceType,
+          sourceRefId: input.sourceRefId ?? input.sourceExternalId ?? applied.item.sourceRefId,
+          sourceAnchors: input.sourceAnchors ?? applied.item.sourceAnchors,
+          variants: anchoredVariants,
+          meta: {
+            ...(input.meta ?? {}),
+            ...applied.item.meta,
+            importFingerprint: input.meta?.importFingerprint ?? null,
+          },
+        }));
+        return;
+      }
       const originalInput = variants.find((variant) => variant.isOriginal) ?? variants[0] ?? null;
       const canonicalQuestion = input?.canonicalQuestion ?? input?.front ?? originalInput?.front ?? "";
       const canonicalAnswer = input?.canonicalAnswer ?? input?.back ?? originalInput?.back ?? "";
@@ -535,7 +615,7 @@ export function createLearningItemsFromNormalizedInput(
     }
   });
 
-  return { createdItems, warnings, skipped };
+  return { createdItems, definitions: [...definitions.values()], sourceSnapshots: [...sourceSnapshots.values()], warnings, skipped };
 }
 
 function createManualCardArtifacts(
@@ -598,7 +678,24 @@ function createManualCardArtifacts(
       exactWordingRequired: Boolean(card.exactWordingRequired),
     },
   };
-  const coreCard = createLearningItemFromEditorValue("", validatedEditorValue, itemOptions);
+  const coreCard = card.contentDocument && card.noteTypeDefinition
+    ? applyLearningItemContent({
+        previous: null,
+        base: {
+          deckId: "",
+          cardType: validatedEditorValue.cardType,
+          source: "manual",
+          sourceType: "manual",
+          sourceAnchors: itemOptions.sourceAnchors,
+          createdAt,
+          updatedAt: createdAt,
+          meta: itemOptions.meta,
+        },
+        document: card.contentDocument,
+        definition: card.noteTypeDefinition,
+        reason: "create",
+      }).item
+    : createLearningItemFromEditorValue("", validatedEditorValue, itemOptions);
 
   return { coreCard, sourceDocument, sourceAnchor };
 }
@@ -620,91 +717,37 @@ export function createManualCoreDeck({ deckName, card, documentContext }: Manual
   });
 }
 
-export function updateCardContent(card: LearningItem, patch: CardContentPatch, reason = "Manuelle Bearbeitung"): LearningItem {
-  const updatedAt = new Date().toISOString();
-  const nextFront = patch.canonicalQuestion ?? patch.originalFront ?? patch.front ?? card.canonicalQuestion ?? card.originalFront;
-  const nextBack = patch.canonicalAnswer ?? patch.originalBack ?? patch.back ?? card.canonicalAnswer ?? card.originalBack;
-  const nextTags = patch.tags ?? patch.originalTags ?? card.tags ?? card.originalTags;
-  const nextKind = patch.cardType ?? patch.kind ?? card.cardType ?? card.kind;
-  const currentOriginal = (card.variants ?? []).find((variant) => variant.isOriginal) ?? null;
-  const nextOriginalVariantType = normalizeVariantType(null, nextKind);
-  const updated = createCoreCard({
-    ...card,
-    cardType: nextKind,
-    canonicalQuestion: nextFront,
-    canonicalAnswer: nextBack,
-    originalFront: nextFront,
-    originalBack: nextBack,
-    originalTags: nextTags,
-    tags: nextTags,
-    originalFields: [
-      { name: "Front", value: nextFront },
-      { name: "Back", value: nextBack },
-    ],
-    variants: (card.variants ?? []).map((variant) =>
-      variant === currentOriginal
-        ? {
-            ...variant,
-            front: nextFront,
-            back: nextBack,
-            variantType: nextOriginalVariantType,
-            updatedAt,
-            meta: {
-              ...(variant.meta ?? {}),
-              cardType: nextKind,
-            },
-          }
-        : variant,
-    ),
-    createdAt: card.createdAt,
-    updatedAt,
-  });
-
-  return {
-    ...updated,
-    immutableOriginal: card.immutableOriginal,
-    versionLog: [
-      ...(card.versionLog ?? []),
-      createVersionEntry({
-        objectType: "card",
-        objectId: card.id,
-        changeType: "content_updated",
-        before: {
-          originalFront: card.originalFront,
-          originalBack: card.originalBack,
-          originalTags: card.originalTags,
-          kind: card.kind,
-        },
-        after: {
-          originalFront: updated.originalFront,
-          originalBack: updated.originalBack,
-          originalTags: updated.originalTags,
-          kind: updated.kind,
-        },
-        reason,
-        createdAt: updatedAt,
-      }),
-    ],
-  };
-}
-
-export function restoreCardVersion(card: LearningItem, versionId: string): LearningItem {
+export function restoreCardVersion(card: LearningItem, versionId: string, storedDefinition?: NoteTypeDefinitionV1): LearningItem {
   const version = (card.versionLog ?? []).find((entry) => entry.id === versionId);
   if (!version?.before) return card;
 
   const before = objectRecord(version.before);
-  const restored = before.editorValue
-    ? saveCardEditorValue(card, before.editorValue, `Version ${versionId} wiederhergestellt`)
-    : updateCardContent(
-        card,
-        {
-          originalFront: typeof before.originalFront === "string" ? before.originalFront : card.originalFront,
-          originalBack: typeof before.originalBack === "string" ? before.originalBack : card.originalBack,
-          originalTags: Array.isArray(before.originalTags) ? before.originalTags.map(String) : card.originalTags,
-          kind: typeof before.kind === "string" && CORE_CARD_TYPES.includes(before.kind as CardType) ? before.kind as CardType : card.kind,
-        },
-        `Version ${versionId} wiederhergestellt`,
-      );
+  let restored: LearningItem;
+  if (before.schemaVersion === 1 && Array.isArray(before.fields)) {
+    const document = before as unknown as LearningItemDocumentV1;
+    const definition = storedDefinition ?? createCoreNoteTypeDefinition({
+      document,
+      kind: card.cardType === "cloze" ? "cloze" : "normal",
+      interaction: card.cardType === "multiple-choice" ? "choice" : card.cardType === "cloze" ? "cloze" : "reveal",
+      reverse: card.cardType === "basic-reversed",
+      createdAt: card.createdAt,
+    });
+    restored = applyLearningItemContent({ previous: card, document, definition, reason: "edit" }).item;
+  } else if (before.editorValue) {
+    restored = saveCardEditorValue(card, before.editorValue, storedDefinition);
+  } else {
+    const current = getCardEditorValue(card);
+    if (!current) return card;
+    const tags = Array.isArray(before.originalTags) ? before.originalTags.map(String) : current.tags;
+    const front = typeof before.originalFront === "string" ? before.originalFront : card.originalFront;
+    const back = typeof before.originalBack === "string" ? before.originalBack : card.originalBack;
+    const editorValue: CardEditorValue = current.cardType === "cloze"
+      ? { ...current, textWithClozes: front, extra: back, tags }
+      : current.cardType === "multiple-choice"
+        ? { ...current, question: front, explanation: back, tags }
+        : { ...current, front, back, tags };
+    restored = saveCardEditorValue(card, editorValue, storedDefinition);
+  }
   const restoreEntry = restored.versionLog.at(-1);
 
   return {

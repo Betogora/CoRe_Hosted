@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createLocalAccount } from "./authModel.ts";
 import { createBasicLearningItem, createCoreDeck, createLearningItemFromEditorValue, getCardEditorValue, getOriginalVariant, saveCardEditorValue } from "./coreModel.ts";
-import { createCoreRepository } from "./coreRepository.ts";
+import { createCoreRepository, normalizeWorkspaceState } from "./coreRepository.ts";
 import { createPortableExport, mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, validatePortableExport } from "./dataPortability.ts";
 
 function createMemoryStorage() {
@@ -49,7 +49,7 @@ test("portable export redacts local password verifier", () => {
   assert.equal(validation.valid, true);
   assert.equal(exported.profile.account.passwordVerifier, undefined);
   assert.equal(exported.profile.account.status, "signed-in");
-  assert.equal(exported.schemaVersion, 2);
+  assert.equal(exported.schemaVersion, 3);
   assert.equal("communities" in exported, false);
   assert.equal("aiJobs" in exported, false);
   assert.equal(exported.decks[0].revision, undefined);
@@ -113,6 +113,8 @@ test("portable import deduplicates equal profile ids and forks content collision
       newCardsPerDay: 30,
       maximumReviewsPerDay: 300,
       newReviewOrder: "mixed",
+      newCardSortOrder: "random",
+      reviewCardSortOrder: "lowest-retrievability",
       schedulerProfile: { settingsVersion: 2, presetId: "custom", learningStepsMinutes: [3, 10], relearningStepMinutes: 3, desiredRetention: 0.94, maximumIntervalDays: 365, lessShortIntervalBias: false },
     },
   };
@@ -120,6 +122,8 @@ test("portable import deduplicates equal profile ids and forks content collision
   const equalTarget = portableState({ profile: { ...portableState().profile, schedulerPreferences: { learningProfiles: [shared] } }, decks: [] });
   const equalMerged = mergePortableExportIntoState(equalTarget, createPortableExport(source));
   assert.equal(equalMerged.profile.schedulerPreferences.learningProfiles.length, 1);
+  assert.equal(equalMerged.profile.schedulerPreferences.learningProfiles[0].settings.newCardSortOrder, "random");
+  assert.equal(equalMerged.profile.schedulerPreferences.learningProfiles[0].settings.reviewCardSortOrder, "lowest-retrievability");
 
   const localCollision = { ...shared, settings: { ...shared.settings, newCardsPerDay: 12 } };
   const collisionTarget = portableState({ profile: { ...portableState().profile, schedulerPreferences: { learningProfiles: [localCollision] } }, decks: [] });
@@ -139,6 +143,8 @@ test("portable profile collisions remap imported deck provenance to the fork", (
       newCardsPerDay: 30,
       maximumReviewsPerDay: 300,
       newReviewOrder: "mixed",
+      newCardSortOrder: "random",
+      reviewCardSortOrder: "lowest-retrievability",
       schedulerProfile: { settingsVersion: 2, presetId: "custom", learningStepsMinutes: [3, 10], relearningStepMinutes: 3, desiredRetention: 0.94, maximumIntervalDays: 365, lessShortIntervalBias: false },
     },
   };
@@ -224,9 +230,7 @@ test("repository import roundtrip normalizes legacy cards into learning items", 
     ],
   };
   const merged = mergePortableExportIntoState(repository.getState(), exported);
-  repository.saveState(merged);
-
-  const item = repository.getState().decks[0].cards[0];
+  const item = normalizeWorkspaceState(merged).decks[0].cards[0];
   const original = getOriginalVariant(item);
 
   assert.equal(item.id, "card_legacy_export");
@@ -259,7 +263,7 @@ test("v1 export discards Labs content and keeps Core decks", () => {
 
   const validation = validatePortableExport(legacyExport);
   assert.equal(validation.valid, true);
-  assert.equal(validation.payload?.schemaVersion, 2);
+  assert.equal(validation.payload?.schemaVersion, 3);
   assert.deepEqual(validation.payload?.decks.map((deck) => deck.id), ["core"]);
   assert.deepEqual(validation.payload?.decks[0].cards.map((card: { id: string }) => card.id), ["core-card"]);
   for (const key of ["privacy", "university", "fieldOfStudy", "preferredLanguage"]) assert.equal(key in (validation.payload?.profile ?? {}), false);
@@ -267,7 +271,7 @@ test("v1 export discards Labs content and keeps Core decks", () => {
   assert.equal("aiJobs" in (validation.payload ?? {}), false);
 });
 
-test("repository migrates v2 state once to Labs-free v3", () => {
+test("repository validates legacy v2 state without mutating local storage", () => {
   const storage = createMemoryStorage();
   storage.setItem("core.appState.v2", JSON.stringify({
     version: 2,
@@ -287,14 +291,26 @@ test("repository migrates v2 state once to Labs-free v3", () => {
   }));
 
   const state = createCoreRepository(storage).getState();
-  const persisted = JSON.parse(storage.getItem("core.appState.v3"));
-  assert.equal(storage.getItem("core.appState.v2"), null);
-  assert.equal(state.version, 3);
+  assert.notEqual(storage.getItem("core.appState.v2"), null);
+  assert.equal(storage.getItem("core.appState.v4"), null);
+  assert.equal(state.version, 4);
+  assert.equal(state.noteTypeDefinitions.length, 1);
+  assert.deepEqual(state.learningItemSourceSnapshots, []);
   assert.deepEqual(state.decks.map((deck: { id: string }) => deck.id), ["core"]);
   assert.deepEqual(state.decks[0].cards.map((card: { id: string }) => card.id), ["core-card"]);
-  for (const key of ["communities", "aiJobs", "chatTranscript", "learningPlans"]) assert.equal(key in persisted, false);
-  for (const key of ["visibility", "graph", "communityRefs", "aiJobs"]) assert.equal(key in persisted.decks[0], false);
-  for (const key of ["privacy", "university", "fieldOfStudy", "preferredLanguage"]) assert.equal(key in persisted.profile, false);
+  for (const key of ["visibility", "graph", "communityRefs", "aiJobs"]) assert.equal(key in state.decks[0], false);
+  for (const key of ["privacy", "university", "fieldOfStudy", "preferredLanguage"]) assert.equal(key in state.profile, false);
+});
+
+test("account migration can validate v3 without deleting it before confirmed cloud sync", () => {
+  const storage = createMemoryStorage();
+  storage.setItem("core.appState.v3", JSON.stringify({ version: 3, profile: {}, decks: [], documents: [] }));
+
+  const state = createCoreRepository(storage, { seedDefaultDecks: false }).getState();
+
+  assert.equal(state.version, 4);
+  assert.notEqual(storage.getItem("core.appState.v3"), null);
+  assert.equal(storage.getItem("core.appState.v4"), null);
 });
 
 test("portable export roundtrips structured card editor content", () => {
@@ -316,9 +332,7 @@ test("portable export roundtrips structured card editor content", () => {
   });
   const exported = createPortableExport(state, "2026-07-16T08:00:00.000Z");
   const merged = mergePortableExportIntoState(repository.getState(), exported);
-  repository.saveState(merged);
-
-  const loaded = repository.getState().decks[0].cards[0];
+  const loaded = normalizeWorkspaceState(merged).decks[0].cards[0];
   assert.deepEqual(getCardEditorValue(loaded), getCardEditorValue(card));
   assert.deepEqual(loaded.versionLog, card.versionLog);
 });

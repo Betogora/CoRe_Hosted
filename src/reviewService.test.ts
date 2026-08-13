@@ -3,13 +3,12 @@ import test from "node:test";
 import {
   addRephrasedVariant,
   createBasicLearningItem,
-  createBasicReverseLearningItem,
-  createClozeLearningItem,
   createCoreDeck,
   getActiveVariants,
   getOriginalVariant,
   type CoreCardInput,
 } from "./coreModel.ts";
+import { createBasicReverseLearningItem, createClozeLearningItem } from "./coreModel/creation.ts";
 import { answerVariant, getNextReviewItem, recordVariantFeedback } from "./reviewService.ts";
 
 function createDeckWithItem(item: CoreCardInput) {
@@ -42,7 +41,7 @@ test("answerVariant updates central learning item state and writes a variant rev
   const updated = result.deck.cards[0];
   assert.ok(original);
   const reviewedVariant = updated.variants.find((variant) => variant.id === original.id);
-  const event = result.deck.reviewEvents[0];
+  const event = result.event;
 
   assert.equal(updated.learningItemState.repetitions, 3);
   assert.equal(updated.reviewState.repetitions, 3);
@@ -57,16 +56,14 @@ test("answerVariant updates central learning item state and writes a variant rev
   assert.equal(event.deckId, deck.id);
   assert.equal(event.learningItemId, item.id);
   assert.ok(original);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(event.cardVariantId, original.id);
   assert.ok(original);
   assert.equal(event.variantId, original.id);
   assert.equal(event.rating, "good");
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(event.previousLearningItemStateJson.repetitions, 2);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(event.nextLearningItemStateJson.repetitions, 3);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+  assert.equal(event.schedulerBefore.card.repetitions, 2);
+  assert.equal(event.schedulerAfter.card.repetitions, 3);
+  assert.equal(Object.hasOwn(event, "previousLearningItemStateJson"), false);
+  assert.equal(Object.hasOwn(event, "nextLearningItemStateJson"), false);
   assert.equal(event.schedulerVersion, "fsrs_6_v1");
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(event.anchorSnapshotJson.shouldShow, false);
@@ -148,8 +145,8 @@ test("legacy scheduler state keeps its due date until the next review and then m
   assert.equal(item.reviewState.schedulerVersion, "fsrs_v1");
 
   const result = answerVariant(createDeckWithItem(item), item.id, original.id, "good", { now: dueAt });
-  assert.equal(result.event.previousLearningItemStateJson.schedulerVersion, "fsrs_v1");
-  assert.equal(result.event.nextLearningItemStateJson.schedulerVersion, "fsrs_6_v1");
+  assert.equal(result.event.schedulerBefore.card.schedulerVersion, "fsrs_v1");
+  assert.equal(result.event.schedulerAfter.card.schedulerVersion, "fsrs_6_v1");
   assert.equal(result.event.schedulerVersion, "fsrs_6_v1");
   assert.equal((result.event.schedulerParamsJson as { implementation?: string }).implementation, "ts-fsrs@5.4.1");
 });

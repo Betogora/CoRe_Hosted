@@ -1,57 +1,83 @@
 import { readFile, stat } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
 import { resolve } from "node:path";
-import { parseApkgToNormalizedImport } from "../src/apkgImport.ts";
+import { Worker } from "node:worker_threads";
 
+const RUNS = 3;
 const fixturePath = resolve(process.argv[2] ?? "test-results/apkg/core-local-benchmark.apkg");
 const fixtureStats = await stat(fixturePath);
-const phaseStarts = new Map<string, number>();
-const phases: Record<string, number> = {};
-let previousStep: string | null = null;
-let heartbeatCount = 0;
+const bytes = await readFile(fixturePath);
+let heartbeatAt = performance.now();
 let maximumHeartbeatDelayMs = 0;
-let previousHeartbeat = performance.now();
+let resultDeliveryDelayMs = 0;
+let awaitingResult = false;
 const heartbeat = setInterval(() => {
   const current = performance.now();
-  maximumHeartbeatDelayMs = Math.max(maximumHeartbeatDelayMs, current - previousHeartbeat);
-  previousHeartbeat = current;
-  heartbeatCount += 1;
+  const delay = current - heartbeatAt - 5;
+  maximumHeartbeatDelayMs = Math.max(maximumHeartbeatDelayMs, delay);
+  if (awaitingResult) resultDeliveryDelayMs = Math.max(resultDeliveryDelayMs, delay);
+  heartbeatAt = current;
 }, 5);
 
-const bytes = await readFile(fixturePath);
-const heapBefore = process.memoryUsage().heapUsed;
-const startedAt = performance.now();
-const result = await parseApkgToNormalizedImport({
-  name: "core-local-benchmark.apkg",
-  size: fixtureStats.size,
-  arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
-}, {
-  onStep(step: string) {
-    const now = performance.now();
-    if (previousStep) phases[previousStep] = now - (phaseStarts.get(previousStep) ?? now);
-    previousStep = step;
-    phaseStarts.set(step, now);
-  },
-});
-const finishedAt = performance.now();
-if (previousStep) phases[previousStep] = finishedAt - (phaseStarts.get(previousStep) ?? finishedAt);
-clearInterval(heartbeat);
-
-if (result.errors.length > 0) {
-  throw new Error(`Benchmark-Import fehlgeschlagen: ${result.errors.join(" ")}`);
+function median(values: number[]) {
+  return [...values].sort((left, right) => left - right)[Math.floor(values.length / 2)] ?? 0;
 }
+
+function runWorker(): Promise<Record<string, number>> {
+  return new Promise((resolveRun, reject) => {
+    const worker = new Worker(new URL("./benchmarkApkgWorker.ts", import.meta.url), { execArgv: ["--import", "tsx"] });
+    const input = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const startedAt = performance.now();
+    worker.on("message", (message: any) => {
+      if (message.type === "ready") {
+        resultDeliveryDelayMs = 0;
+        heartbeatAt = performance.now();
+        awaitingResult = true;
+        return;
+      }
+      awaitingResult = false;
+      if (message.type !== "result") return;
+      const result = message.result;
+      resolveRun({
+        totalMs: performance.now() - startedAt,
+        workerMs: message.workerMs,
+        workerHeapBytes: message.heapUsedBytes,
+        cards: result.commitGraph.cardCount,
+        mediaFiles: result.mediaFiles.length,
+        outputMediaBytes: result.mediaFiles.reduce((sum: number, mediaFile: any) => sum + Number(mediaFile.size ?? 0), 0),
+        sampleCards: result.sampleCards.length,
+      });
+      void worker.terminate();
+    });
+    worker.on("error", reject);
+    worker.postMessage({ buffer: input, name: "core-local-benchmark.apkg" }, [input]);
+  });
+}
+
+const runs: Record<string, number>[] = [];
+for (let run = 0; run < RUNS; run += 1) runs.push(await runWorker());
+clearInterval(heartbeat);
 
 const report = {
   fixture: fixturePath,
   inputBytes: fixtureStats.size,
-  outputMediaBytes: result.mediaFiles.reduce((sum: number, mediaFile: any) => sum + Number(mediaFile.size ?? 0), 0),
-  cards: result.normalizedDeck.items.length,
-  mediaFiles: result.mediaFiles.length,
-  phasesMs: Object.fromEntries(Object.entries(phases).map(([key, value]) => [key, Number(value.toFixed(2))])),
-  totalMs: Number((finishedAt - startedAt).toFixed(2)),
-  heapDeltaBytes: process.memoryUsage().heapUsed - heapBefore,
-  heartbeatCount,
-  maximumHeartbeatDelayMs: Number(maximumHeartbeatDelayMs.toFixed(2)),
+  cards: runs[0].cards,
+  mediaFiles: runs[0].mediaFiles,
+  outputMediaBytes: runs[0].outputMediaBytes,
+  sampleCards: runs[0].sampleCards,
+  totalMs: Number(median(runs.map((run) => run.totalMs)).toFixed(2)),
+  workerMs: Number(median(runs.map((run) => run.workerMs)).toFixed(2)),
+  runTotalMs: runs.map((run) => Number(run.totalMs.toFixed(2))),
+  workerHeapBytes: Math.max(...runs.map((run) => run.workerHeapBytes)),
+  maximumMainThreadDelayMs: Number(maximumHeartbeatDelayMs.toFixed(2)),
+  resultDeliveryDelayMs: Number(resultDeliveryDelayMs.toFixed(2)),
 };
 
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+
+if (report.cards !== 25_000 || report.mediaFiles !== 1_000 || report.sampleCards > 5) {
+  throw new Error("APKG-Benchmark hat den kompakten 25.000/1.000-Importvertrag verletzt.");
+}
+if (report.resultDeliveryDelayMs > 100) {
+  throw new Error(`APKG-Workerübergabe blockierte den Main Thread ${report.resultDeliveryDelayMs} ms.`);
+}

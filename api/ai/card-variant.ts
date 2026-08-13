@@ -176,23 +176,36 @@ function modelsUrl(zdr: boolean) {
   return `${OPENROUTER_MODELS_ENDPOINT}?${query}`;
 }
 
+const MODEL_CATALOG_TTL_MS = 60_000;
+const modelCatalogCache = new WeakMap<typeof fetch, Map<PrivacyMode, { expiresAt: number; candidates: ModelCandidate[] }>>();
+
+async function modelCatalog(fetchImpl: typeof fetch, apiKey: string, privacyMode: PrivacyMode) {
+  let cache = modelCatalogCache.get(fetchImpl);
+  if (!cache) { cache = new Map(); modelCatalogCache.set(fetchImpl, cache); }
+  const cached = cache.get(privacyMode);
+  if (cached && cached.expiresAt > Date.now()) return cached.candidates;
+  let response: Response;
+  try {
+    response = await fetchImpl(modelsUrl(privacyMode === "zdr"), {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(OPENROUTER_REQUEST_TIMEOUT_MS),
+    });
+  } catch {
+    throw new HttpError(502, "model_catalog_unavailable", "Die kostenlose Modellauswahl ist gerade nicht erreichbar.");
+  }
+  if (!response.ok) throw new HttpError(502, "model_catalog_unavailable", "Die kostenlose Modellauswahl ist gerade nicht erreichbar.");
+  let payload: unknown;
+  try { payload = await response.json(); } catch { throw new HttpError(502, "model_catalog_invalid", "Die kostenlose Modellauswahl hatte ein ungültiges Format."); }
+  const parsed = v.safeParse(modelsResponseSchema, payload);
+  if (!parsed.success) throw new HttpError(502, "model_catalog_invalid", "Die kostenlose Modellauswahl hatte ein ungültiges Format.");
+  cache.set(privacyMode, { expiresAt: Date.now() + MODEL_CATALOG_TTL_MS, candidates: parsed.output.data });
+  return parsed.output.data;
+}
+
 async function selectModel(fetchImpl: typeof fetch, apiKey: string, excludedIds = new Set<string>()) {
   for (const privacyMode of ["zdr", "non_zdr"] as const) {
-    let response: Response;
-    try {
-      response = await fetchImpl(modelsUrl(privacyMode === "zdr"), {
-        headers: { Authorization: `Bearer ${apiKey}` },
-        signal: AbortSignal.timeout(OPENROUTER_REQUEST_TIMEOUT_MS),
-      });
-    } catch {
-      throw new HttpError(502, "model_catalog_unavailable", "Die kostenlose Modellauswahl ist gerade nicht erreichbar.");
-    }
-    if (!response.ok) throw new HttpError(502, "model_catalog_unavailable", "Die kostenlose Modellauswahl ist gerade nicht erreichbar.");
-    let payload: unknown;
-    try { payload = await response.json(); } catch { throw new HttpError(502, "model_catalog_invalid", "Die kostenlose Modellauswahl hatte ein ungültiges Format."); }
-    const parsed = v.safeParse(modelsResponseSchema, payload);
-    if (!parsed.success) throw new HttpError(502, "model_catalog_invalid", "Die kostenlose Modellauswahl hatte ein ungültiges Format.");
-    const model = parsed.output.data.find((candidate) => isEligibleFreeTextToolModel(candidate, excludedIds));
+    const candidates = await modelCatalog(fetchImpl, apiKey, privacyMode);
+    const model = candidates.find((candidate) => isEligibleFreeTextToolModel(candidate, excludedIds));
     if (model) return { model: model.id, privacyMode };
   }
   throw new HttpError(503, "no_free_model", "Aktuell ist kein passendes kostenloses Tool-Modell verfügbar.");

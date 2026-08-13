@@ -10,8 +10,10 @@ import { Upload } from "tus-js-client";
 const TABLES = [
   "profiles",
   "decks",
+  "note_type_definitions",
   "cards",
   "card_variants",
+  "learning_item_source_snapshots",
   "review_events",
   "source_documents",
   "media_assets",
@@ -79,12 +81,21 @@ function createFixture(userId: any, prefix: string, marker: string) {
       name: `RLS Deck ${marker}`,
       source: "manual",
     },
+    note_type_definitions: {
+      id: `${prefix}_note_type_${marker}`,
+      user_id: userId,
+      name: `RLS Notiztyp ${marker}`,
+      definition: { version: 1, fields: [{ id: "front", name: "Vorderseite" }] },
+    },
     cards: {
       id: cardId,
       user_id: userId,
       deck_id: deckId,
       source: "manual",
-      kind: "basic",
+      kind: "basic-with-images",
+      note_type_definition_id: `${prefix}_note_type_${marker}`,
+      content_document: { version: 1, fields: [{ fieldId: "front", value: `Frage ${marker}` }] },
+      content_revision: 1,
       original_front: `Frage ${marker}`,
       original_back: `Antwort ${marker}`,
     },
@@ -98,6 +109,21 @@ function createFixture(userId: any, prefix: string, marker: string) {
       generation_source: "original",
       is_original: true,
       transform_type: "original",
+      projection: { version: 1, recipeId: "front-back", instanceKey: "front-back" },
+      scheduling_mode: "independent-card",
+      study_deck_id: deckId,
+      render_revision: 1,
+    },
+    learning_item_source_snapshots: {
+      id: `${prefix}_source_snapshot_${marker}`,
+      user_id: userId,
+      card_id: cardId,
+      schema_version: 1,
+      source_kind: "legacy-projection",
+      import_fingerprint: `fingerprint-${marker}`,
+      previous_snapshot_id: null,
+      note_type_definition_id: `${prefix}_note_type_${marker}`,
+      source_payload: { fields: [{ name: "Vorderseite", value: `Frage ${marker}` }] },
     },
     review_events: {
       id: `${prefix}_review_${marker}`,
@@ -150,8 +176,10 @@ const DELETE_ORDER = [...TABLES].reverse();
 const UPDATE_CASES = {
   profiles: { column: "university", value: "RLS Universität" },
   decks: { column: "description", value: "aktualisiert" },
+  note_type_definitions: { column: "definition", value: { version: 1, verified: true } },
   cards: { column: "original_back", value: "aktualisiert" },
   card_variants: { column: "explanation", value: "aktualisiert" },
+  learning_item_source_snapshots: { column: "source_payload", value: { verified: true } },
   review_events: { column: "flags", value: { verified: true } },
   source_documents: { column: "metadata", value: { verified: true } },
   media_assets: { column: "metadata", value: { verified: true } },
@@ -277,11 +305,29 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       }
     });
 
-    await t.test("accountgebundene Foreign Keys verweigern fremde Decks und Cards", async () => {
+    await t.test("accountgebundene Foreign Keys verweigern fremde Decks, Notiztypen, Karten und Snapshots", async () => {
       assert.ok(userA);
       const cases = [
         ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card`, deck_id: fixtureB.decks.id }],
+        ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card_note_type`, note_type_definition_id: fixtureB.note_type_definitions.id }],
+        ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card_snapshot`, latest_source_snapshot_id: fixtureB.learning_item_source_snapshots.id }],
         ["card_variants", { ...fixtureA.card_variants, id: `${prefix}_foreign_fk_variant`, card_id: fixtureB.cards.id }],
+        ["card_variants", { ...fixtureA.card_variants, id: `${prefix}_foreign_fk_variant_deck`, study_deck_id: fixtureB.decks.id }],
+        ["learning_item_source_snapshots", {
+          ...fixtureA.learning_item_source_snapshots,
+          id: `${prefix}_foreign_fk_source_snapshot_card`,
+          card_id: fixtureB.cards.id,
+        }],
+        ["learning_item_source_snapshots", {
+          ...fixtureA.learning_item_source_snapshots,
+          id: `${prefix}_foreign_fk_source_snapshot_note_type`,
+          note_type_definition_id: fixtureB.note_type_definitions.id,
+        }],
+        ["learning_item_source_snapshots", {
+          ...fixtureA.learning_item_source_snapshots,
+          id: `${prefix}_foreign_fk_source_snapshot_previous`,
+          previous_snapshot_id: fixtureB.learning_item_source_snapshots.id,
+        }],
         ["review_events", { ...fixtureA.review_events, id: `${prefix}_foreign_fk_review`, deck_id: fixtureB.decks.id }],
         ["media_assets", {
           ...fixtureA.media_assets,
@@ -416,6 +462,89 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         assert.equal(persisted.remote_value.description, "CAS Gewinner");
       } finally {
         assertNoError(await clientA.from("sync_conflicts").delete().eq("id", conflict.id), "CAS-Konflikt löschen");
+      }
+    });
+
+    await t.test("atomarer Review-Write erhöht genau die betroffenen Revisionen und ist idempotent", async () => {
+      const eventId = `${prefix}_atomic_review`;
+      const answeredAt = "2026-07-11T09:00:00.000Z";
+      const [deck, card, variant] = await Promise.all([
+        clientA.from("decks").select("*").eq("id", fixtureA.decks.id).single(),
+        clientA.from("cards").select("*").eq("id", fixtureA.cards.id).single(),
+        clientA.from("card_variants").select("*").eq("id", fixtureA.card_variants.id).single(),
+      ]);
+      const currentDeck = assertNoError(deck, "Deck vor atomarem Review lesen");
+      const currentCard = assertNoError(card, "Karte vor atomarem Review lesen");
+      const currentVariant = assertNoError(variant, "Variante vor atomarem Review lesen");
+      const parameters = {
+        p_deck_id: fixtureA.decks.id,
+        p_deck_base_revision: currentDeck.revision,
+        p_card_id: fixtureA.cards.id,
+        p_card_base_revision: currentCard.revision,
+        p_card_review_state: { state: "review", repetitions: 1, dueAt: "2026-07-12T09:00:00.000Z" },
+        p_card_core_state: { lastReviewedAt: answeredAt },
+        p_card_updated_at: answeredAt,
+        p_variant_id: fixtureA.card_variants.id,
+        p_variant_base_revision: currentVariant.revision,
+        p_variant_review_state: { state: "review", repetitions: 1 },
+        p_variant_performance: { reviewCount: 1 },
+        p_variant_updated_at: answeredAt,
+        p_event: {
+          id: eventId,
+          reviewable_type: "variant",
+          reviewable_id: fixtureA.card_variants.id,
+          source_card_id: fixtureA.cards.id,
+          rating: "good",
+          answered_at: answeredAt,
+          response_time_ms: 750,
+          scheduler_before: {},
+          scheduler_after: { state: "review" },
+          flags: {},
+          created_at: answeredAt,
+        },
+        p_device_id: fixtureA.sync_devices.id,
+      };
+
+      try {
+        const first = assertNoError(await clientA.rpc("record_review_atomic", parameters), "atomaren Review schreiben");
+        assert.equal(first.idempotent, false);
+        assert.equal(first.deck.revision, currentDeck.revision + 1);
+        assert.equal(first.card.revision, currentCard.revision + 1);
+        assert.equal(first.variant.revision, currentVariant.revision + 1);
+        assert.equal(first.event.id, eventId);
+        assert.ok(first.deck.sync_change_id > currentDeck.sync_change_id);
+        assert.ok(first.card.sync_change_id > currentCard.sync_change_id);
+        assert.ok(first.variant.sync_change_id > currentVariant.sync_change_id);
+        assert.ok(first.event.sync_change_id > first.variant.sync_change_id);
+
+        const replay = assertNoError(await clientA.rpc("record_review_atomic", parameters), "atomaren Review idempotent wiederholen");
+        assert.equal(replay.idempotent, true);
+        assert.equal(replay.deck.revision, first.deck.revision);
+        assert.equal(replay.card.revision, first.card.revision);
+        assert.equal(replay.variant.revision, first.variant.revision);
+        assert.equal(replay.event.sync_change_id, first.event.sync_change_id);
+        const persistedEvents = assertNoError(await clientA.from("review_events").select("id").eq("id", eventId), "atomare Reviewevents lesen");
+        assert.equal(persistedEvents.length, 1);
+
+        const deleted = assertNoError(await clientA.from("decks")
+          .update({ deleted_at: "2020-01-01T00:00:00.000Z", updated_at: "2020-01-01T00:00:00.000Z", sync_change_id: 1 })
+          .eq("id", fixtureA.decks.id)
+          .select("sync_change_id")
+          .single(), "Deck mit zurückdatiertem Tombstone schreiben");
+        const restored = assertNoError(await clientA.from("decks")
+          .update({ deleted_at: null, updated_at: "2020-01-01T00:00:00.000Z", sync_change_id: 1 })
+          .eq("id", fixtureA.decks.id)
+          .select("sync_change_id")
+          .single(), "Deck mit zurückdatierter Fachzeit wiederherstellen");
+        assert.ok(deleted.sync_change_id > first.event.sync_change_id, "Trigger muss den Client-Cursor beim Tombstone überschreiben");
+        assert.ok(restored.sync_change_id > deleted.sync_change_id, "Restore muss eine neue serverseitige Cursorposition erhalten");
+
+        const foreign = await clientB.rpc("record_review_atomic", { ...parameters, p_event: { ...parameters.p_event, id: `${eventId}_foreign` } });
+        assert.ok(foreign.error, "Ein fremder atomarer Review-Write wurde unerwartet erlaubt.");
+        const anonymous = await anonClient.rpc("record_review_atomic", { ...parameters, p_event: { ...parameters.p_event, id: `${eventId}_anon` } });
+        assert.ok(anonymous.error, "Ein anonymer atomarer Review-Write wurde unerwartet erlaubt.");
+      } finally {
+        await clientA.from("review_events").delete().eq("id", eventId);
       }
     });
 

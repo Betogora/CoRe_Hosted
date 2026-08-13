@@ -136,9 +136,9 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
 
 function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme }: ResponsiveNavigationProps) {
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--core-border)] bg-core-surface px-5 py-3 xl:hidden" data-navigation-layout="mobile-header">
-      <div className="flex min-h-11 items-center justify-between gap-3">
-        <h1 className="shrink-0 core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
+    <header className="core-mobile-header sticky top-0 z-30 min-w-0 border-b border-[var(--core-border)] bg-core-surface px-5 py-3 xl:hidden" data-navigation-layout="mobile-header">
+      <div className="flex min-h-11 min-w-0 items-center justify-between gap-3">
+        <h1 className="core-mobile-brand shrink-0 core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
         <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} className="shrink-0" themeFirst />
       </div>
@@ -159,7 +159,7 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate }: App
       aria-label="Mobile Hauptnavigation"
       data-app-navigation="true"
       data-navigation-layout="bottom-bar"
-      className="fixed left-[50dvw] z-40 grid w-[calc(100dvw-4rem)] max-w-[34rem] -translate-x-1/2 grid-cols-5 gap-1 rounded-[20px] border border-[var(--core-border)] bg-core-raised p-1.5 shadow-[var(--core-shadow-raised)] sm:w-[calc(100dvw-6rem)] xl:hidden"
+      className="core-mobile-bottom-navigation fixed left-[50dvw] z-40 grid w-[calc(100dvw-4rem)] max-w-[34rem] -translate-x-1/2 grid-cols-5 gap-1 rounded-[20px] border border-[var(--core-border)] bg-core-raised p-1.5 shadow-[var(--core-shadow-raised)] sm:w-[calc(100dvw-6rem)] xl:hidden"
       style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
     >
       {navigationItems.map((view) => {

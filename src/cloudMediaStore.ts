@@ -4,6 +4,8 @@ import { validateMediaAssetRows } from "./cloudRepositoryValidation.ts";
 const CORE_MEDIA_BUCKET = "core-media";
 const RESUMABLE_UPLOAD_THRESHOLD_BYTES = 6 * 1024 * 1024;
 const TUS_RETRY_DELAYS = [0, 3_000, 5_000, 10_000, 20_000];
+const MEDIA_METADATA_BATCH_SIZE = 100;
+const SMALL_UPLOAD_CONCURRENCY = 4;
 
 export type MediaFailureKind = "auth" | "network" | "expired-resume" | "integrity" | "duplicate" | "conflict" | "rate-limited" | "too-large" | "storage" | "cancelled";
 
@@ -37,6 +39,25 @@ interface SyncOptions {
 }
 
 function nowIso() { return new Date().toISOString(); }
+
+function chunks<T>(values: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let index = 0; index < values.length; index += size) result.push(values.slice(index, index + size));
+  return result;
+}
+
+async function mapWithConcurrency<T, R>(values: T[], concurrency: number, run: (value: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(values.length);
+  let nextIndex = 0;
+  await Promise.all(Array.from({ length: Math.min(concurrency, values.length) }, async () => {
+    while (nextIndex < values.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await run(values[index]);
+    }
+  }));
+  return results;
+}
 
 function requireSha1(value: unknown) {
   const sha1 = String(value ?? "").trim().toLowerCase();
@@ -161,16 +182,24 @@ async function uploadLarge(client: any, supabaseUrl: string, userId: string, fil
   return run();
 }
 
-async function selectAccountHashRows(client: any, userId: string, sha1: string) {
-  const { data, error } = await client.from("media_assets").select("*").eq("user_id", userId).eq("storage_bucket", CORE_MEDIA_BUCKET).eq("sha1", sha1).is("deleted_at", null);
-  if (error) throw error;
-  return validateMediaAssetRows(data ?? []);
+async function selectAccountHashRows(client: any, userId: string, hashes: string[]) {
+  const rows = [];
+  for (const batch of chunks([...new Set(hashes)], MEDIA_METADATA_BATCH_SIZE)) {
+    const { data, error } = await client.from("media_assets").select("*").eq("user_id", userId).eq("storage_bucket", CORE_MEDIA_BUCKET).in("sha1", batch).is("deleted_at", null);
+    if (error) throw error;
+    rows.push(...validateMediaAssetRows(data ?? []));
+  }
+  return rows;
 }
 
-async function persistReference(client: any, row: ReturnType<typeof toRow>) {
-  const { data, error } = await client.from("media_assets").upsert(row, { onConflict: "user_id,id" }).select("*").single();
-  if (error) throw error;
-  return toReference(validateMediaAssetRows([data])[0]);
+async function persistReferences(client: any, rows: ReturnType<typeof toRow>[]) {
+  const references: MediaAssetReference[] = [];
+  for (const batch of chunks(rows, MEDIA_METADATA_BATCH_SIZE)) {
+    const { data, error } = await client.from("media_assets").upsert(batch, { onConflict: "user_id,id" }).select("*");
+    if (error) throw error;
+    references.push(...validateMediaAssetRows(data ?? []).map(toReference));
+  }
+  return references;
 }
 
 async function retireStaleReferences(client: any, userId: string, previous: MediaAssetReference[], activeIds: Set<string>) {
@@ -194,13 +223,16 @@ export async function syncReferences({ client, supabaseUrl, userId, decks, contr
   const referencesByDeck = new Map<string, MediaAssetReference[]>();
   for (const deck of decks) {
     const references = new Map((deck.retainedReferences ?? []).map((reference) => [reference.id, reference]));
-    for (const file of deck.files) {
+    const previousByKey = new Map(deck.previousReferences.map((reference) => [`${reference.sha1}\u0000${reference.cardId ?? ""}`, reference]));
+    const previousByHash = new Map(deck.previousReferences.filter((reference) => reference.cardId == null).map((reference) => [reference.sha1, reference]));
+    const existingByHash = new Map((await selectAccountHashRows(client, userId, deck.files.map((file) => requireSha1(file.sha1))))
+      .map((reference) => [reference.sha1, reference]));
+    const processFile = async (file: CloudMediaFile) => {
       await control.waitUntilResumed();
       if (control.isCancelled()) throw mediaError("cancelled", "Der Medien-Upload wurde abgebrochen.");
       const sha1 = requireSha1(file.sha1);
       const path = accountObjectPath(userId, sha1);
-      const sameHashRows = await selectAccountHashRows(client, userId, sha1);
-      const matchingObject = sameHashRows[0];
+      const matchingObject = existingByHash.get(sha1);
       if (matchingObject && Number(matchingObject.size) !== file.size) throw mediaError("integrity", "Dieselbe SHA-1-Prüfsumme verweist auf unterschiedliche Dateigrößen.");
       let outcome: "uploaded" | "reused";
       if (matchingObject) {
@@ -219,13 +251,16 @@ export async function syncReferences({ client, supabaseUrl, userId, decks, contr
         }
         throw mediaError("cancelled", "Der Medien-Upload wurde abgebrochen.");
       }
-      const oldReference = deck.previousReferences.find((reference) => reference.sha1 === sha1 && reference.cardId === (file.cardId ?? null))
-        ?? deck.previousReferences.find((reference) => reference.sha1 === sha1 && reference.cardId == null);
-      const persisted = await persistReference(client, toRow(file, userId, deck.deckId, matchingObject?.storage_path ?? path, oldReference));
-      references.set(persisted.id, persisted);
+      const oldReference = previousByKey.get(`${sha1}\u0000${file.cardId ?? ""}`) ?? previousByHash.get(sha1);
       completed += 1; outcome === "uploaded" ? uploaded += 1 : reused += 1;
       await onProgress?.({ completed, total, uploaded, reused, currentName: file.name });
-    }
+      return toRow(file, userId, deck.deckId, matchingObject?.storage_path ?? path, oldReference);
+    };
+    const smallFiles = deck.files.filter((file) => uploadFile || file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES);
+    const largeFiles = deck.files.filter((file) => !uploadFile && file.size > RESUMABLE_UPLOAD_THRESHOLD_BYTES);
+    const rows = await mapWithConcurrency(smallFiles, SMALL_UPLOAD_CONCURRENCY, processFile);
+    for (const file of largeFiles) rows.push(await processFile(file));
+    for (const persisted of await persistReferences(client, rows)) references.set(persisted.id, persisted);
     await retireStaleReferences(client, userId, deck.previousReferences, new Set(references.keys()));
     referencesByDeck.set(deck.deckId, [...references.values()]);
   }
@@ -237,7 +272,11 @@ export async function resolveReferences(client: any, references: MediaAssetRefer
   const missing: MediaAssetReference[] = [];
   const expiresAt = new Date(Date.now() + expiresIn * 1_000).toISOString();
   const byBucket = new Map<string, MediaAssetReference[]>();
-  for (const reference of references.filter((item) => !item.deletedAt)) byBucket.set(reference.storageBucket, [...(byBucket.get(reference.storageBucket) ?? []), reference]);
+  for (const reference of references.filter((item) => !item.deletedAt)) {
+    const bucket = byBucket.get(reference.storageBucket);
+    if (bucket) bucket.push(reference);
+    else byBucket.set(reference.storageBucket, [reference]);
+  }
   for (const [bucket, items] of byBucket) {
     const paths = [...new Set(items.map((item) => item.storagePath))];
     const storage = client.storage.from(bucket);

@@ -5,7 +5,7 @@ import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
 import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
 import type { EasyDayLevel, EasyDays } from "../coreTypes.ts";
-import { mergePortableExportIntoState, PORTABLE_EXPORT_FILE_NAME, stringifyPortableExport, validatePortableExport } from "../dataPortability.ts";
+import { PORTABLE_EXPORT_FILE_NAME, validatePortableExport } from "../dataPortability.ts";
 import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
@@ -43,7 +43,7 @@ const easyDayToneClasses: Record<EasyDayLevel, string> = {
   minimum: "border-core-info bg-core-info-soft",
 };
 
-export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerPreferences, onSaveProfile, onSaveGlobalSchedulerPreferences, onSaveState, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
+export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences, onSaveProfile, onSaveGlobalSchedulerPreferences, onCreateExport, onImportExport, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
   const [displayName, setDisplayName] = React.useState(profile.displayName);
   const [dayStartHour, setDayStartHour] = React.useState(globalSchedulerPreferences.dayStartHour);
   const [learnAheadMinutes, setLearnAheadMinutes] = React.useState(globalSchedulerPreferences.learnAheadMinutes);
@@ -110,14 +110,19 @@ export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerP
     }
   }
 
-  function createExportText() {
-    const text = stringifyPortableExport(appState);
-    setExportText(text);
-    return text;
+  async function createExportText() {
+    setAccountBusy(true);
+    try {
+      const text = await onCreateExport();
+      setExportText(text);
+      return text;
+    } finally {
+      setAccountBusy(false);
+    }
   }
 
-  function downloadExport() {
-    const text = createExportText();
+  async function downloadExport() {
+    const text = await createExportText();
     const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url;
@@ -130,16 +135,23 @@ export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerP
     setSuccessToast(`Export wurde als ${PORTABLE_EXPORT_FILE_NAME} heruntergeladen.`);
   }
 
-  function importExport() {
+  async function importExport() {
     const validation = validatePortableExport(importText);
     if (!validation.valid || !validation.payload) {
       setPortabilityMessage(validation.errors.join(" "));
       return;
     }
-    onSaveState(mergePortableExportIntoState(appState, validation.payload));
-    setImportText("");
-    setPortabilityMessage("");
-    setSuccessToast("Export wurde validiert und in deine Bibliothek übernommen.");
+    setAccountBusy(true);
+    try {
+      await onImportExport(importText);
+      setImportText("");
+      setPortabilityMessage("");
+      setSuccessToast("Export wurde validiert und in deine Bibliothek übernommen.");
+    } catch (error) {
+      setPortabilityMessage(error instanceof Error ? error.message : "Export konnte nicht importiert werden.");
+    } finally {
+      setAccountBusy(false);
+    }
   }
 
   const sectionItems = [
@@ -259,15 +271,15 @@ export function SettingsScreen({ appState, profile, syncStatus, globalSchedulerP
             <ul className="mt-2 list-disc space-y-1 pl-5"><li>Medienbytes</li><li>Authdaten</li><li>serverseitigen Sicherungskopien</li><li>vollständigen DSGVO-Auskunftsdaten nach Art. 15</li></ul>
           </div>
           <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-2">
-            <div className="grid content-start gap-3"><h4 className="font-semibold text-core-text">Daten exportieren</h4><p className="core-body text-core-muted">Eigene Lernprofile werden zusammen mit deinem Profil transportiert.</p><ActionButton type="button" variant="primary" icon={Download} onClick={downloadExport} className="w-fit">Export herunterladen</ActionButton></div>
-            <div className="grid min-w-0 gap-3"><h4 className="font-semibold text-core-text">Daten importieren</h4><textarea className="min-h-48 min-w-0 rounded-xl border border-core-border p-3 font-mono core-caption" value={importText} onChange={(event) => setImportText(event.target.value)} placeholder="CoRe Export hier einfügen" aria-label="CoRe Export JSON importieren" data-testid="portable-import-json" /><ActionButton type="button" variant="secondary" icon={Upload} onClick={importExport} disabled={!importText.trim()} className="w-fit">JSON importieren</ActionButton></div>
+            <div className="grid content-start gap-3"><h4 className="font-semibold text-core-text">Daten exportieren</h4><p className="core-body text-core-muted">Eigene Lernprofile werden zusammen mit deinem Profil transportiert.</p><ActionButton type="button" variant="primary" icon={Download} onClick={() => void downloadExport()} loading={accountBusy} className="w-fit">Export herunterladen</ActionButton></div>
+            <div className="grid min-w-0 gap-3"><h4 className="font-semibold text-core-text">Daten importieren</h4><textarea className="min-h-48 min-w-0 rounded-xl border border-core-border p-3 font-mono core-caption" value={importText} onChange={(event) => setImportText(event.target.value)} placeholder="CoRe Export hier einfügen" aria-label="CoRe Export JSON importieren" data-testid="portable-import-json" /><ActionButton type="button" variant="secondary" icon={Upload} onClick={() => void importExport()} disabled={!importText.trim()} loading={accountBusy} className="w-fit">JSON importieren</ActionButton></div>
           </div>
           {portabilityMessage ? <p className="core-status-error mt-3 core-body" role="alert">{portabilityMessage}</p> : null}
         </SoftPanel>
         <SoftPanel className="p-5 sm:p-6">
           <h3 className="core-heading-3 font-semibold text-core-text">Roh-JSON</h3>
           <p className="mt-2 core-body text-core-muted">Für technische Prüfungen kannst du den Inhalt des Portabilitätsexports anzeigen.</p>
-          <ActionButton type="button" variant="secondary" icon={Database} onClick={() => { createExportText(); setSuccessToast("Roh-JSON wurde erstellt."); }} className="mt-4">Roh-JSON anzeigen</ActionButton>
+          <ActionButton type="button" variant="secondary" icon={Database} onClick={() => { void createExportText().then(() => setSuccessToast("Roh-JSON wurde erstellt.")); }} loading={accountBusy} className="mt-4">Roh-JSON anzeigen</ActionButton>
           {exportText ? <textarea className="mt-4 min-h-72 w-full rounded-xl border border-core-border p-3 font-mono core-caption" value={exportText} readOnly aria-label="Portabilitätsexport als Roh-JSON" data-testid="portable-export-json" /> : null}
         </SoftPanel>
         <ReleaseInfo className="text-center" />

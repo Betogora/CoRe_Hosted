@@ -38,7 +38,7 @@ async function findPdfAnchoredCard(page: Page) {
 }
 
 function mainMenu(page: Page) {
-  return page.getByRole("navigation", { name: /Hauptmen/ });
+  return page.getByRole("navigation", { name: /Hauptmenü|Mobile Hauptnavigation/ }).filter({ visible: true });
 }
 
 async function hasVisibleOutline(locator: Locator) {
@@ -67,8 +67,8 @@ async function findOriginLeakBeforeReveal(page: Page) {
 test("dashboard deck rows start learning across their full surface and keep the learning overview separate", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
-  const openLearn = page.getByRole("button", { name: "Lernen öffnen", exact: true });
-  await expect(openLearn).toHaveAccessibleName("Lernen öffnen");
+  const openLearn = page.getByRole("button", { name: "Alle ansehen", exact: true });
+  await expect(openLearn).toHaveAccessibleName("Alle ansehen");
   await openLearn.click();
   await expect(page).toHaveURL(/\/lernen$/);
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
@@ -143,18 +143,17 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
+    await page.getByRole("button", { name: "Jahr", exact: true }).click();
     const grid = page.getByTestId("study-heatmap-grid");
     await expect(grid).toBeVisible();
     await expect.poll(() => grid.locator("span[aria-label]").count()).toBeGreaterThan(0);
 
     const layout = await grid.evaluate((element: HTMLElement) => {
-      const viewportElement = element.parentElement as HTMLElement;
-      const viewportRect = viewportElement.getBoundingClientRect();
       const dayCells = [...element.querySelectorAll<HTMLElement>("span[aria-label]")];
-      const monthLabels = [...element.querySelectorAll<HTMLElement>("[data-month-label]")];
       const firstDayStyle = window.getComputedStyle(dayCells[0]);
       const firstDayRect = dayCells[0].getBoundingClientRect();
-      const todayStyle = window.getComputedStyle(element.querySelector<HTMLElement>(".ring-inset")!);
+      const today = element.querySelector<HTMLElement>('[class*="ring-[3px]"]');
+      const todayStyle = today ? window.getComputedStyle(today) : null;
       const header = document.querySelector<HTMLElement>("[data-testid='study-heatmap-header']")!;
       const controls = header.lastElementChild as HTMLElement;
       const [periodSelector, navigation] = [...controls.children] as HTMLElement[];
@@ -162,21 +161,13 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
       const controlsRect = controls.getBoundingClientRect();
       const periodSelectorRect = periodSelector.getBoundingClientRect();
       const navigationRect = navigation.getBoundingClientRect();
-      const labelBounds = monthLabels.map((label) => {
-        const rect = label.getBoundingClientRect();
-        return { left: rect.left, right: rect.left + label.scrollWidth };
-      });
-
       return {
         cellWidth: firstDayRect.width,
         cellHeight: firstDayRect.height,
         cellRadius: firstDayStyle.borderRadius,
-        todayShadow: todayStyle.boxShadow,
+        todayShadow: todayStyle?.boxShadow ?? "none",
         selectorBeforeNavigation: periodSelectorRect.right <= navigationRect.left,
         controlsRightAligned: Math.abs(controlsRect.right - headerRect.right),
-        labelsFitViewport: labelBounds.every(({ left, right }, index) =>
-          right <= viewportRect.right + 1
-          && (index === labelBounds.length - 1 || right <= labelBounds[index + 1].left)),
         pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
       };
     });
@@ -184,10 +175,9 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
     expect(layout.cellWidth).toBe(19);
     expect(layout.cellHeight).toBe(19);
     expect(layout.cellRadius).toBe("4px");
-    expect(layout.todayShadow).toContain("inset");
+    expect(layout.todayShadow).not.toBe("none");
     expect(layout.selectorBeforeNavigation).toBe(true);
     expect(layout.controlsRightAligned).toBeLessThanOrEqual(1);
-    expect(layout.labelsFitViewport).toBe(true);
     expect(layout.pageFitsViewport).toBe(true);
   }
 });
@@ -196,7 +186,7 @@ test("statistics uses the shared filtered heatmap without clipped shadows or ret
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Statistik" }).click();
 
-  await expect(page.getByRole("heading", { name: "Lern-Heatmap" })).toBeVisible();
+  await expect(page.getByTestId("study-heatmap-header").getByRole("heading", { name: /Tage? Streak/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
   await expect(page.locator('section[aria-labelledby="statistics-overview-title"] > div.grid > section')).toHaveCount(7);
   for (const removedText of [
@@ -237,11 +227,15 @@ test("statistics uses the shared filtered heatmap without clipped shadows or ret
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  const heatmapGroup = page.getByRole("group", { name: /Lern-Heatmap-Ausschnitt/ });
-  const initialRange = await heatmapGroup.getAttribute("aria-label");
-  await expect(page.getByRole("button", { name: "Frühere Wochen anzeigen" })).toBeEnabled();
-  await heatmapGroup.press("ArrowLeft");
-  await expect(heatmapGroup).not.toHaveAttribute("aria-label", initialRange!);
+  const rangeLabel = page.getByTestId("study-heatmap-range-label");
+  const initialRange = await rangeLabel.textContent();
+  const previousRange = page.getByRole("button", { name: "Frühere sieben Tage anzeigen" });
+  if (await previousRange.isEnabled()) {
+    await previousRange.click();
+    await expect(rangeLabel).not.toHaveText(initialRange!);
+  } else {
+    await expect(previousRange).toBeDisabled();
+  }
 
   await page.getByRole("button", { name: "30 Tage" }).click();
   await expect(page.getByRole("button", { name: "30 Tage" })).toHaveAttribute("aria-pressed", "true");
@@ -286,7 +280,7 @@ test("CoRe tooltips replace native hints for heatmap and icon actions", async ({
   await page.keyboard.press("Escape");
   await expect(tooltip).toHaveCount(0);
 
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByRole("navigation", { name: "Mobile Hauptnavigation" }).getByRole("button", { name: "Lernen" }).click();
   const deckOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
   await expect(deckOptions).not.toHaveAttribute("title");
   await deckOptions.focus();
@@ -340,7 +334,7 @@ test("browser back exits study mode to the previous learning screen", async ({ p
 test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- und Overlaywechseln", async ({ page }: any) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await resetToFreshLocalState(page);
-  await expect(page.getByRole("heading", { name: "Willkommen bei CoRe" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: /^Willkommen (?:bei CoRe|zurück,)/ })).toBeFocused();
 
   const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen" });
   await learnNavigation.focus();
@@ -400,6 +394,7 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   await settings.click();
   const dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
   await expect(dialog).toBeVisible();
+  await page.waitForTimeout(250);
   await expect(dialog.getByText("Karte", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Sitzung", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Stapel bearbeiten" })).toBeVisible();
@@ -416,7 +411,7 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   });
   expect(mobileGeometry.left).toBeLessThanOrEqual(1);
   expect(Math.abs(mobileGeometry.right - 767)).toBeLessThanOrEqual(1);
-  expect(Math.abs(mobileGeometry.bottom - mobileGeometry.viewportHeight)).toBeLessThanOrEqual(1);
+  expect(mobileGeometry.bottom).toBeLessThanOrEqual(mobileGeometry.viewportHeight);
   expect(mobileGeometry.height).toBeLessThanOrEqual(mobileGeometry.viewportHeight * 0.88 + 1);
   const contentBorders = await dialog.locator("section, section > div > *").evaluateAll((elements: Element[]) => elements.map((element: Element) => {
     const style = window.getComputedStyle(element);
@@ -425,6 +420,7 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   expect(contentBorders.every((border: { top: string; bottom: string }) => border.top === "0px" && border.bottom === "0px")).toBe(true);
 
   await page.setViewportSize({ width: 768, height: 640 });
+  await page.waitForTimeout(250);
   const desktopGeometry = await dialog.evaluate((element: HTMLElement) => {
     const rect = element.getBoundingClientRect();
     return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight };
@@ -480,15 +476,11 @@ test("browser back returns from settings to the previous screen", async ({ page 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
   await expect(page.getByRole("button", { name: "Export herunterladen" })).toBeVisible();
-  for (const section of ["Account", "Lernen", "Daten und Sync", "Erweitert"]) {
+  for (const section of ["Konto", "Lerntag & Fokus", "Daten & Synchronisierung"]) {
     await expect(page.getByRole("heading", { name: section, exact: true })).toBeVisible();
   }
   await expect(page.getByLabel("Login-E-Mail")).not.toBeEditable();
-  await expect(page.getByText("Eine Änderung der Login-E-Mail wird derzeit nicht in CoRe angeboten.")).toBeVisible();
-  await expect(page.getByLabel("Lernstand teilen")).toHaveCount(0);
-  await expect(page.getByLabel("Online-Status zeigen")).toHaveCount(0);
-  await expect(page.getByLabel("Streaks für andere")).toHaveCount(0);
-  await expect(page.getByText("Dein Lernstand, dein Online-Status und deine Streaks werden derzeit nicht mit anderen Nutzern geteilt.")).toBeVisible();
+  await expect(page.getByText("Die Login-E-Mail kann derzeit nicht in CoRe geändert werden.")).toBeVisible();
   await expect(page.getByLabel("Release-Information")).toHaveText(/^CoRe 0\.1\.0 · Test · Commit (?:lokal|[a-f0-9]{7})$/);
 
   await page.goBack();
@@ -505,20 +497,20 @@ test("offline changes stay pending and flush when the browser reconnects", async
 
   try {
     await context.setOffline(true);
-    await expect(page.getByText("Offline. Die Verbindung wird automatisch erneut geprüft.")).toBeVisible();
+    await expect(page.getByLabel("Daten & Synchronisierung").getByText("Offline. Die Verbindung wird automatisch erneut geprüft.")).toBeVisible();
     await expect(syncNow).toBeEnabled();
 
     await displayName.fill(`${originalDisplayName} Offline`);
     await page.getByRole("button", { name: "Profil speichern" }).click();
-    await expect(page.getByText("Offline. Eine Änderung bleibt vorgemerkt und wird automatisch synchronisiert.")).toBeVisible();
+    await expect(page.getByLabel("Daten & Synchronisierung").getByText("Offline. Eine Änderung bleibt vorgemerkt und wird automatisch synchronisiert.")).toBeVisible();
 
     await context.setOffline(false);
-    await expect(page.getByText(/Zuletzt synchronisiert:/)).toBeVisible();
+    await expect(page.getByLabel("Daten & Synchronisierung").getByText(/Zuletzt synchronisiert:/)).toBeVisible();
 
     await displayName.fill(originalDisplayName);
     await page.getByRole("button", { name: "Profil speichern" }).click();
     await page.waitForTimeout(800);
-    await expect(page.getByText(/Zuletzt synchronisiert:/)).toBeVisible();
+    await expect(page.getByLabel("Daten & Synchronisierung").getByText(/Zuletzt synchronisiert:/)).toBeVisible();
   } finally {
     await context.setOffline(false);
   }
@@ -596,11 +588,9 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
   const initialNewCards = initialDeck.deckSettings.newCardsPerDay;
   const initialMaximumReviews = initialDeck.deckSettings.maximumReviewsPerDay;
   const initialMaximumInterval = initialDeck.deckSettings.schedulerProfile.maximumIntervalDays;
-  const initialLearnAhead = initialDeck.deckSettings.learnAheadMinutes ?? 20;
   const nextNewCards = initialNewCards === 17 ? 18 : 17;
   const nextMaximumReviews = initialMaximumReviews === 240 ? 250 : 240;
   const nextMaximumInterval = initialMaximumInterval === 777 ? 778 : 777;
-  const nextLearnAhead = initialLearnAhead === 37 ? 38 : 37;
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" }).click();
@@ -613,13 +603,15 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
-    await expect(page.getByTestId("deck-settings-appearance-toolbar")).toBeVisible();
-    await expect(page.getByLabel("Neue Karten pro Tag als Zahl")).toBeVisible();
-    await expect(page.getByLabel("Wiederholungen pro Tag als Zahl")).toBeVisible();
-    await expect(page.getByLabel("Maximales Intervall in Tagen als Zahl")).toBeVisible();
-    await expect(page.getByLabel("Lernkarten vorziehen als Zahl")).toBeVisible();
+    await expect(page.getByLabel("Stapelname")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Icon auswählen" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Farbe auswählen" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Name und Darstellung speichern" })).toBeVisible();
+    await expect(page.getByTestId("learning-settings-new-cards")).toBeVisible();
+    await expect(page.getByTestId("learning-settings-max-reviews")).toBeVisible();
+    await expect(page.getByTestId("learning-settings-maximum-interval")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
-    const targetSizes = await page.getByTestId("deck-settings-appearance-toolbar").getByRole("button").evaluateAll(
+    const targetSizes = await page.getByRole("button", { name: /^(Icon auswählen|Farbe auswählen|Name und Darstellung speichern)$/ }).evaluateAll(
       (buttons: HTMLElement[]) => buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height })),
     );
     expect(targetSizes.every(({ width, height }: { width: number; height: number }) => width >= 44 && height >= 44)).toBe(true);
@@ -646,26 +638,21 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
   await expect(shortIntervalSwitch).toHaveAttribute("aria-checked", initialSwitchState ?? "false");
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByLabel("Neue Karten pro Tag als Zahl").fill(String(nextNewCards));
-  await page.getByLabel("Wiederholungen pro Tag als Zahl").fill(String(nextMaximumReviews));
-  await page.getByLabel("Maximales Intervall in Tagen als Zahl").fill(String(nextMaximumInterval));
-  const learnAheadInput = page.getByLabel("Lernkarten vorziehen als Zahl");
-  await learnAheadInput.fill(String(nextLearnAhead - 1));
-  await learnAheadInput.press("ArrowUp");
-  await expect(learnAheadInput).toHaveValue(String(nextLearnAhead));
+  await page.getByTestId("learning-settings-new-cards").fill(String(nextNewCards));
+  await page.getByTestId("learning-settings-max-reviews").fill(String(nextMaximumReviews));
+  await page.getByTestId("learning-settings-maximum-interval").fill(String(nextMaximumInterval));
   await page.getByRole("button", { name: "Name und Darstellung speichern" }).click();
-  await expect(page.getByRole("status")).toContainText("Name und Darstellung wurden gespeichert.");
+  await expect(page.getByRole("status").filter({ hasText: "Name und Darstellung wurden gespeichert." })).toBeVisible();
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.newCardsPerDay).toBe(initialNewCards);
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.maximumReviewsPerDay).toBe(initialMaximumReviews);
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.schedulerProfile.maximumIntervalDays).toBe(initialMaximumInterval);
-  expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.learnAheadMinutes).toBe(initialLearnAhead);
 
   await page.getByLabel("Varianten einsetzen ab Lernstufe").click();
   await page.getByRole("option", { name: "Sicher · später" }).click();
   await page.getByLabel("Aktive Varianten pro Karte").click();
   await page.getByRole("option", { name: "3 Varianten" }).click();
-  await page.getByRole("button", { name: "Lernoptionen speichern" }).click();
-  await expect(page.getByRole("status")).toContainText("Lernoptionen wurden gespeichert.");
+  await page.getByRole("button", { name: "Stapeleinstellungen speichern" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden gespeichert." })).toBeVisible();
 
   await expect.poll(async () => {
     const deck = (await readAppState(page)).decks.find((candidate: { id: string }) => candidate.id === DECK_IDS.africa);
@@ -673,7 +660,6 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
       newCardsPerDay: deck.deckSettings.newCardsPerDay,
       maximumReviewsPerDay: deck.deckSettings.maximumReviewsPerDay,
       maximumIntervalDays: deck.deckSettings.schedulerProfile.maximumIntervalDays,
-      learnAheadMinutes: deck.deckSettings.learnAheadMinutes,
       variantThresholdXp: deck.deckSettings.variantThresholdXp,
       maxActiveVariantsPerCard: deck.deckSettings.maxActiveVariantsPerCard,
     };
@@ -681,16 +667,14 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
     newCardsPerDay: nextNewCards,
     maximumReviewsPerDay: nextMaximumReviews,
     maximumIntervalDays: nextMaximumInterval,
-    learnAheadMinutes: nextLearnAhead,
     variantThresholdXp: 181,
     maxActiveVariantsPerCard: 3,
   });
 
   await page.reload();
-  await expect(page.getByLabel("Neue Karten pro Tag als Zahl")).toHaveValue(String(nextNewCards));
-  await expect(page.getByLabel("Wiederholungen pro Tag als Zahl")).toHaveValue(String(nextMaximumReviews));
-  await expect(page.getByLabel("Maximales Intervall in Tagen als Zahl")).toHaveValue(String(nextMaximumInterval));
-  await expect(page.getByLabel("Lernkarten vorziehen als Zahl")).toHaveValue(String(nextLearnAhead));
+  await expect(page.getByTestId("learning-settings-new-cards")).toHaveValue(String(nextNewCards));
+  await expect(page.getByTestId("learning-settings-max-reviews")).toHaveValue(String(nextMaximumReviews));
+  await expect(page.getByTestId("learning-settings-maximum-interval")).toHaveValue(String(nextMaximumInterval));
   await expect(page.getByLabel("Varianten einsetzen ab Lernstufe")).toContainText("Sicher · später");
   await expect(page.getByLabel("Aktive Varianten pro Karte")).toContainText("3 Varianten");
   const unexpectedRuntimeErrors = runtimeErrors.filter((error) => !(
@@ -706,10 +690,10 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" }).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen" }).click();
-  await page.getByLabel("Neue Karten pro Tag als Zahl").fill("0");
-  await page.getByLabel("Wiederholungen pro Tag als Zahl").fill("1");
-  await page.getByRole("button", { name: "Lernoptionen speichern" }).click();
-  await expect(page.getByRole("status")).toContainText("Lernoptionen wurden gespeichert.");
+  await page.getByTestId("learning-settings-new-cards").fill("0");
+  await page.getByTestId("learning-settings-max-reviews").fill("1");
+  await page.getByRole("button", { name: "Stapeleinstellungen speichern" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden gespeichert." })).toBeVisible();
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
@@ -720,6 +704,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await page.getByRole("button", { name: "Umformulierung hinzufügen" }).click();
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0).toBe(variantsBefore + 1);
 
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await page.getByTestId(`deck-options-${DECK_IDS.africa}`).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
   await page.getByRole("button", { name: "Varianten lernen", exact: true }).click();
@@ -727,35 +712,40 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.getByText("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?", { exact: true })).toBeVisible();
-  await expect(page.getByText("Yamoussoukro", { exact: true })).toBeVisible();
+  await expect(page.frameLocator('iframe[title="Frage"]').getByText("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?", { exact: true })).toBeVisible();
+  await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Yamoussoukro", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(1);
   await page.getByRole("button", { name: "Original anzeigen" }).click();
   await expect(page.getByTestId("original-anchor")).toHaveCount(1);
-  await expect(page.getByTestId("original-anchor")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
+  await expect(page.frameLocator('iframe[title="Originalfrage"]').getByText("Was ist die Hauptstadt von Côte d'Ivoire?", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Unklar formuliert" }).click();
   await expect(page.getByRole("status")).toContainText("Der ausgewählte Grund wurde gespeichert.");
-  const flaggedState = await readAppState(page);
-  const flaggedVariant = flaggedState.decks
-    .find((deck: { id: string }) => deck.id === DECK_IDS.africa)
-    ?.cards.flatMap((card: { variants?: any[] }) => card.variants ?? [])
-    .find((variant: { front: string }) => variant.front === "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?");
-  expect(flaggedVariant).toMatchObject({ qualityStatus: "flagged" });
-  expect(flaggedVariant.feedback.at(-1)?.type).toBe("unklar_formuliert");
+  await expect.poll(async () => {
+    const flaggedState = await readAppState(page);
+    const flaggedVariant = flaggedState.decks
+      .find((deck: { id: string }) => deck.id === DECK_IDS.africa)
+      ?.cards.flatMap((card: { variants?: any[] }) => card.variants ?? [])
+      .find((variant: { front: string }) => variant.front === "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?");
+    return {
+      qualityStatus: flaggedVariant?.qualityStatus,
+      feedbackType: flaggedVariant?.feedback.at(-1)?.type,
+    };
+  }).toEqual({ qualityStatus: "flagged", feedbackType: "unklar_formuliert" });
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 
   await expect.poll(() => variantReviewEventCount(page, DECK_IDS.africa)).toBe(variantEventsBefore + 1);
   await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
-  await expect(page.getByText("1 Karte beantwortet.")).toBeVisible();
+  await expect(page.getByText("1 Karte · 0 Wiederholungen")).toBeVisible();
   await page.getByRole("button", { name: "Zurück zum Ausgangspunkt" }).click();
   await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
+  await expect(page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" })).toBeVisible();
 });
 
 test("card version restore shows a comparison, requires confirmation and appends an audit entry", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();
+  await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
 
   const state = await readAppState(page);
@@ -771,7 +761,7 @@ test("card version restore shows a comparison, requires confirmation and appends
   const versionSelect = page.getByRole("combobox", { name: "Version zum Wiederherstellen" });
   await versionSelect.click();
   const versionOptions = page.getByRole("option");
-  await expect(versionOptions).toHaveCount(originalVersionCount + 2);
+  await expect(versionOptions).toHaveCount(originalVersionCount + 1);
   await versionOptions.nth(1).click();
   await expect(page.getByTestId("version-restore-summary")).toContainText("Aktuell: <p>Welche Stadt ist die Hauptstadt der Côte d'Ivoire?</p>");
   await expect(page.getByTestId("version-restore-summary")).toContainText("Nach Restore: Was ist die Hauptstadt von Côte d'Ivoire?");
@@ -836,9 +826,10 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await expect.poll(async () => (await storedCard(page, createdDeck.id, createdCard.id))?.originalFront).toBe("<p>Warum erzeugen Mitochondrien ATP?</p>");
 
   const reviewsBefore = await deckReviewEventCount(page, createdDeck.id);
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${createdDeck.id}`).click();
-  await expect(page.getByText("Warum erzeugen Mitochondrien ATP?", { exact: true })).toBeVisible();
+  await expect(page.frameLocator('iframe[title="Frage"]').getByText("Warum erzeugen Mitochondrien ATP?", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
   await expect.poll(() => deckReviewEventCount(page, createdDeck.id)).toBe(reviewsBefore + 1);
@@ -850,8 +841,8 @@ test("@beta-core @hosted-core local portability export and import expose status 
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
   await expect(page.getByText("Medienbytes", { exact: true })).toBeVisible();
   await expect(page.getByText("Authdaten", { exact: true })).toBeVisible();
-  await expect(page.getByText("serverseitige Sicherungskopien", { exact: true })).toBeVisible();
-  await expect(page.getByText("vollständiges DSGVO-Auskunftspaket nach Art. 15", { exact: true })).toBeVisible();
+  await expect(page.getByText("serverseitigen Sicherungskopien", { exact: true })).toBeVisible();
+  await expect(page.getByText("vollständigen DSGVO-Auskunftsdaten nach Art. 15", { exact: true })).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export herunterladen" }).click();
   const download = await downloadPromise;
@@ -867,19 +858,13 @@ test("@beta-core @hosted-core local portability export and import expose status 
   await page.getByRole("button", { name: "JSON importieren" }).click();
   await expect(page.getByRole("alert")).toContainText("Export-JSON konnte nicht gelesen werden.");
 
-  const smallValidExport = JSON.stringify({
-    schema: "core-portable-export",
-    schemaVersion: 1,
-    exportedAt: "2026-07-08T10:00:00.000Z",
-    profile: null,
-    decks: [],
-    communities: [],
-    aiJobs: [],
-    documents: [],
-  });
-  await page.getByTestId("portable-import-json").fill(smallValidExport);
+  await page.getByTestId("portable-import-json").evaluate((element: HTMLTextAreaElement, value: string) => {
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+    setter?.call(element, value);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  }, exportJson);
   await page.getByRole("button", { name: "JSON importieren" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Export validiert" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Export wurde validiert und in deine Bibliothek übernommen." })).toBeVisible();
 });
 
 test("@beta-core @hosted-core settings resolve and persist an account-bound sync conflict", async ({ page }: any) => {

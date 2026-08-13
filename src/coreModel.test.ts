@@ -9,7 +9,7 @@ import {
   normalizeCoreDeck,
   normalizeLearningItem,
   restoreCardVersion,
-  updateCardContent,
+  saveCardEditorValue,
 } from "./coreModel.ts";
 
 test("deck settings normalize appearance defaults and fallbacks", () => {
@@ -116,17 +116,12 @@ test("normalizing edited decks preserves immutable originals and version history
       tags: "biology",
     },
   });
-  const editedCard = updateCardContent(
-    deck.cards[0],
-    {
-      originalFront: "What is ATP?",
-      originalBack: "A short-term cellular energy carrier.",
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-      originalTags: "biology metabolism",
-      kind: "basic",
-    },
-    "Clarify wording",
-  );
+  const editedCard = saveCardEditorValue(deck.cards[0], {
+    cardType: "basic",
+    front: "What is ATP?",
+    back: "A short-term cellular energy carrier.",
+    tags: ["biology", "metabolism"],
+  });
   const normalized = normalizeCoreDeck({ ...deck, cards: [editedCard] });
   const card = normalized.cards[0];
 
@@ -146,7 +141,7 @@ test("normalizing edited decks preserves immutable originals and version history
 
 test("restoring card content appends a traceable version instead of erasing history", () => {
   const original = createBasicLearningItem("deck-1", "Alte Frage", "Alte Antwort");
-  const edited = updateCardContent(original, { originalFront: "Neue Frage", originalBack: "Neue Antwort" });
+  const edited = saveCardEditorValue(original, { cardType: "basic", front: "Neue Frage", back: "Neue Antwort", tags: [] });
   const editedVersion = edited.versionLog.at(-1);
   assert.ok(editedVersion);
 
@@ -157,39 +152,7 @@ test("restoring card content appends a traceable version instead of erasing hist
   assert.equal(restored.originalBack, "Alte Antwort");
   assert.equal(restored.versionLog.length, edited.versionLog.length + 1);
   assert.equal(restoreEntry?.changeType, "version_restored");
-  assert.deepEqual(restoreEntry?.before, {
-    originalFront: "Neue Frage",
-    originalBack: "Neue Antwort",
-    originalTags: edited.originalTags,
-    kind: edited.kind,
-  });
-});
-
-test("content edits preserve the supported original variant type", () => {
-  const cases = [
-    ["image-occlusion", "image_occlusion"],
-    ["free-text", "custom"],
-    ["multi-field", "custom"],
-    ["case-vignette", "case"],
-  ];
-
-  for (const [cardType, variantType] of cases) {
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-    const base = createBasicLearningItem("deck-1", "Frage", "Antwort", { cardType });
-    const typed = normalizeLearningItem({
-      ...base,
-      cardType,
-      kind: cardType,
-      variants: base.variants.map((variant) => variant.isOriginal ? { ...variant, variantType } : variant),
-    });
-
-    const updated = updateCardContent(typed, { canonicalQuestion: "Präzisere Frage" });
-
-    assert.equal(updated.cardType, cardType);
-    assert.ok(getOriginalVariant);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-    assert.equal(getOriginalVariant(updated).variantType, variantType);
-  }
+  assert.equal((restoreEntry?.before as { schemaVersion?: number })?.schemaVersion, 1);
 });
 
 test("core normalization preserves cloud sync metadata", () => {

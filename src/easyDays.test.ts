@@ -15,7 +15,7 @@ test("easy days normalize seven independent weekday levels", () => {
 });
 
 test("equal weekday levels and intervals outside the supported window are no-ops", () => {
-  const context = { easyDays: { monday: "reduced", tuesday: "reduced", wednesday: "reduced", thursday: "reduced", friday: "reduced", saturday: "reduced", sunday: "reduced" } as const, dueCountsByDay: new Map(), timeZone: "Europe/Berlin", dayStartHour: 3 };
+  const context = { easyDays: { ...DEFAULT_EASY_DAYS, monday: "reduced", tuesday: "reduced", wednesday: "reduced", thursday: "reduced", friday: "reduced", saturday: "reduced", sunday: "reduced" } as const, dueCountsByDay: new Map(), timeZone: "Europe/Berlin", dayStartHour: 3 };
   assert.equal(selectEasyDayInterval({ rawIntervalDays: 20, elapsedDays: 5, maximumIntervalDays: 1000, now: NOW, context }), 20);
   assert.equal(selectEasyDayInterval({ rawIntervalDays: 91, elapsedDays: 5, maximumIntervalDays: 1000, now: NOW, context: { ...context, easyDays: { ...DEFAULT_EASY_DAYS, friday: "minimum" } } }), 91);
 });
@@ -27,7 +27,8 @@ test("weighted selection stays inside the FSRS fuzz range and avoids a minimal d
     timeZone: "Europe/Berlin",
     dayStartHour: 3,
   };
-  assert.equal(selectEasyDayInterval({ rawIntervalDays: 4, elapsedDays: 2, maximumIntervalDays: 1000, now: NOW, context }), 3);
+  const selected = selectEasyDayInterval({ rawIntervalDays: 4, elapsedDays: 2, maximumIntervalDays: 1000, now: "2026-08-10T10:00:00.000Z", context });
+  assert.equal(selected, 3);
 });
 
 test("the 90-day load horizon also bounds the selected candidate", () => {
@@ -40,7 +41,12 @@ test("the 90-day load horizon also bounds the selected candidate", () => {
     elapsedDays: 5,
     maximumIntervalDays: 1000,
     now: NOW,
-    context: { easyDays: { ...DEFAULT_EASY_DAYS, sunday: "minimum" }, dueCountsByDay, timeZone: "Europe/Berlin", dayStartHour: 3 },
+    context: {
+      easyDays: { ...DEFAULT_EASY_DAYS, sunday: "minimum" },
+      dueCountsByDay,
+      timeZone: "Europe/Berlin",
+      dayStartHour: 3,
+    },
   });
   assert.equal(selected, 89);
 });

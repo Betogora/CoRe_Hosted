@@ -132,7 +132,7 @@ export interface ReviewEvent {
 }
 
 export interface CloudTombstone {
-  entityTable: "decks" | "cards" | "card_variants" | "source_documents";
+  entityTable: "decks" | "cards" | "card_variants" | "source_documents" | "note_type_definitions";
   entityId: string;
   revision: number;
   deletedAt: string;
@@ -259,6 +259,123 @@ export interface CardField {
   value: RichTextContent;
 }
 
+export type FieldPlacement = "front" | "back" | "both" | "metadata";
+export type FieldSemanticRole = "prompt" | "answer" | "hint" | "explanation" | "source" | "unclassified";
+
+export interface LearningItemDocumentFieldV1 {
+  id: string;
+  sourceFieldId: string | null;
+  name: string;
+  value: RichTextContent;
+  placement: FieldPlacement;
+  semanticRole: FieldSemanticRole;
+}
+
+export interface LearningItemDocumentV1 {
+  schemaVersion: 1;
+  definitionVersionId: string;
+  fields: LearningItemDocumentFieldV1[];
+  tags: string[];
+  mediaRefs: MediaRef[];
+  interaction?: {
+    choice?: { options: string[]; correctAnswer: string; explanation: RichTextContent };
+  };
+}
+
+export type TemplateConditionAst =
+  | { kind: "always" }
+  | { kind: "field"; fieldId: string; present: boolean }
+  | { kind: "all" | "any"; conditions: TemplateConditionAst[] };
+
+export type SafeTemplateAstNode =
+  | { kind: "text"; value: string }
+  | { kind: "field"; fieldId: string; sourceName: string; filters: string[] }
+  | { kind: "front-side" }
+  | { kind: "conditional"; fieldId: string; sourceName: string; inverted: boolean; children: SafeTemplateAstNode[] };
+
+export interface SafeTemplateAst {
+  schemaVersion: 1;
+  source: string;
+  nodes: SafeTemplateAstNode[];
+}
+
+export interface FieldDefinition {
+  id: string;
+  sourceFieldId: string | null;
+  name: string;
+  ordinal: number;
+  rtl: boolean;
+  sticky: boolean;
+  fontName: string | null;
+  fontSize: number | null;
+  description: string;
+  plainText: boolean;
+  collapsed: boolean;
+  excludeFromSearch: boolean;
+  preventDeletion: boolean;
+  sourceConfigBase64: string | null;
+  sourceConfig: Record<string, unknown>;
+}
+
+export interface ReviewRecipe {
+  id: string;
+  sourceTemplateId: string | null;
+  name: string;
+  ordinal: number;
+  generationRule: TemplateConditionAst;
+  front: SafeTemplateAst;
+  back: SafeTemplateAst;
+  browserFront: SafeTemplateAst | null;
+  browserBack: SafeTemplateAst | null;
+  targetDeckId: string | null;
+  interaction: "reveal" | "cloze" | "choice" | "image-occlusion";
+  sourceConfigBase64: string | null;
+  sourceConfig: Record<string, unknown>;
+}
+
+export interface AnkiDefinitionSnapshot {
+  sourceFormat: "legacy" | "latest";
+  sourceNotetypeId: string;
+  sourceName: string;
+  rawConfigBase64: string | null;
+  decodedConfig: Record<string, unknown>;
+  unknownData: Record<string, unknown>;
+}
+
+export interface NoteTypeDefinitionV1 {
+  id: string;
+  revision: number;
+  semanticHash: string;
+  origin: "core" | "anki";
+  kind: "normal" | "cloze" | "image-occlusion";
+  name: string;
+  fields: FieldDefinition[];
+  recipes: ReviewRecipe[];
+  css: string;
+  latexConfig: Record<string, unknown> | null;
+  sourceDefinitionSnapshot: AnkiDefinitionSnapshot | null;
+  supersedesId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export type VariantProjection =
+  | { kind: "template"; recipeId: string; instanceKey: string }
+  | { kind: "cloze"; recipeId: string; clozeOrdinal: number }
+  | { kind: "image-occlusion"; recipeId: string; regionKey: string };
+
+export interface ForeignNoteSnapshot {
+  id: string;
+  schemaVersion: 1;
+  sourceKind: "anki-apkg" | "csv" | "legacy-projection";
+  importFingerprint: string;
+  previousSnapshotId: string | null;
+  definitionVersionId: string | null;
+  sourcePayload: Record<string, unknown>;
+  createdAt: string;
+}
+
 export interface ImmutableOriginal {
   front: RichTextContent;
   back: RichTextContent;
@@ -368,6 +485,10 @@ export interface CardVariantBase {
   deletedAt: string | null;
   updatedByDeviceId: string | null;
   meta: Record<string, unknown>;
+  projection: VariantProjection;
+  studyDeckId: string | null;
+  schedulingMode: "independent-card" | "adaptive-presentation";
+  renderRevision: number;
 }
 
 export interface OriginalCardVariant extends CardVariantBase {
@@ -557,6 +678,10 @@ export interface LearningItem {
   deletedAt: string | null;
   updatedByDeviceId: string | null;
   meta: Record<string, unknown>;
+  noteTypeDefinitionId: string;
+  contentDocument: LearningItemDocumentV1;
+  latestSourceSnapshotId: string | null;
+  contentRevision: number;
 }
 
 export interface Deck {
@@ -584,11 +709,33 @@ export interface Deck {
   versionLog: VersionEntry[];
 }
 
+export interface MaterializedImportCommitGraph {
+  kind?: never;
+  decks: Deck[];
+  noteTypeDefinitions: NoteTypeDefinitionV1[];
+  sourceSnapshots: ForeignNoteSnapshot[];
+}
+
+export interface WorkerImportCommitGraph {
+  kind: "worker-import";
+  deckCount: number;
+  cardCount: number;
+  noteTypeDefinitions: NoteTypeDefinitionV1[];
+  deckIdentities: Array<{ id: string; originalDeckId: string | null }>;
+  mediaTargets: Array<{ deckId: string; name: string }>;
+  streamChunks(visit: (chunk: unknown) => Promise<void>): Promise<void>;
+  dispose(): void;
+}
+
+export type ImportCommitGraph = MaterializedImportCommitGraph | WorkerImportCommitGraph;
+
 export interface AppState {
-  version: 3;
+  version: 4;
   profile: Profile;
   decks: Deck[];
   documents: SourceDocument[];
+  noteTypeDefinitions: NoteTypeDefinitionV1[];
+  learningItemSourceSnapshots: ForeignNoteSnapshot[];
   cloudTombstones: CloudTombstone[];
   updatedAt: string;
 }

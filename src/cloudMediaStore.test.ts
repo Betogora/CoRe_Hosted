@@ -10,16 +10,22 @@ function createClient() {
   const rows: any[] = [];
   const objects = new Map<string, number>();
   const uploads: string[] = [], removals: string[] = [];
+  const hashBatches: number[] = [];
   class Query {
     table: string; filters: Array<(row: any) => boolean> = []; operation = "select"; payload: any;
     constructor(table: string) { this.table = table; }
     select() { return this; }
     eq(field: string, value: unknown) { this.filters.push((row) => row[field] === value); return this; }
+    in(field: string, values: unknown[]) { if (field === "sha1") hashBatches.push(values.length); this.filters.push((row) => values.includes(row[field])); return this; }
     is(field: string, value: unknown) { this.filters.push((row) => row[field] === value); return this; }
     upsert(payload: any) { this.operation = "upsert"; this.payload = payload; return this; }
     update(payload: any) { this.operation = "update"; this.payload = payload; return this; }
     async execute() {
-      if (this.operation === "upsert") { const index = rows.findIndex((row) => row.user_id === this.payload.user_id && row.id === this.payload.id); if (index >= 0) rows[index] = structuredClone(this.payload); else rows.push(structuredClone(this.payload)); return { data: [structuredClone(this.payload)], error: null }; }
+      if (this.operation === "upsert") {
+        const payloads = Array.isArray(this.payload) ? this.payload : [this.payload];
+        for (const payload of payloads) { const index = rows.findIndex((row) => row.user_id === payload.user_id && row.id === payload.id); if (index >= 0) rows[index] = structuredClone(payload); else rows.push(structuredClone(payload)); }
+        return { data: structuredClone(payloads), error: null };
+      }
       const matching = rows.filter((row) => this.filters.every((filter) => filter(row)));
       if (this.operation === "update") matching.forEach((row) => Object.assign(row, this.payload));
       return { data: structuredClone(matching), error: null };
@@ -28,7 +34,7 @@ function createClient() {
     then(resolve: any, reject: any) { return this.execute().then(resolve, reject); }
   }
   return {
-    rows, objects, uploads, removals,
+    rows, objects, uploads, removals, hashBatches,
     auth: { async getSession() { return { data: { session: { access_token: "token-not-persisted" } }, error: null }; } },
     from(table: string) { return new Query(table); },
     storage: { from(bucket: string) { return {
@@ -74,6 +80,31 @@ test("serverseitiger Uploadadapter nutzt dieselben Referenz- und Deduplizierungs
   assert.equal(adapterCalls, 1);
   assert.equal(result.uploaded, 1);
   assert.equal(client.rows[0].storage_path, `user-a/objects/${HASH}`);
+});
+
+test("Medienmetadaten werden in 100er-Chunks geladen und kleine Uploads auf vier begrenzt", async () => {
+  const client = createClient();
+  const files = Array.from({ length: 205 }, (_, index) => file(index.toString(16).padStart(40, "0"), `bild-${index}.png`));
+  let active = 0;
+  let maximumActive = 0;
+  await syncReferences({
+    client,
+    supabaseUrl: "http://127.0.0.1:54321",
+    userId: "user-a",
+    control: control(),
+    decks: [{ deckId: "deck-1", files, previousReferences: [] }],
+    async uploadFile(item, path) {
+      active += 1;
+      maximumActive = Math.max(maximumActive, active);
+      await Promise.resolve();
+      client.objects.set(path, item.size);
+      active -= 1;
+      return "uploaded";
+    },
+  });
+  assert.deepEqual(client.hashBatches, [100, 100, 5]);
+  assert.equal(maximumActive, 4);
+  assert.equal(client.rows.length, 205);
 });
 
 test("parallele Duplicate-Uploads bestätigen beide Referenzen über dasselbe Objekt", async () => {
