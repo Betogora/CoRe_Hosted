@@ -23,9 +23,6 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 - [`test-portfolio.md`](test-portfolio.md): ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.
 - [`anki-format-analysis.md`](anki-format-analysis.md): Detailanalyse von Anki/APKG, Templates, Medien und Learning Items.
 - [`anki-ecosystem-feature-radar.md`](anki-ecosystem-feature-radar.md): zeitgebundene externe Produktrecherche.
-- [`mini-feature-roadmap-settings.md`](mini-feature-roadmap-settings.md): nicht autorisierende Recherche- und Priorisierungshilfe für mögliche spätere Settings-Erweiterungen.
-- [`debatable-features.md`](debatable-features.md): Evaluationsfragen für mögliche spätere Produktentscheidungen; keine Entscheidung oder Löschfreigabe.
-- [`p0-7-accessibility-audit.md`](p0-7-accessibility-audit.md): Arbeitsnachweis zur offenen Accessibility-Abnahme.
 - [`file-naming-conventions.md`](file-naming-conventions.md): Dateinamensregeln.
 - [`ui-elements.html`](ui-elements.html): teilbarer, fachlich kuratierter und technisch mit den kanonischen UI-Quellen synchronisierter visueller Elementkatalog.
 - [`card-types.html`](card-types.html): responsive Referenz der Reviewansichten für Basic, Basic umgekehrt, Lückentext und Multiple Choice.
@@ -42,5 +39,6 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 - `docs/todo.md` ist die einzige TODO-Markdown-Datei.
 - Neue offene Arbeit wird nur dort eingetragen.
 - Abgeschlossene Arbeit wird aus dem TODO entfernt und datiert in `history.md` dokumentiert.
+- Historische Roadmaps, Audits und Recherchezwischenstände bleiben über Git erhalten und werden nicht als parallele Dokumente fortgeführt.
 - Eine Vertragsänderung wird nur in der Quelle ihrer Rolle vorgenommen; andere Dokumente verlinken darauf.
 - Frühere Sammelabschnitte aus `specs.md` werden über Abschnitt 11 der Spezifikation eindeutig auf ihre neue Quelle verwiesen.

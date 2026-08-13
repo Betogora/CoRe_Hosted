@@ -90,8 +90,6 @@ Labs-, breite KI-, Community- und Graph-Flächen sowie der serverseitige Groß-A
   <a href="docs/file-naming-conventions.md">Dateinamenskonvention</a>
   ·
   <a href="docs/index.md">Dokumentation</a>
-  ·
-  <a href="docs/README.md">Entwicklerhinweise</a>
 </p>
 
 ---
