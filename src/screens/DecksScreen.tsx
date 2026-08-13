@@ -775,6 +775,7 @@ export function DecksScreen({
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
   const detailRef = React.useRef<HTMLElement | null>(null);
   const previouslySelectedCardId = React.useRef<string | null>(null);
+  const autoExpandedSelectedDeckIdRef = React.useRef<string | null>(null);
   const usesCardPages = cardPages !== undefined || Boolean(onRequestCardPage);
   const tableModel = React.useMemo(() => {
     if (!usesCardPages) {
@@ -888,7 +889,13 @@ export function DecksScreen({
   }, [cardPageByDeckId, cardPages, cardSort, deferredQuery, expandedDeckIdSet, onRequestCardPage, searchExpandsGroups, selectedCardId, selectedDeckId, tableModel.allGroups]);
 
   React.useEffect(() => {
-    if (selectedDeckId && !expandedDeckIdSet.has(selectedDeckId)) onSetDeckExpanded("deck-manager", selectedDeckId, true);
+    if (!selectedDeckId) {
+      autoExpandedSelectedDeckIdRef.current = null;
+      return;
+    }
+    if (autoExpandedSelectedDeckIdRef.current === selectedDeckId) return;
+    autoExpandedSelectedDeckIdRef.current = selectedDeckId;
+    if (!expandedDeckIdSet.has(selectedDeckId)) onSetDeckExpanded("deck-manager", selectedDeckId, true);
   }, [expandedDeckIdSet, onSetDeckExpanded, selectedDeckId]);
 
   React.useEffect(() => {

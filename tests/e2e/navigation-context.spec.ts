@@ -20,6 +20,15 @@ const CARD_IDS = {
   b2: "navigation-card-b-2",
 };
 
+interface DeckScrollProbe {
+  maxHeaderShift: number;
+  maxScrollShift: number;
+  preservedCardRemoved: boolean;
+  observer: MutationObserver;
+}
+
+type DeckScrollProbeWindow = typeof window & { __coreDeckScrollProbe?: DeckScrollProbe };
+
 function card(id: string, deckId: string, front: string, back: string, options: { dueAt?: string; hasActiveVariant?: boolean; marked?: boolean } = {}) {
   const learningItem = createCoreCard({
     id,
@@ -65,7 +74,7 @@ function seedDecks(): Deck[] {
   ];
 }
 
-async function seedAccount() {
+async function seedAccount(decks: Deck[] = seedDecks()) {
   const environment = loadE2EEnvironment();
   const client = createClient(environment.supabaseUrl, environment.publishableKey, {
     auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
@@ -74,7 +83,7 @@ async function seedAccount() {
   if (error || !data.user) throw error ?? new Error("Der Navigations-E2E-Account fehlt.");
   try {
     const state = createCoreRepository(null, { seedDefaultDecks: false }).getState();
-    const content = normalizeContentEntities(seedDecks(), [], []);
+    const content = normalizeContentEntities(decks, [], []);
     await replaceAccountCloudState(client, {
       ...state,
       decks: content.decks,
@@ -113,9 +122,112 @@ async function startDeckFromCards(page: Page, deckId: string, variants = false) 
   await page.getByRole("region", { name: "Stapel" }).getByRole("button", { name: variants ? "Varianten lernen" : "Lernen", exact: true }).click();
 }
 
+async function expectStableDeckToggle(page: Page, deckId: string, preservedCardId: string, expanded: boolean) {
+  const toggle = page.getByTestId(`deck-toggle-${deckId}`);
+  await toggle.evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await expect(page.getByTestId(`deck-card-${preservedCardId}`)).toBeVisible();
+  await page.evaluate(({ deckId: targetDeckId, preservedCardId: stableCardId }) => {
+    const runtimeWindow = window as DeckScrollProbeWindow;
+    const header = document.querySelector<HTMLElement>(`[data-testid="deck-header-${targetDeckId}"]`);
+    const region = document.querySelector<HTMLElement>('section[aria-label="Seiteninhalt"]');
+    if (!header || !region) throw new Error("Scrollprobe konnte nicht vorbereitet werden.");
+    const readScrollOffset = () => window.innerWidth >= 1280 ? region.scrollTop : window.scrollY;
+    const baselineHeaderTop = header.getBoundingClientRect().top;
+    const baselineScrollOffset = readScrollOffset();
+    const probe = {
+      maxHeaderShift: 0,
+      maxScrollShift: 0,
+      preservedCardRemoved: false,
+      observer: null as unknown as MutationObserver,
+    };
+    const sample = () => {
+      probe.maxHeaderShift = Math.max(probe.maxHeaderShift, Math.abs(header.getBoundingClientRect().top - baselineHeaderTop));
+      probe.maxScrollShift = Math.max(probe.maxScrollShift, Math.abs(readScrollOffset() - baselineScrollOffset));
+      if (!document.querySelector(`[data-testid="deck-card-${stableCardId}"]`)) probe.preservedCardRemoved = true;
+    };
+    probe.observer = new MutationObserver(sample);
+    probe.observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-expanded"] });
+    runtimeWindow.__coreDeckScrollProbe = probe;
+  }, { deckId, preservedCardId });
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", String(expanded));
+  await page.waitForTimeout(250);
+  const probe = await page.evaluate(() => {
+    const runtimeWindow = window as DeckScrollProbeWindow;
+    const current = runtimeWindow.__coreDeckScrollProbe;
+    if (!current) throw new Error("Scrollprobe fehlt.");
+    current.observer.disconnect();
+    delete runtimeWindow.__coreDeckScrollProbe;
+    return {
+      maxHeaderShift: current.maxHeaderShift,
+      maxScrollShift: current.maxScrollShift,
+      preservedCardRemoved: current.preservedCardRemoved,
+    };
+  });
+
+  expect(probe.preservedCardRemoved).toBe(false);
+  expect(probe.maxHeaderShift).toBeLessThanOrEqual(1);
+  expect(probe.maxScrollShift).toBeLessThanOrEqual(1);
+}
+
 test.beforeEach(async ({ page }) => {
   await seedAccount();
   await resetToFreshLocalState(page, { resetCloud: false });
+});
+
+test("[Vertrag: Kartenverwaltung] große Stapel bleiben beim Auf- und Zuklappen scrollstabil", async ({ page }) => {
+  const scrollDeckAId = "navigation-scroll-a";
+  const scrollDeckBId = "navigation-scroll-b";
+  const scrollDeckACardIds = Array.from({ length: 24 }, (_, index) => `navigation-scroll-a-${index}`);
+  const scrollDeckBCardIds = Array.from({ length: 24 }, (_, index) => `navigation-scroll-b-${index}`);
+  const createScrollDeck = (id: string, name: string, cardIds: string[]) => createCoreDeck({
+    id,
+    name,
+    hierarchyPath: [name],
+    source: "manual",
+    cards: cardIds.map((cardId, index) => card(cardId, id, `${name} Karte ${index + 1}`, `${name} Antwort ${index + 1}`)),
+  });
+
+  await seedAccount([
+    ...seedDecks(),
+    createScrollDeck(scrollDeckAId, "Scroll A", scrollDeckACardIds),
+    createScrollDeck(scrollDeckBId, "Scroll B", scrollDeckBCardIds),
+  ]);
+  await resetToFreshLocalState(page, { resetCloud: false });
+  await page.goto("/kartenstapel");
+  await waitForApp(page);
+
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    for (const deckId of [scrollDeckAId, scrollDeckBId]) {
+      const toggle = page.getByTestId(`deck-toggle-${deckId}`);
+      if (await toggle.getAttribute("aria-expanded") !== "true") await toggle.click();
+    }
+    await expect(page.getByTestId(`deck-card-${scrollDeckACardIds[0]}`)).toBeVisible();
+    await expect(page.getByTestId(`deck-card-${scrollDeckBCardIds[0]}`)).toBeVisible();
+
+    await expectStableDeckToggle(page, scrollDeckAId, scrollDeckBCardIds[0], false);
+    await expect(page.getByTestId(`deck-card-${scrollDeckACardIds[0]}`)).toHaveCount(0);
+    await expectStableDeckToggle(page, scrollDeckAId, scrollDeckBCardIds[0], true);
+    await expect(page.getByTestId(`deck-card-${scrollDeckACardIds[0]}`)).toBeVisible();
+  }
+
+  await page.goto(`/kartenstapel?deck=${scrollDeckAId}`);
+  await waitForApp(page);
+  await expect(page.getByTestId(`deck-card-${scrollDeckACardIds[0]}`)).toBeVisible();
+  await expectStableDeckToggle(page, scrollDeckAId, scrollDeckBCardIds[0], false);
+  await expect(page.getByTestId(`deck-toggle-${scrollDeckAId}`)).toHaveAttribute("aria-expanded", "false");
+  await page.getByTestId(`deck-toggle-${scrollDeckBId}`).click();
+  await expect(page.getByTestId(`deck-toggle-${scrollDeckBId}`)).toHaveAttribute("aria-expanded", "false");
+
+  await page.goto(`/kartenstapel?deck=${scrollDeckBId}`);
+  await waitForApp(page);
+  await expect(page.getByTestId(`deck-toggle-${scrollDeckBId}`)).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId(`deck-card-${scrollDeckBCardIds[0]}`)).toBeVisible();
 });
 
 test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schmalen Viewports kompakt", async ({ page }) => {

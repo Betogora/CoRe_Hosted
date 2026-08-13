@@ -77,6 +77,7 @@ type CardDocumentValue = { fields: Array<{ id: string; value: string }>; tags?: 
 type CardVariantInput = { front: string; back: string; variantLevel?: number; generationSource?: "original" | "ai_generated" | "user_edited" | "imported"; qualityStatus?: "draft" | "active" | "rejected" | "flagged" | "disabled"; isActive?: boolean; meta?: Record<string, unknown> };
 type ManualCardInput = Parameters<typeof createManualCoreDeck>[0];
 type PendingNavigation = { run: () => void; source: "creation" | "card" };
+interface StateRefreshOptions { preserveCardPages?: boolean }
 
 function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string }) {
   return (
@@ -391,9 +392,10 @@ export function App() {
     };
   }, [activeView, authPhase, studyRequest]);
 
-  function setAppState(nextState: WorkspaceState | null) {
+  function setAppState(nextState: WorkspaceState | null, { preserveCardPages = false }: StateRefreshOptions = {}) {
     latestStateRef.current = nextState;
     setState(nextState);
+    if (preserveCardPages) return;
     cardPageRequestRef.current.clear();
     setCardPages({});
   }
@@ -773,17 +775,17 @@ export function App() {
     setAuthMessageType("status");
   }
 
-  function refresh() {
+  function refresh(options?: StateRefreshOptions) {
     if (!workspaceRepository) return null;
     const nextState = workspaceRepository.getShellState();
-    setAppState(nextState);
+    setAppState(nextState, options);
     return nextState;
   }
 
-  function runRepositoryMutation<T>(mutation: (repository: IndexedDbCoreRepository) => T): T | null {
+  function runRepositoryMutation<T>(mutation: (repository: IndexedDbCoreRepository) => T, refreshOptions?: StateRefreshOptions): T | null {
     if (!workspaceRepository) return null;
     const result = mutation(workspaceRepository);
-    refresh();
+    refresh(refreshOptions);
     if (workspaceRepository && syncEngine) {
       queueMicrotask(() => {
         void workspaceRepository.flush()
@@ -1089,7 +1091,7 @@ export function App() {
     const profile = state.profile;
     return runRepositoryMutation((repository) => repository.saveProfile({
       uiPreferences: setDeckExpanded(profile.uiPreferences, surface, deckId, expanded),
-    }));
+    }), { preserveCardPages: true });
   }
 
   async function createPortableExportText() {
