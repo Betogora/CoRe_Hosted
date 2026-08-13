@@ -262,6 +262,34 @@ test("persistiert eine gezielte Kartenänderung und die Outbox als getrennte Rec
   reopened.close();
 });
 
+test("bewahrt parallel gespeicherte Stapeleinstellungen bei einer Kartenänderung", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(1), indexedDb: indexedDB as any });
+  const cardUpdate = repository.updateCard("deck-idb", "card-00000", (card) => ({
+    ...card,
+    meta: { ...card.meta, marked: true },
+    updatedAt: "2026-08-11T01:00:00.000Z",
+  }));
+
+  const currentSettings = repository.getShellState().decks[0].deckSettings;
+  repository.updateDeckSettings("deck-idb", {
+    ...currentSettings,
+    newReviewOrder: "new-first",
+    schedulerProfile: { ...currentSettings.schedulerProfile, presetId: "custom" },
+    learningProfileSource: null,
+  });
+  await cardUpdate;
+  assert.equal(repository.getShellState().decks[0].deckSettings.newReviewOrder, "new-first");
+  await repository.flush();
+  repository.close();
+
+  const reopened = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
+  const state = await reopened.materializeFullState();
+  assert.equal(state.decks[0].deckSettings.newReviewOrder, "new-first");
+  assert.equal(state.decks[0].cards[0].meta.marked, true);
+  reopened.close();
+});
+
 test("entfernt eine lokal gelöschte Karte sofort und hält den Cloud-Tombstone in der Outbox", async () => {
   const userId = randomUUID();
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(1), indexedDb: indexedDB as any });

@@ -8,11 +8,12 @@ import { DeckSettingsScreen } from "./DeckSettingsScreen.tsx";
 
 const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." } });
 
-function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck]) {
+function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck], settingsTarget: "new-cards-per-day" | null = null) {
   return renderToStaticMarkup(
     <DeckSettingsScreen
       deck={currentDeck}
       decks={decks}
+      settingsTarget={settingsTarget}
       learningProfiles={getGlobalSchedulerPreferences({}).learningProfiles}
       onSave={() => undefined}
       onSaveLearningProfiles={() => undefined}
@@ -57,7 +58,8 @@ test("deck profiles are copy-on-apply and global learn-ahead is absent", () => {
   assert.match(html, /Spätere Änderungen an der Vorlage wirken nicht automatisch weiter/);
   assert.match(html, />Neue Karten pro Tag</);
   assert.match(html, />Wiederholungen pro Tag</);
-  assert.match(html, />Neue und fällige Karten</);
+  assert.match(html, />Kartenreihenfolge</);
+  assert.doesNotMatch(html, />Neue und fällige Karten</);
   assert.match(html, />Neue Karten sortieren</);
   assert.match(html, />Fällige Karten sortieren</);
   const forgottenFirstDeck = {
@@ -80,4 +82,11 @@ test("deckless settings route offers a real searchable deck selector", () => {
   assert.match(html, />Stapel auswählen</);
   assert.match(html, /data-testid="deck-settings-select"/);
   assert.doesNotMatch(html, /Stapel nicht gefunden/);
+});
+
+test("the new-card target points at the stable daily-limit field", () => {
+  const html = renderScreen(deck, [deck], "new-cards-per-day");
+
+  assert.match(html, /id="learning-settings-new-cards"/);
+  assert.match(html, /data-testid="learning-settings-new-cards"/);
 });

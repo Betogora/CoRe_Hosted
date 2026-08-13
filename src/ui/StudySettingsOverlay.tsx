@@ -9,23 +9,38 @@ import {
   Star,
   X,
 } from "lucide-react";
+import type { NewReviewOrder } from "../coreTypes.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import { IconButton } from "./actionUi.tsx";
-import { CardMarkButton, CoreSwitch } from "./coreUi.tsx";
+import { CardMarkButton, CoreSegmentedControl } from "./coreUi.tsx";
 import { PomodoroTimerControl } from "./pomodoroTimerUi.tsx";
+import { CoreSelect } from "./selectUi.tsx";
 import { useModalDialog } from "./useModalDialog.ts";
+
+const SUSPEND_OPTIONS = [
+  { value: "active", label: "Nicht aussetzen" },
+  { value: "suspended", label: "Aussetzen" },
+] as const;
+
+const REVIEW_ORDER_OPTIONS = [
+  { value: "reviews-first", label: "Fällige Karten zuerst" },
+  { value: "mixed", label: "Neue und fällige mischen" },
+  { value: "new-first", label: "Neue Karten zuerst" },
+] as const;
 
 export interface StudySettingsOverlayProps {
   open: boolean;
   canEditCard: boolean;
   marked: boolean;
   suspended: boolean;
+  reviewOrder: NewReviewOrder;
   pomodoroTimer: PomodoroTimer | null;
   onOpenChange: (open: boolean) => void;
   onEditCard: () => void;
   onEditDeck: () => void;
   onMarkedChange: (marked: boolean) => void;
   onSuspendedChange: (suspended: boolean) => void;
+  onReviewOrderChange: (order: NewReviewOrder) => void;
   onStartPomodoro: (minutes: number) => void;
 }
 
@@ -40,13 +55,13 @@ function EditMenuRow({ icon: Icon, label, disabled = false, onClick }: {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex min-h-12 w-full items-center justify-between gap-3 py-2 text-left core-body font-semibold text-[var(--core-text-secondary)] transition hover:text-[var(--core-text)] disabled:cursor-not-allowed disabled:text-[var(--core-text-muted)]"
+      className="flex min-h-11 w-full items-center justify-between gap-3 py-1 text-left core-body font-semibold text-[var(--core-text-secondary)] transition hover:text-[var(--core-text)] disabled:cursor-not-allowed disabled:text-[var(--core-text-muted)]"
     >
       <span className="flex min-w-0 items-center gap-3">
-        <Icon className="shrink-0 text-[var(--core-action-secondary)]" size={18} aria-hidden="true" />
+        <Icon className="shrink-0 text-[var(--core-text)]" size={18} aria-hidden="true" />
         {label}
       </span>
-      <ChevronRight size={17} aria-hidden="true" />
+      <ChevronRight className="text-[var(--core-text)]" size={17} aria-hidden="true" />
     </button>
   );
 }
@@ -58,37 +73,13 @@ function StudyStateRow({ icon: Icon, label, children, disabled = false }: {
   disabled?: boolean;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-3 py-2" aria-disabled={disabled || undefined}>
+    <div className="flex min-h-11 items-center justify-between gap-3 py-1" aria-disabled={disabled || undefined}>
       <span className={`flex min-w-0 items-center gap-3 core-body font-semibold ${disabled ? "text-[var(--core-text-muted)]" : "text-[var(--core-text-secondary)]"}`}>
-        <Icon className="shrink-0" size={18} aria-hidden="true" />
+        <Icon className="shrink-0 text-[var(--core-text)]" size={18} aria-hidden="true" />
         <span>{label}</span>
       </span>
       {children}
     </div>
-  );
-}
-
-function DisabledMenuRow({ icon: Icon, label, value }: { icon: typeof ListOrdered; label: string; value: string }) {
-  return (
-    <button
-      type="button"
-      disabled
-      aria-label={
-        value === "Noch nicht verfügbar"
-          ? `${label} – noch nicht verfügbar`
-          : `${label}: ${value} – noch nicht verfügbar`
-      }
-      className="flex min-h-12 w-full items-center justify-between gap-3 py-2 text-left disabled:cursor-not-allowed"
-    >
-      <span className="flex min-w-0 items-center gap-3 core-body font-semibold text-[var(--core-text-muted)]">
-        <Icon className="shrink-0" size={18} aria-hidden="true" />
-        <span>{label}</span>
-      </span>
-      <span className="flex shrink-0 items-center gap-2 core-body text-[var(--core-text-muted)]">
-        {value}
-        <ChevronRight size={17} aria-hidden="true" />
-      </span>
-    </button>
   );
 }
 
@@ -97,12 +88,14 @@ export function StudySettingsOverlay({
   canEditCard,
   marked,
   suspended,
+  reviewOrder,
   pomodoroTimer,
   onOpenChange,
   onEditCard,
   onEditDeck,
   onMarkedChange,
   onSuspendedChange,
+  onReviewOrderChange,
   onStartPomodoro,
 }: StudySettingsOverlayProps) {
   const titleId = React.useId();
@@ -126,19 +119,19 @@ export function StudySettingsOverlay({
         aria-modal="true"
         aria-labelledby={titleId}
         data-testid="study-settings-overlay"
-        className="core-study-settings-overlay core-overlay flex max-h-[min(88dvh,48rem)] w-full flex-col overflow-hidden rounded-t-[28px] border-b-0 md:max-w-2xl md:rounded-[24px] md:border-b"
+        className="core-study-settings-overlay core-overlay flex max-h-[min(88dvh,42rem)] w-full flex-col overflow-hidden rounded-t-[28px] border-b-0 md:max-w-xl md:rounded-[24px] md:border-b"
       >
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-[var(--core-border)] md:hidden" aria-hidden="true" />
-        <header className="flex min-h-16 items-center justify-between gap-4 border-b border-[var(--core-border)] px-4 sm:px-5">
+        <header className="flex min-h-14 items-center justify-between gap-4 border-b border-[var(--core-border)] px-4 sm:px-5">
           <span className="size-11" aria-hidden="true" />
-          <h2 id={titleId} className="core-heading-3 text-center text-[var(--core-text)]">Lerneinstellungen</h2>
+          <h2 id={titleId} className="core-body-large text-center font-semibold text-[var(--core-text)]">Lerneinstellungen</h2>
           <IconButton ref={closeButtonRef} label="Lerneinstellungen schließen" icon={X} variant="ghost" onClick={() => onOpenChange(false)} />
         </header>
 
         <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5">
-          <section className="py-4" aria-labelledby={`${titleId}-card`}>
+          <section className="py-3" aria-labelledby={`${titleId}-card`}>
             <h3 id={`${titleId}-card`} className="core-status-label uppercase tracking-wide text-[var(--core-action-secondary)]">Karte</h3>
-            <div className="mt-2">
+            <div className="mt-1">
               <EditMenuRow
                 icon={Pencil}
                 label="Karte bearbeiten"
@@ -160,21 +153,36 @@ export function StudySettingsOverlay({
                 <CardMarkButton marked={marked} disabled={!canEditCard} onMarkedChange={onMarkedChange} />
               </StudyStateRow>
               <StudyStateRow icon={Ban} label="Aussetzen" disabled={!canEditCard}>
-                <CoreSwitch
-                  checked={suspended}
-                  ariaLabel={suspended ? "Karte reaktivieren" : "Karte aussetzen"}
+                <CoreSegmentedControl
+                  value={suspended ? "suspended" : "active"}
+                  options={SUSPEND_OPTIONS}
+                  ariaLabel="Aussetzstatus der Karte"
                   disabled={!canEditCard}
-                  onCheckedChange={onSuspendedChange}
+                  size="compact"
+                  className="ml-auto w-full max-w-[15rem]"
+                  onValueChange={(value) => onSuspendedChange(value === "suspended")}
                 />
               </StudyStateRow>
             </div>
           </section>
 
-          <section className="py-4" aria-labelledby={`${titleId}-session`}>
+          <section className="py-3" aria-labelledby={`${titleId}-session`}>
             <h3 id={`${titleId}-session`} className="core-status-label uppercase tracking-wide text-[var(--core-action-secondary)]">Sitzung</h3>
-            <div className="mt-2">
+            <div className="mt-1">
               <PomodoroTimerControl timer={pomodoroTimer} variant="study" onStart={onStartPomodoro} />
-              <DisabledMenuRow icon={ListOrdered} label="Kartenreihenfolge" value="Noch nicht verfügbar" />
+              <div className="grid min-h-11 gap-2 py-1 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)] sm:items-center">
+                <span className="flex min-w-0 items-center gap-3 core-body font-semibold text-[var(--core-text-secondary)]">
+                  <ListOrdered className="shrink-0 text-[var(--core-text)]" size={18} aria-hidden="true" />
+                  <span>Kartenreihenfolge</span>
+                </span>
+                <CoreSelect
+                  value={reviewOrder}
+                  options={REVIEW_ORDER_OPTIONS}
+                  ariaLabel="Kartenreihenfolge"
+                  className="w-full"
+                  onValueChange={(value) => onReviewOrderChange(value as NewReviewOrder)}
+                />
+              </div>
             </div>
           </section>
 

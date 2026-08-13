@@ -28,6 +28,7 @@ test("IconButton exposes its required accessible name, semantic variant and squa
 test("IconButton uses the outlined secondary action by default", () => {
   const markup = renderToStaticMarkup(<IconButton label="Speichern" icon={Save} />);
   assert.match(markup, /core-action-secondary/);
+  assert.match(markup, /style="color:var\(--core-text\)"/);
 });
 
 test("IconButton offers a borderless ghost action with the same square target", () => {

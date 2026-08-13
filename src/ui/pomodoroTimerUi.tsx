@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronRight, Play, Timer as TimerIcon } from "lucide-react";
+import { ChevronRight, Play } from "lucide-react";
 import {
   DEFAULT_POMODORO_MINUTES,
   getPomodoroTimerSnapshot,
@@ -7,6 +7,36 @@ import {
   type PomodoroTimer,
 } from "../pomodoroTimer.ts";
 import { ActionButton } from "./actionUi.tsx";
+import { CoreSegmentedControl } from "./coreUi.tsx";
+
+export const POMODORO_PRESET_MINUTES = [15, 25, 45] as const;
+type PomodoroPreset = `${typeof POMODORO_PRESET_MINUTES[number]}`;
+
+const POMODORO_PRESET_OPTIONS = POMODORO_PRESET_MINUTES.map((minutes) => ({
+  value: String(minutes) as PomodoroPreset,
+  label: String(minutes),
+}));
+
+function TomatoIcon({ size = 18, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
+  return (
+    <svg
+      {...props}
+      data-pomodoro-icon="tomato"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 7.2c-5 0-8.5 2.6-8.5 6.3 0 4.1 3.8 7 8.5 7s8.5-2.9 8.5-7c0-3.7-3.5-6.3-8.5-6.3Z" />
+      <path d="M12 7.5 9.2 4.2l3.1 1.1 2.3-2-.3 2.9 3.3 1.2-3.9.8-1.7 2.5V7.5Z" />
+    </svg>
+  );
+}
 
 function usePomodoroTimerSnapshot(timer: PomodoroTimer | null) {
   const [now, setNow] = React.useState(() => Date.now());
@@ -36,6 +66,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
   const snapshot = usePomodoroTimerSnapshot(timer);
   const value = snapshot.running ? `${snapshot.remainingMinutes} Min.` : `${timer?.durationMinutes ?? DEFAULT_POMODORO_MINUTES} Min.`;
   const isSettings = variant === "settings";
+  const selectedPreset = POMODORO_PRESET_OPTIONS.some((option) => option.value === minutes) ? minutes as PomodoroPreset : "";
 
   React.useEffect(() => {
     if (timer?.durationMinutes) setMinutes(String(timer.durationMinutes));
@@ -68,7 +99,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
             ? "grid size-11 shrink-0 place-items-center rounded-full bg-core-subtle text-[var(--core-action-secondary)]"
             : "contents"}
           >
-            <TimerIcon className="shrink-0" size={isSettings ? 20 : 18} aria-hidden="true" />
+            <TomatoIcon className="shrink-0 text-[var(--core-text)]" size={isSettings ? 20 : 18} />
           </span>
           <span className="min-w-0 flex-1">
             <span className={isSettings ? "block core-body-large font-semibold text-[var(--core-text)]" : "block"}>Pomodoro-Timer</span>
@@ -81,7 +112,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
         </span>
         <span className="flex shrink-0 items-center gap-2 core-body font-normal text-[var(--core-text-muted)]">
           {value}
-          <ChevronRight className={`transition-transform ${open ? "rotate-90" : ""}`} size={17} aria-hidden="true" />
+          <ChevronRight className={`text-[var(--core-text)] transition-transform ${open ? "rotate-90" : ""}`} size={17} aria-hidden="true" />
         </span>
       </button>
 
@@ -91,29 +122,46 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
           aria-label="Pomodoro-Timer einstellen"
           noValidate
           className={isSettings
-            ? "grid gap-3 bg-[var(--core-surface-muted)] px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:px-6"
-            : "mb-2 grid gap-3 rounded-xl bg-[var(--core-surface-muted)] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"}
+            ? "grid gap-3 bg-[var(--core-surface-muted)] px-4 py-4 sm:px-6"
+            : "mb-2 grid gap-3 rounded-xl bg-[var(--core-surface-muted)] p-3"}
           onSubmit={start}
         >
-          <label className="core-field-group">
-            <span className="core-field-label">Dauer in Minuten</span>
-            <input
-              className="core-field"
-              type="number"
-              inputMode="numeric"
-              min="1"
-              step="1"
-              value={minutes}
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? errorId : undefined}
-              onChange={(event) => {
-                setMinutes(event.target.value);
-                if (error) setError("");
-              }}
-            />
-            {error ? <span id={errorId} className="core-field-error">{error}</span> : null}
-          </label>
-          <ActionButton type="submit" variant="primary" icon={Play}>Start</ActionButton>
+          <div className="grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-end">
+            <label className="core-field-group">
+              <span className="core-field-label">Dauer in Minuten</span>
+              <input
+                className="core-field w-full"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                value={minutes}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? errorId : undefined}
+                onChange={(event) => {
+                  setMinutes(event.target.value);
+                  if (error) setError("");
+                }}
+              />
+            </label>
+            <div className="core-field-group">
+              <span className="core-field-label">Schnellauswahl</span>
+              <CoreSegmentedControl<PomodoroPreset | "">
+                ariaLabel="Pomodoro-Dauer"
+                options={POMODORO_PRESET_OPTIONS}
+                value={selectedPreset}
+                size="compact"
+                className="w-full"
+                onValueChange={(nextMinutes) => {
+                  if (!nextMinutes) return;
+                  setMinutes(nextMinutes);
+                  if (error) setError("");
+                }}
+              />
+            </div>
+          </div>
+          {error ? <span id={errorId} className="core-field-error">{error}</span> : null}
+          <ActionButton type="submit" variant="primary" icon={Play} className="w-full sm:w-fit">Start</ActionButton>
         </form>
       ) : null}
     </div>

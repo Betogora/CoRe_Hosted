@@ -37,10 +37,10 @@ async function openEmptyDashboard(page: any) {
   expect(state.decks).toEqual([]);
 }
 
-async function completeOneReview(page: any) {
+async function completeOneReview(page: any, rating = "Gut") {
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+  await page.getByRole("button", { name: new RegExp(`Bewertung ${rating}`) }).click();
   await expect.poll(async () => {
     const state = await readActiveAccountState(page);
     return state.decks.reduce((count: number, deck: any) => count + (deck.reviewEvents?.length ?? 0), 0);
@@ -64,10 +64,43 @@ test("leerer Account erstellt die erste manuelle Karte und erreicht den Review",
   await expect(page.getByRole("button", { name: "Karten prüfen" })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible();
+  const completionUrl = page.url();
   await page.getByRole("button", { name: "Jetzt lernen" }).click();
-  await completeOneReview(page);
-  await page.goBack();
+  await completeOneReview(page, "Leicht");
+  await page.goto(completionUrl);
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible();
+  await page.getByRole("button", { name: "Jetzt lernen" }).click();
+  const emptyDialog = page.getByRole("dialog", { name: "Keine fälligen Karten" });
+  await expect(emptyDialog).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
+  await expect(emptyDialog.getByRole("button", { name: "Schließen" })).toBeVisible();
+  await expect(emptyDialog.locator("button")).toHaveCount(1);
+});
+
+test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", async ({ page }) => {
+  await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Welche Farbe hat Schnee?");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Weiß");
+  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Fertig" }).click();
+
+  const state = await readActiveAccountState(page);
+  const deckId = state.decks.find((deck: { cards?: unknown[] }) => deck.cards?.length)?.id;
+  expect(deckId).toBeTruthy();
+  await page.goto(`/stapel-einstellungen?deck=${encodeURIComponent(deckId)}&returnView=learn`);
+  await page.getByTestId("learning-settings-new-cards").fill("0");
+  await page.getByRole("button", { name: "Stapeleinstellungen speichern" }).click();
+
+  await page.goto(`/lernen?deck=${encodeURIComponent(deckId)}`);
+  await page.getByTestId(`learn-deck-row-${deckId}`).getByRole("button", { name: /lernen/ }).click();
+  const emptyDialog = page.getByRole("dialog", { name: "Keine fälligen Karten" });
+  await expect(emptyDialog).toBeVisible();
+  await emptyDialog.getByRole("button", { name: "Neue Karten pro Tag anpassen" }).click();
+
+  await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${deckId}.*target=new-cards-per-day`));
+  await expect(page.getByTestId("learning-settings-new-cards")).toBeFocused();
+  await expect(page.getByTestId("learning-settings-new-cards")).toHaveValue("0");
 });
 
 test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core leerer Account importiert eine kleine APKG und erreicht den Review", async ({ page }) => {

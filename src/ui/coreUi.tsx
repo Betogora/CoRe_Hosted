@@ -12,11 +12,11 @@ interface ActionDialogProps {
   open: boolean;
   title: string;
   description: ReactNode;
-  confirmLabel: string;
+  confirmLabel?: string;
   cancelLabel: string;
-  onConfirm: () => void;
+  onConfirm?: () => void;
   onCancel: () => void;
-  actionIcons?: { cancel: LucideIcon; confirm: LucideIcon };
+  actionIcons?: { cancel?: LucideIcon; confirm?: LucideIcon };
   discardLabel?: string;
   onDiscard?: () => void;
   confirmLoading?: boolean;
@@ -68,6 +68,7 @@ export function ActionDialog({
   }
 
   function confirmDialog() {
+    if (!onConfirmRef.current) return;
     closeReasonRef.current = "confirm";
     onConfirmRef.current();
   }
@@ -152,16 +153,18 @@ export function ActionDialog({
               {discardLabel}
             </ActionButton>
           ) : null}
-          <ActionButton
-            type="button"
-            variant={destructive ? "destructive" : compact ? "secondary" : "primary"}
-            icon={actionIcons?.confirm}
-            loading={confirmLoading}
-            disabled={confirmLoading}
-            onClick={confirmDialog}
-          >
-            {confirmLabel}
-          </ActionButton>
+          {confirmLabel && onConfirm ? (
+            <ActionButton
+              type="button"
+              variant={destructive ? "destructive" : compact ? "secondary" : "primary"}
+              icon={actionIcons?.confirm}
+              loading={confirmLoading}
+              disabled={confirmLoading}
+              onClick={confirmDialog}
+            >
+              {confirmLabel}
+            </ActionButton>
+          ) : null}
         </div>
       </div>
     </div>
@@ -347,6 +350,7 @@ export interface CoreSegmentedControlProps<T extends string> {
   value: T;
   onValueChange: (value: T) => void;
   size?: "regular" | "compact";
+  disabled?: boolean;
   className?: string;
 }
 
@@ -362,6 +366,7 @@ export function CoreSegmentedControl<T extends string>({
   value,
   onValueChange,
   size = "regular",
+  disabled = false,
   className = "",
 }: CoreSegmentedControlProps<T>) {
   return (
@@ -376,6 +381,7 @@ export function CoreSegmentedControl<T extends string>({
           key={option.value}
           type="button"
           aria-pressed={value === option.value}
+          disabled={disabled}
           onClick={() => onValueChange(option.value)}
           className="core-segmented-control-option"
         >
@@ -440,7 +446,7 @@ export function CardMarkButton({ marked, onMarkedChange, disabled = false, class
       aria-label={marked ? "Markierung entfernen" : "Karte markieren"}
       disabled={disabled}
       onClick={() => onMarkedChange(!marked)}
-      className={`grid size-11 shrink-0 place-items-center rounded-xl transition hover:bg-[var(--core-surface-muted)] disabled:cursor-not-allowed disabled:opacity-60 ${marked ? "text-[var(--core-warning)]" : "text-[var(--core-action-secondary)]"} ${className}`}
+      className={`grid size-11 shrink-0 place-items-center rounded-xl text-[var(--core-text)] transition hover:bg-[var(--core-surface-muted)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       <Star size={22} fill={marked ? "currentColor" : "none"} aria-hidden="true" />
     </button>

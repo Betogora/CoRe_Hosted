@@ -105,6 +105,28 @@ test("roundtrips the deck-settings origin and keeps direct links on the safe lea
   );
 });
 
+test("roundtrips only the allowlisted deck-settings target", () => {
+  const route = parseAppRouteFromUrl(
+    "/stapel-einstellungen?deck=deck_b&returnView=learn&target=new-cards-per-day",
+  );
+
+  assert.deepEqual(route, {
+    mode: "view",
+    viewId: "stapel-einstellungen",
+    focusedDeckId: "deck_b",
+    settingsTarget: "new-cards-per-day",
+    settingsReturnContext: { view: "learn" },
+  });
+  assert.equal(
+    appRouteToUrl(route),
+    "/stapel-einstellungen?deck=deck_b&target=new-cards-per-day&returnView=learn",
+  );
+  assert.deepEqual(
+    parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b&target=scheduler"),
+    { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" },
+  );
+});
+
 test("roundtrips an allowlisted review return from the selected card editor", () => {
   const editorRoute = createViewRoute("kartenstapel", {
     focusedDeckId: "deck_child",

@@ -1,12 +1,12 @@
 import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AuthPhase } from "./accountSession.ts";
-import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, SyncStatus } from "./coreTypes.ts";
-import { Database, Layers } from "lucide-react";
+import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NewReviewOrder, SyncStatus } from "./coreTypes.ts";
+import { ArrowRight, Database, Layers } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
-import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type SettingsReturnContext } from "./appNavigation.ts";
+import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type ReviewReturnContext, type SettingsReturnContext, type SettingsTarget } from "./appNavigation.ts";
 import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
 import type {
@@ -32,7 +32,7 @@ import { createWorkspaceDeck, restoreSoftDeletedCard, softDeleteCard, updateDeck
 import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport } from "./dataPortability.ts";
-import { getGlobalSchedulerPreferences, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
+import { getGlobalSchedulerPreferences, markLearningSettingsCustom, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
 import { getLearningDayKey, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
 import { createDeckLibraryModel } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
@@ -41,7 +41,7 @@ import type { StatisticsDeckSelection, StatisticsPeriod } from "./statisticsMode
 import { createMenuModel } from "./menuModel.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
 import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
-import { updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
+import { createDailyReviewQueue, updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
 import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
 import type { AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
@@ -78,6 +78,33 @@ type CardVariantInput = { front: string; back: string; variantLevel?: number; ge
 type ManualCardInput = Parameters<typeof createManualCoreDeck>[0];
 type PendingNavigation = { run: () => void; source: "creation" | "card" };
 interface StateRefreshOptions { preserveCardPages?: boolean }
+interface EmptyStudyStart {
+  deckId: string;
+  deckName: string;
+  hasAdditionalNewCards: boolean;
+  limitReached: boolean;
+  returnContext: SettingsReturnContext;
+}
+
+function reviewReturnContextToSettingsReturnContext(context: ReviewReturnContext): SettingsReturnContext {
+  if (context.view === "today") return { view: "today" };
+  if (context.view === "decks") return { view: "decks", ...(context.cardId ? { cardId: context.cardId } : {}) };
+  return { view: "learn" };
+}
+
+function createEmptyStudyStart(
+  deckId: string,
+  queue: ReturnType<typeof createDailyReviewQueue>,
+  returnContext: ReviewReturnContext,
+): EmptyStudyStart {
+  return {
+    deckId,
+    deckName: queue.deckName,
+    hasAdditionalNewCards: queue.availableNewCards > 0,
+    limitReached: queue.availableDueCards > 0 || queue.limitSummary.hiddenDueCount > 0,
+    returnContext: reviewReturnContextToSettingsReturnContext(returnContext),
+  };
+}
 
 function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string }) {
   return (
@@ -183,6 +210,7 @@ export function App() {
   const [syncEngine, setSyncEngine] = React.useState<AccountSyncEngine | null>(null);
   const creationDraftDirtyRef = React.useRef(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
+  const [emptyStudyStart, setEmptyStudyStart] = React.useState<EmptyStudyStart | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
   const [simulationOffsetMinutes, setSimulationOffsetMinutes] = React.useState(0);
   const [learningDayRevision, setLearningDayRevision] = React.useState(0);
@@ -191,6 +219,8 @@ export function App() {
   const creationDraftFocusRef = React.useRef<(() => void) | null>(null);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
+  const preparedStudyKeyRef = React.useRef("");
+  const preparingStudyKeyRef = React.useRef("");
   const {
     activeView,
     studyRequest,
@@ -200,6 +230,7 @@ export function App() {
     creationMethod,
     creationDeckId,
     completedDeckId,
+    settingsTarget,
     settingsReturnContext,
     cardEditorReturnContext,
     navigateToRoute,
@@ -208,6 +239,7 @@ export function App() {
     resetBrowserRouteToDefault,
   } = useAppNavigation({ authPhase, defaultViewId: menu.defaultViewId });
   const mediaStore = React.useMemo(() => cloudUser ? createAccountMediaStore({ client: supabase, supabaseUrl: getSupabaseBrowserConfig().url, userId: cloudUser.id }) : null, [cloudUser, supabase]);
+
   const getLearningNow = React.useCallback(
     () => getSimulatedNow(new Date(), simulationOffsetMinutes),
     [simulationOffsetMinutes],
@@ -441,17 +473,14 @@ export function App() {
     return () => { active = false; };
   }, [globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes, learningNow, learningTimeZone, state?.updatedAt, workspaceRepository]);
 
-  React.useEffect(() => {
-    if (!workspaceRepository || !state || !studyRequest) {
-      setStudyDecks(null);
-      return;
-    }
-    let active = true;
-    const scopeIds = new Set<string>([studyRequest.deckId]);
+  const loadStudyPreparation = React.useCallback(async (deckId: string, variantSession: boolean) => {
+    const shellState = latestStateRef.current;
+    if (!workspaceRepository || !shellState) return null;
+    const scopeIds = new Set<string>([deckId]);
     let changed = true;
     while (changed) {
       changed = false;
-      for (const deck of state.decks) {
+      for (const deck of shellState.decks) {
         if (deck.parentDeckId && scopeIds.has(deck.parentDeckId) && !scopeIds.has(deck.id)) {
           scopeIds.add(deck.id);
           changed = true;
@@ -459,37 +488,69 @@ export function App() {
       }
     }
     const ids = [...scopeIds];
-    void workspaceRepository.loadReviewSession(ids, {
+    const session = await workspaceRepository.loadReviewSession(ids, {
       now: learningNow,
       dayStartHour: globalSchedulerPreferences.dayStartHour,
       timeZone: learningTimeZone,
-    }).then(async (session) => {
-      if (!active) return;
-      const cardsByDeck = new Map<string, LearningItem[]>();
-      for (const { deckId, item } of session.cards) {
-        const bucket = cardsByDeck.get(deckId);
-        if (bucket) bucket.push(item);
-        else cardsByDeck.set(deckId, [item]);
+    });
+    const cardsByDeck = new Map<string, LearningItem[]>();
+    for (const { deckId: cardDeckId, item } of session.cards) {
+      const bucket = cardsByDeck.get(cardDeckId);
+      if (bucket) bucket.push(item);
+      else cardsByDeck.set(cardDeckId, [item]);
+    }
+    const eventsByDeck = new Map<string, typeof session.reviewEvents>();
+    for (const event of session.reviewEvents) {
+      const bucket = eventsByDeck.get(event.deckId);
+      if (bucket) bucket.push(event);
+      else eventsByDeck.set(event.deckId, [event]);
+    }
+    const decks = ids.flatMap((id) => {
+      const summary = shellState.decks.find((deck) => deck.id === id);
+      if (!summary) return [];
+      return [{ ...summary, cards: cardsByDeck.get(id) ?? [], reviewEvents: eventsByDeck.get(id) ?? [] } as Deck];
+    });
+    const definitionIds = decks.flatMap((deck) => deck.cards.map((card) => card.noteTypeDefinitionId));
+    const definitions = await workspaceRepository.loadNoteTypeDefinitions(definitionIds);
+    const queue = createDailyReviewQueue(decks, {
+      deckId,
+      now: learningNow,
+      dayStartHour: globalSchedulerPreferences.dayStartHour,
+      learnAheadMinutes: globalSchedulerPreferences.learnAheadMinutes,
+      timeZone: learningTimeZone,
+      variantSession,
+    });
+    return { decks, definitions, queue };
+  }, [globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes, learningNow, learningTimeZone, workspaceRepository]);
+
+  React.useEffect(() => {
+    if (!workspaceRepository || !state || !studyRequest) {
+      setStudyDecks(null);
+      preparedStudyKeyRef.current = "";
+      return;
+    }
+    const preparationKey = `${studyRequest.deckId}:${studyRequest.variantSession ? "variants" : "standard"}`;
+    if (preparedStudyKeyRef.current === preparationKey && studyDecks) return;
+    let active = true;
+    void loadStudyPreparation(studyRequest.deckId, studyRequest.variantSession).then((preparation) => {
+      if (!active || !preparation) return;
+      if (!preparation.decks.some((deck) => deck.id === studyRequest.deckId)) {
+        setStudyDecks(preparation.decks);
+        setStudyDefinitions(preparation.definitions);
+        return;
       }
-      const eventsByDeck = new Map<string, typeof session.reviewEvents>();
-      for (const event of session.reviewEvents) {
-        const bucket = eventsByDeck.get(event.deckId);
-        if (bucket) bucket.push(event);
-        else eventsByDeck.set(event.deckId, [event]);
+      if (preparation.queue.total === 0) {
+        setEmptyStudyStart(createEmptyStudyStart(studyRequest.deckId, preparation.queue, studyRequest.returnContext));
+        setStudyDecks(null);
+        navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
+        return;
       }
-      const decks = ids.flatMap((id) => {
-        const summary = state.decks.find((deck) => deck.id === id);
-        if (!summary) return [];
-        return [{ ...summary, cards: cardsByDeck.get(id) ?? [], reviewEvents: eventsByDeck.get(id) ?? [] } as Deck];
-      });
-      const definitionIds = decks.flatMap((deck) => deck.cards.map((card) => card.noteTypeDefinitionId));
-      const definitions = await workspaceRepository.loadNoteTypeDefinitions(definitionIds);
-      if (!active) return;
-      setStudyDecks(decks);
-      setStudyDefinitions(definitions);
+      preparedStudyKeyRef.current = preparationKey;
+      setStudyDecks(preparation.decks);
+      setStudyDefinitions(preparation.definitions);
     });
     return () => { active = false; };
-  }, [globalSchedulerPreferences.dayStartHour, learningNow, learningTimeZone, state?.decks, studyRequest, workspaceRepository]);
+  }, [loadStudyPreparation, navigateToRoute, state, studyDecks, studyRequest, workspaceRepository]);
 
   async function bootAuthenticatedUser(user: User) {
     const runId = bootRunRef.current + 1;
@@ -918,6 +979,24 @@ export function App() {
     return updated;
   }
 
+  function setStudyDeckReviewOrder(deckId: string, newReviewOrder: NewReviewOrder) {
+    const deck = studyDecks?.find((candidate) => candidate.id === deckId);
+    if (!deck) return null;
+    const nextDeckSettings = {
+      ...deck.deckSettings,
+      ...markLearningSettingsCustom({ ...deck.deckSettings, newReviewOrder }),
+      learningProfileSource: null,
+    };
+    const updated = {
+      ...deck,
+      updatedAt: new Date().toISOString(),
+      deckSettings: nextDeckSettings,
+    };
+    setStudyDecks((current) => current?.map((candidate) => candidate.id === deckId ? updated : candidate) ?? current);
+    runRepositoryMutation((repository) => repository.updateDeckSettings(deckId, nextDeckSettings), { preserveCardPages: true });
+    return updated;
+  }
+
   function saveDeckAppearance(deckId: string, appearance: Deck["deckSettings"]["appearance"]) {
     return updateDeck(deckId, (deck: Deck) => ({
       ...deck,
@@ -1112,7 +1191,7 @@ export function App() {
     return syncEngine.flush({ force: true });
   }
 
-  function startDeck(deck: { id: string; }, variantSession = false) {
+  async function prepareDeckStart(deck: { id: string; }, variantSession = false) {
     const currentRoute = getStudyReturnRoute();
     const returnRoute = activeView === "kartenstapel"
       ? createViewRoute("kartenstapel", {
@@ -1126,10 +1205,31 @@ export function App() {
         : activeView === "lernen"
         ? createViewRoute("lernen", { focusedDeckId: deck.id })
         : currentRoute;
-    navigateToRoute(createStudyRoute(deck.id, {
-      variantSession,
-      returnContext: createReviewReturnContext(returnRoute, deck.id),
-    }), { replace: activeView === "stapel-einstellungen" });
+    const returnContext = createReviewReturnContext(returnRoute, deck.id);
+    const preparationKey = `${deck.id}:${variantSession ? "variants" : "standard"}`;
+    if (preparingStudyKeyRef.current === preparationKey) return;
+    preparingStudyKeyRef.current = preparationKey;
+    try {
+      const preparation = await loadStudyPreparation(deck.id, variantSession);
+      if (preparingStudyKeyRef.current !== preparationKey) return;
+      if (!preparation || !preparation.decks.some((candidate) => candidate.id === deck.id)) return;
+      if (preparation.queue.total === 0) {
+        setEmptyStudyStart(createEmptyStudyStart(deck.id, preparation.queue, returnContext));
+        return;
+      }
+      preparedStudyKeyRef.current = preparationKey;
+      setStudyDecks(preparation.decks);
+      setStudyDefinitions(preparation.definitions);
+      navigateToRoute(createStudyRoute(deck.id, { variantSession, returnContext }), {
+        replace: activeView === "stapel-einstellungen",
+      });
+    } finally {
+      if (preparingStudyKeyRef.current === preparationKey) preparingStudyKeyRef.current = "";
+    }
+  }
+
+  function startDeck(deck: { id: string; }, variantSession = false) {
+    void prepareDeckStart(deck, variantSession);
   }
 
   function startAdditionalCards(deckId: string, requestedCount: number): { ok: boolean; message?: string } {
@@ -1184,8 +1284,12 @@ export function App() {
     });
   }
 
-  function openDeckSettings(deckId: string, returnContext: SettingsReturnContext = { view: "learn" }) {
-    navigateToView("stapel-einstellungen", { focusedDeckId: deckId, settingsReturnContext: returnContext });
+  function openDeckSettings(deckId: string, returnContext: SettingsReturnContext = { view: "learn" }, target: SettingsTarget | null = null) {
+    navigateToView("stapel-einstellungen", {
+      focusedDeckId: deckId,
+      settingsReturnContext: returnContext,
+      ...(target ? { settingsTarget: target } : {}),
+    });
   }
 
   function openDeckCreation(parentDeckId = "") {
@@ -1226,6 +1330,7 @@ export function App() {
           decks={state.decks}
           deckSummaries={deckSummaries}
           learningProfiles={globalSchedulerPreferences.learningProfiles}
+          settingsTarget={settingsTarget}
           onSave={saveDeckLearningSettings}
           onSaveLearningProfiles={saveLearningProfiles}
           onSaveAppearance={saveDeckAppearance}
@@ -1484,6 +1589,7 @@ export function App() {
             },
           })}
           onSetCardStudyState={setStudyCardStudyState}
+          onSetDeckReviewOrder={setStudyDeckReviewOrder}
           onCardUpdated={(deckId, card) => { void runCardCommand(deckId, workspaceRepository.updateCard(deckId, card.id, () => card)); }}
           onReview={recordReview}
         />
@@ -1527,6 +1633,31 @@ export function App() {
         onCancel={() => setPendingNavigation(null)}
         onDiscard={pendingCardNavigation ? runPendingNavigation : undefined}
         onConfirm={() => void confirmPendingNavigation()}
+      />
+      <ActionDialog
+        open={Boolean(emptyStudyStart)}
+        title={emptyStudyStart?.limitReached ? "Tageslimit erreicht" : "Keine fälligen Karten"}
+        description={emptyStudyStart ? (
+          <div className="grid gap-2">
+            <p>
+              {emptyStudyStart.limitReached
+                ? `Die heute verfügbaren Karten in „${emptyStudyStart.deckName}“ bleiben wegen deiner Tageslimits für später vorgemerkt.`
+                : `Dieser Stapel hat für heute keine Karten in der Lern-Queue.`}
+            </p>
+            {emptyStudyStart.hasAdditionalNewCards ? (
+              <p>Möchtest du die Anzahl neuer Karten pro Tag erhöhen?</p>
+            ) : null}
+          </div>
+        ) : null}
+        cancelLabel="Schließen"
+        confirmLabel={emptyStudyStart?.hasAdditionalNewCards ? "Neue Karten pro Tag anpassen" : undefined}
+        actionIcons={emptyStudyStart?.hasAdditionalNewCards ? { confirm: ArrowRight } : undefined}
+        onCancel={() => setEmptyStudyStart(null)}
+        onConfirm={emptyStudyStart?.hasAdditionalNewCards ? () => {
+          const target = emptyStudyStart;
+          setEmptyStudyStart(null);
+          openDeckSettings(target.deckId, target.returnContext, "new-cards-per-day");
+        } : undefined}
       />
     </main>
   );

@@ -1,7 +1,7 @@
 import React from "react";
 import type { AuthPhase } from "./accountSession.ts";
 import { shouldShowAppShell } from "./accountSession.ts";
-import type { AppRoute, AppViewId, ReviewResumeContext, SettingsReturnContext, StudyRoute, ViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, ReviewResumeContext, SettingsReturnContext, SettingsTarget, StudyRoute, ViewRoute } from "./appNavigation.ts";
 import {
   appRouteToUrl,
   areAppRoutesEqual,
@@ -22,6 +22,7 @@ export interface AppNavigationProjection {
   creationMethod: CreationMethod;
   creationDeckId: string;
   completedDeckId: string;
+  settingsTarget: SettingsTarget | null;
   settingsReturnContext: SettingsReturnContext | null;
   cardEditorReturnContext: ReviewResumeContext | null;
 }
@@ -59,6 +60,7 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
     creationMethod: viewRoute.viewId === "neue-karten" ? asCreationMethod(viewRoute.creationMethod) : "",
     creationDeckId: viewRoute.viewId === "neue-karten" ? (viewRoute.creationDeckId ?? "") : "",
     completedDeckId: viewRoute.viewId === "neue-karten" ? (viewRoute.completedDeckId ?? "") : "",
+    settingsTarget: viewRoute.viewId === "stapel-einstellungen" ? (viewRoute.settingsTarget ?? null) : null,
     settingsReturnContext: viewRoute.viewId === "stapel-einstellungen" ? (viewRoute.settingsReturnContext ?? null) : null,
     cardEditorReturnContext: viewRoute.viewId === "kartenstapel" ? (viewRoute.cardEditorReturnContext ?? null) : null,
   };

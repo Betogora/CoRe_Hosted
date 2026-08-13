@@ -117,7 +117,7 @@ function hasDeckAncestor(parentByDeckId: Map<string, string | null>, candidateId
 }
 
 const SELECT_ITEM_INDICATOR = (
-  <Select.ItemIndicator className="absolute right-3 grid place-items-center text-[var(--core-action-primary)]">
+  <Select.ItemIndicator className="absolute right-3 grid place-items-center text-[var(--core-text)]">
     <Check size={15} aria-hidden="true" />
   </Select.ItemIndicator>
 );
@@ -295,11 +295,11 @@ export const CoreSelect = forwardRef<HTMLButtonElement, CoreSelectProps>(functio
         data-testid={testId}
         className={`group inline-flex min-h-11 min-w-0 items-center gap-3 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface px-4 text-left core-body text-[var(--core-text)] transition hover:border-[var(--core-action-primary)] data-[state=open]:border-[var(--core-action-primary)] data-[state=open]:shadow-[0_0_0_2px_var(--core-focus-ring-soft)] ${className}`}
       >
-        {TriggerIcon ? <TriggerIcon size={17} className="shrink-0 text-[var(--core-text-muted)]" aria-hidden="true" /> : null}
+        {TriggerIcon ? <TriggerIcon size={17} className="shrink-0 text-[var(--core-text)]" aria-hidden="true" /> : null}
         <span className="min-w-0 flex-1 truncate">
           <Select.Value>{selectedLabel}</Select.Value>
         </span>
-        <Select.Icon className="grid shrink-0 place-items-center text-[var(--core-action-primary)]">
+        <Select.Icon className="grid shrink-0 place-items-center text-[var(--core-text)]">
           <ChevronDown size={16} className="transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
         </Select.Icon>
       </Select.Trigger>
@@ -370,7 +370,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
             <SpecialOptionIcon option={selectedSpecialOption} />
           ) : null}
           <span className="min-w-0 flex-1 truncate">{selectedLabel}</span>
-          <span className="grid shrink-0 place-items-center text-[var(--core-action-primary)]">
+          <span className="grid shrink-0 place-items-center text-[var(--core-text)]">
             <ChevronDown size={16} className="transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
           </span>
         </button>
@@ -398,7 +398,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
           >
             <SpecialOptionIcon option={specialOption} />
             <span className="min-w-0 flex-1 truncate">{specialOption.label}</span>
-            {specialOption.value === value ? <Check size={15} className="absolute right-3 text-core-action" aria-hidden="true" /> : null}
+            {specialOption.value === value ? <Check size={15} className="absolute right-3 text-core-text" aria-hidden="true" /> : null}
           </button>
         ) : null}
         {visibleRows.map((row) => {
@@ -420,7 +420,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
             >
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
               <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>
-              {selected ? <Check size={15} className="absolute right-3 text-core-action" aria-hidden="true" /> : null}
+              {selected ? <Check size={15} className="absolute right-3 text-core-text" aria-hidden="true" /> : null}
             </button>
           );
         })}
@@ -466,7 +466,7 @@ export function DeckMultiSelect({ decks, value, scopeLabel, onValueChange }: Dec
           className="group core-field flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 text-left sm:w-72"
         >
           <span className="flex min-w-0 items-center gap-2">
-            <Layers3 size={18} className="shrink-0 text-core-action" aria-hidden="true" />
+            <Layers3 size={18} className="shrink-0 text-core-text" aria-hidden="true" />
             <span className="truncate core-body font-semibold text-core-text">{scopeLabel}</span>
           </span>
           <ChevronDown size={17} className="shrink-0 text-core-muted transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
@@ -493,9 +493,9 @@ export function DeckMultiSelect({ decks, value, scopeLabel, onValueChange }: Dec
           onClick={() => onValueChange("all")}
           className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)]"
         >
-          <FolderTree size={18} className="shrink-0 text-core-action" aria-hidden="true" />
+          <FolderTree size={18} className="shrink-0 text-core-text" aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate">Gesamte Sammlung</span>
-          {value === "all" ? <Check size={15} className="absolute right-3 text-core-action" aria-hidden="true" /> : null}
+          {value === "all" ? <Check size={15} className="absolute right-3 text-core-text" aria-hidden="true" /> : null}
         </button>
         <div aria-hidden="true" className="my-2 border-t border-[var(--core-border)]" />
         {visibleRows.map((row) => {
@@ -519,7 +519,7 @@ export function DeckMultiSelect({ decks, value, scopeLabel, onValueChange }: Dec
             >
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
               <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>
-              {checked ? <Check size={15} className="absolute right-3 text-core-action" aria-hidden="true" /> : null}
+              {checked ? <Check size={15} className="absolute right-3 text-core-text" aria-hidden="true" /> : null}
             </button>
           );
         })}

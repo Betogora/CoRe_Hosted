@@ -48,7 +48,7 @@ function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, onSave, onSaveLearningProfiles, onSaveAppearance, onRenameDeck, onCreateSubdeck, onStartDeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
+export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSave, onSaveLearningProfiles, onSaveAppearance, onRenameDeck, onCreateSubdeck, onStartDeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
   const [appearance, setAppearance] = React.useState(() => normalizeDeckAppearance(deck?.deckSettings?.appearance));
   const [nameDraft, setNameDraft] = React.useState(deck?.name ?? "");
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -62,6 +62,16 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
     setNameDraft(deck?.name ?? "");
     setFeedback("");
   }, [deck?.id, deck?.name, deck?.deckSettings?.appearance?.iconKey, deck?.deckSettings?.appearance?.iconColor]);
+
+  React.useEffect(() => {
+    if (!deck || settingsTarget !== "new-cards-per-day") return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      const field = document.getElementById("learning-settings-new-cards");
+      field?.scrollIntoView({ behavior: "smooth", block: "center" });
+      field?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [deck?.id, settingsTarget]);
 
   if (!deck) {
     return (

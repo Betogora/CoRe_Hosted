@@ -721,11 +721,12 @@ test("session reconciliation replaces only unfinished initial cards and keeps pr
 
   const reconciled = reconcileDailyReviewSessionState(afterFirst, [
     { deckId: "deck", learningItemId: "fourth" },
+    { deckId: "deck", learningItemId: "third" },
   ], { preserveInitialKey: "deck:second" });
 
-  assert.deepEqual(reconciled.initialKeys, ["deck:first", "deck:second", "deck:fourth"]);
+  assert.deepEqual(reconciled.initialKeys, ["deck:first", "deck:second", "deck:fourth", "deck:third"]);
   assert.deepEqual(reconciled.completedInitialKeys, ["deck:first"]);
-  assert.deepEqual(reconciled.remainingInitialKeys, ["deck:second", "deck:fourth"]);
+  assert.deepEqual(reconciled.remainingInitialKeys, ["deck:second", "deck:fourth", "deck:third"]);
   assert.deepEqual(reconciled.repeatKeys, ["deck:first"]);
   assert.deepEqual(reconciled.ratingCounts, { again: 1, hard: 0, good: 0, easy: 0 });
 });

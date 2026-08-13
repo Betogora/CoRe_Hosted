@@ -42,6 +42,22 @@ test("action dialog presents a prompt without description in one compact row", (
   assert.equal(markup.match(/core-action-secondary/g)?.length, 2);
 });
 
+test("action dialog supports information without a confirm action", () => {
+  const markup = renderToStaticMarkup(
+    <ActionDialog
+      open
+      title="Keine fälligen Karten"
+      description="Dieser Stapel hat für heute keine Karten in der Lern-Queue."
+      cancelLabel="Schließen"
+      onCancel={() => undefined}
+    />,
+  );
+
+  assert.match(markup, /Keine fälligen Karten/);
+  assert.match(markup, />Schließen</);
+  assert.equal(markup.match(/<button/g)?.length, 1);
+});
+
 test("shared study-state controls expose switch and pressed semantics", () => {
   const markup = renderToStaticMarkup(
     <>
@@ -81,6 +97,20 @@ test("segmented controls expose one icon-free pressed brick in both densities", 
   assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 2);
   assert.equal((markup.match(/core-segmented-control-option/g) ?? []).length, 6);
   assert.doesNotMatch(markup, /<svg/);
+});
+
+test("segmented controls disable every option together", () => {
+  const markup = renderToStaticMarkup(
+    <CoreSegmentedControl
+      ariaLabel="Aussetzstatus"
+      options={[{ value: "active", label: "Nicht aussetzen" }, { value: "suspended", label: "Aussetzen" }]}
+      value="active"
+      disabled
+      onValueChange={() => undefined}
+    />,
+  );
+
+  assert.equal(markup.match(/disabled=""/g)?.length, 2);
 });
 
 test("segmented donut renders exact ordered values with a transparent framed center", () => {

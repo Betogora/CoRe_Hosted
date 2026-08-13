@@ -13,6 +13,7 @@ test("projects view and study routes into one exhaustive shell state", () => {
     creationMethod: "manual",
     creationDeckId: "deck-1",
     completedDeckId: "deck-1",
+    settingsTarget: null,
     settingsReturnContext: null,
     cardEditorReturnContext: null,
   });
@@ -32,6 +33,7 @@ test("projects view and study routes into one exhaustive shell state", () => {
     creationMethod: "",
     creationDeckId: "",
     completedDeckId: "",
+    settingsTarget: null,
     settingsReturnContext: null,
     cardEditorReturnContext: null,
   });
@@ -40,8 +42,21 @@ test("projects view and study routes into one exhaustive shell state", () => {
 test("projects the settings return context only on the settings route", () => {
   assert.deepEqual(projectAppRoute(createViewRoute("stapel-einstellungen", {
     focusedDeckId: "deck-1",
+    settingsTarget: "new-cards-per-day",
     settingsReturnContext: { view: "decks", cardId: "card-2" },
-  })).settingsReturnContext, { view: "decks", cardId: "card-2" });
+  })), {
+    activeView: "stapel-einstellungen",
+    studyRequest: null,
+    focusedDeckId: "deck-1",
+    selectedCardId: null,
+    deckCreationParentId: "",
+    creationMethod: "",
+    creationDeckId: "",
+    completedDeckId: "",
+    settingsTarget: "new-cards-per-day",
+    settingsReturnContext: { view: "decks", cardId: "card-2" },
+    cardEditorReturnContext: null,
+  });
   assert.equal(projectAppRoute(createViewRoute("lernen")).settingsReturnContext, null);
 
   const reviewReturnContext = {

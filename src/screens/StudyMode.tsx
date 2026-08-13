@@ -15,6 +15,7 @@ import {
   createDailyReviewSessionIndex,
   createDailyReviewSessionState,
   getNextDailyReviewSessionItem,
+  reconcileDailyReviewSessionState,
   removeDailyReviewSessionItem,
   recordVariantFeedback,
   type DailyReviewSessionState,
@@ -70,7 +71,7 @@ function createEasyDaysContext(decks: Deck[], easyDays: typeof DEFAULT_EASY_DAYS
   };
 }
 
-export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onCardUpdated, onReview }: StudyModeProps) {
+export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
   sessionIndexRef.current ??= createDailyReviewSessionIndex(decks);
@@ -283,6 +284,32 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
     setSuccessToast("Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.");
   }
 
+  function updateReviewOrder(newReviewOrder: Deck["deckSettings"]["newReviewOrder"]) {
+    if (!rootDeck || rootDeck.deckSettings.newReviewOrder === newReviewOrder) return;
+    const updatedRootDeck = onSetDeckReviewOrder(rootDeck.id, newReviewOrder);
+    if (!updatedRootDeck) return;
+    const nextDecks = replaceSessionDeck(updatedRootDeck);
+    const nextEasyDaysContext = createEasyDaysContext(nextDecks, easyDays, getNow(), dayStartHour, timeZone);
+    const nextQueue = createDailyReviewQueue(nextDecks, {
+      deckId: updatedRootDeck.id,
+      now: getNow(),
+      dayStartHour,
+      learnAheadMinutes,
+      timeZone,
+      easyDaysContext: nextEasyDaysContext,
+      language: "de",
+      variantSession,
+    });
+    const currentKey = current?.sessionInfo?.key ?? (current ? `${current.deckId}:${current.learningItemId}` : undefined);
+
+    setSessionDecks(nextDecks);
+    setReviewSession((session) => reconcileDailyReviewSessionState(
+      session ?? effectiveReviewSession,
+      nextQueue.items,
+      { preserveInitialKey: currentKey },
+    ));
+  }
+
   React.useEffect(() => {
     if (showAnswer) answerHeadingRef.current?.focus();
   }, [showAnswer]);
@@ -320,7 +347,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
       <div className="flex min-h-[calc(100vh-2rem)] w-full flex-col sm:min-h-[calc(100vh-4rem)]">
         <header className="grid gap-4">
           <div className="flex items-center justify-between gap-4">
-            <button type="button" onClick={onExit} className="core-surface grid size-11 place-items-center rounded-full text-[var(--core-action-primary)]" aria-label="Lernmodus verlassen">
+            <button type="button" onClick={onExit} className="core-surface grid size-11 place-items-center rounded-full text-[var(--core-text)]" aria-label="Lernmodus verlassen">
               <X size={22} aria-hidden="true" />
             </button>
             <div className="text-center">
@@ -335,7 +362,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
                       : "0 / 0"}
               </p>
             </div>
-            <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-11 place-items-center rounded-full text-[var(--core-action-primary)]" aria-label="Lerneinstellungen" aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay">
+            <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-11 place-items-center rounded-full text-[var(--core-text)]" aria-label="Lerneinstellungen" aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay">
               <SlidersHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
@@ -360,6 +387,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
           canEditCard={Boolean(current?.deckId && current.learningItemId)}
           marked={isLearningItemMarked(sourceCard)}
           suspended={sourceCard?.status === "suspended"}
+          reviewOrder={rootDeck?.deckSettings.newReviewOrder ?? "reviews-first"}
           pomodoroTimer={pomodoroTimer}
           onOpenChange={setShowSettings}
           onEditCard={() => {
@@ -370,6 +398,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
           }}
           onMarkedChange={(marked) => updateCurrentStudyState({ marked })}
           onSuspendedChange={(suspended) => updateCurrentStudyState({ suspended })}
+          onReviewOrderChange={updateReviewOrder}
           onStartPomodoro={onStartPomodoro}
         />
 

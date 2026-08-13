@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 
 const PDF_SELECTION_FIXTURE = fileURLToPath(new URL("../fixtures/pdf-selection.pdf", import.meta.url));
@@ -368,7 +369,7 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   await expect(settingsDialog.getByRole("button", { name: "Lerneinstellungen schließen" })).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(
-    settingsDialog.locator('[data-pomodoro-control="study"] > button'),
+    settingsDialog.getByRole("combobox", { name: "Kartenreihenfolge" }),
   ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(settingsDialog.getByRole("button", { name: "Lerneinstellungen schließen" })).toBeFocused();
@@ -385,6 +386,11 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
 });
 
 test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentriertem Overlay", async ({ page }: any) => {
+  const browserErrors: string[] = [];
+  page.on("console", (message: { type: () => string; text: () => string }) => {
+    if (message.type() === "error") browserErrors.push(message.text());
+  });
+  page.on("pageerror", (error: Error) => browserErrors.push(error.message));
   await page.setViewportSize({ width: 767, height: 640 });
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
@@ -404,6 +410,8 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   await expect(dialog.getByText("Reset", { exact: true })).toHaveCount(0);
   await expect(dialog.getByText("Mischen", { exact: true })).toHaveCount(0);
   await expect(dialog.getByText("Nur normale Karten", { exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("group", { name: "Aussetzstatus der Karte" })).toBeVisible();
+  await expect(dialog.getByRole("combobox", { name: "Kartenreihenfolge" })).toHaveText(/Fällige Karten zuerst/);
 
   const mobileGeometry = await dialog.evaluate((element: HTMLElement) => {
     const rect = element.getBoundingClientRect();
@@ -434,6 +442,7 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   await page.mouse.click(2, 2);
   await expect(dialog).toHaveCount(0);
   await expect(settings).toBeFocused();
+  expect(browserErrors).toEqual([]);
 });
 
 test("Pomodoro timer started in the learning settings remains global after leaving review", async ({ page }: any) => {
@@ -446,6 +455,9 @@ test("Pomodoro timer started in the learning settings remains global after leavi
   const dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
   const control = dialog.locator('[data-pomodoro-control="study"]');
   await control.locator("button").first().click();
+  await control.getByRole("button", { name: "15", exact: true }).click();
+  await expect(control.getByLabel("Dauer in Minuten")).toHaveValue("15");
+  await expect(page.getByTestId("study-pomodoro-progress")).toHaveAttribute("aria-valuetext", "Nicht gestartet");
   await control.getByLabel("Dauer in Minuten").fill("10");
   await control.getByRole("button", { name: "Start", exact: true }).click();
   await expect(control).toContainText("10 Min.");
@@ -454,6 +466,41 @@ test("Pomodoro timer started in the learning settings remains global after leavi
 
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
   await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("Noch 10 Min.");
+});
+
+test("Lerneinstellungen speichern Markierung, Aussetzung und Kartenreihenfolge sofort", async ({ page }: any) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ }).click();
+
+  await page.getByRole("button", { name: "Lerneinstellungen" }).click();
+  let dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
+  await dialog.getByRole("button", { name: "Karte markieren" }).click();
+  await expect(dialog.getByRole("button", { name: "Markierung entfernen" })).toBeVisible();
+  await chooseCoreSelectOption(page, dialog.getByRole("combobox", { name: "Kartenreihenfolge" }), "Neue Karten zuerst");
+  await expect.poll(async () => {
+    const state = await readAppState(page);
+    const currentDeck = state.decks.find((deck: { id: string }) => deck.id === DECK_IDS.europe);
+    return {
+      marked: currentDeck.cards.filter((card: { meta?: { marked?: boolean } }) => card.meta?.marked).length,
+      order: currentDeck.deckSettings.newReviewOrder,
+    };
+  }).toEqual({ marked: 1, order: "new-first" });
+
+  await page.reload();
+  await page.getByRole("button", { name: "Lerneinstellungen" }).click();
+  dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
+  await expect(dialog.getByRole("button", { name: "Markierung entfernen" })).toBeVisible();
+  await dialog.getByRole("group", { name: "Aussetzstatus der Karte" }).getByRole("button", { name: "Aussetzen", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByText("Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.", { exact: true })).toBeVisible();
+  await expect.poll(async () => {
+    const state = await readAppState(page);
+    return state.decks
+      .find((deck: { id: string }) => deck.id === DECK_IDS.europe)
+      .cards.filter((card: { status?: string }) => card.status === "suspended").length;
+  }).toBe(1);
 });
 
 test("core actions stay usable in a 200 percent effective viewport", async ({ page }: any) => {

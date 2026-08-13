@@ -1,4 +1,4 @@
-import type { AppRoute, AppViewId, createViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, SettingsTarget, createViewRoute } from "./appNavigation.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NoteTypeDefinitionV1, Profile, SyncStatus } from "./coreTypes.ts";
@@ -66,6 +66,7 @@ export interface DeckSettingsScreenProps {
   decks: Deck[];
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   learningProfiles: LearningProfileTemplate[];
+  settingsTarget?: SettingsTarget | null;
   onSave: (deckId: string, settings: LearningSettingsInput) => unknown;
   onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
   onSaveAppearance: (deckId: string, appearance: Deck["deckSettings"]["appearance"]) => unknown;
@@ -213,6 +214,7 @@ export interface StudyModeProps {
   onEditCard: (deckId: string, cardId: string) => unknown;
   onEditDeck: (deckId: string) => unknown;
   onSetCardStudyState: (deckId: string, cardId: string, patch: LearningItemStudyStatePatch) => Deck | null;
+  onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
   onCardUpdated: (deckId: string, card: LearningItem) => unknown;
   onReview: (result: ReviewAnswerResult) => unknown;
 }

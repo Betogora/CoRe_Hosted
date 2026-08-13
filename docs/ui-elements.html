@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 177fc495f5bd6051 */
+/* Quellenstand: 35f08fa6fed31caa */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -606,6 +606,11 @@ video {
   .core-segmented-control-option:not([aria-pressed="true"]):hover {
     background: var(--core-surface-hover);
     color: var(--core-text);
+  }
+
+  .core-segmented-control-option:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   .core-overlay {

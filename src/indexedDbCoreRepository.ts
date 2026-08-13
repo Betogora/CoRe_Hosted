@@ -651,8 +651,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     updater: (card: LearningItem | null) => LearningItem | null,
     documents: SourceDocument[] = [],
   ) => {
-    const summary = shell!.decks.find((deck) => deck.id === deckId);
-    if (!summary) return null;
+    if (!shell!.decks.some((deck) => deck.id === deckId)) return null;
     const transaction = database.transaction([STORE.cards, STORE.variants], "readonly");
     const stored = await requestResult<StoredCard | undefined>(transaction.objectStore(STORE.cards).get(cardId));
     const storedVariants = stored
@@ -660,6 +659,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       : [];
     await transactionDone(transaction);
     if (stored && stored.deckId !== deckId) return null;
+    const summary = shell!.decks.find((deck) => deck.id === deckId);
+    if (!summary) return null;
     const previousCard = stored ? hydrateCard(stored, new Map([[cardId, storedVariants]])) : null;
     const candidate = updater(previousCard);
     if (!candidate || candidate.id !== cardId) return null;

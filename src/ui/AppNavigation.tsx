@@ -56,7 +56,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
       label="Einstellungen öffnen"
       icon={Settings}
       onClick={() => onNavigate("einstellungen")}
-      className={`size-11 shrink-0 rounded-full ${settingsActive ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-action-primary)] shadow-sm" : ""}`}
+      className={`size-11 shrink-0 rounded-full ${settingsActive ? "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)] shadow-sm" : ""}`}
       aria-current={settingsActive ? "page" : undefined}
     />
   );
@@ -104,7 +104,7 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
                 }`}
                 aria-current={isActive ? "page" : undefined}
               >
-                <NavIcon className="shrink-0" size={21} aria-hidden="true" />
+                <NavIcon className="shrink-0 text-[var(--core-text)]" size={21} aria-hidden="true" />
                 <span className="min-w-0 truncate">{view.label}</span>
               </button>
             );
@@ -174,7 +174,7 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate }: App
             className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 transition ${isActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)]" : "text-[var(--core-text-muted)] hover:bg-[var(--core-surface-hover)] hover:text-[var(--core-text)]"}`}
             aria-current={isActive ? "page" : undefined}
           >
-            <NavIcon size={20} aria-hidden="true" />
+            <NavIcon className="text-[var(--core-text)]" size={20} aria-hidden="true" />
             <span className="w-full truncate text-center text-[0.68rem] font-medium leading-4">{view.label}</span>
           </button>
         );

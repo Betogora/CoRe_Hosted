@@ -3,7 +3,7 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createPomodoroTimer } from "../pomodoroTimer.ts";
-import { PomodoroProgress, PomodoroTimerControl } from "./pomodoroTimerUi.tsx";
+import { POMODORO_PRESET_MINUTES, PomodoroProgress, PomodoroTimerControl } from "./pomodoroTimerUi.tsx";
 
 test("PomodoroTimerControl exposes the collapsed global and study entry points", () => {
   for (const variant of ["settings", "study"] as const) {
@@ -12,8 +12,10 @@ test("PomodoroTimerControl exposes the collapsed global and study entry points",
     assert.match(markup, /aria-expanded="false"/);
     assert.match(markup, /aria-controls=/);
     assert.match(markup, /25 Min\./);
+    assert.match(markup, /data-pomodoro-icon="tomato"/);
     assert.doesNotMatch(markup, /Noch nicht verfügbar/);
   }
+  assert.deepEqual(POMODORO_PRESET_MINUTES, [15, 25, 45]);
 });
 
 test("PomodoroProgress renders an idle study bar and hides idle shell projections", () => {

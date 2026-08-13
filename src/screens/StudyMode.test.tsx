@@ -64,6 +64,7 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
+      onSetDeckReviewOrder={() => deck}
       onCardUpdated={() => undefined}
       onReview={() => undefined}
     />,
@@ -100,6 +101,7 @@ test("StudyMode uses a simulated same-day minute offset for queue and visible st
     onEditCard: () => undefined,
     onEditDeck: () => undefined,
     onSetCardStudyState: () => deck,
+    onSetDeckReviewOrder: () => deck,
     onCardUpdated: () => undefined,
     onReview: () => undefined,
   };
@@ -136,6 +138,7 @@ test("StudyMode exposes labeled learning and the global Pomodoro progress withou
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
+      onSetDeckReviewOrder={() => deck}
       onCardUpdated={() => undefined}
       onReview={() => undefined}
     />,
@@ -206,6 +209,7 @@ test("StudyMode renders the four daily progress segments in the canonical order 
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
+      onSetDeckReviewOrder={() => deck}
       onCardUpdated={() => undefined}
       onReview={() => undefined}
     />,
@@ -259,6 +263,7 @@ test("StudyMode says Für jetzt geschafft while same-day learning steps are stil
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
+      onSetDeckReviewOrder={() => deck}
       onCardUpdated={() => undefined}
       onReview={() => undefined}
     />,
@@ -296,6 +301,7 @@ test("StudyMode explains when every due card is hidden by the daily limit", () =
       onEditCard={() => undefined}
       onEditDeck={() => undefined}
       onSetCardStudyState={() => deck}
+      onSetDeckReviewOrder={() => deck}
       onCardUpdated={() => undefined}
       onReview={() => undefined}
     />,

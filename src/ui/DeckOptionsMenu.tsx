@@ -94,12 +94,12 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
             <div className="grid gap-1 pt-2">
               <Popover.Close asChild>
                 <button type="button" className={menuActionClass} onClick={() => onOpenSettings(row.id)}>
-                  <Settings size={16} aria-hidden="true" />Einstellungen
+                  <Settings className="text-[var(--core-text)]" size={16} aria-hidden="true" />Einstellungen
                 </button>
               </Popover.Close>
               <Popover.Close asChild>
                 <button type="button" className={menuActionClass} data-testid={`deck-move-button-${row.id}`} onClick={openMoveDialog}>
-                  <MoveRight size={16} aria-hidden="true" />Verschieben
+                  <MoveRight className="text-[var(--core-text)]" size={16} aria-hidden="true" />Verschieben
                 </button>
               </Popover.Close>
             </div>

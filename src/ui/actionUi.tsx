@@ -44,7 +44,7 @@ export interface IconButtonProps
 }
 
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { label, icon: Icon, variant = "secondary", className = "", ...props },
+  { label, icon: Icon, variant = "secondary", className = "", style, ...props },
   ref,
 ) {
   return (
@@ -52,6 +52,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
       {...props}
       ref={ref}
       aria-label={label}
+      style={variant === "destructive" ? style : { ...style, color: "var(--core-text)" }}
       className={`${ACTION_VARIANT_CLASS[variant]} min-w-11 p-2.5 ${className}`}
     >
       <Icon size={20} aria-hidden="true" />

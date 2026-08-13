@@ -73,7 +73,7 @@ function NumberField({ label, value, min, max, testId, onChange }: { label: stri
   return (
     <label className="grid gap-2 core-body font-semibold text-core-muted">
       {label}
-      <input type="number" min={min} max={max} step="1" value={value} data-testid={testId} className="min-h-11 rounded-xl border border-core-border px-3 text-core-text" onChange={(event) => onChange(Number(event.target.value))} />
+      <input id={testId} type="number" min={min} max={max} step="1" value={value} data-testid={testId} className="min-h-11 rounded-xl border border-core-border px-3 text-core-text" onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
 }
@@ -209,7 +209,7 @@ export function LearningSettingsPanel({ settings, profiles, defaultProfileName, 
             </div>
             <p className="core-caption leading-5 text-core-muted">Umfasst fällige, tagesübergreifende Lern- und neue Karten. Wiederholungen haben Vorrang.</p>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <SelectField label="Neue und fällige Karten" value={draft.newReviewOrder} options={reviewOrderOptions} testId="learning-settings-order" onChange={(value) => editLearning({ newReviewOrder: value })} />
+              <SelectField label="Kartenreihenfolge" value={draft.newReviewOrder} options={reviewOrderOptions} testId="learning-settings-order" onChange={(value) => editLearning({ newReviewOrder: value })} />
               <SelectField label="Neue Karten sortieren" value={draft.newCardSortOrder} options={newCardSortOptions} testId="learning-settings-new-sort" onChange={(value) => editLearning({ newCardSortOrder: value })} />
               <SelectField label="Fällige Karten sortieren" value={draft.reviewCardSortOrder} options={reviewCardSortOptions} testId="learning-settings-review-sort" onChange={(value) => editLearning({ reviewCardSortOrder: value })} />
             </div>
