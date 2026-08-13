@@ -31,6 +31,24 @@ export interface ApkgImportPanelProps {
 
 type CloudProgress = MediaSyncProgress & { status: MediaSyncStatus };
 type PreviewMediaStatus = { persisted: boolean; count: number; errors: string[] };
+type ProgressPhase = "analyzing" | "committing" | "syncing_media";
+
+const ANALYSIS_PROGRESS_BY_STEP: Record<string, number> = {
+  validate: 5,
+  collection: 25,
+  cards: 50,
+  preview: 85,
+};
+
+function normalizeProgress(percent: number): number {
+  return Math.max(0, Math.min(100, Math.round(percent)));
+}
+
+function mediaProgressPercent(progress: MediaSyncProgress, status: MediaSyncStatus): number {
+  if (status === "cloud-ready") return 100;
+  if (progress.total <= 0) return 0;
+  return Math.min(99, normalizeProgress((progress.completed / progress.total) * 100));
+}
 
 function toStrings(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : [];
@@ -91,10 +109,33 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
   const [mediaTask, setMediaTask] = React.useState<MediaSyncTask | null>(null);
   const [cloudProgress, setCloudProgress] = React.useState<CloudProgress | null>(null);
   const [completedDeck, setCompletedDeck] = React.useState<Deck | null>(null);
+  const [phaseProgress, setPhaseProgress] = React.useState<{ phase: ProgressPhase; percent: number } | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
 
   React.useEffect(() => () => {
     if (preview?.commitGraph.kind === "worker-import") preview.commitGraph.dispose();
   }, [preview]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    updatePreference();
+    mediaQuery.addEventListener?.("change", updatePreference);
+    return () => mediaQuery.removeEventListener?.("change", updatePreference);
+  }, []);
+
+  function beginProgress(phase: ProgressPhase) {
+    setPhaseProgress({ phase, percent: 0 });
+  }
+
+  function reportProgress(phase: ProgressPhase, percent: number) {
+    const next = normalizeProgress(percent);
+    setPhaseProgress((current) => {
+      if (current?.phase !== phase) return { phase, percent: next };
+      return next > current.percent ? { phase, percent: next } : current;
+    });
+  }
 
   async function parseFile(file: File) {
     setSelectedFile(file);
@@ -103,13 +144,15 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
     setMediaTask(null);
     setCloudProgress(null);
     setCompletedDeck(null);
+    beginProgress("analyzing");
     if (file.size > LOCAL_APKG_MAX_BYTES) {
+      setPhaseProgress(null);
       setJob({
         fileName: file.name,
         fileSize: file.size,
         status: "error",
         warnings: [],
-        errors: ["Die APKG-Datei ist größer als 250 MiB. Bitte wähle eine kleinere Datei aus."],
+        errors: ["Die APKG-Datei ist größer als 250 MB. Bitte wähle eine kleinere Datei aus."],
       });
       return;
     }
@@ -117,7 +160,11 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
     setIsParsing(true);
 
     try {
-      const result = await workflow.parseApkgFile(file as unknown as Parameters<ApkgWorkflow["parseApkgFile"]>[0], { existingDecks });
+      const result = await workflow.parseApkgFile(file as unknown as Parameters<ApkgWorkflow["parseApkgFile"]>[0], {
+        existingDecks,
+        onStep: (step) => reportProgress("analyzing", ANALYSIS_PROGRESS_BY_STEP[step] ?? 0),
+      });
+      reportProgress("analyzing", 100);
       setMediaStatus(result.mediaStatus);
       setJob(toImportJob(result.job));
       setPreview(result.preview);
@@ -144,16 +191,21 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
   function handleDrop(event: React.DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     setIsDragging(false);
+    if (fileInteractionLocked) return;
     const file = event.dataTransfer.files?.[0];
     if (file) void parseFile(file);
   }
 
   async function handleCommit() {
     if (!preview) return;
+    beginProgress("committing");
     setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "committing" }));
     setIsParsing(true);
     try {
-      const result = await workflow.commitApkgPreview(preview, { existingDecks });
+      const result = await workflow.commitApkgPreview(preview, {
+        existingDecks,
+        onProgress: (percent) => reportProgress("committing", percent),
+      });
       if (result.report.errors.length > 0 || !result.deck) {
         setJob((current) => ({
           ...(current ?? { warnings: [], errors: [] }),
@@ -172,12 +224,17 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
       setPreview((current) => current ? { ...current, report: result.report } as ApkgCreationPreview : current);
       setCompletedDeck(result.deck);
       if (result.mediaTask) {
+        beginProgress("syncing_media");
         setMediaTask(result.mediaTask);
         setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "syncing_media" }));
-        result.mediaTask.subscribe((progress: MediaSyncProgress, status: MediaSyncStatus) => setCloudProgress({ ...progress, status }));
+        result.mediaTask.subscribe((progress: MediaSyncProgress, status: MediaSyncStatus) => {
+          setCloudProgress({ ...progress, status });
+          reportProgress("syncing_media", mediaProgressPercent(progress, status));
+        });
         void result.mediaTask.result.then((mediaResult: MediaSyncResult) => {
           setMediaStatus(mediaResult);
           setCloudProgress({ ...mediaResult.progress, status: mediaResult.status });
+          reportProgress("syncing_media", mediaProgressPercent(mediaResult.progress, mediaResult.status));
           setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: mediaResult.status === "cloud-ready" ? "done" : "partial" }));
         });
       }
@@ -212,45 +269,89 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
     : uiState.status === "syncing_media"
     ? 3
     : 4;
+  const activeProgressPhase: ProgressPhase | null = uiState.status === "analyzing" || uiState.status === "committing" || uiState.status === "syncing_media"
+    ? uiState.status
+    : null;
+  const progressPaused = activeProgressPhase === "syncing_media" && cloudProgress?.status === "paused";
+  const activeProgressPercent = activeProgressPhase && phaseProgress?.phase === activeProgressPhase ? phaseProgress.percent : 0;
+  const fileInteractionLocked = activeProgressPhase !== null;
+  const progressRunning = fileInteractionLocked && !progressPaused;
   const previewVisible = Boolean(preview) && !["failed_retryable", "failed_terminal", "cancelled"].includes(uiState.status);
   const presentMediaCount = apkgReport?.media.detected ?? 0;
   const previewDefinitions = new Map(preview?.commitGraph.noteTypeDefinitions.map((definition) => [definition.id, definition]) ?? []);
+
+  React.useEffect(() => {
+    if (!activeProgressPhase || progressPaused || prefersReducedMotion) return undefined;
+    const interval = window.setInterval(() => {
+      setPhaseProgress((current) => {
+        if (!current || current.phase !== activeProgressPhase || current.percent >= 95) return current;
+        const increment = Math.max(1, Math.ceil((95 - current.percent) * 0.08));
+        return { ...current, percent: Math.min(95, current.percent + increment) };
+      });
+    }, 500);
+    return () => window.clearInterval(interval);
+  }, [activeProgressPhase, prefersReducedMotion, progressPaused]);
 
   return (
     <div className="grid gap-5">
       <SoftPanel className="p-5 sm:p-6">
         <div className="mb-5 flex items-center gap-3">
           <OrbIcon icon={FileArchive} className="bg-core-success-soft text-core-text" />
-          <div>
-            <p className="core-body font-semibold uppercase tracking-wide text-core-text">Anki-Import</p>
-            <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">APKG als Originalanker importieren</h2>
-          </div>
+          <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">APKG-Dateien importieren</h2>
         </div>
 
         <label
           onDragOver={(event) => {
             event.preventDefault();
+            if (fileInteractionLocked) return;
             setIsDragging(true);
           }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
-          className={`flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-5 text-center transition ${
-            isDragging ? "border-core-success bg-core-success-soft" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] hover:border-core-success"
+          onClick={(event) => {
+            if (fileInteractionLocked) event.preventDefault();
+          }}
+          aria-disabled={fileInteractionLocked}
+          className={`flex min-h-32 flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-5 text-center transition ${
+            fileInteractionLocked
+              ? "cursor-not-allowed border-[var(--core-border)] bg-[var(--core-surface-muted)] opacity-70"
+              : isDragging
+                ? "cursor-pointer border-core-success bg-core-success-soft"
+                : "cursor-pointer border-[var(--core-border)] bg-[var(--core-surface-muted)] hover:border-core-success"
           }`}
         >
           <Upload className="mb-2 text-core-text" size={26} aria-hidden="true" />
-          <span className="core-body-large font-semibold text-[var(--core-text)]">.apkg-Datei ablegen oder auswählen</span>
-          <span className="mt-1 max-w-md core-body leading-6 text-[var(--core-text-muted)]">Stapel, Karten und Medien werden vor dem Import geprüft.</span>
-          <span className="mt-1 max-w-md core-caption leading-5 text-[var(--core-text-muted)]">Freigegebene Dateigröße: bis 250 MiB.</span>
-          <input ref={fileInputRef} className="sr-only" type="file" accept=".apkg" onChange={handleFileInput} />
+          <span className="core-body-large font-semibold text-[var(--core-text)]">APKG-Datei ablegen oder auswählen (Max. 250 MB)</span>
+          <input ref={fileInputRef} className="sr-only" type="file" accept=".apkg" disabled={fileInteractionLocked} onChange={handleFileInput} />
         </label>
 
         {selectedFile ? (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
-            <div className="min-w-0">
-              <p className="truncate core-body font-semibold text-[var(--core-text)]">{selectedFile.name}</p>
+          <div
+            className="relative mt-4 overflow-hidden rounded-xl border border-[var(--core-border)] bg-core-surface p-4"
+            data-testid="apkg-file-progress"
+            role={activeProgressPhase ? "progressbar" : undefined}
+            aria-label={activeProgressPhase ? `Importfortschritt für ${selectedFile.name}` : undefined}
+            aria-valuemin={activeProgressPhase ? 0 : undefined}
+            aria-valuemax={activeProgressPhase ? 100 : undefined}
+            aria-valuenow={activeProgressPhase ? activeProgressPercent : undefined}
+            aria-valuetext={activeProgressPhase ? `${importStatusLabel(uiState.status)}: ${activeProgressPercent} Prozent${progressPaused ? ", pausiert" : ""}` : undefined}
+            aria-busy={activeProgressPhase ? progressRunning : undefined}
+          >
+            {activeProgressPhase ? (
+              <span
+                data-testid="apkg-progress-fill"
+                className="pointer-events-none absolute inset-y-0 left-0 bg-[var(--core-surface-muted)] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                style={{ width: `${activeProgressPercent}%` }}
+                aria-hidden="true"
+              />
+            ) : null}
+            <div className="relative grid min-w-0 grid-cols-2 items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <p className="col-span-2 min-w-0 truncate core-body font-semibold text-[var(--core-text)] sm:col-span-1">{selectedFile.name}</p>
+              <p className={`core-body font-semibold ${activeProgressPhase ? "text-[var(--core-text)]" : "text-[var(--core-text-muted)]"}`}>
+                {activeProgressPhase ? `${activeProgressPercent} %` : importStatusLabel(uiState.status)}
+              </p>
+              <p className="justify-self-end whitespace-nowrap core-body text-[var(--core-text-muted)]">{formatBytes(selectedFile.size)}</p>
             </div>
-            <p className="mt-1 core-body text-[var(--core-text-muted)]">{formatBytes(selectedFile.size)} · {importStatusLabel(uiState.status)}</p>
           </div>
         ) : null}
 
@@ -263,7 +364,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
             const label = step.id === "complete" && currentStepIndex === 4 ? importStatusLabel(uiState.status) : step.label;
             return (
               <li key={step.id} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${isActive ? isFailure ? "border-core-danger bg-core-danger-soft" : uiState.status === "partial" ? "border-core-warning bg-core-warning-soft" : "border-core-success bg-core-success-soft" : "border-[var(--core-border)]"}`}>
-                {isActive && isParsing ? <Loader2 className="shrink-0 animate-spin text-core-text" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : isActive && isFailure ? <AlertCircle className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-full border border-[var(--core-border)]" />}
+                {isActive && progressRunning ? <Loader2 className="shrink-0 animate-spin text-core-text motion-reduce:animate-none" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : isActive && isFailure ? <AlertCircle className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-full border border-[var(--core-border)]" />}
                 <span className="core-caption font-semibold text-[var(--core-text-secondary)]">{label}</span>
               </li>
             );
@@ -327,7 +428,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
                   { label: "Medien vorhanden", value: presentMediaCount },
                   { label: "Medien fehlen", value: apkgReport?.media.missing.length ?? 0 },
                 ].map(({ label, value }) => (
-                  <div key={label} className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-3">
+                  <div key={label} data-testid="apkg-stat-tile" className="rounded-xl bg-[var(--core-surface-muted)] p-3">
                     <dt className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">{label}</dt>
                     <dd className="mt-1 core-heading-2 font-semibold text-[var(--core-text)]">{value}</dd>
                   </div>
@@ -393,12 +494,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
               </details>
             ) : null}
           </>
-        ) : (
-          <SoftPanel className="p-6">
-            <p className="core-body font-semibold uppercase tracking-wide text-core-text">Bereit</p>
-            <h3 className="mt-1 core-heading-2 font-semibold text-[var(--core-text)]">Importbericht erscheint nach dem Upload</h3>
-          </SoftPanel>
-        )}
+        ) : null}
       </section>
     </div>
   );

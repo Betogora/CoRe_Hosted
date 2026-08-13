@@ -118,6 +118,7 @@ workerScope.onmessage = async (event) => {
         mediaTargets,
       },
     };
+    workerScope.postMessage({ type: "progress", requestId, step: "preview" });
     workerScope.postMessage({ type: "result", requestId, result: preview }, transferableMediaBuffers(preview));
   } catch {
     workerScope.postMessage({ type: "error", requestId, message: "APKG konnte im Import-Worker nicht gelesen werden." });

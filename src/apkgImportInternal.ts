@@ -10,7 +10,7 @@ import { parseApkgWorkerResponse, type ApkgWorkerResult } from "./apkgImportWork
 import { decompress as decompressZstd } from "fzstd";
 import { scheduleWithFsrs } from "./scheduler.ts";
 
-export const LOCAL_APKG_MAX_BYTES = 250 * 1024 * 1024;
+export const LOCAL_APKG_MAX_BYTES = 250_000_000;
 const COLLECTION_NAMES = ["collection.anki21b", "collection.anki21", "collection.anki2"];
 const FIELD_SEPARATOR = "\u001f";
 const SQLITE_SIGNATURE = "SQLite format 3\0";

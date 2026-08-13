@@ -54,7 +54,7 @@ Das Beta-Gate umfasst ausschließlich E-Mail-/Passwort-Auth, die fünf Kernjourn
 npm run test:beta
 ```
 
-Die früheren Variablen `VITE_ENABLE_LABS` und `VITE_ENABLE_SERVER_APKG_IMPORT` haben keine Wirkung. Google und Magic Link bleiben über ihre getrennten Flags schaltbar und sind keine Beta-Core-Abnahmekriterien. APKG über 250 MiB besitzt keinen Serverpfad.
+Die früheren Variablen `VITE_ENABLE_LABS` und `VITE_ENABLE_SERVER_APKG_IMPORT` haben keine Wirkung. Google und Magic Link bleiben über ihre getrennten Flags schaltbar und sind keine Beta-Core-Abnahmekriterien. APKG über 250 MB besitzt keinen Serverpfad.
 
 ### Voraussetzungen
 
@@ -77,7 +77,7 @@ $env:CORE_E2E_ALLOW_ACCOUNT_RESET = "true"
 npm run test:beta:hosted
 ```
 
-Der Lauf deckt die fünf Kernjourneys ab: Login und Cloud-Laden; kleinen APKG-Import; manuelle PDF-Quelle und Bearbeitung; Review mit Offline-Pending, Reconnect, Save und Reload; Variante mit Reveal, Originalanker und Feedback. Zusätzlich prüft er APKG-Medien in DB und privatem Storage, Portabilitätsgrenzen sowie einen accountgebundenen Konfliktstatus. Er prüft weder Google/Magic Link noch Dateien über 250 MiB.
+Der Lauf deckt die fünf Kernjourneys ab: Login und Cloud-Laden; kleinen APKG-Import; manuelle PDF-Quelle und Bearbeitung; Review mit Offline-Pending, Reconnect, Save und Reload; Variante mit Reveal, Originalanker und Feedback. Zusätzlich prüft er APKG-Medien in DB und privatem Storage, Portabilitätsgrenzen sowie einen accountgebundenen Konfliktstatus. Er prüft weder Google/Magic Link noch Dateien über 250 MB.
 
 Der Smoke läuft zuerst gegen die Preview-URL und danach gegen die mit `--skip-domain` bereitgestellte staged Production. Ein fehlgeschlagener Core-Schritt stoppt die Freigabe. Nach einer Korrektur beginnt die Abnahme mit einem neuen Deployment wieder bei Preview.
 

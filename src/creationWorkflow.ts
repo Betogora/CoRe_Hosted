@@ -56,6 +56,7 @@ interface ManualCreationInput {
 
 interface ApkgOptions {
   onStep?: (step: string) => void;
+  onProgress?: (percent: number) => void;
   existingDecks?: Deck[];
 }
 
@@ -119,6 +120,39 @@ function loadApkgImport(): Promise<typeof import("./apkgImport.ts")> {
 
 function describeError(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
+}
+
+function createProgressReporter(onProgress?: (percent: number) => void) {
+  let reported = -1;
+  return (percent: number) => {
+    const next = Math.max(0, Math.min(100, Math.round(percent)));
+    if (next <= reported) return;
+    reported = next;
+    onProgress?.(next);
+  };
+}
+
+function withCommitProgress(graph: ImportCommitGraph, reportProgress: (percent: number) => void): ImportCommitGraph {
+  if (graph.kind !== "worker-import") return graph;
+  let processedCards = 0;
+  return {
+    ...graph,
+    async streamChunks(visit: (chunk: unknown) => Promise<void>) {
+      reportProgress(10);
+      await graph.streamChunks(async (value) => {
+        await visit(value);
+        const chunk = value && typeof value === "object" ? value as { kind?: unknown; values?: unknown } : null;
+        if (chunk?.kind === "cards" && Array.isArray(chunk.values)) {
+          processedCards += chunk.values.length;
+          const cardProgress = graph.cardCount > 0 ? processedCards / graph.cardCount : 1;
+          reportProgress(10 + Math.min(1, cardProgress) * 70);
+        } else if (chunk?.kind === "outbox") {
+          reportProgress(80);
+        }
+      });
+      reportProgress(80);
+    },
+  };
 }
 
 function createApkgJob(file: FileLike, status: string, overrides: Record<string, unknown> = {}) {
@@ -390,7 +424,7 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
     async parseApkgFile(file: FileLike, { onStep, existingDecks = [] }: ApkgOptions = {}) {
       try {
         if (Number(file.size ?? 0) > LOCAL_APKG_MAX_BYTES) {
-          throw new Error("Die APKG-Datei ist größer als 250 MiB. Bitte wähle eine kleinere Datei aus.");
+          throw new Error("Die APKG-Datei ist größer als 250 MB. Bitte wähle eine kleinere Datei aus.");
         }
         const { createApkgImportPreview } = await loadApkgImport();
         const result = await createApkgImportPreview(file, onStep, { existingDecks });
@@ -421,7 +455,9 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       }
     },
 
-    async commitApkgPreview(preview: ApkgCreationPreview | null, { existingDecks = [] }: ApkgOptions = {}) {
+    async commitApkgPreview(preview: ApkgCreationPreview | null, { existingDecks = [], onProgress }: ApkgOptions = {}) {
+      const reportProgress = createProgressReporter(onProgress);
+      reportProgress(0);
       if (!preview) {
         return {
           deck: null,
@@ -437,9 +473,11 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       }
       const { commitApkgImport } = await loadApkgImport();
       const committed = await commitApkgImport(preview, { existingDecks });
+      reportProgress(10);
       const decks = (committed.decks?.length ? committed.decks : committed.deck ? [committed.deck] : []) as Deck[];
       if (committed.report.errors.length > 0 || decks.length === 0) return { ...committed, mediaTask: null as MediaSyncTask | null };
-      const persistedDecks = await persistImportedDecks(decks, { commitGraph: committed.commitGraph });
+      const persistedDecks = await persistImportedDecks(decks, { commitGraph: withCommitProgress(committed.commitGraph, reportProgress) });
+      reportProgress(100);
       const persistedDeck = persistedDecks.find((deck) => deck.id === committed.deck?.id)
         ?? persistedDecks.find((deck) => deck.originalDeckId && deck.originalDeckId === committed.deck?.originalDeckId)
         ?? persistedDecks.find((deck) => deck.cardCount > 0)

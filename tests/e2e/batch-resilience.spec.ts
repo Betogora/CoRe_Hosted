@@ -300,14 +300,14 @@ test("[Vertrag: Importformatwechsel und Terminalzustände] @beta-core alte Vorsc
   await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeDisabled();
 
   await page.getByRole("button", { name: "APKG", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "APKG als Originalanker importieren" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "APKG-Dateien importieren" })).toBeVisible();
   await expect(page.getByText(/1 Karten · 0 Varianten/)).toHaveCount(0);
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles({
     name: "kaputt.apkg",
     mimeType: "application/octet-stream",
     buffer: Buffer.from("kein gueltiges apkg"),
   });
-  await expect(page.getByText("Fehlgeschlagen", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Importstatus").getByText("Fehlgeschlagen", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Andere Datei auswählen" })).toBeVisible();
 });
 

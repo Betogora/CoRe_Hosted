@@ -25,7 +25,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen URL-Kontext für Deck, Karte, Erstellziel und allowlist-basierten Review-Rückweg; Reload, Direktlink sowie Browser-Zurück/-Vorwärts erhalten den semantischen Kontext.
 - Ungültige oder nicht verfügbare Deck-/Kartenlinks zeigen sichere deutsche Fallbacks und öffnen nicht still eine andere Karte.
 - Reverse-Richtungen, Cloze-Lückengruppen und Multiple-Choice-Lösung werden beim Speichern atomar in ihre reviewbaren Formen projiziert; Reimport, Cloud und Portabilität erhalten lokale strukturierte Änderungen.
-- APKG-, Text-, CSV- und Tabellenimport mit getrennten UI-Phasen und Terminalzuständen; Formatwechsel verwerfen alte Vorschau- und Commit-Zustände. CSV-/Tabellenspalten werden vor dem Commit sichtbar auf Vorderseite, Rückseite, Tags, Stapel, Import-ID, weitere Felder oder `Ignorieren` abgebildet.
+- APKG-, Text-, CSV- und Tabellenimport mit getrennten UI-Phasen und Terminalzuständen; die drei laufenden APKG-Phasen zeigen jeweils einen monotonen Prozentfortschritt in der Dateizeile. Formatwechsel verwerfen alte Vorschau- und Commit-Zustände. CSV-/Tabellenspalten werden vor dem Commit sichtbar auf Vorderseite, Rückseite, Tags, Stapel, Import-ID, weitere Felder oder `Ignorieren` abgebildet.
 - Legacy- und V18-APKG erhalten Feld- und Template-IDs, Reihenfolge, Konfiguration, CSS, Card Requirements, Roh-Protobuf, Medien- und Schedulerquelldaten in unveränderlichen Definitionen und Quellsnapshots. Der gemeinsame sichere Renderer wird in Vorschau, Kartenverwaltung und Review verwendet; Script, externe Ressourcen und unbekannte Filter werden nicht ausgeführt und führen mit deutscher Diagnose in die geordnete Feldansicht.
 - Der APKG-Worker erzeugt Commitgraph, Bericht und höchstens fünf Vorschaukarten einmalig. Die Oberfläche materialisiert das Paket nicht erneut; der Commit streamt den Workergraphen in IndexedDB-Chunks. Der lokale 25.000-Karten-/1.000-Medien-Messlauf hält die Main-Thread-Übergabe unter 100 ms, bleibt mit rund 14,7 Sekunden Workerzeit und rund 688 MiB Heap aber ein beobachteter großer Importpfad.
 - Accountgebundener Mediencache mit privaten Storage-Objekten, Standardupload bis 6 MiB, TUS darüber und URL-Fallback.
@@ -56,7 +56,7 @@ Es gibt keine Labs-Oberflächen oder Labs-Routen. Die früheren Labs-Funktionen 
 
 ### Disabled
 
-APKG über 250 MiB wird ohne Serverfallback abgewiesen. Google und Magic Link bleiben separat konfigurierbar. DOCX/OCR, der manuelle Image-Occlusion-Maskeneditor sowie vollständige Account-Auskunft und -Löschung sind nicht freigegeben; vorhandene Anki-Image-Occlusion-Karten werden importiert und als eigenständige Varianten erhalten.
+APKG über 250 MB wird ohne Serverfallback abgewiesen. Google und Magic Link bleiben separat konfigurierbar. DOCX/OCR, der manuelle Image-Occlusion-Maskeneditor sowie vollständige Account-Auskunft und -Löschung sind nicht freigegeben; vorhandene Anki-Image-Occlusion-Karten werden importiert und als eigenständige Varianten erhalten.
 
 Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core-labs-und-disabled).
 

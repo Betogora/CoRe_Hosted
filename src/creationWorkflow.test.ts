@@ -93,7 +93,10 @@ test("creation workflow rejects broken APKG files with a file-selection error", 
   assert.equal(result.job.fileName, "broken.apkg");
 });
 
-test("creation workflow rejects APKG files above 250 MiB without a network job", async () => {
+test("creation workflow rejects APKG files above 250 MB without a network job", async () => {
+  assert.equal(LOCAL_APKG_MAX_BYTES, 250_000_000);
+  const boundaryResult = await createCreationWorkflow().parseApkgFile({ name: "boundary.apkg", size: LOCAL_APKG_MAX_BYTES });
+  assert.doesNotMatch(boundaryResult.job.errors[0], /größer als 250 MB/);
   const originalFetch = globalThis.fetch;
   let requests = 0;
   globalThis.fetch = async () => {
@@ -106,7 +109,7 @@ test("creation workflow rejects APKG files above 250 MiB without a network job",
   assert.equal(result.preview, null);
   assert.equal(result.job.status, "error");
   assert.equal(requests, 0);
-  assert.match(result.job.errors[0], /größer als 250 MiB/);
+  assert.match(result.job.errors[0], /größer als 250 MB/);
 });
 
 test("creation workflow previews and commits a local APKG", async () => {
@@ -119,4 +122,47 @@ test("creation workflow previews and commits a local APKG", async () => {
   assert.equal(parsed.preview?.summary.cardCount, 245);
   assert.equal(committed.decks.length, 8);
   assert.equal(committed.report.errors.length, 0);
+});
+
+test("creation workflow reports monotonic worker commit progress and completes only after persistence", async () => {
+  const parsed = await createCreationWorkflow().parseApkgFile(await worldCapitalsApkgFile());
+  assert.ok(parsed.preview);
+  const progress: number[] = [];
+  let completedBeforePersistence = false;
+  const workflow = createCreationWorkflow({
+    persistImportedDecks: async (decks, options) => {
+      const graph = options?.commitGraph;
+      assert.equal(graph?.kind, "worker-import");
+      if (!graph || graph.kind !== "worker-import") throw new Error("Worker-Commitgraph erwartet.");
+      await graph.streamChunks(async () => {
+        completedBeforePersistence ||= progress.includes(100);
+      });
+      assert.notEqual(progress.at(-1), 100);
+      return decks;
+    },
+  });
+  const preview = {
+    ...parsed.preview,
+    commitGraph: {
+      kind: "worker-import" as const,
+      deckCount: 1,
+      cardCount: 3,
+      noteTypeDefinitions: parsed.preview.commitGraph.noteTypeDefinitions,
+      deckIdentities: [{ id: parsed.preview.summary.id, originalDeckId: parsed.preview.summary.originalDeckId ?? null }],
+      mediaTargets: [],
+      async streamChunks(visit: (chunk: unknown) => Promise<void>) {
+        await visit({ kind: "cards", values: [{}, {}] });
+        await visit({ kind: "cards", values: [{}] });
+        await visit({ kind: "outbox" });
+      },
+      dispose() {},
+    },
+  };
+
+  await workflow.commitApkgPreview(preview, { onProgress: (percent) => progress.push(percent) });
+
+  assert.equal(completedBeforePersistence, false);
+  assert.deepEqual(progress, [...progress].sort((left, right) => left - right));
+  assert.ok(progress.includes(80));
+  assert.equal(progress.at(-1), 100);
 });

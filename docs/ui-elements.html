@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 6fe2508a299aa53f */
+/* Quellenstand: aa0e492d1c56cb38 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -867,6 +867,13 @@ video {
 .inset-0 {
   inset: 0px;
 }
+.inset-y-0 {
+  top: 0px;
+  bottom: 0px;
+}
+.left-0 {
+  left: 0px;
+}
 .left-0\.5 {
   left: 0.125rem;
 }
@@ -889,6 +896,10 @@ video {
 .my-2 {
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
+}
+.my-5 {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
 }
 .my-6 {
   margin-top: 1.5rem;
@@ -1120,6 +1131,9 @@ video {
      -moz-user-select: none;
           user-select: none;
 }
+.list-disc {
+  list-style-type: disc;
+}
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -1190,6 +1204,14 @@ video {
   -moz-column-gap: 0.75rem;
        column-gap: 0.75rem;
 }
+.gap-y-1 {
+  row-gap: 0.25rem;
+}
+.space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+}
 .overflow-hidden {
   overflow: hidden;
 }
@@ -1249,6 +1271,9 @@ video {
 }
 .border {
   border-width: 1px;
+}
+.border-0 {
+  border-width: 0px;
 }
 .border-2 {
   border-width: 2px;
@@ -1409,6 +1434,9 @@ video {
 }
 .pl-5 {
   padding-left: 1.25rem;
+}
+.pl-6 {
+  padding-left: 1.5rem;
 }
 .pr-2 {
   padding-right: 0.5rem;
@@ -2503,6 +2531,11 @@ summary {
   .sm\:p-7 {
     padding: 1.75rem;
   }
+
+  .sm\:px-6 {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -2901,6 +2934,54 @@ summary {
         border-radius: 1.125rem;
       }
 
+      .catalog-card-preview-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: var(--core-backdrop);
+      }
+
+      .catalog-card-preview-backdrop[hidden] { display: none; }
+
+      .catalog-card-preview-dialog {
+        display: flex;
+        width: min(100%, 64rem);
+        max-height: 88dvh;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 1.5rem;
+      }
+
+      .catalog-card-preview-stage {
+        display: grid;
+        min-height: min(58dvh, 34rem);
+        place-items: center;
+        overflow: auto;
+        padding: clamp(1rem, 4vw, 3rem);
+        background: var(--core-surface-muted);
+      }
+
+      .catalog-card-preview-card {
+        width: min(100%, 48rem);
+        padding: clamp(1.5rem, 5vw, 3.5rem);
+        border: 1px solid var(--core-border);
+        border-radius: 1rem;
+        background: var(--core-surface);
+        box-shadow: var(--core-shadow-raised);
+        color: var(--core-text);
+        font-family: Synonym, ui-sans-serif, system-ui, sans-serif;
+      }
+
+      @media (max-width: 639px) {
+        .catalog-card-preview-backdrop { padding: 0; }
+        .catalog-card-preview-dialog { width: 100%; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
+        .catalog-card-preview-stage { min-height: 0; flex: 1; }
+      }
+
       .catalog-progress-track {
         height: 0.75rem;
         overflow: hidden;
@@ -3132,6 +3213,7 @@ summary {
       <symbol id="icon-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M8 10.5h5M10.5 8v5"/></symbol>
       <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
       <symbol id="icon-star" viewBox="0 0 24 24"><path d="m12 2.8 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3-5.6-3-5.6 3 1.1-6.3-4.6-4.5 6.3-.9L12 2.8Z"/></symbol>
+      <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2.1 12a10.8 10.8 0 0 1 19.8 0 10.8 10.8 0 0 1-19.8 0Z"/><circle cx="12" cy="12" r="3"/></symbol>
     </svg>
 
     <div class="catalog-shell">
@@ -3455,6 +3537,11 @@ summary {
                 <span class="catalog-demo-label">Modaler Bestätigungsdialog</span>
                 <button id="open-dialog" type="button" class="core-action-destructive min-h-11 px-4 py-2.5">Dialog öffnen</button>
               </div>
+              <div class="catalog-demo catalog-stack">
+                <span class="catalog-demo-label">Modaler Karten-Vorschau-Dialog · gemeinsame Sekundäraktion</span>
+                <button id="open-card-preview" type="button" class="core-action-secondary min-h-11 w-fit px-4 py-2.5"><svg class="catalog-icon"><use href="#icon-eye"></use></svg><span>Vorschau</span></button>
+                <p class="catalog-note">Eine Kartenfläche; Vorder- und Rückseite wechseln über das reguläre segmentierte Control.</p>
+              </div>
             </div>
           </section>
 
@@ -3676,7 +3763,8 @@ summary {
                   <div class="mt-4 flex items-center justify-center gap-2 core-caption text-core-muted"><span>Weniger</span><span class="core-heatmap-level-0 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-1 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-2 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-3 size-3 rounded-[4px] border"></span><span class="core-heatmap-level-4 size-3 rounded-[4px] border"></span><span>Mehr</span></div>
                 </article>
               <div class="core-surface-raised rounded-[18px] p-6">
-                <div class="flex flex-wrap items-center justify-between gap-3"><div><p class="core-caption uppercase tracking-wide text-core-muted">APKG-Import</p><h3 class="core-heading-3 mt-1 text-core-text">Vorschau und Übernahme</h3></div><span class="catalog-pill border-core-warning bg-core-warning-soft text-core-text">1 Warnung</span></div>
+                <div class="flex flex-wrap items-center justify-between gap-3"><h3 class="core-heading-3 text-core-text">APKG-Dateien importieren</h3><span class="catalog-pill border-core-warning bg-core-warning-soft text-core-text">1 Warnung</span></div>
+                <div class="relative mt-5 overflow-hidden rounded-xl border border-core-border bg-core-surface p-4" role="progressbar" aria-label="Importfortschritt für Allgemeinwissen.apkg" aria-valuemin="0" aria-valuemax="100" aria-valuenow="64" aria-valuetext="Übernehmen: 64 Prozent"><span class="pointer-events-none absolute inset-y-0 left-0 bg-core-subtle" style="width:64%" aria-hidden="true"></span><div class="relative flex flex-wrap items-center gap-x-3 gap-y-1 core-body"><strong class="min-w-0 flex-1 truncate text-core-text">Allgemeinwissen.apkg</strong><span class="font-semibold text-core-text">64 %</span><span class="whitespace-nowrap text-core-muted">6,9 MB</span></div></div>
                 <div class="catalog-steps mt-6"><div class="catalog-step" data-complete="true">Analysieren</div><div class="catalog-step" data-complete="true">Vorschau bereit</div><div class="catalog-step" data-complete="true">Übernehmen</div><div class="catalog-step">Medien synchronisieren</div><div class="catalog-step">Fertig</div></div>
               </div>
               <div class="catalog-grid catalog-grid-wide">
@@ -3710,6 +3798,30 @@ summary {
             </div>
           </section>
         </main>
+      </div>
+    </div>
+
+    <div id="catalog-card-preview-backdrop" class="catalog-card-preview-backdrop core-card-preview-backdrop" hidden>
+      <div id="catalog-card-preview-dialog" class="catalog-card-preview-dialog core-overlay core-card-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="catalog-card-preview-title">
+        <header class="flex min-h-16 shrink-0 items-center gap-4 border-b border-core-border px-4 sm:px-6">
+          <h2 id="catalog-card-preview-title" class="min-w-0 flex-1 core-heading-3 text-core-text">Kartenvorschau</h2>
+          <button id="close-card-preview" type="button" class="core-action-ghost min-h-11 min-w-11 p-2.5" aria-label="Kartenvorschau schließen"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button>
+        </header>
+        <div class="catalog-card-preview-stage">
+          <article class="catalog-card-preview-card">
+            <div id="catalog-card-preview-front"><p class="core-body-large">Nenne Aspekte zu: <strong>Karl der Große</strong></p></div>
+            <div id="catalog-card-preview-answer" hidden>
+              <hr class="my-5 border-0 border-t border-core-border" />
+              <ul class="list-disc space-y-2 pl-6 core-body-large"><li>Karolinger</li><li><strong>768–814 König</strong> des Fränkischen Reichs</li><li>Regierte zeitweise mit Karlmann</li></ul>
+            </div>
+          </article>
+        </div>
+        <footer class="flex shrink-0 justify-center border-t border-core-border bg-core-surface-raised px-4 py-4">
+          <div class="core-segmented-control core-status-label w-full max-w-sm" role="group" aria-label="Kartenseite anzeigen" data-size="regular">
+            <button id="catalog-preview-front-button" type="button" aria-pressed="true" class="core-segmented-control-option">Vorderseite</button>
+            <button id="catalog-preview-back-button" type="button" aria-pressed="false" class="core-segmented-control-option">Rückseite</button>
+          </div>
+        </footer>
       </div>
     </div>
 
@@ -3826,6 +3938,59 @@ summary {
       const cancelDialog = document.getElementById("cancel-dialog");
       const confirmDialog = document.getElementById("confirm-dialog");
       let returnFocus = null;
+
+      const cardPreviewBackdrop = document.getElementById("catalog-card-preview-backdrop");
+      const openCardPreview = document.getElementById("open-card-preview");
+      const closeCardPreview = document.getElementById("close-card-preview");
+      const cardPreviewAnswer = document.getElementById("catalog-card-preview-answer");
+      const cardPreviewFrontButton = document.getElementById("catalog-preview-front-button");
+      const cardPreviewBackButton = document.getElementById("catalog-preview-back-button");
+      let cardPreviewReturnFocus = null;
+
+      function showCatalogCardSide(side) {
+        const answer = side === "answer";
+        cardPreviewAnswer.hidden = !answer;
+        cardPreviewFrontButton.setAttribute("aria-pressed", String(!answer));
+        cardPreviewBackButton.setAttribute("aria-pressed", String(answer));
+      }
+
+      function closeCatalogCardPreview() {
+        cardPreviewBackdrop.hidden = true;
+        showCatalogCardSide("question");
+        cardPreviewReturnFocus?.focus();
+      }
+
+      openCardPreview.addEventListener("click", () => {
+        cardPreviewReturnFocus = document.activeElement;
+        showCatalogCardSide("question");
+        cardPreviewBackdrop.hidden = false;
+        closeCardPreview.focus();
+      });
+      closeCardPreview.addEventListener("click", closeCatalogCardPreview);
+      cardPreviewFrontButton.addEventListener("click", () => showCatalogCardSide("question"));
+      cardPreviewBackButton.addEventListener("click", () => showCatalogCardSide("answer"));
+      cardPreviewBackdrop.addEventListener("click", (event) => {
+        if (event.target === cardPreviewBackdrop) closeCatalogCardPreview();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (cardPreviewBackdrop.hidden) return;
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          closeCatalogCardPreview();
+          return;
+        }
+        if (event.key !== "Tab") return;
+        const first = closeCardPreview;
+        const last = cardPreviewBackButton;
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      });
 
       function closeCatalogDialog() {
         backdrop.hidden = true;

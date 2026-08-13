@@ -86,5 +86,5 @@ Vor unbegleiteter Self-Service-Beta zusätzlich:
 - Community, Graph, breite KI- oder Labs-Flächen;
 - PWA, Push, native Apps, OCR/DOCX oder ein manueller
   Image-Occlusion-Maskeneditor;
-- serverseitiger APKG-Import oder eine Anhebung über 250 MiB;
+- serverseitiger APKG-Import oder eine Anhebung über 250 MB;
 - neue Kartentyp- oder Statusfilter im Kartenbrowser.

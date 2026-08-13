@@ -211,7 +211,8 @@ Neue Endpunkte brauchen einen expliziten Roadmap-Auftrag, Laufzeitvalidierung, A
 - Der APKG-Worker erzeugt einmalig den normalisierten Commitgraphen sowie Summary, Bericht, höchstens fünf Vorschaukarten und Medien. Der Main Thread wiederholt keine Paketnormalisierung; der Commit streamt den im Worker gehaltenen Graphen in begrenzten Chunks direkt in IndexedDB.
 - Jeder sichtbare Importmodus besitzt eine eigene UI-Session. Ein Formatwechsel remountet diese Session und entfernt Vorschau, Commitfähigkeit, Fehler und Fortschritt des vorherigen Modus.
 - `src/importUiState.ts` projiziert die gemeinsamen sichtbaren Phasen; APKG-Worker, ZIP/SQLite, Reimport und Medienqueue bleiben in ihren bestehenden Eigentümermodulen.
-- Dateien bis einschließlich 250 MiB laufen im Browser-Worker. Größere Dateien werden ohne Upload oder Serverfallback abgewiesen.
+- Dateien bis einschließlich 250 MB laufen im Browser-Worker. Größere Dateien werden ohne Upload oder Serverfallback abgewiesen.
+- Analyse, Commit und Mediensynchronisierung melden getrennte monotone Fortschrittswerte. Der Commit leitet seinen realen Anteil aus den bereits persistierten Worker-Chunks ab; die UI darf Zwischenwerte bis höchstens 95 Prozent glätten und setzt 100 Prozent erst nach dem tatsächlichen Phasenabschluss.
 - Importidentität bevorzugt stabile Anki-IDs vor Fingerprints.
 - Legacy-JSON und V18-Protobuf werden in dieselbe private Form normalisiert. Bekannte V18-Konfiguration wird bounds-sicher dekodiert; vollständige Rohbytes und unbekannte Felder bleiben im unveränderlichen Snapshot erhalten.
 - `revlog` ist Bestandteil desselben normalisierten Commitgraphen, wird nach dem Erzeugen der finalen CoRe-Identitäten Varianten zugeordnet und per stabiler Quellereignis-ID vereinigt. Nicht zuordenbare, manuelle oder ungültige Zeilen werden gezählt und übersprungen. Der initiale Variantenstate folgt der Migration FSRS-Memory-State → Revlog-Replay → klassischer Kartenstatus → neue Karte.

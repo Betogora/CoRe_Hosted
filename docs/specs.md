@@ -57,7 +57,7 @@ CoRe besitzt keine experimentellen Produktoberflächen. Frühere Labs-Routen fal
 
 ### Disabled
 
-- APKG über 250 MiB; solche Dateien werden lokal abgewiesen;
+- APKG über 250 MB; solche Dateien werden lokal abgewiesen;
 - Google und Magic Link, wenn ihr jeweiliges eigenes Auth-Flag deaktiviert ist;
 - DOCX, OCR und Bildregionen;
 - vollständige Art.-15-Auskunft und Account-Löschung.
@@ -272,8 +272,9 @@ Akzeptanz:
 - Dokumentierte statische Anki-Templates werden mit exakten Feldnamen, Conditionals, Standardfiltern, `FrontSide`, Special Fields, Cloze und CSS in einem opaken Sandbox-Frame gerendert. Script, externe Ressourcen, Add-on-/Custom-Filter und andere nicht portable Funktionen werden nicht ausgeführt; Quellwerte bleiben erhalten und die UI zeigt automatisch eine gekennzeichnete geordnete Feldansicht mit Diagnose.
 - Importfehler bleiben sichtbar und enthalten eine sinnvolle nächste Aktion.
 - Die sichtbare Importsteuerung unterscheidet `idle`, `analyzing`, `preview`, `committing`, `syncing_media`, `succeeded`, `partial`, `failed_retryable`, `failed_terminal` und `cancelled`.
+- Die laufenden APKG-Phasen `analyzing`, `committing` und `syncing_media` zeigen in der Dateizeile einen eigenen monotonen Fortschritt. Geglättete Zwischenwerte bleiben unter 100 Prozent; 100 Prozent bedeutet immer, dass die jeweilige Phase tatsächlich abgeschlossen ist.
 - Warnungen werden zunächst zusammengefasst und vollständig aufklappbar angeboten; Notetype-IDs, SHA-1-Listen und Importidentitäten erscheinen nicht in der Produktoberfläche.
-- APKG-Dateien bis einschließlich 250 MiB werden lokal verarbeitet. Größere Dateien enden sofort mit einer verständlichen Meldung und `Andere Datei auswählen`; es gibt keinen Serverjob oder Upload-Fallback.
+- APKG-Dateien bis einschließlich 250 MB werden lokal verarbeitet. Größere Dateien enden sofort mit einer verständlichen Meldung und `Andere Datei auswählen`; es gibt keinen Serverjob oder Upload-Fallback.
 - Reimport erkennt stabile Anki-Identitäten vor heuristischen Fingerprints.
 - APKG-`revlog` wird als append-only Analysehistorie übernommen, soweit eine Anki-Karte eindeutig einer CoRe-Variante zugeordnet werden kann, und beim Wiederimport deterministisch dedupliziert. Für den initialen Review State gilt unabhängig davon die Reihenfolge gültiger FSRS-Memory-State, chronologisches Revlog-Replay, klassischer Kartenstatus und schließlich neue Karte; nach dem ersten CoRe-Review übernimmt ausschließlich FSRS-6.
 - Medienreferenzen werden sicher aufgelöst; fehlende Medien werden im Bericht genannt.

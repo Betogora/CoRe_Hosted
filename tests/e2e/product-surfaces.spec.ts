@@ -308,7 +308,7 @@ test("@beta-core @hosted-core Beta-Artefakt enthält weder Labs noch Großdatei-
   await expect(page.locator("summary").filter({ hasText: "Labs" })).toHaveCount(0);
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await expect(page.getByText("Freigegebene Dateigröße: bis 250 MiB.")).toBeVisible();
+  await expect(page.getByText("APKG-Datei ablegen oder auswählen (Max. 250 MB)")).toBeVisible();
   await expect(page.getByText(/1 GiB|Server-Import|Upload fortsetzen/)).toHaveCount(0);
 });
 

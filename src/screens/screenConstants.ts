@@ -52,7 +52,9 @@ export function getStateValue(state: { [x: string]: any; }, key: string, fallbac
 export function formatBytes(size: number) {
   if (!size) return "0 KB";
   const units = ["B", "KB", "MB", "GB"];
-  const unitIndex = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-  const value = size / 1024 ** unitIndex;
-  return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  const unitIndex = Math.min(Math.floor(Math.log(size) / Math.log(1000)), units.length - 1);
+  const value = size / 1000 ** unitIndex;
+  return `${new Intl.NumberFormat("de-DE", {
+    maximumFractionDigits: value >= 10 || unitIndex === 0 ? 0 : 1,
+  }).format(value)} ${units[unitIndex]}`;
 }

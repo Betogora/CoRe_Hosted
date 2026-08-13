@@ -32,6 +32,7 @@ export function projectImportUiState({
   if (jobStatus === "cancelled" || progressStatus === "cancelled") return { status: "cancelled" };
   if ((jobStatus === "failed" || progressStatus === "failed") && retryable) return { status: "failed_retryable" };
   if (jobStatus === "error" || jobStatus === "failed" || progressStatus === "failed") return { status: "failed_terminal" };
+  if (jobStatus === "syncing_media" && hasMediaTask && (!mediaStatus || mediaStatus === "local-pending" || mediaStatus === "paused")) return { status: "syncing_media" };
   if (mediaStatus && ["partial", "local-pending", "blocked", "cancelled"].includes(mediaStatus)) return { status: "partial" };
   if (jobStatus === "done" || jobStatus === "succeeded" || mediaStatus === "cloud-ready") return { status: "succeeded" };
   if (hasMediaTask || jobStatus === "syncing_media") return { status: "syncing_media" };

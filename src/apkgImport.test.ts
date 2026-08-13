@@ -7,6 +7,7 @@ import {
   createApkgReportDetails,
   createApkgImportPreview,
   findReadableCollectionDatabase,
+  LOCAL_APKG_MAX_BYTES,
   mapAnkiApkgToNormalizedDeck,
   mergeImportedDeck,
   parseAnkiMedia,
@@ -165,6 +166,10 @@ function createReimportDeck(card: CoreCardInput, { existing = false, withImportM
 
 test("validates APKG extension and browser import size", () => {
   assert.equal(validateApkgFile({ name: "deck.apkg", size: 1024 }).valid, true);
+  assert.equal(validateApkgFile({ name: "deck.apkg", size: LOCAL_APKG_MAX_BYTES }).valid, true);
+  assert.deepEqual(validateApkgFile({ name: "deck.apkg", size: LOCAL_APKG_MAX_BYTES + 1 }).errors, [
+    "Die Datei ist größer als 250 MB und wird im MVP nicht direkt im Browser importiert.",
+  ]);
 
   assert.deepStrictEqual(validateApkgFile({ name: "deck.zip", size: 1024 }).errors, [
     "Es werden nur Anki-Decks im .apkg-Format akzeptiert.",
