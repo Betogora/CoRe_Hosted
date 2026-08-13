@@ -296,15 +296,12 @@ function PlanningChart({ planning }: { planning: StatisticsProjection["planning"
     <>
       <div className="grid gap-3 sm:grid-cols-4">
         {[
-          ["Überfällig", planning.overdue],
-          ["Morgen fällig", planning.dueTomorrow],
-          ["Im Horizont", planning.dueInHorizon],
-          ["Arbeitspensum/Tag", planning.dailyWorkload],
-        ].map(([label, value]) => (
-          <div key={String(label)} className="rounded-xl bg-core-subtle p-3">
-            <p className="core-caption text-core-muted">{label}</p>
-            <p className="core-heading-3 mt-1 text-core-text">{formatNumber(Number(value), 1)}</p>
-          </div>
+          { label: "Überfällig", value: planning.overdue },
+          { label: "Morgen fällig", value: planning.dueTomorrow },
+          { label: "Im Horizont", value: planning.dueInHorizon },
+          { label: "Arbeitspensum/Tag", value: planning.dailyWorkload },
+        ].map(({ label, value }) => (
+          <StatTile key={label} size="compact" label={label} value={formatNumber(value, 1)} />
         ))}
       </div>
       <CartesianStatisticsChart data={planning.points} ariaLabel="Diagramm zu geplanten Wiederholungen" className="mt-5 h-72 w-full" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>

@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: aa0e492d1c56cb38 */
+/* Quellenstand: 177fc495f5bd6051 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -883,8 +883,14 @@ video {
 .top-0\.5 {
   top: 0.125rem;
 }
+.top-3 {
+  top: 0.75rem;
+}
 .z-0 {
   z-index: 0;
+}
+.z-10 {
+  z-index: 10;
 }
 .z-\[1\] {
   z-index: 1;
@@ -910,6 +916,9 @@ video {
 }
 .mb-3 {
   margin-bottom: 0.75rem;
+}
+.mb-4 {
+  margin-bottom: 1rem;
 }
 .mb-6 {
   margin-bottom: 1.5rem;
@@ -1030,6 +1039,9 @@ video {
 }
 .min-h-20 {
   min-height: 5rem;
+}
+.min-h-48 {
+  min-height: 12rem;
 }
 .min-h-\[42rem\] {
   min-height: 42rem;
@@ -1406,6 +1418,10 @@ video {
   padding-left: 1.25rem;
   padding-right: 1.25rem;
 }
+.px-6 {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
 .py-1 {
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
@@ -1429,6 +1445,9 @@ video {
 .pb-4 {
   padding-bottom: 1rem;
 }
+.pb-6 {
+  padding-bottom: 1.5rem;
+}
 .pl-3 {
   padding-left: 0.75rem;
 }
@@ -1443,6 +1462,9 @@ video {
 }
 .pr-9 {
   padding-right: 2.25rem;
+}
+.pt-16 {
+  padding-top: 4rem;
 }
 .pt-5 {
   padding-top: 1.25rem;
@@ -1461,6 +1483,9 @@ video {
 }
 .text-\[0\.68rem\] {
   font-size: 0.68rem;
+}
+.\!font-semibold {
+  font-weight: 600 !important;
 }
 .font-medium {
   font-weight: 500;
@@ -2540,6 +2565,10 @@ summary {
 
 @media (min-width: 1024px) {
 
+  .lg\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .lg\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -3573,7 +3602,8 @@ summary {
                 </div>
               </div>
               <div class="catalog-grid">
-                <div class="core-surface-raised rounded-[18px] p-6"><span class="grid size-12 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon-lg"><use href="#icon-chart"></use></svg></span><p class="core-status-label mt-5 uppercase tracking-wide text-core-muted">Heute fällig</p><p class="core-heading-2 mt-2 text-core-text">24</p><p class="core-body mt-1 text-core-muted">aus 186 Karten</p></div>
+                <dl class="core-surface-raised rounded-[18px] p-6"><dt class="core-status-label uppercase tracking-wide text-core-muted"><span class="grid size-12 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon-lg"><use href="#icon-chart"></use></svg></span><span class="mt-5 block">Heute fällig</span></dt><dd class="core-heading-2 mt-2 text-core-text">24</dd><dd class="core-body mt-1 text-core-muted">aus 186 Karten</dd></dl>
+                <dl class="rounded-xl bg-core-subtle p-3"><dt class="core-caption !font-semibold uppercase tracking-wide text-core-muted">Morgen fällig</dt><dd class="core-heading-3 mt-1 text-core-text">8</dd></dl>
                 <div class="catalog-demo catalog-stack"><span class="catalog-demo-label">Mini-Fortschritt</span><div class="catalog-progress-track" role="progressbar" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100"><div class="catalog-progress-value"></div></div><span class="core-caption text-core-muted">64 Prozent abgeschlossen</span></div>
                 <div class="catalog-demo"><span class="catalog-demo-label">Gesamtbestandsdonut</span><svg class="catalog-donut-demo" role="img" aria-label="Gesamtfortschritt für Welt-Hauptstädte: 16 von 40 Karten gelernt; 12 neu, 4 in Arbeit und 8 fällig."><use href="#status-donut"></use></svg></div>
                 <div class="catalog-demo catalog-stack"><span class="catalog-demo-label">Loading Skeleton</span><div class="catalog-skeleton" style="width:55%"></div><div class="catalog-skeleton"></div><div class="catalog-skeleton" style="width:78%"></div></div>
@@ -3766,6 +3796,13 @@ summary {
                 <div class="flex flex-wrap items-center justify-between gap-3"><h3 class="core-heading-3 text-core-text">APKG-Dateien importieren</h3><span class="catalog-pill border-core-warning bg-core-warning-soft text-core-text">1 Warnung</span></div>
                 <div class="relative mt-5 overflow-hidden rounded-xl border border-core-border bg-core-surface p-4" role="progressbar" aria-label="Importfortschritt für Allgemeinwissen.apkg" aria-valuemin="0" aria-valuemax="100" aria-valuenow="64" aria-valuetext="Übernehmen: 64 Prozent"><span class="pointer-events-none absolute inset-y-0 left-0 bg-core-subtle" style="width:64%" aria-hidden="true"></span><div class="relative flex flex-wrap items-center gap-x-3 gap-y-1 core-body"><strong class="min-w-0 flex-1 truncate text-core-text">Allgemeinwissen.apkg</strong><span class="font-semibold text-core-text">64 %</span><span class="whitespace-nowrap text-core-muted">6,9 MB</span></div></div>
                 <div class="catalog-steps mt-6"><div class="catalog-step" data-complete="true">Analysieren</div><div class="catalog-step" data-complete="true">Vorschau bereit</div><div class="catalog-step" data-complete="true">Übernehmen</div><div class="catalog-step">Medien synchronisieren</div><div class="catalog-step">Fertig</div></div>
+                <div class="mt-6 rounded-[18px] border border-core-border p-5">
+                  <div class="mb-4 flex items-center justify-between gap-3"><span class="rounded-xl bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">Originalkarte</span><span class="core-caption font-medium uppercase tracking-wide text-core-muted">Standard</span></div>
+                  <div class="grid min-w-0 gap-4 lg:grid-cols-2">
+                    <div class="relative min-w-0"><span class="pointer-events-none absolute right-3 top-3 z-10 rounded-xl bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">Vorderseite</span><div class="min-h-48 rounded-xl border border-core-border bg-core-surface px-6 pb-6 pt-16 core-body-large text-core-text">Wer malte die „Guernica“ (1937)?</div></div>
+                    <div class="relative min-w-0"><span class="pointer-events-none absolute right-3 top-3 z-10 rounded-xl bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">Rückseite</span><div class="min-h-48 rounded-xl border border-core-border bg-core-surface px-6 pb-6 pt-16 core-body-large text-core-text"><strong>Pablo Picasso</strong><p class="mt-3 core-body text-core-muted">Spanischer Künstler · Kubismus</p></div></div>
+                  </div>
+                </div>
               </div>
               <div class="catalog-grid catalog-grid-wide">
                 <article class="rounded-xl border border-core-border bg-core-surface p-5"><p class="core-caption font-semibold uppercase tracking-wide text-core-muted">Diese Fassung</p><p class="mt-2 core-body text-core-text">Lissabon ist die Hauptstadt Portugals.</p><button type="button" class="core-action-primary mt-4 min-h-11 px-4">Diese Fassung behalten</button></article>

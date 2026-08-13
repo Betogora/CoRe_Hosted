@@ -41,6 +41,9 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(markup, /Gesamte Sammlung/);
   assert.match(markup, /Wiederholungen/);
   assert.match(markup, /Zeitplanung/);
+  assert.equal((markup.match(/data-size="compact"/g) ?? []).length, 4);
+  assert.equal((markup.match(/data-size="default"/g) ?? []).length, 7);
+  assert.match(markup, /data-size="compact" class="rounded-xl bg-core-subtle p-3 min-w-0"/);
   assert.match(markup, /FSRS-Schwierigkeit/);
   assert.match(markup, /Wahre Erinnerungsquote/);
   assert.match(markup, /Stapelvergleich/);

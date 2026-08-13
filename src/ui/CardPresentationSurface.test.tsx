@@ -45,9 +45,27 @@ test("renders an opaque scriptless iframe and resolves only controlled media URL
 
 test("shows a color-independent compatibility warning with diagnostics", () => {
   const rendered = fixture("{{custom:Frage}}");
-  const markup = renderToStaticMarkup(<CardPresentationSurface {...rendered} title="Importierte Karte" />);
+  const markup = renderToStaticMarkup(<CardPresentationSurface {...rendered} title="Importierte Karte" showCompatibility="warnings-only" />);
 
   assert.match(markup, /Originaldaten erhalten/);
   assert.match(markup, /benutzerdefinierte Filter/);
-  assert.match(markup, /role="status"/);
+  const statusTag = markup.match(/<div[^>]*role="status"[^>]*>/)?.[0] ?? "";
+  const descriptionId = statusTag.match(/id="([^"]+)"/)?.[1];
+  assert.ok(descriptionId);
+  assert.ok(markup.includes(`aria-describedby="${descriptionId}"`));
+});
+
+test("hides equivalent compatibility advertising while keeping a corner badge inside the card frame", () => {
+  const markup = renderToStaticMarkup(
+    <CardPresentationSurface
+      {...fixture()}
+      title="Importierte Vorderseite"
+      showCompatibility="warnings-only"
+      cornerBadge={<span>Vorderseite</span>}
+    />,
+  );
+
+  assert.doesNotMatch(markup, /Originalgetreu und sicher dargestellt/);
+  assert.doesNotMatch(markup, /aria-describedby=/);
+  assert.match(markup, /class="relative min-w-0"[^>]*>[\s\S]*Vorderseite[\s\S]*<iframe/);
 });

@@ -104,7 +104,7 @@ Akzeptanz:
 - APKG, Text, CSV und Tabellen-Paste sind ohne Kenntnis interner Anki-Begriffe auffindbar.
 - Unterstützte Quellanhänge sind PDF, Text, Markdown, CSV und TSV; nicht lesbare Formate sind nicht auswählbar.
 - APKG wird zuerst analysiert. Vorschau und `Import übernehmen` sind getrennte Schritte.
-- Der Hauptbericht nennt Datei, Stapel, Karten, Notetypes, vorhandene und fehlende Medien sowie verständliche Kompatibilitäts- und Schedulerwarnungen. Repräsentative Vorder-/Rückseiten werden mit demselben Renderer wie die spätere Kartenansicht und der Review gezeigt.
+- Der Hauptbericht nennt Datei, Stapel, Karten, Notetypes, vorhandene und fehlende Medien sowie verständliche Kompatibilitäts- und Schedulerwarnungen. Höchstens drei repräsentative Karten werden mit demselben Renderer wie die spätere Kartenansicht und der Review gezeigt; Vorder- und Rückseite tragen innerhalb der Kartenfläche eine kompakte Seitenkennzeichnung. Der pauschale Hinweis auf originalgetreue und sichere Darstellung entfällt, tatsächliche Darstellungsabweichungen und Diagnosen bleiben sichtbar.
 - Notetype-IDs, Template-Ordinals, Hashes und Importidentitäten dominieren den Hauptflow nicht.
 - Ein Wechsel zwischen APKG, Text, CSV und Tabelle verwirft die vorherige Vorschau, Commitfähigkeit, Fehler und Fortschritte vollständig.
 - Abbruch, erneut versuchbarer Fehler, terminaler Fehler, Teilabschluss und Erfolg sind getrennte Zustände mit jeweils passender Folgeaktion.

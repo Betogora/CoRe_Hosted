@@ -9,7 +9,7 @@ import { LOCAL_APKG_MAX_BYTES } from "../apkgImport.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { useCardMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
-import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { OrbIcon, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { formatBytes, importSteps } from "./screenConstants.ts";
 
 type ApkgWorkflow = Pick<CreationWorkflow, "commitApkgPreview" | "parseApkgFile">;
@@ -39,6 +39,12 @@ const ANALYSIS_PROGRESS_BY_STEP: Record<string, number> = {
   cards: 50,
   preview: 85,
 };
+
+const APKG_SAMPLE_CARD_LIMIT = 3;
+const APKG_CARD_SIDES = [
+  { side: "question", label: "Vorderseite", title: "APKG-Vorschau der Vorderseite" },
+  { side: "answer", label: "Rückseite", title: "APKG-Vorschau der Rückseite" },
+] as const;
 
 function normalizeProgress(percent: number): number {
   return Math.max(0, Math.min(100, Math.round(percent)));
@@ -80,6 +86,10 @@ function importStatusLabel(status: ImportUiState["status"]): string {
   }[status];
 }
 
+function ApkgPreviewBadge({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-xl bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">{children}</span>;
+}
+
 function ApkgCardSample({ deck, card, definition, mediaStore }: { deck: Deck; card: LearningItem; definition: NoteTypeDefinitionV1 | null; mediaStore: AccountMediaStore | null }) {
   const { urls: mediaUrls } = useCardMediaUrls({ ...deck, cards: [card] }, card.id, mediaStore);
   const variant = getOriginalVariant(card);
@@ -87,12 +97,24 @@ function ApkgCardSample({ deck, card, definition, mediaStore }: { deck: Deck; ca
   return (
     <article className="core-surface-raised rounded-[18px] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <span className="rounded-xl bg-core-success-soft px-3 py-1 core-caption font-semibold text-core-text">Originalkarte</span>
+        <ApkgPreviewBadge>Originalkarte</ApkgPreviewBadge>
         <span className="core-caption font-medium uppercase tracking-wide text-[var(--core-text-muted)]">{definition.name}</span>
       </div>
       <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-        <CardPresentationSurface item={card} variant={variant} definition={definition} side="question" surface="editor-preview" title="APKG-Vorschau der Vorderseite" mediaUrls={mediaUrls} />
-        <CardPresentationSurface item={card} variant={variant} definition={definition} side="answer" surface="editor-preview" title="APKG-Vorschau der Rückseite" mediaUrls={mediaUrls} />
+        {APKG_CARD_SIDES.map(({ side, label, title }) => (
+          <CardPresentationSurface
+            key={side}
+            item={card}
+            variant={variant}
+            definition={definition}
+            side={side}
+            surface="editor-preview"
+            title={title}
+            mediaUrls={mediaUrls}
+            showCompatibility="warnings-only"
+            cornerBadge={<ApkgPreviewBadge>{label}</ApkgPreviewBadge>}
+          />
+        ))}
       </div>
     </article>
   );
@@ -421,19 +443,16 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
                 <span className="font-semibold text-[var(--core-text)]">{job?.fileName ?? selectedFile?.name ?? "APKG-Datei"}</span>
                 <span> · {formatBytes(job?.fileSize ?? selectedFile?.size ?? 0)}</span>
               </div>
-              <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
                   { label: "Erkannte Stapel", value: apkgReport?.decks.length ?? 0 },
                   { label: "Karten", value: apkgReport?.detectedCards ?? 0 },
                   { label: "Medien vorhanden", value: presentMediaCount },
                   { label: "Medien fehlen", value: apkgReport?.media.missing.length ?? 0 },
                 ].map(({ label, value }) => (
-                  <div key={label} data-testid="apkg-stat-tile" className="rounded-xl bg-[var(--core-surface-muted)] p-3">
-                    <dt className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">{label}</dt>
-                    <dd className="mt-1 core-heading-2 font-semibold text-[var(--core-text)]">{value}</dd>
-                  </div>
+                  <StatTile key={label} data-testid="apkg-stat-tile" size="compact" label={label} value={value} />
                 ))}
-              </dl>
+              </div>
               {apkgReport ? (
                 <div className="mt-5 grid gap-4">
                   <section className="rounded-xl border border-[var(--core-border)] bg-core-surface p-4" aria-labelledby="apkg-decks-heading">
@@ -489,7 +508,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
               <details className="core-surface-raised rounded-[18px] p-5">
                 <summary className="cursor-pointer font-semibold text-[var(--core-text)]">Kartenbeispiele</summary>
                 <div className="mt-4 grid gap-4">
-                  {preview.sampleCards.map((card) => <ApkgCardSample key={card.id} deck={preview.summary} card={card} definition={previewDefinitions.get(card.noteTypeDefinitionId) ?? null} mediaStore={mediaStore} />)}
+                  {preview.sampleCards.slice(0, APKG_SAMPLE_CARD_LIMIT).map((card) => <ApkgCardSample key={card.id} deck={preview.summary} card={card} definition={previewDefinitions.get(card.noteTypeDefinitionId) ?? null} mediaStore={mediaStore} />)}
                 </div>
               </details>
             ) : null}

@@ -274,22 +274,39 @@ export function SegmentedDonut({ segments, ariaLabel, size = "default" }: Segmen
   );
 }
 
-interface StatTileProps {
+type StatTileProps = Omit<HTMLAttributes<HTMLDListElement>, "children"> & {
   icon?: LucideIcon;
   label: ReactNode;
   value: ReactNode;
   hint?: ReactNode;
   accent?: string;
-}
+  size?: "default" | "compact";
+};
 
-export function StatTile({ icon: Icon, label, value, hint, accent = "text-core-action" }: StatTileProps) {
+export function StatTile({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  accent = "text-core-action",
+  size = "default",
+  className = "",
+  ...props
+}: StatTileProps) {
+  const compact = size === "compact";
   return (
-    <SoftPanel className="p-6">
-      {Icon ? <OrbIcon icon={Icon} className={`bg-core-subtle ${accent}`} /> : null}
-      <p className="core-status-label mt-5 uppercase tracking-wide text-core-muted">{label}</p>
-      <p className="core-heading-2 mt-2 text-core-text">{value}</p>
-      {hint ? <p className="core-body mt-1 text-core-muted">{hint}</p> : null}
-    </SoftPanel>
+    <dl
+      {...props}
+      data-size={size}
+      className={`${compact ? "rounded-xl bg-core-subtle p-3" : "core-surface-raised rounded-[18px] p-6"} min-w-0 ${className}`.trim()}
+    >
+      <dt className={`${compact ? "core-caption !font-semibold" : "core-status-label"} uppercase tracking-wide text-core-muted`}>
+        {Icon ? <OrbIcon icon={Icon} className={`bg-core-subtle ${accent}`} /> : null}
+        <span className={Icon ? "mt-5 block" : undefined}>{label}</span>
+      </dt>
+      <dd className={`${compact ? "core-heading-3 mt-1" : "core-heading-2 mt-2"} text-core-text`}>{value}</dd>
+      {hint ? <dd className="core-body mt-1 text-core-muted">{hint}</dd> : null}
+    </dl>
   );
 }
 

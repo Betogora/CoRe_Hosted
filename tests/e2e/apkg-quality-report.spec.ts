@@ -36,9 +36,19 @@ test("latest APKG preview shows the complete quality report without mutating acc
   const statTiles = page.getByTestId("apkg-stat-tile");
   await expect(statTiles).toHaveCount(4);
   for (const tile of await statTiles.all()) {
+    await expect(tile).toHaveAttribute("data-size", "compact");
     await expect(tile).toHaveCSS("border-width", "0px");
     await expect(tile).toHaveCSS("box-shadow", "none");
   }
+  const examples = page.locator("details").filter({ hasText: "Kartenbeispiele" });
+  await examples.locator("summary").click();
+  const sampleCards = examples.locator("article");
+  await expect(sampleCards).toHaveCount(3);
+  await expect(sampleCards.locator("iframe")).toHaveCount(6);
+  await expect(examples.getByText("Originalgetreu und sicher dargestellt.", { exact: true })).toHaveCount(0);
+  await expect(examples.getByText("Originalkarte", { exact: true })).toHaveCount(3);
+  await expect(examples.getByText("Vorderseite", { exact: true })).toHaveCount(3);
+  await expect(examples.getByText("Rückseite", { exact: true })).toHaveCount(3);
   await expect(page.getByTestId("apkg-file-progress")).toContainText("Vorschau bereit");
 
   const after = await readActiveAccountState(page);

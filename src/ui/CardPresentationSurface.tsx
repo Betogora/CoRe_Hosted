@@ -56,7 +56,8 @@ export interface CardPresentationSurfaceProps {
   mediaUrls?: Record<string, string>;
   title: string;
   loadingLabel?: string;
-  showCompatibility?: boolean;
+  showCompatibility?: boolean | "warnings-only";
+  cornerBadge?: React.ReactNode;
   className?: string;
 }
 
@@ -70,6 +71,7 @@ export function CardPresentationSurface({
   title,
   loadingLabel = "Kartendarstellung wird vorbereitet …",
   showCompatibility = true,
+  cornerBadge,
   className = "",
 }: CardPresentationSurfaceProps) {
   const [theme, setTheme] = React.useState<"light" | "dark">(readPresentationTheme);
@@ -105,11 +107,12 @@ export function CardPresentationSurface({
   }
 
   const warning = effectivePresentation.compatibility !== "safe-equivalent";
+  const compatibilityVisible = showCompatibility === "warnings-only" ? warning : showCompatibility;
   return (
     <div className={`grid min-w-0 gap-3 ${className}`.trim()}>
-      {showCompatibility ? (
-        <StatusMessage tone={warning ? "warning" : "success"} announce="polite">
-          <span id={descriptionId}>{COMPATIBILITY_COPY[effectivePresentation.compatibility]}</span>
+      {compatibilityVisible ? (
+        <StatusMessage id={descriptionId} tone={warning ? "warning" : "success"} announce="polite">
+          <span>{COMPATIBILITY_COPY[effectivePresentation.compatibility]}</span>
           {effectivePresentation.diagnostics.length ? (
             <ul className="mt-2 list-disc space-y-1 pl-5">
               {effectivePresentation.diagnostics.map((diagnostic) => (
@@ -119,14 +122,17 @@ export function CardPresentationSurface({
           ) : null}
         </StatusMessage>
       ) : null}
-      <iframe
-        title={title}
-        aria-describedby={showCompatibility ? descriptionId : undefined}
-        sandbox=""
-        referrerPolicy="no-referrer"
-        srcDoc={srcdoc}
-        className="min-h-72 w-full rounded-xl border border-[var(--core-border)] bg-core-surface"
-      />
+      <div className="relative min-w-0">
+        {cornerBadge ? <div className="pointer-events-none absolute right-3 top-3 z-10">{cornerBadge}</div> : null}
+        <iframe
+          title={title}
+          aria-describedby={compatibilityVisible ? descriptionId : undefined}
+          sandbox=""
+          referrerPolicy="no-referrer"
+          srcDoc={srcdoc}
+          className="min-h-72 w-full rounded-xl border border-[var(--core-border)] bg-core-surface"
+        />
+      </div>
     </div>
   );
 }
