@@ -3,7 +3,6 @@ import React from "react";
 import { ArrowLeft, CalendarRange, FolderPlus, Layers, Play, Save, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { DeckSettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeDeckAppearance } from "../coreModel.ts";
-import { getLearningProfileTemplate } from "../deckSettings.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
@@ -11,8 +10,14 @@ import { DeckAppearanceIcon, deckIconOptions, getDeckIcon } from "../ui/deckAppe
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
-import { SettingsSectionNavigation } from "../ui/settingsNavigation.tsx";
+
+const deckSettingsSections = [
+  { id: "deck-identity", label: "Stapel", icon: Layers },
+  { id: "deck-daily-profiles", label: "Tagesrunde & Lernprofile", icon: CalendarRange },
+  { id: "deck-scheduler-core", label: "Scheduler & CoRe", icon: Sparkles },
+] as const;
 
 function DeckIconPicker({ value, color, onChange }: { value: string; color: string; onChange: (iconKey: string) => void }) {
   const SelectedIcon = getDeckIcon(value);
@@ -42,10 +47,6 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
       </Popover.Portal>
     </Popover.Root>
   );
-}
-
-function scrollToSection(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSave, onSaveLearningProfiles, onSaveAppearance, onRenameDeck, onCreateSubdeck, onStartDeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
@@ -95,16 +96,6 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   }
   const activeDeck = deck;
 
-  const activeProfile = activeDeck.deckSettings.learningProfileSource
-    ? getLearningProfileTemplate(learningProfiles, activeDeck.deckSettings.learningProfileSource.id)
-    : null;
-  const coreModeLabel = { off: "Aus", auto: "Automatisch", manual: "Manuell" }[activeDeck.deckSettings.coreMode];
-  const sectionItems = [
-    { id: "deck", title: "Stapel", status: activeDeck.name, icon: Layers, tone: "success" as const, onSelect: () => scrollToSection("deck-identity") },
-    { id: "daily", title: "Tagesrunde & Lernprofile", status: activeProfile?.name ?? "Eigene Einstellungen", icon: CalendarRange, tone: "info" as const, onSelect: () => scrollToSection("deck-daily-profiles") },
-    { id: "scheduler", title: "Scheduler & CoRe", status: `${Math.round(activeDeck.deckSettings.schedulerProfile.desiredRetention * 100)} % · CoRe ${coreModeLabel}`, icon: Sparkles, tone: "warning" as const, onSelect: () => scrollToSection("deck-scheduler-core") },
-  ];
-
   function saveIdentity(event: React.FormEvent) {
     event.preventDefault();
     const nextName = nameDraft.trim();
@@ -144,10 +135,9 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
         <div className="flex flex-wrap gap-2"><CrossLinkButton onSelect={onOpenGlobalSettings}>Globale Einstellungen</CrossLinkButton><button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action"><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button></div>
       </div>
 
-      <SettingsSectionNavigation ariaLabel="Bereiche der Stapeleinstellungen" items={sectionItems} />
-
-      <section id="deck-identity" className="scroll-mt-6 grid gap-4" aria-labelledby="deck-identity-heading">
-        <h2 id="deck-identity-heading" className="core-heading-2 font-semibold text-core-text">Stapel</h2>
+      <InPageNavigation ariaLabel="Bereiche der Stapeleinstellungen" items={deckSettingsSections}>
+      <section id="deck-identity" className="grid gap-4" aria-labelledby="deck-identity-heading">
+        <h2 id="deck-identity-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Stapel</h2>
         <SoftPanel className="p-5 sm:p-6">
           <form className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end" onSubmit={saveIdentity}>
             <label className="grid min-w-0 gap-2 core-body font-semibold text-core-muted">Name<input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={nameDraft} aria-label="Stapelname" data-testid="deck-settings-name-input" onChange={(event) => { setNameDraft(event.target.value); setFeedback(""); }} /></label>
@@ -166,6 +156,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
       </section>
 
       <LearningSettingsPanel settings={deck.deckSettings} profiles={learningProfiles} defaultProfileName={deck.name} onProfilesChange={onSaveLearningProfiles} onSave={(settings) => onSave(deck.id, settings)} />
+      </InPageNavigation>
 
       <ActionDialog open={deleteDialogOpen} title="Stapelbaum löschen?" description={<div className="grid gap-2"><p>„{deck.name}“ und alle Inhalte dieses Stapelbaums werden als gelöscht markiert.</p><ul className="list-disc pl-5"><li>{Math.max(0, (deckRow?.scopeDeckIds.length ?? 1) - 1)} Unterstapel</li><li>{deckRow?.summary.totalCards ?? 0} {(deckRow?.summary.totalCards ?? 0) === 1 ? "aktive Karte" : "aktive Karten"}</li></ul></div>} confirmLabel="Stapelbaum löschen" cancelLabel="Abbrechen" confirmLoading={deleting} destructive onCancel={() => setDeleteDialogOpen(false)} onConfirm={() => void confirmDelete()} />
     </div>

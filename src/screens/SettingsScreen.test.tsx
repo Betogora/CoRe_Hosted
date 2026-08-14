@@ -36,7 +36,10 @@ test("global settings expose three task-based sections and cross-navigation", ()
   const html = renderSettings();
   for (const heading of ["Konto", "Lerntag &amp; Fokus", "Daten &amp; Synchronisierung"]) assert.match(html, new RegExp(`>${heading}<`));
   assert.match(html, /aria-label="Bereiche der globalen Einstellungen"/);
-  assert.match(html, /md:grid-cols-3/);
+  for (const target of ["settings-account", "settings-learning-day", "settings-data-sync"]) assert.match(html, new RegExp(`href="#${target}"`));
+  assert.match(html, /data-in-page-navigation="desktop"/);
+  assert.match(html, /data-in-page-navigation="compact"/);
+  assert.doesNotMatch(html, /min-h-28|Alle Bereiche|\d+\s*\/\s*\d+/);
   assert.match(html, />Stapeleinstellungen</);
 });
 

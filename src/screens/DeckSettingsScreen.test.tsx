@@ -30,15 +30,17 @@ function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck], s
   );
 }
 
-test("deck settings expose three responsive areas and both navigation paths", () => {
+test("deck settings expose three responsive in-page links and both navigation paths", () => {
   const html = renderScreen();
   for (const heading of ["Stapel", "Tagesrunde &amp; Lernprofile", "Scheduler &amp; CoRe"]) assert.match(html, new RegExp(`>${heading}<`));
   assert.match(html, /aria-label="Bereiche der Stapeleinstellungen"/);
-  assert.match(html, /md:grid-cols-3/);
+  for (const target of ["deck-identity", "deck-daily-profiles", "deck-scheduler-core"]) assert.match(html, new RegExp(`href="#${target}"`));
+  assert.match(html, /data-in-page-navigation="desktop"/);
+  assert.match(html, /data-in-page-navigation="compact"/);
+  assert.doesNotMatch(html, /md:grid-cols-3|Alle Bereiche|\d+\s*\/\s*\d+/);
   assert.match(html, />Globale Einstellungen</);
   assert.match(html, />Zurück zur Kartenverwaltung</);
-  assert.match(html, /CoRe Automatisch/);
-  assert.doesNotMatch(html, /CoRe auto/);
+  assert.doesNotMatch(html, /CoRe Automatisch|CoRe auto/);
 });
 
 test("deck appearance controls live in the Stack section instead of the page header", () => {

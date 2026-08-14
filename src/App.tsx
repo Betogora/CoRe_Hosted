@@ -1671,7 +1671,7 @@ export function App() {
 
   return (
     <main className="core-app-shell min-h-dvh overflow-x-clip bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
-      <div className="core-app-frame grid min-h-[calc(100vh-2rem)] min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-[var(--core-border)] bg-core-surface shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] xl:h-[calc(100dvh-4rem)] xl:min-h-0 xl:grid-cols-[13rem_minmax(0,1fr)] xl:grid-rows-1">
+      <div className="core-app-frame grid min-h-[calc(100vh-2rem)] min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip rounded-[22px] border border-[var(--core-border)] bg-core-surface shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] xl:h-[calc(100dvh-4rem)] xl:min-h-0 xl:grid-cols-[13rem_minmax(0,1fr)] xl:grid-rows-1 xl:overflow-hidden">
         <AppNavigation
           navigationItems={navigationItems}
           activeView={activeView}
@@ -1682,7 +1682,7 @@ export function App() {
           onResetSimulation={() => changeSimulationOffset(0)}
         />
 
-        <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-hidden px-5 pb-32 pt-8 outline-none sm:px-8 lg:px-12 xl:overflow-y-auto xl:py-12" tabIndex={-1} aria-label="Seiteninhalt">
+        <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-clip px-5 pb-32 pt-8 outline-none sm:px-8 lg:px-12 xl:overflow-x-hidden xl:overflow-y-auto xl:py-12" tabIndex={-1} aria-label="Seiteninhalt">
           <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
         </section>
       </div>

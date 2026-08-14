@@ -92,9 +92,9 @@ export function useAppNavigation({ authPhase, defaultViewId }: UseAppNavigationO
     return normalized;
   }, []);
 
-  const writeBrowserRoute = React.useCallback((route: unknown, { replace = false, apply = true }: { replace?: boolean; apply?: boolean } = {}) => {
+  const writeBrowserRoute = React.useCallback((route: unknown, { replace = false, apply = true, preserveHash = false }: { replace?: boolean; apply?: boolean; preserveHash?: boolean } = {}) => {
     const normalized = normalizeAppRoute(route);
-    const url = appRouteToUrl(normalized);
+    const url = `${appRouteToUrl(normalized)}${preserveHash ? window.location.hash : ""}`;
     const historyState = createAppHistoryState(normalized, { currentState: window.history.state });
     if (replace) window.history.replaceState(historyState, "", url);
     else window.history.pushState(historyState, "", url);
@@ -144,7 +144,7 @@ export function useAppNavigation({ authPhase, defaultViewId }: UseAppNavigationO
     if (historyInitializedRef.current) return;
     const normalized = normalizeAppRoute(parseAppRouteFromUrl(window.location.href));
     historyInitializedRef.current = true;
-    writeBrowserRoute(normalized, { replace: true });
+    writeBrowserRoute(normalized, { replace: true, preserveHash: true });
   }, [authPhase, writeBrowserRoute]);
 
   React.useEffect(() => {

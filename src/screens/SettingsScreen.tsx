@@ -13,7 +13,7 @@ import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.tsx";
-import { SettingsSectionNavigation } from "../ui/settingsNavigation.tsx";
+import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 
@@ -22,6 +22,12 @@ const sectionIds = {
   focus: "settings-learning-day",
   data: "settings-data-sync",
 } as const;
+
+const settingsSections = [
+  { id: sectionIds.account, label: "Konto", icon: User },
+  { id: sectionIds.focus, label: "Lerntag & Fokus", icon: CalendarClock },
+  { id: sectionIds.data, label: "Daten & Synchronisierung", icon: Database },
+] as const;
 
 const easyDayOptions = [
   { value: "normal", label: "Normal" },
@@ -62,10 +68,6 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
     setLearnAheadMinutes(globalSchedulerPreferences.learnAheadMinutes);
     setEasyDays(globalSchedulerPreferences.easyDays);
   }, [easyDaysDependency, globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes]);
-
-  function scrollToSection(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 
   function saveProfile() {
     onSaveProfile({ ...profile, displayName });
@@ -154,12 +156,6 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
     }
   }
 
-  const sectionItems = [
-    { id: "account", title: "Konto", status: profile.displayName || profile.email, icon: User, tone: "success" as const, onSelect: () => scrollToSection(sectionIds.account) },
-    { id: "focus", title: "Lerntag & Fokus", status: `Neuer Tag ab ${globalSchedulerPreferences.dayStartHour}:00 Uhr`, icon: CalendarClock, tone: "info" as const, onSelect: () => scrollToSection(sectionIds.focus) },
-    { id: "data", title: "Daten & Synchronisierung", status: formatSyncStatusText(syncStatus), icon: Database, tone: "warning" as const, onSelect: () => scrollToSection(sectionIds.data) },
-  ];
-
   return (
     <div className="grid min-w-0 gap-7">
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
@@ -169,10 +165,9 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
         </CrossLinkButton>
       </div>
 
-      <SettingsSectionNavigation ariaLabel="Bereiche der globalen Einstellungen" items={sectionItems} />
-
-      <section id={sectionIds.account} className="scroll-mt-6 grid gap-4" aria-labelledby="settings-account-heading">
-        <h2 id="settings-account-heading" className="core-heading-2 font-semibold text-core-text">Konto</h2>
+      <InPageNavigation ariaLabel="Bereiche der globalen Einstellungen" items={settingsSections}>
+      <section id={sectionIds.account} className="grid gap-4" aria-labelledby="settings-account-heading">
+        <h2 id="settings-account-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Konto</h2>
         <SoftPanel className="p-5 sm:p-6">
           <div className="mb-5 flex items-center gap-3">
             <OrbIcon icon={User} />
@@ -197,8 +192,8 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
         </SoftPanel>
       </section>
 
-      <section id={sectionIds.focus} className="scroll-mt-6 grid gap-4" aria-labelledby="settings-focus-heading">
-        <h2 id="settings-focus-heading" className="core-heading-2 font-semibold text-core-text">Lerntag & Fokus</h2>
+      <section id={sectionIds.focus} className="grid gap-4" aria-labelledby="settings-focus-heading">
+        <h2 id="settings-focus-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Lerntag & Fokus</h2>
         <SoftPanel className="p-5 sm:p-6">
           <div className="grid gap-4 md:grid-cols-3">
             <label className="grid gap-2 core-body font-semibold text-core-muted">
@@ -255,8 +250,8 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
         </SoftPanel>
       </section>
 
-      <section id={sectionIds.data} className="scroll-mt-6 grid gap-4" aria-labelledby="settings-data-heading">
-        <h2 id="settings-data-heading" className="core-heading-2 font-semibold text-core-text">Daten & Synchronisierung</h2>
+      <section id={sectionIds.data} className="grid gap-4" aria-labelledby="settings-data-heading">
+        <h2 id="settings-data-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Daten & Synchronisierung</h2>
         <SoftPanel className="p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div><h3 className="core-heading-3 font-semibold text-core-text">Synchronisierung</h3><p className="mt-2 core-body text-core-muted">{formatSyncStatusText(syncStatus)}</p></div>
@@ -284,6 +279,7 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
         </SoftPanel>
         <ReleaseInfo className="text-center" />
       </section>
+      </InPageNavigation>
     </div>
   );
 }

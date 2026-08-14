@@ -650,6 +650,9 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
+    const settingsNavigation = page.locator(viewport.width >= 1280 ? '[data-in-page-navigation="desktop"]' : '[data-in-page-navigation="compact"]');
+    await expect(settingsNavigation).toBeVisible();
+    await expect(settingsNavigation.getByRole("link")).toHaveCount(3);
     await expect(page.getByLabel("Stapelname")).toBeVisible();
     await expect(page.getByRole("button", { name: "Icon auswählen" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Farbe auswählen" })).toBeVisible();

@@ -104,7 +104,7 @@ test("global learning-day settings save explicitly and persist across reloads", 
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
 
   await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
-  await page.getByRole("button", { name: /Lerntag & Fokus/ }).click();
+  await page.locator('[data-in-page-navigation="desktop"]').getByRole("link", { name: "Lerntag & Fokus" }).click();
   await page.getByTestId("settings-day-start-hour").fill("3");
   await page.getByTestId("settings-learn-ahead").fill("45");
   await page.getByRole("button", { name: "Lerntag speichern" }).click();
@@ -123,6 +123,62 @@ test("global learning-day settings save explicitly and persist across reloads", 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
+test("settings in-page navigation keeps responsive layout, hashes and browser history", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+
+  const desktopNavigation = page.locator('[data-in-page-navigation="desktop"]');
+  const compactNavigation = page.locator('[data-in-page-navigation="compact"]');
+  await expect(desktopNavigation).toBeVisible();
+  await expect(compactNavigation).toBeHidden();
+  await expect(desktopNavigation.getByRole("link")).toHaveCount(3);
+
+  const focusLink = desktopNavigation.getByRole("link", { name: "Lerntag & Fokus" });
+  await focusLink.click();
+  await expect(page).toHaveURL(/\/einstellungen#settings-learning-day$/);
+  await expect(focusLink).toHaveAttribute("aria-current", "location");
+  await expect(page.getByRole("heading", { name: "Lerntag & Fokus" })).toBeVisible();
+
+  await page.reload();
+  await expect(page).toHaveURL(/\/einstellungen#settings-learning-day$/);
+  await expect(desktopNavigation.getByRole("link", { name: "Lerntag & Fokus" })).toHaveAttribute("aria-current", "location");
+  await page.goBack();
+  await expect(page).toHaveURL(/\/einstellungen$/);
+  await expect(desktopNavigation.getByRole("link", { name: "Konto" })).toHaveAttribute("aria-current", "location");
+
+  await page.setViewportSize({ width: 1279, height: 900 });
+  await expect(desktopNavigation).toBeHidden();
+  await expect(compactNavigation).toBeVisible();
+  const summary = compactNavigation.locator('[data-in-page-navigation-summary="true"]');
+  await summary.click();
+  await expect(compactNavigation.getByRole("link")).toHaveCount(3);
+  await compactNavigation.getByRole("link", { name: "Daten & Synchronisierung" }).click();
+  await expect(page).toHaveURL(/\/einstellungen#settings-data-sync$/);
+  await expect(summary).toContainText("Daten & Synchronisierung");
+  await expect(compactNavigation.locator("details")).not.toHaveAttribute("open", "");
+
+  await summary.click();
+  await page.keyboard.press("Escape");
+  await expect(compactNavigation.locator("details")).not.toHaveAttribute("open", "");
+  await expect(summary).toBeFocused();
+
+  await page.setViewportSize({ width: 820, height: 900 });
+  await summary.click();
+  const tabletColumns = await compactNavigation.locator("ul").evaluate((list) => getComputedStyle(list).gridTemplateColumns.split(" ").length);
+  expect(tabletColumns).toBe(2);
+  await summary.click();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await summary.click();
+  const mobileColumns = await compactNavigation.locator("ul").evaluate((list) => getComputedStyle(list).gridTemplateColumns.split(" ").length);
+  expect(mobileColumns).toBe(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await expect(page).toHaveURL(/\/lernen$/);
 });
 
 test("Pomodoro timer starts globally, persists and stays synchronized between tabs", async ({ page, context }) => {

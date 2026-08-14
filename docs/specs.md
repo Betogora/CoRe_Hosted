@@ -252,7 +252,7 @@ Akzeptanz:
 
 - E-Mail-/Passwort ist die freigegebene Kernanmeldung.
 - Das sichtbare und aktive Profil enthält Anzeigename und Login-E-Mail. Hochschule, Fachgebiet und eine Spracheinstellung sind nicht Teil des aktiven Profilmodells; die Oberfläche bleibt global deutsch. Solange die Community-Funktion deaktiviert ist, erscheint kein separater Privatsphäre-Bereich.
-- Globale Einstellungen sind in `Konto`, `Lerntag & Fokus` und `Daten & Synchronisierung` gegliedert. Stapeleinstellungen verwenden `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`. Beide Seiten besitzen drei responsive Bereichskarten und einen direkten Querlink.
+- Globale Einstellungen sind in `Konto`, `Lerntag & Fokus` und `Daten & Synchronisierung` gegliedert. Stapeleinstellungen verwenden `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`. Beide Seiten besitzen einen direkten Querlink und dieselbe iconunterstützte Seiteninhaltsnavigation: Ab 1.280 px steht eine vertikale Sticky-Rail neben dem Inhalt, darunter zeigt ein Sticky-Disclosure nur den aktuellen Abschnitt und klappt alle Bereiche auf. Scrollspy markiert genau einen Abschnitt; explizite Auswahl verwendet reproduzierbare Hashlinks und Browser-Zurück.
 - Tagesbeginn, Vorziehfenster und Easy Days sind accountweite Scheduler-Präferenzen und werden über Profil-Sync sowie Export und Import transportiert. Tageslimits, Reihenfolge, stapelbezogene Sortierung, Schedulerwerte, CoRe-Modus und Variantenparameter existieren nicht in den globalen Einstellungen.
 - Der Portabilitätsexport nennt vor dem Download seine Grenzen: keine Medienbytes, Authdaten, Serverrechte oder vollständige Art.-15-Auskunft.
 - Sicherheitskritische Aktionen sind klar von Profil- und Lernoptionen getrennt.
