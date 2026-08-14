@@ -119,12 +119,11 @@ test("interactive controls keep DOM focus without visible focus frames", () => {
   assert.doesNotMatch(source, /focus(?:-visible)?:(?:border|shadow)/);
 });
 
-test("dragged deck rows lift vertically while their surroundings adapt to the theme", () => {
+test("dragged deck rows lift without a list-only brightness filter", () => {
   const activeDragRule = styles.match(/\.core-deck-summary-row\[data-drag-state="active"\]\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
   assert.match(activeDragRule, /transform:\s*translateY\(-2px\) scaleY\(1\.03\)/);
   assert.doesNotMatch(activeDragRule, /\bscale\(/);
-  assert.match(styles, /core-deck-tree-rows:has\([^)]*data-drag-state="active"[^)]*\)[\s\S]*?:not\(\[data-drag-state="active"\]\)[\s\S]*?brightness\(0\.82\)/);
-  assert.match(styles, /\[data-core-theme="dark"\][\s\S]*?core-deck-tree-rows:has\([^)]*data-drag-state="active"[^)]*\)[\s\S]*?brightness\(1\.2\)/);
+  assert.doesNotMatch(styles, /core-deck-tree-rows:has\([^)]*data-drag-state="active"[^)]*\)/);
 });
 
 test("the UI catalog lists every canonical shared export", () => {

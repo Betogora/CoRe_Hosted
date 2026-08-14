@@ -45,6 +45,24 @@ async function dispatchDeckDrop(page: Page, source: Locator, target: Locator) {
   await page.mouse.up();
 }
 
+async function startDeckDrag(page: Page, source: Locator) {
+  await source.scrollIntoViewIfNeeded();
+  const sourcePosition = await source.boundingBox();
+  expect(sourcePosition).not.toBeNull();
+  const sourceX = sourcePosition!.x + sourcePosition!.width / 2;
+  const sourceY = sourcePosition!.y + sourcePosition!.height / 2;
+  await page.mouse.move(sourceX, sourceY);
+  await page.mouse.down();
+  await page.mouse.move(sourceX, sourceY + 12, { steps: 3 });
+  await expect(source).toHaveAttribute("data-drag-state", "active");
+}
+
+async function cancelDeckDrag(page: Page) {
+  await page.mouse.move(4, 4);
+  await page.mouse.up();
+  await expect(page.getByTestId("deck-drag-focus-overlay")).toHaveCount(0);
+}
+
 async function dispatchTopLevelDrop(page: Page, source: Locator, dropZoneTestId: string) {
   await source.scrollIntoViewIfNeeded();
   const sourcePosition = await source.boundingBox();
@@ -112,6 +130,47 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
 
   await europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" }).click();
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+});
+
+test("deck drag focus uses square row holes with desktop sidebar and mobile bottom bar targets", async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 1000 });
+  await resetToFreshLocalState(page);
+
+  const source = page.getByTestId(`dashboard-deck-row-${DECK_IDS.root}`);
+  await startDeckDrag(page, source);
+  const overlay = page.getByTestId("deck-drag-focus-overlay");
+  await expect(overlay).toBeVisible();
+  const sourceHole = overlay.locator('[data-drag-focus-hole="true"]');
+  await expect(sourceHole).toHaveCount(1);
+  expect(await sourceHole.getAttribute("rx")).toBeNull();
+  await expect(page.getByTestId("dashboard-deck-list-header")).not.toContainText("Auf die Hauptebene verschieben");
+  const sidebar = page.locator('[data-navigation-layout="sidebar"]');
+  const sidebarTarget = page.getByTestId("dashboard-top-drop-zone");
+  await expect(sidebarTarget).toHaveAttribute("data-deck-top-drop-placement", "sidebar");
+  const [sidebarBox, sidebarTargetBox] = await Promise.all([sidebar.boundingBox(), sidebarTarget.boundingBox()]);
+  expect(sidebarBox).not.toBeNull();
+  expect(sidebarTargetBox).not.toBeNull();
+  expect(sidebarTargetBox!.x).toBeCloseTo(sidebarBox!.x + 16, 0);
+  expect(sidebarTargetBox!.y).toBeCloseTo(sidebarBox!.y + 16, 0);
+  expect(sidebarTargetBox!.width).toBeCloseTo(sidebarBox!.width - 32, 0);
+  expect(sidebarTargetBox!.height).toBeCloseTo(sidebarBox!.height - 32, 0);
+  await cancelDeckDrag(page);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const bottomBar = page.locator('[data-navigation-layout="bottom-bar"]');
+  await expect(bottomBar).toBeVisible();
+  const bottomBarBox = await bottomBar.boundingBox();
+  await startDeckDrag(page, source);
+  const bottomTarget = page.getByTestId("dashboard-top-drop-zone");
+  await expect(bottomTarget).toHaveAttribute("data-deck-top-drop-placement", "bottom-bar");
+  const bottomTargetBox = await bottomTarget.boundingBox();
+  expect(bottomBarBox).not.toBeNull();
+  expect(bottomTargetBox).not.toBeNull();
+  expect(bottomTargetBox!.x).toBeCloseTo(bottomBarBox!.x, 0);
+  expect(bottomTargetBox!.y).toBeCloseTo(bottomBarBox!.y, 0);
+  expect(bottomTargetBox!.width).toBeCloseTo(bottomBarBox!.width, 0);
+  expect(bottomTargetBox!.height).toBeCloseTo(bottomBarBox!.height, 0);
+  await cancelDeckDrag(page);
 });
 
 test("statistics deck filter uses full-width selection rows while keeping multiple selection", async ({ page }) => {

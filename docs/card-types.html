@@ -7,7 +7,7 @@
     <title>CoRe Kartentypen · Reviewreferenz</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 1757452c03c1a98c */
+/* Quellenstand: 89803671c8213504 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1030,10 +1030,6 @@ button[aria-label] {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.core-deck-tree-drop-spacer {
-  display: none;
-}
-
 .core-deck-summary-container {
   container: core-deck-summary / inline-size;
 }
@@ -1103,32 +1099,6 @@ button[aria-label] {
   .core-deck-tree-header-action {
     grid-column: 2;
     grid-row: 1;
-  }
-
-  .core-deck-tree-drop-zone {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-}
-
-@container core-deck-tree (min-width: 44rem) {
-  .core-deck-tree-header {
-    grid-template-columns: minmax(0, 1fr) minmax(16rem, 28rem) minmax(0, 1fr);
-    gap: 1rem;
-  }
-
-  .core-deck-tree-header-action {
-    grid-column: 3;
-  }
-
-  .core-deck-tree-drop-zone,
-  .core-deck-tree-drop-spacer {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .core-deck-tree-drop-spacer {
-    display: block;
   }
 }
 
