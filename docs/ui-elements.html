@@ -857,9 +857,6 @@ video {
 .pointer-events-auto {
   pointer-events: auto;
 }
-.\!visible {
-  visibility: visible !important;
-}
 .visible {
   visibility: visible;
 }
@@ -868,6 +865,9 @@ video {
 }
 .relative {
   position: relative;
+}
+.sticky {
+  position: sticky;
 }
 .inset-0 {
   inset: 0px;
@@ -915,6 +915,9 @@ video {
 .my-6 {
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
+}
+.-ml-px {
+  margin-left: -1px;
 }
 .mb-2 {
   margin-bottom: 0.5rem;
@@ -1282,6 +1285,10 @@ video {
 .rounded-xl {
   border-radius: 0.75rem;
 }
+.rounded-r-xl {
+  border-top-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
 .rounded-t-\[28px\] {
   border-top-left-radius: 28px;
   border-top-right-radius: 28px;
@@ -1300,6 +1307,12 @@ video {
 }
 .border-b-0 {
   border-bottom-width: 0px;
+}
+.border-l {
+  border-left-width: 1px;
+}
+.border-l-\[3px\] {
+  border-left-width: 3px;
 }
 .border-t {
   border-top-width: 1px;
@@ -1336,6 +1349,9 @@ video {
 }
 .border-core-warning {
   border-color: var(--core-warning);
+}
+.border-transparent {
+  border-color: transparent;
 }
 .bg-\[var\(--core-info-surface\)\] {
   background-color: var(--core-info-surface);
@@ -1536,6 +1552,9 @@ video {
 }
 .text-core-warning {
   color: var(--core-warning);
+}
+.no-underline {
+  text-decoration-line: none;
 }
 .opacity-80 {
   opacity: 0.8;
@@ -2517,6 +2536,10 @@ summary {
   border-color: var(--core-success);
 }
 
+.hover\:bg-core-subtle:hover {
+  background-color: var(--core-surface-muted);
+}
+
 .hover\:bg-core-surface:hover {
   background-color: var(--core-surface);
 }
@@ -2565,6 +2588,13 @@ summary {
   .sm\:px-6 {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+
+  .md\:grid-cols-\[13rem_minmax\(0\2c 1fr\)\] {
+    grid-template-columns: 13rem minmax(0,1fr);
   }
 }
 
@@ -2701,38 +2731,46 @@ summary {
         position: sticky;
         top: 1rem;
         max-height: calc(100vh - 2rem);
+        padding: 0.35rem 0 0.65rem;
         align-self: start;
         overflow: auto;
-        border: 1px solid var(--core-border);
-        border-radius: 1rem;
-        background: var(--core-surface);
-        box-shadow: var(--core-shadow-soft);
+        border-left: 1px solid var(--core-border);
       }
 
-      .catalog-nav-title {
+      .catalog-nav-disclosure {
+        position: relative;
+      }
+
+      .catalog-nav-summary {
+        display: none;
+      }
+
+      .catalog-nav-links {
         margin: 0;
-        padding: 1rem 1rem 0.75rem;
-        color: var(--core-text-muted);
-        font: 600 0.75rem/1rem Synonym, ui-sans-serif, system-ui, sans-serif;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        padding: 0;
+        list-style: none;
       }
 
       .catalog-nav a {
-        display: block;
-        padding: 0.55rem 1rem;
+        display: flex;
+        min-height: 2.75rem;
+        margin-left: -1px;
+        padding: 0.65rem 1rem;
+        align-items: center;
         border-left: 3px solid transparent;
+        border-radius: 0 0.75rem 0.75rem 0;
         color: var(--core-text-secondary);
         font: 500 0.8125rem/1.2rem Synonym, ui-sans-serif, system-ui, sans-serif;
         text-decoration: none;
-        transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+        transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
       }
 
       .catalog-nav a:hover,
-      .catalog-nav a[aria-current="true"] {
+      .catalog-nav a[aria-current="location"] {
         border-left-color: var(--core-action-primary);
         background: var(--core-surface-muted);
         color: var(--core-text);
+        font-weight: 600;
       }
 
       .catalog-main {
@@ -3156,30 +3194,108 @@ summary {
         }
 
         .catalog-nav {
-          position: static;
-          display: flex;
+          position: sticky;
+          z-index: 30;
+          top: 0.75rem;
           max-height: none;
-          overflow-x: auto;
+          padding: 0;
+          overflow: visible;
+          border: 0;
         }
 
-        .catalog-nav-title {
-          position: absolute;
-          width: 1px;
-          height: 1px;
+        .catalog-nav-summary {
+          display: grid;
+          min-height: 3.75rem;
+          padding: 0.75rem 1rem;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 1rem;
+          border: 1px solid var(--core-border);
+          border-radius: 0.875rem;
+          background: var(--core-surface-raised);
+          box-shadow: var(--core-shadow-soft);
+          cursor: pointer;
+          list-style: none;
+        }
+
+        .catalog-nav-summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .catalog-nav-summary-current {
+          min-width: 0;
           overflow: hidden;
-          clip: rect(0 0 0 0);
+          color: var(--core-text);
+          font: 600 0.875rem/1.25rem Synonym, ui-sans-serif, system-ui, sans-serif;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .catalog-nav-summary-chevron {
+          width: 0.55rem;
+          height: 0.55rem;
+          flex: none;
+          border-right: 2px solid currentColor;
+          border-bottom: 2px solid currentColor;
+          color: var(--core-action-primary);
+          transform: translateY(-0.15rem) rotate(45deg);
+          transition: transform 160ms ease;
+        }
+
+        .catalog-nav-disclosure[open] .catalog-nav-summary-chevron {
+          transform: translateY(0.15rem) rotate(225deg);
+        }
+
+        .catalog-nav-panel {
+          position: absolute;
+          z-index: 1;
+          top: calc(100% + 0.5rem);
+          right: 0;
+          left: 0;
+          display: none;
+          max-height: calc(100dvh - 6.75rem);
+          padding: 0.5rem;
+          overflow-y: auto;
+          border: 1px solid var(--core-border);
+          border-radius: 0.875rem;
+          background: var(--core-surface-raised);
+          box-shadow: var(--core-shadow-raised);
+        }
+
+        .catalog-nav-disclosure[open][data-ready="true"] .catalog-nav-panel {
+          display: block;
+        }
+
+        .catalog-nav-links {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.25rem;
+        }
+
+        .catalog-nav-links > li {
+          border-left: 1px solid var(--core-border);
         }
 
         .catalog-nav a {
-          min-width: max-content;
-          border-bottom: 3px solid transparent;
-          border-left: 0;
+          margin-left: -1px;
+          padding: 0.65rem 0.75rem;
+          border-left: 3px solid transparent;
+          border-radius: 0 0.75rem 0.75rem 0;
         }
 
         .catalog-nav a:hover,
-        .catalog-nav a[aria-current="true"] {
-          border-bottom-color: var(--core-action-primary);
-          border-left-color: transparent;
+        .catalog-nav a[aria-current="location"] {
+          border-left-color: var(--core-action-primary);
+        }
+
+        .catalog-section {
+          scroll-margin-top: 5.5rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
         }
       }
 
@@ -3192,6 +3308,10 @@ summary {
         .catalog-grid,
         .catalog-grid-wide,
         .catalog-token-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .catalog-nav-links {
           grid-template-columns: minmax(0, 1fr);
         }
 
@@ -3274,18 +3394,27 @@ summary {
 
       <div class="catalog-layout">
         <nav class="catalog-nav" aria-label="Katalogbereiche">
-          <p class="catalog-nav-title">Inhalt</p>
-          <a href="#farben">Farben</a>
-          <a href="#typografie">Typografie</a>
-          <a href="#grundlagen">Oberflächen &amp; Maße</a>
-          <a href="#aktionen">Buttons &amp; Aktionen</a>
-          <a href="#formulare">Formulare</a>
-          <a href="#navigation">Navigation &amp; Dialog</a>
-          <a href="#feedback">Feedback &amp; Daten</a>
-          <a href="#content">Content &amp; Werkzeuge</a>
-          <a href="#lernen">Lernen &amp; Review</a>
-          <a href="#fachmuster">Fachliche Muster</a>
-          <a href="#icons">Icons</a>
+          <details id="catalog-nav-disclosure" class="catalog-nav-disclosure" open>
+            <summary class="catalog-nav-summary">
+              <span id="catalog-nav-current" class="catalog-nav-summary-current">Farben</span>
+              <span class="catalog-nav-summary-chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="catalog-nav-panel">
+              <ul class="catalog-nav-links">
+                <li><a href="#farben" aria-current="location">Farben</a></li>
+                <li><a href="#typografie">Typografie</a></li>
+                <li><a href="#grundlagen">Oberflächen &amp; Maße</a></li>
+                <li><a href="#aktionen">Buttons &amp; Aktionen</a></li>
+                <li><a href="#formulare">Formulare</a></li>
+                <li><a href="#navigation">Navigation &amp; Dialog</a></li>
+                <li><a href="#feedback">Feedback &amp; Daten</a></li>
+                <li><a href="#content">Content &amp; Werkzeuge</a></li>
+                <li><a href="#lernen">Lernen &amp; Review</a></li>
+                <li><a href="#fachmuster">Fachliche Muster</a></li>
+                <li><a href="#icons">Icons</a></li>
+              </ul>
+            </div>
+          </details>
         </nav>
 
         <main class="catalog-main">
@@ -3562,6 +3691,24 @@ summary {
                     <button type="button" aria-label="Dark Mode einschalten" class="core-action-ghost size-11 shrink-0 rounded-full p-0"><svg class="catalog-icon"><use href="#icon-sun"></use></svg></button>
                   </div>
                 </div>
+              </div>
+              <div class="catalog-demo catalog-stack">
+                <span class="catalog-demo-label">Seiteninhaltsnavigation · Scrollspy</span>
+                <div class="grid min-w-0 gap-5 md:grid-cols-[13rem_minmax(0,1fr)]">
+                  <nav aria-label="Beispielbereiche" class="border-l border-core-border py-1">
+                    <ul>
+                      <li><a href="#navigation-demo-konto" aria-current="location" class="-ml-px flex min-h-11 items-center rounded-r-xl border-l-[3px] border-core-action bg-core-subtle px-4 core-body font-semibold text-core-text no-underline">Konto</a></li>
+                      <li><a href="#navigation-demo-lernen" class="-ml-px flex min-h-11 items-center rounded-r-xl border-l-[3px] border-transparent px-4 core-body font-medium text-core-secondary no-underline transition hover:bg-core-subtle hover:text-core-text">Lerntag &amp; Fokus</a></li>
+                      <li><a href="#navigation-demo-daten" class="-ml-px flex min-h-11 items-center rounded-r-xl border-l-[3px] border-transparent px-4 core-body font-medium text-core-secondary no-underline transition hover:bg-core-subtle hover:text-core-text">Daten &amp; Synchronisierung</a></li>
+                    </ul>
+                  </nav>
+                  <div class="catalog-stack" aria-hidden="true">
+                    <div id="navigation-demo-konto" class="rounded-xl border border-core-border bg-core-surface p-4"><p class="core-body font-semibold text-core-text">Konto</p><p class="mt-1 core-caption text-core-muted">Profil und Anmeldung</p></div>
+                    <div id="navigation-demo-lernen" class="rounded-xl border border-core-border bg-core-surface p-4"><p class="core-body font-semibold text-core-text">Lerntag &amp; Fokus</p><p class="mt-1 core-caption text-core-muted">Tagesbeginn und Lernrhythmus</p></div>
+                    <div id="navigation-demo-daten" class="rounded-xl border border-core-border bg-core-surface p-4"><p class="core-body font-semibold text-core-text">Daten &amp; Synchronisierung</p><p class="mt-1 core-caption text-core-muted">Export, Import und Cloudstatus</p></div>
+                  </div>
+                </div>
+                <p class="catalog-note">Für lange Seiten mit mindestens drei klaren Abschnitten. Native Ankerlinks behalten Deep Links und Browsernavigation; die aktive Sektion erhält zusätzlich <code>aria-current=&quot;location&quot;</code>. Auf schmalen Ansichten wird das Muster nicht sticky.</p>
               </div>
               <details class="rounded-2xl border border-core-border bg-core-subtle p-4">
                 <summary class="cursor-pointer core-body font-semibold text-core-secondary">Details und Warnungen anzeigen</summary>
@@ -4070,12 +4217,56 @@ summary {
 
       const sectionLinks = [...document.querySelectorAll(".catalog-nav a")];
       const sections = sectionLinks.map((link) => document.querySelector(link.getAttribute("href")));
+      const catalogNav = document.querySelector(".catalog-nav");
+      const catalogNavDisclosure = document.querySelector("#catalog-nav-disclosure");
+      const catalogNavSummary = catalogNavDisclosure.querySelector("summary");
+      const catalogNavCurrent = document.querySelector("#catalog-nav-current");
+      const compactNavigation = window.matchMedia("(max-width: 62rem)");
+      const visibleSections = new Set();
+      const setCurrentSection = (section) => {
+        const activeIndex = sections.indexOf(section);
+        sectionLinks.forEach((link) => {
+          if (link.getAttribute("href") === `#${section.id}`) {
+            link.setAttribute("aria-current", "location");
+          } else {
+            link.removeAttribute("aria-current");
+          }
+        });
+        if (activeIndex >= 0) {
+          catalogNavCurrent.textContent = sectionLinks[activeIndex].textContent.trim();
+        }
+      };
+      const synchronizeNavigationLayout = () => {
+        catalogNavDisclosure.open = !compactNavigation.matches;
+      };
+
+      synchronizeNavigationLayout();
+      catalogNavDisclosure.dataset.ready = "true";
+      compactNavigation.addEventListener("change", synchronizeNavigationLayout);
+      sectionLinks.forEach((link) => link.addEventListener("click", () => {
+        if (!compactNavigation.matches) return;
+        catalogNavDisclosure.open = false;
+        catalogNavSummary.focus({ preventScroll: true });
+      }));
+      document.addEventListener("pointerdown", (event) => {
+        if (compactNavigation.matches && catalogNavDisclosure.open && !catalogNav.contains(event.target)) {
+          catalogNavDisclosure.open = false;
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape" || !compactNavigation.matches || !catalogNavDisclosure.open) return;
+        catalogNavDisclosure.open = false;
+        catalogNavSummary.focus();
+      });
+
+      const initialSection = sections.find((section) => section && `#${section.id}` === window.location.hash) ?? sections[0];
+      if (initialSection) setCurrentSection(initialSection);
       const observer = new IntersectionObserver((entries) => {
-        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (!visible) return;
-        sectionLinks.forEach((link) => link.setAttribute("aria-current", String(link.getAttribute("href") === `#${visible.target.id}`)));
+        entries.forEach((entry) => entry.isIntersecting ? visibleSections.add(entry.target) : visibleSections.delete(entry.target));
+        const visible = [...visibleSections].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
+        if (visible) setCurrentSection(visible);
       }, { rootMargin: "-10% 0px -78% 0px" });
-      sections.forEach((section) => observer.observe(section));
+      sections.filter(Boolean).forEach((section) => observer.observe(section));
     </script>
   </body>
 </html>
