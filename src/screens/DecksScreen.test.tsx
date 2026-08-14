@@ -127,6 +127,7 @@ test("cards page renders sortable collapsed deck sections with direct metrics", 
   assert.match(markup, /focus-visible:outline-none/);
   assert.doesNotMatch(markup, /Karten nach CoRe-Modus filtern|Alle Modi/);
   assert.match(markup, />Neue Karte<\/span><\/button>/);
+  assert.doesNotMatch(markup, /<span[^>]*aria-live="polite"[^>]*>\d+ Karten?<\/span>/);
   assert.doesNotMatch(markup, /data-deck-drag-source/);
 
   for (const [deckId, depth] of [

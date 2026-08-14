@@ -817,7 +817,6 @@ export function DecksScreen({
     return {
       allGroups,
       groups,
-      cardCount: groups.reduce((total, group) => total + group.totalCardCount, 0),
       cardSort,
     };
   }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, decks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
@@ -1129,7 +1128,6 @@ export function DecksScreen({
             <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
           </label>
           <ActionButton type="button" variant="primary" icon={PlusSquare} onClick={onOpenCardCreation}>Neue Karte</ActionButton>
-          <span className="core-caption font-semibold text-[var(--core-text-muted)]" aria-live="polite">{tableModel.cardCount} {tableModel.cardCount === 1 ? "Karte" : "Karten"}</span>
         </div>
         {deckStatus ? <p className={"mt-3 core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
         {deletedCardUndo ? (
