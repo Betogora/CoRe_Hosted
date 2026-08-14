@@ -309,18 +309,28 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page).toHaveURL("/hilfe");
   await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeFocused();
   await expect(page.getByRole("heading", { name: "Wir wollen Lernen verbessern." })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Active Recall hält den Fokus auf dem Inhalt" })).toBeVisible();
+  await expect(page.getByText(/Welche Grundsätze nutzt CoRe, um das Lernen möglichst nachhaltig zu gestalten/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Active Recall", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" })).toBeVisible();
   await expect(page.getByText(/CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
   await expect(page.getByText(/höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/i)).toBeVisible();
   await expect(page.getByText(/bestimmen gemeinsam, ob eine Karte „bereit für Varianten“ ist/i)).toBeVisible();
 
+  const activeRecallVisual = page.getByTestId("active-recall-visual");
+  await expect(activeRecallVisual.locator('[data-active-recall-card="stack"]')).toBeVisible();
+
   await page.getByTestId("active-recall-step-blur").scrollIntoViewIfNeeded();
-  await expect(page.getByTestId("active-recall-visual")).toHaveAttribute("data-active-step", "1");
+  await expect(activeRecallVisual).toHaveAttribute("data-active-step", "1");
+  await expect(activeRecallVisual.locator('[data-active-recall-card="blur"]')).toBeVisible();
+  await expect(activeRecallVisual.getByTestId("active-recall-obscured-text")).toBeVisible();
 
   await page.getByTestId("active-recall-step-variants").scrollIntoViewIfNeeded();
-  await expect(page.getByTestId("active-recall-visual")).toHaveAttribute("data-active-step", "2");
+  await expect(activeRecallVisual).toHaveAttribute("data-active-step", "2");
+  await expect(activeRecallVisual.locator('[data-active-recall-card="variants"]')).toBeVisible();
+  await expect(activeRecallVisual.getByTestId("active-recall-variant-card")).toHaveCount(2);
+  await expect(activeRecallVisual.locator(".lucide-sparkles")).toHaveCount(2);
+  await expect(activeRecallVisual.locator(".lucide-sparkle")).toHaveCount(2);
 
   await page.getByTestId("spaced-repetition-step-rating-hard").scrollIntoViewIfNeeded();
   await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "rating-hard");

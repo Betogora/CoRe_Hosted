@@ -8,8 +8,17 @@ test("renders scroll stories for active recall and spaced repetition", () => {
 
   assert.match(markup, /Wie CoRe dein Lernen stärkt/);
   assert.match(markup, /Wir wollen Lernen verbessern/);
-  assert.match(markup, /Active Recall hält den Fokus auf dem Inhalt/);
+  assert.match(markup, /Welche Grundsätze nutzt CoRe, um das Lernen möglichst nachhaltig zu gestalten/);
+  assert.match(markup, /Active Recall <span class="text-core-warning">→<\/span> Smarter Recall/);
+  assert.match(markup, /Spaced Repetition <span class="text-core-warning">→<\/span> Content Repetition/);
+  assert.match(markup, /id="active-recall-heading"[^>]*>Active Recall<\/h2>/);
+  assert.doesNotMatch(markup, /Active Recall hält den Fokus auf dem Inhalt/);
+  assert.doesNotMatch(markup, /Eine Antwort, wechselnde Abrufreize/);
+  assert.match(markup, /data-active-recall-card="stack"/);
+  assert.match(markup, /Welcher Teil des autonomen<\/span> Nervensystems ist in erster Linie dafür verantwortlich/);
+  assert.match(markup, /Je vertrauter die Kartenform wird, desto schwächer wird der aktive Abruf des Inhalts/);
   assert.match(markup, /CoRe verändert die Frage, nicht das Wissen/);
+  assert.match(markup, /jedes Mal erneut aktiv abrufst – Smarter Recall/);
   assert.match(markup, /Spaced Repetition findet den passenden Zeitpunkt/);
   assert.match(markup, /Das Diagramm bleibt stehen/);
   assert.match(markup, /So arbeitet ein Spaced-Repetition-Scheduler/);

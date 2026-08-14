@@ -5,6 +5,7 @@ import {
   ExternalLink,
   RotateCcw,
   ShieldCheck,
+  Sparkle,
   Sparkles,
 } from "lucide-react";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
@@ -115,17 +116,40 @@ const ACTIVE_RECALL_STEPS: readonly StoryStep<"stack" | "blur" | "variants">[] =
     title: "Irgendwann erkennst du eher die Karte als den Inhalt",
     text: "Nach einiger Zeit bleiben leicht Position, Satzlänge oder einzelne Signalwörter hängen. Die Antwort fühlt sich bekannt an, obwohl die eigentliche Frage nicht mehr vollständig verstanden wird.",
     selection: "blur",
-    note: "Die Karte wird vertraut, der aktive Abruf wird schwächer.",
+    note: "Je vertrauter die Kartenform wird, desto schwächer wird der aktive Abruf des Inhalts.",
   },
   {
     id: "active-variants",
     eyebrow: "03 · Smarter Recall",
     title: "CoRe verändert die Frage, nicht das Wissen",
-    text: "Wie ein Tutor formuliert CoRe dieselbe Wissenseinheit nach ausreichender Reife neu. So musst du den Inhalt bei jeder Wiederholung aktiv abrufen, statt nur ein bekanntes Kartenbild wiederzuerkennen.",
+    text: "Wie ein Tutor formuliert CoRe dieselbe Wissenseinheit nach ausreichender Reife neu. Die Varianten fragen denselben Inhalt anders ab, ohne neue Fakten einzuführen.",
     selection: "variants",
-    note: "Eine Originalkarte bleibt der Anker; Varianten führen keine neuen Fakten ein.",
+    note: "So wird sichergestellt, dass du den Inhalt jedes Mal erneut aktiv abrufst – Smarter Recall.",
   },
 ];
+
+const ACTIVE_RECALL_STACK_LAYERS = [
+  { id: "warning", className: "bg-core-warning-soft", transform: "translate(28px, -20px) rotate(3deg)" },
+  { id: "success", className: "bg-core-success-soft", transform: "translate(-20px, -8px) rotate(-2.5deg)" },
+] as const;
+
+const OBSCURED_RECALL_PIXELS = Array.from({ length: 14 }, (_, index) => index);
+const OBSCURED_RECALL_PIXEL_TONES = ["opacity-25", "opacity-40", "opacity-55"] as const;
+
+const ACTIVE_RECALL_VARIANTS = [
+  {
+    id: "resting-heart-rate",
+    question: "Wenn die Herzfrequenz des Körpers im Ruhezustand sinkt, welcher Teil des autonomen Nervensystems ist daran hauptsächlich beteiligt?",
+    className: "left-[4%] right-[12%] top-4 z-10 -rotate-2 bg-core-warning-soft",
+    showAnswer: false,
+  },
+  {
+    id: "autonomic-section",
+    question: "Die Senkung der Herzfrequenz unter Ruhebedingungen wird vor allem durch welchen Abschnitt des autonomen Nervensystems vermittelt?",
+    className: "left-[12%] right-[4%] top-44 z-20 rotate-2 bg-core-info-soft",
+    showAnswer: true,
+  },
+] as const;
 
 const SPACED_REPETITION_STEPS: readonly StoryStep<ExplorerSelectionId>[] = [
   {
@@ -317,9 +341,9 @@ function StoryStepCard<TSelection extends string>({
   testId?: string;
 }) {
   return (
-    <li id={elementId} className="flex min-h-[58svh] items-center py-8 xl:min-h-[68svh]" data-story-step={index} data-testid={testId}>
+    <li id={elementId} className="flex min-w-0 min-h-[58svh] items-center py-8 xl:min-h-[68svh]" data-story-step={index} data-testid={testId}>
       <article
-        className={`w-full border-l-4 py-4 pl-5 transition-[border-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 border-core-action opacity-100" : "translate-x-2 border-core-border opacity-45"}`}
+        className={`min-w-0 w-full border-l-4 py-4 pl-5 transition-[border-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 border-core-action opacity-100" : "translate-x-2 border-core-border opacity-70"}`}
         tabIndex={0}
         onFocus={onFocus}
         aria-current={active ? "step" : undefined}
@@ -327,7 +351,7 @@ function StoryStepCard<TSelection extends string>({
         <p className="core-caption font-semibold uppercase tracking-wide text-core-action">{step.eyebrow}</p>
         <h3 className="core-heading-2 mt-3 font-semibold text-core-text">{step.title}</h3>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">{step.text}</p>
-        {step.note ? <p className="mt-4 core-caption leading-5 text-core-muted">{step.note}</p> : null}
+        {step.note ? <p className="mt-4 core-caption leading-5 text-core-secondary">{step.note}</p> : null}
       </article>
     </li>
   );
@@ -335,26 +359,29 @@ function StoryStepCard<TSelection extends string>({
 
 function IntroCardStack() {
   return (
-    <div className="relative mx-auto h-[22rem] w-full max-w-lg" role="img" aria-label="Ein Stapel Karteikarten, aus dem unterschiedliche Fragen zur gleichen Antwort hervorgehen">
-      {[3, 2, 1].map((layer) => (
+    <div
+      className="relative mx-auto h-[25rem] w-full max-w-lg"
+      role="img"
+      aria-label="Karteikartenstapel mit der Frage, welche Grundsätze CoRe für nachhaltiges Lernen nutzt. Active Recall wird zu Smarter Recall und Spaced Repetition zu Content Repetition weiterentwickelt."
+    >
+      {ACTIVE_RECALL_STACK_LAYERS.map((layer) => (
         <div
-          key={layer}
-          className="absolute inset-x-8 top-10 h-64 rounded-[26px] border border-core-border bg-core-surface-raised shadow-sm"
-          style={{ transform: `translate(${layer * 8}px, ${layer * -8}px) rotate(${layer * 1.2}deg)`, opacity: 0.35 + layer * 0.15 }}
+          key={layer.id}
+          className={`absolute inset-x-4 top-12 h-[19rem] rounded-[26px] border border-[var(--core-border-interactive)] shadow-md sm:inset-x-8 ${layer.className}`}
+          style={{ transform: layer.transform }}
           aria-hidden="true"
         />
       ))}
-      <div className="absolute inset-x-8 top-10 grid h-64 place-items-center rounded-[26px] border border-core-border bg-core-surface-raised p-7 text-center shadow-lg">
-        <div>
-          <span className="core-caption font-semibold uppercase tracking-wide text-core-action">Eine Wissenseinheit</span>
-          <p className="mt-5 core-body-large font-semibold leading-7 text-core-text">Welcher Teil des autonomen Nervensystems senkt die Herzfrequenz in Ruhe?</p>
-          <div className="mx-auto mt-6 h-px w-24 bg-core-border" />
-          <p className="mt-5 core-body text-core-secondary">Der Parasympathikus</p>
+      <div className="absolute inset-x-4 top-12 grid h-[19rem] place-items-center rounded-[26px] border border-[var(--core-border-interactive)] bg-core-info-soft p-6 text-center shadow-lg sm:inset-x-8 sm:p-8">
+        <div className="max-w-md">
+          <p className="core-body-large font-semibold leading-7 text-core-text">
+            Welche Grundsätze nutzt CoRe, um das Lernen möglichst nachhaltig zu gestalten, und wie wurden sie im Vergleich zu herkömmlichen Lernmechanismen verbessert?
+          </p>
+          <ol className="mx-auto mt-6 grid max-w-sm gap-3 border-t border-[var(--core-border-interactive)] pt-5 text-left core-body font-semibold text-core-text">
+            <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-action">1.</span><span>Active Recall <span className="text-core-warning">→</span> Smarter Recall</span></li>
+            <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-action">2.</span><span>Spaced Repetition <span className="text-core-warning">→</span> Content Repetition</span></li>
+          </ol>
         </div>
-      </div>
-      <div className="absolute bottom-1 right-1 flex items-center gap-2 rounded-full border border-core-border bg-core-surface px-4 py-2 core-caption font-semibold text-core-text shadow-sm">
-        <Sparkles size={16} className="text-core-action" aria-hidden="true" />
-        Viele mögliche Abrufe
       </div>
     </div>
   );
@@ -362,7 +389,7 @@ function IntroCardStack() {
 
 function IntroSection() {
   return (
-    <section className="grid min-h-[72svh] items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
+    <section className="grid min-w-0 min-h-[72svh] items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
       <div className="max-w-2xl">
         <p className="core-control-label uppercase tracking-wide text-core-action">Lernen, das wirklich bleibt</p>
         <h2 id="help-intro-heading" className="core-heading-1 mt-4 font-semibold text-core-text">Wir wollen Lernen verbessern.</h2>
@@ -385,72 +412,81 @@ function IntroSection() {
   );
 }
 
+function RecallQuestion({ obscured }: { obscured: boolean }) {
+  return (
+    <p className="core-heading-3 font-medium leading-8 text-core-text">
+      <span className="text-core-warning">Welcher Teil des autonomen</span>{" "}
+      {obscured ? (
+        <span className="mx-2 inline-flex items-center gap-1 align-middle" data-testid="active-recall-obscured-text">
+          {OBSCURED_RECALL_PIXELS.map((pixel) => (
+            <span key={pixel} className={`size-1.5 rounded-[1px] bg-[var(--core-text)] ${OBSCURED_RECALL_PIXEL_TONES[pixel % OBSCURED_RECALL_PIXEL_TONES.length]}`} />
+          ))}
+        </span>
+      ) : (
+        <>Nervensystems ist in erster Linie dafür verantwortlich, die Herzfrequenz in Ruhe zu </>
+      )}
+      <span className="text-core-warning">senken?</span>
+    </p>
+  );
+}
+
+function ActiveRecallOriginalCard({ obscured }: { obscured: boolean }) {
+  return (
+    <div className="relative h-[27rem]" data-active-recall-card={obscured ? "blur" : "stack"}>
+      {ACTIVE_RECALL_STACK_LAYERS.map((layer) => (
+        <div
+          key={layer.id}
+          className={`absolute inset-x-[8%] top-20 h-64 rounded-[24px] border border-[var(--core-border-interactive)] shadow-md ${layer.className}`}
+          style={{ transform: layer.transform }}
+        />
+      ))}
+      <div className="absolute inset-x-[8%] top-20 grid h-64 place-items-center rounded-[24px] border border-[var(--core-border-interactive)] bg-core-info-soft p-6 text-center shadow-lg sm:p-8">
+        <div className="max-w-xl">
+          <RecallQuestion obscured={obscured} />
+          <div className="mx-auto mt-6 h-px w-4/5 bg-[var(--core-border-interactive)]" />
+          <p className="mt-5 core-heading-3 font-medium text-core-text">Der Parasympathikus</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActiveRecallVariantCards() {
+  return (
+    <div className="relative h-[27rem]" data-active-recall-card="variants">
+      {ACTIVE_RECALL_VARIANTS.map((variant) => (
+        <div
+          key={variant.id}
+          className={`absolute grid min-h-52 place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 pr-12 text-center shadow-lg ${variant.className}`}
+          data-testid="active-recall-variant-card"
+        >
+          <span className="absolute right-2 top-2 grid size-10 place-items-center text-core-warning" data-testid="active-recall-variant-stars" aria-hidden="true">
+            <Sparkles className="fill-[var(--core-warning)]" size={27} />
+            <Sparkle className="absolute bottom-0 left-0 fill-[var(--core-warning)]" size={13} />
+          </span>
+          <div className="w-full">
+            <p className="core-body-large font-semibold leading-7 text-core-text">{variant.question}</p>
+            {variant.showAnswer ? (
+              <>
+                <div className="mx-auto mt-5 h-px w-4/5 bg-[var(--core-border-interactive)]" />
+                <p className="mt-4 w-full text-center core-body-large font-semibold text-core-text">Der Parasympathikus</p>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ActiveRecallVisual({ activeIndex }: { activeIndex: number }) {
   const showBlur = activeIndex === 1;
   const showVariants = activeIndex === 2;
 
   return (
-    <SoftPanel className="relative min-h-[31rem] overflow-hidden p-5 sm:p-8" data-testid="active-recall-visual" data-active-step={activeIndex}>
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="core-caption font-semibold uppercase tracking-wide text-core-action">Active Recall</p>
-          <p className="mt-1 core-body font-semibold text-core-text">Eine Antwort, wechselnde Abrufreize</p>
-        </div>
-        <div className="flex gap-2" aria-label={`Schritt ${activeIndex + 1} von ${ACTIVE_RECALL_STEPS.length}`}>
-          {ACTIVE_RECALL_STEPS.map((step, index) => <span key={step.id} className={`size-2 rounded-full ${index === activeIndex ? "bg-core-action" : "bg-core-border"}`} />)}
-        </div>
-      </div>
-
-      <div className="relative mt-8 h-[23rem]" aria-hidden="true">
-        {[3, 2, 1].map((layer) => (
-          <div
-            key={layer}
-            className="absolute inset-x-[12%] top-8 h-60 rounded-[24px] border border-core-border bg-core-surface-raised shadow-sm transition-all duration-500 motion-reduce:transition-none"
-            style={{
-              opacity: showVariants ? 0 : showBlur ? 0.18 + layer * 0.08 : 0.35 + layer * 0.12,
-              transform: `translate(${layer * 7}px, ${layer * -7}px) rotate(${layer * 1.1}deg)`,
-            }}
-          />
-        ))}
-
-        <div
-          className="absolute inset-x-[12%] top-8 grid h-60 place-items-center rounded-[24px] border border-core-border bg-core-surface-raised p-6 text-center shadow-md transition-all duration-500 motion-reduce:transition-none"
-          style={{ opacity: showVariants ? 0 : 1, transform: showVariants ? "translateY(-28px) scale(0.9)" : "translateY(0) scale(1)" }}
-        >
-          <div>
-            <p className={`core-body-large font-semibold leading-7 text-core-text transition-[filter,opacity] duration-500 motion-reduce:transition-none ${showBlur ? "blur-[2px] opacity-45" : "blur-0 opacity-100"}`}>
-              Welcher Teil des autonomen Nervensystems senkt die Herzfrequenz in Ruhe?
-            </p>
-            {showBlur ? <p className="mt-3 core-caption font-semibold text-core-danger">Form erkannt – Frage kaum noch aktiv gelesen</p> : null}
-            <div className="mx-auto mt-5 h-px w-20 bg-core-border" />
-            <p className="mt-4 core-body text-core-secondary">Der Parasympathikus</p>
-          </div>
-        </div>
-
-        {[
-          { text: "Welcher Teil des autonomen Nervensystems senkt die Herzfrequenz?", transform: "translate(-16%, 6%) rotate(-5deg)" },
-          { text: "Warum wird die Herzfrequenz in Ruhe langsamer?", transform: "translate(0, -3%) rotate(0deg)" },
-          { text: "Welcher Abschnitt vermittelt die beruhigende Wirkung?", transform: "translate(16%, 7%) rotate(5deg)" },
-        ].map((variant, index) => (
-          <div
-            key={variant.text}
-            className="absolute inset-x-[15%] top-10 grid h-56 place-items-center rounded-[22px] border border-core-border bg-core-surface-raised p-5 text-center shadow-md transition-all duration-500 motion-reduce:transition-none"
-            style={{
-              opacity: showVariants ? 1 : 0,
-              transform: showVariants ? variant.transform : "translate(0, 20%) scale(0.82)",
-              zIndex: index + 1,
-            }}
-          >
-            <div>
-              <Sparkles size={17} className="mx-auto text-core-action" />
-              <p className="mt-3 core-body font-semibold leading-6 text-core-text">{variant.text}</p>
-              <div className="mx-auto mt-4 h-px w-16 bg-core-border" />
-              <p className="mt-3 core-caption text-core-secondary">Der Parasympathikus</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </SoftPanel>
+    <div className="relative min-h-[27rem]" data-testid="active-recall-visual" data-active-step={activeIndex} aria-hidden="true">
+      {showVariants ? <ActiveRecallVariantCards /> : <ActiveRecallOriginalCard obscured={showBlur} />}
+    </div>
   );
 }
 
@@ -458,16 +494,16 @@ function ActiveRecallStory() {
   const { activeIndex, containerRef, setActiveIndex } = useScrollStory(ACTIVE_RECALL_STEPS.length);
 
   return (
-    <section className="grid gap-8" aria-labelledby="active-recall-heading">
+    <section className="grid min-w-0 gap-8" aria-labelledby="active-recall-heading">
       <div className="max-w-3xl">
         <p className="core-control-label uppercase tracking-wide text-core-action">Methode 1</p>
-        <h2 id="active-recall-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Active Recall hält den Fokus auf dem Inhalt</h2>
+        <h2 id="active-recall-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Active Recall</h2>
       </div>
-      <div ref={containerRef} className="grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] xl:gap-12">
-        <div className="self-start xl:sticky xl:top-6">
+      <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] xl:gap-12">
+        <div className="min-w-0 self-start xl:sticky xl:top-6">
           <ActiveRecallVisual activeIndex={activeIndex} />
         </div>
-        <ol>
+        <ol className="min-w-0">
           {ACTIVE_RECALL_STEPS.map((step, index) => (
             <StoryStepCard key={step.id} testId={`active-recall-step-${step.selection}`} step={step} index={index} active={activeIndex === index} onFocus={() => setActiveIndex(index)} />
           ))}
@@ -634,17 +670,17 @@ function SpacedRepetitionStory() {
   }
 
   return (
-    <section className="grid gap-8" aria-labelledby="spaced-repetition-heading">
+    <section className="grid min-w-0 gap-8" aria-labelledby="spaced-repetition-heading">
       <div className="max-w-3xl">
         <p className="core-control-label uppercase tracking-wide text-core-action">Methode 2</p>
         <h2 id="spaced-repetition-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">Scrolle durch die Schritte. Das Diagramm bleibt stehen und hebt jeweils den Teil hervor, der gerade erklärt wird.</p>
       </div>
-      <div ref={containerRef} className="grid gap-8 xl:grid-cols-[minmax(38rem,1.35fr)_minmax(19rem,0.65fr)] xl:gap-10">
-        <div className="self-start xl:sticky xl:top-6">
+      <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(38rem,1.35fr)_minmax(19rem,0.65fr)] xl:gap-10">
+        <div className="min-w-0 self-start xl:sticky xl:top-6">
           <MemoryCurveGraphic selection={activeStep.selection} onSelectionChange={selectGraphPart} />
         </div>
-        <ol>
+        <ol className="min-w-0">
           {SPACED_REPETITION_STEPS.map((step, index) => (
             <StoryStepCard key={step.id} elementId={step.id} testId={`spaced-repetition-step-${step.selection}`} step={step} index={index} active={activeIndex === index} onFocus={() => setActiveIndex(index)} />
           ))}
@@ -656,7 +692,7 @@ function SpacedRepetitionStory() {
 
 function ReferenceSection() {
   return (
-    <section className="grid gap-8" aria-labelledby="reference-heading">
+    <section className="grid min-w-0 gap-8" aria-labelledby="reference-heading">
       <div>
         <p className="core-control-label uppercase tracking-wide text-core-action">Zum Nachlesen</p>
         <h2 id="reference-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Das Wichtigste auf einen Blick</h2>
@@ -737,7 +773,7 @@ function ReferenceSection() {
 
 export function HelpScreen() {
   return (
-    <div className="grid gap-24 pb-16">
+    <div className="grid min-w-0 gap-24 pb-16">
       <PageHeader eyebrow="Hilfe" title="Wie CoRe dein Lernen stärkt" />
       <IntroSection />
       <ActiveRecallStory />
