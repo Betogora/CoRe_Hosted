@@ -188,7 +188,7 @@ function createDefaultAdapter(client: any) {
       const persistedRows: any[] = [];
       for (let mutationIndex = 0; mutationIndex < mutations.length;) {
         const mutation = mutations[mutationIndex];
-        if (mutation.type === SYNC_MUTATION_TYPES.entityMutation && !mutation.payload?.tombstone && !["learning_item_source_snapshots", "review_events"].includes(mutation.payload?.table)) {
+        if (mutation.type === SYNC_MUTATION_TYPES.entityMutation && !mutation.payload?.tombstone) {
           let groupEnd = mutationIndex + 1;
           while (
             groupEnd < mutations.length

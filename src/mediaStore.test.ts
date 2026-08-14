@@ -165,6 +165,40 @@ test("Pending-Queue bleibt ohne Cloud reloadfest und enthält keine Tokens oder 
   assert.ok(cloudParentChecks >= 1);
 });
 
+test("Medienqueue ist vor der Freigabe der Cloud-Eltern dauerhaft geschrieben", async () => {
+  const indexedDB = new IDBFactory();
+  let releaseCloudParents!: () => void;
+  const cloudParentsReady = new Promise<void>((resolve) => { releaseCloudParents = resolve; });
+  const store = createAccountMediaStore({ client: {}, supabaseUrl: "http://127.0.0.1", userId: "gated-user", indexedDB });
+  await store.cachePreviewMedia(deck(), [file]);
+
+  const task = store.syncImportMedia([deck()], { waitUntilReady: cloudParentsReady });
+  await task.queued;
+  let settled = false;
+  void task.result.then(() => { settled = true; });
+
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  const records = await new Promise<any[]>((resolve, reject) => { const request = db.transaction("media_queue", "readonly").objectStore("media_queue").getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  db.close();
+  assert.equal(settled, false);
+  assert.equal(records.length, 1);
+
+  releaseCloudParents();
+  const result = await task.result;
+  assert.notEqual(result.status, "cloud-ready");
+});
+
+test("Medien-Tasks melden ihren aktuellen Status beim Abonnieren sofort", async () => {
+  const store = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "subscriber-user", indexedDB: new IDBFactory() });
+  const task = store.syncImportMedia([deck()]);
+  const statuses: string[] = [];
+
+  const unsubscribe = task.subscribe((_progress, status) => statuses.push(status));
+  assert.equal(statuses[0], "local-pending");
+  unsubscribe();
+  await task.result;
+});
+
 test("Hierarchie-Decks queueen nur die Medien ihrer tatsächlichen Kartenreferenzen", async () => {
   const indexedDB = new IDBFactory();
   const store = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "hierarchy-user", indexedDB });

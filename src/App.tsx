@@ -9,6 +9,7 @@ import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type ReviewReturnContext, type SettingsReturnContext, type SettingsTarget } from "./appNavigation.ts";
 import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
+import { createEmptyApkgImportSession, disposeApkgImportPreview, hasVisibleApkgImportSession, resolveApkgCreationMethod, type ApkgImportSession } from "./apkgImportSession.ts";
 import type {
   CardDraftGuard,
   CreationScreenProps,
@@ -27,6 +28,7 @@ import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { replaceAccountCloudState } from "./cloudRepository.ts";
+import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 import { addRephrasedVariant, createDefaultDeckSettings, createManualCoreDeck, duplicateLearningItemContent, getCardContentPayload, restoreCardVersion, saveCardEditorValue, saveLearningItemDocumentValues, updateLearningItemStudyState } from "./coreModel.ts";
 import { createWorkspaceDeck, restoreSoftDeletedCard, softDeleteCard, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
 import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
@@ -208,6 +210,7 @@ export function App() {
   const [legacyState, setLegacyState] = React.useState<NonNullable<ReturnType<typeof readLegacyLocalState>> | null>(null);
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
   const [syncEngine, setSyncEngine] = React.useState<AccountSyncEngine | null>(null);
+  const [apkgImportSession, setApkgImportSessionState] = React.useState<ApkgImportSession>(() => createEmptyApkgImportSession());
   const creationDraftDirtyRef = React.useRef(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const [emptyStudyStart, setEmptyStudyStart] = React.useState<EmptyStudyStart | null>(null);
@@ -221,6 +224,9 @@ export function App() {
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
   const preparedStudyKeyRef = React.useRef("");
   const preparingStudyKeyRef = React.useRef("");
+  const apkgImportSessionRef = React.useRef(apkgImportSession);
+  const apkgAccountIdRef = React.useRef<string | null>(null);
+  const importCloudTasksRef = React.useRef(new Set<ImportCloudSyncTask>());
   const {
     activeView,
     studyRequest,
@@ -240,6 +246,40 @@ export function App() {
   } = useAppNavigation({ authPhase, defaultViewId: menu.defaultViewId });
   const mediaStore = React.useMemo(() => cloudUser ? createAccountMediaStore({ client: supabase, supabaseUrl: getSupabaseBrowserConfig().url, userId: cloudUser.id }) : null, [cloudUser, supabase]);
 
+  const setApkgImportSession = React.useCallback((update: React.SetStateAction<ApkgImportSession>) => {
+    setApkgImportSessionState((current) => {
+      const next = typeof update === "function" ? update(current) : update;
+      apkgImportSessionRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const resetApkgImportSession = React.useCallback((disposeWorker = true) => {
+    const current = apkgImportSessionRef.current;
+    if (disposeWorker && !current.isParsing) disposeApkgImportPreview(current);
+    setApkgImportSession(createEmptyApkgImportSession(current.version + 1));
+  }, [setApkgImportSession]);
+
+  const isApkgImportSessionCurrent = React.useCallback(
+    (version: number) => apkgImportSessionRef.current.version === version,
+    [],
+  );
+
+  React.useEffect(() => {
+    const accountId = cloudUser?.id ?? null;
+    if (apkgAccountIdRef.current === accountId) return;
+    disposeApkgImportPreview(apkgImportSessionRef.current);
+    importCloudTasksRef.current.clear();
+    apkgAccountIdRef.current = accountId;
+    resetApkgImportSession(false);
+  }, [cloudUser?.id, resetApkgImportSession]);
+
+  React.useEffect(() => {
+    if (syncStatus.status !== "saved") return;
+    for (const task of importCloudTasksRef.current) {
+      if (task.status === "local-pending") void task.retry();
+    }
+  }, [syncStatus]);
   const getLearningNow = React.useCallback(
     () => getSimulatedNow(new Date(), simulationOffsetMinutes),
     [simulationOffsetMinutes],
@@ -823,6 +863,9 @@ export function App() {
     bootRunRef.current += 1;
     resetBrowserRouteToDefault();
     setSimulationOffsetMinutes(0);
+    disposeApkgImportPreview(apkgImportSessionRef.current);
+    importCloudTasksRef.current.clear();
+    resetApkgImportSession(false);
     setWorkspaceRepository(null);
     setCardPages({});
     setSyncEngine(null);
@@ -863,12 +906,10 @@ export function App() {
     if (mediaOnly) {
       workspaceRepository.saveDeckMetadata(nextDecks);
       refresh();
-      await workspaceRepository.flush();
-      await syncEngine.flush({ force: true });
-      return nextDecks;
+      return { decks: nextDecks, cloudTask: createTrackedImportCloudTask() };
     }
     let importedDecks: Array<{ id: string }>;
-    if (commitGraph && !mediaOnly) {
+    if (commitGraph) {
       importedDecks = await workspaceRepository.commitImportGraph(commitGraph.kind === "worker-import" ? commitGraph : { ...commitGraph, decks: nextDecks });
     } else {
       importedDecks = await workspaceRepository.commitImportGraph({
@@ -878,10 +919,33 @@ export function App() {
       });
     }
     const nextState = refresh();
-    await workspaceRepository.flush();
-    await syncEngine.flush({ force: true });
     const importedIds = new Set(importedDecks.map((deck) => deck.id));
-    return nextState?.decks.filter((deck) => importedIds.has(deck.id)) ?? nextDecks;
+    return {
+      decks: nextState?.decks.filter((deck) => importedIds.has(deck.id)) ?? nextDecks,
+      cloudTask: createTrackedImportCloudTask(),
+    };
+
+    function createTrackedImportCloudTask() {
+      const task = createImportCloudSyncTask(async () => {
+        await workspaceRepository!.flush();
+        const result = await syncEngine!.flush({ force: true });
+        if (result?.paused) {
+          return { status: "blocked", message: "Die Karten sind lokal gespeichert. Ein Cloud-Konflikt verhindert den Abschluss der Synchronisierung." };
+        }
+        if (result?.deferred || syncEngine!.pendingCount() > 0) {
+          return { status: "local-pending", message: "Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus." };
+        }
+        return { status: "cloud-ready", message: "Karten, Wiederholungen und Quell-Snapshots sind in der Cloud bestätigt." };
+      });
+      importCloudTasksRef.current.add(task);
+      const unsubscribe = task.subscribe((result) => {
+        if (result.status !== "cloud-ready" && result.status !== "blocked") return;
+        importCloudTasksRef.current.delete(task);
+        unsubscribe();
+      });
+      void task.retry();
+      return task;
+    }
   }
 
   function recordReview(result: ReviewAnswerResult) {
@@ -1396,18 +1460,26 @@ export function App() {
       );
     }
     if (activeView === "neue-karten") {
+      const visibleCreationMethod = resolveApkgCreationMethod(creationMethod, apkgImportSession);
       return (
         <CreationScreen
           decks={state.decks}
           mediaStore={mediaStore}
           persistImportedDecks={persistImportedDecks}
-          initialMethod={creationMethod}
+          apkgImportSession={apkgImportSession}
+          onApkgImportSessionChange={setApkgImportSession}
+          isApkgImportSessionCurrent={isApkgImportSessionCurrent}
+          onResetApkgImportSession={resetApkgImportSession}
+          initialMethod={visibleCreationMethod}
           initialTargetDeckId={creationDeckId}
           completedDeckId={completedDeckId}
-          onMethodChange={(method: "manual" | "import" | "") => navigateToView("neue-karten", method ? {
-            creationMethod: method,
-            creationDeckId: method === "manual" ? creationDeckId || state.decks[0]?.id : null,
-          } : {})}
+          onMethodChange={(method: "manual" | "import" | "") => {
+            if (!method && hasVisibleApkgImportSession(apkgImportSessionRef.current)) resetApkgImportSession();
+            navigateToView("neue-karten", method ? {
+              creationMethod: method,
+              creationDeckId: method === "manual" ? creationDeckId || state.decks[0]?.id : null,
+            } : {});
+          }}
           onTargetDeckChange={(deckId) => navigateToViewNow("neue-karten", {
             creationMethod: "manual",
             creationDeckId: deckId || null,

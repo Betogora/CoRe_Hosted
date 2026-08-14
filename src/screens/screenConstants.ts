@@ -5,6 +5,7 @@ export const importSteps = [
   { id: "analyze", label: "Analysieren" },
   { id: "preview", label: "Vorschau bereit" },
   { id: "commit", label: "Übernehmen" },
+  { id: "cloud", label: "Cloud-Daten synchronisieren" },
   { id: "media", label: "Medien werden synchronisiert" },
   { id: "complete", label: "Fertig" },
 ];

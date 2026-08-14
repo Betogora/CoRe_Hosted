@@ -1,4 +1,6 @@
+import type { Dispatch, SetStateAction } from "react";
 import type { AppRoute, AppViewId, SettingsTarget, createViewRoute } from "./appNavigation.ts";
+import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NoteTypeDefinitionV1, Profile, SyncStatus } from "./coreTypes.ts";
@@ -8,6 +10,7 @@ import type { CardTableSort } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
+import type { ImportedDeckPersistence } from "./creationWorkflow.ts";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
 import type { StatisticsDeckSelection, StatisticsPeriod, StatisticsProjection } from "./statisticsModel.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
@@ -32,7 +35,11 @@ export interface CardDraftGuard {
 export interface CreationScreenProps {
   decks: Deck[];
   mediaStore: AccountMediaStore | null;
-  persistImportedDecks: (decks: Deck[], options?: { mediaOnly?: boolean; commitGraph?: ImportCommitGraph }) => Promise<Deck[]>;
+  persistImportedDecks: (decks: Deck[], options?: { mediaOnly?: boolean; commitGraph?: ImportCommitGraph }) => Promise<ImportedDeckPersistence>;
+  apkgImportSession: ApkgImportSession;
+  onApkgImportSessionChange: Dispatch<SetStateAction<ApkgImportSession>>;
+  isApkgImportSessionCurrent: (version: number) => boolean;
+  onResetApkgImportSession: (disposeWorker?: boolean) => void;
   initialMethod: CreationMethod;
   initialTargetDeckId: string;
   completedDeckId: string;

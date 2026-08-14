@@ -7,6 +7,8 @@ test("import UI projection separates every active and terminal phase", () => {
   assert.equal(projectImportUiState({ isBusy: true }).status, "analyzing");
   assert.equal(projectImportUiState({ hasPreview: true }).status, "preview");
   assert.equal(projectImportUiState({ jobStatus: "committing", hasPreview: true }).status, "committing");
+  assert.equal(projectImportUiState({ jobStatus: "syncing_cloud", cloudStatus: "syncing", hasPreview: true }).status, "syncing_cloud");
+  assert.equal(projectImportUiState({ cloudStatus: "local-pending", hasPreview: true }).status, "syncing_cloud");
   assert.equal(projectImportUiState({ jobStatus: "syncing_media", hasPreview: true }).status, "syncing_media");
   assert.equal(projectImportUiState({ jobStatus: "syncing_media", mediaStatus: "paused", hasMediaTask: true }).status, "syncing_media");
   assert.equal(projectImportUiState({ jobStatus: "syncing_media", mediaStatus: "local-pending", hasMediaTask: true }).status, "syncing_media");

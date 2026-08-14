@@ -14,6 +14,9 @@ import type { CsvFieldProjection } from "./csvFieldMapping.ts";
 import { createAccountMediaStore, type MediaSyncTask } from "./mediaStore.ts";
 import type { CardEditorValue, CardType, Deck, EditableCardType, ImportCommitGraph, LearningItem, SourceAnchor } from "./coreTypes.ts";
 import { LOCAL_APKG_MAX_BYTES, type ApkgImportReportV1 } from "./apkgImport.ts";
+import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
+export { createImportCloudSyncTask } from "./importCloudSyncTask.ts";
+export type { ImportCloudSyncResult, ImportCloudSyncStatus, ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 
 interface FileLike {
   name?: string;
@@ -113,6 +116,17 @@ interface ManualValidationInput {
 
 export type CreationWorkflow = ReturnType<typeof createCreationWorkflow>;
 type AccountMediaStore = ReturnType<typeof createAccountMediaStore>;
+
+export interface ImportedDeckPersistence {
+  decks: Deck[];
+  cloudTask: ImportCloudSyncTask;
+}
+
+function createReadyCloudTask(): ImportCloudSyncTask {
+  const task = createImportCloudSyncTask(async () => ({ status: "cloud-ready", message: "Cloud-Daten sind synchronisiert." }));
+  void task.retry();
+  return task;
+}
 
 function loadApkgImport(): Promise<typeof import("./apkgImport.ts")> {
   return import("./apkgImport.ts");
@@ -370,7 +384,7 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
   };
 }
 
-export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" }), persistImportedDecks = async (decks: Deck[]) => decks }: { mediaStore?: AccountMediaStore; persistImportedDecks?: (decks: Deck[], options?: { mediaOnly?: boolean; commitGraph?: ImportCommitGraph }) => Promise<Deck[]> } = {}) {
+export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" }), persistImportedDecks = async (decks: Deck[]) => ({ decks, cloudTask: createReadyCloudTask() }) }: { mediaStore?: AccountMediaStore; persistImportedDecks?: (decks: Deck[], options?: { mediaOnly?: boolean; commitGraph?: ImportCommitGraph }) => Promise<ImportedDeckPersistence> } = {}) {
   return {
     readableSourceDocumentAccept: READABLE_SOURCE_DOCUMENT_ACCEPT,
     readableSourceDocumentLabel: READABLE_SOURCE_DOCUMENT_LABEL,
@@ -409,7 +423,10 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
         const result = await mediaStore.syncImportMedia([deck]).result;
         const references = result.referencesByDeck.get(deck.id);
         const updatedDeck = references ? { ...deck, mediaAssets: references } : deck;
-        if (references) await persistImportedDecks([updatedDeck], { mediaOnly: true });
+        if (references) {
+          const persisted = await persistImportedDecks([updatedDeck], { mediaOnly: true });
+          await persisted.cloudTask.ready;
+        }
         return { deck: updatedDeck, status: result.status, message: result.message, errors: cached.errors };
       } catch (error) {
         return {
@@ -476,16 +493,19 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       reportProgress(10);
       const decks = (committed.decks?.length ? committed.decks : committed.deck ? [committed.deck] : []) as Deck[];
       if (committed.report.errors.length > 0 || decks.length === 0) return { ...committed, mediaTask: null as MediaSyncTask | null };
-      const persistedDecks = await persistImportedDecks(decks, { commitGraph: withCommitProgress(committed.commitGraph, reportProgress) });
-      reportProgress(100);
+      const persistence = await persistImportedDecks(decks, { commitGraph: withCommitProgress(committed.commitGraph, reportProgress) });
+      const persistedDecks = persistence.decks;
       const persistedDeck = persistedDecks.find((deck) => deck.id === committed.deck?.id)
         ?? persistedDecks.find((deck) => deck.originalDeckId && deck.originalDeckId === committed.deck?.originalDeckId)
         ?? persistedDecks.find((deck) => deck.cardCount > 0)
         ?? persistedDecks[0]
         ?? committed.deck;
       const mediaDecks = createWorkerMediaDecks(committed.commitGraph, persistedDecks, preview.summary);
-      const rawMediaTask = mediaStore.syncImportMedia(mediaDecks.length ? mediaDecks : decks);
+      const rawMediaTask = mediaStore.syncImportMedia(mediaDecks.length ? mediaDecks : decks, { waitUntilReady: persistence.cloudTask.ready });
+      await rawMediaTask.queued;
+      reportProgress(100);
       const mediaTask: MediaSyncTask = {
+        queued: rawMediaTask.queued,
         get progress() { return rawMediaTask.progress; },
         pause: rawMediaTask.pause,
         resume: rawMediaTask.resume,
@@ -494,12 +514,21 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
         result: rawMediaTask.result.then(async (mediaResult) => {
           if (mediaResult.status === "cloud-ready") {
             const withReferences = persistedDecks.map((deck) => ({ ...deck, mediaAssets: mediaResult.referencesByDeck.get(deck.id) ?? deck.mediaAssets ?? [] }));
-            await persistImportedDecks(withReferences, { mediaOnly: true });
+            const referencePersistence = await persistImportedDecks(withReferences, { mediaOnly: true });
+            try {
+              await referencePersistence.cloudTask.ready;
+            } catch (error) {
+              return {
+                ...mediaResult,
+                status: "blocked" as const,
+                message: describeError(error, "Die Medienreferenzen konnten nicht in der Cloud bestätigt werden."),
+              };
+            }
           }
           return mediaResult;
         }),
       };
-      return { ...committed, deck: persistedDeck, decks: persistedDecks.length ? persistedDecks : decks, mediaTask };
+      return { ...committed, deck: persistedDeck, decks: persistedDecks.length ? persistedDecks : decks, cloudTask: persistence.cloudTask, mediaTask };
     },
 
     importPastedDeck({ mode = "text", deckName = "Importierter Stapel", content = "", dryRun = false }: PasteImportInput = {}) {

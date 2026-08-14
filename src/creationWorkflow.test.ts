@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { LOCAL_APKG_MAX_BYTES } from "./apkgImport.ts";
 import { createSourceDocument, getOriginalVariant } from "./coreModel.ts";
-import { createCreationWorkflow } from "./creationWorkflow.ts";
+import { createCreationWorkflow, createImportCloudSyncTask } from "./creationWorkflow.ts";
 
 async function worldCapitalsApkgFile() {
   const bytes = await readFile(new URL("../fixtures/apkg/world-capitals.apkg", import.meta.url));
@@ -138,7 +138,9 @@ test("creation workflow reports monotonic worker commit progress and completes o
         completedBeforePersistence ||= progress.includes(100);
       });
       assert.notEqual(progress.at(-1), 100);
-      return decks;
+      const cloudTask = createImportCloudSyncTask(async () => ({ status: "cloud-ready", message: "Synchronisiert." }));
+      void cloudTask.retry();
+      return { decks, cloudTask };
     },
   });
   const preview = {
@@ -165,4 +167,27 @@ test("creation workflow reports monotonic worker commit progress and completes o
   assert.deepEqual(progress, [...progress].sort((left, right) => left - right));
   assert.ok(progress.includes(80));
   assert.equal(progress.at(-1), 100);
+});
+
+test("import cloud task keeps completion pending across retryable sync results", async () => {
+  let attempt = 0;
+  const statuses: string[] = [];
+  const task = createImportCloudSyncTask(async () => {
+    attempt += 1;
+    return attempt === 1
+      ? { status: "local-pending", message: "Lokal gespeichert." }
+      : { status: "cloud-ready", message: "Synchronisiert." };
+  });
+  task.subscribe((result) => statuses.push(result.status));
+
+  assert.equal((await task.retry()).status, "local-pending");
+  let ready = false;
+  void task.ready.then(() => { ready = true; });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(ready, false);
+
+  assert.equal((await task.retry()).status, "cloud-ready");
+  await task.ready;
+  assert.equal(ready, true);
+  assert.deepEqual(statuses, ["syncing", "syncing", "local-pending", "syncing", "cloud-ready"]);
 });

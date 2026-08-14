@@ -107,6 +107,9 @@ Akzeptanz:
 - Der Hauptbericht nennt Datei, Stapel, Karten, Notetypes, vorhandene und fehlende Medien sowie verständliche Kompatibilitäts- und Schedulerwarnungen. Höchstens drei repräsentative Karten werden mit demselben Renderer wie die spätere Kartenansicht und der Review gezeigt; Vorder- und Rückseite tragen innerhalb der Kartenfläche eine kompakte Seitenkennzeichnung. Der pauschale Hinweis auf originalgetreue und sichere Darstellung entfällt, tatsächliche Darstellungsabweichungen und Diagnosen bleiben sichtbar.
 - Notetype-IDs, Template-Ordinals, Hashes und Importidentitäten dominieren den Hauptflow nicht.
 - Ein Wechsel zwischen APKG, Text, CSV und Tabelle verwirft die vorherige Vorschau, Commitfähigkeit, Fehler und Fortschritte vollständig.
+- Eine laufende accountgebundene APKG-Sitzung bleibt bei Navigation innerhalb der App mit Datei-Metadaten, Vorschau, Fortschritt und Abschlusszustand erhalten. Die Rückkehr zu `Erstellen → Import → APKG` zeigt denselben Zustand; Auswahl, Formatwechsel, Logout oder bestätigter Abschluss setzen ihn zurück. Ein Browser-Reload übernimmt weder Datei noch Vorschau oder Worker.
+- `Import übernehmen` endet nach dem lokalen IndexedDB-Commit und dem dauerhaften Einreihen vorhandener Medien. Die lokal gespeicherten Karten sind dann bereits verwendbar; danach werden Cloud-Daten und Medien getrennt synchronisiert. `Fertig` erscheint erst nach bestätigten Karten-, Review-, Snapshot-, Medien- und Referenzwrites.
+- Offline- und erneut versuchbare Fehler melden `Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus.` und lassen Outbox sowie Medienqueue bestehen. Nicht erneut versuchbare Konflikte bleiben sichtbar und entfernen die lokalen Karten nicht.
 - Abbruch, erneut versuchbarer Fehler, terminaler Fehler, Teilabschluss und Erfolg sind getrennte Zustände mit jeweils passender Folgeaktion.
 - Ein erfolgreicher Flow endet mit einem konkreten Ziel wie `Jetzt lernen`, `Karten prüfen` oder `Zur Bibliothek`.
 - Bei manueller Erstellung bleibt der Editor nach `Speichern` geöffnet. Angeheftete Felder bleiben erhalten, andere Felder werden geleert, das Zieldeck bleibt gewählt und der Fokus springt deterministisch in das erste freie Pflichtfeld.
@@ -272,8 +275,8 @@ Akzeptanz:
 
 - Dokumentierte statische Anki-Templates werden mit exakten Feldnamen, Conditionals, Standardfiltern, `FrontSide`, Special Fields, Cloze und CSS in einem opaken Sandbox-Frame gerendert. Script, externe Ressourcen, Add-on-/Custom-Filter und andere nicht portable Funktionen werden nicht ausgeführt; Quellwerte bleiben erhalten und die UI zeigt automatisch eine gekennzeichnete geordnete Feldansicht mit Diagnose.
 - Importfehler bleiben sichtbar und enthalten eine sinnvolle nächste Aktion.
-- Die sichtbare Importsteuerung unterscheidet `idle`, `analyzing`, `preview`, `committing`, `syncing_media`, `succeeded`, `partial`, `failed_retryable`, `failed_terminal` und `cancelled`.
-- Die laufenden APKG-Phasen `analyzing`, `committing` und `syncing_media` zeigen in der Dateizeile einen eigenen monotonen Fortschritt. Geglättete Zwischenwerte bleiben unter 100 Prozent; 100 Prozent bedeutet immer, dass die jeweilige Phase tatsächlich abgeschlossen ist.
+- Die sichtbare Importsteuerung unterscheidet `idle`, `analyzing`, `preview`, `committing`, `syncing_cloud`, `syncing_media`, `succeeded`, `partial`, `failed_retryable`, `failed_terminal` und `cancelled`.
+- Die laufenden APKG-Phasen `analyzing`, `committing`, `syncing_cloud` und `syncing_media` zeigen in der Dateizeile einen eigenen monotonen Fortschritt. Geglättete Zwischenwerte bleiben unter 100 Prozent; 100 Prozent bedeutet immer, dass die jeweilige Phase tatsächlich abgeschlossen ist.
 - Warnungen werden zunächst zusammengefasst und vollständig aufklappbar angeboten; Notetype-IDs, SHA-1-Listen und Importidentitäten erscheinen nicht in der Produktoberfläche.
 - APKG-Dateien bis einschließlich 250 MB werden lokal verarbeitet. Größere Dateien enden sofort mit einer verständlichen Meldung und `Andere Datei auswählen`; es gibt keinen Serverjob oder Upload-Fallback.
 - Reimport erkennt stabile Anki-Identitäten vor heuristischen Fingerprints.

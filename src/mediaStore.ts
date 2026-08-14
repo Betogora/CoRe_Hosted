@@ -22,7 +22,7 @@ interface QueueRecord { id: string; userId: string; deckId: string; sha1: string
 export type MediaSyncStatus = "cloud-ready" | "local-pending" | "partial" | "paused" | "cancelled" | "blocked";
 export interface MediaSyncProgress { completed: number; total: number; uploaded: number; reused: number; currentName: string; }
 export interface MediaSyncResult { status: MediaSyncStatus; referencesByDeck: Map<string, MediaAssetReference[]>; progress: MediaSyncProgress; failureKind?: MediaFailureKind; message: string; }
-export interface MediaSyncTask { result: Promise<MediaSyncResult>; readonly progress: MediaSyncProgress; pause(): Promise<void>; resume(): void; cancel(): Promise<void>; subscribe(listener: (progress: MediaSyncProgress, status: MediaSyncStatus) => void): () => void; }
+export interface MediaSyncTask { queued: Promise<void>; result: Promise<MediaSyncResult>; readonly progress: MediaSyncProgress; pause(): Promise<void>; resume(): void; cancel(): Promise<void>; subscribe(listener: (progress: MediaSyncProgress, status: MediaSyncStatus) => void): () => void; }
 export interface ResolvedDeckMedia { urls: Record<string, string>; missing: Array<{ name: string; status: string }>; expiresAt: string | null; refreshAfterMs: number | null; revoke(): void; }
 type CloudMediaResolution = { urls: Record<string, string>; missing: MediaAssetReference[]; expiresAt: string | null };
 
@@ -261,34 +261,44 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     return { persisted: Boolean(db), count: valid.length, errors };
   }
 
-  function syncImportMedia(decks: Deck[], options: { onProgress?(progress: MediaSyncProgress): void } = {}): MediaSyncTask {
+  function syncImportMedia(decks: Deck[], options: { onProgress?(progress: MediaSyncProgress): void; waitUntilReady?: Promise<unknown> } = {}): MediaSyncTask {
     let status: MediaSyncStatus = "local-pending";
     let progress: MediaSyncProgress = { completed: 0, total: 0, uploaded: 0, reused: 0, currentName: "" };
     const listeners = new Set<(progress: MediaSyncProgress, status: MediaSyncStatus) => void>();
     const queuedIds: string[] = [];
+    let resolveQueued!: () => void;
+    let rejectQueued!: (error: unknown) => void;
+    const queued = new Promise<void>((resolve, reject) => { resolveQueued = resolve; rejectQueued = reject; });
     const notify = () => { options.onProgress?.(progress); listeners.forEach((listener) => listener(progress, status)); };
     const control = createControl((next) => { status = next; notify(); });
     const result = (async (): Promise<MediaSyncResult> => {
       const inputs = [];
-      const db = await openDatabase(databaseApi).catch(() => null);
-      for (const deck of decks) {
-        const files: CloudMediaFile[] = [];
-        const plan = planDeckMediaSync(deck);
-        for (const item of plan.files) {
-          const record = await readAsset(item.sha1);
-          if (record) {
-            files.push({ ...item, size: record.size, mimeType: record.mimeType, blob: record.blob });
-            const queue: QueueRecord = { id: queueIdFor(userId, deck.id, item.sha1, item.cardId), userId, deckId: deck.id, sha1: item.sha1, size: record.size, name: item.name, cardId: item.cardId, queuedAt: nowIso() };
-            queuedIds.push(queue.id);
-            sessionQueue.set(queue.id, queue); if (db) await put(db, QUEUE_STORE, queue);
+      try {
+        const db = await openDatabase(databaseApi).catch(() => null);
+        for (const deck of decks) {
+          const files: CloudMediaFile[] = [];
+          const plan = planDeckMediaSync(deck);
+          for (const item of plan.files) {
+            const record = await readAsset(item.sha1);
+            if (record) {
+              files.push({ ...item, size: record.size, mimeType: record.mimeType, blob: record.blob });
+              const queue: QueueRecord = { id: queueIdFor(userId, deck.id, item.sha1, item.cardId), userId, deckId: deck.id, sha1: item.sha1, size: record.size, name: item.name, cardId: item.cardId, queuedAt: nowIso() };
+              queuedIds.push(queue.id);
+              sessionQueue.set(queue.id, queue); if (db) await put(db, QUEUE_STORE, queue);
+            }
           }
+          inputs.push({ deckId: deck.id, files, previousReferences: plan.previousReferences, retainedReferences: plan.retainedReferences });
         }
-        inputs.push({ deckId: deck.id, files, previousReferences: plan.previousReferences, retainedReferences: plan.retainedReferences });
+        db?.close();
+        progress = { ...progress, total: inputs.reduce((sum, input) => sum + input.files.length, 0) }; notify();
+        resolveQueued();
+      } catch (error) {
+        rejectQueued(error);
+        throw error;
       }
-      db?.close();
-      progress = { ...progress, total: inputs.reduce((sum, input) => sum + input.files.length, 0) }; notify();
       if (!client) return { status: "local-pending", referencesByDeck: new Map(), progress, failureKind: "network", message: "Medien sind lokal gespeichert; die Cloud-Synchronisierung steht noch aus." };
       try {
+        await options.waitUntilReady;
         const synced = await syncReferences({ client, supabaseUrl, userId, decks: inputs, control, onProgress(next) { progress = next; notify(); } });
         const completedQueueIds = inputs.flatMap((input) => input.files.map((file) => queueIdFor(userId, input.deckId, file.sha1, file.cardId ?? null)));
         completedQueueIds.forEach((id) => sessionQueue.delete(id));
@@ -309,7 +319,7 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
       for (const id of queuedIds) { sessionQueue.delete(id); if (db) await remove(db, QUEUE_STORE, id); }
       db?.close();
     };
-    return { result, get progress() { return progress; }, pause: () => control.pause(), resume: () => control.resume(), cancel, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); } };
+    return { queued, result, get progress() { return progress; }, pause: () => control.pause(), resume: () => control.resume(), cancel, subscribe(listener) { listeners.add(listener); listener(progress, status); return () => listeners.delete(listener); } };
   }
 
   async function resolveScopedMedia(deck: Deck, cardId: string | null): Promise<ResolvedDeckMedia> {

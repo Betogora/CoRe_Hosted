@@ -417,10 +417,11 @@ async function mapWithConcurrency<T, R>(items: T[], worker: (item: T) => Promise
 }
 
 async function upsertRows(client: any, table: any, rows: any[], options: any = {}) {
-  for (const chunk of chunkRows(rows)) {
-    const { error } = await client.from(table).upsert(chunk, { onConflict: ACCOUNT_UPSERT_CONFLICT, ...options });
+  const { concurrency = 1, ...upsertOptions } = options;
+  await mapWithConcurrency(chunkRows(rows), async (chunk) => {
+    const { error } = await client.from(table).upsert(chunk, { onConflict: ACCOUNT_UPSERT_CONFLICT, ...upsertOptions });
     if (error) throw error;
-  }
+  }, concurrency);
 }
 
 async function selectKeysetRows(client: any, table: string, userId: string, columns = "*", { optional = false }: any = {}) {
@@ -1394,7 +1395,7 @@ export async function applyEntityMutation(client: any, mutation: any, options: a
   if (entityTable === "learning_item_source_snapshots") {
     const cardId = requireNonEmptyString(mutation?.cardId, "Karten-ID des Quell-Snapshots fehlt.");
     const desired = learningItemSourceSnapshotToCloudRow(entity, cardId, user.id);
-    const remote = await selectSourceSnapshotsById(client, user.id, [desired.id]);
+    const remote = await selectSourceSnapshotsById(client, user.id, [desired.id, desired.previous_snapshot_id].filter(Boolean));
     const persisted = (await appendMissingSourceSnapshots(client, user.id, [desired], remote)).find((row: any) => row.id === desired.id);
     if (mutation.attachToCard) {
       const { error } = await client.from("cards").update({ latest_source_snapshot_id: desired.id }).eq("user_id", user.id).eq("id", cardId);
@@ -1446,8 +1447,56 @@ export async function applyEntityMutationBatch(client: any, mutations: any[], op
   if (!mutations.length) return [];
   const user = await getAuthenticatedUser(client);
   const entityTable = requireNonEmptyString(mutations[0]?.table, "Tabelle der Entity-Mutation fehlt.");
-  if (mutations.some((mutation) => mutation.table !== entityTable || mutation.tombstone || ["learning_item_source_snapshots", "review_events"].includes(entityTable))) {
+  if (mutations.some((mutation) => mutation.table !== entityTable || mutation.tombstone)) {
     return mapWithConcurrency(mutations, (mutation) => applyEntityMutation(client, mutation, options));
+  }
+  if (entityTable === "learning_item_source_snapshots") {
+    const desiredRows = mutations.map((mutation) => learningItemSourceSnapshotToCloudRow(
+      mutation.entity,
+      requireNonEmptyString(mutation.cardId, "Karten-ID des Quell-Snapshots fehlt."),
+      user.id,
+    ));
+    const remoteRows = await selectSourceSnapshotsById(client, user.id, desiredRows.flatMap((row) => [row.id, row.previous_snapshot_id].filter(Boolean)));
+    const persistedRows = await appendMissingSourceSnapshots(client, user.id, desiredRows, remoteRows);
+    const persistedById = new Map(persistedRows.map((row: any) => [row.id, row]));
+    await mapWithConcurrency(
+      mutations.filter((mutation) => mutation.attachToCard),
+      async (mutation) => {
+        const { error } = await client
+          .from("cards")
+          .update({ latest_source_snapshot_id: mutation.entity.id })
+          .eq("user_id", user.id)
+          .eq("id", mutation.cardId);
+        if (error) throw error;
+      },
+    );
+    return desiredRows.map((row) => {
+      const persistedRow = persistedById.get(row.id);
+      if (!persistedRow) throw new Error(`Quell-Snapshot ${row.id} wurde nicht bestätigt.`);
+      return { persistedRow };
+    });
+  }
+  if (entityTable === "review_events") {
+    const desiredRows = mutations.map((mutation) => reviewEventToCloudRow(
+      mutation.entity,
+      { id: mutation.deckId ?? mutation.entity?.deckId },
+      user.id,
+      options,
+    ));
+    const remoteRows = await selectRowsByField(client, "review_events", user.id, "id", desiredRows.map((row) => row.id));
+    const remoteById = new Map(remoteRows.map((row: any) => [row.id, row]));
+    const missingRows = desiredRows.filter((row) => !remoteById.has(row.id));
+    const missingIds = new Set(missingRows.map((row) => row.id));
+    if (missingRows.length) {
+      await upsertRows(client, "review_events", missingRows, { ignoreDuplicates: true, concurrency: CLOUD_WRITE_CONCURRENCY });
+      const confirmedRows = await selectRowsByField(client, "review_events", user.id, "id", missingRows.map((row) => row.id));
+      for (const row of confirmedRows) remoteById.set(row.id, row);
+    }
+    return desiredRows.map((row) => {
+      const persistedRow = remoteById.get(row.id);
+      if (!persistedRow) throw new Error(`Review-Ereignis ${row.id} wurde nicht bestätigt.`);
+      return { persistedRow, idempotent: !missingIds.has(row.id) };
+    });
   }
   const rows = mutations.map((mutation) => entityMutationRow(entityTable, mutation, user.id));
   if (rows.some((row) => !row)) throw new Error(`Entity-Mutation wird für ${entityTable} nicht unterstützt.`);
@@ -1562,9 +1611,10 @@ function orderMissingSourceSnapshots(rows: any[], remoteRows: any[]) {
 }
 
 async function selectSourceSnapshotsById(client: any, userId: string, ids: string[]) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
   const rows: any[] = [];
-  for (let offset = 0; offset < ids.length; offset += CLOUD_WRITE_ROW_LIMIT) {
-    const batch = ids.slice(offset, offset + CLOUD_WRITE_ROW_LIMIT);
+  for (let offset = 0; offset < uniqueIds.length; offset += CLOUD_WRITE_ROW_LIMIT) {
+    const batch = uniqueIds.slice(offset, offset + CLOUD_WRITE_ROW_LIMIT);
     const { data, error } = await client
       .from("learning_item_source_snapshots")
       .select("*")

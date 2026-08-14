@@ -560,6 +560,56 @@ test("entity batches cap inserts at 250 rows and avoid per-entity round trips", 
   assert.equal(client.calls.filter((call) => call.table === "decks" && call.operation === "select").length, 3);
 });
 
+test("review event mutations use bounded idempotent batches instead of sequential writes", async () => {
+  const fixture = createCloudFixture();
+  const baseEvent = fixture.state.decks[0].reviewEvents[0];
+  const mutations = Array.from({ length: 1_079 }, (_, index) => ({
+    table: "review_events",
+    entity: { ...baseEvent, id: `batch-review-${String(index).padStart(4, "0")}` },
+    deckId: baseEvent.deckId,
+    baseRevision: null,
+  }));
+  const client = createMemorySupabaseClient({}, fixture.user);
+
+  const first = await applyEntityMutationBatch(client, mutations, { deviceId: "device-review", flushedAt: "2026-08-11T12:00:00.000Z" });
+  const second = await applyEntityMutationBatch(client, mutations, { deviceId: "device-review", flushedAt: "2026-08-11T12:00:00.000Z" });
+
+  assert.equal(first.length, 1_079);
+  assert.equal(second.every((result) => result.idempotent), true);
+  const writes = client.calls.filter((call) => call.table === "review_events" && call.operation === "upsert");
+  assert.ok(writes.length > 1);
+  assert.ok(writes.length < 10);
+  assert.equal(Math.max(...writes.map((call) => call.payload.length)), 250);
+  assert.equal(client.calls.some((call) => call.table === "review_events" && call.operation === "insert"), false);
+});
+
+test("source snapshot mutations batch immutable rows and preserve card attachments", async () => {
+  const fixture = createCloudFixture();
+  const baseSnapshot = fixture.state.learningItemSourceSnapshots[0];
+  const snapshots = [
+    { ...baseSnapshot, id: "batch-snapshot-1", previousSnapshotId: baseSnapshot.id },
+    { ...baseSnapshot, id: "batch-snapshot-2", previousSnapshotId: "batch-snapshot-1" },
+  ];
+  const mutations = snapshots.map((entity, index) => ({
+    table: "learning_item_source_snapshots",
+    entity,
+    cardId: "card-1",
+    attachToCard: index === snapshots.length - 1,
+    baseRevision: null,
+  }));
+  const client = createMemorySupabaseClient(clone(fixture.rows), fixture.user);
+
+  const first = await applyEntityMutationBatch(client, mutations, { deviceId: "device-snapshot", flushedAt: "2026-08-11T12:00:00.000Z" });
+  const second = await applyEntityMutationBatch(client, mutations, { deviceId: "device-snapshot", flushedAt: "2026-08-11T12:00:00.000Z" });
+
+  assert.equal(first.length, 2);
+  assert.equal(second.length, 2);
+  const writes = client.calls.filter((call) => call.table === "learning_item_source_snapshots" && call.operation === "upsert");
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].payload.length, 2);
+  assert.equal(client.tables.cards.find((card: any) => card.id === "card-1").latest_source_snapshot_id, "batch-snapshot-2");
+});
+
 test("initial cloud download reconstructs 2,500 rows with stable 500-row keyset pages", async () => {
   const fixture = createCloudFixture();
   const rows = clone(fixture.rows);

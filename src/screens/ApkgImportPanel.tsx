@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertCircle, CheckCircle2, Database, FileArchive, Loader2, Upload } from "lucide-react";
 import type { ApkgCreationPreview, CreationWorkflow } from "../creationWorkflow.ts";
+import type { ApkgCloudProgress, ApkgImportJob, ApkgImportSession, ApkgPreviewMediaStatus, ApkgProgressPhase } from "../apkgImportSession.ts";
 import { getOriginalVariant } from "../coreModel.ts";
 import type { Deck, LearningItem, NoteTypeDefinitionV1 } from "../coreTypes.ts";
 import { projectImportUiState, type ImportUiState } from "../importUiState.ts";
@@ -14,24 +15,16 @@ import { formatBytes, importSteps } from "./screenConstants.ts";
 
 type ApkgWorkflow = Pick<CreationWorkflow, "commitApkgPreview" | "parseApkgFile">;
 
-interface ApkgImportJob {
-  fileName?: string;
-  fileSize?: number;
-  status: string;
-  warnings: string[];
-  errors: string[];
-}
-
 export interface ApkgImportPanelProps {
   existingDecks: Deck[];
   workflow: ApkgWorkflow;
   mediaStore: AccountMediaStore | null;
+  session: ApkgImportSession;
+  onSessionChange: React.Dispatch<React.SetStateAction<ApkgImportSession>>;
+  isSessionCurrent: (version: number) => boolean;
+  onResetSession: (disposeWorker?: boolean) => void;
   onCompleted: (deck: Deck) => unknown;
 }
-
-type CloudProgress = MediaSyncProgress & { status: MediaSyncStatus };
-type PreviewMediaStatus = { persisted: boolean; count: number; errors: string[] };
-type ProgressPhase = "analyzing" | "committing" | "syncing_media";
 
 const ANALYSIS_PROGRESS_BY_STEP: Record<string, number> = {
   validate: 5,
@@ -77,6 +70,7 @@ function importStatusLabel(status: ImportUiState["status"]): string {
     analyzing: "Analysieren",
     preview: "Vorschau bereit",
     committing: "Übernehmen",
+    syncing_cloud: "Cloud-Daten werden synchronisiert",
     syncing_media: "Medien werden synchronisiert",
     succeeded: "Erfolgreich",
     partial: "Teilweise fertig",
@@ -120,23 +114,35 @@ function ApkgCardSample({ deck, card, definition, mediaStore }: { deck: Deck; ca
   );
 }
 
-export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onCompleted }: ApkgImportPanelProps) {
+export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, onSessionChange, isSessionCurrent, onResetSession, onCompleted }: ApkgImportPanelProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-  const [job, setJob] = React.useState<ApkgImportJob | null>(null);
-  const [preview, setPreview] = React.useState<ApkgCreationPreview | null>(null);
-  const [mediaStatus, setMediaStatus] = React.useState<PreviewMediaStatus | MediaSyncResult | null>(null);
   const [isDragging, setIsDragging] = React.useState(false);
-  const [isParsing, setIsParsing] = React.useState(false);
-  const [mediaTask, setMediaTask] = React.useState<MediaSyncTask | null>(null);
-  const [cloudProgress, setCloudProgress] = React.useState<CloudProgress | null>(null);
-  const [completedDeck, setCompletedDeck] = React.useState<Deck | null>(null);
-  const [phaseProgress, setPhaseProgress] = React.useState<{ phase: ProgressPhase; percent: number } | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
+  const { selectedFile, job, preview, mediaStatus, isParsing, mediaTask, cloudTask, cloudProgress, completedDeck, phaseProgress } = session;
+  const sessionVersion = session.version;
 
-  React.useEffect(() => () => {
-    if (preview?.commitGraph.kind === "worker-import") preview.commitGraph.dispose();
-  }, [preview]);
+  function updateSession(update: (current: ApkgImportSession) => ApkgImportSession) {
+    onSessionChange((current) => current.version === sessionVersion ? update(current) : current);
+  }
+
+  function setJob(update: React.SetStateAction<ApkgImportJob | null>) {
+    updateSession((current) => ({ ...current, job: typeof update === "function" ? update(current.job) : update }));
+  }
+
+  function setPreview(update: React.SetStateAction<ApkgCreationPreview | null>) {
+    updateSession((current) => ({ ...current, preview: typeof update === "function" ? update(current.preview) : update }));
+  }
+
+  function setMediaStatus(value: ApkgPreviewMediaStatus | MediaSyncResult | null) { updateSession((current) => ({ ...current, mediaStatus: value })); }
+  function setIsParsing(value: boolean) { updateSession((current) => ({ ...current, isParsing: value })); }
+  function setMediaTask(value: MediaSyncTask | null) { updateSession((current) => ({ ...current, mediaTask: value })); }
+  function setCloudTask(value: ApkgImportSession["cloudTask"]) { updateSession((current) => ({ ...current, cloudTask: value })); }
+  function setCloudProgress(value: ApkgCloudProgress | null) { updateSession((current) => ({ ...current, cloudProgress: value })); }
+  function setCompletedDeck(value: Deck | null) { updateSession((current) => ({ ...current, completedDeck: value })); }
+  function setSelectedFile(value: File | null) { updateSession((current) => ({ ...current, selectedFile: value })); }
+  function setPhaseProgress(update: React.SetStateAction<{ phase: ApkgProgressPhase; percent: number } | null>) {
+    updateSession((current) => ({ ...current, phaseProgress: typeof update === "function" ? update(current.phaseProgress) : update }));
+  }
 
   React.useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
@@ -147,11 +153,11 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
     return () => mediaQuery.removeEventListener?.("change", updatePreference);
   }, []);
 
-  function beginProgress(phase: ProgressPhase) {
+  function beginProgress(phase: ApkgProgressPhase) {
     setPhaseProgress({ phase, percent: 0 });
   }
 
-  function reportProgress(phase: ProgressPhase, percent: number) {
+  function reportProgress(phase: ApkgProgressPhase, percent: number) {
     const next = normalizeProgress(percent);
     setPhaseProgress((current) => {
       if (current?.phase !== phase) return { phase, percent: next };
@@ -160,10 +166,12 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
   }
 
   async function parseFile(file: File) {
+    if (preview?.commitGraph.kind === "worker-import") preview.commitGraph.dispose();
     setSelectedFile(file);
     setPreview(null);
     setMediaStatus(null);
     setMediaTask(null);
+    setCloudTask(null);
     setCloudProgress(null);
     setCompletedDeck(null);
     beginProgress("analyzing");
@@ -186,6 +194,10 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
         existingDecks,
         onStep: (step) => reportProgress("analyzing", ANALYSIS_PROGRESS_BY_STEP[step] ?? 0),
       });
+      if (!isSessionCurrent(sessionVersion)) {
+        if (result.preview?.commitGraph.kind === "worker-import") result.preview.commitGraph.dispose();
+        return;
+      }
       reportProgress("analyzing", 100);
       setMediaStatus(result.mediaStatus);
       setJob(toImportJob(result.job));
@@ -240,26 +252,55 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
       }
       setJob((current) => ({
         ...(current ?? { warnings: [], errors: [] }),
-        status: "done",
+        status: "syncing_cloud",
         warnings: [...new Set([...(current?.warnings ?? []), ...(result.report.warnings ?? [])])],
       }));
       setPreview((current) => current ? { ...current, report: result.report } as ApkgCreationPreview : current);
       setCompletedDeck(result.deck);
-      if (result.mediaTask) {
+      if (!("cloudTask" in result) || !result.cloudTask || !result.mediaTask) throw new Error("Die Synchronisierungsaufgaben des Imports fehlen.");
+      const importCloudTask = result.cloudTask;
+      const importMediaTask = result.mediaTask;
+      let mediaStarted = false;
+      setCloudTask(importCloudTask);
+      setMediaTask(importMediaTask);
+      beginProgress("syncing_cloud");
+      importCloudTask.subscribe((cloudResult) => {
+        if (cloudResult.status === "local-pending") {
+          setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "syncing_cloud" }));
+          return;
+        }
+        if (cloudResult.status === "blocked") {
+          setJob((current) => ({
+            ...(current ?? { warnings: [], errors: [] }),
+            status: "error",
+            errors: [...new Set([...(current?.errors ?? []), cloudResult.message])],
+          }));
+          return;
+        }
+        if (cloudResult.status !== "cloud-ready" || mediaStarted) return;
+        mediaStarted = true;
+        reportProgress("syncing_cloud", 100);
         beginProgress("syncing_media");
-        setMediaTask(result.mediaTask);
         setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "syncing_media" }));
-        result.mediaTask.subscribe((progress: MediaSyncProgress, status: MediaSyncStatus) => {
+        importMediaTask.subscribe((progress: MediaSyncProgress, status: MediaSyncStatus) => {
           setCloudProgress({ ...progress, status });
           reportProgress("syncing_media", mediaProgressPercent(progress, status));
         });
-        void result.mediaTask.result.then((mediaResult: MediaSyncResult) => {
-          setMediaStatus(mediaResult);
-          setCloudProgress({ ...mediaResult.progress, status: mediaResult.status });
-          reportProgress("syncing_media", mediaProgressPercent(mediaResult.progress, mediaResult.status));
-          setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: mediaResult.status === "cloud-ready" ? "done" : "partial" }));
-        });
-      }
+        void importMediaTask.result
+          .then((mediaResult: MediaSyncResult) => {
+            setMediaStatus(mediaResult);
+            setCloudProgress({ ...mediaResult.progress, status: mediaResult.status });
+            reportProgress("syncing_media", mediaProgressPercent(mediaResult.progress, mediaResult.status));
+            setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: mediaResult.status === "cloud-ready" ? "done" : "partial" }));
+          })
+          .catch((error) => {
+            setJob((current) => ({
+              ...(current ?? { warnings: [], errors: [] }),
+              status: "error",
+              errors: [...(current?.errors ?? []), error instanceof Error ? error.message : "Die Mediensynchronisierung ist fehlgeschlagen."],
+            }));
+          });
+      });
     } catch (error) {
       setJob((current) => ({
         ...(current ?? { warnings: [], errors: [] }),
@@ -268,6 +309,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
       }));
     } finally {
       setIsParsing(false);
+      if (preview.commitGraph.kind === "worker-import") preview.commitGraph.dispose();
     }
   }
 
@@ -277,6 +319,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
   const previewErrors = [...new Set([...(job?.errors ?? []), ...(report?.errors ?? [])])];
   const uiState = projectImportUiState({
     jobStatus: job?.status,
+    cloudStatus: cloudTask?.status,
     mediaStatus: cloudProgress?.status,
     hasPreview: Boolean(preview),
     hasMediaTask: Boolean(mediaTask),
@@ -288,13 +331,17 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
     ? 1
     : uiState.status === "committing"
     ? 2
-    : uiState.status === "syncing_media"
+    : uiState.status === "syncing_cloud"
     ? 3
-    : 4;
-  const activeProgressPhase: ProgressPhase | null = uiState.status === "analyzing" || uiState.status === "committing" || uiState.status === "syncing_media"
+    : uiState.status === "syncing_media"
+    ? 4
+    : 5;
+  const activeProgressPhase: ApkgProgressPhase | null = uiState.status === "analyzing" || uiState.status === "committing" || uiState.status === "syncing_cloud" || uiState.status === "syncing_media"
     ? uiState.status
     : null;
-  const progressPaused = activeProgressPhase === "syncing_media" && cloudProgress?.status === "paused";
+  const progressPaused = activeProgressPhase === "syncing_cloud"
+    ? cloudTask?.status === "local-pending"
+    : activeProgressPhase === "syncing_media" && cloudProgress?.status === "paused";
   const activeProgressPercent = activeProgressPhase && phaseProgress?.phase === activeProgressPhase ? phaseProgress.percent : 0;
   const fileInteractionLocked = activeProgressPhase !== null;
   const progressRunning = fileInteractionLocked && !progressPaused;
@@ -377,13 +424,13 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
           </div>
         ) : null}
 
-        <ol className="mt-5 grid gap-2 md:grid-cols-5" aria-label="Importstatus">
+        <ol className="mt-5 grid gap-2 md:grid-cols-6" aria-label="Importstatus">
           {importSteps.map((step) => {
             const stepIndex = importSteps.findIndex((item) => item.id === step.id);
             const isActive = stepIndex === currentStepIndex;
             const isDone = stepIndex < currentStepIndex || uiState.status === "succeeded";
             const isFailure = ["failed_retryable", "failed_terminal", "cancelled"].includes(uiState.status);
-            const label = step.id === "complete" && currentStepIndex === 4 ? importStatusLabel(uiState.status) : step.label;
+            const label = step.id === "complete" && currentStepIndex === 5 ? importStatusLabel(uiState.status) : step.label;
             return (
               <li key={step.id} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${isActive ? isFailure ? "border-core-danger bg-core-danger-soft" : uiState.status === "partial" ? "border-core-warning bg-core-warning-soft" : "border-core-success bg-core-success-soft" : "border-[var(--core-border)]"}`}>
                 {isActive && progressRunning ? <Loader2 className="shrink-0 animate-spin text-core-text motion-reduce:animate-none" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : isActive && isFailure ? <AlertCircle className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-full border border-[var(--core-border)]" />}
@@ -396,16 +443,27 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
         {uiState.status === "succeeded" && completedDeck ? (
           <div className="core-status-success mt-4 core-body" role="status" aria-live="polite">
             <p className="font-semibold">Import erfolgreich abgeschlossen.</p>
-            <ActionButton type="button" variant="primary" onClick={() => onCompleted(completedDeck)} className="mt-3">Import abschließen</ActionButton>
+            <ActionButton type="button" variant="primary" onClick={() => {
+              onResetSession();
+              onCompleted(completedDeck);
+            }} className="mt-3">Import abschließen</ActionButton>
+          </div>
+        ) : null}
+
+        {uiState.status === "syncing_cloud" && cloudTask?.status === "local-pending" ? (
+          <div className="core-status-warning mt-4 core-body" role="status">
+            <p>Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus.</p>
+            <ActionButton type="button" variant="primary" onClick={() => void cloudTask.retry()} className="mt-3">Cloud-Sync erneut versuchen</ActionButton>
           </div>
         ) : null}
 
         {uiState.status === "partial" ? (
           <div className="core-status-warning mt-4 core-body" role="status">
-            <p>Import teilweise abgeschlossen. Die Karten sind übernommen; Medien sind noch nicht vollständig synchronisiert.</p>
+            <p>Die Karten sind lokal gespeichert; die Cloud- oder Mediensynchronisierung steht noch aus.</p>
+            {mediaStatus && "message" in mediaStatus && mediaStatus.message ? <p className="mt-2">{mediaStatus.message}</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
-              {mediaTask ? <ActionButton type="button" variant="primary" onClick={() => mediaTask.resume()}>Medien-Sync fortsetzen</ActionButton> : null}
-              {completedDeck ? <ActionButton type="button" variant="secondary" onClick={() => onCompleted(completedDeck)}>Karten jetzt verwenden</ActionButton> : null}
+              {cloudTask?.status === "local-pending" ? <ActionButton type="button" variant="primary" onClick={() => void cloudTask.retry()}>Cloud-Sync erneut versuchen</ActionButton> : null}
+              {mediaTask && cloudProgress?.status === "paused" ? <ActionButton type="button" variant="primary" onClick={() => mediaTask.resume()}>Medien-Sync fortsetzen</ActionButton> : null}
             </div>
           </div>
         ) : null}
@@ -496,7 +554,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, onComplet
                   </section>
                 </div>
               ) : null}
-              {mediaTask && cloudProgress?.status !== "cloud-ready" && cloudProgress?.status !== "cancelled" ? (
+              {mediaTask && uiState.status === "syncing_media" && cloudProgress?.status !== "cloud-ready" && cloudProgress?.status !== "cancelled" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {cloudProgress?.status === "paused" ? <ActionButton type="button" variant="secondary" onClick={() => mediaTask.resume()}>Fortsetzen</ActionButton> : <ActionButton type="button" variant="secondary" onClick={() => void mediaTask.pause()}>Pausieren</ActionButton>}
                   <ActionButton type="button" variant="destructive" onClick={() => void mediaTask.cancel()}>Upload abbrechen</ActionButton>

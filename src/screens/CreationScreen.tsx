@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
+import { createEmptyApkgImportSession } from "../apkgImportSession.ts";
 import { createCreationWorkflow } from "../creationWorkflow.ts";
 import type { Deck } from "../coreTypes.ts";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
@@ -18,7 +19,11 @@ export interface CreationScreenViewProps extends Omit<Partial<CreationScreenProp
 export function CreationScreen({
   decks = [],
   mediaStore = null,
-  persistImportedDecks = async (decks) => decks,
+  persistImportedDecks,
+  apkgImportSession: controlledApkgImportSession,
+  onApkgImportSessionChange: controlledApkgImportSessionChange,
+  isApkgImportSessionCurrent: controlledIsApkgImportSessionCurrent,
+  onResetApkgImportSession: controlledResetApkgImportSession,
   initialMethod = "",
   initialTargetDeckId = "",
   completedDeckId = "",
@@ -33,6 +38,13 @@ export function CreationScreen({
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number } | null>(null);
+  const [localApkgImportSession, setLocalApkgImportSession] = React.useState(() => createEmptyApkgImportSession());
+  const apkgImportSession = controlledApkgImportSession ?? localApkgImportSession;
+  const apkgImportSessionRef = React.useRef(apkgImportSession);
+  apkgImportSessionRef.current = apkgImportSession;
+  const onApkgImportSessionChange = controlledApkgImportSessionChange ?? setLocalApkgImportSession;
+  const isApkgImportSessionCurrent = controlledIsApkgImportSessionCurrent ?? ((version: number) => apkgImportSessionRef.current.version === version);
+  const onResetApkgImportSession = controlledResetApkgImportSession ?? (() => setLocalApkgImportSession((current) => createEmptyApkgImportSession(current.version + 1)));
   const selectedMethod = initialMethod;
   const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod);
   const completedDeck = decks.find((deck) => deck.id === (sessionCompletion?.deckId || completedDeckId)) ?? null;
@@ -40,7 +52,10 @@ export function CreationScreen({
     ?? completedDeck?.cards.filter((card) => card.status !== "deleted").length
     ?? 0;
   const accountWorkflow = React.useMemo(
-    () => createCreationWorkflow({ mediaStore: mediaStore ?? undefined, persistImportedDecks }),
+    () => createCreationWorkflow({
+      mediaStore: mediaStore ?? undefined,
+      ...(persistImportedDecks ? { persistImportedDecks } : {}),
+    }),
     [mediaStore, persistImportedDecks],
   );
 
@@ -66,6 +81,10 @@ export function CreationScreen({
           }}
           workflow={accountWorkflow}
           mediaStore={mediaStore}
+          apkgImportSession={apkgImportSession}
+          onApkgImportSessionChange={onApkgImportSessionChange}
+          isApkgImportSessionCurrent={isApkgImportSessionCurrent}
+          onResetApkgImportSession={onResetApkgImportSession}
         />
       );
     }
