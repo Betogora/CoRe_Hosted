@@ -9,177 +9,233 @@ import {
 } from "lucide-react";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 
-type ReviewId = 1 | 2 | 3 | 4;
+type ReviewId = "first" | "variant";
+type RatingId = "again" | "hard" | "good" | "easy";
 type ParameterId = "r" | "s" | "d";
-type ExplorerSelectionId = `review-${ReviewId}` | `parameter-${ParameterId}`;
+type ExplorerSelectionId = "overview" | `review-${ReviewId}` | `rating-${RatingId}` | `parameter-${ParameterId}`;
 
-interface MemoryStep {
+interface MemoryReview {
   id: ReviewId;
   title: string;
-  shortLabel: string;
-  summary: string;
-  detail: string;
   color: string;
   reviewX: number;
-  intervalStartX: number;
-  curvePath: string;
-  stabilityLabel: string;
-  cardLabel: string;
 }
 
-interface ExplorerDetail {
-  title: string;
-  summary: string;
-  detail: string;
-  context: string;
+interface RatingPath {
+  id: RatingId;
+  label: string;
   color: string;
+  dueX: number;
+  arrowY: number;
+  curvePath: string;
+  stabilityLabel: string;
+}
+
+interface StoryStep<TSelection extends string> {
+  id: string;
+  eyebrow: string;
+  title: string;
+  text: string;
+  selection: TSelection;
+  note?: string;
 }
 
 interface MemoryTerm {
   term: string;
   description: string;
-  parameterId?: ParameterId;
 }
 
-const MEMORY_STEPS: readonly MemoryStep[] = [
+const MEMORY_REVIEWS: readonly MemoryReview[] = [
   {
-    id: 1,
-    title: "Review 1 · Erste Erinnerung",
-    shortLabel: "Die Gedächtnisspur entsteht",
-    summary: "Die Originalkarte wird erfolgreich abgerufen. FSRS schätzt daraus den ersten Gedächtniszustand.",
-    detail: "Direkt nach dem Review ist die Abrufwahrscheinlichkeit hoch. Mit der Zeit fällt sie wieder; die erste Stabilität bestimmt, wie schnell das geschieht.",
+    id: "first",
+    title: "1 · Erste Wiederholung",
+    color: "var(--core-text)",
+    reviewX: 220,
+  },
+  {
+    id: "variant",
+    title: "2 · Wiederholung mit Variante",
     color: "var(--core-info)",
-    reviewX: 210,
-    intervalStartX: 74,
-    curvePath: "M 74 92 C 116 102, 164 164, 210 248",
-    stabilityLabel: "S₁ · kurz",
-    cardLabel: "Originalkarte",
+    reviewX: 855,
   },
+];
+
+const RATING_PATHS: readonly RatingPath[] = [
   {
-    id: 2,
-    title: "Review 2 · Stabilität wächst",
-    shortLabel: "Das Intervall wird länger",
-    summary: "Ein weiterer erfolgreicher Abruf erhöht die Stabilität. Die nächste Wiederholung darf später stattfinden.",
-    detail: "Wie stark die Stabilität wächst, hängt bei FSRS unter anderem von Schwierigkeit, vergangener Zeit und Bewertung ab.",
-    color: "var(--core-warning)",
-    reviewX: 380,
-    intervalStartX: 210,
-    curvePath: "M 210 92 C 260 104, 324 164, 380 248",
-    stabilityLabel: "S₂ · länger",
-    cardLabel: "Originalkarte",
-  },
-  {
-    id: 3,
-    title: "Review 3 · Robuster Abruf",
-    shortLabel: "Die Erinnerung wird belastbarer",
-    summary: "Wiederholte erfolgreiche Abrufe machen die Erinnerung robuster und vergrößern den Abstand erneut.",
-    detail: "Eine schwierige Karte baut Stabilität langsamer auf. CoRe prüft nun zusätzlich, ob die Originalkarte anhand von Stabilität, erfolgreichen Abrufen, Intervall und Fehlerverlauf reif genug für eine Variante ist.",
-    color: "var(--core-success)",
-    reviewX: 590,
-    intervalStartX: 380,
-    curvePath: "M 380 92 C 442 104, 526 160, 590 248",
-    stabilityLabel: "S₃ · noch länger",
-    cardLabel: "Originalkarte",
-  },
-  {
-    id: 4,
-    title: "Review 4 · CoRe-Variante",
-    shortLabel: "Gleiches Wissen, neue Fragestellung",
-    summary: "Beispielhaft fragt CoRe dieselbe Wissenseinheit nun als nahe Variante statt in der ursprünglichen Form ab.",
-    detail: "Ist die Originalkarte ausreichend stabil und aktuell nicht fragil, kann CoRe eine nahe Variante erzeugen und einsetzen. Sie darf keine neuen Fakten einführen; nach Fehlern fällt CoRe auf das Original oder eine einfachere Variante zurück.",
+    id: "again",
+    label: "Nochmal",
     color: "var(--core-danger)",
-    reviewX: 822,
-    intervalStartX: 590,
-    curvePath: "M 590 92 C 662 106, 758 156, 822 248",
-    stabilityLabel: "S₄ · groß",
-    cardLabel: "Nahe Kartenvariante",
+    dueX: 350,
+    arrowY: 292,
+    curvePath: "M 220 92 C 258 112, 318 186, 350 248",
+    stabilityLabel: "Nochmal · S sehr kurz",
   },
-];
-
-const PARAMETER_DETAILS: Record<ParameterId, ExplorerDetail> = {
-  r: {
-    title: "R · Abrufwahrscheinlichkeit",
-    summary: "R beschreibt, wie wahrscheinlich du den Inhalt genau jetzt korrekt abrufen kannst.",
-    detail: "Nach einem erfolgreichen Review liegt R wieder nahe 100 Prozent und verändert sich anschließend täglich. Die gestrichelte Linie zeigt die Zielerinnerung von 90 Prozent: FSRS sucht das Intervall, an dessen Ende R voraussichtlich diesen Wert erreicht.",
-    context: "Kurven und Zielerinnerung",
-    color: "var(--core-info)",
-  },
-  s: {
-    title: "S · Stabilität",
-    summary: "S beschreibt, wie lange die Erinnerung hält und bestimmt damit die Form der Vergessenskurve.",
-    detail: "S wird in Tagen gedacht: Es ist die Zeit, in der R von 100 auf 90 Prozent fällt. Die Pfeile werden länger, weil S nach erfolgreichen Abrufen gewöhnlich wächst; S ändert sich wie D erst bei einem Review.",
-    context: "Wachsende Intervalle",
-    color: "var(--core-success)",
-  },
-  d: {
-    title: "D · Schwierigkeit",
-    summary: "D beschreibt, wie schwer sich diese Erinnerung dauerhaft festigen lässt.",
-    detail: "Die Rauten markieren D als Zustand an den Reviewpunkten. D ändert sich nur nach einem Review und beeinflusst, wie stark S wachsen kann; deshalb wird D hier nicht als zweite Prozentkurve dargestellt.",
-    context: "Einfluss an den Reviews",
+  {
+    id: "hard",
+    label: "Schwer",
     color: "var(--core-warning)",
-  },
-};
-
-const MEMORY_TERMS: readonly MemoryTerm[] = [
-  {
-    parameterId: "r",
-    term: "R · Abrufwahrscheinlichkeit",
-    description: "Wie wahrscheinlich du den Inhalt jetzt korrekt erinnern kannst. R sinkt mit der Zeit.",
+    dueX: 500,
+    arrowY: 318,
+    curvePath: "M 220 92 C 292 102, 438 164, 500 248",
+    stabilityLabel: "Schwer · S kurz",
   },
   {
-    parameterId: "s",
-    term: "S · Stabilität",
-    description: "Die Zeit in Tagen, in der R von 100 auf 90 Prozent fällt. Je höher S ist, desto länger hält die Erinnerung.",
+    id: "good",
+    label: "Gut",
+    color: "var(--core-success)",
+    dueX: 680,
+    arrowY: 344,
+    curvePath: "M 220 92 C 328 96, 586 146, 680 248",
+    stabilityLabel: "Gut · S länger",
   },
   {
-    parameterId: "d",
-    term: "D · Schwierigkeit",
-    description: "Wie schwer sich die Erinnerung festigen lässt. Schwierige Inhalte bauen Stabilität langsamer auf.",
-  },
-  {
-    term: "Zielerinnerung",
-    description: "Die gewünschte Erinnerungswahrscheinlichkeit am nächsten Termin, im Beispiel 90 Prozent.",
-  },
-  {
-    term: "Intervall",
-    description: "Der Abstand bis zum nächsten Review. Erfolgreiche Abrufe lassen ihn meistens wachsen.",
-  },
-  {
-    term: "Original und Variante",
-    description: "Zwei Fragestellungen zur gleichen Wissenseinheit. Die Variante verändert den Abrufreiz, nicht die Fakten.",
+    id: "easy",
+    label: "Leicht",
+    color: "var(--core-info)",
+    dueX: 855,
+    arrowY: 370,
+    curvePath: "M 220 92 C 364 94, 734 126, 855 248",
+    stabilityLabel: "Leicht · S am längsten",
   },
 ];
 
-const RATING_EXPLANATIONS = [
-  { label: "Nochmal", text: "Nicht erinnert: kurzfristig wiederholen und Stabilität deutlich senken." },
-  { label: "Schwer", text: "Gerade noch erinnert: vorsichtiger Stabilitätszuwachs und kürzeres Intervall." },
-  { label: "Gut", text: "Solide erinnert: normaler Stabilitätszuwachs und längeres Intervall." },
-  { label: "Leicht", text: "Sehr sicher erinnert: stärkerer Stabilitätszuwachs und größtes Intervall." },
-] as const;
+const INITIAL_CURVE_PATH = "M 74 92 C 118 104, 176 168, 220 248";
+
+const ACTIVE_RECALL_STEPS: readonly StoryStep<"stack" | "blur" | "variants">[] = [
+  {
+    id: "active-stack",
+    eyebrow: "01 · Viele Karten",
+    title: "Wiederholen kann überraschend passiv werden",
+    text: "Karteikartenlernen wird schnell anstrengend, besonders wenn viele ähnliche Karten nacheinander kommen. Unser Gehirn versucht, möglichst energiesparend zu arbeiten.",
+    selection: "stack",
+  },
+  {
+    id: "active-blur",
+    eyebrow: "02 · Vertraute Form",
+    title: "Irgendwann erkennst du eher die Karte als den Inhalt",
+    text: "Nach einiger Zeit bleiben leicht Position, Satzlänge oder einzelne Signalwörter hängen. Die Antwort fühlt sich bekannt an, obwohl die eigentliche Frage nicht mehr vollständig verstanden wird.",
+    selection: "blur",
+    note: "Die Karte wird vertraut, der aktive Abruf wird schwächer.",
+  },
+  {
+    id: "active-variants",
+    eyebrow: "03 · Smarter Recall",
+    title: "CoRe verändert die Frage, nicht das Wissen",
+    text: "Wie ein Tutor formuliert CoRe dieselbe Wissenseinheit nach ausreichender Reife neu. So musst du den Inhalt bei jeder Wiederholung aktiv abrufen, statt nur ein bekanntes Kartenbild wiederzuerkennen.",
+    selection: "variants",
+    note: "Eine Originalkarte bleibt der Anker; Varianten führen keine neuen Fakten ein.",
+  },
+];
+
+const SPACED_REPETITION_STEPS: readonly StoryStep<ExplorerSelectionId>[] = [
+  {
+    id: "spaced-overview",
+    eyebrow: "01 · Grundidee",
+    title: "Wiederholen, kurz bevor Wissen zu kippen droht",
+    text: "Spaced Repetition verteilt Wiederholungen über die Zeit. FSRS schätzt dafür, wann deine Abrufwahrscheinlichkeit die gewünschte Zielerinnerung erreicht.",
+    selection: "overview",
+  },
+  {
+    id: "spaced-first-review",
+    eyebrow: "02 · Gemeinsamer Start",
+    title: "Die erste Wiederholung aktualisiert den Gedächtniszustand",
+    text: "Die Originalkarte erreicht im Beispiel 90 Prozent Abrufwahrscheinlichkeit. Nach deiner Antwort schätzt FSRS Stabilität S und Schwierigkeit D neu.",
+    selection: "review-first",
+  },
+  {
+    id: "spaced-again",
+    eyebrow: "03 · Nochmal",
+    title: "Nicht erinnert: sehr früh erneut zeigen",
+    text: "Ein Fehler senkt die Stabilität. Der kürzeste Pfad führt deshalb zu einer schnellen Wiederholung, damit die Gedächtnisspur neu aufgebaut werden kann.",
+    selection: "rating-again",
+  },
+  {
+    id: "spaced-hard",
+    eyebrow: "04 · Schwer",
+    title: "Knapp erinnert: vorsichtig mehr Abstand",
+    text: "Eine unsichere, aber richtige Antwort erlaubt etwas mehr Zeit als „Nochmal“. Der Stabilitätszuwachs bleibt jedoch kleiner als bei „Gut“ oder „Leicht“.",
+    selection: "rating-hard",
+  },
+  {
+    id: "spaced-good",
+    eyebrow: "05 · Gut",
+    title: "Solide erinnert: das reguläre Intervall wächst",
+    text: "Der erfolgreiche Abruf festigt die Erinnerung. Im vereinfachten Beispiel wird die Karte deshalb deutlich später erneut fällig.",
+    selection: "rating-good",
+  },
+  {
+    id: "spaced-easy",
+    eyebrow: "06 · Leicht",
+    title: "Sehr sicher erinnert: das längste Intervall",
+    text: "Bei „Leicht“ wächst die Stabilität im Beispiel am stärksten. Der nächste Termin liegt am weitesten in der Zukunft.",
+    selection: "rating-easy",
+  },
+  {
+    id: "spaced-variant",
+    eyebrow: "07 · Nächste Wiederholung",
+    title: "Reifes Wissen kann als Variante zurückkehren",
+    text: "Am Ende des längsten Beispielintervalls fragt CoRe dieselbe Wissenseinheit in einer nahen Form ab. Der dargestellte Zeitpunkt ist ein Beispiel und keine garantierte Reviewnummer.",
+    selection: "review-variant",
+  },
+  {
+    id: "spaced-r",
+    eyebrow: "08 · R",
+    title: "R ist deine aktuelle Abrufwahrscheinlichkeit",
+    text: "Nach einem erfolgreichen Review liegt R wieder nahe 100 Prozent und fällt anschließend mit der Zeit. Die gestrichelte Linie zeigt die Zielerinnerung von 90 Prozent.",
+    selection: "parameter-r",
+  },
+  {
+    id: "spaced-s",
+    eyebrow: "09 · S",
+    title: "S beschreibt, wie lange die Erinnerung hält",
+    text: "Stabilität ist die Zeit, in der R von 100 auf 90 Prozent fällt. Die vier Pfeile zeigen qualitativ, wie deine Antwort das nächste Intervall beeinflusst.",
+    selection: "parameter-s",
+  },
+  {
+    id: "spaced-d",
+    eyebrow: "10 · D",
+    title: "D beschreibt die dauerhafte Schwierigkeit",
+    text: "Schwierige Inhalte bauen Stabilität langsamer auf. Die Rauten markieren D an den Wiederholungspunkten; D ist keine zweite Prozentkurve.",
+    selection: "parameter-d",
+  },
+];
 
 const SCHEDULING_STEPS = [
   {
     label: "Gedächtniszustand aktualisieren",
-    text: "Nach deiner Bewertung werden Stabilität S und Schwierigkeit D neu geschätzt; die Abrufwahrscheinlichkeit R liegt direkt nach dem erfolgreichen Abruf wieder nahe 100 Prozent.",
+    text: "Nach deiner Bewertung werden Stabilität S und Schwierigkeit D neu geschätzt.",
   },
   {
     label: "Vergessen vorhersagen",
-    text: "Zwischen zwei Reviews bleiben S und D unverändert, während R mit jedem verstrichenen Tag fällt. Eine höhere Stabilität macht diesen Abfall langsamer.",
+    text: "Zwischen Reviews bleiben S und D unverändert, während R mit der Zeit fällt.",
   },
   {
     label: "Nächsten Termin setzen",
-    text: "Der Scheduler wählt den Zeitpunkt, an dem R voraussichtlich die gewünschte Zielerinnerung erreicht. Bei 90 Prozent soll die Karte also dann erscheinen, wenn noch eine 90-prozentige Abrufchance erwartet wird.",
+    text: "FSRS wählt den Zeitpunkt, an dem R voraussichtlich die gewünschte Zielerinnerung erreicht.",
   },
 ] as const;
 
+const MEMORY_TERMS: readonly MemoryTerm[] = [
+  { term: "R · Abrufwahrscheinlichkeit", description: "Wie wahrscheinlich du den Inhalt jetzt korrekt erinnern kannst." },
+  { term: "S · Stabilität", description: "Wie lange R braucht, um von 100 auf 90 Prozent zu fallen." },
+  { term: "D · Schwierigkeit", description: "Wie schwer sich diese Erinnerung dauerhaft festigen lässt." },
+  { term: "Zielerinnerung", description: "Die gewünschte Abrufwahrscheinlichkeit am nächsten Termin." },
+  { term: "Intervall", description: "Der zeitliche Abstand bis zur nächsten Wiederholung." },
+  { term: "Original und Variante", description: "Verschiedene Fragen zur gleichen Wissenseinheit." },
+];
+
 const PARAMETER_POSITIONS: Record<ParameterId, { left: string; top: string }> = {
   r: { left: "15%", top: "1%" },
-  d: { left: "72%", top: "1%" },
-  s: { left: "50%", top: "74%" },
+  d: { left: "52%", top: "1%" },
+  s: { left: "52%", top: "80%" },
 };
 
 function reviewSelectionId(id: ReviewId): ExplorerSelectionId {
   return `review-${id}`;
+}
+
+function ratingSelectionId(id: RatingId): ExplorerSelectionId {
+  return `rating-${id}`;
 }
 
 function parameterSelectionId(id: ParameterId): ExplorerSelectionId {
@@ -187,7 +243,11 @@ function parameterSelectionId(id: ParameterId): ExplorerSelectionId {
 }
 
 function getActiveReviewId(selection: ExplorerSelectionId): ReviewId | null {
-  return MEMORY_STEPS.find((step) => reviewSelectionId(step.id) === selection)?.id ?? null;
+  return MEMORY_REVIEWS.find((review) => reviewSelectionId(review.id) === selection)?.id ?? null;
+}
+
+function getActiveRatingId(selection: ExplorerSelectionId): RatingId | null {
+  return RATING_PATHS.find((rating) => ratingSelectionId(rating.id) === selection)?.id ?? null;
 }
 
 function getActiveParameterId(selection: ExplorerSelectionId): ParameterId | null {
@@ -197,437 +257,492 @@ function getActiveParameterId(selection: ExplorerSelectionId): ParameterId | nul
   return null;
 }
 
-function getExplorerDetail(selection: ExplorerSelectionId): ExplorerDetail {
-  const reviewId = getActiveReviewId(selection);
-  if (reviewId !== null) {
-    const step = MEMORY_STEPS[reviewId - 1];
-    return {
-      title: step.title,
-      summary: step.summary,
-      detail: step.detail,
-      context: step.cardLabel,
-      color: step.color,
-    };
-  }
+function useScrollStory(stepCount: number) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = React.useState(0);
 
-  return PARAMETER_DETAILS[getActiveParameterId(selection) ?? "r"];
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    let animationFrame = 0;
+    const updateActiveStep = () => {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => {
+        const steps = Array.from(container.querySelectorAll<HTMLElement>("[data-story-step]"));
+        const viewportFocus = window.innerHeight * 0.48;
+        let closestIndex = 0;
+        let closestDistance = Number.POSITIVE_INFINITY;
+
+        steps.forEach((step, index) => {
+          const rect = step.getBoundingClientRect();
+          const stepCenter = rect.top + rect.height / 2;
+          const distance = Math.abs(stepCenter - viewportFocus);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestIndex = index;
+          }
+        });
+
+        setActiveIndex((current) => current === closestIndex ? current : closestIndex);
+      });
+    };
+
+    updateActiveStep();
+    window.addEventListener("scroll", updateActiveStep, { passive: true });
+    window.addEventListener("resize", updateActiveStep);
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", updateActiveStep);
+      window.removeEventListener("resize", updateActiveStep);
+    };
+  }, [stepCount]);
+
+  return { activeIndex, containerRef, setActiveIndex };
 }
 
-function MemoryCurveExplorer() {
-  const [selectedSelection, setSelectedSelection] = React.useState<ExplorerSelectionId>("review-1");
+function StoryStepCard<TSelection extends string>({
+  active,
+  elementId,
+  index,
+  onFocus,
+  step,
+  testId,
+}: {
+  active: boolean;
+  elementId?: string;
+  index: number;
+  onFocus: () => void;
+  step: StoryStep<TSelection>;
+  testId?: string;
+}) {
+  return (
+    <li id={elementId} className="flex min-h-[58svh] items-center py-8 xl:min-h-[68svh]" data-story-step={index} data-testid={testId}>
+      <article
+        className={`w-full border-l-4 py-4 pl-5 transition-[border-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 border-core-action opacity-100" : "translate-x-2 border-core-border opacity-45"}`}
+        tabIndex={0}
+        onFocus={onFocus}
+        aria-current={active ? "step" : undefined}
+      >
+        <p className="core-caption font-semibold uppercase tracking-wide text-core-action">{step.eyebrow}</p>
+        <h3 className="core-heading-2 mt-3 font-semibold text-core-text">{step.title}</h3>
+        <p className="mt-4 core-body-large leading-7 text-core-secondary">{step.text}</p>
+        {step.note ? <p className="mt-4 core-caption leading-5 text-core-muted">{step.note}</p> : null}
+      </article>
+    </li>
+  );
+}
+
+function IntroCardStack() {
+  return (
+    <div className="relative mx-auto h-[22rem] w-full max-w-lg" role="img" aria-label="Ein Stapel Karteikarten, aus dem unterschiedliche Fragen zur gleichen Antwort hervorgehen">
+      {[3, 2, 1].map((layer) => (
+        <div
+          key={layer}
+          className="absolute inset-x-8 top-10 h-64 rounded-[26px] border border-core-border bg-core-surface-raised shadow-sm"
+          style={{ transform: `translate(${layer * 8}px, ${layer * -8}px) rotate(${layer * 1.2}deg)`, opacity: 0.35 + layer * 0.15 }}
+          aria-hidden="true"
+        />
+      ))}
+      <div className="absolute inset-x-8 top-10 grid h-64 place-items-center rounded-[26px] border border-core-border bg-core-surface-raised p-7 text-center shadow-lg">
+        <div>
+          <span className="core-caption font-semibold uppercase tracking-wide text-core-action">Eine Wissenseinheit</span>
+          <p className="mt-5 core-body-large font-semibold leading-7 text-core-text">Welcher Teil des autonomen Nervensystems senkt die Herzfrequenz in Ruhe?</p>
+          <div className="mx-auto mt-6 h-px w-24 bg-core-border" />
+          <p className="mt-5 core-body text-core-secondary">Der Parasympathikus</p>
+        </div>
+      </div>
+      <div className="absolute bottom-1 right-1 flex items-center gap-2 rounded-full border border-core-border bg-core-surface px-4 py-2 core-caption font-semibold text-core-text shadow-sm">
+        <Sparkles size={16} className="text-core-action" aria-hidden="true" />
+        Viele mögliche Abrufe
+      </div>
+    </div>
+  );
+}
+
+function IntroSection() {
+  return (
+    <section className="grid min-h-[72svh] items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
+      <div className="max-w-2xl">
+        <p className="core-control-label uppercase tracking-wide text-core-action">Lernen, das wirklich bleibt</p>
+        <h2 id="help-intro-heading" className="core-heading-1 mt-4 font-semibold text-core-text">Wir wollen Lernen verbessern.</h2>
+        <p className="mt-6 core-body-large leading-8 text-core-secondary">
+          CoRe hilft dir, Wissen nicht nur für den nächsten Test, sondern langfristig abrufbar zu machen. Dafür verbinden wir zwei etablierte Methoden und entwickeln sie weiter.
+        </p>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="border-t-2 border-core-success pt-4">
+            <p className="core-caption font-semibold uppercase tracking-wide text-core-secondary">Active Recall</p>
+            <p className="mt-2 core-body font-semibold text-core-text">Wissen aktiv aus dem Gedächtnis holen.</p>
+          </div>
+          <div className="border-t-2 border-core-info pt-4">
+            <p className="core-caption font-semibold uppercase tracking-wide text-core-secondary">Spaced Repetition</p>
+            <p className="mt-2 core-body font-semibold text-core-text">Zum passenden Zeitpunkt wiederholen.</p>
+          </div>
+        </div>
+      </div>
+      <IntroCardStack />
+    </section>
+  );
+}
+
+function ActiveRecallVisual({ activeIndex }: { activeIndex: number }) {
+  const showBlur = activeIndex === 1;
+  const showVariants = activeIndex === 2;
+
+  return (
+    <SoftPanel className="relative min-h-[31rem] overflow-hidden p-5 sm:p-8" data-testid="active-recall-visual" data-active-step={activeIndex}>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="core-caption font-semibold uppercase tracking-wide text-core-action">Active Recall</p>
+          <p className="mt-1 core-body font-semibold text-core-text">Eine Antwort, wechselnde Abrufreize</p>
+        </div>
+        <div className="flex gap-2" aria-label={`Schritt ${activeIndex + 1} von ${ACTIVE_RECALL_STEPS.length}`}>
+          {ACTIVE_RECALL_STEPS.map((step, index) => <span key={step.id} className={`size-2 rounded-full ${index === activeIndex ? "bg-core-action" : "bg-core-border"}`} />)}
+        </div>
+      </div>
+
+      <div className="relative mt-8 h-[23rem]" aria-hidden="true">
+        {[3, 2, 1].map((layer) => (
+          <div
+            key={layer}
+            className="absolute inset-x-[12%] top-8 h-60 rounded-[24px] border border-core-border bg-core-surface-raised shadow-sm transition-all duration-500 motion-reduce:transition-none"
+            style={{
+              opacity: showVariants ? 0 : showBlur ? 0.18 + layer * 0.08 : 0.35 + layer * 0.12,
+              transform: `translate(${layer * 7}px, ${layer * -7}px) rotate(${layer * 1.1}deg)`,
+            }}
+          />
+        ))}
+
+        <div
+          className="absolute inset-x-[12%] top-8 grid h-60 place-items-center rounded-[24px] border border-core-border bg-core-surface-raised p-6 text-center shadow-md transition-all duration-500 motion-reduce:transition-none"
+          style={{ opacity: showVariants ? 0 : 1, transform: showVariants ? "translateY(-28px) scale(0.9)" : "translateY(0) scale(1)" }}
+        >
+          <div>
+            <p className={`core-body-large font-semibold leading-7 text-core-text transition-[filter,opacity] duration-500 motion-reduce:transition-none ${showBlur ? "blur-[2px] opacity-45" : "blur-0 opacity-100"}`}>
+              Welcher Teil des autonomen Nervensystems senkt die Herzfrequenz in Ruhe?
+            </p>
+            {showBlur ? <p className="mt-3 core-caption font-semibold text-core-danger">Form erkannt – Frage kaum noch aktiv gelesen</p> : null}
+            <div className="mx-auto mt-5 h-px w-20 bg-core-border" />
+            <p className="mt-4 core-body text-core-secondary">Der Parasympathikus</p>
+          </div>
+        </div>
+
+        {[
+          { text: "Welcher Teil des autonomen Nervensystems senkt die Herzfrequenz?", transform: "translate(-16%, 6%) rotate(-5deg)" },
+          { text: "Warum wird die Herzfrequenz in Ruhe langsamer?", transform: "translate(0, -3%) rotate(0deg)" },
+          { text: "Welcher Abschnitt vermittelt die beruhigende Wirkung?", transform: "translate(16%, 7%) rotate(5deg)" },
+        ].map((variant, index) => (
+          <div
+            key={variant.text}
+            className="absolute inset-x-[15%] top-10 grid h-56 place-items-center rounded-[22px] border border-core-border bg-core-surface-raised p-5 text-center shadow-md transition-all duration-500 motion-reduce:transition-none"
+            style={{
+              opacity: showVariants ? 1 : 0,
+              transform: showVariants ? variant.transform : "translate(0, 20%) scale(0.82)",
+              zIndex: index + 1,
+            }}
+          >
+            <div>
+              <Sparkles size={17} className="mx-auto text-core-action" />
+              <p className="mt-3 core-body font-semibold leading-6 text-core-text">{variant.text}</p>
+              <div className="mx-auto mt-4 h-px w-16 bg-core-border" />
+              <p className="mt-3 core-caption text-core-secondary">Der Parasympathikus</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </SoftPanel>
+  );
+}
+
+function ActiveRecallStory() {
+  const { activeIndex, containerRef, setActiveIndex } = useScrollStory(ACTIVE_RECALL_STEPS.length);
+
+  return (
+    <section className="grid gap-8" aria-labelledby="active-recall-heading">
+      <div className="max-w-3xl">
+        <p className="core-control-label uppercase tracking-wide text-core-action">Methode 1</p>
+        <h2 id="active-recall-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Active Recall hält den Fokus auf dem Inhalt</h2>
+      </div>
+      <div ref={containerRef} className="grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] xl:gap-12">
+        <div className="self-start xl:sticky xl:top-6">
+          <ActiveRecallVisual activeIndex={activeIndex} />
+        </div>
+        <ol>
+          {ACTIVE_RECALL_STEPS.map((step, index) => (
+            <StoryStepCard key={step.id} testId={`active-recall-step-${step.selection}`} step={step} index={index} active={activeIndex === index} onFocus={() => setActiveIndex(index)} />
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: ExplorerSelectionId; onSelectionChange: (selection: ExplorerSelectionId) => void }) {
   const [hoveredSelection, setHoveredSelection] = React.useState<ExplorerSelectionId | null>(null);
   const [focusedSelection, setFocusedSelection] = React.useState<ExplorerSelectionId | null>(null);
-  const activeSelection = hoveredSelection ?? focusedSelection ?? selectedSelection;
+  const activeSelection = hoveredSelection ?? focusedSelection ?? selection;
   const activeReviewId = getActiveReviewId(activeSelection);
+  const activeRatingId = getActiveRatingId(activeSelection);
   const activeParameterId = getActiveParameterId(activeSelection);
-  const activeDetail = getExplorerDetail(activeSelection);
+  const overview = activeSelection === "overview";
 
-  function hoverProps(selection: ExplorerSelectionId) {
+  function hoverProps(nextSelection: ExplorerSelectionId) {
     return {
-      onPointerEnter: () => setHoveredSelection(selection),
-      onPointerLeave: () => setHoveredSelection((current) => current === selection ? null : current),
+      onPointerEnter: () => setHoveredSelection(nextSelection),
+      onPointerLeave: () => setHoveredSelection((current) => current === nextSelection ? null : current),
     };
   }
 
-  function buttonProps(selection: ExplorerSelectionId) {
+  function buttonProps(nextSelection: ExplorerSelectionId) {
     return {
-      ...hoverProps(selection),
+      ...hoverProps(nextSelection),
       onFocus: () => {
         setHoveredSelection(null);
-        setFocusedSelection(selection);
+        setFocusedSelection(nextSelection);
       },
-      onBlur: () => setFocusedSelection((current) => current === selection ? null : current),
-      onClick: () => setSelectedSelection(selection),
-      "aria-pressed": selectedSelection === selection,
-      "aria-controls": "memory-explorer-detail",
+      onBlur: () => setFocusedSelection((current) => current === nextSelection ? null : current),
+      onClick: () => onSelectionChange(nextSelection),
+      "aria-pressed": selection === nextSelection,
     };
   }
 
   return (
-    <>
-      <section className="grid gap-5" aria-labelledby="memory-curve-heading">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="core-control-label uppercase tracking-wide text-core-action">Interaktive Lernkurve</p>
-            <h2 id="memory-curve-heading" className="core-heading-2 mt-2 font-semibold text-core-text">Wie Wiederholungen die Erinnerung stärken</h2>
-          </div>
-          <p className="core-caption max-w-xl text-[var(--core-text-muted)]" id="memory-curve-disclaimer">
-            Vereinfachtes Beispiel – tatsächliche Intervalle hängen von Verlauf, Bewertung und Einstellungen ab.
-          </p>
+    <SoftPanel className="min-w-0 overflow-hidden p-3 sm:p-5" data-testid="spaced-repetition-visual" data-active-selection={selection}>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1 pb-3">
+        <div>
+          <p className="core-caption font-semibold uppercase tracking-wide text-core-action">Spaced Repetition</p>
+          <p className="mt-1 core-body font-semibold text-core-text">Bewertung verändert das nächste Intervall</p>
         </div>
+        <span className="core-caption text-core-muted">Vereinfachtes Beispiel</span>
+      </div>
+      <p id="memory-axis-description" className="sr-only">Die Y-Achse zeigt nur den Ausschnitt von 90 bis 100 Prozent Abrufwahrscheinlichkeit. Zwei diagonale Striche kennzeichnen die ausgelassene Achsenspanne darunter.</p>
+      <div className="overflow-x-auto pb-2 focus:outline-none" tabIndex={0} aria-label="Lernkurve horizontal erkunden" aria-describedby="memory-axis-description">
+        <div className="relative aspect-[960/540] min-w-[42rem] xl:min-w-0" data-testid="memory-curve">
+          <svg className="absolute inset-0 size-full" viewBox="0 0 960 540" role="img" aria-labelledby="memory-curve-title memory-curve-description">
+            <title id="memory-curve-title">Vereinfachte FSRS-Gedächtniskurve mit vier Antwortpfaden</title>
+            <desc id="memory-curve-description">Nach der ersten Wiederholung führen Nochmal, Schwer, Gut und Leicht zu unterschiedlich langen Stabilitätsintervallen. Am Ende des längsten Beispielintervalls folgt eine Wiederholung mit einer nahen Kartenvariante.</desc>
 
-        <SoftPanel className="min-w-0 overflow-hidden p-3 sm:p-5">
-          <p id="memory-axis-description" className="sr-only">Die Y-Achse zeigt nur den Ausschnitt von 90 bis 100 Prozent Abrufwahrscheinlichkeit. Zwei diagonale Striche kennzeichnen die ausgelassene Achsenspanne darunter.</p>
-          <div
-            className="overflow-x-auto pb-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)]"
-            tabIndex={0}
-            aria-label="Lernkurve horizontal erkunden"
-            aria-describedby="memory-curve-disclaimer memory-axis-description"
-          >
-            <div className="relative aspect-[900/500] min-w-[46rem]" data-testid="memory-curve">
-              <svg
-                className="absolute inset-0 size-full"
-                viewBox="0 0 900 500"
-                role="img"
-                aria-labelledby="memory-curve-title memory-curve-description"
-              >
-                <title id="memory-curve-title">Vereinfachte FSRS-Gedächtniskurve mit vier Reviews</title>
-                <desc id="memory-curve-description">Der gezeigte Ausschnitt der Y-Achse reicht von 90 bis 100 Prozent. Vier zunehmend längere Intervalle enden an der Zielerinnerung. R bezeichnet die Kurven, S die Intervallspannen und D den Einfluss an den Reviewpunkten. Beim vierten Review zeigt CoRe beispielhaft eine Kartenvariante.</desc>
+            <line x1="72" y1="420" x2="928" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
+            <line x1="72" y1="52" x2="72" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
+            <text x="500" y="508" textAnchor="middle" fill="var(--core-text-muted)" fontSize="16">Zeit und nächstes Intervall</text>
+            <text x="22" y="198" transform="rotate(-90 22 198)" textAnchor="middle" fill="var(--core-text-muted)" fontSize="16">Abrufwahrscheinlichkeit</text>
+            <text x="57" y="98" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">100 %</text>
+            <text x="57" y="253" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">90 %</text>
+            <text x="86" y="408" fill="var(--core-text-muted)" fontSize="13">Ausschnitt 90–100 %</text>
 
-                <line x1="72" y1="360" x2="858" y2="360" stroke="var(--core-border-interactive)" strokeWidth="2" />
-                <line x1="72" y1="52" x2="72" y2="360" stroke="var(--core-border-interactive)" strokeWidth="2" />
-                <text x="465" y="470" textAnchor="middle" fill="var(--core-text-muted)" fontSize="16">Zeit und wachsende Intervalle</text>
-                <text x="22" y="198" transform="rotate(-90 22 198)" textAnchor="middle" fill="var(--core-text-muted)" fontSize="16">Abrufwahrscheinlichkeit</text>
-                <text x="57" y="98" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">100 %</text>
-                <text x="57" y="253" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">90 %</text>
-                <text x="86" y="350" fill="var(--core-text-muted)" fontSize="13">Ausschnitt 90–100 %</text>
+            <g data-testid="memory-y-axis-break" aria-hidden="true">
+              <path d="M 64 382 L 80 372" stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 64 395 L 80 385" stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
+            </g>
 
-                <g data-testid="memory-y-axis-break" aria-hidden="true">
-                  <path d="M 64 326 L 80 316" stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
-                  <path d="M 64 339 L 80 329" stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
-                </g>
+            <g data-testid="memory-visual-r" data-active={activeParameterId === "r" ? "true" : "false"}>
+              <line x1="72" y1="248" x2="928" y2="248" stroke="var(--core-text-muted)" strokeDasharray="7 7" strokeWidth={activeParameterId === "r" ? 3 : 1.5} opacity={activeParameterId === "r" || overview ? 1 : 0.72} />
+              <text x="920" y="235" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">Zielerinnerung R = 90 %</text>
+              <path d={INITIAL_CURVE_PATH} fill="none" stroke="var(--core-text)" strokeWidth={activeParameterId === "r" || activeReviewId === "first" || overview ? 7 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "first" || overview ? 1 : 0.28} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />
+              {RATING_PATHS.map((rating) => {
+                const emphasized = activeParameterId === "r" || activeRatingId === rating.id || (activeReviewId === "variant" && rating.id === "easy");
+                return <path key={`curve-${rating.id}`} d={rating.curvePath} fill="none" stroke={rating.color} strokeWidth={emphasized ? 7 : overview ? 4.5 : 3.5} strokeLinecap="round" opacity={emphasized ? 1 : overview ? 0.72 : 0.22} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />;
+              })}
+              <path d="M 855 92 C 888 98, 918 112, 946 138" fill="none" stroke="var(--core-info)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" || overview ? 1 : 0.35} />
+            </g>
 
-                {MEMORY_STEPS.map((step) => {
-                  const selection = reviewSelectionId(step.id);
-                  return (
-                    <rect
-                      key={`area-${step.id}`}
-                      x={step.intervalStartX}
-                      y="52"
-                      width={step.reviewX - step.intervalStartX}
-                      height="278"
-                      fill="transparent"
-                      pointerEvents="all"
-                      {...hoverProps(selection)}
-                      data-testid={`memory-curve-area-${step.id}`}
-                    />
-                  );
-                })}
-
-                <g data-testid="memory-visual-r" data-active={activeParameterId === "r" ? "true" : "false"}>
-                  <line
-                    x1="72"
-                    y1="248"
-                    x2="858"
-                    y2="248"
-                    stroke="var(--core-text-muted)"
-                    strokeDasharray="7 7"
-                    strokeWidth={activeParameterId === "r" ? 3 : 1.5}
-                    opacity={activeParameterId === "r" ? 1 : 0.72}
-                  />
-                  <text x="850" y="235" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">Zielerinnerung R = 90 %</text>
-                  {MEMORY_STEPS.map((step) => {
-                    const emphasized = activeParameterId === "r" || activeReviewId === step.id;
-                    return (
-                      <path
-                        key={`curve-${step.id}`}
-                        d={step.curvePath}
-                        fill="none"
-                        stroke={step.color}
-                        strokeWidth={emphasized ? 7 : 3.5}
-                        strokeLinecap="round"
-                        opacity={emphasized ? 1 : 0.22}
-                        pointerEvents="none"
-                        className="transition-[stroke-width,opacity] motion-reduce:transition-none"
-                      />
-                    );
-                  })}
-                  <path d="M 822 92 C 850 98, 870 114, 890 138" fill="none" stroke={MEMORY_STEPS[3].color} strokeWidth={activeParameterId === "r" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" ? 1 : 0.45} />
-                </g>
-
-                <g data-testid="memory-visual-s" data-active={activeParameterId === "s" ? "true" : "false"}>
-                  {MEMORY_STEPS.map((step) => {
-                    const emphasized = activeParameterId === "s" || activeReviewId === step.id;
-                    const start = step.intervalStartX + 10;
-                    const end = step.reviewX - 10;
-                    return (
-                      <g key={`stability-${step.id}`} opacity={emphasized ? 1 : 0.32} className="transition-opacity motion-reduce:transition-none">
-                        <line x1={start} y1="286" x2={end} y2="286" stroke={step.color} strokeWidth={emphasized ? 4 : 2} />
-                        <path d={`M ${start + 9} 280 L ${start} 286 L ${start + 9} 292`} fill="none" stroke={step.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
-                        <path d={`M ${end - 9} 280 L ${end} 286 L ${end - 9} 292`} fill="none" stroke={step.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
-                        <text x={(step.intervalStartX + step.reviewX) / 2} y="312" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight={emphasized ? 700 : 400}>{step.stabilityLabel}</text>
-                      </g>
-                    );
-                  })}
-                </g>
-
-                <g data-testid="memory-visual-d" data-active={activeParameterId === "d" ? "true" : "false"}>
-                  {MEMORY_STEPS.map((step) => {
-                    const emphasized = activeParameterId === "d" || activeReviewId === step.id;
-                    return (
-                      <g key={`difficulty-${step.id}`} opacity={emphasized ? 1 : 0.28} className="transition-opacity motion-reduce:transition-none">
-                        <line x1={step.reviewX} y1="78" x2={step.reviewX} y2="248" stroke={step.color} strokeWidth={emphasized ? 3 : 2} strokeDasharray="6 7" />
-                        <path
-                          d={`M ${step.reviewX} 64 L ${step.reviewX + 7} 71 L ${step.reviewX} 78 L ${step.reviewX - 7} 71 Z`}
-                          fill="var(--core-surface-raised)"
-                          stroke={activeParameterId === "d" ? "var(--core-warning)" : step.color}
-                          strokeWidth={emphasized ? 3 : 2}
-                        />
-                      </g>
-                    );
-                  })}
-                </g>
-
-                {MEMORY_STEPS.map((step) => (
-                  <path
-                    key={`hit-${step.id}`}
-                    d={step.curvePath}
-                    fill="none"
-                    stroke="transparent"
-                    strokeWidth="24"
-                    pointerEvents="stroke"
-                    {...hoverProps(reviewSelectionId(step.id))}
-                    data-testid={`memory-curve-segment-${step.id}`}
-                  />
-                ))}
-              </svg>
-
-              {(Object.keys(PARAMETER_DETAILS) as ParameterId[]).map((parameterId) => {
-                const selection = parameterSelectionId(parameterId);
-                const active = activeSelection === selection;
-                const detail = PARAMETER_DETAILS[parameterId];
+            <g data-testid="memory-visual-s" data-active={activeParameterId === "s" ? "true" : "false"}>
+              {RATING_PATHS.map((rating) => {
+                const emphasized = activeParameterId === "s" || activeRatingId === rating.id;
+                const start = 235;
+                const end = rating.dueX - 10;
                 return (
-                  <button
-                    key={parameterId}
-                    type="button"
-                    className={`absolute z-20 flex min-h-11 -translate-x-1/2 items-center px-2 core-caption font-semibold underline-offset-4 transition-[color,text-decoration-thickness] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] motion-reduce:transition-none ${active ? "text-core-text underline decoration-2" : "text-core-secondary"}`}
-                    style={PARAMETER_POSITIONS[parameterId]}
-                    {...buttonProps(selection)}
-                    data-testid={`memory-parameter-${parameterId}`}
-                  >
-                    {detail.title}
-                  </button>
+                  <g key={`stability-${rating.id}`} opacity={emphasized ? 1 : overview || activeReviewId === "first" ? 0.78 : 0.32} className="transition-opacity duration-300 motion-reduce:transition-none">
+                    <line x1={start} y1={rating.arrowY} x2={end} y2={rating.arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
+                    <path d={`M ${start + 9} ${rating.arrowY - 6} L ${start} ${rating.arrowY} L ${start + 9} ${rating.arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
+                    <path d={`M ${end - 9} ${rating.arrowY - 6} L ${end} ${rating.arrowY} L ${end - 9} ${rating.arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
+                    <text x={end - 2} y={rating.arrowY - 7} textAnchor="end" fill="var(--core-text-secondary)" fontSize="13" fontWeight={emphasized ? 700 : 500}>{rating.stabilityLabel}</text>
+                  </g>
                 );
               })}
+            </g>
 
-              {MEMORY_STEPS.map((step) => {
-                const selection = reviewSelectionId(step.id);
-                const active = activeReviewId === step.id;
-                const difficultyActive = activeParameterId === "d";
+            <g data-testid="memory-visual-d" data-active={activeParameterId === "d" ? "true" : "false"}>
+              {MEMORY_REVIEWS.map((review) => {
+                const emphasized = activeParameterId === "d" || activeReviewId === review.id;
                 return (
-                  <button
-                    key={step.id}
-                    type="button"
-                    className="absolute z-20 grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 bg-[var(--core-surface-raised)] core-body font-semibold shadow-sm transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2 motion-reduce:transition-none"
-                    style={{
-                      left: `${(step.reviewX / 900) * 100}%`,
-                      top: `${(248 / 500) * 100}%`,
-                      borderColor: step.color,
-                      borderWidth: active || difficultyActive ? 3 : 2,
-                      color: step.color,
-                      transform: `translate(-50%, -50%) scale(${active ? 1.12 : difficultyActive ? 1.05 : 1})`,
-                      opacity: activeReviewId === null || active ? 1 : 0.62,
-                    }}
-                    {...buttonProps(selection)}
-                    aria-label={`${step.title} auswählen`}
-                    data-testid={`memory-review-point-${step.id}`}
-                  >
-                    {step.id === 4 ? <Sparkles size={19} aria-hidden="true" /> : step.id}
-                  </button>
+                  <g key={`difficulty-${review.id}`} opacity={emphasized || overview ? 1 : 0.24} className="transition-opacity duration-300 motion-reduce:transition-none">
+                    <line x1={review.reviewX} y1="78" x2={review.reviewX} y2="248" stroke={review.color} strokeWidth={emphasized ? 3 : 2} strokeDasharray="6 7" />
+                    <path d={`M ${review.reviewX} 64 L ${review.reviewX + 7} 71 L ${review.reviewX} 78 L ${review.reviewX - 7} 71 Z`} fill="var(--core-surface-raised)" stroke={activeParameterId === "d" ? "var(--core-warning)" : review.color} strokeWidth={emphasized ? 3 : 2} />
+                  </g>
                 );
               })}
-            </div>
-          </div>
-        </SoftPanel>
+            </g>
 
-        <div
-          id="memory-explorer-detail"
-          className="border-l-4 py-2 pl-5"
-          style={{ borderColor: activeDetail.color }}
-          aria-live="polite"
-          data-testid="memory-explorer-detail"
-        >
-          <p className="core-caption font-semibold uppercase tracking-wide text-core-secondary">{activeDetail.context}</p>
-          <h3 className="core-heading-3 mt-2 font-semibold text-core-text">{activeDetail.title}</h3>
-          <p className="mt-3 core-body-large font-semibold text-core-text">{activeDetail.summary}</p>
-          <p className="mt-2 max-w-4xl core-body leading-6 text-[var(--core-text-secondary)]">{activeDetail.detail}</p>
-        </div>
+            <path d={INITIAL_CURVE_PATH} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(reviewSelectionId("first"))} data-testid="memory-curve-initial" />
+            {RATING_PATHS.map((rating) => <path key={`hit-${rating.id}`} d={rating.curvePath} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(ratingSelectionId(rating.id))} data-testid={`memory-rating-path-${rating.id}`} />)}
+            <text x="220" y="210" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">1. Wiederholung</text>
+            <text x="855" y="210" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">2. Wiederholung · Variante</text>
+          </svg>
 
-        <div className="grid gap-x-5 md:grid-cols-2 xl:grid-cols-4" aria-label="Interaktive Erklärung der vier Reviews">
-          {MEMORY_STEPS.map((step) => {
-            const selection = reviewSelectionId(step.id);
-            const active = activeReviewId === step.id;
+          {(["r", "s", "d"] as const).map((parameterId) => {
+            const nextSelection = parameterSelectionId(parameterId);
+            const active = activeSelection === nextSelection;
+            const label = parameterId === "r" ? "R · Abrufwahrscheinlichkeit" : parameterId === "s" ? "S · Stabilität" : "D · Schwierigkeit";
+            return (
+              <button key={parameterId} type="button" className={`absolute z-20 flex min-h-11 -translate-x-1/2 items-center px-2 core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} style={PARAMETER_POSITIONS[parameterId]} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>{label}</button>
+            );
+          })}
+
+          {MEMORY_REVIEWS.map((review) => {
+            const nextSelection = reviewSelectionId(review.id);
+            const active = activeReviewId === review.id;
             return (
               <button
-                key={step.id}
+                key={review.id}
                 type="button"
-                className={`min-h-11 border-t-2 py-4 text-left transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] motion-reduce:transition-none ${active ? "opacity-100" : "opacity-65"}`}
-                style={{ borderColor: active ? step.color : "var(--core-border)" }}
-                {...buttonProps(selection)}
-                data-testid={`memory-review-summary-${step.id}`}
+                className="absolute z-20 grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 bg-[var(--core-surface-raised)] core-body font-semibold shadow-sm transition-[transform,opacity] hover:scale-110 motion-reduce:transition-none"
+                style={{
+                  left: `${(review.reviewX / 960) * 100}%`,
+                  top: `${(248 / 540) * 100}%`,
+                  borderColor: review.color,
+                  borderWidth: active || activeParameterId === "d" ? 3 : 2,
+                  color: review.color,
+                  transform: `translate(-50%, -50%) scale(${active ? 1.12 : 1})`,
+                  opacity: activeReviewId === null || active || overview ? 1 : 0.48,
+                }}
+                {...buttonProps(nextSelection)}
+                aria-label={`${review.title} auswählen`}
+                data-testid={`memory-review-point-${review.id}`}
               >
-                <span className="flex items-center gap-2 core-caption font-semibold uppercase tracking-wide text-core-secondary">
-                  <span style={{ color: step.color }} aria-hidden="true">{active ? "●" : "○"}</span>
-                  Review {step.id}
-                </span>
-                <span className="mt-2 block core-body-large font-semibold text-core-text">{step.shortLabel}</span>
-                <span className="mt-2 block core-body leading-6 text-core-secondary">{step.summary}</span>
+                {review.id === "variant" ? <Sparkles size={19} aria-hidden="true" /> : "1"}
               </button>
             );
           })}
         </div>
-      </section>
-
-      <section className="grid gap-5" aria-labelledby="memory-terms-heading">
-        <div>
-          <p className="core-control-label uppercase tracking-wide text-core-action">Die wichtigsten Begriffe</p>
-          <h2 id="memory-terms-heading" className="core-heading-2 mt-2 font-semibold text-core-text">Der Gedächtniszustand verständlich erklärt</h2>
-        </div>
-        <dl className="grid border-t border-core-border md:grid-cols-2 xl:grid-cols-3">
-          {MEMORY_TERMS.map((memoryTerm) => {
-            const selection = memoryTerm.parameterId ? parameterSelectionId(memoryTerm.parameterId) : null;
-            const active = selection !== null && activeSelection === selection;
-            return (
-              <div key={memoryTerm.term} className="border-b border-core-border py-5 md:pr-8 xl:min-h-36">
-                <dt>
-                  {selection ? (
-                    <button
-                      type="button"
-                      className={`flex min-h-11 items-center text-left core-body-large font-semibold underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] ${active ? "text-core-text underline decoration-2" : "text-core-secondary"}`}
-                      {...buttonProps(selection)}
-                      data-testid={`memory-term-${memoryTerm.parameterId}`}
-                    >
-                      {memoryTerm.term}
-                    </button>
-                  ) : (
-                    <span className="flex min-h-11 items-center core-body-large font-semibold text-core-text">{memoryTerm.term}</span>
-                  )}
-                </dt>
-                <dd className="mt-1 core-body leading-6 text-core-secondary">{memoryTerm.description}</dd>
-              </div>
-            );
-          })}
-        </dl>
-      </section>
-    </>
+      </div>
+    </SoftPanel>
   );
 }
 
-export function HelpScreen() {
-  return (
-    <div className="grid gap-10">
-      <PageHeader eyebrow="Hilfe" title="Wie CoRe und FSRS funktionieren" />
+function SpacedRepetitionStory() {
+  const { activeIndex, containerRef, setActiveIndex } = useScrollStory(SPACED_REPETITION_STEPS.length);
+  const activeStep = SPACED_REPETITION_STEPS[activeIndex];
 
-      <section className="grid gap-4 lg:grid-cols-2" aria-label="FSRS und CoRe im Überblick">
+  function selectGraphPart(selection: ExplorerSelectionId) {
+    const nextIndex = SPACED_REPETITION_STEPS.findIndex((step) => step.selection === selection);
+    if (nextIndex < 0) return;
+    setActiveIndex(nextIndex);
+    const target = document.getElementById(SPACED_REPETITION_STEPS[nextIndex].id);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    target?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
+  }
+
+  return (
+    <section className="grid gap-8" aria-labelledby="spaced-repetition-heading">
+      <div className="max-w-3xl">
+        <p className="core-control-label uppercase tracking-wide text-core-action">Methode 2</p>
+        <h2 id="spaced-repetition-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
+        <p className="mt-4 core-body-large leading-7 text-core-secondary">Scrolle durch die Schritte. Das Diagramm bleibt stehen und hebt jeweils den Teil hervor, der gerade erklärt wird.</p>
+      </div>
+      <div ref={containerRef} className="grid gap-8 xl:grid-cols-[minmax(38rem,1.35fr)_minmax(19rem,0.65fr)] xl:gap-10">
+        <div className="self-start xl:sticky xl:top-6">
+          <MemoryCurveGraphic selection={activeStep.selection} onSelectionChange={selectGraphPart} />
+        </div>
+        <ol>
+          {SPACED_REPETITION_STEPS.map((step, index) => (
+            <StoryStepCard key={step.id} elementId={step.id} testId={`spaced-repetition-step-${step.selection}`} step={step} index={index} active={activeIndex === index} onFocus={() => setActiveIndex(index)} />
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+function ReferenceSection() {
+  return (
+    <section className="grid gap-8" aria-labelledby="reference-heading">
+      <div>
+        <p className="core-control-label uppercase tracking-wide text-core-action">Zum Nachlesen</p>
+        <h2 id="reference-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Das Wichtigste auf einen Blick</h2>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
             <OrbIcon icon={Clock3} />
-            <h2 className="core-heading-2 font-semibold text-core-text">FSRS plant den richtigen Zeitpunkt</h2>
+            <h3 className="core-heading-2 font-semibold text-core-text">So arbeitet ein Spaced-Repetition-Scheduler</h3>
           </div>
-          <p className="mt-4 core-body-large leading-7 text-core-secondary">
-            FSRS sucht für jede Karte das Intervall, an dessen Ende ihre vorhergesagte Abrufwahrscheinlichkeit deiner Zielerinnerung entspricht. Bei 90 Prozent erscheint sie also dann, wenn du sie voraussichtlich noch mit 90-prozentiger Wahrscheinlichkeit erinnern kannst.
-          </p>
-        </SoftPanel>
-
-        <SoftPanel className="p-6">
-          <div className="flex items-center gap-3">
-            <OrbIcon icon={Sparkles} className="bg-core-success-soft text-core-text" />
-            <h2 className="core-heading-2 font-semibold text-core-text">CoRe verändert zusätzlich die Fragestellung</h2>
-          </div>
-          <p className="mt-4 core-body-large leading-7 text-core-secondary">
-            Sobald die Originalkarte ausreichend stabil und nicht durch aktuelle Fehler fragil ist, kann CoRe dieselbe Wissenseinheit als nahe Variante erzeugen und abfragen. Entscheidend ist die Reife der Karte, nicht eine feste Zahl von Reviews.
-          </p>
-        </SoftPanel>
-      </section>
-
-      <div className="rounded-2xl border border-core-warning bg-core-warning-soft p-5">
-        <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 shrink-0 text-core-text" size={22} aria-hidden="true" />
-          <div>
-            <h2 className="core-heading-3 font-semibold text-core-text">Transparenz zum aktuellen Scheduler</h2>
-            <p className="mt-2 core-body leading-6 text-core-secondary">
-              CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern. Der Scheduler schätzt für jede Karte R, S und D und berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag. Eine persönliche Optimierung der Parameter aus deiner eigenen Reviewhistorie ist noch nicht aktiviert.
-            </p>
-            <p className="mt-2 core-body leading-6 text-core-secondary">
-              Neue Karten bleiben nach dem ersten Kontakt in der Lernphase und erscheinen am selben Tag erneut. Standardmäßig bedeutet „Gut“ einen zweiten Kontakt nach 15 Minuten; innerhalb einer laufenden Sitzung kann CoRe diese Wiederholung nach den übrigen Karten vorziehen.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <section className="grid gap-5" aria-labelledby="scheduler-flow-heading">
-        <div>
-          <p className="core-control-label uppercase tracking-wide text-core-action">Vom Gedächtnis zum Termin</p>
-          <h2 id="scheduler-flow-heading" className="core-heading-2 mt-2 font-semibold text-core-text">So arbeitet ein Spaced-Repetition-Scheduler</h2>
-        </div>
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <ol className="border-t border-core-border">
+          <ol className="mt-5 border-t border-core-border">
             {SCHEDULING_STEPS.map((step, index) => (
-              <li key={step.label} className="grid gap-2 border-b border-core-border py-5 sm:grid-cols-[3rem_1fr]">
+              <li key={step.label} className="grid gap-2 border-b border-core-border py-4 sm:grid-cols-[2.5rem_1fr]">
                 <span className="core-caption font-semibold tabular-nums text-core-action">0{index + 1}</span>
                 <div>
-                  <h3 className="core-body-large font-semibold text-core-text">{step.label}</h3>
-                  <p className="mt-2 core-body leading-6 text-core-secondary">{step.text}</p>
+                  <p className="core-body font-semibold text-core-text">{step.label}</p>
+                  <p className="mt-1 core-caption leading-5 text-core-secondary">{step.text}</p>
                 </div>
               </li>
             ))}
           </ol>
+        </SoftPanel>
 
-          <div className="border-t border-core-border py-5">
-            <p className="core-caption font-semibold uppercase tracking-wide text-core-action">Zielerinnerung und Aufwand</p>
-            <h3 className="core-heading-3 mt-2 font-semibold text-core-text">Du steuerst das Ziel, FSRS die Intervalle</h3>
-            <p className="mt-3 core-body leading-6 text-core-secondary">
-              Eine höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag. Eine niedrigere Zielerinnerung reduziert den Aufwand, nimmt aber mehr Vergessen in Kauf. Die 21 Modellparameter werden nicht von Hand eingestellt.
-            </p>
-            <p className="mt-5 border-l-2 border-core-success pl-4 core-body leading-6 text-core-secondary">
-              <strong className="font-semibold text-core-text">CoRe ergänzt die Inhaltsentscheidung:</strong> Erfolgreiche Abrufe, Stabilität, Intervall, aktuelle Abrufwahrscheinlichkeit und jüngste Fehler bestimmen gemeinsam, ob die Originalkarte als „bereit für Varianten“ gilt. Dann kann eine nahe Umformulierung erzeugt werden; nach einem Fehler wird wieder das Original oder eine einfachere Variante bevorzugt.
-            </p>
-            <p className="mt-4 core-caption leading-5 text-[var(--core-text-muted)]">
-              Review 4 in der Grafik veranschaulicht diesen Übergang nur. Es gibt keine garantierte Reviewnummer, ab der jede Karte variiert wird.
-            </p>
+        <SoftPanel className="p-6">
+          <div className="flex items-center gap-3">
+            <OrbIcon icon={ShieldCheck} className="bg-core-warning-soft text-core-text" />
+            <h3 className="core-heading-2 font-semibold text-core-text">Transparenz zum aktuellen Scheduler</h3>
           </div>
-        </div>
-      </section>
+          <p className="mt-5 core-body leading-6 text-core-secondary">
+            CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern. Es berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag. Die persönliche Optimierung der Parameter aus deiner eigenen Reviewhistorie ist noch nicht aktiviert.
+          </p>
+          <p className="mt-3 core-body leading-6 text-core-secondary">
+            Neue Karten bleiben zunächst in der Lernphase. Standardmäßig bedeutet „Gut“ einen zweiten Kontakt nach 15 Minuten. Eine höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag.
+          </p>
+        </SoftPanel>
+      </div>
 
-      <MemoryCurveExplorer />
+      <dl className="grid border-t border-core-border md:grid-cols-2 xl:grid-cols-3">
+        {MEMORY_TERMS.map((memoryTerm) => (
+          <div key={memoryTerm.term} className="border-b border-core-border py-5 md:pr-8">
+            <dt className="core-body-large font-semibold text-core-text">{memoryTerm.term}</dt>
+            <dd className="mt-2 core-body leading-6 text-core-secondary">{memoryTerm.description}</dd>
+          </div>
+        ))}
+      </dl>
 
-      <section className="grid gap-5" aria-labelledby="rating-heading">
-        <div>
-          <p className="core-control-label uppercase tracking-wide text-core-action">Deine Bewertung</p>
-          <h2 id="rating-heading" className="core-heading-2 mt-2 font-semibold text-core-text">Vier Antworten steuern den Rhythmus</h2>
-        </div>
-        <ol className="grid border-t border-core-border md:grid-cols-2 xl:grid-cols-4">
-          {RATING_EXPLANATIONS.map((rating, index) => (
-            <li key={rating.label} className="border-b border-core-border py-5 md:pr-8 xl:min-h-36">
-              <p className="core-caption font-semibold tabular-nums text-core-action">0{index + 1}</p>
-              <h3 className="mt-2 core-body-large font-semibold text-core-text">{rating.label}</h3>
-              <p className="mt-2 core-body leading-6 text-core-secondary">{rating.text}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[1fr_0.8fr]" aria-label="Sichere Varianten und weiterführende Informationen">
+      <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]" aria-label="Sichere Varianten und weiterführende Informationen">
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
             <OrbIcon icon={RotateCcw} className="bg-core-danger-soft text-core-text" />
-            <h2 className="core-heading-2 font-semibold text-core-text">Was bei Varianten geschützt bleibt</h2>
+            <h3 className="core-heading-2 font-semibold text-core-text">Was bei Varianten geschützt bleibt</h3>
           </div>
           <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary">
             <li>• Die Variante prüft dieselbe Wissenseinheit und führt keine neuen Fakten ein.</li>
             <li>• Genau eine Originalkarte bleibt als Vertrauensanker erhalten.</li>
+            <li>• Stabilität, Intervall, Abrufwahrscheinlichkeit und Fehlerverlauf bestimmen gemeinsam, ob eine Karte „bereit für Varianten“ ist.</li>
             <li>• Nach einem Fehler nutzt CoRe wieder das Original oder eine einfachere Variante.</li>
-            <li>• Review 4 in der Grafik ist ein Beispiel, keine garantierte Produktionsschwelle.</li>
+            <li>• Der Variantenpunkt im Diagramm ist keine garantierte Produktionsschwelle und keine garantierte Reviewnummer.</li>
           </ul>
         </SoftPanel>
 
         <div className="border-y border-core-border py-6">
           <div className="flex items-center gap-3">
             <Brain className="text-core-action" size={24} aria-hidden="true" />
-            <h2 className="core-heading-2 font-semibold text-core-text">Mehr über FSRS</h2>
+            <h3 className="core-heading-2 font-semibold text-core-text">Mehr über FSRS</h3>
           </div>
-          <p className="mt-4 core-body leading-6 text-core-secondary">Die offizielle Einführung erklärt das vollständige FSRS-Modell, seine Parameter und die Zielerinnerung.</p>
-          <a
-            className="core-action-secondary mt-5 w-fit"
-            href="https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS"
-            target="_blank"
-            rel="noreferrer noopener"
-          >
+          <p className="mt-4 core-body leading-6 text-core-secondary">Die offizielle Einführung erklärt das vollständige FSRS-Modell, seine 21 Modellparameter und die Zielerinnerung.</p>
+          <a className="core-action-secondary mt-5 w-fit" href="https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS" target="_blank" rel="noreferrer noopener">
             ABC of FSRS öffnen
             <ExternalLink size={17} aria-hidden="true" />
           </a>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
+
+export function HelpScreen() {
+  return (
+    <div className="grid gap-24 pb-16">
+      <PageHeader eyebrow="Hilfe" title="Wie CoRe dein Lernen stärkt" />
+      <IntroSection />
+      <ActiveRecallStory />
+      <SpacedRepetitionStory />
+      <ReferenceSection />
     </div>
   );
 }

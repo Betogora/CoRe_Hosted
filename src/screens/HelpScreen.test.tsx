@@ -3,12 +3,15 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HelpScreen } from "./HelpScreen.tsx";
 
-test("renders the truncated FSRS graph, interactive parameters and variant disclaimer", () => {
+test("renders scroll stories for active recall and spaced repetition", () => {
   const markup = renderToStaticMarkup(<HelpScreen />);
 
-  assert.match(markup, /Wie CoRe und FSRS funktionieren/);
-  assert.match(markup, /FSRS plant den richtigen Zeitpunkt/);
-  assert.match(markup, /CoRe verändert zusätzlich die Fragestellung/);
+  assert.match(markup, /Wie CoRe dein Lernen stärkt/);
+  assert.match(markup, /Wir wollen Lernen verbessern/);
+  assert.match(markup, /Active Recall hält den Fokus auf dem Inhalt/);
+  assert.match(markup, /CoRe verändert die Frage, nicht das Wissen/);
+  assert.match(markup, /Spaced Repetition findet den passenden Zeitpunkt/);
+  assert.match(markup, /Das Diagramm bleibt stehen/);
   assert.match(markup, /So arbeitet ein Spaced-Repetition-Scheduler/);
   assert.match(markup, /alle Reviews einschließlich mehrerer Abrufe am selben Tag/);
   assert.match(markup, /21 Modellparameter/);
@@ -25,11 +28,20 @@ test("renders the truncated FSRS graph, interactive parameters and variant discl
   assert.match(markup, /Ausschnitt 90–100 %/);
   assert.match(markup, /Zwei diagonale Striche/);
   assert.match(markup, /Vereinfachtes Beispiel/);
-  assert.match(markup, /Review 4 · CoRe-Variante/);
+  assert.match(markup, /1 · Erste Wiederholung/);
+  assert.match(markup, /2 · Wiederholung mit Variante/);
+  assert.match(markup, /Nochmal · S sehr kurz/);
+  assert.match(markup, /Schwer · S kurz/);
+  assert.match(markup, /Gut · S länger/);
+  assert.match(markup, /Leicht · S am längsten/);
   assert.match(markup, /keine garantierte Produktionsschwelle/);
   assert.match(markup, /href="https:\/\/github\.com\/open-spaced-repetition\/awesome-fsrs\/wiki\/ABC-of-FSRS"/);
+  assert.equal((markup.match(/xl:sticky/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-testid="active-recall-step-/g) ?? []).length, 3);
+  assert.equal((markup.match(/data-testid="spaced-repetition-step-/g) ?? []).length, 10);
+  assert.equal((markup.match(/data-story-step=/g) ?? []).length, 13);
   assert.equal((markup.match(/data-testid="memory-parameter-/g) ?? []).length, 3);
-  assert.equal((markup.match(/data-testid="memory-review-point-/g) ?? []).length, 4);
-  assert.equal((markup.match(/data-testid="memory-review-summary-/g) ?? []).length, 4);
+  assert.equal((markup.match(/data-testid="memory-review-point-/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-testid="memory-rating-path-/g) ?? []).length, 4);
   assert.equal((markup.match(/data-testid="memory-y-axis-break"/g) ?? []).length, 1);
 });

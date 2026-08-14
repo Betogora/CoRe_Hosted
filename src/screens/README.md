@@ -19,7 +19,7 @@ Each exported screen in this folder is a UI module with a small props interface.
   - `TextTableImportPanel.tsx`: Text/CSV/table paste preview and import.
 - `LearnScreen.tsx`: shared collapsible deck tree, main/subdeck creation, whole-row subtree study entry, direct drag-and-drop reparenting, aggregated new/due/total counts and per-deck learning-settings entry points.
 - `DeckSettingsScreen.tsx`: drei responsive Bereiche für Stapeldarstellung/-aktionen, Tagesrunde/Lernprofil-Vorlagen und Scheduler/CoRe; ohne fokussierten Stapel zeigt die Route eine `DeckSelect`-Auswahl.
-- `HelpScreen.tsx`: statische Produktaufklärung zu CoRes FSRS-6-Scheduler auf offiziellen Standardparametern und Varianten mit einer zugänglichen, transient interaktiven Lernkurve; keine Workspace- oder Scheduler-Mutation.
+- `HelpScreen.tsx`: statische Produktaufklärung mit kurzem Methoden-Einstieg, lokal scrollgesteuerter Active-Recall-Kartengeschichte und gekoppelter FSRS-Lernkurve; sticky ab Desktopbreite, linear darunter, ohne Workspace- oder Scheduler-Mutation.
 - `SimulatorScreen.tsx`: reduzierte Minuten-, Stunden- und Tagessteuerung für die app-weite, transiente Lernuhr; enthält keinen eigenen Stapel und mutiert selbst weder Workspace noch Synczustand.
 - `StatisticsScreen.tsx`: global period/deck-filtered analysis from local review events, including overview metrics, charts, the shared sparse study heatmap, FSRS distributions, retention and deck-level weak spots.
 - `StudyMode.tsx`: fullscreen review, daily queue, new-card limit, shortcut handling, interval previews, grading, anchor display and variant feedback; verwendet bei aktiver Simulation denselben sichtbaren Lernzeitpunkt wie die App-Shell.

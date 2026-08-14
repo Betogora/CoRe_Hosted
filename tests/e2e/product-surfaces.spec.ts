@@ -300,33 +300,32 @@ test("mobile bottom navigation stays viewport-fixed and keeps its width on short
   expect(shortPage!.y + shortPage!.height).toBeLessThanOrEqual(844);
 });
 
-test("help explains FSRS and CoRe with an accessible interactive learning curve", async ({ page }) => {
+test("help explains Active Recall and FSRS with accessible scroll stories", async ({ page }) => {
   await resetToFreshLocalState(page);
 
   const helpButton = page.getByRole("button", { name: "Hilfe öffnen" });
   await expect(helpButton).toBeVisible();
   await helpButton.click();
   await expect(page).toHaveURL("/hilfe");
-  await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Wir wollen Lernen verbessern." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Active Recall hält den Fokus auf dem Inhalt" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" })).toBeVisible();
   await expect(page.getByText(/CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
   await expect(page.getByText(/höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/i)).toBeVisible();
-  await expect(page.getByText(/bestimmen gemeinsam, ob die Originalkarte als „bereit für Varianten“ gilt/i)).toBeVisible();
+  await expect(page.getByText(/bestimmen gemeinsam, ob eine Karte „bereit für Varianten“ ist/i)).toBeVisible();
 
-  await page.getByTestId("memory-curve-area-2").hover({ position: { x: 20, y: 120 } });
-  await expect(page.getByRole("heading", { name: "Review 2 · Stabilität wächst" })).toBeVisible();
+  await page.getByTestId("active-recall-step-blur").scrollIntoViewIfNeeded();
+  await expect(page.getByTestId("active-recall-visual")).toHaveAttribute("data-active-step", "1");
 
-  await page.getByTestId("memory-curve-area-3").hover({ position: { x: 20, y: 200 } });
-  await expect(page.getByRole("heading", { name: "Review 3 · Robuster Abruf" })).toBeVisible();
+  await page.getByTestId("active-recall-step-variants").scrollIntoViewIfNeeded();
+  await expect(page.getByTestId("active-recall-visual")).toHaveAttribute("data-active-step", "2");
 
-  const secondReviewSummary = page.getByTestId("memory-review-summary-2");
-  await secondReviewSummary.focus();
-  await expect(page.getByRole("heading", { name: "Review 2 · Stabilität wächst" })).toBeVisible();
-  await secondReviewSummary.click();
-  await expect(secondReviewSummary).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("spaced-repetition-step-rating-hard").scrollIntoViewIfNeeded();
+  await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "rating-hard");
 
   await page.getByTestId("memory-parameter-r").hover();
-  await expect(page.getByRole("heading", { name: "R · Abrufwahrscheinlichkeit" })).toBeVisible();
   await expect(page.getByTestId("memory-visual-r")).toHaveAttribute("data-active", "true");
 
   const stabilityParameter = page.getByTestId("memory-parameter-s");
@@ -334,30 +333,30 @@ test("help explains FSRS and CoRe with an accessible interactive learning curve"
   await expect(page.getByRole("heading", { name: "S · Stabilität" })).toBeVisible();
   await stabilityParameter.click();
   await expect(stabilityParameter).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "parameter-s");
   await expect(page.getByTestId("memory-visual-s")).toHaveAttribute("data-active", "true");
 
-  const difficultyTerm = page.getByTestId("memory-term-d");
-  await difficultyTerm.focus();
-  await expect(page.getByRole("heading", { name: "D · Schwierigkeit" })).toBeVisible();
-  await difficultyTerm.click();
-  await expect(difficultyTerm).toHaveAttribute("aria-pressed", "true");
+  const difficultyParameter = page.getByTestId("memory-parameter-d");
+  await difficultyParameter.click();
+  await expect(difficultyParameter).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "parameter-d");
   await expect(page.getByTestId("memory-visual-d")).toHaveAttribute("data-active", "true");
 
   await expect(page.getByTestId("memory-y-axis-break")).toBeVisible();
   await expect(page.getByText("Ausschnitt 90–100 %", { exact: true })).toBeVisible();
 
-  const fourthReview = page.getByTestId("memory-review-point-4");
-  await fourthReview.focus();
-  await expect(page.getByRole("heading", { name: "Review 4 · CoRe-Variante" })).toBeVisible();
-  await fourthReview.click();
-  await expect(fourthReview).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("Nahe Kartenvariante", { exact: true })).toBeVisible();
+  const variantReview = page.getByTestId("memory-review-point-variant");
+  await variantReview.focus();
+  await expect(page.getByRole("heading", { name: "2 · Wiederholung mit Variante" })).toBeVisible();
+  await variantReview.click();
+  await expect(variantReview).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "review-variant");
   await expect(page.getByText(/keine garantierte Produktionsschwelle/i)).toBeVisible();
   await expect(page.getByText(/keine garantierte Reviewnummer/i)).toBeVisible();
 
   await page.reload();
   await expect(page).toHaveURL("/hilfe");
-  await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByTestId("memory-curve")).toBeVisible();
