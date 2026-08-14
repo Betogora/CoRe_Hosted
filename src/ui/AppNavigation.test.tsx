@@ -43,27 +43,36 @@ test("app navigation exposes a desktop sidebar and the five mobile tabs", () => 
   assert.match(markup, /bottom:max\(0\.75rem, env\(safe-area-inset-bottom\)\)/);
 });
 
-test("settings, help and simulator share the active utility entry", () => {
-  for (const view of ["einstellungen", "hilfe", "simulator"]) {
+test("help has its own active utility entry while settings and simulator share the settings entry", () => {
+  for (const view of ["einstellungen", "simulator"]) {
     const markup = renderNavigation(view);
     assert.equal((markup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 2);
+    assert.equal((markup.match(/<button[^>]*data-navigation-utility="help"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 0);
   }
+
+  const helpMarkup = renderNavigation("hilfe");
+  assert.equal((helpMarkup.match(/<button[^>]*data-navigation-utility="help"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 2);
+  assert.equal((helpMarkup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 0);
 });
 
-test("responsive navigation shares compact settings and theme actions without a profile preview", () => {
+test("responsive navigation shares compact settings, theme and help actions without a profile preview", () => {
   const markup = renderNavigation();
   const sidebarMarkup = markup.match(/<aside[^>]*data-navigation-layout="sidebar"[\s\S]*?<\/aside>/)?.[0] ?? "";
   const mobileHeaderMarkup = markup.match(/<header[^>]*data-navigation-layout="mobile-header"[\s\S]*?<\/header>/)?.[0] ?? "";
 
   assert.equal((markup.match(/data-navigation-utilities="true"/g) ?? []).length, 2);
   assert.equal((markup.match(/aria-label="Einstellungen öffnen"/g) ?? []).length, 2);
+  assert.equal((markup.match(/aria-label="Hilfe öffnen"/g) ?? []).length, 2);
   assert.equal((markup.match(/aria-label="Dark Mode einschalten"/g) ?? []).length, 2);
+  assert.equal((markup.match(/lucide-circle-help/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
   assert.match(sidebarMarkup, /class="[^"]*justify-start" data-navigation-utilities="true"/);
   assert.match(sidebarMarkup, /lg:pt-10 lg:pb-5/);
   assert.doesNotMatch(sidebarMarkup, /border-t/);
   assert.ok(sidebarMarkup.indexOf('data-navigation-utility="settings"') < sidebarMarkup.indexOf('data-navigation-utility="theme"'));
-  assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="theme"') < mobileHeaderMarkup.indexOf('data-navigation-utility="settings"'));
+  assert.ok(sidebarMarkup.indexOf('data-navigation-utility="theme"') < sidebarMarkup.indexOf('data-navigation-utility="help"'));
+  assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="theme"') < mobileHeaderMarkup.indexOf('data-navigation-utility="help"'));
+  assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="help"') < mobileHeaderMarkup.indexOf('data-navigation-utility="settings"'));
   assert.doesNotMatch(markup, /role="switch"|aria-checked=/);
   assert.doesNotMatch(markup, />Ada<|>AD</);
 });

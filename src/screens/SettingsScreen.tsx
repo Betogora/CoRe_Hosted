@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarClock, CircleHelp, Database, Download, RefreshCw, Save, ShieldCheck, Upload, User, X } from "lucide-react";
+import { CalendarClock, Database, Download, RefreshCw, Save, ShieldCheck, Upload, User, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
@@ -243,10 +243,6 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
             <span className="min-w-0 flex-1"><span className="block core-body-large font-semibold text-core-text">Simulator</span><span className="block core-caption text-core-muted">{simulationOffsetMinutes > 0 ? `Aktiv: ${simulationDateLabel} · +${formatSimulationDuration(simulationOffsetMinutes)}` : "Lernfortschritt über simulierte Zeitpunkte prüfen"}</span></span>
           </button>
           <PomodoroTimerControl timer={pomodoroTimer} variant="settings" onStart={onStartPomodoro} />
-          <button type="button" onClick={() => onNavigate("hilfe")} className="flex min-h-[4.75rem] w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--core-surface-hover)] sm:px-6">
-            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-core-success-soft text-core-text"><CircleHelp size={20} aria-hidden="true" /></span>
-            <span className="min-w-0 flex-1"><span className="block core-body-large font-semibold text-core-text">Hilfe</span><span className="block core-caption text-core-muted">Wie CoRe und FSRS funktionieren</span></span>
-          </button>
         </SoftPanel>
       </section>
 

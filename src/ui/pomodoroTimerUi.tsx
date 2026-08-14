@@ -84,7 +84,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
   }
 
   return (
-    <div className={isSettings ? "border-b border-[var(--core-border)]" : ""} data-pomodoro-control={variant}>
+    <div className={isSettings ? "border-b border-[var(--core-border)] last:border-b-0" : ""} data-pomodoro-control={variant}>
       <button
         type="button"
         className={isSettings

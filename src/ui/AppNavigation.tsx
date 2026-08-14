@@ -1,6 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, BookOpen, CalendarClock, Home, Layers, Moon, PlusSquare, Settings, Sun } from "lucide-react";
+import { BarChart3, BookOpen, CalendarClock, CircleHelp, Home, Layers, Moon, PlusSquare, Settings, Sun } from "lucide-react";
 import { createPortal } from "react-dom";
 import { readCoreTheme, toggleCoreTheme, type CoreTheme } from "../coreTheme.ts";
 import type { MenuViewId } from "../menuModel.ts";
@@ -33,7 +33,7 @@ const iconByKey: Record<string, LucideIcon> = {
   plus: PlusSquare,
 };
 
-const utilityViews = new Set(["einstellungen", "hilfe", "simulator"]);
+const settingsViews = new Set(["einstellungen", "simulator"]);
 
 function getIcon(iconKey: string) {
   return iconByKey[iconKey] ?? Home;
@@ -45,7 +45,8 @@ interface ResponsiveNavigationProps extends AppNavigationProps {
 }
 
 function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme, className = "", themeFirst = false }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onToggleTheme"> & { className?: string; themeFirst?: boolean }) {
-  const settingsActive = utilityViews.has(activeView);
+  const settingsActive = settingsViews.has(activeView);
+  const helpActive = activeView === "hilfe";
   const darkModeActive = theme === "dark";
   const ThemeIcon = darkModeActive ? Moon : Sun;
   const settingsButton = (
@@ -71,11 +72,34 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
       className="size-11 shrink-0 rounded-full"
     />
   );
+  const helpButton = (
+    <IconButton
+      type="button"
+      data-app-navigation="true"
+      data-navigation-utility="help"
+      label="Hilfe öffnen"
+      icon={CircleHelp}
+      onClick={() => onNavigate("hilfe")}
+      className={`size-11 shrink-0 rounded-full ${helpActive ? "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)] shadow-sm" : ""}`}
+      aria-current={helpActive ? "page" : undefined}
+    />
+  );
 
   return (
     <div className={`flex items-center gap-2 ${className}`} data-navigation-utilities="true">
-      {themeFirst ? themeButton : settingsButton}
-      {themeFirst ? settingsButton : themeButton}
+      {themeFirst ? (
+        <>
+          {themeButton}
+          {helpButton}
+          {settingsButton}
+        </>
+      ) : (
+        <>
+          {settingsButton}
+          {themeButton}
+          {helpButton}
+        </>
+      )}
     </div>
   );
 }

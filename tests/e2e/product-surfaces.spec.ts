@@ -35,14 +35,19 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
   await expect(bottomNavigation).toBeVisible();
   const mobileUtilities = mobileHeader.locator('[data-navigation-utilities="true"]');
   const mobileSettingsButton = mobileUtilities.locator('[data-navigation-utility="settings"]');
+  const mobileHelpButton = mobileUtilities.locator('[data-navigation-utility="help"]');
   const mobileThemeButton = mobileUtilities.locator('[data-navigation-utility="theme"]');
   await expect(mobileSettingsButton).toBeVisible();
+  await expect(mobileHelpButton).toBeVisible();
   await expect(mobileThemeButton).toBeVisible();
   const mobileSettingsBox = await mobileSettingsButton.boundingBox();
+  const mobileHelpBox = await mobileHelpButton.boundingBox();
   const mobileThemeBox = await mobileThemeButton.boundingBox();
   expect(mobileSettingsBox).not.toBeNull();
+  expect(mobileHelpBox).not.toBeNull();
   expect(mobileThemeBox).not.toBeNull();
-  expect(mobileSettingsBox!.x).toBeGreaterThan(mobileThemeBox!.x);
+  expect(mobileHelpBox!.x).toBeGreaterThan(mobileThemeBox!.x);
+  expect(mobileSettingsBox!.x).toBeGreaterThan(mobileHelpBox!.x);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
   await mobileSettingsButton.click();
@@ -56,15 +61,20 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
   await expect(bottomNavigation).toBeHidden();
   const desktopUtilities = sidebar.locator('[data-navigation-utilities="true"]');
   const desktopSettingsButton = desktopUtilities.locator('[data-navigation-utility="settings"]');
+  const desktopHelpButton = desktopUtilities.locator('[data-navigation-utility="help"]');
   const desktopThemeButton = desktopUtilities.locator('[data-navigation-utility="theme"]');
   await expect(desktopSettingsButton).toBeVisible();
+  await expect(desktopHelpButton).toBeVisible();
   await expect(desktopThemeButton).toBeVisible();
   await expect(desktopSettingsButton).toHaveAttribute("aria-current", "page");
   const desktopSettingsBox = await desktopSettingsButton.boundingBox();
+  const desktopHelpBox = await desktopHelpButton.boundingBox();
   const desktopThemeBox = await desktopThemeButton.boundingBox();
   expect(desktopSettingsBox).not.toBeNull();
+  expect(desktopHelpBox).not.toBeNull();
   expect(desktopThemeBox).not.toBeNull();
   expect(desktopSettingsBox!.x).toBeLessThan(desktopThemeBox!.x);
+  expect(desktopThemeBox!.x).toBeLessThan(desktopHelpBox!.x);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
@@ -293,8 +303,7 @@ test("mobile bottom navigation stays viewport-fixed and keeps its width on short
 test("help explains FSRS and CoRe with an accessible interactive learning curve", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-  const helpButton = page.getByRole("button", { name: /^Hilfe Wie CoRe/ });
+  const helpButton = page.getByRole("button", { name: "Hilfe öffnen" });
   await expect(helpButton).toBeVisible();
   await helpButton.click();
   await expect(page).toHaveURL("/hilfe");

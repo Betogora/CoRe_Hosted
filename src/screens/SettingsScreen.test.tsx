@@ -62,7 +62,7 @@ test("learning-day settings contain only global scheduler context", () => {
   assert.match(html, /Europe\/Berlin/);
   assert.match(html, />Simulator</);
   assert.match(html, />Pomodoro-Timer</);
-  assert.match(html, />Hilfe</);
+  assert.doesNotMatch(html, />Hilfe</);
   assert.doesNotMatch(html, /Neue Karten pro Tag|Wiederholungen pro Tag|CoRe-Modus|Gewünschte Erinnerungsrate/);
 });
 
