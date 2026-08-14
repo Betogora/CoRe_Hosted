@@ -958,7 +958,7 @@ test("@beta-core @hosted-core settings resolve and persist an account-bound sync
     const panel = page.getByTestId("sync-conflict-panel");
     const conflict = page.getByTestId(`sync-conflict-${conflictId}`);
     await expect(conflict.getByRole("heading", { name: "Lokaler E2E-Stapel" })).toBeVisible();
-    await expect(conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Andere Fassung behalten" })).toBeVisible();
+    await expect(conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Cloud übernehmen" })).toBeVisible();
 
     await conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Später entscheiden" }).click();
     await expect(panel.getByText("Für später zurückgestellt (1)")).toBeVisible();
@@ -966,8 +966,8 @@ test("@beta-core @hosted-core settings resolve and persist an account-bound sync
     await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
     await page.getByText("Für später zurückgestellt (1)").click();
     await page.getByRole("button", { name: "Wieder aufnehmen" }).click();
-    await expect(conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Andere Fassung behalten" })).toBeVisible();
-    await conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Andere Fassung behalten" }).click();
+    await expect(conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Cloud übernehmen" })).toBeVisible();
+    await conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Cloud übernehmen" }).click();
     await expect(conflict).toHaveCount(0);
 
     const { data: persisted, error: readError } = await client.from("sync_conflicts").select("status, resolution").eq("id", conflictId).single();

@@ -713,6 +713,45 @@ test("an acknowledged tombstone can be restored with its exact revision", async 
   assert.equal(client.tables.cards[0].revision, 4);
 });
 
+test("a missing derived original variant is inserted without a user conflict", async () => {
+  const fixture = createCloudFixture();
+  const rows = clone(fixture.rows);
+  rows.card_variants = [];
+  const client = createMemorySupabaseClient(rows, fixture.user);
+  const variant = getOriginalVariant(fixture.state.decks[0].cards[0]);
+  assert.ok(variant);
+
+  const result = await applyEntityMutation(client, {
+    table: "card_variants",
+    entity: variant,
+    cardId: "card-1",
+    baseRevision: variant.revision,
+  }, { deviceId: "device-b", flushedAt: "2026-08-14T10:00:00.000Z" });
+
+  assert.equal(result.applied, true);
+  assert.equal(client.tables.card_variants.length, 1);
+  assert.equal(client.tables.sync_conflicts.length, 0);
+});
+
+test("card content updates preserve the current cloud learning projection", async () => {
+  const fixture = createCloudFixture();
+  const rows = clone(fixture.rows);
+  rows.cards[0].review_state = { state: "review", repetitions: 9, dueAt: "2026-09-01T10:00:00.000Z" };
+  const client = createMemorySupabaseClient(rows, fixture.user);
+  const localCard = { ...fixture.state.decks[0].cards[0], originalFront: "Lokal bearbeitet" };
+
+  const result = await applyEntityMutation(client, {
+    table: "cards",
+    entity: localCard,
+    deckId: "deck-1",
+    baseRevision: rows.cards[0].revision,
+  }, { deviceId: "device-b", flushedAt: "2026-08-14T10:00:00.000Z" });
+
+  assert.equal(result.applied, true);
+  assert.equal(client.tables.cards[0].original_front, "Lokal bearbeitet");
+  assert.deepEqual(client.tables.cards[0].review_state, rows.cards[0].review_state);
+});
+
 test("profile patch updates only the account profile", async () => {
   const fixture = createCloudFixture();
   const client = createMemorySupabaseClient(fixture.rows, fixture.user);
@@ -722,6 +761,7 @@ test("profile patch updates only the account profile", async () => {
       dashboardCollapsedDeckIds: ["deck-1"],
       learnCollapsedDeckIds: [],
       deckManagerExpandedDeckIds: [],
+      syncIntervalMinutes: 5,
     },
   };
 
@@ -850,6 +890,33 @@ test("sync conflicts are account-bound, sorted and projected without raw cloud r
   assert.deepEqual(conflicts[0].fields.map((field: { key: any; }) => field.key), ["description", "name"]);
   assert.equal(Object.hasOwn(conflicts[0], "localValue"), false);
   assert.equal(conflicts[0].allowedActions.includes("merge-fields"), true);
+  assert.equal(client.calls.filter((call: any) => call.table === "decks" && call.operation === "select").length, 1);
+});
+
+test("technical owner drift is repaired without a user decision", async () => {
+  const fixture = createDeckConflictFixture();
+  const conflict = fixture.rows.sync_conflicts[0];
+  conflict.local_value = { ...clone(fixture.rows.decks[0]), local_owner_id: "legacy-local-owner" };
+  conflict.remote_value = { ...clone(fixture.rows.decks[0]), local_owner_id: fixture.user.id };
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+
+  const conflicts = await listAccountSyncConflicts(client);
+
+  assert.deepEqual(conflicts, []);
+  assert.equal(client.tables.sync_conflicts[0].status, "resolved");
+  assert.equal(client.tables.sync_conflicts[0].resolution.action, "automatic-repair");
+});
+
+test("conflict preview refreshes a changed remote revision before resolution", async () => {
+  const fixture = createDeckConflictFixture();
+  fixture.rows.decks[0] = { ...fixture.rows.decks[0], name: "Cloud danach", revision: 5 };
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+
+  const conflicts = await listAccountSyncConflicts(client, { refreshRemote: true });
+
+  assert.equal(conflicts[0].remoteRevision, 5);
+  assert.equal(client.tables.sync_conflicts[0].remote_revision, 5);
+  assert.equal(conflicts[0].fields.find((field: any) => field.key === "name")?.remoteText, "Cloud danach");
 });
 
 test("keeping the local conflict version advances the remote revision and returns one entity page", async () => {
@@ -876,6 +943,42 @@ test("keeping the local conflict version advances the remote revision and return
     resolvedAt: "2026-07-12T11:01:00.000Z",
   });
   assert.equal(client.tables.decks[0].revision, 5);
+});
+
+test("keeping local card content preserves the current cloud learning projection", async () => {
+  const fixture = createCloudFixture();
+  const rows = clone(fixture.rows);
+  const remote = rows.cards[0];
+  const local = { ...clone(remote), original_front: "Lokale Kartenfrage", review_state: { dueAt: "2026-07-12T08:00:00.000Z" } };
+  remote.revision += 1;
+  remote.review_state = { dueAt: "2026-07-20T08:00:00.000Z" };
+  remote.core_state = { scheduler: "cloud-new" };
+  delete local.user_id;
+  const remoteValue = clone(remote);
+  delete remoteValue.user_id;
+  rows.sync_conflicts = [{
+    id: "conflict-card-review",
+    user_id: fixture.user.id,
+    entity_table: "cards",
+    entity_id: remote.id,
+    base_revision: local.revision,
+    local_revision: local.revision,
+    remote_revision: remote.revision,
+    local_value: local,
+    remote_value: remoteValue,
+    status: "open",
+    resolution: {},
+    updated_by_device_id: "device-b",
+    created_at: "2026-07-12T09:00:00.000Z",
+    resolved_at: null,
+  }];
+  const client = createMemorySupabaseClient(rows, fixture.user);
+
+  await resolveAccountSyncConflict(client, "conflict-card-review", { action: "keep-local" }, { deviceId: "device-c" });
+
+  assert.equal(client.tables.cards[0].original_front, "Lokale Kartenfrage");
+  assert.deepEqual(client.tables.cards[0].review_state, { dueAt: "2026-07-20T08:00:00.000Z" });
+  assert.deepEqual(client.tables.cards[0].core_state, { scheduler: "cloud-new" });
 });
 
 test("keeping remote and field-wise merging never accept protected or incomplete choices", async () => {
@@ -950,6 +1053,20 @@ test("tombstone decisions return only the chosen deck entity", async () => {
   });
   assert.equal((deleted.resolvedPage?.entities[0] as any).id, "deck-1");
   assert.ok((deleted.resolvedPage?.entities[0] as any).deletedAt);
+});
+
+test("choosing a missing local side deletes the current cloud entity", async () => {
+  const fixture = createDeckConflictFixture();
+  fixture.rows.sync_conflicts[0].local_value = {};
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+
+  const result = await resolveAccountSyncConflict(client, "conflict-deck-1", { action: "keep-local" }, {
+    deviceId: "device-c",
+    resolvedAt: "2026-07-12T11:00:00.000Z",
+  });
+
+  assert.equal(client.tables.decks[0].deleted_at, "2026-07-12T11:00:00.000Z");
+  assert.equal((result.resolvedPage?.entities[0] as any).deletedAt, "2026-07-12T11:00:00.000Z");
 });
 
 test("resolution fails safely when the remote revision changed again", async () => {

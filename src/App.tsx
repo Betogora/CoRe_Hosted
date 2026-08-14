@@ -616,7 +616,7 @@ export function App() {
       boot.conflictCount > 0
         ? createSyncConflictStatus(boot.conflictCount)
         : boot.pendingCount > 0
-          ? createSyncPendingStatus()
+          ? createSyncPendingStatus(boot.pendingCount)
           : createSyncSavedStatus("Cloud geladen."),
     );
 
@@ -676,9 +676,14 @@ export function App() {
     return startAppSyncLifecycle({
       authPhase,
       syncEngine,
+      syncIntervalMinutes: state?.profile.uiPreferences.syncIntervalMinutes ?? 5,
       onStatus: setSyncStatus,
+      onSynced() {
+        if (!workspaceRepository) return;
+        setAppState(workspaceRepository.getShellState());
+      },
     });
-  }, [authPhase, syncEngine]);
+  }, [authPhase, state?.profile.uiPreferences.syncIntervalMinutes, syncEngine, workspaceRepository]);
 
   React.useEffect(() => {
     if (authPhase !== "ready" || !mediaStore || !syncEngine || !workspaceRepository) return undefined;
@@ -834,15 +839,17 @@ export function App() {
   async function syncNow() {
     if (!syncEngine) return;
     try {
-      return await syncEngine.flush({ force: true });
+      const result = await syncEngine.syncNow();
+      if (workspaceRepository) setAppState(workspaceRepository.getShellState());
+      return result;
     } catch (error) {
       setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Synchronisierung fehlgeschlagen.")));
       throw error;
     }
   }
 
-  const listSyncConflicts = React.useCallback(async () => {
-    return syncEngine ? syncEngine.listConflicts() : [];
+  const listSyncConflicts = React.useCallback(async (options: { refreshRemote?: boolean } = {}) => {
+    return syncEngine ? syncEngine.listConflicts(options) : [];
   }, [syncEngine]);
 
   async function resolveSyncConflict(conflictId: string, decision: Record<string, unknown>) {
@@ -892,13 +899,7 @@ export function App() {
     if (!workspaceRepository) return null;
     const result = mutation(workspaceRepository);
     refresh(refreshOptions);
-    if (workspaceRepository && syncEngine) {
-      queueMicrotask(() => {
-        void workspaceRepository.flush()
-          .then(() => syncEngine.flush({ force: true }))
-          .catch((error) => setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Die Änderung bleibt lokal gespeichert und wird später erneut synchronisiert."))));
-      });
-    }
+    syncEngine?.requestSync();
     return result;
   }
 
@@ -971,10 +972,7 @@ export function App() {
   function recordReview(result: ReviewAnswerResult) {
     if (!workspaceRepository || !syncEngine) return;
     workspaceRepository.recordReview(result);
-    queueMicrotask(() => {
-      void syncEngine.flush({ force: true })
-        .catch((error) => setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Review konnte noch nicht synchronisiert werden."))));
-    });
+    syncEngine.requestSync();
   }
 
   function createDeck(input: CreateDeckInput = {}) {
@@ -996,8 +994,7 @@ export function App() {
     const result = await workspaceRepository.deleteDeckTree(deckId);
     if (!result) return null;
     refresh();
-    await workspaceRepository.flush();
-    await syncEngine.flush({ force: true });
+    syncEngine.requestSync();
     return result;
   }
 
@@ -1105,11 +1102,7 @@ export function App() {
     if (!card) return null;
     refresh();
     if (refreshPage) setCardPages((current) => ({ ...current, [deckId]: undefined }));
-    queueMicrotask(() => {
-      void syncEngine.flush({ force: true })
-        .then(() => syncEngine.pendingCount() > 0 ? syncEngine.flush({ force: true }) : undefined)
-        .catch((error) => setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Die Änderung bleibt lokal gespeichert und wird später erneut synchronisiert."))));
-    });
+    syncEngine.requestSync();
     return card;
   }
 
@@ -1123,11 +1116,7 @@ export function App() {
     if (!deleted) return null;
     refresh();
     setCardPages((pages) => ({ ...pages, [deckId]: undefined }));
-    queueMicrotask(() => {
-      void syncEngine.flush({ force: true })
-        .then(() => syncEngine.pendingCount() > 0 ? syncEngine.flush({ force: true }) : undefined)
-        .catch((error) => setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Die Löschung bleibt lokal gespeichert und wird später erneut synchronisiert."))));
-    });
+    syncEngine.requestSync();
     return deleted;
   }
 
@@ -1249,6 +1238,12 @@ export function App() {
     return runRepositoryMutation((repository) => repository.saveProfile(profile));
   }
 
+  async function saveSyncInterval(syncIntervalMinutes: import("./coreTypes.ts").SyncIntervalMinutes) {
+    if (!state) return;
+    await saveProfile({ uiPreferences: { ...state.profile.uiPreferences, syncIntervalMinutes } });
+    await syncNow();
+  }
+
   function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
     if (!workspaceRepository || !state) return null;
     const profile = state.profile;
@@ -1272,7 +1267,7 @@ export function App() {
     workspaceRepository.replaceFullState(result.state, workspaceRepository.getCloudDeltaCursors());
     await workspaceRepository.flush();
     refresh();
-    return syncEngine.flush({ force: true });
+    return syncEngine.syncNow();
   }
 
   async function prepareDeckStart(deck: { id: string; }, variantSession = false) {
@@ -1585,6 +1580,7 @@ export function App() {
           onCreateExport={createPortableExportText}
           onImportExport={importPortableExport}
           onSyncNow={syncNow}
+          onSaveSyncInterval={saveSyncInterval}
           onListConflicts={listSyncConflicts}
           onResolveConflict={resolveSyncConflict}
           onSignOut={signOut}
@@ -1705,6 +1701,8 @@ export function App() {
           simulationOffsetMinutes={simulationOffsetMinutes}
           simulationDateLabel={formatSimulationDate(learningNow)}
           pomodoroTimer={pomodoroTimer}
+          syncStatus={syncStatus}
+          onSyncNow={() => void syncNow()}
           onNavigate={(viewId) => viewId === "lernen" ? openLearn(focusedDeckId) : navigateToView(viewId)}
           onResetSimulation={() => changeSimulationOffset(0)}
         />

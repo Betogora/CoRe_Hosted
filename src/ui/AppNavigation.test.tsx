@@ -3,11 +3,12 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMenuModel } from "../menuModel.ts";
 import { createPomodoroTimer, type PomodoroTimer } from "../pomodoroTimer.ts";
+import type { SyncStatus } from "../coreTypes.ts";
 import { AppNavigation } from "./AppNavigation.tsx";
 
 const navigationItems = createMenuModel().listNavigationItems();
 
-function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null) {
+function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null, syncStatus: SyncStatus = { status: "idle" }) {
   return renderToStaticMarkup(
     <AppNavigation
       navigationItems={navigationItems}
@@ -15,11 +16,25 @@ function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0
       simulationOffsetMinutes={simulationOffsetMinutes}
       simulationDateLabel="Sonntag, 9. August 2026"
       pomodoroTimer={pomodoroTimer}
+      syncStatus={syncStatus}
+      onSyncNow={() => undefined}
       onNavigate={() => undefined}
       onResetSimulation={() => undefined}
     />,
   );
 }
+
+test("sync action exposes the current state in both navigation layouts", () => {
+  const saved = renderNavigation("uebersicht", 0, null, { status: "saved", message: "Synchronisiert.", savedAt: "2026-08-14T16:00:00.000Z" });
+  assert.equal((saved.match(/aria-label="Synchronisiert – jetzt erneut synchronisieren"/g) ?? []).length, 2);
+
+  const conflicted = renderNavigation("uebersicht", 0, null, { status: "conflict", message: "2 Änderungen brauchen deine Entscheidung.", conflictCount: 2 });
+  assert.equal((conflicted.match(/aria-label="2 Synchronisierungskonflikte klären"/g) ?? []).length, 2);
+  assert.equal((conflicted.match(/>2<\/span>/g) ?? []).length, 2);
+
+  const singularConflict = renderNavigation("uebersicht", 0, null, { status: "conflict", message: "Eine Änderung braucht deine Entscheidung.", conflictCount: 1 });
+  assert.equal((singularConflict.match(/aria-label="1 Synchronisierungskonflikt klären"/g) ?? []).length, 2);
+});
 
 test("app navigation exposes a desktop sidebar and the five mobile tabs", () => {
   const markup = renderNavigation("kartenstapel");

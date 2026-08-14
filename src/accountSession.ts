@@ -29,8 +29,8 @@ export function createSyncIdleStatus(): SyncStatus {
   return { status: "idle" };
 }
 
-export function createSyncPendingStatus(): SyncStatus {
-  return { status: "pending", message: "Änderungen werden gleich synchronisiert." };
+export function createSyncPendingStatus(pendingCount?: number): SyncStatus {
+  return { status: "pending", message: "Änderungen werden gleich synchronisiert.", ...(pendingCount ? { pendingCount } : {}) };
 }
 
 export function createSyncOfflineStatus({ pendingCount = 0, nextRetryAt = null }: { pendingCount?: number; nextRetryAt?: string | null } = {}): SyncStatus {

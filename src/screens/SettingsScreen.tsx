@@ -4,7 +4,7 @@ import { formatSyncStatusText } from "../accountSession.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
 import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
-import type { EasyDayLevel, EasyDays } from "../coreTypes.ts";
+import type { EasyDayLevel, EasyDays, SyncIntervalMinutes } from "../coreTypes.ts";
 import { PORTABLE_EXPORT_FILE_NAME, validatePortableExport } from "../dataPortability.ts";
 import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
@@ -49,11 +49,20 @@ const easyDayToneClasses: Record<EasyDayLevel, string> = {
   minimum: "border-core-info bg-core-info-soft",
 };
 
-export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences, onSaveProfile, onSaveGlobalSchedulerPreferences, onCreateExport, onImportExport, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
+const syncIntervalOptions = [
+  { value: "0", label: "Aus – nur manuell" },
+  { value: "1", label: "Jede Minute" },
+  { value: "5", label: "Alle 5 Minuten" },
+  { value: "15", label: "Alle 15 Minuten" },
+  { value: "30", label: "Alle 30 Minuten" },
+];
+
+export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences, onSaveProfile, onSaveGlobalSchedulerPreferences, onCreateExport, onImportExport, onSyncNow, onSaveSyncInterval, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
   const [displayName, setDisplayName] = React.useState(profile.displayName);
   const [dayStartHour, setDayStartHour] = React.useState(globalSchedulerPreferences.dayStartHour);
   const [learnAheadMinutes, setLearnAheadMinutes] = React.useState(globalSchedulerPreferences.learnAheadMinutes);
   const [easyDays, setEasyDays] = React.useState(globalSchedulerPreferences.easyDays);
+  const [syncIntervalMinutes, setSyncIntervalMinutes] = React.useState<SyncIntervalMinutes>(profile.uiPreferences.syncIntervalMinutes);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
   const [exportText, setExportText] = React.useState("");
@@ -63,6 +72,7 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
   const easyDaysDependency = EASY_DAY_KEYS.map((key) => globalSchedulerPreferences.easyDays[key]).join("|");
 
   React.useEffect(() => setDisplayName(profile.displayName), [profile.displayName]);
+  React.useEffect(() => setSyncIntervalMinutes(profile.uiPreferences.syncIntervalMinutes), [profile.uiPreferences.syncIntervalMinutes]);
   React.useEffect(() => {
     setDayStartHour(globalSchedulerPreferences.dayStartHour);
     setLearnAheadMinutes(globalSchedulerPreferences.learnAheadMinutes);
@@ -96,6 +106,19 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
       setAccountMessage("");
     } catch (error) {
       setAccountMessage(error instanceof Error ? error.message : "Synchronisierung fehlgeschlagen.");
+    } finally {
+      setAccountBusy(false);
+    }
+  }
+
+  async function saveSyncInterval() {
+    setAccountBusy(true);
+    setSuccessToast("");
+    try {
+      await onSaveSyncInterval(syncIntervalMinutes);
+      setSuccessToast(syncIntervalMinutes === 0 ? "Automatische Synchronisierung ist ausgeschaltet." : "Synchronisierungsintervall wurde gespeichert.");
+    } catch (error) {
+      setAccountMessage(error instanceof Error ? error.message : "Synchronisierungsintervall konnte nicht gespeichert werden.");
     } finally {
       setAccountBusy(false);
     }
@@ -250,9 +273,28 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
         <h2 id="settings-data-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Daten & Synchronisierung</h2>
         <SoftPanel className="p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div><h3 className="core-heading-3 font-semibold text-core-text">Synchronisierung</h3><p className="mt-2 core-body text-core-muted">{formatSyncStatusText(syncStatus)}</p></div>
-            <ActionButton type="button" variant="secondary" icon={RefreshCw} onClick={() => void syncNow()} loading={syncStatus.status === "saving"} disabled={accountBusy}>Jetzt synchronisieren</ActionButton>
+            <div>
+              <h3 className="core-heading-3 font-semibold text-core-text">Synchronisierung</h3>
+              <p className="mt-2 core-body text-core-muted">{formatSyncStatusText(syncStatus)}</p>
+              {syncStatus.status === "saved" ? <p className="mt-1 core-caption text-core-muted">Zuletzt erfolgreich: {new Date(syncStatus.savedAt).toLocaleString("de-DE")}</p> : null}
+              {syncStatus.status === "pending" && syncStatus.pendingCount ? <p className="mt-1 core-caption text-core-muted">Ausstehende Änderungen: {syncStatus.pendingCount}</p> : null}
+            </div>
+            <ActionButton type="button" variant="primary" icon={RefreshCw} onClick={() => void syncNow()} loading={syncStatus.status === "saving"} disabled={accountBusy}>Jetzt synchronisieren</ActionButton>
           </div>
+          <div className="mt-5 grid gap-3 border-t border-core-border pt-5 sm:grid-cols-[minmax(0,18rem)_auto] sm:items-end">
+            <label className="grid gap-2 core-body font-semibold text-core-text">
+              Automatisch synchronisieren
+              <CoreSelect
+                ariaLabel="Intervall der automatischen Synchronisierung"
+                value={String(syncIntervalMinutes)}
+                options={syncIntervalOptions}
+                testId="settings-sync-interval"
+                onValueChange={(value) => setSyncIntervalMinutes(Number(value) as SyncIntervalMinutes)}
+              />
+            </label>
+            <ActionButton type="button" variant="secondary" icon={Save} onClick={() => void saveSyncInterval()} disabled={accountBusy || syncIntervalMinutes === profile.uiPreferences.syncIntervalMinutes}>Automatik speichern</ActionButton>
+          </div>
+          <p className="mt-3 core-caption leading-5 text-core-muted">Lokale Änderungen bleiben sicher in diesem Browser gespeichert. Beim nächsten vollständigen Abgleich werden nur Änderungen übertragen und neue Cloud-Daten geladen.</p>
         </SoftPanel>
         <SyncConflictPanel onListConflicts={onListConflicts} onResolveConflict={onResolveConflict} />
         <SoftPanel className="p-5 sm:p-6">

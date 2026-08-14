@@ -45,6 +45,28 @@ function createNetworkTarget(initialOnline = true) {
       this.navigator.onLine = online;
       for (const listener of listeners.get(online ? "online" : "offline") ?? []) listener();
     },
+    dispatch(type: string) {
+      for (const listener of listeners.get(type) ?? []) listener();
+    },
+  };
+}
+
+function createDocumentTarget(initialVisibility: "visible" | "hidden" = "visible") {
+  const listeners = new Map<string, Set<() => void>>();
+  return {
+    visibilityState: initialVisibility,
+    addEventListener(type: string, listener: () => void) {
+      const selected = listeners.get(type) ?? new Set();
+      selected.add(listener);
+      listeners.set(type, selected);
+    },
+    removeEventListener(type: string, listener: () => void) {
+      listeners.get(type)?.delete(listener);
+    },
+    setVisibility(visibilityState: "visible" | "hidden") {
+      this.visibilityState = visibilityState;
+      for (const listener of listeners.get("visibilitychange") ?? []) listener();
+    },
   };
 }
 
@@ -110,6 +132,101 @@ test("profile and entity mutations coalesce without a snapshot fallback", async 
   assert.equal(result.mutations, 2);
   assert.deepEqual(batches[0].map((mutation) => mutation.id), ["profile-new", "card-new"]);
   assert.equal(engine.pendingCount(), 0);
+});
+
+test("manual sync pulls cloud deltas even when the outbox is empty", async () => {
+  let pulls = 0;
+  const engine = createSyncEngine({
+    adapter: { async listConflicts() { return []; } },
+    outbox: createTestOutbox(),
+    device,
+    async pullChanges() { pulls += 1; },
+  });
+
+  const result = await engine.syncNow();
+
+  assert.equal(pulls, 1);
+  assert.equal(result.mutations, 0);
+  assert.equal(result.syncStatus.status, "saved");
+});
+
+test("one conflicting mutation does not block acknowledged siblings or the cloud pull", async () => {
+  const conflict = { id: "conflict-card-a", status: "open", cardId: "card-a" };
+  let pulls = 0;
+  const engine = createSyncEngine({
+    adapter: {
+      async applyMutationBatch(mutations: any[]) {
+        return {
+          acknowledgedMutationIds: [mutations[1].id],
+          failedMutationIds: [mutations[0].id],
+          failures: [{ mutationId: mutations[0].id, error: { code: "cloud_revision_conflict", conflict } }],
+          conflicts: [conflict],
+        };
+      },
+      async listConflicts() { return [conflict]; },
+    },
+    outbox: createTestOutbox(),
+    device,
+    async pullChanges() { pulls += 1; },
+  });
+  engine.enqueueMutation({ id: "card-a", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-a", payload: { table: "cards", entity: { id: "card-a" } } });
+  engine.enqueueMutation({ id: "card-b", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-b", payload: { table: "cards", entity: { id: "card-b" } } });
+
+  const result = await engine.syncNow();
+
+  assert.equal(pulls, 1);
+  assert.equal(engine.pendingCount(), 1);
+  assert.equal(result.syncStatus.status, "conflict");
+});
+
+test("autosync interval controls both periodic and debounced local triggers", () => {
+  const activeTimers = createFakeTimers();
+  const active = createSyncEngine({
+    adapter: acknowledgingAdapter(), outbox: createTestOutbox(), device,
+    setTimer: activeTimers.setTimer, clearTimer: activeTimers.clearTimer,
+  });
+  const stopActive = active.startSyncLifecycle({ intervalMinutes: 5, onStatus() {} });
+  active.requestSync();
+  assert.deepEqual(activeTimers.delays, [300_000, 400]);
+  stopActive();
+
+  const manualTimers = createFakeTimers();
+  const manual = createSyncEngine({
+    adapter: acknowledgingAdapter(), outbox: createTestOutbox(), device,
+    setTimer: manualTimers.setTimer, clearTimer: manualTimers.clearTimer,
+  });
+  const stopManual = manual.startSyncLifecycle({ intervalMinutes: 0, onStatus() {} });
+  manual.requestSync();
+  assert.equal(manualTimers.count(), 0);
+  stopManual();
+});
+
+test("focus and visibility run a full sync only for active automatic lifecycle", async () => {
+  const networkTarget = createNetworkTarget();
+  const documentTarget = createDocumentTarget();
+  let pulls = 0;
+  const engine = createSyncEngine({
+    adapter: acknowledgingAdapter(), outbox: createTestOutbox(), device,
+    networkTarget, documentTarget,
+    async pullChanges() { pulls += 1; },
+  });
+  const stop = engine.startSyncLifecycle({ intervalMinutes: 5, onStatus() {} });
+
+  networkTarget.dispatch("focus");
+  await waitForAsyncWork();
+  assert.equal(pulls, 1);
+  documentTarget.setVisibility("hidden");
+  networkTarget.dispatch("focus");
+  await waitForAsyncWork();
+  assert.equal(pulls, 1);
+  documentTarget.setVisibility("visible");
+  await waitForAsyncWork();
+  assert.equal(pulls, 2);
+
+  stop();
+  networkTarget.dispatch("focus");
+  await waitForAsyncWork();
+  assert.equal(pulls, 2);
 });
 
 test("entity batches preserve foreign-key order", async () => {
@@ -239,7 +356,7 @@ test("offline lifecycle keeps the outbox and flushes once after reconnect", asyn
     networkTarget,
   });
   engine.enqueueMutation({ id: "offline", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
-  const stop = engine.startSyncLifecycle({ onStatus: (status: any) => statuses.push(status.status) });
+  const stop = engine.startSyncLifecycle({ intervalMinutes: 5, onStatus: (status: any) => statuses.push(status.status) });
 
   assert.equal((await engine.flush()).offline, true);
   assert.equal(engine.pendingCount(), 1);

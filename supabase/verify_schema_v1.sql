@@ -183,6 +183,9 @@ begin
   if to_regprocedure('public.record_review_atomic(text,integer,text,integer,jsonb,jsonb,timestamp with time zone,text,integer,jsonb,jsonb,timestamp with time zone,jsonb,text)') is null then
     raise exception 'Atomare Review-RPC fehlt.';
   end if;
+  if to_regclass('public.sync_conflicts_one_active_entity_idx') is null then
+    raise exception 'Eindeutigkeitsregel für aktive Synchronisierungskonflikte fehlt.';
+  end if;
   if not has_function_privilege('authenticated', 'public.record_review_atomic(text,integer,text,integer,jsonb,jsonb,timestamp with time zone,text,integer,jsonb,jsonb,timestamp with time zone,jsonb,text)', 'EXECUTE')
      or has_function_privilege('anon', 'public.record_review_atomic(text,integer,text,integer,jsonb,jsonb,timestamp with time zone,text,integer,jsonb,jsonb,timestamp with time zone,jsonb,text)', 'EXECUTE') then
     raise exception 'Review-RPC-Berechtigungen sind falsch konfiguriert.';

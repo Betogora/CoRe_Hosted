@@ -175,8 +175,8 @@ function createDefaultAdapter(client: any) {
     registerDevice(device: any, context: any = {}) {
       return registerAccountSyncDevice(client, device, { lastSeenAt: context.lastSeenAt });
     },
-    listConflicts() {
-      return listAccountSyncConflicts(client);
+    listConflicts(options: any = {}) {
+      return listAccountSyncConflicts(client, options);
     },
     resolveConflict(conflictId: any, decision: any, context: any = {}) {
       return resolveAccountSyncConflict(client, conflictId, decision, context);
@@ -185,6 +185,7 @@ function createDefaultAdapter(client: any) {
       const acknowledgedMutationIds: any[] = [];
       const failedMutationIds: any[] = [];
       const failures: any[] = [];
+      const conflicts: any[] = [];
       const persistedRows: any[] = [];
       for (let mutationIndex = 0; mutationIndex < mutations.length;) {
         const mutation = mutations[mutationIndex];
@@ -207,7 +208,20 @@ function createDefaultAdapter(client: any) {
               if (acknowledgements[index]?.persistedRow) persistedRows.push({ table: item.payload.table, row: acknowledgements[index].persistedRow });
             });
           } catch (error) {
-            group.forEach((item: any) => { failedMutationIds.push(item.id); failures.push({ mutationId: item.id, error }); });
+            for (const item of group) {
+              try {
+                const acknowledgement = await applyEntityMutation(client, item.payload, {
+                  deviceId: item.deviceId ?? context.deviceId,
+                  flushedAt: context.flushedAt,
+                });
+                acknowledgedMutationIds.push(item.id);
+                if (acknowledgement?.persistedRow) persistedRows.push({ table: item.payload.table, row: acknowledgement.persistedRow });
+              } catch (itemError: any) {
+                failedMutationIds.push(item.id);
+                failures.push({ mutationId: item.id, error: itemError });
+                if (itemError?.conflict) conflicts.push(itemError.conflict);
+              }
+            }
           }
           mutationIndex = groupEnd;
           continue;
@@ -238,18 +252,20 @@ function createDefaultAdapter(client: any) {
             acknowledgedMutationIds.push(mutation.id);
             if (acknowledged.persistedRow) persistedRows.push({ table: mutation.payload?.table ?? mutation.table, row: acknowledged.persistedRow });
             const atomicRows = acknowledged.rows && !Array.isArray(acknowledged.rows) ? acknowledged.rows : null;
-            if (atomicRows?.deck) persistedRows.push({ table: "decks", row: atomicRows.deck });
-            if (atomicRows?.card) persistedRows.push({ table: "cards", row: atomicRows.card });
-            if (atomicRows?.variant) persistedRows.push({ table: "card_variants", row: atomicRows.variant });
+            const atomicEntities = acknowledged.entities && !Array.isArray(acknowledged.entities) ? acknowledged.entities : null;
+            if (atomicRows?.deck) persistedRows.push({ table: "decks", row: atomicRows.deck, entity: atomicEntities?.deck });
+            if (atomicRows?.card) persistedRows.push({ table: "cards", row: atomicRows.card, entity: atomicEntities?.card });
+            if (atomicRows?.variant) persistedRows.push({ table: "card_variants", row: atomicRows.variant, entity: atomicEntities?.variant });
           } else {
             failedMutationIds.push(mutation.id);
           }
         } catch (error) {
           failedMutationIds.push(mutation.id);
           failures.push({ mutationId: mutation.id, error });
+          if ((error as any)?.conflict) conflicts.push((error as any).conflict);
         }
       }
-      return { acknowledgedMutationIds, failedMutationIds, failures, conflicts: [], persistedRows };
+      return { acknowledgedMutationIds, failedMutationIds, failures, conflicts, persistedRows };
     },
   };
 }
@@ -262,14 +278,19 @@ export function createSyncEngine({
   beforeFlush,
   persistMutationAcknowledgements,
   persistResolvedPage,
+  persistConflictResolution,
+  persistConflictState,
+  pullChanges,
   initialize,
   networkTarget = getDefaultNetworkTarget(),
+  documentTarget = typeof document !== "undefined" ? document : null,
   isOnline = () => networkTarget?.navigator?.onLine !== false,
   setTimer = (callback: any, delay: any) => setTimeout(callback, delay),
   clearTimer = (timerId: any) => clearTimeout(timerId),
   random = Math.random,
   retryBaseDelayMs = DEFAULT_RETRY_BASE_DELAY_MS,
   retryMaxDelayMs = DEFAULT_RETRY_MAX_DELAY_MS,
+  localChangeDebounceMs = 400,
 }: any = {}) {
   if (!adapter) throw new Error("Sync-Engine braucht einen Adapter.");
   if (!outbox) throw new Error("Sync-Engine braucht eine persistente Outbox.");
@@ -277,6 +298,8 @@ export function createSyncEngine({
   let lastFlush: any = null;
   let activeFlush: any = null;
   let retryTimer: any = null;
+  let localChangeTimer: any = null;
+  let intervalTimer: any = null;
   let retryAttempt = 0;
   let lastRetryableError: any = null;
   let lifecycleActive = false;
@@ -284,6 +307,7 @@ export function createSyncEngine({
   let statusListener: any = null;
   let flushListener: any = null;
   let lifecycleCleanup: any = null;
+  let syncIntervalMinutes = 5;
   let currentStatus = createSyncIdleStatus();
   let lastOnlineStatus = currentStatus;
 
@@ -306,11 +330,22 @@ export function createSyncEngine({
     return status;
   }
 
+  function requestLocalSync() {
+    if (currentStatus.status !== "conflict") {
+      emitStatus(safelyIsOnline() ? createSyncPendingStatus(outbox.count()) : createSyncOfflineStatus({ pendingCount: outbox.count() }));
+    }
+    if (lifecycleActive && syncIntervalMinutes > 0) {
+      if (localChangeTimer !== null) clearTimer(localChangeTimer);
+      localChangeTimer = setTimer(() => {
+        localChangeTimer = null;
+        flushForActiveLifecycle();
+      }, localChangeDebounceMs);
+    }
+  }
+
   function enqueuePendingMutation(mutation: any) {
     const queued = outbox.enqueue(mutation);
-    if (currentStatus.status !== "conflict") {
-      emitStatus(safelyIsOnline() ? createSyncPendingStatus() : createSyncOfflineStatus({ pendingCount: outbox.count() }));
-    }
+    requestLocalSync();
     return queued;
   }
 
@@ -318,6 +353,13 @@ export function createSyncEngine({
     if (retryTimer === null) return;
     clearTimer(retryTimer);
     retryTimer = null;
+  }
+
+  function clearLifecycleTimers() {
+    if (localChangeTimer !== null) clearTimer(localChangeTimer);
+    if (intervalTimer !== null) clearTimer(intervalTimer);
+    localChangeTimer = null;
+    intervalTimer = null;
   }
 
   function resetRetry() {
@@ -339,7 +381,7 @@ export function createSyncEngine({
 
   function flushForActiveLifecycle() {
     const version = lifecycleVersion;
-    void api.flush({ force: true })
+    void api.flush()
       .then((result: any) => {
         if (lifecycleActive && lifecycleVersion === version) flushListener?.(result);
       })
@@ -372,7 +414,7 @@ export function createSyncEngine({
     if (!lifecycleActive) {
       emitStatus(isConnectivityError(error)
         ? createSyncOfflineStatus({ pendingCount })
-        : { ...createSyncPendingStatus(), pendingCount, message: "Synchronisierung wird automatisch erneut versucht." });
+        : { ...createSyncPendingStatus(pendingCount), message: "Synchronisierung wird automatisch erneut versucht." });
       return null;
     }
 
@@ -382,7 +424,7 @@ export function createSyncEngine({
     const retryStatus = isConnectivityError(error)
       ? createSyncOfflineStatus({ pendingCount, nextRetryAt })
       : {
-          ...createSyncPendingStatus(),
+          ...createSyncPendingStatus(pendingCount),
           pendingCount,
           nextRetryAt,
           message: "Synchronisierung wird automatisch erneut versucht.",
@@ -395,6 +437,22 @@ export function createSyncEngine({
     return retryTimer;
   }
 
+  async function refreshConflicts() {
+    const conflicts = adapter.listConflicts ? await adapter.listConflicts() : [];
+    await persistConflictState?.(conflicts);
+    return conflicts;
+  }
+
+  function scheduleInterval() {
+    if (!lifecycleActive || syncIntervalMinutes <= 0) return;
+    if (intervalTimer !== null) clearTimer(intervalTimer);
+    intervalTimer = setTimer(() => {
+      intervalTimer = null;
+      if (documentTarget?.visibilityState !== "hidden") flushForActiveLifecycle();
+      scheduleInterval();
+    }, syncIntervalMinutes * 60_000);
+  }
+
   const api = {
     async initialize() {
       if (!adapter.registerDevice) throw new Error("Sync-Adapter kann kein Gerät registrieren.");
@@ -404,7 +462,7 @@ export function createSyncEngine({
         throw createDeviceRegistrationError(error);
       }
       await initialize?.();
-      emitStatus(outbox.count() > 0 ? createSyncPendingStatus() : createSyncSavedStatus("Cloud geladen.", now));
+      emitStatus(outbox.count() > 0 ? createSyncPendingStatus(outbox.count()) : createSyncSavedStatus("Cloud geladen.", now));
     },
     enqueueMutation(input: any = {}) {
       const mutation = createMutation(input, now, syncDevice.id);
@@ -438,6 +496,14 @@ export function createSyncEngine({
       return outbox.count();
     },
 
+    requestSync() {
+      requestLocalSync();
+    },
+
+    syncNow() {
+      return api.flush({ force: true });
+    },
+
     async flush({ force = false }: any = {}) {
       if (activeFlush) return activeFlush;
       if (retryTimer !== null && !force) return deferredResult({ retryScheduled: true });
@@ -451,11 +517,6 @@ export function createSyncEngine({
         await beforeFlush?.();
         await outbox.flushPersistence?.();
         const batch = outbox.listPending();
-        if (batch.length === 0) {
-          resetRetry();
-          const syncStatus = currentStatus.status === "conflict" ? currentStatus : emitStatus(createSyncSavedStatus("Synchronisiert.", now));
-          return lastFlush ?? { mutations: 0, conflicts: [], saved: null, syncStatus };
-        }
         emitStatus(createSyncSavingStatus());
         const result: any = {
           mutations: batch.length,
@@ -483,9 +544,7 @@ export function createSyncEngine({
               const failureErrors = (batchResult?.failures ?? [])
                 .filter((failure: any) => failedMutationIds.includes(failure?.mutationId) && failure?.error)
                 .map((failure: any) => failure.error);
-              batchFailure = failureErrors.find((error: any) => !isRetryableSyncError(error))
-                ?? failureErrors[0]
-                ?? createRetryableMutationError();
+              batchFailure = failureErrors.find((error: any) => !isSyncConflictError(error)) ?? null;
             }
           } catch (error) {
             outbox.markFailed(remaining.map((mutation: any) => mutation.id), error);
@@ -497,11 +556,13 @@ export function createSyncEngine({
         }
 
         if (batchFailure) throw batchFailure;
-        if (outbox.count() > 0) throw createRetryableMutationError();
-
         await outbox.flushPersistence?.();
+        await pullChanges?.();
+        result.conflicts = await refreshConflicts();
         resetRetry();
-        result.syncStatus = emitStatus(createSyncSavedStatus("Synchronisiert.", now));
+        result.syncStatus = emitStatus(result.conflicts.length > 0
+          ? createSyncConflictStatus(result.conflicts.length)
+          : createSyncSavedStatus("Synchronisiert.", now));
         lastFlush = result;
         return result;
       })();
@@ -536,11 +597,12 @@ export function createSyncEngine({
       }
     },
 
-    startSyncLifecycle({ onStatus, onFlush }: any = {}) {
+    startSyncLifecycle({ onStatus, onFlush, intervalMinutes = 0 }: any = {}) {
       if (typeof onStatus !== "function") throw new Error("Sync-Lifecycle braucht einen Status-Listener.");
       lifecycleCleanup?.();
       lifecycleActive = true;
       lifecycleVersion += 1;
+      syncIntervalMinutes = [0, 1, 5, 15, 30].includes(Number(intervalMinutes)) ? Number(intervalMinutes) : 5;
       statusListener = onStatus;
       flushListener = typeof onFlush === "function" ? onFlush : null;
 
@@ -551,20 +613,32 @@ export function createSyncEngine({
       const handleOnline = () => {
         clearRetryTimer();
         retryAttempt = 0;
-        if (outbox.count() > 0) {
+        if (syncIntervalMinutes > 0) {
           flushForActiveLifecycle();
         } else if (currentStatus.status === "offline") {
           emitStatus(lastOnlineStatus);
         }
       };
+      const handleFocus = () => {
+        if (syncIntervalMinutes > 0 && documentTarget?.visibilityState !== "hidden") flushForActiveLifecycle();
+      };
+      const handleVisibility = () => {
+        if (documentTarget?.visibilityState === "visible") handleFocus();
+      };
+      const handlePageHide = () => {
+        if (syncIntervalMinutes > 0 && outbox.count() > 0) flushForActiveLifecycle();
+      };
 
       networkTarget?.addEventListener?.("offline", handleOffline);
       networkTarget?.addEventListener?.("online", handleOnline);
+      networkTarget?.addEventListener?.("focus", handleFocus);
+      networkTarget?.addEventListener?.("pagehide", handlePageHide);
+      documentTarget?.addEventListener?.("visibilitychange", handleVisibility);
 
       if (!safelyIsOnline()) {
         handleOffline();
-      } else if (outbox.count() > 0 && currentStatus.status !== "conflict") {
-        scheduleRetry(lastRetryableError ?? createRetryableMutationError());
+      } else if (syncIntervalMinutes > 0) {
+        scheduleInterval();
       }
 
       let cleanedUp = false;
@@ -574,8 +648,12 @@ export function createSyncEngine({
         lifecycleActive = false;
         lifecycleVersion += 1;
         clearRetryTimer();
+        clearLifecycleTimers();
         networkTarget?.removeEventListener?.("offline", handleOffline);
         networkTarget?.removeEventListener?.("online", handleOnline);
+        networkTarget?.removeEventListener?.("focus", handleFocus);
+        networkTarget?.removeEventListener?.("pagehide", handlePageHide);
+        documentTarget?.removeEventListener?.("visibilitychange", handleVisibility);
         statusListener = null;
         flushListener = null;
         lifecycleCleanup = null;
@@ -583,9 +661,10 @@ export function createSyncEngine({
       return lifecycleCleanup;
     },
 
-    async listConflicts() {
-      if (!adapter.listConflicts) return [];
-      return adapter.listConflicts();
+    async listConflicts(options: any = {}) {
+      const conflicts = adapter.listConflicts ? await adapter.listConflicts(options) : [];
+      await persistConflictState?.(conflicts);
+      return conflicts;
     },
 
     async resolveConflict(conflictId: any, decision: any) {
@@ -596,9 +675,10 @@ export function createSyncEngine({
         deviceId: syncDevice.id,
         resolvedAt,
       });
-      if (repositoryResult?.resolvedPage) await persistResolvedPage?.(repositoryResult.resolvedPage);
+      if (persistConflictResolution) await persistConflictResolution(repositoryResult, decision);
+      else if (repositoryResult?.resolvedPage) await persistResolvedPage?.(repositoryResult.resolvedPage);
 
-      const conflicts = adapter.listConflicts ? await adapter.listConflicts() : [];
+      const conflicts = await refreshConflicts();
       const syncStatus = conflicts.length > 0
         ? createSyncConflictStatus(conflicts.length)
         : createSyncSavedStatus("Konfliktentscheidung synchronisiert.", () => resolvedAt);

@@ -1,4 +1,4 @@
-import { createDefaultDeckSettings, isLearningItemReviewBlocked, normalizeCoreDeck } from "./coreModel.ts";
+import { createDefaultDeckSettings, isLearningItemReviewBlocked, normalizeCoreDeck, normalizeLearningItem } from "./coreModel.ts";
 import { normalizeContentEntities, normalizeWorkspaceState } from "./coreRepository.ts";
 import type { CardVariant, Deck, ImportCommitGraph, ImportVerificationRepairScope, ImportVerificationScope, LearningItem, MaterializedImportCommitGraph, ReviewEvent, SourceDocument } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
@@ -221,10 +221,10 @@ function reviewHourKey(value: unknown) {
   return Number.isNaN(timestamp.getTime()) ? null : timestamp.toISOString().slice(0, 13);
 }
 
-function hydrateCard(record: StoredCard, variantsByCardId: Map<string, StoredVariant[]>): LearningItem {
+function hydrateCard(record: StoredCard, variantsByCardId: Map<string, StoredVariant[]>, conflictCardIds: ReadonlySet<string> = new Set()): LearningItem {
   const { dueAt: _dueAt, hasActiveVariants: _hasActiveVariants, normalizedFrontText: _frontText, normalizedSearchText: _searchText, reviewable: _reviewable, scheduleState: _scheduleState, maturityBand: _maturityBand, ...card } = record;
   const variants = (variantsByCardId.get(record.id) ?? []).map(({ deckId: _deckId, activeForSummary: _active, ...variant }) => variant);
-  return { ...card, variants } as LearningItem;
+  return { ...card, variants, syncConflict: conflictCardIds.has(record.id) } as LearningItem;
 }
 
 function ids(items: Array<{ id: string }> = []): Set<string> {
@@ -451,6 +451,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     });
   let cloudDeltaCursors = (await requestResult<any>(database.transaction(STORE.syncMetadata, "readonly").objectStore(STORE.syncMetadata).get("cloudDeltaCursors")))?.value ?? {};
   let reviewHourCounts: Record<string, number> | null = (await requestResult<any>(database.transaction(STORE.syncMetadata, "readonly").objectStore(STORE.syncMetadata).get("reviewHourCounts")))?.value ?? null;
+  let syncConflictCardIds = new Set<string>((await requestResult<any>(database.transaction(STORE.syncMetadata, "readonly").objectStore(STORE.syncMetadata).get("syncConflictCardIds")))?.value ?? []);
+  let syncRepairVersion = Number((await requestResult<any>(database.transaction(STORE.syncMetadata, "readonly").objectStore(STORE.syncMetadata).get("syncRepairVersion")))?.value ?? 0);
   let latestImportVerificationScope: ImportVerificationScope | null = null;
 
   const queueMutations = (inputs: any[]) => {
@@ -837,7 +839,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       }
       const variants = await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("learningItemId").getAll(cardId));
       await transactionDone(transaction);
-      return hydrateCard(record, new Map([[cardId, variants]]));
+      return hydrateCard(record, new Map([[cardId, variants]]), syncConflictCardIds);
     },
     updateCard(deckId: string, cardId: string, updater: (card: LearningItem) => LearningItem) {
       return writeCard(deckId, cardId, (card) => card ? updater(card) : null);
@@ -1004,6 +1006,100 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       cloudDeltaCursors = nextCursors;
       void enqueueWrite(() => writeState(database, normalized, cloudDeltaCursors));
       return normalized;
+    },
+    async repairSyncState(manifest: { cardIds: string[]; originalVariantIds: string[] }, version = 1) {
+      await writeChain;
+      if (syncRepairVersion >= version) return 0;
+      const read = database.transaction([STORE.cards, STORE.variants], "readonly");
+      const [cards, variants] = await Promise.all([
+        requestResult<StoredCard[]>(read.objectStore(STORE.cards).getAll()),
+        requestResult<StoredVariant[]>(read.objectStore(STORE.variants).getAll()),
+      ]);
+      await transactionDone(read);
+      const cloudCardIds = new Set(manifest.cardIds);
+      const cloudOriginalVariantIds = new Set(manifest.originalVariantIds);
+      const cardsById = new Map(cards.map((card) => [card.id, card]));
+      const variantsByCardId = new Map<string, StoredVariant[]>();
+      for (const variant of variants) {
+        const bucket = variantsByCardId.get(variant.learningItemId);
+        if (bucket) bucket.push(variant);
+        else variantsByCardId.set(variant.learningItemId, [variant]);
+      }
+      const synthesizedOriginals: StoredVariant[] = [];
+      for (const card of cards.filter((candidate) => cloudCardIds.has(candidate.id))) {
+        if ((variantsByCardId.get(card.id) ?? []).some((variant) => variant.isOriginal)) continue;
+        const original = normalizeLearningItem(hydrateCard(card, variantsByCardId)).variants.find((variant) => variant.isOriginal);
+        if (!original) continue;
+        const stored = variantRecord(original, card.deckId);
+        synthesizedOriginals.push(stored);
+        variantsByCardId.set(card.id, [...(variantsByCardId.get(card.id) ?? []), stored]);
+      }
+      const inputs = [...variants, ...synthesizedOriginals]
+        .filter((variant) => variant.isOriginal && cloudCardIds.has(variant.learningItemId) && !cloudOriginalVariantIds.has(variant.id))
+        .flatMap((variant) => {
+          const card = cardsById.get(variant.learningItemId);
+          return card ? [{
+            type: "entity-mutation",
+            table: "card_variants",
+            entityId: variant.id,
+            baseRevision: null,
+            payload: { table: "card_variants", entity: variant, cardId: card.id, baseRevision: null },
+          }] : [];
+        });
+      const batch = queueMutations(inputs);
+      const repairComplete = manifest.cardIds.every((cardId) => cardsById.has(cardId));
+      if (repairComplete) syncRepairVersion = version;
+      const write = database.transaction([STORE.variants, STORE.outbox, STORE.syncMetadata], "readwrite");
+      for (const variant of synthesizedOriginals) write.objectStore(STORE.variants).put(variant);
+      for (const id of batch.removedIds) write.objectStore(STORE.outbox).delete(id);
+      for (const mutation of batch.queued) write.objectStore(STORE.outbox).put(mutation);
+      if (repairComplete) write.objectStore(STORE.syncMetadata).put({ key: "syncRepairVersion", value: version });
+      await transactionDone(write);
+      return batch.queued.length;
+    },
+    async setSyncConflicts(conflicts: any[] = []) {
+      syncConflictCardIds = new Set(conflicts.flatMap((conflict) => conflict?.cardId ? [String(conflict.cardId)] : []));
+      const conflictedDeckIds = [...new Set(conflicts
+        .filter((conflict) => conflict?.entityTable === "decks" && conflict?.entityId)
+        .map((conflict) => String(conflict.entityId)))];
+      if (conflictedDeckIds.length > 0) {
+        const read = database.transaction(STORE.cards, "readonly");
+        const cardStore = read.objectStore(STORE.cards);
+        const cardsByDeck = await Promise.all(conflictedDeckIds.map((deckId) => requestResult<StoredCard[]>(cardStore.index("deckId").getAll(deckId))));
+        await transactionDone(read);
+        for (const card of cardsByDeck.flat()) syncConflictCardIds.add(card.id);
+      }
+      const transaction = database.transaction(STORE.syncMetadata, "readwrite");
+      transaction.objectStore(STORE.syncMetadata).put({ key: "syncConflictCardIds", value: [...syncConflictCardIds] });
+      await transactionDone(transaction);
+    },
+    async prepareConflictResolution(result: any, decision: any) {
+      const target = result?.resolutionTarget;
+      if (!target || !["keep-local", "keep-remote", "merge-fields"].includes(decision?.action)) return;
+      const mutationIds = [...pendingByTarget.values()]
+        .filter((mutation) => mutation.type === "entity-mutation" && mutation.table === target.table && mutation.entityId === target.entityId)
+        .map((mutation) => mutation.id);
+      outbox.remove(mutationIds);
+      await outbox.flushPersistence();
+      if (decision.action !== "keep-remote" || result.resolvedPage) return;
+      const storeName = ({
+        decks: STORE.decks,
+        cards: STORE.cards,
+        card_variants: STORE.variants,
+        source_documents: STORE.documents,
+        note_type_definitions: STORE.noteTypeDefinitions,
+      } as Record<string, string>)[target.table];
+      if (!storeName) return;
+      const stores = target.table === "cards" ? [STORE.cards, STORE.variants] : [storeName];
+      const transaction = database.transaction(stores, "readwrite");
+      transaction.objectStore(storeName).delete(target.entityId);
+      if (target.table === "cards") {
+        const variants = await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("learningItemId").getAll(target.entityId));
+        for (const variant of variants) transaction.objectStore(STORE.variants).delete(variant.id);
+      }
+      await transactionDone(transaction);
+      hydratedDecks.clear();
+      shell = await loadShell(database);
     },
     getCloudDeltaCursors: () => reviewHourCounts ? cloudDeltaCursors as CloudDeltaCursors : Object.fromEntries(Object.entries(cloudDeltaCursors).filter(([table]) => table !== "review_events")) as CloudDeltaCursors,
     async applyCloudPage(page: CloudEntityPage) {
@@ -1577,12 +1673,12 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       }));
       await variantsDone;
       return {
-        items: rows.map((row) => hydrateCard(row, variantsByCardId)),
+        items: rows.map((row) => hydrateCard(row, variantsByCardId, syncConflictCardIds)),
         page: normalizedPage,
         pageSize: limit,
         totalCount,
         hasMore: retained.length > limit || totalCount > offset + limit,
-        selectedCard: selectedRecord?.deckId === deckId ? hydrateCard(selectedRecord, variantsByCardId) : null,
+        selectedCard: selectedRecord?.deckId === deckId ? hydrateCard(selectedRecord, variantsByCardId, syncConflictCardIds) : null,
       };
     },
     async loadReviewSession(deckIds: string[], options: { now?: string; dayStartHour?: number; timeZone?: string } = {}) {
@@ -1605,7 +1701,12 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
           )))))).flat()
         : [];
       await transactionDone(transaction);
-      return { cards: cards.map((record) => ({ deckId: record.deckId, item: hydrateCard(record, variantsByCardId) })), reviewEvents };
+      return {
+        cards: cards
+          .filter((record) => !syncConflictCardIds.has(record.id))
+          .map((record) => ({ deckId: record.deckId, item: hydrateCard(record, variantsByCardId, syncConflictCardIds) })),
+        reviewEvents,
+      };
     },
     async queryStatistics(input: StatisticsSelection) {
       await writeChain;
@@ -1636,12 +1737,12 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     },
     outbox,
     flush: () => writeChain,
-    persistMutationAcknowledgements(persistedRows: Array<{ table: string; row: any }> = []) {
+    persistMutationAcknowledgements(persistedRows: Array<{ table: string; row: any; entity?: any }> = []) {
       return enqueueWrite(async () => {
         const stores = [...new Set(persistedRows.map(({ table }) => ({ decks: STORE.decks, cards: STORE.cards, card_variants: STORE.variants, source_documents: STORE.documents, note_type_definitions: STORE.noteTypeDefinitions } as Record<string, string>)[table]).filter(Boolean))];
         if (!stores.length) return;
         const transaction = database.transaction(stores, "readwrite");
-        for (const { table, row } of persistedRows) {
+        for (const { table, row, entity } of persistedRows) {
           const storeName = ({ decks: STORE.decks, cards: STORE.cards, card_variants: STORE.variants, source_documents: STORE.documents, note_type_definitions: STORE.noteTypeDefinitions } as Record<string, string>)[table];
           if (!storeName || !row?.id) continue;
           const store = transaction.objectStore(storeName);
@@ -1649,6 +1750,18 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
           if (!current) continue;
           const pending = pendingEntityMutation(table, row.id);
           if (pending && Boolean((pending.payload as any)?.tombstone) !== Boolean(row.deleted_at)) continue;
+          if (entity && table === "cards") {
+            store.put(cardRecord({ ...entity, variants: [] }, current.deckId ?? entity.deckId));
+            continue;
+          }
+          if (entity && table === "card_variants") {
+            store.put(variantRecord(entity, current.deckId));
+            continue;
+          }
+          if (entity && table === "decks") {
+            store.put({ ...entity, mediaAssets: current.mediaAssets ?? [] });
+            continue;
+          }
           store.put({
             ...current,
             revision: Number(row.revision ?? current.revision ?? 1),

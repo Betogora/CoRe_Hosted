@@ -465,9 +465,9 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       }
     });
 
-    await t.test("atomarer Review-Write erhöht genau die betroffenen Revisionen und ist idempotent", async () => {
+    await t.test("atomarer Review-Write erhält Inhaltsrevisionen, markiert Projektionen und ist idempotent", async () => {
       const eventId = `${prefix}_atomic_review`;
-      const answeredAt = "2026-07-11T09:00:00.000Z";
+      const answeredAt = "2099-07-11T09:00:00.000Z";
       const [deck, card, variant] = await Promise.all([
         clientA.from("decks").select("*").eq("id", fixtureA.decks.id).single(),
         clientA.from("cards").select("*").eq("id", fixtureA.cards.id).single(),
@@ -508,23 +508,41 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       try {
         const first = assertNoError(await clientA.rpc("record_review_atomic", parameters), "atomaren Review schreiben");
         assert.equal(first.idempotent, false);
-        assert.equal(first.deck.revision, currentDeck.revision + 1);
-        assert.equal(first.card.revision, currentCard.revision + 1);
-        assert.equal(first.variant.revision, currentVariant.revision + 1);
+        assert.equal(first.deck.revision, currentDeck.revision);
+        assert.equal(first.card.revision, currentCard.revision);
+        assert.equal(first.variant.revision, currentVariant.revision);
         assert.equal(first.event.id, eventId);
-        assert.ok(first.deck.sync_change_id > currentDeck.sync_change_id);
+        assert.equal(first.deck.sync_change_id, currentDeck.sync_change_id);
         assert.ok(first.card.sync_change_id > currentCard.sync_change_id);
         assert.ok(first.variant.sync_change_id > currentVariant.sync_change_id);
-        assert.ok(first.event.sync_change_id > first.variant.sync_change_id);
+        assert.ok(first.event.sync_change_id > 0);
 
         const replay = assertNoError(await clientA.rpc("record_review_atomic", parameters), "atomaren Review idempotent wiederholen");
         assert.equal(replay.idempotent, true);
         assert.equal(replay.deck.revision, first.deck.revision);
         assert.equal(replay.card.revision, first.card.revision);
         assert.equal(replay.variant.revision, first.variant.revision);
+        assert.equal(replay.card.sync_change_id, first.card.sync_change_id);
+        assert.equal(replay.variant.sync_change_id, first.variant.sync_change_id);
         assert.equal(replay.event.sync_change_id, first.event.sync_change_id);
         const persistedEvents = assertNoError(await clientA.from("review_events").select("id").eq("id", eventId), "atomare Reviewevents lesen");
         assert.equal(persistedEvents.length, 1);
+
+        const olderEventId = `${eventId}_older`;
+        const olderAnsweredAt = "2099-07-11T07:00:00.000Z";
+        const older = assertNoError(await clientA.rpc("record_review_atomic", {
+          ...parameters,
+          p_card_review_state: { state: "learning", repetitions: 0, dueAt: olderAnsweredAt },
+          p_variant_review_state: { state: "learning", repetitions: 0 },
+          p_variant_performance: { reviewCount: 0 },
+          p_card_updated_at: olderAnsweredAt,
+          p_variant_updated_at: olderAnsweredAt,
+          p_event: { ...parameters.p_event, id: olderEventId, answered_at: olderAnsweredAt, created_at: olderAnsweredAt },
+        }), "älteren Offline-Review schreiben");
+        assert.equal(older.card.review_state.repetitions, 1);
+        assert.equal(older.variant.review_state.repetitions, 1);
+        const bothEvents = assertNoError(await clientA.from("review_events").select("id").in("id", [eventId, olderEventId]), "beide Offline-Reviews lesen");
+        assert.equal(bothEvents.length, 2);
 
         const deleted = assertNoError(await clientA.from("decks")
           .update({ deleted_at: "2020-01-01T00:00:00.000Z", updated_at: "2020-01-01T00:00:00.000Z", sync_change_id: 1 })
@@ -545,6 +563,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         assert.ok(anonymous.error, "Ein anonymer atomarer Review-Write wurde unerwartet erlaubt.");
       } finally {
         await clientA.from("review_events").delete().eq("id", eventId);
+        await clientA.from("review_events").delete().eq("id", `${eventId}_older`);
       }
     });
 

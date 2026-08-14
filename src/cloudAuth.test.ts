@@ -48,7 +48,7 @@ test("cloud auth maps only active local profile fields into a Supabase profile r
   assert.equal(Object.hasOwn(row, "preferred_language"), false);
   assert.equal(row.updated_at, "2026-07-09T07:30:00.000Z");
   assert.deepEqual(row.scheduler_preferences, { settingsVersion: 2, dayStartHour: 3, learnAheadMinutes: 20, easyDays: DEFAULT_EASY_DAYS, learningProfiles: [] });
-  assert.deepEqual(row.ui_preferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"] });
+  assert.deepEqual(row.ui_preferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"], syncIntervalMinutes: 5 });
 });
 
 test("cloud auth creates a password-free signed-in profile", () => {
@@ -78,7 +78,7 @@ test("cloud auth creates a password-free signed-in profile", () => {
   assert.equal(Object.hasOwn(profile, "fieldOfStudy"), false);
   assert.equal(Object.hasOwn(profile, "preferredLanguage"), false);
   assert.deepEqual(profile.schedulerPreferences, { settingsVersion: 2, dayStartHour: 3, learnAheadMinutes: 20, easyDays: DEFAULT_EASY_DAYS, learningProfiles: [] });
-  assert.deepEqual(profile.uiPreferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"] });
+  assert.deepEqual(profile.uiPreferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"], syncIntervalMinutes: 5 });
 });
 
 test("cloud sign-in creates a missing profile without overwriting an existing one", async () => {

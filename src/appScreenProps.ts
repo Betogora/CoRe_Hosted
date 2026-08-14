@@ -3,7 +3,7 @@ import type { AppRoute, AppViewId, SettingsTarget, createViewRoute } from "./app
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
-import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NoteTypeDefinitionV1, Profile, SyncStatus } from "./coreTypes.ts";
+import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NoteTypeDefinitionV1, Profile, SyncIntervalMinutes, SyncStatus } from "./coreTypes.ts";
 import type { createManualCoreDeck } from "./coreModel.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -175,7 +175,8 @@ export interface SettingsScreenProps {
   onCreateExport: () => Promise<string>;
   onImportExport: (value: string) => Promise<unknown>;
   onSyncNow: () => Promise<unknown>;
-  onListConflicts: () => Promise<unknown[]>;
+  onSaveSyncInterval: (interval: SyncIntervalMinutes) => Promise<unknown>;
+  onListConflicts: (options?: { refreshRemote?: boolean }) => Promise<unknown[]>;
   onResolveConflict: (conflictId: string, decision: Record<string, unknown>) => Promise<unknown>;
   onSignOut: () => Promise<void>;
   onNavigate: NavigateToView;

@@ -1,10 +1,11 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, BookOpen, CalendarClock, CircleHelp, Home, Layers, Moon, PlusSquare, Settings, Sun } from "lucide-react";
+import { AlertTriangle, BarChart3, BookOpen, CalendarClock, CircleHelp, Cloud, CloudOff, Home, Layers, Moon, PlusSquare, RefreshCw, Settings, Sun } from "lucide-react";
 import { createPortal } from "react-dom";
 import { readCoreTheme, toggleCoreTheme, type CoreTheme } from "../coreTheme.ts";
 import type { MenuViewId } from "../menuModel.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
+import type { SyncStatus } from "../coreTypes.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { ActionButton, IconButton } from "./actionUi.tsx";
 import { PomodoroProgress } from "./pomodoroTimerUi.tsx";
@@ -23,6 +24,8 @@ export interface AppNavigationProps {
   pomodoroTimer: PomodoroTimer | null;
   onNavigate: (viewId: MenuViewId) => unknown;
   onResetSimulation: () => unknown;
+  syncStatus: SyncStatus;
+  onSyncNow: () => unknown;
 }
 
 const iconByKey: Record<string, LucideIcon> = {
@@ -44,11 +47,41 @@ interface ResponsiveNavigationProps extends AppNavigationProps {
   onToggleTheme: () => void;
 }
 
-function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme, className = "", themeFirst = false }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onToggleTheme"> & { className?: string; themeFirst?: boolean }) {
+function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme, syncStatus, onSyncNow, className = "", themeFirst = false }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onToggleTheme" | "syncStatus" | "onSyncNow"> & { className?: string; themeFirst?: boolean }) {
   const settingsActive = settingsViews.has(activeView);
   const helpActive = activeView === "hilfe";
   const darkModeActive = theme === "dark";
   const ThemeIcon = darkModeActive ? Moon : Sun;
+  const SyncIcon = syncStatus.status === "offline" ? CloudOff : syncStatus.status === "conflict" ? AlertTriangle : syncStatus.status === "saved" ? Cloud : RefreshCw;
+  const syncLabel = syncStatus.status === "conflict"
+    ? syncStatus.conflictCount === 1
+      ? "1 Synchronisierungskonflikt klären"
+      : `${syncStatus.conflictCount} Synchronisierungskonflikte klären`
+    : syncStatus.status === "offline"
+      ? "Offline – Synchronisierung versuchen"
+      : syncStatus.status === "saving"
+        ? "Synchronisiert gerade"
+        : syncStatus.status === "pending"
+          ? "Ausstehende Änderungen synchronisieren"
+          : syncStatus.status === "saved"
+            ? "Synchronisiert – jetzt erneut synchronisieren"
+            : syncStatus.status === "error"
+              ? "Synchronisierung erneut versuchen"
+              : "Jetzt synchronisieren";
+  const syncButton = (
+    <span className="relative inline-flex">
+      <IconButton
+        type="button"
+        data-navigation-utility="sync"
+        label={syncLabel}
+        icon={SyncIcon}
+        onClick={onSyncNow}
+        disabled={syncStatus.status === "saving"}
+        className={`size-11 shrink-0 rounded-full ${syncStatus.status === "saving" ? "[&_svg]:animate-spin" : ""}`}
+      />
+      {syncStatus.status === "conflict" ? <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-core-warning px-1 text-[0.65rem] font-bold text-core-text" aria-hidden="true">{syncStatus.conflictCount}</span> : null}
+    </span>
+  );
   const settingsButton = (
     <IconButton
       type="button"
@@ -87,6 +120,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
 
   return (
     <div className={`flex items-center gap-2 ${className}`} data-navigation-utilities="true">
+      {syncButton}
       {themeFirst ? (
         <>
           {themeButton}
@@ -104,7 +138,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
   );
 }
 
-function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme }: ResponsiveNavigationProps) {
+function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
   return (
     <aside className="hidden border-r border-[var(--core-border)] bg-core-surface xl:block xl:overflow-y-auto" data-navigation-layout="sidebar">
       <div className="flex h-full flex-col px-4 py-8 lg:px-5 lg:pt-10 lg:pb-5">
@@ -150,7 +184,7 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
           ) : null}
           <PomodoroProgress timer={pomodoroTimer} variant="sidebar" />
           <div className={`pt-6 ${simulationOffsetMinutes > 0 || pomodoroTimer ? "mt-3" : ""}`}>
-            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} className="justify-start" />
+            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} className="justify-start" />
           </div>
         </div>
       </div>
@@ -158,13 +192,13 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
   );
 }
 
-function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme }: ResponsiveNavigationProps) {
+function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
   return (
     <header className="core-mobile-header sticky top-0 z-30 min-w-0 border-b border-[var(--core-border)] bg-core-surface px-5 py-3 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex min-h-11 min-w-0 items-center justify-between gap-3">
         <h1 className="core-mobile-brand shrink-0 core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
-        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} className="shrink-0" themeFirst />
+        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} className="shrink-0" themeFirst />
       </div>
       {simulationOffsetMinutes > 0 ? (
         <div className="mt-2 flex min-h-11 items-center gap-3 rounded-xl border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">

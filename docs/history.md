@@ -1,9 +1,17 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-08-13
+**Stand:** 2026-08-14
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-08-14 — Synchronisation 2.0
+
+- Der kanonische `syncNow()`-Zyklus schreibt lokale IndexedDB-Transaktionen, überträgt Outbox-Mutationen einzeln, lädt anschließend alle `sync_change_id`-Deltas und aktualisiert Konflikt- und Statusdaten. Manueller Sync lädt auch bei leerer Outbox; Autosync ist accountgebunden und reagiert entprellt auf lokale Änderungen, Start, Online, Fokus sowie ein sichtbares Intervall von 0, 1, 5, 15 oder 30 Minuten.
+- Fachliche Inhaltsrevisionen ignorieren technische Eigentümer-, Zähler-, Import- und Projektionsfelder. Reviews bleiben idempotente append-only Ereignisse, erhöhen keine Inhaltsrevision und überschreiben den Lernstand nur, wenn sie zeitlich neuer sind. Fehlende Originalvarianten vorhandener Cloud-Karten sowie technische Alt-Abweichungen werden idempotent repariert; ein Konflikt blockiert nur die betroffene Entität.
+- Aktive Konflikte sind pro Account, Tabelle und Entität eindeutig. Konfliktkarten werden aus der Lernwarteschlange genommen, bleiben in der Kartenverwaltung sichtbar und können gesammelt mit einer Folgenvorschau für `Dieser Browser` oder `Cloud im Account` aufgelöst werden. Die Richtungsentscheidung entfernt die verursachende Outbox-Mutation; Reviews, Medien und konfliktfreie Inhalte bleiben unberührt.
+- Navigation und globale Einstellungen zeigen Sync-Status, Konfliktzahl, ausstehende Änderungen, letzte erfolgreiche Synchronisierung, Intervall und einen vollständigen manuellen Sync. IndexedDB bleibt beim Schließen die sichere Wiederanlaufwahrheit; der letzte Browser-Sync ist ausdrücklich nur bestmöglich.
+- Lokal bestanden 66 fokussierte Sync-/Repository-/Einstellungsprüfungen, alle 585 Modul-, Contract- und Integrationstests, Typecheck, Produktionsbuild, Schema-/Typdriftprüfung und 12/12 RLS-/Zwei-Geräte-Fälle. Der Sync-Konfliktpfad wurde im In-App-Browser auf Desktop und Mobil einschließlich Richtungsfolgen, Light/Dark und manuellem Vollabgleich geprüft. Der vollständige lokale Browserlauf wurde ausgeführt, bleibt im gemeinsamen uncommitteten Arbeitsbaum aber mit 16 Fehlschlägen in bereits parallel geänderten Import-, Navigations-, Kartenprofil-, Medien- und Statistikpfaden offen; 66 Fälle bestanden, einer wurde übersprungen.
 
 ## 2026-08-13 — Dependency-Sicherheitsgate geschlossen
 

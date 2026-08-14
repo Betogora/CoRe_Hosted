@@ -406,6 +406,12 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
           </button>
         </div>
       </div>
+      {card.syncConflict ? (
+        <div className="mb-5 rounded-xl border border-core-warning bg-core-warning-soft p-4 core-body text-core-text" role="status">
+          <p className="font-semibold">Synchronisierung klären</p>
+          <p className="mt-1">Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange. Andere Karten sind nicht betroffen.</p>
+        </div>
+      ) : null}
       <div className="mb-5 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] px-3">
         <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--core-border)] py-1">
           <span className="core-body font-semibold text-[var(--core-text-secondary)]">Markieren</span>
@@ -1223,6 +1229,7 @@ export function DecksScreen({
                           }}
                         >
                           {frontPreview}
+                          {card.syncConflict ? <span className="ml-2 rounded-full bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
                         </button>
                       </td>
                       <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-[var(--core-text-secondary)]">

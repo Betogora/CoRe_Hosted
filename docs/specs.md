@@ -352,6 +352,17 @@ Chat-your-Deck, Lernplan, lokaler KI-Entwurf, Deck-Graph, Community-Demo, KI-Job
 
 Der auffindbare, nicht verpflichtende Wiederverwendungsvertrag für neue Features steht im [`src/ui`-Katalog](../src/ui/README.md). Vorhandene Module sollen verwendet werden, wenn ihre Schnittstelle die Fachsemantik erhält; fachlich abweichende Controls dürfen lokal bleiben und nutzen dennoch dieselben Theme-, Typografie-, Fokus- und Disabled-Rollen.
 
+### Synchronisierung
+
+- Ein vollständiger Sync-Zyklus schreibt zuerst lokale IndexedDB-Transaktionen, überträgt danach ausschließlich vorgemerkte Outbox-Mutationen, lädt anschließend alle Cloud-Deltas seit den gespeicherten `sync_change_id`-Cursorn und aktualisiert zuletzt Konflikt- und Statusdaten. Ein Konflikt blockiert nur seine Entität; konfliktfreie Geschwister und Reviews laufen weiter.
+- Manuelles Synchronisieren führt immer den vollständigen Upload-und-Download-Zyklus aus. Automatisch läuft derselbe Zyklus nach kurz entprellten lokalen Änderungen, bei wiederhergestellter Verbindung, erneutem Fokus und sichtbar alle 1, 5, 15 oder 30 Minuten; Standard sind 5 Minuten. `Aus` bedeutet ausschließlich manueller Sync. Automatik gehört nur zum aktiven angemeldeten Account und endet bei Logout oder Accountwechsel.
+- Der sichtbare Sync-Button in Desktop-Navigation und mobilem Kopf zeigt synchronisiert, ausstehend, laufend, offline oder die Konfliktanzahl. `Daten & Synchronisierung` zeigt Intervall, letzten Erfolg, ausstehende Änderungen und den primären manuellen Sync.
+- `revision` ist ausschließlich die fachliche Inhaltsversion. Geräte-, Zeit-, Zähler-, Importzusammenfassungs-, Versionsprotokoll-, Eigentümer- und Schedulerprojektionen erzeugen allein keinen Inhaltskonflikt. Karteninhaltswrites erhalten den aktuellen Cloud-Lernstand; Varianteninhaltswrites erhalten `review_state` und `performance`.
+- Reviewereignisse sind unveränderlich und idempotent. Beide Geräteereignisse bleiben erhalten, Reviewwrites verändern weder Stapel- noch Inhaltsrevisionen und nur das zeitlich jüngste Ereignis projiziert den Lernstand. Inhaltsbearbeitung und paralleles Review derselben Karte werden ohne Benutzerkonflikt zusammengeführt.
+- Die Originalvariante ist eine abgeleitete Projektion. Fehlt sie zu einer vorhandenen Cloud-Karte, wird sie automatisch nachgezogen. Technische Alt-Konflikte und doppelte aktive Konflikte werden automatisch bereinigt; echte gleichzeitige Inhaltsänderungen bleiben sichtbar.
+- Für die aktuelle Konfliktmenge zeigt CoRe die Folgen beider Richtungen als hinzugefügte, aktualisierte und entfernte Stapel, Karten und Varianten. `Dieser Browser` oder `Cloud im Account` betrifft ausschließlich diese Konflikte; konfliktfreie Inhalte, Reviews und Medien bleiben erhalten. Vor Ausführung wird die Vorschau gegen aktuelle Remote-Revisionen geprüft. Der Einzelauflöser bleibt eingeklappt verfügbar.
+- Konfliktkarten sind bis zur Entscheidung aus der Lernwarteschlange ausgeschlossen und in der Kartenverwaltung mit `Synchronisierung klären` markiert. Nicht übertragene Änderungen bleiben bei Reload oder Browserende sicher in IndexedDB; ein letzter Website-Sync ist nur bestmöglich und wird nicht als garantiert dargestellt.
+
 ## 9. Nichtfunktionale Anforderungen
 
 ### Sicherheit und Datenschutz

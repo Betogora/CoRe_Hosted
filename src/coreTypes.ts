@@ -94,7 +94,10 @@ export interface UiPreferences {
   dashboardCollapsedDeckIds: string[];
   learnCollapsedDeckIds: string[];
   deckManagerExpandedDeckIds: string[];
+  syncIntervalMinutes: SyncIntervalMinutes;
 }
+
+export type SyncIntervalMinutes = 0 | 1 | 5 | 15 | 30;
 
 export interface SourceDocument {
   id: string;
@@ -677,6 +680,7 @@ export interface LearningItem {
   revision: number;
   deletedAt: string | null;
   updatedByDeviceId: string | null;
+  syncConflict?: boolean;
   meta: Record<string, unknown>;
   noteTypeDefinitionId: string;
   contentDocument: LearningItemDocumentV1;

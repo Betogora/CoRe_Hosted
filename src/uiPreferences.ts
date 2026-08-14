@@ -1,4 +1,4 @@
-import type { UiPreferences } from "./coreTypes.ts";
+import type { SyncIntervalMinutes, UiPreferences } from "./coreTypes.ts";
 
 export type DeckExpansionSurface = "dashboard" | "learn" | "deck-manager";
 
@@ -6,7 +6,15 @@ export const DEFAULT_UI_PREFERENCES: UiPreferences = {
   dashboardCollapsedDeckIds: [],
   learnCollapsedDeckIds: [],
   deckManagerExpandedDeckIds: [],
+  syncIntervalMinutes: 5,
 };
+
+const SYNC_INTERVALS = new Set<SyncIntervalMinutes>([0, 1, 5, 15, 30]);
+
+function normalizeSyncInterval(value: unknown): SyncIntervalMinutes {
+  const interval = Number(value) as SyncIntervalMinutes;
+  return SYNC_INTERVALS.has(interval) ? interval : DEFAULT_UI_PREFERENCES.syncIntervalMinutes;
+}
 
 function normalizeDeckIds(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -19,6 +27,7 @@ export function normalizeUiPreferences(value: unknown): UiPreferences {
     dashboardCollapsedDeckIds: normalizeDeckIds(preferences.dashboardCollapsedDeckIds),
     learnCollapsedDeckIds: normalizeDeckIds(preferences.learnCollapsedDeckIds),
     deckManagerExpandedDeckIds: normalizeDeckIds(preferences.deckManagerExpandedDeckIds),
+    syncIntervalMinutes: normalizeSyncInterval(preferences.syncIntervalMinutes),
   };
 }
 

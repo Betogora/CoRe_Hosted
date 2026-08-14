@@ -528,3 +528,46 @@ test("persists acknowledged document and note type metadata across reopen", asyn
   assert.equal(reopenedState.noteTypeDefinitions.find((item) => item.id === definition.id)?.updatedAt, "2026-08-11T01:00:00.000Z");
   reopened.close();
 });
+
+test("conflicted cards are quarantined and cloud choice clears their mutation", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(1), indexedDb: indexedDB as any });
+  const cardId = "card-00000";
+  await repository.updateCard("deck-idb", cardId, (card) => ({ ...card, originalFront: "Lokale Änderung" }));
+  await repository.flush();
+  await repository.setSyncConflicts([{ id: "conflict-deck", status: "open", entityTable: "decks", entityId: "deck-idb" }]);
+
+  const page = await repository.listCardPage("deck-idb", { selectedCardId: cardId });
+  const reviewSession = await repository.loadReviewSession(["deck-idb"]);
+  const conflictedCard = page.selectedCard ?? page.items.find((item) => item.id === cardId);
+  assert.equal(conflictedCard?.syncConflict, true);
+  assert.equal(reviewSession.cards.some((entry) => entry.item.id === cardId), false);
+
+  await repository.setSyncConflicts([{ id: "conflict-1", status: "open", cardId }]);
+
+  await repository.prepareConflictResolution({
+    resolutionTarget: { table: "cards", entityId: cardId, action: "keep-remote" },
+    resolvedPage: null,
+  }, { action: "keep-remote" });
+
+  assert.equal(repository.outbox.listPending().some((mutation) => mutation.table === "cards" && mutation.entityId === cardId), false);
+  assert.equal(await repository.loadCard(cardId), null);
+  repository.close();
+});
+
+test("original variant repair is account-bound and idempotent", async () => {
+  const userId = randomUUID();
+  const cloudCard = workspaceState(1).decks[0].cards[0];
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
+  await repository.applyCloudPage({ table: "cards", reset: false, entities: [{ ...cloudCard, variants: [] }] });
+  const first = await repository.repairSyncState({ cardIds: ["card-00000"], originalVariantIds: [] });
+  const second = await repository.repairSyncState({ cardIds: ["card-00000"], originalVariantIds: [] });
+  const originalMutation = repository.outbox.listPending().find((mutation) => mutation.table === "card_variants");
+  const repairedCard = await repository.loadCard("card-00000");
+
+  assert.equal(first, 1);
+  assert.equal(second, 0);
+  assert.equal(originalMutation?.baseRevision, null);
+  assert.equal(repairedCard?.variants.filter((variant) => variant.isOriginal).length, 1);
+  repository.close();
+});

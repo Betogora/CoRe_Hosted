@@ -298,6 +298,9 @@ create table if not exists public.sync_conflicts (
   resolved_at timestamptz,
   primary key (user_id, id)
 );
+create unique index if not exists sync_conflicts_one_active_entity_idx
+  on public.sync_conflicts (user_id, entity_table, entity_id)
+  where status in ('open', 'ignored');
 
 alter table public.profiles enable row level security;
 alter table public.decks enable row level security;
@@ -497,50 +500,28 @@ begin
     );
   end if;
 
-  update public.decks
-  set revision = revision + 1,
-      updated_at = coalesce(p_card_updated_at, now()),
-      updated_by_device_id = p_device_id
-  where user_id = current_user_id
-    and id = p_deck_id
-    and revision = p_deck_base_revision
-    and deleted_at is null
-  returning * into persisted_deck;
+  select * into persisted_deck
+  from public.decks
+  where user_id = current_user_id and id = p_deck_id and deleted_at is null;
   if persisted_deck.id is null then
-    raise exception 'Deck-Revision hat sich geändert.' using errcode = '40001';
+    raise exception 'Stapel wurde nicht gefunden.' using errcode = 'P0002';
   end if;
 
-  update public.cards
-  set review_state = coalesce(p_card_review_state, '{}'::jsonb),
-      core_state = coalesce(p_card_core_state, '{}'::jsonb),
-      revision = revision + 1,
-      updated_at = coalesce(p_card_updated_at, now()),
-      updated_by_device_id = p_device_id
-  where user_id = current_user_id
-    and id = p_card_id
-    and deck_id = p_deck_id
-    and revision = p_card_base_revision
-    and deleted_at is null
-  returning * into persisted_card;
+  select * into persisted_card
+  from public.cards
+  where user_id = current_user_id and id = p_card_id and deck_id = p_deck_id and deleted_at is null
+  for update;
   if persisted_card.id is null then
-    raise exception 'Karten-Revision hat sich geändert.' using errcode = '40001';
+    raise exception 'Karte wurde nicht gefunden.' using errcode = 'P0002';
   end if;
 
   if p_variant_id is not null then
-    update public.card_variants
-    set review_state = coalesce(p_variant_review_state, '{}'::jsonb),
-        performance = coalesce(p_variant_performance, '{}'::jsonb),
-        revision = revision + 1,
-        updated_at = coalesce(p_variant_updated_at, p_card_updated_at, now()),
-        updated_by_device_id = p_device_id
-    where user_id = current_user_id
-      and id = p_variant_id
-      and card_id = p_card_id
-      and revision = p_variant_base_revision
-      and deleted_at is null
-    returning * into persisted_variant;
+    select * into persisted_variant
+    from public.card_variants
+    where user_id = current_user_id and id = p_variant_id and card_id = p_card_id and deleted_at is null
+    for update;
     if persisted_variant.id is null then
-      raise exception 'Varianten-Revision hat sich geändert.' using errcode = '40001';
+      raise exception 'Variante wurde nicht gefunden.' using errcode = 'P0002';
     end if;
   end if;
 
@@ -564,7 +545,70 @@ begin
     coalesce((p_event->>'created_at')::timestamptz, (p_event->>'answered_at')::timestamptz, now()),
     p_device_id
   )
+  on conflict (user_id, id) do nothing
   returning * into persisted_event;
+  if persisted_event.id is null then
+    select * into persisted_event from public.review_events where user_id = current_user_id and id = event_id;
+    if persisted_event.deck_id is distinct from p_deck_id
+      or persisted_event.reviewable_type is distinct from p_event->>'reviewable_type'
+      or persisted_event.reviewable_id is distinct from p_event->>'reviewable_id'
+      or persisted_event.rating is distinct from p_event->>'rating'
+      or persisted_event.answered_at is distinct from (p_event->>'answered_at')::timestamptz then
+      raise exception 'Review-Event-ID kollidiert mit einer anderen Mutation.' using errcode = '23505';
+    end if;
+    return jsonb_build_object(
+      'deck', to_jsonb(persisted_deck),
+      'card', to_jsonb(persisted_card),
+      'variant', case when p_variant_id is null then null else to_jsonb(persisted_variant) end,
+      'event', to_jsonb(persisted_event),
+      'idempotent', true
+    );
+  end if;
+
+  update public.cards
+  set review_state = coalesce(p_card_review_state, '{}'::jsonb),
+      core_state = coalesce(p_card_core_state, '{}'::jsonb),
+      updated_at = coalesce(p_card_updated_at, now()),
+      updated_by_device_id = p_device_id
+  where user_id = current_user_id
+    and id = p_card_id
+    and deck_id = p_deck_id
+    and deleted_at is null
+    and not exists (
+      select 1 from public.review_events as candidate
+      where candidate.user_id = current_user_id
+        and candidate.id <> event_id
+        and (candidate.source_card_id = p_card_id
+          or (candidate.reviewable_type in ('card', 'learning_item') and candidate.reviewable_id = p_card_id))
+        and (candidate.answered_at, candidate.id) > ((p_event->>'answered_at')::timestamptz, event_id)
+    )
+  returning * into persisted_card;
+  if persisted_card.id is null then
+    select * into persisted_card from public.cards where user_id = current_user_id and id = p_card_id;
+  end if;
+
+  if p_variant_id is not null then
+    update public.card_variants
+    set review_state = coalesce(p_variant_review_state, '{}'::jsonb),
+        performance = coalesce(p_variant_performance, '{}'::jsonb),
+        updated_at = coalesce(p_variant_updated_at, p_card_updated_at, now()),
+        updated_by_device_id = p_device_id
+    where user_id = current_user_id
+      and id = p_variant_id
+      and card_id = p_card_id
+      and deleted_at is null
+      and not exists (
+        select 1 from public.review_events as candidate
+        where candidate.user_id = current_user_id
+          and candidate.id <> event_id
+          and candidate.reviewable_id = p_variant_id
+          and (candidate.answered_at, candidate.id) > ((p_event->>'answered_at')::timestamptz, event_id)
+      )
+    returning * into persisted_variant;
+    if persisted_variant.id is null then
+      select * into persisted_variant from public.card_variants where user_id = current_user_id and id = p_variant_id;
+    end if;
+  end if;
 
   return jsonb_build_object(
     'deck', to_jsonb(persisted_deck),

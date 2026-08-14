@@ -11,6 +11,7 @@ test("UI preferences normalize persisted deck ids", () => {
     dashboardCollapsedDeckIds: ["deck-a"],
     learnCollapsedDeckIds: [],
     deckManagerExpandedDeckIds: ["deck-b"],
+    syncIntervalMinutes: 5,
   });
 });
 
@@ -23,7 +24,10 @@ test("deck expansion is stored with the correct semantics for every surface", ()
     dashboardCollapsedDeckIds: ["deck-a"],
     learnCollapsedDeckIds: ["deck-b"],
     deckManagerExpandedDeckIds: ["deck-c"],
+    syncIntervalMinutes: 5,
   });
+  assert.equal(normalizeUiPreferences({ syncIntervalMinutes: 15 }).syncIntervalMinutes, 15);
+  assert.equal(normalizeUiPreferences({ syncIntervalMinutes: 7 }).syncIntervalMinutes, 5);
   assert.deepEqual(setDeckExpanded(deckManager, "dashboard", "deck-a", true).dashboardCollapsedDeckIds, []);
   assert.deepEqual(setDeckExpanded(deckManager, "deck-manager", "deck-c", false).deckManagerExpandedDeckIds, []);
 });

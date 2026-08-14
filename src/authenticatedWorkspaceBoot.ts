@@ -6,7 +6,7 @@ import type { WorkspaceState } from "./coreWorkspace.ts";
 import { createIndexedDbCoreRepository, type IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { createAccountSyncEngine, type AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
-import { streamAccountCloudChanges } from "./cloudRepository.ts";
+import { listAccountOriginalVariantManifest, streamAccountCloudChanges } from "./cloudRepository.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 
 type SupabaseBrowserClient = NonNullable<ReturnType<typeof createSupabaseBrowserClient>>;
@@ -42,22 +42,36 @@ export async function bootAuthenticatedWorkspace(
     initialState: legacyRepository.getState(),
     legacyStorage: accountStorage,
   });
+  const pullChanges = async () => {
+    const cursors = repository.getCloudDeltaCursors();
+    const cloud = await streamAccountCloudChanges(supabase, cursors, repository.applyCloudPage);
+    if (!repository.outbox.listPending().some((mutation) => mutation.type === "profile-patch")) {
+      await repository.applyCloudProfile(cloud.profile);
+    }
+  };
+  let syncRepairManifest: { cardIds: string[]; originalVariantIds: string[] } | null = null;
   const syncEngine = createAccountSyncEngine(supabase, {
     userId: user.id,
     device: createBrowserSyncDevice(),
     outbox: repository.outbox,
     beforeFlush: repository.flush,
-    persistResolvedPage: repository.applyCloudPage,
+    pullChanges,
+    persistConflictState: repository.setSyncConflicts,
+    persistConflictResolution: async (result: any, decision: any) => {
+      await repository.prepareConflictResolution(result, decision);
+      if (result?.resolvedPage) await repository.applyCloudPage(result.resolvedPage);
+    },
     persistMutationAcknowledgements: repository.persistMutationAcknowledgements,
     initialize: async () => {
-      const cursors = repository.getCloudDeltaCursors();
-      const cloud = await streamAccountCloudChanges(supabase, cursors, repository.applyCloudPage);
-      if (!repository.outbox.listPending().some((mutation) => mutation.type === "profile-patch")) {
-        await repository.applyCloudProfile(cloud.profile);
-      }
+      syncRepairManifest = await listAccountOriginalVariantManifest(supabase);
+      await repository.repairSyncState(syncRepairManifest);
     },
   });
   await syncEngine.initialize();
+  await syncEngine.syncNow();
+  if (syncRepairManifest && await repository.repairSyncState(syncRepairManifest) > 0) {
+    await syncEngine.syncNow();
+  }
   await repository.flush();
   const shell = await repository.loadShell();
   const state = {

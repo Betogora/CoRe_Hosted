@@ -24,6 +24,12 @@ const REVIEW_EVENT_META_KEY = "__coreReview";
 const DELETE_ORDER = ["review_events", "card_variants", "learning_item_source_snapshots", "cards", "decks", "note_type_definitions", "source_documents"];
 const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at", "sync_change_id", "revision", "updated_by_device_id"]);
 const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at"]);
+const TECHNICAL_CONTENT_FIELDS = new Set(["local_owner_id", "version_log", "content_hash"]);
+const TECHNICAL_CONTENT_FIELDS_BY_TABLE: Record<string, Set<string>> = {
+  decks: new Set(["card_count", "hierarchy_path", "import_meta"]),
+  cards: new Set(["content_revision", "review_state", "core_state"]),
+  card_variants: new Set(["review_state", "performance", "render_revision"]),
+};
 const CLOUD_DELETE_BATCH_SIZE = 100;
 const CLOUD_PAGE_SIZE = 500;
 const CLOUD_WRITE_ROW_LIMIT = 250;
@@ -33,6 +39,7 @@ const DELTA_CURSOR_COLUMN = "sync_change_id";
 const EMPTY_DELTA_CURSOR_VALUE = "0";
 const CONFLICT_PROTECTED_FIELDS = new Set([
   ...ROW_IDENTITY_FIELDS,
+  ...TECHNICAL_CONTENT_FIELDS,
   "deck_id",
   "card_id",
   "note_type_definition_id",
@@ -45,6 +52,14 @@ const CONFLICT_PROTECTED_FIELDS = new Set([
   "parent_variant_id",
   "anchor_variant_id",
   "model_run_id",
+  "card_count",
+  "hierarchy_path",
+  "import_meta",
+  "content_revision",
+  "review_state",
+  "core_state",
+  "performance",
+  "render_revision",
 ]);
 
 const CONFLICT_ACTIONS = new Set(["keep-local", "keep-remote", "merge-fields", "ignore", "reopen"]);
@@ -262,16 +277,17 @@ function normalizeComparableTimestamp(value: unknown) {
   return Number.isNaN(milliseconds) ? value : new Date(milliseconds).toISOString();
 }
 
-function comparableRow(row: any = {}) {
+function comparableRow(row: any = {}, entityTable = "") {
+  const tableFields = TECHNICAL_CONTENT_FIELDS_BY_TABLE[entityTable] ?? new Set<string>();
   return Object.fromEntries(
     Object.entries(row)
-      .filter(([key]: any) => !ROW_IDENTITY_FIELDS.has(key))
+      .filter(([key]: any) => !ROW_IDENTITY_FIELDS.has(key) && !TECHNICAL_CONTENT_FIELDS.has(key) && !tableFields.has(key))
       .map(([key, value]) => [key, COMPARABLE_TIMESTAMP_FIELDS.has(key) ? normalizeComparableTimestamp(value) : value]),
   );
 }
 
-function rowsHaveSameContent(left: any, right: any) {
-  return JSON.stringify(stableValue(comparableRow(left))) === JSON.stringify(stableValue(comparableRow(right)));
+function rowsHaveSameContent(left: any, right: any, entityTable = "") {
+  return JSON.stringify(stableValue(comparableRow(left, entityTable))) === JSON.stringify(stableValue(comparableRow(right, entityTable)));
 }
 
 function conflictValue(row: any = {}) {
@@ -317,6 +333,11 @@ function createConflictProjection(row: any = {}) {
     id: row.id,
     entityTable: row.entity_table,
     entityId: row.entity_id,
+    cardId: row.entity_table === "cards"
+      ? row.entity_id
+      : row.entity_table === "card_variants"
+        ? localValue.card_id ?? remoteValue.card_id ?? null
+        : null,
     entityLabel: (CONFLICT_ENTITY_LABELS as Record<string, string>)[row.entity_table] ?? "Inhalt",
     title: String(conflictEntityTitle(row)),
     baseRevision: row.base_revision,
@@ -325,6 +346,8 @@ function createConflictProjection(row: any = {}) {
     status: row.status,
     fields,
     tombstone,
+    localPresent: Object.keys(localValue).length > 0 && !localValue.deleted_at,
+    remotePresent: Object.keys(remoteValue).length > 0 && !remoteValue.deleted_at,
     allowedActions: tombstone
       ? ["keep-local", "keep-remote", "ignore"]
       : ["keep-local", "keep-remote", "merge-fields", "ignore"],
@@ -677,6 +700,18 @@ export async function streamAccountCloudChanges(client: any, cursors: CloudDelta
   return { profile: createCloudProfile(profileRows[0] ?? null, user), cursors: nextCursors };
 }
 
+export async function listAccountOriginalVariantManifest(client: any) {
+  const user = await getAuthenticatedUser(client);
+  const [cards, variants] = await Promise.all([
+    selectKeysetRows(client, "cards", user.id, "id,deleted_at"),
+    selectKeysetRows(client, "card_variants", user.id, "id,card_id,is_original,deleted_at"),
+  ]);
+  return {
+    cardIds: cards.filter((row) => !row.deleted_at).map((row) => String(row.id)),
+    originalVariantIds: variants.filter((row) => row.is_original && !row.deleted_at).map((row) => String(row.id)),
+  };
+}
+
 async function selectProfileRows(client: any, userId: any) {
   const { data, error } = await client.from("profiles").select("*").eq("id", userId);
   if (error) throw error;
@@ -712,7 +747,16 @@ async function markConflictForUser(client: any, user: any, input: any = {}, { de
   const baseRevision = input.baseRevision == null ? null : requireBaseRevision(input.baseRevision);
   const localRevision = input.localRevision == null ? null : normalizeRevision(input.localRevision);
   const remoteRevision = input.remoteRevision == null ? null : normalizeRevision(input.remoteRevision);
-  const id = conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision });
+  const { data: existingRows, error: existingError } = await client.from("sync_conflicts")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("entity_table", entityTable)
+    .eq("entity_id", entityId);
+  if (existingError) throw existingError;
+  const existing = toArray(existingRows)
+    .filter((candidate) => candidate.status === "open" || candidate.status === "ignored")
+    .sort((left, right) => String(right.created_at).localeCompare(String(left.created_at)))[0];
+  const id = existing?.id ?? conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision });
   const row = {
     id,
     user_id: user.id,
@@ -730,10 +774,24 @@ async function markConflictForUser(client: any, user: any, input: any = {}, { de
   };
   const { error } = await client.from("sync_conflicts").upsert(row, {
     onConflict: ACCOUNT_UPSERT_CONFLICT,
-    ignoreDuplicates: true,
   });
-  if (error) throw error;
-  const persisted = await selectRowById(client, "sync_conflicts", user.id, id);
+  let persistedId = id;
+  if (error && String(error.code ?? "") === "23505") {
+    const { data: racedRows, error: racedError } = await client.from("sync_conflicts")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("entity_table", entityTable)
+      .eq("entity_id", entityId);
+    if (racedError) throw racedError;
+    const raced = toArray(racedRows).find((candidate) => candidate.status === "open" || candidate.status === "ignored");
+    if (!raced) throw error;
+    persistedId = raced.id;
+    const { error: updateError } = await client.from("sync_conflicts").upsert({ ...row, id: persistedId }, { onConflict: ACCOUNT_UPSERT_CONFLICT });
+    if (updateError) throw updateError;
+  } else if (error) {
+    throw error;
+  }
+  const persisted = await selectRowById(client, "sync_conflicts", user.id, persistedId);
   if (!persisted) throw new Error("Der Synchronisierungskonflikt konnte nicht bestätigt werden.");
   return syncConflictFromRow(persisted);
 }
@@ -824,7 +882,7 @@ export function deckToCloudRow(deck: any, userId: any) {
   return {
     id: deck.id,
     user_id: userId,
-    local_owner_id: deck.ownerId ?? null,
+    local_owner_id: userId,
     parent_deck_id: deck.parentDeckId ?? null,
     name: deck.name,
     description: deck.description ?? "",
@@ -1300,6 +1358,17 @@ function revisionMutationResult(entityTable: any, row: any, { applied = false, i
   };
 }
 
+function preserveRemoteLearningProjection(entityTable: string, desiredRow: any, remoteRow: any) {
+  if (!remoteRow) return desiredRow;
+  if (entityTable === "cards") {
+    return { ...desiredRow, review_state: remoteRow.review_state, core_state: remoteRow.core_state };
+  }
+  if (entityTable === "card_variants") {
+    return { ...desiredRow, review_state: remoteRow.review_state, performance: remoteRow.performance };
+  }
+  return desiredRow;
+}
+
 async function applyRevisionedRowMutation(client: any, user: any, entityTable: any, desiredRow: any, options: any = {}) {
   if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Nicht revisionierbare Cloud-Tabelle: ${entityTable}`);
   const entityId = requireNonEmptyString(desiredRow?.id, "Entitäts-ID fehlt.");
@@ -1308,15 +1377,18 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
   const baseRevision = requireBaseRevision(options.baseRevision);
   const flushedAt = requireTimestamp(options.flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
   const writeNow = () => flushedAt;
-  const row = { ...desiredRow, id: entityId, user_id: user.id };
+  let row = { ...desiredRow, id: entityId, user_id: user.id };
   let remoteRow = Object.hasOwn(options, "remoteRow") ? options.remoteRow : await selectRowById(client, entityTable, user.id, entityId);
 
-  if (remoteRow && rowsHaveSameContent(row, remoteRow) && options.forceWrite !== true) {
+  if (remoteRow && rowsHaveSameContent(row, remoteRow, entityTable) && options.forceWrite !== true) {
     return revisionMutationResult(entityTable, remoteRow, { idempotent: true });
   }
 
   if (!remoteRow) {
-    if (baseRevision !== null) {
+    const derivedOriginalInsert = entityTable === "card_variants" && row.is_original === true
+      ? await selectRowById(client, "cards", user.id, row.card_id)
+      : null;
+    if (baseRevision !== null && (!derivedOriginalInsert || derivedOriginalInsert.deleted_at)) {
       return throwRevisionConflict(client, user, {
         entityTable,
         entityId,
@@ -1337,7 +1409,7 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
     if (!error && data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });
     if (error && String(error.code ?? "") !== "23505" && !/duplicate/i.test(error.message ?? "")) throw error;
     remoteRow = await selectRowById(client, entityTable, user.id, entityId);
-    if (remoteRow && rowsHaveSameContent(candidate, remoteRow)) {
+    if (remoteRow && rowsHaveSameContent(candidate, remoteRow, entityTable)) {
       return revisionMutationResult(entityTable, remoteRow, { idempotent: true });
     }
     return throwRevisionConflict(client, user, {
@@ -1351,6 +1423,7 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
     });
   }
 
+  row = preserveRemoteLearningProjection(entityTable, row, remoteRow);
   const restoresTombstone = Boolean(remoteRow.deleted_at) && row.deleted_at == null;
   if (baseRevision === null || normalizeRevision(remoteRow.revision) !== baseRevision || (remoteRow.deleted_at && !restoresTombstone)) {
     return throwRevisionConflict(client, user, {
@@ -1377,7 +1450,7 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
   if (data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });
 
   remoteRow = await selectRowById(client, entityTable, user.id, entityId);
-  if (remoteRow && rowsHaveSameContent({ ...row, revision: nextRevision, updated_by_device_id: deviceId }, remoteRow)) {
+  if (remoteRow && rowsHaveSameContent({ ...row, revision: nextRevision, updated_by_device_id: deviceId }, remoteRow, entityTable)) {
     return revisionMutationResult(entityTable, remoteRow, { idempotent: true });
   }
   return throwRevisionConflict(client, user, {
@@ -1677,7 +1750,15 @@ export async function recordAtomicReview(client: any, input: any, { deviceId, mu
     variant: response.variant == null ? null : validateAccountRows("card_variants", [response.variant])[0],
     event: validateAccountRows("review_events", [response.event])[0],
   };
-  return { acknowledgedMutationId: mutationId, rows };
+  return {
+    acknowledgedMutationId: mutationId,
+    rows,
+    entities: {
+      deck: deckFromRow(rows.deck),
+      card: cardFromRow(rows.card, []),
+      variant: rows.variant ? variantFromRow(rows.variant) : null,
+    },
+  };
 }
 
 function sourceSnapshotRowsEqual(left: any, right: any) {
@@ -1859,9 +1940,73 @@ function syncConflictFromRow(row: any) {
   return createConflictProjection(row);
 }
 
-export async function listAccountSyncConflicts(client: any) {
+function conflictTargetKey(row: any) {
+  return `${row.entity_table}\u0000${row.entity_id}`;
+}
+
+async function selectCurrentConflictRows(client: any, userId: string, rows: any[]) {
+  const idsByTable = new Map<AccountTable, string[]>();
+  for (const row of rows) {
+    const table = row.entity_table as AccountTable;
+    idsByTable.set(table, [...(idsByTable.get(table) ?? []), row.entity_id]);
+  }
+  const selections = await Promise.all([...idsByTable].map(async ([table, ids]) => [
+    table,
+    await selectRowsByField(client, table, userId, "id", ids),
+  ] as const));
+  return new Map(selections.flatMap(([table, currentRows]) => currentRows.map((row: any) => [`${table}\u0000${row.id}`, row])));
+}
+
+async function refreshConflictRemote(client: any, userId: string, row: any, currentRemote: any) {
+  const currentRevision = currentRemote?.revision == null ? null : normalizeRevision(currentRemote.revision);
+  const savedRevision = row.remote_revision == null ? null : normalizeRevision(row.remote_revision);
+  if (currentRevision === savedRevision) return { row, checked: true, currentRemote };
+  const { data, error } = await client.from("sync_conflicts")
+    .update({ remote_value: conflictValue(currentRemote ?? {}), remote_revision: currentRevision })
+    .eq("user_id", userId)
+    .eq("id", row.id)
+    .select("*");
+  if (error) throw error;
+  return {
+    row: data?.[0] ?? { ...row, remote_value: conflictValue(currentRemote ?? {}), remote_revision: currentRevision },
+    checked: true,
+    currentRemote,
+  };
+}
+
+async function closeObsoleteConflict(client: any, userId: string, row: any, remoteSnapshot: { checked: boolean; currentRemote: any } = { checked: false, currentRemote: null }) {
+  const localValue = conflictValue(row.local_value ?? {});
+  const remoteValue = conflictValue(row.remote_value ?? {});
+  let obsolete = rowsHaveSameContent(localValue, remoteValue, row.entity_table);
+  if (!obsolete && remoteSnapshot.checked) obsolete = Boolean(remoteSnapshot.currentRemote && rowsHaveSameContent(localValue, remoteSnapshot.currentRemote, row.entity_table));
+  if (!obsolete) return row;
+  const resolvedAt = nowIso();
+  const { data, error } = await client.from("sync_conflicts")
+    .update({ status: "resolved", resolution: { action: "automatic-repair" }, resolved_at: resolvedAt })
+    .eq("user_id", userId)
+    .eq("id", row.id)
+    .select("*");
+  if (error) throw error;
+  return data?.[0] ?? { ...row, status: "resolved", resolved_at: resolvedAt };
+}
+
+export async function listAccountSyncConflicts(client: any, { refreshRemote = false }: { refreshRemote?: boolean } = {}) {
   const user = await getAuthenticatedUser(client);
-  const rows = await selectOptionalRows(client, "sync_conflicts", user.id);
+  const activeRows = (await selectOptionalRows(client, "sync_conflicts", user.id))
+    .filter((row: any) => row.status === "open" || row.status === "ignored");
+  const rowsToCheck = activeRows.filter((row: any) => REVISIONED_TABLE_SET.has(row.entity_table) && (
+    refreshRemote || !rowsHaveSameContent(conflictValue(row.local_value ?? {}), conflictValue(row.remote_value ?? {}), row.entity_table)
+  ));
+  const checkedTargets = new Set(rowsToCheck.map(conflictTargetKey));
+  const currentRows = await selectCurrentConflictRows(client, user.id, rowsToCheck);
+  const snapshots = await Promise.all(activeRows.map(async (row: any) => {
+    const checked = checkedTargets.has(conflictTargetKey(row));
+    const currentRemote = currentRows.get(conflictTargetKey(row)) ?? null;
+    return refreshRemote && checked
+      ? refreshConflictRemote(client, user.id, row, currentRemote)
+      : { row, checked, currentRemote };
+  }));
+  const rows = await Promise.all(snapshots.map(({ row, ...snapshot }: any) => closeObsoleteConflict(client, user.id, row, snapshot)));
   const statusOrder: Record<string, number> = { open: 0, ignored: 1 };
   return rows
     .filter((row: any) => row.status === "open" || row.status === "ignored")
@@ -1902,21 +2047,23 @@ async function persistConflictChoice(client: any, user: any, conflictRow: any, n
   const entityTable = conflictRow.entity_table;
   if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Konfliktauflösung ist für ${entityTable} nicht unterstützt.`);
   const currentRemote = await selectRowById(client, entityTable, user.id, conflictRow.entity_id);
-  const chosen = chosenConflictRow(normalized);
+  let chosen = chosenConflictRow(normalized);
+  const chosenMissing = Boolean(chosen && Object.keys(chosen).length === 0);
+  if (chosen && !chosenMissing && !chosen.deleted_at) chosen = preserveRemoteLearningProjection(entityTable, chosen, currentRemote);
   const expectedRemoteRevision = conflictRow.remote_revision == null ? null : normalizeRevision(conflictRow.remote_revision);
   const currentRemoteRevision = currentRemote?.revision == null ? null : normalizeRevision(currentRemote.revision);
-  const alreadyApplied = Boolean(currentRemote && chosen && rowsHaveSameContent(chosen, currentRemote));
+  const alreadyApplied = Boolean(currentRemote && chosen && rowsHaveSameContent(chosen, currentRemote, conflictRow.entity_table));
   if (currentRemoteRevision !== expectedRemoteRevision && !alreadyApplied) throw new SyncConflictChangedError();
 
   if (normalized.action === "keep-remote") return currentRemote;
   if (alreadyApplied) return currentRemote;
-  if (chosen?.deleted_at) {
+  if (chosenMissing || chosen?.deleted_at) {
     if (!currentRemote || currentRemote.deleted_at) return currentRemote;
     await softDeleteEntityForUser(client, user, {
       entityTable,
       entityId: conflictRow.entity_id,
       baseRevision: currentRemoteRevision,
-      deletedAt: chosen.deleted_at,
+      deletedAt: chosen?.deleted_at ?? resolvedAt,
     }, { deviceId, flushedAt: resolvedAt });
     return selectRowById(client, entityTable, user.id, conflictRow.entity_id);
   }
@@ -1982,6 +2129,7 @@ export async function resolveAccountSyncConflict(client: any, conflictId: any, d
     return {
       conflict: syncConflictFromRow(conflictRow),
       resolvedPage: null,
+      resolutionTarget: { table: conflictRow.entity_table, entityId: conflictRow.entity_id, action: normalized.action },
       resolved: true,
     };
   }
@@ -1998,6 +2146,7 @@ export async function resolveAccountSyncConflict(client: any, conflictId: any, d
       entities: projectCloudEntities(conflictRow.entity_table, [persisted]),
       reset: false,
     } : null,
+    resolutionTarget: { table: conflictRow.entity_table, entityId: conflictRow.entity_id, action: normalized.action },
     resolved: !["ignore", "reopen"].includes(normalized.action),
   };
 }

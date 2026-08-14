@@ -6,6 +6,7 @@ import { createViewRoute } from "../appNavigation.ts";
 import { createCoreRepository } from "../coreRepository.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import { SettingsScreen } from "./SettingsScreen.tsx";
+import { createConflictImpactPreview } from "./SyncConflictPanel.tsx";
 
 function renderSettings() {
   const state = createCoreRepository(null, { seedDefaultDecks: false }).getState();
@@ -20,6 +21,7 @@ function renderSettings() {
       onCreateExport={async () => "{}"}
       onImportExport={async () => undefined}
       onSyncNow={async () => undefined}
+      onSaveSyncInterval={async () => undefined}
       onListConflicts={async () => []}
       onResolveConflict={async () => undefined}
       onSignOut={async () => undefined}
@@ -71,4 +73,22 @@ test("data settings disclose export limits and profile portability", () => {
   for (const text of ["Medienbytes", "Authdaten", "serverseitigen Sicherungskopien", "DSGVO-Auskunftsdaten nach Art. 15", "Eigene Lernprofile"]) assert.match(html, new RegExp(text));
   assert.match(html, />Export herunterladen</);
   assert.match(html, />Roh-JSON anzeigen</);
+});
+
+test("conflict previews count only the selected direction", () => {
+  const conflicts = [
+    { id: "deck-add", status: "open", entityTable: "decks", localPresent: true, remotePresent: false, remoteRevision: null },
+    { id: "card-update", status: "open", entityTable: "cards", localPresent: true, remotePresent: true, remoteRevision: 2 },
+    { id: "variant-delete", status: "open", entityTable: "card_variants", localPresent: false, remotePresent: true, remoteRevision: 1 },
+    { id: "ignored", status: "ignored", entityTable: "cards", localPresent: true, remotePresent: true, remoteRevision: 1 },
+  ];
+
+  const local = createConflictImpactPreview(conflicts, "local");
+  const cloud = createConflictImpactPreview(conflicts, "cloud");
+
+  assert.deepEqual(local.counts.decks, { add: 1, update: 0, delete: 0 });
+  assert.deepEqual(local.counts.cards, { add: 0, update: 1, delete: 0 });
+  assert.deepEqual(local.counts.card_variants, { add: 0, update: 0, delete: 1 });
+  assert.deepEqual(cloud.counts.decks, { add: 0, update: 0, delete: 1 });
+  assert.deepEqual(cloud.conflictIds, ["deck-add", "card-update", "variant-delete"]);
 });
