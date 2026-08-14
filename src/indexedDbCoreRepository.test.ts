@@ -192,6 +192,111 @@ test("streamt einen Worker-Import in begrenzten Chunks direkt in Entity-Stores u
   repository.close();
 });
 
+test("ordnet Reimport-Hierarchie und Varianten auf persistierte Stapel-IDs ab und erstellt einen vollständigen Prüfumfang", async () => {
+  const userId = randomUUID();
+  const existingRoot = createCoreDeck({ id: "persisted-root", name: "Wissen", source: "anki-apkg", originalDeckId: "anki-root", cards: [] });
+  const existingCard = createBasicLearningItem("persisted-child", "Lokale Frage", "Lokale Antwort", {
+    id: "persisted-card",
+    sourceType: "anki_import",
+    sourceRefId: "anki-card-1",
+  });
+  const existingChild = createCoreDeck({ id: "persisted-child", parentDeckId: existingRoot.id, name: "Kunst", hierarchyPath: ["Wissen", "Kunst"], source: "anki-apkg", originalDeckId: "anki-child", cards: [existingCard] });
+  const initialState = workspaceState(0);
+  initialState.decks = [existingRoot, existingChild];
+  const repository = await createIndexedDbCoreRepository({ userId, initialState, indexedDb: indexedDB as any });
+  const incomingRoot = createCoreDeck({ id: "incoming-root", name: "Wissen", source: "anki-apkg", originalDeckId: "anki-root", cards: [] });
+  const incomingChild = createCoreDeck({ id: "incoming-child", parentDeckId: incomingRoot.id, name: "Kunst", hierarchyPath: ["Wissen", "Kunst"], source: "anki-apkg", originalDeckId: "anki-child", cards: [] });
+  const card = createBasicLearningItem(incomingChild.id, "Frage", "Antwort", {
+    id: "import-card",
+    sourceType: "anki_import",
+    sourceRefId: "anki-card-1",
+  });
+  const definition = createCoreNoteTypeDefinition({ document: card.contentDocument, createdAt: card.createdAt });
+  card.noteTypeDefinitionId = definition.id;
+  card.contentDocument = { ...card.contentDocument, definitionVersionId: definition.id };
+  card.variants = card.variants.map((variant) => ({ ...variant, studyDeckId: incomingChild.id }));
+  const snapshot = {
+    id: "import-snapshot",
+    schemaVersion: 1 as const,
+    sourceKind: "anki-apkg" as const,
+    importFingerprint: "fixture",
+    previousSnapshotId: null,
+    definitionVersionId: definition.id,
+    sourcePayload: { fields: card.contentDocument.fields },
+    createdAt: card.createdAt,
+  };
+  card.latestSourceSnapshotId = snapshot.id;
+  const review = {
+    id: "import-review",
+    userId,
+    deckId: incomingChild.id,
+    learningItemId: card.id,
+    variantId: card.variants[0].id,
+    reviewableType: "variant",
+    reviewableId: card.variants[0].id,
+    sourceCardId: "anki-card-1",
+    rating: "good",
+    answeredAt: card.createdAt,
+    responseTimeMs: null,
+    schedulerBefore: {},
+    schedulerAfter: {},
+    flags: {},
+    createdAt: card.createdAt,
+  };
+  const summaries = [incomingRoot, incomingChild].map(({ cards: _cards, reviewEvents: _reviews, ...summary }) => summary);
+  const graph = {
+    kind: "worker-import" as const,
+    deckCount: 2,
+    cardCount: 1,
+    noteTypeDefinitions: [definition],
+    deckIdentities: [incomingRoot, incomingChild].map((deck) => ({ id: deck.id, originalDeckId: deck.originalDeckId })),
+    mediaTargets: [],
+    async streamChunks(visit: (chunk: unknown) => Promise<void>) {
+      await visit({ kind: "deck", summary: summaries[0] });
+      await visit({ kind: "deck", summary: summaries[1] });
+      await visit({ kind: "cards", deckId: incomingChild.id, values: [card], definitions: [definition], snapshots: [{ snapshot, cardId: card.id, attachToCard: true }] });
+      await visit({ kind: "reviews", deckId: incomingChild.id, values: [review] });
+      await visit({ kind: "outbox" });
+    },
+    dispose() {},
+  };
+
+  const imported = await repository.commitImportGraph(graph);
+  const scope = await repository.createImportVerificationScope(imported.map((deck) => deck.id));
+  const child = (await repository.loadShell()).decks.find((deck) => deck.originalDeckId === "anki-child");
+  const persistedCard = await repository.loadCard(existingCard.id);
+  const persistedReview = (await repository.materializeFullState()).decks.find((deck) => deck.id === existingChild.id)?.reviewEvents[0];
+
+  assert.equal(child?.parentDeckId, existingRoot.id);
+  assert.equal(persistedCard?.deckId, child?.id);
+  assert.equal(persistedCard?.variants[0].studyDeckId, child?.id);
+  assert.deepEqual(scope.deckIds.sort(), [existingRoot.id, child!.id].sort());
+  assert.deepEqual(scope.cardIds, [existingCard.id]);
+  assert.deepEqual(scope.variantIds, [existingCard.variants[0].id]);
+  assert.deepEqual(scope.sourceSnapshots, [{ id: snapshot.id, cardId: existingCard.id, attachToCard: true }]);
+  assert.equal(persistedReview?.deckId, existingChild.id);
+  assert.equal(persistedReview?.learningItemId, existingCard.id);
+  assert.equal(persistedReview?.variantId, existingCard.variants[0].id);
+  assert.equal(persistedReview?.reviewableId, existingCard.variants[0].id);
+
+  repository.outbox.remove(repository.outbox.listPending().map((mutation) => mutation.id));
+  await repository.flush();
+  await repository.requeueImportVerificationScope(scope, { variantIds: scope.variantIds });
+  assert.ok(repository.outbox.listPending().some((mutation) => mutation.table === "card_variants" && mutation.entityId === existingCard.variants[0].id));
+  assert.equal(repository.outbox.listPending().some((mutation) => mutation.table !== "card_variants"), false);
+  repository.outbox.remove(repository.outbox.listPending().map((mutation) => mutation.id));
+  await repository.flush();
+  await repository.requeueImportVerificationScope(scope, { cardIds: scope.cardIds });
+  const cardMutation = repository.outbox.listPending().find((mutation) => mutation.table === "cards" && mutation.entityId === existingCard.id);
+  assert.equal((cardMutation?.payload as any)?.entity?.latestSourceSnapshotId, snapshot.id);
+  assert.equal(repository.outbox.listPending().some((mutation) => mutation.table === "learning_item_source_snapshots"), false);
+  repository.outbox.remove(repository.outbox.listPending().map((mutation) => mutation.id));
+  await repository.flush();
+  await repository.requeueImportVerificationScope(scope, { sourceSnapshotIds: scope.sourceSnapshots.map((item) => item.id) });
+  assert.ok(repository.outbox.listPending().some((mutation) => mutation.table === "learning_item_source_snapshots" && mutation.entityId === snapshot.id));
+  repository.close();
+});
+
 test("ordnet einen unveränderten Reimport-Snapshot der bereits persistierten Karten-ID zu", async () => {
   const userId = randomUUID();
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });

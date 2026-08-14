@@ -11,6 +11,7 @@ export function manualChunkForModule(moduleId = "") {
   if (id.includes("/node_modules/@supabase/")) return "supabase-vendor";
   if (id.includes("/node_modules/ts-fsrs/")) return "scheduler-vendor";
   if (id.includes("/node_modules/xss/")) return "html-safety-vendor";
+  if (/\/src\/(cloudRepository|indexedDbCoreRepository|cloudMediaStore|mediaStore)\.ts$/.test(id)) return "persistence";
   return undefined;
 }
 

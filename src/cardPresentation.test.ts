@@ -111,6 +111,45 @@ test("projects Anki sound markers through the same blob-only media path", async 
   assert.doesNotMatch(hydrated, /\[sound:/i);
 });
 
+test("treats image-, audio- and video-only Anki fields as present in conditionals", async () => {
+  const { definition, item } = fixture();
+  const mediaDocument = {
+    ...item.contentDocument,
+    mediaRefs: ["answer.png", "answer.mp3", "answer.mp4"],
+    fields: item.contentDocument.fields.map((field) => field.id === "answer"
+      ? { ...field, value: '<img src="answer.png" alt="">[sound:answer.mp3]<video controls src="answer.mp4"></video>' }
+      : field.id === "context"
+        ? { ...field, value: "   " }
+        : field),
+  };
+  const mediaItem = applyLearningItemContent({ previous: item, document: mediaDocument, definition, reason: "edit" }).item;
+  const importedDefinition = {
+    ...definition,
+    origin: "anki" as const,
+    recipes: [{
+      ...definition.recipes[0],
+      back: {
+        schemaVersion: 1 as const,
+        source: "{{#Funktion}}<section>{{Funktion}}</section>{{/Funktion}}{{^Funktion}}<p>Medium fehlt</p>{{/Funktion}}{{^Kontext}}<p>Kein Kontext</p>{{/Kontext}}",
+        nodes: [],
+      },
+    }],
+  };
+
+  const result = await renderLearningItemPresentation({ item: mediaItem, variant: mediaItem.variants[0], definition: importedDefinition, side: "answer", surface: "review", theme: "light" });
+  const hydrated = resolvePresentationMedia(result.srcdoc, {
+    "answer.png": "blob:https://core.local/image-only",
+    "answer.mp3": "blob:https://core.local/audio-only",
+    "answer.mp4": "blob:https://core.local/video-only",
+  });
+
+  assert.match(hydrated, /src="blob:https:\/\/core\.local\/image-only"/);
+  assert.match(hydrated, /src="blob:https:\/\/core\.local\/audio-only"/);
+  assert.match(hydrated, /src="blob:https:\/\/core\.local\/video-only"/);
+  assert.match(hydrated, /Kein Kontext/);
+  assert.doesNotMatch(hydrated, /Medium fehlt/);
+});
+
 test("uses the ordered field fallback for scripts and custom filters", async () => {
   const { definition, item, variant } = fixture();
   const unsafeDefinition = {

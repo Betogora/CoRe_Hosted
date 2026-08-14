@@ -22,6 +22,8 @@ export interface AppNavigationProjection {
   creationMethod: CreationMethod;
   creationDeckId: string;
   completedDeckId: string;
+  completedCount: number;
+  completionKind: "import" | "manual" | "";
   settingsTarget: SettingsTarget | null;
   settingsReturnContext: SettingsReturnContext | null;
   cardEditorReturnContext: ReviewResumeContext | null;
@@ -60,6 +62,8 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
     creationMethod: viewRoute.viewId === "neue-karten" ? asCreationMethod(viewRoute.creationMethod) : "",
     creationDeckId: viewRoute.viewId === "neue-karten" ? (viewRoute.creationDeckId ?? "") : "",
     completedDeckId: viewRoute.viewId === "neue-karten" ? (viewRoute.completedDeckId ?? "") : "",
+    completedCount: viewRoute.viewId === "neue-karten" ? (viewRoute.completedCount ?? 0) : 0,
+    completionKind: viewRoute.viewId === "neue-karten" ? (viewRoute.completionKind ?? "") : "",
     settingsTarget: viewRoute.viewId === "stapel-einstellungen" ? (viewRoute.settingsTarget ?? null) : null,
     settingsReturnContext: viewRoute.viewId === "stapel-einstellungen" ? (viewRoute.settingsReturnContext ?? null) : null,
     cardEditorReturnContext: viewRoute.viewId === "kartenstapel" ? (viewRoute.cardEditorReturnContext ?? null) : null,

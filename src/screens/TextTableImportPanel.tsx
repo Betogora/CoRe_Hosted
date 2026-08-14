@@ -1,6 +1,6 @@
 import React from "react";
 import { Database, FileSpreadsheet } from "lucide-react";
-import type { CreationWorkflow } from "../creationWorkflow.ts";
+import type { CreationWorkflow, ImportCompletion } from "../creationWorkflow.ts";
 import type { Deck } from "../coreTypes.ts";
 import {
   analyzeCsvFieldMapping,
@@ -22,7 +22,7 @@ export interface TextTableImportPanelProps {
   initialMode?: TextTableImportMode;
   workflow: TextTableWorkflow;
   onImported: (deck: Deck) => unknown;
-  onCompleted?: (deck: Deck) => unknown;
+  onCompleted?: (completion: ImportCompletion) => unknown;
 }
 
 const MAPPING_OPTIONS: Array<{ value: CsvFieldMappingTarget; label: string }> = [
@@ -121,7 +121,7 @@ export function TextTableImportPanel({ initialMode = "text", workflow, onImporte
           {uiState.status === "succeeded" && completedDeck ? (
             <StatusMessage tone="success" announce="polite">
               <p className="font-semibold">Import erfolgreich abgeschlossen.</p>
-              <ActionButton type="button" variant="primary" onClick={() => onCompleted(completedDeck)} className="mt-3">Import abschließen</ActionButton>
+              <ActionButton type="button" variant="primary" onClick={() => onCompleted({ deck: completedDeck, createdCount: completedDeck.cards.filter((card) => card.status !== "deleted").length })} className="mt-3">Import abschließen</ActionButton>
             </StatusMessage>
           ) : null}
         </div>

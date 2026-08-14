@@ -11,7 +11,7 @@ import { createAnchorFromSelection, createDocumentFromFile, READABLE_SOURCE_DOCU
 import { appendPlainTextToCardHtml } from "./richText.ts";
 import { importCsvAsNormalizedDeck, importNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
 import type { CsvFieldProjection } from "./csvFieldMapping.ts";
-import { createAccountMediaStore, type MediaSyncTask } from "./mediaStore.ts";
+import { createAccountMediaStore, type MediaObjectUploadPlan, type MediaSyncResult, type MediaSyncTask } from "./mediaStore.ts";
 import type { CardEditorValue, CardType, Deck, EditableCardType, ImportCommitGraph, LearningItem, SourceAnchor } from "./coreTypes.ts";
 import { LOCAL_APKG_MAX_BYTES, type ApkgImportReportV1 } from "./apkgImport.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
@@ -122,6 +122,11 @@ export interface ImportedDeckPersistence {
   cloudTask: ImportCloudSyncTask;
 }
 
+export interface ImportCompletion {
+  deck: Deck;
+  createdCount: number;
+}
+
 function createReadyCloudTask(): ImportCloudSyncTask {
   const task = createImportCloudSyncTask(async () => ({ status: "cloud-ready", message: "Cloud-Daten sind synchronisiert." }));
   void task.retry();
@@ -184,8 +189,15 @@ function normalizePasteMode(mode: unknown): "text" | "csv" | "spreadsheet" {
   return mode === "csv" || mode === "spreadsheet" ? mode : "text";
 }
 
-function createWorkerMediaDecks(graph: ImportCommitGraph, persistedDecks: Deck[], summary: Deck): Deck[] {
-  if (graph.kind !== "worker-import" || graph.mediaTargets.length === 0) return graph.kind === "worker-import" ? [] : persistedDecks;
+function createWorkerMediaPlan(graph: ImportCommitGraph, persistedDecks: Deck[], summary: Deck): {
+  decks: Deck[];
+  objectUploads: MediaObjectUploadPlan | null;
+  expectedReferences: number;
+  expectedOperations: number;
+} {
+  if (graph.kind !== "worker-import") {
+    return { decks: persistedDecks, objectUploads: null, expectedReferences: 0, expectedOperations: 0 };
+  }
   const persistedByIncomingId = new Map<string, Deck>();
   for (const identity of graph.deckIdentities) {
     const persisted = persistedDecks.find((deck) => deck.id === identity.id)
@@ -201,10 +213,10 @@ function createWorkerMediaDecks(graph: ImportCommitGraph, persistedDecks: Deck[]
     else namesByDeckId.set(persisted.id, new Set([target.name]));
   }
   const manifest = summary.importMeta?.mediaManifest as { assets?: Array<{ name?: string }> } | undefined;
-  return persistedDecks.flatMap((deck) => {
+  const referencedNames = new Set([...namesByDeckId.values()].flatMap((names) => [...names]));
+  const decks = persistedDecks.map((deck) => {
     const names = namesByDeckId.get(deck.id);
-    if (!names?.size) return [];
-    return [{
+    return {
       ...deck,
       cards: [],
       cardCount: Math.max(1, deck.cardCount),
@@ -212,11 +224,35 @@ function createWorkerMediaDecks(graph: ImportCommitGraph, persistedDecks: Deck[]
         ...deck.importMeta,
         mediaManifest: {
           ...(manifest ?? {}),
-          assets: (manifest?.assets ?? []).filter((asset) => names.has(String(asset.name ?? ""))),
+          assets: (manifest?.assets ?? []).filter((asset) => names?.has(String(asset.name ?? ""))),
         },
       },
-    }];
+    };
   });
+  const objectOnlyAssets = (manifest?.assets ?? []).filter((asset) => !referencedNames.has(String(asset.name ?? "")));
+  const ownerDeckId = persistedByIncomingId.get(graph.deckIdentities[0]?.id)?.id ?? persistedDecks[0]?.id ?? "";
+  const objectUploads = ownerDeckId && objectOnlyAssets.length ? { deckId: ownerDeckId, assets: objectOnlyAssets } : null;
+  const expectedReferences = [...namesByDeckId.values()].reduce((sum, names) => sum + names.size, 0);
+  return {
+    decks,
+    objectUploads,
+    expectedReferences,
+    expectedOperations: expectedReferences + objectOnlyAssets.length,
+  };
+}
+
+function verifiedMediaResult(result: MediaSyncResult, expectedReferences: number, expectedOperations: number): MediaSyncResult {
+  if (result.status !== "cloud-ready") return result;
+  const activeReferences = [...result.referencesByDeck.values()].reduce((sum, references) => sum + references.filter((reference) => !reference.deletedAt).length, 0);
+  if (result.progress.completed !== expectedOperations || result.progress.total !== expectedOperations || activeReferences !== expectedReferences) {
+    return {
+      ...result,
+      status: "blocked",
+      failureKind: "integrity",
+      message: "Medienobjekte und Medienreferenzen konnten nicht vollständig bestätigt werden.",
+    };
+  }
+  return result;
 }
 
 function createPasteImportInput({ mode, deckName, content }: { mode: unknown; deckName: string; content: string }) {
@@ -500,8 +536,9 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
         ?? persistedDecks.find((deck) => deck.cardCount > 0)
         ?? persistedDecks[0]
         ?? committed.deck;
-      const mediaDecks = createWorkerMediaDecks(committed.commitGraph, persistedDecks, preview.summary);
-      const rawMediaTask = mediaStore.syncImportMedia(mediaDecks.length ? mediaDecks : decks, { waitUntilReady: persistence.cloudTask.ready });
+      const mediaPlan = createWorkerMediaPlan(committed.commitGraph, persistedDecks, preview.summary);
+      const mediaDecks = mediaPlan.decks.length ? mediaPlan.decks : decks;
+      const rawMediaTask = mediaStore.syncImportMedia(mediaDecks, { waitUntilReady: persistence.cloudTask.ready, objectUploads: mediaPlan.objectUploads });
       await rawMediaTask.queued;
       reportProgress(100);
       const mediaTask: MediaSyncTask = {
@@ -511,7 +548,8 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
         resume: rawMediaTask.resume,
         cancel: rawMediaTask.cancel,
         subscribe: rawMediaTask.subscribe,
-        result: rawMediaTask.result.then(async (mediaResult) => {
+        result: rawMediaTask.result.then(async (rawMediaResult) => {
+          const mediaResult = verifiedMediaResult(rawMediaResult, mediaPlan.expectedReferences, mediaPlan.expectedOperations);
           if (mediaResult.status === "cloud-ready") {
             const withReferences = persistedDecks.map((deck) => ({ ...deck, mediaAssets: mediaResult.referencesByDeck.get(deck.id) ?? deck.mediaAssets ?? [] }));
             const referencePersistence = await persistImportedDecks(withReferences, { mediaOnly: true });
@@ -528,7 +566,10 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
           return mediaResult;
         }),
       };
-      return { ...committed, deck: persistedDeck, decks: persistedDecks.length ? persistedDecks : decks, cloudTask: persistence.cloudTask, mediaTask };
+      const createdCount = committed.commitGraph.kind === "worker-import"
+        ? committed.commitGraph.cardCount
+        : decks.reduce((sum, deck) => sum + deck.cards.filter((card) => card.status !== "deleted").length, 0);
+      return { ...committed, deck: persistedDeck, decks: persistedDecks.length ? persistedDecks : decks, createdCount, cloudTask: persistence.cloudTask, mediaTask };
     },
 
     importPastedDeck({ mode = "text", deckName = "Importierter Stapel", content = "", dryRun = false }: PasteImportInput = {}) {

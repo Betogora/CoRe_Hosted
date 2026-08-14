@@ -36,7 +36,7 @@ test("roundtrips deck, card and creation context without validating navigational
   const learnRoute = parseAppRouteFromUrl("/lernen?deck=deck_deep&parent=deck_parent");
   const deckRoute = parseAppRouteFromUrl("/kartenstapel?deck=deck_a&card=card_b");
   const deckSettingsRoute = parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b");
-  const creationRoute = parseAppRouteFromUrl("/neue-karten?method=manual&deck=deck_b&done=deck_new");
+  const creationRoute = parseAppRouteFromUrl("/neue-karten?method=manual&deck=deck_b&done=deck_new&doneCount=46&doneKind=import");
 
   assert.deepEqual(learnRoute, {
     mode: "view",
@@ -57,11 +57,13 @@ test("roundtrips deck, card and creation context without validating navigational
     creationMethod: "manual",
     creationDeckId: "deck_b",
     completedDeckId: "deck_new",
+    completedCount: 46,
+    completionKind: "import",
   });
   assert.equal(appRouteToUrl(learnRoute), "/lernen?deck=deck_deep&parent=deck_parent");
   assert.equal(appRouteToUrl(deckRoute), "/kartenstapel?deck=deck_a&card=card_b");
   assert.equal(appRouteToUrl(deckSettingsRoute), "/stapel-einstellungen?deck=deck_b");
-  assert.equal(appRouteToUrl(creationRoute), "/neue-karten?method=manual&deck=deck_b&done=deck_new");
+  assert.equal(appRouteToUrl(creationRoute), "/neue-karten?method=manual&deck=deck_b&done=deck_new&doneCount=46&doneKind=import");
 });
 
 test("roundtrips the deck-settings origin and keeps direct links on the safe learning fallback", () => {

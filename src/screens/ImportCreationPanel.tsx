@@ -1,7 +1,7 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
 import { FileArchive, FileSpreadsheet, FileText } from "lucide-react";
-import type { CreationWorkflow } from "../creationWorkflow.ts";
+import type { CreationWorkflow, ImportCompletion } from "../creationWorkflow.ts";
 import type { ApkgImportSession } from "../apkgImportSession.ts";
 import type { Deck } from "../coreTypes.ts";
 import type { AccountMediaStore } from "../mediaStore.ts";
@@ -15,7 +15,7 @@ export interface ImportCreationPanelProps {
   workflow: CreationWorkflow;
   mediaStore: AccountMediaStore | null;
   onCreated: (deck: Deck) => unknown;
-  onImportCompleted: (deck: Deck) => unknown;
+  onImportCompleted: (completion: ImportCompletion) => unknown;
   apkgImportSession: ApkgImportSession;
   onApkgImportSessionChange: React.Dispatch<React.SetStateAction<ApkgImportSession>>;
   isApkgImportSessionCurrent: (version: number) => boolean;

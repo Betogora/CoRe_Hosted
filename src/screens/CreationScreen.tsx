@@ -2,8 +2,9 @@ import React from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import { createEmptyApkgImportSession } from "../apkgImportSession.ts";
-import { createCreationWorkflow } from "../creationWorkflow.ts";
+import { createCreationWorkflow, type ImportCompletion } from "../creationWorkflow.ts";
 import type { Deck } from "../coreTypes.ts";
+import { ActionButton } from "../ui/actionUi.tsx";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { CreationHome, creationMethods } from "./CreationHome.tsx";
 import { ImportCreationPanel } from "./ImportCreationPanel.tsx";
@@ -27,6 +28,8 @@ export function CreationScreen({
   initialMethod = "",
   initialTargetDeckId = "",
   completedDeckId = "",
+  completedCount = 0,
+  completionKind = "",
   onMethodChange = () => undefined,
   onTargetDeckChange = () => undefined,
   onCreated = async (deck) => deck,
@@ -35,9 +38,10 @@ export function CreationScreen({
   onSessionCompleted = () => undefined,
   onStartDeck = () => undefined,
   onReviewDeck = () => undefined,
+  onOpenDashboard = () => undefined,
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
-  const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number } | null>(null);
+  const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: "import" | "manual" } | null>(null);
   const [localApkgImportSession, setLocalApkgImportSession] = React.useState(() => createEmptyApkgImportSession());
   const apkgImportSession = controlledApkgImportSession ?? localApkgImportSession;
   const apkgImportSessionRef = React.useRef(apkgImportSession);
@@ -48,8 +52,9 @@ export function CreationScreen({
   const selectedMethod = initialMethod;
   const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod);
   const completedDeck = decks.find((deck) => deck.id === (sessionCompletion?.deckId || completedDeckId)) ?? null;
-  const completedCount = sessionCompletion?.createdCount
-    ?? completedDeck?.cards.filter((card) => card.status !== "deleted").length
+  const resolvedCompletionKind = sessionCompletion?.kind ?? completionKind;
+  const resolvedCompletedCount = sessionCompletion?.createdCount
+    ?? (completionKind ? completedCount : completedDeck?.cards.filter((card) => card.status !== "deleted").length)
     ?? 0;
   const accountWorkflow = React.useMemo(
     () => createCreationWorkflow({
@@ -59,9 +64,10 @@ export function CreationScreen({
     [mediaStore, persistImportedDecks],
   );
 
-  function completeSession(deckId: string, createdCount: number) {
-    setSessionCompletion({ deckId, createdCount });
-    onSessionCompleted(deckId);
+  function completeSession(deckId: string, createdCount: number, kind: "import" | "manual") {
+    const completion = { deckId, createdCount, kind };
+    setSessionCompletion(completion);
+    onSessionCompleted(completion);
   }
 
   React.useEffect(() => {
@@ -76,8 +82,8 @@ export function CreationScreen({
         <ImportCreationPanel
           decks={decks}
           onCreated={onCreated}
-          onImportCompleted={(deck) => {
-            completeSession(deck.id, deck.cardCount ?? deck.cards.filter((card) => card.status !== "deleted").length);
+          onImportCompleted={(completion: ImportCompletion) => {
+            completeSession(completion.deck.id, completion.createdCount, "import");
           }}
           workflow={accountWorkflow}
           mediaStore={mediaStore}
@@ -100,7 +106,7 @@ export function CreationScreen({
             const result = await onAppendManualCard(deckId, input);
             return result && typeof result === "object" && "id" in result ? result as Deck : null;
           }}
-          onFinish={({ createdCount, targetDeckId }) => completeSession(targetDeckId, createdCount)}
+          onFinish={({ createdCount, targetDeckId }) => completeSession(targetDeckId, createdCount, "manual")}
           onDraftStateChange={onDraftStateChange}
         />
       );
@@ -110,30 +116,32 @@ export function CreationScreen({
 
   return (
     <div className="grid min-w-0 min-h-[calc(100vh-10rem)] content-start gap-7">
-      <PageHeader eyebrow="Erstellen" title="Neue Karte" />
+      <PageHeader eyebrow="Erstellen" title={completedDeck && resolvedCompletionKind === "import" ? "Import abgeschlossen" : "Neue Karte"} />
       {completedDeck ? (
         <SoftPanel className="mx-auto w-full max-w-3xl p-7 text-center sm:p-10">
           <span className="mx-auto grid size-16 place-items-center rounded-full bg-core-success-soft text-core-text">
             <CheckCircle2 size={34} aria-hidden="true" />
           </span>
           <p className="mt-5 core-body font-semibold uppercase tracking-wide text-core-text">Gespeichert</p>
-          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 core-heading-2 font-semibold text-[var(--core-text)] outline-none">Deine Karten sind bereit</h2>
+          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 core-heading-2 font-semibold text-[var(--core-text)] outline-none">
+            {resolvedCompletionKind === "import" ? "Import erfolgreich" : "Deine Karten sind bereit"}
+          </h2>
           <p className="mx-auto mt-3 max-w-xl core-body-large leading-7 text-[var(--core-text-muted)]">
-            {completedCount} {completedCount === 1 ? "Karte wurde" : "Karten wurden"} in „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ gespeichert.
+            {resolvedCompletedCount} {resolvedCompletedCount === 1 ? "Karte wurde" : "Karten wurden"} {resolvedCompletionKind === "import" ? "aus" : "in"} „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ {resolvedCompletionKind === "import" ? "vollständig gespeichert." : "gespeichert."}
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={() => onStartDeck(completedDeck)} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--core-action-primary)] px-6 core-body font-semibold text-[var(--core-text-on-accent)]">
-              Jetzt lernen
-            </button>
-            <button type="button" onClick={() => onReviewDeck(completedDeck.id)} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface px-6 core-body font-semibold text-[var(--core-action-primary)]">
-              Karten prüfen
-            </button>
-            <button type="button" onClick={() => {
-              setSessionCompletion(null);
-              onMethodChange("manual");
-            }} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--core-border)] bg-core-surface px-6 core-body font-semibold text-[var(--core-action-primary)]">
-              Weitere Karten erstellen
-            </button>
+            <ActionButton type="button" variant="primary" onClick={() => onStartDeck(completedDeck)}>Jetzt lernen</ActionButton>
+            {resolvedCompletionKind === "import" ? (
+              <ActionButton type="button" variant="secondary" onClick={onOpenDashboard}>Zur Übersicht</ActionButton>
+            ) : (
+              <>
+                <ActionButton type="button" variant="secondary" onClick={() => onReviewDeck(completedDeck.id)}>Karten prüfen</ActionButton>
+                <ActionButton type="button" variant="secondary" onClick={() => {
+                  setSessionCompletion(null);
+                  onMethodChange("manual");
+                }}>Weitere Karten erstellen</ActionButton>
+              </>
+            )}
           </div>
         </SoftPanel>
       ) : selectedMethod ? (

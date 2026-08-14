@@ -11,15 +11,30 @@ const callbacks = {
   onAppendManualCard: () => undefined,
   onStartDeck: () => undefined,
   onReviewDeck: () => undefined,
+  onOpenDashboard: () => undefined,
 };
 
-test("completed first creation offers study and card-review actions", () => {
+test("completed manual creation keeps its follow-up actions", () => {
   const deck = createDemoAnatomyDeck();
   const markup = renderToStaticMarkup(<CreationScreen decks={[deck]} completedDeckId={deck.id} {...callbacks} />);
 
   assert.match(markup, /Deine Karten sind bereit/);
   assert.match(markup, /Jetzt lernen/);
   assert.match(markup, /Karten prüfen/);
+});
+
+test("completed import shows the verified count and only study or dashboard actions", () => {
+  const deck = createDemoAnatomyDeck();
+  const markup = renderToStaticMarkup(
+    <CreationScreen decks={[deck]} completedDeckId={deck.id} completedCount={46} completionKind="import" {...callbacks} />,
+  );
+
+  assert.match(markup, /Import abgeschlossen/);
+  assert.match(markup, /Import erfolgreich/);
+  assert.match(markup, /46 Karten wurden/);
+  assert.match(markup, /Jetzt lernen/);
+  assert.match(markup, /Zur Übersicht/);
+  assert.doesNotMatch(markup, /Karten prüfen|Weitere Karten erstellen/);
 });
 
 test("creation entry presents the two concise creation methods", () => {

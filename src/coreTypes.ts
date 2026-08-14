@@ -729,6 +729,24 @@ export interface WorkerImportCommitGraph {
 
 export type ImportCommitGraph = MaterializedImportCommitGraph | WorkerImportCommitGraph;
 
+export interface ImportVerificationScope {
+  deckIds: string[];
+  cardIds: string[];
+  variantIds: string[];
+  sourceSnapshots: Array<{ id: string; cardId: string; attachToCard: boolean }>;
+  noteTypeDefinitionIds: string[];
+  reviewEventIds: string[];
+}
+
+export interface ImportVerificationRepairScope {
+  deckIds?: string[];
+  cardIds?: string[];
+  variantIds?: string[];
+  sourceSnapshotIds?: string[];
+  noteTypeDefinitionIds?: string[];
+  reviewEventIds?: string[];
+}
+
 export interface AppState {
   version: 4;
   profile: Profile;

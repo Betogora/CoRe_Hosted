@@ -37,6 +37,8 @@ export interface ViewRoute {
   creationMethod?: "manual" | "import";
   creationDeckId?: string;
   completedDeckId?: string;
+  completedCount?: number;
+  completionKind?: "import" | "manual";
   settingsTarget?: SettingsTarget;
   settingsReturnContext?: SettingsReturnContext;
   cardEditorReturnContext?: ReviewResumeContext;
@@ -78,6 +80,8 @@ interface ViewRouteInput {
   creationMethod?: unknown;
   creationDeckId?: unknown;
   completedDeckId?: unknown;
+  completedCount?: unknown;
+  completionKind?: unknown;
   settingsTarget?: unknown;
   settingsReturnContext?: {
     view?: unknown;
@@ -101,6 +105,11 @@ function cleanIdentifier(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+function cleanCompletedCount(value: unknown): number | null {
+  const count = Number(value);
+  return Number.isSafeInteger(count) && count >= 0 ? count : null;
+}
+
 function normalizeViewId(value: unknown): AppViewId {
   const routableViewIds = new Set<AppViewId>([
     ...createMenuModel().listRoutableViewIds(),
@@ -122,6 +131,8 @@ function normalizeViewRoute(
     : "";
   const creationDeckId = cleanIdentifier(route.creationDeckId);
   const completedDeckId = cleanIdentifier(route.completedDeckId);
+  const completedCount = cleanCompletedCount(route.completedCount);
+  const completionKind = route.completionKind === "import" || route.completionKind === "manual" ? route.completionKind : null;
   const settingsTarget = settingsTargets.includes(String(route.settingsTarget) as SettingsTarget)
     ? String(route.settingsTarget) as SettingsTarget
     : null;
@@ -150,6 +161,8 @@ function normalizeViewRoute(
     ...(viewId === "neue-karten" && creationMethod ? { creationMethod } : {}),
     ...(viewId === "neue-karten" && creationDeckId ? { creationDeckId } : {}),
     ...(viewId === "neue-karten" && completedDeckId ? { completedDeckId } : {}),
+    ...(viewId === "neue-karten" && completedDeckId && completedCount !== null ? { completedCount } : {}),
+    ...(viewId === "neue-karten" && completedDeckId && completionKind ? { completionKind } : {}),
     ...(viewId === "stapel-einstellungen" && settingsTarget ? { settingsTarget } : {}),
     ...(viewId === "stapel-einstellungen" && settingsReturnContext ? { settingsReturnContext } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId && cardEditorReturnContext
@@ -316,6 +329,8 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     creationMethod: url.searchParams.get("method") ?? undefined,
     creationDeckId: url.searchParams.get("deck") ?? undefined,
     completedDeckId: url.searchParams.get("done") ?? undefined,
+    completedCount: url.searchParams.get("doneCount") ?? undefined,
+    completionKind: url.searchParams.get("doneKind") ?? undefined,
     settingsTarget: url.searchParams.get("target") ?? undefined,
     settingsReturnContext: pathSegments[0] === "stapel-einstellungen" ? {
       view: reviewReturnRoute?.mode === "study" ? "review" : url.searchParams.get("returnView") ?? undefined,
@@ -347,6 +362,8 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   if (normalized.viewId === "neue-karten" && normalized.creationMethod) params.set("method", normalized.creationMethod);
   if (normalized.viewId === "neue-karten" && normalized.creationDeckId) params.set("deck", normalized.creationDeckId);
   if (normalized.viewId === "neue-karten" && normalized.completedDeckId) params.set("done", normalized.completedDeckId);
+  if (normalized.viewId === "neue-karten" && normalized.completedDeckId && normalized.completedCount != null) params.set("doneCount", String(normalized.completedCount));
+  if (normalized.viewId === "neue-karten" && normalized.completedDeckId && normalized.completionKind) params.set("doneKind", normalized.completionKind);
   if (normalized.viewId === "stapel-einstellungen" && normalized.settingsTarget) params.set("target", normalized.settingsTarget);
   const settingsReturnContext = normalized.settingsReturnContext;
   if (normalized.viewId === "stapel-einstellungen" && settingsReturnContext) {

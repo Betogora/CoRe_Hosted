@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { LOCAL_APKG_MAX_BYTES } from "./apkgImport.ts";
-import { createSourceDocument, getOriginalVariant } from "./coreModel.ts";
+import { createCoreDeck, createSourceDocument, getOriginalVariant } from "./coreModel.ts";
 import { createCreationWorkflow, createImportCloudSyncTask } from "./creationWorkflow.ts";
 
 async function worldCapitalsApkgFile() {
@@ -167,6 +167,88 @@ test("creation workflow reports monotonic worker commit progress and completes o
   assert.deepEqual(progress, [...progress].sort((left, right) => left - right));
   assert.ok(progress.includes(80));
   assert.equal(progress.at(-1), 100);
+});
+
+test("worker media planning separates used references from object-only manifest files", async () => {
+  const hashA = "0123456789abcdef0123456789abcdef01234567";
+  const hashB = "123456789abcdef0123456789abcdef012345678";
+  const hashC = "23456789abcdef0123456789abcdef0123456789";
+  const assets = [
+    { sha1: hashA, name: "a.png", size: 1, mimeType: "image/png" },
+    { sha1: hashB, name: "b.png", size: 1, mimeType: "image/png" },
+    { sha1: hashC, name: "unused.png", size: 1, mimeType: "image/png" },
+  ];
+  const persistedRoot = createCoreDeck({ id: "persisted-root", name: "Root", source: "anki-apkg", originalDeckId: "anki-root", cards: [] });
+  const persistedChild = createCoreDeck({ id: "persisted-child", parentDeckId: persistedRoot.id, name: "Child", source: "anki-apkg", originalDeckId: "anki-child", cards: [] });
+  const persistedUnused = createCoreDeck({ id: "persisted-unused", parentDeckId: persistedRoot.id, name: "Unused", source: "anki-apkg", originalDeckId: "anki-unused", cards: [] });
+  let mediaInput: any = null;
+  const readyTask = () => {
+    const task = createImportCloudSyncTask(async () => ({ status: "cloud-ready", message: "Synchronisiert." }));
+    void task.retry();
+    return task;
+  };
+  const workflow = createCreationWorkflow({
+    mediaStore: {
+      syncImportMedia(decks: any[], options: any) {
+        mediaInput = { decks, options };
+        return {
+          queued: Promise.resolve(),
+          progress: { completed: 3, total: 3, uploaded: 3, reused: 0, currentName: "" },
+          result: Promise.resolve({
+            status: "cloud-ready",
+            message: "Synchronisiert.",
+            failureKind: null,
+            progress: { completed: 3, total: 3, uploaded: 3, reused: 0, currentName: "" },
+            referencesByDeck: new Map([
+              [persistedRoot.id, [{ id: "ref-a", deletedAt: null }]],
+              [persistedChild.id, [{ id: "ref-b", deletedAt: null }]],
+              [persistedUnused.id, []],
+            ]),
+          }),
+          async pause() {},
+          resume() {},
+          async cancel() {},
+          subscribe() { return () => undefined; },
+        };
+      },
+    } as any,
+    async persistImportedDecks(_decks, options) {
+      return { decks: [persistedRoot, persistedChild, persistedUnused], cloudTask: readyTask(), mediaOnly: options?.mediaOnly === true } as any;
+    },
+  });
+  const preview: any = {
+    summary: { ...persistedRoot, id: "incoming-root", importMeta: { mediaManifest: { assets } } },
+    report: { warnings: [], errors: [] },
+    mediaFiles: [],
+    commitGraph: {
+      kind: "worker-import",
+      deckCount: 3,
+      cardCount: 2,
+      noteTypeDefinitions: [],
+      deckIdentities: [
+        { id: "incoming-root", originalDeckId: "anki-root" },
+        { id: "incoming-child", originalDeckId: "anki-child" },
+        { id: "incoming-unused", originalDeckId: "anki-unused" },
+      ],
+      mediaTargets: [
+        { deckId: "incoming-root", name: "a.png" },
+        { deckId: "incoming-child", name: "b.png" },
+      ],
+      async streamChunks() {},
+      dispose() {},
+    },
+  };
+
+  const committed = await workflow.commitApkgPreview(preview);
+  const mediaResult = await committed.mediaTask!.result;
+
+  assert.equal(mediaResult.status, "cloud-ready");
+  assert.deepEqual(mediaInput.decks.map((deck: any) => ({ id: deck.id, names: deck.importMeta.mediaManifest.assets.map((asset: any) => asset.name) })), [
+    { id: persistedRoot.id, names: ["a.png"] },
+    { id: persistedChild.id, names: ["b.png"] },
+    { id: persistedUnused.id, names: [] },
+  ]);
+  assert.deepEqual(mediaInput.options.objectUploads, { deckId: persistedRoot.id, assets: [assets[2]] });
 });
 
 test("import cloud task keeps completion pending across retryable sync results", async () => {

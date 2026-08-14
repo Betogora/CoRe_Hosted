@@ -8,6 +8,7 @@ import {
   applyEntityMutationBatch,
   createCloudStateRows,
   deckToCloudRow,
+  ImportGraphVerificationError,
   listAccountSyncConflicts,
   registerAccountSyncDevice,
   recordAtomicReview,
@@ -18,6 +19,7 @@ import {
   streamAccountCloudChanges,
   SyncConflictChangedError,
   upsertAccountCloudProfile,
+  verifyAccountImportGraph,
 } from "./cloudRepository.ts";
 
 function clone(value: any): any {
@@ -410,6 +412,50 @@ function createCloudFixture() {
     rows: { ...rows, profiles: [createProfileRow(profile, user, timestamp)] },
   };
 }
+
+test("bestätigt einen vollständigen Importgraphen und weist fehlende Varianten zurück", async () => {
+  const fixture = createCloudFixture();
+  const scope = {
+    deckIds: fixture.rows.decks.map((row: any) => row.id),
+    cardIds: fixture.rows.cards.map((row: any) => row.id),
+    variantIds: fixture.rows.card_variants.map((row: any) => row.id),
+    sourceSnapshots: fixture.rows.learning_item_source_snapshots.map((row: any) => ({
+      id: row.id,
+      cardId: row.card_id,
+      attachToCard: true,
+    })),
+    noteTypeDefinitionIds: fixture.rows.note_type_definitions.map((row: any) => row.id),
+    reviewEventIds: fixture.rows.review_events.map((row: any) => row.id),
+  };
+
+  const verified = await verifyAccountImportGraph(createMemorySupabaseClient(fixture.rows, fixture.user), scope);
+  assert.deepEqual(verified, {
+    decks: 1,
+    cards: 1,
+    variants: 1,
+    sourceSnapshots: 1,
+    noteTypeDefinitions: 1,
+    reviewEvents: 1,
+  });
+
+  const incompleteRows = clone(fixture.rows);
+  incompleteRows.card_variants = [];
+  await assert.rejects(
+    () => verifyAccountImportGraph(createMemorySupabaseClient(incompleteRows, fixture.user), scope),
+    (error: unknown) => error instanceof ImportGraphVerificationError
+      && error.repairScope.variantIds?.[0] === scope.variantIds[0]
+      && Object.values(error.repairScope).flat().length === 1,
+  );
+
+  const mislinkedRows = clone(fixture.rows);
+  mislinkedRows.review_events[0].reviewable_id = "falsche-karte";
+  await assert.rejects(
+    () => verifyAccountImportGraph(createMemorySupabaseClient(mislinkedRows, fixture.user), scope),
+    (error: unknown) => error instanceof Error
+      && !(error instanceof ImportGraphVerificationError)
+      && /Review-Ereignis/.test(error.message),
+  );
+});
 
 function createDeckConflictFixture({ tombstone = false }: any = {}) {
   const fixture = createCloudFixture();

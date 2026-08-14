@@ -43,14 +43,17 @@ export interface CreationScreenProps {
   initialMethod: CreationMethod;
   initialTargetDeckId: string;
   completedDeckId: string;
+  completedCount: number;
+  completionKind: "import" | "manual" | "";
   onMethodChange: (method: CreationMethod) => unknown;
   onTargetDeckChange: (deckId: string) => unknown;
   onCreated: (deck: Deck) => Promise<Deck | null>;
   onAppendManualCard: (deckId: string, input: ManualCardInput) => Promise<Deck | null>;
   onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null) => void;
-  onSessionCompleted: (deckId: string) => void;
+  onSessionCompleted: (completion: { deckId: string; createdCount: number; kind: "import" | "manual" }) => void;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onReviewDeck: (deckId?: string | null) => void;
+  onOpenDashboard: () => void;
 }
 
 export interface DashboardScreenProps {

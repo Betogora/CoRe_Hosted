@@ -73,6 +73,7 @@ test("build chunking isolates React and Supabase without inventing broad vendor 
   assert.equal(manualChunkForModule("C:/repo/node_modules/@supabase/auth-js/index.js"), "supabase-vendor");
   assert.equal(manualChunkForModule("C:/repo/node_modules/ts-fsrs/dist/index.js"), "scheduler-vendor");
   assert.equal(manualChunkForModule("C:/repo/node_modules/xss/dist/xss.js"), "html-safety-vendor");
+  assert.equal(manualChunkForModule("C:/repo/src/indexedDbCoreRepository.ts"), "persistence");
   assert.equal(manualChunkForModule("C:/repo/node_modules/lucide-react/dist/index.js"), undefined);
   assert.equal(manualChunkForModule("C:\\repo\\src\\App.tsx"), undefined);
 });

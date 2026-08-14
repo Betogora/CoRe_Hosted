@@ -83,6 +83,10 @@ function renderFilter(value: string, filters: string[], variant: CardVariant, si
   return rendered;
 }
 
+function hasTemplateFieldValue(value: string): boolean {
+  return value.trim().length > 0;
+}
+
 function renderAst(
   nodes: SafeTemplateAstNode[],
   context: {
@@ -101,7 +105,7 @@ function renderAst(
       ? specialFieldValue(node.sourceName, context.item, context.variant, context.definition)
       : context.values.get(node.fieldId) ?? "";
     if (node.kind === "conditional") {
-      const present = Boolean(stripHtml(rawValue).trim());
+      const present = hasTemplateFieldValue(rawValue);
       return present !== node.inverted ? renderAst(node.children, context) : "";
     }
     return renderFilter(rawValue, node.filters, context.variant, context.side);

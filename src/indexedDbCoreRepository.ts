@@ -1,6 +1,6 @@
 import { createDefaultDeckSettings, isLearningItemReviewBlocked, normalizeCoreDeck } from "./coreModel.ts";
 import { normalizeContentEntities, normalizeWorkspaceState } from "./coreRepository.ts";
-import type { CardVariant, Deck, ImportCommitGraph, LearningItem, MaterializedImportCommitGraph, ReviewEvent, SourceDocument } from "./coreTypes.ts";
+import type { CardVariant, Deck, ImportCommitGraph, ImportVerificationRepairScope, ImportVerificationScope, LearningItem, MaterializedImportCommitGraph, ReviewEvent, SourceDocument } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { stripHtml } from "./htmlSafety.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -451,6 +451,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     });
   let cloudDeltaCursors = (await requestResult<any>(database.transaction(STORE.syncMetadata, "readonly").objectStore(STORE.syncMetadata).get("cloudDeltaCursors")))?.value ?? {};
   let reviewHourCounts: Record<string, number> | null = (await requestResult<any>(database.transaction(STORE.syncMetadata, "readonly").objectStore(STORE.syncMetadata).get("reviewHourCounts")))?.value ?? null;
+  let latestImportVerificationScope: ImportVerificationScope | null = null;
 
   const queueMutations = (inputs: any[]) => {
     const queued: SyncOutboxMutation[] = [];
@@ -854,6 +855,145 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       for (const definition of definitions.filter(Boolean)) definitionCache.set(definition.id, definition);
       return definitions.filter(Boolean);
     },
+    async createImportVerificationScope(deckIdsToVerify: string[]): Promise<ImportVerificationScope> {
+      await writeChain;
+      const deckIds = [...new Set(deckIdsToVerify.filter(Boolean))];
+      const scope = latestImportVerificationScope;
+      if (!scope || scope.deckIds.length !== deckIds.length || scope.deckIds.some((deckId) => !deckIds.includes(deckId))) {
+        throw new Error("Der Prüfumfang des letzten APKG-Imports ist nicht mehr verfügbar.");
+      }
+      const knownDeckIds = new Set(shell!.decks.map((deck) => deck.id));
+      const decks = deckIds.map((deckId) => shell!.decks.find((deck) => deck.id === deckId) ?? null);
+      if (decks.some((deck) => !deck)) throw new Error("Mindestens ein importierter Stapel fehlt im lokalen Commitgraphen.");
+      for (const deck of decks) {
+        if (deck?.parentDeckId && !knownDeckIds.has(deck.parentDeckId)) {
+          throw new Error(`Der übergeordnete Stapel für „${deck.name}“ fehlt im lokalen Commitgraphen.`);
+        }
+        const visited = new Set<string>();
+        let current = deck;
+        while (current) {
+          if (visited.has(current.id)) throw new Error("Die importierte Stapelhierarchie enthält einen Zyklus.");
+          visited.add(current.id);
+          current = current.parentDeckId ? shell!.decks.find((candidate) => candidate.id === current!.parentDeckId) ?? null : null;
+        }
+      }
+
+      const graphRead = database.transaction([STORE.cards, STORE.variants, STORE.reviewEvents], "readonly");
+      const cardRequests = scope.cardIds.map((cardId) => requestResult<StoredCard | undefined>(graphRead.objectStore(STORE.cards).get(cardId)));
+      const variantRequests = scope.variantIds.map((variantId) => requestResult<StoredVariant | undefined>(graphRead.objectStore(STORE.variants).get(variantId)));
+      const reviewRequests = scope.reviewEventIds.map((reviewId) => requestResult<ReviewEvent | undefined>(graphRead.objectStore(STORE.reviewEvents).get(reviewId)));
+      const [cardRows, variantRows, reviewRows] = await Promise.all([
+        Promise.all(cardRequests),
+        Promise.all(variantRequests),
+        Promise.all(reviewRequests),
+      ]);
+      await transactionDone(graphRead);
+
+      if ([...cardRows, ...variantRows, ...reviewRows].some((row) => !row)) {
+        throw new Error("Mindestens eine erwartete Entität fehlt im lokalen Importgraphen.");
+      }
+      const cards = cardRows as StoredCard[];
+      const variants = variantRows as StoredVariant[];
+      const cardIds = new Set(cards.map((card) => card.id));
+      const importedDeckIds = new Set(deckIds);
+      if (cards.some((card) => !importedDeckIds.has(card.deckId))) {
+        throw new Error("Mindestens eine Karte ist dem falschen importierten Stapel zugeordnet.");
+      }
+      const variantsByCardId = new Map<string, StoredVariant[]>();
+      for (const variant of variants) {
+        const cardId = String(variant.learningItemId ?? variant.cardId ?? "");
+        if (!cardIds.has(cardId)) throw new Error(`Variante ${variant.id} verweist nicht auf eine importierte Karte.`);
+        if (variant.studyDeckId && !importedDeckIds.has(variant.studyDeckId)) throw new Error(`Variante ${variant.id} verweist auf den falschen Lernstapel.`);
+        const bucket = variantsByCardId.get(cardId);
+        if (bucket) bucket.push(variant);
+        else variantsByCardId.set(cardId, [variant]);
+      }
+      for (const card of cards) {
+        const originals = (variantsByCardId.get(card.id) ?? []).filter((variant) => variant.isOriginal);
+        if (originals.length !== 1) throw new Error(`Karte ${card.id} besitzt nicht genau eine Originalvariante.`);
+        if (!card.noteTypeDefinitionId) throw new Error(`Karte ${card.id} besitzt keinen Notiztyp.`);
+        if (!card.latestSourceSnapshotId) throw new Error(`Karte ${card.id} besitzt keinen verknüpften Quell-Snapshot.`);
+      }
+      if (reviewRows.some((review) => !importedDeckIds.has(review!.deckId))) {
+        throw new Error("Mindestens ein Review-Ereignis ist dem falschen importierten Stapel zugeordnet.");
+      }
+
+      const noteTypeDefinitionIds = [...new Set(cards.map((card) => card.noteTypeDefinitionId))];
+      const sourceSnapshots = cards.map((card) => ({ id: card.latestSourceSnapshotId!, cardId: card.id, attachToCard: true }));
+      if (new Set(sourceSnapshots.map((snapshot) => snapshot.id)).size !== sourceSnapshots.length) {
+        throw new Error("Ein Quell-Snapshot ist mit mehreren importierten Karten verknüpft.");
+      }
+      const contractRead = database.transaction([STORE.noteTypeDefinitions, STORE.sourceSnapshots], "readonly");
+      const definitionRequests = noteTypeDefinitionIds.map((id) => requestResult(contractRead.objectStore(STORE.noteTypeDefinitions).getKey(id)));
+      const snapshotRequests = sourceSnapshots.map(({ id }) => requestResult(contractRead.objectStore(STORE.sourceSnapshots).getKey(id)));
+      const [definitionKeys, snapshotKeys] = await Promise.all([Promise.all(definitionRequests), Promise.all(snapshotRequests)]);
+      await transactionDone(contractRead);
+      if (definitionKeys.some((key) => key == null)) throw new Error("Mindestens ein importierter Notiztyp fehlt im lokalen Commitgraphen.");
+      if (snapshotKeys.some((key) => key == null)) throw new Error("Mindestens ein importierter Quell-Snapshot fehlt im lokalen Commitgraphen.");
+
+      return {
+        deckIds: [...deckIds].sort(),
+        cardIds: [...cardIds].sort(),
+        variantIds: variants.map((variant) => variant.id).sort(),
+        sourceSnapshots: sourceSnapshots.sort((left, right) => left.id.localeCompare(right.id)),
+        noteTypeDefinitionIds: noteTypeDefinitionIds.sort(),
+        reviewEventIds: reviewRows.map((review) => review!.id).sort(),
+      };
+    },
+    async requeueImportVerificationScope(scope: ImportVerificationScope, repairScope: ImportVerificationRepairScope | null = null) {
+      await writeChain;
+      const repairIds = (selected: string[] | undefined, all: string[]) => repairScope ? selected ?? [] : all;
+      const targetDeckIds = repairIds(repairScope?.deckIds, scope.deckIds);
+      const targetCardIds = repairIds(repairScope?.cardIds, scope.cardIds);
+      const targetVariantIds = repairIds(repairScope?.variantIds, scope.variantIds);
+      const targetSnapshotIds = repairIds(repairScope?.sourceSnapshotIds, scope.sourceSnapshots.map((snapshot) => snapshot.id));
+      const targetDefinitionIds = repairIds(repairScope?.noteTypeDefinitionIds, scope.noteTypeDefinitionIds);
+      const targetReviewIds = repairIds(repairScope?.reviewEventIds, scope.reviewEventIds);
+      const decks = targetDeckIds.map((deckId) => shell!.decks.find((deck) => deck.id === deckId) ?? null);
+      if (decks.some((deck) => !deck)) throw new Error("Der unvollständige Import kann lokal nicht mehr rekonstruiert werden.");
+      const read = database.transaction([STORE.cards, STORE.variants, STORE.reviewEvents, STORE.noteTypeDefinitions, STORE.sourceSnapshots], "readonly");
+      const cardRequests = targetCardIds.map((id) => requestResult<StoredCard | undefined>(read.objectStore(STORE.cards).get(id)));
+      const variantRequests = targetVariantIds.map((id) => requestResult<StoredVariant | undefined>(read.objectStore(STORE.variants).get(id)));
+      const reviewRequests = targetReviewIds.map((id) => requestResult<ReviewEvent | undefined>(read.objectStore(STORE.reviewEvents).get(id)));
+      const definitionRequests = targetDefinitionIds.map((id) => requestResult<any>(read.objectStore(STORE.noteTypeDefinitions).get(id)));
+      const snapshotRequests = targetSnapshotIds.map((id) => requestResult<any>(read.objectStore(STORE.sourceSnapshots).get(id)));
+      const [cards, variants, reviews, definitions, snapshots] = await Promise.all([
+        Promise.all(cardRequests),
+        Promise.all(variantRequests),
+        Promise.all(reviewRequests),
+        Promise.all(definitionRequests),
+        Promise.all(snapshotRequests),
+      ]);
+      await transactionDone(read);
+      if ([...cards, ...variants, ...reviews, ...definitions, ...snapshots].some((entity) => !entity)) {
+        throw new Error("Der unvollständige Import kann lokal nicht mehr vollständig rekonstruiert werden.");
+      }
+
+      const deckIdByCardId = new Map(cards.map((card) => [card!.id, String((card as StoredCard & { deckId?: string }).deckId ?? "")]));
+      const snapshotLinks = new Map(scope.sourceSnapshots.map((snapshot) => [snapshot.id, snapshot]));
+      const requeuedSnapshotIds = new Set(targetSnapshotIds);
+      const inputs = [
+        ...(decks.filter(Boolean) as WorkspaceDeckSummary[]).map((deck) => ({ type: "entity-mutation", table: "decks", entityId: deck.id, baseRevision: null, payload: { table: "decks", entity: deck, baseRevision: null } })),
+        ...definitions.map((definition) => ({ type: "entity-mutation", table: "note_type_definitions", entityId: definition.id, baseRevision: null, payload: { table: "note_type_definitions", entity: definition, baseRevision: null } })),
+        ...(cards.filter(Boolean) as StoredCard[]).map((card) => {
+          const { variants: _variants, ...cloudCard } = card as StoredCard & { variants?: never };
+          const latestSourceSnapshotId = requeuedSnapshotIds.has(card.latestSourceSnapshotId ?? "") ? null : card.latestSourceSnapshotId;
+          return { type: "entity-mutation", table: "cards", entityId: card.id, baseRevision: null, payload: { table: "cards", entity: { ...cloudCard, latestSourceSnapshotId }, deckId: deckIdByCardId.get(card.id), baseRevision: null } };
+        }),
+        ...(variants.filter(Boolean) as StoredVariant[]).map((variant) => ({ type: "entity-mutation", table: "card_variants", entityId: variant.id, baseRevision: null, payload: { table: "card_variants", entity: variant, cardId: variant.learningItemId, baseRevision: null } })),
+        ...snapshots.map((snapshot) => {
+          const link = snapshotLinks.get(snapshot.id)!;
+          return { type: "entity-mutation", table: "learning_item_source_snapshots", entityId: snapshot.id, baseRevision: null, payload: { table: "learning_item_source_snapshots", entity: snapshot, cardId: link.cardId, attachToCard: link.attachToCard, baseRevision: null } };
+        }),
+        ...(reviews.filter(Boolean) as ReviewEvent[]).map((review) => ({ type: "entity-mutation", table: "review_events", entityId: review.id, baseRevision: null, payload: { table: "review_events", entity: review, deckId: review.deckId, baseRevision: null } })),
+      ];
+      const batch = queueMutations(inputs);
+      const write = database.transaction(STORE.outbox, "readwrite");
+      for (const id of batch.removedIds) write.objectStore(STORE.outbox).delete(id);
+      for (const mutation of batch.queued) write.objectStore(STORE.outbox).put(mutation);
+      await transactionDone(write);
+      return batch.queued.length;
+    },
     getShellState() {
       return shellState();
     },
@@ -1033,7 +1173,20 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     async commitImportGraph(graph: ImportCommitGraph) {
       if (graph.kind === "worker-import") {
         const importedDeckIds: string[] = [];
-        const deckContexts = new Map<string, { summary: any; existing: Deck | null }>();
+        const importedCardIds = new Set<string>();
+        const importedVariantIds = new Set<string>();
+        const importedSourceSnapshots = new Map<string, { id: string; cardId: string; attachToCard: boolean }>();
+        const importedDefinitionIds = new Set<string>();
+        const importedReviewIds = new Set<string>();
+        const persistedDeckIdByIncomingId = new Map(graph.deckIdentities.map((identity) => {
+          const existing = shell!.decks.find((candidate) => candidate.id === identity.id || (
+            Boolean(identity.originalDeckId)
+            && candidate.source === "anki-apkg"
+            && candidate.originalDeckId === identity.originalDeckId
+          ));
+          return [identity.id, existing?.id ?? identity.id];
+        }));
+        const deckContexts = new Map<string, { summary: any; existing: Deck | null; cardIds: Map<string, string>; variantIds: Map<string, string> }>();
         const persistOutbox = (transaction: IDBTransaction, inputs: any[]) => {
           const batch = queueMutations(inputs);
           const store = transaction.objectStore(STORE.outbox);
@@ -1045,11 +1198,16 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
           if (chunk.kind === "definitions") return;
           if (chunk.kind === "deck") {
             const incoming = chunk.summary;
-            const existingSummary = shell!.decks.find((candidate) => candidate.id === incoming.id || (candidate.source === "anki-apkg" && candidate.originalDeckId === incoming.originalDeckId));
+            const persistedDeckId = persistedDeckIdByIncomingId.get(incoming.id) ?? incoming.id;
+            const parentDeckId = incoming.parentDeckId
+              ? persistedDeckIdByIncomingId.get(incoming.parentDeckId) ?? incoming.parentDeckId
+              : null;
+            const existingSummary = shell!.decks.find((candidate) => candidate.id === persistedDeckId);
             const existing = existingSummary ? await hydrateDeck(existingSummary.id) : null;
             const summary = existing ? {
               ...incoming,
               id: existing.id,
+              parentDeckId,
               name: existing.name || incoming.name,
               description: existing.description ?? incoming.description,
               createdAt: existing.createdAt,
@@ -1058,28 +1216,45 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
               deckSettings: existing.deckSettings,
               mediaAssets: existing.mediaAssets,
               versionLog: existing.versionLog,
-            } : incoming;
+            } : { ...incoming, id: persistedDeckId, parentDeckId };
             const transaction = database.transaction([STORE.decks, STORE.outbox], "readwrite");
             transaction.objectStore(STORE.decks).put(summary);
             persistOutbox(transaction, [{ type: "entity-mutation", table: "decks", entityId: summary.id, baseRevision: existing?.revision ?? null, payload: { table: "decks", entity: summary, baseRevision: existing?.revision ?? null } }]);
             await transactionDone(transaction);
             importedDeckIds.push(summary.id);
-            deckContexts.set(incoming.id, { summary, existing });
+            deckContexts.set(incoming.id, { summary, existing, cardIds: new Map(), variantIds: new Map() });
             shell = { ...shell!, decks: [summary, ...shell!.decks.filter((deck) => deck.id !== summary.id)], updatedAt: summary.updatedAt };
           } else if (chunk.kind === "cards") {
             const context = deckContexts.get(chunk.deckId);
             if (!context) throw new Error("APKG-Worker lieferte Karten vor ihrem Stapel.");
             const incomingCards = chunk.values ?? [];
-            let cards = incomingCards;
+            const mappedIncomingCards = incomingCards.map((card: LearningItem) => ({
+              ...card,
+              deckId: context.summary.id,
+              variants: card.variants.map((variant) => ({
+                ...variant,
+                studyDeckId: variant.studyDeckId
+                  ? persistedDeckIdByIncomingId.get(variant.studyDeckId) ?? variant.studyDeckId
+                  : variant.studyDeckId,
+              })),
+            }));
+            let cards = mappedIncomingCards;
             if (context.existing) {
               const { mergeImportedDeck } = await import("./apkgImportInternal.ts");
               const snapshots = new Map((chunk.snapshots ?? []).map(({ snapshot }: any) => [snapshot.id, snapshot]));
-              cards = mergeImportedDeck({ ...context.summary, cards, reviewEvents: [] }, [context.existing], {
+              cards = mergeImportedDeck({ ...context.summary, cards: mappedIncomingCards, reviewEvents: [] }, [context.existing], {
                 definitions: new Map((chunk.definitions ?? []).map((definition: any) => [definition.id, definition])),
                 snapshots,
               }).cards;
             }
-            const persistedCardId = new Map(incomingCards.map((card: LearningItem, index: number) => [card.id, cards[index]?.id ?? card.id]));
+            const persistedCardId = new Map<string, string>(incomingCards.map((card: LearningItem, index: number) => [card.id, String(cards[index]?.id ?? card.id)]));
+            for (const [incomingCardId, persistedCardIdValue] of persistedCardId) context.cardIds.set(incomingCardId, persistedCardIdValue);
+            incomingCards.forEach((incomingCard: LearningItem, cardIndex: number) => {
+              const persistedCard = cards[cardIndex];
+              incomingCard.variants.forEach((incomingVariant, variantIndex) => {
+                context.variantIds.set(incomingVariant.id, persistedCard?.variants[variantIndex]?.id ?? incomingVariant.id);
+              });
+            });
             const snapshotRead = database.transaction(STORE.sourceSnapshots, "readonly");
             const snapshotStore = snapshotRead.objectStore(STORE.sourceSnapshots);
             const snapshotIds = (chunk.snapshots ?? []).map(({ snapshot }: any) => snapshot.id);
@@ -1089,6 +1264,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
             const chunkMutations: any[] = [];
             const transaction = database.transaction([STORE.cards, STORE.variants, STORE.noteTypeDefinitions, STORE.sourceSnapshots, STORE.outbox], "readwrite");
             for (const definition of chunk.definitions ?? []) {
+              importedDefinitionIds.add(definition.id);
               definitionCache.set(definition.id, definition);
               transaction.objectStore(STORE.noteTypeDefinitions).put(definition);
               if (!pendingByTarget.has(mutationTargetKey({ type: "entity-mutation", table: "note_type_definitions", entityId: definition.id }))) {
@@ -1096,12 +1272,14 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
               }
             }
             for (const card of cards) {
+              importedCardIds.add(card.id);
               const previousCard = context.existing?.cards.find((candidate) => candidate.id === card.id);
               const baseRevision = previousCard?.revision ?? null;
               const cloudCard = { ...Object.fromEntries(Object.entries(card).filter(([key]) => key !== "variants")), latestSourceSnapshotId: null };
               transaction.objectStore(STORE.cards).put(cardRecord(card, context.summary.id));
               chunkMutations.push({ type: "entity-mutation", table: "cards", entityId: card.id, baseRevision, payload: { table: "cards", entity: cloudCard, deckId: context.summary.id, baseRevision } });
               for (const variant of card.variants) {
+                importedVariantIds.add(variant.id);
                 const variantBase = previousCard?.variants.find((candidate) => candidate.id === variant.id)?.revision ?? null;
                 transaction.objectStore(STORE.variants).put(variantRecord(variant, context.summary.id));
                 chunkMutations.push({ type: "entity-mutation", table: "card_variants", entityId: variant.id, baseRevision: variantBase, payload: { table: "card_variants", entity: variant, cardId: card.id, baseRevision: variantBase } });
@@ -1109,6 +1287,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
             }
             for (const { snapshot, cardId, attachToCard } of chunk.snapshots ?? []) {
               const resolvedCardId = persistedCardId.get(cardId) ?? cardId;
+              importedSourceSnapshots.set(snapshot.id, { id: snapshot.id, cardId: resolvedCardId, attachToCard: Boolean(attachToCard) });
               const previousCard = context.existing?.cards.find((candidate) => candidate.id === resolvedCardId);
               const linkedSnapshot = snapshot.previousSnapshotId || !previousCard?.latestSourceSnapshotId || previousCard.latestSourceSnapshotId === snapshot.id
                 ? snapshot
@@ -1123,8 +1302,22 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
             const transaction = database.transaction([STORE.reviewEvents, STORE.outbox], "readwrite");
             const context = deckContexts.get(chunk.deckId);
             for (const event of chunk.values ?? []) {
-              const mapped = context && context.summary.id !== event.deckId ? { ...event, deckId: context.summary.id } : event;
+              const mappedCardId = context?.cardIds.get(event.learningItemId ?? event.sourceCardId ?? event.reviewableId) ?? null;
+              const mappedVariantId = context?.variantIds.get(event.variantId ?? event.reviewableId) ?? null;
+              const mapped = context ? {
+                ...event,
+                deckId: context.summary.id,
+                ...(mappedCardId ? {
+                  learningItemId: mappedCardId,
+                  ...(event.reviewableType === "card" ? { reviewableId: mappedCardId } : {}),
+                } : {}),
+                ...(mappedVariantId ? {
+                  variantId: mappedVariantId,
+                  ...(event.reviewableType === "variant" ? { reviewableId: mappedVariantId } : {}),
+                } : {}),
+              } : event;
               transaction.objectStore(STORE.reviewEvents).put(mapped);
+              importedReviewIds.add(mapped.id);
               reviewMutations.push({ type: "entity-mutation", table: "review_events", entityId: mapped.id, baseRevision: null, payload: { table: "review_events", entity: mapped, deckId: mapped.deckId, baseRevision: null } });
             }
             persistOutbox(transaction, reviewMutations);
@@ -1135,6 +1328,14 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
             await transactionDone(transaction);
           }
         });
+        latestImportVerificationScope = {
+          deckIds: [...new Set(importedDeckIds)].sort(),
+          cardIds: [...importedCardIds].sort(),
+          variantIds: [...importedVariantIds].sort(),
+          sourceSnapshots: [...importedSourceSnapshots.values()].sort((left, right) => left.id.localeCompare(right.id)),
+          noteTypeDefinitionIds: [...importedDefinitionIds].sort(),
+          reviewEventIds: [...importedReviewIds].sort(),
+        };
         return importedDeckIds.map((id) => shell!.decks.find((deck) => deck.id === id)).filter(Boolean) as WorkspaceDeckSummary[];
       }
       const existingDecks = (await Promise.all(graph.decks.map(async (incoming) => {

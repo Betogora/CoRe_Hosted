@@ -26,6 +26,7 @@ export interface ApkgImportSession {
   cloudTask: ImportCloudSyncTask | null;
   cloudProgress: ApkgCloudProgress | null;
   completedDeck: Deck | null;
+  completedCount: number;
   phaseProgress: { phase: ApkgProgressPhase; percent: number } | null;
 }
 
@@ -41,6 +42,7 @@ export function createEmptyApkgImportSession(version = 0): ApkgImportSession {
     cloudTask: null,
     cloudProgress: null,
     completedDeck: null,
+    completedCount: 0,
     phaseProgress: null,
   };
 }

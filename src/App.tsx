@@ -1,7 +1,7 @@
 import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AuthPhase } from "./accountSession.ts";
-import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NewReviewOrder, SyncStatus } from "./coreTypes.ts";
+import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, ImportVerificationScope, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NewReviewOrder, SyncStatus } from "./coreTypes.ts";
 import { ArrowRight, Database, Layers } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
@@ -27,7 +27,7 @@ import type {
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
-import { replaceAccountCloudState } from "./cloudRepository.ts";
+import { ImportGraphVerificationError, replaceAccountCloudState, verifyAccountImportGraph } from "./cloudRepository.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 import { addRephrasedVariant, createDefaultDeckSettings, createManualCoreDeck, duplicateLearningItemContent, getCardContentPayload, restoreCardVersion, saveCardEditorValue, saveLearningItemDocumentValues, updateLearningItemStudyState } from "./coreModel.ts";
 import { createWorkspaceDeck, restoreSoftDeletedCard, softDeleteCard, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
@@ -236,6 +236,8 @@ export function App() {
     creationMethod,
     creationDeckId,
     completedDeckId,
+    completedCount,
+    completionKind,
     settingsTarget,
     settingsReturnContext,
     cardEditorReturnContext,
@@ -918,14 +920,17 @@ export function App() {
         sourceSnapshots: [],
       });
     }
+    const verificationScope = commitGraph?.kind === "worker-import"
+      ? await workspaceRepository.createImportVerificationScope(importedDecks.map((deck) => deck.id))
+      : null;
     const nextState = refresh();
     const importedIds = new Set(importedDecks.map((deck) => deck.id));
     return {
       decks: nextState?.decks.filter((deck) => importedIds.has(deck.id)) ?? nextDecks,
-      cloudTask: createTrackedImportCloudTask(),
+      cloudTask: createTrackedImportCloudTask(verificationScope),
     };
 
-    function createTrackedImportCloudTask() {
+    function createTrackedImportCloudTask(verificationScope: ImportVerificationScope | null = null) {
       const task = createImportCloudSyncTask(async () => {
         await workspaceRepository!.flush();
         const result = await syncEngine!.flush({ force: true });
@@ -934,6 +939,21 @@ export function App() {
         }
         if (result?.deferred || syncEngine!.pendingCount() > 0) {
           return { status: "local-pending", message: "Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus." };
+        }
+        if (verificationScope) {
+          try {
+            await verifyAccountImportGraph(supabase, verificationScope);
+          } catch (error) {
+            const status = Number((error as { status?: unknown })?.status ?? 0);
+            const retryable = error instanceof ImportGraphVerificationError
+              || status >= 500
+              || /network|fetch|offline|timeout/i.test(String((error as Error)?.message ?? error));
+            if (!retryable) throw error;
+            if (error instanceof ImportGraphVerificationError) {
+              await workspaceRepository!.requeueImportVerificationScope(verificationScope, error.repairScope);
+            }
+            return { status: "local-pending", message: "Die Karten sind lokal gespeichert; die vollständige Cloud-Bestätigung steht noch aus." };
+          }
         }
         return { status: "cloud-ready", message: "Karten, Wiederholungen und Quell-Snapshots sind in der Cloud bestätigt." };
       });
@@ -1473,6 +1493,8 @@ export function App() {
           initialMethod={visibleCreationMethod}
           initialTargetDeckId={creationDeckId}
           completedDeckId={completedDeckId}
+          completedCount={completedCount}
+          completionKind={completionKind}
           onMethodChange={(method: "manual" | "import" | "") => {
             if (!method && hasVisibleApkgImportSession(apkgImportSessionRef.current)) resetApkgImportSession();
             navigateToView("neue-karten", method ? {
@@ -1487,9 +1509,14 @@ export function App() {
           onCreated={completeCreatedDeck}
           onAppendManualCard={completeManualCard}
           onDraftStateChange={handleCreationDraftStateChange}
-          onSessionCompleted={(deckId) => navigateToViewNow("neue-karten", { completedDeckId: deckId }, { replace: true })}
+          onSessionCompleted={(completion) => navigateToViewNow("neue-karten", {
+            completedDeckId: completion.deckId,
+            completedCount: completion.createdCount,
+            completionKind: completion.kind,
+          }, { replace: true })}
           onStartDeck={startDeck}
           onReviewDeck={openDecks}
+          onOpenDashboard={() => navigateToViewNow("uebersicht")}
         />
       );
     }

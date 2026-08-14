@@ -12,17 +12,19 @@ const CLEANUP_STORE = "media_cleanup";
 const CLOUD_MEDIA_DOWNLOAD_CONCURRENCY = 4;
 const SHA1_PATTERN = /^[a-f0-9]{40}$/;
 const sha1Schema = v.pipe(v.string(), v.regex(SHA1_PATTERN));
-const mediaFileSchema = v.looseObject({ sha1: sha1Schema, name: v.pipe(v.string(), v.minLength(1)), size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), mimeType: v.optional(v.string(), "application/octet-stream"), bytes: v.optional(v.instance(Uint8Array)), blob: v.optional(v.instance(Blob)), cardId: v.optional(v.nullable(v.string())) });
+const mediaFileSchema = v.looseObject({ sha1: sha1Schema, name: v.pipe(v.string(), v.minLength(1)), size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), mimeType: v.optional(v.string(), "application/octet-stream"), bytes: v.optional(v.instance(Uint8Array)), blob: v.optional(v.instance(Blob)), cardId: v.optional(v.nullable(v.string())), createReference: v.optional(v.boolean(), true) });
 const localAssetRecordSchema = v.looseObject({ key: v.string(), userId: v.string(), deckId: v.string(), sha1: sha1Schema, name: v.pipe(v.string(), v.minLength(1)), size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), mimeType: v.string(), blob: v.instance(Blob), cardId: v.nullable(v.string()), updatedAt: v.string() });
-const queueRecordSchema = v.looseObject({ id: v.string(), userId: v.string(), deckId: v.string(), sha1: sha1Schema, size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), name: v.string(), cardId: v.nullable(v.string()), queuedAt: v.string() });
+const queueRecordSchema = v.looseObject({ id: v.string(), userId: v.string(), deckId: v.string(), sha1: sha1Schema, size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), name: v.string(), cardId: v.nullable(v.string()), createReference: v.optional(v.boolean(), true), queuedAt: v.string() });
 
 interface LocalAssetRecord { key: string; userId: string; deckId: string; sha1: string; name: string; size: number; mimeType: string; blob: Blob; cardId: string | null; updatedAt: string; }
 type BrowserCloudMediaFile = CloudMediaFile & { blob: Blob };
-interface QueueRecord { id: string; userId: string; deckId: string; sha1: string; size: number; name: string; cardId: string | null; queuedAt: string; }
+interface QueueRecord { id: string; userId: string; deckId: string; sha1: string; size: number; name: string; cardId: string | null; createReference: boolean; queuedAt: string; }
 export type MediaSyncStatus = "cloud-ready" | "local-pending" | "partial" | "paused" | "cancelled" | "blocked";
 export interface MediaSyncProgress { completed: number; total: number; uploaded: number; reused: number; currentName: string; }
 export interface MediaSyncResult { status: MediaSyncStatus; referencesByDeck: Map<string, MediaAssetReference[]>; progress: MediaSyncProgress; failureKind?: MediaFailureKind; message: string; }
 export interface MediaSyncTask { queued: Promise<void>; result: Promise<MediaSyncResult>; readonly progress: MediaSyncProgress; pause(): Promise<void>; resume(): void; cancel(): Promise<void>; subscribe(listener: (progress: MediaSyncProgress, status: MediaSyncStatus) => void): () => void; }
+export interface MediaObjectUploadPlan { deckId: string; assets: unknown[]; }
+interface MediaSyncOptions { onProgress?(progress: MediaSyncProgress): void; waitUntilReady?: Promise<unknown>; objectUploads?: MediaObjectUploadPlan | null; queuedRecords?: QueueRecord[]; }
 export interface ResolvedDeckMedia { urls: Record<string, string>; missing: Array<{ name: string; status: string }>; expiresAt: string | null; refreshAfterMs: number | null; revoke(): void; }
 type CloudMediaResolution = { urls: Record<string, string>; missing: MediaAssetReference[]; expiresAt: string | null };
 
@@ -30,7 +32,7 @@ const sessionAssets = new Map<string, LocalAssetRecord>();
 const sessionQueue = new Map<string, QueueRecord>();
 const sessionWarning = "IndexedDB ist nicht verfügbar; Medien bleiben nur für diese Browser-Sitzung erhalten und können nach einem Reload nicht sicher fortgesetzt werden.";
 const keyFor = (userId: string, sha1: string) => `${userId}\u0000${sha1}`;
-const queueIdFor = (userId: string, deckId: string, sha1: string, cardId: string | null) => `${userId}\u0000${deckId}\u0000${cardId ?? ""}\u0000${sha1}`;
+const queueIdFor = (userId: string, deckId: string, sha1: string, cardId: string | null, createReference = true) => `${userId}\u0000${deckId}\u0000${cardId ?? ""}\u0000${sha1}\u0000${createReference ? "ref" : "object"}`;
 
 function openDatabase(api: IDBFactory | null): Promise<IDBDatabase | null> {
   if (!api) return Promise.resolve(null);
@@ -111,6 +113,7 @@ export function planDeckMediaSync(deck: Deck, previousReferences: MediaAssetRefe
       size: Number(item?.size ?? 0),
       mimeType: String(item?.mimeType ?? "application/octet-stream"),
       cardId: cardIds?.size === 1 ? [...cardIds][0] : null,
+      createReference: true,
       metadata: { zipEntryName: item?.zipEntryName ?? null },
     }];
   });
@@ -118,6 +121,28 @@ export function planDeckMediaSync(deck: Deck, previousReferences: MediaAssetRefe
   const files = [...manifestFiles, ...directHashMediaFiles(usage, manifestHashes)];
   const retainedReferences = previousReferences.filter((reference) => usedReferenceKeys.has(reference.originalName) || usedReferenceKeys.has(normalizeRef(reference.originalName)) || usedReferenceKeys.has(reference.sha1));
   return { files, previousReferences, retainedReferences };
+}
+
+function planObjectOnlyMediaSync(plan: MediaObjectUploadPlan) {
+  const files = plan.assets.flatMap((item: any) => {
+    const sha1 = String(item?.sha1 ?? "").toLowerCase();
+    if (!SHA1_PATTERN.test(sha1)) return [];
+    return [{
+      sha1,
+      name: String(item?.name ?? sha1),
+      size: Number(item?.size ?? 0),
+      mimeType: String(item?.mimeType ?? "application/octet-stream"),
+      cardId: null,
+      createReference: false,
+      metadata: { zipEntryName: item?.zipEntryName ?? null },
+    }];
+  });
+  return { deckId: plan.deckId, files, previousReferences: [] as MediaAssetReference[], retainedReferences: [] as MediaAssetReference[], preserveObjects: true };
+}
+
+function retainedReferencesForQueuedFiles(deck: Deck | undefined, files: CloudMediaFile[]) {
+  const keys = new Set(files.filter((file) => file.createReference !== false).flatMap((file) => [file.sha1, file.name, normalizeRef(file.name)]));
+  return (deck?.mediaAssets ?? []).filter((reference) => keys.has(reference.sha1) || keys.has(reference.originalName) || keys.has(normalizeRef(reference.originalName)));
 }
 
 function normalizeFile(file: unknown): BrowserCloudMediaFile | null {
@@ -261,7 +286,7 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     return { persisted: Boolean(db), count: valid.length, errors };
   }
 
-  function syncImportMedia(decks: Deck[], options: { onProgress?(progress: MediaSyncProgress): void; waitUntilReady?: Promise<unknown> } = {}): MediaSyncTask {
+  function syncImportMedia(decks: Deck[], options: MediaSyncOptions = {}): MediaSyncTask {
     let status: MediaSyncStatus = "local-pending";
     let progress: MediaSyncProgress = { completed: 0, total: 0, uploaded: 0, reused: 0, currentName: "" };
     const listeners = new Set<(progress: MediaSyncProgress, status: MediaSyncStatus) => void>();
@@ -272,22 +297,55 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     const notify = () => { options.onProgress?.(progress); listeners.forEach((listener) => listener(progress, status)); };
     const control = createControl((next) => { status = next; notify(); });
     const result = (async (): Promise<MediaSyncResult> => {
-      const inputs = [];
+      const inputs: Array<{ deckId: string; files: CloudMediaFile[]; previousReferences: MediaAssetReference[]; retainedReferences: MediaAssetReference[]; preserveObjects?: boolean }> = [];
       try {
         const db = await openDatabase(databaseApi).catch(() => null);
-        for (const deck of decks) {
+        const deckById = new Map(decks.map((deck) => [deck.id, deck]));
+        const plannedInputs: Array<{ deckId: string; files: CloudMediaFile[]; previousReferences: MediaAssetReference[]; retainedReferences: MediaAssetReference[]; preserveObjects?: boolean }> = [];
+        if (options.queuedRecords?.length) {
+          const groups = new Map<string, QueueRecord[]>();
+          for (const record of options.queuedRecords) {
+            queuedIds.push(record.id);
+            const key = `${record.deckId}\u0000${record.createReference ? "ref" : "object"}`;
+            const group = groups.get(key);
+            if (group) group.push(record);
+            else groups.set(key, [record]);
+          }
+          for (const records of groups.values()) {
+            const deck = deckById.get(records[0].deckId);
+            const files = records.map((record): CloudMediaFile => ({
+              sha1: record.sha1,
+              name: record.name,
+              size: record.size,
+              mimeType: "application/octet-stream",
+              cardId: record.cardId,
+              createReference: record.createReference,
+            }));
+            plannedInputs.push({
+              deckId: records[0].deckId,
+              files,
+              previousReferences: records[0].createReference ? deck?.mediaAssets ?? [] : [],
+              retainedReferences: records[0].createReference ? retainedReferencesForQueuedFiles(deck, files) : [],
+              preserveObjects: records[0].createReference === false,
+            });
+          }
+        } else {
+          for (const deck of decks) plannedInputs.push({ deckId: deck.id, ...planDeckMediaSync(deck) });
+          if (options.objectUploads?.assets.length) plannedInputs.push(planObjectOnlyMediaSync(options.objectUploads));
+        }
+        for (const plan of plannedInputs) {
           const files: CloudMediaFile[] = [];
-          const plan = planDeckMediaSync(deck);
           for (const item of plan.files) {
             const record = await readAsset(item.sha1);
             if (record) {
               files.push({ ...item, size: record.size, mimeType: record.mimeType, blob: record.blob });
-              const queue: QueueRecord = { id: queueIdFor(userId, deck.id, item.sha1, item.cardId), userId, deckId: deck.id, sha1: item.sha1, size: record.size, name: item.name, cardId: item.cardId, queuedAt: nowIso() };
+              const createReference = item.createReference !== false;
+              const queue: QueueRecord = { id: queueIdFor(userId, plan.deckId, item.sha1, item.cardId ?? null, createReference), userId, deckId: plan.deckId, sha1: item.sha1, size: record.size, name: item.name, cardId: item.cardId ?? null, createReference, queuedAt: nowIso() };
               queuedIds.push(queue.id);
               sessionQueue.set(queue.id, queue); if (db) await put(db, QUEUE_STORE, queue);
             }
           }
-          inputs.push({ deckId: deck.id, files, previousReferences: plan.previousReferences, retainedReferences: plan.retainedReferences });
+          inputs.push({ deckId: plan.deckId, files, previousReferences: plan.previousReferences, retainedReferences: plan.retainedReferences, preserveObjects: plan.preserveObjects });
         }
         db?.close();
         progress = { ...progress, total: inputs.reduce((sum, input) => sum + input.files.length, 0) }; notify();
@@ -300,7 +358,7 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
       try {
         await options.waitUntilReady;
         const synced = await syncReferences({ client, supabaseUrl, userId, decks: inputs, control, onProgress(next) { progress = next; notify(); } });
-        const completedQueueIds = inputs.flatMap((input) => input.files.map((file) => queueIdFor(userId, input.deckId, file.sha1, file.cardId ?? null)));
+        const completedQueueIds = [...new Set(queuedIds)];
         completedQueueIds.forEach((id) => sessionQueue.delete(id));
         const queueDb = await openDatabase(databaseApi).catch(() => null);
         if (queueDb) { await removeMany(queueDb, QUEUE_STORE, completedQueueIds); queueDb.close(); }
@@ -382,23 +440,31 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
       try {
         const activeDeckIds = new Set(getDecks().map((deck) => deck.id));
         const queuedDeckIds = new Set<string>();
+        const queuedRecords = new Map<string, QueueRecord>();
         for (const [id, item] of sessionQueue) {
           if (item.userId !== userId) continue;
-          if (activeDeckIds.has(item.deckId)) queuedDeckIds.add(item.deckId);
+          if (activeDeckIds.has(item.deckId)) {
+            queuedDeckIds.add(item.deckId);
+            queuedRecords.set(item.id, item);
+          }
           else sessionQueue.delete(id);
         }
         const db = await openDatabase(databaseApi).catch(() => null);
         if (db) {
           for (const candidate of await getAllByIndex<unknown>(db, QUEUE_STORE, "userId", userId)) {
             const parsed = v.safeParse(queueRecordSchema, candidate);
-            if (parsed.success && activeDeckIds.has(parsed.output.deckId)) queuedDeckIds.add(parsed.output.deckId);
+            if (parsed.success && activeDeckIds.has(parsed.output.deckId)) {
+              const record = parsed.output as QueueRecord;
+              queuedDeckIds.add(record.deckId);
+              queuedRecords.set(record.id, record);
+            }
             else if (candidate && typeof candidate === "object" && "id" in candidate) await remove(db, QUEUE_STORE, String(candidate.id));
           }
           db.close();
         }
         if (queuedDeckIds.size === 0) return;
         await ensureCloudParents();
-        const task = syncImportMedia(getDecks().filter((deck) => queuedDeckIds.has(deck.id)));
+        const task = syncImportMedia(getDecks().filter((deck) => queuedDeckIds.has(deck.id)), { queuedRecords: [...queuedRecords.values()] });
         onStatus?.(await task.result);
       } catch { /* Der nächste Online-Impuls versucht die persistente Queue erneut. */ }
     };

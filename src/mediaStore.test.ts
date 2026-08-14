@@ -222,6 +222,38 @@ test("Hierarchie-Decks queueen nur die Medien ihrer tatsächlichen Kartenreferen
   ]);
 });
 
+test("ungenutzte Manifestdateien werden als Objekte ohne redundante Medienreferenz eingeplant", async () => {
+  const indexedDB = new IDBFactory();
+  const store = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "object-user", indexedDB });
+  const unusedHash = "fedcba9876543210fedcba9876543210fedcba98";
+  const importDeck: any = {
+    id: "deck-object",
+    mediaAssets: [],
+    cards: [{ id: "card-object", mediaRefs: ["card.png"] }],
+    importMeta: { mediaManifest: { assets: [
+      { sha1: HASH, name: "card.png", size: 4, mimeType: "image/png" },
+      { sha1: unusedHash, name: "unused.png", size: 2, mimeType: "image/png" },
+    ] } },
+  };
+  await store.cachePreviewMedia(importDeck, [
+    file,
+    { sha1: unusedHash, name: "unused.png", size: 2, mimeType: "image/png", bytes: new Uint8Array([8, 9]) },
+  ]);
+
+  const result = await store.syncImportMedia([importDeck], {
+    objectUploads: { deckId: importDeck.id, assets: [importDeck.importMeta.mediaManifest.assets[1]] },
+  }).result;
+  assert.equal(result.progress.total, 2);
+
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  const records = await new Promise<any[]>((resolve, reject) => { const request = db.transaction("media_queue", "readonly").objectStore("media_queue").getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  db.close();
+  assert.deepEqual(records.map(({ name, createReference }) => ({ name, createReference })).sort((left, right) => left.name.localeCompare(right.name)), [
+    { name: "card.png", createReference: true },
+    { name: "unused.png", createReference: false },
+  ]);
+});
+
 test("Legacy-SHA-1-Blobs werden beim ersten accountgebundenen Lesen übernommen", async () => {
   const indexedDB = new IDBFactory();
   const legacyDb = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 1); request.onupgradeneeded = () => request.result.createObjectStore("assets", { keyPath: "sha1" }); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });

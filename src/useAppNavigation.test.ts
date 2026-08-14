@@ -4,7 +4,7 @@ import { createStudyRoute, createViewRoute } from "./appNavigation.ts";
 import { projectAppRoute, subscribeToBrowserNavigation } from "./useAppNavigation.ts";
 
 test("projects view and study routes into one exhaustive shell state", () => {
-  assert.deepEqual(projectAppRoute(createViewRoute("neue-karten", { creationMethod: "manual", creationDeckId: "deck-1", completedDeckId: "deck-1" })), {
+  assert.deepEqual(projectAppRoute(createViewRoute("neue-karten", { creationMethod: "manual", creationDeckId: "deck-1", completedDeckId: "deck-1", completedCount: 46, completionKind: "import" })), {
     activeView: "neue-karten",
     studyRequest: null,
     focusedDeckId: null,
@@ -13,6 +13,8 @@ test("projects view and study routes into one exhaustive shell state", () => {
     creationMethod: "manual",
     creationDeckId: "deck-1",
     completedDeckId: "deck-1",
+    completedCount: 46,
+    completionKind: "import",
     settingsTarget: null,
     settingsReturnContext: null,
     cardEditorReturnContext: null,
@@ -33,6 +35,8 @@ test("projects view and study routes into one exhaustive shell state", () => {
     creationMethod: "",
     creationDeckId: "",
     completedDeckId: "",
+    completedCount: 0,
+    completionKind: "",
     settingsTarget: null,
     settingsReturnContext: null,
     cardEditorReturnContext: null,
@@ -53,6 +57,8 @@ test("projects the settings return context only on the settings route", () => {
     creationMethod: "",
     creationDeckId: "",
     completedDeckId: "",
+    completedCount: 0,
+    completionKind: "",
     settingsTarget: "new-cards-per-day",
     settingsReturnContext: { view: "decks", cardId: "card-2" },
     cardEditorReturnContext: null,

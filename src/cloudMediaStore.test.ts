@@ -61,6 +61,31 @@ test("accountweite SHA-1-Wiederverwendung erzeugt ein Objekt und zwei Referenzen
   assert.equal(client.rows[1].storage_path, client.rows[0].storage_path);
 });
 
+test("Objekt-only-Medien werden vollständig und idempotent ohne media_assets-Referenz gespeichert", async () => {
+  const client = createClient();
+  const objectOnly = { ...file(), createReference: false };
+  const first = await syncReferences({
+    client,
+    supabaseUrl: "http://127.0.0.1:54321",
+    userId: "user-a",
+    control: control(),
+    decks: [{ deckId: "deck-1", files: [objectOnly], previousReferences: [], preserveObjects: true }],
+  });
+  const second = await syncReferences({
+    client,
+    supabaseUrl: "http://127.0.0.1:54321",
+    userId: "user-a",
+    control: control(),
+    decks: [{ deckId: "deck-1", files: [objectOnly], previousReferences: [], preserveObjects: true }],
+  });
+
+  assert.equal(client.objects.get(`user-a/objects/${HASH}`), 4);
+  assert.equal(client.rows.length, 0);
+  assert.deepEqual(first.referencesByDeck.get("deck-1"), []);
+  assert.equal(first.uploaded, 1);
+  assert.equal(second.reused, 1);
+});
+
 test("serverseitiger Uploadadapter nutzt dieselben Referenz- und Deduplizierungsregeln", async () => {
   const client = createClient();
   const metadataOnly = { ...file(), blob: undefined };
@@ -158,6 +183,34 @@ test("Reimport erhält weiterhin verwendete Alt-Referenzen ohne erneuten Upload"
   const second = await syncReferences({ client, supabaseUrl: "http://127.0.0.1", userId: "user-a", control: control(), decks: [{ deckId: "deck-1", files: [], previousReferences: previous, retainedReferences: previous }] });
   assert.deepEqual(second.referencesByDeck.get("deck-1"), previous);
   assert.equal(client.rows[0].deleted_at, null);
+  assert.equal(client.removals.length, 0);
+});
+
+test("Reimport deaktiviert redundante Altverweise und erhält das deduplizierte Objekt", async () => {
+  const client = createClient();
+  const first = await syncReferences({
+    client,
+    supabaseUrl: "http://127.0.0.1",
+    userId: "user-a",
+    control: control(),
+    decks: [{
+      deckId: "deck-1",
+      files: [{ ...file(), cardId: "card-1" }, { ...file(), cardId: "card-2" }],
+      previousReferences: [],
+    }],
+  });
+  const previous = first.referencesByDeck.get("deck-1")!;
+  const second = await syncReferences({
+    client,
+    supabaseUrl: "http://127.0.0.1",
+    userId: "user-a",
+    control: control(),
+    decks: [{ deckId: "deck-1", files: [{ ...file(), cardId: "card-1" }], previousReferences: previous }],
+  });
+
+  assert.equal(second.referencesByDeck.get("deck-1")?.length, 1);
+  assert.equal(client.rows.filter((row) => row.deleted_at == null).length, 1);
+  assert.equal(client.objects.has(`user-a/objects/${HASH}`), true);
   assert.equal(client.removals.length, 0);
 });
 

@@ -16,6 +16,7 @@ export interface CloudMediaFile {
   mimeType: string;
   blob?: Blob;
   cardId?: string | null;
+  createReference?: boolean;
   source?: string;
   metadata?: Record<string, unknown>;
 }
@@ -27,7 +28,7 @@ export interface CloudMediaControl {
   setCancelHandler(handler: (() => void) | null): void;
 }
 
-interface SyncDeckInput { deckId: string; files: CloudMediaFile[]; previousReferences: MediaAssetReference[]; retainedReferences?: MediaAssetReference[]; }
+interface SyncDeckInput { deckId: string; files: CloudMediaFile[]; previousReferences: MediaAssetReference[]; retainedReferences?: MediaAssetReference[]; preserveObjects?: boolean; }
 interface SyncOptions {
   client: any;
   supabaseUrl: string;
@@ -202,7 +203,7 @@ async function persistReferences(client: any, rows: ReturnType<typeof toRow>[]) 
   return references;
 }
 
-async function retireStaleReferences(client: any, userId: string, previous: MediaAssetReference[], activeIds: Set<string>) {
+async function retireStaleReferences(client: any, userId: string, previous: MediaAssetReference[], activeIds: Set<string>, preserveObjects = false) {
   const stale = previous.filter((reference) => !activeIds.has(reference.id) && !reference.deletedAt);
   for (const reference of stale) {
     const deletedAt = nowIso();
@@ -210,7 +211,7 @@ async function retireStaleReferences(client: any, userId: string, previous: Medi
     if (error) throw error;
     const { data, error: countError } = await client.from("media_assets").select("id").eq("user_id", userId).eq("storage_bucket", reference.storageBucket).eq("storage_path", reference.storagePath).is("deleted_at", null);
     if (countError) throw countError;
-    if ((data ?? []).length === 0) {
+    if (!preserveObjects && (data ?? []).length === 0) {
       const { error: removeError } = await client.storage.from(reference.storageBucket).remove([reference.storagePath]);
       if (removeError) throw removeError;
     }
@@ -244,6 +245,7 @@ export async function syncReferences({ client, supabaseUrl, userId, decks, contr
           : file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES
             ? await uploadSmall(client, file, path)
             : await uploadLarge(client, supabaseUrl, userId, file, path, control);
+        if (outcome === "uploaded" && !uploadFile) await verifyStoredObject(client, path, file.size);
       }
       if (control.isCancelled()) {
         if (outcome === "uploaded") {
@@ -254,15 +256,20 @@ export async function syncReferences({ client, supabaseUrl, userId, decks, contr
       const oldReference = previousByKey.get(`${sha1}\u0000${file.cardId ?? ""}`) ?? previousByHash.get(sha1);
       completed += 1; outcome === "uploaded" ? uploaded += 1 : reused += 1;
       await onProgress?.({ completed, total, uploaded, reused, currentName: file.name });
-      return toRow(file, userId, deck.deckId, matchingObject?.storage_path ?? path, oldReference);
+      return file.createReference === false
+        ? null
+        : toRow(file, userId, deck.deckId, matchingObject?.storage_path ?? path, oldReference);
     };
     const smallFiles = deck.files.filter((file) => uploadFile || file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES);
     const largeFiles = deck.files.filter((file) => !uploadFile && file.size > RESUMABLE_UPLOAD_THRESHOLD_BYTES);
-    const rows = await mapWithConcurrency(smallFiles, SMALL_UPLOAD_CONCURRENCY, processFile);
-    for (const file of largeFiles) rows.push(await processFile(file));
+    const rows = (await mapWithConcurrency(smallFiles, SMALL_UPLOAD_CONCURRENCY, processFile)).filter(Boolean) as ReturnType<typeof toRow>[];
+    for (const file of largeFiles) {
+      const row = await processFile(file);
+      if (row) rows.push(row);
+    }
     for (const persisted of await persistReferences(client, rows)) references.set(persisted.id, persisted);
-    await retireStaleReferences(client, userId, deck.previousReferences, new Set(references.keys()));
-    referencesByDeck.set(deck.deckId, [...references.values()]);
+    await retireStaleReferences(client, userId, deck.previousReferences, new Set(references.keys()), deck.preserveObjects === true);
+    referencesByDeck.set(deck.deckId, [...new Map([...(referencesByDeck.get(deck.deckId) ?? []), ...references.values()].map((reference) => [reference.id, reference])).values()]);
   }
   return { referencesByDeck, completed, total, uploaded, reused };
 }

@@ -1,5 +1,6 @@
 import { createCloudProfile, saveCloudProfile } from "./cloudAuth.ts";
 import { createCoreDeck } from "./coreModel.ts";
+import type { ImportVerificationRepairScope, ImportVerificationScope } from "./coreTypes.ts";
 import { validateAccountRows, validateIdRows, validateMediaAssetRows, validateProfileRows, type AccountTable, type MediaAssetRow } from "./cloudRepositoryValidation.ts";
 
 const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
@@ -479,6 +480,105 @@ async function selectRowsByField(client: any, table: AccountTable, userId: strin
     }
   }
   return uniqueRowsById(rows);
+}
+
+export class ImportGraphVerificationError extends Error {
+  readonly code = "import_graph_incomplete";
+  constructor(message: string, readonly repairScope: ImportVerificationRepairScope) {
+    super(message);
+    this.name = "ImportGraphVerificationError";
+  }
+}
+
+function missingVerifiedRows(expectedIds: string[], rows: any[]) {
+  const expected = new Set(expectedIds);
+  const received = new Set(rows.filter((row) => !row.deleted_at).map((row) => String(row.id)));
+  return [...expected].filter((id) => !received.has(id));
+}
+
+export async function verifyAccountImportGraph(client: any, scope: ImportVerificationScope) {
+  const user = await getAuthenticatedUser(client);
+  const snapshotIds = scope.sourceSnapshots.map((snapshot) => snapshot.id);
+  const [decks, definitions, cards, variants, snapshots, reviews] = await Promise.all([
+    selectRowsByField(client, "decks", user.id, "id", scope.deckIds),
+    selectRowsByField(client, "note_type_definitions", user.id, "id", scope.noteTypeDefinitionIds),
+    selectRowsByField(client, "cards", user.id, "id", scope.cardIds),
+    selectRowsByField(client, "card_variants", user.id, "id", scope.variantIds),
+    selectRowsByField(client, "learning_item_source_snapshots", user.id, "id", snapshotIds),
+    selectRowsByField(client, "review_events", user.id, "id", scope.reviewEventIds),
+  ]);
+
+  const repairScope: ImportVerificationRepairScope = {
+    deckIds: missingVerifiedRows(scope.deckIds, decks),
+    noteTypeDefinitionIds: missingVerifiedRows(scope.noteTypeDefinitionIds, definitions),
+    cardIds: missingVerifiedRows(scope.cardIds, cards),
+    variantIds: missingVerifiedRows(scope.variantIds, variants),
+    sourceSnapshotIds: missingVerifiedRows(snapshotIds, snapshots),
+    reviewEventIds: missingVerifiedRows(scope.reviewEventIds, reviews),
+  };
+  const missingCount = Object.values(repairScope).reduce((sum, ids) => sum + (ids?.length ?? 0), 0);
+  if (missingCount) throw new ImportGraphVerificationError(`${missingCount} erwartete Importdatensätze fehlen in der Cloud.`, repairScope);
+
+  const activeDecks = decks.filter((deck) => !deck.deleted_at);
+  const knownDeckIds = new Set(activeDecks.map((deck) => String(deck.id)));
+  const externalParentIds = [...new Set(activeDecks.map((deck) => String(deck.parent_deck_id ?? "")).filter((id) => id && !knownDeckIds.has(id)))];
+  if (externalParentIds.length) {
+    const parents = await selectRowsByField(client, "decks", user.id, "id", externalParentIds);
+    const missingParents = missingVerifiedRows(externalParentIds, parents);
+    if (missingParents.length) throw new ImportGraphVerificationError("Mindestens ein übergeordneter Stapel fehlt in der Cloud.", { deckIds: missingParents });
+    for (const parent of parents.filter((row) => !row.deleted_at)) knownDeckIds.add(String(parent.id));
+  }
+
+  const expectedDeckIds = new Set(scope.deckIds);
+  const expectedDefinitionIds = new Set(scope.noteTypeDefinitionIds);
+  const snapshotByCardId = new Map(scope.sourceSnapshots.map((snapshot) => [snapshot.cardId, snapshot.id]));
+  for (const card of cards.filter((row) => !row.deleted_at)) {
+    if (!expectedDeckIds.has(String(card.deck_id))) throw new Error(`Karte ${card.id} ist dem falschen Stapel zugeordnet.`);
+    if (!expectedDefinitionIds.has(String(card.note_type_definition_id))) throw new Error(`Karte ${card.id} verweist auf einen unerwarteten Notiztyp.`);
+    if (String(card.latest_source_snapshot_id ?? "") !== snapshotByCardId.get(String(card.id))) {
+      throw new Error(`Karte ${card.id} ist nicht mit ihrem aktuellen Quell-Snapshot verknüpft.`);
+    }
+  }
+
+  const expectedCardIds = new Set(scope.cardIds);
+  const originalsByCardId = new Map<string, number>();
+  for (const variant of variants.filter((row) => !row.deleted_at)) {
+    const cardId = String(variant.card_id ?? "");
+    if (!expectedCardIds.has(cardId)) throw new Error(`Variante ${variant.id} verweist auf eine unerwartete Karte.`);
+    if (variant.is_original) originalsByCardId.set(cardId, (originalsByCardId.get(cardId) ?? 0) + 1);
+  }
+  for (const cardId of scope.cardIds) {
+    if (originalsByCardId.get(cardId) !== 1) throw new Error(`Karte ${cardId} besitzt in der Cloud nicht genau eine Originalvariante.`);
+  }
+
+  const expectedSnapshotLinks = new Map(scope.sourceSnapshots.map((snapshot) => [snapshot.id, snapshot.cardId]));
+  for (const snapshot of snapshots) {
+    if (String(snapshot.card_id ?? "") !== expectedSnapshotLinks.get(String(snapshot.id))) {
+      throw new Error(`Quell-Snapshot ${snapshot.id} ist mit der falschen Karte verknüpft.`);
+    }
+  }
+  if (reviews.some((review) => !expectedDeckIds.has(String(review.deck_id)))) {
+    throw new Error("Mindestens ein Review-Ereignis ist dem falschen Stapel zugeordnet.");
+  }
+  const expectedVariantIds = new Set(scope.variantIds);
+  for (const review of reviews) {
+    const reviewableId = String(review.reviewable_id ?? "");
+    if (review.reviewable_type === "variant" && !expectedVariantIds.has(reviewableId)) {
+      throw new Error(`Review-Ereignis ${review.id} verweist auf eine unerwartete Variante.`);
+    }
+    if (review.reviewable_type === "card" && !expectedCardIds.has(reviewableId)) {
+      throw new Error(`Review-Ereignis ${review.id} verweist auf eine unerwartete Karte.`);
+    }
+  }
+
+  return {
+    decks: scope.deckIds.length,
+    cards: scope.cardIds.length,
+    variants: scope.variantIds.length,
+    sourceSnapshots: snapshotIds.length,
+    noteTypeDefinitions: scope.noteTypeDefinitionIds.length,
+    reviewEvents: scope.reviewEventIds.length,
+  };
 }
 
 export interface CloudDeltaCursor {

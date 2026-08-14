@@ -109,11 +109,16 @@ test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core le
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(SMALL_APKG_FIXTURE);
   await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
   await page.getByRole("button", { name: "Import übernehmen" }).click();
-  await page.getByRole("button", { name: "Import abschließen" }).click();
 
-  await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zur Übersicht" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Karten prüfen|Weitere Karten erstellen/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Zur Übersicht" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible();
   await page.getByRole("button", { name: "Jetzt lernen" }).click();
   await completeOneReview(page);
 });
