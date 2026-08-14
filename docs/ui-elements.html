@@ -2510,6 +2510,10 @@ summary {
   border-color: var(--core-action-primary);
 }
 
+.hover\:border-\[var\(--core-border-interactive\)\]:hover {
+  border-color: var(--core-border-interactive);
+}
+
 .hover\:border-core-focus:hover {
   border-color: var(--core-focus);
 }
@@ -3618,7 +3622,15 @@ summary {
               <div class="catalog-grid catalog-grid-wide">
                 <label class="core-field-group"><span class="core-field-label">Feld mit Icon</span><span class="catalog-field-icon"><svg class="catalog-icon"><use href="#icon-book"></use></svg><input type="text" placeholder="Universität" /></span></label>
                 <label class="core-field-group"><span class="core-field-label">Passwort</span><span class="catalog-field-icon"><svg class="catalog-icon"><use href="#icon-info"></use></svg><input type="password" value="beispielpasswort" /></span></label>
-                <label class="core-field-group"><span class="core-field-label">Datei-Import</span><span class="catalog-field-icon"><svg class="catalog-icon"><use href="#icon-upload"></use></svg><input type="file" aria-label="APKG-Datei auswählen" /></span></label>
+                <div class="core-field-group">
+                  <span class="core-field-label">Datei-Import</span>
+                  <button type="button" aria-label="PDF- oder Textdatei auswählen" class="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--core-border)] px-3 text-left text-[var(--core-text-muted)] transition hover:border-[var(--core-border-interactive)] hover:bg-core-surface">
+                    <svg class="catalog-icon shrink-0"><use href="#icon-upload"></use></svg>
+                    <span class="shrink-0 rounded-lg bg-core-surface px-3 py-2 core-caption font-semibold text-[var(--core-action-primary)] shadow-sm">Datei auswählen</span>
+                    <span class="min-w-0 truncate core-body font-medium">Keine Datei ausgewählt</span>
+                  </button>
+                  <span class="core-field-hint">PDF, Text, Markdown, CSV oder TSV.</span>
+                </div>
                 <label class="core-field-group"><span class="core-field-label">Farbton</span><input class="core-hue-range" type="range" min="0" max="360" value="235" aria-label="Farbton" /></label>
               </div>
               <div class="catalog-demo">
