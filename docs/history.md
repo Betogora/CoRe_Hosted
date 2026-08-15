@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-08-15 — Profilintegrität nach Local-first-Start
+
+- Das Auf- und Zuklappen eines Stapels schreibt wieder das vollständige Profil. Gemeinsame Laufzeitprüfungen weisen unvollständige Profilwrites vor IndexedDB und vor dem Supabase-Upsert zurück.
+- Der erfolgreiche Cloud-Bootstrap entfernt ausschließlich alte unvollständige Profilpatches, übernimmt das vollständige Cloud-Profil, rettet gültige UI-Präferenzen und reiht nur bei einer Abweichung genau einen vollständigen Ersatzpatch ein. Vollständige Offline-Profiländerungen sowie Karten-, Review-, Import- und Medienmutationen bleiben erhalten; offline wird nichts verworfen.
+- Abgenommen wurden 60 fokussierte Profil-, Repository-, Boot- und Cloudtests, 616/616 Modul-/Contract-/Integrationstests, Typecheck, Production-Build, Datenbanktypdrift, 12/12 RLS-Fälle sowie das vollständige lokale Playwright-Gate mit 90 bestandenen und einem erwartbar übersprungenen Test. Der neue Browservertrag bestätigt Stapelumschaltung, Einstellungen, Reload und einen frischen isolierten Kontext mit demselben Cloud-Profil.
+
 ## 2026-08-15 — Local-first Performance-Grundlage
 
 - Der Accountstart öffnet nach einer Accountprüfung zuerst die lokale IndexedDB-Shell. Profil-/Stapel-Bootstrap, global cursorbasierte und bytebegrenzte Account-Deltas, Konflikte, Reparatur und Medien laufen nach. Kartenverwaltung und Lernen lesen 50er-Seiten; die Sitzung fordert bei 15 verbleibenden Karten nach. Ein eingerichtetes Gerät kann bei einem reinen Netzwerkfehler aus derselben persistierten Supabase-Sitzung offline kalt starten.

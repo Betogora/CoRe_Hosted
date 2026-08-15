@@ -1,6 +1,6 @@
 import { createDefaultDeckSettings, isLearningItemReviewBlocked, normalizeCoreDeck, normalizeLearningItem } from "./coreModel.ts";
 import { normalizeContentEntities, normalizeWorkspaceState } from "./coreRepository.ts";
-import type { CardVariant, Deck, ImportCommitGraph, ImportVerificationRepairScope, ImportVerificationScope, LearningItem, MaterializedImportCommitGraph, ReviewEvent, SourceDocument } from "./coreTypes.ts";
+import type { CardVariant, Deck, ImportCommitGraph, ImportVerificationRepairScope, ImportVerificationScope, LearningItem, MaterializedImportCommitGraph, Profile, ReviewEvent, SourceDocument } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { stripHtml } from "./htmlSafety.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -13,6 +13,7 @@ import type { DeckLibrarySummary } from "./libraryModel.ts";
 import { getLearningDayRange } from "./learningDay.ts";
 import { planEntityMutations } from "./syncMutationPlanner.ts";
 import type { StatisticsSelection } from "./statisticsModel.ts";
+import { requireCompleteProfile } from "./profileIntegrity.ts";
 
 const DATABASE_VERSION = 4;
 const STORE = Object.freeze({
@@ -1197,12 +1198,13 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       shell = await loadShell(database);
     },
     async applyCloudProfile(profile: WorkspaceState["profile"]) {
+      const completeProfile = requireCompleteProfile(profile, userId);
       const updatedAt = new Date().toISOString();
       const transaction = database.transaction(STORE.meta, "readwrite");
-      transaction.objectStore(STORE.meta).put({ key: "profile", value: profile });
+      transaction.objectStore(STORE.meta).put({ key: "profile", value: completeProfile });
       transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
       await transactionDone(transaction);
-      shell = { ...shell!, profile, updatedAt };
+      shell = { ...shell!, profile: completeProfile, updatedAt };
     },
     getCloudTombstones: () => shell!.cloudTombstones,
     removeCloudTombstone(table: string, entityId: string) {
@@ -1497,24 +1499,25 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         }),
       } as Deck])[0] ?? null;
     },
-    saveProfile(profile: any) {
+    saveProfile(profile: Profile) {
+      const completeProfile = requireCompleteProfile(profile, userId);
       const updatedAt = new Date().toISOString();
-      shell = { ...shell!, profile, updatedAt };
+      shell = { ...shell!, profile: completeProfile, updatedAt };
       const mutationBatch = queueMutations([{
         type: "profile-patch",
         table: "profiles",
-        entityId: String(profile?.userId ?? userId),
-        payload: { profile },
+        entityId: completeProfile.userId,
+        payload: { profile: completeProfile },
       }]);
       void enqueueWrite(async () => {
         const transaction = database.transaction([STORE.meta, STORE.outbox], "readwrite");
-        transaction.objectStore(STORE.meta).put({ key: "profile", value: profile });
+        transaction.objectStore(STORE.meta).put({ key: "profile", value: completeProfile });
         transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
         for (const id of mutationBatch.removedIds) transaction.objectStore(STORE.outbox).delete(id);
         for (const mutation of mutationBatch.queued) transaction.objectStore(STORE.outbox).put(mutation);
         await transactionDone(transaction);
       });
-      return profile;
+      return completeProfile;
     },
     async listDeckSummaries({ now = new Date().toISOString(), dayStartHour = 0, timeZone }: { now?: string; dayStartHour?: number; learnAheadMinutes?: number; timeZone?: string } = {}) {
       await writeChain;

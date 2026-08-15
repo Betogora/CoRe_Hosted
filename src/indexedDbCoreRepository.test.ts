@@ -192,6 +192,21 @@ test("streamt einen Worker-Import in begrenzten Chunks direkt in Entity-Stores u
   repository.close();
 });
 
+test("weist unvollständige Profilwrites zurück, ohne Shell oder Outbox zu verändern", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(), indexedDb: indexedDB as any });
+  const beforeProfile = repository.getShellState().profile;
+  const beforeOutbox = repository.outbox.listPending();
+
+  assert.throws(
+    () => repository.saveProfile({ uiPreferences: beforeProfile.uiPreferences } as any),
+    (error: any) => error?.code === "invalid_profile_mutation",
+  );
+  assert.deepEqual(repository.getShellState().profile, beforeProfile);
+  assert.deepEqual(repository.outbox.listPending(), beforeOutbox);
+  repository.close();
+});
+
 test("Lernstart hydriert rollende 50er-Seiten statt den gesamten Stapel", async () => {
   const repository = await createIndexedDbCoreRepository({
     userId: randomUUID(),
@@ -458,7 +473,7 @@ test("committet Cloudzustand und Delta-Cursor gemeinsam und erhält den Cursor b
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(1), indexedDb: indexedDB as any });
   const cursors = { cards: { value: "2026-08-11T02:00:00.000Z", id: "card-00000" } };
   repository.replaceFullState(workspaceState(2), cursors);
-  repository.saveProfile({ ...repository.getShellState().profile, displayName: "Nach Delta" });
+  repository.saveProfile({ ...repository.getShellState().profile, userId, displayName: "Nach Delta" });
   await repository.flush();
   repository.close();
 

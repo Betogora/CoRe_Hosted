@@ -854,6 +854,28 @@ test("profile patch updates only the account profile", async () => {
   assert.equal(client.calls.filter((call) => call.operation === "upsert").every((call) => call.table === "profiles"), true);
 });
 
+test("incomplete profile patches are rejected before a cloud write", async () => {
+  const fixture = createCloudFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const callsBefore = client.calls.length;
+
+  await assert.rejects(
+    () => upsertAccountCloudProfile(client, {
+      uiPreferences: {
+        dashboardCollapsedDeckIds: ["deck-1"],
+        learnCollapsedDeckIds: [],
+        deckManagerExpandedDeckIds: [],
+        syncIntervalMinutes: 5,
+      },
+    }, {
+      mutationId: "profile-invalid",
+      flushedAt: "2026-08-06T12:00:00.000Z",
+    }),
+    (error: any) => error?.code === "invalid_profile_mutation",
+  );
+  assert.equal(client.calls.length, callsBefore);
+});
+
 test("explicit full replace deletes missing rows and advances existing revisions", async () => {
   const fixture = createCloudFixture();
   const rows = clone(fixture.rows);

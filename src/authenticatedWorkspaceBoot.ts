@@ -8,6 +8,7 @@ import { createIndexedDbCoreRepository, type IndexedDbCoreRepository } from "./i
 import type { AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
+import { planProfileBootstrapRepair } from "./profileIntegrity.ts";
 
 type SupabaseBrowserClient = NonNullable<ReturnType<typeof createSupabaseBrowserClient>>;
 type LegacyLocalState = NonNullable<ReturnType<typeof readLegacyLocalState>>;
@@ -76,11 +77,20 @@ async function finishAuthenticatedWorkspaceBootstrap(
   const { loadAccountCloudBootstrap } = await import("./cloudRepository.ts");
   const bootstrap = await loadAccountCloudBootstrap(supabase, user);
   await repository.applyCloudPage({ table: "decks", entities: bootstrap.decks, reset: false });
-  if (!repository.outbox.listPending().some((mutation) => mutation.type === "profile-patch")) {
-    await repository.applyCloudProfile(bootstrap.profile);
-  }
-  await repository.flush();
+  await repairBootstrapProfile(repository, bootstrap.profile, user.id);
   return { state: repository.getShellState(), conflictCount: bootstrap.conflictCount };
+}
+
+export async function repairBootstrapProfile(
+  repository: IndexedDbCoreRepository,
+  cloudProfile: unknown,
+  userId: string,
+): Promise<void> {
+  const profileRepair = planProfileBootstrapRepair(cloudProfile, repository.outbox.listPending(), userId);
+  await repository.applyCloudProfile(profileRepair.profileToApply);
+  if (profileRepair.enqueueProfile) repository.saveProfile(profileRepair.profileToApply);
+  if (profileRepair.invalidMutationIds.length) repository.outbox.remove(profileRepair.invalidMutationIds);
+  await repository.flush();
 }
 
 async function finishAuthenticatedWorkspaceCloudSync(

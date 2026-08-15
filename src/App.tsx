@@ -1465,6 +1465,7 @@ export function App() {
     if (!workspaceRepository || !state) return null;
     const profile = state.profile;
     return runRepositoryMutation((repository) => repository.saveProfile({
+      ...profile,
       uiPreferences: setDeckExpanded(profile.uiPreferences, surface, deckId, expanded),
     }), { preserveCardPages: true });
   }

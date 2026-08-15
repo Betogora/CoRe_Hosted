@@ -198,6 +198,55 @@ test("global settings save multiple sections together through one save bar", asy
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
+test("deck expansion preserves the complete profile across reload and an isolated browser context", async ({ page, browser }) => {
+  await resetToFreshLocalState(page);
+  const before = (await readActiveAccountState(page)).profile;
+  const rootRow = page.getByTestId("dashboard-deck-row-deck_world_capitals");
+  const toggle = rootRow.getByRole("button", { name: /Unterstapel von Welt-Hauptstädte (?:anzeigen|ausblenden)/ });
+
+  await toggle.click();
+  await expect(page.locator('[data-navigation-utility="sync"]:visible')).toHaveAttribute("aria-label", "Ausstehende Änderungen synchronisieren");
+  await expect(page.locator('[data-navigation-utility="sync"]:visible')).toHaveAttribute(
+    "aria-label",
+    "Synchronisiert – jetzt erneut synchronisieren",
+    { timeout: 20_000 },
+  );
+
+  const expected = {
+    displayName: before.displayName,
+    email: before.email,
+    timezone: before.timezone,
+    dayStartHour: String(before.schedulerPreferences.dayStartHour),
+    learnAheadMinutes: String(before.schedulerPreferences.learnAheadMinutes),
+  };
+  const expectProfileSettings = async (target: Page) => {
+    await target.getByRole("button", { name: "Einstellungen öffnen" }).click();
+    await expect(target.getByLabel("Anzeigename")).toHaveValue(expected.displayName);
+    await expect(target.getByLabel("Login-E-Mail")).toHaveValue(expected.email);
+    await expect(target.getByText(expected.timezone, { exact: true })).toBeVisible();
+    await expect(target.getByTestId("settings-day-start-hour")).toHaveValue(expected.dayStartHour);
+    await expect(target.getByTestId("settings-learn-ahead")).toHaveValue(expected.learnAheadMinutes);
+  };
+
+  await expectProfileSettings(page);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
+  await expect(page.getByLabel("Anzeigename")).toHaveValue(expected.displayName);
+  await expect(page.getByLabel("Login-E-Mail")).toHaveValue(expected.email);
+
+  const isolatedContext = await browser.newContext({ storageState: await page.context().storageState() });
+  try {
+    const isolatedPage = await isolatedContext.newPage();
+    await isolatedPage.goto(new URL("/", page.url()).toString());
+    await isolatedPage.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
+    await isolatedPage.locator('[data-navigation-utility="sync"][aria-label="Synchronisiert – jetzt erneut synchronisieren"]:visible')
+      .waitFor({ state: "visible", timeout: 20_000 });
+    await expectProfileSettings(isolatedPage);
+  } finally {
+    await isolatedContext.close();
+  }
+});
+
 test("discarded global settings do not persist and resume the requested navigation", async ({ page }) => {
   await resetToFreshLocalState(page);
   const before = (await readActiveAccountState(page)).profile.displayName;

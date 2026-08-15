@@ -197,6 +197,8 @@ Die Tagesqueue projiziert New, Learning/Relearning und Review getrennt. Für jed
 
 Schemaanker, Migrationen, Policies und Verify-SQL unter `supabase/` sind die ausführbare Wahrheit für konkrete Datenbankstrukturen. `src/database.types.ts` wird ausschließlich daraus generiert.
 
+`src/profileIntegrity.ts` erzwingt, dass lokale und Cloud-`profile-patch`-Mutationen immer das vollständige Profil enthalten. Der Cloud-Bootstrap entfernt nach erfolgreichem Netzabruf ausschließlich alte unvollständige Profilpatches, übernimmt das vollständige Cloud-Profil und rettet daraus gültige UI-Präferenzen als genau einen neuen vollständigen Patch; andere Outbox-Mutationen und vollständige Offline-Profiländerungen bleiben unangetastet. Ohne erfolgreichen Cloud-Bootstrap findet keine Reparatur statt.
+
 ## 7. API-Vertrag
 
 ### 7.1 Implementierte Endpunkte

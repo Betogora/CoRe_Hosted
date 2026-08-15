@@ -2,6 +2,7 @@ import { createCloudProfile, saveCloudProfile } from "./cloudAuth.ts";
 import { createCoreDeck } from "./coreModel.ts";
 import type { CardVariant, ImportVerificationRepairScope, ImportVerificationScope } from "./coreTypes.ts";
 import { validateAccountRows, validateIdRows, validateMediaAssetRows, validateProfileRows, type AccountTable, type MediaAssetRow } from "./cloudRepositoryValidation.ts";
+import { requireCompleteProfile } from "./profileIntegrity.ts";
 
 const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
 
@@ -1868,10 +1869,10 @@ async function appendMissingSourceSnapshots(client: any, userId: string, desired
   return validateAccountRows("learning_item_source_snapshots", uniqueRowsById([...remoteRows, ...confirmed]));
 }
 
-export async function upsertAccountCloudProfile(client: any, profile: any, { mutationId, flushedAt }: any = {}) {
+export async function upsertAccountCloudProfile(client: any, profile: unknown, { mutationId, flushedAt }: any = {}) {
   const resolvedMutationId = requireNonEmptyString(mutationId, "Mutation-ID fehlt.");
   const writeTimestamp = requireTimestamp(flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
-  await saveCloudProfile(client, profile, writeTimestamp);
+  await saveCloudProfile(client, requireCompleteProfile(profile), writeTimestamp);
   return { acknowledgedMutationId: resolvedMutationId };
 }
 

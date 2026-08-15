@@ -2,10 +2,79 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import "fake-indexeddb/auto";
 import type { User } from "@supabase/supabase-js";
-import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
+import { bootAuthenticatedWorkspace, repairBootstrapProfile, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
+import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 
 type SupabaseBrowserClient = NonNullable<ReturnType<typeof createSupabaseBrowserClient>>;
+
+function completeProfile(userId: string) {
+  return {
+    userId,
+    email: "cloud@example.test",
+    displayName: "Cloud Profil",
+    timezone: "Europe/Berlin",
+    onboardingComplete: true,
+    schedulerPreferences: { settingsVersion: 2, dayStartHour: 0 },
+    uiPreferences: {
+      dashboardCollapsedDeckIds: [],
+      learnCollapsedDeckIds: [],
+      deckManagerExpandedDeckIds: [],
+      syncIntervalMinutes: 5 as const,
+    },
+  };
+}
+
+test("repariert ausschließlich alte unvollständige Profilpatches nach erfolgreichem Bootstrap", async () => {
+  const userId = `profile-repair-${Date.now()}`;
+  const cloudProfile = completeProfile(userId);
+  const repository = await createIndexedDbCoreRepository({
+    userId,
+    initialState: {
+      version: 4,
+      profile: cloudProfile,
+      decks: [],
+      documents: [],
+      noteTypeDefinitions: [],
+      learningItemSourceSnapshots: [],
+      cloudTombstones: [],
+      updatedAt: "2026-08-15T10:00:00.000Z",
+    },
+  });
+  const otherMutation = repository.outbox.enqueue({
+    id: "card-mutation",
+    type: "entity-mutation",
+    table: "cards",
+    entityId: "card-1",
+    payload: { table: "cards", entity: { id: "card-1", originalFront: "Unverändert" } },
+  });
+  repository.outbox.enqueue({
+    id: "broken-profile",
+    type: "profile-patch",
+    table: "profiles",
+    entityId: userId,
+    payload: {
+      profile: {
+        uiPreferences: { ...cloudProfile.uiPreferences, dashboardCollapsedDeckIds: ["deck-1"] },
+      },
+    },
+  });
+  await repository.outbox.flushPersistence();
+
+  await repairBootstrapProfile(repository, cloudProfile, userId);
+
+  assert.deepEqual(repository.getShellState().profile, {
+    ...cloudProfile,
+    uiPreferences: { ...cloudProfile.uiPreferences, dashboardCollapsedDeckIds: ["deck-1"] },
+  });
+  const pending = repository.outbox.listPending();
+  assert.equal(pending.some((mutation) => mutation.id === "broken-profile"), false);
+  assert.deepEqual(pending.find((mutation) => mutation.id === otherMutation.id), otherMutation);
+  const repairedPatch = pending.find((mutation) => mutation.type === "profile-patch");
+  assert.ok(repairedPatch);
+  assert.deepEqual((repairedPatch.payload as any).profile, repository.getShellState().profile);
+  repository.close();
+});
 
 test("liefert den lokalen Workspace, bevor der Cloud-Bootstrap beendet ist", async () => {
   let rejectBootstrap: ((reason: Error) => void) | null = null;
