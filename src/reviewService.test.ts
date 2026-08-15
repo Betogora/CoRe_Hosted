@@ -193,6 +193,7 @@ test("variant performance and anchor snapshots are updated for non-original vari
     "Weil es Axone elektrisch isoliert.",
   );
   const variant = getActiveVariants(item)[0];
+  variant.performance.localDifficultyEstimate = "hard";
   const deck = createDeckWithItem(item);
   const result = answerVariant(deck, item.id, variant.id, "hard", 900, {
     now: "2026-07-06T10:00:00.000Z",
@@ -210,6 +211,7 @@ test("variant performance and anchor snapshots are updated for non-original vari
   assert.equal(updatedVariant.performance.lastRating, "hard");
   assert.ok(updatedVariant);
   assert.equal(updatedVariant.performance.avgResponseTimeMs, 900);
+  assert.equal(updatedVariant.performance.localDifficultyEstimate, "hard");
   assert.ok(getOriginalVariant);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(event.anchorVariantId, getOriginalVariant(item).id);

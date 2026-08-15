@@ -57,7 +57,7 @@ test("statistics aggregate a parent scope once and keep every public series boun
   assert.equal(result.status.activeVariants, 1);
   assert.equal(result.planning.dueTomorrow, 1);
   assert.equal(result.studyHeatmap.forecastCountsByDay.get("2026-07-08"), 1);
-  assert.equal(result.difficultCards[0]?.learningItemId, "card_stats");
+  assert.equal("difficultCards" in result, false);
   assert.ok(Math.max(result.activity.length, result.addedCards.length, result.planning.points.length, result.intervals.points.length) <= 240);
 });
 

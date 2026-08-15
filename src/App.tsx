@@ -1545,11 +1545,6 @@ export function App() {
           timeZone={learningTimeZone}
           dayStartHour={globalSchedulerPreferences.dayStartHour}
           onNavigate={navigateToView}
-          onStartDeck={(deckId) => {
-            const deck = state.decks.find((candidate) => candidate.id === deckId);
-            if (deck) startDeck(deck);
-          }}
-          onOpenCard={openDecks}
         />
       );
     }

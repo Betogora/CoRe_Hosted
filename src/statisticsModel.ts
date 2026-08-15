@@ -114,16 +114,6 @@ export interface StatisticsProjection {
     averageIntervalDays: number;
     nextDueAt: string | null;
   }>;
-  difficultCards: Array<{
-    deckId: string;
-    deckName: string;
-    learningItemId: string;
-    title: string;
-    reviewCount: number;
-    weakCount: number;
-    weakPercent: number;
-    lastReviewedAt: string;
-  }>;
 }
 
 export interface StatisticsDataset {
@@ -359,7 +349,6 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
   const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, label: `${String(hour).padStart(2, "0")}:00`, reviews: 0, success: 0 }));
   const deckReviews = new Map<string, { reviewCount: number; positive: number; again: number }>();
   const deckCurrent = new Map<string, { intervalTotal: number; intervalCount: number; nextDueAt: string | null }>();
-  const difficult = new Map<string, { deckId: string; itemId: string; title: string; reviewCount: number; weakCount: number; lastReviewedAt: string }>();
   const selectedRetention = retentionAggregate();
   const previousRetention = retentionAggregate();
   const allRetention = retentionAggregate();
@@ -459,11 +448,6 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
       deck.positive += positive;
       deck.again += Number(event.rating === "again");
       deckReviews.set(event.deckId, deck);
-      const difficultItem = difficult.get(event.learningItemId) ?? { deckId: event.deckId, itemId: event.learningItemId, title: "", reviewCount: 0, weakCount: 0, lastReviewedAt: event.answeredAt };
-      difficultItem.reviewCount += 1;
-      difficultItem.weakCount += Number(event.rating === "again" || event.rating === "hard");
-      if (event.answeredAt > difficultItem.lastReviewedAt) difficultItem.lastReviewedAt = event.answeredAt;
-      difficult.set(event.learningItemId, difficultItem);
     },
     addRetentionReview(event: ReviewEvent) {
       if (!scopeIds.has(event.deckId)) return;
@@ -494,8 +478,6 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
         earliestDay = Math.min(earliestDay, createdDay);
         addedByDay.set(createdDay, (addedByDay.get(createdDay) ?? 0) + 1);
       }
-      const difficultItem = difficult.get(item.id);
-      if (difficultItem) difficultItem.title = String(item.title || item.canonicalQuestion || item.originalFront || "Unbenannte Karte").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
       const state = item.learningItemState ?? item.reviewState;
       if (item.status !== "deleted" && item.status !== "suspended" && item.draftStatus !== "draft" && state) addCurrentState(deckId, state);
       const dueKey = getStudyHeatmapDayKey(state?.dueAt, timeZone, dayStartHour);
@@ -580,20 +562,6 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
           nextDueAt: current.nextDueAt,
         };
       }).sort((left, right) => right.reviewCount - left.reviewCount || left.path.localeCompare(right.path, "de"));
-      const difficultCards = [...difficult.values()]
-        .filter((item) => item.reviewCount >= 3)
-        .map((item) => ({
-          deckId: item.deckId,
-          deckName: deckById.get(item.deckId)?.name ?? "Unbekannter Stapel",
-          learningItemId: item.itemId,
-          title: item.title || "Unbenannte Karte",
-          reviewCount: item.reviewCount,
-          weakCount: item.weakCount,
-          weakPercent: percentage(item.weakCount, item.reviewCount),
-          lastReviewedAt: item.lastReviewedAt,
-        }))
-        .sort((left, right) => right.weakPercent - left.weakPercent || right.reviewCount - left.reviewCount || right.lastReviewedAt.localeCompare(left.lastReviewedAt))
-        .slice(0, 12);
       return {
         selection,
         scopeDeckIds,
@@ -621,7 +589,6 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
         ratings: [...ratings.values()].map((row) => ({ ...row, successPercent: percentage(row.total - row.again, row.total) })),
         retention: [retentionRow("selected", "Gewählter Zeitraum", selectedRetention), ...(input.period === "all" ? [] : [retentionRow("previous", "Vorheriger Zeitraum", previousRetention)]), retentionRow("all", "Gesamter Verlauf", allRetention)],
         deckRows,
-        difficultCards,
       };
     },
   };

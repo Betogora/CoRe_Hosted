@@ -31,8 +31,6 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
       now="2026-08-06T12:00:00.000Z"
       timeZone="Europe/Berlin"
       onNavigate={() => { throw new Error("navigation is not expected during server rendering"); }}
-      onStartDeck={() => undefined}
-      onOpenCard={() => undefined}
     />,
   );
 
@@ -47,6 +45,7 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(markup, /FSRS-Schwierigkeit/);
   assert.match(markup, /Wahre Erinnerungsquote/);
   assert.match(markup, /Stapelvergleich/);
+  assert.doesNotMatch(markup, /Schwierige Karten/);
   assert.match(markup, /0 Tage Streak/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
   assert.match(markup, /data-testid="study-heatmap-grid"/);
@@ -78,8 +77,6 @@ test("statistics screen loads its dataset only after mounting", () => {
       now="2026-08-06T12:00:00.000Z"
       timeZone="Europe/Berlin"
       onNavigate={() => undefined}
-      onStartDeck={() => undefined}
-      onOpenCard={() => undefined}
     />,
   );
 

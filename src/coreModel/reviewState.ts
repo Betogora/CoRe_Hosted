@@ -286,8 +286,6 @@ export function updateVariantPerformance(
     responseTimeMs == null
       ? previous.avgResponseTimeMs
       : Math.round(((previousAverage * previous.attempts) + Number(responseTimeMs)) / attempts);
-  const localDifficultyEstimate =
-    rating === "again" ? "hard" : rating === "hard" ? "medium" : rating === "easy" ? "easy" : previous.localDifficultyEstimate ?? "medium";
   const masterySignal =
     rating === "easy" ? "strong" : rating === "good" ? "steady" : rating === "hard" ? "weak" : "failed";
 
@@ -305,7 +303,6 @@ export function updateVariantPerformance(
     averageResponseTimeMs: avgResponseTimeMs,
     lastReviewedAt: reviewedAt,
     lastRating: rating,
-    localDifficultyEstimate,
     masterySignal,
     updatedAt: reviewedAt,
   });

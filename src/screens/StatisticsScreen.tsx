@@ -44,8 +44,6 @@ export interface StatisticsScreenProps {
   timeZone: string;
   dayStartHour?: number;
   onNavigate: (viewId: "neue-karten") => unknown;
-  onStartDeck: (deckId: string) => unknown;
-  onOpenCard: (deckId: string, learningItemId: string) => unknown;
 }
 
 export interface StatisticsScreenContentProps extends Omit<StatisticsScreenProps, "queryStatistics" | "decks"> {
@@ -393,7 +391,7 @@ function RetentionTable({ rows }: { rows: StatisticsProjection["retention"] }) {
   );
 }
 
-export function StatisticsScreenContent({ dataset: { decks, projection: statistics }, onSelectionChange, onNavigate, onStartDeck, onOpenCard, timeZone, dayStartHour = 0 }: StatisticsScreenContentProps) {
+export function StatisticsScreenContent({ dataset: { decks, projection: statistics }, onSelectionChange, onNavigate, timeZone, dayStartHour = 0 }: StatisticsScreenContentProps) {
   const [isPending, startTransition] = React.useTransition();
   const { period, deckIds: deckSelection } = statistics.selection;
   const showDeckComparison = deckSelection === "all" || statistics.scopeDeckIds.length > 1;
@@ -482,30 +480,16 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
         <ChartPanel title="Wahre Erinnerungsquote" className="xl:col-span-2"><RetentionTable rows={statistics.retention} /></ChartPanel>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-2" aria-label="Detailauswertung">
-        {showDeckComparison ? <ChartPanel title="Stapelvergleich" className="xl:col-span-2">
+      {showDeckComparison ? <section aria-label="Detailauswertung">
+        <ChartPanel title="Stapelvergleich">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[58rem] border-collapse text-left core-body">
               <thead><tr className="border-b border-[var(--core-border)] text-core-muted"><th className="px-3 py-3">Stapel</th><th className="px-3 py-3 text-right">Reviews</th><th className="px-3 py-3 text-right">Erfolg</th><th className="px-3 py-3 text-right">Nochmal</th><th className="px-3 py-3 text-right">Erinnerung</th><th className="px-3 py-3 text-right">Ø Intervall</th><th className="px-3 py-3 text-right">Nächste Fälligkeit</th></tr></thead>
               <tbody>{statistics.deckRows.map((row) => <tr key={row.id} className="border-b border-[var(--core-border)] last:border-0"><th className="px-3 py-3 font-semibold text-core-text"><span className="block">{row.name}</span><span className="core-caption font-normal text-core-muted">{row.path}</span></th><td className="px-3 py-3 text-right text-core-secondary">{formatNumber(row.reviewCount)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.successPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.againPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.trueRetentionPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatNumber(row.averageIntervalDays, 1)} T.</td><td className="px-3 py-3 text-right text-core-secondary">{formatDate(row.nextDueAt, timeZone, dayStartHour)}</td></tr>)}</tbody>
             </table>
           </div>
-        </ChartPanel> : null}
-
-        <ChartPanel title="Schwierige Karten" className="xl:col-span-2">
-          {statistics.difficultCards.length === 0 ? <NoChartData>Für eine belastbare Rangliste sind noch nicht genügend Wiederholungen vorhanden.</NoChartData> : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {statistics.difficultCards.map((card) => (
-                <article key={card.learningItemId} className="rounded-xl border border-[var(--core-border)] bg-core-subtle p-4">
-                  <div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="core-caption text-core-muted">{card.deckName}</p><h4 className="core-body mt-1 line-clamp-2 font-semibold text-core-text">{card.title}</h4></div><span className="shrink-0 rounded-full bg-core-warning-soft px-2.5 py-1 core-status-label text-core-text">{formatPercent(card.weakPercent)}</span></div>
-                  <p className="core-caption mt-3 text-core-muted">{formatNumber(card.weakCount)} von {formatNumber(card.reviewCount)} Antworten · zuletzt {formatDate(card.lastReviewedAt, timeZone, dayStartHour)}</p>
-                  <div className="mt-4 flex flex-wrap gap-2"><ActionButton variant="secondary" onClick={() => onStartDeck(card.deckId)}>Stapel lernen</ActionButton><ActionButton variant="secondary" onClick={() => onOpenCard(card.deckId, card.learningItemId)}>Karte öffnen</ActionButton></div>
-                </article>
-              ))}
-            </div>
-          )}
         </ChartPanel>
-      </section>
+      </section> : null}
 
     </div>
   );

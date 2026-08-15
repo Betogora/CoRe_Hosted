@@ -193,8 +193,6 @@ export interface StatisticsScreenProps {
   timeZone: string;
   dayStartHour?: number;
   onNavigate: NavigateToView;
-  onStartDeck: (deckId: string) => unknown;
-  onOpenCard: (deckId: string, learningItemId: string) => unknown;
 }
 
 export interface SimulatorScreenProps {
