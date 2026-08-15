@@ -446,7 +446,7 @@ export function CardMarkButton({ marked, onMarkedChange, disabled = false, class
       aria-label={marked ? "Markierung entfernen" : "Karte markieren"}
       disabled={disabled}
       onClick={() => onMarkedChange(!marked)}
-      className={`grid size-11 shrink-0 place-items-center rounded-xl text-[var(--core-text)] transition hover:bg-[var(--core-surface-muted)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`grid size-11 shrink-0 place-items-center rounded-xl text-[var(--core-warning)] transition hover:bg-[var(--core-surface-muted)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       <Star size={22} fill={marked ? "currentColor" : "none"} aria-hidden="true" />
     </button>

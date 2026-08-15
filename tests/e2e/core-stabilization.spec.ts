@@ -458,11 +458,36 @@ test("Pomodoro timer started in the learning settings remains global after leavi
   await control.getByRole("button", { name: "15", exact: true }).click();
   await expect(control.getByLabel("Dauer in Minuten")).toHaveValue("15");
   await expect(page.getByTestId("study-pomodoro-progress")).toHaveAttribute("aria-valuetext", "Nicht gestartet");
+  const timerRowGeometry = await control.evaluate((element: HTMLElement) => {
+    const input = element.querySelector<HTMLInputElement>("input");
+    const presets = element.querySelector<HTMLElement>('[role="group"][aria-label="Pomodoro-Dauer"]');
+    const start = Array.from(element.querySelectorAll<HTMLButtonElement>("button")).find((button) => button.textContent?.trim() === "Start");
+    if (!input || !presets || !start) return null;
+    const inputRect = input.getBoundingClientRect();
+    const presetRect = presets.getBoundingClientRect();
+    const startRect = start.getBoundingClientRect();
+    return {
+      inputHeight: inputRect.height,
+      presetHeight: presetRect.height,
+      startHeight: startRect.height,
+      presetRight: presetRect.right,
+      startLeft: startRect.left,
+    };
+  });
+  expect(timerRowGeometry).not.toBeNull();
+  expect(Math.abs(timerRowGeometry!.inputHeight - timerRowGeometry!.presetHeight)).toBeLessThanOrEqual(1);
+  expect(Math.abs(timerRowGeometry!.inputHeight - timerRowGeometry!.startHeight)).toBeLessThanOrEqual(1);
+  expect(timerRowGeometry!.startLeft).toBeGreaterThan(timerRowGeometry!.presetRight);
   await control.getByLabel("Dauer in Minuten").fill("10");
   await control.getByRole("button", { name: "Start", exact: true }).click();
-  await expect(control).toContainText("10 Min.");
-  await dialog.getByRole("button", { name: "Lerneinstellungen schließen" }).click();
+  await expect(dialog).toHaveCount(0);
   await expect(page.getByTestId("study-pomodoro-progress")).toHaveAttribute("aria-valuetext", "Noch 10 Min.");
+
+  await page.getByRole("button", { name: "Lerneinstellungen" }).click();
+  const reopenedControl = page.getByRole("dialog", { name: "Lerneinstellungen" }).locator('[data-pomodoro-control="study"]');
+  await expect(reopenedControl.locator("button").first()).toHaveAttribute("aria-expanded", "false");
+  await expect(reopenedControl).toContainText("10 Min.");
+  await page.getByRole("dialog", { name: "Lerneinstellungen" }).getByRole("button", { name: "Lerneinstellungen schließen" }).click();
 
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
   await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("Noch 10 Min.");
@@ -476,7 +501,16 @@ test("Lerneinstellungen speichern Markierung, Aussetzung und Kartenreihenfolge s
 
   await page.getByRole("button", { name: "Lerneinstellungen" }).click();
   let dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
-  await dialog.getByRole("button", { name: "Karte markieren" }).click();
+  const markButton = dialog.getByRole("button", { name: "Karte markieren" });
+  await expect.poll(() => markButton.evaluate((element: HTMLElement) => {
+    const probe = document.createElement("span");
+    probe.style.color = "var(--core-warning)";
+    document.body.append(probe);
+    const usesWarningColor = getComputedStyle(element).color === getComputedStyle(probe).color;
+    probe.remove();
+    return usesWarningColor;
+  })).toBe(true);
+  await markButton.click();
   await expect(dialog.getByRole("button", { name: "Markierung entfernen" })).toBeVisible();
   await chooseCoreSelectOption(page, dialog.getByRole("combobox", { name: "Kartenreihenfolge" }), "Neue Karten zuerst");
   await expect.poll(async () => {

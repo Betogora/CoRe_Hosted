@@ -109,7 +109,7 @@ export function StudySettingsOverlay({
       className="core-study-settings-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-[var(--core-backdrop)] md:items-center md:p-4"
       data-testid="study-settings-backdrop"
       onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onOpenChange(false);
+        if (event.target === event.currentTarget) closeDialog();
       }}
     >
       <div
@@ -125,7 +125,7 @@ export function StudySettingsOverlay({
         <header className="flex min-h-14 items-center justify-between gap-4 border-b border-[var(--core-border)] px-4 sm:px-5">
           <span className="size-11" aria-hidden="true" />
           <h2 id={titleId} className="core-body-large text-center font-semibold text-[var(--core-text)]">Lerneinstellungen</h2>
-          <IconButton ref={closeButtonRef} label="Lerneinstellungen schließen" icon={X} variant="ghost" onClick={() => onOpenChange(false)} />
+          <IconButton ref={closeButtonRef} label="Lerneinstellungen schließen" icon={X} variant="ghost" onClick={closeDialog} />
         </header>
 
         <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5">
@@ -137,7 +137,7 @@ export function StudySettingsOverlay({
                 label="Karte bearbeiten"
                 disabled={!canEditCard}
                 onClick={() => {
-                  onOpenChange(false);
+                  closeDialog();
                   onEditCard();
                 }}
               />
@@ -145,7 +145,7 @@ export function StudySettingsOverlay({
                 icon={Settings}
                 label="Stapel bearbeiten"
                 onClick={() => {
-                  onOpenChange(false);
+                  closeDialog();
                   onEditDeck();
                 }}
               />
@@ -169,7 +169,14 @@ export function StudySettingsOverlay({
           <section className="py-3" aria-labelledby={`${titleId}-session`}>
             <h3 id={`${titleId}-session`} className="core-status-label uppercase tracking-wide text-[var(--core-action-secondary)]">Sitzung</h3>
             <div className="mt-1">
-              <PomodoroTimerControl timer={pomodoroTimer} variant="study" onStart={onStartPomodoro} />
+              <PomodoroTimerControl
+                timer={pomodoroTimer}
+                variant="study"
+                onStart={(minutes) => {
+                  onStartPomodoro(minutes);
+                  closeDialog();
+                }}
+              />
               <div className="grid min-h-11 gap-2 py-1 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)] sm:items-center">
                 <span className="flex min-w-0 items-center gap-3 core-body font-semibold text-[var(--core-text-secondary)]">
                   <ListOrdered className="shrink-0 text-[var(--core-text)]" size={18} aria-hidden="true" />

@@ -126,7 +126,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
             : "mb-2 grid gap-3 rounded-xl bg-[var(--core-surface-muted)] p-3"}
           onSubmit={start}
         >
-          <div className="grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-end">
+          <div className="grid gap-3 sm:grid-cols-[8rem_minmax(12rem,1fr)_auto] sm:items-end">
             <label className="core-field-group">
               <span className="core-field-label">Dauer in Minuten</span>
               <input
@@ -150,7 +150,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
                 ariaLabel="Pomodoro-Dauer"
                 options={POMODORO_PRESET_OPTIONS}
                 value={selectedPreset}
-                size="compact"
+                size="regular"
                 className="w-full"
                 onValueChange={(nextMinutes) => {
                   if (!nextMinutes) return;
@@ -159,9 +159,9 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
                 }}
               />
             </div>
+            <ActionButton type="submit" variant="primary" icon={Play} className="w-full sm:w-fit">Start</ActionButton>
           </div>
           {error ? <span id={errorId} className="core-field-error">{error}</span> : null}
-          <ActionButton type="submit" variant="primary" icon={Play} className="w-full sm:w-fit">Start</ActionButton>
         </form>
       ) : null}
     </div>
