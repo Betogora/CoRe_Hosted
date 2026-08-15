@@ -483,7 +483,6 @@ export function DeckMultiSelect({ decks, value, scopeLabel, onValueChange }: Dec
         widthClassName="w-[min(24rem,calc(100vw-2rem))]"
         onQueryChange={setQuery}
       >
-        {showSearch ? <div aria-hidden="true" className="mb-2 border-t border-[var(--core-border)]" /> : null}
         <button
           type="button"
           role="option"
