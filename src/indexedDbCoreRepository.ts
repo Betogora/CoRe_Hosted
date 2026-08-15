@@ -14,6 +14,7 @@ import { getLearningDayRange } from "./learningDay.ts";
 import { planEntityMutations } from "./syncMutationPlanner.ts";
 import type { StatisticsSelection } from "./statisticsModel.ts";
 import { requireCompleteProfile } from "./profileIntegrity.ts";
+import { markStartupPhaseReady, markStartupPhaseStarted } from "./appPerformance.ts";
 
 const DATABASE_VERSION = 4;
 const STORE = Object.freeze({
@@ -369,8 +370,12 @@ function parseLegacyOutbox(storage: KeyValueStorage | null | undefined, userId: 
 export async function createIndexedDbCoreRepository({ userId, initialState, legacyStorage = null, indexedDb = globalThis.indexedDB }: IndexedDbRepositoryOptions) {
   if (!userId) throw new Error("IndexedDB-Repository braucht eine Account-ID.");
   if (!indexedDb) throw new Error("IndexedDB ist in diesem Browser nicht verfügbar.");
+  markStartupPhaseStarted("indexedDbOpen");
   const database = await openDatabase(indexedDb, userId);
+  markStartupPhaseReady("indexedDbOpen");
+  markStartupPhaseStarted("indexedDbShell");
   let shell = await loadShell(database);
+  markStartupPhaseReady("indexedDbShell", { deckCount: shell?.decks.length ?? 0 });
   let migratedDecks: Deck[] = [];
   let writeChain = Promise.resolve();
   const enqueueWrite = (write: () => Promise<void>) => {
@@ -403,10 +408,21 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     return deck;
   };
 
-  const pendingOutbox = new Map<string, SyncOutboxMutation>(
-    (await requestResult<SyncOutboxMutation[]>(database.transaction(STORE.outbox, "readonly").objectStore(STORE.outbox).getAll()))
-      .map((mutation) => [mutation.id, mutation]),
-  );
+  markStartupPhaseStarted("indexedDbStartupMetadata");
+  const startupTransaction = database.transaction([STORE.outbox, STORE.syncMetadata], "readonly");
+  const startupSyncMetadata = startupTransaction.objectStore(STORE.syncMetadata);
+  const [outboxRows, cloudDeltaCursorRow, reviewHourCountRow, syncConflictCardIdRow, syncRepairVersionRow] = await Promise.all([
+    requestResult<SyncOutboxMutation[]>(startupTransaction.objectStore(STORE.outbox).getAll()),
+    requestResult<any>(startupSyncMetadata.get("cloudDeltaCursors")),
+    requestResult<any>(startupSyncMetadata.get("reviewHourCounts")),
+    requestResult<any>(startupSyncMetadata.get("syncConflictCardIds")),
+    requestResult<any>(startupSyncMetadata.get("syncRepairVersion")),
+  ]);
+  await transactionDone(startupTransaction);
+  markStartupPhaseReady("indexedDbStartupMetadata", {
+    outboxCount: outboxRows.filter((mutation) => !mutation.flushedAt).length,
+  });
+  const pendingOutbox = new Map<string, SyncOutboxMutation>(outboxRows.map((mutation) => [mutation.id, mutation]));
   const mutationTargetKey = (mutation: Pick<SyncOutboxMutation, "type" | "table" | "entityId">) => (
     mutation.type === "profile-patch" ? "profile" : `${mutation.type}:${mutation.table}:${mutation.entityId}`
   );
@@ -450,11 +466,12 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         : null;
       return id ? [id] : [];
     });
-  let cloudDeltaCursors = (await requestResult<any>(database.transaction(STORE.syncMetadata, "readonly").objectStore(STORE.syncMetadata).get("cloudDeltaCursors")))?.value ?? {};
-  let reviewHourCounts: Record<string, number> | null = (await requestResult<any>(database.transaction(STORE.syncMetadata, "readonly").objectStore(STORE.syncMetadata).get("reviewHourCounts")))?.value ?? null;
-  let syncConflictCardIds = new Set<string>((await requestResult<any>(database.transaction(STORE.syncMetadata, "readonly").objectStore(STORE.syncMetadata).get("syncConflictCardIds")))?.value ?? []);
-  let syncRepairVersion = Number((await requestResult<any>(database.transaction(STORE.syncMetadata, "readonly").objectStore(STORE.syncMetadata).get("syncRepairVersion")))?.value ?? 0);
+  let cloudDeltaCursors = cloudDeltaCursorRow?.value ?? {};
+  let reviewHourCounts: Record<string, number> | null = reviewHourCountRow?.value ?? null;
+  let syncConflictCardIds = new Set<string>(syncConflictCardIdRow?.value ?? []);
+  let syncRepairVersion = Number(syncRepairVersionRow?.value ?? 0);
   let latestImportVerificationScope: ImportVerificationScope | null = null;
+  let firstDeckSummariesStarted = false;
 
   const queueMutations = (inputs: any[]) => {
     const queued: SyncOutboxMutation[] = [];
@@ -1520,6 +1537,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       return completeProfile;
     },
     async listDeckSummaries({ now = new Date().toISOString(), dayStartHour = 0, timeZone }: { now?: string; dayStartHour?: number; learnAheadMinutes?: number; timeZone?: string } = {}) {
+      const measureFirstRun = !firstDeckSummariesStarted;
+      if (measureFirstRun) {
+        firstDeckSummariesStarted = true;
+        markStartupPhaseStarted("firstDeckSummaries");
+      }
       await writeChain;
       const result = new Map<string, DeckLibrarySummary>();
       const countsByDay = new Map<string, number>();
@@ -1600,7 +1622,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         });
         await done;
       }
-      return { summaries: result, studyHeatmap: createStudyHeatmapModelFromCounts({ todayKey, countsByDay, forecastCountsByDay }) };
+      const summaryResult = { summaries: result, studyHeatmap: createStudyHeatmapModelFromCounts({ todayKey, countsByDay, forecastCountsByDay }) };
+      if (measureFirstRun) {
+        markStartupPhaseReady("firstDeckSummaries", { deckCount: result.size });
+      }
+      return summaryResult;
     },
     async listCardPage(deckId: string, { page = 0, pageSize = 50, query = "", sort = { field: "sortField", direction: "asc" } as CardTableSort, selectedCardId = null }: {
       page?: number;

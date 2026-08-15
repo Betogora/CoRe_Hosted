@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-08-15
+**Stand:** 2026-08-16
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -16,6 +16,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Inkrementeller vollständiger Sync aus isoliertem Outbox-Push, servergestempeltem Delta-Pull und Konfliktaktualisierung; manuell auch bei leerer Outbox sowie automatisch nach Debounce, Online, Fokus und sichtbar im wählbaren 1/5/15/30-Minuten-Intervall. Standard sind 5 Minuten, `Aus` ist rein manuell. Der sichtbare Navigationsstatus und die globalen Einstellungen besitzen denselben accountgebundenen Lifecycle.
 - Der Cloud-Bootstrap lädt nur Profil, Stapelbaum und Konfliktzahl. Eine einzige `pull_account_delta`-RPC ersetzt sieben tabellenweise Pull-Roundtrips. Das Originalvarianten-Reparaturmanifest wird ausschließlich bei ausstehender Reparatur gelesen; dieselbe verifizierte User-ID wird innerhalb des Boots weitergereicht.
 - Profilmutationen enthalten lokal und zur Cloud stets ein vollständiges Profil. Ein erfolgreicher Cloud-Bootstrap repariert ältere unvollständige UI-Profilpatches selektiv, ohne vollständige Offline-Profiländerungen oder andere Outbox-Mutationen zu verwerfen; ohne Cloud-Verbindung wird keine Reparatur ausgeführt.
+- Der IndexedDB-Start misst Datenbanköffnung, Shell, Outbox samt vier Sync-Metadaten und die erste Stapelzusammenfassung getrennt. Outbox und Sync-Metadaten werden in einer Readonly-Transaktion geladen. Ein lokales Chromium-Gate erzeugt für vier Browserkontexte jeweils zehn gedrosselte Läufe und protokolliert nur Laufzeiten, Stapel-/Outboxanzahl und Service-Worker-Status.
 - Kartenverwaltung und Lernstart lesen maximal 50 Karten je IndexedDB-Seite und hydrieren nur deren Varianten. Die Lernsitzung fordert bei 15 verbleibenden Karten seriell die nächste Seite an. Review schreibt genau ein idempotentes Ereignis ohne Inhaltsrevision; das jüngste Ereignis gewinnt die Lernprojektion, während parallele Inhaltsänderungen und Reviews konfliktfrei bleiben.
 - Fehlende Originalvarianten und rein technische Alt-Abweichungen werden idempotent repariert. Je Entität ist höchstens ein aktiver Konflikt erlaubt; Richtungs-Vorschauen zählen Add/Update/Delete für `Dieser Browser` und `Cloud im Account`. Konfliktkarten sind bis zur Entscheidung aus der Lernqueue ausgeschlossen, konfliktfreie Inhalte, Reviews und Medien bleiben nutzbar.
 - Leerer Standardaccount ohne automatische Demo-Daten; Demo-Seed nur explizit beziehungsweise in Entwicklung/E2E.
@@ -73,7 +74,7 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core
 - Hosted-Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.
 - Das ausführbare Beta-Core-Gate und der minimale Monitoring-/Alarmvertrag sind vorhanden; realer Alarmempfang sowie getrennte DB-/Storage-Restore-Proben fehlen noch.
 - Ein vollständiger 10-GB-Medienbestand ist im Browser nicht garantiert; selektives Offline-Caching und Browser-Eviction bleiben Plattformgrenzen. Native SQLite-/Dateispeicherung ist nicht implementiert.
-- Feldmessung für p75/p95, ein automatisierter gedrosselter 100k-/1m-Release-Lauf und serverseitig dauerhaft gepflegte `DeckStudySummary`-Projektionen fehlen noch; die harten Gates sind ausführbar kodiert, aber ohne Messartefakt kein Erfolgsnachweis.
+- Die gedrosselte Startmessung ist reproduzierbar. Wiederholungs-, Offline- und Frischstart bestehen mit der kleinen E2E-Fixture; das 50-ms-Hintergrundbudget wird mit einem längsten Main-Thread-Task von 231 Millisekunden noch verletzt. Die Messung ordnet den Hauptanteil der ersten Stapelzusammenfassung zu; dauerhaft gepflegte `DeckStudySummary`-Projektionen und eine kleine Preload-Nachhärtung fehlen daher als NOW-Freigabeblocker. 100k-/1m- und Feld-p75/p95 fehlen weiterhin.
 
 ## Verifikation
 

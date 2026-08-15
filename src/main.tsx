@@ -2,7 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
 import { AppErrorBoundary } from "./AppErrorBoundary.tsx";
-import { markAppStarted } from "./appPerformance.ts";
+import { markAppStarted, markServiceWorkerContext } from "./appPerformance.ts";
 import { initializeCoreTheme } from "./coreTheme.ts";
 import { scheduleDeferredBrowserAssets } from "./deferredBrowserAssets.ts";
 import { registerCoreServiceWorker } from "./pwa.ts";
@@ -11,6 +11,11 @@ import { CoreTooltipProvider } from "./ui/tooltipUi.tsx";
 import "./styles.css";
 
 markAppStarted();
+markServiceWorkerContext(typeof navigator === "undefined" || !("serviceWorker" in navigator)
+  ? "unsupported"
+  : navigator.serviceWorker.controller
+    ? "controlled"
+    : "uncontrolled");
 initializeCoreTheme();
 
 function ApplicationRoot() {

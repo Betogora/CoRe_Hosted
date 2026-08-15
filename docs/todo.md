@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-08-15
+Stand: 2026-08-16
 
 Dieses Dokument enthält ausschließlich offene, autorisierte Arbeit. `NOW`
 blockiert die begleitete Beta. `LATER` folgt danach auf dem Weg zur
@@ -37,6 +37,22 @@ Abnahme:
 - [ ] Für mindestens ein Kernsignal realen Alarmempfang ohne Nutzerinhalte
       nachweisen.
 
+### Performance-Freigabeblocker
+
+- [ ] `DeckStudySummary` als dauerhaft gepflegte O(Stapel)-Projektion umsetzen,
+      damit Hauptmenü und Tagesgrenze keinen Kartenindex mehr scannen.
+- [ ] Den adaptiven Feature-Preload so nachhärten, dass auch die Auswertung
+      vorgeladener Module keinen Main-Thread-Task über 50 ms erzeugt.
+
+Abnahme:
+
+- [ ] `npm run performance:measure:local` besteht mit je zehn Läufen für den
+      wiederkehrenden, frischen, Service-Worker-freien und Offline-Kontext.
+- [ ] Die erste Stapelzusammenfassung und jeder nachgelagerte Main-Thread-Task
+      bleiben im festen 50-ms-Budget.
+- [ ] Der Service Worker bleibt unverändert, solange der kontrollierte Vergleich
+      keinen p75-Nachteil von mindestens 100 ms zeigt.
+
 ## LATER — Self-Service und Skalierung absichern
 
 ### Kartenbrowser mit großen Sammlungen
@@ -57,11 +73,8 @@ Abnahme:
 
 ### Performance-Härtung
 
-- [ ] Gedrosselte Chromium-Messartefakte für einen leeren Account, 10k/250k
-      und 100k/1m erzeugen und mit `npm run performance:gates` in das
-      Release-Gate aufnehmen.
-- [ ] `DeckStudySummary` als dauerhaft gepflegte O(Stapel)-Projektion umsetzen,
-      damit Hauptmenü und Tagesgrenze keinen Kartenindex mehr scannen.
+- [ ] Das bestehende Vier-Kontext-Artefakt um deterministische 10k/250k- und
+      100k/1m-Fixtures erweitern und in das Release-Gate aufnehmen.
 - [ ] Große Kartenkörper und Dokumentfelder nach belastbarer Größenmessung vom
       kompakten Kartenindex trennen; die Migration läuft in fortsetzbaren
       Chunks und ohne Dual Writes.

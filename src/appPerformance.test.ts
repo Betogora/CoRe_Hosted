@@ -6,6 +6,9 @@ import {
   markAppStarted,
   markCloudSyncReady,
   markSessionChecked,
+  markServiceWorkerContext,
+  markStartupPhaseReady,
+  markStartupPhaseStarted,
   markWorkspaceLocalReady,
   measureAppPerformance,
 } from "./appPerformance.ts";
@@ -46,4 +49,28 @@ test("ignoriert fehlende Startmarken, statt den App-Start zu unterbrechen", () =
     mark() {},
     measure() { throw new Error("missing mark"); },
   }));
+});
+
+test("misst IndexedDB-Startphasen nur mit anonymen Zählern und Service-Worker-Status", () => {
+  const calls: Array<{ kind: string; name: string; detail?: unknown; start?: string; end?: string }> = [];
+  const recorder = {
+    mark(name: string, options?: { detail?: unknown }) { calls.push({ kind: "mark", name, detail: options?.detail }); },
+    measure(name: string, start: string, end: string) { calls.push({ kind: "measure", name, start, end }); },
+  };
+
+  markStartupPhaseStarted("indexedDbStartupMetadata", recorder);
+  markStartupPhaseReady("indexedDbStartupMetadata", { outboxCount: 3 }, recorder);
+  markServiceWorkerContext("controlled", recorder);
+
+  assert.deepEqual(calls, [
+    { kind: "mark", name: appPerformanceMarks.indexedDbStartupMetadataStart, detail: undefined },
+    { kind: "mark", name: appPerformanceMarks.indexedDbStartupMetadataReady, detail: { outboxCount: 3 } },
+    {
+      kind: "measure",
+      name: appPerformanceMeasures.indexedDbStartupMetadata,
+      start: appPerformanceMarks.indexedDbStartupMetadataStart,
+      end: appPerformanceMarks.indexedDbStartupMetadataReady,
+    },
+    { kind: "mark", name: appPerformanceMarks.serviceWorkerContext, detail: { status: "controlled" } },
+  ]);
 });

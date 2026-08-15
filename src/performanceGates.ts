@@ -1,4 +1,5 @@
 export interface PerformanceSnapshot {
+  suite?: "full" | "startup";
   ttfbMs?: number;
   lcpMs?: number;
   inpMs?: number;
@@ -62,8 +63,23 @@ export const PERFORMANCE_GATES: ReadonlyArray<{ key: keyof PerformanceSnapshot; 
   { key: "devWarmReloadMs", maximum: 500, label: "Warmer Dev-Reload" },
 ];
 
+const STARTUP_PERFORMANCE_GATE_KEYS = new Set<keyof PerformanceSnapshot>([
+  "recurringWorkspaceP75Ms",
+  "recurringWorkspaceP95Ms",
+  "offlineColdStartP75Ms",
+  "offlineColdStartP95Ms",
+  "newDeviceDashboardP75Ms",
+  "longestBackgroundTaskMs",
+]);
+
+function selectedPerformanceGates(snapshot: PerformanceSnapshot) {
+  return snapshot.suite === "startup"
+    ? PERFORMANCE_GATES.filter((gate) => STARTUP_PERFORMANCE_GATE_KEYS.has(gate.key))
+    : PERFORMANCE_GATES;
+}
+
 export function evaluatePerformanceSnapshot(snapshot: PerformanceSnapshot) {
-  return PERFORMANCE_GATES.flatMap((gate) => {
+  return selectedPerformanceGates(snapshot).flatMap((gate) => {
     const value = snapshot[gate.key];
     return typeof value === "number" && value > gate.maximum
       ? [{ ...gate, actual: value }]
@@ -72,7 +88,7 @@ export function evaluatePerformanceSnapshot(snapshot: PerformanceSnapshot) {
 }
 
 export function findMissingPerformanceGates(snapshot: PerformanceSnapshot) {
-  return PERFORMANCE_GATES.filter((gate) => {
+  return selectedPerformanceGates(snapshot).filter((gate) => {
     const value = snapshot[gate.key];
     return typeof value !== "number" || !Number.isFinite(value);
   });

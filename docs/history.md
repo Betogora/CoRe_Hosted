@@ -1,9 +1,16 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-08-15
+**Stand:** 2026-08-16
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-08-16 — Reproduzierbare Startmessung
+
+- Datenbanköffnung, Shell, Outbox samt vier Sync-Metadaten und erste Stapelzusammenfassung besitzen getrennte anonyme Performancephasen. Outbox und Sync-Metadaten werden in einer gemeinsamen Readonly-Transaktion geladen; Profil- und Karteninhalte gelangen nicht in das Artefakt.
+- Das lokale Production-Gate misst je zehn Starts für einen wiederkehrenden Browser, einen frischen isolierten Kontext, einen persistenten Kontext ohne Service Worker und einen Offline-Kaltstart bei 1,6 Mbit/s, 150 ms RTT und vierfacher CPU-Verlangsamung.
+- Der gemessene Wiederholungsstart bestand mit p75 0,69 Sekunden und p95 0,74 Sekunden, der Offline-Kaltstart mit p75 0,44 Sekunden und p95 0,49 Sekunden. Der Frischstart bestand mit p75 2,78 Sekunden. Der Service Worker war im p75-Vergleich 560 ms schneller und erhält daher kein Navigation-Preload.
+- Das Gesamtgate bleibt rot, weil der längste Hintergrundtask 231 ms statt höchstens 50 ms benötigte. Die erste Stapelzusammenfassung dauerte bis 503 ms und verursachte den 231-ms-Long-Task; ein spekulativer Feature-Load überlappte maximal 58 ms. Gemäß Roadmap wird die dauerhafte O(Stapel)-Projektion deshalb in NOW vorgezogen und das Preload-Task-Budget nachgehärtet; große Inhaltstrennung und Navigation-Preload bleiben zurückgestellt.
 
 ## 2026-08-15 — Profilintegrität nach Local-first-Start
 

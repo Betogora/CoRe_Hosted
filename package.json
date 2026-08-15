@@ -31,6 +31,7 @@
     "benchmark:apkg": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/core-local-benchmark.apkg --benchmark-repeat 5000 --benchmark-item-count 5 --benchmark-media-count 1000 && tsx scripts/benchmarkApkgImport.ts test-results/apkg/core-local-benchmark.apkg",
     "benchmark:scalability": "tsx scripts/benchmarkScalability.ts",
     "benchmark:statistics": "tsx scripts/benchmarkStatistics.ts",
+    "performance:measure:local": "tsx scripts/runLocalE2E.ts --gate=performance && npm run performance:gates",
     "performance:gates": "tsx scripts/verifyPerformanceGates.ts",
     "postbuild": "tsx scripts/verifyBuildChunks.ts",
     "preview": "vite preview"

@@ -4,6 +4,15 @@ export const appPerformanceMarks = {
   workspaceLocalReady: "core:workspace_local_ready",
   cloudBootstrapReady: "core:cloud_bootstrap_ready",
   cloudSyncReady: "core:cloud_sync_ready",
+  indexedDbOpenStart: "core:indexeddb_open_start",
+  indexedDbOpenReady: "core:indexeddb_open_ready",
+  indexedDbShellStart: "core:indexeddb_shell_start",
+  indexedDbShellReady: "core:indexeddb_shell_ready",
+  indexedDbStartupMetadataStart: "core:indexeddb_startup_metadata_start",
+  indexedDbStartupMetadataReady: "core:indexeddb_startup_metadata_ready",
+  firstDeckSummariesStart: "core:first_deck_summaries_start",
+  firstDeckSummariesReady: "core:first_deck_summaries_ready",
+  serviceWorkerContext: "core:service_worker_context",
 } as const;
 
 export const appPerformanceMeasures = {
@@ -11,10 +20,39 @@ export const appPerformanceMeasures = {
   localWorkspaceStart: "core:local_workspace_start",
   cloudBootstrapAfterStart: "core:cloud_bootstrap_after_start",
   cloudSyncAfterStart: "core:cloud_sync_after_start",
+  indexedDbOpen: "core:indexeddb_open",
+  indexedDbShell: "core:indexeddb_shell",
+  indexedDbStartupMetadata: "core:indexeddb_startup_metadata",
+  firstDeckSummaries: "core:first_deck_summaries",
 } as const;
 
+const startupPerformancePhases = {
+  indexedDbOpen: {
+    start: appPerformanceMarks.indexedDbOpenStart,
+    ready: appPerformanceMarks.indexedDbOpenReady,
+    measure: appPerformanceMeasures.indexedDbOpen,
+  },
+  indexedDbShell: {
+    start: appPerformanceMarks.indexedDbShellStart,
+    ready: appPerformanceMarks.indexedDbShellReady,
+    measure: appPerformanceMeasures.indexedDbShell,
+  },
+  indexedDbStartupMetadata: {
+    start: appPerformanceMarks.indexedDbStartupMetadataStart,
+    ready: appPerformanceMarks.indexedDbStartupMetadataReady,
+    measure: appPerformanceMeasures.indexedDbStartupMetadata,
+  },
+  firstDeckSummaries: {
+    start: appPerformanceMarks.firstDeckSummariesStart,
+    ready: appPerformanceMarks.firstDeckSummariesReady,
+    measure: appPerformanceMeasures.firstDeckSummaries,
+  },
+} as const;
+
+export type StartupPerformancePhase = keyof typeof startupPerformancePhases;
+
 interface PerformanceRecorder {
-  mark(name: string, options?: { startTime?: number }): void;
+  mark(name: string, options?: { startTime?: number; detail?: unknown }): void;
   measure(name: string, startMark?: string, endMark?: string): void;
 }
 
@@ -83,4 +121,28 @@ export function markCloudBootstrapReady(recorder?: PerformanceRecorder | null): 
     appPerformanceMarks.cloudBootstrapReady,
     recorder,
   );
+}
+
+export function markStartupPhaseStarted(
+  phase: StartupPerformancePhase,
+  recorder: PerformanceRecorder | null = browserPerformance(),
+): void {
+  recorder?.mark(startupPerformancePhases[phase].start);
+}
+
+export function markStartupPhaseReady(
+  phase: StartupPerformancePhase,
+  detail: Record<string, number> = {},
+  recorder: PerformanceRecorder | null = browserPerformance(),
+): void {
+  const marks = startupPerformancePhases[phase];
+  recorder?.mark(marks.ready, { detail });
+  measureAppPerformance(marks.measure, marks.start, marks.ready, recorder);
+}
+
+export function markServiceWorkerContext(
+  status: "controlled" | "uncontrolled" | "unsupported",
+  recorder: PerformanceRecorder | null = browserPerformance(),
+): void {
+  recorder?.mark(appPerformanceMarks.serviceWorkerContext, { detail: { status } });
 }
