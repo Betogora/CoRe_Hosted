@@ -120,6 +120,8 @@ async function startDeckFromCards(page: Page, deckId: string, variants = false) 
   await page.goto(`/stapel-einstellungen?${query}`);
   await waitForApp(page);
   await page.getByRole("region", { name: "Stapel" }).getByRole("button", { name: variants ? "Varianten lernen" : "Lernen", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/decks/${deckId}/review\\?`));
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 }
 
 async function expectStableDeckToggle(page: Page, deckId: string, preservedCardId: string, expanded: boolean) {
@@ -473,8 +475,11 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
   await expect(page).toHaveURL(cardUrl);
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
 
-  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.goto("about:blank");
+  await seedAccount();
+  await resetToFreshLocalState(page, { resetCloud: false });
+  await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
+  await waitForApp(page);
   await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.childB}`);
   await page.getByRole("button", { name: "Bereich B / Gemeinsam lernen" }).press("Enter");
   await expect(page).toHaveURL(new RegExp(

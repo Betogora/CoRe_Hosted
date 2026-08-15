@@ -1,6 +1,6 @@
 import { createCloudProfile, saveCloudProfile } from "./cloudAuth.ts";
 import { createCoreDeck } from "./coreModel.ts";
-import type { ImportVerificationRepairScope, ImportVerificationScope } from "./coreTypes.ts";
+import type { CardVariant, ImportVerificationRepairScope, ImportVerificationScope } from "./coreTypes.ts";
 import { validateAccountRows, validateIdRows, validateMediaAssetRows, validateProfileRows, type AccountTable, type MediaAssetRow } from "./cloudRepositoryValidation.ts";
 
 const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
@@ -35,7 +35,6 @@ const CLOUD_PAGE_SIZE = 500;
 const CLOUD_WRITE_ROW_LIMIT = 250;
 const CLOUD_WRITE_BYTE_LIMIT = 1024 * 1024;
 const CLOUD_WRITE_CONCURRENCY = 4;
-const DELTA_CURSOR_COLUMN = "sync_change_id";
 const EMPTY_DELTA_CURSOR_VALUE = "0";
 const CONFLICT_PROTECTED_FIELDS = new Set([
   ...ROW_IDENTITY_FIELDS,
@@ -390,6 +389,12 @@ async function getAuthenticatedUser(client: any) {
   return data.user;
 }
 
+function authenticatedUserForKnownSession(client: any, userId?: string) {
+  if (!userId) return getAuthenticatedUser(client);
+  if (!client?.auth || !client?.from) throw new Error("Supabase ist noch nicht konfiguriert.");
+  return Promise.resolve({ id: requireNonEmptyString(userId, "Nutzer-ID fehlt.") });
+}
+
 function requireNonEmptyString(value: any, message: any) {
   if (typeof value !== "string" || !value.trim()) throw new Error(message);
   return value.trim();
@@ -621,67 +626,68 @@ function normalizeDeltaCursor(value: unknown): CloudDeltaCursor | null {
   return { value: String(sequence), id };
 }
 
-function lastDeltaCursor(rows: any[], column: string, fallback: CloudDeltaCursor | null): CloudDeltaCursor {
-  const row = rows.at(-1);
-  return row
-    ? { value: String(row[column] ?? EMPTY_DELTA_CURSOR_VALUE), id: String(row.id ?? "") }
-    : fallback ?? { value: EMPTY_DELTA_CURSOR_VALUE, id: "" };
+function globalDeltaCursor(cursors: CloudDeltaCursors): { value: number; initial: boolean } {
+  const values = ACCOUNT_TABLES.map((table) => normalizeDeltaCursor(cursors[table]));
+  const initial = values.some((cursor) => cursor === null);
+  return {
+    value: initial ? 0 : Math.min(...values.map((cursor) => Number(cursor!.value))),
+    initial,
+  };
 }
 
-async function streamAccountTable(client: any, table: AccountTable, userId: string, cursorValue: unknown, onPage: (page: CloudEntityPage) => Promise<void>) {
-  const cursor = normalizeDeltaCursor(cursorValue);
-  if (!cursor) {
-    let idCursor = "";
-    let maximum: CloudDeltaCursor = { value: EMPTY_DELTA_CURSOR_VALUE, id: "" };
-    let first = true;
-    while (true) {
-      let query = client.from(table).select("*").eq("user_id", userId).order("id", { ascending: true }).limit(CLOUD_PAGE_SIZE);
-      if (idCursor) query = query.gt("id", idCursor);
-      const { data, error } = await query;
-      if (error) throw error;
-      const rows = validateAccountRows(table, data ?? []);
-      for (const row of rows) {
-        const value = String((row as any)[DELTA_CURSOR_COLUMN] ?? EMPTY_DELTA_CURSOR_VALUE);
-        if (Number(value) > Number(maximum.value) || value === maximum.value && String((row as any).id) > maximum.id) {
-          maximum = { value, id: String((row as any).id) };
-        }
-      }
-      await onPage({ table, entities: projectCloudEntities(table, rows), reset: first });
-      first = false;
-      if (rows.length < CLOUD_PAGE_SIZE) break;
-      const next = String((rows.at(-1) as any)?.id ?? "");
-      if (!next || next === idCursor) throw new Error(`Cloud-Pagination für ${table} konnte nicht fortgesetzt werden.`);
-      idCursor = next;
+function validateAccountDeltaResponse(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Account-Delta-Antwort ist ungültig.");
+  const candidate = value as Record<string, unknown>;
+  const nextCursor = Number(candidate.nextCursor);
+  if (!Number.isSafeInteger(nextCursor) || nextCursor < 0 || !Array.isArray(candidate.changes) || typeof candidate.hasMore !== "boolean") {
+    throw new Error("Account-Delta-Antwort ist unvollständig.");
+  }
+  const changes = candidate.changes.map((change) => {
+    if (!change || typeof change !== "object" || Array.isArray(change)) throw new Error("Account-Delta-Eintrag ist ungültig.");
+    const entry = change as Record<string, unknown>;
+    if (!ACCOUNT_TABLES.includes(String(entry.table)) || !entry.row || typeof entry.row !== "object" || Array.isArray(entry.row)) {
+      throw new Error("Account-Delta-Eintrag ist unvollständig.");
     }
-    await onPage({ table, entities: [], reset: first, cursor: maximum });
-    return maximum;
-  }
-
-  let pageCursor = cursor;
-  while (true) {
-    let query = client.from(table).select("*").eq("user_id", userId)
-      .order(DELTA_CURSOR_COLUMN, { ascending: true }).order("id", { ascending: true }).limit(CLOUD_PAGE_SIZE);
-    query = query.or(pageCursor.id
-      ? `${DELTA_CURSOR_COLUMN}.gt.${pageCursor.value},and(${DELTA_CURSOR_COLUMN}.eq.${pageCursor.value},id.gt.${pageCursor.id})`
-      : `${DELTA_CURSOR_COLUMN}.gt.${pageCursor.value}`);
-    const { data, error } = await query;
-    if (error) throw error;
-    const rows = validateAccountRows(table, data ?? []);
-    const next = lastDeltaCursor(rows, DELTA_CURSOR_COLUMN, pageCursor);
-    await onPage({ table, entities: projectCloudEntities(table, rows), reset: false, cursor: next });
-    pageCursor = next;
-    if (rows.length < CLOUD_PAGE_SIZE) break;
-  }
-  return pageCursor;
+    return { table: String(entry.table) as AccountTable, row: entry.row };
+  });
+  return { changes, nextCursor, hasMore: candidate.hasMore };
 }
 
-export async function streamAccountCloudChanges(client: any, cursors: CloudDeltaCursors, onPage: (page: CloudEntityPage) => Promise<void>) {
-  const user = await getAuthenticatedUser(client);
-  const profileRows = await selectProfileRows(client, user.id);
-  const nextCursors: CloudDeltaCursors = {};
-  for (const table of ACCOUNT_TABLES as AccountTable[]) {
-    nextCursors[table] = await streamAccountTable(client, table, user.id, cursors[table], onPage);
+export async function streamAccountCloudChanges(
+  client: any,
+  cursors: CloudDeltaCursors,
+  onPage: (page: CloudEntityPage) => Promise<void>,
+  { userId, loadProfile = true }: { userId?: string; loadProfile?: boolean } = {},
+) {
+  const user = await authenticatedUserForKnownSession(client, userId);
+  const profileRows = loadProfile ? await selectProfileRows(client, user.id) : [];
+  const start = globalDeltaCursor(cursors);
+  let cursorValue = start.value;
+  let firstDeltaPage = true;
+  while (true) {
+    const { data, error } = await client.rpc("pull_account_delta", {
+      p_cursor: cursorValue,
+      p_limit: CLOUD_PAGE_SIZE,
+      p_max_bytes: CLOUD_WRITE_BYTE_LIMIT,
+    });
+    if (error) throw error;
+    const delta = validateAccountDeltaResponse(data);
+    if (delta.hasMore && delta.nextCursor <= cursorValue) throw new Error("Account-Delta-Cursor konnte nicht fortgesetzt werden.");
+    const nextCursor = { value: String(delta.nextCursor), id: "" };
+    for (const table of ACCOUNT_TABLES as AccountTable[]) {
+      const rows = delta.changes.filter((change) => change.table === table).map((change) => change.row);
+      await onPage({
+        table,
+        entities: projectCloudEntities(table, validateAccountRows(table, rows)),
+        reset: start.initial && firstDeltaPage,
+        cursor: nextCursor,
+      });
+    }
+    cursorValue = delta.nextCursor;
+    firstDeltaPage = false;
+    if (!delta.hasMore) break;
   }
+  const nextCursors = Object.fromEntries(ACCOUNT_TABLES.map((table) => [table, { value: String(cursorValue), id: "" }])) as CloudDeltaCursors;
   let mediaCursor = "";
   let first = true;
   while (true) {
@@ -697,11 +703,35 @@ export async function streamAccountCloudChanges(client: any, cursors: CloudDelta
     if (!next || next === mediaCursor) throw new Error("Cloud-Pagination für Medien konnte nicht fortgesetzt werden.");
     mediaCursor = next;
   }
-  return { profile: createCloudProfile(profileRows[0] ?? null, user), cursors: nextCursors };
+  return { profile: loadProfile ? createCloudProfile(profileRows[0] ?? null, user) : null, cursors: nextCursors };
 }
 
-export async function listAccountOriginalVariantManifest(client: any) {
-  const user = await getAuthenticatedUser(client);
+export async function loadAccountCloudBootstrap(client: any, user: { id: string; email?: string | null }) {
+  const userId = requireNonEmptyString(user?.id, "Nutzer-ID fehlt.");
+  const { data, error } = await client.rpc("get_account_bootstrap");
+  if (error) throw error;
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Account-Bootstrap-Antwort ist ungültig.");
+  const candidate = data as Record<string, unknown>;
+  if (!Array.isArray(candidate.decks)) throw new Error("Account-Bootstrap enthält keine gültige Stapelliste.");
+  const conflictCount = Number(candidate.conflictCount ?? 0);
+  if (!Number.isSafeInteger(conflictCount) || conflictCount < 0) throw new Error("Account-Bootstrap enthält eine ungültige Konfliktzahl.");
+  const profileRows = candidate.profile == null ? [] : validateProfileRows([candidate.profile]);
+  const deckRows = validateAccountRows("decks", candidate.decks);
+  return {
+    profile: createCloudProfile(profileRows[0] ?? null, { id: userId, email: user.email ?? null }),
+    decks: projectCloudEntities("decks", deckRows),
+    conflictCount,
+  };
+}
+
+export async function loadAccountCardVariants(client: any, { userId, cardIds }: { userId?: string; cardIds: string[] }): Promise<CardVariant[]> {
+  const user = await authenticatedUserForKnownSession(client, userId);
+  const rows = await selectRowsByField(client, "card_variants", user.id, "card_id", cardIds);
+  return projectCloudEntities("card_variants", rows) as CardVariant[];
+}
+
+export async function listAccountOriginalVariantManifest(client: any, { userId }: { userId?: string } = {}) {
+  const user = await authenticatedUserForKnownSession(client, userId);
   const [cards, variants] = await Promise.all([
     selectKeysetRows(client, "cards", user.id, "id,deleted_at"),
     selectKeysetRows(client, "card_variants", user.id, "id,card_id,is_original,deleted_at"),
@@ -1297,12 +1327,12 @@ function sourceDocumentFromRow(row: any) {
   };
 }
 
-export async function registerAccountSyncDevice(client: any, device: any, { lastSeenAt }: any = {}) {
+export async function registerAccountSyncDevice(client: any, device: any, { lastSeenAt, userId }: any = {}) {
   const id = requireNonEmptyString(device?.id, "Geräte-ID fehlt.");
   const label = requireNonEmptyString(device?.label, "Gerätebezeichnung fehlt.");
   if (typeof device?.userAgent !== "string") throw new Error("User-Agent des Geräts fehlt.");
   const seenAt = requireTimestamp(lastSeenAt, nowIso, "Zeitpunkt der Geräte-Registrierung ist ungültig.");
-  const user = await getAuthenticatedUser(client);
+  const user = await authenticatedUserForKnownSession(client, userId);
   const row = {
     id,
     user_id: user.id,
@@ -1990,8 +2020,8 @@ async function closeObsoleteConflict(client: any, userId: string, row: any, remo
   return data?.[0] ?? { ...row, status: "resolved", resolved_at: resolvedAt };
 }
 
-export async function listAccountSyncConflicts(client: any, { refreshRemote = false }: { refreshRemote?: boolean } = {}) {
-  const user = await getAuthenticatedUser(client);
+export async function listAccountSyncConflicts(client: any, { refreshRemote = false, userId }: { refreshRemote?: boolean; userId?: string } = {}) {
+  const user = await authenticatedUserForKnownSession(client, userId);
   const activeRows = (await selectOptionalRows(client, "sync_conflicts", user.id))
     .filter((row: any) => row.status === "open" || row.status === "ignored");
   const rowsToCheck = activeRows.filter((row: any) => REVISIONED_TABLE_SET.has(row.entity_table) && (
@@ -2117,7 +2147,7 @@ async function updateConflictResolution(client: any, user: any, conflictRow: any
 }
 
 export async function resolveAccountSyncConflict(client: any, conflictId: any, decision: any, options: any = {}) {
-  const user = await getAuthenticatedUser(client);
+  const user = await authenticatedUserForKnownSession(client, options.userId);
   const id = requireNonEmptyString(conflictId, "Konflikt-ID fehlt.");
   const deviceId = requireNonEmptyString(options.deviceId, "Geräte-ID fehlt.");
   const resolvedAt = requireTimestamp(options.resolvedAt, nowIso, "Konfliktzeitpunkt ist ungültig.");

@@ -21,6 +21,7 @@ export interface CardPreviewDialogProps {
   definition?: NoteTypeDefinitionV1 | null;
   mediaUrls?: Record<string, string>;
   onOpenChange: (open: boolean) => void;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
 export function CardPreviewDialog({
@@ -30,6 +31,7 @@ export function CardPreviewDialog({
   definition,
   mediaUrls = {},
   onOpenChange,
+  returnFocusRef,
 }: CardPreviewDialogProps) {
   const [side, setSide] = React.useState<PreviewSide>("question");
   const titleId = React.useId();
@@ -40,6 +42,7 @@ export function CardPreviewDialog({
   const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({
     open,
     onClose: closeDialog,
+    returnFocusRef,
     stopEscapePropagation: true,
   });
 

@@ -170,16 +170,16 @@ function createMutation(input: any = {}, now: any = nowIso, deviceId: any) {
   };
 }
 
-function createDefaultAdapter(client: any) {
+function createDefaultAdapter(client: any, userId: string) {
   return {
     registerDevice(device: any, context: any = {}) {
-      return registerAccountSyncDevice(client, device, { lastSeenAt: context.lastSeenAt });
+      return registerAccountSyncDevice(client, device, { lastSeenAt: context.lastSeenAt, userId });
     },
     listConflicts(options: any = {}) {
-      return listAccountSyncConflicts(client, options);
+      return listAccountSyncConflicts(client, { ...options, userId });
     },
     resolveConflict(conflictId: any, decision: any, context: any = {}) {
-      return resolveAccountSyncConflict(client, conflictId, decision, context);
+      return resolveAccountSyncConflict(client, conflictId, decision, { ...context, userId });
     },
     async applyMutationBatch(mutations: any, context: any = {}) {
       const acknowledgedMutationIds: any[] = [];
@@ -700,7 +700,7 @@ export function createAccountSyncEngine(client: any, options: any = {}) {
   }
   return createSyncEngine({
     ...options,
-    adapter: options.adapter ?? createDefaultAdapter(client),
+    adapter: options.adapter ?? createDefaultAdapter(client, options.userId),
   });
 }
 

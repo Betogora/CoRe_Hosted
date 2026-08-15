@@ -105,6 +105,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
   const [saveStatus, setSaveStatus] = React.useState("");
   const [saveError, setSaveError] = React.useState(false);
   const [previewOpen, setPreviewOpen] = React.useState(false);
+  const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const setSuccessToast = useSuccessToast();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isDuplicating, setIsDuplicating] = React.useState(false);
@@ -377,6 +378,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
             </button>
           ) : null}
           <ActionButton
+            ref={previewButtonRef}
             type="button"
             variant="secondary"
             icon={Eye}
@@ -728,6 +730,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
         definition={previewBundle?.definition}
         mediaUrls={mediaUrls}
         onOpenChange={setPreviewOpen}
+        returnFocusRef={previewButtonRef}
       />
     </SoftPanel>
   );

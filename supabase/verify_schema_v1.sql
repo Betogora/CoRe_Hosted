@@ -183,6 +183,20 @@ begin
   if to_regprocedure('public.record_review_atomic(text,integer,text,integer,jsonb,jsonb,timestamp with time zone,text,integer,jsonb,jsonb,timestamp with time zone,jsonb,text)') is null then
     raise exception 'Atomare Review-RPC fehlt.';
   end if;
+  if to_regprocedure('public.pull_account_delta(bigint,integer,integer)') is null then
+    raise exception 'Gebündelte Account-Delta-RPC fehlt.';
+  end if;
+  if to_regprocedure('public.get_account_bootstrap()') is null then
+    raise exception 'Account-Bootstrap-RPC fehlt.';
+  end if;
+  if not has_function_privilege('authenticated', 'public.pull_account_delta(bigint,integer,integer)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.pull_account_delta(bigint,integer,integer)', 'EXECUTE') then
+    raise exception 'Account-Delta-RPC-Berechtigungen sind falsch konfiguriert.';
+  end if;
+  if not has_function_privilege('authenticated', 'public.get_account_bootstrap()', 'EXECUTE')
+     or has_function_privilege('anon', 'public.get_account_bootstrap()', 'EXECUTE') then
+    raise exception 'Account-Bootstrap-RPC-Berechtigungen sind falsch konfiguriert.';
+  end if;
   if to_regclass('public.sync_conflicts_one_active_entity_idx') is null then
     raise exception 'Eindeutigkeitsregel für aktive Synchronisierungskonflikte fehlt.';
   end if;

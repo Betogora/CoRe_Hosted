@@ -1,7 +1,7 @@
 # CoRe-Betrieb und Runbooks
 
 **Rolle:** einzige kanonische Quelle für lokale Betriebsabläufe, Release, Rollback, Wiederherstellung und operative Gates.
-**Stand:** 2026-08-04
+**Stand:** 2026-08-15
 
 Zeitgebundene Release-Nachweise stehen in [`history.md`](history.md). Produktanforderungen und Roadmap stehen nicht in diesem Dokument.
 
@@ -23,6 +23,18 @@ npm run build
 ```
 
 Das verpflichtende Gate für den freigegebenen Beta-Kern ist `npm run test:beta`. `npm run test:release` prüft zusätzlich schwere Medien-, Restore- und Infrastrukturpfade. Datenbanknahe Gates sind in [`test-portfolio.md`](test-portfolio.md) beschrieben.
+
+Gemessene Laufzeitwerte werden als JSON gegen die festen Produktgrenzen geprüft:
+
+```powershell
+npm run performance:gates -- test-results/performance.json
+```
+
+Der Production-Build erzwingt weiterhin maximal 300 KiB gzip im initialen Importgraphen und 200 KiB je normalem Lazy-Feature. Zielwerte sind 250 beziehungsweise 150 KiB. Bis echte Feld-p75/p95 vorliegen, wird das Laufzeitartefakt mit Chromium bei ungefähr 1,6 Mbit/s, 150 ms RTT und vierfacher CPU-Verlangsamung erzeugt. Ein fehlendes Messartefakt ist kein bestandener Performance-Nachweis.
+
+Der lokale Production-Build vom 15. August 2026 maß 211,8 KiB gzip für den Initialgraphen und 163,1 KiB für den größten Lazy-Graphen. Damit ist das Initialziel eingehalten; der größte Lazy-Graph liegt zwischen Ziel und hartem Maximum.
+
+Supabase bleibt die Datenplattform, solange Bootstrap p95 höchstens 2 Sekunden und normale Delta-RPC p95 höchstens 1 Sekunde benötigen, die Fehlerrate höchstens 0,1 Prozent beträgt, Cursor-Lag im Normalbetrieb unter 5 Sekunden bleibt und der 100k-/1m-Zieltest bei doppelter erwarteter Nutzerlast höchstens 70 Prozent DB-CPU und Connection-Pool belegt. Zusätzlich müssen freigegebene Unit Economics und Regions-/Sync-Anforderungen erfüllt bleiben. Ein wiederholter Bruch wird zuerst mit Indizes, Query-Plan, RPC und Compute geprüft; danach ist ein eigener Sync-Dienst vor demselben Postgres der erste Plattformschritt, kein sofortiger Datenbankwechsel.
 
 ## 2. Umgebungen und Secrets
 
@@ -62,6 +74,7 @@ Die früheren Variablen `VITE_ENABLE_LABS` und `VITE_ENABLE_SERVER_APKG_IMPORT` 
 - Der Working Tree ist sauber.
 - Preview und Production enthalten die benötigten Variablennamen; Werte werden nicht ausgelesen.
 - Schemaänderungen besitzen einen vorwärtskompatiblen Migrations- und Rückfallplan.
+- LCP/INP/CLS, lokaler Workspace-Start, Tabwechsel, 100k-Kartenseite, Lernstart, Reviewpersistenz und Delta-Sync halten die Performance-Gates aus [`specs.md`](specs.md#performance). Kein großer Stapel wird im Start-, Listen- oder Lernstartpfad vollständig materialisiert.
 
 ### Hosted-Core-Smoke
 

@@ -6,7 +6,7 @@ Dieser Katalog ist die code-nahe Übersicht der verfügbaren UI-Bausteine. Neue 
 
 ## Theme und Typografie
 
-`src/styles.css` besitzt die primitiven CoRe-Farben, alle semantischen Light-/Dark-Rollen und die Typostufen. Produktcode verwendet semantische Klassen beziehungsweise Variablen. Der Theme-Schalter in der Sidebar setzt ausschließlich `data-core-theme="light"` beziehungsweise `data-core-theme="dark"` am Dokumentelement; `src/coreTheme.ts` besitzt Validierung und lokale Persistenz der Auswahl. Eine automatische Systempräferenz gibt es bewusst nicht.
+`src/styles.css` besitzt die primitiven CoRe-Farben, alle semantischen Light-/Dark-Rollen und die Typostufen. Produktcode verwendet semantische Klassen beziehungsweise Variablen. Der umrundete Theme-Button in der responsiven Navigation setzt ausschließlich `data-core-theme="light"` beziehungsweise `data-core-theme="dark"` am Dokumentelement; `src/coreTheme.ts` besitzt Validierung und lokale Persistenz der Auswahl. Eine automatische Systempräferenz gibt es bewusst nicht.
 
 Die teilbare visuelle Referenz liegt in `docs/ui-elements.html`. Nach Änderungen an Theme, Typografie, gemeinsamen Komponenten oder eigenständigen fachlichen UI-Mustern werden die betroffenen Beispiele manuell gegen die Produktoberflächen geprüft; `npm run docs:ui-elements` synchronisiert anschließend die eingebetteten Styles und den Quellenstand. `npm run typecheck` führt `npm run docs:ui-elements:check` aus und schlägt fehl, wenn dieser technische Stand abweicht. Der Check ersetzt nicht die fachliche Sichtprüfung der kuratierten Beispiele.
 

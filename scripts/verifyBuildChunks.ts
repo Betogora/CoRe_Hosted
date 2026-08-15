@@ -5,6 +5,7 @@ import { gzipSync } from "node:zlib";
 
 export const DEFAULT_MAX_CHUNK_BYTES = 500_000;
 export const DEFAULT_INITIAL_GZIP_BYTES = 300 * 1024;
+export const TARGET_INITIAL_GZIP_BYTES = 250 * 1024;
 export const DEFAULT_LAZY_ROUTE_GZIP_BYTES = 200 * 1024;
 export const DEFAULT_WORKER_GZIP_BYTES = 525 * 1024;
 
@@ -109,13 +110,21 @@ export async function verifyBuildChunks({ distDirectory = "dist", maxBytes = DEF
   }
 
   const largest = files.map((file) => ({ file, bytes: sizeByFile[file] })).sort((left, right) => right.bytes - left.bytes)[0];
-  return { files, largest, maxBytes, compressedGroups };
+  const compressedSummary = {
+    initialBytes: compressedGroups.initial.reduce((sum, file) => sum + Number(gzipSizeByFile[file] ?? 0), 0),
+    largestLazyRouteBytes: Math.max(0, ...Object.values(compressedGroups.lazyRoutes)
+      .map((files) => files.reduce((sum, file) => sum + Number(gzipSizeByFile[file] ?? 0), 0))),
+  };
+  return { files, largest, maxBytes, compressedGroups, compressedSummary };
 }
 
 async function main() {
   const result = await verifyBuildChunks();
   const largest = result.largest ? `${result.largest.file} (${(result.largest.bytes / 1000).toFixed(1)} kB)` : "keine JavaScript-Chunks";
-  console.log(`Build-Chunk-Budget eingehalten: ${result.files.length} Chunks, größter Chunk ${largest}.`);
+  const initial = `${(result.compressedSummary.initialBytes / 1024).toFixed(1)} KiB gzip`;
+  const target = result.compressedSummary.initialBytes <= TARGET_INITIAL_GZIP_BYTES ? "Ziel eingehalten" : "unter hartem Maximum";
+  const largestLazyRoute = `${(result.compressedSummary.largestLazyRouteBytes / 1024).toFixed(1)} KiB gzip`;
+  console.log(`Build-Chunk-Budget eingehalten: ${result.files.length} Chunks, Initialgraph ${initial} (${target}), größter Lazy-Graph ${largestLazyRoute}, größter Chunk ${largest}.`);
 }
 
 const entryPoint = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : "";

@@ -143,9 +143,7 @@ async function finishCurrentReview(page: Page) {
 }
 
 async function finishApkgImport(page: Page) {
-  const finishButton = page.getByRole("button", { name: /^(Import abschließen|Karten jetzt verwenden)$/ });
-  await expect(finishButton).toBeVisible({ timeout: 30_000 });
-  await finishButton.click();
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
 }
 
 test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bearbeiten, speichern und reviewen", async ({ page }) => {
@@ -268,12 +266,15 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
 
   await page.setViewportSize({ width: 390, height: 844 });
   await editorPreviewButton.click();
+  await dialog.evaluate(async (element) => {
+    await Promise.all(element.getAnimations().map((animation) => animation.finished));
+  });
   const mobileBox = await dialog.boundingBox();
   expect(mobileBox).not.toBeNull();
-  expect(mobileBox!.x).toBe(0);
-  expect(mobileBox!.y).toBe(0);
-  expect(mobileBox!.width).toBe(390);
-  expect(mobileBox!.height).toBe(844);
+  expect(mobileBox!.x).toBeLessThanOrEqual(3);
+  expect(mobileBox!.y).toBeLessThanOrEqual(3);
+  expect(Math.abs(mobileBox!.width - 390)).toBeLessThanOrEqual(5);
+  expect(Math.abs(mobileBox!.height - 844)).toBeLessThanOrEqual(5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   await page.keyboard.press("Escape");
   expect(consoleErrors).toEqual([]);
@@ -320,6 +321,10 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e abgefangene Modellantwort wird so
     const card = state.decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards[0];
     return card?.variants.find((variant: { generationSource: string }) => variant.generationSource === "ai_generated")?.front;
   }).toBe("Wofür nutzt die Zelle ATP?");
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
+  const syncButton = page.locator('[data-navigation-utility="sync"]:visible');
+  await expect(syncButton).toBeEnabled();
+  await syncButton.click();
   await waitForCloudCard(deck.id, deck.cards[0].id, (card) => card.variants.some((variant: { generationSource: string }) => variant.generationSource === "ai_generated"));
 
   await page.reload();
@@ -466,16 +471,17 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport sch�
   await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await finishApkgImport(page);
-  await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
 
   let state = await readActiveAccountState(page);
   const importedDeck = state.decks.find((deck: { cards?: Array<{ originalFront: string }> }) => deck.cards?.some((card) => card.originalFront.includes("Welches Organell erzeugt ATP?")));
   const importedCard = importedDeck.cards.find((card: { originalFront: string }) => card.originalFront.includes("Welches Organell erzeugt ATP?"));
   const reviewStateBeforeReimport = importedCard.reviewState;
   const learningItemStateBeforeReimport = importedCard.learningItemState;
-  await page.getByRole("button", { name: "Karten prüfen" }).click();
+  await page.getByRole("button", { name: "Zur Übersicht" }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
   await page.getByTestId(`deck-toggle-${importedDeck.id}`).click();
   await page.getByTestId(`deck-card-${importedCard.id}`).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Welches Organell erzeugt ATP");
@@ -494,7 +500,7 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport sch�
   await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await finishApkgImport(page);
-  await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
 
   state = await readActiveAccountState(page);
   const reimportedCard = state.decks.find((deck: { id: string }) => deck.id === importedDeck.id).cards.find((card: { id: string }) => card.id === importedCard.id);

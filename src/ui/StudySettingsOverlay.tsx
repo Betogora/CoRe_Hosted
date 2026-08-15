@@ -35,6 +35,7 @@ export interface StudySettingsOverlayProps {
   suspended: boolean;
   reviewOrder: NewReviewOrder;
   pomodoroTimer: PomodoroTimer | null;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
   onOpenChange: (open: boolean) => void;
   onEditCard: () => void;
   onEditDeck: () => void;
@@ -90,6 +91,7 @@ export function StudySettingsOverlay({
   suspended,
   reviewOrder,
   pomodoroTimer,
+  returnFocusRef,
   onOpenChange,
   onEditCard,
   onEditDeck,
@@ -99,8 +101,10 @@ export function StudySettingsOverlay({
   onStartPomodoro,
 }: StudySettingsOverlayProps) {
   const titleId = React.useId();
-  const closeDialog = React.useCallback(() => onOpenChange(false), [onOpenChange]);
-  const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({ open, onClose: closeDialog });
+  const closeDialog = React.useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
+  const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({ open, onClose: closeDialog, returnFocusRef });
 
   if (!open) return null;
 

@@ -12,7 +12,7 @@ import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./stud
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import { getLearningDayRange } from "./learningDay.ts";
 import { planEntityMutations } from "./syncMutationPlanner.ts";
-import { createStatisticsAccumulator, type StatisticsSelection } from "./statisticsModel.ts";
+import type { StatisticsSelection } from "./statisticsModel.ts";
 
 const DATABASE_VERSION = 4;
 const STORE = Object.freeze({
@@ -999,6 +999,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     getShellState() {
       return shellState();
     },
+    needsSyncRepair(version = 1) {
+      return syncRepairVersion < version;
+    },
     replaceFullState(nextState: WorkspaceState, nextCursors: CloudDeltaCursors = cloudDeltaCursors) {
       const normalized = normalizeWorkspaceState(nextState) as WorkspaceState;
       shell = shellFromState(normalized);
@@ -1596,7 +1599,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       }
       return { summaries: result, studyHeatmap: createStudyHeatmapModelFromCounts({ todayKey, countsByDay, forecastCountsByDay }) };
     },
-    async listCardPage(deckId: string, { page = 0, pageSize = 100, query = "", sort = { field: "sortField", direction: "asc" } as CardTableSort, selectedCardId = null }: {
+    async listCardPage(deckId: string, { page = 0, pageSize = 50, query = "", sort = { field: "sortField", direction: "asc" } as CardTableSort, selectedCardId = null }: {
       page?: number;
       pageSize?: number;
       query?: string;
@@ -1605,7 +1608,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     } = {}) {
       const normalizedQuery = query.trim().toLocaleLowerCase("de");
       const normalizedPage = Math.max(0, Math.floor(page));
-      const limit = Math.min(100, Math.max(1, pageSize));
+      const limit = Math.min(50, Math.max(1, pageSize));
       const offset = normalizedPage * limit;
       const indexName = sort.field === "nextStudyDate" ? "deckDue" : sort.field === "variants" ? "deckVariants" : "deckFront";
       const lower = indexName === "deckVariants" ? [deckId, 0, ""] : [deckId, "", ""];
@@ -1681,35 +1684,70 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         selectedCard: selectedRecord?.deckId === deckId ? hydrateCard(selectedRecord, variantsByCardId, syncConflictCardIds) : null,
       };
     },
-    async loadReviewSession(deckIds: string[], options: { now?: string; dayStartHour?: number; timeZone?: string } = {}) {
-      const transaction = database.transaction([STORE.cards, STORE.variants, STORE.reviewEvents], "readonly");
-      const cards = (await Promise.all(deckIds.map((deckId) => requestResult<StoredCard[]>(transaction.objectStore(STORE.cards).index("deckId").getAll(deckId))))).flat();
-      const storedVariants = (await Promise.all(deckIds.map((deckId) => requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("deckId").getAll(deckId))))).flat();
-      const variantsByCardId = new Map<string, StoredVariant[]>();
-      for (const variant of storedVariants) {
-        const bucket = variantsByCardId.get(variant.learningItemId);
-        if (bucket) bucket.push(variant);
-        else variantsByCardId.set(variant.learningItemId, [variant]);
-      }
+    async loadReviewSession(deckIds: string[], options: {
+      now?: string;
+      dayStartHour?: number;
+      timeZone?: string;
+      limit?: number;
+      cursorByDeck?: Record<string, { dueAt: string; id: string }>;
+    } = {}) {
+      await writeChain;
+      const limit = Math.min(50, Math.max(1, Math.floor(options.limit ?? 50)));
+      const perDeckLimit = limit + 1;
+      const transaction = database.transaction([STORE.cards, STORE.reviewEvents], "readonly");
+      const dueIndex = transaction.objectStore(STORE.cards).index("deckDue");
+      const cardPagePromises = deckIds.map((deckId) => new Promise<StoredCard[]>((resolve, reject) => {
+        const cursor = options.cursorByDeck?.[deckId];
+        const lower = cursor ? [deckId, cursor.dueAt, cursor.id] : [deckId, "", ""];
+        const range = IDBKeyRange.bound(lower, [deckId, "\uffff", "\uffff"], Boolean(cursor), false);
+        const rows: StoredCard[] = [];
+        const request = dueIndex.openCursor(range);
+        request.onerror = () => reject(request.error ?? new Error("Lernkarten konnten nicht gelesen werden."));
+        request.onsuccess = () => {
+          const entry = request.result;
+          if (!entry || rows.length >= perDeckLimit) { resolve(rows); return; }
+          const row = entry.value as StoredCard;
+          if (row.reviewable === 1 && !syncConflictCardIds.has(row.id)) rows.push(row);
+          entry.continue();
+        };
+      }));
       const range = getLearningDayRange(options.now ?? new Date(), { dayStartHour: options.dayStartHour, timeZone: options.timeZone });
-      const reviewEvents = range
-        ? (await Promise.all(deckIds.map((deckId) => requestResult<ReviewEvent[]>(transaction.objectStore(STORE.reviewEvents).index("deckAnswered").getAll(IDBKeyRange.bound(
+      const reviewEventPromises = range
+        ? deckIds.map((deckId) => requestResult<ReviewEvent[]>(transaction.objectStore(STORE.reviewEvents).index("deckAnswered").getAll(IDBKeyRange.bound(
             [deckId, new Date(range.start).toISOString(), ""],
             [deckId, new Date(range.end).toISOString(), ""],
             false,
             true,
-          )))))).flat()
+          ))))
         : [];
+      const [cardsByDeck, reviewEventsByDeck] = await Promise.all([
+        Promise.all(cardPagePromises),
+        Promise.all(reviewEventPromises),
+      ]);
+      const reviewEvents = reviewEventsByDeck.flat();
       await transactionDone(transaction);
+      const candidates = cardsByDeck.flat().sort((left, right) => left.dueAt.localeCompare(right.dueAt) || left.id.localeCompare(right.id));
+      const cards = candidates.slice(0, limit);
+      const cursorByDeck = { ...(options.cursorByDeck ?? {}) };
+      for (const card of cards) cursorByDeck[card.deckId] = { dueAt: card.dueAt, id: card.id };
+      const variantTransaction = database.transaction(STORE.variants, "readonly");
+      const variantIndex = variantTransaction.objectStore(STORE.variants).index("learningItemId");
+      const variantsByCardId = new Map<string, StoredVariant[]>();
+      await Promise.all(cards.map(async (card) => {
+        variantsByCardId.set(card.id, await requestResult<StoredVariant[]>(variantIndex.getAll(card.id)));
+      }));
+      await transactionDone(variantTransaction);
       return {
         cards: cards
-          .filter((record) => !syncConflictCardIds.has(record.id))
           .map((record) => ({ deckId: record.deckId, item: hydrateCard(record, variantsByCardId, syncConflictCardIds) })),
         reviewEvents,
+        cursorByDeck,
+        hasMore: candidates.length > cards.length || cardsByDeck.some((rows) => rows.length >= perDeckLimit),
       };
     },
     async queryStatistics(input: StatisticsSelection) {
       await writeChain;
+      const { createStatisticsAccumulator } = await import("./statisticsModel.ts");
       const decks = shell!.decks.map((deck) => ({ ...deck, cards: [], reviewEvents: [] } as Deck));
       const accumulator = createStatisticsAccumulator(decks, input);
       const scopeIds = new Set(accumulator.scopeDeckIds);

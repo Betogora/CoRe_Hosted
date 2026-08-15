@@ -319,6 +319,6 @@ test("[Vertrag: partieller Importabschluss] @beta-core Karten bleiben nach Medie
   await page.route("**/storage/v1/object/core-media/**", (route) => route.abort("failed"));
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await expect(page.getByText(/Import teilweise abgeschlossen/)).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole("button", { name: "Medien-Sync fortsetzen" })).toBeVisible();
+  await expect(page.getByText("Medien sind lokal gespeichert; die Cloud-Synchronisierung steht noch aus.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Karten jetzt verwenden" })).toBeVisible();
 });

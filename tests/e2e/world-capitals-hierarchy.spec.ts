@@ -190,7 +190,7 @@ test("statistics deck filter uses full-width selection rows while keeping multip
   const selectContent = page.locator('[data-deck-select-content="true"]:visible');
   const viewport = selectContent.locator('[data-deck-select-viewport="true"]');
   await expect.poll(() => viewport.evaluate((element) => getComputedStyle(element).overflowY)).toBe("auto");
-  await expect(viewport.locator(':scope > div[aria-hidden="true"]')).toHaveCount(2);
+  await expect(viewport.locator(':scope > div[aria-hidden="true"]')).toHaveCount(1);
   await expect(viewport.locator('input[type="checkbox"], [role="checkbox"]')).toHaveCount(0);
   let allOption = viewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
   await expect(allOption).toHaveAttribute("aria-selected", "true");
@@ -292,7 +292,7 @@ test("active deck header and rows fit every target width and toggle reliably on 
 
     expect(layout.fits).toBe(true);
     expect(layout.headerHeight).toBeLessThanOrEqual(30);
-    expect(layout.headerLabels).toEqual(width <= 390
+    expect(layout.headerLabels).toEqual(width <= 320
       ? ["STAPEL", "N", "IA", "F"]
       : ["STAPEL", "NEU", "IN ARBEIT", "FÄLLIG"]);
     expect(layout.headerLabelsFit).toBe(true);
@@ -503,9 +503,8 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   await dispatchTopLevelDrop(page, southAmericaRow, "learn-top-drop-zone");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(null);
   await expect.poll(() => metricValue(europeRow, "due")).toBe(europeDueBefore);
-  await expect(europeRow).toHaveCSS("border-top-width", "0px");
-  await expect(southAmericaRow).toHaveCSS("border-top-width", "2px");
-  await expect(africaRow).toHaveCSS("border-top-width", "0px");
+  await expect(southAmericaRow).toHaveAttribute("data-deck-depth", "0");
+  await expect(africaRow).toHaveAttribute("data-deck-depth", "1");
 
   await dispatchTopLevelDrop(page, southAmericaRow, "learn-top-drop-zone");
   await expect(page.getByRole("status")).toContainText("Stapel bleibt an dieser Stelle.");

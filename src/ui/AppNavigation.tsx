@@ -23,6 +23,7 @@ export interface AppNavigationProps {
   simulationDateLabel: string;
   pomodoroTimer: PomodoroTimer | null;
   onNavigate: (viewId: MenuViewId) => unknown;
+  onPreloadView?: (viewId: MenuViewId) => unknown;
   onResetSimulation: () => unknown;
   syncStatus: SyncStatus;
   onSyncNow: () => unknown;
@@ -47,7 +48,7 @@ interface ResponsiveNavigationProps extends AppNavigationProps {
   onToggleTheme: () => void;
 }
 
-function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme, syncStatus, onSyncNow, layout }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onToggleTheme" | "syncStatus" | "onSyncNow"> & { layout: "sidebar" | "header" }) {
+function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, syncStatus, onSyncNow, layout }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "onSyncNow"> & { layout: "sidebar" | "header" }) {
   const settingsActive = settingsViews.has(activeView);
   const helpActive = activeView === "hilfe";
   const sidebarLayout = layout === "sidebar";
@@ -91,6 +92,9 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
       label="Einstellungen öffnen"
       icon={Settings}
       onClick={() => onNavigate("einstellungen")}
+      onPointerEnter={() => onPreloadView?.("einstellungen")}
+      onFocus={() => onPreloadView?.("einstellungen")}
+      onTouchStart={() => onPreloadView?.("einstellungen")}
       className={`size-11 shrink-0 rounded-full ${settingsActive ? "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)] shadow-sm" : ""}`}
       aria-current={settingsActive ? "page" : undefined}
     />
@@ -113,6 +117,9 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
       label="Hilfe öffnen"
       icon={CircleHelp}
       onClick={() => onNavigate("hilfe")}
+      onPointerEnter={() => onPreloadView?.("hilfe")}
+      onFocus={() => onPreloadView?.("hilfe")}
+      onTouchStart={() => onPreloadView?.("hilfe")}
       className={`size-11 shrink-0 rounded-full ${helpActive ? "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)] shadow-sm" : ""}`}
       aria-current={helpActive ? "page" : undefined}
     />
@@ -142,7 +149,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
   );
 }
 
-function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
+function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
   return (
     <aside className="hidden border-r border-[var(--core-border)] bg-core-surface xl:block xl:overflow-x-hidden xl:overflow-y-auto" data-navigation-layout="sidebar">
       <div className="flex h-full flex-col px-4 pb-5 pt-10">
@@ -158,6 +165,9 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
                 key={view.id}
                 type="button"
                 onClick={() => onNavigate(view.id)}
+                onPointerEnter={() => onPreloadView?.(view.id)}
+                onFocus={() => onPreloadView?.(view.id)}
+                onTouchStart={() => onPreloadView?.(view.id)}
                 className={`core-body flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium transition ${
                   isActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)] shadow-sm" : "text-[var(--core-text-secondary)] hover:bg-core-surface hover:text-[var(--core-text)]"
                 }`}
@@ -185,7 +195,7 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
           ) : null}
           <PomodoroProgress timer={pomodoroTimer} variant="sidebar" />
           <div className={`pt-6 ${simulationOffsetMinutes > 0 || pomodoroTimer ? "mt-3" : ""}`}>
-            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} layout="sidebar" />
+            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} layout="sidebar" />
           </div>
         </div>
       </div>
@@ -193,13 +203,13 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
   );
 }
 
-function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
+function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
   return (
     <header className="core-mobile-header sticky top-0 z-30 min-w-0 border-b border-[var(--core-border)] bg-core-surface px-5 py-3 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex min-h-11 min-w-0 items-center justify-between gap-3">
         <h1 className="core-mobile-brand shrink-0 core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
-        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} layout="header" />
+        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} layout="header" />
       </div>
       {simulationOffsetMinutes > 0 ? (
         <div className="mt-2 flex min-h-11 items-center gap-3 rounded-xl border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">
@@ -212,7 +222,7 @@ function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel
   );
 }
 
-function MobileBottomNavigation({ navigationItems, activeView, onNavigate }: AppNavigationProps) {
+function MobileBottomNavigation({ navigationItems, activeView, onNavigate, onPreloadView }: AppNavigationProps) {
   return (
     <nav
       aria-label="Mobile Hauptnavigation"
@@ -230,6 +240,9 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate }: App
             key={view.id}
             type="button"
             onClick={() => onNavigate(view.id)}
+            onPointerEnter={() => onPreloadView?.(view.id)}
+            onFocus={() => onPreloadView?.(view.id)}
+            onTouchStart={() => onPreloadView?.(view.id)}
             className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 transition ${isActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)]" : "text-[var(--core-text-muted)] hover:bg-[var(--core-surface-hover)] hover:text-[var(--core-text)]"}`}
             aria-current={isActive ? "page" : undefined}
           >

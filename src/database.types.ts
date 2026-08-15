@@ -771,6 +771,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_account_bootstrap: { Args: never; Returns: Json }
+      pull_account_delta: {
+        Args: { p_cursor?: number; p_limit?: number; p_max_bytes?: number }
+        Returns: Json
+      }
       record_review_atomic: {
         Args: {
           p_card_base_revision: number

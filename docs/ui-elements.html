@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 910548c483f03e4b */
+/* Quellenstand: ef5e9748b95f5e22 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1534,6 +1534,30 @@ video {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
+}
+
+@font-face {
+  font-family: "Synonym";
+  src: url("/fonts/synonym-400.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Synonym";
+  src: url("/fonts/synonym-500.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Synonym";
+  src: url("/fonts/synonym-600.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
 }
 
 @media (max-width: 18.75rem) {
@@ -3267,6 +3291,7 @@ summary {
       </symbol>
       <symbol id="icon-sparkles" viewBox="0 0 24 24"><path d="m12 3-1.4 3.6L7 8l3.6 1.4L12 13l1.4-3.6L17 8l-3.6-1.4L12 3Z"/><path d="m5 14-.8 2.2L2 17l2.2.8L5 20l.8-2.2L8 17l-2.2-.8L5 14Z"/><path d="m19 13-1 2.5-2.5 1L18 17.5l1 2.5 1-2.5 2.5-1-2.5-1L19 13Z"/></symbol>
       <symbol id="icon-save" viewBox="0 0 24 24"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>
+      <symbol id="icon-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M3.5 12a9 9 0 1 0 2.6-6.4L3 9"/></symbol>
       <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/></symbol>
       <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
       <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
@@ -3307,7 +3332,7 @@ summary {
               <span id="font-status" class="catalog-pill">Schriften werden geprüft …</span>
             </div>
           </div>
-          <button id="theme-toggle" type="button" aria-label="Dark Mode einschalten" class="core-action-secondary size-11 shrink-0 rounded-full p-0">
+          <button id="theme-toggle" type="button" aria-label="Dark Mode einschalten" class="core-action-ghost size-11 shrink-0 rounded-full p-0">
             <svg class="catalog-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>
           </button>
         </div>
@@ -3671,6 +3696,7 @@ summary {
                     <button type="button" class="core-action-primary min-h-11 w-full justify-center"><svg class="catalog-icon"><use href="#icon-save"></use></svg><span>Speichern</span></button>
                   </div>
                 </aside>
+                <p class="catalog-note">Produktiv seitenweit im unteren Viewportbereich, ohne Backdrop, Fokusfalle oder Dialogsemantik. Sie ersetzt ausschließlich explizite Save-Aktionen globaler und stapelbezogener Einstellungen.</p>
               </div>
               <div class="catalog-grid">
                 <dl class="core-surface-raised rounded-[18px] p-6"><dt class="core-status-label uppercase tracking-wide text-core-muted"><span class="grid size-12 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon-lg"><use href="#icon-chart"></use></svg></span><span class="mt-5 block">Heute fällig</span></dt><dd class="core-heading-2 mt-2 text-core-text">24</dd><dd class="core-body mt-1 text-core-muted">aus 186 Karten</dd></dl>

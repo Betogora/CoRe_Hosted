@@ -112,7 +112,7 @@ test("APKG commit exposes an accessible progressbar before completion", async ({
 
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   expect(await progressObserved).toBe(true);
-  await expect(page.getByRole("button", { name: "Import abschließen" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
 });
 
 test("defective APKG offers exactly one recommended recovery action", async ({ page }) => {

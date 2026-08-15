@@ -14,6 +14,7 @@ import type { PomodoroTimer } from "./pomodoroTimer.ts";
 import type { StatisticsDeckSelection, StatisticsPeriod, StatisticsProjection } from "./statisticsModel.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
+import type { WorkspaceStorageStatus } from "./workspaceStorage.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
 import type { DeckLearningSettingsDraft, DeckSettingsDraft, GlobalSettingsDraft } from "./settingsDraft.ts";
 
@@ -132,7 +133,7 @@ export interface DecksScreenProps {
 export interface DecksCardPageRequest {
   deckId: string;
   page: number;
-  pageSize: 100;
+  pageSize: 50;
   query: string;
   sort: CardTableSort;
   selectedCardId: string | null;
@@ -175,6 +176,7 @@ export interface LearnScreenProps {
 export interface SettingsScreenProps {
   profile: Profile;
   syncStatus: SyncStatus;
+  storageStatus?: WorkspaceStorageStatus | null;
   globalSchedulerPreferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">;
   onSaveSettings: (draft: GlobalSettingsDraft) => Profile | null | Promise<Profile | null>;
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
@@ -231,4 +233,6 @@ export interface StudyModeProps {
   onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
   onCardUpdated: (deckId: string, card: LearningItem) => unknown;
   onReview: (result: ReviewAnswerResult) => unknown;
+  hasMoreCards?: boolean;
+  onLoadMoreCards?: () => Promise<Deck[]>;
 }

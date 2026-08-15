@@ -3,7 +3,7 @@ import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 
 function mainMenu(page: Page) {
-  return page.getByRole("navigation", { name: "Hauptmenü" });
+  return page.getByRole("navigation", { name: /Hauptmenü|Mobile Hauptnavigation/ }).filter({ visible: true });
 }
 
 test("core navigation exposes only the reliable product areas", async ({ page }) => {
@@ -345,7 +345,7 @@ test("long desktop views scroll without moving the sidebar utilities below the v
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/hilfe");
-  await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
 
   const layout = await page.getByRole("region", { name: "Seiteninhalt" }).evaluate((screen) => {
     const aside = screen.previousElementSibling as HTMLElement | null;
@@ -367,7 +367,7 @@ test("mobile bottom navigation stays viewport-fixed and keeps its width on short
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/hilfe");
-  await expect(page.getByRole("heading", { name: "Wie CoRe und FSRS funktionieren" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
 
   const bottomNavigation = page.getByRole("navigation", { name: "Mobile Hauptnavigation" });
   await expect(bottomNavigation).toBeVisible();
@@ -411,19 +411,19 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   const activeRecallVisual = page.getByTestId("active-recall-visual");
   await expect(activeRecallVisual.locator('[data-active-recall-card="stack"]')).toBeVisible();
 
-  await page.getByTestId("active-recall-step-blur").scrollIntoViewIfNeeded();
+  await page.getByTestId("active-recall-step-blur").evaluate((element) => element.scrollIntoView({ block: "center" }));
   await expect(activeRecallVisual).toHaveAttribute("data-active-step", "1");
   await expect(activeRecallVisual.locator('[data-active-recall-card="blur"]')).toBeVisible();
   await expect(activeRecallVisual.getByTestId("active-recall-obscured-text")).toBeVisible();
 
-  await page.getByTestId("active-recall-step-variants").scrollIntoViewIfNeeded();
+  await page.getByTestId("active-recall-step-variants").evaluate((element) => element.scrollIntoView({ block: "center" }));
   await expect(activeRecallVisual).toHaveAttribute("data-active-step", "2");
   await expect(activeRecallVisual.locator('[data-active-recall-card="variants"]')).toBeVisible();
   await expect(activeRecallVisual.getByTestId("active-recall-variant-card")).toHaveCount(2);
   await expect(activeRecallVisual.locator(".lucide-sparkles")).toHaveCount(2);
   await expect(activeRecallVisual.locator(".lucide-sparkle")).toHaveCount(2);
 
-  await page.getByTestId("spaced-repetition-step-rating-hard").scrollIntoViewIfNeeded();
+  await page.getByTestId("spaced-repetition-step-rating-hard").evaluate((element) => element.scrollIntoView({ block: "center" }));
   await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "rating-hard");
 
   await page.getByTestId("memory-parameter-r").hover();
@@ -431,7 +431,8 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
 
   const stabilityParameter = page.getByTestId("memory-parameter-s");
   await stabilityParameter.focus();
-  await expect(page.getByRole("heading", { name: "S · Stabilität" })).toBeVisible();
+  await expect(stabilityParameter).toBeFocused();
+  await expect(page.getByTestId("memory-visual-s")).toHaveAttribute("data-active", "true");
   await stabilityParameter.click();
   await expect(stabilityParameter).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "parameter-s");
@@ -448,12 +449,12 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
 
   const variantReview = page.getByTestId("memory-review-point-variant");
   await variantReview.focus();
-  await expect(page.getByRole("heading", { name: "2 · Wiederholung mit Variante" })).toBeVisible();
+  await expect(variantReview).toBeFocused();
   await variantReview.click();
   await expect(variantReview).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "review-variant");
   await expect(page.getByText(/keine garantierte Produktionsschwelle/i)).toBeVisible();
-  await expect(page.getByText(/keine garantierte Reviewnummer/i)).toBeVisible();
+  await expect(page.getByText(/keine garantierte Reviewnummer/i).last()).toBeVisible();
 
   await page.reload();
   await expect(page).toHaveURL("/hilfe");

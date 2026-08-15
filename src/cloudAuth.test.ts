@@ -9,6 +9,7 @@ import {
   createProfileRow,
   formatCloudAuthError,
   getCloudUser,
+  getCloudWorkspaceUser,
   markCloudSignedOut,
   readCloudAuthRedirectOutcome,
   resetCloudPassword,
@@ -119,6 +120,7 @@ test("cloud auth formats common Supabase auth errors in German", () => {
   assert.match(formatCloudAuthError({ code: "session_expired", message: "Session expired" }), /Sitzung ist abgelaufen/);
   assert.match(formatCloudAuthError({ status: 403, message: "Session expired" }), /Sitzung ist abgelaufen/);
   assert.match(formatCloudAuthError({ name: "AuthRetryableFetchError", message: "Failed to fetch" }), /nicht erreichbar/);
+  assert.match(formatCloudAuthError({ name: "AuthRetryableFetchError", message: "{}" }), /nicht erreichbar/);
   assert.equal(formatCloudAuthError({ message: "Invalid login credentials" }), "E-Mail oder Passwort stimmt nicht.");
   assert.match(formatCloudAuthError({ message: "Email rate limit exceeded" }), /bereits eine Auth-E-Mail/);
   assert.match(formatCloudAuthError({ code: "over_email_send_rate_limit" }), /warte kurz/);
@@ -196,6 +198,25 @@ test("cloud auth distinguishes a missing session from an expired session", async
   assert.equal(await getCloudUser(missingClient), null);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   await assert.rejects(() => getCloudUser(expiredClient), (error) => error?.code === "session_expired");
+});
+
+test("offline workspace start reads the persisted session without a network auth request", async () => {
+  let userRequests = 0;
+  const client = {
+    from() {},
+    auth: {
+      async getUser() {
+        userRequests += 1;
+        return { data: { user }, error: null };
+      },
+      async getSession() {
+        return { data: { session: { user } }, error: null };
+      },
+    },
+  };
+
+  assert.equal(await getCloudWorkspaceUser(client, false), user);
+  assert.equal(userRequests, 0);
 });
 
 test("cloud auth passes the app URL into confirmation and reset email redirects", async () => {

@@ -201,6 +201,7 @@ export function ManualCreationPanel({
   const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
   const [previewOpen, setPreviewOpen] = React.useState(false);
+  const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
   const cleanDraftRef = React.useRef(batchState.currentDraft);
   const { currentDraft, pinnedFields } = batchState;
@@ -529,7 +530,7 @@ export function ManualCreationPanel({
         </div>
 
         <div className="flex justify-end">
-          <ActionButton type="button" variant="secondary" icon={Eye} onClick={() => setPreviewOpen(true)}>
+          <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} onClick={() => setPreviewOpen(true)}>
             Vorschau
           </ActionButton>
         </div>
@@ -741,6 +742,7 @@ export function ManualCreationPanel({
         variant={previewBundle.variant}
         definition={previewBundle.definition}
         onOpenChange={setPreviewOpen}
+        returnFocusRef={previewButtonRef}
       />
     </div>
   );
