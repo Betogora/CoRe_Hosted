@@ -1,18 +1,17 @@
 import React from "react";
 import { Brain, CopyCheck, Flame, Leaf, Pencil, Plus, Save, Scale, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
-import type { DeckSettings, LearningProfileSource, LearningProfileTemplate } from "../coreTypes.ts";
+import type { LearningProfileTemplate } from "../coreTypes.ts";
 import {
   applyLearningProfileTemplateToDeckSettings,
   BUILT_IN_LEARNING_PROFILE_TEMPLATES,
   createLearningProfileTemplate,
   deleteLearningProfileTemplate,
   markLearningSettingsCustom,
-  normalizeLearningProfileSource,
-  normalizeLearningSettings,
   renameLearningProfileTemplate,
   updateLearningProfileTemplate,
   type LearningSettingsInput,
 } from "../deckSettings.ts";
+import { createDeckLearningSettingsDraft, type DeckLearningSettingsDraft } from "../settingsDraft.ts";
 import { ActionButton } from "./actionUi.tsx";
 import { ActionDialog, CoreModeControl, CoreSwitch, SoftPanel } from "./coreUi.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
@@ -44,29 +43,13 @@ const variantThresholdOptions = [
 ];
 const activeVariantOptions = [1, 2, 3].map((count) => ({ value: String(count), label: `${count} ${count === 1 ? "Variante" : "Varianten"}` }));
 
-type DeckLearningDraft = ReturnType<typeof normalizeLearningSettings> & {
-  coreMode: DeckSettings["coreMode"];
-  variantThresholdXp: number;
-  maxActiveVariantsPerCard: number;
-  learningProfileSource: LearningProfileSource | null;
-};
-
 interface LearningSettingsPanelProps {
-  settings: DeckSettings;
+  draft: DeckLearningSettingsDraft;
   profiles: LearningProfileTemplate[];
   defaultProfileName: string;
   onProfilesChange: (profiles: LearningProfileTemplate[]) => unknown;
-  onSave: (settings: LearningSettingsInput) => unknown;
-}
-
-function createDraft(settings: LearningSettingsInput & Pick<DeckLearningDraft, "coreMode" | "variantThresholdXp" | "maxActiveVariantsPerCard" | "learningProfileSource">): DeckLearningDraft {
-  return {
-    ...normalizeLearningSettings(settings),
-    coreMode: settings.coreMode,
-    variantThresholdXp: Number.isFinite(Number(settings.variantThresholdXp)) ? Number(settings.variantThresholdXp) : 121,
-    maxActiveVariantsPerCard: Number.isFinite(Number(settings.maxActiveVariantsPerCard)) ? Number(settings.maxActiveVariantsPerCard) : 2,
-    learningProfileSource: normalizeLearningProfileSource(settings.learningProfileSource),
-  };
+  onDraftChange: (draft: DeckLearningSettingsDraft) => void;
+  onApplyProfile: (settings: DeckLearningSettingsDraft) => boolean;
 }
 
 function NumberField({ label, value, min, max, testId, onChange }: { label: string; value: number; min: number; max: number; testId: string; onChange: (value: number) => void }) {
@@ -87,19 +70,14 @@ function SelectField({ label, value, options, testId, onChange }: { label: strin
   );
 }
 
-export function LearningSettingsPanel({ settings, profiles, defaultProfileName, onProfilesChange, onSave }: LearningSettingsPanelProps) {
-  const [draft, setDraft] = React.useState(() => createDraft(settings));
+export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onProfilesChange, onDraftChange, onApplyProfile }: LearningSettingsPanelProps) {
   const [selectedProfileId, setSelectedProfileId] = React.useState(draft.learningProfileSource?.id ?? "custom");
   const [profileName, setProfileName] = React.useState(defaultProfileName);
   const [deleteProfileId, setDeleteProfileId] = React.useState<string | null>(null);
   const setSuccessToast = useSuccessToast();
-  const settingsDraftKey = JSON.stringify(createDraft(settings));
-
   React.useEffect(() => {
-    const nextDraft = createDraft(settings);
-    setDraft(nextDraft);
-    setSelectedProfileId(nextDraft.learningProfileSource?.id ?? "custom");
-  }, [settingsDraftKey]);
+    setSelectedProfileId(draft.learningProfileSource?.id ?? "custom");
+  }, [draft.learningProfileSource?.contentVersion, draft.learningProfileSource?.id]);
 
   React.useEffect(() => setProfileName(defaultProfileName), [defaultProfileName]);
 
@@ -114,29 +92,28 @@ export function LearningSettingsPanel({ settings, profiles, defaultProfileName, 
   ];
 
   function editLearning(patch: LearningSettingsInput) {
-    setDraft((current) => ({
-      ...current,
+    onDraftChange({
+      ...draft,
       ...markLearningSettingsCustom({
-        ...current,
+        ...draft,
         ...patch,
-        schedulerProfile: { ...current.schedulerProfile, ...(patch.schedulerProfile ?? {}) },
+        schedulerProfile: { ...draft.schedulerProfile, ...(patch.schedulerProfile ?? {}) },
       }),
       learningProfileSource: null,
-    }));
+    });
     setSelectedProfileId("custom");
   }
 
-  function editCore(patch: Partial<Pick<DeckLearningDraft, "coreMode" | "variantThresholdXp" | "maxActiveVariantsPerCard">>) {
-    setDraft((current) => ({ ...current, ...patch }));
+  function editCore(patch: Partial<Pick<DeckLearningSettingsDraft, "coreMode" | "variantThresholdXp" | "maxActiveVariantsPerCard">>) {
+    onDraftChange({ ...draft, ...patch });
   }
 
   function applySelectedProfile() {
     if (!selectedProfile) return;
     const next = applyLearningProfileTemplateToDeckSettings({ ...draft }, selectedProfile);
-    const nextDraft = createDraft(next);
-    setDraft(nextDraft);
+    const nextDraft = createDeckLearningSettingsDraft(next);
+    if (!onApplyProfile(nextDraft)) return;
     setSelectedProfileId(selectedProfile.id);
-    onSave(nextDraft);
     setSuccessToast(`Lernprofil „${selectedProfile.name}“ wurde auf diesen Stapel angewandt.`);
   }
 
@@ -168,11 +145,6 @@ export function LearningSettingsPanel({ settings, profiles, defaultProfileName, 
     setSelectedProfileId("custom");
     setDeleteProfileId(null);
     setSuccessToast("Lernprofil wurde gelöscht. Bereits kopierte Stapelwerte bleiben erhalten.");
-  }
-
-  function save() {
-    onSave(draft);
-    setSuccessToast("Stapeleinstellungen wurden gespeichert.");
   }
 
   return (
@@ -252,7 +224,6 @@ export function LearningSettingsPanel({ settings, profiles, defaultProfileName, 
             </div>
           </fieldset>
 
-          <div className="mt-6 flex justify-end border-t border-core-border pt-5"><ActionButton type="button" variant="primary" icon={Save} onClick={save}>Stapeleinstellungen speichern</ActionButton></div>
         </SoftPanel>
       </section>
 

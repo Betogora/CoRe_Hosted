@@ -1,6 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
-import { ArrowLeft, CalendarRange, FolderPlus, Layers, Play, Save, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarRange, FolderPlus, Layers, Play, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { DeckSettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeDeckAppearance } from "../coreModel.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
@@ -12,6 +12,7 @@ import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
+import { createDeckLearningSettingsDraft, createDeckSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual, type DeckLearningSettingsDraft, type DeckSettingsDraft } from "../settingsDraft.ts";
 
 const deckSettingsSections = [
   { id: "deck-identity", label: "Stapel", icon: Layers },
@@ -49,20 +50,33 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
   );
 }
 
-export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSave, onSaveLearningProfiles, onSaveAppearance, onRenameDeck, onCreateSubdeck, onStartDeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
-  const [appearance, setAppearance] = React.useState(() => normalizeDeckAppearance(deck?.deckSettings?.appearance));
-  const [nameDraft, setNameDraft] = React.useState(deck?.name ?? "");
+export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onStartDeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
+  const initialDraft = deck ? createDeckSettingsDraft(deck) : null;
+  const [baseline, setBaseline] = React.useState<DeckSettingsDraft | null>(initialDraft);
+  const [draft, setDraft] = React.useState<DeckSettingsDraft | null>(initialDraft);
+  const draftDeckIdRef = React.useRef(deck?.id ?? null);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [feedback, setFeedback] = React.useState("");
   const setSuccessToast = useSuccessToast();
   const deckRow = React.useMemo(() => deleteDialogOpen && deck ? createDeckLibraryModel(decks, { deckSummaries }).rows.find((row) => row.id === deck.id) ?? null : null, [deck, decks, deckSummaries, deleteDialogOpen]);
 
+  const persistedDraft = deck ? createDeckSettingsDraft(deck) : null;
+  const persistedDraftKey = JSON.stringify(persistedDraft);
+
   React.useEffect(() => {
-    setAppearance(normalizeDeckAppearance(deck?.deckSettings?.appearance));
-    setNameDraft(deck?.name ?? "");
+    if (!persistedDraft || !deck) {
+      draftDeckIdRef.current = null;
+      setBaseline(null);
+      setDraft(null);
+      return;
+    }
+    const changedDeck = draftDeckIdRef.current !== deck.id;
+    setDraft((current) => changedDeck || (current && baseline && settingsDraftsEqual(current, baseline)) ? persistedDraft : current);
+    setBaseline(persistedDraft);
+    draftDeckIdRef.current = deck.id;
     setFeedback("");
-  }, [deck?.id, deck?.name, deck?.deckSettings?.appearance?.iconKey, deck?.deckSettings?.appearance?.iconColor]);
+  }, [deck?.id, persistedDraftKey]);
 
   React.useEffect(() => {
     if (!deck || settingsTarget !== "new-cards-per-day") return undefined;
@@ -73,6 +87,50 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
     });
     return () => window.cancelAnimationFrame(frame);
   }, [deck?.id, settingsTarget]);
+
+  const activeDraft = deck && draftDeckIdRef.current === deck.id && draft ? draft : persistedDraft;
+  const draftBelongsToDeck = draftDeckIdRef.current === deck?.id;
+  const dirty = Boolean(draftBelongsToDeck && activeDraft && baseline && !settingsDraftsEqual(activeDraft, baseline));
+
+  const saveDraft = React.useCallback(async () => {
+    if (!deck || !activeDraft) return false;
+    const normalized = normalizeDeckSettingsDraft(activeDraft);
+    if (!normalized.name) {
+      setFeedback("Bitte gib einen Stapelnamen ein.");
+      return false;
+    }
+    const result = onSaveSettings(deck.id, normalized);
+    if (!result?.ok || !result.deck) {
+      setFeedback(result?.error ?? "Die Stapeleinstellungen konnten nicht gespeichert werden.");
+      return false;
+    }
+    const savedDraft = createDeckSettingsDraft(result.deck);
+    setBaseline(savedDraft);
+    setDraft(savedDraft);
+    setFeedback("");
+    setSuccessToast("Stapeleinstellungen wurden gespeichert.");
+    return true;
+  }, [activeDraft, deck, onSaveSettings, setSuccessToast]);
+
+  const discardDraft = React.useCallback(() => {
+    if (!persistedDraft) return;
+    setDraft(persistedDraft);
+    setFeedback("");
+  }, [persistedDraftKey]);
+
+  const saveDraftRef = React.useRef(saveDraft);
+  const discardDraftRef = React.useRef(discardDraft);
+  saveDraftRef.current = saveDraft;
+  discardDraftRef.current = discardDraft;
+  const draftGuard = React.useMemo(() => ({
+    save: () => saveDraftRef.current(),
+    discard: () => discardDraftRef.current(),
+  }), []);
+
+  React.useEffect(() => {
+    onDraftStateChange(dirty ? draftGuard : null);
+    return () => onDraftStateChange(null);
+  }, [dirty, draftGuard, onDraftStateChange]);
 
   if (!deck) {
     return (
@@ -94,26 +152,24 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
       </div>
     );
   }
+  if (!activeDraft) return null;
   const activeDeck = deck;
 
-  function saveIdentity(event: React.FormEvent) {
-    event.preventDefault();
-    const nextName = nameDraft.trim();
-    if (!nextName) {
-      setFeedback("Bitte gib einen Stapelnamen ein.");
-      return;
+  function changeLearningDraft(learning: DeckLearningSettingsDraft) {
+    setDraft((current) => current ? { ...current, learning } : current);
+  }
+
+  function applyLearningProfile(learning: DeckLearningSettingsDraft): boolean {
+    const savedDeck = onApplyLearningProfile(activeDeck.id, learning);
+    if (!savedDeck) {
+      setFeedback("Das Lernprofil konnte nicht auf diesen Stapel angewandt werden.");
+      return false;
     }
-    if (nextName !== activeDeck.name) {
-      const result = onRenameDeck(activeDeck.id, nextName);
-      if (!result || result.error) {
-        setFeedback(result?.error ?? "Der Stapel konnte nicht umbenannt werden.");
-        return;
-      }
-      setNameDraft(result.deck?.name ?? nextName);
-    }
-    onSaveAppearance(activeDeck.id, appearance);
+    const savedLearning = createDeckLearningSettingsDraft(savedDeck.deckSettings);
+    setBaseline((current) => current ? { ...current, learning: savedLearning } : current);
+    setDraft((current) => current ? { ...current, learning: savedLearning } : current);
     setFeedback("");
-    setSuccessToast("Name und Darstellung wurden gespeichert.");
+    return true;
   }
 
   async function confirmDelete() {
@@ -131,7 +187,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   return (
     <div className="grid min-w-0 gap-7" data-testid={`deck-settings-${deck.id}`}>
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
-        <PageHeader eyebrow="Stapel-Einstellungen" title={<span className="flex min-w-0 items-center gap-3"><DeckAppearanceIcon appearance={appearance} className="size-11" iconSize={20} data-testid="deck-settings-title-icon" /><span className="min-w-0 break-words" data-testid="deck-settings-title-name">{deck.name}</span></span>} />
+        <PageHeader eyebrow="Stapel-Einstellungen" title={<span className="flex min-w-0 items-center gap-3"><DeckAppearanceIcon appearance={activeDraft.appearance} className="size-11" iconSize={20} data-testid="deck-settings-title-icon" /><span className="min-w-0 break-words" data-testid="deck-settings-title-name">{deck.name}</span></span>} />
         <div className="flex flex-wrap gap-2"><CrossLinkButton onSelect={onOpenGlobalSettings}>Globale Einstellungen</CrossLinkButton><button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action"><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button></div>
       </div>
 
@@ -139,23 +195,22 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
       <section id="deck-identity" className="grid gap-4" aria-labelledby="deck-identity-heading">
         <h2 id="deck-identity-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Stapel</h2>
         <SoftPanel className="p-5 sm:p-6">
-          <form className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end" onSubmit={saveIdentity}>
-            <label className="grid min-w-0 gap-2 core-body font-semibold text-core-muted">Name<input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={nameDraft} aria-label="Stapelname" data-testid="deck-settings-name-input" onChange={(event) => { setNameDraft(event.target.value); setFeedback(""); }} /></label>
-            <label className="grid gap-2 core-body font-semibold text-core-muted">Icon<DeckIconPicker value={appearance.iconKey} color={appearance.iconColor} onChange={(iconKey) => setAppearance((current) => normalizeDeckAppearance({ ...current, iconKey }))} /></label>
-            <label className="grid gap-2 core-body font-semibold text-core-muted">Farbe<ColorWheelPicker value={appearance.iconColor} ariaLabel="Farbe auswählen" className="justify-self-start" onValueCommit={(iconColor) => setAppearance((current) => normalizeDeckAppearance({ ...current, iconColor }))} /></label>
-            <ActionButton type="submit" variant="primary" icon={Save} className="md:col-span-3 md:w-fit">Name und Darstellung speichern</ActionButton>
-          </form>
+          <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
+            <label className="grid min-w-0 gap-2 core-body font-semibold text-core-muted">Name<input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={activeDraft.name} aria-label="Stapelname" data-testid="deck-settings-name-input" onChange={(event) => { setDraft((current) => current ? { ...current, name: event.target.value } : current); setFeedback(""); }} /></label>
+            <label className="grid gap-2 core-body font-semibold text-core-muted">Icon<DeckIconPicker value={activeDraft.appearance.iconKey} color={activeDraft.appearance.iconColor} onChange={(iconKey) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconKey }) } : current)} /></label>
+            <label className="grid gap-2 core-body font-semibold text-core-muted">Farbe<ColorWheelPicker value={activeDraft.appearance.iconColor} ariaLabel="Farbe auswählen" className="justify-self-start" onValueCommit={(iconColor) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconColor }) } : current)} /></label>
+          </div>
           {feedback ? <p className="core-status-error mt-3 core-body" role="alert">{feedback}</p> : null}
           <div className="mt-6 grid gap-3 border-t border-core-border pt-5 sm:grid-cols-2 xl:grid-cols-4">
-            <ActionButton type="button" variant="secondary" icon={FolderPlus} className="justify-start" onClick={() => onCreateSubdeck(deck.id)}>Unterstapel anlegen</ActionButton>
-            <ActionButton type="button" variant="secondary" icon={Play} className="justify-start" onClick={() => onStartDeck(deck, false)}>Lernen</ActionButton>
-            <ActionButton type="button" variant="secondary" icon={Sparkles} className="justify-start" onClick={() => onStartDeck(deck, true)}>Varianten lernen</ActionButton>
-            <ActionButton type="button" variant="destructive" icon={Trash2} className="justify-start" onClick={() => setDeleteDialogOpen(true)}>Löschen</ActionButton>
+            <ActionButton type="button" variant="secondary" icon={FolderPlus} className="justify-start" onClick={() => onRequestContextAction(() => onCreateSubdeck(deck.id))}>Unterstapel anlegen</ActionButton>
+            <ActionButton type="button" variant="secondary" icon={Play} className="justify-start" onClick={() => onRequestContextAction(() => onStartDeck(deck, false))}>Lernen</ActionButton>
+            <ActionButton type="button" variant="secondary" icon={Sparkles} className="justify-start" onClick={() => onRequestContextAction(() => onStartDeck(deck, true))}>Varianten lernen</ActionButton>
+            <ActionButton type="button" variant="destructive" icon={Trash2} className="justify-start" onClick={() => onRequestContextAction(() => setDeleteDialogOpen(true))}>Löschen</ActionButton>
           </div>
         </SoftPanel>
       </section>
 
-      <LearningSettingsPanel settings={deck.deckSettings} profiles={learningProfiles} defaultProfileName={deck.name} onProfilesChange={onSaveLearningProfiles} onSave={(settings) => onSave(deck.id, settings)} />
+      <LearningSettingsPanel draft={activeDraft.learning} profiles={learningProfiles} defaultProfileName={deck.name} onProfilesChange={onSaveLearningProfiles} onDraftChange={changeLearningDraft} onApplyProfile={applyLearningProfile} />
       </InPageNavigation>
 
       <ActionDialog open={deleteDialogOpen} title="Stapelbaum löschen?" description={<div className="grid gap-2"><p>„{deck.name}“ und alle Inhalte dieses Stapelbaums werden als gelöscht markiert.</p><ul className="list-disc pl-5"><li>{Math.max(0, (deckRow?.scopeDeckIds.length ?? 1) - 1)} Unterstapel</li><li>{deckRow?.summary.totalCards ?? 0} {(deckRow?.summary.totalCards ?? 0) === 1 ? "aktive Karte" : "aktive Karten"}</li></ul></div>} confirmLabel="Stapelbaum löschen" cancelLabel="Abbrechen" confirmLoading={deleting} destructive onCancel={() => setDeleteDialogOpen(false)} onConfirm={() => void confirmDelete()} />

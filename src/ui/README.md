@@ -90,6 +90,8 @@ const setSuccessToast = useSuccessToast();
 setSuccessToast("Import erfolgreich abgeschlossen.");
 ```
 
+`SettingsSaveBar` aus `src/ui/SettingsSaveBar.tsx` ist die einzige seitenweite Aktion für ungespeicherte globale und stapelbezogene Einstellungen. Sie ist eine beschriftete, höflich angekündigte, nichtmodale `core-overlay`-Region ohne Backdrop oder Fokusfalle, liegt im unteren Viewportbereich oberhalb der mobilen Navigation und komponiert ausschließlich zwei gleich breite `ActionButton`s: sekundär `Verwerfen`, primär `Speichern`. Draft, Persistenz, Fehler und zurückgehaltene Navigation gehören weiterhin `App` und dem jeweiligen Screen.
+
 ## Formular-Primitives
 
 `core-field`, `core-field-label`, `core-field-hint`, `core-field-error` und `core-field-group` vereinheitlichen Feld, Label, Hinweis, Fehler, Fokus, Invalid und Disabled. Inputs und Textareas behalten ihre native beziehungsweise fachliche React-Struktur; es gibt bewusst keinen generischen Formularwrapper.
@@ -120,7 +122,7 @@ Stapelbezogene Auswahl verwendet `DeckSelect` für genau einen Stapel und `DeckM
 - `ColorWheelPicker` aus `src/ui/ColorWheelPicker.tsx`: kompakter runder Farbkreis für kontrollierte Farbfelder.
 - `ColorPopover` und `ColorToolButton` aus `src/ui/colorPicker.tsx`: gespeicherte Rich-Text-Farbfelder und technisches Farbspektrum.
 - `PdfDocumentViewer` aus `src/ui/PdfDocumentViewer.tsx`: PDF-Rendering, Zoom, Navigation und Textauswahl.
-- `LearningSettingsPanel` aus `src/ui/LearningSettingsPanel.tsx`: ausschließlich stapelspezifische Projektion für Tagesrunde, konto-weite Copy-on-apply-Lernprofil-Vorlagen, Scheduler und getrennte CoRe-Parameter. Vorlagen werden explizit angewandt; direkte Lernwertänderungen löschen die Herkunft, CoRe-Werte bleiben bei Profilwechseln erhalten. Eigene Vorlagen können angelegt, umbenannt, versioniert aktualisiert und bestätigt gelöscht werden. `learnAheadMinutes` und `dayStartHour` erscheinen hier nicht.
+- `LearningSettingsPanel` aus `src/ui/LearningSettingsPanel.tsx`: kontrollierte, ausschließlich stapelspezifische Projektion für Tagesrunde, konto-weite Copy-on-apply-Lernprofil-Vorlagen, Scheduler und getrennte CoRe-Parameter. Feldänderungen fließen in den Seitendraft; eine eigene Speichern-Aktion besitzt das Panel nicht. Vorlagen werden explizit und unmittelbar angewandt; direkte Lernwertänderungen löschen die Herkunft, CoRe-Werte bleiben bei Profilwechseln erhalten. Eigene Vorlagen können angelegt, umbenannt, versioniert aktualisiert und bestätigt gelöscht werden. `learnAheadMinutes` und `dayStartHour` erscheinen hier nicht.
 - `DeckAppearanceIcon` aus `src/ui/deckAppearance.tsx`: normalisierte, nutzerdefinierte Stapeldarstellung.
 - `CardHtml` aus `src/ui/cardMedia.tsx`: sanitisiertes Karten-HTML mit aufgelösten Medien.
 - `ReleaseInfo` aus `src/ui/ReleaseInfo.tsx`: sichtbare Build-/Release-Information.

@@ -16,12 +16,11 @@ function renderSettings() {
       profile={profile}
       syncStatus={{ status: "idle" }}
       globalSchedulerPreferences={getGlobalSchedulerPreferences(profile)}
-      onSaveProfile={() => undefined}
-      onSaveGlobalSchedulerPreferences={() => undefined}
+      onSaveSettings={() => profile}
+      onDraftStateChange={() => undefined}
       onCreateExport={async () => "{}"}
       onImportExport={async () => undefined}
       onSyncNow={async () => undefined}
-      onSaveSyncInterval={async () => undefined}
       onListConflicts={async () => []}
       onResolveConflict={async () => undefined}
       onSignOut={async () => undefined}
@@ -51,6 +50,7 @@ test("account settings expose only active profile fields in one wide panel", () 
   assert.match(html, /readOnly=""[^>]*value="login@example\.test"/);
   assert.doesNotMatch(html, /Hochschule|Fachgebiet|Sprache|Deutsch \(Beta\)|Privatsphäre|Online-Status|Streaks/);
   assert.doesNotMatch(html, /xl:grid-cols-\[1fr_0\.8fr\]/);
+  assert.doesNotMatch(html, /Profil speichern/);
 });
 
 test("learning-day settings contain only global scheduler context", () => {
@@ -66,6 +66,7 @@ test("learning-day settings contain only global scheduler context", () => {
   assert.match(html, />Pomodoro-Timer</);
   assert.doesNotMatch(html, />Hilfe</);
   assert.doesNotMatch(html, /Neue Karten pro Tag|Wiederholungen pro Tag|CoRe-Modus|Gewünschte Erinnerungsrate/);
+  assert.doesNotMatch(html, /Lerntag speichern/);
 });
 
 test("data settings disclose export limits and profile portability", () => {
@@ -73,6 +74,7 @@ test("data settings disclose export limits and profile portability", () => {
   for (const text of ["Medienbytes", "Authdaten", "serverseitigen Sicherungskopien", "DSGVO-Auskunftsdaten nach Art. 15", "Eigene Lernprofile"]) assert.match(html, new RegExp(text));
   assert.match(html, />Export herunterladen</);
   assert.match(html, />Roh-JSON anzeigen</);
+  assert.doesNotMatch(html, /Automatik speichern/);
 });
 
 test("conflict previews count only the selected direction", () => {

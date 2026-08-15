@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 5fb359feeacfccc9 */
+/* Quellenstand: 910548c483f03e4b */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1054,6 +1054,9 @@ video {
 .min-w-64 {
   min-width: 16rem;
 }
+.max-w-\[26rem\] {
+  max-width: 26rem;
+}
 .max-w-full {
   max-width: 100%;
 }
@@ -1109,6 +1112,9 @@ video {
 }
 .list-disc {
   list-style-type: disc;
+}
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3655,6 +3661,16 @@ summary {
                   <svg class="catalog-icon shrink-0"><use href="#icon-check"></use></svg>
                   <div class="flex min-w-0 items-center gap-3"><p class="min-w-0 flex-1 break-words core-body-large font-medium">Stapel „Welt-Hauptstädte“ wurde erfolgreich verschoben.</p><button type="button" class="core-action-ghost min-w-11 shrink-0 p-2.5" aria-label="Erfolgsmeldung schließen"><svg class="catalog-icon"><use href="#icon-x"></use></svg></button></div>
                 </div>
+              </div>
+              <div class="catalog-demo catalog-stack">
+                <span class="catalog-demo-label">Nichtmodale Einstellungs-Save-Bar · App-weite Einzelinstanz</span>
+                <aside aria-label="Ungespeicherte Änderungen" class="core-overlay grid w-full max-w-[26rem] gap-3 rounded-[18px] p-4 shadow-[var(--core-shadow-raised)]">
+                  <p class="core-body-large font-semibold text-core-text" role="status" aria-live="polite">Ungespeicherte Änderungen</p>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button type="button" class="core-action-secondary min-h-11 w-full justify-center"><svg class="catalog-icon"><use href="#icon-undo"></use></svg><span>Verwerfen</span></button>
+                    <button type="button" class="core-action-primary min-h-11 w-full justify-center"><svg class="catalog-icon"><use href="#icon-save"></use></svg><span>Speichern</span></button>
+                  </div>
+                </aside>
               </div>
               <div class="catalog-grid">
                 <dl class="core-surface-raised rounded-[18px] p-6"><dt class="core-status-label uppercase tracking-wide text-core-muted"><span class="grid size-12 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon-lg"><use href="#icon-chart"></use></svg></span><span class="mt-5 block">Heute fällig</span></dt><dd class="core-heading-2 mt-2 text-core-text">24</dd><dd class="core-body mt-1 text-core-muted">aus 186 Karten</dd></dl>

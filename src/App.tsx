@@ -1,7 +1,7 @@
 import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AuthPhase } from "./accountSession.ts";
-import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, ImportVerificationScope, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NewReviewOrder, SyncStatus } from "./coreTypes.ts";
+import type { CardEditorValue, CoreMode, Deck, ImportCommitGraph, ImportVerificationScope, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NewReviewOrder, SyncStatus } from "./coreTypes.ts";
 import { ArrowRight, Database, Layers } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
@@ -19,6 +19,7 @@ import type {
   DecksCardPageRequest,
   DecksScreenProps,
   LearnScreenProps,
+  SettingsDraftGuard,
   SettingsScreenProps,
   SimulatorScreenProps,
   StatisticsScreenProps,
@@ -48,12 +49,14 @@ import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes
 import type { AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import { createSupabaseBrowserClient, getSupabaseBrowserConfig } from "./supabaseClient.ts";
-import { useAppNavigation } from "./useAppNavigation.ts";
+import { useAppNavigation, type AppNavigationRequest } from "./useAppNavigation.ts";
 import { setDeckExpanded, type DeckExpansionSurface } from "./uiPreferences.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
 import { AppNavigation } from "./ui/AppNavigation.tsx";
 import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
+import { SettingsSaveBar } from "./ui/SettingsSaveBar.tsx";
+import { normalizeDeckSettingsDraft, type DeckLearningSettingsDraft, type DeckSettingsDraft, type GlobalSettingsDraft } from "./settingsDraft.ts";
 
 const CreationScreen = React.lazy<React.ComponentType<CreationScreenProps>>(() => import("./screens/CreationScreen.tsx").then(({ CreationScreen }) => ({ default: CreationScreen })));
 const DashboardScreen = React.lazy<React.ComponentType<DashboardScreenProps>>(() => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })));
@@ -79,6 +82,7 @@ type CardDocumentValue = { fields: Array<{ id: string; value: string }>; tags?: 
 type CardVariantInput = { front: string; back: string; variantLevel?: number; generationSource?: "original" | "ai_generated" | "user_edited" | "imported"; qualityStatus?: "draft" | "active" | "rejected" | "flagged" | "disabled"; isActive?: boolean; meta?: Record<string, unknown> };
 type ManualCardInput = Parameters<typeof createManualCoreDeck>[0];
 type PendingNavigation = { run: () => void; source: "creation" | "card" };
+type PendingSettingsNavigation = { run: () => void };
 interface StateRefreshOptions { preserveCardPages?: boolean }
 interface EmptyStudyStart {
   deckId: string;
@@ -105,6 +109,29 @@ function createEmptyStudyStart(
     hasAdditionalNewCards: queue.availableNewCards > 0,
     limitReached: queue.availableDueCards > 0 || queue.limitSummary.hiddenDueCount > 0,
     returnContext: reviewReturnContextToSettingsReturnContext(returnContext),
+  };
+}
+
+function withDeckLearningSettings(deck: Deck, settings: LearningSettingsInput): Deck {
+  const normalized = normalizeLearningSettings(settings);
+  const variantThresholdXp = settings.variantThresholdXp == null ? undefined : Number(settings.variantThresholdXp);
+  const maxActiveVariantsPerCard = settings.maxActiveVariantsPerCard == null ? undefined : Number(settings.maxActiveVariantsPerCard);
+  const nextDeckSettings = createDefaultDeckSettings({
+    ...deck.deckSettings,
+    ...normalized,
+    learningProfileSource: normalizeLearningProfileSource(settings.learningProfileSource),
+    coreMode: settings.coreMode === "off" || settings.coreMode === "auto" || settings.coreMode === "manual" ? settings.coreMode : deck.deckSettings.coreMode,
+    ...(Number.isFinite(variantThresholdXp) ? { variantThresholdXp } : {}),
+    ...(Number.isFinite(maxActiveVariantsPerCard) ? { maxActiveVariantsPerCard } : {}),
+    ...(settings.newCardsPerDay !== undefined && settings.newCardsPerDay !== deck.deckSettings.newCardsPerDay
+      ? { newCardsTodayOverride: null }
+      : {}),
+  });
+
+  return {
+    ...deck,
+    deckSettings: nextDeckSettings,
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -209,6 +236,10 @@ export function App() {
   const [apkgImportSession, setApkgImportSessionState] = React.useState<ApkgImportSession>(() => createEmptyApkgImportSession());
   const creationDraftDirtyRef = React.useRef(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
+  const settingsDraftGuardRef = React.useRef<SettingsDraftGuard | null>(null);
+  const [settingsDraftOpen, setSettingsDraftOpen] = React.useState(false);
+  const [pendingSettingsNavigation, setPendingSettingsNavigation] = React.useState<PendingSettingsNavigation | null>(null);
+  const [savingSettingsDraft, setSavingSettingsDraft] = React.useState(false);
   const [emptyStudyStart, setEmptyStudyStart] = React.useState<EmptyStudyStart | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
   const [simulationOffsetMinutes, setSimulationOffsetMinutes] = React.useState(0);
@@ -223,6 +254,11 @@ export function App() {
   const apkgImportSessionRef = React.useRef(apkgImportSession);
   const apkgAccountIdRef = React.useRef<string | null>(null);
   const importCloudTasksRef = React.useRef(new Set<ImportCloudSyncTask>());
+  const handleBeforeSettingsNavigation = React.useCallback((request: AppNavigationRequest) => {
+    if (!settingsDraftGuardRef.current) return false;
+    setPendingSettingsNavigation({ run: request.proceed });
+    return true;
+  }, []);
   const {
     activeView,
     studyRequest,
@@ -241,7 +277,7 @@ export function App() {
     navigateToView: navigateToViewNow,
     getStudyReturnRoute,
     resetBrowserRouteToDefault,
-  } = useAppNavigation({ authPhase, defaultViewId: menu.defaultViewId });
+  } = useAppNavigation({ authPhase, defaultViewId: menu.defaultViewId, onBeforeNavigation: handleBeforeSettingsNavigation });
   const mediaStore = React.useMemo(() => cloudUser ? createAccountMediaStore({ client: supabase, supabaseUrl: getSupabaseBrowserConfig().url, userId: cloudUser.id }) : null, [cloudUser, supabase]);
 
   const setApkgImportSession = React.useCallback((update: React.SetStateAction<ApkgImportSession>) => {
@@ -412,6 +448,60 @@ export function App() {
   const handleCardDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
     cardDraftGuardRef.current = guard;
   }, []);
+
+  const handleSettingsDraftStateChange = React.useCallback((guard: SettingsDraftGuard | null) => {
+    settingsDraftGuardRef.current = guard;
+    setSettingsDraftOpen(Boolean(guard));
+  }, []);
+
+  const requestSettingsContextAction = React.useCallback((action: () => void) => {
+    if (settingsDraftGuardRef.current) {
+      setPendingSettingsNavigation({ run: action });
+      return;
+    }
+    action();
+  }, []);
+
+  function continueAfterSettingsDecision(navigation = pendingSettingsNavigation) {
+    setPendingSettingsNavigation(null);
+    navigation?.run();
+  }
+
+  async function saveSettingsDraft() {
+    const guard = settingsDraftGuardRef.current;
+    const navigation = pendingSettingsNavigation;
+    if (!guard) {
+      continueAfterSettingsDecision(navigation);
+      return;
+    }
+    setSavingSettingsDraft(true);
+    try {
+      if (!await guard.save()) return;
+      settingsDraftGuardRef.current = null;
+      setSettingsDraftOpen(false);
+      continueAfterSettingsDecision(navigation);
+    } finally {
+      setSavingSettingsDraft(false);
+    }
+  }
+
+  function discardSettingsDraft() {
+    const navigation = pendingSettingsNavigation;
+    settingsDraftGuardRef.current?.discard();
+    settingsDraftGuardRef.current = null;
+    setSettingsDraftOpen(false);
+    continueAfterSettingsDecision(navigation);
+  }
+
+  React.useEffect(() => {
+    if (!settingsDraftOpen) return undefined;
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [settingsDraftOpen]);
 
   const pendingCardNavigation = pendingNavigation?.source === "card";
 
@@ -994,14 +1084,6 @@ export function App() {
     return result;
   }
 
-  function renameDeck(deckId: string, name: string) {
-    if (!state) return null;
-    const result = updateDeckTreePlacement(state, { deckId, name, changeType: "deck_renamed", reason: "Stapel umbenannt" });
-    if (!result) return null;
-    if (result.ok && result.updatedDecks.length) runRepositoryMutation((repository) => repository.saveDeckMetadata(result.updatedDecks));
-    return result;
-  }
-
   function moveDeck(deckId: string, parentDeckId: string | null = null) {
     if (!state) return null;
     const result = updateDeckTreePlacement(state, { deckId, parentDeckId, changeType: "deck_moved", reason: parentDeckId ? "Stapel als Unterstapel verschoben" : "Stapel auf Hauptebene verschoben" });
@@ -1018,28 +1100,41 @@ export function App() {
     deckId: string,
     settings: LearningSettingsInput = {},
   ) {
-    return updateDeck(deckId, (deck) => {
-      const normalized = normalizeLearningSettings(settings);
-      const variantThresholdXp = settings.variantThresholdXp == null ? undefined : Number(settings.variantThresholdXp);
-      const maxActiveVariantsPerCard = settings.maxActiveVariantsPerCard == null ? undefined : Number(settings.maxActiveVariantsPerCard);
-      const nextDeckSettings = createDefaultDeckSettings({
-        ...deck.deckSettings,
-        ...normalized,
-        learningProfileSource: normalizeLearningProfileSource(settings.learningProfileSource),
-        coreMode: settings.coreMode === "off" || settings.coreMode === "auto" || settings.coreMode === "manual" ? settings.coreMode : deck.deckSettings.coreMode,
-        ...(Number.isFinite(variantThresholdXp) ? { variantThresholdXp } : {}),
-        ...(Number.isFinite(maxActiveVariantsPerCard) ? { maxActiveVariantsPerCard } : {}),
-        ...(settings.newCardsPerDay !== undefined && settings.newCardsPerDay !== deck.deckSettings.newCardsPerDay
-          ? { newCardsTodayOverride: null }
-          : {}),
-      });
+    return updateDeck(deckId, (deck) => withDeckLearningSettings(deck, settings));
+  }
 
-      return {
-        ...deck,
-        deckSettings: nextDeckSettings,
-        updatedAt: new Date().toISOString(),
-      };
+  function saveDeckSettings(deckId: string, input: DeckSettingsDraft) {
+    const currentState = latestStateRef.current;
+    if (!currentState) return null;
+    const draft = normalizeDeckSettingsDraft(input);
+    const placement = updateDeckTreePlacement(currentState, {
+      deckId,
+      name: draft.name,
+      changeType: "deck_settings_saved",
+      reason: "Stapeleinstellungen gespeichert",
     });
+    if (!placement.ok || !placement.deck) return placement;
+
+    const rootDeck = withDeckLearningSettings(placement.deck, draft.learning);
+    const updatedRoot = {
+      ...rootDeck,
+      deckSettings: createDefaultDeckSettings({
+        ...rootDeck.deckSettings,
+        appearance: draft.appearance,
+      }),
+    };
+    const updatedDecks = (placement.updatedDecks.length ? placement.updatedDecks : [placement.deck])
+      .map((candidate) => candidate.id === deckId ? updatedRoot : candidate);
+    const savedDecks = runRepositoryMutation((repository) => repository.saveDeckMetadata(updatedDecks), { preserveCardPages: true });
+    const savedDeck = savedDecks?.find((candidate) => candidate.id === deckId) ?? null;
+    return {
+      ...placement,
+      ok: Boolean(savedDeck),
+      error: savedDeck ? null : "Die Stapeleinstellungen konnten nicht gespeichert werden.",
+      deck: savedDeck,
+      updatedDecks: savedDecks ?? [],
+      changedDeckIds: [...new Set([...placement.changedDeckIds, deckId])],
+    };
   }
 
   function setCardStudyState(deckId: string, cardId: string, patch: LearningItemStudyStatePatch) {
@@ -1072,19 +1167,6 @@ export function App() {
     setStudyDecks((current) => current?.map((candidate) => candidate.id === deckId ? updated : candidate) ?? current);
     runRepositoryMutation((repository) => repository.updateDeckSettings(deckId, nextDeckSettings), { preserveCardPages: true });
     return updated;
-  }
-
-  function saveDeckAppearance(deckId: string, appearance: Deck["deckSettings"]["appearance"]) {
-    return updateDeck(deckId, (deck: Deck) => ({
-      ...deck,
-      deckSettings: { ...deck.deckSettings, appearance },
-      updatedAt: new Date().toISOString(),
-    }));
-  }
-
-  function saveGlobalSchedulerPreferences(settings: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">) {
-    if (!state) return null;
-    return runRepositoryMutation((repository) => repository.saveProfile(withGlobalSchedulerPreferences(state.profile, settings)));
   }
 
   function saveLearningProfiles(learningProfiles: LearningProfileTemplate[]) {
@@ -1230,14 +1312,25 @@ export function App() {
     });
   }
 
-  function saveProfile(profile: unknown) {
-    return runRepositoryMutation((repository) => repository.saveProfile(profile));
-  }
-
-  async function saveSyncInterval(syncIntervalMinutes: import("./coreTypes.ts").SyncIntervalMinutes) {
-    if (!state) return;
-    await saveProfile({ uiPreferences: { ...state.profile.uiPreferences, syncIntervalMinutes } });
-    await syncNow();
+  function saveGlobalSettings(draft: GlobalSettingsDraft) {
+    const currentState = latestStateRef.current;
+    if (!currentState) return null;
+    const syncIntervalChanged = currentState.profile.uiPreferences.syncIntervalMinutes !== draft.syncIntervalMinutes;
+    const profile = withGlobalSchedulerPreferences({
+      ...currentState.profile,
+      displayName: draft.displayName,
+      uiPreferences: {
+        ...currentState.profile.uiPreferences,
+        syncIntervalMinutes: draft.syncIntervalMinutes,
+      },
+    }, {
+      dayStartHour: draft.dayStartHour,
+      learnAheadMinutes: draft.learnAheadMinutes,
+      easyDays: draft.easyDays,
+    });
+    const saved = runRepositoryMutation((repository) => repository.saveProfile(profile));
+    if (saved && syncIntervalChanged) void syncNow().catch(() => undefined);
+    return saved;
   }
 
   function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
@@ -1406,10 +1499,11 @@ export function App() {
           deckSummaries={deckSummaries}
           learningProfiles={globalSchedulerPreferences.learningProfiles}
           settingsTarget={settingsTarget}
-          onSave={saveDeckLearningSettings}
+          onSaveSettings={saveDeckSettings}
+          onApplyLearningProfile={(deckId, learning: DeckLearningSettingsDraft) => saveDeckLearningSettings(deckId, learning)}
           onSaveLearningProfiles={saveLearningProfiles}
-          onSaveAppearance={saveDeckAppearance}
-          onRenameDeck={renameDeck}
+          onDraftStateChange={handleSettingsDraftStateChange}
+          onRequestContextAction={requestSettingsContextAction}
           onCreateSubdeck={openDeckCreation}
           onStartDeck={startDeck}
           onDeleteDeck={async (deckId) => {
@@ -1565,16 +1659,19 @@ export function App() {
         <SettingsScreen
           profile={state.profile}
           syncStatus={syncStatus}
-          onSaveProfile={saveProfile}
           globalSchedulerPreferences={globalSchedulerPreferences}
-          onSaveGlobalSchedulerPreferences={saveGlobalSchedulerPreferences}
+          onSaveSettings={saveGlobalSettings}
+          onDraftStateChange={handleSettingsDraftStateChange}
           onCreateExport={createPortableExportText}
           onImportExport={importPortableExport}
           onSyncNow={syncNow}
-          onSaveSyncInterval={saveSyncInterval}
           onListConflicts={listSyncConflicts}
           onResolveConflict={resolveSyncConflict}
-          onSignOut={signOut}
+          onSignOut={() => {
+            if (!settingsDraftGuardRef.current) return signOut();
+            setPendingSettingsNavigation({ run: () => { void signOut(); } });
+            return Promise.resolve();
+          }}
           onNavigate={navigateToView}
           simulationOffsetMinutes={simulationOffsetMinutes}
           simulationDateLabel={formatSimulationDate(learningNow)}
@@ -1702,6 +1799,12 @@ export function App() {
           <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
         </section>
       </div>
+      <SettingsSaveBar
+        open={settingsDraftOpen}
+        saving={savingSettingsDraft}
+        onDiscard={discardSettingsDraft}
+        onSave={() => { void saveSettingsDraft(); }}
+      />
       <ActionDialog
         open={Boolean(pendingNavigation)}
         title={pendingCardNavigation ? "Änderungen übernehmen?" : "Ungespeicherten Entwurf verlassen?"}

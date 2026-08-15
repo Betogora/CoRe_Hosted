@@ -372,7 +372,8 @@ test("deck presentation form saves name, icon and color together", async ({ page
   const colorTrigger = page.getByRole("button", { name: "Farbe auswählen" });
   const titleIcon = page.getByTestId("deck-settings-title-icon");
   const nameInput = page.getByRole("textbox", { name: "Stapelname" });
-  const saveButton = page.getByRole("button", { name: "Name und Darstellung speichern" });
+  const saveBar = page.getByTestId("settings-save-bar");
+  const saveButton = saveBar.getByRole("button", { name: "Speichern" });
   await expect(iconTrigger).toHaveCSS("width", "44px");
   await expect(iconTrigger).toHaveCSS("height", "44px");
   await expect(colorTrigger).toHaveCSS("width", "44px");
@@ -411,8 +412,40 @@ test("deck presentation form saves name, icon and color together", async ({ page
 
   await page.keyboard.press("Escape");
   await expect(wheel).toBeHidden();
+  const saveBarViewports = [
+    { width: 1440, height: 900 },
+    { width: 768, height: 900 },
+    { width: 390, height: 844 },
+  ];
+  for (const theme of ["light", "dark"] as const) {
+    if (theme === "dark") {
+      await page.locator('[data-navigation-layout="mobile-header"]').getByRole("button", { name: "Dark Mode einschalten" }).click();
+    }
+    for (const viewport of saveBarViewports) {
+      await page.setViewportSize(viewport);
+      await expect(page.locator("html")).toHaveAttribute("data-core-theme", theme);
+      await expect(saveBar).toBeVisible();
+      const barBox = await saveBar.boundingBox();
+      const actionBoxes = await saveBar.getByRole("button").evaluateAll((buttons) => buttons.map((button) => {
+        const rect = button.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      }));
+      expect(barBox).not.toBeNull();
+      expect(barBox!.x).toBeGreaterThanOrEqual(16);
+      expect(barBox!.x + barBox!.width).toBeLessThanOrEqual(viewport.width - 16 + 1);
+      expect(actionBoxes.every(({ height }) => height >= 44)).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      if (viewport.width < 1280) {
+        const bottomBarBox = await page.locator('[data-navigation-layout="bottom-bar"]').boundingBox();
+        expect(bottomBarBox).not.toBeNull();
+        expect(barBox!.y + barBox!.height).toBeLessThanOrEqual(bottomBarBox!.y);
+      }
+    }
+  }
+  await page.locator('[data-navigation-layout="mobile-header"]').getByRole("button", { name: "Light Mode einschalten" }).click();
   await saveButton.click();
-  await expect(page.getByRole("status").filter({ hasText: "Name und Darstellung wurden gespeichert." })).toBeVisible();
+  await expect(saveBar).toHaveCount(0);
+  await expect(page.getByText("Stapeleinstellungen wurden gespeichert.", { exact: true })).toBeVisible();
   await expect(page.getByTestId("deck-settings-title-name")).toHaveText("Europa kompakt");
   await expect(page.getByTestId("deck-settings-title-name")).toHaveCount(1);
   for (const viewport of [
@@ -424,7 +457,7 @@ test("deck presentation form saves name, icon and color together", async ({ page
     await expect(page.getByTestId("deck-settings-title-icon")).toBeVisible();
     await expect(page.getByTestId("deck-settings-title-name")).toBeVisible();
     await expect(nameInput).toBeVisible();
-    await expect(saveButton).toBeVisible();
+    await expect(page.getByRole("button", { name: "Name und Darstellung speichern" })).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
   await expect.poll(() => storedDeckPresentation(page, DECK_IDS.europe)).toMatchObject({

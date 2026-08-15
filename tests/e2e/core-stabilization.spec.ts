@@ -582,14 +582,14 @@ test("offline changes stay pending and flush when the browser reconnects", async
     await expect(syncNow).toBeEnabled();
 
     await displayName.fill(`${originalDisplayName} Offline`);
-    await page.getByRole("button", { name: "Profil speichern" }).click();
+    await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
     await expect(page.getByLabel("Daten & Synchronisierung").getByText("Offline. Eine Änderung bleibt vorgemerkt und wird automatisch synchronisiert.")).toBeVisible();
 
     await context.setOffline(false);
     await expect(page.getByLabel("Daten & Synchronisierung").getByText(/Zuletzt synchronisiert:/)).toBeVisible();
 
     await displayName.fill(originalDisplayName);
-    await page.getByRole("button", { name: "Profil speichern" }).click();
+    await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
     await page.waitForTimeout(800);
     await expect(page.getByLabel("Daten & Synchronisierung").getByText(/Zuletzt synchronisiert:/)).toBeVisible();
   } finally {
@@ -656,7 +656,7 @@ test("review flow records a rating through accessible controls", async ({ page }
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
 });
 
-test("deck settings keep appearance and learning saves separate and persist CoRe values", async ({ page }: any) => {
+test("deck settings save appearance, learning, scheduler and CoRe values together", async ({ page }: any) => {
   const runtimeErrors: string[] = [];
   page.on("pageerror", (error: Error) => runtimeErrors.push(error.message));
   page.on("console", (message: { type: () => string; text: () => string }) => {
@@ -690,12 +690,12 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
     await expect(page.getByLabel("Stapelname")).toBeVisible();
     await expect(page.getByRole("button", { name: "Icon auswählen" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Farbe auswählen" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Name und Darstellung speichern" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Name und Darstellung speichern" })).toHaveCount(0);
     await expect(page.getByTestId("learning-settings-new-cards")).toBeVisible();
     await expect(page.getByTestId("learning-settings-max-reviews")).toBeVisible();
     await expect(page.getByTestId("learning-settings-maximum-interval")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
-    const targetSizes = await page.getByRole("button", { name: /^(Icon auswählen|Farbe auswählen|Name und Darstellung speichern)$/ }).evaluateAll(
+    const targetSizes = await page.getByRole("button", { name: /^(Icon auswählen|Farbe auswählen)$/ }).evaluateAll(
       (buttons: HTMLElement[]) => buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height })),
     );
     expect(targetSizes.every(({ width, height }: { width: number; height: number }) => width >= 44 && height >= 44)).toBe(true);
@@ -725,8 +725,8 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
   await page.getByTestId("learning-settings-new-cards").fill(String(nextNewCards));
   await page.getByTestId("learning-settings-max-reviews").fill(String(nextMaximumReviews));
   await page.getByTestId("learning-settings-maximum-interval").fill(String(nextMaximumInterval));
-  await page.getByRole("button", { name: "Name und Darstellung speichern" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Name und Darstellung wurden gespeichert." })).toBeVisible();
+  const saveBar = page.getByTestId("settings-save-bar");
+  await expect(saveBar).toHaveCount(1);
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.newCardsPerDay).toBe(initialNewCards);
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.maximumReviewsPerDay).toBe(initialMaximumReviews);
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.schedulerProfile.maximumIntervalDays).toBe(initialMaximumInterval);
@@ -735,8 +735,10 @@ test("deck settings keep appearance and learning saves separate and persist CoRe
   await page.getByRole("option", { name: "Sicher · später" }).click();
   await page.getByLabel("Aktive Varianten pro Karte").click();
   await page.getByRole("option", { name: "3 Varianten" }).click();
-  await page.getByRole("button", { name: "Stapeleinstellungen speichern" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden gespeichert." })).toBeVisible();
+  await expect(saveBar).toHaveCount(1);
+  await saveBar.getByRole("button", { name: "Speichern" }).click();
+  await expect(saveBar).toHaveCount(0);
+  await expect(page.getByText("Stapeleinstellungen wurden gespeichert.", { exact: true })).toBeVisible();
 
   await expect.poll(async () => {
     const deck = (await readAppState(page)).decks.find((candidate: { id: string }) => candidate.id === DECK_IDS.africa);
@@ -776,7 +778,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen" }).click();
   await page.getByTestId("learning-settings-new-cards").fill("0");
   await page.getByTestId("learning-settings-max-reviews").fill("1");
-  await page.getByRole("button", { name: "Stapeleinstellungen speichern" }).click();
+  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden gespeichert." })).toBeVisible();
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();

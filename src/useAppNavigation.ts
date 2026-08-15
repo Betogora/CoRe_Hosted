@@ -79,15 +79,25 @@ export function subscribeToBrowserNavigation(
   return () => target.removeEventListener("popstate", handlePopState);
 }
 
+export interface AppNavigationRequest {
+  currentRoute: AppRoute;
+  nextRoute: AppRoute;
+  source: "app" | "browser";
+  proceed: () => void;
+}
+
 interface UseAppNavigationOptions {
   authPhase: AuthPhase;
   defaultViewId: AppViewId;
+  onBeforeNavigation?: (request: AppNavigationRequest) => boolean;
 }
 
-export function useAppNavigation({ authPhase, defaultViewId }: UseAppNavigationOptions) {
+export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation }: UseAppNavigationOptions) {
   const historyInitializedRef = React.useRef(false);
   const currentRouteRef = React.useRef<AppRoute>(createViewRoute(defaultViewId));
+  const onBeforeNavigationRef = React.useRef(onBeforeNavigation);
   const [projection, setProjection] = React.useState<AppNavigationProjection>(() => projectAppRoute(currentRouteRef.current));
+  onBeforeNavigationRef.current = onBeforeNavigation;
 
   const applyRoute = React.useCallback((route: unknown) => {
     const normalized = normalizeAppRoute(route);
@@ -114,6 +124,13 @@ export function useAppNavigation({ authPhase, defaultViewId }: UseAppNavigationO
     if (!replace && currentUrl === nextUrl && areAppRoutesEqual(currentRouteRef.current, normalized)) {
       return applyRoute(normalized);
     }
+    const currentRoute = currentRouteRef.current;
+    if (!areAppRoutesEqual(currentRoute, normalized) && onBeforeNavigationRef.current?.({
+      currentRoute,
+      nextRoute: normalized,
+      source: "app",
+      proceed: () => { writeBrowserRoute(normalized, { replace }); },
+    })) return currentRoute;
     return writeBrowserRoute(normalized, { replace });
   }, [applyRoute, writeBrowserRoute]);
 
@@ -154,9 +171,24 @@ export function useAppNavigation({ authPhase, defaultViewId }: UseAppNavigationO
   React.useEffect(() => {
     if (!shouldShowAppShell(authPhase)) return undefined;
     return subscribeToBrowserNavigation(window, (_historyState, url) => {
-      applyRoute(parseAppRouteFromUrl(url));
+      const nextRoute = parseAppRouteFromUrl(url);
+      const currentRoute = currentRouteRef.current;
+      if (areAppRoutesEqual(currentRoute, nextRoute)) {
+        applyRoute(nextRoute);
+        return;
+      }
+      if (onBeforeNavigationRef.current?.({
+        currentRoute,
+        nextRoute,
+        source: "browser",
+        proceed: () => { writeBrowserRoute(nextRoute, { replace: true }); },
+      })) {
+        writeBrowserRoute(currentRoute, { replace: true, preserveHash: true });
+        return;
+      }
+      applyRoute(nextRoute);
     });
-  }, [applyRoute, authPhase]);
+  }, [applyRoute, authPhase, writeBrowserRoute]);
 
   return {
     ...projection,

@@ -90,7 +90,7 @@ test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", asy
   expect(deckId).toBeTruthy();
   await page.goto(`/stapel-einstellungen?deck=${encodeURIComponent(deckId)}&returnView=learn`);
   await page.getByTestId("learning-settings-new-cards").fill("0");
-  await page.getByRole("button", { name: "Stapeleinstellungen speichern" }).click();
+  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
 
   await page.goto(`/lernen?deck=${encodeURIComponent(deckId)}`);
   await page.getByTestId(`learn-deck-row-${deckId}`).getByRole("button", { name: /lernen/ }).click();

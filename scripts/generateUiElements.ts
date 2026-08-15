@@ -22,6 +22,7 @@ const visualSourcePaths = [
   "src/ui/actionUi.tsx",
   "src/ui/coreUi.tsx",
   "src/ui/feedbackUi.tsx",
+  "src/ui/SettingsSaveBar.tsx",
   "src/ui/selectUi.tsx",
   "src/ui/tooltipUi.tsx",
   "src/ui/colorPicker.tsx",

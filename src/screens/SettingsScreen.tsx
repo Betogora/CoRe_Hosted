@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarClock, Database, Download, RefreshCw, Save, ShieldCheck, Upload, User, X } from "lucide-react";
+import { CalendarClock, Database, Download, RefreshCw, ShieldCheck, Upload, User, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
@@ -15,6 +15,7 @@ import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { ReleaseInfo } from "../ui/ReleaseInfo.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
+import { createGlobalSettingsDraft, settingsDraftsEqual, type GlobalSettingsDraft } from "../settingsDraft.ts";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 
 const sectionIds = {
@@ -57,46 +58,65 @@ const syncIntervalOptions = [
   { value: "30", label: "Alle 30 Minuten" },
 ];
 
-export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences, onSaveProfile, onSaveGlobalSchedulerPreferences, onCreateExport, onImportExport, onSyncNow, onSaveSyncInterval, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
-  const [displayName, setDisplayName] = React.useState(profile.displayName);
-  const [dayStartHour, setDayStartHour] = React.useState(globalSchedulerPreferences.dayStartHour);
-  const [learnAheadMinutes, setLearnAheadMinutes] = React.useState(globalSchedulerPreferences.learnAheadMinutes);
-  const [easyDays, setEasyDays] = React.useState(globalSchedulerPreferences.easyDays);
-  const [syncIntervalMinutes, setSyncIntervalMinutes] = React.useState<SyncIntervalMinutes>(profile.uiPreferences.syncIntervalMinutes);
+export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences, onSaveSettings, onDraftStateChange, onCreateExport, onImportExport, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
+  const persistedDraft = createGlobalSettingsDraft(profile, globalSchedulerPreferences);
+  const persistedDraftKey = JSON.stringify(persistedDraft);
+  const [baseline, setBaseline] = React.useState<GlobalSettingsDraft>(persistedDraft);
+  const [draft, setDraft] = React.useState<GlobalSettingsDraft>(persistedDraft);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
   const [exportText, setExportText] = React.useState("");
   const [importText, setImportText] = React.useState("");
   const [portabilityMessage, setPortabilityMessage] = React.useState("");
   const setSuccessToast = useSuccessToast();
-  const easyDaysDependency = EASY_DAY_KEYS.map((key) => globalSchedulerPreferences.easyDays[key]).join("|");
-
-  React.useEffect(() => setDisplayName(profile.displayName), [profile.displayName]);
-  React.useEffect(() => setSyncIntervalMinutes(profile.uiPreferences.syncIntervalMinutes), [profile.uiPreferences.syncIntervalMinutes]);
   React.useEffect(() => {
-    setDayStartHour(globalSchedulerPreferences.dayStartHour);
-    setLearnAheadMinutes(globalSchedulerPreferences.learnAheadMinutes);
-    setEasyDays(globalSchedulerPreferences.easyDays);
-  }, [easyDaysDependency, globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes]);
+    setDraft((current) => settingsDraftsEqual(current, baseline) ? persistedDraft : current);
+    setBaseline(persistedDraft);
+  }, [persistedDraftKey]);
 
-  function saveProfile() {
-    onSaveProfile({ ...profile, displayName });
-    setAccountMessage("");
-    setSuccessToast("Profil wurde gespeichert. Die Cloud-Synchronisierung läuft automatisch.");
-  }
+  const dirty = !settingsDraftsEqual(draft, baseline);
 
-  function saveLearningDay() {
-    const next = {
-      dayStartHour: normalizeDayStartHour(dayStartHour),
-      learnAheadMinutes: normalizeLearnAheadMinutes(learnAheadMinutes),
-      easyDays: normalizeEasyDays(easyDays),
+  const saveDraft = React.useCallback(async () => {
+    const normalized: GlobalSettingsDraft = {
+      displayName: draft.displayName.trim(),
+      dayStartHour: normalizeDayStartHour(draft.dayStartHour),
+      learnAheadMinutes: normalizeLearnAheadMinutes(draft.learnAheadMinutes),
+      easyDays: normalizeEasyDays(draft.easyDays),
+      syncIntervalMinutes: draft.syncIntervalMinutes,
     };
-    setDayStartHour(next.dayStartHour);
-    setLearnAheadMinutes(next.learnAheadMinutes);
-    setEasyDays(next.easyDays);
-    onSaveGlobalSchedulerPreferences(next);
-    setSuccessToast("Lerntag, Vorziehfenster und Wochenrhythmus wurden gespeichert.");
-  }
+    try {
+      const saved = await onSaveSettings(normalized);
+      if (!saved) throw new Error("Globale Einstellungen konnten nicht gespeichert werden.");
+      const savedDraft = { ...normalized, displayName: saved.displayName };
+      setBaseline(savedDraft);
+      setDraft(savedDraft);
+      setAccountMessage("");
+      setSuccessToast("Globale Einstellungen wurden gespeichert.");
+      return true;
+    } catch (error) {
+      setAccountMessage(error instanceof Error ? error.message : "Globale Einstellungen konnten nicht gespeichert werden.");
+      return false;
+    }
+  }, [draft, onSaveSettings, setSuccessToast]);
+
+  const discardDraft = React.useCallback(() => {
+    setDraft(persistedDraft);
+    setAccountMessage("");
+  }, [persistedDraftKey]);
+
+  const saveDraftRef = React.useRef(saveDraft);
+  const discardDraftRef = React.useRef(discardDraft);
+  saveDraftRef.current = saveDraft;
+  discardDraftRef.current = discardDraft;
+  const draftGuard = React.useMemo(() => ({
+    save: () => saveDraftRef.current(),
+    discard: () => discardDraftRef.current(),
+  }), []);
+
+  React.useEffect(() => {
+    onDraftStateChange(dirty ? draftGuard : null);
+    return () => onDraftStateChange(null);
+  }, [dirty, draftGuard, onDraftStateChange]);
 
   async function syncNow() {
     setAccountBusy(true);
@@ -106,19 +126,6 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
       setAccountMessage("");
     } catch (error) {
       setAccountMessage(error instanceof Error ? error.message : "Synchronisierung fehlgeschlagen.");
-    } finally {
-      setAccountBusy(false);
-    }
-  }
-
-  async function saveSyncInterval() {
-    setAccountBusy(true);
-    setSuccessToast("");
-    try {
-      await onSaveSyncInterval(syncIntervalMinutes);
-      setSuccessToast(syncIntervalMinutes === 0 ? "Automatische Synchronisierung ist ausgeschaltet." : "Synchronisierungsintervall wurde gespeichert.");
-    } catch (error) {
-      setAccountMessage(error instanceof Error ? error.message : "Synchronisierungsintervall konnte nicht gespeichert werden.");
     } finally {
       setAccountBusy(false);
     }
@@ -199,7 +206,7 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
           <div className="grid min-w-0 gap-4 md:grid-cols-2">
             <label className="grid gap-2 core-body font-semibold text-core-muted">
               Anzeigename
-              <input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+              <input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={draft.displayName} onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))} />
             </label>
             <label className="grid gap-2 core-body font-semibold text-core-muted">
               Login-E-Mail
@@ -208,7 +215,6 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
             </label>
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
-            <ActionButton type="button" variant="primary" icon={Save} onClick={saveProfile} disabled={accountBusy}>Profil speichern</ActionButton>
             <ActionButton type="button" variant="destructive" icon={X} onClick={() => void signOut()} disabled={accountBusy}>Abmelden</ActionButton>
           </div>
           {accountMessage ? <p className="core-status-error mt-3 core-body" role="alert">{accountMessage}</p> : null}
@@ -222,14 +228,14 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
             <label className="grid gap-2 core-body font-semibold text-core-muted">
               Neuer Tag beginnt um
               <span className="flex min-h-11 items-center gap-2 rounded-xl border border-core-border px-3">
-                <input type="number" min="0" max="23" step="1" value={dayStartHour} data-testid="settings-day-start-hour" className="min-w-0 flex-1 bg-transparent text-core-text outline-none" onChange={(event) => setDayStartHour(Number(event.target.value))} />
+                <input type="number" min="0" max="23" step="1" value={draft.dayStartHour} data-testid="settings-day-start-hour" className="min-w-0 flex-1 bg-transparent text-core-text outline-none" onChange={(event) => setDraft((current) => ({ ...current, dayStartHour: Number(event.target.value) }))} />
                 <span className="font-normal">Uhr</span>
               </span>
             </label>
             <label className="grid gap-2 core-body font-semibold text-core-muted">
               Lernkarten vorziehen
               <span className="flex min-h-11 items-center gap-2 rounded-xl border border-core-border px-3">
-                <input type="number" min="0" max="720" step="1" value={learnAheadMinutes} data-testid="settings-learn-ahead" className="min-w-0 flex-1 bg-transparent text-core-text outline-none" onChange={(event) => setLearnAheadMinutes(Number(event.target.value))} />
+                <input type="number" min="0" max="720" step="1" value={draft.learnAheadMinutes} data-testid="settings-learn-ahead" className="min-w-0 flex-1 bg-transparent text-core-text outline-none" onChange={(event) => setDraft((current) => ({ ...current, learnAheadMinutes: Number(event.target.value) }))} />
                 <span className="font-normal">Min.</span>
               </span>
             </label>
@@ -244,20 +250,19 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
             <p className="mt-2 core-caption leading-5 text-core-muted">CoRe verteilt neu berechnete Wiederholungen möglichst auf passendere Tage. Sind alle Tage gleich, bleibt die Planung unverändert.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {EASY_DAY_KEYS.map((key) => (
-                <label key={key} className={`grid min-w-0 gap-2 rounded-2xl border p-4 core-body font-semibold text-core-text ${easyDayToneClasses[easyDays[key]]}`}>
+                <label key={key} className={`grid min-w-0 gap-2 rounded-2xl border p-4 core-body font-semibold text-core-text ${easyDayToneClasses[draft.easyDays[key]]}`}>
                   {weekdayLabels[key]}
                   <CoreSelect
                     ariaLabel={`${weekdayLabels[key]} im Wochenrhythmus`}
-                    value={easyDays[key]}
+                    value={draft.easyDays[key]}
                     options={easyDayOptions}
                     testId={`settings-easy-day-${key}`}
-                    onValueChange={(value) => setEasyDays((current) => ({ ...current, [key]: value as EasyDayLevel }))}
+                    onValueChange={(value) => setDraft((current) => ({ ...current, easyDays: { ...current.easyDays, [key]: value as EasyDayLevel } }))}
                   />
                 </label>
               ))}
             </div>
           </fieldset>
-          <ActionButton type="button" variant="primary" icon={Save} className="mt-4" onClick={saveLearningDay}>Lerntag speichern</ActionButton>
         </SoftPanel>
 
         <SoftPanel className="overflow-hidden p-0">
@@ -286,13 +291,12 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
               Automatisch synchronisieren
               <CoreSelect
                 ariaLabel="Intervall der automatischen Synchronisierung"
-                value={String(syncIntervalMinutes)}
+                value={String(draft.syncIntervalMinutes)}
                 options={syncIntervalOptions}
                 testId="settings-sync-interval"
-                onValueChange={(value) => setSyncIntervalMinutes(Number(value) as SyncIntervalMinutes)}
+                onValueChange={(value) => setDraft((current) => ({ ...current, syncIntervalMinutes: Number(value) as SyncIntervalMinutes }))}
               />
             </label>
-            <ActionButton type="button" variant="secondary" icon={Save} onClick={() => void saveSyncInterval()} disabled={accountBusy || syncIntervalMinutes === profile.uiPreferences.syncIntervalMinutes}>Automatik speichern</ActionButton>
           </div>
           <p className="mt-3 core-caption leading-5 text-core-muted">Lokale Änderungen bleiben sicher in diesem Browser gespeichert. Beim nächsten vollständigen Abgleich werden nur Änderungen übertragen und neue Cloud-Daten geladen.</p>
         </SoftPanel>

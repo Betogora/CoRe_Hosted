@@ -3,9 +3,8 @@ import type { AppRoute, AppViewId, SettingsTarget, createViewRoute } from "./app
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
-import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NoteTypeDefinitionV1, Profile, SyncIntervalMinutes, SyncStatus } from "./coreTypes.ts";
+import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NoteTypeDefinitionV1, Profile, SyncStatus } from "./coreTypes.ts";
 import type { createManualCoreDeck } from "./coreModel.ts";
-import type { LearningSettingsInput } from "./deckSettings.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
@@ -16,6 +15,7 @@ import type { StatisticsDeckSelection, StatisticsPeriod, StatisticsProjection } 
 import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
+import type { DeckLearningSettingsDraft, DeckSettingsDraft, GlobalSettingsDraft } from "./settingsDraft.ts";
 
 type NavigateToView = (
   viewId: AppViewId | undefined,
@@ -30,6 +30,11 @@ type ManualCardInput = Parameters<typeof createManualCoreDeck>[0];
 export interface CardDraftGuard {
   focus: () => void;
   save: () => Promise<boolean>;
+}
+
+export interface SettingsDraftGuard {
+  save: () => Promise<boolean>;
+  discard: () => void;
 }
 
 export interface CreationScreenProps {
@@ -77,10 +82,11 @@ export interface DeckSettingsScreenProps {
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   learningProfiles: LearningProfileTemplate[];
   settingsTarget?: SettingsTarget | null;
-  onSave: (deckId: string, settings: LearningSettingsInput) => unknown;
+  onSaveSettings: (deckId: string, draft: DeckSettingsDraft) => DeckMutationResult | null;
+  onApplyLearningProfile: (deckId: string, settings: DeckLearningSettingsDraft) => Deck | null;
   onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
-  onSaveAppearance: (deckId: string, appearance: Deck["deckSettings"]["appearance"]) => unknown;
-  onRenameDeck: (deckId: string, name: string) => DeckMutationResult | null;
+  onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
+  onRequestContextAction: (action: () => void) => void;
   onCreateSubdeck: (parentDeckId: string) => unknown;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onDeleteDeck: (deckId: string) => Promise<{ deletedDeckIds: string[]; deletedDecks: Deck[]; nextSelectedDeckId: string | null } | null>;
@@ -170,12 +176,11 @@ export interface SettingsScreenProps {
   profile: Profile;
   syncStatus: SyncStatus;
   globalSchedulerPreferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">;
-  onSaveProfile: (profile: Profile) => unknown;
-  onSaveGlobalSchedulerPreferences: (preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">) => unknown;
+  onSaveSettings: (draft: GlobalSettingsDraft) => Profile | null | Promise<Profile | null>;
+  onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
   onCreateExport: () => Promise<string>;
   onImportExport: (value: string) => Promise<unknown>;
   onSyncNow: () => Promise<unknown>;
-  onSaveSyncInterval: (interval: SyncIntervalMinutes) => Promise<unknown>;
   onListConflicts: (options?: { refreshRemote?: boolean }) => Promise<unknown[]>;
   onResolveConflict: (conflictId: string, decision: Record<string, unknown>) => Promise<unknown>;
   onSignOut: () => Promise<void>;

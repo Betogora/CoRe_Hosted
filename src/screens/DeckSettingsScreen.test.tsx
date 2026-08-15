@@ -15,10 +15,11 @@ function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck], s
       decks={decks}
       settingsTarget={settingsTarget}
       learningProfiles={getGlobalSchedulerPreferences({}).learningProfiles}
-      onSave={() => undefined}
+      onSaveSettings={() => null}
+      onApplyLearningProfile={() => null}
       onSaveLearningProfiles={() => undefined}
-      onSaveAppearance={() => undefined}
-      onRenameDeck={() => null}
+      onDraftStateChange={() => undefined}
+      onRequestContextAction={(action) => action()}
       onCreateSubdeck={() => undefined}
       onStartDeck={() => undefined}
       onDeleteDeck={async () => null}
@@ -49,7 +50,7 @@ test("deck appearance controls live in the Stack section instead of the page hea
   assert.match(html, /data-testid="deck-settings-name-input"/);
   assert.match(html, /aria-label="Icon auswählen"/);
   assert.match(html, /aria-label="Farbe auswählen"/);
-  assert.match(html, />Name und Darstellung speichern</);
+  assert.doesNotMatch(html, />Name und Darstellung speichern</);
   assert.doesNotMatch(html, /deck-settings-appearance-toolbar/);
 });
 
@@ -76,6 +77,7 @@ test("deck profiles are copy-on-apply and global learn-ahead is absent", () => {
   assert.match(html, /Wiederholungen haben Vorrang/);
   assert.match(html, />Gewünschte Erinnerungsrate</);
   assert.match(html, />Content Repetition</);
+  assert.doesNotMatch(html, />Stapeleinstellungen speichern</);
   assert.doesNotMatch(html, /Lernkarten vorziehen|Neuer Tag beginnt/);
 });
 

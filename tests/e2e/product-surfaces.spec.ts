@@ -163,23 +163,31 @@ test("dark mode can be toggled from both responsive navigation layouts and persi
   await expect(mobileHeader.getByRole("button", { name: "Dark Mode einschalten" }).locator("svg")).toHaveClass(/lucide-sun/);
 });
 
-test("global learning-day settings save explicitly and persist across reloads", async ({ page }) => {
+test("global settings save multiple sections together through one save bar", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
 
   await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
+  await page.getByLabel("Anzeigename").fill("CoRe Save-Bar E2E");
   await page.locator('[data-in-page-navigation="desktop"]').getByRole("link", { name: "Lerntag & Fokus" }).click();
   await page.getByTestId("settings-day-start-hour").fill("3");
   await page.getByTestId("settings-learn-ahead").fill("45");
-  await page.getByRole("button", { name: "Lerntag speichern" }).click();
+  const saveBar = page.getByTestId("settings-save-bar");
+  await expect(saveBar).toHaveCount(1);
+  await expect(saveBar.getByRole("button")).toHaveText(["Verwerfen", "Speichern"]);
+  await expect(page.getByRole("button", { name: /^(Profil|Lerntag|Automatik) speichern$/ })).toHaveCount(0);
+  await saveBar.getByRole("button", { name: "Speichern" }).click();
+  await expect(saveBar).toHaveCount(0);
+  await expect(page.getByText("Globale Einstellungen wurden gespeichert.", { exact: true })).toBeVisible();
   await expect.poll(async () => {
     const state = await readActiveAccountState(page);
     return {
+      displayName: state.profile.displayName,
       dayStartHour: state.profile.schedulerPreferences.dayStartHour,
       learnAheadMinutes: state.profile.schedulerPreferences.learnAheadMinutes,
     };
-  }).toEqual({ dayStartHour: 3, learnAheadMinutes: 45 });
+  }).toEqual({ displayName: "CoRe Save-Bar E2E", dayStartHour: 3, learnAheadMinutes: 45 });
 
   await page.reload();
   await expect(page.getByTestId("settings-day-start-hour")).toHaveValue("3");
@@ -188,6 +196,31 @@ test("global learning-day settings save explicitly and persist across reloads", 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
+test("discarded global settings do not persist and resume the requested navigation", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  const before = (await readActiveAccountState(page)).profile.displayName;
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await page.getByLabel("Anzeigename").fill("Nicht speichern");
+
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await expect(page).toHaveURL(/\/einstellungen$/);
+  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Verwerfen" }).click();
+  await expect(page).toHaveURL(/\/lernen$/);
+  expect((await readActiveAccountState(page)).profile.displayName).toBe(before);
+});
+
+test("browser back waits for the global settings decision and then resumes", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await page.getByLabel("Anzeigename").fill("Browser-Zurück Entwurf");
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/einstellungen$/);
+  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Verwerfen" }).click();
+  await expect(page).toHaveURL(/\/lernen$/);
 });
 
 test("settings in-page navigation keeps responsive layout, hashes and browser history", async ({ page }) => {
@@ -202,10 +235,13 @@ test("settings in-page navigation keeps responsive layout, hashes and browser hi
   await expect(desktopNavigation.getByRole("link")).toHaveCount(3);
 
   const focusLink = desktopNavigation.getByRole("link", { name: "Lerntag & Fokus" });
+  await page.getByLabel("Anzeigename").fill("Hashnavigation bleibt frei");
   await focusLink.click();
   await expect(page).toHaveURL(/\/einstellungen#settings-learning-day$/);
+  await expect(page.getByTestId("settings-save-bar")).toBeVisible();
   await expect(focusLink).toHaveAttribute("aria-current", "location");
   await expect(page.getByRole("heading", { name: "Lerntag & Fokus" })).toBeVisible();
+  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Verwerfen" }).click();
 
   await page.reload();
   await expect(page).toHaveURL(/\/einstellungen#settings-learning-day$/);
