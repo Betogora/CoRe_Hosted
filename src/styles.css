@@ -380,11 +380,6 @@
   .core-deck-summary-row[data-deck-depth="3"] { background-color: var(--core-group-depth-3); }
   .core-deck-summary-row[data-deck-depth="4"] { background-color: var(--core-group-depth-4); }
 
-  .core-deck-summary-row:has([data-deck-row-activation]:hover),
-  .core-deck-summary-row[data-drop-state="valid"] {
-    border-color: var(--core-border-interactive);
-  }
-
   .core-deck-summary-row[data-drop-state="valid"] {
     border-color: var(--core-warning);
     box-shadow: inset 0 0 0 3px var(--core-warning);

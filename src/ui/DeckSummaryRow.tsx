@@ -19,12 +19,14 @@ const DECK_STATUS_DEFINITIONS = [
 
 export interface DeckSummaryRowProps {
   row: Pick<DeckLibraryRow, "deck" | "name" | "path" | "depth">;
-  summary: DeckLibraryRow["summary"];
-  statusDistribution: DeckStatusDistribution;
+  learningStatus?: {
+    summary: DeckLibraryRow["summary"];
+    statusDistribution: DeckStatusDistribution;
+    metricLabels?: "responsive" | "sr-only";
+  };
   leadingControl: ReactNode;
   actions: ReactNode;
   density?: "default" | "compact" | "responsive";
-  metricLabels?: "responsive" | "sr-only";
   className?: string;
 }
 
@@ -50,24 +52,38 @@ export function DeckSummaryHeader() {
   );
 }
 
-export function DeckSummaryRow({ row, summary, statusDistribution, leadingControl, actions, density = "default", metricLabels = "responsive", className = "" }: DeckSummaryRowProps) {
+export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, density = "default", className = "" }: DeckSummaryRowProps) {
   const compact = density === "compact";
   const responsive = density === "responsive";
   const compactAtBase = compact || responsive;
-  const statusSegments: SegmentedDonutSegment[] = DECK_STATUS_DEFINITIONS.map((status) => ({
+  const metricLabels = learningStatus?.metricLabels ?? "responsive";
+  const statusSegments: SegmentedDonutSegment[] | null = learningStatus ? DECK_STATUS_DEFINITIONS.map((status) => ({
     key: status.key,
-    value: statusDistribution[status.valueKey],
+    value: learningStatus.statusDistribution[status.valueKey],
     color: status.color,
-  }));
-  const totalCards = statusSegments.reduce((total, segment) => total + segment.value, 0);
-  const statusLabel = totalCards > 0
-    ? `Gesamtfortschritt für ${row.path}: ${statusDistribution.learnedCards} von ${formatLearningCardCount(totalCards)} gelernt; ${statusDistribution.newCards} neu, ${statusDistribution.inProgressCards} in Arbeit und ${statusDistribution.dueCards} fällig.`
-    : `Keine aktiven Karten für ${row.path}.`;
+  })) : null;
+  const totalCards = statusSegments?.reduce((total, segment) => total + segment.value, 0) ?? 0;
+  const statusLabel = learningStatus
+    ? totalCards > 0
+      ? `Gesamtfortschritt für ${row.path}: ${learningStatus.statusDistribution.learnedCards} von ${formatLearningCardCount(totalCards)} gelernt; ${learningStatus.statusDistribution.newCards} neu, ${learningStatus.statusDistribution.inProgressCards} in Arbeit und ${learningStatus.statusDistribution.dueCards} fällig.`
+      : `Keine aktiven Karten für ${row.path}.`
+    : "";
+  const gridClass = learningStatus
+    ? compact
+      ? "grid-cols-[minmax(5rem,1fr)_auto_auto] gap-1 px-1"
+      : responsive
+        ? "core-deck-summary-responsive grid-cols-[minmax(0,1fr)_auto_auto] gap-1 px-1"
+        : "grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] gap-x-3 px-2"
+    : compact
+      ? "grid-cols-[minmax(5rem,1fr)_auto] gap-1 px-1"
+      : responsive
+        ? "core-deck-summary-responsive grid-cols-[minmax(0,1fr)_auto] gap-1 px-1"
+        : "grid-cols-[minmax(13rem,1fr)_auto] gap-x-3 px-2";
 
   return (
     <div className={responsive ? "core-deck-summary-container min-w-0" : "min-w-0"}>
       <div
-        className={`pointer-events-none relative z-[1] grid min-h-11 min-w-0 items-center ${compact ? "grid-cols-[minmax(5rem,1fr)_auto_auto] gap-1 px-1" : responsive ? "core-deck-summary-responsive grid-cols-[minmax(0,1fr)_auto_auto] gap-1 px-1" : "grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] gap-x-3 px-2"} ${className}`}
+        className={`pointer-events-none relative z-[1] grid min-h-11 min-w-0 items-center ${gridClass} ${className}`}
         data-deck-summary-row-content={density === "default" ? "true" : density}
       >
         <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: Math.min(row.depth, 6) * 9 }}>
@@ -83,17 +99,19 @@ export function DeckSummaryRow({ row, summary, statusDistribution, leadingContro
           </span>
         </div>
 
-        <dl className={`core-deck-summary-counts grid grid-cols-3 ${compactAtBase ? "items-center gap-1" : "min-w-[15rem] gap-3"} ${responsive ? "core-deck-summary-metrics" : ""}`} aria-label={`Lernstand für ${row.path}`}>
-          {DECK_COUNT_DEFINITIONS.map((count) => (
-            <div key={count.metric} className={`core-deck-summary-count ${compactAtBase ? "min-w-4 text-center" : "grid min-w-0 gap-0.5 text-right"}`} data-deck-count={count.metric}>
-              <dt className={compact || metricLabels === "sr-only" ? "sr-only" : `core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] ${responsive ? "core-deck-summary-count-label sr-only" : ""}`}>{count.label}</dt>
-              <dd className={`core-deck-summary-count-value ${compactAtBase ? "core-caption tabular-nums" : "core-body-large"} font-semibold`} style={{ color: count.color }}>{summary[count.valueKey]}</dd>
-            </div>
-          ))}
-        </dl>
+        {learningStatus ? (
+          <dl className={`core-deck-summary-counts grid grid-cols-3 ${compactAtBase ? "items-center gap-1" : "min-w-[15rem] gap-3"} ${responsive ? "core-deck-summary-metrics" : ""}`} aria-label={`Lernstand für ${row.path}`}>
+            {DECK_COUNT_DEFINITIONS.map((count) => (
+              <div key={count.metric} className={`core-deck-summary-count ${compactAtBase ? "min-w-4 text-center" : "grid min-w-0 gap-0.5 text-right"}`} data-deck-count={count.metric}>
+                <dt className={compact || metricLabels === "sr-only" ? "sr-only" : `core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] ${responsive ? "core-deck-summary-count-label sr-only" : ""}`}>{count.label}</dt>
+                <dd className={`core-deck-summary-count-value ${compactAtBase ? "core-caption tabular-nums" : "core-body-large"} font-semibold`} style={{ color: count.color }}>{learningStatus.summary[count.valueKey]}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
 
         <div className={`core-deck-summary-actions flex items-center justify-end ${compactAtBase ? "gap-0.5" : "gap-2"}`}>
-          <SegmentedDonut segments={statusSegments} ariaLabel={statusLabel} size={density} />
+          {statusSegments ? <SegmentedDonut segments={statusSegments} ariaLabel={statusLabel} size={density} /> : null}
           {actions}
         </div>
       </div>

@@ -111,3 +111,19 @@ test("deck tree projects a persisted collapsed parent", () => {
   assert.match(markup, /Unterstapel von Bereich anzeigen/);
   assert.doesNotMatch(markup, /dashboard-deck-row-child/);
 });
+
+test("deck tree fills hovered rows and separates only top-level trees", () => {
+  const boundaryDecks = [
+    ...decks,
+    createCoreDeck({ id: "second-root", name: "Zweiter Bereich", hierarchyPath: ["Zweiter Bereich"], source: "manual", cards: [] }),
+  ];
+  const markup = renderToStaticMarkup(
+    <DeckTree rows={createDeckLibraryModel(boundaryDecks).rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+  );
+
+  assert.doesNotMatch(markup, /class="core-deck-summary-row[^"]*border-b/);
+  assert.doesNotMatch(markup, /data-testid="learn-deck-row-root"[^>]*class="[^"]*border-t-2/);
+  assert.doesNotMatch(markup, /data-testid="learn-deck-row-child"[^>]*class="[^"]*border-t-2/);
+  assert.match(markup, /data-testid="learn-deck-row-second-root"[^>]*class="[^"]*border-t-2 border-\[var\(--core-border\)\]/);
+  assert.match(markup, /data-deck-row-activation="true"[^>]*class="[^"]*hover:bg-\[var\(--core-focus-ring-soft\)\]/);
+});

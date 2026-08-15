@@ -289,7 +289,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
     onActivate(row);
   }
 
-  function renderRow(row: DeckLibraryRow): React.ReactNode {
+  function renderRow(row: DeckLibraryRow, rowIndex: number): React.ReactNode {
     const isCollapsed = collapsedDeckIdSet.has(row.id);
     const isDragged = draggedDeckId === row.id;
     const isDropTarget = dropIntent?.targetDeckId === row.id;
@@ -324,7 +324,9 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
         data-deck-depth={Math.min(row.depth, MAX_INTERACTIVE_DECK_LEVELS)}
         data-drop-state={isDropTarget ? (dropIntent?.error ? "invalid" : "valid") : undefined}
         data-drag-state={isDragged ? "active" : undefined}
-        className="core-deck-summary-row relative min-w-0 select-none border-b border-[var(--core-border)] last:border-b-0"
+        className={row.depth === 0 && rowIndex > 0
+          ? "core-deck-summary-row relative min-w-0 select-none border-t-2 border-[var(--core-border)]"
+          : "core-deck-summary-row relative min-w-0 select-none"}
       >
         <button
           type="button"
@@ -333,19 +335,17 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
           aria-label={activationLabel}
           data-deck-drag-source="true"
           data-deck-row-activation="true"
-          className={`absolute inset-0 z-0 text-left ${isDragged ? "cursor-grabbing" : "cursor-grab"}`}
+          className={`absolute inset-0 z-0 text-left transition-colors hover:bg-[var(--core-focus-ring-soft)] ${isDragged ? "cursor-grabbing" : "cursor-grab"}`}
         >
           <span className="sr-only">{activationLabel}</span>
         </button>
 
         <DeckSummaryRow
           row={row}
-          summary={row.summary}
-          statusDistribution={row.statusDistribution}
+          learningStatus={{ summary: row.summary, statusDistribution: row.statusDistribution, metricLabels: "sr-only" }}
           leadingControl={collapseControl}
           actions={optionsMenu}
           density="responsive"
-          metricLabels="sr-only"
         />
       </div>
     );

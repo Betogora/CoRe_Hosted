@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: b1d4d92ade42e0f6 */
+/* Quellenstand: 53138750dba53763 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -631,11 +631,6 @@ video {
   .core-deck-summary-row[data-deck-depth="3"] { background-color: var(--core-group-depth-3); }
   .core-deck-summary-row[data-deck-depth="4"] { background-color: var(--core-group-depth-4); }
 
-  .core-deck-summary-row:has([data-deck-row-activation]:hover),
-  .core-deck-summary-row[data-drop-state="valid"] {
-    border-color: var(--core-border-interactive);
-  }
-
   .core-deck-summary-row[data-drop-state="valid"] {
     border-color: var(--core-warning);
     box-shadow: inset 0 0 0 3px var(--core-warning);
@@ -1062,12 +1057,6 @@ video {
 .min-w-64 {
   min-width: 16rem;
 }
-.min-w-\[15rem\] {
-  min-width: 15rem;
-}
-.min-w-\[46rem\] {
-  min-width: 46rem;
-}
 .max-w-full {
   max-width: 100%;
 }
@@ -1127,8 +1116,11 @@ video {
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.grid-cols-\[minmax\(13rem\2c 1fr\)_minmax\(15rem\2c auto\)_auto\] {
-  grid-template-columns: minmax(13rem,1fr) minmax(15rem,auto) auto;
+.grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
+  grid-template-columns: minmax(0,1fr) auto;
+}
+.grid-cols-\[minmax\(0\2c 1fr\)_auto_auto\] {
+  grid-template-columns: minmax(0,1fr) auto auto;
 }
 .grid-cols-\[minmax\(5rem\2c 1fr\)_auto_auto\] {
   grid-template-columns: minmax(5rem,1fr) auto auto;
@@ -1201,9 +1193,6 @@ video {
 }
 .overflow-visible {
   overflow: visible;
-}
-.overflow-x-auto {
-  overflow-x: auto;
 }
 .overflow-y-auto {
   overflow-y: auto;
@@ -1451,9 +1440,6 @@ video {
 .text-center {
   text-align: center;
 }
-.text-right {
-  text-align: right;
-}
 .font-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -1471,6 +1457,10 @@ video {
 }
 .uppercase {
   text-transform: uppercase;
+}
+.tabular-nums {
+  --tw-numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--tw-ordinal) var(--tw-slashed-zero) var(--tw-numeric-figure) var(--tw-numeric-spacing) var(--tw-numeric-fraction);
 }
 .leading-6 {
   line-height: 1.5rem;
@@ -1534,6 +1524,11 @@ video {
 }
 .transition {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
@@ -2464,6 +2459,10 @@ summary {
 
 .hover\:border-core-success:hover {
   border-color: var(--core-success);
+}
+
+.hover\:bg-\[var\(--core-focus-ring-soft\)\]:hover {
+  background-color: var(--core-focus-ring-soft);
 }
 
 .hover\:bg-core-subtle:hover {
@@ -3608,10 +3607,10 @@ summary {
                     <button type="button" aria-pressed="true" class="core-segmented-control-option">Auto</button>
                     <button type="button" aria-pressed="false" class="core-segmented-control-option">Manuell</button>
                   </div>
-                  <span class="catalog-demo-label mt-3">Shell-Utilitygruppe · Einstellungen und Theme</span>
+                  <span class="catalog-demo-label mt-3">Shell-Utilitygruppe · umrundete Buttons</span>
                   <div class="flex items-center justify-start gap-2">
                     <button type="button" aria-label="Einstellungen öffnen" class="core-action-secondary size-11 shrink-0 rounded-full p-0"><svg class="catalog-icon"><use href="#icon-settings"></use></svg></button>
-                    <button type="button" aria-label="Dark Mode einschalten" class="core-action-ghost size-11 shrink-0 rounded-full p-0"><svg class="catalog-icon"><use href="#icon-sun"></use></svg></button>
+                    <button type="button" aria-label="Dark Mode einschalten" class="core-action-secondary size-11 shrink-0 rounded-full p-0"><svg class="catalog-icon"><use href="#icon-sun"></use></svg></button>
                   </div>
                 </div>
               </div>
@@ -3804,22 +3803,30 @@ summary {
                   <div><p class="core-caption uppercase tracking-wide text-core-muted">Gemeinsame Baumprojektion</p><h3 class="core-heading-3 mt-1 font-semibold text-core-text">Aktive Stapel</h3></div>
                   <div class="flex items-center gap-3"><span class="catalog-pill">Dashboard und Lernen</span><button type="button" class="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2">Alle ansehen <svg class="catalog-icon-sm"><use href="#icon-chevron"></use></svg></button></div>
                 </div>
-                <div class="max-w-full overflow-x-auto rounded-2xl border border-core-border">
-                  <div class="min-w-[46rem]">
-                    <div class="core-deck-summary-row relative min-w-0 select-none border-b border-core-border" data-deck-depth="0">
-                      <button type="button" data-deck-row-activation="true" class="absolute inset-0 z-0 text-left" aria-label="Welt-Hauptstädte lernen"><span class="sr-only">Welt-Hauptstädte lernen</span></button>
-                      <div class="pointer-events-none relative z-[1] grid min-h-11 min-w-0 grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] items-center gap-x-3 px-2">
-                        <div class="flex min-w-0 items-center gap-2"><button type="button" class="pointer-events-auto grid size-9 shrink-0 place-items-center rounded-lg text-core-action" aria-label="Unterstapel ausblenden"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></button><span class="grid size-9 shrink-0 place-items-center rounded-full border-2" style="color:#6f7e9e;border-color:#6f7e9e;background-color:#6f7e9e1f"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><strong class="block truncate core-body-large font-semibold text-core-text">Welt-Hauptstädte</strong></div>
-                        <dl class="grid min-w-[15rem] grid-cols-3 gap-3"><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Neu</dt><dd class="core-body-large font-semibold" style="color:var(--core-learning-status-new)">12</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">In Arbeit</dt><dd class="core-body-large font-semibold" style="color:var(--core-learning-status-in-progress)">4</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Fällig</dt><dd class="core-body-large font-semibold" style="color:var(--core-learning-status-due)">8</dd></div></dl>
-                        <div class="pointer-events-auto flex items-center justify-end gap-2"><svg class="block size-10" role="img" aria-label="Gesamtfortschritt für Welt-Hauptstädte: 16 von 40 Karten gelernt; 12 neu, 4 in Arbeit und 8 fällig."><use href="#status-donut"></use></svg><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Welt-Hauptstädte"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div>
+                <div class="max-w-full overflow-hidden rounded-2xl border border-core-border">
+                  <div>
+                    <div class="core-deck-summary-row core-deck-summary-container relative min-w-0 select-none" data-deck-depth="0">
+                      <button type="button" data-deck-row-activation="true" class="absolute inset-0 z-0 text-left transition-colors hover:bg-[var(--core-focus-ring-soft)]" aria-label="Welt-Hauptstädte lernen"><span class="sr-only">Welt-Hauptstädte lernen</span></button>
+                      <div class="core-deck-summary-responsive pointer-events-none relative z-[1] grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 px-1">
+                        <div class="core-deck-summary-leading flex min-w-0 items-center gap-1.5"><button type="button" class="pointer-events-auto grid size-9 shrink-0 place-items-center rounded-lg text-core-action" aria-label="Unterstapel ausblenden"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></button><span class="core-deck-summary-icon grid size-8 shrink-0 place-items-center rounded-full border-2" style="color:#6f7e9e;border-color:#6f7e9e;background-color:#6f7e9e1f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><strong class="core-deck-summary-name block truncate whitespace-nowrap core-body font-semibold text-core-text">Welt-Hauptstädte</strong></div>
+                        <dl class="core-deck-summary-counts core-deck-summary-metrics grid grid-cols-3 items-center gap-1"><div class="core-deck-summary-count min-w-4 text-center"><dt class="core-deck-summary-count-label sr-only">Neu</dt><dd class="core-deck-summary-count-value core-caption tabular-nums font-semibold" style="color:var(--core-learning-status-new)">12</dd></div><div class="core-deck-summary-count min-w-4 text-center"><dt class="core-deck-summary-count-label sr-only">In Arbeit</dt><dd class="core-deck-summary-count-value core-caption tabular-nums font-semibold" style="color:var(--core-learning-status-in-progress)">4</dd></div><div class="core-deck-summary-count min-w-4 text-center"><dt class="core-deck-summary-count-label sr-only">Fällig</dt><dd class="core-deck-summary-count-value core-caption tabular-nums font-semibold" style="color:var(--core-learning-status-due)">8</dd></div></dl>
+                        <div class="core-deck-summary-actions pointer-events-auto flex items-center justify-end gap-0.5"><svg class="core-donut-responsive block size-8" role="img" aria-label="Gesamtfortschritt für Welt-Hauptstädte: 16 von 40 Karten gelernt; 12 neu, 4 in Arbeit und 8 fällig."><use href="#status-donut"></use></svg><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Welt-Hauptstädte"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div>
                       </div>
                     </div>
-                    <div class="core-deck-summary-row relative min-w-0 select-none" data-deck-depth="1">
-                      <button type="button" data-deck-row-activation="true" class="absolute inset-0 z-0 text-left" aria-label="Welt-Hauptstädte / Europa lernen"><span class="sr-only">Welt-Hauptstädte / Europa lernen</span></button>
-                      <div class="pointer-events-none relative z-[1] grid min-h-11 min-w-0 grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] items-center gap-x-3 px-2">
-                        <div class="flex min-w-0 items-center gap-2" style="padding-inline-start:9px"><span class="size-9 shrink-0"></span><span class="grid size-9 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large font-semibold text-core-text">Europa</strong><small class="block truncate core-caption text-core-muted">Welt-Hauptstädte / Europa</small></span></div>
-                        <dl class="grid min-w-[15rem] grid-cols-3 gap-3"><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Neu</dt><dd class="core-body-large font-semibold" style="color:var(--core-learning-status-new)">3</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">In Arbeit</dt><dd class="core-body-large font-semibold" style="color:var(--core-learning-status-in-progress)">1</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Fällig</dt><dd class="core-body-large font-semibold" style="color:var(--core-learning-status-due)">2</dd></div></dl>
-                        <div class="pointer-events-auto flex items-center justify-end gap-2"><svg class="block size-10" role="img" aria-label="Gesamtfortschritt für Welt-Hauptstädte / Europa: 4 von 10 Karten gelernt; 3 neu, 1 in Arbeit und 2 fällig."><use href="#status-donut"></use></svg><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Welt-Hauptstädte / Europa"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div>
+                    <div class="core-deck-summary-row core-deck-summary-container relative min-w-0 select-none" data-deck-depth="1">
+                      <button type="button" data-deck-row-activation="true" class="absolute inset-0 z-0 text-left transition-colors hover:bg-[var(--core-focus-ring-soft)]" aria-label="Welt-Hauptstädte / Europa lernen"><span class="sr-only">Welt-Hauptstädte / Europa lernen</span></button>
+                      <div class="core-deck-summary-responsive pointer-events-none relative z-[1] grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 px-1">
+                        <div class="core-deck-summary-leading flex min-w-0 items-center gap-1.5" style="padding-inline-start:9px"><span class="size-9 shrink-0"></span><span class="core-deck-summary-icon grid size-8 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><strong class="core-deck-summary-name block truncate whitespace-nowrap core-body font-semibold text-core-text">Europa</strong></div>
+                        <dl class="core-deck-summary-counts core-deck-summary-metrics grid grid-cols-3 items-center gap-1"><div class="core-deck-summary-count min-w-4 text-center"><dt class="core-deck-summary-count-label sr-only">Neu</dt><dd class="core-deck-summary-count-value core-caption tabular-nums font-semibold" style="color:var(--core-learning-status-new)">3</dd></div><div class="core-deck-summary-count min-w-4 text-center"><dt class="core-deck-summary-count-label sr-only">In Arbeit</dt><dd class="core-deck-summary-count-value core-caption tabular-nums font-semibold" style="color:var(--core-learning-status-in-progress)">1</dd></div><div class="core-deck-summary-count min-w-4 text-center"><dt class="core-deck-summary-count-label sr-only">Fällig</dt><dd class="core-deck-summary-count-value core-caption tabular-nums font-semibold" style="color:var(--core-learning-status-due)">2</dd></div></dl>
+                        <div class="core-deck-summary-actions pointer-events-auto flex items-center justify-end gap-0.5"><svg class="core-donut-responsive block size-8" role="img" aria-label="Gesamtfortschritt für Welt-Hauptstädte / Europa: 4 von 10 Karten gelernt; 3 neu, 1 in Arbeit und 2 fällig."><use href="#status-donut"></use></svg><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Welt-Hauptstädte / Europa"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div>
+                      </div>
+                    </div>
+                    <div class="core-deck-summary-row core-deck-summary-container relative min-w-0 select-none border-t-2 border-core-border" data-deck-depth="0">
+                      <button type="button" data-deck-row-activation="true" class="absolute inset-0 z-0 text-left transition-colors hover:bg-[var(--core-focus-ring-soft)]" aria-label="Sprachen lernen"><span class="sr-only">Sprachen lernen</span></button>
+                      <div class="core-deck-summary-responsive pointer-events-none relative z-[1] grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 px-1">
+                        <div class="core-deck-summary-leading flex min-w-0 items-center gap-1.5"><span class="size-9 shrink-0"></span><span class="core-deck-summary-icon grid size-8 shrink-0 place-items-center rounded-full border-2" style="color:#6f7e9e;border-color:#6f7e9e;background-color:#6f7e9e1f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><strong class="core-deck-summary-name block truncate whitespace-nowrap core-body font-semibold text-core-text">Sprachen</strong></div>
+                        <dl class="core-deck-summary-counts core-deck-summary-metrics grid grid-cols-3 items-center gap-1"><div class="core-deck-summary-count min-w-4 text-center"><dt class="core-deck-summary-count-label sr-only">Neu</dt><dd class="core-deck-summary-count-value core-caption tabular-nums font-semibold" style="color:var(--core-learning-status-new)">6</dd></div><div class="core-deck-summary-count min-w-4 text-center"><dt class="core-deck-summary-count-label sr-only">In Arbeit</dt><dd class="core-deck-summary-count-value core-caption tabular-nums font-semibold" style="color:var(--core-learning-status-in-progress)">2</dd></div><div class="core-deck-summary-count min-w-4 text-center"><dt class="core-deck-summary-count-label sr-only">Fällig</dt><dd class="core-deck-summary-count-value core-caption tabular-nums font-semibold" style="color:var(--core-learning-status-due)">3</dd></div></dl>
+                        <div class="core-deck-summary-actions pointer-events-auto flex items-center justify-end gap-0.5"><svg class="core-donut-responsive block size-8" role="img" aria-label="Gesamtfortschritt für Sprachen: 9 von 20 Karten gelernt; 6 neu, 2 in Arbeit und 3 fällig."><use href="#status-donut"></use></svg><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Sprachen"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div>
                       </div>
                     </div>
                   </div>
@@ -3836,12 +3843,12 @@ summary {
                 </div>
               </article>
               <article class="core-surface-raised min-w-0 overflow-hidden rounded-[18px]">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-core-border p-5"><div><p class="core-caption uppercase tracking-wide text-core-muted">Gruppierte Gesamttabelle</p><h3 class="core-heading-3 mt-1 text-core-text">Kartenverwaltung</h3></div><span class="catalog-pill">Direkte Stapelwerte</span></div>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-core-border p-5"><div><p class="core-caption uppercase tracking-wide text-core-muted">Gruppierte Gesamttabelle</p><h3 class="core-heading-3 mt-1 text-core-text">Kartenverwaltung</h3></div><span class="catalog-pill">Stapelidentität und Aktionen</span></div>
                 <div class="flex flex-wrap items-center gap-3 border-b border-core-border p-4"><label class="flex min-h-11 min-w-64 flex-1 items-center rounded-xl border border-core-border bg-core-surface px-3 core-body text-core-muted">Stapel, Vorderseite, Rückseite oder Tags suchen</label><button type="button" class="core-action-primary min-h-11 px-4"><svg class="catalog-icon"><use href="#icon-plus"></use></svg>Neue Karte</button><span class="core-caption font-semibold text-core-muted">2 Karten</span></div>
-                <div class="max-w-full overflow-x-auto">
-                  <table class="w-full min-w-[46rem] table-fixed border-collapse">
-                    <thead class="bg-core-surface"><tr class="border-b border-core-border"><th class="w-[58%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Sortierfeld</th><th class="w-[18%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Fällig</th><th class="w-[24%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Varianten</th></tr></thead>
-                    <tbody><tr class="core-deck-summary-row border-b border-t-2 border-core-border" data-deck-depth="1"><th colspan="3" class="px-3 text-left"><div class="grid min-h-11 grid-cols-[minmax(13rem,1fr)_minmax(15rem,auto)_auto] items-center gap-x-3 px-2"><div class="flex min-w-0 items-center gap-2" style="padding-inline-start:9px"><span class="grid size-9 place-items-center text-core-action"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></span><span class="grid size-9 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon"><use href="#icon-book"></use></svg></span><span class="min-w-0"><strong class="block truncate core-body-large font-semibold text-core-text">Europa</strong><small class="block truncate core-caption text-core-muted">Welt-Hauptstädte / Europa</small></span></div><dl class="grid min-w-[15rem] grid-cols-3 gap-3"><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Neu</dt><dd class="core-body-large font-semibold" style="color:var(--core-learning-status-new)">1</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">In Arbeit</dt><dd class="core-body-large font-semibold" style="color:var(--core-learning-status-in-progress)">0</dd></div><div class="text-right"><dt class="core-caption font-semibold uppercase text-core-muted">Fällig</dt><dd class="core-body-large font-semibold" style="color:var(--core-learning-status-due)">1</dd></div></dl><div class="flex items-center justify-end gap-2"><svg class="block size-10" role="img" aria-label="Gesamtfortschritt für Welt-Hauptstädte / Europa: 4 von 10 Karten gelernt; 3 neu, 1 in Arbeit und 2 fällig."><use href="#status-donut"></use></svg><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Welt-Hauptstädte / Europa"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div></div></th></tr>
+                <div class="max-w-full overflow-hidden">
+                  <table class="w-full table-fixed border-collapse">
+                    <thead class="bg-core-surface"><tr class="border-b border-core-border"><th class="w-[58%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Sortierfeld</th><th class="w-[18%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Datum</th><th class="w-[24%] px-4 py-3 text-left core-caption font-semibold uppercase text-core-muted">Variante</th></tr></thead>
+                    <tbody><tr class="core-deck-summary-row core-deck-summary-container" data-deck-depth="1"><th colspan="3" class="relative px-3 text-left"><button type="button" data-deck-row-activation="true" class="absolute inset-0 z-0 text-left transition-colors hover:bg-[var(--core-focus-ring-soft)]" aria-label="Karten von Welt-Hauptstädte / Europa aufklappen"><span class="sr-only">Karten von Welt-Hauptstädte / Europa aufklappen</span></button><div class="core-deck-summary-responsive pointer-events-none relative z-[1] grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 px-1"><div class="core-deck-summary-leading flex min-w-0 items-center gap-1.5" style="padding-inline-start:9px"><span class="grid size-9 place-items-center text-core-action"><svg class="catalog-icon rotate-90"><use href="#icon-chevron"></use></svg></span><span class="core-deck-summary-icon grid size-8 shrink-0 place-items-center rounded-full border-2" style="color:#047857;border-color:#047857;background-color:#0478571f"><svg class="catalog-icon-sm"><use href="#icon-book"></use></svg></span><strong class="core-deck-summary-name block truncate whitespace-nowrap core-body font-semibold text-core-text">Europa</strong></div><div class="core-deck-summary-actions pointer-events-auto flex items-center justify-end gap-0.5"><button type="button" class="core-action-ghost min-w-11 p-2.5" aria-label="Stapeloptionen für Welt-Hauptstädte / Europa"><svg class="catalog-icon"><use href="#icon-more"></use></svg></button></div></div></th></tr>
                     <tr class="border-b border-core-border bg-core-surface"><td class="truncate px-4 py-1 core-body font-semibold text-core-text">Was ist die Hauptstadt von Portugal?</td><td class="px-4 py-1 core-body text-core-secondary">Neu</td><td class="px-4 py-1"><span class="inline-flex items-center gap-1"><span class="rounded-full border border-core-action bg-core-info-soft px-2 core-caption font-semibold text-core-action">Ja</span><svg class="catalog-icon-sm text-core-warning" style="fill:currentColor" role="img" aria-label="Markiert"><use href="#icon-star"></use></svg></span></td></tr>
                     <tr class="border-b border-core-border bg-core-warning-soft"><td class="truncate px-4 py-1 core-body font-semibold text-core-text">Madrid liegt in welchem Land?</td><td class="px-4 py-1 core-body text-core-secondary">12.08.2026</td><td class="px-4 py-1"><span class="inline-flex items-center gap-1"><span class="rounded-full border border-core-border bg-core-subtle px-2 core-caption font-semibold text-core-muted">Nein</span><svg class="catalog-icon-sm text-core-warning" style="fill:currentColor" role="img" aria-label="Markiert"><use href="#icon-star"></use></svg></span></td></tr></tbody>
                   </table>

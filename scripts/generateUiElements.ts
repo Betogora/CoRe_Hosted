@@ -28,7 +28,6 @@ const visualSourcePaths = [
   "src/ui/deckAppearance.tsx",
   "src/ui/DeckOptionsMenu.tsx",
   "src/ui/DeckSummaryRow.tsx",
-  "src/ui/CompactDeckSummaryRow.tsx",
   "src/ui/DeckTree.tsx",
   "src/ui/AppNavigation.tsx",
   "src/ui/StudySettingsOverlay.tsx",

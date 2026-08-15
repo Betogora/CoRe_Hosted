@@ -112,6 +112,11 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(rootRow.getByLabel(/Gesamtfortschritt/)).toBeVisible();
   await expect(rootRow.getByRole("button", { name: /Stapeloptionen/ })).toBeVisible();
   await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
+  const rootActivation = rootRow.getByRole("button", { name: "Welt-Hauptstädte lernen" });
+  await rootActivation.hover();
+  const sharedHoverFill = await page.locator("html").evaluate((element) => getComputedStyle(element).getPropertyValue("--core-focus-ring-soft").trim());
+  await expect(rootActivation).toHaveCSS("background-color", sharedHoverFill);
+  await expect(rootRow).toHaveCSS("border-bottom-width", "0px");
 
   await rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" }).click();
   const dashboardMenu = page.getByTestId(`deck-options-menu-${DECK_IDS.root}`);
@@ -465,6 +470,9 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   await dispatchTopLevelDrop(page, southAmericaRow, "learn-top-drop-zone");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(null);
   await expect.poll(() => metricValue(europeRow, "due")).toBe(europeDueBefore);
+  await expect(europeRow).toHaveCSS("border-top-width", "0px");
+  await expect(southAmericaRow).toHaveCSS("border-top-width", "2px");
+  await expect(africaRow).toHaveCSS("border-top-width", "0px");
 
   await dispatchTopLevelDrop(page, southAmericaRow, "learn-top-drop-zone");
   await expect(page.getByRole("status")).toContainText("Stapel bleibt an dieser Stelle.");
@@ -484,6 +492,9 @@ test("deck management disables direct drag and shares the confirmed keyboard mov
   const rootRow = page.getByTestId(`deck-header-${DECK_IDS.root}`);
   const southAmericaRow = page.getByTestId(`deck-header-${DECK_IDS.southAmerica}`);
   await expect(rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" })).toBeVisible();
+  await expect(rootRow.locator("[data-deck-count]")).toHaveCount(0);
+  await expect(rootRow.getByLabel(/Gesamtfortschritt/)).toHaveCount(0);
+  await expect(southAmericaRow).toHaveCSS("border-top-width", "0px");
   await expect(page.locator('[data-deck-drag-source="true"]')).toHaveCount(0);
   await expect(page.getByTestId("manage-top-drop-zone")).toHaveCount(0);
 
