@@ -60,21 +60,74 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
   await expect(mobileHeader).toBeHidden();
   await expect(bottomNavigation).toBeHidden();
   const desktopUtilities = sidebar.locator('[data-navigation-utilities="true"]');
+  const desktopSyncButton = desktopUtilities.locator('[data-navigation-utility="sync"]');
   const desktopSettingsButton = desktopUtilities.locator('[data-navigation-utility="settings"]');
   const desktopHelpButton = desktopUtilities.locator('[data-navigation-utility="help"]');
   const desktopThemeButton = desktopUtilities.locator('[data-navigation-utility="theme"]');
+  await expect(desktopSyncButton).toBeVisible();
   await expect(desktopSettingsButton).toBeVisible();
   await expect(desktopHelpButton).toBeVisible();
   await expect(desktopThemeButton).toBeVisible();
   await expect(desktopSettingsButton).toHaveAttribute("aria-current", "page");
+  await expect(desktopThemeButton).toHaveClass(/core-action-secondary/);
+  await expect(page.locator('[aria-label="Seiteninhalt"]')).toHaveCSS("padding-left", "24px");
+  await expect(page.locator('[aria-label="Seiteninhalt"]')).toHaveCSS("padding-right", "24px");
+  const desktopSyncBox = await desktopSyncButton.boundingBox();
   const desktopSettingsBox = await desktopSettingsButton.boundingBox();
   const desktopHelpBox = await desktopHelpButton.boundingBox();
   const desktopThemeBox = await desktopThemeButton.boundingBox();
+  expect(desktopSyncBox).not.toBeNull();
   expect(desktopSettingsBox).not.toBeNull();
   expect(desktopHelpBox).not.toBeNull();
   expect(desktopThemeBox).not.toBeNull();
+  expect(desktopSyncBox!.x).toBeCloseTo(desktopSettingsBox!.x, 0);
+  expect(desktopHelpBox!.x).toBeCloseTo(desktopThemeBox!.x, 0);
+  expect(desktopSyncBox!.y).toBeCloseTo(desktopHelpBox!.y, 0);
+  expect(desktopSettingsBox!.y).toBeCloseTo(desktopThemeBox!.y, 0);
+  expect(desktopSettingsBox!.y).toBeGreaterThan(desktopSyncBox!.y);
+  expect(desktopSyncBox!.x).toBeLessThan(desktopHelpBox!.x);
   expect(desktopSettingsBox!.x).toBeLessThan(desktopThemeBox!.x);
-  expect(desktopThemeBox!.x).toBeLessThan(desktopHelpBox!.x);
+  const horizontalUtilityGap = desktopHelpBox!.x - (desktopSyncBox!.x + desktopSyncBox!.width);
+  const verticalUtilityGap = desktopSettingsBox!.y - (desktopSyncBox!.y + desktopSyncBox!.height);
+  expect(horizontalUtilityGap).toBeCloseTo(verticalUtilityGap, 0);
+  const desktopLayout = await sidebar.evaluate((element) => {
+    const frame = element.parentElement;
+    const sidebarRect = element.getBoundingClientRect();
+    const frameRect = frame?.getBoundingClientRect();
+    const frameStyle = frame ? getComputedStyle(frame) : null;
+    const menuLabels = Array.from(element.querySelectorAll<HTMLElement>('nav button > span'));
+    const targets = Array.from(element.querySelectorAll<HTMLElement>('nav button, [data-navigation-utility]'));
+    const utilities = element.querySelector<HTMLElement>('[data-navigation-utilities="true"]');
+    return {
+      frame: frameRect && frameStyle ? {
+        x: frameRect.x,
+        y: frameRect.y,
+        width: frameRect.width,
+        height: frameRect.height,
+        borderWidth: frameStyle.borderWidth,
+        borderRadius: frameStyle.borderRadius,
+      } : null,
+      sidebar: {
+        x: sidebarRect.x,
+        y: sidebarRect.y,
+        width: sidebarRect.width,
+        height: sidebarRect.height,
+        overflowX: getComputedStyle(element).overflowX,
+        fits: element.scrollWidth <= element.clientWidth,
+      },
+      utilitiesFit: Boolean(utilities && utilities.scrollWidth <= utilities.clientWidth),
+      labelsFit: menuLabels.every((label) => label.scrollWidth <= label.clientWidth),
+      targetsAreLargeEnough: targets.every((target) => {
+        const rect = target.getBoundingClientRect();
+        return rect.width >= 44 && rect.height >= 44;
+      }),
+    };
+  });
+  expect(desktopLayout.frame).toEqual({ x: 0, y: 0, width: 1280, height: 900, borderWidth: "0px", borderRadius: "0px" });
+  expect(desktopLayout.sidebar).toEqual({ x: 0, y: 0, width: 152, height: 900, overflowX: "hidden", fits: true });
+  expect(desktopLayout.utilitiesFit).toBe(true);
+  expect(desktopLayout.labelsFit).toBe(true);
+  expect(desktopLayout.targetsAreLargeEnough).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
@@ -85,6 +138,7 @@ test("dark mode can be toggled from both responsive navigation layouts and persi
   const sidebar = page.locator('[data-navigation-layout="sidebar"]');
   const desktopThemeButton = sidebar.getByRole("button", { name: "Dark Mode einschalten" });
   await expect(desktopThemeButton).toBeVisible();
+  await expect(desktopThemeButton).toHaveClass(/core-action-secondary/);
   await expect(desktopThemeButton.locator("svg")).toHaveClass(/lucide-sun/);
   await desktopThemeButton.click();
 
@@ -100,6 +154,7 @@ test("dark mode can be toggled from both responsive navigation layouts and persi
   const mobileHeader = page.locator('[data-navigation-layout="mobile-header"]');
   const mobileThemeButton = mobileHeader.getByRole("button", { name: "Light Mode einschalten" });
   await expect(mobileThemeButton).toBeVisible();
+  await expect(mobileThemeButton).toHaveClass(/core-action-secondary/);
   await expect(mobileThemeButton.locator("svg")).toHaveClass(/lucide-moon/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 

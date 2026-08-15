@@ -110,20 +110,18 @@ function createEmptyStudyStart(
 
 function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string }) {
   return (
-    <main className="min-h-screen bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
-      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[var(--core-border)] bg-core-surface px-5 py-10 shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
-        <SoftPanel className="w-full max-w-md p-6">
-          <div className="flex items-center gap-3">
-            <OrbIcon icon={Database} />
-            <div>
-              <h1 className="core-heading-2 font-semibold text-[var(--core-text)]">CoRe</h1>
-              <p className="mt-1 core-body text-[var(--core-text-muted)]" role="status" aria-live="polite">
-                {message}
-              </p>
-            </div>
+    <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-5 py-10 text-[var(--core-text)]">
+      <SoftPanel className="w-full max-w-md p-6">
+        <div className="flex items-center gap-3">
+          <OrbIcon icon={Database} />
+          <div>
+            <h1 className="core-heading-2 font-semibold text-[var(--core-text)]">CoRe</h1>
+            <p className="mt-1 core-body text-[var(--core-text-muted)]" role="status" aria-live="polite">
+              {message}
+            </p>
           </div>
-        </SoftPanel>
-      </div>
+        </div>
+      </SoftPanel>
     </main>
   );
 }
@@ -152,35 +150,33 @@ function MigrationChoiceScreen({ legacyState, busy = false, message = "", onImpo
   const documentCount = legacyState?.documents?.length ?? 0;
 
   return (
-    <main className="min-h-screen bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
-      <div className="grid min-h-[calc(100vh-2rem)] place-items-center rounded-[22px] border border-[var(--core-border)] bg-core-surface px-5 py-10 shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
-        <SoftPanel className="w-full max-w-xl p-6">
-          <div className="mb-6 flex items-center gap-3">
-            <OrbIcon icon={Database} />
-            <div>
-              <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Lokale Daten gefunden</p>
-              <h1 className="core-heading-2 font-semibold text-[var(--core-text)]">Daten in diesen Account übernehmen?</h1>
-            </div>
+    <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-5 py-10 text-[var(--core-text)]">
+      <SoftPanel className="w-full max-w-xl p-6">
+        <div className="mb-6 flex items-center gap-3">
+          <OrbIcon icon={Database} />
+          <div>
+            <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Lokale Daten gefunden</p>
+            <h1 className="core-heading-2 font-semibold text-[var(--core-text)]">Daten in diesen Account übernehmen?</h1>
           </div>
-          <p className="core-body leading-6 text-[var(--core-text-muted)]">
-            In diesem Browser liegen noch lokale CoRe-Daten: {deckCount} Stapel und {documentCount} Dokumente. Du kannst sie in deinen angemeldeten Account übernehmen oder mit einem leeren Cloud-Stand weiterarbeiten.
+        </div>
+        <p className="core-body leading-6 text-[var(--core-text-muted)]">
+          In diesem Browser liegen noch lokale CoRe-Daten: {deckCount} Stapel und {documentCount} Dokumente. Du kannst sie in deinen angemeldeten Account übernehmen oder mit einem leeren Cloud-Stand weiterarbeiten.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button type="button" onClick={onImport} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:bg-[var(--core-action-disabled-bg)]">
+            <Database size={17} aria-hidden="true" />
+            Lokale Daten übernehmen
+          </button>
+          <button type="button" onClick={onSkip} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:text-[var(--core-action-disabled-text)]">
+            Leer starten
+          </button>
+        </div>
+        {message ? (
+          <p className="mt-4 core-body text-core-text" role="alert">
+            {message}
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" onClick={onImport} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:bg-[var(--core-action-disabled-bg)]">
-              <Database size={17} aria-hidden="true" />
-              Lokale Daten übernehmen
-            </button>
-            <button type="button" onClick={onSkip} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:text-[var(--core-action-disabled-text)]">
-              Leer starten
-            </button>
-          </div>
-          {message ? (
-            <p className="mt-4 core-body text-core-text" role="alert">
-              {message}
-            </p>
-          ) : null}
-        </SoftPanel>
-      </div>
+        ) : null}
+      </SoftPanel>
     </main>
   );
 }
@@ -1693,8 +1689,8 @@ export function App() {
   }
 
   return (
-    <main className="core-app-shell min-h-dvh overflow-x-clip bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
-      <div className="core-app-frame grid min-h-[calc(100vh-2rem)] min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip rounded-[22px] border border-[var(--core-border)] bg-core-surface shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)] xl:h-[calc(100dvh-4rem)] xl:min-h-0 xl:grid-cols-[13rem_minmax(0,1fr)] xl:grid-rows-1 xl:overflow-hidden">
+    <main className="min-h-dvh min-w-0 overflow-x-clip bg-core-surface text-[var(--core-text)]">
+      <div className="grid min-h-dvh min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip bg-core-surface xl:h-dvh xl:min-h-0 xl:grid-cols-[9.5rem_minmax(0,1fr)] xl:grid-rows-1 xl:overflow-hidden">
         <AppNavigation
           navigationItems={navigationItems}
           activeView={activeView}
@@ -1707,7 +1703,7 @@ export function App() {
           onResetSimulation={() => changeSimulationOffset(0)}
         />
 
-        <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-clip px-5 pb-32 pt-8 outline-none sm:px-8 lg:px-12 xl:overflow-x-hidden xl:overflow-y-auto xl:py-12" tabIndex={-1} aria-label="Seiteninhalt">
+        <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-clip px-2.5 pb-32 pt-8 outline-none sm:px-4 lg:px-6 xl:overflow-x-hidden xl:overflow-y-auto xl:py-12" tabIndex={-1} aria-label="Seiteninhalt">
           <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
         </section>
       </div>

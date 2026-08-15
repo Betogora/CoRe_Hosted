@@ -65,9 +65,8 @@ export function AuthGateScreen({
   }
 
   return (
-    <main className="core-auth-shell min-h-screen min-w-0 bg-core-canvas p-4 text-[var(--core-text)] sm:p-8">
-      <div className="core-auth-frame grid min-w-0 min-h-[calc(100vh-2rem)] grid-cols-[minmax(0,1fr)] place-items-center rounded-[22px] border border-[var(--core-border)] bg-core-surface px-5 py-10 shadow-[var(--core-shadow-raised)] backdrop-blur-xl sm:min-h-[calc(100vh-4rem)]">
-        <div className="min-w-0 w-full max-w-md">
+    <main className="core-centered-viewport grid min-h-dvh min-w-0 grid-cols-[minmax(0,1fr)] place-items-center bg-core-surface px-5 py-10 text-[var(--core-text)]">
+      <div className="min-w-0 w-full max-w-md">
           <div className="mb-8">
             <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
             <p className="mt-2 core-body-large text-[var(--core-text-muted)]">Content Repetition</p>
@@ -180,7 +179,6 @@ export function AuthGateScreen({
             ) : null}
           </SoftPanel>
           <ReleaseInfo className="mt-5 text-center" />
-        </div>
       </div>
     </main>
   );

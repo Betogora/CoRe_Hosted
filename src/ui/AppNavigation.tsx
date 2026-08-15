@@ -47,9 +47,10 @@ interface ResponsiveNavigationProps extends AppNavigationProps {
   onToggleTheme: () => void;
 }
 
-function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme, syncStatus, onSyncNow, className = "", themeFirst = false }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onToggleTheme" | "syncStatus" | "onSyncNow"> & { className?: string; themeFirst?: boolean }) {
+function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme, syncStatus, onSyncNow, layout }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onToggleTheme" | "syncStatus" | "onSyncNow"> & { layout: "sidebar" | "header" }) {
   const settingsActive = settingsViews.has(activeView);
   const helpActive = activeView === "hilfe";
+  const sidebarLayout = layout === "sidebar";
   const darkModeActive = theme === "dark";
   const ThemeIcon = darkModeActive ? Moon : Sun;
   const SyncIcon = syncStatus.status === "offline" ? CloudOff : syncStatus.status === "conflict" ? AlertTriangle : syncStatus.status === "saved" ? Cloud : RefreshCw;
@@ -100,7 +101,6 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
       data-navigation-utility="theme"
       label={darkModeActive ? "Light Mode einschalten" : "Dark Mode einschalten"}
       icon={ThemeIcon}
-      variant="ghost"
       onClick={onToggleTheme}
       className="size-11 shrink-0 rounded-full"
     />
@@ -119,19 +119,23 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
   );
 
   return (
-    <div className={`flex items-center gap-2 ${className}`} data-navigation-utilities="true">
+    <div
+      className={sidebarLayout ? "grid w-full grid-cols-[repeat(2,2.75rem)] items-center gap-2" : "flex shrink-0 items-center gap-2"}
+      data-navigation-utilities="true"
+      data-navigation-utility-layout={layout}
+    >
       {syncButton}
-      {themeFirst ? (
+      {sidebarLayout ? (
         <>
-          {themeButton}
           {helpButton}
           {settingsButton}
+          {themeButton}
         </>
       ) : (
         <>
-          {settingsButton}
           {themeButton}
           {helpButton}
+          {settingsButton}
         </>
       )}
     </div>
@@ -140,12 +144,9 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onToggleTheme
 
 function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
   return (
-    <aside className="hidden border-r border-[var(--core-border)] bg-core-surface xl:block xl:overflow-y-auto" data-navigation-layout="sidebar">
-      <div className="flex h-full flex-col px-4 py-8 lg:px-5 lg:pt-10 lg:pb-5">
-        <div>
-          <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
-          <p className="mt-2 core-body-large text-[var(--core-text-muted)]">Content Repetition</p>
-        </div>
+    <aside className="hidden border-r border-[var(--core-border)] bg-core-surface xl:block xl:overflow-x-hidden xl:overflow-y-auto" data-navigation-layout="sidebar">
+      <div className="flex h-full flex-col px-4 pb-5 pt-10">
+        <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
 
         <nav aria-label="Hauptmenü" data-app-navigation="true" className="mt-10 grid grid-cols-1 gap-2">
           {navigationItems.map((view) => {
@@ -184,7 +185,7 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
           ) : null}
           <PomodoroProgress timer={pomodoroTimer} variant="sidebar" />
           <div className={`pt-6 ${simulationOffsetMinutes > 0 || pomodoroTimer ? "mt-3" : ""}`}>
-            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} className="justify-start" />
+            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} layout="sidebar" />
           </div>
         </div>
       </div>
@@ -198,7 +199,7 @@ function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel
       <div className="flex min-h-11 min-w-0 items-center justify-between gap-3">
         <h1 className="core-mobile-brand shrink-0 core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
-        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} className="shrink-0" themeFirst />
+        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} layout="header" />
       </div>
       {simulationOffsetMinutes > 0 ? (
         <div className="mt-2 flex min-h-11 items-center gap-3 rounded-xl border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">

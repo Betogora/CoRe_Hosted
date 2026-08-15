@@ -43,6 +43,7 @@ test("app navigation exposes a desktop sidebar and the five mobile tabs", () => 
   assert.match(markup, /data-navigation-layout="mobile-header"/);
   assert.match(markup, /data-navigation-layout="bottom-bar"/);
   assert.match(markup, /hidden border-r[^\"]*xl:block/);
+  assert.match(markup, /xl:overflow-x-hidden/);
   assert.match(markup, /xl:hidden/);
   assert.doesNotMatch(markup, /md:block|md:hidden/);
   for (const label of ["Heute", "Lernen", "Erstellen", "Statistik", "Karten"]) assert.match(markup, new RegExp(`>${label}<`));
@@ -81,13 +82,17 @@ test("responsive navigation shares compact settings, theme and help actions with
   assert.equal((markup.match(/aria-label="Dark Mode einschalten"/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-circle-help/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
-  assert.match(sidebarMarkup, /class="[^"]*justify-start" data-navigation-utilities="true"/);
-  assert.match(sidebarMarkup, /lg:pt-10 lg:pb-5/);
+  assert.match(sidebarMarkup, /class="[^"]*grid-cols-\[repeat\(2,2\.75rem\)\][^"]*gap-2[^"]*" data-navigation-utilities="true" data-navigation-utility-layout="sidebar"/);
+  assert.match(sidebarMarkup, /px-4 pb-5 pt-10/);
   assert.doesNotMatch(sidebarMarkup, /border-t/);
+  assert.doesNotMatch(sidebarMarkup, /Content Repetition/);
+  assert.ok(sidebarMarkup.indexOf('data-navigation-utility="sync"') < sidebarMarkup.indexOf('data-navigation-utility="help"'));
+  assert.ok(sidebarMarkup.indexOf('data-navigation-utility="help"') < sidebarMarkup.indexOf('data-navigation-utility="settings"'));
   assert.ok(sidebarMarkup.indexOf('data-navigation-utility="settings"') < sidebarMarkup.indexOf('data-navigation-utility="theme"'));
-  assert.ok(sidebarMarkup.indexOf('data-navigation-utility="theme"') < sidebarMarkup.indexOf('data-navigation-utility="help"'));
   assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="theme"') < mobileHeaderMarkup.indexOf('data-navigation-utility="help"'));
   assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="help"') < mobileHeaderMarkup.indexOf('data-navigation-utility="settings"'));
+  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*class="core-action-secondary/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*core-action-ghost/g) ?? []).length, 0);
   assert.doesNotMatch(markup, /role="switch"|aria-checked=/);
   assert.doesNotMatch(markup, />Ada<|>AD</);
 });

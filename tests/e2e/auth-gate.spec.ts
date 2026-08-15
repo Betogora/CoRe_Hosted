@@ -4,6 +4,24 @@ function authForm(page: Page) {
   return page.locator("form");
 }
 
+async function expectFullViewportSurface(page: Page, width: number, height: number) {
+  const geometry = await page.locator("main").first().evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return {
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      borderWidth: style.borderWidth,
+      borderRadius: style.borderRadius,
+      documentFits: document.documentElement.scrollWidth <= window.innerWidth + 1,
+    };
+  });
+  expect(geometry).toMatchObject({ x: 0, y: 0, width, borderWidth: "0px", borderRadius: "0px", documentFits: true });
+  expect(geometry.height).toBeGreaterThanOrEqual(height);
+}
+
 test("Google und Magic Link bleiben unabhängig schaltbar", async ({ page }) => {
   await page.goto("http://127.0.0.1:5192/");
   await expect(page.getByRole("button", { name: "Mit Google anmelden" })).toBeVisible();
@@ -51,6 +69,24 @@ test("login gate exposes the supported authentication paths without an app sessi
 
   await page.getByRole("button", { name: "Anmelden", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+});
+
+test("login and error states use the full viewport without an outer frame", async ({ page }) => {
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+    { width: 320, height: 720 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+    await expectFullViewportSurface(page, viewport.width, viewport.height);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?core_e2e_render_error=1");
+  await expect(page.getByRole("heading", { name: "CoRe konnte nicht geladen werden" })).toBeVisible();
+  await expectFullViewportSurface(page, 390, 844);
 });
 
 test("login modes keep a predictable keyboard focus", async ({ page }: any) => {
