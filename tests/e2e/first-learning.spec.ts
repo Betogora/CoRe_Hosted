@@ -103,13 +103,23 @@ test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", asy
   await expect(page.getByTestId("learning-settings-new-cards")).toHaveValue("0");
 });
 
-test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core leerer Account importiert eine kleine APKG und erreicht den Review", async ({ page }) => {
+test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core lokaler APKG-Commit wartet nicht auf den initialen Cloud-Sync", async ({ page }) => {
+  let releaseCloudBootstrap!: () => void;
+  const cloudBootstrapGate = new Promise<void>((resolve) => { releaseCloudBootstrap = resolve; });
+  await page.route("**/rest/v1/rpc/get_account_bootstrap", async (route) => {
+    await cloudBootstrapGate;
+    await route.continue();
+  });
+  await page.reload();
+  await expect(page.getByRole("button", { name: /Anki-Stapel importieren/ })).toBeVisible();
   await page.getByRole("button", { name: /Anki-Stapel importieren/ }).click();
   await expect(page).toHaveURL(/\/neue-karten\?method=import$/);
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(SMALL_APKG_FIXTURE);
   await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
   await page.getByRole("button", { name: "Import übernehmen" }).click();
 
+  await expect(page.getByText("Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus.")).toBeVisible();
+  releaseCloudBootstrap();
   await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
   await page.reload();
   await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible();

@@ -198,6 +198,7 @@ export function App() {
   const setSuccessToast = useSuccessToast();
   const bootRunRef = React.useRef(0);
   const initialCloudSyncRef = React.useRef<Promise<unknown> | null>(null);
+  const syncEngineRef = React.useRef<AccountSyncEngine | null>(null);
   const latestStateRef = React.useRef<WorkspaceState | null>(null);
   const lastAcknowledgedStateRef = React.useRef<WorkspaceState | null>(null);
   const [authPhase, setAuthPhase] = React.useState<AuthPhase>(authPhases.checkingSession);
@@ -785,6 +786,7 @@ export function App() {
 
     setWorkspaceRepository(boot.repository);
     setCardPages({});
+    syncEngineRef.current = null;
     setSyncEngine(null);
     lastAcknowledgedStateRef.current = boot.state;
     setAppState(boot.state);
@@ -810,6 +812,7 @@ export function App() {
 
     void boot.cloudSync.then((cloud) => {
       if (bootRunRef.current !== runId) return;
+      syncEngineRef.current = cloud.syncEngine;
       setSyncEngine(cloud.syncEngine);
       lastAcknowledgedStateRef.current = cloud.state;
       setAppState(cloud.state, { preserveCardPages: true });
@@ -1090,6 +1093,7 @@ export function App() {
     resetApkgImportSession(false);
     setWorkspaceRepository(null);
     setCardPages({});
+    syncEngineRef.current = null;
     setSyncEngine(null);
     lastAcknowledgedStateRef.current = null;
     setAppState(null);
@@ -1117,7 +1121,7 @@ export function App() {
   }
 
   async function persistImportedDecks(decks: Deck[], { mediaOnly = false, commitGraph }: { mediaOnly?: boolean; commitGraph?: ImportCommitGraph } = {}) {
-    if (!workspaceRepository || !syncEngine) throw new Error("Die Cloud-Synchronisierung ist noch nicht bereit.");
+    if (!workspaceRepository) throw new Error("Die lokale Kartenablage ist noch nicht bereit.");
     const nextDecks = decks;
     if (mediaOnly) {
       workspaceRepository.saveDeckMetadata(nextDecks);
@@ -1147,11 +1151,15 @@ export function App() {
     function createTrackedImportCloudTask(verificationScope: ImportVerificationScope | null = null) {
       const task = createImportCloudSyncTask(async () => {
         await workspaceRepository!.flush();
-        const result = await syncEngine!.flush({ force: true });
+        const activeSyncEngine = syncEngineRef.current;
+        if (!activeSyncEngine) {
+          return { status: "local-pending", message: "Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus." };
+        }
+        const result = await activeSyncEngine.flush({ force: true });
         if (result?.paused) {
           return { status: "blocked", message: "Die Karten sind lokal gespeichert. Ein Cloud-Konflikt verhindert den Abschluss der Synchronisierung." };
         }
-        if (result?.deferred || syncEngine!.pendingCount() > 0) {
+        if (result?.deferred || activeSyncEngine.pendingCount() > 0) {
           return { status: "local-pending", message: "Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus." };
         }
         if (verificationScope) {
