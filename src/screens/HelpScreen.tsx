@@ -13,7 +13,8 @@ import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 type ReviewId = "first" | "variant";
 type RatingId = "again" | "hard" | "good" | "easy";
 type ParameterId = "r" | "s" | "d";
-type ExplorerSelectionId = "overview" | `review-${ReviewId}` | `rating-${RatingId}` | `parameter-${ParameterId}`;
+type HelpMethodId = "active-recall" | "spaced-repetition";
+type ExplorerSelectionId = "overview" | "ratings" | `review-${ReviewId}` | `rating-${RatingId}` | `parameter-${ParameterId}`;
 
 interface MemoryReview {
   id: ReviewId;
@@ -27,9 +28,7 @@ interface RatingPath {
   label: string;
   color: string;
   dueX: number;
-  arrowY: number;
   curvePath: string;
-  stabilityLabel: string;
 }
 
 interface StoryStep<TSelection extends string> {
@@ -67,36 +66,28 @@ const RATING_PATHS: readonly RatingPath[] = [
     label: "Nochmal",
     color: "var(--core-danger)",
     dueX: 350,
-    arrowY: 292,
     curvePath: "M 220 92 C 258 112, 318 186, 350 248",
-    stabilityLabel: "Nochmal · S sehr kurz",
   },
   {
     id: "hard",
     label: "Schwer",
     color: "var(--core-warning)",
     dueX: 500,
-    arrowY: 318,
     curvePath: "M 220 92 C 292 102, 438 164, 500 248",
-    stabilityLabel: "Schwer · S kurz",
   },
   {
     id: "good",
     label: "Gut",
     color: "var(--core-success)",
     dueX: 680,
-    arrowY: 344,
     curvePath: "M 220 92 C 328 96, 586 146, 680 248",
-    stabilityLabel: "Gut · S länger",
   },
   {
     id: "easy",
     label: "Leicht",
     color: "var(--core-info)",
     dueX: 855,
-    arrowY: 370,
     curvePath: "M 220 92 C 364 94, 734 126, 855 248",
-    stabilityLabel: "Leicht · S am längsten",
   },
 ];
 
@@ -133,6 +124,11 @@ const ACTIVE_RECALL_STACK_LAYERS = [
   { id: "success", className: "bg-core-success-soft", transform: "translate(-20px, -8px) rotate(-2.5deg)" },
 ] as const;
 
+const INTRO_CARD_STACK_LAYERS = [
+  { id: "back", transform: "translateY(-32px) scale(0.92)" },
+  { id: "middle", transform: "translateY(-16px) scale(0.96)" },
+] as const;
+
 const OBSCURED_RECALL_PIXELS = Array.from({ length: 14 }, (_, index) => index);
 const OBSCURED_RECALL_PIXEL_TONES = ["opacity-25", "opacity-40", "opacity-55"] as const;
 
@@ -153,74 +149,46 @@ const ACTIVE_RECALL_VARIANTS = [
 
 const SPACED_REPETITION_STEPS: readonly StoryStep<ExplorerSelectionId>[] = [
   {
-    id: "spaced-overview",
-    eyebrow: "01 · Grundidee",
-    title: "Wiederholen, kurz bevor Wissen zu kippen droht",
-    text: "Spaced Repetition verteilt Wiederholungen über die Zeit. FSRS schätzt dafür, wann deine Abrufwahrscheinlichkeit die gewünschte Zielerinnerung erreicht.",
-    selection: "overview",
-  },
-  {
     id: "spaced-first-review",
-    eyebrow: "02 · Gemeinsamer Start",
+    eyebrow: "01 · Erste Wiederholung",
     title: "Die erste Wiederholung aktualisiert den Gedächtniszustand",
     text: "Die Originalkarte erreicht im Beispiel 90 Prozent Abrufwahrscheinlichkeit. Nach deiner Antwort schätzt FSRS Stabilität S und Schwierigkeit D neu.",
     selection: "review-first",
   },
   {
-    id: "spaced-again",
-    eyebrow: "03 · Nochmal",
-    title: "Nicht erinnert: sehr früh erneut zeigen",
-    text: "Ein Fehler senkt die Stabilität. Der kürzeste Pfad führt deshalb zu einer schnellen Wiederholung, damit die Gedächtnisspur neu aufgebaut werden kann.",
-    selection: "rating-again",
-  },
-  {
-    id: "spaced-hard",
-    eyebrow: "04 · Schwer",
-    title: "Knapp erinnert: vorsichtig mehr Abstand",
-    text: "Eine unsichere, aber richtige Antwort erlaubt etwas mehr Zeit als „Nochmal“. Der Stabilitätszuwachs bleibt jedoch kleiner als bei „Gut“ oder „Leicht“.",
-    selection: "rating-hard",
-  },
-  {
-    id: "spaced-good",
-    eyebrow: "05 · Gut",
-    title: "Solide erinnert: das reguläre Intervall wächst",
-    text: "Der erfolgreiche Abruf festigt die Erinnerung. Im vereinfachten Beispiel wird die Karte deshalb deutlich später erneut fällig.",
-    selection: "rating-good",
-  },
-  {
-    id: "spaced-easy",
-    eyebrow: "06 · Leicht",
-    title: "Sehr sicher erinnert: das längste Intervall",
-    text: "Bei „Leicht“ wächst die Stabilität im Beispiel am stärksten. Der nächste Termin liegt am weitesten in der Zukunft.",
-    selection: "rating-easy",
+    id: "spaced-ratings",
+    eyebrow: "02 · Bewertung",
+    title: "Deine Antwort bestimmt das nächste Intervall",
+    text: "„Nochmal“, „Schwer“, „Gut“ und „Leicht“ führen gemeinsam betrachtet zu zunehmend längeren Intervallen. Je sicherer der Abruf, desto später wird die Karte erneut fällig.",
+    selection: "ratings",
   },
   {
     id: "spaced-variant",
-    eyebrow: "07 · Nächste Wiederholung",
-    title: "Reifes Wissen kann als Variante zurückkehren",
-    text: "Am Ende des längsten Beispielintervalls fragt CoRe dieselbe Wissenseinheit in einer nahen Form ab. Der dargestellte Zeitpunkt ist ein Beispiel und keine garantierte Reviewnummer.",
+    eyebrow: "03 · Ausreichende Stabilität",
+    title: "Erst dann kommt eine Variante als neuer Punkt hinzu",
+    text: "Sobald die Wissenseinheit ausreichend stabil ist, kann CoRe denselben Inhalt mit einer neuen Frageform prüfen. Der Variantenpunkt ist ein Beispiel und keine garantierte Reviewnummer.",
     selection: "review-variant",
   },
   {
+    id: "spaced-d",
+    eyebrow: "04 · D",
+    title: "D beschreibt die dauerhafte Schwierigkeit",
+    text: "Schwierige Inhalte bauen Stabilität langsamer auf. Die Rauten markieren D an den Wiederholungspunkten; D ist keine zweite Prozentkurve.",
+    selection: "parameter-d",
+  },
+  {
     id: "spaced-r",
-    eyebrow: "08 · R",
+    eyebrow: "05 · R",
     title: "R ist deine aktuelle Abrufwahrscheinlichkeit",
     text: "Nach einem erfolgreichen Review liegt R wieder nahe 100 Prozent und fällt anschließend mit der Zeit. Die gestrichelte Linie zeigt die Zielerinnerung von 90 Prozent.",
     selection: "parameter-r",
   },
   {
     id: "spaced-s",
-    eyebrow: "09 · S",
+    eyebrow: "06 · S",
     title: "S beschreibt, wie lange die Erinnerung hält",
     text: "Stabilität ist die Zeit, in der R von 100 auf 90 Prozent fällt. Die vier Pfeile zeigen qualitativ, wie deine Antwort das nächste Intervall beeinflusst.",
     selection: "parameter-s",
-  },
-  {
-    id: "spaced-d",
-    eyebrow: "10 · D",
-    title: "D beschreibt die dauerhafte Schwierigkeit",
-    text: "Schwierige Inhalte bauen Stabilität langsamer auf. Die Rauten markieren D an den Wiederholungspunkten; D ist keine zweite Prozentkurve.",
-    selection: "parameter-d",
   },
 ];
 
@@ -248,8 +216,7 @@ const MEMORY_TERMS: readonly MemoryTerm[] = [
   { term: "Original und Variante", description: "Verschiedene Fragen zur gleichen Wissenseinheit." },
 ];
 
-const PARAMETER_POSITIONS: Record<ParameterId, { left: string; top: string }> = {
-  r: { left: "15%", top: "1%" },
+const PARAMETER_POSITIONS: Record<Exclude<ParameterId, "r">, { left: string; top: string }> = {
   d: { left: "52%", top: "1%" },
   s: { left: "52%", top: "80%" },
 };
@@ -368,23 +335,28 @@ function IntroCardStack() {
       className="relative mx-auto h-[25rem] w-full max-w-lg"
       role="img"
       aria-label="Karteikartenstapel mit der Frage, welche Grundsätze CoRe für nachhaltiges Lernen nutzt. Active Recall wird zu Smarter Recall und Spaced Repetition zu Content Repetition weiterentwickelt."
+      data-testid="help-intro-card-stack"
     >
-      {ACTIVE_RECALL_STACK_LAYERS.map((layer) => (
+      {INTRO_CARD_STACK_LAYERS.map((layer) => (
         <div
           key={layer.id}
-          className={`absolute inset-x-4 top-12 h-[19rem] rounded-[26px] border border-[var(--core-border-interactive)] shadow-md sm:inset-x-8 ${layer.className}`}
+          className="absolute inset-x-4 top-12 h-[19rem] origin-center rounded-[26px] border border-[var(--core-border)] bg-core-info-soft shadow-sm sm:inset-x-8"
           style={{ transform: layer.transform }}
           aria-hidden="true"
+          data-testid="help-intro-card-layer"
         />
       ))}
-      <div className="absolute inset-x-4 top-12 grid h-[19rem] place-items-center rounded-[26px] border border-[var(--core-border-interactive)] bg-core-info-soft p-6 text-center shadow-lg sm:inset-x-8 sm:p-8">
+      <div
+        className="absolute inset-x-4 top-12 grid h-[19rem] place-items-center rounded-[26px] border border-[var(--core-border)] bg-core-info-soft p-6 shadow-lg sm:inset-x-8 sm:p-8"
+        data-testid="help-intro-card-front"
+      >
         <div className="max-w-md">
-          <p className="core-body-large font-semibold leading-7 text-core-text">
-            Welche Grundsätze nutzt CoRe, um das Lernen möglichst nachhaltig zu gestalten, und wie wurden sie im Vergleich zu herkömmlichen Lernmechanismen verbessert?
+          <p className="core-body-large font-medium leading-7 text-core-text">
+            Welche Grundsätze nutzt <mark className="core-help-keyword">CoRe</mark>, um das Lernen möglichst <mark className="core-help-keyword">nachhaltig</mark> zu gestalten, und wie wurden sie im Vergleich zu <mark className="core-help-keyword">herkömmlichen Lernmechanismen</mark> verbessert?
           </p>
-          <ol className="mx-auto mt-6 grid max-w-sm gap-3 border-t border-[var(--core-border-interactive)] pt-5 text-left core-body font-semibold text-core-text">
-            <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-action">1.</span><span>Active Recall <span className="text-core-warning">→</span> Smarter Recall</span></li>
-            <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-action">2.</span><span>Spaced Repetition <span className="text-core-warning">→</span> Content Repetition</span></li>
+          <ol className="mt-6 grid gap-3 border-t border-[var(--core-border)] pt-5 core-body font-medium text-core-text">
+            <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">1.</span><span>Active Recall <span className="text-core-warning">→</span> Smarter Recall</span></li>
+            <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">2.</span><span>Spaced Repetition <span className="text-core-warning">→</span> Content Repetition</span></li>
           </ol>
         </div>
       </div>
@@ -393,6 +365,13 @@ function IntroCardStack() {
 }
 
 function IntroSection() {
+  const [activeMethod, setActiveMethod] = React.useState<HelpMethodId | null>(null);
+
+  function methodLinkClass(method: HelpMethodId, borderClass: string) {
+    const active = activeMethod === method;
+    return `group block border-t ${borderClass} pt-4 transition-[border-width,color] motion-reduce:transition-none ${active ? "border-t-4" : "border-t-2"}`;
+  }
+
   return (
     <section className="grid min-w-0 min-h-[72svh] items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
       <div className="max-w-2xl">
@@ -402,14 +381,24 @@ function IntroSection() {
           CoRe hilft dir, Wissen nicht nur für den nächsten Test, sondern langfristig abrufbar zu machen. Dafür verbinden wir zwei etablierte Methoden und entwickeln sie weiter.
         </p>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="border-t-2 border-core-success pt-4">
-            <p className="core-caption font-semibold uppercase tracking-wide text-core-secondary">Active Recall</p>
-            <p className="mt-2 core-body font-semibold text-core-text">Wissen aktiv aus dem Gedächtnis holen.</p>
-          </div>
-          <div className="border-t-2 border-core-info pt-4">
-            <p className="core-caption font-semibold uppercase tracking-wide text-core-secondary">Spaced Repetition</p>
-            <p className="mt-2 core-body font-semibold text-core-text">Zum passenden Zeitpunkt wiederholen.</p>
-          </div>
+          <a
+            href="#active-recall-heading"
+            className={methodLinkClass("active-recall", "border-core-success")}
+            onClick={() => setActiveMethod("active-recall")}
+            aria-current={activeMethod === "active-recall" ? "location" : undefined}
+          >
+            <span className={`core-caption uppercase tracking-wide transition-[font-weight,color] motion-reduce:transition-none ${activeMethod === "active-recall" ? "font-bold text-core-text" : "font-semibold text-core-secondary"}`}>Active Recall</span>
+            <span className={`mt-2 block core-body text-core-text transition-[font-weight] motion-reduce:transition-none ${activeMethod === "active-recall" ? "font-bold" : "font-semibold"}`}>Wissen aktiv aus dem Gedächtnis holen.</span>
+          </a>
+          <a
+            href="#spaced-repetition-heading"
+            className={methodLinkClass("spaced-repetition", "border-core-info")}
+            onClick={() => setActiveMethod("spaced-repetition")}
+            aria-current={activeMethod === "spaced-repetition" ? "location" : undefined}
+          >
+            <span className={`core-caption uppercase tracking-wide transition-[font-weight,color] motion-reduce:transition-none ${activeMethod === "spaced-repetition" ? "font-bold text-core-text" : "font-semibold text-core-secondary"}`}>Spaced Repetition</span>
+            <span className={`mt-2 block core-body text-core-text transition-[font-weight] motion-reduce:transition-none ${activeMethod === "spaced-repetition" ? "font-bold" : "font-semibold"}`}>Zum passenden Zeitpunkt wiederholen.</span>
+          </a>
         </div>
       </div>
       <IntroCardStack />
@@ -502,7 +491,7 @@ function ActiveRecallStory() {
     <section className="grid min-w-0 gap-8" aria-labelledby="active-recall-heading">
       <div className="max-w-3xl">
         <p className="core-control-label uppercase tracking-wide text-core-action">Methode 1</p>
-        <h2 id="active-recall-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Active Recall</h2>
+        <h2 id="active-recall-heading" className="core-heading-1 mt-3 scroll-mt-6 font-semibold text-core-text">Active Recall</h2>
       </div>
       <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] xl:gap-12">
         <div className="min-w-0 self-start xl:sticky xl:top-6">
@@ -525,6 +514,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
   const activeReviewId = getActiveReviewId(activeSelection);
   const activeRatingId = getActiveRatingId(activeSelection);
   const activeParameterId = getActiveParameterId(activeSelection);
+  const ratingsActive = activeSelection === "ratings";
   const overview = activeSelection === "overview";
 
   function hoverProps(nextSelection: ExplorerSelectionId) {
@@ -548,14 +538,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
   }
 
   return (
-    <SoftPanel className="min-w-0 overflow-hidden p-3 sm:p-5" data-testid="spaced-repetition-visual" data-active-selection={selection}>
-      <div className="flex flex-wrap items-center justify-between gap-3 px-1 pb-3">
-        <div>
-          <p className="core-caption font-semibold uppercase tracking-wide text-core-action">Spaced Repetition</p>
-          <p className="mt-1 core-body font-semibold text-core-text">Bewertung verändert das nächste Intervall</p>
-        </div>
-        <span className="core-caption text-core-muted">Vereinfachtes Beispiel</span>
-      </div>
+    <div className="min-w-0 overflow-hidden" data-testid="spaced-repetition-visual" data-active-selection={selection}>
       <p id="memory-axis-description" className="sr-only">Die Y-Achse zeigt nur den Ausschnitt von 90 bis 100 Prozent Abrufwahrscheinlichkeit. Zwei diagonale Striche kennzeichnen die ausgelassene Achsenspanne darunter.</p>
       <div className="overflow-x-auto pb-2 focus:outline-none" tabIndex={0} aria-label="Lernkurve horizontal erkunden" aria-describedby="memory-axis-description">
         <div className="relative aspect-[960/540] min-w-[42rem] xl:min-w-0" data-testid="memory-curve">
@@ -566,7 +549,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             <line x1="72" y1="420" x2="928" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
             <line x1="72" y1="52" x2="72" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
             <text x="500" y="508" textAnchor="middle" fill="var(--core-text-muted)" fontSize="16">Zeit und nächstes Intervall</text>
-            <text x="22" y="198" transform="rotate(-90 22 198)" textAnchor="middle" fill="var(--core-text-muted)" fontSize="16">Abrufwahrscheinlichkeit</text>
+            <text x="22" y="198" transform="rotate(-90 22 198)" textAnchor="middle" fill="var(--core-text-muted)" fontSize="16">R · Abrufwahrscheinlichkeit</text>
             <text x="57" y="98" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">100 %</text>
             <text x="57" y="253" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">90 %</text>
             <text x="86" y="408" fill="var(--core-text-muted)" fontSize="13">Ausschnitt 90–100 %</text>
@@ -581,23 +564,23 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
               <text x="920" y="235" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">Zielerinnerung R = 90 %</text>
               <path d={INITIAL_CURVE_PATH} fill="none" stroke="var(--core-text)" strokeWidth={activeParameterId === "r" || activeReviewId === "first" || overview ? 7 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "first" || overview ? 1 : 0.28} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />
               {RATING_PATHS.map((rating) => {
-                const emphasized = activeParameterId === "r" || activeRatingId === rating.id || (activeReviewId === "variant" && rating.id === "easy");
+                const emphasized = ratingsActive || activeParameterId === "r" || activeRatingId === rating.id || (activeReviewId === "variant" && rating.id === "easy");
                 return <path key={`curve-${rating.id}`} d={rating.curvePath} fill="none" stroke={rating.color} strokeWidth={emphasized ? 7 : overview ? 4.5 : 3.5} strokeLinecap="round" opacity={emphasized ? 1 : overview ? 0.72 : 0.22} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />;
               })}
               <path d="M 855 92 C 888 98, 918 112, 946 138" fill="none" stroke="var(--core-info)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" || overview ? 1 : 0.35} />
             </g>
 
             <g data-testid="memory-visual-s" data-active={activeParameterId === "s" ? "true" : "false"}>
-              {RATING_PATHS.map((rating) => {
-                const emphasized = activeParameterId === "s" || activeRatingId === rating.id;
-                const start = 235;
+              {RATING_PATHS.map((rating, index) => {
+                const emphasized = ratingsActive || activeParameterId === "s" || activeRatingId === rating.id;
+                const start = index === 0 ? 235 : RATING_PATHS[index - 1].dueX + 10;
                 const end = rating.dueX - 10;
+                const arrowY = 292;
                 return (
                   <g key={`stability-${rating.id}`} opacity={emphasized ? 1 : overview || activeReviewId === "first" ? 0.78 : 0.32} className="transition-opacity duration-300 motion-reduce:transition-none">
-                    <line x1={start} y1={rating.arrowY} x2={end} y2={rating.arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
-                    <path d={`M ${start + 9} ${rating.arrowY - 6} L ${start} ${rating.arrowY} L ${start + 9} ${rating.arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
-                    <path d={`M ${end - 9} ${rating.arrowY - 6} L ${end} ${rating.arrowY} L ${end - 9} ${rating.arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
-                    <text x={end - 2} y={rating.arrowY - 7} textAnchor="end" fill="var(--core-text-secondary)" fontSize="13" fontWeight={emphasized ? 700 : 500}>{rating.stabilityLabel}</text>
+                    <line x1={start} y1={arrowY} x2={end} y2={arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
+                    <path d={`M ${start + 9} ${arrowY - 6} L ${start} ${arrowY} L ${start + 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
+                    <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
                   </g>
                 );
               })}
@@ -621,10 +604,10 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             <text x="855" y="210" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">2. Wiederholung · Variante</text>
           </svg>
 
-          {(["r", "s", "d"] as const).map((parameterId) => {
+          {(["s", "d"] as const).map((parameterId) => {
             const nextSelection = parameterSelectionId(parameterId);
             const active = activeSelection === nextSelection;
-            const label = parameterId === "r" ? "R · Abrufwahrscheinlichkeit" : parameterId === "s" ? "S · Stabilität" : "D · Schwierigkeit";
+            const label = parameterId === "s" ? "S · Stabilität" : "D · Schwierigkeit";
             return (
               <button key={parameterId} type="button" className={`absolute z-20 flex min-h-11 -translate-x-1/2 items-center px-2 core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} style={PARAMETER_POSITIONS[parameterId]} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>{label}</button>
             );
@@ -657,7 +640,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
           })}
         </div>
       </div>
-    </SoftPanel>
+    </div>
   );
 }
 
@@ -678,7 +661,7 @@ function SpacedRepetitionStory() {
     <section className="grid min-w-0 gap-8" aria-labelledby="spaced-repetition-heading">
       <div className="max-w-3xl">
         <p className="core-control-label uppercase tracking-wide text-core-action">Methode 2</p>
-        <h2 id="spaced-repetition-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
+        <h2 id="spaced-repetition-heading" className="core-heading-1 mt-3 scroll-mt-6 font-semibold text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">Scrolle durch die Schritte. Das Diagramm bleibt stehen und hebt jeweils den Teil hervor, der gerade erklärt wird.</p>
       </div>
       <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(38rem,1.35fr)_minmax(19rem,0.65fr)] xl:gap-10">

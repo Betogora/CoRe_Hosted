@@ -450,8 +450,25 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeFocused();
   await expect(page.getByRole("heading", { name: "Wir wollen Lernen verbessern." })).toBeVisible();
   await expect(page.getByText(/Welche Grundsätze nutzt CoRe, um das Lernen möglichst nachhaltig zu gestalten/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Active Recall", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" })).toBeVisible();
+  const activeRecallHeading = page.getByRole("heading", { name: "Active Recall", exact: true });
+  const spacedRepetitionHeading = page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" });
+  await expect(activeRecallHeading).toBeVisible();
+  await expect(spacedRepetitionHeading).toBeVisible();
+
+  const activeRecallMethodLink = page.locator('a[href="#active-recall-heading"]');
+  await activeRecallMethodLink.click();
+  await expect(page).toHaveURL(/\/hilfe#active-recall-heading$/);
+  await expect(activeRecallMethodLink).toHaveAttribute("aria-current", "location");
+  await expect(activeRecallMethodLink).toHaveClass(/border-t-4/);
+  await expect(activeRecallHeading).toBeInViewport();
+
+  const spacedRepetitionMethodLink = page.locator('a[href="#spaced-repetition-heading"]');
+  await spacedRepetitionMethodLink.click();
+  await expect(page).toHaveURL(/\/hilfe#spaced-repetition-heading$/);
+  await expect(activeRecallMethodLink).not.toHaveAttribute("aria-current", "location");
+  await expect(spacedRepetitionMethodLink).toHaveAttribute("aria-current", "location");
+  await expect(spacedRepetitionMethodLink).toHaveClass(/border-t-4/);
+  await expect(spacedRepetitionHeading).toBeInViewport();
   await expect(page.getByText(/CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
   await expect(page.getByText(/höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/i)).toBeVisible();
@@ -506,7 +523,7 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page.getByText(/keine garantierte Reviewnummer/i).last()).toBeVisible();
 
   await page.reload();
-  await expect(page).toHaveURL("/hilfe");
+  await expect(page).toHaveURL("/hilfe#spaced-repetition-heading");
   await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
