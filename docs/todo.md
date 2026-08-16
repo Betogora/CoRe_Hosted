@@ -39,17 +39,43 @@ Abnahme:
 
 ### Performance-Freigabeblocker
 
-- [ ] `DeckStudySummary` als dauerhaft gepflegte O(Stapel)-Projektion umsetzen,
-      damit Hauptmenü und Tagesgrenze keinen Kartenindex mehr scannen.
-- [ ] Den adaptiven Feature-Preload so nachhärten, dass auch die Auswertung
-      vorgeladener Module keinen Main-Thread-Task über 50 ms erzeugt.
+Die Mess-, Boot- und Profilkorrekturen aus `codex/performance-hardening` sind
+eine eigenständig mergefähige Grundlage. Der belegte 231-ms-Hintergrundtask
+blockiert weiterhin die begleitete Beta, aber nicht den Merge dieser Grundlage.
+Der folgende Projektionsumbau erfolgt deshalb getrennt auf
+`codex/deck-study-projection`.
+
+- [ ] Automatisches Idle-Preloading nur bei `4g` oder fehlender
+      Network-Information zulassen. Auf `3g` ausschließlich nach Hover, Fokus
+      oder Touchstart vorladen; bei `2g`, `slow-2g`, Save-Data oder
+      unsichtbarem Tab gar nicht spekulieren.
+- [ ] Die kontrollierte Startmessung um einen 4G-Kontext ergänzen und dort
+      Lernen und Karten seriell vorladen. Bleibt der Karten-Preload über 50 ms,
+      Editor, Detaildialoge, Vorschau und Rich-Text-Logik erst beim Öffnen einer
+      Karte laden.
+- [ ] `DeckStudySummary` als löschbare lokale O(Stapel)-Projektion in IndexedDB
+      umsetzen. Einzelwrites pflegen sie atomar; Bulk- und Cloud-Writes
+      markieren betroffene Stapel dirty und bauen sie fortsetzbar in
+      250er-Chunks mit spätestens 25 ms Main-Thread-Zeit neu auf.
+- [ ] Das IndexedDB-Upgrade legt nur Projektion, Fälligkeits-Buckets,
+      Kartenindex und Rebuild-Checkpoint an. Die Erstbefüllung startet nach dem
+      nutzbaren Workspace, ein Dirty-Token schützt parallele Änderungen und
+      Kontextwechsel bei Zeitzone oder Tagesbeginn lösen einen neuen Rebuild
+      aus.
 
 Abnahme:
 
 - [ ] `npm run performance:measure:local` besteht mit je zehn Läufen für den
       wiederkehrenden, frischen, Service-Worker-freien und Offline-Kontext.
-- [ ] Die erste Stapelzusammenfassung und jeder nachgelagerte Main-Thread-Task
-      bleiben im festen 50-ms-Budget.
+- [ ] Ein zusätzlicher kontrollierter 4G-Lauf belegt serielle automatische
+      Lernen-/Karten-Preloads; ein 3G-Lauf belegt, dass kein automatischer
+      Preload startet.
+- [ ] Der persistierte Summary-Read hat p75 höchstens 50 ms. Jeder Summary-,
+      Rebuild- und automatische Preload-Task bleibt im festen 50-ms-Budget.
+- [ ] Unterbrochener Rebuild, Reload, Review, Kartenänderung, Cloud-Delta und
+      -Reset, Konflikte, Tagesgrenze sowie Zeitzonenwechsel sind durch
+      Repositorytests abgedeckt. Ein 100k-Repositoryvertrag kommt ohne
+      vollständigen Kartenread aus.
 - [ ] Der Service Worker bleibt unverändert, solange der kontrollierte Vergleich
       keinen p75-Nachteil von mindestens 100 ms zeigt.
 
