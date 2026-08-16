@@ -142,6 +142,7 @@ function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; f
 function MonthHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; formatDayLabel: (day: StudyHeatmapDay) => string }) {
   return (
     <div
+      className="mx-auto w-full max-w-[30rem]"
       role="img"
       data-testid="study-heatmap-grid"
       data-heatmap-period="month"

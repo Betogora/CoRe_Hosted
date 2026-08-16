@@ -5,11 +5,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createStudyHeatmapModelFromCounts } from "../studyHeatmapModel.ts";
 import { StudyHeatmap } from "./StudyHeatmap.tsx";
 
-function renderHeatmapWeekAt(anchorKey: string, forecastCountsByDay: ReadonlyMap<string, number> = new Map()) {
+function renderHeatmapAt(
+  period: "week" | "month" | "year",
+  anchorKey: string,
+  forecastCountsByDay: ReadonlyMap<string, number> = new Map(),
+) {
   const originalUseState = React.useState;
   let stateIndex = 0;
   React.useState = (() => {
-    const value = stateIndex === 0 ? "week" : anchorKey;
+    const value = stateIndex === 0 ? period : anchorKey;
     stateIndex += 1;
     return [value, () => undefined];
   }) as typeof React.useState;
@@ -28,6 +32,10 @@ function renderHeatmapWeekAt(anchorKey: string, forecastCountsByDay: ReadonlyMap
   } finally {
     React.useState = originalUseState;
   }
+}
+
+function renderHeatmapWeekAt(anchorKey: string, forecastCountsByDay: ReadonlyMap<string, number> = new Map()) {
+  return renderHeatmapAt("week", anchorKey, forecastCountsByDay);
 }
 
 test("shared study heatmap defaults to seven days with the streak title and segmented period control", () => {
@@ -82,6 +90,12 @@ test("shared study heatmap uses the plural streak title for zero and multiple da
     />,
   );
   assert.match(streakMarkup, /3 Tage Streak/);
+});
+
+test("shared study heatmap keeps the month calendar compact on wide panels", () => {
+  const markup = renderHeatmapAt("month", "2026-08-10");
+
+  assert.match(markup, /class="mx-auto w-full max-w-\[30rem\]" role="img" data-testid="study-heatmap-grid" data-heatmap-period="month"/);
 });
 
 test("shared study heatmap renders forecast copy and gray levels without changing the historical legend", () => {
