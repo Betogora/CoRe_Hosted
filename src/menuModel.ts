@@ -117,7 +117,7 @@ const views: MenuView[] = [
     stats: [],
   },
 ];
-const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "neue-karten", "statistik", "kartenstapel"];
+const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "neue-karten", "kartenstapel", "statistik"];
 
 function navigationItem(view: MenuView) {
   return { id: view.id, label: view.label, iconKey: view.iconKey };

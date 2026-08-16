@@ -48,6 +48,19 @@ interface ResponsiveNavigationProps extends AppNavigationProps {
   onToggleTheme: () => void;
 }
 
+function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">) {
+  return (
+    <button
+      type="button"
+      data-navigation-brand="true"
+      onClick={() => onNavigate("uebersicht")}
+      className="rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2"
+    >
+      CoRe
+    </button>
+  );
+}
+
 function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, syncStatus, onSyncNow, layout }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "onSyncNow"> & { layout: "sidebar" | "header" }) {
   const settingsActive = settingsViews.has(activeView);
   const helpActive = activeView === "hilfe";
@@ -153,7 +166,9 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
   return (
     <aside className="hidden border-r border-[var(--core-border)] bg-core-surface xl:block xl:overflow-x-hidden xl:overflow-y-auto" data-navigation-layout="sidebar">
       <div className="flex h-full flex-col px-4 pb-5 pt-10">
-        <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">CoRe</h1>
+        <h1 className="core-heading-1 font-semibold tracking-normal text-[var(--core-text)]">
+          <NavigationBrand onNavigate={onNavigate} />
+        </h1>
 
         <nav aria-label="Hauptmenü" data-app-navigation="true" className="mt-10 grid grid-cols-1 gap-2">
           {navigationItems.map((view) => {
@@ -207,7 +222,9 @@ function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel
   return (
     <header className="core-mobile-header sticky top-0 z-30 min-w-0 border-b border-[var(--core-border)] bg-core-surface px-5 py-3 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex min-h-11 min-w-0 items-center justify-between gap-3">
-        <h1 className="core-mobile-brand shrink-0 core-heading-3 font-semibold text-[var(--core-text)]">CoRe</h1>
+        <h1 className="core-mobile-brand shrink-0 core-heading-3 font-semibold text-[var(--core-text)]">
+          <NavigationBrand onNavigate={onNavigate} />
+        </h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
         <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} layout="header" />
       </div>

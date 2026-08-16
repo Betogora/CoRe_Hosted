@@ -9,8 +9,8 @@ test("lists the navigation items in product order", () => {
     { id: "uebersicht", label: "Heute", iconKey: "home" },
     { id: "lernen", label: "Lernen", iconKey: "learn" },
     { id: "neue-karten", label: "Erstellen", iconKey: "plus" },
-    { id: "statistik", label: "Statistik", iconKey: "chart" },
     { id: "kartenstapel", label: "Karten", iconKey: "layers" },
+    { id: "statistik", label: "Statistik", iconKey: "chart" },
   ]);
 });
 

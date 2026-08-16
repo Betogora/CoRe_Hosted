@@ -38,6 +38,7 @@ test("sync action exposes the current state in both navigation layouts", () => {
 
 test("app navigation exposes a desktop sidebar and the five mobile tabs", () => {
   const markup = renderNavigation("kartenstapel");
+  const expectedTabOrder = ["Heute", "Lernen", "Erstellen", "Karten", "Statistik"];
 
   assert.match(markup, /data-navigation-layout="sidebar"/);
   assert.match(markup, /data-navigation-layout="mobile-header"/);
@@ -46,8 +47,11 @@ test("app navigation exposes a desktop sidebar and the five mobile tabs", () => 
   assert.match(markup, /xl:overflow-x-hidden/);
   assert.match(markup, /xl:hidden/);
   assert.doesNotMatch(markup, /md:block|md:hidden/);
-  for (const label of ["Heute", "Lernen", "Erstellen", "Statistik", "Karten"]) assert.match(markup, new RegExp(`>${label}<`));
+  for (const label of expectedTabOrder) assert.match(markup, new RegExp(`>${label}<`));
   const bottomBarMarkup = markup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
+  for (let index = 1; index < expectedTabOrder.length; index += 1) {
+    assert.ok(bottomBarMarkup.indexOf(`>${expectedTabOrder[index - 1]}</span>`) < bottomBarMarkup.indexOf(`>${expectedTabOrder[index]}</span>`));
+  }
   assert.match(bottomBarMarkup, /lucide-layers/);
   assert.match(bottomBarMarkup, />Karten<\/span>/);
   assert.doesNotMatch(bottomBarMarkup, />Mehr<\/span>/);
@@ -57,6 +61,12 @@ test("app navigation exposes a desktop sidebar and the five mobile tabs", () => 
   assert.match(markup, /sm:w-\[calc\(100dvw-6rem\)\]/);
   assert.match(markup, /bg-core-raised/);
   assert.match(markup, /bottom:max\(0\.75rem, env\(safe-area-inset-bottom\)\)/);
+});
+
+test("CoRe brand links both navigation layouts to today", () => {
+  const markup = renderNavigation("neue-karten");
+
+  assert.equal((markup.match(/<button[^>]*data-navigation-brand="true"/g) ?? []).length, 2);
 });
 
 test("help has its own active utility entry while settings and simulator share the settings entry", () => {
