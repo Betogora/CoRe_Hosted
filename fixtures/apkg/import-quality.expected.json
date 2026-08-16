@@ -158,7 +158,7 @@
         "missing.png"
       ],
       "file": "import-quality-legacy.apkg",
-      "sha256": "94afa76b8f60e73c69d180a1997a8622517b7e5d794071f484a36cb5a39d524f",
+      "sha256": "6d22e3dc55c91a70d5e997398d474048db472bba8344e5f7bba9e38e5775e6df",
       "generator": "python-stdlib"
     },
     "latest": {

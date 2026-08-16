@@ -304,6 +304,7 @@ function parseColumnNames(createSql: any) {
 
   return createSql
     .slice(start + 1, end)
+    .replace(/\/\*\s*\d+\s*\*\//g, "")
     .split(",")
     .map((part: any) => part.trim().split(/\s+/)[0].replace(/["'`[\]]/g, ""))
     .filter((name: any) => name && !["primary", "foreign", "unique", "constraint", "check"].includes(name.toLowerCase()));

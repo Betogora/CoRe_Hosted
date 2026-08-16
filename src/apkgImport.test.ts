@@ -1027,6 +1027,10 @@ test("quality APKG fixtures match their manifest and exercise legacy plus latest
     const archive = await readZipArchive(fixture);
     assert.ok(archive.getEntry(expected.collectionEntry));
     if (name === "latest") assert.ok(archive.getEntry("meta"));
+    if (name === "legacy") {
+      const collectionBytes = await archive.getEntry(expected.collectionEntry)!.readBytes();
+      assert.match(new TextDecoder().decode(collectionBytes), /nid integer not null, \/\* 1 \*\//);
+    }
 
     const parsed = await parseApkgToNormalizedImport(fixture);
     assert.deepEqual(parsed.errors, []);
