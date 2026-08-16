@@ -126,5 +126,6 @@ test("active Pomodoro timer appears in the desktop sidebar and mobile header", (
   assert.equal((markup.match(/data-pomodoro-progress=/g) ?? []).length, 2);
   assert.match(markup, /data-pomodoro-progress="sidebar"/);
   assert.match(markup, /data-pomodoro-progress="header"/);
+  assert.match(markup, />25 min\.<\/p>/);
   assert.match(markup, /Noch 25 Min\./);
 });

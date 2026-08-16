@@ -180,18 +180,24 @@ export function PomodoroProgress({ timer, variant }: PomodoroProgressProps) {
   const remainingSeconds = Math.ceil(snapshot.remainingMilliseconds / 1_000);
   const maximumSeconds = Math.max(1, timer.durationMinutes * 60);
   const valueText = `Noch ${snapshot.remainingMinutes} Min.`;
+  const sidebarValueText = `${snapshot.remainingMinutes} min.`;
   const isHeader = variant === "header";
   const isStudy = variant === "study";
+  const isSidebar = variant === "sidebar";
 
   return (
     <div
-      className={isHeader ? "min-w-0 flex-1" : isStudy ? "grid gap-2" : "grid gap-1.5"}
+      className={isHeader ? "min-w-0 flex-1" : isStudy ? "grid gap-2" : "grid min-w-0 w-full gap-1.5"}
       data-pomodoro-progress={variant}
     >
-      <div className={`flex items-center justify-between gap-2 ${isHeader ? "core-caption" : "core-status-label uppercase tracking-wide"} text-[var(--core-text-muted)]`}>
-        <span className="min-w-0 truncate">Pomodoro-Timer</span>
-        <span className="shrink-0">{valueText}</span>
-      </div>
+      {isSidebar ? (
+        <p className="min-w-0 truncate text-right core-caption font-semibold text-[var(--core-text-muted)]">{sidebarValueText}</p>
+      ) : (
+        <div className={`flex items-center justify-between gap-2 ${isHeader ? "core-caption" : "core-status-label uppercase tracking-wide"} text-[var(--core-text-muted)]`}>
+          <span className="min-w-0 truncate">Pomodoro-Timer</span>
+          <span className="shrink-0">{valueText}</span>
+        </div>
+      )}
       <div
         className={`${isStudy ? "h-2" : "h-1.5"} overflow-hidden rounded-full bg-core-subtle`}
         role="progressbar"
@@ -199,7 +205,7 @@ export function PomodoroProgress({ timer, variant }: PomodoroProgressProps) {
         aria-valuemin={0}
         aria-valuemax={maximumSeconds}
         aria-valuenow={remainingSeconds}
-        aria-valuetext={valueText}
+        aria-valuetext={isSidebar ? sidebarValueText : valueText}
         data-testid={isStudy ? "study-pomodoro-progress" : undefined}
       >
         <div
