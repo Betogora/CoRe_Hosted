@@ -601,6 +601,12 @@ body {
   color: var(--core-text);
 }
 
+input[type="email"]:autofill {
+  -webkit-text-fill-color: var(--core-text);
+  caret-color: var(--core-text);
+  box-shadow: inset 0 0 0 1000px var(--core-surface);
+}
+
 ::placeholder {
   color: var(--core-text-muted);
   opacity: 1;

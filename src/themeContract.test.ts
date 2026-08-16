@@ -119,6 +119,12 @@ test("interactive controls keep DOM focus without visible focus frames", () => {
   assert.doesNotMatch(source, /focus(?:-visible)?:(?:border|shadow)/);
 });
 
+test("autofilled email inputs keep the themed field surface", () => {
+  const autofillRule = styles.match(/input\[type="email"\]:autofill\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  assert.match(autofillRule, /-webkit-text-fill-color:\s*var\(--core-text\)/);
+  assert.match(autofillRule, /box-shadow:\s*inset 0 0 0 1000px var\(--core-surface\)/);
+});
+
 test("dragged deck rows lift without a list-only brightness filter", () => {
   const activeDragRule = styles.match(/\.core-deck-summary-row\[data-drag-state="active"\]\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
   assert.match(activeDragRule, /transform:\s*translateY\(-2px\) scaleY\(1\.03\)/);
