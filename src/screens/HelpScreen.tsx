@@ -125,8 +125,8 @@ const ACTIVE_RECALL_STACK_LAYERS = [
 ] as const;
 
 const INTRO_CARD_STACK_LAYERS = [
-  { id: "back", className: "core-help-stack-layer-back", transform: "translate(-30px, -57px) scale(0.94)" },
-  { id: "middle", className: "core-help-stack-layer-middle", transform: "translate(-12px, -31px) scale(0.97)" },
+  { id: "back", className: "core-help-stack-layer-back h-[22rem]", transform: "translateX(-30px) scaleX(0.94)" },
+  { id: "middle", className: "core-help-stack-layer-middle h-[20.5rem]", transform: "translateX(-12px) scaleX(0.97)" },
 ] as const;
 
 const ACTIVE_RECALL_VARIANTS = [
@@ -337,7 +337,7 @@ function IntroCardStack() {
       {INTRO_CARD_STACK_LAYERS.map((layer) => (
         <div
           key={layer.id}
-          className={`core-help-stack-card absolute inset-x-4 top-12 h-[19rem] origin-center rounded-[26px] border shadow-sm sm:inset-x-8 ${layer.className}`}
+          className={`core-help-stack-card absolute inset-x-4 bottom-10 origin-bottom rounded-[26px] border shadow-sm sm:inset-x-8 ${layer.className}`}
           style={{ transform: layer.transform }}
           aria-hidden="true"
           data-testid="help-intro-card-layer"
@@ -345,7 +345,7 @@ function IntroCardStack() {
         />
       ))}
       <div
-        className="core-help-stack-card absolute inset-x-4 top-12 grid h-[19rem] place-items-center rounded-[26px] border bg-core-surface p-6 shadow-lg sm:inset-x-8 sm:p-8"
+        className="core-help-stack-card absolute inset-x-4 bottom-10 grid h-[19rem] place-items-center rounded-[26px] border bg-core-surface p-6 shadow-lg sm:inset-x-8 sm:p-8"
         data-testid="help-intro-card-front"
       >
         <div className="max-w-md">
@@ -381,7 +381,8 @@ function IntroSection() {
       : document.documentElement.scrollHeight - window.innerHeight;
     const endTop = Math.max(0, Math.min(targetTop, maxTop));
 
-    if (reducedMotion) {
+    const skipIntermediateStory = method === "spaced-repetition";
+    if (reducedMotion || skipIntermediateStory) {
       if (scrollRegion) scrollRegion.scrollTo({ top: endTop });
       else window.scrollTo({ top: endTop });
       return;
@@ -401,7 +402,7 @@ function IntroSection() {
   }
 
   function methodLinkClass(borderClass: string) {
-    return `group block border-t-2 ${borderClass} pt-4 transition-[border-width,color] duration-150 hover:border-t-4 focus-visible:border-t-4 motion-reduce:transition-none`;
+    return `core-help-method-link group block border-t-2 ${borderClass} pt-4 transition-[border-width,color] duration-150 hover:border-t-4 motion-reduce:transition-none`;
   }
 
   return (
@@ -415,6 +416,7 @@ function IntroSection() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <a
             href="#active-recall-heading"
+            data-help-method-navigation="animated"
             className={methodLinkClass("border-core-success")}
             onClick={(event) => scrollToMethod(event, "active-recall")}
           >
@@ -423,6 +425,7 @@ function IntroSection() {
           </a>
           <a
             href="#spaced-repetition-heading"
+            data-help-method-navigation="direct"
             className={methodLinkClass("border-core-info")}
             onClick={(event) => scrollToMethod(event, "spaced-repetition")}
           >

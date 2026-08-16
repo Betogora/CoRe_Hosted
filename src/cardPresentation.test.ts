@@ -43,7 +43,7 @@ test("compiles case-sensitive fields, nested conditionals and FrontSide", () => 
   assert.equal(compiled.ast.nodes.at(-1)?.kind, "front-side");
 });
 
-test("renders front and back from the same safe template path with a locked-down srcdoc", async () => {
+test("renders imported templates safely while omitting FrontSide from review answers", async () => {
   const { definition, item, variant } = fixture();
   const recipe = {
     ...definition.recipes[0],
@@ -53,21 +53,23 @@ test("renders front and back from the same safe template path with a locked-down
   const importedDefinition = { ...definition, origin: "anki" as const, recipes: [recipe], css: ".card{font-weight:700;background:url(bg.png)}" };
   const question = await renderLearningItemPresentation({ item, variant, definition: importedDefinition, side: "question", surface: "review", theme: "dark" });
   const answer = await renderLearningItemPresentation({ item, variant, definition: importedDefinition, side: "answer", surface: "review", theme: "dark" });
+  const preview = await renderLearningItemPresentation({ item, variant, definition: importedDefinition, side: "answer", surface: "editor-preview", theme: "dark" });
 
   assert.equal(question.compatibility, "safe-equivalent");
   assert.match(question.srcdoc, /Content-Security-Policy/);
   assert.match(question.srcdoc, /script-src 'none'/);
   assert.match(question.srcdoc, /Mitochondrium/);
-  assert.match(answer.srcdoc, /Mitochondrium/);
+  assert.doesNotMatch(answer.srcdoc, /Mitochondrium/);
   assert.match(answer.srcdoc, /ATP-Synthese/);
-  assert.equal(answer.accessibleText.match(/Mitochondrium/g)?.length, 1);
   assert.equal(answer.accessibleText.match(/ATP-Synthese/g)?.length, 1);
+  assert.equal(preview.accessibleText.match(/Mitochondrium/g)?.length, 1);
+  assert.equal(preview.accessibleText.match(/ATP-Synthese/g)?.length, 1);
   assert.deepEqual(question.mediaReferences.sort(), ["bg.png", "figure.png"]);
   const hydrated = resolvePresentationMedia(question.srcdoc, { "figure.png": "blob:https://core.local/image" });
   assert.match(hydrated, /src="blob:https:\/\/core.local\/image"/);
 });
 
-test("composes CoRe answers exactly once with rich text, separator and embedded Synonym fonts", async () => {
+test("shows only the CoRe answer during review while previews keep the composed back", async () => {
   const { document, definition } = fixture();
   const richDocument = {
     ...document,
@@ -83,16 +85,37 @@ test("composes CoRe answers exactly once with rich text, separator and embedded 
 
   const question = await renderLearningItemPresentation({ item, variant, definition, side: "question", surface: "review", theme: "light", fontFaceCss });
   const answer = await renderLearningItemPresentation({ item, variant, definition, side: "answer", surface: "review", theme: "light", fontFaceCss });
+  const preview = await renderLearningItemPresentation({ item, variant, definition, side: "answer", surface: "editor-preview", theme: "light", fontFaceCss });
 
   assert.equal(question.accessibleText, "Welche Funktion? Zelle");
-  assert.equal(answer.accessibleText.match(/Welche Funktion\?/g)?.length, 1);
+  assert.doesNotMatch(answer.accessibleText, /Welche Funktion\?/);
   assert.equal(answer.accessibleText.match(/ATP/g)?.length, 1);
-  assert.match(answer.srcdoc, /core-card-answer-separator/);
+  assert.equal(preview.accessibleText.match(/Welche Funktion\?/g)?.length, 1);
+  assert.match(preview.srcdoc, /core-card-answer-separator/);
   assert.match(answer.srcdoc, /<strong>ATP<\/strong>/);
   assert.match(answer.srcdoc, /<ul><li>Energie<\/li><li>Stoffwechsel<\/li><\/ul>/);
   assert.match(answer.srcdoc, /font-family:Synonym,ui-sans-serif/);
   assert.match(answer.srcdoc, /data:font\/woff2;base64,AA==/);
   assert.match(answer.srcdoc, /font-src data: blob:/);
+  assert.match(answer.srcdoc, /html,body\{background:transparent!important\}/);
+});
+
+test("omits Anki FrontSide and its leading separator from review answers", async () => {
+  const { definition, item, variant } = fixture();
+  const importedDefinition = {
+    ...definition,
+    origin: "anki" as const,
+    recipes: [{
+      ...definition.recipes[0],
+      back: { schemaVersion: 1 as const, source: "{{FrontSide}}<hr>{{Funktion}}", nodes: [] },
+    }],
+  };
+
+  const answer = await renderLearningItemPresentation({ item, variant, definition: importedDefinition, side: "answer", surface: "review", theme: "light" });
+
+  assert.doesNotMatch(answer.accessibleText, /Mitochondrium/);
+  assert.equal(answer.accessibleText, "ATP-Synthese");
+  assert.doesNotMatch(answer.srcdoc, /<hr>/);
 });
 
 test("projects Anki sound markers through the same blob-only media path", async () => {

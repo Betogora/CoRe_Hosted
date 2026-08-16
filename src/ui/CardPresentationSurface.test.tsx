@@ -69,3 +69,15 @@ test("hides equivalent compatibility advertising while keeping a corner badge in
   assert.doesNotMatch(markup, /aria-describedby=/);
   assert.match(markup, /class="relative min-w-0"[^>]*>[\s\S]*Vorderseite[\s\S]*<iframe/);
 });
+
+test("renders review content without a framed card surface", () => {
+  const markup = renderToStaticMarkup(
+    <CardPresentationSurface {...fixture()} title="Reviewfrage" surface="review" showCompatibility={false} />,
+  );
+
+  const iframe = markup.match(/<iframe[^>]+>/)?.[0] ?? "";
+  assert.match(iframe, /sandbox="allow-same-origin"/);
+  assert.doesNotMatch(iframe, /allow-scripts/);
+  assert.match(iframe, /border-0 bg-transparent/);
+  assert.doesNotMatch(iframe, /rounded-xl|border-\[var\(--core-border\)\]|bg-core-surface/);
+});

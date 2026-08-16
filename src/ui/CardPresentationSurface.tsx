@@ -76,6 +76,8 @@ export function CardPresentationSurface({
 }: CardPresentationSurfaceProps) {
   const [theme, setTheme] = React.useState<"light" | "dark">(readPresentationTheme);
   const [fontFaceCss, setFontFaceCss] = React.useState(cachedPresentationFontCss);
+  const frameRef = React.useRef<HTMLIFrameElement>(null);
+  const frameResizeObserverRef = React.useRef<ResizeObserver | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -91,6 +93,8 @@ export function CardPresentationSurface({
     observer.observe(root, { attributes: true, attributeFilter: ["data-core-theme"] });
     return () => observer.disconnect();
   }, []);
+
+  React.useEffect(() => () => frameResizeObserverRef.current?.disconnect(), []);
 
   const effectivePresentation = React.useMemo(() => {
     if (!item || !variant || !definition) return null;
@@ -108,6 +112,25 @@ export function CardPresentationSurface({
 
   const warning = effectivePresentation.compatibility !== "safe-equivalent";
   const compatibilityVisible = showCompatibility === "warnings-only" ? warning : showCompatibility;
+  const frameClassName = surface === "review"
+    ? "h-px w-full border-0 bg-transparent"
+    : "min-h-72 w-full rounded-xl border border-[var(--core-border)] bg-core-surface";
+  const resizeReviewFrame = () => {
+    if (surface !== "review") return;
+    const frame = frameRef.current;
+    const frameDocument = frame?.contentDocument;
+    if (!frame || !frameDocument) return;
+    const updateHeight = () => {
+      const height = Math.max(frameDocument.documentElement.scrollHeight, frameDocument.body.scrollHeight, 1);
+      frame.style.height = `${Math.ceil(height)}px`;
+    };
+    frameResizeObserverRef.current?.disconnect();
+    if (typeof ResizeObserver !== "undefined") {
+      frameResizeObserverRef.current = new ResizeObserver(updateHeight);
+      frameResizeObserverRef.current.observe(frameDocument.documentElement);
+    }
+    updateHeight();
+  };
   return (
     <div className={`grid min-w-0 gap-3 ${className}`.trim()}>
       {compatibilityVisible ? (
@@ -125,12 +148,14 @@ export function CardPresentationSurface({
       <div className="relative min-w-0">
         {cornerBadge ? <div className="pointer-events-none absolute right-3 top-3 z-10">{cornerBadge}</div> : null}
         <iframe
+          ref={frameRef}
           title={title}
           aria-describedby={compatibilityVisible ? descriptionId : undefined}
-          sandbox=""
+          sandbox={surface === "review" ? "allow-same-origin" : ""}
           referrerPolicy="no-referrer"
           srcDoc={srcdoc}
-          className="min-h-72 w-full rounded-xl border border-[var(--core-border)] bg-core-surface"
+          className={frameClassName}
+          onLoad={resizeReviewFrame}
         />
       </div>
     </div>

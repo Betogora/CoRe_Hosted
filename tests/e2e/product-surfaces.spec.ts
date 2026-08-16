@@ -450,12 +450,31 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeFocused();
   await expect(page.getByRole("heading", { name: "Wir wollen Lernen verbessern." })).toBeVisible();
   await expect(page.getByText(/Welche Grundsätze nutzt CoRe, um das Lernen möglichst nachhaltig zu gestalten/)).toBeVisible();
+  const introStackGeometry = await page.getByTestId("help-intro-card-stack").evaluate((stack) => {
+    const front = stack.querySelector<HTMLElement>('[data-testid="help-intro-card-front"]')!.getBoundingClientRect();
+    const layers = Array.from(stack.querySelectorAll<HTMLElement>('[data-testid="help-intro-card-layer"]'))
+      .map((layer) => ({ id: layer.dataset.helpIntroLayer, rect: layer.getBoundingClientRect() }));
+    return {
+      front: { top: front.top, bottom: front.bottom },
+      layers: layers.map(({ id, rect }) => ({ id, top: rect.top, bottom: rect.bottom })),
+    };
+  });
+  const backLayer = introStackGeometry.layers.find(({ id }) => id === "back")!;
+  const middleLayer = introStackGeometry.layers.find(({ id }) => id === "middle")!;
+  expect(Math.abs(backLayer.bottom - introStackGeometry.front.bottom)).toBeLessThanOrEqual(1);
+  expect(Math.abs(middleLayer.bottom - introStackGeometry.front.bottom)).toBeLessThanOrEqual(1);
+  expect(backLayer.top).toBeLessThan(middleLayer.top);
+  expect(middleLayer.top).toBeLessThan(introStackGeometry.front.top);
   const activeRecallHeading = page.getByRole("heading", { name: "Active Recall", exact: true });
   const spacedRepetitionHeading = page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" });
   await expect(activeRecallHeading).toBeVisible();
   await expect(spacedRepetitionHeading).toBeVisible();
 
   const activeRecallMethodLink = page.locator('a[href="#active-recall-heading"]');
+  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
+  await activeRecallMethodLink.focus();
+  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "4px");
+  await page.getByRole("heading", { name: "Wir wollen Lernen verbessern." }).focus();
   await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
   await activeRecallMethodLink.hover();
   await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "4px");
@@ -466,10 +485,16 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(activeRecallHeading).toBeInViewport();
 
   const spacedRepetitionMethodLink = page.locator('a[href="#spaced-repetition-heading"]');
+  await expect(spacedRepetitionMethodLink).toHaveAttribute("data-help-method-navigation", "direct");
   await spacedRepetitionMethodLink.hover();
   await expect(spacedRepetitionMethodLink).toHaveCSS("border-top-width", "4px");
   await spacedRepetitionMethodLink.click();
   await expect(page).toHaveURL(/\/hilfe#spaced-repetition-heading$/);
+  const spacedRepetitionReachedDirectly = await spacedRepetitionHeading.evaluate((heading) => {
+    const rect = heading.getBoundingClientRect();
+    return rect.top >= 0 && rect.bottom <= window.innerHeight;
+  });
+  expect(spacedRepetitionReachedDirectly).toBe(true);
   await expect(spacedRepetitionHeading).toBeInViewport();
   await expect(page.getByText(/CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();

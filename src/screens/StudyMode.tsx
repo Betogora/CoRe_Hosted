@@ -430,7 +430,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
         />
 
         <section className="grid flex-1 place-items-center py-8">
-          <div className="core-study-card core-surface-raised flex min-h-[56vh] w-full flex-col justify-center rounded-[28px] p-6 sm:p-14">
+          <div className="core-study-card flex min-h-[56vh] w-full flex-col justify-center py-6 sm:py-10">
             {current ? (
               <>
                 <div className="w-full">
@@ -483,7 +483,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
                   ) : null}
                   {showAnswer ? (
                     <>
-                      <div className="my-8 h-px bg-[var(--core-border)]" />
+                      <div className="my-8 h-0.5 bg-[var(--core-border-interactive)] opacity-70" />
                       <p ref={answerHeadingRef} tabIndex={-1} className="mb-4 core-body font-semibold uppercase tracking-[0.18em] text-[var(--core-action-secondary)] outline-none">Antwort</p>
                       <div className="core-study-card-back text-[var(--core-text)]">
                         <CardPresentationSurface item={sourceCard} variant={current.variant} definition={presentationDefinition} side="answer" surface="review" title="Antwort" loadingLabel={stripHtml(current.back)} mediaUrls={studyMediaUrls} showCompatibility={false} />

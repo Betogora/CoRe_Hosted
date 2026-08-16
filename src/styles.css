@@ -925,6 +925,10 @@ summary {
   background: color-mix(in srgb, var(--core-info-surface) 82%, var(--core-text-muted));
 }
 
+.core-help-method-link:focus-visible {
+  border-top-width: 4px;
+}
+
 .core-obscured-recall-text {
   color: transparent;
   background-image: linear-gradient(90deg, var(--core-text-muted) 0 62%, transparent 62% 100%);
