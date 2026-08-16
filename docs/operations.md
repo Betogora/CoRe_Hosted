@@ -122,7 +122,7 @@ Vor der Promotion läuft `npm run test:beta:hosted` gegen die staged Production.
 ```text
 Commit / CI-Lauf:
 Preview-URL und Deployment-ID:
-Angezeigte Version / Umgebung / Kurz-Commit:
+In der App angezeigte Version:
 Vorherige Production-URL und Deployment-ID:
 Staged-Production-URL und Deployment-ID:
 Tester / Start / Ende:

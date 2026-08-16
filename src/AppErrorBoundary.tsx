@@ -1,15 +1,13 @@
 import React from "react";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
-import { APP_RUNTIME_INFO } from "./appRuntime.ts";
 import { ActionButton } from "./ui/actionUi.tsx";
 import { OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
-import { ReleaseInfo } from "./ui/ReleaseInfo.tsx";
-import type { AppRuntimeInfo } from "./appRuntime.ts";
 
-interface AppErrorBoundaryProps { children?: React.ReactNode; info?: AppRuntimeInfo }
+interface AppErrorBoundaryProps { children?: React.ReactNode }
 interface AppErrorBoundaryState { hasError: boolean }
+interface AppErrorFallbackProps { onReload: () => void; onOpenHome: () => void }
 
-export function AppErrorFallback({ info = APP_RUNTIME_INFO, onReload, onOpenHome }: any) {
+export function AppErrorFallback({ onReload, onOpenHome }: AppErrorFallbackProps) {
   return (
     <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-5 py-10 text-core-text">
       <SoftPanel className="w-full max-w-xl p-6 sm:p-8" role="alert" aria-live="assertive">
@@ -27,7 +25,6 @@ export function AppErrorFallback({ info = APP_RUNTIME_INFO, onReload, onOpenHome
           <ActionButton type="button" variant="primary" icon={RefreshCw} onClick={onReload}>Seite neu laden</ActionButton>
           <ActionButton type="button" variant="secondary" icon={Home} onClick={onOpenHome}>Startseite öffnen</ActionButton>
         </div>
-        <ReleaseInfo info={info} className="mt-6 border-t border-core-border pt-4" />
       </SoftPanel>
     </main>
   );
@@ -53,7 +50,7 @@ export class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, App
 
   render() {
     if (this.state.hasError) {
-      return <AppErrorFallback info={this.props.info} onReload={this.reloadPage} onOpenHome={this.openHome} />;
+      return <AppErrorFallback onReload={this.reloadPage} onOpenHome={this.openHome} />;
     }
 
     return this.props.children;

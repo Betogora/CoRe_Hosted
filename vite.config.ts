@@ -3,7 +3,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 const packageJson = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
-const knownVercelEnvironments = new Set(["production", "preview", "development"]);
 
 export function manualChunkForModule(moduleId = "") {
   const id = String(moduleId).replaceAll("\\", "/");
@@ -15,28 +14,11 @@ export function manualChunkForModule(moduleId = "") {
   return undefined;
 }
 
-function normalizeBuildCommit(value: string|undefined) {
-  const commit = String(value ?? "").trim();
-  return /^[a-f0-9]{7,40}$/i.test(commit) ? commit.slice(0, 7).toLowerCase() : "local";
+export function resolveReleaseInfo({ version = packageJson.version } = {}) {
+  return { version };
 }
 
-function normalizeBuildEnvironment(value: string|undefined, mode: string) {
-  const environment = String(value ?? "").trim().toLowerCase();
-  if (knownVercelEnvironments.has(environment)) return environment;
-  if (String(mode ?? "").toLowerCase().startsWith("e2e")) return "e2e";
-  if (mode === "test") return "test";
-  return mode === "production" ? "production" : "development";
-}
-
-export function resolveReleaseInfo({ mode = "development", env = process.env, version = packageJson.version } = {}) {
-  return {
-    version,
-    commit: normalizeBuildCommit(env.VERCEL_GIT_COMMIT_SHA || env.GITHUB_SHA),
-    environment: normalizeBuildEnvironment(env.VERCEL_ENV, mode),
-  };
-}
-
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   cacheDir: process.env.CORE_VITE_CACHE_DIR || undefined,
   build: {
     manifest: true,
@@ -48,7 +30,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    __CORE_RELEASE_INFO__: JSON.stringify(resolveReleaseInfo({ mode })),
+    __CORE_RELEASE_INFO__: JSON.stringify(resolveReleaseInfo()),
   },
   plugins: [react()],
   worker: {
@@ -64,4 +46,4 @@ export default defineConfig(({ mode }) => ({
     port: 5190,
     strictPort: true,
   },
-}));
+});

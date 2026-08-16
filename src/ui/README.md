@@ -126,7 +126,6 @@ Stapelbezogene Auswahl verwendet `DeckSelect` für genau einen Stapel und `DeckM
 - `LearningSettingsPanel` aus `src/ui/LearningSettingsPanel.tsx`: kontrollierte, ausschließlich stapelspezifische Projektion für Tagesrunde, konto-weite Copy-on-apply-Lernprofil-Vorlagen, Scheduler und getrennte CoRe-Parameter. Feldänderungen fließen in den Seitendraft; eine eigene Speichern-Aktion besitzt das Panel nicht. Vorlagen werden explizit und unmittelbar angewandt; direkte Lernwertänderungen löschen die Herkunft, CoRe-Werte bleiben bei Profilwechseln erhalten. Eigene Vorlagen können angelegt, umbenannt, versioniert aktualisiert und bestätigt gelöscht werden. `learnAheadMinutes` und `dayStartHour` erscheinen hier nicht.
 - `DeckAppearanceIcon` aus `src/ui/deckAppearance.tsx`: normalisierte, nutzerdefinierte Stapeldarstellung.
 - `CardHtml` aus `src/ui/cardMedia.tsx`: sanitisiertes Karten-HTML mit aufgelösten Medien.
-- `ReleaseInfo` aus `src/ui/ReleaseInfo.tsx`: sichtbare Build-/Release-Information.
 
 Diese Module nicht zu generischen Primitives verbreitern; ihre Fachverantwortung bleibt Bestandteil der Schnittstelle.
 

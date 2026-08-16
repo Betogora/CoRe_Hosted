@@ -23,7 +23,7 @@ Each exported screen in this folder is a UI module with a small props interface.
 - `SimulatorScreen.tsx`: reduzierte Minuten-, Stunden- und Tagessteuerung für die app-weite, transiente Lernuhr; enthält keinen eigenen Stapel und mutiert selbst weder Workspace noch Synczustand.
 - `StatisticsScreen.tsx`: global period/deck-filtered analysis from local review events, including overview metrics, charts, the shared sparse study heatmap, FSRS distributions, retention and deck-level weak spots.
 - `StudyMode.tsx`: fullscreen review, daily queue, new-card limit, shortcut handling, interval previews, grading, anchor display and variant feedback; verwendet bei aktiver Simulation denselben sichtbaren Lernzeitpunkt wie die App-Shell.
-- `SettingsScreen.tsx`: drei globale Bereiche für Konto/Datenschutz, accountweiten Lerntag/Fokus und Daten/Sync. Stapelwerte und Lernprofilverwaltung erscheinen hier ausdrücklich nicht.
+- `SettingsScreen.tsx`: vier globale Bereiche für Konto/Datenschutz, accountweiten Lerntag/Fokus, Daten/Sync und abschließend `Über uns` mit Hilfelink, Rechtstext-Platzhaltern und Versionsnummer. Stapelwerte und Lernprofilverwaltung erscheinen hier ausdrücklich nicht.
 - `SyncConflictPanel.tsx`: accountgebundene Konfliktprojektionen, verständliche Fassungsentscheidung, sicherer Feld-Merge sowie Zurückstellen und Wiederaufnahme ohne Tabellen-, Revisions- oder Gerätedetails in React.
 
 ## Design Rules

@@ -33,15 +33,25 @@ function renderSettings() {
   );
 }
 
-test("global settings expose three task-based sections and cross-navigation", () => {
+test("global settings expose four task-based sections and cross-navigation", () => {
   const html = renderSettings();
-  for (const heading of ["Konto", "Lerntag &amp; Fokus", "Daten &amp; Synchronisierung"]) assert.match(html, new RegExp(`>${heading}<`));
+  for (const heading of ["Konto", "Lerntag &amp; Fokus", "Daten &amp; Synchronisierung", "Über uns"]) assert.match(html, new RegExp(`>${heading}<`));
   assert.match(html, /aria-label="Bereiche der globalen Einstellungen"/);
-  for (const target of ["settings-account", "settings-learning-day", "settings-data-sync"]) assert.match(html, new RegExp(`href="#${target}"`));
+  for (const target of ["settings-account", "settings-learning-day", "settings-data-sync", "settings-about"]) assert.match(html, new RegExp(`href="#${target}"`));
   assert.match(html, /data-in-page-navigation="desktop"/);
   assert.match(html, /data-in-page-navigation="compact"/);
   assert.doesNotMatch(html, /min-h-28|Alle Bereiche|\d+\s*\/\s*\d+/);
   assert.match(html, />Stapeleinstellungen</);
+});
+
+test("about settings contain help, legal placeholders, and the only visible version slot", () => {
+  const html = renderSettings();
+  assert.match(html, />Info-Seite öffnen</);
+  for (const text of ["Über CoRe", "Impressum", "Datenschutzerklärung"]) assert.match(html, new RegExp(`>${text}<`));
+  assert.equal(html.match(/>In Vorbereitung</g)?.length, 2);
+  assert.match(html, /aria-label="Aktuelle Version">v0\.0\.0</);
+  assert.equal(html.match(/v0\.0\.0/g)?.length, 1);
+  assert.doesNotMatch(html, /Release-Information|Commit|Produktion|Entwicklung/);
 });
 
 test("account settings expose only active profile fields in one wide panel", () => {

@@ -558,12 +558,22 @@ test("browser back returns from settings to the previous screen", async ({ page 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
   await expect(page.getByRole("button", { name: "Export herunterladen" })).toBeVisible();
-  for (const section of ["Konto", "Lerntag & Fokus", "Daten & Synchronisierung"]) {
+  for (const section of ["Konto", "Lerntag & Fokus", "Daten & Synchronisierung", "Über uns"]) {
     await expect(page.getByRole("heading", { name: section, exact: true })).toBeVisible();
   }
   await expect(page.getByLabel("Login-E-Mail")).not.toBeEditable();
   await expect(page.getByText("Die Login-E-Mail kann derzeit nicht in CoRe geändert werden.")).toBeVisible();
-  await expect(page.getByLabel("Release-Information")).toHaveText(/^CoRe 0\.1\.0 · Test · Commit (?:lokal|[a-f0-9]{7})$/);
+  await expect(page.getByText("Impressum", { exact: true })).toBeVisible();
+  await expect(page.getByText("Datenschutzerklärung", { exact: true })).toBeVisible();
+  await expect(page.getByText("In Vorbereitung", { exact: true })).toHaveCount(2);
+  await expect(page.getByLabel("Aktuelle Version")).toHaveText("v0.2.0");
+  await expect(page.getByLabel("Release-Information")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Info-Seite öffnen" }).click();
+  await expect(page).toHaveURL(/\/hilfe$/);
+  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/einstellungen(?:#.*)?$/);
 
   await page.goBack();
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();

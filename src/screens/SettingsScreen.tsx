@@ -1,6 +1,7 @@
 import React from "react";
-import { CalendarClock, Database, Download, RefreshCw, ShieldCheck, Upload, User, X } from "lucide-react";
+import { CalendarClock, CircleHelp, Database, Download, FileText, Info, RefreshCw, ShieldCheck, Upload, User, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
+import { APP_RUNTIME_INFO } from "../appRuntime.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
 import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
@@ -12,7 +13,6 @@ import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
-import { ReleaseInfo } from "../ui/ReleaseInfo.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { createGlobalSettingsDraft, settingsDraftsEqual, type GlobalSettingsDraft } from "../settingsDraft.ts";
@@ -23,12 +23,14 @@ const sectionIds = {
   account: "settings-account",
   focus: "settings-learning-day",
   data: "settings-data-sync",
+  about: "settings-about",
 } as const;
 
 const settingsSections = [
   { id: sectionIds.account, label: "Konto", icon: User },
   { id: sectionIds.focus, label: "Lerntag & Fokus", icon: CalendarClock },
   { id: sectionIds.data, label: "Daten & Synchronisierung", icon: Database },
+  { id: sectionIds.about, label: "Über uns", icon: Info },
 ] as const;
 
 const easyDayOptions = [
@@ -318,7 +320,41 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, glob
           <ActionButton type="button" variant="secondary" icon={Database} onClick={() => { void createExportText().then(() => setSuccessToast("Roh-JSON wurde erstellt.")); }} loading={accountBusy} className="mt-4">Roh-JSON anzeigen</ActionButton>
           {exportText ? <textarea className="mt-4 min-h-72 w-full rounded-xl border border-core-border p-3 font-mono core-caption" value={exportText} readOnly aria-label="Portabilitätsexport als Roh-JSON" data-testid="portable-export-json" /> : null}
         </SoftPanel>
-        <ReleaseInfo className="text-center" />
+      </section>
+
+      <section id={sectionIds.about} className="grid gap-4" aria-labelledby="settings-about-heading">
+        <h2 id="settings-about-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Über uns</h2>
+        <SoftPanel className="p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <OrbIcon icon={CircleHelp} className="bg-core-info-soft text-core-text" />
+              <div className="min-w-0">
+                <h3 className="core-heading-3 font-semibold text-core-text">Über CoRe</h3>
+                <p className="mt-2 core-body text-core-muted">Erfahre, wie CoRe nachhaltiges Lernen mit Active Recall, FSRS und Kartenvarianten unterstützt.</p>
+              </div>
+            </div>
+            <CrossLinkButton onSelect={() => onNavigate("hilfe")}>Info-Seite öffnen</CrossLinkButton>
+          </div>
+
+          <div className="mt-6 border-t border-core-border pt-5">
+            <h3 className="core-heading-3 font-semibold text-core-text">Rechtliches</h3>
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+              {["Impressum", "Datenschutzerklärung"].map((label) => (
+                <div key={label} className="rounded-xl border border-core-border bg-core-subtle px-4 py-3">
+                  <dt className="flex items-center gap-2 core-body font-semibold text-core-text"><FileText size={18} aria-hidden="true" />{label}</dt>
+                  <dd className="mt-1 core-caption text-core-muted">In Vorbereitung</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <dl className="mt-6 border-t border-core-border pt-5">
+            <div className="flex items-center justify-between gap-4">
+              <dt className="core-body font-semibold text-core-text">Version</dt>
+              <dd className="core-body font-semibold text-core-muted" aria-label="Aktuelle Version">{`v${APP_RUNTIME_INFO.version}`}</dd>
+            </div>
+          </dl>
+        </SoftPanel>
       </section>
       </InPageNavigation>
     </div>
