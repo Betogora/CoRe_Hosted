@@ -129,9 +129,6 @@ const INTRO_CARD_STACK_LAYERS = [
   { id: "middle", transform: "translateY(-16px) scale(0.96)" },
 ] as const;
 
-const OBSCURED_RECALL_PIXELS = Array.from({ length: 14 }, (_, index) => index);
-const OBSCURED_RECALL_PIXEL_TONES = ["opacity-25", "opacity-40", "opacity-55"] as const;
-
 const ACTIVE_RECALL_VARIANTS = [
   {
     id: "resting-heart-rate",
@@ -347,12 +344,12 @@ function IntroCardStack() {
         />
       ))}
       <div
-        className="absolute inset-x-4 top-12 grid h-[19rem] place-items-center rounded-[26px] border border-[var(--core-border)] bg-core-info-soft p-6 shadow-lg sm:inset-x-8 sm:p-8"
+        className="absolute inset-x-4 top-12 grid h-[19rem] place-items-center rounded-[26px] border border-[var(--core-border)] bg-core-surface p-6 shadow-lg sm:inset-x-8 sm:p-8"
         data-testid="help-intro-card-front"
       >
         <div className="max-w-md">
           <p className="core-body-large font-medium leading-7 text-core-text">
-            Welche Grundsätze nutzt <mark className="core-help-keyword">CoRe</mark>, um das Lernen möglichst <mark className="core-help-keyword">nachhaltig</mark> zu gestalten, und wie wurden sie im Vergleich zu <mark className="core-help-keyword">herkömmlichen Lernmechanismen</mark> verbessert?
+            Welche <mark className="core-help-keyword">Grundsätze</mark> <mark className="core-help-keyword">nutzt CoRe</mark>, um das <mark className="core-help-keyword">Lernen</mark> möglichst <mark className="core-help-keyword">nachhaltig zu gestalten</mark>, und wie wurden sie im Vergleich zu herkömmlichen Lernmechanismen verbessert?
           </p>
           <ol className="mt-6 grid gap-3 border-t border-[var(--core-border)] pt-5 core-body font-medium text-core-text">
             <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">1.</span><span>Active Recall <span className="text-core-warning">→</span> Smarter Recall</span></li>
@@ -365,11 +362,45 @@ function IntroCardStack() {
 }
 
 function IntroSection() {
-  const [activeMethod, setActiveMethod] = React.useState<HelpMethodId | null>(null);
+  function scrollToMethod(event: React.MouseEvent<HTMLAnchorElement>, method: HelpMethodId) {
+    event.preventDefault();
+    const targetId = `${method}-heading`;
+    const target = document.getElementById(targetId);
+    if (!target) return;
 
-  function methodLinkClass(method: HelpMethodId, borderClass: string) {
-    const active = activeMethod === method;
-    return `group block border-t ${borderClass} pt-4 transition-[border-width,color] motion-reduce:transition-none ${active ? "border-t-4" : "border-t-2"}`;
+    window.history.pushState(null, "", `#${targetId}`);
+    const scrollRegion = target.closest<HTMLElement>(".core-screen-region");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const startTop = scrollRegion ? scrollRegion.scrollTop : window.scrollY;
+    const targetTop = scrollRegion
+      ? startTop + target.getBoundingClientRect().top - scrollRegion.getBoundingClientRect().top - 24
+      : startTop + target.getBoundingClientRect().top - 24;
+    const maxTop = scrollRegion
+      ? scrollRegion.scrollHeight - scrollRegion.clientHeight
+      : document.documentElement.scrollHeight - window.innerHeight;
+    const endTop = Math.max(0, Math.min(targetTop, maxTop));
+
+    if (reducedMotion) {
+      if (scrollRegion) scrollRegion.scrollTo({ top: endTop });
+      else window.scrollTo({ top: endTop });
+      return;
+    }
+
+    const startedAt = performance.now();
+    const duration = 1_100;
+    const animateScroll = (now: number) => {
+      const progress = Math.min((now - startedAt) / duration, 1);
+      const easedProgress = 0.5 - Math.cos(Math.PI * progress) / 2;
+      const nextTop = startTop + (endTop - startTop) * easedProgress;
+      if (scrollRegion) scrollRegion.scrollTo({ top: nextTop });
+      else window.scrollTo({ top: nextTop });
+      if (progress < 1) requestAnimationFrame(animateScroll);
+    };
+    requestAnimationFrame(animateScroll);
+  }
+
+  function methodLinkClass(borderClass: string) {
+    return `group block border-t-2 ${borderClass} pt-4 transition-[border-width,color] duration-150 hover:border-t-4 focus-visible:border-t-4 motion-reduce:transition-none`;
   }
 
   return (
@@ -383,21 +414,19 @@ function IntroSection() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <a
             href="#active-recall-heading"
-            className={methodLinkClass("active-recall", "border-core-success")}
-            onClick={() => setActiveMethod("active-recall")}
-            aria-current={activeMethod === "active-recall" ? "location" : undefined}
+            className={methodLinkClass("border-core-success")}
+            onClick={(event) => scrollToMethod(event, "active-recall")}
           >
-            <span className={`core-caption uppercase tracking-wide transition-[font-weight,color] motion-reduce:transition-none ${activeMethod === "active-recall" ? "font-bold text-core-text" : "font-semibold text-core-secondary"}`}>Active Recall</span>
-            <span className={`mt-2 block core-body text-core-text transition-[font-weight] motion-reduce:transition-none ${activeMethod === "active-recall" ? "font-bold" : "font-semibold"}`}>Wissen aktiv aus dem Gedächtnis holen.</span>
+            <span className="core-caption font-semibold uppercase tracking-wide text-core-secondary transition-[font-weight,color] group-hover:font-bold group-hover:text-core-text group-focus-visible:font-bold group-focus-visible:text-core-text motion-reduce:transition-none">Active Recall</span>
+            <span className="mt-2 block core-body font-semibold text-core-text transition-[font-weight] group-hover:font-bold group-focus-visible:font-bold motion-reduce:transition-none">Wissen aktiv aus dem Gedächtnis holen.</span>
           </a>
           <a
             href="#spaced-repetition-heading"
-            className={methodLinkClass("spaced-repetition", "border-core-info")}
-            onClick={() => setActiveMethod("spaced-repetition")}
-            aria-current={activeMethod === "spaced-repetition" ? "location" : undefined}
+            className={methodLinkClass("border-core-info")}
+            onClick={(event) => scrollToMethod(event, "spaced-repetition")}
           >
-            <span className={`core-caption uppercase tracking-wide transition-[font-weight,color] motion-reduce:transition-none ${activeMethod === "spaced-repetition" ? "font-bold text-core-text" : "font-semibold text-core-secondary"}`}>Spaced Repetition</span>
-            <span className={`mt-2 block core-body text-core-text transition-[font-weight] motion-reduce:transition-none ${activeMethod === "spaced-repetition" ? "font-bold" : "font-semibold"}`}>Zum passenden Zeitpunkt wiederholen.</span>
+            <span className="core-caption font-semibold uppercase tracking-wide text-core-secondary transition-[font-weight,color] group-hover:font-bold group-hover:text-core-text group-focus-visible:font-bold group-focus-visible:text-core-text motion-reduce:transition-none">Spaced Repetition</span>
+            <span className="mt-2 block core-body font-semibold text-core-text transition-[font-weight] group-hover:font-bold group-focus-visible:font-bold motion-reduce:transition-none">Zum passenden Zeitpunkt wiederholen.</span>
           </a>
         </div>
       </div>
@@ -408,18 +437,16 @@ function IntroSection() {
 
 function RecallQuestion({ obscured }: { obscured: boolean }) {
   return (
-    <p className="core-heading-3 font-medium leading-8 text-core-text">
+    <p className="core-heading-3 font-medium leading-8 text-core-text" data-testid="active-recall-question">
       <span className="text-core-warning">Welcher Teil des autonomen</span>{" "}
-      {obscured ? (
-        <span className="mx-2 inline-flex items-center gap-1 align-middle" data-testid="active-recall-obscured-text">
-          {OBSCURED_RECALL_PIXELS.map((pixel) => (
-            <span key={pixel} className={`size-1.5 rounded-[1px] bg-[var(--core-text)] ${OBSCURED_RECALL_PIXEL_TONES[pixel % OBSCURED_RECALL_PIXEL_TONES.length]}`} />
-          ))}
-        </span>
-      ) : (
-        <>Nervensystems ist in erster Linie dafür verantwortlich, die Herzfrequenz in Ruhe zu </>
-      )}
-      <span className="text-core-warning">senken?</span>
+      <span
+        className={obscured ? "core-obscured-recall-text" : undefined}
+        data-recall-question-body="true"
+        data-testid={obscured ? "active-recall-obscured-text" : undefined}
+      >
+        Nervensystems ist in erster Linie dafür verantwortlich, die Herzfrequenz in Ruhe zu
+      </span>{" "}
+      <span className="text-core-warning" data-testid="active-recall-question-suffix">senken?</span>
     </p>
   );
 }
@@ -437,8 +464,8 @@ function ActiveRecallOriginalCard({ obscured }: { obscured: boolean }) {
       <div className="absolute inset-x-[8%] top-20 grid h-64 place-items-center rounded-[24px] border border-[var(--core-border-interactive)] bg-core-info-soft p-6 text-center shadow-lg sm:p-8">
         <div className="max-w-xl">
           <RecallQuestion obscured={obscured} />
-          <div className="mx-auto mt-6 h-px w-4/5 bg-[var(--core-border-interactive)]" />
-          <p className="mt-5 core-heading-3 font-medium text-core-text">Der Parasympathikus</p>
+          <div className="mx-auto mt-6 h-px w-4/5 bg-[var(--core-border-interactive)]" data-testid="active-recall-divider" />
+          <p className="mt-5 core-heading-3 font-medium text-core-text" data-testid="active-recall-answer">Der Parasympathikus</p>
         </div>
       </div>
     </div>

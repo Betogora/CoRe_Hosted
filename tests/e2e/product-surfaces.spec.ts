@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 
@@ -456,18 +456,20 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(spacedRepetitionHeading).toBeVisible();
 
   const activeRecallMethodLink = page.locator('a[href="#active-recall-heading"]');
+  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
+  await activeRecallMethodLink.hover();
+  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "4px");
+  await page.mouse.move(0, 0);
+  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
   await activeRecallMethodLink.click();
   await expect(page).toHaveURL(/\/hilfe#active-recall-heading$/);
-  await expect(activeRecallMethodLink).toHaveAttribute("aria-current", "location");
-  await expect(activeRecallMethodLink).toHaveClass(/border-t-4/);
   await expect(activeRecallHeading).toBeInViewport();
 
   const spacedRepetitionMethodLink = page.locator('a[href="#spaced-repetition-heading"]');
+  await spacedRepetitionMethodLink.hover();
+  await expect(spacedRepetitionMethodLink).toHaveCSS("border-top-width", "4px");
   await spacedRepetitionMethodLink.click();
   await expect(page).toHaveURL(/\/hilfe#spaced-repetition-heading$/);
-  await expect(activeRecallMethodLink).not.toHaveAttribute("aria-current", "location");
-  await expect(spacedRepetitionMethodLink).toHaveAttribute("aria-current", "location");
-  await expect(spacedRepetitionMethodLink).toHaveClass(/border-t-4/);
   await expect(spacedRepetitionHeading).toBeInViewport();
   await expect(page.getByText(/CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
@@ -475,12 +477,32 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page.getByText(/bestimmen gemeinsam, ob eine Karte „bereit für Varianten“ ist/i)).toBeVisible();
 
   const activeRecallVisual = page.getByTestId("active-recall-visual");
-  await expect(activeRecallVisual.locator('[data-active-recall-card="stack"]')).toBeVisible();
+  const readRecallLayout = (card: Locator) => card.evaluate((cardElement) => {
+    const cardRect = cardElement.getBoundingClientRect();
+    const relativeRect = (testId: string) => {
+      const element = cardElement.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
+      if (!element) throw new Error(`Element ${testId} fehlt.`);
+      const rect = element.getBoundingClientRect();
+      return { x: rect.x - cardRect.x, y: rect.y - cardRect.y, width: rect.width, height: rect.height };
+    };
+    return {
+      question: relativeRect("active-recall-question"),
+      suffix: relativeRect("active-recall-question-suffix"),
+      divider: relativeRect("active-recall-divider"),
+      answer: relativeRect("active-recall-answer"),
+    };
+  });
+  const activeRecallStackCard = activeRecallVisual.locator('[data-active-recall-card="stack"]');
+  await expect(activeRecallStackCard).toBeVisible();
+  const visibleRecallLayout = await readRecallLayout(activeRecallStackCard);
 
   await page.getByTestId("active-recall-step-blur").evaluate((element) => element.scrollIntoView({ block: "center" }));
   await expect(activeRecallVisual).toHaveAttribute("data-active-step", "1");
-  await expect(activeRecallVisual.locator('[data-active-recall-card="blur"]')).toBeVisible();
+  const obscuredRecallCard = activeRecallVisual.locator('[data-active-recall-card="blur"]');
+  await expect(obscuredRecallCard).toBeVisible();
   await expect(activeRecallVisual.getByTestId("active-recall-obscured-text")).toBeVisible();
+  const obscuredRecallLayout = await readRecallLayout(obscuredRecallCard);
+  expect(obscuredRecallLayout).toEqual(visibleRecallLayout);
 
   await page.getByTestId("active-recall-step-variants").evaluate((element) => element.scrollIntoView({ block: "center" }));
   await expect(activeRecallVisual).toHaveAttribute("data-active-step", "2");
