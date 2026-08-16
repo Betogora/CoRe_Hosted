@@ -100,18 +100,10 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, glob
     }
   }, [draft, onSaveSettings, setSuccessToast]);
 
-  const discardDraft = React.useCallback(() => {
-    setDraft(persistedDraft);
-    setAccountMessage("");
-  }, [persistedDraftKey]);
-
   const saveDraftRef = React.useRef(saveDraft);
-  const discardDraftRef = React.useRef(discardDraft);
   saveDraftRef.current = saveDraft;
-  discardDraftRef.current = discardDraft;
   const draftGuard = React.useMemo(() => ({
     save: () => saveDraftRef.current(),
-    discard: () => discardDraftRef.current(),
   }), []);
 
   React.useEffect(() => {

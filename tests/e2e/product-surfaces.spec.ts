@@ -175,7 +175,8 @@ test("global settings save multiple sections together through one save bar", asy
   await page.getByTestId("settings-learn-ahead").fill("45");
   const saveBar = page.getByTestId("settings-save-bar");
   await expect(saveBar).toHaveCount(1);
-  await expect(saveBar.getByRole("button")).toHaveText(["Verwerfen", "Speichern"]);
+  await expect(saveBar.getByRole("button", { name: "Speichern" })).toHaveCount(1);
+  await expect(saveBar.getByRole("button", { name: "Verwerfen" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^(Profil|Lerntag|Automatik) speichern$/ })).toHaveCount(0);
   await saveBar.getByRole("button", { name: "Speichern" }).click();
   await expect(saveBar).toHaveCount(0);
@@ -196,6 +197,56 @@ test("global settings save multiple sections together through one save bar", asy
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
+test("settings save bar keeps its depth and responsive position in both themes", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await page.getByLabel("Anzeigename").fill("Responsive Save-Bar");
+  const saveBar = page.getByTestId("settings-save-bar");
+
+  for (const theme of ["light", "dark"] as const) {
+    await page.evaluate((value) => { document.documentElement.dataset.coreTheme = value; }, theme);
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 768, height: 900 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await expect(saveBar).toBeVisible();
+      await expect(saveBar.getByRole("button", { name: "Speichern" })).toHaveCount(1);
+      const layout = await saveBar.evaluate((bar) => {
+        const status = bar.querySelector<HTMLElement>('[role="status"]')!;
+        const button = bar.querySelector<HTMLButtonElement>("button")!;
+        const bottomNavigation = document.querySelector<HTMLElement>('[data-navigation-layout="bottom-bar"]');
+        const barRect = bar.getBoundingClientRect();
+        const statusRect = status.getBoundingClientRect();
+        const buttonRect = button.getBoundingClientRect();
+        const bottomNavigationRect = bottomNavigation && getComputedStyle(bottomNavigation).display !== "none"
+          ? bottomNavigation.getBoundingClientRect()
+          : null;
+        return {
+          barBottom: barRect.bottom,
+          barLeft: barRect.left,
+          barRight: barRect.right,
+          bottomNavigationTop: bottomNavigationRect?.top ?? null,
+          buttonHeight: buttonRect.height,
+          boxShadow: getComputedStyle(bar).boxShadow,
+          inline: Math.abs((statusRect.top + statusRect.height / 2) - (buttonRect.top + buttonRect.height / 2)) < 2,
+          pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
+        };
+      });
+
+      expect(layout.buttonHeight).toBeGreaterThanOrEqual(44);
+      expect(layout.boxShadow).not.toBe("none");
+      expect(layout.pageFitsViewport).toBe(true);
+      expect(layout.barLeft).toBeGreaterThanOrEqual(0);
+      expect(layout.barRight).toBeLessThanOrEqual(viewport.width);
+      expect(layout.inline).toBe(viewport.width >= 640);
+      if (layout.bottomNavigationTop !== null) expect(layout.barBottom).toBeLessThan(layout.bottomNavigationTop);
+    }
+  }
+  await page.evaluate(() => { document.documentElement.dataset.coreTheme = "light"; });
 });
 
 test("deck expansion preserves the complete profile across reload and an isolated browser context", async ({ page, browser }) => {
@@ -247,20 +298,25 @@ test("deck expansion preserves the complete profile across reload and an isolate
   }
 });
 
-test("discarded global settings do not persist and resume the requested navigation", async ({ page }) => {
+test("global settings block navigation until saving and require a second navigation", async ({ page }) => {
   await resetToFreshLocalState(page);
-  const before = (await readActiveAccountState(page)).profile.displayName;
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-  await page.getByLabel("Anzeigename").fill("Nicht speichern");
+  await page.getByLabel("Anzeigename").fill("Navigation blockiert");
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await expect(page).toHaveURL(/\/einstellungen$/);
-  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Verwerfen" }).click();
+  const saveBar = page.getByTestId("settings-save-bar");
+  await expect(saveBar.getByRole("status")).toHaveText("Zum Verlassen zuerst speichern.");
+  await saveBar.getByRole("button", { name: "Speichern" }).click();
+  await expect(page).toHaveURL(/\/einstellungen$/);
+  await expect(saveBar).toHaveCount(0);
+  expect((await readActiveAccountState(page)).profile.displayName).toBe("Navigation blockiert");
+
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await expect(page).toHaveURL(/\/lernen$/);
-  expect((await readActiveAccountState(page)).profile.displayName).toBe(before);
 });
 
-test("browser back waits for the global settings decision and then resumes", async ({ page }) => {
+test("browser back is cancelled until saving and must be repeated", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
@@ -268,7 +324,31 @@ test("browser back waits for the global settings decision and then resumes", asy
 
   await page.goBack();
   await expect(page).toHaveURL(/\/einstellungen$/);
-  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Verwerfen" }).click();
+  const saveBar = page.getByTestId("settings-save-bar");
+  await expect(saveBar.getByRole("status")).toHaveText("Zum Verlassen zuerst speichern.");
+  await saveBar.getByRole("button", { name: "Speichern" }).click();
+  await expect(page).toHaveURL(/\/einstellungen$/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/lernen$/);
+});
+
+test("browser forward is cancelled until saving and must be repeated", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/einstellungen$/);
+  await page.getByLabel("Anzeigename").fill("Browser-Vorwärts Entwurf");
+
+  await page.goForward();
+  await expect(page).toHaveURL(/\/einstellungen$/);
+  const saveBar = page.getByTestId("settings-save-bar");
+  await expect(saveBar.getByRole("status")).toHaveText("Zum Verlassen zuerst speichern.");
+  await saveBar.getByRole("button", { name: "Speichern" }).click();
+  await expect(page).toHaveURL(/\/einstellungen$/);
+
+  await page.goForward();
   await expect(page).toHaveURL(/\/lernen$/);
 });
 
@@ -290,7 +370,7 @@ test("settings in-page navigation keeps responsive layout, hashes and browser hi
   await expect(page.getByTestId("settings-save-bar")).toBeVisible();
   await expect(focusLink).toHaveAttribute("aria-current", "location");
   await expect(page.getByRole("heading", { name: "Lerntag & Fokus" })).toBeVisible();
-  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Verwerfen" }).click();
+  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
 
   await page.reload();
   await expect(page).toHaveURL(/\/einstellungen#settings-learning-day$/);

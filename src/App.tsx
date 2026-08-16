@@ -42,7 +42,7 @@ import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes
 import type { AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
-import { useAppNavigation, type AppNavigationRequest } from "./useAppNavigation.ts";
+import { useAppNavigation } from "./useAppNavigation.ts";
 import { setDeckExpanded, type DeckExpansionSurface } from "./uiPreferences.ts";
 import { requestPersistentWorkspaceStorage, type WorkspaceStorageStatus } from "./workspaceStorage.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
@@ -64,7 +64,6 @@ type CardDocumentValue = { fields: Array<{ id: string; value: string }>; tags?: 
 type CardVariantInput = { front: string; back: string; variantLevel?: number; generationSource?: "original" | "ai_generated" | "user_edited" | "imported"; qualityStatus?: "draft" | "active" | "rejected" | "flagged" | "disabled"; isActive?: boolean; meta?: Record<string, unknown> };
 type ManualCardInput = Parameters<typeof createManualCoreDeck>[0];
 type PendingNavigation = { run: () => void; source: "creation" | "card" };
-type PendingSettingsNavigation = { run: () => void };
 type SupabaseBrowserClient = ReturnType<typeof createSupabaseBrowserClient>;
 interface StateRefreshOptions { preserveCardPages?: boolean }
 interface EmptyStudyStart {
@@ -227,7 +226,7 @@ export function App() {
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const settingsDraftGuardRef = React.useRef<SettingsDraftGuard | null>(null);
   const [settingsDraftOpen, setSettingsDraftOpen] = React.useState(false);
-  const [pendingSettingsNavigation, setPendingSettingsNavigation] = React.useState<PendingSettingsNavigation | null>(null);
+  const [settingsNavigationBlocked, setSettingsNavigationBlocked] = React.useState(false);
   const [savingSettingsDraft, setSavingSettingsDraft] = React.useState(false);
   const [emptyStudyStart, setEmptyStudyStart] = React.useState<EmptyStudyStart | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
@@ -259,9 +258,9 @@ export function App() {
     });
     return () => { active = false; };
   }, []);
-  const handleBeforeSettingsNavigation = React.useCallback((request: AppNavigationRequest) => {
+  const handleBeforeSettingsNavigation = React.useCallback(() => {
     if (!settingsDraftGuardRef.current) return false;
-    setPendingSettingsNavigation({ run: request.proceed });
+    setSettingsNavigationBlocked(true);
     return true;
   }, []);
   const {
@@ -468,45 +467,29 @@ export function App() {
   const handleSettingsDraftStateChange = React.useCallback((guard: SettingsDraftGuard | null) => {
     settingsDraftGuardRef.current = guard;
     setSettingsDraftOpen(Boolean(guard));
+    if (!guard) setSettingsNavigationBlocked(false);
   }, []);
 
   const requestSettingsContextAction = React.useCallback((action: () => void) => {
     if (settingsDraftGuardRef.current) {
-      setPendingSettingsNavigation({ run: action });
+      setSettingsNavigationBlocked(true);
       return;
     }
     action();
   }, []);
 
-  function continueAfterSettingsDecision(navigation = pendingSettingsNavigation) {
-    setPendingSettingsNavigation(null);
-    navigation?.run();
-  }
-
   async function saveSettingsDraft() {
     const guard = settingsDraftGuardRef.current;
-    const navigation = pendingSettingsNavigation;
-    if (!guard) {
-      continueAfterSettingsDecision(navigation);
-      return;
-    }
+    if (!guard) return;
     setSavingSettingsDraft(true);
     try {
       if (!await guard.save()) return;
       settingsDraftGuardRef.current = null;
       setSettingsDraftOpen(false);
-      continueAfterSettingsDecision(navigation);
+      setSettingsNavigationBlocked(false);
     } finally {
       setSavingSettingsDraft(false);
     }
-  }
-
-  function discardSettingsDraft() {
-    const navigation = pendingSettingsNavigation;
-    settingsDraftGuardRef.current?.discard();
-    settingsDraftGuardRef.current = null;
-    setSettingsDraftOpen(false);
-    continueAfterSettingsDecision(navigation);
   }
 
   React.useEffect(() => {
@@ -1809,7 +1792,7 @@ export function App() {
           onResolveConflict={resolveSyncConflict}
           onSignOut={() => {
             if (!settingsDraftGuardRef.current) return signOut();
-            setPendingSettingsNavigation({ run: () => { void signOut(); } });
+            setSettingsNavigationBlocked(true);
             return Promise.resolve();
           }}
           onNavigate={navigateToView}
@@ -1947,7 +1930,7 @@ export function App() {
       <SettingsSaveBar
         open={settingsDraftOpen}
         saving={savingSettingsDraft}
-        onDiscard={discardSettingsDraft}
+        navigationBlocked={settingsNavigationBlocked}
         onSave={() => { void saveSettingsDraft(); }}
       />
       <ActionDialog

@@ -394,7 +394,7 @@ test("weist unvollständige Profilwrites zurück, ohne Shell oder Outbox zu ver�
   repository.close();
 });
 
-test("speichert UI-Präferenzen für ein vollständiges Profil ohne festgelegte Zeitzone", async () => {
+test("speichert Anzeigename und UI-Präferenzen für ein vollständiges Profil ohne festgelegte Zeitzone", async () => {
   const userId = randomUUID();
   const initialState = workspaceState();
   initialState.profile = {
@@ -415,6 +415,7 @@ test("speichert UI-Präferenzen für ein vollständiges Profil ohne festgelegte 
 
   const savedProfile = repository.saveProfile({
     ...repository.getShellState().profile,
+    displayName: "Profil ohne Zeitzone",
     uiPreferences: {
       ...repository.getShellState().profile.uiPreferences,
       learnCollapsedDeckIds: ["deck-idb"],
@@ -422,6 +423,7 @@ test("speichert UI-Präferenzen für ein vollständiges Profil ohne festgelegte 
   });
 
   assert.equal(savedProfile.timezone, "");
+  assert.equal(savedProfile.displayName, "Profil ohne Zeitzone");
   assert.deepEqual(savedProfile.uiPreferences.learnCollapsedDeckIds, ["deck-idb"]);
   assert.deepEqual(repository.getShellState().profile, savedProfile);
   assert.equal(repository.outbox.listPending().some((mutation) => mutation.type === "profile-patch"), true);

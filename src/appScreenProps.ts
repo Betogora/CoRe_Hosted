@@ -35,7 +35,6 @@ export interface CardDraftGuard {
 
 export interface SettingsDraftGuard {
   save: () => Promise<boolean>;
-  discard: () => void;
 }
 
 export interface CreationScreenProps {

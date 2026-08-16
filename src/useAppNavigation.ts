@@ -37,6 +37,13 @@ interface BrowserHistoryTarget {
 }
 
 const focusedDeckViewIds = new Set<AppViewId>(["lernen", "kartenstapel", "stapel-einstellungen"]);
+const appHistoryPositionKey = "coreAppHistoryPosition";
+
+function readAppHistoryPosition(historyState: unknown): number | null {
+  if (!historyState || typeof historyState !== "object") return null;
+  const position = (historyState as Record<string, unknown>)[appHistoryPositionKey];
+  return typeof position === "number" && Number.isInteger(position) ? position : null;
+}
 
 function asCreationMethod(value: string | undefined): CreationMethod {
   return value === "manual" || value === "import" ? value : "";
@@ -79,21 +86,15 @@ export function subscribeToBrowserNavigation(
   return () => target.removeEventListener("popstate", handlePopState);
 }
 
-export interface AppNavigationRequest {
-  currentRoute: AppRoute;
-  nextRoute: AppRoute;
-  source: "app" | "browser";
-  proceed: () => void;
-}
-
 interface UseAppNavigationOptions {
   authPhase: AuthPhase;
   defaultViewId: AppViewId;
-  onBeforeNavigation?: (request: AppNavigationRequest) => boolean;
+  onBeforeNavigation?: () => boolean;
 }
 
 export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation }: UseAppNavigationOptions) {
   const historyInitializedRef = React.useRef(false);
+  const historyPositionRef = React.useRef(0);
   const currentRouteRef = React.useRef<AppRoute>(createViewRoute(defaultViewId));
   const onBeforeNavigationRef = React.useRef(onBeforeNavigation);
   const [projection, setProjection] = React.useState<AppNavigationProjection>(() => projectAppRoute(currentRouteRef.current));
@@ -109,9 +110,14 @@ export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation 
   const writeBrowserRoute = React.useCallback((route: unknown, { replace = false, apply = true, preserveHash = false }: { replace?: boolean; apply?: boolean; preserveHash?: boolean } = {}) => {
     const normalized = normalizeAppRoute(route);
     const url = `${appRouteToUrl(normalized)}${preserveHash ? window.location.hash : ""}`;
-    const historyState = createAppHistoryState(normalized, { currentState: window.history.state });
+    const position = replace ? historyPositionRef.current : historyPositionRef.current + 1;
+    const historyState = {
+      ...createAppHistoryState(normalized, { currentState: window.history.state }),
+      [appHistoryPositionKey]: position,
+    };
     if (replace) window.history.replaceState(historyState, "", url);
     else window.history.pushState(historyState, "", url);
+    historyPositionRef.current = position;
     currentRouteRef.current = normalized;
     if (apply) setProjection(projectAppRoute(normalized));
     return normalized;
@@ -127,12 +133,7 @@ export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation 
         : writeBrowserRoute(normalized, { replace: true });
     }
     const currentRoute = currentRouteRef.current;
-    if (!areAppRoutesEqual(currentRoute, normalized) && onBeforeNavigationRef.current?.({
-      currentRoute,
-      nextRoute: normalized,
-      source: "app",
-      proceed: () => { writeBrowserRoute(normalized, { replace }); },
-    })) return currentRoute;
+    if (!areAppRoutesEqual(currentRoute, normalized) && onBeforeNavigationRef.current?.()) return currentRoute;
     return writeBrowserRoute(normalized, { replace });
   }, [applyRoute, writeBrowserRoute]);
 
@@ -167,27 +168,30 @@ export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation 
     if (historyInitializedRef.current) return;
     const normalized = normalizeAppRoute(parseAppRouteFromUrl(window.location.href));
     historyInitializedRef.current = true;
+    historyPositionRef.current = readAppHistoryPosition(window.history.state) ?? 0;
     writeBrowserRoute(normalized, { replace: true, preserveHash: true });
   }, [authPhase, writeBrowserRoute]);
 
   React.useEffect(() => {
     if (!shouldShowAppShell(authPhase)) return undefined;
-    return subscribeToBrowserNavigation(window, (_historyState, url) => {
+    return subscribeToBrowserNavigation(window, (historyState, url) => {
       const nextRoute = parseAppRouteFromUrl(url);
       const currentRoute = currentRouteRef.current;
+      const nextPosition = readAppHistoryPosition(historyState);
       if (areAppRoutesEqual(currentRoute, nextRoute)) {
+        if (nextPosition !== null) historyPositionRef.current = nextPosition;
         applyRoute(nextRoute);
         return;
       }
-      if (onBeforeNavigationRef.current?.({
-        currentRoute,
-        nextRoute,
-        source: "browser",
-        proceed: () => { writeBrowserRoute(nextRoute, { replace: true }); },
-      })) {
+      if (onBeforeNavigationRef.current?.()) {
+        if (nextPosition !== null && nextPosition !== historyPositionRef.current) {
+          window.history.go(historyPositionRef.current - nextPosition);
+          return;
+        }
         writeBrowserRoute(currentRoute, { replace: true, preserveHash: true });
         return;
       }
+      if (nextPosition !== null) historyPositionRef.current = nextPosition;
       applyRoute(nextRoute);
     });
   }, [applyRoute, authPhase, writeBrowserRoute]);

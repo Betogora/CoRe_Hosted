@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: e240adc88a603a0d */
+/* Quellenstand: db0dc58689390e3f */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1054,8 +1054,8 @@ video {
 .min-w-64 {
   min-width: 16rem;
 }
-.max-w-\[26rem\] {
-  max-width: 26rem;
+.max-w-\[32rem\] {
+  max-width: 32rem;
 }
 .max-w-full {
   max-width: 100%;
@@ -1112,9 +1112,6 @@ video {
 }
 .list-disc {
   list-style-type: disc;
-}
-.grid-cols-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1501,6 +1498,11 @@ video {
 .opacity-80 {
   opacity: 0.8;
 }
+.shadow-2xl {
+  --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
 .shadow-\[0_0_0_2px_var\(--core-focus-ring-soft\)\] {
   --tw-shadow: 0 0 0 2px var(--core-focus-ring-soft);
   --tw-shadow-colored: 0 0 0 2px var(--tw-shadow-color);
@@ -1518,6 +1520,14 @@ video {
 .outline-none {
   outline: 2px solid transparent;
   outline-offset: 2px;
+}
+.ring-1 {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+.ring-\[var\(--core-focus-ring-soft\)\] {
+  --tw-ring-color: var(--core-focus-ring-soft);
 }
 .filter {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
@@ -2554,12 +2564,24 @@ summary {
     width: auto;
   }
 
+  .sm\:min-w-36 {
+    min-width: 9rem;
+  }
+
   .sm\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sm\:grid-cols-\[8rem_minmax\(0\2c 1fr\)\] {
     grid-template-columns: 8rem minmax(0,1fr);
+  }
+
+  .sm\:grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
+    grid-template-columns: minmax(0,1fr) auto;
+  }
+
+  .sm\:items-center {
+    align-items: center;
   }
 
   .sm\:p-7 {
@@ -3725,14 +3747,11 @@ summary {
               </div>
               <div class="catalog-demo catalog-stack">
                 <span class="catalog-demo-label">Nichtmodale Einstellungs-Save-Bar · App-weite Einzelinstanz</span>
-                <aside aria-label="Ungespeicherte Änderungen" class="core-overlay grid w-full max-w-[26rem] gap-3 rounded-[18px] p-4 shadow-[var(--core-shadow-raised)]">
+                <aside aria-label="Ungespeicherte Änderungen" class="core-overlay grid w-full max-w-[32rem] gap-3 rounded-[18px] p-4 shadow-2xl ring-1 ring-[var(--core-focus-ring-soft)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                   <p class="core-body-large font-semibold text-core-text" role="status" aria-live="polite">Ungespeicherte Änderungen</p>
-                  <div class="grid grid-cols-2 gap-2">
-                    <button type="button" class="core-action-secondary min-h-11 w-full justify-center"><svg class="catalog-icon"><use href="#icon-undo"></use></svg><span>Verwerfen</span></button>
-                    <button type="button" class="core-action-primary min-h-11 w-full justify-center"><svg class="catalog-icon"><use href="#icon-save"></use></svg><span>Speichern</span></button>
-                  </div>
+                  <button type="button" class="core-action-primary min-h-11 w-full justify-center sm:w-auto sm:min-w-36"><svg class="catalog-icon"><use href="#icon-save"></use></svg><span>Speichern</span></button>
                 </aside>
-                <p class="catalog-note">Produktiv seitenweit im unteren Viewportbereich, ohne Backdrop, Fokusfalle oder Dialogsemantik. Sie ersetzt ausschließlich explizite Save-Aktionen globaler und stapelbezogener Einstellungen.</p>
+                <p class="catalog-note">Produktiv seitenweit im unteren Viewportbereich, ohne Backdrop, Fokusfalle, Dialogsemantik oder Verwerfen-Aktion. Blockierte Navigation wechselt den höflich angekündigten Status zu „Zum Verlassen zuerst speichern.“ und wird nicht nachgeholt.</p>
               </div>
               <div class="catalog-grid">
                 <dl class="core-surface-raised rounded-[18px] p-6"><dt class="core-status-label uppercase tracking-wide text-core-muted"><span class="grid size-12 place-items-center rounded-full bg-core-subtle text-core-action"><svg class="catalog-icon-lg"><use href="#icon-chart"></use></svg></span><span class="mt-5 block">Heute fällig</span></dt><dd class="core-heading-2 mt-2 text-core-text">24</dd><dd class="core-body mt-1 text-core-muted">aus 186 Karten</dd></dl>

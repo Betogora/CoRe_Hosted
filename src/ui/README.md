@@ -90,7 +90,7 @@ const setSuccessToast = useSuccessToast();
 setSuccessToast("Import erfolgreich abgeschlossen.");
 ```
 
-`SettingsSaveBar` aus `src/ui/SettingsSaveBar.tsx` ist die einzige seitenweite Aktion für ungespeicherte globale und stapelbezogene Einstellungen. Sie ist eine beschriftete, höflich angekündigte, nichtmodale `core-overlay`-Region ohne Backdrop oder Fokusfalle, liegt im unteren Viewportbereich oberhalb der mobilen Navigation und komponiert ausschließlich zwei gleich breite `ActionButton`s: sekundär `Verwerfen`, primär `Speichern`. Draft, Persistenz, Fehler und zurückgehaltene Navigation gehören weiterhin `App` und dem jeweiligen Screen.
+`SettingsSaveBar` aus `src/ui/SettingsSaveBar.tsx` ist die einzige seitenweite Aktion für ungespeicherte globale und stapelbezogene Einstellungen. Sie ist eine beschriftete, höflich angekündigte, nichtmodale `core-overlay`-Region ohne Backdrop oder Fokusfalle, liegt mit komponentenlokal erhöhter Tiefe im unteren Viewportbereich oberhalb der mobilen Navigation und komponiert ausschließlich den primären `ActionButton` `Speichern`. Status und Aktion stehen ab `sm` nebeneinander und darunter übereinander. Draft, gespeicherter Vergleichsstand, Persistenz und Fehler gehören weiterhin `App` und dem jeweiligen Screen; blockierte Navigation wird verworfen und nach dem Speichern nicht automatisch fortgesetzt.
 
 ## Formular-Primitives
 
