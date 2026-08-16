@@ -533,10 +533,11 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   const introStackGeometry = await page.getByTestId("help-intro-card-stack").evaluate((stack) => {
     const front = stack.querySelector<HTMLElement>('[data-testid="help-intro-card-front"]')!.getBoundingClientRect();
     const layers = Array.from(stack.querySelectorAll<HTMLElement>('[data-testid="help-intro-card-layer"]'))
-      .map((layer) => ({ id: layer.dataset.helpIntroLayer, rect: layer.getBoundingClientRect() }));
+      .map((layer) => ({ id: layer.dataset.helpIntroLayer, rect: layer.getBoundingClientRect(), style: getComputedStyle(layer) }));
+    const frontStyle = getComputedStyle(stack.querySelector<HTMLElement>('[data-testid="help-intro-card-front"]')!);
     return {
-      front: { top: front.top, bottom: front.bottom },
-      layers: layers.map(({ id, rect }) => ({ id, top: rect.top, bottom: rect.bottom })),
+      front: { top: front.top, bottom: front.bottom, background: frontStyle.backgroundColor, zIndex: frontStyle.zIndex },
+      layers: layers.map(({ id, rect, style }) => ({ id, top: rect.top, bottom: rect.bottom, background: style.backgroundColor, zIndex: style.zIndex })),
     };
   });
   const backLayer = introStackGeometry.layers.find(({ id }) => id === "back")!;
@@ -545,6 +546,11 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   expect(Math.abs(middleLayer.bottom - introStackGeometry.front.bottom)).toBeLessThanOrEqual(1);
   expect(backLayer.top).toBeLessThan(middleLayer.top);
   expect(middleLayer.top).toBeLessThan(introStackGeometry.front.top);
+  expect(introStackGeometry.front.background).toBe("rgb(255, 255, 255)");
+  expect(middleLayer.background).toBe("rgb(231, 239, 249)");
+  expect(backLayer.background).toBe("rgb(203, 220, 237)");
+  expect(Number(backLayer.zIndex)).toBeLessThan(Number(middleLayer.zIndex));
+  expect(Number(middleLayer.zIndex)).toBeLessThan(Number(introStackGeometry.front.zIndex));
   const activeRecallHeading = page.getByRole("heading", { name: "Active Recall", exact: true });
   const spacedRepetitionHeading = page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" });
   await expect(activeRecallHeading).toBeVisible();
@@ -565,11 +571,44 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(activeRecallHeading).toBeInViewport();
 
   const spacedRepetitionMethodLink = page.locator('a[href="#spaced-repetition-heading"]');
-  await expect(spacedRepetitionMethodLink).toHaveAttribute("data-help-method-navigation", "direct");
+  await expect(spacedRepetitionMethodLink).toHaveAttribute("data-help-method-navigation", "animated");
+  await expect(spacedRepetitionMethodLink).toHaveAttribute("data-help-scroll-skip", "active-recall-steps");
   await spacedRepetitionMethodLink.hover();
   await expect(spacedRepetitionMethodLink).toHaveCSS("border-top-width", "4px");
+  await spacedRepetitionMethodLink.scrollIntoViewIfNeeded();
+  const spacedScrollProbe = await page.evaluate(() => {
+    const region = document.querySelector<HTMLElement>(".core-screen-region");
+    const firstStep = document.querySelector<HTMLElement>('[data-testid="active-recall-step-stack"]');
+    const lastStep = document.querySelector<HTMLElement>('[data-testid="active-recall-step-variants"]');
+    if (!region || !firstStep || !lastStep) throw new Error("Scrollbereich der Active-Recall-Geschichte fehlt.");
+
+    const samples: number[] = [region.scrollTop];
+    const probeWindow = window as typeof window & { __helpMethodScrollSamples?: number[] };
+    probeWindow.__helpMethodScrollSamples = samples;
+    const startedAt = performance.now();
+    const recordScroll = () => {
+      samples.push(region.scrollTop);
+      if (performance.now() - startedAt < 1_300) requestAnimationFrame(recordScroll);
+    };
+    requestAnimationFrame(recordScroll);
+
+    const regionTop = region.getBoundingClientRect().top;
+    const absoluteTop = (element: HTMLElement) => region.scrollTop + element.getBoundingClientRect().top - regionTop;
+    return {
+      startTop: region.scrollTop,
+      skipStart: absoluteTop(firstStep),
+      skipEnd: absoluteTop(lastStep) + lastStep.getBoundingClientRect().height,
+    };
+  });
   await spacedRepetitionMethodLink.click();
   await expect(page).toHaveURL(/\/hilfe#spaced-repetition-heading$/);
+  await page.waitForTimeout(1_200);
+  const spacedScrollSamples = await page.evaluate(() => (
+    (window as typeof window & { __helpMethodScrollSamples?: number[] }).__helpMethodScrollSamples ?? []
+  ));
+  const spacedScrollDeltas = spacedScrollSamples.slice(1).map((value, index) => value - spacedScrollSamples[index]);
+  expect(spacedScrollSamples.some((value) => value > spacedScrollProbe.startTop + 8 && value < spacedScrollProbe.skipStart - 8)).toBe(true);
+  expect(Math.max(...spacedScrollDeltas)).toBeGreaterThan((spacedScrollProbe.skipEnd - spacedScrollProbe.skipStart) * 0.75);
   const spacedRepetitionReachedDirectly = await spacedRepetitionHeading.evaluate((heading) => {
     const rect = heading.getBoundingClientRect();
     return rect.top >= 0 && rect.bottom <= window.innerHeight;

@@ -120,8 +120,8 @@ const ACTIVE_RECALL_STACK_LAYERS = [
 ] as const;
 
 const INTRO_CARD_STACK_LAYERS = [
-  { id: "back", className: "core-help-stack-layer-back h-[22rem]", transform: "translateX(-30px) scaleX(0.94)" },
-  { id: "middle", className: "core-help-stack-layer-middle h-[20.5rem]", transform: "translateX(-12px) scaleX(0.97)" },
+  { id: "back", className: "core-help-stack-layer-back z-0 h-[22rem]", transform: "translateX(-30px) scaleX(0.94)" },
+  { id: "middle", className: "core-help-stack-layer-middle z-10 h-[20.5rem]", transform: "translateX(-12px) scaleX(0.97)" },
 ] as const;
 
 const ACTIVE_RECALL_VARIANTS = [
@@ -212,6 +212,8 @@ const PARAMETER_POSITIONS: Record<Exclude<ParameterId, "r">, { left: string; top
   d: { left: "52%", top: "1%" },
   s: { left: "52%", top: "80%" },
 };
+
+const HELP_METHOD_SCROLL_DURATION_MS = 1_100;
 
 function reviewSelectionId(id: ReviewId): ExplorerSelectionId {
   return `review-${id}`;
@@ -340,7 +342,7 @@ function IntroCardStack() {
         />
       ))}
       <div
-        className="core-help-stack-card absolute inset-x-4 bottom-10 grid h-[19rem] place-items-center rounded-[26px] border bg-core-surface p-6 shadow-lg sm:inset-x-8 sm:p-8"
+        className="core-help-stack-card core-help-stack-front absolute inset-x-4 bottom-10 z-20 grid h-[19rem] place-items-center rounded-[26px] border p-6 shadow-lg sm:inset-x-8 sm:p-8"
         data-testid="help-intro-card-front"
       >
         <div className="max-w-md">
@@ -358,6 +360,10 @@ function IntroCardStack() {
 }
 
 function IntroSection() {
+  const scrollAnimationFrameRef = React.useRef(0);
+
+  React.useEffect(() => () => cancelAnimationFrame(scrollAnimationFrameRef.current), []);
+
   function scrollToMethod(event: React.MouseEvent<HTMLAnchorElement>, method: HelpMethodId) {
     event.preventDefault();
     const targetId = `${method}-heading`;
@@ -376,24 +382,44 @@ function IntroSection() {
       : document.documentElement.scrollHeight - window.innerHeight;
     const endTop = Math.max(0, Math.min(targetTop, maxTop));
 
-    const skipIntermediateStory = method === "spaced-repetition";
-    if (reducedMotion || skipIntermediateStory) {
+    if (reducedMotion) {
       if (scrollRegion) scrollRegion.scrollTo({ top: endTop });
       else window.scrollTo({ top: endTop });
       return;
     }
 
+    const regionTop = scrollRegion?.getBoundingClientRect().top ?? 0;
+    const elementTop = (element: HTMLElement) => startTop + element.getBoundingClientRect().top - regionTop;
+    const activeRecallSection = document.getElementById("active-recall-heading")?.closest<HTMLElement>("section");
+    const activeRecallSteps = method === "spaced-repetition"
+      ? Array.from(activeRecallSection?.querySelectorAll<HTMLElement>("[data-story-step]") ?? [])
+      : [];
+    const firstSkippedStep = activeRecallSteps.at(0);
+    const lastSkippedStep = activeRecallSteps.at(-1);
+    const skipStart = firstSkippedStep ? elementTop(firstSkippedStep) : 0;
+    const skipEnd = lastSkippedStep ? elementTop(lastSkippedStep) + lastSkippedStep.getBoundingClientRect().height : 0;
+    const skipDistance = skipEnd > skipStart && startTop < skipEnd && endTop > skipStart
+      ? skipEnd - skipStart
+      : 0;
+    const virtualStartTop = skipDistance > 0 && startTop > skipStart
+      ? startTop >= skipEnd ? startTop - skipDistance : skipStart
+      : startTop;
+    const virtualEndTop = skipDistance > 0 ? endTop - skipDistance : endTop;
+
     const startedAt = performance.now();
-    const duration = 1_100;
     const animateScroll = (now: number) => {
-      const progress = Math.min((now - startedAt) / duration, 1);
+      const progress = Math.min((now - startedAt) / HELP_METHOD_SCROLL_DURATION_MS, 1);
       const easedProgress = 0.5 - Math.cos(Math.PI * progress) / 2;
-      const nextTop = startTop + (endTop - startTop) * easedProgress;
+      const virtualTop = virtualStartTop + (virtualEndTop - virtualStartTop) * easedProgress;
+      const nextTop = skipDistance > 0 && virtualTop >= skipStart
+        ? virtualTop + skipDistance
+        : virtualTop;
       if (scrollRegion) scrollRegion.scrollTo({ top: nextTop });
       else window.scrollTo({ top: nextTop });
-      if (progress < 1) requestAnimationFrame(animateScroll);
+      if (progress < 1) scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
     };
-    requestAnimationFrame(animateScroll);
+    cancelAnimationFrame(scrollAnimationFrameRef.current);
+    scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
   }
 
   function methodLinkClass(borderClass: string) {
@@ -420,7 +446,8 @@ function IntroSection() {
           </a>
           <a
             href="#spaced-repetition-heading"
-            data-help-method-navigation="direct"
+            data-help-method-navigation="animated"
+            data-help-scroll-skip="active-recall-steps"
             className={methodLinkClass("border-core-info")}
             onClick={(event) => scrollToMethod(event, "spaced-repetition")}
           >
@@ -573,10 +600,9 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
 
             <line x1="72" y1="420" x2="928" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
             <line x1="72" y1="52" x2="72" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
-            <text x="500" y="508" textAnchor="middle" fill="var(--core-text-muted)" fontSize="16">Zeit und nächstes Intervall</text>
-            <text x="22" y="198" transform="rotate(-90 22 198)" textAnchor="middle" fill="var(--core-text-muted)" fontSize="16">R · Abrufwahrscheinlichkeit</text>
-            <text x="57" y="98" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">100 %</text>
-            <text x="57" y="253" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">90 %</text>
+            <text x="14" y="198" transform="rotate(-90 14 198)" textAnchor="middle" fill="var(--core-text-muted)" fontSize="14">R · Abrufwahrscheinlichkeit</text>
+            <text x="64" y="98" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">100 %</text>
+            <text x="64" y="253" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">90 %</text>
             <text x="86" y="408" fill="var(--core-text-muted)" fontSize="13">Ausschnitt 90–100 %</text>
 
             <g data-testid="memory-y-axis-break" aria-hidden="true">
@@ -586,7 +612,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
 
             <g data-testid="memory-visual-r" data-active={activeParameterId === "r" ? "true" : "false"}>
               <line x1="72" y1="248" x2="928" y2="248" stroke="var(--core-text-muted)" strokeDasharray="7 7" strokeWidth={activeParameterId === "r" ? 3 : 1.5} opacity={activeParameterId === "r" ? 1 : 0.72} />
-              <text x="920" y="235" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">Zielerinnerung R = 90 %</text>
+              <text x="220" y="318" textAnchor="middle" fill="var(--core-text-muted)" fontSize="14">Zielerinnerung R = 90 %</text>
               <path d={INITIAL_CURVE_PATH} fill="none" stroke="var(--core-text)" strokeWidth={activeParameterId === "r" || activeReviewId === "first" ? 7 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "first" ? 1 : 0.28} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />
               {RATING_PATHS.map((rating) => {
                 const emphasized = ratingsActive || activeParameterId === "r" || activeRatingId === rating.id || (activeReviewId === "variant" && rating.id === "easy");
@@ -600,12 +626,19 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
                 const emphasized = ratingsActive || activeParameterId === "s" || activeRatingId === rating.id;
                 const start = index === 0 ? 235 : RATING_PATHS[index - 1].dueX + 10;
                 const end = rating.dueX - 10;
-                const arrowY = 292;
+                const arrowY = 350;
                 return (
-                  <g key={`stability-${rating.id}`} opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.32} className="transition-opacity duration-300 motion-reduce:transition-none">
+                  <g
+                    key={`stability-${rating.id}`}
+                    opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.32}
+                    className="transition-opacity duration-300 motion-reduce:transition-none"
+                    data-testid={`memory-stability-arrow-${rating.id}`}
+                    data-arrowheads={index === 0 ? "both" : "left"}
+                  >
                     <line x1={start} y1={arrowY} x2={end} y2={arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
                     <path d={`M ${start + 9} ${arrowY - 6} L ${start} ${arrowY} L ${start + 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
-                    <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
+                    {index === 0 ? <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" /> : null}
+                    <text x={(start + end) / 2} y={arrowY + 32} textAnchor="middle" fill={rating.color} fontSize="14" fontWeight="700">S{index + 1}</text>
                   </g>
                 );
               })}
@@ -625,8 +658,8 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
 
             <path d={INITIAL_CURVE_PATH} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(reviewSelectionId("first"))} data-testid="memory-curve-initial" />
             {RATING_PATHS.map((rating) => <path key={`hit-${rating.id}`} d={rating.curvePath} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(ratingSelectionId(rating.id))} data-testid={`memory-rating-path-${rating.id}`} />)}
-            <text x="220" y="210" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">1. Wiederholung</text>
-            <text x="855" y="210" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">2. Wiederholung · Variante</text>
+            <text x="220" y="292" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">1. Wiederholung</text>
+            <text x="855" y="292" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">2. Wiederholung · Variante</text>
           </svg>
 
           {(["s", "d"] as const).map((parameterId) => {
@@ -659,7 +692,12 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
                 aria-label={`${review.title} auswählen`}
                 data-testid={`memory-review-point-${review.id}`}
               >
-                {review.id === "variant" ? <Sparkles size={19} aria-hidden="true" /> : "1"}
+                {review.id === "variant" ? (
+                  <>
+                    <Sparkles className="absolute -top-7" size={19} aria-hidden="true" data-testid="memory-variant-star" />
+                    <span aria-hidden="true">×</span>
+                  </>
+                ) : "1"}
               </button>
             );
           })}

@@ -87,8 +87,8 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
   const [showSettings, setShowSettings] = React.useState(false);
   const [selectedChoice, setSelectedChoice] = React.useState("");
   const [feedbackStatus, setFeedbackStatus] = React.useState("");
-  const answerHeadingRef = React.useRef<HTMLParagraphElement>(null);
-  const questionHeadingRef = React.useRef<HTMLParagraphElement>(null);
+  const answerContentRef = React.useRef<HTMLDivElement>(null);
+  const questionContentRef = React.useRef<HTMLDivElement>(null);
   const completionHeadingRef = React.useRef<HTMLHeadingElement>(null);
   const settingsButtonRef = React.useRef<HTMLButtonElement>(null);
   const feedbackDeckRef = React.useRef<Deck | null>(null);
@@ -337,12 +337,12 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
   }
 
   React.useEffect(() => {
-    if (showAnswer) answerHeadingRef.current?.focus();
+    if (showAnswer) answerContentRef.current?.focus();
   }, [showAnswer]);
 
   React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      if (current) questionHeadingRef.current?.focus();
+      if (current) questionContentRef.current?.focus();
       else if (answeredCount > 0 || hasWaitingLearningCards || limitReachedAtStart) completionHeadingRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
@@ -439,8 +439,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
                       {current.sessionInfo.isEarlyRepeat ? "Vorgezogene Wiederholung" : "Wiederholung"}
                     </p>
                   ) : null}
-                  <p ref={questionHeadingRef} tabIndex={-1} className="mb-5 core-body font-semibold uppercase tracking-[0.18em] text-[var(--core-action-secondary)] outline-none">Frage</p>
-                  <div className="core-study-card-front text-[var(--core-text)]">
+                  <div ref={questionContentRef} tabIndex={-1} role="group" aria-label="Frage" className="core-study-card-front text-[var(--core-text)] outline-none">
                     <CardPresentationSurface item={sourceCard} variant={current.variant} definition={presentationDefinition} side="question" surface="review" title="Frage" loadingLabel={stripHtml(current.front)} mediaUrls={studyMediaUrls} showCompatibility={false} />
                   </div>
                   {isMultipleChoice ? (
@@ -484,8 +483,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
                   {showAnswer ? (
                     <>
                       <div className="my-8 h-0.5 bg-[var(--core-border-interactive)] opacity-70" />
-                      <p ref={answerHeadingRef} tabIndex={-1} className="mb-4 core-body font-semibold uppercase tracking-[0.18em] text-[var(--core-action-secondary)] outline-none">Antwort</p>
-                      <div className="core-study-card-back text-[var(--core-text)]">
+                      <div ref={answerContentRef} tabIndex={-1} role="group" aria-label="Antwort" className="core-study-card-back text-[var(--core-text)] outline-none">
                         <CardPresentationSurface item={sourceCard} variant={current.variant} definition={presentationDefinition} side="answer" surface="review" title="Antwort" loadingLabel={stripHtml(current.back)} mediaUrls={studyMediaUrls} showCompatibility={false} />
                       </div>
                       {isMultipleChoice ? (
@@ -605,14 +603,14 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
         </section>
 
         {showAnswer ? (
-          <footer className="grid gap-3 sm:grid-cols-4">
+          <footer className="grid gap-2 sm:grid-cols-4">
             {ratingButtons.map((rating) => {
               const ratingKey = rating.key as ReviewRating;
               const intervalLabel = formatReviewIntervalLabel(current?.ratingButtonOptions?.[ratingKey]?.intervalLabel ?? "");
               return <CoreTooltip key={rating.key} label={`Taste ${rating.shortcutKey}`}>
-                <button type="button" onClick={() => grade(ratingKey)} disabled={!current} aria-label={`Bewertung ${rating.label}${intervalLabel ? `: ${intervalLabel}` : ""}`} className={`min-h-16 rounded-2xl border text-center shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${rating.className}`}>
-                  <span className="block core-heading-2 font-semibold">{rating.label}</span>
-                  <span className="mt-1 block core-body font-semibold opacity-80">{intervalLabel}</span>
+                <button type="button" onClick={() => grade(ratingKey)} disabled={!current} aria-label={`Bewertung ${rating.label}${intervalLabel ? `: ${intervalLabel}` : ""}`} className={`min-h-14 rounded-xl border px-3 py-1.5 text-center shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${rating.className}`}>
+                  <span className="block core-body-large font-semibold leading-5">{rating.label}</span>
+                  <span className="mt-0.5 block core-caption font-medium opacity-80">{intervalLabel}</span>
                 </button>
               </CoreTooltip>
             })}

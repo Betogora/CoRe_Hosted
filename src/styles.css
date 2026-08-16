@@ -135,6 +135,15 @@
   --core-palette-lilac-glow: #e4b5e1;
   --core-palette-golden-glow: #f0cc77;
 
+  /* Stable illustration colors for the layered help-page card stack. */
+  --core-help-stack-front: #ffffff;
+  --core-help-stack-middle: #e7eff9;
+  --core-help-stack-back: #cbdced;
+  --core-help-stack-border: #8292ad;
+  --core-help-stack-text: var(--core-palette-midnight);
+  --core-help-stack-secondary: #667492;
+  --core-help-stack-divider: #d5dbe5;
+
   /* Semantic light theme. */
   --core-canvas: #f3f5f8;
   --core-surface: #ffffff;
@@ -920,15 +929,22 @@ summary {
 }
 
 .core-help-stack-card {
-  border-color: color-mix(in srgb, var(--core-border-interactive) 38%, var(--core-border));
+  border-color: var(--core-help-stack-border);
+}
+
+.core-help-stack-front {
+  --core-text: var(--core-help-stack-text);
+  --core-text-secondary: var(--core-help-stack-secondary);
+  --core-border: var(--core-help-stack-divider);
+  background: var(--core-help-stack-front);
 }
 
 .core-help-stack-layer-middle {
-  background: color-mix(in srgb, var(--core-info-surface) 64%, var(--core-surface));
+  background: var(--core-help-stack-middle);
 }
 
 .core-help-stack-layer-back {
-  background: color-mix(in srgb, var(--core-info-surface) 82%, var(--core-text-muted));
+  background: var(--core-help-stack-back);
 }
 
 .core-help-method-link:focus-visible {
