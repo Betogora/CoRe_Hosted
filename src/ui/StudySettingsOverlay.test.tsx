@@ -37,6 +37,7 @@ test("StudySettingsOverlay renders one responsive dialog with the canonical sect
   assert.doesNotMatch(markup, /Flagge|Flaggenfarben/);
   assert.match(markup, /Markieren/);
   assert.match(markup, /Aussetzen/);
+  assert.match(markup, /data-card-study-state-controls="true"/);
   assert.match(markup, /Pomodoro-Timer/);
   assert.match(markup, /Kartenreihenfolge/);
   assert.match(markup, /Fällige Karten zuerst/);

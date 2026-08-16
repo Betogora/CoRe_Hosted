@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, Ban, Check, ChevronDown, ChevronRight, Copy, Eye, Layers, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Copy, Eye, Layers, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -13,7 +13,8 @@ import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CardHtml, useCardMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
-import { ActionDialog, CardMarkButton, CoreSwitch, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { CardStudyStateControls } from "../ui/CardStudyStateControls.tsx";
+import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -414,24 +415,13 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
           <p className="mt-1">Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange. Andere Karten sind nicht betroffen.</p>
         </div>
       ) : null}
-      <div className="mb-5 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] px-3">
-        <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--core-border)] py-1">
-          <span className="core-body font-semibold text-[var(--core-text-secondary)]">Markieren</span>
-          <CardMarkButton marked={isLearningItemMarked(card)} onMarkedChange={(marked) => onSetStudyState(card.id, { marked })} />
-        </div>
-        <div className="flex min-h-12 items-center justify-between gap-3 py-1">
-          <span className="flex min-w-0 items-center gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-            <Ban size={18} aria-hidden="true" />
-            <span>Aussetzen</span>
-          </span>
-          <CoreSwitch
-            checked={card.status === "suspended"}
-            ariaLabel={card.status === "suspended" ? "Karte reaktivieren" : "Karte aussetzen"}
-            onCheckedChange={(suspended) => onSetStudyState(card.id, { suspended })}
-          />
-        </div>
-        <p className="pb-3 core-caption text-[var(--core-text-muted)]">Aussetzen pausiert alle Varianten. Der Lernstand bleibt erhalten.</p>
-      </div>
+      <CardStudyStateControls
+        className="mb-5"
+        marked={isLearningItemMarked(card)}
+        suspended={card.status === "suspended"}
+        onMarkedChange={(marked) => onSetStudyState(card.id, { marked })}
+        onSuspendedChange={(suspended) => onSetStudyState(card.id, { suspended })}
+      />
       {Array.isArray(card.meta.reimportConflicts) && card.meta.reimportConflicts.length > 0 ? (
         <div className="mb-5 rounded-xl border border-core-warning bg-core-warning-soft p-4 core-body text-core-text" role="alert">
           <p className="font-semibold">{card.meta.reimportConflicts.length} Reimport-Konflikt{card.meta.reimportConflicts.length === 1 ? "" : "e"}</p>

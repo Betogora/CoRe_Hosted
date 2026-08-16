@@ -168,7 +168,11 @@ test("card selection opens a non-modal detail aside with editor, copy and collap
   assert.match(markup, /lg:w-1\/2/);
   assert.match(markup, /Karte bearbeiten/);
   assert.match(markup, /aria-label="Karte markieren"/);
-  assert.match(markup, /role="switch"[^>]*aria-label="Karte aussetzen"/);
+  assert.match(markup, /class="mb-5" data-card-study-state-controls="true"/);
+  assert.match(markup, /aria-label="Aussetzstatus der Karte"/);
+  assert.match(markup, />Nicht aussetzen</);
+  assert.doesNotMatch(markup, /role="switch"/);
+  assert.doesNotMatch(markup, /Aussetzen pausiert alle Varianten/);
   assert.match(markup, /aria-label="Karten-Vorderseite"/);
   assert.match(markup, /Vorschau<\/span><\/button>/);
   assert.match(markup, />Kopieren<\/button>/);
@@ -194,7 +198,8 @@ test("cards page shows suspended rows and marked stars beside the variants badge
   assert.match(markup, /bg-\[var\(--core-warning-surface\)\]/);
   assert.match(markup, />Nein<\/span><span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
   assert.match(markup, /aria-label="Markierung entfernen"/);
-  assert.match(markup, /role="switch"[^>]*aria-checked="true"[^>]*aria-label="Karte reaktivieren"/);
+  const suspendControl = markup.match(/<div[^>]*aria-label="Aussetzstatus der Karte"[\s\S]*?<\/div>/)?.[0] ?? "";
+  assert.match(suspendControl, /aria-pressed="true"[^>]*>Aussetzen/);
 });
 
 test("cards page shows safe deterministic fallbacks for unavailable URL targets", () => {

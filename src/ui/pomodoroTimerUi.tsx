@@ -126,8 +126,8 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
             : "mb-2 grid gap-3 rounded-xl bg-[var(--core-surface-muted)] p-3"}
           onSubmit={start}
         >
-          <div className="grid gap-3 sm:grid-cols-[8rem_minmax(12rem,1fr)_auto] sm:items-end">
-            <label className="core-field-group">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:grid-cols-[8rem_minmax(12rem,1fr)_auto]">
+            <label className="core-field-group col-start-1 row-start-1">
               <span className="core-field-label">Dauer in Minuten</span>
               <input
                 className="core-field w-full"
@@ -144,7 +144,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
                 }}
               />
             </label>
-            <div className="core-field-group">
+            <div className="core-field-group col-span-2 row-start-2 sm:col-span-1 sm:col-start-2 sm:row-start-1">
               <span className="core-field-label">Schnellauswahl</span>
               <CoreSegmentedControl<PomodoroPreset | "">
                 ariaLabel="Pomodoro-Dauer"
@@ -159,7 +159,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
                 }}
               />
             </div>
-            <ActionButton type="submit" variant="primary" icon={Play} className="w-full sm:w-fit">Start</ActionButton>
+            <ActionButton type="submit" variant="primary" icon={Play} className="col-start-2 row-start-1 w-fit sm:col-start-3">Start</ActionButton>
           </div>
           {error ? <span id={errorId} className="core-field-error">{error}</span> : null}
         </form>

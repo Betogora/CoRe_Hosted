@@ -1,26 +1,19 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import {
-  Ban,
   ChevronRight,
   ListOrdered,
   Pencil,
   Settings,
-  Star,
   X,
 } from "lucide-react";
 import type { NewReviewOrder } from "../coreTypes.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import { IconButton } from "./actionUi.tsx";
-import { CardMarkButton, CoreSegmentedControl } from "./coreUi.tsx";
+import { CardStudyStateControls } from "./CardStudyStateControls.tsx";
 import { PomodoroTimerControl } from "./pomodoroTimerUi.tsx";
 import { CoreSelect } from "./selectUi.tsx";
 import { useModalDialog } from "./useModalDialog.ts";
-
-const SUSPEND_OPTIONS = [
-  { value: "active", label: "Nicht aussetzen" },
-  { value: "suspended", label: "Aussetzen" },
-] as const;
 
 const REVIEW_ORDER_OPTIONS = [
   { value: "reviews-first", label: "Fällige Karten zuerst" },
@@ -64,23 +57,6 @@ function EditMenuRow({ icon: Icon, label, disabled = false, onClick }: {
       </span>
       <ChevronRight className="text-[var(--core-text)]" size={17} aria-hidden="true" />
     </button>
-  );
-}
-
-function StudyStateRow({ icon: Icon, label, children, disabled = false }: {
-  icon: typeof Star;
-  label: string;
-  children: React.ReactNode;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex min-h-11 items-center justify-between gap-3 py-1" aria-disabled={disabled || undefined}>
-      <span className={`flex min-w-0 items-center gap-3 core-body font-semibold ${disabled ? "text-[var(--core-text-muted)]" : "text-[var(--core-text-secondary)]"}`}>
-        <Icon className="shrink-0 text-[var(--core-text)]" size={18} aria-hidden="true" />
-        <span>{label}</span>
-      </span>
-      {children}
-    </div>
   );
 }
 
@@ -153,20 +129,13 @@ export function StudySettingsOverlay({
                   onEditDeck();
                 }}
               />
-              <StudyStateRow icon={Star} label="Markieren" disabled={!canEditCard}>
-                <CardMarkButton marked={marked} disabled={!canEditCard} onMarkedChange={onMarkedChange} />
-              </StudyStateRow>
-              <StudyStateRow icon={Ban} label="Aussetzen" disabled={!canEditCard}>
-                <CoreSegmentedControl
-                  value={suspended ? "suspended" : "active"}
-                  options={SUSPEND_OPTIONS}
-                  ariaLabel="Aussetzstatus der Karte"
-                  disabled={!canEditCard}
-                  size="compact"
-                  className="ml-auto w-full max-w-[15rem]"
-                  onValueChange={(value) => onSuspendedChange(value === "suspended")}
-                />
-              </StudyStateRow>
+              <CardStudyStateControls
+                marked={marked}
+                suspended={suspended}
+                disabled={!canEditCard}
+                onMarkedChange={onMarkedChange}
+                onSuspendedChange={onSuspendedChange}
+              />
             </div>
           </section>
 
