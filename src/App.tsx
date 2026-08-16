@@ -1470,8 +1470,9 @@ export function App() {
   }
 
   function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
-    if (!workspaceRepository || !state) return null;
-    const profile = state.profile;
+    const currentState = latestStateRef.current;
+    if (!workspaceRepository || !currentState) return null;
+    const profile = currentState.profile;
     return runRepositoryMutation((repository) => repository.saveProfile({
       ...profile,
       uiPreferences: setDeckExpanded(profile.uiPreferences, surface, deckId, expanded),
