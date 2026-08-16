@@ -175,11 +175,11 @@ export interface PomodoroProgressProps {
 
 export function PomodoroProgress({ timer, variant }: PomodoroProgressProps) {
   const snapshot = usePomodoroTimerSnapshot(timer);
-  if (variant !== "study" && !snapshot.running) return null;
+  if (!timer || !snapshot.running) return null;
 
   const remainingSeconds = Math.ceil(snapshot.remainingMilliseconds / 1_000);
-  const maximumSeconds = Math.max(1, (timer?.durationMinutes ?? DEFAULT_POMODORO_MINUTES) * 60);
-  const valueText = snapshot.running ? `Noch ${snapshot.remainingMinutes} Min.` : "Nicht gestartet";
+  const maximumSeconds = Math.max(1, timer.durationMinutes * 60);
+  const valueText = `Noch ${snapshot.remainingMinutes} Min.`;
   const isHeader = variant === "header";
   const isStudy = variant === "study";
 

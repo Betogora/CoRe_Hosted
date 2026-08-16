@@ -18,13 +18,15 @@ test("PomodoroTimerControl exposes the collapsed global and study entry points",
   assert.deepEqual(POMODORO_PRESET_MINUTES, [15, 25, 45]);
 });
 
-test("PomodoroProgress renders an idle study bar and hides idle shell projections", () => {
-  const study = renderToStaticMarkup(<PomodoroProgress timer={null} variant="study" />);
-  assert.match(study, /role="progressbar"/);
-  assert.match(study, /aria-valuetext="Nicht gestartet"/);
-  assert.match(study, /width:0%/);
-  assert.equal(renderToStaticMarkup(<PomodoroProgress timer={null} variant="sidebar" />), "");
-  assert.equal(renderToStaticMarkup(<PomodoroProgress timer={null} variant="header" />), "");
+test("PomodoroProgress hides every projection without a running timer", () => {
+  const expiredTimer = createPomodoroTimer(25, Date.now() - 26 * 60_000, "pomodoro_expired");
+  assert.ok(expiredTimer);
+
+  for (const timer of [null, expiredTimer]) {
+    for (const variant of ["study", "sidebar", "header"] as const) {
+      assert.equal(renderToStaticMarkup(<PomodoroProgress timer={timer} variant={variant} />), "");
+    }
+  }
 });
 
 test("PomodoroProgress labels the running timer in whole minutes", () => {
