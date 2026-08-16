@@ -222,7 +222,7 @@ Akzeptanz:
 
 ### 5.6 Lernlogik verstehen
 
-Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite `/hilfe` im normalen App-Shell-Inhaltsbereich. Ein kurzer Einstieg ordnet CoRes Ziel ein. Ein klar gestaffelter Kartenstapel mit weißer Vorderkarte, graublauen hinteren Karten und subtilen CoRe-Rahmen fragt dort, welche Grundsätze CoRe für möglichst nachhaltiges Lernen nutzt. `Grundsätze`, `nutzt CoRe`, `Lernen` und `nachhaltig zu gestalten` tragen eine pinke Textmarkierung; die gelben Pfeile verbinden `Active Recall → Smarter Recall` sowie `Spaced Repetition → Content Repetition`. Zwei anschließende Scrollgeschichten erklären erst den wechselnden Abrufreiz und danach die FSRS-Lernkurve, ohne Workspace- oder Schedulerzustand zu verändern.
+Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite `/hilfe` im normalen App-Shell-Inhaltsbereich. Ein kurzer Einstieg ordnet CoRes Ziel ein. Ein klar gestaffelter Kartenstapel mit weißer Vorderkarte und zwei nach links oben versetzten graublauen Karten fragt dort, welche Grundsätze CoRe für möglichst nachhaltiges Lernen nutzt. Die mittlere Karte ist heller ausgegraut als die hinterste; alle drei Karten verwenden einen gegenüber dem normalen Flächenrahmen etwas dunkleren CoRe-Rahmen. `Grundsätze`, `nutzt CoRe`, `Lernen` und `nachhaltig zu gestalten` tragen eine pinke Textmarkierung; die gelben Pfeile verbinden `Active Recall → Smarter Recall` sowie `Spaced Repetition → Content Repetition`. Zwei anschließende Scrollgeschichten erklären erst den wechselnden Abrufreiz und danach die FSRS-Lernkurve, ohne Workspace- oder Schedulerzustand zu verändern.
 
 Akzeptanz:
 

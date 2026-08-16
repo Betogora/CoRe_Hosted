@@ -12,9 +12,12 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.equal((markup.match(/class="core-help-keyword"/g) ?? []).length, 4);
   assert.equal((markup.match(/data-testid="help-intro-card-layer"/g) ?? []).length, 2);
   assert.match(markup, /data-testid="help-intro-card-front"/);
-  assert.match(markup, /class="[^"]*bg-core-info-soft[^"]*"[^>]*data-testid="help-intro-card-layer"/);
+  assert.match(markup, /core-help-stack-layer-back/);
+  assert.match(markup, /core-help-stack-layer-middle/);
+  assert.match(markup, /translate\(-30px, -57px\) scale\(0\.94\)/);
+  assert.match(markup, /translate\(-12px, -31px\) scale\(0\.97\)/);
   assert.match(markup, /class="[^"]*bg-core-surface[^"]*"[^>]*data-testid="help-intro-card-front"/);
-  assert.doesNotMatch(markup, /class="[^"]*bg-core-(?:success|warning)-soft[^"]*"[^>]*data-testid="help-intro-card-layer"/);
+  assert.equal((markup.match(/core-help-stack-card/g) ?? []).length, 3);
   assert.match(markup, /Active Recall <span class="text-core-warning">→<\/span> Smarter Recall/);
   assert.match(markup, /Spaced Repetition <span class="text-core-warning">→<\/span> Content Repetition/);
   assert.match(markup, /href="#active-recall-heading"/);
