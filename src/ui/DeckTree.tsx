@@ -289,7 +289,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
     onActivate(row);
   }
 
-  function renderRow(row: DeckLibraryRow, rowIndex: number): React.ReactNode {
+  function renderRow(row: DeckLibraryRow): React.ReactNode {
     const isCollapsed = collapsedDeckIdSet.has(row.id);
     const isDragged = draggedDeckId === row.id;
     const isDropTarget = dropIntent?.targetDeckId === row.id;
@@ -324,9 +324,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
         data-deck-depth={Math.min(row.depth, MAX_INTERACTIVE_DECK_LEVELS)}
         data-drop-state={isDropTarget ? (dropIntent?.error ? "invalid" : "valid") : undefined}
         data-drag-state={isDragged ? "active" : undefined}
-        className={row.depth === 0 && rowIndex > 0
-          ? "core-deck-summary-row relative min-w-0 select-none border-t-2 border-[var(--core-border)]"
-          : "core-deck-summary-row relative min-w-0 select-none"}
+        className="core-deck-summary-row relative min-w-0 select-none"
       >
         <button
           type="button"

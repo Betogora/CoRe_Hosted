@@ -37,8 +37,11 @@ function mutation(id: string, type: string, payload: unknown): SyncOutboxMutatio
 
 test("erkennt nur vollständige Profile für den erwarteten Account", () => {
   assert.deepEqual(readCompleteProfile(cloudProfile, "user-1"), cloudProfile);
+  assert.deepEqual(readCompleteProfile({ ...cloudProfile, timezone: "" }, "user-1"), { ...cloudProfile, timezone: "" });
   assert.equal(readCompleteProfile({ uiPreferences: cloudProfile.uiPreferences }, "user-1"), null);
   assert.equal(readCompleteProfile({ ...cloudProfile, userId: "user-2" }, "user-1"), null);
+  assert.equal(readCompleteProfile({ ...cloudProfile, timezone: undefined }, "user-1"), null);
+  assert.equal(readCompleteProfile({ ...cloudProfile, timezone: 42 }, "user-1"), null);
   assert.equal(readCompleteProfile({
     ...cloudProfile,
     uiPreferences: { ...cloudProfile.uiPreferences, syncIntervalMinutes: "5" },

@@ -394,6 +394,41 @@ test("weist unvollst채ndige Profilwrites zur체ck, ohne Shell oder Outbox zu ver�
   repository.close();
 });
 
+test("speichert UI-Pr채ferenzen f체r ein vollst채ndiges Profil ohne festgelegte Zeitzone", async () => {
+  const userId = randomUUID();
+  const initialState = workspaceState();
+  initialState.profile = {
+    userId,
+    email: "profil@example.com",
+    displayName: "Profil",
+    timezone: "",
+    onboardingComplete: true,
+    schedulerPreferences: { settingsVersion: 2, dayStartHour: 0 },
+    uiPreferences: {
+      dashboardCollapsedDeckIds: [],
+      learnCollapsedDeckIds: [],
+      deckManagerExpandedDeckIds: [],
+      syncIntervalMinutes: 5,
+    },
+  };
+  const repository = await createIndexedDbCoreRepository({ userId, initialState, indexedDb: indexedDB as any });
+
+  const savedProfile = repository.saveProfile({
+    ...repository.getShellState().profile,
+    uiPreferences: {
+      ...repository.getShellState().profile.uiPreferences,
+      learnCollapsedDeckIds: ["deck-idb"],
+    },
+  });
+
+  assert.equal(savedProfile.timezone, "");
+  assert.deepEqual(savedProfile.uiPreferences.learnCollapsedDeckIds, ["deck-idb"]);
+  assert.deepEqual(repository.getShellState().profile, savedProfile);
+  assert.equal(repository.outbox.listPending().some((mutation) => mutation.type === "profile-patch"), true);
+  await repository.flush();
+  repository.close();
+});
+
 test("Lernstart hydriert rollende 50er-Seiten statt den gesamten Stapel", async () => {
   const repository = await createIndexedDbCoreRepository({
     userId: randomUUID(),

@@ -832,13 +832,6 @@ export function DecksScreen({
   const searchExpandsGroups = Boolean(deferredQuery.trim());
   const expandedDeckIdSet = React.useMemo(() => new Set(expandedDeckIds), [expandedDeckIds]);
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
-  const rootDeckIdByDeckId = React.useMemo(() => {
-    const rootIds = new Map<string, string>();
-    for (const group of tableModel.allGroups) {
-      rootIds.set(group.id, group.parentDeckId ? rootIds.get(group.parentDeckId) ?? group.id : group.id);
-    }
-    return rootIds;
-  }, [tableModel.allGroups]);
   const selectedGroup = selectedDeckId ? groupById.get(selectedDeckId) ?? null : null;
   const selectedDeck = selectedGroup?.deck ?? null;
   const selectedPage = selectedDeckId ? cardPages?.[selectedDeckId] : undefined;
@@ -1168,12 +1161,9 @@ export function DecksScreen({
                   <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
                 </tr>
               </thead>
-              {tableModel.groups.map((group, groupIndex) => {
+              {tableModel.groups.map((group) => {
                 const expanded = searchExpandsGroups || expandedDeckIdSet.has(group.id);
                 const visibleDepth = Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS);
-                const previousGroup = tableModel.groups[groupIndex - 1];
-                const startsMainTree = Boolean(previousGroup)
-                  && rootDeckIdByDeckId.get(previousGroup.id) !== rootDeckIdByDeckId.get(group.id);
                 const groupLeadingControl = (
                   <span className="grid size-9 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
                     {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
@@ -1193,9 +1183,7 @@ export function DecksScreen({
                   <tr
                     data-testid={"deck-header-" + group.id}
                     data-deck-depth={visibleDepth}
-                    className={startsMainTree
-                      ? "core-deck-summary-row border-t-2 !border-[var(--core-border)]"
-                      : "core-deck-summary-row"}
+                    className="core-deck-summary-row"
                     style={selectedDeckId === group.id ? { backgroundColor: "var(--core-info-surface)" } : undefined}
                   >
                     <th scope="rowgroup" colSpan={3} className="relative px-3 text-left">

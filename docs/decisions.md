@@ -196,7 +196,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-023 — Kontextgebundener Lernstatus und Hauptbaumgrenzen
 
-**Status:** angenommen
+**Status:** teilweise abgelöst durch ADR-026
 **Kontext:** Der gemeinsame Stapelinhalt führte Lernkennzahlen und Donut auch in der inhaltsorientierten Kartenverwaltung, obwohl dort Stapelidentität und Kartenbearbeitung im Vordergrund stehen. Dünne Grenzen zwischen allen Hierarchiezeilen zerschnitten zusammengehörige Bäume; der Hover von Dashboard und Lernen färbte dagegen nur eine Rahmenkante ein.
 **Entscheidung:** `DeckSummaryRow` bleibt der einzige Zeilenrenderer und erhält einen optionalen, unteilbaren Lernstatusblock. Nur Dashboard und Lernen liefern Tageskennzahlen und Gesamtbestandsdonut; die Kartenverwaltung rendert in Stapelköpfen ausschließlich Identität und Aktion. Alle drei Ansichten verwenden dieselbe neutrale vollflächige Hover-Füllung. Eine 2-px-Linie trennt ausschließlich aufeinanderfolgende Hauptstapel-Bäume, innerhalb eines Baums existiert keine Stapel-Trennlinie. Kartenzeilen behalten ihre dünnen Grenzen. Feste und responsive Dichten sind direkte Varianten von `DeckSummaryRow`; der funktionslose Kompakt-Wrapper entfällt.
 **Konsequenzen:** Kennzahl- und Bestandsmodelle bleiben unverändert und werden in der Kartenverwaltung lediglich nicht projiziert. Individuelle Kartenwerte wie `Neu` im Datumsfeld bleiben sichtbar. Tabellen- und Baumsemantik, Auf-/Zuklappen, Drag-and-drop, Auswahl, Stapeloptionen und Persistenz ändern sich nicht. ADR-008, ADR-012 und ADR-014 sind hinsichtlich sichtbarer Kartenverwaltungs-Kennzahlen sowie der Zeilen- und Hoverform abgelöst.
@@ -216,4 +216,12 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Kontext:** Die bisherige Stapelzusammenfassung zählte bei jedem Aufruf Karten- und Variantenindizes und lief für die Heatmap durch alle zukünftigen Kartentermine. Der reproduzierbare gedrosselte Start belegte dadurch einen 231-ms-Main-Thread-Task. Mit großen Stapeln darf der häufige Dashboardpfad nicht proportional zur Kartenzahl wachsen.
 **Entscheidung:** `listDeckSummaries()` bleibt die einzige React-seitige Schnittstelle, liest intern aber löschbare lokale `DeckStudySummary`-Projektionen und kompakte Fälligkeits-Buckets aus IndexedDB v5. Einzelne Kartenwrites und Reviews pflegen diese Ableitungen in derselben lokalen Transaktion. Import-, Restore-, Cloud- und Konfliktpfade markieren ausschließlich betroffene Stapel dirty. Der Neuaufbau scannt Karten über einen zusammengesetzten Stapel-/ID-Index in höchstens 250er-Chunks, gibt spätestens nach 25 ms freiwillig ab und speichert Stapel-, Phasen- und Entitätscursor als fortsetzbaren Checkpoint. Ein Dirty-Token verhindert den Abschluss einer durch parallele Writes veralteten Berechnung. Zeitzone und Tagesbeginn gehören zum Projektionskontext; Konfliktkarten fehlen in lernbaren Zählern.
 **Konsequenzen:** Normale Starts lesen Stapelzähler ohne Karten- oder Variantenscan. Das Schema-Upgrade legt nur Stores und Indizes an; die Erstbefüllung beginnt nach dem nutzbaren Workspace und darf unterbrochen werden. Projektionen, Buckets und Checkpoint sind keine Cloud-, Outbox-, Export- oder Konfliktwahrheit und können vollständig neu berechnet werden. Das Supabase-Schema und `listDeckSummaries()` ändern sich nicht.
+**Datum:** 2026-08-16
+
+## ADR-026 — Trennlinienlose Stapelprojektionen
+
+**Status:** angenommen
+**Kontext:** Die 2-px-Grenze zwischen aufeinanderfolgenden Hauptstapel-Bäumen blieb gegenüber den bewusst trennlinienlosen Unterstapeln visuell zu dominant und trennte gleichartige Stapelköpfe ohne zusätzliche fachliche Information.
+**Entscheidung:** Dashboard, Lernen und Kartenverwaltung rendern alle Stapelköpfe unabhängig von Wurzel und Hierarchieebene ohne horizontale Trennlinie. Hierarchien bleiben durch Tiefenfläche, Einrückung und Chevron erkennbar. Die dünnen Grenzen zwischen tatsächlichen Kartenzeilen der Kartenverwaltung bleiben bestehen.
+**Konsequenzen:** `DeckTree` und Kartenverwaltung benötigen keine separate Hauptbaum-Grenzermittlung mehr. Auf-/Zuklappen, Drag-and-drop, Auswahl, Stapeloptionen sowie äußere Panel- und Tabellenrahmen ändern sich nicht. ADR-023 ist ausschließlich hinsichtlich der 2-px-Hauptbaumgrenze abgelöst.
 **Datum:** 2026-08-16

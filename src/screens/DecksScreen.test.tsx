@@ -104,8 +104,7 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.match(markup, /aria-controls="deck-card-list-[^"]+"/);
   assert.match(markup, /data-testid="deck-toggle-[^"]+"[^>]*class="absolute inset-0[^"]*focus-visible:ring-2/);
   assert.doesNotMatch(markup, /aria-label="Lernstand für|aria-label="Gesamtfortschritt für|data-deck-count=|data-donut-/);
-  assert.doesNotMatch(markup, /data-testid="deck-header-deck-child"[^>]*class="[^"]*border-t-2/);
-  assert.match(markup, /data-testid="deck-header-deck-second-root"[^>]*class="core-deck-summary-row border-t-2 !border-\[var\(--core-border\)\]"/);
+  assert.doesNotMatch(markup, /data-testid="deck-header-[^"]+"[^>]*class="[^"]*border-t-2/);
   assert.doesNotMatch(markup, /Was ist ATP\?/);
   assert.doesNotMatch(markup, /Ein Energieträger\./);
   assert.match(markup, /Biologie \/ Zellbiologie/);
@@ -147,6 +146,7 @@ test("cards page renders sortable collapsed deck sections without learning metri
   const expandedMarkup = renderScreen(decks, { expandedDeckIds: [originalDeck.id] });
   assert.match(expandedMarkup, /aria-label="Karten von Biologie einklappen"/);
   assert.match(expandedMarkup, /Was ist ATP\?/);
+  assert.match(expandedMarkup, /<tr[^>]*class="cursor-pointer border-b border-\[var\(--core-border\)\][^"]*"[^>]*data-card-row="true"/);
   assert.doesNotMatch(expandedMarkup, /data-deck-count=|Lernstand für|Gesamtfortschritt für|data-donut-/);
   assert.match(expandedMarkup, />Nein<\/span>/);
   assert.doesNotMatch(expandedMarkup, /Mit Varianten|Ohne Varianten/);

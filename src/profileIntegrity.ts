@@ -28,7 +28,6 @@ export function readCompleteProfile(value: unknown, expectedUserId?: string): Pr
     || typeof value.email !== "string"
     || typeof value.displayName !== "string"
     || typeof value.timezone !== "string"
-    || !value.timezone.trim()
     || typeof value.onboardingComplete !== "boolean"
     || !isRecord(value.schedulerPreferences)) return null;
   const uiPreferences = readUiPreferences(value.uiPreferences);
