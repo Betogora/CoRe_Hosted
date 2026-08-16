@@ -21,7 +21,7 @@ test("Performance-Abnahme akzeptiert kein unvollständiges Messartefakt", () => 
   assert.equal(missing.some((gate) => gate.key === "deltaSyncP95Ms"), true);
 });
 
-test("Startup-Artefakte müssen ihre acht Gates vollständig messen, ohne eine Vollabnahme vorzutäuschen", () => {
+test("Startup-Artefakte müssen ihre neun Gates vollständig messen, ohne eine Vollabnahme vorzutäuschen", () => {
   const startup = {
     suite: "startup" as const,
     recurringWorkspaceP75Ms: 1_500,
@@ -29,6 +29,7 @@ test("Startup-Artefakte müssen ihre acht Gates vollständig messen, ohne eine V
     offlineColdStartP75Ms: 1_500,
     offlineColdStartP95Ms: 3_000,
     newDeviceDashboardP75Ms: 3_000,
+    persistedSummaryReadP75Ms: 50,
     longestBackgroundTaskMs: 50,
     automaticPreloadLongestTaskMs: 50,
     automatic3gPreloadCount: 0,

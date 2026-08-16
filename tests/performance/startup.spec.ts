@@ -39,10 +39,12 @@ interface StartupRun {
   decksPreloadMs: number;
   deckCount: number;
   outboxCount: number;
+  projectionRebuildCount: number;
   serviceWorkerStatus: string;
   longestBackgroundTaskMs: number;
-  longestSummaryTaskMs: number;
+  longestProjectionTaskMs: number;
   longestFeatureLoadTaskMs: number;
+  longestAutomaticPreloadTaskMs: number;
 }
 
 interface ScenarioResult {
@@ -148,15 +150,13 @@ async function measureRun(
     await waitForMark(page, "core:feature:decks:ready");
   }
   await page.waitForTimeout(BACKGROUND_OBSERVATION_MS);
-  const result = await page.evaluate(({ marks, measures, selectedTarget }) => {
+  const result = await page.evaluate(({ marks, measures, selectedTarget, includeAutomaticPreloads }) => {
     const mark = (name: string) => performance.getEntriesByName(name, "mark").at(-1) as PerformanceMark | undefined;
     const measure = (name: string) => performance.getEntriesByName(name, "measure").at(-1)?.duration ?? Number.NaN;
     const detail = (name: string) => mark(name)?.detail as Record<string, unknown> | undefined;
     const workspaceReadyMs = mark(marks.workspaceLocalReady)?.startTime ?? Number.NaN;
     const navigation = performance.getEntriesByType("navigation").at(-1) as PerformanceNavigationTiming | undefined;
     const observedLongTasks = (globalThis as typeof globalThis & { __coreLongTasks?: Array<{ startTime: number; duration: number }> }).__coreLongTasks ?? [];
-    const longTasks = observedLongTasks
-      .filter((entry) => entry.startTime >= workspaceReadyMs);
     const interval = (startName: string, readyName: string) => ({
       start: mark(startName)?.startTime ?? Number.NaN,
       end: mark(readyName)?.startTime ?? Number.NaN,
@@ -164,11 +164,17 @@ async function measureRun(
     const longestOverlappingTask = ({ start, end }: { start: number; end: number }) => Number.isFinite(start) && Number.isFinite(end)
       ? Math.max(0, ...observedLongTasks.filter((task) => task.startTime < end && task.startTime + task.duration > start).map((task) => task.duration))
       : 0;
-    const summaryInterval = interval(marks.firstDeckSummariesStart, marks.firstDeckSummariesReady);
     const featureIntervals = ["dashboard", "learn", "decks"].map((feature) => interval(
       `core:feature:${feature}:start`,
       `core:feature:${feature}:ready`,
     ));
+    const automaticPreloadIntervals = ["learn", "decks"].map((feature) => interval(
+      `core:feature:${feature}:start`,
+      `core:feature:${feature}:ready`,
+    ));
+    const longestFeatureLoadTaskMs = Math.max(0, ...featureIntervals.map(longestOverlappingTask));
+    const longestAutomaticPreloadTaskMs = Math.max(0, ...automaticPreloadIntervals.map(longestOverlappingTask));
+    const longestProjectionTaskMs = Number(detail(marks.firstDeckSummariesReady)?.longestTaskMs ?? 0);
     return {
       targetReadyMs: mark(selectedTarget)?.startTime ?? Number.NaN,
       workspaceReadyMs,
@@ -182,12 +188,19 @@ async function measureRun(
       decksPreloadMs: measure("core:feature:decks:load"),
       deckCount: Number(detail(marks.firstDeckSummariesReady)?.deckCount ?? detail(marks.indexedDbShellReady)?.deckCount ?? 0),
       outboxCount: Number(detail(marks.indexedDbStartupMetadataReady)?.outboxCount ?? 0),
+      projectionRebuildCount: Number(detail(marks.firstDeckSummariesReady)?.rebuildCount ?? 0),
       serviceWorkerStatus: String(detail(marks.serviceWorkerContext)?.status ?? "missing"),
-      longestBackgroundTaskMs: Math.max(0, ...longTasks.map((entry) => entry.duration)),
-      longestSummaryTaskMs: longestOverlappingTask(summaryInterval),
-      longestFeatureLoadTaskMs: Math.max(0, ...featureIntervals.map(longestOverlappingTask)),
+      longestBackgroundTaskMs: Math.max(longestProjectionTaskMs, includeAutomaticPreloads ? longestAutomaticPreloadTaskMs : 0),
+      longestProjectionTaskMs,
+      longestFeatureLoadTaskMs,
+      longestAutomaticPreloadTaskMs,
     };
-  }, { marks: appPerformanceMarks, measures: appPerformanceMeasures, selectedTarget: targetMark });
+  }, {
+    marks: appPerformanceMarks,
+    measures: appPerformanceMeasures,
+    selectedTarget: targetMark,
+    includeAutomaticPreloads: waitForAutomaticPreloads,
+  });
   await page.close();
   return Object.fromEntries(Object.entries(result).map(([key, value]) => [key, typeof value === "number" ? round(value) : value])) as unknown as StartupRun;
 }
@@ -243,6 +256,12 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
     ...persistedWithoutServiceWorker.runs,
     ...persistedOffline.runs,
   ];
+  const persistedSummaryRuns = recurringPersisted.runs.filter((run) => run.projectionRebuildCount === 0);
+  expect(persistedSummaryRuns.length).toBeGreaterThan(0);
+  const withoutDiagnostics = (scenario: ScenarioResult) => ({
+    ...scenario,
+    runs: scenario.runs.map(({ projectionRebuildCount: _projectionRebuildCount, ...run }) => run),
+  });
   const artifact = {
     suite: "startup",
     generatedAt: new Date().toISOString(),
@@ -255,16 +274,16 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
       backgroundObservationMs: BACKGROUND_OBSERVATION_MS,
     },
     scenarios: {
-      recurringPersisted,
-      freshIsolated,
-      persistedWithoutServiceWorker,
-      persistedOffline,
-      automatic4gPreload,
+      recurringPersisted: withoutDiagnostics(recurringPersisted),
+      freshIsolated: withoutDiagnostics(freshIsolated),
+      persistedWithoutServiceWorker: withoutDiagnostics(persistedWithoutServiceWorker),
+      persistedOffline: withoutDiagnostics(persistedOffline),
+      automatic4gPreload: withoutDiagnostics(automatic4gPreload),
     },
     comparisons: {
       serviceWorkerP75CostMs: round(recurringPersisted.p75Ms - persistedWithoutServiceWorker.p75Ms),
       firstDeckSummariesMaxMs: Math.max(...allRuns.map((run) => run.firstDeckSummariesMs)),
-      longestSummaryTaskMs: Math.max(...allRuns.map((run) => run.longestSummaryTaskMs)),
+      longestProjectionTaskMs: Math.max(...allRuns.map((run) => run.longestProjectionTaskMs)),
       longestFeatureLoadTaskMs: Math.max(...allRuns.map((run) => run.longestFeatureLoadTaskMs)),
     },
     recurringWorkspaceP75Ms: recurringPersisted.p75Ms,
@@ -272,8 +291,12 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
     offlineColdStartP75Ms: persistedOffline.p75Ms,
     offlineColdStartP95Ms: persistedOffline.p95Ms,
     newDeviceDashboardP75Ms: freshIsolated.p75Ms,
-    longestBackgroundTaskMs: Math.max(...allRuns.map((run) => run.longestBackgroundTaskMs)),
-    automaticPreloadLongestTaskMs: Math.max(...automatic4gRuns.map((run) => run.longestFeatureLoadTaskMs)),
+    persistedSummaryReadP75Ms: round(percentile(persistedSummaryRuns.map((run) => run.firstDeckSummariesMs), 0.75)),
+    longestBackgroundTaskMs: Math.max(
+      ...allRuns.map((run) => run.longestProjectionTaskMs),
+      ...automatic4gRuns.map((run) => run.longestAutomaticPreloadTaskMs),
+    ),
+    automaticPreloadLongestTaskMs: Math.max(...automatic4gRuns.map((run) => run.longestAutomaticPreloadTaskMs)),
     automatic3gPreloadCount: allRuns.filter((run) => Number.isFinite(run.learnPreloadMs) || Number.isFinite(run.decksPreloadMs)).length,
   };
   const artifactPath = path.join(process.cwd(), "test-results", "performance.json");
