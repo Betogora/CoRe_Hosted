@@ -99,7 +99,7 @@ Abnahme:
 
 ### Performance-Härtung
 
-- [ ] Das bestehende Vier-Kontext-Artefakt um deterministische 10k/250k- und
+- [ ] Das bestehende Start- und Preload-Artefakt um deterministische 10k/250k- und
       100k/1m-Fixtures erweitern und in das Release-Gate aufnehmen.
 - [ ] Große Kartenkörper und Dokumentfelder nach belastbarer Größenmessung vom
       kompakten Kartenindex trennen; die Migration läuft in fortsetzbaren

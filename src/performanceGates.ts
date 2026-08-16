@@ -27,6 +27,8 @@ export interface PerformanceSnapshot {
   largestFeatureGzipBytes?: number;
   bootstrapCompressedBytes?: number;
   longestBackgroundTaskMs?: number;
+  automaticPreloadLongestTaskMs?: number;
+  automatic3gPreloadCount?: number;
   devColdStartMs?: number;
   devWarmReloadMs?: number;
 }
@@ -59,6 +61,8 @@ export const PERFORMANCE_GATES: ReadonlyArray<{ key: keyof PerformanceSnapshot; 
   { key: "largestFeatureGzipBytes", maximum: 200 * 1024, label: "Feature-Tab gzip" },
   { key: "bootstrapCompressedBytes", maximum: 200 * 1024, label: "Bootstrap komprimiert" },
   { key: "longestBackgroundTaskMs", maximum: 50, label: "Hintergrundtask" },
+  { key: "automaticPreloadLongestTaskMs", maximum: 50, label: "Automatischer Preload-Task" },
+  { key: "automatic3gPreloadCount", maximum: 0, label: "Automatische 3G-Preloads" },
   { key: "devColdStartMs", maximum: 3_000, label: "Dev-Cold-Start" },
   { key: "devWarmReloadMs", maximum: 500, label: "Warmer Dev-Reload" },
 ];
@@ -70,6 +74,8 @@ const STARTUP_PERFORMANCE_GATE_KEYS = new Set<keyof PerformanceSnapshot>([
   "offlineColdStartP95Ms",
   "newDeviceDashboardP75Ms",
   "longestBackgroundTaskMs",
+  "automaticPreloadLongestTaskMs",
+  "automatic3gPreloadCount",
 ]);
 
 function selectedPerformanceGates(snapshot: PerformanceSnapshot) {

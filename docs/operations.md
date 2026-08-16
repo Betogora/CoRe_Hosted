@@ -36,7 +36,7 @@ Die reproduzierbare lokale Startmessung startet den lokalen Supabase-Stack, baut
 npm run performance:measure:local
 ```
 
-Der Befehl schreibt ausschließlich Laufzeiten, Stapel- und Outboxanzahl sowie den Service-Worker-Status nach `test-results/performance.json` und prüft anschließend die sechs Startgates. Das Artefakt ist kein vollständiger Ersatz für die noch offene 100k-/1m- und Feldabnahme. Ein rotes Laufzeitgate bleibt rot; ein technisch erfolgreich erzeugtes Artefakt ist noch kein Freigabenachweis.
+Der Befehl schreibt ausschließlich Laufzeiten, Stapel- und Outboxanzahl sowie den Service-Worker-Status nach `test-results/performance.json`. Er misst je zehn Läufe für vier Startkontexte und einen kontrollierten 4G-Preload-Kontext und prüft anschließend acht Startgates. Dazu gehören null automatische 3G-Preloads und höchstens 50 ms pro automatischem 4G-Preload-Task. Das Artefakt ist kein vollständiger Ersatz für die noch offene 100k-/1m- und Feldabnahme. Ein rotes Laufzeitgate bleibt rot; ein technisch erfolgreich erzeugtes Artefakt ist noch kein Freigabenachweis.
 
 Der Production-Build erzwingt weiterhin maximal 300 KiB gzip im initialen Importgraphen und 200 KiB je normalem Lazy-Feature. Zielwerte sind 250 beziehungsweise 150 KiB. Bis echte Feld-p75/p95 vorliegen, wird das Laufzeitartefakt mit Chromium bei ungefähr 1,6 Mbit/s, 150 ms RTT und vierfacher CPU-Verlangsamung erzeugt. Ein fehlendes Messartefakt ist kein bestandener Performance-Nachweis.
 

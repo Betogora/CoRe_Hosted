@@ -10,10 +10,20 @@ interface PreloadEnvironment {
   network?: NetworkInformationLike | null;
 }
 
-export function allowsSpeculativePreloading({ documentTarget, network }: PreloadEnvironment = {}): boolean {
+function allowsBasePreloading({ documentTarget, network }: PreloadEnvironment = {}): boolean {
   if (documentTarget?.visibilityState === "hidden") return false;
   if (network?.saveData) return false;
   return network?.effectiveType !== "slow-2g" && network?.effectiveType !== "2g";
+}
+
+export function allowsAutomaticPreloading(environment: PreloadEnvironment = {}): boolean {
+  if (!allowsBasePreloading(environment)) return false;
+  const effectiveType = environment.network?.effectiveType;
+  return effectiveType === undefined || effectiveType === "4g";
+}
+
+export function allowsIntentPreloading(environment: PreloadEnvironment = {}): boolean {
+  return allowsBasePreloading(environment);
 }
 
 interface AdaptivePreloadOptions extends PreloadEnvironment {
@@ -32,7 +42,7 @@ function browserNetwork(): NetworkInformationLike | null {
 }
 
 export function allowsBrowserSpeculativePreloading(): boolean {
-  return allowsSpeculativePreloading({
+  return allowsIntentPreloading({
     documentTarget: typeof document === "undefined" ? null : document,
     network: browserNetwork(),
   });
@@ -64,9 +74,9 @@ export function startAdaptiveFeaturePreloading({
   interactionEvents.forEach((event) => interactionTarget?.addEventListener?.(event, stopForInteraction, { once: true, passive: true }));
 
   const timer = setTimer(() => {
-    if (cancelled || !allowsSpeculativePreloading({ documentTarget, network })) return;
+    if (cancelled || !allowsAutomaticPreloading({ documentTarget, network })) return;
     const runNext = () => {
-      if (cancelled || !allowsSpeculativePreloading({ documentTarget, network })) return;
+      if (cancelled || !allowsAutomaticPreloading({ documentTarget, network })) return;
       const viewId = queue.shift();
       if (!viewId) return;
       void preload(viewId).then(() => {
