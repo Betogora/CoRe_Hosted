@@ -71,7 +71,7 @@ function createEasyDaysContext(decks: Deck[], easyDays: typeof DEFAULT_EASY_DAYS
   };
 }
 
-export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview }: StudyModeProps) {
+export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
   sessionIndexRef.current ??= createDailyReviewSessionIndex(decks);
@@ -92,6 +92,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
   const completionHeadingRef = React.useRef<HTMLHeadingElement>(null);
   const settingsButtonRef = React.useRef<HTMLButtonElement>(null);
   const feedbackDeckRef = React.useRef<Deck | null>(null);
+  const loadingMoreCardsRef = React.useRef(false);
   const effectiveLearningDayKey = learningDayKey || getLearningDayKey(getNow(), { dayStartHour, timeZone }) || "";
   const previousLearningDayKeyRef = React.useRef(effectiveLearningDayKey);
   const setSuccessToast = useSuccessToast();
@@ -106,6 +107,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
     variantSession,
     easyDays,
     rootDeck?.deckSettings ?? null,
+    sessionDecks.map((candidate) => `${candidate.id}:${candidate.cards.length}:${candidate.cards.at(-1)?.id ?? ""}`),
   ]);
   if (
     !queuePlanRef.current
@@ -188,8 +190,32 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
   }, [deckId, variantSession, decks.length]);
 
   React.useEffect(() => {
-    if (reviewSession === null) setReviewSession(createDailyReviewSessionState(queue.items));
-  }, [queue.items, reviewSession]);
+    setReviewSession((currentSession) => currentSession
+      ? reconcileDailyReviewSessionState(currentSession, queue.items)
+      : createDailyReviewSessionState(queue.items));
+  }, [queue.items]);
+
+  React.useEffect(() => {
+    if (!onLoadMoreCards || !hasMoreCards || effectiveReviewSession.remainingInitialKeys.length > 15 || loadingMoreCardsRef.current) return;
+    loadingMoreCardsRef.current = true;
+    void onLoadMoreCards().then((nextDecks) => {
+      if (!nextDecks.length) return;
+      setSessionDecks((currentDecks) => {
+        const pages = new Map(nextDecks.map((candidate) => [candidate.id, candidate]));
+        const merged = currentDecks.map((currentDeck) => {
+          const page = pages.get(currentDeck.id);
+          if (!page) return currentDeck;
+          const cards = new Map(currentDeck.cards.map((card) => [card.id, card]));
+          for (const card of page.cards) cards.set(card.id, card);
+          const events = new Map(currentDeck.reviewEvents.map((event) => [event.id, event]));
+          for (const event of page.reviewEvents) events.set(event.id, event);
+          return { ...currentDeck, cards: [...cards.values()], reviewEvents: [...events.values()] };
+        });
+        sessionIndexRef.current = createDailyReviewSessionIndex(merged);
+        return merged;
+      });
+    }).catch(() => undefined).finally(() => { loadingMoreCardsRef.current = false; });
+  }, [effectiveReviewSession.remainingInitialKeys.length, hasMoreCards, onLoadMoreCards]);
 
   React.useEffect(() => {
     if (previousLearningDayKeyRef.current === effectiveLearningDayKey) return;
@@ -389,6 +415,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
           suspended={sourceCard?.status === "suspended"}
           reviewOrder={rootDeck?.deckSettings.newReviewOrder ?? "reviews-first"}
           pomodoroTimer={pomodoroTimer}
+          returnFocusRef={settingsButtonRef}
           onOpenChange={setShowSettings}
           onEditCard={() => {
             if (current?.deckId && current.learningItemId) onEditCard(current.deckId, current.learningItemId);

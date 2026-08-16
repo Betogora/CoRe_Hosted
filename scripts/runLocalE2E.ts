@@ -14,10 +14,11 @@ import { retireLabsStorage } from "./retireLabsStorage.ts";
 const SUPABASE_CLI_PATH = path.join(process.cwd(), "node_modules", "supabase", "dist", "supabase.js");
 const PLAYWRIGHT_CLI_PATH = path.join(process.cwd(), "node_modules", "@playwright", "test", "cli.js");
 const TSX_CLI_PATH = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
+const NPM_CLI_PATH = String(process.env.npm_execpath ?? "").trim();
 const OWNERSHIP_RLS_TEST_NAME = "ownership-smoke.test.ts";
 const GOLDEN_E2E_TAG = "@golden-e2e";
 const BETA_CORE_TAG = "@beta-core";
-const GATES = ["pr", "golden", "beta", "core-rls", "rls", "release"] as const;
+const GATES = ["pr", "golden", "beta", "core-rls", "rls", "release", "performance"] as const;
 type LocalGate = (typeof GATES)[number];
 const ALL_RLS_TEST_PATHS = readdirSync(path.join(process.cwd(), "tests", "rls"))
   .filter((fileName) => fileName.endsWith(".test.ts"))
@@ -125,6 +126,7 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
   const runGoldenE2E = gate === "pr" || gate === "golden";
   const runBetaE2E = gate === "beta";
   const runFullE2E = gate === "release";
+  const runPerformance = gate === "performance";
 
   try {
     await runCommand("docker", ["info", "--format", "{{.ServerVersion}}"], { capture: true, timeoutMs: 5_000 });
@@ -185,7 +187,18 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       });
     }
 
-    if (runGoldenE2E || runBetaE2E || runFullE2E) {
+    if (runPerformance) {
+      console.log("Production-Build für die kontrollierte Startmessung erzeugen …");
+      if (!NPM_CLI_PATH) throw new Error("Der npm-CLI-Pfad fehlt für den Performance-Build.");
+      await runCommand(process.execPath, [NPM_CLI_PATH, "run", "build", "--", "--mode", "e2e"], {
+        env: testEnvironment,
+      });
+      await stopOrphanedLocalViteServers();
+      console.log("Vier Startkontexte mit je zehn gedrosselten Chromium-Läufen messen …");
+      await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--config=playwright.performance.config.ts"], {
+        env: testEnvironment,
+      });
+    } else if (runGoldenE2E || runBetaE2E || runFullE2E) {
       console.log(runBetaE2E
         ? "Beta-Core-Verträge einschließlich Auth, Medien, Portabilität und Konflikten ausführen …"
         : runGoldenE2E

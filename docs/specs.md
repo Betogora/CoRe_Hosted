@@ -365,6 +365,10 @@ Der auffindbare, nicht verpflichtende Wiederverwendungsvertrag für neue Feature
 - Die Originalvariante ist eine abgeleitete Projektion. Fehlt sie zu einer vorhandenen Cloud-Karte, wird sie automatisch nachgezogen. Technische Alt-Konflikte und doppelte aktive Konflikte werden automatisch bereinigt; echte gleichzeitige Inhaltsänderungen bleiben sichtbar.
 - Für die aktuelle Konfliktmenge zeigt CoRe die Folgen beider Richtungen als hinzugefügte, aktualisierte und entfernte Stapel, Karten und Varianten. `Dieser Browser` oder `Cloud im Account` betrifft ausschließlich diese Konflikte; konfliktfreie Inhalte, Reviews und Medien bleiben erhalten. Vor Ausführung wird die Vorschau gegen aktuelle Remote-Revisionen geprüft. Der Einzelauflöser bleibt eingeklappt verfügbar.
 - Konfliktkarten sind bis zur Entscheidung aus der Lernwarteschlange ausgeschlossen und in der Kartenverwaltung mit `Synchronisierung klären` markiert. Nicht übertragene Änderungen bleiben bei Reload oder Browserende sicher in IndexedDB; ein letzter Website-Sync ist nur bestmöglich und wird nicht als garantiert dargestellt.
+- Nach der einmaligen Accountprüfung wird ein vorhandener lokaler Workspace angezeigt, bevor Bootstrap, Deltas, Konflikte und Medien fertig sind. Ein eingerichtetes Gerät darf bei fehlendem Netz mit derselben persistierten Supabase-Sitzung offline kalt starten; es existiert weiterhin kein lokaler Login.
+- `Karten` lädt höchstens 50 Tabellenzeilen je Seite. Eine Lernsitzung lädt zunächst höchstens 50 Karten und fordert bei 15 verbleibenden Karten die nächste 50er-Seite an. Vollständige Stapel dürfen weder für App-Start noch Kartenliste oder Lernstart materialisiert werden.
+- Nach lokaler Bereitschaft dürfen `Lernen` und `Karten` vorsichtig im Hintergrund vorbereitet werden. Save-Data, 2G, unsichtbarer Tab oder neue Nutzerinteraktion verhindern weitere Hintergrundarbeit. Andere Tabs werden nur durch Hover, Fokus oder Touchstart vorbereitet; APKG, PDF, Statistik, Simulator und große Medien nie pauschal.
+- Die Einstellungen zeigen, ob der Browser persistenten lokalen Speicher gewährt hat, sowie belegten und verfügbaren Speicher. Die PWA cached die App-Shell; Browsermedien bleiben selektiv und eine Eviction kann ohne persistente Freigabe nicht ausgeschlossen werden.
 
 ## 9. Nichtfunktionale Anforderungen
 
@@ -396,6 +400,14 @@ Der auffindbare, nicht verpflichtende Wiederverwendungsvertrag für neue Feature
 - Pending- und Konfliktzustände überleben Reload accountgebunden.
 - Ein Produktrelease braucht die Betriebsfreigabe aus [`operations.md`](operations.md), ändert dadurch aber nicht diesen Produktvertrag.
 
+### Performance
+
+- LCP liegt am 75. Perzentil bei höchstens 2,5 Sekunden, INP bei höchstens 200 Millisekunden, CLS bei höchstens 0,1 und TTFB bei höchstens 800 Millisekunden.
+- Ein wiederkehrendes oder offline eingerichtetes Gerät erreicht den lokalen Workspace p75 in höchstens 1,5 Sekunden und p95 in höchstens 3 Sekunden. Ein neues Gerät erreicht den Stapel-Bootstrap p75 in höchstens 3 Sekunden; der Vollabgleich läuft danach weiter.
+- Eine sichtbare Tab- oder Reviewreaktion beginnt in höchstens 100 Millisekunden. Vorgeladene Tabs sind p75 in höchstens 300 Millisekunden und p95 in höchstens 750 Millisekunden vollständig bereit; nicht vorgeladene Tabs p75 in höchstens 1 Sekunde und p95 in höchstens 2 Sekunden.
+- Erste Seite eines 100k-Stapels und Lernstart liegen p75 bei höchstens 1 Sekunde und p95 bei höchstens 2 Sekunden. Ein Review ist lokal p95 innerhalb 250 Millisekunden dauerhaft gespeichert. Normaler Delta-Sync liegt p75 bei höchstens 2 Sekunden und p95 bei höchstens 5 Sekunden und ist nie startblockierend.
+- Initiales JavaScript zielt auf höchstens 250 KiB gzip und darf 300 KiB nicht überschreiten. Ein normaler Feature-Tab zielt auf 150 KiB und darf 200 KiB gzip nicht überschreiten. Bootstrapdaten bleiben unter 200 KiB komprimiert und enthalten keine Kartenkörper oder Medien. Hintergrundarbeit wird in Portionen von höchstens 50 Millisekunden geteilt.
+
 ## 10. Beta-Abnahme
 
 Der Beta-Kern gilt als erfüllt, wenn:
@@ -417,7 +429,7 @@ Offene Gates und Evidenz stehen ausschließlich in [`todo.md`](todo.md).
 - generische Backend-, Auth- oder LLM-Adapter;
 - externe KI-Chat- oder breite beziehungsweise multimodale Kartenerstellung jenseits der Basic-Variantenroute;
 - vollständiges Admin-Portal, Zahlungen oder Abonnements;
-- native Apps, PWA-Offline-Kaltstart oder Push-Benachrichtigungen;
+- native Store-Apps oder Push-Benachrichtigungen;
 - KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.
 
 ## 11. Eindeutige Verweise für frühere Abschnittsrollen

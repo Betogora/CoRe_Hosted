@@ -65,7 +65,7 @@ export interface CardTableSort {
   direction: "asc" | "desc";
 }
 export const DEFAULT_CARD_TABLE_SORT: CardTableSort = { field: "sortField", direction: "asc" };
-export const CARD_TABLE_PAGE_SIZE = 100;
+export const CARD_TABLE_PAGE_SIZE = 50;
 const cardSortCollator = new Intl.Collator("de-DE", { sensitivity: "base" });
 const cardDueDateFormatter = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 const cardSearchTextCache = new WeakMap<LearningItem, { frontPreview: string; backPreview: string; searchText: string }>();

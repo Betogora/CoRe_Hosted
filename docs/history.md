@@ -1,9 +1,29 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-08-14
+**Stand:** 2026-08-16
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-08-16 — Reproduzierbare Startmessung
+
+- Datenbanköffnung, Shell, Outbox samt vier Sync-Metadaten und erste Stapelzusammenfassung besitzen getrennte anonyme Performancephasen. Outbox und Sync-Metadaten werden in einer gemeinsamen Readonly-Transaktion geladen; Profil- und Karteninhalte gelangen nicht in das Artefakt.
+- Das lokale Production-Gate misst je zehn Starts für einen wiederkehrenden Browser, einen frischen isolierten Kontext, einen persistenten Kontext ohne Service Worker und einen Offline-Kaltstart bei 1,6 Mbit/s, 150 ms RTT und vierfacher CPU-Verlangsamung.
+- Der gemessene Wiederholungsstart bestand mit p75 0,69 Sekunden und p95 0,74 Sekunden, der Offline-Kaltstart mit p75 0,44 Sekunden und p95 0,49 Sekunden. Der Frischstart bestand mit p75 2,78 Sekunden. Der Service Worker war im p75-Vergleich 560 ms schneller und erhält daher kein Navigation-Preload.
+- Das Gesamtgate bleibt rot, weil der längste Hintergrundtask 231 ms statt höchstens 50 ms benötigte. Die erste Stapelzusammenfassung dauerte bis 503 ms und verursachte den 231-ms-Long-Task; ein spekulativer Feature-Load überlappte maximal 58 ms. Gemäß Roadmap wird die dauerhafte O(Stapel)-Projektion deshalb in NOW vorgezogen und das Preload-Task-Budget nachgehärtet; große Inhaltstrennung und Navigation-Preload bleiben zurückgestellt.
+
+## 2026-08-15 — Profilintegrität nach Local-first-Start
+
+- Das Auf- und Zuklappen eines Stapels schreibt wieder das vollständige Profil. Gemeinsame Laufzeitprüfungen weisen unvollständige Profilwrites vor IndexedDB und vor dem Supabase-Upsert zurück.
+- Der erfolgreiche Cloud-Bootstrap entfernt ausschließlich alte unvollständige Profilpatches, übernimmt das vollständige Cloud-Profil, rettet gültige UI-Präferenzen und reiht nur bei einer Abweichung genau einen vollständigen Ersatzpatch ein. Vollständige Offline-Profiländerungen sowie Karten-, Review-, Import- und Medienmutationen bleiben erhalten; offline wird nichts verworfen.
+- Abgenommen wurden 60 fokussierte Profil-, Repository-, Boot- und Cloudtests, 616/616 Modul-/Contract-/Integrationstests, Typecheck, Production-Build, Datenbanktypdrift, 12/12 RLS-Fälle sowie das vollständige lokale Playwright-Gate mit 90 bestandenen und einem erwartbar übersprungenen Test. Der neue Browservertrag bestätigt Stapelumschaltung, Einstellungen, Reload und einen frischen isolierten Kontext mit demselben Cloud-Profil.
+
+## 2026-08-15 — Local-first Performance-Grundlage
+
+- Der Accountstart öffnet nach einer Accountprüfung zuerst die lokale IndexedDB-Shell. Profil-/Stapel-Bootstrap, global cursorbasierte und bytebegrenzte Account-Deltas, Konflikte, Reparatur und Medien laufen nach. Kartenverwaltung und Lernen lesen 50er-Seiten; die Sitzung fordert bei 15 verbleibenden Karten nach. Ein eingerichtetes Gerät kann bei einem reinen Netzwerkfehler aus derselben persistierten Supabase-Sitzung offline kalt starten.
+- Produktscreens, Supabase-Client, Cloud-/Mediencode und Statistikmodell werden dynamisch geladen. Lernen und Karten werden nach einer ruhigen Sekunde seriell vorbereitet; Datensparmodus, langsames Netz, Hintergrundtab und Interaktion stoppen Spekulation. Der Production-Build sank gegenüber 271,6 KiB Ausgangswert auf 211,8 KiB gzip im Initialgraphen; der größte Lazy-Graph misst 163,1 KiB gzip.
+- Die ausführbaren Gates, Performance-Marken, PWA-App-Shell, persistente Speicheranfrage und sichtbare Quotenanzeige sind vorhanden. Der Browser-Smoke bestätigte Login-Shell, fehlendes Fehleroverlay, null CLS, 184 ms lokales LCP, 6,8 ms lokales TTFB und keinen horizontalen Überlauf bei 390 px; dies ersetzt ausdrücklich nicht den offenen gedrosselten 100k-/1m-Nachweis.
+- 110 fokussierte Performance-, Repository-, Sync-, Auth- und Pagingprüfungen sowie alle 605 Modul-/Contract-/Integrationstests, Typecheck, Dokumentationscheck, Production-Build und JavaScript-Syntaxcheck des Service Workers waren grün. Datenbanktypdrift und RLS konnten mangels laufendem Docker Desktop nicht ausgeführt werden; die neue SQL-Migration bleibt deshalb vor Merge lokal nachzuprüfen.
 
 ## 2026-08-14 — Synchronisation 2.0
 

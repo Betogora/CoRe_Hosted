@@ -37,19 +37,19 @@ function workspaceState(cardCount = 0) {
   } as any;
 }
 
-test("migriert den Root-State einmalig und liest Karten in deterministischen 100er-Seiten", async () => {
+test("migriert den Root-State einmalig und liest Karten in deterministischen 50er-Seiten", async () => {
   const userId = randomUUID();
   const legacyStorage = storage({ "core.appState.v4": JSON.stringify(workspaceState(205)) });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(205), legacyStorage, indexedDb: indexedDB as any });
-  const first = await repository.listCardPage("deck-idb", { page: 0, pageSize: 100 });
-  const third = await repository.listCardPage("deck-idb", { page: 2, pageSize: 100 });
+  const first = await repository.listCardPage("deck-idb", { page: 0, pageSize: 50 });
+  const fifth = await repository.listCardPage("deck-idb", { page: 4, pageSize: 50 });
   const search = await repository.listCardPage("deck-idb", { query: "Frage 00204" });
 
-  assert.equal(first.items.length, 100);
+  assert.equal(first.items.length, 50);
   assert.equal(first.totalCount, 205);
-  assert.equal(third.items.length, 5);
+  assert.equal(fifth.items.length, 5);
   assert.equal(search.items[0]?.id, "card-00204");
-  const selected = await repository.listCardPage("deck-idb", { page: 0, pageSize: 100, selectedCardId: "card-00204" });
+  const selected = await repository.listCardPage("deck-idb", { page: 0, pageSize: 50, selectedCardId: "card-00204" });
   assert.equal(selected.selectedCard?.id, "card-00204");
   assert.equal(selected.selectedCard?.variants.length, 1);
   assert.equal(legacyStorage.has("core.appState.v4"), true, "Altzustand bleibt bis zum bestätigten Cloud-Sync erhalten");
@@ -183,12 +183,44 @@ test("streamt einen Worker-Import in begrenzten Chunks direkt in Entity-Stores u
 
   await repository.commitImportGraph(graph);
   await repository.flush();
-  const page = await repository.listCardPage(deck.id, { page: 2, pageSize: 100 });
+  const page = await repository.listCardPage(deck.id, { page: 4, pageSize: 50 });
 
   assert.deepEqual(observedChunkSizes, [100, 100, 5]);
   assert.equal(page.items.length, 5);
   assert.equal(page.totalCount, 205);
   assert.equal(repository.outbox.count() > 205, true);
+  repository.close();
+});
+
+test("weist unvollständige Profilwrites zurück, ohne Shell oder Outbox zu verändern", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(), indexedDb: indexedDB as any });
+  const beforeProfile = repository.getShellState().profile;
+  const beforeOutbox = repository.outbox.listPending();
+
+  assert.throws(
+    () => repository.saveProfile({ uiPreferences: beforeProfile.uiPreferences } as any),
+    (error: any) => error?.code === "invalid_profile_mutation",
+  );
+  assert.deepEqual(repository.getShellState().profile, beforeProfile);
+  assert.deepEqual(repository.outbox.listPending(), beforeOutbox);
+  repository.close();
+});
+
+test("Lernstart hydriert rollende 50er-Seiten statt den gesamten Stapel", async () => {
+  const repository = await createIndexedDbCoreRepository({
+    userId: randomUUID(),
+    initialState: workspaceState(120),
+    indexedDb: indexedDB as any,
+  });
+
+  const first = await repository.loadReviewSession(["deck-idb"], { limit: 50 });
+  const second = await repository.loadReviewSession(["deck-idb"], { limit: 50, cursorByDeck: first.cursorByDeck });
+
+  assert.equal(first.cards.length, 50);
+  assert.equal(first.hasMore, true);
+  assert.equal(second.cards.length, 50);
+  assert.equal(new Set([...first.cards, ...second.cards].map(({ item }) => item.id)).size, 100);
   repository.close();
 });
 
@@ -337,7 +369,7 @@ test("ordnet einen unveränderten Reimport-Snapshot der bereits persistierten Ka
 
   await repository.commitImportGraph(createGraph("incoming-deck-1", "incoming-card-1"));
   await repository.flush();
-  const firstCard = (await repository.listCardPage("incoming-deck-1", { pageSize: 100 })).items[0];
+  const firstCard = (await repository.listCardPage("incoming-deck-1", { pageSize: 50 })).items[0];
   await repository.commitImportGraph(createGraph("incoming-deck-2", "incoming-card-2"));
   await repository.flush();
 
@@ -403,7 +435,7 @@ test("entfernt eine lokal gelöschte Karte sofort und hält den Cloud-Tombstone 
 
   assert.equal(deleted?.status, "deleted");
   assert.equal(await repository.loadCard("card-00000"), null);
-  assert.equal((await repository.listCardPage("deck-idb", { pageSize: 100 })).items.length, 0);
+  assert.equal((await repository.listCardPage("deck-idb", { pageSize: 50 })).items.length, 0);
   assert.equal(repository.getShellState().decks[0].cardCount, 0);
   assert.equal(repository.outbox.listPending().some((mutation) => mutation.table === "cards" && mutation.entityId === "card-00000" && (mutation.payload as any).tombstone === true), true);
   repository.close();
@@ -441,7 +473,7 @@ test("committet Cloudzustand und Delta-Cursor gemeinsam und erhält den Cursor b
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(1), indexedDb: indexedDB as any });
   const cursors = { cards: { value: "2026-08-11T02:00:00.000Z", id: "card-00000" } };
   repository.replaceFullState(workspaceState(2), cursors);
-  repository.saveProfile({ ...repository.getShellState().profile, displayName: "Nach Delta" });
+  repository.saveProfile({ ...repository.getShellState().profile, userId, displayName: "Nach Delta" });
   await repository.flush();
   repository.close();
 
@@ -559,6 +591,7 @@ test("original variant repair is account-bound and idempotent", async () => {
   const userId = randomUUID();
   const cloudCard = workspaceState(1).decks[0].cards[0];
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
+  assert.equal(repository.needsSyncRepair(), true);
   await repository.applyCloudPage({ table: "cards", reset: false, entities: [{ ...cloudCard, variants: [] }] });
   const first = await repository.repairSyncState({ cardIds: ["card-00000"], originalVariantIds: [] });
   const second = await repository.repairSyncState({ cardIds: ["card-00000"], originalVariantIds: [] });
@@ -567,6 +600,7 @@ test("original variant repair is account-bound and idempotent", async () => {
 
   assert.equal(first, 1);
   assert.equal(second, 0);
+  assert.equal(repository.needsSyncRepair(), false);
   assert.equal(originalMutation?.baseRevision, null);
   assert.equal(repairedCard?.variants.filter((variant) => variant.isOriginal).length, 1);
   repository.close();

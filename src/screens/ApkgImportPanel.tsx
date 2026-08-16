@@ -464,11 +464,17 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
 
         {uiState.status === "partial" ? (
           <div className="core-status-warning mt-4 core-body" role="status">
+            <p className="font-semibold">Import teilweise abgeschlossen.</p>
             <p>Die Karten sind lokal gespeichert; die Cloud- oder Mediensynchronisierung steht noch aus.</p>
             {mediaStatus && "message" in mediaStatus && mediaStatus.message ? <p className="mt-2">{mediaStatus.message}</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
               {cloudTask?.status === "local-pending" ? <ActionButton type="button" variant="primary" onClick={() => void cloudTask.retry()}>Cloud-Sync erneut versuchen</ActionButton> : null}
               {mediaTask && cloudProgress?.status === "paused" ? <ActionButton type="button" variant="primary" onClick={() => mediaTask.resume()}>Medien-Sync fortsetzen</ActionButton> : null}
+              {completedDeck ? <ActionButton type="button" variant="secondary" onClick={() => {
+                completionDeliveredRef.current = true;
+                onCompleted({ deck: completedDeck, createdCount: completedCount });
+                onResetSession();
+              }}>Karten jetzt verwenden</ActionButton> : null}
             </div>
           </div>
         ) : null}

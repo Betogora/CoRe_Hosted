@@ -17,6 +17,7 @@ import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { createGlobalSettingsDraft, settingsDraftsEqual, type GlobalSettingsDraft } from "../settingsDraft.ts";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
+import { formatStorageBytes } from "../workspaceStorage.ts";
 
 const sectionIds = {
   account: "settings-account",
@@ -58,7 +59,7 @@ const syncIntervalOptions = [
   { value: "30", label: "Alle 30 Minuten" },
 ];
 
-export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences, onSaveSettings, onDraftStateChange, onCreateExport, onImportExport, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
+export function SettingsScreen({ profile, syncStatus, storageStatus = null, globalSchedulerPreferences, onSaveSettings, onDraftStateChange, onCreateExport, onImportExport, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
   const persistedDraft = createGlobalSettingsDraft(profile, globalSchedulerPreferences);
   const persistedDraftKey = JSON.stringify(persistedDraft);
   const [baseline, setBaseline] = React.useState<GlobalSettingsDraft>(persistedDraft);
@@ -299,6 +300,12 @@ export function SettingsScreen({ profile, syncStatus, globalSchedulerPreferences
             </label>
           </div>
           <p className="mt-3 core-caption leading-5 text-core-muted">Lokale Änderungen bleiben sicher in diesem Browser gespeichert. Beim nächsten vollständigen Abgleich werden nur Änderungen übertragen und neue Cloud-Daten geladen.</p>
+          {storageStatus ? (
+            <div className="mt-4 rounded-xl border border-core-border bg-core-subtle px-4 py-3 core-caption leading-5 text-core-muted" data-testid="workspace-storage-status">
+              <p className="font-semibold text-core-text">Lokaler Gerätespeicher: {storageStatus.persisted ? "dauerhaft freigegeben" : storageStatus.supported ? "Best Effort" : "nicht unterstützt"}</p>
+              <p>Belegt: {formatStorageBytes(storageStatus.usage)} von {formatStorageBytes(storageStatus.quota)}. Medien werden im Browser weiterhin selektiv offline gehalten.</p>
+            </div>
+          ) : null}
         </SoftPanel>
         <SyncConflictPanel onListConflicts={onListConflicts} onResolveConflict={onResolveConflict} />
         <SoftPanel className="p-5 sm:p-6">

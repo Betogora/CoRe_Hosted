@@ -61,18 +61,16 @@ test("missing Supabase configuration stays behind a disabled login gate", async 
   await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toHaveCount(0);
 });
 
-test("offline Supabase start returns to login with a German network error", async ({ page }: any) => {
+test("offline Supabase start opens the cached local workspace and reports the sync error", async ({ page }: any) => {
   const supabaseUrl = getConfiguredSupabaseUrl();
   await installCachedSession(page, supabaseUrl);
   await page.route(`${supabaseUrl}/**`, (route: any) => route.abort("internetdisconnected"));
 
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
-  await expect(page.getByRole("alert")).toHaveText(
-    "Supabase ist momentan nicht erreichbar. Prüfe deine Internetverbindung und versuche es erneut.",
-  );
-  await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toHaveCount(0);
+  await expect(page.locator('[data-navigation-utility="sync"]:visible')).toHaveAccessibleName("Synchronisierung erneut versuchen");
 });
 
 test("expired Supabase session returns to login with reauthentication guidance", async ({ page }: any) => {

@@ -60,5 +60,6 @@ test("@beta-core @hosted-core APKG-Medium wird nach dem Deck-Commit cloudbestät
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   await page.getByTestId(`deck-toggle-${importedDeck.id}`).click();
   await page.getByTestId(`deck-card-${importedDeck.cards[0].id}`).click();
-  await expect(page.frameLocator('iframe[title="Vorschau der Vorderseite"]').locator("img").first()).toHaveAttribute("src", /^blob:/, { timeout: 20_000 });
+  await page.getByTestId("card-detail-aside").getByRole("button", { name: "Vorschau", exact: true }).click();
+  await expect(page.frameLocator('iframe[title="Kartenvorschau der Vorderseite"]').locator("img").first()).toHaveAttribute("src", /^blob:/, { timeout: 20_000 });
 });

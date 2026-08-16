@@ -501,8 +501,8 @@ test("card table pages large libraries and finds late cards deterministically", 
   const model = createCardTableModel([deck]);
 
   assert.equal(model.cardCount, 10_000);
-  assert.equal(model.groups[0].cardRows.length, 100);
-  assert.equal(model.groups[0].pageCount, 100);
+  assert.equal(model.groups[0].cardRows.length, 50);
+  assert.equal(model.groups[0].pageCount, 200);
 
   const lateMatch = createCardTableModel([deck], { query: "Frage 9999" });
   assert.equal(lateMatch.cardCount, 1);

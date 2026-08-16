@@ -290,11 +290,16 @@ function useScrollStory(stepCount: number) {
     if (!container) return undefined;
 
     let animationFrame = 0;
+    const desktop = window.matchMedia("(min-width: 1280px)").matches;
+    const scrollRegion = desktop ? container.closest<HTMLElement>(".core-screen-region") : null;
+    const scrollTarget: Window | HTMLElement = scrollRegion ?? window;
     const updateActiveStep = () => {
       cancelAnimationFrame(animationFrame);
       animationFrame = requestAnimationFrame(() => {
         const steps = Array.from(container.querySelectorAll<HTMLElement>("[data-story-step]"));
-        const viewportFocus = window.innerHeight * 0.48;
+        const viewportFocus = scrollRegion
+          ? scrollRegion.getBoundingClientRect().top + scrollRegion.clientHeight * 0.48
+          : window.innerHeight * 0.48;
         let closestIndex = 0;
         let closestDistance = Number.POSITIVE_INFINITY;
 
@@ -313,11 +318,11 @@ function useScrollStory(stepCount: number) {
     };
 
     updateActiveStep();
-    window.addEventListener("scroll", updateActiveStep, { passive: true });
+    scrollTarget.addEventListener("scroll", updateActiveStep, { passive: true });
     window.addEventListener("resize", updateActiveStep);
     return () => {
       cancelAnimationFrame(animationFrame);
-      window.removeEventListener("scroll", updateActiveStep);
+      scrollTarget.removeEventListener("scroll", updateActiveStep);
       window.removeEventListener("resize", updateActiveStep);
     };
   }, [stepCount]);

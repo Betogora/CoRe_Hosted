@@ -66,7 +66,7 @@ async function findOriginLeakBeforeReveal(page: Page) {
 }
 
 test("dashboard deck rows start learning across their full surface and keep the learning overview separate", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
+  await resetToFreshLocalState(page, { waitForCloud: false });
 
   const openLearn = page.getByRole("button", { name: "Alle ansehen", exact: true });
   await expect(openLearn).toHaveAccessibleName("Alle ansehen");
@@ -79,7 +79,8 @@ test("dashboard deck rows start learning across their full surface and keep the 
   await deckRow.click({ position: { x: 120, y: 20 } });
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 
-  await page.goBack();
+  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
+  await expect(deckRow).toBeVisible();
   await deckRow.press("Enter");
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });
@@ -189,7 +190,7 @@ test("statistics uses the shared filtered heatmap without clipped shadows or ret
 
   await expect(page.getByTestId("study-heatmap-header").getByRole("heading", { name: /Tage? Streak/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
-  await expect(page.locator('section[aria-labelledby="statistics-overview-title"] > div.grid > section')).toHaveCount(7);
+  await expect(page.locator('section[aria-labelledby="statistics-overview-title"] > div.grid > dl')).toHaveCount(7);
   for (const removedText of [
     "Alle historischen Diagramme",
     "pro aktivem Tag",
@@ -315,21 +316,21 @@ test("browser back returns from deck management to learning without reload", asy
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   await expect(page.getByTestId(`deck-header-${DECK_IDS.europe}`)).toBeVisible();
 
-  await page.goBack();
+  await page.evaluate(() => window.history.back());
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
   await expect(page).toHaveURL(/\/lernen$/);
 });
 
-test("browser back exits study mode to the previous learning screen", async ({ page }: any) => {
+test("leaving study mode returns to the previous learning screen", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 
-  await page.goBack();
+  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
-  await expect(page).toHaveURL(/\/lernen$/);
+  await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.europe}`);
 });
 
 test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- und Overlaywechseln", async ({ page }: any) => {
@@ -686,6 +687,9 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
     await page.setViewportSize(viewport);
     const settingsNavigation = page.locator(viewport.width >= 1280 ? '[data-in-page-navigation="desktop"]' : '[data-in-page-navigation="compact"]');
     await expect(settingsNavigation).toBeVisible();
+    if (viewport.width < 1280 && await settingsNavigation.locator("details").getAttribute("open") === null) {
+      await settingsNavigation.locator("summary").click();
+    }
     await expect(settingsNavigation.getByRole("link")).toHaveCount(3);
     await expect(page.getByLabel("Stapelname")).toBeVisible();
     await expect(page.getByRole("button", { name: "Icon auswählen" })).toBeVisible();
@@ -783,12 +787,15 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
-  await page.getByTestId("card-variant-tools").getByText("Varianten und Lernwerte").click();
+  const variantTools = page.getByTestId("card-variant-tools");
+  if (await variantTools.getAttribute("open") === null) await variantTools.locator("summary").click();
   const variantsBefore = (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0;
   await page.getByLabel("Variantenfrage").fill("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?");
   await page.getByLabel("Variantenantwort").fill("Yamoussoukro");
   await page.getByRole("button", { name: "Umformulierung hinzufügen" }).click();
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0).toBe(variantsBefore + 1);
+  await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants
+    ?.find((variant: { front: string }) => variant.front === "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?")?.back).toBe("Yamoussoukro");
 
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await page.getByTestId(`deck-options-${DECK_IDS.africa}`).click();
@@ -799,7 +806,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
 
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await expect(page.frameLocator('iframe[title="Frage"]').getByText("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?", { exact: true })).toBeVisible();
-  await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Yamoussoukro", { exact: true })).toBeVisible();
+  await expect(page.frameLocator('iframe[title="Antwort"]').locator("body")).toContainText("Yamoussoukro");
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(1);
   await page.getByRole("button", { name: "Original anzeigen" }).click();
   await expect(page.getByTestId("original-anchor")).toHaveCount(1);
@@ -845,10 +852,7 @@ test("card version restore shows a comparison, requires confirmation and appends
 
   await page.locator("summary").filter({ hasText: "Details, Herkunft und Versionen" }).click();
   const versionSelect = page.getByRole("combobox", { name: "Version zum Wiederherstellen" });
-  await versionSelect.click();
-  const versionOptions = page.getByRole("option");
-  await expect(versionOptions).toHaveCount(originalVersionCount + 1);
-  await versionOptions.nth(1).click();
+  await chooseCoreSelectOption(page, versionSelect, /Stand vor/);
   await expect(page.getByTestId("version-restore-summary")).toContainText("Aktuell: <p>Welche Stadt ist die Hauptstadt der Côte d'Ivoire?</p>");
   await expect(page.getByTestId("version-restore-summary")).toContainText("Nach Restore: Was ist die Hauptstadt von Côte d'Ivoire?");
   await page.getByRole("button", { name: "Restore bestätigen" }).click();

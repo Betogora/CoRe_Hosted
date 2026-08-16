@@ -1,0 +1,19 @@
+{
+  "name": "CoRe Content Repetition",
+  "short_name": "CoRe",
+  "description": "Local-first Kartenlernen, Wiederholen und Synchronisieren.",
+  "lang": "de",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f5",
+  "theme_color": "#f7f8f5",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

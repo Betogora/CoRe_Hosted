@@ -79,17 +79,9 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
     const handlePointerDown = (event: PointerEvent) => {
       if (!compactNavigationRef.current?.contains(event.target as Node)) setCompactOpen(false);
     };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setCompactOpen(false);
-      compactSummaryRef.current?.focus();
-    };
     document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [compactOpen]);
 
@@ -99,6 +91,10 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
     const scrollToHash = (behavior: ScrollBehavior) => {
       if (`${window.location.pathname}${window.location.search}` !== mountedPath) return;
       const hashId = currentHashId();
+      if (!hashId) {
+        setActiveId(firstItemId);
+        return;
+      }
       if (!ids.has(hashId)) return;
       const section = document.getElementById(hashId);
       if (!section) return;
@@ -113,7 +109,7 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
       window.removeEventListener("hashchange", handleHistoryNavigation);
       window.removeEventListener("popstate", handleHistoryNavigation);
     };
-  }, [itemIds]);
+  }, [firstItemId, itemIds]);
 
   React.useEffect(() => {
     const sections = items.map((item) => document.getElementById(item.id)).filter((section): section is HTMLElement => Boolean(section));
@@ -215,6 +211,15 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
         className="sticky z-20 min-w-0 xl:hidden"
         style={{ top: compactStickyTop }}
         data-in-page-navigation="compact"
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          const details = event.currentTarget.querySelector("details");
+          if (!details?.open) return;
+          event.preventDefault();
+          details.open = false;
+          setCompactOpen(false);
+          compactSummaryRef.current?.focus();
+        }}
       >
         <details open={compactOpen} onToggle={(event) => setCompactOpen(event.currentTarget.open)} className="relative">
           <summary

@@ -6,15 +6,17 @@ const FOCUSABLE_SELECTOR =
 export function useModalDialog({
   open,
   onClose,
+  returnFocusRef,
   stopEscapePropagation = false,
 }: {
   open: boolean;
   onClose: () => void;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
   stopEscapePropagation?: boolean;
 }) {
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
   const initialFocusRef = React.useRef<HTMLButtonElement | null>(null);
-  const returnFocusRef = React.useRef<HTMLElement | null>(null);
+  const fallbackReturnFocusRef = React.useRef<HTMLElement | null>(null);
   const onCloseRef = React.useRef(onClose);
 
   React.useEffect(() => {
@@ -23,7 +25,7 @@ export function useModalDialog({
 
   React.useEffect(() => {
     if (!open) return undefined;
-    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    fallbackReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const frame = window.requestAnimationFrame(() => initialFocusRef.current?.focus());
@@ -54,9 +56,10 @@ export function useModalDialog({
       window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
-      window.requestAnimationFrame(() => returnFocusRef.current?.focus());
+      const returnFocus = returnFocusRef?.current ?? fallbackReturnFocusRef.current;
+      window.requestAnimationFrame(() => returnFocus?.focus());
     };
-  }, [open, stopEscapePropagation]);
+  }, [open, returnFocusRef, stopEscapePropagation]);
 
   return { dialogRef, initialFocusRef };
 }

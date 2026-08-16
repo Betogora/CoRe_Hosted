@@ -104,6 +104,7 @@ export function formatCloudAuthError(error: any, fallback: any = "Aktion konnte 
     return "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.";
   }
   if (
+    combined.includes("authretryablefetcherror") ||
     combined.includes("failed to fetch") ||
     combined.includes("fetch failed") ||
     combined.includes("networkerror") ||
@@ -199,6 +200,15 @@ export function createCloudProfile(row: any, user: any, fallback: any = {}, time
   });
 }
 
+function isConnectivityFailure(error: any) {
+  const combined = `${String(error?.code ?? "")} ${String(error?.message ?? "")} ${String(error?.cause?.message ?? "")}`.toLowerCase();
+  return combined.includes("failed to fetch")
+    || combined.includes("fetch failed")
+    || combined.includes("networkerror")
+    || combined.includes("network request failed")
+    || combined.includes("offline");
+}
+
 export function createPendingCloudProfile(profile: any, user: any, timestamp: any = nowIso()) {
   const email = normalizeEmail(user?.email ?? profile?.email);
   const {
@@ -244,6 +254,27 @@ async function getCurrentUser(client: any) {
 
 export async function getCloudUser(client: any) {
   return getCurrentUser(client);
+}
+
+async function getPersistedCloudUser(client: any) {
+  await assertCloudClient(client);
+  if (typeof client?.auth?.getSession !== "function") return null;
+  const { data, error } = await client.auth.getSession();
+  if (error && !isSessionMissing(error)) throw error;
+  return data?.session?.user ?? null;
+}
+
+export async function getCloudWorkspaceUser(
+  client: any,
+  online = typeof navigator === "undefined" || navigator.onLine !== false,
+) {
+  if (!online) return getPersistedCloudUser(client);
+  try {
+    return await getCurrentUser(client);
+  } catch (error) {
+    if (!isConnectivityFailure(error) || typeof client?.auth?.getSession !== "function") throw error;
+    return getPersistedCloudUser(client);
+  }
 }
 
 export async function saveCloudProfile(client: any, profile: any, timestamp: any = nowIso()) {

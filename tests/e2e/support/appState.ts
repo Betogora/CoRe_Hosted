@@ -52,7 +52,7 @@ export async function resetTestAccount(environment = loadE2EEnvironment()) {
   }
 }
 
-export async function resetToFreshLocalState(page: Page, options: { resetCloud?: boolean } = {}) {
+export async function resetToFreshLocalState(page: Page, options: { resetCloud?: boolean; waitForCloud?: boolean } = {}) {
   if (options.resetCloud !== false) await resetTestAccount();
   await page.goto("/");
 
@@ -112,6 +112,10 @@ export async function resetToFreshLocalState(page: Page, options: { resetCloud?:
 
   await page.reload();
   await page.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
+  if (options.waitForCloud !== false) {
+    await page.locator('[data-navigation-utility="sync"][aria-label="Synchronisiert – jetzt erneut synchronisieren"]:visible')
+      .waitFor({ state: "visible", timeout: 20_000 });
+  }
 
   return { authStorageKey: authKeyAfter, syncDeviceId: syncDeviceIdBefore };
 }

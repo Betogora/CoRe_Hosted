@@ -121,8 +121,10 @@ export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation 
     const normalized = normalizeAppRoute(route);
     const nextUrl = appRouteToUrl(normalized);
     const currentUrl = `${window.location.pathname}${window.location.search}`;
-    if (!replace && currentUrl === nextUrl && areAppRoutesEqual(currentRouteRef.current, normalized)) {
-      return applyRoute(normalized);
+    if (!replace && currentUrl === nextUrl) {
+      return areAppRoutesEqual(currentRouteRef.current, normalized)
+        ? applyRoute(normalized)
+        : writeBrowserRoute(normalized, { replace: true });
     }
     const currentRoute = currentRouteRef.current;
     if (!areAppRoutesEqual(currentRoute, normalized) && onBeforeNavigationRef.current?.({

@@ -9,6 +9,8 @@ import {
   createCloudStateRows,
   deckToCloudRow,
   ImportGraphVerificationError,
+  loadAccountCardVariants,
+  loadAccountCloudBootstrap,
   listAccountSyncConflicts,
   registerAccountSyncDevice,
   recordAtomicReview,
@@ -310,6 +312,48 @@ function createMemorySupabaseClient(initialTables = {}, user = { id: "user-1", e
     },
     from(table: any) {
       return new Query(table);
+    },
+    async rpc(name: string, payload: any) {
+      const call = { table: `rpc:${name}`, operation: "rpc", filters: [], payload: payload == null ? null : clone(payload), options: {} };
+      calls.push(call);
+      const injectedError = fail?.(call, calls);
+      if (injectedError) return { data: null, error: injectedError };
+      if (name === "get_account_bootstrap") {
+        return {
+          data: {
+            profile: clone(tables.profiles.find((row: any) => row.id === user.id) ?? null),
+            decks: clone(tables.decks.filter((row: any) => row.user_id === user.id)),
+            conflictCount: tables.sync_conflicts.filter((row: any) => row.user_id === user.id && ["open", "ignored"].includes(row.status)).length,
+          },
+          error: null,
+        };
+      }
+      if (name !== "pull_account_delta") return { data: null, error: new Error(`unsupported rpc ${name}`) };
+      const cursor = Math.max(0, Number(payload?.p_cursor) || 0);
+      const limit = Math.min(1_000, Math.max(1, Number(payload?.p_limit) || 500));
+      const maxBytes = Math.max(64 * 1024, Number(payload?.p_max_bytes) || 1024 * 1024);
+      const candidates = [...syncTables].flatMap((table) => tables[table]
+        .filter((row: any) => row.user_id === user.id && Number(row.sync_change_id) > cursor)
+        .map((row: any) => ({ table, row: clone(row) })))
+        .sort((left, right) => Number(left.row.sync_change_id) - Number(right.row.sync_change_id)
+          || left.table.localeCompare(right.table)
+          || String(left.row.id).localeCompare(String(right.row.id)));
+      const changes: Array<{ table: string; row: any }> = [];
+      let bytes = 0;
+      for (const candidate of candidates.slice(0, limit)) {
+        const candidateBytes = Buffer.byteLength(JSON.stringify(candidate));
+        if (changes.length > 0 && bytes + candidateBytes > maxBytes) break;
+        changes.push(candidate);
+        bytes += candidateBytes;
+      }
+      return {
+        data: {
+          changes,
+          nextCursor: changes.at(-1)?.row.sync_change_id ?? cursor,
+          hasMore: candidates.length > changes.length,
+        },
+        error: null,
+      };
     },
     calls,
     tables,
@@ -656,7 +700,7 @@ test("source snapshot mutations batch immutable rows and preserve card attachmen
   assert.equal(client.tables.cards.find((card: any) => card.id === "card-1").latest_source_snapshot_id, "batch-snapshot-2");
 });
 
-test("initial cloud download reconstructs 2,500 rows with stable 500-row keyset pages", async () => {
+test("initial cloud download reconstructs 2,500 rows with bundled 500-row delta pages", async () => {
   const fixture = createCloudFixture();
   const rows = clone(fixture.rows);
   rows.decks = Array.from({ length: 2_500 }, (_, index) => ({
@@ -673,11 +717,46 @@ test("initial cloud download reconstructs 2,500 rows with stable 500-row keyset 
 
   assert.equal(received.length, 2_500);
   assert.equal(new Set(received.map((deck) => deck.id)).size, 2_500);
-  const deckReads = client.calls.filter((call) => call.table === "decks" && call.operation === "select");
-  assert.equal(deckReads.length, 6);
-  assert.equal(deckReads.every((call) => call.options != null), true);
+  const deltaReads = client.calls.filter((call) => call.table === "rpc:pull_account_delta");
+  assert.equal(deltaReads.length, 6);
+  assert.equal(client.calls.some((call) => call.table === "decks" && call.operation === "select"), false);
   assert.deepEqual(received.slice(0, 2).map((deck) => deck.id), ["deck-0000", "deck-0001"]);
   assert.equal(received.at(-1)?.id, "deck-2499");
+});
+
+test("initialer Delta-Pull verwendet das bereits geladene Bootstrap-Profil", async () => {
+  const fixture = createCloudFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const result = await streamAccountCloudChanges(client, {}, async () => {}, { userId: fixture.user.id, loadProfile: false });
+
+  assert.equal(result.profile, null);
+  assert.equal(client.calls.some((call) => call.table === "profiles" && call.operation === "select"), false);
+  assert.equal(client.calls.filter((call) => call.table === "rpc:pull_account_delta").length, 1);
+});
+
+test("account bootstrap returns profile and deck shell without card bodies", async () => {
+  const fixture = createCloudFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const bootstrap = await loadAccountCloudBootstrap(client, fixture.user);
+
+  assert.equal(bootstrap.decks.length, 1);
+  assert.equal((bootstrap.decks[0] as any).cards.length, 0);
+  assert.equal(bootstrap.profile.userId, fixture.user.id);
+  assert.equal(client.calls.filter((call) => call.table === "rpc:get_account_bootstrap").length, 1);
+  assert.equal(client.calls.some((call) => call.table === "cards"), false);
+});
+
+test("study preparation loads variants only for the requested cards", async () => {
+  const fixture = createCloudFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const cardId = fixture.rows.cards[0].id;
+  const variants = await loadAccountCardVariants(client, { userId: fixture.user.id, cardIds: [cardId] });
+
+  assert.equal(variants.length, 1);
+  assert.equal(variants[0].learningItemId, cardId);
+  const reads = client.calls.filter((call) => call.table === "card_variants" && call.operation === "select");
+  assert.equal(reads.length, 1);
+  assert.deepEqual(reads[0].filters.find((filter: any) => filter.type === "in")?.values, [cardId]);
 });
 
 test("an acknowledged tombstone can be restored with its exact revision", async () => {
@@ -773,6 +852,28 @@ test("profile patch updates only the account profile", async () => {
   assert.deepEqual(result, { acknowledgedMutationId: "profile-1" });
   assert.deepEqual(client.tables.profiles[0].ui_preferences, profile.uiPreferences);
   assert.equal(client.calls.filter((call) => call.operation === "upsert").every((call) => call.table === "profiles"), true);
+});
+
+test("incomplete profile patches are rejected before a cloud write", async () => {
+  const fixture = createCloudFixture();
+  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
+  const callsBefore = client.calls.length;
+
+  await assert.rejects(
+    () => upsertAccountCloudProfile(client, {
+      uiPreferences: {
+        dashboardCollapsedDeckIds: ["deck-1"],
+        learnCollapsedDeckIds: [],
+        deckManagerExpandedDeckIds: [],
+        syncIntervalMinutes: 5,
+      },
+    }, {
+      mutationId: "profile-invalid",
+      flushedAt: "2026-08-06T12:00:00.000Z",
+    }),
+    (error: any) => error?.code === "invalid_profile_mutation",
+  );
+  assert.equal(client.calls.length, callsBefore);
 });
 
 test("explicit full replace deletes missing rows and advances existing revisions", async () => {

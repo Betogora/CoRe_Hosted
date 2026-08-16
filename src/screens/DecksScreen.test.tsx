@@ -40,8 +40,8 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps & Decks
   return renderToStaticMarkup(<DecksScreen {...props} />);
 }
 
-test("cards page consumes a direct query page and projects at most 100 items", () => {
-  const pageCards = Array.from({ length: 101 }, (_, index) => createLearningItemFromEditorValue(
+test("cards page consumes a direct query page and projects at most 50 items", () => {
+  const pageCards = Array.from({ length: 51 }, (_, index) => createLearningItemFromEditorValue(
     "deck-paged",
     { cardType: "basic", front: `Seitenkarte ${index}`, back: `Antwort ${index}`, tags: [] },
     { id: `paged-card-${String(index).padStart(3, "0")}` },
@@ -61,7 +61,7 @@ test("cards page consumes a direct query page and projects at most 100 items", (
         deckId: deck.id,
         items: pageCards,
         page: 4,
-        pageSize: 100,
+        pageSize: 50,
         totalCount: 501,
         query: "",
         sort: { field: "sortField", direction: "asc" },
@@ -70,11 +70,11 @@ test("cards page consumes a direct query page and projects at most 100 items", (
     },
   });
 
-  assert.equal((markup.match(/data-card-row="true"/g) ?? []).length, 100);
-  assert.match(markup, /Seitenkarte 99/);
-  assert.doesNotMatch(markup, /Seitenkarte 100/);
-  assert.match(markup, /Seite 5 von 6/);
-  assert.match(markup, /data-testid="deck-card-paged-card-099"/);
+  assert.equal((markup.match(/data-card-row="true"/g) ?? []).length, 50);
+  assert.match(markup, /Seitenkarte 49/);
+  assert.doesNotMatch(markup, /Seitenkarte 50/);
+  assert.match(markup, /Seite 5 von 11/);
+  assert.match(markup, /data-testid="deck-card-paged-card-049"/);
   assert.match(markup, /Direkt geladene Karte/);
 });
 
