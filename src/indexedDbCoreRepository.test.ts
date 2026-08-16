@@ -1,11 +1,18 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
-import { IDBKeyRange, IDBObjectStore as FakeIDBObjectStore, indexedDB } from "fake-indexeddb";
-import { createBasicLearningItem, createCoreDeck, createCoreNoteTypeDefinition, createManualCoreDeck } from "./coreModel.ts";
+import { IDBIndex as FakeIDBIndex, IDBKeyRange, IDBObjectStore as FakeIDBObjectStore, indexedDB } from "fake-indexeddb";
+import { createBasicLearningItem, createCoreDeck, createCoreNoteTypeDefinition, createManualCoreDeck, getOriginalVariant } from "./coreModel.ts";
 import { restoreSoftDeletedCard, softDeleteCard } from "./coreWorkspace.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { planEntityMutations } from "./syncMutationPlanner.ts";
+import { answerVariant } from "./reviewService.ts";
+import {
+  DECK_STUDY_PROJECTION_VERSION,
+  addCardToDeckStudyProjection,
+  createDeckStudyProjectionContext,
+  emptyDeckStudyProjectionAggregate,
+} from "./deckStudyProjection.ts";
 
 Object.assign(globalThis, { IDBKeyRange });
 
@@ -35,6 +42,14 @@ function workspaceState(cardCount = 0) {
     cloudTombstones: [],
     updatedAt: "2026-08-11T00:00:00.000Z",
   } as any;
+}
+
+function openRawWorkspaceDatabase(userId: string): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(`core.workspace.entities.v1.${userId}`);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
 test("migriert den Root-State einmalig und liest Karten in deterministischen 50er-Seiten", async () => {
@@ -67,21 +82,38 @@ test("normaler Boot liest auch beim 100k-/1m-Skalierungsvertrag keine Karten, Va
     conceptualReviewEventCount: 1_000_000,
   };
   const seeded = await createIndexedDbCoreRepository({ userId, initialState, indexedDb: indexedDB as any });
+  await seeded.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" });
   await seeded.flush();
   seeded.close();
 
   const getAllCalls = new Map<string, number>();
   const targetDatabaseName = `core.workspace.entities.v1.${userId}`;
   const originalGetAll = FakeIDBObjectStore.prototype.getAll;
+  const originalOpenCursor = FakeIDBObjectStore.prototype.openCursor;
+  const originalIndexOpenCursor = FakeIDBIndex.prototype.openCursor;
+  const cursorCalls = new Map<string, number>();
   FakeIDBObjectStore.prototype.getAll = function instrumentedGetAll(...args: Parameters<IDBObjectStore["getAll"]>) {
     if (this.transaction.db.name === targetDatabaseName) {
       getAllCalls.set(this.name, (getAllCalls.get(this.name) ?? 0) + 1);
     }
     return originalGetAll.apply(this, args);
   };
+  FakeIDBObjectStore.prototype.openCursor = function instrumentedOpenCursor(...args: Parameters<IDBObjectStore["openCursor"]>) {
+    if (this.transaction.db.name === targetDatabaseName) {
+      cursorCalls.set(this.name, (cursorCalls.get(this.name) ?? 0) + 1);
+    }
+    return originalOpenCursor.apply(this, args);
+  };
+  FakeIDBIndex.prototype.openCursor = function instrumentedIndexOpenCursor(...args: Parameters<IDBIndex["openCursor"]>) {
+    if (this.objectStore.transaction.db.name === targetDatabaseName) {
+      cursorCalls.set(this.objectStore.name, (cursorCalls.get(this.objectStore.name) ?? 0) + 1);
+    }
+    return originalIndexOpenCursor.apply(this, args);
+  };
   try {
     const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
     const shell = await repository.loadShell();
+    const summaries = await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" });
 
     assert.equal(shell.decks[0].importMeta.conceptualCardCount, 100_000);
     assert.equal(shell.decks[0].importMeta.conceptualReviewEventCount, 1_000_000);
@@ -90,6 +122,9 @@ test("normaler Boot liest auch beim 100k-/1m-Skalierungsvertrag keine Karten, Va
     assert.equal(getAllCalls.get("reviewEvents") ?? 0, 0);
     assert.equal(getAllCalls.get("noteTypeDefinitions") ?? 0, 0);
     assert.equal(getAllCalls.get("sourceSnapshots") ?? 0, 0);
+    assert.equal(summaries.summaries.get("deck-idb")?.inventory.totalCards, 1);
+    assert.equal(cursorCalls.get("cards") ?? 0, 0, "Persistierte Stapelprojektionen dürfen den Kartenstore nicht scannen");
+    assert.equal(cursorCalls.get("variants") ?? 0, 0, "Persistierte Stapelprojektionen dürfen den Variantenstore nicht scannen");
     const card = await repository.loadCard("card-00000");
     assert.equal(card?.id, "card-00000");
     assert.equal(getAllCalls.get("cards") ?? 0, 0, "Kartenladen muss einen Key-Lookup statt Store-getAll verwenden");
@@ -103,7 +138,157 @@ test("normaler Boot liest auch beim 100k-/1m-Skalierungsvertrag keine Karten, Va
     repository.close();
   } finally {
     FakeIDBObjectStore.prototype.getAll = originalGetAll;
+    FakeIDBObjectStore.prototype.openCursor = originalOpenCursor;
+    FakeIDBIndex.prototype.openCursor = originalIndexOpenCursor;
   }
+});
+
+test("setzt einen unterbrochenen Projektions-Rebuild am gespeicherten Kartencursor fort", async () => {
+  const userId = randomUUID();
+  const seeded = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(3), indexedDb: indexedDB as any });
+  await seeded.flush();
+  seeded.close();
+
+  const context = createDeckStudyProjectionContext("UTC", 0);
+  const database = await openRawWorkspaceDatabase(userId);
+  const read = database.transaction(["cards", "deckStudyProjections"], "readonly");
+  const firstCard = await new Promise<any>((resolve, reject) => {
+    const request = read.objectStore("cards").index("deckScan").openCursor(IDBKeyRange.bound(["deck-idb", ""], ["deck-idb", "\uffff"]));
+    request.onsuccess = () => resolve(request.result?.value);
+    request.onerror = () => reject(request.error);
+  });
+  const dirty = await new Promise<any>((resolve, reject) => {
+    const request = read.objectStore("deckStudyProjections").get("deck-idb");
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  await new Promise<void>((resolve, reject) => {
+    read.oncomplete = () => resolve();
+    read.onerror = () => reject(read.error);
+  });
+  const aggregate = emptyDeckStudyProjectionAggregate();
+  addCardToDeckStudyProjection(aggregate, firstCard, context);
+  const write = database.transaction(["deckStudyProjections", "syncMetadata"], "readwrite");
+  write.objectStore("deckStudyProjections").put({
+    ...dirty,
+    contextKey: context.key,
+    dirtyToken: "interrupted-token",
+    ready: false,
+    projectionVersion: DECK_STUDY_PROJECTION_VERSION,
+  });
+  write.objectStore("syncMetadata").put({
+    key: "deckStudyProjectionRebuild",
+    value: {
+      deckId: "deck-idb",
+      contextKey: context.key,
+      dirtyToken: "interrupted-token",
+      phase: "cards",
+      cursor: firstCard.id,
+      aggregate,
+    },
+  });
+  await new Promise<void>((resolve, reject) => {
+    write.oncomplete = () => resolve();
+    write.onerror = () => reject(write.error);
+  });
+  database.close();
+
+  const resumed = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
+  const summary = await resumed.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" });
+  assert.equal(summary.summaries.get("deck-idb")?.inventory.totalCards, 3);
+  resumed.close();
+});
+
+test("pflegt Projektionen bei Review und Kartenlöschung über Reload hinweg", async () => {
+  const userId = randomUUID();
+  const initialState = workspaceState(1);
+  const card = initialState.decks[0].cards[0];
+  const original = getOriginalVariant(card);
+  assert.ok(original);
+  const repository = await createIndexedDbCoreRepository({ userId, initialState, indexedDb: indexedDB as any });
+  const before = await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" });
+  assert.equal(before.summaries.get("deck-idb")?.inventory.totalCards, 1);
+
+  repository.recordReview(answerVariant(initialState.decks[0], card.id, original.id, "good", {
+    now: "2026-08-16T12:00:00.000Z",
+  }));
+  await repository.flush();
+  const reviewed = await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" });
+  assert.equal(reviewed.summaries.get("deck-idb")?.dailyProgress.completedTodayCount, 1);
+  assert.equal(reviewed.studyHeatmap.countsByDay.get("2026-08-16"), 1);
+  await repository.updateCard("deck-idb", card.id, (current) => softDeleteCard(current, "2026-08-16T12:01:00.000Z"));
+  await repository.flush();
+  assert.equal((await repository.listDeckSummaries({ now: "2026-08-16T12:01:00.000Z", timeZone: "UTC" })).summaries.get("deck-idb")?.inventory.totalCards, 0);
+  repository.close();
+
+  const reopened = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
+  const afterReload = await reopened.listDeckSummaries({ now: "2026-08-16T12:01:00.000Z", timeZone: "UTC" });
+  assert.equal(afterReload.summaries.get("deck-idb")?.inventory.totalCards, 0);
+  assert.equal(afterReload.studyHeatmap.countsByDay.get("2026-08-16"), 1);
+  reopened.close();
+});
+
+test("entfernt abgeleitete Projektionen zusammen mit dem gelöschten Stapel", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(2), indexedDb: indexedDB as any });
+  await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" });
+  await repository.deleteDeckTree("deck-idb");
+  await repository.flush();
+  repository.close();
+
+  const database = await openRawWorkspaceDatabase(userId);
+  const transaction = database.transaction(["deckStudyProjections", "deckStudyDueBuckets"], "readonly");
+  const [projection, bucketCount] = await Promise.all([
+    new Promise<unknown>((resolve, reject) => {
+      const request = transaction.objectStore("deckStudyProjections").get("deck-idb");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    }),
+    new Promise<number>((resolve, reject) => {
+      const request = transaction.objectStore("deckStudyDueBuckets").index("deckId").count("deck-idb");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    }),
+  ]);
+  assert.equal(projection, undefined);
+  assert.equal(bucketCount, 0);
+  database.close();
+});
+
+test("aktualisiert Cloud- und Konfliktprojektionen ohne vollständigen Kartenread", async () => {
+  const userId = randomUUID();
+  const cloudCard = workspaceState(1).decks[0].cards[0];
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
+  await repository.applyCloudPage({ table: "cards", reset: false, entities: [{ ...cloudCard, deckId: "deck-idb", variants: [] }] });
+  assert.equal((await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" })).summaries.get("deck-idb")?.inventory.totalCards, 1);
+
+  await repository.setSyncConflicts([{ id: "conflict-card", status: "open", cardId: cloudCard.id }]);
+  assert.equal((await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" })).summaries.get("deck-idb")?.inventory.totalCards, 0);
+  await repository.setSyncConflicts([]);
+  assert.equal((await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" })).summaries.get("deck-idb")?.inventory.totalCards, 1);
+
+  await repository.applyCloudPage({ table: "cards", reset: true, entities: [] });
+  assert.equal((await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" })).summaries.get("deck-idb")?.inventory.totalCards, 0);
+  repository.close();
+});
+
+test("invalidiert Projektionen bei Zeitzonen- und Tagesbeginnwechsel", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(2), indexedDb: indexedDB as any });
+  await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC", dayStartHour: 0 });
+  await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "Europe/Berlin", dayStartHour: 4 });
+  repository.close();
+
+  const database = await openRawWorkspaceDatabase(userId);
+  const transaction = database.transaction("deckStudyProjections", "readonly");
+  const row = await new Promise<any>((resolve, reject) => {
+    const request = transaction.objectStore("deckStudyProjections").get("deck-idb");
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(row.ready, true);
+  assert.equal(row.contextKey, "Europe/Berlin:4");
+  database.close();
 });
 
 test("extrahiert dynamische Notiztypen vor der Cloud-Planung und persistiert sie separat", async () => {
@@ -184,10 +369,12 @@ test("streamt einen Worker-Import in begrenzten Chunks direkt in Entity-Stores u
   await repository.commitImportGraph(graph);
   await repository.flush();
   const page = await repository.listCardPage(deck.id, { page: 4, pageSize: 50 });
+  const summary = await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" });
 
   assert.deepEqual(observedChunkSizes, [100, 100, 5]);
   assert.equal(page.items.length, 5);
   assert.equal(page.totalCount, 205);
+  assert.equal(summary.summaries.get(deck.id)?.inventory.totalCards, 205);
   assert.equal(repository.outbox.count() > 205, true);
   repository.close();
 });

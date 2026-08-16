@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-08-16 — Adaptive Preloads und lokale Stapelprojektionen
+
+- Automatisches Idle-Preloading lädt `Lernen` und `Karten` seriell nur bei 4G oder fehlender Network-Information. 3G erlaubt ausschließlich Hover, Fokus oder Touchstart; Save-Data, 2G, unsichtbare Tabs und Nutzerinteraktion verhindern weitere Spekulation. Der kontrollierte 4G-Lauf verursachte keinen Long Task, alle 3G-Läufe blieben ohne automatischen Preload. Ein weiterer Editor-Chunk-Split war deshalb nicht erforderlich.
+- IndexedDB v5 hält löschbare Stapelprojektionen, Fälligkeits-Buckets, einen Stapel-/Kartenindex und einen fortsetzbaren Rebuild-Checkpoint. Einzelne Karten- und Reviewwrites aktualisieren die Ableitung atomar; Bulk-, Cloud-, Restore- und Konfliktpfade markieren betroffene Stapel dirty. Rebuilds arbeiten in höchstens 250er-/25-ms-Abschnitten, prüfen Dirty-Token und Kontext und schließen Konfliktkarten aus. Tagesfortschritt liest nur den aktuellen Lerntag, historische Heatmapwerte stammen weiterhin aus den stündlichen Reviewzählern.
+- Der finale gedrosselte Lauf mit je zehn Wiederholungen bestand vollständig: Wiederholungsstart p75/p95 0,742/0,831 Sekunden, Offline-Kaltstart 0,482/0,576 Sekunden, Frischstart p75 2,786 Sekunden, persistierter Summary-Read p75 7 ms und längster direkt gemessener Projektions-/Hintergrundabschnitt 9,4 ms. Der Service Worker war im p75-Vergleich 576 ms schneller und blieb unverändert. Der Production-Build maß 217,3 KiB gzip im Initialgraphen und 163,1 KiB im größten Lazy-Graphen.
+- Repositoryverträge decken unterbrochenen Rebuild, Reload, Review, Kartenänderung, Cloud-Delta/-Reset, Konflikte, Tageskontextwechsel und einen 100k-Karten-/1m-Reviews-Vertrag ohne vollständigen Karten-, Varianten- oder Reviewread beim normalen Boot ab. Die vollständige 100k-Browserjourney und Feldmessung bleiben als LATER-Nachweis offen.
+- Der Reviewstart aus den Stapeleinstellungen ersetzt deren Browser-History-Eintrag nun anhand der tatsächlich sichtbaren Ansicht; dadurch entsteht kein doppelter, identischer Review-Eintrag. Abgenommen wurden alle 625 Modul-/Contract-/Integrationstests, Typecheck, Production-Build, das vollständige Performance-Gate, Datenbanktypdrift, 12/12 RLS-/Zwei-Geräte-Fälle und das lokale Playwright-Release-Gate mit 90 bestandenen und einem erwartbar übersprungenen Test.
+
 ## 2026-08-16 — Reproduzierbare Startmessung
 
 - Datenbanköffnung, Shell, Outbox samt vier Sync-Metadaten und erste Stapelzusammenfassung besitzen getrennte anonyme Performancephasen. Outbox und Sync-Metadaten werden in einer gemeinsamen Readonly-Transaktion geladen; Profil- und Karteninhalte gelangen nicht in das Artefakt.

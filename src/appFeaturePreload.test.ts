@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allowsSpeculativePreloading, startAdaptiveFeaturePreloading } from "./appFeaturePreload.ts";
+import { allowsAutomaticPreloading, allowsIntentPreloading, startAdaptiveFeaturePreloading } from "./appFeaturePreload.ts";
 
 test("unterbindet Preloading bei Datensparmodus, langsamem Netz und unsichtbarem Tab", () => {
-  assert.equal(allowsSpeculativePreloading({ network: { saveData: true } }), false);
-  assert.equal(allowsSpeculativePreloading({ network: { effectiveType: "2g" } }), false);
-  assert.equal(allowsSpeculativePreloading({ documentTarget: { visibilityState: "hidden" } }), false);
-  assert.equal(allowsSpeculativePreloading({ network: { effectiveType: "4g" }, documentTarget: { visibilityState: "visible" } }), true);
+  assert.equal(allowsAutomaticPreloading({ network: { saveData: true } }), false);
+  assert.equal(allowsIntentPreloading({ network: { effectiveType: "2g" } }), false);
+  assert.equal(allowsAutomaticPreloading({ documentTarget: { visibilityState: "hidden" } }), false);
+  assert.equal(allowsIntentPreloading({ network: { effectiveType: "4g" }, documentTarget: { visibilityState: "visible" } }), true);
+});
+
+test("lädt automatisch nur bei 4g oder ohne Network-Information vor", () => {
+  assert.equal(allowsAutomaticPreloading({ network: null }), true);
+  assert.equal(allowsAutomaticPreloading({ network: { effectiveType: "4g" } }), true);
+  assert.equal(allowsAutomaticPreloading({ network: { effectiveType: "3g" } }), false);
+  assert.equal(allowsIntentPreloading({ network: { effectiveType: "3g" } }), true);
 });
 
 test("lädt nach der Ruhephase Lernen und danach Karten seriell vor", async () => {

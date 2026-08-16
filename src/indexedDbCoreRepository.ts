@@ -7,16 +7,29 @@ import type { CardTableSort } from "./libraryModel.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { CloudDeltaCursors, CloudEntityPage } from "./cloudRepository.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
-import { getLocalReviewDateKey } from "./reviewService.ts";
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import { getLearningDayRange } from "./learningDay.ts";
+import { getGlobalSchedulerPreferences } from "./learningProfiles.ts";
 import { planEntityMutations } from "./syncMutationPlanner.ts";
 import type { StatisticsSelection } from "./statisticsModel.ts";
 import { requireCompleteProfile } from "./profileIntegrity.ts";
 import { markStartupPhaseReady, markStartupPhaseStarted } from "./appPerformance.ts";
+import {
+  DECK_STUDY_PROJECTION_VERSION,
+  addCardToDeckStudyProjection,
+  createDeckStudyProjectionContext,
+  deckStudyDueBucketId,
+  emptyDeckStudyProjectionAggregate,
+  projectionRowFromAggregate,
+  type DeckStudyProjectionAggregate,
+  type DeckStudyProjectionCheckpoint,
+  type DeckStudyProjectionContext,
+  type StoredDeckStudyDueBucket,
+  type StoredDeckStudyProjection,
+} from "./deckStudyProjection.ts";
 
-const DATABASE_VERSION = 4;
+const DATABASE_VERSION = 5;
 const STORE = Object.freeze({
   meta: "meta",
   decks: "decks",
@@ -28,6 +41,8 @@ const STORE = Object.freeze({
   sourceSnapshots: "sourceSnapshots",
   outbox: "outbox",
   syncMetadata: "syncMetadata",
+  deckStudyProjections: "deckStudyProjections",
+  deckStudyDueBuckets: "deckStudyDueBuckets",
 });
 
 const LEGACY_STATE_KEYS = ["core.appState.v4", "core.appState.v3", "core.appState.v2", "syncOutbox.v1"];
@@ -50,6 +65,13 @@ interface StoredCard extends Omit<LearningItem, "variants"> {
 }
 
 type StoredVariant = CardVariant & { deckId: string; activeForSummary: 0 | 1 };
+
+interface StoredReviewDayCounts {
+  contextKey: string;
+  timeZone?: string;
+  dayStartHour: number;
+  counts: Record<string, number>;
+}
 
 interface IndexedDbRepositoryOptions {
   userId: string;
@@ -117,6 +139,7 @@ function openDatabase(indexedDb: IDBFactory, userId: string): Promise<IDBDatabas
       if (!cards.indexNames.contains("deckReviewable")) cards.createIndex("deckReviewable", ["deckId", "reviewable", "id"], { unique: false });
       if (!cards.indexNames.contains("deckReviewState")) cards.createIndex("deckReviewState", ["deckId", "reviewable", "scheduleState", "dueAt", "id"], { unique: false });
       if (!cards.indexNames.contains("deckMaturity")) cards.createIndex("deckMaturity", ["deckId", "reviewable", "maturityBand", "id"], { unique: false });
+      if (!cards.indexNames.contains("deckScan")) cards.createIndex("deckScan", ["deckId", "id"], { unique: true });
       if (event.oldVersion < 3) {
         const cursor = cards.openCursor();
         cursor.onsuccess = () => {
@@ -162,6 +185,11 @@ function openDatabase(indexedDb: IDBFactory, userId: string): Promise<IDBDatabas
       const outbox = createStore(database, STORE.outbox);
       outbox?.createIndex("createdAt", ["createdAt", "id"], { unique: false });
       createStore(database, STORE.syncMetadata, { keyPath: "key" });
+      const projections = createStore(database, STORE.deckStudyProjections);
+      projections?.createIndex("contextKey", "contextKey", { unique: false });
+      const dueBuckets = createStore(database, STORE.deckStudyDueBuckets);
+      dueBuckets?.createIndex("deckId", "deckId", { unique: false });
+      dueBuckets?.createIndex("contextDate", ["contextKey", "dateKey", "deckId"], { unique: false });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("Lokale Account-Datenbank konnte nicht geöffnet werden."));
@@ -240,6 +268,31 @@ function changedEntity(previous: any, next: any): boolean {
 
 function mutationId() {
   return `mutation_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function reviewHourCountsFromState(state: WorkspaceState): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const event of state.decks.flatMap((deck) => deck.reviewEvents)) {
+    const key = reviewHourKey(event.answeredAt ?? event.createdAt);
+    if (key) counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
+}
+
+function projectionDirtyToken() {
+  return `projection_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function dirtyProjectionRow(deckId: string, contextKey = ""): StoredDeckStudyProjection {
+  const aggregate = emptyDeckStudyProjectionAggregate();
+  return {
+    ...projectionRowFromAggregate(deckId, contextKey, projectionDirtyToken(), 0, aggregate),
+    ready: false,
+  };
+}
+
+function activeVariantCount(card: LearningItem | null): number {
+  return card?.variants.filter((variant) => !variant.isOriginal && variant.isActive !== false && variant.qualityStatus === "active").length ?? 0;
 }
 
 async function loadShell(database: IDBDatabase): Promise<WorkspaceShell | null> {
@@ -335,7 +388,7 @@ async function loadDeck(database: IDBDatabase, summary: WorkspaceDeckSummary): P
 }
 
 function writeState(database: IDBDatabase, state: WorkspaceState, cloudDeltaCursors?: CloudDeltaCursors): Promise<void> {
-  const storeNames = [STORE.meta, STORE.decks, STORE.cards, STORE.variants, STORE.reviewEvents, STORE.documents, STORE.noteTypeDefinitions, STORE.sourceSnapshots, STORE.syncMetadata];
+  const storeNames = [STORE.meta, STORE.decks, STORE.cards, STORE.variants, STORE.reviewEvents, STORE.documents, STORE.noteTypeDefinitions, STORE.sourceSnapshots, STORE.syncMetadata, STORE.deckStudyProjections, STORE.deckStudyDueBuckets];
   const transaction = database.transaction(storeNames, "readwrite");
   for (const storeName of storeNames.filter((name) => name !== STORE.syncMetadata)) transaction.objectStore(storeName).clear();
   const meta = transaction.objectStore(STORE.meta);
@@ -344,6 +397,7 @@ function writeState(database: IDBDatabase, state: WorkspaceState, cloudDeltaCurs
   meta.put({ key: "updatedAt", value: state.updatedAt });
   for (const deck of state.decks) {
     transaction.objectStore(STORE.decks).put(deckRecord(deck));
+    transaction.objectStore(STORE.deckStudyProjections).put(dirtyProjectionRow(deck.id));
     for (const card of deck.cards) {
       transaction.objectStore(STORE.cards).put(cardRecord(card, deck.id));
       for (const variant of card.variants) transaction.objectStore(STORE.variants).put(variantRecord(variant, deck.id));
@@ -354,6 +408,9 @@ function writeState(database: IDBDatabase, state: WorkspaceState, cloudDeltaCurs
   for (const definition of state.noteTypeDefinitions) transaction.objectStore(STORE.noteTypeDefinitions).put(definition);
   for (const snapshot of state.learningItemSourceSnapshots) transaction.objectStore(STORE.sourceSnapshots).put(snapshot);
   transaction.objectStore(STORE.syncMetadata).put({ key: "cloudTombstones", value: state.cloudTombstones });
+  transaction.objectStore(STORE.syncMetadata).put({ key: "reviewHourCounts", value: reviewHourCountsFromState(state) });
+  transaction.objectStore(STORE.syncMetadata).delete("reviewDayCounts");
+  transaction.objectStore(STORE.syncMetadata).delete("deckStudyProjectionRebuild");
   if (cloudDeltaCursors) transaction.objectStore(STORE.syncMetadata).put({ key: "cloudDeltaCursors", value: cloudDeltaCursors });
   return transactionDone(transaction);
 }
@@ -408,15 +465,52 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     return deck;
   };
 
+  const startupSchedulerPreferences = getGlobalSchedulerPreferences(shell!.profile);
+  const startupTimeZone = shell!.profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const startupProjectionContext = createDeckStudyProjectionContext(startupTimeZone, startupSchedulerPreferences.dayStartHour);
+  const startupNow = new Date().toISOString();
+  const startupDayKey = getStudyHeatmapDayKey(startupNow, startupTimeZone, startupSchedulerPreferences.dayStartHour) ?? startupNow.slice(0, 10);
+  const startupDayRange = getLearningDayRange(startupNow, {
+    dayStartHour: startupSchedulerPreferences.dayStartHour,
+    timeZone: startupTimeZone,
+  });
+  const dayRangeKey = (range: { start: number; end: number } | null) => range ? `${range.start}:${range.end}` : "none";
+
   markStartupPhaseStarted("indexedDbStartupMetadata");
-  const startupTransaction = database.transaction([STORE.outbox, STORE.syncMetadata], "readonly");
+  const startupTransaction = database.transaction([
+    STORE.outbox,
+    STORE.syncMetadata,
+    STORE.deckStudyProjections,
+    STORE.deckStudyDueBuckets,
+    STORE.reviewEvents,
+  ], "readonly");
   const startupSyncMetadata = startupTransaction.objectStore(STORE.syncMetadata);
-  const [outboxRows, cloudDeltaCursorRow, reviewHourCountRow, syncConflictCardIdRow, syncRepairVersionRow] = await Promise.all([
+  const startupTodayEventsRequest = startupDayRange
+    ? startupTransaction.objectStore(STORE.reviewEvents).index("answeredAt").getAll(IDBKeyRange.bound(
+      [new Date(startupDayRange.start).toISOString(), ""],
+      [new Date(startupDayRange.end - 1).toISOString(), "\uffff"],
+    ))
+    : null;
+  const [
+    outboxRows,
+    cloudDeltaCursorRow,
+    reviewHourCountRow,
+    reviewDayCountRow,
+    syncConflictCardIdRow,
+    syncRepairVersionRow,
+    startupProjectionRows,
+    startupDueBucketRows,
+    startupTodayEvents,
+  ] = await Promise.all([
     requestResult<SyncOutboxMutation[]>(startupTransaction.objectStore(STORE.outbox).getAll()),
     requestResult<any>(startupSyncMetadata.get("cloudDeltaCursors")),
     requestResult<any>(startupSyncMetadata.get("reviewHourCounts")),
+    requestResult<{ value?: StoredReviewDayCounts } | undefined>(startupSyncMetadata.get("reviewDayCounts")),
     requestResult<any>(startupSyncMetadata.get("syncConflictCardIds")),
     requestResult<any>(startupSyncMetadata.get("syncRepairVersion")),
+    requestResult<StoredDeckStudyProjection[]>(startupTransaction.objectStore(STORE.deckStudyProjections).getAll()),
+    requestResult<StoredDeckStudyDueBucket[]>(startupTransaction.objectStore(STORE.deckStudyDueBuckets).getAll()),
+    startupTodayEventsRequest ? requestResult<ReviewEvent[]>(startupTodayEventsRequest) : Promise.resolve([]),
   ]);
   await transactionDone(startupTransaction);
   markStartupPhaseReady("indexedDbStartupMetadata", {
@@ -468,10 +562,412 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     });
   let cloudDeltaCursors = cloudDeltaCursorRow?.value ?? {};
   let reviewHourCounts: Record<string, number> | null = reviewHourCountRow?.value ?? null;
+  let reviewDayCountsCache: StoredReviewDayCounts | null = reviewDayCountRow?.value ?? null;
   let syncConflictCardIds = new Set<string>(syncConflictCardIdRow?.value ?? []);
   let syncRepairVersion = Number(syncRepairVersionRow?.value ?? 0);
   let latestImportVerificationScope: ImportVerificationScope | null = null;
   let firstDeckSummariesStarted = false;
+  let activeProjectionContext: DeckStudyProjectionContext | null = null;
+  let longestProjectionTaskMs = 0;
+  let learningDayRangeCache = {
+    key: `${startupProjectionContext.key}:${startupDayKey}`,
+    value: startupDayRange,
+  };
+  let startupProjectionSnapshot: {
+    storedByDeckId: Map<string, StoredDeckStudyProjection>;
+    dueBuckets: StoredDeckStudyDueBucket[];
+    todayEvents: ReviewEvent[];
+    dayRangeKey: string;
+  } | null = {
+    storedByDeckId: new Map(startupProjectionRows.map((projection) => [projection.deckId, projection])),
+    dueBuckets: startupDueBucketRows,
+    todayEvents: startupTodayEvents,
+    dayRangeKey: dayRangeKey(startupDayRange),
+  };
+
+  const markDeckProjectionsDirty = (transaction: IDBTransaction, deckIds: Iterable<string>, contextKey = activeProjectionContext?.key ?? "") => {
+    startupProjectionSnapshot = null;
+    const store = transaction.objectStore(STORE.deckStudyProjections);
+    for (const deckId of new Set(deckIds)) if (deckId) store.put(dirtyProjectionRow(deckId, contextKey));
+  };
+
+  const persistDirtyDeckProjections = async (deckIds: Iterable<string>) => {
+    const idsToMark = [...new Set(deckIds)].filter(Boolean);
+    if (!idsToMark.length) return;
+    const transaction = database.transaction(STORE.deckStudyProjections, "readwrite");
+    markDeckProjectionsDirty(transaction, idsToMark);
+    await transactionDone(transaction);
+  };
+
+  const removeDeckProjections = async (deckIds: Iterable<string>) => {
+    const idsToRemove = [...new Set(deckIds)].filter(Boolean);
+    if (!idsToRemove.length) return;
+    startupProjectionSnapshot = null;
+    const transaction = database.transaction([STORE.deckStudyProjections, STORE.deckStudyDueBuckets], "readwrite");
+    const projectionStore = transaction.objectStore(STORE.deckStudyProjections);
+    const bucketIndex = transaction.objectStore(STORE.deckStudyDueBuckets).index("deckId");
+    for (const deckId of idsToRemove) {
+      projectionStore.delete(deckId);
+      const request = bucketIndex.openCursor(IDBKeyRange.only(deckId));
+      await new Promise<void>((resolve, reject) => {
+        request.onerror = () => reject(request.error ?? new Error("Stapelprojektion konnte nicht entfernt werden."));
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (!cursor) { resolve(); return; }
+          cursor.delete();
+          cursor.continue();
+        };
+      });
+    }
+    await transactionDone(transaction);
+  };
+
+  const updateProjectionForCardChange = async (
+    transaction: IDBTransaction,
+    deckId: string,
+    previous: { card: StoredCard | null; activeVariants: number },
+    next: { card: StoredCard | null; activeVariants: number },
+  ) => {
+    startupProjectionSnapshot = null;
+    const context = activeProjectionContext;
+    const store = transaction.objectStore(STORE.deckStudyProjections);
+    const current = await requestResult<StoredDeckStudyProjection | undefined>(store.get(deckId));
+    if (!context || !current?.ready || current.contextKey !== context.key || current.projectionVersion !== DECK_STUDY_PROJECTION_VERSION) {
+      store.put(dirtyProjectionRow(deckId, context?.key ?? current?.contextKey ?? ""));
+      return;
+    }
+
+    const cardId = previous.card?.id ?? next.card?.id ?? "";
+    const conflicted = syncConflictCardIds.has(cardId);
+    const previousDueWasMinimum = !conflicted
+      && previous.card?.reviewable === 1
+      && previous.card.dueAt === current.nextDueAt;
+    const nextKeepsMinimum = Boolean(previous.card && next.card?.reviewable === 1 && next.card.dueAt <= previous.card.dueAt);
+    if (previousDueWasMinimum && !nextKeepsMinimum) {
+      store.put(dirtyProjectionRow(deckId, context.key));
+      return;
+    }
+
+    const aggregate: DeckStudyProjectionAggregate = {
+      totalCards: current.totalCards,
+      newCards: current.newCards,
+      inProgressLearning: current.inProgressLearning,
+      inProgressRelearning: current.inProgressRelearning,
+      matureCards: current.matureCards,
+      masteredCards: current.masteredCards,
+      activeVariants: current.activeVariants,
+      nextDueAt: current.nextDueAt,
+      dueByDay: {},
+    };
+    if (!conflicted && previous.card) addCardToDeckStudyProjection(aggregate, previous.card, context, -1);
+    if (!conflicted && next.card) addCardToDeckStudyProjection(aggregate, next.card, context, 1);
+    aggregate.activeVariants += conflicted ? 0 : next.activeVariants - previous.activeVariants;
+    const bucketStore = transaction.objectStore(STORE.deckStudyDueBuckets);
+    for (const [dateKey, delta] of Object.entries(aggregate.dueByDay)) {
+      const id = deckStudyDueBucketId(deckId, context.key, dateKey);
+      const bucket = await requestResult<StoredDeckStudyDueBucket | undefined>(bucketStore.get(id));
+      const reviewDueCount = Math.max(0, (bucket?.reviewDueCount ?? 0) + delta.reviewDueCount);
+      const forecastCount = Math.max(0, (bucket?.forecastCount ?? 0) + delta.forecastCount);
+      if (reviewDueCount === 0 && forecastCount === 0) bucketStore.delete(id);
+      else bucketStore.put({ id, deckId, contextKey: context.key, dateKey, reviewDueCount, forecastCount } satisfies StoredDeckStudyDueBucket);
+    }
+    store.put(projectionRowFromAggregate(deckId, context.key, current.dirtyToken, current.revision + 1, {
+      ...aggregate,
+      totalCards: Math.max(0, aggregate.totalCards),
+      newCards: Math.max(0, aggregate.newCards),
+      inProgressLearning: Math.max(0, aggregate.inProgressLearning),
+      inProgressRelearning: Math.max(0, aggregate.inProgressRelearning),
+      matureCards: Math.max(0, aggregate.matureCards),
+      masteredCards: Math.max(0, aggregate.masteredCards),
+      activeVariants: Math.max(0, aggregate.activeVariants),
+    }));
+  };
+
+  const saveProjectionCheckpoint = async (checkpoint: DeckStudyProjectionCheckpoint) => {
+    const transaction = database.transaction(STORE.syncMetadata, "readwrite");
+    transaction.objectStore(STORE.syncMetadata).put({ key: "deckStudyProjectionRebuild", value: checkpoint });
+    await transactionDone(transaction);
+  };
+
+  const readProjectionCheckpoint = async () => {
+    const transaction = database.transaction(STORE.syncMetadata, "readonly");
+    const row = await requestResult<{ value?: DeckStudyProjectionCheckpoint } | undefined>(transaction.objectStore(STORE.syncMetadata).get("deckStudyProjectionRebuild"));
+    await transactionDone(transaction);
+    return row?.value ?? null;
+  };
+
+  const projectionClock = () => globalThis.performance?.now?.() ?? Date.now();
+  const recordProjectionTask = (startedAt: number) => {
+    longestProjectionTaskMs = Math.max(longestProjectionTaskMs, projectionClock() - startedAt);
+  };
+  const yieldProjectionRebuild = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+  const readProjectionCardChunk = async (deckId: string, afterId: string | null) => {
+    const transaction = database.transaction(STORE.cards, "readonly");
+    const index = transaction.objectStore(STORE.cards).index("deckScan");
+    const range = IDBKeyRange.bound([deckId, afterId ?? ""], [deckId, "\uffff"], Boolean(afterId), false);
+    const request = index.openCursor(range);
+    const rows: StoredCard[] = [];
+    const startedAt = projectionClock();
+    let cursor: string | null = afterId;
+    let complete = false;
+    await new Promise<void>((resolve, reject) => {
+      request.onerror = () => reject(request.error ?? new Error("Stapelprojektion konnte Karten nicht lesen."));
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (!entry) { complete = true; resolve(); return; }
+        const row = entry.value as StoredCard;
+        rows.push(row);
+        cursor = row.id;
+        if (rows.length >= LOCAL_WRITE_CHUNK_SIZE || projectionClock() - startedAt >= 25) { resolve(); return; }
+        entry.continue();
+      };
+    });
+    await transactionDone(transaction);
+    return { rows, cursor, complete };
+  };
+
+  const readProjectionVariantChunk = async (deckId: string, afterId: string | null) => {
+    const transaction = database.transaction(STORE.variants, "readonly");
+    const request = transaction.objectStore(STORE.variants).index("deckId").openCursor(IDBKeyRange.only(deckId));
+    const rows: StoredVariant[] = [];
+    const startedAt = projectionClock();
+    let cursor: string | null = afterId;
+    let complete = false;
+    let seeking = Boolean(afterId);
+    await new Promise<void>((resolve, reject) => {
+      request.onerror = () => reject(request.error ?? new Error("Stapelprojektion konnte Varianten nicht lesen."));
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (!entry) { complete = true; resolve(); return; }
+        const primaryKey = String(entry.primaryKey);
+        if (seeking) {
+          seeking = false;
+          if (primaryKey < afterId!) { entry.continuePrimaryKey(deckId, afterId!); return; }
+          if (primaryKey === afterId) { entry.continue(); return; }
+        }
+        rows.push(entry.value as StoredVariant);
+        cursor = primaryKey;
+        if (rows.length >= LOCAL_WRITE_CHUNK_SIZE || projectionClock() - startedAt >= 25) { resolve(); return; }
+        entry.continue();
+      };
+    });
+    await transactionDone(transaction);
+    return { rows, cursor, complete };
+  };
+
+  const rebuildDeckStudyProjection = async (
+    deckId: string,
+    context: DeckStudyProjectionContext,
+    storedProjection?: StoredDeckStudyProjection,
+  ) => {
+    let projection = storedProjection;
+    if (!projection || projection.contextKey !== context.key || projection.projectionVersion !== DECK_STUDY_PROJECTION_VERSION) {
+      projection = dirtyProjectionRow(deckId, context.key);
+      const transaction = database.transaction(STORE.deckStudyProjections, "readwrite");
+      transaction.objectStore(STORE.deckStudyProjections).put(projection);
+      await transactionDone(transaction);
+    }
+    if (projection.ready) return projection;
+
+    const storedCheckpoint = await readProjectionCheckpoint();
+    let checkpoint: DeckStudyProjectionCheckpoint = storedCheckpoint
+      && storedCheckpoint.deckId === deckId
+      && storedCheckpoint.contextKey === context.key
+      && storedCheckpoint.dirtyToken === projection.dirtyToken
+      ? storedCheckpoint
+      : {
+        deckId,
+        contextKey: context.key,
+        dirtyToken: projection.dirtyToken,
+        phase: "cards",
+        cursor: null,
+        aggregate: emptyDeckStudyProjectionAggregate(),
+      };
+
+    while (checkpoint.phase === "cards") {
+      const chunk = await readProjectionCardChunk(deckId, checkpoint.cursor);
+      let taskStartedAt = projectionClock();
+      for (const card of chunk.rows) {
+        if (!syncConflictCardIds.has(card.id)) addCardToDeckStudyProjection(checkpoint.aggregate, card, context);
+        if (projectionClock() - taskStartedAt >= 25) {
+          recordProjectionTask(taskStartedAt);
+          await yieldProjectionRebuild();
+          taskStartedAt = projectionClock();
+        }
+      }
+      recordProjectionTask(taskStartedAt);
+      checkpoint.cursor = chunk.cursor;
+      if (chunk.complete) {
+        checkpoint = { ...checkpoint, phase: "variants", cursor: null };
+      }
+      await saveProjectionCheckpoint(checkpoint);
+      if (!chunk.complete) await yieldProjectionRebuild();
+    }
+
+    while (checkpoint.phase === "variants") {
+      const chunk = await readProjectionVariantChunk(deckId, checkpoint.cursor);
+      let taskStartedAt = projectionClock();
+      for (const variant of chunk.rows) {
+        if (variant.activeForSummary === 1 && !syncConflictCardIds.has(variant.learningItemId)) checkpoint.aggregate.activeVariants += 1;
+        if (projectionClock() - taskStartedAt >= 25) {
+          recordProjectionTask(taskStartedAt);
+          await yieldProjectionRebuild();
+          taskStartedAt = projectionClock();
+        }
+      }
+      recordProjectionTask(taskStartedAt);
+      checkpoint.cursor = chunk.cursor;
+      await saveProjectionCheckpoint(checkpoint);
+      if (!chunk.complete) {
+        await yieldProjectionRebuild();
+        continue;
+      }
+      break;
+    }
+
+    const clearBuckets = database.transaction([STORE.deckStudyProjections, STORE.deckStudyDueBuckets], "readwrite");
+    const current = await requestResult<StoredDeckStudyProjection | undefined>(clearBuckets.objectStore(STORE.deckStudyProjections).get(deckId));
+    if (!current || current.dirtyToken !== checkpoint.dirtyToken || current.contextKey !== context.key) {
+      await transactionDone(clearBuckets);
+      return null;
+    }
+    const bucketStore = clearBuckets.objectStore(STORE.deckStudyDueBuckets);
+    const oldBuckets = bucketStore.index("deckId").openCursor(IDBKeyRange.only(deckId));
+    await new Promise<void>((resolve, reject) => {
+      oldBuckets.onerror = () => reject(oldBuckets.error);
+      oldBuckets.onsuccess = () => {
+        const cursor = oldBuckets.result;
+        if (!cursor) { resolve(); return; }
+        cursor.delete();
+        cursor.continue();
+      };
+    });
+    await transactionDone(clearBuckets);
+    await yieldProjectionRebuild();
+
+    let pendingBuckets: StoredDeckStudyDueBucket[] = [];
+    let bucketTaskStartedAt = projectionClock();
+    const flushBuckets = async () => {
+      if (!pendingBuckets.length) return true;
+      const transaction = database.transaction([STORE.deckStudyProjections, STORE.deckStudyDueBuckets], "readwrite");
+      const latest = await requestResult<StoredDeckStudyProjection | undefined>(transaction.objectStore(STORE.deckStudyProjections).get(deckId));
+      if (!latest || latest.dirtyToken !== checkpoint.dirtyToken || latest.contextKey !== context.key) {
+        await transactionDone(transaction);
+        return false;
+      }
+      const store = transaction.objectStore(STORE.deckStudyDueBuckets);
+      for (const bucket of pendingBuckets) store.put(bucket);
+      await transactionDone(transaction);
+      pendingBuckets = [];
+      await yieldProjectionRebuild();
+      bucketTaskStartedAt = projectionClock();
+      return true;
+    };
+    for (const dateKey in checkpoint.aggregate.dueByDay) {
+      const counts = checkpoint.aggregate.dueByDay[dateKey];
+      if (counts.reviewDueCount !== 0 || counts.forecastCount !== 0) {
+        const id = deckStudyDueBucketId(deckId, context.key, dateKey);
+        pendingBuckets.push({ id, deckId, contextKey: context.key, dateKey, ...counts });
+      }
+      if (pendingBuckets.length >= LOCAL_WRITE_CHUNK_SIZE || projectionClock() - bucketTaskStartedAt >= 25) {
+        recordProjectionTask(bucketTaskStartedAt);
+        if (!await flushBuckets()) return null;
+      }
+    }
+    recordProjectionTask(bucketTaskStartedAt);
+    if (!await flushBuckets()) return null;
+
+    const finalize = database.transaction([STORE.deckStudyProjections, STORE.syncMetadata], "readwrite");
+    const projectionStore = finalize.objectStore(STORE.deckStudyProjections);
+    const latest = await requestResult<StoredDeckStudyProjection | undefined>(projectionStore.get(deckId));
+    if (!latest || latest.dirtyToken !== checkpoint.dirtyToken || latest.contextKey !== context.key) {
+      await transactionDone(finalize);
+      return null;
+    }
+    const ready = projectionRowFromAggregate(deckId, context.key, latest.dirtyToken, latest.revision + 1, checkpoint.aggregate);
+    projectionStore.put(ready);
+    finalize.objectStore(STORE.syncMetadata).delete("deckStudyProjectionRebuild");
+    await transactionDone(finalize);
+    return ready;
+  };
+
+  const buildReviewDayCountsCache = async (context: DeckStudyProjectionContext) => {
+    const counts: Record<string, number> = {};
+    let taskStartedAt = projectionClock();
+    for (const [hour, count] of Object.entries(reviewHourCounts ?? {})) {
+      const key = getStudyHeatmapDayKey(`${hour}:00:00.000Z`, context.timeZone, context.dayStartHour);
+      if (key) counts[key] = (counts[key] ?? 0) + count;
+      if (projectionClock() - taskStartedAt >= 25) {
+        recordProjectionTask(taskStartedAt);
+        await yieldProjectionRebuild();
+        taskStartedAt = projectionClock();
+      }
+    }
+    recordProjectionTask(taskStartedAt);
+    reviewDayCountsCache = {
+      contextKey: context.key,
+      timeZone: context.timeZone,
+      dayStartHour: context.dayStartHour,
+      counts,
+    };
+    const transaction = database.transaction(STORE.syncMetadata, "readwrite");
+    transaction.objectStore(STORE.syncMetadata).put({ key: "reviewDayCounts", value: reviewDayCountsCache });
+    await transactionDone(transaction);
+    return reviewDayCountsCache;
+  };
+
+  const readDeckStudySnapshot = async (context: DeckStudyProjectionContext, dayRange: { start: number; end: number } | null) => {
+    activeProjectionContext = context;
+    const cached = startupProjectionSnapshot;
+    startupProjectionSnapshot = null;
+    if (cached?.dayRangeKey === dayRangeKey(dayRange)) {
+      return {
+        storedByDeckId: cached.storedByDeckId,
+        dueBuckets: cached.dueBuckets.filter((bucket) => bucket.contextKey === context.key),
+        todayEvents: cached.todayEvents,
+      };
+    }
+    const read = database.transaction(
+      cached ? STORE.reviewEvents : [STORE.deckStudyProjections, STORE.deckStudyDueBuckets, STORE.reviewEvents],
+      "readonly",
+    );
+    const eventRequest = dayRange
+      ? read.objectStore(STORE.reviewEvents).index("answeredAt").getAll(IDBKeyRange.bound(
+        [new Date(dayRange.start).toISOString(), ""],
+        [new Date(dayRange.end - 1).toISOString(), "\uffff"],
+      ))
+      : null;
+    const projectionRequest = cached ? null : read.objectStore(STORE.deckStudyProjections).getAll();
+    const bucketRequest = cached ? null : read.objectStore(STORE.deckStudyDueBuckets).index("contextDate").getAll(IDBKeyRange.bound(
+      [context.key, "", ""],
+      [context.key, "\uffff", "\uffff"],
+    ));
+    const [stored, dueBuckets, todayEvents] = await Promise.all([
+      projectionRequest ? requestResult<StoredDeckStudyProjection[]>(projectionRequest) : Promise.resolve([]),
+      bucketRequest ? requestResult<StoredDeckStudyDueBucket[]>(bucketRequest) : Promise.resolve([]),
+      eventRequest ? requestResult<ReviewEvent[]>(eventRequest) : Promise.resolve([]),
+    ]);
+    await transactionDone(read);
+    return {
+      storedByDeckId: cached?.storedByDeckId ?? new Map(stored.map((projection) => [projection.deckId, projection])),
+      dueBuckets: cached?.dueBuckets.filter((bucket) => bucket.contextKey === context.key) ?? dueBuckets,
+      todayEvents,
+    };
+  };
+
+  const ensureDeckStudySnapshot = async (context: DeckStudyProjectionContext, dayRange: { start: number; end: number } | null) => {
+    let snapshot = await readDeckStudySnapshot(context, dayRange);
+    let rebuildCount = 0;
+    for (const deck of shell!.decks) {
+      const candidate = snapshot.storedByDeckId.get(deck.id);
+      if (candidate?.ready && candidate.contextKey === context.key && candidate.projectionVersion === DECK_STUDY_PROJECTION_VERSION) continue;
+      rebuildCount += 1;
+      await rebuildDeckStudyProjection(deck.id, context, candidate);
+    }
+    if (rebuildCount > 0) snapshot = await readDeckStudySnapshot(context, dayRange);
+    return { ...snapshot, rebuildCount };
+  };
 
   const queueMutations = (inputs: any[]) => {
     const queued: SyncOutboxMutation[] = [];
@@ -512,11 +1008,14 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     nextSnapshots: any[] = [],
     mutationBatch: { queued: SyncOutboxMutation[]; removedIds: string[] } = { queued: [], removedIds: [] },
   ) => enqueueWrite(async () => {
+    const nextIds = ids(nextDecks);
+    const removedProjectionDeckIds = previousDecks.filter((deck) => !nextIds.has(deck.id)).map((deck) => deck.id);
+    await persistDirtyDeckProjections(nextDecks.map((deck) => deck.id));
+    await removeDeckProjections(removedProjectionDeckIds);
     const operations: Array<{ store: string; type: "put" | "delete"; value: any }> = [];
     const put = (store: string, value: any) => operations.push({ store, type: "put", value });
     const remove = (store: string, value: any) => operations.push({ store, type: "delete", value });
     const previousById = new Map(previousDecks.map((deck) => [deck.id, deck]));
-    const nextIds = ids(nextDecks);
     for (const removedDeck of previousDecks.filter((deck) => !nextIds.has(deck.id))) {
       remove(STORE.decks, removedDeck.id);
       for (const card of removedDeck.cards) {
@@ -711,7 +1210,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       };
       const cached = hydratedDecks.get(deckId);
       if (cached) hydratedDecks.set(deckId, { ...cached, ...nextSummary, cards: cached.cards.filter((card) => card.id !== cardId) });
-      const write = database.transaction([STORE.decks, STORE.cards, STORE.variants, STORE.outbox, STORE.meta, STORE.syncMetadata], "readwrite");
+      const write = database.transaction([STORE.decks, STORE.cards, STORE.variants, STORE.outbox, STORE.meta, STORE.syncMetadata, STORE.deckStudyProjections, STORE.deckStudyDueBuckets], "readwrite");
       write.objectStore(STORE.decks).put(nextSummary);
       write.objectStore(STORE.cards).delete(cardId);
       for (const variant of storedVariants) write.objectStore(STORE.variants).delete(variant.id);
@@ -719,6 +1218,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       for (const mutation of mutationBatch.queued) write.objectStore(STORE.outbox).put(mutation);
       write.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
       write.objectStore(STORE.syncMetadata).put({ key: "cloudTombstones", value: shell!.cloudTombstones });
+      await updateProjectionForCardChange(write, deckId, {
+        card: stored ?? null,
+        activeVariants: activeVariantCount(previousCard),
+      }, { card: null, activeVariants: 0 });
       await transactionDone(write);
       return candidate;
     }
@@ -745,7 +1248,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     }
     for (const definition of content.definitions) definitionCache.set(definition.id, definition);
     await (async () => {
-      const stores = [STORE.decks, STORE.cards, STORE.variants, STORE.documents, STORE.noteTypeDefinitions, STORE.outbox, STORE.meta];
+      const stores = [STORE.decks, STORE.cards, STORE.variants, STORE.documents, STORE.noteTypeDefinitions, STORE.outbox, STORE.meta, STORE.deckStudyProjections, STORE.deckStudyDueBuckets];
       const write = database.transaction(stores, "readwrite");
       write.objectStore(STORE.decks).put(nextSummary);
       write.objectStore(STORE.cards).put(cardRecord(nextCard, deckId));
@@ -758,6 +1261,13 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       for (const id of mutationBatch.removedIds) write.objectStore(STORE.outbox).delete(id);
       for (const mutation of mutationBatch.queued) write.objectStore(STORE.outbox).put(mutation);
       write.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
+      await updateProjectionForCardChange(write, deckId, {
+        card: stored ?? null,
+        activeVariants: activeVariantCount(previousCard),
+      }, {
+        card: cardRecord(nextCard, deckId),
+        activeVariants: activeVariantCount(nextCard),
+      });
       await transactionDone(write);
     })();
     return nextCard;
@@ -1025,6 +1535,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       shell = shellFromState(normalized);
       hydratedDecks.clear();
       cloudDeltaCursors = nextCursors;
+      reviewHourCounts = reviewHourCountsFromState(normalized);
+      reviewDayCountsCache = null;
       void enqueueWrite(() => writeState(database, normalized, cloudDeltaCursors));
       return normalized;
     },
@@ -1079,6 +1591,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       return batch.queued.length;
     },
     async setSyncConflicts(conflicts: any[] = []) {
+      const previousConflictCardIds = syncConflictCardIds;
       syncConflictCardIds = new Set(conflicts.flatMap((conflict) => conflict?.cardId ? [String(conflict.cardId)] : []));
       const conflictedDeckIds = [...new Set(conflicts
         .filter((conflict) => conflict?.entityTable === "decks" && conflict?.entityId)
@@ -1090,8 +1603,14 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         await transactionDone(read);
         for (const card of cardsByDeck.flat()) syncConflictCardIds.add(card.id);
       }
-      const transaction = database.transaction(STORE.syncMetadata, "readwrite");
+      const changedConflictCardIds = new Set([...previousConflictCardIds, ...syncConflictCardIds]);
+      const cardRead = database.transaction(STORE.cards, "readonly");
+      const changedConflictCards = await Promise.all([...changedConflictCardIds].map((cardId) => requestResult<StoredCard | undefined>(cardRead.objectStore(STORE.cards).get(cardId))));
+      await transactionDone(cardRead);
+      const affectedDeckIds = new Set([...conflictedDeckIds, ...changedConflictCards.flatMap((card) => card?.deckId ? [card.deckId] : [])]);
+      const transaction = database.transaction([STORE.syncMetadata, STORE.deckStudyProjections], "readwrite");
       transaction.objectStore(STORE.syncMetadata).put({ key: "syncConflictCardIds", value: [...syncConflictCardIds] });
+      markDeckProjectionsDirty(transaction, affectedDeckIds);
       await transactionDone(transaction);
     },
     async prepareConflictResolution(result: any, decision: any) {
@@ -1111,13 +1630,16 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         note_type_definitions: STORE.noteTypeDefinitions,
       } as Record<string, string>)[target.table];
       if (!storeName) return;
-      const stores = target.table === "cards" ? [STORE.cards, STORE.variants] : [storeName];
+      const stores = target.table === "cards" ? [STORE.cards, STORE.variants, STORE.deckStudyProjections] : [storeName, STORE.deckStudyProjections];
       const transaction = database.transaction(stores, "readwrite");
+      const removed = await requestResult<any>(transaction.objectStore(storeName).get(target.entityId));
       transaction.objectStore(storeName).delete(target.entityId);
       if (target.table === "cards") {
         const variants = await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("learningItemId").getAll(target.entityId));
         for (const variant of variants) transaction.objectStore(STORE.variants).delete(variant.id);
       }
+      const affectedDeckId = target.table === "decks" ? target.entityId : removed?.deckId;
+      if (affectedDeckId) markDeckProjectionsDirty(transaction, [affectedDeckId]);
       await transactionDone(transaction);
       hydratedDecks.clear();
       shell = await loadShell(database);
@@ -1126,6 +1648,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
     async applyCloudPage(page: CloudEntityPage) {
       await writeChain;
       hydratedDecks.clear();
+      const affectedProjectionDeckIds = new Set<string>();
+      if (page.reset && ["cards", "card_variants"].includes(page.table)) {
+        for (const deck of shell!.decks) affectedProjectionDeckIds.add(deck.id);
+      }
       const entities = page.table === "media_assets"
         ? page.entities
         : page.entities.filter((entity) => !pendingEntityMutation(page.table, entity.id));
@@ -1138,6 +1664,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         note_type_definitions: STORE.noteTypeDefinitions,
         learning_item_source_snapshots: STORE.sourceSnapshots,
       } as const)[page.table];
+      if (page.table === "cards") {
+        for (const entity of entities) if (entity.deckId) affectedProjectionDeckIds.add(String(entity.deckId));
+      }
       if (page.table === "media_assets") {
         const transaction = database.transaction(STORE.decks, "readwrite");
         const store = transaction.objectStore(STORE.decks);
@@ -1162,6 +1691,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         const cardStore = cardTransaction.objectStore(STORE.cards);
         const deckIds = await Promise.all(entities.map(async (variant) => (await requestResult<StoredCard | undefined>(cardStore.get(variant.learningItemId ?? variant.cardId)))?.deckId ?? ""));
         await transactionDone(cardTransaction);
+        for (const deckId of deckIds) if (deckId) affectedProjectionDeckIds.add(deckId);
+        await persistDirtyDeckProjections(affectedProjectionDeckIds);
         const transaction = database.transaction(STORE.variants, "readwrite");
         const store = transaction.objectStore(STORE.variants);
         const pendingRecords = page.reset
@@ -1174,6 +1705,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         entities.forEach((variant, index) => variant.deletedAt ? store.delete(variant.id) : store.put(variantRecord(variant, deckIds[index])));
         await transactionDone(transaction);
       } else {
+        await persistDirtyDeckProjections(affectedProjectionDeckIds);
         const transaction = database.transaction(storeName, "readwrite");
         const store = transaction.objectStore(storeName);
         const pendingRecords = page.reset
@@ -1202,8 +1734,20 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
           if (key) counts[key] = (counts[key] ?? 0) + 1;
         }
         reviewHourCounts = counts;
+        if (page.reset) {
+          reviewDayCountsCache = null;
+        } else if (reviewDayCountsCache) {
+          const dayCounts = { ...reviewDayCountsCache.counts };
+          for (const event of entities) {
+            const key = getStudyHeatmapDayKey(event.answeredAt ?? event.createdAt, reviewDayCountsCache.timeZone, reviewDayCountsCache.dayStartHour);
+            if (key) dayCounts[key] = (dayCounts[key] ?? 0) + 1;
+          }
+          reviewDayCountsCache = { ...reviewDayCountsCache, counts: dayCounts };
+        }
         const transaction = database.transaction(STORE.syncMetadata, "readwrite");
         transaction.objectStore(STORE.syncMetadata).put({ key: "reviewHourCounts", value: counts });
+        if (reviewDayCountsCache) transaction.objectStore(STORE.syncMetadata).put({ key: "reviewDayCounts", value: reviewDayCountsCache });
+        else transaction.objectStore(STORE.syncMetadata).delete("reviewDayCounts");
         await transactionDone(transaction);
       }
       if (page.cursor) {
@@ -1275,15 +1819,33 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
       rememberPending(mutation);
       const hourKey = reviewHourKey(event.answeredAt);
       if (hourKey) reviewHourCounts = { ...(reviewHourCounts ?? {}), [hourKey]: ((reviewHourCounts ?? {})[hourKey] ?? 0) + 1 };
+      if (reviewDayCountsCache) {
+        const dayKey = getStudyHeatmapDayKey(event.answeredAt, reviewDayCountsCache.timeZone, reviewDayCountsCache.dayStartHour);
+        if (dayKey) reviewDayCountsCache = {
+          ...reviewDayCountsCache,
+          counts: { ...reviewDayCountsCache.counts, [dayKey]: (reviewDayCountsCache.counts[dayKey] ?? 0) + 1 },
+        };
+      }
       void enqueueWrite(async () => {
-        const transaction = database.transaction([STORE.decks, STORE.cards, STORE.variants, STORE.reviewEvents, STORE.outbox, STORE.meta, STORE.syncMetadata], "readwrite");
+        const transaction = database.transaction([STORE.decks, STORE.cards, STORE.variants, STORE.reviewEvents, STORE.outbox, STORE.meta, STORE.syncMetadata, STORE.deckStudyProjections, STORE.deckStudyDueBuckets], "readwrite");
+        const cardStore = transaction.objectStore(STORE.cards);
+        const previousCard = await requestResult<StoredCard | undefined>(cardStore.get(updatedCard.id));
+        const previousVariants = await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("learningItemId").getAll(updatedCard.id));
+        await updateProjectionForCardChange(transaction, deck.id, {
+          card: previousCard ?? null,
+          activeVariants: previousVariants.filter((candidate) => candidate.activeForSummary === 1).length,
+        }, {
+          card: cardRecord(updatedCard, deck.id),
+          activeVariants: activeVariantCount(updatedCard),
+        });
         transaction.objectStore(STORE.decks).put(deckSummary);
-        transaction.objectStore(STORE.cards).put(cardRecord(updatedCard, deck.id));
+        cardStore.put(cardRecord(updatedCard, deck.id));
         if (variant) transaction.objectStore(STORE.variants).put(variantRecord(variant, deck.id));
         transaction.objectStore(STORE.reviewEvents).put(event);
         transaction.objectStore(STORE.outbox).put(mutation);
         transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: deck.updatedAt });
         transaction.objectStore(STORE.syncMetadata).put({ key: "reviewHourCounts", value: reviewHourCounts ?? {} });
+        if (reviewDayCountsCache) transaction.objectStore(STORE.syncMetadata).put({ key: "reviewDayCounts", value: reviewDayCountsCache });
         await transactionDone(transaction);
       });
       return result;
@@ -1335,8 +1897,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
               mediaAssets: existing.mediaAssets,
               versionLog: existing.versionLog,
             } : { ...incoming, id: persistedDeckId, parentDeckId };
-            const transaction = database.transaction([STORE.decks, STORE.outbox], "readwrite");
+            const transaction = database.transaction([STORE.decks, STORE.outbox, STORE.deckStudyProjections], "readwrite");
             transaction.objectStore(STORE.decks).put(summary);
+            markDeckProjectionsDirty(transaction, [summary.id]);
             persistOutbox(transaction, [{ type: "entity-mutation", table: "decks", entityId: summary.id, baseRevision: existing?.revision ?? null, payload: { table: "decks", entity: summary, baseRevision: existing?.revision ?? null } }]);
             await transactionDone(transaction);
             importedDeckIds.push(summary.id);
@@ -1380,7 +1943,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
             await transactionDone(snapshotRead);
             const existingSnapshotIds = new Set(snapshotIds.filter((_: string, index: number) => snapshotKeys[index] != null));
             const chunkMutations: any[] = [];
-            const transaction = database.transaction([STORE.cards, STORE.variants, STORE.noteTypeDefinitions, STORE.sourceSnapshots, STORE.outbox], "readwrite");
+            const transaction = database.transaction([STORE.cards, STORE.variants, STORE.noteTypeDefinitions, STORE.sourceSnapshots, STORE.outbox, STORE.deckStudyProjections], "readwrite");
+            markDeckProjectionsDirty(transaction, [context.summary.id]);
             for (const definition of chunk.definitions ?? []) {
               importedDefinitionIds.add(definition.id);
               definitionCache.set(definition.id, definition);
@@ -1543,56 +2107,69 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         markStartupPhaseStarted("firstDeckSummaries");
       }
       await writeChain;
+      const context = createDeckStudyProjectionContext(timeZone, dayStartHour);
       const result = new Map<string, DeckLibrarySummary>();
       const countsByDay = new Map<string, number>();
       const forecastCountsByDay = new Map<string, number>();
       const todayKey = getStudyHeatmapDayKey(now, timeZone, dayStartHour) ?? now.slice(0, 10);
-      const dayRange = getLearningDayRange(now, { dayStartHour, timeZone });
-      for (const [hour, count] of Object.entries(reviewHourCounts ?? {})) {
-        const key = getStudyHeatmapDayKey(`${hour}:00:00.000Z`, timeZone, dayStartHour);
-        if (key) countsByDay.set(key, (countsByDay.get(key) ?? 0) + count);
+      const dayRangeCacheKey = `${context.key}:${todayKey}`;
+      if (learningDayRangeCache.key !== dayRangeCacheKey) {
+        learningDayRangeCache = {
+          key: dayRangeCacheKey,
+          value: getLearningDayRange(now, { dayStartHour, timeZone }),
+        };
       }
+      const dayRange = learningDayRangeCache.value;
+      const snapshot = await ensureDeckStudySnapshot(context, dayRange);
+      const dayCounts = reviewDayCountsCache?.contextKey === context.key
+        ? reviewDayCountsCache
+        : await buildReviewDayCountsCache(context);
+      let taskStartedAt = projectionClock();
+      for (const [key, count] of Object.entries(dayCounts.counts)) {
+        countsByDay.set(key, count);
+        if (projectionClock() - taskStartedAt >= 25) {
+          recordProjectionTask(taskStartedAt);
+          await yieldProjectionRebuild();
+          taskStartedAt = projectionClock();
+        }
+      }
+      recordProjectionTask(taskStartedAt);
+      const dueCardsByDeck = new Map<string, number>();
+      taskStartedAt = projectionClock();
+      for (const bucket of snapshot.dueBuckets) {
+        if (bucket.dateKey <= todayKey) dueCardsByDeck.set(bucket.deckId, (dueCardsByDeck.get(bucket.deckId) ?? 0) + bucket.reviewDueCount);
+        if (bucket.dateKey > todayKey) forecastCountsByDay.set(bucket.dateKey, (forecastCountsByDay.get(bucket.dateKey) ?? 0) + bucket.forecastCount);
+        if (projectionClock() - taskStartedAt >= 25) {
+          recordProjectionTask(taskStartedAt);
+          await yieldProjectionRebuild();
+          taskStartedAt = projectionClock();
+        }
+      }
+      recordProjectionTask(taskStartedAt);
+      const todayEventsByDeck = new Map<string, ReviewEvent[]>();
+      taskStartedAt = projectionClock();
+      for (const event of snapshot.todayEvents) {
+        const events = todayEventsByDeck.get(event.deckId);
+        if (events) events.push(event);
+        else todayEventsByDeck.set(event.deckId, [event]);
+        if (projectionClock() - taskStartedAt >= 25) {
+          recordProjectionTask(taskStartedAt);
+          await yieldProjectionRebuild();
+          taskStartedAt = projectionClock();
+        }
+      }
+      recordProjectionTask(taskStartedAt);
+
+      taskStartedAt = projectionClock();
       for (const summary of shell!.decks) {
-        const transaction = database.transaction([STORE.cards, STORE.variants, STORE.reviewEvents], "readonly");
-        const done = transactionDone(transaction);
-        const cards = transaction.objectStore(STORE.cards);
-        const states = cards.index("deckReviewState");
-        const maturity = cards.index("deckMaturity");
-        const variants = transaction.objectStore(STORE.variants).index("deckActive");
-        const events = transaction.objectStore(STORE.reviewEvents).index("deckAnswered");
-        const todayEvents = dayRange
-          ? requestResult<ReviewEvent[]>(events.getAll(IDBKeyRange.bound(
-            [summary.id, new Date(dayRange.start).toISOString(), ""],
-            [summary.id, new Date(dayRange.end - 1).toISOString(), "\uffff"],
-          )))
-          : Promise.resolve([]);
-        const dueUntil = dayRange ? new Date(dayRange.end - 1).toISOString() : now;
-        const dueCursor = cards.index("deckDue").openKeyCursor(IDBKeyRange.bound([summary.id, `${todayKey}T00:00:00.000Z`, ""], [summary.id, "9999", "\uffff"]));
-        const forecastDone = new Promise<void>((resolve, reject) => {
-          dueCursor.onerror = () => reject(dueCursor.error);
-          dueCursor.onsuccess = () => {
-            const cursor = dueCursor.result;
-            if (!cursor) return resolve();
-            const key = getStudyHeatmapDayKey(String((cursor.key as any[])[1]), timeZone, dayStartHour);
-            if (key) forecastCountsByDay.set(key, (forecastCountsByDay.get(key) ?? 0) + 1);
-            cursor.continue();
-          };
-        });
-        const [totalCards, newCards, inProgressLearning, inProgressRelearning, mature, mastered, activeVariants, dueCards, deckEvents] = await Promise.all([
-          requestResult(cards.index("deckReviewable").count(IDBKeyRange.bound([summary.id, 1, ""], [summary.id, 1, "\uffff"]))),
-          requestResult(states.count(IDBKeyRange.bound([summary.id, 1, "new", "", ""], [summary.id, 1, "new", "\uffff", "\uffff"]))),
-          requestResult(states.count(IDBKeyRange.bound([summary.id, 1, "learning", "", ""], [summary.id, 1, "learning", "\uffff", "\uffff"]))),
-          requestResult(states.count(IDBKeyRange.bound([summary.id, 1, "relearning", "", ""], [summary.id, 1, "relearning", "\uffff", "\uffff"]))),
-          requestResult(maturity.count(IDBKeyRange.bound([summary.id, 1, "variant_ready", ""], [summary.id, 1, "variant_ready", "\uffff"]))),
-          requestResult(maturity.count(IDBKeyRange.bound([summary.id, 1, "mastered", ""], [summary.id, 1, "mastered", "\uffff"]))),
-          requestResult(variants.count(IDBKeyRange.bound([summary.id, 1, ""], [summary.id, 1, "\uffff"]))),
-          requestResult(states.count(IDBKeyRange.bound(
-            [summary.id, 1, "review", "", ""],
-            [summary.id, 1, "review", dueUntil, "\uffff"],
-          ))),
-          todayEvents,
-          forecastDone,
-        ]);
+        const projection = snapshot.storedByDeckId.get(summary.id) ?? projectionRowFromAggregate(
+          summary.id,
+          context.key,
+          "missing",
+          0,
+          emptyDeckStudyProjectionAggregate(),
+        );
+        const deckEvents = todayEventsByDeck.get(summary.id) ?? [];
         const introduced = new Set<string>();
         const reviewed = new Set<string>();
         for (const event of deckEvents) {
@@ -1606,25 +2183,45 @@ export async function createIndexedDbCoreRepository({ userId, initialState, lega
         const newLimit = Math.max(0, settings.newCardsTodayOverride?.date === todayKey ? settings.newCardsTodayOverride.limit : settings.newCardsPerDay);
         const remainingNew = Math.max(0, newLimit - introduced.size);
         const remainingReviews = Math.max(0, settings.maximumReviewsPerDay - introduced.size - reviewed.size);
-        const inProgressCards = inProgressLearning + inProgressRelearning;
-        const selectedNew = Math.min(newCards, remainingNew, remainingReviews);
+        const inProgressCards = projection.inProgressLearning + projection.inProgressRelearning;
+        const selectedNew = Math.min(projection.newCards, remainingNew, remainingReviews);
+        const dueCards = dueCardsByDeck.get(summary.id) ?? 0;
         const selectedDue = Math.min(dueCards + inProgressCards, Math.max(0, remainingReviews - selectedNew));
-        const inventory = { totalCards, dueCards, newCards, inProgressCards, matureCards: mature + mastered, activeVariants, averageMaturityXp: 0 };
+        const inventory = {
+          totalCards: projection.totalCards,
+          dueCards,
+          newCards: projection.newCards,
+          inProgressCards,
+          matureCards: projection.matureCards + projection.masteredCards,
+          activeVariants: projection.activeVariants,
+          averageMaturityXp: 0,
+        };
         const dailyProgress = { completedTodayCount: introduced.size + reviewed.size, newCount: selectedNew, inProgressCount: inProgressCards, dueCount: Math.max(0, selectedDue - inProgressCards), total: introduced.size + reviewed.size + selectedNew + selectedDue };
         result.set(summary.id, {
           inventory,
           dailyProgress,
           startableCount: selectedNew + selectedDue,
-          additionalNewCount: Math.max(0, newCards - selectedNew),
+          additionalNewCount: Math.max(0, projection.newCards - selectedNew),
           effectiveNewLimit: newLimit,
           introducedTodayCount: introduced.size,
-          dateKey: getLocalReviewDateKey(now, { dayStartHour, timeZone }),
+          dateKey: todayKey,
         });
-        await done;
+        if (projectionClock() - taskStartedAt >= 25) {
+          recordProjectionTask(taskStartedAt);
+          await yieldProjectionRebuild();
+          taskStartedAt = projectionClock();
+        }
       }
+      recordProjectionTask(taskStartedAt);
+      taskStartedAt = projectionClock();
       const summaryResult = { summaries: result, studyHeatmap: createStudyHeatmapModelFromCounts({ todayKey, countsByDay, forecastCountsByDay }) };
+      recordProjectionTask(taskStartedAt);
       if (measureFirstRun) {
-        markStartupPhaseReady("firstDeckSummaries", { deckCount: result.size });
+        markStartupPhaseReady("firstDeckSummaries", {
+          deckCount: result.size,
+          rebuildCount: snapshot.rebuildCount,
+          longestTaskMs: longestProjectionTaskMs,
+        });
       }
       return summaryResult;
     },

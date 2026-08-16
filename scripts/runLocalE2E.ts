@@ -194,7 +194,7 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
         env: testEnvironment,
       });
       await stopOrphanedLocalViteServers();
-      console.log("Vier Startkontexte mit je zehn gedrosselten Chromium-Läufen messen …");
+      console.log("Vier Startkontexte und den 4G-Preload mit je zehn gedrosselten Chromium-Läufen messen …");
       await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--config=playwright.performance.config.ts"], {
         env: testEnvironment,
       });

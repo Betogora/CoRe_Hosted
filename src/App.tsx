@@ -1519,7 +1519,7 @@ export function App() {
       setStudyDecks(preparation.decks);
       setStudyDefinitions(preparation.definitions);
       navigateToRoute(createStudyRoute(deck.id, { variantSession, returnContext }), {
-        replace: currentRoute.viewId === "stapel-einstellungen",
+        replace: activeView === "stapel-einstellungen",
       });
     } finally {
       if (preparingStudyKeyRef.current === preparationKey) preparingStudyKeyRef.current = "";

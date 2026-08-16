@@ -6,10 +6,24 @@ import { e2eAuthStatePath } from "../e2e/support/e2eEnvironment.ts";
 
 const RUNS_PER_SCENARIO = 10;
 const BACKGROUND_OBSERVATION_MS = 2_200;
-const NETWORK = {
+interface NetworkProfile {
+  latencyMs: number;
+  downloadBytesPerSecond: number;
+  uploadBytesPerSecond: number;
+  connectionType: "cellular3g" | "cellular4g";
+}
+
+const NETWORK_3G: NetworkProfile = {
   latencyMs: 150,
   downloadBytesPerSecond: 200_000,
   uploadBytesPerSecond: 100_000,
+  connectionType: "cellular3g",
+};
+const NETWORK_4G: NetworkProfile = {
+  latencyMs: 50,
+  downloadBytesPerSecond: 1_000_000,
+  uploadBytesPerSecond: 500_000,
+  connectionType: "cellular4g",
 };
 
 interface StartupRun {
@@ -25,10 +39,12 @@ interface StartupRun {
   decksPreloadMs: number;
   deckCount: number;
   outboxCount: number;
+  projectionRebuildCount: number;
   serviceWorkerStatus: string;
   longestBackgroundTaskMs: number;
-  longestSummaryTaskMs: number;
+  longestProjectionTaskMs: number;
   longestFeatureLoadTaskMs: number;
+  longestAutomaticPreloadTaskMs: number;
 }
 
 interface ScenarioResult {
@@ -55,14 +71,18 @@ function summarize(runs: StartupRun[]): ScenarioResult {
   };
 }
 
-async function createMeasuredContext(browser: Browser, serviceWorkers: "allow" | "block" = "allow") {
+async function createMeasuredContext(
+  browser: Browser,
+  serviceWorkers: "allow" | "block" = "allow",
+  effectiveType: "3g" | "4g" = "3g",
+) {
   const context = await browser.newContext({ storageState: e2eAuthStatePath, serviceWorkers });
-  await context.addInitScript(() => {
+  await context.addInitScript((reportedEffectiveType) => {
     const target = globalThis as typeof globalThis & { __coreLongTasks?: Array<{ startTime: number; duration: number }> };
     target.__coreLongTasks = [];
     Object.defineProperty(navigator, "connection", {
       configurable: true,
-      value: { effectiveType: "3g", saveData: false },
+      value: { effectiveType: reportedEffectiveType, saveData: false },
     });
     if (typeof PerformanceObserver === "undefined") return;
     try {
@@ -76,21 +96,21 @@ async function createMeasuredContext(browser: Browser, serviceWorkers: "allow" |
     } catch {
       // Nicht unterstützte Long-Task-Beobachtung wird als fehlender Messwert erkannt.
     }
-  });
+  }, effectiveType);
   return context;
 }
 
-async function throttlePage(page: Page, offline: boolean) {
+async function throttlePage(page: Page, offline: boolean, network = NETWORK_3G) {
   const session = await page.context().newCDPSession(page);
   await session.send("Emulation.setCPUThrottlingRate", { rate: 4 });
   if (!offline) {
     await session.send("Network.enable");
     await session.send("Network.emulateNetworkConditions", {
       offline: false,
-      latency: NETWORK.latencyMs,
-      downloadThroughput: NETWORK.downloadBytesPerSecond,
-      uploadThroughput: NETWORK.uploadBytesPerSecond,
-      connectionType: "cellular3g",
+      latency: network.latencyMs,
+      downloadThroughput: network.downloadBytesPerSecond,
+      uploadThroughput: network.uploadBytesPerSecond,
+      connectionType: network.connectionType,
     });
   }
 }
@@ -113,22 +133,30 @@ async function preparePersistedContext(context: BrowserContext, expectServiceWor
   await page.close();
 }
 
-async function measureRun(context: BrowserContext, targetMark: string, offline: boolean): Promise<StartupRun> {
+async function measureRun(
+  context: BrowserContext,
+  targetMark: string,
+  offline: boolean,
+  network = NETWORK_3G,
+  waitForAutomaticPreloads = false,
+): Promise<StartupRun> {
   const page = await context.newPage();
-  await throttlePage(page, offline);
+  await throttlePage(page, offline, network);
   await page.goto("/", { waitUntil: "domcontentloaded", timeout: 60_000 });
   await waitForMark(page, targetMark);
   await waitForMark(page, appPerformanceMarks.firstDeckSummariesReady);
+  if (waitForAutomaticPreloads) {
+    await waitForMark(page, "core:feature:learn:ready");
+    await waitForMark(page, "core:feature:decks:ready");
+  }
   await page.waitForTimeout(BACKGROUND_OBSERVATION_MS);
-  const result = await page.evaluate(({ marks, measures, selectedTarget }) => {
+  const result = await page.evaluate(({ marks, measures, selectedTarget, includeAutomaticPreloads }) => {
     const mark = (name: string) => performance.getEntriesByName(name, "mark").at(-1) as PerformanceMark | undefined;
     const measure = (name: string) => performance.getEntriesByName(name, "measure").at(-1)?.duration ?? Number.NaN;
     const detail = (name: string) => mark(name)?.detail as Record<string, unknown> | undefined;
     const workspaceReadyMs = mark(marks.workspaceLocalReady)?.startTime ?? Number.NaN;
     const navigation = performance.getEntriesByType("navigation").at(-1) as PerformanceNavigationTiming | undefined;
     const observedLongTasks = (globalThis as typeof globalThis & { __coreLongTasks?: Array<{ startTime: number; duration: number }> }).__coreLongTasks ?? [];
-    const longTasks = observedLongTasks
-      .filter((entry) => entry.startTime >= workspaceReadyMs);
     const interval = (startName: string, readyName: string) => ({
       start: mark(startName)?.startTime ?? Number.NaN,
       end: mark(readyName)?.startTime ?? Number.NaN,
@@ -136,11 +164,17 @@ async function measureRun(context: BrowserContext, targetMark: string, offline: 
     const longestOverlappingTask = ({ start, end }: { start: number; end: number }) => Number.isFinite(start) && Number.isFinite(end)
       ? Math.max(0, ...observedLongTasks.filter((task) => task.startTime < end && task.startTime + task.duration > start).map((task) => task.duration))
       : 0;
-    const summaryInterval = interval(marks.firstDeckSummariesStart, marks.firstDeckSummariesReady);
     const featureIntervals = ["dashboard", "learn", "decks"].map((feature) => interval(
       `core:feature:${feature}:start`,
       `core:feature:${feature}:ready`,
     ));
+    const automaticPreloadIntervals = ["learn", "decks"].map((feature) => interval(
+      `core:feature:${feature}:start`,
+      `core:feature:${feature}:ready`,
+    ));
+    const longestFeatureLoadTaskMs = Math.max(0, ...featureIntervals.map(longestOverlappingTask));
+    const longestAutomaticPreloadTaskMs = Math.max(0, ...automaticPreloadIntervals.map(longestOverlappingTask));
+    const longestProjectionTaskMs = Number(detail(marks.firstDeckSummariesReady)?.longestTaskMs ?? 0);
     return {
       targetReadyMs: mark(selectedTarget)?.startTime ?? Number.NaN,
       workspaceReadyMs,
@@ -154,12 +188,19 @@ async function measureRun(context: BrowserContext, targetMark: string, offline: 
       decksPreloadMs: measure("core:feature:decks:load"),
       deckCount: Number(detail(marks.firstDeckSummariesReady)?.deckCount ?? detail(marks.indexedDbShellReady)?.deckCount ?? 0),
       outboxCount: Number(detail(marks.indexedDbStartupMetadataReady)?.outboxCount ?? 0),
+      projectionRebuildCount: Number(detail(marks.firstDeckSummariesReady)?.rebuildCount ?? 0),
       serviceWorkerStatus: String(detail(marks.serviceWorkerContext)?.status ?? "missing"),
-      longestBackgroundTaskMs: Math.max(0, ...longTasks.map((entry) => entry.duration)),
-      longestSummaryTaskMs: longestOverlappingTask(summaryInterval),
-      longestFeatureLoadTaskMs: Math.max(0, ...featureIntervals.map(longestOverlappingTask)),
+      longestBackgroundTaskMs: Math.max(longestProjectionTaskMs, includeAutomaticPreloads ? longestAutomaticPreloadTaskMs : 0),
+      longestProjectionTaskMs,
+      longestFeatureLoadTaskMs,
+      longestAutomaticPreloadTaskMs,
     };
-  }, { marks: appPerformanceMarks, measures: appPerformanceMeasures, selectedTarget: targetMark });
+  }, {
+    marks: appPerformanceMarks,
+    measures: appPerformanceMeasures,
+    selectedTarget: targetMark,
+    includeAutomaticPreloads: waitForAutomaticPreloads,
+  });
   await page.close();
   return Object.fromEntries(Object.entries(result).map(([key, value]) => [key, typeof value === "number" ? round(value) : value])) as unknown as StartupRun;
 }
@@ -200,12 +241,27 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
   expect(persistedOffline.runs.every((run) => run.serviceWorkerStatus === "controlled")).toBe(true);
   await persistedContext.close();
 
+  const automatic4gRuns: StartupRun[] = [];
+  for (let index = 0; index < RUNS_PER_SCENARIO; index += 1) {
+    const context = await createMeasuredContext(browser, "block", "4g");
+    automatic4gRuns.push(await measureRun(context, appPerformanceMarks.cloudBootstrapReady, false, NETWORK_4G, true));
+    await context.close();
+  }
+  const automatic4gPreload = summarize(automatic4gRuns);
+  expect(automatic4gRuns.every((run) => Number.isFinite(run.learnPreloadMs) && Number.isFinite(run.decksPreloadMs))).toBe(true);
+
   const allRuns = [
     ...recurringPersisted.runs,
     ...freshIsolated.runs,
     ...persistedWithoutServiceWorker.runs,
     ...persistedOffline.runs,
   ];
+  const persistedSummaryRuns = recurringPersisted.runs.filter((run) => run.projectionRebuildCount === 0);
+  expect(persistedSummaryRuns.length).toBeGreaterThan(0);
+  const withoutDiagnostics = (scenario: ScenarioResult) => ({
+    ...scenario,
+    runs: scenario.runs.map(({ projectionRebuildCount: _projectionRebuildCount, ...run }) => run),
+  });
   const artifact = {
     suite: "startup",
     generatedAt: new Date().toISOString(),
@@ -213,19 +269,21 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
       browser: "Chromium",
       runsPerScenario: RUNS_PER_SCENARIO,
       cpuSlowdown: 4,
-      network: NETWORK,
+      network3g: NETWORK_3G,
+      network4g: NETWORK_4G,
       backgroundObservationMs: BACKGROUND_OBSERVATION_MS,
     },
     scenarios: {
-      recurringPersisted,
-      freshIsolated,
-      persistedWithoutServiceWorker,
-      persistedOffline,
+      recurringPersisted: withoutDiagnostics(recurringPersisted),
+      freshIsolated: withoutDiagnostics(freshIsolated),
+      persistedWithoutServiceWorker: withoutDiagnostics(persistedWithoutServiceWorker),
+      persistedOffline: withoutDiagnostics(persistedOffline),
+      automatic4gPreload: withoutDiagnostics(automatic4gPreload),
     },
     comparisons: {
       serviceWorkerP75CostMs: round(recurringPersisted.p75Ms - persistedWithoutServiceWorker.p75Ms),
       firstDeckSummariesMaxMs: Math.max(...allRuns.map((run) => run.firstDeckSummariesMs)),
-      longestSummaryTaskMs: Math.max(...allRuns.map((run) => run.longestSummaryTaskMs)),
+      longestProjectionTaskMs: Math.max(...allRuns.map((run) => run.longestProjectionTaskMs)),
       longestFeatureLoadTaskMs: Math.max(...allRuns.map((run) => run.longestFeatureLoadTaskMs)),
     },
     recurringWorkspaceP75Ms: recurringPersisted.p75Ms,
@@ -233,7 +291,13 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
     offlineColdStartP75Ms: persistedOffline.p75Ms,
     offlineColdStartP95Ms: persistedOffline.p95Ms,
     newDeviceDashboardP75Ms: freshIsolated.p75Ms,
-    longestBackgroundTaskMs: Math.max(...allRuns.map((run) => run.longestBackgroundTaskMs)),
+    persistedSummaryReadP75Ms: round(percentile(persistedSummaryRuns.map((run) => run.firstDeckSummariesMs), 0.75)),
+    longestBackgroundTaskMs: Math.max(
+      ...allRuns.map((run) => run.longestProjectionTaskMs),
+      ...automatic4gRuns.map((run) => run.longestAutomaticPreloadTaskMs),
+    ),
+    automaticPreloadLongestTaskMs: Math.max(...automatic4gRuns.map((run) => run.longestAutomaticPreloadTaskMs)),
+    automatic3gPreloadCount: allRuns.filter((run) => Number.isFinite(run.learnPreloadMs) || Number.isFinite(run.decksPreloadMs)).length,
   };
   const artifactPath = path.join(process.cwd(), "test-results", "performance.json");
   await mkdir(path.dirname(artifactPath), { recursive: true });

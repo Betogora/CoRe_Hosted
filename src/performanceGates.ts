@@ -9,6 +9,7 @@ export interface PerformanceSnapshot {
   offlineColdStartP75Ms?: number;
   offlineColdStartP95Ms?: number;
   newDeviceDashboardP75Ms?: number;
+  persistedSummaryReadP75Ms?: number;
   tabReactionMs?: number;
   preloadedTabP75Ms?: number;
   preloadedTabP95Ms?: number;
@@ -27,6 +28,8 @@ export interface PerformanceSnapshot {
   largestFeatureGzipBytes?: number;
   bootstrapCompressedBytes?: number;
   longestBackgroundTaskMs?: number;
+  automaticPreloadLongestTaskMs?: number;
+  automatic3gPreloadCount?: number;
   devColdStartMs?: number;
   devWarmReloadMs?: number;
 }
@@ -41,6 +44,7 @@ export const PERFORMANCE_GATES: ReadonlyArray<{ key: keyof PerformanceSnapshot; 
   { key: "offlineColdStartP75Ms", maximum: 1_500, label: "Offline-Kaltstart p75" },
   { key: "offlineColdStartP95Ms", maximum: 3_000, label: "Offline-Kaltstart p95" },
   { key: "newDeviceDashboardP75Ms", maximum: 3_000, label: "Neues Gerät bis Dashboard p75" },
+  { key: "persistedSummaryReadP75Ms", maximum: 50, label: "Persistierte Stapelzusammenfassung p75" },
   { key: "tabReactionMs", maximum: 100, label: "Tab-Reaktion" },
   { key: "preloadedTabP75Ms", maximum: 300, label: "Vorgeladener Tab p75" },
   { key: "preloadedTabP95Ms", maximum: 750, label: "Vorgeladener Tab p95" },
@@ -59,6 +63,8 @@ export const PERFORMANCE_GATES: ReadonlyArray<{ key: keyof PerformanceSnapshot; 
   { key: "largestFeatureGzipBytes", maximum: 200 * 1024, label: "Feature-Tab gzip" },
   { key: "bootstrapCompressedBytes", maximum: 200 * 1024, label: "Bootstrap komprimiert" },
   { key: "longestBackgroundTaskMs", maximum: 50, label: "Hintergrundtask" },
+  { key: "automaticPreloadLongestTaskMs", maximum: 50, label: "Automatischer Preload-Task" },
+  { key: "automatic3gPreloadCount", maximum: 0, label: "Automatische 3G-Preloads" },
   { key: "devColdStartMs", maximum: 3_000, label: "Dev-Cold-Start" },
   { key: "devWarmReloadMs", maximum: 500, label: "Warmer Dev-Reload" },
 ];
@@ -69,7 +75,10 @@ const STARTUP_PERFORMANCE_GATE_KEYS = new Set<keyof PerformanceSnapshot>([
   "offlineColdStartP75Ms",
   "offlineColdStartP95Ms",
   "newDeviceDashboardP75Ms",
+  "persistedSummaryReadP75Ms",
   "longestBackgroundTaskMs",
+  "automaticPreloadLongestTaskMs",
+  "automatic3gPreloadCount",
 ]);
 
 function selectedPerformanceGates(snapshot: PerformanceSnapshot) {
