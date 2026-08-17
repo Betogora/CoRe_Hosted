@@ -820,7 +820,7 @@ export function DecksScreen({
     };
   }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, decks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
   const searchExpandsGroups = Boolean(deferredQuery.trim());
-  const expandedDeckIdSet = React.useMemo(() => new Set(expandedDeckIds), [expandedDeckIds]);
+  const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
   const selectedGroup = selectedDeckId ? groupById.get(selectedDeckId) ?? null : null;
   const selectedDeck = selectedGroup?.deck ?? null;
@@ -849,6 +849,14 @@ export function DecksScreen({
     cardDraftGuardRef.current = guard;
     onDraftStateChange(guard);
   }, [onDraftStateChange]);
+
+  React.useEffect(() => {
+    setExpandedDeckIdSet((current) => (
+      current.size === expandedDeckIds.length && expandedDeckIds.every((deckId) => current.has(deckId))
+        ? current
+        : new Set(expandedDeckIds)
+    ));
+  }, [expandedDeckIds]);
 
   React.useEffect(() => {
     if (preserveToastForSelectionChange.current) {
@@ -893,7 +901,7 @@ export function DecksScreen({
     }
     if (autoExpandedSelectedDeckIdRef.current === selectedDeckId) return;
     autoExpandedSelectedDeckIdRef.current = selectedDeckId;
-    if (!expandedDeckIdSet.has(selectedDeckId)) onSetDeckExpanded("deck-manager", selectedDeckId, true);
+    if (!expandedDeckIdSet.has(selectedDeckId)) setDeckCardsExpanded(selectedDeckId, true);
   }, [expandedDeckIdSet, onSetDeckExpanded, selectedDeckId]);
 
   React.useEffect(() => {
@@ -1000,7 +1008,18 @@ export function DecksScreen({
   }
 
   function toggleDeckCards(deckId: string) {
-    onSetDeckExpanded("deck-manager", deckId, !expandedDeckIdSet.has(deckId));
+    setDeckCardsExpanded(deckId, !expandedDeckIdSet.has(deckId));
+  }
+
+  function setDeckCardsExpanded(deckId: string, expanded: boolean) {
+    setExpandedDeckIdSet((current) => {
+      if (current.has(deckId) === expanded) return current;
+      const next = new Set(current);
+      if (expanded) next.add(deckId);
+      else next.delete(deckId);
+      return next;
+    });
+    onSetDeckExpanded("deck-manager", deckId, expanded);
   }
 
   function saveCard(cardId: string, value: CardEditorValue) {

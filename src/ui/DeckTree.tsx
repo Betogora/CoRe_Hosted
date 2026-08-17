@@ -131,8 +131,16 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
   const lastDragEndAtRef = React.useRef(0);
   const dragMaskId = React.useId().replaceAll(":", "");
   const decks = React.useMemo(() => rows.map((row) => row.deck), [rows]);
-  const collapsedDeckIdSet = React.useMemo(() => new Set(collapsedDeckIds), [collapsedDeckIds]);
+  const [collapsedDeckIdSet, setCollapsedDeckIdSet] = React.useState(() => new Set(collapsedDeckIds));
   const visibleRows = React.useMemo(() => getVisibleRows(rows, collapsedDeckIdSet), [collapsedDeckIdSet, rows]);
+
+  React.useEffect(() => {
+    setCollapsedDeckIdSet((current) => (
+      current.size === collapsedDeckIds.length && collapsedDeckIds.every((deckId) => current.has(deckId))
+        ? current
+        : new Set(collapsedDeckIds)
+    ));
+  }, [collapsedDeckIds]);
 
   React.useEffect(() => () => {
     const drag = pointerDragRef.current;
@@ -140,7 +148,18 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
   }, []);
 
   function toggleCollapsed(deckId: string) {
-    onDeckExpansionChange(deckId, collapsedDeckIdSet.has(deckId));
+    setDeckExpanded(deckId, collapsedDeckIdSet.has(deckId));
+  }
+
+  function setDeckExpanded(deckId: string, expanded: boolean) {
+    setCollapsedDeckIdSet((current) => {
+      if (current.has(deckId) === !expanded) return current;
+      const next = new Set(current);
+      if (expanded) next.delete(deckId);
+      else next.add(deckId);
+      return next;
+    });
+    onDeckExpansionChange(deckId, expanded);
   }
 
   function clearDragState() {
@@ -212,7 +231,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
     else {
       setDragStatus(intent.targetDeckId ? "Stapel als Unterstapel verschoben." : "Stapel auf die Hauptebene verschoben.");
       const targetDeckId = intent.targetDeckId;
-      if (targetDeckId && collapsedDeckIdSet.has(targetDeckId)) onDeckExpansionChange(targetDeckId, true);
+      if (targetDeckId && collapsedDeckIdSet.has(targetDeckId)) setDeckExpanded(targetDeckId, true);
     }
     clearDragState();
   }

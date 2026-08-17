@@ -298,6 +298,30 @@ test("deck expansion preserves the complete profile across reload and an isolate
   }
 });
 
+test("deck expansion responds immediately on dashboard and learning", async ({ page }) => {
+  await resetToFreshLocalState(page);
+
+  for (const surface of [
+    { path: "/", mode: "dashboard" },
+    { path: "/lernen", mode: "learn" },
+  ]) {
+    await page.goto(surface.path);
+    await page.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
+    const root = page.getByTestId(`${surface.mode}-deck-row-deck_world_capitals`);
+    const child = page.getByTestId(`${surface.mode}-deck-row-deck_world_capitals_afrika`);
+    const toggle = root.getByRole("button", { name: /Unterstapel von Welt-Hauptstädte (?:anzeigen|ausblenden)/ });
+
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(child).toBeVisible();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(child).toHaveCount(0);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(child).toBeVisible();
+  }
+});
+
 test("global settings block navigation until saving and require a second navigation", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
