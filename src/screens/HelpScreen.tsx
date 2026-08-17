@@ -14,7 +14,7 @@ type ReviewId = "first" | "variant";
 type RatingId = "again" | "hard" | "good" | "easy";
 type ParameterId = "r" | "s" | "d";
 type HelpMethodId = "active-recall" | "spaced-repetition";
-type ExplorerSelectionId = "overview" | "ratings" | `review-${ReviewId}` | `rating-${RatingId}` | `parameter-${ParameterId}`;
+type ExplorerSelectionId = "ratings" | `review-${ReviewId}` | `rating-${RatingId}` | `parameter-${ParameterId}`;
 
 interface MemoryReview {
   id: ReviewId;
@@ -25,7 +25,6 @@ interface MemoryReview {
 
 interface RatingPath {
   id: RatingId;
-  label: string;
   color: string;
   dueX: number;
   curvePath: string;
@@ -63,28 +62,24 @@ const MEMORY_REVIEWS: readonly MemoryReview[] = [
 const RATING_PATHS: readonly RatingPath[] = [
   {
     id: "again",
-    label: "Nochmal",
     color: "var(--core-danger)",
     dueX: 350,
     curvePath: "M 220 92 C 258 112, 318 186, 350 248",
   },
   {
     id: "hard",
-    label: "Schwer",
     color: "var(--core-warning)",
     dueX: 500,
     curvePath: "M 220 92 C 292 102, 438 164, 500 248",
   },
   {
     id: "good",
-    label: "Gut",
     color: "var(--core-success)",
     dueX: 680,
     curvePath: "M 220 92 C 328 96, 586 146, 680 248",
   },
   {
     id: "easy",
-    label: "Leicht",
     color: "var(--core-info)",
     dueX: 855,
     curvePath: "M 220 92 C 364 94, 734 126, 855 248",
@@ -257,10 +252,10 @@ function useScrollStory(stepCount: number) {
     const desktop = window.matchMedia("(min-width: 1280px)").matches;
     const scrollRegion = desktop ? container.closest<HTMLElement>(".core-screen-region") : null;
     const scrollTarget: Window | HTMLElement = scrollRegion ?? window;
+    const steps = Array.from(container.querySelectorAll<HTMLElement>("[data-story-step]"));
     const updateActiveStep = () => {
       cancelAnimationFrame(animationFrame);
       animationFrame = requestAnimationFrame(() => {
-        const steps = Array.from(container.querySelectorAll<HTMLElement>("[data-story-step]"));
         const viewportFocus = scrollRegion
           ? scrollRegion.getBoundingClientRect().top + scrollRegion.clientHeight * 0.48
           : window.innerHeight * 0.48;
@@ -546,7 +541,6 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
   const activeRatingId = getActiveRatingId(activeSelection);
   const activeParameterId = getActiveParameterId(activeSelection);
   const ratingsActive = activeSelection === "ratings";
-  const overview = activeSelection === "overview";
 
   function hoverProps(nextSelection: ExplorerSelectionId) {
     return {
@@ -591,14 +585,14 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             </g>
 
             <g data-testid="memory-visual-r" data-active={activeParameterId === "r" ? "true" : "false"}>
-              <line x1="72" y1="248" x2="928" y2="248" stroke="var(--core-text-muted)" strokeDasharray="7 7" strokeWidth={activeParameterId === "r" ? 3 : 1.5} opacity={activeParameterId === "r" || overview ? 1 : 0.72} />
+              <line x1="72" y1="248" x2="928" y2="248" stroke="var(--core-text-muted)" strokeDasharray="7 7" strokeWidth={activeParameterId === "r" ? 3 : 1.5} opacity={activeParameterId === "r" ? 1 : 0.72} />
               <text x="920" y="235" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">Zielerinnerung R = 90 %</text>
-              <path d={INITIAL_CURVE_PATH} fill="none" stroke="var(--core-text)" strokeWidth={activeParameterId === "r" || activeReviewId === "first" || overview ? 7 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "first" || overview ? 1 : 0.28} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />
+              <path d={INITIAL_CURVE_PATH} fill="none" stroke="var(--core-text)" strokeWidth={activeParameterId === "r" || activeReviewId === "first" ? 7 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "first" ? 1 : 0.28} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />
               {RATING_PATHS.map((rating) => {
                 const emphasized = ratingsActive || activeParameterId === "r" || activeRatingId === rating.id || (activeReviewId === "variant" && rating.id === "easy");
-                return <path key={`curve-${rating.id}`} d={rating.curvePath} fill="none" stroke={rating.color} strokeWidth={emphasized ? 7 : overview ? 4.5 : 3.5} strokeLinecap="round" opacity={emphasized ? 1 : overview ? 0.72 : 0.22} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />;
+                return <path key={`curve-${rating.id}`} d={rating.curvePath} fill="none" stroke={rating.color} strokeWidth={emphasized ? 7 : 3.5} strokeLinecap="round" opacity={emphasized ? 1 : 0.22} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />;
               })}
-              <path d="M 855 92 C 888 98, 918 112, 946 138" fill="none" stroke="var(--core-info)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" || overview ? 1 : 0.35} />
+              <path d="M 855 92 C 888 98, 918 112, 946 138" fill="none" stroke="var(--core-info)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" ? 1 : 0.35} />
             </g>
 
             <g data-testid="memory-visual-s" data-active={activeParameterId === "s" ? "true" : "false"}>
@@ -608,7 +602,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
                 const end = rating.dueX - 10;
                 const arrowY = 292;
                 return (
-                  <g key={`stability-${rating.id}`} opacity={emphasized ? 1 : overview || activeReviewId === "first" ? 0.78 : 0.32} className="transition-opacity duration-300 motion-reduce:transition-none">
+                  <g key={`stability-${rating.id}`} opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.32} className="transition-opacity duration-300 motion-reduce:transition-none">
                     <line x1={start} y1={arrowY} x2={end} y2={arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
                     <path d={`M ${start + 9} ${arrowY - 6} L ${start} ${arrowY} L ${start + 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
                     <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
@@ -621,7 +615,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
               {MEMORY_REVIEWS.map((review) => {
                 const emphasized = activeParameterId === "d" || activeReviewId === review.id;
                 return (
-                  <g key={`difficulty-${review.id}`} opacity={emphasized || overview ? 1 : 0.24} className="transition-opacity duration-300 motion-reduce:transition-none">
+                  <g key={`difficulty-${review.id}`} opacity={emphasized ? 1 : 0.24} className="transition-opacity duration-300 motion-reduce:transition-none">
                     <line x1={review.reviewX} y1="78" x2={review.reviewX} y2="248" stroke={review.color} strokeWidth={emphasized ? 3 : 2} strokeDasharray="6 7" />
                     <path d={`M ${review.reviewX} 64 L ${review.reviewX + 7} 71 L ${review.reviewX} 78 L ${review.reviewX - 7} 71 Z`} fill="var(--core-surface-raised)" stroke={activeParameterId === "d" ? "var(--core-warning)" : review.color} strokeWidth={emphasized ? 3 : 2} />
                   </g>
@@ -651,7 +645,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
               <button
                 key={review.id}
                 type="button"
-                className="absolute z-20 grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 bg-[var(--core-surface-raised)] core-body font-semibold shadow-sm transition-[transform,opacity] hover:scale-110 motion-reduce:transition-none"
+                className="absolute z-20 grid size-11 place-items-center rounded-full border bg-[var(--core-surface-raised)] core-body font-semibold shadow-sm transition-[transform,opacity] motion-reduce:transition-none"
                 style={{
                   left: `${(review.reviewX / 960) * 100}%`,
                   top: `${(248 / 540) * 100}%`,
@@ -659,7 +653,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
                   borderWidth: active || activeParameterId === "d" ? 3 : 2,
                   color: review.color,
                   transform: `translate(-50%, -50%) scale(${active ? 1.12 : 1})`,
-                  opacity: activeReviewId === null || active || overview ? 1 : 0.48,
+                  opacity: activeReviewId === null || active ? 1 : 0.48,
                 }}
                 {...buttonProps(nextSelection)}
                 aria-label={`${review.title} auswählen`}

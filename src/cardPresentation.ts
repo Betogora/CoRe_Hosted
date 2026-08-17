@@ -212,11 +212,11 @@ export function renderLearningItemPresentation(input: {
           .join('<hr class="core-card-answer-separator" aria-hidden="true">');
   } else {
     const values = new Map(input.item.contentDocument.fields.map((field) => [field.id, field.value]));
-    const frontAst = recipe
+    const omitFrontSide = input.surface === "review" && input.side === "answer";
+    const frontAst = recipe && !omitFrontSide
       ? compileRecipeTemplate(input.definition, recipe.id, "front", recipe.front).ast
       : null;
-    const omitFrontSide = input.surface === "review" && input.side === "answer";
-    const frontSide = frontAst && !omitFrontSide
+    const frontSide = frontAst
       ? sanitizeCardHtml(renderAst(frontAst.nodes, { ...input, values, side: "question", frontSide: "" }))
       : "";
     rawBodyHtml = preservedOnly || !compiled.ast
