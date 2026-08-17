@@ -358,9 +358,9 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   const studyButton = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ });
   await studyButton.focus();
   await page.keyboard.press("Enter");
-  const questionHeading = page.getByText("Frage", { exact: true });
-  await expect(questionHeading).toBeFocused();
-  await expect.poll(() => hasVisibleOutline(questionHeading)).toBe(false);
+  const questionContent = page.getByRole("group", { name: "Frage" });
+  await expect(questionContent).toBeFocused();
+  await expect.poll(() => hasVisibleOutline(questionContent)).toBe(false);
 
   const settings = page.getByRole("button", { name: "Lerneinstellungen" });
   await settings.focus();
@@ -377,13 +377,13 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   await page.keyboard.press("Escape");
   await expect(settings).toBeFocused();
 
-  await questionHeading.focus();
+  await questionContent.focus();
   await page.keyboard.press("Space");
-  const answerHeading = page.getByText("Antwort", { exact: true });
-  await expect(answerHeading).toBeFocused();
-  await expect.poll(() => hasVisibleOutline(answerHeading)).toBe(false);
+  const answerContent = page.getByRole("group", { name: "Antwort" });
+  await expect(answerContent).toBeFocused();
+  await expect.poll(() => hasVisibleOutline(answerContent)).toBe(false);
   await page.keyboard.press("3");
-  await expect.poll(() => page.evaluate(() => document.activeElement?.textContent?.trim().startsWith("Frage") || document.activeElement?.textContent?.includes("Sitzung abgeschlossen"))).toBe(true);
+  await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute("aria-label") === "Frage" || document.activeElement?.textContent?.includes("Sitzung abgeschlossen"))).toBe(true);
 });
 
 test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentriertem Overlay", async ({ page }: any) => {
@@ -458,7 +458,7 @@ test("Pomodoro timer started in the learning settings remains global after leavi
   await control.locator("button").first().click();
   await control.getByRole("button", { name: "15", exact: true }).click();
   await expect(control.getByLabel("Dauer in Minuten")).toHaveValue("15");
-  await expect(page.getByTestId("study-pomodoro-progress")).toHaveAttribute("aria-valuetext", "Nicht gestartet");
+  await expect(page.getByTestId("study-pomodoro-progress")).toHaveCount(0);
   const timerRowGeometry = await control.evaluate((element: HTMLElement) => {
     const input = element.querySelector<HTMLInputElement>("input");
     const presets = element.querySelector<HTMLElement>('[role="group"][aria-label="Pomodoro-Dauer"]');
@@ -491,7 +491,7 @@ test("Pomodoro timer started in the learning settings remains global after leavi
   await page.getByRole("dialog", { name: "Lerneinstellungen" }).getByRole("button", { name: "Lerneinstellungen schließen" }).click();
 
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
-  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("Noch 10 Min.");
+  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("10 min.");
 });
 
 test("Lerneinstellungen speichern Markierung, Aussetzung und Kartenreihenfolge sofort", async ({ page }: any) => {

@@ -10,7 +10,7 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   await resetToFreshLocalState(page);
 
   const menu = mainMenu(page);
-  await expect(menu.getByRole("button")).toHaveText(["Heute", "Lernen", "Erstellen", "Statistik", "Karten"]);
+  await expect(menu.getByRole("button")).toHaveText(["Heute", "Lernen", "Erstellen", "Karten", "Statistik"]);
   for (const retired of ["Graph", "Community", "Assistent", "KI-Jobs", "Lernplan"]) {
     await expect(page.getByRole("button", { name: new RegExp(retired, "i") })).toHaveCount(0);
   }
@@ -385,7 +385,7 @@ test("settings in-page navigation keeps responsive layout, hashes and browser hi
   const compactNavigation = page.locator('[data-in-page-navigation="compact"]');
   await expect(desktopNavigation).toBeVisible();
   await expect(compactNavigation).toBeHidden();
-  await expect(desktopNavigation.getByRole("link")).toHaveCount(3);
+  await expect(desktopNavigation.getByRole("link")).toHaveCount(4);
 
   const focusLink = desktopNavigation.getByRole("link", { name: "Lerntag & Fokus" });
   await page.getByLabel("Anzeigename").fill("Hashnavigation bleibt frei");
@@ -408,7 +408,7 @@ test("settings in-page navigation keeps responsive layout, hashes and browser hi
   await expect(compactNavigation).toBeVisible();
   const summary = compactNavigation.locator('[data-in-page-navigation-summary="true"]');
   await summary.click();
-  await expect(compactNavigation.getByRole("link")).toHaveCount(3);
+  await expect(compactNavigation.getByRole("link")).toHaveCount(4);
   await compactNavigation.getByRole("link", { name: "Daten & Synchronisierung" }).click();
   await expect(page).toHaveURL(/\/einstellungen#settings-data-sync$/);
   await expect(summary).toContainText("Daten & Synchronisierung");
@@ -453,11 +453,11 @@ test("Pomodoro timer starts globally, persists and stays synchronized between ta
 
   await minutes.fill("25");
   await control.getByRole("button", { name: "Start", exact: true }).click();
-  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("Noch 25 Min.");
-  await expect(secondPage.locator('[data-pomodoro-progress="sidebar"]')).toContainText("Noch 25 Min.");
+  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("25 min.");
+  await expect(secondPage.locator('[data-pomodoro-progress="sidebar"]')).toContainText("25 min.");
 
   await page.reload();
-  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("Noch 25 Min.");
+  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("25 min.");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('[data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
@@ -583,8 +583,11 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   const activeRecallMethodLink = page.locator('a[href="#active-recall-heading"]');
   await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
   await activeRecallMethodLink.focus();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await expect(activeRecallMethodLink).toBeFocused();
   await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "4px");
-  await page.getByRole("heading", { name: "Wir wollen Lernen verbessern." }).focus();
+  await activeRecallMethodLink.evaluate((element: HTMLAnchorElement) => element.blur());
   await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
   await activeRecallMethodLink.hover();
   await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "4px");
@@ -660,6 +663,8 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
       answer: relativeRect("active-recall-answer"),
     };
   });
+  await page.getByTestId("active-recall-step-stack").evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await expect(activeRecallVisual).toHaveAttribute("data-active-step", "0");
   const activeRecallStackCard = activeRecallVisual.locator('[data-active-recall-card="stack"]');
   await expect(activeRecallStackCard).toBeVisible();
   const visibleRecallLayout = await readRecallLayout(activeRecallStackCard);
@@ -679,10 +684,11 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(activeRecallVisual.locator(".lucide-sparkles")).toHaveCount(2);
   await expect(activeRecallVisual.locator(".lucide-sparkle")).toHaveCount(2);
 
-  await page.getByTestId("spaced-repetition-step-rating-hard").evaluate((element) => element.scrollIntoView({ block: "center" }));
-  await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "rating-hard");
+  await page.getByTestId("spaced-repetition-step-ratings").evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "ratings");
 
-  await page.getByTestId("memory-parameter-r").hover();
+  await page.getByTestId("spaced-repetition-step-parameter-r").evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "parameter-r");
   await expect(page.getByTestId("memory-visual-r")).toHaveAttribute("data-active", "true");
 
   const stabilityParameter = page.getByTestId("memory-parameter-s");
