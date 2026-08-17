@@ -599,7 +599,7 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
 
   const spacedRepetitionMethodLink = page.locator('a[href="#spaced-repetition-heading"]');
   await expect(spacedRepetitionMethodLink).toHaveAttribute("data-help-method-navigation", "animated");
-  await expect(spacedRepetitionMethodLink).toHaveAttribute("data-help-scroll-skip", "active-recall-steps");
+  await expect(spacedRepetitionMethodLink).not.toHaveAttribute("data-help-scroll-skip", /.+/);
   await spacedRepetitionMethodLink.hover();
   await expect(spacedRepetitionMethodLink).toHaveCSS("border-top-width", "4px");
   await spacedRepetitionMethodLink.scrollIntoViewIfNeeded();
@@ -623,8 +623,8 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
     const absoluteTop = (element: HTMLElement) => region.scrollTop + element.getBoundingClientRect().top - regionTop;
     return {
       startTop: region.scrollTop,
-      skipStart: absoluteTop(firstStep),
-      skipEnd: absoluteTop(lastStep) + lastStep.getBoundingClientRect().height,
+      activeRecallStart: absoluteTop(firstStep),
+      activeRecallEnd: absoluteTop(lastStep) + lastStep.getBoundingClientRect().height,
     };
   });
   await spacedRepetitionMethodLink.click();
@@ -634,8 +634,10 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
     (window as typeof window & { __helpMethodScrollSamples?: number[] }).__helpMethodScrollSamples ?? []
   ));
   const spacedScrollDeltas = spacedScrollSamples.slice(1).map((value, index) => value - spacedScrollSamples[index]);
-  expect(spacedScrollSamples.some((value) => value > spacedScrollProbe.startTop + 8 && value < spacedScrollProbe.skipStart - 8)).toBe(true);
-  expect(Math.max(...spacedScrollDeltas)).toBeGreaterThan((spacedScrollProbe.skipEnd - spacedScrollProbe.skipStart) * 0.75);
+  expect(spacedScrollSamples.some((value) => value > spacedScrollProbe.startTop + 8 && value < spacedScrollProbe.activeRecallStart - 8)).toBe(true);
+  expect(spacedScrollSamples.some((value) => value > spacedScrollProbe.activeRecallStart && value < spacedScrollProbe.activeRecallEnd)).toBe(true);
+  expect(Math.min(...spacedScrollDeltas)).toBeGreaterThanOrEqual(0);
+  expect(Math.max(...spacedScrollDeltas)).toBeLessThan((spacedScrollProbe.activeRecallEnd - spacedScrollProbe.activeRecallStart) * 0.6);
   const spacedRepetitionReachedDirectly = await spacedRepetitionHeading.evaluate((heading) => {
     const rect = heading.getBoundingClientRect();
     return rect.top >= 0 && rect.bottom <= window.innerHeight;
@@ -725,6 +727,16 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByTestId("memory-curve")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+
+  await page.goto("/hilfe");
+  await page.locator('a[href="#spaced-repetition-heading"]').click();
+  await expect(page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" })).toBeInViewport();
+  const mobileScrollPosition = await page.evaluate(() => ({
+    documentTop: window.scrollY,
+    regionTop: document.querySelector<HTMLElement>(".core-screen-region")?.scrollTop ?? -1,
+  }));
+  expect(mobileScrollPosition.documentTop).toBeGreaterThan(0);
+  expect(mobileScrollPosition.regionTop).toBe(0);
 
   await page.locator('[data-navigation-layout="mobile-header"]').getByRole("button", { name: "Dark Mode einschalten" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");

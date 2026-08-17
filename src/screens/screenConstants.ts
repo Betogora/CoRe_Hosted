@@ -19,9 +19,9 @@ export const cardTypeOptions = [
 ];
 
 export const ratingButtons = [
-  { key: "again", shortcutKey: RATING_SHORTCUT_KEYS.again, label: "Nochmal", className: "border-core-danger bg-core-danger-soft text-core-text" },
-  { key: "hard", shortcutKey: RATING_SHORTCUT_KEYS.hard, label: "Schwer", className: "border-core-warning bg-core-warning-soft text-core-text" },
-  { key: "good", shortcutKey: RATING_SHORTCUT_KEYS.good, label: "Gut", className: "border-core-success bg-core-success-soft text-core-text" },
+  { key: "again", shortcutKey: RATING_SHORTCUT_KEYS.again, label: "Nochmal", className: "border-core-success bg-core-success-soft text-core-text" },
+  { key: "hard", shortcutKey: RATING_SHORTCUT_KEYS.hard, label: "Schwer", className: "border-core-danger bg-core-danger-soft text-core-text" },
+  { key: "good", shortcutKey: RATING_SHORTCUT_KEYS.good, label: "Gut", className: "border-core-warning bg-core-warning-soft text-core-text" },
   { key: "easy", shortcutKey: RATING_SHORTCUT_KEYS.easy, label: "Leicht", className: "border-core-info bg-core-info-soft text-core-text" },
 ];
 

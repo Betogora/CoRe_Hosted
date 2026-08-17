@@ -115,8 +115,8 @@ const ACTIVE_RECALL_STEPS: readonly StoryStep<"stack" | "blur" | "variants">[] =
 ];
 
 const ACTIVE_RECALL_STACK_LAYERS = [
-  { id: "warning", className: "bg-core-warning-soft", transform: "translate(28px, -20px) rotate(3deg)" },
-  { id: "success", className: "bg-core-success-soft", transform: "translate(-20px, -8px) rotate(-2.5deg)" },
+  { id: "back", className: "core-help-stack-layer-back", transform: "translate(28px, -20px) rotate(3deg)" },
+  { id: "middle", className: "core-help-stack-layer-middle", transform: "translate(-20px, -8px) rotate(-2.5deg)" },
 ] as const;
 
 const INTRO_CARD_STACK_LAYERS = [
@@ -371,7 +371,9 @@ function IntroSection() {
     if (!target) return;
 
     window.history.pushState(null, "", `#${targetId}`);
-    const scrollRegion = target.closest<HTMLElement>(".core-screen-region");
+    const scrollRegion = window.matchMedia("(min-width: 1280px)").matches
+      ? target.closest<HTMLElement>(".core-screen-region")
+      : null;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const startTop = scrollRegion ? scrollRegion.scrollTop : window.scrollY;
     const targetTop = scrollRegion
@@ -388,32 +390,11 @@ function IntroSection() {
       return;
     }
 
-    const regionTop = scrollRegion?.getBoundingClientRect().top ?? 0;
-    const elementTop = (element: HTMLElement) => startTop + element.getBoundingClientRect().top - regionTop;
-    const activeRecallSection = document.getElementById("active-recall-heading")?.closest<HTMLElement>("section");
-    const activeRecallSteps = method === "spaced-repetition"
-      ? Array.from(activeRecallSection?.querySelectorAll<HTMLElement>("[data-story-step]") ?? [])
-      : [];
-    const firstSkippedStep = activeRecallSteps.at(0);
-    const lastSkippedStep = activeRecallSteps.at(-1);
-    const skipStart = firstSkippedStep ? elementTop(firstSkippedStep) : 0;
-    const skipEnd = lastSkippedStep ? elementTop(lastSkippedStep) + lastSkippedStep.getBoundingClientRect().height : 0;
-    const skipDistance = skipEnd > skipStart && startTop < skipEnd && endTop > skipStart
-      ? skipEnd - skipStart
-      : 0;
-    const virtualStartTop = skipDistance > 0 && startTop > skipStart
-      ? startTop >= skipEnd ? startTop - skipDistance : skipStart
-      : startTop;
-    const virtualEndTop = skipDistance > 0 ? endTop - skipDistance : endTop;
-
     const startedAt = performance.now();
     const animateScroll = (now: number) => {
       const progress = Math.min((now - startedAt) / HELP_METHOD_SCROLL_DURATION_MS, 1);
       const easedProgress = 0.5 - Math.cos(Math.PI * progress) / 2;
-      const virtualTop = virtualStartTop + (virtualEndTop - virtualStartTop) * easedProgress;
-      const nextTop = skipDistance > 0 && virtualTop >= skipStart
-        ? virtualTop + skipDistance
-        : virtualTop;
+      const nextTop = startTop + (endTop - startTop) * easedProgress;
       if (scrollRegion) scrollRegion.scrollTo({ top: nextTop });
       else window.scrollTo({ top: nextTop });
       if (progress < 1) scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
@@ -447,7 +428,6 @@ function IntroSection() {
           <a
             href="#spaced-repetition-heading"
             data-help-method-navigation="animated"
-            data-help-scroll-skip="active-recall-steps"
             className={methodLinkClass("border-core-info")}
             onClick={(event) => scrollToMethod(event, "spaced-repetition")}
           >
@@ -487,7 +467,7 @@ function ActiveRecallOriginalCard({ obscured }: { obscured: boolean }) {
           style={{ transform: layer.transform }}
         />
       ))}
-      <div className="absolute inset-x-[8%] top-20 grid h-64 place-items-center rounded-[24px] border border-[var(--core-border-interactive)] bg-core-info-soft p-6 text-center shadow-lg sm:p-8">
+      <div className="core-help-stack-front absolute inset-x-[8%] top-20 grid h-64 place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 text-center shadow-lg sm:p-8">
         <div className="max-w-xl">
           <RecallQuestion obscured={obscured} />
           <div className="mx-auto mt-6 h-px w-4/5 bg-[var(--core-border-interactive)]" data-testid="active-recall-divider" />
@@ -512,11 +492,11 @@ function ActiveRecallVariantCards() {
             <Sparkle className="absolute bottom-0 left-0 fill-[var(--core-warning)]" size={13} />
           </span>
           <div className="w-full">
-            <p className="core-body-large font-semibold leading-7 text-core-text">{variant.question}</p>
+            <p className="core-heading-3 font-medium leading-8 text-core-text">{variant.question}</p>
             {variant.showAnswer ? (
               <>
                 <div className="mx-auto mt-5 h-px w-4/5 bg-[var(--core-border-interactive)]" />
-                <p className="mt-4 w-full text-center core-body-large font-semibold text-core-text">Der Parasympathikus</p>
+                <p className="mt-4 w-full text-center core-heading-3 font-medium text-core-text">Der Parasympathikus</p>
               </>
             ) : null}
           </div>

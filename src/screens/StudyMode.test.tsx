@@ -10,9 +10,9 @@ test("review ratings keep their German labels, shortcuts and canonical color ord
   assert.deepEqual(
     ratingButtons.map(({ shortcutKey, label, className }) => ({ shortcutKey, label, className })),
     [
-      { shortcutKey: "1", label: "Nochmal", className: "border-core-danger bg-core-danger-soft text-core-text" },
-      { shortcutKey: "2", label: "Schwer", className: "border-core-warning bg-core-warning-soft text-core-text" },
-      { shortcutKey: "3", label: "Gut", className: "border-core-success bg-core-success-soft text-core-text" },
+      { shortcutKey: "1", label: "Nochmal", className: "border-core-success bg-core-success-soft text-core-text" },
+      { shortcutKey: "2", label: "Schwer", className: "border-core-danger bg-core-danger-soft text-core-text" },
+      { shortcutKey: "3", label: "Gut", className: "border-core-warning bg-core-warning-soft text-core-text" },
       { shortcutKey: "4", label: "Leicht", className: "border-core-info bg-core-info-soft text-core-text" },
     ],
   );
