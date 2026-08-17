@@ -135,7 +135,7 @@
   --core-palette-lilac-glow: #e4b5e1;
   --core-palette-golden-glow: #f0cc77;
 
-  /* Stable illustration colors for the layered help-page card stack. */
+  /* Stable illustration colors for reusable example card stacks. */
   --core-help-stack-front: #ffffff;
   --core-help-stack-middle: #e7eff9;
   --core-help-stack-back: #cbdced;
@@ -253,6 +253,13 @@
   --core-learning-status-in-progress: var(--core-danger);
   --core-learning-status-due: var(--core-deck-due-text);
   --core-learning-goal-achieved: #72d6b5;
+  --core-help-stack-front: var(--core-surface-raised);
+  --core-help-stack-middle: #46546a;
+  --core-help-stack-back: var(--core-group-depth-3);
+  --core-help-stack-border: var(--core-palette-highlight);
+  --core-help-stack-text: var(--core-palette-cloud);
+  --core-help-stack-secondary: var(--core-palette-highlight);
+  --core-help-stack-divider: var(--core-border);
 }
 
 @layer components {
@@ -941,10 +948,12 @@ summary {
 
 .core-help-stack-layer-middle {
   background: var(--core-help-stack-middle);
+  transform: translate(-20px, -8px) rotate(-2.5deg);
 }
 
 .core-help-stack-layer-back {
   background: var(--core-help-stack-back);
+  transform: translate(28px, -20px) rotate(3deg);
 }
 
 .core-help-method-link:focus-visible {

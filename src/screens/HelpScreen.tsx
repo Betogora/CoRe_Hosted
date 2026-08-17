@@ -53,7 +53,7 @@ const MEMORY_REVIEWS: readonly MemoryReview[] = [
   },
   {
     id: "variant",
-    title: "2 · Wiederholung mit Variante",
+    title: "x. Wiederholung · Variante",
     color: "var(--core-info)",
     reviewX: 855,
   },
@@ -114,14 +114,9 @@ const ACTIVE_RECALL_STEPS: readonly StoryStep<"stack" | "blur" | "variants">[] =
   },
 ];
 
-const ACTIVE_RECALL_STACK_LAYERS = [
-  { id: "back", className: "core-help-stack-layer-back", transform: "translate(28px, -20px) rotate(3deg)" },
-  { id: "middle", className: "core-help-stack-layer-middle", transform: "translate(-20px, -8px) rotate(-2.5deg)" },
-] as const;
-
-const INTRO_CARD_STACK_LAYERS = [
-  { id: "back", className: "core-help-stack-layer-back z-0 h-[22rem]", transform: "translateX(-30px) scaleX(0.94)" },
-  { id: "middle", className: "core-help-stack-layer-middle z-10 h-[20.5rem]", transform: "translateX(-12px) scaleX(0.97)" },
+const HELP_EXAMPLE_STACK_LAYERS = [
+  { id: "back", className: "core-help-stack-layer-back z-0" },
+  { id: "middle", className: "core-help-stack-layer-middle z-10" },
 ] as const;
 
 const ACTIVE_RECALL_VARIANTS = [
@@ -323,39 +318,74 @@ function StoryStepCard<TSelection extends string>({
   );
 }
 
-function IntroCardStack() {
+function HelpExampleCardStack({
+  activeRecallCard,
+  ariaLabel,
+  cardClassName,
+  children,
+  className,
+  frontTestId,
+  layerTestId,
+  rootTestId,
+}: {
+  activeRecallCard?: "stack" | "blur";
+  ariaLabel?: string;
+  cardClassName: string;
+  children: React.ReactNode;
+  className: string;
+  frontTestId?: string;
+  layerTestId?: string;
+  rootTestId?: string;
+}) {
   return (
     <div
-      className="relative mx-auto h-[25rem] w-full max-w-lg"
-      role="img"
-      aria-label="Karteikartenstapel mit der Frage, welche Grundsätze CoRe für nachhaltiges Lernen nutzt. Active Recall wird zu Smarter Recall und Spaced Repetition zu Content Repetition weiterentwickelt."
-      data-testid="help-intro-card-stack"
+      className={`core-help-example-stack relative ${className}`}
+      role={ariaLabel ? "img" : undefined}
+      aria-label={ariaLabel}
+      data-testid={rootTestId}
+      data-help-example-stack="true"
+      data-active-recall-card={activeRecallCard}
     >
-      {INTRO_CARD_STACK_LAYERS.map((layer) => (
+      {HELP_EXAMPLE_STACK_LAYERS.map((layer) => (
         <div
           key={layer.id}
-          className={`core-help-stack-card absolute inset-x-4 bottom-10 origin-bottom rounded-[26px] border shadow-sm sm:inset-x-8 ${layer.className}`}
-          style={{ transform: layer.transform }}
+          className={`core-help-stack-card absolute inset-x-[8%] top-20 rounded-[24px] border border-[var(--core-border-interactive)] shadow-md ${cardClassName} ${layer.className}`}
           aria-hidden="true"
-          data-testid="help-intro-card-layer"
-          data-help-intro-layer={layer.id}
+          data-testid={layerTestId}
+          data-help-example-stack-layer={layer.id}
         />
       ))}
       <div
-        className="core-help-stack-card core-help-stack-front absolute inset-x-4 bottom-10 z-20 grid h-[19rem] place-items-center rounded-[26px] border p-6 shadow-lg sm:inset-x-8 sm:p-8"
-        data-testid="help-intro-card-front"
+        className={`core-help-stack-card core-help-stack-front absolute inset-x-[8%] top-20 z-20 grid place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 shadow-lg sm:p-8 ${cardClassName}`}
+        data-testid={frontTestId}
+        data-help-example-stack-front="true"
       >
-        <div className="max-w-md">
-          <p className="core-body-large font-medium leading-7 text-core-text">
-            Welche <mark className="core-help-keyword">Grundsätze</mark> <mark className="core-help-keyword">nutzt CoRe</mark>, um das <mark className="core-help-keyword">Lernen</mark> möglichst <mark className="core-help-keyword">nachhaltig zu gestalten</mark>, und wie wurden sie im Vergleich zu herkömmlichen Lernmechanismen verbessert?
-          </p>
-          <ol className="mt-6 grid gap-3 border-t border-[var(--core-border)] pt-5 core-body font-medium text-core-text">
-            <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">1.</span><span>Active Recall <span className="text-core-warning">→</span> Smarter Recall</span></li>
-            <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">2.</span><span>Spaced Repetition <span className="text-core-warning">→</span> Content Repetition</span></li>
-          </ol>
-        </div>
+        {children}
       </div>
     </div>
+  );
+}
+
+function IntroCardStack() {
+  return (
+    <HelpExampleCardStack
+      className="mx-auto h-[27rem] w-full max-w-lg"
+      cardClassName="h-[19rem]"
+      ariaLabel="Karteikartenstapel mit der Frage, welche Grundsätze CoRe für nachhaltiges Lernen nutzt. Active Recall wird zu Smarter Recall und Spaced Repetition zu Content Repetition weiterentwickelt."
+      rootTestId="help-intro-card-stack"
+      frontTestId="help-intro-card-front"
+      layerTestId="help-intro-card-layer"
+    >
+      <div className="max-w-md">
+        <p className="core-body-large font-medium leading-7 text-core-text">
+          Welche <mark className="core-help-keyword">Grundsätze</mark> <mark className="core-help-keyword">nutzt CoRe</mark>, um das <mark className="core-help-keyword">Lernen</mark> möglichst <mark className="core-help-keyword">nachhaltig zu gestalten</mark>, und wie wurden sie im Vergleich zu herkömmlichen Lernmechanismen verbessert?
+        </p>
+        <ol className="mt-6 grid gap-3 border-t border-[var(--core-border)] pt-5 core-body font-medium text-core-text">
+          <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">1.</span><span>Active Recall <span className="text-core-warning">→</span> Smarter Recall</span></li>
+          <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">2.</span><span>Spaced Repetition <span className="text-core-warning">→</span> Content Repetition</span></li>
+        </ol>
+      </div>
+    </HelpExampleCardStack>
   );
 }
 
@@ -459,22 +489,17 @@ function RecallQuestion({ obscured }: { obscured: boolean }) {
 
 function ActiveRecallOriginalCard({ obscured }: { obscured: boolean }) {
   return (
-    <div className="relative h-[27rem]" data-active-recall-card={obscured ? "blur" : "stack"}>
-      {ACTIVE_RECALL_STACK_LAYERS.map((layer) => (
-        <div
-          key={layer.id}
-          className={`absolute inset-x-[8%] top-20 h-64 rounded-[24px] border border-[var(--core-border-interactive)] shadow-md ${layer.className}`}
-          style={{ transform: layer.transform }}
-        />
-      ))}
-      <div className="core-help-stack-front absolute inset-x-[8%] top-20 grid h-64 place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 text-center shadow-lg sm:p-8">
-        <div className="max-w-xl">
-          <RecallQuestion obscured={obscured} />
-          <div className="mx-auto mt-6 h-px w-4/5 bg-[var(--core-border-interactive)]" data-testid="active-recall-divider" />
-          <p className="mt-5 core-heading-3 font-medium text-core-text" data-testid="active-recall-answer">Der Parasympathikus</p>
-        </div>
+    <HelpExampleCardStack
+      className="h-[27rem]"
+      cardClassName="h-64"
+      activeRecallCard={obscured ? "blur" : "stack"}
+    >
+      <div className="max-w-xl text-center">
+        <RecallQuestion obscured={obscured} />
+        <div className="mx-auto mt-6 h-px w-4/5 bg-[var(--core-border-interactive)]" data-testid="active-recall-divider" />
+        <p className="mt-5 core-heading-3 font-medium text-core-text" data-testid="active-recall-answer">Der Parasympathikus</p>
       </div>
-    </div>
+    </HelpExampleCardStack>
   );
 }
 
@@ -639,8 +664,21 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             <path d={INITIAL_CURVE_PATH} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(reviewSelectionId("first"))} data-testid="memory-curve-initial" />
             {RATING_PATHS.map((rating) => <path key={`hit-${rating.id}`} d={rating.curvePath} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(ratingSelectionId(rating.id))} data-testid={`memory-rating-path-${rating.id}`} />)}
             <text x="220" y="292" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">1. Wiederholung</text>
-            <text x="855" y="292" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">2. Wiederholung · Variante</text>
+            <text x="855" y="292" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">x. Wiederholung · Variante</text>
           </svg>
+
+          <span
+            className="pointer-events-none absolute z-10 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center text-core-info transition-opacity duration-300 motion-reduce:transition-none"
+            style={{
+              left: `${(MEMORY_REVIEWS[1].reviewX / 960) * 100}%`,
+              top: `${(152 / 540) * 100}%`,
+              opacity: activeReviewId === null || activeReviewId === "variant" || activeParameterId === "d" ? 1 : 0.35,
+            }}
+            aria-hidden="true"
+            data-testid="memory-variant-star"
+          >
+            <Sparkles size={19} />
+          </span>
 
           {(["s", "d"] as const).map((parameterId) => {
             const nextSelection = parameterSelectionId(parameterId);
@@ -672,12 +710,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
                 aria-label={`${review.title} auswählen`}
                 data-testid={`memory-review-point-${review.id}`}
               >
-                {review.id === "variant" ? (
-                  <>
-                    <Sparkles className="absolute -top-7" size={19} aria-hidden="true" data-testid="memory-variant-star" />
-                    <span aria-hidden="true">×</span>
-                  </>
-                ) : "1"}
+                {review.id === "variant" ? <span aria-hidden="true">…</span> : "1"}
               </button>
             );
           })}

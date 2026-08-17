@@ -554,27 +554,77 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeFocused();
   await expect(page.getByRole("heading", { name: "Wir wollen Lernen verbessern." })).toBeVisible();
   await expect(page.getByText(/Welche Grundsätze nutzt CoRe, um das Lernen möglichst nachhaltig zu gestalten/)).toBeVisible();
-  const introStackGeometry = await page.getByTestId("help-intro-card-stack").evaluate((stack) => {
-    const front = stack.querySelector<HTMLElement>('[data-testid="help-intro-card-front"]')!.getBoundingClientRect();
-    const layers = Array.from(stack.querySelectorAll<HTMLElement>('[data-testid="help-intro-card-layer"]'))
-      .map((layer) => ({ id: layer.dataset.helpIntroLayer, rect: layer.getBoundingClientRect(), style: getComputedStyle(layer) }));
-    const frontStyle = getComputedStyle(stack.querySelector<HTMLElement>('[data-testid="help-intro-card-front"]')!);
+  const readExampleStack = (stack: Locator) => stack.evaluate((stackElement) => {
+    const frontElement = stackElement.querySelector<HTMLElement>('[data-help-example-stack-front="true"]')!;
+    const frontRect = frontElement.getBoundingClientRect();
+    const frontStyle = getComputedStyle(frontElement);
+    const layers = Array.from(stackElement.querySelectorAll<HTMLElement>('[data-help-example-stack-layer]'))
+      .map((layer) => ({ id: layer.dataset.helpExampleStackLayer, element: layer, rect: layer.getBoundingClientRect(), style: getComputedStyle(layer) }));
     return {
-      front: { top: front.top, bottom: front.bottom, background: frontStyle.backgroundColor, zIndex: frontStyle.zIndex },
-      layers: layers.map(({ id, rect, style }) => ({ id, top: rect.top, bottom: rect.bottom, background: style.backgroundColor, zIndex: style.zIndex })),
+      front: {
+        background: frontStyle.backgroundColor,
+        borderColor: frontStyle.borderColor,
+        borderRadius: frontStyle.borderRadius,
+        height: frontElement.offsetHeight,
+        width: frontElement.offsetWidth,
+        zIndex: frontStyle.zIndex,
+      },
+      layers: layers.map(({ id, element, rect, style }) => ({
+        id,
+        background: style.backgroundColor,
+        borderColor: style.borderColor,
+        borderRadius: style.borderRadius,
+        height: element.offsetHeight,
+        leftDelta: rect.left - frontRect.left,
+        topDelta: rect.top - frontRect.top,
+        transform: style.transform,
+        width: element.offsetWidth,
+        zIndex: style.zIndex,
+      })),
     };
   });
-  const backLayer = introStackGeometry.layers.find(({ id }) => id === "back")!;
-  const middleLayer = introStackGeometry.layers.find(({ id }) => id === "middle")!;
-  expect(Math.abs(backLayer.bottom - introStackGeometry.front.bottom)).toBeLessThanOrEqual(1);
-  expect(Math.abs(middleLayer.bottom - introStackGeometry.front.bottom)).toBeLessThanOrEqual(1);
-  expect(backLayer.top).toBeLessThan(middleLayer.top);
-  expect(middleLayer.top).toBeLessThan(introStackGeometry.front.top);
-  expect(introStackGeometry.front.background).toBe("rgb(255, 255, 255)");
+  const exampleStackStyle = (stack: Awaited<ReturnType<typeof readExampleStack>>) => ({
+    front: {
+      background: stack.front.background,
+      borderColor: stack.front.borderColor,
+      borderRadius: stack.front.borderRadius,
+      zIndex: stack.front.zIndex,
+    },
+    layers: stack.layers.map(({ id, background, borderColor, borderRadius, transform, zIndex }) => (
+      { id, background, borderColor, borderRadius, transform, zIndex }
+    )),
+  });
+  const introStackLayout = await readExampleStack(page.getByTestId("help-intro-card-stack"));
+  const backLayer = introStackLayout.layers.find(({ id }) => id === "back")!;
+  const middleLayer = introStackLayout.layers.find(({ id }) => id === "middle")!;
+  expect(backLayer.width).toBe(introStackLayout.front.width);
+  expect(backLayer.height).toBe(introStackLayout.front.height);
+  expect(middleLayer.width).toBe(introStackLayout.front.width);
+  expect(middleLayer.height).toBe(introStackLayout.front.height);
+  expect(backLayer.leftDelta).toBeGreaterThan(0);
+  expect(backLayer.topDelta).toBeLessThan(0);
+  expect(middleLayer.leftDelta).toBeLessThan(0);
+  expect(middleLayer.topDelta).toBeLessThan(0);
+  expect(introStackLayout.front.background).toBe("rgb(255, 255, 255)");
   expect(middleLayer.background).toBe("rgb(231, 239, 249)");
   expect(backLayer.background).toBe("rgb(203, 220, 237)");
   expect(Number(backLayer.zIndex)).toBeLessThan(Number(middleLayer.zIndex));
-  expect(Number(middleLayer.zIndex)).toBeLessThan(Number(introStackGeometry.front.zIndex));
+  expect(Number(middleLayer.zIndex)).toBeLessThan(Number(introStackLayout.front.zIndex));
+  await page.getByRole("button", { name: "Dark Mode einschalten" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
+  const darkIntroStackLayout = await readExampleStack(page.getByTestId("help-intro-card-stack"));
+  const darkBackLayer = darkIntroStackLayout.layers.find(({ id }) => id === "back")!;
+  const darkMiddleLayer = darkIntroStackLayout.layers.find(({ id }) => id === "middle")!;
+  expect(darkIntroStackLayout.front.background).toBe("rgb(49, 57, 71)");
+  expect(darkMiddleLayer.background).toBe("rgb(70, 84, 106)");
+  expect(darkBackLayer.background).toBe("rgb(53, 64, 79)");
+  expect(darkIntroStackLayout.front.borderColor).toBe("rgb(143, 160, 191)");
+  expect(darkMiddleLayer.borderColor).toBe(darkIntroStackLayout.front.borderColor);
+  expect(darkBackLayer.borderColor).toBe(darkIntroStackLayout.front.borderColor);
+  expect(darkMiddleLayer.transform).toBe(middleLayer.transform);
+  expect(darkBackLayer.transform).toBe(backLayer.transform);
+  await page.getByRole("button", { name: "Light Mode einschalten" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-core-theme", "light");
   const activeRecallHeading = page.getByRole("heading", { name: "Active Recall", exact: true });
   const spacedRepetitionHeading = page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" });
   await expect(activeRecallHeading).toBeVisible();
@@ -669,6 +719,11 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(activeRecallVisual).toHaveAttribute("data-active-step", "0");
   const activeRecallStackCard = activeRecallVisual.locator('[data-active-recall-card="stack"]');
   await expect(activeRecallStackCard).toBeVisible();
+  const activeRecallStackLayout = await readExampleStack(activeRecallStackCard);
+  expect(exampleStackStyle(activeRecallStackLayout)).toEqual(exampleStackStyle(introStackLayout));
+  expect(activeRecallStackLayout.layers.every(({ width, height }) => (
+    width === activeRecallStackLayout.front.width && height === activeRecallStackLayout.front.height
+  ))).toBe(true);
   const visibleRecallLayout = await readRecallLayout(activeRecallStackCard);
 
   await page.getByTestId("active-recall-step-blur").evaluate((element) => element.scrollIntoView({ block: "center" }));
@@ -710,8 +765,16 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
 
   await expect(page.getByTestId("memory-y-axis-break")).toBeVisible();
   await expect(page.getByText("Ausschnitt 90–100 %", { exact: true })).toBeVisible();
+  await expect(page.getByText("x. Wiederholung · Variante", { exact: true })).toBeVisible();
 
   const variantReview = page.getByTestId("memory-review-point-variant");
+  const variantStar = page.getByTestId("memory-variant-star");
+  await expect(variantReview).toHaveText("…");
+  const [variantReviewBox, variantStarBox] = await Promise.all([variantReview.boundingBox(), variantStar.boundingBox()]);
+  expect(variantReviewBox).not.toBeNull();
+  expect(variantStarBox).not.toBeNull();
+  expect(Math.abs((variantReviewBox!.x + variantReviewBox!.width / 2) - (variantStarBox!.x + variantStarBox!.width / 2))).toBeLessThanOrEqual(2);
+  expect(variantStarBox!.y + variantStarBox!.height).toBeLessThan(variantReviewBox!.y);
   await variantReview.focus();
   await expect(variantReview).toBeFocused();
   await variantReview.click();
