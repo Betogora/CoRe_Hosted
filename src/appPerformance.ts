@@ -4,6 +4,10 @@ export const appPerformanceMarks = {
   workspaceLocalReady: "core:workspace_local_ready",
   cloudBootstrapReady: "core:cloud_bootstrap_ready",
   cloudSyncReady: "core:cloud_sync_ready",
+  accountBaselineReady: "core:account_baseline_ready",
+  catalogUsable: "core:catalog_usable",
+  workingSetReady: "core:working_set_ready",
+  catalogReconciled: "core:catalog_reconciled",
   indexedDbOpenStart: "core:indexeddb_open_start",
   indexedDbOpenReady: "core:indexeddb_open_ready",
   indexedDbShellStart: "core:indexeddb_shell_start",
@@ -14,6 +18,8 @@ export const appPerformanceMarks = {
   firstDeckSummariesReady: "core:first_deck_summaries_ready",
   serviceWorkerContext: "core:service_worker_context",
 } as const;
+
+export type ReplicaStartupGate = "accountBaselineReady" | "catalogUsable" | "workingSetReady" | "catalogReconciled";
 
 export const appPerformanceMeasures = {
   sessionCheck: "core:session_check",
@@ -121,6 +127,10 @@ export function markCloudBootstrapReady(recorder?: PerformanceRecorder | null): 
     appPerformanceMarks.cloudBootstrapReady,
     recorder,
   );
+}
+
+export function markReplicaStartupGate(gate: ReplicaStartupGate, detail: Record<string, number> = {}, recorder: PerformanceRecorder | null = browserPerformance()): void {
+  recorder?.mark(appPerformanceMarks[gate], { detail });
 }
 
 export function markStartupPhaseStarted(

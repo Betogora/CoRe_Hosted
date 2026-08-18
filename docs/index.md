@@ -31,7 +31,7 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 
 - [`../AGENTS.md`](../AGENTS.md): Arbeitsregeln, Architekturgrenzen und Validierung für Coding-Agenten.
 - [`../src/screens/README.md`](../src/screens/README.md): Screen-Landkarte.
-- [`../supabase/core_schema_v1.sql`](../supabase/core_schema_v1.sql): aktueller Schemaanker.
+- [`../supabase/migrations/20260817190000_prerelease_replica_v2_baseline.sql`](../supabase/migrations/20260817190000_prerelease_replica_v2_baseline.sql): einzige frische Pre-Release-Schemabaseline.
 - [`../supabase/verify_schema_v1.sql`](../supabase/verify_schema_v1.sql): ausführbares Struktur-, RLS- und Policy-Gate.
 
 ## Inventarregeln

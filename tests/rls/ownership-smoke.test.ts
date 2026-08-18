@@ -71,7 +71,6 @@ function createFixture(userId: any, prefix: string, marker: string) {
       id: userId,
       email: `${marker}@rls.local`,
       display_name: `RLS ${marker}`,
-      preferred_language: "de",
       timezone: "Europe/Berlin",
       scheduler_preferences: {},
     },
@@ -119,7 +118,7 @@ function createFixture(userId: any, prefix: string, marker: string) {
       user_id: userId,
       card_id: cardId,
       schema_version: 1,
-      source_kind: "legacy-projection",
+      source_kind: "csv",
       import_fingerprint: `fingerprint-${marker}`,
       previous_snapshot_id: null,
       note_type_definition_id: `${prefix}_note_type_${marker}`,
@@ -174,7 +173,7 @@ const INSERT_ORDER = TABLES;
 const DELETE_ORDER = [...TABLES].reverse();
 
 const UPDATE_CASES = {
-  profiles: { column: "university", value: "RLS Universität" },
+  profiles: { column: "display_name", value: "Aktualisiertes RLS-Profil" },
   decks: { column: "description", value: "aktualisiert" },
   note_type_definitions: { column: "definition", value: { version: 1, verified: true } },
   cards: { column: "original_back", value: "aktualisiert" },
@@ -303,6 +302,80 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         const anonInsert = await anonClient.from(table).insert(forged);
         assertPostgresError(anonInsert, "42501", `${table}: anon INSERT`);
       }
+    });
+
+    await t.test("Replica-v2-RPCs liefern ausschließlich Daten des angemeldeten Accounts", async () => {
+      assert.ok(userA);
+      assert.ok(userB);
+      assertNoError(await clientA.from("card_variants").insert([1, 2].map((number) => ({
+        ...fixtureA.card_variants,
+        id: `${prefix}_active_variant_${number}`,
+        generation_source: "user_edited",
+        is_original: false,
+        transform_type: "rephrase",
+      }))), "zwei aktive Varianten für Nutzer A anlegen");
+      assertNoError(await clientA.from("review_events").insert({
+        ...fixtureA.review_events,
+        id: `${prefix}_same_card_second_review`,
+      }), "zweites Tagesereignis derselben Karte anlegen");
+      const bootstrapA = assertNoError(await clientA.rpc("get_account_bootstrap_v2", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 }), "Bootstrap-v2 für Nutzer A");
+      assert.equal(bootstrapA.confirmedEmpty, false);
+      assert.ok(bootstrapA.decks.every((entry: any) => entry.deck.user_id === userA.id));
+      assert.equal(bootstrapA.decks.some((entry: any) => entry.deck.id === fixtureB.decks.id), false);
+      assert.equal(bootstrapA.decks.find((entry: any) => entry.deck.id === fixtureA.decks.id)?.summary.activeVariantCount, 2);
+      assert.equal(bootstrapA.studyOverview.introducedTodayByDeck[fixtureA.decks.id], 1, "Tagesfortschritt zählt eindeutige Karten statt Ereignisse");
+
+      const deltaA = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: 0, p_limit: 500, p_max_bytes: 1048576 }), "Katalog-Delta für Nutzer A");
+      assert.ok(deltaA.changes.length > 0);
+      assert.ok(deltaA.changes.every((entry: any) => entry.row.user_id === userA.id));
+
+      const catalogA = assertNoError(await clientA.rpc("list_account_card_catalog", {
+        p_deck_id: fixtureA.decks.id,
+        p_query: "",
+        p_sort_field: "sortField",
+        p_sort_direction: "asc",
+        p_cursor: null,
+        p_limit: 50,
+      }), "Kartenkatalog für Nutzer A");
+      assert.ok(catalogA.items.some((entry: any) => entry.id === fixtureA.cards.id));
+      assert.equal(catalogA.items.find((entry: any) => entry.id === fixtureA.cards.id)?.active_variant_count, 2);
+      const foreignCatalog = assertNoError(await clientB.rpc("list_account_card_catalog", {
+        p_deck_id: fixtureA.decks.id,
+        p_query: "",
+        p_sort_field: "sortField",
+        p_sort_direction: "asc",
+        p_cursor: null,
+        p_limit: 50,
+      }), "fremden Kartenkatalog für Nutzer B");
+      assert.deepEqual(foreignCatalog.items, []);
+
+      const hydratedA = assertNoError(await clientA.rpc("hydrate_account_cards", { p_card_ids: [fixtureA.cards.id, fixtureB.cards.id] }), "Kartenkörper für Nutzer A");
+      assert.deepEqual(hydratedA.cards.map((entry: any) => entry.id), [fixtureA.cards.id]);
+      assert.ok(hydratedA.variants.every((entry: any) => entry.user_id === userA.id));
+      const hydratedB = assertNoError(await clientB.rpc("hydrate_account_cards", { p_card_ids: [fixtureA.cards.id] }), "fremden Kartenkörper für Nutzer B");
+      assert.deepEqual(hydratedB.cards, []);
+      assert.deepEqual(hydratedB.variants, []);
+
+      const manifestA = assertNoError(await clientA.rpc("get_deck_offline_manifest", { p_deck_id: fixtureA.decks.id, p_cursor: "", p_limit: 50 }), "Offline-Manifest für Nutzer A");
+      assert.ok(manifestA.cards.some((entry: any) => entry.id === fixtureA.cards.id));
+      const manifestB = assertNoError(await clientB.rpc("get_deck_offline_manifest", { p_deck_id: fixtureA.decks.id, p_cursor: "", p_limit: 50 }), "fremdes Offline-Manifest für Nutzer B");
+      assert.deepEqual(manifestB.cards, []);
+      assert.deepEqual(manifestB.media, []);
+
+      const statisticsA = assertNoError(await clientA.rpc("get_account_statistics", { p_deck_ids: [fixtureA.decks.id], p_from: null, p_to: null }), "Statistik für Nutzer A");
+      assert.equal(statisticsA.cards.total, 1);
+      const foreignTreeDelete = assertNoError(await clientB.rpc("delete_account_deck_tree", {
+        p_deck_id: fixtureA.decks.id,
+        p_deleted_at: new Date().toISOString(),
+        p_device_id: `${prefix}_device_b`,
+      }), "fremden Deckbaum für Nutzer B löschen");
+      assert.deepEqual(foreignTreeDelete.deletedDeckIds, []);
+      const untouchedDeckA = assertNoError(await clientA.from("decks").select("id,deleted_at").eq("id", fixtureA.decks.id), "Deck von Nutzer A nach Fremdlöschung lesen");
+      assert.equal(untouchedDeckA[0]?.deleted_at, null);
+      const anonymousBootstrap = await anonClient.rpc("get_account_bootstrap_v2", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 });
+      assert.ok(anonymousBootstrap.error, "anon darf Bootstrap-v2 nicht ausführen");
+      const anonymousDelete = await anonClient.rpc("delete_account_deck_tree", { p_deck_id: fixtureA.decks.id });
+      assert.ok(anonymousDelete.error, "anon darf keine Deckbäume löschen");
     });
 
     await t.test("accountgebundene Foreign Keys verweigern fremde Decks, Notiztypen, Karten und Snapshots", async () => {
@@ -478,14 +551,11 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const currentVariant = assertNoError(variant, "Variante vor atomarem Review lesen");
       const parameters = {
         p_deck_id: fixtureA.decks.id,
-        p_deck_base_revision: currentDeck.revision,
         p_card_id: fixtureA.cards.id,
-        p_card_base_revision: currentCard.revision,
         p_card_review_state: { state: "review", repetitions: 1, dueAt: "2026-07-12T09:00:00.000Z" },
         p_card_core_state: { lastReviewedAt: answeredAt },
         p_card_updated_at: answeredAt,
         p_variant_id: fixtureA.card_variants.id,
-        p_variant_base_revision: currentVariant.revision,
         p_variant_review_state: { state: "review", repetitions: 1 },
         p_variant_performance: { reviewCount: 1 },
         p_variant_updated_at: answeredAt,
@@ -497,7 +567,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
           rating: "good",
           answered_at: answeredAt,
           response_time_ms: 750,
-          scheduler_before: {},
+          scheduler_before: { state: "review", intervalDays: 12 },
           scheduler_after: { state: "review" },
           flags: {},
           created_at: answeredAt,
@@ -537,12 +607,22 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
           p_variant_performance: { reviewCount: 0 },
           p_card_updated_at: olderAnsweredAt,
           p_variant_updated_at: olderAnsweredAt,
-          p_event: { ...parameters.p_event, id: olderEventId, answered_at: olderAnsweredAt, created_at: olderAnsweredAt },
+          p_event: { ...parameters.p_event, id: olderEventId, rating: "again", answered_at: olderAnsweredAt, created_at: olderAnsweredAt },
         }), "älteren Offline-Review schreiben");
         assert.equal(older.card.review_state.repetitions, 1);
         assert.equal(older.variant.review_state.repetitions, 1);
         const bothEvents = assertNoError(await clientA.from("review_events").select("id").in("id", [eventId, olderEventId]), "beide Offline-Reviews lesen");
         assert.equal(bothEvents.length, 2);
+        const dailyStatistics = assertNoError(await clientA.from("review_statistics_daily")
+          .select("review_count,young_count,retention_young_count,retention_young_remembered,rating_counts")
+          .eq("deck_id", fixtureA.decks.id)
+          .eq("day_key", "2099-07-11")
+          .single(), "tägliche Reviewprojektion lesen");
+        assert.equal(dailyStatistics.review_count, 2);
+        assert.equal(dailyStatistics.young_count, 2);
+        assert.equal(dailyStatistics.retention_young_count, 1);
+        assert.equal(dailyStatistics.retention_young_remembered, 0, "Der frühere Again-Review bestimmt die Tages-Retention.");
+        assert.deepEqual(dailyStatistics.rating_counts, { "young:again": 1, "young:good": 1 });
 
         const deleted = assertNoError(await clientA.from("decks")
           .update({ deleted_at: "2020-01-01T00:00:00.000Z", updated_at: "2020-01-01T00:00:00.000Z", sync_change_id: 1 })

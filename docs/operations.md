@@ -1,7 +1,7 @@
 # CoRe-Betrieb und Runbooks
 
 **Rolle:** einzige kanonische Quelle für lokale Betriebsabläufe, Release, Rollback, Wiederherstellung und operative Gates.
-**Stand:** 2026-08-16
+**Stand:** 2026-08-18
 
 Zeitgebundene Release-Nachweise stehen in [`history.md`](history.md). Produktanforderungen und Roadmap stehen nicht in diesem Dokument.
 
@@ -42,7 +42,17 @@ Der Production-Build erzwingt weiterhin maximal 300 KiB gzip im initialen Import
 
 Der lokale Production-Build vom 16. August 2026 maß 217,3 KiB gzip für den Initialgraphen und 163,1 KiB für den größten Lazy-Graphen. Damit ist das Initialziel eingehalten; der größte Lazy-Graph liegt zwischen Ziel und hartem Maximum.
 
-Supabase bleibt die Datenplattform, solange Bootstrap p95 höchstens 2 Sekunden und normale Delta-RPC p95 höchstens 1 Sekunde benötigen, die Fehlerrate höchstens 0,1 Prozent beträgt, Cursor-Lag im Normalbetrieb unter 5 Sekunden bleibt und der 100k-/1m-Zieltest bei doppelter erwarteter Nutzerlast höchstens 70 Prozent DB-CPU und Connection-Pool belegt. Zusätzlich müssen freigegebene Unit Economics und Regions-/Sync-Anforderungen erfüllt bleiben. Ein wiederholter Bruch wird zuerst mit Indizes, Query-Plan, RPC und Compute geprüft; danach ist ein eigener Sync-Dienst vor demselben Postgres der erste Plattformschritt, kein sofortiger Datenbankwechsel.
+Supabase bleibt die Datenplattform, solange die Replica-v2-RPCs p95 höchstens 1 Sekunde benötigen, die Fehlerrate höchstens 0,1 Prozent beträgt, Cursor-Lag im Normalbetrieb unter 5 Sekunden bleibt und der 100k-/1m-Zieltest bei doppelter erwarteter Nutzerlast höchstens 70 Prozent DB-CPU und Connection-Pool belegt. Der normale Delta-Zyklus muss zusätzlich clientseitig p75 höchstens 2 und p95 höchstens 5 Sekunden halten. Zusätzlich müssen freigegebene Unit Economics und Regions-/Sync-Anforderungen erfüllt bleiben. Ein wiederholter Bruch wird zuerst mit Indizes, Query-Plan, RPC und Compute geprüft; danach ist ein eigener Sync-Dienst vor demselben Postgres der erste Plattformschritt, kein sofortiger Datenbankwechsel.
+
+### Pre-Release-Reset der hybriden Replica
+
+Der aktuelle Stand besitzt keine Upgrade- oder Backfillkette. `20260817190000_prerelease_replica_v2_baseline.sql` ist die einzige Migration; `verify_schema_v1.sql` ist die einzige zusätzliche SQL-Verifikation. Ein Reset löscht Auth-Konten, Storage-Objekte und fachliche Daten unwiederbringlich und ist ausschließlich für das bestätigte Pre-Release-Projekt zulässig.
+
+1. Vor jeder Remote-Aktion die lokale Link-Konfiguration und die daraus gelesene Supabase-Projekt-Ref sichtbar ausgeben. Die Ref muss mit dem ausdrücklich freigegebenen Wegwerf-/Staging-Projekt übereinstimmen; bei Abweichung abbrechen.
+2. Lokal `supabase db reset --local --no-seed`, `npm run db:types:generate`, `npm run db:types:check`, `npm run test:rls:local` und `npm run test:e2e:local` ausführen. Danach die 100k-/1m-Fixture, Performance-Gates und `EXPLAIN (ANALYZE, BUFFERS)` für Bootstrap, Katalog-Delta, Kartenliste, Hydrierung, Manifest, Lernübersicht und Statistik nachweisen.
+3. Erst nach vollständig grünen lokalen Gates Sitzungen widerrufen, alle Auth-Benutzer und Objekte im Bucket `core-media` über die jeweiligen Supabase-APIs löschen und anschließend `supabase db reset --linked --no-seed` gegen die nochmals angezeigte Projekt-Ref ausführen.
+4. Danach müssen `auth.users`, `storage.objects` und alle fachlichen Tabellen leer sein. Schema-Verify, Typdrift, RLS und Hosted-Smoke werden gegen den leeren Stand erneut ausgeführt. Bestehende Personen registrieren sich neu; es gibt weder Export noch Backfill.
+5. Ein App-Rollback stellt gelöschte Daten nicht wieder her. Nach dem ersten extern genutzten Release wird dieser Pre-Release-Ablauf geschlossen und durch einen vorwärtskompatiblen Migrations- und Restorevertrag ersetzt.
 
 ## 2. Umgebungen und Secrets
 

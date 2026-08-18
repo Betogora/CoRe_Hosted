@@ -31,9 +31,7 @@ test("cloud auth maps only active local profile fields into a Supabase profile r
     {
       displayName: "Noemi",
       email: "noemi@example.test",
-      university: "Uni",
-      fieldOfStudy: "Medizin",
-      preferredLanguage: "de",
+      ignoredField: "nicht persistieren",
       schedulerPreferences: { profile: "standard", dayStartHour: 3 },
       uiPreferences: { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"] },
     },
@@ -44,9 +42,7 @@ test("cloud auth maps only active local profile fields into a Supabase profile r
   assert.equal(row.id, user.id);
   assert.equal(row.email, "noemi@example.test");
   assert.equal(row.display_name, "Noemi");
-  assert.equal(Object.hasOwn(row, "university"), false);
-  assert.equal(Object.hasOwn(row, "field_of_study"), false);
-  assert.equal(Object.hasOwn(row, "preferred_language"), false);
+  assert.equal(Object.hasOwn(row, "ignoredField"), false);
   assert.equal(row.updated_at, "2026-07-09T07:30:00.000Z");
   assert.deepEqual(row.scheduler_preferences, { settingsVersion: 2, dayStartHour: 3, learnAheadMinutes: 20, easyDays: DEFAULT_EASY_DAYS, learningProfiles: [] });
   assert.deepEqual(row.ui_preferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"], syncIntervalMinutes: 5 });
@@ -58,26 +54,22 @@ test("cloud auth creates a password-free signed-in profile", () => {
       id: user.id,
       email: "noemi@example.test",
       display_name: "Noemi",
-      university: "Legacy Uni",
-      field_of_study: "Legacy-Fach",
-      preferred_language: "de",
       scheduler_preferences: { profile: "standard", dayStartHour: 3 },
       ui_preferences: { dashboardCollapsedDeckIds: ["deck-a"], deckManagerExpandedDeckIds: ["deck-b"] },
     },
     user,
     {
       account: { passwordVerifier: "pw_secret" },
+      ignoredField: "nicht übernehmen",
     },
     "2026-07-09T07:30:00.000Z",
   );
 
   assert.equal(profile.account.authProvider, "supabase");
   assert.equal(profile.account.status, "signed-in");
-  assert.equal(profile.account.passwordVerifier, undefined);
+  assert.equal(Object.hasOwn(profile.account, "passwordVerifier"), false);
   assert.equal(profile.displayName, "Noemi");
-  assert.equal(Object.hasOwn(profile, "university"), false);
-  assert.equal(Object.hasOwn(profile, "fieldOfStudy"), false);
-  assert.equal(Object.hasOwn(profile, "preferredLanguage"), false);
+  assert.equal(Object.hasOwn(profile, "ignoredField"), false);
   assert.deepEqual(profile.schedulerPreferences, { settingsVersion: 2, dayStartHour: 3, learnAheadMinutes: 20, easyDays: DEFAULT_EASY_DAYS, learningProfiles: [] });
   assert.deepEqual(profile.uiPreferences, { dashboardCollapsedDeckIds: ["deck-a"], learnCollapsedDeckIds: [], deckManagerExpandedDeckIds: ["deck-b"], syncIntervalMinutes: 5 });
 });

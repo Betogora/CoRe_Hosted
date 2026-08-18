@@ -4,11 +4,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createManualCoreDeck } from "../coreModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { Deck } from "../coreTypes.ts";
+import type { OfflineDeckRecord } from "../workspaceReplica.ts";
 import { DeckSettingsScreen } from "./DeckSettingsScreen.tsx";
 
 const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." } });
 
-function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck], settingsTarget: "new-cards-per-day" | null = null) {
+function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck], settingsTarget: "new-cards-per-day" | null = null, offlineDeck: OfflineDeckRecord | null = null) {
   return renderToStaticMarkup(
     <DeckSettingsScreen
       deck={currentDeck}
@@ -25,6 +26,10 @@ function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck], s
       onDeleteDeck={async () => null}
       onSelectDeck={() => undefined}
       onOpenGlobalSettings={() => undefined}
+      offlineDeck={offlineDeck}
+      bodyCache={{ total: 1, cached: offlineDeck ? 0 : 1, downloaded: offlineDeck?.state === "available" ? 1 : 0 }}
+      onDownloadDeck={async () => undefined}
+      onRemoveDeckDownload={async () => undefined}
       onBack={() => undefined}
       backLabel="Zurück zur Kartenverwaltung"
     />,
@@ -75,6 +80,9 @@ test("deck profiles are copy-on-apply and global learn-ahead is absent", () => {
   };
   assert.match(renderScreen(forgottenFirstDeck, [forgottenFirstDeck]), /Wahrscheinlich vergessen zuerst/);
   assert.match(html, /Wiederholungen haben Vorrang/);
+  assert.match(html, />Lernschritte</);
+  assert.match(html, />Nach einem Fehler erneut zeigen</);
+  assert.doesNotMatch(html, /Kurze Abstände verdoppeln/);
   assert.match(html, />Gewünschte Erinnerungsrate</);
   assert.match(html, />Content Repetition</);
   assert.doesNotMatch(html, />Stapeleinstellungen speichern</);
@@ -93,4 +101,39 @@ test("the new-card target points at the stable daily-limit field", () => {
 
   assert.match(html, /id="learning-settings-new-cards"/);
   assert.match(html, /data-testid="learning-settings-new-cards"/);
+});
+
+test("offline usage distinguishes cache, protected download and pending updates", () => {
+  assert.match(renderScreen(), /Teilweise zwischengespeichert/);
+  assert.match(renderScreen(deck, [deck], null, {
+    id: deck.id,
+    deckId: deck.id,
+    state: "available",
+    expectedCardCount: 1,
+    verifiedCardCount: 1,
+    expectedMediaCount: 0,
+    verifiedMediaCount: 0,
+    expectedBytes: 128,
+    downloadedBytes: 128,
+    manifestCursor: "card-1",
+    failureMessage: null,
+    updatedAt: "2026-08-17T12:00:00.000Z",
+  }), /Offline verfügbar/);
+  const outdated = renderScreen(deck, [deck], null, {
+    id: deck.id,
+    deckId: deck.id,
+    state: "outdated",
+    expectedCardCount: 1,
+    verifiedCardCount: 1,
+    expectedMediaCount: 0,
+    verifiedMediaCount: 0,
+    expectedBytes: 128,
+    downloadedBytes: 128,
+    manifestCursor: "card-1",
+    failureMessage: null,
+    updatedAt: "2026-08-17T12:00:00.000Z",
+  });
+  assert.match(outdated, /Aktualisierung ausstehend/);
+  assert.match(outdated, />Aktualisieren</);
+  assert.match(outdated, />Offline-Daten entfernen</);
 });

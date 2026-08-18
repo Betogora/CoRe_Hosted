@@ -8,7 +8,6 @@ import { markCloudBootstrapReady, markCloudSyncReady, markWorkspaceLocalReady } 
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type ReviewReturnContext, type SettingsReturnContext, type SettingsTarget } from "./appNavigation.ts";
-import { markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
 import { createEmptyApkgImportSession, disposeApkgImportPreview, hasVisibleApkgImportSession, resolveApkgCreationMethod, type ApkgImportSession } from "./apkgImportSession.ts";
 import type {
@@ -29,13 +28,15 @@ import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { createPortableExport, mergePortableExportIntoState, stringifyPortableExport } from "./dataPortability.ts";
 import { getGlobalSchedulerPreferences, markLearningSettingsCustom, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
-import { getLearningDayKey, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
+import { getLearningDayKey, getLearningDayRange, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
 import { createDeckLibraryModel } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
-import type { StatisticsDeckSelection, StatisticsPeriod } from "./statisticsModel.ts";
+import { mergeAccountStatisticsSnapshot, type StatisticsDeckSelection, type StatisticsPeriod } from "./statisticsModel.ts";
 import { createMenuModel } from "./menuModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
+import { createWorkspaceHydrationService } from "./workspaceHydrationService.ts";
+import type { AccountBaselineState, OfflineDeckRecord } from "./workspaceReplica.ts";
 import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
 import { createDailyReviewQueue, updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
 import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
@@ -48,6 +49,7 @@ import { requestPersistentWorkspaceStorage, type WorkspaceStorageStatus } from "
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
 import { AppNavigation } from "./ui/AppNavigation.tsx";
 import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
+import { ActionButton } from "./ui/actionUi.tsx";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
 import { SettingsSaveBar } from "./ui/SettingsSaveBar.tsx";
 import { normalizeDeckSettingsDraft, type DeckLearningSettingsDraft, type DeckSettingsDraft, type GlobalSettingsDraft } from "./settingsDraft.ts";
@@ -72,6 +74,17 @@ interface EmptyStudyStart {
   hasAdditionalNewCards: boolean;
   limitReached: boolean;
   returnContext: SettingsReturnContext;
+}
+interface StudyPreparationFailure {
+  deckId: string;
+  variantSession: boolean;
+  message: string;
+}
+
+function studyPreparationFailureMessage(error: unknown) {
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : "Die benötigten Karten konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut.";
 }
 
 function reviewReturnContextToSettingsReturnContext(context: ReviewReturnContext): SettingsReturnContext {
@@ -117,7 +130,7 @@ function withDeckLearningSettings(deck: Deck, settings: LearningSettingsInput): 
   };
 }
 
-function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string }) {
+function LoadingScreen({ message = "CoRe wird geladen.", onRetry }: { message?: string; onRetry?: () => void }) {
   return (
     <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-5 py-10 text-[var(--core-text)]">
       <SoftPanel className="w-full max-w-md p-6">
@@ -128,6 +141,7 @@ function LoadingScreen({ message = "CoRe wird geladen." }: { message?: string })
             <p className="mt-1 core-body text-[var(--core-text-muted)]" role="status" aria-live="polite">
               {message}
             </p>
+            {onRetry ? <ActionButton variant="primary" className="mt-4" onClick={onRetry}>Erneut versuchen</ActionButton> : null}
           </div>
         </div>
       </SoftPanel>
@@ -146,57 +160,14 @@ function ScreenLoadingFallback() {
   );
 }
 
-interface MigrationChoiceScreenProps {
-  legacyState: NonNullable<ReturnType<typeof readLegacyLocalState>>;
-  busy?: boolean;
-  message?: string;
-  onImport: () => void;
-  onSkip: () => void;
-}
-
-function MigrationChoiceScreen({ legacyState, busy = false, message = "", onImport, onSkip }: MigrationChoiceScreenProps) {
-  const deckCount = legacyState?.decks?.length ?? 0;
-  const documentCount = legacyState?.documents?.length ?? 0;
-
-  return (
-    <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-5 py-10 text-[var(--core-text)]">
-      <SoftPanel className="w-full max-w-xl p-6">
-        <div className="mb-6 flex items-center gap-3">
-          <OrbIcon icon={Database} />
-          <div>
-            <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Lokale Daten gefunden</p>
-            <h1 className="core-heading-2 font-semibold text-[var(--core-text)]">Daten in diesen Account übernehmen?</h1>
-          </div>
-        </div>
-        <p className="core-body leading-6 text-[var(--core-text-muted)]">
-          In diesem Browser liegen noch lokale CoRe-Daten: {deckCount} Stapel und {documentCount} Dokumente. Du kannst sie in deinen angemeldeten Account übernehmen oder mit einem leeren Cloud-Stand weiterarbeiten.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button type="button" onClick={onImport} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:bg-[var(--core-action-disabled-bg)]">
-            <Database size={17} aria-hidden="true" />
-            Lokale Daten übernehmen
-          </button>
-          <button type="button" onClick={onSkip} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:text-[var(--core-action-disabled-text)]">
-            Leer starten
-          </button>
-        </div>
-        {message ? (
-          <p className="mt-4 core-body text-core-text" role="alert">
-            {message}
-          </p>
-        ) : null}
-      </SoftPanel>
-    </main>
-  );
-}
-
 export function App() {
   const [supabase, setSupabase] = React.useState<SupabaseBrowserClient | undefined>(undefined);
   const [supabaseUrl, setSupabaseUrl] = React.useState("");
   const navigationItems = React.useMemo(() => menu.listNavigationItems(), []);
   const setSuccessToast = useSuccessToast();
   const bootRunRef = React.useRef(0);
-  const initialCloudSyncRef = React.useRef<Promise<unknown> | null>(null);
+  const retryCloudBootstrapRef = React.useRef<(() => void) | null>(null);
+  const stopCloudBootstrapRetryRef = React.useRef<(() => void) | null>(null);
   const syncEngineRef = React.useRef<AccountSyncEngine | null>(null);
   const latestStateRef = React.useRef<WorkspaceState | null>(null);
   const lastAcknowledgedStateRef = React.useRef<WorkspaceState | null>(null);
@@ -204,7 +175,6 @@ export function App() {
   const [authBusy, setAuthBusy] = React.useState(false);
   const [authMessage, setAuthMessage] = React.useState("");
   const [authMessageType, setAuthMessageType] = React.useState<"status" | "alert">("status");
-  const [migrationMessage, setMigrationMessage] = React.useState("");
   const [workspaceRepository, setWorkspaceRepository] = React.useState<IndexedDbCoreRepository | null>(null);
   const [state, setState] = React.useState<WorkspaceState | null>(null);
   const [cardPages, setCardPages] = React.useState<Record<string, DecksCardPage | undefined>>({});
@@ -216,11 +186,14 @@ export function App() {
   const [visibleDefinitions, setVisibleDefinitions] = React.useState(state?.noteTypeDefinitions ?? []);
   const cardPageRequestRef = React.useRef(new Map<string, string>());
   const [cloudUser, setCloudUser] = React.useState<User | null>(null);
-  const [legacyState, setLegacyState] = React.useState<NonNullable<ReturnType<typeof readLegacyLocalState>> | null>(null);
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
   const [syncEngine, setSyncEngine] = React.useState<AccountSyncEngine | null>(null);
   const [storageStatus, setStorageStatus] = React.useState<WorkspaceStorageStatus | null>(null);
   const [mediaStore, setMediaStore] = React.useState<AccountMediaStore | null>(null);
+  const [accountBaselineState, setAccountBaselineState] = React.useState<AccountBaselineState>("uninitialized");
+  const [baselineLoadFailed, setBaselineLoadFailed] = React.useState(false);
+  const [offlineDecks, setOfflineDecks] = React.useState<Record<string, OfflineDeckRecord>>({});
+  const [focusedDeckBodyCache, setFocusedDeckBodyCache] = React.useState<{ total: number; cached: number; downloaded: number } | null>(null);
   const [apkgImportSession, setApkgImportSessionState] = React.useState<ApkgImportSession>(() => createEmptyApkgImportSession());
   const creationDraftDirtyRef = React.useRef(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
@@ -229,6 +202,7 @@ export function App() {
   const [settingsNavigationBlocked, setSettingsNavigationBlocked] = React.useState(false);
   const [savingSettingsDraft, setSavingSettingsDraft] = React.useState(false);
   const [emptyStudyStart, setEmptyStudyStart] = React.useState<EmptyStudyStart | null>(null);
+  const [studyPreparationFailure, setStudyPreparationFailure] = React.useState<StudyPreparationFailure | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
   const [simulationOffsetMinutes, setSimulationOffsetMinutes] = React.useState(0);
   const [learningDayRevision, setLearningDayRevision] = React.useState(0);
@@ -294,6 +268,33 @@ export function App() {
     }).catch(() => { if (active) setMediaStore(null); });
     return () => { active = false; };
   }, [cloudUser, supabase, supabaseUrl]);
+  const workspaceHydrationService = React.useMemo(() => (
+    supabase && workspaceRepository
+      ? createWorkspaceHydrationService({ client: supabase, repository: workspaceRepository, mediaStore })
+      : null
+  ), [mediaStore, supabase, workspaceRepository]);
+  React.useEffect(() => {
+    let active = true;
+    if (!workspaceRepository) {
+      setOfflineDecks({});
+      return () => { active = false; };
+    }
+    void workspaceRepository.listOfflineDecks().then((records) => {
+      if (active) setOfflineDecks(Object.fromEntries(records.map((record) => [record.deckId, record])));
+    });
+    return () => { active = false; };
+  }, [workspaceRepository]);
+  React.useEffect(() => {
+    let active = true;
+    if (!workspaceRepository || !focusedDeckId) {
+      setFocusedDeckBodyCache(null);
+      return () => { active = false; };
+    }
+    void workspaceRepository.getDeckBodyResidencySummary(focusedDeckId).then((summary) => {
+      if (active) setFocusedDeckBodyCache(summary);
+    });
+    return () => { active = false; };
+  }, [focusedDeckId, offlineDecks, workspaceRepository]);
 
   const setApkgImportSession = React.useCallback((update: React.SetStateAction<ApkgImportSession>) => {
     setApkgImportSessionState((current) => {
@@ -564,7 +565,30 @@ export function App() {
     const runId = bootRunRef.current;
     const requestKey = JSON.stringify(request);
     cardPageRequestRef.current.set(request.deckId, requestKey);
-    const page = await workspaceRepository.listCardPage(request.deckId, request);
+    let page;
+    try {
+      page = workspaceHydrationService
+        ? await workspaceHydrationService.queryCardPage(request)
+        : await workspaceRepository.listCardPage(request.deckId, request);
+    } catch (error) {
+      if (bootRunRef.current !== runId || cardPageRequestRef.current.get(request.deckId) !== requestKey) return;
+      setCardPages((current) => ({
+        ...current,
+        [request.deckId]: {
+          ...(current[request.deckId] ?? {
+            deckId: request.deckId,
+            items: [],
+            page: request.page,
+            pageSize: request.pageSize,
+            totalCount: 0,
+            query: request.query,
+            sort: request.sort,
+          }),
+          loadError: error instanceof Error ? error.message : "Karten konnten nicht geladen werden.",
+        },
+      }));
+      return;
+    }
     if (bootRunRef.current !== runId || cardPageRequestRef.current.get(request.deckId) !== requestKey) return;
     const definitionIds = [page.selectedCard, ...page.items].flatMap((card) => card?.noteTypeDefinitionId ? [card.noteTypeDefinitionId] : []);
     const definitions = await workspaceRepository.loadNoteTypeDefinitions(definitionIds);
@@ -572,16 +596,37 @@ export function App() {
     setVisibleDefinitions((current) => [...new Map([...current, ...definitions].map((definition) => [definition.id, definition])).values()]);
     setCardPages((current) => ({
       ...current,
-      [request.deckId]: { ...page, deckId: request.deckId, query: request.query, sort: request.sort },
+      [request.deckId]: { ...page, deckId: request.deckId, query: request.query, sort: request.sort, loadError: null },
     }));
-  }, [workspaceRepository]);
+  }, [workspaceHydrationService, workspaceRepository]);
 
   const queryStatistics = React.useCallback(
-    ({ period, deckIds }: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection }) => {
+    async ({ period, deckIds }: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection }) => {
       if (!workspaceRepository) throw new Error("Die lokale Statistik ist noch nicht bereit.");
-      return workspaceRepository.queryStatistics({ period, deckIds, now: learningNow, timeZone: learningTimeZone, dayStartHour: globalSchedulerPreferences.dayStartHour });
+      const projection = await workspaceRepository.queryStatistics({ period, deckIds, now: learningNow, timeZone: learningTimeZone, dayStartHour: globalSchedulerPreferences.dayStartHour });
+      if (!workspaceHydrationService) throw new Error("Die Statistik ist noch nicht bereit.");
+      const periodDays = period === "30d" ? 30 : period === "90d" ? 90 : period === "365d" ? 365 : null;
+      const startReference = periodDays == null ? null : new Date(Date.parse(learningNow) - (periodDays - 1) * 86_400_000).toISOString();
+      const startRange = startReference ? getLearningDayRange(startReference, { timeZone: learningTimeZone, dayStartHour: globalSchedulerPreferences.dayStartHour }) : null;
+      const endRange = getLearningDayRange(learningNow, { timeZone: learningTimeZone, dayStartHour: globalSchedulerPreferences.dayStartHour });
+      try {
+        const snapshot = await workspaceHydrationService.refreshStatistics(
+          projection.scopeDeckIds,
+          startRange ? new Date(startRange.start).toISOString() : null,
+          endRange ? new Date(endRange.end).toISOString() : null,
+          learningTimeZone,
+          globalSchedulerPreferences.dayStartHour,
+        );
+        if (!snapshot) throw new Error("Für diese Auswahl ist noch keine vollständige Offline-Statistik gespeichert.");
+        const pendingReviews = workspaceRepository.outbox.listPending().flatMap((mutation) => mutation.type === "review-atomic" && (mutation.payload as any)?.event
+          ? [(mutation.payload as any).event]
+          : []);
+        return mergeAccountStatisticsSnapshot(projection, snapshot, pendingReviews);
+      } catch (error) {
+        throw error instanceof Error ? error : new Error("Statistik konnte nicht geladen werden.");
+      }
     },
-    [globalSchedulerPreferences.dayStartHour, learningNow, learningTimeZone, workspaceRepository],
+    [globalSchedulerPreferences.dayStartHour, learningNow, learningTimeZone, workspaceHydrationService, workspaceRepository],
   );
 
   React.useEffect(() => {
@@ -620,35 +665,21 @@ export function App() {
     }
     const ids = [...scopeIds];
     let nextCursorByDeck = cursorByDeck;
-    let loadedMissingVariants = false;
-    let waitedForInitialCloudSync = false;
     while (true) {
-      const session = await workspaceRepository.loadReviewSession(ids, {
-        now: learningNow,
-        dayStartHour: globalSchedulerPreferences.dayStartHour,
-        timeZone: learningTimeZone,
-        limit: 50,
-        cursorByDeck: nextCursorByDeck,
-      });
-      const cardsWithoutVariants = session.cards.filter(({ item }) => item.variants.length === 0);
-      if (!loadedMissingVariants && cardsWithoutVariants.length > 0 && supabase && cloudUser) {
-        loadedMissingVariants = true;
-        const { loadAccountCardVariants } = await import("./cloudRepository.ts");
-        const variants = await loadAccountCardVariants(supabase, {
-          userId: cloudUser.id,
-          cardIds: cardsWithoutVariants.map(({ item }) => item.id),
-        });
-        if (variants.length > 0) {
-          await workspaceRepository.applyCloudPage({ table: "card_variants", entities: variants, reset: false });
-          continue;
-        }
-      }
-      const initialCloudSync = initialCloudSyncRef.current;
-      if (!waitedForInitialCloudSync && initialCloudSync && cardsWithoutVariants.length > 0) {
-        waitedForInitialCloudSync = true;
-        await initialCloudSync;
-        continue;
-      }
+      const session = workspaceHydrationService
+        ? await workspaceHydrationService.prepareStudyWindow(ids, {
+            now: learningNow,
+            dayStartHour: globalSchedulerPreferences.dayStartHour,
+            timeZone: learningTimeZone,
+            cursorByDeck: nextCursorByDeck,
+          })
+        : await workspaceRepository.loadReviewSession(ids, {
+            now: learningNow,
+            dayStartHour: globalSchedulerPreferences.dayStartHour,
+            timeZone: learningTimeZone,
+            limit: 50,
+            cursorByDeck: nextCursorByDeck,
+          });
       const cardsByDeck = new Map<string, LearningItem[]>();
       for (const { deckId: cardDeckId, item } of session.cards) {
         const bucket = cardsByDeck.get(cardDeckId);
@@ -690,7 +721,7 @@ export function App() {
       }
       nextCursorByDeck = session.cursorByDeck;
     }
-  }, [cloudUser, globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes, learningNow, learningTimeZone, supabase, workspaceRepository]);
+  }, [globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes, learningNow, learningTimeZone, workspaceHydrationService, workspaceRepository]);
 
   React.useEffect(() => {
     if (!workspaceRepository || !state || !studyRequest) {
@@ -723,6 +754,14 @@ export function App() {
       setStudyHasMoreCards(preparation.hasMoreCards);
       setStudyDecks(preparation.decks);
       setStudyDefinitions(preparation.definitions);
+    }).catch((error) => {
+      if (!active) return;
+      setStudyPreparationFailure({
+        deckId: studyRequest.deckId,
+        variantSession: studyRequest.variantSession,
+        message: studyPreparationFailureMessage(error),
+      });
+      navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
     });
     return () => { active = false; };
   }, [loadStudyPreparation, navigateToRoute, state, studyDecks, studyRequest, workspaceRepository]);
@@ -759,11 +798,15 @@ export function App() {
     bootRunRef.current = runId;
     setAuthPhase("loading-cloud");
     setAuthMessage("");
-    setMigrationMessage("");
+    setBaselineLoadFailed(false);
+    stopCloudBootstrapRetryRef.current?.();
+    stopCloudBootstrapRetryRef.current = null;
+    retryCloudBootstrapRef.current = null;
 
     if (!supabase) throw new Error("Supabase ist für diese Umgebung nicht konfiguriert.");
     const boot = await bootAuthenticatedWorkspace(supabase, user);
-    initialCloudSyncRef.current = boot.cloudSync;
+    retryCloudBootstrapRef.current = boot.retryCloudBootstrap;
+    stopCloudBootstrapRetryRef.current = boot.stopCloudBootstrapRetry;
 
     if (bootRunRef.current !== runId) return;
 
@@ -773,32 +816,40 @@ export function App() {
     setSyncEngine(null);
     lastAcknowledgedStateRef.current = boot.state;
     setAppState(boot.state);
+    setDeckSummaries(boot.initialDeckSummaries.summaries);
+    setStudyHeatmap(boot.initialDeckSummaries.studyHeatmap);
     setCloudUser(user);
+    setAccountBaselineState(boot.baselineState);
     setSyncStatus(boot.pendingCount > 0 ? createSyncPendingStatus(boot.pendingCount) : createSyncSavingStatus());
     markWorkspaceLocalReady();
 
-    if (boot.legacyState) {
-      setLegacyState(boot.legacyState);
-      setAuthPhase("migration-choice");
-    } else {
-      setLegacyState(null);
-      setAuthPhase("ready");
-    }
+    setAuthPhase(boot.baselineState !== "uninitialized" ? "ready" : "loading-cloud");
+
+    void boot.bootstrapFirstAttempt.catch(() => {
+      if (bootRunRef.current !== runId) return;
+      setBaselineLoadFailed(true);
+    });
 
     void boot.cloudBootstrap.then((bootstrap) => {
       if (bootRunRef.current !== runId) return;
-      lastAcknowledgedStateRef.current = bootstrap.state;
-      setAppState(bootstrap.state, { preserveCardPages: true });
+      const nextBaseline = boot.repository.getReplicaStatus().accountBaselineState;
+      const currentState = boot.repository.getShellState();
+      setAccountBaselineState(nextBaseline);
+      setBaselineLoadFailed(false);
+      lastAcknowledgedStateRef.current = currentState;
+      setAppState(currentState, { preserveCardPages: true });
       setSyncStatus(bootstrap.conflictCount > 0 ? createSyncConflictStatus(bootstrap.conflictCount) : createSyncSavingStatus());
+      setAuthPhase("ready");
       markCloudBootstrapReady();
     }).catch(() => {});
 
     void boot.cloudSync.then((cloud) => {
       if (bootRunRef.current !== runId) return;
+      const currentState = boot.repository.getShellState();
       syncEngineRef.current = cloud.syncEngine;
       setSyncEngine(cloud.syncEngine);
-      lastAcknowledgedStateRef.current = cloud.state;
-      setAppState(cloud.state, { preserveCardPages: true });
+      lastAcknowledgedStateRef.current = currentState;
+      setAppState(currentState, { preserveCardPages: true });
       setSyncStatus(
         cloud.conflictCount > 0
           ? createSyncConflictStatus(cloud.conflictCount)
@@ -810,8 +861,6 @@ export function App() {
     }).catch((error) => {
       if (bootRunRef.current !== runId) return;
       setSyncStatus(createSyncErrorStatus(formatCloudAuthError(error, "Cloud-Abgleich wird später erneut versucht.")));
-    }).finally(() => {
-      if (initialCloudSyncRef.current === boot.cloudSync) initialCloudSyncRef.current = null;
     });
   }
 
@@ -824,7 +873,6 @@ export function App() {
       setCardPages({});
       lastAcknowledgedStateRef.current = null;
       setAppState(null);
-      setLegacyState(null);
       setAuthPhase(authPhases.passwordRecovery);
       setAuthMessage("Bitte lege ein neues Passwort fest.");
       setAuthMessageType("status");
@@ -854,6 +902,9 @@ export function App() {
     });
     return () => {
       bootRunRef.current += 1;
+      stopCloudBootstrapRetryRef.current?.();
+      stopCloudBootstrapRetryRef.current = null;
+      retryCloudBootstrapRef.current = null;
       stop();
     };
   }, [supabase]);
@@ -879,9 +930,17 @@ export function App() {
   React.useEffect(() => {
     if (authPhase !== "ready" || !workspaceRepository) return;
     let active = true;
-    void requestPersistentWorkspaceStorage().then((status) => { if (active) setStorageStatus(status); });
+    void requestPersistentWorkspaceStorage().then(async (status) => {
+      if (active) setStorageStatus(status);
+      if (workspaceHydrationService) {
+        await workspaceHydrationService.enforceQuota(
+          studyDecks?.flatMap((deck) => deck.cards.map((card) => card.id)) ?? [],
+          studyRequest ? [studyRequest.deckId] : [],
+        );
+      }
+    });
     return () => { active = false; };
-  }, [authPhase, workspaceRepository]);
+  }, [authPhase, studyDecks, studyRequest, workspaceHydrationService, workspaceRepository]);
 
   React.useEffect(() => {
     if (authPhase !== "ready" || !mediaStore || !syncEngine || !workspaceRepository) return undefined;
@@ -1005,36 +1064,6 @@ export function App() {
     }
   }
 
-  async function importLegacyLocalState() {
-    if (!workspaceRepository || !state || !cloudUser || !legacyState) return;
-    setAuthBusy(true);
-    setMigrationMessage("");
-    try {
-      const { replaceAccountCloudState } = await import("./cloudRepository.ts");
-      const nextState = mergePortableExportIntoState(state, createPortableExport(legacyState));
-      const savedState = workspaceRepository.replaceFullState(nextState);
-      setAppState(savedState);
-      const result = await replaceAccountCloudState(supabase, savedState, { deviceId: createBrowserSyncDevice().id });
-      const acknowledgedState = workspaceRepository.replaceFullState(result.state);
-      lastAcknowledgedStateRef.current = acknowledgedState;
-      setAppState(acknowledgedState);
-      markLocalMigrationHandled(cloudUser.id, "imported");
-      setLegacyState(null);
-      setSyncStatus(createSyncSavedStatus("Lokale Daten übernommen und synchronisiert."));
-      setAuthPhase("ready");
-    } catch (error) {
-      setMigrationMessage(error instanceof Error ? error.message : "Lokale Daten konnten nicht übernommen werden.");
-    } finally {
-      setAuthBusy(false);
-    }
-  }
-
-  function skipLegacyLocalState() {
-    if (cloudUser) markLocalMigrationHandled(cloudUser.id, "skipped");
-    setLegacyState(null);
-    setAuthPhase("ready");
-  }
-
   async function syncNow() {
     if (!syncEngine) return;
     try {
@@ -1069,6 +1098,8 @@ export function App() {
       await signOutCloudAccount(supabase, state.profile);
     }
     bootRunRef.current += 1;
+    stopCloudBootstrapRetryRef.current?.();
+    stopCloudBootstrapRetryRef.current = null;
     resetBrowserRouteToDefault();
     setSimulationOffsetMinutes(0);
     disposeApkgImportPreview(apkgImportSessionRef.current);
@@ -1081,7 +1112,6 @@ export function App() {
     lastAcknowledgedStateRef.current = null;
     setAppState(null);
     setCloudUser(null);
-    setLegacyState(null);
     setSyncStatus(createSyncIdleStatus());
     setAuthPhase("signed-out");
     setAuthMessage("Du bist abgemeldet.");
@@ -1113,6 +1143,17 @@ export function App() {
     }
     let importedDecks: Array<{ id: string }>;
     if (commitGraph) {
+      if (!workspaceHydrationService) throw new Error("Der Reimport-Abgleich ist noch nicht bereit.");
+      const importDeckIdentities = commitGraph.kind === "worker-import"
+        ? commitGraph.deckIdentities
+        : commitGraph.decks.map((deck) => ({ id: deck.id, originalDeckId: deck.originalDeckId }));
+      const existingDeckIds = [...new Set(importDeckIdentities.flatMap((incoming) => {
+        const existing = latestStateRef.current?.decks.find((candidate) => candidate.id === incoming.id || (
+          candidate.source === "anki-apkg" && incoming.originalDeckId != null && candidate.originalDeckId === incoming.originalDeckId
+        ));
+        return existing ? [existing.id] : [];
+      }))];
+      for (const existingDeckId of existingDeckIds) await workspaceHydrationService.hydrateDeckStructure(existingDeckId);
       importedDecks = await workspaceRepository.commitImportGraph(commitGraph.kind === "worker-import" ? commitGraph : { ...commitGraph, decks: nextDecks });
     } else {
       importedDecks = await workspaceRepository.commitImportGraph({
@@ -1298,7 +1339,19 @@ export function App() {
     const card = await command;
     if (!card) return null;
     refresh();
-    if (refreshPage) setCardPages((current) => ({ ...current, [deckId]: undefined }));
+    setCardPages((current) => {
+      if (refreshPage) return { ...current, [deckId]: undefined };
+      const page = current[deckId];
+      if (!page) return current;
+      return {
+        ...current,
+        [deckId]: {
+          ...page,
+          items: page.items.map((candidate) => candidate.id === card.id ? card : candidate),
+          selectedCard: page.selectedCard?.id === card.id ? card : page.selectedCard,
+        },
+      };
+    });
     syncEngine?.requestSync();
     return card;
   }
@@ -1463,7 +1516,8 @@ export function App() {
   }
 
   async function createPortableExportText() {
-    if (!workspaceRepository) throw new Error("Der Export ist noch nicht bereit.");
+    if (!workspaceRepository || !workspaceHydrationService) throw new Error("Der Export ist noch nicht bereit.");
+    await workspaceHydrationService.ensureCompleteAccountForExport();
     return stringifyPortableExport(await workspaceRepository.materializeFullState());
   }
 
@@ -1471,11 +1525,13 @@ export function App() {
     if (!workspaceRepository || !syncEngine || !supabase) throw new Error("Der Import ist noch nicht bereit.");
     const current = await workspaceRepository.materializeFullState();
     const nextState = mergePortableExportIntoState(current, value);
+    const comparisonTimestamp = "2000-01-01T00:00:00.000Z";
+    if (createPortableExport(current, comparisonTimestamp).contentHash === createPortableExport(nextState, comparisonTimestamp).contentHash) return;
     workspaceRepository.replaceFullState(nextState);
     await workspaceRepository.flush();
     const { replaceAccountCloudState } = await import("./cloudRepository.ts");
     const result = await replaceAccountCloudState(supabase, nextState, { deviceId: createBrowserSyncDevice().id });
-    workspaceRepository.replaceFullState(result.state, workspaceRepository.getCloudDeltaCursors());
+    workspaceRepository.replaceFullState(result.state);
     await workspaceRepository.flush();
     refresh();
     return syncEngine.syncNow();
@@ -1500,6 +1556,7 @@ export function App() {
     if (preparingStudyKeyRef.current === preparationKey) return;
     preparingStudyKeyRef.current = preparationKey;
     try {
+      setStudyPreparationFailure(null);
       const preparation = await loadStudyPreparation(deck.id, variantSession);
       if (preparingStudyKeyRef.current !== preparationKey) return;
       if (!preparation || !preparation.decks.some((candidate) => candidate.id === deck.id)) return;
@@ -1512,6 +1569,12 @@ export function App() {
       setStudyDefinitions(preparation.definitions);
       navigateToRoute(createStudyRoute(deck.id, { variantSession, returnContext }), {
         replace: activeView === "stapel-einstellungen",
+      });
+    } catch (error) {
+      setStudyPreparationFailure({
+        deckId: deck.id,
+        variantSession,
+        message: studyPreparationFailureMessage(error),
       });
     } finally {
       if (preparingStudyKeyRef.current === preparationKey) preparingStudyKeyRef.current = "";
@@ -1635,6 +1698,20 @@ export function App() {
           }}
           onSelectDeck={(deckId) => navigateToViewNow("stapel-einstellungen", { focusedDeckId: deckId }, { replace: true })}
           onOpenGlobalSettings={() => navigateToView("einstellungen")}
+          offlineDeck={focusedDeckId ? offlineDecks[focusedDeckId] ?? null : null}
+          bodyCache={focusedDeckBodyCache}
+          onDownloadDeck={workspaceHydrationService && workspaceRepository ? async (deckId) => {
+            const refreshDownload = async () => {
+              const record = await workspaceRepository.getOfflineDeck(deckId);
+              if (record) setOfflineDecks((current) => ({ ...current, [deckId]: record }));
+            };
+            await workspaceHydrationService.downloadDeck(deckId, () => { void refreshDownload(); });
+            await refreshDownload();
+          } : undefined}
+          onRemoveDeckDownload={workspaceHydrationService ? async (deckId) => {
+            await workspaceHydrationService.removeDeckDownload(deckId);
+            setOfflineDecks((current) => Object.fromEntries(Object.entries(current).filter(([id]) => id !== deckId)));
+          } : undefined}
           backLabel={returnsToReview ? "Zurück zur Sitzung" : returnsToDashboard ? "Zurück zur Übersicht" : returnsToDecks ? "Zurück zur Kartenverwaltung" : "Zurück zu Lernen"}
           onBack={() => navigateToRoute(deckSettingsReturnRoute(focusedDeckId))}
         />
@@ -1811,7 +1888,17 @@ export function App() {
   }
 
   if (authPhase === "loading-cloud") {
-    return <LoadingScreen message="Deine Cloud-Daten werden geladen." />;
+    return (
+      <LoadingScreen
+        message={baselineLoadFailed && accountBaselineState === "uninitialized"
+          ? "Daten konnten auf diesem Gerät noch nicht geladen werden."
+          : "Deine Cloud-Daten werden geladen."}
+        onRetry={baselineLoadFailed ? () => {
+          setBaselineLoadFailed(false);
+          retryCloudBootstrapRef.current?.();
+        } : undefined}
+      />
+    );
   }
 
   if (shouldShowAuthGate(authPhase)) {
@@ -1832,10 +1919,6 @@ export function App() {
         onUpdatePassword={handleUpdatePassword}
       />
     );
-  }
-
-  if (authPhase === "migration-choice" && legacyState) {
-    return <MigrationChoiceScreen legacyState={legacyState} busy={authBusy} message={migrationMessage} onImport={importLegacyLocalState} onSkip={skipLegacyLocalState} />;
   }
 
   if (!shouldShowAppShell(authPhase) || !workspaceRepository || !state) {
@@ -1977,6 +2060,20 @@ export function App() {
           setEmptyStudyStart(null);
           openDeckSettings(target.deckId, target.returnContext, "new-cards-per-day");
         } : undefined}
+      />
+      <ActionDialog
+        open={Boolean(studyPreparationFailure)}
+        title="Lernsitzung konnte nicht vorbereitet werden"
+        description={studyPreparationFailure?.message}
+        cancelLabel="Schließen"
+        confirmLabel="Erneut versuchen"
+        onCancel={() => setStudyPreparationFailure(null)}
+        onConfirm={() => {
+          const retry = studyPreparationFailure;
+          setStudyPreparationFailure(null);
+          const deck = retry ? latestStateRef.current?.decks.find((candidate) => candidate.id === retry.deckId) : null;
+          if (retry && deck) startDeck(deck, retry.variantSession);
+        }}
       />
     </main>
   );

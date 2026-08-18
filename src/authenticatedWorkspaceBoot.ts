@@ -1,18 +1,15 @@
 import type { User } from "@supabase/supabase-js";
-import { createAccountStorage, hasPendingLocalMigration, readLegacyLocalState } from "./accountStorage.ts";
 import { clearCloudAuthRedirectParams, getCloudWorkspaceUser, readCloudAuthRedirectOutcome } from "./cloudAuth.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
-import { markSessionChecked } from "./appPerformance.ts";
+import { markReplicaStartupGate, markSessionChecked } from "./appPerformance.ts";
 import { createIndexedDbCoreRepository, type IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import type { AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
-import { planProfileBootstrapRepair } from "./profileIntegrity.ts";
+import { profileForBootstrap } from "./profileIntegrity.ts";
 
 type SupabaseBrowserClient = NonNullable<ReturnType<typeof createSupabaseBrowserClient>>;
-type LegacyLocalState = NonNullable<ReturnType<typeof readLegacyLocalState>>;
-
 interface AuthenticatedWorkspaceSessionLifecycleOptions {
   supabase: SupabaseBrowserClient | null;
   onUnavailable: () => void;
@@ -26,20 +23,22 @@ interface AuthenticatedWorkspaceSessionLifecycleOptions {
 export interface AuthenticatedWorkspaceBootResult {
   repository: IndexedDbCoreRepository;
   state: WorkspaceState;
+  initialDeckSummaries: Awaited<ReturnType<IndexedDbCoreRepository["listDeckSummaries"]>>;
   pendingCount: number;
-  legacyState: LegacyLocalState | null;
+  baselineState: ReturnType<IndexedDbCoreRepository["getReplicaStatus"]>["accountBaselineState"];
+  bootstrapFirstAttempt: Promise<AuthenticatedWorkspaceBootstrapResult>;
   cloudBootstrap: Promise<AuthenticatedWorkspaceBootstrapResult>;
   cloudSync: Promise<AuthenticatedWorkspaceCloudResult>;
+  retryCloudBootstrap: () => void;
+  stopCloudBootstrapRetry: () => void;
 }
 
 export interface AuthenticatedWorkspaceBootstrapResult {
-  state: WorkspaceState;
   conflictCount: number;
 }
 
 export interface AuthenticatedWorkspaceCloudResult {
   syncEngine: AccountSyncEngine;
-  state: WorkspaceState;
   conflictCount: number;
   pendingCount: number;
 }
@@ -48,24 +47,124 @@ export async function bootAuthenticatedWorkspace(
   supabase: SupabaseBrowserClient,
   user: User,
 ): Promise<AuthenticatedWorkspaceBootResult> {
-  const accountStorage = createAccountStorage(user.id);
-  const legacyRepository = createCoreRepository(accountStorage, { seedDefaultDecks: false });
+  const seedRepository = createCoreRepository({ seedDefaultDecks: false });
   const repository = await createIndexedDbCoreRepository({
     userId: user.id,
-    initialState: legacyRepository.getState(),
-    legacyStorage: accountStorage,
+    initialState: seedRepository.getState(),
   });
   const state = repository.getShellState();
-  const legacyState = hasPendingLocalMigration(user.id) ? readLegacyLocalState() : null;
-  const cloudBootstrap = finishAuthenticatedWorkspaceBootstrap(supabase, user, repository);
-  const cloudSync = cloudBootstrap.then(() => finishAuthenticatedWorkspaceCloudSync(supabase, user.id, repository));
+  const initialDeckSummaries = await repository.listDeckSummaries({
+    dayStartHour: Number(state.profile.schedulerPreferences?.dayStartHour ?? 0),
+    timeZone: state.profile.timezone,
+  });
+  const bootstrap = createBootstrapRetryCoordinator(supabase, user, repository);
+  const cloudSync = bootstrap.ready.then(() => finishAuthenticatedWorkspaceCloudSync(supabase, user.id, repository));
   return {
     repository,
     state,
+    initialDeckSummaries,
     pendingCount: repository.outbox.count(),
-    legacyState,
-    cloudBootstrap,
+    baselineState: repository.getReplicaStatus().accountBaselineState,
+    bootstrapFirstAttempt: bootstrap.firstAttempt,
+    cloudBootstrap: bootstrap.ready,
     cloudSync,
+    retryCloudBootstrap: bootstrap.retry,
+    stopCloudBootstrapRetry: bootstrap.stop,
+  };
+}
+
+function createBootstrapRetryCoordinator(
+  supabase: SupabaseBrowserClient,
+  user: User,
+  repository: IndexedDbCoreRepository,
+) {
+  const retryDelays = [2_000, 10_000, 30_000, 120_000];
+  let retryIndex = 0;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let stopped = false;
+  let baselineReady = false;
+  let running: Promise<AuthenticatedWorkspaceBootstrapResult> | null = null;
+  let settleFirstResolve!: (value: AuthenticatedWorkspaceBootstrapResult) => void;
+  let settleFirstReject!: (error: unknown) => void;
+  let settleReady!: (value: AuthenticatedWorkspaceBootstrapResult) => void;
+  const firstAttempt = new Promise<AuthenticatedWorkspaceBootstrapResult>((resolve, reject) => {
+    settleFirstResolve = resolve;
+    settleFirstReject = reject;
+  });
+  const ready = new Promise<AuthenticatedWorkspaceBootstrapResult>((resolve) => { settleReady = resolve; });
+  let firstSettled = false;
+
+  const clearRetry = () => {
+    if (timer !== null) clearTimeout(timer);
+    timer = null;
+  };
+  const schedule = () => {
+    if (stopped || timer !== null) return;
+    const base = retryDelays[retryIndex] ?? 5 * 60_000;
+    retryIndex += 1;
+    const jittered = Math.round(base * (0.8 + Math.random() * 0.4));
+    timer = setTimeout(() => {
+      timer = null;
+      void run();
+    }, jittered);
+    (timer as unknown as { unref?: () => void }).unref?.();
+  };
+  const run = () => {
+    if (stopped) return Promise.reject(new Error("Cloud-Bootstrap wurde beendet."));
+    if (running) return running;
+    clearRetry();
+    running = finishAuthenticatedWorkspaceBootstrap(supabase, user, repository)
+      .then((result) => {
+        baselineReady = true;
+        clearRetry();
+        detachListeners();
+        retryIndex = 0;
+        if (!firstSettled) {
+          firstSettled = true;
+          settleFirstResolve(result);
+        }
+        settleReady(result);
+        return result;
+      })
+      .catch((error) => {
+        if (!firstSettled) {
+          firstSettled = true;
+          settleFirstReject(error);
+        }
+        schedule();
+        throw error;
+      })
+      .finally(() => { running = null; });
+    running.catch(() => undefined);
+    return running;
+  };
+  const retry = () => {
+    if (baselineReady) return;
+    retryIndex = 0;
+    clearRetry();
+    void run();
+  };
+  const online = () => retry();
+  const focus = () => retry();
+  const visibility = () => { if (globalThis.document?.visibilityState === "visible") retry(); };
+  const detachListeners = () => {
+    globalThis.removeEventListener?.("online", online);
+    globalThis.removeEventListener?.("focus", focus);
+    globalThis.document?.removeEventListener?.("visibilitychange", visibility);
+  };
+  globalThis.addEventListener?.("online", online);
+  globalThis.addEventListener?.("focus", focus);
+  globalThis.document?.addEventListener?.("visibilitychange", visibility);
+  void run();
+  return {
+    firstAttempt,
+    ready,
+    retry,
+    stop() {
+      stopped = true;
+      clearRetry();
+      detachListeners();
+    },
   };
 }
 
@@ -74,22 +173,28 @@ async function finishAuthenticatedWorkspaceBootstrap(
   user: User,
   repository: IndexedDbCoreRepository,
 ): Promise<AuthenticatedWorkspaceBootstrapResult> {
-  const { loadAccountCloudBootstrap } = await import("./cloudRepository.ts");
-  const bootstrap = await loadAccountCloudBootstrap(supabase, user);
-  await repository.applyCloudPage({ table: "decks", entities: bootstrap.decks, reset: false });
-  await repairBootstrapProfile(repository, bootstrap.profile, user.id);
-  return { state: repository.getShellState(), conflictCount: bootstrap.conflictCount };
+  const pendingMutationsAtRequest = repository.outbox.listPending();
+  const { loadAccountCloudBootstrapV2 } = await import("./cloudRepository.ts");
+  const bootstrap = await loadAccountCloudBootstrapV2(supabase, user);
+  const localCatalogCursor = repository.getReplicaStatus().catalogCursor;
+  await repository.applyCloudCatalogPage({ table: "decks", entities: bootstrap.decks.map((entry) => entry.deck), reset: false, cursor: localCatalogCursor });
+  await repository.applyCloudCatalogPage({ table: "deck_study_summaries", entities: bootstrap.decks.map((entry) => entry.summary), reset: false, cursor: localCatalogCursor });
+  if (bootstrap.studyOverview) await repository.applyAccountStudyOverview(bootstrap.studyOverview);
+  await applyBootstrapProfile(repository, bootstrap.profile, user.id, pendingMutationsAtRequest);
+  await repository.setAccountBaselineState(bootstrap.confirmedEmpty ? "confirmed-empty" : "nonempty", bootstrap.serverCatalogCursor);
+  markReplicaStartupGate("accountBaselineReady", { deckCount: bootstrap.decks.length });
+  return { conflictCount: bootstrap.conflictCount };
 }
 
-export async function repairBootstrapProfile(
+export async function applyBootstrapProfile(
   repository: IndexedDbCoreRepository,
   cloudProfile: unknown,
   userId: string,
+  pendingMutationsAtRequest: ReturnType<IndexedDbCoreRepository["outbox"]["listPending"]> = [],
 ): Promise<void> {
-  const profileRepair = planProfileBootstrapRepair(cloudProfile, repository.outbox.listPending(), userId);
-  await repository.applyCloudProfile(profileRepair.profileToApply);
-  if (profileRepair.enqueueProfile) repository.saveProfile(profileRepair.profileToApply);
-  if (profileRepair.invalidMutationIds.length) repository.outbox.remove(profileRepair.invalidMutationIds);
+  const pendingById = new Map(pendingMutationsAtRequest.map((mutation) => [mutation.id, mutation]));
+  for (const mutation of repository.outbox.listPending()) pendingById.set(mutation.id, mutation);
+  await repository.applyCloudProfile(profileForBootstrap(cloudProfile, [...pendingById.values()], userId));
   await repository.flush();
 }
 
@@ -98,20 +203,19 @@ async function finishAuthenticatedWorkspaceCloudSync(
   userId: string,
   repository: IndexedDbCoreRepository,
 ): Promise<AuthenticatedWorkspaceCloudResult> {
-  const [{ listAccountOriginalVariantManifest, streamAccountCloudChanges }, { createAccountSyncEngine }] = await Promise.all([
+  const [{ streamAccountCatalogChanges }, { createAccountSyncEngine }] = await Promise.all([
     import("./cloudRepository.ts"),
     import("./syncEngine.ts"),
   ]);
-  let initialPullPending = true;
   const pullChanges = async () => {
-    const cursors = repository.getCloudDeltaCursors();
-    const cloud = await streamAccountCloudChanges(supabase, cursors, repository.applyCloudPage, { userId, loadProfile: !initialPullPending });
-    initialPullPending = false;
-    if (cloud.profile && !repository.outbox.listPending().some((mutation) => mutation.type === "profile-patch")) {
-      await repository.applyCloudProfile(cloud.profile);
-    }
+    const nextCursor = await streamAccountCatalogChanges(
+      supabase,
+      repository.getReplicaStatus().catalogCursor,
+      repository.applyCloudCatalogPage,
+    );
+    await repository.completeCatalogReconciliation(nextCursor);
+    markReplicaStartupGate("catalogReconciled", { cursor: nextCursor });
   };
-  let syncRepairManifest: { cardIds: string[]; originalVariantIds: string[] } | null = null;
   const syncEngine = createAccountSyncEngine(supabase, {
     userId,
     device: createBrowserSyncDevice(),
@@ -124,22 +228,21 @@ async function finishAuthenticatedWorkspaceCloudSync(
       if (result?.resolvedPage) await repository.applyCloudPage(result.resolvedPage);
     },
     persistMutationAcknowledgements: repository.persistMutationAcknowledgements,
-    initialize: async () => {
-      if (!repository.needsSyncRepair()) return;
-      syncRepairManifest = await listAccountOriginalVariantManifest(supabase, { userId });
-      await repository.repairSyncState(syncRepairManifest);
-    },
   });
-  await syncEngine.initialize();
-  let syncResult = await syncEngine.syncNow();
-  if (syncRepairManifest && repository.needsSyncRepair() && await repository.repairSyncState(syncRepairManifest) > 0) {
+  try {
+    await syncEngine.initialize();
+  } catch {
+    // Die Lifecycle-Retries dürfen auch dann installiert werden, wenn die erste Geräte-Registrierung offline scheitert.
+  }
+  let syncResult: Awaited<ReturnType<typeof syncEngine.syncNow>> | null = null;
+  try {
     syncResult = await syncEngine.syncNow();
+  } catch {
+    // Der Coordinator wird trotzdem an React übergeben; Fokus-, Online- und Intervall-Retries bleiben damit aktiv.
   }
   await repository.flush();
-  if (syncEngine.pendingCount() === 0) repository.confirmCloudSync();
   return {
     syncEngine,
-    state: repository.getShellState(),
     conflictCount: syncResult?.conflicts?.length ?? 0,
     pendingCount: syncEngine.pendingCount(),
   };

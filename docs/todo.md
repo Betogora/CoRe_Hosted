@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-08-16
+Stand: 2026-08-18
 
 Dieses Dokument enthält ausschließlich offene, autorisierte Arbeit. `NOW`
 blockiert die begleitete Beta. `LATER` folgt danach auf dem Weg zur
@@ -59,13 +59,22 @@ Abnahme:
 
 - [ ] Das bestehende Start- und Preload-Artefakt um deterministische 10k/250k- und
       100k/1m-Fixtures erweitern und in das Release-Gate aufnehmen.
-- [ ] Große Kartenkörper und Dokumentfelder nach belastbarer Größenmessung vom
-      kompakten Kartenindex trennen; die Migration läuft in fortsetzbaren
-      Chunks und ohne Dual Writes.
-- [ ] Browser-Quota, `QuotaExceededError`, unterbrochene IndexedDB-Migration
+- [ ] Browser-Quota, `QuotaExceededError`, frische IndexedDB-Erstellung
       und Zwei-Geräte-Delta-Sync mit den 100k-/1m-Fixtures automatisiert
       abnehmen.
 - [ ] Feld-p75/p95 und die Supabase-Exit-Gates instrumentieren.
+- [ ] Bootstrap, Katalog, Hydrierung, Lernübersicht, Statistik und Manifest am
+      bestätigten frischen Hosted-Supabase-Projekt mit
+      `EXPLAIN (ANALYZE, BUFFERS)`, Query Reports und doppelter Ziellast prüfen.
+
+### Recovery und native Replica
+
+- [ ] Automatische strukturierte Snapshots bei Änderungen sowie vor Import und
+      Restore mit gestaffelter Aufbewahrung, Vorschau und getrenntem
+      Storage-Recovery-Nachweis umsetzen.
+- [ ] Nach stabiler Web-Sync-Abnahme eine Tauri-2-App mit SQLite und
+      Dateisystem-Medien als vollständige lokale Account-Replica planen und
+      erst dann die gemeinsame IndexedDB-/SQLite-Schnittstelle extrahieren.
 
 ### Self-Service-Freigabe
 

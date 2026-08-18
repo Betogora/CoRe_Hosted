@@ -1,27 +1,12 @@
-import * as v from "valibot";
 import { createCoreNoteTypeDefinition, normalizeCoreDeck } from "./coreModel.ts";
 import { normalizeNoteTypeDefinition } from "./coreModel/learningItemContent.ts";
 import type { ForeignNoteSnapshot, NoteTypeDefinitionV1 } from "./coreTypes.ts";
+import type { WorkspaceState } from "./coreWorkspace.ts";
 import { withGlobalSchedulerPreferences } from "./deckSettings.ts";
 import { createWorldCapitalsSeedDecks, ensureWorldCapitalsStudyHistory } from "./fixtures/worldCapitals.ts";
 import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences } from "./uiPreferences.ts";
 
-const LEGACY_DECKS_KEY = "core.importedDecks.v1";
-const LEGACY_APP_STATE_KEYS = ["core.appState.v3", "core.appState.v2"];
-const APP_STATE_KEY = "core.appState.v4";
-const UI_PREFERENCES_KEY = "core.uiPreferences.v1";
 const RETIRED_DECK_SOURCES = new Set(["ai-assisted", "community"]);
-
-const storedDeckSchema = v.looseObject({ id: v.string() });
-const appStateStorageSchema = v.looseObject({
-  version: v.optional(v.number()),
-  profile: v.optional(v.nullable(v.unknown())),
-  decks: v.array(storedDeckSchema),
-  documents: v.optional(v.array(v.unknown())),
-  noteTypeDefinitions: v.optional(v.array(v.unknown())),
-  learningItemSourceSnapshots: v.optional(v.array(v.unknown())),
-  cloudTombstones: v.optional(v.array(v.unknown())),
-});
 
 function createDefaultProfile() {
   return {
@@ -30,12 +15,12 @@ function createDefaultProfile() {
     displayName: "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Berlin",
     onboardingComplete: false,
-    schedulerPreferences: withGlobalSchedulerPreferences({}).schedulerPreferences,
+    schedulerPreferences: { ...withGlobalSchedulerPreferences({}).schedulerPreferences },
     uiPreferences: DEFAULT_UI_PREFERENCES,
   };
 }
 
-function createDefaultState({ seedDefaultDecks = false }: any = {}) {
+function createDefaultState({ seedDefaultDecks = false }: { seedDefaultDecks?: boolean } = {}): WorkspaceState {
   const content = normalizeContentEntities(seedDefaultDecks ? createWorldCapitalsSeedDecks() : [], [], []);
   return {
     version: 4,
@@ -47,26 +32,6 @@ function createDefaultState({ seedDefaultDecks = false }: any = {}) {
     cloudTombstones: [],
     updatedAt: new Date().toISOString(),
   };
-}
-
-function getStorage() {
-  if (typeof localStorage === "undefined") {
-    return {
-      getItem() { return null; },
-    };
-  }
-
-  return localStorage;
-}
-
-function parseJson(value: any, fallback: any) {
-  if (!value) return fallback;
-
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
 }
 
 function normalizeStoredDecks(decks: any) {
@@ -86,7 +51,7 @@ function normalizeSnapshot(value: unknown): ForeignNoteSnapshot | null {
   const input = value as Record<string, unknown>;
   const id = typeof input.id === "string" ? input.id : "";
   const sourceKind = String(input.sourceKind ?? "");
-  if (!id || !["anki-apkg", "csv", "legacy-projection"].includes(sourceKind)) return null;
+  if (!id || !["anki-apkg", "csv"].includes(sourceKind)) return null;
   return {
     id,
     schemaVersion: 1,
@@ -155,19 +120,19 @@ export function normalizeWorkspaceState(rawState: any) {
     Array.isArray(rawState?.learningItemSourceSnapshots) ? rawState.learningItemSourceSnapshots : [],
   );
 
-  const {
-    privacy: _privacy,
-    university: _university,
-    fieldOfStudy: _fieldOfStudy,
-    preferredLanguage: _preferredLanguage,
-    ...profile
-  } = rawState?.profile ?? {};
+  const profile = rawState?.profile ?? {};
   return {
     version: 4,
     profile: withGlobalSchedulerPreferences({
       ...fallback.profile,
-      ...profile,
+      userId: profile.userId ?? fallback.profile.userId,
+      email: profile.email ?? fallback.profile.email,
+      displayName: profile.displayName ?? fallback.profile.displayName,
+      timezone: profile.timezone ?? fallback.profile.timezone,
+      onboardingComplete: profile.onboardingComplete ?? fallback.profile.onboardingComplete,
+      schedulerPreferences: profile.schedulerPreferences,
       uiPreferences: normalizeUiPreferences(profile.uiPreferences),
+      ...(profile.account && typeof profile.account === "object" ? { account: profile.account } : {}),
     }),
     decks: content.decks,
     documents: Array.isArray(rawState?.documents) ? rawState.documents : [],
@@ -178,41 +143,10 @@ export function normalizeWorkspaceState(rawState: any) {
   };
 }
 
-function readState(storage: any, options: any = {}) {
-  const withUiPreferences = (state: any) => {
-    const storedPreferences = parseJson(storage.getItem(UI_PREFERENCES_KEY), null);
-    return storedPreferences && typeof storedPreferences === "object" && !Array.isArray(storedPreferences)
-      ? { ...state, profile: { ...state.profile, uiPreferences: normalizeUiPreferences(storedPreferences) } }
-      : state;
-  };
-  const current = parseJson(storage.getItem(APP_STATE_KEY), null);
-  const currentResult = v.safeParse(appStateStorageSchema, current);
-  if (currentResult.success) {
-    return withUiPreferences(normalizeWorkspaceState(currentResult.output));
-  }
-
-  for (const legacyKey of LEGACY_APP_STATE_KEYS) {
-    const legacyState = parseJson(storage.getItem(legacyKey), null);
-    const legacyResult = v.safeParse(appStateStorageSchema, legacyState);
-    if (!legacyResult.success) continue;
-    return withUiPreferences(normalizeWorkspaceState(legacyResult.output));
-  }
-
-  const legacyDecks = parseJson(storage.getItem(LEGACY_DECKS_KEY), []);
-  const legacyDeckResult = v.safeParse(v.array(storedDeckSchema), legacyDecks);
-  if (legacyDeckResult.success && legacyDeckResult.output.length > 0) {
-    return withUiPreferences(normalizeWorkspaceState({ ...createDefaultState({ seedDefaultDecks: false }), decks: legacyDeckResult.output }));
-  }
-
-  return withUiPreferences(createDefaultState(options));
-}
-
-export function createCoreRepository(storage: any = null, options: any = {}) {
-  const resolvedStorage = storage ?? getStorage();
-
+export function createCoreRepository(options: { seedDefaultDecks?: boolean } = {}): { getState(): WorkspaceState } {
   return {
     getState() {
-      return readState(resolvedStorage, { seedDefaultDecks: options.seedDefaultDecks === true });
+      return createDefaultState({ seedDefaultDecks: options.seedDefaultDecks === true });
     },
   };
 }

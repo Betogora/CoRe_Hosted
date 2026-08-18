@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCoreRepository } from "./coreRepository.ts";
 import { createVariantReviewEvent } from "./coreModel/reviewState.ts";
 import {
   getActiveVariants,
@@ -11,95 +10,6 @@ import {
   normalizeLearningItem,
 } from "./coreModel.ts";
 import { createCoreLearningItem } from "./coreModel/learningItems.ts";
-
-function createMemoryStorage() {
-  const store = new Map();
-  return {
-    getItem(key: any) {
-      return store.get(key) ?? null;
-    },
-    setItem(key: string, value: string) {
-      store.set(key, value);
-    },
-    removeItem(key: any) {
-      store.delete(key);
-    },
-  };
-}
-
-test("repository normalizes legacy cards into learning items without deleting review events", () => {
-  const storage = createMemoryStorage();
-  storage.setItem(
-    "core.appState.v2",
-    JSON.stringify({
-      version: 2,
-      decks: [
-        {
-          id: "deck_legacy",
-          name: "Legacy Deck",
-          source: "manual",
-          cards: [
-            {
-              id: "card_legacy",
-              source: "manual",
-              originalFront: "Was ist CoRe?",
-              originalBack: "Content Repetition.",
-              originalTags: ["core"],
-              reviewState: {
-                maturityXp: 24,
-                repetitions: 2,
-              },
-              variants: [
-                {
-                  id: "variant_rephrase",
-                  sourceCardId: "card_legacy",
-                  front: "Erklaere CoRe kurz.",
-                  back: "Content Repetition.",
-                  transformType: "rephrase",
-                  qualityStatus: "active",
-                },
-              ],
-            },
-          ],
-          reviewEvents: [{ id: "review_old", reviewableType: "card", reviewableId: "card_legacy", rating: "good" }],
-        },
-      ],
-    }),
-  );
-
-  const repository = createCoreRepository(storage);
-  const state = repository.getState();
-  const deck = state.decks[0];
-  const item = deck.cards[0];
-  const original = getOriginalVariant(item);
-  const activeVariants = getActiveVariants(item);
-  const miniCard = getAnswerSideAnchorMiniCard(item, activeVariants[0]);
-
-  assert.equal(item.id, "card_legacy");
-  assert.equal(item.originalFront, "Was ist CoRe?");
-  assert.equal(item.canonicalQuestion, "Was ist CoRe?");
-  assert.equal(item.canonicalAnswer, "Content Repetition.");
-  assert.deepEqual(item.tags, ["core"]);
-  assert.equal(item.sourceType, "manual");
-  assert.equal(item.learningItemState.maturityXp, 24);
-  assert.equal(item.reviewState.repetitions, 2);
-  assert.ok(original);
-  assert.equal(original.isOriginal, true);
-  assert.ok(original);
-  assert.equal(original.front, "Was ist CoRe?");
-  assert.equal(activeVariants.length, 1);
-  assert.equal(activeVariants[0].learningItemId, item.id);
-  assert.ok(original);
-  assert.equal(activeVariants[0].anchorVariantId, original.id);
-  assert.ok(original);
-  assert.equal(activeVariants[0].parentVariantId, original.id);
-  assert.equal(miniCard.shouldShow, true);
-  assert.equal(miniCard.label, "Originalkarte");
-  assert.ok(original);
-  assert.equal(miniCard.front, original.front);
-  assert.equal(deck.reviewEvents.length, 1);
-  assert.equal(deck.reviewEvents[0].id, "review_old");
-});
 
 test("learning item normalization keeps variants and adds only one original variant", () => {
   const item = createCoreLearningItem({

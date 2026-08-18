@@ -7,23 +7,8 @@ import { restoreSoftDeletedCard, softDeleteCard } from "./coreWorkspace.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { planEntityMutations } from "./syncMutationPlanner.ts";
 import { answerVariant } from "./reviewService.ts";
-import {
-  DECK_STUDY_PROJECTION_VERSION,
-  addCardToDeckStudyProjection,
-  createDeckStudyProjectionContext,
-  emptyDeckStudyProjectionAggregate,
-} from "./deckStudyProjection.ts";
 
 Object.assign(globalThis, { IDBKeyRange });
-
-function storage(entries: Record<string, string> = {}) {
-  const values = new Map(Object.entries(entries));
-  return {
-    getItem: (key: string) => values.get(key) ?? null,
-    removeItem: (key: string) => values.delete(key),
-    has: (key: string) => values.has(key),
-  };
-}
 
 function workspaceState(cardCount = 0) {
   const cards = Array.from({ length: cardCount }, (_, index) => createBasicLearningItem(
@@ -46,16 +31,15 @@ function workspaceState(cardCount = 0) {
 
 function openRawWorkspaceDatabase(userId: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(`core.workspace.entities.v1.${userId}`);
+    const request = indexedDB.open(`core.workspace.entities.v2.${userId}`);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 }
 
-test("migriert den Root-State einmalig und liest Karten in deterministischen 50er-Seiten", async () => {
+test("legt die frische v2-Datenbank an und liest Karten in deterministischen 50er-Seiten", async () => {
   const userId = randomUUID();
-  const legacyStorage = storage({ "core.appState.v4": JSON.stringify(workspaceState(205)) });
-  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(205), legacyStorage, indexedDb: indexedDB as any });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(205), indexedDb: indexedDB as any });
   const first = await repository.listCardPage("deck-idb", { page: 0, pageSize: 50 });
   const fifth = await repository.listCardPage("deck-idb", { page: 4, pageSize: 50 });
   const search = await repository.listCardPage("deck-idb", { query: "Frage 00204" });
@@ -67,9 +51,175 @@ test("migriert den Root-State einmalig und liest Karten in deterministischen 50e
   const selected = await repository.listCardPage("deck-idb", { page: 0, pageSize: 50, selectedCardId: "card-00204" });
   assert.equal(selected.selectedCard?.id, "card-00204");
   assert.equal(selected.selectedCard?.variants.length, 1);
-  assert.equal(legacyStorage.has("core.appState.v4"), true, "Altzustand bleibt bis zum bestätigten Cloud-Sync erhalten");
-  repository.confirmCloudSync();
-  assert.equal(legacyStorage.has("core.appState.v4"), false);
+  const database = await openRawWorkspaceDatabase(userId);
+  assert.equal(database.version, 1);
+  assert.equal(database.objectStoreNames.contains("deckStudyProjections"), false);
+  assert.equal(database.objectStoreNames.contains("deckStudyDueBuckets"), false);
+  assert.deepEqual(Array.from(database.transaction("cards").objectStore("cards").indexNames), ["deckId", "deckScan"]);
+  assert.deepEqual(Array.from(database.transaction("cardCatalog").objectStore("cardCatalog").indexNames), [
+    "deckDue", "deckReviewDue", "deckScan", "deckSort", "deckVariants",
+  ]);
+  database.close();
+  repository.close();
+});
+test("trennt Katalog, Kartenkörper und verifizierte Offline-Residency fortsetzbar", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(3), indexedDb: indexedDB as any });
+  const catalog = await repository.listCatalogPage("deck-idb", { page: 0, pageSize: 50 });
+  assert.deepEqual(catalog.items.map((item) => item.id), ["card-00000", "card-00001", "card-00002"]);
+  assert.deepEqual(await repository.missingCardBodyIds(catalog.items.map((item) => item.id)), []);
+
+  await repository.saveOfflineDeck({
+    id: "deck-idb",
+    deckId: "deck-idb",
+    state: "available",
+    expectedCardCount: 3,
+    verifiedCardCount: 3,
+    expectedMediaCount: 0,
+    verifiedMediaCount: 0,
+    expectedBytes: 100,
+    downloadedBytes: 100,
+    manifestCursor: "card-00002",
+    failureMessage: null,
+    updatedAt: "2026-08-17T10:00:00.000Z",
+  });
+  await repository.markCardBodiesResident(["card-00000"], "downloaded");
+  await repository.applyCloudCatalogPage({
+    table: "card_catalog",
+    entities: [{ ...catalog.items[0], bodyRevision: catalog.items[0].bodyRevision + 1, syncChangeId: 10 }],
+    reset: false,
+    cursor: 10,
+    advanceCursor: false,
+  });
+
+  assert.deepEqual(await repository.missingCardBodyIds(["card-00000"]), ["card-00000"]);
+  assert.equal(await repository.loadCard("card-00000"), null, "veraltete Körper dürfen nicht aus dem Cache angezeigt werden");
+  assert.equal(repository.getReplicaStatus().catalogCursor, 0);
+  await repository.applyCloudCatalogPage({
+    table: "deck_study_summaries",
+    entities: [{
+      deckId: "deck-idb",
+      totalCount: 100,
+      newCount: 70,
+      learningCount: 10,
+      matureCount: 15,
+      suspendedCount: 2,
+      activeVariantCount: 4,
+      updatedAt: "2026-08-17T10:00:00.000Z",
+    }],
+    reset: false,
+    cursor: 10,
+    advanceCursor: true,
+  });
+  await repository.applyAccountStudyOverview({
+    contextKey: "UTC:0",
+    dayKey: "2026-08-17",
+    introducedTodayByDeck: {},
+    reviewedTodayByDeck: {},
+    dueByDeck: { "deck-idb": 8 },
+    forecastByDay: {},
+    generatedAt: "2026-08-17T10:00:00.000Z",
+  });
+  assert.equal(repository.getReplicaStatus().catalogCursor, 10);
+  const summaries = await repository.listDeckSummaries({ now: "2026-08-17T10:00:00.000Z", timeZone: "UTC" });
+  assert.deepEqual(summaries.summaries.get("deck-idb")?.inventory, {
+    totalCards: 98,
+    dueCards: 8,
+    newCards: 70,
+    inProgressCards: 10,
+    matureCards: 15,
+    activeVariants: 4,
+    averageMaturityXp: 0,
+  });
+  assert.equal((await repository.getOfflineDeck("deck-idb"))?.state, "outdated");
+  const sharedMedia = {
+    sha1: "0123456789abcdef0123456789abcdef01234567",
+    size: 4,
+    mimeType: "image/png",
+    originalName: "bild.png",
+    storageBucket: "core-media",
+    storagePath: "user/objects/0123456789abcdef0123456789abcdef01234567",
+    cardId: "card-00000",
+    updatedAt: "2026-08-17T10:00:00.000Z",
+  };
+  await repository.appendOfflineManifest("deck-idb", [{
+    id: "card-00000",
+    bodyRevision: 2,
+    dependencyRevision: 1,
+    bodyBytes: 64,
+    updatedAt: "2026-08-17T10:00:00.000Z",
+  }], [{ ...sharedMedia, id: "media-a" }, { ...sharedMedia, id: "media-b" }], { reset: true });
+  const manifest = await repository.readOfflineManifest("deck-idb");
+  assert.equal(manifest.cards[0]?.bodyBytes, 64);
+  assert.equal(manifest.media.length, 1, "ein identischer Hash wird nur einmal heruntergeladen");
+  repository.close();
+});
+
+test("behält einen lokal vorhandenen Kartenkörper nach passender Cloud-Bestätigung", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(1), indexedDb: indexedDB as any });
+  const initialCard = await repository.loadCard("card-00000");
+  assert.ok(initialCard?.contentDocument);
+  const definition = { ...createCoreNoteTypeDefinition({ document: initialCard.contentDocument }), revision: 7 };
+  await repository.applyCloudPage({ table: "note_type_definitions", entities: [definition], reset: false });
+  await repository.loadNoteTypeDefinitions([definition.id]);
+  await repository.updateCard("deck-idb", "card-00000", (card) => ({
+    ...card,
+    meta: { ...card.meta, marked: true },
+    updatedAt: "2026-08-17T10:00:00.000Z",
+  }));
+  await repository.persistMutationAcknowledgements([{
+    table: "cards",
+    row: { id: "card-00000", revision: 2, updated_at: "2026-08-17T10:00:01.000Z" },
+  }]);
+  repository.outbox.remove(repository.outbox.listPending().map((mutation) => mutation.id));
+  const [catalog] = (await repository.listCatalogPage("deck-idb")).items;
+  assert.ok(catalog);
+
+  await repository.applyCloudCatalogPage({
+    table: "card_catalog",
+    entities: [{ ...catalog, bodyRevision: 2, dependencyRevision: 7, syncChangeId: 10 }],
+    reset: false,
+    cursor: 10,
+  });
+
+  assert.equal((await repository.loadCard("card-00000"))?.meta.marked, true);
+  assert.deepEqual(await repository.missingCardBodyIds(["card-00000"]), []);
+  repository.close();
+});
+
+test("Quota-LRU schützt Downloads und ungesendete lokale Kartenänderungen", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(3), indexedDb: indexedDB as any });
+  await repository.markCardBodiesResident(["card-00000"], "downloaded");
+  await repository.updateCard("deck-idb", "card-00001", (card) => ({
+    ...card,
+    originalFront: "Noch nicht synchronisiert",
+    updatedAt: "2026-08-17T10:00:00.000Z",
+  }));
+  await repository.flush();
+
+  const result = await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER);
+
+  assert.equal(result.evictedCount, 1);
+  assert.ok(await repository.loadCard("card-00000"), "heruntergeladene Karten bleiben angeheftet");
+  assert.equal((await repository.loadCard("card-00001"))?.originalFront, "Noch nicht synchronisiert");
+  assert.equal(await repository.loadCard("card-00002"), null, "nur ungeschützte Cache-Körper werden entfernt");
+  repository.close();
+});
+
+test("löscht einen nur katalogisierten Stapel über ein fortsetzbares Deckkommando", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(1), indexedDb: indexedDB as any });
+  await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER);
+  assert.equal((await repository.listCatalogPage("deck-idb", { pageSize: 50 })).items.length, 1);
+  assert.equal(await repository.loadCard("card-00000"), null);
+
+  const result = await repository.deleteDeckTree("deck-idb");
+  assert.deepEqual(result.deletedDeckIds, ["deck-idb"]);
+  assert.equal((await repository.listCatalogPage("deck-idb", { pageSize: 50 })).items.length, 0);
+  const command = repository.outbox.listPending().find((mutation) => mutation.type === "deck-command");
+  assert.equal((command?.payload as any)?.deckId, "deck-idb");
   repository.close();
 });
 
@@ -87,7 +237,7 @@ test("normaler Boot liest auch beim 100k-/1m-Skalierungsvertrag keine Karten, Va
   seeded.close();
 
   const getAllCalls = new Map<string, number>();
-  const targetDatabaseName = `core.workspace.entities.v1.${userId}`;
+  const targetDatabaseName = `core.workspace.entities.v2.${userId}`;
   const originalGetAll = FakeIDBObjectStore.prototype.getAll;
   const originalOpenCursor = FakeIDBObjectStore.prototype.openCursor;
   const originalIndexOpenCursor = FakeIDBIndex.prototype.openCursor;
@@ -143,69 +293,22 @@ test("normaler Boot liest auch beim 100k-/1m-Skalierungsvertrag keine Karten, Va
   }
 });
 
-test("setzt einen unterbrochenen Projektions-Rebuild am gespeicherten Kartencursor fort", async () => {
-  const userId = randomUUID();
-  const seeded = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(3), indexedDb: indexedDB as any });
-  await seeded.flush();
-  seeded.close();
-
-  const context = createDeckStudyProjectionContext("UTC", 0);
-  const database = await openRawWorkspaceDatabase(userId);
-  const read = database.transaction(["cards", "deckStudyProjections"], "readonly");
-  const firstCard = await new Promise<any>((resolve, reject) => {
-    const request = read.objectStore("cards").index("deckScan").openCursor(IDBKeyRange.bound(["deck-idb", ""], ["deck-idb", "\uffff"]));
-    request.onsuccess = () => resolve(request.result?.value);
-    request.onerror = () => reject(request.error);
-  });
-  const dirty = await new Promise<any>((resolve, reject) => {
-    const request = read.objectStore("deckStudyProjections").get("deck-idb");
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-  await new Promise<void>((resolve, reject) => {
-    read.oncomplete = () => resolve();
-    read.onerror = () => reject(read.error);
-  });
-  const aggregate = emptyDeckStudyProjectionAggregate();
-  addCardToDeckStudyProjection(aggregate, firstCard, context);
-  const write = database.transaction(["deckStudyProjections", "syncMetadata"], "readwrite");
-  write.objectStore("deckStudyProjections").put({
-    ...dirty,
-    contextKey: context.key,
-    dirtyToken: "interrupted-token",
-    ready: false,
-    projectionVersion: DECK_STUDY_PROJECTION_VERSION,
-  });
-  write.objectStore("syncMetadata").put({
-    key: "deckStudyProjectionRebuild",
-    value: {
-      deckId: "deck-idb",
-      contextKey: context.key,
-      dirtyToken: "interrupted-token",
-      phase: "cards",
-      cursor: firstCard.id,
-      aggregate,
-    },
-  });
-  await new Promise<void>((resolve, reject) => {
-    write.oncomplete = () => resolve();
-    write.onerror = () => reject(write.error);
-  });
-  database.close();
-
-  const resumed = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
-  const summary = await resumed.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" });
-  assert.equal(summary.summaries.get("deck-idb")?.inventory.totalCards, 3);
-  resumed.close();
-});
-
-test("pflegt Projektionen bei Review und Kartenlöschung über Reload hinweg", async () => {
+test("pflegt die kanonische Summary bei Review und Kartenlöschung über Reload hinweg", async () => {
   const userId = randomUUID();
   const initialState = workspaceState(1);
   const card = initialState.decks[0].cards[0];
   const original = getOriginalVariant(card);
   assert.ok(original);
   const repository = await createIndexedDbCoreRepository({ userId, initialState, indexedDb: indexedDB as any });
+  await repository.applyAccountStudyOverview({
+    contextKey: "UTC:0",
+    dayKey: "2026-08-16",
+    introducedTodayByDeck: {},
+    reviewedTodayByDeck: {},
+    dueByDeck: { "deck-idb": 1 },
+    forecastByDay: {},
+    generatedAt: "2026-08-16T11:59:00.000Z",
+  });
   const before = await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" });
   assert.equal(before.summaries.get("deck-idb")?.inventory.totalCards, 1);
 
@@ -226,69 +329,6 @@ test("pflegt Projektionen bei Review und Kartenlöschung über Reload hinweg", a
   assert.equal(afterReload.summaries.get("deck-idb")?.inventory.totalCards, 0);
   assert.equal(afterReload.studyHeatmap.countsByDay.get("2026-08-16"), 1);
   reopened.close();
-});
-
-test("entfernt abgeleitete Projektionen zusammen mit dem gelöschten Stapel", async () => {
-  const userId = randomUUID();
-  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(2), indexedDb: indexedDB as any });
-  await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" });
-  await repository.deleteDeckTree("deck-idb");
-  await repository.flush();
-  repository.close();
-
-  const database = await openRawWorkspaceDatabase(userId);
-  const transaction = database.transaction(["deckStudyProjections", "deckStudyDueBuckets"], "readonly");
-  const [projection, bucketCount] = await Promise.all([
-    new Promise<unknown>((resolve, reject) => {
-      const request = transaction.objectStore("deckStudyProjections").get("deck-idb");
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    }),
-    new Promise<number>((resolve, reject) => {
-      const request = transaction.objectStore("deckStudyDueBuckets").index("deckId").count("deck-idb");
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    }),
-  ]);
-  assert.equal(projection, undefined);
-  assert.equal(bucketCount, 0);
-  database.close();
-});
-
-test("aktualisiert Cloud- und Konfliktprojektionen ohne vollständigen Kartenread", async () => {
-  const userId = randomUUID();
-  const cloudCard = workspaceState(1).decks[0].cards[0];
-  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
-  await repository.applyCloudPage({ table: "cards", reset: false, entities: [{ ...cloudCard, deckId: "deck-idb", variants: [] }] });
-  assert.equal((await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" })).summaries.get("deck-idb")?.inventory.totalCards, 1);
-
-  await repository.setSyncConflicts([{ id: "conflict-card", status: "open", cardId: cloudCard.id }]);
-  assert.equal((await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" })).summaries.get("deck-idb")?.inventory.totalCards, 0);
-  await repository.setSyncConflicts([]);
-  assert.equal((await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" })).summaries.get("deck-idb")?.inventory.totalCards, 1);
-
-  await repository.applyCloudPage({ table: "cards", reset: true, entities: [] });
-  assert.equal((await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC" })).summaries.get("deck-idb")?.inventory.totalCards, 0);
-  repository.close();
-});
-
-test("invalidiert Projektionen bei Zeitzonen- und Tagesbeginnwechsel", async () => {
-  const userId = randomUUID();
-  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(2), indexedDb: indexedDB as any });
-  await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "UTC", dayStartHour: 0 });
-  await repository.listDeckSummaries({ now: "2026-08-16T12:00:00.000Z", timeZone: "Europe/Berlin", dayStartHour: 4 });
-  repository.close();
-
-  const database = await openRawWorkspaceDatabase(userId);
-  const transaction = database.transaction("deckStudyProjections", "readonly");
-  const row = await new Promise<any>((resolve, reject) => {
-    const request = transaction.objectStore("deckStudyProjections").get("deck-idb");
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-  assert.equal(row.ready, true);
-  assert.equal(row.contextKey, "Europe/Berlin:4");
-  database.close();
 });
 
 test("extrahiert dynamische Notiztypen vor der Cloud-Planung und persistiert sie separat", async () => {
@@ -692,24 +732,22 @@ test("behält eine sofort wiederhergestellte Karte trotz verspäteter Löschbest
   reopened.close();
 });
 
-test("committet Cloudzustand und Delta-Cursor gemeinsam und erhält den Cursor bei lokalen Writes", async () => {
+test("ersetzt den lokalen Vollzustand ohne Legacy-Cursor und erhält nachfolgende lokale Writes", async () => {
   const userId = randomUUID();
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(1), indexedDb: indexedDB as any });
-  const cursors = { cards: { value: "2026-08-11T02:00:00.000Z", id: "card-00000" } };
-  repository.replaceFullState(workspaceState(2), cursors);
+  repository.replaceFullState(workspaceState(2));
   repository.saveProfile({ ...repository.getShellState().profile, userId, displayName: "Nach Delta" });
   await repository.flush();
   repository.close();
 
   const reopened = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
   const reopenedState = await reopened.materializeFullState();
-  assert.deepEqual(reopened.getCloudDeltaCursors(), cursors);
   assert.equal(reopenedState.decks[0].cards.length, 2);
   assert.equal(reopened.getShellState().profile.displayName, "Nach Delta");
   reopened.close();
 });
 
-test("aggregiert Statistikereignisse cursorbasiert statt den Store zu materialisieren", async () => {
+test("erstellt für serverseitige Statistik nur die lokale Darstellungsstruktur", async () => {
   const userId = randomUUID();
   const initialState = workspaceState(1);
   initialState.decks[0].reviewEvents = [
@@ -726,8 +764,8 @@ test("aggregiert Statistikereignisse cursorbasiert statt den Store zu materialis
     timeZone: "UTC",
   });
 
-  assert.equal(projection.summary.reviewCount, 2);
-  assert.equal(projection.studyHeatmap.countsByDay.get("2026-08-11"), 1);
+  assert.equal(projection.summary.reviewCount, 0);
+  assert.equal(projection.studyHeatmap.countsByDay.get("2026-08-11") ?? 0, 0);
   repository.close();
 });
 
@@ -808,24 +846,5 @@ test("conflicted cards are quarantined and cloud choice clears their mutation", 
 
   assert.equal(repository.outbox.listPending().some((mutation) => mutation.table === "cards" && mutation.entityId === cardId), false);
   assert.equal(await repository.loadCard(cardId), null);
-  repository.close();
-});
-
-test("original variant repair is account-bound and idempotent", async () => {
-  const userId = randomUUID();
-  const cloudCard = workspaceState(1).decks[0].cards[0];
-  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
-  assert.equal(repository.needsSyncRepair(), true);
-  await repository.applyCloudPage({ table: "cards", reset: false, entities: [{ ...cloudCard, variants: [] }] });
-  const first = await repository.repairSyncState({ cardIds: ["card-00000"], originalVariantIds: [] });
-  const second = await repository.repairSyncState({ cardIds: ["card-00000"], originalVariantIds: [] });
-  const originalMutation = repository.outbox.listPending().find((mutation) => mutation.table === "card_variants");
-  const repairedCard = await repository.loadCard("card-00000");
-
-  assert.equal(first, 1);
-  assert.equal(second, 0);
-  assert.equal(repository.needsSyncRepair(), false);
-  assert.equal(originalMutation?.baseRevision, null);
-  assert.equal(repairedCard?.variants.filter((variant) => variant.isOriginal).length, 1);
   repository.close();
 });

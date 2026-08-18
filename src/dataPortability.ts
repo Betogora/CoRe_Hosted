@@ -16,37 +16,19 @@ const portableExportV3Schema = v.looseObject({
   learningItemSourceSnapshots: v.array(portableEntitySchema),
   contentHash: v.optional(v.string()),
 });
-const portableExportV2Schema = v.looseObject({
-  schema: v.literal("core-portable-export"),
-  schemaVersion: v.literal(2),
-  exportedAt: v.string(),
-  profile: v.nullable(v.record(v.string(), v.unknown())),
-  decks: v.array(portableEntitySchema),
-  documents: v.array(portableEntitySchema),
-  contentHash: v.optional(v.string()),
-});
-const portableExportV1Schema = v.looseObject({
-  schema: v.literal("core-portable-export"),
-  schemaVersion: v.literal(1),
-  exportedAt: v.string(),
-  profile: v.nullable(v.record(v.string(), v.unknown())),
-  decks: v.array(portableEntitySchema),
-  documents: v.optional(v.array(portableEntitySchema), []),
-  contentHash: v.optional(v.string()),
-});
 const CORE_DECK_SOURCES = new Set(["anki-apkg", "manual", "text-import", "csv-import", "json-import", "spreadsheet-import"]);
 
 function redactProfile(profile: any) {
-  const {
-    account,
-    privacy: _privacy,
-    university: _university,
-    fieldOfStudy: _fieldOfStudy,
-    preferredLanguage: _preferredLanguage,
-    ...publicProfile
-  } = profile ?? {};
+  if (!profile || typeof profile !== "object") return null;
+  const account = profile.account;
   return {
-    ...publicProfile,
+    userId: profile.userId,
+    email: profile.email,
+    displayName: profile.displayName,
+    timezone: profile.timezone,
+    onboardingComplete: profile.onboardingComplete,
+    schedulerPreferences: profile.schedulerPreferences,
+    uiPreferences: profile.uiPreferences,
     account: account
       ? {
           status: account.status,
@@ -131,12 +113,8 @@ export function validatePortableExport(value: any) {
 
   const rawPayload = payload && typeof payload === "object" ? payload as Record<string, unknown> : null;
   if (rawPayload?.schema !== "core-portable-export") errors.push("Unbekanntes Export-Schema.");
-  const parsed = rawPayload?.schemaVersion === 1
-    ? v.safeParse(portableExportV1Schema, payload)
-    : rawPayload?.schemaVersion === 2
-      ? v.safeParse(portableExportV2Schema, payload)
-      : v.safeParse(portableExportV3Schema, payload);
-  if (![1, 2, EXPORT_SCHEMA_VERSION].includes(Number(rawPayload?.schemaVersion))) errors.push("Nicht unterstützte Export-Version.");
+  const parsed = v.safeParse(portableExportV3Schema, payload);
+  if (rawPayload?.schemaVersion !== EXPORT_SCHEMA_VERSION) errors.push("Nicht unterstützte Export-Version.");
   if (!parsed.success) {
     if (errors.length === 0) errors.push("Export entspricht nicht dem unterstützten Schema oder der Version.");
   }
@@ -147,13 +125,9 @@ export function validatePortableExport(value: any) {
         exportedAt: parsed.output.exportedAt,
         profile: redactProfile(parsed.output.profile),
         decks: coreDecks(parsed.output.decks),
-        documents: parsed.output.documents ?? [],
-        noteTypeDefinitions: "noteTypeDefinitions" in parsed.output && Array.isArray(parsed.output.noteTypeDefinitions)
-          ? parsed.output.noteTypeDefinitions
-          : [],
-        learningItemSourceSnapshots: "learningItemSourceSnapshots" in parsed.output && Array.isArray(parsed.output.learningItemSourceSnapshots)
-          ? parsed.output.learningItemSourceSnapshots
-          : [],
+        documents: parsed.output.documents,
+        noteTypeDefinitions: parsed.output.noteTypeDefinitions,
+        learningItemSourceSnapshots: parsed.output.learningItemSourceSnapshots,
         ...(parsed.output.contentHash ? { contentHash: parsed.output.contentHash } : {}),
       }
     : null;

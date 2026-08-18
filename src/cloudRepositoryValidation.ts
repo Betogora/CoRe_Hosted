@@ -1,5 +1,13 @@
 import * as v from "valibot";
 import type { Json, Tables, TablesInsert, TablesUpdate } from "./database.types.ts";
+import type {
+  AccountStatisticsSnapshot,
+  AccountStudyOverview,
+  CardCatalogEntry,
+  DeckStudySummary,
+  OfflineCardManifestEntry,
+  OfflineMediaManifestEntry,
+} from "./workspaceReplica.ts";
 
 type GeneratedAccountTable = "decks" | "cards" | "card_variants" | "review_events" | "source_documents";
 export type AccountTable = GeneratedAccountTable | "note_type_definitions" | "learning_item_source_snapshots";
@@ -73,7 +81,7 @@ const accountRowSchemas: Record<AccountTable, v.BaseSchema<unknown, unknown, v.B
     ...accountRowBaseSchema,
     card_id: v.string(),
     schema_version: v.literal(1),
-    source_kind: v.picklist(["anki-apkg", "csv", "legacy-projection"]),
+    source_kind: v.picklist(["anki-apkg", "csv"]),
     import_fingerprint: v.string(),
     previous_snapshot_id: v.nullable(v.string()),
     note_type_definition_id: v.nullable(v.string()),
@@ -103,6 +111,75 @@ const mediaAssetRowSchema = v.looseObject({
   updated_at: v.string(),
   deleted_at: v.nullable(v.string()),
 });
+const nonNegativeIntegerSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(0));
+const positiveIntegerSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(1));
+const cardCatalogRowSchema = v.looseObject({
+  id: v.string(),
+  deck_id: v.string(),
+  front_preview: v.string(),
+  normalized_search_text: v.string(),
+  sort_text: v.string(),
+  due_at: v.nullable(v.string()),
+  schedule_state: v.string(),
+  maturity_band: v.string(),
+  reviewable: v.boolean(),
+  has_active_variants: v.boolean(),
+  active_variant_count: nonNegativeIntegerSchema,
+  active_variant_id: v.nullable(v.string()),
+  body_revision: positiveIntegerSchema,
+  dependency_revision: positiveIntegerSchema,
+  sync_change_id: positiveIntegerSchema,
+  deleted_at: v.nullable(v.string()),
+  updated_at: v.string(),
+});
+const deckStudySummarySchema = v.looseObject({
+  deckId: v.string(),
+  totalCount: nonNegativeIntegerSchema,
+  newCount: nonNegativeIntegerSchema,
+  learningCount: nonNegativeIntegerSchema,
+  matureCount: nonNegativeIntegerSchema,
+  suspendedCount: nonNegativeIntegerSchema,
+  activeVariantCount: nonNegativeIntegerSchema,
+  updatedAt: v.nullable(v.string()),
+});
+const deckStudySummaryRowSchema = v.looseObject({
+  deck_id: v.string(),
+  total_count: nonNegativeIntegerSchema,
+  new_count: nonNegativeIntegerSchema,
+  learning_count: nonNegativeIntegerSchema,
+  mature_count: nonNegativeIntegerSchema,
+  suspended_count: nonNegativeIntegerSchema,
+  active_variant_count: nonNegativeIntegerSchema,
+  sync_change_id: positiveIntegerSchema,
+  updated_at: v.string(),
+});
+const accountStudyOverviewSchema = v.object({
+  contextKey: v.string(),
+  dayKey: v.string(),
+  introducedTodayByDeck: v.record(v.string(), nonNegativeIntegerSchema),
+  reviewedTodayByDeck: v.record(v.string(), nonNegativeIntegerSchema),
+  dueByDeck: v.record(v.string(), nonNegativeIntegerSchema),
+  forecastByDay: v.record(v.string(), nonNegativeIntegerSchema),
+  generatedAt: v.string(),
+});
+const offlineCardManifestSchema = v.object({
+  id: v.string(),
+  bodyRevision: positiveIntegerSchema,
+  dependencyRevision: positiveIntegerSchema,
+  bodyBytes: nonNegativeIntegerSchema,
+  updatedAt: v.string(),
+});
+const offlineMediaManifestSchema = v.object({
+  id: v.string(),
+  sha1: v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/)),
+  size: nonNegativeIntegerSchema,
+  mimeType: v.string(),
+  originalName: v.string(),
+  storageBucket: v.string(),
+  storagePath: v.string(),
+  cardId: v.nullable(v.string()),
+  updatedAt: v.string(),
+});
 
 export function validateAccountRows(table: AccountTable, input: unknown): AccountRow[] {
   if (!Array.isArray(input)) throw new Error("Cloud-Daten hatten ein ungültiges Zeilenformat.");
@@ -129,5 +206,144 @@ export function validateMediaAssetRows(input: unknown): MediaAssetRow[] {
 export function validateIdRows(input: unknown, table: string) {
   const result = v.safeParse(v.array(v.looseObject({ id: v.string() })), input);
   if (!result.success) throw new Error(`Cloud-Daten für ${table} hatten ein ungültiges Format.`);
+  return result.output;
+}
+
+export function validateCardCatalogRows(input: unknown): CardCatalogEntry[] {
+  const result = v.safeParse(v.array(cardCatalogRowSchema), input);
+  if (!result.success) throw new Error("Cloud-Kartenkatalog hatte ein ungültiges Format.");
+  return result.output.map((row) => ({
+    id: row.id,
+    deckId: row.deck_id,
+    frontPreview: row.front_preview,
+    normalizedSearchText: row.normalized_search_text,
+    sortText: row.sort_text,
+    dueAt: row.due_at,
+    scheduleState: row.schedule_state,
+    maturityBand: row.maturity_band,
+    reviewable: row.reviewable,
+    hasActiveVariants: row.has_active_variants,
+    activeVariantCount: row.active_variant_count,
+    activeVariantId: row.active_variant_id,
+    bodyRevision: row.body_revision,
+    dependencyRevision: row.dependency_revision,
+    syncChangeId: row.sync_change_id,
+    deletedAt: row.deleted_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export function validateDeckStudySummary(input: unknown): DeckStudySummary {
+  const result = v.safeParse(deckStudySummarySchema, input);
+  if (!result.success) throw new Error("Cloud-Stapelstatistik hatte ein ungültiges Format.");
+  return result.output;
+}
+
+export function validateAccountStudyOverview(input: unknown): AccountStudyOverview {
+  const result = v.safeParse(accountStudyOverviewSchema, input);
+  if (!result.success) throw new Error("Cloud-Lernübersicht hatte ein ungültiges Format.");
+  return result.output;
+}
+
+export function validateDeckStudySummaryRows(input: unknown): DeckStudySummary[] {
+  const result = v.safeParse(v.array(deckStudySummaryRowSchema), input);
+  if (!result.success) throw new Error("Cloud-Stapelstatistiken hatten ein ungültiges Format.");
+  return result.output.map((row) => ({
+    deckId: row.deck_id,
+    totalCount: row.total_count,
+    newCount: row.new_count,
+    learningCount: row.learning_count,
+    matureCount: row.mature_count,
+    suspendedCount: row.suspended_count,
+    activeVariantCount: row.active_variant_count,
+    syncChangeId: row.sync_change_id,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export function validateOfflineManifestRows(input: unknown): {
+  cards: OfflineCardManifestEntry[];
+  media: OfflineMediaManifestEntry[];
+} {
+  const result = v.safeParse(v.object({
+    cards: v.array(offlineCardManifestSchema),
+    media: v.array(offlineMediaManifestSchema),
+  }), input);
+  if (!result.success) throw new Error("Offline-Manifest hatte ein ungültiges Format.");
+  return result.output;
+}
+
+export function validateAccountStatistics(input: unknown): AccountStatisticsSnapshot {
+  const nonNegativeNumberSchema = v.pipe(v.number(), v.minValue(0));
+  const dailySchema = v.object({
+    total: nonNegativeIntegerSchema,
+    learning: nonNegativeIntegerSchema,
+    relearning: nonNegativeIntegerSchema,
+    young: nonNegativeIntegerSchema,
+    mature: nonNegativeIntegerSchema,
+    successful: nonNegativeIntegerSchema,
+    timedCount: nonNegativeIntegerSchema,
+    durationMs: nonNegativeIntegerSchema,
+    durationLearningMs: nonNegativeIntegerSchema,
+    durationRelearningMs: nonNegativeIntegerSchema,
+    durationYoungMs: nonNegativeIntegerSchema,
+    durationMatureMs: nonNegativeIntegerSchema,
+  });
+  const distributionSchema = v.array(v.object({
+    key: v.string(),
+    label: v.string(),
+    count: nonNegativeIntegerSchema,
+    cumulativePercent: nonNegativeNumberSchema,
+  }));
+  const result = v.safeParse(v.object({
+    cards: v.object({
+      total: nonNegativeIntegerSchema,
+      new: nonNegativeIntegerSchema,
+      learning: nonNegativeIntegerSchema,
+      mature: nonNegativeIntegerSchema,
+      suspended: nonNegativeIntegerSchema,
+    }),
+    reviewsByDay: v.record(v.string(), dailySchema),
+    heatmapByDay: v.record(v.string(), nonNegativeIntegerSchema),
+    addedCardsByDay: v.record(v.string(), nonNegativeIntegerSchema),
+    forecastByDay: v.record(v.string(), v.object({
+      learning: nonNegativeIntegerSchema,
+      relearning: nonNegativeIntegerSchema,
+      young: nonNegativeIntegerSchema,
+      mature: nonNegativeIntegerSchema,
+      total: nonNegativeIntegerSchema,
+    })),
+    overdue: nonNegativeIntegerSchema,
+    dueTomorrow: nonNegativeIntegerSchema,
+    dailyWorkload: nonNegativeNumberSchema,
+    status: v.object({ activeVariants: nonNegativeIntegerSchema, deletedItems: nonNegativeIntegerSchema }),
+    intervals: v.object({ points: distributionSchema, averageDays: nonNegativeNumberSchema, medianDays: nonNegativeNumberSchema, percentile95Days: nonNegativeNumberSchema }),
+    fsrs: v.object({ difficulty: distributionSchema, stability: distributionSchema, retrievability: distributionSchema }),
+    retention: v.array(v.object({
+      key: v.picklist(["selected", "previous", "all"]),
+      youngRemembered: nonNegativeIntegerSchema,
+      youngTotal: nonNegativeIntegerSchema,
+      matureRemembered: nonNegativeIntegerSchema,
+      matureTotal: nonNegativeIntegerSchema,
+    })),
+    hourly: v.array(v.object({ hour: nonNegativeIntegerSchema, reviews: nonNegativeIntegerSchema, successful: nonNegativeIntegerSchema })),
+    ratings: v.array(v.object({
+      category: v.picklist(["learning", "relearning", "young", "mature"]),
+      rating: v.picklist(["again", "hard", "good", "easy"]),
+      count: nonNegativeIntegerSchema,
+    })),
+    deckReviews: v.record(v.string(), v.object({
+      reviews: nonNegativeIntegerSchema,
+      successful: nonNegativeIntegerSchema,
+      again: nonNegativeIntegerSchema,
+      remembered: nonNegativeIntegerSchema,
+      retentionTotal: nonNegativeIntegerSchema,
+      intervalTotal: nonNegativeNumberSchema,
+      intervalCount: nonNegativeIntegerSchema,
+      nextDueAt: v.nullable(v.string()),
+    })),
+    generatedAt: v.string(),
+  }), input);
+  if (!result.success) throw new Error("Cloud-Statistik hatte ein ungültiges Format.");
   return result.output;
 }

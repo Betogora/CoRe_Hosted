@@ -472,10 +472,10 @@ test("Pomodoro timer expiration clears the global indicator and shows the canoni
   await secondPage.getByRole("navigation", { name: /Hauptmen/ }).waitFor({ state: "visible" });
 
   const timerKey = await page.evaluate(async () => {
-    const database = (await indexedDB.databases()).find(({ name }) => name?.startsWith("core.workspace.entities.v1."));
-    const userId = database?.name?.slice("core.workspace.entities.v1.".length);
+    const database = (await indexedDB.databases()).find(({ name }) => name?.startsWith("core.workspace.entities.v2."));
+    const userId = database?.name?.slice("core.workspace.entities.v2.".length);
     if (!userId) throw new Error("Accountgebundene E2E-Datenbank fehlt.");
-    return `core.accountState.v1.${encodeURIComponent(userId)}.core.pomodoroTimer.v1`;
+    return `core.accountState.v2.${encodeURIComponent(userId)}.core.pomodoroTimer.v1`;
   });
   await secondPage.evaluate((key) => {
     const endsAt = Date.now() + 1_500;
@@ -640,7 +640,7 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await activeRecallMethodLink.evaluate((element: HTMLAnchorElement) => element.blur());
   await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
   await activeRecallMethodLink.hover();
-  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "4px");
+  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
   await page.mouse.move(0, 0);
   await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
   await activeRecallMethodLink.click();
@@ -700,6 +700,8 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page.getByText(/bestimmen gemeinsam, ob eine Karte „bereit für Varianten“ ist/i)).toBeVisible();
 
   const activeRecallVisual = page.getByTestId("active-recall-visual");
+  await page.getByTestId("active-recall-step-stack").evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await expect(activeRecallVisual).toHaveAttribute("data-active-step", "0");
   const readRecallLayout = (card: Locator) => card.evaluate((cardElement) => {
     const cardRect = cardElement.getBoundingClientRect();
     const relativeRect = (testId: string) => {

@@ -21,7 +21,6 @@ test("missing Supabase config also stays behind the login gate", () => {
 test("only the ready phase can show account data", () => {
   assert.equal(shouldShowAppShell("checking-session"), false);
   assert.equal(shouldShowAppShell("loading-cloud"), false);
-  assert.equal(shouldShowAppShell("migration-choice"), false);
   assert.equal(shouldShowAppShell("password-recovery"), false);
   assert.equal(shouldShowAppShell("signed-out"), false);
   assert.equal(shouldShowAppShell("ready"), true);

@@ -6,7 +6,6 @@ export const authPhases = Object.freeze({
   signedOut: "signed-out",
   passwordRecovery: "password-recovery",
   loadingCloud: "loading-cloud",
-  migrationChoice: "migration-choice",
   ready: "ready",
 });
 

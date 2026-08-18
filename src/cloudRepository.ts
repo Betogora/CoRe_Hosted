@@ -1,8 +1,31 @@
 import { createCloudProfile, saveCloudProfile } from "./cloudAuth.ts";
 import { createCoreDeck } from "./coreModel.ts";
 import type { CardVariant, ImportVerificationRepairScope, ImportVerificationScope } from "./coreTypes.ts";
-import { validateAccountRows, validateIdRows, validateMediaAssetRows, validateProfileRows, type AccountTable, type MediaAssetRow } from "./cloudRepositoryValidation.ts";
+import {
+  validateAccountRows,
+  validateAccountStatistics,
+  validateCardCatalogRows,
+  validateDeckStudySummary,
+  validateDeckStudySummaryRows,
+  validateAccountStudyOverview,
+  validateIdRows,
+  validateMediaAssetRows,
+  validateOfflineManifestRows,
+  validateProfileRows,
+  type AccountTable,
+  type MediaAssetRow,
+} from "./cloudRepositoryValidation.ts";
 import { requireCompleteProfile } from "./profileIntegrity.ts";
+import type {
+  AccountStatisticsSnapshot,
+  CardCatalogEntry,
+  CatalogPage,
+  CatalogPageRequest,
+  DeckStudySummary,
+  AccountStudyOverview,
+  OfflineCardManifestEntry,
+  OfflineMediaManifestEntry,
+} from "./workspaceReplica.ts";
 
 const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
 
@@ -610,119 +633,242 @@ export async function verifyAccountImportGraph(client: any, scope: ImportVerific
   };
 }
 
-export interface CloudDeltaCursor {
-  value: string;
-  id: string;
+export interface AccountBootstrapV2Page {
+  profile: ReturnType<typeof createCloudProfile>;
+  decks: Array<{ deck: ReturnType<typeof deckFromRow>; summary: DeckStudySummary }>;
+  nextCursor: string;
+  hasMore: boolean;
+  confirmedEmpty: boolean;
+  conflictCount: number;
+  serverCatalogCursor: number;
+  studyOverview?: AccountStudyOverview;
 }
 
-export type CloudDeltaCursors = Record<string, CloudDeltaCursor>;
-
-function normalizeDeltaCursor(value: unknown): CloudDeltaCursor | null {
-  if (!value || typeof value !== "object") return null;
-  const candidate = value as Record<string, unknown>;
-  const cursorValue = typeof candidate.value === "string" ? candidate.value : "";
-  const id = typeof candidate.id === "string" ? candidate.id : "";
-  const sequence = Number(cursorValue);
-  if (!/^\d+$/.test(cursorValue) || /[,()]/.test(id) || !Number.isSafeInteger(sequence) || sequence < 0) return null;
-  return { value: String(sequence), id };
-}
-
-function globalDeltaCursor(cursors: CloudDeltaCursors): { value: number; initial: boolean } {
-  const values = ACCOUNT_TABLES.map((table) => normalizeDeltaCursor(cursors[table]));
-  const initial = values.some((cursor) => cursor === null);
+export async function loadAccountCloudBootstrapV2(
+  client: any,
+  user: { id: string; email?: string | null },
+  { cursor = "", limit = 200, maxBytes = 200 * 1024 }: { cursor?: string; limit?: number; maxBytes?: number } = {},
+): Promise<AccountBootstrapV2Page> {
+  const userId = requireNonEmptyString(user?.id, "Nutzer-ID fehlt.");
+  const { data, error } = await client.rpc("get_account_bootstrap_v2", {
+    p_cursor: cursor,
+    p_limit: Math.min(500, Math.max(1, Math.floor(limit))),
+    p_max_bytes: Math.min(200 * 1024, Math.max(64 * 1024, Math.floor(maxBytes))),
+  });
+  if (error) throw error;
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Account-Bootstrap-v2-Antwort ist ungültig.");
+  const candidate = data as Record<string, unknown>;
+  if (!Array.isArray(candidate.decks) || typeof candidate.nextCursor !== "string" || typeof candidate.hasMore !== "boolean" || typeof candidate.confirmedEmpty !== "boolean") {
+    throw new Error("Account-Bootstrap-v2-Antwort ist unvollständig.");
+  }
+  const conflictCount = Number(candidate.conflictCount ?? 0);
+  const serverCatalogCursor = Number(candidate.serverCatalogCursor ?? 0);
+  if (!Number.isSafeInteger(conflictCount) || conflictCount < 0 || !Number.isSafeInteger(serverCatalogCursor) || serverCatalogCursor < 0) {
+    throw new Error("Account-Bootstrap-v2 enthält ungültige Zähler.");
+  }
+  const profileRows = candidate.profile == null ? [] : validateProfileRows([candidate.profile]);
+  const decks = candidate.decks.map((value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Account-Bootstrap-v2 enthält einen ungültigen Stapel.");
+    const entry = value as Record<string, unknown>;
+    const [deck] = validateAccountRows("decks", [entry.deck]);
+    return { deck: deckFromRow(deck), summary: validateDeckStudySummary(entry.summary) };
+  });
   return {
-    value: initial ? 0 : Math.min(...values.map((cursor) => Number(cursor!.value))),
-    initial,
+    profile: createCloudProfile(profileRows[0] ?? null, { id: userId, email: user.email ?? null }),
+    decks,
+    nextCursor: candidate.nextCursor,
+    hasMore: candidate.hasMore,
+    confirmedEmpty: candidate.confirmedEmpty,
+    conflictCount,
+    serverCatalogCursor,
+    studyOverview: candidate.studyOverview == null ? undefined : validateAccountStudyOverview(candidate.studyOverview),
   };
 }
 
-function validateAccountDeltaResponse(value: unknown) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Account-Delta-Antwort ist ungültig.");
+const CATALOG_TABLES = ["decks", "card_catalog", "deck_study_summaries"] as const;
+export type CatalogCloudTable = typeof CATALOG_TABLES[number];
+
+export interface CloudCatalogPage {
+  table: CatalogCloudTable;
+  entities: Array<Record<string, unknown> | CardCatalogEntry | DeckStudySummary>;
+  reset: boolean;
+  cursor: number;
+  advanceCursor?: boolean;
+}
+
+function validateCatalogDeltaResponse(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Katalog-Delta-Antwort ist ungültig.");
   const candidate = value as Record<string, unknown>;
   const nextCursor = Number(candidate.nextCursor);
   if (!Number.isSafeInteger(nextCursor) || nextCursor < 0 || !Array.isArray(candidate.changes) || typeof candidate.hasMore !== "boolean") {
-    throw new Error("Account-Delta-Antwort ist unvollständig.");
+    throw new Error("Katalog-Delta-Antwort ist unvollständig.");
   }
-  const changes = candidate.changes.map((change) => {
-    if (!change || typeof change !== "object" || Array.isArray(change)) throw new Error("Account-Delta-Eintrag ist ungültig.");
-    const entry = change as Record<string, unknown>;
-    if (!ACCOUNT_TABLES.includes(String(entry.table)) || !entry.row || typeof entry.row !== "object" || Array.isArray(entry.row)) {
-      throw new Error("Account-Delta-Eintrag ist unvollständig.");
+  const changes = candidate.changes.map((value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Katalog-Delta-Eintrag ist ungültig.");
+    const entry = value as Record<string, unknown>;
+    const table = String(entry.table) as CatalogCloudTable;
+    if (!CATALOG_TABLES.includes(table) || !entry.row || typeof entry.row !== "object" || Array.isArray(entry.row)) {
+      throw new Error("Katalog-Delta-Eintrag ist unvollständig.");
     }
-    return { table: String(entry.table) as AccountTable, row: entry.row };
+    return { table, row: entry.row };
   });
   return { changes, nextCursor, hasMore: candidate.hasMore };
 }
 
-export async function streamAccountCloudChanges(
+export async function streamAccountCatalogChanges(
   client: any,
-  cursors: CloudDeltaCursors,
-  onPage: (page: CloudEntityPage) => Promise<void>,
-  { userId, loadProfile = true }: { userId?: string; loadProfile?: boolean } = {},
-) {
-  const user = await authenticatedUserForKnownSession(client, userId);
-  const profileRows = loadProfile ? await selectProfileRows(client, user.id) : [];
-  const start = globalDeltaCursor(cursors);
-  let cursorValue = start.value;
-  let firstDeltaPage = true;
+  cursor: number,
+  onPage: (page: CloudCatalogPage) => Promise<void>,
+): Promise<number> {
+  let next = Number.isSafeInteger(cursor) && cursor >= 0 ? cursor : 0;
   while (true) {
-    const { data, error } = await client.rpc("pull_account_delta", {
-      p_cursor: cursorValue,
+    const { data, error } = await client.rpc("pull_account_catalog_delta", {
+      p_cursor: next,
       p_limit: CLOUD_PAGE_SIZE,
       p_max_bytes: CLOUD_WRITE_BYTE_LIMIT,
     });
     if (error) throw error;
-    const delta = validateAccountDeltaResponse(data);
-    if (delta.hasMore && delta.nextCursor <= cursorValue) throw new Error("Account-Delta-Cursor konnte nicht fortgesetzt werden.");
-    const nextCursor = { value: String(delta.nextCursor), id: "" };
-    for (const table of ACCOUNT_TABLES as AccountTable[]) {
+    const delta = validateCatalogDeltaResponse(data);
+    if (delta.hasMore && delta.nextCursor <= next) throw new Error("Katalog-Delta-Cursor konnte nicht fortgesetzt werden.");
+    for (const [tableIndex, table] of CATALOG_TABLES.entries()) {
       const rows = delta.changes.filter((change) => change.table === table).map((change) => change.row);
-      await onPage({
-        table,
-        entities: projectCloudEntities(table, validateAccountRows(table, rows)),
-        reset: start.initial && firstDeltaPage,
-        cursor: nextCursor,
-      });
+      const entities = table === "decks"
+        ? projectCloudEntities("decks", validateAccountRows("decks", rows))
+        : table === "card_catalog"
+          ? validateCardCatalogRows(rows)
+          : validateDeckStudySummaryRows(rows);
+      await onPage({ table, entities, reset: false, cursor: delta.nextCursor, advanceCursor: tableIndex === CATALOG_TABLES.length - 1 });
     }
-    cursorValue = delta.nextCursor;
-    firstDeltaPage = false;
-    if (!delta.hasMore) break;
+    next = delta.nextCursor;
+    if (!delta.hasMore) return next;
   }
-  const nextCursors = Object.fromEntries(ACCOUNT_TABLES.map((table) => [table, { value: String(cursorValue), id: "" }])) as CloudDeltaCursors;
-  let mediaCursor = "";
-  let first = true;
-  while (true) {
-    let query = client.from("media_assets").select("*").eq("user_id", user.id).order("id", { ascending: true }).limit(100);
-    if (mediaCursor) query = query.gt("id", mediaCursor);
-    const { data, error } = await query;
-    if (error) throw error;
-    const rows = validateMediaAssetRows(data ?? []);
-    await onPage({ table: "media_assets", entities: projectCloudEntities("media_assets", rows), reset: first });
-    first = false;
-    if (rows.length < 100) break;
-    const next = String(rows.at(-1)?.id ?? "");
-    if (!next || next === mediaCursor) throw new Error("Cloud-Pagination für Medien konnte nicht fortgesetzt werden.");
-    mediaCursor = next;
-  }
-  return { profile: loadProfile ? createCloudProfile(profileRows[0] ?? null, user) : null, cursors: nextCursors };
 }
 
-export async function loadAccountCloudBootstrap(client: any, user: { id: string; email?: string | null }) {
-  const userId = requireNonEmptyString(user?.id, "Nutzer-ID fehlt.");
-  const { data, error } = await client.rpc("get_account_bootstrap");
+export async function listAccountCardCatalog(client: any, request: CatalogPageRequest): Promise<CatalogPage> {
+  const { data, error } = await client.rpc("list_account_card_catalog", {
+    p_deck_id: request.deckId,
+    p_query: request.query ?? "",
+    p_sort_field: request.sort?.field ?? "sortField",
+    p_sort_direction: request.sort?.direction ?? "asc",
+    p_cursor: request.cursor ?? null,
+    p_limit: Math.min(50, Math.max(1, Math.floor(request.limit ?? 50))),
+    p_include_total: request.knownTotalCount == null,
+  });
   if (error) throw error;
-  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Account-Bootstrap-Antwort ist ungültig.");
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Kartenkatalog-Seite ist ungültig.");
   const candidate = data as Record<string, unknown>;
-  if (!Array.isArray(candidate.decks)) throw new Error("Account-Bootstrap enthält keine gültige Stapelliste.");
-  const conflictCount = Number(candidate.conflictCount ?? 0);
-  if (!Number.isSafeInteger(conflictCount) || conflictCount < 0) throw new Error("Account-Bootstrap enthält eine ungültige Konfliktzahl.");
-  const profileRows = candidate.profile == null ? [] : validateProfileRows([candidate.profile]);
-  const deckRows = validateAccountRows("decks", candidate.decks);
+  const totalCount = candidate.totalCount == null ? request.knownTotalCount : Number(candidate.totalCount);
+  if (!Array.isArray(candidate.items) || !Number.isSafeInteger(totalCount) || totalCount! < 0 || typeof candidate.hasMore !== "boolean") {
+    throw new Error("Kartenkatalog-Seite ist unvollständig.");
+  }
+  const nextCursor = candidate.nextCursor == null ? null : candidate.nextCursor;
+  if (nextCursor != null && (typeof nextCursor !== "object" || Array.isArray(nextCursor)
+    || typeof (nextCursor as Record<string, unknown>).sortValue !== "string"
+    || typeof (nextCursor as Record<string, unknown>).id !== "string")) {
+    throw new Error("Kartenkatalog-Cursor ist ungültig.");
+  }
   return {
-    profile: createCloudProfile(profileRows[0] ?? null, { id: userId, email: user.email ?? null }),
-    decks: projectCloudEntities("decks", deckRows),
-    conflictCount,
+    items: validateCardCatalogRows(candidate.items),
+    totalCount: totalCount!,
+    hasMore: candidate.hasMore,
+    nextCursor: nextCursor as CatalogPage["nextCursor"],
   };
+}
+
+export async function hydrateAccountCards(client: any, cardIds: string[]) {
+  const ids = [...new Set(cardIds.filter(Boolean))];
+  if (ids.length > 50) throw new Error("Höchstens 50 Karten können gleichzeitig geladen werden.");
+  const { data, error } = await client.rpc("hydrate_account_cards", { p_card_ids: ids });
+  if (error) throw error;
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Kartenkörper-Antwort ist ungültig.");
+  const candidate = data as Record<string, unknown>;
+  const cards = validateAccountRows("cards", candidate.cards);
+  const variants = validateAccountRows("card_variants", candidate.variants);
+  const definitions = validateAccountRows("note_type_definitions", candidate.noteTypeDefinitions);
+  const snapshots = validateAccountRows("learning_item_source_snapshots", candidate.sourceSnapshots);
+  return {
+    cards: projectCloudEntities("cards", cards),
+    variants: projectCloudEntities("card_variants", variants),
+    noteTypeDefinitions: projectCloudEntities("note_type_definitions", definitions),
+    sourceSnapshots: projectCloudEntities("learning_item_source_snapshots", snapshots),
+  };
+}
+
+export async function loadAccountExportDependencies(client: any) {
+  const user = await authenticatedUserForKnownSession(client);
+  const [reviewRows, mediaRows] = await Promise.all([
+    selectKeysetRows(client, "review_events", user.id),
+    selectKeysetRows(client, "media_assets", user.id),
+  ]);
+  return {
+    reviewEvents: projectCloudEntities("review_events", validateAccountRows("review_events", reviewRows)),
+    mediaAssets: projectCloudEntities("media_assets", validateMediaAssetRows(mediaRows)),
+  };
+}
+
+export interface DeckOfflineManifestPage {
+  cards: OfflineCardManifestEntry[];
+  media: OfflineMediaManifestEntry[];
+  nextCursor: string;
+  hasMore: boolean;
+  totalCount: number;
+}
+
+export async function loadDeckOfflineManifest(
+  client: any,
+  deckId: string,
+  cursor = "",
+): Promise<DeckOfflineManifestPage> {
+  const { data, error } = await client.rpc("get_deck_offline_manifest", {
+    p_deck_id: deckId,
+    p_cursor: cursor,
+    p_limit: 50,
+  });
+  if (error) throw error;
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Offline-Manifest-Antwort ist ungültig.");
+  const candidate = data as Record<string, unknown>;
+  const totalCount = Number(candidate.totalCount);
+  if (typeof candidate.nextCursor !== "string" || typeof candidate.hasMore !== "boolean" || !Number.isSafeInteger(totalCount) || totalCount < 0) {
+    throw new Error("Offline-Manifest-Antwort ist unvollständig.");
+  }
+  const rows = validateOfflineManifestRows({ cards: candidate.cards, media: candidate.media });
+  return { ...rows, nextCursor: candidate.nextCursor, hasMore: candidate.hasMore, totalCount };
+}
+
+export async function loadAccountStatistics(
+  client: any,
+  { deckIds = null, from = null, to = null, timeZone = "UTC", dayStartHour = 0 }: { deckIds?: string[] | null; from?: string | null; to?: string | null; timeZone?: string; dayStartHour?: number } = {},
+): Promise<AccountStatisticsSnapshot> {
+  const { data, error } = await client.rpc("get_account_statistics", {
+    p_deck_ids: deckIds,
+    p_from: from,
+    p_to: to,
+    p_time_zone: timeZone,
+    p_day_start_hour: Math.min(23, Math.max(0, Math.floor(dayStartHour))),
+  });
+  if (error) throw error;
+  return validateAccountStatistics(data);
+}
+
+export async function deleteAccountDeckTree(
+  client: any,
+  deckId: string,
+  { deletedAt = new Date().toISOString(), deviceId = null }: { deletedAt?: string; deviceId?: string | null } = {},
+) {
+  const { data, error } = await client.rpc("delete_account_deck_tree", {
+    p_deck_id: requireNonEmptyString(deckId, "Stapel-ID fehlt."),
+    p_deleted_at: deletedAt,
+    p_device_id: deviceId,
+  });
+  if (error) throw error;
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Deckbaum-Löschantwort ist ungültig.");
+  const candidate = data as Record<string, unknown>;
+  if (!Array.isArray(candidate.deletedDeckIds) || candidate.deletedDeckIds.some((id) => typeof id !== "string")) {
+    throw new Error("Deckbaum-Löschantwort enthält ungültige Stapel-IDs.");
+  }
+  const deletedCardCount = Number(candidate.deletedCardCount ?? 0);
+  if (!Number.isSafeInteger(deletedCardCount) || deletedCardCount < 0) throw new Error("Deckbaum-Löschantwort enthält eine ungültige Kartenzahl.");
+  return { deletedDeckIds: candidate.deletedDeckIds as string[], deletedCardCount };
 }
 
 export async function loadAccountCardVariants(client: any, { userId, cardIds }: { userId?: string; cardIds: string[] }): Promise<CardVariant[]> {
@@ -1570,7 +1716,6 @@ export interface CloudEntityPage {
   table: AccountTable | "media_assets";
   entities: any[];
   reset: boolean;
-  cursor?: CloudDeltaCursor;
 }
 
 function projectCloudEntities(table: AccountTable | "media_assets", rows: any[]) {
@@ -1748,14 +1893,11 @@ export async function recordAtomicReview(client: any, input: any, { deviceId, mu
   const eventRow = reviewEventToCloudRow(event, deck, user.id, { deviceId });
   const { data, error } = await client.rpc("record_review_atomic", {
     p_deck_id: deck?.id,
-    p_deck_base_revision: Number(input?.baseRevisions?.deck ?? deck?.revision ?? 1),
     p_card_id: card?.id,
-    p_card_base_revision: Number(input?.baseRevisions?.card ?? card?.revision ?? 1),
     p_card_review_state: toJson(card?.learningItemState ?? card?.reviewState, {}),
     p_card_core_state: toJson(card?.coreState, {}),
     p_card_updated_at: card?.updatedAt ?? event?.answeredAt,
     p_variant_id: variant?.id ?? null,
-    p_variant_base_revision: variant ? Number(input?.baseRevisions?.variant ?? variant.revision ?? 1) : null,
     p_variant_review_state: variant ? toJson(variant.reviewState, {}) : null,
     p_variant_performance: variant ? toJson(variant.performance, {}) : null,
     p_variant_updated_at: variant?.updatedAt ?? event?.answeredAt ?? null,
@@ -1944,7 +2086,8 @@ export async function replaceAccountCloudState(client: any, state: any, { device
   await appendMissingSourceSnapshots(client, user.id, rows.learning_item_source_snapshots, remoteRows.learning_item_source_snapshots);
   await upsertRows(client, "cards", rows.cards);
   await upsertRows(client, "card_variants", rows.card_variants);
-  await upsertRows(client, "review_events", rows.review_events);
+  const remoteReviewIds = new Set(toArray(remoteRows.review_events).map((row: any) => row.id));
+  await upsertRows(client, "review_events", rows.review_events.filter((row: any) => !remoteReviewIds.has(row.id)), { ignoreDuplicates: true });
 
   const deletedAt = nowIso();
   for (const table of DELETE_ORDER) {

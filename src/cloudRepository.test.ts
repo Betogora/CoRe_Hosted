@@ -10,7 +10,10 @@ import {
   deckToCloudRow,
   ImportGraphVerificationError,
   loadAccountCardVariants,
-  loadAccountCloudBootstrap,
+  loadAccountCloudBootstrapV2,
+  hydrateAccountCards,
+  listAccountCardCatalog,
+  loadDeckOfflineManifest,
   listAccountSyncConflicts,
   registerAccountSyncDevice,
   recordAtomicReview,
@@ -18,11 +21,34 @@ import {
   resolveAccountSyncConflict,
   reviewEventToCloudRow,
   softDeleteEntity,
-  streamAccountCloudChanges,
+  streamAccountCatalogChanges,
   SyncConflictChangedError,
   upsertAccountCloudProfile,
   verifyAccountImportGraph,
 } from "./cloudRepository.ts";
+
+function catalogRow(id: string, deckId: string, syncChangeId = 1) {
+  return {
+    id,
+    user_id: "user-1",
+    deck_id: deckId,
+    front_preview: `Vorschau ${id}`,
+    normalized_search_text: `vorschau ${id}`,
+    sort_text: `vorschau ${id}`,
+    due_at: null,
+    schedule_state: "new",
+    maturity_band: "new",
+    reviewable: true,
+    has_active_variants: false,
+    active_variant_count: 0,
+    active_variant_id: null,
+    body_revision: 1,
+    dependency_revision: 1,
+    sync_change_id: syncChangeId,
+    deleted_at: null,
+    updated_at: "2026-08-17T10:00:00.000Z",
+  };
+}
 
 function clone(value: any): any {
   return JSON.parse(JSON.stringify(value));
@@ -318,42 +344,7 @@ function createMemorySupabaseClient(initialTables = {}, user = { id: "user-1", e
       calls.push(call);
       const injectedError = fail?.(call, calls);
       if (injectedError) return { data: null, error: injectedError };
-      if (name === "get_account_bootstrap") {
-        return {
-          data: {
-            profile: clone(tables.profiles.find((row: any) => row.id === user.id) ?? null),
-            decks: clone(tables.decks.filter((row: any) => row.user_id === user.id)),
-            conflictCount: tables.sync_conflicts.filter((row: any) => row.user_id === user.id && ["open", "ignored"].includes(row.status)).length,
-          },
-          error: null,
-        };
-      }
-      if (name !== "pull_account_delta") return { data: null, error: new Error(`unsupported rpc ${name}`) };
-      const cursor = Math.max(0, Number(payload?.p_cursor) || 0);
-      const limit = Math.min(1_000, Math.max(1, Number(payload?.p_limit) || 500));
-      const maxBytes = Math.max(64 * 1024, Number(payload?.p_max_bytes) || 1024 * 1024);
-      const candidates = [...syncTables].flatMap((table) => tables[table]
-        .filter((row: any) => row.user_id === user.id && Number(row.sync_change_id) > cursor)
-        .map((row: any) => ({ table, row: clone(row) })))
-        .sort((left, right) => Number(left.row.sync_change_id) - Number(right.row.sync_change_id)
-          || left.table.localeCompare(right.table)
-          || String(left.row.id).localeCompare(String(right.row.id)));
-      const changes: Array<{ table: string; row: any }> = [];
-      let bytes = 0;
-      for (const candidate of candidates.slice(0, limit)) {
-        const candidateBytes = Buffer.byteLength(JSON.stringify(candidate));
-        if (changes.length > 0 && bytes + candidateBytes > maxBytes) break;
-        changes.push(candidate);
-        bytes += candidateBytes;
-      }
-      return {
-        data: {
-          changes,
-          nextCursor: changes.at(-1)?.row.sync_change_id ?? cursor,
-          hasMore: candidates.length > changes.length,
-        },
-        error: null,
-      };
+      return { data: null, error: new Error(`unsupported rpc ${name}`) };
     },
     calls,
     tables,
@@ -388,7 +379,7 @@ function createCloudFixture() {
   const sourceSnapshot = {
     id: "snapshot-1",
     schemaVersion: 1 as const,
-    sourceKind: "legacy-projection" as const,
+    sourceKind: "csv" as const,
     importFingerprint: "snapshot-fingerprint-1",
     previousSnapshotId: null,
     definitionVersionId: definition.id,
@@ -698,52 +689,6 @@ test("source snapshot mutations batch immutable rows and preserve card attachmen
   assert.equal(writes.length, 1);
   assert.equal(writes[0].payload.length, 2);
   assert.equal(client.tables.cards.find((card: any) => card.id === "card-1").latest_source_snapshot_id, "batch-snapshot-2");
-});
-
-test("initial cloud download reconstructs 2,500 rows with bundled 500-row delta pages", async () => {
-  const fixture = createCloudFixture();
-  const rows = clone(fixture.rows);
-  rows.decks = Array.from({ length: 2_500 }, (_, index) => ({
-    ...rows.decks[0],
-    id: `deck-${String(index).padStart(4, "0")}`,
-    sync_change_id: index + 1,
-  }));
-  const client = createMemorySupabaseClient(rows, fixture.user);
-  const received: any[] = [];
-
-  await streamAccountCloudChanges(client, {}, async (page) => {
-    if (page.table === "decks") received.push(...page.entities);
-  });
-
-  assert.equal(received.length, 2_500);
-  assert.equal(new Set(received.map((deck) => deck.id)).size, 2_500);
-  const deltaReads = client.calls.filter((call) => call.table === "rpc:pull_account_delta");
-  assert.equal(deltaReads.length, 6);
-  assert.equal(client.calls.some((call) => call.table === "decks" && call.operation === "select"), false);
-  assert.deepEqual(received.slice(0, 2).map((deck) => deck.id), ["deck-0000", "deck-0001"]);
-  assert.equal(received.at(-1)?.id, "deck-2499");
-});
-
-test("initialer Delta-Pull verwendet das bereits geladene Bootstrap-Profil", async () => {
-  const fixture = createCloudFixture();
-  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
-  const result = await streamAccountCloudChanges(client, {}, async () => {}, { userId: fixture.user.id, loadProfile: false });
-
-  assert.equal(result.profile, null);
-  assert.equal(client.calls.some((call) => call.table === "profiles" && call.operation === "select"), false);
-  assert.equal(client.calls.filter((call) => call.table === "rpc:pull_account_delta").length, 1);
-});
-
-test("account bootstrap returns profile and deck shell without card bodies", async () => {
-  const fixture = createCloudFixture();
-  const client = createMemorySupabaseClient(fixture.rows, fixture.user);
-  const bootstrap = await loadAccountCloudBootstrap(client, fixture.user);
-
-  assert.equal(bootstrap.decks.length, 1);
-  assert.equal((bootstrap.decks[0] as any).cards.length, 0);
-  assert.equal(bootstrap.profile.userId, fixture.user.id);
-  assert.equal(client.calls.filter((call) => call.table === "rpc:get_account_bootstrap").length, 1);
-  assert.equal(client.calls.some((call) => call.table === "cards"), false);
 });
 
 test("study preparation loads variants only for the requested cards", async () => {
@@ -1270,14 +1215,10 @@ test("atomic review RPC sends compact revisioned state and validates every retur
     card,
     variant,
     event,
-    baseRevisions: { deck: 3, card: 2, variant: 2 },
   }, { deviceId: "device-review", mutationId: "mutation-review" });
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].name, "record_review_atomic");
-  assert.equal(calls[0].payload.p_deck_base_revision, 3);
-  assert.equal(calls[0].payload.p_card_base_revision, 2);
-  assert.equal(calls[0].payload.p_variant_base_revision, 2);
   assert.equal(calls[0].payload.p_event.id, event.id);
   assert.equal(result.acknowledgedMutationId, "mutation-review");
   assert.equal(result.rows.deck.id, deck.id);
@@ -1299,4 +1240,63 @@ test("atomic review RPC stays queued when the database function is unavailable",
     () => recordAtomicReview(client, { deck, card: deck.cards[0], variant: null, event: deck.reviewEvents[0] }, { deviceId: "device-review", mutationId: "mutation-review" }),
     (error: any) => error?.code === "review_rpc_unavailable" && /lokale Änderung bleibt vorgemerkt/.test(error.message),
   );
+});
+
+test("v2-Replica-Verträge halten Bootstrap, Katalog, Hydrierung und Manifest kompakt", async () => {
+  const fixture = createCloudFixture();
+  const row = catalogRow(fixture.rows.cards[0].id, fixture.rows.decks[0].id, 20);
+  const calls: Array<{ name: string; payload: any }> = [];
+  const client = {
+    async rpc(name: string, payload: any) {
+      calls.push({ name, payload });
+      if (name === "get_account_bootstrap_v2") return { data: {
+        profile: fixture.rows.profiles[0],
+        decks: [{ deck: fixture.rows.decks[0], summary: { deckId: fixture.rows.decks[0].id, totalCount: 1, newCount: 1, learningCount: 0, matureCount: 0, suspendedCount: 0, activeVariantCount: 0, updatedAt: "2026-08-17T10:00:00.000Z" } }],
+        nextCursor: fixture.rows.decks[0].id,
+        hasMore: false,
+        confirmedEmpty: false,
+        conflictCount: 0,
+        serverCatalogCursor: 20,
+      }, error: null };
+      if (name === "list_account_card_catalog") return { data: { items: [row], totalCount: 1, hasMore: false, nextCursor: null }, error: null };
+      if (name === "hydrate_account_cards") return { data: {
+        cards: fixture.rows.cards,
+        variants: fixture.rows.card_variants,
+        noteTypeDefinitions: fixture.rows.note_type_definitions,
+        sourceSnapshots: fixture.rows.learning_item_source_snapshots,
+      }, error: null };
+      if (name === "get_deck_offline_manifest") return { data: {
+        cards: [{ id: row.id, bodyRevision: 1, dependencyRevision: 1, bodyBytes: 512, updatedAt: row.updated_at }],
+        media: [],
+        nextCursor: row.id,
+        hasMore: false,
+        totalCount: 1,
+      }, error: null };
+      if (name === "pull_account_catalog_delta") return { data: {
+        changes: [{ table: "card_catalog", row }],
+        nextCursor: 20,
+        hasMore: false,
+      }, error: null };
+      throw new Error(`Unerwartete RPC ${name}`);
+    },
+  };
+
+  const bootstrap = await loadAccountCloudBootstrapV2(client, fixture.user);
+  assert.equal(bootstrap.decks.length, 1);
+  assert.equal(bootstrap.decks[0].deck.cards.length, 0);
+  assert.equal(bootstrap.serverCatalogCursor, 20);
+  const page = await listAccountCardCatalog(client, { deckId: fixture.rows.decks[0].id, limit: 100 });
+  assert.equal(page.items[0].frontPreview, `Vorschau ${row.id}`);
+  assert.equal(calls.find((call) => call.name === "list_account_card_catalog")?.payload.p_limit, 50);
+  const hydrated = await hydrateAccountCards(client, [row.id]);
+  assert.equal(hydrated.cards[0].id, row.id);
+  assert.ok(hydrated.variants.length > 0);
+  const manifest = await loadDeckOfflineManifest(client, fixture.rows.decks[0].id);
+  assert.equal(manifest.cards[0].bodyBytes, 512);
+  const pages: any[] = [];
+  assert.equal(await streamAccountCatalogChanges(client, 0, async (value) => { pages.push(value); }), 20);
+  assert.equal(pages.find((value) => value.table === "card_catalog")?.entities[0].id, row.id);
+  assert.equal(pages.some((value) => value.table === "review_events"), false);
+  assert.equal(pages.every((value) => value.reset === false), true);
+  assert.deepEqual(pages.map((value) => value.advanceCursor), [false, false, true]);
 });

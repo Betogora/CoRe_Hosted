@@ -6,7 +6,7 @@ import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
 import { createDeckSettingsDraft, createGlobalSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual } from "./settingsDraft.ts";
 
 test("global draft normalizes profile, learning-day, weekly rhythm, and sync values", () => {
-  const profile = createCoreRepository(null, { seedDefaultDecks: false }).getState().profile;
+  const profile = createCoreRepository({ seedDefaultDecks: false }).getState().profile;
   const preferences = getGlobalSchedulerPreferences(profile);
   const draft = createGlobalSettingsDraft(profile, {
     ...preferences,

@@ -370,7 +370,7 @@ export type VariantProjection =
 export interface ForeignNoteSnapshot {
   id: string;
   schemaVersion: 1;
-  sourceKind: "anki-apkg" | "csv" | "legacy-projection";
+  sourceKind: "anki-apkg" | "csv";
   importFingerprint: string;
   previousSnapshotId: string | null;
   definitionVersionId: string | null;

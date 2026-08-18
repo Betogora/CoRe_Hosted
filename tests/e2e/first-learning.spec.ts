@@ -17,7 +17,7 @@ async function resetAccountToEmpty() {
   if (error || !data.user) throw new Error(`Der leere E2E-Account konnte nicht vorbereitet werden: ${error?.message ?? "Nutzer fehlt"}`);
 
   try {
-    const emptyState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+    const emptyState = createCoreRepository({ seedDefaultDecks: false }).getState();
     await replaceAccountCloudState(client, {
       ...emptyState,
       profile: { ...emptyState.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
@@ -106,7 +106,7 @@ test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", asy
 test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core lokaler APKG-Commit wartet nicht auf den initialen Cloud-Sync", async ({ page }) => {
   let releaseCloudBootstrap!: () => void;
   const cloudBootstrapGate = new Promise<void>((resolve) => { releaseCloudBootstrap = resolve; });
-  await page.route("**/rest/v1/rpc/get_account_bootstrap", async (route) => {
+  await page.route("**/rest/v1/rpc/get_account_bootstrap_v2", async (route) => {
     await cloudBootstrapGate;
     await route.continue();
   });

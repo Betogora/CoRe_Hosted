@@ -32,7 +32,7 @@ async function resetLifecycleAccount() {
     }
     const { error: conflictError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
     if (conflictError) throw conflictError;
-    const seedState = createCoreRepository(null, { seedDefaultDecks: true }).getState();
+    const seedState = createCoreRepository({ seedDefaultDecks: true }).getState();
     await replaceAccountCloudState(client, {
       ...seedState,
       decks: seedState.decks.map((deck: Deck) => ({ ...deck, reviewEvents: [] })),

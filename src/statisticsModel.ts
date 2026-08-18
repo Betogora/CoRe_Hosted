@@ -2,6 +2,7 @@ import type { CardVariant, Deck, LearningItem, ReviewEvent, ReviewRating, Review
 import { learningDayIndexFromLocalTime, normalizeDayStartHour } from "./learningDay.ts";
 import { calculateRetrievability } from "./scheduler.ts";
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey, type StudyHeatmapModel } from "./studyHeatmapModel.ts";
+import type { AccountStatisticsSnapshot } from "./workspaceReplica.ts";
 
 export type StatisticsPeriod = "30d" | "90d" | "365d" | "all";
 export type StatisticsDeckSelection = "all" | string[];
@@ -608,4 +609,198 @@ export function projectStatistics(decks: Deck[], input: StatisticsSelection): St
     for (const variant of item.variants ?? []) accumulator.addVariant(deck.id, variant);
   }
   return accumulator.finish();
+}
+
+export function mergeAccountStatisticsSnapshot(
+  projection: StatisticsProjection,
+  snapshotValue: AccountStatisticsSnapshot,
+  pendingReviews: ReviewEvent[] = [],
+): StatisticsProjection {
+  const resolveLocalTime = localTimeResolver(projection.selection.timeZone, projection.selection.dayStartHour);
+  const daily = new Map(Object.entries(snapshotValue.reviewsByDay).map(([key, value]) => [key, { ...value }]));
+  const lastKey = projection.studyHeatmap.todayKey;
+  const historicalKeys = [...new Set([...Object.keys(snapshotValue.reviewsByDay), ...Object.keys(snapshotValue.addedCardsByDay)])].sort();
+  const allTimeStartKey = projection.selection.period === "all" ? historicalKeys[0] : null;
+  const activityTemplate = allTimeStartKey
+    ? createBuckets(dayIndex(allTimeStartKey), dayIndex(lastKey), "all").map(({ point }) => point)
+    : projection.activity;
+  const firstKey = activityTemplate[0]?.key ?? lastKey;
+  for (const event of pendingReviews) {
+    if (!projection.scopeDeckIds.includes(event.deckId)) continue;
+    const timestamp = Date.parse(String(event.answeredAt || event.createdAt || ""));
+    if (!Number.isFinite(timestamp) || !RATINGS.includes(event.rating)) continue;
+    const dayKey = keyFromDayIndex(resolveLocalTime(timestamp).dayIndex);
+    if (dayKey < firstKey || dayKey > lastKey) continue;
+    const eventCategory = category(snapshot(event.schedulerBefore));
+    const row = daily.get(dayKey) ?? {
+      total: 0, learning: 0, relearning: 0, young: 0, mature: 0, successful: 0,
+      timedCount: 0, durationMs: 0, durationLearningMs: 0, durationRelearningMs: 0,
+      durationYoungMs: 0, durationMatureMs: 0,
+    };
+    row.total += 1;
+    row[eventCategory] += 1;
+    row.successful += Number(event.rating !== "again");
+    if (event.responseTimeMs != null) {
+      const duration = Math.min(60_000, Math.max(0, finite(event.responseTimeMs)));
+      row.timedCount += 1;
+      row.durationMs += duration;
+      row[`duration${eventCategory[0].toUpperCase()}${eventCategory.slice(1)}Ms` as "durationLearningMs"] += duration;
+    }
+    daily.set(dayKey, row);
+  }
+
+  const activity = activityTemplate.map((point) => ({ ...emptySeriesPoint(point.key, point.label, point.rangeLabel) }));
+  for (const [key, row] of daily) {
+    if (key < firstKey || key > lastKey) continue;
+    let index = -1;
+    for (let candidate = activity.length - 1; candidate >= 0; candidate -= 1) {
+      if (activity[candidate].key <= key) { index = candidate; break; }
+    }
+    if (index < 0) index = 0;
+    const point = activity[index];
+    if (!point) continue;
+    point.learning += row.learning;
+    point.relearning += row.relearning;
+    point.young += row.young;
+    point.mature += row.mature;
+    point.total += row.total;
+    point.durationMs += row.durationMs;
+    point.durationLearningMs += row.durationLearningMs;
+    point.durationRelearningMs += row.durationRelearningMs;
+    point.durationYoungMs += row.durationYoungMs;
+    point.durationMatureMs += row.durationMatureMs;
+    point.timedCount += row.timedCount;
+  }
+  let cumulative = 0;
+  const finalizedActivity = activity.map((point) => ({ ...point, cumulative: cumulative += point.total }));
+  const selectedDays = [...daily.entries()].filter(([key]) => key >= firstKey && key <= lastKey);
+  const reviewCount = selectedDays.reduce((sum, [, row]) => sum + row.total, 0);
+  const successful = selectedDays.reduce((sum, [, row]) => sum + row.successful, 0);
+  const timedCount = selectedDays.reduce((sum, [, row]) => sum + row.timedCount, 0);
+  const totalDurationMs = selectedDays.reduce((sum, [, row]) => sum + row.durationMs, 0);
+  const countsByDay = new Map(Object.entries(snapshotValue.heatmapByDay));
+  for (const event of pendingReviews) {
+    const timestamp = Date.parse(String(event.answeredAt || event.createdAt || ""));
+    if (!Number.isFinite(timestamp) || !projection.scopeDeckIds.includes(event.deckId)) continue;
+    const key = keyFromDayIndex(resolveLocalTime(timestamp).dayIndex);
+    countsByDay.set(key, (countsByDay.get(key) ?? 0) + 1);
+  }
+  const studyHeatmap = createStudyHeatmapModelFromCounts({
+    todayKey: projection.studyHeatmap.todayKey,
+    countsByDay,
+    forecastCountsByDay: new Map(Object.entries(snapshotValue.forecastByDay).map(([key, value]) => [key, value.total])),
+  });
+  const statusCounts = {
+    new: snapshotValue.cards.new,
+    learning: snapshotValue.cards.learning,
+    mature: snapshotValue.cards.mature,
+    young: Math.max(0, snapshotValue.cards.total - snapshotValue.cards.suspended - snapshotValue.cards.new - snapshotValue.cards.learning - snapshotValue.cards.mature),
+  };
+  const activeCount = Math.max(0, snapshotValue.cards.total - snapshotValue.cards.suspended);
+  const statusLabels: Record<string, string> = { new: "Neu", learning: "Lernen", young: "Jung", mature: "Reif" };
+  const ratingMap = new Map(snapshotValue.ratings.map((row) => [`${row.category}:${row.rating}`, row.count]));
+  const ratings = CATEGORIES.map((key) => {
+    const row = { category: key, label: CATEGORY_LABELS[key], again: 0, hard: 0, good: 0, easy: 0, total: 0, successPercent: 0 } satisfies StatisticsRatingPoint;
+    for (const rating of RATINGS) row[rating] = ratingMap.get(`${key}:${rating}`) ?? 0;
+    row.total = RATINGS.reduce((sum, rating) => sum + row[rating], 0);
+    row.successPercent = percentage(row.total - row.again, row.total);
+    return row;
+  });
+  const hourlyMap = new Map(snapshotValue.hourly.map((row) => [row.hour, row]));
+  const addedCards = activityTemplate.map((point) => ({ key: point.key, label: point.label, rangeLabel: point.rangeLabel, count: 0, cumulative: 0 }));
+  for (const [key, count] of Object.entries(snapshotValue.addedCardsByDay)) {
+    const point = [...addedCards].reverse().find((candidate) => candidate.key <= key);
+    if (point) point.count += count;
+  }
+  let addedCumulative = 0;
+  for (const point of addedCards) point.cumulative = addedCumulative += point.count;
+
+  const forecastKeys = Object.keys(snapshotValue.forecastByDay).sort();
+  const planningTemplate = projection.selection.period === "all" && forecastKeys.length > 0
+    ? createBuckets(dayIndex(lastKey), Math.max(dayIndex(lastKey), dayIndex(forecastKeys.at(-1)!)), "all").map(({ point }) => point)
+    : projection.planning.points;
+  const planningPoints = planningTemplate.map((point) => ({ ...emptySeriesPoint(point.key, point.label, point.rangeLabel) }));
+  for (const [key, counts] of Object.entries(snapshotValue.forecastByDay)) {
+    const point = [...planningPoints].reverse().find((candidate) => candidate.key <= key);
+    if (!point) continue;
+    point.learning += counts.learning;
+    point.relearning += counts.relearning;
+    point.young += counts.young;
+    point.mature += counts.mature;
+    point.total += counts.total;
+  }
+  if (snapshotValue.overdue && planningPoints[0]) {
+    planningPoints[0].relearning += snapshotValue.overdue;
+    planningPoints[0].total += snapshotValue.overdue;
+    planningPoints[0].rangeLabel += " einschließlich Rückstand";
+  }
+  let planningCumulative = 0;
+  const planning = planningPoints.map((point) => ({ ...point, cumulative: planningCumulative += point.total }));
+
+  const retention = snapshotValue.retention.map((row): StatisticsRetentionRow => {
+    const cell = (remembered: number, total: number): StatisticsRetentionCell => ({ remembered, total, percent: percentage(remembered, total) });
+    return {
+      key: row.key,
+      label: row.key === "selected" ? "Gewählter Zeitraum" : row.key === "previous" ? "Vorheriger Zeitraum" : "Gesamter Verlauf",
+      young: cell(row.youngRemembered, row.youngTotal),
+      mature: cell(row.matureRemembered, row.matureTotal),
+      total: cell(row.youngRemembered + row.matureRemembered, row.youngTotal + row.matureTotal),
+    };
+  });
+  const selectedRetention = retention.find((row) => row.key === "selected")?.total ?? { remembered: 0, total: 0, percent: 0 };
+
+  return {
+    ...projection,
+    dateRangeLabel: allTimeStartKey ? formatRangeLabel(allTimeStartKey, lastKey) : projection.dateRangeLabel,
+    summary: {
+      ...projection.summary,
+      reviewCount,
+      activeDays: selectedDays.filter(([, row]) => row.total > 0).length,
+      successPercent: percentage(successful, reviewCount),
+      trueRetentionPercent: selectedRetention.percent,
+      trueRetentionSample: selectedRetention.total,
+      totalDurationMs,
+      averageResponseMs: timedCount ? Math.round(totalDurationMs / timedCount) : 0,
+      timedCount,
+      currentStreak: studyHeatmap.currentStreak,
+    },
+    activity: finalizedActivity,
+    addedCards,
+    studyHeatmap,
+    planning: {
+      points: planning,
+      overdue: snapshotValue.overdue,
+      dueTomorrow: snapshotValue.dueTomorrow,
+      dueInHorizon: planning.reduce((sum, point) => sum + point.total, 0),
+      dailyWorkload: snapshotValue.dailyWorkload,
+    },
+    status: {
+      ...projection.status,
+      activeVariants: snapshotValue.status.activeVariants,
+      learningItems: snapshotValue.cards.total,
+      suspendedItems: snapshotValue.cards.suspended,
+      deletedItems: snapshotValue.status.deletedItems,
+      rows: Object.entries(statusCounts).map(([key, count]) => ({ key, label: statusLabels[key], count, percent: percentage(count, activeCount) })),
+    },
+    intervals: snapshotValue.intervals,
+    fsrs: snapshotValue.fsrs,
+    hourly: Array.from({ length: 24 }, (_, hour) => {
+      const row = hourlyMap.get(hour);
+      return { hour, label: `${String(hour).padStart(2, "0")}:00`, reviews: row?.reviews ?? 0, successPercent: percentage(row?.successful ?? 0, row?.reviews ?? 0) };
+    }),
+    ratings,
+    retention,
+    deckRows: projection.deckRows.map((row) => {
+      const aggregate = snapshotValue.deckReviews[row.id];
+      return aggregate ? {
+        ...row,
+        reviewCount: aggregate.reviews,
+        successPercent: percentage(aggregate.successful, aggregate.reviews),
+        againPercent: percentage(aggregate.again, aggregate.reviews),
+        trueRetentionPercent: percentage(aggregate.remembered, aggregate.retentionTotal),
+        averageIntervalDays: aggregate.intervalCount ? Math.round((aggregate.intervalTotal / aggregate.intervalCount) * 10) / 10 : 0,
+        nextDueAt: aggregate.nextDueAt,
+      } : { ...row, reviewCount: 0, successPercent: 0, againPercent: 0 };
+    }).sort((left, right) => right.reviewCount - left.reviewCount || left.path.localeCompare(right.path, "de")),
+  };
 }

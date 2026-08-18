@@ -1,9 +1,27 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-08-16
+**Stand:** 2026-08-18
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-08-18 — Replica-v2 auf frische Pre-Release-Baseline gehärtet
+
+- Die vierzehnteilige Supabase-Kette und der doppelte Schemaanker wurden durch eine einzelne frische Baseline plus Verify-SQL ersetzt. Lokaler Reset, generierte Typen, Typdrift und 13/13 RLS-/Zwei-Geräte-Fälle sind grün. Die alten Voll-Delta-/Bootstrap-RPCs, `due_count` und der administrative Katalog-Backfill fehlen nachweislich.
+- IndexedDB und Mediencache verwenden frische v2-Datenbanken mit Schema-Version 1 ohne Upgrade-, Marker- oder Legacy-localStorage-Pfade. Lokale v5-Stapelprojektionen, Fälligkeits-Buckets und deren Rebuildzustände wurden entfernt; Summary, Katalogindex und `AccountStudyOverview` bilden den einzigen Studienpfad.
+- Serverpagination liefert exakt die angeforderte Keyset-Seite. Medienblobs führen alle referenzierenden Stapel und werden beim Pinnen per SHA-1 geprüft. Bootstrap-Browserlistener enden nach dem ersten Erfolg; Online-Statistik überspringt den lokalen Vollscan und liefert begrenzte Aggregate für alle vorhandenen Panels.
+- Abgenommen wurden 625/625 Modul-/Contract-/Integrationstests, Typecheck, Production-Build, Schema-Verify, warnungsfreier DB-Lint, Typdrift, 13/13 RLS-/Zwei-Geräte-Fälle sowie das lokale Playwright-Release-Gate mit 94 bestandenen und einem erwartbar übersprungenen Test. Der wiederholte gedrosselte Lauf bestand mit Wiederholungsstart p75/p95 678/751 ms, Offline-Kaltstart 677/806 ms, Frischstart p75 2.640 ms, persistierter Summary p75 8,7 ms und keinem gemessenen Hintergrund-Long-Task. Der Build maß 228,5 KiB initial und 163,1 KiB im größten Lazy-Graphen.
+- Die transaktionale 100k-Karten-/1m-Review-Fixture misst den tatsächlichen SQL-Pfad: Karten-Suche p75/p95 42,81/46,64 ms, Statistik-RPC lokal p75/p95 1.304/1.540 ms und Clientprojektion höchstens 5,72 ms p95. Lokale `EXPLAIN (ANALYZE, BUFFERS)` lagen für den kalten Bootstrap bei 532 ms, Delta 12 ms, Kartenliste 3 ms, Hydrierung 14 ms, Manifest 5 ms und die kleine Statistik 11 ms.
+- Der destruktive Remote-Reset und das strengere Replica-RPC-Ziel von 1.000 ms p95 bleiben bis zu eindeutig bestätigter Projekt-Ref und grünen Hosted-Queryplänen ausstehend. Es wurde keine Remote-Datenbank verändert.
+
+## 2026-08-17 — Hybride Offline-Replica
+
+- Supabase besitzt additive, accountisolierte Projektionen für Kartenkatalog und Stapelstatistiken sowie versionierte, bytebegrenzte RPCs für Bootstrap, Katalogdelta, Suche, Kartenhydration, Statistik und Offline-Manifeste. Kanonische Karten, Varianten, Dokumente und Reviews bleiben die Schreibwahrheit; Projektionstrigger verändern keine fachliche Revision.
+- IndexedDB v6 trennt Stapel-Hüllen, Summaries, Katalog, vollständige Kartenkörper, Residency, Offline-Manifeste, Statistik-Snapshots und Synczustand. Die Migration arbeitet fortsetzbar in höchstens 250er-/25-ms-Abschnitten. Ein Hydration-Service übernimmt Kartenöffnung, serverseitig ergänzte 50er-Seiten, Lernfenster, vollständige Deck-Downloads, Medienprüfung und Quota-LRU.
+- Bekannte Geräte starten aus der lokalen Replica; neue Geräte warten nur auf eine bestätigte erste Bootstrap-Seite. Ein fehlgeschlagener Erstabgleich erzeugt keine falsche Leeransicht und wird mit 2/10/30/120 Sekunden, danach fünfminütig sowie bei Online, Fokus und manueller Aktion wiederholt. Ein Race zwischen Bootstrap und bereits versendeten Offline-Profiländerungen wurde geschlossen.
+- Kartenverwaltung und Lernen zeigen Katalogdaten sofort und laden Körper bedarfsgesteuert. Der Lernstart wartet nur auf die erste benötigte Karte, hält je nach Verbindung 50 oder fünf Karten vor und lädt bei 25 verbleibenden Karten nach. Angeheftete Downloads werden erst nach Karten-, Revisions-, Abhängigkeits- und Medienprüfung als offline verfügbar markiert; lokale Änderungen und aktive Lernfenster bleiben vor Bereinigung geschützt.
+- Statistiken lesen serverseitige Aggregate mit optimistischer lokaler Ergänzung. Export und Reimport hydratisieren benötigte Cloud-Strukturen vollständig; accountweite Stapelbaum-Löschungen werden online serverseitig ausgeführt oder offline als Deckkommando vorgemerkt.
+- Lokal bestätigt wurden 644 Modul-/Contract-/Integrationstests, Typecheck, Production-Build, Datenbankreset und -typdrift, Schema-Verifikation, 13/13 RLS-/Zwei-Geräte-Fälle sowie fokussierte Browserjourneys für Offline-Profil-Sync, Offline-Review, Kartenhydration, Direktlinks, Lernstart, Löschen, Restore, Varianten, Portabilität, schmale Kartenverwaltung und große scrollende Stapel. Die großen 10k/250k- und 100k/1m-Lastfixtures sowie Messungen am tatsächlich konfigurierten Hosted-Projekt bleiben als dokumentierte Skalengates offen.
 
 ## 2026-08-16 — Adaptive Preloads und lokale Stapelprojektionen
 

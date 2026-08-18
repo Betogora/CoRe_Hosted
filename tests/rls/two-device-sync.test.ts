@@ -9,15 +9,6 @@ import { createAccountSyncEngine, SYNC_MUTATION_TYPES } from "../../src/syncEngi
 import type { ReviewEvent } from "../../src/coreTypes.ts";
 import { isLocalSupabaseUrl } from "../../scripts/localE2EEnvironment.ts";
 
-function createMemoryStorage() {
-  const values = new Map<string, string>();
-  return {
-    getItem: (key: string) => values.get(key) ?? null,
-    setItem: (key: string, value: string) => { values.set(key, value); },
-    removeItem: (key: string) => { values.delete(key); },
-  };
-}
-
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`${name} fehlt für den lokalen Zwei-Geräte-Test.`);
@@ -72,7 +63,7 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
   const { error: staleConflictError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
   assert.ifError(staleConflictError);
 
-  const repository = createCoreRepository(createMemoryStorage(), { seedDefaultDecks: false });
+  const repository = createCoreRepository({ seedDefaultDecks: false });
   const deckWithCard = createManualCoreDeck({
     deckName: "Zwei-Geräte-Ausgang",
     card: { cardType: "free-text", front: "Welche Änderung wird synchronisiert?", back: "Das Review." },
@@ -128,26 +119,24 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
     flags: { fixture: "two-device" },
     createdAt: "2026-07-14T12:00:00.000Z",
   };
-  const [currentDeckResult, currentCardResult, currentVariantResult] = await Promise.all([
-    clientA.from("decks").select("revision").eq("user_id", userId).eq("id", deck.id).single(),
-    clientA.from("cards").select("revision").eq("user_id", userId).eq("id", learningItem.id).single(),
-    clientA.from("card_variants").select("revision").eq("user_id", userId).eq("id", originalVariant.id).single(),
-  ]);
-  assert.ifError(currentDeckResult.error);
-  assert.ifError(currentCardResult.error);
-  assert.ifError(currentVariantResult.error);
   offlineEngine.enqueueMutation({
     id: `review-${learningItem.id}`,
     type: SYNC_MUTATION_TYPES.reviewAtomic,
     payload: {
       event: reviewEvent,
-      deck: { id: deck.id, revision: currentDeckResult.data.revision, updatedAt: reviewEvent.answeredAt },
-      card: { ...learningItem, revision: currentCardResult.data.revision, updatedAt: reviewEvent.answeredAt },
-      variant: { ...originalVariant, revision: currentVariantResult.data.revision, updatedAt: reviewEvent.answeredAt },
-      baseRevisions: {
-        deck: currentDeckResult.data.revision,
-        card: currentCardResult.data.revision,
-        variant: currentVariantResult.data.revision,
+      deck: { id: deck.id },
+      card: {
+        id: learningItem.id,
+        learningItemState: learningItem.learningItemState,
+        reviewState: learningItem.reviewState,
+        coreState: learningItem.coreState,
+        updatedAt: reviewEvent.answeredAt,
+      },
+      variant: {
+        id: originalVariant.id,
+        reviewState: originalVariant.reviewState,
+        performance: originalVariant.performance,
+        updatedAt: reviewEvent.answeredAt,
       },
     },
   });

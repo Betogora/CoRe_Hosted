@@ -9,6 +9,99 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      card_catalog: {
+        Row: {
+          active_variant_count: number
+          active_variant_id: string | null
+          body_revision: number
+          created_at: string
+          deck_id: string
+          deleted_at: string | null
+          dependency_revision: number
+          difficulty: number
+          due_at: string | null
+          front_preview: string
+          has_active_variants: boolean
+          id: string
+          interval_days: number
+          last_reviewed_at: string | null
+          maturity_band: string
+          normalized_search_text: string
+          reviewable: boolean
+          schedule_state: string
+          sort_text: string
+          stability: number
+          sync_change_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_variant_count?: number
+          active_variant_id?: string | null
+          body_revision?: number
+          created_at: string
+          deck_id: string
+          deleted_at?: string | null
+          dependency_revision?: number
+          difficulty?: number
+          due_at?: string | null
+          front_preview?: string
+          has_active_variants?: boolean
+          id: string
+          interval_days?: number
+          last_reviewed_at?: string | null
+          maturity_band?: string
+          normalized_search_text?: string
+          reviewable?: boolean
+          schedule_state?: string
+          sort_text?: string
+          stability?: number
+          sync_change_id: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_variant_count?: number
+          active_variant_id?: string | null
+          body_revision?: number
+          created_at?: string
+          deck_id?: string
+          deleted_at?: string | null
+          dependency_revision?: number
+          difficulty?: number
+          due_at?: string | null
+          front_preview?: string
+          has_active_variants?: boolean
+          id?: string
+          interval_days?: number
+          last_reviewed_at?: string | null
+          maturity_band?: string
+          normalized_search_text?: string
+          reviewable?: boolean
+          schedule_state?: string
+          sort_text?: string
+          stability?: number
+          sync_change_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_catalog_card_owner_fk"
+            columns: ["id", "user_id"]
+            isOneToOne: true
+            referencedRelation: "cards"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "card_catalog_deck_owner_fk"
+            columns: ["deck_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       card_variants: {
         Row: {
           anchor_variant_id: string | null
@@ -286,6 +379,56 @@ export type Database = {
           },
         ]
       }
+      deck_study_summaries: {
+        Row: {
+          active_variant_count: number
+          deck_id: string
+          deleted_at: string | null
+          learning_count: number
+          mature_count: number
+          new_count: number
+          suspended_count: number
+          sync_change_id: number
+          total_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_variant_count?: number
+          deck_id: string
+          deleted_at?: string | null
+          learning_count?: number
+          mature_count?: number
+          new_count?: number
+          suspended_count?: number
+          sync_change_id: number
+          total_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_variant_count?: number
+          deck_id?: string
+          deleted_at?: string | null
+          learning_count?: number
+          mature_count?: number
+          new_count?: number
+          suspended_count?: number
+          sync_change_id?: number
+          total_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deck_study_summaries_deck_owner_fk"
+            columns: ["deck_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       decks: {
         Row: {
           card_count: number
@@ -423,7 +566,7 @@ export type Database = {
         Row: {
           card_id: string | null
           created_at: string
-          deck_id: string
+          deck_id: string | null
           deleted_at: string | null
           id: string
           metadata: Json
@@ -440,7 +583,7 @@ export type Database = {
         Insert: {
           card_id?: string | null
           created_at?: string
-          deck_id: string
+          deck_id?: string | null
           deleted_at?: string | null
           id: string
           metadata?: Json
@@ -457,7 +600,7 @@ export type Database = {
         Update: {
           card_id?: string | null
           created_at?: string
-          deck_id?: string
+          deck_id?: string | null
           deleted_at?: string | null
           id?: string
           metadata?: Json
@@ -532,42 +675,33 @@ export type Database = {
           created_at: string
           display_name: string | null
           email: string | null
-          field_of_study: string | null
           id: string
           onboarding_complete: boolean
-          preferred_language: string
           scheduler_preferences: Json
           timezone: string
           ui_preferences: Json
-          university: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           display_name?: string | null
           email?: string | null
-          field_of_study?: string | null
           id: string
           onboarding_complete?: boolean
-          preferred_language?: string
           scheduler_preferences?: Json
           timezone?: string
           ui_preferences?: Json
-          university?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           display_name?: string | null
           email?: string | null
-          field_of_study?: string | null
           id?: string
           onboarding_complete?: boolean
-          preferred_language?: string
           scheduler_preferences?: Json
           timezone?: string
           ui_preferences?: Json
-          university?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -582,11 +716,16 @@ export type Database = {
           id: string
           rating: string
           response_time_ms: number | null
+          retention_first: boolean
           reviewable_id: string
           reviewable_type: string
           scheduler_after: Json | null
           scheduler_before: Json | null
           source_card_id: string | null
+          statistics_category: string
+          statistics_day: string
+          statistics_hour: number
+          statistics_interval_days: number
           sync_change_id: number
           user_id: string
         }
@@ -599,11 +738,16 @@ export type Database = {
           id: string
           rating: string
           response_time_ms?: number | null
+          retention_first?: boolean
           reviewable_id: string
           reviewable_type: string
           scheduler_after?: Json | null
           scheduler_before?: Json | null
           source_card_id?: string | null
+          statistics_category?: string
+          statistics_day?: string
+          statistics_hour?: number
+          statistics_interval_days?: number
           sync_change_id?: number
           user_id: string
         }
@@ -616,17 +760,105 @@ export type Database = {
           id?: string
           rating?: string
           response_time_ms?: number | null
+          retention_first?: boolean
           reviewable_id?: string
           reviewable_type?: string
           scheduler_after?: Json | null
           scheduler_before?: Json | null
           source_card_id?: string | null
+          statistics_category?: string
+          statistics_day?: string
+          statistics_hour?: number
+          statistics_interval_days?: number
           sync_change_id?: number
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "review_events_deck_owner_fk"
+            columns: ["deck_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      review_statistics_daily: {
+        Row: {
+          day_key: string
+          deck_id: string
+          duration_learning_ms: number
+          duration_mature_ms: number
+          duration_ms: number
+          duration_relearning_ms: number
+          duration_young_ms: number
+          hourly_reviews: Json
+          hourly_successful: Json
+          learning_count: number
+          mature_count: number
+          rating_counts: Json
+          relearning_count: number
+          retention_mature_count: number
+          retention_mature_remembered: number
+          retention_young_count: number
+          retention_young_remembered: number
+          review_count: number
+          successful_count: number
+          timed_count: number
+          user_id: string
+          young_count: number
+        }
+        Insert: {
+          day_key: string
+          deck_id: string
+          duration_learning_ms?: number
+          duration_mature_ms?: number
+          duration_ms?: number
+          duration_relearning_ms?: number
+          duration_young_ms?: number
+          hourly_reviews?: Json
+          hourly_successful?: Json
+          learning_count?: number
+          mature_count?: number
+          rating_counts?: Json
+          relearning_count?: number
+          retention_mature_count?: number
+          retention_mature_remembered?: number
+          retention_young_count?: number
+          retention_young_remembered?: number
+          review_count?: number
+          successful_count?: number
+          timed_count?: number
+          user_id: string
+          young_count?: number
+        }
+        Update: {
+          day_key?: string
+          deck_id?: string
+          duration_learning_ms?: number
+          duration_mature_ms?: number
+          duration_ms?: number
+          duration_relearning_ms?: number
+          duration_young_ms?: number
+          hourly_reviews?: Json
+          hourly_successful?: Json
+          learning_count?: number
+          mature_count?: number
+          rating_counts?: Json
+          relearning_count?: number
+          retention_mature_count?: number
+          retention_mature_remembered?: number
+          retention_young_count?: number
+          retention_young_remembered?: number
+          review_count?: number
+          successful_count?: number
+          timed_count?: number
+          user_id?: string
+          young_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_statistics_daily_deck_owner_fk"
             columns: ["deck_id", "user_id"]
             isOneToOne: false
             referencedRelation: "decks"
@@ -771,23 +1003,54 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_account_bootstrap: { Args: never; Returns: Json }
-      pull_account_delta: {
+      delete_account_deck_tree: {
+        Args: { p_deck_id: string; p_deleted_at?: string; p_device_id?: string }
+        Returns: Json
+      }
+      get_account_bootstrap_v2: {
+        Args: { p_cursor?: string; p_limit?: number; p_max_bytes?: number }
+        Returns: Json
+      }
+      get_account_statistics: {
+        Args: {
+          p_day_start_hour?: number
+          p_deck_ids?: string[]
+          p_from?: string
+          p_time_zone?: string
+          p_to?: string
+        }
+        Returns: Json
+      }
+      get_deck_offline_manifest: {
+        Args: { p_cursor?: string; p_deck_id: string; p_limit?: number }
+        Returns: Json
+      }
+      hydrate_account_cards: { Args: { p_card_ids: string[] }; Returns: Json }
+      list_account_card_catalog: {
+        Args: {
+          p_cursor?: Json
+          p_deck_id: string
+          p_include_total?: boolean
+          p_limit?: number
+          p_query?: string
+          p_sort_direction?: string
+          p_sort_field?: string
+        }
+        Returns: Json
+      }
+      pull_account_catalog_delta: {
         Args: { p_cursor?: number; p_limit?: number; p_max_bytes?: number }
         Returns: Json
       }
       record_review_atomic: {
         Args: {
-          p_card_base_revision: number
           p_card_core_state: Json
           p_card_id: string
           p_card_review_state: Json
           p_card_updated_at: string
-          p_deck_base_revision: number
           p_deck_id: string
           p_device_id: string
           p_event: Json
-          p_variant_base_revision: number
           p_variant_id: string
           p_variant_performance: Json
           p_variant_review_state: Json

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createAccountStorage, getOrCreateSyncDeviceId, hasMeaningfulLocalState, hasPendingLocalMigration, markLocalMigrationHandled, readLegacyLocalState } from "./accountStorage.ts";
+import { accountStorageKeys, createAccountStorage, getOrCreateSyncDeviceId } from "./accountStorage.ts";
+import { createCoreRepository } from "./coreRepository.ts";
 
 function createMemoryStorage() {
   const values = new Map();
@@ -17,17 +18,17 @@ function createMemoryStorage() {
   };
 }
 
-test("account storage keeps identical app keys separated per Supabase user", () => {
+test("account storage keeps identical timer keys separated per Supabase user", () => {
   const storage = createMemoryStorage();
   const userA = createAccountStorage("user-a", storage);
   const userB = createAccountStorage("user-b", storage);
 
-  userA.setItem("core.appState.v3", JSON.stringify({ owner: "A" }));
-  userB.setItem("core.appState.v3", JSON.stringify({ owner: "B" }));
+  userA.setItem("core.pomodoroTimer.v1", JSON.stringify({ owner: "A" }));
+  userB.setItem("core.pomodoroTimer.v1", JSON.stringify({ owner: "B" }));
 
-  assert.equal(JSON.parse(userA.getItem("core.appState.v3")).owner, "A");
-  assert.equal(JSON.parse(userB.getItem("core.appState.v3")).owner, "B");
-  assert.notEqual(userA.accountKey("core.appState.v3"), userB.accountKey("core.appState.v3"));
+  assert.equal(JSON.parse(userA.getItem("core.pomodoroTimer.v1")).owner, "A");
+  assert.equal(JSON.parse(userB.getItem("core.pomodoroTimer.v1")).owner, "B");
+  assert.notEqual(userA.accountKey("core.pomodoroTimer.v1"), userB.accountKey("core.pomodoroTimer.v1"));
 });
 
 test("sync device IDs stay stable per browser storage", () => {
@@ -39,15 +40,11 @@ test("sync device IDs stay stable per browser storage", () => {
   assert.notEqual(getOrCreateSyncDeviceId(storageB), firstId);
 });
 
-test("legacy local state is offered once for account migration", () => {
+test("pre-release storage uses only fresh account and device namespaces", () => {
   const storage = createMemoryStorage();
-  storage.setItem("core.appState.v2", JSON.stringify({ decks: [{ id: "deck_1" }], documents: [], aiJobs: [], communities: [] }));
-
-  const legacyState = readLegacyLocalState(storage);
-  assert.equal(hasMeaningfulLocalState(legacyState), true);
-  assert.equal(hasPendingLocalMigration("user-a", storage), true);
-
-  markLocalMigrationHandled("user-a", "skipped", storage);
-  assert.equal(hasPendingLocalMigration("user-a", storage), false);
-  assert.equal(hasPendingLocalMigration("user-b", storage), true);
+  storage.setItem("core.appState.v4", JSON.stringify({ decks: [{ id: "deck_1" }] }));
+  assert.equal(createAccountStorage("user-a", storage).getItem("core.appState.v4"), null);
+  assert.deepEqual(createCoreRepository({ seedDefaultDecks: false }).getState().decks, []);
+  assert.equal(accountStorageKeys.ACCOUNT_STORAGE_PREFIX, "core.accountState.v2");
+  assert.equal(accountStorageKeys.SYNC_DEVICE_KEY, "core.syncDevice.v2");
 });

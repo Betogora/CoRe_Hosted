@@ -1,6 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
-import { ArrowLeft, CalendarRange, FolderPlus, Layers, Play, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarRange, Download, FolderPlus, Layers, Play, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { DeckSettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeDeckAppearance } from "../coreModel.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
@@ -50,7 +50,7 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
   );
 }
 
-export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onStartDeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
+export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onStartDeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
   const initialDraft = deck ? createDeckSettingsDraft(deck) : null;
   const [baseline, setBaseline] = React.useState<DeckSettingsDraft | null>(initialDraft);
   const [draft, setDraft] = React.useState<DeckSettingsDraft | null>(initialDraft);
@@ -58,6 +58,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [feedback, setFeedback] = React.useState("");
+  const [offlineBusy, setOfflineBusy] = React.useState(false);
   const setSuccessToast = useSuccessToast();
   const deckRow = React.useMemo(() => deleteDialogOpen && deck ? createDeckLibraryModel(decks, { deckSummaries }).rows.find((row) => row.id === deck.id) ?? null : null, [deck, decks, deckSummaries, deleteDialogOpen]);
 
@@ -175,6 +176,26 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
     setDeleting(false);
   }
 
+  const offlineLabel = offlineDeck?.state === "downloading" ? "Wird heruntergeladen …"
+    : offlineDeck?.state === "available" ? "Offline verfügbar"
+      : offlineDeck?.state === "outdated" ? "Aktualisierung ausstehend"
+        : offlineDeck?.state === "error" ? "Download fehlgeschlagen"
+          : bodyCache && bodyCache.cached + bodyCache.downloaded > 0 ? "Teilweise zwischengespeichert" : "Nur online";
+
+  async function updateOfflineDownload(remove = false) {
+    if (!onDownloadDeck || !onRemoveDeckDownload) return;
+    setOfflineBusy(true);
+    setFeedback("");
+    try {
+      if (remove) await onRemoveDeckDownload(activeDeck.id);
+      else await onDownloadDeck(activeDeck.id);
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "Offline-Daten konnten nicht aktualisiert werden.");
+    } finally {
+      setOfflineBusy(false);
+    }
+  }
+
   return (
     <div className="grid min-w-0 gap-7" data-testid={`deck-settings-${deck.id}`}>
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
@@ -198,6 +219,20 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
             <ActionButton type="button" variant="secondary" icon={Sparkles} className="justify-start" onClick={() => onRequestContextAction(() => onStartDeck(deck, true))}>Varianten lernen</ActionButton>
             <ActionButton type="button" variant="destructive" icon={Trash2} className="justify-start" onClick={() => onRequestContextAction(() => setDeleteDialogOpen(true))}>Löschen</ActionButton>
           </div>
+          {onDownloadDeck && onRemoveDeckDownload ? (
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-core-border bg-core-subtle p-4">
+              <div>
+                <p className="core-body font-semibold text-core-text">Offline-Nutzung</p>
+                <p className="mt-1 core-caption text-core-muted">{offlineLabel}{offlineDeck?.state === "downloading" && offlineDeck.expectedCardCount > 0 ? ` · ${offlineDeck.verifiedCardCount} von ${offlineDeck.expectedCardCount} Karten` : ""}</p>
+              </div>
+              {offlineDeck && offlineDeck.state !== "none" ? (
+                <div className="flex flex-wrap gap-2">
+                  {offlineDeck.state === "outdated" || offlineDeck.state === "error" ? <ActionButton type="button" variant="primary" icon={Download} disabled={offlineBusy} onClick={() => void updateOfflineDownload(false)}>Aktualisieren</ActionButton> : null}
+                  <ActionButton type="button" variant="secondary" icon={Trash2} disabled={offlineBusy || offlineDeck.state === "downloading"} onClick={() => void updateOfflineDownload(true)}>Offline-Daten entfernen</ActionButton>
+                </div>
+              ) : <ActionButton type="button" variant="primary" icon={Download} disabled={offlineBusy} onClick={() => void updateOfflineDownload(false)}>Offline verfügbar machen</ActionButton>}
+            </div>
+          ) : null}
         </SoftPanel>
       </section>
 

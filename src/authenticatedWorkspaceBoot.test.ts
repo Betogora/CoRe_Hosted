@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import "fake-indexeddb/auto";
 import type { User } from "@supabase/supabase-js";
-import { bootAuthenticatedWorkspace, repairBootstrapProfile, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
+import { applyBootstrapProfile, bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 
@@ -25,8 +25,8 @@ function completeProfile(userId: string) {
   };
 }
 
-test("repariert ausschließlich alte unvollständige Profilpatches nach erfolgreichem Bootstrap", async () => {
-  const userId = `profile-repair-${Date.now()}`;
+test("ein während des Bootstrap bereits versendeter Profilpatch wird nicht von einer älteren Cloud-Antwort überschrieben", async () => {
+  const userId = `profile-bootstrap-race-${Date.now()}`;
   const cloudProfile = completeProfile(userId);
   const repository = await createIndexedDbCoreRepository({
     userId,
@@ -38,64 +38,75 @@ test("repariert ausschließlich alte unvollständige Profilpatches nach erfolgre
       noteTypeDefinitions: [],
       learningItemSourceSnapshots: [],
       cloudTombstones: [],
-      updatedAt: "2026-08-15T10:00:00.000Z",
+      updatedAt: "2026-08-17T10:00:00.000Z",
     },
   });
-  const otherMutation = repository.outbox.enqueue({
-    id: "card-mutation",
-    type: "entity-mutation",
-    table: "cards",
-    entityId: "card-1",
-    payload: { table: "cards", entity: { id: "card-1", originalFront: "Unverändert" } },
-  });
-  repository.outbox.enqueue({
-    id: "broken-profile",
-    type: "profile-patch",
-    table: "profiles",
-    entityId: userId,
-    payload: {
-      profile: {
-        uiPreferences: { ...cloudProfile.uiPreferences, dashboardCollapsedDeckIds: ["deck-1"] },
-      },
-    },
-  });
+  repository.saveProfile({ ...cloudProfile, displayName: "Offline gespeichert" });
+  await repository.flush();
+  const pendingAtRequest = repository.outbox.listPending();
+  repository.outbox.remove(pendingAtRequest.map((mutation) => mutation.id));
   await repository.outbox.flushPersistence();
 
-  await repairBootstrapProfile(repository, cloudProfile, userId);
+  await applyBootstrapProfile(repository, cloudProfile, userId, pendingAtRequest);
 
-  assert.deepEqual(repository.getShellState().profile, {
-    ...cloudProfile,
-    uiPreferences: { ...cloudProfile.uiPreferences, dashboardCollapsedDeckIds: ["deck-1"] },
-  });
-  const pending = repository.outbox.listPending();
-  assert.equal(pending.some((mutation) => mutation.id === "broken-profile"), false);
-  assert.deepEqual(pending.find((mutation) => mutation.id === otherMutation.id), otherMutation);
-  const repairedPatch = pending.find((mutation) => mutation.type === "profile-patch");
-  assert.ok(repairedPatch);
-  assert.deepEqual((repairedPatch.payload as any).profile, repository.getShellState().profile);
+  assert.equal(repository.getShellState().profile.displayName, "Offline gespeichert");
   repository.close();
 });
 
 test("liefert den lokalen Workspace, bevor der Cloud-Bootstrap beendet ist", async () => {
-  let rejectBootstrap: ((reason: Error) => void) | null = null;
-  const cloudBootstrap = new Promise<never>((_resolve, reject) => { rejectBootstrap = reject; });
+  const userId = `local-first-${Date.now()}`;
+  const knownDeviceRepository = await createIndexedDbCoreRepository({
+    userId,
+    initialState: {
+      version: 4,
+      profile: completeProfile(userId),
+      decks: [],
+      documents: [],
+      noteTypeDefinitions: [],
+      learningItemSourceSnapshots: [],
+      cloudTombstones: [],
+      updatedAt: "2026-08-17T10:00:00.000Z",
+    },
+  });
+  await knownDeviceRepository.setAccountBaselineState("nonempty", 12);
+  knownDeviceRepository.close();
+  let resolveBootstrap: ((value: unknown) => void) | null = null;
+  const cloudBootstrap = new Promise((resolve) => { resolveBootstrap = resolve; });
   const supabase = {
     auth: {},
     from() { return {}; },
     rpc(name: string) {
-      assert.equal(name, "get_account_bootstrap");
+      assert.equal(name, "get_account_bootstrap_v2");
       return cloudBootstrap;
     },
   } as unknown as SupabaseBrowserClient;
 
-  const boot = await bootAuthenticatedWorkspace(supabase, { id: `local-first-${Date.now()}` } as User);
+  const boot = await bootAuthenticatedWorkspace(supabase, { id: userId } as User);
   assert.equal(boot.state.version, 4);
+  assert.equal(boot.baselineState, "nonempty");
   assert.equal(boot.state.decks.every((deck) => deck.cards.length === 0), true);
+  assert.equal(boot.initialDeckSummaries.summaries.size, 0);
 
-  const rejectPendingBootstrap = rejectBootstrap as ((reason: Error) => void) | null;
-  rejectPendingBootstrap?.(new Error("Cloud absichtlich angehalten"));
-  await assert.rejects(boot.cloudBootstrap, /absichtlich angehalten/);
-  await assert.rejects(boot.cloudSync, /absichtlich angehalten/);
+  let cloudSyncReady = false;
+  void boot.cloudSync.then(() => { cloudSyncReady = true; });
+  await Promise.resolve();
+  assert.equal(cloudSyncReady, false, "normaler Sync darf die lokale Baseline nicht überholen");
+  const releaseBootstrap = resolveBootstrap as ((value: unknown) => void) | null;
+  releaseBootstrap?.({
+    data: {
+      profile: null,
+      decks: [],
+      nextCursor: "",
+      hasMore: false,
+      confirmedEmpty: false,
+      conflictCount: 0,
+      serverCatalogCursor: 12,
+    },
+    error: null,
+  });
+  await boot.bootstrapFirstAttempt;
+  await boot.cloudSync;
+  boot.stopCloudBootstrapRetry();
   boot.repository.close();
 });
 

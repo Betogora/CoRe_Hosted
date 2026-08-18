@@ -17,6 +17,7 @@ import type { CreationMethod } from "./useAppNavigation.ts";
 import type { WorkspaceStorageStatus } from "./workspaceStorage.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
 import type { DeckLearningSettingsDraft, DeckSettingsDraft, GlobalSettingsDraft } from "./settingsDraft.ts";
+import type { OfflineDeckRecord } from "./workspaceReplica.ts";
 
 type NavigateToView = (
   viewId: AppViewId | undefined,
@@ -92,6 +93,10 @@ export interface DeckSettingsScreenProps {
   onDeleteDeck: (deckId: string) => Promise<{ deletedDeckIds: string[]; deletedDecks: Deck[]; nextSelectedDeckId: string | null } | null>;
   onSelectDeck: (deckId: string) => unknown;
   onOpenGlobalSettings: () => unknown;
+  offlineDeck?: OfflineDeckRecord | null;
+  bodyCache?: { total: number; cached: number; downloaded: number } | null;
+  onDownloadDeck?: (deckId: string) => Promise<unknown>;
+  onRemoveDeckDownload?: (deckId: string) => Promise<unknown>;
   onBack: () => unknown;
   backLabel?: string;
 }
@@ -148,6 +153,8 @@ export interface DecksCardPage {
   query: string;
   sort: CardTableSort;
   selectedCard?: LearningItem | null;
+  loadError?: string | null;
+  limitedToLocalCatalog?: boolean;
 }
 
 export interface LearnScreenProps {

@@ -833,7 +833,7 @@ export function DecksScreen({
   const selectedDeck = selectedGroup?.deck ?? null;
   const selectedPage = selectedDeckId ? cardPages?.[selectedDeckId] : undefined;
   const selectedCard = (selectedPage?.selectedCard?.id === selectedCardId ? selectedPage.selectedCard : null)
-    ?? selectedGroup?.activeCards.find((card) => card.id === selectedCardId)
+    ?? selectedGroup?.activeCards.find((card) => card.id === selectedCardId && card.meta?.catalogOnly !== true)
     ?? null;
   const selectedDefinition = React.useMemo(() => {
     if (!selectedCard) return null;
@@ -882,14 +882,17 @@ export function DecksScreen({
       const page = Math.max(0, cardPageByDeckId[group.id] ?? cardPages?.[group.id]?.page ?? 0);
       const selectedCardForDeck = selectedDeckId === group.id ? selectedCardId : null;
       const current = cardPages?.[group.id];
+      const selectedItem = selectedCardForDeck
+        ? current?.items.find((card) => card.id === selectedCardForDeck)
+        : null;
       const hasSelectedCard = !selectedCardForDeck
         || current?.selectedCard?.id === selectedCardForDeck
-        || current?.items.some((card) => card.id === selectedCardForDeck);
+        || Boolean(selectedItem && selectedItem.meta?.catalogOnly !== true);
       if (current
         && current.page === page
         && current.query === deferredQuery
         && sameSort(current.sort, cardSort)
-        && hasSelectedCard) continue;
+        && (hasSelectedCard || Boolean(current.loadError))) continue;
       void onRequestCardPage({
         deckId: group.id,
         page,
@@ -1113,9 +1116,21 @@ export function DecksScreen({
           <div className="grid min-h-full place-items-center p-6">
             <EmptyState
               icon={Layers}
-              title="Karte nicht gefunden"
-              body="Die verlinkte Karte ist in diesem Stapel nicht mehr verfügbar."
-              action={<ActionButton type="button" variant="primary" onClick={closeDetail}>Zur Kartenliste</ActionButton>}
+              title={selectedPage?.loadError ? "Karte noch nicht geladen" : "Karte nicht gefunden"}
+              body={selectedPage?.loadError ?? "Die verlinkte Karte ist in diesem Stapel nicht mehr verfügbar."}
+              action={<div className="flex flex-wrap justify-center gap-2">
+                {selectedPage?.loadError && selectedDeckId && onRequestCardPage ? (
+                  <ActionButton type="button" variant="primary" onClick={() => onRequestCardPage({
+                    deckId: selectedDeckId,
+                    page: selectedPage.page,
+                    pageSize: CARD_TABLE_PAGE_SIZE,
+                    query: selectedPage.query,
+                    sort: selectedPage.sort,
+                    selectedCardId,
+                  })}>Erneut laden</ActionButton>
+                ) : null}
+                <ActionButton type="button" variant="secondary" onClick={closeDetail}>Zur Kartenliste</ActionButton>
+              </div>}
             />
           </div>
         ) : selectedDeck && selectedCard ? (
@@ -1221,6 +1236,13 @@ export function DecksScreen({
                       />
                     </th>
                   </tr>
+                  {expanded && cardPages?.[group.id]?.limitedToLocalCatalog ? (
+                    <tr className="border-b border-[var(--core-border)] bg-[var(--core-warning-surface)]">
+                      <td colSpan={3} className="px-4 py-2 core-caption text-[var(--core-text-secondary)]">
+                        Offline werden nur bereits lokal indexierte Karten durchsucht und sortiert.
+                      </td>
+                    </tr>
+                  ) : null}
                   {expanded && group.cardRows.length ? <>{group.cardRows.map(({ card, frontPreview, nextStudyLabel, variantsLabel, hasActiveVariants }) => {
                     const suspended = card.status === "suspended";
                     const marked = isLearningItemMarked(card);

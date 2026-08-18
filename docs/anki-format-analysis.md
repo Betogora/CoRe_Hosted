@@ -64,7 +64,7 @@ Lokale CoRe-Quellen:
 - `src/richText.ts`
 - `src/reviewService.ts`
 - `src/scheduler.ts`
-- `supabase/core_schema_v1.sql`
+- `supabase/migrations/20260817190000_prerelease_replica_v2_baseline.sql`
 
 TODO-Markdown-Inventar: Aktuell existiert genau `docs/todo.md`. Die Anki-bezogenen naechsten Arbeitspakete in dieser Analyse sollen dort priorisiert werden, statt eine zweite TODO-Datei aufzubauen.
 
@@ -149,7 +149,7 @@ CoRe hat die entscheidende Richtung bereits eingeschlagen:
 - `src/htmlSafety.ts` und `src/richText.ts` kapseln allowlist-basierte HTML-Sanitization, Plain-Text-Extraktion und Rich-Text-Normalisierung für Karteninhalt, Importvorschau und Review.
 - `src/reviewService.ts` schreibt Review-Events und aktualisiert Learning-Item- und Varianten-State.
 - `src/scheduler.ts` kapselt FSRS-6 mit Stability, Difficulty, Desired Retention, Retrievability, Variant-Kontext und Intervallvorschau für die vier Review-Buttons.
-- `supabase/core_schema_v1.sql` trennt `decks`, `cards`, `note_type_definitions`, `learning_item_source_snapshots`, `card_variants`, `review_events` und `source_documents`; Labs-Jobtabellen sind entfernt.
+- Die frische Pre-Release-Baseline trennt `decks`, `cards`, `note_type_definitions`, `learning_item_source_snapshots`, `card_variants`, `review_events` und `source_documents`; Labs-Jobtabellen sind entfernt.
 
 Die verbleibende Kompatibilitätsgrenze ist bewusst: Template-JavaScript, Add-on-/Custom-Filter, externe Ressourcen, native LaTeX-Toolchains und nicht browserfähige Codecs werden erhalten, aber nicht ausgeführt. APKG-Export und ein manueller Image-Occlusion-Maskeneditor folgen nicht in diesem Ausbau.
 

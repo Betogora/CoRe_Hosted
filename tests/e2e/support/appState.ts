@@ -6,15 +6,15 @@ import type { Deck } from "../../../src/coreTypes.ts";
 import { loadE2EEnvironment } from "./e2eEnvironment.ts";
 
 const CORE_STORAGE_PREFIX = "core.";
-const ACCOUNT_DATABASE_PREFIX = "core.workspace.entities.v1.";
-const SYNC_DEVICE_STORAGE_KEY = "core.syncDevice.v1";
+const ACCOUNT_DATABASE_PREFIX = "core.workspace.entities.v2.";
+const SYNC_DEVICE_STORAGE_KEY = "core.syncDevice.v2";
 
 function isSupabaseAuthStorageKey(key: string) {
   return key.startsWith("sb-") && key.endsWith("-auth-token");
 }
 
 function createE2ESeedState(email: string) {
-  const seedState = createCoreRepository(null, { seedDefaultDecks: true }).getState();
+  const seedState = createCoreRepository({ seedDefaultDecks: true }).getState();
   return {
     ...seedState,
     decks: seedState.decks.map((deck: Deck) => ({ ...deck, reviewEvents: [] })),
@@ -53,15 +53,16 @@ export async function resetTestAccount(environment = loadE2EEnvironment()) {
 }
 
 export async function resetToFreshLocalState(page: Page, options: { resetCloud?: boolean; waitForCloud?: boolean } = {}) {
-  if (options.resetCloud !== false) await resetTestAccount();
   await page.goto("/");
+  await page.waitForFunction((key: string) => Boolean(localStorage.getItem(key)), SYNC_DEVICE_STORAGE_KEY);
+  await page.goto("/favicon.svg");
+  if (options.resetCloud !== false) await resetTestAccount();
 
   const authKeyBefore = await page.evaluate(() =>
     Object.keys(localStorage).find((key) => key.startsWith("sb-") && key.endsWith("-auth-token")) ?? null,
   );
   if (!authKeyBefore) throw new Error("Die authentifizierte Playwright-Session fehlt vor dem App-State-Reset.");
 
-  await page.waitForFunction((key: string) => Boolean(localStorage.getItem(key)), SYNC_DEVICE_STORAGE_KEY);
   const syncDeviceIdBefore = await page.evaluate((key: string) => localStorage.getItem(key), SYNC_DEVICE_STORAGE_KEY);
   if (!syncDeviceIdBefore) throw new Error("Die stabile Geräte-ID fehlt vor dem App-State-Reset.");
 
@@ -110,7 +111,7 @@ export async function resetToFreshLocalState(page: Page, options: { resetCloud?:
   );
   if (authKeyAfter !== authKeyBefore) throw new Error("Der App-State-Reset hat die Supabase-Session verändert.");
 
-  await page.reload();
+  await page.goto("/");
   await page.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
   if (options.waitForCloud !== false) {
     await page.locator('[data-navigation-utility="sync"][aria-label="Synchronisiert – jetzt erneut synchronisieren"]:visible')
@@ -142,9 +143,10 @@ export async function readActiveAccountState(page: Page) {
       request.onerror = () => reject(request.error ?? new Error(`E2E-Store ${store} konnte nicht gelesen werden.`));
     });
     try {
-      const [metaRows, deckRows, cardRows, variantRows, reviewEvents, documents, definitions, snapshots, syncRows] = await Promise.all([
+      const [metaRows, deckRows, catalogRows, cardRows, variantRows, reviewEvents, documents, definitions, snapshots, syncRows] = await Promise.all([
         readAll<any>("meta"),
         readAll<any>("decks"),
+        readAll<any>("cardCatalog"),
         readAll<any>("cards"),
         readAll<any>("variants"),
         readAll<any>("reviewEvents"),
@@ -161,9 +163,22 @@ export async function readActiveAccountState(page: Page) {
         variantsByCard.set(cardId, [...(variantsByCard.get(cardId) ?? []), variant]);
       }
       const cardsByDeck = new Map<string, any[]>();
+      for (const catalog of catalogRows) {
+        const placeholder = {
+          id: catalog.id,
+          deckId: catalog.deckId,
+          originalFront: catalog.frontPreview,
+          canonicalQuestion: catalog.frontPreview,
+          variants: [],
+          status: catalog.reviewable === 1 ? "active" : "suspended",
+          meta: { catalogOnly: true },
+        };
+        cardsByDeck.set(catalog.deckId, [...(cardsByDeck.get(catalog.deckId) ?? []), placeholder]);
+      }
       for (const { dueAt: _dueAt, normalizedSearchText: _searchText, ...card } of cardRows) {
         const hydrated = { ...card, variants: variantsByCard.get(card.id) ?? [] };
-        cardsByDeck.set(card.deckId, [...(cardsByDeck.get(card.deckId) ?? []), hydrated]);
+        const existing = cardsByDeck.get(card.deckId) ?? [];
+        cardsByDeck.set(card.deckId, [...existing.filter((candidate) => candidate.id !== card.id), hydrated]);
       }
       const reviewsByDeck = new Map<string, any[]>();
       for (const event of reviewEvents) reviewsByDeck.set(event.deckId, [...(reviewsByDeck.get(event.deckId) ?? []), event]);

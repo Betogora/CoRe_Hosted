@@ -196,7 +196,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
   }, [queue.items]);
 
   React.useEffect(() => {
-    if (!onLoadMoreCards || !hasMoreCards || effectiveReviewSession.remainingInitialKeys.length > 15 || loadingMoreCardsRef.current) return;
+    if (!onLoadMoreCards || !hasMoreCards || effectiveReviewSession.remainingInitialKeys.length > 25 || loadingMoreCardsRef.current) return;
     loadingMoreCardsRef.current = true;
     void onLoadMoreCards().then((nextDecks) => {
       if (!nextDecks.length) return;

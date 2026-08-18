@@ -183,6 +183,6 @@ test("portable export validates and merges without password verifier", () => {
   const merged = mergePortableExportIntoState({ ...state, decks: [] }, exported);
 
   assert.equal(validation.valid, true);
-  assert.equal(exported.profile.account.passwordVerifier, undefined);
+  assert.equal(Object.hasOwn(exported.profile?.account ?? {}, "passwordVerifier"), false);
   assert.equal(merged.decks.length, 1);
 });

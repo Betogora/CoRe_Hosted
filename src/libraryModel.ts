@@ -194,6 +194,7 @@ function cardNextStudyTimestamp(card: LearningItem, options: Pick<LibraryOptions
 }
 
 function cardHasActiveVariants(card: LearningItem): boolean {
+  if (card.meta?.catalogOnly === true) return card.meta.catalogHasActiveVariants === true;
   return (card.variants ?? []).some((variant) => (
     !variant.isOriginal && variant.isActive !== false && variant.qualityStatus === "active"
   ));

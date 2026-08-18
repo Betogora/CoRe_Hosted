@@ -835,6 +835,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await expect(page.getByText("1 Karte · 0 Wiederholungen")).toBeVisible();
   await page.getByRole("button", { name: "Zurück zum Ausgangspunkt" }).click();
   await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await page.getByPlaceholder("Stapel, Vorderseite, Rückseite oder Tags suchen").fill("Côte d'Ivoire");
   await expect(page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" })).toBeVisible();
 });
 

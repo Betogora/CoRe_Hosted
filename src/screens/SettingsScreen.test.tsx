@@ -9,7 +9,7 @@ import { SettingsScreen } from "./SettingsScreen.tsx";
 import { createConflictImpactPreview } from "./SyncConflictPanel.tsx";
 
 function renderSettings() {
-  const state = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const state = createCoreRepository({ seedDefaultDecks: false }).getState();
   const profile = { ...state.profile, email: "login@example.test", displayName: "Ada", timezone: "Europe/Berlin" };
   return renderToStaticMarkup(
     <SettingsScreen

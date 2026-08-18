@@ -67,7 +67,9 @@ async function seedAccount() {
   const { data, error } = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
   if (error || !data.user) throw error ?? new Error("Der Batch-E2E-Account fehlt.");
   try {
-    const state = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+    const { error: conflictCleanupError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
+    if (conflictCleanupError) throw conflictCleanupError;
+    const state = createCoreRepository({ seedDefaultDecks: false }).getState();
     const content = normalizeContentEntities(seedDecks(), [], []);
     await replaceAccountCloudState(client, {
       ...state,
@@ -254,10 +256,11 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
   const targetState = await readActiveAccountState(page);
   const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
   await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).click();
+  await page.getByTestId(`deck-card-${existingCardId}`).click();
+  await expect(page.getByRole("button", { name: "Löschen", exact: true })).toBeVisible();
 
   try {
     await context.setOffline(true);
-    await page.getByTestId(`deck-card-${existingCardId}`).click();
     await page.getByRole("button", { name: "Löschen", exact: true }).click();
     await page.getByRole("dialog", { name: "Karte löschen" }).getByRole("button", { name: "Ja" }).click();
 

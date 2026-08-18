@@ -30,7 +30,7 @@ Diese Konvention gilt für neue und umbenannte Dateien im CoRe-Repository. Maßg
 | Eigenständige HTML-Datei | `kebab-case.html` | `todo-review.html` |
 | JSON-Fixture | `kebab-case[.rolle].json` | `world-capitals.source.json` |
 | Sonstige Fixture | beschreibendes `kebab-case.ext` | `plain-text-sample.txt`, `pdf-selection.pdf` |
-| Freies SQL-Skript | `snake_case.sql` | `core_schema_v1.sql`, `verify_schema_v1.sql` |
+| Freies SQL-Skript | `snake_case.sql` | `verify_schema_v1.sql` |
 | Supabase-Migration | `<timestamp>_<beschreibung>.sql` | `20260709091315_sync_media_auth_operations.sql` |
 | Supabase-E-Mail-Template | referenzierter `snake_case.html`-Pfad | `magic_link.html`, `reset_password.html` |
 | Freie YAML-Datei | `kebab-case.yaml` | `deployment-preview.yaml` |
@@ -46,7 +46,7 @@ Diese Konvention gilt für neue und umbenannte Dateien im CoRe-Repository. Maßg
 - Zusätze wie `.source`, `.expected` oder `.snapshot` stehen bei Datenartefakten direkt vor der eigentlichen Endung.
 - Supabase-Migrationen werden mit `supabase migration new <name>` erzeugt. Bereits angewendete Migrationen werden nicht nachträglich umbenannt.
 - Supabase-Template-Dateien dürfen nur zusammen mit allen `content_path`-Referenzen umbenannt werden. Ohne fachlichen Grund bleiben die derzeitigen Pfade stabil.
-- Versionsstände gehören grundsätzlich in Git oder in den Dokumentinhalt. Ausnahmen sind bewusst versionierte technische Anker wie `core_schema_v1.sql`.
+- Versionsstände gehören grundsätzlich in Git oder in den Dokumentinhalt; das aktuelle Schema wird ausschließlich durch die Migrationsbaseline beschrieben.
 - Vermeiden: Leerzeichen, Umlaute, beliebige Groß-/Kleinschreibung, unklare Namen wie `testdatei.txt` und Statusketten wie `final-neu-v2.md`.
 
 ## Projekt-Audit, aktualisiert am 14. Juli 2026

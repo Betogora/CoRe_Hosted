@@ -15,7 +15,8 @@ begin
   from (values
     ('profiles'), ('decks'), ('note_type_definitions'), ('cards'), ('card_variants'),
     ('learning_item_source_snapshots'), ('review_events'), ('source_documents'),
-    ('media_assets'), ('sync_devices'), ('sync_conflicts')
+    ('media_assets'), ('sync_devices'), ('sync_conflicts'), ('card_catalog'),
+    ('deck_study_summaries'), ('review_statistics_daily')
   ) as expected(name)
   where to_regclass(format('public.%I', expected.name)) is null;
   if missing_tables is not null then
@@ -48,7 +49,19 @@ begin
     ('card_variants', 'sync_change_id'),
     ('learning_item_source_snapshots', 'sync_change_id'),
     ('review_events', 'sync_change_id'),
+    ('review_events', 'statistics_day'),
+    ('review_events', 'statistics_category'),
+    ('review_events', 'retention_first'),
     ('source_documents', 'sync_change_id')
+    ,('card_catalog', 'body_revision')
+    ,('card_catalog', 'dependency_revision')
+    ,('card_catalog', 'active_variant_count')
+    ,('card_catalog', 'interval_days')
+    ,('card_catalog', 'stability')
+    ,('card_catalog', 'created_at')
+    ,('card_catalog', 'sync_change_id')
+    ,('deck_study_summaries', 'active_variant_count')
+    ,('deck_study_summaries', 'sync_change_id')
   ) as expected(table_name, column_name)
   left join information_schema.columns columns
     on columns.table_schema = 'public'
@@ -98,12 +111,16 @@ begin
   into present_retired_columns
   from (values
     ('profiles', 'privacy'),
+    ('profiles', 'university'),
+    ('profiles', 'field_of_study'),
+    ('profiles', 'preferred_language'),
     ('decks', 'graph'),
     ('decks', 'community_refs'),
     ('decks', 'visibility'),
     ('learning_item_source_snapshots', 'snapshot'),
     ('learning_item_source_snapshots', 'content_hash'),
-    ('learning_item_source_snapshots', 'captured_at')
+    ('learning_item_source_snapshots', 'captured_at'),
+    ('deck_study_summaries', 'due_count')
   ) as retired(table_name, column_name)
   join information_schema.columns columns
     on columns.table_schema = 'public'
@@ -113,7 +130,7 @@ begin
     raise exception 'Ausgemusterte Spalten sind noch vorhanden: %', present_retired_columns;
   end if;
 
-  foreach table_name in array array['profiles', 'decks', 'note_type_definitions', 'cards', 'card_variants', 'learning_item_source_snapshots', 'review_events', 'source_documents', 'media_assets', 'sync_devices', 'sync_conflicts']
+  foreach table_name in array array['profiles', 'decks', 'note_type_definitions', 'cards', 'card_variants', 'learning_item_source_snapshots', 'review_events', 'source_documents', 'media_assets', 'sync_devices', 'sync_conflicts', 'card_catalog', 'deck_study_summaries', 'review_statistics_daily']
   loop
     if not exists (
       select 1 from pg_class c
@@ -121,6 +138,25 @@ begin
       where n.nspname = 'public' and c.relname = table_name and c.relrowsecurity
     ) then
       raise exception 'RLS fehlt für public.%', table_name;
+    end if;
+  end loop;
+
+  foreach table_name in array array['card_catalog', 'deck_study_summaries', 'review_statistics_daily']
+  loop
+    if not exists (
+      select 1 from pg_policies
+      where schemaname = 'public'
+        and tablename = table_name
+        and roles = array['authenticated']::name[]
+        and cmd = 'SELECT'
+        and qual like '%auth.uid()%'
+    ) then
+      raise exception 'Owner-Select-Policy fehlt für public.%', table_name;
+    end if;
+    if not has_table_privilege('authenticated', format('public.%I', table_name), 'SELECT')
+       or has_table_privilege('authenticated', format('public.%I', table_name), 'INSERT')
+       or has_table_privilege('anon', format('public.%I', table_name), 'SELECT') then
+      raise exception 'Projektions-Tabellenrechte sind falsch für public.%', table_name;
     end if;
   end loop;
 
@@ -180,34 +216,47 @@ begin
     raise exception 'Kartenart-Constraint ist unvollständig: %', constraint_definition;
   end if;
 
-  if to_regprocedure('public.record_review_atomic(text,integer,text,integer,jsonb,jsonb,timestamp with time zone,text,integer,jsonb,jsonb,timestamp with time zone,jsonb,text)') is null then
+  if to_regprocedure('public.record_review_atomic(text,text,jsonb,jsonb,timestamp with time zone,text,jsonb,jsonb,timestamp with time zone,jsonb,text)') is null then
     raise exception 'Atomare Review-RPC fehlt.';
   end if;
-  if to_regprocedure('public.pull_account_delta(bigint,integer,integer)') is null then
-    raise exception 'Gebündelte Account-Delta-RPC fehlt.';
+  if to_regprocedure('public.pull_account_delta(bigint,integer,integer)') is not null
+     or to_regprocedure('public.get_account_bootstrap()') is not null then
+    raise exception 'Ausgemusterte Voll-Delta-/Bootstrap-RPCs sind noch vorhanden.';
   end if;
-  if to_regprocedure('public.get_account_bootstrap()') is null then
-    raise exception 'Account-Bootstrap-RPC fehlt.';
+  if to_regprocedure('public.get_account_bootstrap_v2(text,integer,integer)') is null
+     or to_regprocedure('public.pull_account_catalog_delta(bigint,integer,integer)') is null
+     or to_regprocedure('public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean)') is null
+     or to_regprocedure('public.hydrate_account_cards(text[])') is null
+     or to_regprocedure('public.get_deck_offline_manifest(text,text,integer)') is null
+     or to_regprocedure('public.get_account_statistics(text[],timestamp with time zone,timestamp with time zone,text,integer)') is null
+     or to_regprocedure('public.delete_account_deck_tree(text,timestamp with time zone,text)') is null then
+    raise exception 'Mindestens ein Replica-v2-RPC-Vertrag fehlt.';
   end if;
-  if not has_function_privilege('authenticated', 'public.pull_account_delta(bigint,integer,integer)', 'EXECUTE')
-     or has_function_privilege('anon', 'public.pull_account_delta(bigint,integer,integer)', 'EXECUTE') then
-    raise exception 'Account-Delta-RPC-Berechtigungen sind falsch konfiguriert.';
-  end if;
-  if not has_function_privilege('authenticated', 'public.get_account_bootstrap()', 'EXECUTE')
-     or has_function_privilege('anon', 'public.get_account_bootstrap()', 'EXECUTE') then
-    raise exception 'Account-Bootstrap-RPC-Berechtigungen sind falsch konfiguriert.';
+  if not has_function_privilege('authenticated', 'public.get_account_bootstrap_v2(text,integer,integer)', 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.pull_account_catalog_delta(bigint,integer,integer)', 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean)', 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.hydrate_account_cards(text[])', 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.get_deck_offline_manifest(text,text,integer)', 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.get_account_statistics(text[],timestamp with time zone,timestamp with time zone,text,integer)', 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.delete_account_deck_tree(text,timestamp with time zone,text)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.get_account_bootstrap_v2(text,integer,integer)', 'EXECUTE') then
+    raise exception 'Replica-v2-RPC-Berechtigungen sind falsch konfiguriert.';
   end if;
   if to_regclass('public.sync_conflicts_one_active_entity_idx') is null then
     raise exception 'Eindeutigkeitsregel für aktive Synchronisierungskonflikte fehlt.';
   end if;
-  if not has_function_privilege('authenticated', 'public.record_review_atomic(text,integer,text,integer,jsonb,jsonb,timestamp with time zone,text,integer,jsonb,jsonb,timestamp with time zone,jsonb,text)', 'EXECUTE')
-     or has_function_privilege('anon', 'public.record_review_atomic(text,integer,text,integer,jsonb,jsonb,timestamp with time zone,text,integer,jsonb,jsonb,timestamp with time zone,jsonb,text)', 'EXECUTE') then
+  if not has_function_privilege('authenticated', 'public.record_review_atomic(text,text,jsonb,jsonb,timestamp with time zone,text,jsonb,jsonb,timestamp with time zone,jsonb,text)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.record_review_atomic(text,text,jsonb,jsonb,timestamp with time zone,text,jsonb,jsonb,timestamp with time zone,jsonb,text)', 'EXECUTE') then
     raise exception 'Review-RPC-Berechtigungen sind falsch konfiguriert.';
   end if;
-  if to_regprocedure('public.stamp_account_sync_change()') is null
-     or has_function_privilege('authenticated', 'public.stamp_account_sync_change()', 'EXECUTE')
-     or has_function_privilege('anon', 'public.stamp_account_sync_change()', 'EXECUTE') then
+  if to_regprocedure('private.stamp_account_sync_change()') is null
+     or to_regprocedure('public.stamp_account_sync_change()') is not null
+     or has_function_privilege('authenticated', 'private.stamp_account_sync_change()', 'EXECUTE')
+     or has_function_privilege('anon', 'private.stamp_account_sync_change()', 'EXECUTE') then
     raise exception 'Serverseitiger Delta-Sync-Stempel fehlt oder ist direkt aufrufbar.';
+  end if;
+  if to_regprocedure('private.rebuild_card_catalog_batch(uuid,text,integer)') is not null then
+    raise exception 'Ausgemusterter Katalog-Backfill ist noch vorhanden.';
   end if;
   select array_agg(expected.table_name order by expected.table_name)
   into missing_sync_triggers
@@ -242,10 +291,52 @@ begin
       'learning_item_source_snapshots_user_sync_change_id_idx',
       'review_events_user_sync_change_id_idx',
       'source_documents_user_sync_change_id_idx'
+      ,'card_catalog_user_sync_change_id_idx'
+      ,'card_catalog_active_deck_sort_idx'
+      ,'card_catalog_active_deck_review_due_idx'
+      ,'deck_study_summaries_user_sync_change_id_idx'
     ]) as expected(index_name)
     where not exists (select 1 from pg_indexes where schemaname = 'public' and indexname = expected.index_name)
   ) then
     raise exception 'Delta-Sync-Indizes sind unvollständig.';
+  end if;
+  if not exists (
+    select 1 from pg_indexes
+    where schemaname = 'public'
+      and indexname = 'card_catalog_active_deck_review_due_idx'
+      and indexdef like '%(user_id, deck_id, reviewable, schedule_state, due_at, id)%'
+  ) then
+    raise exception 'Der zusammengesetzte Review-Fälligkeitsindex ist falsch definiert.';
+  end if;
+
+  if exists (
+    select 1
+    from pg_proc procedure_row
+    join pg_namespace namespace_row on namespace_row.oid = procedure_row.pronamespace
+    where namespace_row.nspname = 'public'
+      and procedure_row.proname in (
+        'get_account_bootstrap_v2', 'pull_account_catalog_delta', 'list_account_card_catalog',
+        'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics', 'delete_account_deck_tree'
+      )
+      and procedure_row.prosecdef
+  ) then
+    raise exception 'Mindestens eine öffentliche Replica-v2-RPC ist unerwartet SECURITY DEFINER.';
+  end if;
+  if exists (
+    select 1
+    from pg_proc procedure_row
+    join pg_namespace namespace_row on namespace_row.oid = procedure_row.pronamespace
+    where namespace_row.nspname in ('public', 'private')
+      and procedure_row.proname in (
+        'get_account_bootstrap_v2', 'pull_account_catalog_delta', 'list_account_card_catalog',
+        'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics', 'delete_account_deck_tree',
+        'refresh_card_catalog', 'refresh_card_catalog_trigger', 'refresh_definition_card_catalog_trigger',
+        'refresh_deck_study_summary', 'apply_deck_study_summary_delta', 'refresh_deck_study_summary_trigger',
+        'prepare_review_statistics', 'sync_review_statistics_daily'
+      )
+      and not coalesce(procedure_row.proconfig, '{}'::text[]) @> array['search_path=""']::text[]
+  ) then
+    raise exception 'Mindestens eine Replica-v2-Funktion besitzt keinen leeren search_path.';
   end if;
 
   if exists (select 1 from storage.buckets where id = 'core-imports') then

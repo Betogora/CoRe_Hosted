@@ -180,22 +180,15 @@ export function createProfileRow(profile: any, user: any, timestamp: any = nowIs
 export function createCloudProfile(row: any, user: any, fallback: any = {}, timestamp: any = nowIso()) {
   const validatedRow = row == null ? null : validateProfileRow(row);
   const email = normalizeEmail(validatedRow?.email ?? user?.email ?? fallback?.email);
-  const {
-    university: _university,
-    fieldOfStudy: _fieldOfStudy,
-    preferredLanguage: _preferredLanguage,
-    ...activeFallback
-  } = fallback ?? {};
 
   return withGlobalSchedulerPreferences({
-    ...activeFallback,
-    userId: user?.id ?? validatedRow?.id ?? activeFallback?.userId ?? "local-user",
+    userId: user?.id ?? validatedRow?.id ?? fallback?.userId ?? "local-user",
     email,
-    displayName: validatedRow?.display_name ?? activeFallback?.displayName ?? email.split("@")[0] ?? "",
-    timezone: validatedRow?.timezone ?? activeFallback?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
-    onboardingComplete: validatedRow?.onboarding_complete ?? activeFallback?.onboardingComplete ?? true,
-    schedulerPreferences: validatedRow?.scheduler_preferences ?? activeFallback?.schedulerPreferences,
-    uiPreferences: normalizeUiPreferences(validatedRow?.ui_preferences ?? activeFallback?.uiPreferences),
+    displayName: validatedRow?.display_name ?? fallback?.displayName ?? email.split("@")[0] ?? "",
+    timezone: validatedRow?.timezone ?? fallback?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
+    onboardingComplete: validatedRow?.onboarding_complete ?? fallback?.onboardingComplete ?? true,
+    schedulerPreferences: validatedRow?.scheduler_preferences ?? fallback?.schedulerPreferences,
+    uiPreferences: normalizeUiPreferences(validatedRow?.ui_preferences ?? fallback?.uiPreferences),
     account: accountFromUser(user ?? { id: validatedRow?.id, email, created_at: validatedRow?.created_at }, "signed-in", timestamp),
   });
 }
@@ -211,20 +204,17 @@ function isConnectivityFailure(error: any) {
 
 export function createPendingCloudProfile(profile: any, user: any, timestamp: any = nowIso()) {
   const email = normalizeEmail(user?.email ?? profile?.email);
-  const {
-    university: _university,
-    fieldOfStudy: _fieldOfStudy,
-    preferredLanguage: _preferredLanguage,
-    ...activeProfile
-  } = profile ?? {};
 
-  return {
-    ...activeProfile,
-    userId: user?.id ?? activeProfile?.userId ?? "local-user",
+  return withGlobalSchedulerPreferences({
+    userId: user?.id ?? profile?.userId ?? "local-user",
     email,
-    displayName: activeProfile?.displayName || email.split("@")[0] || "",
+    displayName: profile?.displayName || email.split("@")[0] || "",
+    timezone: profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Berlin",
+    onboardingComplete: Boolean(profile?.onboardingComplete),
+    schedulerPreferences: profile?.schedulerPreferences,
+    uiPreferences: normalizeUiPreferences(profile?.uiPreferences),
     account: accountFromUser(user, "pending-email-confirmation", timestamp),
-  };
+  });
 }
 
 export function markCloudSignedOut(profile: any, timestamp: any = nowIso()) {

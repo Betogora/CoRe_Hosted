@@ -18,7 +18,7 @@ const dashboardCallbacks = {
 };
 
 test("empty dashboard offers only explicit first-learning paths without seeded statistics", () => {
-  const state = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const state = createCoreRepository({ seedDefaultDecks: false }).getState();
   const markup = renderToStaticMarkup(
     <DashboardScreen
       state={state}
@@ -39,7 +39,7 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
 });
 
 test("populated dashboard shows the aggregated open daily learning overview", () => {
-  const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const baseState = createCoreRepository({ seedDefaultDecks: false }).getState();
   const deck = createCoreDeck({
     name: "Biologie",
     source: "manual",
@@ -106,7 +106,7 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
 });
 
 test("dashboard projects future due cards through the supplied learning time", () => {
-  const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const baseState = createCoreRepository({ seedDefaultDecks: false }).getState();
   const deck = createCoreDeck({
     name: "Zukunft",
     source: "manual",
@@ -136,7 +136,7 @@ test("dashboard projects future due cards through the supplied learning time", (
 });
 
 test("achieved dashboard keeps today's completed cards in the total and success bar", () => {
-  const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const baseState = createCoreRepository({ seedDefaultDecks: false }).getState();
   const completedCard = createCoreCard({
     id: "completed-today",
     source: "manual",
@@ -174,7 +174,7 @@ test("achieved dashboard keeps today's completed cards in the total and success 
 });
 
 test("dashboard keeps later same-day learning steps in a disabled waiting state", () => {
-  const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const baseState = createCoreRepository({ seedDefaultDecks: false }).getState();
   const deck = createCoreDeck({
     id: "waiting",
     name: "Warten",
@@ -200,7 +200,7 @@ test("dashboard keeps later same-day learning steps in a disabled waiting state"
 });
 
 test("achieved dashboard offers additional new cards only when stock remains beyond the daily limit", () => {
-  const baseState = createCoreRepository(null, { seedDefaultDecks: false }).getState();
+  const baseState = createCoreRepository({ seedDefaultDecks: false }).getState();
   const extraDeck = createCoreDeck({
     id: "extra",
     name: "Zusatz",

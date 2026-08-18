@@ -48,55 +48,15 @@ function profileFromMutation(mutation: SyncOutboxMutation, expectedUserId: strin
   return readCompleteProfile(mutation.payload.profile, expectedUserId);
 }
 
-function uiPreferencesFromMutation(mutation: SyncOutboxMutation): UiPreferences | null {
-  if (!isRecord(mutation.payload) || !isRecord(mutation.payload.profile)) return null;
-  return readUiPreferences(mutation.payload.profile.uiPreferences);
-}
-
-function sameUiPreferences(left: UiPreferences, right: UiPreferences): boolean {
-  const sameIds = (leftIds: string[], rightIds: string[]) => (
-    leftIds.length === rightIds.length && leftIds.every((id, index) => id === rightIds[index])
-  );
-  return left.syncIntervalMinutes === right.syncIntervalMinutes
-    && sameIds(left.dashboardCollapsedDeckIds, right.dashboardCollapsedDeckIds)
-    && sameIds(left.learnCollapsedDeckIds, right.learnCollapsedDeckIds)
-    && sameIds(left.deckManagerExpandedDeckIds, right.deckManagerExpandedDeckIds);
-}
-
-export interface ProfileBootstrapRepairPlan {
-  invalidMutationIds: string[];
-  profileToApply: Profile;
-  enqueueProfile: boolean;
-}
-
-export function planProfileBootstrapRepair(
+export function profileForBootstrap(
   cloudProfileValue: unknown,
   pendingMutations: SyncOutboxMutation[],
   expectedUserId: string,
-): ProfileBootstrapRepairPlan {
-  const cloudProfile = requireCompleteProfile(cloudProfileValue, expectedUserId);
-  const invalidMutationIds: string[] = [];
-  let latestValidProfile: Profile | null = null;
-  let recoveredUiPreferences: UiPreferences | null = null;
+): Profile {
+  let profile = requireCompleteProfile(cloudProfileValue, expectedUserId);
   for (const mutation of pendingMutations) {
     if (mutation.type !== "profile-patch") continue;
-    const profile = profileFromMutation(mutation, expectedUserId);
-    if (profile) latestValidProfile = profile;
-    else {
-      invalidMutationIds.push(mutation.id);
-      recoveredUiPreferences = uiPreferencesFromMutation(mutation) ?? recoveredUiPreferences;
-    }
+    profile = profileFromMutation(mutation, expectedUserId) ?? profile;
   }
-  if (latestValidProfile) {
-    return { invalidMutationIds, profileToApply: latestValidProfile, enqueueProfile: false };
-  }
-  if (!recoveredUiPreferences) {
-    return { invalidMutationIds, profileToApply: cloudProfile, enqueueProfile: false };
-  }
-
-  return {
-    invalidMutationIds,
-    profileToApply: { ...cloudProfile, uiPreferences: recoveredUiPreferences },
-    enqueueProfile: !sameUiPreferences(recoveredUiPreferences, cloudProfile.uiPreferences),
-  };
+  return profile;
 }

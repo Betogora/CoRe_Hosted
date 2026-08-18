@@ -1,6 +1,7 @@
 import {
   applyEntityMutation,
   applyEntityMutationBatch,
+  deleteAccountDeckTree,
   listAccountSyncConflicts,
   registerAccountSyncDevice,
   recordAtomicReview,
@@ -115,6 +116,7 @@ export const SYNC_MUTATION_TYPES = Object.freeze({
   profilePatch: "profile-patch",
   entityMutation: "entity-mutation",
   reviewAtomic: "review-atomic",
+  deckCommand: "deck-command",
 });
 
 export interface SyncOutboxMutation {
@@ -227,7 +229,7 @@ function createDefaultAdapter(client: any, userId: string) {
           continue;
         }
         mutationIndex += 1;
-        if (![SYNC_MUTATION_TYPES.profilePatch, SYNC_MUTATION_TYPES.entityMutation, SYNC_MUTATION_TYPES.reviewAtomic].includes(mutation.type)) {
+        if (![SYNC_MUTATION_TYPES.profilePatch, SYNC_MUTATION_TYPES.entityMutation, SYNC_MUTATION_TYPES.reviewAtomic, SYNC_MUTATION_TYPES.deckCommand].includes(mutation.type)) {
           failedMutationIds.push(mutation.id);
           failures.push({ mutationId: mutation.id, error: createRetryableMutationError() });
           continue;
@@ -238,6 +240,14 @@ function createDefaultAdapter(client: any, userId: string) {
                 mutationId: mutation.id,
                 flushedAt: context.flushedAt,
               })
+            : mutation.type === SYNC_MUTATION_TYPES.deckCommand
+              ? {
+                  ...(await deleteAccountDeckTree(client, mutation.payload?.deckId, {
+                    deletedAt: mutation.payload?.deletedAt ?? context.flushedAt,
+                    deviceId: mutation.deviceId ?? context.deviceId,
+                  })),
+                  acknowledgedMutationId: mutation.id,
+                }
             : mutation.type === SYNC_MUTATION_TYPES.entityMutation
               ? { ...(await applyEntityMutation(client, mutation.payload, {
                   deviceId: mutation.deviceId ?? context.deviceId,
