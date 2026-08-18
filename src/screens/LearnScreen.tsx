@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronRight, FolderPlus, Layers, PlusSquare } from "lucide-react";
+import { ChevronRight, FolderPlus, Layers } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
 import { DECK_DEPTH_ERROR, MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
@@ -17,12 +17,10 @@ function createDefaultDeckDraft(parentDeckId = "") {
 
 export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAheadMinutes, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
   const library = React.useMemo(() => createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }), [dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
-  const [isDeckCreateOpen, setIsDeckCreateOpen] = React.useState(Boolean(initialParentDeckId));
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();
-  const createToggleRef = React.useRef<HTMLButtonElement | null>(null);
   const deckNameRef = React.useRef<HTMLInputElement | null>(null);
   const focusedRow = library.rows.find((row) => row.id === focusedDeckId) ?? null;
   const eligibleParentDeckIds = React.useMemo(
@@ -38,7 +36,6 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
 
     if (parentRow.depth >= MAX_INTERACTIVE_DECK_LEVELS - 1) {
       setDeckDraft(createDefaultDeckDraft());
-      setIsDeckCreateOpen(false);
       setDeckStatus(DECK_DEPTH_ERROR);
       setDeckStatusType("alert");
       onDeckCreationHandled?.();
@@ -46,15 +43,11 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
     }
 
     setDeckDraft(createDefaultDeckDraft(parentRow.id));
-    setIsDeckCreateOpen(true);
     setDeckStatus(`Unterstapel unter "${parentRow.name}" anlegen.`);
     setDeckStatusType("status");
     onDeckCreationHandled?.();
+    window.requestAnimationFrame(() => deckNameRef.current?.focus());
   }, [initialParentDeckId, library.rows, onDeckCreationHandled]);
-
-  React.useEffect(() => {
-    if (isDeckCreateOpen) deckNameRef.current?.focus();
-  }, [isDeckCreateOpen]);
 
   function updateDeckDraft(key: string, value: string) {
     setDeckDraft((current) => ({ ...current, [key]: value }));
@@ -81,14 +74,53 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
       return;
     }
     setDeckDraft(createDefaultDeckDraft(created.parentDeckId ?? ""));
-    setIsDeckCreateOpen(false);
     setDeckStatus("");
     setDeckStatusType("status");
     setSuccessToast(created.parentDeckId
       ? `Unterstapel „${created.name}“ wurde erfolgreich angelegt.`
       : `Stapel „${created.name}“ wurde erfolgreich angelegt.`);
-    window.requestAnimationFrame(() => createToggleRef.current?.focus());
+    window.requestAnimationFrame(() => deckNameRef.current?.focus());
   }
+
+  const deckCreateForm = (
+    <form
+      onSubmit={createDeckFromDraft}
+      className="grid min-w-0 gap-3 sm:grid-cols-[minmax(11rem,1fr)_minmax(11rem,1fr)_auto]"
+      data-testid="learn-deck-create-form"
+    >
+      <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+        Stapelname
+        <input
+          className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-medium text-[var(--core-text)] outline-none focus-visible:border-[var(--core-border-interactive)] focus-visible:ring-2 focus-visible:ring-[var(--core-focus-ring-soft)]"
+          ref={deckNameRef}
+          value={deckDraft.name}
+          onChange={(event) => updateDeckDraft("name", event.target.value)}
+          placeholder="z. B. Anatomie"
+          aria-invalid={deckStatusType === "alert" || undefined}
+          aria-describedby={deckStatus ? "learn-deck-create-status" : undefined}
+          data-testid="learn-deck-name-input"
+        />
+      </label>
+      <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+        Ebene
+        <DeckSelect
+          ariaLabel="Ebene"
+          className="w-full font-medium"
+          value={deckDraft.parentDeckId}
+          decks={decks}
+          selectableDeckIds={eligibleParentDeckIds}
+          specialOption={{ value: "", label: "Als Hauptstapel", icon: Layers }}
+          onValueChange={(parentDeckId) => updateDeckDraft("parentDeckId", parentDeckId)}
+          testId="learn-deck-parent-select"
+        />
+      </label>
+      <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2">
+        <FolderPlus size={17} aria-hidden="true" />
+        Anlegen
+      </button>
+      {deckStatus ? <p id="learn-deck-create-status" className={`core-body font-semibold sm:col-span-3 ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
+    </form>
+  );
 
   return (
     <div className="grid min-w-0 gap-7">
@@ -97,74 +129,17 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
         title="Lernen"
       />
 
-      <div className="grid min-w-0 gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={() => onOpenDecks(focusedDeckId)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
-            <Layers size={17} aria-hidden="true" />
-            Karten verwalten
-          </button>
-          <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
-            <PlusSquare size={17} aria-hidden="true" />
-            Neue Karten
-          </button>
-          <button
-            ref={createToggleRef}
-            type="button"
-            onClick={() => {
-              setIsDeckCreateOpen((current) => !current);
-            }}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]"
-            aria-expanded={isDeckCreateOpen}
-            aria-controls="learn-deck-create-form"
-            data-testid="learn-deck-create-toggle"
-          >
-            <FolderPlus size={17} aria-hidden="true" />
-            Stapel anlegen
-          </button>
-        </div>
-        {isDeckCreateOpen ? (
-          <form
-            id="learn-deck-create-form"
-            onSubmit={createDeckFromDraft}
-            className="core-overlay grid min-w-0 gap-3 rounded-2xl p-3 sm:grid-cols-[minmax(11rem,1fr)_minmax(11rem,1fr)_auto]"
-            data-testid="learn-deck-create-form"
-          >
-          <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-            Stapelname
-            <input
-              className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-medium text-[var(--core-text)] outline-none"
-              ref={deckNameRef}
-              value={deckDraft.name}
-              onChange={(event) => updateDeckDraft("name", event.target.value)}
-              placeholder="z. B. Anatomie"
-              aria-invalid={deckStatusType === "alert" || undefined}
-              aria-describedby={deckStatus ? "learn-deck-create-status" : undefined}
-              data-testid="learn-deck-name-input"
-            />
-          </label>
-          <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-            Ebene
-            <DeckSelect
-              ariaLabel="Ebene"
-              className="w-full font-medium"
-              value={deckDraft.parentDeckId}
-              decks={decks}
-              selectableDeckIds={eligibleParentDeckIds}
-              specialOption={{ value: "", label: "Als Hauptstapel", icon: Layers }}
-              onValueChange={(parentDeckId) => updateDeckDraft("parentDeckId", parentDeckId)}
-              testId="learn-deck-parent-select"
-            />
-          </label>
-            <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
-            <FolderPlus size={17} aria-hidden="true" />
-              Anlegen
-          </button>
-            {deckStatus ? <p id="learn-deck-create-status" className={`core-body font-semibold sm:col-span-3 ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
-          </form>
-        ) : deckStatus ? (
-          <p id="learn-deck-create-status" className={`core-body font-semibold ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p>
-        ) : null}
-      </div>
+      <DeckTree
+        rows={focusedDeckMissing ? [] : library.rows}
+        mode="learn"
+        contentBeforeRows={deckCreateForm}
+        collapsedDeckIds={collapsedDeckIds}
+        onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}
+        onActivate={(row) => onStartDeck(row.deck, false)}
+        onOpenSettings={onOpenDeckSettings}
+        onSetDeckCoreMode={onSetDeckCoreMode}
+        onMoveDeck={onMoveDeck}
+      />
 
       {focusedDeckMissing ? (
         <EmptyState
@@ -193,18 +168,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
             </button>
           }
         />
-      ) : (
-        <DeckTree
-          rows={library.rows}
-          mode="learn"
-          collapsedDeckIds={collapsedDeckIds}
-          onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}
-          onActivate={(row) => onStartDeck(row.deck, false)}
-          onOpenSettings={onOpenDeckSettings}
-          onSetDeckCoreMode={onSetDeckCoreMode}
-          onMoveDeck={onMoveDeck}
-        />
-      )}
+      ) : null}
     </div>
   );
 }

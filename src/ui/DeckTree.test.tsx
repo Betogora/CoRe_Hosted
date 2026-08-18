@@ -64,6 +64,21 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.doesNotMatch(markup, /data-core-tooltip="Stapeloptionen für Bereich \/ Grundlagen"/);
 });
 
+test("deck tree places optional panel content before rows and omits an empty row frame", () => {
+  const content = <form data-testid="panel-content"><input aria-label="Stapelname" /></form>;
+  const populated = renderToStaticMarkup(
+    <DeckTree rows={rows} mode="learn" contentBeforeRows={content} collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+  );
+  const empty = renderToStaticMarkup(
+    <DeckTree rows={[]} mode="learn" contentBeforeRows={content} collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+  );
+
+  assert.ok(populated.indexOf("Aktive Stapel") < populated.indexOf('data-testid="panel-content"'));
+  assert.ok(populated.indexOf('data-testid="panel-content"') < populated.indexOf('data-testid="deck-summary-header"'));
+  assert.match(empty, /data-testid="panel-content"/);
+  assert.doesNotMatch(empty, /core-deck-tree-rows|data-testid="deck-summary-header"/);
+});
+
 test("deck tree maps five visible levels to group depths and clamps deeper imports", () => {
   const deepDecks = [
     createCoreDeck({ id: "depth-root", name: "Ebene 1", hierarchyPath: ["Ebene 1"], source: "anki-apkg", cards: [] }),

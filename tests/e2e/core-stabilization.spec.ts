@@ -313,7 +313,7 @@ test("browser back returns from deck management to learning without reload", asy
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
-  await page.getByRole("button", { name: "Karten verwalten" }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
   await expect(page.getByTestId(`deck-header-${DECK_IDS.europe}`)).toBeVisible();
 
   await page.evaluate(() => window.history.back());
@@ -346,14 +346,13 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   await expect(learnHeading).toBeFocused();
   await expect.poll(() => hasVisibleOutline(learnHeading)).toBe(false);
 
-  const createToggle = page.getByTestId("learn-deck-create-toggle");
-  await createToggle.focus();
-  await page.keyboard.press("Enter");
-  await expect(page.getByTestId("learn-deck-name-input")).toBeFocused();
+  const deckNameInput = page.getByTestId("learn-deck-name-input");
+  await deckNameInput.focus();
+  await expect(deckNameInput).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByTestId("learn-deck-parent-select")).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(createToggle).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(createToggle).toBeFocused();
+  await expect(deckNameInput).toBeFocused();
 
   const studyButton = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ });
   await studyButton.focus();
@@ -789,7 +788,8 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden gespeichert." })).toBeVisible();
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
-  await page.getByRole("button", { name: "Karten verwalten" }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
+  await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   const variantTools = page.getByTestId("card-variant-tools");
   if (await variantTools.getAttribute("open") === null) await variantTools.locator("summary").click();
@@ -842,7 +842,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
 test("card version restore shows a comparison, requires confirmation and appends an audit entry", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Karten verwalten" }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
   await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await expect(page.getByLabel("Karten-Vorderseite")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");

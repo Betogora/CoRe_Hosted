@@ -434,8 +434,9 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
   await expect(linkedDeckRow).toBeVisible();
   await expect(linkedDeckRow).not.toHaveAttribute("data-selected");
 
-  await page.getByRole("button", { name: "Karten verwalten" }).click();
-  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}`);
+  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
+  await expect(page).toHaveURL("/kartenstapel");
+  await page.getByTestId(`deck-toggle-${DECK_IDS.childB}`).click();
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
   const cardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}`;
   await expect(page).toHaveURL(cardUrl);
@@ -551,10 +552,11 @@ test("[Vertrag: Review-Stapeleinstellungen] Sitzungsstapel und Rückweg bleiben 
 test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorwärts und ungültige IDs bleiben deterministisch", async ({ page }) => {
   await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
   await waitForApp(page);
-  await page.getByRole("button", { name: "Karten verwalten" }).click();
-  const deckUrl = `/kartenstapel?deck=${DECK_IDS.childB}`;
-  const firstCardUrl = `${deckUrl}&card=${CARD_IDS.b1}`;
-  const secondCardUrl = `${deckUrl}&card=${CARD_IDS.b2}`;
+  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
+  const deckUrl = "/kartenstapel";
+  const firstCardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}`;
+  const secondCardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}`;
+  await page.getByTestId(`deck-toggle-${DECK_IDS.childB}`).click();
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
   await page.goto(secondCardUrl);
   await waitForApp(page);

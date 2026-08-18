@@ -57,7 +57,7 @@ test("@beta-core @hosted-core APKG-Medium wird nach dem Deck-Commit cloudbestät
   }
 
   await mainMenu.getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Karten verwalten" }).click();
+  await mainMenu.getByRole("button", { name: "Karten" }).click();
   await page.getByTestId(`deck-toggle-${importedDeck.id}`).click();
   await page.getByTestId(`deck-card-${importedDeck.cards[0].id}`).click();
   await page.getByTestId("card-detail-aside").getByRole("button", { name: "Vorschau", exact: true }).click();

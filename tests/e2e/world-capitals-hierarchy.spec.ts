@@ -323,8 +323,10 @@ test("learning rows activate directly while expand and settings remain independe
   await expect(europeRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
   await expect(europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" })).toBeVisible();
   await expect(europeRow.getByRole("button", { name: /^Lernen$/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Karten verwalten", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Neue Karten", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Stapel anlegen", exact: true })).toHaveCount(0);
 
-  await page.getByTestId("learn-deck-create-toggle").click();
   const parentSelect = page.getByTestId("learn-deck-parent-select");
   await parentSelect.click();
   const parentSearch = page.getByRole("textbox", { name: "Stapel suchen" });
@@ -341,7 +343,13 @@ test("learning rows activate directly while expand and settings remain independe
   await expect(europeParentOption).toHaveAttribute("data-deck-depth", "1");
   await europeParentOption.click();
   await expect(parentSelect).toContainText("Welt-Hauptstädte / Europa");
-  await page.getByTestId("learn-deck-create-toggle").click();
+  const deckNameInput = page.getByTestId("learn-deck-name-input");
+  await deckNameInput.fill("Europa Ergänzung");
+  await page.getByRole("button", { name: "Anlegen", exact: true }).click();
+  await expect(deckNameInput).toBeFocused();
+  await expect(deckNameInput).toHaveValue("");
+  await expect(parentSelect).toContainText("Welt-Hauptstädte / Europa");
+  await expect(page.getByText("Unterstapel „Europa Ergänzung“ wurde erfolgreich angelegt.")).toBeVisible();
 
   await rootRow.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte ausblenden" }).click();
   await expect(europeRow).toBeHidden();
@@ -531,7 +539,7 @@ test("a real click immediately after drag starts learning", async ({ page }) => 
 test("deck management disables direct drag and shares the confirmed keyboard move", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Karten verwalten" }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
 
   const rootRow = page.getByTestId(`deck-header-${DECK_IDS.root}`);
   const southAmericaRow = page.getByTestId(`deck-header-${DECK_IDS.southAmerica}`);

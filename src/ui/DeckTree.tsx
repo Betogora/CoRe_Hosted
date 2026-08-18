@@ -12,6 +12,7 @@ export interface DeckTreeProps {
   rows: DeckLibraryRow[];
   mode: "dashboard" | "learn";
   headerAction?: React.ReactNode;
+  contentBeforeRows?: React.ReactNode;
   onActivate: (row: DeckLibraryRow) => void;
   onOpenSettings: (deckId: string) => void;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
@@ -122,7 +123,7 @@ function getVisibleRows(rows: DeckLibraryRow[], collapsedDeckIds: Set<string>) {
   return visibleRows;
 }
 
-export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
+export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActivate, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
@@ -421,13 +422,18 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
         onPointerCancel={cancelPointer}
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
-        <div className="core-deck-tree-header mb-6 grid min-h-11 items-center gap-3" data-testid={`${mode}-deck-list-header`}>
-          <h3 className="core-deck-tree-title whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3>
-          {headerAction ? <div className="core-deck-tree-header-action justify-self-end whitespace-nowrap">{headerAction}</div> : null}
-        </div>
-        <div className="core-deck-tree-rows min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)]">
-          <DeckSummaryHeader />
-          {visibleRows.map(renderRow)}
+        <div className="grid gap-6">
+          <div className="core-deck-tree-header grid min-h-11 items-center gap-3" data-testid={`${mode}-deck-list-header`}>
+            <h3 className="core-deck-tree-title whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3>
+            {headerAction ? <div className="core-deck-tree-header-action justify-self-end whitespace-nowrap">{headerAction}</div> : null}
+          </div>
+          {contentBeforeRows}
+          {visibleRows.length > 0 ? (
+            <div className="core-deck-tree-rows min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)]">
+              <DeckSummaryHeader />
+              {visibleRows.map(renderRow)}
+            </div>
+          ) : null}
         </div>
       </SoftPanel>
       {portalContent}

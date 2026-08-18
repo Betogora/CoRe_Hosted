@@ -40,6 +40,10 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /data-testid="learn-deck-list-header"/);
   assert.match(markup, />Aktive Stapel<\/h3>/);
+  assert.match(markup, /data-testid="learn-deck-create-form"/);
+  assert.ok(markup.indexOf("Aktive Stapel") < markup.indexOf('data-testid="learn-deck-create-form"'));
+  assert.ok(markup.indexOf('data-testid="learn-deck-create-form"') < markup.indexOf('data-testid="deck-summary-header"'));
+  assert.doesNotMatch(markup, /Karten verwalten|Neue Karten|Stapel anlegen|learn-deck-create-toggle|core-overlay/);
   assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"/);
   assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>In Arbeit<[\s\S]*>Fällig</);
   assert.match(markup, /core-action-ghost/);
@@ -74,6 +78,33 @@ test("quick deck creation asks only for a name and optional parent deck", () => 
   assert.match(markup, /data-deck-icon="true"/);
   assert.match(markup, />Welt-Hauptstädte</);
   assert.doesNotMatch(markup, /Iconfarbe|Icon auswählen/);
+});
+
+test("quick deck creation remains visible without existing decks", () => {
+  const markup = renderToStaticMarkup(
+    <LearnScreen
+      decks={[]}
+      now="2026-08-06T10:00:00.000Z"
+      onStartDeck={() => undefined}
+      onCreateDeck={() => null}
+      focusedDeckId={null}
+      initialParentDeckId=""
+      onDeckCreationHandled={() => undefined}
+      onFocusDeck={() => undefined}
+      onOpenCardCreation={() => undefined}
+      onOpenDecks={() => undefined}
+      onOpenDeckSettings={() => undefined}
+      onSetDeckCoreMode={() => undefined}
+      onMoveDeck={() => null}
+      collapsedDeckIds={[]}
+      onSetDeckExpanded={() => undefined}
+    />,
+  );
+
+  assert.match(markup, />Aktive Stapel<\/h3>/);
+  assert.match(markup, /data-testid="learn-deck-create-form"/);
+  assert.match(markup, /Keine Karten/);
+  assert.doesNotMatch(markup, /data-testid="deck-summary-header"/);
 });
 
 test("learning keeps duplicate subdeck names distinguishable and handles unavailable links safely", () => {
@@ -127,5 +158,6 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
   assert.match(fallbackMarkup, /Stapel nicht gefunden oder nicht verfügbar\./);
   assert.match(fallbackMarkup, /Zu Lernen/);
   assert.match(fallbackMarkup, /Zur Kartenverwaltung/);
-  assert.match(fallbackMarkup, /Karten verwalten/);
+  assert.match(fallbackMarkup, /data-testid="learn-deck-create-form"/);
+  assert.doesNotMatch(fallbackMarkup, /Karten verwalten|Neue Karten|Stapel anlegen|data-testid="deck-summary-header"/);
 });
