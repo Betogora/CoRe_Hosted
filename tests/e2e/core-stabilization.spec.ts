@@ -844,9 +844,10 @@ test("card version restore shows a comparison, requires confirmation and appends
   await page.getByRole("button", { name: "Karten verwalten" }).click();
   await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
+  await expect(page.getByLabel("Karten-Vorderseite")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
 
   const state = await readAppState(page);
-  const originalCard = state.decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).cards.find((card: { originalFront: string }) => card.originalFront === "Was ist die Hauptstadt von Côte d'Ivoire?");
+  const originalCard = state.decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).cards.find((card: { id: string }) => card.id === "card_world_capitals_civ");
   const originalVersionCount = originalCard.versionLog.length;
   const resolvedCardId = originalCard.id;
 
@@ -862,6 +863,7 @@ test("card version restore shows a comparison, requires confirmation and appends
   await page.getByRole("button", { name: "Restore bestätigen" }).click();
   await expect(page.getByRole("group", { name: "Restore endgültig bestätigen" })).toBeVisible();
   await page.getByRole("button", { name: "Wiederherstellen", exact: true }).click();
+  await expect(page.getByText("Version wurde erfolgreich wiederhergestellt und als neuer Versionseintrag gespeichert.")).toBeVisible();
 
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, resolvedCardId))?.originalFront).toBe("Was ist die Hauptstadt von Côte d'Ivoire?");
   const restoredCard = await storedCard(page, DECK_IDS.africa, resolvedCardId);

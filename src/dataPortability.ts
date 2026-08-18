@@ -178,6 +178,8 @@ export function mergePortableExportIntoState(state: any, exportPayload: any) {
   const payload = validation.payload;
   const existingDeckIds = new Set((state.decks ?? []).map((deck: any) => deck.id));
   const incomingDecks = payload.decks.filter((deck: any) => !existingDeckIds.has(deck.id));
+  const existingDocumentIds = new Set((state.documents ?? []).map((document: any) => document.id));
+  const incomingDocuments = (payload.documents ?? []).filter((document: any) => !existingDocumentIds.has(document.id));
   const existingDefinitionIds = new Set((state.noteTypeDefinitions ?? []).map((definition: any) => definition.id));
   const payloadDefinitions = Array.isArray(payload.noteTypeDefinitions) ? payload.noteTypeDefinitions : [];
   const incomingDefinitions = payloadDefinitions.filter((definition: any) => !existingDefinitionIds.has(definition.id));
@@ -239,7 +241,7 @@ export function mergePortableExportIntoState(state: any, exportPayload: any) {
       ? withGlobalSchedulerPreferences(state.profile, importedGlobalPatch)
       : state.profile,
     decks: [...remappedIncomingDecks, ...(state.decks ?? [])],
-    documents: [...(payload.documents ?? []), ...(state.documents ?? [])],
+    documents: [...incomingDocuments, ...(state.documents ?? [])],
     noteTypeDefinitions: [...incomingDefinitions, ...(state.noteTypeDefinitions ?? [])],
     learningItemSourceSnapshots: [...incomingSnapshots, ...(state.learningItemSourceSnapshots ?? [])],
     updatedAt: new Date().toISOString(),

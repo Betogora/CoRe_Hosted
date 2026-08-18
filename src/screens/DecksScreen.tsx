@@ -243,6 +243,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
       try {
         await onSaveCardDocument(card.id, { fields: documentFields, tags: card.tags });
         setSavedDocumentFields(JSON.stringify(documentFields));
+        onDraftStateChange?.(null);
         setSaveStatus("");
         setSuccessToast("Feldwerte wurden gespeichert. Alle Kartenvarianten verwenden die aktualisierte Darstellung.");
         return true;
@@ -268,6 +269,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
       await onSaveCard(card.id, validation.value);
       setForm(validation.value);
       setSavedForm(JSON.stringify(validation.value));
+      onDraftStateChange?.(null);
       setFieldErrors({});
       setSaveStatus("");
       setSuccessToast("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.");
@@ -347,9 +349,14 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
     }
   }
 
-  function restoreSelectedVersion() {
+  async function restoreSelectedVersion() {
     if (!selectedVersion) return;
-    const result = onRestoreCard(card.id, selectedVersion.id);
+    let result: unknown;
+    try {
+      result = await onRestoreCard(card.id, selectedVersion.id);
+    } catch {
+      result = null;
+    }
     if (!result) {
       setRestoreStatus("Die Version konnte nicht wiederhergestellt werden.");
       return;
@@ -611,7 +618,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
           <div className="mt-4 rounded-xl border border-core-warning bg-core-warning-soft p-4" role="group" aria-label="Restore endgültig bestätigen">
             <p className="core-body font-semibold text-core-text">Der gezeigte Stand ersetzt den aktuellen Karteninhalt. Der aktuelle Stand bleibt im Versionsverlauf erhalten.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button ref={restoreActionRef} type="button" onClick={restoreSelectedVersion} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)]">
+              <button ref={restoreActionRef} type="button" onClick={() => void restoreSelectedVersion()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)]">
                 <RotateCcw size={16} aria-hidden="true" />
                 Wiederherstellen
               </button>

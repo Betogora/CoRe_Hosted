@@ -201,6 +201,19 @@ test("portable export merge keeps local deck on id conflict and adds only new de
   assert.equal(merged.decks.find((deck: { id: string; }) => deck.id === "deck_new").name, "Neuer Import");
 });
 
+test("portable export merge deduplicates global source documents by id", () => {
+  const localDocument = { id: "document-shared", title: "Lokaler Stand" };
+  const incomingDocument = { id: "document-shared", title: "Importierter Stand" };
+  const incomingNewDocument = { id: "document-new", title: "Neues Dokument" };
+  const target = portableState({ documents: [localDocument] });
+  const exported = createPortableExport(portableState({ documents: [incomingDocument, incomingNewDocument] }));
+
+  const merged = mergePortableExportIntoState(target, exported);
+
+  assert.deepEqual(merged.documents.map((document: { id: string }) => document.id), ["document-new", "document-shared"]);
+  assert.equal(merged.documents.find((document: { id: string }) => document.id === "document-shared").title, "Lokaler Stand");
+});
+
 test("repository import roundtrip normalizes legacy cards into learning items", () => {
   const repository = createCoreRepository(createMemoryStorage());
   const exported = {
