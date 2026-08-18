@@ -1565,6 +1565,8 @@ export function App() {
         return;
       }
       preparedStudyKeyRef.current = preparationKey;
+      studyQueueCursorRef.current = preparation.cursorByDeck;
+      setStudyHasMoreCards(preparation.hasMoreCards);
       setStudyDecks(preparation.decks);
       setStudyDefinitions(preparation.definitions);
       navigateToRoute(createStudyRoute(deck.id, { variantSession, returnContext }), {

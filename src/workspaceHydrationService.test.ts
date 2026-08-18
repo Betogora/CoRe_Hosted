@@ -13,9 +13,9 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
   const indexedDb = new IDBFactory();
   const userId = randomUUID();
   const alpha = createBasicLearningItem("deck-hydration", "Alpha", "Antwort Alpha", { id: "card-alpha" });
-  const futureReviewState = { ...alpha.learningItemState, state: "review" as const, dueAt: "2026-08-18T10:00:00.000Z", maturityBand: "young" as const };
+  const dueReviewState = { ...alpha.learningItemState, state: "review" as const, dueAt: "2026-08-17T09:00:00.000Z", maturityBand: "young" as const };
   const cards = [
-    { ...alpha, reviewState: futureReviewState, learningItemState: futureReviewState },
+    { ...alpha, reviewState: dueReviewState, learningItemState: dueReviewState },
     createBasicLearningItem("deck-hydration", "Beta", "Antwort Beta", { id: "card-beta" }),
   ];
   const deck = createCoreDeck({ id: "deck-hydration", ownerId: userId, name: "Hydration", source: "manual", cards });
@@ -39,7 +39,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
     front_preview: card.originalFront,
     normalized_search_text: card.originalFront.toLowerCase(),
     sort_text: card.originalFront.toLowerCase(),
-    due_at: index === 0 ? "2026-08-18T10:00:00.000Z" : null,
+    due_at: index === 0 ? "2026-08-17T09:00:00.000Z" : null,
     schedule_state: index === 0 ? "review" : "new",
     maturity_band: index === 0 ? "young" : "new",
     reviewable: true,
@@ -87,10 +87,19 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
   await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER);
   hydratedRequests.length = 0;
   const study = await service.prepareStudyWindow([deck.id], { now: "2026-08-17T10:00:00.000Z", timeZone: "UTC" });
-  assert.deepEqual(hydratedRequests, [["card-beta"]], "der Lernstart wartet nur auf die erste jetzt lernbare Karte");
+  assert.deepEqual(hydratedRequests, [["card-alpha"]], "der Lernstart wartet nur auf die erste jetzt lernbare Karte");
   assert.equal(study.cards.length, 1);
-  assert.equal(study.cards[0]?.item.id, "card-beta");
+  assert.equal(study.cards[0]?.item.id, "card-alpha");
   assert.equal(study.hasMore, true);
+
+  const remainder = await service.prepareStudyWindow([deck.id], {
+    now: "2026-08-17T10:00:00.000Z",
+    timeZone: "UTC",
+    cursorByDeck: study.cursorByDeck,
+  });
+  assert.deepEqual(hydratedRequests, [["card-alpha"], ["card-beta"]], "der Sitzungscursor lädt die restlichen Karten nach");
+  assert.deepEqual(remainder.cards.map(({ item }) => item.id), ["card-beta"]);
+  assert.equal(remainder.hasMore, false);
   repository.close();
 });
 
