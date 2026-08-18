@@ -3,9 +3,8 @@ import { classifyMediaError, resolveReferences, syncReferences, type CloudMediaC
 import type { Deck, MediaAssetReference } from "./coreTypes.ts";
 import { sanitizeCardHtml } from "./htmlSafety.ts";
 
-const DB_NAME = "core-media-store";
-const DB_VERSION = 2;
-const LEGACY_STORE = "assets";
+const DB_NAME = "core-media-store.v2";
+const DB_VERSION = 1;
 const ASSET_STORE = "account_assets";
 const QUEUE_STORE = "media_queue";
 const CLEANUP_STORE = "media_cleanup";
@@ -13,12 +12,23 @@ const CLOUD_MEDIA_DOWNLOAD_CONCURRENCY = 4;
 const SHA1_PATTERN = /^[a-f0-9]{40}$/;
 const sha1Schema = v.pipe(v.string(), v.regex(SHA1_PATTERN));
 const mediaFileSchema = v.looseObject({ sha1: sha1Schema, name: v.pipe(v.string(), v.minLength(1)), size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), mimeType: v.optional(v.string(), "application/octet-stream"), bytes: v.optional(v.instance(Uint8Array)), blob: v.optional(v.instance(Blob)), cardId: v.optional(v.nullable(v.string())), createReference: v.optional(v.boolean(), true) });
-const localAssetRecordSchema = v.looseObject({ key: v.string(), userId: v.string(), deckId: v.string(), sha1: sha1Schema, name: v.pipe(v.string(), v.minLength(1)), size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), mimeType: v.string(), blob: v.instance(Blob), cardId: v.nullable(v.string()), updatedAt: v.string() });
+const localAssetRecordSchema = v.looseObject({ key: v.string(), userId: v.string(), deckIds: v.array(v.string()), sha1: sha1Schema, name: v.pipe(v.string(), v.minLength(1)), size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), mimeType: v.string(), blob: v.instance(Blob), cardId: v.nullable(v.string()), updatedAt: v.string() });
 const queueRecordSchema = v.looseObject({ id: v.string(), userId: v.string(), deckId: v.string(), sha1: sha1Schema, size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)), name: v.string(), cardId: v.nullable(v.string()), createReference: v.optional(v.boolean(), true), queuedAt: v.string() });
 
-interface LocalAssetRecord { key: string; userId: string; deckId: string; sha1: string; name: string; size: number; mimeType: string; blob: Blob; cardId: string | null; updatedAt: string; }
+interface LocalAssetRecord { key: string; userId: string; deckIds: string[]; sha1: string; name: string; size: number; mimeType: string; blob: Blob; cardId: string | null; updatedAt: string; }
 type BrowserCloudMediaFile = CloudMediaFile & { blob: Blob };
 interface QueueRecord { id: string; userId: string; deckId: string; sha1: string; size: number; name: string; cardId: string | null; createReference: boolean; queuedAt: string; }
+interface CloudMediaManifestEntry {
+  id: string;
+  sha1: string;
+  size: number;
+  mimeType: string;
+  originalName: string;
+  storageBucket: string;
+  storagePath: string;
+  cardId: string | null;
+  updatedAt: string;
+}
 export type MediaSyncStatus = "cloud-ready" | "local-pending" | "partial" | "paused" | "cancelled" | "blocked";
 export interface MediaSyncProgress { completed: number; total: number; uploaded: number; reused: number; currentName: string; }
 export interface MediaSyncResult { status: MediaSyncStatus; referencesByDeck: Map<string, MediaAssetReference[]>; progress: MediaSyncProgress; failureKind?: MediaFailureKind; message: string; }
@@ -40,8 +50,7 @@ function openDatabase(api: IDBFactory | null): Promise<IDBDatabase | null> {
     const request = api.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(LEGACY_STORE)) db.createObjectStore(LEGACY_STORE, { keyPath: "sha1" });
-      if (!db.objectStoreNames.contains(ASSET_STORE)) { const store = db.createObjectStore(ASSET_STORE, { keyPath: "key" }); store.createIndex("userId", "userId"); store.createIndex("deckId", ["userId", "deckId"]); }
+      if (!db.objectStoreNames.contains(ASSET_STORE)) { const store = db.createObjectStore(ASSET_STORE, { keyPath: "key" }); store.createIndex("userId", "userId"); }
       if (!db.objectStoreNames.contains(QUEUE_STORE)) { const store = db.createObjectStore(QUEUE_STORE, { keyPath: "id" }); store.createIndex("userId", "userId"); }
       if (!db.objectStoreNames.contains(CLEANUP_STORE)) { const store = db.createObjectStore(CLEANUP_STORE, { keyPath: "id" }); store.createIndex("userId", "userId"); }
     };
@@ -54,7 +63,6 @@ function requestResult<T>(request: IDBRequest<T>): Promise<T> { return new Promi
 function transactionDone(transaction: IDBTransaction): Promise<void> { return new Promise((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = () => reject(transaction.error); transaction.onabort = () => reject(transaction.error); }); }
 async function put(db: IDBDatabase, store: string, value: unknown) { const transaction = db.transaction(store, "readwrite"); transaction.objectStore(store).put(value); await transactionDone(transaction); }
 async function remove(db: IDBDatabase, store: string, key: IDBValidKey) { const transaction = db.transaction(store, "readwrite"); transaction.objectStore(store).delete(key); await transactionDone(transaction); }
-async function putMany(db: IDBDatabase, store: string, values: unknown[]) { if (!values.length) return; const transaction = db.transaction(store, "readwrite"); const objectStore = transaction.objectStore(store); values.forEach((value) => objectStore.put(value)); await transactionDone(transaction); }
 async function removeMany(db: IDBDatabase, store: string, keys: IDBValidKey[]) { if (!keys.length) return; const transaction = db.transaction(store, "readwrite"); const objectStore = transaction.objectStore(store); keys.forEach((key) => objectStore.delete(key)); await transactionDone(transaction); }
 async function get<T>(db: IDBDatabase, store: string, key: IDBValidKey) { const transaction = db.transaction(store, "readonly"); return requestResult(transaction.objectStore(store).get(key)) as Promise<T | undefined>; }
 async function getAllByIndex<T>(db: IDBDatabase, store: string, index: string, key: IDBValidKey) { const transaction = db.transaction(store, "readonly"); return requestResult(transaction.objectStore(store).index(index).getAll(key)) as Promise<T[]>; }
@@ -258,14 +266,7 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     const db = await openDatabase(databaseApi).catch(() => null);
     if (!db) return null;
     const candidate = await get<unknown>(db, ASSET_STORE, keyFor(userId, sha1)).catch(() => undefined);
-    let record = v.safeParse(localAssetRecordSchema, candidate).success ? candidate as LocalAssetRecord : undefined;
-    if (!record) {
-      const legacy = await get<any>(db, LEGACY_STORE, sha1).catch(() => undefined);
-      if (legacy?.blob instanceof Blob && legacy.sha1 === sha1) {
-        record = { key: keyFor(userId, sha1), userId, deckId: "legacy", sha1, name: String(legacy.name ?? sha1), size: Number(legacy.size ?? legacy.blob.size), mimeType: String(legacy.mimeType ?? legacy.blob.type), blob: legacy.blob, cardId: null, updatedAt: nowIso() };
-        await put(db, ASSET_STORE, record);
-      }
-    }
+    const record = v.safeParse(localAssetRecordSchema, candidate).success ? candidate as LocalAssetRecord : undefined;
     db.close();
     return record ?? null;
   }
@@ -274,16 +275,137 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     const valid = files.map(normalizeFile).filter((file): file is BrowserCloudMediaFile => Boolean(file));
     const errors = valid.length === files.length ? [] : ["Medien enthielten ungültige Metadaten oder Dateidaten."];
     const db = await openDatabase(databaseApi).catch(() => null);
-    const records = valid.map((file): LocalAssetRecord => ({ key: keyFor(userId, file.sha1), userId, deckId: deck.id, sha1: file.sha1, name: file.name, size: file.size, mimeType: file.mimeType, blob: file.blob, cardId: file.cardId ?? null, updatedAt: nowIso() }));
     if (db) {
-      await putMany(db, ASSET_STORE, records);
+      const transaction = db.transaction(ASSET_STORE, "readwrite");
+      const store = transaction.objectStore(ASSET_STORE);
+      const records: LocalAssetRecord[] = [];
+      for (const file of valid) {
+        const key = keyFor(userId, file.sha1);
+        const current = await requestResult<LocalAssetRecord | undefined>(store.get(key));
+        const record = { key, userId, deckIds: [...new Set([...(current?.deckIds ?? []), deck.id])], sha1: file.sha1, name: file.name, size: file.size, mimeType: file.mimeType, blob: file.blob, cardId: file.cardId ?? current?.cardId ?? null, updatedAt: nowIso() };
+        store.put(record);
+        records.push(record);
+      }
+      await transactionDone(transaction);
       records.forEach((record) => sessionAssets.delete(record.key));
     } else {
-      records.forEach((record) => sessionAssets.set(record.key, record));
+      for (const file of valid) {
+        const key = keyFor(userId, file.sha1);
+        const current = sessionAssets.get(key);
+        sessionAssets.set(key, { key, userId, deckIds: [...new Set([...(current?.deckIds ?? []), deck.id])], sha1: file.sha1, name: file.name, size: file.size, mimeType: file.mimeType, blob: file.blob, cardId: file.cardId ?? current?.cardId ?? null, updatedAt: nowIso() });
+      }
     }
     db?.close();
     if (!db) errors.push(sessionWarning);
     return { persisted: Boolean(db), count: valid.length, errors };
+  }
+
+  async function cacheCloudManifestMedia(
+    deckId: string,
+    manifest: CloudMediaManifestEntry[],
+    onProgress?: (progress: { completed: number; total: number; downloadedBytes: number }) => void,
+  ) {
+    if (!client || !fetchImpl) throw new Error("Cloud-Medien können ohne Verbindung nicht geladen werden.");
+    const unique = [...new Map(manifest.map((entry) => [entry.sha1, entry])).values()];
+    const missing: CloudMediaManifestEntry[] = [];
+    let completed = 0;
+    let downloadedBytes = 0;
+    for (const entry of unique) {
+      const local = await readAsset(entry.sha1);
+      const digest = local?.size === entry.size && globalThis.crypto?.subtle
+        ? await globalThis.crypto.subtle.digest("SHA-1", await local.blob.arrayBuffer())
+        : null;
+      const sha1 = digest ? [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("") : "";
+      if (sha1 === entry.sha1) {
+        if (!local!.deckIds.includes(deckId)) {
+          await cachePreviewMedia({ id: deckId } as Deck, [{
+            sha1: local!.sha1,
+            name: local!.name,
+            size: local!.size,
+            mimeType: local!.mimeType,
+            blob: local!.blob,
+            cardId: local!.cardId,
+          }]);
+        }
+        completed += 1;
+        downloadedBytes += entry.size;
+        onProgress?.({ completed, total: unique.length, downloadedBytes });
+      } else {
+        missing.push(entry);
+      }
+    }
+    const references = missing.map((entry): MediaAssetReference => ({
+      id: entry.id,
+      userId,
+      deckId,
+      cardId: entry.cardId,
+      sha1: entry.sha1,
+      size: entry.size,
+      mimeType: entry.mimeType,
+      originalName: entry.originalName,
+      storageBucket: entry.storageBucket,
+      storagePath: entry.storagePath,
+      source: "cloud-download",
+      metadata: {},
+      createdAt: entry.updatedAt,
+      updatedAt: entry.updatedAt,
+      deletedAt: null,
+    }));
+    const resolved = await resolveReferences(client, references, 3_600);
+    if (resolved.missing.length > 0) throw new Error("Mindestens ein Cloud-Medium ist nicht mehr verfügbar.");
+    let next = 0;
+    await Promise.all(Array.from({ length: Math.min(CLOUD_MEDIA_DOWNLOAD_CONCURRENCY, missing.length) }, async () => {
+      while (next < missing.length) {
+        const index = next++;
+        const entry = missing[index];
+        const url = trustedSignedMediaUrl(resolved.urls[entry.sha1], supabaseUrl);
+        if (!url) throw new Error("Eine Medien-URL konnte nicht sicher geprüft werden.");
+        const response = await fetchImpl(url, { credentials: "omit", redirect: "error", referrerPolicy: "no-referrer" });
+        if (!response.ok) throw new Error(`Medium „${entry.originalName}“ konnte nicht geladen werden.`);
+        const blob = await response.blob();
+        if (blob.size !== entry.size) throw new Error(`Medium „${entry.originalName}“ hat eine unerwartete Größe.`);
+        if (!globalThis.crypto?.subtle) throw new Error("Der Browser kann Medienprüfsummen nicht verifizieren.");
+        const digest = await globalThis.crypto.subtle.digest("SHA-1", await blob.arrayBuffer());
+        const sha1 = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+        if (sha1 !== entry.sha1) throw new Error(`Medium „${entry.originalName}“ hat eine ungültige Prüfsumme.`);
+        const result = await cachePreviewMedia({ id: deckId } as Deck, [{
+          sha1: entry.sha1,
+          name: entry.originalName,
+          size: entry.size,
+          mimeType: entry.mimeType,
+          blob,
+          cardId: entry.cardId,
+        }]);
+        if (result.count !== 1 || result.errors.length > 0) throw new Error(result.errors[0] ?? "Medium konnte nicht lokal gespeichert werden.");
+        completed += 1;
+        downloadedBytes += entry.size;
+        onProgress?.({ completed, total: unique.length, downloadedBytes });
+      }
+    }));
+    return { completed, total: unique.length, downloadedBytes };
+  }
+
+  async function removeCachedDeckMedia(deckId: string) {
+    for (const [key, record] of sessionAssets) {
+      if (record.userId !== userId || !record.deckIds.includes(deckId)) continue;
+      const deckIds = record.deckIds.filter((id) => id !== deckId);
+      if (deckIds.length) sessionAssets.set(key, { ...record, deckIds });
+      else sessionAssets.delete(key);
+    }
+    const db = await openDatabase(databaseApi).catch(() => null);
+    if (!db) return 0;
+    const rows = await getAllByIndex<LocalAssetRecord>(db, ASSET_STORE, "userId", userId);
+    const referenced = rows.filter((row) => row.deckIds.includes(deckId));
+    const transaction = db.transaction(ASSET_STORE, "readwrite");
+    const store = transaction.objectStore(ASSET_STORE);
+    for (const row of referenced) {
+      const deckIds = row.deckIds.filter((id) => id !== deckId);
+      if (deckIds.length) store.put({ ...row, deckIds });
+      else store.delete(row.key);
+    }
+    await transactionDone(transaction);
+    db.close();
+    return referenced.filter((row) => row.deckIds.length === 1).length;
   }
 
   function syncImportMedia(decks: Deck[], options: MediaSyncOptions = {}): MediaSyncTask {
@@ -474,7 +596,7 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     return { retry, stop() { stopped = true; globalThis.removeEventListener?.("online", online); } };
   }
 
-  return { cachePreviewMedia, syncImportMedia, resolveDeckMedia, resolveCardMedia, startRetryLifecycle };
+  return { cachePreviewMedia, cacheCloudManifestMedia, removeCachedDeckMedia, syncImportMedia, resolveDeckMedia, resolveCardMedia, startRetryLifecycle };
 }
 
 export type AccountMediaStore = ReturnType<typeof createAccountMediaStore>;

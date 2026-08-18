@@ -28,11 +28,71 @@ test("accountgebundene Blobs überleben Schließen und Neueröffnen", async () =
   resolved.revoke();
 });
 
+test("ein gemeinsam verwendeter Blob überlebt das Entfernen nur eines Stapels", async () => {
+  const indexedDB = new IDBFactory();
+  const store = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "shared-user", indexedDB });
+  await store.cachePreviewMedia(deck("deck-a"), [file]);
+  await store.cachePreviewMedia(deck("deck-b"), [file]);
+
+  assert.equal(await store.removeCachedDeckMedia("deck-a"), 0);
+  const shared = await store.resolveDeckMedia(deck("deck-b"));
+  assert.ok(shared.urls[HASH]);
+  shared.revoke();
+
+  assert.equal(await store.removeCachedDeckMedia("deck-b"), 1);
+  assert.deepEqual((await store.resolveDeckMedia(deck("deck-b"))).urls, {});
+});
+
+test("Offline-Download prüft Größe und SHA-1 und verwendet den persistenten Mediencache", async () => {
+  const indexedDB = new IDBFactory();
+  const sha1 = "12dada1fff4d4787ade3333147202c3b443e376f";
+  let fetchCount = 0;
+  const client = { storage: { from() { return { async createSignedUrls(paths: string[]) { return { data: paths.map((path) => ({ path, signedUrl: `https://project.test/storage/v1/object/sign/core-media/${path}?token=safe` })), error: null }; } }; } } };
+  const store = createAccountMediaStore({
+    client,
+    supabaseUrl: "https://project.test",
+    userId: "offline-media-user",
+    indexedDB,
+    fetchImpl: async () => {
+      fetchCount += 1;
+      return new Response(new Uint8Array([1, 2, 3, 4]), { status: 200, headers: { "content-type": "image/png" } });
+    },
+  });
+  const manifest = [{
+    id: "media-offline",
+    sha1,
+    size: 4,
+    mimeType: "image/png",
+    originalName: "offline.png",
+    storageBucket: "core-media",
+    storagePath: `offline-media-user/objects/${sha1}`,
+    cardId: "card-offline",
+    updatedAt: "2026-08-17T10:00:00.000Z",
+  }];
+
+  assert.deepEqual(await store.cacheCloudManifestMedia("deck-offline", manifest), { completed: 1, total: 1, downloadedBytes: 4 });
+  assert.deepEqual(await store.cacheCloudManifestMedia("deck-offline", manifest), { completed: 1, total: 1, downloadedBytes: 4 });
+  assert.equal(fetchCount, 1);
+
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store.v2", 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction("account_assets", "readwrite");
+    const store = transaction.objectStore("account_assets");
+    const request = store.get(`offline-media-user\u0000${sha1}`);
+    request.onsuccess = () => store.put({ ...request.result, blob: new Blob([new Uint8Array([4, 3, 2, 1])], { type: "image/png" }) });
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+  await store.cacheCloudManifestMedia("deck-offline", manifest);
+  assert.equal(fetchCount, 2, "gleiche Dateigröße ersetzt keine SHA-1-Prüfung");
+});
+
 test("erfolgreich persistierte Blobs bleiben nicht zusätzlich im Sessioncache", async () => {
   const indexedDB = new IDBFactory();
   const store = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "no-session-copy", indexedDB });
   await store.cachePreviewMedia(deck(), [file]);
-  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store.v2", 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   await new Promise<void>((resolve, reject) => { const tx = db.transaction("account_assets", "readwrite"); tx.objectStore("account_assets").delete(`no-session-copy\u0000${HASH}`); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); });
   db.close();
   const resolved = await store.resolveDeckMedia(deck());
@@ -152,7 +212,7 @@ test("Pending-Queue bleibt ohne Cloud reloadfest und enthält keine Tokens oder 
   await store.cachePreviewMedia(deck(), [file]);
   const result = await store.syncImportMedia([deck()]).result;
   assert.equal(result.status, "local-pending");
-  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store.v2", 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   const records = await new Promise<any[]>((resolve, reject) => { const request = db.transaction("media_queue", "readonly").objectStore("media_queue").getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   db.close();
   assert.equal(records.length, 1);
@@ -177,7 +237,7 @@ test("Medienqueue ist vor der Freigabe der Cloud-Eltern dauerhaft geschrieben", 
   let settled = false;
   void task.result.then(() => { settled = true; });
 
-  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store.v2", 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   const records = await new Promise<any[]>((resolve, reject) => { const request = db.transaction("media_queue", "readonly").objectStore("media_queue").getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   db.close();
   assert.equal(settled, false);
@@ -213,7 +273,7 @@ test("Hierarchie-Decks queueen nur die Medien ihrer tatsächlichen Kartenreferen
   await store.cachePreviewMedia(decks[0], [file, { sha1: OTHER_HASH, name: "other.png", size: 3, mimeType: "image/png", bytes: new Uint8Array([5, 6, 7]) }]);
   const result = await store.syncImportMedia(decks).result;
   assert.equal(result.progress.total, 2);
-  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store.v2", 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   const records = await new Promise<any[]>((resolve, reject) => { const request = db.transaction("media_queue", "readonly").objectStore("media_queue").getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   db.close();
   assert.deepEqual(records.map(({ deckId, name, cardId }) => ({ deckId, name, cardId })).sort((left, right) => left.deckId.localeCompare(right.deckId)), [
@@ -245,7 +305,7 @@ test("ungenutzte Manifestdateien werden als Objekte ohne redundante Medienrefere
   }).result;
   assert.equal(result.progress.total, 2);
 
-  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store.v2", 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   const records = await new Promise<any[]>((resolve, reject) => { const request = db.transaction("media_queue", "readonly").objectStore("media_queue").getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   db.close();
   assert.deepEqual(records.map(({ name, createReference }) => ({ name, createReference })).sort((left, right) => left.name.localeCompare(right.name)), [
@@ -254,23 +314,13 @@ test("ungenutzte Manifestdateien werden als Objekte ohne redundante Medienrefere
   ]);
 });
 
-test("Legacy-SHA-1-Blobs werden beim ersten accountgebundenen Lesen übernommen", async () => {
-  const indexedDB = new IDBFactory();
-  const legacyDb = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 1); request.onupgradeneeded = () => request.result.createObjectStore("assets", { keyPath: "sha1" }); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
-  await new Promise<void>((resolve, reject) => { const tx = legacyDb.transaction("assets", "readwrite"); tx.objectStore("assets").put({ sha1: HASH, name: "card.png", size: 4, mimeType: "image/png", blob: new Blob([new Uint8Array([1, 2, 3, 4])]) }); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); });
-  legacyDb.close();
-  const resolved = await createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "legacy-user", indexedDB }).resolveDeckMedia(deck());
-  assert.ok(resolved.urls[HASH]);
-  resolved.revoke();
-});
-
 test("ungültige persistierte Blob-Records werden als fehlend behandelt", async () => {
   const indexedDB = new IDBFactory();
   const store = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "invalid-user", indexedDB });
   const lifecycle = store.startRetryLifecycle({ getDecks: () => [], async ensureCloudParents() {} });
   await lifecycle.retry();
   lifecycle.stop();
-  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store.v2", 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   await new Promise<void>((resolve, reject) => { const tx = db.transaction("account_assets", "readwrite"); tx.objectStore("account_assets").put({ key: `invalid-user\u0000${HASH}`, userId: "invalid-user", deckId: "deck-1", sha1: HASH, name: "card.png", size: 4, mimeType: "image/png", blob: "kein Blob", cardId: null, updatedAt: "invalid" }); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); });
   db.close();
   const result = await store.resolveDeckMedia(deck());
@@ -298,7 +348,7 @@ test("Pending-Queue entfernt Einträge für ausgemusterte Stapel", async () => {
   await lifecycle.retry();
   lifecycle.stop();
 
-  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store", 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("core-media-store.v2", 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   const records = await new Promise<any[]>((resolve, reject) => { const request = db.transaction("media_queue", "readonly").objectStore("media_queue").getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   db.close();
   assert.deepEqual(records, []);
