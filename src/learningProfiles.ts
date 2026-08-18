@@ -29,12 +29,6 @@ export interface LearningSettingsInput {
     relearningStepMinutes?: unknown;
     desiredRetention?: unknown;
     maximumIntervalDays?: unknown;
-    lessShortIntervalBias?: unknown;
-    // Persisted v1/v2 inputs are read for migration but never emitted again.
-    name?: unknown;
-    graduatingIntervalDays?: unknown;
-    easyGraduatingIntervalDays?: unknown;
-    easyIntervalDays?: unknown;
   };
 }
 
@@ -60,7 +54,6 @@ const presetIds = new Set<SchedulerPreset>(["standard", "intensive", "relaxed", 
 const reviewOrders = new Set<NewReviewOrder>(["reviews-first", "new-first", "mixed"]);
 const newCardSortOrders = new Set<NewCardSortOrder>(["oldest-first", "random"]);
 const reviewCardSortOrders = new Set<ReviewCardSortOrder>(["most-overdue", "lowest-retrievability"]);
-const LEGACY_PROFILE_ID = "legacy:global-learning-settings";
 const DEFAULT_PROFILE_NAME = "Eigenes Lernprofil";
 
 function objectRecord(value: unknown): Record<string, unknown> {
@@ -81,14 +74,9 @@ function decimal(value: unknown, fallback: number, min: number, max: number) {
   return Number.isFinite(parsed) ? Math.round(clamp(parsed, min, max) * 100) / 100 : fallback;
 }
 
-function sameNumberList(left: unknown, right: readonly number[]) {
-  return Array.isArray(left) && left.length === right.length && left.every((value, index) => Number(value) === right[index]);
-}
-
 function normalizeLearningSteps(profile: LearningSettingsInput["schedulerProfile"] = {}) {
   const rawSteps = Array.isArray(profile?.learningStepsMinutes) ? profile.learningStepsMinutes : null;
-  const isUnusedLegacyDefault = Number(profile?.settingsVersion ?? 0) < 2 && sameNumberList(rawSteps, [10, 60]);
-  const source = !rawSteps || isUnusedLegacyDefault ? [5, 15] : rawSteps;
+  const source = rawSteps ?? [5, 15];
   const first = wholeNumber(source[0], 5, 1, 720);
   const second = wholeNumber(source[1], Math.max(15, first * 3), first, 720);
   return [first, second];
@@ -112,7 +100,6 @@ const presetDefinitions = {
         learningStepsMinutes: [5, 15],
         relearningStepMinutes: 5,
         maximumIntervalDays: 1000,
-        lessShortIntervalBias: false,
       },
     },
   },
@@ -133,7 +120,6 @@ const presetDefinitions = {
         learningStepsMinutes: [3, 10],
         relearningStepMinutes: 3,
         maximumIntervalDays: 365,
-        lessShortIntervalBias: false,
       },
     },
   },
@@ -154,7 +140,6 @@ const presetDefinitions = {
         learningStepsMinutes: [10, 30],
         relearningStepMinutes: 10,
         maximumIntervalDays: 2000,
-        lessShortIntervalBias: true,
       },
     },
   },
@@ -183,9 +168,7 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
     || Object.keys(profile).length > 0;
   const requestedPreset = typeof profile.presetId === "string" && presetIds.has(profile.presetId as SchedulerPreset)
     ? profile.presetId as SchedulerPreset
-    : typeof profile.name === "string" && presetIds.has(profile.name as SchedulerPreset)
-      ? profile.name as SchedulerPreset
-      : hasExplicitSettings ? "custom" : "standard";
+    : hasExplicitSettings ? "custom" : "standard";
   const preset = requestedPreset === "custom" ? null : presetDefinitions[requestedPreset];
 
   return {
@@ -213,8 +196,6 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
         ?? decimal(profile.desiredRetention, 0.9, 0.7, 0.99),
       maximumIntervalDays: preset?.settings.schedulerProfile.maximumIntervalDays
         ?? wholeNumber(profile.maximumIntervalDays, 1000, 30, 36500),
-      lessShortIntervalBias: preset?.settings.schedulerProfile.lessShortIntervalBias
-        ?? Boolean(profile.lessShortIntervalBias),
     },
   };
 }
@@ -362,62 +343,14 @@ export function applyLearningProfileTemplateToDeckSettings<T extends Record<stri
   };
 }
 
-function comparableLearningSettings(settings: LearningSettings) {
-  return {
-    newCardsPerDay: settings.newCardsPerDay,
-    maximumReviewsPerDay: settings.maximumReviewsPerDay,
-    newReviewOrder: settings.newReviewOrder,
-    newCardSortOrder: settings.newCardSortOrder,
-    reviewCardSortOrder: settings.reviewCardSortOrder,
-    schedulerProfile: {
-      learningStepsMinutes: settings.schedulerProfile.learningStepsMinutes,
-      relearningStepMinutes: settings.schedulerProfile.relearningStepMinutes,
-      desiredRetention: settings.schedulerProfile.desiredRetention,
-      maximumIntervalDays: settings.schedulerProfile.maximumIntervalDays,
-      lessShortIntervalBias: settings.schedulerProfile.lessShortIntervalBias,
-    },
-  };
-}
-
-function matchesBuiltIn(settings: LearningSettings) {
-  const comparable = JSON.stringify(comparableLearningSettings(settings));
-  return BUILT_IN_LEARNING_PROFILE_TEMPLATES.some((template) => (
-    JSON.stringify(comparableLearningSettings(template.settings)) === comparable
-  ));
-}
-
-function withLegacyGlobalProfile(
-  profiles: LearningProfileTemplate[],
-  preferences: Record<string, unknown>,
-): LearningProfileTemplate[] {
-  const legacyDeckSettings = objectRecord(preferences.deckSettings);
-  if (Object.keys(legacyDeckSettings).length === 0) return profiles;
-  const settings = markLearningSettingsCustom(legacyDeckSettings as LearningSettingsInput);
-  if (matchesBuiltIn(settings) || profiles.some((profile) => profile.id === LEGACY_PROFILE_ID)) return profiles;
-  const legacyTemplate: LearningProfileTemplate = {
-    id: LEGACY_PROFILE_ID,
-    name: uniqueProfileName("Bisherige globale Lernvorgabe", profiles),
-    contentVersion: 1,
-    settings,
-  };
-  return [...profiles, legacyTemplate];
-}
-
 export function getGlobalSchedulerPreferences(profile: ProfileWithSchedulerPreferences = {}): GlobalSchedulerPreferences {
   const preferences = objectRecord(profile.schedulerPreferences);
-  const legacyDeckSettings = objectRecord(preferences.deckSettings);
-  const profiles = withLegacyGlobalProfile(
-    normalizeLearningProfileTemplates(preferences.learningProfiles),
-    preferences,
-  );
   return {
     settingsVersion: 2,
     dayStartHour: normalizeDayStartHour(preferences.dayStartHour),
-    learnAheadMinutes: normalizeLearnAheadMinutes(
-      Object.hasOwn(preferences, "learnAheadMinutes") ? preferences.learnAheadMinutes : legacyDeckSettings.learnAheadMinutes,
-    ),
+    learnAheadMinutes: normalizeLearnAheadMinutes(preferences.learnAheadMinutes),
     easyDays: normalizeEasyDays(preferences.easyDays),
-    learningProfiles: profiles,
+    learningProfiles: normalizeLearningProfileTemplates(preferences.learningProfiles),
   };
 }
 

@@ -82,7 +82,7 @@ test("portable export and import transport global learning-day and Easy-Days set
   assert.deepEqual(merged.profile.schedulerPreferences.learningProfiles, []);
 });
 
-test("partial legacy scheduler imports preserve missing local global values", () => {
+test("partial scheduler imports preserve missing local global values", () => {
   const target = portableState({
     profile: {
       ...portableState().profile,
@@ -115,7 +115,7 @@ test("portable import deduplicates equal profile ids and forks content collision
       newReviewOrder: "mixed",
       newCardSortOrder: "random",
       reviewCardSortOrder: "lowest-retrievability",
-      schedulerProfile: { settingsVersion: 2, presetId: "custom", learningStepsMinutes: [3, 10], relearningStepMinutes: 3, desiredRetention: 0.94, maximumIntervalDays: 365, lessShortIntervalBias: false },
+      schedulerProfile: { settingsVersion: 2, presetId: "custom", learningStepsMinutes: [3, 10], relearningStepMinutes: 3, desiredRetention: 0.94, maximumIntervalDays: 365 },
     },
   };
   const source = portableState({ profile: { ...portableState().profile, schedulerPreferences: { learningProfiles: [shared] } }, decks: [] });
@@ -145,7 +145,7 @@ test("portable profile collisions remap imported deck provenance to the fork", (
       newReviewOrder: "mixed",
       newCardSortOrder: "random",
       reviewCardSortOrder: "lowest-retrievability",
-      schedulerProfile: { settingsVersion: 2, presetId: "custom", learningStepsMinutes: [3, 10], relearningStepMinutes: 3, desiredRetention: 0.94, maximumIntervalDays: 365, lessShortIntervalBias: false },
+      schedulerProfile: { settingsVersion: 2, presetId: "custom", learningStepsMinutes: [3, 10], relearningStepMinutes: 3, desiredRetention: 0.94, maximumIntervalDays: 365 },
     },
   };
   const importedDeck = createCoreDeck({

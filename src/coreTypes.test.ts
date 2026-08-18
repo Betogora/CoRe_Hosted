@@ -72,7 +72,6 @@ const deckSettings = {
     relearningStepMinutes: 5,
     desiredRetention: 0.9,
     maximumIntervalDays: 36_500,
-    lessShortIntervalBias: false,
   },
   blacklist: {
     cardTypes: ["image-occlusion"],

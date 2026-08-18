@@ -985,8 +985,6 @@ test("deck learning settings control short steps while FSRS determines graduatio
       settingsVersion: 2,
       learningStepsMinutes: [10, 30],
       relearningStepMinutes: 12,
-      graduatingIntervalDays: 3,
-      easyGraduatingIntervalDays: 5,
     },
   };
   const firstGood = simulateRatingOutcome({ learningItem: item, variant: original, rating: "good", now: NOW, deckSettings });

@@ -189,9 +189,6 @@ export function mergePortableExportIntoState(state: any, exportPayload: any) {
   const importedPreferenceRecord = importsSchedulerPreferences
     ? importedSchedulerPreferences as Record<string, unknown>
     : {};
-  const importedLegacyDeckSettings = importedPreferenceRecord.deckSettings && typeof importedPreferenceRecord.deckSettings === "object"
-    ? importedPreferenceRecord.deckSettings as Record<string, unknown>
-    : {};
   const localPreferences = getGlobalSchedulerPreferences(state.profile);
   const importedPreferences = getGlobalSchedulerPreferences({ schedulerPreferences: importedSchedulerPreferences });
   let mergedLearningProfiles = localPreferences.learningProfiles;
@@ -228,7 +225,7 @@ export function mergePortableExportIntoState(state: any, exportPayload: any) {
     ...(Object.hasOwn(importedPreferenceRecord, "dayStartHour")
       ? { dayStartHour: importedPreferences.dayStartHour }
       : {}),
-    ...(Object.hasOwn(importedPreferenceRecord, "learnAheadMinutes") || Object.hasOwn(importedLegacyDeckSettings, "learnAheadMinutes")
+    ...(Object.hasOwn(importedPreferenceRecord, "learnAheadMinutes")
       ? { learnAheadMinutes: importedPreferences.learnAheadMinutes }
       : {}),
     ...(Object.hasOwn(importedPreferenceRecord, "easyDays")

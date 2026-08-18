@@ -13,7 +13,7 @@ import {
 } from "../deckSettings.ts";
 import { createDeckLearningSettingsDraft, type DeckLearningSettingsDraft } from "../settingsDraft.ts";
 import { ActionButton } from "./actionUi.tsx";
-import { ActionDialog, CoreModeControl, CoreSwitch, SoftPanel } from "./coreUi.tsx";
+import { ActionDialog, CoreModeControl, SoftPanel } from "./coreUi.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
 import { CoreSelect } from "./selectUi.tsx";
 
@@ -198,10 +198,6 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onP
             <div className="grid gap-4 md:grid-cols-2">
               <SelectField label="Lernschritte" value={draft.schedulerProfile.learningStepsMinutes.join(",")} options={learningStepOptions} testId="learning-settings-steps" onChange={(value) => editLearning({ schedulerProfile: { learningStepsMinutes: value.split(",").map(Number) } })} />
               <SelectField label="Nach einem Fehler erneut zeigen" value={draft.schedulerProfile.relearningStepMinutes} options={relearningStepOptions} testId="learning-settings-relearning" onChange={(value) => editLearning({ schedulerProfile: { relearningStepMinutes: Number(value) } })} />
-              <label className="flex min-h-20 items-start justify-between gap-4 rounded-2xl border border-core-border bg-core-surface p-4 core-body font-semibold text-core-muted md:col-span-2">
-                <span><span className="block">Kurze Abstände verdoppeln</span><span className="mt-1 block core-caption font-normal leading-5">Reduziert unmittelbare Wiedererkennung, verlängert aber die Lernrunde.</span></span>
-                <CoreSwitch checked={draft.schedulerProfile.lessShortIntervalBias} ariaLabel="Kurze Abstände verdoppeln" onCheckedChange={(checked) => editLearning({ schedulerProfile: { lessShortIntervalBias: checked } })} />
-              </label>
             </div>
           </fieldset>
 

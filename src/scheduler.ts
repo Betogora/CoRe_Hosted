@@ -161,17 +161,6 @@ function getDesiredRetention(deckSettings: LearningSettingsInput | null | undefi
     : getSchedulerProfile(deckSettings ?? {}).desiredRetention;
 }
 
-function getLearningIntervals(deckSettings: LearningSettingsInput = {}) {
-  const profile = getSchedulerProfile(deckSettings);
-  const shortIntervalFactor = profile.lessShortIntervalBias ? 2 : 1;
-  const [againMinutes, goodMinutes] = profile.learningStepsMinutes;
-
-  return {
-    learningStepsMinutes: [againMinutes * shortIntervalFactor, goodMinutes * shortIntervalFactor] as [number, number],
-    relearningStepMinutes: profile.relearningStepMinutes * shortIntervalFactor,
-  };
-}
-
 function intervalParts({ intervalMinutes = null, intervalDays = null, intervalMs = null }: IntervalInput = {}) {
   if (intervalMs !== null && intervalMs !== undefined && Number.isFinite(Number(intervalMs))) {
     const ms = Math.max(0, Number(intervalMs));
@@ -246,10 +235,9 @@ function toFsrsCard(state: ReviewState, now: Date): FsrsCard {
 
 function createFsrsScheduler(deckSettings: LearningSettingsInput | null | undefined, state: ReviewStateInput) {
   const profile = getSchedulerProfile(deckSettings ?? {});
-  const intervals = getLearningIntervals(deckSettings ?? {});
   const requestRetention = getDesiredRetention(deckSettings, state);
-  const learningSteps = intervals.learningStepsMinutes.map((minutes) => `${minutes}m` as StepUnit);
-  const relearningSteps = [`${intervals.relearningStepMinutes}m` as StepUnit];
+  const learningSteps = profile.learningStepsMinutes.map((minutes) => `${minutes}m` as StepUnit);
+  const relearningSteps = [`${profile.relearningStepMinutes}m` as StepUnit];
   const scheduler = fsrs({
     w: default_w,
     request_retention: requestRetention,

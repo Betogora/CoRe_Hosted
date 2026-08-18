@@ -11,16 +11,12 @@ import {
   withGlobalSchedulerPreferences,
 } from "./deckSettings.ts";
 
-test("deck learning settings exclude account-wide learn-ahead and retired scheduler fields", () => {
+test("deck learning settings keep account-wide learn-ahead outside the canonical scheduler profile", () => {
   const settings = normalizeLearningSettings({
     newCardsPerDay: 12,
     learnAheadMinutes: 45,
     schedulerProfile: {
-      name: "custom",
-      learningStepsMinutes: [10, 60],
-      graduatingIntervalDays: 3,
-      easyGraduatingIntervalDays: 5,
-      easyIntervalDays: 8,
+      learningStepsMinutes: [10, 30],
     },
   });
 
@@ -28,11 +24,7 @@ test("deck learning settings exclude account-wide learn-ahead and retired schedu
   assert.equal(settings.newCardSortOrder, "oldest-first");
   assert.equal(settings.reviewCardSortOrder, "most-overdue");
   assert.equal("learnAheadMinutes" in settings, false);
-  assert.deepEqual(settings.schedulerProfile.learningStepsMinutes, [5, 15]);
-  assert.equal("name" in settings.schedulerProfile, false);
-  assert.equal("graduatingIntervalDays" in settings.schedulerProfile, false);
-  assert.equal("easyGraduatingIntervalDays" in settings.schedulerProfile, false);
-  assert.equal("easyIntervalDays" in settings.schedulerProfile, false);
+  assert.deepEqual(settings.schedulerProfile.learningStepsMinutes, [10, 30]);
 });
 
 test("built-in presets remain canonical and custom edits preserve normalized values", () => {
@@ -100,68 +92,6 @@ test("global scheduler preferences own day start, learn-ahead and custom templat
   assert.equal(saved.schedulerPreferences.learningProfiles[0].name, "Prüfung");
   assert.equal(normalizeLearnAheadMinutes(-1), 0);
   assert.equal(normalizeLearnAheadMinutes("invalid"), 20);
-});
-
-test("legacy global custom settings backfill once and move learn-ahead account-wide", () => {
-  const legacy = {
-    schedulerPreferences: {
-      profile: "custom",
-      coreMode: "manual",
-      dayStartHour: 3,
-      deckSettings: {
-        newCardsPerDay: 37,
-        maximumReviewsPerDay: 730,
-        learnAheadMinutes: 35,
-        schedulerProfile: { presetId: "custom", desiredRetention: 0.93 },
-      },
-    },
-  };
-  const normalized = getGlobalSchedulerPreferences(legacy);
-  const persisted = withGlobalSchedulerPreferences(legacy, {});
-
-  assert.equal(normalized.dayStartHour, 3);
-  assert.equal(normalized.learnAheadMinutes, 35);
-  assert.equal(normalized.learningProfiles.length, 1);
-  assert.equal(normalized.learningProfiles[0].id, "legacy:global-learning-settings");
-  assert.equal(normalized.learningProfiles[0].settings.newCardsPerDay, 37);
-  assert.equal("learnAheadMinutes" in normalized.learningProfiles[0].settings, false);
-  assert.equal("profile" in persisted.schedulerPreferences, false);
-  assert.equal("coreMode" in persisted.schedulerPreferences, false);
-  assert.equal("deckSettings" in persisted.schedulerPreferences, false);
-});
-
-test("legacy settings equal to a built-in do not create a redundant profile", () => {
-  const normalized = getGlobalSchedulerPreferences({
-    schedulerPreferences: {
-      profile: "custom",
-      deckSettings: {
-        ...applyLearningPreset({}, "standard"),
-        schedulerProfile: { ...applyLearningPreset({}, "standard").schedulerProfile, presetId: "custom" },
-      },
-    },
-  });
-
-  assert.deepEqual(normalized.learningProfiles, []);
-});
-
-test("legacy custom drafts survive even when a built-in profile was selected", () => {
-  const normalized = getGlobalSchedulerPreferences({
-    schedulerPreferences: {
-      profile: "standard",
-      deckSettings: {
-        newCardsPerDay: 47,
-        maximumReviewsPerDay: 333,
-        newReviewOrder: "mixed",
-        schedulerProfile: { presetId: "custom", desiredRetention: 0.96 },
-      },
-    },
-  });
-
-  assert.equal(normalized.learningProfiles.length, 1);
-  assert.equal(normalized.learningProfiles[0].name, "Bisherige globale Lernvorgabe");
-  assert.equal(normalized.learningProfiles[0].settings.newCardsPerDay, 47);
-  assert.equal(normalized.learningProfiles[0].settings.maximumReviewsPerDay, 333);
-  assert.equal(normalized.learningProfiles[0].settings.schedulerProfile.desiredRetention, 0.96);
 });
 
 test("direct deck edits clear copied-profile provenance and preserve deck-only fields", () => {

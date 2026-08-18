@@ -154,7 +154,6 @@ export interface SchedulerProfile {
   relearningStepMinutes: number;
   desiredRetention: number;
   maximumIntervalDays: number;
-  lessShortIntervalBias: boolean;
 }
 
 export interface LearningSettings {

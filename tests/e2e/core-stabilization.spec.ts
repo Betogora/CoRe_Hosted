@@ -727,13 +727,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   await page.keyboard.press("Escape");
   await expect(colorButton).toBeFocused();
 
-  const shortIntervalSwitch = page.getByRole("switch", { name: "Kurze Abstände verdoppeln" });
-  const initialSwitchState = await shortIntervalSwitch.getAttribute("aria-checked");
-  await shortIntervalSwitch.focus();
-  await shortIntervalSwitch.press("Space");
-  await expect(shortIntervalSwitch).toHaveAttribute("aria-checked", initialSwitchState === "true" ? "false" : "true");
-  await shortIntervalSwitch.press("Space");
-  await expect(shortIntervalSwitch).toHaveAttribute("aria-checked", initialSwitchState ?? "false");
+  await expect(page.getByRole("switch", { name: "Kurze Abstände verdoppeln" })).toHaveCount(0);
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByTestId("learning-settings-new-cards").fill(String(nextNewCards));
