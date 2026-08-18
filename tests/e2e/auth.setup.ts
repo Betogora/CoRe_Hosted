@@ -3,7 +3,7 @@ import path from "node:path";
 import { expect, test as setup } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { hasSupabaseAuthStorage, readSyncDeviceId, resetTestAccount, sanitizeStorageState } from "./support/appState.ts";
-import { e2eAuthStatePath, ensureLocalE2EAccount, loadE2EEnvironment } from "./support/e2eEnvironment.ts";
+import { e2eAuthStatePath, ensureLocalE2EAccount, hostedE2EEntryPath, loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 
 async function readRegisteredDevices(environment: { supabaseUrl: any; publishableKey: any; email: any; password: any; }) {
   const client = createClient(environment.supabaseUrl, environment.publishableKey, {
@@ -34,7 +34,7 @@ setup("dedizierten Testaccount zurücksetzen und Auth-Session speichern", async 
   await ensureLocalE2EAccount(environment);
   await resetTestAccount(environment);
 
-  await page.goto("/");
+  await page.goto(hostedE2EEntryPath());
   await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
   await page.getByLabel("E-Mail").fill(environment.email);
   await page.getByLabel("Passwort", { exact: true }).fill(environment.password);

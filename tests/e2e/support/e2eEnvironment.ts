@@ -15,6 +15,16 @@ const REQUIRED_E2E_VARIABLES = [
   "CORE_E2E_ALLOW_ACCOUNT_RESET",
 ];
 
+export function hostedE2EEntryPath(pathname = "/") {
+  const bypassSecret = String(process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "").trim();
+  if (!bypassSecret) return pathname;
+
+  const url = new URL(pathname, "https://core.test");
+  url.searchParams.set("x-vercel-protection-bypass", bypassSecret);
+  url.searchParams.set("x-vercel-set-bypass-cookie", "true");
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 function hasExplicitEnvironmentValue(name: string, fileContent: string) {
   if (Object.prototype.hasOwnProperty.call(process.env, name) && String(process.env[name] ?? "").trim()) return true;
   return fileContent.split(/\r?\n/).some((line: string) => line.trimStart().startsWith(`${name}=`) && line.slice(line.indexOf("=") + 1).trim());

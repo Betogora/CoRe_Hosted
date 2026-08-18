@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { hostedE2EEntryPath } from "./support/e2eEnvironment.ts";
 
 function authForm(page: Page) {
   return page.locator("form");
@@ -34,7 +35,7 @@ test("Google und Magic Link bleiben unabhängig schaltbar", async ({ page }) => 
 
 test("@beta-core @hosted-core Beta-Artefakt bietet nur E-Mail und Passwort an", async ({ page }) => {
   test.skip(process.env.CORE_BETA_GATE !== "true" && !process.env.CORE_HOSTED_BASE_URL, "Nur der Beta- oder Hosted-Core-Konfiguration zugeordnet.");
-  await page.goto("/");
+  await page.goto(hostedE2EEntryPath());
 
   await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
   await expect(page.getByLabel("E-Mail")).toBeVisible();
