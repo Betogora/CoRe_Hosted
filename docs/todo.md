@@ -63,9 +63,12 @@ Abnahme:
       und Zwei-Geräte-Delta-Sync mit den 100k-/1m-Fixtures automatisiert
       abnehmen.
 - [ ] Feld-p75/p95 und die Supabase-Exit-Gates instrumentieren.
-- [ ] Bootstrap, Katalog, Hydrierung, Lernübersicht, Statistik und Manifest am
-      bestätigten frischen Hosted-Supabase-Projekt mit
-      `EXPLAIN (ANALYZE, BUFFERS)`, Query Reports und doppelter Ziellast prüfen.
+- [ ] Hosted-Volume oder Retention so dimensionieren, dass 100.000 Karten plus
+      1 Mio. physische `review_events` ohne `No space left on device` geladen
+      werden können; danach Rohdatenfixture und Bereinigung erneut nachweisen.
+- [ ] Die bereits einzeln mit Hosted-`EXPLAIN (ANALYZE, BUFFERS)` geprüften
+      Replica-v2-RPCs zusätzlich bei doppelter erwarteter Nutzerlast mit Query
+      Reports, DB-CPU und Connection-Pool abnehmen.
 
 ### Recovery und native Replica
 
@@ -80,7 +83,9 @@ Abnahme:
 
 - [ ] Alle vorherigen `NOW`- und `LATER`-Kriterien auf dem Freigabe-Commit
       erfüllen.
-- [ ] Einen frischen Hosted-Smoke auf Preview und staged Production mit Login,
-      Accountladen, Review, Sync/Reload und Logout erfolgreich durchführen.
+- [ ] Auf dem späteren Freigabe-Commit den Preview-Smoke und nach der Promotion
+      den kanonischen Production-Kurzsmoke mit Login, Accountladen, Review,
+      Sync/Reload und Logout durchführen; die staged Production dieses Branches
+      ist bereits in [`history.md`](history.md) belegt.
 - [ ] `npm run test:release`, Production-Build und Chunkbudgets auf demselben
       Commit erfolgreich ausführen.

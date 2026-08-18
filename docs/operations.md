@@ -44,6 +44,13 @@ Der lokale Production-Build vom 16. August 2026 maß 217,3 KiB gzip für den Ini
 
 Supabase bleibt die Datenplattform, solange die Replica-v2-RPCs p95 höchstens 1 Sekunde benötigen, die Fehlerrate höchstens 0,1 Prozent beträgt, Cursor-Lag im Normalbetrieb unter 5 Sekunden bleibt und der 100k-/1m-Zieltest bei doppelter erwarteter Nutzerlast höchstens 70 Prozent DB-CPU und Connection-Pool belegt. Der normale Delta-Zyklus muss zusätzlich clientseitig p75 höchstens 2 und p95 höchstens 5 Sekunden halten. Zusätzlich müssen freigegebene Unit Economics und Regions-/Sync-Anforderungen erfüllt bleiben. Ein wiederholter Bruch wird zuerst mit Indizes, Query-Plan, RPC und Compute geprüft; danach ist ein eigener Sync-Dienst vor demselben Postgres der erste Plattformschritt, kein sofortiger Datenbankwechsel.
 
+Der 100k-/1m-Statistiknachweis verwendet den produktiven täglichen Rollup mit
+genau 1 Mio. logisch aggregierten Reviews. Er belegt Queryzeit, aber nicht die
+physische Retention von 1 Mio. Rohereignissen: Das aktuelle Hosted-Volume lief
+bei diesem zusätzlichen Kapazitätsversuch voll. Vor einer erwarteten
+Rohdatenmenge dieser Größe müssen Volume beziehungsweise Retention festgelegt
+und die physische Fixture erneut ausgeführt werden.
+
 ### Pre-Release-Reset der hybriden Replica
 
 Der aktuelle Stand besitzt keine Upgrade- oder Backfillkette. `20260817190000_prerelease_replica_v2_baseline.sql` ist die einzige Migration; `verify_schema_v1.sql` ist die einzige zusätzliche SQL-Verifikation. Ein Reset löscht Auth-Konten, Storage-Objekte und fachliche Daten unwiederbringlich und ist ausschließlich für das bestätigte Pre-Release-Projekt zulässig.
@@ -105,8 +112,14 @@ $env:VITE_SUPABASE_PUBLISHABLE_KEY = "<public publishable key>"
 $env:CORE_E2E_EMAIL = "<dedicated smoke account>"
 $env:CORE_E2E_PASSWORD = "<secret>"
 $env:CORE_E2E_ALLOW_ACCOUNT_RESET = "true"
+$env:VERCEL_AUTOMATION_BYPASS_SECRET = "<nur bei geschütztem Deployment>"
 npm run test:beta:hosted
 ```
+
+Bei einer Vercel-geschützten Deployment-URL wird der optionale Automation-
+Bypass ausschließlich am ersten Hostaufruf als Vercel-Query übergeben und als
+Host-Cookie gespeichert. Er darf nicht als globaler Playwright-Header gesetzt
+werden, weil dieser auch an Supabase-Fetches gelangen könnte.
 
 Der Lauf deckt die fünf Kernjourneys ab: Login und Cloud-Laden; kleinen APKG-Import; manuelle PDF-Quelle und Bearbeitung; Review mit Offline-Pending, Reconnect, Save und Reload; Variante mit Reveal, Originalanker und Feedback. Zusätzlich prüft er APKG-Medien in DB und privatem Storage, Portabilitätsgrenzen sowie einen accountgebundenen Konfliktstatus. Er prüft weder Google/Magic Link noch Dateien über 250 MB.
 
