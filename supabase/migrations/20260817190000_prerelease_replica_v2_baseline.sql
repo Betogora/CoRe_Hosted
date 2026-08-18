@@ -1932,7 +1932,12 @@ as $$
     from difficulty_bucket_counts
   ), retrievability_states as materialized (
     select least(0.999999, greatest(0,
-      power(1 + (19.0 / 81.0) * greatest(0, extract(epoch from (now() - last_reviewed_at)) / 86400) / stability, -0.5)
+      power(
+        1 + (19::double precision / 81)
+          * greatest(0, extract(epoch from (now() - last_reviewed_at))::double precision / 86400)
+          / stability::double precision,
+        -0.5::double precision
+      )
     )) as retrievability
     from current_states where stability > 0 and last_reviewed_at is not null
   ), retrievability_bucket_counts as materialized (
