@@ -41,9 +41,8 @@ test("creation entry presents the two concise creation methods", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} {...callbacks} />);
 
   assert.match(markup, /Neue Karte/);
-  assert.match(markup, /Karte selbst erstellen/);
-  assert.match(markup, /Schreibe Karten selbst oder mit einer PDF-Datei\./);
-  assert.match(markup, /Übernimm bestehende Stapel\./);
+  assert.match(markup, /Karten selbst erstellen/);
+  assert.doesNotMatch(markup, /Schreibe Karten selbst oder mit einer PDF-Datei\.|Übernimm bestehende Stapel\./);
   assert.doesNotMatch(markup, /Core ·|Karten manuell erstellen|Front\/Back-Listen/);
 });
 
