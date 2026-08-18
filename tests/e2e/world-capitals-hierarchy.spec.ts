@@ -516,6 +516,18 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
 });
 
+test("a real click immediately after drag starts learning", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+
+  const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
+  const southAmericaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`);
+  await dispatchDeckDrop(page, southAmericaRow, europeRow);
+  await southAmericaRow.locator('[data-deck-drag-source="true"]').click({ force: true });
+
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+});
+
 test("deck management disables direct drag and shares the confirmed keyboard move", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();

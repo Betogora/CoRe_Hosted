@@ -128,7 +128,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
   const [dragStatus, setDragStatus] = React.useState("");
   const pointerDragRef = React.useRef<PointerDrag | null>(null);
-  const lastDragEndAtRef = React.useRef(0);
+  const suppressedClickDeckIdRef = React.useRef<string | null>(null);
   const dragMaskId = React.useId().replaceAll(":", "");
   const decks = React.useMemo(() => rows.map((row) => row.deck), [rows]);
   const [collapsedDeckIdSet, setCollapsedDeckIdSet] = React.useState(() => new Set(collapsedDeckIds));
@@ -164,7 +164,6 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
 
   function clearDragState() {
     const drag = pointerDragRef.current;
-    if (drag?.dragging) lastDragEndAtRef.current = Date.now();
     if (drag?.captureElement.hasPointerCapture?.(drag.pointerId)) drag.captureElement.releasePointerCapture(drag.pointerId);
     pointerDragRef.current = null;
     setDraggedDeckId(null);
@@ -251,6 +250,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
 
   function startPointer(event: React.PointerEvent<HTMLButtonElement>, row: DeckLibraryRow) {
     if (event.pointerType !== "mouse" || event.button !== 0) return;
+    suppressedClickDeckIdRef.current = null;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     pointerDragRef.current = {
       pointerId: event.pointerId,
@@ -294,6 +294,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
       return;
     }
     event.preventDefault();
+    suppressedClickDeckIdRef.current = drag.deckId;
     const intent = pointerDropIntent(event.clientX, event.clientY) ?? drag.intent;
     if (intent) finishDeckMove(drag.deckId, intent);
     else clearDragState();
@@ -304,7 +305,10 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
   }
 
   function activate(row: DeckLibraryRow) {
-    if (Date.now() - lastDragEndAtRef.current < 250) return;
+    if (suppressedClickDeckIdRef.current === row.id) {
+      suppressedClickDeckIdRef.current = null;
+      return;
+    }
     onActivate(row);
   }
 
@@ -349,6 +353,7 @@ export function DeckTree({ rows, mode, headerAction, onActivate, onOpenSettings,
           type="button"
           onClick={() => activate(row)}
           onPointerDown={(event) => startPointer(event, row)}
+          onKeyDown={() => { suppressedClickDeckIdRef.current = null; }}
           aria-label={activationLabel}
           data-deck-drag-source="true"
           data-deck-row-activation="true"
