@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, CoreSwitch, SegmentedDonut } from "./coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, SegmentedDonut } from "./coreUi.tsx";
 
 test("action dialog exposes its accessible three-action contract", () => {
   const markup = renderToStaticMarkup(
@@ -58,16 +58,9 @@ test("action dialog supports information without a confirm action", () => {
   assert.equal(markup.match(/<button/g)?.length, 1);
 });
 
-test("shared study-state controls expose switch and pressed semantics", () => {
-  const markup = renderToStaticMarkup(
-    <>
-      <CoreSwitch checked ariaLabel="Karte reaktivieren" onCheckedChange={() => undefined} />
-      <CardMarkButton marked onMarkedChange={() => undefined} />
-    </>,
-  );
+test("shared card mark control exposes pressed semantics", () => {
+  const markup = renderToStaticMarkup(<CardMarkButton marked onMarkedChange={() => undefined} />);
 
-  assert.match(markup, /role="switch"/);
-  assert.match(markup, /aria-checked="true"/);
   assert.match(markup, /aria-pressed="true"/);
   assert.match(markup, /aria-label="Markierung entfernen"/);
   assert.match(markup, /text-\[var\(--core-warning\)\]/);

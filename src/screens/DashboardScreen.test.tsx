@@ -70,13 +70,13 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /Dein Lernen heute/);
   assert.match(markup, /data-testid="daily-learning-total">0 \/ 1 Karten/);
   assert.match(markup, /data-testid="dashboard-daily-progress"/);
-  assert.match(markup, /aria-valuetext="Heute geschafft: 0 Karten, Neu: 1 Karte, In Arbeit: 0 Karten, Fällig: 0 Karten"/);
+  assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, Offen: 0 Karten, Fällig: 0 Karten"/);
   assert.match(markup, />Jetzt lernen<\//);
   assert.match(markup, /<button[^>]*disabled=""[^>]*>[\s\S]*Plan ansehen/);
   for (const metric of ["learned", "new", "in-progress", "due"]) assert.match(markup, new RegExp(`data-daily-learning-metric="${metric}"`));
   assert.doesNotMatch(markup, /geschätzte Dauer|Dranbleiben lohnt sich|Für heute alles geschafft/);
   assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"/);
-  assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>In Arbeit<[\s\S]*>Fällig</);
+  assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
   assert.doesNotMatch(markup, /Originalkarten/);
   assert.match(markup, /Alle ansehen/);
   assert.match(markup, /whitespace-nowrap[^\"]*rounded-xl[^>]*>Alle ansehen/);
@@ -194,7 +194,7 @@ test("dashboard keeps later same-day learning steps in a disabled waiting state"
   );
 
   assert.match(markup, /data-status="waiting"/);
-  assert.match(markup, /In Arbeit: 1 Karte/);
+  assert.match(markup, /Offen: 1 Karte/);
   assert.match(markup, /<button[^>]*disabled=""[^>]*>[\s\S]*Später weiterlernen/);
   assert.doesNotMatch(markup, /Tagesziel erreicht/);
 });

@@ -24,7 +24,7 @@ test("deck summary row keeps one-line identity, accessible metrics and compact p
   assert.match(markup, /truncate whitespace-nowrap/);
   assert.doesNotMatch(markup, />Herkunft \/ Ein sehr langer Unterstapelname</);
   for (const metric of ["new", "in-progress", "due"]) assert.match(markup, new RegExp(`data-deck-count="${metric}"`));
-  for (const label of ["Neu", "In Arbeit", "Fällig"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
+  for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
   assert.doesNotMatch(markup, /data-deck-count="total"|>Gesamt</);
   assert.match(markup, /size-8/);
   assert.match(markup, /aria-label="Keine aktiven Karten für Herkunft \/ Ein sehr langer Unterstapelname\."/);

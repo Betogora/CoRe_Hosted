@@ -185,10 +185,10 @@
   --core-shadow-soft: 0 1px 2px rgba(38, 46, 58, 0.08);
   --core-shadow-raised: 0 14px 36px rgba(38, 46, 58, 0.13);
   --core-selection: rgba(214, 163, 210, 0.46);
-  --core-learning-status-learned: var(--core-warning);
-  --core-learning-status-new: var(--core-deck-new-text);
+  --core-learning-status-learned: var(--core-info);
+  --core-learning-status-new: var(--core-success);
   --core-learning-status-in-progress: var(--core-danger);
-  --core-learning-status-due: var(--core-deck-due-text);
+  --core-learning-status-due: var(--core-warning);
   --core-learning-goal-achieved: #2f7d68;
 
   /* Compatibility aliases for existing status call sites. */
@@ -248,10 +248,10 @@
   --core-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.22);
   --core-shadow-raised: 0 18px 44px rgba(0, 0, 0, 0.34);
   --core-selection: rgba(228, 181, 225, 0.42);
-  --core-learning-status-learned: var(--core-warning);
-  --core-learning-status-new: var(--core-deck-new-text);
+  --core-learning-status-learned: var(--core-info);
+  --core-learning-status-new: var(--core-success);
   --core-learning-status-in-progress: var(--core-danger);
-  --core-learning-status-due: var(--core-deck-due-text);
+  --core-learning-status-due: var(--core-warning);
   --core-learning-goal-achieved: #72d6b5;
   --core-help-stack-front: var(--core-surface-raised);
   --core-help-stack-middle: #46546a;

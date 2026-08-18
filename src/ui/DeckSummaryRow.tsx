@@ -6,7 +6,7 @@ import { formatLearningCardCount, LEARNING_STATUS_UI } from "./learningStatusUi.
 
 const DECK_COUNT_DEFINITIONS = [
   { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new", shortLabel: "N" },
-  { ...LEARNING_STATUS_UI.inProgress, valueKey: "inProgressCards", metric: "in-progress", shortLabel: "IA" },
+  { ...LEARNING_STATUS_UI.inProgress, valueKey: "inProgressCards", metric: "in-progress", shortLabel: "O" },
   { ...LEARNING_STATUS_UI.due, valueKey: "dueCards", metric: "due", shortLabel: "F" },
 ] as const;
 
@@ -65,7 +65,7 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, d
   const totalCards = statusSegments?.reduce((total, segment) => total + segment.value, 0) ?? 0;
   const statusLabel = learningStatus
     ? totalCards > 0
-      ? `Gesamtfortschritt für ${row.path}: ${learningStatus.statusDistribution.learnedCards} von ${formatLearningCardCount(totalCards)} gelernt; ${learningStatus.statusDistribution.newCards} neu, ${learningStatus.statusDistribution.inProgressCards} in Arbeit und ${learningStatus.statusDistribution.dueCards} fällig.`
+      ? `Gesamtfortschritt für ${row.path}: ${learningStatus.statusDistribution.learnedCards} von ${formatLearningCardCount(totalCards)} gelernt; ${learningStatus.statusDistribution.newCards} neu, ${learningStatus.statusDistribution.inProgressCards} offen und ${learningStatus.statusDistribution.dueCards} fällig.`
       : `Keine aktiven Karten für ${row.path}.`
     : "";
   const gridClass = learningStatus

@@ -404,35 +404,6 @@ export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange
   );
 }
 
-export interface CoreSwitchProps {
-  checked: boolean;
-  ariaLabel: string;
-  onCheckedChange: (checked: boolean) => void;
-  disabled?: boolean;
-  className?: string;
-  thumb?: ReactNode;
-}
-
-export function CoreSwitch({ checked, ariaLabel, onCheckedChange, disabled = false, className = "", thumb = null }: CoreSwitchProps) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={ariaLabel}
-      disabled={disabled}
-      onClick={() => onCheckedChange(!checked)}
-      className={`grid size-11 shrink-0 place-items-center rounded-xl transition hover:bg-[var(--core-surface-muted)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
-    >
-      <span className={`relative h-6 w-11 rounded-full border transition-colors ${checked ? "border-[var(--core-warning)] bg-[var(--core-warning)]" : "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)]"}`} aria-hidden="true">
-        <span className={`absolute left-0.5 top-0.5 grid size-5 place-items-center rounded-full bg-core-surface text-[var(--core-action-primary)] shadow-sm transition-transform ${checked ? "translate-x-5" : "translate-x-0"}`}>
-          {thumb}
-        </span>
-      </span>
-    </button>
-  );
-}
-
 export function CardMarkButton({ marked, onMarkedChange, disabled = false, className = "" }: {
   marked: boolean;
   onMarkedChange: (marked: boolean) => void;

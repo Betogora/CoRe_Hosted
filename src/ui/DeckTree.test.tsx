@@ -31,12 +31,12 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.equal((markup.match(/data-deck-count="due"/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /data-deck-count="total"|>Gesamt</);
   assert.equal((markup.match(/data-testid="deck-summary-header"/g) ?? []).length, 1);
-  assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"[\s\S]*>Stapel<[\s\S]*>Neu<[\s\S]*>In Arbeit<[\s\S]*>Fällig</);
+  assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"[\s\S]*>Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
   assert.equal((markup.match(/data-deck-summary-row-content="responsive"/g) ?? []).length, 2);
   assert.equal((markup.match(/core-deck-summary-container/g) ?? []).length, 3);
   assert.equal((markup.match(/data-testid="deck-options-/g) ?? []).length, 2);
   assert.match(markup, /data-deck-count="new"><dt class="sr-only">Neu<\/dt>/);
-  assert.match(markup, /data-deck-count="in-progress"><dt class="sr-only">In Arbeit<\/dt>/);
+  assert.match(markup, /data-deck-count="in-progress"><dt class="sr-only">Offen<\/dt>/);
   assert.match(markup, /data-deck-count="due"><dt class="sr-only">Fällig<\/dt>/);
   assert.doesNotMatch(markup, /core-deck-summary-count-label/);
   assert.doesNotMatch(markup, /hidden md:block/);

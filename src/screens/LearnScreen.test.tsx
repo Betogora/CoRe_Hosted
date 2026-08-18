@@ -45,7 +45,7 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.ok(markup.indexOf('data-testid="learn-deck-create-form"') < markup.indexOf('data-testid="deck-summary-header"'));
   assert.doesNotMatch(markup, /Karten verwalten|Neue Karten|Stapel anlegen|learn-deck-create-toggle|core-overlay/);
   assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"/);
-  assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>In Arbeit<[\s\S]*>Fällig</);
+  assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
   assert.match(markup, /core-action-ghost/);
   assert.doesNotMatch(markup, /Lernen öffnen/);
   assert.doesNotMatch(markup, /Icon auswählen|Iconfarbe|CoRe aktiv/);

@@ -107,7 +107,7 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(rootRow).toBeVisible();
   await expect(europeRow).toBeVisible();
   await expect(metric(rootRow, "new")).toContainText("Neu");
-  await expect(metric(rootRow, "in-progress")).toContainText("In Arbeit");
+  await expect(metric(rootRow, "in-progress")).toContainText("Offen");
   await expect(metric(rootRow, "due")).toContainText("Fällig");
   await expect(rootRow.getByLabel(/Gesamtfortschritt/)).toBeVisible();
   await expect(rootRow.getByRole("button", { name: /Stapeloptionen/ })).toBeVisible();
@@ -293,8 +293,8 @@ test("active deck header and rows fit every target width and toggle reliably on 
     expect(layout.fits).toBe(true);
     expect(layout.headerHeight).toBeLessThanOrEqual(30);
     expect(layout.headerLabels).toEqual(width <= 320
-      ? ["STAPEL", "N", "IA", "F"]
-      : ["STAPEL", "NEU", "IN ARBEIT", "FÄLLIG"]);
+      ? ["STAPEL", "N", "O", "F"]
+      : ["STAPEL", "NEU", "OFFEN", "FÄLLIG"]);
     expect(layout.headerLabelsFit).toBe(true);
     expect(layout.rowLabelsHidden).toBe(true);
     if (width >= 700) expect(layout.nameWidth).toBeGreaterThanOrEqual(layout.iconWidth);
@@ -315,7 +315,7 @@ test("learning rows activate directly while expand and settings remain independe
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   await expect(page.getByTestId("learn-deck-list-header")).toContainText("Aktive Stapel");
   await expect(page.getByRole("button", { name: "Lernen öffnen" })).toHaveCount(0);
-  await expect(page.getByTestId("deck-summary-header")).toContainText("StapelNeuNIn ArbeitIAFälligF");
+  await expect(page.getByTestId("deck-summary-header")).toContainText("StapelNeuNOffenOFälligF");
   await expect(metric(rootRow, "new").locator("dt")).toHaveClass(/sr-only/);
   await expect(metric(rootRow, "in-progress").locator("dt")).toHaveClass(/sr-only/);
   await expect(metric(rootRow, "due").locator("dt")).toHaveClass(/sr-only/);

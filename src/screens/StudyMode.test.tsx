@@ -147,7 +147,7 @@ test("StudyMode exposes labeled learning without an idle Pomodoro progress", () 
   );
 
   assert.match(markup, /Lernfortschritt/);
-  assert.match(markup, /aria-valuetext="Heute geschafft: 0 Karten, Neu: 1 Karte, In Arbeit: 0 Karten, Fällig: 0 Karten"/);
+  assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, Offen: 0 Karten, Fällig: 0 Karten"/);
   assert.doesNotMatch(markup, /Pomodoro-Timer|Nicht gestartet|study-pomodoro-progress/);
   assert.doesNotMatch(markup, /Neue Karten heute|heute eingeführt|\+10/);
 });
@@ -158,7 +158,7 @@ test("StudyMode renders the four daily progress segments in the canonical order 
     id: "learned_today",
     reviewState: { state: "review", reps: 5, dueAt: "2026-08-10T10:00:00.000Z" },
   });
-  const inProgress = createBasicLearningItem(deckId, "In Arbeit", "Antwort", {
+  const inProgress = createBasicLearningItem(deckId, "Offen", "Antwort", {
     id: "in_progress",
     reviewState: { state: "relearning", reps: 5, dueAt: "2026-08-09T10:15:00.000Z" },
   });
@@ -216,15 +216,15 @@ test("StudyMode renders the four daily progress segments in the canonical order 
   );
 
   assert.match(markup, />1 \/ 10 Karten</);
-  assert.match(markup, /aria-valuetext="Heute geschafft: 1 Karte, Neu: 3 Karten, In Arbeit: 1 Karte, Fällig: 5 Karten"/);
+  assert.match(markup, /aria-valuetext="Gelernt: 1 Karte, Neu: 3 Karten, Offen: 1 Karte, Fällig: 5 Karten"/);
   assert.match(markup, /data-study-progress-segment="learned"[^>]*background-color:var\(--core-learning-status-learned\)[^>]*flex-grow:1/);
   assert.match(markup, /data-study-progress-segment="new"[^>]*background-color:var\(--core-learning-status-new\)[^>]*flex-grow:3/);
   assert.match(markup, /data-study-progress-segment="in-progress"[^>]*background-color:var\(--core-learning-status-in-progress\)[^>]*flex-grow:1/);
   assert.match(markup, /data-study-progress-segment="due"[^>]*background-color:var\(--core-learning-status-due\)[^>]*flex-grow:5/);
   for (const [label, color, value] of [
-    ["Heute geschafft", "learned", "1 Karte"],
+    ["Gelernt", "learned", "1 Karte"],
     ["Neu", "new", "3 Karten"],
-    ["In Arbeit", "in-progress", "1 Karte"],
+    ["Offen", "in-progress", "1 Karte"],
     ["Fällig", "due", "5 Karten"],
   ]) {
     assert.match(markup, new RegExp(`data-core-tooltip="${label}"`));
@@ -270,7 +270,7 @@ test("StudyMode says Für jetzt geschafft while same-day learning steps are stil
   );
 
   assert.match(markup, /Für jetzt geschafft/);
-  assert.match(markup, /bleiben „In Arbeit“/);
+  assert.match(markup, /bleiben „Offen“/);
   assert.doesNotMatch(markup, /Später/);
 });
 

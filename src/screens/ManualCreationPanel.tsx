@@ -11,11 +11,10 @@ import { applyLearningItemContent, createCoreNoteTypeDefinition, createLearningI
 import type { CreationWorkflow, ManualImageAttachment } from "../creationWorkflow.ts";
 import type { CardEditorFieldErrors, Deck, SourceDocument } from "../coreTypes.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { CoreSwitch, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
-import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
@@ -43,6 +42,14 @@ const FIELD_PLACEMENT_OPTIONS = [
   { value: "back", label: "Rückseite" },
   { value: "both", label: "Beide Seiten" },
   { value: "metadata", label: "Nur Metadaten" },
+] as const;
+const QUESTION_TYPE_OPTIONS = [
+  { value: "standard", label: "Standard" },
+  { value: "multiple-choice", label: "Multiple Choice" },
+] as const;
+const LEARNING_DIRECTION_OPTIONS = [
+  { value: "standard", label: "Standard" },
+  { value: "both", label: "Beide Richtungen" },
 ] as const;
 
 export interface ManualCreationPanelProps {
@@ -451,6 +458,7 @@ export function ManualCreationPanel({
   const isReverse = cardType === "basic-reversed";
   const nextClozeGroup = Math.max(0, ...Array.from(front.matchAll(/\{\{c(\d+)::/gi), (match) => Number(match[1]) || 0)) + 1;
   const previewBundle = React.useMemo(() => {
+    if (!previewOpen) return null;
     const document = createLearningItemDocumentFromLegacy({
       definitionVersionId: "manual-editor-preview",
       fields: [
@@ -474,7 +482,7 @@ export function ManualCreationPanel({
     });
     const result = applyLearningItemContent({ previous: null, document, definition, reason: "create" });
     return { item: result.item, definition, variant: result.item.variants[0] };
-  }, [additionalFields, answerOptions, back, correctOptionIndex, front, isCloze, isMultipleChoice, isReverse, tags]);
+  }, [additionalFields, answerOptions, back, correctOptionIndex, front, isCloze, isMultipleChoice, isReverse, previewOpen, tags]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = showDocumentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
@@ -537,19 +545,27 @@ export function ManualCreationPanel({
 
         <fieldset className="grid gap-2 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
           <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Weitere Optionen</legend>
-          <div className="flex min-h-12 items-center justify-between gap-3">
-            <span>
-              <span className="block core-body font-semibold text-[var(--core-text)]">Multiple Choice</span>
-              <span className="block core-caption font-normal text-[var(--core-text-muted)]">Antwortoptionen statt freier Antwort verwenden.</span>
-            </span>
-            <CoreSwitch checked={isMultipleChoice} ariaLabel="Multiple Choice verwenden" onCheckedChange={(checked) => dispatchBatch({ type: "draft", patch: { cardType: checked ? "multiple-choice" : "basic" } })} />
+          <div className="flex min-h-12 flex-wrap items-center justify-between gap-3">
+            <span className="core-body font-semibold text-[var(--core-text)]">Fragentyp</span>
+            <CoreSegmentedControl
+              ariaLabel="Fragentyp"
+              options={QUESTION_TYPE_OPTIONS}
+              value={isMultipleChoice ? "multiple-choice" : "standard"}
+              onValueChange={(value) => dispatchBatch({
+                type: "draft",
+                patch: { cardType: value === "multiple-choice" ? "multiple-choice" : isMultipleChoice ? "basic" : cardType },
+              })}
+            />
           </div>
-          <div className="flex min-h-12 items-center justify-between gap-3 border-t border-[var(--core-border)] pt-2">
-            <span>
-              <span className="block core-body font-semibold text-[var(--core-text)]">Rückrichtung erstellen</span>
-              <span className="block core-caption font-normal text-[var(--core-text-muted)]">Vorder- und Rückseite zusätzlich umgekehrt abfragen.</span>
-            </span>
-            <CoreSwitch checked={isReverse} disabled={isMultipleChoice || isCloze} ariaLabel="Rückrichtung erstellen" onCheckedChange={(checked) => dispatchBatch({ type: "draft", patch: { cardType: checked ? "basic-reversed" : "basic" } })} />
+          <div className="flex min-h-12 flex-wrap items-center justify-between gap-3 border-t border-[var(--core-border)] pt-2">
+            <span className="core-body font-semibold text-[var(--core-text)]">Lernrichtung</span>
+            <CoreSegmentedControl
+              ariaLabel="Lernrichtung"
+              options={LEARNING_DIRECTION_OPTIONS}
+              value={isReverse ? "both" : "standard"}
+              disabled={isMultipleChoice || isCloze}
+              onValueChange={(value) => dispatchBatch({ type: "draft", patch: { cardType: value === "both" ? "basic-reversed" : "basic" } })}
+            />
           </div>
         </fieldset>
       </div>
@@ -685,34 +701,6 @@ export function ManualCreationPanel({
         </fieldset>
       ) : null}
 
-      <details className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" open>
-        <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Live-Vorschau</summary>
-        <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-2">
-          <div className="grid min-w-0 content-start gap-3">
-            <CardPresentationSurface item={previewBundle.item} variant={previewBundle.variant} definition={previewBundle.definition} side="question" surface="editor-preview" title="Vorschau der Vorderseite" showCompatibility={false} />
-            {cardType === "multiple-choice" ? (
-              <div className="grid gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface p-3" aria-label="Vorschau der Antwortoptionen">
-                {answerOptions.map((option, index) => (
-                  <div key={index} className="flex min-w-0 items-center gap-2 core-body text-[var(--core-text-secondary)]">
-                    <span className="grid size-7 shrink-0 place-items-center rounded-full border border-[var(--core-border)] font-semibold" aria-hidden="true">{index + 1}</span>
-                    <span className="min-w-0 break-words">{option || `Option ${index + 1}`}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-          <div className="grid min-w-0 content-start gap-3">
-            <CardPresentationSurface item={previewBundle.item} variant={previewBundle.variant} definition={previewBundle.definition} side="answer" surface="editor-preview" title="Vorschau der Rückseite" showCompatibility={false} />
-            {cardType === "multiple-choice" ? (
-              <div className="rounded-xl border border-[var(--core-border)] bg-core-surface p-3 core-body text-[var(--core-text-secondary)]">
-                <span className="block core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Richtige Antwort</span>
-                <span className="mt-1 block break-words font-semibold text-[var(--core-text)]">{answerOptions[correctOptionIndex] || "Noch nicht ausgewählt"}</span>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </details>
-
       <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
         <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           Tags
@@ -738,9 +726,9 @@ export function ManualCreationPanel({
       {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : "core-status-info"}`} role={statusType} aria-live="polite">{status}</p> : null}
       <CardPreviewDialog
         open={previewOpen}
-        item={previewBundle.item}
-        variant={previewBundle.variant}
-        definition={previewBundle.definition}
+        item={previewBundle?.item}
+        variant={previewBundle?.variant}
+        definition={previewBundle?.definition}
         onOpenChange={setPreviewOpen}
         returnFocusRef={previewButtonRef}
       />

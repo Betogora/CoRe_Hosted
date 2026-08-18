@@ -51,6 +51,8 @@ test("manual picker accepts only readable source documents", () => {
 
   assert.match(markup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
   assert.match(markup, /<h2[^>]*>Karte selbst erstellen<\/h2>/);
+  assert.match(markup, />Vorschau<\/span><\/button>/);
+  assert.doesNotMatch(markup, /Live-Vorschau/);
   assert.doesNotMatch(markup, /Manuelle Erstellung|Karten manuell erstellen/);
   assert.doesNotMatch(markup, /\.docx/i);
 });
@@ -66,4 +68,16 @@ test("manual target selection shows complete deck paths", () => {
   assert.match(markup, /data-deck-select-trigger="true"/);
   assert.match(markup, /data-deck-icon="true"/);
   assert.match(markup, /Fertig/);
+});
+
+test("manual options use labeled segmented choices without explanatory subclaims", () => {
+  const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
+
+  assert.match(markup, />Fragentyp</);
+  assert.match(markup, /aria-label="Fragentyp"[^>]*core-segmented-control/);
+  assert.match(markup, />Multiple Choice</);
+  assert.match(markup, />Lernrichtung</);
+  assert.match(markup, /aria-label="Lernrichtung"[^>]*core-segmented-control/);
+  assert.match(markup, />Beide Richtungen</);
+  assert.doesNotMatch(markup, /role="switch"|Antwortoptionen statt freier Antwort verwenden|Vorder- und Rückseite zusätzlich umgekehrt abfragen/);
 });

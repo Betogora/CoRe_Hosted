@@ -16,7 +16,7 @@ test("daily progress shares the canonical segment order, colors and accessible s
 
   assert.match(markup, /aria-valuenow="1"/);
   assert.match(markup, /aria-valuemax="10"/);
-  assert.match(markup, /aria-valuetext="Heute geschafft: 1 Karte, Neu: 3 Karten, In Arbeit: 1 Karte, Fällig: 5 Karten"/);
+  assert.match(markup, /aria-valuetext="Gelernt: 1 Karte, Neu: 3 Karten, Offen: 1 Karte, Fällig: 5 Karten"/);
   for (const [key, color] of [
     ["learned", "learned"],
     ["new", "new"],

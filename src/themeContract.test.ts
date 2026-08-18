@@ -42,10 +42,10 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
   assert.match(styles, /--core-danger-hover:\s*var\(--core-palette-coral-glow\)/);
   assert.match(dark, /--core-danger-hover:\s*var\(--core-palette-coral\)/);
   for (const [status, role] of [
-    ["learned", "warning"],
-    ["new", "deck-new-text"],
+    ["learned", "info"],
+    ["new", "success"],
     ["in-progress", "danger"],
-    ["due", "deck-due-text"],
+    ["due", "warning"],
   ]) {
     assert.equal((styles.match(new RegExp(`--core-learning-status-${status}:\\s*var\\(--core-${role}\\)`, "g")) ?? []).length, 2);
   }

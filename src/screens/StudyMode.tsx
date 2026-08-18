@@ -575,7 +575,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
               <div className="text-center">
                 <CheckCircle2 className="mx-auto text-core-text" size={44} aria-hidden="true" />
                 <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Für jetzt geschafft</h1>
-                <p className="mt-3 text-[var(--core-text-muted)]">Die restlichen Lernkarten sind vorgemerkt und bleiben „In Arbeit“.</p>
+                <p className="mt-3 text-[var(--core-text-muted)]">Die restlichen Lernkarten sind vorgemerkt und bleiben „Offen“.</p>
                 {queue.limitSummary.reached ? <p className="mt-3 rounded-xl border border-core-warning bg-core-warning-soft px-4 py-3 core-body text-core-text" role="status">{limitSummaryText}</p> : null}
                 <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-11 items-center rounded-xl bg-[var(--core-action-primary)] px-5 core-body font-semibold text-[var(--core-text-on-accent)]">
                   Zurück zum Ausgangspunkt

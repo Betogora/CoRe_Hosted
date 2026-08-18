@@ -943,7 +943,7 @@ test("an ineligible FIFO repeat does not block a later eligible repeat", () => {
   assert.equal(next.sessionInfo.isEarlyRepeat, true);
 });
 
-test("a next-day learning step counts as completed today and returns to In Arbeit tomorrow", () => {
+test("a next-day learning step counts as completed today and returns to Offen tomorrow", () => {
   const deckId = "deck_next_day_progress";
   const now = new Date(2026, 6, 7, 23, 50, 0);
   const item = dailyProgressItem(deckId, "next_day", { state: "new", reps: 0, dueAt: now.toISOString() });
