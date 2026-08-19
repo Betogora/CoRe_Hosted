@@ -543,9 +543,8 @@ export function ManualCreationPanel({
           </ActionButton>
         </div>
 
-        <fieldset className="grid gap-2 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
-          <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Weitere Optionen</legend>
-          <div className="flex min-h-12 flex-wrap items-center justify-between gap-3">
+        <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <span className="core-body font-semibold text-[var(--core-text)]">Fragentyp</span>
             <CoreSegmentedControl
               ariaLabel="Fragentyp"
@@ -557,7 +556,7 @@ export function ManualCreationPanel({
               })}
             />
           </div>
-          <div className="flex min-h-12 flex-wrap items-center justify-between gap-3 border-t border-[var(--core-border)] pt-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <span className="core-body font-semibold text-[var(--core-text)]">Lernrichtung</span>
             <CoreSegmentedControl
               ariaLabel="Lernrichtung"
@@ -567,7 +566,7 @@ export function ManualCreationPanel({
               onValueChange={(value) => dispatchBatch({ type: "draft", patch: { cardType: value === "both" ? "basic-reversed" : "basic" } })}
             />
           </div>
-        </fieldset>
+        </div>
       </div>
 
       <div className="grid min-w-0 gap-4">

@@ -79,5 +79,5 @@ test("manual options use labeled segmented choices without explanatory subclaims
   assert.match(markup, />Lernrichtung</);
   assert.match(markup, /aria-label="Lernrichtung"[^>]*core-segmented-control/);
   assert.match(markup, />Beide Richtungen</);
-  assert.doesNotMatch(markup, /role="switch"|Antwortoptionen statt freier Antwort verwenden|Vorder- und Rückseite zusätzlich umgekehrt abfragen/);
+  assert.doesNotMatch(markup, /Weitere Optionen|role="switch"|Antwortoptionen statt freier Antwort verwenden|Vorder- und Rückseite zusätzlich umgekehrt abfragen/);
 });
