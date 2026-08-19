@@ -396,7 +396,11 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
   saveDraftRef.current = saveEditorValue;
 
   return (
-    <SoftPanel className="min-h-full rounded-none border-0 p-5 shadow-none sm:p-6">
+    <SoftPanel
+      data-testid="card-detail-editor"
+      className="min-h-full rounded-none border-0 p-5 shadow-none sm:p-6"
+      style={card.status === "suspended" ? { backgroundColor: "var(--core-warning-surface)" } : undefined}
+    >
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 ref={editorHeadingRef} tabIndex={-1} className="break-words core-heading-3 font-semibold text-[var(--core-text)] outline-none">Karte bearbeiten</h2>
@@ -1131,7 +1135,7 @@ export function DecksScreen({
           tabIndex={-1}
           aria-label="Kartendetail"
           data-testid="card-detail-aside"
-          className={`fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-[var(--core-border)] shadow-2xl focus:outline-none lg:w-1/2 ${selectedCard?.status === "suspended" ? "bg-[var(--core-warning-surface)]" : "bg-core-surface"}`}
+          className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-[var(--core-border)] bg-core-surface shadow-2xl focus:outline-none lg:w-1/2"
         >
         {selectedDeckMissing ? (
           <div className="grid min-h-full place-items-center p-6">
