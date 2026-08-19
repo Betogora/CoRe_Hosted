@@ -238,7 +238,7 @@ Neue Endpunkte brauchen einen expliziten Roadmap-Auftrag, Laufzeitvalidierung, A
 - Sicher unterstützte statische Templates laufen über `renderLearningItemPresentation()`. Script, externe Ressourcen und unbekannte Filter werden nicht ausgeführt; die Definition und alle Quellwerte bleiben erhalten und die Präsentation wechselt mit Diagnose in die geordnete Feldansicht.
 - Der Hauptbericht zeigt nutzerrelevante Ergebnisse; Notetype-IDs, SHA-1-Listen und Importidentitäten werden nicht dargestellt.
 
-Die Detailanalyse des Anki-Formats steht in [`anki-format-analysis.md`](anki-format-analysis.md).
+Die technische Referenz zum Anki-Format steht in [`anki-format-analysis.md`](anki-format-analysis.md).
 
 ## 9. Architekturänderungen
 

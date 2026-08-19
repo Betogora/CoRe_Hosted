@@ -1,91 +1,18 @@
 # CoRe TODO
 
-Stand: 2026-08-18
+Stand: 2026-08-19
 
-Dieses Dokument enthält ausschließlich offene, autorisierte Arbeit. `NOW`
-blockiert die begleitete Beta. `LATER` folgt danach auf dem Weg zur
-unbegleiteten Self-Service-Beta. Abgeschlossene Arbeit und Nachweise stehen in
+Dieses Dokument enthält ausschließlich die wenigen noch offenen Abnahmen vor
+der begleiteten Beta. Ausführbare Gates und Releaseabläufe stehen in
+[`operations.md`](operations.md), bekannte technische Grenzen in
+[`status.md`](status.md) und abgeschlossene Nachweise in
 [`history.md`](history.md).
 
-## NOW — Begleitete Beta freigeben
+## Vor der begleiteten Beta
 
-### Reviewabschluss
-
-- [ ] Am Sitzungsende die Ratingverteilung und die verbleibenden heutigen
-      Karten anzeigen.
-- [ ] Bei leerer Queue sichere Wege zu `Lernen`, Kartenerstellung und
-      Kartenverwaltung anbieten.
-- [ ] Sicherstellen, dass eine Offlinebewertung nach dem Reconnect genau ein
-      Reviewevent erzeugt.
-- [ ] Die vollständige Reviewjourney mit Reveal, Bewertung, Wiederholung und
-      Abschluss per Tastatur bedienbar machen.
-
-Abnahme:
-
-- [ ] Browsertests decken Summary, Empty State und Offline/Reconnect ab.
-- [ ] Intervallvorschau und gespeicherter Schedulerzustand bleiben identisch.
-- [ ] `npm run test:beta`, `npm run typecheck` und `npm run build` sind auf dem
-      Freigabe-Commit grün.
-
-### Barrierefreiheit und Betrieb
-
-- [ ] In den Kernjourneys alle kritischen und ernsten Axe-Findings beheben.
-- [ ] Review, Import, Kartenverwaltung und Fehlerzustände manuell mit einem
-      Screenreader prüfen.
+- [ ] Kernjourneys bei den Zielviewports sowie per Tastatur, Axe und
+      Screenreader abschließend abnehmen.
 - [ ] Datenbank- und Storage-Restore getrennt in einem vorgesehenen Testprojekt
       prüfen und in `history.md` dokumentieren.
 - [ ] Für mindestens ein Kernsignal realen Alarmempfang ohne Nutzerinhalte
       nachweisen.
-
-## LATER — Self-Service und Skalierung absichern
-
-### Kartenbrowser mit großen Sammlungen
-
-- [ ] Eine deterministische Fixture mit 1.000 Karten laden.
-- [ ] Karte 999 über eindeutigen Inhalt finden und öffnen.
-- [ ] Karte 999 bearbeiten, reloaden und erneut über Suche oder Direktlink
-      öffnen.
-- [ ] Die bestehende 50er-Pagination und Ergebnisnavigation vollständig per
-      Tastatur bedienen.
-- [ ] Die Journey bei 1280 × 720 ohne horizontalen Hauptscroll nutzbar halten.
-
-Abnahme:
-
-- [ ] Keine Karte wird still abgeschnitten.
-- [ ] Gleichnamige Unterstapel bleiben über ihren vollständigen Pfad eindeutig.
-- [ ] Fokus und URL-Selektion bleiben über Seitenwechsel und Reload stabil.
-
-### Performance-Härtung
-
-- [ ] Das bestehende Start- und Preload-Artefakt um deterministische 10k/250k- und
-      100k/1m-Fixtures erweitern und in das Release-Gate aufnehmen.
-- [ ] Browser-Quota, `QuotaExceededError`, frische IndexedDB-Erstellung
-      und Zwei-Geräte-Delta-Sync mit den 100k-/1m-Fixtures automatisiert
-      abnehmen.
-- [ ] Feld-p75/p95 und die Supabase-Exit-Gates instrumentieren.
-- [ ] Hosted-Volume oder Retention so dimensionieren, dass 100.000 Karten plus
-      1 Mio. physische `review_events` ohne `No space left on device` geladen
-      werden können; danach Rohdatenfixture und Bereinigung erneut nachweisen.
-- [ ] Die bereits einzeln mit Hosted-`EXPLAIN (ANALYZE, BUFFERS)` geprüften
-      Replica-v2-RPCs zusätzlich bei doppelter erwarteter Nutzerlast mit Query
-      Reports, DB-CPU und Connection-Pool abnehmen.
-
-### Recovery und native Replica
-
-- [ ] Automatische strukturierte Snapshots bei Änderungen sowie vor Import und
-      Restore mit gestaffelter Aufbewahrung, Vorschau und getrenntem
-      Storage-Recovery-Nachweis umsetzen.
-- [ ] Nach stabiler Web-Sync-Abnahme eine Tauri-2-App mit SQLite und
-      Dateisystem-Medien als vollständige lokale Account-Replica planen und
-      erst dann die gemeinsame IndexedDB-/SQLite-Schnittstelle extrahieren.
-
-### Self-Service-Freigabe
-
-- [ ] Alle vorherigen `NOW`- und `LATER`-Kriterien auf dem Freigabe-Commit
-      erfüllen.
-- [ ] Auf dem späteren Freigabe-Commit den Preview-Smoke und nach der Promotion
-      den kanonischen Production-Kurzsmoke mit Login, Accountladen, Review,
-      Sync/Reload und Logout durchführen; die staged Production dieses Branches
-      ist bereits in [`history.md`](history.md) belegt.
-- [ ] `npm run test:release`, Production-Build und Chunkbudgets auf demselben
-      Commit erfolgreich ausführen.

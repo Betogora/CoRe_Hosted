@@ -21,8 +21,7 @@ Diese Datei ist der Einstieg in die Projektdokumentation. Für jede kanonische R
 Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 
 - [`test-portfolio.md`](test-portfolio.md): ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.
-- [`anki-format-analysis.md`](anki-format-analysis.md): Detailanalyse von Anki/APKG, Templates, Medien und Learning Items.
-- [`anki-ecosystem-feature-radar.md`](anki-ecosystem-feature-radar.md): zeitgebundene externe Produktrecherche.
+- [`anki-format-analysis.md`](anki-format-analysis.md): technische Referenz zu Anki/APKG, Templates, Medien und Learning Items.
 - [`file-naming-conventions.md`](file-naming-conventions.md): Dateinamensregeln.
 - [`ui-elements.html`](ui-elements.html): teilbarer, fachlich kuratierter und technisch mit den kanonischen UI-Quellen synchronisierter visueller Elementkatalog.
 - [`card-types.html`](card-types.html): responsive Referenz der Reviewansichten für Basic, Basic umgekehrt, Lückentext und Multiple Choice.
