@@ -766,16 +766,19 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page.getByTestId("memory-visual-d")).toHaveAttribute("data-active", "true");
 
   await expect(page.getByTestId("memory-y-axis-break")).toBeVisible();
-  await expect(page.getByText("Ausschnitt 90–100 %", { exact: true })).toBeVisible();
+  await expect(page.getByText("Ausschnitt 90–100 %", { exact: true })).toHaveCount(0);
   await expect(page.getByText("x. Wiederholung · Variante", { exact: true })).toBeVisible();
 
+  const memoryCurve = page.getByTestId("memory-curve");
   const variantReview = page.getByTestId("memory-review-point-variant");
   const variantStar = page.getByTestId("memory-variant-star");
   await expect(variantReview).toHaveText("…");
-  const [variantReviewBox, variantStarBox] = await Promise.all([variantReview.boundingBox(), variantStar.boundingBox()]);
+  const [memoryCurveBox, variantReviewBox, variantStarBox] = await Promise.all([memoryCurve.boundingBox(), variantReview.boundingBox(), variantStar.boundingBox()]);
+  expect(memoryCurveBox).not.toBeNull();
   expect(variantReviewBox).not.toBeNull();
   expect(variantStarBox).not.toBeNull();
   expect(Math.abs((variantReviewBox!.x + variantReviewBox!.width / 2) - (variantStarBox!.x + variantStarBox!.width / 2))).toBeLessThanOrEqual(2);
+  expect(variantStarBox!.y + variantStarBox!.height).toBeLessThanOrEqual(memoryCurveBox!.y + (64 / 540) * memoryCurveBox!.height);
   expect(variantStarBox!.y + variantStarBox!.height).toBeLessThan(variantReviewBox!.y);
   await variantReview.focus();
   await expect(variantReview).toBeFocused();

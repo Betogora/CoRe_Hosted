@@ -608,8 +608,6 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             <text x="14" y="198" transform="rotate(-90 14 198)" textAnchor="middle" fill="var(--core-text-muted)" fontSize="14">R · Abrufwahrscheinlichkeit</text>
             <text x="64" y="98" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">100 %</text>
             <text x="64" y="253" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">90 %</text>
-            <text x="86" y="408" fill="var(--core-text-muted)" fontSize="13">Ausschnitt 90–100 %</text>
-
             <g data-testid="memory-y-axis-break" aria-hidden="true">
               <path d="M 64 382 L 80 372" stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
               <path d="M 64 395 L 80 385" stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
@@ -638,11 +636,10 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
                     opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.32}
                     className="transition-opacity duration-300 motion-reduce:transition-none"
                     data-testid={`memory-stability-arrow-${rating.id}`}
-                    data-arrowheads={index === 0 ? "both" : "left"}
+                    data-arrowheads="right"
                   >
                     <line x1={start} y1={arrowY} x2={end} y2={arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
-                    <path d={`M ${start + 9} ${arrowY - 6} L ${start} ${arrowY} L ${start + 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
-                    {index === 0 ? <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" /> : null}
+                    <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
                     <text x={(start + end) / 2} y={arrowY + 32} textAnchor="middle" fill={rating.color} fontSize="14" fontWeight="700">S{index + 1}</text>
                   </g>
                 );
@@ -671,7 +668,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             className="pointer-events-none absolute z-10 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center text-core-info transition-opacity duration-300 motion-reduce:transition-none"
             style={{
               left: `${(MEMORY_REVIEWS[1].reviewX / 960) * 100}%`,
-              top: `${(152 / 540) * 100}%`,
+              top: `${(44 / 540) * 100}%`,
               opacity: activeReviewId === null || activeReviewId === "variant" || activeParameterId === "d" ? 1 : 0.35,
             }}
             aria-hidden="true"

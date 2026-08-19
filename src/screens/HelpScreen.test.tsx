@@ -60,7 +60,7 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.match(markup, /Stabilität/);
   assert.match(markup, /Schwierigkeit/);
   assert.match(markup, /Zielerinnerung/);
-  assert.match(markup, /Ausschnitt 90–100 %/);
+  assert.doesNotMatch(markup, />Ausschnitt 90–100 %</);
   assert.match(markup, /data-testid="memory-variant-star"/);
   assert.match(markup, /Zwei diagonale Striche/);
   assert.doesNotMatch(markup, /Vereinfachtes Beispiel/);
@@ -81,8 +81,8 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.equal((markup.match(/data-testid="memory-review-point-/g) ?? []).length, 2);
   assert.equal((markup.match(/data-testid="memory-rating-path-/g) ?? []).length, 4);
   assert.equal((markup.match(/data-testid="memory-stability-arrow-/g) ?? []).length, 4);
-  assert.equal((markup.match(/data-arrowheads="left"/g) ?? []).length, 3);
-  assert.equal((markup.match(/data-arrowheads="both"/g) ?? []).length, 1);
+  assert.equal((markup.match(/data-arrowheads="right"/g) ?? []).length, 4);
+  assert.equal((markup.match(/data-arrowheads="left"|data-arrowheads="both"/g) ?? []).length, 0);
   assert.match(markup, />S1<\/text>[\s\S]*>S2<\/text>[\s\S]*>S3<\/text>[\s\S]*>S4<\/text>/);
   assert.match(markup, /x="220" y="318"[^>]*>Zielerinnerung R = 90 %<\/text>/);
   assert.match(markup, /data-testid="memory-review-point-variant"[\s\S]*<span aria-hidden="true">…<\/span>/);
