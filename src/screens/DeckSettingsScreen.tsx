@@ -1,6 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
-import { ArrowLeft, CalendarRange, Download, FolderPlus, Layers, Play, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarRange, Download, FolderPlus, Layers, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { DeckSettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeDeckAppearance } from "../coreModel.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
@@ -9,7 +9,7 @@ import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
 import { DeckAppearanceIcon, deckIconOptions, getDeckIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
-import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreModeControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { createDeckLearningSettingsDraft, createDeckSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual, type DeckLearningSettingsDraft, type DeckSettingsDraft } from "../settingsDraft.ts";
@@ -50,7 +50,7 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
   );
 }
 
-export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onStartDeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
+export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
   const initialDraft = deck ? createDeckSettingsDraft(deck) : null;
   const [baseline, setBaseline] = React.useState<DeckSettingsDraft | null>(initialDraft);
   const [draft, setDraft] = React.useState<DeckSettingsDraft | null>(initialDraft);
@@ -213,10 +213,12 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
             <label className="grid gap-2 core-body font-semibold text-core-muted">Farbe<ColorWheelPicker value={activeDraft.appearance.iconColor} ariaLabel="Farbe auswählen" className="justify-self-start" onValueCommit={(iconColor) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconColor }) } : current)} /></label>
           </div>
           {feedback ? <p className="core-status-error mt-3 core-body" role="alert">{feedback}</p> : null}
-          <div className="mt-6 grid gap-3 border-t border-core-border pt-5 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-end" data-testid="deck-settings-primary-controls">
             <ActionButton type="button" variant="secondary" icon={FolderPlus} className="justify-start" onClick={() => onRequestContextAction(() => onCreateSubdeck(deck.id))}>Unterstapel anlegen</ActionButton>
-            <ActionButton type="button" variant="secondary" icon={Play} className="justify-start" onClick={() => onRequestContextAction(() => onStartDeck(deck, false))}>Lernen</ActionButton>
-            <ActionButton type="button" variant="secondary" icon={Sparkles} className="justify-start" onClick={() => onRequestContextAction(() => onStartDeck(deck, true))}>Varianten lernen</ActionButton>
+            <div className="grid gap-2">
+              <span className="core-body font-semibold text-core-muted">CoRe-Modus</span>
+              <CoreModeControl value={activeDraft.learning.coreMode} onChange={(coreMode) => changeLearningDraft({ ...activeDraft.learning, coreMode })} />
+            </div>
             <ActionButton type="button" variant="destructive" icon={Trash2} className="justify-start" onClick={() => onRequestContextAction(() => setDeleteDialogOpen(true))}>Löschen</ActionButton>
           </div>
           {onDownloadDeck && onRemoveDeckDownload ? (

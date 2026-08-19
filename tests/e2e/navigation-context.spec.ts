@@ -113,13 +113,12 @@ async function completeReview(page: Page) {
   await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
 }
 
-async function startDeckFromCards(page: Page, deckId: string, variants = false) {
+async function startDeckFromCards(page: Page, deckId: string) {
   const returnCard = new URL(page.url()).searchParams.get("card");
-  const query = new URLSearchParams({ deck: deckId, returnView: "decks" });
+  const query = new URLSearchParams({ returnView: "decks", returnDeck: deckId });
   if (returnCard) query.set("returnCard", returnCard);
-  await page.goto(`/stapel-einstellungen?${query}`);
+  await page.goto(`/decks/${encodeURIComponent(deckId)}/review?${query}`);
   await waitForApp(page);
-  await page.getByRole("region", { name: "Stapel" }).getByRole("button", { name: variants ? "Varianten lernen" : "Lernen", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/decks/${deckId}/review\\?`));
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 }

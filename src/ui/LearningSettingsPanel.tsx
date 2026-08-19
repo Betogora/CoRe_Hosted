@@ -13,7 +13,7 @@ import {
 } from "../deckSettings.ts";
 import { createDeckLearningSettingsDraft, type DeckLearningSettingsDraft } from "../settingsDraft.ts";
 import { ActionButton } from "./actionUi.tsx";
-import { ActionDialog, CoreModeControl, SoftPanel } from "./coreUi.tsx";
+import { ActionDialog, SoftPanel } from "./coreUi.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
 import { CoreSelect } from "./selectUi.tsx";
 
@@ -104,7 +104,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onP
     setSelectedProfileId("custom");
   }
 
-  function editCore(patch: Partial<Pick<DeckLearningSettingsDraft, "coreMode" | "variantThresholdXp" | "maxActiveVariantsPerCard">>) {
+  function editCore(patch: Partial<Pick<DeckLearningSettingsDraft, "variantThresholdXp" | "maxActiveVariantsPerCard">>) {
     onDraftChange({ ...draft, ...patch });
   }
 
@@ -213,8 +213,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onP
           <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-5">
             <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Sparkles size={19} aria-hidden="true" />Content Repetition</legend>
             <p className="core-caption leading-5 text-core-muted">Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert.</p>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-2xl border border-core-border bg-core-surface p-4"><p className="mb-3 core-body font-semibold text-core-muted">CoRe-Modus</p><CoreModeControl value={draft.coreMode} onChange={(value) => editCore({ coreMode: value })} /></div>
+            <div className="grid gap-4 md:grid-cols-2">
               <SelectField label="Varianten einsetzen ab Lernstufe" value={draft.variantThresholdXp} options={variantThresholdOptions} testId="learning-settings-variant-threshold" onChange={(value) => editCore({ variantThresholdXp: Number(value) })} />
               <SelectField label="Aktive Varianten pro Karte" value={draft.maxActiveVariantsPerCard} options={activeVariantOptions} testId="learning-settings-active-variants" onChange={(value) => editCore({ maxActiveVariantsPerCard: Number(value) })} />
             </div>

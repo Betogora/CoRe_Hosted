@@ -380,6 +380,7 @@ test("deck presentation form saves name, icon and color together", async ({ page
   const colorTrigger = page.getByRole("button", { name: "Farbe auswählen" });
   const titleIcon = page.getByTestId("deck-settings-title-icon");
   const nameInput = page.getByRole("textbox", { name: "Stapelname" });
+  const primaryControls = page.getByTestId("deck-settings-primary-controls");
   const saveBar = page.getByTestId("settings-save-bar");
   const saveButton = saveBar.getByRole("button", { name: "Speichern" });
   await expect(iconTrigger).toHaveCSS("width", "44px");
@@ -387,6 +388,10 @@ test("deck presentation form saves name, icon and color together", async ({ page
   await expect(colorTrigger).toHaveCSS("width", "44px");
   await expect(colorTrigger).toHaveCSS("height", "44px");
   await expect(titleIcon).toBeVisible();
+  await expect(primaryControls.getByRole("group", { name: "CoRe-Modus" })).toBeVisible();
+  await expect(primaryControls.getByRole("button", { name: "Lernen", exact: true })).toHaveCount(0);
+  await expect(primaryControls.getByRole("button", { name: "Varianten lernen", exact: true })).toHaveCount(0);
+  await expect(primaryControls).toHaveCSS("border-top-width", "0px");
 
   await nameInput.fill("   ");
   await saveButton.click();
@@ -466,6 +471,7 @@ test("deck presentation form saves name, icon and color together", async ({ page
     await expect(page.getByTestId("deck-settings-title-name")).toBeVisible();
     await expect(nameInput).toBeVisible();
     await expect(page.getByRole("button", { name: "Name und Darstellung speichern" })).toHaveCount(0);
+    await expect.poll(() => primaryControls.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(viewport.width >= 768 ? 3 : 1);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
   await expect.poll(() => storedDeckPresentation(page, DECK_IDS.europe)).toMatchObject({

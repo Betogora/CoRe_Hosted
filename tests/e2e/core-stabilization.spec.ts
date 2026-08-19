@@ -802,9 +802,8 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
     ?.find((variant: { front: string }) => variant.front === "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?")?.back).toBe("Yamoussoukro");
 
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
-  await page.getByTestId(`deck-options-${DECK_IDS.africa}`).click();
-  await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
-  await page.getByRole("button", { name: "Varianten lernen", exact: true }).click();
+  await page.goto(`/decks/${DECK_IDS.africa}/review?variant=1&returnView=decks&returnDeck=${DECK_IDS.africa}`);
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
 

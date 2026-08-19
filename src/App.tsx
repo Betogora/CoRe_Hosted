@@ -1692,7 +1692,6 @@ export function App() {
           onDraftStateChange={handleSettingsDraftStateChange}
           onRequestContextAction={requestSettingsContextAction}
           onCreateSubdeck={openDeckCreation}
-          onStartDeck={startDeck}
           onDeleteDeck={async (deckId) => {
             const result = await deleteDeck(deckId);
             if (result) navigateToRoute(deckSettingsReturnRoute(null, true));
