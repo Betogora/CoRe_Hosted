@@ -36,7 +36,7 @@ export function AuthGateScreen({
   const isReset = mode === "reset";
   const isMagicLink = mode === "magic-link";
   const isRecovery = mode === "recovery";
-  const title = isRecovery ? "Neues Passwort setzen" : isMagicLink ? "Magic Link senden" : isReset ? "Passwort zurücksetzen" : isSignUp ? "Account erstellen" : "Bei CoRe anmelden";
+  const title = isRecovery ? "Neues Passwort setzen" : isMagicLink ? "Magic Link senden" : isReset ? "Passwort zurücksetzen" : isSignUp ? "Account erstellen" : "Login";
   const primaryLabel = isRecovery ? "Passwort speichern" : isMagicLink ? "Magic Link senden" : isReset ? "Reset-Link senden" : isSignUp ? "Account erstellen" : "Anmelden";
   const PrimaryIcon = isRecovery ? KeyRound : isMagicLink ? Link2 : isReset ? RotateCcw : isSignUp ? UserPlus : ShieldCheck;
   const needsEmail = !isRecovery;
@@ -74,10 +74,7 @@ export function AuthGateScreen({
           <SoftPanel className="core-auth-panel p-6">
             <div className="core-auth-heading mb-6 flex min-w-0 items-center gap-3">
               <OrbIcon icon={Lock} className="core-auth-heading-icon" />
-              <div className="min-w-0">
-                <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Login</p>
-                <h2 className="core-heading-2 break-words font-semibold text-[var(--core-text)]">{title}</h2>
-              </div>
+              <h2 className="core-heading-2 min-w-0 break-words font-semibold text-[var(--core-text)]">{title}</h2>
             </div>
 
             {!configured ? (
@@ -90,16 +87,16 @@ export function AuthGateScreen({
               {isSignUp ? (
                 <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   Anzeigename
-                  <input className="min-h-11 min-w-0 w-full max-w-full rounded-xl border border-[var(--core-border)] px-3" value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" />
+                  <input className="min-h-11 min-w-0 w-full max-w-full rounded-xl border border-[var(--core-border)] bg-[var(--core-surface)] px-3 text-[var(--core-text)]" value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" />
                 </label>
               ) : null}
 
               {needsEmail ? (
                 <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   E-Mail
-                  <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--core-border)] px-3">
+                  <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface)] px-3">
                     <Mail size={17} className="text-[var(--core-text-muted)]" aria-hidden="true" />
-                    <input className="min-w-0 flex-1 outline-none" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
+                    <input className="min-w-0 flex-1 bg-transparent text-[var(--core-text)] outline-none" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
                   </span>
                 </label>
               ) : null}
@@ -108,7 +105,7 @@ export function AuthGateScreen({
                 <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   {isRecovery ? "Neues Passwort" : "Passwort"}
                   <input
-                    className="min-h-11 min-w-0 w-full max-w-full rounded-xl border border-[var(--core-border)] px-3"
+                    className="min-h-11 min-w-0 w-full max-w-full rounded-xl border border-[var(--core-border)] bg-[var(--core-surface)] px-3 text-[var(--core-text)]"
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -123,7 +120,7 @@ export function AuthGateScreen({
                 <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                   Passwort wiederholen
                   <input
-                    className="min-h-11 min-w-0 w-full max-w-full rounded-xl border border-[var(--core-border)] px-3"
+                    className="min-h-11 min-w-0 w-full max-w-full rounded-xl border border-[var(--core-border)] bg-[var(--core-surface)] px-3 text-[var(--core-text)]"
                     type="password"
                     value={passwordRepeat}
                     onChange={(event) => setPasswordRepeat(event.target.value)}
@@ -154,9 +151,11 @@ export function AuthGateScreen({
 
             {!isRecovery ? (
               <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" onClick={() => setMode("sign-in")} className="core-body font-semibold text-[var(--core-action-primary)]" aria-pressed={!isSignUp && !isReset && !isMagicLink}>
-                  Anmelden
-                </button>
+                {mode !== "sign-in" ? (
+                  <button type="button" onClick={() => setMode("sign-in")} className="core-body font-semibold text-[var(--core-action-primary)]" aria-pressed={false}>
+                    Anmelden
+                  </button>
+                ) : null}
                 {showMagicLink ? (
                   <button type="button" onClick={() => setMode("magic-link")} className="core-body font-semibold text-[var(--core-action-primary)]" aria-pressed={isMagicLink}>
                     Magic Link
