@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 0f8bfae51d7aa4dc */
+/* Quellenstand: d101087107df9805 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -2091,6 +2091,22 @@ summary {
   border-color: var(--core-status-success-border);
   background: var(--core-status-success-bg);
   color: var(--core-status-success-text);
+}
+
+@keyframes core-success-toast-dismiss {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-0.375rem);
+  }
+}
+
+.core-success-toast {
+  animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
 }
 
 .core-status-warning {
