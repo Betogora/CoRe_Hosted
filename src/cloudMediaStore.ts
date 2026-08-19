@@ -35,8 +35,8 @@ interface SyncOptions {
   userId: string;
   decks: SyncDeckInput[];
   control: CloudMediaControl;
-  uploadFile?(file: CloudMediaFile, path: string): Promise<"uploaded" | "reused">;
-  onProgress?(progress: { completed: number; total: number; uploaded: number; reused: number; currentName: string }): void | Promise<void>;
+  uploadFile?(file: CloudMediaFile, path: string, onProgress: (processedBytes: number) => void): Promise<"uploaded" | "reused">;
+  onProgress?(progress: { completed: number; total: number; uploaded: number; reused: number; currentName: string; processedBytes: number; totalBytes: number }): void;
 }
 
 function nowIso() { return new Date().toISOString(); }
@@ -142,7 +142,7 @@ async function uploadSmall(client: any, file: CloudMediaFile, path: string) {
   return "reused" as const;
 }
 
-async function uploadLarge(client: any, supabaseUrl: string, userId: string, file: CloudMediaFile, path: string, control: CloudMediaControl) {
+async function uploadLarge(client: any, supabaseUrl: string, userId: string, file: CloudMediaFile, path: string, control: CloudMediaControl, onProgress: (processedBytes: number) => void) {
   if (!file.blob) throw mediaError("storage", "Für den Medien-Upload fehlen die Dateidaten.");
   const blob = file.blob;
   const { Upload } = await import("tus-js-client");
@@ -157,6 +157,7 @@ async function uploadLarge(client: any, supabaseUrl: string, userId: string, fil
       fingerprint: async () => ["core-media", userId, CORE_MEDIA_BUCKET, file.sha1, file.size].join("/"),
       metadata: { bucketName: CORE_MEDIA_BUCKET, objectName: path, contentType: file.mimeType, cacheControl: "3600" },
       onBeforeRequest: async (request) => { request.setHeader("Authorization", `Bearer ${await currentToken(client)}`); },
+      onProgress,
       onSuccess: () => { control.setActiveUpload(null); control.setCancelHandler(null); resolve("uploaded"); },
       onError: async (error) => {
         control.setActiveUpload(null); control.setCancelHandler(null);
@@ -220,8 +221,29 @@ async function retireStaleReferences(client: any, userId: string, previous: Medi
 
 export async function syncReferences({ client, supabaseUrl, userId, decks, control, uploadFile, onProgress }: SyncOptions) {
   const total = decks.reduce((sum, deck) => sum + deck.files.length, 0);
+  const totalBytes = decks.reduce((sum, deck) => sum + deck.files.reduce((deckSum, file) => deckSum + file.size, 0), 0);
   let completed = 0, uploaded = 0, reused = 0;
+  let completedBytes = 0, activeBytes = 0;
+  const inFlightBytes = new Map<CloudMediaFile, number>();
   const referencesByDeck = new Map<string, MediaAssetReference[]>();
+  const notifyProgress = (file: CloudMediaFile) => {
+    onProgress?.({
+      completed,
+      total,
+      uploaded,
+      reused,
+      currentName: file.name,
+      processedBytes: Math.min(totalBytes, completedBytes + activeBytes),
+      totalBytes,
+    });
+  };
+  const reportProgress = (file: CloudMediaFile, processedBytes: number) => {
+    const previousBytes = inFlightBytes.get(file) ?? 0;
+    const nextBytes = Math.min(Math.max(0, file.size - 1), Math.max(previousBytes, processedBytes));
+    activeBytes += nextBytes - previousBytes;
+    inFlightBytes.set(file, nextBytes);
+    notifyProgress(file);
+  };
   for (const deck of decks) {
     const references = new Map((deck.retainedReferences ?? []).map((reference) => [reference.id, reference]));
     const previousByKey = new Map(deck.previousReferences.map((reference) => [`${reference.sha1}\u0000${reference.cardId ?? ""}`, reference]));
@@ -241,10 +263,10 @@ export async function syncReferences({ client, supabaseUrl, userId, decks, contr
         outcome = "reused";
       } else {
         outcome = uploadFile
-          ? await uploadFile(file, path)
+          ? await uploadFile(file, path, (processedBytes) => reportProgress(file, processedBytes))
           : file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES
             ? await uploadSmall(client, file, path)
-            : await uploadLarge(client, supabaseUrl, userId, file, path, control);
+            : await uploadLarge(client, supabaseUrl, userId, file, path, control, (processedBytes) => reportProgress(file, processedBytes));
         if (outcome === "uploaded" && !uploadFile) await verifyStoredObject(client, path, file.size);
       }
       if (control.isCancelled()) {
@@ -254,8 +276,11 @@ export async function syncReferences({ client, supabaseUrl, userId, decks, contr
         throw mediaError("cancelled", "Der Medien-Upload wurde abgebrochen.");
       }
       const oldReference = previousByKey.get(`${sha1}\u0000${file.cardId ?? ""}`) ?? previousByHash.get(sha1);
+      activeBytes -= inFlightBytes.get(file) ?? 0;
+      inFlightBytes.delete(file);
+      completedBytes += file.size;
       completed += 1; outcome === "uploaded" ? uploaded += 1 : reused += 1;
-      await onProgress?.({ completed, total, uploaded, reused, currentName: file.name });
+      notifyProgress(file);
       return file.createReference === false
         ? null
         : toRow(file, userId, deck.deckId, matchingObject?.storage_path ?? path, oldReference);
@@ -271,7 +296,7 @@ export async function syncReferences({ client, supabaseUrl, userId, decks, contr
     await retireStaleReferences(client, userId, deck.previousReferences, new Set(references.keys()), deck.preserveObjects === true);
     referencesByDeck.set(deck.deckId, [...new Map([...(referencesByDeck.get(deck.deckId) ?? []), ...references.values()].map((reference) => [reference.id, reference])).values()]);
   }
-  return { referencesByDeck, completed, total, uploaded, reused };
+  return { referencesByDeck, completed, total, uploaded, reused, processedBytes: completedBytes, totalBytes };
 }
 
 export async function resolveReferences(client: any, references: MediaAssetReference[], expiresIn = 3_600) {

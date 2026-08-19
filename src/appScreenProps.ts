@@ -55,7 +55,7 @@ export interface CreationScreenProps {
   onTargetDeckChange: (deckId: string) => unknown;
   onCreated: (deck: Deck) => Promise<Deck | null>;
   onAppendManualCard: (deckId: string, input: ManualCardInput) => Promise<Deck | null>;
-  onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null) => void;
+  onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
   onSessionCompleted: (completion: { deckId: string; createdCount: number; kind: "import" | "manual" }) => void;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onReviewDeck: (deckId?: string | null) => void;

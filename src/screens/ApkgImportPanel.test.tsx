@@ -14,7 +14,7 @@ test("cloud-pending APKG session never projects a finished import", () => {
     subscribe() { return () => undefined; },
   };
   const mediaTask: any = {
-    progress: { completed: 0, total: 1, uploaded: 0, reused: 0, currentName: "" },
+    progress: { completed: 0, total: 1, uploaded: 0, reused: 0, currentName: "", processedBytes: 0, totalBytes: 1 },
     queued: Promise.resolve(),
     result: new Promise(() => undefined),
     async pause() {},

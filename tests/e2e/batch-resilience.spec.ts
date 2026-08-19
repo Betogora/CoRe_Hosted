@@ -92,6 +92,42 @@ async function openManualCreation(page: Page) {
   await page.getByRole("button", { name: /Karte selbst erstellen/ }).click();
 }
 
+async function enterManualImageCard(page: Page, prefix: string, name: string, buffer: Buffer | null) {
+  await openManualCreation(page);
+  await chooseCoreSelectOption(page, page.getByRole("combobox", { name: "Kartenstapel" }), "Batch-Ziel");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill(`${prefix} Bildfrage`);
+  await page.getByRole("textbox", { name: "Rückseite" }).fill(`${prefix} Bildantwort`);
+  const input = page.locator('input[type="file"][accept="image/*"]').first();
+  if (buffer) {
+    await input.setInputFiles({ name, mimeType: "image/png", buffer });
+    return;
+  }
+  await input.evaluate(async (element, fileName) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1_920;
+    canvas.height = 1_080;
+    const pixels = new Uint32Array(canvas.width * canvas.height);
+    let value = 0x12345678;
+    for (let index = 0; index < pixels.length; index += 1) {
+      value ^= value << 13; value ^= value >>> 17; value ^= value << 5;
+      pixels[index] = value;
+    }
+    canvas.getContext("2d")!.putImageData(new ImageData(new Uint8ClampedArray(pixels.buffer), canvas.width, canvas.height), 0, 0);
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((result) => result ? resolve(result) : reject(new Error("Testbild fehlt.")), "image/png"));
+    if (blob.size <= 6 * 1_024 * 1_024) throw new Error(`Testbild ist mit ${blob.size} Bytes zu klein.`);
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([blob], fileName, { type: "image/png" }));
+    (element as HTMLInputElement).files = transfer.files;
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  }, name);
+}
+
+async function clickManualSaveTwice(page: Page) {
+  const button = page.getByTestId("manual-save-button");
+  await button.evaluate((element) => { (element as HTMLButtonElement).click(); (element as HTMLButtonElement).click(); });
+  return button;
+}
+
 test.beforeEach(async ({ page }) => {
   await seedAccount();
   await resetToFreshLocalState(page, { resetCloud: false });
@@ -185,6 +221,69 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await leaveDialog.getByRole("button", { name: "Verwerfen und verlassen" }).click();
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeFocused();
+});
+
+test("[Vertrag: große manuelle Bilder] Speichern bleibt exklusiv und zeigt Byte-Fortschritt", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await enterManualImageCard(page, "Große", "großes-bild.png", null);
+
+  let releaseUpload!: () => void;
+  const uploadReleased = new Promise<void>((resolve) => { releaseUpload = resolve; });
+  let heldUploadResponse = false;
+  await page.route("**/storage/v1/upload/resumable**", async (route) => {
+    const response = await route.fetch();
+    if (!heldUploadResponse) {
+      heldUploadResponse = true;
+      await uploadReleased;
+    }
+    await route.fulfill({ response });
+  });
+
+  try {
+    const saveButton = await clickManualSaveTwice(page);
+    const progress = page.getByTestId("manual-save-progress");
+    await expect(progress).toBeVisible();
+    await expect(saveButton).toBeDisabled();
+    await expect(saveButton).toHaveAttribute("aria-busy", "true");
+    await expect(page.getByTestId("manual-draft-controls")).toHaveAttribute("inert", "");
+    await expect(page.getByRole("button", { name: "Fertig" })).toBeDisabled();
+    await expect.poll(() => heldUploadResponse).toBe(true);
+    await expect(progress).toContainText(/großes-bild\.png wird hochgeladen/);
+    await expect(progress).toContainText(/MB von .*MB/);
+    await expect.poll(async () => Number(await progress.getAttribute("aria-valuenow"))).toBeGreaterThan(20);
+    expect(await page.getByTestId("manual-save-progress-fill").evaluate((element) => getComputedStyle(element).transitionDuration)).toBe("0s");
+
+    await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+    await expect(progress).toBeFocused();
+    await expect(page.getByRole("dialog", { name: "Ungespeicherten Entwurf verlassen?" })).toHaveCount(0);
+
+    releaseUpload();
+    await expect(progress).toHaveAttribute("aria-valuenow", "100", { timeout: 30_000 });
+    await expect(page.locator('[data-success-toast-region="true"]')).toContainText("Karte wurde erfolgreich gespeichert.");
+    await expect(page.getByText("1 Karte in dieser Sitzung erstellt.")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Vorderseite" })).toBeFocused();
+    const state = await readActiveAccountState(page);
+    expect(state.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards).toHaveLength(2);
+  } finally {
+    releaseUpload();
+  }
+});
+
+test("[Vertrag: Offline-Medien] genau eine lokale Karte erhält eine eindeutige Sync-Warnung", async ({ page, context }) => {
+  await enterManualImageCard(page, "Offline", "offline-bild.png", Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"));
+
+  try {
+    await context.setOffline(true);
+    await clickManualSaveTwice(page);
+    const warning = "Karte und Bilder sind lokal gespeichert. Die Cloud-Synchronisierung wird automatisch fortgesetzt.";
+    await expect(page.getByRole("status").filter({ hasText: warning }).last()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Karte wurde erfolgreich gespeichert.", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("1 Karte in dieser Sitzung erstellt.")).toBeVisible();
+    const state = await readActiveAccountState(page);
+    expect(state.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards).toHaveLength(2);
+  } finally {
+    await context.setOffline(false);
+  }
 });
 
 test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und Auswirkungen bleiben sichtbar", async ({ page }) => {

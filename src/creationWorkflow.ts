@@ -10,7 +10,7 @@ import {
 import { findChoiceAnswerIndices, normalizeChoiceAnswerList } from "./choiceAnswers.ts";
 import { createAnchorFromSelection, createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "./documentModel.ts";
 import { appendPlainTextToCardHtml } from "./richText.ts";
-import { createAccountMediaStore, type MediaObjectUploadPlan, type MediaSyncResult, type MediaSyncTask } from "./mediaStore.ts";
+import { createAccountMediaStore, type MediaObjectUploadPlan, type MediaSyncProgress, type MediaSyncResult, type MediaSyncTask } from "./mediaStore.ts";
 import type { CardEditorValue, CardType, Deck, EditableCardType, ImportCommitGraph, LearningItem, SourceAnchor } from "./coreTypes.ts";
 import { LOCAL_APKG_MAX_BYTES, type ApkgImportReportV1 } from "./apkgImport.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
@@ -30,6 +30,10 @@ export interface ManualImageAttachment {
   size: number;
   mimeType: string;
   blob: Blob;
+}
+
+export interface ManualMediaSyncProgress extends MediaSyncProgress {
+  phase: "uploading" | "persisting-references";
 }
 
 interface ManualCreationInput {
@@ -248,6 +252,8 @@ function normalizeAnswerOptions(value: unknown): string[] {
 
 const SUPPORTED_MANUAL_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "single-choice", "multiple-choice"]);
 const SHA1_PATTERN = /^[a-f0-9]{40}$/;
+const DOWNSCALABLE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const FULL_HD_LANDSCAPE = { width: 1_920, height: 1_080 } as const;
 
 function normalizeManualCardType(cardType: unknown): EditableCardType {
   return typeof cardType === "string" && SUPPORTED_MANUAL_CARD_TYPES.has(cardType as CardType) ? cardType as EditableCardType : "basic";
@@ -260,6 +266,42 @@ function normalizeChoiceData(input: ManualCreationInput = {}, answerOptions: str
     correctAnswers,
     correctOptionIndices: findChoiceAnswerIndices(answerOptions, correctAnswers),
   };
+}
+
+function fullHdImageSize(width: number, height: number) {
+  const bounds = width >= height ? FULL_HD_LANDSCAPE : { width: FULL_HD_LANDSCAPE.height, height: FULL_HD_LANDSCAPE.width };
+  const scale = Math.min(1, bounds.width / width, bounds.height / height);
+  return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
+}
+
+async function downscaleManualImage(file: Blob): Promise<Blob> {
+  if (!DOWNSCALABLE_IMAGE_TYPES.has(file.type) || typeof globalThis.createImageBitmap !== "function" || typeof document === "undefined") return file;
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await globalThis.createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch {
+    throw new Error("Das Bild konnte nicht gelesen werden.");
+  }
+  const size = fullHdImageSize(bitmap.width, bitmap.height);
+  if (size.width === bitmap.width && size.height === bitmap.height) {
+    bitmap.close();
+    return file;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = size.width;
+  canvas.height = size.height;
+  try {
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Das Bild konnte nicht verkleinert werden.");
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(bitmap, 0, 0, size.width, size.height);
+  } finally {
+    bitmap.close();
+  }
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Das Bild konnte nicht verkleinert werden.")), file.type, 0.9);
+  });
 }
 
 function normalizeManualImageAttachment(value: unknown): ManualImageAttachment | null {
@@ -368,43 +410,71 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       if (!globalThis.crypto?.subtle) {
         throw new Error("Das Bild kann in diesem Browser nicht sicher verarbeitet werden.");
       }
-      const digest = await globalThis.crypto.subtle.digest("SHA-1", await file.arrayBuffer());
+      const image = await downscaleManualImage(file);
+      const digest = await globalThis.crypto.subtle.digest("SHA-1", await image.arrayBuffer());
       const sha1 = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
       return {
         sha1,
         name: sha1,
         originalName: String(file.name ?? "Eingefügtes Bild"),
-        size: file.size,
-        mimeType: file.type,
-        blob: file,
+        size: image.size,
+        mimeType: image.type || file.type,
+        blob: image,
       };
     },
 
-    async syncManualMedia(deck: Deck, attachments: Array<ManualImageAttachment | null | undefined>) {
-      const uniqueAttachments = [...new Map(
-        attachments
-          .map(normalizeManualImageAttachment)
-          .filter((attachment): attachment is ManualImageAttachment => Boolean(attachment))
-          .map((attachment) => [attachment.sha1, attachment]),
-      ).values()];
-      if (uniqueAttachments.length === 0) {
-        return { deck, status: "cloud-ready" as const, message: "", errors: [] as string[] };
+    async prepareManualMedia(deck: Deck, attachments: Array<ManualImageAttachment | null | undefined>) {
+      const unique = new Map<string, ManualImageAttachment>();
+      for (const value of attachments) {
+        if (!value) continue;
+        const attachment = normalizeManualImageAttachment(value);
+        if (!attachment) throw new Error("Mindestens ein Bild enthält ungültige Dateidaten.");
+        unique.set(attachment.sha1, attachment);
       }
+      const prepared = [...unique.values()];
+      if (prepared.length === 0) return prepared;
+      const cached = await mediaStore.cachePreviewMedia(deck, prepared);
+      if (cached.count !== prepared.length) {
+        throw new Error(cached.errors[0] || "Mindestens ein Bild konnte nicht lokal gespeichert werden.");
+      }
+      return prepared;
+    },
+
+    async syncManualMedia(deck: Deck, attachments: ManualImageAttachment[], options: { onProgress?: (progress: ManualMediaSyncProgress) => void } = {}) {
+      if (attachments.length === 0) return { deck, status: "cloud-ready" as const, message: "", errors: [] };
       try {
-        const cached = await mediaStore.cachePreviewMedia(deck, uniqueAttachments);
-        const result = await mediaStore.syncImportMedia([deck]).result;
+        const originalNames = new Map(attachments.map((attachment) => [attachment.name, attachment.originalName]));
+        const result = await mediaStore.syncImportMedia([deck], {
+          onProgress(progress) {
+            options.onProgress?.({
+              ...progress,
+              phase: "uploading",
+              currentName: originalNames.get(progress.currentName) ?? progress.currentName,
+            });
+          },
+        }).result;
         const references = result.referencesByDeck.get(deck.id);
-        const updatedDeck = references ? { ...deck, mediaAssets: references } : deck;
+        let updatedDeck = references ? { ...deck, mediaAssets: references } : deck;
         if (references) {
+          options.onProgress?.({ ...result.progress, phase: "persisting-references", currentName: "" });
           const persisted = await persistImportedDecks([updatedDeck], { mediaOnly: true });
-          await persisted.cloudTask.ready;
+          updatedDeck = persisted.decks.find((candidate) => candidate.id === deck.id) ?? updatedDeck;
+          const referenceResult = await persisted.cloudTask.retry();
+          if (referenceResult.status !== "cloud-ready") {
+            return {
+              deck: updatedDeck,
+              status: referenceResult.status === "blocked" ? "blocked" as const : "local-pending" as const,
+              message: referenceResult.message,
+              errors: [],
+            };
+          }
         }
-        return { deck: updatedDeck, status: result.status, message: result.message, errors: cached.errors };
+        return { deck: updatedDeck, status: result.status, message: result.message, errors: [] };
       } catch (error) {
         return {
           deck,
           status: "blocked" as const,
-          message: "Die Karte wurde gespeichert, aber mindestens ein Bild konnte nicht im Medienspeicher abgelegt werden.",
+          message: "Die Karte ist lokal gespeichert, aber die Medienverknüpfung konnte nicht vollständig gespeichert werden.",
           errors: [describeError(error, "Bild konnte nicht gespeichert werden.")],
         };
       }

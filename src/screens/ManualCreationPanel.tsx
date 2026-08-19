@@ -8,7 +8,7 @@ import {
   type ManualFocusTarget,
 } from "../creationBatch.ts";
 import { applyLearningItemContent } from "../coreModel.ts";
-import type { CreationWorkflow, ManualImageAttachment } from "../creationWorkflow.ts";
+import type { CreationWorkflow, ManualImageAttachment, ManualMediaSyncProgress } from "../creationWorkflow.ts";
 import type { CardEditorFieldErrors, Deck, SourceDocument } from "../coreTypes.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
@@ -30,6 +30,7 @@ type ManualCreationWorkflow = Pick<
   | "readableSourceDocumentLabel"
   | "readSourceDocument"
   | "prepareManualImage"
+  | "prepareManualMedia"
   | "syncManualMedia"
 >;
 type ManualCreationInput = NonNullable<Parameters<ManualCreationWorkflow["createManualDeck"]>[0]>;
@@ -37,6 +38,7 @@ type ManualDeckInput = ReturnType<ManualCreationWorkflow["createManualDeckInput"
 type PdfSelectionOptions = Parameters<NonNullable<React.ComponentProps<typeof PdfDocumentViewer>["onSelection"]>>[1];
 type ActiveField = "front" | "back";
 type AdditionalField = { id: string; name: string; value: string; placement: "front" | "back" | "both" | "metadata" };
+type ManualSaveProgress = { label: string; percent: number };
 const FIELD_PLACEMENT_OPTIONS = [
   { value: "front", label: "Vorderseite" },
   { value: "back", label: "Rückseite" },
@@ -63,7 +65,7 @@ export interface ManualCreationPanelProps {
   onAppendManualCard: (deckId: string, input: ManualDeckInput) => Promise<Deck | null>;
   onTargetDeckChange?: (deckId: string) => unknown;
   onFinish?: (result: { createdCount: number; targetDeckId: string; lastSavedCardId: string | null }) => void;
-  onDraftStateChange?: (dirty: boolean, focusDraft: (() => void) | null) => void;
+  onDraftStateChange?: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
 }
 
 interface PinFieldButtonProps {
@@ -207,6 +209,8 @@ export function ManualCreationPanel({
   const internalSourceInputRef = React.useRef<HTMLInputElement | null>(null);
   const resolvedSourceInputRef = sourceInputRef ?? internalSourceInputRef;
   const editorRootRef = React.useRef<HTMLDivElement | null>(null);
+  const saveProgressRef = React.useRef<HTMLDivElement | null>(null);
+  const saveInFlightRef = React.useRef(false);
   const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
   const targetDeckMissing = Boolean(initialTargetDeckId && !decks.some((deck) => deck.id === initialTargetDeckId));
   const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
@@ -224,7 +228,7 @@ export function ManualCreationPanel({
   const [documentObjectUrl, setDocumentObjectUrl] = React.useState("");
   const [documentText, setDocumentText] = React.useState("");
   const [status, setStatus] = React.useState("");
-  const [statusType, setStatusType] = React.useState<"status" | "alert">("status");
+  const [statusType, setStatusType] = React.useState<"status" | "warning" | "alert">("status");
   const setSuccessToast = useSuccessToast();
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
   const [frontImage, setFrontImage] = React.useState<ManualImageAttachment | null>(null);
@@ -233,6 +237,8 @@ export function ManualCreationPanel({
   const [imageErrors, setImageErrors] = React.useState<Record<ActiveField, string>>({ front: "", back: "" });
   const [additionalFields, setAdditionalFields] = React.useState<AdditionalField[]>([]);
   const [invalidAdditionalFieldIds, setInvalidAdditionalFieldIds] = React.useState<string[]>([]);
+  const [saveProgress, setSaveProgress] = React.useState<ManualSaveProgress | null>(null);
+  const isSaving = Boolean(saveProgress && saveProgress.percent < 100);
   React.useEffect(() => {
     if (decks.length === 0) setUseNewDeck(true);
   }, [decks.length]);
@@ -263,23 +269,27 @@ export function ManualCreationPanel({
     focusable?.focus();
   }, [activeField]);
 
+  const focusSaveProgress = React.useCallback(() => {
+    saveProgressRef.current?.focus();
+  }, []);
+
   const textDraftDirty = React.useMemo(() => !manualDraftsEqual(currentDraft, cleanDraftRef.current), [currentDraft]);
   const draftDirty = textDraftDirty || Boolean(frontImage || backImage || additionalFields.length);
 
   React.useEffect(() => {
-    onDraftStateChange(draftDirty, () => focusField());
-    return () => onDraftStateChange(false, null);
-  }, [draftDirty, focusField, onDraftStateChange]);
+    onDraftStateChange(draftDirty, isSaving ? focusSaveProgress : () => focusField(), isSaving);
+    return () => onDraftStateChange(false, null, false);
+  }, [draftDirty, focusField, focusSaveProgress, isSaving, onDraftStateChange]);
 
   React.useEffect(() => {
-    if (!draftDirty) return undefined;
+    if (!draftDirty && !isSaving) return undefined;
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [draftDirty]);
+  }, [draftDirty, isSaving]);
 
   async function handleDocument(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -416,7 +426,25 @@ export function ManualCreationPanel({
     setFieldErrors((current) => ({ ...current, correctOptionIndex: undefined, correctOptionIndices: undefined }));
   }
 
-  function recordSavedCard(deck: Deck, previousCardIds: Set<string>, mediaStatus?: { status: string; message: string; errors: string[] }) {
+  function reportManualMediaProgress(progress: ManualMediaSyncProgress) {
+    const persisting = progress.phase === "persisting-references";
+    const ratio = progress.totalBytes > 0
+      ? progress.processedBytes / progress.totalBytes
+      : progress.total > 0
+        ? progress.completed / progress.total
+        : 0;
+    const byteLabel = progress.totalBytes > 0
+      ? ` · ${formatBytes(progress.processedBytes)} von ${formatBytes(progress.totalBytes)}`
+      : "";
+    setSaveProgress((current) => ({
+      label: persisting
+        ? "Medienverknüpfung wird gespeichert"
+        : progress.currentName ? `${progress.currentName} wird hochgeladen${byteLabel}` : "Bilder werden hochgeladen",
+      percent: Math.max(current?.percent ?? 0, persisting ? 95 : Math.min(90, 20 + Math.round(Math.max(0, Math.min(1, ratio)) * 70))),
+    }));
+  }
+
+  function recordSavedCard(deck: Deck, previousCardIds: Set<string>, mediaStatus: { status: string; message: string }) {
     const savedCard = (deck.cards ?? []).find((card) => !previousCardIds.has(card.id)) ?? deck.cards.at(-1);
     if (!savedCard) return;
     const nextState = reduceManualBatchSession(batchState, { type: "saved", cardId: savedCard.id, targetDeckId: deck.id });
@@ -430,64 +458,95 @@ export function ManualCreationPanel({
     setFieldErrors({});
     const nextFocus = nextManualFocusTarget(nextState);
     setActiveField(nextFocus === "back" ? "back" : "front");
-    setStatusType(mediaStatus?.status === "blocked" || mediaStatus?.status === "partial" ? "alert" : "status");
-    setStatus(mediaStatus?.message || mediaStatus?.errors[0] || "");
-    setSuccessToast("Karte wurde erfolgreich gespeichert.");
     window.requestAnimationFrame(() => focusField(nextFocus));
+    const pending = mediaStatus.status === "local-pending";
+    const failed = !pending && mediaStatus.status !== "cloud-ready";
+    setStatusType(failed ? "alert" : pending ? "warning" : "status");
+    setStatus(failed
+      ? mediaStatus.message || "Die Karte ist lokal gespeichert, aber mindestens ein Bild ist unvollständig."
+      : pending ? "Karte und Bilder sind lokal gespeichert. Die Cloud-Synchronisierung wird automatisch fortgesetzt." : "");
+    setSuccessToast(failed || pending ? "" : "Karte wurde erfolgreich gespeichert.");
   }
 
   async function saveManualCard() {
-    const normalizedFieldNames = additionalFields.map((field) => field.name.trim().toLocaleLowerCase("de-DE"));
-    const invalidFieldIds = additionalFields
-      .filter((field, index) => !normalizedFieldNames[index] || normalizedFieldNames.filter((name) => name === normalizedFieldNames[index]).length > 1)
-      .map((field) => field.id);
-    if (invalidFieldIds.length) {
-      setSuccessToast("");
-      setInvalidAdditionalFieldIds(invalidFieldIds);
-      setStatusType("alert");
-      setStatus("Zusatzfelder benötigen eindeutige Namen.");
-      window.requestAnimationFrame(() => editorRootRef.current?.querySelector<HTMLElement>(`[data-additional-field-name="${invalidFieldIds[0]}"]`)?.focus());
-      return;
-    }
-    setInvalidAdditionalFieldIds([]);
-    const validation = workflow.validateManualCard(manualInput());
-    if (!validation.ok) {
-      setSuccessToast("");
-      setFieldErrors(validation.errors);
-      setStatusType("alert");
-      setStatus("Bitte die markierten Felder prüfen.");
-      const firstInvalidTarget: ManualFocusTarget = validation.errors.front || validation.errors.question || validation.errors.textWithClozes
-        ? "front"
-        : validation.errors.options || validation.errors.correctOptionIndex || validation.errors.correctOptionIndices
-          ? "option-0"
-          : "back";
-      setActiveField(firstInvalidTarget === "front" ? "front" : "back");
-      window.requestAnimationFrame(() => focusField(firstInvalidTarget));
-      return;
-    }
+    if (saveInFlightRef.current) return;
+    saveInFlightRef.current = true;
     try {
-      const input = manualInput();
-      if (!useNewDeck && selectedDeckId) {
-        const previousCardIds = new Set(decks.find((deck) => deck.id === selectedDeckId)?.cards.map((card) => card.id) ?? []);
-        const updatedDeck = await onAppendManualCard(selectedDeckId, workflow.createManualDeckInput(input));
-        if (updatedDeck) {
-          const mediaResult = await workflow.syncManualMedia(updatedDeck, [frontImage, backImage]);
-          recordSavedCard(mediaResult.deck, previousCardIds, mediaResult);
-        }
+      const normalizedFieldNames = additionalFields.map((field) => field.name.trim().toLocaleLowerCase("de-DE"));
+      const invalidFieldIds = additionalFields
+        .filter((field, index) => !normalizedFieldNames[index] || normalizedFieldNames.filter((name) => name === normalizedFieldNames[index]).length > 1)
+        .map((field) => field.id);
+      if (invalidFieldIds.length) {
+        setSuccessToast("");
+        setInvalidAdditionalFieldIds(invalidFieldIds);
+        setStatusType("alert");
+        setStatus("Zusatzfelder benötigen eindeutige Namen.");
+        window.requestAnimationFrame(() => editorRootRef.current?.querySelector<HTMLElement>(`[data-additional-field-name="${invalidFieldIds[0]}"]`)?.focus());
+        return;
+      }
+      setInvalidAdditionalFieldIds([]);
+      const snapshot = {
+        ...manualInput(),
+        answerOptions: [...answerOptions],
+        additionalFields: additionalFields.map((field) => ({ ...field })),
+      } satisfies ManualCreationInput;
+      const validation = workflow.validateManualCard(snapshot);
+      if (!validation.ok) {
+        setSuccessToast("");
+        setFieldErrors(validation.errors);
+        setStatusType("alert");
+        setStatus("Bitte die markierten Felder prüfen.");
+        const firstInvalidTarget: ManualFocusTarget = validation.errors.front || validation.errors.question || validation.errors.textWithClozes
+          ? "front"
+          : validation.errors.options || validation.errors.correctOptionIndex || validation.errors.correctOptionIndices
+            ? "option-0"
+            : "back";
+        setActiveField(firstInvalidTarget === "front" ? "front" : "back");
+        window.requestAnimationFrame(() => focusField(firstInvalidTarget));
         return;
       }
 
-      const deck = workflow.createManualDeck(input);
-      const createdResult = await onCreated(deck);
-      const createdDeck = createdResult && typeof createdResult === "object" && "cards" in createdResult ? createdResult as Deck : deck;
-      const mediaResult = await workflow.syncManualMedia(createdDeck, [frontImage, backImage]);
-      setUseNewDeck(false);
-      onTargetDeckChange(mediaResult.deck.id);
-      recordSavedCard(mediaResult.deck, new Set(), mediaResult);
+      const creatingDeck = useNewDeck;
+      const targetDeck = creatingDeck ? workflow.createManualDeck(snapshot) : decks.find((deck) => deck.id === selectedDeckId) ?? null;
+      if (!targetDeck) throw new Error("Der gewählte Kartenstapel ist nicht mehr verfügbar.");
+      const attachmentSnapshot = [snapshot.frontImage, snapshot.backImage];
+      const hasAttachments = attachmentSnapshot.some(Boolean);
+      setSuccessToast("");
+      setStatus("");
+      setSaveProgress({
+        label: hasAttachments ? "Bilder werden lokal gesichert" : "Karte wird lokal gespeichert",
+        percent: hasAttachments ? 5 : 15,
+      });
+      const preparedMedia = await workflow.prepareManualMedia(targetDeck, attachmentSnapshot);
+      setSaveProgress((current) => ({
+        label: "Karte wird lokal gespeichert",
+        percent: Math.max(current?.percent ?? 0, 15),
+      }));
+
+      const previousCardIds = new Set(creatingDeck ? [] : targetDeck.cards.map((card) => card.id));
+      const saved = creatingDeck
+        ? await onCreated(targetDeck)
+        : await onAppendManualCard(selectedDeckId, workflow.createManualDeckInput(snapshot));
+      if (!saved || typeof saved !== "object" || !("cards" in saved)) throw new Error("Karte konnte nicht lokal gespeichert werden.");
+      const locallySavedDeck = saved as Deck;
+      if (creatingDeck) {
+        setUseNewDeck(false);
+        onTargetDeckChange(locallySavedDeck.id);
+      }
+
+      const mediaResult = await workflow.syncManualMedia(locallySavedDeck, preparedMedia, { onProgress: reportManualMediaProgress });
+      setSaveProgress({
+        label: "Speichervorgang abgeschlossen",
+        percent: 100,
+      });
+      recordSavedCard(mediaResult.deck, previousCardIds, mediaResult);
     } catch (error) {
+      setSaveProgress(null);
       setSuccessToast("");
       setStatusType("alert");
       setStatus(error instanceof Error ? error.message : "Karte konnte nicht gespeichert werden.");
+    } finally {
+      saveInFlightRef.current = false;
     }
   }
 
@@ -526,7 +585,8 @@ export function ManualCreationPanel({
   const sourceFileName = document?.fileName ?? "Keine Datei ausgewählt";
 
   const editor = (
-    <div ref={editorRootRef} className="grid min-w-0 gap-4">
+    <div ref={editorRootRef} className="grid min-w-0 gap-4" aria-busy={isSaving || undefined}>
+      <div data-testid="manual-draft-controls" className="grid min-w-0 gap-4" inert={isSaving} aria-disabled={isSaving || undefined}>
       <div className="grid min-w-0 gap-4">
         <div className="grid min-w-0 gap-3">
           <div className="flex flex-wrap items-end gap-3">
@@ -735,29 +795,58 @@ export function ManualCreationPanel({
           }])}>Feld hinzufügen</ActionButton>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+      <div className="grid gap-4">
         <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           Tags
           <input className="min-h-11 rounded-xl border border-[var(--core-border)] px-3" value={tags} onChange={(event) => dispatchBatch({ type: "draft", patch: { tags: event.target.value } })} placeholder="biologie zelle prüfung" />
         </label>
-        <div className="flex flex-wrap items-end gap-2">
-          <ActionButton type="button" variant="primary" icon={Database} disabled={Boolean(preparingImage)} onClick={() => void saveManualCard()}>Originalkarte speichern</ActionButton>
-          <ActionButton
-            type="button"
-            variant="secondary"
-            disabled={batchState.createdCount === 0}
-            onClick={() => onFinish({
-              createdCount: batchState.createdCount,
-              targetDeckId: batchState.targetDeckId,
-              lastSavedCardId: batchState.lastSavedCardId,
-            })}
-          >
-            Fertig
-          </ActionButton>
+      </div>
+      </div>
+      {saveProgress ? (
+        <div
+          ref={saveProgressRef}
+          className="relative overflow-hidden rounded-xl border border-[var(--core-border)] bg-core-surface p-4 outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2"
+          data-testid="manual-save-progress"
+          role="progressbar"
+          aria-label="Fortschritt der Kartenspeicherung"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={saveProgress.percent}
+          aria-valuetext={`${saveProgress.label} · ${saveProgress.percent} Prozent`}
+          aria-live="polite"
+          tabIndex={-1}
+        >
+          <span
+            data-testid="manual-save-progress-fill"
+            className="pointer-events-none absolute inset-y-0 left-0 bg-[var(--core-surface-muted)] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+            style={{ width: `${saveProgress.percent}%` }}
+            aria-hidden="true"
+          />
+          <div className="relative flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <p className="min-w-0 break-words core-body font-semibold text-[var(--core-text)]">{saveProgress.label}</p>
+            <p className="shrink-0 core-body font-semibold text-[var(--core-text)]">{saveProgress.percent} %</p>
+          </div>
         </div>
+      ) : null}
+      <div className="flex flex-wrap items-end gap-2">
+        <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Database} loading={isSaving} disabled={Boolean(preparingImage) || isSaving} onClick={() => void saveManualCard()}>
+          {isSaving ? "Karte wird gespeichert" : "Originalkarte speichern"}
+        </ActionButton>
+        <ActionButton
+          type="button"
+          variant="secondary"
+          disabled={batchState.createdCount === 0 || isSaving}
+          onClick={() => onFinish({
+            createdCount: batchState.createdCount,
+            targetDeckId: batchState.targetDeckId,
+            lastSavedCardId: batchState.lastSavedCardId,
+          })}
+        >
+          Fertig
+        </ActionButton>
       </div>
       <p className="core-body font-medium text-[var(--core-text-muted)]">{batchState.createdCount} {batchState.createdCount === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.</p>
-      {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : "core-status-info"}`} role={statusType} aria-live="polite">{status}</p> : null}
+      {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : statusType === "warning" ? "core-status-warning" : "core-status-info"}`} role={statusType === "alert" ? "alert" : "status"} aria-live="polite">{status}</p> : null}
       <CardPreviewDialog
         open={previewOpen}
         item={previewBundle?.item}
@@ -777,7 +866,7 @@ export function ManualCreationPanel({
           <OrbIcon icon={PenLine} className="bg-core-info-soft text-core-text" />
           <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">Karte selbst erstellen</h2>
         </div>
-        <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} onClick={() => setPreviewOpen(true)}>
+        <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} disabled={isSaving} onClick={() => setPreviewOpen(true)}>
           Vorschau
         </ActionButton>
         <input ref={resolvedSourceInputRef} className="sr-only" type="file" accept={workflow.readableSourceDocumentAccept} onChange={handleDocument} />
@@ -785,7 +874,7 @@ export function ManualCreationPanel({
 
       {showDocumentMode ? (
         <div className="grid gap-5 xl:grid-cols-2">
-          <div className="grid content-start gap-4">
+          <div className="grid content-start gap-4" inert={isSaving} aria-disabled={isSaving || undefined}>
             <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
               <span>Quelle ({workflow.readableSourceDocumentLabel})</span>
               <button type="button" onClick={openSourcePicker} className="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--core-border)] px-3 text-left text-[var(--core-text-muted)] hover:border-[var(--core-border-interactive)] hover:bg-core-surface">

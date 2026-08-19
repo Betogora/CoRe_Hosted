@@ -196,6 +196,7 @@ export function App() {
   const [focusedDeckBodyCache, setFocusedDeckBodyCache] = React.useState<{ total: number; cached: number; downloaded: number } | null>(null);
   const [apkgImportSession, setApkgImportSessionState] = React.useState<ApkgImportSession>(() => createEmptyApkgImportSession());
   const creationDraftDirtyRef = React.useRef(false);
+  const creationSavingRef = React.useRef(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const settingsDraftGuardRef = React.useRef<SettingsDraftGuard | null>(null);
   const [settingsDraftOpen, setSettingsDraftOpen] = React.useState(false);
@@ -445,6 +446,10 @@ export function App() {
   }, [cloudUser?.id, pomodoroTimer, setSuccessToast]);
 
   const navigateToView = React.useCallback((...args: Parameters<typeof navigateToViewNow>) => {
+    if (activeView === "neue-karten" && creationSavingRef.current) {
+      creationDraftFocusRef.current?.();
+      return createViewRoute(activeView);
+    }
     if (activeView === "neue-karten" && creationDraftDirtyRef.current) {
       setPendingNavigation({ source: "creation", run: () => { navigateToViewNow(...args); } });
       return createViewRoute(activeView);
@@ -456,9 +461,10 @@ export function App() {
     return navigateToViewNow(...args);
   }, [activeView, navigateToViewNow]);
 
-  const handleCreationDraftStateChange = React.useCallback((dirty: boolean, focusDraft: (() => void) | null) => {
+  const handleCreationDraftStateChange = React.useCallback((dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => {
     creationDraftDirtyRef.current = dirty;
     creationDraftFocusRef.current = focusDraft;
+    creationSavingRef.current = saving;
   }, []);
 
   const handleCardDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {

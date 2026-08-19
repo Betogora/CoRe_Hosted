@@ -14,6 +14,40 @@ async function worldCapitalsApkgFile() {
   };
 }
 
+const MANUAL_MEDIA_HASH = "0123456789abcdef0123456789abcdef01234567";
+
+function manualAttachment(originalName: string, size = 1) {
+  return {
+    sha1: MANUAL_MEDIA_HASH,
+    name: MANUAL_MEDIA_HASH,
+    originalName,
+    size,
+    mimeType: "image/png",
+    blob: new Blob([new Uint8Array(size)], { type: "image/png" }),
+  };
+}
+
+function manualMediaStore(deck: ReturnType<typeof createCoreDeck>, attachment: ReturnType<typeof manualAttachment>, events?: string[]) {
+  const progress = { completed: 1, total: 1, uploaded: 1, reused: 0, currentName: attachment.name, processedBytes: attachment.size, totalBytes: attachment.size };
+  return {
+    async cachePreviewMedia() { events?.push("cache"); return { persisted: true, count: 1, errors: [] }; },
+    syncImportMedia(_decks: unknown[], options: any) {
+      events?.push("upload");
+      options.onProgress?.({ ...progress, completed: 0, processedBytes: Math.floor(attachment.size / 2) });
+      return { result: Promise.resolve({ status: "cloud-ready", message: "Synchronisiert.", progress, referencesByDeck: new Map([[deck.id, [{ id: "media-ref" }]]]) }) };
+    },
+  } as any;
+}
+
+function referenceCloudTask(status: "cloud-ready" | "local-pending", onRetry: () => void) {
+  return {
+    status: "local-pending",
+    ready: new Promise<void>(() => undefined),
+    async retry() { onRetry(); return { status, message: status === "cloud-ready" ? "Synchronisiert." : "Lokal gespeichert." }; },
+    subscribe() { return () => undefined; },
+  } as any;
+}
+
 test("creation workflow preserves manual document anchors", () => {
   const workflow = createCreationWorkflow();
   const document = createSourceDocument({ fileName: "quelle.txt", text: "ATP ist ein Energieträger.", textExtractionStatus: "success" });
@@ -51,6 +85,119 @@ test("creation workflow rejects non-image clipboard content", async () => {
   const textFile = Object.assign(new Blob(["kein Bild"], { type: "text/plain" }), { name: "notiz.txt" });
 
   await assert.rejects(() => workflow.prepareManualImage(textFile), /Bilddatei/);
+});
+
+test("manuelle Rasterbilder werden orientierungsabhängig auf Full HD verkleinert", async () => {
+  const createBitmapDescriptor = Object.getOwnPropertyDescriptor(globalThis, "createImageBitmap");
+  const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, "document");
+  let dimensions = { width: 4_032, height: 3_024 };
+  let bitmapCalls = 0;
+  let closedBitmaps = 0;
+  const draws: Array<{ width: number; height: number }> = [];
+  const canvas = {
+    width: 0,
+    height: 0,
+    getContext() {
+      return {
+        imageSmoothingEnabled: false,
+        imageSmoothingQuality: "low",
+        drawImage(_bitmap: unknown, _x: number, _y: number, width: number, height: number) { draws.push({ width, height }); },
+      };
+    },
+    toBlob(callback: (blob: Blob | null) => void, type?: string, quality?: number) {
+      assert.equal(quality, 0.9);
+      callback(new Blob([new Uint8Array(128)], { type: type || "image/png" }));
+    },
+  };
+  Object.defineProperty(globalThis, "createImageBitmap", {
+    configurable: true,
+    value: async () => {
+      bitmapCalls += 1;
+      return { ...dimensions, close() { closedBitmaps += 1; } };
+    },
+  });
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { createElement: () => canvas } });
+
+  try {
+    const workflow = createCreationWorkflow();
+    const landscape = Object.assign(new Blob([new Uint8Array(2_048)], { type: "image/jpeg" }), { name: "landschaft.jpg" });
+    const scaledLandscape = await workflow.prepareManualImage(landscape);
+    assert.deepEqual(draws.at(-1), { width: 1_440, height: 1_080 });
+    assert.equal(scaledLandscape.size, 128);
+    assert.equal(scaledLandscape.mimeType, "image/jpeg");
+    assert.equal(scaledLandscape.originalName, "landschaft.jpg");
+
+    dimensions = { width: 3_024, height: 4_032 };
+    await workflow.prepareManualImage(Object.assign(new Blob([new Uint8Array(2_048)], { type: "image/png" }), { name: "hochformat.png" }));
+    assert.deepEqual(draws.at(-1), { width: 1_080, height: 1_440 });
+
+    dimensions = { width: 800, height: 600 };
+    const small = Object.assign(new Blob([new Uint8Array(64)], { type: "image/png" }), { name: "klein.png" });
+    assert.equal((await workflow.prepareManualImage(small)).blob, small);
+    const bitmapCallsBeforeGif = bitmapCalls;
+    const gif = Object.assign(new Blob([new Uint8Array(64)], { type: "image/gif" }), { name: "animiert.gif" });
+    assert.equal((await workflow.prepareManualImage(gif)).blob, gif);
+    assert.equal(bitmapCalls, bitmapCallsBeforeGif);
+    assert.equal(closedBitmaps, 3);
+  } finally {
+    if (createBitmapDescriptor) Object.defineProperty(globalThis, "createImageBitmap", createBitmapDescriptor);
+    else Reflect.deleteProperty(globalThis, "createImageBitmap");
+    if (documentDescriptor) Object.defineProperty(globalThis, "document", documentDescriptor);
+    else Reflect.deleteProperty(globalThis, "document");
+  }
+});
+
+test("manuelle Medien folgen Cache, lokaler Karte, Upload und Referenzpersistenz", async () => {
+  const attachment = manualAttachment("großes-bild.png", 4);
+  const deck = createCoreDeck({ id: "manual-deck", name: "Manuell", source: "manual", cards: [] });
+  const events: string[] = [];
+  const visibleNames: string[] = [];
+  const workflow = createCreationWorkflow({
+    mediaStore: manualMediaStore(deck, attachment, events),
+    async persistImportedDecks(decks) {
+      events.push("references");
+      return { decks, cloudTask: referenceCloudTask("cloud-ready", () => events.push("reference-cloud")) };
+    },
+  });
+
+  const prepared = await workflow.prepareManualMedia(deck, [attachment]);
+  events.push("local-card");
+  const result = await workflow.syncManualMedia(deck, prepared, { onProgress: (progress) => visibleNames.push(progress.currentName) });
+
+  assert.deepEqual(events, ["cache", "local-card", "upload", "references", "reference-cloud"]);
+  assert.equal(visibleNames[0], "großes-bild.png");
+  assert.equal(result.status, "cloud-ready");
+});
+
+test("manuelle Medien lösen bei local-pending über den aktuellen Retry-Versuch auf", { timeout: 1_000 }, async () => {
+  const attachment = manualAttachment("offline.png");
+  const deck = createCoreDeck({ id: "pending-deck", name: "Pending", source: "manual", cards: [] });
+  let retryCalls = 0;
+  const workflow = createCreationWorkflow({
+    mediaStore: manualMediaStore(deck, attachment),
+    async persistImportedDecks(decks) { return { decks, cloudTask: referenceCloudTask("local-pending", () => { retryCalls += 1; }) }; },
+  });
+
+  const prepared = await workflow.prepareManualMedia(deck, [attachment]);
+  const result = await workflow.syncManualMedia(deck, prepared);
+
+  assert.equal(retryCalls, 1);
+  assert.equal(result.status, "local-pending");
+  assert.equal(result.message, "Lokal gespeichert.");
+});
+
+test("manuelle Medienvorbereitung meldet Quota-Fehler vor jedem Upload", async () => {
+  let uploadCalls = 0;
+  const deck = createCoreDeck({ id: "quota-deck", name: "Quota", source: "manual", cards: [] });
+  const workflow = createCreationWorkflow({
+    mediaStore: {
+      async cachePreviewMedia() { throw new Error("Browser-Speicher ist voll."); },
+      syncImportMedia() { uploadCalls += 1; throw new Error("Upload darf nicht starten."); },
+    } as any,
+  });
+
+  await assert.rejects(() => workflow.prepareManualMedia(deck, [manualAttachment("quota.png")]), /Browser-Speicher ist voll/);
+  assert.equal(uploadCalls, 0);
 });
 
 test("creation workflow rejects broken APKG files with a file-selection error", async () => {
@@ -161,12 +308,12 @@ test("worker media planning separates used references from object-only manifest 
         mediaInput = { decks, options };
         return {
           queued: Promise.resolve(),
-          progress: { completed: 3, total: 3, uploaded: 3, reused: 0, currentName: "" },
+          progress: { completed: 3, total: 3, uploaded: 3, reused: 0, currentName: "", processedBytes: 3, totalBytes: 3 },
           result: Promise.resolve({
             status: "cloud-ready",
             message: "Synchronisiert.",
             failureKind: null,
-            progress: { completed: 3, total: 3, uploaded: 3, reused: 0, currentName: "" },
+            progress: { completed: 3, total: 3, uploaded: 3, reused: 0, currentName: "", processedBytes: 3, totalBytes: 3 },
             referencesByDeck: new Map([
               [persistedRoot.id, [{ id: "ref-a", deletedAt: null }]],
               [persistedChild.id, [{ id: "ref-b", deletedAt: null }]],

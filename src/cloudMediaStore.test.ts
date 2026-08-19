@@ -107,6 +107,48 @@ test("serverseitiger Uploadadapter nutzt dieselben Referenz- und Deduplizierungs
   assert.equal(client.rows[0].storage_path, `user-a/objects/${HASH}`);
 });
 
+test("Byte-Fortschritt bleibt bei mehreren Dateien, Wiederverwendung und Retry-Rücksprung monoton", async () => {
+  const client = createClient();
+  await syncReferences({
+    client,
+    supabaseUrl: "http://127.0.0.1:54321",
+    userId: "user-a",
+    control: control(),
+    decks: [{ deckId: "seed-deck", files: [file()], previousReferences: [] }],
+  });
+  const freshFile = {
+    ...file(OTHER_HASH, "großes-bild.png"),
+    size: 6,
+    blob: new Blob([new Uint8Array(6)]),
+  };
+  const progress: Array<{ completed: number; processedBytes: number; totalBytes: number }> = [];
+
+  const result = await syncReferences({
+    client,
+    supabaseUrl: "http://127.0.0.1:54321",
+    userId: "user-a",
+    control: control(),
+    decks: [{ deckId: "deck-1", files: [file(), freshFile], previousReferences: [] }],
+    async uploadFile(item, path, onProgress) {
+      onProgress(3);
+      onProgress(1);
+      onProgress(item.size);
+      client.objects.set(path, item.size);
+      return "uploaded";
+    },
+    onProgress(next) {
+      progress.push({ completed: next.completed, processedBytes: next.processedBytes, totalBytes: next.totalBytes });
+    },
+  });
+
+  assert.deepEqual(progress.map((item) => item.processedBytes), [...progress.map((item) => item.processedBytes)].sort((left, right) => left - right));
+  assert.equal(progress.every((item) => item.totalBytes === 10), true);
+  assert.equal(progress.slice(0, -1).every((item) => item.processedBytes < item.totalBytes), true);
+  assert.deepEqual(progress.at(-1), { completed: 2, processedBytes: 10, totalBytes: 10 });
+  assert.equal(result.uploaded, 1);
+  assert.equal(result.reused, 1);
+});
+
 test("Medienmetadaten werden in 100er-Chunks geladen und kleine Uploads auf vier begrenzt", async () => {
   const client = createClient();
   const files = Array.from({ length: 205 }, (_, index) => file(index.toString(16).padStart(40, "0"), `bild-${index}.png`));

@@ -30,7 +30,7 @@ interface CloudMediaManifestEntry {
   updatedAt: string;
 }
 export type MediaSyncStatus = "cloud-ready" | "local-pending" | "partial" | "paused" | "cancelled" | "blocked";
-export interface MediaSyncProgress { completed: number; total: number; uploaded: number; reused: number; currentName: string; }
+export interface MediaSyncProgress { completed: number; total: number; uploaded: number; reused: number; currentName: string; processedBytes: number; totalBytes: number; }
 export interface MediaSyncResult { status: MediaSyncStatus; referencesByDeck: Map<string, MediaAssetReference[]>; progress: MediaSyncProgress; failureKind?: MediaFailureKind; message: string; }
 export interface MediaSyncTask { queued: Promise<void>; result: Promise<MediaSyncResult>; readonly progress: MediaSyncProgress; pause(): Promise<void>; resume(): void; cancel(): Promise<void>; subscribe(listener: (progress: MediaSyncProgress, status: MediaSyncStatus) => void): () => void; }
 export interface MediaObjectUploadPlan { deckId: string; assets: unknown[]; }
@@ -410,7 +410,7 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
 
   function syncImportMedia(decks: Deck[], options: MediaSyncOptions = {}): MediaSyncTask {
     let status: MediaSyncStatus = "local-pending";
-    let progress: MediaSyncProgress = { completed: 0, total: 0, uploaded: 0, reused: 0, currentName: "" };
+    let progress: MediaSyncProgress = { completed: 0, total: 0, uploaded: 0, reused: 0, currentName: "", processedBytes: 0, totalBytes: 0 };
     const listeners = new Set<(progress: MediaSyncProgress, status: MediaSyncStatus) => void>();
     const queuedIds: string[] = [];
     let resolveQueued!: () => void;
@@ -470,7 +470,11 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
           inputs.push({ deckId: plan.deckId, files, previousReferences: plan.previousReferences, retainedReferences: plan.retainedReferences, preserveObjects: plan.preserveObjects });
         }
         db?.close();
-        progress = { ...progress, total: inputs.reduce((sum, input) => sum + input.files.length, 0) }; notify();
+        progress = {
+          ...progress,
+          total: inputs.reduce((sum, input) => sum + input.files.length, 0),
+          totalBytes: inputs.reduce((sum, input) => sum + input.files.reduce((fileSum, file) => fileSum + file.size, 0), 0),
+        }; notify();
         resolveQueued();
       } catch (error) {
         rejectQueued(error);
@@ -488,9 +492,15 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
         return { status, referencesByDeck: synced.referencesByDeck, progress, message: `${synced.uploaded} Medien hochgeladen, ${synced.reused} wiederverwendet.` };
       } catch (error) {
         const kind = classifyMediaError(error);
-        status = kind === "cancelled" ? "cancelled" : progress.completed > 0 ? "partial" : kind === "auth" || kind === "network" || kind === "rate-limited" ? "local-pending" : "blocked";
+        const retryable = kind === "auth" || kind === "network" || kind === "rate-limited";
+        status = kind === "cancelled" ? "cancelled" : retryable ? "local-pending" : progress.completed > 0 ? "partial" : "blocked";
         notify();
-        return { status, referencesByDeck: new Map(), progress, failureKind: kind, message: kind === "integrity" ? "Ein Medium hat die Integritätsprüfung nicht bestanden." : status === "cancelled" ? "Der Medien-Upload wurde abgebrochen." : "Medien sind lokal gespeichert; die Cloud-Synchronisierung steht noch aus." };
+        const message = kind === "integrity"
+          ? "Ein Medium hat die Integritätsprüfung nicht bestanden."
+          : status === "cancelled" ? "Der Medien-Upload wurde abgebrochen."
+            : status === "local-pending" ? "Medien sind lokal gespeichert; die Cloud-Synchronisierung steht noch aus."
+              : "Mindestens ein Medium konnte nicht vollständig in der Cloud gespeichert werden.";
+        return { status, referencesByDeck: new Map(), progress, failureKind: kind, message };
       }
     })();
     const cancel = async () => {

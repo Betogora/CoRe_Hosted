@@ -30,7 +30,7 @@ test("media retry lifecycle persists cloud references and stops on cleanup", asy
   onStatus?.({
     status: "cloud-ready",
     referencesByDeck: new Map([[deck.id, [cloudReference]]]),
-    progress: { completed: 1, total: 1, uploaded: 1, reused: 0, currentName: "new.png" },
+    progress: { completed: 1, total: 1, uploaded: 1, reused: 0, currentName: "new.png", processedBytes: 1, totalBytes: 1 },
     message: "Medien synchronisiert.",
   });
   await Promise.resolve();
@@ -42,7 +42,7 @@ test("media retry lifecycle persists cloud references and stops on cleanup", asy
   onStatus?.({
     status: "cloud-ready",
     referencesByDeck: new Map([[deck.id, [originalReference]]]),
-    progress: { completed: 1, total: 1, uploaded: 0, reused: 1, currentName: "old.png" },
+    progress: { completed: 1, total: 1, uploaded: 0, reused: 1, currentName: "old.png", processedBytes: 1, totalBytes: 1 },
     message: "Verspätetes Ergebnis.",
   });
   assert.equal(persisted.length, 1);
