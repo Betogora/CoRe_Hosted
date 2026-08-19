@@ -1338,7 +1338,7 @@ export function App() {
     if (!workspaceRepository) throw new Error("Die lokale Kartenablage ist noch nicht bereit.");
     const card = await command;
     if (!card) return null;
-    refresh();
+    refresh({ preserveCardPages: true });
     setCardPages((current) => {
       if (refreshPage) return { ...current, [deckId]: undefined };
       const page = current[deckId];

@@ -28,6 +28,10 @@ interface DeckScrollProbe {
 }
 
 type DeckScrollProbeWindow = typeof window & { __coreDeckScrollProbe?: DeckScrollProbe };
+type CardDetailObserverWindow = typeof window & {
+  __coreCardDetailRemoved?: boolean;
+  __coreCardDetailObserver?: MutationObserver;
+};
 
 function card(id: string, deckId: string, front: string, back: string, options: { dueAt?: string; hasActiveVariant?: boolean; marked?: boolean } = {}) {
   const learningItem = createCoreCard({
@@ -419,6 +423,45 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await changesDialog.getByRole("button", { name: "Verwerfen" }).click();
   await learnNavigation.click();
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
+});
+
+test("[Vertrag: Kartenverwaltung] Aussetzen aktualisiert die Kartenzeile ohne Editor-Flackern", async ({ page }) => {
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}`);
+  await waitForApp(page);
+  const detail = page.getByTestId("card-detail-aside");
+  await expect(detail).toBeVisible();
+  const suspendControl = detail.getByRole("group", { name: "Aussetzstatus der Karte" });
+
+  await page.evaluate(() => {
+    const runtimeWindow = window as CardDetailObserverWindow;
+    runtimeWindow.__coreCardDetailRemoved = false;
+    runtimeWindow.__coreCardDetailObserver = new MutationObserver(() => {
+      if (!document.querySelector('[data-testid="card-detail-aside"]')) runtimeWindow.__coreCardDetailRemoved = true;
+    });
+    runtimeWindow.__coreCardDetailObserver.observe(document.body, { childList: true, subtree: true });
+  });
+
+  await suspendControl.getByRole("button", { name: "Aussetzen", exact: true })
+    .click();
+  await expect(suspendControl.getByRole("button", { name: "Aussetzen", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toBeVisible();
+  const cardRow = page.getByTestId(`deck-card-${CARD_IDS.b2}`).locator("xpath=ancestor::tr");
+  await expect(cardRow).toHaveAttribute("data-suspended", "true");
+
+  await suspendControl.getByRole("button", { name: "Nicht aussetzen", exact: true })
+    .click();
+  await expect(suspendControl.getByRole("button", { name: "Nicht aussetzen", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(cardRow).not.toHaveAttribute("data-suspended");
+
+  const detailWasRemoved = await page.evaluate(() => {
+    const runtimeWindow = window as CardDetailObserverWindow;
+    runtimeWindow.__coreCardDetailObserver?.disconnect();
+    delete runtimeWindow.__coreCardDetailObserver;
+    const removed = runtimeWindow.__coreCardDetailRemoved;
+    delete runtimeWindow.__coreCardDetailRemoved;
+    return removed;
+  });
+  expect(detailWasRemoved).toBe(false);
 });
 
 test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg erhalten Stapel und Karte", async ({ page, context }) => {
