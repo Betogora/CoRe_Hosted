@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { LearningItemDocumentV1 } from "../coreTypes.ts";
 import { applyLearningItemContent, createCoreNoteTypeDefinition } from "../coreModel.ts";
 import { CardPreviewDialog } from "./CardPreviewDialog.tsx";
+import { StudyCardContent } from "./StudyCardContent.tsx";
 
 function fixture() {
   const document: LearningItemDocumentV1 = {
@@ -21,7 +22,7 @@ function fixture() {
   return { item, definition, variant: item.variants[0] };
 }
 
-test("CardPreviewDialog renders an accessible front-side dialog without compatibility advertising", () => {
+test("CardPreviewDialog renders the learning front in an accessible larger dialog", () => {
   const markup = renderToStaticMarkup(
     <CardPreviewDialog open {...fixture()} onOpenChange={() => undefined} />,
   );
@@ -29,10 +30,14 @@ test("CardPreviewDialog renders an accessible front-side dialog without compatib
   assert.match(markup, /role="dialog"/);
   assert.match(markup, /aria-modal="true"/);
   assert.match(markup, /Kartenvorschau/);
-  assert.match(markup, /title="Kartenvorschau der Vorderseite"/);
+  assert.match(markup, /title="Frage"/);
+  assert.match(markup, /sandbox="allow-same-origin"/);
   assert.match(markup, /aria-label="Kartenseite anzeigen"/);
   assert.match(markup, />Vorderseite<\/button>/);
   assert.match(markup, />Rückseite<\/button>/);
+  assert.match(markup, /sm:max-h-\[92dvh\].*sm:max-w-6xl/);
+  assert.doesNotMatch(markup, /title="Antwort"/);
+  assert.doesNotMatch(markup, /Antwort anzeigen|Bewertung Gut/);
   assert.doesNotMatch(markup, /Originalgetreu und sicher dargestellt/);
 });
 
@@ -41,4 +46,15 @@ test("CardPreviewDialog stays unmounted while closed", () => {
     <CardPreviewDialog open={false} {...fixture()} onOpenChange={() => undefined} />,
   );
   assert.equal(markup, "");
+});
+
+test("StudyCardContent reveals one separate answer without duplicating the question", () => {
+  const rendered = fixture();
+  const front = renderToStaticMarkup(<StudyCardContent {...rendered} revealed={false} selectedChoice="" onSelectChoice={() => undefined} />);
+  const back = renderToStaticMarkup(<StudyCardContent {...rendered} revealed selectedChoice="" onSelectChoice={() => undefined} />);
+
+  assert.doesNotMatch(front, /title="Antwort"|Antwort anzeigen/);
+  assert.equal((back.match(/data-testid="study-card-answer-separator"/g) ?? []).length, 1);
+  assert.equal((back.match(/title="Frage"/g) ?? []).length, 1);
+  assert.equal((back.match(/title="Antwort"/g) ?? []).length, 1);
 });

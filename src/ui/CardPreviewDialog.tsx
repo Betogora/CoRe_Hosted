@@ -3,8 +3,8 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import type { CardVariant, LearningItem, NoteTypeDefinitionV1 } from "../coreTypes.ts";
 import { IconButton } from "./actionUi.tsx";
-import { CardPresentationSurface } from "./CardPresentationSurface.tsx";
 import { CoreSegmentedControl } from "./coreUi.tsx";
+import { StudyCardContent } from "./StudyCardContent.tsx";
 import { useModalDialog } from "./useModalDialog.ts";
 
 type PreviewSide = "question" | "answer";
@@ -34,9 +34,12 @@ export function CardPreviewDialog({
   returnFocusRef,
 }: CardPreviewDialogProps) {
   const [side, setSide] = React.useState<PreviewSide>("question");
+  const [selectedChoice, setSelectedChoice] = React.useState("");
+  const answerRef = React.useRef<HTMLDivElement | null>(null);
   const titleId = React.useId();
   const closeDialog = React.useCallback(() => {
     setSide("question");
+    setSelectedChoice("");
     onOpenChange(false);
   }, [onOpenChange]);
   const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({
@@ -47,7 +50,10 @@ export function CardPreviewDialog({
   });
 
   React.useEffect(() => {
-    if (open) setSide("question");
+    if (open) {
+      setSide("question");
+      setSelectedChoice("");
+    }
   }, [open]);
 
   if (!open) return null;
@@ -67,7 +73,7 @@ export function CardPreviewDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         data-testid="card-preview-dialog"
-        className="core-card-preview-dialog core-overlay flex h-[100dvh] w-full flex-col overflow-hidden border-0 sm:h-auto sm:max-h-[88dvh] sm:max-w-5xl sm:rounded-[24px] sm:border"
+        className="core-card-preview-dialog core-overlay flex h-[100dvh] w-full flex-col overflow-hidden border-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-6xl sm:rounded-[24px] sm:border"
       >
         <header className="flex min-h-16 items-center gap-4 border-b border-[var(--core-border)] px-4 sm:px-6">
           <h2 id={titleId} className="min-w-0 flex-1 core-heading-3 text-[var(--core-text)]">Kartenvorschau</h2>
@@ -75,17 +81,19 @@ export function CardPreviewDialog({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--core-surface-muted)] p-3 sm:p-6">
-          <div className="mx-auto grid min-h-full w-full max-w-4xl place-items-center">
-            <CardPresentationSurface
+          <div className="mx-auto flex min-h-full w-full max-w-5xl items-center">
+            <StudyCardContent
               item={item}
               variant={variant}
               definition={definition}
-              side={side}
-              surface="editor-preview"
-              title={side === "question" ? "Kartenvorschau der Vorderseite" : "Kartenvorschau der Rückseite"}
               mediaUrls={mediaUrls}
-              showCompatibility={false}
-              className="core-card-preview-surface w-full"
+              revealed={side === "answer"}
+              selectedChoice={selectedChoice}
+              onSelectChoice={(option) => {
+                setSelectedChoice(option);
+                setSide("answer");
+              }}
+              answerRef={answerRef}
             />
           </div>
         </div>
@@ -95,7 +103,11 @@ export function CardPreviewDialog({
             ariaLabel="Kartenseite anzeigen"
             options={PREVIEW_SIDE_OPTIONS}
             value={side}
-            onValueChange={setSide}
+            onValueChange={(nextSide) => {
+              setSide(nextSide);
+              if (nextSide === "question") setSelectedChoice("");
+              else window.requestAnimationFrame(() => answerRef.current?.focus());
+            }}
             size="regular"
             className="w-full max-w-sm"
           />

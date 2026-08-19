@@ -7,7 +7,7 @@ import {
   reduceManualBatchSession,
   type ManualFocusTarget,
 } from "../creationBatch.ts";
-import { applyLearningItemContent, createCoreNoteTypeDefinition, createLearningItemDocumentFromLegacy } from "../coreModel.ts";
+import { applyLearningItemContent } from "../coreModel.ts";
 import type { CreationWorkflow, ManualImageAttachment } from "../creationWorkflow.ts";
 import type { CardEditorFieldErrors, Deck, SourceDocument } from "../coreTypes.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
@@ -208,6 +208,7 @@ export function ManualCreationPanel({
   const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
   const [previewOpen, setPreviewOpen] = React.useState(false);
+  const [previewMediaUrls, setPreviewMediaUrls] = React.useState<Record<string, string>>({});
   const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
   const cleanDraftRef = React.useRef(batchState.currentDraft);
@@ -457,32 +458,28 @@ export function ManualCreationPanel({
   const isCloze = cardType === "cloze";
   const isReverse = cardType === "basic-reversed";
   const nextClozeGroup = Math.max(0, ...Array.from(front.matchAll(/\{\{c(\d+)::/gi), (match) => Number(match[1]) || 0)) + 1;
+  React.useEffect(() => {
+    if (!previewOpen || typeof URL.createObjectURL !== "function") {
+      setPreviewMediaUrls({});
+      return undefined;
+    }
+    const urls: Record<string, string> = {};
+    for (const attachment of [frontImage, backImage]) {
+      if (!attachment || urls[attachment.sha1]) continue;
+      urls[attachment.sha1] = URL.createObjectURL(attachment.blob);
+    }
+    setPreviewMediaUrls(urls);
+    return () => Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
+  }, [backImage, frontImage, previewOpen]);
+
   const previewBundle = React.useMemo(() => {
     if (!previewOpen) return null;
-    const document = createLearningItemDocumentFromLegacy({
-      definitionVersionId: "manual-editor-preview",
-      fields: [
-        { name: "Vorderseite", value: front },
-        { name: "Rückseite", value: back },
-        ...additionalFields.map((field) => ({ name: field.name || "Zusatzfeld", value: field.value })),
-      ],
-      tags,
-    });
-    document.fields = document.fields.map((field, index) => index < 2 ? field : {
-      ...field,
-      id: additionalFields[index - 2].id,
-      placement: additionalFields[index - 2].placement,
-    });
-    if (isMultipleChoice) document.interaction = { choice: { options: answerOptions, correctAnswer: answerOptions[correctOptionIndex] ?? "", explanation: back } };
-    const definition = createCoreNoteTypeDefinition({
-      document,
-      kind: isCloze ? "cloze" : "normal",
-      interaction: isMultipleChoice ? "choice" : isCloze ? "cloze" : "reveal",
-      reverse: isReverse,
-    });
+    const previewInput = workflow.createManualDeckInput(manualInput());
+    const document = previewInput.card.contentDocument;
+    const definition = previewInput.card.noteTypeDefinition;
     const result = applyLearningItemContent({ previous: null, document, definition, reason: "create" });
     return { item: result.item, definition, variant: result.item.variants[0] };
-  }, [additionalFields, answerOptions, back, correctOptionIndex, front, isCloze, isMultipleChoice, isReverse, previewOpen, tags]);
+  }, [activeField, additionalFields, answerOptions, back, backImage, cardType, correctOptionIndex, deckName, decks, document, documentText, front, frontImage, previewOpen, selectedDeckId, selection, sourceAnchor, tags, useNewDeck, workflow]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = showDocumentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
@@ -715,6 +712,7 @@ export function ManualCreationPanel({
         item={previewBundle?.item}
         variant={previewBundle?.variant}
         definition={previewBundle?.definition}
+        mediaUrls={previewMediaUrls}
         onOpenChange={setPreviewOpen}
         returnFocusRef={previewButtonRef}
       />

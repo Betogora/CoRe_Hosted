@@ -220,7 +220,11 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await openManualCreation(page, deckName, "basic");
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Ungespeicherte Erstellungsfrage");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Ungespeicherte Erstellungsantwort");
-  await expect(page.getByText("Live-Vorschau", { exact: true })).toBeVisible();
+  const pixel = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+  const imageInputs = page.locator('input[type="file"][accept="image/*"]');
+  await imageInputs.nth(0).setInputFiles({ name: "vorderseite.png", mimeType: "image/png", buffer: pixel });
+  await imageInputs.nth(1).setInputFiles({ name: "rueckseite.png", mimeType: "image/png", buffer: pixel });
+  await expect(page.getByText("Live-Vorschau", { exact: true })).toHaveCount(0);
 
   const creationPreviewButton = page.getByRole("button", { name: "Vorschau", exact: true });
   await creationPreviewButton.click();
@@ -228,13 +232,18 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await expect(dialog).toBeVisible();
   await expect(page.getByRole("button", { name: "Kartenvorschau schließen" })).toBeFocused();
   await expect(dialog.getByRole("button", { name: "Vorderseite" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.frameLocator('iframe[title="Kartenvorschau der Vorderseite"]').locator("body")).toContainText("Ungespeicherte Erstellungsfrage");
-  await expect(page.frameLocator('iframe[title="Kartenvorschau der Vorderseite"]').locator("body")).not.toContainText("Ungespeicherte Erstellungsantwort");
+  await expect(dialog.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
+  const creationQuestion = dialog.frameLocator('iframe[title="Frage"]');
+  await expect(creationQuestion.locator("body")).toContainText("Ungespeicherte Erstellungsfrage");
+  await expect(creationQuestion.locator("body")).not.toContainText("Ungespeicherte Erstellungsantwort");
+  await expect(creationQuestion.locator('img[alt="Bild zur Vorderseite"]')).toHaveAttribute("src", /^blob:/);
 
   await dialog.getByRole("button", { name: "Rückseite" }).click();
-  const creationAnswerBody = page.frameLocator('iframe[title="Kartenvorschau der Rückseite"]').locator("body");
-  await expect(creationAnswerBody).toContainText("Ungespeicherte Erstellungsfrage");
-  await expect(creationAnswerBody).toContainText("Ungespeicherte Erstellungsantwort");
+  const creationAnswer = dialog.frameLocator('iframe[title="Antwort"]');
+  await expect(dialog.getByTestId("study-card-answer-separator")).toHaveCount(1);
+  await expect(creationQuestion.locator("body")).toContainText("Ungespeicherte Erstellungsfrage");
+  await expect(creationAnswer.locator("body")).toContainText("Ungespeicherte Erstellungsantwort");
+  await expect(creationAnswer.locator('img[alt="Bild zur Rückseite"]')).toHaveAttribute("src", /^blob:/);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(creationPreviewButton).toBeFocused();
@@ -252,14 +261,15 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
 
   const editorPreviewButton = page.getByTestId("card-detail-aside").getByRole("button", { name: "Vorschau", exact: true });
   await editorPreviewButton.click();
-  const editorFrontBody = page.frameLocator('iframe[title="Kartenvorschau der Vorderseite"]').locator("body");
+  const editorFrontBody = dialog.frameLocator('iframe[title="Frage"]').locator("body");
   await expect(editorFrontBody).toContainText("Ungespeicherte Editorfrage");
   await expect(editorFrontBody).not.toContainText("Ungespeicherte Editorantwort");
   await dialog.getByRole("button", { name: "Rückseite" }).click();
-  const editorAnswerBody = page.frameLocator('iframe[title="Kartenvorschau der Rückseite"]').locator("body");
-  await expect(editorAnswerBody).toContainText("Ungespeicherte Editorfrage");
+  const editorAnswerBody = dialog.frameLocator('iframe[title="Antwort"]').locator("body");
+  await expect(editorFrontBody).toContainText("Ungespeicherte Editorfrage");
   await expect(editorAnswerBody).toContainText("Ungespeicherte Editorantwort");
-  expect((await editorAnswerBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
+  expect((await editorFrontBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
+  expect((await editorAnswerBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toBeNull();
   expect((await editorAnswerBody.innerText()).match(/Ungespeicherte Editorantwort/g)).toHaveLength(1);
   await page.getByRole("button", { name: "Kartenvorschau schließen" }).click();
   await expect(editorPreviewButton).toBeFocused();
@@ -433,6 +443,21 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByRole("textbox", { name: "Antwortoption 3", exact: true }).fill("Gamma");
   await page.getByLabel("Option 2 als richtig markieren").check();
   await page.getByRole("textbox", { name: "Erklärung (optional)" }).fill("Beta war zunächst richtig.");
+
+  await page.getByRole("button", { name: "Vorschau", exact: true }).click();
+  const previewDialog = page.getByRole("dialog", { name: "Kartenvorschau" });
+  await previewDialog.getByRole("button", { name: "Rückseite" }).click();
+  await expect(previewDialog.getByText("Lösung aufgedeckt.", { exact: true })).toBeVisible();
+  await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
+  await previewDialog.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
+  await expect(previewDialog.getByRole("button", { name: "Rückseite" })).toHaveAttribute("aria-pressed", "true");
+  await expect(previewDialog.getByText("Nicht ganz.", { exact: true })).toBeVisible();
+  await expect(previewDialog.locator(".core-mcq-option-correct")).toContainText("Beta");
+  await expect(previewDialog.getByRole("button", { name: /Bewertung/ })).toHaveCount(0);
+  await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
+  await expect(previewDialog.getByRole("button", { name: "Antwortoption A: Alpha" })).toHaveAttribute("aria-pressed", "false");
+  await previewDialog.getByRole("button", { name: "Kartenvorschau schließen" }).click();
+
   const deck = await finishManualCreation(page, deckName);
 
   await openCreatedCardEditor(page, deck);

@@ -1,10 +1,9 @@
 import React from "react";
-import { Anchor, Ban, CheckCircle2, CircleAlert, Eye, RotateCcw, SlidersHorizontal, X, XCircle } from "lucide-react";
+import { Anchor, Ban, CheckCircle2, CircleAlert, Eye, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import type { StudyModeProps } from "../appScreenProps.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts } from "../easyDays.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import { createCoreNoteTypeDefinition, isLearningItemMarked } from "../coreModel.ts";
-import { stripHtml } from "../htmlSafety.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
 import { createReviewResponseTimer } from "../reviewTiming.ts";
 import { formatSimulationDate, formatSimulationDuration } from "../simulationClock.ts";
@@ -23,36 +22,14 @@ import {
 } from "../reviewService.ts";
 import { useCardMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
+import { StudyCardContent } from "../ui/StudyCardContent.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
-import type { CardVariant, Deck, LearningItemStudyStatePatch, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
-
-function normalizeReviewCardType(cardType: string, variant: CardVariant|undefined) {
-  if (variant?.variantType === "reverse") return "basic-reversed";
-  if (cardType === "multiple-choice" || cardType === "cloze" || cardType === "basic-reversed") return cardType;
-  return "basic";
-}
-
-function normalizeChoiceOptions(value: unknown) {
-  if (Array.isArray(value)) return value.map((option) => String(option).trim()).filter(Boolean);
-  return String(value ?? "")
-    .split(/\n+/)
-    .map((option) => option.trim())
-    .filter(Boolean);
-}
-
-function normalizeExpectedAnswer(value: unknown) {
-  if (Array.isArray(value)) return String(value[0] ?? "").trim();
-  return String(value ?? "").trim();
-}
-
-function sameAnswer(left: string, right: string) {
-  return String(left ?? "").trim().toLowerCase() === String(right ?? "").trim().toLowerCase();
-}
+import type { Deck, LearningItemStudyStatePatch, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
 
 function formatLimitSummary(hiddenDueCount: number, hiddenNewCount: number) {
   const parts = [
@@ -163,18 +140,6 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
   const sourceAnchor = current?.variant?.sourceAnchors?.[0] ?? sourceCard?.sourceAnchors?.[0] ?? null;
   const hasAnswerTools = isCurrentVariant || Boolean(sourceAnchor);
   const { urls: studyMediaUrls, missing: studyMissingMedia } = useCardMediaUrls(currentDeck, current?.learningItemId, mediaStore);
-  const rawCardType = String(sourceCard?.kind ?? sourceCard?.cardType ?? current?.variant?.meta?.cardType ?? "basic");
-  const cardType = normalizeReviewCardType(rawCardType, current?.variant);
-  const answerOptions = normalizeChoiceOptions(current?.variant?.answerOptionsJson ?? sourceCard?.meta?.answerOptions ?? []);
-  const expectedAnswer = normalizeExpectedAnswer(current?.variant?.expectedAnswerJson ?? sourceCard?.meta?.correctAnswer ?? sourceCard?.meta?.expectedAnswer ?? current?.back ?? "");
-  const isMultipleChoice = cardType === "multiple-choice" && answerOptions.length >= 2 && expectedAnswer && answerOptions.some((option) => sameAnswer(option, expectedAnswer));
-  const hasIncompleteMultipleChoice = cardType === "multiple-choice" && !isMultipleChoice;
-  const selectedChoiceIsCorrect = Boolean(isMultipleChoice && selectedChoice && sameAnswer(selectedChoice, expectedAnswer));
-  const multipleChoiceFeedbackClass = !selectedChoice
-    ? "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-secondary)]"
-    : selectedChoiceIsCorrect
-      ? "border-core-success bg-core-success-soft text-core-text"
-      : "border-core-danger bg-core-danger-soft text-core-text";
 
   React.useEffect(() => {
     setSessionDecks(decks);
@@ -250,8 +215,8 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
     feedbackDeckRef.current = null;
   }
 
-  function selectChoice(option: React.SetStateAction<string>) {
-    if (!isMultipleChoice || showAnswer) return;
+  function selectChoice(option: string) {
+    if (showAnswer) return;
     setSelectedChoice(option);
     setShowAnswer(true);
   }
@@ -439,60 +404,19 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
                       {current.sessionInfo.isEarlyRepeat ? "Vorgezogene Wiederholung" : "Wiederholung"}
                     </p>
                   ) : null}
-                  <div ref={questionContentRef} tabIndex={-1} role="group" aria-label="Frage" className="core-study-card-front text-[var(--core-text)] outline-none">
-                    <CardPresentationSurface item={sourceCard} variant={current.variant} definition={presentationDefinition} side="question" surface="review" title="Frage" loadingLabel={stripHtml(current.front)} mediaUrls={studyMediaUrls} showCompatibility={false} />
-                  </div>
-                  {isMultipleChoice ? (
-                    <div className="mt-6 grid gap-3">
-                      {answerOptions.map((option, index) => {
-                        const isSelected = sameAnswer(option, selectedChoice);
-                        const isCorrect = sameAnswer(option, expectedAnswer);
-                        const isWrongSelection = showAnswer && isSelected && !isCorrect;
-                        const stateClass = showAnswer
-                          ? isCorrect
-                            ? "core-mcq-option-correct border-core-success bg-core-success-soft text-core-text"
-                            : isWrongSelection
-                              ? "core-mcq-option-wrong border-core-danger bg-core-danger-soft text-core-text"
-                              : "border-[var(--core-border)] bg-core-surface text-[var(--core-text-muted)]"
-                          : isSelected
-                            ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-text)]"
-                            : "border-[var(--core-border)] bg-core-surface text-[var(--core-text-secondary)] hover:border-[var(--core-border-interactive)] hover:bg-[var(--core-surface-muted)]";
-                        return (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => selectChoice(option)}
-                          disabled={showAnswer}
-                          aria-pressed={isSelected}
-                          aria-label={`Antwortoption ${String.fromCharCode(65 + index)}: ${option}`}
-                          className={`core-mcq-option flex min-h-12 items-center justify-between gap-3 rounded-xl border px-4 text-left core-body font-semibold ${stateClass}`}
-                        >
-                          <span><span className="mr-2 core-caption uppercase tracking-wide opacity-70">{String.fromCharCode(65 + index)}</span>{option}</span>
-                          {showAnswer && isCorrect ? <CheckCircle2 className="shrink-0" size={18} aria-hidden="true" /> : null}
-                          {isWrongSelection ? <XCircle className="shrink-0" size={18} aria-hidden="true" /> : null}
-                        </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                  {hasIncompleteMultipleChoice ? (
-                    <div className="mt-6 rounded-2xl border border-core-warning bg-core-warning-soft p-4 core-body font-semibold text-core-text" role="alert">
-                      Diese Multiple-Choice-Karte hat keine vollständigen Antwortoptionen und wird wie eine normale Karte angezeigt.
-                    </div>
-                  ) : null}
+                  <StudyCardContent
+                    item={sourceCard}
+                    variant={current.variant}
+                    definition={presentationDefinition}
+                    mediaUrls={studyMediaUrls}
+                    revealed={showAnswer}
+                    selectedChoice={selectedChoice}
+                    onSelectChoice={selectChoice}
+                    questionRef={questionContentRef}
+                    answerRef={answerContentRef}
+                  />
                   {showAnswer ? (
                     <>
-                      <div className="my-8 h-0.5 bg-[var(--core-border-interactive)] opacity-70" />
-                      <div ref={answerContentRef} tabIndex={-1} role="group" aria-label="Antwort" className="core-study-card-back text-[var(--core-text)] outline-none">
-                        <CardPresentationSurface item={sourceCard} variant={current.variant} definition={presentationDefinition} side="answer" surface="review" title="Antwort" loadingLabel={stripHtml(current.back)} mediaUrls={studyMediaUrls} showCompatibility={false} />
-                      </div>
-                      {isMultipleChoice ? (
-                        <div className={`core-mcq-feedback mt-5 rounded-2xl border p-4 ${multipleChoiceFeedbackClass}`}>
-                          <p className="font-semibold">{selectedChoice ? (selectedChoiceIsCorrect ? "Richtig ausgewählt." : "Nicht ganz.") : "Lösung aufgedeckt."}</p>
-                          <p className="mt-2">Richtige Antwort: {expectedAnswer}</p>
-                          {selectedChoice ? <p className="mt-1">Deine Auswahl: {selectedChoice}</p> : null}
-                        </div>
-                      ) : null}
                       {hasAnswerTools ? (
                         <div className="mt-8 rounded-2xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" data-testid="review-answer-tools">
                           <div className="flex flex-wrap gap-2">
