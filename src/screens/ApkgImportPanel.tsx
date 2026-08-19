@@ -543,15 +543,15 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
                     </div>
                   ) : null}
                   {previewWarnings.length > 0 ? (
-                    <details className="rounded-xl bg-core-warning-soft px-3 py-2 core-body text-core-text">
-                      <summary className="flex cursor-pointer items-center gap-2 font-semibold">
+                    <section className="rounded-xl bg-core-warning-soft px-3 py-2 core-body text-core-text" aria-labelledby="apkg-warnings-heading">
+                      <h4 id="apkg-warnings-heading" className="flex items-center gap-2 font-semibold">
                         <AlertCircle className="shrink-0" size={16} aria-hidden="true" />
                         {previewWarnings.length} {previewWarnings.length === 1 ? "Warnung" : "Warnungen"}
-                      </summary>
+                      </h4>
                       <ul className="mt-3 list-disc space-y-1 pl-6">
                         {previewWarnings.map((warning) => <li key={warning}>{warning}</li>)}
                       </ul>
-                    </details>
+                    </section>
                   ) : null}
 
                   <section className="rounded-xl border border-[var(--core-border)] bg-core-surface p-4" aria-labelledby="apkg-reimport-heading">
@@ -574,12 +574,12 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
             </SoftPanel>
 
             {preview.sampleCards.length > 0 ? (
-              <details className="core-surface-raised rounded-[18px] p-5">
-                <summary className="cursor-pointer font-semibold text-[var(--core-text)]">Kartenbeispiele</summary>
+              <section className="core-surface-raised rounded-[18px] p-5" aria-labelledby="apkg-card-examples-heading">
+                <h3 id="apkg-card-examples-heading" className="font-semibold text-[var(--core-text)]">Kartenbeispiele</h3>
                 <div className="mt-4 grid gap-4">
                   {preview.sampleCards.slice(0, APKG_SAMPLE_CARD_LIMIT).map((card) => <ApkgCardSample key={card.id} deck={preview.summary} card={card} definition={previewDefinitions.get(card.noteTypeDefinitionId) ?? null} mediaStore={mediaStore} />)}
                 </div>
-              </details>
+              </section>
             ) : null}
           </>
         ) : null}

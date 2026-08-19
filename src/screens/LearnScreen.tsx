@@ -91,7 +91,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
       <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
         Stapelname
         <input
-          className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-medium text-[var(--core-text)] outline-none focus-visible:border-[var(--core-border-interactive)] focus-visible:ring-2 focus-visible:ring-[var(--core-focus-ring-soft)]"
+          className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-medium text-[var(--core-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus-ring-soft)]"
           ref={deckNameRef}
           value={deckDraft.name}
           onChange={(event) => updateDeckDraft("name", event.target.value)}

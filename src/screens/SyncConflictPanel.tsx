@@ -180,8 +180,9 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
         </div>
       ) : null}
 
-      <details className="mt-5" open={openConflicts.length > 0 && openConflicts.length <= 2}>
-        <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Einzelne Konflikte prüfen ({openConflicts.length})</summary>
+      {openConflicts.length > 0 ? (
+        <section className="mt-5" aria-labelledby="individual-sync-conflicts-heading">
+          <h4 id="individual-sync-conflicts-heading" className="core-body-large font-semibold text-[var(--core-text)]">Einzelne Konflikte prüfen ({openConflicts.length})</h4>
       <div className="mt-4 grid gap-4">
         {openConflicts.map((conflict) => {
           const choices = fieldChoices[conflict.id] ?? {};
@@ -256,11 +257,12 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
           );
         })}
       </div>
-      </details>
+        </section>
+      ) : null}
 
       {ignoredConflicts.length > 0 ? (
-        <details className="mt-5 rounded-2xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
-          <summary className="cursor-pointer core-body font-semibold text-[var(--core-text-secondary)]">Für später zurückgestellt ({ignoredConflicts.length})</summary>
+        <section className="mt-5" aria-labelledby="ignored-sync-conflicts-heading">
+          <h4 id="ignored-sync-conflicts-heading" className="core-body-large font-semibold text-[var(--core-text)]">Für später zurückgestellt ({ignoredConflicts.length})</h4>
           <p className="mt-3 core-body leading-6 text-[var(--core-text-muted)]">Stapel- und Kartenänderungen werden erst weiter synchronisiert, wenn diese Konflikte entschieden sind. Neue Reviews werden weiterhin gespeichert.</p>
           <div className="mt-3 grid gap-2">
             {ignoredConflicts.map((conflict) => (
@@ -275,7 +277,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
               </div>
             ))}
           </div>
-        </details>
+        </section>
       ) : null}
     </SoftPanel>
   );

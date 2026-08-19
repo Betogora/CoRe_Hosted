@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type HTMLAttributes, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useState, type AnimationEvent, type HTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CircleAlert, CircleCheck, Info, TriangleAlert, X, type LucideIcon } from "lucide-react";
 import { IconButton } from "./actionUi.tsx";
@@ -47,17 +47,24 @@ export interface SuccessToastProps extends Omit<HTMLAttributes<HTMLDivElement>, 
 export function SuccessToast({
   onDismiss,
   dismissLabel = "Erfolgsmeldung schließen",
+  onAnimationEnd,
   className = "",
   children,
   ...props
 }: SuccessToastProps) {
+  const handleAnimationEnd = (event: AnimationEvent<HTMLDivElement>) => {
+    onAnimationEnd?.(event);
+    if (event.currentTarget === event.target) onDismiss();
+  };
+
   const toast = (
     <StatusMessage
       {...props}
       tone="success"
       announce="polite"
       data-success-toast-region="true"
-      className={`pointer-events-auto fixed right-4 top-4 z-[75] !w-fit max-w-[calc(100vw-2rem)] !items-center rounded-2xl py-4 pl-5 pr-2 shadow-[var(--core-shadow-raised)] [&>svg]:!mt-0 sm:right-8 sm:top-8 sm:max-w-[calc(100vw-4rem)] ${className}`}
+      onAnimationEnd={handleAnimationEnd}
+      className={`core-success-toast pointer-events-auto fixed right-4 top-4 z-[75] !w-fit max-w-[calc(100vw-2rem)] !items-center rounded-2xl py-4 pl-5 pr-2 shadow-[var(--core-shadow-raised)] [&>svg]:!mt-0 sm:right-8 sm:top-8 sm:max-w-[calc(100vw-4rem)] ${className}`}
     >
       <div className="flex min-w-0 items-center gap-3">
         <div className="min-w-0 flex-1 break-words core-body-large font-medium">{children}</div>
@@ -75,12 +82,22 @@ const SuccessToastContext = createContext<SuccessToastSetter>(() => {
 });
 
 export function SuccessToastProvider({ children }: { children: ReactNode }) {
-  const [message, setMessage] = useState("");
+  const [toast, setToast] = useState<{ id: number; message: string } | null>(null);
+  const setMessage = useCallback((message: string) => {
+    setToast((current) => message ? { id: (current?.id ?? 0) + 1, message } : null);
+  }, []);
 
   return (
     <SuccessToastContext.Provider value={setMessage}>
       {children}
-      {message ? <SuccessToast onDismiss={() => setMessage("")}>{message}</SuccessToast> : null}
+      {toast ? (
+        <SuccessToast
+          key={toast.id}
+          onDismiss={() => setToast((current) => current?.id === toast.id ? null : current)}
+        >
+          {toast.message}
+        </SuccessToast>
+      ) : null}
     </SuccessToastContext.Provider>
   );
 }

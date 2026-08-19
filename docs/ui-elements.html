@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 0f8bfae51d7aa4dc */
+/* Quellenstand: 6050f37724ba9063 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1459,9 +1459,6 @@ video {
   --tw-numeric-spacing: tabular-nums;
   font-variant-numeric: var(--tw-ordinal) var(--tw-slashed-zero) var(--tw-numeric-figure) var(--tw-numeric-spacing) var(--tw-numeric-fraction);
 }
-.leading-6 {
-  line-height: 1.5rem;
-}
 .tracking-wide {
   letter-spacing: 0.025em;
 }
@@ -2091,6 +2088,22 @@ summary {
   border-color: var(--core-status-success-border);
   background: var(--core-status-success-bg);
   color: var(--core-status-success-text);
+}
+
+@keyframes core-success-toast-dismiss {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-0.375rem);
+  }
+}
+
+.core-success-toast {
+  animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
 }
 
 .core-status-warning {
@@ -3702,7 +3715,7 @@ summary {
             <div class="catalog-section-head">
               <p class="catalog-kicker">06 · Orientierung</p>
               <h2 class="core-heading-2 text-core-text">Navigation, Auswahl und Dialog</h2>
-              <p>App-Shell-Muster, segmentierte Fachsteuerung, Disclosure und modale Bestätigung.</p>
+              <p>App-Shell-Muster, segmentierte Fachsteuerung, responsive Seiteninhaltsnavigation und modale Bestätigung.</p>
             </div>
             <div class="catalog-section-body">
               <div class="catalog-grid catalog-grid-wide">
@@ -3738,10 +3751,6 @@ summary {
                 </div>
                 <p class="catalog-note">Für lange Seiten mit mindestens drei klaren Abschnitten. Native Ankerlinks behalten Deep Links und Browsernavigation; die aktive Sektion erhält zusätzlich <code>aria-current=&quot;location&quot;</code>. Auf schmalen Ansichten wird das Muster nicht sticky.</p>
               </div>
-              <details class="rounded-2xl border border-core-border bg-core-subtle p-4">
-                <summary class="cursor-pointer core-body font-semibold text-core-secondary">Details und Warnungen anzeigen</summary>
-                <p class="mt-3 core-body leading-6 text-core-muted">Disclosure-Flächen werden bei Importberichten, technischen Details und zurückgestellten Konflikten verwendet.</p>
-              </details>
               <div class="catalog-demo">
                 <span class="catalog-demo-label">Modaler Bestätigungsdialog</span>
                 <button id="open-dialog" type="button" class="core-action-destructive min-h-11 px-4 py-2.5">Dialog öffnen</button>

@@ -154,7 +154,7 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.match(expandedMarkup, />Nein<\/span><span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
 });
 
-test("card selection opens a non-modal detail aside with editor, copy and collapsed tools", () => {
+test("card selection opens a non-modal detail aside with editor, copy and visible tools", () => {
   const originalDeck = createManualCoreDeck({
     deckName: "Biologie",
     card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
@@ -178,7 +178,8 @@ test("card selection opens a non-modal detail aside with editor, copy and collap
   assert.match(markup, />Kopieren<\/button>/);
   assert.doesNotMatch(markup, /Sichere Karten-Vorschau/);
   assert.match(markup, /Version zum Wiederherstellen/);
-  assert.match(markup, /<details[^>]*data-testid="card-variant-tools"/);
+  assert.match(markup, /<section[^>]*data-testid="card-variant-tools"/);
+  assert.doesNotMatch(markup, /<details|<summary/);
   assert.match(markup, /KI-Variante erzeugen/);
   assert.match(markup, /Sendet ausschließlich den bereinigten Text von Vorder- und Rückseite an OpenRouter/);
   assert.match(markup, /Detailansicht schließen/);

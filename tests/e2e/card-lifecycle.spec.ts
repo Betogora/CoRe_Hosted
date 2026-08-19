@@ -127,9 +127,9 @@ async function startDeckFromCards(page: Page, deckId: string, variants = false) 
     await closeDetail.click();
     await expect(detail).toHaveCount(0);
   }
-  await page.getByTestId(`deck-options-${deckId}`).click();
-  await page.getByTestId(`deck-options-menu-${deckId}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
-  await page.getByTestId(`deck-settings-${deckId}`).getByRole("button", { name: variants ? "Varianten lernen" : "Lernen", exact: true }).click();
+  const query = new URLSearchParams({ returnView: "decks", returnDeck: deckId });
+  if (variants) query.set("variant", "1");
+  await page.goto(`/decks/${encodeURIComponent(deckId)}/review?${query}`);
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 }
 
@@ -308,7 +308,7 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e abgefangene Modellantwort wird so
     });
   });
 
-  await page.getByTestId("card-variant-tools").locator("summary").click();
+  await expect(page.getByTestId("card-variant-tools")).toBeVisible();
   const generateButton = page.getByRole("button", { name: "KI-Variante erzeugen" });
   await generateButton.click();
   await expect(generateButton).toBeDisabled();

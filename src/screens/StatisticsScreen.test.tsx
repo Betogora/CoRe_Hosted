@@ -39,9 +39,28 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(markup, /Gesamte Sammlung/);
   assert.match(markup, /Wiederholungen/);
   assert.match(markup, /Zeitplanung/);
-  assert.equal((markup.match(/data-size="compact"/g) ?? []).length, 4);
-  assert.equal((markup.match(/data-size="default"/g) ?? []).length, 7);
+  assert.equal((markup.match(/<nav aria-label="Bereiche der Statistik"/g) ?? []).length, 2);
+  for (const sectionId of [
+    "statistics-overview",
+    "statistics-activity",
+    "statistics-planning",
+    "statistics-memory-model",
+    "statistics-response-behavior",
+    "statistics-deck-comparison",
+  ]) {
+    assert.equal((markup.match(new RegExp(`href="#${sectionId}"`, "g")) ?? []).length, 2);
+    assert.match(markup, new RegExp(`<section id="${sectionId}" class="[^"]*min-w-0`));
+  }
+  assert.equal((markup.match(/data-size="compact"/g) ?? []).length, 11);
+  assert.equal((markup.match(/data-size="default"/g) ?? []).length, 0);
   assert.match(markup, /data-size="compact" class="rounded-xl bg-core-subtle p-3 min-w-0"/);
+  const overviewMarkup = markup.match(/<section id="statistics-overview"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(overviewMarkup);
+  assert.match(overviewMarkup, /core-surface-raised/);
+  assert.match(overviewMarkup, /<h3 id="statistics-overview-title"[^>]*>Überblick<\/h3>/);
+  assert.match(overviewMarkup, /grid gap-3 sm:grid-cols-4/);
+  assert.equal((overviewMarkup.match(/data-size="compact"/g) ?? []).length, 7);
+  assert.doesNotMatch(overviewMarkup, /<svg|core-orb/);
   assert.match(markup, /FSRS-Schwierigkeit/);
   assert.match(markup, /Wahre Erinnerungsquote/);
   assert.match(markup, /Stapelvergleich/);
@@ -67,6 +86,17 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
     "FSRS-Kennzahlen und aktuelle Bestandsverteilungen",
   ]) assert.doesNotMatch(markup, new RegExp(removedText));
   assert.doesNotMatch(markup, /Letzte 14 Tage/);
+
+  const singleDeckMarkup = renderToStaticMarkup(
+    <StatisticsScreenContent
+      dataset={{ decks: [deck], projection: projectStatistics([deck], { ...selection, deckIds: [deck.id] }) }}
+      now="2026-08-06T12:00:00.000Z"
+      timeZone="Europe/Berlin"
+      onNavigate={() => undefined}
+    />,
+  );
+  assert.doesNotMatch(singleDeckMarkup, /href="#statistics-deck-comparison"/);
+  assert.doesNotMatch(singleDeckMarkup, /id="statistics-deck-comparison"/);
 });
 
 test("statistics screen loads its dataset only after mounting", () => {
@@ -83,4 +113,5 @@ test("statistics screen loads its dataset only after mounting", () => {
   assert.match(markup, /aria-busy="true"/);
   assert.match(markup, /Statistik wird geladen/);
   assert.doesNotMatch(markup, /Globaler Zeitraum/);
+  assert.doesNotMatch(markup, /Bereiche der Statistik/);
 });

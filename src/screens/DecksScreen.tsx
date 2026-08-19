@@ -541,8 +541,8 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
           Dieser importierte Kartentyp wird hier nur angezeigt und kann nicht kopiert werden. Typgerechtes Bearbeiten und Kopieren ist für Basic, Basic + Bilder, Reverse, Cloze und Multiple Choice verfügbar.
         </div>
       )}
-      <details className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
-        <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Details, Herkunft und Versionen</summary>
+      <section className="mt-5 min-w-0" aria-labelledby={`card-details-${card.id}`}>
+        <h3 id={`card-details-${card.id}`} className="core-body-large font-semibold text-[var(--core-text)]">Details, Herkunft und Versionen</h3>
       <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))]">
         <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
           <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Initialer Anker</p>
@@ -633,9 +633,9 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
         ) : null}
         {restoreStatus ? <p className="core-status-error mt-3 core-body font-semibold" role="alert">{restoreStatus}</p> : null}
       </section>
-      </details>
-      <details className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4" data-testid="card-variant-tools">
-        <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Varianten und Lernwerte</summary>
+      </section>
+      <section className="mt-5 min-w-0" aria-labelledby={`card-variants-${card.id}`} data-testid="card-variant-tools">
+        <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-[var(--core-text)]">Varianten und Lernwerte</h3>
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
         <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
           <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Reifegrad</p>
@@ -719,7 +719,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
           {variantStatus ? <p className={`core-body ${variantStatusWarning ? "text-core-warning" : "text-[var(--core-text-muted)]"}`} role="status" aria-live="polite">{variantStatus}</p> : null}
         </div>
         </div>
-      </details>
+      </section>
       <CardPreviewDialog
         open={previewOpen}
         item={previewBundle?.item}

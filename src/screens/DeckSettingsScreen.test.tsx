@@ -22,7 +22,6 @@ function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck], s
       onDraftStateChange={() => undefined}
       onRequestContextAction={(action) => action()}
       onCreateSubdeck={() => undefined}
-      onStartDeck={() => undefined}
       onDeleteDeck={async () => null}
       onSelectDeck={() => undefined}
       onOpenGlobalSettings={() => undefined}
@@ -57,6 +56,22 @@ test("deck appearance controls live in the Stack section instead of the page hea
   assert.match(html, /aria-label="Farbe auswählen"/);
   assert.doesNotMatch(html, />Name und Darstellung speichern</);
   assert.doesNotMatch(html, /deck-settings-appearance-toolbar/);
+});
+
+test("deck primary controls place CoRe mode beside management actions without study starts or separator", () => {
+  const html = renderScreen();
+  const container = html.match(/<div class="([^"]*)" data-testid="deck-settings-primary-controls">/);
+  const controlsStart = html.indexOf('data-testid="deck-settings-primary-controls"');
+  const nextSectionStart = html.indexOf('id="deck-daily-profiles"', controlsStart);
+  const controls = html.slice(controlsStart, nextSectionStart);
+
+  assert.ok(container);
+  assert.doesNotMatch(container[1], /border-t|pt-5/);
+  assert.match(controls, />Unterstapel anlegen<\/span><\/button>/);
+  assert.match(controls, /aria-label="CoRe-Modus"/);
+  assert.match(controls, />Löschen<\/span><\/button>/);
+  assert.doesNotMatch(html, /<span>(?:Lernen|Varianten lernen)<\/span>/);
+  assert.equal(html.match(/aria-label="CoRe-Modus"/g)?.length, 1);
 });
 
 test("deck profiles are copy-on-apply and global learn-ahead is absent", () => {

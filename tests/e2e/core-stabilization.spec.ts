@@ -792,7 +792,7 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   const variantTools = page.getByTestId("card-variant-tools");
-  if (await variantTools.getAttribute("open") === null) await variantTools.locator("summary").click();
+  await expect(variantTools).toBeVisible();
   const variantsBefore = (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0;
   await page.getByLabel("Variantenfrage").fill("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?");
   await page.getByLabel("Variantenantwort").fill("Yamoussoukro");
@@ -802,9 +802,8 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
     ?.find((variant: { front: string }) => variant.front === "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?")?.back).toBe("Yamoussoukro");
 
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
-  await page.getByTestId(`deck-options-${DECK_IDS.africa}`).click();
-  await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
-  await page.getByRole("button", { name: "Varianten lernen", exact: true }).click();
+  await page.goto(`/decks/${DECK_IDS.africa}/review?variant=1&returnView=decks&returnDeck=${DECK_IDS.africa}`);
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
 
@@ -856,7 +855,7 @@ test("card version restore shows a comparison, requires confirmation and appends
   await page.getByRole("button", { name: "Speichern" }).click();
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, resolvedCardId))?.originalFront).toBe("<p>Welche Stadt ist die Hauptstadt der Côte d'Ivoire?</p>");
 
-  await page.locator("summary").filter({ hasText: "Details, Herkunft und Versionen" }).click();
+  await expect(page.getByRole("heading", { name: "Details, Herkunft und Versionen" })).toBeVisible();
   const versionSelect = page.getByRole("combobox", { name: "Version zum Wiederherstellen" });
   await chooseCoreSelectOption(page, versionSelect, /Stand vor/);
   await expect(page.getByTestId("version-restore-summary")).toContainText("Aktuell: <p>Welche Stadt ist die Hauptstadt der Côte d'Ivoire?</p>");
@@ -1011,7 +1010,7 @@ test("@beta-core @hosted-core settings resolve and persist an account-bound sync
     await expect(panel.getByText("Für später zurückgestellt (1)")).toBeVisible();
     await page.reload();
     await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-    await page.getByText("Für später zurückgestellt (1)").click();
+    await expect(page.getByRole("heading", { name: "Für später zurückgestellt (1)" })).toBeVisible();
     await page.getByRole("button", { name: "Wieder aufnehmen" }).click();
     await expect(conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Cloud übernehmen" })).toBeVisible();
     await conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Cloud übernehmen" }).click();

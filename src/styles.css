@@ -870,6 +870,22 @@ summary {
   color: var(--core-status-success-text);
 }
 
+@keyframes core-success-toast-dismiss {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-0.375rem);
+  }
+}
+
+.core-success-toast {
+  animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
+}
+
 .core-status-warning {
   border-color: var(--core-status-warning-border);
   background: var(--core-status-warning-bg);

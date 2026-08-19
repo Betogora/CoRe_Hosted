@@ -89,3 +89,14 @@ test("manual options use labeled segmented choices without explanatory subclaims
   assert.match(markup, />Beide Richtungen</);
   assert.doesNotMatch(markup, /Weitere Optionen|role="switch"|Antwortoptionen statt freier Antwort verwenden|Vorder- und Rückseite zusätzlich umgekehrt abfragen/);
 });
+
+test("manual media and additional fields stay visible without disclosures", () => {
+  const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
+
+  assert.equal((markup.match(/>Bild zur Vorderseite einfügen \(optional\)<\/span>/g) ?? []).length, 1);
+  assert.equal((markup.match(/>Bild zur Rückseite einfügen \(optional\)<\/span>/g) ?? []).length, 1);
+  assert.match(markup, /aria-label="Bild zur Vorderseite einfügen \(optional\): Bild einfügen oder ablegen"/);
+  assert.match(markup, /aria-label="Bild zur Rückseite einfügen \(optional\): Bild einfügen oder ablegen"/);
+  assert.match(markup, />Feld hinzufügen<\/span><\/button>/);
+  assert.doesNotMatch(markup, /<details|<summary|Weitere Felder/);
+});

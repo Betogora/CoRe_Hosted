@@ -89,7 +89,6 @@ export interface DeckSettingsScreenProps {
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
   onRequestContextAction: (action: () => void) => void;
   onCreateSubdeck: (parentDeckId: string) => unknown;
-  onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onDeleteDeck: (deckId: string) => Promise<{ deletedDeckIds: string[]; deletedDecks: Deck[]; nextSelectedDeckId: string | null } | null>;
   onSelectDeck: (deckId: string) => unknown;
   onOpenGlobalSettings: () => unknown;
