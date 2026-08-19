@@ -1135,7 +1135,7 @@ export function DecksScreen({
           tabIndex={-1}
           aria-label="Kartendetail"
           data-testid="card-detail-aside"
-          className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-[var(--core-border)] bg-core-surface shadow-2xl focus:outline-none lg:w-1/2"
+          className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-[var(--core-border)] bg-core-surface shadow-2xl [scrollbar-gutter:stable] focus:outline-none lg:w-1/2"
         >
         {selectedDeckMissing ? (
           <div className="grid min-h-full place-items-center p-6">

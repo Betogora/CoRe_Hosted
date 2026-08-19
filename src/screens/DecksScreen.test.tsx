@@ -200,6 +200,7 @@ test("cards page shows suspended rows and marked stars beside the variants badge
   assert.match(markup, /data-suspended="true"/);
   assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
   assert.match(markup, /bg-\[var\(--core-warning-surface\)\]/);
+  assert.match(markup, /data-testid="card-detail-aside"[^>]*\[scrollbar-gutter:stable\]/);
   const editorSurface = markup.match(/<section[^>]*data-testid="card-detail-editor"[^>]*>/)?.[0] ?? "";
   assert.match(editorSurface, /style="background-color:var\(--core-warning-surface\)"/);
   assert.match(markup, />Nein<\/span><span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
