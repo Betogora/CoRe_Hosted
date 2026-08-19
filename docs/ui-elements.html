@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 6050f37724ba9063 */
+/* Quellenstand: 027ee5f6888992a3 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1919,14 +1919,14 @@ button[aria-label] {
 }
 
 .core-deck-summary-responsive {
-  -moz-column-gap: 0.125rem;
-       column-gap: 0.125rem;
+  -moz-column-gap: 0.375rem;
+       column-gap: 0.375rem;
   padding-inline: 0.25rem;
 }
 
 .core-deck-summary-metrics {
-  grid-template-columns: 1.5rem 3.5rem 2.25rem;
-  width: 7.25rem;
+  grid-template-columns: repeat(3, 2.75rem);
+  width: 8.25rem;
   -moz-column-gap: 0;
        column-gap: 0;
 }
@@ -1935,7 +1935,7 @@ button[aria-label] {
   display: none;
 }
 
-@container core-deck-summary (max-width: 18rem) {
+@container core-deck-summary (max-width: 28rem) {
   .core-deck-summary-responsive {
     -moz-column-gap: 0;
          column-gap: 0;
@@ -1951,8 +1951,17 @@ button[aria-label] {
   }
 
   .core-deck-summary-responsive .core-deck-summary-metrics {
-    grid-template-columns: repeat(3, 1.25rem);
-    width: 3.75rem;
+    grid-template-columns: repeat(3, 1.5rem);
+    width: 4.5rem;
+  }
+
+  .core-deck-summary-responsive .core-donut-responsive {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .core-deck-summary-responsive .core-deck-summary-header-donut {
+    width: 1.5rem;
   }
 
   .core-deck-summary-metric-label-full {
@@ -1994,13 +2003,12 @@ button[aria-label] {
   }
 
   .core-deck-summary-responsive .core-deck-summary-leading,
-  .core-deck-summary-responsive .core-deck-summary-actions,
-  .core-deck-summary-responsive .core-deck-summary-counts {
+  .core-deck-summary-responsive .core-deck-summary-actions {
     gap: 0.5rem;
   }
 
   .core-deck-summary-responsive .core-deck-summary-actions {
-    margin-inline-start: 0.5rem;
+    margin-inline-start: 0.75rem;
   }
 
   .core-deck-summary-responsive .core-deck-summary-icon {

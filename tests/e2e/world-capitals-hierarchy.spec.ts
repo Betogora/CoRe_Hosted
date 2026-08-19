@@ -264,7 +264,7 @@ test("active deck header and rows fit every target width and toggle reliably on 
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
-  const widths = [1440, 1280, 1279, 1152, 1024, 900, 820, 768, 700, 640, 639, 390, 320];
+  const widths = [1440, 1280, 1279, 1152, 1024, 900, 820, 768, 700, 640, 639, 459, 390, 320];
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     const layout = await page.getByTestId("learn-deck-list").evaluate((panel) => {
@@ -278,6 +278,25 @@ test("active deck header and rows fit every target width and toggle reliably on 
       const name = panel.querySelector<HTMLElement>(".core-deck-summary-name")!;
       const icon = panel.querySelector<HTMLElement>(".core-deck-summary-icon")!;
       const rowMetricLabels = [...panel.querySelectorAll<HTMLElement>("[data-deck-count] dt")];
+      const firstRow = panel.querySelector<HTMLElement>('[data-deck-row="true"]')!;
+      const rowStatusColumns = [
+        ...firstRow.querySelectorAll<HTMLElement>("[data-deck-count]"),
+        firstRow.querySelector<HTMLElement>(".core-donut-responsive")!,
+      ];
+      const headerStatusColumns = [
+        ...tableHeader.querySelectorAll<HTMLElement>(".core-deck-summary-count"),
+        tableHeader.querySelector<HTMLElement>(".core-deck-summary-header-donut")!,
+      ];
+      const centers = (columns: HTMLElement[]) => columns.map((column) => {
+        const rect = column.getBoundingClientRect();
+        return rect.left + rect.width / 2;
+      });
+      const gapSpread = (columnCenters: number[]) => {
+        const gaps = columnCenters.slice(1).map((center, index) => center - columnCenters[index]);
+        return Math.max(...gaps) - Math.min(...gaps);
+      };
+      const rowStatusCenters = centers(rowStatusColumns);
+      const headerStatusCenters = centers(headerStatusColumns);
       return {
         fits: Boolean(rowViewport && rowViewport.scrollWidth <= rowViewport.clientWidth + 1)
           && document.documentElement.scrollWidth <= window.innerWidth + 1,
@@ -287,16 +306,23 @@ test("active deck header and rows fit every target width and toggle reliably on 
         rowLabelsHidden: rowMetricLabels.every((label) => getComputedStyle(label).position === "absolute"),
         nameWidth: name.getBoundingClientRect().width,
         iconWidth: icon.getBoundingClientRect().width,
+        statusGapSpread: gapSpread(rowStatusCenters),
+        headerStatusGapSpread: gapSpread(headerStatusCenters),
+        headerRowAlignment: Math.max(...rowStatusCenters.map((center, index) => Math.abs(center - headerStatusCenters[index]))),
       };
     });
 
     expect(layout.fits).toBe(true);
     expect(layout.headerHeight).toBeLessThanOrEqual(30);
-    expect(layout.headerLabels).toEqual(width <= 320
+    expect(layout.headerLabels).toEqual(width <= 459
       ? ["STAPEL", "N", "O", "F"]
       : ["STAPEL", "NEU", "OFFEN", "FÄLLIG"]);
     expect(layout.headerLabelsFit).toBe(true);
     expect(layout.rowLabelsHidden).toBe(true);
+    expect(layout.statusGapSpread).toBeLessThanOrEqual(1);
+    expect(layout.headerStatusGapSpread).toBeLessThanOrEqual(1);
+    expect(layout.headerRowAlignment).toBeLessThanOrEqual(1);
+    if (width <= 459) expect(layout.nameWidth).toBeGreaterThan(0);
     if (width >= 700) expect(layout.nameWidth).toBeGreaterThanOrEqual(layout.iconWidth);
   }
 
