@@ -1752,7 +1752,6 @@ export function App() {
             },
           ), { replace: true }) : undefined}
           onMoveDeck={moveDeck}
-          onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onOpenLearn={openLearn}
           onDraftStateChange={handleCardDraftStateChange}
           expandedDeckIds={state.profile.uiPreferences.deckManagerExpandedDeckIds}

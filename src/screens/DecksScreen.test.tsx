@@ -29,7 +29,6 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps & Decks
       usage: null,
     }),
     onMoveDeck: () => null,
-    onOpenCardCreation: () => undefined,
     onOpenLearn: () => undefined,
     onOpenDeckSettings: () => undefined,
     onDraftStateChange: () => undefined,
@@ -92,7 +91,11 @@ test("cards page renders sortable collapsed deck sections without learning metri
   const markup = renderScreen(decks);
 
   assert.match(markup, /<h2[^>]*>Karten<\/h2>/);
+  assert.match(markup, /<h3[^>]*>Kartenverwaltung<\/h3>/);
+  assert.match(markup, /data-testid="card-library-panel"/);
   assert.match(markup, /data-testid="card-library-table"/);
+  assert.ok(markup.indexOf("Kartenverwaltung") < markup.indexOf('aria-label="Karten durchsuchen"'));
+  assert.ok(markup.indexOf('aria-label="Karten durchsuchen"') < markup.indexOf('data-testid="card-library-table"'));
   assert.match(markup, /Sortierfeld/);
   assert.match(markup, /Datum/);
   assert.match(markup, /aria-label="Datum aufsteigend sortieren"/);
@@ -125,7 +128,7 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.doesNotMatch(markup, /focus-within:/);
   assert.match(markup, /focus-visible:outline-none/);
   assert.doesNotMatch(markup, /Karten nach CoRe-Modus filtern|Alle Modi/);
-  assert.match(markup, />Neue Karte<\/span><\/button>/);
+  assert.doesNotMatch(markup, />Neue Karte<\/span><\/button>/);
   assert.doesNotMatch(markup, /<span[^>]*aria-live="polite"[^>]*>\d+ Karten?<\/span>/);
   assert.doesNotMatch(markup, /data-deck-drag-source/);
 

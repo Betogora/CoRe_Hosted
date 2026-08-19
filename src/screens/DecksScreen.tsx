@@ -756,7 +756,6 @@ export function DecksScreen({
   onAddVariant,
   onGenerateVariant,
   onMoveDeck,
-  onOpenCardCreation,
   onOpenLearn,
   onOpenDeckSettings,
   onDraftStateChange,
@@ -1161,25 +1160,25 @@ export function DecksScreen({
     <div className="relative grid min-w-0 gap-7">
       <PageHeader title="Karten" />
 
-      <SoftPanel className="p-4 sm:p-5">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text-muted)] transition">
-            <Search size={17} aria-hidden="true" />
-            <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
-          </label>
-          <ActionButton type="button" variant="primary" icon={PlusSquare} onClick={onOpenCardCreation}>Neue Karte</ActionButton>
-        </div>
-        {deckStatus ? <p className={"mt-3 core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
-        {deletedCardUndo ? (
-          <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-3">
-            <p className="min-w-0 flex-1 truncate core-body text-[var(--core-text)]">„{deletedCardUndo.description}“ gelöscht.</p>
-            <ActionButton type="button" variant="secondary" icon={RotateCcw} onClick={() => void undoCardDelete()}>Rückgängig</ActionButton>
+      <SoftPanel className="overflow-hidden p-4 sm:p-7" aria-labelledby="card-library-heading" data-testid="card-library-panel">
+        <div className="grid gap-6">
+          <h3 id="card-library-heading" className="flex min-h-11 items-center whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Kartenverwaltung</h3>
+          <div className="grid gap-3">
+            <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text-muted)] transition">
+              <Search size={17} aria-hidden="true" />
+              <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
+            </label>
+            {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
+            {deletedCardUndo ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-3">
+                <p className="min-w-0 flex-1 truncate core-body text-[var(--core-text)]">„{deletedCardUndo.description}“ gelöscht.</p>
+                <ActionButton type="button" variant="secondary" icon={RotateCcw} onClick={() => void undoCardDelete()}>Rückgängig</ActionButton>
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </SoftPanel>
 
-      {tableModel.groups.length ? (
-        <SoftPanel className="min-w-0 overflow-hidden p-0">
+          {tableModel.groups.length ? (
+            <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)]">
           <table className="w-full table-fixed border-collapse" data-testid="card-library-table">
               <colgroup>
                 <col />
@@ -1305,10 +1304,15 @@ export function DecksScreen({
                 </tbody>
               );})}
           </table>
-        </SoftPanel>
-      ) : (
-        <EmptyState icon={Layers} title="Keine Karten gefunden" body="Passe Suche oder CoRe-Modus an." />
-      )}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-[var(--core-border)] p-6 sm:p-8" role="status">
+              <h4 className="core-heading-3 text-[var(--core-text)]">Keine Karten gefunden</h4>
+              <p className="mt-1 core-body-large text-[var(--core-text-muted)]">Passe die Suche an.</p>
+            </div>
+          )}
+        </div>
+      </SoftPanel>
 
       {detailOpen ? (typeof document === "undefined" ? renderDetailLayer() : createPortal(renderDetailLayer(), document.body)) : null}
 
