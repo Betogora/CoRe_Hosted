@@ -42,7 +42,7 @@ CoRe startet Anki-kompatibel, bleibt beim Lernen ruhig und fokussiert und macht 
 
 - E-Mail-/Passwort-Account und verständlicher leerer Zustand;
 - Heute-Dashboard und klarer Lernstart;
-- APKG im freigegebenen Größenbereich, Text, CSV und Tabellenimport;
+- APKG im freigegebenen Größenbereich;
 - manuelle Stapel- und Kartenerstellung;
 - Karten- und Stapelverwaltung;
 - Review mit vier Bewertungen und Content-Repetition;
@@ -101,13 +101,12 @@ Nutzer wählen zwischen manueller Erstellung und Import.
 
 Akzeptanz:
 
-- APKG, Text, CSV und Tabellen-Paste sind ohne Kenntnis interner Anki-Begriffe auffindbar.
+- Der Importbereich bietet ausschließlich APKG-Dateien an; Text-, CSV- und Tabellenimporte sind nicht verfügbar.
 - Unterstützte Quellanhänge sind PDF, Text, Markdown, CSV und TSV; nicht lesbare Formate sind nicht auswählbar.
 - APKG wird zuerst analysiert. Vorschau und `Import übernehmen` sind getrennte Schritte.
 - Der Hauptbericht nennt Datei, Stapel, Karten, Notetypes, vorhandene und fehlende Medien sowie verständliche Kompatibilitäts- und Schedulerwarnungen. Höchstens drei repräsentative Karten werden mit demselben Renderer wie die spätere Kartenansicht und der Review gezeigt; Vorder- und Rückseite tragen innerhalb der Kartenfläche eine kompakte Seitenkennzeichnung. Der pauschale Hinweis auf originalgetreue und sichere Darstellung entfällt, tatsächliche Darstellungsabweichungen und Diagnosen bleiben sichtbar.
 - Notetype-IDs, Template-Ordinals, Hashes und Importidentitäten dominieren den Hauptflow nicht.
-- Ein Wechsel zwischen APKG, Text, CSV und Tabelle verwirft die vorherige Vorschau, Commitfähigkeit, Fehler und Fortschritte vollständig.
-- Eine laufende accountgebundene APKG-Sitzung bleibt bei Navigation innerhalb der App mit Datei-Metadaten, Vorschau, Fortschritt und Abschlusszustand erhalten. Die Rückkehr zu `Erstellen → Import → APKG` zeigt denselben Zustand; Auswahl, Formatwechsel, Logout oder bestätigter Abschluss setzen ihn zurück. Ein Browser-Reload übernimmt weder Datei noch Vorschau oder Worker.
+- Eine laufende accountgebundene APKG-Sitzung bleibt bei Navigation innerhalb der App mit Datei-Metadaten, Vorschau, Fortschritt und Abschlusszustand erhalten. Die Rückkehr zu `Erstellen → Import` zeigt denselben Zustand; die Zurückaktion `Erstellen`, Logout oder bestätigter Abschluss setzen ihn zurück. Ein Browser-Reload übernimmt weder Datei noch Vorschau oder Worker.
 - `Import übernehmen` endet nach dem lokal validierten IndexedDB-Commit und dem dauerhaften Einreihen vorhandener Medien. Der Commit verlangt eine gültige Stapelhierarchie, genau eine Originalvariante, einen vorhandenen Notiztyp und einen verknüpften Quell-Snapshot je importierter Karte. Die lokal gespeicherten Karten sind dann bereits verwendbar; danach werden Cloud-Daten und Medien getrennt synchronisiert. Ein APKG-Import gilt erst nach seitenweiser Bestätigung seines vollständigen Deck-, Karten-, Varianten-, Snapshot-, Notiztyp- und Reviewgraphen sowie aller Medienobjekte und aktiven Referenzen als erfolgreich.
 - Offline- und erneut versuchbare Fehler melden `Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus.` und lassen Outbox sowie Medienqueue bestehen. Nicht erneut versuchbare Konflikte bleiben sichtbar und entfernen die lokalen Karten nicht.
 - Abbruch, erneut versuchbarer Fehler, terminaler Fehler, Teilabschluss und Erfolg sind getrennte Zustände mit jeweils passender Folgeaktion.
@@ -115,7 +114,6 @@ Akzeptanz:
 - Bei manueller Erstellung bleibt der Editor nach `Speichern` geöffnet. Angeheftete Felder bleiben erhalten, andere Felder werden geleert, das Zieldeck bleibt gewählt und der Fokus springt deterministisch in das erste freie Pflichtfeld.
 - Unter der Stapelauswahl öffnet `Vorschau` den gemeinsamen modalen Karten-Vorschau-Dialog aus dem aktuellen ungespeicherten Entwurf. Eine zusätzliche aufgeklappte `Live-Vorschau` wird in der Kartenerstellung nicht angezeigt. Die modale Vorschau verzichtet auf pauschale Sicherheits- oder Originaltreue-Werbung.
 - Die manuelle Erstellung beginnt ohne Kartentypauswahl mit Vorder- und Rückseite. Bilder können optional in beiden Feldern eingefügt werden; `Lücke` markiert die gespeicherte Textauswahl als Cloze-Gruppe, Rückrichtung und Multiple Choice liegen unter den weiteren Optionen. Zusätzliche benannte Felder erhalten eine Platzierung auf Vorderseite, Rückseite, beiden Seiten oder nur in Metadaten.
-- CSV und Tabellen-Paste zeigen Header und Beispielzeilen. Jede Spalte wird vor dem Commit sichtbar auf Vorderseite, Rückseite, Tags, Stapel, Import-ID, ein neues Zusatzfeld oder `Ignorieren` abgebildet; eindeutige Header werden nur regelbasiert vorbelegt.
 - Zielauswahlen zeigen vollständige hierarchische Stapelpfade. Erst `Fertig` öffnet den Abschluss mit Sitzungsanzahl, Zielpfad, `Jetzt lernen` und `Karten prüfen`.
 - Interne Navigation mit einem nichtleeren fachlichen Entwurf verlangt eine eigene Bestätigung. `Weiter bearbeiten` erhält Inhalt und Fokus; `Verwerfen und verlassen` verwirft nur den aktuellen Entwurf.
 

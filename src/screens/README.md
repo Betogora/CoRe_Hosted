@@ -14,9 +14,7 @@ Each exported screen in this folder is a UI module with a small props interface.
 - `CreationScreen.tsx`: composition and completion state for the creation area; keeps the public screen props and creation workflow wiring stable.
   - `CreationHome.tsx`: manual and import entry cards.
   - `ManualCreationPanel.tsx`: manual cards, Rich Text fields and optional PDF/text source selection.
-  - `ImportCreationPanel.tsx`: local import-format selection and composition of the two import panels.
-  - `ApkgImportPanel.tsx`: APKG analysis, preview, commit status, media progress and import report presentation.
-  - `TextTableImportPanel.tsx`: Text/CSV/table paste preview and import.
+  - `ApkgImportPanel.tsx`: sole import surface with APKG analysis, preview, commit status, media progress and import report presentation.
 - `LearnScreen.tsx`: shared collapsible deck tree, main/subdeck creation, whole-row subtree study entry, direct drag-and-drop reparenting, aggregated new/due/total counts and per-deck learning-settings entry points.
 - `DeckSettingsScreen.tsx`: drei responsive Bereiche für Stapeldarstellung/-aktionen, Tagesrunde/Lernprofil-Vorlagen und Scheduler/CoRe; ohne fokussierten Stapel zeigt die Route eine `DeckSelect`-Auswahl.
 - `HelpScreen.tsx`: statische Produktaufklärung mit kurzem Methoden-Einstieg, lokal scrollgesteuerter Active-Recall-Kartengeschichte und gekoppelter FSRS-Lernkurve; sticky ab Desktopbreite, linear darunter, ohne Workspace- oder Scheduler-Mutation.

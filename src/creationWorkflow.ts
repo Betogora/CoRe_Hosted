@@ -9,8 +9,6 @@ import {
 } from "./coreModel.ts";
 import { createAnchorFromSelection, createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "./documentModel.ts";
 import { appendPlainTextToCardHtml } from "./richText.ts";
-import { importCsvAsNormalizedDeck, importNormalizedDeck, importTextAsNormalizedDeck } from "./importService.ts";
-import type { CsvFieldProjection } from "./csvFieldMapping.ts";
 import { createAccountMediaStore, type MediaObjectUploadPlan, type MediaSyncResult, type MediaSyncTask } from "./mediaStore.ts";
 import type { CardEditorValue, CardType, Deck, EditableCardType, ImportCommitGraph, LearningItem, SourceAnchor } from "./coreTypes.ts";
 import { LOCAL_APKG_MAX_BYTES, type ApkgImportReportV1 } from "./apkgImport.ts";
@@ -82,19 +80,6 @@ export interface LocalApkgCreationPreview {
 }
 
 export type ApkgCreationPreview = LocalApkgCreationPreview;
-
-interface PasteImportInput {
-  mode?: "text" | "csv" | "spreadsheet";
-  deckName?: string;
-  content?: string;
-  dryRun?: boolean;
-}
-
-interface MappedCsvImportInput {
-  deckName?: string;
-  records?: CsvFieldProjection[];
-  dryRun?: boolean;
-}
 
 interface SelectionInput {
   activeField?: string;
@@ -185,10 +170,6 @@ function createApkgJob(file: FileLike, status: string, overrides: Record<string,
   };
 }
 
-function normalizePasteMode(mode: unknown): "text" | "csv" | "spreadsheet" {
-  return mode === "csv" || mode === "spreadsheet" ? mode : "text";
-}
-
 function createWorkerMediaPlan(graph: ImportCommitGraph, persistedDecks: Deck[], summary: Deck): {
   decks: Deck[];
   objectUploads: MediaObjectUploadPlan | null;
@@ -255,18 +236,6 @@ function verifiedMediaResult(result: MediaSyncResult, expectedReferences: number
   return result;
 }
 
-function createPasteImportInput({ mode, deckName, content }: { mode: unknown; deckName: string; content: string }) {
-  const normalizedMode = normalizePasteMode(mode);
-  if (normalizedMode === "text") return { deckName, text: content };
-
-  return {
-    deckName,
-    csv: content,
-    sourceType: "csv_import",
-    format: normalizedMode === "spreadsheet" ? "spreadsheet" : "csv",
-  };
-}
-
 function normalizeAnswerOptions(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((option) => String(option).trim());
   return String(value ?? "")
@@ -302,47 +271,6 @@ function normalizeManualImageAttachment(value: unknown): ManualImageAttachment |
     size: input.blob.size,
     mimeType,
     blob: input.blob,
-  };
-}
-
-function createMappedCsvDeckInput(deckName: string, records: CsvFieldProjection[]) {
-  const extraFieldNames = [...new Set(records.flatMap((record) => record.fields.map((field) => field.name)))];
-  const definitionVersionId = stableContentHash(
-    { source: "csv-mapping", fields: ["Vorderseite", "Rückseite", ...extraFieldNames] },
-    "note-type",
-  );
-  return {
-    title: deckName,
-    sourceType: "csv_import",
-    metadataJson: { parser: "csv-field-mapping", mappedFieldNames: extraFieldNames },
-    items: records.map((record) => {
-      const valueByName = new Map(record.fields.map((field) => [field.name, field.value]));
-      const document = createLearningItemDocumentFromLegacy({
-        definitionVersionId,
-        fields: [
-          { name: "Vorderseite", value: record.front },
-          { name: "Rückseite", value: record.back },
-          ...extraFieldNames.map((name) => ({ name, value: valueByName.get(name) ?? "" })),
-        ],
-        tags: record.tags,
-      });
-      return {
-        title: record.front,
-        canonicalQuestion: record.front,
-        canonicalAnswer: record.back,
-        tags: record.tags,
-        sourceType: "csv_import",
-        sourceExternalId: record.guid,
-        originalFields: document.fields.map((field) => ({ name: field.name, value: field.value })),
-        contentDocument: document,
-        noteTypeDefinition: createCoreNoteTypeDefinition({ document, name: "CSV-Feldschema" }),
-        metadataJson: {
-          importFormat: "csv-mapping",
-          sourceLine: record.sourceLine,
-          requestedDeck: record.deck,
-        },
-      };
-    }),
   };
 }
 
@@ -570,19 +498,6 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
         ? committed.commitGraph.cardCount
         : decks.reduce((sum, deck) => sum + deck.cards.filter((card) => card.status !== "deleted").length, 0);
       return { ...committed, deck: persistedDeck, decks: persistedDecks.length ? persistedDecks : decks, createdCount, cloudTask: persistence.cloudTask, mediaTask };
-    },
-
-    importPastedDeck({ mode = "text", deckName = "Importierter Stapel", content = "", dryRun = false }: PasteImportInput = {}) {
-      const normalizedMode = normalizePasteMode(mode);
-      const input = createPasteImportInput({ mode: normalizedMode, deckName, content });
-
-      return normalizedMode === "text"
-        ? importTextAsNormalizedDeck(input, { dryRun })
-        : importCsvAsNormalizedDeck(input, { dryRun });
-    },
-
-    importMappedCsvDeck({ deckName = "Importierter Stapel", records = [], dryRun = false }: MappedCsvImportInput = {}) {
-      return importNormalizedDeck(createMappedCsvDeckInput(deckName, records), { dryRun });
     },
 
     async readSourceDocument(file: FileLike) {

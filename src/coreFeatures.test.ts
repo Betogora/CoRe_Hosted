@@ -4,7 +4,6 @@ import { createLocalAccount, signInLocalAccount, signOutLocalAccount } from "./a
 import { createCoreCard, createCoreDeck } from "./coreModel.ts";
 import { chooseReviewCard, classifyCardEligibility, deactivateVariant, ensureVariantsForCard } from "./coreVariantService.ts";
 import { createPortableExport, mergePortableExportIntoState, validatePortableExport } from "./dataPortability.ts";
-import { createCsvImportDeck, createTableImportDeck, createTextImportDeck } from "./importService.ts";
 import { createDeckLibraryModel } from "./libraryModel.ts";
 import { resolveReviewShortcut } from "./reviewShortcuts.ts";
 import { createReviewSession, recordReviewRating, recordVariantFeedback } from "./reviewService.ts";
@@ -87,27 +86,6 @@ test("review session can choose a variant and records family plus variant state"
   const feedback = recordVariantFeedback(reviewed.deck, item, { action: "disable", now: "2026-07-01T08:02:00.000Z" });
   assert.equal(feedback.deck.cards[0].variants[0].qualityStatus, "disabled");
   assert.equal(feedback.deck.versionLog.some((entry) => entry.changeType === "variant_disabled"), true);
-});
-
-test("text, CSV and spreadsheet import create Core decks", () => {
-  const textDeck = createTextImportDeck({
-    deckName: "Text",
-    text: "Was ist ATP?\n---\nEin Energietraeger.\n\nWas macht Myelin?\n---\nEs isoliert Axone.",
-  });
-  const csvDeck = createCsvImportDeck({
-    deckName: "CSV",
-    csv: "front,back,tags\nWas ist ATP?,Energietraeger,biochemie",
-  });
-  const spreadsheetDeck = createTableImportDeck({
-    deckName: "Excel Paste",
-    table: "front\tback\ttags\nNatriumkanal\tLeitet Natriumionen\tphysiologie",
-  });
-
-  assert.equal(textDeck.cardCount, 2);
-  assert.equal(csvDeck.cardCount, 1);
-  assert.equal(spreadsheetDeck.cardCount, 1);
-  assert.equal(csvDeck.cards[0].originalTags[0], "biochemie");
-  assert.equal(spreadsheetDeck.cards[0].meta.importFormat, "spreadsheet");
 });
 
 test("deck library model centralizes filtering", () => {

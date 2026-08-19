@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-08-18
+**Stand:** 2026-08-19
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -33,7 +33,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Lernen und Kartenverwaltung bleiben getrennte Aufgabenoberflächen mit einem gemeinsamen kanonischen URL-Kontext für Deck, Karte, Erstellziel und allowlist-basierten Review-Rückweg; Reload, Direktlink sowie Browser-Zurück/-Vorwärts erhalten den semantischen Kontext.
 - Ungültige oder nicht verfügbare Deck-/Kartenlinks zeigen sichere deutsche Fallbacks und öffnen nicht still eine andere Karte.
 - Reverse-Richtungen, Cloze-Lückengruppen und Multiple-Choice-Lösung werden beim Speichern atomar in ihre reviewbaren Formen projiziert; Reimport, Cloud und Portabilität erhalten lokale strukturierte Änderungen.
-- APKG-, Text-, CSV- und Tabellenimport mit getrennten UI-Phasen und Terminalzuständen; die vier laufenden APKG-Phasen einschließlich Cloud-Sync zeigen jeweils einen monotonen Prozentfortschritt in der Dateizeile. Die flüchtige accountgebundene APKG-Sitzung überlebt interne Navigation, aber keinen Reload; Formatwechsel verwerfen ihren sichtbaren Zustand. Der lokale Commit macht Karten sofort verfügbar und reiht Medien dauerhaft ein, während `Fertig` bestätigten Cloud-, Medien- und Referenzsync voraussetzt. CSV-/Tabellenspalten werden vor dem Commit sichtbar auf Vorderseite, Rückseite, Tags, Stapel, Import-ID, weitere Felder oder `Ignorieren` abgebildet.
+- Ausschließlicher APKG-Import mit getrennten UI-Phasen und Terminalzuständen; die vier laufenden Phasen einschließlich Cloud-Sync zeigen jeweils einen monotonen Prozentfortschritt in der Dateizeile. Die flüchtige accountgebundene APKG-Sitzung überlebt interne Navigation, aber keinen Reload. Der lokale Commit macht Karten sofort verfügbar und reiht Medien dauerhaft ein, während `Fertig` bestätigten Cloud-, Medien- und Referenzsync voraussetzt. Text-, CSV- und Tabellenimporte sowie eine Formatwahl sind entfernt.
 - APKG-Reviewhistorie und Quellsnapshots laufen tabellenweise durch begrenzte Cloud-Batches mit 250 Zeilen beziehungsweise 1 MiB statt durch sequenzielle Einzelwrites. Idempotente IDs, unveränderliche Snapshotketten und Kartenverknüpfungen bleiben erhalten.
 - Legacy- und V18-APKG erhalten Feld- und Template-IDs, Reihenfolge, Konfiguration, CSS, Card Requirements, Roh-Protobuf, Medien- und Schedulerquelldaten in unveränderlichen Definitionen und Quellsnapshots. Der gemeinsame sichere Renderer wird in Vorschau, Kartenverwaltung und Review verwendet; Script, externe Ressourcen und unbekannte Filter werden nicht ausgeführt und führen mit deutscher Diagnose in die geordnete Feldansicht.
 - Der APKG-Worker erzeugt Commitgraph, Bericht und höchstens fünf Vorschaukarten einmalig. Die Oberfläche materialisiert das Paket nicht erneut; der Commit streamt den Workergraphen in IndexedDB-Chunks. Der lokale 25.000-Karten-/1.000-Medien-Messlauf hält die Main-Thread-Übergabe unter 100 ms, bleibt mit rund 14,7 Sekunden Workerzeit und rund 688 MiB Heap aber ein beobachteter großer Importpfad.

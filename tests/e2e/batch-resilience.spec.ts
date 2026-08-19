@@ -288,23 +288,14 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
 });
 
-test("[Vertrag: Importformatwechsel und Terminalzustände] @beta-core alte Vorschauen werden vollständig verworfen", async ({ page }) => {
+test("[Vertrag: ausschließlicher APKG-Import und Terminalzustände] @beta-core nur APKG bleibt verfügbar", async ({ page }) => {
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await page.getByRole("button", { name: "Text", exact: true }).click();
-  await page.getByRole("textbox", { name: "Importinhalt" }).fill("Frage\n---\nAntwort");
-  await page.getByRole("button", { name: "Import prüfen" }).click();
-  await expect(page.getByText(/1 Karten · 0 Varianten/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled();
-
-  await page.getByRole("button", { name: "CSV", exact: true }).click();
-  await expect(page.getByText(/1 Karten · 0 Varianten/)).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "Importinhalt" })).toHaveValue("");
-  await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeDisabled();
-
-  await page.getByRole("button", { name: "APKG", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "APKG-Dateien importieren" })).toBeVisible();
-  await expect(page.getByText(/1 Karten · 0 Varianten/)).toHaveCount(0);
+  const importCreation = page.getByRole("region", { name: "Import" });
+  await expect(importCreation.getByRole("heading", { name: "APKG-Dateien importieren" })).toBeVisible();
+  await expect(importCreation.getByRole("button", { name: "Erstellen", exact: true })).toBeVisible();
+  await expect(importCreation.getByRole("button", { name: /^(APKG|Text|CSV|Excel\/Tabelle)$/ })).toHaveCount(0);
+  await expect(importCreation.getByRole("textbox", { name: "Importinhalt" })).toHaveCount(0);
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles({
     name: "kaputt.apkg",
     mimeType: "application/octet-stream",

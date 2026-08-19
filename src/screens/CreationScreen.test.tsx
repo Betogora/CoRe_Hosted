@@ -46,6 +46,14 @@ test("creation entry presents the two concise creation methods", () => {
   assert.doesNotMatch(markup, /Core ·|Karten manuell erstellen|Front\/Back-Listen/);
 });
 
+test("import creation exposes only APKG without a format selector", () => {
+  const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="import" {...callbacks} />);
+
+  assert.match(markup, />Erstellen<\/button>/);
+  assert.match(markup, /APKG-Dateien importieren/);
+  assert.doesNotMatch(markup, /Importformat|>APKG<|>Text<|>CSV<|>Excel\/Tabelle</);
+});
+
 test("manual picker accepts only readable source documents", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 

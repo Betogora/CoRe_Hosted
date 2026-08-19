@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { LOCAL_APKG_MAX_BYTES } from "./apkgImport.ts";
-import { createCoreDeck, createSourceDocument, getOriginalVariant } from "./coreModel.ts";
+import { createCoreDeck, createSourceDocument } from "./coreModel.ts";
 import { createCreationWorkflow, createImportCloudSyncTask } from "./creationWorkflow.ts";
 
 async function worldCapitalsApkgFile() {
@@ -14,16 +14,6 @@ async function worldCapitalsApkgFile() {
   };
 }
 
-test("creation workflow imports pasted text and tables", () => {
-  const workflow = createCreationWorkflow();
-  const text = workflow.importPastedDeck({ mode: "text", deckName: "Text", content: "Was ist ATP?\n---\nEin Energieträger.", dryRun: true });
-  const table = workflow.importPastedDeck({ mode: "spreadsheet", deckName: "Tabelle", content: "front\tback\nATP\tEnergieträger" });
-
-  assert.equal(text.report.createdLearningItems, 1);
-  assert.equal(table.deck.cards.length, 1);
-  assert.equal(getOriginalVariant(table.deck.cards[0])?.isOriginal, true);
-});
-
 test("creation workflow preserves manual document anchors", () => {
   const workflow = createCreationWorkflow();
   const document = createSourceDocument({ fileName: "quelle.txt", text: "ATP ist ein Energieträger.", textExtractionStatus: "success" });
@@ -32,28 +22,6 @@ test("creation workflow preserves manual document anchors", () => {
 
   assert.equal(deck.sourceDocuments[0].fileName, "quelle.txt");
   assert.equal(deck.cards[0].sourceAnchors[0].targetField, "back");
-});
-
-test("creation workflow imports mapped CSV columns into one dynamic field schema", () => {
-  const workflow = createCreationWorkflow();
-  const result = workflow.importMappedCsvDeck({
-    deckName: "Dynamisch",
-    records: [{
-      sourceLine: 2,
-      front: "Was ist ATP?",
-      back: "Ein Energieträger.",
-      tags: ["biologie"],
-      deck: "Biologie::Zelle",
-      guid: "note-atp",
-      fields: [{ name: "Quelle", value: "Lehrbuch S. 12" }],
-    }],
-  });
-
-  assert.equal(result.report.errors.length, 0);
-  assert.equal(result.deck.cards.length, 1);
-  assert.deepEqual(result.deck.cards[0].contentDocument.fields.map((field: { name: string }) => field.name), ["Vorderseite", "Rückseite", "Quelle"]);
-  assert.equal(result.deck.cards[0].noteTypeDefinitionId, result.deck.cards[0].contentDocument.definitionVersionId);
-  assert.equal(result.deck.cards[0].meta.requestedDeck, "Biologie::Zelle");
 });
 
 test("creation workflow treats images as optional media on an ordinary dynamic card", async () => {
