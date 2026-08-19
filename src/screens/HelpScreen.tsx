@@ -335,7 +335,7 @@ function HelpExampleCardStack({
 }) {
   return (
     <div
-      className="core-help-example-stack relative mx-auto h-[31rem] w-full max-w-xl sm:h-[27rem]"
+      className="core-help-example-stack relative mx-auto h-[39rem] w-full max-w-xl sm:h-[30rem]"
       role={ariaLabel ? "img" : undefined}
       aria-label={ariaLabel}
       data-testid={rootTestId}
@@ -346,14 +346,14 @@ function HelpExampleCardStack({
       {HELP_EXAMPLE_STACK_LAYERS.map((layer) => (
         <div
           key={layer.id}
-          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[22rem] rounded-[24px] border border-[var(--core-border-interactive)] shadow-md sm:h-72 ${layer.className}`}
+          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[30rem] rounded-[24px] border border-[var(--core-border-interactive)] shadow-md sm:h-[21rem] ${layer.className}`}
           aria-hidden="true"
           data-testid={layerTestId}
           data-help-example-stack-layer={layer.id}
         />
       ))}
       <div
-        className="core-help-stack-card core-help-stack-front absolute inset-x-[8%] top-20 z-20 grid h-[22rem] place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 shadow-lg sm:h-72 sm:p-8"
+        className="core-help-stack-card core-help-stack-front absolute inset-x-[8%] top-20 z-20 grid h-[30rem] place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 shadow-lg sm:h-[21rem] sm:p-8"
         data-testid={frontTestId}
         data-help-example-stack-front="true"
       >
