@@ -15,9 +15,13 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.match(markup, /core-help-stack-layer-back/);
   assert.match(markup, /core-help-stack-layer-middle/);
   assert.equal((markup.match(/data-help-example-stack="true"/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-help-example-stack-template="medium"/g) ?? []).length, 2);
   assert.equal((markup.match(/data-help-example-stack-layer="back"/g) ?? []).length, 2);
   assert.equal((markup.match(/data-help-example-stack-layer="middle"/g) ?? []).length, 2);
   assert.equal((markup.match(/data-help-example-stack-front="true"/g) ?? []).length, 2);
+  assert.equal((markup.match(/core-help-example-stack relative mx-auto h-\[31rem\] w-full max-w-xl sm:h-\[27rem\]/g) ?? []).length, 2);
+  assert.equal((markup.match(/h-\[22rem\]/g) ?? []).length, 6);
+  assert.equal((markup.match(/sm:h-72/g) ?? []).length, 6);
   assert.equal((markup.match(/inset-x-\[8%\] top-20/g) ?? []).length, 6);
   assert.equal((markup.match(/rounded-\[24px\]/g) ?? []).length, 6);
   assert.match(markup, /class="[^"]*core-help-stack-front[^"]*z-20[^"]*"[^>]*data-testid="help-intro-card-front"/);

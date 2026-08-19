@@ -321,42 +321,39 @@ function StoryStepCard<TSelection extends string>({
 function HelpExampleCardStack({
   activeRecallCard,
   ariaLabel,
-  cardClassName,
   children,
-  className,
   frontTestId,
   layerTestId,
   rootTestId,
 }: {
   activeRecallCard?: "stack" | "blur";
   ariaLabel?: string;
-  cardClassName: string;
   children: React.ReactNode;
-  className: string;
   frontTestId?: string;
   layerTestId?: string;
   rootTestId?: string;
 }) {
   return (
     <div
-      className={`core-help-example-stack relative ${className}`}
+      className="core-help-example-stack relative mx-auto h-[31rem] w-full max-w-xl sm:h-[27rem]"
       role={ariaLabel ? "img" : undefined}
       aria-label={ariaLabel}
       data-testid={rootTestId}
       data-help-example-stack="true"
+      data-help-example-stack-template="medium"
       data-active-recall-card={activeRecallCard}
     >
       {HELP_EXAMPLE_STACK_LAYERS.map((layer) => (
         <div
           key={layer.id}
-          className={`core-help-stack-card absolute inset-x-[8%] top-20 rounded-[24px] border border-[var(--core-border-interactive)] shadow-md ${cardClassName} ${layer.className}`}
+          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[22rem] rounded-[24px] border border-[var(--core-border-interactive)] shadow-md sm:h-72 ${layer.className}`}
           aria-hidden="true"
           data-testid={layerTestId}
           data-help-example-stack-layer={layer.id}
         />
       ))}
       <div
-        className={`core-help-stack-card core-help-stack-front absolute inset-x-[8%] top-20 z-20 grid place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 shadow-lg sm:p-8 ${cardClassName}`}
+        className="core-help-stack-card core-help-stack-front absolute inset-x-[8%] top-20 z-20 grid h-[22rem] place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 shadow-lg sm:h-72 sm:p-8"
         data-testid={frontTestId}
         data-help-example-stack-front="true"
       >
@@ -369,8 +366,6 @@ function HelpExampleCardStack({
 function IntroCardStack() {
   return (
     <HelpExampleCardStack
-      className="mx-auto h-[27rem] w-full max-w-lg"
-      cardClassName="h-[19rem]"
       ariaLabel="Karteikartenstapel mit der Frage, welche Grundsätze CoRe für nachhaltiges Lernen nutzt. Active Recall wird zu Smarter Recall und Spaced Repetition zu Content Repetition weiterentwickelt."
       rootTestId="help-intro-card-stack"
       frontTestId="help-intro-card-front"
@@ -490,8 +485,6 @@ function RecallQuestion({ obscured }: { obscured: boolean }) {
 function ActiveRecallOriginalCard({ obscured }: { obscured: boolean }) {
   return (
     <HelpExampleCardStack
-      className="h-[27rem]"
-      cardClassName="h-64"
       activeRecallCard={obscured ? "blur" : "stack"}
     >
       <div className="max-w-xl text-center">
