@@ -200,6 +200,7 @@ test("cards page shows suspended rows and marked stars beside the variants badge
   assert.match(markup, /data-suspended="true"/);
   assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
   assert.match(markup, /bg-\[var\(--core-warning-surface\)\]/);
+  assert.match(markup, /<aside[^>]*aria-label="Kartendetail"[^>]*bg-\[var\(--core-warning-surface\)\]/);
   assert.match(markup, />Nein<\/span><span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
   assert.match(markup, /aria-label="Markierung entfernen"/);
   const suspendControl = markup.match(/<div[^>]*aria-label="Aussetzstatus der Karte"[\s\S]*?<\/div>/)?.[0] ?? "";
