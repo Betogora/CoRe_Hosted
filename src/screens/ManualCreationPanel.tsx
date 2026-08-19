@@ -159,7 +159,7 @@ function ManualImageField({ label, value, busy, error, onFile, onRemove }: Manua
           if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setIsDragging(false);
         }}
         onDrop={(event) => { event.preventDefault(); setIsDragging(false); useFirstFile(event.dataTransfer.files); }}
-        className={`min-h-32 rounded-xl border-2 border-dashed p-4 outline-none transition ${isDragging ? "border-[var(--core-action-primary)] bg-[var(--core-info-surface)]" : "border-[var(--core-border-interactive)] bg-[var(--core-surface-muted)]"}`}
+        className={`min-h-32 rounded-xl border-2 border-dashed p-4 outline-none transition ${isDragging ? "border-[var(--core-action-primary)] bg-[var(--core-info-surface)]" : "border-[var(--core-border-interactive)]"}`}
       >
         <input ref={inputRef} type="file" accept="image/*" hidden tabIndex={-1} onChange={(event) => { useFirstFile(event.target.files); event.target.value = ""; }} />
         {value ? (
@@ -589,19 +589,14 @@ export function ManualCreationPanel({
           {!isMultipleChoice ? <p className="core-body font-normal text-[var(--core-text-muted)]">Markiere Text und wähle in der Toolbar „Lücke“. CoRe erzeugt die Lückengruppe automatisch.</p> : null}
           {fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes}</p> : null}
         </div>
-        <details className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
-          <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Bild zur Vorderseite einfügen (optional)</summary>
-          <div className="mt-3">
-            <ManualImageField
-              label="Bild zur Vorderseite (optional)"
-              value={frontImage}
-              busy={preparingImage === "front"}
-              error={imageErrors.front}
-              onFile={(file) => void prepareImage("front", file)}
-              onRemove={() => { setFrontImage(null); setImageErrors((current) => ({ ...current, front: "" })); }}
-            />
-          </div>
-        </details>
+        <ManualImageField
+          label="Bild zur Vorderseite einfügen (optional)"
+          value={frontImage}
+          busy={preparingImage === "front"}
+          error={imageErrors.front}
+          onFile={(file) => void prepareImage("front", file)}
+          onRemove={() => { setFrontImage(null); setImageErrors((current) => ({ ...current, front: "" })); }}
+        />
         <div data-manual-focus="back" className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           <div className="flex min-h-11 items-center justify-between gap-2">
             <span>{answerLabel}</span>
@@ -613,24 +608,17 @@ export function ManualCreationPanel({
           }} isActive={backFieldActive} minHeightClass="min-h-32" ariaLabel={answerLabel} ariaInvalid={Boolean(fieldErrors.back)} />
           {fieldErrors.back ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.back}</p> : null}
         </div>
-        <details className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
-          <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Bild zur Rückseite einfügen (optional)</summary>
-          <div className="mt-3">
-            <ManualImageField
-              label="Bild zur Rückseite (optional)"
-              value={backImage}
-              busy={preparingImage === "back"}
-              error={imageErrors.back}
-              onFile={(file) => void prepareImage("back", file)}
-              onRemove={() => { setBackImage(null); setImageErrors((current) => ({ ...current, back: "" })); }}
-            />
-          </div>
-        </details>
+        <ManualImageField
+          label="Bild zur Rückseite einfügen (optional)"
+          value={backImage}
+          busy={preparingImage === "back"}
+          error={imageErrors.back}
+          onFile={(file) => void prepareImage("back", file)}
+          onRemove={() => { setBackImage(null); setImageErrors((current) => ({ ...current, back: "" })); }}
+        />
       </div>
 
-      <details className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
-        <summary className="cursor-pointer core-body font-semibold text-[var(--core-action-primary)]">Weitere Felder ({additionalFields.length})</summary>
-        <div className="mt-4 grid gap-4">
+      <div className="grid gap-4">
           {additionalFields.map((field, index) => (
             <div key={field.id} className="grid min-w-0 gap-3 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
               <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
@@ -676,8 +664,7 @@ export function ManualCreationPanel({
             value: "",
             placement: "metadata",
           }])}>Feld hinzufügen</ActionButton>
-        </div>
-      </details>
+      </div>
 
       {cardType === "multiple-choice" ? (
         <fieldset className="grid gap-3 rounded-xl border border-[var(--core-border)] p-4">

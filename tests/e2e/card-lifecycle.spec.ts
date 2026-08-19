@@ -308,7 +308,7 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e abgefangene Modellantwort wird so
     });
   });
 
-  await page.getByTestId("card-variant-tools").locator("summary").click();
+  await expect(page.getByTestId("card-variant-tools")).toBeVisible();
   const generateButton = page.getByRole("button", { name: "KI-Variante erzeugen" });
   await generateButton.click();
   await expect(generateButton).toBeDisabled();

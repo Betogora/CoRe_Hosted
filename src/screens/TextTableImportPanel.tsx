@@ -110,10 +110,10 @@ export function TextTableImportPanel({ initialMode = "text", workflow, onImporte
             <StatusMessage tone={report.errors.length ? "error" : "success"} announce={report.errors.length ? "assertive" : "polite"}>
               <p className="font-semibold text-[var(--core-text)]">{report.createdLearningItems} Karten · {report.createdVariants} Varianten · {report.duplicates.length} Dubletten</p>
               {report.warnings.length ? (
-                <details className="mt-2">
-                  <summary className="cursor-pointer font-semibold">{report.warnings.length} Warnungen anzeigen</summary>
+                <section className="mt-2" aria-labelledby="text-import-warnings-heading">
+                  <h3 id="text-import-warnings-heading" className="font-semibold">{report.warnings.length} Warnungen</h3>
                   <ul className="mt-2 list-disc pl-5">{report.warnings.map((warning: string) => <li key={warning}>{warning}</li>)}</ul>
-                </details>
+                </section>
               ) : null}
               {report.errors.length ? <p className="mt-2 text-core-text">{report.errors.slice(0, 2).join(" ")}</p> : null}
             </StatusMessage>

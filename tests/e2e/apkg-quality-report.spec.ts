@@ -28,9 +28,7 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await expect(page.getByText("Medien vorhanden", { exact: true })).toBeVisible();
   await expect(page.getByText("Medien fehlen", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Reimport-Schutz" })).toBeVisible();
-  const warnings = page.locator("details").filter({ hasText: /Warnung/ });
-  await expect(warnings.getByText(/Mehrere Anki-Decks wurden erkannt/)).toBeHidden();
-  await warnings.locator("summary").click();
+  const warnings = page.getByRole("region", { name: /Warnungen?/ });
   await expect(warnings.getByText(/Mehrere Anki-Decks wurden erkannt/)).toBeVisible();
   await expect(page.getByText(/Notetype|SHA-1|Importidentität/i)).toHaveCount(0);
   const statTiles = page.getByTestId("apkg-stat-tile");
@@ -40,8 +38,7 @@ test("latest APKG preview shows the complete quality report without mutating acc
     await expect(tile).toHaveCSS("border-width", "0px");
     await expect(tile).toHaveCSS("box-shadow", "none");
   }
-  const examples = page.locator("details").filter({ hasText: "Kartenbeispiele" });
-  await examples.locator("summary").click();
+  const examples = page.getByRole("region", { name: "Kartenbeispiele" });
   const sampleCards = examples.locator("article");
   await expect(sampleCards).toHaveCount(3);
   await expect(sampleCards.locator("iframe")).toHaveCount(6);
