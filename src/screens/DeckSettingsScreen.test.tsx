@@ -69,7 +69,8 @@ test("deck primary controls place CoRe mode beside management actions without st
   assert.doesNotMatch(container[1], /border-t|pt-5/);
   assert.match(controls, />Unterstapel anlegen<\/span><\/button>/);
   assert.match(controls, /aria-label="CoRe-Modus"/);
-  assert.doesNotMatch(html, />Lernen<\/button>|>Varianten lernen<\/button>/);
+  assert.match(controls, />Löschen<\/span><\/button>/);
+  assert.doesNotMatch(html, /<span>(?:Lernen|Varianten lernen)<\/span>/);
   assert.equal(html.match(/aria-label="CoRe-Modus"/g)?.length, 1);
 });
 
