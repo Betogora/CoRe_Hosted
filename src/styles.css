@@ -707,6 +707,10 @@ button[aria-label] {
   padding-inline: 0.25rem;
 }
 
+.core-deck-summary-responsive.core-table-header-row {
+  padding-inline-start: 0.5rem;
+}
+
 .core-deck-summary-metrics {
   grid-template-columns: repeat(3, 2.75rem);
   width: 8.25rem;
@@ -717,7 +721,7 @@ button[aria-label] {
   display: none;
 }
 
-@container core-deck-summary (max-width: 28rem) {
+@container core-deck-summary (max-width: 32rem) {
   .core-deck-summary-responsive {
     column-gap: 0;
     padding-inline: 0;
@@ -776,7 +780,7 @@ button[aria-label] {
   }
 }
 
-@container core-deck-summary (min-width: 44rem) {
+@container core-deck-summary (min-width: 48rem) {
   .core-deck-summary-responsive {
     column-gap: 0.5rem;
     padding-inline: 0.5rem;

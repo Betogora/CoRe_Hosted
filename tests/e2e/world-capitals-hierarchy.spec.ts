@@ -264,7 +264,7 @@ test("active deck header and rows fit every target width and toggle reliably on 
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
-  const widths = [1440, 1280, 1279, 1152, 1024, 900, 820, 768, 700, 640, 639, 459, 390, 320];
+  const widths = [1440, 1280, 1279, 1152, 1024, 900, 820, 768, 700, 640, 639, 523, 459, 390, 320];
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     const layout = await page.getByTestId("learn-deck-list").evaluate((panel) => {
@@ -297,15 +297,23 @@ test("active deck header and rows fit every target width and toggle reliably on 
       };
       const rowStatusCenters = centers(rowStatusColumns);
       const headerStatusCenters = centers(headerStatusColumns);
+      const tableHeaderRect = tableHeader.getBoundingClientRect();
+      const titleRange = document.createRange();
+      titleRange.selectNodeContents(headerLabels[0]);
+      const titleTextRect = titleRange.getBoundingClientRect();
       return {
         fits: Boolean(rowViewport && rowViewport.scrollWidth <= rowViewport.clientWidth + 1)
           && document.documentElement.scrollWidth <= window.innerWidth + 1,
-        headerHeight: tableHeader.getBoundingClientRect().height,
+        summaryWidth: tableHeaderRect.width,
+        headerHeight: tableHeaderRect.height,
+        headerTitleInset: titleTextRect.left - tableHeaderRect.left,
         headerLabels: headerLabels.map((label) => label.innerText.trim()),
         headerLabelsFit: headerLabels.every((label) => label.scrollWidth <= label.clientWidth + 1),
         rowLabelsHidden: rowMetricLabels.every((label) => getComputedStyle(label).position === "absolute"),
         nameWidth: name.getBoundingClientRect().width,
         iconWidth: icon.getBoundingClientRect().width,
+        metricWidth: rowStatusColumns[0].getBoundingClientRect().width,
+        donutWidth: rowStatusColumns.at(-1)!.getBoundingClientRect().width,
         statusGapSpread: gapSpread(rowStatusCenters),
         headerStatusGapSpread: gapSpread(headerStatusCenters),
         headerRowAlignment: Math.max(...rowStatusCenters.map((center, index) => Math.abs(center - headerStatusCenters[index]))),
@@ -314,7 +322,8 @@ test("active deck header and rows fit every target width and toggle reliably on 
 
     expect(layout.fits).toBe(true);
     expect(layout.headerHeight).toBeLessThanOrEqual(30);
-    expect(layout.headerLabels).toEqual(width <= 459
+    expect(layout.headerTitleInset).toBeCloseTo(8, 0);
+    expect(layout.headerLabels).toEqual(layout.summaryWidth <= 512
       ? ["STAPEL", "N", "O", "F"]
       : ["STAPEL", "NEU", "OFFEN", "FÄLLIG"]);
     expect(layout.headerLabelsFit).toBe(true);
@@ -322,7 +331,17 @@ test("active deck header and rows fit every target width and toggle reliably on 
     expect(layout.statusGapSpread).toBeLessThanOrEqual(1);
     expect(layout.headerStatusGapSpread).toBeLessThanOrEqual(1);
     expect(layout.headerRowAlignment).toBeLessThanOrEqual(1);
-    if (width <= 459) expect(layout.nameWidth).toBeGreaterThan(0);
+    if (layout.summaryWidth <= 512) {
+      expect(layout.metricWidth).toBeCloseTo(24, 0);
+      expect(layout.donutWidth).toBeCloseTo(24, 0);
+      expect(layout.nameWidth).toBeGreaterThan(0);
+    } else if (layout.summaryWidth < 768) {
+      expect(layout.metricWidth).toBeCloseTo(44, 0);
+      expect(layout.donutWidth).toBeCloseTo(32, 0);
+    } else {
+      expect(layout.metricWidth).toBeCloseTo(80, 0);
+      expect(layout.donutWidth).toBeCloseTo(40, 0);
+    }
     if (width >= 700) expect(layout.nameWidth).toBeGreaterThanOrEqual(layout.iconWidth);
   }
 
