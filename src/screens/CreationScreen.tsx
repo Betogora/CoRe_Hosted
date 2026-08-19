@@ -2,12 +2,12 @@ import React from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import { createEmptyApkgImportSession } from "../apkgImportSession.ts";
-import { createCreationWorkflow, type ImportCompletion } from "../creationWorkflow.ts";
+import { createCreationWorkflow } from "../creationWorkflow.ts";
 import type { Deck } from "../coreTypes.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ApkgImportPanel } from "./ApkgImportPanel.tsx";
 import { CreationHome, creationMethods } from "./CreationHome.tsx";
-import { ImportCreationPanel } from "./ImportCreationPanel.tsx";
 import { ManualCreationPanel } from "./ManualCreationPanel.tsx";
 
 type ManualCardInput = Parameters<CreationScreenProps["onAppendManualCard"]>[1];
@@ -79,18 +79,17 @@ export function CreationScreen({
   function renderSelectedMethod() {
     if (selectedMethod === "import") {
       return (
-        <ImportCreationPanel
-          decks={decks}
-          onCreated={onCreated}
-          onImportCompleted={(completion: ImportCompletion) => {
-            completeSession(completion.deck.id, completion.createdCount, "import");
-          }}
+        <ApkgImportPanel
+          existingDecks={decks}
           workflow={accountWorkflow}
           mediaStore={mediaStore}
-          apkgImportSession={apkgImportSession}
-          onApkgImportSessionChange={onApkgImportSessionChange}
-          isApkgImportSessionCurrent={isApkgImportSessionCurrent}
-          onResetApkgImportSession={onResetApkgImportSession}
+          session={apkgImportSession}
+          onSessionChange={onApkgImportSessionChange}
+          isSessionCurrent={isApkgImportSessionCurrent}
+          onResetSession={onResetApkgImportSession}
+          onCompleted={(completion) => {
+            completeSession(completion.deck.id, completion.createdCount, "import");
+          }}
         />
       );
     }
@@ -149,7 +148,7 @@ export function CreationScreen({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
               <ArrowLeft size={16} aria-hidden="true" />
-              Auswahl
+              Erstellen
             </button>
           </div>
           {renderSelectedMethod()}

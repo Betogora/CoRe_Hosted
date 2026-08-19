@@ -85,32 +85,6 @@ const TRANSFORM_BY_VARIANT_TYPE = {
   custom: "rephrase",
 };
 
-function splitCsvLine(line: any) {
-  const result: any[] = [];
-  let current = "";
-  let quoted = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    const next = line[index + 1];
-
-    if (char === '"' && next === '"') {
-      current += '"';
-      index += 1;
-    } else if (char === '"') {
-      quoted = !quoted;
-    } else if ((char === "," || char === "\t" || char === ";") && !quoted) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-
-  result.push(current.trim());
-  return result;
-}
-
 function text(value: any, { normalizeText = true }: any = {}) {
   const trimmed = String(value ?? "").trim();
   return normalizeText ? trimmed.replace(/\s+/g, " ") : trimmed;
@@ -763,113 +737,6 @@ export function importNormalizedDeck(input: any = {}, options: any = {}): any {
   };
 }
 
-export function parseTextToNormalizedImport({ deckName = "Text-Import", text: rawText = "", tags = [], sourceExternalId = null }: any = {}) {
-  const warnings: any[] = [];
-  const passages = String(rawText)
-    .split(/\n{2,}/)
-    .map((passage: any) => passage.trim())
-    .filter((passage: any) => passage.length > 0);
-  const items = passages.map((passage: any, index: any) => {
-    const [front, ...backParts] = passage.split(/\n-+\n|\nAntwort:\s*/i);
-    const back = backParts.join("\n").trim() || passage;
-    if (!front.trim() || !back.trim()) warnings.push(`Textblock ${index + 1}: Frage oder Antwort war leer.`);
-    return {
-      title: `Textkarte ${index + 1}`,
-      canonicalQuestion: front.trim() || `Textkarte ${index + 1}`,
-      canonicalAnswer: back,
-      tags,
-      sourceType: "text_import",
-      sourceExternalId: sourceExternalId ? `${sourceExternalId}:${index + 1}` : null,
-      metadataJson: {
-        importFormat: "text",
-        rawIndex: index,
-      },
-    };
-  });
-
-  return {
-    normalizedDeck: {
-      title: deckName,
-      sourceType: "text_import",
-      tags,
-      items,
-      metadataJson: { parser: "parseTextToNormalizedImport" },
-    },
-    warnings,
-    errors: items.length === 0 ? ["Keine importierbaren Textabschnitte erkannt."] : [],
-  };
-}
-
-export function parseCsvToNormalizedImport({ deckName = "CSV-Import", csv = "", tags = [], sourceType = "csv_import", format = null }: any = {}) {
-  const warnings: any[] = [];
-  const lines = String(csv)
-    .split(/\r?\n/)
-    .map((line: any) => line.trim())
-    .filter(Boolean);
-
-  if (lines.length === 0) {
-    return {
-      normalizedDeck: { title: deckName, sourceType, tags, items: [] },
-      warnings,
-      errors: ["CSV enthält keine importierbaren Zeilen."],
-    };
-  }
-
-  const header = splitCsvLine(lines[0]).map((value: any) => value.toLowerCase());
-  const hasHeader = ["front", "back", "question", "answer"].some((column: any) => header.includes(column));
-  const frontIndex = hasHeader ? Math.max(header.indexOf("front"), header.indexOf("question")) : 0;
-  const backIndex = hasHeader ? Math.max(header.indexOf("back"), header.indexOf("answer")) : 1;
-  const tagsIndex = hasHeader ? header.indexOf("tags") : 2;
-  const variantLevelIndex = hasHeader ? header.indexOf("variantlevel") : -1;
-  const variantTypeIndex = hasHeader ? header.indexOf("varianttype") : -1;
-  const dataLines = hasHeader ? lines.slice(1) : lines;
-  const items: any[] = [];
-
-  dataLines.forEach((line: any, index: any) => {
-    const columns = splitCsvLine(line);
-    const front = columns[frontIndex] ?? "";
-    const back = columns[backIndex] ?? "";
-    if (!front.trim() || !back.trim()) {
-      warnings.push(`Zeile ${index + (hasHeader ? 2 : 1)} wurde übersprungen: front/question oder back/answer fehlt.`);
-      return;
-    }
-
-    items.push({
-      canonicalQuestion: front,
-      canonicalAnswer: back,
-      tags: tagsIndex >= 0 ? columns[tagsIndex] ?? tags : tags,
-      sourceType,
-      variants: [
-        {
-          front,
-          back,
-          variantType: variantTypeIndex >= 0 ? columns[variantTypeIndex] : "basic",
-          variantLevel: variantLevelIndex >= 0 ? columns[variantLevelIndex] : 1,
-          generationSource: "original",
-          isOriginal: true,
-        },
-      ],
-      metadataJson: {
-        importFormat: format ?? (sourceType === "csv_import" ? "csv" : "table"),
-        rawColumns: columns,
-        rawLine: index + (hasHeader ? 2 : 1),
-      },
-    });
-  });
-
-  return {
-    normalizedDeck: {
-      title: deckName,
-      sourceType,
-      tags,
-      items,
-      metadataJson: { parser: "parseCsvToNormalizedImport" },
-    },
-    warnings,
-    errors: items.length === 0 ? ["Keine gültigen Front/Back-Zeilen erkannt."] : [],
-  };
-}
-
 export function parseJsonToNormalizedImport(jsonOrObject: any) {
   try {
     const payload: unknown = typeof jsonOrObject === "string" ? JSON.parse(jsonOrObject) : jsonOrObject;
@@ -918,50 +785,6 @@ function importParsedNormalizedDeck(parsed: any, options: any = {}) {
   return result;
 }
 
-export function importTextAsNormalizedDeck(input: any = {}, options: any = {}) {
-  return importParsedNormalizedDeck(parseTextToNormalizedImport(input), options);
-}
-
-export function importCsvAsNormalizedDeck(input: any = {}, options: any = {}) {
-  return importParsedNormalizedDeck(parseCsvToNormalizedImport(input), options);
-}
-
 export function importJsonAsNormalizedDeck(jsonOrObject: any, options: any = {}) {
   return importParsedNormalizedDeck(parseJsonToNormalizedImport(jsonOrObject), options);
-}
-
-export function createTextImportDeck({ deckName = "Text-Import", text = "", tags = [] }: any) {
-  const result = importTextAsNormalizedDeck({ deckName, text, tags }, { dryRun: false });
-  return result.deck ?? createCoreDeck({
-    name: deckName,
-    source: "text-import",
-    tags,
-    cards: [],
-    importMeta: {
-      creationMethod: "text-import",
-      detectedCards: 0,
-      warnings: result.report.warnings,
-      errors: result.report.errors,
-    },
-  });
-}
-
-export function createCsvImportDeck({ deckName = "CSV-Import", csv = "" }: any) {
-  return createTableImportDeck({ deckName, table: csv, format: "csv" });
-}
-
-export function createTableImportDeck({ deckName = "Tabellen-Import", table = "", format = "spreadsheet" }: any) {
-  const sourceType = format === "csv" ? "csv_import" : "csv_import";
-  const result = importCsvAsNormalizedDeck({ deckName, csv: table, sourceType, format }, { dryRun: false });
-  return result.deck ?? createCoreDeck({
-    name: deckName,
-    source: format === "csv" ? "csv-import" : "spreadsheet-import",
-    cards: [],
-    importMeta: {
-      creationMethod: `${format}-import`,
-      detectedCards: 0,
-      warnings: result.report.warnings,
-      errors: result.report.errors,
-    },
-  });
 }

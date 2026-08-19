@@ -11,16 +11,13 @@ import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./c
 import {
   createImportFingerprint,
   findDuplicateLearningItem,
-  importCsvAsNormalizedDeck,
   importJsonAsNormalizedDeck,
   importNormalizedDeck,
   normalizeImportDeck,
   normalizeImportItem,
   normalizeImportVariant,
   normalizeTextForFingerprint,
-  parseCsvToNormalizedImport,
   parseJsonToNormalizedImport,
-  parseTextToNormalizedImport,
 } from "./importService.ts";
 import { answerVariant, getNextReviewItem } from "./reviewService.ts";
 
@@ -156,29 +153,10 @@ test("duplicate detection supports source ids, fingerprints and merge strategies
   assert.equal(updateExisting.report.warnings.some((warning: string|string[]) => warning.includes("update_existing")), true);
 });
 
-test("text, CSV and JSON parsers produce normalized decks and clear reports", () => {
-  const textParsed = parseTextToNormalizedImport({
-    deckName: "Text",
-    text: "Was ist ATP?\n---\nEin Energietraeger.",
-    tags: ["bio"],
-  });
-  const csvParsed = parseCsvToNormalizedImport({
-    deckName: "CSV",
-    csv: "question,answer,tags,variantLevel,variantType\nWas ist ATP?,Ein Energietraeger.,bio,1,basic\nLeer,,x",
-  });
-  const csvImport = importCsvAsNormalizedDeck({
-    deckName: "CSV",
-    csv: "front,back,tags\nA?,B.,tag",
-  });
+test("JSON parser produces normalized decks and clear reports", () => {
   const jsonImport = importJsonAsNormalizedDeck(JSON.stringify(sampleNormalizedDeck()));
   const invalidJson = parseJsonToNormalizedImport("{no-json");
 
-  assert.equal(textParsed.normalizedDeck.items.length, 1);
-  assert.equal(textParsed.normalizedDeck.sourceType, "text_import");
-  assert.equal(csvParsed.normalizedDeck.items.length, 1);
-  assert.equal(csvParsed.warnings.length, 1);
-  assert.equal(csvImport.deck.cards.length, 1);
-  assert.equal(csvImport.deck.cards[0].sourceType, "csv_import");
   assert.equal(jsonImport.deck.cards.length, 2);
   assert.equal(invalidJson.errors.length, 1);
 });
