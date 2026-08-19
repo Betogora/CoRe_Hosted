@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, PenLine, Pin, PinOff, Plus, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, PenLine, Pin, PinOff, Plus, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -13,6 +13,7 @@ import type { CardEditorFieldErrors, Deck, SourceDocument } from "../coreTypes.t
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { FileDropField } from "../ui/FileDropField.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
@@ -26,8 +27,6 @@ type ManualCreationWorkflow = Pick<
   | "createManualDeck"
   | "createManualDeckInput"
   | "validateManualCard"
-  | "readableSourceDocumentAccept"
-  | "readableSourceDocumentLabel"
   | "readSourceDocument"
   | "prepareManualImage"
   | "prepareManualMedia"
@@ -58,8 +57,6 @@ const LEARNING_DIRECTION_OPTIONS = [
 export interface ManualCreationPanelProps {
   decks: Deck[];
   workflow: ManualCreationWorkflow;
-  documentMode?: boolean;
-  sourceInputRef?: React.RefObject<HTMLInputElement | null>;
   initialTargetDeckId?: string;
   onCreated: (deck: Deck) => unknown;
   onAppendManualCard: (deckId: string, input: ManualDeckInput) => Promise<Deck | null>;
@@ -123,8 +120,6 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
 }
 
 function ManualImageField({ label, value, busy, error, onFile, onRemove }: ManualImageFieldProps) {
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
-  const [isDragging, setIsDragging] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState("");
 
   React.useEffect(() => {
@@ -137,35 +132,15 @@ function ManualImageField({ label, value, busy, error, onFile, onRemove }: Manua
     return () => URL.revokeObjectURL(url);
   }, [value]);
 
-  function useFirstFile(files: FileList | null | undefined) {
-    const file = files?.[0];
-    if (file) onFile(file);
-  }
-
   return (
-    <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-      <span>{label}</span>
-      <div
-        tabIndex={0}
-        role="group"
-        aria-label={`${label}: Bild einfügen oder ablegen`}
-        aria-busy={busy || undefined}
-        onPaste={(event) => {
-          const file = [...event.clipboardData.files].find((candidate) => candidate.type.startsWith("image/"))
-            ?? [...event.clipboardData.items].find((item) => item.kind === "file" && item.type.startsWith("image/"))?.getAsFile();
-          if (!file) return;
-          event.preventDefault();
-          onFile(file);
-        }}
-        onDragEnter={(event) => { event.preventDefault(); setIsDragging(true); }}
-        onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; setIsDragging(true); }}
-        onDragLeave={(event) => {
-          if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setIsDragging(false);
-        }}
-        onDrop={(event) => { event.preventDefault(); setIsDragging(false); useFirstFile(event.dataTransfer.files); }}
-        className={`min-h-32 rounded-xl border-2 border-dashed p-4 outline-none transition ${isDragging ? "border-[var(--core-action-primary)] bg-[var(--core-info-surface)]" : "border-[var(--core-border-interactive)]"}`}
+    <div className="grid gap-2">
+      <FileDropField
+        kind="image"
+        label={label}
+        selected={Boolean(value)}
+        onFile={onFile}
+        busy={busy}
       >
-        <input ref={inputRef} type="file" accept="image/*" hidden tabIndex={-1} onChange={(event) => { useFirstFile(event.target.files); event.target.value = ""; }} />
         {value ? (
           <div className="flex min-w-0 flex-col items-center gap-3 sm:flex-row">
             {previewUrl ? <img src={previewUrl} alt="Vorschau des ausgewählten Bildes" className="h-28 w-full rounded-lg border border-[var(--core-border)] bg-core-surface object-contain sm:w-40" /> : null}
@@ -173,21 +148,12 @@ function ManualImageField({ label, value, busy, error, onFile, onRemove }: Manua
               <p className="truncate core-body font-semibold text-[var(--core-text)]">{value.originalName}</p>
               <p className="mt-1 core-caption font-normal text-[var(--core-text-muted)]">{formatBytes(value.size)} · Strg+V oder Drop ersetzt das Bild</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
-                <ActionButton type="button" variant="secondary" icon={Upload} onClick={() => inputRef.current?.click()} disabled={busy}>Ersetzen</ActionButton>
                 <ActionButton type="button" variant="destructive" icon={X} onClick={onRemove} disabled={busy}>Entfernen</ActionButton>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="grid min-h-24 place-items-center text-center">
-            <div>
-              <ImagePlus className="mx-auto text-[var(--core-action-primary)]" size={26} aria-hidden="true" />
-              <p className="mt-2 core-body font-semibold text-[var(--core-text)]">Bild mit Strg+V einfügen oder hier ablegen</p>
-              <ActionButton type="button" variant="secondary" icon={Upload} className="mt-3" onClick={() => inputRef.current?.click()} disabled={busy}>Bild auswählen</ActionButton>
-            </div>
-          </div>
-        )}
-      </div>
+        ) : null}
+      </FileDropField>
       {busy ? <p className="core-caption font-normal text-[var(--core-text-muted)]" role="status">Bild wird vorbereitet …</p> : null}
       {error ? <p className="core-body font-medium text-core-text" role="alert">{error}</p> : null}
     </div>
@@ -203,11 +169,7 @@ export function ManualCreationPanel({
   onTargetDeckChange = () => undefined,
   onFinish = () => undefined,
   onDraftStateChange = () => undefined,
-  documentMode = false,
-  sourceInputRef,
 }: ManualCreationPanelProps) {
-  const internalSourceInputRef = React.useRef<HTMLInputElement | null>(null);
-  const resolvedSourceInputRef = sourceInputRef ?? internalSourceInputRef;
   const editorRootRef = React.useRef<HTMLDivElement | null>(null);
   const saveProgressRef = React.useRef<HTMLDivElement | null>(null);
   const saveInFlightRef = React.useRef(false);
@@ -223,7 +185,7 @@ export function ManualCreationPanel({
   const { currentDraft, pinnedFields } = batchState;
   const { cardType, front, back, answerOptions, correctOptionIndices, tags, selection, sourceAnchor } = currentDraft;
   const [activeField, setActiveField] = React.useState<ActiveField>("front");
-  const [showDocumentMode, setShowDocumentMode] = React.useState(documentMode);
+  const [documentMode, setDocumentMode] = React.useState(false);
   const [document, setDocument] = React.useState<SourceDocument | null>(null);
   const [documentObjectUrl, setDocumentObjectUrl] = React.useState("");
   const [documentText, setDocumentText] = React.useState("");
@@ -242,10 +204,6 @@ export function ManualCreationPanel({
   React.useEffect(() => {
     if (decks.length === 0) setUseNewDeck(true);
   }, [decks.length]);
-
-  React.useEffect(() => {
-    setShowDocumentMode(documentMode);
-  }, [documentMode]);
 
   React.useEffect(() => {
     const validIndices = correctOptionIndices.filter((index) => index >= 0 && index < answerOptions.length);
@@ -291,22 +249,13 @@ export function ManualCreationPanel({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [draftDirty, isSaving]);
 
-  async function handleDocument(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  async function handleDocument(file: File) {
     const nextDocument = await workflow.readSourceDocument(file as unknown as Parameters<ManualCreationWorkflow["readSourceDocument"]>[0]);
     setDocument(nextDocument);
     setDocumentObjectUrl(isPdfDocument(nextDocument) ? URL.createObjectURL(file) : "");
     setDocumentText(String(nextDocument.text ?? ""));
-    setShowDocumentMode(true);
     setStatusType(nextDocument.textExtractionStatus === "error" || nextDocument.textExtractionStatus === "unsupported" ? "alert" : "status");
     setStatus(documentStatusMessage(nextDocument));
-    event.target.value = "";
-  }
-
-  function openSourcePicker() {
-    resolvedSourceInputRef.current?.click();
   }
 
   function applySelection(selectedText: string, sourceAnchorOptions: Partial<PdfSelectionOptions> = {}) {
@@ -581,8 +530,7 @@ export function ManualCreationPanel({
   }, [activeField, additionalFields, answerOptions, back, backImage, cardType, correctOptionIndices, deckName, decks, document, documentText, front, frontImage, previewOpen, selectedDeckId, selection, sourceAnchor, tags, useNewDeck, workflow]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
-  const shouldShowPdfViewer = showDocumentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
-  const sourceFileName = document?.fileName ?? "Keine Datei ausgewählt";
+  const shouldShowPdfViewer = documentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
 
   const editor = (
     <div ref={editorRootRef} className="grid min-w-0 gap-4" aria-busy={isSaving || undefined}>
@@ -866,36 +814,30 @@ export function ManualCreationPanel({
           <OrbIcon icon={PenLine} className="bg-core-info-soft text-core-text" />
           <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">Karte selbst erstellen</h2>
         </div>
-        <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} disabled={isSaving} onClick={() => setPreviewOpen(true)}>
-          Vorschau
-        </ActionButton>
-        <input ref={resolvedSourceInputRef} className="sr-only" type="file" accept={workflow.readableSourceDocumentAccept} onChange={handleDocument} />
+        <div className="flex flex-wrap gap-2">
+          {!documentMode ? <ActionButton type="button" variant="secondary" icon={FileText} onClick={() => setDocumentMode(true)}>PDF/Text anfügen</ActionButton> : null}
+          <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} disabled={isSaving} onClick={() => setPreviewOpen(true)}>Vorschau</ActionButton>
+        </div>
       </div>
 
-      {showDocumentMode ? (
-        <div className="grid gap-5 xl:grid-cols-2">
+      {documentMode ? (
+        <div className={`grid gap-5 ${document ? "xl:grid-cols-2" : ""}`}>
           <div className="grid content-start gap-4" inert={isSaving} aria-disabled={isSaving || undefined}>
-            <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-              <span>Quelle ({workflow.readableSourceDocumentLabel})</span>
-              <button type="button" onClick={openSourcePicker} className="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--core-border)] px-3 text-left text-[var(--core-text-muted)] hover:border-[var(--core-border-interactive)] hover:bg-core-surface">
-                <FileText className="shrink-0" size={17} aria-hidden="true" />
-                <span className="shrink-0 rounded-lg bg-core-surface px-3 py-2 core-caption font-semibold text-[var(--core-action-primary)] shadow-sm">Datei auswählen</span>
-                <span className="min-w-0 truncate core-body font-medium">{sourceFileName}</span>
-              </button>
-            </div>
+            <FileDropField kind="document" selected={Boolean(document)} onFile={handleDocument} disabled={isSaving}>
+              {document ? <p className="truncate core-caption text-[var(--core-text-muted)]">{document.fileName}</p> : null}
+            </FileDropField>
             {document && !shouldShowPdfViewer ? (
               <div className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-3 core-body text-[var(--core-text-muted)]">
-                <p className="font-semibold text-[var(--core-text)]">{document.fileName}</p>
                 <p>{documentStatusMessage(document)}</p>
               </div>
             ) : null}
             {shouldShowPdfViewer && document ? (
               <PdfDocumentViewer document={document} src={documentObjectUrl} onSelection={applySelection} />
-            ) : (
+            ) : documentText ? (
               <div className="max-h-[40rem] min-h-[40rem] overflow-auto rounded-xl border border-[var(--core-border)] bg-core-surface p-4 core-body leading-6 text-[var(--core-text)]" onMouseUp={captureSelection} onKeyUp={captureSelection} tabIndex={0}>
-                {documentText ? <pre className="whitespace-pre-wrap break-words font-sans">{documentText}</pre> : <p className="text-[var(--core-text-muted)]">Keine Textquelle geöffnet.</p>}
+                <pre className="whitespace-pre-wrap break-words font-sans">{documentText}</pre>
               </div>
-            )}
+            ) : null}
           </div>
           {editor}
         </div>

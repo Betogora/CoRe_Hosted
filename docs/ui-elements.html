@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: eb686d1fa6d89bd5 */
+/* Quellenstand: 7b13a37da4fd5c19 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -1017,6 +1017,9 @@ video {
 .min-h-20 {
   min-height: 5rem;
 }
+.min-h-32 {
+  min-height: 8rem;
+}
 .min-h-48 {
   min-height: 12rem;
 }
@@ -1101,9 +1104,6 @@ video {
 }
 .animate-spin {
   animation: spin 1s linear infinite;
-}
-.cursor-pointer {
-  cursor: pointer;
 }
 .select-none {
   -webkit-user-select: none;
@@ -2556,10 +2556,6 @@ summary {
   border-color: var(--core-action-primary);
 }
 
-.hover\:border-\[var\(--core-border-interactive\)\]:hover {
-  border-color: var(--core-border-interactive);
-}
-
 .hover\:border-core-focus:hover {
   border-color: var(--core-focus);
 }
@@ -3688,13 +3684,15 @@ summary {
                 <label class="core-field-group"><span class="core-field-label">Feld mit Icon</span><span class="catalog-field-icon"><svg class="catalog-icon"><use href="#icon-book"></use></svg><input type="text" placeholder="Universität" /></span></label>
                 <label class="core-field-group"><span class="core-field-label">Passwort</span><span class="catalog-field-icon"><svg class="catalog-icon"><use href="#icon-info"></use></svg><input type="password" value="beispielpasswort" /></span></label>
                 <div class="core-field-group">
-                  <span class="core-field-label">Datei-Import</span>
-                  <button type="button" aria-label="PDF- oder Textdatei auswählen" class="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--core-border)] px-3 text-left text-[var(--core-text-muted)] transition hover:border-[var(--core-border-interactive)] hover:bg-core-surface">
-                    <svg class="catalog-icon shrink-0"><use href="#icon-upload"></use></svg>
-                    <span class="shrink-0 rounded-lg bg-core-surface px-3 py-2 core-caption font-semibold text-[var(--core-action-primary)] shadow-sm">Datei auswählen</span>
-                    <span class="min-w-0 truncate core-body font-medium">Keine Datei ausgewählt</span>
-                  </button>
-                  <span class="core-field-hint">PDF, Text, Markdown, CSV oder TSV.</span>
+                  <span class="core-field-label">Gemeinsames Datei-Ablagefeld</span>
+                  <div role="group" aria-label="Quelldatei auswählen oder ablegen" class="grid min-h-32 place-items-center rounded-xl border-2 border-dashed border-[var(--core-border-interactive)] bg-core-subtle p-4 text-center">
+                    <div>
+                      <svg class="catalog-icon-lg mx-auto text-core-action"><use href="#icon-upload"></use></svg>
+                      <p class="mt-2 core-body font-semibold text-core-text">PDF-, Text-, Markdown-, CSV- oder TSV-Datei hier ablegen</p>
+                      <button type="button" class="core-action-secondary mt-3"><svg class="catalog-icon"><use href="#icon-upload"></use></svg>Datei auswählen</button>
+                    </div>
+                  </div>
+                  <span class="core-field-hint">Dasselbe Feld übernimmt konfiguriert auch APKG und Bilder einschließlich Drop beziehungsweise Strg+V.</span>
                 </div>
                 <label class="core-field-group"><span class="core-field-label">Farbton</span><input class="core-hue-range" type="range" min="0" max="360" value="235" aria-label="Farbton" /></label>
               </div>

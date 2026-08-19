@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import { createEmptyApkgImportSession } from "../apkgImportSession.ts";
 import { createCreationWorkflow } from "../creationWorkflow.ts";
@@ -41,7 +41,6 @@ export function CreationScreen({
   onOpenDashboard = () => undefined,
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
-  const manualSourceInputRef = React.useRef<HTMLInputElement | null>(null);
   const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: "import" | "manual" } | null>(null);
   const [localApkgImportSession, setLocalApkgImportSession] = React.useState(() => createEmptyApkgImportSession());
   const apkgImportSession = controlledApkgImportSession ?? localApkgImportSession;
@@ -108,7 +107,6 @@ export function CreationScreen({
           }}
           onFinish={({ createdCount, targetDeckId }) => completeSession(targetDeckId, createdCount, "manual")}
           onDraftStateChange={onDraftStateChange}
-          sourceInputRef={manualSourceInputRef}
         />
       );
     }
@@ -147,18 +145,10 @@ export function CreationScreen({
         </SoftPanel>
       ) : selectedMethod ? (
         <section className="grid min-w-0 min-h-[calc(100vh-16rem)] content-start gap-5" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
-              <ArrowLeft size={16} aria-hidden="true" />
-              Erstellen
-            </button>
-            {selectedMethod === "manual" ? (
-              <button type="button" onClick={() => manualSourceInputRef.current?.click()} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
-                <FileText size={16} aria-hidden="true" />
-                PDF/Text anfügen
-              </button>
-            ) : null}
-          </div>
+          <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
+            <ArrowLeft size={16} aria-hidden="true" />
+            Erstellen
+          </button>
           {renderSelectedMethod()}
         </section>
       ) : (

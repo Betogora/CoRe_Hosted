@@ -878,6 +878,7 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await page.getByRole("button", { name: /Karte selbst erstellen/ }).click();
   await page.getByRole("button", { name: "Neuen Stapel erstellen" }).click();
   await page.getByRole("textbox", { name: "Neuer Kartenstapel" }).fill("PDF-Quellenauswahl-Smoke");
+  await page.getByRole("button", { name: "PDF/Text anfügen" }).click();
   await page.locator('input[type="file"][accept*=".pdf"]').setInputFiles(PDF_SELECTION_FIXTURE);
 
   const viewer = page.getByTestId("pdf-document-viewer");

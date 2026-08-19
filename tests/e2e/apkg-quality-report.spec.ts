@@ -19,7 +19,7 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await page.getByRole("navigation", { name: /Hauptmenü/ }).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
   await expect(page.getByRole("heading", { name: "APKG-Dateien importieren" })).toBeVisible();
-  await expect(page.getByText("APKG-Datei ablegen oder auswählen (Max. 250 MB)")).toBeVisible();
+  await expect(page.getByText("APKG-Datei hier ablegen (Max. 250 MB)")).toBeVisible();
   await expect(page.getByText("Importbericht erscheint nach dem Upload")).toHaveCount(0);
   await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(LATEST_APKG_FIXTURE);
 
@@ -124,6 +124,6 @@ test("defective APKG offers exactly one recommended recovery action", async ({ p
 
   const error = page.getByRole("alert");
   await expect(error).toBeVisible();
-  await expect(error.getByRole("button")).toHaveCount(1);
-  await expect(error.getByRole("button", { name: "Andere Datei auswählen" })).toBeVisible();
+  await expect(error.getByRole("button")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Andere Datei auswählen" })).toBeVisible();
 });

@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertCircle, CheckCircle2, Database, FileArchive, Loader2, Upload } from "lucide-react";
+import { AlertCircle, CheckCircle2, Database, FileArchive, Loader2 } from "lucide-react";
 import type { ApkgCreationPreview, CreationWorkflow, ImportCompletion } from "../creationWorkflow.ts";
 import type { ApkgCloudProgress, ApkgImportJob, ApkgImportSession, ApkgPreviewMediaStatus, ApkgProgressPhase } from "../apkgImportSession.ts";
 import { getOriginalVariant } from "../coreModel.ts";
@@ -11,6 +11,7 @@ import { ActionButton } from "../ui/actionUi.tsx";
 import { useCardMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { OrbIcon, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { FileDropField } from "../ui/FileDropField.tsx";
 import { formatBytes, importSteps } from "./screenConstants.ts";
 
 type ApkgWorkflow = Pick<CreationWorkflow, "commitApkgPreview" | "parseApkgFile">;
@@ -115,9 +116,7 @@ function ApkgCardSample({ deck, card, definition, mediaStore }: { deck: Deck; ca
 }
 
 export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, onSessionChange, isSessionCurrent, onResetSession, onCompleted }: ApkgImportPanelProps) {
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const completionDeliveredRef = React.useRef(false);
-  const [isDragging, setIsDragging] = React.useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
   const { selectedFile, job, preview, mediaStatus, isParsing, mediaTask, cloudTask, cloudProgress, completedDeck, completedCount, phaseProgress } = session;
   const sessionVersion = session.version;
@@ -227,20 +226,6 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
     } finally {
       setIsParsing(false);
     }
-  }
-
-  function handleFileInput(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (file) void parseFile(file);
-    event.target.value = "";
-  }
-
-  function handleDrop(event: React.DragEvent<HTMLLabelElement>) {
-    event.preventDefault();
-    setIsDragging(false);
-    if (fileInteractionLocked) return;
-    const file = event.dataTransfer.files?.[0];
-    if (file) void parseFile(file);
   }
 
   async function handleCommit() {
@@ -384,30 +369,13 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
           <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">APKG-Dateien importieren</h2>
         </div>
 
-        <label
-          onDragOver={(event) => {
-            event.preventDefault();
-            if (fileInteractionLocked) return;
-            setIsDragging(true);
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={handleDrop}
-          onClick={(event) => {
-            if (fileInteractionLocked) event.preventDefault();
-          }}
-          aria-disabled={fileInteractionLocked}
-          className={`flex min-h-32 flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-5 text-center transition ${
-            fileInteractionLocked
-              ? "cursor-not-allowed border-[var(--core-border)] bg-[var(--core-surface-muted)] opacity-70"
-              : isDragging
-                ? "cursor-pointer border-core-success bg-core-success-soft"
-                : "cursor-pointer border-[var(--core-border)] bg-[var(--core-surface-muted)] hover:border-core-success"
-          }`}
-        >
-          <Upload className="mb-2 text-core-text" size={26} aria-hidden="true" />
-          <span className="core-body-large font-semibold text-[var(--core-text)]">APKG-Datei ablegen oder auswählen (Max. 250 MB)</span>
-          <input ref={fileInputRef} className="sr-only" type="file" accept=".apkg" disabled={fileInteractionLocked} onChange={handleFileInput} />
-        </label>
+        <FileDropField
+          kind="apkg"
+          selected={Boolean(selectedFile)}
+          onFile={parseFile}
+          disabled={fileInteractionLocked}
+          busy={progressRunning}
+        />
 
         {selectedFile ? (
           <div
@@ -484,13 +452,11 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
             {(job?.errors.length ? job.errors : ["Die APKG-Datei konnte nicht verarbeitet werden."]).map((error, index) => (
               <p key={`${error}-${index}`}>{error}</p>
             ))}
-            <ActionButton type="button" variant="primary" onClick={() => fileInputRef.current?.click()} className="mt-3">Andere Datei auswählen</ActionButton>
           </div>
         ) : null}
         {uiState.status === "cancelled" ? (
           <div className="core-status-info mt-5 core-body" role="status">
             <p>Import abgebrochen. Es wurden aus diesem Vorgang keine weiteren Karten übernommen.</p>
-            <ActionButton type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} className="mt-3">Andere Datei auswählen</ActionButton>
           </div>
         ) : null}
       </SoftPanel>

@@ -51,17 +51,20 @@ test("import creation exposes only APKG without a format selector", () => {
 
   assert.match(markup, />Erstellen<\/button>/);
   assert.match(markup, /APKG-Dateien importieren/);
+  assert.match(markup, /data-file-drop-field="true"/);
+  assert.match(markup, />APKG-Datei auswählen<\/span>/);
   assert.doesNotMatch(markup, /Importformat|>APKG<|>Text<|>CSV<|>Excel\/Tabelle</);
 });
 
-test("manual picker accepts only readable source documents", () => {
+test("manual source entry stays compact until the document field is requested", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
-  assert.match(markup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
   assert.match(markup, /<h2[^>]*>Karte selbst erstellen<\/h2>/);
   assert.match(markup, />Vorschau<\/span><\/button>/);
   assert.equal((markup.match(/PDF\/Text anfügen/g) ?? []).length, 1);
-  assert.ok(markup.indexOf("PDF/Text anfügen") < markup.indexOf("Karte selbst erstellen"));
+  assert.equal((markup.match(/data-file-drop-field="true"/g) ?? []).length, 2);
+  assert.doesNotMatch(markup, /Quelldatei auswählen oder ablegen/);
+  assert.doesNotMatch(markup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
   assert.doesNotMatch(markup, /Live-Vorschau/);
   assert.doesNotMatch(markup, /Manuelle Erstellung|Karten manuell erstellen/);
   assert.doesNotMatch(markup, /\.docx/i);
