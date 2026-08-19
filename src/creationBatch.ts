@@ -8,7 +8,7 @@ export interface ManualCreationDraft {
   front: string;
   back: string;
   answerOptions: string[];
-  correctOptionIndex: number;
+  correctOptionIndices: number[];
   tags: string;
   selection: string;
   sourceAnchor: SourceAnchor | null;
@@ -34,7 +34,7 @@ export function createManualDraft(cardType: CardType = "basic"): ManualCreationD
     front: "",
     back: "",
     answerOptions: ["", ""],
-    correctOptionIndex: 0,
+    correctOptionIndices: [0],
     tags: "",
     selection: "",
     sourceAnchor: null,
@@ -64,7 +64,7 @@ export function resetManualDraft(
     front: pinnedFields.front ? draft.front : "",
     back: pinnedFields.back ? draft.back : "",
     answerOptions: ["", ""],
-    correctOptionIndex: 0,
+    correctOptionIndices: [0],
     tags: "",
     selection: keepSourceAnchor ? draft.selection : "",
     sourceAnchor: keepSourceAnchor ? draft.sourceAnchor : null,
@@ -103,6 +103,6 @@ export function manualDraftsEqual(left: ManualCreationDraft, right: ManualCreati
 export function nextManualFocusTarget(state: ManualBatchSessionState): ManualFocusTarget {
   if (!state.pinnedFields.front) return "front";
   if (!state.pinnedFields.back) return "back";
-  if (state.currentDraft.cardType === "multiple-choice") return "option-0";
+  if (state.currentDraft.cardType === "single-choice" || state.currentDraft.cardType === "multiple-choice") return "option-0";
   return "front";
 }

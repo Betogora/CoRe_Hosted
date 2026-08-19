@@ -22,22 +22,26 @@ function originalCount(card: LearningItem): number {
   return card.variants.filter((variant) => variant.isOriginal).length;
 }
 
-test("card editor validates the discriminated contract for all five card types", () => {
+test("card editor validates the discriminated contract for all six editable card types", () => {
   assert.equal(validateCardEditorValue({ cardType: "basic", front: "Frage", back: "Antwort", tags: [] }).ok, true);
   assert.equal(validateCardEditorValue({ cardType: "basic-with-images", front: "Frage", back: "Antwort", tags: [] }).ok, true);
   assert.equal(validateCardEditorValue({ cardType: "basic-reversed", front: "Frage", back: "Antwort", tags: [] }).ok, true);
   assert.equal(validateCardEditorValue({ cardType: "cloze", textWithClozes: "{{c1::ATP}} liefert Energie.", extra: "", tags: [] }).ok, true);
-  assert.equal(validateCardEditorValue({ cardType: "multiple-choice", question: "Frage", options: ["A", "B"], correctOptionIndex: 1, explanation: "", tags: [] }).ok, true);
+  assert.equal(validateCardEditorValue({ cardType: "single-choice", question: "Frage", options: ["A", "B"], correctOptionIndex: 1, explanation: "", tags: [] }).ok, true);
+  assert.equal(validateCardEditorValue({ cardType: "multiple-choice", question: "Frage", options: ["A", "B", "C"], correctOptionIndices: [0, 1], explanation: "", tags: [] }).ok, true);
 
   const invalidCloze = validateCardEditorValue({ cardType: "cloze", textWithClozes: "{{c1::ATP}", extra: "", tags: [] });
-  const invalidMc = validateCardEditorValue({ cardType: "multiple-choice", question: "Frage", options: ["A", "A"], correctOptionIndex: 4, explanation: "", tags: [] });
+  const invalidMc = validateCardEditorValue({ cardType: "multiple-choice", question: "Frage", options: ["A", "A"], correctOptionIndices: [], explanation: "", tags: [] });
+  const allCorrectMc = validateCardEditorValue({ cardType: "multiple-choice", question: "Frage", options: ["A", "B"], correctOptionIndices: [0, 1], explanation: "", tags: [] });
   assert.equal(invalidCloze.ok, false);
   assert.equal(invalidMc.ok, false);
+  assert.equal(allCorrectMc.ok, false);
   if (!invalidCloze.ok) assert.match(invalidCloze.errors.textWithClozes ?? "", /gültige Lücken/);
   if (!invalidMc.ok) {
     assert.match(invalidMc.errors.options ?? "", /eindeutig/);
-    assert.match(invalidMc.errors.correctOptionIndex ?? "", /richtige Antwort/);
+    assert.match(invalidMc.errors.correctOptionIndices ?? "", /richtige Antwort/);
   }
+  if (!allCorrectMc.ok) assert.match(allCorrectMc.errors.correctOptionIndices ?? "", /falsch/);
 });
 
 test("basic editor save preserves anchors, media, immutable original and review state", () => {
@@ -191,12 +195,12 @@ test("cloze editor save keeps compatible groups, disables removed gaps and adds 
   assert.equal(originalCount(saved), 1);
 });
 
-test("multiple-choice save projects one structured correct option into review content", () => {
+test("multiple-choice save projects multiple structured correct options into review content", () => {
   const original = createLearningItemFromEditorValue("deck-1", {
     cardType: "multiple-choice",
     question: "Alte Frage",
     options: ["A", "B", "C"],
-    correctOptionIndex: 0,
+    correctOptionIndices: [0],
     explanation: "Alt",
     tags: [],
   });
@@ -204,7 +208,7 @@ test("multiple-choice save projects one structured correct option into review co
     cardType: "multiple-choice",
     question: "Neue Frage",
     options: ["A neu", "B neu", "C neu"],
-    correctOptionIndex: 2,
+    correctOptionIndices: [0, 2],
     explanation: "<p>Neue Erklärung</p>",
     tags: ["mc"],
   });
@@ -212,15 +216,15 @@ test("multiple-choice save projects one structured correct option into review co
 
   assert.ok(originalVariant);
   assert.deepEqual(originalVariant.answerOptionsJson, ["A neu", "B neu", "C neu"]);
-  assert.equal(originalVariant.expectedAnswerJson, "C neu");
-  assert.equal(saved.meta.correctAnswer, "C neu");
-  assert.match(saved.originalBack, /Richtige Antwort:<\/strong> C neu/);
+  assert.deepEqual(originalVariant.expectedAnswerJson, ["A neu", "C neu"]);
+  assert.deepEqual(saved.meta.correctAnswers, ["A neu", "C neu"]);
+  assert.match(saved.originalBack, /Richtige Antworten:<\/strong> A neu, C neu/);
   assert.match(saved.originalBack, /Neue Erklärung/);
   assert.deepEqual(getCardEditorValue(saved), {
     cardType: "multiple-choice",
     question: "Neue Frage",
     options: ["A neu", "B neu", "C neu"],
-    correctOptionIndex: 2,
+    correctOptionIndices: [0, 2],
     explanation: "<p>Neue Erklärung</p>",
     tags: ["mc"],
   });
@@ -242,7 +246,7 @@ test("version restore restores the complete structured editor value", () => {
     cardType: "multiple-choice",
     question: "Welche Antwort?",
     options: ["Alt A", "Alt B"],
-    correctOptionIndex: 0,
+    correctOptionIndices: [0],
     explanation: "Alte Erklärung",
     tags: ["alt"],
   });
@@ -250,7 +254,7 @@ test("version restore restores the complete structured editor value", () => {
     cardType: "multiple-choice",
     question: "Welche neue Antwort?",
     options: ["Neu A", "Neu B", "Neu C"],
-    correctOptionIndex: 2,
+    correctOptionIndices: [0, 2],
     explanation: "Neue Erklärung",
     tags: ["neu"],
   });
@@ -263,7 +267,7 @@ test("version restore restores the complete structured editor value", () => {
     cardType: "multiple-choice",
     question: "Welche Antwort?",
     options: ["Alt A", "Alt B"],
-    correctOptionIndex: 0,
+    correctOptionIndices: [0],
     explanation: "Alte Erklärung",
     tags: ["alt"],
   });
@@ -276,7 +280,8 @@ test("card content payload round-trips all editable types without identity", () 
     { cardType: "basic-with-images", front: '<p>Frage</p><img src="media-z" />', back: '<p>Antwort</p><img src="media-a" />', tags: ["bilder"] },
     { cardType: "basic-reversed", front: "Vorne", back: "Hinten", tags: [] },
     { cardType: "cloze", textWithClozes: "{{c1::ATP}}", extra: "Energie", tags: ["cloze"] },
-    { cardType: "multiple-choice", question: "Welche?", options: ["A", "B"], correctOptionIndex: 1, explanation: "Darum", tags: ["mc"] },
+    { cardType: "single-choice", question: "Welche?", options: ["A", "B"], correctOptionIndex: 1, explanation: "Darum", tags: ["sc"] },
+    { cardType: "multiple-choice", question: "Welche?", options: ["A", "B", "C"], correctOptionIndices: [0, 1], explanation: "Darum", tags: ["mc"] },
   ] as const;
 
   for (const editorValue of editorValues) {

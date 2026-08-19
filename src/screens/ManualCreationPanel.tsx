@@ -45,6 +45,7 @@ const FIELD_PLACEMENT_OPTIONS = [
 ] as const;
 const QUESTION_TYPE_OPTIONS = [
   { value: "standard", label: "Standard" },
+  { value: "single-choice", label: "Single Choice" },
   { value: "multiple-choice", label: "Multiple Choice" },
 ] as const;
 const LEARNING_DIRECTION_OPTIONS = [
@@ -56,6 +57,7 @@ export interface ManualCreationPanelProps {
   decks: Deck[];
   workflow: ManualCreationWorkflow;
   documentMode?: boolean;
+  sourceInputRef?: React.RefObject<HTMLInputElement | null>;
   initialTargetDeckId?: string;
   onCreated: (deck: Deck) => unknown;
   onAppendManualCard: (deckId: string, input: ManualDeckInput) => Promise<Deck | null>;
@@ -200,8 +202,10 @@ export function ManualCreationPanel({
   onFinish = () => undefined,
   onDraftStateChange = () => undefined,
   documentMode = false,
+  sourceInputRef,
 }: ManualCreationPanelProps) {
-  const sourceInputRef = React.useRef<HTMLInputElement | null>(null);
+  const internalSourceInputRef = React.useRef<HTMLInputElement | null>(null);
+  const resolvedSourceInputRef = sourceInputRef ?? internalSourceInputRef;
   const editorRootRef = React.useRef<HTMLDivElement | null>(null);
   const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
   const targetDeckMissing = Boolean(initialTargetDeckId && !decks.some((deck) => deck.id === initialTargetDeckId));
@@ -213,7 +217,7 @@ export function ManualCreationPanel({
   const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
   const cleanDraftRef = React.useRef(batchState.currentDraft);
   const { currentDraft, pinnedFields } = batchState;
-  const { cardType, front, back, answerOptions, correctOptionIndex, tags, selection, sourceAnchor } = currentDraft;
+  const { cardType, front, back, answerOptions, correctOptionIndices, tags, selection, sourceAnchor } = currentDraft;
   const [activeField, setActiveField] = React.useState<ActiveField>("front");
   const [showDocumentMode, setShowDocumentMode] = React.useState(documentMode);
   const [document, setDocument] = React.useState<SourceDocument | null>(null);
@@ -238,8 +242,11 @@ export function ManualCreationPanel({
   }, [documentMode]);
 
   React.useEffect(() => {
-    if (correctOptionIndex >= answerOptions.length) dispatchBatch({ type: "draft", patch: { correctOptionIndex: 0 } });
-  }, [answerOptions.length, correctOptionIndex]);
+    const validIndices = correctOptionIndices.filter((index) => index >= 0 && index < answerOptions.length);
+    if (validIndices.length !== correctOptionIndices.length || validIndices.length === 0) {
+      dispatchBatch({ type: "draft", patch: { correctOptionIndices: validIndices.length > 0 ? validIndices : [0] } });
+    }
+  }, [answerOptions.length, correctOptionIndices]);
 
   React.useEffect(
     () => () => {
@@ -289,8 +296,7 @@ export function ManualCreationPanel({
   }
 
   function openSourcePicker() {
-    setShowDocumentMode(true);
-    window.setTimeout(() => sourceInputRef.current?.click(), 0);
+    resolvedSourceInputRef.current?.click();
   }
 
   function applySelection(selectedText: string, sourceAnchorOptions: Partial<PdfSelectionOptions> = {}) {
@@ -330,7 +336,7 @@ export function ManualCreationPanel({
       front,
       back,
       answerOptions,
-      correctAnswer: answerOptions[correctOptionIndex] ?? "",
+      correctAnswers: correctOptionIndices.map((index) => answerOptions[index]).filter(Boolean),
       expectedAnswer: back,
       tags,
       document,
@@ -372,10 +378,42 @@ export function ManualCreationPanel({
 
   function removeAnswerOption(index: number) {
     if (answerOptions.length <= 2) return;
+    const isCorrect = correctOptionIndices.includes(index);
+    if (cardType === "multiple-choice") {
+      const falseOptionCount = answerOptions.length - correctOptionIndices.length;
+      if ((isCorrect && correctOptionIndices.length === 1) || (!isCorrect && falseOptionCount === 1)) return;
+    }
     const nextOptions = answerOptions.filter((_, optionIndex) => optionIndex !== index);
-    const nextCorrectOptionIndex = correctOptionIndex === index ? 0 : correctOptionIndex > index ? correctOptionIndex - 1 : correctOptionIndex;
-    dispatchBatch({ type: "draft", patch: { answerOptions: nextOptions, correctOptionIndex: nextCorrectOptionIndex } });
-    setFieldErrors((current) => ({ ...current, options: undefined, correctOptionIndex: undefined }));
+    const nextCorrectOptionIndices = correctOptionIndices
+      .filter((optionIndex) => optionIndex !== index)
+      .map((optionIndex) => optionIndex > index ? optionIndex - 1 : optionIndex);
+    dispatchBatch({
+      type: "draft",
+      patch: {
+        answerOptions: nextOptions,
+        correctOptionIndices: nextCorrectOptionIndices.length > 0 ? nextCorrectOptionIndices : [0],
+      },
+    });
+    setFieldErrors((current) => ({ ...current, options: undefined, correctOptionIndex: undefined, correctOptionIndices: undefined }));
+  }
+
+  function toggleCorrectOption(index: number) {
+    if (cardType === "single-choice") {
+      dispatchBatch({ type: "draft", patch: { correctOptionIndices: [index] } });
+    } else if (cardType === "multiple-choice") {
+      const isCorrect = correctOptionIndices.includes(index);
+      if (isCorrect && correctOptionIndices.length === 1) return;
+      if (!isCorrect && correctOptionIndices.length >= answerOptions.length - 1) return;
+      dispatchBatch({
+        type: "draft",
+        patch: {
+          correctOptionIndices: isCorrect
+            ? correctOptionIndices.filter((optionIndex) => optionIndex !== index)
+            : [...correctOptionIndices, index].sort((left, right) => left - right),
+        },
+      });
+    }
+    setFieldErrors((current) => ({ ...current, correctOptionIndex: undefined, correctOptionIndices: undefined }));
   }
 
   function recordSavedCard(deck: Deck, previousCardIds: Set<string>, mediaStatus?: { status: string; message: string; errors: string[] }) {
@@ -420,7 +458,7 @@ export function ManualCreationPanel({
       setStatus("Bitte die markierten Felder prüfen.");
       const firstInvalidTarget: ManualFocusTarget = validation.errors.front || validation.errors.question || validation.errors.textWithClozes
         ? "front"
-        : validation.errors.options || validation.errors.correctOptionIndex
+        : validation.errors.options || validation.errors.correctOptionIndex || validation.errors.correctOptionIndices
           ? "option-0"
           : "back";
       setActiveField(firstInvalidTarget === "front" ? "front" : "back");
@@ -453,8 +491,10 @@ export function ManualCreationPanel({
     }
   }
 
-  const answerLabel = cardType === "cloze" ? "Zusatzinfo" : cardType === "multiple-choice" ? "Erklärung (optional)" : "Rückseite";
+  const isSingleChoice = cardType === "single-choice";
   const isMultipleChoice = cardType === "multiple-choice";
+  const isChoice = isSingleChoice || isMultipleChoice;
+  const answerLabel = cardType === "cloze" ? "Zusatzinfo" : isChoice ? "Erklärung (optional)" : "Rückseite";
   const isCloze = cardType === "cloze";
   const isReverse = cardType === "basic-reversed";
   const nextClozeGroup = Math.max(0, ...Array.from(front.matchAll(/\{\{c(\d+)::/gi), (match) => Number(match[1]) || 0)) + 1;
@@ -479,7 +519,7 @@ export function ManualCreationPanel({
     const definition = previewInput.card.noteTypeDefinition;
     const result = applyLearningItemContent({ previous: null, document, definition, reason: "create" });
     return { item: result.item, definition, variant: result.item.variants[0] };
-  }, [activeField, additionalFields, answerOptions, back, backImage, cardType, correctOptionIndex, deckName, decks, document, documentText, front, frontImage, previewOpen, selectedDeckId, selection, sourceAnchor, tags, useNewDeck, workflow]);
+  }, [activeField, additionalFields, answerOptions, back, backImage, cardType, correctOptionIndices, deckName, decks, document, documentText, front, frontImage, previewOpen, selectedDeckId, selection, sourceAnchor, tags, useNewDeck, workflow]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = showDocumentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
@@ -534,22 +574,19 @@ export function ManualCreationPanel({
           ) : null}
         </div>
 
-        <div className="flex justify-end">
-          <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} onClick={() => setPreviewOpen(true)}>
-            Vorschau
-          </ActionButton>
-        </div>
-
-        <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+        <div className="grid min-w-0 gap-4">
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <span className="core-body font-semibold text-[var(--core-text)]">Fragentyp</span>
             <CoreSegmentedControl
               ariaLabel="Fragentyp"
               options={QUESTION_TYPE_OPTIONS}
-              value={isMultipleChoice ? "multiple-choice" : "standard"}
+              value={isChoice ? cardType : "standard"}
               onValueChange={(value) => dispatchBatch({
                 type: "draft",
-                patch: { cardType: value === "multiple-choice" ? "multiple-choice" : isMultipleChoice ? "basic" : cardType },
+                patch: {
+                  cardType: value === "single-choice" || value === "multiple-choice" ? value : isChoice ? "basic" : cardType,
+                  correctOptionIndices: value === "single-choice" ? [correctOptionIndices[0] ?? 0] : correctOptionIndices,
+                },
               })}
             />
           </div>
@@ -559,7 +596,7 @@ export function ManualCreationPanel({
               ariaLabel="Lernrichtung"
               options={LEARNING_DIRECTION_OPTIONS}
               value={isReverse ? "both" : "standard"}
-              disabled={isMultipleChoice || isCloze}
+              disabled={isChoice || isCloze}
               onValueChange={(value) => dispatchBatch({ type: "draft", patch: { cardType: value === "both" ? "basic-reversed" : "basic" } })}
             />
           </div>
@@ -569,8 +606,8 @@ export function ManualCreationPanel({
       <div className="grid min-w-0 gap-4">
         <div data-manual-focus="front" className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           <div className="flex min-h-11 items-center justify-between gap-2">
-            <span>{cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Frage" : "Vorderseite"}</span>
-            <PinFieldButton isPinned={pinnedFields.front} label={cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Frage" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
+            <span>{cardType === "cloze" ? "Cloze-Text" : isChoice ? "Frage" : "Vorderseite"}</span>
+            <PinFieldButton isPinned={pinnedFields.front} label={cardType === "cloze" ? "Cloze-Text" : isChoice ? "Frage" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
           </div>
           <RichTextEditor value={front} onFocus={() => setActiveField("front")} onChange={(value) => {
             const hasClozeMarkup = /\{\{c\d+::/i.test(value);
@@ -578,14 +615,49 @@ export function ManualCreationPanel({
               type: "draft",
               patch: {
                 front: value,
-                ...(!isMultipleChoice ? { cardType: hasClozeMarkup ? "cloze" : cardType === "cloze" ? "basic" : cardType } : {}),
+                ...(!isChoice ? { cardType: hasClozeMarkup ? "cloze" : cardType === "cloze" ? "basic" : cardType } : {}),
               },
             });
             setFieldErrors((current) => ({ ...current, front: undefined, question: undefined, textWithClozes: undefined }));
-          }} clozeActions={isMultipleChoice ? undefined : { groupId: nextClozeGroup }} isActive={frontFieldActive} minHeightClass="min-h-32" ariaLabel={cardType === "cloze" ? "Cloze-Text" : cardType === "multiple-choice" ? "Multiple-Choice-Frage" : "Vorderseite"} ariaInvalid={Boolean(fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes)} />
-          {!isMultipleChoice ? <p className="core-body font-normal text-[var(--core-text-muted)]">Markiere Text und wähle in der Toolbar „Lücke“. CoRe erzeugt die Lückengruppe automatisch.</p> : null}
+          }} clozeActions={isChoice ? undefined : { groupId: nextClozeGroup }} isActive={frontFieldActive} minHeightClass="min-h-32" ariaLabel={cardType === "cloze" ? "Cloze-Text" : isChoice ? `${isSingleChoice ? "Single" : "Multiple"}-Choice-Frage` : "Vorderseite"} ariaInvalid={Boolean(fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes)} />
+          {!isChoice ? <p className="core-body font-normal text-[var(--core-text-muted)]">Markiere Text und wähle in der Toolbar „Lücke“. CoRe erzeugt die Lückengruppe automatisch.</p> : null}
           {fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes}</p> : null}
         </div>
+        {isChoice ? (
+          <fieldset className="grid gap-3 rounded-xl border border-[var(--core-border)] p-4">
+            <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">
+              Antwortoptionen und {isSingleChoice ? "richtige Antwort" : "richtige Antworten"}
+            </legend>
+            {answerOptions.map((option, index) => {
+              const isCorrect = correctOptionIndices.includes(index);
+              const falseOptionCount = answerOptions.length - correctOptionIndices.length;
+              const correctnessLocked = isMultipleChoice
+                && ((isCorrect && correctOptionIndices.length === 1) || (!isCorrect && falseOptionCount === 1));
+              const removalLocked = answerOptions.length <= 2 || (isMultipleChoice && correctnessLocked);
+              return (
+                <div key={index} className="flex min-w-0 items-center gap-2">
+                  <label className="grid size-11 shrink-0 place-items-center">
+                    <input
+                      className="size-5"
+                      type={isSingleChoice ? "radio" : "checkbox"}
+                      name={isSingleChoice ? "manual-correct-option" : undefined}
+                      checked={isCorrect}
+                      disabled={correctnessLocked}
+                      onChange={() => toggleCorrectOption(index)}
+                      aria-label={`Option ${index + 1} als richtig markieren`}
+                      aria-invalid={Boolean(fieldErrors.correctOptionIndex || fieldErrors.correctOptionIndices)}
+                    />
+                  </label>
+                  <input data-manual-focus={index === 0 ? "option-0" : undefined} className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border)] px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+                  <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeAnswerOption(index)} disabled={removalLocked} />
+                </div>
+              );
+            })}
+            <ActionButton type="button" variant="secondary" icon={Plus} onClick={() => dispatchBatch({ type: "draft", patch: { answerOptions: [...answerOptions, ""] } })} className="w-fit">Option hinzufügen</ActionButton>
+            {fieldErrors.options ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.options}</p> : null}
+            {fieldErrors.correctOptionIndex || fieldErrors.correctOptionIndices ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.correctOptionIndex || fieldErrors.correctOptionIndices}</p> : null}
+          </fieldset>
+        ) : null}
         <ManualImageField
           label="Bild zur Vorderseite einfügen (optional)"
           value={frontImage}
@@ -663,27 +735,6 @@ export function ManualCreationPanel({
           }])}>Feld hinzufügen</ActionButton>
       </div>
 
-      {cardType === "multiple-choice" ? (
-        <fieldset className="grid gap-3 rounded-xl border border-[var(--core-border)] p-4">
-          <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Antwortoptionen und richtige Antwort</legend>
-          {answerOptions.map((option, index) => (
-            <div key={index} className="flex min-w-0 items-center gap-2">
-              <label className="grid size-11 shrink-0 place-items-center">
-                <input className="size-5" type="radio" name="manual-correct-option" checked={correctOptionIndex === index} onChange={() => {
-                  dispatchBatch({ type: "draft", patch: { correctOptionIndex: index } });
-                  setFieldErrors((current) => ({ ...current, correctOptionIndex: undefined }));
-                }} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex)} />
-              </label>
-              <input data-manual-focus={index === 0 ? "option-0" : undefined} className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border)] px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-              <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeAnswerOption(index)} disabled={answerOptions.length <= 2} />
-            </div>
-          ))}
-          <ActionButton type="button" variant="secondary" icon={Plus} onClick={() => dispatchBatch({ type: "draft", patch: { answerOptions: [...answerOptions, ""] } })} className="w-fit">Option hinzufügen</ActionButton>
-          {fieldErrors.options ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.options}</p> : null}
-          {fieldErrors.correctOptionIndex ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.correctOptionIndex}</p> : null}
-        </fieldset>
-      ) : null}
-
       <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
         <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           Tags
@@ -726,11 +777,10 @@ export function ManualCreationPanel({
           <OrbIcon icon={PenLine} className="bg-core-info-soft text-core-text" />
           <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">Karte selbst erstellen</h2>
         </div>
-        <button type="button" onClick={openSourcePicker} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
-          <FileText size={17} aria-hidden="true" />
-          {document ? "Quelle wechseln" : "PDF/Text anfügen"}
-        </button>
-        <input ref={sourceInputRef} className="sr-only" type="file" accept={workflow.readableSourceDocumentAccept} onChange={handleDocument} />
+        <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} onClick={() => setPreviewOpen(true)}>
+          Vorschau
+        </ActionButton>
+        <input ref={resolvedSourceInputRef} className="sr-only" type="file" accept={workflow.readableSourceDocumentAccept} onChange={handleDocument} />
       </div>
 
       {showDocumentMode ? (

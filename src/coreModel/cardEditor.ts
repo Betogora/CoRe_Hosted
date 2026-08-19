@@ -1,4 +1,5 @@
 import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
+import { findChoiceAnswerIndices, normalizeChoiceAnswerList, readChoiceCorrectAnswers } from "../choiceAnswers.ts";
 import { escapeCardHtmlText, hasCardRichTextContent } from "../richText.ts";
 import type {
   CardContentPayload,
@@ -30,7 +31,7 @@ interface EditorContentProjection {
   front: string;
   back: string;
   answerOptions: string[] | null;
-  correctAnswer: string | null;
+  correctAnswers: string[];
   explanation: string;
   clozeGroups: ClozeGroup[];
 }
@@ -45,7 +46,7 @@ export interface CardPreviewProjection {
   definition: NoteTypeDefinitionV1;
 }
 
-const EDITABLE_CARD_TYPES = new Set<EditableCardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "multiple-choice"]);
+const EDITABLE_CARD_TYPES = new Set<EditableCardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "single-choice", "multiple-choice"]);
 const CLOZE_PATTERN = /\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g;
 
 function objectRecord(value: unknown): Record<string, unknown> {
@@ -58,6 +59,11 @@ function isEditableCardType(value: unknown): value is EditableCardType {
 
 function normalizeOptions(value: unknown): string[] {
   return Array.isArray(value) ? value.map((option) => String(option).trim()) : [];
+}
+
+function normalizeOptionIndices(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map(Number).filter(Number.isInteger))];
 }
 
 function normalizeEditorValue(value: unknown): CardEditorValue | null {
@@ -82,12 +88,23 @@ function normalizeEditorValue(value: unknown): CardEditorValue | null {
         extra: sanitizeCardHtml(input.extra),
         tags,
       };
+    case "single-choice":
+      return {
+        cardType: "single-choice",
+        question: sanitizeCardHtml(input.question),
+        options: normalizeOptions(input.options),
+        correctOptionIndex: Number(input.correctOptionIndex),
+        explanation: sanitizeCardHtml(input.explanation),
+        tags,
+      };
     case "multiple-choice":
       return {
         cardType: "multiple-choice",
         question: sanitizeCardHtml(input.question),
         options: normalizeOptions(input.options),
-        correctOptionIndex: Number(input.correctOptionIndex),
+        correctOptionIndices: normalizeOptionIndices(
+          Array.isArray(input.correctOptionIndices) ? input.correctOptionIndices : [input.correctOptionIndex],
+        ),
         explanation: sanitizeCardHtml(input.explanation),
         tags,
       };
@@ -117,11 +134,11 @@ function documentForEditorValue(card: LearningItem, value: CardEditorValue): Lea
       value: field.id === fields.front?.id
         ? projected.front
         : field.id === fields.back?.id
-          ? value.cardType === "cloze" || value.cardType === "multiple-choice" ? projected.explanation : projected.back
+          ? value.cardType === "cloze" || value.cardType === "single-choice" || value.cardType === "multiple-choice" ? projected.explanation : projected.back
           : field.value,
     })),
-    ...(value.cardType === "multiple-choice"
-      ? { interaction: { choice: { options: value.options, correctAnswer: projected.correctAnswer ?? "", explanation: value.explanation } } }
+    ...(value.cardType === "single-choice" || value.cardType === "multiple-choice"
+      ? { interaction: { choice: { options: value.options, correctAnswers: projected.correctAnswers, explanation: value.explanation } } }
       : {}),
   };
 }
@@ -175,6 +192,7 @@ export function validateCardEditorValue(value: unknown): CardEditorValidationRes
       }
       break;
     }
+    case "single-choice":
     case "multiple-choice": {
       if (!hasCardRichTextContent(normalized.question)) errors.question = "Bitte eine Frage eingeben.";
       const nonEmptyOptions = normalized.options.filter(Boolean);
@@ -183,8 +201,17 @@ export function validateCardEditorValue(value: unknown): CardEditorValidationRes
       } else if (new Set(nonEmptyOptions.map((option) => option.toLocaleLowerCase("de-DE"))).size !== nonEmptyOptions.length) {
         errors.options = "Antwortoptionen müssen eindeutig sein.";
       }
-      if (!Number.isInteger(normalized.correctOptionIndex) || normalized.correctOptionIndex < 0 || normalized.correctOptionIndex >= normalized.options.length || !normalized.options[normalized.correctOptionIndex]) {
-        errors.correctOptionIndex = "Bitte genau eine gültige richtige Antwort auswählen.";
+      if (normalized.cardType === "single-choice") {
+        if (!Number.isInteger(normalized.correctOptionIndex) || normalized.correctOptionIndex < 0 || normalized.correctOptionIndex >= normalized.options.length || !normalized.options[normalized.correctOptionIndex]) {
+          errors.correctOptionIndex = "Bitte genau eine gültige richtige Antwort auswählen.";
+        }
+      } else {
+        const validIndices = normalized.correctOptionIndices.filter((index) => index >= 0 && index < normalized.options.length && Boolean(normalized.options[index]));
+        if (validIndices.length !== normalized.correctOptionIndices.length || validIndices.length === 0) {
+          errors.correctOptionIndices = "Bitte mindestens eine gültige richtige Antwort auswählen.";
+        } else if (validIndices.length >= normalized.options.length) {
+          errors.correctOptionIndices = "Bitte mindestens eine Antwortoption als falsch belassen.";
+        }
       }
       break;
     }
@@ -216,8 +243,9 @@ function revealClozeText(text: string): string {
   return text.replace(CLOZE_PATTERN, "$2");
 }
 
-function renderMultipleChoiceAnswer(correctAnswer: string, explanation: string): string {
-  const answer = `<p><strong>Richtige Antwort:</strong> ${escapeCardHtmlText(correctAnswer)}</p>`;
+function renderChoiceAnswer(correctAnswers: string[], explanation: string): string {
+  const label = correctAnswers.length === 1 ? "Richtige Antwort:" : "Richtige Antworten:";
+  const answer = `<p><strong>${label}</strong> ${correctAnswers.map(escapeCardHtmlText).join(", ")}</p>`;
   return sanitizeCardHtml(explanation ? `${answer}${explanation}` : answer);
 }
 
@@ -226,25 +254,27 @@ export function projectCardEditorContent(value: CardEditorValue): EditorContentP
     case "basic":
     case "basic-with-images":
     case "basic-reversed":
-      return { front: value.front, back: value.back, answerOptions: null, correctAnswer: null, explanation: "", clozeGroups: [] };
+      return { front: value.front, back: value.back, answerOptions: null, correctAnswers: [], explanation: "", clozeGroups: [] };
     case "cloze": {
       const revealed = revealClozeText(value.textWithClozes);
       return {
         front: value.textWithClozes,
         back: sanitizeCardHtml(value.extra ? `${revealed}<hr>${value.extra}` : revealed),
         answerOptions: null,
-        correctAnswer: null,
+        correctAnswers: [],
         explanation: value.extra,
         clozeGroups: parseClozeGroups(value.textWithClozes),
       };
     }
+    case "single-choice":
     case "multiple-choice": {
-      const correctAnswer = value.options[value.correctOptionIndex];
+      const correctOptionIndices = value.cardType === "single-choice" ? [value.correctOptionIndex] : value.correctOptionIndices;
+      const correctAnswers = correctOptionIndices.map((index) => value.options[index]).filter(Boolean);
       return {
         front: value.question,
-        back: renderMultipleChoiceAnswer(correctAnswer, value.explanation),
+        back: renderChoiceAnswer(correctAnswers, value.explanation),
         answerOptions: value.options,
-        correctAnswer,
+        correctAnswers,
         explanation: value.explanation,
         clozeGroups: [],
       };
@@ -277,24 +307,36 @@ export function getCardEditorValue(card: LearningItem): CardEditorValue | null {
         extra: card.contentDocument.fields[1]?.value ?? String(original?.explanation ?? card.meta?.explanation ?? ""),
         tags,
       };
+    case "single-choice":
     case "multiple-choice": {
-      const options = normalizeOptions(card.contentDocument.interaction?.choice?.options ?? original?.answerOptionsJson ?? card.meta?.answerOptions);
-      const correctAnswer = String(card.contentDocument.interaction?.choice?.correctAnswer ?? original?.expectedAnswerJson ?? card.meta?.correctAnswer ?? "");
-      return {
-        cardType: "multiple-choice",
+      const choice = card.contentDocument.interaction?.choice;
+      const options = normalizeOptions(choice?.options ?? original?.answerOptionsJson ?? card.meta?.answerOptions);
+      const storedCorrectAnswers = readChoiceCorrectAnswers(choice);
+      const correctAnswers = storedCorrectAnswers.length > 0
+        ? storedCorrectAnswers
+        : normalizeChoiceAnswerList(original?.expectedAnswerJson ?? card.meta?.correctAnswers ?? card.meta?.correctAnswer ?? "");
+      const correctOptionIndices = findChoiceAnswerIndices(options, correctAnswers);
+      const common = {
         question: card.originalFront,
         options,
-        correctOptionIndex: options.indexOf(correctAnswer),
-        explanation: card.contentDocument.interaction?.choice?.explanation ?? String(original?.explanation ?? card.meta?.explanation ?? ""),
+        explanation: choice?.explanation ?? String(original?.explanation ?? card.meta?.explanation ?? ""),
         tags,
       };
+      return cardType === "single-choice"
+        ? { ...common, cardType: "single-choice", correctOptionIndex: correctOptionIndices[0] ?? -1 }
+        : { ...common, cardType: "multiple-choice", correctOptionIndices };
     }
   }
 }
 
 function cloneEditorValue(value: CardEditorValue): CardEditorValue {
-  if (value.cardType === "multiple-choice") {
-    return { ...value, options: [...value.options], tags: [...value.tags] };
+  if (value.cardType === "single-choice" || value.cardType === "multiple-choice") {
+    return {
+      ...value,
+      options: [...value.options],
+      ...(value.cardType === "multiple-choice" ? { correctOptionIndices: [...value.correctOptionIndices] } : {}),
+      tags: [...value.tags],
+    } as CardEditorValue;
   }
   return { ...value, tags: [...value.tags] };
 }
@@ -339,7 +381,7 @@ export function saveCardEditorValue(cardInput: LearningItem, editorInput: unknow
   const definition = storedDefinition ?? createCoreNoteTypeDefinition({
     document,
     kind: value.cardType === "cloze" ? "cloze" : "normal",
-    interaction: value.cardType === "multiple-choice" ? "choice" : value.cardType === "cloze" ? "cloze" : "reveal",
+    interaction: value.cardType === "single-choice" || value.cardType === "multiple-choice" ? "choice" : value.cardType === "cloze" ? "cloze" : "reveal",
     reverse: value.cardType === "basic-reversed",
     createdAt: card.createdAt,
   });

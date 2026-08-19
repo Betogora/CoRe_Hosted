@@ -242,7 +242,8 @@ const creationInputs = [
   { cardType: "basic-with-images", deckId: "deck-1", front: "Frage mit Bild", back: "Antwort mit Bild", mediaRefs: ["bild"] },
   { cardType: "basic-reversed", deckId: "deck-1", front: "Frage", back: "Antwort" },
   { cardType: "cloze", deckId: "deck-1", textWithClozes: "{{c1::Antwort}}" },
-  { cardType: "multiple-choice", deckId: "deck-1", front: "Frage", back: "B", answerOptions: ["A", "B"], correctAnswer: "B" },
+  { cardType: "single-choice", deckId: "deck-1", front: "Frage", back: "B", answerOptions: ["A", "B"], correctAnswer: "B" },
+  { cardType: "multiple-choice", deckId: "deck-1", front: "Frage", back: "A und B", answerOptions: ["A", "B", "C"], correctAnswers: ["A", "B"] },
 ] satisfies LearningItemCreationInput[];
 
 function assertNever(value: never): never {
@@ -255,7 +256,8 @@ function creationLabel(input: LearningItemCreationInput): string {
     case "basic-with-images": return input.front;
     case "basic-reversed": return input.back;
     case "cloze": return input.textWithClozes;
-    case "multiple-choice": return input.correctAnswer;
+    case "single-choice": return input.correctAnswer;
+    case "multiple-choice": return input.correctAnswers.join("+");
     default: return assertNever(input);
   }
 }
@@ -288,7 +290,7 @@ test("führt TypeScript-Tests aus und bildet normalisierte Kernformen ab", () =>
   assert.equal(deck.cards[0]?.variants[0]?.isOriginal, true);
   assert.equal(deck.deckSettings.coreMode, "auto");
   assert.equal(rating, "good");
-  assert.deepEqual(creationInputs.map(creationLabel), ["Frage", "Frage mit Bild", "Antwort", "{{c1::Antwort}}", "B"]);
+  assert.deepEqual(creationInputs.map(creationLabel), ["Frage", "Frage mit Bild", "Antwort", "{{c1::Antwort}}", "B", "A+B"]);
   assert.equal(reviewStateLabel(reviewState), "Neu");
   assert.equal(syncStatusLabel({ status: "idle" }), "Idle");
 });

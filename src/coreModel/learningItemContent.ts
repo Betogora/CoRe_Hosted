@@ -13,6 +13,7 @@ import type {
   VariantProjection,
 } from "../coreTypes.ts";
 import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
+import { readChoiceCorrectAnswers } from "../choiceAnswers.ts";
 import { makeId, stableContentHash } from "./coreValues.ts";
 import { createCardVariant, createCoreCard, getOriginalVariant } from "./learningItems.ts";
 import { normalizeLearningItemDocument } from "./learningItemDocument.ts";
@@ -287,6 +288,16 @@ function projectionKey(projection: VariantProjection): string {
   return `template:${projection.recipeId}:${projection.instanceKey}`;
 }
 
+function renderChoiceBack(choice: NonNullable<NonNullable<LearningItemDocumentV1["interaction"]>["choice"]>): string | null {
+  const correctAnswers = readChoiceCorrectAnswers(choice);
+  if (correctAnswers.length === 0) return null;
+  const label = correctAnswers.length === 1 ? "Richtige Antwort:" : "Richtige Antworten:";
+  const answers = correctAnswers
+    .map((answer) => answer.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"))
+    .join(", ");
+  return `<p><strong>${label}</strong> ${answers}</p>${choice.explanation}`;
+}
+
 function createVariantSeeds(document: LearningItemDocumentV1, definition: NoteTypeDefinitionV1): VariantSeed[] {
   const fields = new Map(document.fields.map((field) => [field.id, field.value]));
   const safeFallback = document.fields.map((field) =>
@@ -346,9 +357,7 @@ function createVariantSeeds(document: LearningItemDocumentV1, definition: NoteTy
     }
     const front = sanitizeCardHtml(renderNodes(frontNodes, fields));
     const choice = recipe.interaction === "choice" ? document.interaction?.choice : null;
-    const choiceBack = choice
-      ? `<p><strong>Richtige Antwort:</strong> ${choice.correctAnswer.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>${choice.explanation}`
-      : null;
+    const choiceBack = choice ? renderChoiceBack(choice) : null;
     seeds.push({
       recipe,
       projection: recipe.interaction === "image-occlusion"
@@ -364,7 +373,9 @@ function createVariantSeeds(document: LearningItemDocumentV1, definition: NoteTy
 function compatibilityCardType(definition: NoteTypeDefinitionV1, previousType?: CardType): CardType {
   if (definition.kind === "cloze") return "cloze";
   if (definition.kind === "image-occlusion") return "image-occlusion";
-  if (definition.recipes.some((recipe) => recipe.interaction === "choice")) return "multiple-choice";
+  if (definition.recipes.some((recipe) => recipe.interaction === "choice")) {
+    return previousType === "single-choice" || previousType === "multiple-choice" ? previousType : "multiple-choice";
+  }
   if (definition.origin === "core" && (previousType === "basic-reversed" || definition.recipes.length > 1)) return "basic-reversed";
   return "basic";
 }
@@ -428,6 +439,7 @@ export function applyLearningItemContent(input: {
 }): ContentApplicationResult {
   const projection = projectLearningItemContent(input);
   const { definition, document } = projection;
+  const choiceCorrectAnswers = document.interaction?.choice ? readChoiceCorrectAnswers(document.interaction.choice) : [];
   const applicationTime = input.previous && input.reason !== "migration" ? new Date().toISOString() : definition.updatedAt;
   const itemId = input.previous?.id ?? input.base?.id ?? makeId("card");
 
@@ -478,7 +490,7 @@ export function applyLearningItemContent(input: {
       sourceAnchors: input.previous?.sourceAnchors ?? input.base?.sourceAnchors ?? [],
       explanation: choice?.explanation ?? (definition.kind === "cloze" ? document.fields[1]?.value : null) ?? previous?.explanation,
       answerOptionsJson: choice?.options ?? previous?.answerOptionsJson,
-      expectedAnswerJson: choice?.correctAnswer ?? (clozes.length ? clozes.map((match) => match[2]) : previous?.expectedAnswerJson),
+      expectedAnswerJson: choice ? [...choiceCorrectAnswers] : clozes.length ? clozes.map((match) => match[2]) : previous?.expectedAnswerJson,
       hintsJson: clozes.length ? clozes.map((match) => match[3]).filter(Boolean) : previous?.hintsJson,
       meta: {
         ...(previous?.meta ?? {}),
@@ -550,8 +562,8 @@ export function applyLearningItemContent(input: {
       noteTypeSemanticHash: definition.semanticHash,
       ...(document.interaction?.choice ? {
         answerOptions: document.interaction.choice.options,
-        correctAnswer: document.interaction.choice.correctAnswer,
-        expectedAnswer: document.interaction.choice.correctAnswer,
+        correctAnswers: [...choiceCorrectAnswers],
+        expectedAnswer: [...choiceCorrectAnswers],
       } : {}),
       ...(definition.kind === "cloze" ? { clozeGroupCount: activeVariants.length } : {}),
     },

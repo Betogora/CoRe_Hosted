@@ -96,7 +96,7 @@ export function normalizeContentEntities(
         const normalized = createCoreNoteTypeDefinition({
           document: card.contentDocument,
           kind: card.kind === "cloze" ? "cloze" : card.kind === "image-occlusion" ? "image-occlusion" : "normal",
-          interaction: card.kind === "multiple-choice" ? "choice" : undefined,
+          interaction: card.kind === "single-choice" || card.kind === "multiple-choice" ? "choice" : undefined,
           reverse: card.kind === "basic-reversed",
           createdAt: card.createdAt,
         });

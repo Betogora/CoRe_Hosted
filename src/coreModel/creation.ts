@@ -1,4 +1,5 @@
 import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
+import { findChoiceAnswerIndices, normalizeChoiceAnswerList } from "../choiceAnswers.ts";
 import type { CardContentPayload, CardEditorValue, CardField, CardType, CardVariantType, Deck, DeckSource, DraftStatus, ForeignNoteSnapshot, LearningItem, LearningItemDocumentV1, LearningItemSourceType, LearningItemStatus, NoteTypeDefinitionV1, SourceAnchor, TransformType, VariantGenerationSource, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
 import { makeId, stableContentHash } from "./coreValues.ts";
 import { createLearningItemState, createSourceAnchor, createSourceDocument, createVersionEntry, type SourceAnchorInput, type SourceDocument } from "./reviewState.ts";
@@ -12,13 +13,13 @@ interface LearningItemOptions { id?: string; variantId?: string; title?: string;
 interface NormalizedVariantInput extends LearningItemOptions { front?: string; back?: string; isOriginal?: boolean; }
 interface NormalizedLearningItemInput extends LearningItemOptions { canonicalQuestion?: string; canonicalAnswer?: string; front?: string; back?: string; variants?: unknown; contentDocument?: LearningItemDocumentV1; noteTypeDefinition?: NoteTypeDefinitionV1; sourceSnapshot?: ForeignNoteSnapshot; }
 interface ClozePart { groupId: number; text: string; hint: string; }
-interface ManualCardInput { editorValue?: CardEditorValue; cardType?: CardType; front?: string; back?: string; tags?: unknown; mediaRefs?: string[]; answerOptions?: unknown[]; correctAnswer?: unknown; expectedAnswer?: unknown; exactWordingRequired?: boolean; contentDocument?: LearningItemDocumentV1; noteTypeDefinition?: NoteTypeDefinitionV1; }
+interface ManualCardInput { editorValue?: CardEditorValue; cardType?: CardType; front?: string; back?: string; tags?: unknown; mediaRefs?: string[]; answerOptions?: unknown[]; correctAnswer?: unknown; correctAnswers?: unknown[]; expectedAnswer?: unknown; exactWordingRequired?: boolean; contentDocument?: LearningItemDocumentV1; noteTypeDefinition?: NoteTypeDefinitionV1; }
 interface ManualDocumentContext { sourceAnchor?: SourceAnchorInput; selection?: string; textQuote?: string; documentId?: string | null; fileName?: string; targetField?: string; pageNumber?: number | null; charStart?: number | null; charEnd?: number | null; document?: SourceDocument | null; mimeType?: string; documentText?: string; }
 interface ManualArtifactsInput { card?: ManualCardInput; documentContext?: ManualDocumentContext; createdAt?: string; }
 interface ManualDeckInput { deckName: string; card: ManualCardInput; documentContext?: ManualDocumentContext; }
 function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
-function normalizeVariantType(variantType: unknown, fallbackCardType: unknown = "basic"): CardVariantType { const mapped: Partial<Record<CardType, CardVariantType>> = { "basic-reversed": "reverse", "image-occlusion": "image_occlusion", "multiple-choice": "mcq", "case-vignette": "case", "free-text": "custom", "multi-field": "custom" }; if (typeof variantType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(variantType)) return variantType as CardVariantType; return mapped[fallbackCardType as CardType] ?? (typeof fallbackCardType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(fallbackCardType) ? fallbackCardType as CardVariantType : "basic"); }
-const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "multiple-choice"]);
+function normalizeVariantType(variantType: unknown, fallbackCardType: unknown = "basic"): CardVariantType { const mapped: Partial<Record<CardType, CardVariantType>> = { "basic-reversed": "reverse", "image-occlusion": "image_occlusion", "single-choice": "mcq", "multiple-choice": "mcq", "case-vignette": "case", "free-text": "custom", "multi-field": "custom" }; if (typeof variantType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(variantType)) return variantType as CardVariantType; return mapped[fallbackCardType as CardType] ?? (typeof fallbackCardType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(fallbackCardType) ? fallbackCardType as CardVariantType : "basic"); }
+const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "single-choice", "multiple-choice"]);
 function normalizeCreatableCardType(cardType: unknown, fallback: CardType = "basic"): CardType { return typeof cardType === "string" && CREATABLE_CARD_TYPES.has(cardType as CardType) ? cardType as CardType : fallback; }
 function legacySourceFromLearningSourceType(sourceType: LearningItemSourceType): DeckSource { if (sourceType === "anki_import") return "anki-apkg"; if (sourceType === "text_import") return "text-import"; if (sourceType === "csv_import") return "csv-import"; if (sourceType === "json_import") return "json-import"; return "manual"; }
 function resolveLegacySource(sourceType: LearningItemSourceType, source?: DeckSource): DeckSource {
@@ -98,7 +99,7 @@ export function createBasicLearningItem(deckId: string, front: string, back: str
     learningItemId: id,
     cardId: id,
     sourceCardId: id,
-    variantType: cardType === "multiple-choice" ? normalizeVariantType(null, cardType) : "basic",
+    variantType: cardType === "single-choice" || cardType === "multiple-choice" ? normalizeVariantType(null, cardType) : "basic",
     variantLevel: 1,
     front: normalizedFront,
     back: normalizedBack,
@@ -310,23 +311,24 @@ export function createLearningItemFromEditorValue(deckId: string, editorInput: u
       return createBasicReverseLearningItem(deckId, value.front, value.back, commonOptions);
     case "cloze":
       return createClozeLearningItem(deckId, value.textWithClozes, value.extra, commonOptions);
+    case "single-choice":
     case "multiple-choice":
       return createBasicLearningItem(deckId, content.front, content.back, {
         ...commonOptions,
         answerOptions: content.answerOptions,
-        expectedAnswer: content.correctAnswer,
+        expectedAnswer: content.correctAnswers,
         explanation: content.explanation,
         originalFields: [
           { name: "Frage", value: content.front },
           { name: "Antwortoptionen", value: value.options.join("\n") },
-          { name: "Richtige Antwort", value: content.correctAnswer ?? "" },
+          { name: content.correctAnswers.length === 1 ? "Richtige Antwort" : "Richtige Antworten", value: content.correctAnswers.join("\n") },
           { name: "Erklärung", value: content.explanation },
         ].filter((field) => field.value),
         meta: {
           ...(options.meta ?? {}),
           answerOptions: content.answerOptions,
-          correctAnswer: content.correctAnswer,
-          expectedAnswer: content.correctAnswer,
+          correctAnswers: content.correctAnswers,
+          expectedAnswer: content.correctAnswers,
           explanation: content.explanation,
         },
       });
@@ -350,7 +352,7 @@ function appendCopyMarker(html: string): string {
 
 function copyMarkedPayload(payload: CardContentPayload): CardContentPayload {
   const value = payload.editorValue;
-  const editorValue: CardEditorValue = value.cardType === "multiple-choice"
+  const editorValue: CardEditorValue = value.cardType === "single-choice" || value.cardType === "multiple-choice"
     ? { ...value, question: appendCopyMarker(value.question), options: [...value.options], tags: [...value.tags] }
     : value.cardType === "cloze"
       ? { ...value, textWithClozes: appendCopyMarker(value.textWithClozes), tags: [...value.tags] }
@@ -651,11 +653,14 @@ function createManualCardArtifacts(
       : null;
   const answerOptions = Array.isArray(card.answerOptions) ? card.answerOptions.map((option) => String(option).trim()) : [];
   const requestedCardType = normalizeCreatableCardType(card.cardType ?? "basic");
-  const correctAnswer = String(card.correctAnswer ?? answerOptions[0] ?? card.back ?? "").trim();
+  const correctAnswers = normalizeChoiceAnswerList(card.correctAnswers ?? card.correctAnswer ?? answerOptions[0] ?? card.back ?? "");
+  const correctOptionIndices = findChoiceAnswerIndices(answerOptions, correctAnswers);
   const editorValue = card.editorValue ?? (requestedCardType === "cloze"
     ? { cardType: "cloze", textWithClozes: card.front ?? "", extra: card.back ?? "", tags: card.tags }
-    : requestedCardType === "multiple-choice"
-      ? { cardType: "multiple-choice", question: card.front ?? "", options: answerOptions, correctOptionIndex: answerOptions.indexOf(correctAnswer), explanation: card.back ?? "", tags: card.tags }
+    : requestedCardType === "single-choice"
+      ? { cardType: "single-choice", question: card.front ?? "", options: answerOptions, correctOptionIndex: correctOptionIndices[0] ?? -1, explanation: card.back ?? "", tags: card.tags }
+      : requestedCardType === "multiple-choice"
+        ? { cardType: "multiple-choice", question: card.front ?? "", options: answerOptions, correctOptionIndices, explanation: card.back ?? "", tags: card.tags }
       : { cardType: requestedCardType, front: card.front ?? "", back: card.back ?? "", tags: card.tags });
   const validatedEditorValue = assertValidCardEditorValue(editorValue);
   const itemOptions: LearningItemOptions = {
@@ -728,7 +733,7 @@ export function restoreCardVersion(card: LearningItem, versionId: string, stored
     const definition = storedDefinition ?? createCoreNoteTypeDefinition({
       document,
       kind: card.cardType === "cloze" ? "cloze" : "normal",
-      interaction: card.cardType === "multiple-choice" ? "choice" : card.cardType === "cloze" ? "cloze" : "reveal",
+      interaction: card.cardType === "single-choice" || card.cardType === "multiple-choice" ? "choice" : card.cardType === "cloze" ? "cloze" : "reveal",
       reverse: card.cardType === "basic-reversed",
       createdAt: card.createdAt,
     });
@@ -743,7 +748,7 @@ export function restoreCardVersion(card: LearningItem, versionId: string, stored
     const back = typeof before.originalBack === "string" ? before.originalBack : card.originalBack;
     const editorValue: CardEditorValue = current.cardType === "cloze"
       ? { ...current, textWithClozes: front, extra: back, tags }
-      : current.cardType === "multiple-choice"
+      : current.cardType === "single-choice" || current.cardType === "multiple-choice"
         ? { ...current, question: front, explanation: back, tags }
         : { ...current, front, back, tags };
     restored = saveCardEditorValue(card, editorValue, storedDefinition);

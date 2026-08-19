@@ -15,6 +15,7 @@ export const cardTypeOptions = [
   { value: "basic-with-images", label: "Basic + Bilder", icon: Images },
   { value: "basic-reversed", label: "Umgekehrt", icon: ArrowLeftRight },
   { value: "cloze", label: "Lückentext", icon: Braces },
+  { value: "single-choice", label: "Single Choice", icon: ListChecks },
   { value: "multiple-choice", label: "Multiple Choice", icon: ListChecks },
 ];
 

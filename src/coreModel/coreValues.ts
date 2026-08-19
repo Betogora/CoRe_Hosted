@@ -14,6 +14,7 @@ export const CORE_CARD_TYPES = [
   "basic-reversed",
   "cloze",
   "image-occlusion",
+  "single-choice",
   "multiple-choice",
   "free-text",
   "multi-field",

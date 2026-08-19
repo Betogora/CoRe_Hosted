@@ -7,6 +7,7 @@ import {
   stableContentHash,
   validateCardEditorValue,
 } from "./coreModel.ts";
+import { findChoiceAnswerIndices, normalizeChoiceAnswerList } from "./choiceAnswers.ts";
 import { createAnchorFromSelection, createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "./documentModel.ts";
 import { appendPlainTextToCardHtml } from "./richText.ts";
 import { createAccountMediaStore, type MediaObjectUploadPlan, type MediaSyncResult, type MediaSyncTask } from "./mediaStore.ts";
@@ -39,6 +40,7 @@ interface ManualCreationInput {
   tags?: unknown;
   answerOptions?: unknown;
   correctAnswer?: unknown;
+  correctAnswers?: unknown;
   expectedAnswer?: unknown;
   document?: ReturnType<typeof createSourceDocument> | null;
   documentText?: string;
@@ -97,6 +99,7 @@ interface ManualValidationInput {
   back?: string;
   answerOptions?: unknown;
   correctAnswer?: unknown;
+  correctAnswers?: unknown;
 }
 
 export type CreationWorkflow = ReturnType<typeof createCreationWorkflow>;
@@ -243,18 +246,19 @@ function normalizeAnswerOptions(value: unknown): string[] {
     .map((option) => option.trim());
 }
 
-const SUPPORTED_MANUAL_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "multiple-choice"]);
+const SUPPORTED_MANUAL_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "single-choice", "multiple-choice"]);
 const SHA1_PATTERN = /^[a-f0-9]{40}$/;
 
 function normalizeManualCardType(cardType: unknown): EditableCardType {
   return typeof cardType === "string" && SUPPORTED_MANUAL_CARD_TYPES.has(cardType as CardType) ? cardType as EditableCardType : "basic";
 }
 
-function normalizeMultipleChoiceData(input: ManualCreationInput = {}, answerOptions: string[] = []) {
-  const correctAnswer = String(input.correctAnswer ?? answerOptions[0] ?? input.back ?? "").trim();
+function normalizeChoiceData(input: ManualCreationInput = {}, answerOptions: string[] = []) {
+  const correctAnswers = normalizeChoiceAnswerList(input.correctAnswers ?? input.correctAnswer ?? answerOptions[0] ?? input.back ?? "");
   return {
     answerOptions,
-    correctAnswer,
+    correctAnswers,
+    correctOptionIndices: findChoiceAnswerIndices(answerOptions, correctAnswers),
   };
 }
 
@@ -281,7 +285,7 @@ function appendManualImage(html: string, image: ManualImageAttachment | null, al
 function createManualDeckInput(input: ManualCreationInput = {}) {
   const requestedCardType = normalizeManualCardType(input.cardType);
   const document = input.document ?? null;
-  const mcq = normalizeMultipleChoiceData(input, normalizeAnswerOptions(input.answerOptions));
+  const choice = normalizeChoiceData(input, normalizeAnswerOptions(input.answerOptions));
   const tags = normalizeTags(input.tags);
   const frontImage = normalizeManualImageAttachment(input.frontImage);
   const backImage = normalizeManualImageAttachment(input.backImage);
@@ -289,8 +293,10 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
   const back = appendManualImage(input.back ?? "", backImage, "Bild zur Rückseite");
   const editorValue: CardEditorValue = requestedCardType === "cloze"
     ? { cardType: "cloze", textWithClozes: front, extra: back, tags }
-    : requestedCardType === "multiple-choice"
-      ? { cardType: "multiple-choice", question: front, options: mcq.answerOptions, correctOptionIndex: mcq.answerOptions.indexOf(mcq.correctAnswer), explanation: back, tags }
+    : requestedCardType === "single-choice"
+      ? { cardType: "single-choice", question: front, options: choice.answerOptions, correctOptionIndex: choice.correctOptionIndices[0] ?? -1, explanation: back, tags }
+      : requestedCardType === "multiple-choice"
+        ? { cardType: "multiple-choice", question: front, options: choice.answerOptions, correctOptionIndices: choice.correctOptionIndices, explanation: back, tags }
       : { cardType: requestedCardType, front, back, tags };
   const additionalFields = Array.isArray(input.additionalFields)
     ? input.additionalFields.filter((field) => String(field.name ?? "").trim())
@@ -318,12 +324,14 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
       placement: additionalFields[index - 2]?.placement ?? "metadata",
       semanticRole: "unclassified" as const,
     }),
-    ...(requestedCardType === "multiple-choice" ? { interaction: { choice: { options: mcq.answerOptions, correctAnswer: mcq.correctAnswer, explanation: back } } } : {}),
+    ...(requestedCardType === "single-choice" || requestedCardType === "multiple-choice"
+      ? { interaction: { choice: { options: choice.answerOptions, correctAnswers: choice.correctAnswers, explanation: back } } }
+      : {}),
   };
   const noteTypeDefinition = createCoreNoteTypeDefinition({
     document: contentDocument,
     kind: requestedCardType === "cloze" ? "cloze" : "normal",
-    interaction: requestedCardType === "multiple-choice" ? "choice" : requestedCardType === "cloze" ? "cloze" : "reveal",
+    interaction: requestedCardType === "single-choice" || requestedCardType === "multiple-choice" ? "choice" : requestedCardType === "cloze" ? "cloze" : "reveal",
     reverse: requestedCardType === "basic-reversed",
   });
 
@@ -518,8 +526,8 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       };
     },
 
-    canCreateManualCard({ cardType = "basic", front = "", back = "", answerOptions = [], correctAnswer = "" }: ManualValidationInput = {}) {
-      return validateCardEditorValue(createManualDeckInput({ cardType, front, back, answerOptions, correctAnswer }).card.editorValue).ok;
+    canCreateManualCard({ cardType = "basic", front = "", back = "", answerOptions = [], correctAnswer = "", correctAnswers }: ManualValidationInput = {}) {
+      return validateCardEditorValue(createManualDeckInput({ cardType, front, back, answerOptions, correctAnswer, correctAnswers }).card.editorValue).ok;
     },
 
     validateManualCard(input: ManualCreationInput = {}) {

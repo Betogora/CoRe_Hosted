@@ -50,8 +50,8 @@ test("CardPreviewDialog stays unmounted while closed", () => {
 
 test("StudyCardContent reveals one separate answer without duplicating the question", () => {
   const rendered = fixture();
-  const front = renderToStaticMarkup(<StudyCardContent {...rendered} revealed={false} selectedChoice="" onSelectChoice={() => undefined} />);
-  const back = renderToStaticMarkup(<StudyCardContent {...rendered} revealed selectedChoice="" onSelectChoice={() => undefined} />);
+  const front = renderToStaticMarkup(<StudyCardContent {...rendered} revealed={false} selectedChoices={[]} onSelectedChoicesChange={() => undefined} onReveal={() => undefined} />);
+  const back = renderToStaticMarkup(<StudyCardContent {...rendered} revealed selectedChoices={[]} onSelectedChoicesChange={() => undefined} onReveal={() => undefined} />);
 
   assert.doesNotMatch(front, /title="Antwort"|Antwort anzeigen/);
   assert.equal((back.match(/data-testid="study-card-answer-separator"/g) ?? []).length, 1);

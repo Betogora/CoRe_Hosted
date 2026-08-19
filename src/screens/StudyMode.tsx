@@ -62,7 +62,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
   const [showAnchor, setShowAnchor] = React.useState(false);
   const [showSource, setShowSource] = React.useState(false);
   const [showSettings, setShowSettings] = React.useState(false);
-  const [selectedChoice, setSelectedChoice] = React.useState("");
+  const [selectedChoices, setSelectedChoices] = React.useState<string[]>([]);
   const [feedbackStatus, setFeedbackStatus] = React.useState("");
   const answerContentRef = React.useRef<HTMLDivElement>(null);
   const questionContentRef = React.useRef<HTMLDivElement>(null);
@@ -132,7 +132,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
       ?? createCoreNoteTypeDefinition({
         document: sourceCard.contentDocument,
         kind: sourceCard.kind === "cloze" ? "cloze" : "normal",
-        interaction: sourceCard.kind === "multiple-choice" ? "choice" : undefined,
+        interaction: sourceCard.kind === "single-choice" || sourceCard.kind === "multiple-choice" ? "choice" : undefined,
       });
   }, [noteTypeDefinitions, sourceCard]);
   const originalPresentationVariant = sourceCard?.variants.find((variant) => variant.isOriginal) ?? sourceCard?.variants[0] ?? null;
@@ -149,7 +149,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
     setShowAnchor(false);
     setShowSource(false);
     setShowSettings(false);
-    setSelectedChoice("");
+    setSelectedChoices([]);
     setFeedbackStatus("");
     feedbackDeckRef.current = null;
   }, [deckId, variantSession, decks.length]);
@@ -192,7 +192,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
   }, [current, effectiveLearningDayKey, queue.items]);
 
   React.useEffect(() => {
-    setSelectedChoice("");
+    setSelectedChoices([]);
     if (current) responseTimer.start();
     else responseTimer.reset();
     return () => responseTimer.reset();
@@ -210,14 +210,13 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
     setShowAnswer(false);
     setShowAnchor(false);
     setShowSource(false);
-    setSelectedChoice("");
+    setSelectedChoices([]);
     setFeedbackStatus("");
     feedbackDeckRef.current = null;
   }
 
-  function selectChoice(option: string) {
+  function revealChoiceAnswer() {
     if (showAnswer) return;
-    setSelectedChoice(option);
     setShowAnswer(true);
   }
 
@@ -269,7 +268,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
     setShowAnswer(false);
     setShowAnchor(false);
     setShowSource(false);
-    setSelectedChoice("");
+    setSelectedChoices([]);
     setFeedbackStatus("");
     feedbackDeckRef.current = null;
     setSuccessToast("Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.");
@@ -410,8 +409,9 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
                     definition={presentationDefinition}
                     mediaUrls={studyMediaUrls}
                     revealed={showAnswer}
-                    selectedChoice={selectedChoice}
-                    onSelectChoice={selectChoice}
+                    selectedChoices={selectedChoices}
+                    onSelectedChoicesChange={setSelectedChoices}
+                    onReveal={revealChoiceAnswer}
                     questionRef={questionContentRef}
                     answerRef={answerContentRef}
                   />

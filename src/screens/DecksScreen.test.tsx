@@ -225,7 +225,7 @@ function renderEditorFor(editorValue: CardEditorValue) {
   return renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: card.id });
 }
 
-test("detail editor renders all five supported field sets", () => {
+test("detail editor renders all six supported field sets", () => {
   const imageMarkup = renderEditorFor({ cardType: "basic-with-images", front: '<p>Vorne</p><img src="front-image">', back: '<p>Hinten</p><img src="back-image">', tags: [] });
   assert.match(imageMarkup, /Basic \+ Bilder/);
   assert.match(imageMarkup, /aria-label="Karten-Vorderseite"/);
@@ -243,9 +243,15 @@ test("detail editor renders all five supported field sets", () => {
   assert.match(clozeMarkup, /aria-label="Cloze-Text"/);
   assert.match(clozeMarkup, /aria-label="Cloze-Zusatzinfo"/);
 
-  const mcMarkup = renderEditorFor({ cardType: "multiple-choice", question: "Welche?", options: ["A", "B"], correctOptionIndex: 1, explanation: "Darum", tags: [] });
+  const scMarkup = renderEditorFor({ cardType: "single-choice", question: "Welche?", options: ["A", "B"], correctOptionIndex: 1, explanation: "Darum", tags: [] });
+  assert.match(scMarkup, /aria-label="Single-Choice-Frage"/);
+  assert.match(scMarkup, /Antwortoptionen und richtige Antwort/);
+  assert.match(scMarkup, /type="radio"/);
+
+  const mcMarkup = renderEditorFor({ cardType: "multiple-choice", question: "Welche?", options: ["A", "B", "C"], correctOptionIndices: [0, 1], explanation: "Darum", tags: [] });
   assert.match(mcMarkup, /aria-label="Multiple-Choice-Frage"/);
-  assert.match(mcMarkup, /Antwortoptionen und richtige Antwort/);
+  assert.match(mcMarkup, /Antwortoptionen und richtige Antworten/);
+  assert.match(mcMarkup, /type="checkbox"/);
   assert.match(mcMarkup, /Option 2 als richtig markieren/);
 });
 

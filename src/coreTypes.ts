@@ -6,6 +6,7 @@ export type CardType =
   | "basic-reversed"
   | "cloze"
   | "image-occlusion"
+  | "single-choice"
   | "multiple-choice"
   | "free-text"
   | "multi-field"
@@ -280,7 +281,12 @@ export interface LearningItemDocumentV1 {
   tags: string[];
   mediaRefs: MediaRef[];
   interaction?: {
-    choice?: { options: string[]; correctAnswer: string; explanation: RichTextContent };
+    choice?: {
+      options: string[];
+      correctAnswers?: string[];
+      correctAnswer?: string;
+      explanation: RichTextContent;
+    };
   };
 }
 
@@ -538,12 +544,20 @@ export interface ClozeLearningItemCreationInput extends LearningItemCreationBase
   extra?: RichTextContent;
 }
 
+export interface SingleChoiceLearningItemCreationInput extends LearningItemCreationBase {
+  cardType: "single-choice";
+  front: RichTextContent;
+  back: RichTextContent;
+  answerOptions: string[];
+  correctAnswer: string;
+}
+
 export interface MultipleChoiceLearningItemCreationInput extends LearningItemCreationBase {
   cardType: "multiple-choice";
   front: RichTextContent;
   back: RichTextContent;
   answerOptions: string[];
-  correctAnswer: string;
+  correctAnswers: string[];
 }
 
 export type LearningItemCreationInput =
@@ -551,9 +565,10 @@ export type LearningItemCreationInput =
   | BasicWithImagesLearningItemCreationInput
   | ReverseLearningItemCreationInput
   | ClozeLearningItemCreationInput
+  | SingleChoiceLearningItemCreationInput
   | MultipleChoiceLearningItemCreationInput;
 
-export type EditableCardType = "basic" | "basic-with-images" | "basic-reversed" | "cloze" | "multiple-choice";
+export type EditableCardType = "basic" | "basic-with-images" | "basic-reversed" | "cloze" | "single-choice" | "multiple-choice";
 
 export interface CardEditorValueBase {
   tags: string[];
@@ -583,11 +598,19 @@ export interface ClozeCardEditorValue extends CardEditorValueBase {
   extra: RichTextContent;
 }
 
+export interface SingleChoiceCardEditorValue extends CardEditorValueBase {
+  cardType: "single-choice";
+  question: RichTextContent;
+  options: string[];
+  correctOptionIndex: number;
+  explanation: RichTextContent;
+}
+
 export interface MultipleChoiceCardEditorValue extends CardEditorValueBase {
   cardType: "multiple-choice";
   question: RichTextContent;
   options: string[];
-  correctOptionIndex: number;
+  correctOptionIndices: number[];
   explanation: RichTextContent;
 }
 
@@ -596,6 +619,7 @@ export type CardEditorValue =
   | BasicWithImagesCardEditorValue
   | ReverseCardEditorValue
   | ClozeCardEditorValue
+  | SingleChoiceCardEditorValue
   | MultipleChoiceCardEditorValue;
 
 export interface CardContentPayload {
@@ -615,6 +639,7 @@ export type CardEditorField =
   | "question"
   | "options"
   | "correctOptionIndex"
+  | "correctOptionIndices"
   | "explanation";
 
 export type CardEditorFieldErrors = Partial<Record<CardEditorField, string>>;

@@ -34,12 +34,12 @@ export function CardPreviewDialog({
   returnFocusRef,
 }: CardPreviewDialogProps) {
   const [side, setSide] = React.useState<PreviewSide>("question");
-  const [selectedChoice, setSelectedChoice] = React.useState("");
+  const [selectedChoices, setSelectedChoices] = React.useState<string[]>([]);
   const answerRef = React.useRef<HTMLDivElement | null>(null);
   const titleId = React.useId();
   const closeDialog = React.useCallback(() => {
     setSide("question");
-    setSelectedChoice("");
+    setSelectedChoices([]);
     onOpenChange(false);
   }, [onOpenChange]);
   const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({
@@ -52,7 +52,7 @@ export function CardPreviewDialog({
   React.useEffect(() => {
     if (open) {
       setSide("question");
-      setSelectedChoice("");
+      setSelectedChoices([]);
     }
   }, [open]);
 
@@ -88,11 +88,9 @@ export function CardPreviewDialog({
               definition={definition}
               mediaUrls={mediaUrls}
               revealed={side === "answer"}
-              selectedChoice={selectedChoice}
-              onSelectChoice={(option) => {
-                setSelectedChoice(option);
-                setSide("answer");
-              }}
+              selectedChoices={selectedChoices}
+              onSelectedChoicesChange={setSelectedChoices}
+              onReveal={() => setSide("answer")}
               answerRef={answerRef}
             />
           </div>
@@ -105,7 +103,7 @@ export function CardPreviewDialog({
             value={side}
             onValueChange={(nextSide) => {
               setSide(nextSide);
-              if (nextSide === "question") setSelectedChoice("");
+              if (nextSide === "question") setSelectedChoices([]);
               else window.requestAnimationFrame(() => answerRef.current?.focus());
             }}
             size="regular"

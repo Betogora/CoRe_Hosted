@@ -7,6 +7,7 @@ import type {
   MediaRef,
 } from "../coreTypes.ts";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
+import { readChoiceCorrectAnswers } from "../choiceAnswers.ts";
 import { normalizeTags, stableContentHash, unique } from "./coreValues.ts";
 
 const PLACEMENTS = new Set<FieldPlacement>(["front", "back", "both", "metadata"]);
@@ -53,13 +54,14 @@ function normalizeField(
 
 function normalizeInteraction(value: unknown): LearningItemDocumentV1["interaction"] | undefined {
   const choice = record(record(value).choice);
-  if (!Array.isArray(choice.options) || typeof choice.correctAnswer !== "string") return undefined;
+  if (!Array.isArray(choice.options)) return undefined;
   const options = choice.options.map(String).map((option) => option.trim()).filter(Boolean);
-  if (options.length < 2) return undefined;
+  const correctAnswers = readChoiceCorrectAnswers(choice);
+  if (options.length < 2 || correctAnswers.length === 0) return undefined;
   return {
     choice: {
       options,
-      correctAnswer: choice.correctAnswer,
+      correctAnswers,
       explanation: sanitizeCardHtml(choice.explanation),
     },
   };

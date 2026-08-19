@@ -2346,7 +2346,7 @@ function mergeImportedCardMeta(incomingMeta: any, existingMeta: any, preserveCon
     ? { marked: existingMeta.marked === true }
     : {};
   if (!preserveContent) return { ...(incomingMeta ?? {}), ...preservedStudyMeta, preservedLocalContent: false };
-  const editorMetaKeys = ["answerOptions", "correctAnswer", "expectedAnswer", "explanation", "clozeGroupCount"];
+  const editorMetaKeys = ["answerOptions", "correctAnswer", "correctAnswers", "expectedAnswer", "explanation", "clozeGroupCount"];
   const preservedEditorMeta = Object.fromEntries(
     editorMetaKeys
       .filter((key) => Object.prototype.hasOwnProperty.call(existingMeta ?? {}, key))

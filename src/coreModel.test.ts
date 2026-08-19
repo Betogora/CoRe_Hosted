@@ -77,9 +77,9 @@ test("manual multiple-choice cards keep structured metadata and free-text falls 
     card: {
       cardType: "multiple-choice",
       front: "Welche Antwort ist korrekt?",
-      back: "Antwort B ist korrekt.",
+      back: "Antwort A und B sind korrekt.",
       answerOptions: ["Antwort A", "Antwort B", "Antwort C"],
-      correctAnswer: "Antwort B",
+      correctAnswers: ["Antwort A", "Antwort B"],
     },
   });
   const freeTextDeck = createManualCoreDeck({
@@ -95,15 +95,16 @@ test("manual multiple-choice cards keep structured metadata and free-text falls 
   const freeTextCard = freeTextDeck.cards[0];
   assert.equal(mcCard.kind, "multiple-choice");
   assert.deepEqual(mcCard.meta.answerOptions, ["Antwort A", "Antwort B", "Antwort C"]);
-  assert.equal(mcCard.meta.correctAnswer, "Antwort B");
-  assert.ok(getOriginalVariant);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.deepEqual(getOriginalVariant(mcCard).answerOptionsJson, ["Antwort A", "Antwort B", "Antwort C"]);
+  assert.deepEqual(mcCard.meta.correctAnswers, ["Antwort A", "Antwort B"]);
+  const mcOriginalVariant = getOriginalVariant(mcCard);
+  assert.ok(mcOriginalVariant);
+  assert.deepEqual(mcOriginalVariant.answerOptionsJson, ["Antwort A", "Antwort B", "Antwort C"]);
+  assert.deepEqual(mcOriginalVariant.expectedAnswerJson, ["Antwort A", "Antwort B"]);
   assert.equal(freeTextCard.kind, "basic");
   assert.equal(freeTextCard.meta.selfCheck, undefined);
-  assert.ok(getOriginalVariant);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(getOriginalVariant(freeTextCard).expectedAnswerJson, freeTextCard.originalBack);
+  const freeTextOriginalVariant = getOriginalVariant(freeTextCard);
+  assert.ok(freeTextOriginalVariant);
+  assert.equal(freeTextOriginalVariant.expectedAnswerJson, freeTextCard.originalBack);
 });
 
 test("normalizing edited decks preserves immutable originals and version history", () => {

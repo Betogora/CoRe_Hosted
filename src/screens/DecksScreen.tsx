@@ -207,7 +207,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
   }, card);
   const restoredContent = selectedVersion ? versionContent(selectedVersion.before, card) : null;
 
-  function update(key: string, value: string | string[] | number) {
+  function update(key: string, value: string | string[] | number | number[]) {
     setForm((current) => current ? ({ ...current, [key]: value } as CardEditorValue) : current);
     setFieldErrors((current) => ({ ...current, [key]: undefined }));
     setSaveStatus("");
@@ -216,21 +216,46 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
   }
 
   function updateMcOption(index: number, option: string) {
-    if (form?.cardType !== "multiple-choice") return;
+    if (form?.cardType !== "single-choice" && form?.cardType !== "multiple-choice") return;
     update("options", form.options.map((current, optionIndex) => optionIndex === index ? option : current));
   }
 
   function addMcOption() {
-    if (form?.cardType !== "multiple-choice") return;
+    if (form?.cardType !== "single-choice" && form?.cardType !== "multiple-choice") return;
     update("options", [...form.options, ""]);
   }
 
   function removeMcOption(index: number) {
-    if (form?.cardType !== "multiple-choice" || form.options.length <= 2) return;
+    if ((form?.cardType !== "single-choice" && form?.cardType !== "multiple-choice") || form.options.length <= 2) return;
+    if (form.cardType === "multiple-choice") {
+      const isCorrect = form.correctOptionIndices.includes(index);
+      const falseOptionCount = form.options.length - form.correctOptionIndices.length;
+      if ((isCorrect && form.correctOptionIndices.length === 1) || (!isCorrect && falseOptionCount === 1)) return;
+    }
     const options = form.options.filter((_, optionIndex) => optionIndex !== index);
-    const correctOptionIndex = form.correctOptionIndex === index ? 0 : form.correctOptionIndex > index ? form.correctOptionIndex - 1 : form.correctOptionIndex;
-    setForm({ ...form, options, correctOptionIndex });
-    setFieldErrors((current) => ({ ...current, options: undefined, correctOptionIndex: undefined }));
+    if (form.cardType === "single-choice") {
+      const correctOptionIndex = form.correctOptionIndex === index ? 0 : form.correctOptionIndex > index ? form.correctOptionIndex - 1 : form.correctOptionIndex;
+      setForm({ ...form, options, correctOptionIndex });
+    } else {
+      const correctOptionIndices = form.correctOptionIndices
+        .filter((optionIndex) => optionIndex !== index)
+        .map((optionIndex) => optionIndex > index ? optionIndex - 1 : optionIndex);
+      setForm({ ...form, options, correctOptionIndices });
+    }
+    setFieldErrors((current) => ({ ...current, options: undefined, correctOptionIndex: undefined, correctOptionIndices: undefined }));
+  }
+
+  function toggleCorrectOption(index: number) {
+    if (form?.cardType === "single-choice") {
+      update("correctOptionIndex", index);
+      return;
+    }
+    if (form?.cardType !== "multiple-choice") return;
+    const isCorrect = form.correctOptionIndices.includes(index);
+    if ((isCorrect && form.correctOptionIndices.length === 1) || (!isCorrect && form.correctOptionIndices.length >= form.options.length - 1)) return;
+    update("correctOptionIndices", isCorrect
+      ? form.correctOptionIndices.filter((optionIndex) => optionIndex !== index)
+      : [...form.correctOptionIndices, index].sort((left, right) => left - right));
   }
 
   async function saveEditorValue(): Promise<boolean> {
@@ -476,25 +501,31 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
               </div>
             </div>
           ) : null}
-          {form.cardType === "multiple-choice" ? (
+          {form.cardType === "single-choice" || form.cardType === "multiple-choice" ? (
             <div className="grid min-w-0 gap-4">
               <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 <span>Frage</span>
-                <RichTextEditor value={form.question} onChange={(value) => update("question", value)} ariaLabel="Multiple-Choice-Frage" ariaInvalid={Boolean(fieldErrors.question)} minHeightClass="min-h-32" />
+                <RichTextEditor value={form.question} onChange={(value) => update("question", value)} ariaLabel={`${form.cardType === "single-choice" ? "Single" : "Multiple"}-Choice-Frage`} ariaInvalid={Boolean(fieldErrors.question)} minHeightClass="min-h-32" />
                 <FieldError errors={fieldErrors} field="question" />
               </div>
               <fieldset className="grid gap-3 rounded-xl border border-[var(--core-border)] p-4">
-                <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Antwortoptionen und richtige Antwort</legend>
-                {form.options.map((option, index) => (
-                  <div key={index} className="flex min-w-0 items-center gap-2">
-                    <input type="radio" name={`correct-option-${card.id}`} checked={form.correctOptionIndex === index} onChange={() => update("correctOptionIndex", index)} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex)} />
-                    <input className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border)] px-3" value={option} onChange={(event) => updateMcOption(index, event.target.value)} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-                    <button type="button" onClick={() => removeMcOption(index)} disabled={form.options.length <= 2} className="grid size-11 place-items-center rounded-xl border border-[var(--core-border)] text-[var(--core-text-muted)] disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
-                  </div>
-                ))}
+                <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Antwortoptionen und {form.cardType === "single-choice" ? "richtige Antwort" : "richtige Antworten"}</legend>
+                {form.options.map((option, index) => {
+                  const isCorrect = form.cardType === "single-choice" ? form.correctOptionIndex === index : form.correctOptionIndices.includes(index);
+                  const correctnessLocked = form.cardType === "multiple-choice"
+                    && ((isCorrect && form.correctOptionIndices.length === 1) || (!isCorrect && form.correctOptionIndices.length === form.options.length - 1));
+                  return (
+                    <div key={index} className="flex min-w-0 items-center gap-2">
+                      <input type={form.cardType === "single-choice" ? "radio" : "checkbox"} name={form.cardType === "single-choice" ? `correct-option-${card.id}` : undefined} checked={isCorrect} disabled={correctnessLocked} onChange={() => toggleCorrectOption(index)} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex || fieldErrors.correctOptionIndices)} />
+                      <input className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border)] px-3" value={option} onChange={(event) => updateMcOption(index, event.target.value)} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+                      <button type="button" onClick={() => removeMcOption(index)} disabled={form.options.length <= 2 || correctnessLocked} className="grid size-11 place-items-center rounded-xl border border-[var(--core-border)] text-[var(--core-text-muted)] disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
+                    </div>
+                  );
+                })}
                 <button type="button" onClick={addMcOption} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl border border-[var(--core-border)] px-3 core-body font-semibold text-[var(--core-action-primary)]"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button>
                 <FieldError errors={fieldErrors} field="options" />
                 <FieldError errors={fieldErrors} field="correctOptionIndex" />
+                <FieldError errors={fieldErrors} field="correctOptionIndices" />
               </fieldset>
               <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
                 <span>Erklärung (optional)</span>
@@ -538,7 +569,7 @@ function DeckCardEditor({ deck, card, definition, now, mediaUrls = {}, onSaveCar
         </div>
       ) : (
         <div id={"copy-disabled-" + card.id} className="rounded-xl border border-core-warning bg-core-warning-soft p-4 core-body font-medium text-core-text" role="status">
-          Dieser importierte Kartentyp wird hier nur angezeigt und kann nicht kopiert werden. Typgerechtes Bearbeiten und Kopieren ist für Basic, Basic + Bilder, Reverse, Cloze und Multiple Choice verfügbar.
+          Dieser importierte Kartentyp wird hier nur angezeigt und kann nicht kopiert werden. Typgerechtes Bearbeiten und Kopieren ist für Basic, Basic + Bilder, Reverse, Cloze, Single Choice und Multiple Choice verfügbar.
         </div>
       )}
       <section className="mt-5 min-w-0" aria-labelledby={`card-details-${card.id}`}>
@@ -840,7 +871,7 @@ export function DecksScreen({
       ?? createCoreNoteTypeDefinition({
         document: selectedCard.contentDocument,
         kind: selectedCard.kind === "cloze" ? "cloze" : "normal",
-        interaction: selectedCard.kind === "multiple-choice" ? "choice" : undefined,
+        interaction: selectedCard.kind === "single-choice" || selectedCard.kind === "multiple-choice" ? "choice" : undefined,
       });
   }, [noteTypeDefinitions, selectedCard]);
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);

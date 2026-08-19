@@ -104,6 +104,7 @@ function normalizeVariantType(value: any) {
   const mapped = {
     "basic-reversed": "reverse",
     "image-occlusion": "image_occlusion",
+    "single-choice": "mcq",
     "multiple-choice": "mcq",
     "case-vignette": "case",
   }[candidate] ?? candidate;

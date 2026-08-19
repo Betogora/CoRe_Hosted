@@ -43,6 +43,7 @@ function normalizeVariantType(variantType: unknown, fallbackCardType: unknown = 
   const mapping: Partial<Record<CardType, CardVariantType>> = {
     "basic-reversed": "reverse",
     "image-occlusion": "image_occlusion",
+    "single-choice": "mcq",
     "multiple-choice": "mcq",
     "case-vignette": "case",
     "free-text": "custom",

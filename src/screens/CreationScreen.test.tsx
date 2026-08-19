@@ -60,6 +60,8 @@ test("manual picker accepts only readable source documents", () => {
   assert.match(markup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
   assert.match(markup, /<h2[^>]*>Karte selbst erstellen<\/h2>/);
   assert.match(markup, />Vorschau<\/span><\/button>/);
+  assert.equal((markup.match(/PDF\/Text anfügen/g) ?? []).length, 1);
+  assert.ok(markup.indexOf("PDF/Text anfügen") < markup.indexOf("Karte selbst erstellen"));
   assert.doesNotMatch(markup, /Live-Vorschau/);
   assert.doesNotMatch(markup, /Manuelle Erstellung|Karten manuell erstellen/);
   assert.doesNotMatch(markup, /\.docx/i);
@@ -83,6 +85,7 @@ test("manual options use labeled segmented choices without explanatory subclaims
 
   assert.match(markup, />Fragentyp</);
   assert.match(markup, /aria-label="Fragentyp"[^>]*core-segmented-control/);
+  assert.match(markup, />Single Choice</);
   assert.match(markup, />Multiple Choice</);
   assert.match(markup, />Lernrichtung</);
   assert.match(markup, /aria-label="Lernrichtung"[^>]*core-segmented-control/);
