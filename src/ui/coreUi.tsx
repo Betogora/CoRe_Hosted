@@ -301,13 +301,13 @@ export function StatTile({
     <dl
       {...props}
       data-size={size}
-      className={`${compact ? "rounded-xl bg-core-subtle p-3" : "core-surface-raised rounded-[18px] p-6"} min-w-0 ${className}`.trim()}
+      className={`${compact ? "flex flex-col rounded-xl bg-core-subtle p-3" : "core-surface-raised rounded-[18px] p-6"} min-w-0 ${className}`.trim()}
     >
       <dt className={`${compact ? "core-caption !font-semibold" : "core-status-label"} uppercase tracking-wide text-core-muted`}>
         {Icon ? <OrbIcon icon={Icon} className={`bg-core-subtle ${accent}`} /> : null}
         <span className={Icon ? "mt-5 block" : undefined}>{label}</span>
       </dt>
-      <dd className={`${compact ? "core-heading-3 mt-1" : "core-heading-2 mt-2"} text-core-text`}>{value}</dd>
+      <dd className={`${compact ? "core-heading-3 mt-auto pt-1" : "core-heading-2 mt-2"} text-core-text`}>{value}</dd>
       {hint ? <dd className="core-body mt-1 text-core-muted">{hint}</dd> : null}
     </dl>
   );

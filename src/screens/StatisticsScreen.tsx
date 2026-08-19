@@ -445,8 +445,8 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
       </div>
 
       <SoftPanel className="p-4 shadow-sm sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="shrink-0">
             <p className="core-control-label text-core-muted">Globaler Zeitraum</p>
             <CoreSegmentedControl
               ariaLabel="Statistikzeitraum"
@@ -457,7 +457,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
               className="mt-2"
             />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-52 flex-1 sm:max-w-72">
             <p className="core-control-label text-core-muted">Stapel</p>
             <div className="mt-2"><DeckMultiSelect decks={decks} value={deckSelection} scopeLabel={statistics.scopeLabel} onValueChange={changeDecks} /></div>
           </div>
@@ -467,14 +467,14 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
       <InPageNavigation ariaLabel="Bereiche der Statistik" items={statisticsSections}>
       <section id={STATISTICS_SECTION_IDS.overview} className="min-w-0" aria-labelledby="statistics-overview-title">
         <ChartPanel title="Überblick" titleId="statistics-overview-title">
-          <div className="grid gap-3 sm:grid-cols-4">
-            <StatTile size="compact" label="Wiederholungen" value={formatNumber(statistics.summary.reviewCount)} />
-            <StatTile size="compact" label="Erfolgsquote" value={formatPercent(statistics.summary.successPercent)} />
-            <StatTile size="compact" label="Wahre Erinnerungsquote" value={statistics.summary.trueRetentionSample > 0 ? formatPercent(statistics.summary.trueRetentionPercent) : "–"} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatTile size="compact" label="Reviews" value={formatNumber(statistics.summary.reviewCount)} />
+            <StatTile size="compact" label="Erfolgsrate" value={formatPercent(statistics.summary.successPercent)} />
+            <StatTile size="compact" label="Wahre Quote" value={statistics.summary.trueRetentionSample > 0 ? formatPercent(statistics.summary.trueRetentionPercent) : "–"} />
             <StatTile size="compact" label="Gemessene Lernzeit" value={formatDuration(statistics.summary.totalDurationMs)} />
             <StatTile size="compact" label="Zeit pro Antwort" value={statistics.summary.timedCount > 0 ? formatDuration(statistics.summary.averageResponseMs) : "–"} />
             <StatTile size="compact" label="Aktive Lerntage" value={formatNumber(statistics.summary.activeDays)} />
-            <StatTile size="compact" label="Aktuelle Serie" value={`${formatNumber(statistics.summary.currentStreak)} Tage`} />
+            <StatTile size="compact" label="Aktuelle Serie" value={`${formatNumber(statistics.summary.currentStreak)} ${statistics.summary.currentStreak === 1 ? "Tag" : "Tage"}`} />
           </div>
         </ChartPanel>
       </section>

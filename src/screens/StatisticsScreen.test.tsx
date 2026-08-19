@@ -25,9 +25,11 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   });
   const deck = createCoreDeck({ id: "deck_statistics_screen", name: "Biologie", source: "manual", cards: [card] });
   const selection = { period: "365d" as const, deckIds: "all" as const, now: "2026-08-06T12:00:00.000Z", timeZone: "Europe/Berlin" };
+  const projection = projectStatistics([deck], selection);
+  projection.summary.currentStreak = 1;
   const markup = renderToStaticMarkup(
     <StatisticsScreenContent
-      dataset={{ decks: [deck], projection: projectStatistics([deck], selection) }}
+      dataset={{ decks: [deck], projection }}
       now="2026-08-06T12:00:00.000Z"
       timeZone="Europe/Berlin"
       onNavigate={() => { throw new Error("navigation is not expected during server rendering"); }}
@@ -36,6 +38,9 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
 
   assert.equal((markup.match(/Globaler Zeitraum/g) ?? []).length, 1);
   assert.match(markup, /aria-label="Statistikzeitraum"[^>]*data-size="regular"[^>]*core-segmented-control/);
+  assert.match(markup, /class="flex flex-wrap items-end justify-between gap-4"><div class="shrink-0">/);
+  assert.match(markup, /class="min-w-52 flex-1 sm:max-w-72"><p class="core-control-label text-core-muted">Stapel/);
+  assert.match(markup, /class="mt-2"><button[^>]*data-deck-multi-select-trigger="true"[^>]*class="[^"]*w-full[^"]*"/);
   assert.match(markup, /Gesamte Sammlung/);
   assert.match(markup, /Wiederholungen/);
   assert.match(markup, /Zeitplanung/);
@@ -53,14 +58,21 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   }
   assert.equal((markup.match(/data-size="compact"/g) ?? []).length, 11);
   assert.equal((markup.match(/data-size="default"/g) ?? []).length, 0);
-  assert.match(markup, /data-size="compact" class="rounded-xl bg-core-subtle p-3 min-w-0"/);
+  assert.match(markup, /data-size="compact" class="flex flex-col rounded-xl bg-core-subtle p-3 min-w-0"/);
   const overviewMarkup = markup.match(/<section id="statistics-overview"[\s\S]*?<\/section>/)?.[0];
   assert.ok(overviewMarkup);
   assert.match(overviewMarkup, /core-surface-raised/);
   assert.match(overviewMarkup, /<h3 id="statistics-overview-title"[^>]*>Überblick<\/h3>/);
-  assert.match(overviewMarkup, /grid gap-3 sm:grid-cols-4/);
+  assert.match(overviewMarkup, /grid grid-cols-2 gap-3 sm:grid-cols-4/);
   assert.equal((overviewMarkup.match(/data-size="compact"/g) ?? []).length, 7);
   assert.doesNotMatch(overviewMarkup, /<svg|core-orb/);
+  assert.match(overviewMarkup, /Reviews/);
+  assert.doesNotMatch(overviewMarkup, /Wiederholungen/);
+  assert.match(overviewMarkup, /Erfolgsrate/);
+  assert.doesNotMatch(overviewMarkup, /Erfolgsquote/);
+  assert.match(overviewMarkup, /Wahre Quote/);
+  assert.doesNotMatch(overviewMarkup, /Erinnerungsquote/);
+  assert.match(overviewMarkup, /1 Tag/);
   assert.match(markup, /FSRS-Schwierigkeit/);
   assert.match(markup, /Wahre Erinnerungsquote/);
   assert.match(markup, /Stapelvergleich/);

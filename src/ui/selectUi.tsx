@@ -463,7 +463,7 @@ export function DeckMultiSelect({ decks, value, scopeLabel, onValueChange }: Dec
           data-state={open ? "open" : "closed"}
           data-deck-multi-select-trigger="true"
           data-deck-select-searchable={showSearch ? "true" : "false"}
-          className="group core-field flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 text-left sm:w-72"
+          className="group core-field flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 text-left"
         >
           <span className="flex min-w-0 items-center gap-2">
             <Layers3 size={18} className="shrink-0 text-core-text" aria-hidden="true" />
