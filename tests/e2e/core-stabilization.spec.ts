@@ -729,9 +729,17 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   await expect(page.getByRole("switch", { name: "Kurze Abstände verdoppeln" })).toHaveCount(0);
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByTestId("learning-settings-new-cards").fill(String(nextNewCards));
-  await page.getByTestId("learning-settings-max-reviews").fill(String(nextMaximumReviews));
-  await page.getByTestId("learning-settings-maximum-interval").fill(String(nextMaximumInterval));
+  for (const [testId, nextValue] of [
+    ["learning-settings-new-cards", nextNewCards],
+    ["learning-settings-max-reviews", nextMaximumReviews],
+    ["learning-settings-maximum-interval", nextMaximumInterval],
+  ] as const) {
+    const field = page.getByTestId(testId);
+    await field.fill("");
+    await expect(field).toHaveValue("");
+    await field.pressSequentially(String(nextValue));
+    await expect(field).toHaveValue(String(nextValue));
+  }
   const saveBar = page.getByTestId("settings-save-bar");
   await expect(saveBar).toHaveCount(1);
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.newCardsPerDay).toBe(initialNewCards);

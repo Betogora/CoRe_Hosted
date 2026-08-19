@@ -53,10 +53,48 @@ interface LearningSettingsPanelProps {
 }
 
 function NumberField({ label, value, min, max, testId, onChange }: { label: string; value: number; min: number; max: number; testId: string; onChange: (value: number) => void }) {
+  const [inputValue, setInputValue] = React.useState(String(value));
+
+  React.useEffect(() => {
+    setInputValue(String(value));
+  }, [value]);
+
+  function updateInput(nextValue: string) {
+    setInputValue(nextValue);
+    const parsed = Number(nextValue);
+    if (!nextValue.trim() || !Number.isInteger(parsed) || parsed < min || parsed > max) return;
+    onChange(parsed);
+  }
+
+  function commitInput() {
+    const parsed = Number(inputValue);
+    if (!inputValue.trim() || !Number.isFinite(parsed)) {
+      setInputValue(String(value));
+      return;
+    }
+    const normalized = Math.min(max, Math.max(min, Math.round(parsed)));
+    setInputValue(String(normalized));
+    if (normalized !== value) onChange(normalized);
+  }
+
   return (
     <label className="grid gap-2 core-body font-semibold text-core-muted">
       {label}
-      <input id={testId} type="number" min={min} max={max} step="1" value={value} data-testid={testId} className="min-h-11 rounded-xl border border-core-border px-3 text-core-text" onChange={(event) => onChange(Number(event.target.value))} />
+      <input
+        id={testId}
+        type="number"
+        min={min}
+        max={max}
+        step="1"
+        value={inputValue}
+        data-testid={testId}
+        className="min-h-11 rounded-xl border border-core-border px-3 text-core-text"
+        onChange={(event) => updateInput(event.target.value)}
+        onBlur={commitInput}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.currentTarget.blur();
+        }}
+      />
     </label>
   );
 }
