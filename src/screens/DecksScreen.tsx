@@ -988,10 +988,10 @@ export function DecksScreen({
     };
   }, [deletingCard, detailOpen, pendingCardDelete, pendingDetailAction, selectedCardId, selectedDeckId]);
 
-  function focusCardRow(cardId: string | null) {
+  function focusCardRow(cardId: string | null, preventScroll = false) {
     window.requestAnimationFrame(() => {
       const target = cardId ? document.querySelector<HTMLElement>('[data-testid="deck-card-' + cardId + '"]') : null;
-      (target ?? document.querySelector<HTMLElement>("[data-screen-heading]"))?.focus();
+      (target ?? document.querySelector<HTMLElement>("[data-screen-heading]"))?.focus({ preventScroll });
     });
   }
 
@@ -1095,7 +1095,7 @@ export function DecksScreen({
       preserveToastForSelectionChange.current = true;
       onSelectDeck(deletion.deckId);
       setSuccessToast("Karte wurde erfolgreich gelöscht.");
-      focusCardRow(null);
+      focusCardRow(null, true);
     } catch (error) {
       setDeckStatus(error instanceof Error ? `Die Karte konnte nicht sicher gelöscht werden: ${error.message}` : "Die Karte konnte nicht sicher gelöscht werden.");
       setDeckStatusType("alert");
