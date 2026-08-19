@@ -12,6 +12,8 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.equal((markup.match(/class="core-help-keyword"/g) ?? []).length, 4);
   assert.equal((markup.match(/data-testid="help-intro-card-layer"/g) ?? []).length, 2);
   assert.match(markup, /data-testid="help-intro-card-front"/);
+  assert.match(markup, /class="core-heading-3 font-medium leading-8 text-core-text">Welche/);
+  assert.match(markup, /class="mt-6 grid gap-3 border-t border-\[var\(--core-border\)\] pt-5 core-heading-3 font-medium text-core-text"/);
   assert.match(markup, /core-help-stack-layer-back/);
   assert.match(markup, /core-help-stack-layer-middle/);
   assert.equal((markup.match(/data-help-example-stack="true"/g) ?? []).length, 2);

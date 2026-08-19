@@ -372,10 +372,10 @@ function IntroCardStack() {
       layerTestId="help-intro-card-layer"
     >
       <div className="max-w-md">
-        <p className="core-body-large font-medium leading-7 text-core-text">
+        <p className="core-heading-3 font-medium leading-8 text-core-text">
           Welche <mark className="core-help-keyword">Grundsätze</mark> <mark className="core-help-keyword">nutzt CoRe</mark>, um das <mark className="core-help-keyword">Lernen</mark> möglichst <mark className="core-help-keyword">nachhaltig zu gestalten</mark>, und wie wurden sie im Vergleich zu herkömmlichen Lernmechanismen verbessert?
         </p>
-        <ol className="mt-6 grid gap-3 border-t border-[var(--core-border)] pt-5 core-body font-medium text-core-text">
+        <ol className="mt-6 grid gap-3 border-t border-[var(--core-border)] pt-5 core-heading-3 font-medium text-core-text">
           <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">1.</span><span>Active Recall <span className="text-core-warning">→</span> Smarter Recall</span></li>
           <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">2.</span><span>Spaced Repetition <span className="text-core-warning">→</span> Content Repetition</span></li>
         </ol>
