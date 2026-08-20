@@ -923,10 +923,12 @@ export function DecksScreen({
     const contentBounds = contentRegion?.getBoundingClientRect();
     const visibleDeckHeader = contentRegion && contentBounds
       ? Array.from(contentRegion.querySelectorAll<HTMLElement>('[data-testid^="deck-header-"]'))
-        .find((element) => {
+        .filter((element) => {
           const bounds = element.getBoundingClientRect();
           return bounds.bottom >= contentBounds.top && bounds.top <= contentBounds.bottom;
         })
+        .sort((left, right) => Math.abs(left.getBoundingClientRect().top - contentBounds.top - contentBounds.height / 2)
+          - Math.abs(right.getBoundingClientRect().top - contentBounds.top - contentBounds.height / 2))[0]
       : null;
     const visibleDeckHeaderTop = visibleDeckHeader?.getBoundingClientRect().top;
     setDeletingCard(true);
