@@ -12,6 +12,7 @@ import {
   getSimulationOffsetMinutesForDate,
 } from "../simulationClock.ts";
 import { IconButton } from "../ui/actionUi.tsx";
+import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 
@@ -102,18 +103,19 @@ export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: Si
           </div>
         </fieldset>
 
-        <label className="mt-6 grid max-w-sm gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-          Simuliertes Datum
-          <input
-            type="date"
+        <div className="core-field-group mt-6 max-w-sm">
+          <span className="core-field-label">Simuliertes Datum</span>
+          <CoreDatePicker
+            ariaLabel="Simuliertes Datum"
+            ariaDescribedBy="simulator-date-hint"
             min={minimumDate}
             max={maximumDate}
+            today={minimumDate}
             value={selectedDate}
-            onChange={(event) => selectOffset(getSimulationOffsetMinutesForDate(systemNow, event.target.value))}
-            className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 text-[var(--core-text)] outline-none"
+            onValueChange={(value) => selectOffset(getSimulationOffsetMinutesForDate(systemNow, value))}
           />
-          <span className="core-caption font-normal text-[var(--core-text-muted)]">Bis zu zehn Jahre in die Zukunft.</span>
-        </label>
+          <span id="simulator-date-hint" className="core-field-hint">Bis zu zehn Jahre in die Zukunft.</span>
+        </div>
       </SoftPanel>
     </div>
   );

@@ -23,9 +23,10 @@ test("simulator exposes bounded calendar controls without the retired test deck"
   assert.match(markup, /Morgen/);
   assert.match(markup, /\+3 Tage/);
   assert.match(markup, /\+30 Tage/);
-  assert.match(markup, /type="date"/);
-  assert.match(markup, /min="2026-08-06"/);
-  assert.match(markup, /max="2036-08-03"/);
+  assert.match(markup, /aria-label="Simuliertes Datum"/);
+  assert.match(markup, /data-core-date-picker="trigger"/);
+  assert.match(markup, />09\.08\.2026</);
+  assert.doesNotMatch(markup, /type="date"/);
   assert.match(markup, /\d{2}:\d{2} Uhr/);
   assert.match(markup, /echte Reviews/);
   assert.match(markup, /nicht bereits gespeicherte Reviews/);

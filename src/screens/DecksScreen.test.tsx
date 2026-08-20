@@ -187,9 +187,9 @@ test("card selection opens a non-modal detail aside with editor, copy and visibl
   assert.match(markup, />Kopieren<\/button>/);
   assert.doesNotMatch(markup, /Sichere Karten-Vorschau/);
   assert.match(markup, /Nächste Fälligkeit/);
-  assert.match(markup, /type="date"/);
-  assert.match(markup, /value="2026-08-05"/);
-  assert.match(markup, /min="2026-08-07"/);
+  assert.match(markup, /data-core-date-picker="trigger"/);
+  assert.match(markup, />05\.08\.2026</);
+  assert.doesNotMatch(markup, /type="date"/);
   assert.match(markup, />Neu planen<\/span><\/button>/);
   assert.doesNotMatch(markup, /Details und Herkunft|Version zum Wiederherstellen|Frühere Version wiederherstellen|Änderungslogeinträge|Details, Herkunft und Versionen/);
   assert.match(markup, /<section[^>]*data-testid="card-variant-tools"/);

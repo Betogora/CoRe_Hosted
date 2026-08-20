@@ -15,6 +15,7 @@ import { CardHtml, useCardMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CardStudyStateControls } from "../ui/CardStudyStateControls.tsx";
+import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
@@ -98,6 +99,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
   const [isGeneratingVariant, setIsGeneratingVariant] = React.useState(false);
   const learningDayOptions = React.useMemo(() => ({ dayStartHour, timeZone }), [dayStartHour, timeZone]);
   const dueDateKey = getLearningDayKey(card?.reviewState?.dueAt, learningDayOptions) ?? "";
+  const todayDateKey = getLearningDayKey(now, learningDayOptions) ?? "";
   const minimumDateKey = getLearningDayKey(addLearningDays(now, 1, learningDayOptions) ?? "", learningDayOptions) ?? "";
   const [rescheduleDate, setRescheduleDate] = React.useState(dueDateKey);
   const [rescheduleError, setRescheduleError] = React.useState("");
@@ -402,20 +404,21 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
         onSuspendedChange={(suspended) => onSetStudyState(card.id, { suspended })}
       />
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3 rounded-xl border border-[var(--core-border)] bg-core-surface p-3">
-        <label className="grid min-w-0 flex-1 gap-2 core-body font-semibold text-[var(--core-text-secondary)]" htmlFor={`card-due-date-${card.id}`}>
-          <span className="inline-flex items-center gap-2"><CalendarDays size={17} aria-hidden="true" />Nächste Fälligkeit</span>
-          <input
+        <div className="core-field-group min-w-0 flex-1">
+          <span className="core-field-label inline-flex items-center gap-2 font-semibold"><CalendarDays size={17} aria-hidden="true" />Nächste Fälligkeit</span>
+          <CoreDatePicker
             id={`card-due-date-${card.id}`}
-            type="date"
+            ariaLabel="Nächste Fälligkeit"
             value={rescheduleDate}
             min={minimumDateKey}
-            onChange={(event) => {
-              setRescheduleDate(event.target.value);
+            today={todayDateKey}
+            onValueChange={(value) => {
+              setRescheduleDate(value);
               setRescheduleError("");
             }}
-            className="min-h-11 w-full rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text)] sm:max-w-64"
+            className="sm:max-w-64"
           />
-        </label>
+        </div>
         <ActionButton type="button" variant="secondary" disabled={!canReschedule || isRescheduling} onClick={() => void rescheduleCard()}>
           {isRescheduling ? "Plant neu …" : "Neu planen"}
         </ActionButton>

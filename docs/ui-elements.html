@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: c4850037f7548819 */
+/* Quellenstand: 90e5373bc209a7cc */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -952,6 +952,9 @@ video {
 .hidden {
   display: none;
 }
+.aspect-square {
+  aspect-ratio: 1 / 1;
+}
 .size-10 {
   width: 2.5rem;
   height: 2.5rem;
@@ -1023,6 +1026,9 @@ video {
 .min-h-48 {
   min-height: 12rem;
 }
+.min-h-9 {
+  min-height: 2.25rem;
+}
 .min-h-\[42rem\] {
   min-height: 42rem;
 }
@@ -1057,6 +1063,9 @@ video {
 .min-w-64 {
   min-width: 16rem;
 }
+.max-w-80 {
+  max-width: 20rem;
+}
 .max-w-\[32rem\] {
   max-width: 32rem;
 }
@@ -1068,6 +1077,9 @@ video {
 }
 .max-w-xl {
   max-width: 36rem;
+}
+.max-w-xs {
+  max-width: 20rem;
 }
 .flex-1 {
   flex: 1 1 0%;
@@ -1115,6 +1127,12 @@ video {
 }
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.grid-cols-7 {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.grid-cols-\[auto_1fr_auto\] {
+  grid-template-columns: auto 1fr auto;
 }
 .grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
   grid-template-columns: minmax(0,1fr) auto;
@@ -1299,6 +1317,9 @@ video {
 }
 .border-transparent {
   border-color: transparent;
+}
+.bg-\[var\(--core-action-primary\)\] {
+  background-color: var(--core-action-primary);
 }
 .bg-\[var\(--core-info-surface\)\] {
   background-color: var(--core-info-surface);
@@ -1492,6 +1513,15 @@ video {
 .no-underline {
   text-decoration-line: none;
 }
+.opacity-35 {
+  opacity: 0.35;
+}
+.opacity-40 {
+  opacity: 0.4;
+}
+.opacity-65 {
+  opacity: 0.65;
+}
 .opacity-80 {
   opacity: 0.8;
 }
@@ -1522,6 +1552,12 @@ video {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+.ring-inset {
+  --tw-ring-inset: inset;
+}
+.ring-\[var\(--core-action-primary\)\] {
+  --tw-ring-color: var(--core-action-primary);
 }
 .ring-\[var\(--core-focus-ring-soft\)\] {
   --tw-ring-color: var(--core-focus-ring-soft);
@@ -3397,6 +3433,7 @@ summary {
       <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/></symbol>
       <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
       <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="icon-calendar" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"/><rect width="18" height="18" x="3" y="4" rx="2"/></symbol>
       <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
       <symbol id="icon-alert" viewBox="0 0 24 24"><path d="M10.3 3.7 2.4 18a2 2 0 0 0 1.8 3h15.6a2 2 0 0 0 1.8-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
       <symbol id="icon-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
@@ -3628,7 +3665,7 @@ summary {
             <div class="catalog-section-head">
               <p class="catalog-kicker">05 · Eingabe</p>
               <h2 class="core-heading-2 text-core-text">Formulare und Auswahlfelder</h2>
-              <p>Native Texteingaben mit gemeinsamen Feldklassen sowie das produktweite zugängliche CoRe-Auswahlfeld.</p>
+              <p>Gemeinsame Eingaben, der kontrollierte CoRe-Datumspicker und das produktweite zugängliche Auswahlfeld.</p>
             </div>
             <div class="catalog-section-body">
               <div class="catalog-grid catalog-grid-wide">
@@ -3638,6 +3675,30 @@ summary {
                 <label class="core-field-group"><span class="core-field-label">Ungültige Eingabe</span><input class="core-field" type="email" aria-invalid="true" aria-describedby="email-error" value="keine-mail" /><span id="email-error" class="core-field-error">Bitte gib eine gültige E-Mail-Adresse ein.</span></label>
                 <label class="core-field-group"><span class="core-field-label">Deaktiviert</span><input class="core-field" type="text" disabled value="Nicht bearbeitbar" /><span class="core-field-hint">Disabled-Farbe und Cursor.</span></label>
                 <label class="core-field-group"><span class="core-field-label">Nur lesen</span><input class="core-field bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]" type="text" readonly value="account@core.app" /><span class="core-field-hint">Login-E-Mail kann nicht geändert werden.</span></label>
+              </div>
+              <div class="catalog-demo">
+                <span class="catalog-demo-label">Gemeinsamer CoRe-Datumspicker · geöffnet</span>
+                <div class="core-field-group max-w-xs">
+                  <span class="core-field-label">Nächste Fälligkeit</span>
+                  <button type="button" aria-label="Nächste Fälligkeit" aria-haspopup="dialog" aria-expanded="true" class="core-field inline-flex items-center justify-between gap-3 text-left"><span>20.08.2026</span><svg class="catalog-icon-sm shrink-0 text-core-action"><use href="#icon-calendar"></use></svg></button>
+                </div>
+                <div role="dialog" aria-label="Nächste Fälligkeit: Datum auswählen" class="core-overlay mt-2 w-full max-w-80 rounded-2xl p-3">
+                  <div class="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                    <div class="flex"><button type="button" aria-label="Ein Jahr zurück" disabled class="grid size-9 place-items-center rounded-lg text-core-muted opacity-40">«</button><button type="button" aria-label="Vorherigen Monat anzeigen" disabled class="grid size-9 place-items-center rounded-lg text-core-muted opacity-40">‹</button></div>
+                    <p class="whitespace-nowrap text-center core-body font-semibold text-core-text">August 2026</p>
+                    <div class="flex"><button type="button" aria-label="Nächsten Monat anzeigen" class="grid size-9 place-items-center rounded-lg text-core-text">›</button><button type="button" aria-label="Ein Jahr weiter" class="grid size-9 place-items-center rounded-lg text-core-text">»</button></div>
+                  </div>
+                  <div class="mt-2 grid grid-cols-7 gap-1" aria-hidden="true"><span class="py-1 text-center core-caption font-semibold text-core-muted">Mo</span><span class="py-1 text-center core-caption font-semibold text-core-muted">Di</span><span class="py-1 text-center core-caption font-semibold text-core-muted">Mi</span><span class="py-1 text-center core-caption font-semibold text-core-muted">Do</span><span class="py-1 text-center core-caption font-semibold text-core-muted">Fr</span><span class="py-1 text-center core-caption font-semibold text-core-muted">Sa</span><span class="py-1 text-center core-caption font-semibold text-core-muted">So</span></div>
+                  <div class="grid grid-cols-7 gap-1" role="group" aria-label="Kalendertage für August 2026">
+                    <button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">27</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">28</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">29</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">30</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">31</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">1</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">2</button>
+                    <button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">3</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">4</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">5</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">6</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">7</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">8</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">9</button>
+                    <button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">10</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">11</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">12</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">13</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">14</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">15</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">16</button>
+                    <button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">17</button><button type="button" disabled class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-35">18</button><button type="button" aria-current="date" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text ring-1 ring-inset ring-[var(--core-action-primary)]">19</button><button type="button" aria-pressed="true" class="aspect-square min-h-9 rounded-lg bg-[var(--core-action-primary)] core-body font-semibold text-[var(--core-text-on-accent)] shadow-sm">20</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">21</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">22</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">23</button>
+                    <button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">24</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">25</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">26</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">27</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">28</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">29</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">30</button>
+                    <button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-text">31</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-65">1</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-65">2</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-65">3</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-65">4</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-65">5</button><button type="button" class="aspect-square min-h-9 rounded-lg core-body font-semibold text-core-muted opacity-65">6</button>
+                  </div>
+                </div>
+                <span class="core-field-hint">Karten-Neuplanung und Simulator teilen Darstellung, Tastaturführung und Datumsgrenzen.</span>
               </div>
               <div class="catalog-grid catalog-grid-wide">
                 <div class="catalog-demo">

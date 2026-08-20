@@ -864,8 +864,8 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   await expect(page.getByText("Änderungslogeinträge")).toHaveCount(0);
   await expect(page.getByRole("combobox", { name: "Version zum Wiederherstellen" })).toHaveCount(0);
 
-  const dueDate = page.getByLabel("Nächste Fälligkeit");
-  await expect(dueDate).not.toHaveValue("");
+  const dueDate = page.getByRole("button", { name: "Nächste Fälligkeit" });
+  await expect(dueDate).toContainText(/\d{2}\.\d{2}\.\d{4}/);
   await expect(page.getByRole("button", { name: "Neu planen" })).toBeDisabled();
   await page.getByRole("button", { name: "Aussetzen", exact: true }).click();
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.status).toBe("suspended");
@@ -873,7 +873,19 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   const reviewEventsBefore = (await readAppState(page)).decks
     .find((deck: { id: string }) => deck.id === DECK_IDS.africa).reviewEvents.length;
 
-  await dueDate.fill("2099-08-10");
+  await dueDate.click();
+  const datePicker = page.getByRole("dialog", { name: "Nächste Fälligkeit: Datum auswählen" });
+  await expect(datePicker).toBeVisible();
+  const focusedDay = datePicker.locator('button[data-date-key]:focus');
+  await expect(focusedDay).toHaveCount(1);
+  const initialFocusKey = await focusedDay.getAttribute("data-date-key");
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => focusedDay.getAttribute("data-date-key")).not.toBe(initialFocusKey);
+  const selectedDateKey = await focusedDay.getAttribute("data-date-key");
+  await page.keyboard.press("Enter");
+  await expect(datePicker).toBeHidden();
+  const [selectedYear, selectedMonth, selectedDay] = selectedDateKey!.split("-");
+  await expect(dueDate).toContainText(`${selectedDay}.${selectedMonth}.${selectedYear}`);
   await expect(page.getByRole("button", { name: "Neu planen" })).toBeEnabled();
   await page.getByRole("button", { name: "Neu planen" }).click();
   await expect(page.getByText("Die nächste Fälligkeit wurde erfolgreich neu geplant.")).toBeVisible();
@@ -893,6 +905,26 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   expect(events.at(-1).schedulerBefore).toEqual({ dueAt: before.reviewState.dueAt });
   expect(events.at(-1).schedulerAfter).toEqual({ dueAt: scheduled.reviewState.dueAt });
   expect(events.at(-1).flags).toEqual({ kind: "manual_reschedule" });
+});
+
+test("shared CoRe date picker updates the simulator within its bounded range", async ({ page }: any) => {
+  await resetToFreshLocalState(page);
+  await page.goto("/simulator");
+  await expect(page.getByRole("heading", { name: "Simulator", exact: true })).toBeVisible();
+
+  const dateTrigger = page.getByRole("button", { name: "Simuliertes Datum" });
+  const initialLabel = await dateTrigger.innerText();
+  await dateTrigger.click();
+  const datePicker = page.getByRole("dialog", { name: "Simuliertes Datum: Datum auswählen" });
+  await expect(datePicker).toBeVisible();
+  await expect(datePicker.locator('button[data-date-key][aria-current="date"]')).toHaveCount(1);
+  const nextDate = datePicker.locator('button[data-date-key]:not([disabled]):not([aria-pressed="true"])').first();
+  const nextDateKey = await nextDate.getAttribute("data-date-key");
+  await nextDate.click();
+
+  const [year, month, day] = nextDateKey!.split("-");
+  await expect(dateTrigger).toContainText(`${day}.${month}.${year}`);
+  await expect(dateTrigger).not.toHaveText(initialLabel);
 });
 
 test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-core @hosted-core PDF-Auswahl erzeugt nur Karteninhalt", async ({ page }: any) => {

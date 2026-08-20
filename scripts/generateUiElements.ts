@@ -21,6 +21,7 @@ const visualSourcePaths = [
   "src/menuModel.ts",
   "src/ui/actionUi.tsx",
   "src/ui/coreUi.tsx",
+  "src/ui/CoreDatePicker.tsx",
   "src/ui/feedbackUi.tsx",
   "src/ui/FileDropField.tsx",
   "src/ui/SettingsSaveBar.tsx",
