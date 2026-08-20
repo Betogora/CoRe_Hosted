@@ -152,6 +152,7 @@ export function CardPresentationSurface({
           title={title}
           aria-describedby={compatibilityVisible ? descriptionId : undefined}
           sandbox={surface === "review" ? "allow-same-origin" : ""}
+          scrolling={surface === "review" ? "no" : undefined}
           referrerPolicy="no-referrer"
           srcDoc={srcdoc}
           className={frameClassName}

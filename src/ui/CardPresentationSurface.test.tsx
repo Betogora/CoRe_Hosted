@@ -39,6 +39,7 @@ test("renders an opaque scriptless iframe and resolves only controlled media URL
 
   assert.match(markup, /<iframe[^>]+sandbox=""/);
   assert.doesNotMatch(markup, /allow-scripts|allow-same-origin/);
+  assert.doesNotMatch(markup, /scrolling="no"/);
   assert.match(markup, /blob:https:\/\/core.local\/figure/);
   assert.doesNotMatch(markup, /tracker\.example/);
 });
@@ -77,6 +78,7 @@ test("renders review content without a framed card surface", () => {
 
   const iframe = markup.match(/<iframe[^>]+>/)?.[0] ?? "";
   assert.match(iframe, /sandbox="allow-same-origin"/);
+  assert.match(iframe, /scrolling="no"/);
   assert.doesNotMatch(iframe, /allow-scripts/);
   assert.match(iframe, /border-0 bg-transparent/);
   assert.doesNotMatch(iframe, /rounded-xl|border-\[var\(--core-border\)\]|bg-core-surface/);

@@ -97,7 +97,9 @@ test("shows only the CoRe answer during review while previews keep the composed 
   assert.match(answer.srcdoc, /font-family:Synonym,ui-sans-serif/);
   assert.match(answer.srcdoc, /data:font\/woff2;base64,AA==/);
   assert.match(answer.srcdoc, /font-src data: blob:/);
+  assert.match(answer.srcdoc, /html\{scrollbar-gutter:stable\}/);
   assert.match(answer.srcdoc, /html,body\{background:transparent!important\}/);
+  assert.doesNotMatch(preview.srcdoc, /scrollbar-gutter:stable/);
 });
 
 test("omits Anki FrontSide and its leading separator from review answers", async () => {
